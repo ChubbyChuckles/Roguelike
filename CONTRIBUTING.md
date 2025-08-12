@@ -28,6 +28,8 @@
 * Error paths checked & logged
 * Tests cover success + at least one failure / edge case
 * Pre-commit hooks pass locally (format + tests) before review
+* Structural coverage: every new module must have at least one test referencing it
+* TODOs must follow TODO(#123): pattern (reference an issue id)
 
 ## Pre-commit Setup
 ```bash

@@ -64,6 +64,8 @@ On each commit the following run:
 * Formatting / whitespace & YAML sanity
 * clang-format (must be clean)
 * Fast build (Debug, SDL OFF) + all tests
+* Structural test coverage guard (every module referenced by some test)
+* TODO issue reference enforcement (TODO(#123))
 
 Manual hooks:
 ```powershell

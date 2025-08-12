@@ -12,7 +12,7 @@ fi
 lcov --directory "${BUILD_DIR}" --capture --output-file "${INFO_FILE}" 1>/dev/null
 lcov --remove "${INFO_FILE}" '/usr/*' '*/tests/*' '*/_deps/*' --output-file "${INFO_FILE}" 1>/dev/null
 
-echo "Coverage summary:" 
+echo "Coverage summary:"
 lcov --list "${INFO_FILE}" | tail -n 25
 
 PERCENT=$(lcov --list "${INFO_FILE}" | awk '/lines......:/ { pct=$2 } END { gsub("%","",pct); print pct }')

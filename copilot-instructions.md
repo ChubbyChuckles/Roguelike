@@ -58,11 +58,13 @@ These directives govern all AI-generated contributions. Treat them as mandatory 
 [] All tests pass locally.
 [] Update README or docs if externally visible API changes.
 [] Pre-commit hooks (format + tests) pass.
+[] Structural test coverage script passes (module referenced by a test).
+[] All TODOs use TODO(#123): pattern.
 
 ## Prohibited Patterns
 * Monolithic files mixing unrelated concerns.
 * Silent failures (always log with context).
-* Unbounded busy-wait loops lacking TODO about timing.
+* Unbounded busy-wait loops lacking TODO(#123) about timing.
 * Hidden state mutations via implicit singletons.
 
 ## Refactoring Guidance

@@ -3,14 +3,15 @@
 
 #include <stdbool.h>
 
-typedef struct RogueAppConfig {
-    const char *window_title;
+typedef struct RogueAppConfig
+{
+    const char* window_title;
     int window_width;
     int window_height;
     int target_fps; /* 0 = uncapped */
 } RogueAppConfig;
 
-bool rogue_app_init(const RogueAppConfig *cfg);
+bool rogue_app_init(const RogueAppConfig* cfg);
 /* Run full loop until exit requested */
 void rogue_app_run(void);
 /* Execute exactly one frame (for tests & tools) */

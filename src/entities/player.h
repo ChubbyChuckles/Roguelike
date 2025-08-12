@@ -3,11 +3,12 @@
 
 #include "entities/entity.h"
 
-typedef struct RoguePlayer {
+typedef struct RoguePlayer
+{
     RogueEntity base;
     int health;
 } RoguePlayer;
 
-void rogue_player_init(RoguePlayer *p);
+void rogue_player_init(RoguePlayer* p);
 
 #endif

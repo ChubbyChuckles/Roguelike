@@ -3,7 +3,8 @@
 
 #include "math/vec2.h"
 
-typedef struct RogueEntity {
+typedef struct RogueEntity
+{
     RogueVec2 pos;
     RogueVec2 vel;
 } RogueEntity;

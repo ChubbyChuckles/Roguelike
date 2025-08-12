@@ -37,6 +37,18 @@ repos:
         language: system
         pass_filenames: false
         stages: [manual]
+      - id: structural-tests
+        name: Structural test coverage (each module referenced)
+        entry: python tools/precommit/structural_test_check.py
+        language: system
+        pass_filenames: false
+        stages: [commit]
+      - id: todo-issue-check
+        name: Enforce TODO issue reference pattern
+        entry: python tools/precommit/todo_issue_check.py
+        language: system
+        pass_filenames: false
+        stages: [commit]
       - id: commit-msg-lint
         name: Commit message style (imperative, <= 72 first line)
         entry: python tools/precommit/commit_msg_lint.py

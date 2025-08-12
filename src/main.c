@@ -1,14 +1,12 @@
 #include "core/app.h"
 #include "util/log.h"
 
-int main(void) {
+int main(void)
+{
     RogueAppConfig cfg = {
-        .window_title = "Roguelike",
-        .window_width = 640,
-        .window_height = 360,
-        .target_fps = 60
-    };
-    if (!rogue_app_init(&cfg)) {
+        .window_title = "Roguelike", .window_width = 640, .window_height = 360, .target_fps = 60};
+    if (!rogue_app_init(&cfg))
+    {
         ROGUE_LOG_ERROR("Failed to initialize app");
         return 1;
     }
