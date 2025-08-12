@@ -704,7 +704,7 @@ void rogue_app_step(void)
         if(g_app.cam_x > world_px_w - g_app.viewport_w) g_app.cam_x = world_px_w - g_app.viewport_w;
         if(g_app.cam_y > world_px_h - g_app.viewport_h) g_app.cam_y = world_px_h - g_app.viewport_h;
 
-        /* Render tiles (culled) */
+        /* Render tiles (culled) with horizontal run batching */
         int scale = 1;
         int tsz = g_app.tile_size;
         int first_tx = (int)(g_app.cam_x / tsz); if(first_tx<0) first_tx=0;
@@ -713,11 +713,10 @@ void rogue_app_step(void)
         int vis_ty = g_app.viewport_h / tsz + 2;
         int last_tx = first_tx + vis_tx; if(last_tx > g_app.world_map.width) last_tx = g_app.world_map.width;
         int last_ty = first_ty + vis_ty; if(last_ty > g_app.world_map.height) last_ty = g_app.world_map.height;
-        static int logged_tile_draw = 0;
-        int tile_drawn_count = 0;
         if(g_app.tileset_loaded){
             for(int y=first_ty; y<last_ty; y++){
-                for(int x=first_tx; x<last_tx; x++){
+                int x = first_tx;
+                while(x < last_tx){
                     const RogueSprite* spr = NULL;
                     if(g_app.tile_sprite_lut_ready){
                         spr = g_app.tile_sprite_lut[y*g_app.world_map.width + x];
@@ -725,10 +724,24 @@ void rogue_app_step(void)
                         unsigned char t = g_app.world_map.tiles[y*g_app.world_map.width + x];
                         if(t < ROGUE_TILE_MAX) spr = rogue_tile_sprite_get_xy((RogueTileType)t, x, y);
                     }
-                    if(spr && spr->sw){
-                        rogue_sprite_draw(spr, (int)(x*tsz - g_app.cam_x), (int)(y*tsz - g_app.cam_y), scale);
-                        tile_drawn_count++;
+                    if(!(spr && spr->sw)) { x++; continue; }
+                    int run = 1;
+                    while(x+run < last_tx){
+                        const RogueSprite* spr2 = g_app.tile_sprite_lut_ready ? g_app.tile_sprite_lut[y*g_app.world_map.width + (x+run)] : NULL;
+                        if(spr2 != spr) break; /* pointer equality ensures identical source */
+                        run++;
                     }
+                    /* Draw each tile separately (avoid stretching). Run detection still saves lookups. */
+#ifdef ROGUE_HAVE_SDL
+                    SDL_Rect src = { spr->sx, spr->sy, spr->sw, spr->sh };
+                    for(int i=0;i<run;i++){
+                        SDL_Rect dst = { (int)((x+i)*tsz - g_app.cam_x), (int)(y*tsz - g_app.cam_y), tsz*scale, tsz*scale };
+                        SDL_RenderCopy(g_app.renderer, spr->tex->handle, &src, &dst);
+                    }
+#else
+                    for(int i=0;i<run;i++) rogue_sprite_draw(spr, (int)((x+i)*tsz - g_app.cam_x), (int)(y*tsz - g_app.cam_y), scale);
+#endif
+                    x += run;
                 }
             }
         } else {
@@ -739,13 +752,8 @@ void rogue_app_step(void)
                     SDL_SetRenderDrawColor(g_app.renderer, c.r,c.g,c.b,c.a);
                     SDL_Rect r = { (int)(x*tsz - g_app.cam_x), (int)(y*tsz - g_app.cam_y), tsz*scale, tsz*scale };
                     SDL_RenderFillRect(g_app.renderer, &r);
-                    tile_drawn_count++;
                 }
             }
-        }
-        if(!logged_tile_draw){
-            ROGUE_LOG_INFO("Tile draw first frame: %d (tileset_loaded=%d lut_ready=%d)", tile_drawn_count, g_app.tileset_loaded, g_app.tile_sprite_lut_ready);
-            logged_tile_draw = 1;
         }
 
         /* Render player */
