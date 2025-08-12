@@ -38,6 +38,7 @@ add_library(rogue_core
     src/platform/platform_sdl.c
     src/graphics/renderer.c
     src/graphics/sprite.c
+    src/graphics/tile_sprites.c
     src/input/input.c
     src/world/tilemap.c
     src/world/world_gen.c

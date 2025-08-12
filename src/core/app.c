@@ -29,6 +29,8 @@ SOFTWARE.
 #include "input/input.h"
 #include "entities/player.h"
 #include "graphics/sprite.h"
+#include "graphics/tile_sprites.h"
+#include <string.h>
 
 #include <time.h> /* for local timing when SDL not providing high-res */
 
@@ -47,10 +49,7 @@ typedef struct RogueAppState
     RogueTileMap world_map;
     RogueInputState input;
     RoguePlayer player;
-    RogueTexture tileset_tex;
-    int tileset_loaded;
-    /* Tile sprites (indexed by RogueTileType) */
-    RogueSprite tile_sprites[ROGUE_TILE_MAX];
+    int tileset_loaded; /* now indicates tile registry finalized */
     int tile_size;
     /* Player textures for animations: state (0=idle,1=walk,2=run) x direction (0=down,1=left,2=right,3=up) */
     RogueTexture player_tex[3][4];
@@ -147,7 +146,7 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     RogueWorldGenConfig wcfg = { .seed = 1337u, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2 };
     rogue_world_generate(&g_app.world_map, &wcfg);
     rogue_player_init(&g_app.player);
-    g_app.tileset_loaded = 0; /* user will load externally later */
+    g_app.tileset_loaded = 0; /* registry not finalized yet */
     g_app.tile_size = 64;
     g_app.player_loaded = 0;
     g_app.player_state = 0;
@@ -258,20 +257,18 @@ void rogue_app_step(void)
         /* Lazy one-time load of assets (avoid repeated loads). Adjust paths to actual asset locations. */
         if(!g_app.tileset_loaded)
         {
-            if(rogue_texture_load(&g_app.tileset_tex, "assets/tiles.png"))
-            {
-                /* Map tile types linearly across first row of tileset (64x64 tiles) */
-                int tsz = g_app.tile_size;
-                for(int i=0;i<ROGUE_TILE_MAX;i++)
-                {
-                    g_app.tile_sprites[i].tex = &g_app.tileset_tex;
-                    g_app.tile_sprites[i].sx = i*tsz;
-                    g_app.tile_sprites[i].sy = 0;
-                    g_app.tile_sprites[i].sw = tsz;
-                    g_app.tile_sprites[i].sh = tsz;
-                }
-                g_app.tileset_loaded = 1;
-            }
+            /* Initialize registry and define mappings (example definitions; replace with real sheet paths) */
+            rogue_tile_sprites_init(g_app.tile_size);
+            /* Example: all from a single sheet assets/tiles.png first row columns */
+            rogue_tile_sprite_define(ROGUE_TILE_GRASS, "assets/tiles.png", 0, 0);
+            rogue_tile_sprite_define(ROGUE_TILE_WATER, "assets/tiles.png", 1, 0);
+            rogue_tile_sprite_define(ROGUE_TILE_FOREST, "assets/tiles.png", 2, 0);
+            rogue_tile_sprite_define(ROGUE_TILE_MOUNTAIN, "assets/tiles.png", 3, 0);
+            rogue_tile_sprite_define(ROGUE_TILE_CAVE_WALL, "assets/tiles.png", 4, 0);
+            rogue_tile_sprite_define(ROGUE_TILE_CAVE_FLOOR, "assets/tiles.png", 5, 0);
+            rogue_tile_sprite_define(ROGUE_TILE_RIVER, "assets/tiles.png", 6, 0);
+            rogue_tile_sprites_finalize();
+            g_app.tileset_loaded = 1;
         }
         if(!g_app.player_loaded)
         {
@@ -335,14 +332,17 @@ void rogue_app_step(void)
         /* Render tiles */
         int scale = 1; /* 1 screen pixel per tile pixel until camera implemented */
         int tsz = g_app.tile_size;
-        if(g_app.tileset_loaded)
+    if(g_app.tileset_loaded)
         {
             for(int y=0;y<g_app.world_map.height;y++)
             for(int x=0;x<g_app.world_map.width;x++)
             {
                 unsigned char t = g_app.world_map.tiles[y*g_app.world_map.width + x];
-                if(t < ROGUE_TILE_MAX && g_app.tile_sprites[t].sw)
-                    rogue_sprite_draw(&g_app.tile_sprites[t], x*tsz*scale, y*tsz*scale, scale);
+        if(t < ROGUE_TILE_MAX){
+            const RogueSprite* spr = rogue_tile_sprite_get((RogueTileType)t);
+            if(spr && spr->sw)
+            rogue_sprite_draw(spr, x*tsz*scale, y*tsz*scale, scale);
+        }
             }
         }
         else
