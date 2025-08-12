@@ -49,6 +49,12 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit]
+      - id: license-headers
+        name: License header present
+        entry: python tools/precommit/license_header_check.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
       - id: commit-msg-lint
         name: Commit message style (imperative, <= 72 first line)
         entry: python tools/precommit/commit_msg_lint.py

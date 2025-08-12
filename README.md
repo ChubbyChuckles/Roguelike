@@ -1,5 +1,7 @@
 # Roguelike (Zelda-like) 2D Game (C)
 
+![Build Status](https://github.com/ChubbyChuckles/Roguelike/actions/workflows/ci.yml/badge.svg)
+
 Clean, modular C codebase scaffold for a top‑down Zelda‑like game. Enforces separation of concerns, code quality, and regression safety via tests & tooling.
 
 ## Architecture
