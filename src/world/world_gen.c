@@ -20,6 +20,16 @@ static double value_noise(double x,double y){
     double a=lerp(v00,v10,sx); double b=lerp(v01,v11,sx); return lerp(a,b,sy);
 }
 
+static double fbm(double x,double y,int octaves,double lacunarity,double gain){
+    double amp=1.0, freq=1.0, sum=0.0, norm=0.0;
+    for(int i=0;i<octaves;i++){
+        sum += value_noise(x*freq,y*freq)*amp;
+        norm += amp;
+        freq *= lacunarity; amp *= gain;
+    }
+    return sum / (norm>0?norm:1.0);
+}
+
 /* Voronoi biome seeds */
 typedef struct { int x,y; RogueTileType base; } BiomeSeed;
 
@@ -41,6 +51,34 @@ static RogueTileType elevation_to_tile(double elev){
 }
 
 static void generate_base(RogueTileMap* map, const RogueWorldGenConfig* cfg){
+    if(cfg->advanced_terrain){
+        /* Fractal elevation + moisture approach */
+        double water_level = (cfg->water_level>0.0? cfg->water_level : 0.32);
+        for(int y=0;y<map->height;y++){
+            for(int x=0;x<map->width;x++){
+                double nx = (double)x/(double)map->width  - 0.5;
+                double ny = (double)y/(double)map->height - 0.5;
+                double dist = sqrt(nx*nx+ny*ny);
+                double elev = fbm((nx+5.0)*2.0,(ny+7.0)*2.0,5,2.0,0.5);
+                /* Add continental falloff */
+                elev -= dist*0.35;
+                /* Moisture separate fbm */
+                double moist = fbm((nx+13.0)*2.5,(ny+3.0)*2.5,4,2.0,0.55);
+                RogueTileType t;
+                if(elev < water_level){
+                    t = (rng_norm()<0.05)?ROGUE_TILE_RIVER:ROGUE_TILE_WATER; /* some variation */
+                } else {
+                    double e = elev - water_level;
+                    if(e < 0.05){ t = ROGUE_TILE_GRASS; }
+                    else if(e < 0.18){ t = (moist>0.55)?ROGUE_TILE_FOREST:ROGUE_TILE_GRASS; }
+                    else if(e < 0.35){ t = (moist>0.65)?ROGUE_TILE_FOREST:ROGUE_TILE_MOUNTAIN; }
+                    else { t = ROGUE_TILE_MOUNTAIN; }
+                }
+                map->tiles[y*map->width + x] = (unsigned char)t;
+            }
+        }
+        return; /* skip legacy biome system */
+    }
     int nseeds = cfg->biome_regions; if(nseeds < 1) nseeds = 1; if(nseeds>128) nseeds=128;
     BiomeSeed* seeds = (BiomeSeed*)malloc((size_t)nseeds * sizeof(BiomeSeed));
     for(int i=0;i<nseeds;i++){ seeds[i].x=rng_range(0,map->width-1); seeds[i].y=rng_range(0,map->height-1); seeds[i].base = pick_biome(); }
@@ -112,7 +150,8 @@ static void apply_erosion(RogueTileMap* map){
 }
 
 /* Collapse very small isolated islands ("salt & pepper" noise) to the dominant surrounding terrain. */
-static void smooth_small_islands(RogueTileMap* map, int max_island_size){
+static void smooth_small_islands(RogueTileMap* map, int max_island_size, int target_tile /* -1 for any */, int replacement_bias /* not used yet */){
+    (void)replacement_bias;
     if(max_island_size <= 0) return;
     int w = map->width, h = map->height;
     size_t total = (size_t)w * (size_t)h;
@@ -132,6 +171,7 @@ static void smooth_small_islands(RogueTileMap* map, int max_island_size){
             size_t idx = (size_t)y * (size_t)w + (size_t)x;
             if(visited[idx]) continue;
             unsigned char tile = map->tiles[idx];
+            if(target_tile >= 0 && tile != (unsigned char)target_tile){ visited[idx]=1; continue; }
             if(tile == ROGUE_TILE_RIVER) { visited[idx]=1; continue; } /* keep rivers thin */
             /* Flood fill but abort if component grows beyond limit */
             int comp_count = 0;
@@ -187,15 +227,47 @@ static void smooth_small_islands(RogueTileMap* map, int max_island_size){
     free(visited); free(sx); free(sy); free(compx); free(compy);
 }
 
+/* Expand water slightly to enforce minimum shore thickness eliminating 1-tile grass notches encroaching into lakes. */
+static void thicken_shores(RogueTileMap* map){
+    int w=map->width, h=map->height;
+    unsigned char* copy = (unsigned char*)malloc((size_t)w*h);
+    if(!copy) return;
+    memcpy(copy, map->tiles, (size_t)w*h);
+    for(int y=1;y<h-1;y++){
+        for(int x=1;x<w-1;x++){
+            size_t idx = (size_t)y * (size_t)w + (size_t)x;
+            unsigned char t = copy[idx];
+            if(t==ROGUE_TILE_GRASS || t==ROGUE_TILE_FOREST){
+                int water_adj=0; for(int oy=-1;oy<=1;oy++) for(int ox=-1;ox<=1;ox++){ if(!ox&&!oy) continue; unsigned char nt = copy[(size_t)(y+oy)*w + (size_t)(x+ox)]; if(nt==ROGUE_TILE_WATER||nt==ROGUE_TILE_RIVER) water_adj++; }
+                if(water_adj>=5){ map->tiles[idx] = ROGUE_TILE_WATER; }
+            }
+        }
+    }
+    free(copy);
+}
+
 bool rogue_world_generate(RogueTileMap* out_map, const RogueWorldGenConfig* cfg){
     if(!out_map || !cfg) return false;
     if(!rogue_tilemap_init(out_map, cfg->width, cfg->height)) return false;
     rng_seed(cfg->seed);
     generate_base(out_map, cfg);
-    generate_caves(out_map, cfg);
-    carve_rivers(out_map, cfg);
-    apply_erosion(out_map);
-    /* Post-process to remove single-tile speckles for cleaner regions */
-    smooth_small_islands(out_map, 3);
+    if(!cfg->advanced_terrain){
+        generate_caves(out_map, cfg);
+        carve_rivers(out_map, cfg);
+        apply_erosion(out_map);
+    }
+    /* Multi-pass small island smoothing: first targeted categories (water, grass, forest, mountain) then global. */
+    int passes = cfg->small_island_passes > 0 ? cfg->small_island_passes : 1;
+    int max_sz = cfg->small_island_max_size > 0 ? cfg->small_island_max_size : 3;
+    for(int p=0;p<passes;p++){
+        smooth_small_islands(out_map, max_sz, ROGUE_TILE_WATER, 0);
+        smooth_small_islands(out_map, max_sz, ROGUE_TILE_GRASS, 0);
+        smooth_small_islands(out_map, max_sz, ROGUE_TILE_FOREST, 0);
+        smooth_small_islands(out_map, max_sz, ROGUE_TILE_MOUNTAIN, 0);
+        /* final catch-all (target_tile=-1) */
+        smooth_small_islands(out_map, max_sz, -1, 0);
+    }
+    int shore_passes = cfg->shore_fill_passes > 0 ? cfg->shore_fill_passes : 0;
+    for(int s=0;s<shore_passes;s++) thicken_shores(out_map);
     return true;
 }

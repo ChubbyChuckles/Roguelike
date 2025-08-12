@@ -223,7 +223,7 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     rogue_game_loop_init(&loop_cfg);
 
     /* Pre-generate world */
-    RogueWorldGenConfig wcfg = { .seed = 1337u, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2 };
+    RogueWorldGenConfig wcfg = { .seed = 1337u, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2, .small_island_max_size = 3, .small_island_passes = 2, .shore_fill_passes = 1, .advanced_terrain = 1, .water_level = 0.34 };
     /* Scale world 10x while keeping similar structural density by scaling biome_regions proportionally to area. */
     wcfg.width *= 10; /* 800 */
     wcfg.height *= 10; /* 600 */
@@ -296,7 +296,7 @@ static void process_events(void)
                 {
                     /* regenerate */
                     rogue_tilemap_free(&g_app.world_map);
-                    RogueWorldGenConfig wcfg = { .seed = g_app.pending_seed, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2 };
+                    RogueWorldGenConfig wcfg = { .seed = g_app.pending_seed, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2, .small_island_max_size = 3, .small_island_passes = 2, .shore_fill_passes = 1, .advanced_terrain = 1, .water_level = 0.34 };
                     rogue_world_generate(&g_app.world_map, &wcfg);
                     /* Initialize chunk meta (after world gen sets dimensions) */
                     g_app.chunks_x = (g_app.world_map.width  + g_app.chunk_size - 1) / g_app.chunk_size;
