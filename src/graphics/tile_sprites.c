@@ -55,7 +55,8 @@ static RogueTileType name_to_type(const char* name){
     struct { const char* n; RogueTileType t; } map[] = {
         {"EMPTY", ROGUE_TILE_EMPTY}, {"WATER", ROGUE_TILE_WATER}, {"GRASS", ROGUE_TILE_GRASS},
         {"FOREST", ROGUE_TILE_FOREST}, {"MOUNTAIN", ROGUE_TILE_MOUNTAIN}, {"CAVE_WALL", ROGUE_TILE_CAVE_WALL},
-        {"CAVE_FLOOR", ROGUE_TILE_CAVE_FLOOR}, {"RIVER", ROGUE_TILE_RIVER}
+        {"CAVE_FLOOR", ROGUE_TILE_CAVE_FLOOR}, {"RIVER", ROGUE_TILE_RIVER}, {"SWAMP", ROGUE_TILE_SWAMP},
+        {"SNOW", ROGUE_TILE_SNOW}, {"RIVER_DELTA", ROGUE_TILE_RIVER_DELTA}, {"RIVER_WIDE", ROGUE_TILE_RIVER_WIDE}
     };
     for(size_t i=0;i<sizeof(map)/sizeof(map[0]);i++) if(strcmp(map[i].n,name)==0) return map[i].t;
     return ROGUE_TILE_EMPTY;

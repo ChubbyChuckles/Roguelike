@@ -58,8 +58,17 @@ static void generate_base(RogueTileMap* map, const RogueWorldGenConfig* cfg){
     double lac = cfg->noise_lacunarity>0.0?cfg->noise_lacunarity:2.0;
     double gain = cfg->noise_gain>0.0?cfg->noise_gain:0.5;
     size_t total = (size_t)map->width * (size_t)map->height;
-    double* elev_field = (double*)malloc(total * sizeof(double));
-    double* moist_field = (double*)malloc(total * sizeof(double));
+        static double* elev_field_cache = NULL;
+        static double* moist_field_cache = NULL;
+        static int cache_w=0, cache_h=0;
+        if(cache_w!=map->width || cache_h!=map->height){
+            free(elev_field_cache); free(moist_field_cache);
+            elev_field_cache = (double*)malloc(total*sizeof(double));
+            moist_field_cache = (double*)malloc(total*sizeof(double));
+            cache_w=map->width; cache_h=map->height;
+        }
+        double* elev_field = elev_field_cache;
+        double* moist_field = moist_field_cache;
         for(int y=0;y<map->height;y++){
             for(int x=0;x<map->width;x++){
                 double nx = (double)x/(double)map->width  - 0.5;
@@ -77,10 +86,11 @@ static void generate_base(RogueTileMap* map, const RogueWorldGenConfig* cfg){
                     t = (rng_norm()<0.05)?ROGUE_TILE_RIVER:ROGUE_TILE_WATER; /* some variation */
                 } else {
                     double e = elev - water_level;
-                    if(e < 0.05){ t = ROGUE_TILE_GRASS; }
-                    else if(e < 0.18){ t = (moist>0.55)?ROGUE_TILE_FOREST:ROGUE_TILE_GRASS; }
-                    else if(e < 0.35){ t = (moist>0.65)?ROGUE_TILE_FOREST:ROGUE_TILE_MOUNTAIN; }
-                    else { t = ROGUE_TILE_MOUNTAIN; }
+                    if(e < 0.04){ t = (moist>0.60)?ROGUE_TILE_SWAMP:ROGUE_TILE_GRASS; }
+                    else if(e < 0.16){ t = (moist>0.55)?ROGUE_TILE_FOREST:ROGUE_TILE_GRASS; }
+                    else if(e < 0.30){ t = (moist>0.70)?ROGUE_TILE_FOREST:ROGUE_TILE_MOUNTAIN; }
+                    else if(e < 0.48){ t = (moist<0.35)?ROGUE_TILE_SNOW:ROGUE_TILE_MOUNTAIN; }
+                    else { t = (moist<0.45)?ROGUE_TILE_SNOW:ROGUE_TILE_MOUNTAIN; }
                 }
                 map->tiles[y*map->width + x] = (unsigned char)t;
             }
@@ -290,7 +300,15 @@ bool rogue_world_generate(RogueTileMap* out_map, const RogueWorldGenConfig* cfg)
                 while(attempts<200){ double e=elev[sy*w+sx]; if(e>water_level+0.25) break; sx=rng_range(0,w-1); sy=rng_range(0,h-1); attempts++; }
                 int x=sx, y=sy; double prev_e = elev[y*w+x];
                 for(int step=0; step<max_len; ++step){
-                    size_t idx=(size_t)y*w+x; out_map->tiles[idx] = (unsigned char)ROGUE_TILE_RIVER; /* carve river */
+                    size_t idx=(size_t)y*w+x;
+                    out_map->tiles[idx] = (unsigned char)ROGUE_TILE_RIVER;
+                    /* widen occasionally */
+                    if(step%25==0){
+                        for(int oy=-1;oy<=1;oy++) for(int ox=-1;ox<=1;ox++){
+                            if(!ox&&!oy) continue; int nx=x+ox, ny=y+oy; if(nx<0||ny<0||nx>=w||ny>=h) continue;
+                            if(rng_norm()<0.4) out_map->tiles[(size_t)ny*w+nx] = (unsigned char)ROGUE_TILE_RIVER_WIDE;
+                        }
+                    }
                     /* find lowest neighbor */
                     int bestx=x, besty=y; double beste = prev_e; double drop=0.0;
                     for(int oy=-1;oy<=1;oy++) for(int ox=-1;ox<=1;ox++){
@@ -298,6 +316,14 @@ bool rogue_world_generate(RogueTileMap* out_map, const RogueWorldGenConfig* cfg)
                     if(bestx==x && besty==y) break; /* local minimum */
                     x=bestx; y=besty; prev_e=beste;
                     if(prev_e < water_level) break; /* reached water */
+                }
+            }
+            /* Delta formation: expand river mouths where river meets water */
+            for(int y=1;y<h-1;y++) for(int x=1;x<w-1;x++){
+                size_t idx=(size_t)y*w+x; unsigned char t=out_map->tiles[idx];
+                if(t==ROGUE_TILE_RIVER||t==ROGUE_TILE_RIVER_WIDE){
+                    int water_neighbors=0; for(int oy=-1;oy<=1;oy++) for(int ox=-1;ox<=1;ox++){ if(!ox&&!oy) continue; unsigned char nt=out_map->tiles[(size_t)(y+oy)*w + (size_t)(x+ox)]; if(nt==ROGUE_TILE_WATER) water_neighbors++; }
+                    if(water_neighbors>=4){ out_map->tiles[idx]=(unsigned char)ROGUE_TILE_RIVER_DELTA; }
                 }
             }
             /* Mountain-limited caves: generate cellular automata in high elevation mask only */
@@ -313,7 +339,7 @@ bool rogue_world_generate(RogueTileMap* out_map, const RogueWorldGenConfig* cfg)
                         if(!cave[y*w+x]) continue; int count=0; for(int oy=-1;oy<=1;oy++) for(int ox=-1;ox<=1;ox++){ if(!ox&&!oy) continue; if(cave[(y+oy)*w+(x+ox)]) count++; }
                         if(count<4) cave[y*w+x]=0; }
                 }
-                for(int y=0;y<h;y++) for(int x=0;x<w;x++) if(cave[y*w+x]){ size_t idx=(size_t)y*w+x; if(out_map->tiles[idx]==ROGUE_TILE_MOUNTAIN) out_map->tiles[idx]=ROGUE_TILE_CAVE_WALL; }
+                for(int y=0;y<h;y++) for(int x=0;x<w;x++) if(cave[y*w+x]){ size_t idx=(size_t)y*w+x; if(out_map->tiles[idx]==ROGUE_TILE_MOUNTAIN) out_map->tiles[idx]=(rng_norm()<0.2)?ROGUE_TILE_CAVE_FLOOR:ROGUE_TILE_CAVE_WALL; }
                 free(cave);
             }
             free(elev);

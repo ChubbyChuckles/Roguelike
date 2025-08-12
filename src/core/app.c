@@ -287,6 +287,23 @@ static void process_events(void)
                 /* toggle run state manually for demo */
                 g_app.player_state = (g_app.player_state == 2) ? 1 : 2;
             }
+            /* Debug terrain parameter tweaks */
+            if (ev.key.keysym.sym == SDLK_F5) { /* regen with lower water */
+                g_app.pending_seed = (unsigned int)SDL_GetTicks();
+                RogueWorldGenConfig wcfg = { .seed = g_app.pending_seed, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2, .small_island_max_size = 3, .small_island_passes = 2, .shore_fill_passes = 1, .advanced_terrain = 1, .water_level = 0.30, .noise_octaves = 6, .noise_gain = 0.48, .noise_lacunarity = 2.05, .river_sources = 12, .river_max_length = 1200, .cave_mountain_elev_thresh = 0.60 };
+                wcfg.width *=10; wcfg.height *=10; wcfg.biome_regions = 1000; rogue_tilemap_free(&g_app.world_map); rogue_world_generate(&g_app.world_map,&wcfg); g_app.minimap_dirty=1; }
+            if (ev.key.keysym.sym == SDLK_F6) { /* regen with higher water */
+                g_app.pending_seed = (unsigned int)SDL_GetTicks();
+                RogueWorldGenConfig wcfg = { .seed = g_app.pending_seed, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2, .small_island_max_size = 3, .small_island_passes = 2, .shore_fill_passes = 1, .advanced_terrain = 1, .water_level = 0.38, .noise_octaves = 6, .noise_gain = 0.48, .noise_lacunarity = 2.05, .river_sources = 10, .river_max_length = 1200, .cave_mountain_elev_thresh = 0.60 };
+                wcfg.width *=10; wcfg.height *=10; wcfg.biome_regions = 1000; rogue_tilemap_free(&g_app.world_map); rogue_world_generate(&g_app.world_map,&wcfg); g_app.minimap_dirty=1; }
+            if (ev.key.keysym.sym == SDLK_F7) { /* increase roughness */
+                g_app.pending_seed = (unsigned int)SDL_GetTicks();
+                RogueWorldGenConfig wcfg = { .seed = g_app.pending_seed, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2, .small_island_max_size = 3, .small_island_passes = 2, .shore_fill_passes = 1, .advanced_terrain = 1, .water_level = 0.34, .noise_octaves = 7, .noise_gain = 0.55, .noise_lacunarity = 2.1, .river_sources = 14, .river_max_length = 1500, .cave_mountain_elev_thresh = 0.60 };
+                wcfg.width *=10; wcfg.height *=10; wcfg.biome_regions = 1000; rogue_tilemap_free(&g_app.world_map); rogue_world_generate(&g_app.world_map,&wcfg); g_app.minimap_dirty=1; }
+            if (ev.key.keysym.sym == SDLK_F8) { /* smoother */
+                g_app.pending_seed = (unsigned int)SDL_GetTicks();
+                RogueWorldGenConfig wcfg = { .seed = g_app.pending_seed, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2, .small_island_max_size = 2, .small_island_passes = 3, .shore_fill_passes = 1, .advanced_terrain = 1, .water_level = 0.34, .noise_octaves = 5, .noise_gain = 0.45, .noise_lacunarity = 1.95, .river_sources = 8, .river_max_length = 1000, .cave_mountain_elev_thresh = 0.60 };
+                wcfg.width *=10; wcfg.height *=10; wcfg.biome_regions = 1000; rogue_tilemap_free(&g_app.world_map); rogue_world_generate(&g_app.world_map,&wcfg); g_app.minimap_dirty=1; }
         }
         if (ev.type == SDL_KEYDOWN && g_app.show_start_screen)
         {
@@ -357,9 +374,13 @@ static void redraw_minimap_if_needed(int mm_w, int mm_h, int step){
             switch(t){
                 case ROGUE_TILE_WATER: c=(RogueColor){30,90,200,220}; break;
                 case ROGUE_TILE_RIVER: c=(RogueColor){50,140,230,220}; break;
+                case ROGUE_TILE_RIVER_WIDE: c=(RogueColor){70,170,250,230}; break;
+                case ROGUE_TILE_RIVER_DELTA: c=(RogueColor){90,190,250,230}; break;
                 case ROGUE_TILE_GRASS: c=(RogueColor){40,160,60,220}; break;
                 case ROGUE_TILE_FOREST: c=(RogueColor){10,90,20,220}; break;
+                case ROGUE_TILE_SWAMP: c=(RogueColor){50,120,50,220}; break;
                 case ROGUE_TILE_MOUNTAIN: c=(RogueColor){120,120,120,220}; break;
+                case ROGUE_TILE_SNOW: c=(RogueColor){230,230,240,220}; break;
                 case ROGUE_TILE_CAVE_WALL: c=(RogueColor){60,60,60,220}; break;
                 case ROGUE_TILE_CAVE_FLOOR: c=(RogueColor){110,80,60,220}; break;
                 default: break;
