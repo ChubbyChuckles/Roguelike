@@ -111,6 +111,82 @@ static void apply_erosion(RogueTileMap* map){
     }
 }
 
+/* Collapse very small isolated islands ("salt & pepper" noise) to the dominant surrounding terrain. */
+static void smooth_small_islands(RogueTileMap* map, int max_island_size){
+    if(max_island_size <= 0) return;
+    int w = map->width, h = map->height;
+    size_t total = (size_t)w * (size_t)h;
+    unsigned char* visited = (unsigned char*)malloc(total);
+    if(!visited) return;
+    memset(visited, 0, total);
+    int stack_cap = max_island_size * 8; /* heuristic */
+    int* sx = (int*)malloc(sizeof(int) * (size_t)stack_cap);
+    int* sy = (int*)malloc(sizeof(int) * (size_t)stack_cap);
+    if(!sx || !sy){ free(visited); if(sx) free(sx); if(sy) free(sy); return; }
+    int* compx = (int*)malloc(sizeof(int) * (size_t)max_island_size * 4);
+    int* compy = (int*)malloc(sizeof(int) * (size_t)max_island_size * 4);
+    if(!compx || !compy){ free(visited); free(sx); free(sy); if(compx) free(compx); if(compy) free(compy); return; }
+
+    for(int y=0;y<h;y++){
+        for(int x=0;x<w;x++){
+            size_t idx = (size_t)y * (size_t)w + (size_t)x;
+            if(visited[idx]) continue;
+            unsigned char tile = map->tiles[idx];
+            if(tile == ROGUE_TILE_RIVER) { visited[idx]=1; continue; } /* keep rivers thin */
+            /* Flood fill but abort if component grows beyond limit */
+            int comp_count = 0;
+            int sp = 0; /* stack pointer */
+            sx[sp] = x; sy[sp] = y; sp++;
+            visited[idx] = 1;
+            int aborted = 0;
+            while(sp>0){
+                int cx = sx[--sp]; int cy = sy[sp];
+                if(comp_count < max_island_size * 4){
+                    compx[comp_count] = cx; compy[comp_count] = cy; /* store */
+                }
+                comp_count++;
+                if(comp_count > max_island_size){ aborted = 1; break; }
+                static const int dirs[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
+                for(int di=0; di<4; ++di){
+                    int nx = cx + dirs[di][0]; int ny = cy + dirs[di][1];
+                    if(nx<0||ny<0||nx>=w||ny>=h) continue;
+                    size_t nidx = (size_t)ny * (size_t)w + (size_t)nx;
+                    if(visited[nidx]) continue;
+                    if(map->tiles[nidx] == tile){
+                        if(sp < stack_cap){ sx[sp]=nx; sy[sp]=ny; sp++; }
+                        visited[nidx] = 1;
+                    }
+                }
+            }
+            /* If component large, skip revisiting remainder (already marked). */
+            if(aborted) continue;
+            /* If component size <= threshold and not touching edge (optional) */
+            if(comp_count <= max_island_size){
+                int counts[ROGUE_TILE_MAX]; memset(counts, 0, sizeof counts);
+                for(int i=0;i<comp_count;i++){
+                    int cx = compx[i]; int cy = compy[i];
+                    static const int ndirs[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
+                    for(int di=0; di<4; ++di){
+                        int nx = cx + ndirs[di][0]; int ny = cy + ndirs[di][1];
+                        if(nx<0||ny<0||nx>=w||ny>=h) continue;
+                        unsigned char nt = map->tiles[(size_t)ny * (size_t)w + (size_t)nx];
+                        if(nt != tile && nt < ROGUE_TILE_MAX) counts[nt]++;
+                    }
+                }
+                int best_type = -1; int best_count = 0;
+                for(int t=0;t<ROGUE_TILE_MAX;t++) if(t!=tile && counts[t] > best_count){ best_count = counts[t]; best_type = t; }
+                if(best_type >= 0 && best_count > 0){
+                    for(int i=0;i<comp_count;i++){
+                        int cx = compx[i]; int cy = compy[i];
+                        map->tiles[(size_t)cy * (size_t)w + (size_t)cx] = (unsigned char)best_type;
+                    }
+                }
+            }
+        }
+    }
+    free(visited); free(sx); free(sy); free(compx); free(compy);
+}
+
 bool rogue_world_generate(RogueTileMap* out_map, const RogueWorldGenConfig* cfg){
     if(!out_map || !cfg) return false;
     if(!rogue_tilemap_init(out_map, cfg->width, cfg->height)) return false;
@@ -119,5 +195,7 @@ bool rogue_world_generate(RogueTileMap* out_map, const RogueWorldGenConfig* cfg)
     generate_caves(out_map, cfg);
     carve_rivers(out_map, cfg);
     apply_erosion(out_map);
+    /* Post-process to remove single-tile speckles for cleaner regions */
+    smooth_small_islands(out_map, 3);
     return true;
 }
