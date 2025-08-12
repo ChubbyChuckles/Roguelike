@@ -1,0 +1,56 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v18.1.5
+    hooks:
+      - id: clang-format
+        types_or: [c, c++]
+        args: [-style=file]
+  - repo: local
+    hooks:
+      - id: build-and-test
+        name: Build & run tests (fast) – must stay green
+        entry: python tools/precommit/build_and_test.py
+        language: system
+        pass_filenames: false
+        stages: [commit]
+      - id: coverage-optional
+        name: (Optional) Coverage 100% check (enable with ROGUE_PRECOMMIT_COVERAGE=1)
+        entry: python tools/precommit/build_and_test.py --coverage-only
+        language: system
+        pass_filenames: false
+        stages: [manual]
+      - id: commit-msg-lint
+        name: Commit message style (imperative, <=72 chars, no period)
+        entry: python tools/precommit/commit_msg_lint.py
+        language: system
+        stages: [commit-msg]
+      - id: clang-tidy-optional
+        name: (Optional) clang-tidy analysis
+        entry: python tools/precommit/clang_tidy_wrapper.py
+        language: system
+        pass_filenames: false
+        stages: [manual]
+      - id: commit-msg-lint
+        name: Commit message style (imperative, <= 72 first line)
+        entry: python tools/precommit/commit_msg_lint.py
+        language: system
+        stages: [commit-msg]
+      - id: clang-tidy-optional
+        name: (Optional) clang-tidy (manual) – use for deeper review locally
+        entry: python tools/precommit/clang_tidy_wrapper.py
+        language: system
+        pass_filenames: false
+        stages: [manual]
+
+default_language_version:
+  python: python3
+
+ci:
+  autoupdate_schedule: quarterly

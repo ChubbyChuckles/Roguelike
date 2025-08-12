@@ -17,6 +17,7 @@ These directives govern all AI-generated contributions. Treat them as mandatory 
    - Integration tests in `tests/integration/` (may use `rogue_app_step`) cover lifecycle & platform abstractions.
 4. Run (or simulate) `format-check`, `clang-tidy`, and `ctest` steps; ensure green.
 5. Update documentation (README or inline comments) when introducing new public APIs.
+ 6. Ensure pre-commit hooks pass (install via `pre-commit install`).
 
 ## Coding Standards
 * C11 only; avoid non-portable extensions.
@@ -56,6 +57,7 @@ These directives govern all AI-generated contributions. Treat them as mandatory 
 [] Ensure clang-tidy reports no new warnings.
 [] All tests pass locally.
 [] Update README or docs if externally visible API changes.
+[] Pre-commit hooks (format + tests) pass.
 
 ## Prohibited Patterns
 * Monolithic files mixing unrelated concerns.

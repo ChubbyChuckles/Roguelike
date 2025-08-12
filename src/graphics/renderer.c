@@ -14,6 +14,9 @@ void rogue_renderer_shutdown(RogueRenderer *r) { (void)r; }
 
 void rogue_renderer_set_draw_color(RogueRenderer *r, RogueColor c) {
 	(void)r;
+#ifndef ROGUE_HAVE_SDL
+	(void)c; /* suppress unused parameter when SDL disabled */
+#endif
 #ifdef ROGUE_HAVE_SDL
 	if (g_internal_sdl_renderer_ref) {
 		SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, c.r, c.g, c.b, c.a);

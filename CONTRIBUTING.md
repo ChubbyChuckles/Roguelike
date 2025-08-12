@@ -5,6 +5,7 @@
 2. Add / update tests with each behavioral change
 3. Maintain 100% compilation without warnings (treat warnings as errors)
 4. Refactor proactively to keep functions cohesive & readable
+ 5. Keep pre-commit hooks passing (format, tests) before pushing
 
 ## Style
 * Run `cmake --build build --target format` before committing
@@ -26,3 +27,11 @@
 * Descriptive names (no cryptic abbreviations)
 * Error paths checked & logged
 * Tests cover success + at least one failure / edge case
+* Pre-commit hooks pass locally (format + tests) before review
+
+## Pre-commit Setup
+```bash
+pip install pre-commit
+pre-commit install
+```
+Add `ROGUE_PRECOMMIT_COVERAGE=1` in your environment to run coverage gate locally (Unix systems with lcov).
