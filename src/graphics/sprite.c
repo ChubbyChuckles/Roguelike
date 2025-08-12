@@ -18,8 +18,18 @@ bool rogue_texture_load(RogueTexture* t, const char* path)
 {
 #if defined(ROGUE_HAVE_SDL) && defined(ROGUE_HAVE_SDL_IMAGE)
     if(!g_internal_sdl_renderer_ref) { ROGUE_LOG_ERROR("rogue_texture_load: renderer not ready"); return false; }
-    SDL_Surface* surf = IMG_Load(path);
-    if(!surf){ ROGUE_LOG_WARN("IMG_Load failed for %s: %s", path, IMG_GetError()); return false; }
+    const char* prefixes[] = { "", "../", "../../", "../../../" };
+    SDL_Surface* surf = NULL;
+    char attempt[512];
+    for(size_t i=0;i<sizeof(prefixes)/sizeof(prefixes[0]);i++){
+        snprintf(attempt, sizeof attempt, "%s%s", prefixes[i], path);
+        surf = IMG_Load(attempt);
+        if(surf){
+            if(i>0) ROGUE_LOG_INFO("Loaded texture via fallback path: %s", attempt);
+            break;
+        }
+    }
+    if(!surf){ ROGUE_LOG_WARN("IMG_Load failed for all path variants of %s (last error: %s)", path, IMG_GetError()); return false; }
     t->handle = SDL_CreateTextureFromSurface(g_internal_sdl_renderer_ref, surf);
     if(!t->handle){ ROGUE_LOG_WARN("SDL_CreateTextureFromSurface failed for %s", path); SDL_FreeSurface(surf); return false; }
     t->w = surf->w; t->h = surf->h;
@@ -30,8 +40,17 @@ bool rogue_texture_load(RogueTexture* t, const char* path)
     #ifdef _WIN32
     unsigned char* pixels=NULL; int w=0,h=0;
     if(!g_internal_sdl_renderer_ref) { ROGUE_LOG_ERROR("rogue_texture_load (WIC): renderer not ready"); return false; }
-    if(!rogue_png_load_rgba(path, &pixels, &w, &h)){
-        ROGUE_LOG_WARN("WIC PNG load failed: %s", path); return false; }
+    const char* prefixes[] = { "", "../", "../../", "../../../" };
+    int tried = 0; int ok = 0; char attempt[512];
+    for(size_t i=0;i<sizeof(prefixes)/sizeof(prefixes[0]) && !ok;i++){
+        snprintf(attempt, sizeof attempt, "%s%s", prefixes[i], path);
+        tried++;
+        if(rogue_png_load_rgba(attempt, &pixels, &w, &h)){
+            if(i>0) ROGUE_LOG_INFO("Loaded texture via fallback path: %s", attempt);
+            ok = 1; break;
+        }
+    }
+    if(!ok){ ROGUE_LOG_WARN("WIC PNG load failed for all path variants of %s", path); return false; }
     SDL_Surface* surf = SDL_CreateRGBSurfaceWithFormatFrom(pixels, w, h, 32, w*4, SDL_PIXELFORMAT_RGBA32);
     if(!surf){ ROGUE_LOG_WARN("SDL_CreateRGBSurfaceWithFormatFrom failed: %s", path); free(pixels); return false; }
     t->handle = SDL_CreateTextureFromSurface(g_internal_sdl_renderer_ref, surf);

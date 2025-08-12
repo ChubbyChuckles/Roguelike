@@ -257,6 +257,19 @@ static void load_player_sheet_paths(const char* path){
 #else
     f=fopen(path,"rb");
 #endif
+    if(!f){
+        const char* prefixes[] = { "../", "../../", "../../../" };
+        char attempt[512];
+        for(size_t i=0;i<sizeof(prefixes)/sizeof(prefixes[0]) && !f;i++){
+            snprintf(attempt,sizeof attempt,"%s%s", prefixes[i], path);
+#if defined(_MSC_VER)
+            fopen_s(&f,attempt,"rb");
+#else
+            f=fopen(attempt,"rb");
+#endif
+            if(f){ ROGUE_LOG_INFO("Opened player sheet config via fallback path: %s", attempt); break; }
+        }
+    }
     if(!f){ ROGUE_LOG_WARN("player sheet config open failed: %s", path); return; }
     char line[512];
     while(fgets(line,sizeof line,f)){
@@ -369,8 +382,11 @@ void rogue_app_step(void)
                 rogue_tile_sprite_define(ROGUE_TILE_CAVE_FLOOR, "assets/tiles.png", 5, 0);
                 rogue_tile_sprite_define(ROGUE_TILE_RIVER, "assets/tiles.png", 6, 0);
             }
-            rogue_tile_sprites_finalize();
-            g_app.tileset_loaded = 1;
+            /* Only mark tileset loaded if finalize succeeded (at least one variant loaded). */
+            g_app.tileset_loaded = rogue_tile_sprites_finalize();
+            if(!g_app.tileset_loaded){
+                ROGUE_LOG_WARN("Tile sprites finalize failed; falling back to debug colored tiles.");
+            }
         }
         if(!g_app.player_loaded)
         {
@@ -396,6 +412,7 @@ void rogue_app_step(void)
                     }
                 }
             }
+            int any_player_texture_loaded = 0;
             for(int s=0;s<3;s++)
             {
                 for(int d=0; d<4; d++)
@@ -403,6 +420,7 @@ void rogue_app_step(void)
                     const char* path = g_app.player_sheet_path[s][d];
                     if(rogue_texture_load(&g_app.player_tex[s][d], path))
                     {
+                        any_player_texture_loaded = 1;
                         int frames = g_app.player_tex[s][d].w / g_app.player_frame_size; if(frames>8) frames = 8;
                         g_app.player_frame_count[s][d] = frames;
                         for(int f=0; f<frames; f++)
@@ -425,7 +443,10 @@ void rogue_app_step(void)
                     }
                 }
             }
-            g_app.player_loaded = 1;
+            g_app.player_loaded = any_player_texture_loaded;
+            if(!g_app.player_loaded){
+                ROGUE_LOG_WARN("No player sprite sheets loaded; using placeholder rectangle.");
+            }
             load_player_anim_config("assets/player_anim.cfg");
         }
 

@@ -78,6 +78,20 @@ bool rogue_tile_sprites_load_config(const char* path){
 #else
     f = fopen(path, "rb");
 #endif
+    if(!f){
+        /* Try fallback relative prefixes (running from build/Release etc.) */
+        const char* prefixes[] = { "../", "../../", "../../../" };
+        char attempt[512];
+        for(size_t i=0;i<sizeof(prefixes)/sizeof(prefixes[0]) && !f;i++){
+            snprintf(attempt, sizeof attempt, "%s%s", prefixes[i], path);
+#if defined(_MSC_VER)
+            fopen_s(&f, attempt, "rb");
+#else
+            f = fopen(attempt, "rb");
+#endif
+            if(f){ ROGUE_LOG_INFO("Opened tile config via fallback path: %s", attempt); break; }
+        }
+    }
     if(!f){ ROGUE_LOG_WARN("tile config open failed: %s", path); return false; }
     char line[1024];
     int lineno=0; int added=0;
@@ -129,30 +143,37 @@ bool rogue_tile_sprites_load_config(const char* path){
 
 bool rogue_tile_sprites_finalize(void){
     if(g_ts.finalized) return true;
-    int ok=1;
+    int loaded_any = 0;
+    int failed = 0;
     for(int t=0;t<ROGUE_TILE_MAX;t++){
         TileBucket* b = &g_ts.buckets[t];
         for(int i=0;i<b->count;i++){
             TileVariant* v = &b->variants[i];
             if(!v->loaded){
                 if(!rogue_texture_load(&v->texture, v->path)){
-                    ROGUE_LOG_WARN("tile texture load fail: %s (tile=%d variant=%d)", v->path, t, i); ok=0; continue; }
+                    ROGUE_LOG_WARN("tile texture load fail: %s (tile=%d variant=%d)", v->path, t, i);
+                    failed++;
+                    continue;
+                }
                 v->sprite.tex = &v->texture;
                 v->sprite.sx = v->col * g_ts.tile_size;
                 v->sprite.sy = v->row * g_ts.tile_size;
                 v->sprite.sw = g_ts.tile_size;
                 v->sprite.sh = g_ts.tile_size;
                 v->loaded = 1;
+                loaded_any++;
             }
         }
     }
-    if(!ok){
-        ROGUE_LOG_WARN("Some tile textures failed to load. Verify SDL_image availability or add fallback loader.");
+    if(loaded_any>0 && failed>0){
+        ROGUE_LOG_INFO("Tile sprites finalize: %d variants loaded, %d failed (partial success)", loaded_any, failed);
+    } else if(loaded_any>0){
+        ROGUE_LOG_INFO("Tile sprites finalize: %d variants loaded (all successful)", loaded_any);
     } else {
-        ROGUE_LOG_INFO("All tile textures loaded successfully");
+        ROGUE_LOG_WARN("Tile sprites finalize: all %d variants failed to load", failed);
     }
     g_ts.finalized = 1;
-    return ok!=0;
+    return loaded_any>0; /* success if at least one loaded */
 }
 
 static unsigned hash_xy(unsigned x, unsigned y, unsigned mod){
