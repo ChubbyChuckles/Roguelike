@@ -19,6 +19,9 @@ if(ROGUE_ENABLE_SDL)
     find_package(SDL2 REQUIRED)
     if(ROGUE_ENABLE_SDL_IMAGE)
         find_package(SDL2_image QUIET)
+        if(NOT SDL2_image_FOUND)
+            message(WARNING "SDL2_image requested but not found; textures will not load unless fallback added")
+        endif()
     endif()
 endif()
 
@@ -39,6 +42,7 @@ add_library(rogue_core
     src/graphics/renderer.c
     src/graphics/sprite.c
     src/graphics/tile_sprites.c
+    src/graphics/png_wic.c
     src/input/input.c
     src/world/tilemap.c
     src/world/world_gen.c
@@ -68,6 +72,10 @@ endif()
 
 add_executable(roguelike src/main.c)
 target_link_libraries(roguelike PRIVATE rogue_core)
+
+if(WIN32)
+    target_link_libraries(rogue_core PUBLIC ole32 windowscodecs)
+endif()
 
 enable_testing()
 add_subdirectory(tests)
