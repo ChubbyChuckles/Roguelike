@@ -29,7 +29,25 @@ bool rogue_texture_load(RogueTexture* t, const char* path)
             break;
         }
     }
-    if(!surf){ ROGUE_LOG_WARN("IMG_Load failed for all path variants of %s (last error: %s)", path, IMG_GetError()); return false; }
+    if(!surf){
+#ifdef _WIN32
+        ROGUE_LOG_WARN("IMG_Load failed for %s (last error: %s). Trying WIC fallback.", path, IMG_GetError());
+        /* Try WIC fallback manually */
+        unsigned char* pixels=NULL; int w=0,h=0; int ok=0;
+        for(size_t i=0;i<sizeof(prefixes)/sizeof(prefixes[0]) && !ok;i++){
+            snprintf(attempt,sizeof attempt, "%s%s", prefixes[i], path);
+            if(rogue_png_load_rgba(attempt,&pixels,&w,&h)){
+                SDL_Surface* tmp = SDL_CreateRGBSurfaceWithFormatFrom(pixels,w,h,32,w*4,SDL_PIXELFORMAT_RGBA32);
+                if(tmp){ surf = tmp; ok=1; if(i>0) ROGUE_LOG_INFO("Loaded (WIC) via fallback path: %s", attempt); }
+                else { free(pixels); pixels=NULL; }
+            }
+        }
+        if(!surf){ return false; }
+#else
+        ROGUE_LOG_WARN("IMG_Load failed for all path variants of %s (last error: %s)", path, IMG_GetError());
+        return false;
+#endif
+    }
     t->handle = SDL_CreateTextureFromSurface(g_internal_sdl_renderer_ref, surf);
     if(!t->handle){ ROGUE_LOG_WARN("SDL_CreateTextureFromSurface failed for %s", path); SDL_FreeSurface(surf); return false; }
     t->w = surf->w; t->h = surf->h;

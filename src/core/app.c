@@ -32,6 +32,12 @@ SOFTWARE.
 #include "graphics/tile_sprites.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
+#ifdef _WIN32
+#include <direct.h>
+#else
+#include <unistd.h>
+#endif
 
 #include <time.h> /* for local timing when SDL not providing high-res */
 
@@ -59,6 +65,7 @@ typedef struct RogueAppState
     int          player_frame_count[3][4];
     int          player_frame_time_ms[3][4][8]; /* per-frame timing */
     int player_loaded;
+    int player_sheet_loaded[3][4];
     int player_state; /* 0 idle,1 walk,2 run */
     /* Configurable player sheet paths (state x direction) */
     char player_sheet_path[3][4][256];
@@ -195,6 +202,19 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.player_loaded = 0;
     g_app.player_state = 0;
     g_app.player_sheet_paths_loaded = 0;
+    /* Log current working directory for asset path debugging */
+    {
+        char cwd_buf[512];
+#ifdef _WIN32
+        if(_getcwd(cwd_buf, sizeof cwd_buf)){
+            ROGUE_LOG_INFO("CWD: %s", cwd_buf);
+        } else { ROGUE_LOG_WARN("Could not determine CWD"); }
+#else
+        if(getcwd(cwd_buf, sizeof cwd_buf)){
+            ROGUE_LOG_INFO("CWD: %s", cwd_buf);
+        } else { ROGUE_LOG_WARN("Could not determine CWD"); }
+#endif
+    }
     return true;
 }
 
@@ -278,12 +298,16 @@ static void load_player_sheet_paths(const char* path){
         if(*p=='#' || *p=='\n' || *p=='\0') continue;
         if(strncmp(p,"SHEET",5)!=0) continue;
         p+=5; if(*p==',') p++; while(*p==' '||*p=='\t') p++;
-        char st_tok[32]; int si=0; while(p[si] && p[si]!=',' && p[si]!='\n' && si<31) { st_tok[si]=p[si]; si++; }
+    char st_tok[32]; int si=0; while(p[si] && p[si]!=',' && p[si]!='\n' && si<31) { st_tok[si]=p[si]; si++; }
         if(p[si]!=',') continue; st_tok[si]='\0'; p += si+1; while(*p==' '||*p=='\t') p++;
-        char dir_tok[32]; int di=0; while(p[di] && p[di]!=',' && p[di]!='\n' && di<31){ dir_tok[di]=p[di]; di++; }
+    char dir_tok[32]; int di=0; while(p[di] && p[di]!=',' && p[di]!='\n' && di<31){ dir_tok[di]=p[di]; di++; }
         if(p[di]!=',') continue; dir_tok[di]='\0'; p += di+1; while(*p==' '||*p=='\t') p++;
         char path_tok[256]; int pi=0; while(p[pi] && p[pi]!='\n' && pi<255){ path_tok[pi]=p[pi]; pi++; }
-        path_tok[pi]='\0';
+    path_tok[pi]='\0';
+    /* Trim trailing whitespace / carriage returns */
+    for(int k=(int)strlen(st_tok)-1;k>=0 && (st_tok[k]=='\r' || st_tok[k]==' '||st_tok[k]=='\t');k--) st_tok[k]='\0';
+    for(int k=(int)strlen(dir_tok)-1;k>=0 && (dir_tok[k]=='\r' || dir_tok[k]==' '||dir_tok[k]=='\t');k--) dir_tok[k]='\0';
+    for(int k=(int)strlen(path_tok)-1;k>=0 && (path_tok[k]=='\r' || path_tok[k]==' '||path_tok[k]=='\t');k--) path_tok[k]='\0';
         int sidx = state_name_to_index(st_tok);
         int didx = dir_name_to_index(dir_tok);
         if(sidx<0 || didx<0) continue;
@@ -301,6 +325,22 @@ static void load_player_sheet_paths(const char* path){
             strncpy(g_app.player_sheet_path[sidx][2], path_tok, sizeof g_app.player_sheet_path[sidx][2]-1);
             g_app.player_sheet_path[sidx][2][sizeof g_app.player_sheet_path[sidx][2]-1]='\0';
 #endif
+        }
+        /* Existence pre-check (helps early diagnosis) */
+        {
+            const char* prefixes[] = {"","../","../../","../../../"};
+            char attempt[512]; FILE* tf=NULL; int found=0;
+            for(size_t ip=0; ip<sizeof(prefixes)/sizeof(prefixes[0]); ip++){
+#if defined(_MSC_VER)
+                snprintf(attempt,sizeof attempt,"%s%s", prefixes[ip], g_app.player_sheet_path[sidx][didx]);
+                fopen_s(&tf, attempt, "rb");
+#else
+                snprintf(attempt,sizeof attempt,"%s%s", prefixes[ip], g_app.player_sheet_path[sidx][didx]);
+                tf=fopen(attempt,"rb");
+#endif
+                if(tf){ fclose(tf); if(ip>0) ROGUE_LOG_INFO("player sheet pre-check found via %s", attempt); found=1; break; }
+            }
+            if(!found){ ROGUE_LOG_WARN("player sheet pre-check NOT found: %s", g_app.player_sheet_path[sidx][didx]); }
         }
         loaded++;
     }
@@ -421,15 +461,33 @@ void rogue_app_step(void)
                     if(rogue_texture_load(&g_app.player_tex[s][d], path))
                     {
                         any_player_texture_loaded = 1;
-                        int frames = g_app.player_tex[s][d].w / g_app.player_frame_size; if(frames>8) frames = 8;
+                        g_app.player_sheet_loaded[s][d] = 1;
+                        int texw = g_app.player_tex[s][d].w;
+                        int texh = g_app.player_tex[s][d].h;
+                        /* Auto-detect frame (cell) size from texture height if different */
+                        if(texh > 0 && texh != g_app.player_frame_size){
+                            ROGUE_LOG_INFO("Auto-adjust player frame size from %d to %d (sheet: %s)", g_app.player_frame_size, texh, path);
+                            g_app.player_frame_size = texh; /* assume square frames */
+                        }
+                        int frames = (g_app.player_frame_size>0)? (texw / g_app.player_frame_size) : 0;
+                        if(frames>8) frames = 8;
+                        if(frames <= 0){
+                            /* Width smaller than expected frame size; treat whole sheet as single frame */
+                            ROGUE_LOG_WARN("Player sheet width %d < frame_size %d; forcing single frame: %s", texw, g_app.player_frame_size, path);
+                            frames = 1;
+                        }
+                        ROGUE_LOG_INFO("Loaded player sheet %s (w=%d h=%d frames=%d state=%d dir=%d)", path, texw, texh, frames, s, d);
                         g_app.player_frame_count[s][d] = frames;
                         for(int f=0; f<frames; f++)
                         {
                             g_app.player_frames[s][d][f].tex = &g_app.player_tex[s][d];
                             g_app.player_frames[s][d][f].sx = f * g_app.player_frame_size;
                             g_app.player_frames[s][d][f].sy = 0;
-                            g_app.player_frames[s][d][f].sw = g_app.player_frame_size;
-                            g_app.player_frames[s][d][f].sh = g_app.player_frame_size;
+                            /* Clamp width/height to texture bounds */
+                            int remaining = texw - f * g_app.player_frame_size;
+                            if(remaining < g_app.player_frame_size) remaining = (remaining>0)? remaining : g_app.player_frame_size;
+                            g_app.player_frames[s][d][f].sw = (remaining > g_app.player_frame_size)? g_app.player_frame_size : remaining;
+                            g_app.player_frames[s][d][f].sh = (texh < g_app.player_frame_size)? texh : g_app.player_frame_size;
                             /* Assign default per-frame time (idle slower, run faster) */
                             int base = (s==0)? 160 : (s==2? 90 : 120); /* ms */
                             g_app.player_frame_time_ms[s][d][f] = base;
@@ -440,6 +498,17 @@ void rogue_app_step(void)
                             g_app.player_frames[s][d][f].tex = &g_app.player_tex[s][d];
                             g_app.player_frames[s][d][f].sw = 0;
                         }
+                    }
+                    else {
+                        ROGUE_LOG_WARN("Failed to load player sheet: %s (state=%d dir=%d)", path, s, d);
+                        /* Print absolute path attempt for extra clarity */
+#ifdef _WIN32
+                        char fullp[_MAX_PATH];
+                        if(_fullpath(fullp, path, sizeof fullp)){
+                            ROGUE_LOG_WARN("Absolute path candidate: %s", fullp);
+                        }
+#endif
+                        g_app.player_sheet_loaded[s][d] = 0;
                     }
                 }
             }
@@ -520,7 +589,16 @@ void rogue_app_step(void)
             /* Use side sheet for both left/right; flip if facing left */
             int sheet_dir = (dir==1 || dir==2)? 1 : dir; /* 0=down,1=side,3=up */
             const RogueSprite* spr = &g_app.player_frames[g_app.player_state][sheet_dir][g_app.player.anim_frame];
-            if(spr->sw)
+            /* Fallback: if chosen frame invalid, scan for first valid frame in current state/direction */
+            if(!spr->sw){
+                for(int f=0; f<8; f++){
+                    if(g_app.player_frames[g_app.player_state][sheet_dir][f].sw){
+                        spr = &g_app.player_frames[g_app.player_state][sheet_dir][f];
+                        break;
+                    }
+                }
+            }
+            if(spr->sw && spr->tex && spr->tex->handle)
             {
                 int px = (int)(g_app.player.base.pos.x * tsz * scale);
                 int py = (int)(g_app.player.base.pos.y * tsz * scale);
@@ -534,6 +612,35 @@ void rogue_app_step(void)
                 else
                 {
                     rogue_sprite_draw(spr, px, py, scale);
+                }
+                /* Optional debug: outline player bounding box if F1 held (future input hook) */
+#endif
+            }
+            else {
+                /* Fallback: draw placeholder if still no valid sprite */
+#if defined(ROGUE_HAVE_SDL)
+                SDL_SetRenderDrawColor(g_app.renderer, 255, 0, 255, 255);
+                SDL_Rect pr = { (int)(g_app.player.base.pos.x*tsz*scale), (int)(g_app.player.base.pos.y*tsz*scale), g_app.player_frame_size*scale, g_app.player_frame_size*scale };
+                SDL_RenderFillRect(g_app.renderer, &pr);
+                /* On-screen debug list of failed sheets */
+                int dy = 20; int line = 0;
+                rogue_font_draw_text(4, dy + line*10, "Player sheets load status:",1,(RogueColor){255,255,0,255}); line++;
+                const char* states[3] = {"idle","walk","run"};
+                const char* dirs[4] = {"down","left","right","up"};
+                for(int s=0;s<3;s++){
+                    for(int d=0; d<4; d++){
+                        if(!g_app.player_sheet_loaded[s][d]){
+                            char buf[96];
+                            snprintf(buf,sizeof buf,"%s-%s: FAIL", states[s], dirs[d]);
+                            rogue_font_draw_text(4, dy + line*10, buf,1,(RogueColor){255,80,80,255});
+                            line++;
+                        } else if(line < 12){ /* show a few successes */
+                            char buf[96];
+                            snprintf(buf,sizeof buf,"%s-%s: OK", states[s], dirs[d]);
+                            rogue_font_draw_text(4, dy + line*10, buf,1,(RogueColor){120,255,120,255});
+                            line++;
+                        }
+                    }
                 }
 #endif
             }
@@ -574,6 +681,12 @@ void rogue_app_step(void)
         SDL_SetRenderDrawColor(g_app.renderer,255,255,255,255);
     SDL_Rect mmpr = { mm_x_off + (int)(g_app.player.base.pos.x*mm_scale), mm_y_off + (int)(g_app.player.base.pos.y*mm_scale), mm_scale, mm_scale };
         SDL_RenderFillRect(g_app.renderer, &mmpr);
+    }
+    /* FPS overlay (uses last frame's fps value) */
+    {
+        char fps_buf[48];
+        snprintf(fps_buf, sizeof fps_buf, "FPS: %.1f", g_app.fps);
+        rogue_font_draw_text(4,4,fps_buf,1,(RogueColor){255,255,255,255});
     }
     SDL_RenderPresent(g_app.renderer);
 #endif
