@@ -14,6 +14,7 @@ $biomeMap = @{
     "Pixel Crawler - Hideout 1.0" = "hideout"
     "Pixel Crawler - Library" = "library"
     "Pixel Crawler - Sewer" = "sewer"
+    "Pixel Crawler - Default" = "default"
 }
 
 $neverOverwrite = @("Terms.txt")

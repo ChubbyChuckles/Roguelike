@@ -6,6 +6,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(ROGUE_ENABLE_SDL "Build with SDL2 platform layer" ON)
+option(ROGUE_ENABLE_SDL_IMAGE "Load PNG textures via SDL_image" ON)
 option(ROGUE_WARNINGS_AS_ERRORS "Treat warnings as errors" ON)
 option(ROGUE_CODE_COVERAGE "Enable code coverage instrumentation (GNU/Clang)" OFF)
 
@@ -16,6 +17,9 @@ rogue_set_project_warnings(rogue_warnings)
 
 if(ROGUE_ENABLE_SDL)
     find_package(SDL2 REQUIRED)
+    if(ROGUE_ENABLE_SDL_IMAGE)
+        find_package(SDL2_image QUIET)
+    endif()
 endif()
 
 if(ROGUE_CODE_COVERAGE)
@@ -33,6 +37,7 @@ add_library(rogue_core
     src/core/game_loop.c
     src/platform/platform_sdl.c
     src/graphics/renderer.c
+    src/graphics/sprite.c
     src/input/input.c
     src/world/tilemap.c
     src/world/world_gen.c
@@ -49,6 +54,10 @@ if(ROGUE_ENABLE_SDL)
     # Use PUBLIC to propagate include directories & compile definitions to dependents (tests, main)
     target_link_libraries(rogue_core PUBLIC SDL2::SDL2)
     target_compile_definitions(rogue_core PUBLIC ROGUE_HAVE_SDL=1)
+    if(SDL2_image_FOUND)
+        target_link_libraries(rogue_core PUBLIC SDL2_image::SDL2_image)
+        target_compile_definitions(rogue_core PUBLIC ROGUE_HAVE_SDL_IMAGE=1)
+    endif()
 endif()
 
 target_compile_options(rogue_core PRIVATE ${rogue_warnings})

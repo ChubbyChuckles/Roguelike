@@ -27,6 +27,8 @@ SOFTWARE.
 #include "graphics/font.h"
 #include "world/world_gen.h"
 #include "input/input.h"
+#include "entities/player.h"
+#include "graphics/sprite.h"
 
 #include <time.h> /* for local timing when SDL not providing high-res */
 
@@ -44,6 +46,9 @@ typedef struct RogueAppState
     int show_start_screen;
     RogueTileMap world_map;
     RogueInputState input;
+    RoguePlayer player;
+    RogueTexture tileset_tex;
+    int tileset_loaded;
     double title_time;
     int menu_index; /* 0=new game,1=quit,2=seed entry */
     int entering_seed;
@@ -133,6 +138,8 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     /* Pre-generate world */
     RogueWorldGenConfig wcfg = { .seed = 1337u, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2 };
     rogue_world_generate(&g_app.world_map, &wcfg);
+    rogue_player_init(&g_app.player);
+    g_app.tileset_loaded = 0; /* user will load externally later */
     return true;
 }
 
@@ -230,7 +237,7 @@ void rogue_app_step(void)
     else
     {
         /* Simple visualization of generated world (colored pixels / rectangles) */
-        int scale = 4; /* 80x60 -> 320x240 */
+    int scale = 16; /* scale up tiles for main view */
         for(int y=0;y<g_app.world_map.height;y++)
         {
             for(int x=0;x<g_app.world_map.width;x++)
@@ -252,6 +259,40 @@ void rogue_app_step(void)
                 SDL_RenderFillRect(g_app.renderer, &r);
             }
         }
+        /* Player (placeholder rectangle). Later replaced by sprite frames. */
+        SDL_SetRenderDrawColor(g_app.renderer, 255,255,255,255);
+        SDL_Rect pr = { (int)(g_app.player.base.pos.x*scale), (int)(g_app.player.base.pos.y*scale), scale, scale };
+        SDL_RenderFillRect(g_app.renderer, &pr);
+
+        /* Mini-map in corner (scaled down) */
+        int mm_scale = 2;
+        int mm_x_off = 1920 - g_app.world_map.width*mm_scale - 10;
+        int mm_y_off = 10;
+        for(int y=0;y<g_app.world_map.height;y++)
+        {
+            for(int x=0;x<g_app.world_map.width;x++)
+            {
+                unsigned char t = g_app.world_map.tiles[y*g_app.world_map.width + x];
+                RogueColor c = {0,0,0,255};
+                switch(t){
+                    case ROGUE_TILE_WATER: c=(RogueColor){30,90,200,255}; break;
+                    case ROGUE_TILE_RIVER: c=(RogueColor){50,140,230,255}; break;
+                    case ROGUE_TILE_GRASS: c=(RogueColor){40,160,60,255}; break;
+                    case ROGUE_TILE_FOREST: c=(RogueColor){10,90,20,255}; break;
+                    case ROGUE_TILE_MOUNTAIN: c=(RogueColor){120,120,120,255}; break;
+                    case ROGUE_TILE_CAVE_WALL: c=(RogueColor){60,60,60,255}; break;
+                    case ROGUE_TILE_CAVE_FLOOR: c=(RogueColor){110,80,60,255}; break;
+                    default: break;
+                }
+                SDL_SetRenderDrawColor(g_app.renderer, c.r,c.g,c.b,c.a);
+                SDL_Rect r = { mm_x_off + x*mm_scale, mm_y_off + y*mm_scale, mm_scale, mm_scale };
+                SDL_RenderFillRect(g_app.renderer, &r);
+            }
+        }
+        /* Player marker on minimap */
+        SDL_SetRenderDrawColor(g_app.renderer,255,255,255,255);
+        SDL_Rect mmpr = { mm_x_off + (int)(g_app.player.base.pos.x*mm_scale), mm_y_off + (int)(g_app.player.base.pos.y*mm_scale), mm_scale, mm_scale };
+        SDL_RenderFillRect(g_app.renderer, &mmpr);
     }
     SDL_RenderPresent(g_app.renderer);
 #endif

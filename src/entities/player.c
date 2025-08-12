@@ -30,4 +30,7 @@ void rogue_player_init(RoguePlayer* p)
     p->base.vel.x = 0.0f;
     p->base.vel.y = 0.0f;
     p->health = 3;
+    p->facing = 0;
+    p->anim_time = 0.0f;
+    p->anim_frame = 0;
 }

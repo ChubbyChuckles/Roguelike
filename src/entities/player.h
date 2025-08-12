@@ -30,6 +30,9 @@ typedef struct RoguePlayer
 {
     RogueEntity base;
     int health;
+    int facing; /* 0=down,1=left,2=right,3=up */
+    float anim_time;
+    int anim_frame;
 } RoguePlayer;
 
 void rogue_player_init(RoguePlayer* p);
