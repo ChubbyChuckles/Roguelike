@@ -107,6 +107,9 @@ typedef struct RogueAppState
     unsigned char* chunk_dirty; /* size chunks_x*chunks_y */
     /* Animation coalescing accumulator (ms) */
     float anim_dt_accum_ms;
+    /* Frame metrics */
+    int frame_draw_calls;
+    int frame_tile_quads;
 } RogueAppState;
 
 static RogueAppState g_app;
@@ -248,6 +251,8 @@ bool rogue_app_init(const RogueAppConfig* cfg)
 #endif
     g_app.chunk_size = 32; g_app.chunks_x = g_app.chunks_y = 0; g_app.chunk_dirty = NULL;
     g_app.anim_dt_accum_ms = 0.0f;
+    g_app.frame_draw_calls = 0;
+    g_app.frame_tile_quads = 0;
     /* Log current working directory for asset path debugging */
     {
         char cwd_buf[512];
@@ -522,7 +527,8 @@ void rogue_app_step(void)
     }
     else
     {
-        /* Lazy one-time load of assets (avoid repeated loads). Adjust paths to actual asset locations. */
+    g_app.frame_draw_calls = 0; g_app.frame_tile_quads = 0; /* reset metrics each frame */
+    /* Lazy one-time load of assets (avoid repeated loads). Adjust paths to actual asset locations. */
         if(!g_app.tileset_loaded)
         {
             rogue_tile_sprites_init(g_app.tile_size);
@@ -541,7 +547,7 @@ void rogue_app_step(void)
             if(g_app.tileset_loaded){
                 size_t total = (size_t)g_app.world_map.width * (size_t)g_app.world_map.height;
                 g_app.tile_sprite_lut = (const RogueSprite**)malloc(total * sizeof(const RogueSprite*));
-                if(g_app.tile_sprite_lut){
+            if(g_app.tileset_loaded){
                     for(int y=0; y<g_app.world_map.height; y++){
                         for(int x=0; x<g_app.world_map.width; x++){
                             unsigned char t = g_app.world_map.tiles[y*g_app.world_map.width + x];
@@ -564,6 +570,8 @@ void rogue_app_step(void)
         if(!g_app.player_loaded)
         {
             const char* state_names[3]  = {"idle","walk","run"};
+                    g_app.frame_draw_calls++;
+                    g_app.frame_tile_quads++;
             const char* dir_names[4]    = {"down","side","right","up"};
             if(!g_app.player_sheet_paths_loaded){
                 load_player_sheet_paths("assets/player_sheets.cfg");
@@ -751,7 +759,7 @@ void rogue_app_step(void)
                     RogueColor c = { (unsigned char)(t*20), (unsigned char)(t*15), (unsigned char)(t*10), 255};
                     SDL_SetRenderDrawColor(g_app.renderer, c.r,c.g,c.b,c.a);
                     SDL_Rect r = { (int)(x*tsz - g_app.cam_x), (int)(y*tsz - g_app.cam_y), tsz*scale, tsz*scale };
-                    SDL_RenderFillRect(g_app.renderer, &r);
+                    SDL_RenderFillRect(g_app.renderer, &r); g_app.frame_draw_calls++; g_app.frame_tile_quads++;
                 }
             }
         }
@@ -845,12 +853,12 @@ void rogue_app_step(void)
 #ifdef ROGUE_HAVE_SDL
     if(g_app.minimap_tex){
         SDL_Rect dst = { mm_x_off, mm_y_off, mm_w, mm_h };
-        SDL_RenderCopy(g_app.renderer, g_app.minimap_tex, NULL, &dst);
+            SDL_RenderCopy(g_app.renderer, g_app.minimap_tex, NULL, &dst); g_app.frame_draw_calls++;
         SDL_SetRenderDrawColor(g_app.renderer,255,255,255,255);
         int pmx = mm_x_off + (int)((g_app.player.base.pos.x / (float)g_app.world_map.width) * mm_w);
         int pmy = mm_y_off + (int)((g_app.player.base.pos.y / (float)g_app.world_map.height) * mm_h);
         SDL_Rect mmpr = { pmx, pmy, 2, 2 };
-        SDL_RenderFillRect(g_app.renderer, &mmpr);
+            SDL_RenderFillRect(g_app.renderer, &mmpr); g_app.frame_draw_calls++;
     }
 #endif
     }
@@ -859,6 +867,9 @@ void rogue_app_step(void)
         char fps_buf[48];
         snprintf(fps_buf, sizeof fps_buf, "FPS: %.1f", g_app.fps);
         rogue_font_draw_text(4,4,fps_buf,1,(RogueColor){255,255,255,255});
+        char m_buf[64];
+        snprintf(m_buf, sizeof m_buf, "Draws:%d Tiles:%d", g_app.frame_draw_calls, g_app.frame_tile_quads);
+        rogue_font_draw_text(4,14,m_buf,1,(RogueColor){200,200,200,255});
     }
     SDL_RenderPresent(g_app.renderer);
 #endif
