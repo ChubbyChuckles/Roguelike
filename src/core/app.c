@@ -24,6 +24,11 @@ SOFTWARE.
 #include "core/app.h"
 #include "core/game_loop.h"
 #include "util/log.h"
+#include "graphics/font.h"
+#include "world/world_gen.h"
+#include "input/input.h"
+
+#include <time.h> /* for local timing when SDL not providing high-res */
 
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
@@ -36,6 +41,13 @@ typedef struct RogueAppState
     SDL_Window* window;
     SDL_Renderer* renderer;
 #endif
+    int show_start_screen;
+    RogueTileMap world_map;
+    RogueInputState input;
+    double title_time;
+    int menu_index; /* 0=new game,1=quit,2=seed entry */
+    int entering_seed;
+    unsigned int pending_seed;
     int frame_count;
     double dt;
     double fps;
@@ -45,6 +57,9 @@ typedef struct RogueAppState
 } RogueAppState;
 
 static RogueAppState g_app;
+
+/* Local timing helper (separate from game_loop's static) */
+static double now_seconds(void) { return (double) clock() / (double) CLOCKS_PER_SEC; }
 
 static void apply_window_mode(void)
 {
@@ -66,6 +81,12 @@ static void apply_window_mode(void)
 bool rogue_app_init(const RogueAppConfig* cfg)
 {
     g_app.cfg = *cfg;
+    g_app.show_start_screen = 1;
+    rogue_input_clear(&g_app.input);
+    g_app.title_time = 0.0;
+    g_app.menu_index = 0;
+    g_app.entering_seed = 0;
+    g_app.pending_seed = 1337u;
 #ifdef ROGUE_HAVE_SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0)
     {
@@ -98,14 +119,20 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     /* Configure logical size & scaling */
     if (cfg->logical_width > 0 && cfg->logical_height > 0)
     {
+#ifdef ROGUE_HAVE_SDL
         SDL_RenderSetLogicalSize(g_app.renderer, cfg->logical_width, cfg->logical_height);
         if (cfg->integer_scale) SDL_RenderSetIntegerScale(g_app.renderer, SDL_TRUE);
+#endif
     }
 
     apply_window_mode();
 
     RogueGameLoopConfig loop_cfg = {.target_fps = cfg->target_fps};
     rogue_game_loop_init(&loop_cfg);
+
+    /* Pre-generate world */
+    RogueWorldGenConfig wcfg = { .seed = 1337u, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2 };
+    rogue_world_generate(&g_app.world_map, &wcfg);
     return true;
 }
 
@@ -119,6 +146,25 @@ static void process_events(void)
         {
             rogue_game_loop_request_exit();
         }
+        rogue_input_process_sdl_event(&g_app.input, &ev);
+        if (ev.type == SDL_KEYDOWN && g_app.show_start_screen)
+        {
+            if (g_app.entering_seed)
+            {
+                if (ev.key.keysym.sym == SDLK_RETURN)
+                {
+                    /* regenerate */
+                    rogue_tilemap_free(&g_app.world_map);
+                    RogueWorldGenConfig wcfg = { .seed = g_app.pending_seed, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2 };
+                    rogue_world_generate(&g_app.world_map, &wcfg);
+                    g_app.entering_seed = 0;
+                }
+                else if (ev.key.keysym.sym == SDLK_ESCAPE)
+                {
+                    g_app.entering_seed = 0;
+                }
+            }
+        }
     }
 #endif
 }
@@ -130,9 +176,83 @@ void rogue_app_step(void)
     process_events();
     double frame_start = now_seconds();
 #ifdef ROGUE_HAVE_SDL
+    g_app.title_time += g_app.dt;
     SDL_SetRenderDrawColor(g_app.renderer, g_app.cfg.background_color.r, g_app.cfg.background_color.g,
                            g_app.cfg.background_color.b, g_app.cfg.background_color.a);
     SDL_RenderClear(g_app.renderer);
+    if (g_app.show_start_screen)
+    {
+        RogueColor white = {255,255,255,255};
+        int pulse = (int)( (sin(g_app.title_time*2.0)*0.5 + 0.5) * 255.0 );
+        RogueColor title_col = { (unsigned char)pulse, (unsigned char)pulse, 255, 255};
+        rogue_font_draw_text(40, 60, "ROGUELIKE", 6, title_col);
+        const char* menu_items[] = { "New Game", "Quit", "Seed:" };
+        int base_y = 140;
+        for(int i=0;i<3;i++)
+        {
+            RogueColor c = (i==g_app.menu_index)?(RogueColor){255,255,0,255}:white;
+            rogue_font_draw_text(50, base_y + i*20, menu_items[i], 2, c);
+        }
+        char seed_line[64];
+        snprintf(seed_line, sizeof seed_line, "%u", g_app.pending_seed);
+        rogue_font_draw_text(140, base_y + 2*20, seed_line, 2, white);
+        if (g_app.entering_seed)
+            rogue_font_draw_text(140 + (int)strlen(seed_line)*12, base_y + 2*20, "_", 2, white);
+        /* Handle menu navigation */
+        if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_DOWN)) g_app.menu_index = (g_app.menu_index+1)%3;
+        if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_UP)) g_app.menu_index = (g_app.menu_index+2)%3;
+        if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_ACTION))
+        {
+            if (g_app.menu_index == 0)
+                g_app.show_start_screen = 0; /* start */
+            else if (g_app.menu_index == 1)
+                rogue_game_loop_request_exit();
+            else if (g_app.menu_index == 2)
+                g_app.entering_seed = 1;
+        }
+        if (g_app.entering_seed)
+        {
+            /* process typed digits */
+            for(int i=0;i<g_app.input.text_len;i++)
+            {
+                char ch = g_app.input.text_buffer[i];
+                if(ch >= '0' && ch <= '9')
+                {
+                    g_app.pending_seed = g_app.pending_seed*10 + (unsigned)(ch - '0');
+                }
+                else if (ch == 'b' || ch == 'B')
+                {
+                    g_app.pending_seed /= 10; /* crude backspace mapped to 'b' until full text input */
+                }
+            }
+        }
+    }
+    else
+    {
+        /* Simple visualization of generated world (colored pixels / rectangles) */
+        int scale = 4; /* 80x60 -> 320x240 */
+        for(int y=0;y<g_app.world_map.height;y++)
+        {
+            for(int x=0;x<g_app.world_map.width;x++)
+            {
+                unsigned char t = g_app.world_map.tiles[y*g_app.world_map.width + x];
+                RogueColor c = {0,0,0,255};
+                switch(t){
+                    case ROGUE_TILE_WATER: c=(RogueColor){30,90,200,255}; break;
+                    case ROGUE_TILE_RIVER: c=(RogueColor){50,140,230,255}; break;
+                    case ROGUE_TILE_GRASS: c=(RogueColor){40,160,60,255}; break;
+                    case ROGUE_TILE_FOREST: c=(RogueColor){10,90,20,255}; break;
+                    case ROGUE_TILE_MOUNTAIN: c=(RogueColor){120,120,120,255}; break;
+                    case ROGUE_TILE_CAVE_WALL: c=(RogueColor){60,60,60,255}; break;
+                    case ROGUE_TILE_CAVE_FLOOR: c=(RogueColor){110,80,60,255}; break;
+                    default: break;
+                }
+                SDL_SetRenderDrawColor(g_app.renderer, c.r,c.g,c.b,c.a);
+                SDL_Rect r = { x*scale, y*scale, scale, scale };
+                SDL_RenderFillRect(g_app.renderer, &r);
+            }
+        }
+    }
     SDL_RenderPresent(g_app.renderer);
 #endif
     rogue_game_loop_iterate();
@@ -149,6 +269,7 @@ void rogue_app_step(void)
         g_app.avg_frame_ms_accum = g_app.avg_frame_ms_accum / g_app.avg_frame_samples;
         g_app.avg_frame_samples = 0; /* reuse accum as average holder */
     }
+    rogue_input_next_frame(&g_app.input);
 }
 
 void rogue_app_run(void)
@@ -187,11 +308,10 @@ void rogue_app_toggle_fullscreen(void)
 void rogue_app_set_vsync(int enabled)
 {
 #ifdef ROGUE_HAVE_SDL
-    if (!g_app.renderer) return;
-    if (SDL_RenderSetVSync(enabled ? 1 : 0) != 0)
-        ROGUE_LOG_WARN("Failed to set vsync: %s", SDL_GetError());
-    else
-        g_app.cfg.enable_vsync = enabled;
+     /* SDL2 does not provide dynamic vsync toggle pre-2.0.18 except by recreating the renderer.
+         For simplicity we just store the flag here (no-op for current session). */
+     (void) enabled;
+     ROGUE_LOG_WARN("rogue_app_set_vsync: dynamic toggle not implemented (requires renderer recreation)");
 #else
     (void) enabled;
 #endif

@@ -27,7 +27,7 @@ SOFTWARE.
 int main(void)
 {
     RogueAppConfig cfg = {
-        .window_title = "Roguelike", .window_width = 640, .window_height = 360, .target_fps = 60};
+        .window_title = "Roguelike", .window_width = 1920, .window_height = 1080, .target_fps = 60};
     if (!rogue_app_init(&cfg))
     {
         ROGUE_LOG_ERROR("Failed to initialize app");

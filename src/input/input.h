@@ -39,6 +39,9 @@ typedef enum RogueKey
 typedef struct RogueInputState
 {
     bool keys[ROGUE_KEY_COUNT];
+    bool prev_keys[ROGUE_KEY_COUNT];
+    char text_buffer[64];
+    int text_len;
 } RogueInputState;
 
 void rogue_input_clear(RogueInputState* st);
@@ -46,8 +49,14 @@ void rogue_input_clear(RogueInputState* st);
 void rogue_input_apply_direction(RogueInputState* st, int dx, int dy);
 /* Query convenience */
 bool rogue_input_is_down(const RogueInputState* st, RogueKey key);
+bool rogue_input_was_pressed(const RogueInputState* st, RogueKey key);
+void rogue_input_next_frame(RogueInputState* st);
+void rogue_input_push_char(RogueInputState* st, char c);
 
 #ifdef ROGUE_HAVE_SDL
+#ifndef SDL_MAIN_HANDLED
+#define SDL_MAIN_HANDLED
+#endif
 #include <SDL.h>
 /* Translate SDL scancode into internal key (returns false if unmapped) */
 bool rogue_input_map_scancode(int scancode, RogueKey* out_key);

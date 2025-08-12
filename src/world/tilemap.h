@@ -34,6 +34,20 @@ typedef struct RogueTileMap
     unsigned char* tiles;
 } RogueTileMap;
 
+/* Basic tile type classifications for procedural generation */
+typedef enum RogueTileType
+{
+    ROGUE_TILE_EMPTY = 0,
+    ROGUE_TILE_WATER,
+    ROGUE_TILE_GRASS,
+    ROGUE_TILE_FOREST,
+    ROGUE_TILE_MOUNTAIN,
+    ROGUE_TILE_CAVE_WALL,
+    ROGUE_TILE_CAVE_FLOOR,
+    ROGUE_TILE_RIVER,
+    ROGUE_TILE_MAX
+} RogueTileType;
+
 bool rogue_tilemap_init(RogueTileMap* map, int w, int h);
 void rogue_tilemap_free(RogueTileMap* map);
 unsigned char rogue_tilemap_get(const RogueTileMap* map, int x, int y);

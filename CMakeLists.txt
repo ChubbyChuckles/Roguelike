@@ -35,6 +35,8 @@ add_library(rogue_core
     src/graphics/renderer.c
     src/input/input.c
     src/world/tilemap.c
+    src/world/world_gen.c
+    src/graphics/font.c
     src/entities/player.c
     src/util/log.c
 )
@@ -44,7 +46,8 @@ target_include_directories(rogue_core PUBLIC
 )
 
 if(ROGUE_ENABLE_SDL)
-    target_link_libraries(rogue_core PRIVATE SDL2::SDL2)
+    # Use PUBLIC to propagate include directories & compile definitions to dependents (tests, main)
+    target_link_libraries(rogue_core PUBLIC SDL2::SDL2)
     target_compile_definitions(rogue_core PUBLIC ROGUE_HAVE_SDL=1)
 endif()
 

@@ -27,6 +27,9 @@ void rogue_input_clear(RogueInputState* st)
 {
     for (int i = 0; i < ROGUE_KEY_COUNT; ++i)
         st->keys[i] = false;
+    for (int i = 0; i < ROGUE_KEY_COUNT; ++i)
+        st->prev_keys[i] = false;
+    st->text_len = 0;
 }
 
 void rogue_input_apply_direction(RogueInputState* st, int dx, int dy)
@@ -42,6 +45,29 @@ bool rogue_input_is_down(const RogueInputState* st, RogueKey key)
     if (key < 0 || key >= ROGUE_KEY_COUNT)
         return false;
     return st->keys[key];
+}
+
+bool rogue_input_was_pressed(const RogueInputState* st, RogueKey key)
+{
+    if (key < 0 || key >= ROGUE_KEY_COUNT)
+        return false;
+    return st->keys[key] && !st->prev_keys[key];
+}
+
+void rogue_input_next_frame(RogueInputState* st)
+{
+    for (int i = 0; i < ROGUE_KEY_COUNT; ++i)
+        st->prev_keys[i] = st->keys[i];
+    st->text_len = 0; /* clear typed chars each frame consumer can copy if needed */
+}
+
+void rogue_input_push_char(RogueInputState* st, char c)
+{
+    if (st->text_len < (int)(sizeof st->text_buffer) - 1)
+    {
+        st->text_buffer[st->text_len++] = c;
+        st->text_buffer[st->text_len] = '\0';
+    }
 }
 
 #ifdef ROGUE_HAVE_SDL
@@ -83,6 +109,12 @@ void rogue_input_process_sdl_event(RogueInputState* st, const SDL_Event* ev)
         if (rogue_input_map_scancode(ev->key.keysym.scancode, &key))
         {
             st->keys[key] = (ev->type == SDL_KEYDOWN);
+        }
+        if (ev->type == SDL_KEYDOWN)
+        {
+            /* text input for letters/numbers basic */
+            if (ev->key.keysym.sym >= 32 && ev->key.keysym.sym < 127)
+                rogue_input_push_char(st, (char) ev->key.keysym.sym);
         }
     }
 }
