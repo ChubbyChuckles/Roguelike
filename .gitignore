@@ -53,3 +53,12 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Build artifacts
+build/
+*.obj
+*.pdb
+*.exe
+*.dll
+*.log
+compile_commands.json

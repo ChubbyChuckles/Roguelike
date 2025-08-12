@@ -1,0 +1,5 @@
+Checks: '-*,bugprone-*,performance-*,readability-*,portability-*,clang-analyzer-*,modernize-*,-modernize-use-trailing-return-type'
+WarningsAsErrors: '*'
+HeaderFilterRegex: 'src/|include/'
+AnalyzeTemporaryDtors: false
+FormatStyle: none

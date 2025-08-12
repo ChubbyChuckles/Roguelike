@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    name: Build & Test (${{ matrix.os }} / SDL=${{ matrix.sdl }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        sdl: [OFF, ON]
+        exclude:
+          - os: windows-latest
+            sdl: ON
+    env:
+      BUILD_TYPE: Debug
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install SDL2 (Ubuntu only when enabled)
+        if: runner.os == 'Linux' && matrix.sdl == 'ON'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev
+
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v1
+
+      - name: Configure
+        run: >-
+          cmake -S . -B build
+          -DROGUE_ENABLE_SDL=${{ matrix.sdl }}
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: Build
+        run: cmake --build build --config ${{ env.BUILD_TYPE }} -- -j 2
+
+      - name: Format Check
+        run: |
+          set -e
+          cmake --build build --target format-check || (
+            echo "Format check failed. Run: cmake --build build --target format";
+            exit 1
+          )
+
+      - name: Run Tests
+        run: ctest --test-dir build -C ${{ env.BUILD_TYPE }} --output-on-failure
+
+      - name: clang-tidy Summary (best-effort)
+        if: always()
+        run: |
+          echo "If clang-tidy is configured it ran during the build (via target property)."
+
+  tidy-only:
+    name: Static Analysis (Linux SDL OFF)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jwlawson/actions-setup-cmake@v1
+      - name: Configure
+        run: cmake -S . -B build -DROGUE_ENABLE_SDL=OFF -DCMAKE_BUILD_TYPE=Debug
+      - name: Build (invokes clang-tidy if present)
+        run: cmake --build build --config Debug -- -j 2
+
+
+  coverage:
+    name: Coverage (Linux SDL OFF)
+    runs-on: ubuntu-latest
+    env:
+      BUILD_TYPE: Debug
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install deps (lcov & SDL off)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lcov
+      - name: Configure (coverage flags)
+        run: >-
+          cmake -S . -B build
+          -DROGUE_ENABLE_SDL=OFF
+          -DROGUE_CODE_COVERAGE=ON
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+      - name: Build
+        run: cmake --build build --config ${{ env.BUILD_TYPE }} -- -j 2
+      - name: Run Tests
+        run: ctest --test-dir build -C ${{ env.BUILD_TYPE }} --output-on-failure
+      - name: Coverage Report & Enforce 100%
+        run: |
+          bash tools/coverage_check.sh build
+      - name: Upload Coverage Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-info
+          path: build/coverage.info
