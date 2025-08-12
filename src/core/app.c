@@ -49,6 +49,14 @@ typedef struct RogueAppState
     RoguePlayer player;
     RogueTexture tileset_tex;
     int tileset_loaded;
+    /* Tile sprites (indexed by RogueTileType) */
+    RogueSprite tile_sprites[ROGUE_TILE_MAX];
+    int tile_size;
+    /* Player textures for animations: state (0=idle,1=walk,2=run) x direction (0=down,1=left,2=right,3=up) */
+    RogueTexture player_tex[3][4];
+    RogueSprite  player_frames[3][4][8]; /* up to 8 frames (384 / 64 = 6 actual frames, allocate 8) */
+    int player_loaded;
+    int player_state; /* 0 idle,1 walk,2 run */
     double title_time;
     int menu_index; /* 0=new game,1=quit,2=seed entry */
     int entering_seed;
@@ -140,6 +148,9 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     rogue_world_generate(&g_app.world_map, &wcfg);
     rogue_player_init(&g_app.player);
     g_app.tileset_loaded = 0; /* user will load externally later */
+    g_app.tile_size = 64;
+    g_app.player_loaded = 0;
+    g_app.player_state = 0;
     return true;
 }
 
@@ -154,6 +165,14 @@ static void process_events(void)
             rogue_game_loop_request_exit();
         }
         rogue_input_process_sdl_event(&g_app.input, &ev);
+        if (ev.type == SDL_KEYDOWN && !g_app.show_start_screen)
+        {
+            if (ev.key.keysym.sym == SDLK_r)
+            {
+                /* toggle run state manually for demo */
+                g_app.player_state = (g_app.player_state == 2) ? 1 : 2;
+            }
+        }
         if (ev.type == SDL_KEYDOWN && g_app.show_start_screen)
         {
             if (g_app.entering_seed)
@@ -236,38 +255,145 @@ void rogue_app_step(void)
     }
     else
     {
-        /* Simple visualization of generated world (colored pixels / rectangles) */
-    int scale = 16; /* scale up tiles for main view */
-        for(int y=0;y<g_app.world_map.height;y++)
+        /* Lazy one-time load of assets (avoid repeated loads). Adjust paths to actual asset locations. */
+        if(!g_app.tileset_loaded)
         {
+            if(rogue_texture_load(&g_app.tileset_tex, "assets/tiles.png"))
+            {
+                /* Map tile types linearly across first row of tileset (64x64 tiles) */
+                int tsz = g_app.tile_size;
+                for(int i=0;i<ROGUE_TILE_MAX;i++)
+                {
+                    g_app.tile_sprites[i].tex = &g_app.tileset_tex;
+                    g_app.tile_sprites[i].sx = i*tsz;
+                    g_app.tile_sprites[i].sy = 0;
+                    g_app.tile_sprites[i].sw = tsz;
+                    g_app.tile_sprites[i].sh = tsz;
+                }
+                g_app.tileset_loaded = 1;
+            }
+        }
+        if(!g_app.player_loaded)
+        {
+            const char* state_names[3]  = {"idle","walk","run"};
+            const char* dir_names[4]    = {"down","side","side","up"};
+            for(int s=0;s<3;s++)
+            {
+                for(int d=0; d<4; d++)
+                {
+                    char path[256];
+                    snprintf(path, sizeof path, "assets/character/%s_%s.png", state_names[s], dir_names[d]);
+                    if(rogue_texture_load(&g_app.player_tex[s][d], path))
+                    {
+                        int frames = g_app.player_tex[s][d].w / g_app.tile_size; if(frames>8) frames = 8;
+                        for(int f=0; f<frames; f++)
+                        {
+                            g_app.player_frames[s][d][f].tex = &g_app.player_tex[s][d];
+                            g_app.player_frames[s][d][f].sx = f * g_app.tile_size;
+                            g_app.player_frames[s][d][f].sy = 0;
+                            g_app.player_frames[s][d][f].sw = g_app.tile_size;
+                            g_app.player_frames[s][d][f].sh = g_app.tile_size;
+                        }
+                        /* Mark remaining frames invalid by zero width */
+                        for(int f=frames; f<8; f++)
+                        {
+                            g_app.player_frames[s][d][f].tex = &g_app.player_tex[s][d];
+                            g_app.player_frames[s][d][f].sw = 0;
+                        }
+                    }
+                }
+            }
+            g_app.player_loaded = 1;
+        }
+
+        /* Update player position from input (simple) */
+        float speed = (g_app.player_state==2)? 6.0f : (g_app.player_state==1? 3.0f : 0.0f);
+        int moving = 0;
+        if(rogue_input_is_down(&g_app.input, ROGUE_KEY_UP)) { g_app.player.base.pos.y -= speed * (float)g_app.dt; g_app.player.facing = 3; moving=1; }
+        if(rogue_input_is_down(&g_app.input, ROGUE_KEY_DOWN)) { g_app.player.base.pos.y += speed * (float)g_app.dt; g_app.player.facing = 0; moving=1; }
+        if(rogue_input_is_down(&g_app.input, ROGUE_KEY_LEFT)) { g_app.player.base.pos.x -= speed * (float)g_app.dt; g_app.player.facing = 1; moving=1; }
+        if(rogue_input_is_down(&g_app.input, ROGUE_KEY_RIGHT)) { g_app.player.base.pos.x += speed * (float)g_app.dt; g_app.player.facing = 2; moving=1; }
+        if(moving && g_app.player_state==0) g_app.player_state = 1; /* auto switch to walk */
+        if(!moving) g_app.player_state = 0;
+        /* Wrap inside map bounds */
+        if(g_app.player.base.pos.x < 0) g_app.player.base.pos.x = 0;
+        if(g_app.player.base.pos.y < 0) g_app.player.base.pos.y = 0;
+        if(g_app.player.base.pos.x > g_app.world_map.width-1) g_app.player.base.pos.x = (float)(g_app.world_map.width-1);
+        if(g_app.player.base.pos.y > g_app.world_map.height-1) g_app.player.base.pos.y = (float)(g_app.world_map.height-1);
+
+        /* Advance animation */
+        g_app.player.anim_time += (float)g_app.dt;
+        float frame_time = (g_app.player_state==2)? 0.08f : 0.12f;
+        int max_frames = 6; /* 384 / 64 */
+        if(g_app.player.anim_time >= frame_time)
+        {
+            g_app.player.anim_time = 0.0f;
+            g_app.player.anim_frame = (g_app.player.anim_frame + 1) % max_frames;
+        }
+        if(g_app.player_state == 0) g_app.player.anim_frame = 0; /* idle frame */
+
+        /* Render tiles */
+        int scale = 1; /* 1 screen pixel per tile pixel until camera implemented */
+        int tsz = g_app.tile_size;
+        if(g_app.tileset_loaded)
+        {
+            for(int y=0;y<g_app.world_map.height;y++)
             for(int x=0;x<g_app.world_map.width;x++)
             {
                 unsigned char t = g_app.world_map.tiles[y*g_app.world_map.width + x];
-                RogueColor c = {0,0,0,255};
-                switch(t){
-                    case ROGUE_TILE_WATER: c=(RogueColor){30,90,200,255}; break;
-                    case ROGUE_TILE_RIVER: c=(RogueColor){50,140,230,255}; break;
-                    case ROGUE_TILE_GRASS: c=(RogueColor){40,160,60,255}; break;
-                    case ROGUE_TILE_FOREST: c=(RogueColor){10,90,20,255}; break;
-                    case ROGUE_TILE_MOUNTAIN: c=(RogueColor){120,120,120,255}; break;
-                    case ROGUE_TILE_CAVE_WALL: c=(RogueColor){60,60,60,255}; break;
-                    case ROGUE_TILE_CAVE_FLOOR: c=(RogueColor){110,80,60,255}; break;
-                    default: break;
-                }
+                if(t < ROGUE_TILE_MAX && g_app.tile_sprites[t].sw)
+                    rogue_sprite_draw(&g_app.tile_sprites[t], x*tsz*scale, y*tsz*scale, scale);
+            }
+        }
+        else
+        {
+            for(int y=0;y<g_app.world_map.height;y++)
+            for(int x=0;x<g_app.world_map.width;x++)
+            {
+                unsigned char t = g_app.world_map.tiles[y*g_app.world_map.width + x];
+                RogueColor c = { (unsigned char)(t*20), (unsigned char)(t*15), (unsigned char)(t*10), 255};
                 SDL_SetRenderDrawColor(g_app.renderer, c.r,c.g,c.b,c.a);
-                SDL_Rect r = { x*scale, y*scale, scale, scale };
+                SDL_Rect r = { x*tsz*scale, y*tsz*scale, tsz*scale, tsz*scale };
                 SDL_RenderFillRect(g_app.renderer, &r);
             }
         }
-        /* Player (placeholder rectangle). Later replaced by sprite frames. */
-        SDL_SetRenderDrawColor(g_app.renderer, 255,255,255,255);
-        SDL_Rect pr = { (int)(g_app.player.base.pos.x*scale), (int)(g_app.player.base.pos.y*scale), scale, scale };
-        SDL_RenderFillRect(g_app.renderer, &pr);
+
+        /* Render player */
+        if(g_app.player_loaded)
+        {
+            int dir = g_app.player.facing;
+            /* Use side sheet for both left/right; flip if facing left */
+            int sheet_dir = (dir==1 || dir==2)? 1 : dir; /* 0=down,1=side,3=up */
+            const RogueSprite* spr = &g_app.player_frames[g_app.player_state][sheet_dir][g_app.player.anim_frame];
+            if(spr->sw)
+            {
+                int px = (int)(g_app.player.base.pos.x * tsz * scale);
+                int py = (int)(g_app.player.base.pos.y * tsz * scale);
+#if defined(ROGUE_HAVE_SDL)
+                if(dir==1) /* left: manual flip */
+                {
+                    SDL_Rect src = { spr->sx, spr->sy, spr->sw, spr->sh };
+                    SDL_Rect dst = { px, py, spr->sw*scale, spr->sh*scale };
+                    SDL_RenderCopyEx(g_app.renderer, spr->tex->handle, &src, &dst, 0.0, NULL, SDL_FLIP_HORIZONTAL);
+                }
+                else
+                {
+                    rogue_sprite_draw(spr, px, py, scale);
+                }
+#endif
+            }
+        }
+        else
+        {
+            SDL_SetRenderDrawColor(g_app.renderer, 255,255,255,255);
+            SDL_Rect pr = { (int)(g_app.player.base.pos.x*tsz*scale), (int)(g_app.player.base.pos.y*tsz*scale), tsz*scale, tsz*scale };
+            SDL_RenderFillRect(g_app.renderer, &pr);
+        }
 
         /* Mini-map in corner (scaled down) */
-        int mm_scale = 2;
-        int mm_x_off = 1920 - g_app.world_map.width*mm_scale - 10;
-        int mm_y_off = 10;
+    int mm_scale = 2;
+    int mm_x_off = 1920 - g_app.world_map.width*mm_scale - 10;
+    int mm_y_off = 10;
         for(int y=0;y<g_app.world_map.height;y++)
         {
             for(int x=0;x<g_app.world_map.width;x++)
