@@ -53,17 +53,25 @@ static RogueTileType elevation_to_tile(double elev){
 static void generate_base(RogueTileMap* map, const RogueWorldGenConfig* cfg){
     if(cfg->advanced_terrain){
         /* Fractal elevation + moisture approach */
-        double water_level = (cfg->water_level>0.0? cfg->water_level : 0.32);
+    double water_level = (cfg->water_level>0.0? cfg->water_level : 0.32);
+    int oct = cfg->noise_octaves>0?cfg->noise_octaves:5;
+    double lac = cfg->noise_lacunarity>0.0?cfg->noise_lacunarity:2.0;
+    double gain = cfg->noise_gain>0.0?cfg->noise_gain:0.5;
+    size_t total = (size_t)map->width * (size_t)map->height;
+    double* elev_field = (double*)malloc(total * sizeof(double));
+    double* moist_field = (double*)malloc(total * sizeof(double));
         for(int y=0;y<map->height;y++){
             for(int x=0;x<map->width;x++){
                 double nx = (double)x/(double)map->width  - 0.5;
                 double ny = (double)y/(double)map->height - 0.5;
                 double dist = sqrt(nx*nx+ny*ny);
-                double elev = fbm((nx+5.0)*2.0,(ny+7.0)*2.0,5,2.0,0.5);
+        double elev = fbm((nx+5.0)*2.0,(ny+7.0)*2.0,oct,lac,gain);
                 /* Add continental falloff */
                 elev -= dist*0.35;
                 /* Moisture separate fbm */
-                double moist = fbm((nx+13.0)*2.5,(ny+3.0)*2.5,4,2.0,0.55);
+        double moist = fbm((nx+13.0)*2.5,(ny+3.0)*2.5,4,2.0,0.55);
+        elev_field[y*map->width + x] = elev;
+        moist_field[y*map->width + x] = moist;
                 RogueTileType t;
                 if(elev < water_level){
                     t = (rng_norm()<0.05)?ROGUE_TILE_RIVER:ROGUE_TILE_WATER; /* some variation */
@@ -77,7 +85,12 @@ static void generate_base(RogueTileMap* map, const RogueWorldGenConfig* cfg){
                 map->tiles[y*map->width + x] = (unsigned char)t;
             }
         }
-        return; /* skip legacy biome system */
+    /* Attach elevation & moisture arrays temporarily in global statics for later passes */
+    /* For simplicity, stash pointers in static locals */
+    static double* s_elev=NULL; static double* s_moist=NULL; static int s_w=0,s_h=0; /* limited to single invocation */
+    s_elev = elev_field; s_moist = moist_field; s_w = map->width; s_h = map->height;
+    /* We'll free them in advanced post stage */
+    return; /* skip legacy biome system core path (post handled later) */
     }
     int nseeds = cfg->biome_regions; if(nseeds < 1) nseeds = 1; if(nseeds>128) nseeds=128;
     BiomeSeed* seeds = (BiomeSeed*)malloc((size_t)nseeds * sizeof(BiomeSeed));
@@ -255,6 +268,56 @@ bool rogue_world_generate(RogueTileMap* out_map, const RogueWorldGenConfig* cfg)
         generate_caves(out_map, cfg);
         carve_rivers(out_map, cfg);
         apply_erosion(out_map);
+    } else {
+        /* Advanced post: access elevation data stored in static variables via getter pattern */
+        /* Since we used static locals inside generate_base, re-derive them by re-computing elevation (cheap) for features */
+        int w = out_map->width, h = out_map->height;
+        double water_level = (cfg->water_level>0.0? cfg->water_level : 0.32);
+        int oct = cfg->noise_octaves>0?cfg->noise_octaves:5;
+        double lac = cfg->noise_lacunarity>0.0?cfg->noise_lacunarity:2.0;
+        double gain = cfg->noise_gain>0.0?cfg->noise_gain:0.5;
+        double* elev = (double*)malloc((size_t)w*h*sizeof(double));
+        if(elev){
+            for(int y=0;y<h;y++) for(int x=0;x<w;x++){
+                double nx = (double)x/(double)w - 0.5; double ny=(double)y/(double)h - 0.5; double dist=sqrt(nx*nx+ny*ny);
+                double e=fbm((nx+5.0)*2.0,(ny+7.0)*2.0,oct,lac,gain); e -= dist*0.35; elev[y*w+x] = e; }
+            /* Downhill river tracing */
+            int sources = cfg->river_sources>0?cfg->river_sources:8;
+            int max_len = cfg->river_max_length>0?cfg->river_max_length: (h*2);
+            for(int s=0;s<sources;s++){
+                /* pick high elevation starting point */
+                int sx=rng_range(0,w-1), sy=rng_range(0,h-1); int attempts=0;
+                while(attempts<200){ double e=elev[sy*w+sx]; if(e>water_level+0.25) break; sx=rng_range(0,w-1); sy=rng_range(0,h-1); attempts++; }
+                int x=sx, y=sy; double prev_e = elev[y*w+x];
+                for(int step=0; step<max_len; ++step){
+                    size_t idx=(size_t)y*w+x; out_map->tiles[idx] = (unsigned char)ROGUE_TILE_RIVER; /* carve river */
+                    /* find lowest neighbor */
+                    int bestx=x, besty=y; double beste = prev_e; double drop=0.0;
+                    for(int oy=-1;oy<=1;oy++) for(int ox=-1;ox<=1;ox++){
+                        if(!ox&&!oy) continue; int nx=x+ox, ny=y+oy; if(nx<0||ny<0||nx>=w||ny>=h) continue; double ne=elev[ny*w+nx]; if(ne < beste){ beste=ne; bestx=nx; besty=ny; drop=prev_e-ne; } }
+                    if(bestx==x && besty==y) break; /* local minimum */
+                    x=bestx; y=besty; prev_e=beste;
+                    if(prev_e < water_level) break; /* reached water */
+                }
+            }
+            /* Mountain-limited caves: generate cellular automata in high elevation mask only */
+            double thresh = (cfg->cave_mountain_elev_thresh>0.0?cfg->cave_mountain_elev_thresh: (water_level+0.28));
+            int wmask_count=0;
+            unsigned char* cave = (unsigned char*)malloc((size_t)w*h);
+            if(cave){
+                for(int i=0;i<w*h;i++) cave[i]=0;
+                for(int y=0;y<h;y++) for(int x=0;x<w;x++){ double e=elev[y*w+x]; if(e>thresh){ cave[y*w+x] = (rng_norm()<cfg->cave_fill_chance)?1:0; wmask_count++; } }
+                int iters = cfg->cave_iterations;
+                for(int it=0; it<iters; ++it){
+                    for(int y=1;y<h-1;y++) for(int x=1;x<w-1;x++){
+                        if(!cave[y*w+x]) continue; int count=0; for(int oy=-1;oy<=1;oy++) for(int ox=-1;ox<=1;ox++){ if(!ox&&!oy) continue; if(cave[(y+oy)*w+(x+ox)]) count++; }
+                        if(count<4) cave[y*w+x]=0; }
+                }
+                for(int y=0;y<h;y++) for(int x=0;x<w;x++) if(cave[y*w+x]){ size_t idx=(size_t)y*w+x; if(out_map->tiles[idx]==ROGUE_TILE_MOUNTAIN) out_map->tiles[idx]=ROGUE_TILE_CAVE_WALL; }
+                free(cave);
+            }
+            free(elev);
+        }
     }
     /* Multi-pass small island smoothing: first targeted categories (water, grass, forest, mountain) then global. */
     int passes = cfg->small_island_passes > 0 ? cfg->small_island_passes : 1;

@@ -17,6 +17,12 @@ typedef struct RogueWorldGenConfig {
     int shore_fill_passes;      /* how many passes to expand water to remove tiny land notches */
     int advanced_terrain;       /* enable advanced noise-based generation */
     double water_level;         /* base water elevation threshold (0-1), if 0 use default */
+    int noise_octaves;          /* fbm octaves for elevation */
+    double noise_gain;          /* fbm gain */
+    double noise_lacunarity;    /* fbm lacunarity */
+    int river_sources;          /* number of downhill-traced rivers (advanced) */
+    int river_max_length;       /* max steps per river */
+    double cave_mountain_elev_thresh; /* elevation above which caves may form (advanced) */
 } RogueWorldGenConfig;
 
 bool rogue_world_generate(RogueTileMap* out_map, const RogueWorldGenConfig* cfg);
