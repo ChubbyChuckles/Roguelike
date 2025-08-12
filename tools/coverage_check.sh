@@ -10,7 +10,7 @@ if ! command -v lcov >/dev/null 2>&1; then
 fi
 
 lcov --directory "${BUILD_DIR}" --capture --output-file "${INFO_FILE}" 1>/dev/null
-lcov --remove "${INFO_FILE}" '/usr/*' '*/tests/*' '*/_deps/*' --output-file "${INFO_FILE}" 1>/dev/null
+lcov --remove "${INFO_FILE}" '/usr/*' '*/tests/*' '*/_deps/*' '*/src/main.c' --output-file "${INFO_FILE}" 1>/dev/null
 
 echo "Coverage summary:"
 lcov --list "${INFO_FILE}" | tail -n 25

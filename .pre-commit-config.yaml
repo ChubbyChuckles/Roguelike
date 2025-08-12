@@ -19,7 +19,7 @@ repos:
         entry: python tools/precommit/build_and_test.py
         language: system
         pass_filenames: false
-        stages: [commit]
+        stages: [pre-commit]
       - id: coverage-optional
         name: (Optional) Coverage 100% check (enable with ROGUE_PRECOMMIT_COVERAGE=1)
         entry: python tools/precommit/build_and_test.py --coverage-only
@@ -42,13 +42,13 @@ repos:
         entry: python tools/precommit/structural_test_check.py
         language: system
         pass_filenames: false
-        stages: [commit]
+        stages: [pre-commit]
       - id: todo-issue-check
         name: Enforce TODO issue reference pattern
         entry: python tools/precommit/todo_issue_check.py
         language: system
         pass_filenames: false
-        stages: [commit]
+        stages: [pre-commit]
       - id: commit-msg-lint
         name: Commit message style (imperative, <= 72 first line)
         entry: python tools/precommit/commit_msg_lint.py

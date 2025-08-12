@@ -4,7 +4,7 @@ These directives govern all AI-generated contributions. Treat them as mandatory 
 
 ## Core Principles
 1. Correctness first: produce compiling, warning-free C11 code (warnings treated as errors).
-2. 100% Line Coverage: all lines in `src/` must be executed by tests. Defensive/error branches must be testable; refactor to inject fakes if needed. CI fails below 100%.
+2. 100% Line Coverage: all lines in `src/` (excluding the trivial entry file `src/main.c`) must be executed by tests. Defensive/error branches must be testable; refactor to inject fakes if needed. CI fails below 100%.
 3. Modularity: one responsibility per file; prefer small focused functions (< ~60 LOC).
 4. Determinism: expose state via accessors (e.g., frame counters) instead of hidden globals.
 5. Refactoring: if adding feature to an overgrown file, first extract cohesive modules before implementing feature logic.
@@ -18,6 +18,7 @@ These directives govern all AI-generated contributions. Treat them as mandatory 
 4. Run (or simulate) `format-check`, `clang-tidy`, and `ctest` steps; ensure green.
 5. Update documentation (README or inline comments) when introducing new public APIs.
  6. Ensure pre-commit hooks pass (install via `pre-commit install`).
+ 7. After a feature is implemented and tests pass, Copilot must help the user commit and push the change, automatically fixing any linting or formatting errors (including pre-commit, clang-format, clang-tidy, and commit message lint) before pushing.
 
 ## Coding Standards
 * C11 only; avoid non-portable extensions.

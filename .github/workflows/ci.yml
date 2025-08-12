@@ -25,6 +25,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install clang-format (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+
+      - name: Install clang-format (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install -y llvm || echo "llvm already installed"
+          if (Get-Command clang-format -ErrorAction SilentlyContinue) { clang-format --version }
+
       - name: Install SDL2 (Ubuntu only when enabled)
         if: runner.os == 'Linux' && matrix.sdl == 'ON'
         run: |
@@ -40,8 +53,13 @@ jobs:
           -DROGUE_ENABLE_SDL=${{ matrix.sdl }}
           -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
 
-      - name: Build
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
         run: cmake --build build --config ${{ env.BUILD_TYPE }} -- -j 2
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        run: cmake --build build --config ${{ env.BUILD_TYPE }}
 
       - name: Format Check
         run: |
@@ -82,7 +100,7 @@ jobs:
       - name: Install deps (lcov & SDL off)
         run: |
           sudo apt-get update
-          sudo apt-get install -y lcov
+          sudo apt-get install -y lcov clang-format
       - name: Configure (coverage flags)
         run: >-
           cmake -S . -B build
