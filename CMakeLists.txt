@@ -48,6 +48,8 @@ add_library(rogue_core
     src/world/world_gen.c
     src/graphics/font.c
     src/entities/player.c
+    src/entities/enemy.c
+    src/game/combat.c
     src/util/log.c
 )
 

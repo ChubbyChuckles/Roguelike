@@ -28,6 +28,8 @@ SOFTWARE.
 #include "world/world_gen.h"
 #include "input/input.h"
 #include "entities/player.h"
+#include "entities/enemy.h"
+#include "game/combat.h"
 #include "graphics/sprite.h"
 #include "graphics/tile_sprites.h"
 #include <string.h>
@@ -119,6 +121,11 @@ typedef struct RogueAppState
     int gen_river_max_length;
     double gen_cave_thresh;
     int gen_params_dirty;
+    /* Combat / entities */
+    RogueEnemy enemies[ROGUE_MAX_ENEMIES];
+    int enemy_count;
+    RoguePlayerCombat player_combat;
+    int total_kills;
 } RogueAppState;
 
 static RogueAppState g_app;
@@ -292,6 +299,10 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.frame_draw_calls = 0;
     g_app.frame_tile_quads = 0;
     /* Values already loaded (or defaults applied) above */
+    /* Init combat */
+    rogue_combat_init(&g_app.player_combat);
+    g_app.enemy_count = 0; g_app.total_kills = 0;
+    for(int i=0;i<ROGUE_MAX_ENEMIES;i++){ g_app.enemies[i].alive=0; }
     /* Log current working directory for asset path debugging */
     {
         char cwd_buf[512];
@@ -725,11 +736,39 @@ void rogue_app_step(void)
         if(rogue_input_is_down(&g_app.input, ROGUE_KEY_RIGHT)) { g_app.player.base.pos.x += speed * (float)g_app.dt; g_app.player.facing = 2; moving=1; }
         if(moving && g_app.player_state==0) g_app.player_state = 1; /* auto switch to walk */
         if(!moving) g_app.player_state = 0;
+    /* Attack input (SPACE/RETURN maps to ACTION) */
+    int attack_pressed = rogue_input_was_pressed(&g_app.input, ROGUE_KEY_ACTION);
+    float dt_ms = (float)g_app.dt * 1000.0f;
+    rogue_combat_update_player(&g_app.player_combat, dt_ms, attack_pressed);
+    int kills = rogue_combat_player_strike(&g_app.player_combat, &g_app.player, g_app.enemies, g_app.enemy_count);
+    g_app.total_kills += kills;
         /* Wrap inside map bounds */
         if(g_app.player.base.pos.x < 0) g_app.player.base.pos.x = 0;
         if(g_app.player.base.pos.y < 0) g_app.player.base.pos.y = 0;
         if(g_app.player.base.pos.x > g_app.world_map.width-1) g_app.player.base.pos.x = (float)(g_app.world_map.width-1);
         if(g_app.player.base.pos.y > g_app.world_map.height-1) g_app.player.base.pos.y = (float)(g_app.world_map.height-1);
+        /* Spawn simple enemies near player if below target count */
+        if(g_app.enemy_count < 32){
+            for(int attempt=0; attempt<2 && g_app.enemy_count < 32; ++attempt){
+                for(int i=0;i<ROGUE_MAX_ENEMIES;i++){ if(!g_app.enemies[i].alive){
+                    float ex = (float)(g_app.player.base.pos.x + (float)((rand()%140)-70));
+                    float ey = (float)(g_app.player.base.pos.y + (float)((rand()%140)-70));
+                    if(ex<1||ey<1||ex>g_app.world_map.width-2||ey>g_app.world_map.height-2) continue;
+                    g_app.enemies[i].base.pos.x = ex; g_app.enemies[i].base.pos.y = ey; g_app.enemies[i].health=2; g_app.enemies[i].alive=1; g_app.enemies[i].hurt_timer=0; g_app.enemies[i].type=ROGUE_ENEMY_SLIME; g_app.enemy_count++; break; }
+                }
+            }
+        }
+        /* Enemy simple AI: move toward player */
+        for(int i=0;i<ROGUE_MAX_ENEMIES;i++) if(g_app.enemies[i].alive){
+            float dx = g_app.player.base.pos.x - g_app.enemies[i].base.pos.x;
+            float dy = g_app.player.base.pos.y - g_app.enemies[i].base.pos.y;
+            float len = (float)sqrt(dx*dx+dy*dy); if(len>0.0001f){ dx/=len; dy/=len; }
+            float es = 12.0f * (float)g_app.dt;
+            if(len>0.6f){ g_app.enemies[i].base.pos.x += dx*es; g_app.enemies[i].base.pos.y += dy*es; }
+            if(g_app.enemies[i].hurt_timer>0) g_app.enemies[i].hurt_timer -= dt_ms;
+            if(len < 0.6f && g_app.player.health>0){ g_app.player.health--; g_app.enemies[i].hurt_timer=200.0f; }
+            if(g_app.enemies[i].health<=0){ g_app.enemies[i].alive=0; }
+        }
 
         /* Advance animation (coalesce tiny dt <1ms to reduce float churn) */
         float frame_dt_ms = (float)g_app.dt * 1000.0f;
@@ -883,6 +922,36 @@ void rogue_app_step(void)
 #endif
             }
         }
+        /* Render enemies (simple colored squares) */
+#ifdef ROGUE_HAVE_SDL
+        for(int i=0;i<ROGUE_MAX_ENEMIES;i++) if(g_app.enemies[i].alive){
+            int ex = (int)(g_app.enemies[i].base.pos.x*tsz - g_app.cam_x);
+            int ey = (int)(g_app.enemies[i].base.pos.y*tsz - g_app.cam_y);
+            unsigned char r=100,g=200,b=100,a=255;
+            if(g_app.enemies[i].hurt_timer>0){ r=255; g=80; b=80; }
+            SDL_SetRenderDrawColor(g_app.renderer,r,g,b,a);
+            SDL_Rect er = { ex-4, ey-4, 8,8 }; SDL_RenderFillRect(g_app.renderer,&er); g_app.frame_draw_calls++;
+        }
+        /* Render player attack arc (during STRIKE) */
+        if(g_app.player_combat.phase == ROGUE_ATTACK_STRIKE){
+            int px = (int)(g_app.player.base.pos.x*tsz - g_app.cam_x);
+            int py = (int)(g_app.player.base.pos.y*tsz - g_app.cam_y);
+            SDL_SetRenderDrawColor(g_app.renderer,255,255,0,160);
+            int radius = 20;
+            for(int deg=-40; deg<=40; deg+=4){
+                float rad = (float)((double)deg * 3.14159265 / 180.0);
+                float dirx=0,diry=0;
+                switch(g_app.player.facing){ case 0: diry=1; break; case 1: dirx=-1; break; case 2: dirx=1; break; case 3: diry=-1; break; }
+                float ax = dirx; float ay = diry;
+                /* rotate small angle */
+                float rx = (float)(ax*cos((double)rad) - ay*sin((double)rad));
+                float ry = (float)(ax*sin((double)rad) + ay*cos((double)rad));
+                int x = px + (int)(rx * radius);
+                int y = py + (int)(ry * radius);
+                SDL_Rect pt = { x, y, 2,2 }; SDL_RenderFillRect(g_app.renderer,&pt); g_app.frame_draw_calls++;
+            }
+        }
+#endif
         else
         {
             SDL_SetRenderDrawColor(g_app.renderer, 255,255,255,255);
@@ -941,12 +1010,12 @@ void rogue_app_step(void)
         char m_buf[64];
         snprintf(m_buf, sizeof m_buf, "DRAWS:%d TILES:%d", g_app.frame_draw_calls, g_app.frame_tile_quads);
         rogue_font_draw_text(base_x, base_y + line_h, m_buf, overlay_scale, (RogueColor){220,220,220,255});
-        char gen_buf1[96];
+    char gen_buf1[96];
         snprintf(gen_buf1, sizeof gen_buf1, "WT:%.2f OCT:%d GAIN:%.2f LAC:%.2f", g_app.gen_water_level, g_app.gen_noise_octaves, g_app.gen_noise_gain, g_app.gen_noise_lacunarity);
         rogue_font_draw_text(base_x, base_y + line_h*2, gen_buf1, overlay_scale, (RogueColor){180,220,255,255});
-        char gen_buf2[128];
-        snprintf(gen_buf2, sizeof gen_buf2, "RIV:%d LEN:%d CAVE>%.2f F5/F6 WT F7/F8 OCT F9/F10 RIV F11/F12 GAIN ` REGEN", g_app.gen_river_sources, g_app.gen_river_max_length, g_app.gen_cave_thresh);
-        rogue_font_draw_text(base_x, base_y + line_h*3, gen_buf2, overlay_scale, (RogueColor){160,200,240,255});
+    char gen_buf2[160];
+    snprintf(gen_buf2, sizeof gen_buf2, "RIV:%d LEN:%d CAVE>%.2f HP:%d EN:%d KILLS:%d STA:%d PH:%d F5/F6 WT F7/F8 OCT F9/F10 RIV F11/F12 GAIN ` REGEN", g_app.gen_river_sources, g_app.gen_river_max_length, g_app.gen_cave_thresh, g_app.player.health, g_app.enemy_count, g_app.total_kills, (int)g_app.player_combat.stamina, g_app.player_combat.phase);
+    rogue_font_draw_text(base_x, base_y + line_h*3, gen_buf2, overlay_scale, (RogueColor){160,200,240,255});
     }
     SDL_RenderPresent(g_app.renderer);
 #endif
