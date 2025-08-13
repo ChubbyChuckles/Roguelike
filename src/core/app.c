@@ -33,6 +33,8 @@ SOFTWARE.
 #include "game/combat.h"
 #include "game/damage_numbers.h"
 #include "core/enemy_system.h"
+#include "core/start_screen.h"
+#include "core/player_assets.h"
 #include "graphics/sprite.h"
 #include "graphics/tile_sprites.h"
 #include <string.h>
@@ -636,52 +638,9 @@ void rogue_app_step(void)
     SDL_SetRenderDrawColor(g_app.renderer, g_app.cfg.background_color.r, g_app.cfg.background_color.g,
                            g_app.cfg.background_color.b, g_app.cfg.background_color.a);
     SDL_RenderClear(g_app.renderer);
-    if (g_app.show_start_screen)
+    if (rogue_start_screen_active())
     {
-        RogueColor white = {255,255,255,255};
-        int pulse = (int)( (sin(g_app.title_time*2.0)*0.5 + 0.5) * 255.0 );
-        RogueColor title_col = { (unsigned char)pulse, (unsigned char)pulse, 255, 255};
-        rogue_font_draw_text(40, 60, "ROGUELIKE", 6, title_col);
-        const char* menu_items[] = { "New Game", "Quit", "Seed:" };
-        int base_y = 140;
-        for(int i=0;i<3;i++)
-        {
-            RogueColor c = (i==g_app.menu_index)?(RogueColor){255,255,0,255}:white;
-            rogue_font_draw_text(50, base_y + i*20, menu_items[i], 2, c);
-        }
-        char seed_line[64];
-        snprintf(seed_line, sizeof seed_line, "%u", g_app.pending_seed);
-        rogue_font_draw_text(140, base_y + 2*20, seed_line, 2, white);
-        if (g_app.entering_seed)
-            rogue_font_draw_text(140 + (int)strlen(seed_line)*12, base_y + 2*20, "_", 2, white);
-        /* Handle menu navigation */
-        if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_DOWN)) g_app.menu_index = (g_app.menu_index+1)%3;
-        if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_UP)) g_app.menu_index = (g_app.menu_index+2)%3;
-        if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_ACTION))
-        {
-            if (g_app.menu_index == 0)
-                g_app.show_start_screen = 0; /* start */
-            else if (g_app.menu_index == 1)
-                rogue_game_loop_request_exit();
-            else if (g_app.menu_index == 2)
-                g_app.entering_seed = 1;
-        }
-        if (g_app.entering_seed)
-        {
-            /* process typed digits */
-            for(int i=0;i<g_app.input.text_len;i++)
-            {
-                char ch = g_app.input.text_buffer[i];
-                if(ch >= '0' && ch <= '9')
-                {
-                    g_app.pending_seed = g_app.pending_seed*10 + (unsigned)(ch - '0');
-                }
-                else if (ch == 'b' || ch == 'B')
-                {
-                    g_app.pending_seed /= 10; /* crude backspace mapped to 'b' until full text input */
-                }
-            }
-        }
+        rogue_start_screen_update_and_render();
     }
     else
     {
@@ -725,98 +684,7 @@ void rogue_app_step(void)
                 ROGUE_LOG_WARN("Tile sprites finalize failed; falling back to debug colored tiles.");
             }
         }
-        if(!g_app.player_loaded)
-        {
-            const char* state_names[4]  = {"idle","walk","run","attack"};
-                    g_app.frame_draw_calls++;
-                    g_app.frame_tile_quads++;
-            const char* dir_names[4]    = {"down","side","right","up"};
-            if(!g_app.player_sheet_paths_loaded){
-                load_player_sheet_paths("assets/player_sheets.cfg");
-                /* Fill defaults for any missing entries */
-                for(int s=0;s<4;s++){
-                    for(int d=0; d<4; d++){
-                        if(!g_app.player_sheet_path[s][d][0]){
-                            char defp[256];
-                            /* Use side for both left/right by default */
-                            const char* use_dir = (d==1||d==2)? "side" : dir_names[d];
-                            snprintf(defp,sizeof defp,"assets/character/%s_%s.png", state_names[s], use_dir);
-#if defined(_MSC_VER)
-                            strncpy_s(g_app.player_sheet_path[s][d], sizeof g_app.player_sheet_path[s][d], defp, _TRUNCATE);
-#else
-                            strncpy(g_app.player_sheet_path[s][d], defp, sizeof g_app.player_sheet_path[s][d]-1);
-                            g_app.player_sheet_path[s][d][sizeof g_app.player_sheet_path[s][d]-1]='\0';
-#endif
-                        }
-                    }
-                }
-            }
-            int any_player_texture_loaded = 0;
-            for(int s=0;s<4;s++)
-            {
-                for(int d=0; d<4; d++)
-                {
-                    const char* path = g_app.player_sheet_path[s][d];
-                    if(rogue_texture_load(&g_app.player_tex[s][d], path))
-                    {
-                        any_player_texture_loaded = 1;
-                        g_app.player_sheet_loaded[s][d] = 1;
-                        int texw = g_app.player_tex[s][d].w;
-                        int texh = g_app.player_tex[s][d].h;
-                        /* Auto-detect frame (cell) size from texture height if different */
-                        if(texh > 0 && texh != g_app.player_frame_size){
-                            ROGUE_LOG_INFO("Auto-adjust player frame size from %d to %d (sheet: %s)", g_app.player_frame_size, texh, path);
-                            g_app.player_frame_size = texh; /* assume square frames */
-                        }
-                        int frames = (g_app.player_frame_size>0)? (texw / g_app.player_frame_size) : 0;
-                        if(frames>8) frames = 8;
-                        if(frames <= 0){
-                            /* Width smaller than expected frame size; treat whole sheet as single frame */
-                            ROGUE_LOG_WARN("Player sheet width %d < frame_size %d; forcing single frame: %s", texw, g_app.player_frame_size, path);
-                            frames = 1;
-                        }
-                        ROGUE_LOG_INFO("Loaded player sheet %s (w=%d h=%d frames=%d state=%d dir=%d)", path, texw, texh, frames, s, d);
-                        g_app.player_frame_count[s][d] = frames;
-                        for(int f=0; f<frames; f++)
-                        {
-                            g_app.player_frames[s][d][f].tex = &g_app.player_tex[s][d];
-                            g_app.player_frames[s][d][f].sx = f * g_app.player_frame_size;
-                            g_app.player_frames[s][d][f].sy = 0;
-                            /* Clamp width/height to texture bounds */
-                            int remaining = texw - f * g_app.player_frame_size;
-                            if(remaining < g_app.player_frame_size) remaining = (remaining>0)? remaining : g_app.player_frame_size;
-                            g_app.player_frames[s][d][f].sw = (remaining > g_app.player_frame_size)? g_app.player_frame_size : remaining;
-                            g_app.player_frames[s][d][f].sh = (texh < g_app.player_frame_size)? texh : g_app.player_frame_size;
-                            /* Assign default per-frame time (idle slower, run faster) */
-                            int base = (s==0)? 160 : (s==2? 90 : 120); /* ms */
-                            g_app.player_frame_time_ms[s][d][f] = base;
-                        }
-                        /* Mark remaining frames invalid by zero width */
-                        for(int f=frames; f<8; f++)
-                        {
-                            g_app.player_frames[s][d][f].tex = &g_app.player_tex[s][d];
-                            g_app.player_frames[s][d][f].sw = 0;
-                        }
-                    }
-                    else {
-                        ROGUE_LOG_WARN("Failed to load player sheet: %s (state=%d dir=%d)", path, s, d);
-                        /* Print absolute path attempt for extra clarity */
-#ifdef _WIN32
-                        char fullp[_MAX_PATH];
-                        if(_fullpath(fullp, path, sizeof fullp)){
-                            ROGUE_LOG_WARN("Absolute path candidate: %s", fullp);
-                        }
-#endif
-                        g_app.player_sheet_loaded[s][d] = 0;
-                    }
-                }
-            }
-            g_app.player_loaded = any_player_texture_loaded;
-            if(!g_app.player_loaded){
-                ROGUE_LOG_WARN("No player sprite sheets loaded; using placeholder rectangle.");
-            }
-            load_player_anim_config("assets/player_anim.cfg");
-        }
+    if(!g_app.player_loaded) { rogue_player_assets_ensure_loaded(); }
 
         /* Update player position from input (simple) */
     float speed = (g_app.player_state==2)? g_app.run_speed : (g_app.player_state==1? g_app.walk_speed : 0.0f);
@@ -846,27 +714,7 @@ void rogue_app_step(void)
     }
     float hitstop_scale = (g_app.hitstop_timer_ms > 0)? 0.25f : 1.0f; /* quarter speed during hitstop */
     float dt_ms = raw_dt_ms * hitstop_scale;
-    /* Track prior phase to reset animation when attack begins */
-    static int prev_attack_phase = -1;
-    rogue_combat_update_player(&g_app.player_combat, dt_ms, attack_pressed);
-    if(g_app.player_combat.phase != prev_attack_phase){
-        if(g_app.player_combat.phase == ROGUE_ATTACK_WINDUP){
-            /* Start attack animation from first frame */
-            g_app.player.anim_frame = 0;
-            g_app.player.anim_time = 0.0f;
-            g_app.attack_anim_time_ms = 0.0f;
-        } else if(g_app.player_combat.phase == ROGUE_ATTACK_IDLE && prev_attack_phase != -1){
-            /* Reset anim timing after finishing attack */
-            g_app.player.anim_frame = 0;
-            g_app.player.anim_time = 0.0f;
-        }
-        prev_attack_phase = g_app.player_combat.phase;
-    }
-    int kills = rogue_combat_player_strike(&g_app.player_combat, &g_app.player, g_app.enemies, g_app.enemy_count);
-    if(kills>0){
-        g_app.total_kills += kills;
-        g_app.player.xp += kills * (3 + g_app.player.level); /* scale xp gain modestly */
-    }
+    rogue_player_assets_update_animation(raw_dt_ms, dt_ms, raw_dt_ms, attack_pressed);
     while(g_app.player.xp >= g_app.player.xp_to_next){
     g_app.player.xp -= g_app.player.xp_to_next; 
         g_app.player.level++; 
