@@ -170,7 +170,7 @@ void rogue_add_damage_number_ex(float x, float y, int amount, int from_player, i
         int i = g_app.dmg_number_count++;
         g_app.dmg_numbers[i].x = x; g_app.dmg_numbers[i].y = y;
         g_app.dmg_numbers[i].vx = 0.0f; g_app.dmg_numbers[i].vy = -0.38f;
-        g_app.dmg_numbers[i].life_ms = 950.0f; g_app.dmg_numbers[i].total_ms = 950.0f;
+    g_app.dmg_numbers[i].life_ms = 700.0f; g_app.dmg_numbers[i].total_ms = 700.0f;
     g_app.dmg_numbers[i].amount = amount; g_app.dmg_numbers[i].from_player = from_player;
     g_app.dmg_numbers[i].crit = crit?1:0; g_app.dmg_numbers[i].scale = crit? 1.4f : 1.0f;
     }
@@ -195,8 +195,8 @@ static int tile_is_blocking(unsigned char t){
 
 int rogue_app_player_health(void){ return g_app.player.health; }
 
-void rogue_test_spawn_hostile_enemy(float x, float y){
-    if(g_app.enemy_type_count<=0) return;
+RogueEnemy* rogue_test_spawn_hostile_enemy(float x, float y){
+    if(g_app.enemy_type_count<=0) return NULL;
     for(int i=0;i<ROGUE_MAX_ENEMIES;i++) if(!g_app.enemies[i].alive){
         RogueEnemy* ne = &g_app.enemies[i];
         ne->base.pos.x = x; ne->base.pos.y = y; ne->anchor_x = x; ne->anchor_y = y;
@@ -204,7 +204,21 @@ void rogue_test_spawn_hostile_enemy(float x, float y){
         ne->max_health = 10; ne->health = 10; ne->alive=1; ne->hurt_timer=0; ne->anim_time=0; ne->anim_frame=0;
         ne->ai_state = ROGUE_ENEMY_AI_AGGRO; ne->facing=2; ne->type_index=0; ne->tint_r=255; ne->tint_g=255; ne->tint_b=255; ne->death_fade=1.0f; ne->tint_phase=0; ne->flash_timer=0; ne->attack_cooldown_ms=0;
         g_app.enemy_count++; g_app.per_type_counts[0]++;
-        break;
+        return ne;
+    }
+    return NULL;
+}
+
+int rogue_app_damage_number_count(void){ return g_app.dmg_number_count; }
+
+void rogue_app_test_decay_damage_numbers(float ms){
+    for(int i=0;i<g_app.dmg_number_count;){
+        g_app.dmg_numbers[i].life_ms -= ms;
+        if(g_app.dmg_numbers[i].life_ms <= 0){
+            g_app.dmg_numbers[i] = g_app.dmg_numbers[g_app.dmg_number_count-1];
+            g_app.dmg_number_count--; continue;
+        }
+        ++i;
     }
 }
 
@@ -982,7 +996,7 @@ void rogue_app_step(void)
         /* Per-type spawning (throttled & capped) */
         g_app.spawn_accum_ms += dt_ms;
         const int global_cap = 120;
-        if(g_app.spawn_accum_ms > 900.0f){ g_app.spawn_accum_ms = 0.0f; if(g_app.enemy_type_count>0 && g_app.enemy_count < global_cap){
+    if(g_app.spawn_accum_ms > 650.0f){ g_app.spawn_accum_ms = 0.0f; if(g_app.enemy_type_count>0 && g_app.enemy_count < global_cap){
             for(int ti=0; ti<g_app.enemy_type_count; ++ti){
                 RogueEnemyTypeDef* t=&g_app.enemy_types[ti];
                 int cur = g_app.per_type_counts[ti]; int target = t->pop_target; if(target<=0) target=6; if(target>40) target=40; /* clamp */

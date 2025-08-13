@@ -66,12 +66,17 @@ int rogue_app_enemy_count(void);
 void rogue_app_skip_start_screen(void);
 /* Access current player health (tests) */
 int rogue_app_player_health(void);
-/* Test helper: spawn a hostile enemy at position (world tile coords) */
-void rogue_test_spawn_hostile_enemy(float x, float y);
+/* Test helper: spawn a hostile enemy at position (world tile coords). Returns pointer or NULL. */
+struct RogueEnemy; /* forward */
+struct RogueEnemy* rogue_test_spawn_hostile_enemy(float x, float y);
 /* Spawn a floating damage number (world tile coordinates) */
 void rogue_add_damage_number(float x, float y, int amount, int from_player);
 /* Extended with crit flag */
 void rogue_add_damage_number_ex(float x, float y, int amount, int from_player, int crit);
+/* Count of active floating damage numbers */
+int rogue_app_damage_number_count(void);
+/* Test helper: force decay tick of damage numbers by ms amount */
+void rogue_app_test_decay_damage_numbers(float ms);
 
 /* Dynamic controls */
 void rogue_app_toggle_fullscreen(void);

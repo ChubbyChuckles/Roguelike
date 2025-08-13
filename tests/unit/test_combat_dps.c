@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include "core/app.h"
+#include "entities/enemy.h"
 
 int main(){
     RogueAppConfig cfg = {"DPS", 320,180,320,180,0,0,0,1,ROGUE_WINDOW_WINDOWED,{0,0,0,255}};
@@ -15,8 +16,9 @@ int main(){
     int start_health = rogue_app_player_health();
     int last_health = start_health;
     int damage_events = 0;
-    int intervals[16];
+    int intervals[32];
     int interval_count = 0;
+    int min_int = 1000000, max_int = 0;
     int ms_since_last = 0;
 
     /* Simulate 10 seconds (10000 frames at 1ms per step) */
@@ -26,7 +28,9 @@ int main(){
         int h = rogue_app_player_health();
         if(h < last_health){
             damage_events++;
-            if(interval_count < 16){ intervals[interval_count++] = ms_since_last; }
+            if(ms_since_last < min_int) min_int = ms_since_last;
+            if(ms_since_last > max_int) max_int = ms_since_last;
+            if(interval_count < 32){ intervals[interval_count++] = ms_since_last; }
             ms_since_last = 0;
             last_health = h;
         }
@@ -44,7 +48,10 @@ int main(){
         return 1;
     }
 
-    printf("DPS timing ok: events=%d avg=%.1fms\n", damage_events, avg);
+    if(min_int < 650 || max_int > 1100){
+        printf("intervals out of band min=%d max=%d avg=%.1f events=%d\n", min_int, max_int, avg, damage_events);
+        rogue_app_shutdown(); return 1; }
+    printf("DPS timing ok: events=%d avg=%.1fms min=%d max=%d\n", damage_events, avg, min_int, max_int);
     rogue_app_shutdown();
     return 0;
 }
