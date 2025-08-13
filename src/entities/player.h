@@ -44,9 +44,10 @@ typedef struct RoguePlayer
     int dexterity;
     int vitality;
     int intelligence;
+    int crit_chance;   /* percent (0-100) additional flat crit chance */
+    int crit_damage;   /* percent bonus over 100; e.g. 50 => 1.5x */
 } RoguePlayer;
 
 void rogue_player_init(RoguePlayer* p);
 void rogue_player_recalc_derived(RoguePlayer* p);
-
 #endif

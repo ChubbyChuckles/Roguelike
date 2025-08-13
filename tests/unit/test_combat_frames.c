@@ -6,8 +6,8 @@
 #include <math.h>
 
 /* Minimal stubs to satisfy externs if needed */
-int test_local_get_current_attack_frame(void){ return 3; }
-#define rogue_get_current_attack_frame test_local_get_current_attack_frame
+extern int g_attack_frame_override;
+/* Set override to frame 3 */
 RoguePlayer g_exposed_player_for_stats; /* not used here */
 void test_local_add_damage_number(float x,float y,int amount,int from_player) {(void)x;(void)y;(void)amount;(void)from_player;}
 void test_local_add_damage_number_ex(float x,float y,int amount,int from_player,int crit){(void)x;(void)y;(void)amount;(void)from_player;(void)crit;}
@@ -25,6 +25,7 @@ int main(void){
     enemies[2].base.pos.x = 0.6f; enemies[2].base.pos.y = 0.2f;
     enemies[3].base.pos.x = 0.9f; enemies[3].base.pos.y = 0.0f;
     RoguePlayerCombat combat; rogue_combat_init(&combat); combat.phase = ROGUE_ATTACK_STRIKE;
+    g_attack_frame_override = 3;
     int kills = rogue_combat_player_strike(&combat,&player,enemies,4);
     int damaged=0; for(int i=0;i<4;i++) if(enemies[i].health<10) damaged++;
     if(damaged==0){ printf("no enemies damaged on hit frame\n"); return 1; }

@@ -5,7 +5,14 @@
 #include <stdlib.h>
 
 static int load_sheet(const char* path, RogueTexture* tex, RogueSprite frames[], int* out_count){
-	if(!rogue_texture_load(tex,path)) return 0;
+	if(!rogue_texture_load(tex,path)){
+		/* Attempt implicit ../ fallback if not already containing ../ and initial load failed */
+		if(strncmp(path,"../",3)!=0){
+			char alt[256];
+			snprintf(alt,sizeof alt,"../%s", path);
+			if(!rogue_texture_load(tex,alt)) return 0; /* still fail */
+		} else return 0;
+	}
 	int frame_size = tex->h; /* assume square */
 	int count = tex->w / frame_size; if(count>8) count=8; if(count<1) count=1;
 	for(int i=0;i<count;i++){ frames[i].tex=tex; frames[i].sx=i*frame_size; frames[i].sy=0; frames[i].sw=frame_size; frames[i].sh=tex->h; }
@@ -19,6 +26,21 @@ int rogue_enemy_load_config(const char* path, RogueEnemyTypeDef types[], int* in
 #else
 	f=fopen(path,"rb");
 #endif
+	if(!f){
+		/* Try fallback prefixes so running from build/ works (mirror player sheet behavior) */
+		const char* prefixes[] = { "../", "../../", "../../../" };
+		char attempt[512];
+		for(size_t i=0;i<sizeof(prefixes)/sizeof(prefixes[0]) && !f;i++){
+#if defined(_MSC_VER)
+			_snprintf_s(attempt,sizeof attempt,_TRUNCATE,"%s%s", prefixes[i], path);
+			fopen_s(&f,attempt,"rb");
+#else
+			snprintf(attempt,sizeof attempt,"%s%s", prefixes[i], path);
+			f=fopen(attempt,"rb");
+#endif
+			if(f){ ROGUE_LOG_INFO("Opened enemy cfg via fallback path: %s", attempt); break; }
+		}
+	}
 	if(!f){ ROGUE_LOG_WARN("enemy cfg open fail: %s", path); return 0; }
 	char line[512]; int loaded=0; int cap=*inout_type_count;
 	while(fgets(line,sizeof line,f)){
@@ -48,5 +70,6 @@ int rogue_enemy_load_config(const char* path, RogueEnemyTypeDef types[], int* in
 		loaded++;
 	}
 	fclose(f);
+	if(loaded>0){ ROGUE_LOG_INFO("Loaded %d enemy type(s)", loaded); }
 	*inout_type_count = loaded; return loaded>0;
 }

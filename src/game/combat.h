@@ -28,5 +28,7 @@ extern RoguePlayer g_exposed_player_for_stats;
 int rogue_get_current_attack_frame(void);
 /* Testing aid: when non-zero, strike ignores animation frame gating (always active) */
 extern int rogue_force_attack_active;
+/* Test support: when >=0, forces current attack animation frame for strike logic */
+extern int g_attack_frame_override;
 
 #endif

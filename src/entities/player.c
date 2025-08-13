@@ -43,6 +43,8 @@ void rogue_player_init(RoguePlayer* p)
     p->dexterity = 5;
     p->vitality = 15; /* starting vitality */
     p->intelligence = 5;
+    p->crit_chance = 0;
+    p->crit_damage = 50; /* base 1.5x */
     rogue_player_recalc_derived(p);
 }
 
@@ -58,4 +60,6 @@ void rogue_player_recalc_derived(RoguePlayer* p)
     if(p->health > p->max_health) p->health = p->max_health;
     if(p->mana == 0 || p->mana == old_mmax) p->mana = p->max_mana;
     if(p->mana > p->max_mana) p->mana = p->max_mana;
+    if(p->crit_chance < 0) p->crit_chance = 0; if(p->crit_chance > 100) p->crit_chance = 100;
+    if(p->crit_damage < 0) p->crit_damage = 0; if(p->crit_damage > 400) p->crit_damage = 400; /* cap 5x */
 }

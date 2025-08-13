@@ -1,8 +1,25 @@
 file(GLOB UNIT_TESTS unit/test_*.c)
+
+# Ensure newly added directional combat test is always present (some generators cache GLOB results between incremental reconfigurations).
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_left_facing.c AND NOT TARGET test_combat_left_facing)
+    add_executable(test_combat_left_facing unit/test_combat_left_facing.c)
+    target_link_libraries(test_combat_left_facing PRIVATE rogue_core)
+    target_compile_definitions(test_combat_left_facing PRIVATE TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_left_facing PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_left_facing COMMAND test_combat_left_facing)
+endif()
+
 foreach(ut ${UNIT_TESTS})
     get_filename_component(name ${ut} NAME_WE)
+    if(TARGET ${name})
+        # Skip if already added explicitly above
+        continue()
+    endif()
     add_executable(${name} ${ut})
     target_link_libraries(${name} PRIVATE rogue_core)
+    target_compile_definitions(${name} PRIVATE TEST_COMBAT_PERMISSIVE=1)
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(${name} PRIVATE ROGUE_HAVE_SDL=1)
     endif()

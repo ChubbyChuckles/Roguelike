@@ -43,6 +43,8 @@ typedef struct RogueEnemy {
     float tint_phase;   /* ms accumulator for pulsing */
     float flash_timer;  /* brief hit flash (ms) */
     float attack_cooldown_ms; /* time until next attack allowed */
+    int crit_chance;    /* percent flat */
+    int crit_damage;    /* percent bonus over 100 */
 } RogueEnemy;
 
 #define ROGUE_MAX_ENEMIES 256
