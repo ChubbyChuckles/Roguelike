@@ -21,10 +21,20 @@ from __future__ import annotations
 import os
 import sys
 from dataclasses import dataclass
-from typing import Optional, Callable
+from typing import Optional, Callable, Tuple
 
-from PyQt6.QtCore import Qt, QRectF, QPoint, QEvent
-from PyQt6.QtGui import QAction, QGuiApplication, QPainter, QPen, QPixmap, QColor
+from PyQt6.QtCore import Qt, QEvent
+from PyQt6.QtGui import (
+    QAction,
+    QGuiApplication,
+    QPainter,
+    QPen,
+    QPixmap,
+    QColor,
+    QMouseEvent,
+    QKeyEvent,
+    QPaintEvent,
+)
 from PyQt6.QtWidgets import (
     QApplication,
     QWidget,
@@ -37,14 +47,12 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QSizePolicy,
     QScrollArea,
-    QFrame,
     QStatusBar,
     QMainWindow,
     QToolBar,
     QSlider,
     QSplitter,
     QComboBox,
-    QSizePolicy,
 )
 
 TILE_SIZE = 16
@@ -95,30 +103,30 @@ class SpriteSheetView(QWidget):
     - Hover highlight & selection overlay
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.setMouseTracking(True)
         # Core image
-        self.sheet = None  # SpriteSheetInfo | None
-        # Anchor cell
-        self.selected_col = None
-        self.selected_row = None
+        self.sheet: Optional[SpriteSheetInfo] = None
+        # Anchor cell (kept for potential future single cell features)
+        self.selected_col: Optional[int] = None
+        self.selected_row: Optional[int] = None
         # Rectangle selection corners
-        self.sel_c1 = None
-        self.sel_r1 = None
-        self.sel_c2 = None
-        self.sel_r2 = None
+        self.sel_c1: Optional[int] = None
+        self.sel_r1: Optional[int] = None
+        self.sel_c2: Optional[int] = None
+        self.sel_r2: Optional[int] = None
         # Drag state
-        self.dragging = False
-        self.drag_start_col = None
-        self.drag_start_row = None
+        self.dragging: bool = False
+        self.drag_start_col: Optional[int] = None
+        self.drag_start_row: Optional[int] = None
         # Hover cell
-        self.hover_col = None
-        self.hover_row = None
+        self.hover_col: Optional[int] = None
+        self.hover_row: Optional[int] = None
         # Zoom
-        self.scale = 1.0
-        # Callback
-        self.on_select = None
+        self.scale: float = 1.0
+        # Selection callback: (c1,r1,c2,r2)
+        self.on_select: Optional[Callable[[int, int, int, int], None]] = None
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
@@ -134,30 +142,30 @@ class SpriteSheetView(QWidget):
         self.update()
         return True
 
-    def set_scale(self, scale: float):
+    def set_scale(self, scale: float) -> None:
         scale = max(0.25, min(scale, 8.0))
         if abs(scale - self.scale) > 1e-6:
             self.scale = scale
             self._sync_size()
             self.update()
 
-    def zoom_in(self):
+    def zoom_in(self) -> None:
         self.set_scale(self.scale * 1.25)
 
-    def zoom_out(self):
+    def zoom_out(self) -> None:
         self.set_scale(self.scale / 1.25)
 
-    def reset_zoom(self):
+    def reset_zoom(self) -> None:
         self.set_scale(1.0)
 
     # --- helpers ---
-    def _sync_size(self):
+    def _sync_size(self) -> None:
         if self.sheet:
             self.setFixedSize(
                 int(self.sheet.width * self.scale), int(self.sheet.height * self.scale)
             )
 
-    def _cell_at_pos(self, x: float, y: float):
+    def _cell_at_pos(self, x: float, y: float) -> Optional[Tuple[int, int]]:
         if not self.sheet:
             return None
         if self.scale != 0:
@@ -169,7 +177,7 @@ class SpriteSheetView(QWidget):
             return col, row
         return None
 
-    def _normalize_rect(self):
+    def _normalize_rect(self) -> Optional[Tuple[int, int, int, int]]:
         if (
             self.sel_c1 is None
             or self.sel_c2 is None
@@ -183,16 +191,18 @@ class SpriteSheetView(QWidget):
         r2 = max(self.sel_r1, self.sel_r2)
         return c1, r1, c2, r2
 
-    def _emit_selection(self):
+    def _emit_selection(self) -> None:
         rect = self._normalize_rect()
         if self.on_select and rect:
             c1, r1, c2, r2 = rect
             self.on_select(c1, r1, c2, r2)
 
     # --- events ---
-    def mousePressEvent(self, event):  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton:
-            hit = self._cell_at_pos(event.position().x(), event.position().y())
+    def mousePressEvent(self, a0: Optional[QMouseEvent]) -> None:  # noqa: N802
+        if not a0:
+            return
+        if a0.button() == Qt.MouseButton.LeftButton:
+            hit = self._cell_at_pos(a0.position().x(), a0.position().y())
             if hit:
                 c, r = hit
                 self.selected_col, self.selected_row = c, r
@@ -205,15 +215,17 @@ class SpriteSheetView(QWidget):
                 self.dragging = True
                 self.setFocus()
                 self.update()
-        elif event.button() == Qt.MouseButton.RightButton:
+        elif a0.button() == Qt.MouseButton.RightButton:
             # Clear selection
             self.selected_col = self.selected_row = None
             self.sel_c1 = self.sel_c2 = self.sel_r1 = self.sel_r2 = None
             self.dragging = False
             self.update()
 
-    def mouseMoveEvent(self, event):  # noqa: N802
-        hit = self._cell_at_pos(event.position().x(), event.position().y())
+    def mouseMoveEvent(self, a0: Optional[QMouseEvent]) -> None:  # noqa: N802
+        if not a0:
+            return
+        hit = self._cell_at_pos(a0.position().x(), a0.position().y())
         changed = False
         if hit:
             col, row = hit
@@ -236,47 +248,50 @@ class SpriteSheetView(QWidget):
         if changed:
             self.update()
 
-    def mouseReleaseEvent(self, event):  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton and self.dragging:
+    def mouseReleaseEvent(self, a0: Optional[QMouseEvent]) -> None:  # noqa: N802
+        if not a0:
+            return
+        if a0.button() == Qt.MouseButton.LeftButton and self.dragging:
             self.dragging = False
             # Emit final rectangle
             self._emit_selection()
 
-    def leaveEvent(self, event: QEvent):  # noqa: N802
+    def leaveEvent(self, a0: Optional[QEvent]) -> None:  # noqa: N802
         self.hover_col = None
         self.hover_row = None
         self.update()
-        super().leaveEvent(event)
+        if a0:
+            super().leaveEvent(a0)
 
-    def keyPressEvent(self, event):  # noqa: N802
+    def keyPressEvent(self, a0: Optional[QKeyEvent]) -> None:  # noqa: N802
         if not self.sheet:
             return
-        # If no rectangle selection exists fall back
-        if self.sel_c1 is None or self.sel_r1 is None:
+        if not a0:
+            return
+        # Require full rectangle to manipulate
+        if None in (self.sel_c1, self.sel_c2, self.sel_r1, self.sel_r2):
             return
         dx = dy = 0
-        if event.key() == Qt.Key.Key_Left:
+        if a0.key() == Qt.Key.Key_Left:
             dx = -1
-        elif event.key() == Qt.Key.Key_Right:
+        elif a0.key() == Qt.Key.Key_Right:
             dx = 1
-        elif event.key() == Qt.Key.Key_Up:
+        elif a0.key() == Qt.Key.Key_Up:
             dy = -1
-        elif event.key() == Qt.Key.Key_Down:
+        elif a0.key() == Qt.Key.Key_Down:
             dy = 1
         if dx or dy:
-            # Move entire rectangle by delta while clamping
-            width = (
-                (self.sel_c2 - self.sel_c1)
-                if (self.sel_c1 is not None and self.sel_c2 is not None)
-                else 0
+            # All non-None asserted above
+            assert (
+                self.sel_c1 is not None
+                and self.sel_c2 is not None
+                and self.sel_r1 is not None
+                and self.sel_r2 is not None
             )
-            height = (
-                (self.sel_r2 - self.sel_r1)
-                if (self.sel_r1 is not None and self.sel_r2 is not None)
-                else 0
-            )
-            c1 = max(0, min(self.sheet.cols - 1 - width, self.sel_c1 + dx))  # type: ignore
-            r1 = max(0, min(self.sheet.rows - 1 - height, self.sel_r1 + dy))  # type: ignore
+            width = self.sel_c2 - self.sel_c1
+            height = self.sel_r2 - self.sel_r1
+            c1 = max(0, min(self.sheet.cols - 1 - width, self.sel_c1 + dx))
+            r1 = max(0, min(self.sheet.rows - 1 - height, self.sel_r1 + dy))
             c2 = c1 + width
             r2 = r1 + height
             if (c1, r1, c2, r2) != (self.sel_c1, self.sel_r1, self.sel_c2, self.sel_r2):
@@ -284,7 +299,7 @@ class SpriteSheetView(QWidget):
                 self.update()
                 self._emit_selection()
 
-    def paintEvent(self, event):  # noqa: N802
+    def paintEvent(self, a0: Optional[QPaintEvent]) -> None:  # noqa: N802
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
         painter.fillRect(self.rect(), QColor(30, 32, 34))
@@ -352,36 +367,36 @@ class MainWindow(QMainWindow):
         self.addToolBar(toolbar)
 
         open_act = QAction("Open", self)
-        open_act.triggered.connect(self.browse)
         open_act.setShortcut("Ctrl+O")
-        toolbar.addAction(open_act)
+        open_act.triggered.connect(self.browse)  # type: ignore
+        toolbar.addAction(open_act)  # type: ignore
 
         zoom_in_act = QAction("Zoom +", self)
         zoom_in_act.setShortcut("Ctrl++")
-        zoom_in_act.triggered.connect(self.view.zoom_in)
-        toolbar.addAction(zoom_in_act)
+        zoom_in_act.triggered.connect(self.view.zoom_in)  # type: ignore
+        toolbar.addAction(zoom_in_act)  # type: ignore
 
         zoom_out_act = QAction("Zoom -", self)
         zoom_out_act.setShortcut("Ctrl+-")
-        zoom_out_act.triggered.connect(self.view.zoom_out)
-        toolbar.addAction(zoom_out_act)
+        zoom_out_act.triggered.connect(self.view.zoom_out)  # type: ignore
+        toolbar.addAction(zoom_out_act)  # type: ignore
 
         reset_zoom_act = QAction("1:1", self)
         reset_zoom_act.setShortcut("Ctrl+0")
-        reset_zoom_act.triggered.connect(self.view.reset_zoom)
-        toolbar.addAction(reset_zoom_act)
+        reset_zoom_act.triggered.connect(self.view.reset_zoom)  # type: ignore
+        toolbar.addAction(reset_zoom_act)  # type: ignore
 
         # --- Path controls row ---
         path_row = QHBoxLayout()
         self.recent_combo = QComboBox()
         self.recent_combo.setEditable(False)
-        self.recent_combo.currentIndexChanged.connect(self._recent_chosen)
+        self.recent_combo.currentIndexChanged.connect(self._recent_chosen)  # type: ignore
         self.path_edit = QLineEdit()
         self.path_edit.setPlaceholderText("Sprite sheet path (relative or absolute)")
         browse_btn = QPushButton("Browse…")
-        browse_btn.clicked.connect(self.browse)
+        browse_btn.clicked.connect(self.browse)  # type: ignore
         load_btn = QPushButton("Load")
-        load_btn.clicked.connect(self.load_path_from_edit)
+        load_btn.clicked.connect(self.load_path_from_edit)  # type: ignore
         path_row.addWidget(QLabel("Recent:"))
         path_row.addWidget(self.recent_combo)
         path_row.addWidget(self.path_edit, 1)
@@ -405,7 +420,7 @@ class MainWindow(QMainWindow):
         self.output_edit = QLineEdit()
         self.output_edit.setReadOnly(True)
         copy_btn = QPushButton("Copy Output")
-        copy_btn.clicked.connect(self.copy_manual)
+        copy_btn.clicked.connect(self.copy_manual)  # type: ignore
         out_row = QHBoxLayout()
         out_row.addWidget(QLabel("Selection:"))
         out_row.addWidget(self.output_edit, 1)
@@ -425,7 +440,7 @@ class MainWindow(QMainWindow):
         self.zoom_slider = QSlider(Qt.Orientation.Horizontal)
         self.zoom_slider.setRange(25, 800)  # percent
         self.zoom_slider.setValue(100)
-        self.zoom_slider.valueChanged.connect(self._zoom_slider_changed)
+        self.zoom_slider.valueChanged.connect(self._zoom_slider_changed)  # type: ignore
         zoom_row.addWidget(self.zoom_slider, 1)
         side_layout.addLayout(zoom_row)
 
@@ -439,7 +454,7 @@ class MainWindow(QMainWindow):
 
         side_layout.addStretch(1)
         splitter.addWidget(side)
-        splitter.setSizes([700, 250])
+        splitter.setSizes([700, 250])  # type: ignore
 
         root_layout.addWidget(splitter, 1)
 
