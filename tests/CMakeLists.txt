@@ -56,6 +56,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_navigation.c AND NOT TARGET test
     add_test(NAME test_navigation COMMAND test_navigation)
 endif()
 
+# Explicitly add A* pathfinding test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_astar.c AND NOT TARGET test_astar)
+    add_executable(test_astar unit/test_astar.c)
+    target_link_libraries(test_astar PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_astar PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_astar COMMAND test_astar)
+endif()
+
 file(GLOB INTEGRATION_TESTS integration/test_*.c)
 foreach(it ${INTEGRATION_TESTS})
     get_filename_component(name ${it} NAME_WE)
