@@ -1,4 +1,5 @@
 #include "game/combat.h"
+#include "core/buffs.h" /* needed for temporary strength buffs */
 #include <math.h>
 #include <stdlib.h>
 
@@ -127,7 +128,9 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
     printf("[combat_test] afr=%d reach=%.2f dist=%.2f dot=%.2f perp=%.2f gating=%d enemy_health=%d\n", afr, reach, sqrtf(dist2), dot, perp, gating, enemies[i].health);
 #endif
         /* Simple damage */
-    int base = 1 + player->strength/5;
+    /* Include temporary strength buffs (e.g., PowerStrike) */
+    int effective_strength = player->strength + rogue_buffs_get_total(0); /* 0 = ROGUE_BUFF_POWER_STRIKE */
+    int base = 1 + effective_strength/5;
     /* Combo damage scaling (up to +40%). Integer truncation on small bases caused plateaus; enforce monotonic gain. */
     float combo_scale = 1.0f + (pc->combo * 0.08f); if(combo_scale>1.4f) combo_scale=1.4f;
     /* Crit chance: base derived from dex + flat stat; convert pct */

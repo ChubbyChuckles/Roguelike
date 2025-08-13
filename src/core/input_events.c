@@ -38,8 +38,8 @@ void rogue_process_events(void){
             if(ev.key.keysym.sym==SDLK_r){ g_app.player_state=(g_app.player_state==2)?1:2; }
             /* Skill activation keys 1-0 */
             int key = ev.key.keysym.sym;
-            if(key>=SDLK_1 && key<=SDLK_9){ int slot = key - SDLK_1; int sid = g_app.skill_bar[slot]; if(sid>=0){ RogueSkillCtx ctx={ (double)SDL_GetTicks(), g_app.player.level, g_app.talent_points }; rogue_skill_try_activate(sid,&ctx);} }
-            if(key==SDLK_0){ int sid = g_app.skill_bar[9]; if(sid>=0){ RogueSkillCtx ctx={ (double)SDL_GetTicks(), g_app.player.level, g_app.talent_points }; rogue_skill_try_activate(sid,&ctx);} }
+            if(key>=SDLK_1 && key<=SDLK_9){ int slot = key - SDLK_1; int sid = g_app.skill_bar[slot]; if(sid>=0){ RogueSkillCtx ctx={ (double)SDL_GetTicks(), g_app.player.level, g_app.talent_points }; if(rogue_skill_try_activate(sid,&ctx)) rogue_skill_bar_flash(slot); } }
+            if(key==SDLK_0){ int sid = g_app.skill_bar[9]; if(sid>=0){ RogueSkillCtx ctx={ (double)SDL_GetTicks(), g_app.player.level, g_app.talent_points }; if(rogue_skill_try_activate(sid,&ctx)) rogue_skill_bar_flash(9); } }
             if(ev.key.keysym.sym==SDLK_F5){ g_app.gen_water_level -= 0.01; if(g_app.gen_water_level<0.20) g_app.gen_water_level=0.20; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
             if(ev.key.keysym.sym==SDLK_F6){ g_app.gen_water_level += 0.01; if(g_app.gen_water_level>0.55) g_app.gen_water_level=0.55; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
             if(ev.key.keysym.sym==SDLK_F7){ g_app.gen_noise_octaves++; if(g_app.gen_noise_octaves>9) g_app.gen_noise_octaves=9; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }

@@ -10,6 +10,11 @@
 void rogue_skill_bar_set_slot(int slot, int skill_id){ if(slot>=0 && slot<10) g_app.skill_bar[slot]=skill_id; }
 int rogue_skill_bar_get_slot(int slot){ if(slot>=0 && slot<10) return g_app.skill_bar[slot]; return -1; }
 
+static float g_slot_flash_ms[10] = {0};
+void rogue_skill_bar_flash(int slot){ if(slot>=0 && slot<10) g_slot_flash_ms[slot]=180.0f; }
+
+void rogue_skill_bar_update(float dt_ms){ for(int i=0;i<10;i++){ if(g_slot_flash_ms[i]>0){ g_slot_flash_ms[i]-=dt_ms; if(g_slot_flash_ms[i]<0) g_slot_flash_ms[i]=0; }} }
+
 void rogue_skill_bar_render(void){
 #ifdef ROGUE_HAVE_SDL
     if(!g_app.renderer) return;
@@ -20,10 +25,11 @@ void rogue_skill_bar_render(void){
     SDL_Rect top={bar_x,bar_y,bar_w,2}; SDL_RenderFillRect(g_app.renderer,&top);
     for(int i=0;i<10;i++){
         int slot_x = bar_x + 6 + i*34;
-        SDL_Rect cell={slot_x, bar_y+6, 32,32};
+    SDL_Rect cell={slot_x, bar_y+6, 32,32};
+    int flash = g_slot_flash_ms[i]>0;
         int skill_id = g_app.skill_bar[i];
         const RogueSkillDef* def = rogue_skill_get_def(skill_id);
-        SDL_SetRenderDrawColor(g_app.renderer, def? 60:30, def?60:30, def?80:30,255);
+    SDL_SetRenderDrawColor(g_app.renderer, flash?200:(def? 60:30), flash?180:(def?60:30), flash?40:(def?80:30),255);
         SDL_RenderFillRect(g_app.renderer,&cell);
         if(def){
             const RogueSkillState* st = rogue_skill_get_state(skill_id);

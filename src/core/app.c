@@ -57,6 +57,8 @@ SOFTWARE.
 #include "core/skills.h"
 #include "core/skill_tree.h"
 #include "core/skill_bar.h"
+#include "core/buffs.h"
+#include "core/projectiles.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -138,7 +140,7 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     /* Load generation params first (does not depend on skills). */
     rogue_persistence_load_generation_params();
     /* Initialize and register skills BEFORE loading player stats so rank data in the save file can map onto registered skills. */
-    rogue_skills_init();
+    rogue_skills_init(); rogue_buffs_init(); rogue_projectiles_init();
     rogue_skill_tree_register_baseline();
     /* Now load player stats (level/xp + talent points + skill ranks). */
     rogue_persistence_load_player_stats();
@@ -288,6 +290,9 @@ void rogue_app_step(void)
 
     /* camera now handled in player_controller */
 
+    /* Update timed buffs & projectiles */
+    rogue_buffs_update(g_app.game_time_ms);
+    rogue_projectiles_update(dt_ms);
     /* Render world tiles */
     rogue_world_render_tiles();
 
@@ -295,6 +300,8 @@ void rogue_app_step(void)
     rogue_player_render();
     /* Render enemies */
     rogue_enemy_render();
+    /* Render projectiles (after world, before HUD) */
+    rogue_projectiles_render();
 
     /* Floating damage numbers */
     rogue_damage_numbers_render();
@@ -302,11 +309,14 @@ void rogue_app_step(void)
     /* Mini-map in corner (scaled down, render-target cached) */
     /* Minimap */
     rogue_minimap_update_and_render(240);
+    /* Skill bar flash/cooldown timers (needs dt_ms) */
+    rogue_skill_bar_update(dt_ms);
     }
     /* HUD */
     rogue_hud_render();
     rogue_skill_bar_render();
     rogue_skill_tree_render();
+    /* (skill bar update already handled inside gameplay branch) */
     /* Update floating damage numbers */
     rogue_damage_numbers_update((float)g_app.dt);
     /* (Overlay with debug metrics removed to show clean HUD; hotkeys still active) */

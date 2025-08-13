@@ -1,0 +1,28 @@
+#include "core/buffs.h"
+#include "core/app_state.h"
+#include <string.h>
+
+/* Simple fixed-size buff list */
+#define ROGUE_MAX_ACTIVE_BUFFS 16
+static RogueBuff g_buffs[ROGUE_MAX_ACTIVE_BUFFS];
+
+void rogue_buffs_init(void){ memset(g_buffs,0,sizeof g_buffs); }
+
+void rogue_buffs_update(double now_ms){
+    for(int i=0;i<ROGUE_MAX_ACTIVE_BUFFS;i++) if(g_buffs[i].active && now_ms >= g_buffs[i].end_ms){ g_buffs[i].active=0; }
+}
+
+int rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, double now_ms){
+    /* consolidate same-type buffs by extending/magnifying */
+    for(int i=0;i<ROGUE_MAX_ACTIVE_BUFFS;i++) if(g_buffs[i].active && g_buffs[i].type==type){
+        g_buffs[i].magnitude += magnitude; if(g_buffs[i].magnitude>999) g_buffs[i].magnitude=999;
+        if(now_ms + duration_ms > g_buffs[i].end_ms) g_buffs[i].end_ms = now_ms + duration_ms;
+        return 1;
+    }
+    for(int i=0;i<ROGUE_MAX_ACTIVE_BUFFS;i++) if(!g_buffs[i].active){
+        g_buffs[i].active=1; g_buffs[i].type=type; g_buffs[i].magnitude=magnitude; g_buffs[i].end_ms = now_ms + duration_ms; return 1;
+    }
+    return 0; /* no slot */
+}
+
+int rogue_buffs_get_total(RogueBuffType type){ int total=0; for(int i=0;i<ROGUE_MAX_ACTIVE_BUFFS;i++) if(g_buffs[i].active && g_buffs[i].type==type) total+=g_buffs[i].magnitude; return total; }
