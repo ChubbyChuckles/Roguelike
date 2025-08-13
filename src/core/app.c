@@ -118,6 +118,7 @@ typedef struct RogueAppState
     int gen_river_sources;
     int gen_river_max_length;
     double gen_cave_thresh;
+    int gen_params_dirty;
 } RogueAppState;
 
 static RogueAppState g_app;
@@ -230,8 +231,37 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     RogueGameLoopConfig loop_cfg = {.target_fps = cfg->target_fps};
     rogue_game_loop_init(&loop_cfg);
 
-    /* Pre-generate world */
-    RogueWorldGenConfig wcfg = { .seed = 1337u, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2, .small_island_max_size = 3, .small_island_passes = 2, .shore_fill_passes = 1, .advanced_terrain = 1, .water_level = 0.34, .noise_octaves = 6, .noise_gain = 0.48, .noise_lacunarity = 2.05, .river_sources = 10, .river_max_length = 1200, .cave_mountain_elev_thresh = 0.60 };
+    /* Load persisted generation params if available BEFORE first world gen */
+    g_app.gen_water_level = 0.34; g_app.gen_noise_octaves = 6; g_app.gen_noise_gain = 0.48; g_app.gen_noise_lacunarity = 2.05; g_app.gen_river_sources = 10; g_app.gen_river_max_length = 1200; g_app.gen_cave_thresh = 0.60; g_app.gen_params_dirty = 0;
+    {
+        FILE* f = NULL;
+#if defined(_MSC_VER)
+        fopen_s(&f, "gen_params.cfg", "rb");
+#else
+        f = fopen("gen_params.cfg", "rb");
+#endif
+        if(f){
+            char line[256];
+            while(fgets(line,sizeof line,f)){
+                if(line[0]=='#' || line[0]=='\n' || line[0]=='\0') continue;
+                char* eq = strchr(line,'='); if(!eq) continue; *eq='\0';
+                char* key=line; char* val=eq+1;
+                /* trim */
+                for(char* p=key; *p; ++p){ if(*p=='\r' || *p=='\n') { *p='\0'; break; } }
+                for(char* p=val; *p; ++p){ if(*p=='\r' || *p=='\n') { *p='\0'; break; } }
+                if(strcmp(key,"WATER_LEVEL")==0) g_app.gen_water_level = atof(val);
+                else if(strcmp(key,"NOISE_OCTAVES")==0) g_app.gen_noise_octaves = atoi(val);
+                else if(strcmp(key,"NOISE_GAIN")==0) g_app.gen_noise_gain = atof(val);
+                else if(strcmp(key,"NOISE_LACUNARITY")==0) g_app.gen_noise_lacunarity = atof(val);
+                else if(strcmp(key,"RIVER_SOURCES")==0) g_app.gen_river_sources = atoi(val);
+                else if(strcmp(key,"RIVER_MAX_LENGTH")==0) g_app.gen_river_max_length = atoi(val);
+                else if(strcmp(key,"CAVE_THRESH")==0) g_app.gen_cave_thresh = atof(val);
+            }
+            fclose(f);
+        }
+    }
+    /* Pre-generate world using (possibly loaded) params */
+    RogueWorldGenConfig wcfg = { .seed = 1337u, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2, .small_island_max_size = 3, .small_island_passes = 2, .shore_fill_passes = 1, .advanced_terrain = 1, .water_level = g_app.gen_water_level, .noise_octaves = g_app.gen_noise_octaves, .noise_gain = g_app.gen_noise_gain, .noise_lacunarity = g_app.gen_noise_lacunarity, .river_sources = g_app.gen_river_sources, .river_max_length = g_app.gen_river_max_length, .cave_mountain_elev_thresh = g_app.gen_cave_thresh };
     /* Scale world 10x while keeping similar structural density by scaling biome_regions proportionally to area. */
     wcfg.width *= 10; /* 800 */
     wcfg.height *= 10; /* 600 */
@@ -261,8 +291,7 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.anim_dt_accum_ms = 0.0f;
     g_app.frame_draw_calls = 0;
     g_app.frame_tile_quads = 0;
-    /* Initial persistent world gen defaults */
-    g_app.gen_water_level = 0.34; g_app.gen_noise_octaves = 6; g_app.gen_noise_gain = 0.48; g_app.gen_noise_lacunarity = 2.05; g_app.gen_river_sources = 10; g_app.gen_river_max_length = 1200; g_app.gen_cave_thresh = 0.60;
+    /* Values already loaded (or defaults applied) above */
     /* Log current working directory for asset path debugging */
     {
         char cwd_buf[512];
@@ -298,14 +327,14 @@ static void process_events(void)
                 g_app.player_state = (g_app.player_state == 2) ? 1 : 2;
             }
             /* Debug terrain parameter tweaks */
-            if (ev.key.keysym.sym == SDLK_F5) { g_app.gen_water_level -= 0.01; if(g_app.gen_water_level < 0.20) g_app.gen_water_level = 0.20; ev.key.keysym.sym = SDLK_BACKQUOTE; }
-            if (ev.key.keysym.sym == SDLK_F6) { g_app.gen_water_level += 0.01; if(g_app.gen_water_level > 0.55) g_app.gen_water_level = 0.55; ev.key.keysym.sym = SDLK_BACKQUOTE; }
-            if (ev.key.keysym.sym == SDLK_F7) { g_app.gen_noise_octaves++; if(g_app.gen_noise_octaves>9) g_app.gen_noise_octaves=9; ev.key.keysym.sym = SDLK_BACKQUOTE; }
-            if (ev.key.keysym.sym == SDLK_F8) { g_app.gen_noise_octaves--; if(g_app.gen_noise_octaves<3) g_app.gen_noise_octaves=3; ev.key.keysym.sym = SDLK_BACKQUOTE; }
-            if (ev.key.keysym.sym == SDLK_F9) { g_app.gen_river_sources += 2; if(g_app.gen_river_sources>40) g_app.gen_river_sources=40; ev.key.keysym.sym = SDLK_BACKQUOTE; }
-            if (ev.key.keysym.sym == SDLK_F10){ g_app.gen_river_sources -= 2; if(g_app.gen_river_sources<2) g_app.gen_river_sources=2; ev.key.keysym.sym = SDLK_BACKQUOTE; }
-            if (ev.key.keysym.sym == SDLK_F11){ g_app.gen_noise_gain += 0.02; if(g_app.gen_noise_gain>0.8) g_app.gen_noise_gain=0.8; ev.key.keysym.sym = SDLK_BACKQUOTE; }
-            if (ev.key.keysym.sym == SDLK_F12){ g_app.gen_noise_gain -= 0.02; if(g_app.gen_noise_gain<0.3) g_app.gen_noise_gain=0.3; ev.key.keysym.sym = SDLK_BACKQUOTE; }
+            if (ev.key.keysym.sym == SDLK_F5) { g_app.gen_water_level -= 0.01; if(g_app.gen_water_level < 0.20) g_app.gen_water_level = 0.20; g_app.gen_params_dirty=1; ev.key.keysym.sym = SDLK_BACKQUOTE; }
+            if (ev.key.keysym.sym == SDLK_F6) { g_app.gen_water_level += 0.01; if(g_app.gen_water_level > 0.55) g_app.gen_water_level = 0.55; g_app.gen_params_dirty=1; ev.key.keysym.sym = SDLK_BACKQUOTE; }
+            if (ev.key.keysym.sym == SDLK_F7) { g_app.gen_noise_octaves++; if(g_app.gen_noise_octaves>9) g_app.gen_noise_octaves=9; g_app.gen_params_dirty=1; ev.key.keysym.sym = SDLK_BACKQUOTE; }
+            if (ev.key.keysym.sym == SDLK_F8) { g_app.gen_noise_octaves--; if(g_app.gen_noise_octaves<3) g_app.gen_noise_octaves=3; g_app.gen_params_dirty=1; ev.key.keysym.sym = SDLK_BACKQUOTE; }
+            if (ev.key.keysym.sym == SDLK_F9) { g_app.gen_river_sources += 2; if(g_app.gen_river_sources>40) g_app.gen_river_sources=40; g_app.gen_params_dirty=1; ev.key.keysym.sym = SDLK_BACKQUOTE; }
+            if (ev.key.keysym.sym == SDLK_F10){ g_app.gen_river_sources -= 2; if(g_app.gen_river_sources<2) g_app.gen_river_sources=2; g_app.gen_params_dirty=1; ev.key.keysym.sym = SDLK_BACKQUOTE; }
+            if (ev.key.keysym.sym == SDLK_F11){ g_app.gen_noise_gain += 0.02; if(g_app.gen_noise_gain>0.8) g_app.gen_noise_gain=0.8; g_app.gen_params_dirty=1; ev.key.keysym.sym = SDLK_BACKQUOTE; }
+            if (ev.key.keysym.sym == SDLK_F12){ g_app.gen_noise_gain -= 0.02; if(g_app.gen_noise_gain<0.3) g_app.gen_noise_gain=0.3; g_app.gen_params_dirty=1; ev.key.keysym.sym = SDLK_BACKQUOTE; }
             if (ev.key.keysym.sym == SDLK_BACKQUOTE){ /* regen */
                 g_app.pending_seed = (unsigned int)SDL_GetTicks();
                 RogueWorldGenConfig wcfg = { .seed = g_app.pending_seed, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2, .small_island_max_size = 3, .small_island_passes = 2, .shore_fill_passes = 1, .advanced_terrain = 1, .water_level = g_app.gen_water_level, .noise_octaves = g_app.gen_noise_octaves, .noise_gain = g_app.gen_noise_gain, .noise_lacunarity = g_app.gen_noise_lacunarity, .river_sources = g_app.gen_river_sources, .river_max_length = g_app.gen_river_max_length, .cave_mountain_elev_thresh = g_app.gen_cave_thresh };
@@ -958,6 +987,26 @@ void rogue_app_shutdown(void)
 #endif
     if(g_app.tile_sprite_lut){ free((void*)g_app.tile_sprite_lut); g_app.tile_sprite_lut=NULL; }
     if(g_app.chunk_dirty){ free(g_app.chunk_dirty); g_app.chunk_dirty=NULL; }
+    /* Persist generation params if changed */
+    if(g_app.gen_params_dirty){
+    FILE* f=NULL;
+#if defined(_MSC_VER)
+    fopen_s(&f, "gen_params.cfg", "wb");
+#else
+    f=fopen("gen_params.cfg","wb");
+#endif
+    if(f){
+        fprintf(f,"# Saved world generation parameters\n");
+        fprintf(f,"WATER_LEVEL=%.4f\n", g_app.gen_water_level);
+        fprintf(f,"NOISE_OCTAVES=%d\n", g_app.gen_noise_octaves);
+        fprintf(f,"NOISE_GAIN=%.4f\n", g_app.gen_noise_gain);
+        fprintf(f,"NOISE_LACUNARITY=%.4f\n", g_app.gen_noise_lacunarity);
+        fprintf(f,"RIVER_SOURCES=%d\n", g_app.gen_river_sources);
+        fprintf(f,"RIVER_MAX_LENGTH=%d\n", g_app.gen_river_max_length);
+        fprintf(f,"CAVE_THRESH=%.4f\n", g_app.gen_cave_thresh);
+        fclose(f);
+    }
+    }
 }
 
 int rogue_app_frame_count(void) { return g_app.frame_count; }
