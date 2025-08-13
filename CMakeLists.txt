@@ -48,6 +48,11 @@ add_library(rogue_core
     src/core/game_loop.c
     src/core/minimap.c
     src/core/player_controller.c
+    src/core/input_events.c
+    src/core/player_render.c
+    src/core/enemy_render.c
+    src/core/hud.c
+    src/core/player_progress.c
     src/platform/platform_sdl.c
     src/graphics/renderer.c
     src/graphics/sprite.c

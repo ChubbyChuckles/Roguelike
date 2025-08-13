@@ -39,6 +39,12 @@ SOFTWARE.
 #include "core/minimap.h"
 #include "graphics/sprite.h"
 #include "graphics/tile_sprites.h"
+#include "core/input_events.h"
+#include "core/player_render.h"
+#include "core/enemy_render.h"
+#include "core/hud.h"
+#include "core/player_progress.h"
+#include "game/damage_numbers.h" /* will provide render/update */
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -66,19 +72,7 @@ int rogue_get_current_attack_frame(void){
 }
 
 
-static int tile_is_blocking(unsigned char t){
-    switch(t){
-        case ROGUE_TILE_WATER:
-        case ROGUE_TILE_RIVER:
-        case ROGUE_TILE_RIVER_WIDE:
-        case ROGUE_TILE_RIVER_DELTA:
-            return 1;
-        case ROGUE_TILE_MOUNTAIN:
-        case ROGUE_TILE_CAVE_WALL:
-            return 1;
-        default: return 0;
-    }
-}
+/* tile collision helper moved to player_controller */
 
 int rogue_app_player_health(void){ return g_app.player.health; }
 
@@ -397,84 +391,7 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     return true;
 }
 
-static void process_events(void)
-{
-#ifdef ROGUE_HAVE_SDL
-    SDL_Event ev;
-    while (SDL_PollEvent(&ev))
-    {
-        if (ev.type == SDL_QUIT)
-        {
-            rogue_game_loop_request_exit();
-        }
-        rogue_input_process_sdl_event(&g_app.input, &ev);
-        if (ev.type == SDL_KEYDOWN && !g_app.show_start_screen)
-        {
-            if(ev.key.keysym.sym == SDLK_TAB){ g_app.show_stats_panel = !g_app.show_stats_panel; }
-            if(g_app.show_stats_panel){
-                if(ev.key.keysym.sym == SDLK_LEFT){ g_app.stats_panel_index = (g_app.stats_panel_index+5)%6; }
-                if(ev.key.keysym.sym == SDLK_RIGHT){ g_app.stats_panel_index = (g_app.stats_panel_index+1)%6; }
-                if(ev.key.keysym.sym == SDLK_RETURN && g_app.unspent_stat_points>0){
-                    if(g_app.stats_panel_index==0){ g_app.player.strength++; }
-                    else if(g_app.stats_panel_index==1){ g_app.player.dexterity++; }
-                    else if(g_app.stats_panel_index==2){ g_app.player.vitality++; rogue_player_recalc_derived(&g_app.player); }
-                    else if(g_app.stats_panel_index==3){ g_app.player.intelligence++; }
-                    else if(g_app.stats_panel_index==4){ g_app.player.crit_chance++; if(g_app.player.crit_chance>100) g_app.player.crit_chance=100; }
-                    else if(g_app.stats_panel_index==5){ g_app.player.crit_damage+=5; if(g_app.player.crit_damage>400) g_app.player.crit_damage=400; }
-                    g_app.unspent_stat_points--; g_app.stats_dirty=1;
-                }
-                if(ev.key.keysym.sym == SDLK_BACKSPACE){ g_app.show_stats_panel = 0; }
-            }
-            if (ev.key.keysym.sym == SDLK_r)
-            {
-                /* toggle run state manually for demo */
-                g_app.player_state = (g_app.player_state == 2) ? 1 : 2;
-            }
-            /* TEMP: allocate stat points with keys (U=STR,J=DEX,H=VIT,K=INT) */
-            /* Hotkeys removed in favor of panel */
-            /* Debug terrain parameter tweaks */
-            if (ev.key.keysym.sym == SDLK_F5) { g_app.gen_water_level -= 0.01; if(g_app.gen_water_level < 0.20) g_app.gen_water_level = 0.20; g_app.gen_params_dirty=1; ev.key.keysym.sym = SDLK_BACKQUOTE; }
-            if (ev.key.keysym.sym == SDLK_F6) { g_app.gen_water_level += 0.01; if(g_app.gen_water_level > 0.55) g_app.gen_water_level = 0.55; g_app.gen_params_dirty=1; ev.key.keysym.sym = SDLK_BACKQUOTE; }
-            if (ev.key.keysym.sym == SDLK_F7) { g_app.gen_noise_octaves++; if(g_app.gen_noise_octaves>9) g_app.gen_noise_octaves=9; g_app.gen_params_dirty=1; ev.key.keysym.sym = SDLK_BACKQUOTE; }
-            if (ev.key.keysym.sym == SDLK_F8) { g_app.gen_noise_octaves--; if(g_app.gen_noise_octaves<3) g_app.gen_noise_octaves=3; g_app.gen_params_dirty=1; ev.key.keysym.sym = SDLK_BACKQUOTE; }
-            if (ev.key.keysym.sym == SDLK_F9) { g_app.gen_river_sources += 2; if(g_app.gen_river_sources>40) g_app.gen_river_sources=40; g_app.gen_params_dirty=1; ev.key.keysym.sym = SDLK_BACKQUOTE; }
-            if (ev.key.keysym.sym == SDLK_F10){ g_app.gen_river_sources -= 2; if(g_app.gen_river_sources<2) g_app.gen_river_sources=2; g_app.gen_params_dirty=1; ev.key.keysym.sym = SDLK_BACKQUOTE; }
-            if (ev.key.keysym.sym == SDLK_F11){ g_app.gen_noise_gain += 0.02; if(g_app.gen_noise_gain>0.8) g_app.gen_noise_gain=0.8; g_app.gen_params_dirty=1; ev.key.keysym.sym = SDLK_BACKQUOTE; }
-            if (ev.key.keysym.sym == SDLK_F12){ g_app.gen_noise_gain -= 0.02; if(g_app.gen_noise_gain<0.3) g_app.gen_noise_gain=0.3; g_app.gen_params_dirty=1; ev.key.keysym.sym = SDLK_BACKQUOTE; }
-            if (ev.key.keysym.sym == SDLK_BACKQUOTE){ /* regen */
-                g_app.pending_seed = (unsigned int)SDL_GetTicks();
-                RogueWorldGenConfig wcfg = { .seed = g_app.pending_seed, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2, .small_island_max_size = 3, .small_island_passes = 2, .shore_fill_passes = 1, .advanced_terrain = 1, .water_level = g_app.gen_water_level, .noise_octaves = g_app.gen_noise_octaves, .noise_gain = g_app.gen_noise_gain, .noise_lacunarity = g_app.gen_noise_lacunarity, .river_sources = g_app.gen_river_sources, .river_max_length = g_app.gen_river_max_length, .cave_mountain_elev_thresh = g_app.gen_cave_thresh };
-                wcfg.width *=10; wcfg.height *=10; wcfg.biome_regions = 1000; rogue_tilemap_free(&g_app.world_map); rogue_world_generate(&g_app.world_map,&wcfg); g_app.minimap_dirty=1; }
-        }
-        if (ev.type == SDL_KEYDOWN && g_app.show_start_screen)
-        {
-            if (g_app.entering_seed)
-            {
-                if (ev.key.keysym.sym == SDLK_RETURN)
-                {
-                    /* regenerate */
-                    rogue_tilemap_free(&g_app.world_map);
-                    RogueWorldGenConfig wcfg = { .seed = g_app.pending_seed, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2, .small_island_max_size = 3, .small_island_passes = 2, .shore_fill_passes = 1, .advanced_terrain = 1, .water_level = 0.34, .noise_octaves = 6, .noise_gain = 0.48, .noise_lacunarity = 2.05, .river_sources = 10, .river_max_length = 1200, .cave_mountain_elev_thresh = 0.60 };
-                    rogue_world_generate(&g_app.world_map, &wcfg);
-                    /* Initialize chunk meta (after world gen sets dimensions) */
-                    g_app.chunks_x = (g_app.world_map.width  + g_app.chunk_size - 1) / g_app.chunk_size;
-                    g_app.chunks_y = (g_app.world_map.height + g_app.chunk_size - 1) / g_app.chunk_size;
-                    size_t ctotal = (size_t)g_app.chunks_x * (size_t)g_app.chunks_y;
-                    if(ctotal){
-                        g_app.chunk_dirty = (unsigned char*)malloc(ctotal);
-                        if(g_app.chunk_dirty) memset(g_app.chunk_dirty, 0, ctotal);
-                    }
-                    g_app.entering_seed = 0;
-                }
-                else if (ev.key.keysym.sym == SDLK_ESCAPE)
-                {
-                    g_app.entering_seed = 0;
-                }
-            }
-        }
-    }
-#endif
-}
+/* input event loop moved to input_events.c */
 
 /* minimap helpers moved to minimap.c */
 
@@ -571,7 +488,7 @@ void rogue_app_step(void)
 {
     if (!g_game_loop.running)
         return;
-    process_events();
+    rogue_process_events();
     double frame_start = now_seconds();
 #ifdef ROGUE_HAVE_SDL
     g_app.title_time += g_app.dt;
@@ -638,22 +555,8 @@ void rogue_app_step(void)
     float hitstop_scale = (g_app.hitstop_timer_ms > 0)? 0.25f : 1.0f; /* quarter speed during hitstop */
     float dt_ms = raw_dt_ms * hitstop_scale;
     rogue_player_assets_update_animation(raw_dt_ms, dt_ms, raw_dt_ms, attack_pressed);
-    while(g_app.player.xp >= g_app.player.xp_to_next){
-    g_app.player.xp -= g_app.player.xp_to_next; 
-        g_app.player.level++; 
-        g_app.unspent_stat_points += 3; /* award stat points */
-        g_app.player.xp_to_next = (int)(g_app.player.xp_to_next * 1.35f + 15); 
-        rogue_player_recalc_derived(&g_app.player);
-    /* Full restore on level and start aura */
-    g_app.player.health = g_app.player.max_health;
-    g_app.player.mana = g_app.player.max_mana;
-    g_app.levelup_aura_timer_ms = 2000.0f; /* 2 second aura */
-#ifdef ROGUE_HAVE_SDL_MIXER
-    if(g_app.sfx_levelup){ Mix_PlayChannel(-1, g_app.sfx_levelup, 0); }
-#endif
-        g_app.stats_dirty = 1;
-    }
-    g_app.difficulty_scalar = 1.0 + (double)g_app.player.level * 0.15 + (double)g_app.total_kills * 0.002;
+    /* Progression (leveling, regen, autosave) */
+    rogue_player_progress_update(g_app.dt);
         /* Wrap inside map bounds */
         if(g_app.player.base.pos.x < 0) g_app.player.base.pos.x = 0;
         if(g_app.player.base.pos.y < 0) g_app.player.base.pos.y = 0;
@@ -758,287 +661,24 @@ void rogue_app_step(void)
             }
         }
 
-        /* Render player */
-        if(g_app.player_loaded)
-        {
-            int dir = g_app.player.facing;
-            /* Use side sheet for both left/right; flip if facing left */
-            int sheet_dir = (dir==1 || dir==2)? 1 : dir; /* 0=down,1=side,3=up */
-            int render_state = g_app.player_state;
-            if(g_app.player_combat.phase==ROGUE_ATTACK_WINDUP || g_app.player_combat.phase==ROGUE_ATTACK_STRIKE || g_app.player_combat.phase==ROGUE_ATTACK_RECOVER){
-                render_state = 3; /* attack state */
-            }
-            const RogueSprite* spr = &g_app.player_frames[render_state][sheet_dir][g_app.player.anim_frame];
-            /* Fallback: if chosen frame invalid, scan for first valid frame in current state/direction */
-            if(!spr->sw){
-                for(int f=0; f<8; f++){
-                    if(g_app.player_frames[render_state][sheet_dir][f].sw){
-                        spr = &g_app.player_frames[render_state][sheet_dir][f];
-                        break;
-                    }
-                }
-            }
-            if(spr->sw && spr->tex && spr->tex->handle)
-            {
-                int px = (int)(g_app.player.base.pos.x * tsz * scale - g_app.cam_x);
-                int py = (int)(g_app.player.base.pos.y * tsz * scale - g_app.cam_y);
-#if defined(ROGUE_HAVE_SDL)
-                if(g_app.levelup_aura_timer_ms > 0.0f){
-                    g_app.levelup_aura_timer_ms -= (float)(g_app.dt * 1000.0);
-                    float tnorm = g_app.levelup_aura_timer_ms / 2000.0f; if(tnorm<0) tnorm=0; if(tnorm>1) tnorm=1;
-                    float pulse = 0.5f + 0.5f * (float)sin((2000.0f - g_app.levelup_aura_timer_ms)*0.025f);
-                    int radius = (int)(spr->sw*scale * (1.2f + 0.3f * (1.0f-tnorm)));
-                    int cx = px + spr->sw*scale/2; int cy = py + spr->sh*scale/2;
-                    unsigned char cr = (unsigned char)(120 + 90*pulse);
-                    unsigned char cg = (unsigned char)(80 + 120*pulse);
-                    unsigned char cb = (unsigned char)(255);
-                    unsigned char ca = (unsigned char)(120 * tnorm + 60);
-                    SDL_SetRenderDrawColor(g_app.renderer, cr,cg,cb,ca);
-                    for(int dy=-radius; dy<=radius; ++dy){
-                        int dx_lim = (int)sqrt(radius*radius - dy*dy);
-                        SDL_RenderDrawLine(g_app.renderer, cx-dx_lim, cy+dy, cx+dx_lim, cy+dy);
-                    }
-                }
-#endif
-#if defined(ROGUE_HAVE_SDL)
-                if(dir==1) /* left: manual flip */
-                {
-                    SDL_Rect src = { spr->sx, spr->sy, spr->sw, spr->sh };
-                    SDL_Rect dst = { px, py, spr->sw*scale, spr->sh*scale };
-                    SDL_RenderCopyEx(g_app.renderer, spr->tex->handle, &src, &dst, 0.0, NULL, SDL_FLIP_HORIZONTAL);
-                }
-                else
-                {
-                    rogue_sprite_draw(spr, px, py, scale);
-                }
-                /* Optional debug: outline player bounding box if F1 held (future input hook) */
-#endif
-            }
-            else {
-                /* Fallback: draw placeholder if still no valid sprite */
-#if defined(ROGUE_HAVE_SDL)
-                SDL_SetRenderDrawColor(g_app.renderer, 255, 0, 255, 255);
-                SDL_Rect pr = { (int)(g_app.player.base.pos.x*tsz*scale - g_app.cam_x), (int)(g_app.player.base.pos.y*tsz*scale - g_app.cam_y), g_app.player_frame_size*scale, g_app.player_frame_size*scale };
-                SDL_RenderFillRect(g_app.renderer, &pr);
-                /* On-screen debug list of failed sheets */
-                int dy = 20; int line = 0;
-                rogue_font_draw_text(4, dy + line*10, "Player sheets load status:",1,(RogueColor){255,255,0,255}); line++;
-                const char* states[3] = {"idle","walk","run"};
-                const char* dirs[4] = {"down","left","right","up"};
-                for(int s=0;s<4;s++){
-                    for(int d=0; d<4; d++){
-                        if(!g_app.player_sheet_loaded[s][d]){
-                            char buf[96];
-                            snprintf(buf,sizeof buf,"%s-%s: FAIL", states[s], dirs[d]);
-                            rogue_font_draw_text(4, dy + line*10, buf,1,(RogueColor){255,80,80,255});
-                            line++;
-                        } else if(line < 12){ /* show a few successes */
-                            char buf[96];
-                            snprintf(buf,sizeof buf,"%s-%s: OK", states[s], dirs[d]);
-                            rogue_font_draw_text(4, dy + line*10, buf,1,(RogueColor){120,255,120,255});
-                            line++;
-                        }
-                    }
-                }
-#endif
-            }
-        }
-        /* Render enemies (simple colored squares) */
-#ifdef ROGUE_HAVE_SDL
-    for(int i=0;i<ROGUE_MAX_ENEMIES;i++) if(g_app.enemies[i].alive){
-            RogueEnemy* e=&g_app.enemies[i]; RogueEnemyTypeDef* t=&g_app.enemy_types[e->type_index];
-            int ex = (int)(e->base.pos.x*tsz - g_app.cam_x);
-            int ey = (int)(e->base.pos.y*tsz - g_app.cam_y);
-            /* Select frame set with fallback (if run missing use idle) */
-            RogueSprite* frames=NULL; int fcount=0;
-            if(e->ai_state==ROGUE_ENEMY_AI_AGGRO){
-                if(t->run_count>0){ frames=t->run_frames; fcount=t->run_count; }
-                else { frames=t->idle_frames; fcount=t->idle_count; }
-            } else if(e->ai_state==ROGUE_ENEMY_AI_PATROL){ frames=t->idle_frames; fcount=t->idle_count; }
-            else { frames=t->death_frames; fcount=t->death_count; }
-            RogueSprite* spr = (frames && fcount)? &frames[e->anim_frame % fcount] : NULL;
-            /* (Combat proximity now handled in AI update; no extra calc needed here) */
-            if(spr && spr->tex && spr->tex->handle && spr->sw){
-                Uint8 mr = (Uint8)(e->tint_r < 0?0:(e->tint_r>255?255:e->tint_r));
-                Uint8 mg = (Uint8)(e->tint_g < 0?0:(e->tint_g>255?255:e->tint_g));
-                Uint8 mb = (Uint8)(e->tint_b < 0?0:(e->tint_b>255?255:e->tint_b));
-                Uint8 ma = 255;
-                if(e->ai_state==ROGUE_ENEMY_AI_DEAD){ ma = (Uint8)(e->death_fade < 0?0:(e->death_fade>1.0f?255:(e->death_fade*255.0f))); }
-                SDL_SetTextureColorMod(spr->tex->handle, mr, mg, mb);
-                SDL_SetTextureAlphaMod(spr->tex->handle, ma);
-                SDL_Rect src = { spr->sx, spr->sy, spr->sw, spr->sh };
-                SDL_Rect dst = { ex - spr->sw/2, ey - spr->sh/2, spr->sw, spr->sh };
-                SDL_RenderCopyEx(g_app.renderer, spr->tex->handle, &src, &dst, 0.0, NULL, (e->facing==1)? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
-                SDL_SetTextureColorMod(spr->tex->handle, 255,255,255); /* restore */
-                SDL_SetTextureAlphaMod(spr->tex->handle, 255);
-            } else {
-                unsigned char r=(unsigned char)e->tint_r,g=(unsigned char)e->tint_g,b=(unsigned char)e->tint_b,a=255; if(e->ai_state==ROGUE_ENEMY_AI_DEAD) a=(unsigned char)(e->death_fade*255.0f);
-                SDL_SetRenderDrawColor(g_app.renderer,r,g,b,a); SDL_Rect er={ex-4,ey-4,8,8}; SDL_RenderFillRect(g_app.renderer,&er);
-            }
-            /* Small health bar */
-            int maxhp = e->max_health>0? e->max_health : 1;
-            float ratio = (e->health>0)? (float)e->health / (float)maxhp : 0.0f; if(ratio<0) ratio=0; if(ratio>1) ratio=1;
-            int barw = 20; int barh = 3; int bx = ex - barw/2; int by = ey - (spr? spr->sh/2 : 6) - 6;
-            SDL_SetRenderDrawColor(g_app.renderer,25,8,8,200); SDL_Rect bg={bx-1,by-1,barw+2,barh+2}; SDL_RenderFillRect(g_app.renderer,&bg);
-            SDL_SetRenderDrawColor(g_app.renderer,120,0,0,255); SDL_Rect fg1={bx,by,(int)(barw*ratio),barh}; SDL_RenderFillRect(g_app.renderer,&fg1);
-            SDL_SetRenderDrawColor(g_app.renderer,220,30,30,255); SDL_Rect fg2={bx,by,(int)(barw*ratio*0.55f),barh}; SDL_RenderFillRect(g_app.renderer,&fg2);
-            g_app.frame_draw_calls++;
-        }
-    /* Removed debug attack arc rendering for pure sprite-based attack animation */
-#endif
+    /* Render player */
+    rogue_player_render();
+    /* Render enemies */
+    rogue_enemy_render();
 
-    /* Floating damage numbers (render after entities) */
-#ifdef ROGUE_HAVE_SDL
-    if(g_app.renderer){
-        for(int i=0;i<g_app.dmg_number_count;i++){
-            float norm = g_app.dmg_numbers[i].life_ms / (g_app.dmg_numbers[i].total_ms>0? g_app.dmg_numbers[i].total_ms : 1.0f);
-            if(norm<0) norm=0; if(norm>1) norm=1;
-            int alpha = (int)(255 * norm);
-            if(alpha<0) alpha=0; if(alpha>255) alpha=255;
-            int screen_x = (int)(g_app.dmg_numbers[i].x * g_app.tile_size - g_app.cam_x);
-            int screen_y = (int)(g_app.dmg_numbers[i].y * g_app.tile_size - g_app.cam_y);
-            char buf[16]; snprintf(buf,sizeof buf,"%d", g_app.dmg_numbers[i].amount);
-            RogueColor col;
-            if(g_app.dmg_numbers[i].crit){
-                col = (RogueColor){255,255,120,(unsigned char)alpha};
-            } else if(g_app.dmg_numbers[i].from_player){
-                col = (RogueColor){255,210,40,(unsigned char)alpha};
-            } else {
-                col = (RogueColor){255,60,60,(unsigned char)alpha};
-            }
-            int txt_scale = g_app.dmg_numbers[i].scale > 0 ? (int)(g_app.dmg_numbers[i].scale * 1.0f) : 1;
-            if(txt_scale<1) txt_scale=1; if(txt_scale>4) txt_scale=4;
-            rogue_font_draw_text(screen_x, screen_y, buf, txt_scale, col);
-        }
-    }
-#endif
+    /* Floating damage numbers */
+    rogue_damage_numbers_render();
 
     /* Mini-map in corner (scaled down, render-target cached) */
     /* Minimap */
     rogue_minimap_update_and_render(240);
     }
-    /* Basic HUD bars */
-#ifdef ROGUE_HAVE_SDL
-    if(g_app.renderer){
-        int hp_w=200, hp_h=10; int hp_x=6, hp_y=4;
-        float hp_ratio = (g_app.player.max_health>0)? (float)g_app.player.health/(float)g_app.player.max_health : 0.0f; if(hp_ratio<0) hp_ratio=0; if(hp_ratio>1) hp_ratio=1;
-        SDL_SetRenderDrawColor(g_app.renderer,40,12,12,255); SDL_Rect hbgb={hp_x-2,hp_y-2,hp_w+4,hp_h+4}; SDL_RenderFillRect(g_app.renderer,&hbgb);
-        SDL_SetRenderDrawColor(g_app.renderer,95,0,0,255); SDL_Rect hbf1={hp_x,hp_y,(int)(hp_w*hp_ratio),hp_h}; SDL_RenderFillRect(g_app.renderer,&hbf1);
-        SDL_SetRenderDrawColor(g_app.renderer,170,20,20,255); SDL_Rect hbf2={hp_x,hp_y,(int)(hp_w*hp_ratio*0.55f),hp_h}; SDL_RenderFillRect(g_app.renderer,&hbf2);
-    int mp_w=200, mp_h=8; int mp_x=6, mp_y=hp_y+hp_h+6;
-        float mp_ratio = (g_app.player.max_mana>0)? (float)g_app.player.mana/(float)g_app.player.max_mana : 0.0f; if(mp_ratio<0) mp_ratio=0; if(mp_ratio>1) mp_ratio=1;
-        SDL_SetRenderDrawColor(g_app.renderer,10,18,40,255); SDL_Rect mpbgb={mp_x-2,mp_y-2,mp_w+4,mp_h+4}; SDL_RenderFillRect(g_app.renderer,&mpbgb);
-        SDL_SetRenderDrawColor(g_app.renderer,15,50,140,255); SDL_Rect mpbf1={mp_x,mp_y,(int)(mp_w*mp_ratio),mp_h}; SDL_RenderFillRect(g_app.renderer,&mpbf1);
-        SDL_SetRenderDrawColor(g_app.renderer,40,90,210,255); SDL_Rect mpbf2={mp_x,mp_y,(int)(mp_w*mp_ratio*0.55f),mp_h}; SDL_RenderFillRect(g_app.renderer,&mpbf2);
-    /* XP bar */
-    int xp_w=200, xp_h=6; int xp_x=6, xp_y=mp_y+mp_h+6;
-    float xp_ratio = (g_app.player.xp_to_next>0)? (float)g_app.player.xp / (float)g_app.player.xp_to_next : 0.0f; if(xp_ratio<0) xp_ratio=0; if(xp_ratio>1) xp_ratio=1;
-    SDL_SetRenderDrawColor(g_app.renderer,25,25,25,255); SDL_Rect xpbgb={xp_x-2,xp_y-2,xp_w+4,xp_h+4}; SDL_RenderFillRect(g_app.renderer,&xpbgb);
-    SDL_SetRenderDrawColor(g_app.renderer,90,60,10,255); SDL_Rect xpbf1={xp_x,xp_y,(int)(xp_w*xp_ratio),xp_h}; SDL_RenderFillRect(g_app.renderer,&xpbf1);
-    SDL_SetRenderDrawColor(g_app.renderer,200,140,30,255); SDL_Rect xpbf2={xp_x,xp_y,(int)(xp_w*xp_ratio*0.55f),xp_h}; SDL_RenderFillRect(g_app.renderer,&xpbf2);
-    /* Level text small above HP */
-    char lvlbuf[32]; snprintf(lvlbuf,sizeof lvlbuf,"Lv %d", g_app.player.level);
-    rogue_font_draw_text(hp_x+hp_w+8, hp_y, lvlbuf, 1, (RogueColor){255,255,180,255});
-    }
-#endif
-    /* Update floating damage numbers (logic) */
-    if(g_app.dmg_number_count>0){
-        for(int i=0;i<g_app.dmg_number_count;){
-            g_app.dmg_numbers[i].life_ms -= (float)(g_app.dt * 1000.0);
-            g_app.dmg_numbers[i].x += g_app.dmg_numbers[i].vx * (float)g_app.dt;
-            g_app.dmg_numbers[i].y += g_app.dmg_numbers[i].vy * (float)g_app.dt;
-            g_app.dmg_numbers[i].vy -= 0.15f * (float)g_app.dt;
-            if(g_app.dmg_numbers[i].life_ms <= 0){
-                g_app.dmg_numbers[i] = g_app.dmg_numbers[g_app.dmg_number_count-1];
-                g_app.dmg_number_count--;
-                continue;
-            }
-            ++i;
-        }
-    }
+    /* HUD */
+    rogue_hud_render();
+    /* Update floating damage numbers */
+    rogue_damage_numbers_update((float)g_app.dt);
     /* (Overlay with debug metrics removed to show clean HUD; hotkeys still active) */
-    /* Passive regen timing updates (after overlay so dt stable) */
-    g_app.time_since_player_hit_ms += (float)(g_app.dt * 1000.0);
-    if(g_app.player.health > 0 && g_app.player.health < g_app.player.max_health){
-        if(g_app.time_since_player_hit_ms > 4000.0f){ /* 4s out of combat */
-            g_app.health_regen_accum_ms += (float)(g_app.dt * 1000.0);
-            float interval = 900.0f - (g_app.player.vitality * 4.0f); if(interval < 250.0f) interval = 250.0f;
-            while(g_app.health_regen_accum_ms >= interval){
-                g_app.health_regen_accum_ms -= interval;
-                g_app.player.health += 1 + g_app.player.vitality/25; if(g_app.player.health>g_app.player.max_health) g_app.player.health=g_app.player.max_health;
-            }
-        }
-    } else { g_app.health_regen_accum_ms = 0.0f; }
-    if(g_app.player.mana < g_app.player.max_mana){
-        g_app.mana_regen_accum_ms += (float)(g_app.dt * 1000.0);
-        float interval_mp = 520.0f - g_app.player.intelligence * 6.5f; if(interval_mp < 120.0f) interval_mp = 120.0f;
-        if(g_app.time_since_player_hit_ms > 4000.0f) interval_mp *= 0.85f;
-        while(g_app.mana_regen_accum_ms >= interval_mp){
-            g_app.mana_regen_accum_ms -= interval_mp;
-            g_app.player.mana += 1 + g_app.player.intelligence/12; if(g_app.player.mana>g_app.player.max_mana) g_app.player.mana=g_app.player.max_mana;
-        }
-    } else { g_app.mana_regen_accum_ms = 0.0f; }
-    if(g_app.show_stats_panel){
-#ifdef ROGUE_HAVE_SDL
-        if(g_app.renderer && !g_app.headless){
-            SDL_Rect panel = { 160, 70, 200, 180 };
-            SDL_SetRenderDrawColor(g_app.renderer, 12,12,28,235);
-            SDL_RenderFillRect(g_app.renderer, &panel);
-            /* Border */
-            SDL_SetRenderDrawColor(g_app.renderer, 90,90,140,255);
-            SDL_Rect btop={panel.x-2,panel.y-2,panel.w+4,2}; SDL_RenderFillRect(g_app.renderer,&btop);
-            SDL_Rect bbot={panel.x-2,panel.y+panel.h,panel.w+4,2}; SDL_RenderFillRect(g_app.renderer,&bbot);
-            SDL_Rect bl={panel.x-2,panel.y,2,panel.h}; SDL_RenderFillRect(g_app.renderer,&bl);
-            SDL_Rect br={panel.x+panel.w,panel.y,2,panel.h}; SDL_RenderFillRect(g_app.renderer,&br);
-            /* Header */
-            SDL_SetRenderDrawColor(g_app.renderer,130,50,170,255); SDL_Rect hdr={panel.x,panel.y,panel.w,16}; SDL_RenderFillRect(g_app.renderer,&hdr);
-            SDL_SetRenderDrawColor(g_app.renderer,180,80,220,255); SDL_Rect hdr2={panel.x,panel.y,panel.w/2,16}; SDL_RenderFillRect(g_app.renderer,&hdr2);
-            rogue_font_draw_text(panel.x+6, panel.y+4, "STATS",1,(RogueColor){255,255,255,255});
-            const char* labels[6] = {"STR","DEX","VIT","INT","CRIT%","CRITDMG"};
-            int values[6] = { g_app.player.strength, g_app.player.dexterity, g_app.player.vitality, g_app.player.intelligence, g_app.player.crit_chance, g_app.player.crit_damage };
-            int rows = 6;
-            for(int i=0;i<rows;i++){
-                int highlight = (i==g_app.stats_panel_index);
-                char line[64]; snprintf(line,sizeof line,"%s %3d%s", labels[i], values[i], highlight?" *":"");
-                rogue_font_draw_text(panel.x+10, panel.y+22 + i*18, line,1,(RogueColor){ highlight?255:200, highlight?255:255, highlight?160:255,255});
-                int barw = values[i]; if(i==5){ barw = values[i]/4; } /* scale crit dmg (0-400) into 0-100 */
-                if(barw>70) barw=70; if(barw<0) barw=0;
-                SDL_SetRenderDrawColor(g_app.renderer,50,60,90,255); SDL_Rect bg={panel.x+10, panel.y+22 + i*18 + 10, 72,4}; SDL_RenderFillRect(g_app.renderer,&bg);
-                SDL_SetRenderDrawColor(g_app.renderer, highlight?255:140, highlight?200:140, highlight?90:160,255); SDL_Rect fg={panel.x+10, panel.y+22 + i*18 + 10, barw,4}; SDL_RenderFillRect(g_app.renderer,&fg);
-            }
-            char footer[96]; snprintf(footer,sizeof footer,"PTS:%d  ENTER=+  TAB=Close", g_app.unspent_stat_points);
-            rogue_font_draw_text(panel.x+6, panel.y+panel.h-14, footer,1,(RogueColor){180,220,255,255});
-        }
-#endif
-    }
-    /* Auto-save stats every ~5 seconds when dirty */
-    static double stats_save_timer = 0.0; stats_save_timer += g_app.dt;
-    if(g_app.stats_dirty && stats_save_timer > 5.0){
-    FILE* f=NULL;
-#if defined(_MSC_VER)
-    fopen_s(&f, "player_stats.cfg", "wb");
-#else
-    f=fopen("player_stats.cfg","wb");
-#endif
-    if(f){
-        fprintf(f,"# Saved player progression\n");
-        fprintf(f,"LEVEL=%d\n", g_app.player.level);
-        fprintf(f,"XP=%d\n", g_app.player.xp);
-        fprintf(f,"XP_TO_NEXT=%d\n", g_app.player.xp_to_next);
-        fprintf(f,"STR=%d\n", g_app.player.strength);
-        fprintf(f,"DEX=%d\n", g_app.player.dexterity);
-        fprintf(f,"VIT=%d\n", g_app.player.vitality);
-        fprintf(f,"INT=%d\n", g_app.player.intelligence);
-    fprintf(f,"CRITC=%d\n", g_app.player.crit_chance);
-    fprintf(f,"CRITD=%d\n", g_app.player.crit_damage);
-        fprintf(f,"UNSPENT=%d\n", g_app.unspent_stat_points);
-        fprintf(f,"HP=%d\n", g_app.player.health);
-    fprintf(f,"MP=%d\n", g_app.player.mana);
-        fclose(f);
-        g_app.stats_dirty=0;
-    }
-    stats_save_timer = 0.0;
-    }
+    rogue_stats_panel_render();
     if(!g_app.headless){ SDL_RenderPresent(g_app.renderer); }
     /* Refresh exported player after all stat changes this frame */
     g_exposed_player_for_stats = g_app.player;

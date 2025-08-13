@@ -1,5 +1,9 @@
 #include "game/damage_numbers.h"
 #include "core/app_state.h"
+#include "graphics/font.h"
+#ifdef ROGUE_HAVE_SDL
+#include <SDL.h>
+#endif
 
 void rogue_add_damage_number_ex(float x, float y, int amount, int from_player, int crit){
     if(amount==0) return;
@@ -25,4 +29,42 @@ void rogue_app_test_decay_damage_numbers(float ms){
         }
         ++i;
     }
+}
+
+void rogue_damage_numbers_update(float dt_seconds){
+    if(g_app.dmg_number_count<=0) return;
+    float dt_ms = dt_seconds * 1000.0f;
+    for(int i=0;i<g_app.dmg_number_count;){
+        g_app.dmg_numbers[i].life_ms -= dt_ms;
+        g_app.dmg_numbers[i].x += g_app.dmg_numbers[i].vx * dt_seconds;
+        g_app.dmg_numbers[i].y += g_app.dmg_numbers[i].vy * dt_seconds;
+        g_app.dmg_numbers[i].vy -= 0.15f * dt_seconds;
+        if(g_app.dmg_numbers[i].life_ms <= 0){
+            g_app.dmg_numbers[i] = g_app.dmg_numbers[g_app.dmg_number_count-1];
+            g_app.dmg_number_count--; continue;
+        }
+        ++i;
+    }
+}
+
+void rogue_damage_numbers_render(void){
+#ifdef ROGUE_HAVE_SDL
+    if(!g_app.renderer) return;
+    for(int i=0;i<g_app.dmg_number_count;i++){
+        float norm = g_app.dmg_numbers[i].life_ms / (g_app.dmg_numbers[i].total_ms>0? g_app.dmg_numbers[i].total_ms : 1.0f);
+        if(norm<0) norm=0; if(norm>1) norm=1;
+        int alpha = (int)(255 * norm);
+        if(alpha<0) alpha=0; if(alpha>255) alpha=255;
+        int screen_x = (int)(g_app.dmg_numbers[i].x * g_app.tile_size - g_app.cam_x);
+        int screen_y = (int)(g_app.dmg_numbers[i].y * g_app.tile_size - g_app.cam_y);
+        char buf[16]; snprintf(buf,sizeof buf,"%d", g_app.dmg_numbers[i].amount);
+        RogueColor col;
+        if(g_app.dmg_numbers[i].crit){ col = (RogueColor){255,255,120,(unsigned char)alpha}; }
+        else if(g_app.dmg_numbers[i].from_player){ col = (RogueColor){255,210,40,(unsigned char)alpha}; }
+        else { col = (RogueColor){255,60,60,(unsigned char)alpha}; }
+        int txt_scale = g_app.dmg_numbers[i].scale > 0 ? (int)(g_app.dmg_numbers[i].scale * 1.0f) : 1;
+        if(txt_scale<1) txt_scale=1; if(txt_scale>4) txt_scale=4;
+        rogue_font_draw_text(screen_x, screen_y, buf, txt_scale, col);
+    }
+#endif
 }
