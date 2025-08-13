@@ -889,20 +889,35 @@ void rogue_app_step(void)
     }
 #endif
     }
-    /* FPS overlay (uses last frame's fps value) */
+    /* FPS & world-gen overlay (uses last frame's fps value) */
     {
+        int overlay_scale = (g_app.viewport_w >= 1400) ? 2 : 1;
+        int line_h = (g_rogue_builtin_font.glyph_h * overlay_scale) + overlay_scale; /* crude spacing */
+        int base_x = 4;
+        int base_y = 4;
+#ifdef ROGUE_HAVE_SDL
+        /* Background panel for readability */
+        if(g_app.renderer){
+            int panel_w =  (overlay_scale==1? 520 : 600);
+            int panel_h = line_h * 4 + 4;
+            SDL_Rect bg = { base_x-2, base_y-2, panel_w, panel_h };
+            SDL_SetRenderDrawColor(g_app.renderer, 0,0,0,120);
+            SDL_RenderFillRect(g_app.renderer, &bg);
+            g_app.frame_draw_calls++;
+        }
+#endif
         char fps_buf[48];
         snprintf(fps_buf, sizeof fps_buf, "FPS: %.1f", g_app.fps);
-        rogue_font_draw_text(4,4,fps_buf,1,(RogueColor){255,255,255,255});
+        rogue_font_draw_text(base_x, base_y, fps_buf, overlay_scale, (RogueColor){255,255,255,255});
         char m_buf[64];
-        snprintf(m_buf, sizeof m_buf, "Draws:%d Tiles:%d", g_app.frame_draw_calls, g_app.frame_tile_quads);
-        rogue_font_draw_text(4,14,m_buf,1,(RogueColor){200,200,200,255});
-    char gen_buf1[96];
-    snprintf(gen_buf1, sizeof gen_buf1, "WT:%.2f OCT:%d GAIN:%.2f LAC:%.2f", g_app.gen_water_level, g_app.gen_noise_octaves, g_app.gen_noise_gain, g_app.gen_noise_lacunarity);
-    rogue_font_draw_text(4,24,gen_buf1,1,(RogueColor){180,220,255,255});
-    char gen_buf2[128];
-    snprintf(gen_buf2, sizeof gen_buf2, "RIV:%d LEN:%d CAVE>%.2f F5/F6 WT F7/F8 OCT F9/F10 RIV F11/F12 GAIN ` REGEN", g_app.gen_river_sources, g_app.gen_river_max_length, g_app.gen_cave_thresh);
-    rogue_font_draw_text(4,34,gen_buf2,1,(RogueColor){160,200,240,255});
+        snprintf(m_buf, sizeof m_buf, "DRAWS:%d TILES:%d", g_app.frame_draw_calls, g_app.frame_tile_quads);
+        rogue_font_draw_text(base_x, base_y + line_h, m_buf, overlay_scale, (RogueColor){220,220,220,255});
+        char gen_buf1[96];
+        snprintf(gen_buf1, sizeof gen_buf1, "WT:%.2f OCT:%d GAIN:%.2f LAC:%.2f", g_app.gen_water_level, g_app.gen_noise_octaves, g_app.gen_noise_gain, g_app.gen_noise_lacunarity);
+        rogue_font_draw_text(base_x, base_y + line_h*2, gen_buf1, overlay_scale, (RogueColor){180,220,255,255});
+        char gen_buf2[128];
+        snprintf(gen_buf2, sizeof gen_buf2, "RIV:%d LEN:%d CAVE>%.2f F5/F6 WT F7/F8 OCT F9/F10 RIV F11/F12 GAIN ` REGEN", g_app.gen_river_sources, g_app.gen_river_max_length, g_app.gen_cave_thresh);
+        rogue_font_draw_text(base_x, base_y + line_h*3, gen_buf2, overlay_scale, (RogueColor){160,200,240,255});
     }
     SDL_RenderPresent(g_app.renderer);
 #endif
