@@ -44,6 +44,7 @@ endif()
 
 add_library(rogue_core
     src/core/app.c
+    src/core/app_state.c
     src/core/game_loop.c
     src/platform/platform_sdl.c
     src/graphics/renderer.c
@@ -57,6 +58,8 @@ add_library(rogue_core
     src/entities/player.c
     src/entities/enemy.c
     src/game/combat.c
+    src/game/damage_numbers.c
+    src/core/enemy_system.c
     src/util/log.c
 )
 

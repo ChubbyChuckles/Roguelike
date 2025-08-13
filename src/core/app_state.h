@@ -1,0 +1,77 @@
+#ifndef ROGUE_CORE_APP_STATE_H
+#define ROGUE_CORE_APP_STATE_H
+#include "core/app.h"
+#include "world/tilemap.h"
+#include "input/input.h"
+#include "entities/player.h"
+#include "entities/enemy.h"
+#include "game/combat.h"
+#include "graphics/sprite.h"
+#include "graphics/tile_sprites.h"
+#include "util/log.h"
+#ifdef ROGUE_HAVE_SDL
+#include <SDL.h>
+#endif
+#ifdef ROGUE_HAVE_SDL_MIXER
+#include <SDL_mixer.h>
+#endif
+
+typedef struct RogueAppState {
+    RogueAppConfig cfg;
+#ifdef ROGUE_HAVE_SDL
+    SDL_Window* window;
+    SDL_Renderer* renderer;
+#endif
+    int headless;
+    int show_start_screen;
+    RogueTileMap world_map;
+    RogueInputState input;
+    RoguePlayer player;
+    int unspent_stat_points;
+    int stats_dirty;
+    int tileset_loaded;
+    int tile_size;
+    int player_frame_size;
+    RogueTexture player_tex[4][4];
+    RogueSprite  player_frames[4][4][8];
+    int          player_frame_count[4][4];
+    int          player_frame_time_ms[4][4][8];
+    int player_loaded;
+    int player_sheet_loaded[4][4];
+    int player_state;
+    char player_sheet_path[4][4][256];
+    int player_sheet_paths_loaded;
+    double title_time;
+    int menu_index;
+    int entering_seed;
+    unsigned int pending_seed;
+    int frame_count; double dt; double fps; double frame_ms; double avg_frame_ms_accum; int avg_frame_samples;
+    float cam_x, cam_y; int viewport_w, viewport_h;
+    float walk_speed, run_speed;
+    const RogueSprite** tile_sprite_lut; int tile_sprite_lut_ready;
+    int minimap_dirty;
+#ifdef ROGUE_HAVE_SDL
+    SDL_Texture* minimap_tex;
+#endif
+    int minimap_w, minimap_h, minimap_step;
+    int chunk_size, chunks_x, chunks_y; unsigned char* chunk_dirty;
+    float anim_dt_accum_ms;
+    int frame_draw_calls; int frame_tile_quads;
+    double gen_water_level; int gen_noise_octaves; double gen_noise_gain; double gen_noise_lacunarity; int gen_river_sources; int gen_river_max_length; double gen_cave_thresh; int gen_params_dirty;
+    RogueEnemy enemies[ROGUE_MAX_ENEMIES]; int enemy_count; RogueEnemyTypeDef enemy_types[ROGUE_MAX_ENEMY_TYPES]; int enemy_type_count; RoguePlayerCombat player_combat; int total_kills; int per_type_counts[ROGUE_MAX_ENEMY_TYPES]; double difficulty_scalar;
+    int show_stats_panel; int stats_panel_index;
+    float time_since_player_hit_ms; float health_regen_accum_ms; float mana_regen_accum_ms; float levelup_aura_timer_ms;
+#ifdef ROGUE_HAVE_SDL_MIXER
+    Mix_Chunk* sfx_levelup;
+#endif
+    float attack_anim_time_ms;
+    struct { float x,y; float vx,vy; float life_ms; float total_ms; int amount; int from_player; int crit; float scale; } dmg_numbers[128];
+    int dmg_number_count;
+    double spawn_accum_ms;
+    float hitstop_timer_ms;
+} RogueAppState;
+
+extern RogueAppState g_app;
+extern RoguePlayer g_exposed_player_for_stats;
+
+#endif

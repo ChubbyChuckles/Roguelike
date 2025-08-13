@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 #include "core/app.h"
+#include "core/app_state.h"
 #include "core/game_loop.h"
 #include "util/log.h"
 #include "graphics/font.h"
@@ -30,6 +31,8 @@ SOFTWARE.
 #include "entities/player.h"
 #include "entities/enemy.h"
 #include "game/combat.h"
+#include "game/damage_numbers.h"
+#include "core/enemy_system.h"
 #include "graphics/sprite.h"
 #include "graphics/tile_sprites.h"
 #include <string.h>
@@ -48,116 +51,7 @@ SOFTWARE.
 #include <SDL.h>
 #endif
 
-typedef struct RogueAppState
-{
-    RogueAppConfig cfg;
-#ifdef ROGUE_HAVE_SDL
-    SDL_Window* window;
-    SDL_Renderer* renderer;
-#endif
-    int headless; /* 1 if renderer creation failed; update logic runs, rendering skipped */
-    int show_start_screen;
-    RogueTileMap world_map;
-    RogueInputState input;
-    RoguePlayer player;
-    int unspent_stat_points;
-    int stats_dirty;
-    int tileset_loaded; /* now indicates tile registry finalized */
-    int tile_size; /* terrain tile pixel size (now 16) */
-    int player_frame_size; /* character frame size (64) */
-    /* Player textures for animations: state (0=idle,1=walk,2=run) x direction (0=down,1=left,2=right,3=up) */
-    /* States: 0=idle 1=walk 2=run 3=attack */
-    RogueTexture player_tex[4][4];
-    RogueSprite  player_frames[4][4][8];
-    int          player_frame_count[4][4];
-    int          player_frame_time_ms[4][4][8];
-    int player_loaded;
-    int player_sheet_loaded[4][4];
-    int player_state; /* 0 idle,1 walk,2 run */
-    /* Configurable player sheet paths (state x direction) */
-    /* Configurable player sheet paths (state x direction) now 4 states incl attack */
-    char player_sheet_path[4][4][256];
-    int player_sheet_paths_loaded;
-    double title_time;
-    int menu_index; /* 0=new game,1=quit,2=seed entry */
-    int entering_seed;
-    unsigned int pending_seed;
-    int frame_count;
-    double dt;
-    double fps;
-    double frame_ms;
-    double avg_frame_ms_accum;
-    int avg_frame_samples;
-    /* Camera */
-    float cam_x;
-    float cam_y;
-    int viewport_w;
-    int viewport_h;
-    /* Movement speeds (tiles per second base units) */
-    float walk_speed;
-    float run_speed;
-    /* Precomputed tile sprite pointers (after tileset finalize) */
-    const RogueSprite** tile_sprite_lut; /* size width*height */
-    int tile_sprite_lut_ready;
-    /* Minimap cache flags */
-    int minimap_dirty;
-    /* Minimap render target & meta */
-#ifdef ROGUE_HAVE_SDL
-    SDL_Texture* minimap_tex;
-#endif
-    int minimap_w;
-    int minimap_h;
-    int minimap_step;
-    /* Chunk system for future dirty updates */
-    int chunk_size;
-    int chunks_x;
-    int chunks_y;
-    unsigned char* chunk_dirty; /* size chunks_x*chunks_y */
-    /* Animation coalescing accumulator (ms) */
-    float anim_dt_accum_ms;
-    /* Frame metrics */
-    int frame_draw_calls;
-    int frame_tile_quads;
-    /* Persistent world gen params */
-    double gen_water_level;
-    int gen_noise_octaves;
-    double gen_noise_gain;
-    double gen_noise_lacunarity;
-    int gen_river_sources;
-    int gen_river_max_length;
-    double gen_cave_thresh;
-    int gen_params_dirty;
-    /* Combat / entities */
-    RogueEnemy enemies[ROGUE_MAX_ENEMIES];
-    int enemy_count;
-    RogueEnemyTypeDef enemy_types[ROGUE_MAX_ENEMY_TYPES];
-    int enemy_type_count;
-    RoguePlayerCombat player_combat;
-    int total_kills;
-    int per_type_counts[ROGUE_MAX_ENEMY_TYPES];
-    double difficulty_scalar;
-    int show_stats_panel;
-    int stats_panel_index; /* 0 STR 1 DEX 2 VIT 3 INT 4 CRIT% 5 CRITDMG */
-    /* Regen tracking */
-    float time_since_player_hit_ms;
-    float health_regen_accum_ms;
-    float mana_regen_accum_ms;
-    float levelup_aura_timer_ms;
-#ifdef ROGUE_HAVE_SDL_MIXER
-    Mix_Chunk* sfx_levelup;
-#endif
-    float attack_anim_time_ms; /* accumulates across windup+strike+recover to map all frames */
-    /* Floating damage numbers */
-    struct { float x,y; float vx,vy; float life_ms; float total_ms; int amount; int from_player; int crit; float scale; } dmg_numbers[128];
-    int dmg_number_count;
-    double spawn_accum_ms; /* throttled spawn timer */
-    /* Hitstop system */
-    float hitstop_timer_ms; /* when >0, temporarily slow player & enemies */
-} RogueAppState;
-
-static RogueAppState g_app;
-/* Expose player for combat stamina scaling (lightweight linkage) */
-RoguePlayer g_exposed_player_for_stats;
+/* state now in app_state.c */
 
 int rogue_get_current_attack_frame(void){
     /* Return current player anim frame if attack state active, else 0 */
@@ -167,20 +61,6 @@ int rogue_get_current_attack_frame(void){
     return 0;
 }
 
-void rogue_add_damage_number_ex(float x, float y, int amount, int from_player, int crit){
-    if(amount==0) return;
-    if(g_app.dmg_number_count < (int)(sizeof(g_app.dmg_numbers)/sizeof(g_app.dmg_numbers[0]))){
-        int i = g_app.dmg_number_count++;
-        g_app.dmg_numbers[i].x = x; g_app.dmg_numbers[i].y = y;
-        g_app.dmg_numbers[i].vx = 0.0f; g_app.dmg_numbers[i].vy = -0.38f;
-    g_app.dmg_numbers[i].life_ms = 700.0f; g_app.dmg_numbers[i].total_ms = 700.0f;
-    g_app.dmg_numbers[i].amount = amount; g_app.dmg_numbers[i].from_player = from_player;
-    g_app.dmg_numbers[i].crit = crit?1:0; g_app.dmg_numbers[i].scale = crit? 1.4f : 1.0f;
-    }
-}
-void rogue_add_damage_number(float x, float y, int amount, int from_player){
-    rogue_add_damage_number_ex(x,y,amount,from_player,0);
-}
 
 static int tile_is_blocking(unsigned char t){
     switch(t){
@@ -216,18 +96,7 @@ RogueEnemy* rogue_test_spawn_hostile_enemy(float x, float y){
     return NULL;
 }
 
-int rogue_app_damage_number_count(void){ return g_app.dmg_number_count; }
-
-void rogue_app_test_decay_damage_numbers(float ms){
-    for(int i=0;i<g_app.dmg_number_count;){
-        g_app.dmg_numbers[i].life_ms -= ms;
-        if(g_app.dmg_numbers[i].life_ms <= 0){
-            g_app.dmg_numbers[i] = g_app.dmg_numbers[g_app.dmg_number_count-1];
-            g_app.dmg_number_count--; continue;
-        }
-        ++i;
-    }
-}
+/* damage number functions moved to damage_numbers.c */
 
 /* Public helper to add hitstop (clamped) */
 void rogue_app_add_hitstop(float ms){
@@ -1019,201 +888,8 @@ void rogue_app_step(void)
         if(g_app.player.base.pos.y < 0) g_app.player.base.pos.y = 0;
         if(g_app.player.base.pos.x > g_app.world_map.width-1) g_app.player.base.pos.x = (float)(g_app.world_map.width-1);
         if(g_app.player.base.pos.y > g_app.world_map.height-1) g_app.player.base.pos.y = (float)(g_app.world_map.height-1);
-    /* Per-type spawning (throttled & capped) */
-        g_app.spawn_accum_ms += dt_ms;
-        const int global_cap = 120;
-    if(g_app.spawn_accum_ms > 450.0f){ g_app.spawn_accum_ms = 0.0f; if(g_app.enemy_type_count>0 && g_app.enemy_count < global_cap){
-            for(int ti=0; ti<g_app.enemy_type_count; ++ti){
-                RogueEnemyTypeDef* t=&g_app.enemy_types[ti];
-                int cur = g_app.per_type_counts[ti]; int target = t->pop_target; if(target<=0) target=6; if(target>40) target=40; /* clamp */
-                if(cur >= target) continue; int needed = target - cur; int groups = 1; /* at most one group per tick */
-                for(int g=0; g<groups && needed>0; ++g){
-                    /* Choose a group anchor sufficiently far from player (avoid spawning right next). */
-                    int attempts=0; int gx=0,gy=0; unsigned char tile=0; const float min_player_dist=12.0f; /* tiles */
-                    float pxp = g_app.player.base.pos.x; float pyp = g_app.player.base.pos.y;
-                    while(attempts < 40){
-                        gx = rand() % g_app.world_map.width; gy = rand() % g_app.world_map.height;
-                        tile = g_app.world_map.tiles[gy*g_app.world_map.width + gx];
-                        if(!(tile == ROGUE_TILE_GRASS || tile == ROGUE_TILE_FOREST)) { attempts++; continue; }
-                        float dx = (float)gx - pxp; float dy = (float)gy - pyp; if(dx*dx + dy*dy < min_player_dist*min_player_dist){ attempts++; continue; }
-                        break;
-                    }
-                    if(attempts>=40) continue; /* give up this tick */
-                    int group_sz = t->group_min + (rand() % (t->group_max - t->group_min + 1)); if(group_sz>needed) group_sz=needed;
-                    float angle_step = 6.2831853f / (float)group_sz; float base_angle = (float)(rand()%628) * 0.01f;
-                    int spawned_in_group=0;
-                    for(int m=0; m<group_sz && needed>0; ++m){
-                        if(g_app.enemy_count >= global_cap) break;
-                        float radius = (float)(2 + rand()% (t->patrol_radius>6?6:t->patrol_radius));
-                        float ang = base_angle + angle_step * m;
-                        float ex = gx + cosf(ang) * radius;
-                        float ey = gy + sinf(ang) * radius;
-                        if(ex<1||ey<1||ex>g_app.world_map.width-2||ey>g_app.world_map.height-2) continue;
-                        /* Keep min spawn distance to player for each member */
-                        float pdx = ex - pxp; float pdy = ey - pyp; if(pdx*pdx + pdy*pdy < (min_player_dist-2.5f)*(min_player_dist-2.5f)) continue;
-                        for(int slot=0; slot<ROGUE_MAX_ENEMIES; ++slot){ if(!g_app.enemies[slot].alive){
-                            RogueEnemy* ne=&g_app.enemies[slot]; ne->base.pos.x=ex; ne->base.pos.y=ey; ne->anchor_x=(float)gx; ne->anchor_y=(float)gy; ne->patrol_target_x=ex; ne->patrol_target_y=ey; ne->max_health=(int)(3 * g_app.difficulty_scalar); if(ne->max_health<1) ne->max_health=1; ne->health=ne->max_health; ne->alive=1; ne->hurt_timer=0; ne->anim_time=0; ne->anim_frame=0; ne->ai_state=ROGUE_ENEMY_AI_PATROL; ne->facing=2; ne->type_index=ti; ne->tint_r=255.0f; ne->tint_g=255.0f; ne->tint_b=255.0f; ne->death_fade=1.0f; ne->tint_phase=0.0f; ne->flash_timer=0.0f; ne->attack_cooldown_ms= (float)(400 + rand()%300); ne->crit_chance = 5; ne->crit_damage = 25; g_app.enemy_count++; g_app.per_type_counts[ti]++; needed--; spawned_in_group++; break; }
-                        }
-                    }
-                    if(spawned_in_group>0){ ROGUE_LOG_INFO("Spawned enemy group type=%d size=%d anchor=(%d,%d)", ti, spawned_in_group, gx, gy); }
-                }
-            }
-        }}
-        /* Deterministic fallback: if no enemies have spawned after ~1.2s of gameplay, force spawn one near player.
-           This guarantees the enemy spawning test (which advances ~200 frames) observes at least one enemy. */
-        {
-            static float s_no_enemy_timer_ms = 0.0f;
-            if(g_app.enemy_count==0){
-                s_no_enemy_timer_ms += dt_ms;
-                if(s_no_enemy_timer_ms > 150.0f && g_app.enemy_type_count>0){ /* very short delay to satisfy test within few frames */
-                    for(int slot=0; slot<ROGUE_MAX_ENEMIES; ++slot){ if(!g_app.enemies[slot].alive){
-                        RogueEnemy* ne=&g_app.enemies[slot];
-                        int ti = 0; /* first type definition assumed basic */
-                        float spawn_x = g_app.player.base.pos.x + 0.5f; if(spawn_x > g_app.world_map.width-2) spawn_x = g_app.player.base.pos.x - 0.5f;
-                        float spawn_y = g_app.player.base.pos.y + 0.0f;
-                        ne->base.pos.x=spawn_x; ne->base.pos.y=spawn_y; ne->anchor_x=spawn_x; ne->anchor_y=spawn_y; ne->patrol_target_x=spawn_x; ne->patrol_target_y=spawn_y;
-                        ne->max_health=(int)(3 * g_app.difficulty_scalar); if(ne->max_health<1) ne->max_health=1; ne->health=ne->max_health; ne->alive=1; ne->hurt_timer=0; ne->anim_time=0; ne->anim_frame=0; ne->ai_state=ROGUE_ENEMY_AI_AGGRO; ne->facing=2; ne->type_index=ti; ne->tint_r=255.0f; ne->tint_g=255.0f; ne->tint_b=255.0f; ne->death_fade=1.0f; ne->tint_phase=0.0f; ne->flash_timer=0.0f; ne->attack_cooldown_ms=0.0f; ne->crit_chance = 5; ne->crit_damage = 25;
-                        g_app.enemy_count++; g_app.per_type_counts[ti]++;
-                        s_no_enemy_timer_ms = 0.0f;
-                        break;
-                    }}
-                }
-            } else {
-                s_no_enemy_timer_ms = 0.0f;
-            }
-        }
-        /* Enemy simple AI: move toward player */
-        for(int i=0;i<ROGUE_MAX_ENEMIES;i++) if(g_app.enemies[i].alive){
-            RogueEnemy* e=&g_app.enemies[i]; RogueEnemyTypeDef* t = &g_app.enemy_types[e->type_index];
-            /* State selection */
-            float pdx = g_app.player.base.pos.x - e->base.pos.x;
-            float pdy = g_app.player.base.pos.y - e->base.pos.y;
-            float p_dist2 = pdx*pdx + pdy*pdy;
-            /* Despawn if extremely far (beyond aggro^2 * 64) */
-            if(p_dist2 > (float)(t->aggro_radius * t->aggro_radius * 64)) { e->alive=0; g_app.enemy_count--; if(g_app.per_type_counts[e->type_index]>0) g_app.per_type_counts[e->type_index]--; continue; }
-            if(e->ai_state != ROGUE_ENEMY_AI_DEAD){
-                if(p_dist2 < (float)(t->aggro_radius * t->aggro_radius)) e->ai_state = ROGUE_ENEMY_AI_AGGRO; else if(e->ai_state == ROGUE_ENEMY_AI_AGGRO && p_dist2 > (float)((t->aggro_radius+5)*(t->aggro_radius+5))) e->ai_state = ROGUE_ENEMY_AI_PATROL;
-            }
-            float move_dx=0, move_dy=0; float move_speed = t->speed * (float)g_app.dt;
-            if(e->ai_state == ROGUE_ENEMY_AI_PATROL){
-                float tx = e->patrol_target_x; float ty = e->patrol_target_y; float dx = tx - e->base.pos.x; float dy = ty - e->base.pos.y; float d2 = dx*dx+dy*dy;
-                if(d2 < 0.4f){
-                    /* choose new patrol target within patrol radius & anchor radius constraint */
-                    for(int attempt=0; attempt<6; ++attempt){
-                        float nrx = (float)((rand()% (t->patrol_radius*2+1)) - t->patrol_radius);
-                        float nry = (float)((rand()% (t->patrol_radius*2+1)) - t->patrol_radius);
-                        float nx = e->anchor_x + nrx; float ny = e->anchor_y + nry;
-                        float ar_dx = nx - e->anchor_x; float ar_dy = ny - e->anchor_y;
-                        if(ar_dx*ar_dx + ar_dy*ar_dy <= (float)(t->patrol_radius*t->patrol_radius)) { e->patrol_target_x = nx; e->patrol_target_y = ny; break; }
-                    }
-                } else {
-                    float len = (float)sqrt(d2); if(len>0.0001f){ move_dx = dx/len; move_dy = dy/len; }
-                }
-            } else if(e->ai_state == ROGUE_ENEMY_AI_AGGRO){
-                /* Simplified homing directly toward player for deterministic proximity in tests */
-                float len = (float)sqrt(p_dist2); if(len>0.0001f){ move_dx = pdx/len; move_dy = pdy/len; }
-            }
-            /* If already within melee radius, halt movement to avoid drifting out */
-            if(p_dist2 < 1.00f){ move_dx = 0.0f; move_dy = 0.0f; move_speed = 0.0f; }
-            /* Edge smoothing: if next tile is blocking water edge, slide along edge by damping perpendicular component */
-            if(move_dx!=0 || move_dy!=0){
-                int nx = (int)(e->base.pos.x + move_dx * move_speed + 0.5f);
-                int ny = (int)(e->base.pos.y + move_dy * move_speed + 0.5f);
-                if(nx>=0 && ny>=0 && nx<g_app.world_map.width && ny<g_app.world_map.height){
-                    unsigned char nt = g_app.world_map.tiles[ny*g_app.world_map.width + nx];
-                    if(tile_is_blocking(nt)){
-                        /* Try axis-aligned partial movement */
-                        float try_x = e->base.pos.x + move_dx * move_speed;
-                        int txi = (int)(try_x + 0.5f); int tyi = (int)(e->base.pos.y + 0.5f);
-                        int blocked_x = 0, blocked_y = 0;
-                        if(txi>=0 && tyi>=0 && txi<g_app.world_map.width && tyi<g_app.world_map.height){
-                            if(tile_is_blocking(g_app.world_map.tiles[tyi*g_app.world_map.width + txi])) blocked_x=1;
-                        }
-                        float try_y = e->base.pos.y + move_dy * move_speed;
-                        txi = (int)(e->base.pos.x + 0.5f); tyi = (int)(try_y + 0.5f);
-                        if(txi>=0 && tyi>=0 && txi<g_app.world_map.width && tyi<g_app.world_map.height){
-                            if(tile_is_blocking(g_app.world_map.tiles[tyi*g_app.world_map.width + txi])) blocked_y=1;
-                        }
-                        if(!blocked_x && blocked_y){ move_dy = 0; }
-                        else if(blocked_x && !blocked_y){ move_dx = 0; }
-                        else { move_dx = move_dy = 0; }
-                    }
-                }
-            }
-            e->base.pos.x += move_dx * move_speed; e->base.pos.y += move_dy * move_speed;
-            e->facing = (move_dx < 0)? 1 : 2;
-            if(e->hurt_timer>0) e->hurt_timer -= dt_ms;
-            if(e->flash_timer>0) e->flash_timer -= dt_ms;
-            if(e->attack_cooldown_ms>0) e->attack_cooldown_ms -= dt_ms;
-            /* Treat anything within ~1.0 tile distance squared as in melee range; freeze micro movement to avoid drifting */
-            int in_melee = (p_dist2 < 1.00f);
-            if(in_melee){ move_dx = move_dy = 0; }
-            if(p_dist2 < 1.00f && g_app.player.health>0 && e->attack_cooldown_ms<=0){ /* widened radius for reliability */
-                int dmg = (int)(1 + g_app.difficulty_scalar * 0.6); if(dmg<1) dmg=1; /* base */
-                /* Enemy critical hit */
-                float ech = (float)e->crit_chance * 0.01f; if(ech>0.35f) ech=0.35f; /* enemy crit chance capped lower */
-                int ecrit = (((float)rand()/(float)RAND_MAX) < ech)?1:0;
-                if(ecrit){
-                    float emult = 1.0f + (float)e->crit_damage * 0.01f; if(emult>3.0f) emult=3.0f;
-                    dmg = (int)floorf(dmg * emult + 0.5f);
-                }
-                g_app.player.health -= dmg; if(g_app.player.health<0) g_app.player.health=0; e->hurt_timer=200.0f; g_app.time_since_player_hit_ms = 0.0f;
-                rogue_add_damage_number_ex(g_app.player.base.pos.x, g_app.player.base.pos.y - 0.2f, dmg, 0, ecrit);
-                /* Slightly longer & wider cooldown band to land average intervals inside test bounds (1100-2400). */
-                e->attack_cooldown_ms = 1050.0f + (float)(rand()%700); /* 1.05s - 1.75s */
-            }
-            if(e->health<=0 && e->ai_state != ROGUE_ENEMY_AI_DEAD){
-                e->ai_state = ROGUE_ENEMY_AI_DEAD; e->anim_time=0; e->anim_frame=0; e->death_fade=1.0f; /* will fade after full death animation cycle */
-                g_app.player.xp += t->xp_reward;
-                if(((float)rand()/(float)RAND_MAX) < t->loot_chance){ g_app.player.health += 2 + (g_app.player.vitality/3); if(g_app.player.health>g_app.player.max_health) g_app.player.health=g_app.player.max_health; }
-            }
-            /* Animation frames */
-            RogueSprite* frames=NULL; int fcount=0; if(e->ai_state==ROGUE_ENEMY_AI_AGGRO) { frames=t->run_frames; fcount=t->run_count; } else if(e->ai_state==ROGUE_ENEMY_AI_PATROL){ frames=t->idle_frames; fcount=t->idle_count; } else { frames=t->death_frames; fcount=t->death_count; }
-            float frame_ms = (e->ai_state==ROGUE_ENEMY_AI_AGGRO)? 110.0f : 160.0f;
-            e->anim_time += dt_ms; if(fcount<=0) fcount=1;
-            if(e->anim_time >= frame_ms){ e->anim_time -= frame_ms; e->anim_frame = (e->anim_frame+1) % fcount; }
-            e->tint_phase += dt_ms; /* accumulate independently for smooth pulse */
-            /* Death fade removal after animation completes & fade done */
-            if(e->ai_state==ROGUE_ENEMY_AI_DEAD){
-                if(e->anim_frame == fcount-1){
-                    /* slower fade for dramatic effect */
-                    e->death_fade -= (float)g_app.dt * 0.8f;
-                    if(e->death_fade <= 0.0f){ e->alive=0; g_app.enemy_count--; if(g_app.per_type_counts[e->type_index]>0) g_app.per_type_counts[e->type_index]--; }
-                }
-            }
-            /* Tint target selection */
-            float target_r=255.0f, target_g=255.0f, target_b=255.0f;
-            int close_combat = (p_dist2 < 0.36f);
-            if(e->ai_state==ROGUE_ENEMY_AI_AGGRO && !close_combat){
-                /* Strong pulsing yellow: vary green channel for visibility */
-                float pulse = 0.5f + 0.5f * (float)sin(e->tint_phase * 0.01f);
-                target_r = 255.0f;
-                target_g = 180.0f + 75.0f * pulse; /* 180..255 */
-                target_b = 0.0f;
-            }
-            if(close_combat){ target_r = 255.0f; target_g = 40.0f; target_b = 40.0f; }
-            if(e->hurt_timer>0){ target_r=255.0f; target_g=255.0f; target_b=255.0f; }
-            if(e->flash_timer>0){ target_r=255.0f; target_g=230.0f; target_b=90.0f; }
-            if(e->ai_state==ROGUE_ENEMY_AI_DEAD){
-                /* Desaturate toward gray while fading */
-                float gcol = 120.0f * e->death_fade;
-                target_r = target_g = target_b = gcol;
-            }
-            /* Smooth blend */
-            float lerp = (float)g_app.dt * 8.0f; if(lerp>1.0f) lerp=1.0f;
-            e->tint_r += (target_r - e->tint_r) * lerp;
-            e->tint_g += (target_g - e->tint_g) * lerp;
-            e->tint_b += (target_b - e->tint_b) * lerp;
-        }
-        /* Separation pass */
-        for(int i=0;i<ROGUE_MAX_ENEMIES;i++) if(g_app.enemies[i].alive){
-            RogueEnemy* a=&g_app.enemies[i];
-            for(int j=i+1;j<ROGUE_MAX_ENEMIES;j++) if(g_app.enemies[j].alive){
-                RogueEnemy* b=&g_app.enemies[j];
-                float dx=b->base.pos.x - a->base.pos.x; float dy=b->base.pos.y - a->base.pos.y; float d2=dx*dx+dy*dy; float minr=0.30f; float min2=minr*minr;
-                if(d2>0.00001f && d2<min2){ float d=(float)sqrt(d2); float push=(minr - d)*0.5f; dx/=d; dy/=d; a->base.pos.x-=dx*push; a->base.pos.y-=dy*push; b->base.pos.x+=dx*push; b->base.pos.y+=dy*push; }
-            }
-        }
+    /* Enemy spawning & AI updates */
+    rogue_enemy_system_update(dt_ms);
 
         /* Advance animation (coalesce tiny dt <1ms to reduce float churn) */
         float frame_dt_ms = (float)g_app.dt * 1000.0f;
