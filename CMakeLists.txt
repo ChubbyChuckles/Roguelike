@@ -57,8 +57,10 @@ add_library(rogue_core
     src/core/world_renderer.c
     src/core/animation_system.c
     src/core/persistence.c
+    src/core/persistence_autosave.c
     src/core/asset_config.c
     src/core/platform.c
+    src/core/tile_sprite_cache.c
     src/platform/platform_sdl.c
     src/graphics/renderer.c
     src/graphics/sprite.c

@@ -48,10 +48,5 @@ void rogue_player_progress_update(double dt_seconds){
             g_app.player.mana += 1 + g_app.player.intelligence/12; if(g_app.player.mana>g_app.player.max_mana) g_app.player.mana=g_app.player.max_mana;
         }
     } else { g_app.mana_regen_accum_ms = 0.0f; }
-    /* Autosave every ~5s when dirty */
-    static double stats_save_timer = 0.0; stats_save_timer += dt_seconds;
-    if(g_app.stats_dirty && stats_save_timer > 5.0){
-        rogue_persistence_save_player_stats();
-        stats_save_timer = 0.0;
-    }
+    /* Autosave moved to persistence_autosave module */
 }

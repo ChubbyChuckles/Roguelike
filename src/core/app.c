@@ -45,6 +45,7 @@ SOFTWARE.
 #include "core/enemy_render.h"
 #include "core/hud.h"
 #include "core/player_progress.h"
+#include "core/persistence_autosave.h"
 #include "game/damage_numbers.h" /* will provide render/update */
 #include "core/world_renderer.h"
 #include "core/animation_system.h"
@@ -52,6 +53,7 @@ SOFTWARE.
 #include "core/asset_config.h"
 #include "core/metrics.h"
 #include "core/platform.h"
+#include "core/tile_sprite_cache.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -246,44 +248,7 @@ void rogue_app_step(void)
     g_app.frame_draw_calls = 0; g_app.frame_tile_quads = 0; /* reset metrics each frame */
     /* TODO(modularization): Consider extracting tile sprite LUT build into a tile_sprite_cache module. */
     /* Lazy one-time load of assets (avoid repeated loads). Adjust paths to actual asset locations. */
-        if(!g_app.tileset_loaded)
-        {
-            rogue_tile_sprites_init(g_app.tile_size);
-            /* Attempt to load external config; fallback to defaults if not present */
-            if(!rogue_tile_sprites_load_config("assets/tiles.cfg")){
-                rogue_tile_sprite_define(ROGUE_TILE_GRASS, "assets/tiles.png", 0, 0);
-                rogue_tile_sprite_define(ROGUE_TILE_WATER, "assets/tiles.png", 1, 0);
-                rogue_tile_sprite_define(ROGUE_TILE_FOREST, "assets/tiles.png", 2, 0);
-                rogue_tile_sprite_define(ROGUE_TILE_MOUNTAIN, "assets/tiles.png", 3, 0);
-                rogue_tile_sprite_define(ROGUE_TILE_CAVE_WALL, "assets/tiles.png", 4, 0);
-                rogue_tile_sprite_define(ROGUE_TILE_CAVE_FLOOR, "assets/tiles.png", 5, 0);
-                rogue_tile_sprite_define(ROGUE_TILE_RIVER, "assets/tiles.png", 6, 0);
-            }
-            /* Only mark tileset loaded if finalize succeeded (at least one variant loaded). */
-            g_app.tileset_loaded = rogue_tile_sprites_finalize();
-            if(g_app.tileset_loaded){
-                size_t total = (size_t)g_app.world_map.width * (size_t)g_app.world_map.height;
-                g_app.tile_sprite_lut = (const RogueSprite**)malloc(total * sizeof(const RogueSprite*));
-            if(g_app.tileset_loaded){
-                    for(int y=0; y<g_app.world_map.height; y++){
-                        for(int x=0; x<g_app.world_map.width; x++){
-                            unsigned char t = g_app.world_map.tiles[y*g_app.world_map.width + x];
-                            const RogueSprite* spr = NULL;
-                            if(t < ROGUE_TILE_MAX){
-                                spr = rogue_tile_sprite_get_xy((RogueTileType)t, x, y);
-                            }
-                            g_app.tile_sprite_lut[y*g_app.world_map.width + x] = spr;
-                        }
-                    }
-                    g_app.tile_sprite_lut_ready = 1;
-                    ROGUE_LOG_INFO("Precomputed tile sprite LUT built (%dx%d)", g_app.world_map.width, g_app.world_map.height);
-                } else {
-                    ROGUE_LOG_WARN("Failed to allocate tile sprite LUT (%zu entries)", total);
-                }
-            } else {
-                ROGUE_LOG_WARN("Tile sprites finalize failed; falling back to debug colored tiles.");
-            }
-        }
+    rogue_tile_sprite_cache_ensure();
     if(!g_app.player_loaded) { rogue_player_assets_ensure_loaded(); }
 
     /* Update player position / camera */
@@ -298,8 +263,10 @@ void rogue_app_step(void)
     float hitstop_scale = (g_app.hitstop_timer_ms > 0)? 0.25f : 1.0f; /* quarter speed during hitstop */
     float dt_ms = raw_dt_ms * hitstop_scale;
     rogue_player_assets_update_animation(raw_dt_ms, dt_ms, raw_dt_ms, attack_pressed);
-    /* Progression (leveling, regen, autosave) */
+    /* Progression (leveling, regen) */
     rogue_player_progress_update(g_app.dt);
+    /* Decoupled persistence autosave tick */
+    rogue_persistence_autosave_update(g_app.dt);
         /* Wrap inside map bounds */
         if(g_app.player.base.pos.x < 0) g_app.player.base.pos.x = 0;
         if(g_app.player.base.pos.y < 0) g_app.player.base.pos.y = 0;
@@ -358,8 +325,9 @@ void rogue_app_shutdown(void)
     Mix_CloseAudio();
 #endif
     rogue_platform_shutdown();
-    if(g_app.tile_sprite_lut){ free((void*)g_app.tile_sprite_lut); g_app.tile_sprite_lut=NULL; }
     if(g_app.chunk_dirty){ free(g_app.chunk_dirty); g_app.chunk_dirty=NULL; }
+    /* Free tile sprite cache */
+    rogue_tile_sprite_cache_free();
     /* Persist (gen params if dirty + player stats) */
     rogue_persistence_save_on_shutdown();
 }
