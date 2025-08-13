@@ -147,7 +147,7 @@ typedef struct RogueAppState
 #endif
     float attack_anim_time_ms; /* accumulates across windup+strike+recover to map all frames */
     /* Floating damage numbers */
-    struct { float x,y; float vx,vy; float life_ms; float total_ms; int amount; int from_player; int crit; } dmg_numbers[128];
+    struct { float x,y; float vx,vy; float life_ms; float total_ms; int amount; int from_player; int crit; float scale; } dmg_numbers[128];
     int dmg_number_count;
     double spawn_accum_ms; /* throttled spawn timer */
 } RogueAppState;
@@ -171,8 +171,8 @@ void rogue_add_damage_number_ex(float x, float y, int amount, int from_player, i
         g_app.dmg_numbers[i].x = x; g_app.dmg_numbers[i].y = y;
         g_app.dmg_numbers[i].vx = 0.0f; g_app.dmg_numbers[i].vy = -0.38f;
         g_app.dmg_numbers[i].life_ms = 950.0f; g_app.dmg_numbers[i].total_ms = 950.0f;
-        g_app.dmg_numbers[i].amount = amount; g_app.dmg_numbers[i].from_player = from_player;
-        g_app.dmg_numbers[i].crit = crit?1:0;
+    g_app.dmg_numbers[i].amount = amount; g_app.dmg_numbers[i].from_player = from_player;
+    g_app.dmg_numbers[i].crit = crit?1:0; g_app.dmg_numbers[i].scale = crit? 1.4f : 1.0f;
     }
 }
 void rogue_add_damage_number(float x, float y, int amount, int from_player){
@@ -190,6 +190,21 @@ static int tile_is_blocking(unsigned char t){
         case ROGUE_TILE_CAVE_WALL:
             return 1;
         default: return 0;
+    }
+}
+
+int rogue_app_player_health(void){ return g_app.player.health; }
+
+void rogue_test_spawn_hostile_enemy(float x, float y){
+    if(g_app.enemy_type_count<=0) return;
+    for(int i=0;i<ROGUE_MAX_ENEMIES;i++) if(!g_app.enemies[i].alive){
+        RogueEnemy* ne = &g_app.enemies[i];
+        ne->base.pos.x = x; ne->base.pos.y = y; ne->anchor_x = x; ne->anchor_y = y;
+        ne->patrol_target_x = x; ne->patrol_target_y = y;
+        ne->max_health = 10; ne->health = 10; ne->alive=1; ne->hurt_timer=0; ne->anim_time=0; ne->anim_frame=0;
+        ne->ai_state = ROGUE_ENEMY_AI_AGGRO; ne->facing=2; ne->type_index=0; ne->tint_r=255; ne->tint_g=255; ne->tint_b=255; ne->death_fade=1.0f; ne->tint_phase=0; ne->flash_timer=0; ne->attack_cooldown_ms=0;
+        g_app.enemy_count++; g_app.per_type_counts[0]++;
+        break;
     }
 }
 
@@ -1367,7 +1382,9 @@ void rogue_app_step(void)
             } else {
                 col = (RogueColor){255,60,60,(unsigned char)alpha};
             }
-            rogue_font_draw_text(screen_x, screen_y, buf, 1, col);
+            int txt_scale = g_app.dmg_numbers[i].scale > 0 ? (int)(g_app.dmg_numbers[i].scale * 1.0f) : 1;
+            if(txt_scale<1) txt_scale=1; if(txt_scale>4) txt_scale=4;
+            rogue_font_draw_text(screen_x, screen_y, buf, txt_scale, col);
         }
     }
 #endif

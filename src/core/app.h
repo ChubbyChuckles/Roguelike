@@ -64,6 +64,10 @@ void rogue_app_shutdown(void);
 int rogue_app_enemy_count(void);
 /* Skip title screen immediately (for tests) */
 void rogue_app_skip_start_screen(void);
+/* Access current player health (tests) */
+int rogue_app_player_health(void);
+/* Test helper: spawn a hostile enemy at position (world tile coords) */
+void rogue_test_spawn_hostile_enemy(float x, float y);
 /* Spawn a floating damage number (world tile coordinates) */
 void rogue_add_damage_number(float x, float y, int amount, int from_player);
 /* Extended with crit flag */

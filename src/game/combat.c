@@ -45,9 +45,9 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
     float reach = base_reach + (player->strength * 0.012f);
     float dirx=0, diry=0; int facing = player->facing;
     switch(facing){ case 0: diry=1; break; case 1: dirx=-1; break; case 2: dirx=1; break; case 3: diry=-1; break; }
-    /* Center for arc slightly forward */
-    float cx = px + dirx * reach * 0.55f;
-    float cy = py + diry * reach * 0.55f;
+    /* Center for arc slightly forward (unbiased horizontally/vertically) */
+    float cx = px + dirx * reach * 0.45f;
+    float cy = py + diry * reach * 0.45f;
     float reach2 = reach*reach;
     for(int i=0;i<enemy_count;i++){
         if(!enemies[i].alive) continue;
@@ -56,15 +56,15 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
         /* Directional filter: allow a bit of behind tolerance (10%) to feel responsive */
         float dot = dx*dirx + dy*diry; if(dot < -0.15f) continue;
         /* Slight lateral clamp: reject if perpendicular component too large (narrow forward cone) */
-        float perp = dx* (-diry) + dy* dirx; /* 2D perpendicular magnitude (signed) */
-        float lateral_limit = reach * 0.9f; if(perp > lateral_limit || perp < -lateral_limit) continue;
+    float perp = dx* (-diry) + dy* dirx; /* signed perpendicular */
+    float lateral_limit = reach * 0.95f; if(fabsf(perp) > lateral_limit) continue;
         /* Simple damage */
     int base = 1 + player->strength/5;
-    /* Simple crit: 10% + DEX*0.2% chance, 1.7x damage */
-    float crit_chance = 0.10f + player->dexterity * 0.002f;
-    if(crit_chance>0.50f) crit_chance=0.50f;
+    /* Crit: base 5% + DEX*0.35%, cap 60%, multiplier 1.9x */
+    float crit_chance = 0.05f + player->dexterity * 0.0035f;
+    if(crit_chance>0.60f) crit_chance=0.60f;
     int crit = (((float)rand()/(float)RAND_MAX) < crit_chance) ? 1 : 0;
-    int dmg = crit ? (int)(base * 1.7f) : base;
+    int dmg = crit ? (int)(base * 1.9f) : base;
     enemies[i].health -= dmg; enemies[i].hurt_timer = 150.0f; enemies[i].flash_timer = 70.0f; 
     rogue_add_damage_number_ex(ex, ey - 0.4f, dmg, 1, crit);
         if(enemies[i].health<=0){ enemies[i].alive=0; kills++; }
