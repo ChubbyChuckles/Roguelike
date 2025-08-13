@@ -34,7 +34,10 @@ void rogue_vegetation_clear_instances(void){ g_instance_count=0; }
 void rogue_vegetation_shutdown(void){ g_def_count=0; g_instance_count=0; }
 
 static int parse_line(char* line, int is_tree){
-    /* Expected formats:
+    /* Expected formats (extended):
+       PLANT,id,path,tx1,ty1,tx2,ty2,rarity
+       TREE,id,path,tx1,ty1,tx2,ty2,rarity,canopy_radius
+       Backwards compatibility:
        PLANT,id,path,tx,ty,rarity
        TREE,id,path,tx,ty,rarity,canopy_radius
     */
@@ -45,11 +48,35 @@ static int parse_line(char* line, int is_tree){
     d->is_tree = (unsigned char)is_tree;
     tok = strtok_s(NULL, ",\r\n", &context); if(!tok) return 0; strncpy_s(d->id, sizeof d->id, tok, _TRUNCATE);
     tok = strtok_s(NULL, ",\r\n", &context); if(!tok) return 0; strncpy_s(d->image, sizeof d->image, tok, _TRUNCATE);
+    /* tx1 */
     tok = strtok_s(NULL, ",\r\n", &context); if(!tok) return 0; d->tile_x = (unsigned short)atoi(tok);
+    /* ty1 */
     tok = strtok_s(NULL, ",\r\n", &context); if(!tok) return 0; d->tile_y = (unsigned short)atoi(tok);
-    tok = strtok_s(NULL, ",\r\n", &context); if(!tok) return 0; d->rarity = (unsigned short)atoi(tok); if(d->rarity==0) d->rarity=1;
-    if(is_tree){ tok = strtok_s(NULL, ",\r\n", &context); if(!tok) return 0; d->canopy_radius = (unsigned char)atoi(tok); if(d->canopy_radius==0) d->canopy_radius=1; }
+    /* Attempt to parse extended rectangle form: next tokens may be tx2, ty2 */
+    char* save_ptr = context; char* look = strtok_s(NULL, ",\r\n", &context); if(!look) return 0; int have_rect = 0; int v1 = atoi(look);
+    char* look2_ctx = context; char* look2 = strtok_s(NULL, ",\r\n", &look2_ctx); if(look2){ /* Could be ty2 */
+        int v2 = atoi(look2);
+        /* Peek further to decide if these are rx,ry (must still have rarity afterwards) */
+        char* look3_ctx = look2_ctx; char* look3 = strtok_s(NULL, ",\r\n", &look3_ctx);
+        if(look3){ /* Treat look & look2 as tx2,ty2 and look3 as rarity */
+            d->tile_x2 = (unsigned short)v1;
+            d->tile_y2 = (unsigned short)v2;
+            d->rarity = (unsigned short)atoi(look3);
+            context = look3_ctx;
+            have_rect = 1;
+        }
+    }
+    if(!have_rect){
+        /* Backwards compatibility: the token we read is rarity */
+        d->tile_x2 = d->tile_x;
+        d->tile_y2 = d->tile_y;
+        d->rarity = (unsigned short)v1; /* look held rarity */
+        context = save_ptr; /* ensure context points after rarity already consumed */
+    }
+    if(d->rarity==0) d->rarity=1;
+    if(is_tree){ char* cr = strtok_s(NULL, ",\r\n", &context); if(!cr) return 0; d->canopy_radius = (unsigned char)atoi(cr); if(d->canopy_radius==0) d->canopy_radius=1; }
     else d->canopy_radius = 0;
+    if(!have_rect){ d->tile_x2 = d->tile_x; d->tile_y2 = d->tile_y; }
     g_def_count++;
     return 1;
 }
@@ -123,10 +150,16 @@ float rogue_vegetation_get_tree_cover(void){ return g_target_tree_cover; }
 void rogue_vegetation_render(void){
 #ifdef ROGUE_HAVE_SDL
     if(!g_app.renderer) return;
-    /* Placeholder: simple colored rects until sprite system extended for vegetation assets */
+    /* Placeholder: visualize approximate footprint using rectangle height derived from sprite tile span */
     for(int i=0;i<g_instance_count;i++){
-        RogueVegetationInstance* v=&g_instances[i]; int px=(int)((v->x - g_app.cam_x)*g_app.tile_size); int py=(int)((v->y - g_app.cam_y)*g_app.tile_size);
-        SDL_Rect r={px-4,py-12,8,12};
+        RogueVegetationInstance* v=&g_instances[i]; RogueVegetationDef* d=&g_defs[v->def_index];
+        int width_tiles = (int)(d->tile_x2 - d->tile_x + 1);
+        int height_tiles = (int)(d->tile_y2 - d->tile_y + 1);
+        int px=(int)((v->x - g_app.cam_x)*g_app.tile_size);
+        int py=(int)((v->y - g_app.cam_y)*g_app.tile_size);
+        int w = width_tiles * g_app.tile_size;
+        int h = height_tiles * g_app.tile_size;
+        SDL_Rect r={px - w/2, py - h, w, h};
         if(v->is_tree) SDL_SetRenderDrawColor(g_app.renderer,60,120,40,255); else SDL_SetRenderDrawColor(g_app.renderer,40,160,60,220);
         SDL_RenderFillRect(g_app.renderer,&r);
     }

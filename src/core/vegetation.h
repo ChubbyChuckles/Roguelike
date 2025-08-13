@@ -19,10 +19,11 @@ typedef struct RogueVegetationInstance {
 typedef struct RogueVegetationDef {
     char id[32];
     char image[128];
-    unsigned short tile_x, tile_y; /* sprite sheet coords */
-    unsigned short rarity; /* relative weight */
-    unsigned char canopy_radius; /* tree footprint radius (tiles) */
-    unsigned char is_tree; /* 1 if tree, 0 plant */
+    unsigned short tile_x, tile_y;   /* top-left sprite (column, row) */
+    unsigned short tile_x2, tile_y2; /* bottom-right sprite (inclusive) */
+    unsigned short rarity;          /* relative weight */
+    unsigned char canopy_radius;    /* tree footprint radius (tiles) */
+    unsigned char is_tree;          /* 1 if tree, 0 plant */
 } RogueVegetationDef;
 
 /* Global vegetation registry + instances (owned by module) */
@@ -30,7 +31,14 @@ void rogue_vegetation_init(void);
 void rogue_vegetation_clear_instances(void);
 void rogue_vegetation_shutdown(void);
 
-/* Load definitions from plants.cfg / trees.cfg */
+/* Load definitions from plants.cfg / trees.cfg
+     Extended formats allow multi-sprite rectangles:
+         PLANT,id,image,tx1,ty1,tx2,ty2,rarity
+         TREE,id,image,tx1,ty1,tx2,ty2,rarity,canopy_radius
+     Legacy single-sprite still supported:
+         PLANT,id,image,tx,ty,rarity
+         TREE,id,image,tx,ty,rarity,canopy_radius
+*/
 int rogue_vegetation_load_defs(const char* plants_cfg, const char* trees_cfg);
 
 /* Generate static vegetation placement over existing world map grass tiles. */
