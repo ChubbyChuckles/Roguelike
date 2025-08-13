@@ -28,10 +28,15 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
 int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, RogueEnemy enemies[], int enemy_count){
     if(pc->phase != ROGUE_ATTACK_STRIKE) return 0;
     int kills=0;
-    /* Use player frame size (world units approx by tile size assumption). Attack radius scales with sprite width */
+    /* Attack frame gating/ reach curve */
+    static const float reach_curve[8] = {0.6f,0.9f,1.2f,1.3f,1.3f,1.15f,0.9f,0.7f};
+    static const unsigned char hit_mask[8] = {0,0,1,1,1,1,0,0};
+    extern int rogue_get_current_attack_frame(void); /* provided by app */
+    int afr = rogue_get_current_attack_frame(); if(afr<0 || afr>7) afr=0;
+    if(!hit_mask[afr]) return 0; /* only damage on active frames */
     extern RoguePlayer g_exposed_player_for_stats; /* for consistency if needed */
     float px = player->base.pos.x; float py = player->base.pos.y;
-    float base_reach = 1.6f; /* increased base reach so targets in front register */
+    float base_reach = 1.6f * reach_curve[afr];
     float reach = base_reach + (player->strength * 0.012f);
     float dirx=0, diry=0; int facing = player->facing;
     switch(facing){ case 0: diry=1; break; case 1: dirx=-1; break; case 2: dirx=1; break; case 3: diry=-1; break; }
@@ -50,7 +55,7 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
         float lateral_limit = reach * 0.9f; if(perp > lateral_limit || perp < -lateral_limit) continue;
         /* Simple damage */
         int dmg = 1 + player->strength/5;
-        enemies[i].health -= dmg; enemies[i].hurt_timer = 150.0f; if(enemies[i].health<=0){ enemies[i].alive=0; kills++; }
+    enemies[i].health -= dmg; enemies[i].hurt_timer = 150.0f; enemies[i].flash_timer = 70.0f; if(enemies[i].health<=0){ enemies[i].alive=0; kills++; }
     }
     return kills;
 }

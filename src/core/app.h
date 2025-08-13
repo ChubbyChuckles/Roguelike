@@ -60,6 +60,11 @@ void rogue_app_step(void);
 int rogue_app_frame_count(void);
 void rogue_app_shutdown(void);
 
+/* Current live enemy count (for tests/telemetry) */
+int rogue_app_enemy_count(void);
+/* Skip title screen immediately (for tests) */
+void rogue_app_skip_start_screen(void);
+
 /* Dynamic controls */
 void rogue_app_toggle_fullscreen(void);
 void rogue_app_set_vsync(int enabled);

@@ -54,6 +54,7 @@ typedef struct RogueAppState
     SDL_Window* window;
     SDL_Renderer* renderer;
 #endif
+    int headless; /* 1 if renderer creation failed; update logic runs, rendering skipped */
     int show_start_screen;
     RogueTileMap world_map;
     RogueInputState input;
@@ -150,6 +151,14 @@ typedef struct RogueAppState
 static RogueAppState g_app;
 /* Expose player for combat stamina scaling (lightweight linkage) */
 RoguePlayer g_exposed_player_for_stats;
+
+int rogue_get_current_attack_frame(void){
+    /* Return current player anim frame if attack state active, else 0 */
+    if(g_app.player_combat.phase==ROGUE_ATTACK_WINDUP || g_app.player_combat.phase==ROGUE_ATTACK_STRIKE || g_app.player_combat.phase==ROGUE_ATTACK_RECOVER){
+        return g_app.player.anim_frame;
+    }
+    return 0;
+}
 
 /* Local timing helper (separate from game_loop's static) */
 static double now_seconds(void) { return (double) clock() / (double) CLOCKS_PER_SEC; }
@@ -267,8 +276,8 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.renderer = SDL_CreateRenderer(g_app.window, -1, rflags);
     if (!g_app.renderer)
     {
-        ROGUE_LOG_ERROR("SDL_CreateRenderer failed: %s", SDL_GetError());
-        return false;
+        ROGUE_LOG_WARN("SDL_CreateRenderer failed (%s). Entering headless test mode (no rendering).", SDL_GetError());
+        g_app.headless = 1;
     }
     /* Temporary exposure of SDL_Renderer for renderer abstraction */
     extern SDL_Renderer* g_internal_sdl_renderer_ref;
@@ -402,12 +411,20 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     /* Values already loaded (or defaults applied) above */
     /* Init combat */
     rogue_combat_init(&g_app.player_combat);
-    g_app.enemy_count = 0; g_app.total_kills = 0; g_app.enemy_type_count = ROGUE_MAX_ENEMY_TYPES;
-    if(!rogue_enemy_load_config("assets/enemies.cfg", g_app.enemy_types, &g_app.enemy_type_count)){
-        g_app.enemy_type_count = 0;
-        ROGUE_LOG_WARN("No enemy types loaded; verify assets/enemies.cfg paths.");
+    g_app.enemy_count = 0; g_app.total_kills = 0;
+    g_app.enemy_type_count = ROGUE_MAX_ENEMY_TYPES; /* capacity passed to loader */
+    if(!rogue_enemy_load_config("assets/enemies.cfg", g_app.enemy_types, &g_app.enemy_type_count) || g_app.enemy_type_count<=0){
+    ROGUE_LOG_WARN("No enemy types loaded; injecting fallback dummy type.");
+    g_app.enemy_type_count = 1;
+    RogueEnemyTypeDef* t = &g_app.enemy_types[0]; memset(t,0,sizeof *t);
+#if defined(_MSC_VER)
+    strncpy_s(t->name,sizeof t->name,"dummy",_TRUNCATE);
+#else
+    strncpy(t->name,"dummy",sizeof t->name -1); t->name[sizeof t->name -1]='\0';
+#endif
+    t->group_min=1; t->group_max=2; t->patrol_radius=5; t->aggro_radius=6; t->speed=30.0f; t->pop_target=15; t->xp_reward=2; t->loot_chance=0.05f;
     } else {
-        ROGUE_LOG_INFO("Loaded %d enemy types", g_app.enemy_type_count);
+    ROGUE_LOG_INFO("Loaded %d enemy types", g_app.enemy_type_count);
     }
     for(int i=0;i<ROGUE_MAX_ENEMIES;i++){ g_app.enemies[i].alive=0; }
     /* Log current working directory for asset path debugging */
@@ -917,7 +934,7 @@ void rogue_app_step(void)
                             float rx = (float)((rand()% (t->patrol_radius*2+1)) - t->patrol_radius);
                             float ry = (float)((rand()% (t->patrol_radius*2+1)) - t->patrol_radius);
                             float ex = gx + rx; float ey = gy + ry; if(ex<1||ey<1||ex>g_app.world_map.width-2||ey>g_app.world_map.height-2) continue;
-                            RogueEnemy* ne=&g_app.enemies[slot]; ne->base.pos.x=ex; ne->base.pos.y=ey; ne->anchor_x=(float)gx; ne->anchor_y=(float)gy; ne->patrol_target_x=ex; ne->patrol_target_y=ey; ne->health=(int)(3 * g_app.difficulty_scalar); if(ne->health<1) ne->health=1; ne->alive=1; ne->hurt_timer=0; ne->anim_time=0; ne->anim_frame=0; ne->ai_state=ROGUE_ENEMY_AI_PATROL; ne->facing=2; ne->type_index=ti; ne->tint_r=255.0f; ne->tint_g=255.0f; ne->tint_b=255.0f; ne->death_fade=1.0f; ne->tint_phase=0.0f; g_app.enemy_count++; g_app.per_type_counts[ti]++; needed--; break; }
+                            RogueEnemy* ne=&g_app.enemies[slot]; ne->base.pos.x=ex; ne->base.pos.y=ey; ne->anchor_x=(float)gx; ne->anchor_y=(float)gy; ne->patrol_target_x=ex; ne->patrol_target_y=ey; ne->max_health=(int)(3 * g_app.difficulty_scalar); if(ne->max_health<1) ne->max_health=1; ne->health=ne->max_health; ne->alive=1; ne->hurt_timer=0; ne->anim_time=0; ne->anim_frame=0; ne->ai_state=ROGUE_ENEMY_AI_PATROL; ne->facing=2; ne->type_index=ti; ne->tint_r=255.0f; ne->tint_g=255.0f; ne->tint_b=255.0f; ne->death_fade=1.0f; ne->tint_phase=0.0f; ne->flash_timer=0.0f; g_app.enemy_count++; g_app.per_type_counts[ti]++; needed--; break; }
                         }
                     }
                 }
@@ -956,6 +973,7 @@ void rogue_app_step(void)
             e->base.pos.x += move_dx * move_speed; e->base.pos.y += move_dy * move_speed;
             e->facing = (move_dx < 0)? 1 : 2;
             if(e->hurt_timer>0) e->hurt_timer -= dt_ms;
+            if(e->flash_timer>0) e->flash_timer -= dt_ms;
             if(p_dist2 < 0.36f && g_app.player.health>0){
                 int dmg = (int)(1 + g_app.difficulty_scalar * 0.6); if(dmg<1) dmg=1;
                 g_app.player.health -= dmg; if(g_app.player.health<0) g_app.player.health=0; e->hurt_timer=200.0f; g_app.time_since_player_hit_ms = 0.0f; }
@@ -989,6 +1007,7 @@ void rogue_app_step(void)
             }
             if(close_combat){ target_r = 255.0f; target_g = 40.0f; target_b = 40.0f; }
             if(e->hurt_timer>0){ target_r=255.0f; target_g=255.0f; target_b=255.0f; }
+            if(e->flash_timer>0){ target_r=255.0f; target_g=230.0f; target_b=90.0f; }
             if(e->ai_state==ROGUE_ENEMY_AI_DEAD){
                 /* Desaturate toward gray while fading */
                 float gcol = 120.0f * e->death_fade;
@@ -1231,7 +1250,7 @@ void rogue_app_step(void)
                 SDL_SetRenderDrawColor(g_app.renderer,r,g,b,a); SDL_Rect er={ex-4,ey-4,8,8}; SDL_RenderFillRect(g_app.renderer,&er);
             }
             /* Small health bar */
-            int maxhp = (int)(3 * g_app.difficulty_scalar); if(maxhp < 1) maxhp = 1; /* approximate original spawn formula */
+            int maxhp = e->max_health>0? e->max_health : 1;
             float ratio = (e->health>0)? (float)e->health / (float)maxhp : 0.0f; if(ratio<0) ratio=0; if(ratio>1) ratio=1;
             int barw = 20; int barh = 3; int bx = ex - barw/2; int by = ey - (spr? spr->sh/2 : 6) - 6;
             SDL_SetRenderDrawColor(g_app.renderer,25,8,8,200); SDL_Rect bg={bx-1,by-1,barw+2,barh+2}; SDL_RenderFillRect(g_app.renderer,&bg);
@@ -1318,7 +1337,7 @@ void rogue_app_step(void)
     } else { g_app.mana_regen_accum_ms = 0.0f; }
     if(g_app.show_stats_panel){
 #ifdef ROGUE_HAVE_SDL
-        if(g_app.renderer){
+        if(g_app.renderer && !g_app.headless){
             SDL_Rect panel = { 160, 70, 200, 140 };
             SDL_SetRenderDrawColor(g_app.renderer, 12,12,28,235);
             SDL_RenderFillRect(g_app.renderer, &panel);
@@ -1373,7 +1392,7 @@ void rogue_app_step(void)
     }
     stats_save_timer = 0.0;
     }
-    SDL_RenderPresent(g_app.renderer);
+    if(!g_app.headless){ SDL_RenderPresent(g_app.renderer); }
     /* Refresh exported player after all stat changes this frame */
     g_exposed_player_for_stats = g_app.player;
 #endif
@@ -1464,6 +1483,8 @@ void rogue_app_shutdown(void)
 }
 
 int rogue_app_frame_count(void) { return g_app.frame_count; }
+int rogue_app_enemy_count(void) { return g_app.enemy_count; }
+void rogue_app_skip_start_screen(void){ g_app.show_start_screen = 0; }
 
 void rogue_app_toggle_fullscreen(void)
 {

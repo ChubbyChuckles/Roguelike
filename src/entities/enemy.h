@@ -27,6 +27,7 @@ typedef struct RogueEnemy {
     RogueEntity base;
     int type_index;      /* index into type def array */
     int health;
+    int max_health;      /* persistent max for ratio */
     int alive;           /* 1 alive, 0 removed */
     float hurt_timer;    /* ms */
     float anim_time;     /* ms */
@@ -40,6 +41,7 @@ typedef struct RogueEnemy {
     /* Death fade alpha (1 -> 0) */
     float death_fade;
     float tint_phase;   /* ms accumulator for pulsing */
+    float flash_timer;  /* brief hit flash (ms) */
 } RogueEnemy;
 
 #define ROGUE_MAX_ENEMIES 256

@@ -21,5 +21,6 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
 
 /* Exposed global (defined in app.c) for stamina regen stat scaling */
 extern RoguePlayer g_exposed_player_for_stats;
+int rogue_get_current_attack_frame(void);
 
 #endif
