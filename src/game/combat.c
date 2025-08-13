@@ -28,18 +28,27 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
 int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, RogueEnemy enemies[], int enemy_count){
     if(pc->phase != ROGUE_ATTACK_STRIKE) return 0;
     int kills=0;
+    /* Use player frame size (world units approx by tile size assumption). Attack radius scales with sprite width */
+    extern RoguePlayer g_exposed_player_for_stats; /* for consistency if needed */
     float px = player->base.pos.x; float py = player->base.pos.y;
-    float reach = 1.2f; /* tiles */
-    float dirx=0, diry=0;
-    switch(player->facing){ case 0: diry=1; break; case 1: dirx=-1; break; case 2: dirx=1; break; case 3: diry=-1; break; }
-    float sx = px + dirx*reach*0.5f; float sy = py + diry*reach*0.5f;
+    float base_reach = 1.2f;
+    /* Slightly extend reach if running or higher strength */
+    float reach = base_reach + (player->strength * 0.01f);
+    float dirx=0, diry=0; int facing = player->facing;
+    switch(facing){ case 0: diry=1; break; case 1: dirx=-1; break; case 2: dirx=1; break; case 3: diry=-1; break; }
+    /* Half-circle center just in front of player */
+    float cx = px + dirx * reach * 0.4f;
+    float cy = py + diry * reach * 0.4f;
+    float reach2 = reach*reach;
     for(int i=0;i<enemy_count;i++){
         if(!enemies[i].alive) continue;
-        float dx = enemies[i].base.pos.x - sx; float dy = enemies[i].base.pos.y - sy;
-        float dist2 = dx*dx + dy*dy;
-        if(dist2 < (reach*reach*0.5f)){
-            int dmg = 1 + player->strength/5; /* scale damage modestly */
-            enemies[i].health -= dmg; enemies[i].hurt_timer = 150.0f; if(enemies[i].health<=0){ enemies[i].alive=0; kills++; } }
+        float ex = enemies[i].base.pos.x; float ey = enemies[i].base.pos.y;
+        float dx = ex - cx; float dy = ey - cy; float dist2 = dx*dx + dy*dy; if(dist2 > reach2) continue;
+        /* Directional filter: ensure within 180 degree arc. Dot with facing dir must be >=0 */
+        float dot = dx*dirx + dy*diry; if(dot < 0) continue;
+        /* Simple damage */
+        int dmg = 1 + player->strength/5;
+        enemies[i].health -= dmg; enemies[i].hurt_timer = 150.0f; if(enemies[i].health<=0){ enemies[i].alive=0; kills++; }
     }
     return kills;
 }

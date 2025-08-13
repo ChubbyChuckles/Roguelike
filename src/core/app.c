@@ -64,15 +64,17 @@ typedef struct RogueAppState
     int tile_size; /* terrain tile pixel size (now 16) */
     int player_frame_size; /* character frame size (64) */
     /* Player textures for animations: state (0=idle,1=walk,2=run) x direction (0=down,1=left,2=right,3=up) */
-    RogueTexture player_tex[3][4];
-    RogueSprite  player_frames[3][4][8]; /* up to 8 frames (384 / 64 = 6 actual frames, allocate 8) */
-    int          player_frame_count[3][4];
-    int          player_frame_time_ms[3][4][8]; /* per-frame timing */
+    /* States: 0=idle 1=walk 2=run 3=attack */
+    RogueTexture player_tex[4][4];
+    RogueSprite  player_frames[4][4][8];
+    int          player_frame_count[4][4];
+    int          player_frame_time_ms[4][4][8];
     int player_loaded;
-    int player_sheet_loaded[3][4];
+    int player_sheet_loaded[4][4];
     int player_state; /* 0 idle,1 walk,2 run */
     /* Configurable player sheet paths (state x direction) */
-    char player_sheet_path[3][4][256];
+    /* Configurable player sheet paths (state x direction) now 4 states incl attack */
+    char player_sheet_path[4][4][256];
     int player_sheet_paths_loaded;
     double title_time;
     int menu_index; /* 0=new game,1=quit,2=seed entry */
@@ -139,6 +141,9 @@ typedef struct RogueAppState
     float health_regen_accum_ms;
     float mana_regen_accum_ms;
     float levelup_aura_timer_ms;
+#ifdef ROGUE_HAVE_SDL_MIXER
+    Mix_Chunk* sfx_levelup;
+#endif
 } RogueAppState;
 
 static RogueAppState g_app;
@@ -175,13 +180,40 @@ static void load_player_anim_config(const char* path){
             while(*cursor && *cursor!=',' && *cursor!='\n') cursor++;
             if(*cursor==',') cursor++;
         }
-        int s=-1; if(strcmp(act,"idle")==0) s=0; else if(strcmp(act,"walk")==0) s=1; else if(strcmp(act,"run")==0) s=2; else continue;
+        int s=-1; if(strcmp(act,"idle")==0) s=0; else if(strcmp(act,"walk")==0) s=1; else if(strcmp(act,"run")==0) s=2; else if(strcmp(act,"attack")==0) s=3; else continue;
         int d=-1; if(strcmp(dir,"down")==0) d=0; else if(strcmp(dir,"side")==0) d=1; else if(strcmp(dir,"up")==0) d=3; else continue;
         if(tcount==0) continue;
         /* apply times (will clamp to frame count later) */
         for(int i=0;i<tcount && i<8;i++) g_app.player_frame_time_ms[s][d][i] = times[i];
     }
     fclose(f);
+}
+
+/* Load sound effect paths (simple: LEVELUP,<path>) */
+static void load_sound_config(const char* path){
+#ifdef ROGUE_HAVE_SDL_MIXER
+    FILE* f=NULL; 
+#if defined(_MSC_VER)
+    fopen_s(&f,path,"rb");
+#else
+    f=fopen(path,"rb");
+#endif
+    if(!f) return;
+    char line[512];
+    while(fgets(line,sizeof line,f)){
+        char* p=line; while(*p==' '||*p=='\t') p++;
+        if(*p=='#' || *p=='\n' || *p=='\0') continue;
+        if(strncmp(p,"LEVELUP",7)==0){ p+=7; if(*p==',') p++; while(*p==' '||*p=='\t') p++; char path_tok[400]; int i=0; while(p[i] && p[i]!='\n' && i<399){ path_tok[i]=p[i]; i++; } path_tok[i]='\0';
+            if(g_app.sfx_levelup) { Mix_FreeChunk(g_app.sfx_levelup); g_app.sfx_levelup=NULL; }
+            g_app.sfx_levelup = Mix_LoadWAV(path_tok);
+            if(!g_app.sfx_levelup){ ROGUE_LOG_WARN("Failed to load levelup sound: %s", path_tok); }
+            else { ROGUE_LOG_INFO("Loaded levelup sound: %s", path_tok); }
+        }
+    }
+    fclose(f);
+#else
+    (void)path;
+#endif
 }
 
 static void apply_window_mode(void)
@@ -211,7 +243,11 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.entering_seed = 0;
     g_app.pending_seed = 1337u;
 #ifdef ROGUE_HAVE_SDL
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0)
+    Uint32 sdl_flags = SDL_INIT_VIDEO | SDL_INIT_EVENTS;
+#ifdef ROGUE_HAVE_SDL_MIXER
+    sdl_flags |= SDL_INIT_AUDIO;
+#endif
+    if (SDL_Init(sdl_flags) != 0)
     {
         ROGUE_LOG_ERROR("SDL_Init failed: %s", SDL_GetError());
         return false;
@@ -300,6 +336,14 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.health_regen_accum_ms = 0.0f;
     g_app.mana_regen_accum_ms = 0.0f;
     g_app.levelup_aura_timer_ms = 0.0f;
+#ifdef ROGUE_HAVE_SDL_MIXER
+    g_app.sfx_levelup = NULL;
+    if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 512)!=0){
+        ROGUE_LOG_WARN("Mix_OpenAudio failed: %s", Mix_GetError());
+    } else {
+        load_sound_config("assets/sounds.cfg");
+    }
+#endif
     /* Load persisted player stats */
     {
         FILE* f=NULL; 
@@ -523,7 +567,7 @@ static void redraw_minimap_if_needed(int mm_w, int mm_h, int step){
 }
 
 /* Map tokens to indices */
-static int state_name_to_index(const char* s){ if(strcmp(s,"idle")==0) return 0; if(strcmp(s,"walk")==0) return 1; if(strcmp(s,"run")==0) return 2; return -1; }
+static int state_name_to_index(const char* s){ if(strcmp(s,"idle")==0) return 0; if(strcmp(s,"walk")==0) return 1; if(strcmp(s,"run")==0) return 2; if(strcmp(s,"attack")==0) return 3; return -1; }
 static int dir_name_to_index(const char* d){
     if(strcmp(d,"down")==0) return 0;
     if(strcmp(d,"left")==0) return 1; /* treat left/right separately if provided */
@@ -713,14 +757,14 @@ void rogue_app_step(void)
         }
         if(!g_app.player_loaded)
         {
-            const char* state_names[3]  = {"idle","walk","run"};
+            const char* state_names[4]  = {"idle","walk","run","attack"};
                     g_app.frame_draw_calls++;
                     g_app.frame_tile_quads++;
             const char* dir_names[4]    = {"down","side","right","up"};
             if(!g_app.player_sheet_paths_loaded){
                 load_player_sheet_paths("assets/player_sheets.cfg");
                 /* Fill defaults for any missing entries */
-                for(int s=0;s<3;s++){
+                for(int s=0;s<4;s++){
                     for(int d=0; d<4; d++){
                         if(!g_app.player_sheet_path[s][d][0]){
                             char defp[256];
@@ -738,7 +782,7 @@ void rogue_app_step(void)
                 }
             }
             int any_player_texture_loaded = 0;
-            for(int s=0;s<3;s++)
+            for(int s=0;s<4;s++)
             {
                 for(int d=0; d<4; d++)
                 {
@@ -816,14 +860,28 @@ void rogue_app_step(void)
     /* Attack input (SPACE/RETURN maps to ACTION) */
     int attack_pressed = rogue_input_was_pressed(&g_app.input, ROGUE_KEY_ACTION);
     float dt_ms = (float)g_app.dt * 1000.0f;
+    /* Track prior phase to reset animation when attack begins */
+    static int prev_attack_phase = -1;
     rogue_combat_update_player(&g_app.player_combat, dt_ms, attack_pressed);
+    if(g_app.player_combat.phase != prev_attack_phase){
+        if(g_app.player_combat.phase == ROGUE_ATTACK_WINDUP){
+            /* Start attack animation from first frame */
+            g_app.player.anim_frame = 0;
+            g_app.player.anim_time = 0.0f;
+        } else if(g_app.player_combat.phase == ROGUE_ATTACK_IDLE && prev_attack_phase != -1){
+            /* Reset anim timing after finishing attack */
+            g_app.player.anim_frame = 0;
+            g_app.player.anim_time = 0.0f;
+        }
+        prev_attack_phase = g_app.player_combat.phase;
+    }
     int kills = rogue_combat_player_strike(&g_app.player_combat, &g_app.player, g_app.enemies, g_app.enemy_count);
     if(kills>0){
         g_app.total_kills += kills;
         g_app.player.xp += kills * (3 + g_app.player.level); /* scale xp gain modestly */
     }
     while(g_app.player.xp >= g_app.player.xp_to_next){
-        g_app.player.xp -= g_app.player.xp_to_next; 
+    g_app.player.xp -= g_app.player.xp_to_next; 
         g_app.player.level++; 
         g_app.unspent_stat_points += 3; /* award stat points */
         g_app.player.xp_to_next = (int)(g_app.player.xp_to_next * 1.35f + 15); 
@@ -832,6 +890,9 @@ void rogue_app_step(void)
     g_app.player.health = g_app.player.max_health;
     g_app.player.mana = g_app.player.max_mana;
     g_app.levelup_aura_timer_ms = 2000.0f; /* 2 second aura */
+#ifdef ROGUE_HAVE_SDL_MIXER
+    if(g_app.sfx_levelup){ Mix_PlayChannel(-1, g_app.sfx_levelup, 0); }
+#endif
         g_app.stats_dirty = 1;
     }
     g_app.difficulty_scalar = 1.0 + (double)g_app.player.level * 0.15 + (double)g_app.total_kills * 0.002;
@@ -960,14 +1021,15 @@ void rogue_app_step(void)
         }
     int anim_dir = g_app.player.facing;
     int anim_sheet_dir = (anim_dir==1 || anim_dir==2)? 1 : anim_dir;
-    int frame_count = g_app.player_frame_count[g_app.player_state][anim_sheet_dir];
+    int state_for_anim = (g_app.player_combat.phase==ROGUE_ATTACK_WINDUP || g_app.player_combat.phase==ROGUE_ATTACK_STRIKE || g_app.player_combat.phase==ROGUE_ATTACK_RECOVER)? 3 : g_app.player_state;
+    int frame_count = g_app.player_frame_count[state_for_anim][anim_sheet_dir];
         if(frame_count <=0) frame_count = 1;
-        if(g_app.player_state == 0){
+        if(state_for_anim == 0){
             g_app.player.anim_frame = 0;
             g_app.player.anim_time = 0.0f;
         } else {
             int cur = g_app.player.anim_frame;
-            int cur_dur = g_app.player_frame_time_ms[g_app.player_state][anim_sheet_dir][cur];
+            int cur_dur = g_app.player_frame_time_ms[state_for_anim][anim_sheet_dir][cur];
             if(cur_dur <=0) cur_dur = 120;
             if(g_app.player.anim_time >= (float)cur_dur){
                 g_app.player.anim_time = 0.0f;
@@ -1042,12 +1104,16 @@ void rogue_app_step(void)
             int dir = g_app.player.facing;
             /* Use side sheet for both left/right; flip if facing left */
             int sheet_dir = (dir==1 || dir==2)? 1 : dir; /* 0=down,1=side,3=up */
-            const RogueSprite* spr = &g_app.player_frames[g_app.player_state][sheet_dir][g_app.player.anim_frame];
+            int render_state = g_app.player_state;
+            if(g_app.player_combat.phase==ROGUE_ATTACK_WINDUP || g_app.player_combat.phase==ROGUE_ATTACK_STRIKE || g_app.player_combat.phase==ROGUE_ATTACK_RECOVER){
+                render_state = 3; /* attack state */
+            }
+            const RogueSprite* spr = &g_app.player_frames[render_state][sheet_dir][g_app.player.anim_frame];
             /* Fallback: if chosen frame invalid, scan for first valid frame in current state/direction */
             if(!spr->sw){
                 for(int f=0; f<8; f++){
-                    if(g_app.player_frames[g_app.player_state][sheet_dir][f].sw){
-                        spr = &g_app.player_frames[g_app.player_state][sheet_dir][f];
+                    if(g_app.player_frames[render_state][sheet_dir][f].sw){
+                        spr = &g_app.player_frames[render_state][sheet_dir][f];
                         break;
                     }
                 }
@@ -1099,7 +1165,7 @@ void rogue_app_step(void)
                 rogue_font_draw_text(4, dy + line*10, "Player sheets load status:",1,(RogueColor){255,255,0,255}); line++;
                 const char* states[3] = {"idle","walk","run"};
                 const char* dirs[4] = {"down","left","right","up"};
-                for(int s=0;s<3;s++){
+                for(int s=0;s<4;s++){
                     for(int d=0; d<4; d++){
                         if(!g_app.player_sheet_loaded[s][d]){
                             char buf[96];
@@ -1151,25 +1217,7 @@ void rogue_app_step(void)
             }
             g_app.frame_draw_calls++;
         }
-        /* Render player attack arc (during STRIKE) */
-        if(g_app.player_combat.phase == ROGUE_ATTACK_STRIKE){
-            int px = (int)(g_app.player.base.pos.x*tsz - g_app.cam_x);
-            int py = (int)(g_app.player.base.pos.y*tsz - g_app.cam_y);
-            SDL_SetRenderDrawColor(g_app.renderer,255,255,0,160);
-            int radius = 20;
-            for(int deg=-40; deg<=40; deg+=4){
-                float rad = (float)((double)deg * 3.14159265 / 180.0);
-                float dirx=0,diry=0;
-                switch(g_app.player.facing){ case 0: diry=1; break; case 1: dirx=-1; break; case 2: dirx=1; break; case 3: diry=-1; break; }
-                float ax = dirx; float ay = diry;
-                /* rotate small angle */
-                float rx = (float)(ax*cos((double)rad) - ay*sin((double)rad));
-                float ry = (float)(ax*sin((double)rad) + ay*cos((double)rad));
-                int x = px + (int)(rx * radius);
-                int y = py + (int)(ry * radius);
-                SDL_Rect pt = { x, y, 2,2 }; SDL_RenderFillRect(g_app.renderer,&pt); g_app.frame_draw_calls++;
-            }
-        }
+    /* Removed debug attack arc rendering for pure sprite-based attack animation */
 #endif
 
     /* Mini-map in corner (scaled down, render-target cached) */
@@ -1334,6 +1382,10 @@ void rogue_app_run(void)
 
 void rogue_app_shutdown(void)
 {
+#ifdef ROGUE_HAVE_SDL_MIXER
+    if(g_app.sfx_levelup){ Mix_FreeChunk(g_app.sfx_levelup); g_app.sfx_levelup=NULL; }
+    Mix_CloseAudio();
+#endif
 #ifdef ROGUE_HAVE_SDL
     if(g_app.minimap_tex){ SDL_DestroyTexture(g_app.minimap_tex); g_app.minimap_tex=NULL; }
     if (g_app.renderer)
