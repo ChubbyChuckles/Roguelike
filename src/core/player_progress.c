@@ -22,7 +22,9 @@ void rogue_player_progress_update(double dt_seconds){
     #ifdef ROGUE_HAVE_SDL_MIXER
         if(g_app.sfx_levelup){ Mix_PlayChannel(-1, g_app.sfx_levelup, 0); }
     #endif
-        g_app.stats_dirty = 1;
+    g_app.stats_dirty = 1;
+    /* Immediate save on each level-up to ensure persistence even if player quits before autosave interval */
+    rogue_persistence_save_player_stats();
     }
     g_app.difficulty_scalar = 1.0 + (double)g_app.player.level * 0.15 + (double)g_app.total_kills * 0.002;
     /* Passive regen */

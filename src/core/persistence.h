@@ -13,6 +13,9 @@ void rogue_persistence_load_player_stats(void);
 /* Save player stats unconditionally */
 void rogue_persistence_save_player_stats(void);
 
+/* Optional: override file paths (NULL keeps previous). Useful for tests to avoid clobbering real data. */
+void rogue_persistence_set_paths(const char* player_stats_path, const char* gen_params_path);
+
 /* Convenience: load both gen params + player stats */
 static inline void rogue_persistence_init_and_load(void){
     rogue_persistence_load_generation_params();

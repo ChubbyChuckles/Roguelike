@@ -244,6 +244,7 @@ void rogue_app_step(void)
     else
     {
     g_app.frame_draw_calls = 0; g_app.frame_tile_quads = 0; /* reset metrics each frame */
+    /* TODO(modularization): Consider extracting tile sprite LUT build into a tile_sprite_cache module. */
     /* Lazy one-time load of assets (avoid repeated loads). Adjust paths to actual asset locations. */
         if(!g_app.tileset_loaded)
         {

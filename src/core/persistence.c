@@ -5,14 +5,42 @@
 #include <string.h>
 #include <stdlib.h>
 
+/* Allow tests to redirect persistence output to temp paths */
+static char g_player_stats_path[260] = {0};
+static char g_gen_params_path[260] = {0};
+
+static const char* rogue_player_stats_path(void){
+    if(!g_player_stats_path[0]) return "player_stats.cfg"; return g_player_stats_path;
+}
+static const char* rogue_gen_params_path(void){
+    if(!g_gen_params_path[0]) return "gen_params.cfg"; return g_gen_params_path;
+}
+
+void rogue_persistence_set_paths(const char* player_stats_path, const char* gen_params_path){
+    if(player_stats_path){
+#if defined(_MSC_VER)
+        strncpy_s(g_player_stats_path, sizeof g_player_stats_path, player_stats_path, _TRUNCATE);
+#else
+        strncpy(g_player_stats_path, player_stats_path, sizeof g_player_stats_path -1); g_player_stats_path[sizeof g_player_stats_path -1] = '\0';
+#endif
+    }
+    if(gen_params_path){
+#if defined(_MSC_VER)
+        strncpy_s(g_gen_params_path, sizeof g_gen_params_path, gen_params_path, _TRUNCATE);
+#else
+        strncpy(g_gen_params_path, gen_params_path, sizeof g_gen_params_path -1); g_gen_params_path[sizeof g_gen_params_path -1] = '\0';
+#endif
+    }
+}
+
 void rogue_persistence_load_generation_params(void){
     /* Defaults */
     g_app.gen_water_level = 0.34; g_app.gen_noise_octaves = 6; g_app.gen_noise_gain = 0.48; g_app.gen_noise_lacunarity = 2.05; g_app.gen_river_sources = 10; g_app.gen_river_max_length = 1200; g_app.gen_cave_thresh = 0.60; g_app.gen_params_dirty = 0;
     FILE* f=NULL;
 #if defined(_MSC_VER)
-    fopen_s(&f, "gen_params.cfg", "rb");
+    fopen_s(&f, rogue_gen_params_path(), "rb");
 #else
-    f=fopen("gen_params.cfg","rb");
+    f=fopen(rogue_gen_params_path(),"rb");
 #endif
     if(!f) return;
     char line[256];
@@ -37,9 +65,9 @@ void rogue_persistence_save_generation_params_if_dirty(void){
     if(!g_app.gen_params_dirty) return;
     FILE* f=NULL;
 #if defined(_MSC_VER)
-    fopen_s(&f, "gen_params.cfg", "wb");
+    fopen_s(&f, rogue_gen_params_path(), "wb");
 #else
-    f=fopen("gen_params.cfg","wb");
+    f=fopen(rogue_gen_params_path(),"wb");
 #endif
     if(!f) return;
     fprintf(f,"# Saved world generation parameters\n");
@@ -57,9 +85,9 @@ void rogue_persistence_save_generation_params_if_dirty(void){
 void rogue_persistence_load_player_stats(void){
     FILE* f=NULL;
 #if defined(_MSC_VER)
-    fopen_s(&f, "player_stats.cfg", "rb");
+    fopen_s(&f, rogue_player_stats_path(), "rb");
 #else
-    f=fopen("player_stats.cfg","rb");
+    f=fopen(rogue_player_stats_path(),"rb");
 #endif
     if(!f) return;
     char line[256];
@@ -90,9 +118,9 @@ void rogue_persistence_load_player_stats(void){
 void rogue_persistence_save_player_stats(void){
     FILE* f=NULL;
 #if defined(_MSC_VER)
-    fopen_s(&f, "player_stats.cfg", "wb");
+    fopen_s(&f, rogue_player_stats_path(), "wb");
 #else
-    f=fopen("player_stats.cfg","wb");
+    f=fopen(rogue_player_stats_path(),"wb");
 #endif
     if(!f) return;
     fprintf(f,"# Saved player progression\n");
