@@ -46,6 +46,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_mob_collision.c AND NOT TARGET t
     add_test(NAME test_mob_collision COMMAND test_mob_collision)
 endif()
 
+# Explicitly add navigation test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_navigation.c AND NOT TARGET test_navigation)
+    add_executable(test_navigation unit/test_navigation.c)
+    target_link_libraries(test_navigation PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_navigation PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_navigation COMMAND test_navigation)
+endif()
+
 file(GLOB INTEGRATION_TESTS integration/test_*.c)
 foreach(it ${INTEGRATION_TESTS})
     get_filename_component(name ${it} NAME_WE)

@@ -64,6 +64,7 @@ add_library(rogue_core
     src/core/buffs.c
     src/core/projectiles.c
     src/core/collision.c
+    src/core/navigation.c
     src/core/asset_config.c
     src/core/platform.c
     src/core/tile_sprite_cache.c

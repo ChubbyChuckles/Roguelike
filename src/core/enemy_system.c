@@ -10,6 +10,7 @@
 #include "world/tilemap.h"
 #include "core/vegetation.h"
 #include "core/collision.h"
+#include "core/navigation.h"
 
 /* Directly manipulate g_app to preserve semantics. */
 static int enemy_tile_is_blocking(unsigned char t){
@@ -119,8 +120,12 @@ void rogue_enemy_system_update(float dt_ms){
                 float len = (float)sqrt(d2); if(len>0.0001f){ move_dx = dx/len; move_dy = dy/len; }
             }
         } else if(e->ai_state == ROGUE_ENEMY_AI_AGGRO){
-            float len = (float)sqrt(p_dist2); if(len>0.0001f){ move_dx = pdx/len; move_dy = pdy/len; }
+            // replace direct normalized vector with cardinal step towards player center
+            int step_dx=0, step_dy=0; rogue_nav_cardinal_step_towards(e->base.pos.x,e->base.pos.y,g_app.player.base.pos.x,g_app.player.base.pos.y,&step_dx,&step_dy);
+            move_dx=(float)step_dx; move_dy=(float)step_dy;
         }
+        // Prevent diagonal: if both non-zero pick axis with larger abs delta to target (patrol)
+        if(move_dx!=0.0f && move_dy!=0.0f){ float dpx=fabsf(g_app.player.base.pos.x - e->base.pos.x); float dpy=fabsf(g_app.player.base.pos.y - e->base.pos.y); if(dpx>dpy) move_dy=0; else move_dx=0; }
         if(p_dist2 < 1.00f){ move_dx = 0.0f; move_dy = 0.0f; move_speed = 0.0f; }
         if(move_dx!=0 || move_dy!=0){
             int nx = (int)(e->base.pos.x + move_dx * move_speed + 0.5f);
