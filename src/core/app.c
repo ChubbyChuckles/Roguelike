@@ -124,6 +124,8 @@ typedef struct RogueAppState
     /* Combat / entities */
     RogueEnemy enemies[ROGUE_MAX_ENEMIES];
     int enemy_count;
+    RogueEnemyTypeDef enemy_types[ROGUE_MAX_ENEMY_TYPES];
+    int enemy_type_count;
     RoguePlayerCombat player_combat;
     int total_kills;
 } RogueAppState;
@@ -301,7 +303,13 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     /* Values already loaded (or defaults applied) above */
     /* Init combat */
     rogue_combat_init(&g_app.player_combat);
-    g_app.enemy_count = 0; g_app.total_kills = 0;
+    g_app.enemy_count = 0; g_app.total_kills = 0; g_app.enemy_type_count = ROGUE_MAX_ENEMY_TYPES;
+    if(!rogue_enemy_load_config("assets/enemies.cfg", g_app.enemy_types, &g_app.enemy_type_count)){
+        g_app.enemy_type_count = 0;
+        ROGUE_LOG_WARN("No enemy types loaded; verify assets/enemies.cfg paths.");
+    } else {
+        ROGUE_LOG_INFO("Loaded %d enemy types", g_app.enemy_type_count);
+    }
     for(int i=0;i<ROGUE_MAX_ENEMIES;i++){ g_app.enemies[i].alive=0; }
     /* Log current working directory for asset path debugging */
     {
@@ -747,27 +755,70 @@ void rogue_app_step(void)
         if(g_app.player.base.pos.y < 0) g_app.player.base.pos.y = 0;
         if(g_app.player.base.pos.x > g_app.world_map.width-1) g_app.player.base.pos.x = (float)(g_app.world_map.width-1);
         if(g_app.player.base.pos.y > g_app.world_map.height-1) g_app.player.base.pos.y = (float)(g_app.world_map.height-1);
-        /* Spawn simple enemies near player if below target count */
-        if(g_app.enemy_count < 32){
-            for(int attempt=0; attempt<2 && g_app.enemy_count < 32; ++attempt){
-                for(int i=0;i<ROGUE_MAX_ENEMIES;i++){ if(!g_app.enemies[i].alive){
-                    float ex = (float)(g_app.player.base.pos.x + (float)((rand()%140)-70));
-                    float ey = (float)(g_app.player.base.pos.y + (float)((rand()%140)-70));
-                    if(ex<1||ey<1||ex>g_app.world_map.width-2||ey>g_app.world_map.height-2) continue;
-                    g_app.enemies[i].base.pos.x = ex; g_app.enemies[i].base.pos.y = ey; g_app.enemies[i].health=2; g_app.enemies[i].alive=1; g_app.enemies[i].hurt_timer=0; g_app.enemies[i].type=ROGUE_ENEMY_SLIME; g_app.enemy_count++; break; }
+        /* Ensure global population: spawn groups over grass tiles until target (simple pass each frame) */
+        int desired = 120; /* heuristic; could be config */
+    if(g_app.enemy_type_count>0 && g_app.enemy_count < desired){
+            for(int tries=0; tries<8 && g_app.enemy_count < desired; ++tries){
+                int gx = rand() % g_app.world_map.width;
+                int gy = rand() % g_app.world_map.height;
+                unsigned char tile = g_app.world_map.tiles[gy*g_app.world_map.width + gx];
+                if(tile != ROGUE_TILE_GRASS) continue;
+                RogueEnemyTypeDef* t = &g_app.enemy_types[0];
+                int group_sz = t->group_min + (rand() % (t->group_max - t->group_min + 1));
+                for(int m=0; m<group_sz && g_app.enemy_count < desired; ++m){
+                    for(int slot=0; slot<ROGUE_MAX_ENEMIES; ++slot){ if(!g_app.enemies[slot].alive){
+                        float rx = (float)((rand()% (t->patrol_radius*2+1)) - t->patrol_radius);
+                        float ry = (float)((rand()% (t->patrol_radius*2+1)) - t->patrol_radius);
+                        float ex = gx + rx; float ey = gy + ry;
+                        if(ex<1||ey<1||ex>g_app.world_map.width-2||ey>g_app.world_map.height-2) continue;
+                        g_app.enemies[slot].base.pos.x = ex; g_app.enemies[slot].base.pos.y = ey;
+                        g_app.enemies[slot].anchor_x = (float)gx; g_app.enemies[slot].anchor_y = (float)gy;
+                        g_app.enemies[slot].patrol_target_x = ex; g_app.enemies[slot].patrol_target_y = ey;
+                        g_app.enemies[slot].health = 3; g_app.enemies[slot].alive=1; g_app.enemies[slot].hurt_timer=0; g_app.enemies[slot].anim_time=0; g_app.enemies[slot].anim_frame=0; g_app.enemies[slot].ai_state=ROGUE_ENEMY_AI_PATROL; g_app.enemies[slot].facing=2; g_app.enemies[slot].type_index=0;
+                        g_app.enemy_count++; break; }
+                    }
                 }
             }
         }
         /* Enemy simple AI: move toward player */
         for(int i=0;i<ROGUE_MAX_ENEMIES;i++) if(g_app.enemies[i].alive){
-            float dx = g_app.player.base.pos.x - g_app.enemies[i].base.pos.x;
-            float dy = g_app.player.base.pos.y - g_app.enemies[i].base.pos.y;
-            float len = (float)sqrt(dx*dx+dy*dy); if(len>0.0001f){ dx/=len; dy/=len; }
-            float es = 12.0f * (float)g_app.dt;
-            if(len>0.6f){ g_app.enemies[i].base.pos.x += dx*es; g_app.enemies[i].base.pos.y += dy*es; }
-            if(g_app.enemies[i].hurt_timer>0) g_app.enemies[i].hurt_timer -= dt_ms;
-            if(len < 0.6f && g_app.player.health>0){ g_app.player.health--; g_app.enemies[i].hurt_timer=200.0f; }
-            if(g_app.enemies[i].health<=0){ g_app.enemies[i].alive=0; }
+            RogueEnemy* e=&g_app.enemies[i]; RogueEnemyTypeDef* t = &g_app.enemy_types[e->type_index];
+            /* State selection */
+            float pdx = g_app.player.base.pos.x - e->base.pos.x;
+            float pdy = g_app.player.base.pos.y - e->base.pos.y;
+            float p_dist2 = pdx*pdx + pdy*pdy;
+            if(e->ai_state != ROGUE_ENEMY_AI_DEAD){
+                if(p_dist2 < (float)(t->aggro_radius * t->aggro_radius)) e->ai_state = ROGUE_ENEMY_AI_AGGRO; else if(e->ai_state == ROGUE_ENEMY_AI_AGGRO && p_dist2 > (float)((t->aggro_radius+5)*(t->aggro_radius+5))) e->ai_state = ROGUE_ENEMY_AI_PATROL;
+            }
+            float move_dx=0, move_dy=0; float move_speed = t->speed * (float)g_app.dt;
+            if(e->ai_state == ROGUE_ENEMY_AI_PATROL){
+                float tx = e->patrol_target_x; float ty = e->patrol_target_y; float dx = tx - e->base.pos.x; float dy = ty - e->base.pos.y; float d2 = dx*dx+dy*dy;
+                if(d2 < 0.4f){
+                    /* choose new patrol target within patrol radius & anchor radius constraint */
+                    for(int attempt=0; attempt<6; ++attempt){
+                        float nrx = (float)((rand()% (t->patrol_radius*2+1)) - t->patrol_radius);
+                        float nry = (float)((rand()% (t->patrol_radius*2+1)) - t->patrol_radius);
+                        float nx = e->anchor_x + nrx; float ny = e->anchor_y + nry;
+                        float ar_dx = nx - e->anchor_x; float ar_dy = ny - e->anchor_y;
+                        if(ar_dx*ar_dx + ar_dy*ar_dy <= (float)(t->patrol_radius*t->patrol_radius)) { e->patrol_target_x = nx; e->patrol_target_y = ny; break; }
+                    }
+                } else {
+                    float len = (float)sqrt(d2); if(len>0.0001f){ move_dx = dx/len; move_dy = dy/len; }
+                }
+            } else if(e->ai_state == ROGUE_ENEMY_AI_AGGRO){
+                float len = (float)sqrt(p_dist2); if(len>0.0001f){ move_dx = pdx/len; move_dy = pdy/len; }
+            }
+            e->base.pos.x += move_dx * move_speed; e->base.pos.y += move_dy * move_speed;
+            e->facing = (move_dx < 0)? 1 : 2;
+            if(e->hurt_timer>0) e->hurt_timer -= dt_ms;
+            if(p_dist2 < 0.36f && g_app.player.health>0){ g_app.player.health--; e->hurt_timer=200.0f; }
+            if(e->health<=0 && e->ai_state != ROGUE_ENEMY_AI_DEAD){ e->ai_state = ROGUE_ENEMY_AI_DEAD; e->anim_time=0; e->anim_frame=0; }
+            /* Animation advance */
+            RogueSprite* frames=NULL; int fcount=0; if(e->ai_state==ROGUE_ENEMY_AI_AGGRO) { frames=t->run_frames; fcount=t->run_count; } else if(e->ai_state==ROGUE_ENEMY_AI_PATROL){ frames=t->idle_frames; fcount=t->idle_count; } else { frames=t->death_frames; fcount=t->death_count; }
+            float frame_ms = (e->ai_state==ROGUE_ENEMY_AI_AGGRO)? 110.0f : 160.0f;
+            e->anim_time += dt_ms; if(fcount<=0) fcount=1;
+            if(e->anim_time >= frame_ms){ e->anim_time -= frame_ms; e->anim_frame = (e->anim_frame+1) % fcount; }
+            if(e->ai_state==ROGUE_ENEMY_AI_DEAD && e->anim_frame == fcount-1){ e->alive=0; }
         }
 
         /* Advance animation (coalesce tiny dt <1ms to reduce float churn) */
@@ -925,12 +976,20 @@ void rogue_app_step(void)
         /* Render enemies (simple colored squares) */
 #ifdef ROGUE_HAVE_SDL
         for(int i=0;i<ROGUE_MAX_ENEMIES;i++) if(g_app.enemies[i].alive){
-            int ex = (int)(g_app.enemies[i].base.pos.x*tsz - g_app.cam_x);
-            int ey = (int)(g_app.enemies[i].base.pos.y*tsz - g_app.cam_y);
-            unsigned char r=100,g=200,b=100,a=255;
-            if(g_app.enemies[i].hurt_timer>0){ r=255; g=80; b=80; }
-            SDL_SetRenderDrawColor(g_app.renderer,r,g,b,a);
-            SDL_Rect er = { ex-4, ey-4, 8,8 }; SDL_RenderFillRect(g_app.renderer,&er); g_app.frame_draw_calls++;
+            RogueEnemy* e=&g_app.enemies[i]; RogueEnemyTypeDef* t=&g_app.enemy_types[e->type_index];
+            int ex = (int)(e->base.pos.x*tsz - g_app.cam_x);
+            int ey = (int)(e->base.pos.y*tsz - g_app.cam_y);
+            RogueSprite* frames=NULL; int fcount=0; if(e->ai_state==ROGUE_ENEMY_AI_AGGRO) { frames=t->run_frames; fcount=t->run_count; } else if(e->ai_state==ROGUE_ENEMY_AI_PATROL){ frames=t->idle_frames; fcount=t->idle_count; } else { frames=t->death_frames; fcount=t->death_count; }
+            RogueSprite* spr = (frames && fcount)? &frames[e->anim_frame] : NULL;
+            if(spr && spr->tex && spr->tex->handle && spr->sw){
+                SDL_Rect src = { spr->sx, spr->sy, spr->sw, spr->sh };
+                SDL_Rect dst = { ex - spr->sw/2, ey - spr->sh/2, spr->sw, spr->sh };
+                SDL_RenderCopyEx(g_app.renderer, spr->tex->handle, &src, &dst, 0.0, NULL, (e->facing==1)? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
+            } else {
+                unsigned char r=100,g=200,b=100,a=255; if(e->hurt_timer>0){ r=255; g=80; b=80; }
+                SDL_SetRenderDrawColor(g_app.renderer,r,g,b,a); SDL_Rect er={ex-4,ey-4,8,8}; SDL_RenderFillRect(g_app.renderer,&er);
+            }
+            g_app.frame_draw_calls++;
         }
         /* Render player attack arc (during STRIKE) */
         if(g_app.player_combat.phase == ROGUE_ATTACK_STRIKE){
