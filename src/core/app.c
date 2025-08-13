@@ -146,6 +146,10 @@ typedef struct RogueAppState
     Mix_Chunk* sfx_levelup;
 #endif
     float attack_anim_time_ms; /* accumulates across windup+strike+recover to map all frames */
+    /* Floating damage numbers */
+    struct { float x,y; float vx,vy; float life_ms; float total_ms; int amount; int from_player; } dmg_numbers[128];
+    int dmg_number_count;
+    double spawn_accum_ms; /* throttled spawn timer */
 } RogueAppState;
 
 static RogueAppState g_app;
@@ -158,6 +162,31 @@ int rogue_get_current_attack_frame(void){
         return g_app.player.anim_frame;
     }
     return 0;
+}
+
+void rogue_add_damage_number(float x, float y, int amount, int from_player){
+    if(amount==0) return;
+    if(g_app.dmg_number_count < (int)(sizeof(g_app.dmg_numbers)/sizeof(g_app.dmg_numbers[0]))){
+        int i = g_app.dmg_number_count++;
+        g_app.dmg_numbers[i].x = x; g_app.dmg_numbers[i].y = y;
+        g_app.dmg_numbers[i].vx = 0.0f; g_app.dmg_numbers[i].vy = -0.35f;
+        g_app.dmg_numbers[i].life_ms = 900.0f; g_app.dmg_numbers[i].total_ms = 900.0f;
+        g_app.dmg_numbers[i].amount = amount; g_app.dmg_numbers[i].from_player = from_player;
+    }
+}
+
+static int tile_is_blocking(unsigned char t){
+    switch(t){
+        case ROGUE_TILE_WATER:
+        case ROGUE_TILE_RIVER:
+        case ROGUE_TILE_RIVER_WIDE:
+        case ROGUE_TILE_RIVER_DELTA:
+            return 1;
+        case ROGUE_TILE_MOUNTAIN:
+        case ROGUE_TILE_CAVE_WALL:
+            return 1;
+        default: return 0;
+    }
 }
 
 /* Local timing helper (separate from game_loop's static) */
@@ -346,6 +375,7 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.health_regen_accum_ms = 0.0f;
     g_app.mana_regen_accum_ms = 0.0f;
     g_app.levelup_aura_timer_ms = 0.0f;
+    g_app.dmg_number_count = 0; g_app.spawn_accum_ms = 0.0;
 #ifdef ROGUE_HAVE_SDL_MIXER
     g_app.sfx_levelup = NULL;
     if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 512)!=0){
@@ -869,10 +899,20 @@ void rogue_app_step(void)
         /* Update player position from input (simple) */
     float speed = (g_app.player_state==2)? g_app.run_speed : (g_app.player_state==1? g_app.walk_speed : 0.0f);
         int moving = 0;
-        if(rogue_input_is_down(&g_app.input, ROGUE_KEY_UP)) { g_app.player.base.pos.y -= speed * (float)g_app.dt; g_app.player.facing = 3; moving=1; }
-        if(rogue_input_is_down(&g_app.input, ROGUE_KEY_DOWN)) { g_app.player.base.pos.y += speed * (float)g_app.dt; g_app.player.facing = 0; moving=1; }
-        if(rogue_input_is_down(&g_app.input, ROGUE_KEY_LEFT)) { g_app.player.base.pos.x -= speed * (float)g_app.dt; g_app.player.facing = 1; moving=1; }
-        if(rogue_input_is_down(&g_app.input, ROGUE_KEY_RIGHT)) { g_app.player.base.pos.x += speed * (float)g_app.dt; g_app.player.facing = 2; moving=1; }
+    /* Collision-aware movement attempt (axis separated) */
+    float orig_x = g_app.player.base.pos.x;
+    float orig_y = g_app.player.base.pos.y;
+    float step = speed * (float)g_app.dt;
+    if(rogue_input_is_down(&g_app.input, ROGUE_KEY_UP)) { g_app.player.base.pos.y -= step; g_app.player.facing = 3; moving=1; }
+    if(rogue_input_is_down(&g_app.input, ROGUE_KEY_DOWN)) { g_app.player.base.pos.y += step; g_app.player.facing = 0; moving=1; }
+    int px_i = (int)(g_app.player.base.pos.x + 0.5f); int py_i = (int)(g_app.player.base.pos.y + 0.5f);
+    if(px_i<0) px_i=0; if(py_i<0) py_i=0; if(px_i>=g_app.world_map.width) px_i=g_app.world_map.width-1; if(py_i>=g_app.world_map.height) py_i=g_app.world_map.height-1;
+    if(tile_is_blocking(g_app.world_map.tiles[py_i*g_app.world_map.width + px_i])) g_app.player.base.pos.y = orig_y;
+    if(rogue_input_is_down(&g_app.input, ROGUE_KEY_LEFT)) { g_app.player.base.pos.x -= step; g_app.player.facing = 1; moving=1; }
+    if(rogue_input_is_down(&g_app.input, ROGUE_KEY_RIGHT)) { g_app.player.base.pos.x += step; g_app.player.facing = 2; moving=1; }
+    px_i = (int)(g_app.player.base.pos.x + 0.5f); py_i = (int)(g_app.player.base.pos.y + 0.5f);
+    if(px_i<0) px_i=0; if(py_i<0) py_i=0; if(px_i>=g_app.world_map.width) px_i=g_app.world_map.width-1; if(py_i>=g_app.world_map.height) py_i=g_app.world_map.height-1;
+    if(tile_is_blocking(g_app.world_map.tiles[py_i*g_app.world_map.width + px_i])) g_app.player.base.pos.x = orig_x;
         if(moving && g_app.player_state==0) g_app.player_state = 1; /* auto switch to walk */
         if(!moving) g_app.player_state = 0;
     /* Attack input (SPACE/RETURN maps to ACTION) */
@@ -920,16 +960,19 @@ void rogue_app_step(void)
         if(g_app.player.base.pos.y < 0) g_app.player.base.pos.y = 0;
         if(g_app.player.base.pos.x > g_app.world_map.width-1) g_app.player.base.pos.x = (float)(g_app.world_map.width-1);
         if(g_app.player.base.pos.y > g_app.world_map.height-1) g_app.player.base.pos.y = (float)(g_app.world_map.height-1);
-        /* Per-type spawning */
-        if(g_app.enemy_type_count>0){
+        /* Per-type spawning (throttled & capped) */
+        g_app.spawn_accum_ms += dt_ms;
+        const int global_cap = 120;
+        if(g_app.spawn_accum_ms > 900.0f){ g_app.spawn_accum_ms = 0.0f; if(g_app.enemy_type_count>0 && g_app.enemy_count < global_cap){
             for(int ti=0; ti<g_app.enemy_type_count; ++ti){
                 RogueEnemyTypeDef* t=&g_app.enemy_types[ti];
-                int cur = g_app.per_type_counts[ti]; int target = t->pop_target; if(target<=0) target=20;
-                if(cur >= target) continue; int needed = target - cur; int groups = (needed + t->group_max-1)/t->group_max; if(groups>2) groups=2;
+                int cur = g_app.per_type_counts[ti]; int target = t->pop_target; if(target<=0) target=6; if(target>40) target=40; /* clamp */
+                if(cur >= target) continue; int needed = target - cur; int groups = 1; /* at most one group per tick */
                 for(int g=0; g<groups && needed>0; ++g){
                     int gx = rand() % g_app.world_map.width; int gy = rand() % g_app.world_map.height; unsigned char tile = g_app.world_map.tiles[gy*g_app.world_map.width + gx]; if(tile != ROGUE_TILE_GRASS) continue;
                     int group_sz = t->group_min + (rand() % (t->group_max - t->group_min + 1)); if(group_sz>needed) group_sz=needed;
                     for(int m=0; m<group_sz && needed>0; ++m){
+                        if(g_app.enemy_count >= global_cap) break;
                         for(int slot=0; slot<ROGUE_MAX_ENEMIES; ++slot){ if(!g_app.enemies[slot].alive){
                             float rx = (float)((rand()% (t->patrol_radius*2+1)) - t->patrol_radius);
                             float ry = (float)((rand()% (t->patrol_radius*2+1)) - t->patrol_radius);
@@ -939,7 +982,7 @@ void rogue_app_step(void)
                     }
                 }
             }
-        }
+        }}
         /* Enemy simple AI: move toward player */
         for(int i=0;i<ROGUE_MAX_ENEMIES;i++) if(g_app.enemies[i].alive){
             RogueEnemy* e=&g_app.enemies[i]; RogueEnemyTypeDef* t = &g_app.enemy_types[e->type_index];
@@ -976,7 +1019,9 @@ void rogue_app_step(void)
             if(e->flash_timer>0) e->flash_timer -= dt_ms;
             if(p_dist2 < 0.36f && g_app.player.health>0){
                 int dmg = (int)(1 + g_app.difficulty_scalar * 0.6); if(dmg<1) dmg=1;
-                g_app.player.health -= dmg; if(g_app.player.health<0) g_app.player.health=0; e->hurt_timer=200.0f; g_app.time_since_player_hit_ms = 0.0f; }
+                g_app.player.health -= dmg; if(g_app.player.health<0) g_app.player.health=0; e->hurt_timer=200.0f; g_app.time_since_player_hit_ms = 0.0f;
+                rogue_add_damage_number(g_app.player.base.pos.x, g_app.player.base.pos.y - 0.2f, dmg, 0);
+            }
             if(e->health<=0 && e->ai_state != ROGUE_ENEMY_AI_DEAD){
                 e->ai_state = ROGUE_ENEMY_AI_DEAD; e->anim_time=0; e->anim_frame=0; e->death_fade=1.0f;
                 g_app.player.xp += t->xp_reward;
@@ -1261,6 +1306,23 @@ void rogue_app_step(void)
     /* Removed debug attack arc rendering for pure sprite-based attack animation */
 #endif
 
+    /* Floating damage numbers (render after entities) */
+#ifdef ROGUE_HAVE_SDL
+    if(g_app.renderer){
+        for(int i=0;i<g_app.dmg_number_count;i++){
+            float norm = g_app.dmg_numbers[i].life_ms / (g_app.dmg_numbers[i].total_ms>0? g_app.dmg_numbers[i].total_ms : 1.0f);
+            if(norm<0) norm=0; if(norm>1) norm=1;
+            int alpha = (int)(255 * norm);
+            if(alpha<0) alpha=0; if(alpha>255) alpha=255;
+            int screen_x = (int)(g_app.dmg_numbers[i].x * g_app.tile_size - g_app.cam_x);
+            int screen_y = (int)(g_app.dmg_numbers[i].y * g_app.tile_size - g_app.cam_y);
+            char buf[16]; snprintf(buf,sizeof buf,"%d", g_app.dmg_numbers[i].amount);
+            RogueColor col = g_app.dmg_numbers[i].from_player? (RogueColor){255,210,40,(unsigned char)alpha} : (RogueColor){255,60,60,(unsigned char)alpha};
+            rogue_font_draw_text(screen_x, screen_y, buf, 1, col);
+        }
+    }
+#endif
+
     /* Mini-map in corner (scaled down, render-target cached) */
     int mm_max_size = 240; /* limit minimap maximum dimension in pixels */
     float scale_w = (float)mm_max_size / (float)g_app.world_map.width;
@@ -1274,9 +1336,9 @@ void rogue_app_step(void)
     if(mm_h > mm_max_size) mm_h = mm_max_size;
     int mm_x_off = g_app.viewport_w - mm_w - 8;
     int mm_y_off = 8;
-    int step = (g_app.world_map.width > 500 || g_app.world_map.height > 500)? 2 : 1;
+    int mm_step = (g_app.world_map.width > 500 || g_app.world_map.height > 500)? 2 : 1;
     ensure_minimap_target(mm_w, mm_h);
-    redraw_minimap_if_needed(mm_w, mm_h, step);
+    redraw_minimap_if_needed(mm_w, mm_h, mm_step);
 #ifdef ROGUE_HAVE_SDL
     if(g_app.minimap_tex){
         SDL_Rect dst = { mm_x_off, mm_y_off, mm_w, mm_h };
@@ -1313,6 +1375,21 @@ void rogue_app_step(void)
     rogue_font_draw_text(hp_x+hp_w+8, hp_y, lvlbuf, 1, (RogueColor){255,255,180,255});
     }
 #endif
+    /* Update floating damage numbers (logic) */
+    if(g_app.dmg_number_count>0){
+        for(int i=0;i<g_app.dmg_number_count;){
+            g_app.dmg_numbers[i].life_ms -= (float)(g_app.dt * 1000.0);
+            g_app.dmg_numbers[i].x += g_app.dmg_numbers[i].vx * (float)g_app.dt;
+            g_app.dmg_numbers[i].y += g_app.dmg_numbers[i].vy * (float)g_app.dt;
+            g_app.dmg_numbers[i].vy -= 0.15f * (float)g_app.dt;
+            if(g_app.dmg_numbers[i].life_ms <= 0){
+                g_app.dmg_numbers[i] = g_app.dmg_numbers[g_app.dmg_number_count-1];
+                g_app.dmg_number_count--;
+                continue;
+            }
+            ++i;
+        }
+    }
     /* (Overlay with debug metrics removed to show clean HUD; hotkeys still active) */
     /* Passive regen timing updates (after overlay so dt stable) */
     g_app.time_since_player_hit_ms += (float)(g_app.dt * 1000.0);

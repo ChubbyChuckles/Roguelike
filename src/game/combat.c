@@ -1,6 +1,9 @@
 #include "game/combat.h"
 #include <math.h>
 
+/* Provided by app.c */
+void rogue_add_damage_number(float x,float y,int amount,int from_player);
+
 void rogue_combat_init(RoguePlayerCombat* pc){ pc->phase=ROGUE_ATTACK_IDLE; pc->timer=0; pc->combo=0; pc->stamina=100.0f; pc->stamina_regen_delay=0.0f; }
 
 void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_pressed){
@@ -55,7 +58,10 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
         float lateral_limit = reach * 0.9f; if(perp > lateral_limit || perp < -lateral_limit) continue;
         /* Simple damage */
         int dmg = 1 + player->strength/5;
-    enemies[i].health -= dmg; enemies[i].hurt_timer = 150.0f; enemies[i].flash_timer = 70.0f; if(enemies[i].health<=0){ enemies[i].alive=0; kills++; }
+        enemies[i].health -= dmg; enemies[i].hurt_timer = 150.0f; enemies[i].flash_timer = 70.0f; 
+    /* Spawn floating damage number */
+        rogue_add_damage_number(ex, ey - 0.4f, dmg, 1);
+        if(enemies[i].health<=0){ enemies[i].alive=0; kills++; }
     }
     return kills;
 }
