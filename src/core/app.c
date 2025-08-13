@@ -35,6 +35,8 @@ SOFTWARE.
 #include "core/enemy_system.h"
 #include "core/start_screen.h"
 #include "core/player_assets.h"
+#include "core/player_controller.h"
+#include "core/minimap.h"
 #include "graphics/sprite.h"
 #include "graphics/tile_sprites.h"
 #include <string.h>
@@ -474,69 +476,7 @@ static void process_events(void)
 #endif
 }
 
-/* --- Minimap helpers ---------------------------------------------------- */
-static void ensure_minimap_target(int w, int h){
-#ifdef ROGUE_HAVE_SDL
-    if(!g_app.renderer) return;
-    if(w<=0||h<=0) return;
-    if(g_app.minimap_tex && (w!=g_app.minimap_w || h!=g_app.minimap_h)){
-        SDL_DestroyTexture(g_app.minimap_tex); g_app.minimap_tex=NULL;
-    }
-    if(!g_app.minimap_tex){
-        g_app.minimap_tex = SDL_CreateTexture(g_app.renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, w, h);
-        if(!g_app.minimap_tex){
-            ROGUE_LOG_WARN("minimap texture create %dx%d failed: %s", w,h, SDL_GetError());
-            return;
-        }
-        SDL_SetTextureBlendMode(g_app.minimap_tex, SDL_BLENDMODE_BLEND);
-        g_app.minimap_w = w; g_app.minimap_h = h; g_app.minimap_dirty = 1;
-    }
-#else
-    (void)w; (void)h;
-#endif
-}
-
-static void redraw_minimap_if_needed(int mm_w, int mm_h, int step){
-#ifdef ROGUE_HAVE_SDL
-    if(!g_app.minimap_tex) return;
-    static int frame_counter = 0; frame_counter++;
-    int periodic = (frame_counter % 180)==0; /* safety refresh every ~3s */
-    if(!g_app.minimap_dirty && !periodic) return;
-    SDL_Texture* prev = SDL_GetRenderTarget(g_app.renderer);
-    SDL_SetRenderTarget(g_app.renderer, g_app.minimap_tex);
-    SDL_SetRenderDrawColor(g_app.renderer,0,0,0,0);
-    SDL_RenderClear(g_app.renderer);
-    for(int y=0; y<g_app.world_map.height; y+=step){
-        for(int x=0; x<g_app.world_map.width; x+=step){
-            unsigned char t = g_app.world_map.tiles[y*g_app.world_map.width + x];
-            RogueColor c = {0,0,0,180};
-            switch(t){
-                case ROGUE_TILE_WATER: c=(RogueColor){30,90,200,220}; break;
-                case ROGUE_TILE_RIVER: c=(RogueColor){50,140,230,220}; break;
-                case ROGUE_TILE_RIVER_WIDE: c=(RogueColor){70,170,250,230}; break;
-                case ROGUE_TILE_RIVER_DELTA: c=(RogueColor){90,190,250,230}; break;
-                case ROGUE_TILE_GRASS: c=(RogueColor){40,160,60,220}; break;
-                case ROGUE_TILE_FOREST: c=(RogueColor){10,90,20,220}; break;
-                case ROGUE_TILE_SWAMP: c=(RogueColor){50,120,50,220}; break;
-                case ROGUE_TILE_MOUNTAIN: c=(RogueColor){120,120,120,220}; break;
-                case ROGUE_TILE_SNOW: c=(RogueColor){230,230,240,220}; break;
-                case ROGUE_TILE_CAVE_WALL: c=(RogueColor){60,60,60,220}; break;
-                case ROGUE_TILE_CAVE_FLOOR: c=(RogueColor){110,80,60,220}; break;
-                default: break;
-            }
-            SDL_SetRenderDrawColor(g_app.renderer, c.r,c.g,c.b,c.a);
-            int mx = (int)((float)x / (float)g_app.world_map.width * mm_w);
-            int my = (int)((float)y / (float)g_app.world_map.height * mm_h);
-            SDL_Rect r = { mx, my, 1, 1 };
-            SDL_RenderFillRect(g_app.renderer, &r);
-        }
-    }
-    g_app.minimap_dirty = 0;
-    SDL_SetRenderTarget(g_app.renderer, prev);
-#else
-    (void)mm_w; (void)mm_h; (void)step;
-#endif
-}
+/* minimap helpers moved to minimap.c */
 
 /* Map tokens to indices */
 static int state_name_to_index(const char* s){ if(strcmp(s,"idle")==0) return 0; if(strcmp(s,"walk")==0) return 1; if(strcmp(s,"run")==0) return 2; if(strcmp(s,"attack")==0) return 3; return -1; }
@@ -686,25 +626,8 @@ void rogue_app_step(void)
         }
     if(!g_app.player_loaded) { rogue_player_assets_ensure_loaded(); }
 
-        /* Update player position from input (simple) */
-    float speed = (g_app.player_state==2)? g_app.run_speed : (g_app.player_state==1? g_app.walk_speed : 0.0f);
-        int moving = 0;
-    /* Collision-aware movement attempt (axis separated) */
-    float orig_x = g_app.player.base.pos.x;
-    float orig_y = g_app.player.base.pos.y;
-    float step = speed * (float)g_app.dt;
-    if(rogue_input_is_down(&g_app.input, ROGUE_KEY_UP)) { g_app.player.base.pos.y -= step; g_app.player.facing = 3; moving=1; }
-    if(rogue_input_is_down(&g_app.input, ROGUE_KEY_DOWN)) { g_app.player.base.pos.y += step; g_app.player.facing = 0; moving=1; }
-    int px_i = (int)(g_app.player.base.pos.x + 0.5f); int py_i = (int)(g_app.player.base.pos.y + 0.5f);
-    if(px_i<0) px_i=0; if(py_i<0) py_i=0; if(px_i>=g_app.world_map.width) px_i=g_app.world_map.width-1; if(py_i>=g_app.world_map.height) py_i=g_app.world_map.height-1;
-    if(tile_is_blocking(g_app.world_map.tiles[py_i*g_app.world_map.width + px_i])) g_app.player.base.pos.y = orig_y;
-    if(rogue_input_is_down(&g_app.input, ROGUE_KEY_LEFT)) { g_app.player.base.pos.x -= step; g_app.player.facing = 1; moving=1; }
-    if(rogue_input_is_down(&g_app.input, ROGUE_KEY_RIGHT)) { g_app.player.base.pos.x += step; g_app.player.facing = 2; moving=1; }
-    px_i = (int)(g_app.player.base.pos.x + 0.5f); py_i = (int)(g_app.player.base.pos.y + 0.5f);
-    if(px_i<0) px_i=0; if(py_i<0) py_i=0; if(px_i>=g_app.world_map.width) px_i=g_app.world_map.width-1; if(py_i>=g_app.world_map.height) py_i=g_app.world_map.height-1;
-    if(tile_is_blocking(g_app.world_map.tiles[py_i*g_app.world_map.width + px_i])) g_app.player.base.pos.x = orig_x;
-        if(moving && g_app.player_state==0) g_app.player_state = 1; /* auto switch to walk */
-        if(!moving) g_app.player_state = 0;
+    /* Update player position / camera */
+    rogue_player_controller_update();
     /* Attack input (SPACE/RETURN maps to ACTION) */
     int attack_pressed = rogue_input_was_pressed(&g_app.input, ROGUE_KEY_ACTION);
     float raw_dt_ms = (float)g_app.dt * 1000.0f;
@@ -781,14 +704,7 @@ void rogue_app_step(void)
             }
         }
 
-        /* Update camera to follow player (center) */
-        g_app.cam_x = g_app.player.base.pos.x * g_app.tile_size - g_app.viewport_w / 2.0f;
-        g_app.cam_y = g_app.player.base.pos.y * g_app.tile_size - g_app.viewport_h / 2.0f;
-        if(g_app.cam_x < 0) g_app.cam_x = 0; if(g_app.cam_y < 0) g_app.cam_y = 0;
-        float world_px_w = (float)g_app.world_map.width * g_app.tile_size;
-        float world_px_h = (float)g_app.world_map.height * g_app.tile_size;
-        if(g_app.cam_x > world_px_w - g_app.viewport_w) g_app.cam_x = world_px_w - g_app.viewport_w;
-        if(g_app.cam_y > world_px_h - g_app.viewport_h) g_app.cam_y = world_px_h - g_app.viewport_h;
+    /* camera now handled in player_controller */
 
         /* Render tiles (culled) with horizontal run batching */
         int scale = 1;
@@ -998,32 +914,8 @@ void rogue_app_step(void)
 #endif
 
     /* Mini-map in corner (scaled down, render-target cached) */
-    int mm_max_size = 240; /* limit minimap maximum dimension in pixels */
-    float scale_w = (float)mm_max_size / (float)g_app.world_map.width;
-    float scale_h = (float)mm_max_size / (float)g_app.world_map.height;
-    float mm_scale_f = (scale_w < scale_h)? scale_w : scale_h;
-    if(mm_scale_f < 0.5f) mm_scale_f = 0.5f; /* minimum visibility */
-    int mm_scale = (int)mm_scale_f; if(mm_scale < 1) mm_scale = 1;
-    int mm_w = g_app.world_map.width * mm_scale;
-    int mm_h = g_app.world_map.height * mm_scale;
-    if(mm_w > mm_max_size) mm_w = mm_max_size;
-    if(mm_h > mm_max_size) mm_h = mm_max_size;
-    int mm_x_off = g_app.viewport_w - mm_w - 8;
-    int mm_y_off = 8;
-    int mm_step = (g_app.world_map.width > 500 || g_app.world_map.height > 500)? 2 : 1;
-    ensure_minimap_target(mm_w, mm_h);
-    redraw_minimap_if_needed(mm_w, mm_h, mm_step);
-#ifdef ROGUE_HAVE_SDL
-    if(g_app.minimap_tex){
-        SDL_Rect dst = { mm_x_off, mm_y_off, mm_w, mm_h };
-            SDL_RenderCopy(g_app.renderer, g_app.minimap_tex, NULL, &dst); g_app.frame_draw_calls++;
-        SDL_SetRenderDrawColor(g_app.renderer,255,255,255,255);
-        int pmx = mm_x_off + (int)((g_app.player.base.pos.x / (float)g_app.world_map.width) * mm_w);
-        int pmy = mm_y_off + (int)((g_app.player.base.pos.y / (float)g_app.world_map.height) * mm_h);
-        SDL_Rect mmpr = { pmx, pmy, 2, 2 };
-            SDL_RenderFillRect(g_app.renderer, &mmpr); g_app.frame_draw_calls++;
-    }
-#endif
+    /* Minimap */
+    rogue_minimap_update_and_render(240);
     }
     /* Basic HUD bars */
 #ifdef ROGUE_HAVE_SDL
