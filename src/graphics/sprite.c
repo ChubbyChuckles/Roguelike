@@ -51,6 +51,7 @@ bool rogue_texture_load(RogueTexture* t, const char* path)
     t->handle = SDL_CreateTextureFromSurface(g_internal_sdl_renderer_ref, surf);
     if(!t->handle){ ROGUE_LOG_WARN("SDL_CreateTextureFromSurface failed for %s", path); SDL_FreeSurface(surf); return false; }
     t->w = surf->w; t->h = surf->h;
+    SDL_SetTextureBlendMode(t->handle, SDL_BLENDMODE_BLEND); /* enable alpha & color mod blending */
     SDL_FreeSurface(surf);
     return true;
 #elif defined(ROGUE_HAVE_SDL)
@@ -74,6 +75,7 @@ bool rogue_texture_load(RogueTexture* t, const char* path)
     t->handle = SDL_CreateTextureFromSurface(g_internal_sdl_renderer_ref, surf);
     if(!t->handle){ ROGUE_LOG_WARN("SDL_CreateTextureFromSurface failed (WIC) %s", path); SDL_FreeSurface(surf); free(pixels); return false; }
     t->w = w; t->h = h;
+    SDL_SetTextureBlendMode(t->handle, SDL_BLENDMODE_BLEND);
     SDL_FreeSurface(surf); free(pixels); /* SDL copy done */
     return true;
     #else

@@ -32,6 +32,11 @@ typedef struct RogueEnemy {
     float anchor_x, anchor_y; /* group anchor */
     float patrol_target_x, patrol_target_y; /* current patrol target */
     int facing;          /* 1=left,2=right for rendering flip */
+    /* Smooth tint (stored as 0-255 range floats for modulation) */
+    float tint_r, tint_g, tint_b;
+    /* Death fade alpha (1 -> 0) */
+    float death_fade;
+    float tint_phase;   /* ms accumulator for pulsing */
 } RogueEnemy;
 
 #define ROGUE_MAX_ENEMIES 256

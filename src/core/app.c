@@ -774,7 +774,7 @@ void rogue_app_step(void)
                         g_app.enemies[slot].base.pos.x = ex; g_app.enemies[slot].base.pos.y = ey;
                         g_app.enemies[slot].anchor_x = (float)gx; g_app.enemies[slot].anchor_y = (float)gy;
                         g_app.enemies[slot].patrol_target_x = ex; g_app.enemies[slot].patrol_target_y = ey;
-                        g_app.enemies[slot].health = 3; g_app.enemies[slot].alive=1; g_app.enemies[slot].hurt_timer=0; g_app.enemies[slot].anim_time=0; g_app.enemies[slot].anim_frame=0; g_app.enemies[slot].ai_state=ROGUE_ENEMY_AI_PATROL; g_app.enemies[slot].facing=2; g_app.enemies[slot].type_index=0;
+                        g_app.enemies[slot].health = 3; g_app.enemies[slot].alive=1; g_app.enemies[slot].hurt_timer=0; g_app.enemies[slot].anim_time=0; g_app.enemies[slot].anim_frame=0; g_app.enemies[slot].ai_state=ROGUE_ENEMY_AI_PATROL; g_app.enemies[slot].facing=2; g_app.enemies[slot].type_index=0; g_app.enemies[slot].tint_r=255.0f; g_app.enemies[slot].tint_g=255.0f; g_app.enemies[slot].tint_b=255.0f; g_app.enemies[slot].death_fade=1.0f; g_app.enemies[slot].tint_phase=0.0f;
                         g_app.enemy_count++; break; }
                     }
                 }
@@ -812,13 +812,43 @@ void rogue_app_step(void)
             e->facing = (move_dx < 0)? 1 : 2;
             if(e->hurt_timer>0) e->hurt_timer -= dt_ms;
             if(p_dist2 < 0.36f && g_app.player.health>0){ g_app.player.health--; e->hurt_timer=200.0f; }
-            if(e->health<=0 && e->ai_state != ROGUE_ENEMY_AI_DEAD){ e->ai_state = ROGUE_ENEMY_AI_DEAD; e->anim_time=0; e->anim_frame=0; }
-            /* Animation advance */
+            if(e->health<=0 && e->ai_state != ROGUE_ENEMY_AI_DEAD){ e->ai_state = ROGUE_ENEMY_AI_DEAD; e->anim_time=0; e->anim_frame=0; e->death_fade=1.0f; }
+            /* Animation frames */
             RogueSprite* frames=NULL; int fcount=0; if(e->ai_state==ROGUE_ENEMY_AI_AGGRO) { frames=t->run_frames; fcount=t->run_count; } else if(e->ai_state==ROGUE_ENEMY_AI_PATROL){ frames=t->idle_frames; fcount=t->idle_count; } else { frames=t->death_frames; fcount=t->death_count; }
             float frame_ms = (e->ai_state==ROGUE_ENEMY_AI_AGGRO)? 110.0f : 160.0f;
             e->anim_time += dt_ms; if(fcount<=0) fcount=1;
             if(e->anim_time >= frame_ms){ e->anim_time -= frame_ms; e->anim_frame = (e->anim_frame+1) % fcount; }
-            if(e->ai_state==ROGUE_ENEMY_AI_DEAD && e->anim_frame == fcount-1){ e->alive=0; }
+            e->tint_phase += dt_ms; /* accumulate independently for smooth pulse */
+            /* Death fade removal after animation completes & fade done */
+            if(e->ai_state==ROGUE_ENEMY_AI_DEAD){
+                if(e->anim_frame == fcount-1){
+                    /* start / continue fade */
+                    e->death_fade -= (float)g_app.dt * 2.0f; /* 0.5s fade */
+                    if(e->death_fade <= 0.0f){ e->alive=0; }
+                }
+            }
+            /* Tint target selection */
+            float target_r=255.0f, target_g=255.0f, target_b=255.0f;
+            int close_combat = (p_dist2 < 0.36f);
+            if(e->ai_state==ROGUE_ENEMY_AI_AGGRO && !close_combat){
+                /* Strong pulsing yellow: vary green channel for visibility */
+                float pulse = 0.5f + 0.5f * (float)sin(e->tint_phase * 0.01f);
+                target_r = 255.0f;
+                target_g = 180.0f + 75.0f * pulse; /* 180..255 */
+                target_b = 0.0f;
+            }
+            if(close_combat){ target_r = 255.0f; target_g = 40.0f; target_b = 40.0f; }
+            if(e->hurt_timer>0){ target_r=255.0f; target_g=255.0f; target_b=255.0f; }
+            if(e->ai_state==ROGUE_ENEMY_AI_DEAD){
+                /* Desaturate toward gray while fading */
+                float gcol = 120.0f * e->death_fade;
+                target_r = target_g = target_b = gcol;
+            }
+            /* Smooth blend */
+            float lerp = (float)g_app.dt * 8.0f; if(lerp>1.0f) lerp=1.0f;
+            e->tint_r += (target_r - e->tint_r) * lerp;
+            e->tint_g += (target_g - e->tint_g) * lerp;
+            e->tint_b += (target_b - e->tint_b) * lerp;
         }
 
         /* Advance animation (coalesce tiny dt <1ms to reduce float churn) */
@@ -979,14 +1009,30 @@ void rogue_app_step(void)
             RogueEnemy* e=&g_app.enemies[i]; RogueEnemyTypeDef* t=&g_app.enemy_types[e->type_index];
             int ex = (int)(e->base.pos.x*tsz - g_app.cam_x);
             int ey = (int)(e->base.pos.y*tsz - g_app.cam_y);
-            RogueSprite* frames=NULL; int fcount=0; if(e->ai_state==ROGUE_ENEMY_AI_AGGRO) { frames=t->run_frames; fcount=t->run_count; } else if(e->ai_state==ROGUE_ENEMY_AI_PATROL){ frames=t->idle_frames; fcount=t->idle_count; } else { frames=t->death_frames; fcount=t->death_count; }
-            RogueSprite* spr = (frames && fcount)? &frames[e->anim_frame] : NULL;
+            /* Select frame set with fallback (if run missing use idle) */
+            RogueSprite* frames=NULL; int fcount=0;
+            if(e->ai_state==ROGUE_ENEMY_AI_AGGRO){
+                if(t->run_count>0){ frames=t->run_frames; fcount=t->run_count; }
+                else { frames=t->idle_frames; fcount=t->idle_count; }
+            } else if(e->ai_state==ROGUE_ENEMY_AI_PATROL){ frames=t->idle_frames; fcount=t->idle_count; }
+            else { frames=t->death_frames; fcount=t->death_count; }
+            RogueSprite* spr = (frames && fcount)? &frames[e->anim_frame % fcount] : NULL;
+            /* (Combat proximity now handled in AI update; no extra calc needed here) */
             if(spr && spr->tex && spr->tex->handle && spr->sw){
+                Uint8 mr = (Uint8)(e->tint_r < 0?0:(e->tint_r>255?255:e->tint_r));
+                Uint8 mg = (Uint8)(e->tint_g < 0?0:(e->tint_g>255?255:e->tint_g));
+                Uint8 mb = (Uint8)(e->tint_b < 0?0:(e->tint_b>255?255:e->tint_b));
+                Uint8 ma = 255;
+                if(e->ai_state==ROGUE_ENEMY_AI_DEAD){ ma = (Uint8)(e->death_fade < 0?0:(e->death_fade>1.0f?255:(e->death_fade*255.0f))); }
+                SDL_SetTextureColorMod(spr->tex->handle, mr, mg, mb);
+                SDL_SetTextureAlphaMod(spr->tex->handle, ma);
                 SDL_Rect src = { spr->sx, spr->sy, spr->sw, spr->sh };
                 SDL_Rect dst = { ex - spr->sw/2, ey - spr->sh/2, spr->sw, spr->sh };
                 SDL_RenderCopyEx(g_app.renderer, spr->tex->handle, &src, &dst, 0.0, NULL, (e->facing==1)? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
+                SDL_SetTextureColorMod(spr->tex->handle, 255,255,255); /* restore */
+                SDL_SetTextureAlphaMod(spr->tex->handle, 255);
             } else {
-                unsigned char r=100,g=200,b=100,a=255; if(e->hurt_timer>0){ r=255; g=80; b=80; }
+                unsigned char r=(unsigned char)e->tint_r,g=(unsigned char)e->tint_g,b=(unsigned char)e->tint_b,a=255; if(e->ai_state==ROGUE_ENEMY_AI_DEAD) a=(unsigned char)(e->death_fade*255.0f);
                 SDL_SetRenderDrawColor(g_app.renderer,r,g,b,a); SDL_Rect er={ex-4,ey-4,8,8}; SDL_RenderFillRect(g_app.renderer,&er);
             }
             g_app.frame_draw_calls++;
@@ -1011,12 +1057,6 @@ void rogue_app_step(void)
             }
         }
 #endif
-        else
-        {
-            SDL_SetRenderDrawColor(g_app.renderer, 255,255,255,255);
-            SDL_Rect pr = { (int)(g_app.player.base.pos.x*tsz*scale), (int)(g_app.player.base.pos.y*tsz*scale), g_app.player_frame_size*scale, g_app.player_frame_size*scale };
-            SDL_RenderFillRect(g_app.renderer, &pr);
-        }
 
     /* Mini-map in corner (scaled down, render-target cached) */
     int mm_max_size = 240; /* limit minimap maximum dimension in pixels */
