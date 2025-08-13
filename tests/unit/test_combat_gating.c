@@ -5,10 +5,13 @@
 #include <stdio.h>
 
 static int current_frame = 0;
-int rogue_get_current_attack_frame(void){ return current_frame; }
+int test_local_get_current_attack_frame(void){ return current_frame; }
+#define rogue_get_current_attack_frame test_local_get_current_attack_frame
 RoguePlayer g_exposed_player_for_stats;
-void rogue_add_damage_number(float x,float y,int amount,int from_player) {(void)x;(void)y;(void)amount;(void)from_player;}
-void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int crit){(void)x;(void)y;(void)amount;(void)from_player;(void)crit;}
+void test_local_add_damage_number(float x,float y,int amount,int from_player){(void)x;(void)y;(void)amount;(void)from_player;}
+void test_local_add_damage_number_ex(float x,float y,int amount,int from_player,int crit){(void)x;(void)y;(void)amount;(void)from_player;(void)crit;}
+#define rogue_add_damage_number test_local_add_damage_number
+#define rogue_add_damage_number_ex test_local_add_damage_number_ex
 
 int main(void){
     RoguePlayer player; rogue_player_init(&player); player.base.pos.x=0; player.base.pos.y=0; player.facing = 2; /* right */

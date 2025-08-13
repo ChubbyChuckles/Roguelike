@@ -75,6 +75,7 @@ void rogue_add_damage_number(float x, float y, int amount, int from_player);
 void rogue_add_damage_number_ex(float x, float y, int amount, int from_player, int crit);
 /* Count of active floating damage numbers */
 int rogue_app_damage_number_count(void);
+void rogue_app_add_hitstop(float ms);
 /* Test helper: force decay tick of damage numbers by ms amount */
 void rogue_app_test_decay_damage_numbers(float ms);
 

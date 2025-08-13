@@ -5,10 +5,13 @@
 #include "game/combat.h"
 
 /* Deterministic seed */
-static int g_frame=3; int rogue_get_current_attack_frame(void){ return g_frame; }
+static int g_frame=3; int test_local_get_current_attack_frame(void){ return g_frame; }
+#define rogue_get_current_attack_frame test_local_get_current_attack_frame
 RoguePlayer g_exposed_player_for_stats;
-void rogue_add_damage_number(float x,float y,int amount,int from_player){(void)x;(void)y;(void)amount;(void)from_player;}
-void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int crit){(void)x;(void)y;(void)amount;(void)from_player;(void)crit;}
+void test_local_add_damage_number(float x,float y,int amount,int from_player){(void)x;(void)y;(void)amount;(void)from_player;}
+void test_local_add_damage_number_ex(float x,float y,int amount,int from_player,int crit){(void)x;(void)y;(void)amount;(void)from_player;(void)crit;}
+#define rogue_add_damage_number test_local_add_damage_number
+#define rogue_add_damage_number_ex test_local_add_damage_number_ex
 
 int main(){
     srand(12345);

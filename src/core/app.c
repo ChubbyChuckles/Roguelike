@@ -150,6 +150,8 @@ typedef struct RogueAppState
     struct { float x,y; float vx,vy; float life_ms; float total_ms; int amount; int from_player; int crit; float scale; } dmg_numbers[128];
     int dmg_number_count;
     double spawn_accum_ms; /* throttled spawn timer */
+    /* Hitstop system */
+    float hitstop_timer_ms; /* when >0, temporarily slow player & enemies */
 } RogueAppState;
 
 static RogueAppState g_app;
@@ -220,6 +222,13 @@ void rogue_app_test_decay_damage_numbers(float ms){
         }
         ++i;
     }
+}
+
+/* Public helper to add hitstop (clamped) */
+void rogue_app_add_hitstop(float ms){
+    if(ms < 0) return;
+    if(ms > 180.0f) ms = 180.0f;
+    if(g_app.hitstop_timer_ms < ms) g_app.hitstop_timer_ms = ms; /* take longer value */
 }
 
 /* Local timing helper (separate from game_loop's static) */
@@ -950,7 +959,13 @@ void rogue_app_step(void)
         if(!moving) g_app.player_state = 0;
     /* Attack input (SPACE/RETURN maps to ACTION) */
     int attack_pressed = rogue_input_was_pressed(&g_app.input, ROGUE_KEY_ACTION);
-    float dt_ms = (float)g_app.dt * 1000.0f;
+    float raw_dt_ms = (float)g_app.dt * 1000.0f;
+    if(g_app.hitstop_timer_ms > 0){
+        g_app.hitstop_timer_ms -= raw_dt_ms;
+        if(g_app.hitstop_timer_ms < 0) g_app.hitstop_timer_ms = 0;
+    }
+    float hitstop_scale = (g_app.hitstop_timer_ms > 0)? 0.25f : 1.0f; /* quarter speed during hitstop */
+    float dt_ms = raw_dt_ms * hitstop_scale;
     /* Track prior phase to reset animation when attack begins */
     static int prev_attack_phase = -1;
     rogue_combat_update_player(&g_app.player_combat, dt_ms, attack_pressed);
@@ -1087,7 +1102,7 @@ void rogue_app_step(void)
             if(e->hurt_timer>0) e->hurt_timer -= dt_ms;
             if(e->flash_timer>0) e->flash_timer -= dt_ms;
             if(e->attack_cooldown_ms>0) e->attack_cooldown_ms -= dt_ms;
-            if(p_dist2 < 0.36f && g_app.player.health>0 && e->attack_cooldown_ms<=0){
+            if(p_dist2 < 0.50f && g_app.player.health>0 && e->attack_cooldown_ms<=0){
                 int dmg = (int)(1 + g_app.difficulty_scalar * 0.6); if(dmg<1) dmg=1;
                 g_app.player.health -= dmg; if(g_app.player.health<0) g_app.player.health=0; e->hurt_timer=200.0f; g_app.time_since_player_hit_ms = 0.0f;
                 rogue_add_damage_number(g_app.player.base.pos.x, g_app.player.base.pos.y - 0.2f, dmg, 0);
