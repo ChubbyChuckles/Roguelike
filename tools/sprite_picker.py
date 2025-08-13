@@ -20,8 +20,9 @@ You can place this file anywhere inside the project; it auto-detects the project
 from __future__ import annotations
 import os
 import sys
+import json
 from dataclasses import dataclass
-from typing import Optional, Callable, Tuple
+from typing import Optional, Callable, Tuple, Any, cast
 
 from PyQt6.QtCore import Qt, QEvent
 from PyQt6.QtGui import (
@@ -34,6 +35,7 @@ from PyQt6.QtGui import (
     QMouseEvent,
     QKeyEvent,
     QPaintEvent,
+    QCloseEvent,
 )
 from PyQt6.QtWidgets import (
     QApplication,
@@ -345,7 +347,7 @@ class SpriteSheetView(QWidget):
             painter.drawText(
                 self.rect(), Qt.AlignmentFlag.AlignCenter, "No sprite sheet loaded"
             )
-        painter.end()
+        painter.end() # 
 
 
 class MainWindow(QMainWindow):
@@ -353,40 +355,49 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.project_root = project_root
         self.assets_root = assets_root
+        # Settings storage
+        if getattr(sys, "frozen", False):
+            settings_base = os.path.expanduser("~")
+        else:
+            settings_base = os.path.dirname(__file__)
+        self._settings_path = os.path.join(
+            settings_base, ".sprite_picker_settings.json"
+        )
+        self._settings: dict[str, object] = {
+            "last_dir": assets_root,
+            "last_zoom": 100,
+            "prefix": "",
+        }
+        self._load_settings()
         self.setWindowTitle("Sprite Sheet Picker (16x16)")
+
         self.view = SpriteSheetView()
         self.view.on_select = self.cell_selected
 
-        # Root widget layout uses splitter for modern side panel
         central = QWidget()
         root_layout = QVBoxLayout(central)
 
-        # --- Toolbar ---
+        # Toolbar
         toolbar = QToolBar()
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
 
-        open_act = QAction("Open", self)
-        open_act.setShortcut("Ctrl+O")
-        open_act.triggered.connect(self.browse)  # type: ignore
-        toolbar.addAction(open_act)  # type: ignore
+        def add_action(
+            text: str, slot: "Callable[[], None]", shortcut: str | None = None
+        ):
+            act = QAction(text, self)
+            if shortcut:
+                act.setShortcut(shortcut)
+            act.triggered.connect(slot)  # type: ignore
+            toolbar.addAction(act)  # type: ignore
+            return act
 
-        zoom_in_act = QAction("Zoom +", self)
-        zoom_in_act.setShortcut("Ctrl++")
-        zoom_in_act.triggered.connect(self.view.zoom_in)  # type: ignore
-        toolbar.addAction(zoom_in_act)  # type: ignore
+        add_action("Open", self.browse, "Ctrl+O")
+        add_action("Zoom +", self.view.zoom_in, "Ctrl++")
+        add_action("Zoom -", self.view.zoom_out, "Ctrl+-")
+        add_action("1:1", self.view.reset_zoom, "Ctrl+0")
 
-        zoom_out_act = QAction("Zoom -", self)
-        zoom_out_act.setShortcut("Ctrl+-")
-        zoom_out_act.triggered.connect(self.view.zoom_out)  # type: ignore
-        toolbar.addAction(zoom_out_act)  # type: ignore
-
-        reset_zoom_act = QAction("1:1", self)
-        reset_zoom_act.setShortcut("Ctrl+0")
-        reset_zoom_act.triggered.connect(self.view.reset_zoom)  # type: ignore
-        toolbar.addAction(reset_zoom_act)  # type: ignore
-
-        # --- Path controls row ---
+        # Path row
         path_row = QHBoxLayout()
         self.recent_combo = QComboBox()
         self.recent_combo.setEditable(False)
@@ -404,19 +415,28 @@ class MainWindow(QMainWindow):
         path_row.addWidget(load_btn)
         root_layout.addLayout(path_row)
 
+        # Prefix row
+        prefix_row = QHBoxLayout()
+        prefix_row.addWidget(QLabel("Prefix:"))
+        self.prefix_edit = QLineEdit()
+        self.prefix_edit.setPlaceholderText("Optional path prefix e.g. ../")
+        self.prefix_edit.setText(str(self._settings.get("prefix", "")))
+        self.prefix_edit.textChanged.connect(self._prefix_changed)  # type: ignore
+        prefix_row.addWidget(self.prefix_edit, 1)
+        root_layout.addLayout(prefix_row)
+
         splitter = QSplitter()
         splitter.setOrientation(Qt.Orientation.Horizontal)
 
-        # Left: scroll image
+        # Left image area
         scroll = QScrollArea()
         scroll.setWidgetResizable(False)
         scroll.setWidget(self.view)
         splitter.addWidget(scroll)
 
-        # Right: side panel with output & preview
+        # Right panel
         side = QWidget()
         side_layout = QVBoxLayout(side)
-        # Output
         self.output_edit = QLineEdit()
         self.output_edit.setReadOnly(True)
         copy_btn = QPushButton("Copy Output")
@@ -427,24 +447,29 @@ class MainWindow(QMainWindow):
         out_row.addWidget(copy_btn)
         side_layout.addLayout(out_row)
 
-        # Info label
         self.info_label = QLabel("Image: - x - | cols: - rows: -")
         font = self.info_label.font()
         font.setPointSizeF(font.pointSizeF() * 0.9)
         self.info_label.setFont(font)
         side_layout.addWidget(self.info_label)
 
-        # Zoom slider
         zoom_row = QHBoxLayout()
         zoom_row.addWidget(QLabel("Zoom"))
         self.zoom_slider = QSlider(Qt.Orientation.Horizontal)
-        self.zoom_slider.setRange(25, 800)  # percent
-        self.zoom_slider.setValue(100)
+        self.zoom_slider.setRange(25, 800)
+        # Safely load persisted zoom
+        _z = self._settings.get("last_zoom", 100)
+        try:
+            z_int = int(_z)  # type: ignore[arg-type]
+        except Exception:
+            z_int = 100
+        if z_int < 25 or z_int > 800:
+            z_int = 100
+        self.zoom_slider.setValue(z_int)
         self.zoom_slider.valueChanged.connect(self._zoom_slider_changed)  # type: ignore
         zoom_row.addWidget(self.zoom_slider, 1)
         side_layout.addLayout(zoom_row)
 
-        # Selected tile preview
         self.preview_label = QLabel("No selection")
         self.preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.preview_label.setStyleSheet(
@@ -455,20 +480,45 @@ class MainWindow(QMainWindow):
         side_layout.addStretch(1)
         splitter.addWidget(side)
         splitter.setSizes([700, 250])  # type: ignore
-
         root_layout.addWidget(splitter, 1)
 
         self.status = QStatusBar()
         self.setStatusBar(self.status)
-
         self.setCentralWidget(central)
         self.resize(1100, 750)
-
-        # Styling (dark theme)
         self._apply_styles()
-
-        # Recent list load
         self._load_recent()
+        self._last_dir = str(self._settings.get("last_dir", self.assets_root))
+
+    # Persistence helpers
+    def _load_settings(self) -> None:
+        try:
+            if os.path.isfile(self._settings_path):
+                with open(self._settings_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if isinstance(data, dict):
+                    self._settings.update(cast(dict[str, Any], data))
+        except Exception:
+            pass
+
+    def _save_settings(self) -> None:
+        try:
+            with open(self._settings_path, "w", encoding="utf-8") as f:
+                json.dump(self._settings, f, indent=2)
+        except Exception:
+            pass
+
+    def _prefix_changed(self, text: str) -> None:  # noqa: D401
+        self._settings["prefix"] = text
+        self._save_settings()
+        rect = self.view._normalize_rect()  # type: ignore
+        if rect and self.view.sheet:
+            c1, r1, c2, r2 = rect
+            self.cell_selected(c1, r1, c2, r2)
+
+    def closeEvent(self, a0: QCloseEvent):  # noqa: N802
+        self._save_settings()
+        super().closeEvent(a0)
 
     # --- Styling ---
     def _apply_styles(self):
@@ -551,6 +601,8 @@ class MainWindow(QMainWindow):
     def _zoom_slider_changed(self, val: int):
         self.view.set_scale(val / 100.0)
         self.status.showMessage(f"Zoom: {val}%", 1000)
+        self._settings["last_zoom"] = val
+        self._save_settings()
 
     # API called by SpriteSheetView (rectangle selection)
     def cell_selected(self, c1: int, r1: int, c2: int, r2: int):
@@ -559,7 +611,15 @@ class MainWindow(QMainWindow):
         rel_path = os.path.relpath(self.view.sheet.path, self.project_root).replace(
             "\\", "/"
         )
-        text = f"{rel_path}, {c1}, {r1}, {c2}, {r2}"
+        prefix = str(self._settings.get("prefix", ""))
+        if prefix:
+            # Avoid double prefix if user already included; simple check
+            full_path = (
+                prefix + rel_path if not rel_path.startswith(prefix) else rel_path
+            )
+        else:
+            full_path = rel_path
+        text = f"{full_path}, {c1}, {r1}, {c2}, {r2}"
         self.output_edit.setText(text)
         cb = QGuiApplication.clipboard()
         if cb:
@@ -605,7 +665,13 @@ class MainWindow(QMainWindow):
 
     def browse(self):
         start_dir = (
-            self.assets_root if os.path.isdir(self.assets_root) else self.project_root
+            self._last_dir
+            if os.path.isdir(self._last_dir)
+            else (
+                self.assets_root
+                if os.path.isdir(self.assets_root)
+                else self.project_root
+            )
         )
         path, _ = QFileDialog.getOpenFileName(
             self,
@@ -643,6 +709,9 @@ class MainWindow(QMainWindow):
         self.status.showMessage(f"Loaded {rel_path}", 2500)
         self._recent_store_path(sheet.path)
         self._update_preview()
+        self._last_dir = os.path.dirname(sheet.path)
+        self._settings["last_dir"] = self._last_dir
+        self._save_settings()
 
     def copy_manual(self):
         text = self.output_edit.text()
