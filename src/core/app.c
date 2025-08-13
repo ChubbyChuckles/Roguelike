@@ -34,6 +34,7 @@ SOFTWARE.
 #include "game/combat.h"
 #include "game/damage_numbers.h"
 #include "core/enemy_system.h"
+#include "core/vegetation.h"
 #include "core/start_screen.h"
 #include "core/player_assets.h"
 #include "core/player_controller.h"
@@ -147,6 +148,10 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     /* Now generate world using (possibly loaded) generation parameters. */
     RogueWorldGenConfig wcfg = rogue_world_gen_config_build(1337u, 1, 1);
     rogue_world_generate(&g_app.world_map, &wcfg);
+    /* Vegetation definitions & initial generation */
+    rogue_vegetation_init();
+    rogue_vegetation_load_defs("assets/plants.cfg","assets/trees.cfg");
+    rogue_vegetation_generate(0.12f, 1337u);
     /* Expose player snapshot for HUD/stats panel */
     g_exposed_player_for_stats = g_app.player;
     g_app.stats_dirty = 0;
@@ -295,6 +300,8 @@ void rogue_app_step(void)
     rogue_projectiles_update(dt_ms);
     /* Render world tiles */
     rogue_world_render_tiles();
+	/* Vegetation before entities */
+    rogue_vegetation_render();
 
     /* Render player */
     rogue_player_render();

@@ -63,6 +63,7 @@ add_library(rogue_core
     src/core/skill_bar.c
     src/core/buffs.c
     src/core/projectiles.c
+    src/core/collision.c
     src/core/asset_config.c
     src/core/platform.c
     src/core/tile_sprite_cache.c
@@ -84,6 +85,7 @@ add_library(rogue_core
     src/core/start_screen.c
     src/core/player_assets.c
     src/util/log.c
+    src/core/vegetation.c
 )
 
 target_include_directories(rogue_core PUBLIC

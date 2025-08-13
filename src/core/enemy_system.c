@@ -8,6 +8,8 @@
 #include "game/damage_numbers.h"
 #include "util/log.h"
 #include "world/tilemap.h"
+#include "core/vegetation.h"
+#include "core/collision.h"
 
 /* Directly manipulate g_app to preserve semantics. */
 static int enemy_tile_is_blocking(unsigned char t){
@@ -101,6 +103,8 @@ void rogue_enemy_system_update(float dt_ms){
             if(p_dist2 < (float)(t->aggro_radius * t->aggro_radius)) e->ai_state = ROGUE_ENEMY_AI_AGGRO; else if(e->ai_state == ROGUE_ENEMY_AI_AGGRO && p_dist2 > (float)((t->aggro_radius+5)*(t->aggro_radius+5))) e->ai_state = ROGUE_ENEMY_AI_PATROL;
         }
         float move_dx=0, move_dy=0; float move_speed = t->speed * (float)g_app.dt;
+        int etx = (int)(e->base.pos.x+0.5f); int ety = (int)(e->base.pos.y+0.5f);
+        if(etx>=0 && ety>=0 && etx<g_app.world_map.width && ety<g_app.world_map.height){ move_speed *= rogue_vegetation_tile_move_scale(etx,ety); }
         if(e->ai_state == ROGUE_ENEMY_AI_PATROL){
             float tx = e->patrol_target_x; float ty = e->patrol_target_y; float dx = tx - e->base.pos.x; float dy = ty - e->base.pos.y; float d2 = dx*dx+dy*dy;
             if(d2 < 0.4f){
@@ -123,18 +127,15 @@ void rogue_enemy_system_update(float dt_ms){
             int ny = (int)(e->base.pos.y + move_dy * move_speed + 0.5f);
             if(nx>=0 && ny>=0 && nx<g_app.world_map.width && ny<g_app.world_map.height){
                 unsigned char nt = g_app.world_map.tiles[ny*g_app.world_map.width + nx];
-                if(enemy_tile_is_blocking(nt)){
+                int veg_block = rogue_vegetation_tile_blocking(nx,ny);
+                if(enemy_tile_is_blocking(nt) || veg_block){
                     float try_x = e->base.pos.x + move_dx * move_speed;
                     int txi = (int)(try_x + 0.5f); int tyi = (int)(e->base.pos.y + 0.5f);
                     int blocked_x = 0, blocked_y = 0;
-                    if(txi>=0 && tyi>=0 && txi<g_app.world_map.width && tyi<g_app.world_map.height){
-                        if(enemy_tile_is_blocking(g_app.world_map.tiles[tyi*g_app.world_map.width + txi])) blocked_x=1;
-                    }
+                    if(txi>=0 && tyi>=0 && txi<g_app.world_map.width && tyi<g_app.world_map.height){ if(enemy_tile_is_blocking(g_app.world_map.tiles[tyi*g_app.world_map.width + txi]) || rogue_vegetation_tile_blocking(txi,tyi)) blocked_x=1; }
                     float try_y = e->base.pos.y + move_dy * move_speed;
                     txi = (int)(e->base.pos.x + 0.5f); tyi = (int)(try_y + 0.5f);
-                    if(txi>=0 && tyi>=0 && txi<g_app.world_map.width && tyi<g_app.world_map.height){
-                        if(enemy_tile_is_blocking(g_app.world_map.tiles[tyi*g_app.world_map.width + txi])) blocked_y=1;
-                    }
+                    if(txi>=0 && tyi>=0 && txi<g_app.world_map.width && tyi<g_app.world_map.height){ if(enemy_tile_is_blocking(g_app.world_map.tiles[tyi*g_app.world_map.width + txi]) || rogue_vegetation_tile_blocking(txi,tyi)) blocked_y=1; }
                     if(!blocked_x && blocked_y){ move_dy = 0; }
                     else if(blocked_x && !blocked_y){ move_dx = 0; }
                     else { move_dx = move_dy = 0; }
@@ -205,4 +206,5 @@ void rogue_enemy_system_update(float dt_ms){
             if(d2>0.00001f && d2<min2){ float d=(float)sqrt(d2); float push=(minr - d)*0.5f; dx/=d; dy/=d; a->base.pos.x-=dx*push; a->base.pos.y-=dy*push; b->base.pos.x+=dx*push; b->base.pos.y+=dy*push; }
         }
     }
+    for(int i=0;i<ROGUE_MAX_ENEMIES;i++) if(g_app.enemies[i].alive){ rogue_collision_resolve_enemy_player(&g_app.enemies[i]); }
 }

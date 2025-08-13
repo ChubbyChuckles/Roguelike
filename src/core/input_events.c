@@ -9,6 +9,7 @@
 #include "core/skill_tree.h"
 #include "core/skill_bar.h"
 #include "core/skills.h"
+#include "core/vegetation.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
@@ -18,7 +19,7 @@ void rogue_process_events(void){
     SDL_Event ev; while(SDL_PollEvent(&ev)){
         if(ev.type==SDL_QUIT){ rogue_game_loop_request_exit(); }
         rogue_input_process_sdl_event(&g_app.input,&ev);
-        if(ev.type==SDL_KEYDOWN && !g_app.show_start_screen){
+    if(ev.type==SDL_KEYDOWN && !g_app.show_start_screen){
             if(rogue_skill_tree_is_open()){ rogue_skill_tree_handle_key(ev.key.keysym.sym); continue; }
             if(ev.key.keysym.sym==SDLK_TAB){ g_app.show_stats_panel=!g_app.show_stats_panel; }
             if(ev.key.keysym.sym==SDLK_k){ rogue_skill_tree_toggle(); }
@@ -52,7 +53,14 @@ void rogue_process_events(void){
                 g_app.pending_seed=(unsigned int)SDL_GetTicks();
                 RogueWorldGenConfig wcfg = rogue_world_gen_config_build(g_app.pending_seed, 1, 1);
                 rogue_tilemap_free(&g_app.world_map); rogue_world_generate(&g_app.world_map,&wcfg); g_app.minimap_dirty=1;
+                /* Regenerate vegetation with same cover and new seed */
+                rogue_vegetation_generate(rogue_vegetation_get_tree_cover(), g_app.pending_seed);
             }
+            /* Vegetation density adjustments: Alt+[ decreases, Alt+] increases */
+            const Uint8* ks = SDL_GetKeyboardState(NULL);
+            int alt_down = ks[SDL_SCANCODE_LALT] || ks[SDL_SCANCODE_RALT];
+            if(alt_down && ev.key.keysym.sym==SDLK_LEFTBRACKET){ float c=rogue_vegetation_get_tree_cover(); c-=0.02f; if(c<0.0f) c=0.0f; rogue_vegetation_set_tree_cover(c); }
+            if(alt_down && ev.key.keysym.sym==SDLK_RIGHTBRACKET){ float c=rogue_vegetation_get_tree_cover(); c+=0.02f; if(c>0.70f) c=0.70f; rogue_vegetation_set_tree_cover(c); }
         }
         if(ev.type==SDL_KEYDOWN && g_app.show_start_screen){
             if(g_app.entering_seed){
