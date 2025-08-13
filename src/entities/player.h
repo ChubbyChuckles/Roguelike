@@ -30,11 +30,21 @@ typedef struct RoguePlayer
 {
     RogueEntity base;
     int health;
+    int max_health; /* derived */
     int facing; /* 0=down,1=left,2=right,3=up */
     float anim_time;
     int anim_frame;
+    int level;
+    int xp;
+    int xp_to_next;
+    /* Core stats */
+    int strength;
+    int dexterity;
+    int vitality;
+    int intelligence;
 } RoguePlayer;
 
 void rogue_player_init(RoguePlayer* p);
+void rogue_player_recalc_derived(RoguePlayer* p);
 
 #endif

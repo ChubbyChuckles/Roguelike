@@ -24,15 +24,15 @@ int rogue_enemy_load_config(const char* path, RogueEnemyTypeDef types[], int* in
 	while(fgets(line,sizeof line,f)){
 		char* p=line; while(*p==' '||*p=='\t') p++;
 		if(*p=='#' || *p=='\n' || *p=='\0') continue;
-		/* Format: ENEMY,name,group_min,group_max,patrol_radius,aggro_radius,speed,idle.png,run.png,death.png */
+		/* Format: ENEMY,name,group_min,group_max,patrol_radius,aggro_radius,speed,pop_target,xp_reward,loot_chance,idle.png,run.png,death.png */
 		if(strncmp(p,"ENEMY",5)!=0) continue; p+=5; if(*p==',') p++;
-	char name[32]; int gmin,gmax,pr,ar; float spd; char idlep[128], runp[128], deathp[128];
+	char name[32]; int gmin,gmax,pr,ar; float spd; int pop_target=0,xp_reward=1; float loot_chance=0.0f; char idlep[128], runp[128], deathp[128];
 #if defined(_MSC_VER)
-	int n=sscanf_s(p,"%31[^,],%d,%d,%d,%d,%f,%127[^,],%127[^,],%127[^\r\n]", name,(unsigned)_countof(name),&gmin,&gmax,&pr,&ar,&spd,idlep,(unsigned)_countof(idlep),runp,(unsigned)_countof(runp),deathp,(unsigned)_countof(deathp));
+	int n=sscanf_s(p,"%31[^,],%d,%d,%d,%d,%f,%d,%d,%f,%127[^,],%127[^,],%127[^\r\n]", name,(unsigned)_countof(name),&gmin,&gmax,&pr,&ar,&spd,&pop_target,&xp_reward,&loot_chance,idlep,(unsigned)_countof(idlep),runp,(unsigned)_countof(runp),deathp,(unsigned)_countof(deathp));
 #else
-	int n=sscanf(p,"%31[^,],%d,%d,%d,%d,%f,%127[^,],%127[^,],%127[^\r\n]", name,&gmin,&gmax,&pr,&ar,&spd,idlep,runp,deathp);
+	int n=sscanf(p,"%31[^,],%d,%d,%d,%d,%f,%d,%d,%f,%127[^,],%127[^,],%127[^\r\n]", name,&gmin,&gmax,&pr,&ar,&spd,&pop_target,&xp_reward,&loot_chance,idlep,runp,deathp);
 #endif
-		if(n!=9){ ROGUE_LOG_WARN("enemy cfg parse fail: %s", line); continue; }
+		if(n!=12){ ROGUE_LOG_WARN("enemy cfg parse fail: %s", line); continue; }
 		if(loaded>=cap) break;
 		RogueEnemyTypeDef* t=&types[loaded]; memset(t,0,sizeof *t);
 		#if defined(_MSC_VER)
@@ -41,7 +41,7 @@ int rogue_enemy_load_config(const char* path, RogueEnemyTypeDef types[], int* in
 			strncpy(t->name,name,sizeof t->name -1);
 			t->name[sizeof t->name -1]='\0';
 		#endif
-		t->group_min=gmin; t->group_max=gmax; t->patrol_radius=pr; t->aggro_radius=ar; t->speed=spd; t->weight=1;
+		t->group_min=gmin; t->group_max=gmax; t->patrol_radius=pr; t->aggro_radius=ar; t->speed=spd; t->weight=(pop_target>0?pop_target:1); t->pop_target=(pop_target>0?pop_target:gmax*4); t->xp_reward=(xp_reward>0?xp_reward:1); t->loot_chance=(loot_chance<0?0:(loot_chance>1?1:loot_chance));
 		if(!load_sheet(idlep,&t->idle_tex,t->idle_frames,&t->idle_count)) ROGUE_LOG_WARN("enemy idle sheet load fail: %s", idlep);
 		if(!load_sheet(runp,&t->run_tex,t->run_frames,&t->run_count)) ROGUE_LOG_WARN("enemy run sheet load fail: %s", runp);
 		if(!load_sheet(deathp,&t->death_tex,t->death_frames,&t->death_count)) ROGUE_LOG_WARN("enemy death sheet load fail: %s", deathp);

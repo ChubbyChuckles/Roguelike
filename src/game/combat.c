@@ -16,7 +16,13 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
         if(pc->timer >= 140.0f){ pc->phase = ROGUE_ATTACK_IDLE; pc->timer = 0; if(pc->combo>3) pc->combo=0; }
     }
     if(pc->stamina_regen_delay>0){ pc->stamina_regen_delay -= dt_ms; }
-    else { pc->stamina += dt_ms * 0.05f; if(pc->stamina>100.0f) pc->stamina=100.0f; }
+    else {
+        /* Base regen plus DEX/INT scaling: regen per ms */
+        extern RoguePlayer g_exposed_player_for_stats; /* declared in app for access */
+        float dex = (float)g_exposed_player_for_stats.dexterity;
+        float intel = (float)g_exposed_player_for_stats.intelligence;
+        float regen = 0.05f + (dex*0.0008f) + (intel*0.0005f);
+        pc->stamina += dt_ms * regen; if(pc->stamina>100.0f) pc->stamina=100.0f; }
 }
 
 int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, RogueEnemy enemies[], int enemy_count){
@@ -31,7 +37,9 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
         if(!enemies[i].alive) continue;
         float dx = enemies[i].base.pos.x - sx; float dy = enemies[i].base.pos.y - sy;
         float dist2 = dx*dx + dy*dy;
-        if(dist2 < (reach*reach*0.5f)){ enemies[i].health -= 1; enemies[i].hurt_timer = 150.0f; if(enemies[i].health<=0){ enemies[i].alive=0; kills++; } }
+        if(dist2 < (reach*reach*0.5f)){
+            int dmg = 1 + player->strength/5; /* scale damage modestly */
+            enemies[i].health -= dmg; enemies[i].hurt_timer = 150.0f; if(enemies[i].health<=0){ enemies[i].alive=0; kills++; } }
     }
     return kills;
 }

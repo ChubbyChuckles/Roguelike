@@ -19,4 +19,7 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
 /* Attempt to apply strike damage to enemies during STRIKE phase. Returns kills this frame */
 int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, RogueEnemy enemies[], int enemy_count);
 
+/* Exposed global (defined in app.c) for stamina regen stat scaling */
+extern RoguePlayer g_exposed_player_for_stats;
+
 #endif

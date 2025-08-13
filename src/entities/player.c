@@ -29,8 +29,26 @@ void rogue_player_init(RoguePlayer* p)
     p->base.pos.y = 0.0f;
     p->base.vel.x = 0.0f;
     p->base.vel.y = 0.0f;
-    p->health = 3;
+    p->health = 0; /* will be set after first recalc */
+    p->max_health = 0;
     p->facing = 0;
     p->anim_time = 0.0f;
     p->anim_frame = 0;
+    p->level = 1;
+    p->xp = 0;
+    p->xp_to_next = 20;
+    p->strength = 5;
+    p->dexterity = 5;
+    p->vitality = 15; /* starting vitality */
+    p->intelligence = 5;
+    rogue_player_recalc_derived(p);
+}
+
+void rogue_player_recalc_derived(RoguePlayer* p)
+{
+    int old_max = p->max_health;
+    /* New scaling: higher base + stronger vitality impact */
+    p->max_health = 300 + p->vitality * 2 + (p->level-1) * 15; /* base 300 */
+    if(p->health == 0 || p->health == old_max) p->health = p->max_health; /* fill to max on init or level-based rescale */
+    if(p->health > p->max_health) p->health = p->max_health;
 }

@@ -58,6 +58,8 @@ typedef struct RogueAppState
     RogueTileMap world_map;
     RogueInputState input;
     RoguePlayer player;
+    int unspent_stat_points;
+    int stats_dirty;
     int tileset_loaded; /* now indicates tile registry finalized */
     int tile_size; /* terrain tile pixel size (now 16) */
     int player_frame_size; /* character frame size (64) */
@@ -128,9 +130,15 @@ typedef struct RogueAppState
     int enemy_type_count;
     RoguePlayerCombat player_combat;
     int total_kills;
+    int per_type_counts[ROGUE_MAX_ENEMY_TYPES];
+    double difficulty_scalar;
+    int show_stats_panel;
+    int stats_panel_index; /* 0 STR 1 DEX 2 VIT 3 INT */
 } RogueAppState;
 
 static RogueAppState g_app;
+/* Expose player for combat stamina scaling (lightweight linkage) */
+RoguePlayer g_exposed_player_for_stats;
 
 /* Local timing helper (separate from game_loop's static) */
 static double now_seconds(void) { return (double) clock() / (double) CLOCKS_PER_SEC; }
@@ -278,6 +286,42 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     wcfg.biome_regions = 10 * 100; /* 1000 seeds */
     rogue_world_generate(&g_app.world_map, &wcfg);
     rogue_player_init(&g_app.player);
+    g_exposed_player_for_stats = g_app.player;
+    g_app.unspent_stat_points = 0;
+    g_app.stats_dirty = 0;
+    g_app.show_stats_panel = 0;
+    g_app.stats_panel_index = 0;
+    /* Load persisted player stats */
+    {
+        FILE* f=NULL; 
+#if defined(_MSC_VER)
+        fopen_s(&f, "player_stats.cfg", "rb");
+#else
+        f=fopen("player_stats.cfg","rb");
+#endif
+        if(f){
+            char line[256];
+            while(fgets(line,sizeof line,f)){
+                if(line[0]=='#' || line[0]=='\n' || line[0]=='\0') continue;
+                char* eq=strchr(line,'='); if(!eq) continue; *eq='\0';
+                char* key=line; char* val=eq+1;
+                for(char* p=key; *p; ++p){ if(*p=='\r'||*p=='\n'){*p='\0';break;} }
+                for(char* p=val; *p; ++p){ if(*p=='\r'||*p=='\n'){*p='\0';break;} }
+                if(strcmp(key,"LEVEL")==0) g_app.player.level = atoi(val);
+                else if(strcmp(key,"XP")==0) g_app.player.xp = atoi(val);
+                else if(strcmp(key,"XP_TO_NEXT")==0) g_app.player.xp_to_next = atoi(val);
+                else if(strcmp(key,"STR")==0) g_app.player.strength = atoi(val);
+                else if(strcmp(key,"DEX")==0) g_app.player.dexterity = atoi(val);
+                else if(strcmp(key,"VIT")==0) g_app.player.vitality = atoi(val);
+                else if(strcmp(key,"INT")==0) g_app.player.intelligence = atoi(val);
+                else if(strcmp(key,"UNSPENT")==0) g_app.unspent_stat_points = atoi(val);
+                else if(strcmp(key,"HP")==0) g_app.player.health = atoi(val);
+            }
+            fclose(f);
+            rogue_player_recalc_derived(&g_app.player);
+            g_app.stats_dirty = 0; /* loaded */
+        }
+    }
     g_app.tileset_loaded = 0; /* registry not finalized yet */
     g_app.tile_size = 16; /* terrain tiles */
     g_app.player_frame_size = 64;
@@ -340,11 +384,26 @@ static void process_events(void)
         rogue_input_process_sdl_event(&g_app.input, &ev);
         if (ev.type == SDL_KEYDOWN && !g_app.show_start_screen)
         {
+            if(ev.key.keysym.sym == SDLK_TAB){ g_app.show_stats_panel = !g_app.show_stats_panel; }
+            if(g_app.show_stats_panel){
+                if(ev.key.keysym.sym == SDLK_LEFT){ g_app.stats_panel_index = (g_app.stats_panel_index+3)%4; }
+                if(ev.key.keysym.sym == SDLK_RIGHT){ g_app.stats_panel_index = (g_app.stats_panel_index+1)%4; }
+                if(ev.key.keysym.sym == SDLK_RETURN && g_app.unspent_stat_points>0){
+                    if(g_app.stats_panel_index==0){ g_app.player.strength++; }
+                    else if(g_app.stats_panel_index==1){ g_app.player.dexterity++; }
+                    else if(g_app.stats_panel_index==2){ g_app.player.vitality++; rogue_player_recalc_derived(&g_app.player); }
+                    else if(g_app.stats_panel_index==3){ g_app.player.intelligence++; }
+                    g_app.unspent_stat_points--; g_app.stats_dirty=1;
+                }
+                if(ev.key.keysym.sym == SDLK_BACKSPACE){ g_app.show_stats_panel = 0; }
+            }
             if (ev.key.keysym.sym == SDLK_r)
             {
                 /* toggle run state manually for demo */
                 g_app.player_state = (g_app.player_state == 2) ? 1 : 2;
             }
+            /* TEMP: allocate stat points with keys (U=STR,J=DEX,H=VIT,K=INT) */
+            /* Hotkeys removed in favor of panel */
             /* Debug terrain parameter tweaks */
             if (ev.key.keysym.sym == SDLK_F5) { g_app.gen_water_level -= 0.01; if(g_app.gen_water_level < 0.20) g_app.gen_water_level = 0.20; g_app.gen_params_dirty=1; ev.key.keysym.sym = SDLK_BACKQUOTE; }
             if (ev.key.keysym.sym == SDLK_F6) { g_app.gen_water_level += 0.01; if(g_app.gen_water_level > 0.55) g_app.gen_water_level = 0.55; g_app.gen_params_dirty=1; ev.key.keysym.sym = SDLK_BACKQUOTE; }
@@ -749,33 +808,40 @@ void rogue_app_step(void)
     float dt_ms = (float)g_app.dt * 1000.0f;
     rogue_combat_update_player(&g_app.player_combat, dt_ms, attack_pressed);
     int kills = rogue_combat_player_strike(&g_app.player_combat, &g_app.player, g_app.enemies, g_app.enemy_count);
-    g_app.total_kills += kills;
+    if(kills>0){
+        g_app.total_kills += kills;
+        g_app.player.xp += kills * (3 + g_app.player.level); /* scale xp gain modestly */
+    }
+    while(g_app.player.xp >= g_app.player.xp_to_next){
+        g_app.player.xp -= g_app.player.xp_to_next; 
+        g_app.player.level++; 
+        g_app.unspent_stat_points += 3; /* award stat points */
+        g_app.player.xp_to_next = (int)(g_app.player.xp_to_next * 1.35f + 15); 
+        rogue_player_recalc_derived(&g_app.player);
+        g_app.stats_dirty = 1;
+    }
+    g_app.difficulty_scalar = 1.0 + (double)g_app.player.level * 0.15 + (double)g_app.total_kills * 0.002;
         /* Wrap inside map bounds */
         if(g_app.player.base.pos.x < 0) g_app.player.base.pos.x = 0;
         if(g_app.player.base.pos.y < 0) g_app.player.base.pos.y = 0;
         if(g_app.player.base.pos.x > g_app.world_map.width-1) g_app.player.base.pos.x = (float)(g_app.world_map.width-1);
         if(g_app.player.base.pos.y > g_app.world_map.height-1) g_app.player.base.pos.y = (float)(g_app.world_map.height-1);
-        /* Ensure global population: spawn groups over grass tiles until target (simple pass each frame) */
-        int desired = 120; /* heuristic; could be config */
-    if(g_app.enemy_type_count>0 && g_app.enemy_count < desired){
-            for(int tries=0; tries<8 && g_app.enemy_count < desired; ++tries){
-                int gx = rand() % g_app.world_map.width;
-                int gy = rand() % g_app.world_map.height;
-                unsigned char tile = g_app.world_map.tiles[gy*g_app.world_map.width + gx];
-                if(tile != ROGUE_TILE_GRASS) continue;
-                RogueEnemyTypeDef* t = &g_app.enemy_types[0];
-                int group_sz = t->group_min + (rand() % (t->group_max - t->group_min + 1));
-                for(int m=0; m<group_sz && g_app.enemy_count < desired; ++m){
-                    for(int slot=0; slot<ROGUE_MAX_ENEMIES; ++slot){ if(!g_app.enemies[slot].alive){
-                        float rx = (float)((rand()% (t->patrol_radius*2+1)) - t->patrol_radius);
-                        float ry = (float)((rand()% (t->patrol_radius*2+1)) - t->patrol_radius);
-                        float ex = gx + rx; float ey = gy + ry;
-                        if(ex<1||ey<1||ex>g_app.world_map.width-2||ey>g_app.world_map.height-2) continue;
-                        g_app.enemies[slot].base.pos.x = ex; g_app.enemies[slot].base.pos.y = ey;
-                        g_app.enemies[slot].anchor_x = (float)gx; g_app.enemies[slot].anchor_y = (float)gy;
-                        g_app.enemies[slot].patrol_target_x = ex; g_app.enemies[slot].patrol_target_y = ey;
-                        g_app.enemies[slot].health = 3; g_app.enemies[slot].alive=1; g_app.enemies[slot].hurt_timer=0; g_app.enemies[slot].anim_time=0; g_app.enemies[slot].anim_frame=0; g_app.enemies[slot].ai_state=ROGUE_ENEMY_AI_PATROL; g_app.enemies[slot].facing=2; g_app.enemies[slot].type_index=0; g_app.enemies[slot].tint_r=255.0f; g_app.enemies[slot].tint_g=255.0f; g_app.enemies[slot].tint_b=255.0f; g_app.enemies[slot].death_fade=1.0f; g_app.enemies[slot].tint_phase=0.0f;
-                        g_app.enemy_count++; break; }
+        /* Per-type spawning */
+        if(g_app.enemy_type_count>0){
+            for(int ti=0; ti<g_app.enemy_type_count; ++ti){
+                RogueEnemyTypeDef* t=&g_app.enemy_types[ti];
+                int cur = g_app.per_type_counts[ti]; int target = t->pop_target; if(target<=0) target=20;
+                if(cur >= target) continue; int needed = target - cur; int groups = (needed + t->group_max-1)/t->group_max; if(groups>2) groups=2;
+                for(int g=0; g<groups && needed>0; ++g){
+                    int gx = rand() % g_app.world_map.width; int gy = rand() % g_app.world_map.height; unsigned char tile = g_app.world_map.tiles[gy*g_app.world_map.width + gx]; if(tile != ROGUE_TILE_GRASS) continue;
+                    int group_sz = t->group_min + (rand() % (t->group_max - t->group_min + 1)); if(group_sz>needed) group_sz=needed;
+                    for(int m=0; m<group_sz && needed>0; ++m){
+                        for(int slot=0; slot<ROGUE_MAX_ENEMIES; ++slot){ if(!g_app.enemies[slot].alive){
+                            float rx = (float)((rand()% (t->patrol_radius*2+1)) - t->patrol_radius);
+                            float ry = (float)((rand()% (t->patrol_radius*2+1)) - t->patrol_radius);
+                            float ex = gx + rx; float ey = gy + ry; if(ex<1||ey<1||ex>g_app.world_map.width-2||ey>g_app.world_map.height-2) continue;
+                            RogueEnemy* ne=&g_app.enemies[slot]; ne->base.pos.x=ex; ne->base.pos.y=ey; ne->anchor_x=(float)gx; ne->anchor_y=(float)gy; ne->patrol_target_x=ex; ne->patrol_target_y=ey; ne->health=(int)(3 * g_app.difficulty_scalar); if(ne->health<1) ne->health=1; ne->alive=1; ne->hurt_timer=0; ne->anim_time=0; ne->anim_frame=0; ne->ai_state=ROGUE_ENEMY_AI_PATROL; ne->facing=2; ne->type_index=ti; ne->tint_r=255.0f; ne->tint_g=255.0f; ne->tint_b=255.0f; ne->death_fade=1.0f; ne->tint_phase=0.0f; g_app.enemy_count++; g_app.per_type_counts[ti]++; needed--; break; }
+                        }
                     }
                 }
             }
@@ -787,6 +853,8 @@ void rogue_app_step(void)
             float pdx = g_app.player.base.pos.x - e->base.pos.x;
             float pdy = g_app.player.base.pos.y - e->base.pos.y;
             float p_dist2 = pdx*pdx + pdy*pdy;
+            /* Despawn if extremely far (beyond aggro^2 * 64) */
+            if(p_dist2 > (float)(t->aggro_radius * t->aggro_radius * 64)) { e->alive=0; g_app.enemy_count--; if(g_app.per_type_counts[e->type_index]>0) g_app.per_type_counts[e->type_index]--; continue; }
             if(e->ai_state != ROGUE_ENEMY_AI_DEAD){
                 if(p_dist2 < (float)(t->aggro_radius * t->aggro_radius)) e->ai_state = ROGUE_ENEMY_AI_AGGRO; else if(e->ai_state == ROGUE_ENEMY_AI_AGGRO && p_dist2 > (float)((t->aggro_radius+5)*(t->aggro_radius+5))) e->ai_state = ROGUE_ENEMY_AI_PATROL;
             }
@@ -811,8 +879,14 @@ void rogue_app_step(void)
             e->base.pos.x += move_dx * move_speed; e->base.pos.y += move_dy * move_speed;
             e->facing = (move_dx < 0)? 1 : 2;
             if(e->hurt_timer>0) e->hurt_timer -= dt_ms;
-            if(p_dist2 < 0.36f && g_app.player.health>0){ g_app.player.health--; e->hurt_timer=200.0f; }
-            if(e->health<=0 && e->ai_state != ROGUE_ENEMY_AI_DEAD){ e->ai_state = ROGUE_ENEMY_AI_DEAD; e->anim_time=0; e->anim_frame=0; e->death_fade=1.0f; }
+            if(p_dist2 < 0.36f && g_app.player.health>0){
+                int dmg = (int)(1 + g_app.difficulty_scalar * 0.6); if(dmg<1) dmg=1;
+                g_app.player.health -= dmg; if(g_app.player.health<0) g_app.player.health=0; e->hurt_timer=200.0f; }
+            if(e->health<=0 && e->ai_state != ROGUE_ENEMY_AI_DEAD){
+                e->ai_state = ROGUE_ENEMY_AI_DEAD; e->anim_time=0; e->anim_frame=0; e->death_fade=1.0f;
+                g_app.player.xp += t->xp_reward;
+                if(((float)rand()/(float)RAND_MAX) < t->loot_chance){ g_app.player.health += 2 + (g_app.player.vitality/3); if(g_app.player.health>g_app.player.max_health) g_app.player.health=g_app.player.max_health; }
+            }
             /* Animation frames */
             RogueSprite* frames=NULL; int fcount=0; if(e->ai_state==ROGUE_ENEMY_AI_AGGRO) { frames=t->run_frames; fcount=t->run_count; } else if(e->ai_state==ROGUE_ENEMY_AI_PATROL){ frames=t->idle_frames; fcount=t->idle_count; } else { frames=t->death_frames; fcount=t->death_count; }
             float frame_ms = (e->ai_state==ROGUE_ENEMY_AI_AGGRO)? 110.0f : 160.0f;
@@ -822,9 +896,8 @@ void rogue_app_step(void)
             /* Death fade removal after animation completes & fade done */
             if(e->ai_state==ROGUE_ENEMY_AI_DEAD){
                 if(e->anim_frame == fcount-1){
-                    /* start / continue fade */
-                    e->death_fade -= (float)g_app.dt * 2.0f; /* 0.5s fade */
-                    if(e->death_fade <= 0.0f){ e->alive=0; }
+                    e->death_fade -= (float)g_app.dt * 2.0f;
+                    if(e->death_fade <= 0.0f){ e->alive=0; g_app.enemy_count--; if(g_app.per_type_counts[e->type_index]>0) g_app.per_type_counts[e->type_index]--; }
                 }
             }
             /* Tint target selection */
@@ -849,6 +922,15 @@ void rogue_app_step(void)
             e->tint_r += (target_r - e->tint_r) * lerp;
             e->tint_g += (target_g - e->tint_g) * lerp;
             e->tint_b += (target_b - e->tint_b) * lerp;
+        }
+        /* Separation pass */
+        for(int i=0;i<ROGUE_MAX_ENEMIES;i++) if(g_app.enemies[i].alive){
+            RogueEnemy* a=&g_app.enemies[i];
+            for(int j=i+1;j<ROGUE_MAX_ENEMIES;j++) if(g_app.enemies[j].alive){
+                RogueEnemy* b=&g_app.enemies[j];
+                float dx=b->base.pos.x - a->base.pos.x; float dy=b->base.pos.y - a->base.pos.y; float d2=dx*dx+dy*dy; float minr=0.30f; float min2=minr*minr;
+                if(d2>0.00001f && d2<min2){ float d=(float)sqrt(d2); float push=(minr - d)*0.5f; dx/=d; dy/=d; a->base.pos.x-=dx*push; a->base.pos.y-=dy*push; b->base.pos.x+=dx*push; b->base.pos.y+=dy*push; }
+            }
         }
 
         /* Advance animation (coalesce tiny dt <1ms to reduce float churn) */
@@ -1113,10 +1195,57 @@ void rogue_app_step(void)
         snprintf(gen_buf1, sizeof gen_buf1, "WT:%.2f OCT:%d GAIN:%.2f LAC:%.2f", g_app.gen_water_level, g_app.gen_noise_octaves, g_app.gen_noise_gain, g_app.gen_noise_lacunarity);
         rogue_font_draw_text(base_x, base_y + line_h*2, gen_buf1, overlay_scale, (RogueColor){180,220,255,255});
     char gen_buf2[160];
-    snprintf(gen_buf2, sizeof gen_buf2, "RIV:%d LEN:%d CAVE>%.2f HP:%d EN:%d KILLS:%d STA:%d PH:%d F5/F6 WT F7/F8 OCT F9/F10 RIV F11/F12 GAIN ` REGEN", g_app.gen_river_sources, g_app.gen_river_max_length, g_app.gen_cave_thresh, g_app.player.health, g_app.enemy_count, g_app.total_kills, (int)g_app.player_combat.stamina, g_app.player_combat.phase);
+    snprintf(gen_buf2, sizeof gen_buf2, "HP:%d/%d L:%d XP:%d/%d PTS:%d STR:%d DEX:%d VIT:%d INT:%d EN:%d K:%d DIF:%.2f STA:%d PH:%d", g_app.player.health, g_app.player.max_health, g_app.player.level, g_app.player.xp, g_app.player.xp_to_next, g_app.unspent_stat_points, g_app.player.strength, g_app.player.dexterity, g_app.player.vitality, g_app.player.intelligence, g_app.enemy_count, g_app.total_kills, g_app.difficulty_scalar, (int)g_app.player_combat.stamina, g_app.player_combat.phase);
     rogue_font_draw_text(base_x, base_y + line_h*3, gen_buf2, overlay_scale, (RogueColor){160,200,240,255});
     }
+    if(g_app.show_stats_panel){
+#ifdef ROGUE_HAVE_SDL
+        if(g_app.renderer){
+            SDL_Rect panel = { 200, 80, 420, 140 };
+            SDL_SetRenderDrawColor(g_app.renderer, 0,0,40,200);
+            SDL_RenderFillRect(g_app.renderer, &panel);
+        }
+#endif
+        const char* labels[4] = {"STR","DEX","VIT","INT"};
+        int values[4] = { g_app.player.strength, g_app.player.dexterity, g_app.player.vitality, g_app.player.intelligence };
+        char line[64];
+        rogue_font_draw_text(210, 90, "STAT ALLOCATION (TAB to close)",1,(RogueColor){255,255,0,255});
+        for(int i=0;i<4;i++){
+            snprintf(line,sizeof line,"%s: %d%s", labels[i], values[i], (i==g_app.stats_panel_index)?" <":"");
+            rogue_font_draw_text(210, 110 + i*12, line,1,(RogueColor){ (i==g_app.stats_panel_index)?255:200,255,255,255});
+        }
+        snprintf(line,sizeof line,"Unspent: %d", g_app.unspent_stat_points);
+        rogue_font_draw_text(210, 110 + 4*12, line,1,(RogueColor){200,255,200,255});
+        rogue_font_draw_text(210, 110 + 5*12, "Use LEFT/RIGHT to select, ENTER to add",1,(RogueColor){180,200,255,255});
+    }
+    /* Auto-save stats every ~5 seconds when dirty */
+    static double stats_save_timer = 0.0; stats_save_timer += g_app.dt;
+    if(g_app.stats_dirty && stats_save_timer > 5.0){
+    FILE* f=NULL;
+#if defined(_MSC_VER)
+    fopen_s(&f, "player_stats.cfg", "wb");
+#else
+    f=fopen("player_stats.cfg","wb");
+#endif
+    if(f){
+        fprintf(f,"# Saved player progression\n");
+        fprintf(f,"LEVEL=%d\n", g_app.player.level);
+        fprintf(f,"XP=%d\n", g_app.player.xp);
+        fprintf(f,"XP_TO_NEXT=%d\n", g_app.player.xp_to_next);
+        fprintf(f,"STR=%d\n", g_app.player.strength);
+        fprintf(f,"DEX=%d\n", g_app.player.dexterity);
+        fprintf(f,"VIT=%d\n", g_app.player.vitality);
+        fprintf(f,"INT=%d\n", g_app.player.intelligence);
+        fprintf(f,"UNSPENT=%d\n", g_app.unspent_stat_points);
+        fprintf(f,"HP=%d\n", g_app.player.health);
+        fclose(f);
+        g_app.stats_dirty=0;
+    }
+    stats_save_timer = 0.0;
+    }
     SDL_RenderPresent(g_app.renderer);
+    /* Refresh exported player after all stat changes this frame */
+    g_exposed_player_for_stats = g_app.player;
 #endif
     rogue_game_loop_iterate();
     g_app.frame_count++;
@@ -1172,6 +1301,28 @@ void rogue_app_shutdown(void)
         fprintf(f,"RIVER_SOURCES=%d\n", g_app.gen_river_sources);
         fprintf(f,"RIVER_MAX_LENGTH=%d\n", g_app.gen_river_max_length);
         fprintf(f,"CAVE_THRESH=%.4f\n", g_app.gen_cave_thresh);
+        fclose(f);
+    }
+    }
+    /* Persist player stats */
+    {
+    FILE* f=NULL;
+#if defined(_MSC_VER)
+    fopen_s(&f, "player_stats.cfg", "wb");
+#else
+    f=fopen("player_stats.cfg","wb");
+#endif
+    if(f){
+        fprintf(f,"# Saved player progression\n");
+        fprintf(f,"LEVEL=%d\n", g_app.player.level);
+        fprintf(f,"XP=%d\n", g_app.player.xp);
+        fprintf(f,"XP_TO_NEXT=%d\n", g_app.player.xp_to_next);
+        fprintf(f,"STR=%d\n", g_app.player.strength);
+        fprintf(f,"DEX=%d\n", g_app.player.dexterity);
+        fprintf(f,"VIT=%d\n", g_app.player.vitality);
+        fprintf(f,"INT=%d\n", g_app.player.intelligence);
+        fprintf(f,"UNSPENT=%d\n", g_app.unspent_stat_points);
+        fprintf(f,"HP=%d\n", g_app.player.health);
         fclose(f);
     }
     }

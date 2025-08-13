@@ -13,6 +13,9 @@ typedef struct RogueEnemyTypeDef {
     int patrol_radius;   /* tiles */
     int aggro_radius;    /* tiles */
     float speed;         /* tiles per second */
+    int pop_target;      /* desired population for this type */
+    int xp_reward;       /* xp per kill */
+    float loot_chance;   /* 0..1 */
     /* Animation sheets (side-only) */
     RogueTexture idle_tex, run_tex, death_tex;
     RogueSprite  idle_frames[8]; int idle_count;
