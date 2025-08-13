@@ -27,6 +27,7 @@ SOFTWARE.
 #include "util/log.h"
 #include "graphics/font.h"
 #include "world/world_gen.h"
+#include "world/world_gen_config.h"
 #include "input/input.h"
 #include "entities/player.h"
 #include "entities/enemy.h"
@@ -50,6 +51,7 @@ SOFTWARE.
 #include "core/persistence.h"
 #include "core/asset_config.h"
 #include "core/metrics.h"
+#include "core/platform.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -68,22 +70,7 @@ SOFTWARE.
 
 /* state now in app_state.c */
 
-static void apply_window_mode(void)
-{
-#ifdef ROGUE_HAVE_SDL
-    if (!g_app.window) return;
-    Uint32 flags = 0;
-    switch (g_app.cfg.window_mode)
-    {
-    case ROGUE_WINDOW_FULLSCREEN: flags = SDL_WINDOW_FULLSCREEN; break;
-    case ROGUE_WINDOW_BORDERLESS: flags = SDL_WINDOW_FULLSCREEN_DESKTOP; break;
-    case ROGUE_WINDOW_WINDOWED: default: flags = 0; break; }
-    if (SDL_SetWindowFullscreen(g_app.window, flags) != 0)
-    {
-        ROGUE_LOG_WARN("Failed to set fullscreen mode: %s", SDL_GetError());
-    }
-#endif
-}
+/* window mode logic moved to platform.c */
 
 int rogue_get_current_attack_frame(void){
     /* Return current player anim frame if attack state active, else 0 */
@@ -136,59 +123,20 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.menu_index = 0;
     g_app.entering_seed = 0;
     g_app.pending_seed = 1337u;
-#ifdef ROGUE_HAVE_SDL
-    Uint32 sdl_flags = SDL_INIT_VIDEO | SDL_INIT_EVENTS;
-#ifdef ROGUE_HAVE_SDL_MIXER
-    sdl_flags |= SDL_INIT_AUDIO;
-#endif
-    if (SDL_Init(sdl_flags) != 0)
-    {
-        ROGUE_LOG_ERROR("SDL_Init failed: %s", SDL_GetError());
-        return false;
-    }
-    Uint32 win_flags = SDL_WINDOW_SHOWN;
-    if (cfg->allow_resize) win_flags |= SDL_WINDOW_RESIZABLE;
-    g_app.window = SDL_CreateWindow(cfg->window_title, SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED, cfg->window_width, cfg->window_height, win_flags);
-    if (!g_app.window)
-    {
-        ROGUE_LOG_ERROR("SDL_CreateWindow failed: %s", SDL_GetError());
-        return false;
-    }
-    Uint32 rflags = SDL_RENDERER_ACCELERATED;
-    if (cfg->enable_vsync) rflags |= SDL_RENDERER_PRESENTVSYNC;
-    g_app.renderer = SDL_CreateRenderer(g_app.window, -1, rflags);
-    if (!g_app.renderer)
-    {
-        ROGUE_LOG_WARN("SDL_CreateRenderer failed (%s). Entering headless test mode (no rendering).", SDL_GetError());
-        g_app.headless = 1;
-    }
-    /* Temporary exposure of SDL_Renderer for renderer abstraction */
-    extern SDL_Renderer* g_internal_sdl_renderer_ref;
-    g_internal_sdl_renderer_ref = g_app.renderer;
-#else
-    (void) cfg;
-#endif
-    /* Configure logical size & scaling */
-    if (cfg->logical_width > 0 && cfg->logical_height > 0)
-    {
-#ifdef ROGUE_HAVE_SDL
-        SDL_RenderSetLogicalSize(g_app.renderer, cfg->logical_width, cfg->logical_height);
-        if (cfg->integer_scale) SDL_RenderSetIntegerScale(g_app.renderer, SDL_TRUE);
-#endif
-    }
-
-    apply_window_mode();
+    /* Initialize player with defaults FIRST so persistence load overwrites instead of being clobbered. */
+    rogue_player_init(&g_app.player);
+    /* Default unspent stat points (will be overwritten if persistence file exists). */
+    g_app.unspent_stat_points = 0;
+    if(!rogue_platform_init(cfg)) return false;
     RogueGameLoopConfig loop_cfg = {.target_fps = cfg->target_fps};
     rogue_game_loop_init(&loop_cfg);
-    /* Load persisted generation params + player stats BEFORE first world gen */
+    /* Load persisted generation params + player stats BEFORE first world gen and AFTER player init so values stick. */
     rogue_persistence_init_and_load();
-    RogueWorldGenConfig wcfg = { .seed = 1337u, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2, .small_island_max_size = 3, .small_island_passes = 2, .shore_fill_passes = 1, .advanced_terrain = 1, .water_level = g_app.gen_water_level, .noise_octaves = g_app.gen_noise_octaves, .noise_gain = g_app.gen_noise_gain, .noise_lacunarity = g_app.gen_noise_lacunarity, .river_sources = g_app.gen_river_sources, .river_max_length = g_app.gen_river_max_length, .cave_mountain_elev_thresh = g_app.gen_cave_thresh };
-    wcfg.width *= 10; wcfg.height *= 10; wcfg.biome_regions = 10 * 100; /* scale */
+    /* Now generate world using (possibly loaded) generation parameters. */
+    RogueWorldGenConfig wcfg = rogue_world_gen_config_build(1337u, 1, 1);
     rogue_world_generate(&g_app.world_map, &wcfg);
-    rogue_player_init(&g_app.player);
+    /* Expose player snapshot for HUD/stats panel */
     g_exposed_player_for_stats = g_app.player;
-    g_app.unspent_stat_points = 0;
     g_app.stats_dirty = 0;
     g_app.show_stats_panel = 0;
     g_app.stats_panel_index = 0;
@@ -197,46 +145,13 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.mana_regen_accum_ms = 0.0f;
     g_app.levelup_aura_timer_ms = 0.0f;
     g_app.dmg_number_count = 0; g_app.spawn_accum_ms = 700.0; /* start beyond threshold so first spawn attempt happens next frame */
+/* Audio (level-up SFX) */
 #ifdef ROGUE_HAVE_SDL_MIXER
     g_app.sfx_levelup = NULL;
     if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 512)!=0){
         ROGUE_LOG_WARN("Mix_OpenAudio failed: %s", Mix_GetError());
     } else { rogue_asset_load_sounds(); }
 #endif
-    /* Load persisted player stats */
-    {
-        FILE* f=NULL; 
-#if defined(_MSC_VER)
-        fopen_s(&f, "player_stats.cfg", "rb");
-#else
-        f=fopen("player_stats.cfg","rb");
-#endif
-        if(f){
-            char line[256];
-            while(fgets(line,sizeof line,f)){
-                if(line[0]=='#' || line[0]=='\n' || line[0]=='\0') continue;
-                char* eq=strchr(line,'='); if(!eq) continue; *eq='\0';
-                char* key=line; char* val=eq+1;
-                for(char* p=key; *p; ++p){ if(*p=='\r'||*p=='\n'){*p='\0';break;} }
-                for(char* p=val; *p; ++p){ if(*p=='\r'||*p=='\n'){*p='\0';break;} }
-                if(strcmp(key,"LEVEL")==0) g_app.player.level = atoi(val);
-                else if(strcmp(key,"XP")==0) g_app.player.xp = atoi(val);
-                else if(strcmp(key,"XP_TO_NEXT")==0) g_app.player.xp_to_next = atoi(val);
-                else if(strcmp(key,"STR")==0) g_app.player.strength = atoi(val);
-                else if(strcmp(key,"DEX")==0) g_app.player.dexterity = atoi(val);
-                else if(strcmp(key,"VIT")==0) g_app.player.vitality = atoi(val);
-                else if(strcmp(key,"INT")==0) g_app.player.intelligence = atoi(val);
-                else if(strcmp(key,"CRITC")==0) g_app.player.crit_chance = atoi(val);
-                else if(strcmp(key,"CRITD")==0) g_app.player.crit_damage = atoi(val);
-                else if(strcmp(key,"UNSPENT")==0) g_app.unspent_stat_points = atoi(val);
-                else if(strcmp(key,"HP")==0) g_app.player.health = atoi(val);
-                else if(strcmp(key,"MP")==0) g_app.player.mana = atoi(val);
-            }
-            fclose(f);
-            rogue_player_recalc_derived(&g_app.player);
-            g_app.stats_dirty = 0; /* loaded */
-        }
-    }
     g_app.tileset_loaded = 0; /* registry not finalized yet */
     g_app.tile_size = 16; /* terrain tiles */
     g_app.player_frame_size = 64;
@@ -441,14 +356,7 @@ void rogue_app_shutdown(void)
     if(g_app.sfx_levelup){ Mix_FreeChunk(g_app.sfx_levelup); g_app.sfx_levelup=NULL; }
     Mix_CloseAudio();
 #endif
-#ifdef ROGUE_HAVE_SDL
-    if(g_app.minimap_tex){ SDL_DestroyTexture(g_app.minimap_tex); g_app.minimap_tex=NULL; }
-    if (g_app.renderer)
-        SDL_DestroyRenderer(g_app.renderer);
-    if (g_app.window)
-        SDL_DestroyWindow(g_app.window);
-    SDL_Quit();
-#endif
+    rogue_platform_shutdown();
     if(g_app.tile_sprite_lut){ free((void*)g_app.tile_sprite_lut); g_app.tile_sprite_lut=NULL; }
     if(g_app.chunk_dirty){ free(g_app.chunk_dirty); g_app.chunk_dirty=NULL; }
     /* Persist (gen params if dirty + player stats) */
@@ -467,7 +375,7 @@ void rogue_app_toggle_fullscreen(void)
         g_app.cfg.window_mode = ROGUE_WINDOW_WINDOWED;
     else
         g_app.cfg.window_mode = ROGUE_WINDOW_FULLSCREEN;
-    apply_window_mode();
+    rogue_platform_apply_window_mode();
 #endif
 }
 
@@ -483,7 +391,6 @@ void rogue_app_set_vsync(int enabled)
 #endif
 }
 
-/* Wrappers for legacy API now that metrics live in metrics.c */
 void rogue_app_get_metrics(double* out_fps, double* out_frame_ms, double* out_avg_frame_ms){
     rogue_metrics_get(out_fps, out_frame_ms, out_avg_frame_ms);
 }

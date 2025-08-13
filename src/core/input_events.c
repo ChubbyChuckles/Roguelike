@@ -1,6 +1,7 @@
 #include "core/input_events.h"
 #include "core/game_loop.h"
 #include "world/world_gen.h"
+#include "world/world_gen_config.h"
 #include "world/tilemap.h"
 #include "entities/player.h"
 #include "core/start_screen.h"
@@ -40,8 +41,7 @@ void rogue_process_events(void){
             if(ev.key.keysym.sym==SDLK_F12){ g_app.gen_noise_gain -= 0.02; if(g_app.gen_noise_gain<0.3) g_app.gen_noise_gain=0.3; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
             if(ev.key.keysym.sym==SDLK_BACKQUOTE){
                 g_app.pending_seed=(unsigned int)SDL_GetTicks();
-                RogueWorldGenConfig wcfg={ .seed=g_app.pending_seed,.width=80,.height=60,.biome_regions=10,.cave_iterations=3,.cave_fill_chance=0.45,.river_attempts=2,.small_island_max_size=3,.small_island_passes=2,.shore_fill_passes=1,.advanced_terrain=1,.water_level=g_app.gen_water_level,.noise_octaves=g_app.gen_noise_octaves,.noise_gain=g_app.gen_noise_gain,.noise_lacunarity=g_app.gen_noise_lacunarity,.river_sources=g_app.gen_river_sources,.river_max_length=g_app.gen_river_max_length,.cave_mountain_elev_thresh=g_app.gen_cave_thresh};
-                wcfg.width*=10; wcfg.height*=10; wcfg.biome_regions=1000;
+                RogueWorldGenConfig wcfg = rogue_world_gen_config_build(g_app.pending_seed, 1, 1);
                 rogue_tilemap_free(&g_app.world_map); rogue_world_generate(&g_app.world_map,&wcfg); g_app.minimap_dirty=1;
             }
         }
@@ -49,7 +49,7 @@ void rogue_process_events(void){
             if(g_app.entering_seed){
                 if(ev.key.keysym.sym==SDLK_RETURN){
                     rogue_tilemap_free(&g_app.world_map);
-                    RogueWorldGenConfig wcfg={ .seed=g_app.pending_seed,.width=80,.height=60,.biome_regions=10,.cave_iterations=3,.cave_fill_chance=0.45,.river_attempts=2,.small_island_max_size=3,.small_island_passes=2,.shore_fill_passes=1,.advanced_terrain=1,.water_level=0.34,.noise_octaves=6,.noise_gain=0.48,.noise_lacunarity=2.05,.river_sources=10,.river_max_length=1200,.cave_mountain_elev_thresh=0.60};
+                    RogueWorldGenConfig wcfg = rogue_world_gen_config_build(g_app.pending_seed, 0, 0);
                     rogue_world_generate(&g_app.world_map,&wcfg);
                     g_app.chunks_x=(g_app.world_map.width + g_app.chunk_size - 1)/g_app.chunk_size;
                     g_app.chunks_y=(g_app.world_map.height + g_app.chunk_size - 1)/g_app.chunk_size;

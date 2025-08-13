@@ -58,6 +58,7 @@ add_library(rogue_core
     src/core/animation_system.c
     src/core/persistence.c
     src/core/asset_config.c
+    src/core/platform.c
     src/platform/platform_sdl.c
     src/graphics/renderer.c
     src/graphics/sprite.c
@@ -66,6 +67,7 @@ add_library(rogue_core
     src/input/input.c
     src/world/tilemap.c
     src/world/world_gen.c
+    src/world/world_gen_config.c
     src/graphics/font.c
     src/entities/player.c
     src/entities/enemy.c
