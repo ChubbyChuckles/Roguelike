@@ -31,21 +31,23 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
     /* Use player frame size (world units approx by tile size assumption). Attack radius scales with sprite width */
     extern RoguePlayer g_exposed_player_for_stats; /* for consistency if needed */
     float px = player->base.pos.x; float py = player->base.pos.y;
-    float base_reach = 1.2f;
-    /* Slightly extend reach if running or higher strength */
-    float reach = base_reach + (player->strength * 0.01f);
+    float base_reach = 1.6f; /* increased base reach so targets in front register */
+    float reach = base_reach + (player->strength * 0.012f);
     float dirx=0, diry=0; int facing = player->facing;
     switch(facing){ case 0: diry=1; break; case 1: dirx=-1; break; case 2: dirx=1; break; case 3: diry=-1; break; }
-    /* Half-circle center just in front of player */
-    float cx = px + dirx * reach * 0.4f;
-    float cy = py + diry * reach * 0.4f;
+    /* Center for arc slightly forward */
+    float cx = px + dirx * reach * 0.55f;
+    float cy = py + diry * reach * 0.55f;
     float reach2 = reach*reach;
     for(int i=0;i<enemy_count;i++){
         if(!enemies[i].alive) continue;
         float ex = enemies[i].base.pos.x; float ey = enemies[i].base.pos.y;
         float dx = ex - cx; float dy = ey - cy; float dist2 = dx*dx + dy*dy; if(dist2 > reach2) continue;
-        /* Directional filter: ensure within 180 degree arc. Dot with facing dir must be >=0 */
-        float dot = dx*dirx + dy*diry; if(dot < 0) continue;
+        /* Directional filter: allow a bit of behind tolerance (10%) to feel responsive */
+        float dot = dx*dirx + dy*diry; if(dot < -0.15f) continue;
+        /* Slight lateral clamp: reject if perpendicular component too large (narrow forward cone) */
+        float perp = dx* (-diry) + dy* dirx; /* 2D perpendicular magnitude (signed) */
+        float lateral_limit = reach * 0.9f; if(perp > lateral_limit || perp < -lateral_limit) continue;
         /* Simple damage */
         int dmg = 1 + player->strength/5;
         enemies[i].health -= dmg; enemies[i].hurt_timer = 150.0f; if(enemies[i].health<=0){ enemies[i].alive=0; kills++; }

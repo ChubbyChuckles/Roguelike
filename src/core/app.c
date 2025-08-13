@@ -1200,7 +1200,7 @@ void rogue_app_step(void)
         }
         /* Render enemies (simple colored squares) */
 #ifdef ROGUE_HAVE_SDL
-        for(int i=0;i<ROGUE_MAX_ENEMIES;i++) if(g_app.enemies[i].alive){
+    for(int i=0;i<ROGUE_MAX_ENEMIES;i++) if(g_app.enemies[i].alive){
             RogueEnemy* e=&g_app.enemies[i]; RogueEnemyTypeDef* t=&g_app.enemy_types[e->type_index];
             int ex = (int)(e->base.pos.x*tsz - g_app.cam_x);
             int ey = (int)(e->base.pos.y*tsz - g_app.cam_y);
@@ -1230,6 +1230,13 @@ void rogue_app_step(void)
                 unsigned char r=(unsigned char)e->tint_r,g=(unsigned char)e->tint_g,b=(unsigned char)e->tint_b,a=255; if(e->ai_state==ROGUE_ENEMY_AI_DEAD) a=(unsigned char)(e->death_fade*255.0f);
                 SDL_SetRenderDrawColor(g_app.renderer,r,g,b,a); SDL_Rect er={ex-4,ey-4,8,8}; SDL_RenderFillRect(g_app.renderer,&er);
             }
+            /* Small health bar */
+            int maxhp = (int)(3 * g_app.difficulty_scalar); if(maxhp < 1) maxhp = 1; /* approximate original spawn formula */
+            float ratio = (e->health>0)? (float)e->health / (float)maxhp : 0.0f; if(ratio<0) ratio=0; if(ratio>1) ratio=1;
+            int barw = 20; int barh = 3; int bx = ex - barw/2; int by = ey - (spr? spr->sh/2 : 6) - 6;
+            SDL_SetRenderDrawColor(g_app.renderer,25,8,8,200); SDL_Rect bg={bx-1,by-1,barw+2,barh+2}; SDL_RenderFillRect(g_app.renderer,&bg);
+            SDL_SetRenderDrawColor(g_app.renderer,120,0,0,255); SDL_Rect fg1={bx,by,(int)(barw*ratio),barh}; SDL_RenderFillRect(g_app.renderer,&fg1);
+            SDL_SetRenderDrawColor(g_app.renderer,220,30,30,255); SDL_Rect fg2={bx,by,(int)(barw*ratio*0.55f),barh}; SDL_RenderFillRect(g_app.renderer,&fg2);
             g_app.frame_draw_calls++;
         }
     /* Removed debug attack arc rendering for pure sprite-based attack animation */
