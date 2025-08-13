@@ -1,6 +1,7 @@
 #include "core/persistence.h"
 #include "core/app_state.h"
 #include "entities/player.h"
+#include "core/skills.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -109,6 +110,13 @@ void rogue_persistence_load_player_stats(void){
         else if(strcmp(key,"UNSPENT")==0) g_app.unspent_stat_points = atoi(val);
         else if(strcmp(key,"HP")==0) g_app.player.health = atoi(val);
         else if(strcmp(key,"MP")==0) g_app.player.mana = atoi(val);
+        else if(strcmp(key,"TALENTPTS")==0) g_app.talent_points = atoi(val);
+        else if(strncmp(key,"SKRANK",6)==0){
+            int id = atoi(key+6);
+            const RogueSkillDef* def = rogue_skill_get_def(id);
+            struct RogueSkillState* st = (struct RogueSkillState*)rogue_skill_get_state(id);
+            if(def && st){ st->rank = atoi(val); if(st->rank > def->max_rank) st->rank = def->max_rank; }
+        }
     }
     fclose(f);
     rogue_player_recalc_derived(&g_app.player);
@@ -136,6 +144,11 @@ void rogue_persistence_save_player_stats(void){
     fprintf(f,"UNSPENT=%d\n", g_app.unspent_stat_points);
     fprintf(f,"HP=%d\n", g_app.player.health);
     fprintf(f,"MP=%d\n", g_app.player.mana);
+    fprintf(f,"TALENTPTS=%d\n", g_app.talent_points);
+    for(int i=0;i<g_app.skill_count;i++){
+        const RogueSkillState* st = rogue_skill_get_state(i);
+        if(st){ fprintf(f,"SKRANK%d=%d\n", i, st->rank); }
+    }
     fclose(f);
     g_app.stats_dirty = 0;
 }

@@ -58,6 +58,9 @@ add_library(rogue_core
     src/core/animation_system.c
     src/core/persistence.c
     src/core/persistence_autosave.c
+    src/core/skills.c
+    src/core/skill_tree.c
+    src/core/skill_bar.c
     src/core/asset_config.c
     src/core/platform.c
     src/core/tile_sprite_cache.c

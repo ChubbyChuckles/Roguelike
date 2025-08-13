@@ -14,6 +14,7 @@ void rogue_player_progress_update(double dt_seconds){
         g_app.player.xp -= g_app.player.xp_to_next;
         g_app.player.level++;
         g_app.unspent_stat_points += 3;
+    g_app.talent_points += 1; /* grant a talent point each level */
         g_app.player.xp_to_next = (int)(g_app.player.xp_to_next * 1.35f + 15);
         rogue_player_recalc_derived(&g_app.player);
         g_app.player.health = g_app.player.max_health;

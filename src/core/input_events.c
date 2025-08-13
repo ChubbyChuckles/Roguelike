@@ -6,6 +6,9 @@
 #include "entities/player.h"
 #include "core/start_screen.h"
 #include "game/damage_numbers.h"
+#include "core/skill_tree.h"
+#include "core/skill_bar.h"
+#include "core/skills.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
@@ -16,7 +19,9 @@ void rogue_process_events(void){
         if(ev.type==SDL_QUIT){ rogue_game_loop_request_exit(); }
         rogue_input_process_sdl_event(&g_app.input,&ev);
         if(ev.type==SDL_KEYDOWN && !g_app.show_start_screen){
+            if(rogue_skill_tree_is_open()){ rogue_skill_tree_handle_key(ev.key.keysym.sym); continue; }
             if(ev.key.keysym.sym==SDLK_TAB){ g_app.show_stats_panel=!g_app.show_stats_panel; }
+            if(ev.key.keysym.sym==SDLK_k){ rogue_skill_tree_toggle(); }
             if(g_app.show_stats_panel){
                 if(ev.key.keysym.sym==SDLK_LEFT){ g_app.stats_panel_index=(g_app.stats_panel_index+5)%6; }
                 if(ev.key.keysym.sym==SDLK_RIGHT){ g_app.stats_panel_index=(g_app.stats_panel_index+1)%6; }
@@ -31,6 +36,10 @@ void rogue_process_events(void){
                 if(ev.key.keysym.sym==SDLK_BACKSPACE){ g_app.show_stats_panel=0; }
             }
             if(ev.key.keysym.sym==SDLK_r){ g_app.player_state=(g_app.player_state==2)?1:2; }
+            /* Skill activation keys 1-0 */
+            int key = ev.key.keysym.sym;
+            if(key>=SDLK_1 && key<=SDLK_9){ int slot = key - SDLK_1; int sid = g_app.skill_bar[slot]; if(sid>=0){ RogueSkillCtx ctx={ (double)SDL_GetTicks(), g_app.player.level, g_app.talent_points }; rogue_skill_try_activate(sid,&ctx);} }
+            if(key==SDLK_0){ int sid = g_app.skill_bar[9]; if(sid>=0){ RogueSkillCtx ctx={ (double)SDL_GetTicks(), g_app.player.level, g_app.talent_points }; rogue_skill_try_activate(sid,&ctx);} }
             if(ev.key.keysym.sym==SDLK_F5){ g_app.gen_water_level -= 0.01; if(g_app.gen_water_level<0.20) g_app.gen_water_level=0.20; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
             if(ev.key.keysym.sym==SDLK_F6){ g_app.gen_water_level += 0.01; if(g_app.gen_water_level>0.55) g_app.gen_water_level=0.55; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
             if(ev.key.keysym.sym==SDLK_F7){ g_app.gen_noise_octaves++; if(g_app.gen_noise_octaves>9) g_app.gen_noise_octaves=9; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }

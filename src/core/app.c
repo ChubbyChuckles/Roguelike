@@ -54,6 +54,9 @@ SOFTWARE.
 #include "core/metrics.h"
 #include "core/platform.h"
 #include "core/tile_sprite_cache.h"
+#include "core/skills.h"
+#include "core/skill_tree.h"
+#include "core/skill_bar.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -132,8 +135,13 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     if(!rogue_platform_init(cfg)) return false;
     RogueGameLoopConfig loop_cfg = {.target_fps = cfg->target_fps};
     rogue_game_loop_init(&loop_cfg);
-    /* Load persisted generation params + player stats BEFORE first world gen and AFTER player init so values stick. */
-    rogue_persistence_init_and_load();
+    /* Load generation params first (does not depend on skills). */
+    rogue_persistence_load_generation_params();
+    /* Initialize and register skills BEFORE loading player stats so rank data in the save file can map onto registered skills. */
+    rogue_skills_init();
+    rogue_skill_tree_register_baseline();
+    /* Now load player stats (level/xp + talent points + skill ranks). */
+    rogue_persistence_load_player_stats();
     /* Now generate world using (possibly loaded) generation parameters. */
     RogueWorldGenConfig wcfg = rogue_world_gen_config_build(1337u, 1, 1);
     rogue_world_generate(&g_app.world_map, &wcfg);
@@ -297,6 +305,8 @@ void rogue_app_step(void)
     }
     /* HUD */
     rogue_hud_render();
+    rogue_skill_bar_render();
+    rogue_skill_tree_render();
     /* Update floating damage numbers */
     rogue_damage_numbers_update((float)g_app.dt);
     /* (Overlay with debug metrics removed to show clean HUD; hotkeys still active) */
@@ -325,6 +335,7 @@ void rogue_app_shutdown(void)
     Mix_CloseAudio();
 #endif
     rogue_platform_shutdown();
+    rogue_skills_shutdown();
     if(g_app.chunk_dirty){ free(g_app.chunk_dirty); g_app.chunk_dirty=NULL; }
     /* Free tile sprite cache */
     rogue_tile_sprite_cache_free();

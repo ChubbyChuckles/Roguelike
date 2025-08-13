@@ -28,6 +28,7 @@ typedef struct RogueAppState {
     RogueInputState input;
     RoguePlayer player;
     int unspent_stat_points;
+    int talent_points; /* points for skill tree */
     int stats_dirty;
     int tileset_loaded;
     int tile_size;
@@ -69,6 +70,11 @@ typedef struct RogueAppState {
     int dmg_number_count;
     double spawn_accum_ms;
     float hitstop_timer_ms;
+    /* Skill system */
+    int skill_count; /* number of registered skill definitions */
+    struct RogueSkillDef* skill_defs; /* registry (owned by skills module) */
+    struct RogueSkillState* skill_states; /* per-skill runtime state (ranks, cooldowns) */
+    int skill_bar[10]; /* skill id per slot (-1 empty) */
 } RogueAppState;
 
 extern RogueAppState g_app;
