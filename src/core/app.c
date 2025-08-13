@@ -134,6 +134,11 @@ typedef struct RogueAppState
     double difficulty_scalar;
     int show_stats_panel;
     int stats_panel_index; /* 0 STR 1 DEX 2 VIT 3 INT */
+    /* Regen tracking */
+    float time_since_player_hit_ms;
+    float health_regen_accum_ms;
+    float mana_regen_accum_ms;
+    float levelup_aura_timer_ms;
 } RogueAppState;
 
 static RogueAppState g_app;
@@ -291,6 +296,10 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.stats_dirty = 0;
     g_app.show_stats_panel = 0;
     g_app.stats_panel_index = 0;
+    g_app.time_since_player_hit_ms = 0.0f;
+    g_app.health_regen_accum_ms = 0.0f;
+    g_app.mana_regen_accum_ms = 0.0f;
+    g_app.levelup_aura_timer_ms = 0.0f;
     /* Load persisted player stats */
     {
         FILE* f=NULL; 
@@ -316,6 +325,7 @@ bool rogue_app_init(const RogueAppConfig* cfg)
                 else if(strcmp(key,"INT")==0) g_app.player.intelligence = atoi(val);
                 else if(strcmp(key,"UNSPENT")==0) g_app.unspent_stat_points = atoi(val);
                 else if(strcmp(key,"HP")==0) g_app.player.health = atoi(val);
+                else if(strcmp(key,"MP")==0) g_app.player.mana = atoi(val);
             }
             fclose(f);
             rogue_player_recalc_derived(&g_app.player);
@@ -818,6 +828,10 @@ void rogue_app_step(void)
         g_app.unspent_stat_points += 3; /* award stat points */
         g_app.player.xp_to_next = (int)(g_app.player.xp_to_next * 1.35f + 15); 
         rogue_player_recalc_derived(&g_app.player);
+    /* Full restore on level and start aura */
+    g_app.player.health = g_app.player.max_health;
+    g_app.player.mana = g_app.player.max_mana;
+    g_app.levelup_aura_timer_ms = 2000.0f; /* 2 second aura */
         g_app.stats_dirty = 1;
     }
     g_app.difficulty_scalar = 1.0 + (double)g_app.player.level * 0.15 + (double)g_app.total_kills * 0.002;
@@ -881,7 +895,7 @@ void rogue_app_step(void)
             if(e->hurt_timer>0) e->hurt_timer -= dt_ms;
             if(p_dist2 < 0.36f && g_app.player.health>0){
                 int dmg = (int)(1 + g_app.difficulty_scalar * 0.6); if(dmg<1) dmg=1;
-                g_app.player.health -= dmg; if(g_app.player.health<0) g_app.player.health=0; e->hurt_timer=200.0f; }
+                g_app.player.health -= dmg; if(g_app.player.health<0) g_app.player.health=0; e->hurt_timer=200.0f; g_app.time_since_player_hit_ms = 0.0f; }
             if(e->health<=0 && e->ai_state != ROGUE_ENEMY_AI_DEAD){
                 e->ai_state = ROGUE_ENEMY_AI_DEAD; e->anim_time=0; e->anim_frame=0; e->death_fade=1.0f;
                 g_app.player.xp += t->xp_reward;
@@ -1043,6 +1057,24 @@ void rogue_app_step(void)
                 int px = (int)(g_app.player.base.pos.x * tsz * scale - g_app.cam_x);
                 int py = (int)(g_app.player.base.pos.y * tsz * scale - g_app.cam_y);
 #if defined(ROGUE_HAVE_SDL)
+                if(g_app.levelup_aura_timer_ms > 0.0f){
+                    g_app.levelup_aura_timer_ms -= (float)(g_app.dt * 1000.0);
+                    float tnorm = g_app.levelup_aura_timer_ms / 2000.0f; if(tnorm<0) tnorm=0; if(tnorm>1) tnorm=1;
+                    float pulse = 0.5f + 0.5f * (float)sin((2000.0f - g_app.levelup_aura_timer_ms)*0.025f);
+                    int radius = (int)(spr->sw*scale * (1.2f + 0.3f * (1.0f-tnorm)));
+                    int cx = px + spr->sw*scale/2; int cy = py + spr->sh*scale/2;
+                    unsigned char cr = (unsigned char)(120 + 90*pulse);
+                    unsigned char cg = (unsigned char)(80 + 120*pulse);
+                    unsigned char cb = (unsigned char)(255);
+                    unsigned char ca = (unsigned char)(120 * tnorm + 60);
+                    SDL_SetRenderDrawColor(g_app.renderer, cr,cg,cb,ca);
+                    for(int dy=-radius; dy<=radius; ++dy){
+                        int dx_lim = (int)sqrt(radius*radius - dy*dy);
+                        SDL_RenderDrawLine(g_app.renderer, cx-dx_lim, cy+dy, cx+dx_lim, cy+dy);
+                    }
+                }
+#endif
+#if defined(ROGUE_HAVE_SDL)
                 if(dir==1) /* left: manual flip */
                 {
                     SDL_Rect src = { spr->sx, spr->sy, spr->sw, spr->sh };
@@ -1168,55 +1200,82 @@ void rogue_app_step(void)
     }
 #endif
     }
-    /* FPS & world-gen overlay (uses last frame's fps value) */
-    {
-        int overlay_scale = (g_app.viewport_w >= 1400) ? 2 : 1;
-        int line_h = (g_rogue_builtin_font.glyph_h * overlay_scale) + overlay_scale; /* crude spacing */
-        int base_x = 4;
-        int base_y = 4;
+    /* Basic HUD bars */
 #ifdef ROGUE_HAVE_SDL
-        /* Background panel for readability */
-        if(g_app.renderer){
-            int panel_w =  (overlay_scale==1? 520 : 600);
-            int panel_h = line_h * 4 + 4;
-            SDL_Rect bg = { base_x-2, base_y-2, panel_w, panel_h };
-            SDL_SetRenderDrawColor(g_app.renderer, 0,0,0,120);
-            SDL_RenderFillRect(g_app.renderer, &bg);
-            g_app.frame_draw_calls++;
-        }
-#endif
-        char fps_buf[48];
-        snprintf(fps_buf, sizeof fps_buf, "FPS: %.1f", g_app.fps);
-        rogue_font_draw_text(base_x, base_y, fps_buf, overlay_scale, (RogueColor){255,255,255,255});
-        char m_buf[64];
-        snprintf(m_buf, sizeof m_buf, "DRAWS:%d TILES:%d", g_app.frame_draw_calls, g_app.frame_tile_quads);
-        rogue_font_draw_text(base_x, base_y + line_h, m_buf, overlay_scale, (RogueColor){220,220,220,255});
-    char gen_buf1[96];
-        snprintf(gen_buf1, sizeof gen_buf1, "WT:%.2f OCT:%d GAIN:%.2f LAC:%.2f", g_app.gen_water_level, g_app.gen_noise_octaves, g_app.gen_noise_gain, g_app.gen_noise_lacunarity);
-        rogue_font_draw_text(base_x, base_y + line_h*2, gen_buf1, overlay_scale, (RogueColor){180,220,255,255});
-    char gen_buf2[160];
-    snprintf(gen_buf2, sizeof gen_buf2, "HP:%d/%d L:%d XP:%d/%d PTS:%d STR:%d DEX:%d VIT:%d INT:%d EN:%d K:%d DIF:%.2f STA:%d PH:%d", g_app.player.health, g_app.player.max_health, g_app.player.level, g_app.player.xp, g_app.player.xp_to_next, g_app.unspent_stat_points, g_app.player.strength, g_app.player.dexterity, g_app.player.vitality, g_app.player.intelligence, g_app.enemy_count, g_app.total_kills, g_app.difficulty_scalar, (int)g_app.player_combat.stamina, g_app.player_combat.phase);
-    rogue_font_draw_text(base_x, base_y + line_h*3, gen_buf2, overlay_scale, (RogueColor){160,200,240,255});
+    if(g_app.renderer){
+        int hp_w=200, hp_h=10; int hp_x=6, hp_y=4;
+        float hp_ratio = (g_app.player.max_health>0)? (float)g_app.player.health/(float)g_app.player.max_health : 0.0f; if(hp_ratio<0) hp_ratio=0; if(hp_ratio>1) hp_ratio=1;
+        SDL_SetRenderDrawColor(g_app.renderer,40,12,12,255); SDL_Rect hbgb={hp_x-2,hp_y-2,hp_w+4,hp_h+4}; SDL_RenderFillRect(g_app.renderer,&hbgb);
+        SDL_SetRenderDrawColor(g_app.renderer,95,0,0,255); SDL_Rect hbf1={hp_x,hp_y,(int)(hp_w*hp_ratio),hp_h}; SDL_RenderFillRect(g_app.renderer,&hbf1);
+        SDL_SetRenderDrawColor(g_app.renderer,170,20,20,255); SDL_Rect hbf2={hp_x,hp_y,(int)(hp_w*hp_ratio*0.55f),hp_h}; SDL_RenderFillRect(g_app.renderer,&hbf2);
+    int mp_w=200, mp_h=8; int mp_x=6, mp_y=hp_y+hp_h+6;
+        float mp_ratio = (g_app.player.max_mana>0)? (float)g_app.player.mana/(float)g_app.player.max_mana : 0.0f; if(mp_ratio<0) mp_ratio=0; if(mp_ratio>1) mp_ratio=1;
+        SDL_SetRenderDrawColor(g_app.renderer,10,18,40,255); SDL_Rect mpbgb={mp_x-2,mp_y-2,mp_w+4,mp_h+4}; SDL_RenderFillRect(g_app.renderer,&mpbgb);
+        SDL_SetRenderDrawColor(g_app.renderer,15,50,140,255); SDL_Rect mpbf1={mp_x,mp_y,(int)(mp_w*mp_ratio),mp_h}; SDL_RenderFillRect(g_app.renderer,&mpbf1);
+        SDL_SetRenderDrawColor(g_app.renderer,40,90,210,255); SDL_Rect mpbf2={mp_x,mp_y,(int)(mp_w*mp_ratio*0.55f),mp_h}; SDL_RenderFillRect(g_app.renderer,&mpbf2);
+    /* XP bar */
+    int xp_w=200, xp_h=6; int xp_x=6, xp_y=mp_y+mp_h+6;
+    float xp_ratio = (g_app.player.xp_to_next>0)? (float)g_app.player.xp / (float)g_app.player.xp_to_next : 0.0f; if(xp_ratio<0) xp_ratio=0; if(xp_ratio>1) xp_ratio=1;
+    SDL_SetRenderDrawColor(g_app.renderer,25,25,25,255); SDL_Rect xpbgb={xp_x-2,xp_y-2,xp_w+4,xp_h+4}; SDL_RenderFillRect(g_app.renderer,&xpbgb);
+    SDL_SetRenderDrawColor(g_app.renderer,90,60,10,255); SDL_Rect xpbf1={xp_x,xp_y,(int)(xp_w*xp_ratio),xp_h}; SDL_RenderFillRect(g_app.renderer,&xpbf1);
+    SDL_SetRenderDrawColor(g_app.renderer,200,140,30,255); SDL_Rect xpbf2={xp_x,xp_y,(int)(xp_w*xp_ratio*0.55f),xp_h}; SDL_RenderFillRect(g_app.renderer,&xpbf2);
+    /* Level text small above HP */
+    char lvlbuf[32]; snprintf(lvlbuf,sizeof lvlbuf,"Lv %d", g_app.player.level);
+    rogue_font_draw_text(hp_x+hp_w+8, hp_y, lvlbuf, 1, (RogueColor){255,255,180,255});
     }
+#endif
+    /* (Overlay with debug metrics removed to show clean HUD; hotkeys still active) */
+    /* Passive regen timing updates (after overlay so dt stable) */
+    g_app.time_since_player_hit_ms += (float)(g_app.dt * 1000.0);
+    if(g_app.player.health > 0 && g_app.player.health < g_app.player.max_health){
+        if(g_app.time_since_player_hit_ms > 4000.0f){ /* 4s out of combat */
+            g_app.health_regen_accum_ms += (float)(g_app.dt * 1000.0);
+            float interval = 900.0f - (g_app.player.vitality * 4.0f); if(interval < 250.0f) interval = 250.0f;
+            while(g_app.health_regen_accum_ms >= interval){
+                g_app.health_regen_accum_ms -= interval;
+                g_app.player.health += 1 + g_app.player.vitality/25; if(g_app.player.health>g_app.player.max_health) g_app.player.health=g_app.player.max_health;
+            }
+        }
+    } else { g_app.health_regen_accum_ms = 0.0f; }
+    if(g_app.player.mana < g_app.player.max_mana){
+        g_app.mana_regen_accum_ms += (float)(g_app.dt * 1000.0);
+        float interval_mp = 520.0f - g_app.player.intelligence * 6.5f; if(interval_mp < 120.0f) interval_mp = 120.0f;
+        if(g_app.time_since_player_hit_ms > 4000.0f) interval_mp *= 0.85f;
+        while(g_app.mana_regen_accum_ms >= interval_mp){
+            g_app.mana_regen_accum_ms -= interval_mp;
+            g_app.player.mana += 1 + g_app.player.intelligence/12; if(g_app.player.mana>g_app.player.max_mana) g_app.player.mana=g_app.player.max_mana;
+        }
+    } else { g_app.mana_regen_accum_ms = 0.0f; }
     if(g_app.show_stats_panel){
 #ifdef ROGUE_HAVE_SDL
         if(g_app.renderer){
-            SDL_Rect panel = { 200, 80, 420, 140 };
-            SDL_SetRenderDrawColor(g_app.renderer, 0,0,40,200);
+            SDL_Rect panel = { 160, 70, 200, 140 };
+            SDL_SetRenderDrawColor(g_app.renderer, 12,12,28,235);
             SDL_RenderFillRect(g_app.renderer, &panel);
+            /* Border */
+            SDL_SetRenderDrawColor(g_app.renderer, 90,90,140,255);
+            SDL_Rect btop={panel.x-2,panel.y-2,panel.w+4,2}; SDL_RenderFillRect(g_app.renderer,&btop);
+            SDL_Rect bbot={panel.x-2,panel.y+panel.h,panel.w+4,2}; SDL_RenderFillRect(g_app.renderer,&bbot);
+            SDL_Rect bl={panel.x-2,panel.y,2,panel.h}; SDL_RenderFillRect(g_app.renderer,&bl);
+            SDL_Rect br={panel.x+panel.w,panel.y,2,panel.h}; SDL_RenderFillRect(g_app.renderer,&br);
+            /* Header */
+            SDL_SetRenderDrawColor(g_app.renderer,130,50,170,255); SDL_Rect hdr={panel.x,panel.y,panel.w,16}; SDL_RenderFillRect(g_app.renderer,&hdr);
+            SDL_SetRenderDrawColor(g_app.renderer,180,80,220,255); SDL_Rect hdr2={panel.x,panel.y,panel.w/2,16}; SDL_RenderFillRect(g_app.renderer,&hdr2);
+            rogue_font_draw_text(panel.x+6, panel.y+4, "STATS",1,(RogueColor){255,255,255,255});
+            const char* labels[4] = {"STR","DEX","VIT","INT"};
+            int values[4] = { g_app.player.strength, g_app.player.dexterity, g_app.player.vitality, g_app.player.intelligence };
+            for(int i=0;i<4;i++){
+                int highlight = (i==g_app.stats_panel_index);
+                char line[64]; snprintf(line,sizeof line,"%s %3d%s", labels[i], values[i], highlight?" *":"");
+                rogue_font_draw_text(panel.x+10, panel.y+22 + i*18, line,1,(RogueColor){ highlight?255:200, highlight?255:255, highlight?160:255,255});
+                int barw = values[i]; if(barw>70) barw=70; if(barw<0) barw=0;
+                SDL_SetRenderDrawColor(g_app.renderer,50,60,90,255); SDL_Rect bg={panel.x+10, panel.y+22 + i*18 + 10, 72,4}; SDL_RenderFillRect(g_app.renderer,&bg);
+                SDL_SetRenderDrawColor(g_app.renderer, highlight?255:140, highlight?200:140, highlight?90:160,255); SDL_Rect fg={panel.x+10, panel.y+22 + i*18 + 10, barw,4}; SDL_RenderFillRect(g_app.renderer,&fg);
+            }
+            char footer[96]; snprintf(footer,sizeof footer,"PTS:%d  ENTER=+  TAB=Close", g_app.unspent_stat_points);
+            rogue_font_draw_text(panel.x+6, panel.y+panel.h-14, footer,1,(RogueColor){180,220,255,255});
         }
 #endif
-        const char* labels[4] = {"STR","DEX","VIT","INT"};
-        int values[4] = { g_app.player.strength, g_app.player.dexterity, g_app.player.vitality, g_app.player.intelligence };
-        char line[64];
-        rogue_font_draw_text(210, 90, "STAT ALLOCATION (TAB to close)",1,(RogueColor){255,255,0,255});
-        for(int i=0;i<4;i++){
-            snprintf(line,sizeof line,"%s: %d%s", labels[i], values[i], (i==g_app.stats_panel_index)?" <":"");
-            rogue_font_draw_text(210, 110 + i*12, line,1,(RogueColor){ (i==g_app.stats_panel_index)?255:200,255,255,255});
-        }
-        snprintf(line,sizeof line,"Unspent: %d", g_app.unspent_stat_points);
-        rogue_font_draw_text(210, 110 + 4*12, line,1,(RogueColor){200,255,200,255});
-        rogue_font_draw_text(210, 110 + 5*12, "Use LEFT/RIGHT to select, ENTER to add",1,(RogueColor){180,200,255,255});
     }
     /* Auto-save stats every ~5 seconds when dirty */
     static double stats_save_timer = 0.0; stats_save_timer += g_app.dt;
@@ -1238,6 +1297,7 @@ void rogue_app_step(void)
         fprintf(f,"INT=%d\n", g_app.player.intelligence);
         fprintf(f,"UNSPENT=%d\n", g_app.unspent_stat_points);
         fprintf(f,"HP=%d\n", g_app.player.health);
+    fprintf(f,"MP=%d\n", g_app.player.mana);
         fclose(f);
         g_app.stats_dirty=0;
     }
@@ -1323,6 +1383,7 @@ void rogue_app_shutdown(void)
         fprintf(f,"INT=%d\n", g_app.player.intelligence);
         fprintf(f,"UNSPENT=%d\n", g_app.unspent_stat_points);
         fprintf(f,"HP=%d\n", g_app.player.health);
+    fprintf(f,"MP=%d\n", g_app.player.mana);
         fclose(f);
     }
     }

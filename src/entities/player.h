@@ -31,6 +31,8 @@ typedef struct RoguePlayer
     RogueEntity base;
     int health;
     int max_health; /* derived */
+    int mana;
+    int max_mana; /* derived */
     int facing; /* 0=down,1=left,2=right,3=up */
     float anim_time;
     int anim_frame;
