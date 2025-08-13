@@ -1,8 +1,10 @@
 #include "game/combat.h"
 #include <math.h>
+#include <stdlib.h>
 
 /* Provided by app.c */
 void rogue_add_damage_number(float x,float y,int amount,int from_player);
+void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int crit);
 
 void rogue_combat_init(RoguePlayerCombat* pc){ pc->phase=ROGUE_ATTACK_IDLE; pc->timer=0; pc->combo=0; pc->stamina=100.0f; pc->stamina_regen_delay=0.0f; }
 
@@ -57,10 +59,14 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
         float perp = dx* (-diry) + dy* dirx; /* 2D perpendicular magnitude (signed) */
         float lateral_limit = reach * 0.9f; if(perp > lateral_limit || perp < -lateral_limit) continue;
         /* Simple damage */
-        int dmg = 1 + player->strength/5;
-        enemies[i].health -= dmg; enemies[i].hurt_timer = 150.0f; enemies[i].flash_timer = 70.0f; 
-    /* Spawn floating damage number */
-        rogue_add_damage_number(ex, ey - 0.4f, dmg, 1);
+    int base = 1 + player->strength/5;
+    /* Simple crit: 10% + DEX*0.2% chance, 1.7x damage */
+    float crit_chance = 0.10f + player->dexterity * 0.002f;
+    if(crit_chance>0.50f) crit_chance=0.50f;
+    int crit = (((float)rand()/(float)RAND_MAX) < crit_chance) ? 1 : 0;
+    int dmg = crit ? (int)(base * 1.7f) : base;
+    enemies[i].health -= dmg; enemies[i].hurt_timer = 150.0f; enemies[i].flash_timer = 70.0f; 
+    rogue_add_damage_number_ex(ex, ey - 0.4f, dmg, 1, crit);
         if(enemies[i].health<=0){ enemies[i].alive=0; kills++; }
     }
     return kills;

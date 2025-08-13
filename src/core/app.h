@@ -66,6 +66,8 @@ int rogue_app_enemy_count(void);
 void rogue_app_skip_start_screen(void);
 /* Spawn a floating damage number (world tile coordinates) */
 void rogue_add_damage_number(float x, float y, int amount, int from_player);
+/* Extended with crit flag */
+void rogue_add_damage_number_ex(float x, float y, int amount, int from_player, int crit);
 
 /* Dynamic controls */
 void rogue_app_toggle_fullscreen(void);

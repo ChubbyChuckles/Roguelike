@@ -147,7 +147,7 @@ typedef struct RogueAppState
 #endif
     float attack_anim_time_ms; /* accumulates across windup+strike+recover to map all frames */
     /* Floating damage numbers */
-    struct { float x,y; float vx,vy; float life_ms; float total_ms; int amount; int from_player; } dmg_numbers[128];
+    struct { float x,y; float vx,vy; float life_ms; float total_ms; int amount; int from_player; int crit; } dmg_numbers[128];
     int dmg_number_count;
     double spawn_accum_ms; /* throttled spawn timer */
 } RogueAppState;
@@ -164,15 +164,19 @@ int rogue_get_current_attack_frame(void){
     return 0;
 }
 
-void rogue_add_damage_number(float x, float y, int amount, int from_player){
+void rogue_add_damage_number_ex(float x, float y, int amount, int from_player, int crit){
     if(amount==0) return;
     if(g_app.dmg_number_count < (int)(sizeof(g_app.dmg_numbers)/sizeof(g_app.dmg_numbers[0]))){
         int i = g_app.dmg_number_count++;
         g_app.dmg_numbers[i].x = x; g_app.dmg_numbers[i].y = y;
-        g_app.dmg_numbers[i].vx = 0.0f; g_app.dmg_numbers[i].vy = -0.35f;
-        g_app.dmg_numbers[i].life_ms = 900.0f; g_app.dmg_numbers[i].total_ms = 900.0f;
+        g_app.dmg_numbers[i].vx = 0.0f; g_app.dmg_numbers[i].vy = -0.38f;
+        g_app.dmg_numbers[i].life_ms = 950.0f; g_app.dmg_numbers[i].total_ms = 950.0f;
         g_app.dmg_numbers[i].amount = amount; g_app.dmg_numbers[i].from_player = from_player;
+        g_app.dmg_numbers[i].crit = crit?1:0;
     }
+}
+void rogue_add_damage_number(float x, float y, int amount, int from_player){
+    rogue_add_damage_number_ex(x,y,amount,from_player,0);
 }
 
 static int tile_is_blocking(unsigned char t){
@@ -977,7 +981,7 @@ void rogue_app_step(void)
                             float rx = (float)((rand()% (t->patrol_radius*2+1)) - t->patrol_radius);
                             float ry = (float)((rand()% (t->patrol_radius*2+1)) - t->patrol_radius);
                             float ex = gx + rx; float ey = gy + ry; if(ex<1||ey<1||ex>g_app.world_map.width-2||ey>g_app.world_map.height-2) continue;
-                            RogueEnemy* ne=&g_app.enemies[slot]; ne->base.pos.x=ex; ne->base.pos.y=ey; ne->anchor_x=(float)gx; ne->anchor_y=(float)gy; ne->patrol_target_x=ex; ne->patrol_target_y=ey; ne->max_health=(int)(3 * g_app.difficulty_scalar); if(ne->max_health<1) ne->max_health=1; ne->health=ne->max_health; ne->alive=1; ne->hurt_timer=0; ne->anim_time=0; ne->anim_frame=0; ne->ai_state=ROGUE_ENEMY_AI_PATROL; ne->facing=2; ne->type_index=ti; ne->tint_r=255.0f; ne->tint_g=255.0f; ne->tint_b=255.0f; ne->death_fade=1.0f; ne->tint_phase=0.0f; ne->flash_timer=0.0f; g_app.enemy_count++; g_app.per_type_counts[ti]++; needed--; break; }
+                            RogueEnemy* ne=&g_app.enemies[slot]; ne->base.pos.x=ex; ne->base.pos.y=ey; ne->anchor_x=(float)gx; ne->anchor_y=(float)gy; ne->patrol_target_x=ex; ne->patrol_target_y=ey; ne->max_health=(int)(3 * g_app.difficulty_scalar); if(ne->max_health<1) ne->max_health=1; ne->health=ne->max_health; ne->alive=1; ne->hurt_timer=0; ne->anim_time=0; ne->anim_frame=0; ne->ai_state=ROGUE_ENEMY_AI_PATROL; ne->facing=2; ne->type_index=ti; ne->tint_r=255.0f; ne->tint_g=255.0f; ne->tint_b=255.0f; ne->death_fade=1.0f; ne->tint_phase=0.0f; ne->flash_timer=0.0f; ne->attack_cooldown_ms= (float)(400 + rand()%300); g_app.enemy_count++; g_app.per_type_counts[ti]++; needed--; break; }
                         }
                     }
                 }
@@ -1011,16 +1015,54 @@ void rogue_app_step(void)
                     float len = (float)sqrt(d2); if(len>0.0001f){ move_dx = dx/len; move_dy = dy/len; }
                 }
             } else if(e->ai_state == ROGUE_ENEMY_AI_AGGRO){
-                float len = (float)sqrt(p_dist2); if(len>0.0001f){ move_dx = pdx/len; move_dy = pdy/len; }
+                /* Target the midpoint of the side the player is facing */
+                float target_x = g_app.player.base.pos.x;
+                float target_y = g_app.player.base.pos.y;
+                switch(g_app.player.facing){
+                    case 0: target_y += 0.35f; break; /* down */
+                    case 3: target_y -= 0.35f; break; /* up */
+                    case 1: target_x -= 0.35f; break; /* left */
+                    case 2: target_x += 0.35f; break; /* right */
+                }
+                float tx_dx = target_x - e->base.pos.x;
+                float tx_dy = target_y - e->base.pos.y;
+                float len = (float)sqrt(tx_dx*tx_dx + tx_dy*tx_dy); if(len>0.0001f){ move_dx = tx_dx/len; move_dy = tx_dy/len; }
+            }
+            /* Edge smoothing: if next tile is blocking water edge, slide along edge by damping perpendicular component */
+            if(move_dx!=0 || move_dy!=0){
+                int nx = (int)(e->base.pos.x + move_dx * move_speed + 0.5f);
+                int ny = (int)(e->base.pos.y + move_dy * move_speed + 0.5f);
+                if(nx>=0 && ny>=0 && nx<g_app.world_map.width && ny<g_app.world_map.height){
+                    unsigned char nt = g_app.world_map.tiles[ny*g_app.world_map.width + nx];
+                    if(tile_is_blocking(nt)){
+                        /* Try axis-aligned partial movement */
+                        float try_x = e->base.pos.x + move_dx * move_speed;
+                        int txi = (int)(try_x + 0.5f); int tyi = (int)(e->base.pos.y + 0.5f);
+                        int blocked_x = 0, blocked_y = 0;
+                        if(txi>=0 && tyi>=0 && txi<g_app.world_map.width && tyi<g_app.world_map.height){
+                            if(tile_is_blocking(g_app.world_map.tiles[tyi*g_app.world_map.width + txi])) blocked_x=1;
+                        }
+                        float try_y = e->base.pos.y + move_dy * move_speed;
+                        txi = (int)(e->base.pos.x + 0.5f); tyi = (int)(try_y + 0.5f);
+                        if(txi>=0 && tyi>=0 && txi<g_app.world_map.width && tyi<g_app.world_map.height){
+                            if(tile_is_blocking(g_app.world_map.tiles[tyi*g_app.world_map.width + txi])) blocked_y=1;
+                        }
+                        if(!blocked_x && blocked_y){ move_dy = 0; }
+                        else if(blocked_x && !blocked_y){ move_dx = 0; }
+                        else { move_dx = move_dy = 0; }
+                    }
+                }
             }
             e->base.pos.x += move_dx * move_speed; e->base.pos.y += move_dy * move_speed;
             e->facing = (move_dx < 0)? 1 : 2;
             if(e->hurt_timer>0) e->hurt_timer -= dt_ms;
             if(e->flash_timer>0) e->flash_timer -= dt_ms;
-            if(p_dist2 < 0.36f && g_app.player.health>0){
+            if(e->attack_cooldown_ms>0) e->attack_cooldown_ms -= dt_ms;
+            if(p_dist2 < 0.36f && g_app.player.health>0 && e->attack_cooldown_ms<=0){
                 int dmg = (int)(1 + g_app.difficulty_scalar * 0.6); if(dmg<1) dmg=1;
                 g_app.player.health -= dmg; if(g_app.player.health<0) g_app.player.health=0; e->hurt_timer=200.0f; g_app.time_since_player_hit_ms = 0.0f;
                 rogue_add_damage_number(g_app.player.base.pos.x, g_app.player.base.pos.y - 0.2f, dmg, 0);
+                e->attack_cooldown_ms = 650.0f + (float)(rand()%400); /* 0.65s - 1.05s */
             }
             if(e->health<=0 && e->ai_state != ROGUE_ENEMY_AI_DEAD){
                 e->ai_state = ROGUE_ENEMY_AI_DEAD; e->anim_time=0; e->anim_frame=0; e->death_fade=1.0f;
@@ -1317,7 +1359,14 @@ void rogue_app_step(void)
             int screen_x = (int)(g_app.dmg_numbers[i].x * g_app.tile_size - g_app.cam_x);
             int screen_y = (int)(g_app.dmg_numbers[i].y * g_app.tile_size - g_app.cam_y);
             char buf[16]; snprintf(buf,sizeof buf,"%d", g_app.dmg_numbers[i].amount);
-            RogueColor col = g_app.dmg_numbers[i].from_player? (RogueColor){255,210,40,(unsigned char)alpha} : (RogueColor){255,60,60,(unsigned char)alpha};
+            RogueColor col;
+            if(g_app.dmg_numbers[i].crit){
+                col = (RogueColor){255,255,120,(unsigned char)alpha};
+            } else if(g_app.dmg_numbers[i].from_player){
+                col = (RogueColor){255,210,40,(unsigned char)alpha};
+            } else {
+                col = (RogueColor){255,60,60,(unsigned char)alpha};
+            }
             rogue_font_draw_text(screen_x, screen_y, buf, 1, col);
         }
     }
