@@ -316,6 +316,8 @@ void rogue_app_step(void)
     g_exposed_player_for_stats = g_app.player;
 #endif
     rogue_game_loop_iterate();
+    /* Advance global game time for systems needing wall-clock ms */
+    g_app.game_time_ms += g_app.dt * 1000.0;
     rogue_metrics_frame_end(frame_start);
     rogue_input_next_frame(&g_app.input);
 }

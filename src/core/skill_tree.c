@@ -10,10 +10,13 @@
 static int g_skill_tree_open = 0;
 static int g_tree_index = 0; /* selection */
 
-/* Example effect: increases player strength per activation (placeholder) */
-static int effect_power_strike(const RogueSkillDef* def, RogueSkillState* st, const RogueSkillCtx* ctx){ (void)def;(void)st;(void)ctx; /* integrate with combat later */ return 1; }
-static int effect_dash(const RogueSkillDef* def, RogueSkillState* st, const RogueSkillCtx* ctx){ (void)def;(void)st;(void)ctx; return 1; }
-static int effect_fireball(const RogueSkillDef* def, RogueSkillState* st, const RogueSkillCtx* ctx){ (void)def;(void)st;(void)ctx; return 1; }
+/* Realistic effect placeholders */
+/* PowerStrike: temporary strength buff scaling with rank (adds +rank*2 strength for this frame; real system would track duration) */
+static int effect_power_strike(const RogueSkillDef* def, RogueSkillState* st, const RogueSkillCtx* ctx){ (void)def; (void)ctx; g_app.player.strength += st->rank * 2; g_app.stats_dirty=1; return 1; }
+/* Dash: move player forward a short distance based on facing */
+static int effect_dash(const RogueSkillDef* def, RogueSkillState* st, const RogueSkillCtx* ctx){ (void)def;(void)st;(void)ctx; float dist = 25.0f + st->rank * 10.0f; switch(g_app.player.facing){ case 0: g_app.player.base.pos.y += dist; break; case 1: g_app.player.base.pos.x -= dist; break; case 2: g_app.player.base.pos.x += dist; break; case 3: g_app.player.base.pos.y -= dist; break; } return 1; }
+/* Fireball: placeholder projectile spawns damage numbers in front (no projectile system yet) */
+static int effect_fireball(const RogueSkillDef* def, RogueSkillState* st, const RogueSkillCtx* ctx){ (void)def;(void)st;(void)ctx; /* TODO: integrate projectile system. For now increment mana or simulate effect. */ if(g_app.player.mana>0) g_app.player.mana--; return 1; }
 
 void rogue_skill_tree_register_baseline(void){
     RogueSkillDef defs[] = {

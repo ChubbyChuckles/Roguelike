@@ -47,6 +47,7 @@ typedef struct RogueAppState {
     int entering_seed;
     unsigned int pending_seed;
     int frame_count; double dt; double fps; double frame_ms; double avg_frame_ms_accum; int avg_frame_samples;
+    double game_time_ms; /* accumulated game time in milliseconds (for cooldowns) */
     float cam_x, cam_y; int viewport_w, viewport_h;
     float walk_speed, run_speed;
     const RogueSprite** tile_sprite_lut; int tile_sprite_lut_ready;

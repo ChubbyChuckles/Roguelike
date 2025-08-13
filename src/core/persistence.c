@@ -116,6 +116,13 @@ void rogue_persistence_load_player_stats(void){
             const RogueSkillDef* def = rogue_skill_get_def(id);
             struct RogueSkillState* st = (struct RogueSkillState*)rogue_skill_get_state(id);
             if(def && st){ st->rank = atoi(val); if(st->rank > def->max_rank) st->rank = def->max_rank; }
+        } else if(strncmp(key,"SKBAR",5)==0){
+            int slot = atoi(key+5); if(slot>=0 && slot<10){ g_app.skill_bar[slot] = atoi(val); }
+        } else if(strncmp(key, "SKCD",4)==0){
+            /* Optional: cooldown end timestamp (ms). If in past relative to new session start, it will immediately be available. */
+            int id = atoi(key+4);
+            struct RogueSkillState* st = (struct RogueSkillState*)rogue_skill_get_state(id);
+            if(st){ st->cooldown_end_ms = atof(val); }
         }
     }
     fclose(f);
@@ -148,6 +155,13 @@ void rogue_persistence_save_player_stats(void){
     for(int i=0;i<g_app.skill_count;i++){
         const RogueSkillState* st = rogue_skill_get_state(i);
         if(st){ fprintf(f,"SKRANK%d=%d\n", i, st->rank); }
+    }
+    /* Persist skill bar slot assignments */
+    for(int s=0;s<10;s++){ fprintf(f,"SKBAR%d=%d\n", s, g_app.skill_bar[s]); }
+    /* Persist cooldown end times (optional; allows preserving long cooldown skills across sessions) */
+    for(int i=0;i<g_app.skill_count;i++){
+        const RogueSkillState* st = rogue_skill_get_state(i);
+        if(st && st->cooldown_end_ms>0){ fprintf(f,"SKCD%d=%.0f\n", i, st->cooldown_end_ms); }
     }
     fclose(f);
     g_app.stats_dirty = 0;
