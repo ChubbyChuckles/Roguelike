@@ -62,3 +62,7 @@ build/
 *.dll
 *.log
 compile_commands.json
+
+# My files
+dist/
+sprite_picker.spec
