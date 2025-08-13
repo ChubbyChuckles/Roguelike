@@ -45,6 +45,11 @@ SOFTWARE.
 #include "core/hud.h"
 #include "core/player_progress.h"
 #include "game/damage_numbers.h" /* will provide render/update */
+#include "core/world_renderer.h"
+#include "core/animation_system.h"
+#include "core/persistence.h"
+#include "core/asset_config.h"
+#include "core/metrics.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -55,13 +60,30 @@ SOFTWARE.
 #include <unistd.h>
 #endif
 
-#include <time.h> /* for local timing when SDL not providing high-res */
+/* timing now handled by metrics module */
 
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
 
 /* state now in app_state.c */
+
+static void apply_window_mode(void)
+{
+#ifdef ROGUE_HAVE_SDL
+    if (!g_app.window) return;
+    Uint32 flags = 0;
+    switch (g_app.cfg.window_mode)
+    {
+    case ROGUE_WINDOW_FULLSCREEN: flags = SDL_WINDOW_FULLSCREEN; break;
+    case ROGUE_WINDOW_BORDERLESS: flags = SDL_WINDOW_FULLSCREEN_DESKTOP; break;
+    case ROGUE_WINDOW_WINDOWED: default: flags = 0; break; }
+    if (SDL_SetWindowFullscreen(g_app.window, flags) != 0)
+    {
+        ROGUE_LOG_WARN("Failed to set fullscreen mode: %s", SDL_GetError());
+    }
+#endif
+}
 
 int rogue_get_current_attack_frame(void){
     /* Return current player anim frame if attack state active, else 0 */
@@ -103,88 +125,7 @@ void rogue_app_add_hitstop(float ms){
     if(g_app.hitstop_timer_ms < ms) g_app.hitstop_timer_ms = ms; /* take longer value */
 }
 
-/* Local timing helper (separate from game_loop's static) */
-static double now_seconds(void) { return (double) clock() / (double) CLOCKS_PER_SEC; }
-
-/* Load player animation frame durations from config file. */
-static void load_player_anim_config(const char* path){
-    FILE* f = NULL;
-#if defined(_MSC_VER)
-    fopen_s(&f, path, "rb");
-#else
-    f = fopen(path, "rb");
-#endif
-    if(!f) return; /* silent fallback */
-    char line[512];
-    while(fgets(line,sizeof line,f)){
-        char* p=line; while(*p==' '||*p=='\t') p++;
-        if(*p=='#' || *p=='\n' || *p=='\0') continue;
-        char act[32], dir[32];
-        char* cursor = p;
-        /* parse activity */
-        int ai=0; while(*cursor && *cursor!=',' && ai<31){ act[ai++]=*cursor++; } act[ai]='\0'; if(*cursor!=',') continue; cursor++;
-        int di=0; while(*cursor && *cursor!=',' && di<31){ dir[di++]=*cursor++; } dir[di]='\0'; if(*cursor!=',') continue; cursor++;
-        /* remaining are frame times separated by commas or newline */
-        int times[16]; int tcount=0;
-        while(*cursor && tcount<16){
-            while(*cursor==' '||*cursor=='\t') cursor++;
-            if(*cursor=='\n' || *cursor=='\0') break;
-            int val = atoi(cursor); if(val<=0) val=120; times[tcount++]=val;
-            while(*cursor && *cursor!=',' && *cursor!='\n') cursor++;
-            if(*cursor==',') cursor++;
-        }
-        int s=-1; if(strcmp(act,"idle")==0) s=0; else if(strcmp(act,"walk")==0) s=1; else if(strcmp(act,"run")==0) s=2; else if(strcmp(act,"attack")==0) s=3; else continue;
-        int d=-1; if(strcmp(dir,"down")==0) d=0; else if(strcmp(dir,"side")==0) d=1; else if(strcmp(dir,"up")==0) d=3; else continue;
-        if(tcount==0) continue;
-        /* apply times (will clamp to frame count later) */
-        for(int i=0;i<tcount && i<8;i++) g_app.player_frame_time_ms[s][d][i] = times[i];
-    }
-    fclose(f);
-}
-
-/* Load sound effect paths (simple: LEVELUP,<path>) */
-static void load_sound_config(const char* path){
-#ifdef ROGUE_HAVE_SDL_MIXER
-    FILE* f=NULL; 
-#if defined(_MSC_VER)
-    fopen_s(&f,path,"rb");
-#else
-    f=fopen(path,"rb");
-#endif
-    if(!f) return;
-    char line[512];
-    while(fgets(line,sizeof line,f)){
-        char* p=line; while(*p==' '||*p=='\t') p++;
-        if(*p=='#' || *p=='\n' || *p=='\0') continue;
-        if(strncmp(p,"LEVELUP",7)==0){ p+=7; if(*p==',') p++; while(*p==' '||*p=='\t') p++; char path_tok[400]; int i=0; while(p[i] && p[i]!='\n' && i<399){ path_tok[i]=p[i]; i++; } path_tok[i]='\0';
-            if(g_app.sfx_levelup) { Mix_FreeChunk(g_app.sfx_levelup); g_app.sfx_levelup=NULL; }
-            g_app.sfx_levelup = Mix_LoadWAV(path_tok);
-            if(!g_app.sfx_levelup){ ROGUE_LOG_WARN("Failed to load levelup sound: %s", path_tok); }
-            else { ROGUE_LOG_INFO("Loaded levelup sound: %s", path_tok); }
-        }
-    }
-    fclose(f);
-#else
-    (void)path;
-#endif
-}
-
-static void apply_window_mode(void)
-{
-#ifdef ROGUE_HAVE_SDL
-    if (!g_app.window) return;
-    Uint32 flags = 0;
-    switch (g_app.cfg.window_mode)
-    {
-    case ROGUE_WINDOW_FULLSCREEN: flags = SDL_WINDOW_FULLSCREEN; break;
-    case ROGUE_WINDOW_BORDERLESS: flags = SDL_WINDOW_FULLSCREEN_DESKTOP; break;
-    case ROGUE_WINDOW_WINDOWED: default: flags = 0; break; }
-    if (SDL_SetWindowFullscreen(g_app.window, flags) != 0)
-    {
-        ROGUE_LOG_WARN("Failed to set fullscreen mode: %s", SDL_GetError());
-    }
-#endif
-}
+/* frame timing helpers moved to metrics.c */
 
 bool rogue_app_init(const RogueAppConfig* cfg)
 {
@@ -238,46 +179,12 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     }
 
     apply_window_mode();
-
     RogueGameLoopConfig loop_cfg = {.target_fps = cfg->target_fps};
     rogue_game_loop_init(&loop_cfg);
-
-    /* Load persisted generation params if available BEFORE first world gen */
-    g_app.gen_water_level = 0.34; g_app.gen_noise_octaves = 6; g_app.gen_noise_gain = 0.48; g_app.gen_noise_lacunarity = 2.05; g_app.gen_river_sources = 10; g_app.gen_river_max_length = 1200; g_app.gen_cave_thresh = 0.60; g_app.gen_params_dirty = 0;
-    {
-        FILE* f = NULL;
-#if defined(_MSC_VER)
-        fopen_s(&f, "gen_params.cfg", "rb");
-#else
-        f = fopen("gen_params.cfg", "rb");
-#endif
-        if(f){
-            char line[256];
-            while(fgets(line,sizeof line,f)){
-                if(line[0]=='#' || line[0]=='\n' || line[0]=='\0') continue;
-                char* eq = strchr(line,'='); if(!eq) continue; *eq='\0';
-                char* key=line; char* val=eq+1;
-                /* trim */
-                for(char* p=key; *p; ++p){ if(*p=='\r' || *p=='\n') { *p='\0'; break; } }
-                for(char* p=val; *p; ++p){ if(*p=='\r' || *p=='\n') { *p='\0'; break; } }
-                if(strcmp(key,"WATER_LEVEL")==0) g_app.gen_water_level = atof(val);
-                else if(strcmp(key,"NOISE_OCTAVES")==0) g_app.gen_noise_octaves = atoi(val);
-                else if(strcmp(key,"NOISE_GAIN")==0) g_app.gen_noise_gain = atof(val);
-                else if(strcmp(key,"NOISE_LACUNARITY")==0) g_app.gen_noise_lacunarity = atof(val);
-                else if(strcmp(key,"RIVER_SOURCES")==0) g_app.gen_river_sources = atoi(val);
-                else if(strcmp(key,"RIVER_MAX_LENGTH")==0) g_app.gen_river_max_length = atoi(val);
-                else if(strcmp(key,"CAVE_THRESH")==0) g_app.gen_cave_thresh = atof(val);
-            }
-            fclose(f);
-        }
-    }
-    /* Pre-generate world using (possibly loaded) params */
+    /* Load persisted generation params + player stats BEFORE first world gen */
+    rogue_persistence_init_and_load();
     RogueWorldGenConfig wcfg = { .seed = 1337u, .width = 80, .height = 60, .biome_regions = 10, .cave_iterations = 3, .cave_fill_chance = 0.45, .river_attempts = 2, .small_island_max_size = 3, .small_island_passes = 2, .shore_fill_passes = 1, .advanced_terrain = 1, .water_level = g_app.gen_water_level, .noise_octaves = g_app.gen_noise_octaves, .noise_gain = g_app.gen_noise_gain, .noise_lacunarity = g_app.gen_noise_lacunarity, .river_sources = g_app.gen_river_sources, .river_max_length = g_app.gen_river_max_length, .cave_mountain_elev_thresh = g_app.gen_cave_thresh };
-    /* Scale world 10x while keeping similar structural density by scaling biome_regions proportionally to area. */
-    wcfg.width *= 10; /* 800 */
-    wcfg.height *= 10; /* 600 */
-    /* Maintain roughly same biome seed density: original had 10 seeds over 4800 tiles (~1 per 480). New area 480000 so scale seeds ~ area ratio */
-    wcfg.biome_regions = 10 * 100; /* 1000 seeds */
+    wcfg.width *= 10; wcfg.height *= 10; wcfg.biome_regions = 10 * 100; /* scale */
     rogue_world_generate(&g_app.world_map, &wcfg);
     rogue_player_init(&g_app.player);
     g_exposed_player_for_stats = g_app.player;
@@ -294,9 +201,7 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.sfx_levelup = NULL;
     if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 512)!=0){
         ROGUE_LOG_WARN("Mix_OpenAudio failed: %s", Mix_GetError());
-    } else {
-        load_sound_config("assets/sounds.cfg");
-    }
+    } else { rogue_asset_load_sounds(); }
 #endif
     /* Load persisted player stats */
     {
@@ -406,90 +311,12 @@ static int dir_name_to_index(const char* d){
     return -1;
 }
 
-static void load_player_sheet_paths(const char* path){
-    FILE* f=NULL; int lines=0,loaded=0;
-#if defined(_MSC_VER)
-    fopen_s(&f,path,"rb");
-#else
-    f=fopen(path,"rb");
-#endif
-    if(!f){
-        const char* prefixes[] = { "../", "../../", "../../../" };
-        char attempt[512];
-        for(size_t i=0;i<sizeof(prefixes)/sizeof(prefixes[0]) && !f;i++){
-            snprintf(attempt,sizeof attempt,"%s%s", prefixes[i], path);
-#if defined(_MSC_VER)
-            fopen_s(&f,attempt,"rb");
-#else
-            f=fopen(attempt,"rb");
-#endif
-            if(f){ ROGUE_LOG_INFO("Opened player sheet config via fallback path: %s", attempt); break; }
-        }
-    }
-    if(!f){ ROGUE_LOG_WARN("player sheet config open failed: %s", path); return; }
-    char line[512];
-    while(fgets(line,sizeof line,f)){
-        lines++;
-        char* p=line; while(*p==' '||*p=='\t') p++;
-        if(*p=='#' || *p=='\n' || *p=='\0') continue;
-        if(strncmp(p,"SHEET",5)!=0) continue;
-        p+=5; if(*p==',') p++; while(*p==' '||*p=='\t') p++;
-    char st_tok[32]; int si=0; while(p[si] && p[si]!=',' && p[si]!='\n' && si<31) { st_tok[si]=p[si]; si++; }
-        if(p[si]!=',') continue; st_tok[si]='\0'; p += si+1; while(*p==' '||*p=='\t') p++;
-    char dir_tok[32]; int di=0; while(p[di] && p[di]!=',' && p[di]!='\n' && di<31){ dir_tok[di]=p[di]; di++; }
-        if(p[di]!=',') continue; dir_tok[di]='\0'; p += di+1; while(*p==' '||*p=='\t') p++;
-        char path_tok[256]; int pi=0; while(p[pi] && p[pi]!='\n' && pi<255){ path_tok[pi]=p[pi]; pi++; }
-    path_tok[pi]='\0';
-    /* Trim trailing whitespace / carriage returns */
-    for(int k=(int)strlen(st_tok)-1;k>=0 && (st_tok[k]=='\r' || st_tok[k]==' '||st_tok[k]=='\t');k--) st_tok[k]='\0';
-    for(int k=(int)strlen(dir_tok)-1;k>=0 && (dir_tok[k]=='\r' || dir_tok[k]==' '||dir_tok[k]=='\t');k--) dir_tok[k]='\0';
-    for(int k=(int)strlen(path_tok)-1;k>=0 && (path_tok[k]=='\r' || path_tok[k]==' '||path_tok[k]=='\t');k--) path_tok[k]='\0';
-        int sidx = state_name_to_index(st_tok);
-        int didx = dir_name_to_index(dir_tok);
-        if(sidx<0 || didx<0) continue;
-#if defined(_MSC_VER)
-        strncpy_s(g_app.player_sheet_path[sidx][didx], sizeof g_app.player_sheet_path[sidx][didx], path_tok, _TRUNCATE);
-#else
-        strncpy(g_app.player_sheet_path[sidx][didx], path_tok, sizeof g_app.player_sheet_path[sidx][didx]-1);
-        g_app.player_sheet_path[sidx][didx][sizeof g_app.player_sheet_path[sidx][didx]-1]='\0';
-#endif
-        /* If direction was 'side', duplicate for both left/right */
-        if(strcmp(dir_tok,"side")==0){
-#if defined(_MSC_VER)
-            strncpy_s(g_app.player_sheet_path[sidx][2], sizeof g_app.player_sheet_path[sidx][2], path_tok, _TRUNCATE);
-#else
-            strncpy(g_app.player_sheet_path[sidx][2], path_tok, sizeof g_app.player_sheet_path[sidx][2]-1);
-            g_app.player_sheet_path[sidx][2][sizeof g_app.player_sheet_path[sidx][2]-1]='\0';
-#endif
-        }
-        /* Existence pre-check (helps early diagnosis) */
-        {
-            const char* prefixes[] = {"","../","../../","../../../"};
-            char attempt[512]; FILE* tf=NULL; int found=0;
-            for(size_t ip=0; ip<sizeof(prefixes)/sizeof(prefixes[0]); ip++){
-#if defined(_MSC_VER)
-                snprintf(attempt,sizeof attempt,"%s%s", prefixes[ip], g_app.player_sheet_path[sidx][didx]);
-                fopen_s(&tf, attempt, "rb");
-#else
-                snprintf(attempt,sizeof attempt,"%s%s", prefixes[ip], g_app.player_sheet_path[sidx][didx]);
-                tf=fopen(attempt,"rb");
-#endif
-                if(tf){ fclose(tf); if(ip>0) ROGUE_LOG_INFO("player sheet pre-check found via %s", attempt); found=1; break; }
-            }
-            if(!found){ ROGUE_LOG_WARN("player sheet pre-check NOT found: %s", g_app.player_sheet_path[sidx][didx]); }
-        }
-        loaded++;
-    }
-    fclose(f);
-    if(loaded>0){ g_app.player_sheet_paths_loaded = 1; ROGUE_LOG_INFO("player sheet config loaded %d entries", loaded); }
-}
-
 void rogue_app_step(void)
 {
     if (!g_game_loop.running)
         return;
     rogue_process_events();
-    double frame_start = now_seconds();
+    double frame_start = rogue_metrics_frame_begin();
 #ifdef ROGUE_HAVE_SDL
     g_app.title_time += g_app.dt;
     SDL_SetRenderDrawColor(g_app.renderer, g_app.cfg.background_color.r, g_app.cfg.background_color.g,
@@ -565,101 +392,13 @@ void rogue_app_step(void)
     /* Enemy spawning & AI updates */
     rogue_enemy_system_update(dt_ms);
 
-        /* Advance animation (coalesce tiny dt <1ms to reduce float churn) */
-        float frame_dt_ms = (float)g_app.dt * 1000.0f;
-        if(frame_dt_ms < 1.0f){
-            g_app.anim_dt_accum_ms += frame_dt_ms;
-            if(g_app.anim_dt_accum_ms >= 1.0f){
-                g_app.player.anim_time += g_app.anim_dt_accum_ms;
-                g_app.anim_dt_accum_ms = 0.0f;
-            }
-        } else {
-            g_app.player.anim_time += frame_dt_ms;
-        }
-    int anim_dir = g_app.player.facing;
-    int anim_sheet_dir = (anim_dir==1 || anim_dir==2)? 1 : anim_dir;
-    int state_for_anim = (g_app.player_combat.phase==ROGUE_ATTACK_WINDUP || g_app.player_combat.phase==ROGUE_ATTACK_STRIKE || g_app.player_combat.phase==ROGUE_ATTACK_RECOVER)? 3 : g_app.player_state;
-    int frame_count = g_app.player_frame_count[state_for_anim][anim_sheet_dir];
-        if(frame_count <=0) frame_count = 1;
-        if(state_for_anim == 3){
-            /* Custom timeline-driven attack animation spanning all phases */
-            const float WINDUP_MS = 120.0f;
-            const float STRIKE_MS = 80.0f;
-            const float RECOVER_MS = 140.0f;
-            float total = WINDUP_MS + STRIKE_MS + RECOVER_MS; /* 340ms */
-            if(g_app.player_combat.phase==ROGUE_ATTACK_WINDUP || g_app.player_combat.phase==ROGUE_ATTACK_STRIKE || g_app.player_combat.phase==ROGUE_ATTACK_RECOVER){
-                g_app.attack_anim_time_ms += frame_dt_ms; if(g_app.attack_anim_time_ms > total) g_app.attack_anim_time_ms = total - 0.01f;
-                float t = g_app.attack_anim_time_ms / total; if(t<0) t=0; if(t>1) t=1;
-                int idx = (int)(t * frame_count);
-                if(idx >= frame_count) idx = frame_count-1;
-                g_app.player.anim_frame = idx;
-            }
-        } else if(state_for_anim == 0){
-            g_app.player.anim_frame = 0;
-            g_app.player.anim_time = 0.0f;
-        } else {
-            int cur = g_app.player.anim_frame;
-            int cur_dur = g_app.player_frame_time_ms[state_for_anim][anim_sheet_dir][cur];
-            if(cur_dur <=0) cur_dur = 120;
-            if(g_app.player.anim_time >= (float)cur_dur){
-                g_app.player.anim_time = 0.0f;
-                g_app.player.anim_frame = (g_app.player.anim_frame + 1) % frame_count;
-            }
-        }
+    /* Advance animations */
+    rogue_animation_update((float)g_app.dt * 1000.0f);
 
     /* camera now handled in player_controller */
 
-        /* Render tiles (culled) with horizontal run batching */
-        int scale = 1;
-        int tsz = g_app.tile_size;
-        int first_tx = (int)(g_app.cam_x / tsz); if(first_tx<0) first_tx=0;
-        int first_ty = (int)(g_app.cam_y / tsz); if(first_ty<0) first_ty=0;
-        int vis_tx = g_app.viewport_w / tsz + 2;
-        int vis_ty = g_app.viewport_h / tsz + 2;
-        int last_tx = first_tx + vis_tx; if(last_tx > g_app.world_map.width) last_tx = g_app.world_map.width;
-        int last_ty = first_ty + vis_ty; if(last_ty > g_app.world_map.height) last_ty = g_app.world_map.height;
-        if(g_app.tileset_loaded){
-            for(int y=first_ty; y<last_ty; y++){
-                int x = first_tx;
-                while(x < last_tx){
-                    const RogueSprite* spr = NULL;
-                    if(g_app.tile_sprite_lut_ready){
-                        spr = g_app.tile_sprite_lut[y*g_app.world_map.width + x];
-                    } else {
-                        unsigned char t = g_app.world_map.tiles[y*g_app.world_map.width + x];
-                        if(t < ROGUE_TILE_MAX) spr = rogue_tile_sprite_get_xy((RogueTileType)t, x, y);
-                    }
-                    if(!(spr && spr->sw)) { x++; continue; }
-                    int run = 1;
-                    while(x+run < last_tx){
-                        const RogueSprite* spr2 = g_app.tile_sprite_lut_ready ? g_app.tile_sprite_lut[y*g_app.world_map.width + (x+run)] : NULL;
-                        if(spr2 != spr) break; /* pointer equality ensures identical source */
-                        run++;
-                    }
-                    /* Draw each tile separately (avoid stretching). Run detection still saves lookups. */
-#ifdef ROGUE_HAVE_SDL
-                    SDL_Rect src = { spr->sx, spr->sy, spr->sw, spr->sh };
-                    for(int i=0;i<run;i++){
-                        SDL_Rect dst = { (int)((x+i)*tsz - g_app.cam_x), (int)(y*tsz - g_app.cam_y), tsz*scale, tsz*scale };
-                        SDL_RenderCopy(g_app.renderer, spr->tex->handle, &src, &dst);
-                    }
-#else
-                    for(int i=0;i<run;i++) rogue_sprite_draw(spr, (int)((x+i)*tsz - g_app.cam_x), (int)(y*tsz - g_app.cam_y), scale);
-#endif
-                    x += run;
-                }
-            }
-        } else {
-            for(int y=first_ty; y<last_ty; y++){
-                for(int x=first_tx; x<last_tx; x++){
-                    unsigned char t = g_app.world_map.tiles[y*g_app.world_map.width + x];
-                    RogueColor c = { (unsigned char)(t*20), (unsigned char)(t*15), (unsigned char)(t*10), 255};
-                    SDL_SetRenderDrawColor(g_app.renderer, c.r,c.g,c.b,c.a);
-                    SDL_Rect r = { (int)(x*tsz - g_app.cam_x), (int)(y*tsz - g_app.cam_y), tsz*scale, tsz*scale };
-                    SDL_RenderFillRect(g_app.renderer, &r); g_app.frame_draw_calls++; g_app.frame_tile_quads++;
-                }
-            }
-        }
+    /* Render world tiles */
+    rogue_world_render_tiles();
 
     /* Render player */
     rogue_player_render();
@@ -684,21 +423,7 @@ void rogue_app_step(void)
     g_exposed_player_for_stats = g_app.player;
 #endif
     rogue_game_loop_iterate();
-    g_app.frame_count++;
-    double frame_end = now_seconds();
-    g_app.frame_ms = (frame_end - frame_start) * 1000.0;
-    g_app.dt = (g_game_loop.target_frame_seconds > 0.0) ? g_game_loop.target_frame_seconds : (frame_end - frame_start);
-    /* Headless/unit-test environments can produce extremely tiny dt; enforce a modest minimum (simulate ~120 FPS) */
-    if(g_app.dt < 0.0083) g_app.dt = 0.0083;
-    if (g_app.dt < 0.0001) g_app.dt = 0.0001; /* clamp */
-    g_app.fps = (g_app.dt > 0.0) ? 1.0 / g_app.dt : 0.0;
-    g_app.avg_frame_ms_accum += g_app.frame_ms;
-    g_app.avg_frame_samples++;
-    if (g_app.avg_frame_samples >= 120)
-    {
-        g_app.avg_frame_ms_accum = g_app.avg_frame_ms_accum / g_app.avg_frame_samples;
-        g_app.avg_frame_samples = 0; /* reuse accum as average holder */
-    }
+    rogue_metrics_frame_end(frame_start);
     rogue_input_next_frame(&g_app.input);
 }
 
@@ -726,51 +451,8 @@ void rogue_app_shutdown(void)
 #endif
     if(g_app.tile_sprite_lut){ free((void*)g_app.tile_sprite_lut); g_app.tile_sprite_lut=NULL; }
     if(g_app.chunk_dirty){ free(g_app.chunk_dirty); g_app.chunk_dirty=NULL; }
-    /* Persist generation params if changed */
-    if(g_app.gen_params_dirty){
-    FILE* f=NULL;
-#if defined(_MSC_VER)
-    fopen_s(&f, "gen_params.cfg", "wb");
-#else
-    f=fopen("gen_params.cfg","wb");
-#endif
-    if(f){
-        fprintf(f,"# Saved world generation parameters\n");
-        fprintf(f,"WATER_LEVEL=%.4f\n", g_app.gen_water_level);
-        fprintf(f,"NOISE_OCTAVES=%d\n", g_app.gen_noise_octaves);
-        fprintf(f,"NOISE_GAIN=%.4f\n", g_app.gen_noise_gain);
-        fprintf(f,"NOISE_LACUNARITY=%.4f\n", g_app.gen_noise_lacunarity);
-        fprintf(f,"RIVER_SOURCES=%d\n", g_app.gen_river_sources);
-        fprintf(f,"RIVER_MAX_LENGTH=%d\n", g_app.gen_river_max_length);
-        fprintf(f,"CAVE_THRESH=%.4f\n", g_app.gen_cave_thresh);
-        fclose(f);
-    }
-    }
-    /* Persist player stats */
-    {
-    FILE* f=NULL;
-#if defined(_MSC_VER)
-    fopen_s(&f, "player_stats.cfg", "wb");
-#else
-    f=fopen("player_stats.cfg","wb");
-#endif
-    if(f){
-        fprintf(f,"# Saved player progression\n");
-        fprintf(f,"LEVEL=%d\n", g_app.player.level);
-        fprintf(f,"XP=%d\n", g_app.player.xp);
-        fprintf(f,"XP_TO_NEXT=%d\n", g_app.player.xp_to_next);
-        fprintf(f,"STR=%d\n", g_app.player.strength);
-        fprintf(f,"DEX=%d\n", g_app.player.dexterity);
-        fprintf(f,"VIT=%d\n", g_app.player.vitality);
-        fprintf(f,"INT=%d\n", g_app.player.intelligence);
-    fprintf(f,"CRITC=%d\n", g_app.player.crit_chance);
-    fprintf(f,"CRITD=%d\n", g_app.player.crit_damage);
-        fprintf(f,"UNSPENT=%d\n", g_app.unspent_stat_points);
-        fprintf(f,"HP=%d\n", g_app.player.health);
-    fprintf(f,"MP=%d\n", g_app.player.mana);
-        fclose(f);
-    }
-    }
+    /* Persist (gen params if dirty + player stats) */
+    rogue_persistence_save_on_shutdown();
 }
 
 int rogue_app_frame_count(void) { return g_app.frame_count; }
@@ -801,17 +483,8 @@ void rogue_app_set_vsync(int enabled)
 #endif
 }
 
-void rogue_app_get_metrics(double* out_fps, double* out_frame_ms, double* out_avg_frame_ms)
-{
-    if (out_fps) *out_fps = g_app.fps;
-    if (out_frame_ms) *out_frame_ms = g_app.frame_ms;
-    if (out_avg_frame_ms)
-    {
-        double avg = (g_app.avg_frame_samples == 0 && g_app.avg_frame_ms_accum > 0.0)
-                          ? g_app.avg_frame_ms_accum
-                          : (g_app.avg_frame_ms_accum / (g_app.avg_frame_samples ? g_app.avg_frame_samples : 1));
-        *out_avg_frame_ms = avg;
-    }
+/* Wrappers for legacy API now that metrics live in metrics.c */
+void rogue_app_get_metrics(double* out_fps, double* out_frame_ms, double* out_avg_frame_ms){
+    rogue_metrics_get(out_fps, out_frame_ms, out_avg_frame_ms);
 }
-
-double rogue_app_delta_time(void) { return g_app.dt; }
+double rogue_app_delta_time(void){ return rogue_metrics_delta_time(); }

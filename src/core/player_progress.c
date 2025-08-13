@@ -5,6 +5,7 @@
 #include <SDL_mixer.h>
 #endif
 #include <stdio.h>
+#include "core/persistence.h"
 
 void rogue_player_progress_update(double dt_seconds){
     float raw_dt_ms = (float)dt_seconds * 1000.0f;
@@ -48,29 +49,7 @@ void rogue_player_progress_update(double dt_seconds){
     /* Autosave every ~5s when dirty */
     static double stats_save_timer = 0.0; stats_save_timer += dt_seconds;
     if(g_app.stats_dirty && stats_save_timer > 5.0){
-        FILE* f=NULL;
-    #if defined(_MSC_VER)
-        fopen_s(&f, "player_stats.cfg", "wb");
-    #else
-        f=fopen("player_stats.cfg","wb");
-    #endif
-        if(f){
-            fprintf(f,"# Saved player progression\n");
-            fprintf(f,"LEVEL=%d\n", g_app.player.level);
-            fprintf(f,"XP=%d\n", g_app.player.xp);
-            fprintf(f,"XP_TO_NEXT=%d\n", g_app.player.xp_to_next);
-            fprintf(f,"STR=%d\n", g_app.player.strength);
-            fprintf(f,"DEX=%d\n", g_app.player.dexterity);
-            fprintf(f,"VIT=%d\n", g_app.player.vitality);
-            fprintf(f,"INT=%d\n", g_app.player.intelligence);
-            fprintf(f,"CRITC=%d\n", g_app.player.crit_chance);
-            fprintf(f,"CRITD=%d\n", g_app.player.crit_damage);
-            fprintf(f,"UNSPENT=%d\n", g_app.unspent_stat_points);
-            fprintf(f,"HP=%d\n", g_app.player.health);
-            fprintf(f,"MP=%d\n", g_app.player.mana);
-            fclose(f);
-            g_app.stats_dirty=0;
-        }
+        rogue_persistence_save_player_stats();
         stats_save_timer = 0.0;
     }
 }
