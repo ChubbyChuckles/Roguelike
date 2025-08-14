@@ -1,22 +1,20 @@
-feat(loot/phase9): implement adaptive weighting engine (9.2)
+feat(loot/phase9): player preference learning (9.3) + adaptive integration
 
-Adds adaptive balancing layer:
-- Tracks observed counts per rarity & per item category since reset
-- Computes target uniform average and derives corrective factor = clamp(target/actual, 0.5x..2.0x)
-- Applies exponential smoothing (25%) to avoid oscillation & thrash
-- Exposes API (reset, record, recompute, get factors) in new loot_adaptive module
-- Integrates via public factors callable by generation weighting logic (future hook for preference & pity synergy)
- - Unit test currently exercises category factors; rarity factors present for future 9.4 extension
+Adds pickup-driven preference learning atop adaptive balancing:
+- Tracks per-category pickup counts (reset with adaptive reset)
+- Computes mild inverse bias (clamped 0.75x–1.25x, smoothed) so over-picked categories slightly de-prioritize
+- Exposes API: rogue_adaptive_record_pickup + rogue_adaptive_get_category_preference_factor
+- Integrated into pickup path (records on successful pickup) for passive learning
 
 Testing:
-- New unit test test_loot_phase9_adaptive validates factor behavior under balanced, skewed, and rebalanced scenarios
-- Ensures underrepresented category factor rises >1 while overrepresented drops < previous
+- New test_loot_phase9_preference validates dampening behavior vs untouched category
+- Existing adaptive + drop rate tests still pass
 
-Documentation:
-- README deep dive updated with (9.2) description
-- Changelog augmented with adaptive weighting entry
-- Roadmap (implementation_plan.txt) marks 9.2 as Done
+Docs & Plan:
+- README deep dive & changelog updated with (9.3)
+- implementation_plan.txt marks 9.3 Done
 
-Notes / Next Steps:
-- 9.3 will extend by layering player pickup preference bias on top of adaptive base
-- Potential future improvement: sliding window (current implementation accumulative) and integration into rarity dynamic chain
+Next Steps (9.4+):
+- Tie pity thresholds into adaptive factors (rare drought relief synergy)
+- Add session metrics (9.5) + console tuning commands (9.6)
+ - Integrate preference + adaptive factor product into loot table weighting hook

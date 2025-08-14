@@ -31,6 +31,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_adaptive.c AND NOT T
     add_test(NAME test_loot_phase9_adaptive COMMAND test_loot_phase9_adaptive)
 endif()
 
+# Explicitly add loot phase 9 preference learning test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_preference.c AND NOT TARGET test_loot_phase9_preference)
+    add_executable(test_loot_phase9_preference unit/test_loot_phase9_preference.c)
+    target_link_libraries(test_loot_phase9_preference PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_loot_phase9_preference PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_loot_phase9_preference COMMAND test_loot_phase9_preference)
+endif()
+
 # Explicitly add generation quality test (ensure picked up even if glob cache stale)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase8_generation_quality.c AND NOT TARGET test_loot_phase8_generation_quality)
     add_executable(test_loot_phase8_generation_quality unit/test_loot_phase8_generation_quality.c)
