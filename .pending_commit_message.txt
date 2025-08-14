@@ -1,47 +1,22 @@
-feat(loot-gen): implement affix gating, quality scalar & duplicate avoidance (8.2,8.4,8.6,8.7)
+feat(loot/phase9): implement adaptive weighting engine (9.2)
 
-Adds:
-- Affix gating by item category: damage affixes restricted to weapons; agility to weapons/armor/gems.
-- Quality scalar system with global min/max and player luck driven interpolation.
-- Scaled affix value roll function (biased upward for higher quality) with deterministic RNG.
-- Duplicate affix avoidance when selecting prefix/suffix in generation pipeline.
-- Integrated gating/quality into generation path replacing legacy direct affix selection.
+Adds adaptive balancing layer:
+- Tracks observed counts per rarity & per item category since reset
+- Computes target uniform average and derives corrective factor = clamp(target/actual, 0.5x..2.0x)
+- Applies exponential smoothing (25%) to avoid oscillation & thrash
+- Exposes API (reset, record, recompute, get factors) in new loot_adaptive module
+- Integrates via public factors callable by generation weighting logic (future hook for preference & pity synergy)
+ - Unit test currently exercises category factors; rarity factors present for future 9.4 extension
 
-Tests:
-- New unit test `test_loot_phase8_generation_quality` validating gating, quality bias, duplicate avoidance.
-- Updated implementation plan marking 8.2,8.4,8.6,8.7 Done.
+Testing:
+- New unit test test_loot_phase9_adaptive validates factor behavior under balanced, skewed, and rebalanced scenarios
+- Ensures underrepresented category factor rises >1 while overrepresented drops < previous
 
-Internal:
-- Added `rogue_affix_roll_value_scaled` utility.
-- Extended generation module with gated roll helper and luck->quality mapping.
+Documentation:
+- README deep dive updated with (9.2) description
+- Changelog augmented with adaptive weighting entry
+- Roadmap (implementation_plan.txt) marks 9.2 as Done
 
-Next: proceed to 9.x dynamic drop balancing layer.
-
-feat(loot-balance): add global & per-category drop rate scalars (9.1)
-
-Implements phase 9.1:
-- New module `loot_drop_rates.[ch]` managing global and per-item-category scalars.
-- Integrated into loot roll functions adjusting total rolls (global scalar) and probabilistically suppressing categories (per-category scalar).
-- Unit test `test_loot_phase9_drop_rates` validates baseline vs zero vs boosted and category suppression behavior.
-- Updated implementation plan marking 9.1 Done; README updated (Dynamic Balancing early section).
-
-Lays groundwork for adaptive weighting (9.2) & player preference learning (9.3).
-
-feat(loot): implement advanced generation API (8.1, 8.3, 8.5) and tests
-
-Adds new module loot_generation (context-driven item creation) including:
-- Generation context struct (enemy level, biome, archetype, player luck)
-- Seed mixing helper (8.5) for deterministic yet varied outputs
-- Multi-pass rarity->item->affix flow (8.3) via existing roll_ex path
-- Rarity floor influence from enemy level + global floor integration
-- Hooks affix rolling into spawned instance
-
-Introduces quality scalar config stub (future 8.4 work) and placeholder affix gating hook (8.2).
-
-Adds unit test test_loot_phase8_generation_basic covering:
-- Context-driven rarity floor
-- Deterministic reproduction with same seed/context
-
-Marks roadmap items 8.1, 8.3, 8.5 as Done in implementation_plan.txt.
-
-Also integrates module into build system.
+Notes / Next Steps:
+- 9.3 will extend by layering player pickup preference bias on top of adaptive base
+- Potential future improvement: sliding window (current implementation accumulative) and integration into rarity dynamic chain

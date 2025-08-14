@@ -21,6 +21,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_drop_rates.c AND NOT
     add_test(NAME test_loot_phase9_drop_rates COMMAND test_loot_phase9_drop_rates)
 endif()
 
+# Explicitly add loot phase 9 adaptive weighting test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_adaptive.c AND NOT TARGET test_loot_phase9_adaptive)
+    add_executable(test_loot_phase9_adaptive unit/test_loot_phase9_adaptive.c)
+    target_link_libraries(test_loot_phase9_adaptive PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_loot_phase9_adaptive PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_loot_phase9_adaptive COMMAND test_loot_phase9_adaptive)
+endif()
+
 # Explicitly add generation quality test (ensure picked up even if glob cache stale)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase8_generation_quality.c AND NOT TARGET test_loot_phase8_generation_quality)
     add_executable(test_loot_phase8_generation_quality unit/test_loot_phase8_generation_quality.c)
