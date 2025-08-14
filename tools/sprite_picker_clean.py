@@ -392,9 +392,28 @@ class MainWindow(QMainWindow):
         self.output_edit.setReadOnly(True)
         b_copy = QPushButton("Copy Output")
         b_copy.clicked.connect(self.copy_manual)  # type: ignore
+        b_append = QPushButton("Append")
+        b_append.setToolTip(
+            "Append the current selection line to the chosen .cfg file and increment Number"
+        )
+        b_append.clicked.connect(self.append_to_cfg)  # type: ignore
         out.addWidget(self.output_edit, 1)
         out.addWidget(b_copy)
+        out.addWidget(b_append)
         side_layout.addLayout(out)
+        # cfg file chooser
+        cfgrow = QHBoxLayout()
+        cfgrow.addWidget(QLabel("CFG:"))
+        self.cfg_edit = QLineEdit()
+        self.cfg_edit.setPlaceholderText("Choose a .cfg file to append lines")
+        self.cfg_edit.setText(self._settings.get("last_cfg", ""))
+        self.cfg_edit.textChanged.connect(self._cfg_changed)  # type: ignore
+        cfgrow.addWidget(self.cfg_edit, 1)
+        cfgb = QPushButton("Browse")
+        cfgb.setToolTip("Select a .cfg file to append output lines to")
+        cfgb.clicked.connect(self.browse_cfg)  # type: ignore
+        cfgrow.addWidget(cfgb)
+        side_layout.addLayout(cfgrow)
         # info / zoom / preview
         self.info_label = QLabel("Image: - x - | cols: - rows: -")
         side_layout.addWidget(self.info_label)
@@ -537,6 +556,10 @@ class MainWindow(QMainWindow):
         if rect and self.view.sheet:
             self.cell_selected(*rect)
 
+    def _cfg_changed(self, text: str):
+        self._settings["last_cfg"] = text.strip()
+        self._save_settings()
+
     def _update_meta_visibility(self):
         is_tree = self.type_combo.currentText() == "TREE"
         self.canopy_label.setVisible(is_tree)
@@ -678,6 +701,84 @@ class MainWindow(QMainWindow):
             self.number_edit.setText("2")
         self._settings["last_number"] = self.number_edit.text()
         self._save_settings()
+
+    def append_to_cfg(self):
+        # Generate current selection output (same as copy) then append to file
+        rect = self.view._norm()  # type: ignore
+        if not (rect and self.view.sheet):
+            self.status.showMessage("No selection to append", 2000)
+            return
+        self.cell_selected(*rect)
+        line = self.output_edit.text().strip()
+        if not line:
+            self.status.showMessage("Nothing to append", 2000)
+            return
+        cfg_path = self.cfg_edit.text().strip() if hasattr(self, "cfg_edit") else ""
+        if not cfg_path:
+            self.status.showMessage("Choose a cfg file first", 2500)
+            return
+        # If relative, make it relative to project root or assets root if exists there
+        if not os.path.isabs(cfg_path):
+            cand1 = os.path.join(self.project_root, cfg_path)
+            cand2 = os.path.join(self.assets_root, cfg_path)
+            if os.path.isfile(cand1) or os.path.isdir(os.path.dirname(cand1)):
+                cfg_path = cand1
+            elif os.path.isfile(cand2) or os.path.isdir(os.path.dirname(cand2)):
+                cfg_path = cand2
+        # Ensure directory exists
+        try:
+            os.makedirs(os.path.dirname(cfg_path), exist_ok=True)
+        except Exception:
+            pass
+        try:
+            need_nl = False
+            if os.path.isfile(cfg_path):
+                try:
+                    with open(cfg_path, "rb") as fchk:
+                        if fchk.seek(0, os.SEEK_END) > 0:
+                            fchk.seek(-1, os.SEEK_END)
+                            last = fchk.read(1)
+                            need_nl = last not in (b"\n", b"\r")
+                except Exception:
+                    need_nl = True
+            with open(cfg_path, "a", encoding="utf-8") as f:
+                if need_nl:
+                    f.write("\n")
+                f.write(line + "\n")
+            # Increment number AFTER writing so written line keeps original number
+            try:
+                cur = int(self.number_edit.text())
+                self.number_edit.setText(str(cur + 1))
+            except ValueError:
+                self.number_edit.setText("2")
+            self._settings["last_number"] = self.number_edit.text()
+            self._settings["last_cfg"] = cfg_path
+            self._save_settings()
+            rel = (
+                os.path.relpath(cfg_path, self.project_root).replace("\\", "/")
+                if cfg_path.startswith(self.project_root)
+                else cfg_path
+            )
+            self.status.showMessage(f"Appended to {rel}", 3000)
+        except Exception as ex:  # pragma: no cover - runtime feedback
+            QMessageBox.warning(self, "Append Failed", f"{ex}\nPath: {cfg_path}")
+
+    def browse_cfg(self):
+        start = self._settings.get("last_cfg", self.project_root)
+        if start and not os.path.isdir(start):
+            start = os.path.dirname(start)
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select .cfg File (it will be created if missing)",
+            start,
+            "Config (*.cfg);;All Files (*)",
+        )
+        if path:
+            # Guarantee extension
+            if not path.lower().endswith(".cfg"):
+                path += ".cfg"
+            self.cfg_edit.setText(path)
+            self._cfg_changed(path)
 
     # style / close ------------------------------------------------------
     def _apply_styles(self):
