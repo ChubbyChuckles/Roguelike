@@ -32,6 +32,8 @@ from PyQt6.QtGui import (
     QPainter,
     QPen,
     QPixmap,
+    QColor,
+    QBrush,
 )
 from PyQt6.QtWidgets import (
     QApplication,
@@ -264,8 +266,9 @@ class SheetView(QWidget):
             y = int(r1 * TILE_SIZE * self.scale)
             w = int((c2 - c1 + 1) * TILE_SIZE * self.scale)
             h = int((r2 - r1 + 1) * TILE_SIZE * self.scale)
-            p.fillRect(QRect(x, y, w, h), Qt.GlobalColor.darkCyan)
-            pen_sel = QPen(Qt.GlobalColor.cyan)
+            # Semi-transparent cyan overlay instead of opaque fill
+            p.fillRect(QRect(x, y, w, h), QBrush(QColor(0, 255, 255, 70)))
+            pen_sel = QPen(QColor(0, 255, 255))
             pen_sel.setWidth(2)
             p.setPen(pen_sel)
             p.drawRect(QRect(x, y, w, h))
@@ -276,6 +279,8 @@ class MainWindow(QMainWindow):
     def __init__(self, project_root: str, assets_root: str):
         super().__init__()
         self.setWindowTitle("Sprite Rectangle Picker (Clean)")
+        # Always on top
+        self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
         self.project_root = project_root
         self.assets_root = assets_root
         self._settings_path = os.path.join(
@@ -652,13 +657,27 @@ class MainWindow(QMainWindow):
         self._save_settings()
 
     def copy_manual(self):
+        # Ensure latest selection string first
+        rect = self.view._norm()  # type: ignore
+        if rect and self.view.sheet:
+            self.cell_selected(*rect)
         txt = self.output_edit.text()
-        if txt:
-            cb = QGuiApplication.clipboard()
-            if cb:
-                cb.setText(txt)
-                self.status.showMessage("Copied to clipboard", 1500)
-                self._update_preview()
+        if not txt:
+            return
+        cb = QGuiApplication.clipboard()
+        if cb:
+            cb.setText(txt)
+        self.status.showMessage("Copied to clipboard", 1500)
+        self._update_preview()
+        # Auto-increment number field AFTER copying so clipboard has old value
+        try:
+            cur = int(self.number_edit.text())
+            self.number_edit.setText(str(cur + 1))
+        except ValueError:
+            # Reset to 2 if not parseable
+            self.number_edit.setText("2")
+        self._settings["last_number"] = self.number_edit.text()
+        self._save_settings()
 
     # style / close ------------------------------------------------------
     def _apply_styles(self):
