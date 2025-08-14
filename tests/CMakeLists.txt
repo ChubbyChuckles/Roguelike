@@ -141,3 +141,33 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase4_inventory_persistenc
     endif()
     add_test(NAME test_loot_phase4_inventory_persistence COMMAND test_loot_phase4_inventory_persistence)
 endif()
+
+# Explicitly add loot phase 5 rarity parse test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase5_rarity_parse.c AND NOT TARGET test_loot_phase5_rarity_parse)
+    add_executable(test_loot_phase5_rarity_parse unit/test_loot_phase5_rarity_parse.c)
+    target_link_libraries(test_loot_phase5_rarity_parse PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_loot_phase5_rarity_parse PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_loot_phase5_rarity_parse COMMAND test_loot_phase5_rarity_parse)
+endif()
+
+# Explicitly add loot phase 5 rarity roll test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase5_rarity_roll.c AND NOT TARGET test_loot_phase5_rarity_roll)
+    add_executable(test_loot_phase5_rarity_roll unit/test_loot_phase5_rarity_roll.c)
+    target_link_libraries(test_loot_phase5_rarity_roll PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_loot_phase5_rarity_roll PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_loot_phase5_rarity_roll COMMAND test_loot_phase5_rarity_roll)
+endif()
+
+# Explicitly add loot phase 6 merge/despawn test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase6_merge_despawn.c AND NOT TARGET test_loot_phase6_merge_despawn)
+    add_executable(test_loot_phase6_merge_despawn unit/test_loot_phase6_merge_despawn.c)
+    target_link_libraries(test_loot_phase6_merge_despawn PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_loot_phase6_merge_despawn PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_loot_phase6_merge_despawn COMMAND test_loot_phase6_merge_despawn)
+endif()

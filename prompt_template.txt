@@ -5,7 +5,68 @@ Implement all these features:
 Use unit tests and modularize the code as much as possible to prevent regression.
 
 Item pickup (proximity -> add to simple inventory + remove from ground) +++
-Basic inventory/persistence (counts per item def saved/loaded)
+Basic inventory/persistence (counts per item def saved/loaded) +++
 Rarity tiers + colored render + weighted table support
 Despawn timers & stack merging on ground
 Affix scaffold (random stat mods) groundwork
+
+
+RNG & determinism
+
+Use a PRNG with explicit seed (e.g., PCG32) and pass a context to roll functions.
+For world objects, seed per-enemy = world_seed ^ enemy_spawn_id ^ frame_counter etc. Store seed per item instance for reproducibility.
+
+
+
+Affix & quality system
+
+Roll rarity from base item + monster level + player level + luck modifiers.
+Quality (common/uncommon/rare/epic/legendary) determines number of affix rolls and multiplier.
+Affixes are weighted by quality tiers and tags (weapon-only, melee-only, elemental).
+
+
+
+Placement & performance
+
+Spawn pickup entity with light-weight physics (AABB) and pickup cooldown (e.g., 0.25s).
+Pool item instances and VFX particles to avoid allocations in hot paths.
+Batch rendering of item sprites (use existing tile_sprites cache or add a sprite_cache for arbitrary PNG sheets).
+
+
+
+UI & UX
+
+Floating damage/value numbers, particle shard burst on spawn.
+“Loot popup” when picking items (name + rarity color + stats preview).
+Auto-loot rules (gold, low-value potions) toggleable by player.
+Multi-tile sprites supported (use sprite picker rectangle output).
+
+
+
+Balancing & tools
+
+Loot table weight visualizer & simulator tool (run 100k simulations to check distribution).
+LTV (loot value) estimator for income balancing by mob-level.
+CLI to convert sprite picker outputs into item sprite references.
+
+
+
+Persistence model
+
+ItemInstance saved as: uid, item_id, affixes[], rarity, exact stats, x,y, ownerUid, seed, created_time.
+Inventory persistence identical: list of item instances + meta (equipment slot mapping).
+Use JSON or binary save for speed (project already uses text cfgs — provide both loaders).
+
+
+
+Tests (unit + integration)
+
+item_defs_load: verify parsing and sprite rect mapping.
+affix_apply: affix modifies stats as expected across ranges.
+loot_table_roll_stats: run 100k rolls to assert approximate weight distribution.
+deterministic_roll: with same world_seed & RNG, repeated runs produce same drops.
+instantiate_and_persist: create item, save/load, assert equality.
+pickup_flow: spawn item instance, simulate pickup collision, assert removal and inventory addition.
+stress test: spawn 10k items, run update loop, ensure pool reuse and no leaks.
+integration test: mob kills roll drops referenced in loot_tables, items spawned at correct coords and visible.
+

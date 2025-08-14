@@ -22,8 +22,8 @@ static char* next_field(char** cur){
 static int parse_line(char* line, RogueItemDef* out){
     for(char* p=line; *p; ++p){ if(*p=='\r'||*p=='\n'){ *p='\0'; break; } }
     if(line[0]=='#' || line[0]=='\0') return 0;
-    char* cursor=line; char* fields[14]; int nf=0; while(cursor && nf<14){ fields[nf++] = next_field(&cursor); }
-    if(nf<14) return -1;
+    char* cursor=line; char* fields[15]; int nf=0; while(cursor && nf<15){ fields[nf++] = next_field(&cursor); }
+    if(nf<14) return -1; /* rarity optional (15th field) */
     RogueItemDef d; memset(&d,0,sizeof d);
 #if defined(_MSC_VER)
     strncpy_s(d.id,sizeof d.id, fields[0], _TRUNCATE);
@@ -45,6 +45,7 @@ static int parse_line(char* line, RogueItemDef* out){
     d.sprite_ty = (int)strtol(fields[11],NULL,10);
     d.sprite_tw = (int)strtol(fields[12],NULL,10); if(d.sprite_tw<=0) d.sprite_tw=1;
     d.sprite_th = (int)strtol(fields[13],NULL,10); if(d.sprite_th<=0) d.sprite_th=1;
+    d.rarity = 0; if(nf>=15){ d.rarity = (int)strtol(fields[14],NULL,10); if(d.rarity<0) d.rarity=0; }
     *out=d; return 1;
 }
 
@@ -65,7 +66,7 @@ int rogue_item_defs_load_from_cfg(const char* path){
 #else
         strncpy(work,line,sizeof work -1); work[sizeof work -1]='\0';
 #endif
-        RogueItemDef d; int r=parse_line(work,&d);
+    RogueItemDef d; int r=parse_line(work,&d);
         if(r<0){ /* malformed */ fprintf(stderr,"item_defs: malformed line %d in %s\n", lineno,path); continue; }
         if(r==0) continue; /* skip */
         if(g_item_def_count>=ROGUE_ITEM_DEF_CAP){ fprintf(stderr,"item_defs: cap reached (%d)\n", ROGUE_ITEM_DEF_CAP); break; }
@@ -77,3 +78,4 @@ int rogue_item_defs_load_from_cfg(const char* path){
 
 const RogueItemDef* rogue_item_def_by_id(const char* id){ if(!id) return NULL; for(int i=0;i<g_item_def_count;i++){ if(strcmp(g_item_defs[i].id,id)==0) return &g_item_defs[i]; } return NULL; }
 int rogue_item_def_index(const char* id){ if(!id) return -1; for(int i=0;i<g_item_def_count;i++){ if(strcmp(g_item_defs[i].id,id)==0) return i; } return -1; }
+const RogueItemDef* rogue_item_def_at(int index){ if(index<0 || index>=g_item_def_count) return NULL; return &g_item_defs[index]; }

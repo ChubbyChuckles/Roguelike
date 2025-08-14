@@ -183,23 +183,18 @@ void rogue_enemy_system_update(float dt_ms){
             if(table_idx<0){ table_idx = rogue_loot_table_index("GOBLIN_BASIC"); }
             if(table_idx>=0){
                 unsigned int seed = (unsigned int)(e->base.pos.x*73856093u) ^ (unsigned int)(e->base.pos.y*19349663u) ^ (unsigned int)g_app.total_kills;
-                int idef[8]; int qty[8]; int drops = rogue_loot_roll(table_idx,&seed,8,idef,qty);
+                int idef[8]; int qty[8]; int rar[8]; int drops = rogue_loot_roll_ex(table_idx,&seed,8,idef,qty,rar);
                 ROGUE_LOG_INFO("loot_roll: enemy_type=%s table=%s drops=%d", t->name, tbl_id, drops);
-                /* Scatter & log: compare raw enemy coords with each item spawn (with jitter). */
-                for(int di=0; di<drops; ++di){
-                    if(idef[di]>=0){
-                        /* Jitter radius: small ring 0.0 - 0.35 tiles to avoid perfect overlap; deterministic-ish using evolving seed */
-                        unsigned int jseed = seed + (unsigned int)(di*60493u);
-                        float jr = (float)(jseed % 1000) / 1000.0f; /* 0..0.999 */
-                        float jang = (float)((jseed / 1000u) % 6283u) * 0.001f; /* 0..6.283 */
-                        float radius = jr * 0.35f; /* scale */
-                        float jx = e->base.pos.x + cosf(jang) * radius;
-                        float jy = e->base.pos.y + sinf(jang) * radius;
-                        ROGUE_LOG_DEBUG("loot_entry: idx=%d qty=%d enemy_pos=(%.2f,%.2f) spawn_pos=(%.2f,%.2f) off=(%.2f,%.2f)",
-                            idef[di], qty[di], e->base.pos.x, e->base.pos.y, jx, jy, jx - e->base.pos.x, jy - e->base.pos.y);
-                        rogue_items_spawn(idef[di], qty[di], jx, jy);
-                    }
-                }
+                for(int di=0; di<drops; ++di){ if(idef[di]>=0){
+                    unsigned int jseed = seed + (unsigned int)(di*60493u);
+                    float jr = (float)(jseed % 1000) / 1000.0f;
+                    float jang = (float)((jseed / 1000u) % 6283u) * 0.001f;
+                    float radius = jr * 0.35f;
+                    float jx = e->base.pos.x + cosf(jang) * radius;
+                    float jy = e->base.pos.y + sinf(jang) * radius;
+                    ROGUE_LOG_DEBUG("loot_entry: idx=%d qty=%d rarity=%d enemy_pos=(%.2f,%.2f) spawn_pos=(%.2f,%.2f) off=(%.2f,%.2f)", idef[di], qty[di], rar[di], e->base.pos.x, e->base.pos.y, jx, jy, jx-e->base.pos.x, jy-e->base.pos.y);
+                    int inst = rogue_items_spawn(idef[di], qty[di], jx, jy); if(inst>=0 && rar[di]>=0 && inst < g_app.item_instance_cap){ g_app.item_instances[inst].rarity = rar[di]; }
+                }}
             }
         }
         RogueSprite* frames=NULL; int fcount=0; if(e->ai_state==ROGUE_ENEMY_AI_AGGRO) { frames=t->run_frames; fcount=t->run_count; } else if(e->ai_state==ROGUE_ENEMY_AI_PATROL){ frames=t->idle_frames; fcount=t->idle_count; } else { frames=t->death_frames; fcount=t->death_count; }

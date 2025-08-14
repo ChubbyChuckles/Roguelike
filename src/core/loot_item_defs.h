@@ -31,6 +31,7 @@ typedef struct RogueItemDef {
     int base_armor;
     char sprite_sheet[128];
     int sprite_tx, sprite_ty, sprite_tw, sprite_th;
+    int rarity; /* RogueItemRarity enum value */
 } RogueItemDef;
 
 /* Runtime registry */
@@ -39,5 +40,7 @@ const RogueItemDef* rogue_item_def_by_id(const char* id);
 int rogue_item_def_index(const char* id); /* -1 if not found */
 int rogue_item_defs_count(void);
 void rogue_item_defs_reset(void);
+/* Internal convenience: get pointer by index (returns NULL if OOB) */
+const RogueItemDef* rogue_item_def_at(int index);
 
 #endif

@@ -7,12 +7,21 @@
 #define ROGUE_ITEM_INSTANCE_CAP 256
 #endif
 
+#ifndef ROGUE_ITEM_DESPAWN_MS
+#define ROGUE_ITEM_DESPAWN_MS 60000 /* 60s default */
+#endif
+
+#ifndef ROGUE_ITEM_STACK_MERGE_RADIUS
+#define ROGUE_ITEM_STACK_MERGE_RADIUS 0.45f
+#endif
+
 typedef struct RogueItemInstance {
     int def_index; /* base item definition index */
     int quantity;  /* stack size */
     float x,y;     /* world tile position */
     float life_ms; /* for future despawn */
     int active;
+    int rarity; /* cached from definition for render color */
 } RogueItemInstance;
 
 void rogue_items_init_runtime(void);
