@@ -26,9 +26,11 @@ static int effect_fireball(const RogueSkillDef* def, RogueSkillState* st, const 
     float dx=0,dy=0; 
     switch(g_app.player.facing){ case 0: dy=1; break; case 1: dx=-1; break; case 2: dx=1; break; case 3: dy=-1; break; }
     /* Spawn slightly in front of player to avoid covering player sprite */
-    float spawn_offset = 0.6f; /* tiles */
+    /* Center vertically on player body: assume player position is roughly feet; lift to mid-body */
+    float body_center_offset_y = 0.5f; /* half tile upwards gives mid-body alignment */
+    float spawn_offset = 0.75f; /* slightly further forward than before for clearer separation */
     float sx = g_app.player.base.pos.x + dx * spawn_offset;
-    float sy = g_app.player.base.pos.y + dy * spawn_offset;
+    float sy = g_app.player.base.pos.y + dy * spawn_offset + body_center_offset_y;
     /* Speed is tiles per second; update uses dt_ms/1000 so this is consistent */
     float speed = 6.0f + st->rank * 1.5f; /* tuned down from 80 to 6 to match tile units */
     int dmg = rogue_damage_fireball(def->id);

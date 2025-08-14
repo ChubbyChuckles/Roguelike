@@ -77,6 +77,10 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx){
     if(def->is_passive) return 0; /* passives cannot be 'activated' */
     if(ctx && ctx->now_ms < st->cooldown_end_ms) return 0;
     float cd = def->base_cooldown_ms - (st->rank-1)*def->cooldown_reduction_ms_per_rank; if(cd<100) cd=100;
+    /* Global testing override: force short cooldowns for rapid iteration (environment flag) */
+#ifdef ROGUE_TEST_SHORT_COOLDOWNS
+    cd = 1000.0f; /* 1s for all active skills while flag defined */
+#endif
     RogueSkillCtx local_ctx = ctx? *ctx : (RogueSkillCtx){0};
     int consumed = 1;
     if(def->on_activate){ consumed = def->on_activate(def, st, &local_ctx); }

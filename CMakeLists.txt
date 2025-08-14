@@ -121,6 +121,9 @@ if(WIN32)
     target_link_libraries(rogue_core PUBLIC ole32 windowscodecs)
 endif()
 
+# Force 1s cooldowns for all active skills during rapid iteration/testing
+target_compile_definitions(rogue_core PUBLIC ROGUE_TEST_SHORT_COOLDOWNS=1)
+
 enable_testing()
 add_subdirectory(tests)
 
