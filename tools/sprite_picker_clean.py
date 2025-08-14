@@ -741,10 +741,14 @@ class MainWindow(QMainWindow):
                             need_nl = last not in (b"\n", b"\r")
                 except Exception:
                     need_nl = True
+            # Compute sprite (tile) count in selection for trailing comment
+            c1, r1, c2, r2 = rect
+            tile_count = (c2 - c1 + 1) * (r2 - r1 + 1)
+            line_with_comment = f"{line}  # sprites:{tile_count}"
             with open(cfg_path, "a", encoding="utf-8") as f:
                 if need_nl:
                     f.write("\n")
-                f.write(line + "\n")
+                f.write(line_with_comment + "\n")
             # Increment number AFTER writing so written line keeps original number
             try:
                 cur = int(self.number_edit.text())
@@ -759,7 +763,7 @@ class MainWindow(QMainWindow):
                 if cfg_path.startswith(self.project_root)
                 else cfg_path
             )
-            self.status.showMessage(f"Appended to {rel}", 3000)
+            self.status.showMessage(f"Appended to {rel} (sprites:{tile_count})", 3000)
         except Exception as ex:  # pragma: no cover - runtime feedback
             QMessageBox.warning(self, "Append Failed", f"{ex}\nPath: {cfg_path}")
 
