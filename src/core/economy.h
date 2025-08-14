@@ -24,4 +24,8 @@ int rogue_econ_try_buy(const RogueVendorItem* v);
 /* Attempt sell: add gold (uses computed sell value). Assumes item exists, returns credited amount. */
 int rogue_econ_sell(const RogueVendorItem* v);
 
+/* Currency sinks (10.4): repair & reroll cost helpers */
+int rogue_econ_repair_cost(int durability_missing, int rarity);
+int rogue_econ_reroll_affix_cost(int rarity);
+
 #endif

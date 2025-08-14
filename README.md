@@ -191,7 +191,9 @@ New systems added:
 * Reputation Scaling (10.5): `rogue_econ_set_reputation` influences buy price via linear discount capped at 50% of base price.
 * Buy/Sell Operations: `rogue_econ_try_buy` and `rogue_econ_sell` enforce bounded sell value (10%..70% of vendor base) with unit test safeguards.
 * Salvage (11.1): `rogue_salvage_item` converts items to materials (rarity & value bracket scaled) using existing material defs (`arcane_dust`, `primal_shard`). Basic yield test in `test_salvage_basic.c`.
-Upcoming: repair & reroll fee integration (remaining 10.4), richer material tier mapping & recipe parser (11.2–11.3).
+* Currency Sink Cost Formulas (10.4 partial): `rogue_econ_repair_cost(missing, rarity)` linear scaling (unit = 5 + rarity*5) and `rogue_econ_reroll_affix_cost(rarity)` exponential (50 * 2^rarity clamped) now implemented + unit test (`test_economy_sink.c`). Integration hooks (actual durability consumption, affix reroll op) still pending.
+* Equipment & Durability Groundwork: Item instances now carry `durability_cur/max` (initialized for weapon/armor categories) and a minimal equip API (weapon + armor slots) to enable future repair fee application & stat recomputation pipeline.
+Upcoming: full repair action, affix reroll operation consuming gold/materials, richer material tier mapping & recipe parser (11.2–11.3).
 
 ---
 

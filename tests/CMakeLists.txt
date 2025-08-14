@@ -61,6 +61,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_pity.c AND NOT TARGE
     add_test(NAME test_loot_phase9_pity COMMAND test_loot_phase9_pity)
 endif()
 
+# Explicitly add loot phase 9 tuning console test (9.6)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_tuning_console.c AND NOT TARGET test_loot_phase9_tuning_console)
+    add_executable(test_loot_phase9_tuning_console unit/test_loot_phase9_tuning_console.c)
+    target_link_libraries(test_loot_phase9_tuning_console PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_loot_phase9_tuning_console PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_loot_phase9_tuning_console COMMAND test_loot_phase9_tuning_console)
+endif()
+
 # Explicitly add generation quality test (ensure picked up even if glob cache stale)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase8_generation_quality.c AND NOT TARGET test_loot_phase8_generation_quality)
     add_executable(test_loot_phase8_generation_quality unit/test_loot_phase8_generation_quality.c)

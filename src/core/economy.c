@@ -15,3 +15,21 @@ int rogue_econ_sell_value(const RogueVendorItem* v){ if(!v) return 0; int base=v
 
 int rogue_econ_try_buy(const RogueVendorItem* v){ if(!v) return -1; int cost = rogue_econ_buy_price(v); if(g_gold < cost) return -2; rogue_econ_add_gold(-cost); return 0; }
 int rogue_econ_sell(const RogueVendorItem* v){ if(!v) return 0; int credit = rogue_econ_sell_value(v); rogue_econ_add_gold(credit); return credit; }
+
+/* Currency sink helpers (10.4) */
+int rogue_econ_repair_cost(int durability_missing, int rarity){
+	if(durability_missing <= 0) return 0;
+	if(rarity < 0) rarity = 0; if(rarity > 10) rarity = 10;
+	int unit = 5 + rarity * 5; /* linear scaling */
+	long long cost = (long long)durability_missing * unit;
+	if(cost > 2000000000LL) cost = 2000000000LL;
+	return (int)cost;
+}
+
+int rogue_econ_reroll_affix_cost(int rarity){
+	if(rarity < 0) rarity = 0; if(rarity > 10) rarity = 10;
+	int mult = 1 << rarity; if(mult > 1024) mult = 1024; /* clamp */
+	long long cost = 50LL * mult;
+	if(cost > 2000000000LL) cost = 2000000000LL;
+	return (int)cost;
+}

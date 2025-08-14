@@ -90,7 +90,7 @@ X = Not started yet
 10.1 Shop inventory generation using loot pipeline (Done)
 10.2 Buy/sell price formulas (rarity, affixes, demand) (Done) /* Current: rarity*base_value ladder; future: affix & demand scaling */
 10.3 Vendor restock timer & rotation (Done)
-10.4 Currency sinks (repair, reroll affix fees) (Partial: gold wallet + spend; repair/reroll pending)
+10.4 Currency sinks (repair, reroll affix fees) (Partial: gold wallet + spend; cost formulas implemented; integration & UI pending)
 10.5 Price scaling with player reputation (Done)
 10.6 Unit tests: sell value bounds (Done)
 
@@ -119,7 +119,7 @@ X = Not started yet
 13.5 Persistence of UI state (sort mode) (X)
 
 14. Equipment & Stat Integration (Pending)
-14.1 Equip slots & constraints (X)
+14.1 Equip slots & constraints (Partial: weapon/armor slots + basic API; stat recalculation & validation pending)
 14.2 Recalculation pipeline: base + affix + temporary buffs (X)
 14.3 Derived stat caching & invalidation (X)
 14.4 DPS & EHP (effective HP) estimator (X)

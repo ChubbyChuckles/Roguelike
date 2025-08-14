@@ -135,6 +135,7 @@ add_library(rogue_core
     src/core/vendor.c
     src/core/economy.c
     src/core/salvage.c
+    src/core/equipment.c
 )
 
 target_include_directories(rogue_core PUBLIC

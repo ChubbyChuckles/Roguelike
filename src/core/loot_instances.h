@@ -27,6 +27,9 @@ typedef struct RogueItemInstance {
     int prefix_value; /* rolled stat value */
     int suffix_index; /* -1 if none */
     int suffix_value; /* rolled stat value */
+    /* Durability (10.4 currency sink hook). Only meaningful for weapons/armor; others leave at 0. */
+    int durability_cur;
+    int durability_max;
 } RogueItemInstance;
 
 void rogue_items_init_runtime(void);
@@ -43,5 +46,10 @@ int rogue_item_instance_damage_min(int inst_index);
 int rogue_item_instance_damage_max(int inst_index);
 /* Apply affix + rarity data to existing active instance (used for persistence load). */
 int rogue_item_instance_apply_affixes(int inst_index, int rarity, int prefix_index, int prefix_value, int suffix_index, int suffix_value);
+
+/* Durability APIs (currency sink for repair costs) */
+int rogue_item_instance_get_durability(int inst_index, int* cur, int* max);
+int rogue_item_instance_damage_durability(int inst_index, int amount); /* returns remaining */
+int rogue_item_instance_repair_full(int inst_index);
 
 #endif
