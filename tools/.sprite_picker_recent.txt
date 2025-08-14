@@ -1,2 +1,3 @@
+C:/Users/Chuck/Desktop/CR_AI_Engineering/GameDev/Roguelike/assets/biomes/fairy_forest/assets/tree.png
 C:/Users/Chuck/Desktop/CR_AI_Engineering/GameDev/Roguelike/assets/biomes/fairy_forest/assets/props.png
 C:/Users/Chuck/Desktop/CR_AI_Engineering/GameDev/Roguelike/assets/biomes/garden/assets/tiles.png
