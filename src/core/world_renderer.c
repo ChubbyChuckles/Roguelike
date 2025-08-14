@@ -1,5 +1,6 @@
 #include "core/world_renderer.h"
 #include "core/app_state.h"
+#include "core/loot_instances.h"
 #include "graphics/tile_sprites.h"
 #include "graphics/sprite.h"
 #ifdef ROGUE_HAVE_SDL
@@ -63,4 +64,17 @@ void rogue_world_render_tiles(void){
         (void)first_ty; (void)last_ty; /* headless no-op */
 #endif
     }
+}
+
+void rogue_world_render_items(void){
+#ifdef ROGUE_HAVE_SDL
+    if(!g_app.renderer) return; int ts=g_app.tile_size; 
+    if(!g_app.item_instances) return;
+    for(int i=0;i<g_app.item_instance_cap;i++) if(g_app.item_instances[i].active){
+        const RogueItemInstance* it = &g_app.item_instances[i];
+        SDL_SetRenderDrawColor(g_app.renderer, 240, 210, 60, 255);
+        SDL_Rect r={ (int)(it->x*ts - g_app.cam_x), (int)(it->y*ts - g_app.cam_y), ts/2, ts/2};
+        SDL_RenderFillRect(g_app.renderer,&r);
+    }
+#endif
 }

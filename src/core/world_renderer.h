@@ -3,5 +3,6 @@
 
 /* Render visible world tiles (culled & batched). */
 void rogue_world_render_tiles(void);
+void rogue_world_render_items(void);
 
 #endif /* ROGUE_WORLD_RENDERER_H */

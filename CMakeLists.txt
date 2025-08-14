@@ -89,6 +89,11 @@ add_library(rogue_core
     src/util/log.c
     src/core/vegetation.c
     src/core/scene_drawlist.c
+    src/core/loot_item_defs.c
+    src/core/loot_tables.c
+    src/core/loot_instances.c
+    src/core/inventory.c
+    src/core/loot_pickup.c
 )
 
 target_include_directories(rogue_core PUBLIC

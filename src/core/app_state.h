@@ -76,6 +76,8 @@ typedef struct RogueAppState {
     struct RogueSkillDef* skill_defs; /* registry (owned by skills module) */
     struct RogueSkillState* skill_states; /* per-skill runtime state (ranks, cooldowns) */
     int skill_bar[10]; /* skill id per slot (-1 empty) */
+    /* Loot runtime (phase 2) */
+    struct RogueItemInstance* item_instances; int item_instance_cap; int item_instance_count;
 } RogueAppState;
 
 extern RogueAppState g_app;

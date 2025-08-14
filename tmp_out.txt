@@ -1,1 +1,0 @@
-expected new damage numbers after activity

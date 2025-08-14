@@ -3,3 +3,9 @@ Implement all these features:
 [FEATURES]
 
 Use unit tests and modularize the code as much as possible to prevent regression.
+
+Item pickup (proximity -> add to simple inventory + remove from ground) +++
+Basic inventory/persistence (counts per item def saved/loaded)
+Rarity tiers + colored render + weighted table support
+Despawn timers & stack merging on ground
+Affix scaffold (random stat mods) groundwork

@@ -61,6 +61,11 @@ SOFTWARE.
 #include "core/skill_bar.h"
 #include "core/buffs.h"
 #include "core/projectiles.h"
+#include "core/loot_item_defs.h"
+#include "core/loot_tables.h"
+#include "core/loot_instances.h"
+#include "core/inventory.h"
+#include "core/loot_pickup.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -144,6 +149,11 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     /* Initialize and register skills BEFORE loading player stats so rank data in the save file can map onto registered skills. */
     rogue_skills_init(); rogue_buffs_init(); rogue_projectiles_init();
     rogue_skill_tree_register_baseline();
+    /* Initialize loot runtime (phase 2) */
+    rogue_item_defs_reset();
+    rogue_loot_tables_reset();
+    rogue_items_init_runtime();
+    rogue_inventory_init();
     /* Now load player stats (level/xp + talent points + skill ranks). */
     rogue_persistence_load_player_stats();
     /* Now generate world using (possibly loaded) generation parameters. */
@@ -298,6 +308,9 @@ void rogue_app_step(void)
         if(g_app.player.base.pos.y > g_app.world_map.height-1) g_app.player.base.pos.y = (float)(g_app.world_map.height-1);
     /* Enemy spawning & AI updates */
     rogue_enemy_system_update(dt_ms);
+    /* Update world item instances */
+    rogue_items_update(dt_ms);
+    rogue_loot_pickup_update(0.6f);
 
     /* Advance animations */
     rogue_animation_update((float)g_app.dt * 1000.0f);
@@ -315,6 +328,8 @@ void rogue_app_step(void)
     rogue_player_render();      /* queues player */
     rogue_enemy_render();       /* queues enemies */
     rogue_scene_drawlist_flush();
+    /* Render ground item instances */
+    rogue_world_render_items();
     /* Render projectiles (after world, before HUD) */
     rogue_projectiles_render();
 

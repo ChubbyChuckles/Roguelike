@@ -11,6 +11,8 @@
 #include "core/vegetation.h"
 #include "core/collision.h"
 #include "core/navigation.h"
+#include "core/loot_tables.h"
+#include "core/loot_instances.h"
 
 /* Directly manipulate g_app to preserve semantics. */
 static int enemy_tile_is_blocking(unsigned char t){
@@ -170,6 +172,19 @@ void rogue_enemy_system_update(float dt_ms){
             e->ai_state = ROGUE_ENEMY_AI_DEAD; e->anim_time=0; e->anim_frame=0; e->death_fade=1.0f;
             g_app.player.xp += t->xp_reward;
             if(((float)rand()/(float)RAND_MAX) < t->loot_chance){ g_app.player.health += 2 + (g_app.player.vitality/3); if(g_app.player.health>g_app.player.max_health) g_app.player.health=g_app.player.max_health; }
+            /* Phase 2: attempt loot rolls using table named after enemy type (UPPERCASE + _BASIC) or fallback GOBLIN_BASIC example */
+            char tbl_id[ROGUE_MAX_LOOT_TABLE_ID];
+            int k=0; for(; k< (int)sizeof tbl_id -1 && t->name[k]; ++k){ char c=t->name[k]; if(c>='a'&&c<='z') c = (char)(c - 'a' + 'A'); if(c==' ') c='_'; tbl_id[k]=c; }
+            tbl_id[k]='\0';
+            /* Append suffix if space */
+            const char* suffix = "_BASIC"; size_t ln=strlen(tbl_id); size_t sl=strlen(suffix); if(ln + sl < sizeof tbl_id){ memcpy(tbl_id+ln,suffix,sl+1); }
+            int table_idx = rogue_loot_table_index(tbl_id);
+            if(table_idx<0){ table_idx = rogue_loot_table_index("GOBLIN_BASIC"); }
+            if(table_idx>=0){
+                unsigned int seed = (unsigned int)(e->base.pos.x*73856093u) ^ (unsigned int)(e->base.pos.y*19349663u) ^ (unsigned int)g_app.total_kills;
+                int idef[8]; int qty[8]; int drops = rogue_loot_roll(table_idx,&seed,8,idef,qty);
+                for(int di=0; di<drops; ++di){ if(idef[di]>=0){ rogue_items_spawn(idef[di], qty[di], e->base.pos.x, e->base.pos.y); } }
+            }
         }
         RogueSprite* frames=NULL; int fcount=0; if(e->ai_state==ROGUE_ENEMY_AI_AGGRO) { frames=t->run_frames; fcount=t->run_count; } else if(e->ai_state==ROGUE_ENEMY_AI_PATROL){ frames=t->idle_frames; fcount=t->idle_count; } else { frames=t->death_frames; fcount=t->death_count; }
         float frame_ms = (e->ai_state==ROGUE_ENEMY_AI_AGGRO)? 110.0f : 160.0f;
