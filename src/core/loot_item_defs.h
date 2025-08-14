@@ -36,6 +36,10 @@ typedef struct RogueItemDef {
 
 /* Runtime registry */
 int rogue_item_defs_load_from_cfg(const char* path); /* returns count added or <0 on error */
+/* Convenience: load multiple item definition cfg files from a directory of category files (swords.cfg, potions.cfg, etc.).
+ * Implementation keeps simple portability: attempts to open a known set of filenames inside dir.
+ * Returns total successfully added (aggregate) or <0 if dir invalid. */
+int rogue_item_defs_load_directory(const char* dir_path);
 const RogueItemDef* rogue_item_def_by_id(const char* id);
 int rogue_item_def_index(const char* id); /* -1 if not found */
 int rogue_item_defs_count(void);

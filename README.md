@@ -263,6 +263,7 @@ cmake --build build --target tidy
 ## 6. Configuration & Assets
 Item, loot table, and affix definitions live under `assets/` with CSV‑like schemas. Examples:
 * `test_items.cfg` – Base item fields: id, name, category, level req, stack, value, damage/armor, sprite, rarity.
+* `assets/items/*.cfg` – Modular category files (e.g. `swords.cfg`, `potions.cfg`, `armor.cfg`, `gems.cfg`, `materials.cfg`, `misc.cfg`). Each uses the same 15-column schema. Load them in bulk via `rogue_item_defs_load_directory("../assets/items")` for cleaner content scaling.
 * `test_loot_tables.cfg` – Weighted loot entries + quantity ranges + rarity band overrides.
 * `affixes.cfg` – Prefix/suffix definitions with stat ranges and per‑rarity weights.
 

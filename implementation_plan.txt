@@ -16,6 +16,7 @@ X = Not started yet
 1.8 Rarity field in item defs (optional 15th column) (Done)
 1.9 Loot table rarity min/max range overrides (Done)
 1.10 Logging: parsing + loot_roll events (Done)
+1.11 Multi-file item category config loading (Done)
 
 2. Ground Item Runtime Lifecycle (Done)
 2.1 Item instance pool data structure (Done)

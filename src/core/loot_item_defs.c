@@ -79,3 +79,18 @@ int rogue_item_defs_load_from_cfg(const char* path){
 const RogueItemDef* rogue_item_def_by_id(const char* id){ if(!id) return NULL; for(int i=0;i<g_item_def_count;i++){ if(strcmp(g_item_defs[i].id,id)==0) return &g_item_defs[i]; } return NULL; }
 int rogue_item_def_index(const char* id){ if(!id) return -1; for(int i=0;i<g_item_def_count;i++){ if(strcmp(g_item_defs[i].id,id)==0) return i; } return -1; }
 const RogueItemDef* rogue_item_def_at(int index){ if(index<0 || index>=g_item_def_count) return NULL; return &g_item_defs[index]; }
+
+int rogue_item_defs_load_directory(const char* dir_path){
+    if(!dir_path) return -1;
+    /* Static list of expected category files; user can remove or add (silently skipped if missing). */
+    const char* files[] = {"swords.cfg","potions.cfg","armor.cfg","gems.cfg","materials.cfg","misc.cfg"};
+    char path[512]; int total=0;
+    for(size_t i=0;i<sizeof(files)/sizeof(files[0]); ++i){
+        int n = snprintf(path,sizeof path, "%s/%s", dir_path, files[i]);
+        if(n <= 0 || n >= (int)sizeof path) continue; /* skip overly long */
+        int before = g_item_def_count;
+        int added = rogue_item_defs_load_from_cfg(path);
+        if(added>0) total += (g_item_def_count - before); /* ensure we count only actually added lines */
+    }
+    return total;
+}
