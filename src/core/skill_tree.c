@@ -24,11 +24,11 @@ static int effect_fireball(const RogueSkillDef* def, RogueSkillState* st, const 
 
 void rogue_skill_tree_register_baseline(void){
     RogueSkillDef defs[] = {
-        {-1,"PowerStrike","icon_power",5, 2500,150,effect_power_strike},
-        {-1,"Dash","icon_dash",3,  5000,500,effect_dash},
-        {-1,"Fireball","icon_fire",5, 6000,400,effect_fireball},
-        {-1,"IceNova","icon_ice",4, 7500,500,NULL},
-        {-1,"Berserk","icon_berserk",3, 12000,1000,NULL},
+        {-1,"PowerStrike","icon_power",5, 2500,150,effect_power_strike,0,0,-1,0},
+        {-1,"Dash","icon_dash",3,  5000,500,effect_dash,0,0,-1,0},
+        {-1,"Fireball","icon_fire",5, 6000,400,effect_fireball,0,ROGUE_SKILL_TAG_FIRE,-1,0},
+        {-1,"IceNova","icon_ice",4, 7500,500,NULL,0,0,-1,0},
+        {-1,"Berserk","icon_berserk",3, 12000,1000,NULL,0,0,-1,0},
     };
     for(unsigned i=0;i<sizeof(defs)/sizeof(defs[0]);++i){ rogue_skill_register(&defs[i]); }
     /* default bar assignment first 3 skills */

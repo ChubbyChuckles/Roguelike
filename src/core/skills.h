@@ -25,7 +25,17 @@ typedef struct RogueSkillDef {
     float base_cooldown_ms;     /* base cooldown at rank 1 */
     float cooldown_reduction_ms_per_rank; /* linear reduction */
     RogueSkillEffectFn on_activate;
+    int is_passive;             /* 1 = passive (no activation / cooldown) */
+    int tags;                   /* bitfield tags (element, school, etc) */
+    int synergy_id;             /* -1 none: which synergy bucket this skill contributes (if passive) */
+    int synergy_value_per_rank; /* contribution per rank to synergy bucket */
 } RogueSkillDef;
+
+/* Tag bits */
+enum {
+    ROGUE_SKILL_TAG_NONE = 0,
+    ROGUE_SKILL_TAG_FIRE = 1<<0,
+};
 
 /* Player-owned state */
 typedef struct RogueSkillState {
@@ -53,5 +63,6 @@ void rogue_skills_update(double now_ms);
 /* Query */
 const RogueSkillDef* rogue_skill_get_def(int id);
 const struct RogueSkillState* rogue_skill_get_state(int id);
+int rogue_skill_synergy_total(int synergy_id);
 
 #endif

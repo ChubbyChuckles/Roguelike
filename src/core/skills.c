@@ -8,6 +8,19 @@ static RogueSkillDef* g_defs = NULL;
 static RogueSkillState* g_states = NULL;
 static int g_capacity = 0;
 static int g_count = 0;
+/* Simple synergy buckets (fixed small number for now) */
+#define ROGUE_MAX_SYNERGIES 16
+static int g_synergy_totals[ROGUE_MAX_SYNERGIES];
+
+static void recompute_synergies(void){
+    for(int i=0;i<ROGUE_MAX_SYNERGIES;i++) g_synergy_totals[i]=0;
+    for(int i=0;i<g_count;i++){
+        const RogueSkillDef* d=&g_defs[i]; const RogueSkillState* st=&g_states[i];
+        if(d->is_passive && d->synergy_id>=0 && d->synergy_id<ROGUE_MAX_SYNERGIES){
+            g_synergy_totals[d->synergy_id] += st->rank * d->synergy_value_per_rank;
+        }
+    }
+}
 
 static void ensure_capacity(int min_cap){
     if(g_capacity >= min_cap) return;
@@ -25,6 +38,7 @@ void rogue_skills_init(void){
     g_app.skill_defs = NULL; g_app.skill_states=NULL; g_app.skill_count=0;
     for(int i=0;i<10;i++) g_app.skill_bar[i]=-1;
     g_app.talent_points = 0;
+    for(int i=0;i<ROGUE_MAX_SYNERGIES;i++) g_synergy_totals[i]=0;
 }
 
 void rogue_skills_shutdown(void){
@@ -52,7 +66,7 @@ int rogue_skill_rank_up(int id){
     const RogueSkillDef* def = &g_defs[id];
     if(st->rank >= def->max_rank) return st->rank;
     if(g_app.talent_points<=0) return -1;
-    st->rank++; g_app.talent_points--; g_app.stats_dirty=1; return st->rank;
+    st->rank++; g_app.talent_points--; g_app.stats_dirty=1; recompute_synergies(); return st->rank;
 }
 
 int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx){
@@ -60,6 +74,7 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx){
     RogueSkillState* st = &g_states[id];
     const RogueSkillDef* def = &g_defs[id];
     if(st->rank<=0) return 0; /* locked */
+    if(def->is_passive) return 0; /* passives cannot be 'activated' */
     if(ctx && ctx->now_ms < st->cooldown_end_ms) return 0;
     float cd = def->base_cooldown_ms - (st->rank-1)*def->cooldown_reduction_ms_per_rank; if(cd<100) cd=100;
     RogueSkillCtx local_ctx = ctx? *ctx : (RogueSkillCtx){0};
@@ -75,3 +90,5 @@ void rogue_skills_update(double now_ms){
 
 const RogueSkillDef* rogue_skill_get_def(int id){ if(id<0 || id>=g_count) return NULL; return &g_defs[id]; }
 const RogueSkillState* rogue_skill_get_state(int id){ if(id<0 || id>=g_count) return NULL; return &g_states[id]; }
+
+int rogue_skill_synergy_total(int synergy_id){ if(synergy_id<0 || synergy_id>=ROGUE_MAX_SYNERGIES) return 0; return g_synergy_totals[synergy_id]; }

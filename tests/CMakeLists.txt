@@ -76,6 +76,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_navigation.c AND NOT TARGET test
     add_test(NAME test_navigation COMMAND test_navigation)
 endif()
 
+# Explicitly add passive skills test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_passive.c AND NOT TARGET test_skills_passive)
+    add_executable(test_skills_passive unit/test_skills_passive.c)
+    target_link_libraries(test_skills_passive PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skills_passive PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skills_passive COMMAND test_skills_passive)
+endif()
+
 # Explicitly add A* pathfinding test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_astar.c AND NOT TARGET test_astar)
     add_executable(test_astar unit/test_astar.c)
