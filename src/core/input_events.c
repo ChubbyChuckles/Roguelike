@@ -14,6 +14,27 @@
 #include <SDL.h>
 #endif
 
+/* Simple ring buffer for deferred skill activations so that skills (e.g., projectile spawns) use the post-movement player position. */
+#define ROGUE_PENDING_SKILLS_MAX 32
+typedef struct PendingSkillAct { int skill_id; int bar_slot; double now_ms; } PendingSkillAct;
+static PendingSkillAct g_pending_skill_acts[ROGUE_PENDING_SKILLS_MAX];
+static int g_pending_skill_head = 0; /* next write */
+static int g_pending_skill_count = 0;
+
+static void queue_skill_activation(int sid, int slot){
+    if(sid<0) return;
+    if(g_pending_skill_count >= ROGUE_PENDING_SKILLS_MAX) return; /* drop oldest silently */
+    int idx = (g_pending_skill_head + g_pending_skill_count) % ROGUE_PENDING_SKILLS_MAX;
+    g_pending_skill_acts[idx].skill_id = sid;
+    g_pending_skill_acts[idx].bar_slot = slot;
+#ifdef ROGUE_HAVE_SDL
+    g_pending_skill_acts[idx].now_ms = (double)SDL_GetTicks();
+#else
+    g_pending_skill_acts[idx].now_ms = 0.0;
+#endif
+    g_pending_skill_count++;
+}
+
 void rogue_process_events(void){
 #ifdef ROGUE_HAVE_SDL
     SDL_Event ev; while(SDL_PollEvent(&ev)){
@@ -39,8 +60,8 @@ void rogue_process_events(void){
             if(ev.key.keysym.sym==SDLK_r){ g_app.player_state=(g_app.player_state==2)?1:2; }
             /* Skill activation keys 1-0 */
             int key = ev.key.keysym.sym;
-            if(key>=SDLK_1 && key<=SDLK_9){ int slot = key - SDLK_1; int sid = g_app.skill_bar[slot]; if(sid>=0){ RogueSkillCtx ctx={ (double)SDL_GetTicks(), g_app.player.level, g_app.talent_points }; if(rogue_skill_try_activate(sid,&ctx)) rogue_skill_bar_flash(slot); } }
-            if(key==SDLK_0){ int sid = g_app.skill_bar[9]; if(sid>=0){ RogueSkillCtx ctx={ (double)SDL_GetTicks(), g_app.player.level, g_app.talent_points }; if(rogue_skill_try_activate(sid,&ctx)) rogue_skill_bar_flash(9); } }
+            if(key>=SDLK_1 && key<=SDLK_9){ int slot = key - SDLK_1; int sid = g_app.skill_bar[slot]; if(sid>=0){ queue_skill_activation(sid, slot); } }
+            if(key==SDLK_0){ int sid = g_app.skill_bar[9]; if(sid>=0){ queue_skill_activation(sid, 9); } }
             if(ev.key.keysym.sym==SDLK_F5){ g_app.gen_water_level -= 0.01; if(g_app.gen_water_level<0.20) g_app.gen_water_level=0.20; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
             if(ev.key.keysym.sym==SDLK_F6){ g_app.gen_water_level += 0.01; if(g_app.gen_water_level>0.55) g_app.gen_water_level=0.55; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
             if(ev.key.keysym.sym==SDLK_F7){ g_app.gen_noise_octaves++; if(g_app.gen_noise_octaves>9) g_app.gen_noise_octaves=9; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
@@ -76,4 +97,20 @@ void rogue_process_events(void){
         }
     }
 #endif
+}
+
+void rogue_process_pending_skill_activations(void){
+    /* Consume queued activations in FIFO order */
+    int processed = 0;
+    while(g_pending_skill_count>0){
+        int idx = g_pending_skill_head;
+        PendingSkillAct *pa = &g_pending_skill_acts[idx];
+        RogueSkillCtx ctx = { pa->now_ms, g_app.player.level, g_app.talent_points };
+        if(rogue_skill_try_activate(pa->skill_id, &ctx)){
+            if(pa->bar_slot>=0 && pa->bar_slot<10) rogue_skill_bar_flash(pa->bar_slot);
+        }
+        g_pending_skill_head = (g_pending_skill_head + 1) % ROGUE_PENDING_SKILLS_MAX;
+        g_pending_skill_count--; processed++;
+    }
+    (void)processed; /* could log for debugging */
 }

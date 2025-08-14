@@ -21,7 +21,20 @@ static int effect_dash(const RogueSkillDef* def, RogueSkillState* st, const Rogu
     g_app.player.base.pos.x=nx; g_app.player.base.pos.y=ny; return 1; }
 /* Fireball: spawn projectile in facing direction using damage service */
 #include "core/damage_calc.h"
-static int effect_fireball(const RogueSkillDef* def, RogueSkillState* st, const RogueSkillCtx* ctx){ (void)ctx; float dx=0,dy=0; switch(g_app.player.facing){ case 0: dy=1; break; case 1: dx=-1; break; case 2: dx=1; break; case 3: dy=-1; break; } float speed = 80.0f + st->rank * 15.0f; int dmg = rogue_damage_fireball(def->id); rogue_projectiles_spawn(g_app.player.base.pos.x, g_app.player.base.pos.y, dx,dy,speed, 3500.0f, dmg); return 1; }
+static int effect_fireball(const RogueSkillDef* def, RogueSkillState* st, const RogueSkillCtx* ctx){
+    (void)ctx; 
+    float dx=0,dy=0; 
+    switch(g_app.player.facing){ case 0: dy=1; break; case 1: dx=-1; break; case 2: dx=1; break; case 3: dy=-1; break; }
+    /* Spawn slightly in front of player to avoid covering player sprite */
+    float spawn_offset = 0.6f; /* tiles */
+    float sx = g_app.player.base.pos.x + dx * spawn_offset;
+    float sy = g_app.player.base.pos.y + dy * spawn_offset;
+    /* Speed is tiles per second; update uses dt_ms/1000 so this is consistent */
+    float speed = 6.0f + st->rank * 1.5f; /* tuned down from 80 to 6 to match tile units */
+    int dmg = rogue_damage_fireball(def->id);
+    rogue_projectiles_spawn(sx, sy, dx,dy,speed, 2500.0f, dmg);
+    return 1;
+}
 
 void rogue_skill_tree_register_baseline(void){
     RogueSkillDef defs[] = {

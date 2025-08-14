@@ -11,6 +11,14 @@ typedef struct RogueProjectile {
     float life_ms;
     float max_life_ms;
     int damage;
+    /* FX fields */
+    float spawn_ms;    /* time since game start when spawned (ms) */
+    float anim_t;      /* accumulated animation time (ms) */
+    /* Simple trail history (last few positions) */
+    #define ROGUE_PROJECTILE_HISTORY 6
+    float hx[ROGUE_PROJECTILE_HISTORY];
+    float hy[ROGUE_PROJECTILE_HISTORY];
+    int hcount; /* number of valid history samples */
 } RogueProjectile;
 
 void rogue_projectiles_init(void);

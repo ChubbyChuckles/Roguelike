@@ -275,6 +275,8 @@ void rogue_app_step(void)
 
     /* Update player position / camera */
     rogue_player_controller_update();
+    /* Now process any queued skill activations so they use updated player position */
+    rogue_process_pending_skill_activations();
     /* Attack input (SPACE/RETURN maps to ACTION) */
     int attack_pressed = rogue_input_was_pressed(&g_app.input, ROGUE_KEY_ACTION);
     float raw_dt_ms = (float)g_app.dt * 1000.0f;
