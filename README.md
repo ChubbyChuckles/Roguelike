@@ -157,6 +157,24 @@ Recent development concentrated on Phases 5–8 of the roadmap:
 
 These layers enable reproducible progression tuning while preserving deterministic seeds for testability.
 
+### 3.1 Loot Tuning Console Commands (Phase 9.6)
+A lightweight developer/testing command interface (string parser; no GUI dependency) allows rapid runtime tuning & verification of rarity dynamics:
+
+Supported commands:
+* `weight <rarity 0-4> <factor>` – Set dynamic rarity multiplier (applied before sampling). Factors <=0 clamped to tiny positive.
+* `get <rarity>` – Query current multiplier.
+* `reset_dyn` – Reset all rarity multipliers to 1.0.
+* `reset_stats` – Clear rolling rarity statistics window.
+* `stats` – One-line snapshot: `STATS: C=.. U=.. R=.. E=.. L=..` (Common→Legendary).
+
+Usage pattern inside tests (see `test_loot_phase9_tuning_console.c`):
+```c
+char buf[128];
+rogue_loot_run_command("weight 4 25", buf, sizeof buf); // Heavily bias legendary
+rogue_loot_run_command("stats", buf, sizeof buf);        // Inspect rarity distribution window
+```
+This enables scripting future balancing harnesses (e.g., fuzz/statistical drift tests) without adding gameplay UI complexity.
+
 ---
 
 ## 4. Architecture & Code Layout

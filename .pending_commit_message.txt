@@ -1,13 +1,1 @@
-feat(metrics): implement session loot metrics (phase 9.5)
 
-Add session metrics subsystem enhancements:
-- Session counters in app state (drops, pickups, rarity breakdown)
-- Metrics API: session elapsed, record_drop/pickup, rates(items/hour + rarity/hour)
-- Integration points: enemy loot spawn, single-item generation path, pickup handling
-- Unit test (test_loot_phase9_session_metrics) validating rate computation via simulated elapsed time
-- README updated with phase 9.5 description
-- Roadmap implementation_plan.txt marks 9.5 as Done
-
-Also expose session metric functions in metrics.h for future tuning commands (9.6).
-
-Co-authored-by: GitHub Copilot <copilot@example.com>

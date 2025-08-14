@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include "core/loot_rarity_adv.h"
 #include "core/loot_drop_rates.h"
+#include "core/loot_stats.h"
 
 static RogueLootTableDef g_tables[ROGUE_MAX_LOOT_TABLES];
 static int g_table_count = 0;
@@ -128,6 +129,8 @@ int rogue_loot_roll_ex(int table_index, unsigned int* rng_state, int max_out,
         int rarity = -1;
         if(chosen->rarity_min >= 0){
             rarity = rogue_loot_rarity_sample(rng_state, chosen->rarity_min, chosen->rarity_max);
+            /* Record rarity outcome for rolling statistics window (6.3) */
+            if(rarity >= 0) rogue_loot_stats_record_rarity(rarity);
         }
         if(produced < max_out){
             out_item_def_indices[produced] = chosen->item_def_index;

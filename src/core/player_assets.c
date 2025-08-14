@@ -103,7 +103,7 @@ void rogue_player_assets_ensure_loaded(void){
     const char* state_names[4]  = {"idle","walk","run","attack"};
     const char* dir_names[4]    = {"down","side","right","up"};
     if(!g_app.player_sheet_paths_loaded){
-        load_player_sheet_paths("assets/player_sheets.cfg");
+        load_player_sheet_paths("../assets/player_sheets.cfg");
         for(int s=0;s<4;s++) for(int d=0; d<4; d++) if(!g_app.player_sheet_path[s][d][0]){
             char defp[256]; const char* use_dir = (d==1||d==2)? "side" : dir_names[d];
             snprintf(defp,sizeof defp,"assets/character/%s_%s.png", state_names[s], use_dir);

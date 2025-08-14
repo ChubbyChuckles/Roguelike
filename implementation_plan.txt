@@ -83,7 +83,7 @@ X = Not started yet
 9.3 Player preference learning (optional heuristic) (Done)
 9.4 Pity system for legendary/epic (ties to 5.8) (Done)
 9.5 Session metrics: items/hour, rarity/hour (Done)
-9.6 Tuning console commands (set weight, reset counters) (X)
+9.6 Tuning console commands (set weight, reset counters) (Done)
 
 10. Economy & Vendors (Pending)
 10.1 Shop inventory generation using loot pipeline (X)
@@ -195,11 +195,11 @@ X = Not started yet
 24.5 Improve const-correctness & bounds asserts (X)
 
 PRIORITY NEXT STEPS (Focused Subset)
-- 6.2 Implement runtime verbosity flag (compile + env override)
-- 5.3 Statistical validation test harness for rarity distribution
-- 7.1–7.3 Affix schema + parser + weighting backbone
-- 24.1 Path resolution utility; update tests
-- 9.x Introduce simple pity counter before advanced adaptive weighting
+- 10.x Begin vendor economy scaffolding (10.1–10.2)
+- 11.1 Salvage system core (materials extraction)
+- 12.1 Loot filter rule config + predicate tests
+- 14.1 Equipment slot data model & basic equip flow
+- 20.1 Fuzz tests for loot table parsing (robustness)
 
 NOTES
 - Recent test path failures highlight need for path abstraction (24.1)

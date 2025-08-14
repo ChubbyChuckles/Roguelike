@@ -10,6 +10,7 @@
 #include "core/skill_bar.h"
 #include "core/skills.h"
 #include "core/vegetation.h"
+#include <string.h> /* memset */
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif

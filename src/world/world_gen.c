@@ -1,6 +1,7 @@
 #include "world/world_gen.h"
 #include <stdlib.h>
 #include <math.h>
+#include <string.h> /* memset, memcpy */
 
 /* Simple xorshift RNG for deterministic generation */
 static unsigned int rng_state;
