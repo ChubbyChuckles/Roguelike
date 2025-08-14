@@ -1,0 +1,141 @@
+SKILL / BUFF / DEBUFF SYSTEM IMPLEMENTATION PLAN (Roadmap & Status)
+
+Legend:
+Done = Fully implemented & tests pass
+Partial = Some components implemented (details in parentheses)
+X = Not started yet
+
+Scope Overview:
+A multi-layer system enabling active skills, passive talents, triggered procs, stacking buffs, debuffs, crowd control (CC), damage over time (DOT), area auras, conditional synergies, and data-driven configuration. Designed for determinism, testability, and future multiplayer authority.
+
+PHASE 0. Current Baseline (Done)
+0.1 Skill registry with dynamic array, rank progression, cooldown logic (Done)
+0.2 Passive skill synergy bucket accumulation (Done)
+0.3 Basic activation callback with deterministic context (Done)
+0.4 Fixed cooldown override for tests (ROGUE_TEST_SHORT_COOLDOWNS) (Done)
+0.5 Simple timed buff list with stacking by type & magnitude extension (Done)
+
+PHASE 1. Core Refactor & Data Model Expansion
+1.1 Enumerate skill categories & elemental/utility tags (fire, frost, arcane, movement, defense) (X)
+1.2 Introduce unified EffectSpec structure (instant, DOT, HOT, aura, CC, stat_mod) (X)
+1.3 Extend RogueSkillDef: resource_cost, charges, charge_recharge_ms, gcd_group (X)
+1.4 Add RogueSkillState: charges_cur, last_cast_ms, gcd_end_ms (X)
+1.5 Global cooldown (GCD) manager enforcing shared lockouts by group id (X)
+1.6 Deterministic RNG hook per activation (seed derivation) (X)
+1.7 Unit tests: charge recharge, GCD blocking, cost consumption (X)
+
+PHASE 2. Resource & Cost Layer
+2.1 Player resource pools extension (stamina, energy) in player struct (X)
+2.2 Cost mapping per skill (flat, percent max, hybrid) (X)
+2.3 Refund mechanics on miss / conditional procs (X)
+2.4 Tests: insufficient resource rejection, refund path, over-spend clamp (X)
+
+PHASE 3. Effect Processing Pipeline
+3.1 EffectSpec parser (in-memory static array first; file-driven later) (X)
+3.2 Application pipeline: gather -> validate -> queue -> commit order deterministic (X)
+3.3 Stacking rules: unique, stack_additive, stack_multiplicative, refresh_only (X)
+3.4 Snapshot vs dynamic scaling flag (captures stats at application vs reads live each tick) (X)
+3.5 Periodic tick scheduler (ms resolution wheel) (X)
+3.6 Unit tests: stacking behaviors, snapshot correctness, tick ordering determinism (X)
+
+PHASE 4. Buff System Upgrade
+4.1 Replace fixed-size array with ring-buffer or handle-based pool + free list (X)
+4.2 Buff handle API (apply, refresh, remove, query) (X)
+4.3 Category fields: offensive, defensive, movement, utility (X)
+4.4 Expiration callbacks (on_expire) for triggered effects (X)
+4.5 Diminishing returns (DR) tracker for CC categories (stun, root, slow) (X)
+4.6 Tests: DR decay, expiration triggers, handle reuse safety (X)
+
+PHASE 5. Debuffs & Damage Over Time
+5.1 Separate namespace / flag for debuffs (harmful) (X)
+5.2 DOT tick engine: base_damage, scaling coefficients (stat-sourced) (X)
+5.3 Resist / mitigation pipeline hook integration (armor, resist stats) (X)
+5.4 Critical tick chance (roll per application vs per tick configurable) (X)
+5.5 Tests: DOT duration, stacking model (refresh vs extend), crit variance determinism (X)
+
+PHASE 6. Auras & Area Effects
+6.1 Aura definition: radius, pulse_period_ms, entry/exit callbacks (X)
+6.2 Spatial indexing hook for fast entity inclusion (reuse vegetation or new grid) (X)
+6.3 Aura stacking & exclusivity groups (X)
+6.4 Tests: entry/exit ordering, pulse timing determinism (X)
+
+PHASE 7. Proc & Trigger System
+7.1 Event bus enumeration (on_hit, on_crit, on_kill, on_damage_taken, on_tick) (X)
+7.2 Proc definition: condition predicate + effect reference + internal cooldown (ICD) (X)
+7.3 Probability weighting with deterministic RNG sequence (X)
+7.4 Anti-proc loops guard (depth counter) (X)
+7.5 Tests: ICD enforcement, probability distribution stability, loop guard (X)
+
+PHASE 8. Scaling & Coefficients
+8.1 Central coefficient table keyed by skill id + rank (X)
+8.2 Stat contribution flags (strength->physical, intelligence->arcane, dexterity->crit) (X)
+8.3 Soft caps & diminishing returns curves (logistic / piecewise) (X)
+8.4 Tests: coefficient application, soft cap flattening, rank progression scaling (X)
+
+PHASE 9. Persistence & Serialization
+9.1 Serialize extended skill state (charges, cooldowns, ICD timers) (X)
+9.2 Serialize active buffs/debuffs (type, magnitude, remaining_ms, stacking id) (X)
+9.3 Version tagging + migration handlers for new fields (X)
+9.4 Tests: round-trip with mid-cooldown and active DOTs (X)
+
+PHASE 10. Tooling & Data-Driven Content
+10.1 External skill config (CSV/JSON) for definitions & coefficient sets (X)
+10.2 External effect config: EffectSpec list with stacking & flags (X)
+10.3 Validation tool: detect invalid references, cyclic procs, missing coefficients (X)
+10.4 Auto-doc generator for skill sheets (X)
+10.5 Tests: parser edge cases, invalid reference rejection (X)
+
+PHASE 11. Visualization & UI Enhancements
+11.1 Cooldown sweep rendering & numeric overlay (X)
+11.2 Buff/debuff icon bar with stack counts & timers (X)
+11.3 Aura radius debug overlay (X)
+11.4 Proc trigger floating text indicators (X)
+11.5 Tests: icon bar ordering, expired removal, cooldown progression (X)
+
+PHASE 12. Advanced Mechanics
+12.1 Channelled skills (begin/end events, interruption) (X)
+12.2 Cast time queue & latency buffer (future netcode alignment) (X)
+12.3 Snapshotting modes: full, partial, dynamic (X)
+12.4 Cross-skill synergy triggers (skill A rank increases scaling of skill B) (X)
+12.5 Conditional modifiers (if target has debuff X then +Y%) (X)
+12.6 Tests: channel interruption, conditional modifier evaluation, cross-skill synergy ordering (X)
+
+PHASE 13. Performance & Memory
+13.1 Buffer pool for periodic tick events (X)
+13.2 SoA layout for active effects for cache-friendly ticking (X)
+13.3 SIMD batch damage calculations (optional) (X)
+13.4 Micro-profiler integration for per-phase timing (X)
+13.5 Tests: stress (1000 active DOTs) performance budget enforcement (X)
+
+PHASE 14. Security / Determinism / Multiplayer Prep
+14.1 Deterministic RNG streams separated: activation, periodic ticks, procs (X)
+14.2 Hashing of effect application events for replay validation (X)
+14.3 Authority validation stubs (server vs client predicted) (X)
+14.4 Anti-speed-hack cooldown delta clamp (X)
+14.5 Tests: deterministic replay of scripted sequence, hash mismatch detection (X)
+
+PHASE 15. Analytics & Telemetry
+15.1 Per-skill usage counters & DPS contribution breakdown (X)
+15.2 Buff uptime tracker (percentage over session) (X)
+15.3 Proc efficiency metrics (trigger attempts vs successes) (X)
+15.4 Export JSON snapshot for balancing dashboards (X)
+15.5 Tests: uptime calculation accuracy, usage counter persistence (X)
+
+PHASE 16. Polish & Balancing Aids
+16.1 GCD visualization and queue indicator (X)
+16.2 Recommended next-skill helper (priority list scripting) (X)
+16.3 Loadout presets save/load (X)
+16.4 Passive tree planner (offline simulation) (X)
+16.5 Tests: preset round-trip, planner stat matching (X)
+
+PRIORITY NEAR-TERM SUBSET
+- Phase 1 (1.1 – 1.7): Foundation extensions (tags, charges, GCD, deterministic RNG hook)
+- Phase 2 (2.1 – 2.4): Resource system expansion
+- Phase 3 (3.1 – 3.6): Effect pipeline & stacking semantics
+- Phase 4 (4.1 – 4.6): Buff system overhaul with handles & DR
+
+NOTES
+- Maintain strict determinism: capture seed states for activation and periodic tick loops.
+- Expand test harness to simulate large effect loads early (Phase 3) to guide performance choices.
+- Keep serialization forward-compatible by reserving unused bytes in new structs (alignment padding).
+- Build every new subsystem behind narrow headers; hide internal arrays & pools in .c files.
