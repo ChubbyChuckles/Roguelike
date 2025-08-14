@@ -133,6 +133,8 @@ add_library(rogue_core
     src/core/loot_adaptive.c
     src/core/loot_commands.c
     src/core/vendor.c
+    src/core/economy.c
+    src/core/salvage.c
 )
 
 target_include_directories(rogue_core PUBLIC

@@ -185,6 +185,14 @@ An initial vendor system now layers the economy foundation atop the loot pipelin
 
 Planned follow-ups (remaining 10.x): currency sinks (repairs/rerolls), reputation-based price scaling, buyback/sell value bounds, affix-aware dynamic pricing.
 
+### 3.3 Economy & Salvage Extensions (10.4–10.6, 11.1)
+New systems added:
+* Gold Wallet: `rogue_econ_add_gold`, `rogue_econ_gold` for central currency tracking (clamped, overflow safe).
+* Reputation Scaling (10.5): `rogue_econ_set_reputation` influences buy price via linear discount capped at 50% of base price.
+* Buy/Sell Operations: `rogue_econ_try_buy` and `rogue_econ_sell` enforce bounded sell value (10%..70% of vendor base) with unit test safeguards.
+* Salvage (11.1): `rogue_salvage_item` converts items to materials (rarity & value bracket scaled) using existing material defs (`arcane_dust`, `primal_shard`). Basic yield test in `test_salvage_basic.c`.
+Upcoming: repair & reroll fee integration (remaining 10.4), richer material tier mapping & recipe parser (11.2–11.3).
+
 ---
 
 ## 4. Architecture & Code Layout
