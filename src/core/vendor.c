@@ -48,3 +48,11 @@ int rogue_vendor_generate_inventory(int loot_table_index, int slots, const Rogue
     *rng_state = local;
     return produced;
 }
+
+void rogue_vendor_rotation_init(RogueVendorRotation* rot, float interval_ms){
+    if(!rot) return; memset(rot,0,sizeof *rot); rot->restock_interval_ms = interval_ms>0?interval_ms:60000.0f; rot->current_table=-1; }
+int rogue_vendor_rotation_add_table(RogueVendorRotation* rot, int loot_table_index){ if(!rot) return -1; if(loot_table_index<0) return -1; if(rot->table_count>= (int)(sizeof rot->loot_table_indices/sizeof rot->loot_table_indices[0])) return -1; rot->loot_table_indices[rot->table_count++] = loot_table_index; if(rot->current_table<0) rot->current_table=0; return rot->table_count; }
+int rogue_vendor_current_table(const RogueVendorRotation* rot){ if(!rot||rot->current_table<0||rot->current_table>=rot->table_count) return -1; return rot->loot_table_indices[rot->current_table]; }
+int rogue_vendor_update_and_maybe_restock(RogueVendorRotation* rot, float dt_ms, const RogueGenerationContext* ctx, unsigned int* seed, int slots){
+    if(!rot||!seed) return 0; if(rot->table_count==0) return 0; rot->time_accum_ms += dt_ms; if(rot->time_accum_ms < rot->restock_interval_ms) return 0; rot->time_accum_ms -= rot->restock_interval_ms; /* rotate table */
+    rot->current_table = (rot->current_table+1) % rot->table_count; int table = rogue_vendor_current_table(rot); rogue_vendor_reset(); int produced = rogue_vendor_generate_inventory(table, slots, ctx, seed); return produced>0 ? 1:0; }

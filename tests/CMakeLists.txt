@@ -11,6 +11,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_left_facing.c AND NOT TAR
     add_test(NAME test_combat_left_facing COMMAND test_combat_left_facing)
 endif()
 
+# Explicitly add vendor restock rotation test (10.3)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_restock.c AND NOT TARGET test_vendor_restock)
+    add_executable(test_vendor_restock unit/test_vendor_restock.c)
+    target_link_libraries(test_vendor_restock PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_vendor_restock PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_vendor_restock COMMAND test_vendor_restock)
+endif()
+
 # Explicitly add loot phase 9 drop rates test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_drop_rates.c AND NOT TARGET test_loot_phase9_drop_rates)
     add_executable(test_loot_phase9_drop_rates unit/test_loot_phase9_drop_rates.c)

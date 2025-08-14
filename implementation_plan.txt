@@ -88,7 +88,7 @@ X = Not started yet
 10. Economy & Vendors (Partial)
 10.1 Shop inventory generation using loot pipeline (Done)
 10.2 Buy/sell price formulas (rarity, affixes, demand) (Done) /* Current: rarity*base_value ladder; future: affix & demand scaling */
-10.3 Vendor restock timer & rotation (X)
+10.3 Vendor restock timer & rotation (Done)
 10.4 Currency sinks (repair, reroll affix fees) (X)
 10.5 Price scaling with player reputation (X)
 10.6 Unit tests: sell value bounds (X)
@@ -195,7 +195,7 @@ X = Not started yet
 24.5 Improve const-correctness & bounds asserts (X)
 
 PRIORITY NEXT STEPS (Focused Subset)
-- 10.3 Vendor restock timer & rotation
+/* 10.3 completed */
 - 11.1 Salvage system core (materials extraction)
 - 12.1 Loot filter rule config + predicate tests
 - 14.1 Equipment slot data model & basic equip flow
