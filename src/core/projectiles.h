@@ -18,4 +18,8 @@ void rogue_projectiles_spawn(float x, float y, float dir_x, float dir_y, float s
 void rogue_projectiles_update(float dt_ms);
 void rogue_projectiles_render(void);
 
+/* Testing / introspection helpers */
+int rogue_projectiles_active_count(void);
+int rogue_projectiles_last_damage(void);
+
 #endif

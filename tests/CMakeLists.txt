@@ -86,6 +86,26 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_passive.c AND NOT TARGET 
     add_test(NAME test_skills_passive COMMAND test_skills_passive)
 endif()
 
+# Explicitly add fireball skill test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_fireball_skill.c AND NOT TARGET test_fireball_skill)
+    add_executable(test_fireball_skill unit/test_fireball_skill.c)
+    target_link_libraries(test_fireball_skill PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_fireball_skill PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_fireball_skill COMMAND test_fireball_skill)
+endif()
+
+# Explicitly add fireball skill test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skill_fireball.c AND NOT TARGET test_skill_fireball)
+    add_executable(test_skill_fireball unit/test_skill_fireball.c)
+    target_link_libraries(test_skill_fireball PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skill_fireball PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skill_fireball COMMAND test_skill_fireball)
+endif()
+
 # Explicitly add A* pathfinding test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_astar.c AND NOT TARGET test_astar)
     add_executable(test_astar unit/test_astar.c)

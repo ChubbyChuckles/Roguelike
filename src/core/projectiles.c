@@ -8,13 +8,14 @@
 
 #define ROGUE_MAX_PROJECTILES 128
 static RogueProjectile g_projectiles[ROGUE_MAX_PROJECTILES];
+static int g_last_projectile_damage = 0;
 
 void rogue_projectiles_init(void){ for(int i=0;i<ROGUE_MAX_PROJECTILES;i++) g_projectiles[i].active=0; }
 
 void rogue_projectiles_spawn(float x, float y, float dir_x, float dir_y, float speed, float life_ms, int damage){
     float len = sqrtf(dir_x*dir_x + dir_y*dir_y); if(len<=0.0001f) return; dir_x/=len; dir_y/=len;
     for(int i=0;i<ROGUE_MAX_PROJECTILES;i++) if(!g_projectiles[i].active){
-        RogueProjectile* p=&g_projectiles[i]; p->active=1; p->x=x; p->y=y; p->speed=speed; p->vx=dir_x*speed; p->vy=dir_y*speed; p->life_ms=0; p->max_life_ms=life_ms; p->damage=damage; return; }
+    RogueProjectile* p=&g_projectiles[i]; p->active=1; p->x=x; p->y=y; p->speed=speed; p->vx=dir_x*speed; p->vy=dir_y*speed; p->life_ms=0; p->max_life_ms=life_ms; p->damage=damage; g_last_projectile_damage = damage; return; }
 }
 
 static void projectile_hit_enemy(RogueProjectile* p, struct RogueEnemy* e){ (void)p; (void)e; /* integrate with combat later - just reduce health */ e->health -= p->damage; if(e->health<=0){ e->alive=0; g_app.enemy_count--; if(g_app.per_type_counts[e->type_index]>0) g_app.per_type_counts[e->type_index]--; }
@@ -42,3 +43,8 @@ void rogue_projectiles_render(void){
     }
 #endif
 }
+
+int rogue_projectiles_active_count(void){
+    int n=0; for(int i=0;i<ROGUE_MAX_PROJECTILES;i++) if(g_projectiles[i].active) n++; return n;
+}
+int rogue_projectiles_last_damage(void){ return g_last_projectile_damage; }
