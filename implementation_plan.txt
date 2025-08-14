@@ -70,12 +70,12 @@ X = Not started yet
 
 8. Advanced Item Generation Pipeline (Pending)
 8.1 Generation request API (context: enemy level, biome) (Done)
-8.2 Rule graph: gating affixes by item category (X)
+8.2 Rule graph: gating affixes by item category (Done)
 8.3 Multi-pass rarity -> base item -> affix selection order (Done)
-8.4 Quality scalar affecting stat roll ceilings (X)
+8.4 Quality scalar affecting stat roll ceilings (Done)
 8.5 Seed mixing: player luck + enemy archetype (Done)
-8.6 Duplicate affix avoidance logic (X)
-8.7 Unit tests: reproducibility & boundary stats (X)
+8.6 Duplicate affix avoidance logic (Done)
+8.7 Unit tests: reproducibility & boundary stats (Done)
 
 9. Dynamic Drop Balancing (Pending)
 9.1 Global drop rate config layer (X)

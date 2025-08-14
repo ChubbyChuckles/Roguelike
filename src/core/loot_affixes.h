@@ -26,5 +26,8 @@ int rogue_affix_roll(RogueAffixType type, int rarity, unsigned int* rng_state);
 /* Roll a concrete stat value for an already selected affix index using its min/max range.
     Returns rolled value (inclusive range) or -1 on error. Deterministic given rng_state. */
 int rogue_affix_roll_value(int affix_index, unsigned int* rng_state);
+/* (8.4) Variant that biases result upward by a quality scalar (>1 pushes toward ceiling).
+    quality_scalar <=1 behaves like baseline uniform. */
+int rogue_affix_roll_value_scaled(int affix_index, unsigned int* rng_state, float quality_scalar);
 
 #endif

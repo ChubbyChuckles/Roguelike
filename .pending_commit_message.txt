@@ -1,4 +1,21 @@
-feat(loot): implement advanced generation API (8.1, 8.3, 8.5) and tests
+feat(loot-gen): implement affix gating, quality scalar & duplicate avoidance (8.2,8.4,8.6,8.7)
+
+Adds:
+- Affix gating by item category: damage affixes restricted to weapons; agility to weapons/armor/gems.
+- Quality scalar system with global min/max and player luck driven interpolation.
+- Scaled affix value roll function (biased upward for higher quality) with deterministic RNG.
+- Duplicate affix avoidance when selecting prefix/suffix in generation pipeline.
+- Integrated gating/quality into generation path replacing legacy direct affix selection.
+
+Tests:
+- New unit test `test_loot_phase8_generation_quality` validating gating, quality bias, duplicate avoidance.
+- Updated implementation plan marking 8.2,8.4,8.6,8.7 Done.
+
+Internal:
+- Added `rogue_affix_roll_value_scaled` utility.
+- Extended generation module with gated roll helper and luck->quality mapping.
+
+Next: proceed to 9.x dynamic drop balancing layer.feat(loot): implement advanced generation API (8.1, 8.3, 8.5) and tests
 
 Adds new module loot_generation (context-driven item creation) including:
 - Generation context struct (enemy level, biome, archetype, player luck)

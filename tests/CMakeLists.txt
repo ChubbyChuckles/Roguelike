@@ -11,6 +11,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_left_facing.c AND NOT TAR
     add_test(NAME test_combat_left_facing COMMAND test_combat_left_facing)
 endif()
 
+# Explicitly add generation quality test (ensure picked up even if glob cache stale)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase8_generation_quality.c AND NOT TARGET test_loot_phase8_generation_quality)
+    add_executable(test_loot_phase8_generation_quality unit/test_loot_phase8_generation_quality.c)
+    target_link_libraries(test_loot_phase8_generation_quality PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_loot_phase8_generation_quality PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_loot_phase8_generation_quality COMMAND test_loot_phase8_generation_quality)
+endif()
+
 foreach(ut ${UNIT_TESTS})
     get_filename_component(name ${ut} NAME_WE)
     if(TARGET ${name})

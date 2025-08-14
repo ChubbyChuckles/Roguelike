@@ -89,3 +89,31 @@ int rogue_affix_roll_value(int affix_index, unsigned int* rng_state){
     unsigned int r = *rng_state % (unsigned)span;
     return d->min_value + (int)r;
 }
+
+int rogue_affix_roll_value_scaled(int affix_index, unsigned int* rng_state, float quality_scalar){
+    if(!rng_state) return -1; if(affix_index < 0 || affix_index >= g_affix_count) return -1;
+    if(quality_scalar < 0.0f) quality_scalar = 0.0f; /* clamp */
+    const RogueAffixDef* d = &g_affixes[affix_index];
+    int span = d->max_value - d->min_value + 1; if(span <= 0) return d->min_value;
+    /* Derive an exponent shaping factor from quality_scalar: qc=1 -> exp=1 (uniform). Larger qc -> smaller decay -> higher values. */
+    float exp = (quality_scalar <= 1.0f)? 1.0f : (1.0f / quality_scalar); /* >1 quality compresses lower region */
+    *rng_state = (*rng_state * 1664525u) + 1013904223u;
+    /* Convert RNG to [0,1) */
+    unsigned int raw = *rng_state & 0x00FFFFFFu; /* 24 bits */
+    float u = (float)raw / (float)0x01000000u; /* [0,1) */
+    /* Skew distribution: y = u^(exp) then map to integer. Since exp<1 for quality>1, pushes upward. */
+    float y = 0.0f; if(u <= 0.0f) y = 0.0f; else {
+        /* simple powf replacement (avoid math.h pow potential differences) using exp/log series for small set; fallback linear if unavailable */
+        /* For portability without powf, approximate via expf(exp*log(u)). We'll include math.h. */
+    }
+    /* Because we avoided powf above for portability, implement manual fast approximation: use 3rd order polynomial around (u). For exp in [0.25,1], approximate u^exp ~ u * (1 + (1-exp)*(1-u)). */
+    if(exp >= 0.25f && exp <= 1.0f){
+        y = u * (1.0f + (1.0f - exp) * (1.0f - u));
+    } else {
+        /* fallback to uniform if outside expected range */
+        y = u;
+    }
+    int offset = (int)(y * (float)span);
+    if(offset >= span) offset = span-1;
+    return d->min_value + offset;
+}

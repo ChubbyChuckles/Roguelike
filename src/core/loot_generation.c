@@ -26,8 +26,28 @@ unsigned int rogue_generation_mix_seed(const RogueGenerationContext* ctx, unsign
     return h;
 }
 
-/* Internal: apply simple affix gating (8.2) by category later; placeholder for now */
-static int category_allows_affix(const RogueItemDef* def, const RogueAffixDef* a){ (void)def; (void)a; return 1; }
+/* Affix gating rules (8.2): DAMAGE_FLAT only on WEAPON; AGILITY_FLAT on WEAPON/ARMOR/GEM; NONE always allowed */
+static int category_allows_affix(const RogueItemDef* def, const RogueAffixDef* a){
+    if(!def || !a) return 0;
+    switch(a->stat){
+        case ROGUE_AFFIX_STAT_DAMAGE_FLAT: return def->category == ROGUE_ITEM_WEAPON;
+        case ROGUE_AFFIX_STAT_AGILITY_FLAT: return def->category == ROGUE_ITEM_WEAPON || def->category == ROGUE_ITEM_ARMOR || def->category==ROGUE_ITEM_GEM;
+        case ROGUE_AFFIX_STAT_NONE: return 1;
+        default: return 0;
+    }
+}
+
+/* Weighted roll with gating + duplicate avoidance (8.6) */
+static int gated_affix_roll(RogueAffixType type, int rarity, unsigned int* rng_state, const RogueItemDef* base_def, int existing_prefix, int existing_suffix){
+    int indices[ROGUE_MAX_AFFIXES]; int weights[ROGUE_MAX_AFFIXES]; int count=0; int total=0;
+    int acount = rogue_affix_count();
+    for(int i=0;i<acount;i++){
+        const RogueAffixDef* a = rogue_affix_at(i); if(!a) continue; if(a->type!=type) continue; if(!category_allows_affix(base_def,a)) continue; if(i==existing_prefix || i==existing_suffix) continue; int w = a->weight_per_rarity[rarity]; if(w<=0) continue; indices[count]=i; weights[count]=w; total += w; count++; if(count>=ROGUE_MAX_AFFIXES) break; }
+    if(total<=0 || count==0) return -1;
+    *rng_state = (*rng_state * 1664525u) + 1013904223u; unsigned int pick = (*rng_state) % (unsigned)total; int acc=0;
+    for(int k=0;k<count;k++){ acc += weights[k]; if(pick < (unsigned)acc) return indices[k]; }
+    return indices[count-1];
+}
 
 int rogue_generate_item(int loot_table_index, const RogueGenerationContext* ctx, unsigned int* rng_state, RogueGeneratedItem* out){
     if(!out || !rng_state) return -1; memset(out,0,sizeof *out); out->def_index=-1; out->rarity=-1; out->inst_index=-1;
@@ -47,7 +67,16 @@ int rogue_generate_item(int loot_table_index, const RogueGenerationContext* ctx,
     out->rarity = rarity;
     /* Spawn instance */
     int inst = rogue_items_spawn(out->def_index, qty_arr[0], 0.0f,0.0f); if(inst>=0){
-        out->inst_index = inst; unsigned int affix_seed = local ^ 0xA5A5A5A5u; rogue_item_instance_generate_affixes(inst, &affix_seed, rarity);
+        out->inst_index = inst; unsigned int affix_seed = local ^ 0xA5A5A5A5u;
+        RogueItemInstance* it = (RogueItemInstance*)rogue_item_instance_at(inst);
+        if(it){
+            const RogueItemDef* base_def = rogue_item_def_at(out->def_index);
+            int want_prefix=0,want_suffix=0; if(rarity>=2){ if(rarity>=3){ want_prefix=1; want_suffix=1; } else { want_prefix = ((affix_seed)&1)==0; want_suffix = !want_prefix; } }
+            int prefix_index=-1,suffix_index=-1; int prefix_value=0,suffix_value=0;
+            if(want_prefix){ prefix_index = gated_affix_roll(ROGUE_AFFIX_PREFIX, rarity, &affix_seed, base_def, -1, -1); if(prefix_index>=0){ float qscalar=g_quality_scalar_min; if(ctx){ float luck=(float)ctx->player_luck; float t = luck / (5.0f + luck); qscalar = g_quality_scalar_min + (g_quality_scalar_max - g_quality_scalar_min)*t; } prefix_value = rogue_affix_roll_value_scaled(prefix_index,&affix_seed,qscalar); }}
+            if(want_suffix){ suffix_index = gated_affix_roll(ROGUE_AFFIX_SUFFIX, rarity, &affix_seed, base_def, prefix_index, -1); if(suffix_index>=0){ float qscalar=g_quality_scalar_min; if(ctx){ float luck=(float)ctx->player_luck; float t = luck / (5.0f + luck); qscalar = g_quality_scalar_min + (g_quality_scalar_max - g_quality_scalar_min)*t; } suffix_value = rogue_affix_roll_value_scaled(suffix_index,&affix_seed,qscalar); }}
+            it->rarity = rarity; it->prefix_index=prefix_index; it->prefix_value=prefix_value; it->suffix_index=suffix_index; it->suffix_value=suffix_value;
+        }
     }
     *rng_state = local; /* propagate mixed seed forward */
     return 0;
