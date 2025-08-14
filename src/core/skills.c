@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Forward declaration (implemented in persistence.c) */
+void rogue_persistence_save_player_stats(void);
+
 /* Simple dynamic array for skill defs */
 static RogueSkillDef* g_defs = NULL;
 static RogueSkillState* g_states = NULL;
@@ -66,7 +69,10 @@ int rogue_skill_rank_up(int id){
     const RogueSkillDef* def = &g_defs[id];
     if(st->rank >= def->max_rank) return st->rank;
     if(g_app.talent_points<=0) return -1;
-    st->rank++; g_app.talent_points--; g_app.stats_dirty=1; recompute_synergies(); return st->rank;
+    st->rank++; g_app.talent_points--; g_app.stats_dirty=1; recompute_synergies();
+    /* Immediate save to persist talent point spend and new rank */
+    rogue_persistence_save_player_stats();
+    return st->rank;
 }
 
 int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx){
@@ -76,10 +82,12 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx){
     if(st->rank<=0) return 0; /* locked */
     if(def->is_passive) return 0; /* passives cannot be 'activated' */
     if(ctx && ctx->now_ms < st->cooldown_end_ms) return 0;
-    float cd = def->base_cooldown_ms - (st->rank-1)*def->cooldown_reduction_ms_per_rank; if(cd<100) cd=100;
-    /* Global testing override: force short cooldowns for rapid iteration (environment flag) */
+    float cd;
 #ifdef ROGUE_TEST_SHORT_COOLDOWNS
-    cd = 1000.0f; /* 1s for all active skills while flag defined */
+    /* Testing mode: fixed 1 second cooldown for every activation regardless of skill or rank */
+    cd = 1000.0f;
+#else
+    cd = def->base_cooldown_ms - (st->rank-1)*def->cooldown_reduction_ms_per_rank; if(cd<100) cd=100;
 #endif
     RogueSkillCtx local_ctx = ctx? *ctx : (RogueSkillCtx){0};
     int consumed = 1;

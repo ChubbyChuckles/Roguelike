@@ -25,12 +25,24 @@ static int effect_fireball(const RogueSkillDef* def, RogueSkillState* st, const 
     (void)ctx; 
     float dx=0,dy=0; 
     switch(g_app.player.facing){ case 0: dy=1; break; case 1: dx=-1; break; case 2: dx=1; break; case 3: dy=-1; break; }
-    /* Spawn slightly in front of player to avoid covering player sprite */
-    /* Center vertically on player body: assume player position is roughly feet; lift to mid-body */
-    float body_center_offset_y = 0.5f; /* half tile upwards gives mid-body alignment */
-    float spawn_offset = 0.75f; /* slightly further forward than before for clearer separation */
-    float sx = g_app.player.base.pos.x + dx * spawn_offset;
-    float sy = g_app.player.base.pos.y + dy * spawn_offset + body_center_offset_y;
+     /* Compute player logical center in tile coordinates.
+         NOTE: player.base.pos is the TOP-LEFT of the current frame (see player_render.c usage when drawing the rectangle/sprite).
+         So true center = top_left + (frame_size_tiles * 0.5, frame_size_tiles * 0.5).
+         (If later we support non-square frames, use separate width/height.) */
+     float frame_tiles = (g_app.tile_size>0)? ((float)g_app.player_frame_size / (float)g_app.tile_size) : 1.0f;
+     float center_x = g_app.player.base.pos.x + frame_tiles * 0.5f;
+     float center_y = g_app.player.base.pos.y + frame_tiles * 0.5f;
+     float sx = center_x;
+     float sy = center_y;
+     /* Forward offset so projectile starts just ahead of body to reduce overlap */
+     float forward = 0.60f; /* tuned */
+     sx += dx * forward;
+     sy += dy * forward;
+     /* Optional slight lift when firing vertically so it doesn't appear from feet (can tweak) */
+     if(dy!=0){ sy += 0.0f; }
+#ifdef ROGUE_LOG_SPELL_SPAWNS
+     ROGUE_LOG_INFO("Fireball spawn center=(%.2f,%.2f) dir=(%.0f,%.0f) player_top_left=(%.2f,%.2f) frame_tiles=%.2f", sx,sy,dx,dy, g_app.player.base.pos.x, g_app.player.base.pos.y, frame_tiles);
+#endif
     /* Speed is tiles per second; update uses dt_ms/1000 so this is consistent */
     float speed = 6.0f + st->rank * 1.5f; /* tuned down from 80 to 6 to match tile units */
     int dmg = rogue_damage_fireball(def->id);

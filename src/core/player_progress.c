@@ -15,6 +15,8 @@ void rogue_player_progress_update(double dt_seconds){
         g_app.player.level++;
         g_app.unspent_stat_points += 3;
     g_app.talent_points += 1; /* grant a talent point each level */
+    /* Persist talent point gain immediately so quitting right after still saves it */
+    rogue_persistence_save_player_stats();
         g_app.player.xp_to_next = (int)(g_app.player.xp_to_next * 1.35f + 15);
         rogue_player_recalc_derived(&g_app.player);
         g_app.player.health = g_app.player.max_health;

@@ -44,8 +44,13 @@ void rogue_skill_bar_render(void){
             double now = g_app.game_time_ms;
             if(st->cooldown_end_ms > now){
                 double remain = st->cooldown_end_ms - now;
-                /* compute total cooldown based on rank */
-                float cd_total = def->base_cooldown_ms - (rank-1)*def->cooldown_reduction_ms_per_rank; if(cd_total < 100) cd_total = 100;
+                /* compute total cooldown (respect test override) */
+                float cd_total;
+#ifdef ROGUE_TEST_SHORT_COOLDOWNS
+                cd_total = 1000.0f;
+#else
+                cd_total = def->base_cooldown_ms - (rank-1)*def->cooldown_reduction_ms_per_rank; if(cd_total < 100) cd_total = 100;
+#endif
                 float frac = (float)(remain / cd_total); if(frac<0) frac=0; if(frac>1) frac=1;
                 int overlay_h = (int)(frac * (float)cell.h);
                 SDL_SetRenderDrawColor(g_app.renderer,0,0,0,130);

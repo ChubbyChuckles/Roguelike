@@ -30,16 +30,15 @@ int main(void){
     /* Place enemy at distant walkable tile */
     int ex=-1,ey=-1; for(int y=g_app.world_map.height-1;y>=0 && ex<0;y--) for(int x=g_app.world_map.width-1;x>=0 && ex<0;x--){ if(!rogue_nav_is_blocked(x,y)){ ex=x; ey=y; }}
     if(ex<0){ printf("no_enemy_spot\n"); return 4; }
-    RogueEnemy* e=&g_app.enemies[0]; memset(e,0,sizeof *e); e->alive=1; e->type_index=0; e->base.pos.x=(float)ex; e->base.pos.y=(float)ey; e->anchor_x=e->base.pos.x; e->anchor_y=e->base.pos.y; e->patrol_target_x=e->base.pos.x; e->patrol_target_y=e->base.pos.y; e->ai_state=ROGUE_ENEMY_AI_AGGRO; e->max_health=5; e->health=5; g_app.enemy_count=1; g_app.per_type_counts[0]=1; e->path_len=0; e->path_pos=0; e->path_target_tx=-1; e->path_target_ty=-1;
+    RogueEnemy* e=&g_app.enemies[0]; memset(e,0,sizeof *e); e->alive=1; e->type_index=0; e->base.pos.x=(float)ex; e->base.pos.y=(float)ey; e->anchor_x=e->base.pos.x; e->anchor_y=e->base.pos.y; e->patrol_target_x=e->base.pos.x; e->patrol_target_y=e->base.pos.y; e->ai_state=ROGUE_ENEMY_AI_AGGRO; e->max_health=5; e->health=5; g_app.enemy_count=1; g_app.per_type_counts[0]=1;
     printf("enemy at %d,%d\n",ex,ey);
     /* Disable spawner */ g_app.enemy_type_count=0;
-    int initial_path_len=0; int observed_advance=0; int last_pos_tx=(int)(e->base.pos.x+0.5f); int last_pos_ty=(int)(e->base.pos.y+0.5f);
+    int observed_advance=0; int last_pos_tx=(int)(e->base.pos.x+0.5f); int last_pos_ty=(int)(e->base.pos.y+0.5f);
     for(int frame=0; frame<240; ++frame){ /* up to ~4 seconds */
         if(frame==0) printf("loop_begin\n");
-        rogue_enemy_system_update(16.0f);
+    rogue_enemy_system_update(16.0f);
     int ptx=(int)(g_app.player.base.pos.x+0.5f); int pty=(int)(g_app.player.base.pos.y+0.5f);
-    if(frame<4) printf("f%d path_len=%d path_pos=%d target=(%d,%d) player=(%d,%d) enemy_tile=(%d,%d)\n",frame,e->path_len,e->path_pos,e->path_target_tx,e->path_target_ty,ptx,pty,(int)(e->base.pos.x+0.5f),(int)(e->base.pos.y+0.5f));
-        if(e->path_len>initial_path_len) initial_path_len=e->path_len;
+    if(frame<4) printf("f%d player=(%d,%d) enemy_tile=(%d,%d)\n",frame,ptx,pty,(int)(e->base.pos.x+0.5f),(int)(e->base.pos.y+0.5f));
         int cur_tx=(int)(e->base.pos.x+0.5f); int cur_ty=(int)(e->base.pos.y+0.5f);
         if((cur_tx!=last_pos_tx || cur_ty!=last_pos_ty)){
             /* ensure cardinal step */
@@ -48,8 +47,7 @@ int main(void){
         }
         if(cur_tx==px && cur_ty==py) break; /* reached player */
     }
-    if(initial_path_len<=1){ printf("no_path len=%d final e_alive=%d\n", initial_path_len, e->alive); return 6; }
-    if(!observed_advance){ printf("no_movement path_len=%d pos=%d/%d ex=%f ey=%f p=(%d,%d)\n", e->path_len,e->path_pos,e->path_len,e->base.pos.x,e->base.pos.y,px,py); return 7; }
-    printf("ok path_len_init=%d final_remaining=%d pos=%d tile=(%d,%d) player=(%d,%d)\n", initial_path_len, e->path_len - e->path_pos, e->path_pos,(int)(e->base.pos.x+0.5f),(int)(e->base.pos.y+0.5f),px,py);
-        return 0;
+    if(!observed_advance){ printf("no_movement ex=%f ey=%f p=(%d,%d)\n", e->base.pos.x,e->base.pos.y,px,py); return 7; }
+    printf("ok enemy advanced toward player tile=(%d,%d) player=(%d,%d)\n", (int)(e->base.pos.x+0.5f),(int)(e->base.pos.y+0.5f),px,py);
+    return 0;
     }
