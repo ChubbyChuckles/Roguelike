@@ -41,7 +41,7 @@ X = Not started yet
 4.4 Backward-compatible rarity addition (Done)
 4.5 Deterministic RNG reseeding across sessions (Done)
 
-5. Rarity System Enhancements (Pending)
+5. Rarity System Enhancements (Done)
 5.1 Tier-to-color mapping abstraction header (Done)
 5.2 Table-level rarity band selection (Done)
 5.3 Validation tests for rarity distribution (Done)
@@ -51,14 +51,14 @@ X = Not started yet
 5.7 Minimum floor rarity after player progression thresholds (Done)
 5.8 Weighted pity-counter for high rarity (Done)
 
-6. Debugging & Instrumentation Controls (Pending)
+6. Debugging & Instrumentation Controls (Done)
 6.1 Granular logging categories (loot_roll, spawn, merge) (Done)
 6.2 Runtime flag / env var to toggle loot verbosity (Done)
 6.3 Rolling window statistics (drops per rarity) (Done)
 6.4 On-demand console command: print loot histogram (Done)
 6.5 Telemetry snapshot export (Done)
 
-7. Affix & Modifier Framework (Pending)
+7. Affix & Modifier Framework (Done)
 7.1 Data schema for prefix/suffix pools (Done)
 7.2 Affix parsing from config files (Done)
 7.3 Affix rarity weighting integration (Done)
@@ -68,7 +68,7 @@ X = Not started yet
 7.7 Persistence format for rolled affixes (Done)
 7.8 Unit tests: affix parsing, roll determinism, item attachment, persistence (Done)
 
-8. Advanced Item Generation Pipeline (Pending)
+8. Advanced Item Generation Pipeline (Done)
 8.1 Generation request API (context: enemy level, biome) (Done)
 8.2 Rule graph: gating affixes by item category (Done)
 8.3 Multi-pass rarity -> base item -> affix selection order (Done)
@@ -81,7 +81,7 @@ X = Not started yet
 9.1 Global drop rate config layer (Done)
 9.2 Adaptive weighting (increase weight of under-dropped categories) (Done)
 9.3 Player preference learning (optional heuristic) (Done)
-9.4 Pity system for legendary/epic (ties to 5.8) (In Implementation)
+9.4 Pity system for legendary/epic (ties to 5.8) (Done)
 9.5 Session metrics: items/hour, rarity/hour (X)
 9.6 Tuning console commands (set weight, reset counters) (X)
 

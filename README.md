@@ -117,6 +117,7 @@ See full, fine‑grained roadmap in `implementation_plan.txt` (kept continuously
 * (9.1) Global + per-category drop rate scalars layer: multiplicative global roll count adjustment + probabilistic per-category suppression enabling runtime economy/balancing hooks.
 * (9.2) Adaptive weighting engine: continuously tracks observed counts per rarity & category and applies smoothed corrective multipliers (clamped 0.5x–2.0x with exponential smoothing) to gently lift under-dropped categories and damp overrepresented ones before later player preference & pity tie-ins.
 * (9.3) Player preference learning: monitors pickup frequencies per category; applies mild dampening (0.75x–1.25x band) to over-picked categories to encourage build diversity without hard bans.
+* (9.4) Accelerated pity: dynamic reduction of epic/legendary pity thresholds once halfway to target to smooth tail risk of long droughts.
 * Scaled roll biases upward via exponent approximation avoiding dependency on `powf` (portable for constrained builds).
 
 #### Telemetry & Analytics Hooks
@@ -311,6 +312,7 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
 * Global + per-category drop rate control layer (phase 9.1) enabling early balancing knobs.
 * Adaptive weighting engine (phase 9.2) applying smoothed corrective factors (0.5x–2.0x) to rarity & category frequencies to reduce streaky droughts without hard forcing outcomes.
 * Player preference learning (phase 9.3) tracking pickup counts to gently dampen over-picked categories.
+* Accelerated pity thresholds (phase 9.4) reducing required consecutive misses after midpoint.
 
 **Improved**
 * Rarity sampling integrates global floor + pity adjustments seamlessly.

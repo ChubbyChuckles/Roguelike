@@ -21,6 +21,10 @@ int  rogue_rarity_get_min_floor(void);
 void rogue_rarity_pity_set_thresholds(int epic_threshold, int legendary_threshold); /* <=0 disables respective tier */
 void rogue_rarity_pity_reset(void);
 int  rogue_rarity_pity_counter(void); /* current counter */
+/* 9.4: Enable/disable acceleration and query effective thresholds after acceleration logic */
+void rogue_rarity_pity_set_acceleration(int enabled);
+int  rogue_rarity_pity_get_effective_epic(void);
+int  rogue_rarity_pity_get_effective_legendary(void);
 
 /* Internal helpers used by sampler (exposed for tests). */
 int  rogue_rarity_apply_floor(int rolled, int rmin, int rmax);

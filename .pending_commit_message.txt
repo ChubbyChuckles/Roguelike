@@ -1,20 +1,16 @@
-feat(loot/phase9): player preference learning (9.3) + adaptive integration
+feat(loot/phase9): accelerated pity thresholds (9.4)
 
-Adds pickup-driven preference learning atop adaptive balancing:
-- Tracks per-category pickup counts (reset with adaptive reset)
-- Computes mild inverse bias (clamped 0.75x–1.25x, smoothed) so over-picked categories slightly de-prioritize
-- Exposes API: rogue_adaptive_record_pickup + rogue_adaptive_get_category_preference_factor
-- Integrated into pickup path (records on successful pickup) for passive learning
+Implements dynamic pity acceleration:
+- Adds adjustable acceleration flag and effective threshold queries
+- Reduces epic / legendary pity thresholds by 25% once halfway point reached (bounded >=1)
+- Integrates via rarity sample path (apply_pity) without altering existing tests
 
 Testing:
-- New test_loot_phase9_preference validates dampening behavior vs untouched category
-- Existing adaptive + drop rate tests still pass
+- New test_loot_phase9_pity exercises accelerated epic threshold behavior
+- All phase 9 tests pass (drop rates, adaptive, preference, pity)
 
 Docs & Plan:
-- README deep dive & changelog updated with (9.3)
-- implementation_plan.txt marks 9.3 Done
+- README deep dive and changelog updated with (9.4)
+- implementation_plan.txt marks 9.4 Done
 
-Next Steps (9.4+):
-- Tie pity thresholds into adaptive factors (rare drought relief synergy)
-- Add session metrics (9.5) + console tuning commands (9.6)
- - Integrate preference + adaptive factor product into loot table weighting hook
+Next (9.5 / 9.6): session metrics (items/hour, rarity/hour) + console tuning commands (expose get/set for drop rates, adaptive reset, pity accel toggle)
