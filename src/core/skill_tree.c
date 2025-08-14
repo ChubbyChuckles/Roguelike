@@ -19,8 +19,9 @@ static int effect_power_strike(const RogueSkillDef* def, RogueSkillState* st, co
 static int effect_dash(const RogueSkillDef* def, RogueSkillState* st, const RogueSkillCtx* ctx){ (void)def;(void)ctx; float dist = 25.0f + st->rank * 10.0f; float nx = g_app.player.base.pos.x; float ny = g_app.player.base.pos.y; switch(g_app.player.facing){ case 0: ny += dist; break; case 1: nx -= dist; break; case 2: nx += dist; break; case 3: ny -= dist; break; }
     if(nx<0) nx=0; if(ny<0) ny=0; if(nx>g_app.world_map.width-1) nx=(float)(g_app.world_map.width-1); if(ny>g_app.world_map.height-1) ny=(float)(g_app.world_map.height-1);
     g_app.player.base.pos.x=nx; g_app.player.base.pos.y=ny; return 1; }
-/* Fireball: spawn projectile in facing direction */
-static int effect_fireball(const RogueSkillDef* def, RogueSkillState* st, const RogueSkillCtx* ctx){ (void)def;(void)ctx; float dx=0,dy=0; switch(g_app.player.facing){ case 0: dy=1; break; case 1: dx=-1; break; case 2: dx=1; break; case 3: dy=-1; break; } float speed = 80.0f + st->rank * 15.0f; int dmg = 3 + st->rank * 2; rogue_projectiles_spawn(g_app.player.base.pos.x, g_app.player.base.pos.y, dx,dy,speed, 3500.0f, dmg); return 1; }
+/* Fireball: spawn projectile in facing direction using damage service */
+#include "core/damage_calc.h"
+static int effect_fireball(const RogueSkillDef* def, RogueSkillState* st, const RogueSkillCtx* ctx){ (void)ctx; float dx=0,dy=0; switch(g_app.player.facing){ case 0: dy=1; break; case 1: dx=-1; break; case 2: dx=1; break; case 3: dy=-1; break; } float speed = 80.0f + st->rank * 15.0f; int dmg = rogue_damage_fireball(def->id); rogue_projectiles_spawn(g_app.player.base.pos.x, g_app.player.base.pos.y, dx,dy,speed, 3500.0f, dmg); return 1; }
 
 void rogue_skill_tree_register_baseline(void){
     RogueSkillDef defs[] = {
