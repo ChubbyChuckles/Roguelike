@@ -32,7 +32,7 @@ static void ensure_capacity(int min_cap){
     if(!nd) return; g_defs=nd;
     RogueSkillState* ns = (RogueSkillState*)realloc(g_states, (size_t)new_cap*sizeof(RogueSkillState));
     if(!ns) return; g_states=ns;
-    for(int i=g_capacity;i<new_cap;i++){ g_states[i].rank=0; g_states[i].cooldown_end_ms=0; g_states[i].uses=0; }
+    for(int i=g_capacity;i<new_cap;i++){ g_states[i].rank=0; g_states[i].cooldown_end_ms=0; g_states[i].uses=0; g_states[i].charges_cur=0; g_states[i].next_charge_ready_ms=0; g_states[i].last_cast_ms=0; g_states[i].cast_progress_ms=0; g_states[i].channel_end_ms=0; g_states[i].queued_until_ms=0; g_states[i].action_points_spent_session=0; g_states[i].combo_points_accum=0; }
     g_capacity = new_cap;
 }
 
@@ -57,7 +57,7 @@ int rogue_skill_register(const RogueSkillDef* def){
     RogueSkillDef* d = &g_defs[g_count];
     *d = *def; /* shallow copy (icon/name assumed static) */
     d->id = g_count;
-    g_states[g_count].rank=0; g_states[g_count].cooldown_end_ms=0; g_states[g_count].uses=0;
+    g_states[g_count].rank=0; g_states[g_count].cooldown_end_ms=0; g_states[g_count].uses=0; g_states[g_count].charges_cur=d->max_charges>0?d->max_charges:0; g_states[g_count].next_charge_ready_ms=0; g_states[g_count].last_cast_ms=0; g_states[g_count].cast_progress_ms=0; g_states[g_count].channel_end_ms=0; g_states[g_count].queued_until_ms=0; g_states[g_count].action_points_spent_session=0; g_states[g_count].combo_points_accum=0;
     g_count++;
     g_app.skill_defs = g_defs; g_app.skill_states = g_states; g_app.skill_count=g_count;
     return d->id;
@@ -81,23 +81,52 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx){
     const RogueSkillDef* def = &g_defs[id];
     if(st->rank<=0) return 0; /* locked */
     if(def->is_passive) return 0; /* passives cannot be 'activated' */
-    if(ctx && ctx->now_ms < st->cooldown_end_ms) return 0;
-    float cd;
-#ifdef ROGUE_TEST_SHORT_COOLDOWNS
-    /* Testing mode: fixed 1 second cooldown for every activation regardless of skill or rank */
-    cd = 1000.0f;
-#else
-    cd = def->base_cooldown_ms - (st->rank-1)*def->cooldown_reduction_ms_per_rank; if(cd<100) cd=100;
-#endif
+    double now = ctx? ctx->now_ms : 0.0;
+    /* Cooldown */
+    if(now < st->cooldown_end_ms) return 0;
+    /* Charges */
+    if(def->max_charges>0){
+        /* passive recharge check */
+        if(st->charges_cur < def->max_charges && st->next_charge_ready_ms>0 && now >= st->next_charge_ready_ms){
+            st->charges_cur++; if(st->charges_cur < def->max_charges){ st->next_charge_ready_ms = now + def->charge_recharge_ms; } else { st->next_charge_ready_ms = 0; }
+        }
+        if(st->charges_cur<=0) return 0;
+    }
+    /* Resource checks (simple mana for now) */
+    if(def->resource_cost_mana>0){ if(g_app.player.mana < def->resource_cost_mana) return 0; }
+    /* AP check: placeholder (AP not yet implemented in player; treat cost>0 as allowed) */
+    /* Deterministic RNG seed (id + uses) */
     RogueSkillCtx local_ctx = ctx? *ctx : (RogueSkillCtx){0};
+    local_ctx.rng_state = (unsigned int)(id * 2654435761u) ^ (unsigned int)st->uses * 2246822519u;
     int consumed = 1;
     if(def->on_activate){ consumed = def->on_activate(def, st, &local_ctx); }
-    if(consumed){ st->cooldown_end_ms = (ctx? ctx->now_ms : 0.0) + cd; st->uses++; }
+    if(consumed){
+        /* Spend mana */
+        if(def->resource_cost_mana>0){ g_app.player.mana -= def->resource_cost_mana; if(g_app.player.mana<0) g_app.player.mana=0; }
+        /* Spend charge */
+        if(def->max_charges>0){ st->charges_cur--; if(st->charges_cur < def->max_charges && st->next_charge_ready_ms==0){ st->next_charge_ready_ms = now + def->charge_recharge_ms; } }
+        /* Cooldown compute */
+        float cd;
+#ifdef ROGUE_TEST_SHORT_COOLDOWNS
+        cd = 1000.0f;
+#else
+        cd = def->base_cooldown_ms - (st->rank-1)*def->cooldown_reduction_ms_per_rank; if(cd<100) cd=100;
+#endif
+        st->cooldown_end_ms = now + cd;
+        st->uses++;
+        st->last_cast_ms = now;
+    }
     return consumed;
 }
 
 void rogue_skills_update(double now_ms){
-    (void)now_ms; /* placeholder for future tick logic */
+    /* Charge regeneration idle path */
+    for(int i=0;i<g_count;i++){
+        RogueSkillState* st=&g_states[i]; const RogueSkillDef* def=&g_defs[i];
+        if(def->max_charges>0 && st->charges_cur < def->max_charges && st->next_charge_ready_ms>0 && now_ms >= st->next_charge_ready_ms){
+            st->charges_cur++; if(st->charges_cur < def->max_charges){ st->next_charge_ready_ms = now_ms + def->charge_recharge_ms; } else { st->next_charge_ready_ms = 0; }
+        }
+    }
 }
 
 const RogueSkillDef* rogue_skill_get_def(int id){ if(id<0 || id>=g_count) return NULL; return &g_defs[id]; }

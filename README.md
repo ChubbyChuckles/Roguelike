@@ -80,6 +80,7 @@ See full, fine‑grained roadmap in `implementation_plan.txt` (kept continuously
 * Skill system supports active & passive examples (fireball, dash, passives) with forced short cooldowns under test macro.
 * Damage numbers decoupled from combat logic; spawn & lifetime tested for determinism.
 * Frame-accurate combo / crit / buffer chain tests ensure animation & timing regressions surface quickly.
+* Phase 1 (in progress): Added extended skill metadata (tags, charges, recharge timers, deterministic per-activation RNG seeding) and foundational unit test (`test_skills_phase1_basic`). Upcoming: EffectSpec abstraction, AP economy implementation, casting/channel progression & combo flags.
 
 #### Loot Foundations (Phases 1–4)
 * Item definition parser tolerant to optional later-added rarity column (backward compatibility).

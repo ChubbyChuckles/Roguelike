@@ -1,5 +1,8 @@
 file(GLOB UNIT_TESTS unit/test_*.c)
 
+# Filter out removed/legacy test filenames that may linger in generated projects
+list(FILTER UNIT_TESTS EXCLUDE REGEX ".*test_skills_phase1_foundation.c$")
+
 # Ensure newly added directional combat test is always present (some generators cache GLOB results between incremental reconfigurations).
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_left_facing.c AND NOT TARGET test_combat_left_facing)
     add_executable(test_combat_left_facing unit/test_combat_left_facing.c)
