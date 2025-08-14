@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "core/loot_rarity_adv.h"
+#include "core/loot_drop_rates.h"
 
 static RogueLootTableDef g_tables[ROGUE_MAX_LOOT_TABLES];
 static int g_table_count = 0;
@@ -82,6 +83,10 @@ int rogue_loot_roll(int table_index, unsigned int* rng_state, int max_out,
     const RogueLootTableDef* t = &g_tables[table_index];
     int rolls_range = t->rolls_max - t->rolls_min + 1;
     int rolls = t->rolls_min + (rolls_range>0? rogue_rng_range(rng_state, rolls_range):0);
+    /* Apply global drop rate scalar (9.1) */
+    float gscale = rogue_drop_rates_get_global();
+    if(gscale != 1.0f){ float fr = (float)rolls * gscale; if(fr < 0.f) fr = 0.f; rolls = (int)(fr + 0.5f); }
+    if(rolls < 0) rolls = 0;
     int produced=0;
     for(int r=0; r<rolls; ++r){
         /* Compute total weight */
@@ -91,8 +96,10 @@ int rogue_loot_roll(int table_index, unsigned int* rng_state, int max_out,
         int acc=0; const RogueLootEntry* chosen=NULL;
         for(int i=0;i<t->entry_count;i++){ acc += t->entries[i].weight; if(pick < acc){ chosen = &t->entries[i]; break; }}
         if(!chosen) continue;
-        int qty_range = chosen->qmax - chosen->qmin + 1;
+    int qty_range = chosen->qmax - chosen->qmin + 1;
         int qty = chosen->qmin + (qty_range>0? rogue_rng_range(rng_state, qty_range):0);
+    /* Per-category scalar influences effective number of rolls indirectly by probabilistically skipping (simpler than qty inflation). */
+    if(chosen->item_def_index>=0){ const RogueItemDef* idef = rogue_item_def_at(chosen->item_def_index); if(idef){ float cscale = rogue_drop_rates_get_category(idef->category); if(cscale <= 0.0f){ continue; } else if(cscale < 1.0f){ /* random skip with probability (1-cscale) */ int threshold = (int)(cscale * 1000.0f); if(threshold < 0) threshold=0; if(threshold<1000){ int rskip = rogue_rng_range(rng_state,1000); if(rskip >= threshold) continue; } } }}
         if(produced < max_out){ out_item_def_indices[produced] = chosen->item_def_index; out_quantities[produced] = qty; produced++; }
     }
     return produced;
@@ -104,6 +111,9 @@ int rogue_loot_roll_ex(int table_index, unsigned int* rng_state, int max_out,
     const RogueLootTableDef* t = &g_tables[table_index];
     int rolls_range = t->rolls_max - t->rolls_min + 1;
     int rolls = t->rolls_min + (rolls_range>0? rogue_rng_range(rng_state, rolls_range):0);
+    float gscale = rogue_drop_rates_get_global();
+    if(gscale != 1.0f){ float fr = (float)rolls * gscale; if(fr < 0.f) fr = 0.f; rolls = (int)(fr + 0.5f); }
+    if(rolls < 0) rolls = 0;
     int produced=0;
     for(int r=0; r<rolls; ++r){
         int total_w=0; for(int i=0;i<t->entry_count;i++){ total_w += t->entries[i].weight; }
@@ -112,8 +122,9 @@ int rogue_loot_roll_ex(int table_index, unsigned int* rng_state, int max_out,
         int acc=0; const RogueLootEntry* chosen=NULL;
         for(int i=0;i<t->entry_count;i++){ acc += t->entries[i].weight; if(pick < acc){ chosen = &t->entries[i]; break; }}
         if(!chosen) continue;
-        int qty_range = chosen->qmax - chosen->qmin + 1;
+    int qty_range = chosen->qmax - chosen->qmin + 1;
         int qty = chosen->qmin + (qty_range>0? rogue_rng_range(rng_state, qty_range):0);
+    if(chosen->item_def_index>=0){ const RogueItemDef* idef = rogue_item_def_at(chosen->item_def_index); if(idef){ float cscale = rogue_drop_rates_get_category(idef->category); if(cscale <= 0.0f){ continue; } else if(cscale < 1.0f){ int threshold=(int)(cscale*1000.0f); if(threshold<0) threshold=0; if(threshold<1000){ int rskip=rogue_rng_range(rng_state,1000); if(rskip >= threshold) continue; } } }}
         int rarity = -1;
         if(chosen->rarity_min >= 0){
             rarity = rogue_loot_rarity_sample(rng_state, chosen->rarity_min, chosen->rarity_max);

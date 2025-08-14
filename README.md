@@ -108,12 +108,13 @@ See full, fine‑grained roadmap in `implementation_plan.txt` (kept continuously
 * Derived damage aggregation picks up flat damage from both prefix & suffix; design anticipates expansion to percent modifiers.
 * Persistence: prefix/suffix indices + rolled values serialized; round‑trip test validates binary compatibility.
 
-#### Advanced Generation Pipeline (Phase 8)
+#### Advanced Generation Pipeline (Phase 8) & Early Dynamic Balancing (Phase 9)
 * Context object mixes enemy + player factors into seed (distinct large odd multipliers reduce collision risk).
 * Multi-pass ordering (rarity→item→affixes) mirrors ARPG pipeline; easier to insert future quality adjustments pre-affix.
 * Affix gating rules (initial hard-coded) enforce semantic item/affix compatibility (e.g., damage only on weapons).
 * Duplicate avoidance filters candidate set before weight sampling.
 * Quality scalar mapping uses diminishing returns curve `luck/(5+luck)` then linear interpolation to global min/max.
+* (9.1) Global + per-category drop rate scalars layer: multiplicative global roll count adjustment + probabilistic per-category suppression enabling runtime economy/balancing hooks.
 * Scaled roll biases upward via exponent approximation avoiding dependency on `powf` (portable for constrained builds).
 
 #### Telemetry & Analytics Hooks
@@ -305,6 +306,7 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
 * Quality scalar (luck‑driven) influencing upper stat roll bias.
 * Duplicate affix avoidance in prefix/suffix selection.
 * Telemetry exports & histogram command.
+* Global + per-category drop rate control layer (phase 9.1) enabling early balancing knobs.
 
 **Improved**
 * Rarity sampling integrates global floor + pity adjustments seamlessly.

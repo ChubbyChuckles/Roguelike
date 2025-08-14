@@ -11,6 +11,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_left_facing.c AND NOT TAR
     add_test(NAME test_combat_left_facing COMMAND test_combat_left_facing)
 endif()
 
+# Explicitly add loot phase 9 drop rates test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_drop_rates.c AND NOT TARGET test_loot_phase9_drop_rates)
+    add_executable(test_loot_phase9_drop_rates unit/test_loot_phase9_drop_rates.c)
+    target_link_libraries(test_loot_phase9_drop_rates PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_loot_phase9_drop_rates PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_loot_phase9_drop_rates COMMAND test_loot_phase9_drop_rates)
+endif()
+
 # Explicitly add generation quality test (ensure picked up even if glob cache stale)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase8_generation_quality.c AND NOT TARGET test_loot_phase8_generation_quality)
     add_executable(test_loot_phase8_generation_quality unit/test_loot_phase8_generation_quality.c)

@@ -78,7 +78,7 @@ X = Not started yet
 8.7 Unit tests: reproducibility & boundary stats (Done)
 
 9. Dynamic Drop Balancing (Pending)
-9.1 Global drop rate config layer (X)
+9.1 Global drop rate config layer (Done)
 9.2 Adaptive weighting (increase weight of under-dropped categories) (X)
 9.3 Player preference learning (optional heuristic) (X)
 9.4 Pity system for legendary/epic (ties to 5.8) (X)

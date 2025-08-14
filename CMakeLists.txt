@@ -129,6 +129,7 @@ add_library(rogue_core
     src/core/loot_console.c
     src/core/loot_rarity_adv.c
     src/core/loot_generation.c
+    src/core/loot_drop_rates.c
 )
 
 target_include_directories(rogue_core PUBLIC

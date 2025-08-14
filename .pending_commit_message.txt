@@ -15,7 +15,19 @@ Internal:
 - Added `rogue_affix_roll_value_scaled` utility.
 - Extended generation module with gated roll helper and luck->quality mapping.
 
-Next: proceed to 9.x dynamic drop balancing layer.feat(loot): implement advanced generation API (8.1, 8.3, 8.5) and tests
+Next: proceed to 9.x dynamic drop balancing layer.
+
+feat(loot-balance): add global & per-category drop rate scalars (9.1)
+
+Implements phase 9.1:
+- New module `loot_drop_rates.[ch]` managing global and per-item-category scalars.
+- Integrated into loot roll functions adjusting total rolls (global scalar) and probabilistically suppressing categories (per-category scalar).
+- Unit test `test_loot_phase9_drop_rates` validates baseline vs zero vs boosted and category suppression behavior.
+- Updated implementation plan marking 9.1 Done; README updated (Dynamic Balancing early section).
+
+Lays groundwork for adaptive weighting (9.2) & player preference learning (9.3).
+
+feat(loot): implement advanced generation API (8.1, 8.3, 8.5) and tests
 
 Adds new module loot_generation (context-driven item creation) including:
 - Generation context struct (enemy level, biome, archetype, player luck)
