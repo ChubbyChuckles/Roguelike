@@ -1,6 +1,7 @@
 #include "core/loot_tables.h"
 #include "core/loot_item_defs.h"
 #include <string.h>
+#include "core/loot_dynamic_weights.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -127,5 +128,12 @@ int rogue_loot_roll_ex(int table_index, unsigned int* rng_state, int max_out,
 }
 
 int rogue_loot_rarity_sample(unsigned int* rng_state, int rmin, int rmax){
-    if(rmin < 0) return -1; if(rmax < rmin) rmax = rmin; int span = rmax - rmin + 1; if(span <= 0) return rmin; return rmin + rogue_rng_range(rng_state, span);
+    if(rmin < 0) return -1; if(rmax < rmin) rmax = rmin; int span = rmax - rmin + 1; if(span <= 0) return rmin;
+    int weights[5]; for(int i=0;i<5;i++) weights[i]=0; for(int r=rmin;r<=rmax && r<5;r++){ weights[r]=1; }
+    rogue_loot_dyn_apply(weights);
+    int total=0; for(int r=rmin;r<=rmax && r<5;r++){ total += weights[r]; }
+    if(total<=0) return rmin;
+    int pick = rogue_rng_range(rng_state,total);
+    int acc=0; for(int r=rmin;r<=rmax && r<5;r++){ acc += weights[r]; if(pick < acc) return r; }
+    return rmin;
 }

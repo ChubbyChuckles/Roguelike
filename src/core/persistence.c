@@ -3,6 +3,8 @@
 #include "entities/player.h"
 #include "core/skills.h"
 #include "core/inventory.h"
+#include "core/loot_instances.h"
+#include "core/loot_affixes.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -126,6 +128,15 @@ void rogue_persistence_load_player_stats(void){
             if(st){ st->cooldown_end_ms = atof(val); }
     }
     else if(rogue_inventory_try_parse_kv(key,val)) { /* handled */ }
+    else if(strncmp(key,"GI",2)==0){ /* Ground Item with affixes: format GI<slot>=def,qty,rarity,prefixIdx,prefixVal,suffixIdx,suffixVal */
+            int slot = atoi(key+2); if(slot>=0 && slot<g_app.item_instance_cap){
+                /* parse CSV list */
+                int fields[7]; for(int k=0;k<7;k++) fields[k]=-1;
+                int fi=0; char* cur=val; while(cur && fi<7){ char* p=cur; while(*p && *p!=','){ if(*p=='\r'||*p=='\n'){ *p='\0'; break;} p++; } char term=*p; *p='\0'; fields[fi++] = atoi(cur); if(term==','){ p++; } cur = (term==',')? p:NULL; }
+                int def_index = fields[0]; int qty=fields[1]; int rarity=fields[2]; int pidx=fields[3]; int pval=fields[4]; int sidx=fields[5]; int sval=fields[6];
+                if(def_index>=0 && qty>0){ int inst = rogue_items_spawn(def_index, qty, 0.0f,0.0f); if(inst>=0){ rogue_item_instance_apply_affixes(inst, rarity, pidx,pval,sidx,sval); }}
+            }
+        }
     }
     fclose(f);
     rogue_player_recalc_derived(&g_app.player);
@@ -167,6 +178,14 @@ void rogue_persistence_save_player_stats(void){
     }
     /* Inventory counts */
     rogue_inventory_serialize(f);
+    /* Ground item instances with affixes (persist active ones) */
+    if(g_app.item_instances){
+        for(int i=0;i<g_app.item_instance_cap;i++) if(g_app.item_instances[i].active){
+            const RogueItemInstance* it = &g_app.item_instances[i];
+            fprintf(f,"GI%d=%d,%d,%d,%d,%d,%d,%d\n", i, it->def_index, it->quantity, it->rarity,
+                    it->prefix_index, it->prefix_value, it->suffix_index, it->suffix_value);
+        }
+    }
     fclose(f);
     g_app.stats_dirty = 0;
 }

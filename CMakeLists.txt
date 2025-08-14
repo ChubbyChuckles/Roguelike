@@ -125,6 +125,8 @@ add_library(rogue_core
     src/core/path_utils.c
     src/core/loot_rarity.c
     src/core/loot_stats.c
+    src/core/loot_dynamic_weights.c
+    src/core/loot_console.c
 )
 
 target_include_directories(rogue_core PUBLIC
