@@ -77,6 +77,8 @@ void rogue_skill_tree_handle_key(int sym){
     else if(sym==SDLK_UP || sym==SDLK_DOWN){ /* swap slot with next empty? placeholder */ }
     else if(sym==SDLK_RETURN){ rogue_skill_rank_up(g_tree_index); }
     else if(sym==SDLK_ESCAPE || sym==SDLK_TAB){ g_skill_tree_open=0; }
+#else
+    (void)sym; /* headless build: unused */
 #endif
 }
 

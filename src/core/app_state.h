@@ -78,6 +78,11 @@ typedef struct RogueAppState {
     int skill_bar[10]; /* skill id per slot (-1 empty) */
     /* Loot runtime (phase 2) */
     struct RogueItemInstance* item_instances; int item_instance_cap; int item_instance_count;
+    /* Session metrics (9.5) */
+    double session_start_seconds;
+    unsigned int session_items_dropped;
+    unsigned int session_items_picked;
+    unsigned int session_rarity_drops[5];
 } RogueAppState;
 
 extern RogueAppState g_app;

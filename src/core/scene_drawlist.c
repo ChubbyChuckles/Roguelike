@@ -15,7 +15,10 @@ static int g_item_count=0;
 void rogue_scene_drawlist_begin(void){ g_item_count=0; }
 
 void rogue_scene_drawlist_push_sprite(const RogueSprite* spr,int dx,int dy,int y_base,int flip,unsigned char r,unsigned char g,unsigned char b,unsigned char a){
-    if(!spr || !spr->tex || !spr->tex->handle) return;
+    if(!spr || !spr->tex) return;
+#ifdef ROGUE_HAVE_SDL
+    if(!spr->tex->handle) return;
+#endif
     if(g_item_count>=ROGUE_MAX_DRAW_ITEMS) return;
     RogueDrawItem* it=&g_items[g_item_count++];
     memset(it,0,sizeof *it);
@@ -32,12 +35,15 @@ void rogue_scene_drawlist_flush(void){
     for(int i=0;i<g_item_count;i++){
         RogueDrawItem* it=&g_items[i];
         if(it->kind==ROGUE_DRAW_SPRITE){
-            const RogueSprite* spr=it->sprite; SDL_Rect src={spr->sx,spr->sy,spr->sw,spr->sh}; SDL_Rect dst={it->dx,it->dy,it->dw,it->dh};
-            if(it->tint_r!=255||it->tint_g!=255||it->tint_b!=255) SDL_SetTextureColorMod(spr->tex->handle,it->tint_r,it->tint_g,it->tint_b);
-            if(it->tint_a!=255) SDL_SetTextureAlphaMod(spr->tex->handle,it->tint_a);
-            SDL_RenderCopyEx(g_app.renderer,spr->tex->handle,&src,&dst,0.0,NULL,it->flip? SDL_FLIP_HORIZONTAL:SDL_FLIP_NONE);
-            if(it->tint_r!=255||it->tint_g!=255||it->tint_b!=255) SDL_SetTextureColorMod(spr->tex->handle,255,255,255);
-            if(it->tint_a!=255) SDL_SetTextureAlphaMod(spr->tex->handle,255);
+            const RogueSprite* spr=it->sprite; 
+            SDL_Rect src={spr->sx,spr->sy,spr->sw,spr->sh}; SDL_Rect dst={it->dx,it->dy,it->dw,it->dh};
+            if(spr->tex && spr->tex->handle){
+                if(it->tint_r!=255||it->tint_g!=255||it->tint_b!=255) SDL_SetTextureColorMod(spr->tex->handle,it->tint_r,it->tint_g,it->tint_b);
+                if(it->tint_a!=255) SDL_SetTextureAlphaMod(spr->tex->handle,it->tint_a);
+                SDL_RenderCopyEx(g_app.renderer,spr->tex->handle,&src,&dst,0.0,NULL,it->flip? SDL_FLIP_HORIZONTAL:SDL_FLIP_NONE);
+                if(it->tint_r!=255||it->tint_g!=255||it->tint_b!=255) SDL_SetTextureColorMod(spr->tex->handle,255,255,255);
+                if(it->tint_a!=255) SDL_SetTextureAlphaMod(spr->tex->handle,255);
+            }
         }
     }
 #else

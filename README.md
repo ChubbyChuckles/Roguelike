@@ -313,6 +313,8 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
 * Adaptive weighting engine (phase 9.2) applying smoothed corrective factors (0.5x–2.0x) to rarity & category frequencies to reduce streaky droughts without hard forcing outcomes.
 * Player preference learning (phase 9.3) tracking pickup counts to gently dampen over-picked categories.
 * Accelerated pity thresholds (phase 9.4) reducing required consecutive misses after midpoint.
+* Session metrics (phase 9.5) tracking per-session items dropped/picked, rarity distribution, and instantaneous items/hour + rarity/hour rates.
+* Session metrics instrumentation (phase 9.5) exposing real-time items/hour and rarity/hour allowing balancing dashboards & future drift alerts to use normalized rates independent of session length.
 
 **Improved**
 * Rarity sampling integrates global floor + pity adjustments seamlessly.

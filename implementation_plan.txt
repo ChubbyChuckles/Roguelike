@@ -82,7 +82,7 @@ X = Not started yet
 9.2 Adaptive weighting (increase weight of under-dropped categories) (Done)
 9.3 Player preference learning (optional heuristic) (Done)
 9.4 Pity system for legendary/epic (ties to 5.8) (Done)
-9.5 Session metrics: items/hour, rarity/hour (X)
+9.5 Session metrics: items/hour, rarity/hour (Done)
 9.6 Tuning console commands (set weight, reset counters) (X)
 
 10. Economy & Vendors (Pending)

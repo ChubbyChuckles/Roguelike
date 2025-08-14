@@ -4,6 +4,7 @@
 #include "core/inventory.h"
 #include "util/log.h"
 #include "core/loot_adaptive.h"
+#include "core/metrics.h"
 #include <math.h>
 
 void rogue_loot_pickup_update(float radius){
@@ -18,7 +19,9 @@ void rogue_loot_pickup_update(float radius){
             int added = rogue_inventory_add(it->def_index, it->quantity);
             if(added>0){
                 it->active = 0;
+                /* Record pickup for preference learning + session metrics */
                 rogue_adaptive_record_pickup(it->def_index);
+                rogue_metrics_record_pickup(it->rarity);
                 ROGUE_LOG_INFO("Pickup def=%d qty=%d", it->def_index, it->quantity);
             }
         }

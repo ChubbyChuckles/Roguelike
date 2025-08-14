@@ -13,4 +13,10 @@ void rogue_metrics_get(double* out_fps, double* out_frame_ms, double* out_avg_fr
 /* Delta time (seconds) of last frame. */
 double rogue_metrics_delta_time(void);
 
+/* Session metrics (Phase 9.5) */
+double rogue_metrics_session_elapsed(void);
+void rogue_metrics_record_drop(int rarity);
+void rogue_metrics_record_pickup(int rarity);
+void rogue_metrics_rates(double* out_items_per_hour, double out_rarity_per_hour[5]);
+
 #endif

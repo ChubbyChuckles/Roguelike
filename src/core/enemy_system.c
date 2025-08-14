@@ -14,6 +14,7 @@
 #include "core/loot_tables.h"
 #include "core/loot_instances.h"
 #include "core/loot_logging.h"
+#include "core/metrics.h"
 
 /* Directly manipulate g_app to preserve semantics. */
 static int enemy_tile_is_blocking(unsigned char t){
@@ -195,6 +196,8 @@ void rogue_enemy_system_update(float dt_ms){
                     float jy = e->base.pos.y + sinf(jang) * radius;
                     ROGUE_LOOT_LOG_DEBUG("loot_entry: idx=%d qty=%d rarity=%d enemy_pos=(%.2f,%.2f) spawn_pos=(%.2f,%.2f) off=(%.2f,%.2f)", idef[di], qty[di], rar[di], e->base.pos.x, e->base.pos.y, jx, jy, jx-e->base.pos.x, jy-e->base.pos.y);
                     int inst = rogue_items_spawn(idef[di], qty[di], jx, jy); if(inst>=0 && rar[di]>=0 && inst < g_app.item_instance_cap){ g_app.item_instances[inst].rarity = rar[di]; }
+                    /* Session metrics: record drop rarity */
+                    if(rar[di] >= 0) rogue_metrics_record_drop(rar[di]); else rogue_metrics_record_drop(0);
                 }}
             }
         }

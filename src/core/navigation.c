@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdlib.h>
 #include "core/navigation.h"
 #include "core/app_state.h"
 #include "core/vegetation.h"
