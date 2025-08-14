@@ -3,6 +3,7 @@
 #include "core/loot_item_defs.h"
 #include "core/loot_instances.h"
 #include "core/loot_affixes.h"
+#include "core/stat_cache.h"
 
 /* Internal helper: sum agility affix values across equipped items. */
 static int gather_agility_bonus(void){
@@ -25,4 +26,5 @@ void rogue_equipment_apply_stat_bonuses(RoguePlayer* p){
     p->dexterity += agility_bonus;
     if(p->dexterity < 0) p->dexterity = 0; /* safety */
     if(p->dexterity > 9999) p->dexterity = 9999;
+    rogue_stat_cache_mark_dirty();
 }

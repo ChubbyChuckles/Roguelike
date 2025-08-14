@@ -205,6 +205,16 @@ Interactive panels (development placeholder visuals) demonstrate economy + equip
 
 Planned enhancements: equip/unequip UI actions, durability display & repair spending, affix reroll interface, comparison tooltips & delta coloring, multi-table vendor rotation, sell/tab & buyback, derived stat cache invalidation and EHP/DPS estimators.
 
+### Derived Stat Cache & DPS / EHP Estimators (14.3–14.4)
+Implemented a lightweight caching layer (`stat_cache.c`) providing:
+* Dirty Flag Invalidation: `rogue_stat_cache_mark_dirty` invoked on equip/unequip and when equipment bonuses apply.
+* Cached Totals: Strength/Dexterity/Vitality/Intelligence post-equipment aggregation retained for UI queries.
+* Heuristic DPS Estimate: `base_weapon_damage * (1 + DEX/50) * (1 + critChance% * critDamageMultiplier)`
+* Heuristic EHP Estimate: `max_health * (1 + VIT/200)` ensuring monotonic increase with vitality.
+* Equipment Panel Display: Real-time DPS & EHP shown beneath raw stat lines.
+
+Rationale: Avoid recomputing scaling formulas & affix traversals every frame across multiple UI/tooling consumers while keeping deterministic results. Future expansions will incorporate armor / resistance mitigation and percent-based affix modifiers; current heuristics are intentionally simple but validated through the new `test_stat_cache` unit test (asserts DPS increases after equipping a weapon).
+
 ---
 
 ## 4. Architecture & Code Layout

@@ -5,6 +5,7 @@
 #include "core/inventory.h"
 #include "core/loot_item_defs.h"
 #include <stdio.h>
+#include "core/stat_cache.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
@@ -39,6 +40,8 @@ void rogue_equipment_panel_render(void){
     rogue_font_draw_text(panel.x+10,panel.y+26,"Weapon Slot: (W)",1,(RogueColor){220,200,200,255});
     rogue_font_draw_text(panel.x+10,panel.y+44,"Armor Slot : (A)",1,(RogueColor){200,220,200,255});
     char stats[96]; snprintf(stats,sizeof stats,"STR:%d DEX:%d VIT:%d INT:%d", g_app.player.strength,g_app.player.dexterity,g_app.player.vitality,g_app.player.intelligence);
-    rogue_font_draw_text(panel.x+10,panel.y+panel.h-20,stats,1,(RogueColor){255,255,180,255});
+    rogue_font_draw_text(panel.x+10,panel.y+panel.h-38,stats,1,(RogueColor){255,255,180,255});
+    char derived[96]; snprintf(derived,sizeof derived,"DPS:%d EHP:%d", g_player_stat_cache.dps_estimate, g_player_stat_cache.ehp_estimate);
+    rogue_font_draw_text(panel.x+10,panel.y+panel.h-20,derived,1,(RogueColor){200,240,200,255});
 #endif
 }

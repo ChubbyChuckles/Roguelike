@@ -68,7 +68,9 @@ SOFTWARE.
 #include "core/inventory.h"
 #include "core/loot_pickup.h"
 #include "core/equipment_stats.h"
+#include "core/stat_cache.h"
 #include "core/vendor.h"
+#include "core/economy.h"
 
 /* UI panels (vendor & equipment) */
 void rogue_vendor_panel_render(void);
@@ -191,6 +193,16 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.dmg_number_count = 0; g_app.spawn_accum_ms = 700.0; /* start beyond threshold so first spawn attempt happens next frame */
     /* Vendor & equipment UI initial state */
     g_app.show_vendor_panel = 0; g_app.vendor_selection = 0; g_app.vendor_seed = 424242u; g_app.vendor_time_accum_ms = 0.0; g_app.vendor_restock_interval_ms = 30000.0; g_app.vendor_x = 4.5f; g_app.vendor_y = 4.5f; g_app.show_equipment_panel = 0;
+    /* Load item definitions (directory first, fallback to test set) */
+    int items_loaded = rogue_item_defs_load_directory("assets/items");
+    if(items_loaded <= 0){ items_loaded = rogue_item_defs_load_from_cfg("assets/test_items.cfg"); }
+    int tables_loaded = rogue_loot_tables_load_from_cfg("assets/test_loot_tables.cfg");
+    if(tables_loaded > 0){
+        RogueGenerationContext vctx = { .enemy_level = g_app.player.level, .biome_id = 0, .enemy_archetype = 0, .player_luck = 0 };
+        unsigned int seed = g_app.vendor_seed; rogue_vendor_reset(); rogue_vendor_generate_inventory(0,8,&vctx,&seed); g_app.vendor_seed = seed + 17u;
+    }
+    /* Provide starter gold so vendor purchases are possible. */
+    rogue_econ_add_gold(250);
 /* Audio (level-up SFX) */
 #ifdef ROGUE_HAVE_SDL_MIXER
     g_app.sfx_levelup = NULL;
@@ -378,6 +390,8 @@ void rogue_app_step(void)
     rogue_equipment_panel_render();
     /* Apply equipment-derived stat bonuses (simple additive pass) */
     rogue_equipment_apply_stat_bonuses(&g_app.player);
+    /* Update cached derived stats (14.3) */
+    rogue_stat_cache_update(&g_app.player);
     if(!g_app.headless){ SDL_RenderPresent(g_app.renderer); }
     /* Refresh exported player after all stat changes this frame */
     g_exposed_player_for_stats = g_app.player;

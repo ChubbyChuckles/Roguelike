@@ -251,3 +251,12 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_stat_bonus.c AND NOT T
     endif()
     add_test(NAME test_equipment_stat_bonus COMMAND test_equipment_stat_bonus)
 endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_stat_cache.c AND NOT TARGET test_stat_cache)
+    add_executable(test_stat_cache unit/test_stat_cache.c)
+    target_link_libraries(test_stat_cache PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_stat_cache PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_stat_cache COMMAND test_stat_cache)
+endif()

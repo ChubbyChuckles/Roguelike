@@ -121,9 +121,9 @@ X = Not started yet
 14. Equipment & Stat Integration (Pending)
 14.1 Equip slots & constraints (Partial: weapon/armor slots + basic API; initial UI panel and vendor integration added)
 14.2 Recalculation pipeline: base + affix + temporary buffs (Partial: simple agility -> dexterity aggregation applied each frame)
-14.3 Derived stat caching & invalidation (X)
-14.4 DPS & EHP (effective HP) estimator (X)
-14.5 Unit tests: equip / unequip stat deltas (X)
+14.3 Derived stat caching & invalidation (Done: stat_cache module + dirty marks on equip/unequip & bonus application)
+14.4 DPS & EHP (effective HP) estimator (Done: heuristic in stat_cache.c displayed in equipment panel)
+14.5 Unit tests: equip / unequip stat deltas (Partial: DPS increase test via test_stat_cache; unequip delta test pending)
 
 15. Extended Persistence & Versioning (Pending)
 15.1 Save schema version tag (X)
