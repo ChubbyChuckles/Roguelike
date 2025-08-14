@@ -2,6 +2,7 @@
 #include "core/app_state.h"
 #include "core/loot_instances.h"
 #include "graphics/tile_sprites.h"
+#include "core/loot_rarity.h"
 #include "graphics/sprite.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
@@ -72,15 +73,8 @@ void rogue_world_render_items(void){
     if(!g_app.item_instances) return;
     for(int i=0;i<g_app.item_instance_cap;i++) if(g_app.item_instances[i].active){
         const RogueItemInstance* it = &g_app.item_instances[i];
-        unsigned char r=240,g=210,b=60,a=255; /* default common */
-        switch(it->rarity){
-            case 1: r=80; g=220; b=80; break; /* uncommon */
-            case 2: r=80; g=120; b=255; break; /* rare */
-            case 3: r=180; g=70; b=220; break; /* epic */
-            case 4: r=255; g=140; b=0; break; /* legendary */
-            default: break;
-        }
-    SDL_SetRenderDrawColor(g_app.renderer, r,g,b,a);
+        RogueRarityColor c = rogue_rarity_color((RogueItemRarity)it->rarity);
+    SDL_SetRenderDrawColor(g_app.renderer, c.r,c.g,c.b,c.a);
     SDL_Rect rect_ri={ (int)(it->x*ts - g_app.cam_x), (int)(it->y*ts - g_app.cam_y), ts/2, ts/2};
     SDL_RenderFillRect(g_app.renderer,&rect_ri);
     }

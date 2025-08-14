@@ -54,7 +54,7 @@ X = Not started yet
 6. Debugging & Instrumentation Controls (Pending)
 6.1 Granular logging categories (loot_roll, spawn, merge) (Done)
 6.2 Runtime flag / env var to toggle loot verbosity (Done)
-6.3 Rolling window statistics (drops per rarity) (X)
+6.3 Rolling window statistics (drops per rarity) (Done)
 6.4 On-demand console command: print loot histogram (X)
 6.5 Telemetry snapshot export (X)
 
@@ -190,7 +190,7 @@ X = Not started yet
 24. Cleanup / Refactors (Rolling) (Pending)
 24.1 Centralized path resolution helper (replaces ../ ../../) (Done)
 24.2 Remove legacy debug code / flags (X)
-24.3 Consolidate rarity color mapping into utility (partial) (In Implementation)
+24.3 Consolidate rarity color mapping into utility (Done)
 24.4 Split oversized source modules (X)
 24.5 Improve const-correctness & bounds asserts (X)
 

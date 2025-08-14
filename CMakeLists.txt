@@ -123,6 +123,8 @@ add_library(rogue_core
     src/core/loot_logging.c
     src/core/loot_affixes.c
     src/core/path_utils.c
+    src/core/loot_rarity.c
+    src/core/loot_stats.c
 )
 
 target_include_directories(rogue_core PUBLIC
