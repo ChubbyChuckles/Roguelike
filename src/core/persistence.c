@@ -2,6 +2,7 @@
 #include "core/app_state.h"
 #include "entities/player.h"
 #include "core/skills.h"
+#include "core/inventory.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -98,7 +99,7 @@ void rogue_persistence_load_player_stats(void){
         char* key=line; char* val=eq+1;
         for(char* p=key; *p; ++p){ if(*p=='\r'||*p=='\n'){*p='\0';break;} }
         for(char* p=val; *p; ++p){ if(*p=='\r'||*p=='\n'){*p='\0';break;} }
-        if(strcmp(key,"LEVEL")==0) g_app.player.level = atoi(val);
+    if(strcmp(key,"LEVEL")==0) g_app.player.level = atoi(val);
         else if(strcmp(key,"XP")==0) g_app.player.xp = atoi(val);
         else if(strcmp(key,"XP_TO_NEXT")==0) g_app.player.xp_to_next = atoi(val);
         else if(strcmp(key,"STR")==0) g_app.player.strength = atoi(val);
@@ -123,7 +124,8 @@ void rogue_persistence_load_player_stats(void){
             int id = atoi(key+4);
             struct RogueSkillState* st = (struct RogueSkillState*)rogue_skill_get_state(id);
             if(st){ st->cooldown_end_ms = atof(val); }
-        }
+    }
+    else if(rogue_inventory_try_parse_kv(key,val)) { /* handled */ }
     }
     fclose(f);
     rogue_player_recalc_derived(&g_app.player);
@@ -163,6 +165,8 @@ void rogue_persistence_save_player_stats(void){
         const RogueSkillState* st = rogue_skill_get_state(i);
         if(st && st->cooldown_end_ms>0){ fprintf(f,"SKCD%d=%.0f\n", i, st->cooldown_end_ms); }
     }
+    /* Inventory counts */
+    rogue_inventory_serialize(f);
     fclose(f);
     g_app.stats_dirty = 0;
 }

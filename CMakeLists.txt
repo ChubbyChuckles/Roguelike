@@ -17,7 +17,7 @@ include(cmake/Warnings.cmake)
 rogue_set_project_warnings(rogue_warnings)
 
 if(ROGUE_ENABLE_SDL)
-    find_package(SDL2 REQUIRED)
+    find_package(SDL2 QUIET)
     if(ROGUE_ENABLE_SDL_IMAGE)
         find_package(SDL2_image QUIET)
         if(NOT SDL2_image_FOUND)
@@ -30,6 +30,32 @@ if(ROGUE_ENABLE_SDL)
             message(WARNING "SDL2_mixer requested but not found; audio (mp3) disabled")
         endif()
     endif()
+endif()
+
+# Fallback/manual SDL2 discovery: allow specifying a root like C:/libs/SDL2 when CMake package config files are absent.
+if(ROGUE_ENABLE_SDL AND NOT TARGET SDL2::SDL2)
+    if(ROGUE_SDL2_ROOT)
+        set(_SDL2_INC_HINT "${ROGUE_SDL2_ROOT}/include")
+        set(_SDL2_LIB_HINT1 "${ROGUE_SDL2_ROOT}/lib")
+        set(_SDL2_LIB_HINT2 "${ROGUE_SDL2_ROOT}/lib/x64")
+        find_path(SDL2_INCLUDE_DIR SDL.h HINTS ${_SDL2_INC_HINT})
+        find_library(SDL2_LIBRARY NAMES SDL2 SDL2-static HINTS ${_SDL2_LIB_HINT1} ${_SDL2_LIB_HINT2})
+        if(SDL2_INCLUDE_DIR AND SDL2_LIBRARY)
+            add_library(SDL2::SDL2 UNKNOWN IMPORTED)
+            set_target_properties(SDL2::SDL2 PROPERTIES
+                IMPORTED_LOCATION "${SDL2_LIBRARY}"
+                INTERFACE_INCLUDE_DIRECTORIES "${SDL2_INCLUDE_DIR}"
+            )
+            message(STATUS "Using manual SDL2 root: ${ROGUE_SDL2_ROOT}")
+        else()
+            message(FATAL_ERROR "ROGUE_SDL2_ROOT provided (${ROGUE_SDL2_ROOT}) but SDL2 not found (looked for SDL.h and SDL2.lib)")
+        endif()
+    endif()
+endif()
+
+# If SDL still not found after manual root, abort with helpful message.
+if(ROGUE_ENABLE_SDL AND NOT TARGET SDL2::SDL2)
+    message(FATAL_ERROR "SDL2 not found. Provide -DROGUE_SDL2_ROOT=path (containing include/SDL.h and lib/SDL2.lib) or disable with -DROGUE_ENABLE_SDL=OFF")
 endif()
 
 if(ROGUE_CODE_COVERAGE)
