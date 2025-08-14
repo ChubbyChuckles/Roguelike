@@ -241,3 +241,13 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase6_merge_despawn.c AND 
     endif()
     add_test(NAME test_loot_phase6_merge_despawn COMMAND test_loot_phase6_merge_despawn)
 endif()
+
+# Explicitly add equipment stat bonus test (14.2 partial)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_stat_bonus.c AND NOT TARGET test_equipment_stat_bonus)
+    add_executable(test_equipment_stat_bonus unit/test_equipment_stat_bonus.c)
+    target_link_libraries(test_equipment_stat_bonus PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_equipment_stat_bonus PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_equipment_stat_bonus COMMAND test_equipment_stat_bonus)
+endif()

@@ -10,6 +10,9 @@
 #include "core/skill_bar.h"
 #include "core/skills.h"
 #include "core/vegetation.h"
+#include "core/vendor.h"
+#include "core/economy.h"
+#include "core/inventory.h"
 #include <string.h> /* memset */
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
@@ -44,6 +47,14 @@ void rogue_process_events(void){
     if(ev.type==SDL_KEYDOWN && !g_app.show_start_screen){
             if(rogue_skill_tree_is_open()){ rogue_skill_tree_handle_key(ev.key.keysym.sym); continue; }
             if(ev.key.keysym.sym==SDLK_TAB){ g_app.show_stats_panel=!g_app.show_stats_panel; }
+            if(ev.key.keysym.sym==SDLK_v){ g_app.show_vendor_panel = !g_app.show_vendor_panel; g_app.vendor_selection = 0; }
+            if(ev.key.keysym.sym==SDLK_e){ g_app.show_equipment_panel = !g_app.show_equipment_panel; }
+            if(g_app.show_vendor_panel){
+                if(ev.key.keysym.sym==SDLK_UP){ g_app.vendor_selection--; if(g_app.vendor_selection<0) g_app.vendor_selection=rogue_vendor_item_count()>0?rogue_vendor_item_count()-1:0; }
+                if(ev.key.keysym.sym==SDLK_DOWN){ g_app.vendor_selection++; if(g_app.vendor_selection>=rogue_vendor_item_count()) g_app.vendor_selection=0; }
+                if(ev.key.keysym.sym==SDLK_RETURN){ const RogueVendorItem* vi = rogue_vendor_get(g_app.vendor_selection); if(vi && rogue_econ_try_buy(vi)==0){ rogue_inventory_add(vi->def_index,1); } }
+                if(ev.key.keysym.sym==SDLK_BACKSPACE){ g_app.show_vendor_panel=0; }
+            }
             if(ev.key.keysym.sym==SDLK_k){ rogue_skill_tree_toggle(); }
             if(g_app.show_stats_panel){
                 if(ev.key.keysym.sym==SDLK_LEFT){ g_app.stats_panel_index=(g_app.stats_panel_index+5)%6; }

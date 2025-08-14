@@ -67,10 +67,17 @@ SOFTWARE.
 #include "core/loot_instances.h"
 #include "core/inventory.h"
 #include "core/loot_pickup.h"
+#include "core/equipment_stats.h"
+#include "core/vendor.h"
+
+/* UI panels (vendor & equipment) */
+void rogue_vendor_panel_render(void);
+void rogue_equipment_panel_render(void);
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include "core/equipment.h" // Integrate equipment stats application
 #ifdef _WIN32
 #include <direct.h>
 #else
@@ -182,6 +189,8 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.mana_regen_accum_ms = 0.0f;
     g_app.levelup_aura_timer_ms = 0.0f;
     g_app.dmg_number_count = 0; g_app.spawn_accum_ms = 700.0; /* start beyond threshold so first spawn attempt happens next frame */
+    /* Vendor & equipment UI initial state */
+    g_app.show_vendor_panel = 0; g_app.vendor_selection = 0; g_app.vendor_seed = 424242u; g_app.vendor_time_accum_ms = 0.0; g_app.vendor_restock_interval_ms = 30000.0; g_app.vendor_x = 4.5f; g_app.vendor_y = 4.5f; g_app.show_equipment_panel = 0;
 /* Audio (level-up SFX) */
 #ifdef ROGUE_HAVE_SDL_MIXER
     g_app.sfx_levelup = NULL;
@@ -314,6 +323,17 @@ void rogue_app_step(void)
     /* Update world item instances */
     rogue_items_update(dt_ms);
     rogue_loot_pickup_update(0.6f);
+    /* Simple vendor rotation/restock timer (every vendor_restock_interval_ms) */
+    g_app.vendor_time_accum_ms += dt_ms;
+    if(g_app.vendor_time_accum_ms >= g_app.vendor_restock_interval_ms){
+        g_app.vendor_time_accum_ms -= g_app.vendor_restock_interval_ms;
+        rogue_vendor_reset();
+        /* Use first loot table if available for demonstration */
+        if(rogue_loot_tables_count()>0){
+            RogueGenerationContext vctx = {.enemy_level=g_app.player.level,.biome_id=0,.enemy_archetype=0,.player_luck=0};
+            unsigned int seed = g_app.vendor_seed; rogue_vendor_generate_inventory(0,8,&vctx,&seed); g_app.vendor_seed = seed + 17u;
+        }
+    }
 
     /* Advance animations */
     rogue_animation_update((float)g_app.dt * 1000.0f);
@@ -354,6 +374,10 @@ void rogue_app_step(void)
     rogue_damage_numbers_update((float)g_app.dt);
     /* (Overlay with debug metrics removed to show clean HUD; hotkeys still active) */
     rogue_stats_panel_render();
+    rogue_vendor_panel_render();
+    rogue_equipment_panel_render();
+    /* Apply equipment-derived stat bonuses (simple additive pass) */
+    rogue_equipment_apply_stat_bonuses(&g_app.player);
     if(!g_app.headless){ SDL_RenderPresent(g_app.renderer); }
     /* Refresh exported player after all stat changes this frame */
     g_exposed_player_for_stats = g_app.player;

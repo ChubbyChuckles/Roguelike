@@ -119,8 +119,8 @@ X = Not started yet
 13.5 Persistence of UI state (sort mode) (X)
 
 14. Equipment & Stat Integration (Pending)
-14.1 Equip slots & constraints (Partial: weapon/armor slots + basic API; stat recalculation & validation pending)
-14.2 Recalculation pipeline: base + affix + temporary buffs (X)
+14.1 Equip slots & constraints (Partial: weapon/armor slots + basic API; initial UI panel and vendor integration added)
+14.2 Recalculation pipeline: base + affix + temporary buffs (Partial: simple agility -> dexterity aggregation applied each frame)
 14.3 Derived stat caching & invalidation (X)
 14.4 DPS & EHP (effective HP) estimator (X)
 14.5 Unit tests: equip / unequip stat deltas (X)

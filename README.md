@@ -195,6 +195,16 @@ New systems added:
 * Equipment & Durability Groundwork: Item instances now carry `durability_cur/max` (initialized for weapon/armor categories) and a minimal equip API (weapon + armor slots) to enable future repair fee application & stat recomputation pipeline.
 Upcoming: full repair action, affix reroll operation consuming gold/materials, richer material tier mapping & recipe parser (11.2–11.3).
 
+### In-Game Vendor & Equipment Panels (Initial 14.x Integration)
+Interactive panels (development placeholder visuals) demonstrate economy + equipment linkage:
+* Toggle Vendor Panel: press `V` (lists up to 8 generated items from first loot table). Navigate with UP/DOWN, ENTER to attempt purchase (applies reputation discount, requires sufficient gold), BACKSPACE or `V` to close.
+* Toggle Equipment Panel: press `E` (shows core stats snapshot and placeholder slot labels for weapon/armor).
+* Restock Timer: shop auto-regenerates every 30s real time (simple timer; will be replaced by rotation logic using multiple tables).
+* Stat Aggregation (14.2 partial): agility affix values on equipped items add to player dexterity each frame via `rogue_equipment_apply_stat_bonuses`.
+* Unit Test: `test_equipment_stat_bonus` deterministically validates dexterity increase from an attached agility affix on an equipped weapon instance.
+
+Planned enhancements: equip/unequip UI actions, durability display & repair spending, affix reroll interface, comparison tooltips & delta coloring, multi-table vendor rotation, sell/tab & buyback, derived stat cache invalidation and EHP/DPS estimators.
+
 ---
 
 ## 4. Architecture & Code Layout
