@@ -32,6 +32,19 @@ PHASE 1A. Temporal Pacing Enhancements
 1A.5 Channel tick scheduler decoupled from frame time (fixed tick quantum with drift correction) (X)
 1A.6 Tests: buffered queue ordering, haste snapshot determinism, early cancel scaling accuracy, channel tick drift bounds (X)
 
+PHASE 1.B. Skill Tree / Talent Graph (Early Skeleton - Open Allocation)
+1B.1 Minimal DAG data model: node, directed edge, node types (stat_bonus, skill_unlock, modifier, keystone, mastery) and lightweight adjacency list for lookup (X)
+1B.2 Open-allocation rule set: no mutually-exclusive branches; unlocking requires inbound prerequisites OR meeting a cumulative predecessor-point threshold (supports AND + threshold ANY) (X)
+1B.3 Node modifier primitives: cooldown scalar, AP cost delta, add EffectSpec reference, tag injection, charge +1, conditional proc chance (X)
+1B.4 Point economy (phase-1): single `talent_points` pool + simple rank costs and optional regional point buckets for keystones (X)
+1B.5 Respec UX & API: preview mode (no commit), commit/respec endpoints, partial refund for last N nodes, full respec cost scaling with total spent (X)
+1B.6 Serialization skeleton: versioned blob header + node_count + compact unlocked bitset + varint ranks; reserve forward-compatible bytes (X)
+1B.7 Deterministic hash: stable hash over sorted (node_id,ranks,version) for replay / diagnostic checks (X)
+1B.8 Runtime hooks: unlock API, query unlocked nodes, apply node modifiers to `RogueSkillDef` live view with snapshot_on_activate vs dynamic flags (X)
+1B.9 Tests (phase-1): prerequisite enforcement (AND + threshold), open-allocation validation (no false exclusion), serialization round-trip, hash stability, modifier propagation to runtime skill data (X)
+1B.10 Performance & safety: micro-bench unlock + respec + serialize target <0.1 ms typical; reserve simple limits to avoid pathological autodiscovery (X)
+1B.11 Integration note: design for eventual synergy-bucket hooks (Phase 1 partial synergy integration) and keep UI/analytics hooks minimal (X)
+
 PHASE 2. Resource & Cost Layer
 2.1 Player resource pools extension (stamina, energy, heat, focus, combo_points) (X)
 2.2 Cost mapping per skill (flat, percent max, scaling-with-rank, conditional surcharge) (X)
@@ -143,12 +156,37 @@ PHASE 16. Polish & Balancing Aids
 16.5 Automated rotation simulator (expected DPS / AP curve) (X)
 16.6 Tests: preset round-trip, rotation simulation determinism, recommendation stability (X)
 
+PHASE 17. Skill Tree / Talent Graph System (Open Allocation – No Classes / No Exclusivity)
+17.1 Data Model: DAG-based talent graph (nodes, edges) with node types (stat_bonus, skill_unlock, modifier, keystone, mastery) (X)
+17.2 Node Layout & Coordinates: logical grid positions + path cost; sparse adjacency list for memory efficiency (X)
+17.3 Pathing Rules: unlock requires all inbound prerequisites OR meeting a cumulative point threshold in predecessor set (supports AND & threshold-based ANY without exclusion) (X)
+17.4 Open Allocation Philosophy: zero mutually exclusive branches; design relies on distance (path cost) + diminishing returns to create opportunity cost instead of hard locks (X)
+17.5 Keystone Mechanics: powerful nodes with gating (regional points spent, minimum level, resource threshold); all keystones can coexist if requirements met (X)
+17.6 Regional Affinity Buffs: passive scalar bonuses escalating with invested points; soft caps & diminishing returns curve to prevent runaway stacking (X)
+17.7 Mastery Nodes: repeatable investment (ranked) with escalating cost curve (quadratic / custom) & diminishing incremental benefit (X)
+17.8 Conditional Unlocks: gating by player level, quest flag, challenge completion, or discovered lore (X)
+17.9 Flexible Respec: free preview (no commit until confirm); partial refund last N nodes; full respec cost scales with total spent (no exclusivity rollback logic needed) (X)
+17.10 Point Economy: multiple pools (talent_points, mastery_points) + optional time‑gated bonus points (weekly cap) (X)
+17.11 Node Modifiers to Skills: references apply: cooldown scalar, AP cost delta, add EffectSpec, tag injection, charge +1, conditional proc chance (X)
+17.12 Synergy Bucket Integration: node ranks add synergy; keystone conditional multipliers (e.g., +20% fire synergy if >=10 fire-tag nodes unlocked) (X)
+17.13 Snapshot vs Live Flags: node attributes marked snapshot_on_activate or dynamic_read to control performance & determinism (X)
+17.14 Serialization: versioned blob (header + node_count + bitset unlocked + varint ranks) with forward-compatible reserved bytes (X)
+17.15 Deterministic Hash: stable hash over sorted (node_id,ranks,version) for replay / anti-cheat (X)
+17.16 UI Layer: zoom/pan canvas, search filter, prerequisite overlay, path highlight on hover, region heat coloring by investment density (X)
+17.17 Accessibility: color-blind safe palette, scalable vector icons, keyboard / controller navigation focus ring (X)
+17.18 Analytics: node popularity, abandonment (% respecced), marginal efficiency (benefit per point), regional investment distribution (X)
+17.19 Balancing Tooling: offline Monte Carlo & heuristic optimizers to map reachable stat envelopes & detect degenerate stacking (X)
+17.20 Tests: prerequisite enforcement (AND + threshold), open-allocation validation (no false exclusion), mastery scaling curve, serialization round-trip, hash stability, respec refund accuracy, modifier propagation to runtime skill data (X)
+17.21 Performance: micro-bench unlock + respec + serialize (<0.1 ms target typical tree) (X)
+17.22 Future Extension Hooks: seasonal overlay nodes (additive), event-limited temporal nodes (auto-expire), metamorph node evolution after condition (X)
+
 PRIORITY NEAR-TERM SUBSET
 - Phase 1 (1.1 – 1.7): Foundation extensions (tags, EffectSpec, charges, AP economy, deterministic RNG)
 - Phase 1A (1A.1 – 1A.6): Temporal pacing (buffering, weaving, haste, channels)
 - Phase 2 (2.1 – 2.6): Extended resource models (heat, combo, overdrive)
 - Phase 3 (3.1 – 3.7): Effect pipeline & composable graphs
 - Phase 4 (4.1 – 4.6): Buff system overhaul with handles & DR
+- Phase 17 (17.1 – 17.5 initial): Core talent graph skeleton & serialization groundwork
 
 NOTES
 - Maintain strict determinism: capture seed states for activation, periodic ticks, and AP regen slices.
