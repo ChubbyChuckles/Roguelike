@@ -87,6 +87,7 @@ add_library(rogue_core
     src/core/player_assets.c
     src/util/log.c
     src/core/vegetation.c
+    src/core/scene_drawlist.c
 )
 
 target_include_directories(rogue_core PUBLIC

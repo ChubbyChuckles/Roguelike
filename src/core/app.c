@@ -41,6 +41,7 @@ SOFTWARE.
 #include "core/minimap.h"
 #include "graphics/sprite.h"
 #include "graphics/tile_sprites.h"
+#include "core/scene_drawlist.h"
 #include "core/input_events.h"
 #include "core/player_render.h"
 #include "core/enemy_render.h"
@@ -300,13 +301,12 @@ void rogue_app_step(void)
     rogue_projectiles_update(dt_ms);
     /* Render world tiles */
     rogue_world_render_tiles();
-	/* Vegetation before entities */
-    rogue_vegetation_render();
-
-    /* Render player */
-    rogue_player_render();
-    /* Render enemies */
-    rogue_enemy_render();
+    /* Queue world-space actors with y-sorting */
+    rogue_scene_drawlist_begin();
+    rogue_vegetation_render(); /* queues vegetation */
+    rogue_player_render();      /* queues player */
+    rogue_enemy_render();       /* queues enemies */
+    rogue_scene_drawlist_flush();
     /* Render projectiles (after world, before HUD) */
     rogue_projectiles_render();
 

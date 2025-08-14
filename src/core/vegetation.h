@@ -55,6 +55,9 @@ void rogue_vegetation_render(void);
 int rogue_vegetation_tile_blocking(int tx,int ty); /* 1 if blocking (tree) */
 float rogue_vegetation_tile_move_scale(int tx,int ty); /* multiplier (<1 slows) */
 
+/* Debug/testing helpers: obtain first tree integer tile center and its canopy radius; returns 1 if found */
+int rogue_vegetation_first_tree(int* out_tx,int* out_ty,int* out_radius);
+
 /* Testing helpers */
 int rogue_vegetation_count(void);
 int rogue_vegetation_tree_count(void);
