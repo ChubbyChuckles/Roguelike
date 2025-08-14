@@ -1,0 +1,34 @@
+/* Tests for advanced generation API (8.1, partial 8.3, 8.5) */
+#include "core/loot_generation.h"
+#include "core/app_state.h"
+#include "entities/player.h"
+#include "core/loot_item_defs.h"
+#include "core/loot_tables.h"
+#include "core/loot_instances.h"
+#include "core/loot_affixes.h"
+#include "core/loot_rarity_adv.h"
+#include "core/path_utils.h"
+#include <stdio.h>
+#include <assert.h>
+
+RogueAppState g_app; RoguePlayer g_exposed_player_for_stats; void rogue_player_recalc_derived(RoguePlayer* p){ (void)p; }
+
+static int fail(const char* m){ printf("FAIL:%s\n", m); return 1; }
+
+int main(void){
+    rogue_affixes_reset(); char apath[256]; if(!rogue_find_asset_path("affixes.cfg", apath, sizeof apath)) return fail("affix_path");
+    if(rogue_affixes_load_from_cfg(apath) <=0) return fail("affix_load");
+    rogue_item_defs_reset(); if(rogue_item_defs_load_from_cfg("../../assets/test_items.cfg")<=0) return fail("item_defs");
+    rogue_loot_tables_reset(); if(rogue_loot_tables_load_from_cfg("../../assets/test_loot_tables.cfg")<=0) return fail("tables");
+    rogue_items_init_runtime();
+    RogueGenerationContext ctx; ctx.enemy_level=25; ctx.biome_id=1; ctx.enemy_archetype=2; ctx.player_luck=5;
+    unsigned int seed=1234u; RogueGeneratedItem gi; if(rogue_generate_item(0,&ctx,&seed,&gi)!=0) return fail("gen");
+    if(gi.def_index<0 || gi.rarity<0 || gi.inst_index<0) return fail("gen_fields");
+    /* Expect floor raised to at least 2 for level 25 context */
+    if(gi.rarity < 2) return fail("rarity_floor_ctx");
+    /* Determinism: same context & initial master seed produce same result */
+    rogue_items_shutdown_runtime(); rogue_items_init_runtime(); unsigned int seed2=1234u; RogueGeneratedItem gi2; if(rogue_generate_item(0,&ctx,&seed2,&gi2)!=0) return fail("gen2");
+    if(gi.def_index != gi2.def_index || gi.rarity != gi2.rarity) return fail("determinism_core");
+    printf("GENERATION_BASIC_OK def=%d rarity=%d inst=%d\n", gi.def_index, gi.rarity, gi.inst_index);
+    return 0;
+}

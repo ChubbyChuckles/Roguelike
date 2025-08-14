@@ -1,0 +1,18 @@
+feat(loot): implement advanced generation API (8.1, 8.3, 8.5) and tests
+
+Adds new module loot_generation (context-driven item creation) including:
+- Generation context struct (enemy level, biome, archetype, player luck)
+- Seed mixing helper (8.5) for deterministic yet varied outputs
+- Multi-pass rarity->item->affix flow (8.3) via existing roll_ex path
+- Rarity floor influence from enemy level + global floor integration
+- Hooks affix rolling into spawned instance
+
+Introduces quality scalar config stub (future 8.4 work) and placeholder affix gating hook (8.2).
+
+Adds unit test test_loot_phase8_generation_basic covering:
+- Context-driven rarity floor
+- Deterministic reproduction with same seed/context
+
+Marks roadmap items 8.1, 8.3, 8.5 as Done in implementation_plan.txt.
+
+Also integrates module into build system.
