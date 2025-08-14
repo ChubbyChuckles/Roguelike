@@ -13,6 +13,7 @@
 #include "core/vendor.h"
 #include "core/economy.h"
 #include "core/inventory.h"
+#include "core/equipment.h"
 #include <string.h> /* memset */
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
@@ -49,6 +50,9 @@ void rogue_process_events(void){
             if(ev.key.keysym.sym==SDLK_TAB){ g_app.show_stats_panel=!g_app.show_stats_panel; }
             if(ev.key.keysym.sym==SDLK_v){ g_app.show_vendor_panel = !g_app.show_vendor_panel; g_app.vendor_selection = 0; }
             if(ev.key.keysym.sym==SDLK_e){ g_app.show_equipment_panel = !g_app.show_equipment_panel; }
+            if(g_app.show_equipment_panel && ev.key.keysym.sym==SDLK_r){ /* repair equipped weapon */
+                rogue_equip_repair_slot(ROGUE_EQUIP_WEAPON);
+            }
             if(g_app.show_vendor_panel){
                 if(ev.key.keysym.sym==SDLK_UP){ g_app.vendor_selection--; if(g_app.vendor_selection<0) g_app.vendor_selection=rogue_vendor_item_count()>0?rogue_vendor_item_count()-1:0; }
                 if(ev.key.keysym.sym==SDLK_DOWN){ g_app.vendor_selection++; if(g_app.vendor_selection>=rogue_vendor_item_count()) g_app.vendor_selection=0; }

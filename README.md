@@ -203,7 +203,7 @@ Interactive panels (development placeholder visuals) demonstrate economy + equip
 * Stat Aggregation (14.2 partial): agility affix values on equipped items add to player dexterity each frame via `rogue_equipment_apply_stat_bonuses`.
 * Unit Test: `test_equipment_stat_bonus` deterministically validates dexterity increase from an attached agility affix on an equipped weapon instance.
 
-Planned enhancements: equip/unequip UI actions, durability display & repair spending, affix reroll interface, comparison tooltips & delta coloring, multi-table vendor rotation, sell/tab & buyback, derived stat cache invalidation and EHP/DPS estimators.
+Planned enhancements: equip/unequip UI actions, durability display & expanded repair/reroll UI (initial repair hotkey in place), affix reroll interface, comparison tooltips & delta coloring, multi-table vendor rotation, sell/tab & buyback.
 
 ### Derived Stat Cache & DPS / EHP Estimators (14.3–14.4)
 Implemented a lightweight caching layer (`stat_cache.c`) providing:
@@ -214,6 +214,16 @@ Implemented a lightweight caching layer (`stat_cache.c`) providing:
 * Equipment Panel Display: Real-time DPS & EHP shown beneath raw stat lines.
 
 Rationale: Avoid recomputing scaling formulas & affix traversals every frame across multiple UI/tooling consumers while keeping deterministic results. Future expansions will incorporate armor / resistance mitigation and percent-based affix modifiers; current heuristics are intentionally simple but validated through the new `test_stat_cache` unit test (asserts DPS increases after equipping a weapon).
+
+### Repair Currency Sink (10.4 partial integration)
+Minimal repair loop implemented:
+* Hotkey `R` while Equipment panel open repairs equipped weapon (if damaged) using gold.
+* Cost: `rogue_econ_repair_cost(missing, rarity)`; API `rogue_equip_repair_slot` / `rogue_equip_repair_all`.
+* Unit test `test_repair_costs` asserts durability restoration and exact gold deduction.
+* Reroll UI & multi-item flows pending.
+
+### Equip / Unequip Stat Delta Tests (14.5)
+Unit test `test_equipment_unequip_delta` verifies stat bonus application on equip and removal on unequip, completing roadmap item 14.5.
 
 ---
 

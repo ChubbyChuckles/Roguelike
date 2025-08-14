@@ -4,6 +4,8 @@
 #include "graphics/font.h"
 #include "core/inventory.h"
 #include "core/loot_item_defs.h"
+#include "core/equipment.h"
+#include "core/loot_instances.h"
 #include <stdio.h>
 #include "core/stat_cache.h"
 #ifdef ROGUE_HAVE_SDL
@@ -40,8 +42,10 @@ void rogue_equipment_panel_render(void){
     rogue_font_draw_text(panel.x+10,panel.y+26,"Weapon Slot: (W)",1,(RogueColor){220,200,200,255});
     rogue_font_draw_text(panel.x+10,panel.y+44,"Armor Slot : (A)",1,(RogueColor){200,220,200,255});
     char stats[96]; snprintf(stats,sizeof stats,"STR:%d DEX:%d VIT:%d INT:%d", g_app.player.strength,g_app.player.dexterity,g_app.player.vitality,g_app.player.intelligence);
-    rogue_font_draw_text(panel.x+10,panel.y+panel.h-38,stats,1,(RogueColor){255,255,180,255});
-    char derived[96]; snprintf(derived,sizeof derived,"DPS:%d EHP:%d", g_player_stat_cache.dps_estimate, g_player_stat_cache.ehp_estimate);
-    rogue_font_draw_text(panel.x+10,panel.y+panel.h-20,derived,1,(RogueColor){200,240,200,255});
+    rogue_font_draw_text(panel.x+10,panel.y+panel.h-56,stats,1,(RogueColor){255,255,180,255});
+    int w_inst = rogue_equip_get(ROGUE_EQUIP_WEAPON); int cur=0,max=0; if(w_inst>=0) rogue_item_instance_get_durability(w_inst,&cur,&max);
+    if(max>0){ char dur[64]; snprintf(dur,sizeof dur,"WEAPON DUR:%d/%d (R=Repair)", cur,max); rogue_font_draw_text(panel.x+10,panel.y+panel.h-40,dur,1,(RogueColor){220,200,255,255}); }
+    char derived[96]; snprintf(derived,sizeof derived,"DPS:%d EHP:%d Gold:%d", g_player_stat_cache.dps_estimate, g_player_stat_cache.ehp_estimate, rogue_econ_gold());
+    rogue_font_draw_text(panel.x+10,panel.y+panel.h-22,derived,1,(RogueColor){200,240,200,255});
 #endif
 }

@@ -90,7 +90,7 @@ X = Not started yet
 10.1 Shop inventory generation using loot pipeline (Done)
 10.2 Buy/sell price formulas (rarity, affixes, demand) (Done) /* Current: rarity*base_value ladder; future: affix & demand scaling */
 10.3 Vendor restock timer & rotation (Done)
-10.4 Currency sinks (repair, reroll affix fees) (Partial: gold wallet + spend; cost formulas implemented; integration & UI pending)
+10.4 Currency sinks (repair, reroll affix fees) (Partial: cost formulas + repair UI hotkey + repair API/tests; reroll UI pending)
 10.5 Price scaling with player reputation (Done)
 10.6 Unit tests: sell value bounds (Done)
 
@@ -123,7 +123,7 @@ X = Not started yet
 14.2 Recalculation pipeline: base + affix + temporary buffs (Partial: simple agility -> dexterity aggregation applied each frame)
 14.3 Derived stat caching & invalidation (Done: stat_cache module + dirty marks on equip/unequip & bonus application)
 14.4 DPS & EHP (effective HP) estimator (Done: heuristic in stat_cache.c displayed in equipment panel)
-14.5 Unit tests: equip / unequip stat deltas (Partial: DPS increase test via test_stat_cache; unequip delta test pending)
+14.5 Unit tests: equip / unequip stat deltas (Done: equip bonus, unequip regression test)
 
 15. Extended Persistence & Versioning (Pending)
 15.1 Save schema version tag (X)

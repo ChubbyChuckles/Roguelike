@@ -9,4 +9,10 @@ int rogue_equip_get(enum RogueEquipSlot slot); /* returns item instance index or
 int rogue_equip_try(enum RogueEquipSlot slot, int inst_index); /* 0 on success */
 int rogue_equip_unequip(enum RogueEquipSlot slot); /* returns previous inst index */
 
+/* Repair utilities (10.4 integration) */
+/* Attempts to fully repair the item in slot; spends gold via economy; returns 0 success, <0 failure (no item or insufficient gold). */
+int rogue_equip_repair_slot(enum RogueEquipSlot slot);
+/* Repairs all equipped items, returns count repaired. */
+int rogue_equip_repair_all(void);
+
 #endif
