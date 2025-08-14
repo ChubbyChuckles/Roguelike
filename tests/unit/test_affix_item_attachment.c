@@ -15,7 +15,7 @@ static int fail(const char* m){ fprintf(stderr,"FAIL:%s\n", m); return 1; }
 int main(void){
     char apath[256]; if(!rogue_find_asset_path("affixes.cfg", apath, sizeof apath)) return fail("affix_path");
     rogue_affixes_reset(); if(rogue_affixes_load_from_cfg(apath) < 4) return fail("affix_load");
-    rogue_item_defs_reset(); if(rogue_item_defs_load_from_cfg("../assets/test_items.cfg") < 3) return fail("item_defs");
+    rogue_item_defs_reset(); if(rogue_item_defs_load_from_cfg("../../assets/test_items.cfg") < 3) return fail("item_defs");
     rogue_items_init_runtime();
     int sword = rogue_item_def_index("long_sword"); if(sword<0) return fail("sword_idx");
     int inst = rogue_items_spawn(sword,1, 0.0f,0.0f); if(inst<0) return fail("spawn");

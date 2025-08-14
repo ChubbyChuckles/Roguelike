@@ -3,6 +3,7 @@
 #include <string.h>
 #include "core/loot_logging.h"
 #include "core/loot_affixes.h"
+#include "core/loot_rarity_adv.h"
 
 static RogueItemInstance g_instances[ROGUE_ITEM_INSTANCE_CAP];
 
@@ -59,7 +60,9 @@ void rogue_items_update(float dt_ms){
     /* Advance lifetime & mark for despawn */
     for(int i=0;i<ROGUE_ITEM_INSTANCE_CAP;i++) if(g_instances[i].active){
         g_instances[i].life_ms += dt_ms;
-        if(g_instances[i].life_ms >= (float)ROGUE_ITEM_DESPAWN_MS){
+    int override_ms = rogue_rarity_get_despawn_ms(g_instances[i].rarity); /* advanced rarity override */
+    int limit = override_ms>0? override_ms : ROGUE_ITEM_DESPAWN_MS;
+    if(g_instances[i].life_ms >= (float)limit){
             g_instances[i].active=0; continue; }
     }
     /* Stack merge pass (single sweep O(n^2) small cap) */

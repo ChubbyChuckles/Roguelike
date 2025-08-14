@@ -4,6 +4,7 @@
 #include "core/loot_dynamic_weights.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "core/loot_rarity_adv.h"
 
 static RogueLootTableDef g_tables[ROGUE_MAX_LOOT_TABLES];
 static int g_table_count = 0;
@@ -134,6 +135,9 @@ int rogue_loot_rarity_sample(unsigned int* rng_state, int rmin, int rmax){
     int total=0; for(int r=rmin;r<=rmax && r<5;r++){ total += weights[r]; }
     if(total<=0) return rmin;
     int pick = rogue_rng_range(rng_state,total);
-    int acc=0; for(int r=rmin;r<=rmax && r<5;r++){ acc += weights[r]; if(pick < acc) return r; }
-    return rmin;
+    int acc=0; int rolled=rmin; for(int r=rmin;r<=rmax && r<5;r++){ acc += weights[r]; if(pick < acc){ rolled = r; break; }}
+    /* Apply rarity floor and pity system */
+    rolled = rogue_rarity_apply_floor(rolled, rmin, rmax);
+    rolled = rogue_rarity_apply_pity(rolled, rmin, rmax);
+    return rolled;
 }
