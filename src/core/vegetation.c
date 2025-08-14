@@ -147,22 +147,43 @@ void rogue_vegetation_generate(float tree_cover_target, unsigned int seed){
 void rogue_vegetation_set_tree_cover(float cover_pct){ rogue_vegetation_generate(cover_pct, g_last_seed? g_last_seed: 12345u); }
 float rogue_vegetation_get_tree_cover(void){ return g_target_tree_cover; }
 
+/* --- Sprite rendering support -------------------------------------------------- */
+#ifdef ROGUE_HAVE_SDL
+typedef struct VegSheetTex { char path[128]; RogueTexture tex; } VegSheetTex;
+static VegSheetTex g_sheet_textures[64];
+static int g_sheet_tex_count = 0;
+
+static RogueTexture* veg_get_texture(const char* path){
+    for(int i=0;i<g_sheet_tex_count;i++) if(strcmp(g_sheet_textures[i].path,path)==0) return &g_sheet_textures[i].tex;
+    if(g_sheet_tex_count >= (int)(sizeof g_sheet_textures/sizeof g_sheet_textures[0])) return NULL; /* out of slots */
+    VegSheetTex* slot=&g_sheet_textures[g_sheet_tex_count]; memset(slot,0,sizeof *slot); strncpy_s(slot->path,sizeof slot->path,path,_TRUNCATE);
+    if(!rogue_texture_load(&slot->tex, path)) { slot->path[0]='\0'; return NULL; }
+    g_sheet_tex_count++;
+    return &slot->tex;
+}
+
+static void veg_render_instance(RogueVegetationInstance* v){
+    RogueVegetationDef* d=&g_defs[v->def_index];
+    RogueTexture* tex = veg_get_texture(d->image);
+    if(!tex || !tex->handle) return; /* fallback silently */
+    int tiles_w = (int)(d->tile_x2 - d->tile_x + 1);
+    int tiles_h = (int)(d->tile_y2 - d->tile_y + 1);
+    int sprite_px_w = tiles_w * g_app.tile_size;
+    int sprite_px_h = tiles_h * g_app.tile_size;
+    /* Source rectangle in sheet uses tile coordinates scaled by tile_size */
+    SDL_Rect src = { (int)d->tile_x * g_app.tile_size, (int)d->tile_y * g_app.tile_size, sprite_px_w, sprite_px_h };
+    /* Destination: anchor bottom-center at vegetation (x,y) world position */
+    int world_px_x = (int)((v->x - g_app.cam_x) * g_app.tile_size);
+    int world_px_y = (int)((v->y - g_app.cam_y) * g_app.tile_size);
+    SDL_Rect dst = { world_px_x - sprite_px_w/2, world_px_y - sprite_px_h, sprite_px_w, sprite_px_h };
+    SDL_RenderCopy(g_app.renderer, tex->handle, &src, &dst);
+}
+#endif
+
 void rogue_vegetation_render(void){
 #ifdef ROGUE_HAVE_SDL
     if(!g_app.renderer) return;
-    /* Placeholder: visualize approximate footprint using rectangle height derived from sprite tile span */
-    for(int i=0;i<g_instance_count;i++){
-        RogueVegetationInstance* v=&g_instances[i]; RogueVegetationDef* d=&g_defs[v->def_index];
-        int width_tiles = (int)(d->tile_x2 - d->tile_x + 1);
-        int height_tiles = (int)(d->tile_y2 - d->tile_y + 1);
-        int px=(int)((v->x - g_app.cam_x)*g_app.tile_size);
-        int py=(int)((v->y - g_app.cam_y)*g_app.tile_size);
-        int w = width_tiles * g_app.tile_size;
-        int h = height_tiles * g_app.tile_size;
-        SDL_Rect r={px - w/2, py - h, w, h};
-        if(v->is_tree) SDL_SetRenderDrawColor(g_app.renderer,60,120,40,255); else SDL_SetRenderDrawColor(g_app.renderer,40,160,60,220);
-        SDL_RenderFillRect(g_app.renderer,&r);
-    }
+    for(int i=0;i<g_instance_count;i++) veg_render_instance(&g_instances[i]);
 #endif
 }
 
