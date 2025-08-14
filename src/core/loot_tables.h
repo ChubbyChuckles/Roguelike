@@ -42,4 +42,7 @@ int rogue_loot_roll_ex(int table_index, unsigned int* rng_state, int max_out,
 static inline unsigned int rogue_rng_next(unsigned int* s){ *s = (*s * 1664525u) + 1013904223u; return *s; }
 static inline int rogue_rng_range(unsigned int* s, int hi_exclusive){ return (int)(rogue_rng_next(s) % (unsigned)hi_exclusive); }
 
+/* Exposed rarity sampler (Phase 5.3) for independent statistical testing */
+int rogue_loot_rarity_sample(unsigned int* rng_state, int rmin, int rmax);
+
 #endif

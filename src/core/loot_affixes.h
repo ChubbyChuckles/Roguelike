@@ -1,0 +1,30 @@
+#ifndef ROGUE_LOOT_AFFIXES_H
+#define ROGUE_LOOT_AFFIXES_H
+
+#include <stdint.h>
+
+#define ROGUE_MAX_AFFIXES 256
+
+typedef enum RogueAffixType { ROGUE_AFFIX_PREFIX=0, ROGUE_AFFIX_SUFFIX=1 } RogueAffixType;
+typedef enum RogueAffixStat { ROGUE_AFFIX_STAT_NONE=0, ROGUE_AFFIX_STAT_DAMAGE_FLAT, ROGUE_AFFIX_STAT_AGILITY_FLAT, ROGUE_AFFIX_STAT__COUNT } RogueAffixStat;
+
+typedef struct RogueAffixDef {
+    char id[48];
+    RogueAffixType type;
+    RogueAffixStat stat;
+    int min_value;
+    int max_value;
+    int weight_per_rarity[5]; /* per rarity tier weight */
+} RogueAffixDef;
+
+int rogue_affixes_reset(void);
+int rogue_affixes_load_from_cfg(const char* path); /* returns number added */
+int rogue_affix_count(void);
+const RogueAffixDef* rogue_affix_at(int index);
+int rogue_affix_index(const char* id);
+int rogue_affix_roll(RogueAffixType type, int rarity, unsigned int* rng_state);
+/* Roll a concrete stat value for an already selected affix index using its min/max range.
+    Returns rolled value (inclusive range) or -1 on error. Deterministic given rng_state. */
+int rogue_affix_roll_value(int affix_index, unsigned int* rng_state);
+
+#endif

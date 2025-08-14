@@ -114,9 +114,7 @@ int rogue_loot_roll_ex(int table_index, unsigned int* rng_state, int max_out,
         int qty = chosen->qmin + (qty_range>0? rogue_rng_range(rng_state, qty_range):0);
         int rarity = -1;
         if(chosen->rarity_min >= 0){
-            int rmin = chosen->rarity_min; int rmax = (chosen->rarity_max>=chosen->rarity_min)? chosen->rarity_max : chosen->rarity_min;
-            int span = rmax - rmin + 1;
-            rarity = rmin + (span>0? rogue_rng_range(rng_state, span):0);
+            rarity = rogue_loot_rarity_sample(rng_state, chosen->rarity_min, chosen->rarity_max);
         }
         if(produced < max_out){
             out_item_def_indices[produced] = chosen->item_def_index;
@@ -126,4 +124,8 @@ int rogue_loot_roll_ex(int table_index, unsigned int* rng_state, int max_out,
         }
     }
     return produced;
+}
+
+int rogue_loot_rarity_sample(unsigned int* rng_state, int rmin, int rmax){
+    if(rmin < 0) return -1; if(rmax < rmin) rmax = rmin; int span = rmax - rmin + 1; if(span <= 0) return rmin; return rmin + rogue_rng_range(rng_state, span);
 }

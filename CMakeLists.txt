@@ -120,6 +120,9 @@ add_library(rogue_core
     src/core/loot_instances.c
     src/core/inventory.c
     src/core/loot_pickup.c
+    src/core/loot_logging.c
+    src/core/loot_affixes.c
+    src/core/path_utils.c
 )
 
 target_include_directories(rogue_core PUBLIC

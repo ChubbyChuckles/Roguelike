@@ -1,7 +1,7 @@
 #include "core/loot_instances.h"
 #include "core/app_state.h"
 #include <string.h>
-#include "util/log.h"
+#include "core/loot_logging.h"
 
 static RogueItemInstance g_instances[ROGUE_ITEM_INSTANCE_CAP];
 
@@ -9,13 +9,13 @@ void rogue_items_init_runtime(void){ memset(g_instances,0,sizeof g_instances); g
 void rogue_items_shutdown_runtime(void){ g_app.item_instances=NULL; g_app.item_instance_cap=0; g_app.item_instance_count=0; }
 
 int rogue_items_spawn(int def_index, int quantity, float x, float y){
-    if(def_index<0 || quantity<=0){ ROGUE_LOG_DEBUG("loot_spawn: rejected def=%d qty=%d", def_index, quantity); return -1; }
+    if(def_index<0 || quantity<=0){ ROGUE_LOOT_LOG_DEBUG("loot_spawn: rejected def=%d qty=%d", def_index, quantity); return -1; }
     for(int i=0;i<ROGUE_ITEM_INSTANCE_CAP;i++) if(!g_instances[i].active){
         const RogueItemDef* idef = rogue_item_def_at(def_index);
         int rarity = (idef? idef->rarity : 0);
         g_instances[i].def_index = def_index; g_instances[i].quantity = quantity; g_instances[i].x = x; g_instances[i].y = y; g_instances[i].life_ms=0; g_instances[i].active=1; g_instances[i].rarity=rarity;
         if(i >= g_app.item_instance_count) g_app.item_instance_count = i+1;
-        ROGUE_LOG_INFO("loot_spawn: def=%d qty=%d at(%.2f,%.2f) slot=%d active_total=%d", def_index, quantity, x, y, i, rogue_items_active_count()+1);
+    ROGUE_LOOT_LOG_INFO("loot_spawn: def=%d qty=%d at(%.2f,%.2f) slot=%d active_total=%d", def_index, quantity, x, y, i, rogue_items_active_count()+1);
         return i; }
     ROGUE_LOG_WARN("loot_spawn: pool full (cap=%d) def=%d qty=%d", ROGUE_ITEM_INSTANCE_CAP, def_index, quantity);
     return -1;

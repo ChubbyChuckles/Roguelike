@@ -58,6 +58,7 @@ SOFTWARE.
 #include "core/tile_sprite_cache.h"
 #include "core/skills.h"
 #include "core/skill_tree.h"
+#include "core/loot_logging.h"
 #include "core/skill_bar.h"
 #include "core/buffs.h"
 #include "core/projectiles.h"
@@ -154,6 +155,8 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     rogue_loot_tables_reset();
     rogue_items_init_runtime();
     rogue_inventory_init();
+    /* Initialize loot logging verbosity from environment (optional) */
+    rogue_loot_logging_init_from_env();
     /* Now load player stats (level/xp + talent points + skill ranks). */
     rogue_persistence_load_player_stats();
     /* Now generate world using (possibly loaded) generation parameters. */
