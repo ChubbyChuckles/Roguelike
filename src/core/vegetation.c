@@ -172,10 +172,10 @@ static void veg_render_instance(RogueVegetationInstance* v){
     int sprite_px_h = tiles_h * g_app.tile_size;
     /* Source rectangle in sheet uses tile coordinates scaled by tile_size */
     SDL_Rect src = { (int)d->tile_x * g_app.tile_size, (int)d->tile_y * g_app.tile_size, sprite_px_w, sprite_px_h };
-    /* Destination: anchor bottom-center at vegetation (x,y) world position */
-    int world_px_x = (int)((v->x - g_app.cam_x) * g_app.tile_size);
-    int world_px_y = (int)((v->y - g_app.cam_y) * g_app.tile_size);
-    SDL_Rect dst = { world_px_x - sprite_px_w/2, world_px_y - sprite_px_h, sprite_px_w, sprite_px_h };
+    /* Destination: camera (cam_x, cam_y) are pixel offsets; v->x/y are tile coords */
+    int world_center_px_x = (int)(v->x * g_app.tile_size - g_app.cam_x);
+    int world_center_px_y = (int)(v->y * g_app.tile_size - g_app.cam_y);
+    SDL_Rect dst = { world_center_px_x - sprite_px_w/2, world_center_px_y - sprite_px_h, sprite_px_w, sprite_px_h };
     SDL_RenderCopy(g_app.renderer, tex->handle, &src, &dst);
 }
 #endif
