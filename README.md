@@ -175,6 +175,15 @@ rogue_loot_run_command("stats", buf, sizeof buf);        // Inspect rarity distr
 ```
 This enables scripting future balancing harnesses (e.g., fuzz/statistical drift tests) without adding gameplay UI complexity.
 
+### 3.2 Vendor Economy (Phase 10.1–10.2 Initial)
+An initial vendor system now layers the economy foundation atop the loot pipeline:
+* Inventory Generation (10.1): `rogue_vendor_generate_inventory(table_index, slots, ctx, &seed)` reuses the deterministic loot generation path (rarity roll, base item selection, affix eligibility) to populate up to N shop slots from any existing loot table. Internal retry (bounded) ensures low-probability skips (e.g., category suppression) still yield items.
+* Price Formula (10.2): Simple rarity multiplier ladder applied to each item's `base_value` (1x/3x/9x/27x/81x for Common→Legendary). Affix & demand scaling hooks reserved for future expansion (will fold into 10.4 / 10.5 balancing passes).
+* Drop Rate Safety: Vendor generation force-initializes drop rate scalars to avoid Release-build static zero-initialization suppressing all categories when tests omit earlier gameplay initialization.
+* Test Coverage: `test_vendor_inventory.c` validates (a) non-zero bounded generation, (b) price >0 for all items, (c) monotonic multiplier ladder. Runtime checks replace asserts so Release builds surface failures (asserts compiled out when `NDEBUG`).
+
+Planned follow-ups (remaining 10.x): restock timers, rotation pools, reputation-based scaling, sell-back & salvage price integration.
+
 ---
 
 ## 4. Architecture & Code Layout
@@ -308,7 +317,7 @@ Environment overrides:
 | 7.x Affix Framework | Done | Parsing, weighted rolls, stat aggregation, persistence |
 | 8.x Generation Pipeline | Partially Done | Contextual generation complete (up through duplicate avoidance, quality bias) |
 | 9.x Dynamic Balancing | Pending | Adaptive drop rates, global rate layers |
-| 10.x Economy & Vendors | Pending | Shop generation, price formulas |
+| 10.x Economy & Vendors | Partial | Shop generation + rarity-based pricing implemented; restock & scaling pending |
 
 Refer to `implementation_plan.txt` for granularity (over 150 line milestones).
 

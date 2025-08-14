@@ -85,9 +85,9 @@ X = Not started yet
 9.5 Session metrics: items/hour, rarity/hour (Done)
 9.6 Tuning console commands (set weight, reset counters) (Done)
 
-10. Economy & Vendors (Pending)
-10.1 Shop inventory generation using loot pipeline (X)
-10.2 Buy/sell price formulas (rarity, affixes, demand) (X)
+10. Economy & Vendors (Partial)
+10.1 Shop inventory generation using loot pipeline (Done)
+10.2 Buy/sell price formulas (rarity, affixes, demand) (Done) /* Current: rarity*base_value ladder; future: affix & demand scaling */
 10.3 Vendor restock timer & rotation (X)
 10.4 Currency sinks (repair, reroll affix fees) (X)
 10.5 Price scaling with player reputation (X)
@@ -195,7 +195,7 @@ X = Not started yet
 24.5 Improve const-correctness & bounds asserts (X)
 
 PRIORITY NEXT STEPS (Focused Subset)
-- 10.x Begin vendor economy scaffolding (10.1–10.2)
+- 10.3 Vendor restock timer & rotation
 - 11.1 Salvage system core (materials extraction)
 - 12.1 Loot filter rule config + predicate tests
 - 14.1 Equipment slot data model & basic equip flow

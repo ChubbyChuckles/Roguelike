@@ -132,6 +132,7 @@ add_library(rogue_core
     src/core/loot_drop_rates.c
     src/core/loot_adaptive.c
     src/core/loot_commands.c
+    src/core/vendor.c
 )
 
 target_include_directories(rogue_core PUBLIC
