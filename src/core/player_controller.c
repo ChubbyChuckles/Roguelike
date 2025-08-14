@@ -20,12 +20,12 @@ void rogue_player_controller_update(void){
     if(rogue_input_is_down(&g_app.input, ROGUE_KEY_DOWN)) { g_app.player.base.pos.y += step; g_app.player.facing = 0; moving=1; }
     int px_i=(int)(g_app.player.base.pos.x+0.5f); int py_i=(int)(g_app.player.base.pos.y+0.5f);
     if(px_i<0) px_i=0; if(py_i<0) py_i=0; if(px_i>=g_app.world_map.width) px_i=g_app.world_map.width-1; if(py_i>=g_app.world_map.height) py_i=g_app.world_map.height-1;
-    if(pc_tile_block(g_app.world_map.tiles[py_i*g_app.world_map.width + px_i]) || rogue_vegetation_tile_blocking(px_i,py_i)) g_app.player.base.pos.y=orig_y;
+    if(pc_tile_block(g_app.world_map.tiles[py_i*g_app.world_map.width + px_i]) || rogue_vegetation_tile_blocking(px_i,py_i) || rogue_vegetation_entity_blocking(orig_x,orig_y,g_app.player.base.pos.x,g_app.player.base.pos.y)) g_app.player.base.pos.y=orig_y;
     if(rogue_input_is_down(&g_app.input, ROGUE_KEY_LEFT)) { g_app.player.base.pos.x -= step; g_app.player.facing = 1; moving=1; }
     if(rogue_input_is_down(&g_app.input, ROGUE_KEY_RIGHT)) { g_app.player.base.pos.x += step; g_app.player.facing = 2; moving=1; }
     px_i=(int)(g_app.player.base.pos.x+0.5f); py_i=(int)(g_app.player.base.pos.y+0.5f);
     if(px_i<0) px_i=0; if(py_i<0) py_i=0; if(px_i>=g_app.world_map.width) px_i=g_app.world_map.width-1; if(py_i>=g_app.world_map.height) py_i=g_app.world_map.height-1;
-    if(pc_tile_block(g_app.world_map.tiles[py_i*g_app.world_map.width + px_i]) || rogue_vegetation_tile_blocking(px_i,py_i)) g_app.player.base.pos.x=orig_x;
+    if(pc_tile_block(g_app.world_map.tiles[py_i*g_app.world_map.width + px_i]) || rogue_vegetation_tile_blocking(px_i,py_i) || rogue_vegetation_entity_blocking(orig_x,orig_y,g_app.player.base.pos.x,g_app.player.base.pos.y)) g_app.player.base.pos.x=orig_x;
     if(moving && g_app.player_state==0) g_app.player_state=1; if(!moving) g_app.player_state=0;
     if(g_app.player.base.pos.x<0) g_app.player.base.pos.x=0; if(g_app.player.base.pos.y<0) g_app.player.base.pos.y=0;
     if(g_app.player.base.pos.x>g_app.world_map.width-1) g_app.player.base.pos.x=(float)(g_app.world_map.width-1);

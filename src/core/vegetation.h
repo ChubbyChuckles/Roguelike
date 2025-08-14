@@ -54,9 +54,21 @@ void rogue_vegetation_render(void);
 /* Collision / movement cost queries */
 int rogue_vegetation_tile_blocking(int tx,int ty); /* 1 if blocking (tree) */
 float rogue_vegetation_tile_move_scale(int tx,int ty); /* multiplier (<1 slows) */
+/* Fine-grained collision for entities using trunk-only logic with directional allowances.
+    Returns 1 if movement ending at (nx,ny) from (ox,oy) should be blocked by any tree trunk. */
+int rogue_vegetation_entity_blocking(float ox,float oy,float nx,float ny);
+/* Enable/disable canopy tile blocking globally (affects tile-based collision). */
+void rogue_vegetation_set_canopy_tile_blocking_enabled(int enabled);
+int  rogue_vegetation_get_canopy_tile_blocking_enabled(void);
 
 /* Debug/testing helpers: obtain first tree integer tile center and its canopy radius; returns 1 if found */
 int rogue_vegetation_first_tree(int* out_tx,int* out_ty,int* out_radius);
+/* Testing/introspection: get info about tree by index (0..tree_count-1). Returns 1 on success. */
+int rogue_vegetation_tree_info(int index, float* out_x, float* out_y, int* out_tiles_w, int* out_tiles_h);
+
+/* Enable/disable trunk entity collision globally (player + other entities). Enabled by default. */
+void rogue_vegetation_set_trunk_collision_enabled(int enabled);
+int  rogue_vegetation_get_trunk_collision_enabled(void);
 
 /* Testing helpers */
 int rogue_vegetation_count(void);

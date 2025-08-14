@@ -46,6 +46,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vegetation_canopy_block.c AND NO
     add_test(NAME test_vegetation_canopy_block COMMAND test_vegetation_canopy_block)
 endif()
 
+# Explicitly add vegetation trunk collision behavioural test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vegetation_trunk_collision.c AND NOT TARGET test_vegetation_trunk_collision)
+    add_executable(test_vegetation_trunk_collision unit/test_vegetation_trunk_collision.c)
+    target_link_libraries(test_vegetation_trunk_collision PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_vegetation_trunk_collision PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_vegetation_trunk_collision COMMAND test_vegetation_trunk_collision)
+endif()
+
 # Explicitly add mob collision test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_mob_collision.c AND NOT TARGET test_mob_collision)
     add_executable(test_mob_collision unit/test_mob_collision.c)

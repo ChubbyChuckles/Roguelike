@@ -153,6 +153,12 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     rogue_vegetation_init();
     rogue_vegetation_load_defs("assets/plants.cfg","assets/trees.cfg");
     rogue_vegetation_generate(0.12f, 1337u);
+    /* Temporarily disable all tree collision (trunk + canopy) */
+    rogue_vegetation_set_trunk_collision_enabled(1);
+    rogue_vegetation_set_canopy_tile_blocking_enabled(0);
+#ifdef ROGUE_DISABLE_TRUNK_COLLISION
+    rogue_vegetation_set_trunk_collision_enabled(1);
+#endif
     /* Expose player snapshot for HUD/stats panel */
     g_exposed_player_for_stats = g_app.player;
     g_app.stats_dirty = 0;

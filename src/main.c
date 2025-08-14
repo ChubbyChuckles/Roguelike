@@ -33,6 +33,7 @@ int main(void)
         ROGUE_LOG_ERROR("Failed to initialize app");
         return 1;
     }
+    /* Disable trunk collision for player/entities globally. */
     rogue_app_run();
     rogue_app_shutdown();
     return 0;

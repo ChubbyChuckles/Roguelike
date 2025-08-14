@@ -15,6 +15,8 @@ static RogueVegetationDef g_defs[ROGUE_MAX_VEG_DEFS];
 static int g_def_count = 0;
 static RogueVegetationInstance g_instances[ROGUE_MAX_VEG_INSTANCES];
 static int g_instance_count = 0;
+static int g_trunk_collision_enabled = 1; /* default on */
+static int g_canopy_tile_blocking_enabled = 1; /* default on */
 static float g_target_tree_cover = 0.12f; /* fraction of grass tiles covered by tree canopy */
 static unsigned int g_last_seed = 0;
 
@@ -239,6 +241,7 @@ int rogue_vegetation_tree_count(void){ int c=0; for(int i=0;i<g_instance_count;i
 int rogue_vegetation_plant_count(void){ int c=0; for(int i=0;i<g_instance_count;i++) if(!g_instances[i].is_tree) c++; return c; }
 
 int rogue_vegetation_tile_blocking(int tx,int ty){
+    if(!g_canopy_tile_blocking_enabled) return 0;
     float fx=tx+0.5f, fy=ty+0.5f;
     for(int i=0;i<g_instance_count;i++){
         if(!g_instances[i].is_tree) continue;
@@ -256,6 +259,45 @@ float rogue_vegetation_tile_move_scale(int tx,int ty){
     float fx=tx+0.5f, fy=ty+0.5f; for(int i=0;i<g_instance_count;i++){ if(!g_instances[i].is_tree){ float dx=g_instances[i].x-fx; float dy=g_instances[i].y-fy; if(fabsf(dx)<0.51f && fabsf(dy)<0.51f) return 0.85f; }} return 1.0f;
 }
 
+/* Trunk-only collision for entities with viewpoint perspective rules:
+   - From below: allow overlap until entity center y surpasses tree center y - trunk_allow_front (50% sprite height overlap rule approximated)
+   - From sides: allow approach so long as within horizontal trunk fraction (about 25% each side of center) before blocking.
+   - From above (behind tree): block earlier when entity within back distance (approx 2 tiles above base).
+   We approximate trunk as an axis-aligned rectangle centered at tree.x with width = sprite_w * trunk_frac_w and height = sprite_h * trunk_frac_h starting at base downward.
+   Because we only have tile metrics here, derive sprite dimensions from definition tile rectangle. */
+int rogue_vegetation_entity_blocking(float ox,float oy,float nx,float ny){
+    if(!g_trunk_collision_enabled) return 0;
+        /* New simplified trunk logic:
+             Treat each tree trunk as a short, narrow axis-aligned band directly at the base.
+             We intentionally ignore large directional rules that previously produced wide invisible walls.
+             Blocking region per tree:
+                 horizontal: |x - base_x| < trunk_r  (small)
+                 vertical  : base_y - trunk_h_top <= y <= base_y + trunk_h_bottom
+             A tiny "approach from behind" cushion extends 0.15 tiles above the top to prevent popping through from above.
+             This keeps collision localized to visible roots while still stopping passage through trunk.
+        */
+        if(g_instance_count==0) return 0;
+        float px=nx, py=ny; (void)ox; (void)oy; (void)ox; (void)oy;
+        for(int i=0;i<g_instance_count;i++) if(g_instances[i].is_tree){
+                RogueVegetationInstance* inst=&g_instances[i]; RogueVegetationDef* def=&g_defs[inst->def_index];
+                int tiles_w = (int)(def->tile_x2 - def->tile_x + 1);
+                float base_x = inst->x; float base_y = inst->y;
+                /* Radius scales a little with width but capped very small so player can slide around sides. */
+                float trunk_r = 0.30f + tiles_w * 0.05f; if(trunk_r > 0.55f) trunk_r = 0.55f; if(trunk_r < 0.30f) trunk_r = 0.30f;
+                /* Vertical band: roots only. Allow more canopy overlap from below: top shrunk upward. */
+                float trunk_top    = base_y - 0.30f; /* block starts closer to base to let player step further under canopy */
+                float trunk_bottom = base_y + 0.05f; /* minimal below-base blocking */
+                float cushion_top  = trunk_top - 0.12f; /* small extra block for downward approach */
+                float dx = px - base_x; float adx = fabsf(dx);
+                float y = py;
+                if(adx > trunk_r) continue; /* horizontally outside */
+                if(y >= trunk_top && y <= trunk_bottom) return 1; /* inside trunk band */
+                /* If moving downward from above into the thin cushion just above trunk, block */
+                if(ny > oy && y >= cushion_top && y < trunk_top) return 1;
+        }
+        return 0;
+}
+
 int rogue_vegetation_first_tree(int* out_tx,int* out_ty,int* out_radius){
     for(int i=0;i<g_instance_count;i++) if(g_instances[i].is_tree){
         RogueVegetationInstance* inst=&g_instances[i]; RogueVegetationDef* def=&g_defs[inst->def_index];
@@ -266,3 +308,23 @@ int rogue_vegetation_first_tree(int* out_tx,int* out_ty,int* out_radius){
     }
     return 0;
 }
+
+int rogue_vegetation_tree_info(int index, float* out_x, float* out_y, int* out_tiles_w, int* out_tiles_h){
+    int t_index = -1;
+    for(int i=0;i<g_instance_count;i++) if(g_instances[i].is_tree){
+        ++t_index;
+        if(t_index==index){
+            RogueVegetationInstance* inst=&g_instances[i]; RogueVegetationDef* def=&g_defs[inst->def_index];
+            if(out_x) *out_x=inst->x; if(out_y) *out_y=inst->y;
+            if(out_tiles_w) *out_tiles_w = (int)(def->tile_x2 - def->tile_x + 1);
+            if(out_tiles_h) *out_tiles_h = (int)(def->tile_y2 - def->tile_y + 1);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void rogue_vegetation_set_trunk_collision_enabled(int enabled){ g_trunk_collision_enabled = enabled ? 1 : 0; }
+int  rogue_vegetation_get_trunk_collision_enabled(void){ return g_trunk_collision_enabled; }
+void rogue_vegetation_set_canopy_tile_blocking_enabled(int enabled){ g_canopy_tile_blocking_enabled = enabled ? 1 : 0; }
+int  rogue_vegetation_get_canopy_tile_blocking_enabled(void){ return g_canopy_tile_blocking_enabled; }

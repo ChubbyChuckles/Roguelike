@@ -132,15 +132,15 @@ void rogue_enemy_system_update(float dt_ms){
             int ny = (int)(e->base.pos.y + move_dy * move_speed + 0.5f);
             if(nx>=0 && ny>=0 && nx<g_app.world_map.width && ny<g_app.world_map.height){
                 unsigned char nt = g_app.world_map.tiles[ny*g_app.world_map.width + nx];
-                int veg_block = rogue_vegetation_tile_blocking(nx,ny);
+                int veg_block = rogue_vegetation_tile_blocking(nx,ny) || rogue_vegetation_entity_blocking(e->base.pos.x,e->base.pos.y,e->base.pos.x + move_dx * move_speed, e->base.pos.y + move_dy * move_speed);
                 if(enemy_tile_is_blocking(nt) || veg_block){
                     float try_x = e->base.pos.x + move_dx * move_speed;
                     int txi = (int)(try_x + 0.5f); int tyi = (int)(e->base.pos.y + 0.5f);
                     int blocked_x = 0, blocked_y = 0;
-                    if(txi>=0 && tyi>=0 && txi<g_app.world_map.width && tyi<g_app.world_map.height){ if(enemy_tile_is_blocking(g_app.world_map.tiles[tyi*g_app.world_map.width + txi]) || rogue_vegetation_tile_blocking(txi,tyi)) blocked_x=1; }
+                    if(txi>=0 && tyi>=0 && txi<g_app.world_map.width && tyi<g_app.world_map.height){ if(enemy_tile_is_blocking(g_app.world_map.tiles[tyi*g_app.world_map.width + txi]) || rogue_vegetation_tile_blocking(txi,tyi) || rogue_vegetation_entity_blocking(e->base.pos.x,e->base.pos.y,try_x,e->base.pos.y)) blocked_x=1; }
                     float try_y = e->base.pos.y + move_dy * move_speed;
                     txi = (int)(e->base.pos.x + 0.5f); tyi = (int)(try_y + 0.5f);
-                    if(txi>=0 && tyi>=0 && txi<g_app.world_map.width && tyi<g_app.world_map.height){ if(enemy_tile_is_blocking(g_app.world_map.tiles[tyi*g_app.world_map.width + txi]) || rogue_vegetation_tile_blocking(txi,tyi)) blocked_y=1; }
+                    if(txi>=0 && tyi>=0 && txi<g_app.world_map.width && tyi<g_app.world_map.height){ if(enemy_tile_is_blocking(g_app.world_map.tiles[tyi*g_app.world_map.width + txi]) || rogue_vegetation_tile_blocking(txi,tyi) || rogue_vegetation_entity_blocking(e->base.pos.x,e->base.pos.y,e->base.pos.x,try_y)) blocked_y=1; }
                     if(!blocked_x && blocked_y){ move_dy = 0; }
                     else if(blocked_x && !blocked_y){ move_dx = 0; }
                     else { move_dx = move_dy = 0; }
