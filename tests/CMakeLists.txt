@@ -232,6 +232,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_multi_hit.c AND NOT TARGE
     add_test(NAME test_combat_multi_hit COMMAND test_combat_multi_hit)
 endif()
 
+# Explicitly add combat events test (Phase 1A.5 partial)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_events.c AND NOT TARGET test_combat_events)
+    add_executable(test_combat_events unit/test_combat_events.c)
+    target_link_libraries(test_combat_events PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_events PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_events COMMAND test_combat_events)
+endif()
+
 # Explicitly add passive skills test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_passive.c AND NOT TARGET test_skills_passive)
     add_executable(test_skills_passive unit/test_skills_passive.c)

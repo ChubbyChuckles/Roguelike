@@ -1,19 +1,20 @@
-Combat: Multi-hit active windows + per-window cancel overrides + window damage_mult field
+Combat: Multi-hit windows + per-window cancel overrides + window damage_mult + begin/end events
 
 Summary:
-- Implemented Phase 1A.2 multi-hit strike support: processed_window_mask, dynamic active window mask evaluation, dedicated per-window damage_mult scalar (replacing temporary bleed_build reuse).
-- Added per-window cancel flag override resolution (hit/whiff/block) atop global attack cancel flags (Phase 1A.3 enhancement).
-- Extended AttackDef (light_3 & heavy_2) with multi-window definitions demonstrating sequential hits; added explicit damage_mult for each window (e.g., light_3 0.40x then 0.90x, heavy_2 three pulses 0.55x/0.85x/1.25x).
-- Added duplicate hit prevention (bitmask) and unit test `test_combat_multi_hit` covering sequential multi-hit application and idempotency on re-invocation.
-- Adjusted early hit cancel gating to wait until all windows processed (prevents premature cancel after first pulse).
-- Added strike debug instrumentation (now behind COMBAT_DEBUG macro) and test harness force-strike helper for deterministic window testing.
-- Updated combat implementation plan: 1A.2 marked Partial (engine + tests), 1A.3 expanded (Done w/ per-window overrides), 1A.7 partial (multi-hit ordering test in place).
-- README combat section: added bullet highlighting multi-hit window support.
+- Implemented Phase 1A.2 multi-hit strike support: processed_window_mask, dynamic active window mask evaluation, per-window damage_mult scalar, per-window status buildup scaffolds (bleed/frost placeholders accumulated on enemies).
+- Added per-window cancel flag override logic + early cancel gating aware of multi-window completion.
+- Extended AttackDef (light_3 & heavy_2) with multi-window definitions + explicit damage_mult (light_3 0.40x/0.90x; heavy_2 0.55x/0.85x/1.25x) and window-specific status buildup contributions.
+- Phase 1A.5 partial: introduced per-window BEGIN/END animation event emission into a small ring buffer (events[]), unit test `test_combat_events` validates begin/end sequencing.
+- Introduced RogueCombatEvent data (begin/end window) with emitted_events_mask tracking; ensures idempotent events even with repeated strike invocations in tests.
+- Added combat events test and updated multi-hit test remains green after refactor.
+- Gated debug printing (strike_entry/multi_hit_debug/strike_skip) behind COMBAT_DEBUG macro.
+- Updated implementation plan: 1A.2 elaborated (damage_mult), 1A.5 now Partial, 1A.7 notes pending boundary & triple-window tests.
+- README updated (multi-hit + events). Added enemy bleed_buildup/frost_buildup fields for upcoming status pipeline.
 
 Follow-ups:
-- Add heavy_2 triple-window unit test (ordering + mask 0x1->0x2->0x4) and boundary condition tests (exact start/end ms) plus cancel edge gating.
-- Status effect application pipeline: currently accumulates bleed_buildup / frost_buildup floats on enemy; next step is threshold & effect spawn.
-- Consider converting status buildup accumulation to a helper for reuse with projectiles / skill effects.
-- Add boundary edge tests (window start == end transitions) and cancel edge case tests (1A.7).
-- Remove or compile-gate debug prints (`[strike_entry]`, `[multi_hit_debug]`).
-- Begin status effect buildup application pipeline utilizing per-window bleed/frost fields.
+- Add heavy_2 triple-window ordering test (ensure mask sequence and 3 event pairs).
+- Boundary tests: exact start_ms, end_ms-ε, end_ms transitions for multi-hit windows (ensure no double or missed hits).
+- Implement status thresholds (e.g., bleed triggers DOT after N buildup, frost slow/freeze tiers) with decay over time + tests.
+- FX/SFX dispatch layer consuming BEGIN/END events (1A.5 completion) + external authoring integration.
+- Additional cancel edge case tests (whiff threshold, block threshold) with multi-window interplay.
+- Consider compressing events ring buffer into externally consumable frame event queue for rendering layer.

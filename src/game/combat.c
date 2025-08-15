@@ -16,7 +16,7 @@ void rogue_combat_init(RoguePlayerCombat* pc){
     pc->phase=ROGUE_ATTACK_IDLE; pc->timer=0; pc->combo=0; pc->stamina=100.0f; pc->stamina_regen_delay=0.0f;
     pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0.0f;
     pc->archetype = ROGUE_WEAPON_LIGHT; pc->chain_index = 0; pc->queued_branch_archetype = ROGUE_WEAPON_LIGHT; pc->queued_branch_pending=0;
-    pc->precise_accum_ms = 0.0; pc->blocked_this_strike=0; pc->recovered_recently=0; pc->idle_since_recover_ms=0.0f; pc->processed_window_mask=0;
+    pc->precise_accum_ms = 0.0; pc->blocked_this_strike=0; pc->recovered_recently=0; pc->idle_since_recover_ms=0.0f; pc->processed_window_mask=0; pc->emitted_events_mask=0; pc->event_count=0;
 }
 
 int rogue_force_attack_active = 0; /* exported */
@@ -72,7 +72,7 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
             }
             pc->phase = ROGUE_ATTACK_WINDUP; pc->timer = 0; pc->stamina -= def?def->stamina_cost:14.0f; pc->stamina_regen_delay = 500.0f; pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0; }
     } else if(pc->phase==ROGUE_ATTACK_WINDUP){
-    if(pc->timer >= WINDUP_MS){ pc->phase = ROGUE_ATTACK_STRIKE; pc->timer = 0; pc->precise_accum_ms=0.0; pc->strike_time_ms=0; pc->blocked_this_strike=0; pc->processed_window_mask=0; }
+    if(pc->timer >= WINDUP_MS){ pc->phase = ROGUE_ATTACK_STRIKE; pc->timer = 0; pc->precise_accum_ms=0.0; pc->strike_time_ms=0; pc->blocked_this_strike=0; pc->processed_window_mask=0; pc->emitted_events_mask=0; pc->event_count=0; }
     } else if(pc->phase==ROGUE_ATTACK_STRIKE){
     pc->strike_time_ms += dt_ms;
         /* Determine current hit window for per-window cancel gating. */
@@ -203,8 +203,19 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
     if(def && def->num_windows>0){
         for(int wi=0; wi<def->num_windows && wi<32; ++wi){
             const RogueAttackWindow* w = &def->windows[wi];
-            if(pc->strike_time_ms >= w->start_ms && pc->strike_time_ms < w->end_ms){
-                newly_active_mask |= (1u<<wi);
+            int active = (pc->strike_time_ms >= w->start_ms && pc->strike_time_ms < w->end_ms);
+            if(active){ newly_active_mask |= (1u<<wi); }
+            /* Emit begin/end events once. */
+            unsigned int bit = (1u<<wi);
+            if(active && !(pc->emitted_events_mask & bit)){
+                if(pc->event_count < (int)(sizeof(pc->events)/sizeof(pc->events[0]))){
+                    pc->events[pc->event_count].type = ROGUE_COMBAT_EVENT_BEGIN_WINDOW; pc->events[pc->event_count].data = (unsigned short)wi; pc->events[pc->event_count].t_ms = pc->strike_time_ms; pc->event_count++; }
+                pc->emitted_events_mask |= bit;
+            } else if(!active && (pc->emitted_events_mask & bit) && !(pc->processed_window_mask & bit)){
+                /* End before processing (e.g., window had no targets) */
+                if(pc->event_count < (int)(sizeof(pc->events)/sizeof(pc->events[0]))){
+                    pc->events[pc->event_count].type = ROGUE_COMBAT_EVENT_END_WINDOW; pc->events[pc->event_count].data = (unsigned short)wi; pc->events[pc->event_count].t_ms = pc->strike_time_ms; pc->event_count++; }
+                pc->processed_window_mask |= bit; /* mark as processed to prevent duplicate end */
             }
         }
     } else if(def){
@@ -256,6 +267,16 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
         }
     }
     pc->processed_window_mask |= process_mask;
+    /* Emit END_WINDOW events for windows just processed (if not already). */
+    if(def){
+        for(int wi=0; wi<def->num_windows && wi<32; ++wi){
+            unsigned int bit = (1u<<wi);
+            if(process_mask & bit){
+                if(pc->event_count < (int)(sizeof(pc->events)/sizeof(pc->events[0]))){
+                    pc->events[pc->event_count].type = ROGUE_COMBAT_EVENT_END_WINDOW; pc->events[pc->event_count].data = (unsigned short)wi; pc->events[pc->event_count].t_ms = pc->strike_time_ms; pc->event_count++; }
+            }
+        }
+    }
     return kills;
 }
 

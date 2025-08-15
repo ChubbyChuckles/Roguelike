@@ -27,7 +27,15 @@ typedef struct RoguePlayerCombat {
     int recovered_recently;  /* we just exited recovery -> idle (eligible for late chain) */
     float idle_since_recover_ms; /* time spent idle since recovery ended */
     unsigned int processed_window_mask; /* bitmask of strike windows already applied (multi-hit) */
+    /* --- Animation / timeline events (Phase 1A.5) --- */
+    unsigned int emitted_events_mask; /* bitmask of emitted per-window begin events */
+    /* Simple ring buffer for transient combat events (fx, sfx) */
+    int event_count; struct RogueCombatEvent { unsigned short type; unsigned short data; float t_ms; } events[8];
 } RoguePlayerCombat;
+
+/* Event type ids (extend later): */
+#define ROGUE_COMBAT_EVENT_BEGIN_WINDOW 1  /* data = window index */
+#define ROGUE_COMBAT_EVENT_END_WINDOW   2  /* data = window index */
 
 void rogue_combat_init(RoguePlayerCombat* pc);
 void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_pressed);

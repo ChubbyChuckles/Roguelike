@@ -22,6 +22,7 @@ typedef struct RogueAttackWindow {
     unsigned short flags;                  /* per-window cancel/status flags (reuse global cancel bits subset) */
     float damage_mult;                     /* per-window scalar applied to base + scaling damage (1.0 default) */
     float bleed_build; float frost_build;  /* per-window status buildup contributions (Phase 1A status scaffolding) */
+    short start_frame; short end_frame;    /* derived frame indices (lazy-computed); inclusive frame span */
 } RogueAttackWindow;
 
 typedef struct RogueAttackDef {
