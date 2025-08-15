@@ -85,7 +85,10 @@ add_library(rogue_core
     src/core/player_progress.c
     src/core/world_renderer.c
     src/core/animation_system.c
-    src/core/persistence.c
+    # persistence module split
+    src/core/persistence_io.c
+    src/core/persistence_world.c
+    src/core/persistence_player.c
     src/core/persistence_autosave.c
     # skills module split
     src/core/skills_registry.c
@@ -95,7 +98,10 @@ add_library(rogue_core
     src/core/skill_bar.c
     src/core/effect_spec.c
     src/core/buffs.c
-    src/core/projectiles.c
+    # projectiles module split
+    src/core/projectiles_spawn.c
+    src/core/projectiles_update.c
+    src/core/projectiles_render.c
     src/core/damage_calc.c
     src/core/collision.c
     src/core/navigation.c
@@ -105,7 +111,10 @@ add_library(rogue_core
     src/platform/platform_sdl.c
     src/graphics/renderer.c
     src/graphics/sprite.c
-    src/graphics/tile_sprites.c
+    # tile sprites module split
+    src/graphics/tile_sprites_load.c
+    src/graphics/tile_sprites_lookup.c
+    src/graphics/tile_sprites_render.c
     src/graphics/png_wic.c
     src/input/input.c
     src/world/tilemap.c
