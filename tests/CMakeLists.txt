@@ -659,3 +659,13 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase5_lock_on_obstructio
     endif()
     add_test(NAME test_combat_phase5_lock_on_obstruction_latency COMMAND test_combat_phase5_lock_on_obstruction_latency)
 endif()
+
+# Explicitly add multi-target lock-on test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase5_lock_on_multitarget.c AND NOT TARGET test_combat_phase5_lock_on_multitarget)
+    add_executable(test_combat_phase5_lock_on_multitarget unit/test_combat_phase5_lock_on_multitarget.c)
+    target_link_libraries(test_combat_phase5_lock_on_multitarget PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase5_lock_on_multitarget PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase5_lock_on_multitarget COMMAND test_combat_phase5_lock_on_multitarget)
+endif()
