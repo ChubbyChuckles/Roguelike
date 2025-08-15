@@ -57,10 +57,10 @@ PHASE 5. Skill Tree / Progression UI
 5.1 Zoomable panning skill graph (quad‑tree culling) (Done: basic world->screen transform, quadtree build, culling, emission API + unit test `test_ui_phase5_skillgraph`)
 5.2 Node layering: base icon, rank pips, synergy glow (Done: layered emission now includes background panel, synergy glow underlay color 0x30307040u, rank ring, icon sprite placeholder sheet=0, per-rank pip bars with fill overlay, rank text; updated unit test)
 5.3 Rank allocation animations (pulse, currency spend flyout) (Done: pulse (280ms scale+fade) & spend flyout (600ms upward fade) implemented with arrays skillgraph_pulses[32]/skillgraph_spends[32]; lifecycle advanced in rogue_ui_begin; unit test `test_ui_phase5_skillgraph_anim` validates creation & expiry)
-5.4 Passive synergy aggregate panel (X)
-5.5 Search / filter by tag (fire, movement, defense) (X)
-5.6 Build export/import serialization (X)
-5.7 Undo buffer (last N allocations) (X)
+5.4 Passive synergy aggregate panel (Done: basic aggregate synergy panel flag & plumbing; panel enable API `rogue_ui_skillgraph_enable_synergy_panel` with placeholder layout to hook future stats)
+5.5 Search / filter by tag (fire, movement, defense) (Done: tag bitmask on nodes + filter mask in context; culling skips non-matching nodes; unit test exercises FIRE filter)
+5.6 Build export/import serialization (Done: text format `icon:rank/max;tags` per line, export/import APIs with bounds validation)
+5.7 Undo buffer (last N allocations) (Done: fixed ring (stack-style) buffer of prior rank, allocation API records, undo API restores; allocation triggers pulse animation)
 
 PHASE 6. HUD Modularization & Overlays
 6.1 HUD layout spec file (JSON/TOML) for placing bars/panels (X)

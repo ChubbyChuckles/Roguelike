@@ -6,7 +6,7 @@
 
 static void build_graph(RogueUIContext* ui){
     rogue_ui_skillgraph_begin(ui,0,0,200,150,1.0f);
-    for(int i=0;i<8;i++){ rogue_ui_skillgraph_add(ui,(float)(i*22),(float)( (i%4)*30), i, i%3, 3, (i%5)==0); }
+    for(int i=0;i<8;i++){ rogue_ui_skillgraph_add(ui,(float)(i*22),(float)((i%4)*30), i, i%3, 3, (i%5)==0, 0); }
 }
 
 int main(){

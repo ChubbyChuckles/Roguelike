@@ -138,6 +138,12 @@ typedef struct RogueUIContext {
     int skillgraph_pulse_count;
     struct { int icon_id; float remaining_ms; float y_offset; int amount; } skillgraph_spends[32];
     int skillgraph_spend_count;
+    /* Phase 5.4+ additions */
+    int skillgraph_synergy_panel_enabled; /* show aggregate synergy stats panel */
+    unsigned int skillgraph_filter_tags;  /* bitmask: if non-zero, only nodes with (tags & mask)!=0 are shown */
+    /* Phase 5.7 undo buffer */
+    struct { int icon_id; int prev_rank; } skillgraph_undo[64];
+    int skillgraph_undo_count;
 } RogueUIContext;
 
 int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg);
@@ -258,13 +264,28 @@ int rogue_ui_inventory_grid(RogueUIContext* ctx, RogueUIRect rect, const char* i
 /* Begin a skill graph frame section: defines viewport in world coordinates and zoom scale. */
 void rogue_ui_skillgraph_begin(RogueUIContext* ctx, float view_x, float view_y, float view_w, float view_h, float zoom);
 /* Add a skill node (world coordinate center) with icon id, rank, max_rank, and synergy flag (non-zero displays glow). */
-void rogue_ui_skillgraph_add(RogueUIContext* ctx, float world_x, float world_y, int icon_id, int rank, int max_rank, int synergy);
+/* Add a skill node. 'tags' is a bitmask (Phase 5.5 filtering). */
+void rogue_ui_skillgraph_add(RogueUIContext* ctx, float world_x, float world_y, int icon_id, int rank, int max_rank, int synergy, unsigned int tags);
 /* Build (emit UI nodes) with quadtree culling. Returns number of visible skill nodes emitted (base icons counted once). */
 int rogue_ui_skillgraph_build(RogueUIContext* ctx);
 /* Phase 5.3: Trigger a rank pulse animation (brief highlight/panel overlay). */
 void rogue_ui_skillgraph_pulse(RogueUIContext* ctx, int icon_id);
 /* Phase 5.3: Spawn a currency spend flyout (e.g., talent point cost). */
 void rogue_ui_skillgraph_spend_flyout(RogueUIContext* ctx, int icon_id, int amount);
+/* Phase 5.4: enable/disable passive synergy aggregate panel */
+void rogue_ui_skillgraph_enable_synergy_panel(RogueUIContext* ctx, int enable);
+/* Phase 5.5: set active tag filter (0 clears filter) */
+void rogue_ui_skillgraph_set_filter_tags(RogueUIContext* ctx, unsigned int tag_mask);
+/* Phase 5.6: export/import build (ranks) */
+size_t rogue_ui_skillgraph_export(const RogueUIContext* ctx, char* buffer, size_t cap);
+int rogue_ui_skillgraph_import(RogueUIContext* ctx, const char* buffer);
+/* Phase 5.7: allocate a rank point & record undo (returns 1 if applied) */
+int rogue_ui_skillgraph_allocate(RogueUIContext* ctx, int icon_id);
+/* Undo last allocation (returns 1 if undone) */
+int rogue_ui_skillgraph_undo(RogueUIContext* ctx);
+
+/* Tag bitmasks (example set for tests) */
+enum { ROGUE_UI_SKILL_TAG_FIRE=1<<0, ROGUE_UI_SKILL_TAG_MOVEMENT=1<<1, ROGUE_UI_SKILL_TAG_DEFENSE=1<<2 };
 
 /* Phase 4 event kinds */
 enum { ROGUE_UI_EVENT_NONE=0, ROGUE_UI_EVENT_DRAG_BEGIN=1, ROGUE_UI_EVENT_DRAG_END=2, ROGUE_UI_EVENT_STACK_SPLIT_OPEN=3, ROGUE_UI_EVENT_STACK_SPLIT_APPLY=4, ROGUE_UI_EVENT_STACK_SPLIT_CANCEL=5,

@@ -13,7 +13,7 @@ static void populate(RogueUIContext* ui){
         int rank = (i%4);
         int max_rank = 4;
         int synergy = (i%13)==0;
-        rogue_ui_skillgraph_add(ui,x,y, i, rank, max_rank, synergy);
+    rogue_ui_skillgraph_add(ui,x,y, i, rank, max_rank, synergy, 0);
     }
 }
 int main(){

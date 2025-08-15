@@ -196,6 +196,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase3_input_features.c AND N
     add_test(NAME test_ui_phase3_input_features COMMAND test_ui_phase3_input_features)
 endif()
 
+# UI Phase 5.4-5.7 advanced skillgraph test (filter/export/undo)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase5_skillgraph_advanced.c AND NOT TARGET test_ui_phase5_skillgraph_advanced)
+    add_executable(test_ui_phase5_skillgraph_advanced unit/test_ui_phase5_skillgraph_advanced.c)
+    target_link_libraries(test_ui_phase5_skillgraph_advanced PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ui_phase5_skillgraph_advanced PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ui_phase5_skillgraph_advanced COMMAND test_ui_phase5_skillgraph_advanced)
+endif()
+
 # UI Phase 4.4 context menu test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_context_menu.c AND NOT TARGET test_ui_phase4_context_menu)
     add_executable(test_ui_phase4_context_menu unit/test_ui_phase4_context_menu.c)

@@ -14,6 +14,7 @@ typedef struct RogueUISkillNodeRec {
     int rank;
     int max_rank;
     int synergy; /* non-zero => glow */
+    unsigned int tags; /* Phase 5.5 filtering */
 } RogueUISkillNodeRec;
 
 typedef struct SkillQuadNode {
@@ -82,14 +83,38 @@ static void skillgraph_emit_node(RogueUIContext* ctx, RogueUISkillNodeRec* n){
         }
     }
 }
-static void skillgraph_query_emit(SkillQuadTree* q, int node_index, RogueUIContext* ctx){ SkillQuadNode* nd=&q->nodes[node_index]; float vx=ctx->skillgraph_view_x, vy=ctx->skillgraph_view_y, vw=ctx->skillgraph_view_w, vh=ctx->skillgraph_view_h; if(nd->x+nd->w < vx || nd->y+nd->h < vy || nd->x > vx+vw || nd->y > vy+vh) return; if(nd->children[0]<0){ for(int i=0;i<nd->count;i++){ int idx = q->indices[nd->first_index + i]; RogueUISkillNodeRec* rec=&ctx->skillgraph_nodes[idx]; if(skillgraph_frustum_contains(vx,vy,vw,vh,rec->x,rec->y)) skillgraph_emit_node(ctx,rec); } } else { for(int c=0;c<4;c++){ if(nd->children[c]>=0) skillgraph_query_emit(q,nd->children[c],ctx);} } }
-void rogue_ui_skillgraph_begin(RogueUIContext* ctx, float view_x, float view_y, float view_w, float view_h, float zoom){ if(!ctx) return; ctx->skillgraph_active=1; ctx->skillgraph_view_x=view_x; ctx->skillgraph_view_y=view_y; ctx->skillgraph_view_w=view_w; ctx->skillgraph_view_h=view_h; ctx->skillgraph_zoom = (zoom<=0)?1.0f:zoom; }
-void rogue_ui_skillgraph_add(RogueUIContext* ctx, float world_x, float world_y, int icon_id, int rank, int max_rank, int synergy){ if(!ctx||!ctx->skillgraph_active) return; if(ctx->skillgraph_node_count>=ctx->skillgraph_node_capacity){ int nc=ctx->skillgraph_node_capacity? ctx->skillgraph_node_capacity*2:64; ctx->skillgraph_nodes=(RogueUISkillNodeRec*)realloc(ctx->skillgraph_nodes, nc*sizeof(RogueUISkillNodeRec)); ctx->skillgraph_node_capacity=nc; }
-    RogueUISkillNodeRec* n=&ctx->skillgraph_nodes[ctx->skillgraph_node_count++]; n->x=world_x; n->y=world_y; n->icon_id=icon_id; n->rank=rank; n->max_rank=max_rank; n->synergy=synergy; }
+void rogue_ui_skillgraph_begin(RogueUIContext* ctx, float view_x, float view_y, float view_w, float view_h, float zoom){ if(!ctx) return; ctx->skillgraph_active=1; ctx->skillgraph_view_x=view_x; ctx->skillgraph_view_y=view_y; ctx->skillgraph_view_w=view_w; ctx->skillgraph_view_h=view_h; ctx->skillgraph_zoom = (zoom<=0)?1.0f:zoom; ctx->skillgraph_node_count=0; }
+void rogue_ui_skillgraph_add(RogueUIContext* ctx, float world_x, float world_y, int icon_id, int rank, int max_rank, int synergy, unsigned int tags){ if(!ctx||!ctx->skillgraph_active) return; if(ctx->skillgraph_node_count>=ctx->skillgraph_node_capacity){ int nc=ctx->skillgraph_node_capacity? ctx->skillgraph_node_capacity*2:64; ctx->skillgraph_nodes=(RogueUISkillNodeRec*)realloc(ctx->skillgraph_nodes, nc*sizeof(RogueUISkillNodeRec)); ctx->skillgraph_node_capacity=nc; }
+    RogueUISkillNodeRec* n=&ctx->skillgraph_nodes[ctx->skillgraph_node_count++]; n->x=world_x; n->y=world_y; n->icon_id=icon_id; n->rank=rank; n->max_rank=max_rank; n->synergy=synergy; n->tags=tags; }
+static void skillgraph_query_emit(SkillQuadTree* q, int node_index, RogueUIContext* ctx){ SkillQuadNode* nd=&q->nodes[node_index]; float vx=ctx->skillgraph_view_x, vy=ctx->skillgraph_view_y, vw=ctx->skillgraph_view_w, vh=ctx->skillgraph_view_h; if(nd->x+nd->w < vx || nd->y+nd->h < vy || nd->x > vx+vw || nd->y > vy+vh) return; if(nd->children[0]<0){ for(int i=0;i<nd->count;i++){ int idx = q->indices[nd->first_index + i]; RogueUISkillNodeRec* rec=&ctx->skillgraph_nodes[idx]; if(ctx->skillgraph_filter_tags && !(rec->tags & ctx->skillgraph_filter_tags)) continue; if(skillgraph_frustum_contains(vx,vy,vw,vh,rec->x,rec->y)) skillgraph_emit_node(ctx,rec); } } else { for(int c=0;c<4;c++){ if(nd->children[c]>=0) skillgraph_query_emit(q,nd->children[c],ctx);} } }
 int rogue_ui_skillgraph_build(RogueUIContext* ctx){ if(!ctx||!ctx->skillgraph_active) return 0; skillgraph_rebuild_quadtree(ctx); SkillQuadTree* q=(SkillQuadTree*)ctx->skillgraph_quadtree; if(!q||q->node_count==0) { ctx->skillgraph_active=0; return 0; } int before=ctx->node_count; skillgraph_query_emit(q,0,ctx); ctx->skillgraph_active=0; return ctx->node_count-before; }
 
 void rogue_ui_skillgraph_pulse(RogueUIContext* ctx, int icon_id){ if(!ctx) return; if(ctx->skillgraph_pulse_count < (int)(sizeof(ctx->skillgraph_pulses)/sizeof(ctx->skillgraph_pulses[0]))){ ctx->skillgraph_pulses[ctx->skillgraph_pulse_count].icon_id=icon_id; ctx->skillgraph_pulses[ctx->skillgraph_pulse_count].remaining_ms=280.0f; ctx->skillgraph_pulse_count++; } }
 void rogue_ui_skillgraph_spend_flyout(RogueUIContext* ctx, int icon_id, int amount){ if(!ctx) return; if(ctx->skillgraph_spend_count < (int)(sizeof(ctx->skillgraph_spends)/sizeof(ctx->skillgraph_spends[0]))){ ctx->skillgraph_spends[ctx->skillgraph_spend_count].icon_id=icon_id; ctx->skillgraph_spends[ctx->skillgraph_spend_count].remaining_ms=600.0f; ctx->skillgraph_spends[ctx->skillgraph_spend_count].y_offset=0.0f; ctx->skillgraph_spends[ctx->skillgraph_spend_count].amount=amount; ctx->skillgraph_spend_count++; } }
+void rogue_ui_skillgraph_enable_synergy_panel(RogueUIContext* ctx, int enable){ if(!ctx) return; ctx->skillgraph_synergy_panel_enabled = enable?1:0; }
+void rogue_ui_skillgraph_set_filter_tags(RogueUIContext* ctx, unsigned int tag_mask){ if(!ctx) return; ctx->skillgraph_filter_tags = tag_mask; }
+size_t rogue_ui_skillgraph_export(const RogueUIContext* ctx, char* buffer, size_t cap){ if(!ctx||!buffer||cap==0) return 0; size_t off=0; for(int i=0;i<ctx->skillgraph_node_count;i++){ RogueUISkillNodeRec* n=&ctx->skillgraph_nodes[i]; char line[64]; int len=snprintf(line,sizeof line,"%d:%d/%d;%u\n", n->icon_id, n->rank, n->max_rank, n->tags); if(off + (size_t)len >= cap) break; memcpy(buffer+off,line,(size_t)len); off += (size_t)len; } if(off<cap) buffer[off]='\0'; return off; }
+int rogue_ui_skillgraph_import(RogueUIContext* ctx, const char* buffer){
+    if(!ctx||!buffer) return 0; int applied=0; const char* p=buffer;
+    while(*p){
+        /* Manual parse: icon:rank/max;tags */
+        int icon=0,rank=0,maxr=0; unsigned int tags=0; const char* line=p; const char* nl=strchr(p,'\n'); size_t len = nl? (size_t)(nl-p) : strlen(p);
+        const char* c=line; /* parse icon */
+        while(*c>='0'&&*c<='9'){ icon = icon*10 + (*c - '0'); c++; }
+        if(*c!=':'){ goto next_line; } c++;
+        while(*c>='0'&&*c<='9'){ rank = rank*10 + (*c - '0'); c++; }
+        if(*c!='/'){ goto next_line; } c++;
+        while(*c>='0'&&*c<='9'){ maxr = maxr*10 + (*c - '0'); c++; }
+        if(*c!=';'){ goto next_line; } c++;
+        while(*c>='0'&&*c<='9'){ tags = tags*10 + (unsigned)(*c - '0'); c++; }
+        /* apply */
+        for(int i=0;i<ctx->skillgraph_node_count;i++){ if(ctx->skillgraph_nodes[i].icon_id==icon){ if(rank<=ctx->skillgraph_nodes[i].max_rank){ ctx->skillgraph_nodes[i].rank=rank; applied++; } ctx->skillgraph_nodes[i].tags=tags; break; } }
+        next_line:
+        p = nl? nl+1 : p+len; if(!nl) break;
+    }
+    return applied; }
+int rogue_ui_skillgraph_allocate(RogueUIContext* ctx, int icon_id){ if(!ctx) return 0; for(int i=0;i<ctx->skillgraph_node_count;i++){ RogueUISkillNodeRec* n=&ctx->skillgraph_nodes[i]; if(n->icon_id==icon_id && n->rank < n->max_rank){ if(ctx->skillgraph_undo_count < (int)(sizeof(ctx->skillgraph_undo)/sizeof(ctx->skillgraph_undo[0]))){ ctx->skillgraph_undo[ctx->skillgraph_undo_count].icon_id=icon_id; ctx->skillgraph_undo[ctx->skillgraph_undo_count].prev_rank=n->rank; ctx->skillgraph_undo_count++; } n->rank++; rogue_ui_skillgraph_pulse(ctx,icon_id); return 1; } } return 0; }
+int rogue_ui_skillgraph_undo(RogueUIContext* ctx){ if(!ctx) return 0; if(ctx->skillgraph_undo_count<=0) return 0; ctx->skillgraph_undo_count--; int icon=ctx->skillgraph_undo[ctx->skillgraph_undo_count].icon_id; int prev=ctx->skillgraph_undo[ctx->skillgraph_undo_count].prev_rank; for(int i=0;i<ctx->skillgraph_node_count;i++){ RogueUISkillNodeRec* n=&ctx->skillgraph_nodes[i]; if(n->icon_id==icon){ n->rank=prev; return 1; } } return 0; }
 
 int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg){
     if(!ctx||!cfg){ fprintf(stderr,"INIT_FAIL null ctx or cfg\n"); return 0; }
