@@ -64,6 +64,10 @@ typedef struct RoguePlayer
     float guard_meter_max;
     float poise;            /* temporary stability buffer; damage to poise causes stagger when depleted */
     float poise_max;
+    /* --- Phase 3.2: Encumbrance rating & derived tier (affects stamina regen & move speed) --- */
+    float encumbrance;       /* current total equipped weight */
+    float encumbrance_capacity; /* capacity before overload */
+    int encumbrance_tier;    /* 0=light,1=medium,2=heavy,3=overloaded */
 } RoguePlayer;
 
 void rogue_player_init(RoguePlayer* p);

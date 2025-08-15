@@ -62,12 +62,12 @@ PHASE 2. Damage & Mitigation Pipeline
 
 PHASE 3. Stamina, Poise, Encumbrance & Hyper Armor
 3.1 Separate Stamina vs Guard Meter vs Poise (temporary stability buffer) (Done: added guard_meter/poise fields + max values to player & enemy structs; initialized and clamped in player init/recalc; basic presence & bounds test `test_combat_phase3_guard_poise`.)
-3.2 Encumbrance rating (derived from total equipped weight vs capacity) affecting: stamina regen, dodge i-frames, movement speed, roll distance (X)
+3.2 Encumbrance rating (derived from total equipped weight vs capacity) affecting: stamina regen, movement speed (Done: added encumbrance, capacity, tier calc to player; movement speed scaled by tier (0 light=1.0,1 med=0.9,2 heavy=0.75,3 overloaded=0.55); test `test_combat_phase3_encumbrance` validates tier progression impact on stamina regen ordering. Future: dodge i-frames & roll distance adjustments deferred.)
 3.3 Poise damage accumulation & stagger threshold (X)
 3.4 Hyper armor frames (poise ignore) authoring per attack window (X)
-3.5 Dynamic stamina tax scaling with encumbrance tiers (light/med/heavy/overloaded) (X)
+3.5 Dynamic stamina tax scaling with encumbrance tiers (light/med/heavy/overloaded) (Done: regen multiplier applied in combat update: 1.0 / 0.92 / 0.80 / 0.60; verified via `test_combat_phase3_encumbrance` decreasing regen values.)
 3.6 Soft cap on stacking defensive weight: diminishing returns curve on effective damage negation (X)
-3.7 Tests: encumbrance tier transitions, stamina regen under load, i-frame reduction bounds, DR curve monotonicity (X)
+3.7 Tests: encumbrance tier transitions, stamina regen under load, i-frame reduction bounds, DR curve monotonicity (Partial: added `test_combat_phase3_guard_poise` (guard/poise presence) and `test_combat_phase3_encumbrance` (regen order across tiers); i-frame & curve tests pending later sub-features.)
 3.8 Guard (blocking) state: directional reduction cone + chip damage (X)
 3.9 Perfect guard (parry timing window) producing posture break on attacker (X)
 3.10 Poise regen curve (delay + accelerated early regen) (X)

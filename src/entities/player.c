@@ -52,6 +52,7 @@ void rogue_player_init(RoguePlayer* p)
     /* Phase 3.1 new meters */
     p->guard_meter_max = 100.0f; p->guard_meter = p->guard_meter_max;
     p->poise_max = 60.0f; p->poise = p->poise_max;
+    p->encumbrance_capacity = 50.0f; p->encumbrance = 0.0f; p->encumbrance_tier=0;
     rogue_player_recalc_derived(p);
 }
 
@@ -77,4 +78,7 @@ void rogue_player_recalc_derived(RoguePlayer* p)
     /* Clamp new meters (recalc may later scale with stats/gear) */
     if(p->guard_meter > p->guard_meter_max) p->guard_meter = p->guard_meter_max;
     if(p->poise > p->poise_max) p->poise = p->poise_max;
+    /* Recompute encumbrance tier (simple thresholds) */
+    float ratio = (p->encumbrance_capacity>0)? (p->encumbrance / p->encumbrance_capacity) : 0.0f;
+    if(ratio < 0.40f) p->encumbrance_tier = 0; else if(ratio < 0.70f) p->encumbrance_tier = 1; else if(ratio < 1.0f) p->encumbrance_tier = 2; else p->encumbrance_tier = 3;
 }

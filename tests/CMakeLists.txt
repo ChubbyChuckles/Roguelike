@@ -314,6 +314,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase3_guard_poise.c AND 
     add_test(NAME test_combat_phase3_guard_poise COMMAND test_combat_phase3_guard_poise)
 endif()
 
+# Phase 3.2/3.5 encumbrance stamina regen scaling test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase3_encumbrance.c AND NOT TARGET test_combat_phase3_encumbrance)
+    add_executable(test_combat_phase3_encumbrance unit/test_combat_phase3_encumbrance.c)
+    target_link_libraries(test_combat_phase3_encumbrance PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase3_encumbrance PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase3_encumbrance COMMAND test_combat_phase3_encumbrance)
+endif()
+
 # Explicitly add combat drift timing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_drift_timing.c AND NOT TARGET test_combat_drift_timing)
     add_executable(test_combat_drift_timing unit/test_combat_drift_timing.c)

@@ -210,7 +210,14 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
         extern RoguePlayer g_exposed_player_for_stats; /* declared in app for access */
         float dex = (float)g_exposed_player_for_stats.dexterity;
         float intel = (float)g_exposed_player_for_stats.intelligence;
-        float regen = 0.055f + (dex*0.00085f) + (intel*0.00055f); /* slight buff */
+        float regen = 0.055f + (dex*0.00085f) + (intel*0.00055f); /* base regen */
+        /* Phase 3.5: dynamic stamina tax scaling by encumbrance tier */
+        switch(g_exposed_player_for_stats.encumbrance_tier){
+            case 1: regen *= 0.92f; break; /* medium */
+            case 2: regen *= 0.80f; break; /* heavy */
+            case 3: regen *= 0.60f; break; /* overloaded */
+            default: break; /* light unchanged */
+        }
         pc->stamina += dt_ms * regen; if(pc->stamina>100.0f) pc->stamina=100.0f; }
 }
 

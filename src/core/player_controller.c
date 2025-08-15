@@ -11,7 +11,14 @@ static int pc_tile_block(unsigned char t){
 }
 
 void rogue_player_controller_update(void){
+    /* Base speed adjusted by encumbrance tier: medium 0.9x, heavy 0.75x, overloaded 0.55x */
     float base_speed = (g_app.player_state==2)? g_app.run_speed : (g_app.player_state==1? g_app.walk_speed : 0.0f);
+    switch(g_app.player.encumbrance_tier){
+        case 1: base_speed *= 0.90f; break;
+        case 2: base_speed *= 0.75f; break;
+        case 3: base_speed *= 0.55f; break;
+        default: break; /* light unchanged */
+    }
     int ptx=(int)(g_app.player.base.pos.x+0.5f); int pty=(int)(g_app.player.base.pos.y+0.5f);
     float veg_scale = rogue_vegetation_tile_move_scale(ptx,pty);
     float speed = base_speed * veg_scale;
