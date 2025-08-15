@@ -69,7 +69,10 @@ if(ROGUE_CODE_COVERAGE)
 endif()
 
 add_library(rogue_core
-    src/core/app.c
+    src/core/app_init.c
+    src/core/app_step.c
+    src/core/app_lifecycle.c
+    src/core/app_test_helpers.c
     src/core/metrics.c
     src/core/app_state.c
     src/core/game_loop.c
@@ -122,10 +125,15 @@ add_library(rogue_core
     src/game/weapons.c
     src/game/armor.c
     src/core/enemy_system.c
+    src/core/enemy_system_spawn.c
+    src/core/enemy_system_ai.c
     src/core/start_screen.c
     src/core/player_assets.c
     src/util/log.c
-    src/core/vegetation.c
+    src/core/vegetation_defs.c
+    src/core/vegetation_generate.c
+    src/core/vegetation_render.c
+    src/core/vegetation_collision.c
     src/core/scene_drawlist.c
     src/core/loot_item_defs.c
     src/core/loot_tables.c
