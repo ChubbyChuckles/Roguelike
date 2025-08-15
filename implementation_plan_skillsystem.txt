@@ -29,7 +29,7 @@ PHASE 1A. Temporal Pacing Enhancements
 1A.2 Cast weaving rules: prevent two identical archetype casts below a minimum separation unless haste threshold reached (X)
 1A.3 Adaptive haste windows: temporary acceleration buffs adjust cast_time_ms & AP regen snapshot vs dynamic evaluation modes (X)
 1A.4 Early cancel windows (cast trimming): partial effect scaling (e.g., 70% progress grants 50% effect) (X)
-1A.5 Channel tick scheduler decoupled from frame time (fixed tick quantum with drift correction) (X)
+1A.5 Channel tick scheduler decoupled from frame time (fixed tick quantum with drift correction) (Partial: basic fixed 250ms quantum, no drift correction yet)
 1A.6 Tests: buffered queue ordering, haste snapshot determinism, early cancel scaling accuracy, channel tick drift bounds (X)
 
 PHASE 1.B. Skill Tree / Talent Graph (Early Skeleton - Open Allocation)

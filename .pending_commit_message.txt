@@ -7,4 +7,11 @@ Roadmap updated (1.2 Partial, 1.5 Done). README updated (Combat & Skills + chang
 
 Adds initial casting & channel support (1.3/1.4 partial): new fields `cast_time_ms`, `cast_type`, runtime flags, delayed effect on cast completion, channel duration tracking; test `test_skill_cast_and_channel` validates delayed completion and single-tick channel start.
 
-Next: additional EffectSpec kinds (DOT/HOT), stacking rules, snapshot vs dynamic scaling flags, richer channel tick scheduling, input buffering (1A.1), combo builder/spender logic, proc system groundwork.
+Implements basic channel tick scheduler (1A.5 partial):
+ - New state field `channel_next_tick_ms`.
+ - Fixed 250ms quantum ticking for channel skills (immediate + periodic ticks until end).
+ - EffectSpec application now occurs on each channel tick.
+ - Unit test `test_channel_ticks_and_buffer` validates expected tick count over 800ms channel.
+README & roadmap updated: 1A.5 marked Partial.
+
+Next: input buffering window (1A.1), drift-corrected tick scheduler & dynamic haste adjustment, additional EffectSpec kinds (DOT/HOT), stacking rules, snapshot vs dynamic scaling flags, combo builder/spender logic, proc system groundwork.

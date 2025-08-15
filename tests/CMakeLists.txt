@@ -94,6 +94,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skill_cast_and_channel.c AND NOT
     add_test(NAME test_skill_cast_and_channel COMMAND test_skill_cast_and_channel)
 endif()
 
+# Explicitly add channel ticks scheduler test (Phase 1A.5 partial)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_channel_ticks_and_buffer.c AND NOT TARGET test_channel_ticks_and_buffer)
+    add_executable(test_channel_ticks_and_buffer unit/test_channel_ticks_and_buffer.c)
+    target_link_libraries(test_channel_ticks_and_buffer PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_channel_ticks_and_buffer PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_channel_ticks_and_buffer COMMAND test_channel_ticks_and_buffer)
+endif()
+
 foreach(ut ${UNIT_TESTS})
     get_filename_component(name ${ut} NAME_WE)
     if(TARGET ${name})
