@@ -106,7 +106,11 @@ add_library(rogue_core
     src/graphics/png_wic.c
     src/input/input.c
     src/world/tilemap.c
-    src/world/world_gen.c
+    # world generation split for modularity
+    src/world/world_gen_core.c
+    src/world/world_gen_noise.c
+    src/world/world_gen_biomes.c
+    src/world/world_gen_features.c
     src/world/world_gen_config.c
     src/graphics/font.c
     src/entities/player.c
