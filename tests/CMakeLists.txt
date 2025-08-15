@@ -334,6 +334,24 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase3_poise_stagger.c AN
     add_test(NAME test_combat_phase3_poise_stagger COMMAND test_combat_phase3_poise_stagger)
 endif()
 
+# Phase 3.11 new precision tests
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase3_guard_cone_edge.c AND NOT TARGET test_combat_phase3_guard_cone_edge)
+    add_executable(test_combat_phase3_guard_cone_edge unit/test_combat_phase3_guard_cone_edge.c)
+    target_link_libraries(test_combat_phase3_guard_cone_edge PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase3_guard_cone_edge PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase3_guard_cone_edge COMMAND test_combat_phase3_guard_cone_edge)
+endif()
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase3_poise_stagger_precision.c AND NOT TARGET test_combat_phase3_poise_stagger_precision)
+    add_executable(test_combat_phase3_poise_stagger_precision unit/test_combat_phase3_poise_stagger_precision.c)
+    target_link_libraries(test_combat_phase3_poise_stagger_precision PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase3_poise_stagger_precision PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase3_poise_stagger_precision COMMAND test_combat_phase3_poise_stagger_precision)
+endif()
+
 # Phase 3.4 hyper armor flag plumbing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase3_hyper_armor.c AND NOT TARGET test_combat_phase3_hyper_armor)
     add_executable(test_combat_phase3_hyper_armor unit/test_combat_phase3_hyper_armor.c)

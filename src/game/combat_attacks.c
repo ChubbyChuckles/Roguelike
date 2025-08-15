@@ -17,7 +17,7 @@ static const RogueAttackDef g_light_chain[] = {
 static const RogueAttackDef g_heavy_chain[] = {
     {0,"heavy_1",ROGUE_WEAPON_HEAVY,0,170,90,180,24,28,14,0,0.45f,0.05f,0.00f,1,{{0,90,ROGUE_CANCEL_ON_HIT,1.0f,0,0,-1,-1}}, 0.0f, (ROGUE_CANCEL_ON_HIT), 0.65f, 3.5f, 0.0f},
     /* heavy_2: three staggered impact pulses (windows 0 & 1 overlap from 40-50ms to exercise stacking) */
-    {1,"heavy_2",ROGUE_WEAPON_HEAVY,1,190,105,200,28,35,18,0,0.50f,0.05f,0.00f,3,{{0,50,ROGUE_CANCEL_ON_HIT,0.55f,0.0f,0.00f,-1,-1},{40,80,ROGUE_CANCEL_ON_HIT,0.85f,0.03f,0.00f,-1,-1},{80,105,ROGUE_CANCEL_ON_HIT,1.25f,0.06f,0.02f,-1,-1}}, 0.0f, (ROGUE_CANCEL_ON_HIT), 0.65f, 4.0f, 0.0f},
+    {1,"heavy_2",ROGUE_WEAPON_HEAVY,1,190,105,200,28,35,18,0,0.50f,0.05f,0.00f,3,{{0,50,ROGUE_CANCEL_ON_HIT,0.55f,0.0f,0.00f,-1,-1},{40,80,ROGUE_CANCEL_ON_HIT|ROGUE_WINDOW_HYPER_ARMOR,0.85f,0.03f,0.00f,-1,-1},{80,105,ROGUE_CANCEL_ON_HIT,1.25f,0.06f,0.02f,-1,-1}}, 0.0f, (ROGUE_CANCEL_ON_HIT), 0.65f, 4.0f, 0.0f},
 };
 static const RogueAttackDef g_thrust_chain[] = {
     {0,"thrust_1",ROGUE_WEAPON_THRUST,0,120,55,110,13,12,7,0,0.14f,0.33f,0.00f,1,{{0,55,0,1.0f,0,0,-1,-1}}, 0.0f, (ROGUE_CANCEL_ON_HIT|ROGUE_CANCEL_ON_WHIFF), 0.45f, 0.8f, 0.0f},

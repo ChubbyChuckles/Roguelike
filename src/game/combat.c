@@ -326,6 +326,7 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             const RogueAttackWindow* w = &def->windows[wi];
             if(w->damage_mult > 0.0f) window_mult = w->damage_mult;
             bleed_build = w->bleed_build; frost_build = w->frost_build;
+            /* If any processed window carries hyper armor, enable it for the entire strike evaluation this frame. */
             if(w->flags & ROGUE_WINDOW_HYPER_ARMOR){ rogue_player_set_hyper_armor_active(1); }
         }
         for(int i=0;i<enemy_count;i++){
@@ -413,7 +414,7 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             }
         }
     }
-    /* Hyper armor active only during window processing; reset after evaluation. */
+    /* Hyper armor active only during window processing; reset after evaluation (covers all windows struck this frame). */
     rogue_player_set_hyper_armor_active(0);
     return kills;
 }
