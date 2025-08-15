@@ -80,7 +80,8 @@ See full, fine‑grained roadmap in `implementation_plan.txt` (kept continuously
 * Skill system supports active & passive examples (fireball, dash, passives) with forced short cooldowns under test macro.
 * Damage numbers decoupled from combat logic; spawn & lifetime tested for determinism.
 * Frame-accurate combo / crit / buffer chain tests ensure animation & timing regressions surface quickly.
-* Phase 1 (in progress): Added extended skill metadata (tags, charges, recharge timers, deterministic per-activation RNG seeding) and foundational unit test (`test_skills_phase1_basic`). Upcoming: EffectSpec abstraction, AP economy implementation, casting/channel progression & combo flags.
+* Phase 1 (in progress): Added extended skill metadata (tags, charges, recharge timers, deterministic per-activation RNG seeding) and foundational unit test (`test_skills_phase1_basic`).
+* Action Point (AP) economy core implemented (Phase 1.5 partial): player AP pool (scales with DEX), passive regeneration, per-skill `action_point_cost` gating, and unit test (`test_skills_ap_economy`) validating cost rejection & regen recovery. Soft throttle mechanic still pending.
 
 #### Loot Foundations (Phases 1–4)
 * Item definition parser tolerant to optional later-added rarity column (backward compatibility).
@@ -373,6 +374,7 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
 
 ### v0.8.x (Current Development Branch)
 **Added**
+* Action Point (AP) economy core (Phase 1.5 partial): player AP pool + regen + per-skill cost + tests.
 * Advanced loot generation context (enemy level / biome / archetype / player luck).
 * Seed mixing & deterministic multi‑pass generation.
 * Affix gating rules by item category.

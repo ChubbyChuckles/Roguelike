@@ -189,6 +189,7 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.time_since_player_hit_ms = 0.0f;
     g_app.health_regen_accum_ms = 0.0f;
     g_app.mana_regen_accum_ms = 0.0f;
+    g_app.ap_regen_accum_ms = 0.0f;
     g_app.levelup_aura_timer_ms = 0.0f;
     g_app.dmg_number_count = 0; g_app.spawn_accum_ms = 700.0; /* start beyond threshold so first spawn attempt happens next frame */
     /* Vendor & equipment UI initial state */

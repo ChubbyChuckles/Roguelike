@@ -92,17 +92,19 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx){
         }
         if(st->charges_cur<=0) return 0;
     }
-    /* Resource checks (simple mana for now) */
+    /* Resource checks */
     if(def->resource_cost_mana>0){ if(g_app.player.mana < def->resource_cost_mana) return 0; }
-    /* AP check: placeholder (AP not yet implemented in player; treat cost>0 as allowed) */
+    if(def->action_point_cost>0){ if(g_app.player.action_points < def->action_point_cost) return 0; }
     /* Deterministic RNG seed (id + uses) */
     RogueSkillCtx local_ctx = ctx? *ctx : (RogueSkillCtx){0};
     local_ctx.rng_state = (unsigned int)(id * 2654435761u) ^ (unsigned int)st->uses * 2246822519u;
     int consumed = 1;
     if(def->on_activate){ consumed = def->on_activate(def, st, &local_ctx); }
     if(consumed){
-        /* Spend mana */
+    /* Spend mana */
         if(def->resource_cost_mana>0){ g_app.player.mana -= def->resource_cost_mana; if(g_app.player.mana<0) g_app.player.mana=0; }
+    /* Spend AP */
+    if(def->action_point_cost>0){ g_app.player.action_points -= def->action_point_cost; if(g_app.player.action_points<0) g_app.player.action_points=0; st->action_points_spent_session += def->action_point_cost; }
         /* Spend charge */
         if(def->max_charges>0){ st->charges_cur--; if(st->charges_cur < def->max_charges && st->next_charge_ready_ms==0){ st->next_charge_ready_ms = now + def->charge_recharge_ms; } }
         /* Cooldown compute */

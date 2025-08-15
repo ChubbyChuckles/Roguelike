@@ -33,6 +33,9 @@ typedef struct RoguePlayer
     int max_health; /* derived */
     int mana;
     int max_mana; /* derived */
+    /* Action Points (Phase 1.5 core) */
+    int action_points;      /* current AP pool */
+    int max_action_points;  /* cap */
     int facing; /* 0=down,1=left,2=right,3=up */
     float anim_time;
     int anim_frame;

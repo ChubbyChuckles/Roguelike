@@ -1,1 +1,10 @@
+Phase 1.5 Action Point (AP) Economy Core
 
+Implemented foundational AP system:
+- Player AP pool (current + max) with derived scaling (DEX & level) in player stats.
+- Regen accumulator & update in `rogue_player_progress_update` (DEX-scaled interval & gain).
+- Skill activation gating & deduction via `action_point_cost` with session spend metric.
+- Unit test `test_skills_ap_economy` covers cost rejection and regen recovery path.
+- Roadmap updated (1.5 -> Partial). README updated (Combat & Skills + changelog).
+
+Next: soft throttle (temporary regen damp after burst), HUD visualization ring/overlay, persistence of AP (optional), integration with upcoming casting/channel mechanics.

@@ -33,6 +33,8 @@ void rogue_player_init(RoguePlayer* p)
     p->max_health = 0;
     p->mana = 0;
     p->max_mana = 0;
+    p->action_points = 0;
+    p->max_action_points = 0;
     p->facing = 0;
     p->anim_time = 0.0f;
     p->anim_frame = 0;
@@ -56,10 +58,15 @@ void rogue_player_recalc_derived(RoguePlayer* p)
     /* Mana scaling: modest base, intelligence focus */
     int old_mmax = p->max_mana;
     p->max_mana = 50 + p->intelligence * 5 + (p->level-1) * 8;
+    /* AP scaling: flat base + mild dexterity contribution */
+    int old_apmax = p->max_action_points;
+    p->max_action_points = 100 + p->dexterity * 2 + (p->level-1) * 3;
     if(p->health == 0 || p->health == old_max) p->health = p->max_health; /* fill to max on init or level-based rescale */
     if(p->health > p->max_health) p->health = p->max_health;
     if(p->mana == 0 || p->mana == old_mmax) p->mana = p->max_mana;
     if(p->mana > p->max_mana) p->mana = p->max_mana;
+    if(p->action_points == 0 || p->action_points == old_apmax) p->action_points = p->max_action_points;
+    if(p->action_points > p->max_action_points) p->action_points = p->max_action_points;
     if(p->crit_chance < 0) p->crit_chance = 0; if(p->crit_chance > 100) p->crit_chance = 100;
     if(p->crit_damage < 0) p->crit_damage = 0; if(p->crit_damage > 400) p->crit_damage = 400; /* cap 5x */
 }
