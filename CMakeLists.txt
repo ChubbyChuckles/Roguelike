@@ -87,7 +87,10 @@ add_library(rogue_core
     src/core/animation_system.c
     src/core/persistence.c
     src/core/persistence_autosave.c
-    src/core/skills.c
+    # skills module split
+    src/core/skills_registry.c
+    src/core/skills_runtime.c
+    src/core/skills_effects.c
     src/core/skill_tree.c
     src/core/skill_bar.c
     src/core/effect_spec.c
