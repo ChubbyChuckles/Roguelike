@@ -73,6 +73,10 @@ typedef struct RoguePlayer
     float guard_active_time_ms; /* time spent in current guard state */
     float perfect_guard_window_ms; /* cached window threshold (configurable) */
     float poise_regen_delay_ms; /* delay before poise begins regenerating after damage */
+    /* --- Phase 4.1+ Hit Reactions & I-Frames --- */
+    int reaction_type;          /* 0=none,1=light_flinch,2=stagger,3=knockdown,4=launch */
+    float reaction_timer_ms;    /* remaining reaction lock time */
+    float iframes_ms;           /* remaining invulnerability frames (dodge/parry) */
 } RoguePlayer;
 
 void rogue_player_init(RoguePlayer* p);

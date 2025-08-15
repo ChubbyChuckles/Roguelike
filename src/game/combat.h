@@ -91,6 +91,10 @@ int rogue_player_update_guard(RoguePlayer* p, float dt_ms);
 int rogue_player_apply_incoming_melee(RoguePlayer* p, float raw_damage, float attack_dir_x, float attack_dir_y, int poise_damage, int *out_blocked, int *out_perfect);
 /* Poise regeneration tick (Phase 3.10) separate to allow tests to drive deterministically. */
 void rogue_player_poise_regen_tick(RoguePlayer* p, float dt_ms);
+/* --- Phase 4 Reactions & I-Frames --- */
+void rogue_player_update_reactions(RoguePlayer* p, float dt_ms);
+/* Apply a reaction given cumulative poise damage or direct thresholds. This sets reaction_type & timers. */
+void rogue_player_apply_reaction(RoguePlayer* p, int reaction_type);
 /* Tunables (could move to config later) */
 #define ROGUE_GUARD_CONE_DOT 0.25f            /* minimum dot(facing, incoming) to count as frontal */
 #define ROGUE_GUARD_CHIP_PCT 0.20f            /* chip damage percent of mitigated damage (min 1) */

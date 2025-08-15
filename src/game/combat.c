@@ -450,6 +450,8 @@ int rogue_player_update_guard(RoguePlayer* p, float dt_ms){ if(!p) return 0; int
 static void rogue_player_facing_dir(const RoguePlayer* p, float* dx,float*dy){ switch(p->facing){ case 0:*dx=0;*dy=1;break; case 1:*dx=-1;*dy=0;break; case 2:*dx=1;*dy=0;break; case 3:*dx=0;*dy=-1;break; default:*dx=0;*dy=1;break; } }
 int rogue_player_apply_incoming_melee(RoguePlayer* p, float raw_damage, float attack_dir_x, float attack_dir_y, int poise_damage, int *out_blocked, int *out_perfect){
     if(out_blocked) *out_blocked=0; if(out_perfect) *out_perfect=0; if(!p) return (int)raw_damage;
+    /* Phase 4: if player currently has i-frames, ignore incoming melee entirely (no damage, no poise). */
+    if(p->iframes_ms > 0.0f){ return 0; }
     if(raw_damage < 0) raw_damage = 0;
     float fdx,fdy; rogue_player_facing_dir(p,&fdx,&fdy);
     float alen = sqrtf(attack_dir_x*attack_dir_x + attack_dir_y*attack_dir_y); if(alen>0.0001f){ attack_dir_x/=alen; attack_dir_y/=alen; }
@@ -462,7 +464,19 @@ int rogue_player_apply_incoming_melee(RoguePlayer* p, float raw_damage, float at
         if(out_blocked) *out_blocked = 1; if(perfect && out_perfect) *out_perfect = 1; return (int)chip;
     }
     /* Not blocked OR rear / cone fail: full damage; apply poise damage unless hyper armor active */
-    if(poise_damage>0 && !g_player_hyper_armor_active){ p->poise -= (float)poise_damage; if(p->poise < 0.0f) p->poise=0.0f; }
+    int triggered_reaction = 0;
+    if(poise_damage>0 && !g_player_hyper_armor_active){
+        float before = p->poise;
+        p->poise -= (float)poise_damage; if(p->poise < 0.0f) p->poise=0.0f;
+        if(before > 0.0f && p->poise <= 0.0f){ /* full poise break -> stagger reaction */
+            rogue_player_apply_reaction(p, 2); triggered_reaction=1; /* stagger */
+        }
+    }
+    /* Damage magnitude based reactions if not already triggered by poise: light flinch for moderate hit, knockdown for large. */
+    if(!triggered_reaction){
+        if(raw_damage >= 80){ rogue_player_apply_reaction(p,3); }
+        else if(raw_damage >= 25){ rogue_player_apply_reaction(p,1); }
+    }
     p->poise_regen_delay_ms = ROGUE_POISE_REGEN_DELAY_AFTER_HIT;
     return (int)raw_damage;
 }
@@ -472,3 +486,6 @@ void rogue_player_poise_regen_tick(RoguePlayer* p, float dt_ms){ if(!p) return; 
         float regen = (ROGUE_POISE_REGEN_BASE_PER_MS * dt_ms) * (1.0f + 1.75f * ratio * ratio); /* quadratic emphasis when low */
         p->poise += regen; if(p->poise > p->poise_max) p->poise = p->poise_max; }
 }
+/* ---------------- Phase 4: Reaction & I-Frame Logic ---------------- */
+void rogue_player_update_reactions(RoguePlayer* p, float dt_ms){ if(!p) return; if(p->reaction_timer_ms>0){ p->reaction_timer_ms -= dt_ms; if(p->reaction_timer_ms<=0){ p->reaction_timer_ms=0; p->reaction_type=0; }} if(p->iframes_ms>0){ p->iframes_ms -= dt_ms; if(p->iframes_ms<0) p->iframes_ms=0; } }
+void rogue_player_apply_reaction(RoguePlayer* p, int reaction_type){ if(!p) return; if(reaction_type<=0){ return; } p->reaction_type = reaction_type; switch(reaction_type){ case 1: p->reaction_timer_ms = 220.0f; break; /* light flinch */ case 2: p->reaction_timer_ms = 600.0f; break; /* stagger */ case 3: p->reaction_timer_ms = 900.0f; break; /* knockdown */ case 4: p->reaction_timer_ms = 1100.0f; break; /* launch */ default: p->reaction_timer_ms = 300.0f; break; } }
