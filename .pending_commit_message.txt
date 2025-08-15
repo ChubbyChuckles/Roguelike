@@ -1,12 +1,2 @@
-feat(ui): add Phase 2.2 interactive widgets (Button/Toggle/Slider/TextInput)
+feat(ui): implement Phase 2.3 containers & Phase 2.7 ID hashing (Row/Column/Grid helpers, layer node, FNV1a ids, tests)
 
-Implements immediate-mode interactive controls:
- - Button: click detection (hot/active), exposes click via node.value=1.0f.
- - Toggle: state flip on release inside bounds, color swap, state stored in node.value.
- - Slider: horizontal drag computing normalized t; updates bound float & node.value each frame.
- - TextInput: focus on click, accepts single char per frame + backspace, stores buffer pointer in node.text.
- - New input state struct & injection API (rogue_ui_set_input) with hot/active/focus indices tracked.
- - Unit test test_ui_phase2_interactive validates click→toggle release semantics, slider drag range, text input char + backspace behavior.
- - Roadmap Phase 2.2 marked Done; README updated with interactive widget progress note.
-
-Next steps: Phase 2.7 widget ID hashing & 2.8 focus/navigation graph before container/layout nodes (2.3) for stable addressing.

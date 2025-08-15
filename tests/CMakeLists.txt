@@ -929,6 +929,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase2_primitives.c AND NOT T
     add_test(NAME test_ui_phase2_primitives COMMAND test_ui_phase2_primitives)
 endif()
 
+# UI Phase 2.3/2.7 layout + id hashing test explicit add
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase2_layout_id.c AND NOT TARGET test_ui_phase2_layout_id)
+    add_executable(test_ui_phase2_layout_id unit/test_ui_phase2_layout_id.c)
+    target_link_libraries(test_ui_phase2_layout_id PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ui_phase2_layout_id PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ui_phase2_layout_id COMMAND test_ui_phase2_layout_id)
+endif()
+
 # UI Phase 2.2 interactive widgets test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase2_interactive.c AND NOT TARGET test_ui_phase2_interactive)
     add_executable(test_ui_phase2_interactive unit/test_ui_phase2_interactive.c)

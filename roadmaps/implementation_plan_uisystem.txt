@@ -26,12 +26,12 @@ PHASE 1. Core Architecture & Module Boundaries
 PHASE 2. Widget Primitives & Composition
 2.1 Core primitives: Panel, Text, Image, Sprite, ProgressBar (Done: nodes + unit test)
 2.2 Interactive: Button, Toggle, Slider, TextInput (buffer + cursor) (Done: basic hit testing, toggle, slider drag, text input focus + char/backspace handling, tests)
-2.3 Container + layout nodes: Row, Column, Grid, LayerStack (X)
+2.3 Container + layout nodes: Row, Column, Grid, LayerStack (Done: row/column incremental layout APIs, grid cell helper, layer node; unit test added)
 2.4 Scroll container with inertial scrolling & virtualization hooks (X)
 2.5 Tooltip system (hover intent timing, anchored) (X)
 2.6 Declarative widget DSL (C macro or data schema) (X)
-2.7 Widget ID hashing & stable path addressing (X)
-2.8 Focus & navigation graph (tab / arrow / controller) (X)
+2.7 Widget ID hashing & stable path addressing (Done: FNV1a hash from label, runtime lookup API, stable across frames test)
+2.8 Focus & navigation graph (Partial: tab cycling placeholder via text input Tab key; full graph pending)
 
 PHASE 3. Input Abstraction & Interaction Model
 3.1 Input routing priority (modal -> focused -> hovered -> global) (X)

@@ -34,6 +34,8 @@ typedef struct RogueUINode {
     int data_i0;        /* sprite sheet id / orientation */
     int data_i1;        /* sprite frame / reserved */
     int kind; /* 0=panel 1=text 2=image 3=sprite 4=progress 5=button 6=toggle 7=slider 8=textinput */
+    int parent_index;   /* index of parent container (-1 if root) */
+    uint32_t id_hash;   /* stable id hash (label + parent path) */
 } RogueUINode;
 
 typedef struct RogueUIInputState {
@@ -43,6 +45,8 @@ typedef struct RogueUIInputState {
     int mouse_released; /* 1 on release this frame */
     char text_char;     /* printable character input (ASCII) or 0 */
     int backspace;      /* 1 if backspace pressed this frame */
+    int key_tab;
+    int key_left, key_right, key_up, key_down;
 } RogueUIInputState;
 
 typedef struct RogueUIContext {
@@ -87,6 +91,17 @@ int rogue_ui_toggle(RogueUIContext* ctx, RogueUIRect r, const char* label, int* 
 int rogue_ui_slider(RogueUIContext* ctx, RogueUIRect r, float min_v, float max_v, float* value, uint32_t track_color, uint32_t fill_color);
 int rogue_ui_text_input(RogueUIContext* ctx, RogueUIRect r, char* buffer, int buffer_cap, uint32_t bg_color, uint32_t text_color);
 
+/* Layout (Phase 2.3) */
+int rogue_ui_row_begin(RogueUIContext* ctx, RogueUIRect r, int padding, int spacing);
+int rogue_ui_column_begin(RogueUIContext* ctx, RogueUIRect r, int padding, int spacing);
+/* Returns next child rect inside row/column advancing cursor */
+int rogue_ui_row_next(RogueUIContext* ctx, int row_index, float width, float height, RogueUIRect* out_rect);
+int rogue_ui_column_next(RogueUIContext* ctx, int col_index, float width, float height, RogueUIRect* out_rect);
+/* Grid helper: compute cell rect; does not push node (user passes result to widget call) */
+RogueUIRect rogue_ui_grid_cell(RogueUIRect grid_rect, int rows, int cols, int r, int c, int padding, int spacing);
+/* Layer stack: push layer container (data_i0 = layer order) */
+int rogue_ui_layer(RogueUIContext* ctx, RogueUIRect r, int layer_order);
+
 /* Accessors */
 const RogueUINode* rogue_ui_nodes(const RogueUIContext* ctx, int* count_out);
 
@@ -115,6 +130,10 @@ void rogue_ui_set_input(RogueUIContext* ctx, const RogueUIInputState* in);
 
 /* Query focus */
 int rogue_ui_focused_index(const RogueUIContext* ctx);
+
+/* ID hashing (Phase 2.7) */
+uint32_t rogue_ui_make_id(const char* label);
+const RogueUINode* rogue_ui_find_by_id(const RogueUIContext* ctx, uint32_t id_hash);
 
 #ifdef __cplusplus
 }
