@@ -28,12 +28,12 @@ PHASE M0. Current Baseline & Recent Refactors (Done)
  M0.17 Central CMake modular source list (Done)
 
 PHASE M1. Source Organization & Module Boundaries
- 1.1 Ownership doc per top-level folder (X)
- 1.2 MODULE.md per major module (purpose/API/invariants) (X)
- 1.3 Internal header naming standard audit (Partial)
- 1.4 Dependency boundary map + rules doc (X)
- 1.5 CI include guard: forbid private header cross-leak (X)
- 1.6 Namespace/prefix + static scope audit (X)
+ 1.1 Ownership doc per top-level folder (Done)
+ 1.2 MODULE.md per major module (purpose/API/invariants) (Done)
+ 1.3 Internal header naming standard audit (Done)
+ 1.4 Dependency boundary map + rules doc (Done)
+ 1.5 CI include guard: forbid private header cross-leak (Done)
+ 1.6 Namespace/prefix + static scope audit (Done)
 
 PHASE M2. API Encapsulation & Stability
  2.1 Public header pruning / opaque handles (X)

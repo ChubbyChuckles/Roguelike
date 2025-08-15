@@ -33,6 +33,29 @@ Focused on deterministic simulation, incremental feature layering, and maintaina
 
 ---
 
+### Maintainability & Module Boundaries (Phase M1 Complete)
+
+Foundational documentation and automated audit introduced:
+
+* `docs/OWNERSHIP.md` – clarifies review/maintenance responsibility per top-level module.
+* `docs/DEPENDENCY_BOUNDARIES.md` – enforced layering & private header visibility rules.
+* `docs/INTERNAL_HEADERS.md` – inventory of private `_internal.h` headers (kept in sync with refactors).
+* `tools/maint_audit.py` – lightweight static audit (run manually or wire into CI) checking:
+  - util/ isolation (no cross-module includes)
+  - no external inclusion of another module's `_internal.h`
+  - public header function name prefix (`rogue_`)
+  - simple include cycle detection
+
+Run locally:
+```
+python tools/maint_audit.py
+```
+Exit code !=0 flags a violation (see first printed AUDIT FAIL line).
+
+Next phases will build on this with API pruning (opaque handles), unified config schema & hot reload, and expanded test gates (see Maintainability Plan M2+).
+
+---
+
 ## 1. Overview
 This repository provides a layered implementation of a top‑down roguelike / Zelda‑like engine:
 * Core game loop, entity & world subsystems.
