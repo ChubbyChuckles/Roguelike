@@ -77,9 +77,9 @@ PHASE 4. Hit Reactions & Crowd Control Integration
 4.1 Reaction categories: light flinch, medium stagger, heavy knockdown, launch (Done: player struct extended with reaction_type, reaction_timer_ms; categories implemented (1..4) with duration table)
 4.2 Mapping damage/poise thresholds to reaction (Done: raw damage thresholds 25+ => flinch, 80+ => knockdown if no prior poise-triggered stagger; poise depletion triggers stagger reaction_type=2; launch reserved reaction_type=4 not yet triggered by thresholds)
 4.3 Invulnerability / i-frame layering (dodge, roll, parry) (Done: added iframes_ms, incoming melee early-out returns 0 damage when >0; test covers immunity)
-4.4 CC integration with skill system (stun, root, slow, disarm) (X)
+4.4 CC integration with skill system (stun, root, slow, disarm) (Done: added cc_* timers & speed/attack gating; stun & disarm suppress attack buffering; root blocks movement only; slow scales move speed (cap 95%); timers decrement each controller update.)
 4.5 Reaction cancel windows & DI (directional influence) (X)
-4.6 Tests: reaction selection determinism, i-frame overlap protection, DI effect bounds (Partial: selection determinism & i-frame immunity covered in `test_combat_phase4_reactions`; DI & extended CC tests pending)
+4.6 Tests: reaction selection determinism, i-frame overlap protection, DI effect bounds (Advanced: selection & i-frame in `test_combat_phase4_reactions`; CC gating in `test_combat_phase4_cc`; remaining DI influence & cancel window precision tests pending)
 
 PHASE 5. Spatial Targeting & Hit Detection
 5.1 Hitbox volume types: capsule, swept arc, multi-segment chain, projectile spawn descriptors (X)

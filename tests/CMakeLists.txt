@@ -361,6 +361,14 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase4_reactions.c AND NO
     endif()
     add_test(NAME test_combat_phase4_reactions COMMAND test_combat_phase4_reactions)
 endif()
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase4_cc.c AND NOT TARGET test_combat_phase4_cc)
+    add_executable(test_combat_phase4_cc unit/test_combat_phase4_cc.c)
+    target_link_libraries(test_combat_phase4_cc PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase4_cc PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase4_cc COMMAND test_combat_phase4_cc)
+endif()
 
 # Phase 3.4 hyper armor flag plumbing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase3_hyper_armor.c AND NOT TARGET test_combat_phase3_hyper_armor)

@@ -77,6 +77,12 @@ typedef struct RoguePlayer
     int reaction_type;          /* 0=none,1=light_flinch,2=stagger,3=knockdown,4=launch */
     float reaction_timer_ms;    /* remaining reaction lock time */
     float iframes_ms;           /* remaining invulnerability frames (dodge/parry) */
+    /* --- Phase 4.4 Crowd Control (stun, root, slow, disarm placeholders) --- */
+    float cc_stun_ms;           /* cannot move or attack */
+    float cc_root_ms;           /* cannot move but can attack */
+    float cc_slow_ms;           /* slow effect duration */
+    float cc_slow_pct;          /* 0..1 fraction speed reduction while slow active */
+    float cc_disarm_ms;         /* cannot attack (still move) */
 } RoguePlayer;
 
 void rogue_player_init(RoguePlayer* p);

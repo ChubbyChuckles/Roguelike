@@ -101,8 +101,12 @@ void rogue_combat_test_force_strike(RoguePlayerCombat* pc, float strike_time_ms)
     if(!pc) return; pc->phase = ROGUE_ATTACK_STRIKE; pc->strike_time_ms = strike_time_ms; pc->processed_window_mask=0; }
 
 void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_pressed){
+    /* Phase 4.4: if player stunned or disarmed, suppress attack input consumption */
+    extern struct RoguePlayer g_exposed_player_for_stats; /* reuse existing global for simplicity */
+    int suppressed = 0;
+    if(g_exposed_player_for_stats.cc_stun_ms > 0.0f || g_exposed_player_for_stats.cc_disarm_ms > 0.0f){ suppressed = 1; }
     /* Input buffering: remember press during windup/strike/recover */
-    if(attack_pressed){
+    if(attack_pressed && !suppressed){
         if(pc->phase==ROGUE_ATTACK_IDLE){
             pc->buffered_attack=1; /* will consume below */
         } else {
@@ -122,7 +126,7 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
     pc->timer = (float)pc->precise_accum_ms;
     if(pc->phase==ROGUE_ATTACK_IDLE){
         if(pc->recovered_recently){ pc->idle_since_recover_ms += dt_ms; if(pc->idle_since_recover_ms > 130.0f){ pc->recovered_recently=0; }}
-        if(pc->buffered_attack && def && pc->stamina >= def->stamina_cost){
+    if(pc->buffered_attack && def && pc->stamina >= def->stamina_cost && !suppressed){
             /* Late-chain grace: allow input pressed shortly (<130ms) after recovery ended to advance chain. */
             if(pc->recovered_recently && pc->idle_since_recover_ms < 130.0f){
                 if(pc->queued_branch_pending){
