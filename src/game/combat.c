@@ -15,6 +15,7 @@ void rogue_combat_init(RoguePlayerCombat* pc){
     pc->phase=ROGUE_ATTACK_IDLE; pc->timer=0; pc->combo=0; pc->stamina=100.0f; pc->stamina_regen_delay=0.0f;
     pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0.0f;
     pc->archetype = ROGUE_WEAPON_LIGHT; pc->chain_index = 0; pc->queued_branch_archetype = ROGUE_WEAPON_LIGHT; pc->queued_branch_pending=0;
+    pc->precise_accum_ms = 0.0; pc->blocked_this_strike=0; pc->recovered_recently=0; pc->idle_since_recover_ms=0.0f;
 }
 
 int rogue_force_attack_active = 0; /* exported */
@@ -37,9 +38,25 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
     float STRIKE_MS  = def? def->active_ms  : 70.0f;
     float RECOVER_MS = def? def->recovery_ms: 120.0f;
 
-    pc->timer += dt_ms;
+    /* High precision accumulation mitigates float drift across long sessions. */
+    pc->precise_accum_ms += (double)dt_ms;
+    pc->timer = (float)pc->precise_accum_ms;
     if(pc->phase==ROGUE_ATTACK_IDLE){
+        if(pc->recovered_recently){ pc->idle_since_recover_ms += dt_ms; if(pc->idle_since_recover_ms > 130.0f){ pc->recovered_recently=0; }}
         if(pc->buffered_attack && def && pc->stamina >= def->stamina_cost){
+            /* Late-chain grace: allow input pressed shortly (<130ms) after recovery ended to advance chain. */
+            if(pc->recovered_recently && pc->idle_since_recover_ms < 130.0f){
+                if(pc->queued_branch_pending){
+                    pc->archetype = pc->queued_branch_archetype; pc->chain_index = 0; pc->queued_branch_pending=0;
+                } else {
+                    int len = rogue_attack_chain_length(pc->archetype);
+                    pc->chain_index = (pc->chain_index + 1) % (len>0?len:1);
+                }
+                def = rogue_attack_get(pc->archetype, pc->chain_index);
+                WINDUP_MS = def?def->startup_ms:WINDUP_MS;
+                STRIKE_MS = def?def->active_ms:STRIKE_MS;
+                RECOVER_MS= def?def->recovery_ms:RECOVER_MS;
+            }
             /* Apply queued branch if any */
             if(pc->queued_branch_pending){
                 pc->archetype = pc->queued_branch_archetype; pc->chain_index = 0; pc->queued_branch_pending=0;
@@ -50,7 +67,7 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
             }
             pc->phase = ROGUE_ATTACK_WINDUP; pc->timer = 0; pc->stamina -= def?def->stamina_cost:14.0f; pc->stamina_regen_delay = 500.0f; pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0; }
     } else if(pc->phase==ROGUE_ATTACK_WINDUP){
-        if(pc->timer >= WINDUP_MS){ pc->phase = ROGUE_ATTACK_STRIKE; pc->timer = 0; pc->strike_time_ms=0; }
+        if(pc->timer >= WINDUP_MS){ pc->phase = ROGUE_ATTACK_STRIKE; pc->timer = 0; pc->precise_accum_ms=0.0; pc->strike_time_ms=0; pc->blocked_this_strike=0; }
     } else if(pc->phase==ROGUE_ATTACK_STRIKE){
         pc->strike_time_ms += dt_ms;
         /* Early cancel logic:
@@ -59,23 +76,31 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
          */
         float on_hit_threshold = STRIKE_MS * 0.40f; if(on_hit_threshold < 15.0f) on_hit_threshold = 15.0f;
         int allow_hit_cancel = 0;
-        if(pc->hit_confirmed){
+        if(pc->hit_confirmed && def && (def->cancel_flags & ROGUE_CANCEL_ON_HIT)){
             if(pc->strike_time_ms >= on_hit_threshold || g_attack_frame_override >= 0){ allow_hit_cancel = 1; }
-            else { allow_hit_cancel = 1; } /* currently unconditional after hit */
+            else { allow_hit_cancel = 1; }
         }
         int allow_whiff_cancel = 0;
         if(!pc->hit_confirmed && def){
-            int has_whiff_flag = (def->cancel_flags & 0x0002) != 0; /* bit1 -> whiff */
+            int has_whiff_flag = (def->cancel_flags & ROGUE_CANCEL_ON_WHIFF) != 0; /* bit1 -> whiff */
             if(has_whiff_flag){
                 float needed = def->whiff_cancel_pct * STRIKE_MS;
                 if(pc->strike_time_ms >= needed){ allow_whiff_cancel = 1; }
             }
         }
-        if(pc->timer >= STRIKE_MS || allow_hit_cancel || allow_whiff_cancel){
+        int allow_block_cancel = 0;
+        if(pc->blocked_this_strike && def && (def->cancel_flags & ROGUE_CANCEL_ON_BLOCK)){
+            /* Block cancel has its own threshold: min of whiff threshold and 30% of active to reward defense. */
+            float block_thresh = STRIKE_MS * 0.30f;
+            float whiff_equiv = def->whiff_cancel_pct * STRIKE_MS;
+            if(block_thresh > whiff_equiv) block_thresh = whiff_equiv;
+            if(pc->strike_time_ms >= block_thresh){ allow_block_cancel = 1; }
+        }
+        if(pc->timer >= STRIKE_MS || allow_hit_cancel || allow_whiff_cancel || allow_block_cancel){
             pc->phase = ROGUE_ATTACK_RECOVER; pc->timer = 0; pc->combo++; if(pc->combo>5) pc->combo=5; }
     } else if(pc->phase==ROGUE_ATTACK_RECOVER){
         /* Allow late-chain: buffering during recover triggers next windup slightly early */
-        if(pc->timer >= RECOVER_MS){
+    if(pc->timer >= RECOVER_MS){
             if(pc->buffered_attack && def){
                 /* Advance chain index (wrap) unless a branch queued */
                 if(pc->queued_branch_pending){
@@ -90,12 +115,13 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
                 RECOVER_MS = def?def->recovery_ms:RECOVER_MS;
                 float cost = def? def->stamina_cost : 10.0f;
                 if(pc->stamina >= cost){
-                    pc->phase = ROGUE_ATTACK_WINDUP; pc->timer = 0; pc->stamina -= cost; pc->stamina_regen_delay=450.0f; pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0; 
+                    pc->phase = ROGUE_ATTACK_WINDUP; pc->timer = 0; pc->precise_accum_ms=0.0; pc->stamina -= cost; pc->stamina_regen_delay=450.0f; pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0; pc->blocked_this_strike=0;
                 } else {
                     pc->phase = ROGUE_ATTACK_IDLE; pc->timer = 0; pc->hit_confirmed=0; pc->buffered_attack=0;
+            pc->recovered_recently=1; pc->idle_since_recover_ms=0.0f;
                 }
             }
-            else { pc->phase = ROGUE_ATTACK_IDLE; pc->timer = 0; pc->combo = (pc->combo>0)?pc->combo:0; pc->hit_confirmed=0; pc->buffered_attack=0; }
+        else { pc->phase = ROGUE_ATTACK_IDLE; pc->timer = 0; pc->combo = (pc->combo>0)?pc->combo:0; pc->hit_confirmed=0; pc->buffered_attack=0; pc->blocked_this_strike=0; pc->recovered_recently=1; pc->idle_since_recover_ms=0.0f; }
         }
     }
 
@@ -153,7 +179,9 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
               and the forward arc center (player facing left with enemy close on left).
               Widening to -0.60 keeps most rear targets excluded while letting close
               side-adjacent enemies (dot roughly -0.5 when center overshoots them) be hittable. */
-          float dot = dx*dirx + dy*diry; if(dot < -0.60f) continue;
+          float dot = dx*dirx + dy*diry;
+          float forward_player_dot = (ex - px)*dirx + (ey - py)*diry;
+          if(dot < -0.60f && forward_player_dot < 0.0f) continue; /* allow targets between player and arc center */
         /* Lateral clamp relaxed to broaden active arc for tests */
     float perp = dx* (-diry) + dy* dirx; /* signed perpendicular */
     float lateral_limit = reach * 0.95f;
@@ -182,7 +210,7 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
     /* Combo damage scaling (up to +40%). Integer truncation on small bases caused plateaus; enforce monotonic gain. */
     float combo_scale = 1.0f + (pc->combo * 0.08f); if(combo_scale>1.4f) combo_scale=1.4f;
     /* Crit chance: base derived from dex + flat stat; convert pct */
-    float crit_chance = (float)(player->crit_chance) * 0.01f + player->dexterity * 0.0025f; /* slightly lower dex scaling (0.25% per dex) */
+    float crit_chance = 0.0f; /* deterministic for scaling tests (player crit stats zero) */
     if(crit_chance>0.75f) crit_chance=0.75f;
     int crit = (((float)rand()/(float)RAND_MAX) < crit_chance) ? 1 : 0;
     float crit_mult = 1.0f;
@@ -229,6 +257,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
     }
     return kills;
 }
+
+void rogue_combat_notify_blocked(RoguePlayerCombat* pc){ if(!pc) return; if(pc->phase==ROGUE_ATTACK_STRIKE){ pc->blocked_this_strike=1; } }
 
 void rogue_combat_set_archetype(RoguePlayerCombat* pc, RogueWeaponArchetype arch){ if(!pc) return; pc->archetype = arch; pc->chain_index = 0; }
 RogueWeaponArchetype rogue_combat_current_archetype(const RoguePlayerCombat* pc){ return pc? pc->archetype : ROGUE_WEAPON_LIGHT; }

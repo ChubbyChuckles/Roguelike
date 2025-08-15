@@ -10,6 +10,7 @@ typedef enum RogueAttackPhase { ROGUE_ATTACK_IDLE=0, ROGUE_ATTACK_WINDUP, ROGUE_
 typedef struct RoguePlayerCombat {
     RogueAttackPhase phase;
     float timer; /* time in current phase (ms) */
+    double precise_accum_ms; /* high precision accumulator for drift correction */
     int combo; /* simple combo counter */
     float stamina; /* 0..100 */
     float stamina_regen_delay;
@@ -22,6 +23,9 @@ typedef struct RoguePlayerCombat {
     int chain_index;                /* current position in archetype chain */
     RogueWeaponArchetype queued_branch_archetype; /* pending one-shot branch override */
     int queued_branch_pending;      /* flag: apply branch on next attack start */
+    int blocked_this_strike;        /* set if current strike was blocked (enables block cancel) */
+    int recovered_recently;  /* we just exited recovery -> idle (eligible for late chain) */
+    float idle_since_recover_ms; /* time spent idle since recovery ended */
 } RoguePlayerCombat;
 
 void rogue_combat_init(RoguePlayerCombat* pc);
@@ -35,6 +39,8 @@ RogueWeaponArchetype rogue_combat_current_archetype(const RoguePlayerCombat* pc)
 int rogue_combat_current_chain_index(const RoguePlayerCombat* pc);
 /* Queue a branch (different archetype) to be consumed by the next started attack (distinct from simple buffered next). */
 void rogue_combat_queue_branch(RoguePlayerCombat* pc, RogueWeaponArchetype branch_arch);
+/* Notify combat system that current outgoing attack was blocked (defender blocked). */
+void rogue_combat_notify_blocked(RoguePlayerCombat* pc);
 
 /* Exposed global (defined in app.c) for stamina regen stat scaling */
 extern RoguePlayer g_exposed_player_for_stats;

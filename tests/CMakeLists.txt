@@ -199,6 +199,28 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_navigation.c AND NOT TARGET test
     add_test(NAME test_navigation COMMAND test_navigation)
 endif()
 
+# Explicitly add combat block cancel test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_block_cancel.c AND NOT TARGET test_combat_block_cancel)
+    add_executable(test_combat_block_cancel unit/test_combat_block_cancel.c)
+    target_link_libraries(test_combat_block_cancel PRIVATE rogue_core)
+    target_compile_definitions(test_combat_block_cancel PRIVATE TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_block_cancel PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_block_cancel COMMAND test_combat_block_cancel)
+endif()
+
+# Explicitly add combat drift timing test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_drift_timing.c AND NOT TARGET test_combat_drift_timing)
+    add_executable(test_combat_drift_timing unit/test_combat_drift_timing.c)
+    target_link_libraries(test_combat_drift_timing PRIVATE rogue_core)
+    target_compile_definitions(test_combat_drift_timing PRIVATE TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_drift_timing PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_drift_timing COMMAND test_combat_drift_timing)
+endif()
+
 # Explicitly add passive skills test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_passive.c AND NOT TARGET test_skills_passive)
     add_executable(test_skills_passive unit/test_skills_passive.c)

@@ -43,10 +43,16 @@ typedef struct RogueAttackDef {
     float bleed_build;              /* status buildup contributions (future pipeline) */
     float frost_build;
     // Cancel flag bits (expand later):
-    // 0x0001 = can cancel on hit confirm (not yet used)
-    // 0x0002 = can early-cancel on whiff after whiff_cancel_pct of active window has elapsed
-    // Additional bits reserved for block, parry, dodge, special, etc.
+    // 0x0001 = early cancel on hit confirm allowed
+    // 0x0002 = early cancel on whiff after whiff_cancel_pct of active window elapsed
+    // 0x0004 = early cancel when attack is blocked (deflected) via notify hook
+    // Additional bits reserved for parry, dodge, special, etc.
 } RogueAttackDef;
+
+/* Cancel flag convenience macros */
+#define ROGUE_CANCEL_ON_HIT   0x0001
+#define ROGUE_CANCEL_ON_WHIFF 0x0002
+#define ROGUE_CANCEL_ON_BLOCK 0x0004
 
 /* Returns pointer to attack def for archetype + chain index (wrap/clamp). */
 const RogueAttackDef* rogue_attack_get(RogueWeaponArchetype arch, int chain_index);

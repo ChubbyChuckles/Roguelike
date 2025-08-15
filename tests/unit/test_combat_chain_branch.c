@@ -22,10 +22,10 @@ int main(){
     assert(rogue_combat_current_archetype(&combat)==ROGUE_WEAPON_LIGHT);
     /* Start first attack */
     rogue_combat_update_player(&combat, 0, 1); /* press */
-    simulate_ms(&combat, 1000.0f); /* allow full cycle to finish (chained) */
-    /* Buffer next attack late in recovery */
+    simulate_ms(&combat, 260.0f); /* windup+strike+most of recovery (light_1 total 110+70+120=300) */
+    /* Press during tail of recovery to chain */
     rogue_combat_update_player(&combat, 0, 1);
-    simulate_ms(&combat, 1000.0f);
+    simulate_ms(&combat, 400.0f); /* finish recovery + perform second attack */
     int idx_after_two = rogue_combat_current_chain_index(&combat);
     assert(idx_after_two==2 || idx_after_two==1); /* should progress along chain (wrap possible) */
     /* Queue branch to heavy archetype */
