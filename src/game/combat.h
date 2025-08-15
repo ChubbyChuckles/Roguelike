@@ -38,6 +38,11 @@ typedef struct RoguePlayerCombat {
     int parry_active; float parry_window_ms; float parry_timer_ms; int riposte_ready; float riposte_window_ms;
     /* Phase 6.4 Backstab positional crit grace timer (prevents repeat spam) */
     float backstab_cooldown_ms;
+    /* Phase 6.2 Aerial attack & landing lag */
+    int aerial_attack_pending; /* set when player is airborne and next strike gets aerial bonus */
+    float landing_lag_ms;      /* applied after aerial strike */
+    /* Phase 6.6 Guard break separate flag */
+    int guard_break_ready;
 } RoguePlayerCombat;
 
 /* Event type ids (extend later): */
@@ -158,5 +163,10 @@ int rogue_player_try_riposte(struct RoguePlayer* p, struct RoguePlayerCombat* pc
 /* Phase 6.6 Guard break follow-up check */
 void rogue_player_set_guard_break(struct RoguePlayer* p, struct RoguePlayerCombat* pc);
 int rogue_player_consume_guard_break_bonus(struct RoguePlayerCombat* pc);
+/* Phase 6.2 Aerial helpers */
+void rogue_player_set_airborne(struct RoguePlayer* p, struct RoguePlayerCombat* pc);
+int rogue_player_is_airborne(const struct RoguePlayer* p);
+/* Phase 6.7 Projectile deflection/reflection API (returns 1 if deflected) */
+int rogue_player_try_deflect_projectile(struct RoguePlayer* p, struct RoguePlayerCombat* pc, float proj_dir_x, float proj_dir_y, float *out_reflect_dir_x, float *out_reflect_dir_y);
 
 #endif

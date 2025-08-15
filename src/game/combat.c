@@ -95,6 +95,7 @@ void rogue_combat_init(RoguePlayerCombat* pc){
     pc->precise_accum_ms = 0.0; pc->blocked_this_strike=0; pc->recovered_recently=0; pc->idle_since_recover_ms=0.0f; pc->processed_window_mask=0; pc->emitted_events_mask=0; pc->event_count=0;
     pc->charging=0; pc->charge_time_ms=0.0f; pc->pending_charge_damage_mult=1.0f;
     pc->parry_active=0; pc->parry_window_ms=160.0f; pc->parry_timer_ms=0.0f; pc->riposte_ready=0; pc->riposte_window_ms=650.0f; pc->backstab_cooldown_ms=0.0f;
+    pc->aerial_attack_pending=0; pc->landing_lag_ms=0.0f; pc->guard_break_ready=0;
 }
 
 int rogue_force_attack_active = 0; /* exported */
@@ -203,7 +204,7 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
             if(pc->strike_time_ms >= block_thresh){ allow_block_cancel = 1; }
         }
     if(pc->strike_time_ms >= STRIKE_MS || allow_hit_cancel || allow_whiff_cancel || allow_block_cancel){
-            pc->phase = ROGUE_ATTACK_RECOVER; pc->timer = 0; pc->combo++; if(pc->combo>5) pc->combo=5; }
+            pc->phase = ROGUE_ATTACK_RECOVER; pc->timer = 0; pc->combo++; if(pc->combo>5) pc->combo=5; if(pc->landing_lag_ms>0){ /* extend recovery by landing lag */ pc->precise_accum_ms = - (double)pc->landing_lag_ms; pc->landing_lag_ms = 0.0f; } }
     } else if(pc->phase==ROGUE_ATTACK_RECOVER){
         /* Allow late-chain: buffering during recover triggers next windup slightly early */
     if(pc->timer >= RECOVER_MS){
@@ -452,6 +453,17 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
     rogue_player_set_hyper_armor_active(0);
     if(pc->pending_charge_damage_mult > 1.0f){ pc->pending_charge_damage_mult = 1.0f; }
     return kills;
+}
+/* Aerial / landing & projectile reflection (Phase 6.2 & 6.7) */
+void rogue_player_set_airborne(RoguePlayer* p, RoguePlayerCombat* pc){ (void)p; if(!pc) return; pc->aerial_attack_pending=1; }
+int rogue_player_is_airborne(const RoguePlayer* p){ (void)p; return 0; /* placeholder always grounded (full jump system not yet implemented) */ }
+int rogue_player_try_deflect_projectile(RoguePlayer* p, RoguePlayerCombat* pc, float proj_dir_x, float proj_dir_y, float *out_reflect_dir_x, float *out_reflect_dir_y){
+    if(!p||!pc) return 0; /* Defensive window: parry active or perfect guard window triggers deflect */
+    int can_deflect = 0; if(pc->parry_active) can_deflect=1; if(pc->riposte_ready) can_deflect=1; if(!can_deflect) return 0;
+    /* Reflect direction = towards facing direction (normalize facing) */
+    float fdx=0,fdy=0; switch(p->facing){ case 0:fdy=1;break; case 1:fdx=-1;break; case 2:fdx=1;break; case 3:fdy=-1;break; }
+    if(out_reflect_dir_x) *out_reflect_dir_x = fdx; if(out_reflect_dir_y) *out_reflect_dir_y = fdy;
+    (void)proj_dir_x; (void)proj_dir_y; return 1;
 }
 
 void rogue_combat_notify_blocked(RoguePlayerCombat* pc){ if(!pc) return; if(pc->phase==ROGUE_ATTACK_STRIKE){ pc->blocked_this_strike=1; } }
