@@ -59,6 +59,11 @@ typedef struct RoguePlayer
     int resist_poison; /* placeholder */
     int pen_flat;      /* flat armor penetration */
     int pen_percent;   /* percent armor penetration (0-100) */
+    /* --- Phase 3.1: Separate resource meters (stamina vs guard vs poise) --- */
+    float guard_meter;      /* depletes while guarding (directional block) */
+    float guard_meter_max;
+    float poise;            /* temporary stability buffer; damage to poise causes stagger when depleted */
+    float poise_max;
 } RoguePlayer;
 
 void rogue_player_init(RoguePlayer* p);

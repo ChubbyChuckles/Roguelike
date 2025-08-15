@@ -49,6 +49,9 @@ void rogue_player_init(RoguePlayer* p)
     p->crit_damage = 50; /* base 1.5x */
     /* Phase 2 baseline mitigation & penetration */
     p->armor = 0; p->resist_physical=0; p->resist_fire=0; p->resist_frost=0; p->resist_arcane=0; p->resist_bleed=0; p->resist_poison=0; p->pen_flat=0; p->pen_percent=0;
+    /* Phase 3.1 new meters */
+    p->guard_meter_max = 100.0f; p->guard_meter = p->guard_meter_max;
+    p->poise_max = 60.0f; p->poise = p->poise_max;
     rogue_player_recalc_derived(p);
 }
 
@@ -71,4 +74,7 @@ void rogue_player_recalc_derived(RoguePlayer* p)
     if(p->action_points > p->max_action_points) p->action_points = p->max_action_points;
     if(p->crit_chance < 0) p->crit_chance = 0; if(p->crit_chance > 100) p->crit_chance = 100;
     if(p->crit_damage < 0) p->crit_damage = 0; if(p->crit_damage > 400) p->crit_damage = 400; /* cap 5x */
+    /* Clamp new meters (recalc may later scale with stats/gear) */
+    if(p->guard_meter > p->guard_meter_max) p->guard_meter = p->guard_meter_max;
+    if(p->poise > p->poise_max) p->poise = p->poise_max;
 }

@@ -61,7 +61,7 @@ PHASE 2. Damage & Mitigation Pipeline
 2.8 Tests: mitigation order correctness, penetration stacking, crit vs armor invariants (Expanded: `test_combat_mitigation`, `test_combat_penetration`, `test_combat_crit_layering`, `test_combat_execution`, `test_combat_damage_events`, `test_combat_phys_resist_curve` cover armor->phys resist ordering, elemental resist, damage floor, penetration ordering, crit layering invariants, execution trigger flags, event emission integrity, and monotonic diminishing returns behavior of physical resist curve.)
 
 PHASE 3. Stamina, Poise, Encumbrance & Hyper Armor
-3.1 Separate Stamina vs Guard Meter vs Poise (temporary stability buffer) (X)
+3.1 Separate Stamina vs Guard Meter vs Poise (temporary stability buffer) (Done: added guard_meter/poise fields + max values to player & enemy structs; initialized and clamped in player init/recalc; basic presence & bounds test `test_combat_phase3_guard_poise`.)
 3.2 Encumbrance rating (derived from total equipped weight vs capacity) affecting: stamina regen, dodge i-frames, movement speed, roll distance (X)
 3.3 Poise damage accumulation & stagger threshold (X)
 3.4 Hyper armor frames (poise ignore) authoring per attack window (X)

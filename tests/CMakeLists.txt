@@ -304,6 +304,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phys_resist_curve.c AND N
     add_test(NAME test_combat_phys_resist_curve COMMAND test_combat_phys_resist_curve)
 endif()
 
+# Phase 3.1 guard & poise meter presence test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase3_guard_poise.c AND NOT TARGET test_combat_phase3_guard_poise)
+    add_executable(test_combat_phase3_guard_poise unit/test_combat_phase3_guard_poise.c)
+    target_link_libraries(test_combat_phase3_guard_poise PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase3_guard_poise PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase3_guard_poise COMMAND test_combat_phase3_guard_poise)
+endif()
+
 # Explicitly add combat drift timing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_drift_timing.c AND NOT TARGET test_combat_drift_timing)
     add_executable(test_combat_drift_timing unit/test_combat_drift_timing.c)
