@@ -254,6 +254,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase4_reaction_cancel_di
     add_test(NAME test_combat_phase4_reaction_cancel_di COMMAND test_combat_phase4_reaction_cancel_di)
 endif()
 
+# Explicitly add Phase 4.6 i-frame overlap protection test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase4_iframe_overlap.c AND NOT TARGET test_combat_phase4_iframe_overlap)
+    add_executable(test_combat_phase4_iframe_overlap unit/test_combat_phase4_iframe_overlap.c)
+    target_link_libraries(test_combat_phase4_iframe_overlap PRIVATE rogue_core)
+    target_compile_definitions(test_combat_phase4_iframe_overlap PRIVATE TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase4_iframe_overlap PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase4_iframe_overlap COMMAND test_combat_phase4_iframe_overlap)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_mitigation.c AND NOT TARGET test_combat_mitigation)
     add_executable(test_combat_mitigation unit/test_combat_mitigation.c)
     target_link_libraries(test_combat_mitigation PRIVATE rogue_core)

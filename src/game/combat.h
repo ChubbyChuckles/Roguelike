@@ -99,6 +99,8 @@ void rogue_player_apply_reaction(RoguePlayer* p, int reaction_type);
 int rogue_player_try_reaction_cancel(RoguePlayer* p);
 /* Phase 4.5: Apply directional influence during an active reaction (dx,dy in -1..1). */
 void rogue_player_apply_reaction_di(RoguePlayer* p, float dx, float dy);
+/* Phase 4.6: Grant i-frames (overlap protection: takes max, not additive). */
+void rogue_player_add_iframes(RoguePlayer* p, float ms);
 /* Tunables (could move to config later) */
 #define ROGUE_GUARD_CONE_DOT 0.25f            /* minimum dot(facing, incoming) to count as frontal */
 #define ROGUE_GUARD_CHIP_PCT 0.20f            /* chip damage percent of mitigated damage (min 1) */

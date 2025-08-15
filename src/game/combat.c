@@ -558,3 +558,4 @@ void rogue_player_apply_reaction_di(RoguePlayer* p, float dx, float dy){
         p->reaction_di_accum_x *= scale; p->reaction_di_accum_y *= scale;
     }
 }
+void rogue_player_add_iframes(RoguePlayer* p, float ms){ if(!p) return; if(ms<=0) return; if(p->iframes_ms < ms) p->iframes_ms = ms; }
