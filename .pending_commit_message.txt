@@ -1,10 +1,9 @@
-Phase 1.5 Action Point (AP) Economy Core
+feat(skills): minimal EffectSpec system (Phase 1.2 partial) + skill linkage
 
-Implemented foundational AP system:
-- Player AP pool (current + max) with derived scaling (DEX & level) in player stats.
-- Regen accumulator & update in `rogue_player_progress_update` (DEX-scaled interval & gain).
-- Skill activation gating & deduction via `action_point_cost` with session spend metric.
-- Unit test `test_skills_ap_economy` covers cost rejection and regen recovery path.
-- Roadmap updated (1.5 -> Partial). README updated (Combat & Skills + changelog).
+Implements a foundational EffectSpec registry (module `effect_spec.c/h`) with first STAT_BUFF kind.
+Extends `RogueSkillDef` with `effect_spec_id` and auto-applies linked effect on successful activation.
+Adds new buff type `ROGUE_BUFF_STAT_STRENGTH`.
+Unit test `test_effectspec_basic` registers a strength buff spec, links to a skill, activates, and asserts correct buff magnitude.
+Roadmap updated (1.2 -> Partial) and README highlights updated.
 
-Next: soft throttle (temporary regen damp after burst), HUD visualization ring/overlay, persistence of AP (optional), integration with upcoming casting/channel mechanics.
+Retains previously added AP economy (1.5 partial). Next steps: AP soft throttle, DOT/HOT effect kinds, stacking rules, snapshot vs dynamic scaling flags, effect persistence & HUD indicators.

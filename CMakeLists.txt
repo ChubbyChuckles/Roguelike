@@ -87,6 +87,7 @@ add_library(rogue_core
     src/core/skills.c
     src/core/skill_tree.c
     src/core/skill_bar.c
+    src/core/effect_spec.c
     src/core/buffs.c
     src/core/projectiles.c
     src/core/damage_calc.c

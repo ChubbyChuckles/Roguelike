@@ -41,6 +41,7 @@ typedef struct RogueSkillDef {
     unsigned char combo_builder;/* flag: grants combo point (1.3 placeholder) */
     unsigned char combo_spender;/* flag: spends combo points */
     unsigned char reserved_u8;  /* padding future */
+    int effect_spec_id;          /* unified EffectSpec reference (1.2) */
 } RogueSkillDef;
 
 /* Tag bits */

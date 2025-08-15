@@ -5,7 +5,7 @@
 extern "C" { 
 #endif
 
-typedef enum RogueBuffType { ROGUE_BUFF_POWER_STRIKE = 0, ROGUE_BUFF_MAX } RogueBuffType;
+typedef enum RogueBuffType { ROGUE_BUFF_POWER_STRIKE = 0, ROGUE_BUFF_STAT_STRENGTH = 1, ROGUE_BUFF_MAX } RogueBuffType;
 
 typedef struct RogueBuff { int active; RogueBuffType type; double end_ms; int magnitude; } RogueBuff;
 

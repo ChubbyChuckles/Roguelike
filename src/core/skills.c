@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Forward (defined in effect_spec.c) - placed at file scope to avoid C4210 warning under MSVC */
+void rogue_effect_apply(int effect_spec_id, double now_ms);
+
 /* Forward declaration (implemented in persistence.c) */
 void rogue_persistence_save_player_stats(void);
 
@@ -116,7 +119,9 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx){
 #endif
         st->cooldown_end_ms = now + cd;
         st->uses++;
-        st->last_cast_ms = now;
+    st->last_cast_ms = now;
+    /* Auto-apply linked EffectSpec if present */
+    if(def->effect_spec_id >=0){ rogue_effect_apply(def->effect_spec_id, now); }
     }
     return consumed;
 }
