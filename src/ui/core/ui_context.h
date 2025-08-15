@@ -133,6 +133,11 @@ typedef struct RogueUIContext {
     int skillgraph_node_count;
     int skillgraph_node_capacity;
     void* skillgraph_quadtree; /* opaque pointer (rebuilt each build) */
+    /* Phase 5.3 Animation state */
+    struct { int icon_id; float remaining_ms; } skillgraph_pulses[32];
+    int skillgraph_pulse_count;
+    struct { int icon_id; float remaining_ms; float y_offset; int amount; } skillgraph_spends[32];
+    int skillgraph_spend_count;
 } RogueUIContext;
 
 int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg);
@@ -256,6 +261,10 @@ void rogue_ui_skillgraph_begin(RogueUIContext* ctx, float view_x, float view_y, 
 void rogue_ui_skillgraph_add(RogueUIContext* ctx, float world_x, float world_y, int icon_id, int rank, int max_rank, int synergy);
 /* Build (emit UI nodes) with quadtree culling. Returns number of visible skill nodes emitted (base icons counted once). */
 int rogue_ui_skillgraph_build(RogueUIContext* ctx);
+/* Phase 5.3: Trigger a rank pulse animation (brief highlight/panel overlay). */
+void rogue_ui_skillgraph_pulse(RogueUIContext* ctx, int icon_id);
+/* Phase 5.3: Spawn a currency spend flyout (e.g., talent point cost). */
+void rogue_ui_skillgraph_spend_flyout(RogueUIContext* ctx, int icon_id, int amount);
 
 /* Phase 4 event kinds */
 enum { ROGUE_UI_EVENT_NONE=0, ROGUE_UI_EVENT_DRAG_BEGIN=1, ROGUE_UI_EVENT_DRAG_END=2, ROGUE_UI_EVENT_STACK_SPLIT_OPEN=3, ROGUE_UI_EVENT_STACK_SPLIT_APPLY=4, ROGUE_UI_EVENT_STACK_SPLIT_CANCEL=5,

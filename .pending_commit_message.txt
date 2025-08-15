@@ -9,3 +9,30 @@ Details:
 - Updated roadmap marking 5.1 Done and 5.2 Partial.
 
 Follow-ups (deferred): icon spritesheet integration, animation pulses, allocation interactions, lazy quadtree reuse & pooling.
+
+UI Phase 5.2 & 5.3: Skill Graph Layering + Allocation Animations
+
+Summary:
+- Completed node layering (previously partial). Each skill now emits a stacked set of nodes: background panel, synergy glow underlay (color 0x30307040u), rank ring, icon sprite (placeholder sheet=0 frame=icon_id), per-rank pip bars (filled + empty overlay styling), and rank text.
+- Implemented allocation pulse (280ms) and currency spend flyout (600ms upward drift + fade) animations with fixed-size arrays `skillgraph_pulses[32]` / `skillgraph_spends[32]` stored in `RogueUIContext`.
+- Added public trigger APIs: `rogue_ui_skillgraph_pulse(icon_id)` and `rogue_ui_skillgraph_spend_flyout(icon_id, amount)`.
+- Integrated animation advancement & compaction into `rogue_ui_begin` (decrement remaining_ms, remove expired in-place with swap pop).
+- Layered emit function now overlays active pulses (scale + alpha modulation) and spend flyout rising text nodes after base node emission.
+- Updated existing test `test_ui_phase5_skillgraph` for new synergy glow color (0x30307040u) and added new unit test `test_ui_phase5_skillgraph_anim` validating animation creation and expiry over simulated frames.
+- Updated roadmap: 5.2 and 5.3 marked Done with implementation details; README updated with new Phase 5.2/5.3 entries.
+
+Implementation Notes:
+- Timing constants: PULSE_MS=280, SPEND_MS=600 (inline literals; future centralization in theme/animation config planned for Phase 8.x).
+- Animation arrays sized at 32 each (ample for typical burst allocations; future dynamic pool possible if exceeded).
+- Placeholder sprite usage allows future icon atlas without structural changes.
+- Chose underlay glow color intensification (0x30307040u) for better contrast versus prior 0x20206060u; tests updated accordingly.
+
+Deferred Follow-ups:
+- Passive synergy aggregate panel (Phase 5.4), search/filter (5.5), serialization (5.6), undo buffer (5.7).
+- Reduced motion toggle integration (Phase 7.5) to optionally suppress pulse/flyout animations.
+- Quadtree reuse across frames to reduce per-frame rebuild cost.
+- Icon atlas data-driven mapping + rarity or tag-based pip styling variants.
+
+Testing:
+- Both unit tests pass locally (`test_ui_phase5_skillgraph`, `test_ui_phase5_skillgraph_anim`).
+

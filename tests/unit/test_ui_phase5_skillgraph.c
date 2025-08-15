@@ -29,8 +29,8 @@ int main(){
     /* Ensure quadtree culling removed far nodes: expect less than total 50 */
     /* emitted counts UI primitives (panel + pips + glow) so can exceed raw node count; ensure some nodes visible */
     if(emitted<=0){ printf("FAIL nothing emitted after build\n"); failures++; }
-    /* Ensure at least one synergy glow panel (we used color 0x20206060) */
-    int count=0; const RogueUINode* nodes = rogue_ui_nodes(&ui,&count); int glow_found=0; for(int i=0;i<count;i++){ if(nodes[i].color==0x20206060u){ glow_found=1; break; } }
+    /* Ensure at least one synergy glow panel (current glow color 0x30307040) */
+    int count=0; const RogueUINode* nodes = rogue_ui_nodes(&ui,&count); int glow_found=0; for(int i=0;i<count;i++){ if(nodes[i].color==0x30307040u){ glow_found=1; break; } }
     if(!glow_found){ printf("FAIL synergy glow panel missing\n"); failures++; }
     if(!failures) printf("test_ui_phase5_skillgraph: OK (emitted=%d total_nodes=%d)\n",emitted,count); else printf("test_ui_phase5_skillgraph: FAIL (%d)\n",failures);
     rogue_ui_shutdown(&ui); return failures?1:0; }

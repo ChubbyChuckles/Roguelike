@@ -46,7 +46,13 @@ void rogue_process_events(void){
         if(ev.type==SDL_QUIT){ rogue_game_loop_request_exit(); }
         rogue_input_process_sdl_event(&g_app.input,&ev);
     if(ev.type==SDL_KEYDOWN && !g_app.show_start_screen){
-            if(rogue_skill_tree_is_open()){ rogue_skill_tree_handle_key(ev.key.keysym.sym); continue; }
+            /* Allow vendor/equipment panel toggles even while skill tree UI is open. */
+            if(rogue_skill_tree_is_open()){
+                if(ev.key.keysym.sym!=SDLK_v && ev.key.keysym.sym!=SDLK_e){
+                    rogue_skill_tree_handle_key(ev.key.keysym.sym);
+                    continue; /* consume all other keys while tree is open */
+                }
+            }
             if(ev.key.keysym.sym==SDLK_TAB){ g_app.show_stats_panel=!g_app.show_stats_panel; }
             if(ev.key.keysym.sym==SDLK_v){ g_app.show_vendor_panel = !g_app.show_vendor_panel; g_app.vendor_selection = 0; }
             if(ev.key.keysym.sym==SDLK_e){ g_app.show_equipment_panel = !g_app.show_equipment_panel; }

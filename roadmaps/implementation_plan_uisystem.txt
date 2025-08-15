@@ -55,8 +55,8 @@ PHASE 4. Inventory / Equipment / Vendor Interfaces
 
 PHASE 5. Skill Tree / Progression UI
 5.1 Zoomable panning skill graph (quad‑tree culling) (Done: basic world->screen transform, quadtree build, culling, emission API + unit test `test_ui_phase5_skillgraph`)
-5.2 Node layering: base icon, rank pips, synergy glow (Partial: base panel, rank pip bars, synergy glow ring implemented; pending distinct icon sprite & pip styling variants)
-5.3 Rank allocation animations (pulse, currency spend flyout) (X)
+5.2 Node layering: base icon, rank pips, synergy glow (Done: layered emission now includes background panel, synergy glow underlay color 0x30307040u, rank ring, icon sprite placeholder sheet=0, per-rank pip bars with fill overlay, rank text; updated unit test)
+5.3 Rank allocation animations (pulse, currency spend flyout) (Done: pulse (280ms scale+fade) & spend flyout (600ms upward fade) implemented with arrays skillgraph_pulses[32]/skillgraph_spends[32]; lifecycle advanced in rogue_ui_begin; unit test `test_ui_phase5_skillgraph_anim` validates creation & expiry)
 5.4 Passive synergy aggregate panel (X)
 5.5 Search / filter by tag (fire, movement, defense) (X)
 5.6 Build export/import serialization (X)
