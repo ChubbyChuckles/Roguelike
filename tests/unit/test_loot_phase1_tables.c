@@ -1,21 +1,26 @@
 #include "core/loot_item_defs.h"
 #include "core/loot_tables.h"
+#include "core/path_utils.h"
 #include <assert.h>
 #include <stdio.h>
 
 int main(void){
     rogue_item_defs_reset();
-    int items_added = rogue_item_defs_load_from_cfg("../assets/test_items.cfg");
+    char pitems[256]; assert(rogue_find_asset_path("test_items.cfg", pitems, sizeof pitems));
+    int items_added = rogue_item_defs_load_from_cfg(pitems);
     assert(items_added >= 3);
     rogue_loot_tables_reset();
-    int tables_added = rogue_loot_tables_load_from_cfg("../assets/test_loot_tables.cfg");
-    assert(tables_added >= 1);
-    int idx = rogue_loot_table_index("GOBLIN_BASIC");
+    char ptables[256]; assert(rogue_find_asset_path("test_loot_tables.cfg", ptables, sizeof ptables));
+    int tables_added = rogue_loot_tables_load_from_cfg(ptables);
+    if(tables_added < 1){ fprintf(stderr,"LOAD_TABLES_FAIL added=%d path=%s\n", tables_added, ptables); return 1; }
+    /* Test originally referenced GOBLIN_BASIC which no longer exists; use ORC_BASE from test_loot_tables.cfg */
+    int idx = rogue_loot_table_index("ORC_BASE");
     assert(idx >= 0);
     unsigned int seed = 12345u;
     int out_idx[16]; int out_qty[16];
     int drops = rogue_loot_roll(idx, &seed, 16, out_idx, out_qty);
-    assert(drops >= 1);
+    /* Table rolls_min=1 so deterministic path should give >=1; treat zero as hard fail */
+    if(drops < 1){ fprintf(stderr,"LOOT_TABLE_ROLL_FAIL drops=%d idx=%d entries=%d tables=%d tables_added=%d path=%s\n", drops, idx, rogue_item_defs_count(), rogue_loot_tables_count(), tables_added, ptables); return 2; }
     for(int i=0;i<drops;i++){
         assert(out_idx[i] >= 0 && out_idx[i] < rogue_item_defs_count());
         assert(out_qty[i] >= 0);

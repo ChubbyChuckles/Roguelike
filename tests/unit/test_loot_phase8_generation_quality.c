@@ -18,10 +18,11 @@ static int fail(const char* m){ printf("FAIL:%s\n", m); return 1; }
 static int is_weapon(int def_index){ const RogueItemDef* d = rogue_item_def_at(def_index); return d && d->category==ROGUE_ITEM_WEAPON; }
 
 int main(void){
+    rogue_drop_rates_reset();
     rogue_affixes_reset(); char apath[256]; if(!rogue_find_asset_path("affixes.cfg", apath, sizeof apath)) return fail("affix_path");
     if(rogue_affixes_load_from_cfg(apath) < 4) return fail("affix_load");
-    rogue_item_defs_reset(); if(rogue_item_defs_load_from_cfg("../../assets/test_items.cfg")<=0) return fail("item_defs");
-    rogue_loot_tables_reset(); if(rogue_loot_tables_load_from_cfg("../../assets/test_loot_tables.cfg")<=0) return fail("tables");
+    rogue_item_defs_reset(); char pitems[256]; if(!rogue_find_asset_path("test_items.cfg", pitems, sizeof pitems)) return fail("items_path"); if(rogue_item_defs_load_from_cfg(pitems)<=0) return fail("item_defs");
+    rogue_loot_tables_reset(); char ptables[256]; if(!rogue_find_asset_path("test_loot_tables.cfg", ptables, sizeof ptables)) return fail("tables_path"); if(rogue_loot_tables_load_from_cfg(ptables)<=0) return fail("tables");
     rogue_items_init_runtime();
     rogue_generation_set_quality_scalar(1.0f, 2.5f);
     RogueGenerationContext low_ctx; low_ctx.enemy_level=5; low_ctx.biome_id=0; low_ctx.enemy_archetype=1; low_ctx.player_luck=0;

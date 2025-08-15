@@ -1,5 +1,6 @@
 #include "core/loot_item_defs.h"
 #include "core/loot_tables.h"
+#include "core/path_utils.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -7,12 +8,12 @@
 typedef struct DistSpec { const char* table_id; const char* item_id; int allow_min; int allow_max; } DistSpec;
 
 int main(void){
-    rogue_item_defs_reset();
-    int items = rogue_item_defs_load_from_cfg("../../assets/test_items.cfg");
-    assert(items>0);
-    rogue_loot_tables_reset();
-    int tables = rogue_loot_tables_load_from_cfg("../../assets/test_loot_tables.cfg");
-    assert(tables>0);
+    rogue_drop_rates_reset();
+    rogue_loot_dyn_reset();
+    rogue_item_defs_reset(); char pitems[256]; assert(rogue_find_asset_path("test_items.cfg", pitems, sizeof pitems));
+    int items = rogue_item_defs_load_from_cfg(pitems); assert(items>0);
+    rogue_loot_tables_reset(); char ptables[256]; assert(rogue_find_asset_path("test_loot_tables.cfg", ptables, sizeof ptables));
+    int tables = rogue_loot_tables_load_from_cfg(ptables); assert(tables>0);
 
     DistSpec specs[] = {
         {"ORC_BASE", "long_sword", 0, 2},

@@ -2,15 +2,18 @@
 #include "core/loot_tables.h"
 #include "core/loot_item_defs.h"
 #include "core/loot_dynamic_weights.h"
+#include "core/path_utils.h"
 #include <assert.h>
 #include <stdio.h>
 
 int main(void){
     rogue_loot_dyn_reset();
-    rogue_item_defs_reset(); int items = rogue_item_defs_load_from_cfg("../../assets/test_items.cfg"); assert(items>0);
-    rogue_loot_tables_reset(); int tables = rogue_loot_tables_load_from_cfg("../../assets/test_loot_tables.cfg"); assert(tables>0);
+    rogue_drop_rates_reset();
+    rogue_item_defs_reset(); char pitems[256]; assert(rogue_find_asset_path("test_items.cfg", pitems, sizeof pitems)); int items = rogue_item_defs_load_from_cfg(pitems); assert(items>0);
+    rogue_loot_tables_reset(); char ptables[256]; assert(rogue_find_asset_path("test_loot_tables.cfg", ptables, sizeof ptables)); int tables = rogue_loot_tables_load_from_cfg(ptables); assert(tables>0);
     int t = rogue_loot_table_index("SKELETON_WARRIOR"); assert(t>=0);
     unsigned int seedA=123u, seedB=123u;
+    (void)seedB;
     /* Baseline sample rarities */
     int idef[32], qty[32], rar_base[32]; int drops1 = rogue_loot_roll_ex(t,&seedA,32,idef,qty,rar_base); assert(drops1>0);
     /* Heavy bias legendary */
