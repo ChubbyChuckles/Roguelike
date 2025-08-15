@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <math.h>
 
 static unsigned int xorshift32(unsigned int* s){ unsigned int x=*s; x^=x<<13; x^=x>>17; x^=x<<5; *s=x; return x; }
 
@@ -108,14 +109,44 @@ RogueUIRect rogue_ui_scroll_apply(const RogueUIContext* ctx, int scroll_index, R
 /* Tooltip (Phase 2.5) */
 int rogue_ui_tooltip(RogueUIContext* ctx, int target_index, const char* text, uint32_t bg_color, uint32_t text_color, int delay_ms){ if(!ctx||!ctx->frame_active||!text||target_index<0||target_index>=ctx->node_count) return -1; if(ctx->hot_index==target_index){ if(ctx->last_hover_index!=target_index){ ctx->last_hover_index=target_index; ctx->last_hover_start_ms=ctx->time_ms; } if((ctx->time_ms - ctx->last_hover_start_ms) >= (double)delay_ms){ RogueUIRect tr = ctx->nodes[target_index].rect; RogueUIRect tip={tr.x+tr.w+6.0f, tr.y, 160.0f, 24.0f}; int panel = rogue_ui_panel(ctx,tip,bg_color); if(panel>=0){ RogueUIRect text_r=tip; rogue_ui_text(ctx,text_r,text,text_color); } return panel; } } else { if(ctx->last_hover_index==target_index){ ctx->last_hover_index=-1; } } return -1; }
 
-/* Navigation (Phase 2.8) basic tab/arrow linear focus */
-void rogue_ui_navigation_update(RogueUIContext* ctx){ if(!ctx||!ctx->frame_active) return; int focusable_first=-1; int focusable_count=0; /* Count interactive kinds */ for(int i=0;i<ctx->node_count;i++){ int k=ctx->nodes[i].kind; if(k>=5 && k<=8){ if(focusable_first==-1) focusable_first=i; focusable_count++; } }
-    if(focusable_count==0) return; if(ctx->focus_index<0 || ctx->focus_index>=ctx->node_count){ ctx->focus_index=focusable_first; }
-    if(ctx->input.key_tab){ int next = ctx->focus_index+1; if(next>=ctx->node_count) next=focusable_first; /* advance until focusable */ while(next!=ctx->focus_index){ int k=ctx->nodes[next].kind; if(k>=5&&k<=8){ ctx->focus_index=next; break; } next++; if(next>=ctx->node_count) next=focusable_first; }
-    }
-    /* Arrow navigation (left/right iterate siblings in same row; up/down iterate sequentially) simplistic placeholder */
-    if(ctx->input.key_right||ctx->input.key_left||ctx->input.key_up||ctx->input.key_down){ int dir = (ctx->input.key_right||ctx->input.key_down)? 1:-1; int start=ctx->focus_index; int cur=start; for(;;){ cur+=dir; if(cur>=ctx->node_count) cur=0; if(cur<0) cur=ctx->node_count-1; if(cur==start) break; int k=ctx->nodes[cur].kind; if(k>=5&&k<=8){ ctx->focus_index=cur; break; } } }
+/* Navigation (Phase 2.8) advanced directional heuristics */
+void rogue_ui_navigation_update(RogueUIContext* ctx){
+    if(!ctx||!ctx->frame_active) return;
+    int focusable_count=0; for(int i=0;i<ctx->node_count;i++){ int k=ctx->nodes[i].kind; if(k>=5&&k<=8) focusable_count++; }
+    if(!focusable_count) return;
+    int move_h=0, move_v=0, activate=0;
+    if(ctx->input.key_left) move_h=-1; else if(ctx->input.key_right) move_h=1;
+    if(ctx->input.key_up) move_v=-1; else if(ctx->input.key_down) move_v=1;
+    if(ctx->input.key_tab) move_h=1;
+    if(ctx->input.key_activate) activate=1;
+    if(ctx->focus_index<0||ctx->focus_index>=ctx->node_count){ /* choose first focusable */ for(int i=0;i<ctx->node_count;i++){ int k=ctx->nodes[i].kind; if(k>=5&&k<=8){ ctx->focus_index=i; break; } } }
+    if(ctx->focus_index<0) return;
+    if(activate){ RogueUINode* cur=&ctx->nodes[ctx->focus_index]; if(cur->kind==5){ cur->value = 1.0f; } else if(cur->kind==6){ cur->value = (cur->value==0.0f)?1.0f:0.0f; } }
+    if(!move_h && !move_v) return;
+    RogueUINode* cur=&ctx->nodes[ctx->focus_index]; float cx=cur->rect.x+cur->rect.w*0.5f; float cy=cur->rect.y+cur->rect.h*0.5f;
+    int best=-1; float best_score=1e9f;
+    for(int i=0;i<ctx->node_count;i++){ if(i==ctx->focus_index) continue; int k=ctx->nodes[i].kind; if(k<5||k>8) continue; RogueUINode* n=&ctx->nodes[i]; float nx=n->rect.x+n->rect.w*0.5f; float ny=n->rect.y+n->rect.h*0.5f; float dx=nx-cx; float dy=ny-cy; if(move_h){ if(move_h<0 && dx>=-1e-3f) continue; if(move_h>0 && dx<=1e-3f) continue; } if(move_v){ if(move_v<0 && dy>=-1e-3f) continue; if(move_v>0 && dy<=1e-3f) continue; } float primary = move_h? fabsf(dx):fabsf(dy); float secondary = move_h? fabsf(dy):fabsf(dx); if(secondary > primary*2.5f) continue; float dist = (float)sqrt(dx*dx+dy*dy); float score = dist + secondary*0.25f + primary*0.1f; if(score<best_score){ best_score=score; best=i; } }
+    if(best>=0){ ctx->focus_index=best; return; }
+    /* fallback linear wrap */
+    int dir = (move_h>0||move_v>0)?1:-1; int start=ctx->focus_index; int curi=start; for(;;){ curi+=dir; if(curi>=ctx->node_count) curi=0; if(curi<0) curi=ctx->node_count-1; if(curi==start) break; int k=ctx->nodes[curi].kind; if(k>=5&&k<=8){ ctx->focus_index=curi; break; } }
 }
+
+/* Phase 3 scaffolding implementations (stubs / storage already added in context) */
+void rogue_ui_set_modal(RogueUIContext* ctx, int modal_index){ if(!ctx) return; ctx->modal_index=modal_index; }
+void rogue_ui_set_controller(RogueUIContext* ctx, const RogueUIControllerState* st){ if(!ctx||!st) return; ctx->controller=*st; }
+static char g_clipboard[256];
+void rogue_ui_clipboard_set(const char* text){ if(!text) text=""; size_t i=0; for(; i<sizeof(g_clipboard)-1 && text[i]; ++i) g_clipboard[i]=text[i]; g_clipboard[i]='\0'; }
+const char* rogue_ui_clipboard_get(void){ return g_clipboard; }
+void rogue_ui_ime_start(void){}
+void rogue_ui_ime_cancel(void){}
+void rogue_ui_ime_commit(RogueUIContext* ctx, const char* text){ (void)ctx; (void)text; }
+void rogue_ui_key_repeat_config(RogueUIContext* ctx, double initial_delay_ms, double interval_ms){ if(!ctx) return; ctx->key_repeat_initial_ms=initial_delay_ms; ctx->key_repeat_interval_ms=interval_ms; }
+int rogue_ui_register_chord(RogueUIContext* ctx, char k1, char k2, int command_id){ if(!ctx) return 0; if(ctx->chord_count>=8) return 0; ctx->chord_commands[ctx->chord_count].k1=k1; ctx->chord_commands[ctx->chord_count].k2=k2; ctx->chord_commands[ctx->chord_count].command_id=command_id; ctx->chord_count++; return 1; }
+int rogue_ui_last_command(const RogueUIContext* ctx){ return ctx? ctx->last_command_executed:0; }
+void rogue_ui_replay_start_record(RogueUIContext* ctx){ if(!ctx) return; ctx->replay_recording=1; ctx->replay_playing=0; ctx->replay_count=0; }
+void rogue_ui_replay_stop_record(RogueUIContext* ctx){ if(!ctx) return; ctx->replay_recording=0; }
+void rogue_ui_replay_start_playback(RogueUIContext* ctx){ if(!ctx) return; ctx->replay_playing=1; ctx->replay_recording=0; ctx->replay_cursor=0; }
+int rogue_ui_replay_step(RogueUIContext* ctx){ if(!ctx) return 0; if(!ctx->replay_playing) return 0; if(ctx->replay_cursor>=ctx->replay_count){ ctx->replay_playing=0; return 0; } ctx->input = ctx->replay_buffer[ctx->replay_cursor++]; return 1; }
 
 const RogueUINode* rogue_ui_nodes(const RogueUIContext* ctx, int* count_out){ if(count_out) *count_out = ctx? ctx->node_count:0; return ctx? ctx->nodes:NULL; }
 

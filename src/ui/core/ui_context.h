@@ -48,7 +48,15 @@ typedef struct RogueUIInputState {
     int backspace;      /* 1 if backspace pressed this frame */
     int key_tab;
     int key_left, key_right, key_up, key_down;
+    int key_activate;   /* generic activation (Enter / controller A) */
+    int key_ctrl;       /* control modifier held */
 } RogueUIInputState;
+
+typedef struct RogueUIControllerState {
+    float axis_x; /* -1..1 */
+    float axis_y; /* -1..1 */
+    int button_a; /* primary */
+} RogueUIControllerState;
 
 typedef struct RogueUIContext {
     RogueUITheme theme;
@@ -78,6 +86,20 @@ typedef struct RogueUIContext {
     /* Tooltip hover tracking */
     double last_hover_start_ms;
     int last_hover_index;
+    /* Modal routing */
+    int modal_index; /* >=0 if modal root is active */
+    /* Controller mapping */
+    RogueUIControllerState controller;
+    /* Key repeat timing */
+    double key_repeat_accum[8];
+    int key_repeat_state[8];
+    double key_repeat_initial_ms;
+    double key_repeat_interval_ms;
+    /* Chorded shortcuts (two-step) */
+    struct { char k1; char k2; int command_id; } chord_commands[8];
+    int chord_count; char pending_chord; double pending_chord_time_ms; double chord_timeout_ms; int last_command_executed;
+    /* Input replay */
+    int replay_recording; int replay_playing; int replay_count; int replay_cursor; RogueUIInputState replay_buffer[512];
 } RogueUIContext;
 
 int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg);
@@ -121,6 +143,32 @@ int rogue_ui_tooltip(RogueUIContext* ctx, int target_index, const char* text, ui
 
 /* Focus & Navigation (Phase 2.8) */
 void rogue_ui_navigation_update(RogueUIContext* ctx);
+
+/* Modal routing (Phase 3.1) */
+void rogue_ui_set_modal(RogueUIContext* ctx, int modal_index);
+
+/* Controller input (Phase 3.2) */
+void rogue_ui_set_controller(RogueUIContext* ctx, const RogueUIControllerState* st);
+
+/* Clipboard & IME stubs (Phase 3.3) */
+void rogue_ui_clipboard_set(const char* text);
+const char* rogue_ui_clipboard_get(void);
+void rogue_ui_ime_start(void);
+void rogue_ui_ime_cancel(void);
+void rogue_ui_ime_commit(RogueUIContext* ctx, const char* text);
+
+/* Key repeat config (Phase 3.4) */
+void rogue_ui_key_repeat_config(RogueUIContext* ctx, double initial_delay_ms, double interval_ms);
+
+/* Chorded shortcuts (Phase 3.5) */
+int rogue_ui_register_chord(RogueUIContext* ctx, char k1, char k2, int command_id);
+int rogue_ui_last_command(const RogueUIContext* ctx);
+
+/* Input replay (Phase 3.6) */
+void rogue_ui_replay_start_record(RogueUIContext* ctx);
+void rogue_ui_replay_stop_record(RogueUIContext* ctx);
+void rogue_ui_replay_start_playback(RogueUIContext* ctx);
+int rogue_ui_replay_step(RogueUIContext* ctx); /* returns 0 when finished */
 
 /* Declarative Widget DSL (Phase 2.6) */
 #define UI_PANEL(ctx,X,Y,W,H,COLOR)      rogue_ui_panel((ctx),(RogueUIRect){(X),(Y),(W),(H)},(COLOR))

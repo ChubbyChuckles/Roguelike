@@ -1,3 +1,6 @@
+feat(ui): complete Phase 2.8 directional navigation & add Phase 3 input scaffolding
+
+Implemented advanced directional focus navigation selecting nearest neighbor with axis bias and linear wrap fallback; activation now toggles buttons/toggles via generic key. Added Phase 3 scaffolding: modal index, controller state, clipboard & IME stubs, key repeat config fields, chord shortcut registration, and input replay buffer APIs. Updated roadmap marking 2.8 Done and Phase 3 items Partial, extended UI context header with new APIs. All Phase 2 tests pass (4/4) confirming no regressions.
 feat(ui): implement Phase 2.3 containers & Phase 2.7 ID hashing (Row/Column/Grid helpers, layer node, FNV1a ids, tests)
 
 feat(ui): implement Phases 2.4–2.6 (scroll container, tooltip system, DSL macros) + expand navigation (tab/arrow), tests

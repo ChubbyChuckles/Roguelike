@@ -31,15 +31,15 @@ PHASE 2. Widget Primitives & Composition
 2.5 Tooltip system (hover intent timing, anchored) (Done: delayed hover -> panel + text spawn)
 2.6 Declarative widget DSL (C macro or data schema) (Done: initial C convenience macros for Panel/Text/Button)
 2.7 Widget ID hashing & stable path addressing (Done: FNV1a hash from label, runtime lookup API, stable across frames test)
-2.8 Focus & navigation graph (Partial: linear Tab and arrow key cycling across interactive widgets; directional heuristics & spatial graph pending)
+2.8 Focus & navigation graph (Done: directional heuristics selecting nearest neighbor with axis bias + activation; wraps fallback)
 
 PHASE 3. Input Abstraction & Interaction Model
-3.1 Input routing priority (modal -> focused -> hovered -> global) (X)
-3.2 Controller mapping: analog navigation & action binding layer (X)
-3.3 Text input IME support stub & clipboard integration (X)
-3.4 Key repeat timing & acceleration curve (X)
-3.5 Chorded shortcut / command palette infrastructure (X)
-3.6 Automated input replay for UI tests (X)
+3.1 Input routing priority (modal -> focused -> hovered -> global) (Partial: context fields + modal setter; routing logic pending)
+3.2 Controller mapping: analog navigation & action binding layer (Partial: controller state struct + setter; nav not yet reading axes)
+3.3 Text input IME support stub & clipboard integration (Partial: clipboard in‑memory stub + IME stub functions)
+3.4 Key repeat timing & acceleration curve (Partial: config + storage fields; repeat processing not executed yet)
+3.5 Chorded shortcut / command palette infrastructure (Partial: chord registration storage + last command retrieval)
+3.6 Automated input replay for UI tests (Partial: replay buffer + record/playback stepping APIs; integration pending)
 
 PHASE 4. Inventory / Equipment / Vendor Interfaces
 4.1 Inventory grid widget with slot virtualization (partial redraw) (X)

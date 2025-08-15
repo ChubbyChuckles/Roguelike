@@ -157,6 +157,11 @@ See full, fine‑grained roadmap in `implementation_plan.txt` (kept continuously
 * Cast Weaving (Phase 1A.2 partial): `min_weave_ms` enforces spacing between identical cast skill activations; tested in `test_cast_weave_and_cancel`.
 * Early Cancel (Phase 1A.4 partial): `rogue_skill_try_cancel` allows terminating a cast after a minimum progress threshold applying scaled effect (`partial_scalar`); covered by `test_cast_weave_and_cancel`.
 
+#### UI System (Phases 1–2 Complete, Phase 3 Scaffolding Started)
+* Phase 1 Core: Context, deterministic RNG channel, frame begin/end, simulation snapshot pointer (read-only), text serialization + FNV-1a diff hash, per-frame arena allocator (text duplication helper).
+* Phase 2 Primitives & Interaction: Panel/Text/Image/Sprite/ProgressBar plus Button/Toggle/Slider/TextInput with focus & hot/active indices; layout containers (Row/Column/Grid helper/Layer), scroll container (wheel delta), tooltip delayed hover spawn, declarative DSL macros, widget ID hashing (label->FNV1a lookup), and now completed directional navigation graph (Phase 2.8) using spatial heuristics (nearest neighbor with axis bias + linear wrap fallback). All covered by dedicated unit tests (`test_ui_phase2_primitives`, `test_ui_phase2_interactive`, `test_ui_phase2_layout_id`, `test_ui_phase2_scroll_tooltip_nav`).
+* Phase 3 (in progress – scaffolding): Added modal routing field, controller state struct + setter, clipboard & IME stub APIs, key repeat configuration storage, chorded shortcut registration (storage + last command query), and input replay buffer with record/playback stepping API. Roadmap updated marking 2.8 Done and 3.1–3.6 Partial (implementation logic to follow).
+
 #### Loot Foundations (Phases 1–4)
 * Item definition parser tolerant to optional later-added rarity column (backward compatibility).
 * Loot tables support weighted entries + quantity range (min..max) with deterministic LCG-driven batch roll.
