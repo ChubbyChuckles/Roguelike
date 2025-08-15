@@ -15,9 +15,9 @@ PHASE 0. Current Baseline (Partial)
 0.4 Start screen simple menu (Done)
 
 PHASE 1. Core Architecture & Module Boundaries
-1.1 Establish ui/ module with subfolders: core/, widgets/, layout/, themes/, test/ (X)
-1.2 Unified UIContext (tree root, focus stack, theme, timing) (X)
-1.3 Frame lifecycle API: ui_begin(), ui_update(dt), ui_render(), ui_end() (X)
+1.1 Establish ui/ module with subfolders: core/, widgets/, layout/, themes/, test/ (Done)
+1.2 Unified UIContext (tree root, focus stack, theme, timing) (Done: basic context + theme + rng)
+1.3 Frame lifecycle API: ui_begin(), ui_update(dt), ui_render(), ui_end() (Done: begin/end; render stub to be added later)
 1.4 Deterministic UI RNG channel (for cosmetic jitter) (X)
 1.5 Separation: simulation <-> UI via read‑only snapshot structs (X)
 1.6 UI state diff / snapshot serialization (X)

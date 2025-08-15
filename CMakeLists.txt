@@ -178,6 +178,8 @@ add_library(rogue_core
     src/core/equipment_stats.c
     src/core/vendor_ui.c
     src/core/stat_cache.c
+    # UI Phase 1 scaffolding
+    src/ui/core/ui_context.c
     # maintainability phase M3: unified kv parser utility
     src/util/kv_parser.c
     src/util/kv_schema.c

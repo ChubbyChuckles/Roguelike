@@ -898,3 +898,13 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase5_lock_on_multitarge
     endif()
     add_test(NAME test_combat_phase5_lock_on_multitarget COMMAND test_combat_phase5_lock_on_multitarget)
 endif()
+
+# UI Phase 1 basic context & primitive test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase1_basic.c AND NOT TARGET test_ui_phase1_basic)
+    add_executable(test_ui_phase1_basic unit/test_ui_phase1_basic.c)
+    target_link_libraries(test_ui_phase1_basic PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ui_phase1_basic PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ui_phase1_basic COMMAND test_ui_phase1_basic)
+endif()
