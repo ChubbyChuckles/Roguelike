@@ -374,6 +374,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase3_poise_regen_curve.
     add_test(NAME test_combat_phase3_poise_regen_curve COMMAND test_combat_phase3_poise_regen_curve)
 endif()
 
+# Phase 3.11 hyper armor poise immunity test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase3_hyper_armor_immunity.c AND NOT TARGET test_combat_phase3_hyper_armor_immunity)
+    add_executable(test_combat_phase3_hyper_armor_immunity unit/test_combat_phase3_hyper_armor_immunity.c)
+    target_link_libraries(test_combat_phase3_hyper_armor_immunity PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase3_hyper_armor_immunity PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase3_hyper_armor_immunity COMMAND test_combat_phase3_hyper_armor_immunity)
+endif()
+
 # Explicitly add combat drift timing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_drift_timing.c AND NOT TARGET test_combat_drift_timing)
     add_executable(test_combat_drift_timing unit/test_combat_drift_timing.c)

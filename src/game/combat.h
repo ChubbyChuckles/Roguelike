@@ -87,7 +87,8 @@ int rogue_player_begin_guard(RoguePlayer* p, int guard_dir);
 /* Update guard state each frame (dt_ms). Should be called from main loop. Returns chip damage blocked this frame (for tests). */
 int rogue_player_update_guard(RoguePlayer* p, float dt_ms);
 /* Attempt to apply incoming enemy melee damage with guard / perfect guard logic. Returns final applied damage to health. */
-int rogue_player_apply_incoming_melee(RoguePlayer* p, float raw_damage, float attack_dir_x, float attack_dir_y, int *out_blocked, int *out_perfect);
+/* Apply incoming melee with optional poise damage component. poise_damage applies if not blocked (or reduced if normal block). */
+int rogue_player_apply_incoming_melee(RoguePlayer* p, float raw_damage, float attack_dir_x, float attack_dir_y, int poise_damage, int *out_blocked, int *out_perfect);
 /* Poise regeneration tick (Phase 3.10) separate to allow tests to drive deterministically. */
 void rogue_player_poise_regen_tick(RoguePlayer* p, float dt_ms);
 /* Tunables (could move to config later) */
@@ -100,6 +101,11 @@ void rogue_player_poise_regen_tick(RoguePlayer* p, float dt_ms);
 #define ROGUE_PERFECT_GUARD_POISE_BONUS 20.0f /* poise restored on perfect */
 #define ROGUE_POISE_REGEN_BASE_PER_MS 0.015f  /* base poise regen after delay */
 #define ROGUE_POISE_REGEN_DELAY_AFTER_HIT 650.0f /* ms delay after poise damage */
+#define ROGUE_GUARD_BLOCK_POISE_SCALE 0.40f   /* percent of incoming poise damage applied on normal block */
+#define ROGUE_HYPER_ARMOR_POISE_IGNORE 1      /* flag controlling poise ignore during hyper armor */
+
+/* Hyper armor global toggle (updated internally by combat strike evaluation). */
+void rogue_player_set_hyper_armor_active(int active);
 
 /* Data-driven attack helpers */
 void rogue_combat_set_archetype(RoguePlayerCombat* pc, RogueWeaponArchetype arch);

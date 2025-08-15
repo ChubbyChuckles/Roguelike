@@ -175,7 +175,7 @@ void rogue_enemy_system_update(float dt_ms){
             }
             /* Apply guard / perfect guard pipeline */
             int blocked=0, perfect=0; float adx = -pdx; float ady = -pdy; /* direction from enemy to player -> incoming */
-            int final = rogue_player_apply_incoming_melee(&g_app.player, (float)dmg, adx, ady, &blocked, &perfect);
+            int final = rogue_player_apply_incoming_melee(&g_app.player, (float)dmg, adx, ady, 8 /* poise damage */, &blocked, &perfect);
             if(final>0){ g_app.player.health -= final; if(g_app.player.health<0) g_app.player.health=0; }
             if(blocked){
                 /* Show chip damage differently (crit flag off for chip). Perfect guard shows zero damage (skip number if zero). */

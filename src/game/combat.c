@@ -326,6 +326,7 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             const RogueAttackWindow* w = &def->windows[wi];
             if(w->damage_mult > 0.0f) window_mult = w->damage_mult;
             bleed_build = w->bleed_build; frost_build = w->frost_build;
+            if(w->flags & ROGUE_WINDOW_HYPER_ARMOR){ rogue_player_set_hyper_armor_active(1); }
         }
         for(int i=0;i<enemy_count;i++){
             if(!enemies[i].alive) continue;
@@ -412,6 +413,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             }
         }
     }
+    /* Hyper armor active only during window processing; reset after evaluation. */
+    rogue_player_set_hyper_armor_active(0);
     return kills;
 }
 
@@ -436,30 +439,30 @@ void rogue_combat_queue_branch(RoguePlayerCombat* pc, RogueWeaponArchetype branc
 
 /* ---------------- Phase 3.8 Guard / 3.9 Perfect Guard / 3.10 Poise Regen Curve ---------------- */
 static void rogue_player_face(RoguePlayer* p, int dir){ if(!p) return; if(dir<0||dir>3) return; p->facing = dir; }
+static int g_player_hyper_armor_active = 0; /* transient state set from strike windows */
+void rogue_player_set_hyper_armor_active(int active){ g_player_hyper_armor_active = active?1:0; }
 int rogue_player_begin_guard(RoguePlayer* p, int guard_dir){ if(!p) return 0; if(p->guard_meter <= 0.0f){ p->guarding=0; return 0; } p->guarding=1; p->guard_active_time_ms = 0.0f; rogue_player_face(p,guard_dir); return 1; }
 int rogue_player_update_guard(RoguePlayer* p, float dt_ms){ if(!p) return 0; int chip=0; if(p->guarding){ p->guard_active_time_ms += dt_ms; p->guard_meter -= dt_ms * ROGUE_GUARD_METER_DRAIN_HOLD_PER_MS; if(p->guard_meter <= 0.0f){ p->guard_meter=0.0f; p->guarding=0; } } else { p->guard_meter += dt_ms * ROGUE_GUARD_METER_RECOVER_PER_MS; if(p->guard_meter > p->guard_meter_max) p->guard_meter = p->guard_meter_max; }
     rogue_player_poise_regen_tick(p, dt_ms);
     return chip; }
 /* Compute player's facing unit vector */
 static void rogue_player_facing_dir(const RoguePlayer* p, float* dx,float*dy){ switch(p->facing){ case 0:*dx=0;*dy=1;break; case 1:*dx=-1;*dy=0;break; case 2:*dx=1;*dy=0;break; case 3:*dx=0;*dy=-1;break; default:*dx=0;*dy=1;break; } }
-int rogue_player_apply_incoming_melee(RoguePlayer* p, float raw_damage, float attack_dir_x, float attack_dir_y, int *out_blocked, int *out_perfect){
+int rogue_player_apply_incoming_melee(RoguePlayer* p, float raw_damage, float attack_dir_x, float attack_dir_y, int poise_damage, int *out_blocked, int *out_perfect){
     if(out_blocked) *out_blocked=0; if(out_perfect) *out_perfect=0; if(!p) return (int)raw_damage;
     if(raw_damage < 0) raw_damage = 0;
     float fdx,fdy; rogue_player_facing_dir(p,&fdx,&fdy);
-    /* Normalize incoming attack dir */
     float alen = sqrtf(attack_dir_x*attack_dir_x + attack_dir_y*attack_dir_y); if(alen>0.0001f){ attack_dir_x/=alen; attack_dir_y/=alen; }
     float dot = fdx*attack_dir_x + fdy*attack_dir_y; int blocked = 0; int perfect = 0;
     if(p->guarding && p->guard_meter > 0.0f && dot >= ROGUE_GUARD_CONE_DOT){
-        blocked = 1;
-        perfect = (p->guard_active_time_ms <= p->perfect_guard_window_ms)?1:0;
+        blocked = 1; perfect = (p->guard_active_time_ms <= p->perfect_guard_window_ms)?1:0;
         float chip = raw_damage * ROGUE_GUARD_CHIP_PCT; if(chip < 1.0f) chip = (raw_damage>0)?1.0f:0.0f;
         if(perfect){ chip = 0.0f; p->guard_meter += ROGUE_PERFECT_GUARD_REFUND; if(p->guard_meter>p->guard_meter_max) p->guard_meter = p->guard_meter_max; p->poise += ROGUE_PERFECT_GUARD_POISE_BONUS; if(p->poise>p->poise_max) p->poise=p->poise_max; }
-        else { p->guard_meter -= ROGUE_GUARD_METER_DRAIN_ON_BLOCK; if(p->guard_meter < 0.0f) p->guard_meter = 0.0f; }
-        if(out_blocked) *out_blocked = 1; if(perfect && out_perfect) *out_perfect = 1;
-        return (int)chip;
+        else { p->guard_meter -= ROGUE_GUARD_METER_DRAIN_ON_BLOCK; if(p->guard_meter < 0.0f) p->guard_meter = 0.0f; if(poise_damage>0){ /* apply scaled poise damage on normal block */ float pd = (float)poise_damage * ROGUE_GUARD_BLOCK_POISE_SCALE; p->poise -= pd; if(p->poise < 0.0f) p->poise = 0.0f; p->poise_regen_delay_ms = ROGUE_POISE_REGEN_DELAY_AFTER_HIT; } }
+        if(out_blocked) *out_blocked = 1; if(perfect && out_perfect) *out_perfect = 1; return (int)chip;
     }
-    /* Not blocked: apply full raw damage */
-    p->poise_regen_delay_ms = ROGUE_POISE_REGEN_DELAY_AFTER_HIT; /* hitting player delays poise regen */
+    /* Not blocked OR rear / cone fail: full damage; apply poise damage unless hyper armor active */
+    if(poise_damage>0 && !g_player_hyper_armor_active){ p->poise -= (float)poise_damage; if(p->poise < 0.0f) p->poise=0.0f; }
+    p->poise_regen_delay_ms = ROGUE_POISE_REGEN_DELAY_AFTER_HIT;
     return (int)raw_damage;
 }
 void rogue_player_poise_regen_tick(RoguePlayer* p, float dt_ms){ if(!p) return; if(p->poise_regen_delay_ms>0){ p->poise_regen_delay_ms -= dt_ms; if(p->poise_regen_delay_ms<0) p->poise_regen_delay_ms=0; }
