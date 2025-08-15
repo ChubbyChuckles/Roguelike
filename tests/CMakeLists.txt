@@ -265,6 +265,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase7_infusions_durabili
     add_test(NAME test_combat_phase7_infusions_durability COMMAND test_combat_phase7_infusions_durability)
 endif()
 
+# Phase 7.2 armor weight classes test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase7_armor_weight_classes.c AND NOT TARGET test_combat_phase7_armor_weight_classes)
+    add_executable(test_combat_phase7_armor_weight_classes unit/test_combat_phase7_armor_weight_classes.c)
+    target_link_libraries(test_combat_phase7_armor_weight_classes PRIVATE rogue_core)
+    target_compile_definitions(test_combat_phase7_armor_weight_classes PRIVATE TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase7_armor_weight_classes PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase7_armor_weight_classes COMMAND test_combat_phase7_armor_weight_classes)
+endif()
+
 # Explicitly add cast weaving & early cancel test (Phase 1A.2/1A.4 partial)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_cast_weave_and_cancel.c AND NOT TARGET test_cast_weave_and_cancel)
     add_executable(test_cast_weave_and_cancel unit/test_cast_weave_and_cancel.c)
