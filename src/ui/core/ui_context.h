@@ -28,7 +28,12 @@ typedef struct RogueUINode {
     RogueUIRect rect;
     const char* text; /* optional */
     uint32_t color;
-    int kind; /* 0=panel 1=text */
+    uint32_t aux_color; /* secondary color (fill, etc.) */
+    float value;        /* generic numeric (progress current) */
+    float value_max;    /* generic numeric max */
+    int data_i0;        /* sprite sheet id / orientation */
+    int data_i1;        /* sprite frame / reserved */
+    int kind; /* 0=panel 1=text 2=image 3=sprite 4=progress */
 } RogueUINode;
 
 typedef struct RogueUIContext {
@@ -58,6 +63,9 @@ void rogue_ui_end(RogueUIContext* ctx);
 /* Primitive widgets */
 int rogue_ui_panel(RogueUIContext* ctx, RogueUIRect r, uint32_t color);
 int rogue_ui_text(RogueUIContext* ctx, RogueUIRect r, const char* text, uint32_t color);
+int rogue_ui_image(RogueUIContext* ctx, RogueUIRect r, const char* path, uint32_t tint);
+int rogue_ui_sprite(RogueUIContext* ctx, RogueUIRect r, int sheet_id, int frame, uint32_t tint);
+int rogue_ui_progress_bar(RogueUIContext* ctx, RogueUIRect r, float value, float max_value, uint32_t bg_color, uint32_t fill_color, int orientation /*0=H,1=V*/);
 
 /* Accessors */
 const RogueUINode* rogue_ui_nodes(const RogueUIContext* ctx, int* count_out);

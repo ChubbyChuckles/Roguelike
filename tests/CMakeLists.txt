@@ -918,3 +918,13 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase1_features_ext.c AND NOT
     endif()
     add_test(NAME test_ui_phase1_features_ext COMMAND test_ui_phase1_features_ext)
 endif()
+
+# UI Phase 2 core primitives test (Image/Sprite/ProgressBar)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase2_primitives.c AND NOT TARGET test_ui_phase2_primitives)
+    add_executable(test_ui_phase2_primitives unit/test_ui_phase2_primitives.c)
+    target_link_libraries(test_ui_phase2_primitives PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ui_phase2_primitives PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ui_phase2_primitives COMMAND test_ui_phase2_primitives)
+endif()

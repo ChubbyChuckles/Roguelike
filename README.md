@@ -455,6 +455,7 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
   - Deterministic UI tree serializer (stable line format) + FNV-1a hashing diff API (`rogue_ui_diff_changed`) for regression tests & future golden snapshots.
   - Extended unit tests: `test_ui_phase1_basic` (init, primitives, RNG stability) and `test_ui_phase1_features_ext` (arena alloc, snapshot separation, diff detection, capacity & arena exhaustion).
 * Next (Phase 2): Add additional primitives (Image/Sprite/ProgressBar) and interactive widgets (Button/Toggle/Slider/TextInput) with focus & ID plumbing.
+  - Phase 2.1 completed: Added Image, Sprite, ProgressBar primitives with extended `RogueUINode` fields (aux_color, value/value_max, data_i0/i1) and test `test_ui_phase2_primitives` validating kinds & value clamping.
 
 ### v0.8.x (Current Development Branch)
 **Added**

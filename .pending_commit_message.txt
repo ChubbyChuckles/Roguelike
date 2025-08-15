@@ -1,12 +1,11 @@
-feat(ui): complete Phase 1.4-1.7 core foundations (RNG channel, snapshot separation, diff serialization, transient arena)
+feat(ui): implement Phase 2.1 core primitives (Image, Sprite, ProgressBar)
 
-Adds extended UI context capabilities:
- - Dedicated deterministic xorshift32 RNG channel (1.4) with stability test.
- - Simulation snapshot pointer+size separation for read-only UI consumption (1.5).
- - Deterministic serializer + FNV-1a hash diff API enabling change detection & future golden tests (1.6).
- - Per-frame transient arena allocator + text duplication helper reducing heap churn (1.7).
- - New APIs: rogue_ui_set_simulation_snapshot, rogue_ui_arena_alloc, rogue_ui_text_dup, rogue_ui_serialize, rogue_ui_diff_changed.
- - Extended unit tests (test_ui_phase1_features_ext) covering arena, snapshot diff, capacity overflow, and deterministic diff behavior.
- - Roadmap statuses updated; README UI section documents progress & next steps.
+Adds extended primitive widgets:
+ - Expanded RogueUINode with aux_color, value/value_max, data_i0/data_i1, kind enum extended to include image(2), sprite(3), progress(4).
+ - New APIs: rogue_ui_image, rogue_ui_sprite, rogue_ui_progress_bar.
+ - Unit test test_ui_phase2_primitives validates node kinds, progress value clamping, and field storage.
+ - Roadmap updated (2.1 Done) and README augmented with Phase 2.1 summary.
 
-Follow-ups: Phase 2 widget primitives (Image/Sprite/ProgressBar) + interactive controls with focus & ID hashing.
+Also fixed struct initializer ordering for earlier primitives to avoid field mismatch under new layout.
+
+Next targets: 2.2 interactive widgets (Button/Toggle/Slider/TextInput) + 2.7 ID hashing groundwork, then 2.8 focus graph.

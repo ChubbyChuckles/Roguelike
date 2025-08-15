@@ -24,7 +24,7 @@ PHASE 1. Core Architecture & Module Boundaries
 1.7 Memory arenas / pools for UI transient allocations (Done: per-frame arena with reset on begin, text_dup convenience)
 
 PHASE 2. Widget Primitives & Composition
-2.1 Core primitives: Panel, Text, Image, Sprite, ProgressBar (X)
+2.1 Core primitives: Panel, Text, Image, Sprite, ProgressBar (Done: nodes + unit test)
 2.2 Interactive: Button, Toggle, Slider, TextInput (buffer + cursor) (X)
 2.3 Container + layout nodes: Row, Column, Grid, LayerStack (X)
 2.4 Scroll container with inertial scrolling & virtualization hooks (X)

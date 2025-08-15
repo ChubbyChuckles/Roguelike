@@ -30,8 +30,11 @@ void rogue_ui_end(RogueUIContext* ctx){ if(!ctx) return; ctx->frame_active=0; }
 
 static int push_node(RogueUIContext* ctx, RogueUINode n){ if(ctx->node_count>=ctx->node_capacity) return -1; ctx->nodes[ctx->node_count]=n; ctx->node_count++; ctx->stats.node_count=ctx->node_count; return ctx->node_count-1; }
 
-int rogue_ui_panel(RogueUIContext* ctx, RogueUIRect r, uint32_t color){ if(!ctx||!ctx->frame_active) return -1; RogueUINode n={r,NULL,color,0}; return push_node(ctx,n); }
-int rogue_ui_text(RogueUIContext* ctx, RogueUIRect r, const char* text, uint32_t color){ if(!ctx||!ctx->frame_active) return -1; RogueUINode n={r,text,color,1}; return push_node(ctx,n); }
+int rogue_ui_panel(RogueUIContext* ctx, RogueUIRect r, uint32_t color){ if(!ctx||!ctx->frame_active) return -1; RogueUINode n; memset(&n,0,sizeof n); n.rect=r; n.color=color; n.kind=0; return push_node(ctx,n); }
+int rogue_ui_text(RogueUIContext* ctx, RogueUIRect r, const char* text, uint32_t color){ if(!ctx||!ctx->frame_active) return -1; RogueUINode n; memset(&n,0,sizeof n); n.rect=r; n.text=text; n.color=color; n.kind=1; return push_node(ctx,n); }
+int rogue_ui_image(RogueUIContext* ctx, RogueUIRect r, const char* path, uint32_t tint){ if(!ctx||!ctx->frame_active) return -1; RogueUINode n; memset(&n,0,sizeof n); n.rect=r; n.text=path; n.color=tint; n.kind=2; return push_node(ctx,n); }
+int rogue_ui_sprite(RogueUIContext* ctx, RogueUIRect r, int sheet_id, int frame, uint32_t tint){ if(!ctx||!ctx->frame_active) return -1; RogueUINode n; memset(&n,0,sizeof n); n.rect=r; n.color=tint; n.data_i0=sheet_id; n.data_i1=frame; n.kind=3; return push_node(ctx,n); }
+int rogue_ui_progress_bar(RogueUIContext* ctx, RogueUIRect r, float value, float max_value, uint32_t bg_color, uint32_t fill_color, int orientation){ if(!ctx||!ctx->frame_active) return -1; if(max_value<=0) max_value=1.0f; if(value<0) value=0; if(value>max_value) value=max_value; RogueUINode n; memset(&n,0,sizeof n); n.rect=r; n.color=bg_color; n.aux_color=fill_color; n.value=value; n.value_max=max_value; n.data_i0=orientation; n.kind=4; return push_node(ctx,n); }
 
 const RogueUINode* rogue_ui_nodes(const RogueUIContext* ctx, int* count_out){ if(count_out) *count_out = ctx? ctx->node_count:0; return ctx? ctx->nodes:NULL; }
 
@@ -44,7 +47,7 @@ const void* rogue_ui_simulation_snapshot(const RogueUIContext* ctx, size_t* size
 static size_t align_up(size_t v, size_t a){ return (v + (a-1)) & ~(a-1); }
 void* rogue_ui_arena_alloc(RogueUIContext* ctx, size_t size, size_t align){ if(!ctx||size==0) return NULL; if(align==0) align=8; size_t off = align_up(ctx->arena_offset, align); if(off+size>ctx->arena_size) return NULL; void* ptr = ctx->arena+off; ctx->arena_offset = off+size; return ptr; }
 
-int rogue_ui_text_dup(RogueUIContext* ctx, RogueUIRect r, const char* text, uint32_t color){ if(!text) return -1; size_t len = strlen(text)+1; char* copy = (char*)rogue_ui_arena_alloc(ctx,len,1); if(!copy) return -1; memcpy(copy,text,len); return rogue_ui_text(ctx,r,copy,color); }
+int rogue_ui_text_dup(RogueUIContext* ctx, RogueUIRect r, const char* text, uint32_t color){ if(!ctx||!text) return -1; size_t len = strlen(text)+1; char* copy = (char*)rogue_ui_arena_alloc(ctx,len,1); if(!copy) return -1; memcpy(copy,text,len); return rogue_ui_text(ctx,r,copy,color); }
 
 /* FNV-1a 64-bit */
 static uint64_t fnv1a64(const void* data, size_t len){ const unsigned char* p=(const unsigned char*)data; uint64_t h=0xcbf29ce484222325ULL; for(size_t i=0;i<len;i++){ h^=p[i]; h*=0x100000001b3ULL; } return h; }
