@@ -29,6 +29,7 @@ void rogue_player_init(RoguePlayer* p)
     p->base.pos.y = 0.0f;
     p->base.vel.x = 0.0f;
     p->base.vel.y = 0.0f;
+    p->team_id = 0; /* player faction */
     p->health = 0; /* will be set after first recalc */
     p->max_health = 0;
     p->mana = 0;

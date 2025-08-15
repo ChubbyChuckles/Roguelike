@@ -25,6 +25,7 @@ typedef struct RogueEnemyTypeDef {
 
 typedef struct RogueEnemy {
     RogueEntity base;
+    unsigned char team_id; /* Phase 5.4: faction/team (e.g., 1=enemies) */
     int type_index;      /* index into type def array */
     int health;
     int max_health;      /* persistent max for ratio */

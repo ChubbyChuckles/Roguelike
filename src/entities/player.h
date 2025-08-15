@@ -29,6 +29,7 @@ SOFTWARE.
 typedef struct RoguePlayer
 {
     RogueEntity base;
+    unsigned char team_id; /* Phase 5.4: team/faction for friendly-fire filtering (0=player faction) */
     int health;
     int max_health; /* derived */
     int mana;

@@ -4,6 +4,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "core/navigation.h" /* Phase 5.5 obstruction checks */
 /* Damage event ring buffer (Phase 2.7) */
 RogueDamageEvent g_damage_events[ROGUE_DAMAGE_EVENT_CAP];
 int g_damage_event_head = 0;
@@ -335,6 +336,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
         }
         for(int i=0;i<enemy_count;i++){
             if(!enemies[i].alive) continue;
+            /* Phase 5.4: friendly fire / team filtering (skip if same team) */
+            if(enemies[i].team_id == player->team_id) continue;
             if(enemies[i].staggered){ /* skip striking staggered enemies for additional damage this frame (placeholder) */ }
             float ex = enemies[i].base.pos.x; float ey = enemies[i].base.pos.y;
             float dx = ex - cx; float dy = ey - cy; float dist2 = dx*dx + dy*dy; if(dist2 > reach2) continue;
@@ -351,6 +354,23 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             int dmg = (int)floorf(raw + 0.5f);
             if(pc->combo>0){ int min_noncrit = (int)floorf(scaled + pc->combo + 0.5f); int hard_cap = (int)floorf(scaled * 1.4f + 0.5f); if(min_noncrit>hard_cap) min_noncrit=hard_cap; if(dmg<min_noncrit) dmg=min_noncrit; }
             int overkill=0; int raw_before = dmg;
+            /* Phase 5.5: terrain obstruction attenuation.
+               Cast a simple DDA stepping between player center and enemy; if any blocking tile encountered, mark obstructed.
+               Obstructed hits deal 60% damage (rounded) and emit a future clank hook (TODO). */
+            int obstructed = 0;
+            {
+                float rx0 = cx; float ry0 = cy; float rx1 = ex; float ry1 = ey;
+                int tx0 = (int)floorf(rx0); int ty0 = (int)floorf(ry0); int tx1 = (int)floorf(rx1); int ty1 = (int)floorf(ry1);
+                int steps = (abs(tx1-tx0) > abs(ty1-ty0)? abs(tx1-tx0): abs(ty1-ty0)); if(steps<1) steps=1; /* number of tile transitions */
+                /* We step inclusive of the last interior tile by using steps+1 samples after the origin. */
+                float fx = (float)(tx1 - tx0)/(float)steps; float fy = (float)(ty1 - ty0)/(float)steps; float sx = (float)tx0 + 0.5f; float sy = (float)ty0 + 0.5f;
+                for(int si=0; si<=steps; ++si){ int cx_t = (int)floorf(sx); int cy_t = (int)floorf(sy); if(!(cx_t==tx0 && cy_t==ty0) && !(cx_t==tx1 && cy_t==ty1)){
+                        if(rogue_nav_is_blocked(cx_t,cy_t)){ obstructed=1; break; }
+                    }
+                    sx += fx; sy += fy;
+                }
+                if(obstructed){ dmg = (int)floorf(dmg * 0.60f + 0.5f); if(dmg<1) dmg=1; }
+            }
             /* Roll crit up-front for now; layering mode decides when multiplier applies. */
             float dex_bonus = player->dexterity * 0.0035f; if(dex_bonus>0.55f) dex_bonus=0.55f; /* soft clamp so base + dex <= ~0.60 */
             float crit_chance = 0.05f + dex_bonus + (float)player->crit_chance * 0.01f; if(crit_chance>0.75f) crit_chance=0.75f; /* hard cap */
