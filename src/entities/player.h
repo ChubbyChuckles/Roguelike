@@ -100,6 +100,8 @@ typedef struct RoguePlayer
     /* --- Phase 7 Weapons & Stances --- */
     int equipped_weapon_id;      /* -1 none */
     int combat_stance;           /* 0=balanced,1=aggressive,2=defensive */
+    /* --- Phase 7.4 Weapon Infusions --- */
+    int weapon_infusion;         /* 0=none,1=fire,2=frost,3=arcane,4=bleed,5=poison */
 } RoguePlayer;
 
 void rogue_player_init(RoguePlayer* p);

@@ -145,6 +145,7 @@ add_library(rogue_core
     src/game/hitbox.c
     src/game/hitbox_load.c
         src/game/lock_on.c
+        src/game/infusions.c
 )
 
 target_include_directories(rogue_core PUBLIC

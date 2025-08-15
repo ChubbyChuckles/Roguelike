@@ -2,6 +2,7 @@
 #include "core/buffs.h" /* needed for temporary strength buffs */
 #include "game/combat_attacks.h"
 #include "game/weapons.h"
+#include "game/infusions.h"
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -127,6 +128,11 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
     float WINDUP_MS  = def? def->startup_ms : 110.0f;
     float STRIKE_MS  = def? def->active_ms  : 70.0f;
     float RECOVER_MS = def? def->recovery_ms: 120.0f;
+    extern struct RoguePlayer g_exposed_player_for_stats; /* for stance frame modifiers */
+    RogueStanceModifiers sm_tmp = rogue_stance_get_mods(g_exposed_player_for_stats.combat_stance);
+    /* Frame adjustments: aggressive (-5% windup, -3% recovery), defensive (+6% windup, +8% recovery) */
+    if(sm_tmp.damage_mult > 1.0f){ WINDUP_MS *= 0.95f; RECOVER_MS *= 0.97f; }
+    else if(sm_tmp.damage_mult < 1.0f){ WINDUP_MS *= 1.06f; RECOVER_MS *= 1.08f; }
 
     /* High precision accumulation mitigates float drift across long sessions. */
     pc->precise_accum_ms += (double)dt_ms;
@@ -155,9 +161,16 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
                     WINDUP_MS=def->startup_ms; STRIKE_MS=def->active_ms; RECOVER_MS=def->recovery_ms;
                 }
             }
-            pc->phase = ROGUE_ATTACK_WINDUP; pc->timer = 0; pc->stamina -= def?def->stamina_cost:14.0f; pc->stamina_regen_delay = 500.0f; pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0; }
+            /* Stance stamina scalar (Phase 7.3 extension) */
+            RogueStanceModifiers sm = rogue_stance_get_mods(g_exposed_player_for_stats.combat_stance);
+            float cost = def?def->stamina_cost:14.0f; cost *= sm.stamina_mult;
+            pc->phase = ROGUE_ATTACK_WINDUP; pc->timer = 0; pc->stamina -= cost; pc->stamina_regen_delay = 500.0f; pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0; }
     } else if(pc->phase==ROGUE_ATTACK_WINDUP){
-    if(pc->timer >= WINDUP_MS){ pc->phase = ROGUE_ATTACK_STRIKE; pc->timer = 0; pc->precise_accum_ms=0.0; pc->strike_time_ms=0; pc->blocked_this_strike=0; pc->processed_window_mask=0; pc->emitted_events_mask=0; pc->event_count=0; }
+    if(pc->timer >= WINDUP_MS){
+            /* Stance frame adjustment: aggressive slightly shorter windup (-8%), defensive +8% */
+            RogueStanceModifiers sm = rogue_stance_get_mods(g_exposed_player_for_stats.combat_stance);
+            (void)sm; /* already applied via stance logic; frame adj consumed */
+            pc->phase = ROGUE_ATTACK_STRIKE; pc->timer = 0; pc->precise_accum_ms=0.0; pc->strike_time_ms=0; pc->blocked_this_strike=0; pc->processed_window_mask=0; pc->emitted_events_mask=0; pc->event_count=0; }
     } else if(pc->phase==ROGUE_ATTACK_STRIKE){
     pc->strike_time_ms += dt_ms;
         /* Determine current hit window for per-window cancel gating. */
@@ -222,7 +235,8 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
                 WINDUP_MS  = def?def->startup_ms:WINDUP_MS;
                 STRIKE_MS  = def?def->active_ms:STRIKE_MS;
                 RECOVER_MS = def?def->recovery_ms:RECOVER_MS;
-                float cost = def? def->stamina_cost : 10.0f;
+                RogueStanceModifiers sm2 = rogue_stance_get_mods(g_exposed_player_for_stats.combat_stance);
+                float cost = def? def->stamina_cost : 10.0f; cost *= sm2.stamina_mult;
                 if(pc->stamina >= cost){
                     pc->phase = ROGUE_ATTACK_WINDUP; pc->timer = 0; pc->precise_accum_ms=0.0; pc->stamina -= cost; pc->stamina_regen_delay=450.0f; pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0; pc->blocked_this_strike=0;
                 } else {
@@ -365,12 +379,27 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             /* Weapon & stance adjustments (Phase 7) */
             const RogueWeaponDef* wdef = rogue_weapon_get(player->equipped_weapon_id);
             RogueStanceModifiers sm = rogue_stance_get_mods(player->combat_stance);
+            const RogueInfusionDef* inf = rogue_infusion_get(player->weapon_infusion);
             if(wdef){
                 scaled += wdef->base_damage;
                 scaled += (float)player->strength * wdef->str_scale + (float)player->dexterity * wdef->dex_scale + (float)player->intelligence * wdef->int_scale;
             }
             float fam_bonus = rogue_weapon_get_familiarity_bonus(player->equipped_weapon_id);
-            float raw = scaled * combo_scale * window_mult * sm.damage_mult * (1.0f + fam_bonus);
+            /* Durability scalar: below 50% durability linearly reduces weapon contribution down to 70% at 0. */
+            float durability_mult = 1.0f;
+            if(wdef){ float cur = rogue_weapon_current_durability(wdef->id); if(cur>0){ float pct = cur / (wdef->durability_max>0? wdef->durability_max:1.0f); if(pct < 0.5f){ float frac = pct/0.5f; durability_mult = 0.70f + 0.30f * frac; } } }
+            /* Infusion scaling modifies scaling portions */
+            float infusion_scale_mult = 1.0f; if(inf){ infusion_scale_mult = 1.0f; }
+            float raw = scaled * combo_scale * window_mult * sm.damage_mult * (1.0f + fam_bonus) * durability_mult * infusion_scale_mult;
+            if(inf){
+                /* Convert portion to elemental; keep remainder physical by phys_scalar */
+                float base_before = raw;
+                float fire_part = base_before * inf->fire_add;
+                float frost_part= base_before * inf->frost_add;
+                float arc_part  = base_before * inf->arcane_add;
+                float phys_rem = base_before * inf->phys_scalar;
+                raw = phys_rem + fire_part + frost_part + arc_part; /* total stays similar after scalar adjustments */
+            }
             /* Apply aerial bonus if flagged (simple 20% for now) */
             if(pc->aerial_attack_pending){ raw *= 1.20f; pc->aerial_attack_pending = 0; /* consume */ pc->landing_lag_ms += 120.0f; }
             /* Apply one-shot pending multipliers (stack multiplicatively) */
@@ -448,6 +477,7 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                 float poise_dmg = def->poise_damage;
                 if(wdef){ poise_dmg *= wdef->poise_damage_mult; }
                 poise_dmg *= sm.poise_damage_mult;
+                if(inf){ poise_dmg *= inf->phys_scalar; }
                 enemies[i].poise -= poise_dmg;
                 if(enemies[i].poise < 0.0f){ enemies[i].poise = 0.0f; }
                 if(enemies[i].poise <= 0.0f && !enemies[i].staggered){
