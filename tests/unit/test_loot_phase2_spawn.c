@@ -11,11 +11,15 @@ RogueAppState g_app; RoguePlayer g_exposed_player_for_stats; void rogue_player_r
 
 int main(void){
     rogue_item_defs_reset();
-    char pitems[256]; assert(rogue_find_asset_path("test_items.cfg", pitems, sizeof pitems));
-    int added = rogue_item_defs_load_from_cfg(pitems); assert(added>=3);
+    char pitems[256]; if(!rogue_find_asset_path("test_items.cfg", pitems, sizeof pitems)){ fprintf(stderr,"PATH_FAIL items\n"); return 10; }
+    int added = rogue_item_defs_load_from_cfg(pitems); if(added<3){ fprintf(stderr,"ITEM_LOAD_FAIL count=%d\n", added); return 11; }
     rogue_loot_tables_reset();
-    char ptables[256]; assert(rogue_find_asset_path("test_loot_tables.cfg", ptables, sizeof ptables));
-    int tadded = rogue_loot_tables_load_from_cfg(ptables); if(tadded<1){ fprintf(stderr,"LOAD_TABLES_FAIL added=%d path=%s\n", tadded, ptables); return 1; }
+    char ptables[256]; char sentinel[8]="SENTIN";
+    if(!rogue_find_asset_path("test_loot_tables.cfg", ptables, sizeof ptables)){ fprintf(stderr,"PATH_FAIL tables\n"); return 12; }
+    fprintf(stderr,"DBG spawn tables path(before load)='%s' len=%zu sentinel='%s'\n", ptables, strlen(ptables), sentinel);
+    int tadded = rogue_loot_tables_load_from_cfg(ptables); 
+    fprintf(stderr,"DBG spawn tables path(after load)='%s' len=%zu sentinel='%s'\n", ptables, strlen(ptables), sentinel);
+    if(tadded<1){ fprintf(stderr,"LOAD_TABLES_FAIL added=%d path=%s\n", tadded, ptables); return 1; }
     rogue_items_init_runtime();
     unsigned int seed=123u;
     int idx = rogue_loot_table_index("ORC_BASE"); assert(idx>=0);

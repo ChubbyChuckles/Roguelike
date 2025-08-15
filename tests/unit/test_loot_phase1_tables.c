@@ -6,12 +6,16 @@
 
 int main(void){
     rogue_item_defs_reset();
-    char pitems[256]; assert(rogue_find_asset_path("test_items.cfg", pitems, sizeof pitems));
+    char pitems[256]; if(!rogue_find_asset_path("test_items.cfg", pitems, sizeof pitems)){ fprintf(stderr,"PATH_FAIL items\n"); return 10; }
     int items_added = rogue_item_defs_load_from_cfg(pitems);
-    assert(items_added >= 3);
+    if(items_added < 3){ fprintf(stderr,"ITEM_LOAD_FAIL count=%d\n", items_added); return 11; }
     rogue_loot_tables_reset();
-    char ptables[256]; assert(rogue_find_asset_path("test_loot_tables.cfg", ptables, sizeof ptables));
+    char ptables[256];
+    char sentinel[8] = "SENTIN"; /* detect stack overwrite */
+    if(!rogue_find_asset_path("test_loot_tables.cfg", ptables, sizeof ptables)){ fprintf(stderr,"PATH_FAIL tables\n"); return 12; }
+    fprintf(stderr,"DBG tables path(before load)='%s' len=%zu sentinel='%s'\n", ptables, strlen(ptables), sentinel);
     int tables_added = rogue_loot_tables_load_from_cfg(ptables);
+    fprintf(stderr,"DBG tables path(after load)='%s' len=%zu sentinel='%s'\n", ptables, strlen(ptables), sentinel);
     if(tables_added < 1){ fprintf(stderr,"LOAD_TABLES_FAIL added=%d path=%s\n", tables_added, ptables); return 1; }
     /* Test originally referenced GOBLIN_BASIC which no longer exists; use ORC_BASE from test_loot_tables.cfg */
     int idx = rogue_loot_table_index("ORC_BASE");
