@@ -1,11 +1,12 @@
-UI: Implement Phase 4.2 & 4.3 Inventory Interactions
+UI: Implement Phase 4.4 Inventory Context Menu
 
 Details:
-- Added drag & drop support to `rogue_ui_inventory_grid` (drag begin/end events, slot swap including empty target).
-- Introduced lightweight UI event queue + `rogue_ui_poll_event` API (ring buffer size 32).
-- Implemented stack split modal (CTRL+click to open, wheel to adjust, Activate to apply, release to cancel) with OPEN/APPLY/CANCEL events.
-- Added unit test `test_ui_phase4_drag_stack` covering drag begin/end, swap integrity, drag to empty slot, stack split apply, and cancel path.
-- Updated roadmap marking Phase 4.2 & 4.3 Done; README UI section documents new behaviors.
-- Minor test robustness improvements: event polling now drains queue to prevent missed events.
+- Extended `RogueUIInputState` with secondary mouse button fields (mouse2_pressed/released).
+- Added context menu state to `RogueUIContext` (active flag, slot, selection index).
+- Added new UI events: CONTEXT_OPEN, CONTEXT_SELECT, CONTEXT_CANCEL (enum values 6-8).
+- Integrated context menu handling into `rogue_ui_inventory_grid`: right-click opens, arrow keys navigate, Activate selects, outside left-click cancels.
+- Simple rendered menu panel with highlighted selection and items: Equip / Salvage / Compare / Cancel.
+- New unit test `test_ui_phase4_context_menu` validating open, keyboard navigation (down/down), selection (Compare index=2), and cancel path via outside click.
+- Roadmap updated (Phase 4.4 marked Done) and README updated with context menu description.
 
-Follow-ups (deferred): ghost item rendering during drag, snapback animation, scroll virtualization & context menus (Phase 4.4+).
+Follow-ups: integrate actions with real inventory/equipment systems, add controller radial variant (Phase 4.10), and hook rarity color theming per option.

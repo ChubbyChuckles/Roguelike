@@ -43,6 +43,8 @@ typedef struct RogueUIInputState {
     int mouse_down;     /* 1 if held */
     int mouse_pressed;  /* 1 on press this frame */
     int mouse_released; /* 1 on release this frame */
+    int mouse2_pressed; /* secondary button (right) press this frame */
+    int mouse2_released;/* secondary button release this frame */
     float wheel_delta;  /* positive = scroll up, negative = down (per frame aggregated) */
     char text_char;     /* printable character input (ASCII) or 0 */
     char key_char;      /* raw key character (for chords, not inserted into text) */
@@ -109,6 +111,8 @@ typedef struct RogueUIContext {
     /* Phase 4 event queue */
     struct { int kind; int a; int b; int c; } event_queue[32];
     int event_head; int event_tail;
+    /* Phase 4.4 Context Menu */
+    int ctx_menu_active; int ctx_menu_slot; int ctx_menu_selection;
 } RogueUIContext;
 
 int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg);
@@ -226,7 +230,8 @@ int rogue_ui_inventory_grid(RogueUIContext* ctx, RogueUIRect rect, const char* i
     int cell_size, int* first_visible, int* visible_count);
 
 /* Phase 4 event kinds */
-enum { ROGUE_UI_EVENT_NONE=0, ROGUE_UI_EVENT_DRAG_BEGIN=1, ROGUE_UI_EVENT_DRAG_END=2, ROGUE_UI_EVENT_STACK_SPLIT_OPEN=3, ROGUE_UI_EVENT_STACK_SPLIT_APPLY=4, ROGUE_UI_EVENT_STACK_SPLIT_CANCEL=5 };
+enum { ROGUE_UI_EVENT_NONE=0, ROGUE_UI_EVENT_DRAG_BEGIN=1, ROGUE_UI_EVENT_DRAG_END=2, ROGUE_UI_EVENT_STACK_SPLIT_OPEN=3, ROGUE_UI_EVENT_STACK_SPLIT_APPLY=4, ROGUE_UI_EVENT_STACK_SPLIT_CANCEL=5,
+       ROGUE_UI_EVENT_CONTEXT_OPEN=6, ROGUE_UI_EVENT_CONTEXT_SELECT=7, ROGUE_UI_EVENT_CONTEXT_CANCEL=8 };
 typedef struct RogueUIEvent { int kind; int a; int b; int c; } RogueUIEvent;
 int rogue_ui_poll_event(RogueUIContext* ctx, RogueUIEvent* out);
 

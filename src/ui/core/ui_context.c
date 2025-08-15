@@ -259,6 +259,24 @@ int rogue_ui_inventory_grid(RogueUIContext* ctx, RogueUIRect rect, const char* i
     }
     /* Drag end */
     if(ctx->drag_active && ctx->input.mouse_released){ int target=hovered_slot>=0?hovered_slot:ctx->drag_from_slot; if(target>=0&&target<slot_capacity&&item_ids){ if(target!=ctx->drag_from_slot){ int id_a=item_ids[ctx->drag_from_slot]; int ct_a=item_counts?item_counts[ctx->drag_from_slot]:0; int id_b=item_ids[target]; int ct_b=item_counts?item_counts[target]:0; item_ids[target]=id_a; if(item_counts) item_counts[target]=ct_a; item_ids[ctx->drag_from_slot]=id_b; if(item_counts) item_counts[ctx->drag_from_slot]=ct_b; } } ui_enqueue(ctx,ROGUE_UI_EVENT_DRAG_END,ctx->drag_from_slot,target,ctx->drag_item_id); ctx->drag_active=0; ctx->drag_from_slot=-1; ctx->drag_item_id=0; ctx->drag_item_count=0; }
+    /* Context menu open (secondary button) */
+    if(!ctx->ctx_menu_active && hovered_slot>=0 && ctx->input.mouse2_pressed && item_ids && item_ids[hovered_slot]){
+        ctx->ctx_menu_active=1; ctx->ctx_menu_slot=hovered_slot; ctx->ctx_menu_selection=0; ui_enqueue(ctx,ROGUE_UI_EVENT_CONTEXT_OPEN,hovered_slot,0,0);
+    }
+    /* Context menu navigation & selection (simple vertical list) */
+    static const char* menu_items[] = {"Equip","Salvage","Compare","Cancel"};
+    int menu_count = (int)(sizeof(menu_items)/sizeof(menu_items[0]));
+    if(ctx->ctx_menu_active){
+        if(ctx->input.key_down){ ctx->ctx_menu_selection = (ctx->ctx_menu_selection+1)%menu_count; }
+        if(ctx->input.key_up){ ctx->ctx_menu_selection = (ctx->ctx_menu_selection-1+menu_count)%menu_count; }
+        if(ctx->input.key_activate){
+            int sel = ctx->ctx_menu_selection; if(sel==menu_count-1){ ui_enqueue(ctx,ROGUE_UI_EVENT_CONTEXT_CANCEL,ctx->ctx_menu_slot,0,0); }
+            else { ui_enqueue(ctx,ROGUE_UI_EVENT_CONTEXT_SELECT,ctx->ctx_menu_slot,sel,0); }
+            ctx->ctx_menu_active=0; }
+        else if(ctx->input.mouse_pressed && !ctx->input.mouse2_pressed){ /* click outside cancels */ ui_enqueue(ctx,ROGUE_UI_EVENT_CONTEXT_CANCEL,ctx->ctx_menu_slot,0,0); ctx->ctx_menu_active=0; }
+        /* Render simple menu panel to the right */
+        RogueUIRect mrect={rect.x+rect.w+8, rect.y+16, 100, (float)(menu_count*16+4)}; int mroot=rogue_ui_panel(ctx,mrect,0x202028FFu); (void)mroot; for(int i=0;i<menu_count;i++){ uint32_t col = (i==ctx->ctx_menu_selection)?0x5050A0FFu:0x303038FFu; RogueUIRect ir={mrect.x+2, mrect.y+2 + i*16, mrect.w-4, 14}; rogue_ui_panel(ctx,ir,col); rogue_ui_text(ctx,(RogueUIRect){ir.x+2,ir.y,ir.w-4,ir.h},menu_items[i],ctx->theme.text_color); }
+    }
     /* Stack split open */
     if(!ctx->stack_split_active && ctx->input.key_ctrl && hovered_slot>=0 && ctx->input.mouse_pressed && item_ids && item_ids[hovered_slot] && item_counts && item_counts[hovered_slot]>1){ ctx->stack_split_active=1; ctx->stack_split_from_slot=hovered_slot; ctx->stack_split_total=item_counts[hovered_slot]; ctx->stack_split_value=ctx->stack_split_total/2; ui_enqueue(ctx,ROGUE_UI_EVENT_STACK_SPLIT_OPEN,hovered_slot,ctx->stack_split_total,ctx->stack_split_value); }
     if(ctx->stack_split_active){ if(ctx->input.wheel_delta>0){ ctx->stack_split_value++; if(ctx->stack_split_value>=ctx->stack_split_total) ctx->stack_split_value=ctx->stack_split_total-1; } else if(ctx->input.wheel_delta<0){ ctx->stack_split_value--; if(ctx->stack_split_value<1) ctx->stack_split_value=1; } if(ctx->input.key_activate){ int from=ctx->stack_split_from_slot; int move=ctx->stack_split_value; if(item_counts && from>=0 && from<slot_capacity && item_counts[from]>move){ for(int i=0;i<slot_capacity;i++){ if(item_ids[i]==0){ item_ids[i]=item_ids[from]; if(item_counts) item_counts[i]=move; item_counts[from]-=move; ui_enqueue(ctx,ROGUE_UI_EVENT_STACK_SPLIT_APPLY,from,i,move); break; } } } ctx->stack_split_active=0; } else if(ctx->input.mouse_released && ctx->input.mouse_down==0){ ui_enqueue(ctx,ROGUE_UI_EVENT_STACK_SPLIT_CANCEL,ctx->stack_split_from_slot,0,0); ctx->stack_split_active=0; } RogueUIRect m={rect.x+rect.w+8,rect.y,120,48}; int mroot=rogue_ui_panel(ctx,m,0x404048FFu); (void)mroot; char tmp[32]; snprintf(tmp,sizeof tmp,"Split %d/%d",ctx->stack_split_value,ctx->stack_split_total); rogue_ui_text(ctx,(RogueUIRect){m.x+4,m.y+4,m.w-8,16},tmp,ctx->theme.text_color); }
