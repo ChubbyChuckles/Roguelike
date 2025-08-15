@@ -96,6 +96,7 @@ void rogue_combat_init(RoguePlayerCombat* pc){
     pc->charging=0; pc->charge_time_ms=0.0f; pc->pending_charge_damage_mult=1.0f;
     pc->parry_active=0; pc->parry_window_ms=160.0f; pc->parry_timer_ms=0.0f; pc->riposte_ready=0; pc->riposte_window_ms=650.0f; pc->backstab_cooldown_ms=0.0f;
     pc->aerial_attack_pending=0; pc->landing_lag_ms=0.0f; pc->guard_break_ready=0;
+    pc->backstab_pending_mult=1.0f; pc->riposte_pending_mult=1.0f; pc->guard_break_pending_mult=1.0f; pc->force_crit_next_strike=0;
 }
 
 int rogue_force_attack_active = 0; /* exported */
@@ -361,6 +362,12 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             }
             float combo_scale = 1.0f + (pc->combo * 0.08f); if(combo_scale>1.4f) combo_scale=1.4f;
             float raw = scaled * combo_scale * window_mult;
+            /* Apply aerial bonus if flagged (simple 20% for now) */
+            if(pc->aerial_attack_pending){ raw *= 1.20f; pc->aerial_attack_pending = 0; /* consume */ pc->landing_lag_ms += 120.0f; }
+            /* Apply one-shot pending multipliers (stack multiplicatively) */
+            if(pc->backstab_pending_mult>1.0f){ raw *= pc->backstab_pending_mult; pc->backstab_pending_mult=1.0f; }
+            if(pc->riposte_pending_mult>1.0f){ raw *= pc->riposte_pending_mult; pc->riposte_pending_mult=1.0f; }
+            if(pc->guard_break_pending_mult>1.0f){ raw *= pc->guard_break_pending_mult; pc->guard_break_pending_mult=1.0f; }
             if(pc->pending_charge_damage_mult > 1.0f){ raw *= pc->pending_charge_damage_mult; }
             int dmg = (int)floorf(raw + 0.5f);
             if(pc->combo>0){ int min_noncrit = (int)floorf(scaled + pc->combo + 0.5f); int hard_cap = (int)floorf(scaled * 1.4f + 0.5f); if(min_noncrit>hard_cap) min_noncrit=hard_cap; if(dmg<min_noncrit) dmg=min_noncrit; }
@@ -385,7 +392,9 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             /* Roll crit up-front for now; layering mode decides when multiplier applies. */
             float dex_bonus = player->dexterity * 0.0035f; if(dex_bonus>0.55f) dex_bonus=0.55f; /* soft clamp so base + dex <= ~0.60 */
             float crit_chance = 0.05f + dex_bonus + (float)player->crit_chance * 0.01f; if(crit_chance>0.75f) crit_chance=0.75f; /* hard cap */
-            int is_crit = (((float)rand()/(float)RAND_MAX) < crit_chance)?1:0;
+            int is_crit = 0;
+            if(pc->force_crit_next_strike){ is_crit=1; pc->force_crit_next_strike=0; }
+            else { is_crit = (((float)rand()/(float)RAND_MAX) < crit_chance)?1:0; }
             float crit_mult = 1.0f;
             if(is_crit){
                 crit_mult = 1.0f + ((float)player->crit_damage * 0.01f);
@@ -630,7 +639,7 @@ int rogue_combat_try_backstab(RoguePlayer* p, RoguePlayerCombat* pc, RogueEnemy*
     float dx = px - ex; float dy = py - ey; float dist2 = dx*dx + dy*dy; if(dist2 > 2.25f) return 0; /* within 1.5 tiles */
     float fdx= (e->facing==1)? -1.0f : (e->facing==2)? 1.0f : 0.0f; float fdy=(e->facing==0)?1.0f: (e->facing==3)? -1.0f:0.0f; /* reuse player facing mapping */
     float len = sqrtf(dx*dx + dy*dy); if(len<0.0001f) return 0; dx/=len; dy/=len; float dot = dx*fdx + dy*fdy; if(dot > -0.70f) return 0;
-    pc->backstab_cooldown_ms = 650.0f; return 1;
+    pc->backstab_cooldown_ms = 650.0f; pc->backstab_pending_mult = 1.75f; return 1;
 }
 /* ---------------- Phase 6.5 Parry / Riposte ---------------- */
 void rogue_player_begin_parry(RoguePlayer* p, RoguePlayerCombat* pc){ if(!p||!pc) return; if(pc->parry_active) return; pc->parry_active=1; pc->parry_timer_ms=0.0f; }
@@ -646,9 +655,11 @@ int rogue_player_register_incoming_attack_parry(RoguePlayer* p, RoguePlayerComba
 }
 int rogue_player_try_riposte(RoguePlayer* p, RoguePlayerCombat* pc, RogueEnemy* e){
     if(!p||!pc||!e) return 0; if(!pc->riposte_ready) return 0; if(!e->alive) return 0; /* apply large bonus damage (flat multiplier) */
-    pc->riposte_ready=0; p->riposte_ms=0.0f; /* For now just flag consumption; damage multiplication handled by caller using this predicate */
+    pc->riposte_ready=0; p->riposte_ms=0.0f; pc->riposte_pending_mult = 2.25f; /* strong multiplier */
     return 1;
 }
 /* ---------------- Phase 6.6 Guard Break Follow-up ---------------- */
-void rogue_player_set_guard_break(RoguePlayer* p, RoguePlayerCombat* pc){ (void)p; if(!pc) return; pc->riposte_ready=1; pc->riposte_window_ms=800.0f; }
-int rogue_player_consume_guard_break_bonus(RoguePlayerCombat* pc){ if(!pc) return 0; if(!pc->riposte_ready) return 0; pc->riposte_ready=0; return 1; }
+void rogue_player_set_guard_break(RoguePlayer* p, RoguePlayerCombat* pc){ (void)p; if(!pc) return; pc->guard_break_ready=1; pc->riposte_ready=1; pc->riposte_window_ms=800.0f; pc->guard_break_pending_mult = 1.50f; pc->force_crit_next_strike=1; }
+int rogue_player_consume_guard_break_bonus(RoguePlayerCombat* pc){ if(!pc) return 0; if(!pc->guard_break_ready) return 0; pc->guard_break_ready=0; return 1; }
+
+float rogue_combat_peek_backstab_mult(const RoguePlayerCombat* pc){ return pc? pc->backstab_pending_mult : 1.0f; }

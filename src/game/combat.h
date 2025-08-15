@@ -43,6 +43,11 @@ typedef struct RoguePlayerCombat {
     float landing_lag_ms;      /* applied after aerial strike */
     /* Phase 6.6 Guard break separate flag */
     int guard_break_ready;
+    /* Phase 6 extended: pending one-shot damage modifiers */
+    float backstab_pending_mult;   /* >1 when a backstab has been primed */
+    float riposte_pending_mult;    /* >1 when riposte consumption grants bonus */
+    float guard_break_pending_mult;/* >1 when guard-break follow-up active */
+    int force_crit_next_strike;    /* 1 if next strike is guaranteed crit (guard-break) */
 } RoguePlayerCombat;
 
 /* Event type ids (extend later): */
@@ -163,6 +168,8 @@ int rogue_player_try_riposte(struct RoguePlayer* p, struct RoguePlayerCombat* pc
 /* Phase 6.6 Guard break follow-up check */
 void rogue_player_set_guard_break(struct RoguePlayer* p, struct RoguePlayerCombat* pc);
 int rogue_player_consume_guard_break_bonus(struct RoguePlayerCombat* pc);
+/* Helper: query and clear backstab pending multiplier (for tests) */
+float rogue_combat_peek_backstab_mult(const struct RoguePlayerCombat* pc);
 /* Phase 6.2 Aerial helpers */
 void rogue_player_set_airborne(struct RoguePlayer* p, struct RoguePlayerCombat* pc);
 int rogue_player_is_airborne(const struct RoguePlayer* p);
