@@ -1,24 +1,16 @@
-combat: Phase 1A frame cache + overlapping windows + boundary tests & event consume API
+combat: restore golden player damage numbers + Phase 1A frame cache & overlap tests
 
-Additions (Phase 1A focus):
- - Frame data cache (1A.1 complete): builds once for all authored attack windows; `rogue_attack_window_frame_span` now O(1) after init.
- - Overlapping multi-hit window authoring: heavy_2 windows adjusted (0-50, 40-80, 80-105) to exercise overlap semantics without duplicate damage.
- - New overlap/boundary test `test_combat_window_boundary` validating inclusive/exclusive edges and that only newly active windows apply damage at overlaps.
- - Event consumption API `rogue_combat_consume_events` (non-destructive) enabling future FX/SFX layers without corrupting multi-hit masks.
- - Extended test coverage: heavy multi-window (`test_combat_heavy_multi_window`), overlap boundary (`test_combat_window_boundary`), existing events test stabilized after API addition.
+Fix:
+ - Player damage (golden) numbers regressed (combat strike path never spawned numbers). Added `rogue_add_damage_number_ex` call in `rogue_combat_player_strike` for each enemy hit (from_player=1, crit=0 placeholder) restoring visual feedback.
 
-Fixes:
- - Removed mask reset in event consume (previous attempt could re-emit events / double-hit); resolved segfault in `test_combat_events`.
+New Test:
+ - `test_damage_numbers_player` ensures one golden damage number spawns on a player strike and asserts `from_player==1`, `crit==0`.
 
-Documentation & Plan:
- - Updated implementation_plan_combatsystem.txt: 1A.1 & 1A.7 marked Done; notes on overlap test & frame cache.
- - README combat section expanded (overlap example, frame cache, consume API).
+Recent Phase 1A Additions (context):
+ - Frame span cache (1A.1), overlapping heavy_2 windows (0-50,40-80,80-105), boundary/overlap test, event consume API.
 
-Quality Gates:
- - All new/modified combat tests pass (heavy_multi_window, window_boundary, events).
- - No regressions in existing multi-hit & combo scaling tests.
+Quality:
+ - Built with SDL enabled; new and existing combat tests pass (spot-run damage_numbers_player).
 
 Next Steps:
- - Phase 2 damage type + mitigation pipeline (2.1–2.2) introduction.
- - FX/SFX dispatch consumer using event ring.
- - External attack data authoring tool (deferred) & status buildup application thresholds.
+ - Integrate crit determination on player strikes, Phase 2 mitigation pipeline, FX/SFX consumer of combat events.

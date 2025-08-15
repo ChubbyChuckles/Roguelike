@@ -36,6 +36,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_window_boundary.c AND NOT
     add_test(NAME test_combat_window_boundary COMMAND test_combat_window_boundary)
 endif()
 
+# Explicit player damage number spawn test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_damage_numbers_player.c AND NOT TARGET test_damage_numbers_player)
+    add_executable(test_damage_numbers_player unit/test_damage_numbers_player.c)
+    target_link_libraries(test_damage_numbers_player PRIVATE rogue_core)
+    target_compile_definitions(test_damage_numbers_player PRIVATE TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_damage_numbers_player PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_damage_numbers_player COMMAND test_damage_numbers_player)
+endif()
+
 # Explicitly add vendor restock rotation test (10.3)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_restock.c AND NOT TARGET test_vendor_restock)
     add_executable(test_vendor_restock unit/test_vendor_restock.c)
