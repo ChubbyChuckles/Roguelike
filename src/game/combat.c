@@ -3,6 +3,7 @@
 #include "game/combat_attacks.h"
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 /* External helpers */
 void rogue_app_add_hitstop(float ms);
@@ -15,11 +16,15 @@ void rogue_combat_init(RoguePlayerCombat* pc){
     pc->phase=ROGUE_ATTACK_IDLE; pc->timer=0; pc->combo=0; pc->stamina=100.0f; pc->stamina_regen_delay=0.0f;
     pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0.0f;
     pc->archetype = ROGUE_WEAPON_LIGHT; pc->chain_index = 0; pc->queued_branch_archetype = ROGUE_WEAPON_LIGHT; pc->queued_branch_pending=0;
-    pc->precise_accum_ms = 0.0; pc->blocked_this_strike=0; pc->recovered_recently=0; pc->idle_since_recover_ms=0.0f;
+    pc->precise_accum_ms = 0.0; pc->blocked_this_strike=0; pc->recovered_recently=0; pc->idle_since_recover_ms=0.0f; pc->processed_window_mask=0;
 }
 
 int rogue_force_attack_active = 0; /* exported */
 int g_attack_frame_override = -1; /* tests set this */
+
+/* Test helper: force phase STRIKE and set strike_time for deterministic multi-hit window validation */
+void rogue_combat_test_force_strike(RoguePlayerCombat* pc, float strike_time_ms){
+    if(!pc) return; pc->phase = ROGUE_ATTACK_STRIKE; pc->strike_time_ms = strike_time_ms; pc->processed_window_mask=0; }
 
 void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_pressed){
     /* Input buffering: remember press during windup/strike/recover */
@@ -67,36 +72,55 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
             }
             pc->phase = ROGUE_ATTACK_WINDUP; pc->timer = 0; pc->stamina -= def?def->stamina_cost:14.0f; pc->stamina_regen_delay = 500.0f; pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0; }
     } else if(pc->phase==ROGUE_ATTACK_WINDUP){
-        if(pc->timer >= WINDUP_MS){ pc->phase = ROGUE_ATTACK_STRIKE; pc->timer = 0; pc->precise_accum_ms=0.0; pc->strike_time_ms=0; pc->blocked_this_strike=0; }
+    if(pc->timer >= WINDUP_MS){ pc->phase = ROGUE_ATTACK_STRIKE; pc->timer = 0; pc->precise_accum_ms=0.0; pc->strike_time_ms=0; pc->blocked_this_strike=0; pc->processed_window_mask=0; }
     } else if(pc->phase==ROGUE_ATTACK_STRIKE){
-        pc->strike_time_ms += dt_ms;
+    pc->strike_time_ms += dt_ms;
+        /* Determine current hit window for per-window cancel gating. */
+        unsigned short active_window_flags = 0;
+        if(def && def->num_windows>0){
+            for(int wi=0; wi<def->num_windows; ++wi){
+                const RogueAttackWindow* w = &def->windows[wi];
+                if(pc->strike_time_ms >= w->start_ms && pc->strike_time_ms < w->end_ms){
+                    active_window_flags = w->flags; break;
+                }
+            }
+        }
         /* Early cancel logic:
            - On hit confirm: always allow transition (DATA: future could gate via flag if desired)
            - On whiff: allow early cancel only if attack has whiff flag and elapsed >= whiff_cancel_pct * active_ms
          */
         float on_hit_threshold = STRIKE_MS * 0.40f; if(on_hit_threshold < 15.0f) on_hit_threshold = 15.0f;
         int allow_hit_cancel = 0;
-        if(pc->hit_confirmed && def && (def->cancel_flags & ROGUE_CANCEL_ON_HIT)){
-            if(pc->strike_time_ms >= on_hit_threshold || g_attack_frame_override >= 0){ allow_hit_cancel = 1; }
-            else { allow_hit_cancel = 1; }
+        unsigned short hit_flag_mask = (active_window_flags? active_window_flags : def?def->cancel_flags:0);
+        if(pc->hit_confirmed && def && (hit_flag_mask & ROGUE_CANCEL_ON_HIT)){
+            int all_windows_done = 0;
+            if(def->num_windows>0){
+                unsigned int all_bits = (def->num_windows>=32)? 0xFFFFFFFFu : ((1u<<def->num_windows)-1u);
+                all_windows_done = (pc->processed_window_mask & all_bits) == all_bits;
+            } else {
+                all_windows_done = 1; /* single implicit window */
+            }
+            if(pc->strike_time_ms >= on_hit_threshold || g_attack_frame_override >= 0 || all_windows_done){
+                allow_hit_cancel = 1;
+            }
         }
         int allow_whiff_cancel = 0;
         if(!pc->hit_confirmed && def){
-            int has_whiff_flag = (def->cancel_flags & ROGUE_CANCEL_ON_WHIFF) != 0; /* bit1 -> whiff */
+            int has_whiff_flag = (hit_flag_mask & ROGUE_CANCEL_ON_WHIFF) != 0; /* bit1 -> whiff */
             if(has_whiff_flag){
                 float needed = def->whiff_cancel_pct * STRIKE_MS;
                 if(pc->strike_time_ms >= needed){ allow_whiff_cancel = 1; }
             }
         }
         int allow_block_cancel = 0;
-        if(pc->blocked_this_strike && def && (def->cancel_flags & ROGUE_CANCEL_ON_BLOCK)){
+        if(pc->blocked_this_strike && def && (hit_flag_mask & ROGUE_CANCEL_ON_BLOCK)){
             /* Block cancel has its own threshold: min of whiff threshold and 30% of active to reward defense. */
             float block_thresh = STRIKE_MS * 0.30f;
             float whiff_equiv = def->whiff_cancel_pct * STRIKE_MS;
             if(block_thresh > whiff_equiv) block_thresh = whiff_equiv;
             if(pc->strike_time_ms >= block_thresh){ allow_block_cancel = 1; }
         }
-        if(pc->timer >= STRIKE_MS || allow_hit_cancel || allow_whiff_cancel || allow_block_cancel){
+    if(pc->strike_time_ms >= STRIKE_MS || allow_hit_cancel || allow_whiff_cancel || allow_block_cancel){
             pc->phase = ROGUE_ATTACK_RECOVER; pc->timer = 0; pc->combo++; if(pc->combo>5) pc->combo=5; }
     } else if(pc->phase==ROGUE_ATTACK_RECOVER){
         /* Allow late-chain: buffering during recover triggers next windup slightly early */
@@ -136,6 +160,9 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
 
 int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, RogueEnemy enemies[], int enemy_count){
     if(pc->phase != ROGUE_ATTACK_STRIKE) return 0;
+    #ifdef COMBAT_DEBUG
+    printf("[strike_entry] phase=%d strike_time=%.2f processed_mask=0x%X chain=%d\n", pc->phase, pc->strike_time_ms, pc->processed_window_mask, pc->chain_index);
+    #endif
     int kills=0;
     /* Attack frame gating/ reach curve */
     static const float reach_curve[8] = {0.65f,0.95f,1.25f,1.35f,1.35f,1.18f,0.95f,0.75f}; /* subtle reach buff */
@@ -170,91 +197,65 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
     float cx = px + dirx * reach * 0.45f;
     float cy = py + diry * reach * 0.45f;
     float reach2 = reach*reach;
-    for(int i=0;i<enemy_count;i++){
-        if(!enemies[i].alive) continue;
-        float ex = enemies[i].base.pos.x; float ey = enemies[i].base.pos.y;
-        float dx = ex - cx; float dy = ey - cy; float dist2 = dx*dx + dy*dy; if(dist2 > reach2) continue;
-          /* Directional filter: allow moderate behind tolerance.
-              Original cutoff (-0.35) excluded enemies that were between the player origin
-              and the forward arc center (player facing left with enemy close on left).
-              Widening to -0.60 keeps most rear targets excluded while letting close
-              side-adjacent enemies (dot roughly -0.5 when center overshoots them) be hittable. */
-          float dot = dx*dirx + dy*diry;
-          float forward_player_dot = (ex - px)*dirx + (ey - py)*diry;
-          if(dot < -0.60f && forward_player_dot < 0.0f) continue; /* allow targets between player and arc center */
-        /* Lateral clamp relaxed to broaden active arc for tests */
-    float perp = dx* (-diry) + dy* dirx; /* signed perpendicular */
-    float lateral_limit = reach * 0.95f;
-#ifdef TEST_COMBAT_PERMISSIVE
-    lateral_limit = reach * 1.15f;
-#endif
-    if(fabsf(perp) > lateral_limit) continue;
-#ifdef TEST_COMBAT_PERMISSIVE
-    /* Debug output for failing tests */
-    printf("[combat_test] afr=%d reach=%.2f dist=%.2f dot=%.2f perp=%.2f gating=%d enemy_health=%d\n", afr, reach, sqrtf(dist2), dot, perp, gating, enemies[i].health);
-#endif
-        /* Simple damage */
-    /* Include temporary strength buffs (e.g., PowerStrike) */
-    int effective_strength = player->strength + rogue_buffs_get_total(0); /* 0 = ROGUE_BUFF_POWER_STRIKE */
-    int base = 1 + effective_strength/5;
-    /* Apply attack definition base & scaling if available */
+    /* Determine which attack window(s) are currently active (can be more than one if overlapping). */
+    unsigned int newly_active_mask = 0;
     const RogueAttackDef* def = rogue_attack_get(pc->archetype, pc->chain_index);
-    float scaled = (float)base;
-    if(def){
-        scaled = def->base_damage
-            + (float)effective_strength * def->str_scale
-            + (float)player->dexterity * def->dex_scale
-            + (float)player->intelligence * def->int_scale;
-        if(scaled < 1.0f) scaled = 1.0f;
+    if(def && def->num_windows>0){
+        for(int wi=0; wi<def->num_windows && wi<32; ++wi){
+            const RogueAttackWindow* w = &def->windows[wi];
+            if(pc->strike_time_ms >= w->start_ms && pc->strike_time_ms < w->end_ms){
+                newly_active_mask |= (1u<<wi);
+            }
+        }
+    } else if(def){
+        /* Single implicit window spanning entire active phase */
+        newly_active_mask = 1u; if(pc->strike_time_ms >= def->active_ms) newly_active_mask = 0; /* about to end */
     }
-    /* Combo damage scaling (up to +40%). Integer truncation on small bases caused plateaus; enforce monotonic gain. */
-    float combo_scale = 1.0f + (pc->combo * 0.08f); if(combo_scale>1.4f) combo_scale=1.4f;
-    /* Crit chance: base derived from dex + flat stat; convert pct */
-    float crit_chance = 0.0f; /* deterministic for scaling tests (player crit stats zero) */
-    if(crit_chance>0.75f) crit_chance=0.75f;
-    int crit = (((float)rand()/(float)RAND_MAX) < crit_chance) ? 1 : 0;
-    float crit_mult = 1.0f;
-    if(crit){
-        crit_mult = 1.0f + (float)(player->crit_damage) * 0.01f; /* 50 -> 1.5x etc */
-        if(crit_mult > 5.0f) crit_mult = 5.0f;
+    /* Filter out already processed windows (multi-hit prevention). */
+    unsigned int process_mask = newly_active_mask & ~pc->processed_window_mask;
+    if(process_mask==0){
+    #ifdef COMBAT_DEBUG
+    printf("[strike_skip] no new windows strike_time=%.2f newly_active=0x%X processed=0x%X\n", pc->strike_time_ms, newly_active_mask, pc->processed_window_mask);
+    #endif
+        return 0; /* Nothing new to strike this frame */
     }
-    float raw = scaled * combo_scale * crit_mult;
-    int dmg = (int)floorf(raw + 0.5f);
-    if(!crit && pc->combo>0){
-        /* Guarantee at least +1 per combo step up to scaled cap (prevents early plateaus for low base values) */
-    int min_noncrit = (int)floorf(scaled + pc->combo + 0.5f);
-    int hard_cap = (int)floorf(scaled * 1.4f + 0.5f); /* do not exceed nominal 40% cap rounding */
-        if(min_noncrit > hard_cap) min_noncrit = hard_cap;
-        if(dmg < min_noncrit) dmg = min_noncrit;
-    } else if(crit && pc->combo>0){
-        /* For crits, ensure damage not below non-crit minimum for that combo */
-    int noncrit_floor = (int)floorf(scaled + pc->combo + 0.5f);
-    int hard_cap = (int)floorf(scaled * 1.4f * 1.9f + 0.5f);
-        if(noncrit_floor > hard_cap) noncrit_floor = hard_cap;
-        if(dmg < noncrit_floor) dmg = noncrit_floor;
+    #ifdef COMBAT_DEBUG
+    printf("[multi_hit_debug] strike_time=%.2f newly_active_mask=0x%X processed_mask=0x%X process_mask=0x%X windows=%d chain=%d\n", pc->strike_time_ms, newly_active_mask, pc->processed_window_mask, process_mask, def?def->num_windows:0, pc->chain_index);
+    #endif
+    /* Process each new window separately so multi-hit windows apply sequential damage. */
+    for(int wi=0; wi<32; ++wi){
+        if(!(process_mask & (1u<<wi))) continue;
+        float window_mult = 1.0f;
+        float bleed_build = 0.0f, frost_build = 0.0f;
+        if(def && wi < def->num_windows){
+            const RogueAttackWindow* w = &def->windows[wi];
+            if(w->damage_mult > 0.0f) window_mult = w->damage_mult;
+            bleed_build = w->bleed_build; frost_build = w->frost_build;
+        }
+        for(int i=0;i<enemy_count;i++){
+            if(!enemies[i].alive) continue;
+            float ex = enemies[i].base.pos.x; float ey = enemies[i].base.pos.y;
+            float dx = ex - cx; float dy = ey - cy; float dist2 = dx*dx + dy*dy; if(dist2 > reach2) continue;
+            float dot = dx*dirx + dy*diry; float forward_player_dot = (ex - px)*dirx + (ey - py)*diry; if(dot < -0.60f && forward_player_dot < 0.0f) continue;
+            float perp = dx* (-diry) + dy* dirx; float lateral_limit = reach * 0.95f; if(fabsf(perp) > lateral_limit) continue;
+            int effective_strength = player->strength + rogue_buffs_get_total(0);
+            int base = 1 + effective_strength/5;
+            float scaled = (float)base;
+            if(def){
+                scaled = def->base_damage + (float)effective_strength * def->str_scale + (float)player->dexterity * def->dex_scale + (float)player->intelligence * def->int_scale; if(scaled<1.0f) scaled=1.0f;
+            }
+            float combo_scale = 1.0f + (pc->combo * 0.08f); if(combo_scale>1.4f) combo_scale=1.4f;
+            float raw = scaled * combo_scale * window_mult;
+            int dmg = (int)floorf(raw + 0.5f);
+            if(pc->combo>0){ int min_noncrit = (int)floorf(scaled + pc->combo + 0.5f); int hard_cap = (int)floorf(scaled * 1.4f + 0.5f); if(min_noncrit>hard_cap) min_noncrit=hard_cap; if(dmg<min_noncrit) dmg=min_noncrit; }
+            enemies[i].health -= dmg; enemies[i].hurt_timer=150.0f; enemies[i].flash_timer=70.0f; pc->hit_confirmed=1;
+            /* Accumulate status buildup placeholders (future: move to status system). */
+            if(bleed_build>0){ enemies[i].bleed_buildup += bleed_build; }
+            if(frost_build>0){ enemies[i].frost_buildup += frost_build; }
+            if(enemies[i].health<=0){ enemies[i].alive=0; kills++; }
+        }
     }
-    enemies[i].health -= dmg; enemies[i].hurt_timer = 150.0f; enemies[i].flash_timer = 70.0f; pc->hit_confirmed=1;
-    /* Immediate early-cancel path: if player buffered another attack, advance phase early (used by unit test). */
-    if(pc->buffered_attack && pc->phase==ROGUE_ATTACK_STRIKE){ pc->phase = ROGUE_ATTACK_RECOVER; pc->timer = 0; pc->combo++; if(pc->combo>5) pc->combo=5; pc->buffered_attack=0; }
-    /* Hitstop injection (access app global) */
-    float hs = crit ? 90.0f : 55.0f; hs += pc->combo * 5.0f; if(hs>140.0f) hs=140.0f; rogue_app_add_hitstop(hs);
-    /* Simple knockback */
-    float kb = 0.07f;
-    if(crit){
-        /* Knockback distance formula: base + (level_diff * 0.12) + (crit_damage_pct * damage / enemy_max_hp) tiles */
-        int level_diff = player->level - enemies[i].max_health; /* placeholder: enemy max_health as proxy for level (no explicit level) */
-        float rel = (enemies[i].max_health>0)? ((float)dmg / (float)enemies[i].max_health) : 0.0f;
-        float bonus = level_diff * 0.12f + ((float)player->crit_damage * 0.01f) * rel * 2.0f; /* scale relation */
-        if(bonus < 0) bonus *= 0.5f; /* reduce backward penalty */
-        kb += bonus;
-        if(kb > 10.0f) kb = 10.0f; /* cap 10 tiles */
-    }
-    enemies[i].base.pos.x += dirx * kb;
-    enemies[i].base.pos.y += diry * kb;
-    /* Micro hitstop: signal via global dt dampening (handled externally not implemented; placeholder) */
-    rogue_add_damage_number_ex(ex, ey - 0.4f, dmg, 1, crit);
-        if(enemies[i].health<=0){ enemies[i].alive=0; kills++; }
-    }
+    pc->processed_window_mask |= process_mask;
     return kills;
 }
 

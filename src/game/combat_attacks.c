@@ -8,13 +8,15 @@
 typedef struct RogueAttackChain { const RogueAttackDef* defs; int count; } RogueAttackChain;
 
 static const RogueAttackDef g_light_chain[] = {
-    {0,"light_1",ROGUE_WEAPON_LIGHT,0,110,70,120,14,10,5,0,0.34f,0.06f,0.00f,1,{{0,70}}, 0.0f, (ROGUE_CANCEL_ON_HIT|ROGUE_CANCEL_ON_WHIFF|ROGUE_CANCEL_ON_BLOCK), 0.50f, 1.0f, 0.0f},
-    {1,"light_2",ROGUE_WEAPON_LIGHT,1,95, 65,115,12,12,6,0,0.36f,0.07f,0.00f,1,{{0,65}}, 0.0f, (ROGUE_CANCEL_ON_HIT|ROGUE_CANCEL_ON_WHIFF), 0.45f, 1.2f, 0.0f},
-    {2,"light_3",ROGUE_WEAPON_LIGHT,2,105,75,140,16,15,8,0,0.39f,0.08f,0.00f,1,{{0,75}}, 0.0f, (ROGUE_CANCEL_ON_HIT|ROGUE_CANCEL_ON_WHIFF), 0.40f, 1.5f, 0.0f},
+    {0,"light_1",ROGUE_WEAPON_LIGHT,0,110,70,120,14,10,5,0,0.34f,0.06f,0.00f,1,{{0,70,ROGUE_CANCEL_ON_HIT|ROGUE_CANCEL_ON_WHIFF|ROGUE_CANCEL_ON_BLOCK,1.0f,0,0}}, 0.0f, (ROGUE_CANCEL_ON_HIT|ROGUE_CANCEL_ON_WHIFF|ROGUE_CANCEL_ON_BLOCK), 0.50f, 1.0f, 0.0f},
+    {1,"light_2",ROGUE_WEAPON_LIGHT,1,95, 65,115,12,12,6,0,0.36f,0.07f,0.00f,1,{{0,65,ROGUE_CANCEL_ON_HIT|ROGUE_CANCEL_ON_WHIFF,1.0f,0,0}}, 0.0f, (ROGUE_CANCEL_ON_HIT|ROGUE_CANCEL_ON_WHIFF), 0.45f, 1.2f, 0.0f},
+    /* light_3: split into two sub windows for multi-hit demonstration */
+    {2,"light_3",ROGUE_WEAPON_LIGHT,2,105,75,140,16,15,8,0,0.39f,0.08f,0.00f,2,{{0,36,ROGUE_CANCEL_ON_HIT,0.40f,0.0f,0.0f},{36,75,ROGUE_CANCEL_ON_HIT,0.90f,0.05f,0.02f}}, 0.0f, (ROGUE_CANCEL_ON_HIT|ROGUE_CANCEL_ON_WHIFF), 0.40f, 1.5f, 0.0f},
 };
 static const RogueAttackDef g_heavy_chain[] = {
-    {0,"heavy_1",ROGUE_WEAPON_HEAVY,0,170,90,180,24,28,14,0,0.45f,0.05f,0.00f,1,{{0,90}}, 0.0f, (ROGUE_CANCEL_ON_HIT), 0.65f, 3.5f, 0.0f},
-    {1,"heavy_2",ROGUE_WEAPON_HEAVY,1,190,105,200,28,35,18,0,0.50f,0.05f,0.00f,1,{{0,105}}, 0.0f, (ROGUE_CANCEL_ON_HIT), 0.65f, 4.0f, 0.0f},
+    {0,"heavy_1",ROGUE_WEAPON_HEAVY,0,170,90,180,24,28,14,0,0.45f,0.05f,0.00f,1,{{0,90,ROGUE_CANCEL_ON_HIT,1.0f,0,0}}, 0.0f, (ROGUE_CANCEL_ON_HIT), 0.65f, 3.5f, 0.0f},
+    /* heavy_2: three staggered impact pulses */
+    {1,"heavy_2",ROGUE_WEAPON_HEAVY,1,190,105,200,28,35,18,0,0.50f,0.05f,0.00f,3,{{0,40,ROGUE_CANCEL_ON_HIT,0.55f,0.0f,0.00f},{40,80,ROGUE_CANCEL_ON_HIT,0.85f,0.03f,0.00f},{80,105,ROGUE_CANCEL_ON_HIT,1.25f,0.06f,0.02f}}, 0.0f, (ROGUE_CANCEL_ON_HIT), 0.65f, 4.0f, 0.0f},
 };
 static const RogueAttackDef g_thrust_chain[] = {
     {0,"thrust_1",ROGUE_WEAPON_THRUST,0,120,55,110,13,12,7,0,0.14f,0.33f,0.00f,1,{{0,55}}, 0.0f, (ROGUE_CANCEL_ON_HIT|ROGUE_CANCEL_ON_WHIFF), 0.45f, 0.8f, 0.0f},

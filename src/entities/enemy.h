@@ -45,6 +45,9 @@ typedef struct RogueEnemy {
     float attack_cooldown_ms; /* time until next attack allowed */
     int crit_chance;    /* percent flat */
     int crit_damage;    /* percent bonus over 100 */
+    /* --- Status buildup placeholders (Phase 1A scaffold) --- */
+    float bleed_buildup; /* accumulates until threshold triggers bleed (future) */
+    float frost_buildup; /* accumulates; future slow/freeze effects */
 } RogueEnemy;
 
 #define ROGUE_MAX_ENEMIES 256

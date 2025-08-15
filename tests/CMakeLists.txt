@@ -221,6 +221,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_drift_timing.c AND NOT TA
     add_test(NAME test_combat_drift_timing COMMAND test_combat_drift_timing)
 endif()
 
+# Explicitly add combat multi-hit window test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_multi_hit.c AND NOT TARGET test_combat_multi_hit)
+    add_executable(test_combat_multi_hit unit/test_combat_multi_hit.c)
+    target_link_libraries(test_combat_multi_hit PRIVATE rogue_core)
+    target_compile_definitions(test_combat_multi_hit PRIVATE TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_multi_hit PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_multi_hit COMMAND test_combat_multi_hit)
+endif()
+
 # Explicitly add passive skills test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_passive.c AND NOT TARGET test_skills_passive)
     add_executable(test_skills_passive unit/test_skills_passive.c)

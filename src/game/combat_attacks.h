@@ -17,7 +17,12 @@ typedef enum RogueWeaponArchetype {
 
 #define ROGUE_MAX_ATTACK_WINDOWS 4
 
-typedef struct RogueAttackWindow { float start_ms; float end_ms; } RogueAttackWindow;
+typedef struct RogueAttackWindow {
+    float start_ms; float end_ms;          /* [start_ms, end_ms) interval within strike phase */
+    unsigned short flags;                  /* per-window cancel/status flags (reuse global cancel bits subset) */
+    float damage_mult;                     /* per-window scalar applied to base + scaling damage (1.0 default) */
+    float bleed_build; float frost_build;  /* per-window status buildup contributions (Phase 1A status scaffolding) */
+} RogueAttackWindow;
 
 typedef struct RogueAttackDef {
     int id;                         /* stable id within table */
@@ -35,7 +40,7 @@ typedef struct RogueAttackDef {
     float dex_scale;                /* dex scaling coefficient */
     float int_scale;                /* intelligence scaling coefficient */
     int   num_windows;              /* active hit windows (strike sub-intervals) */
-    RogueAttackWindow windows[ROGUE_MAX_ATTACK_WINDOWS];
+    RogueAttackWindow windows[ROGUE_MAX_ATTACK_WINDOWS]; /* if num_windows==0 treat whole active_ms as single implicit window */
     /* --- Newly added extended fields (Phase 1.2/1.5 advancements) --- */
     float poise_cost;               /* attacker poise cost / tax (placeholder) */
     unsigned short cancel_flags;    /* bit0=on_hit (implicit), bit1=on_whiff early cancel, bit2=on_block (future) */

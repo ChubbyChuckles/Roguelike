@@ -1,0 +1,19 @@
+Combat: Multi-hit active windows + per-window cancel overrides + window damage_mult field
+
+Summary:
+- Implemented Phase 1A.2 multi-hit strike support: processed_window_mask, dynamic active window mask evaluation, dedicated per-window damage_mult scalar (replacing temporary bleed_build reuse).
+- Added per-window cancel flag override resolution (hit/whiff/block) atop global attack cancel flags (Phase 1A.3 enhancement).
+- Extended AttackDef (light_3 & heavy_2) with multi-window definitions demonstrating sequential hits; added explicit damage_mult for each window (e.g., light_3 0.40x then 0.90x, heavy_2 three pulses 0.55x/0.85x/1.25x).
+- Added duplicate hit prevention (bitmask) and unit test `test_combat_multi_hit` covering sequential multi-hit application and idempotency on re-invocation.
+- Adjusted early hit cancel gating to wait until all windows processed (prevents premature cancel after first pulse).
+- Added strike debug instrumentation (now behind COMBAT_DEBUG macro) and test harness force-strike helper for deterministic window testing.
+- Updated combat implementation plan: 1A.2 marked Partial (engine + tests), 1A.3 expanded (Done w/ per-window overrides), 1A.7 partial (multi-hit ordering test in place).
+- README combat section: added bullet highlighting multi-hit window support.
+
+Follow-ups:
+- Add heavy_2 triple-window unit test (ordering + mask 0x1->0x2->0x4) and boundary condition tests (exact start/end ms) plus cancel edge gating.
+- Status effect application pipeline: currently accumulates bleed_buildup / frost_buildup floats on enemy; next step is threshold & effect spawn.
+- Consider converting status buildup accumulation to a helper for reuse with projectiles / skill effects.
+- Add boundary edge tests (window start == end transitions) and cancel edge case tests (1A.7).
+- Remove or compile-gate debug prints (`[strike_entry]`, `[multi_hit_debug]`).
+- Begin status effect buildup application pipeline utilizing per-window bleed/frost fields.

@@ -26,6 +26,7 @@ typedef struct RoguePlayerCombat {
     int blocked_this_strike;        /* set if current strike was blocked (enables block cancel) */
     int recovered_recently;  /* we just exited recovery -> idle (eligible for late chain) */
     float idle_since_recover_ms; /* time spent idle since recovery ended */
+    unsigned int processed_window_mask; /* bitmask of strike windows already applied (multi-hit) */
 } RoguePlayerCombat;
 
 void rogue_combat_init(RoguePlayerCombat* pc);
@@ -49,5 +50,6 @@ int rogue_get_current_attack_frame(void);
 extern int rogue_force_attack_active;
 /* Test support: when >=0, forces current attack animation frame for strike logic */
 extern int g_attack_frame_override;
+void rogue_combat_test_force_strike(RoguePlayerCombat* pc, float strike_time_ms);
 
 #endif
