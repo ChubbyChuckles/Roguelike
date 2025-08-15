@@ -256,6 +256,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_durability_thresholds.
     add_test(NAME test_ui_phase4_durability_thresholds COMMAND test_ui_phase4_durability_thresholds)
 endif()
 
+# UI Phase 4.10 radial selector test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_radial_selector.c AND NOT TARGET test_ui_phase4_radial_selector)
+    add_executable(test_ui_phase4_radial_selector unit/test_ui_phase4_radial_selector.c)
+    target_link_libraries(test_ui_phase4_radial_selector PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ui_phase4_radial_selector PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ui_phase4_radial_selector COMMAND test_ui_phase4_radial_selector)
+endif()
+
 # Explicitly add vendor restock rotation test (10.3)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_restock.c AND NOT TARGET test_vendor_restock)
     add_executable(test_vendor_restock unit/test_vendor_restock.c)

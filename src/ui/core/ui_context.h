@@ -24,6 +24,13 @@ typedef struct RogueUIRuntimeStats {
     int draw_calls;
 } RogueUIRuntimeStats;
 
+/* Radial selector descriptor (Phase 4.10) */
+typedef struct RogueUIRadialDesc {
+    int active;       /* 1 if open */
+    int count;        /* number of wedges */
+    int selection;    /* current highlighted wedge index */
+} RogueUIRadialDesc;
+
 typedef struct RogueUINode {
     RogueUIRect rect;
     const char* text; /* optional */
@@ -115,6 +122,8 @@ typedef struct RogueUIContext {
     int ctx_menu_active; int ctx_menu_slot; int ctx_menu_selection;
     /* Phase 4.5 Inline Stat Delta Preview */
     int stat_preview_slot; /* hovered slot last frame for which preview was generated (-1 if none) */
+    /* Phase 4.10 Radial selector */
+    RogueUIRadialDesc radial;
 } RogueUIContext;
 
 int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg);
@@ -237,7 +246,15 @@ enum { ROGUE_UI_EVENT_NONE=0, ROGUE_UI_EVENT_DRAG_BEGIN=1, ROGUE_UI_EVENT_DRAG_E
        ROGUE_UI_EVENT_STAT_PREVIEW_SHOW=9, ROGUE_UI_EVENT_STAT_PREVIEW_HIDE=10,
        /* Phase 4.8 (Transaction confirmation) */
        ROGUE_UI_EVENT_VENDOR_CONFIRM_OPEN=11, ROGUE_UI_EVENT_VENDOR_CONFIRM_ACCEPT=12, ROGUE_UI_EVENT_VENDOR_CONFIRM_CANCEL=13,
-       ROGUE_UI_EVENT_VENDOR_INSUFFICIENT_FUNDS=14 };
+       ROGUE_UI_EVENT_VENDOR_INSUFFICIENT_FUNDS=14,
+       /* Phase 4.10 Radial selector */
+       ROGUE_UI_EVENT_RADIAL_OPEN=15, ROGUE_UI_EVENT_RADIAL_CHOOSE=16, ROGUE_UI_EVENT_RADIAL_CANCEL=17 };
+
+/* Convenience API for radial selector (controller friendly) */
+void rogue_ui_radial_open(RogueUIContext* ctx, int count);
+void rogue_ui_radial_close(RogueUIContext* ctx); /* emits CANCEL if still active */
+/* Build radial menu widgets (panels + labels) centered at (cx,cy). Returns root index of first node created or -1. */
+int rogue_ui_radial_menu(RogueUIContext* ctx, float cx, float cy, float radius, const char** labels, int count);
 typedef struct RogueUIEvent { int kind; int a; int b; int c; } RogueUIEvent;
 int rogue_ui_poll_event(RogueUIContext* ctx, RogueUIEvent* out);
 

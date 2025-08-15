@@ -10,3 +10,16 @@ Summary:
 
 Notes:
 - Future enhancement: animate gradual color transition and integrate repair cost preview tooltip.
+
+UI Phase 4.10: Controller-friendly radial selector menu
+
+Summary:
+- Added radial selector state to UI context (supports up to 12 wedges) with open/choose/cancel events.
+- Implemented `rogue_ui_radial_open/close` and `rogue_ui_radial_menu` builder rendering wedge panels + labels around a center.
+- Analog stick angle maps to wedge index (index 0 at Up, clockwise ordering). Keyboard arrows provide cycling fallback for KB users.
+- Event kinds added: ROGUE_UI_EVENT_RADIAL_OPEN / _CHOOSE / _CANCEL.
+- Unit test `test_ui_phase4_radial_selector` validates open event emission, axis-driven selection range, and choose event payload.
+- Roadmap & README updated marking Phase 4.10 Done.
+
+Notes:
+- Future: add mouse-driven selection (hover sectors), visual wedge slice geometry, and cancel via right-click / B button.
