@@ -63,6 +63,7 @@ typedef struct RogueAppState {
     RogueEnemy enemies[ROGUE_MAX_ENEMIES]; int enemy_count; RogueEnemyTypeDef enemy_types[ROGUE_MAX_ENEMY_TYPES]; int enemy_type_count; RoguePlayerCombat player_combat; int total_kills; int per_type_counts[ROGUE_MAX_ENEMY_TYPES]; double difficulty_scalar;
     int show_stats_panel; int stats_panel_index;
     float time_since_player_hit_ms; float health_regen_accum_ms; float mana_regen_accum_ms; float ap_regen_accum_ms; float levelup_aura_timer_ms;
+    float ap_throttle_timer_ms; /* remaining ms of AP soft throttle (reduced regen) */
 #ifdef ROGUE_HAVE_SDL_MIXER
     Mix_Chunk* sfx_levelup;
 #endif

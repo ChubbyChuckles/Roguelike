@@ -107,7 +107,14 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx){
     /* Spend mana */
         if(def->resource_cost_mana>0){ g_app.player.mana -= def->resource_cost_mana; if(g_app.player.mana<0) g_app.player.mana=0; }
     /* Spend AP */
-    if(def->action_point_cost>0){ g_app.player.action_points -= def->action_point_cost; if(g_app.player.action_points<0) g_app.player.action_points=0; st->action_points_spent_session += def->action_point_cost; }
+    if(def->action_point_cost>0){
+        g_app.player.action_points -= def->action_point_cost; if(g_app.player.action_points<0) g_app.player.action_points=0; st->action_points_spent_session += def->action_point_cost;
+        /* Trigger/extend soft throttle when large AP chunk is spent */
+        if(def->action_point_cost >= 25){
+            float extend = 1500.0f + def->action_point_cost * 10.0f; /* scale throttle duration modestly */
+            if(g_app.ap_throttle_timer_ms < extend) g_app.ap_throttle_timer_ms = extend;
+        }
+    }
         /* Spend charge */
         if(def->max_charges>0){ st->charges_cur--; if(st->charges_cur < def->max_charges && st->next_charge_ready_ms==0){ st->next_charge_ready_ms = now + def->charge_recharge_ms; } }
         /* Cooldown compute */

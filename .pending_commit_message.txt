@@ -1,9 +1,8 @@
-feat(skills): minimal EffectSpec system (Phase 1.2 partial) + skill linkage
+feat(skills): EffectSpec minimal system (1.2 partial) + AP soft throttle (1.5 complete)
 
-Implements a foundational EffectSpec registry (module `effect_spec.c/h`) with first STAT_BUFF kind.
-Extends `RogueSkillDef` with `effect_spec_id` and auto-applies linked effect on successful activation.
-Adds new buff type `ROGUE_BUFF_STAT_STRENGTH`.
-Unit test `test_effectspec_basic` registers a strength buff spec, links to a skill, activates, and asserts correct buff magnitude.
-Roadmap updated (1.2 -> Partial) and README highlights updated.
+Adds foundational EffectSpec registry (`effect_spec.c/h`) with initial STAT_BUFF kind and automatic application via `RogueSkillDef.effect_spec_id` during activation.
+Introduces new buff type `ROGUE_BUFF_STAT_STRENGTH` and unit test `test_effectspec_basic` validating application.
+Completes AP economy Phase 1.5 by implementing soft throttle: large AP spends trigger temporary slowed regen (interval increase + gain reduction) with test `test_ap_soft_throttle` plus existing `test_skills_ap_economy`.
+Roadmap updated (1.2 Partial, 1.5 Done). README updated (Combat & Skills + changelog snapshot) to reflect soft throttle and EffectSpec.
 
-Retains previously added AP economy (1.5 partial). Next steps: AP soft throttle, DOT/HOT effect kinds, stacking rules, snapshot vs dynamic scaling flags, effect persistence & HUD indicators.
+Next: additional EffectSpec kinds (DOT/HOT), stacking rules, snapshot vs dynamic scaling flags, cast/channel progression (1.3/1.4), input buffering (1A.1), proc system groundwork.

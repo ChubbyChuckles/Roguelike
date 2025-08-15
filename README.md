@@ -81,7 +81,7 @@ See full, fine‑grained roadmap in `implementation_plan.txt` (kept continuously
 * Damage numbers decoupled from combat logic; spawn & lifetime tested for determinism.
 * Frame-accurate combo / crit / buffer chain tests ensure animation & timing regressions surface quickly.
 * Phase 1 (in progress): Added extended skill metadata (tags, charges, recharge timers, deterministic per-activation RNG seeding) and foundational unit test (`test_skills_phase1_basic`).
-* Action Point (AP) economy core implemented (Phase 1.5 partial): player AP pool (scales with DEX), passive regeneration, per-skill `action_point_cost` gating, and unit test (`test_skills_ap_economy`) validating cost rejection & regen recovery. Soft throttle mechanic still pending.
+* Action Point (AP) economy core (Phase 1.5): player AP pool (scales with DEX), passive regeneration, per-skill `action_point_cost` gating, soft throttle (temporary slowed regen after large spend), and unit tests (`test_skills_ap_economy`, `test_ap_soft_throttle`).
 * EffectSpec (Phase 1.2 partial): minimal registry + STAT_BUFF kind applied via skill `effect_spec_id`; unit test (`test_effectspec_basic`) validates buff application.
 
 #### Loot Foundations (Phases 1–4)
@@ -375,7 +375,7 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
 
 ### v0.8.x (Current Development Branch)
 **Added**
-* Action Point (AP) economy core (Phase 1.5 partial): player AP pool + regen + per-skill cost + tests.
+* Action Point (AP) economy core (Phase 1.5): player AP pool + regen + per-skill cost + soft throttle + tests.
 * Minimal EffectSpec system (Phase 1.2 partial): registry + stat buff kind + skill linkage + tests.
 * Advanced loot generation context (enemy level / biome / archetype / player luck).
 * Seed mixing & deterministic multi‑pass generation.

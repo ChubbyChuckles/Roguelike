@@ -51,16 +51,23 @@ void rogue_player_progress_update(double dt_seconds){
             g_app.player.mana += 1 + g_app.player.intelligence/12; if(g_app.player.mana>g_app.player.max_mana) g_app.player.mana=g_app.player.max_mana;
         }
     } else { g_app.mana_regen_accum_ms = 0.0f; }
-    /* Action Point regen (Phase 1.5 core). Simple fixed-tick + dexterity scaling. */
+    /* Action Point regen (Phase 1.5 core + soft throttle). */
     if(g_app.player.action_points < g_app.player.max_action_points){
         g_app.ap_regen_accum_ms += raw_dt_ms;
         float interval_ap = 180.0f - g_app.player.dexterity * 1.5f; if(interval_ap < 60.0f) interval_ap = 60.0f;
+        /* Soft throttle: while active, increase interval (slower regen) */
+        if(g_app.ap_throttle_timer_ms > 0.0f){ interval_ap *= 1.8f; }
         while(g_app.ap_regen_accum_ms >= interval_ap){
             g_app.ap_regen_accum_ms -= interval_ap;
             int gain = 2 + g_app.player.dexterity/15; if(gain<1) gain=1;
+            if(g_app.ap_throttle_timer_ms > 0.0f){
+                /* Throttled gain reduced */
+                if(gain > 1) gain -= 1;
+            }
             g_app.player.action_points += gain;
             if(g_app.player.action_points > g_app.player.max_action_points) g_app.player.action_points = g_app.player.max_action_points;
         }
     } else { g_app.ap_regen_accum_ms = 0.0f; }
+    if(g_app.ap_throttle_timer_ms > 0.0f){ g_app.ap_throttle_timer_ms -= raw_dt_ms; if(g_app.ap_throttle_timer_ms < 0.0f) g_app.ap_throttle_timer_ms = 0.0f; }
     /* Autosave moved to persistence_autosave module */
 }
