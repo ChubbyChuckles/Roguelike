@@ -3,6 +3,7 @@
 #include "entities/player.h"
 #include "entities/enemy.h"
 #include "world/tilemap.h"
+#include "game/combat_attacks.h"
 
 typedef enum RogueAttackPhase { ROGUE_ATTACK_IDLE=0, ROGUE_ATTACK_WINDUP, ROGUE_ATTACK_STRIKE, ROGUE_ATTACK_RECOVER } RogueAttackPhase;
 
@@ -16,12 +17,24 @@ typedef struct RoguePlayerCombat {
     int buffered_attack;      /* 1 if player pressed attack during non-idle phase */
     int hit_confirmed;        /* 1 if current strike has connected (enables early cancel) */
     float strike_time_ms;     /* time spent in STRIKE phase (for early cancel window) */
+    /* Attack data-driven extensions */
+    RogueWeaponArchetype archetype; /* current chain archetype */
+    int chain_index;                /* current position in archetype chain */
+    RogueWeaponArchetype queued_branch_archetype; /* pending one-shot branch override */
+    int queued_branch_pending;      /* flag: apply branch on next attack start */
 } RoguePlayerCombat;
 
 void rogue_combat_init(RoguePlayerCombat* pc);
 void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_pressed);
 /* Attempt to apply strike damage to enemies during STRIKE phase. Returns kills this frame */
 int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, RogueEnemy enemies[], int enemy_count);
+
+/* Data-driven attack helpers */
+void rogue_combat_set_archetype(RoguePlayerCombat* pc, RogueWeaponArchetype arch);
+RogueWeaponArchetype rogue_combat_current_archetype(const RoguePlayerCombat* pc);
+int rogue_combat_current_chain_index(const RoguePlayerCombat* pc);
+/* Queue a branch (different archetype) to be consumed by the next started attack (distinct from simple buffered next). */
+void rogue_combat_queue_branch(RoguePlayerCombat* pc, RogueWeaponArchetype branch_arch);
 
 /* Exposed global (defined in app.c) for stamina regen stat scaling */
 extern RoguePlayer g_exposed_player_for_stats;

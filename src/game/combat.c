@@ -1,5 +1,6 @@
 #include "game/combat.h"
 #include "core/buffs.h" /* needed for temporary strength buffs */
+#include "game/combat_attacks.h"
 #include <math.h>
 #include <stdlib.h>
 
@@ -13,6 +14,7 @@ void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int c
 void rogue_combat_init(RoguePlayerCombat* pc){
     pc->phase=ROGUE_ATTACK_IDLE; pc->timer=0; pc->combo=0; pc->stamina=100.0f; pc->stamina_regen_delay=0.0f;
     pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0.0f;
+    pc->archetype = ROGUE_WEAPON_LIGHT; pc->chain_index = 0; pc->queued_branch_archetype = ROGUE_WEAPON_LIGHT; pc->queued_branch_pending=0;
 }
 
 int rogue_force_attack_active = 0; /* exported */
@@ -28,16 +30,25 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
         }
     }
 
-    /* Dynamic timing constants (ms) with slight combo speed-up */
-    float combo_speed = 1.0f - (pc->combo * 0.07f); if(combo_speed < 0.75f) combo_speed = 0.75f;
-    float WINDUP_MS  = 110.0f * combo_speed; /* faster with combo */
-    float STRIKE_MS  = 70.0f * combo_speed;
-    float RECOVER_MS = 120.0f * combo_speed;
+    /* Look up current attack definition (archetype + chain index). */
+    const RogueAttackDef* def = rogue_attack_get(pc->archetype, pc->chain_index);
+    /* Fallback constants if table missing */
+    float WINDUP_MS  = def? def->startup_ms : 110.0f;
+    float STRIKE_MS  = def? def->active_ms  : 70.0f;
+    float RECOVER_MS = def? def->recovery_ms: 120.0f;
 
     pc->timer += dt_ms;
     if(pc->phase==ROGUE_ATTACK_IDLE){
-        if(pc->buffered_attack && pc->stamina >= 14.0f){
-            pc->phase = ROGUE_ATTACK_WINDUP; pc->timer = 0; pc->stamina -= 14.0f; pc->stamina_regen_delay = 500.0f; pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0; }
+        if(pc->buffered_attack && def && pc->stamina >= def->stamina_cost){
+            /* Apply queued branch if any */
+            if(pc->queued_branch_pending){
+                pc->archetype = pc->queued_branch_archetype; pc->chain_index = 0; pc->queued_branch_pending=0;
+                def = rogue_attack_get(pc->archetype, pc->chain_index);
+                if(def){
+                    WINDUP_MS=def->startup_ms; STRIKE_MS=def->active_ms; RECOVER_MS=def->recovery_ms;
+                }
+            }
+            pc->phase = ROGUE_ATTACK_WINDUP; pc->timer = 0; pc->stamina -= def?def->stamina_cost:14.0f; pc->stamina_regen_delay = 500.0f; pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0; }
     } else if(pc->phase==ROGUE_ATTACK_WINDUP){
         if(pc->timer >= WINDUP_MS){ pc->phase = ROGUE_ATTACK_STRIKE; pc->timer = 0; pc->strike_time_ms=0; }
     } else if(pc->phase==ROGUE_ATTACK_STRIKE){
@@ -55,8 +66,25 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
     } else if(pc->phase==ROGUE_ATTACK_RECOVER){
         /* Allow late-chain: buffering during recover triggers next windup slightly early */
         if(pc->timer >= RECOVER_MS){
-            if(pc->buffered_attack && pc->stamina >= 10.0f){
-                pc->phase = ROGUE_ATTACK_WINDUP; pc->timer = 0; pc->stamina -= 10.0f; pc->stamina_regen_delay=450.0f; pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0; }
+            if(pc->buffered_attack && def){
+                /* Advance chain index (wrap) unless a branch queued */
+                if(pc->queued_branch_pending){
+                    pc->archetype = pc->queued_branch_archetype; pc->chain_index = 0; pc->queued_branch_pending=0;
+                } else {
+                    int len = rogue_attack_chain_length(pc->archetype);
+                    pc->chain_index = (pc->chain_index + 1) % (len>0?len:1);
+                }
+                def = rogue_attack_get(pc->archetype, pc->chain_index);
+                WINDUP_MS  = def?def->startup_ms:WINDUP_MS;
+                STRIKE_MS  = def?def->active_ms:STRIKE_MS;
+                RECOVER_MS = def?def->recovery_ms:RECOVER_MS;
+                float cost = def? def->stamina_cost : 10.0f;
+                if(pc->stamina >= cost){
+                    pc->phase = ROGUE_ATTACK_WINDUP; pc->timer = 0; pc->stamina -= cost; pc->stamina_regen_delay=450.0f; pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0; 
+                } else {
+                    pc->phase = ROGUE_ATTACK_IDLE; pc->timer = 0; pc->hit_confirmed=0; pc->buffered_attack=0;
+                }
+            }
             else { pc->phase = ROGUE_ATTACK_IDLE; pc->timer = 0; pc->combo = (pc->combo>0)?pc->combo:0; pc->hit_confirmed=0; pc->buffered_attack=0; }
         }
     }
@@ -181,3 +209,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
     }
     return kills;
 }
+
+void rogue_combat_set_archetype(RoguePlayerCombat* pc, RogueWeaponArchetype arch){ if(!pc) return; pc->archetype = arch; pc->chain_index = 0; }
+RogueWeaponArchetype rogue_combat_current_archetype(const RoguePlayerCombat* pc){ return pc? pc->archetype : ROGUE_WEAPON_LIGHT; }
+int rogue_combat_current_chain_index(const RoguePlayerCombat* pc){ return pc? pc->chain_index : 0; }
+void rogue_combat_queue_branch(RoguePlayerCombat* pc, RogueWeaponArchetype branch_arch){ if(!pc) return; pc->queued_branch_archetype = branch_arch; pc->queued_branch_pending=1; }

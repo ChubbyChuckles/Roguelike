@@ -34,7 +34,7 @@ PHASE 1. Core Model Expansion (Classless Universal Attack Data)
  1.3 Data-driven attack registry: static table → external config later (no class gates; universal query) (Partial: static in-memory chains, external file loader pending)
  1.4 Multiple attack branches (light chain, heavy chain, directional variants) (Partial: linear chains authored; directional variants pending)
  1.5 Per-attack hit properties: damage_type, base_damage, scaling_coeffs (Partial: base_damage present; damage_type & scaling coeff arrays pending)
- 1.6 Distinguish buffered_next vs queued_branch (directional / heavy) (X)
+ 1.6 Distinguish buffered_next vs queued_branch (directional / heavy) (Partial: archetype branch queue implemented; directional branch inputs pending)
  1.7 Tests: archetype timing consistency, branch selection determinism, universal access invariants (no forbidden weapon) (Done: test_combat_attack_registry)
 
 PHASE 1A. Temporal & Animation Sync Enhancements
