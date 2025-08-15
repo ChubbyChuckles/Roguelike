@@ -1,0 +1,123 @@
+UI / UX SYSTEM IMPLEMENTATION PLAN (Roadmap & Status)
+
+Legend:
+Done = Fully implemented & tests pass (or empirically verified in runtime)
+Partial = Some components implemented (details in parentheses)
+X = Not started yet
+
+Scope Overview:
+A modular, data‑driven UI / UX layer decoupled from simulation. Goals: deterministic headless testing, scalable theming, accessibility (a11y), input abstraction (keyboard / mouse / controller), lightweight retained + immediate hybrid rendering, virtualization for large inventories / logs, animation & transition framework with time dilation safety, and clear extensibility for modding. All UI state is serializable for replay and snapshot debugging.
+
+PHASE 0. Current Baseline (Partial)
+0.1 Ad‑hoc HUD overlays (health, XP, damage numbers) (Partial: basic HUD)
+0.2 Vendor & equipment panels (Partial: minimal vendor panel & equipment display)
+0.3 Skill tree popup (Partial: rank allocation logic present)
+0.4 Start screen simple menu (Done)
+
+PHASE 1. Core Architecture & Module Boundaries
+1.1 Establish ui/ module with subfolders: core/, widgets/, layout/, themes/, test/ (X)
+1.2 Unified UIContext (tree root, focus stack, theme, timing) (X)
+1.3 Frame lifecycle API: ui_begin(), ui_update(dt), ui_render(), ui_end() (X)
+1.4 Deterministic UI RNG channel (for cosmetic jitter) (X)
+1.5 Separation: simulation <-> UI via read‑only snapshot structs (X)
+1.6 UI state diff / snapshot serialization (X)
+1.7 Memory arenas / pools for UI transient allocations (X)
+
+PHASE 2. Widget Primitives & Composition
+2.1 Core primitives: Panel, Text, Image, Sprite, ProgressBar (X)
+2.2 Interactive: Button, Toggle, Slider, TextInput (buffer + cursor) (X)
+2.3 Container + layout nodes: Row, Column, Grid, LayerStack (X)
+2.4 Scroll container with inertial scrolling & virtualization hooks (X)
+2.5 Tooltip system (hover intent timing, anchored) (X)
+2.6 Declarative widget DSL (C macro or data schema) (X)
+2.7 Widget ID hashing & stable path addressing (X)
+2.8 Focus & navigation graph (tab / arrow / controller) (X)
+
+PHASE 3. Input Abstraction & Interaction Model
+3.1 Input routing priority (modal -> focused -> hovered -> global) (X)
+3.2 Controller mapping: analog navigation & action binding layer (X)
+3.3 Text input IME support stub & clipboard integration (X)
+3.4 Key repeat timing & acceleration curve (X)
+3.5 Chorded shortcut / command palette infrastructure (X)
+3.6 Automated input replay for UI tests (X)
+
+PHASE 4. Inventory / Equipment / Vendor Interfaces
+4.1 Inventory grid widget with slot virtualization (partial redraw) (X)
+4.2 Drag & drop (payload struct, ghost rendering, snapback) (X)
+4.3 Stack split UI (modal numeric adjust) (X)
+4.4 Context menus (equip, salvage, compare) (X)
+4.5 Inline stat delta preview (green/red diff) (X)
+4.6 Price / rarity color theming integrated (Partial: rarity colors exist)
+4.7 Vendor restock timer bar & progress (X)
+4.8 Transaction confirmation & insufficient funds UX (X)
+4.9 Equipment durability & repair UI with thresholds (X)
+4.10 Controller friendly radial selector (X)
+
+PHASE 5. Skill Tree / Progression UI
+5.1 Zoomable panning skill graph (quad‑tree culling) (X)
+5.2 Node layering: base icon, rank pips, synergy glow (X)
+5.3 Rank allocation animations (pulse, currency spend flyout) (X)
+5.4 Passive synergy aggregate panel (X)
+5.5 Search / filter by tag (fire, movement, defense) (X)
+5.6 Build export/import serialization (X)
+5.7 Undo buffer (last N allocations) (X)
+
+PHASE 6. HUD Modularization & Overlays
+6.1 HUD layout spec file (JSON/TOML) for placing bars/panels (X)
+6.2 Health / Mana / AP bars: layered gradients + status overlays (X)
+6.3 Buff & debuff icon belt with stack counters / timers (X)
+6.4 Floating combat text batching + occlusion / fade curves (Partial: damage numbers basic)
+6.5 Minimap interactive overlay toggles (Partial: minimap exists)
+6.6 Alert system (level up, low health, vendor restock) (X)
+6.7 Performance metrics overlay with toggle (Partial: metrics module exists)
+
+PHASE 7. Theming & Accessibility
+7.1 Theme asset pack (colors, font sizes, padding metrics) (X)
+7.2 Dynamic theme hot‑swap & diff (X)
+7.3 High contrast / colorblind palettes (protanopia/deuteranopia/tritanopia) (X)
+7.4 Scalable UI (DPI scaling & user preference) (X)
+7.5 Reduced motion mode (disables large transitions) (X)
+7.6 Screen reader / narration stubs (future extensibility) (X)
+7.7 Focus highlight & tab order auditing tool (X)
+
+PHASE 8. Animation & Transitions
+8.1 Easing library (cubic, elastic, spring) (X)
+8.2 Timeline / keyframe system with interrupt policies (X)
+8.3 Entrance/exit transitions (mount/unmount) (X)
+8.4 Physics spring micro‑interactions (button press) (X)
+8.5 Global time dilation integration (hitstop aware UI timers) (X)
+
+PHASE 9. Performance & Virtualization
+9.1 CPU budget instrumentation per phase (update/render) (X)
+9.2 Dirty rectangle culling & partial redraw (X)
+9.3 Text shaping cache & glyph atlas compaction (X)
+9.4 Large list virtualization (inventory, logs) (X)
+9.5 Frame time regression guardrails (baseline snapshot) (X)
+
+PHASE 10. Testing & QA Automation
+10.1 Headless UI harness (software raster target or hash) (X)
+10.2 Golden image diff tests (tolerance thresholds) (X)
+10.3 Automated navigation traversal test (focus cycles) (X)
+10.4 Property fuzz tests (layout never overlaps reserved system bars) (X)
+10.5 Performance smoke test (scripted 5k widgets) (X)
+10.6 Theming diff test (light vs dark invariants) (X)
+
+PHASE 11. Documentation & Tooling
+11.1 UI component style guide (generated catalog) (X)
+11.2 Developer overlay: hierarchy inspector & live property edit (X)
+11.3 Crash snapshot: serialize UI tree & inputs (X)
+11.4 Contribution checklist (API stability, a11y compliance) (X)
+
+DEPENDENCIES / RISKS
+- Need deterministic text rendering hash to enable golden tests.
+- Memory fragmentation risk if transient allocations not pooled.
+- Controller abstraction early prevents rewrite later.
+
+SUCCESS METRICS
+- <2ms average UI update+render under standard load (1080p) by Phase 9.
+- Zero focus traps (automated traversal complete) by Phase 10.
+- 95% widget lines covered by automated tests.
+
+NEXT ACTION CANDIDATES (If starting now)
+- Implement Phase 1.1–1.3 scaffolding.
+- Add headless test harness stub & a single Panel+Text widget demo.

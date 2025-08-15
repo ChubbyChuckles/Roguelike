@@ -1,0 +1,114 @@
+AI & BEHAVIOUR SYSTEM IMPLEMENTATION PLAN (Roadmap & Status)
+
+Legend:
+Done = Fully implemented & tests pass
+Partial = Some components implemented (details in parentheses)
+X = Not started yet
+
+Scope Overview:
+Deterministic, modular enemy (and potential ally) behaviour system enabling composable decision logic, perception, tactical coordination, and difficulty scaling. Architecture emphasizes reproducibility (seeded), debug introspection (behavior trace), and future multiplayer server authority compatibility.
+
+PHASE 0. Current Baseline (Partial)
+0.1 Basic enemy movement & aggro chase (Partial)
+0.2 Simple collision & blocked tile checks (Done)
+0.3 Random patrol / spawn seeding (Partial)
+
+PHASE 1. Core Behaviour Architecture
+1.1 Behaviour module scaffold (ai/) with subdirs: core/, nodes/, perception/, tactics/, test/ (X)
+1.2 BehaviorTree + blackboard structs (X)
+1.3 Lightweight Utility AI scorer interface (BT leaf can delegate) (X)
+1.4 Execution scheduler (tick budget & staggering) (X)
+1.5 Deterministic RNG stream per agent (X)
+1.6 Behavior trace ring buffer for debugging (X)
+1.7 Serialization of BT active path for save/replay (X)
+
+PHASE 2. Blackboard & Memory
+2.1 Key-value typed memory (int, float, vec2, entity_ref, timer) (X)
+2.2 TTL / decay for transient entries (last seen player pos) (X)
+2.3 Write policies (Set, Max, Min, Accumulate) (X)
+2.4 Dirty flag propagation for reactive nodes (X)
+
+PHASE 3. Perception System
+3.1 LOS raycast integration (tile blocking) (X)
+3.2 Vision cone & distance falloff (X)
+3.3 Hearing events (player attack, footsteps if later) (X)
+3.4 Threat score accumulation & decay (X)
+3.5 Group alert broadcast (X)
+3.6 Perception test harness (seeded scenarios) (X)
+
+PHASE 4. Behavior Node Library
+4.1 Core composites: Selector, Sequence, Parallel, Decorators (X)
+4.2 Condition nodes (IsPlayerVisible, HealthBelow%, TimerElapsed) (X)
+4.3 Action nodes (MoveTo, FleeFrom, Strafe, AttackMelee, AttackRanged stub) (X)
+4.4 Tactical nodes (FlankAttempt, Regroup, CoverSeek stub) (X)
+4.5 Cooldown & Retry decorators (X)
+4.6 Utility wrapper (choose best child by dynamic score) (X)
+
+PHASE 5. Movement & Pathing Enhancements
+5.1 Nav mesh / grid cost map refinement (Partial: basic block tests)
+5.2 Flow field precomputation for frequent targets (X)
+5.3 Local avoidance (simple steering) (X)
+5.4 Path smoothing (corner cutting) (X)
+5.5 Stuck detection & recovery action (X)
+
+PHASE 6. Combat Behaviour Extensions
+6.1 Ranged attack archetype hooks (projectile usage) (X)
+6.2 Parry / dodge reaction windows (X)
+6.3 Opportunistic attack (when player in recovery) (X)
+6.4 Kiting logic (maintain preferred distance band) (X)
+6.5 Focus fire coordination (threat leader broadcast) (X)
+6.6 Execution / finisher attempt below health threshold (X)
+6.7 Difficulty scaler (reaction time, aggression) (X)
+
+PHASE 7. Group Tactics & Coordination
+7.1 Squad formation metadata (shared blackboard) (X)
+7.2 Role assignment (Bruiser, Harrier, Support) emergent via utility (X)
+7.3 Surround / encircle scoring (X)
+7.4 Retreat & regroup triggers (X)
+7.5 Chain attack sequencing (delayed staggered entries) (X)
+
+PHASE 8. State & Cooldown Management
+8.1 Central CooldownManager (shared or per-agent) (X)
+8.2 Stamina / poise interplay on decision gating (X)
+8.3 Panic / morale meter (influences flee) (X)
+8.4 Adaptive difficulty injection (increase aggression after lull) (X)
+
+PHASE 9. Performance & Scaling
+9.1 Per-frame AI time budget monitoring (X)
+9.2 Incremental evaluation (spread heavy computations) (X)
+9.3 LOD behaviour (reduced detail off-screen) (X)
+9.4 Agent pooling & reinit (X)
+9.5 Stress test: 200 agents pathing simultaneously (X)
+
+PHASE 10. Debugging & Tooling
+10.1 On-screen behavior tree visualizer (X)
+10.2 Perception overlay (vision cones, LOS rays) (X)
+10.3 Blackboard inspector console commands (X)
+10.4 Trace export to JSON (X)
+10.5 Determinism verifier (dual-run hash compare) (X)
+
+PHASE 11. Testing & QA
+11.1 Unit tests for core nodes & decorators (X)
+11.2 Fuzz tests for blackboard updates (X)
+11.3 Scenario scripts: patrol->detect->chase->lose track (X)
+11.4 Repro test: identical seeds produce identical traces (X)
+11.5 Performance regression guard (time budget) (X)
+
+PHASE 12. Documentation
+12.1 Behavior authoring guide (X)
+12.2 Node reference doc (auto-generated) (X)
+12.3 Debugging playbook (common failure modes) (X)
+
+DEPENDENCIES / RISKS
+- Need clean separation from rendering to enable headless testing.
+- Large behavior trees risk perf; incremental evaluation needed early.
+- Deterministic floating point pathing must avoid platform divergence.
+
+SUCCESS METRICS
+- Determinism: identical seeds -> identical trace hash for 10k frames.
+- CPU budget: <3ms per 100 active agents @ target hardware.
+- 95% node library unit test coverage.
+
+NEXT ACTION CANDIDATES
+- Implement Phase 1.1–1.3 scaffolding.
+- Add simple BT: (Selector: AttackIfVisible -> MoveToPlayer -> Patrol).
