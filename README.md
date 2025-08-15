@@ -33,7 +33,7 @@ Focused on deterministic simulation, incremental feature layering, and maintaina
 
 ---
 
-### Maintainability & Module Boundaries (Phase M1 Complete)
+### Maintainability & Module Boundaries (Phase M1–M2 Complete)
 
 Foundational documentation and automated audit introduced:
 
@@ -52,7 +52,13 @@ python tools/maint_audit.py
 ```
 Exit code !=0 flags a violation (see first printed AUDIT FAIL line).
 
-Next phases will build on this with API pruning (opaque handles), unified config schema & hot reload, and expanded test gates (see Maintainability Plan M2+).
+Phase M2 added:
+* `core/features.h` capability macros (`ROGUE_FEATURE_*`) for conditional tests/tools.
+* Combat damage observer interface (register callbacks for `RogueDamageEvent` emission) with unit test `test_combat_damage_observer`.
+* Deprecation annotation macro (`ROGUE_DEPRECATED(msg)`).
+* Public header pass pruning & observer logic isolated (no leak of internal state).
+
+Next phases (M3+) will introduce unified config schema, hot reload, and expanded deterministic replay/coverage gates.
 
 ---
 

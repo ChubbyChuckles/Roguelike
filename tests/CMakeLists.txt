@@ -3,6 +3,22 @@ file(GLOB UNIT_TESTS unit/test_*.c)
 # Filter out removed/legacy test filenames that may linger in generated projects
 list(FILTER UNIT_TESTS EXCLUDE REGEX ".*test_skills_phase1_foundation.c$")
 
+# Explicitly add combat damage observer test (maintainability phase M2) to avoid glob cache issues
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_damage_observer.c AND NOT TARGET test_combat_damage_observer)
+    add_executable(test_combat_damage_observer unit/test_combat_damage_observer.c)
+    # Ensure C language (not C++)
+    set_property(TARGET test_combat_damage_observer PROPERTY LINKER_LANGUAGE C)
+    target_link_libraries(test_combat_damage_observer PRIVATE rogue_core)
+    # Ensure observer feature macro visible so duplicate symbol guard engages correctly
+    target_compile_definitions(test_combat_damage_observer PRIVATE ROGUE_FEATURE_COMBAT_OBSERVER=1)
+    # Prevent SDL from redefining main to SDL_main when SDL headers transitively included
+    target_compile_definitions(test_combat_damage_observer PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_damage_observer PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_damage_observer COMMAND test_combat_damage_observer)
+endif()
+
 # Ensure newly added directional combat test is always present (some generators cache GLOB results between incremental reconfigurations).
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_left_facing.c AND NOT TARGET test_combat_left_facing)
     add_executable(test_combat_left_facing unit/test_combat_left_facing.c)

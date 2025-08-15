@@ -36,11 +36,11 @@ PHASE M1. Source Organization & Module Boundaries
  1.6 Namespace/prefix + static scope audit (Done)
 
 PHASE M2. API Encapsulation & Stability
- 2.1 Public header pruning / opaque handles (X)
- 2.2 Feature capability macros (ROGUE_FEATURE_*) (X)
- 2.3 Event observer interface for combat events (X)
- 2.4 Deprecation annotations macro (X)
- 2.5 Standalone header compile tests (X)
+ 2.1 Public header pruning / opaque handles (Done)
+ 2.2 Feature capability macros (ROGUE_FEATURE_*) (Done)
+ 2.3 Event observer interface for combat events (Done)
+ 2.4 Deprecation annotations macro (Done)
+ 2.5 Standalone header compile tests (Done)
 
 PHASE M3. Data-Driven Asset & Config Pipeline
  3.1 Unified key/value parser abstraction (X)

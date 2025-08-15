@@ -13,6 +13,7 @@
 #include "entities/enemy.h"
 #include "world/tilemap.h"
 #include "game/combat_attacks.h"
+#include "core/features.h" /* capability macros */
 
 typedef enum RogueAttackPhase { ROGUE_ATTACK_IDLE=0, ROGUE_ATTACK_WINDUP, ROGUE_ATTACK_STRIKE, ROGUE_ATTACK_RECOVER } RogueAttackPhase;
 
@@ -187,5 +188,12 @@ void rogue_player_set_airborne(struct RoguePlayer* p, struct RoguePlayerCombat* 
 int rogue_player_is_airborne(const struct RoguePlayer* p);
 /* Phase 6.7 Projectile deflection/reflection API (returns 1 if deflected) */
 int rogue_player_try_deflect_projectile(struct RoguePlayer* p, struct RoguePlayerCombat* pc, float proj_dir_x, float proj_dir_y, float *out_reflect_dir_x, float *out_reflect_dir_y);
+
+/* ---------------- Combat Observer Interface (Phase M2.3) ---------------- */
+typedef struct RogueDamageEvent RogueDamageEvent; /* forward for callback */
+typedef void (*RogueDamageObserverFn)(const RogueDamageEvent* ev, void* user);
+int rogue_combat_add_damage_observer(RogueDamageObserverFn fn, void* user); /* returns observer id >=0 or -1 */
+void rogue_combat_remove_damage_observer(int id);
+void rogue_combat_clear_damage_observers(void);
 
 #endif

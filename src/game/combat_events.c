@@ -20,11 +20,18 @@ int g_damage_event_head = 0;
 int g_damage_event_total = 0;
 int g_crit_layering_mode = 0; /* 0=pre-mitigation (legacy), 1=post-mitigation */
 
-void rogue_damage_event_record(unsigned short attack_id, unsigned char dmg_type, unsigned char crit, int raw, int mitig, int overkill, unsigned char execution){
+/* Base implementation separated so observer module can wrap */
+void rogue_damage_event_record_base(unsigned short attack_id, unsigned char dmg_type, unsigned char crit, int raw, int mitig, int overkill, unsigned char execution){
     RogueDamageEvent* ev = &g_damage_events[g_damage_event_head % ROGUE_DAMAGE_EVENT_CAP];
     ev->attack_id = attack_id; ev->damage_type=dmg_type; ev->crit=crit; ev->raw_damage=raw; ev->mitigated=mitig; ev->overkill=overkill; ev->execution=execution?1:0;
     g_damage_event_head = (g_damage_event_head + 1) % ROGUE_DAMAGE_EVENT_CAP; g_damage_event_total++;
 }
+/* Public entry point; if observer feature compiled, its object supplies the symbol (avoid duplicate). */
+#ifndef ROGUE_FEATURE_COMBAT_OBSERVER
+void rogue_damage_event_record(unsigned short attack_id, unsigned char dmg_type, unsigned char crit, int raw, int mitig, int overkill, unsigned char execution){
+    rogue_damage_event_record_base(attack_id,dmg_type,crit,raw,mitig,overkill,execution);
+}
+#endif
 
 int rogue_damage_events_snapshot(RogueDamageEvent* out, int max_events){
     if(!out || max_events<=0) return 0;
