@@ -1,5 +1,14 @@
 #ifndef ROGUE_GAME_COMBAT_H
 #define ROGUE_GAME_COMBAT_H
+/* Combat Module Overview
+   Files:
+     combat_events.c      - Damage event ring buffer & crit layering flag
+     combat_mitigation.c  - Enemy mitigation & resist/softcap logic
+     combat_player.c      - Player combat state machine, guard/poise, reactions, parry/backstab/charge, obstruction hook
+     combat_strike.c      - Strike evaluation, hit windows, damage composition, event emission
+   Internal header: combat_internal.h (private helpers like obstruction hook dispatcher)
+   Public API: This header intentionally keeps surface minimal; prefer adding new internals to combat_internal.h
+*/
 #include "entities/player.h"
 #include "entities/enemy.h"
 #include "world/tilemap.h"

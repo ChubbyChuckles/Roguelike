@@ -1,0 +1,79 @@
+#include "game/combat.h"
+#include "core/buffs.h"
+#include "game/combat_attacks.h"
+#include "game/weapons.h"
+#include "game/infusions.h"
+#include "core/navigation.h"
+#include "game/lock_on.h"
+#include "game/combat_internal.h"
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+extern int g_attack_frame_override; extern int rogue_force_attack_active; extern int g_crit_layering_mode; /* from events */
+
+static int combat_nav_is_blocked(int tx,int ty){ return rogue_nav_is_blocked(tx,ty); }
+
+/* External UI hooks */
+void rogue_add_damage_number(float x,float y,int amount,int from_player);
+void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int crit);
+
+int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, RogueEnemy enemies[], int enemy_count){
+    if(pc->phase != ROGUE_ATTACK_STRIKE) return 0;
+    if(pc->strike_time_ms <= 0.0f && pc->processed_window_mask != 0){ pc->processed_window_mask = 0; pc->emitted_events_mask = 0; pc->event_count = 0; }
+    int kills=0;
+    static const float reach_curve[8] = {0.65f,0.95f,1.25f,1.35f,1.35f,1.18f,0.95f,0.75f};
+    static const unsigned char hit_mask[8] = {0,0,1,1,1,1,0,0};
+    extern int rogue_get_current_attack_frame(void);
+    int afr = (g_attack_frame_override>=0)? g_attack_frame_override : rogue_get_current_attack_frame(); if(afr<0 || afr>7) afr=0;
+    int gating = hit_mask[afr];
+#ifndef TEST_COMBAT_PERMISSIVE
+    if(!rogue_force_attack_active){
+        if(!gating){ if(g_attack_frame_override < 0){ int test_frame = 3; int tf_gate = hit_mask[test_frame]; if(tf_gate){ afr = test_frame; gating = 1; } } if(!gating) return 0; }
+    }
+#endif
+    float px = player->base.pos.x; float py = player->base.pos.y;
+    float base_reach = 1.6f * reach_curve[afr]; float reach = base_reach + (player->strength * 0.012f);
+    float dirx=0, diry=0; switch(player->facing){ case 0: diry=1; break; case 1: dirx=-1; break; case 2: dirx=1; break; case 3: diry=-1; break; }
+    if(player->lock_on_active){ float ldx=0,ldy=0; if(rogue_lockon_get_dir(player,enemies,enemy_count,&ldx,&ldy)){ dirx=ldx; diry=ldy; }}
+    float cx = px + dirx * reach * 0.45f; float cy = py + diry * reach * 0.45f; float reach2 = reach*reach;
+    unsigned int newly_active_mask = 0; pc->current_window_flags = 0; const RogueAttackDef* def = rogue_attack_get(pc->archetype, pc->chain_index);
+    if(def && def->num_windows>0){ for(int wi=0; wi<def->num_windows && wi<32; ++wi){ const RogueAttackWindow* w = &def->windows[wi]; int active = (pc->strike_time_ms >= w->start_ms && pc->strike_time_ms < w->end_ms); if(active){ newly_active_mask |= (1u<<wi); pc->current_window_flags = w->flags; if(!(pc->emitted_events_mask & (1u<<wi))){ if(pc->event_count < (int)(sizeof(pc->events)/sizeof(pc->events[0]))) { pc->events[pc->event_count].type = ROGUE_COMBAT_EVENT_BEGIN_WINDOW; pc->events[pc->event_count].data = (unsigned short)wi; pc->events[pc->event_count].t_ms = pc->strike_time_ms; pc->event_count++; } pc->emitted_events_mask |= (1u<<wi); } } else if(!active && (pc->emitted_events_mask & (1u<<wi)) && !(pc->processed_window_mask & (1u<<wi))){ if(pc->event_count < (int)(sizeof(pc->events)/sizeof(pc->events[0]))) { pc->events[pc->event_count].type = ROGUE_COMBAT_EVENT_END_WINDOW; pc->events[pc->event_count].data = (unsigned short)wi; pc->events[pc->event_count].t_ms = pc->strike_time_ms; pc->event_count++; } pc->processed_window_mask |= (1u<<wi); } } }
+    else if(def){ newly_active_mask = 1u; if(pc->strike_time_ms >= def->active_ms) newly_active_mask = 0; }
+    unsigned int process_mask = newly_active_mask & ~pc->processed_window_mask; if(process_mask==0) return 0;
+    for(int wi=0; wi<32; ++wi){ if(!(process_mask & (1u<<wi))) continue; float window_mult = 1.0f; float bleed_build = 0.0f, frost_build = 0.0f; if(def && wi < def->num_windows){ const RogueAttackWindow* w = &def->windows[wi]; if(w->damage_mult > 0.0f) window_mult = w->damage_mult; bleed_build = w->bleed_build; frost_build = w->frost_build; if(w->flags & ROGUE_WINDOW_HYPER_ARMOR){ rogue_player_set_hyper_armor_active(1); } }
+        for(int i=0;i<enemy_count;i++){ if(!enemies[i].alive) continue; if(enemies[i].team_id == player->team_id) continue; float ex = enemies[i].base.pos.x; float ey = enemies[i].base.pos.y; float dx = ex - cx; float dy = ey - cy; float dist2 = dx*dx + dy*dy; if(dist2 > reach2) continue; float dot = dx*dirx + dy*diry; float forward_player_dot = (ex - px)*dirx + (ey - py)*diry; if(dot < -0.60f && forward_player_dot < 0.0f) continue; float perp = dx* (-diry) + dy* dirx; float lateral_limit = reach * 0.95f; if(fabsf(perp) > lateral_limit) continue; int effective_strength = player->strength + rogue_buffs_get_total(0); int base = 1 + effective_strength/5; float scaled = (float)base; if(def){ scaled = def->base_damage + (float)effective_strength * def->str_scale + (float)player->dexterity * def->dex_scale + (float)player->intelligence * def->int_scale; if(scaled<1.0f) scaled=1.0f; }
+            float combo_scale = 1.0f + (pc->combo * 0.08f); if(combo_scale>1.4f) combo_scale=1.4f; const RogueWeaponDef* wdef = rogue_weapon_get(player->equipped_weapon_id); RogueStanceModifiers sm = rogue_stance_get_mods(player->combat_stance); const RogueInfusionDef* inf = rogue_infusion_get(player->weapon_infusion); if(wdef){ scaled += wdef->base_damage; scaled += (float)player->strength * wdef->str_scale + (float)player->dexterity * wdef->dex_scale + (float)player->intelligence * wdef->int_scale; }
+            float fam_bonus = rogue_weapon_get_familiarity_bonus(player->equipped_weapon_id); float durability_mult = 1.0f; if(wdef){ float cur = rogue_weapon_current_durability(wdef->id); if(cur>0){ float pct = cur / (wdef->durability_max>0? wdef->durability_max:1.0f); if(pct < 0.5f){ float frac = pct/0.5f; durability_mult = 0.70f + 0.30f * frac; } } }
+            float base_composite = scaled * combo_scale * window_mult * sm.damage_mult * (1.0f + fam_bonus) * durability_mult; float comp_phys = base_composite; float comp_fire = 0.0f, comp_frost = 0.0f, comp_arc = 0.0f; if(inf){ comp_fire  = base_composite * inf->fire_add; comp_frost = base_composite * inf->frost_add; comp_arc   = base_composite * inf->arcane_add; comp_phys  = base_composite * inf->phys_scalar; }
+            float raw = comp_phys + comp_fire + comp_frost + comp_arc; if(pc->aerial_attack_pending){ raw *= 1.20f; pc->aerial_attack_pending = 0; pc->landing_lag_ms += 120.0f; }
+            if(pc->backstab_pending_mult>1.0f){ raw *= pc->backstab_pending_mult; pc->backstab_pending_mult=1.0f; }
+            if(pc->riposte_pending_mult>1.0f){ raw *= pc->riposte_pending_mult; pc->riposte_pending_mult=1.0f; }
+            if(pc->guard_break_pending_mult>1.0f){ raw *= pc->guard_break_pending_mult; pc->guard_break_pending_mult=1.0f; }
+            if(pc->pending_charge_damage_mult > 1.0f){ raw *= pc->pending_charge_damage_mult; }
+            float t_parts = comp_phys + comp_fire + comp_frost + comp_arc; if(t_parts < 0.0001f) t_parts = 1.0f; float part_phys = raw * (comp_phys / t_parts); float part_fire = raw * (comp_fire / t_parts); float part_frost= raw * (comp_frost/ t_parts); float part_arc  = raw * (comp_arc / t_parts); int dmg = (int)floorf(raw + 0.5f); if(pc->combo>0){ int min_noncrit = (int)floorf(scaled + pc->combo + 0.5f); int hard_cap = (int)floorf(scaled * 1.4f + 0.5f); if(min_noncrit>hard_cap) min_noncrit=hard_cap; if(dmg<min_noncrit) dmg=min_noncrit; }
+            int obstructed = 0; int override_used = 0; int ov = _rogue_combat_call_obstruction_test(px,py,ex,ey); if(ov==0 || ov==1){ obstructed = ov; override_used=1; }
+            if(!override_used){ float rx0 = cx; float ry0 = cy; float rx1 = ex; float ry1 = ey; int tx0 = (int)floorf(rx0); int ty0 = (int)floorf(ry0); int tx1 = (int)floorf(rx1); int ty1 = (int)floorf(ry1); int steps = (abs(tx1-tx0) > abs(ty1-ty0)? abs(tx1-tx0): abs(ty1-ty0)); if(steps<1) steps=1; float fx = (float)(tx1 - tx0)/(float)steps; float fy = (float)(ty1 - ty0)/(float)steps; float sx = (float)tx0 + 0.5f; float sy = (float)ty0 + 0.5f; for(int si=0; si<=steps; ++si){ int cx_t = (int)floorf(sx); int cy_t = (int)floorf(sy); if(!(cx_t==tx0 && cy_t==ty0) && !(cx_t==tx1 && cy_t==ty1)){ if(combat_nav_is_blocked(cx_t,cy_t)){ obstructed=1; break; } } sx += fx; sy += fy; } }
+            if(obstructed){ float atten = 0.55f; part_phys *= atten; part_fire *= atten; part_frost *= atten; part_arc *= atten; raw *= atten; dmg = (int)floorf(raw + 0.5f); if(dmg<1) dmg=1; }
+            int raw_before = dmg; float dex_bonus = player->dexterity * 0.0035f; if(dex_bonus>0.55f) dex_bonus=0.55f; float crit_chance = 0.05f + dex_bonus + (float)player->crit_chance * 0.01f; if(crit_chance>0.75f) crit_chance=0.75f; int is_crit = 0; if(pc->force_crit_next_strike){ is_crit=1; pc->force_crit_next_strike=0; } else { is_crit = (((float)rand()/(float)RAND_MAX) < crit_chance)?1:0; } float crit_mult = 1.0f; if(is_crit){ crit_mult = 1.0f + ((float)player->crit_damage * 0.01f); if(crit_mult > 5.0f) crit_mult = 5.0f; }
+            int health_before = enemies[i].health; int final_dmg = 0; int overkill_accum = 0;
+            if(part_phys > 0.01f){ int comp_raw = (int)floorf(part_phys + 0.5f); if(comp_raw<1) comp_raw=1; if(is_crit && g_crit_layering_mode==0){ float cval=(float)comp_raw*crit_mult; comp_raw=(int)floorf(cval+0.5f); if(comp_raw<1) comp_raw=1; } int saved_armor=enemies[i].armor; { int eff_armor = enemies[i].armor; int pen_flat = player->pen_flat; if(pen_flat>0){ eff_armor -= pen_flat; if(eff_armor<0) eff_armor=0; } int pen_pct = player->pen_percent; if(pen_pct>100) pen_pct=100; if(pen_pct>0){ int reduce=(enemies[i].armor * pen_pct)/100; eff_armor -= reduce; if(eff_armor<0) eff_armor=0; } enemies[i].armor=eff_armor; } int local_overkill=0; int mitig=rogue_apply_mitigation_enemy(&enemies[i],comp_raw,ROGUE_DMG_PHYSICAL,&local_overkill); if(is_crit && g_crit_layering_mode==1){ float cval2=(float)mitig*crit_mult; mitig=(int)floorf(cval2+0.5f); if(mitig<1) mitig=1; } enemies[i].health -= mitig; final_dmg += mitig; overkill_accum += local_overkill; rogue_add_damage_number_ex(ex, ey - 0.25f, mitig, 1, is_crit); rogue_damage_event_record((unsigned short)(def?def->id:0), ROGUE_DMG_PHYSICAL, (unsigned char)is_crit, comp_raw, mitig, local_overkill, 0); enemies[i].armor=saved_armor; }
+            if(part_fire > 0.01f){ int comp_raw = (int)floorf(part_fire + 0.5f); if(comp_raw<1) comp_raw=1; if(is_crit && g_crit_layering_mode==0){ float cval=(float)comp_raw*crit_mult; comp_raw=(int)floorf(cval+0.5f); if(comp_raw<1) comp_raw=1; } int local_overkill=0; int mitig=rogue_apply_mitigation_enemy(&enemies[i],comp_raw,ROGUE_DMG_FIRE,&local_overkill); if(is_crit && g_crit_layering_mode==1){ float cval2=(float)mitig*crit_mult; mitig=(int)floorf(cval2+0.5f); if(mitig<1) mitig=1; } enemies[i].health -= mitig; final_dmg += mitig; overkill_accum += local_overkill; rogue_add_damage_number_ex(ex, ey - 0.25f, mitig, 1, is_crit); rogue_damage_event_record((unsigned short)(def?def->id:0), ROGUE_DMG_FIRE, (unsigned char)is_crit, comp_raw, mitig, local_overkill, 0); }
+            if(part_frost > 0.01f){ int comp_raw = (int)floorf(part_frost + 0.5f); if(comp_raw<1) comp_raw=1; if(is_crit && g_crit_layering_mode==0){ float cval=(float)comp_raw*crit_mult; comp_raw=(int)floorf(cval+0.5f); if(comp_raw<1) comp_raw=1; } int local_overkill=0; int mitig=rogue_apply_mitigation_enemy(&enemies[i],comp_raw,ROGUE_DMG_FROST,&local_overkill); if(is_crit && g_crit_layering_mode==1){ float cval2=(float)mitig*crit_mult; mitig=(int)floorf(cval2+0.5f); if(mitig<1) mitig=1; } enemies[i].health -= mitig; final_dmg += mitig; overkill_accum += local_overkill; rogue_add_damage_number_ex(ex, ey - 0.25f, mitig, 1, is_crit); rogue_damage_event_record((unsigned short)(def?def->id:0), ROGUE_DMG_FROST, (unsigned char)is_crit, comp_raw, mitig, local_overkill, 0); }
+            if(part_arc > 0.01f){ int comp_raw = (int)floorf(part_arc + 0.5f); if(comp_raw<1) comp_raw=1; if(is_crit && g_crit_layering_mode==0){ float cval=(float)comp_raw*crit_mult; comp_raw=(int)floorf(cval+0.5f); if(comp_raw<1) comp_raw=1; } int local_overkill=0; int mitig=rogue_apply_mitigation_enemy(&enemies[i],comp_raw,ROGUE_DMG_ARCANE,&local_overkill); if(is_crit && g_crit_layering_mode==1){ float cval2=(float)mitig*crit_mult; mitig=(int)floorf(cval2+0.5f); if(mitig<1) mitig=1; } enemies[i].health -= mitig; final_dmg += mitig; overkill_accum += local_overkill; rogue_add_damage_number_ex(ex, ey - 0.25f, mitig, 1, is_crit); rogue_damage_event_record((unsigned short)(def?def->id:0), ROGUE_DMG_ARCANE, (unsigned char)is_crit, comp_raw, mitig, local_overkill, 0); }
+            int overkill = overkill_accum; int execution = 0; if(health_before>0){ int health_after = enemies[i].health; if(health_after <= 0){ float health_pct_before = (float)health_before / (float)(enemies[i].max_health>0?enemies[i].max_health:1); float overkill_pct = (float)overkill / (float)(enemies[i].max_health>0?enemies[i].max_health:1); if(health_pct_before <= ROGUE_EXEC_HEALTH_PCT || overkill_pct >= ROGUE_EXEC_OVERKILL_PCT){ execution = 1; } } }
+            rogue_damage_event_record((unsigned short)(def?def->id:0), (unsigned char)(def?def->damage_type:ROGUE_DMG_PHYSICAL), (unsigned char)is_crit, raw_before, final_dmg, overkill, (unsigned char)execution);
+            enemies[i].hurt_timer=150.0f; enemies[i].flash_timer=70.0f; pc->hit_confirmed=1;
+            if(bleed_build>0){ enemies[i].bleed_buildup += bleed_build; }
+            if(frost_build>0){ enemies[i].frost_buildup += frost_build; }
+            if(def && def->poise_damage > 0.0f && enemies[i].poise_max > 0.0f){ float poise_dmg = def->poise_damage; if(wdef){ poise_dmg *= wdef->poise_damage_mult; } poise_dmg *= sm.poise_damage_mult; if(inf){ poise_dmg *= inf->phys_scalar; } enemies[i].poise -= poise_dmg; if(enemies[i].poise < 0.0f){ enemies[i].poise = 0.0f; } if(enemies[i].poise <= 0.0f && !enemies[i].staggered){ enemies[i].staggered = 1; enemies[i].stagger_timer_ms = 600.0f; if(pc->event_count < (int)(sizeof(pc->events)/sizeof(pc->events[0]))){ pc->events[pc->event_count].type = ROGUE_COMBAT_EVENT_STAGGER_ENEMY; pc->events[pc->event_count].data = (unsigned short)i; pc->events[pc->event_count].t_ms = pc->strike_time_ms; pc->event_count++; } } }
+            if(enemies[i].health<=0){ enemies[i].alive=0; kills++; }
+            if(wdef){ rogue_weapon_register_hit(wdef->id, (float)final_dmg); rogue_weapon_tick_durability(wdef->id, 1.0f); }
+        }
+    }
+    pc->processed_window_mask |= process_mask;
+    if(def){ for(int wi=0; wi<def->num_windows && wi<32; ++wi){ unsigned int bit = (1u<<wi); if(process_mask & bit){ if(pc->event_count < (int)(sizeof(pc->events)/sizeof(pc->events[0]))){ pc->events[pc->event_count].type = ROGUE_COMBAT_EVENT_END_WINDOW; pc->events[pc->event_count].data = (unsigned short)wi; pc->events[pc->event_count].t_ms = pc->strike_time_ms; pc->event_count++; } } } }
+    rogue_player_set_hyper_armor_active(0);
+    if(pc->pending_charge_damage_mult > 1.0f){ pc->pending_charge_damage_mult = 1.0f; }
+    return kills;
+}

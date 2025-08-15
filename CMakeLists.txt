@@ -108,7 +108,10 @@ add_library(rogue_core
     src/graphics/font.c
     src/entities/player.c
     src/entities/enemy.c
-    src/game/combat.c
+    src/game/combat_events.c
+    src/game/combat_mitigation.c
+    src/game/combat_player.c
+    src/game/combat_strike.c
     src/game/combat_attacks.c
     src/game/damage_numbers.c
     src/game/weapons.c
