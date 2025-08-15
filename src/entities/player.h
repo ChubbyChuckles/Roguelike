@@ -83,6 +83,12 @@ typedef struct RoguePlayer
     float cc_slow_ms;           /* slow effect duration */
     float cc_slow_pct;          /* 0..1 fraction speed reduction while slow active */
     float cc_disarm_ms;         /* cannot attack (still move) */
+    /* --- Phase 4.5 Reaction Cancel Windows & Directional Influence (DI) --- */
+    float reaction_total_ms;    /* original full duration of current reaction for fraction calculations */
+    int reaction_canceled_early;/* 1 if player performed early cancel inside window */
+    float reaction_di_accum_x;  /* accumulated DI offset (x) for current reaction */
+    float reaction_di_accum_y;  /* accumulated DI offset (y) for current reaction */
+    float reaction_di_max;      /* per‑reaction cap radius (set on apply) */
 } RoguePlayer;
 
 void rogue_player_init(RoguePlayer* p);

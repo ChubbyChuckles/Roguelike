@@ -243,6 +243,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_block_cancel.c AND NOT TA
     add_test(NAME test_combat_block_cancel COMMAND test_combat_block_cancel)
 endif()
 
+# Explicitly add Phase 4.5 reaction cancel & DI test (ensure picked up even if glob cache stale)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase4_reaction_cancel_di.c AND NOT TARGET test_combat_phase4_reaction_cancel_di)
+    add_executable(test_combat_phase4_reaction_cancel_di unit/test_combat_phase4_reaction_cancel_di.c)
+    target_link_libraries(test_combat_phase4_reaction_cancel_di PRIVATE rogue_core)
+    target_compile_definitions(test_combat_phase4_reaction_cancel_di PRIVATE TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase4_reaction_cancel_di PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase4_reaction_cancel_di COMMAND test_combat_phase4_reaction_cancel_di)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_mitigation.c AND NOT TARGET test_combat_mitigation)
     add_executable(test_combat_mitigation unit/test_combat_mitigation.c)
     target_link_libraries(test_combat_mitigation PRIVATE rogue_core)

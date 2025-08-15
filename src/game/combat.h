@@ -95,6 +95,10 @@ void rogue_player_poise_regen_tick(RoguePlayer* p, float dt_ms);
 void rogue_player_update_reactions(RoguePlayer* p, float dt_ms);
 /* Apply a reaction given cumulative poise damage or direct thresholds. This sets reaction_type & timers. */
 void rogue_player_apply_reaction(RoguePlayer* p, int reaction_type);
+/* Phase 4.5: Attempt early cancel of current reaction (returns 1 if canceled). */
+int rogue_player_try_reaction_cancel(RoguePlayer* p);
+/* Phase 4.5: Apply directional influence during an active reaction (dx,dy in -1..1). */
+void rogue_player_apply_reaction_di(RoguePlayer* p, float dx, float dy);
 /* Tunables (could move to config later) */
 #define ROGUE_GUARD_CONE_DOT 0.25f            /* minimum dot(facing, incoming) to count as frontal */
 #define ROGUE_GUARD_CHIP_PCT 0.20f            /* chip damage percent of mitigated damage (min 1) */
