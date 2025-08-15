@@ -5,7 +5,8 @@
 #include <stdio.h>
 
 static void inject(RogueUIContext* ctx, float mx, float my, int down, int pressed, int released, char ch, int back){
-    RogueUIInputState in={mx,my,down,pressed,released,ch,back};
+    RogueUIInputState in={0};
+    in.mouse_x=mx; in.mouse_y=my; in.mouse_down=down; in.mouse_pressed=pressed; in.mouse_released=released; in.text_char=ch; in.backspace=back;
     rogue_ui_set_input(ctx,&in);
 }
 

@@ -43,6 +43,7 @@ typedef struct RogueUIInputState {
     int mouse_down;     /* 1 if held */
     int mouse_pressed;  /* 1 on press this frame */
     int mouse_released; /* 1 on release this frame */
+    float wheel_delta;  /* positive = scroll up, negative = down (per frame aggregated) */
     char text_char;     /* printable character input (ASCII) or 0 */
     int backspace;      /* 1 if backspace pressed this frame */
     int key_tab;
@@ -71,6 +72,12 @@ typedef struct RogueUIContext {
     int hot_index;      /* widget index under cursor */
     int active_index;   /* widget currently active (pressed) */
     int focus_index;    /* focused text input widget */
+    /* Time tracking */
+    double frame_dt_ms;
+    double time_ms;
+    /* Tooltip hover tracking */
+    double last_hover_start_ms;
+    int last_hover_index;
 } RogueUIContext;
 
 int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg);
@@ -101,6 +108,24 @@ int rogue_ui_column_next(RogueUIContext* ctx, int col_index, float width, float 
 RogueUIRect rogue_ui_grid_cell(RogueUIRect grid_rect, int rows, int cols, int r, int c, int padding, int spacing);
 /* Layer stack: push layer container (data_i0 = layer order) */
 int rogue_ui_layer(RogueUIContext* ctx, RogueUIRect r, int layer_order);
+
+/* Scroll Container (Phase 2.4) */
+int rogue_ui_scroll_begin(RogueUIContext* ctx, RogueUIRect r, float content_height);
+void rogue_ui_scroll_set_content(int scroll_index, RogueUIContext* ctx, float content_height);
+float rogue_ui_scroll_offset(const RogueUIContext* ctx, int scroll_index);
+/* Apply vertical scroll offset to child rectangle (helper) */
+RogueUIRect rogue_ui_scroll_apply(const RogueUIContext* ctx, int scroll_index, RogueUIRect child_raw);
+
+/* Tooltip (Phase 2.5) */
+int rogue_ui_tooltip(RogueUIContext* ctx, int target_index, const char* text, uint32_t bg_color, uint32_t text_color, int delay_ms);
+
+/* Focus & Navigation (Phase 2.8) */
+void rogue_ui_navigation_update(RogueUIContext* ctx);
+
+/* Declarative Widget DSL (Phase 2.6) */
+#define UI_PANEL(ctx,X,Y,W,H,COLOR)      rogue_ui_panel((ctx),(RogueUIRect){(X),(Y),(W),(H)},(COLOR))
+#define UI_TEXT(ctx,X,Y,W,H,TEXT,COLOR)  rogue_ui_text((ctx),(RogueUIRect){(X),(Y),(W),(H)},(TEXT),(COLOR))
+#define UI_BUTTON(ctx,X,Y,W,H,LABEL,BG,FG) rogue_ui_button((ctx),(RogueUIRect){(X),(Y),(W),(H)},(LABEL),(BG),(FG))
 
 /* Accessors */
 const RogueUINode* rogue_ui_nodes(const RogueUIContext* ctx, int* count_out);

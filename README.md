@@ -459,7 +459,10 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
   - Phase 2.2 completed: Added interactive Button, Toggle, Slider, TextInput widgets (immediate-mode hit test, active/hot/focus indices) with test `test_ui_phase2_interactive` covering click, toggle flip, slider drag value update, text input character insertion & backspace.
   - Phase 2.3 completed: Added Row & Column incremental layout helpers (begin + next APIs maintaining internal cursor with padding & spacing), grid cell rect helper for uniform grids, and lightweight layer node (order stored in `data_i0`). Unit test `test_ui_phase2_layout_id` validates horizontal/vertical placement ordering, grid math, and non-overlap.
   - Phase 2.7 completed: Widget ID hashing (FNV1a over label text) automatically assigns `id_hash` for lookup via `rogue_ui_find_by_id`; stable across frames (verified in `test_ui_phase2_layout_id`).
-  - Phase 2.8 partial: Preliminary Tab key focus cycling placeholder through text input path (full navigation graph & arrow/controller traversal pending).
+  - Phase 2.4 completed: Scroll container (vertical) with wheel-driven offset clamped to content height; helper APIs (`rogue_ui_scroll_begin`, `rogue_ui_scroll_apply`, `rogue_ui_scroll_offset`) – foundation for future inertial easing & virtualization. Covered in `test_ui_phase2_scroll_tooltip_nav` (offset advances after wheel input).
+  - Phase 2.5 completed: Tooltip system with hover intent delay; creates anchored panel + text after configurable ms threshold; validated by forcing time advance in unit test.
+  - Phase 2.6 completed: Minimal declarative DSL convenience macros (`UI_PANEL`, `UI_TEXT`, `UI_BUTTON`) providing clearer callsites and reducing boilerplate.
+  - Phase 2.8 partial update: Linear Tab and arrow-key navigation cycling across interactive widgets implemented (`rogue_ui_navigation_update`); spatial heuristic & controller graph still pending.
 
 ### v0.8.x (Current Development Branch)
 **Added**

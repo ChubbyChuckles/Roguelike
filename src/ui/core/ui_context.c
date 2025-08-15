@@ -25,7 +25,7 @@ int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg){
 
 void rogue_ui_shutdown(RogueUIContext* ctx){ if(!ctx) return; free(ctx->nodes); ctx->nodes=NULL; ctx->node_capacity=0; ctx->node_count=0; free(ctx->arena); ctx->arena=NULL; ctx->arena_size=ctx->arena_offset=0; }
 
-void rogue_ui_begin(RogueUIContext* ctx, double delta_time_ms){ (void)delta_time_ms; if(!ctx) return; ctx->node_count=0; ctx->stats.draw_calls=0; ctx->frame_active=1; ctx->arena_offset=0; }
+void rogue_ui_begin(RogueUIContext* ctx, double delta_time_ms){ if(!ctx) return; ctx->frame_dt_ms=delta_time_ms; ctx->time_ms += delta_time_ms; ctx->node_count=0; ctx->stats.draw_calls=0; ctx->frame_active=1; ctx->arena_offset=0; ctx->hot_index=-1; }
 void rogue_ui_end(RogueUIContext* ctx){ if(!ctx) return; ctx->frame_active=0; }
 
 static int push_node(RogueUIContext* ctx, RogueUINode n){ if(ctx->node_count>=ctx->node_capacity) return -1; if(n.parent_index < -1) n.parent_index=-1; ctx->nodes[ctx->node_count]=n; ctx->node_count++; ctx->stats.node_count=ctx->node_count; return ctx->node_count-1; }
@@ -98,6 +98,24 @@ int rogue_ui_row_next(RogueUIContext* ctx, int row_index, float width, float hei
 int rogue_ui_column_next(RogueUIContext* ctx, int col_index, float width, float height, RogueUIRect* out_rect){ if(!ctx||col_index<0||col_index>=ctx->node_count) return 0; RogueUINode* col=&ctx->nodes[col_index]; float cursor=col->value; float padding=(float)col->data_i0; float spacing=(float)col->data_i1; if(cursor==0) cursor=padding; RogueUIRect cr=col->rect; RogueUIRect child={cr.x+padding, cr.y+cursor, width, height}; cursor += height + spacing; col->value=cursor; if(out_rect) *out_rect=child; return 1; }
 RogueUIRect rogue_ui_grid_cell(RogueUIRect grid_rect, int rows, int cols, int r, int c, int padding, int spacing){ RogueUIRect cell={0,0,0,0}; if(rows<=0||cols<=0) return cell; float fpad=(float)padding; float fsp=(float)spacing; float total_spacing_x = fsp*(cols-1) + fpad*2.0f; float total_spacing_y = fsp*(rows-1) + fpad*2.0f; float cw = (grid_rect.w - total_spacing_x)/(float)cols; float ch=(grid_rect.h - total_spacing_y)/(float)rows; cell.x = grid_rect.x + fpad + (float)c*(cw+fsp); cell.y = grid_rect.y + fpad + (float)r*(ch+fsp); cell.w=cw; cell.h=ch; return cell; }
 int rogue_ui_layer(RogueUIContext* ctx, RogueUIRect r, int layer_order){ if(!ctx||!ctx->frame_active) return -1; RogueUINode n; memset(&n,0,sizeof n); n.rect=r; n.kind=0; n.data_i0=layer_order; n.text="__layer"; assign_id(&n); return push_node(ctx,n); }
+
+/* Scroll Container Implementation (Phase 2.4) */
+int rogue_ui_scroll_begin(RogueUIContext* ctx, RogueUIRect r, float content_height){ if(!ctx||!ctx->frame_active) return -1; if(content_height<r.h) content_height=r.h; RogueUINode n; memset(&n,0,sizeof n); n.rect=r; n.kind=0; n.text="__scroll"; n.value=0.0f; /* scroll offset */ n.value_max=content_height; assign_id(&n); int idx=push_node(ctx,n); if(idx<0) return -1; /* Apply wheel */ if(ctx->input.wheel_delta!=0){ float delta = -ctx->input.wheel_delta * 24.0f; float off = ctx->nodes[idx].value + delta; float max_off = content_height - r.h; if(max_off<0) max_off=0; if(off<0) off=0; if(off>max_off) off=max_off; ctx->nodes[idx].value=off; } return idx; }
+void rogue_ui_scroll_set_content(int scroll_index, RogueUIContext* ctx, float content_height){ if(!ctx||scroll_index<0||scroll_index>=ctx->node_count) return; if(content_height<ctx->nodes[scroll_index].rect.h) content_height=ctx->nodes[scroll_index].rect.h; ctx->nodes[scroll_index].value_max=content_height; float max_off = content_height - ctx->nodes[scroll_index].rect.h; if(max_off<0) max_off=0; if(ctx->nodes[scroll_index].value>max_off) ctx->nodes[scroll_index].value=max_off; }
+float rogue_ui_scroll_offset(const RogueUIContext* ctx, int scroll_index){ if(!ctx||scroll_index<0||scroll_index>=ctx->node_count) return 0.0f; return ctx->nodes[scroll_index].value; }
+RogueUIRect rogue_ui_scroll_apply(const RogueUIContext* ctx, int scroll_index, RogueUIRect child_raw){ RogueUIRect r=child_raw; if(!ctx||scroll_index<0||scroll_index>=ctx->node_count) return r; r.y -= ctx->nodes[scroll_index].value; return r; }
+
+/* Tooltip (Phase 2.5) */
+int rogue_ui_tooltip(RogueUIContext* ctx, int target_index, const char* text, uint32_t bg_color, uint32_t text_color, int delay_ms){ if(!ctx||!ctx->frame_active||!text||target_index<0||target_index>=ctx->node_count) return -1; if(ctx->hot_index==target_index){ if(ctx->last_hover_index!=target_index){ ctx->last_hover_index=target_index; ctx->last_hover_start_ms=ctx->time_ms; } if((ctx->time_ms - ctx->last_hover_start_ms) >= (double)delay_ms){ RogueUIRect tr = ctx->nodes[target_index].rect; RogueUIRect tip={tr.x+tr.w+6.0f, tr.y, 160.0f, 24.0f}; int panel = rogue_ui_panel(ctx,tip,bg_color); if(panel>=0){ RogueUIRect text_r=tip; rogue_ui_text(ctx,text_r,text,text_color); } return panel; } } else { if(ctx->last_hover_index==target_index){ ctx->last_hover_index=-1; } } return -1; }
+
+/* Navigation (Phase 2.8) basic tab/arrow linear focus */
+void rogue_ui_navigation_update(RogueUIContext* ctx){ if(!ctx||!ctx->frame_active) return; int focusable_first=-1; int focusable_count=0; /* Count interactive kinds */ for(int i=0;i<ctx->node_count;i++){ int k=ctx->nodes[i].kind; if(k>=5 && k<=8){ if(focusable_first==-1) focusable_first=i; focusable_count++; } }
+    if(focusable_count==0) return; if(ctx->focus_index<0 || ctx->focus_index>=ctx->node_count){ ctx->focus_index=focusable_first; }
+    if(ctx->input.key_tab){ int next = ctx->focus_index+1; if(next>=ctx->node_count) next=focusable_first; /* advance until focusable */ while(next!=ctx->focus_index){ int k=ctx->nodes[next].kind; if(k>=5&&k<=8){ ctx->focus_index=next; break; } next++; if(next>=ctx->node_count) next=focusable_first; }
+    }
+    /* Arrow navigation (left/right iterate siblings in same row; up/down iterate sequentially) simplistic placeholder */
+    if(ctx->input.key_right||ctx->input.key_left||ctx->input.key_up||ctx->input.key_down){ int dir = (ctx->input.key_right||ctx->input.key_down)? 1:-1; int start=ctx->focus_index; int cur=start; for(;;){ cur+=dir; if(cur>=ctx->node_count) cur=0; if(cur<0) cur=ctx->node_count-1; if(cur==start) break; int k=ctx->nodes[cur].kind; if(k>=5&&k<=8){ ctx->focus_index=cur; break; } } }
+}
 
 const RogueUINode* rogue_ui_nodes(const RogueUIContext* ctx, int* count_out){ if(count_out) *count_out = ctx? ctx->node_count:0; return ctx? ctx->nodes:NULL; }
 

@@ -1,2 +1,4 @@
 feat(ui): implement Phase 2.3 containers & Phase 2.7 ID hashing (Row/Column/Grid helpers, layer node, FNV1a ids, tests)
 
+feat(ui): implement Phases 2.4–2.6 (scroll container, tooltip system, DSL macros) + expand navigation (tab/arrow), tests
+
