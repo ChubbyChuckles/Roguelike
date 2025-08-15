@@ -4,8 +4,28 @@
 param(
     [switch]$Detailed,
     [switch]$Export,
-    [string]$OutputPath = "project-stats-report.txt"
+    [switch]$Json,                # Emit JSON summary (stdout)
+    [switch]$IncludeBuild,        # Include build/ & CMake artifacts
+    [int]$GitDays = 30,           # Days of git history to summarize (if repo)
+    [string]$OutputPath = "project-stats-report.txt",
+    [string]$Root
 )
+
+# Resolve project root (supports invoking from build/ or any subdir)
+if (-not $Root -or -not (Test-Path -LiteralPath $Root)) {
+    $candidate = (Resolve-Path -LiteralPath $PSScriptRoot).Path
+    # script lives in <root>/scripts so parent is likely root
+    $parent = Split-Path -Path $candidate -Parent
+    $tryPaths = @($parent, (Split-Path -Path $parent -Parent))
+    $found = $null
+    foreach ($p in $tryPaths) {
+        if ((Test-Path -LiteralPath (Join-Path $p '.git')) -or (Test-Path -LiteralPath (Join-Path $p 'src'))) { $found = $p; break }
+    }
+    if (-not $found) { $found = (Get-Location).Path }
+    $Root = $found
+}
+$Global:ProjectRoot = (Resolve-Path -LiteralPath $Root).Path
+if (-not $ProjectRoot.EndsWith([System.IO.Path]::DirectorySeparatorChar)) { $Global:ProjectRoot += [System.IO.Path]::DirectorySeparatorChar }
 
 function Write-ColorText {
     param([string]$Text, [string]$Color = "White")
@@ -33,6 +53,39 @@ function Format-Bytes {
     else { return "$Bytes bytes" }
 }
 
+function Get-TrackedFiles {
+    param([string]$RootPath)
+    Push-Location $RootPath
+    try {
+        $hasGit = Get-Command git -ErrorAction SilentlyContinue
+        if ($hasGit -and (Test-Path -LiteralPath (Join-Path $RootPath '.git'))) {
+            try {
+                $raw = & git -C $RootPath ls-files --cached --others --exclude-standard -z 2>$null
+                $paths = ($raw -split "`0") | Where-Object { $_ -and ($_ -ne '') }
+                return $paths | ForEach-Object { Join-Path $RootPath $_ }
+            } catch { }
+        }
+        $all = Get-ChildItem -Path $RootPath -Recurse -File | ForEach-Object { $_.FullName }
+        $ignoreFile = Join-Path $RootPath '.gitignore'
+        if (Test-Path -LiteralPath $ignoreFile) {
+            $patterns = Get-Content -LiteralPath $ignoreFile | Where-Object { $_ -and -not ($_.Trim().StartsWith('#')) } | ForEach-Object { $_.Trim() }
+            $regexes = @()
+            foreach ($p in $patterns) {
+                $pp = $p
+                if ($pp.EndsWith('/')) { $pp = "$pp*" }
+                $rx = [System.Text.RegularExpressions.Regex]::Escape($pp)
+                $rx = $rx.Replace('\\*\\*', '.*')
+                $rx = $rx.Replace('\\*', '[^/\\]*')
+                $rx = $rx.Replace('\\?', '.')
+                if ($pp.StartsWith('/')) { $rx = '^' + $rx.TrimStart('/') } else { $rx = '.*' + $rx }
+                $regexes += New-Object System.Text.RegularExpressions.Regex($rx, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+            }
+            return $all | Where-Object { $path = $_; -not ($regexes | Where-Object { $_.IsMatch($path.Substring($RootPath.Length)) } | Select-Object -First 1) }
+        }
+        return $all
+    } finally { Pop-Location }
+}
+
 function Get-FileStats {
     param(
         [string]$FilePath,
@@ -41,11 +94,7 @@ function Get-FileStats {
     try {
         $content = Get-Content -LiteralPath $FilePath -ErrorAction Stop
         $lines = @($content).Count
-        $codeLines = 0
-        $commentLines = 0
-        $blankLines = 0
-        $inBlockComment = $false
-
+        $codeLines = 0; $commentLines = 0; $blankLines = 0; $inBlockComment = $false
         foreach ($line in $content) {
             $trimmed = ($line -as [string]).Trim()
             if ([string]::IsNullOrWhiteSpace($trimmed)) { $blankLines++; continue }
@@ -59,6 +108,12 @@ function Get-FileStats {
                 'markdown' {
                     if ($inBlockComment) { $commentLines++; if ($trimmed -match '-->') { $inBlockComment = $false } }
                     elseif ($trimmed -match '<!--') { $commentLines++; if (-not ($trimmed -match '-->')) { $inBlockComment = $true } }
+                    else { $codeLines++ }
+                }
+                'c_cxx' {
+                    if ($trimmed -match '^//') { $commentLines++ }
+                    elseif ($inBlockComment) { $commentLines++; if ($trimmed -match '\*/') { $inBlockComment = $false } }
+                    elseif ($trimmed -match '/\*') { $commentLines++; if (-not ($trimmed -match '\*/')) { $inBlockComment = $true } }
                     else { $codeLines++ }
                 }
                 'js_ts' {
@@ -75,18 +130,10 @@ function Get-FileStats {
                 default { $codeLines++ }
             }
         }
-        return @{
-            TotalLines = $lines
-            CodeLines = $codeLines
-            CommentLines = $commentLines
-            BlankLines = $blankLines
-            Size = (Get-Item -LiteralPath $FilePath).Length
-        }
-    }
-    catch {
-        return @{ TotalLines = 0; CodeLines = 0; CommentLines = 0; BlankLines = 0; Size = 0 }
-    }
+        return @{ TotalLines = $lines; CodeLines = $codeLines; CommentLines = $commentLines; BlankLines = $blankLines; Size = (Get-Item -LiteralPath $FilePath).Length }
+    } catch { return @{ TotalLines = 0; CodeLines = 0; CommentLines = 0; BlankLines = 0; Size = 0 } }
 }
+                    
 
 function Get-ComplexityMetrics {
     param(
@@ -107,6 +154,16 @@ function Get-ComplexityMetrics {
                 $functions = ([regex]::Matches($content, "\bfunction\s+\w+")).Count
                 $imports = ([regex]::Matches($content, "\bImport-Module\b|using\s+module\b")).Count
                 $conditionals = ([regex]::Matches($content, "\b(if|elseif|else|for|foreach|while|try|catch|finally|switch)\b")).Count
+            }
+            'c_cxx' {
+                # Approximate counts for C source / headers
+                $classes = ([regex]::Matches($content, "struct\s+\w+\s*\\{" )).Count + ([regex]::Matches($content, "enum\s+\w*\s*\\{" )).Count
+                # Improved function detection: allow multi-line signatures and qualifiers, brace may be on next line
+                # Simpler robust function definition pattern (brace same or next line)
+                $functionPattern = '(?m)^[ \t]*(?:static\s+)?(?:inline\s+)?(?:extern\s+)?[A-Za-z_][A-Za-z0-9_\s\*]*[ \t\*]+([A-Za-z_][A-Za-z0-9_]*)\s*\([^;{}]*\)\s*(?:\r?\n)?\s*\{'
+                $functions = ([regex]::Matches($content, $functionPattern)).Count
+                $imports = ([regex]::Matches($content, "(?m)^\s*#\s*include\b" )).Count
+                $conditionals = ([regex]::Matches($content, "\b(if|else if|else|for|while|switch|case|default|goto)\b" )).Count
             }
             'js_ts' {
                 $classes = ([regex]::Matches($content, "\bclass\s+\w+")).Count
@@ -129,7 +186,13 @@ function Get-LanguageForFile {
     if (-not $ext) { $ext = '' }
     $ext = $ext.ToLowerInvariant()
     switch ($ext) {
-        '.py' { return 'python' }
+    '.c' { return 'c_cxx' }
+    '.h' { return 'c_cxx' }
+    '.hpp' { return 'c_cxx' }
+    '.hh' { return 'c_cxx' }
+    '.cxx' { return 'c_cxx' }
+    '.cc' { return 'c_cxx' }
+    '.py' { return 'python' }
         {$_ -in '.ps1','.psm1','.psd1'} { return 'powershell' }
         {$_ -in '.yml','.yaml'} { return 'yaml' }
         '.ini' { return 'ini' }
@@ -196,25 +259,37 @@ $totalConditionals = 0
 $_sumDepth = 0
 $docsLines = 0
 $langCounts = @{}
-$uiTokenHits = 0
+$engineTokenHits = 0
+$headerLines = 0
+$sourceLines = 0
 
 $fileDetails = @()
 $directoryStats = @{}
 
 # Build candidate file list honoring .gitignore (via git if available)
-$tracked = Get-TrackedFiles
+$tracked = Get-TrackedFiles -RootPath $ProjectRoot
+# If git returned very few files (e.g., sparse checkout), fall back to manual scan merge
+if ($tracked.Count -lt 50) {
+    $manual = Get-ChildItem -Path $ProjectRoot -Recurse -File | ForEach-Object { $_.FullName }
+    $tracked = @([System.Linq.Enumerable]::Distinct([string[]]($tracked + $manual)))
+}
 if (-not $tracked) { $tracked = @() }
 
-# Filter to likely text/code files (avoid large binaries)
-$candidateExts = @('.py','.ps1','.psm1','.psd1','.rst','.md','.json','.yml','.yaml','.ini','.toml','.js','.jsx','.ts','.tsx','.css','.scss','.xml','.svg')
-$codeFiles = @()
-foreach ($p in $tracked) {
-    $ext = [System.IO.Path]::GetExtension($p)
-    if (-not $ext) { $ext = '' }
-    $ext = $ext.ToLowerInvariant()
-    if ($candidateExts -contains $ext) {
-        $codeFiles += (Resolve-Path -LiteralPath $p).Path
+# Collect candidate source roots
+$candidateExts = @('.c','.h','.cpp','.cxx','.cc','.hpp','.hh','.cmake','.md','.json','.yml','.yaml','.ini','.toml','.ps1','.py')
+$codeFiles = $tracked | Where-Object { $candidateExts -contains ([System.IO.Path]::GetExtension($_).ToLower()) } | ForEach-Object { $_ }
+# Filter out build / CMake artifacts unless explicitly included
+if (-not $IncludeBuild) {
+    $codeFiles = $codeFiles | Where-Object { $_ -notmatch "[\\/]build[\\/]" -and $_ -notmatch "CMakeFiles" -and $_ -notmatch "CompilerIdC" -and $_ -notmatch "CMakeConfigureLog" }
+}
+# If extremely low count, broaden search under src/ and tests/ explicitly
+if ($codeFiles.Count -lt 50) {
+    $extraRoots = @('src','tests','include') | ForEach-Object { Join-Path $ProjectRoot $_ } | Where-Object { Test-Path -LiteralPath $_ }
+    foreach ($root in $extraRoots) {
+        $more = Get-ChildItem -Path $root -Recurse -File | Where-Object { $candidateExts -contains ([System.IO.Path]::GetExtension($_.FullName).ToLower()) } | ForEach-Object { $_.FullName }
+        $codeFiles += $more
     }
+    $codeFiles = $codeFiles | Sort-Object -Unique
 }
 
 Write-ColorText "Project Overview:" "Success"
@@ -242,7 +317,8 @@ foreach ($full in $codeFiles) {
     $totalConditionals += $complexity.Conditionals
 
     # Directory statistics
-    $relativePath = $full.Replace((Get-Location).Path, "").TrimStart("\")
+    $relativePath = $full.Substring($ProjectRoot.Length).TrimStart(@("\","/"))
+    if (-not $relativePath) { $relativePath = [System.IO.Path]::GetFileName($full) }
     $directory = if ($relativePath.Contains("\")) {
         $relativePath.Substring(0, $relativePath.LastIndexOf("\"))
     } else {
@@ -256,23 +332,48 @@ foreach ($full in $codeFiles) {
     $directoryStats[$directory].Lines += $stats.TotalLines
     $directoryStats[$directory].Size += $stats.Size
 
+    # Additional per-file derived metrics (C only currently)
+    $macros = 0; $todo = 0; $includesLocal = 0; $publicApiDecls = 0
+    if ($language -eq 'c_cxx') {
+        try {
+            $rawFile = Get-Content -LiteralPath $full -Raw -ErrorAction SilentlyContinue
+            if ($rawFile) {
+                $macros = ([regex]::Matches($rawFile, '(?m)^\s*#\s*define\b')).Count
+                $todo = ([regex]::Matches($rawFile, '(?i)TODO|FIXME')).Count
+                $includesLocal = ([regex]::Matches($rawFile, '(?m)^\s*#\s*include\b')).Count
+                if ($full.ToLower().EndsWith('.h')) {
+                    $publicPattern = '(?ms)^[\t ]*(?:extern\s+)?(?:inline\s+)?(?!static)(?:[A-Za-z_][A-Za-z0-9_\*\s]+)?[A-Za-z_][A-Za-z0-9_]*\s*\([^;{}]*?\)\s*;'
+                    $publicApiDecls = ([regex]::Matches($rawFile, $publicPattern)).Count
+                }
+            }
+        } catch {}
+    }
+
     $fileDetails += @{
         Path = $relativePath
         Stats = $stats
         Complexity = $complexity
         Language = $language
+        Macros = $macros
+        Todos = $todo
+        Includes = $includesLocal
+        PublicAPI = $publicApiDecls
     }
 
     # Aggregate extras
     $_sumDepth += (($relativePath -split "[\\/]").Count - 1)
     if ($language -in @('markdown','rst')) { $docsLines += $stats.CodeLines }
+    if ($language -eq 'c_cxx') {
+        if ($full.ToLower().EndsWith('.h') -or $full.ToLower().EndsWith('.hpp') -or $full.ToLower().EndsWith('.hh')) { $headerLines += $stats.TotalLines } else { $sourceLines += $stats.TotalLines }
+    }
     if (-not $langCounts.ContainsKey($language)) { $langCounts[$language] = 0 }
     $langCounts[$language] += 1
-    if ($language -eq 'python') {
+    if ($language -eq 'c_cxx') {
         try {
             $raw = Get-Content -LiteralPath $full -Raw -ErrorAction SilentlyContinue
             if ($raw) {
-                $uiTokenHits += ([regex]::Matches($raw, 'PyQt6|QtWidgets|QGraphicsView')).Count
+                # Count engine/platform related tokens (SDL, rogue_ prefixes, TODO markers)
+                $engineTokenHits += ([regex]::Matches($raw, 'SDL_|rogue_|RoguePlayer|RogueEnemy|TODO')).Count
             }
         } catch { }
     }
@@ -313,7 +414,7 @@ $nCond = [Math]::Min(1.0, ($conditionalDensity / 0.05))             # 0.05 cond/
 $nFuncs = [Math]::Min(1.0, ($avgFunctionsPerFile / 10.0))
 $nDepth = [Math]::Min(1.0, ($avgDepth / 6.0))
 $nLang  = [Math]::Min(1.0, ([double]$languageDiversity / 5.0))
-$nUI    = [Math]::Min(1.0, ([double]$uiTokenHits / 50.0))
+$nUI    = [Math]::Min(1.0, ([double]$engineTokenHits / 200.0))
 $nDocs  = [Math]::Min(1.0, $docsCoverage)
 
 # Composite complexity index (>=1): higher means harder
@@ -349,6 +450,11 @@ Write-Host ""
 # Quality Indicators
 Write-ColorText "Project Quality Indicators:" "Success"
 $qualityScore = 0
+$_macroTotal = ($fileDetails | Measure-Object -Property Macros -Sum).Sum
+$_todoTotal = ($fileDetails | Measure-Object -Property Todos -Sum).Sum
+$_publicApiTotal = ($fileDetails | Measure-Object -Property PublicAPI -Sum).Sum
+$_cFiles = ($fileDetails | Where-Object { $_.Language -eq 'c_cxx' })
+$_avgIncludesC = if ($_cFiles.Count -gt 0) { ($_cFiles | Measure-Object -Property Includes -Average).Average } else { 0 }
 
 # Documentation score
 $docScore = if ($commentPercentage -ge 20) { 25 } elseif ($commentPercentage -ge 15) { 20 } elseif ($commentPercentage -ge 10) { 15 } else { 5 }
@@ -358,8 +464,11 @@ $qualityScore += $docScore
 $orgScore = if ($directoryStats.Count -ge 5) { 20 } elseif ($directoryStats.Count -ge 3) { 15 } else { 10 }
 $qualityScore += $orgScore
 
-# Modularity score
-$modScore = if ($avgFunctionsPerFile -ge 5) { 20 } elseif ($avgFunctionsPerFile -ge 3) { 15 } else { 10 }
+# Modularity score (consider public API exposure for C projects)
+$apiWeight = if ($_publicApiTotal -gt 0) { [Math]::Min(1.0, ($_publicApiTotal / [double]([Math]::Max(1,$totalFiles))) ) } else { 0 }
+$modBase = if ($avgFunctionsPerFile -ge 5) { 15 } elseif ($avgFunctionsPerFile -ge 3) { 12 } else { 8 }
+$modApiBonus = [Math]::Round(5 * $apiWeight)
+$modScore = $modBase + $modApiBonus
 $qualityScore += $modScore
 
 # File size distribution
@@ -378,8 +487,16 @@ Write-Host "  Modularity: $([math]::Round($avgFunctionsPerFile, 1)) functions/fi
 Write-Host "  File Size Distribution: $([math]::Round($avgLinesPerFile, 1)) lines/file (Score: $sizeScore/20)"
 Write-Host "  Import Complexity: $([math]::Round($avgImportsPerFile, 1)) imports/file (Score: $impScore/15)"
 Write-Host "  Language Diversity: $languageDiversity languages"
+if ($sourceLines -gt 0 -or $headerLines -gt 0) {
+    $ratio = if ($headerLines -gt 0) { [math]::Round($sourceLines / [double]$headerLines,2) } else { 0 }
+    Write-Host "  C/C++ Source/Header Lines: $sourceLines / $headerLines (S/H Ratio: $ratio)"
+}
 Write-Host "  Average Depth: $([math]::Round($avgDepth,2))"
 Write-Host "  Docs Coverage (by lines): $([math]::Round($docsCoverage*100,1))%"
+Write-Host "  Macros (total): $_macroTotal"
+Write-Host "  Public API Prototypes: $_publicApiTotal"
+Write-Host "  Average #includes per C/C++ file: $([math]::Round($_avgIncludesC,2))"
+Write-Host "  TODO/FIXME Count: $_todoTotal"
 Write-Host ""
 Write-ColorText "Overall Quality Score: $qualityScore/100" "Highlight"
 
@@ -408,6 +525,38 @@ if ($Detailed) {
         }
     }
     Write-Host ""
+
+    Write-ColorText "Top Files By TODO/FIXME:" "Info"
+    $todoTop = $fileDetails | Where-Object { $_.Todos -gt 0 } | Sort-Object { $_.Todos } -Descending | Select-Object -First 5
+    foreach ($file in $todoTop) {
+        Write-Host "  $($file.Path) -> TODOs: $($file.Todos)"
+    }
+    if (-not $todoTop) { Write-Host "  (none)" }
+    Write-Host ""
+
+    Write-ColorText "Top Header Public APIs:" "Info"
+    $apiTop = $fileDetails | Where-Object { $_.PublicAPI -gt 0 } | Sort-Object { $_.PublicAPI } -Descending | Select-Object -First 5
+    foreach ($file in $apiTop) { Write-Host "  $($file.Path) -> Public prototypes: $($file.PublicAPI)" }
+    if (-not $apiTop) { Write-Host "  (none)" }
+    Write-Host ""
+}
+
+# Optional git activity summary
+$gitSummary = $null
+if (Test-Path -LiteralPath (Join-Path $ProjectRoot '.git')) {
+    try {
+        $since = (Get-Date).AddDays(-1 * $GitDays)
+        $rawLog = git -C $ProjectRoot log --since="$($since.ToString('yyyy-MM-dd'))" --name-only --pretty=format:'%H' 2>$null
+        if ($rawLog) {
+            $linesLog = $rawLog -split "`n" | Where-Object { $_ -ne '' }
+            $commitCount = ($linesLog | Where-Object { $_ -match '^[0-9a-f]{7,40}$' }).Count
+            $changedFiles = ($linesLog | Where-Object { $_ -notmatch '^[0-9a-f]{7,40}$' } | Sort-Object -Unique)
+            $gitSummary = @{ Commits = $commitCount; ChangedFiles = $changedFiles.Count; UniqueFiles = $changedFiles }
+            Write-ColorText "Recent Git Activity (last $GitDays days):" "Info"
+            Write-Host "  Commits: $commitCount | Changed Files: $($changedFiles.Count)"
+            Write-Host ""
+        }
+    } catch {}
 }
 
 # Export option
@@ -454,6 +603,39 @@ QUALITY SCORE: $qualityScore/100 ($qualityLevel)
 
     $reportContent | Out-File -FilePath $destPath -Encoding UTF8
     Write-ColorText "Report exported to: $destPath" "Success"
+}
+
+if ($Json) {
+    $jsonObj = [ordered]@{
+        totalFiles = $totalFiles
+        totalLines = $totalLines
+        codeLines = $totalCodeLines
+        commentLines = $totalCommentLines
+        blankLines = $totalBlankLines
+        totalSizeBytes = $totalSize
+        classes = $totalClasses
+        functions = $totalFunctions
+        imports = $totalImports
+        controlStructures = $totalConditionals
+        complexityIndex = [math]::Round($complexityIndex,3)
+        effectiveLinesPerHour = [math]::Round($effectiveLinesPerHour,2)
+        estimatedHours = [math]::Round($totalHours,1)
+        qualityScore = $qualityScore
+        qualityLevel = $qualityLevel
+        macros = $_macroTotal
+        todos = $_todoTotal
+        publicApiPrototypes = $_publicApiTotal
+        avgIncludesPerCFile = [math]::Round($_avgIncludesC,2)
+        languageDiversity = $languageDiversity
+        sourceLines = $sourceLines
+        headerLines = $headerLines
+        sourceHeaderRatio = if ($headerLines -gt 0) { [math]::Round($sourceLines / [double]$headerLines,2) } else { 0 }
+        git = $gitSummary
+        topLargest = ($fileDetails | Sort-Object { $_.Stats.TotalLines } -Descending | Select-Object -First 5 | ForEach-Object { @{ path=$_.Path; lines=$_.Stats.TotalLines } })
+        topComplex = ($fileDetails | Sort-Object { $_.Complexity.Conditionals } -Descending | Select-Object -First 5 | ForEach-Object { @{ path=$_.Path; control=$_.Complexity.Conditionals } })
+        topTodo = ($fileDetails | Where-Object { $_.Todos -gt 0 } | Sort-Object { $_.Todos } -Descending | Select-Object -First 5 | ForEach-Object { @{ path=$_.Path; todos=$_.Todos } })
+    }
+    $jsonObj | ConvertTo-Json -Depth 6
 }
 
 Write-Host ""
