@@ -91,14 +91,14 @@ PHASE 5. Spatial Targeting & Hit Detection
 5.7 Tests: multi-target consistency, obstruction damping, lock-on switch latency (Done: `test_combat_phase5_lock_on` (acquire/cycle/cooldown/direction/invalidation) + `test_combat_phase5_lock_on_obstruction_latency` (cycle latency + obstruction ratio 55-65%) + `test_combat_phase5_lock_on_multitarget` (angular ordering forward/back cycle wrap & backward verification). Phase 5 spatial targeting lock-on test suite complete.)
 
 PHASE 6. Advanced Offensive & Defensive Mechanics (Classless Tradeoffs)
-6.1 Charged attacks (hold to scale damage/poise with nonlinear curve) (X)
+6.1 Charged attacks (hold to scale damage/poise with nonlinear curve) (Done: added charging state to combat struct, begin/tick/progress APIs; curve: multiplier = 1 + clamp(t/800ms,0..1)*1.5 capped 2.5x with overcharge ceiling at 1600ms; multiplier consumed on next strike then reset; unit test `test_combat_phase6_charge_and_dodge` validates baseline vs fully charged (~2.5x) damage and single-use consumption.)
 6.2 Aerial attacks & landing lag differentiation (X)
-6.3 Dodge roll with i-frames & stamina cost scaling by encumbrance load (X)
+6.3 Dodge roll with i-frames & stamina cost scaling by encumbrance load (Done (baseline): implemented `rogue_player_dodge_roll` with stamina cost 18, grants 400ms i-frames (non-stacking), slight poise restore (+10 capped), facing update via dir param; disallowed during strike or reaction. Future: scale cost/i-frame duration by encumbrance tier. Tested in `test_combat_phase6_charge_and_dodge` (stamina deduction, i-frame grant, low-stamina failure path).)
 6.4 Backstab / positional crit detection (rear cone + proximity + unaware flag) (X)
 6.5 Parry → Riposte chain (timing + special damage window) (X)
 6.6 Guard break follow-up guaranteed crit window (X)
 6.7 Projectile deflection / reflection (parry / perfect guard) (X)
-6.8 Tests: parry timing jitter tolerance, backstab angle threshold, charge curve scaling accuracy (X)
+6.8 Tests: parry timing jitter tolerance, backstab angle threshold, charge curve scaling accuracy (Partial: charge & dodge tests added; remaining parry/backstab/riposte/deflect tests pending corresponding feature implementation.)
 
 PHASE 7. Weapons, Armor & Encumbrance Styles
 7.1 Data-driven weapon definitions: base stats, scaling letters (open to all) (X)

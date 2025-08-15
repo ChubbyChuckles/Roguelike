@@ -32,6 +32,8 @@ typedef struct RoguePlayerCombat {
     /* Simple ring buffer for transient combat events (fx, sfx) */
     int event_count; struct RogueCombatEvent { unsigned short type; unsigned short data; float t_ms; } events[8];
     unsigned short current_window_flags; /* active window flags (includes hyper armor) */
+    /* Phase 6.1 Charged Attacks */
+    int charging; float charge_time_ms; float pending_charge_damage_mult;
 } RoguePlayerCombat;
 
 /* Event type ids (extend later): */
@@ -134,5 +136,13 @@ extern int rogue_force_attack_active;
 /* Test support: when >=0, forces current attack animation frame for strike logic */
 extern int g_attack_frame_override;
 void rogue_combat_test_force_strike(RoguePlayerCombat* pc, float strike_time_ms);
+
+/* Phase 6.1 Charged attack control */
+void rogue_combat_charge_begin(RoguePlayerCombat* pc);
+void rogue_combat_charge_tick(RoguePlayerCombat* pc, float dt_ms, int still_holding);
+float rogue_combat_charge_progress(const RoguePlayerCombat* pc);
+
+/* Phase 6.3 Dodge Roll / I-frames (returns 1 on success) */
+int rogue_player_dodge_roll(struct RoguePlayer* p, RoguePlayerCombat* pc, int dir);
 
 #endif

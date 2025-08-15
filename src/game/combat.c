@@ -93,6 +93,7 @@ void rogue_combat_init(RoguePlayerCombat* pc){
     pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0.0f;
     pc->archetype = ROGUE_WEAPON_LIGHT; pc->chain_index = 0; pc->queued_branch_archetype = ROGUE_WEAPON_LIGHT; pc->queued_branch_pending=0;
     pc->precise_accum_ms = 0.0; pc->blocked_this_strike=0; pc->recovered_recently=0; pc->idle_since_recover_ms=0.0f; pc->processed_window_mask=0; pc->emitted_events_mask=0; pc->event_count=0;
+    pc->charging=0; pc->charge_time_ms=0.0f; pc->pending_charge_damage_mult=1.0f;
 }
 
 int rogue_force_attack_active = 0; /* exported */
@@ -354,6 +355,7 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             }
             float combo_scale = 1.0f + (pc->combo * 0.08f); if(combo_scale>1.4f) combo_scale=1.4f;
             float raw = scaled * combo_scale * window_mult;
+            if(pc->pending_charge_damage_mult > 1.0f){ raw *= pc->pending_charge_damage_mult; }
             int dmg = (int)floorf(raw + 0.5f);
             if(pc->combo>0){ int min_noncrit = (int)floorf(scaled + pc->combo + 0.5f); int hard_cap = (int)floorf(scaled * 1.4f + 0.5f); if(min_noncrit>hard_cap) min_noncrit=hard_cap; if(dmg<min_noncrit) dmg=min_noncrit; }
             int overkill=0; int raw_before = dmg;
@@ -443,6 +445,7 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
     }
     /* Hyper armor active only during window processing; reset after evaluation (covers all windows struck this frame). */
     rogue_player_set_hyper_armor_active(0);
+    if(pc->pending_charge_damage_mult > 1.0f){ pc->pending_charge_damage_mult = 1.0f; }
     return kills;
 }
 
@@ -582,3 +585,19 @@ void rogue_player_apply_reaction_di(RoguePlayer* p, float dx, float dy){
     }
 }
 void rogue_player_add_iframes(RoguePlayer* p, float ms){ if(!p) return; if(ms<=0) return; if(p->iframes_ms < ms) p->iframes_ms = ms; }
+
+/* ---------------- Phase 6.1 Charged Attacks ---------------- */
+void rogue_combat_charge_begin(RoguePlayerCombat* pc){ if(!pc) return; if(pc->phase!=ROGUE_ATTACK_IDLE) return; pc->charging=1; pc->charge_time_ms=0.0f; }
+void rogue_combat_charge_tick(RoguePlayerCombat* pc, float dt_ms, int still_holding){
+    if(!pc) return; if(!pc->charging) return; if(!still_holding){
+        float t = pc->charge_time_ms; float mult = 1.0f + fminf(t/800.0f,1.0f) * 1.5f; if(mult>2.5f) mult=2.5f; pc->pending_charge_damage_mult = mult; pc->charging=0; pc->charge_time_ms=0.0f; return; }
+    pc->charge_time_ms += dt_ms; if(pc->charge_time_ms > 1600.0f) pc->charge_time_ms=1600.0f; }
+float rogue_combat_charge_progress(const RoguePlayerCombat* pc){ if(!pc||!pc->charging) return 0.0f; float p = pc->charge_time_ms/800.0f; if(p>1.0f) p=1.0f; if(p<0) p=0; return p; }
+
+/* ---------------- Phase 6.3 Dodge Roll ---------------- */
+int rogue_player_dodge_roll(RoguePlayer* p, RoguePlayerCombat* pc, int dir){
+    if(!p||!pc) return 0; if(p->reaction_type!=0) return 0; if(pc->phase==ROGUE_ATTACK_STRIKE) return 0; /* disallow mid-strike */
+    const float COST=18.0f; if(pc->stamina < COST) return 0; pc->stamina -= COST; if(pc->stamina<0) pc->stamina=0; pc->stamina_regen_delay = 350.0f;
+    p->iframes_ms = 400.0f; if(p->poise + 10.0f < p->poise_max) p->poise += 10.0f; else p->poise = p->poise_max;
+    if(dir>=0 && dir<=3) p->facing=dir; return 1;
+}
