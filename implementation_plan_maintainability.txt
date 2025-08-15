@@ -44,8 +44,8 @@ PHASE M2. API Encapsulation & Stability
 
  PHASE M3. Data-Driven Asset & Config Pipeline
   3.1 Unified key/value parser abstraction (Done) (kv_parser.{c,h} + unit test)
- 3.2 Schema + validation errors surfaced (X)
- 3.3 Hot reload: skills, attacks, loot, world gen (Partial)
+    3.2 Schema + validation errors surfaced (Done) (kv_schema.{c,h} + test)
+   3.3 Hot reload: skills, attacks, loot, world gen (Partial) (Added core registry + manual force API util/hot_reload.{c,h} + unit test. Pending: timestamp polling + integration points invoking reload on asset change.)
  3.4 Asset dependency graph & hashing (X)
  3.5 Externalize projectile & impact tuning (X)
  3.6 Consolidated combat frame + hitbox data directory (Partial)

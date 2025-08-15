@@ -59,7 +59,9 @@ Phase M2 added:
 * Public header pass pruning & observer logic isolated (no leak of internal state).
 
 Phase M3 in progress:
-* Unified key/value parser utility (`util/kv_parser.c,h`) with dedicated unit test `test_kv_parser` beginning consolidation of scattered ad-hoc parsers (next: schema + validation layer).
+* Unified key/value parser utility (`util/kv_parser.c,h`) with dedicated unit test `test_kv_parser`.
+* Basic schema + validation layer (`util/kv_schema.c,h`) with unit test `test_kv_schema` surfacing unknown keys, type errors, and missing required fields.
+* Initial hot reload infrastructure (`util/hot_reload.c,h`) providing a registry + manual force trigger (`test_hot_reload`). Upcoming increments will attach timestamp polling and wire loaders (skills, loot, world gen) to the registry.
 
 Next phases (M3+) will introduce unified config schema, hot reload, and expanded deterministic replay/coverage gates.
 
