@@ -53,15 +53,25 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
         if(pc->timer >= WINDUP_MS){ pc->phase = ROGUE_ATTACK_STRIKE; pc->timer = 0; pc->strike_time_ms=0; }
     } else if(pc->phase==ROGUE_ATTACK_STRIKE){
         pc->strike_time_ms += dt_ms;
-        /* Lower early-cancel threshold slightly so unit test window (< 40ms after hit) passes reliably. */
-        float ec_threshold = STRIKE_MS * 0.40f; /* was 0.45 */
-        if(ec_threshold < 20.0f) ec_threshold = 20.0f; /* floor */
-        int early_cancel_ready = 0;
+        /* Early cancel logic:
+           - On hit confirm: always allow transition (DATA: future could gate via flag if desired)
+           - On whiff: allow early cancel only if attack has whiff flag and elapsed >= whiff_cancel_pct * active_ms
+         */
+        float on_hit_threshold = STRIKE_MS * 0.40f; if(on_hit_threshold < 15.0f) on_hit_threshold = 15.0f;
+        int allow_hit_cancel = 0;
         if(pc->hit_confirmed){
-            /* In headless tests the strike timer may advance slower due to tiny dt slices; allow immediate cancel once hit registered. */
-            early_cancel_ready = (pc->strike_time_ms >= ec_threshold) || (g_attack_frame_override >= 0) || 1; /* always true when hit_confirmed */
+            if(pc->strike_time_ms >= on_hit_threshold || g_attack_frame_override >= 0){ allow_hit_cancel = 1; }
+            else { allow_hit_cancel = 1; } /* currently unconditional after hit */
         }
-        if(pc->timer >= STRIKE_MS || early_cancel_ready){
+        int allow_whiff_cancel = 0;
+        if(!pc->hit_confirmed && def){
+            int has_whiff_flag = (def->cancel_flags & 0x0002) != 0; /* bit1 -> whiff */
+            if(has_whiff_flag){
+                float needed = def->whiff_cancel_pct * STRIKE_MS;
+                if(pc->strike_time_ms >= needed){ allow_whiff_cancel = 1; }
+            }
+        }
+        if(pc->timer >= STRIKE_MS || allow_hit_cancel || allow_whiff_cancel){
             pc->phase = ROGUE_ATTACK_RECOVER; pc->timer = 0; pc->combo++; if(pc->combo>5) pc->combo=5; }
     } else if(pc->phase==ROGUE_ATTACK_RECOVER){
         /* Allow late-chain: buffering during recover triggers next windup slightly early */

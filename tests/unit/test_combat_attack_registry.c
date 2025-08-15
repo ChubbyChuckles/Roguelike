@@ -1,3 +1,6 @@
+#ifdef ROGUE_HAVE_SDL
+#define SDL_MAIN_HANDLED 1
+#endif
 #include <stdio.h>
 #include <assert.h>
 #include "game/combat_attacks.h"

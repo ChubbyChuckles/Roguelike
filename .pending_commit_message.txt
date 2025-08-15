@@ -1,23 +1,26 @@
-feat(combat): Phase 1 core expansion – attack registry, branching queue, scaling coeffs
+Combat System Phase 1 Progress: Attack Registry, Branching, Attribute Scaling, Whiff Cancel (Partial)
 
-Highlights:
-* WeaponArchetype enum (light, heavy, thrust, ranged, spell_focus) + static chains (3/2/2/2/1) in new module `combat_attacks.c/h`.
-* AttackDef expanded: timing, stamina_cost, base_damage, damage_type, STR/DEX/INT scaling coefficients, active windows.
-* Combat loop now sources windup/active/recovery + stamina cost from AttackDef (replaces prior hard-coded combo scalar for these paths).
-* Branch queue system (1.6 partial): queue alternate archetype to consume on next attack start (resets chain index).
-* Chain index progression with wrap; archetype switch resets index.
-* Scaling integration: damage formula applies base + attribute * coeffs prior to combo & crit multipliers.
+Summary:
+Implemented data-driven attack registry (static tables) with archetype chains (light/heavy/thrust/ranged/spell). Added RogueAttackDef with startup/active/recovery, stamina_cost, base_damage, STR/DEX/INT scaling coefficients, damage_type placeholder, active windows, and per-archetype chain indexing. Extended struct with poise_cost (placeholder), cancel_flags (bit1=whiff), whiff_cancel_pct, and status buildup scaffolding (bleed/frost). Integrated chain traversal & branch queue into combat FSM (archetype switch consumed on next attack start). Added whiff cancel early transition logic (on flagged attacks after whiff_cancel_pct of active window). Added unit tests: registry integrity, chain branching determinism, scaling emphasis differences across archetypes, whiff cancel early recovery.
 
-New Tests:
-* `test_combat_attack_registry` – chain lengths, bounds clamp, window coverage.
-* `test_combat_chain_branch` – chain advancement & archetype branch consumption.
-* `test_combat_scaling_coeffs` – verifies archetype scaling emphasis (STR for light/heavy, DEX for thrust/ranged, INT for spell_focus).
+Plan / Next Steps:
+- Implement remaining cancel modalities (on_block) & differentiate hit vs whiff timing thresholds more granularly.
+- Apply status buildup on hit (bleed/frost) with accumulation & eventual effect trigger scaffolding.
+- Support multi-hit active windows (1A.2) and per-window cancel tagging.
+- Introduce drift-resistant timing accumulator (1A.6) and frame-data to frame-event hooks.
+- Externalize attack data (hot reload) and begin Phase 2 mitigation pipeline (armor/resist/penetration ordering).
+- README combat section: document new fields and whiff cancel behavior.
 
-Plan Updates:
-* 1.1 Done, 1.2/1.3 partial (struct + registry; cancel_tags & external loader pending), 1.4 partial (linear chains & branch queue), 1.5 partial (damage_type + scaling coeffs added), 1.6 partial (queued branch implemented), 1.7 Done.
+Files Touched:
+- src/game/combat_attacks.h/.c (struct extension + flags + whiff cancel data)
+- src/game/combat.c (whiff cancel logic integration)
+- tests/unit/test_combat_whiff_cancel.c (new)
+- implementation_plan_combatsystem.txt (status updates: 1.2,1.5,1A.3,1A.4 partial progress)
 
-README:
-* Combat section updated including scaling coeffs & new tests.
+Testing:
+- Existing tests: registry, chain branching, scaling all still expected to pass.
+- New test ensures early recovery on whiff for flagged attack.
 
-Next Steps:
-* Directional branch variants, cancel tag metadata, external data file loader (hot-reload), status buildup arrays, per-window multi-hit support (Phase 1A integration).
+Notes:
+- cancel_flags currently only bit1 (whiff) used; on_hit assumed always allowed after threshold.
+- Status buildup fields dormant until Phase 2/8 integration.

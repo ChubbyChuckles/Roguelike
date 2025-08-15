@@ -36,6 +36,16 @@ typedef struct RogueAttackDef {
     float int_scale;                /* intelligence scaling coefficient */
     int   num_windows;              /* active hit windows (strike sub-intervals) */
     RogueAttackWindow windows[ROGUE_MAX_ATTACK_WINDOWS];
+    /* --- Newly added extended fields (Phase 1.2/1.5 advancements) --- */
+    float poise_cost;               /* attacker poise cost / tax (placeholder) */
+    unsigned short cancel_flags;    /* bit0=on_hit (implicit), bit1=on_whiff early cancel, bit2=on_block (future) */
+    float whiff_cancel_pct;         /* fraction of active_ms after which whiff cancel allowed */
+    float bleed_build;              /* status buildup contributions (future pipeline) */
+    float frost_build;
+    // Cancel flag bits (expand later):
+    // 0x0001 = can cancel on hit confirm (not yet used)
+    // 0x0002 = can early-cancel on whiff after whiff_cancel_pct of active window has elapsed
+    // Additional bits reserved for block, parry, dodge, special, etc.
 } RogueAttackDef;
 
 /* Returns pointer to attack def for archetype + chain index (wrap/clamp). */
