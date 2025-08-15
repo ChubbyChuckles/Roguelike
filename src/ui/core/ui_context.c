@@ -14,6 +14,7 @@ int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg){
     ctx->nodes = (RogueUINode*)calloc((size_t)cap,sizeof(RogueUINode));
     if(!ctx->nodes) return 0;
     ctx->node_capacity = cap;
+    fprintf(stderr,"[ui_init] allocated nodes cap=%d\n", ctx->node_capacity);
     ctx->rng_state = cfg->seed? cfg->seed: 0xC0FFEEu;
     ctx->theme.panel_bg_color = 0x202028FFu;
     ctx->theme.text_color = 0xFFFFFFFFu;
@@ -237,3 +238,39 @@ static uint64_t fnv1a64(const void* data, size_t len){ const unsigned char* p=(c
 size_t rogue_ui_serialize(const RogueUIContext* ctx, char* buffer, size_t buffer_size){ if(!ctx||!buffer||buffer_size==0) return 0; size_t written=0; for(int i=0;i<ctx->node_count;i++){ const RogueUINode* n=&ctx->nodes[i]; int w = snprintf(buffer+written, buffer_size-written, "%d %.2f %.2f %.2f %.2f %08X %s\n", n->kind, n->rect.x,n->rect.y,n->rect.w,n->rect.h, n->color, n->text? n->text:""); if(w<0) break; if((size_t)w >= buffer_size-written){ written = buffer_size-1; break; } written += (size_t)w; } if(written<buffer_size) buffer[written]='\0'; else buffer[buffer_size-1]='\0'; return written; }
 
 int rogue_ui_diff_changed(RogueUIContext* ctx){ if(!ctx) return 0; char tmp[1024]; size_t len = rogue_ui_serialize(ctx,tmp,sizeof tmp); uint64_t h = fnv1a64(tmp,len); if(h!=ctx->last_serial_hash){ ctx->last_serial_hash=h; return 1; } return 0; }
+
+/* ---- Phase 4 Minimal Inventory Grid (stateless) ---- */
+int rogue_ui_inventory_grid(RogueUIContext* ctx, RogueUIRect rect, const char* id,
+    int slot_capacity, int columns, const int* item_ids, const int* item_counts,
+    int cell_size, int* first_visible, int* visible_count){
+    if(!ctx){ return -1; }
+    if(!ctx->frame_active){ /* diagnostic */ fprintf(stderr,"[ui_grid] frame not active\n"); return -1; }
+    if(slot_capacity<=0||columns<=0){ fprintf(stderr,"[ui_grid] bad params cap=%d cols=%d\n",slot_capacity,columns); return -1; }
+    if(cell_size<=0) cell_size=32; if(columns>slot_capacity) columns=slot_capacity;
+    /* rows computed implicitly via iteration; no need to store local row count */
+    /* Outer panel */
+    int root = rogue_ui_panel(ctx,rect, ctx->theme.panel_bg_color);
+    (void)id; /* id unused in minimal version (future: hashed for stable queries) */
+    int start = first_visible? *first_visible:0; if(start<0) start=0; if(start>=slot_capacity) start=0;
+    int max_vis_rows = (int)(rect.h / (float)cell_size);
+    if(max_vis_rows<=0) max_vis_rows=1;
+    int end_slot = start + max_vis_rows*columns; if(end_slot>slot_capacity) end_slot = slot_capacity;
+    if(visible_count) *visible_count = end_slot - start;
+    if(first_visible) *first_visible = start; /* clamp */
+    float pad=2.0f; float spacing=2.0f;
+    for(int s=start; s<end_slot; ++s){
+        int local = s - start;
+        int r = local / columns;
+        int c = local % columns;
+        float x = rect.x + pad + c*(cell_size+spacing);
+        float y = rect.y + pad + r*(cell_size+spacing);
+        RogueUIRect cell_r = {x,y,(float)cell_size,(float)cell_size};
+        int panel = rogue_ui_panel(ctx, cell_r, 0x303038FFu);
+        if(panel>=0 && item_ids && item_counts && item_ids[s]){
+            char tmp[32]; snprintf(tmp,sizeof tmp,"%d", item_counts[s]);
+            RogueUIRect tr = {cell_r.x+2, cell_r.y+2, cell_r.w-4, cell_r.h-4};
+            rogue_ui_text(ctx,tr,tmp, ctx->theme.text_color);
+        }
+    }
+    return root;
+}

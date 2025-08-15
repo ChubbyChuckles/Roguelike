@@ -210,6 +210,13 @@ int rogue_ui_focused_index(const RogueUIContext* ctx);
 uint32_t rogue_ui_make_id(const char* label);
 const RogueUINode* rogue_ui_find_by_id(const RogueUIContext* ctx, uint32_t id_hash);
 
+/* Phase 4 (Incremental): Minimal inventory grid helper.
+    Emits one panel per slot (and optional text node for item count) inside a container panel.
+    Scrolling, dragging, and stack splitting deferred to later increments. */
+int rogue_ui_inventory_grid(RogueUIContext* ctx, RogueUIRect rect, const char* id,
+     int slot_capacity, int columns, const int* item_ids, const int* item_counts,
+     int cell_size, int* first_visible, int* visible_count);
+
 #ifdef __cplusplus
 }
 #endif
