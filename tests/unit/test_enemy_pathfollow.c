@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
-RogueAppState g_app; RoguePlayer g_exposed_player_for_stats; void rogue_player_recalc_derived(RoguePlayer* p){ (void)p; } void rogue_skill_tree_register_baseline(void){}
+/* Use core definitions from rogue_core library instead of redefining globals / functions here to avoid duplicate symbol linker errors. */
 
 /* This test ensures an aggro enemy far from the player obtains a multi-step A* path and advances along it (cardinal non-diagonal moves). */
 int main(void){

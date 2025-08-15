@@ -10,9 +10,7 @@
 #include <string.h>
 #include <math.h>
 
-RogueAppState g_app; RoguePlayer g_exposed_player_for_stats;
-void rogue_player_recalc_derived(RoguePlayer* p){ (void)p; }
-void rogue_skill_tree_register_baseline(void){}
+/* Rely on core library's global state & derived stat routines; avoid local redefinitions that caused duplicate symbols. */
 
 static int init_world(void){
     if(!rogue_tilemap_init(&g_app.world_map, 64, 64)) return 0;
