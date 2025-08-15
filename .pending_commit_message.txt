@@ -1,0 +1,12 @@
+feat(combat): introduce attack registry & classless archetype chains (Phase 1 partial)
+
+Added initial combat attack data layer:
+- WeaponArchetype enum (light, heavy, thrust, ranged, spell_focus)
+- AttackDef struct with startup/active/recovery, stamina_cost, base_damage, poise_damage placeholder
+- Static in-memory chains per archetype (3/2/2/2/1 attacks) via new module combat_attacks.c/h
+- Query API: rogue_attack_get + rogue_attack_chain_length (clamp-safe)
+- Unit test test_combat_attack_registry validating chain lengths, bounds clamp, window coverage
+
+Updated implementation plan (Phase 1.1 Done; 1.2/1.3/1.4/1.5 partial; 1.7 Done) and README feature list.
+
+Lays groundwork for upcoming branching attacks, external data loading, damage type & scaling coefficients, and cancel tag metadata.
