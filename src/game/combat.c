@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "core/navigation.h" /* Phase 5.5 obstruction checks */
+#include "game/lock_on.h" /* Phase 5.6 lock-on directional assist */
 /* Damage event ring buffer (Phase 2.7) */
 RogueDamageEvent g_damage_events[ROGUE_DAMAGE_EVENT_CAP];
 int g_damage_event_head = 0;
@@ -281,6 +282,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
     float reach = base_reach + (player->strength * 0.012f);
     float dirx=0, diry=0; int facing = player->facing;
     switch(facing){ case 0: diry=1; break; case 1: dirx=-1; break; case 2: dirx=1; break; case 3: diry=-1; break; }
+    /* Phase 5.6: lock-on directional override */
+    if(player->lock_on_active){ float ldx=0,ldy=0; if(rogue_lockon_get_dir(player,enemies,enemy_count,&ldx,&ldy)){ dirx=ldx; diry=ldy; }}
     /* Center for arc slightly forward (unbiased horizontally/vertically) */
     float cx = px + dirx * reach * 0.45f;
     float cy = py + diry * reach * 0.45f;

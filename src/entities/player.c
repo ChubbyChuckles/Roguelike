@@ -57,6 +57,8 @@ void rogue_player_init(RoguePlayer* p)
     /* Guard / parry fields */
     p->guarding = 0; p->guard_active_time_ms = 0.0f; p->perfect_guard_window_ms = 140.0f; /* first 140ms counts as perfect */
     p->poise_regen_delay_ms = 0.0f;
+    /* Lock-on defaults */
+    p->lock_on_active = 0; p->lock_on_target_index=-1; p->lock_on_radius=6.0f; p->lock_on_switch_cooldown_ms=0.0f;
     rogue_player_recalc_derived(p);
 }
 

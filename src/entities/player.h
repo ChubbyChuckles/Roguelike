@@ -90,6 +90,11 @@ typedef struct RoguePlayer
     float reaction_di_accum_x;  /* accumulated DI offset (x) for current reaction */
     float reaction_di_accum_y;  /* accumulated DI offset (y) for current reaction */
     float reaction_di_max;      /* per‑reaction cap radius (set on apply) */
+    /* --- Phase 5.6 Lock-On Subsystem --- */
+    unsigned char lock_on_active; /* 1 if currently locked */
+    int lock_on_target_index;     /* enemy index targeted */
+    float lock_on_radius;         /* acquisition radius (tiles) */
+    float lock_on_switch_cooldown_ms; /* prevents rapid cycling */
 } RoguePlayer;
 
 void rogue_player_init(RoguePlayer* p);

@@ -25,6 +25,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase5_team_obstruction.c
     add_test(NAME test_combat_phase5_team_obstruction COMMAND test_combat_phase5_team_obstruction)
 endif()
 
+# Phase 5.6 lock-on acquisition/cycle/directional assist test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase5_lock_on.c AND NOT TARGET test_combat_phase5_lock_on)
+    add_executable(test_combat_phase5_lock_on unit/test_combat_phase5_lock_on.c)
+    target_link_libraries(test_combat_phase5_lock_on PRIVATE rogue_core)
+    target_compile_definitions(test_combat_phase5_lock_on PRIVATE TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase5_lock_on PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase5_lock_on COMMAND test_combat_phase5_lock_on)
+endif()
+
 # Phase 5.1 hitbox primitive test (explicit add to avoid glob cache issues)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase5_hitbox_primitives.c AND NOT TARGET test_combat_phase5_hitbox_primitives)
     add_executable(test_combat_phase5_hitbox_primitives unit/test_combat_phase5_hitbox_primitives.c)
