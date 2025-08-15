@@ -30,5 +30,7 @@ float rogue_weapon_current_durability(int weapon_id);
 /* Stance modifiers (7.3): returned as scalar adjustments */
 typedef struct RogueStanceModifiers { float damage_mult; float stamina_mult; float poise_damage_mult; } RogueStanceModifiers;
 RogueStanceModifiers rogue_stance_get_mods(int stance);
+/* Frame adjustment helper (Phase 7.3 extended): applies stance-based windup/recovery scalars. */
+void rogue_stance_apply_frame_adjustments(int stance, float base_windup_ms, float base_recover_ms, float* out_windup_ms, float* out_recover_ms);
 
 #endif

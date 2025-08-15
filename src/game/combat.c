@@ -127,12 +127,12 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
     /* Fallback constants if table missing */
     float WINDUP_MS  = def? def->startup_ms : 110.0f;
     float STRIKE_MS  = def? def->active_ms  : 70.0f;
-    float RECOVER_MS = def? def->recovery_ms: 120.0f;
-    extern struct RoguePlayer g_exposed_player_for_stats; /* for stance frame modifiers */
-    RogueStanceModifiers sm_tmp = rogue_stance_get_mods(g_exposed_player_for_stats.combat_stance);
-    /* Frame adjustments: aggressive (-5% windup, -3% recovery), defensive (+6% windup, +8% recovery) */
-    if(sm_tmp.damage_mult > 1.0f){ WINDUP_MS *= 0.95f; RECOVER_MS *= 0.97f; }
-    else if(sm_tmp.damage_mult < 1.0f){ WINDUP_MS *= 1.06f; RECOVER_MS *= 1.08f; }
+        float RECOVER_MS = def? def->recovery_ms: 120.0f;
+        extern struct RoguePlayer g_exposed_player_for_stats; /* for stance frame modifiers */
+        /* Apply stance-based frame adjustments (windup + recovery) */
+        float adj_w = WINDUP_MS, adj_r = RECOVER_MS;
+        rogue_stance_apply_frame_adjustments(g_exposed_player_for_stats.combat_stance, WINDUP_MS, RECOVER_MS, &adj_w, &adj_r);
+        WINDUP_MS = adj_w; RECOVER_MS = adj_r;
 
     /* High precision accumulation mitigates float drift across long sessions. */
     pc->precise_accum_ms += (double)dt_ms;
@@ -221,6 +221,8 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
     if(pc->strike_time_ms >= STRIKE_MS || allow_hit_cancel || allow_whiff_cancel || allow_block_cancel){
             pc->phase = ROGUE_ATTACK_RECOVER; pc->timer = 0; pc->combo++; if(pc->combo>5) pc->combo=5; if(pc->landing_lag_ms>0){ /* extend recovery by landing lag */ pc->precise_accum_ms = - (double)pc->landing_lag_ms; pc->landing_lag_ms = 0.0f; } }
     } else if(pc->phase==ROGUE_ATTACK_RECOVER){
+        /* Recalculate recovery target with stance (so test can observe distinct values) */
+    float rw=0, rr=0; rogue_stance_apply_frame_adjustments(g_exposed_player_for_stats.combat_stance, def?def->startup_ms:WINDUP_MS, def?def->recovery_ms:RECOVER_MS, &rw, &rr); RECOVER_MS = rr;
         /* Allow late-chain: buffering during recover triggers next windup slightly early */
     if(pc->timer >= RECOVER_MS){
             if(pc->buffered_attack && def){

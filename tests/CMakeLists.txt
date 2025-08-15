@@ -287,6 +287,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase7_infusion_split_eve
     add_test(NAME test_combat_phase7_infusion_split_events COMMAND test_combat_phase7_infusion_split_events)
 endif()
 
+    # Phase 7.8 stance frame timing test
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase7_stance_frame_timing.c AND NOT TARGET test_combat_phase7_stance_frame_timing)
+        add_executable(test_combat_phase7_stance_frame_timing unit/test_combat_phase7_stance_frame_timing.c)
+        target_link_libraries(test_combat_phase7_stance_frame_timing PRIVATE rogue_core)
+        target_compile_definitions(test_combat_phase7_stance_frame_timing PRIVATE TEST_COMBAT_PERMISSIVE=1)
+        if(ROGUE_ENABLE_SDL)
+            target_compile_definitions(test_combat_phase7_stance_frame_timing PRIVATE ROGUE_HAVE_SDL=1)
+        endif()
+        add_test(NAME test_combat_phase7_stance_frame_timing COMMAND test_combat_phase7_stance_frame_timing)
+    endif()
+
 # Explicitly add cast weaving & early cancel test (Phase 1A.2/1A.4 partial)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_cast_weave_and_cancel.c AND NOT TARGET test_cast_weave_and_cancel)
     add_executable(test_cast_weave_and_cancel unit/test_cast_weave_and_cancel.c)

@@ -53,3 +53,10 @@ RogueStanceModifiers rogue_stance_get_mods(int stance){
     }
     return m;
 }
+
+void rogue_stance_apply_frame_adjustments(int stance, float base_windup_ms, float base_recover_ms, float* out_windup_ms, float* out_recover_ms){
+    float w = base_windup_ms; float r = base_recover_ms;
+    if(stance==1){ /* aggressive */ w *= 0.95f; r *= 0.97f; }
+    else if(stance==2){ /* defensive */ w *= 1.06f; r *= 1.08f; }
+    if(out_windup_ms) *out_windup_ms = w; if(out_recover_ms) *out_recover_ms = r;
+}
