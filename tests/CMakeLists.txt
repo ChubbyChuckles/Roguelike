@@ -63,6 +63,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_persistence_edge_cases.c AND NOT
     add_test(NAME test_persistence_edge_cases COMMAND test_persistence_edge_cases)
 endif()
 
+# Phase M4.2/M4.3 determinism & golden master test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_determinism_damage_events.c AND NOT TARGET test_determinism_damage_events)
+    add_executable(test_determinism_damage_events unit/test_determinism_damage_events.c)
+    target_link_libraries(test_determinism_damage_events PRIVATE rogue_core)
+    target_compile_definitions(test_determinism_damage_events PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_determinism_damage_events PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_determinism_damage_events COMMAND test_determinism_damage_events)
+endif()
 # Explicitly add combat damage observer test (maintainability phase M2) to avoid glob cache issues
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_damage_observer.c AND NOT TARGET test_combat_damage_observer)
     add_executable(test_combat_damage_observer unit/test_combat_damage_observer.c)

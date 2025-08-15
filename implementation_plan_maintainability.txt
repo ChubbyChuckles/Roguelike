@@ -60,8 +60,10 @@ PHASE M4. Testing & Quality Gates Expansion
    Added tests:
     - test_projectiles_config_edge: ensures non-existent file load fails without mutating defaults, partial config overrides only specified keys (others retained), and full hot reload updates all tuning fields.
     - test_persistence_edge_cases: negative VERSION values clamp to 1, player level round-trips through save, and generation params only write when dirty with VERSION emitted.
- 4.2 Property-based determinism tests (X)
- 4.3 Golden master event replay (X)
+ 4.2 Property-based determinism tests (Done)
+   Added util/determinism.{c,h} with FNV-1a hash & damage event sequence hashing. Test test_determinism_damage_events generates deterministic event sequences (variant param), asserts identical sequences hash-equal and differing variants hash-different.
+ 4.3 Golden master event replay (Done)
+   Same test writes text golden master, reloads, and memory-compares event structs; harness basis for future real combat log replay.
  4.4 Fuzz parsers (loot/persistence/affix) (X)
  4.5 Performance regression micro-bench tests (X)
  4.6 Mutation testing harness (X)

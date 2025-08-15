@@ -183,6 +183,7 @@ add_library(rogue_core
     src/util/kv_schema.c
     src/util/hot_reload.c
     src/util/asset_dep.c
+    src/util/determinism.c
     src/game/hitbox.c
     src/game/hitbox_load.c
         src/game/lock_on.c
