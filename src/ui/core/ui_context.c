@@ -14,7 +14,6 @@ int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg){
     ctx->nodes = (RogueUINode*)calloc((size_t)cap,sizeof(RogueUINode));
     if(!ctx->nodes) return 0;
     ctx->node_capacity = cap;
-    fprintf(stderr,"[ui_init] allocated nodes cap=%d\n", ctx->node_capacity);
     ctx->rng_state = cfg->seed? cfg->seed: 0xC0FFEEu;
     ctx->theme.panel_bg_color = 0x202028FFu;
     ctx->theme.text_color = 0xFFFFFFFFu;

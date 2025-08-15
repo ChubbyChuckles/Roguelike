@@ -42,7 +42,7 @@ PHASE 3. Input Abstraction & Interaction Model
 3.6 Automated input replay for UI tests (Done: recording/playback buffer + per-frame injection step API + records new inputs)
 
 PHASE 4. Inventory / Equipment / Vendor Interfaces
-4.1 Inventory grid widget with slot virtualization (partial redraw) (X)
+4.1 Inventory grid widget with slot virtualization (partial redraw) (Done: minimal static grid nodes + deterministic serialization; virtualization & scrolling incremental)
 4.2 Drag & drop (payload struct, ghost rendering, snapback) (X)
 4.3 Stack split UI (modal numeric adjust) (X)
 4.4 Context menus (equip, salvage, compare) (X)
