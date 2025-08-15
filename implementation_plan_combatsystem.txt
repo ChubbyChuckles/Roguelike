@@ -1,0 +1,210 @@
+COMBAT SYSTEM IMPLEMENTATION PLAN (Roadmap & Status) – Classless / Universal Access / Permadeath
+
+Legend:
+Done = Fully implemented & tests pass (or empirically verified in current runtime)
+Partial = Some components implemented (details in parentheses)
+X = Not started yet
+
+Scope Overview:
+A layered, deterministic, data‑driven combat framework with strictly classless design: every character can learn any skill, wield any weapon, and equip any armor weight. Balance is achieved through soft caps, encumbrance, stamina & poise tradeoffs, and adaptive diminishing returns instead of class restrictions. System supports melee / ranged / hybrid archetypes emergently, responsive input buffering, animation‑synchronized hitboxes, nuanced stamina–poise–encumbrance interactions, parry / dodge / guard defensive layers, contextual executions, status / proc hooks into the skill & effect pipeline, network‑ready deterministic sequencing, permadeath run integrity (death = total reset of power; only meta‑analytics persist), and tooling for authoring frame data & collision volumes.
+
+PHASE 0. Current Baseline (Done)
+0.1 Player attack finite state machine (Idle → Windup → Strike → Recover) (Done)
+0.2 Dynamic per‑phase timers with combo speed scalar (Done)
+0.3 Basic combo counter with damage scaling & speed acceleration (Done)
+0.4 Stamina pool with per‑attack cost & regen delay gating (Done)
+0.5 Input buffering during non‑idle phases (stores next attack) (Done)
+0.6 Early cancel on hit‑confirm (Strike → Recover advance) (Done)
+0.7 Hitstop injection (time dilation via global timer) (Done)
+0.8 Frame‑gated strike activation (animation frame mask + permissive fallback) (Done)
+0.9 Reach / arc calculation with directional filtering & combo scaling (Done)
+0.10 Critical hit chance & crit damage multiplier pipeline (Done)
+0.11 Knockback application with crit scaling & cap (Done)
+0.12 Damage number spawning (crit-aware) (Done)
+0.13 Strength buff integration into damage (buff query) (Done)
+0.14 Basic buffered chain cost reduction (subsequent stamina cost lower) (Done)
+0.15 Deterministic fallback for tests (frame override, permissive mask) (Done)
+0.16 Simple early cancel threshold logic (percentage of strike) (Done)
+0.17 Classless openness baseline (no equipment or skill slot gating implemented yet) (Done)
+0.18 Permadeath core rule (on death, character state discarded; only session analytics retained) (Done)
+
+PHASE 1. Core Model Expansion (Classless Universal Attack Data)
+1.1 WeaponArchetype enum & data: (light, heavy, thrust, ranged, spell_focus) (X)
+1.2 AttackDef struct: startup_ms, active_windows[], recovery_ms, stamina_cost, poise_damage, poise_cost, cancel_tags (X)
+1.3 Data-driven attack registry: static table → external config later (no class gates; universal query) (X)
+1.4 Multiple attack branches (light chain, heavy chain, directional variants) (X)
+1.5 Per-attack hit properties: damage_type, base_damage, scaling_coeffs (X)
+1.6 Distinguish buffered_next vs queued_branch (directional / heavy) (X)
+1.7 Tests: archetype timing consistency, branch selection determinism, universal access invariants (no forbidden weapon) (X)
+
+PHASE 1A. Temporal & Animation Sync Enhancements
+1A.1 Fine-grained frame data authoring (ms → frames at runtime tick) (X)
+1A.2 Multi-hit active windows (e.g., sweep phases) (X)
+1A.3 Cancellable window flags (on_hit, on_whiff, on_block) (X)
+1A.4 Whiff cancel partial credit (reduced window vs on_hit) (X)
+1A.5 Animation event injection (begin_active, end_active, fx triggers) (X)
+1A.6 Drift-resistant timing (accumulator correcting float error >1ms) (X)
+1A.7 Tests: cancel window edges, multi-hit ordering, drift bounds (X)
+
+PHASE 2. Damage & Mitigation Pipeline
+2.1 Damage types (physical, bleed, fire, frost, arcane, poison, true) (X)
+2.2 Defense stats: armor (physical), resist(type), flat & percent reduction (X)
+2.3 Penetration model (flat + percent; order: flat→armor→percent) (X)
+2.4 Crit layering refactor: pre- vs post-mitigation toggles; additive vs multiplicative stacking audit (X)
+2.5 Minimum damage floor logic (post mitigation) (X)
+2.6 Overkill capture & execution triggers (X)
+2.7 Damage event struct (for logging, replay, network) (X)
+2.8 Tests: mitigation order correctness, penetration stacking, crit vs armor invariants (X)
+
+PHASE 3. Stamina, Poise, Encumbrance & Hyper Armor
+3.1 Separate Stamina vs Guard Meter vs Poise (temporary stability buffer) (X)
+3.2 Encumbrance rating (derived from total equipped weight vs capacity) affecting: stamina regen, dodge i-frames, movement speed, roll distance (X)
+3.3 Poise damage accumulation & stagger threshold (X)
+3.4 Hyper armor frames (poise ignore) authoring per attack window (X)
+3.5 Dynamic stamina tax scaling with encumbrance tiers (light/med/heavy/overloaded) (X)
+3.6 Soft cap on stacking defensive weight: diminishing returns curve on effective damage negation (X)
+3.7 Tests: encumbrance tier transitions, stamina regen under load, i-frame reduction bounds, DR curve monotonicity (X)
+3.8 Guard (blocking) state: directional reduction cone + chip damage (X)
+3.9 Perfect guard (parry timing window) producing posture break on attacker (X)
+3.10 Poise regen curve (delay + accelerated early regen) (X)
+3.11 Tests: stagger on threshold, hyper armor immunity, guard cone edge, perfect guard frame tolerance (X)
+
+PHASE 4. Hit Reactions & Crowd Control Integration
+4.1 Reaction categories: light flinch, medium stagger, heavy knockdown, launch (X)
+4.2 Mapping damage/poise thresholds to reaction (X)
+4.3 Invulnerability / i-frame layering (dodge, roll, parry) (X)
+4.4 CC integration with skill system (stun, root, slow, disarm) (X)
+4.5 Reaction cancel windows & DI (directional influence) (X)
+4.6 Tests: reaction selection determinism, i-frame overlap protection, DI effect bounds (X)
+
+PHASE 5. Spatial Targeting & Hit Detection
+5.1 Hitbox volume types: capsule, swept arc, multi-segment chain, projectile spawn descriptors (X)
+5.2 Authoring tool: JSON or binary layout for hitbox frames (X)
+5.3 Broadphase culling (grid / BVH reuse) for candidate entities (X)
+5.4 Friendly fire & team filter mask (X)
+5.5 Terrain interaction: clank vs walls, obstruction reduces damage (X)
+5.6 Lock-on subsystem (optional assist) with soft magnetize logic (X)
+5.7 Tests: multi-target consistency, obstruction damping, lock-on switch latency (X)
+
+PHASE 6. Advanced Offensive & Defensive Mechanics (Classless Tradeoffs)
+6.1 Charged attacks (hold to scale damage/poise with nonlinear curve) (X)
+6.2 Aerial attacks & landing lag differentiation (X)
+6.3 Dodge roll with i-frames & stamina cost scaling by encumbrance load (X)
+6.4 Backstab / positional crit detection (rear cone + proximity + unaware flag) (X)
+6.5 Parry → Riposte chain (timing + special damage window) (X)
+6.6 Guard break follow-up guaranteed crit window (X)
+6.7 Projectile deflection / reflection (parry / perfect guard) (X)
+6.8 Tests: parry timing jitter tolerance, backstab angle threshold, charge curve scaling accuracy (X)
+
+PHASE 7. Weapons, Armor & Encumbrance Styles
+7.1 Data-driven weapon definitions: base stats, scaling letters (open to all) (X)
+7.2 Armor weight classes (light/med/heavy) with continuous encumbrance influencing mobility & regen (X)
+7.3 Stance modifiers (aggressive, balanced, defensive) altering frame data & stamina costs (X)
+7.4 Infusions (elemental / status) altering damage split & scaling (X)
+7.5 Weapon familiarity curve (usage-based soft bonuses; capped low to avoid pseudo-classes) (X)
+7.6 Durability / sharpness (affects damage & stagger over time) (X)
+7.7 Tests: infusion damage redistribution, stance frame adjustments, familiarity soft cap enforcement, encumbrance mobility curve (X)
+
+PHASE 8. Effect / Proc / Skill Integration
+8.1 On-hit proc hooks (trigger effect specs) (X)
+8.2 Life / resource leech resolution order (post-mitigation) (X)
+8.3 Conditional procs (crit-only, backstab-only, stagger-only) (X)
+8.4 Damage over time bridging (weapon applies DOT on proc) (X)
+8.5 Snapshot vs dynamic scaling flags for attack-sourced effects (X)
+8.6 Tests: proc ICD enforcement, leech cap, conditional trigger gating (X)
+
+PHASE 9. AI Combat Behaviors
+9.1 Behavior modules: approach, circle-strafe, feint, commit, disengage (X)
+9.2 Telegraph design (windup visuals synced to player frame data) (X)
+9.3 Difficulty scaling curves (reaction time clamp, feint frequency) (X)
+9.4 Adaptive AI (responds to player dodge direction bias) (X)
+9.5 Group tactics (role assignment: pressure, flank, support) (X)
+9.6 Tests: telegraph advance timing, group spacing invariants, adaptive response latency (X)
+
+PHASE 10. Networking & Determinism
+10.1 Deterministic attack event sequence hashing (X)
+10.2 Authoritative simulation with client-side prediction of attack phases (X)
+10.3 Rollback window for parry/dodge (input delay compensation) (X)
+10.4 Input compression & delta stream (X)
+10.5 Latency-aware hit validation (rewind entity transforms) (X)
+10.6 Tests: hash mismatch detection, rollback convergence, latency envelope pass (X)
+
+PHASE 11. Camera, VFX & Feedback
+11.1 Layered screen shake categories (light, heavy, finisher) (X)
+11.2 Dynamic FOV & subtle time dilation on finishers (X)
+11.3 Weapon trail & hit spark effect pooling (X)
+11.4 Audio layering: whoosh, impact, crit, stagger, parry ring (X)
+11.5 Contextual rumble pattern mapping (controller) (X)
+11.6 Tests: effect pool reuse, shake stacking clamp (X)
+
+PHASE 12. Analytics & Telemetry
+12.1 Per-attack usage & hit/miss rates (X)
+12.2 Reaction timing histogram (parry, dodge, block windows) (X)
+12.3 Stamina efficiency metrics (damage per stamina) (X)
+12.4 Poise break frequency & source attribution (X)
+12.5 Export snapshot JSON for balancing dashboards (X)
+12.6 Tests: metric accumulation accuracy, export round-trip (X)
+
+PHASE 13. Tooling & Authoring
+13.1 Frame data editor (GUI) with timeline scrubbing (X)
+13.2 Hitbox visualizer overlay (live & playback) (X)
+13.3 Combo script tester (auto-run sequences measuring DPS & stamina curve) (X)
+13.4 Golden master regression harness (captures authoritative event streams) (X)
+13.5 Static analyzer: detect unreachable cancel routes / overlapping windows (X)
+13.6 Tests: editor serialization diff, analyzer false positive rate bounds (X)
+
+PHASE 14. Performance & Memory
+14.1 Object pool for transient hit events & damage numbers (X)
+14.2 SoA layout for active hitboxes (minimizes cache misses) (X)
+14.3 Broadphase acceleration structure reuse (grid / BVH) (X)
+14.4 SIMD batch distance / penetration checks (X)
+14.5 Micro-profiler zones for each combat phase & subsystem (X)
+14.6 Tests: stress (500 concurrent hitboxes) under frame budget, allocator reuse (X)
+
+PHASE 15. Security / Anti-Cheat / Validation & Permadeath Integrity
+15.1 Attack rate clamp vs authored frame data (X)
+15.2 Deterministic signature of attack & run event sequence (X)
+15.3 Invalid state detection (e.g., simultaneous hyper armor & stagger) (X)
+15.4 Server authoritative crit & penetration rolls (X)
+15.5 Tamper-resistant damage pipeline (hash chain) (X)
+15.6 Permadeath death-record hash (validates death legitimacy; prevents rollback/save‑scum) (X)
+15.7 Run seed + event digest exported on death for analytics (X)
+15.8 Tests: death hash stability, rollback detection, duplicate run seed rejection (X)
+
+PHASE 16. Balancing, Live Tuning & Classless Soft Caps
+16.1 Hot-reloadable attack & weapon data (X)
+16.2 Adaptive difficulty: adjust AI feint & punish rate (X)
+16.3 Global soft caps (diminishing returns curves) for stacking unrelated offensive/defensive stats to curb single-run runaway in absence of class limits (X)
+16.4 Per-weapon & cross-loadout KPI dashboard (DPS, hit rate, stamina efficiency, time-to-stagger, mobility index) (X)
+16.5 Elastic tuning sandbox (simulate distribution of loadout combinations) (X)
+16.6 Auto-suggest balance deltas (heuristics / statistical outlier detection) (X)
+16.7 Tests: soft cap curve monotonicity, outlier detection false positive ceiling (X)
+
+PHASE 17. Polish, Accessibility & Permadeath UX
+17.1 Aim assist cone (toggle) & dynamic magnetization for gamepad (X)
+17.2 Customizable combo mappings / remap UI (X)
+17.3 Colorblind-friendly telegraph palette & alternative impact cues (X)
+17.4 Haptic pattern library for reaction types (X)
+17.5 Reduced-motion settings (limit screenshake / flashes) (X)
+17.6 Permadeath death recap panel (last N damage events, stamina/poise timeline) (X)
+17.7 Post-death analytics export & share code (X)
+17.8 Tests: death recap accuracy, export validity (X)
+
+PRIORITY NEAR-TERM SUBSET
+- Phase 1 (1.1 – 1.7): Core universal attack data & branching
+- Phase 1A (1A.1 – 1A.7): Precise timing & cancel windows
+- Phase 3 (encumbrance + poise integration early for tradeoffs)
+- Phase 6 (parry, dodge roll baseline) for defensive depth
+- Phase 2 (damage pipeline) to enable soft caps & mitigation clarity
+- Phase 15 (death hash + run signature minimal subset) for permadeath integrity
+
+NOTES
+- No hard class gates: balance relies on stamina, encumbrance, poise, soft caps, and opportunity cost of hybridizing gear.
+- Deterministic ordering: attack event IDs increment monotonically; damage & death events hashed for replay & death validation.
+- Floats periodically renormalized to prevent drift in long survival sessions; permadeath means runs can be long but finite.
+- Hooks to skill/effect system (Phase 8) unify proc, DOT, CC application irrespective of weapon/armor choice.
+- AttackDef arrays private; only opaque handles exposed. Gear & infusion selection maps to AttackDef views (no subclass logic).
+- Micro-bench harness early (phases 1A/5) for 1000 hitbox stress at target frame budget.
+- Struct padding reserved for network & anti-cheat flags (run hash bits, death cause code).
+- Analytics persists across deaths only as meta (no power carryover) preserving roguelike integrity.
+- Soft cap & diminishing returns curves must be monotonic & slope‑continuous (C1) to avoid abrupt meta shifts.
