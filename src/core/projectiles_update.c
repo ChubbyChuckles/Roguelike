@@ -2,16 +2,18 @@
 #include "core/app_state.h"
 #include "entities/enemy.h"
 #include "game/damage_numbers.h"
+#include "core/projectiles_config.h"
 #include <math.h>
 #include <stdlib.h>
 
 void rogue__spawn_shards(float x,float y,int count){
+    const struct RogueProjectileTuning* t = rogue_projectiles_tuning();
     for(int c=0;c<count;c++){
         for(int i=0;i<ROGUE_MAX_SHARDS;i++) if(!g_shards[i].active){
             float ang = (float)( (double)rand() / (double)RAND_MAX ) * 6.2831853f;
-            float spd = 2.5f + ((float)rand()/(float)RAND_MAX)*3.5f;
+            float spd = t->shard_speed_min + ((float)rand()/(float)RAND_MAX)*t->shard_speed_var;
             g_shards[i].active=1; g_shards[i].x=x; g_shards[i].y=y; g_shards[i].vx=cosf(ang)*spd; g_shards[i].vy=sinf(ang)*spd;
-            g_shards[i].life_ms = 340.0f + ((float)rand()/(float)RAND_MAX)*120.0f; g_shards[i].total_ms = g_shards[i].life_ms; g_shards[i].size = 4.0f + ((float)rand()/(float)RAND_MAX)*3.0f;
+            g_shards[i].life_ms = t->shard_life_min_ms + ((float)rand()/(float)RAND_MAX)*t->shard_life_var_ms; g_shards[i].total_ms = g_shards[i].life_ms; g_shards[i].size = t->shard_size_min + ((float)rand()/(float)RAND_MAX)*t->shard_size_var;
             break; }
     }
 }
@@ -19,7 +21,7 @@ static void projectile_hit_enemy(RogueProjectile* p, struct RogueEnemy* e){
     e->health -= p->damage;
     rogue_add_damage_number(p->x, p->y - 0.3f, p->damage, 1);
     rogue__spawn_impact(p->x,p->y);
-    rogue__spawn_shards(p->x,p->y, 10);
+    rogue__spawn_shards(p->x,p->y, rogue_projectiles_tuning()->shard_count_hit);
     if(e->health<=0){ e->alive=0; g_app.enemy_count--; if(g_app.per_type_counts[e->type_index]>0) g_app.per_type_counts[e->type_index]--; }
 }
 void rogue__projectile_hit_enemy(struct RogueProjectile* p, struct RogueEnemy* e){ projectile_hit_enemy(p,e); }
@@ -27,7 +29,7 @@ void rogue__projectile_hit_enemy(struct RogueProjectile* p, struct RogueEnemy* e
 void rogue_projectiles_update(float dt_ms){
     for(int i=0;i<ROGUE_MAX_PROJECTILES;i++) if(g_projectiles[i].active){
         RogueProjectile* p=&g_projectiles[i];
-        p->life_ms += dt_ms; if(p->life_ms >= p->max_life_ms){ rogue__spawn_impact(p->x,p->y); rogue__spawn_shards(p->x,p->y, 6); p->active=0; continue; }
+    p->life_ms += dt_ms; if(p->life_ms >= p->max_life_ms){ rogue__spawn_impact(p->x,p->y); rogue__spawn_shards(p->x,p->y, rogue_projectiles_tuning()->shard_count_expire); p->active=0; continue; }
         p->anim_t += dt_ms;
         if(p->hcount < ROGUE_PROJECTILE_HISTORY){
             for(int h=p->hcount; h>0; --h){ p->hx[h]=p->hx[h-1]; p->hy[h]=p->hy[h-1]; }
@@ -58,7 +60,7 @@ static void update_shards(float dt_ms){
         g_shards[i].life_ms -= dt_ms;
         g_shards[i].x += g_shards[i].vx * dt;
         g_shards[i].y += g_shards[i].vy * dt;
-        g_shards[i].vy += 0.2f * dt;
+    g_shards[i].vy += rogue_projectiles_tuning()->shard_gravity * dt;
         if(g_shards[i].life_ms <= 0){ g_shards[i].active=0; }
     }
 }

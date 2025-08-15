@@ -3,6 +3,8 @@
 #include "core/app_state.h"
 #include "util/log.h"
 #include <math.h>
+/* ensure tuning struct visible */
+#include "core/projectiles_config.h"
 
 RogueImpactBurst g_impacts[ROGUE_MAX_IMPACT_BURSTS];
 RogueShard g_shards[ROGUE_MAX_SHARDS];
@@ -25,5 +27,6 @@ void rogue_projectiles_spawn(float x, float y, float dir_x, float dir_y, float s
 }
 
 void rogue__spawn_impact(float x,float y){
-    for(int i=0;i<ROGUE_MAX_IMPACT_BURSTS;i++) if(!g_impacts[i].active){ g_impacts[i].active=1; g_impacts[i].x=x; g_impacts[i].y=y; g_impacts[i].life_ms=260.0f; g_impacts[i].total_ms=260.0f; return; }
+    float life = rogue_projectiles_tuning()->impact_life_ms;
+    for(int i=0;i<ROGUE_MAX_IMPACT_BURSTS;i++) if(!g_impacts[i].active){ g_impacts[i].active=1; g_impacts[i].x=x; g_impacts[i].y=y; g_impacts[i].life_ms=life; g_impacts[i].total_ms=life; return; }
 }

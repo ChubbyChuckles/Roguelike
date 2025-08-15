@@ -102,6 +102,7 @@ add_library(rogue_core
     src/core/projectiles_spawn.c
     src/core/projectiles_update.c
     src/core/projectiles_render.c
+    src/core/projectiles_config.c
     src/core/damage_calc.c
     src/core/collision.c
     src/core/navigation.c
@@ -181,6 +182,7 @@ add_library(rogue_core
     src/util/kv_parser.c
     src/util/kv_schema.c
     src/util/hot_reload.c
+    src/util/asset_dep.c
     src/game/hitbox.c
     src/game/hitbox_load.c
         src/game/lock_on.c

@@ -36,6 +36,7 @@ SOFTWARE.
 #include "core/skill_bar.h"
 #include "core/buffs.h"
 #include "core/projectiles.h"
+#include "core/projectiles_config.h"
 #include "core/loot_item_defs.h"
 #include "core/loot_tables.h"
 #include "core/loot_instances.h"
@@ -82,6 +83,7 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     rogue_game_loop_init(&loop_cfg);
     rogue_persistence_load_generation_params();
     rogue_skills_init(); rogue_buffs_init(); rogue_projectiles_init();
+    rogue_projectiles_config_load_and_watch("assets/projectiles.cfg");
     rogue_skill_tree_register_baseline();
     rogue_item_defs_reset();
     rogue_loot_tables_reset();

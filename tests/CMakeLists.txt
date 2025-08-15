@@ -3,6 +3,26 @@ file(GLOB UNIT_TESTS unit/test_*.c)
 # Filter out removed/legacy test filenames that may linger in generated projects
 list(FILTER UNIT_TESTS EXCLUDE REGEX ".*test_skills_phase1_foundation.c$")
 
+# Explicitly add new maintainability phase M3.4 asset dependency graph test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_asset_dep.c AND NOT TARGET test_asset_dep)
+    add_executable(test_asset_dep unit/test_asset_dep.c)
+    target_link_libraries(test_asset_dep PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_asset_dep PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_asset_dep COMMAND test_asset_dep)
+endif()
+
+# Explicitly add new maintainability phase M3.5 projectile config hot reload test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_projectiles_config.c AND NOT TARGET test_projectiles_config)
+    add_executable(test_projectiles_config unit/test_projectiles_config.c)
+    target_link_libraries(test_projectiles_config PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_projectiles_config PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_projectiles_config COMMAND test_projectiles_config)
+endif()
+
 # Explicitly add combat damage observer test (maintainability phase M2) to avoid glob cache issues
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_damage_observer.c AND NOT TARGET test_combat_damage_observer)
     add_executable(test_combat_damage_observer unit/test_combat_damage_observer.c)

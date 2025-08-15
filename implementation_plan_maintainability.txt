@@ -46,8 +46,10 @@ PHASE M2. API Encapsulation & Stability
   3.1 Unified key/value parser abstraction (Done) (kv_parser.{c,h} + unit test)
     3.2 Schema + validation errors surfaced (Done) (kv_schema.{c,h} + test)
    3.3 Hot reload: skills, attacks, loot, world gen (Done) (Registry + force API + content hash change detection util/hot_reload.{c,h}; unit test covers registration, duplicate rejection, automatic change fire & manual force. Integration points for specific subsystems will register loaders as they adopt external configs.)
- 3.4 Asset dependency graph & hashing (X)
- 3.5 Externalize projectile & impact tuning (X)
+ 3.4 Asset dependency graph & hashing (Done)
+   util/asset_dep.{c,h} implements registration of file-backed nodes with dependency IDs, cycle detection (DFS visiting marks), cached recursive FNV-1a combination hashing, and invalidation API. Unit test test_asset_dep validates hash change propagation and cycle rejection.
+ 3.5 Externalize projectile & impact tuning (Done)
+   Added core/projectiles_config.{h,c} plus assets/projectiles.cfg; projectile spawn/update & impact lifetime now driven by RogueProjectileTuning struct (counts, lifetimes, size/speed ranges, gravity). Hot reload registration via projectiles_cfg key; test_projectiles_config asserts load and force reload modifies tuning values.
  3.6 Consolidated combat frame + hitbox data directory (Partial)
  3.7 Persistence file version tags (X)
 

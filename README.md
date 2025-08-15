@@ -58,10 +58,12 @@ Phase M2 added:
 * Deprecation annotation macro (`ROGUE_DEPRECATED(msg)`).
 * Public header pass pruning & observer logic isolated (no leak of internal state).
 
-Phase M3 in progress:
+Phase M3 (data-driven pipeline) progress:
 * Unified key/value parser utility (`util/kv_parser.c,h`) with dedicated unit test `test_kv_parser`.
-* Basic schema + validation layer (`util/kv_schema.c,h`) with unit test `test_kv_schema` surfacing unknown keys, type errors, and missing required fields.
-* Hot reload system (`util/hot_reload.c,h`) with registry, manual force trigger, and automatic content hash change detection (`test_hot_reload`). Subsystems can register loaders to enable live config iteration.
+* Schema + validation layer (`util/kv_schema.c,h`) with unit test `test_kv_schema` surfacing unknown keys, type errors, and missing required fields.
+* Hot reload system (`util/hot_reload.c,h`) with registry, manual force trigger, and automatic content hash change detection (`test_hot_reload`).
+* NEW: Asset dependency graph (`util/asset_dep.c,h`) providing cycle detection + recursive FNV-1a combination hashing; unit test `test_asset_dep` validates hash change on dependency modification and cycle rejection.
+* NEW: Externalized projectile & impact tuning (`core/projectiles_config.c,h` + `assets/projectiles.cfg`) driving shard counts, speeds, lifetimes, sizes, gravity, and impact lifetime; integrated hot reload (`test_projectiles_config`).
 
 Next phases (M3+) will introduce unified config schema, hot reload, and expanded deterministic replay/coverage gates.
 
