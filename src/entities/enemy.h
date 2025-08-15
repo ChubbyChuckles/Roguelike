@@ -50,6 +50,7 @@ typedef struct RogueEnemy {
     float frost_buildup; /* accumulates; future slow/freeze effects */
     /* --- Phase 2: mitigation stats (simple baseline) --- */
     int armor;           /* reduces physical (flat first then percent) */
+    int resist_physical; /* percent 0-90 (separate from armor) */
     int resist_fire;     /* percent 0-90 */
     int resist_frost;    /* percent 0-90 */
     int resist_arcane;   /* percent 0-90 */

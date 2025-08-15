@@ -51,6 +51,7 @@ typedef struct RoguePlayer
     int crit_damage;   /* percent bonus over 100; e.g. 50 => 1.5x */
     /* --- Phase 2 Mitigation / Penetration Stats (baseline) --- */
     int armor;         /* flat physical mitigation base */
+    int resist_physical; /* percent 0-90 physical (percent) */
     int resist_fire;   /* percent 0-90 */
     int resist_frost;  /* percent 0-90 */
     int resist_arcane; /* percent 0-90 */
