@@ -71,6 +71,8 @@ typedef struct RogueAttackDef {
 #define ROGUE_CANCEL_ON_HIT   0x0001
 #define ROGUE_CANCEL_ON_WHIFF 0x0002
 #define ROGUE_CANCEL_ON_BLOCK 0x0004
+/* Hyper armor (Phase 3.4): when set on a window, player poise does not decrease from incoming poise damage during that window */
+#define ROGUE_WINDOW_HYPER_ARMOR 0x0100
 
 /* Returns pointer to attack def for archetype + chain index (wrap/clamp). */
 const RogueAttackDef* rogue_attack_get(RogueWeaponArchetype arch, int chain_index);

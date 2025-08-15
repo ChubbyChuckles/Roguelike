@@ -263,13 +263,14 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
     float cy = py + diry * reach * 0.45f;
     float reach2 = reach*reach;
     /* Determine which attack window(s) are currently active (can be more than one if overlapping). */
-    unsigned int newly_active_mask = 0;
+    unsigned int newly_active_mask = 0; pc->current_window_flags = 0;
     const RogueAttackDef* def = rogue_attack_get(pc->archetype, pc->chain_index);
     if(def && def->num_windows>0){
         for(int wi=0; wi<def->num_windows && wi<32; ++wi){
             const RogueAttackWindow* w = &def->windows[wi];
             int active = (pc->strike_time_ms >= w->start_ms && pc->strike_time_ms < w->end_ms);
             if(active){ newly_active_mask |= (1u<<wi); }
+            if(active){ pc->current_window_flags = w->flags; }
             /* Emit begin/end events once. */
             unsigned int bit = (1u<<wi);
             if(active && !(pc->emitted_events_mask & bit)){
@@ -310,6 +311,7 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
         }
         for(int i=0;i<enemy_count;i++){
             if(!enemies[i].alive) continue;
+            if(enemies[i].staggered){ /* skip striking staggered enemies for additional damage this frame (placeholder) */ }
             float ex = enemies[i].base.pos.x; float ey = enemies[i].base.pos.y;
             float dx = ex - cx; float dy = ey - cy; float dist2 = dx*dx + dy*dy; if(dist2 > reach2) continue;
             float dot = dx*dirx + dy*diry; float forward_player_dot = (ex - px)*dirx + (ey - py)*diry; if(dot < -0.60f && forward_player_dot < 0.0f) continue;
@@ -368,6 +370,16 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             /* Accumulate status buildup placeholders (future: move to status system). */
             if(bleed_build>0){ enemies[i].bleed_buildup += bleed_build; }
             if(frost_build>0){ enemies[i].frost_buildup += frost_build; }
+            /* Phase 3.3: apply poise damage & trigger stagger when depleted (simple). */
+            if(def && def->poise_damage > 0.0f && enemies[i].poise_max > 0.0f){
+                enemies[i].poise -= def->poise_damage;
+                if(enemies[i].poise < 0.0f){ enemies[i].poise = 0.0f; }
+                if(enemies[i].poise <= 0.0f && !enemies[i].staggered){
+                    enemies[i].staggered = 1; enemies[i].stagger_timer_ms = 600.0f; /* ms placeholder */
+                    if(pc->event_count < (int)(sizeof(pc->events)/sizeof(pc->events[0]))){
+                        pc->events[pc->event_count].type = ROGUE_COMBAT_EVENT_STAGGER_ENEMY; pc->events[pc->event_count].data = (unsigned short)i; pc->events[pc->event_count].t_ms = pc->strike_time_ms; pc->event_count++; }
+                }
+            }
             if(enemies[i].health<=0){ enemies[i].alive=0; kills++; }
         }
     }

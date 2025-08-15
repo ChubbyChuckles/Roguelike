@@ -59,6 +59,7 @@ typedef struct RogueEnemy {
     /* --- Phase 3.1: Add guard & poise meters for future stagger / block systems --- */
     float guard_meter; float guard_meter_max; /* enemies may use in later AI phases */
     float poise; float poise_max;             /* depleted -> stagger (future Phase 4 reactions) */
+    int staggered; float stagger_timer_ms;    /* Phase 3.3: simple stagger flag+timer (placeholder reaction) */
 } RogueEnemy;
 
 #define ROGUE_MAX_ENEMIES 256

@@ -324,6 +324,26 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase3_encumbrance.c AND 
     add_test(NAME test_combat_phase3_encumbrance COMMAND test_combat_phase3_encumbrance)
 endif()
 
+# Phase 3.3 poise damage & stagger test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase3_poise_stagger.c AND NOT TARGET test_combat_phase3_poise_stagger)
+    add_executable(test_combat_phase3_poise_stagger unit/test_combat_phase3_poise_stagger.c)
+    target_link_libraries(test_combat_phase3_poise_stagger PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase3_poise_stagger PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase3_poise_stagger COMMAND test_combat_phase3_poise_stagger)
+endif()
+
+# Phase 3.4 hyper armor flag plumbing test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase3_hyper_armor.c AND NOT TARGET test_combat_phase3_hyper_armor)
+    add_executable(test_combat_phase3_hyper_armor unit/test_combat_phase3_hyper_armor.c)
+    target_link_libraries(test_combat_phase3_hyper_armor PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase3_hyper_armor PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase3_hyper_armor COMMAND test_combat_phase3_hyper_armor)
+endif()
+
 # Explicitly add combat drift timing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_drift_timing.c AND NOT TARGET test_combat_drift_timing)
     add_executable(test_combat_drift_timing unit/test_combat_drift_timing.c)

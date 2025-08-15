@@ -31,11 +31,14 @@ typedef struct RoguePlayerCombat {
     unsigned int emitted_events_mask; /* bitmask of emitted per-window begin events */
     /* Simple ring buffer for transient combat events (fx, sfx) */
     int event_count; struct RogueCombatEvent { unsigned short type; unsigned short data; float t_ms; } events[8];
+    unsigned short current_window_flags; /* active window flags (includes hyper armor) */
 } RoguePlayerCombat;
 
 /* Event type ids (extend later): */
 #define ROGUE_COMBAT_EVENT_BEGIN_WINDOW 1  /* data = window index */
 #define ROGUE_COMBAT_EVENT_END_WINDOW   2  /* data = window index */
+/* Phase 3.3/3.4 additional events */
+#define ROGUE_COMBAT_EVENT_STAGGER_ENEMY 3 /* data = enemy index */
 
 /* Phase 2.7: Damage Event (minimal for now) */
 typedef struct RogueDamageEvent {
