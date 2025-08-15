@@ -1,0 +1,175 @@
+MAINTAINABILITY & ARCHITECTURE IMPROVEMENT PLAN (Cross‑System Roadmap & Status)
+
+Legend:
+Done = Fully implemented & tests pass (or empirically verified in current runtime)
+Partial = Some components implemented (details in parentheses)
+X = Not started yet
+
+Scope Overview:
+A staged modernization & maintenance roadmap focused on: clear module boundaries, internal vs public headers, data‑driven configuration, deterministic & testable subsystems, performance visibility, automated quality gates, documentation, and future extensibility (potential ECS / plugin / scripting integration) while preserving current deterministic roguelike core and classless combat design.
+
+PHASE M0. Current Baseline & Recent Refactors (Done)
+ M0.1 Monolith splits: app.c → app_init/step/lifecycle/test_helpers (Done)
+ M0.2 enemy_system.c → enemy_system + spawn + ai w/ internal header (Done)
+ M0.3 vegetation.c → defs/generate/render/collision modular split (Done)
+ M0.4 world_gen.c → core + noise + biomes + features (+ config) (Done)
+ M0.5 skills.c → registry + runtime + effects internal header (Done)
+ M0.6 tile_sprites.c → load + lookup + render + internal header (Done)
+ M0.7 persistence.c → io + world + player split (Done)
+ M0.8 projectiles.c → spawn + update + render split (Done)
+ M0.9 135 automated tests green across refactors (Done)
+ M0.10 Warnings-as-errors enforced (Done)
+ M0.11 Deterministic RNG encapsulated (world gen & combat tests) (Done)
+ M0.12 Hitbox primitive + JSON loader & broadphase utilities (Done)
+ M0.13 Damage / mitigation pipeline with event ring buffer (Done)
+ M0.14 Lock-on, encumbrance, stamina, poise, guard, parry, backstab, riposte, infusions subsystems (Done)
+ M0.15 Logging utility (ROGUE_LOG_*) baseline (Done)
+ M0.16 Configurable persistence test path overrides (Done)
+ M0.17 Central CMake modular source list (Done)
+
+PHASE M1. Source Organization & Module Boundaries
+ 1.1 Ownership doc per top-level folder (X)
+ 1.2 MODULE.md per major module (purpose/API/invariants) (X)
+ 1.3 Internal header naming standard audit (Partial)
+ 1.4 Dependency boundary map + rules doc (X)
+ 1.5 CI include guard: forbid private header cross-leak (X)
+ 1.6 Namespace/prefix + static scope audit (X)
+
+PHASE M2. API Encapsulation & Stability
+ 2.1 Public header pruning / opaque handles (X)
+ 2.2 Feature capability macros (ROGUE_FEATURE_*) (X)
+ 2.3 Event observer interface for combat events (X)
+ 2.4 Deprecation annotations macro (X)
+ 2.5 Standalone header compile tests (X)
+
+PHASE M3. Data-Driven Asset & Config Pipeline
+ 3.1 Unified key/value parser abstraction (X)
+ 3.2 Schema + validation errors surfaced (X)
+ 3.3 Hot reload: skills, attacks, loot, world gen (Partial)
+ 3.4 Asset dependency graph & hashing (X)
+ 3.5 Externalize projectile & impact tuning (X)
+ 3.6 Consolidated combat frame + hitbox data directory (Partial)
+ 3.7 Persistence file version tags (X)
+
+PHASE M4. Testing & Quality Gates Expansion
+ 4.1 New unit tests for split persistence & projectile modules (X)
+ 4.2 Property-based determinism tests (X)
+ 4.3 Golden master event replay (X)
+ 4.4 Fuzz parsers (loot/persistence/affix) (X)
+ 4.5 Performance regression micro-bench tests (X)
+ 4.6 Mutation testing harness (X)
+ 4.7 Coverage threshold gate (Partial)
+ 4.8 Deterministic seed hash re-run check (X)
+
+PHASE M5. Build, Tooling & Automation
+ 5.1 clang-tidy ruleset refinement (Partial)
+ 5.2 Pre-commit (format, lint, forbidden includes) (X)
+ 5.3 CI pipeline (build/test/coverage/artifacts) (X)
+ 5.4 Incremental test selection logic (X)
+ 5.5 Compile DB & IDE helper tasks (X)
+ 5.6 Unity build optional target (X)
+
+PHASE M6. Performance & Profiling
+ 6.1 Profiling zone macros (X)
+ 6.2 Frame timing HUD (X)
+ 6.3 Allocation tracker (X)
+ 6.4 Hotspot micro timers (X)
+ 6.5 Baseline perf snapshot artifacts (X)
+
+PHASE M7. Logging & Diagnostics
+ 7.1 Error code enum & mapper (X)
+ 7.2 Structured (JSON) logging mode (X)
+ 7.3 Category filter & severity levels (X)
+ 7.4 DEV_ASSERT vs RUNTIME_GUARD tiers (X)
+ 7.5 Crash snapshot dump (X)
+ 7.6 Log spam rate limiting (X)
+
+PHASE M8. Documentation & DX
+ 8.1 CONTRIBUTING augmentation (X)
+ 8.2 Architecture diagram (X)
+ 8.3 Onboarding build runbook (X)
+ 8.4 Public API doc comments (X)
+ 8.5 CHANGELOG automation (X)
+ 8.6 Large-file locator script (X)
+
+PHASE M9. Determinism & Replay Hardening
+ 9.1 Unified simulation ordering doc (X)
+ 9.2 Input/RNG event capture & replay harness (X)
+ 9.3 Persistence integrity hash + version (X)
+ 9.4 Migration loaders (X)
+ 9.5 Separate RNG streams (world/loot/combat) (X)
+ 9.6 Replay divergence diff tool (X)
+
+PHASE M10. Rendering & Resources
+ 10.1 Texture atlas manager (X)
+ 10.2 Projectile/impact batching (X)
+ 10.3 Renderer capability detection (X)
+ 10.4 Resource lifetime manager (X)
+ 10.5 GPU metrics stub (X)
+
+PHASE M11. Memory & Lifetime
+ 11.1 Allocation audit & arena introduction (Partial)
+ 11.2 Leak detection build (X)
+ 11.3 Bounds-checked array wrappers (X)
+ 11.4 Debug scrub-on-free mode (X)
+ 11.5 Thread-safety roadmap (X)
+
+PHASE M12. Static Analysis & Metrics
+ 12.1 Complexity scan & refactor list (X)
+ 12.2 Include dependency graph (X)
+ 12.3 Dead code detection (X)
+ 12.4 Style/naming linter (Partial)
+ 12.5 Health report generation (X)
+
+PHASE M13. Feature Flags & Hot Reload
+ 13.1 Central feature flag registry (X)
+ 13.2 Live reload loot rarity/adaptive weights (X)
+ 13.3 Live reload skill cooldown/scaling (X)
+ 13.4 Console gating experimental features (X)
+ 13.5 Dev overrides file (ignored in release) (X)
+
+PHASE M14. Packaging & Release
+ 14.1 Release build profile config (X)
+ 14.2 Packaging script (X)
+ 14.3 Build manifest (commit, flags) (X)
+ 14.4 Packaged artifact smoke test (X)
+ 14.5 Symbol retention policy (X)
+
+PHASE M15. Security & Integrity Alignment
+ 15.1 Run hash chain (X)
+ 15.2 Input timing validation (X)
+ 15.3 RNG audit tool (X)
+ 15.4 Optional obfuscation flag (X)
+ 15.5 Save tamper detection (X)
+
+PHASE M16. Analytics Platform
+ 16.1 Event emission abstraction (X)
+ 16.2 Runtime KPI counters (Partial)
+ 16.3 Opt-in analytics export (X)
+ 16.4 Privacy/anonymization doc (X)
+ 16.5 Visualization scripts (X)
+
+PHASE M17. Future Architecture Evolution
+ 17.1 ECS / hybrid evaluation doc (X)
+ 17.2 Plugin system prototype (X)
+ 17.3 Scripting layer (Lua/WASM) (X)
+ 17.4 Cross-platform abstraction audit (X)
+ 17.5 Persistence schema adapter layer (X)
+
+PRIORITY NEAR-TERM MAINTAINABILITY SUBSET
+ - M1 (1.1–1.4): Document boundaries & ownership.
+ - M4 (4.1–4.4): Expand tests & replay harness foundation.
+ - M3 (3.1, 3.3, 3.6): Unified config + hot reload.
+ - M5 (5.1–5.2) & coverage gating after new tests.
+ - M7 (7.3–7.4) diagnostics improvements.
+ - M9 (9.5) RNG stream separation to reduce coupling.
+
+NOTES
+ - Each new refactor adds MODULE.md & at least one unit test.
+ - Enforce layering via include scan: util lowest, graphics isolated from core logic internals.
+ - Determinism first: add replay harness before networking/AI complexity growth.
+ - Data externalization only after schema validation layer in place.
+ - Introduce lightweight profiling before chasing optimizations to capture baseline.
+ - Avoid premature ECS; gather concrete pain points (dup logic, cache misses) first.
+ - Coverage threshold after flake audit; track flake rate.
+ - Memory + RNG separation lowers incidental coupling for future parallelization.

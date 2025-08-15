@@ -212,3 +212,7 @@ NOTES
 - Struct padding reserved for network & anti-cheat flags (run hash bits, death cause code).
 - Analytics persists across deaths only as meta (no power carryover) preserving roguelike integrity.
 - Soft cap & diminishing returns curves must be monotonic & slope‑continuous (C1) to avoid abrupt meta shifts.
+ - Soft cap & diminishing returns curves must be monotonic & slope‑continuous (C1) to avoid abrupt meta shifts.
+
+
+
