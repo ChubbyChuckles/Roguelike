@@ -908,3 +908,13 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase1_basic.c AND NOT TARGET
     endif()
     add_test(NAME test_ui_phase1_basic COMMAND test_ui_phase1_basic)
 endif()
+
+# UI Phase 1 extended features (1.4-1.7) test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase1_features_ext.c AND NOT TARGET test_ui_phase1_features_ext)
+    add_executable(test_ui_phase1_features_ext unit/test_ui_phase1_features_ext.c)
+    target_link_libraries(test_ui_phase1_features_ext PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ui_phase1_features_ext PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ui_phase1_features_ext COMMAND test_ui_phase1_features_ext)
+endif()

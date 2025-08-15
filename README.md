@@ -446,6 +446,16 @@ Refer to `implementation_plan.txt` for granularity (over 150 line milestones).
 ### [Unreleased]
 Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), loot filtering UI (12.x).
 
+### UI System Phase 1 Progress
+* Completed Phase 1.1–1.7 core architecture slice:
+  - Module scaffolding, `RogueUIContext` lifecycle, panel & text primitives.
+  - Dedicated deterministic UI RNG channel (xorshift32) isolated from simulation RNG.
+  - Simulation snapshot separation (opaque pointer + size) enabling read-only UI consumption without coupling.
+  - Per-frame transient memory arena (configurable size, default 32KB) with `rogue_ui_arena_alloc` + `rogue_ui_text_dup` helper eliminating heap churn for ephemeral strings.
+  - Deterministic UI tree serializer (stable line format) + FNV-1a hashing diff API (`rogue_ui_diff_changed`) for regression tests & future golden snapshots.
+  - Extended unit tests: `test_ui_phase1_basic` (init, primitives, RNG stability) and `test_ui_phase1_features_ext` (arena alloc, snapshot separation, diff detection, capacity & arena exhaustion).
+* Next (Phase 2): Add additional primitives (Image/Sprite/ProgressBar) and interactive widgets (Button/Toggle/Slider/TextInput) with focus & ID plumbing.
+
 ### v0.8.x (Current Development Branch)
 **Added**
 * Action Point (AP) economy core (Phase 1.5): player AP pool + regen + per-skill cost + soft throttle + tests.

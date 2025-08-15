@@ -1,0 +1,12 @@
+feat(ui): complete Phase 1.4-1.7 core foundations (RNG channel, snapshot separation, diff serialization, transient arena)
+
+Adds extended UI context capabilities:
+ - Dedicated deterministic xorshift32 RNG channel (1.4) with stability test.
+ - Simulation snapshot pointer+size separation for read-only UI consumption (1.5).
+ - Deterministic serializer + FNV-1a hash diff API enabling change detection & future golden tests (1.6).
+ - Per-frame transient arena allocator + text duplication helper reducing heap churn (1.7).
+ - New APIs: rogue_ui_set_simulation_snapshot, rogue_ui_arena_alloc, rogue_ui_text_dup, rogue_ui_serialize, rogue_ui_diff_changed.
+ - Extended unit tests (test_ui_phase1_features_ext) covering arena, snapshot diff, capacity overflow, and deterministic diff behavior.
+ - Roadmap statuses updated; README UI section documents progress & next steps.
+
+Follow-ups: Phase 2 widget primitives (Image/Sprite/ProgressBar) + interactive controls with focus & ID hashing.

@@ -18,10 +18,10 @@ PHASE 1. Core Architecture & Module Boundaries
 1.1 Establish ui/ module with subfolders: core/, widgets/, layout/, themes/, test/ (Done)
 1.2 Unified UIContext (tree root, focus stack, theme, timing) (Done: basic context + theme + rng)
 1.3 Frame lifecycle API: ui_begin(), ui_update(dt), ui_render(), ui_end() (Done: begin/end; render stub to be added later)
-1.4 Deterministic UI RNG channel (for cosmetic jitter) (X)
-1.5 Separation: simulation <-> UI via read‑only snapshot structs (X)
-1.6 UI state diff / snapshot serialization (X)
-1.7 Memory arenas / pools for UI transient allocations (X)
+1.4 Deterministic UI RNG channel (for cosmetic jitter) (Done: dedicated xorshift32 state + tests)
+1.5 Separation: simulation <-> UI via read‑only snapshot structs (Done: snapshot pointer + size, read-only accessor)
+1.6 UI state diff / snapshot serialization (Done: deterministic text serializer + FNV-1a hash diff API + test)
+1.7 Memory arenas / pools for UI transient allocations (Done: per-frame arena with reset on begin, text_dup convenience)
 
 PHASE 2. Widget Primitives & Composition
 2.1 Core primitives: Panel, Text, Image, Sprite, ProgressBar (X)
