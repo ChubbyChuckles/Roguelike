@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+static int g_player_stats_version = 1; /* default if absent */
+int rogue_persistence_player_version(void){ return g_player_stats_version; }
 void rogue_persistence_load_player_stats(void){
     FILE* f=NULL;
 #if defined(_MSC_VER)
@@ -24,6 +26,7 @@ void rogue_persistence_load_player_stats(void){
         char* key=line; char* val=eq+1;
         for(char* p=key; *p; ++p){ if(*p=='\r'||*p=='\n'){*p='\0';break;} }
         for(char* p=val; *p; ++p){ if(*p=='\r'||*p=='\n'){*p='\0';break;} }
+        if(strcmp(key,"VERSION")==0){ g_player_stats_version = atoi(val); if(g_player_stats_version<=0) g_player_stats_version=1; continue; }
         if(strcmp(key,"LEVEL")==0) g_app.player.level = atoi(val);
         else if(strcmp(key,"XP")==0) g_app.player.xp = atoi(val);
         else if(strcmp(key,"XP_TO_NEXT")==0) g_app.player.xp_to_next = atoi(val);
@@ -74,6 +77,7 @@ void rogue_persistence_save_player_stats(void){
     if(!f) return;
     fprintf(f,"# Saved player progression\n");
     fprintf(f,"LEVEL=%d\n", g_app.player.level);
+        fprintf(f,"VERSION=%d\n", g_player_stats_version);
     fprintf(f,"XP=%d\n", g_app.player.xp);
     fprintf(f,"XP_TO_NEXT=%d\n", g_app.player.xp_to_next);
     fprintf(f,"STR=%d\n", g_app.player.strength);

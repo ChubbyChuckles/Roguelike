@@ -50,8 +50,10 @@ PHASE M2. API Encapsulation & Stability
    util/asset_dep.{c,h} implements registration of file-backed nodes with dependency IDs, cycle detection (DFS visiting marks), cached recursive FNV-1a combination hashing, and invalidation API. Unit test test_asset_dep validates hash change propagation and cycle rejection.
  3.5 Externalize projectile & impact tuning (Done)
    Added core/projectiles_config.{h,c} plus assets/projectiles.cfg; projectile spawn/update & impact lifetime now driven by RogueProjectileTuning struct (counts, lifetimes, size/speed ranges, gravity). Hot reload registration via projectiles_cfg key; test_projectiles_config asserts load and force reload modifies tuning values.
- 3.6 Consolidated combat frame + hitbox data directory (Partial)
- 3.7 Persistence file version tags (X)
+ 3.6 Consolidated combat frame + hitbox data directory (Done)
+   Added directory-based hitbox loader API (rogue_hitbox_load_directory) scanning non-recursive .hitbox/.json files and concatenating sequences; unit test test_hitbox_directory_load validates multi-file load and primitive detection.
+ 3.7 Persistence file version tags (Done)
+   Added VERSION key support to player stats and generation params files; legacy files without VERSION default to v1; save routines emit VERSION line; accessor APIs rogue_persistence_player_version / rogue_persistence_gen_params_version; unit test test_persistence_versions covers backward compatibility and version line injection.
 
 PHASE M4. Testing & Quality Gates Expansion
  4.1 New unit tests for split persistence & projectile modules (X)

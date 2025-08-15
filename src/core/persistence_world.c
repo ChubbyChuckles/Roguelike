@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+static int g_gen_params_version = 1;
+int rogue_persistence_gen_params_version(void){ return g_gen_params_version; }
+
 void rogue_persistence_load_generation_params(void){
     /* Defaults */
     g_app.gen_water_level = 0.34f; g_app.gen_noise_octaves = 6; g_app.gen_noise_gain = 0.48f; g_app.gen_noise_lacunarity = 2.05f; g_app.gen_river_sources = 10; g_app.gen_river_max_length = 1200; g_app.gen_cave_thresh = 0.60f; g_app.gen_params_dirty = 0;
@@ -21,6 +24,7 @@ void rogue_persistence_load_generation_params(void){
         char* key=line; char* val=eq+1;
         for(char* p=key; *p; ++p){ if(*p=='\r'||*p=='\n'){*p='\0';break;} }
         for(char* p=val; *p; ++p){ if(*p=='\r'||*p=='\n'){*p='\0';break;} }
+        if(strcmp(key,"VERSION")==0){ g_gen_params_version = atoi(val); if(g_gen_params_version<=0) g_gen_params_version=1; continue; }
         if(strcmp(key,"WATER_LEVEL")==0) g_app.gen_water_level = (float)atof(val);
         else if(strcmp(key,"NOISE_OCTAVES")==0) g_app.gen_noise_octaves = atoi(val);
         else if(strcmp(key,"NOISE_GAIN")==0) g_app.gen_noise_gain = (float)atof(val);
@@ -42,6 +46,7 @@ void rogue_persistence_save_generation_params_if_dirty(void){
 #endif
     if(!f) return;
     fprintf(f,"# Saved world generation parameters\n");
+    fprintf(f,"VERSION=%d\n", g_gen_params_version);
     fprintf(f,"WATER_LEVEL=%.4f\n", g_app.gen_water_level);
     fprintf(f,"NOISE_OCTAVES=%d\n", g_app.gen_noise_octaves);
     fprintf(f,"NOISE_GAIN=%.4f\n", g_app.gen_noise_gain);

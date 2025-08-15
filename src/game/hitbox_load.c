@@ -1,4 +1,10 @@
 #include "game/hitbox_load.h"
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <dirent.h>
+#include <strings.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -78,6 +84,29 @@ static void hitbox_bounds(const RogueHitbox* h, float* minx,float* miny,float* m
         case ROGUE_HITBOX_PROJECTILE_SPAWN: default: *minx=*miny=*maxx=*maxy=0; break;
     }
 }
+
+int rogue_hitbox_load_directory(const char* dir, RogueHitbox* out, int max_out, int* out_count){
+    if(out_count) *out_count = 0; if(!dir||!out||max_out<=0) return 0; int total=0;
+#ifdef _WIN32
+    struct _finddata_t fd; char pattern[512]; snprintf(pattern,sizeof pattern,"%s/*.*", dir);
+    intptr_t h = _findfirst(pattern,&fd); if(h==-1) return 0;
+    do{
+        if(fd.attrib & _A_SUBDIR) continue;
+        const char* name = fd.name; size_t len=strlen(name); if(len<5) continue;
+        int ok=0; if(len>=7 && _stricmp(name+len-7, ".hitbox")==0) ok=1; else if(len>=5 && _stricmp(name+len-5, ".json")==0) ok=1; if(!ok) continue;
+        if(total>=max_out) break; char full[600]; snprintf(full,sizeof full,"%s/%s", dir, name);
+        int tmp_count=0; if(!rogue_hitbox_load_sequence_file(full, out+total, max_out-total, &tmp_count)) continue; total+=tmp_count; if(total>=max_out) break;
+    } while(_findnext(h,&fd)==0);
+    _findclose(h);
+#else
+    DIR* d = opendir(dir); if(!d) return 0; struct dirent* ent; while((ent=readdir(d))){
+        if(ent->d_type==DT_DIR) continue; const char* name=ent->d_name; size_t len=strlen(name); if(len<5) continue;
+        int ok=0; if(len>=7 && strcasecmp(name+len-7, ".hitbox")==0) ok=1; else if(len>=5 && strcasecmp(name+len-5, ".json")==0) ok=1; if(!ok) continue;
+        if(total>=max_out) break; char full[600]; snprintf(full,sizeof full,"%s/%s", dir, name);
+        int tmp_count=0; if(!rogue_hitbox_load_sequence_file(full, out+total, max_out-total, &tmp_count)) continue; total+=tmp_count; if(total>=max_out) break;
+    } closedir(d);
+#endif
+    if(out_count) *out_count = total; return 1; }
 
 int rogue_hitbox_collect_point_overlaps(const RogueHitbox* h, const float* xs, const float* ys, const int* alive, int count, int* out_indices, int max_out){
     if(!h||!xs||!ys||!out_indices||max_out<=0) return 0; float minx,miny,maxx,maxy; hitbox_bounds(h,&minx,&miny,&maxx,&maxy); int n=0; for(int i=0;i<count;i++){ if(alive && !alive[i]) continue; float x=xs[i], y=ys[i]; if(x<minx||x>maxx||y<miny||y>maxy) continue; if(rogue_hitbox_point_overlap(h,x,y)){ if(n<max_out) out_indices[n++]=i; } } return n; }

@@ -15,6 +15,9 @@
 
 int rogue_hitbox_load_sequence_from_memory(const char* json, RogueHitbox* out, int max_out, int* out_count);
 int rogue_hitbox_load_sequence_file(const char* path, RogueHitbox* out, int max_out, int* out_count);
+/* Phase M3.6: Load and concatenate all hitbox sequence files from a directory (non-recursive). Accepts
+   files ending in .hitbox or .json. Returns 1 on success, 0 on failure. Stops early if capacity reached. */
+int rogue_hitbox_load_directory(const char* dir, RogueHitbox* out, int max_out, int* out_count);
 
 /* Phase 5.3: Broadphase + narrow-phase collection helper.
    Given hitbox h and arrays of point positions (x[i],y[i]) with alive flag (non-zero), collect indices whose point lies inside h.

@@ -13,6 +13,10 @@ void rogue_persistence_load_player_stats(void);
 /* Save player stats unconditionally */
 void rogue_persistence_save_player_stats(void);
 
+/* Phase M3.7: persistence version tag accessors */
+int rogue_persistence_player_version(void); /* returns loaded player stats version (>=1) */
+int rogue_persistence_gen_params_version(void); /* returns loaded gen params version (>=1) */
+
 /* Optional: override file paths (NULL keeps previous). Useful for tests to avoid clobbering real data. */
 void rogue_persistence_set_paths(const char* player_stats_path, const char* gen_params_path);
 
