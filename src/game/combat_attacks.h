@@ -64,6 +64,8 @@ typedef struct RogueAttackDef {
 const RogueAttackDef* rogue_attack_get(RogueWeaponArchetype arch, int chain_index);
 /* Returns length of chain (number of defs) for archetype. */
 int rogue_attack_chain_length(RogueWeaponArchetype arch);
+/* Compute (inclusive) start/end animation frame indices (0..7) for a given window based on its ms span within the attack's active_ms. */
+int rogue_attack_window_frame_span(const RogueAttackDef* def, int window_index, int* out_start_frame, int* out_end_frame);
 
 #ifdef __cplusplus
 }

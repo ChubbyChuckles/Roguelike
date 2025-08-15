@@ -51,3 +51,16 @@ int rogue_attack_chain_length(RogueWeaponArchetype arch){
     if(arch < 0 || arch >= ROGUE_WEAPON_ARCHETYPE_COUNT) return 0;
     return g_chains[arch].count;
 }
+
+int rogue_attack_window_frame_span(const RogueAttackDef* def, int window_index, int* out_start_frame, int* out_end_frame){
+    if(!def) return 0;
+    if(window_index < 0 || window_index >= def->num_windows) return 0;
+    const RogueAttackWindow* w = &def->windows[window_index];
+    float active = (def->active_ms>0? def->active_ms : 1.0f);
+    int sf = (int)floorf( (w->start_ms / active) * 8.0f );
+    int ef = (int)floorf( ((w->end_ms> w->start_ms? w->end_ms: w->start_ms+0.01f) / active) * 8.0f ) - 1;
+    if(sf<0) sf=0; if(sf>7) sf=7; if(ef<sf) ef=sf; if(ef>7) ef=7;
+    if(out_start_frame) *out_start_frame = sf;
+    if(out_end_frame) *out_end_frame = ef;
+    return 1;
+}

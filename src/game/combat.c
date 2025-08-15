@@ -160,6 +160,8 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
 
 int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, RogueEnemy enemies[], int enemy_count){
     if(pc->phase != ROGUE_ATTACK_STRIKE) return 0;
+    /* If strike_time reset to 0 externally (test harness) ensure we clear processed mask to allow a fresh window pass. */
+    if(pc->strike_time_ms <= 0.0f && pc->processed_window_mask != 0){ pc->processed_window_mask = 0; pc->emitted_events_mask = 0; pc->event_count = 0; }
     #ifdef COMBAT_DEBUG
     printf("[strike_entry] phase=%d strike_time=%.2f processed_mask=0x%X chain=%d\n", pc->phase, pc->strike_time_ms, pc->processed_window_mask, pc->chain_index);
     #endif

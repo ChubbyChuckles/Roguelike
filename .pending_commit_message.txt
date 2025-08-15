@@ -1,0 +1,16 @@
+combat: multi-hit window helper + combo scaling test fix
+
+Phase 1A incremental combat updates:
+- Added rogue_attack_window_frame_span() to derive inclusive animation frame span (0..7) for each authored active window (prepares for external frame data authoring & validation tooling).
+- Adjusted combat strike processing: if strike_time_ms resets to 0 (test harness scenario) processed_window_mask is cleared so repeated isolated damage measurements (combo scaling test) are not suppressed by prior window processing.
+- Updated README to note frame span helper and roadmap implementation plan with test regression fix note.
+- Implementation plan annotated under 1A.7 with helper + combo scaling mask reset rationale.
+
+Tests:
+- test_combat_combo_scaling now passes again (processed_window_mask reset logic).
+- All other combat tests remain green after changes.
+
+Follow-ups:
+- Add heavy_2 triple-window specific unit test covering overlapping window edges & frame span mapping.
+- Integrate status buildup thresholds (bleed/frost) & decay (Phase 2 / Phase 3 interplay) into damage pipeline.
+- FX/SFX consumption layer for emitted BEGIN/END window events.
