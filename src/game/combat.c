@@ -388,18 +388,19 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             /* Durability scalar: below 50% durability linearly reduces weapon contribution down to 70% at 0. */
             float durability_mult = 1.0f;
             if(wdef){ float cur = rogue_weapon_current_durability(wdef->id); if(cur>0){ float pct = cur / (wdef->durability_max>0? wdef->durability_max:1.0f); if(pct < 0.5f){ float frac = pct/0.5f; durability_mult = 0.70f + 0.30f * frac; } } }
-            /* Infusion scaling modifies scaling portions */
-            float infusion_scale_mult = 1.0f; if(inf){ infusion_scale_mult = 1.0f; }
-            float raw = scaled * combo_scale * window_mult * sm.damage_mult * (1.0f + fam_bonus) * durability_mult * infusion_scale_mult;
+            /* Base pre-infusion composite (still physical conceptually) */
+            float base_composite = scaled * combo_scale * window_mult * sm.damage_mult * (1.0f + fam_bonus) * durability_mult;
+            /* Decompose into damage components if infusion active; otherwise single physical component. */
+            float comp_phys = base_composite;
+            float comp_fire = 0.0f, comp_frost = 0.0f, comp_arc = 0.0f;
             if(inf){
-                /* Convert portion to elemental; keep remainder physical by phys_scalar */
-                float base_before = raw;
-                float fire_part = base_before * inf->fire_add;
-                float frost_part= base_before * inf->frost_add;
-                float arc_part  = base_before * inf->arcane_add;
-                float phys_rem = base_before * inf->phys_scalar;
-                raw = phys_rem + fire_part + frost_part + arc_part; /* total stays similar after scalar adjustments */
+                comp_fire  = base_composite * inf->fire_add;
+                comp_frost = base_composite * inf->frost_add;
+                comp_arc   = base_composite * inf->arcane_add;
+                comp_phys  = base_composite * inf->phys_scalar; /* remaining physical */
             }
+            /* Sum for further scalar application (crit etc applied per component later) */
+            float raw = comp_phys + comp_fire + comp_frost + comp_arc;
             /* Apply aerial bonus if flagged (simple 20% for now) */
             if(pc->aerial_attack_pending){ raw *= 1.20f; pc->aerial_attack_pending = 0; /* consume */ pc->landing_lag_ms += 120.0f; }
             /* Apply one-shot pending multipliers (stack multiplicatively) */
@@ -407,9 +408,22 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             if(pc->riposte_pending_mult>1.0f){ raw *= pc->riposte_pending_mult; pc->riposte_pending_mult=1.0f; }
             if(pc->guard_break_pending_mult>1.0f){ raw *= pc->guard_break_pending_mult; pc->guard_break_pending_mult=1.0f; }
             if(pc->pending_charge_damage_mult > 1.0f){ raw *= pc->pending_charge_damage_mult; }
+            /* Propagate single-shot multipliers to components proportionally */
+            if(inf){
+                float mult_total = (raw>0.0f)? (raw / (comp_phys + comp_fire + comp_frost + comp_arc + 0.00001f)) : 1.0f; (void)mult_total; /* avoid unused warn */
+            }
+            /* Recompute raw components post one-shot modifiers by scaling factors used on raw */
+            float total_precrit = raw; if(total_precrit < 0.0001f) total_precrit = 0.0001f;
+            /* Determine per-component proportion prior to crit layer */
+            float t_parts = comp_phys + comp_fire + comp_frost + comp_arc; if(t_parts < 0.0001f) t_parts = 1.0f;
+            float part_phys = raw * (comp_phys / t_parts);
+            float part_fire = raw * (comp_fire / t_parts);
+            float part_frost= raw * (comp_frost/ t_parts);
+            float part_arc  = raw * (comp_arc / t_parts);
             int dmg = (int)floorf(raw + 0.5f);
             if(pc->combo>0){ int min_noncrit = (int)floorf(scaled + pc->combo + 0.5f); int hard_cap = (int)floorf(scaled * 1.4f + 0.5f); if(min_noncrit>hard_cap) min_noncrit=hard_cap; if(dmg<min_noncrit) dmg=min_noncrit; }
-            int overkill=0; int raw_before = dmg;
+            /* raw_before retained for summary event */
+            int raw_before = dmg; /* overkill handled per-component aggregate */
             /* Phase 5.5: terrain obstruction attenuation.
                Cast a simple DDA stepping between player center and enemy; if any blocking tile encountered, mark obstructed.
                Obstructed hits deal 60% damage (rounded) and emit a future clank hook (TODO). */
@@ -427,7 +441,7 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                 }
                 if(obstructed){ dmg = (int)floorf(dmg * 0.60f + 0.5f); if(dmg<1) dmg=1; }
             }
-            /* Roll crit up-front for now; layering mode decides when multiplier applies. */
+            /* Roll crit up-front; apply to each component according to layering mode later. */
             float dex_bonus = player->dexterity * 0.0035f; if(dex_bonus>0.55f) dex_bonus=0.55f; /* soft clamp so base + dex <= ~0.60 */
             float crit_chance = 0.05f + dex_bonus + (float)player->crit_chance * 0.01f; if(crit_chance>0.75f) crit_chance=0.75f; /* hard cap */
             int is_crit = 0;
@@ -438,37 +452,42 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                 crit_mult = 1.0f + ((float)player->crit_damage * 0.01f);
                 if(crit_mult > 5.0f) crit_mult = 5.0f; /* safety cap */
             }
-            /* Apply crit multiplier pre-mitigation if mode 0 */
-            if(is_crit && g_crit_layering_mode==0){
-                float cval = (float)dmg * crit_mult; dmg = (int)floorf(cval + 0.5f); if(dmg<1) dmg=1;
-            }
-            /* Apply penetration before mitigation if physical: flat then percent (player stats). */
-            if(def && def->damage_type == ROGUE_DMG_PHYSICAL){
-                int eff_armor = enemies[i].armor;
-                int pen_flat = player->pen_flat; if(pen_flat>0){ eff_armor -= pen_flat; if(eff_armor<0) eff_armor=0; }
-                int pen_pct = player->pen_percent; if(pen_pct>100) pen_pct=100; if(pen_pct>0){ int reduce = (enemies[i].armor * pen_pct)/100; eff_armor -= reduce; if(eff_armor<0) eff_armor=0; }
-                enemies[i].armor = eff_armor; /* temporary override for mitigation call */
-            }
             int health_before = enemies[i].health;
-            int final_dmg = rogue_apply_mitigation_enemy(&enemies[i], dmg, def?def->damage_type:ROGUE_DMG_PHYSICAL, &overkill);
+            int final_dmg = 0;
+            int overkill_accum = 0;
+            /* Helper lambda styled inline for applying a component */
+            #define APPLY_COMPONENT(amount,type_id) if((amount) > 0.01f){ \
+                int comp_raw = (int)floorf((amount) + 0.5f); if(comp_raw<1) comp_raw=1; \
+                if(is_crit && g_crit_layering_mode==0){ float cval = (float)comp_raw * crit_mult; comp_raw = (int)floorf(cval + 0.5f); if(comp_raw<1) comp_raw=1; } \
+                /* Penetration only affects physical */ \
+                int saved_armor = enemies[i].armor; \
+                if((type_id)==ROGUE_DMG_PHYSICAL){ int eff_armor = enemies[i].armor; int pen_flat = player->pen_flat; if(pen_flat>0){ eff_armor -= pen_flat; if(eff_armor<0) eff_armor=0; } int pen_pct = player->pen_percent; if(pen_pct>100) pen_pct=100; if(pen_pct>0){ int reduce = (enemies[i].armor * pen_pct)/100; eff_armor -= reduce; if(eff_armor<0) eff_armor=0; } enemies[i].armor = eff_armor; } \
+                int local_overkill=0; int mitig = rogue_apply_mitigation_enemy(&enemies[i], comp_raw, (unsigned char)(type_id), &local_overkill); \
+                if(is_crit && g_crit_layering_mode==1){ float cval2 = (float)mitig * crit_mult; mitig = (int)floorf(cval2 + 0.5f); if(mitig<1) mitig=1; } \
+                enemies[i].health -= mitig; final_dmg += mitig; overkill_accum += local_overkill; \
+                rogue_add_damage_number_ex(ex, ey - 0.25f, mitig, 1, is_crit); \
+                rogue_damage_event_record((unsigned short)(def?def->id:0), (unsigned char)(type_id), (unsigned char)is_crit, comp_raw, mitig, local_overkill, 0); \
+                enemies[i].armor = saved_armor; \
+            }
+            /* Expand macro manually to avoid constant-condition warnings and keep code explicit */
+            if(part_phys > 0.01f){ int comp_raw = (int)floorf(part_phys + 0.5f); if(comp_raw<1) comp_raw=1; if(is_crit && g_crit_layering_mode==0){ float cval=(float)comp_raw*crit_mult; comp_raw=(int)floorf(cval+0.5f); if(comp_raw<1) comp_raw=1; } int saved_armor=enemies[i].armor; /* penetration for physical */ { int eff_armor = enemies[i].armor; int pen_flat = player->pen_flat; if(pen_flat>0){ eff_armor -= pen_flat; if(eff_armor<0) eff_armor=0; } int pen_pct = player->pen_percent; if(pen_pct>100) pen_pct=100; if(pen_pct>0){ int reduce=(enemies[i].armor * pen_pct)/100; eff_armor -= reduce; if(eff_armor<0) eff_armor=0; } enemies[i].armor=eff_armor; } int local_overkill=0; int mitig=rogue_apply_mitigation_enemy(&enemies[i],comp_raw,ROGUE_DMG_PHYSICAL,&local_overkill); if(is_crit && g_crit_layering_mode==1){ float cval2=(float)mitig*crit_mult; mitig=(int)floorf(cval2+0.5f); if(mitig<1) mitig=1; } enemies[i].health -= mitig; final_dmg += mitig; overkill_accum += local_overkill; rogue_add_damage_number_ex(ex, ey - 0.25f, mitig, 1, is_crit); rogue_damage_event_record((unsigned short)(def?def->id:0), ROGUE_DMG_PHYSICAL, (unsigned char)is_crit, comp_raw, mitig, local_overkill, 0); enemies[i].armor=saved_armor; }
+            if(part_fire > 0.01f){ int comp_raw = (int)floorf(part_fire + 0.5f); if(comp_raw<1) comp_raw=1; if(is_crit && g_crit_layering_mode==0){ float cval=(float)comp_raw*crit_mult; comp_raw=(int)floorf(cval+0.5f); if(comp_raw<1) comp_raw=1; } int local_overkill=0; int mitig=rogue_apply_mitigation_enemy(&enemies[i],comp_raw,ROGUE_DMG_FIRE,&local_overkill); if(is_crit && g_crit_layering_mode==1){ float cval2=(float)mitig*crit_mult; mitig=(int)floorf(cval2+0.5f); if(mitig<1) mitig=1; } enemies[i].health -= mitig; final_dmg += mitig; overkill_accum += local_overkill; rogue_add_damage_number_ex(ex, ey - 0.25f, mitig, 1, is_crit); rogue_damage_event_record((unsigned short)(def?def->id:0), ROGUE_DMG_FIRE, (unsigned char)is_crit, comp_raw, mitig, local_overkill, 0); }
+            if(part_frost > 0.01f){ int comp_raw = (int)floorf(part_frost + 0.5f); if(comp_raw<1) comp_raw=1; if(is_crit && g_crit_layering_mode==0){ float cval=(float)comp_raw*crit_mult; comp_raw=(int)floorf(cval+0.5f); if(comp_raw<1) comp_raw=1; } int local_overkill=0; int mitig=rogue_apply_mitigation_enemy(&enemies[i],comp_raw,ROGUE_DMG_FROST,&local_overkill); if(is_crit && g_crit_layering_mode==1){ float cval2=(float)mitig*crit_mult; mitig=(int)floorf(cval2+0.5f); if(mitig<1) mitig=1; } enemies[i].health -= mitig; final_dmg += mitig; overkill_accum += local_overkill; rogue_add_damage_number_ex(ex, ey - 0.25f, mitig, 1, is_crit); rogue_damage_event_record((unsigned short)(def?def->id:0), ROGUE_DMG_FROST, (unsigned char)is_crit, comp_raw, mitig, local_overkill, 0); }
+            if(part_arc > 0.01f){ int comp_raw = (int)floorf(part_arc + 0.5f); if(comp_raw<1) comp_raw=1; if(is_crit && g_crit_layering_mode==0){ float cval=(float)comp_raw*crit_mult; comp_raw=(int)floorf(cval+0.5f); if(comp_raw<1) comp_raw=1; } int local_overkill=0; int mitig=rogue_apply_mitigation_enemy(&enemies[i],comp_raw,ROGUE_DMG_ARCANE,&local_overkill); if(is_crit && g_crit_layering_mode==1){ float cval2=(float)mitig*crit_mult; mitig=(int)floorf(cval2+0.5f); if(mitig<1) mitig=1; } enemies[i].health -= mitig; final_dmg += mitig; overkill_accum += local_overkill; rogue_add_damage_number_ex(ex, ey - 0.25f, mitig, 1, is_crit); rogue_damage_event_record((unsigned short)(def?def->id:0), ROGUE_DMG_ARCANE, (unsigned char)is_crit, comp_raw, mitig, local_overkill, 0); }
+            /* finished per-component application */
+            /* Overkill/execution evaluation based on aggregate */
+            int overkill = overkill_accum; /* approximate */
             int execution = 0;
             if(health_before>0){
-                int will_kill = (health_before - final_dmg) <= 0;
-                if(will_kill){
+                int health_after = enemies[i].health; if(health_after <= 0){
                     float health_pct_before = (float)health_before / (float)(enemies[i].max_health>0?enemies[i].max_health:1);
                     float overkill_pct = (float)overkill / (float)(enemies[i].max_health>0?enemies[i].max_health:1);
-                    if(health_pct_before <= ROGUE_EXEC_HEALTH_PCT || overkill_pct >= ROGUE_EXEC_OVERKILL_PCT){
-                        execution = 1;
-                    }
+                    if(health_pct_before <= ROGUE_EXEC_HEALTH_PCT || overkill_pct >= ROGUE_EXEC_OVERKILL_PCT){ execution = 1; }
                 }
             }
-            /* If crit layering is post-mitigation (mode 1), apply multiplier now */
-            if(is_crit && g_crit_layering_mode==1){
-                float cval = (float)final_dmg * crit_mult; final_dmg = (int)floorf(cval + 0.5f); if(final_dmg<1) final_dmg=1; /* floor */
-            }
-            enemies[i].health -= final_dmg; enemies[i].hurt_timer=150.0f; enemies[i].flash_timer=70.0f; pc->hit_confirmed=1;
-            rogue_add_damage_number_ex(ex, ey - 0.25f, final_dmg, 1, is_crit);
+            /* Record a summary event (optional) */
             rogue_damage_event_record((unsigned short)(def?def->id:0), (unsigned char)(def?def->damage_type:ROGUE_DMG_PHYSICAL), (unsigned char)is_crit, raw_before, final_dmg, overkill, (unsigned char)execution);
+            enemies[i].hurt_timer=150.0f; enemies[i].flash_timer=70.0f; pc->hit_confirmed=1;
             /* Accumulate status buildup placeholders (future: move to status system). */
             if(bleed_build>0){ enemies[i].bleed_buildup += bleed_build; }
             if(frost_build>0){ enemies[i].frost_buildup += frost_build; }
