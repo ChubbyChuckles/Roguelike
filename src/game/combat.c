@@ -4,6 +4,15 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+/* Damage event ring buffer (Phase 2.7) */
+RogueDamageEvent g_damage_events[ROGUE_DAMAGE_EVENT_CAP];
+int g_damage_event_head = 0;
+int g_crit_layering_mode = 0; /* 0=pre-mitigation (legacy), 1=post-mitigation */
+void rogue_damage_event_record(unsigned short attack_id, unsigned char dmg_type, unsigned char crit, int raw, int mitig, int overkill){
+    RogueDamageEvent* ev = &g_damage_events[g_damage_event_head % ROGUE_DAMAGE_EVENT_CAP];
+    ev->attack_id = attack_id; ev->damage_type=dmg_type; ev->crit=crit; ev->raw_damage=raw; ev->mitigated=mitig; ev->overkill=overkill;
+    g_damage_event_head = (g_damage_event_head + 1) % ROGUE_DAMAGE_EVENT_CAP;
+}
 
 /* External helpers */
 void rogue_app_add_hitstop(float ms);
@@ -18,29 +27,22 @@ int rogue_apply_mitigation_enemy(RogueEnemy* e, int raw, unsigned char dmg_type,
     if(!e || !e->alive) return 0;
     int dmg = raw; if(dmg<0) dmg=0;
     if(dmg_type != ROGUE_DMG_TRUE){
-        /* Flat armor (physical only) then percent resist by type. Penetration not yet per-player (Phase 2.3 partial). */
         if(dmg_type == ROGUE_DMG_PHYSICAL){
-            int armor = e->armor; if(armor>0){
-                if(armor >= dmg) dmg = (dmg>1?1:dmg); else dmg -= armor; /* flat reduce, floor ensures chip */
-            }
-            int pr = clampi(e->resist_fire,0,90); /* misuse of field? keep physical percent placeholder = fire resist for now if not distinct */
-            if(pr>0){ int reduce = (dmg * pr)/100; dmg -= reduce; }
+            /* Armor flat reduction then percent physical resist */
+            int armor = e->armor; if(armor>0){ if(armor >= dmg) dmg = (dmg>1?1:dmg); else dmg -= armor; }
+            int pr = clampi(e->resist_physical,0,90); if(pr>0){ int reduce=(dmg*pr)/100; dmg -= reduce; }
         } else {
-            int resist=0;
-            switch(dmg_type){
+            int resist=0; switch(dmg_type){
                 case ROGUE_DMG_FIRE: resist = e->resist_fire; break;
                 case ROGUE_DMG_FROST: resist = e->resist_frost; break;
                 case ROGUE_DMG_ARCANE: resist = e->resist_arcane; break;
-                default: break;
-            }
+                default: break; }
             resist = clampi(resist,0,90); if(resist>0){ int reduce=(dmg*resist)/100; dmg -= reduce; }
         }
     }
-    if(dmg < 1) dmg = 1; /* minimum floor */
-    int overkill = 0;
-    if(e->health - dmg < 0){ overkill = dmg - e->health; }
-    if(out_overkill) *out_overkill = overkill;
-    return dmg;
+    if(dmg < 1) dmg = 1;
+    int overkill = 0; if(e->health - dmg < 0){ overkill = dmg - e->health; }
+    if(out_overkill) *out_overkill = overkill; return dmg;
 }
 
 void rogue_combat_init(RoguePlayerCombat* pc){
@@ -292,10 +294,35 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             float raw = scaled * combo_scale * window_mult;
             int dmg = (int)floorf(raw + 0.5f);
             if(pc->combo>0){ int min_noncrit = (int)floorf(scaled + pc->combo + 0.5f); int hard_cap = (int)floorf(scaled * 1.4f + 0.5f); if(min_noncrit>hard_cap) min_noncrit=hard_cap; if(dmg<min_noncrit) dmg=min_noncrit; }
-            int overkill=0;
+            int overkill=0; int raw_before = dmg;
+            /* Roll crit up-front for now; layering mode decides when multiplier applies. */
+            float dex_bonus = player->dexterity * 0.0035f; if(dex_bonus>0.55f) dex_bonus=0.55f; /* soft clamp so base + dex <= ~0.60 */
+            float crit_chance = 0.05f + dex_bonus + (float)player->crit_chance * 0.01f; if(crit_chance>0.75f) crit_chance=0.75f; /* hard cap */
+            int is_crit = (((float)rand()/(float)RAND_MAX) < crit_chance)?1:0;
+            float crit_mult = 1.0f;
+            if(is_crit){
+                crit_mult = 1.0f + ((float)player->crit_damage * 0.01f);
+                if(crit_mult > 5.0f) crit_mult = 5.0f; /* safety cap */
+            }
+            /* Apply crit multiplier pre-mitigation if mode 0 */
+            if(is_crit && g_crit_layering_mode==0){
+                float cval = (float)dmg * crit_mult; dmg = (int)floorf(cval + 0.5f); if(dmg<1) dmg=1;
+            }
+            /* Apply penetration before mitigation if physical: flat then percent (player stats). */
+            if(def && def->damage_type == ROGUE_DMG_PHYSICAL){
+                int eff_armor = enemies[i].armor;
+                int pen_flat = player->pen_flat; if(pen_flat>0){ eff_armor -= pen_flat; if(eff_armor<0) eff_armor=0; }
+                int pen_pct = player->pen_percent; if(pen_pct>100) pen_pct=100; if(pen_pct>0){ int reduce = (enemies[i].armor * pen_pct)/100; eff_armor -= reduce; if(eff_armor<0) eff_armor=0; }
+                enemies[i].armor = eff_armor; /* temporary override for mitigation call */
+            }
             int final_dmg = rogue_apply_mitigation_enemy(&enemies[i], dmg, def?def->damage_type:ROGUE_DMG_PHYSICAL, &overkill);
+            /* If crit layering is post-mitigation (mode 1), apply multiplier now */
+            if(is_crit && g_crit_layering_mode==1){
+                float cval = (float)final_dmg * crit_mult; final_dmg = (int)floorf(cval + 0.5f); if(final_dmg<1) final_dmg=1; /* floor */
+            }
             enemies[i].health -= final_dmg; enemies[i].hurt_timer=150.0f; enemies[i].flash_timer=70.0f; pc->hit_confirmed=1;
-            rogue_add_damage_number_ex(ex, ey - 0.25f, final_dmg, 1, 0);
+            rogue_add_damage_number_ex(ex, ey - 0.25f, final_dmg, 1, is_crit);
+            rogue_damage_event_record((unsigned short)(def?def->id:0), (unsigned char)(def?def->damage_type:ROGUE_DMG_PHYSICAL), (unsigned char)is_crit, raw_before, final_dmg, overkill);
             /* Accumulate status buildup placeholders (future: move to status system). */
             if(bleed_build>0){ enemies[i].bleed_buildup += bleed_build; }
             if(frost_build>0){ enemies[i].frost_buildup += frost_build; }

@@ -253,6 +253,37 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_mitigation.c AND NOT TARG
     add_test(NAME test_combat_mitigation COMMAND test_combat_mitigation)
 endif()
 
+# Explicitly add combat penetration test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_penetration.c AND NOT TARGET test_combat_penetration)
+    add_executable(test_combat_penetration unit/test_combat_penetration.c)
+    target_link_libraries(test_combat_penetration PRIVATE rogue_core)
+    target_compile_definitions(test_combat_penetration PRIVATE TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_penetration PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_penetration COMMAND test_combat_penetration)
+endif()
+
+# Explicitly add combat damage events test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_damage_events.c AND NOT TARGET test_combat_damage_events)
+    add_executable(test_combat_damage_events unit/test_combat_damage_events.c)
+    target_link_libraries(test_combat_damage_events PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_damage_events PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_damage_events COMMAND test_combat_damage_events)
+endif()
+
+# Phase 2.4 crit layering test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_crit_layering.c AND NOT TARGET test_combat_crit_layering)
+    add_executable(test_combat_crit_layering unit/test_combat_crit_layering.c)
+    target_link_libraries(test_combat_crit_layering PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_crit_layering PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_crit_layering COMMAND test_combat_crit_layering)
+endif()
+
 # Explicitly add combat drift timing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_drift_timing.c AND NOT TARGET test_combat_drift_timing)
     add_executable(test_combat_drift_timing unit/test_combat_drift_timing.c)

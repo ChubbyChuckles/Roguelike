@@ -47,6 +47,14 @@ typedef struct RogueDamageEvent {
     int overkill;               /* amount beyond remaining health */
 } RogueDamageEvent;
 
+/* Simple global ring buffer for recent damage events (Phase 2.7) */
+#define ROGUE_DAMAGE_EVENT_CAP 64
+extern RogueDamageEvent g_damage_events[ROGUE_DAMAGE_EVENT_CAP];
+extern int g_damage_event_head; /* next write index */
+void rogue_damage_event_record(unsigned short attack_id, unsigned char dmg_type, unsigned char crit, int raw, int mitig, int overkill);
+/* Crit layering mode (Phase 2.4): 0=crit multiplier applied pre-mitigation (default), 1=post-mitigation */
+extern int g_crit_layering_mode;
+
 /* Apply mitigation (Phase 2 pipeline). Returns final damage >=1 unless health already <=0. */
 int rogue_apply_mitigation_enemy(struct RogueEnemy* e, int raw, unsigned char dmg_type, int *out_overkill);
 
