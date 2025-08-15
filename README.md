@@ -58,6 +58,9 @@ Phase M2 added:
 * Deprecation annotation macro (`ROGUE_DEPRECATED(msg)`).
 * Public header pass pruning & observer logic isolated (no leak of internal state).
 
+Phase M3 in progress:
+* Unified key/value parser utility (`util/kv_parser.c,h`) with dedicated unit test `test_kv_parser` beginning consolidation of scattered ad-hoc parsers (next: schema + validation layer).
+
 Next phases (M3+) will introduce unified config schema, hot reload, and expanded deterministic replay/coverage gates.
 
 ---

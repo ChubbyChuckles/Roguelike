@@ -42,8 +42,8 @@ PHASE M2. API Encapsulation & Stability
  2.4 Deprecation annotations macro (Done)
  2.5 Standalone header compile tests (Done)
 
-PHASE M3. Data-Driven Asset & Config Pipeline
- 3.1 Unified key/value parser abstraction (X)
+ PHASE M3. Data-Driven Asset & Config Pipeline
+  3.1 Unified key/value parser abstraction (Done) (kv_parser.{c,h} + unit test)
  3.2 Schema + validation errors surfaced (X)
  3.3 Hot reload: skills, attacks, loot, world gen (Partial)
  3.4 Asset dependency graph & hashing (X)

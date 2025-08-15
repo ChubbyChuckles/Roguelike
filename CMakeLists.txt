@@ -177,6 +177,8 @@ add_library(rogue_core
     src/core/equipment_stats.c
     src/core/vendor_ui.c
     src/core/stat_cache.c
+    # maintainability phase M3: unified kv parser utility
+    src/util/kv_parser.c
     src/game/hitbox.c
     src/game/hitbox_load.c
         src/game/lock_on.c
