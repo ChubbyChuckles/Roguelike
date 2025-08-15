@@ -43,6 +43,26 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_persistence_versions.c AND NOT T
     add_test(NAME test_persistence_versions COMMAND test_persistence_versions)
 endif()
 
+# Phase M4.1: projectile config edge cases
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_projectiles_config_edge.c AND NOT TARGET test_projectiles_config_edge)
+    add_executable(test_projectiles_config_edge unit/test_projectiles_config_edge.c)
+    target_link_libraries(test_projectiles_config_edge PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_projectiles_config_edge PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_projectiles_config_edge COMMAND test_projectiles_config_edge)
+endif()
+
+# Phase M4.1: persistence edge cases
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_persistence_edge_cases.c AND NOT TARGET test_persistence_edge_cases)
+    add_executable(test_persistence_edge_cases unit/test_persistence_edge_cases.c)
+    target_link_libraries(test_persistence_edge_cases PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_persistence_edge_cases PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_persistence_edge_cases COMMAND test_persistence_edge_cases)
+endif()
+
 # Explicitly add combat damage observer test (maintainability phase M2) to avoid glob cache issues
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_damage_observer.c AND NOT TARGET test_combat_damage_observer)
     add_executable(test_combat_damage_observer unit/test_combat_damage_observer.c)

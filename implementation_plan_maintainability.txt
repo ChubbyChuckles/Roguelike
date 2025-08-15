@@ -56,7 +56,10 @@ PHASE M2. API Encapsulation & Stability
    Added VERSION key support to player stats and generation params files; legacy files without VERSION default to v1; save routines emit VERSION line; accessor APIs rogue_persistence_player_version / rogue_persistence_gen_params_version; unit test test_persistence_versions covers backward compatibility and version line injection.
 
 PHASE M4. Testing & Quality Gates Expansion
- 4.1 New unit tests for split persistence & projectile modules (X)
+ 4.1 New unit tests for split persistence & projectile modules (Done)
+   Added tests:
+    - test_projectiles_config_edge: ensures non-existent file load fails without mutating defaults, partial config overrides only specified keys (others retained), and full hot reload updates all tuning fields.
+    - test_persistence_edge_cases: negative VERSION values clamp to 1, player level round-trips through save, and generation params only write when dirty with VERSION emitted.
  4.2 Property-based determinism tests (X)
  4.3 Golden master event replay (X)
  4.4 Fuzz parsers (loot/persistence/affix) (X)
