@@ -111,6 +111,7 @@ add_library(rogue_core
     src/game/combat.c
     src/game/combat_attacks.c
     src/game/damage_numbers.c
+    src/game/weapons.c
     src/core/enemy_system.c
     src/core/start_screen.c
     src/core/player_assets.c

@@ -243,6 +243,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase6_backstab_guardbrea
     add_test(NAME test_combat_phase6_backstab_guardbreak_riposte_bonus COMMAND test_combat_phase6_backstab_guardbreak_riposte_bonus)
 endif()
 
+# Phase 7.1/7.3/7.5 weapon + stance + familiarity basic test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase7_weapon_stance_familiarity.c AND NOT TARGET test_combat_phase7_weapon_stance_familiarity)
+    add_executable(test_combat_phase7_weapon_stance_familiarity unit/test_combat_phase7_weapon_stance_familiarity.c)
+    target_link_libraries(test_combat_phase7_weapon_stance_familiarity PRIVATE rogue_core)
+    target_compile_definitions(test_combat_phase7_weapon_stance_familiarity PRIVATE TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase7_weapon_stance_familiarity PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase7_weapon_stance_familiarity COMMAND test_combat_phase7_weapon_stance_familiarity)
+endif()
+
 # Explicitly add cast weaving & early cancel test (Phase 1A.2/1A.4 partial)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_cast_weave_and_cancel.c AND NOT TARGET test_cast_weave_and_cancel)
     add_executable(test_cast_weave_and_cancel unit/test_cast_weave_and_cancel.c)

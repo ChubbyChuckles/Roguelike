@@ -1,6 +1,7 @@
 #include "game/combat.h"
 #include "core/buffs.h" /* needed for temporary strength buffs */
 #include "game/combat_attacks.h"
+#include "game/weapons.h"
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -361,7 +362,15 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                 scaled = def->base_damage + (float)effective_strength * def->str_scale + (float)player->dexterity * def->dex_scale + (float)player->intelligence * def->int_scale; if(scaled<1.0f) scaled=1.0f;
             }
             float combo_scale = 1.0f + (pc->combo * 0.08f); if(combo_scale>1.4f) combo_scale=1.4f;
-            float raw = scaled * combo_scale * window_mult;
+            /* Weapon & stance adjustments (Phase 7) */
+            const RogueWeaponDef* wdef = rogue_weapon_get(player->equipped_weapon_id);
+            RogueStanceModifiers sm = rogue_stance_get_mods(player->combat_stance);
+            if(wdef){
+                scaled += wdef->base_damage;
+                scaled += (float)player->strength * wdef->str_scale + (float)player->dexterity * wdef->dex_scale + (float)player->intelligence * wdef->int_scale;
+            }
+            float fam_bonus = rogue_weapon_get_familiarity_bonus(player->equipped_weapon_id);
+            float raw = scaled * combo_scale * window_mult * sm.damage_mult * (1.0f + fam_bonus);
             /* Apply aerial bonus if flagged (simple 20% for now) */
             if(pc->aerial_attack_pending){ raw *= 1.20f; pc->aerial_attack_pending = 0; /* consume */ pc->landing_lag_ms += 120.0f; }
             /* Apply one-shot pending multipliers (stack multiplicatively) */
@@ -436,7 +445,10 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             if(frost_build>0){ enemies[i].frost_buildup += frost_build; }
             /* Phase 3.3: apply poise damage & trigger stagger when depleted (simple). */
             if(def && def->poise_damage > 0.0f && enemies[i].poise_max > 0.0f){
-                enemies[i].poise -= def->poise_damage;
+                float poise_dmg = def->poise_damage;
+                if(wdef){ poise_dmg *= wdef->poise_damage_mult; }
+                poise_dmg *= sm.poise_damage_mult;
+                enemies[i].poise -= poise_dmg;
                 if(enemies[i].poise < 0.0f){ enemies[i].poise = 0.0f; }
                 if(enemies[i].poise <= 0.0f && !enemies[i].staggered){
                     enemies[i].staggered = 1; enemies[i].stagger_timer_ms = 600.0f; /* ms placeholder */
@@ -445,6 +457,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                 }
             }
             if(enemies[i].health<=0){ enemies[i].alive=0; kills++; }
+            /* Familiarity & durability tick per successful hit */
+            if(wdef){ rogue_weapon_register_hit(wdef->id, (float)final_dmg); rogue_weapon_tick_durability(wdef->id, 1.0f); }
         }
     }
     pc->processed_window_mask |= process_mask;

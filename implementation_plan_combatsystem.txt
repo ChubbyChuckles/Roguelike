@@ -101,13 +101,13 @@ PHASE 6. Advanced Offensive & Defensive Mechanics (Classless Tradeoffs)
 6.8 Tests: parry timing jitter tolerance, backstab angle threshold, charge curve scaling accuracy (Expanded: added extended multiplier test `test_combat_phase6_backstab_guardbreak_riposte_bonus` validating backstab 1.75x, riposte 2.25x, guard-break 1.5x + forced crit; earlier tests cover charge, dodge, parry baseline, deflect, aerial landing lag placeholder.)
 
 PHASE 7. Weapons, Armor & Encumbrance Styles
-7.1 Data-driven weapon definitions: base stats, scaling letters (open to all) (X)
-7.2 Armor weight classes (light/med/heavy) with continuous encumbrance influencing mobility & regen (X)
-7.3 Stance modifiers (aggressive, balanced, defensive) altering frame data & stamina costs (X)
+7.1 Data-driven weapon definitions: base stats, scaling letters (open to all) (Done (initial in-memory): `weapons.c/h` table with base damage, STR/DEX/INT scales, stamina & poise multipliers, durability max. Future: external data + letter grade mapping.)
+7.2 Armor weight classes (light/med/heavy) with continuous encumbrance influencing mobility & regen (Deferred: basic encumbrance already implemented Phase 3; detailed armor class differentiation still X.)
+7.3 Stance modifiers (aggressive, balanced, defensive) altering frame data & stamina costs (Done (damage/stamina/poise scalars): aggressive +15% dmg/+15% stamina/+10% poise dmg; defensive -10% dmg/-15% stamina/-5% poise dmg; balanced neutral. Frame data adjustments deferred.)
 7.4 Infusions (elemental / status) altering damage split & scaling (X)
-7.5 Weapon familiarity curve (usage-based soft bonuses; capped low to avoid pseudo-classes) (X)
-7.6 Durability / sharpness (affects damage & stagger over time) (X)
-7.7 Tests: infusion damage redistribution, stance frame adjustments, familiarity soft cap enforcement, encumbrance mobility curve (X)
+7.5 Weapon familiarity curve (usage-based soft bonuses; capped low to avoid pseudo-classes) (Done (basic): familiarity accumulates usage_points from damage; grants up to +10% damage soft-capped; test validates growth.)
+7.6 Durability / sharpness (affects damage & stagger over time) (Partial: durability tracked & decremented per hit; effect on damage not yet applied; sharpening / repair mechanics pending.)
+7.7 Tests: infusion damage redistribution, stance frame adjustments, familiarity soft cap enforcement, encumbrance mobility curve (Partial: Added `test_combat_phase7_weapon_stance_familiarity` covering stance damage delta, familiarity increase, durability decrement; remaining infusion & frame timing tests pending future feature completion.)
 
 PHASE 8. Effect / Proc / Skill Integration
 8.1 On-hit proc hooks (trigger effect specs) (X)

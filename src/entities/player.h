@@ -97,6 +97,9 @@ typedef struct RoguePlayer
     float lock_on_switch_cooldown_ms; /* prevents rapid cycling */
     /* --- Phase 6.5 Riposte Window --- */
     float riposte_ms;            /* time window after successful parry/perfect guard to perform riposte */
+    /* --- Phase 7 Weapons & Stances --- */
+    int equipped_weapon_id;      /* -1 none */
+    int combat_stance;           /* 0=balanced,1=aggressive,2=defensive */
 } RoguePlayer;
 
 void rogue_player_init(RoguePlayer* p);
