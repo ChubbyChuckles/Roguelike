@@ -70,6 +70,8 @@ typedef struct RogueSkillState {
     double queued_until_ms;     /* queued activation window end */
     int action_points_spent_session; /* AP metric */
     int combo_points_accum;     /* combo point bank */
+    unsigned char casting_active; /* 1 if mid-cast (cast_type==1) */
+    unsigned char channel_active; /* 1 if channel running (cast_type==2) */
 } RogueSkillState;
 
 /* RNG helper (LCG) for deterministic local stream (1.6) */

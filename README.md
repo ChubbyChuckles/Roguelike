@@ -377,6 +377,7 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
 **Added**
 * Action Point (AP) economy core (Phase 1.5): player AP pool + regen + per-skill cost + soft throttle + tests.
 * Minimal EffectSpec system (Phase 1.2 partial): registry + stat buff kind + skill linkage + tests.
+* Casting & channel basics (Phases 1.3/1.4 partial): added `cast_time_ms`, `cast_type` with delayed completion for casts and simple duration channel start tick; unit test `test_skill_cast_and_channel` validates timing.
 * Advanced loot generation context (enemy level / biome / archetype / player luck).
 * Seed mixing & deterministic multi‑pass generation.
 * Affix gating rules by item category.

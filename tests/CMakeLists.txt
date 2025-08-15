@@ -84,6 +84,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase8_generation_quality.c
     add_test(NAME test_loot_phase8_generation_quality COMMAND test_loot_phase8_generation_quality)
 endif()
 
+# Explicitly add skill cast/channel test (Phase 1.3/1.4 partial)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skill_cast_and_channel.c AND NOT TARGET test_skill_cast_and_channel)
+    add_executable(test_skill_cast_and_channel unit/test_skill_cast_and_channel.c)
+    target_link_libraries(test_skill_cast_and_channel PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skill_cast_and_channel PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skill_cast_and_channel COMMAND test_skill_cast_and_channel)
+endif()
+
 foreach(ut ${UNIT_TESTS})
     get_filename_component(name ${ut} NAME_WE)
     if(TARGET ${name})

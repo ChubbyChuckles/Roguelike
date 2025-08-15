@@ -35,7 +35,7 @@ static void ensure_capacity(int min_cap){
     if(!nd) return; g_defs=nd;
     RogueSkillState* ns = (RogueSkillState*)realloc(g_states, (size_t)new_cap*sizeof(RogueSkillState));
     if(!ns) return; g_states=ns;
-    for(int i=g_capacity;i<new_cap;i++){ g_states[i].rank=0; g_states[i].cooldown_end_ms=0; g_states[i].uses=0; g_states[i].charges_cur=0; g_states[i].next_charge_ready_ms=0; g_states[i].last_cast_ms=0; g_states[i].cast_progress_ms=0; g_states[i].channel_end_ms=0; g_states[i].queued_until_ms=0; g_states[i].action_points_spent_session=0; g_states[i].combo_points_accum=0; }
+    for(int i=g_capacity;i<new_cap;i++){ g_states[i].rank=0; g_states[i].cooldown_end_ms=0; g_states[i].uses=0; g_states[i].charges_cur=0; g_states[i].next_charge_ready_ms=0; g_states[i].last_cast_ms=0; g_states[i].cast_progress_ms=0; g_states[i].channel_end_ms=0; g_states[i].queued_until_ms=0; g_states[i].action_points_spent_session=0; g_states[i].combo_points_accum=0; g_states[i].casting_active=0; g_states[i].channel_active=0; }
     g_capacity = new_cap;
 }
 
@@ -60,7 +60,7 @@ int rogue_skill_register(const RogueSkillDef* def){
     RogueSkillDef* d = &g_defs[g_count];
     *d = *def; /* shallow copy (icon/name assumed static) */
     d->id = g_count;
-    g_states[g_count].rank=0; g_states[g_count].cooldown_end_ms=0; g_states[g_count].uses=0; g_states[g_count].charges_cur=d->max_charges>0?d->max_charges:0; g_states[g_count].next_charge_ready_ms=0; g_states[g_count].last_cast_ms=0; g_states[g_count].cast_progress_ms=0; g_states[g_count].channel_end_ms=0; g_states[g_count].queued_until_ms=0; g_states[g_count].action_points_spent_session=0; g_states[g_count].combo_points_accum=0;
+    g_states[g_count].rank=0; g_states[g_count].cooldown_end_ms=0; g_states[g_count].uses=0; g_states[g_count].charges_cur=d->max_charges>0?d->max_charges:0; g_states[g_count].next_charge_ready_ms=0; g_states[g_count].last_cast_ms=0; g_states[g_count].cast_progress_ms=0; g_states[g_count].channel_end_ms=0; g_states[g_count].queued_until_ms=0; g_states[g_count].action_points_spent_session=0; g_states[g_count].combo_points_accum=0; g_states[g_count].casting_active=0; g_states[g_count].channel_active=0;
     g_count++;
     g_app.skill_defs = g_defs; g_app.skill_states = g_states; g_app.skill_count=g_count;
     return d->id;
@@ -102,7 +102,15 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx){
     RogueSkillCtx local_ctx = ctx? *ctx : (RogueSkillCtx){0};
     local_ctx.rng_state = (unsigned int)(id * 2654435761u) ^ (unsigned int)st->uses * 2246822519u;
     int consumed = 1;
-    if(def->on_activate){ consumed = def->on_activate(def, st, &local_ctx); }
+    /* If skill has cast time or is a channel, start casting instead of immediate effect */
+    if(def->cast_type==1 && def->cast_time_ms > 0){
+        st->casting_active = 1; st->cast_progress_ms = 0; st->channel_active = 0; consumed = 1; /* resources spent upfront */
+    } else if(def->cast_type==2 && def->cast_time_ms > 0){
+        st->channel_active = 1; st->casting_active = 0; st->channel_end_ms = now + def->cast_time_ms; consumed = 1; /* spend upfront */
+        if(def->on_activate){ /* initial tick for channel start */ def->on_activate(def, st, &local_ctx); }
+    } else {
+        if(def->on_activate){ consumed = def->on_activate(def, st, &local_ctx); }
+    }
     if(consumed){
     /* Spend mana */
         if(def->resource_cost_mana>0){ g_app.player.mana -= def->resource_cost_mana; if(g_app.player.mana<0) g_app.player.mana=0; }
@@ -127,8 +135,8 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx){
         st->cooldown_end_ms = now + cd;
         st->uses++;
     st->last_cast_ms = now;
-    /* Auto-apply linked EffectSpec if present */
-    if(def->effect_spec_id >=0){ rogue_effect_apply(def->effect_spec_id, now); }
+    /* Apply EffectSpec immediately only for instant or channel start (not delayed cast) */
+    if(def->effect_spec_id >=0 && !(def->cast_type==1 && def->cast_time_ms>0)){ rogue_effect_apply(def->effect_spec_id, now); }
     }
     return consumed;
 }
@@ -139,6 +147,24 @@ void rogue_skills_update(double now_ms){
         RogueSkillState* st=&g_states[i]; const RogueSkillDef* def=&g_defs[i];
         if(def->max_charges>0 && st->charges_cur < def->max_charges && st->next_charge_ready_ms>0 && now_ms >= st->next_charge_ready_ms){
             st->charges_cur++; if(st->charges_cur < def->max_charges){ st->next_charge_ready_ms = now_ms + def->charge_recharge_ms; } else { st->next_charge_ready_ms = 0; }
+        }
+        /* Casting progression */
+        if(st->casting_active && def->cast_type==1 && def->cast_time_ms>0){
+            st->cast_progress_ms += 16.0; /* assume ~60fps step (improved later with dt) */
+            if(st->cast_progress_ms >= def->cast_time_ms){
+                st->casting_active = 0; st->cast_progress_ms = def->cast_time_ms;
+                /* On cast complete apply effect & EffectSpec */
+                RogueSkillCtx ctx = {0}; ctx.now_ms = now_ms; ctx.rng_state = (unsigned int)(i * 2654435761u) ^ (unsigned int)st->uses * 2246822519u;
+                if(def->on_activate){ def->on_activate(def, st, &ctx); }
+                if(def->effect_spec_id >=0){ rogue_effect_apply(def->effect_spec_id, now_ms); }
+            }
+        }
+        /* Channel periodic tick (simple: one final tick at end for now) */
+        if(st->channel_active && def->cast_type==2 && def->cast_time_ms>0){
+            if(now_ms >= st->channel_end_ms){
+                st->channel_active = 0; /* channel ends */
+                /* final tick already done at start; could add end effect later */
+            }
         }
     }
 }
