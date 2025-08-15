@@ -1,12 +1,12 @@
-UI Phase 4.5: Inline stat delta preview implemented
+UI Phases 4.6 & 4.7: Rarity theming integration + vendor restock timer bar
 
-Summary:
-- Added stat delta preview panel to `rogue_ui_inventory_grid` (simple damage proxy via item_id heuristic) with colored delta (green/red/gray).
-- Introduced new events ROGUE_UI_EVENT_STAT_PREVIEW_SHOW / _HIDE and context state `stat_preview_slot`.
-- Extended event enum and initialized state in UI context init.
-- Added unit test `test_ui_phase4_stat_preview` covering show on hover, update between slots, and hide on exit.
-- Updated roadmap marking 4.5 Done and README UI section with feature description.
+Changes:
+- Inventory grid: Added rarity-colored outer border + inner panel (colors derived from item_id % 5 mapping) and tinted count text.
+- Vendor panel: Added restock progress bar with remaining seconds label; clamps and displays fraction.
+- New helper API `rogue_vendor_restock_fraction()` for headless verification.
+- New tests: `test_ui_phase4_rarity_colors` (ensures each rarity color appears), `test_ui_phase4_vendor_restock` (fraction bounds & clamping), plus CMake wiring.
+- Roadmap updated marking 4.6 and 4.7 Done; README extended with feature summaries.
 
-Notes / Future:
-- Placeholder comparison logic (uses item id modulus) to be replaced with real equipment stat diff (weapon damage, armor, affixes) in later phases.
-- Will expand to multi-line aggregated stat categories and rarity-influenced styling alongside Phase 4.6 completion.
+Notes / Follow-up:
+- Rarity mapping currently heuristic; future step to wire actual item definition rarity & price overlay (base_value display) to fully satisfy price aspect.
+- Consider unifying color source with `rogue_rarity_color` to avoid duplication and ensure theme overrides.

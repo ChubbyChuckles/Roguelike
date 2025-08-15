@@ -253,7 +253,24 @@ int rogue_ui_inventory_grid(RogueUIContext* ctx, RogueUIRect rect, const char* i
     int end_slot=start+max_vis_rows*columns; if(end_slot>slot_capacity) end_slot=slot_capacity;
     if(visible_count) *visible_count=end_slot-start; if(first_visible) *first_visible=start;
     float pad=2.0f, spacing=2.0f; float mx=ctx->input.mouse_x, my=ctx->input.mouse_y; int hovered_slot=-1;
-    for(int s=start; s<end_slot; ++s){ int local=s-start; int r=local/columns; int c=local%columns; float x=rect.x+pad+c*(cell_size+spacing); float y=rect.y+pad+r*(cell_size+spacing); RogueUIRect cell_r={x,y,(float)cell_size,(float)cell_size}; int panel=rogue_ui_panel(ctx,cell_r,0x303038FFu); if(mx>=cell_r.x&&my>=cell_r.y&&mx<cell_r.x+cell_r.w&&my<cell_r.y+cell_r.h) hovered_slot=s; if(panel>=0&&item_ids&&item_counts&&item_ids[s]){ char tmp[32]; snprintf(tmp,sizeof tmp,"%d",item_counts[s]); rogue_ui_text(ctx,(RogueUIRect){cell_r.x+2,cell_r.y+2,cell_r.w-4,cell_r.h-4},tmp,ctx->theme.text_color);} }
+    for(int s=start; s<end_slot; ++s){ int local=s-start; int r=local/columns; int c=local%columns; float x=rect.x+pad+c*(cell_size+spacing); float y=rect.y+pad+r*(cell_size+spacing); RogueUIRect cell_r={x,y,(float)cell_size,(float)cell_size};
+        uint32_t base_col=0x303038FFu;
+        if(item_ids && item_ids[s]){
+            /* Simple rarity mapping: rarity = item_id % 5 (0..4); map to color similar to rogue_rarity_color */
+            int rarity = item_ids[s] % 5; unsigned char rr=240,rg=210,rb=60; /* default (common) */
+            if(rarity==1){ rr=80; rg=220; rb=80; }
+            else if(rarity==2){ rr=80; rg=120; rb=255; }
+            else if(rarity==3){ rr=180; rg=70; rb=220; }
+            else if(rarity==4){ rr=255; rg=140; rb=0; }
+            /* Use rarity color as border by creating outer panel then inner base */
+            RogueUIRect outer=cell_r; RogueUIRect inner={cell_r.x+1,cell_r.y+1,cell_r.w-2,cell_r.h-2};
+            rogue_ui_panel(ctx,outer, (uint32_t)((rr<<24)|(rg<<16)|(rb<<8)|0xFFu));
+            int panel=rogue_ui_panel(ctx,inner,base_col); (void)panel;
+            if(mx>=cell_r.x&&my>=cell_r.y&&mx<cell_r.x+cell_r.w&&my<cell_r.y+cell_r.h) hovered_slot=s;
+            if(item_counts){ char tmp[32]; snprintf(tmp,sizeof tmp,"%d",item_counts[s]); rogue_ui_text(ctx,(RogueUIRect){inner.x+2,inner.y+2,inner.w-4,inner.h-4},tmp,(uint32_t)((rr<<24)|(rg<<16)|(rb<<8)|0xFFu)); }
+        } else {
+            int panel=rogue_ui_panel(ctx,cell_r,base_col); (void)panel; if(mx>=cell_r.x&&my>=cell_r.y&&mx<cell_r.x+cell_r.w&&my<cell_r.y+cell_r.h) hovered_slot=s; }
+    }
     /* Drag begin */
     if(!ctx->drag_active && hovered_slot>=0 && ctx->input.mouse_pressed && item_ids && item_ids[hovered_slot]){
         ctx->drag_active=1; ctx->drag_from_slot=hovered_slot; ctx->drag_item_id=item_ids[hovered_slot]; ctx->drag_item_count=item_counts?item_counts[hovered_slot]:1; ui_enqueue(ctx,ROGUE_UI_EVENT_DRAG_BEGIN,hovered_slot,ctx->drag_item_id,ctx->drag_item_count);

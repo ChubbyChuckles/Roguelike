@@ -8,6 +8,7 @@
 #include "core/loot_instances.h"
 #include <stdio.h>
 #include "core/stat_cache.h"
+#include "core/vendor_ui.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
@@ -27,9 +28,20 @@ void rogue_vendor_panel_render(void){
         rogue_font_draw_text(panel.x+10,y,line,1,(RogueColor){ (i==g_app.vendor_selection)?255:200, (i==g_app.vendor_selection)?255:200, (i==g_app.vendor_selection)?160:200,255});
         y+=18; if(y>panel.y+panel.h-40) break; /* clip */
     }
+    /* Restock timer bar (Phase 4.7) */
+    double t = g_app.vendor_time_accum_ms; double interval = g_app.vendor_restock_interval_ms; if(interval <= 0.0) interval = 1.0; if(t<0) t=0; if(t>interval) t=interval; float frac = (float)(t/interval);
+    int bar_w = panel.w - 12; int bar_x = panel.x + 6; int bar_y = panel.y + panel.h - 34; int bar_h = 8;
+    SDL_SetRenderDrawColor(g_app.renderer,40,40,60,255); SDL_Rect bar_bg={bar_x,bar_y,bar_w,bar_h}; SDL_RenderFillRect(g_app.renderer,&bar_bg);
+    SDL_SetRenderDrawColor(g_app.renderer,80,180,255,255); SDL_Rect bar_fg={bar_x,bar_y,(int)(bar_w*frac),bar_h}; SDL_RenderFillRect(g_app.renderer,&bar_fg);
+    char eta[64]; double remain = interval - t; int sec = (int)(remain/1000.0); if(sec<0) sec=0; snprintf(eta,sizeof eta,"Restock:%ds",sec);
+    rogue_font_draw_text(bar_x,bar_y-14,eta,1,(RogueColor){200,230,255,255});
     char footer[96]; snprintf(footer,sizeof footer,"Gold:%d  REP:%d  ENTER=Buy  V=Close", rogue_econ_gold(), rogue_econ_get_reputation());
     rogue_font_draw_text(panel.x+6,panel.y+panel.h-18,footer,1,(RogueColor){180,220,255,255});
 #endif
+}
+
+float rogue_vendor_restock_fraction(void){
+    double t = g_app.vendor_time_accum_ms; double interval = g_app.vendor_restock_interval_ms; if(interval<=0.0) return 0.0f; if(t<0) t=0; if(t>interval) t=interval; return (float)(t/interval);
 }
 
 void rogue_equipment_panel_render(void){
