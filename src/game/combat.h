@@ -66,6 +66,11 @@ extern int g_crit_layering_mode;
 /* Execution trigger thresholds (tunable). If enemy health prior to hit <= EXEC_HEALTH_PCT of max AND killing blow, or overkill exceeds OVERKILL_PCT of max health => execution. */
 #define ROGUE_EXEC_HEALTH_PCT 0.15f
 #define ROGUE_EXEC_OVERKILL_PCT 0.25f
+/* Phase 3.6: Defensive weight soft cap tuning constants */
+#define ROGUE_DEF_SOFTCAP_REDUCTION_THRESHOLD 0.65f  /* fraction of combined physical reduction above which soft cap applies */
+#define ROGUE_DEF_SOFTCAP_SLOPE 0.45f                /* slope multiplier for excess reduction beyond threshold */
+#define ROGUE_DEF_SOFTCAP_MAX_REDUCTION 0.85f        /* absolute ceiling on combined reduction */
+#define ROGUE_DEF_SOFTCAP_MIN_RAW 100                /* skip soft cap for trivial hits (raw<100) to preserve low-hit behavior */
 
 /* Apply mitigation (Phase 2 pipeline). Returns final damage >=1 unless health already <=0. */
 int rogue_apply_mitigation_enemy(struct RogueEnemy* e, int raw, unsigned char dmg_type, int *out_overkill);

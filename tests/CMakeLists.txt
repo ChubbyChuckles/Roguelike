@@ -344,6 +344,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase3_hyper_armor.c AND 
     add_test(NAME test_combat_phase3_hyper_armor COMMAND test_combat_phase3_hyper_armor)
 endif()
 
+# Phase 3.6 defensive weight soft cap test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase3_def_softcap.c AND NOT TARGET test_combat_phase3_def_softcap)
+    add_executable(test_combat_phase3_def_softcap unit/test_combat_phase3_def_softcap.c)
+    target_link_libraries(test_combat_phase3_def_softcap PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase3_def_softcap PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase3_def_softcap COMMAND test_combat_phase3_def_softcap)
+endif()
+
 # Explicitly add combat drift timing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_drift_timing.c AND NOT TARGET test_combat_drift_timing)
     add_executable(test_combat_drift_timing unit/test_combat_drift_timing.c)

@@ -54,6 +54,24 @@ int rogue_apply_mitigation_enemy(RogueEnemy* e, int raw, unsigned char dmg_type,
             /* Armor flat reduction then percent physical resist */
             int armor = e->armor; if(armor>0){ if(armor >= dmg) dmg = (dmg>1?1:dmg); else dmg -= armor; }
             int pr_raw = clampi(e->resist_physical,0,90); int pr = rogue_effective_phys_resist(pr_raw); if(pr>0){ int reduce=(dmg*pr)/100; dmg -= reduce; }
+            /* Phase 3.6: Defensive weight soft cap (applies only for sufficiently large raw hits) */
+            if(raw >= ROGUE_DEF_SOFTCAP_MIN_RAW){
+                /* Approximate combined pre-softcap reduction fraction. We estimate armor contribution fractionally as armor/(raw+armor) (diminishing) plus percent resist applied after. */
+                float armor_frac = 0.0f; if(armor>0){ armor_frac = (float)armor / (float)(raw + armor); if(armor_frac>0.90f) armor_frac=0.90f; }
+                float total_frac = armor_frac + (float)pr / 100.0f; if(total_frac > 0.0f){
+                    if(total_frac > ROGUE_DEF_SOFTCAP_REDUCTION_THRESHOLD){
+                        float excess = total_frac - ROGUE_DEF_SOFTCAP_REDUCTION_THRESHOLD;
+                        float adjusted_excess = excess * ROGUE_DEF_SOFTCAP_SLOPE;
+                        float capped_total = ROGUE_DEF_SOFTCAP_REDUCTION_THRESHOLD + adjusted_excess;
+                        if(capped_total > ROGUE_DEF_SOFTCAP_MAX_REDUCTION) capped_total = ROGUE_DEF_SOFTCAP_MAX_REDUCTION;
+                        /* Compute target post-mitigation damage based on capped_total fraction; protect floor. */
+                        int target = (int)floorf((float)raw * (1.0f - capped_total) + 0.5f);
+                        if(target < 1) target = 1;
+                        if(target > dmg) { /* soft cap should never increase damage: recompute only if we over-reduced */ }
+                        else dmg = target;
+                    }
+                }
+            }
         } else {
             int resist=0; switch(dmg_type){
                 case ROGUE_DMG_FIRE: resist = e->resist_fire; break;
