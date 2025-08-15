@@ -67,6 +67,10 @@ float rogue_vendor_restock_fraction(void){
     double t = g_app.vendor_time_accum_ms; double interval = g_app.vendor_restock_interval_ms; if(interval<=0.0) return 0.0f; if(t<0) t=0; if(t>interval) t=interval; return (float)(t/interval);
 }
 
+/* Phase 4.9: Helper to classify durability percentage into threshold bucket:
+    returns 2=good (>=0.6), 1=warn (>=0.3 && <0.6), 0=critical (<0.3) */
+int rogue_durability_bucket(float pct){ if(pct<0) pct=0; if(pct>1) pct=1; if(pct < 0.30f) return 0; if(pct < 0.60f) return 1; return 2; }
+
 void rogue_equipment_panel_render(void){
 #ifdef ROGUE_HAVE_SDL
     if(!g_app.show_equipment_panel) return; if(!g_app.renderer) return;
@@ -79,7 +83,19 @@ void rogue_equipment_panel_render(void){
     char stats[96]; snprintf(stats,sizeof stats,"STR:%d DEX:%d VIT:%d INT:%d", g_app.player.strength,g_app.player.dexterity,g_app.player.vitality,g_app.player.intelligence);
     rogue_font_draw_text(panel.x+10,panel.y+panel.h-56,stats,1,(RogueColor){255,255,180,255});
     int w_inst = rogue_equip_get(ROGUE_EQUIP_WEAPON); int cur=0,max=0; if(w_inst>=0) rogue_item_instance_get_durability(w_inst,&cur,&max);
-    if(max>0){ char dur[64]; snprintf(dur,sizeof dur,"WEAPON DUR:%d/%d (R=Repair)", cur,max); rogue_font_draw_text(panel.x+10,panel.y+panel.h-40,dur,1,(RogueColor){220,200,255,255}); }
+    if(max>0){
+        float pct = (max>0)? (float)cur/(float)max : 0.0f; int bucket = rogue_durability_bucket(pct);
+        char dur[64]; snprintf(dur,sizeof dur,"WEAPON DUR:%d/%d (R=Repair)", cur,max);
+        RogueColor txt_col = bucket==2? (RogueColor){200,255,200,255} : (bucket==1? (RogueColor){255,210,120,255} : (RogueColor){255,120,120,255});
+        rogue_font_draw_text(panel.x+10,panel.y+panel.h-40,dur,1,txt_col);
+        /* Draw durability bar */
+        int bx = panel.x+10; int by = panel.y+panel.h-52; int bw = panel.w-20; int bh=6;
+        SDL_SetRenderDrawColor(g_app.renderer,40,40,40,255); SDL_Rect bg={bx,by,bw,bh}; SDL_RenderFillRect(g_app.renderer,&bg);
+        int fillw = (int)(bw * pct); if(fillw<0) fillw=0; if(fillw>bw) fillw=bw;
+        Uint8 r=80,g=200,b=80; if(bucket==1){ r=230; g=170; b=40; } else if(bucket==0){ r=220; g=50; b=50; }
+        SDL_SetRenderDrawColor(g_app.renderer,r,g,b,255); SDL_Rect fg={bx,by,fillw,bh}; SDL_RenderFillRect(g_app.renderer,&fg);
+        if(bucket==0){ rogue_font_draw_text(bx+bw-14,by-6,"!",1,(RogueColor){255,80,80,255}); }
+    }
     char derived[96]; snprintf(derived,sizeof derived,"DPS:%d EHP:%d Gold:%d", g_player_stat_cache.dps_estimate, g_player_stat_cache.ehp_estimate, rogue_econ_gold());
     rogue_font_draw_text(panel.x+10,panel.y+panel.h-22,derived,1,(RogueColor){200,240,200,255});
 #endif

@@ -1,15 +1,12 @@
-UI Phase 4.8: Vendor transaction confirmation modal & insufficient funds UX
+UI Phase 4.9: Durability thresholds bar & warning icon
 
 Summary:
-- Added vendor confirmation modal (ENTER opens/accepts, ESC cancels) displaying item name & price with affordability tint.
-- Insufficient funds attempt triggers ~0.5s red flash overlay (timer decremented per frame).
-- Added app state fields: vendor_confirm_active/def_index/price & vendor_insufficient_flash_ms.
-- Input handling refactored: RETURN now opens modal first, second RETURN inside modal performs purchase if affordable.
-- Warning-safe alpha calculation (casts/clamps) for flash overlay.
-- Extended UI event enum with placeholders for future vendor events (confirm open/accept/cancel/insufficient) to support later event-driven tests (currently modal logic test is headless procedural; events can be wired subsequently).
-- Added unit test `test_ui_phase4_vendor_transaction` (fabricated vendor item) verifying modal activation, insufficient funds flash, gold top-up, and purchase increment.
-- Roadmap marked Phase 4.8 Done; README updated with new feature description.
+- Added durability bar to equipment panel with color-coded buckets: green (>=60%), amber (30-59%), red (<30%).
+- Added warning '!' overlay icon at critical (red) state for quick visual alert.
+- Text color for durability line now matches bucket for consistent theming.
+- Introduced helper `rogue_durability_bucket(pct)` (returns 2 good,1 warn,0 critical) for deterministic classification.
+- Unit test `test_ui_phase4_durability_thresholds` validates bucket boundaries including clamp behavior outside 0..1 range.
+- Roadmap updated marking Phase 4.9 Done; README updated with feature description.
 
-Notes / Follow-ups:
-- Future: integrate real item definition lookup in confirmation test once item defs are exposed without heavy asset IO.
-- Vendor event emissions (ROGUE_UI_EVENT_VENDOR_*) can be hooked into input path for richer telemetry if/when UI context is integrated with vendor panel interactions.
+Notes:
+- Future enhancement: animate gradual color transition and integrate repair cost preview tooltip.
