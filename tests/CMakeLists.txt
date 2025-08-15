@@ -24,6 +24,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase5_hitbox_primitives.
     add_test(NAME test_combat_phase5_hitbox_primitives COMMAND test_combat_phase5_hitbox_primitives)
 endif()
 
+# Phase 5.2/5.3 authoring + broadphase tests
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase5_hitbox_authoring_broadphase.c AND NOT TARGET test_combat_phase5_hitbox_authoring_broadphase)
+    add_executable(test_combat_phase5_hitbox_authoring_broadphase unit/test_combat_phase5_hitbox_authoring_broadphase.c)
+    target_link_libraries(test_combat_phase5_hitbox_authoring_broadphase PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase5_hitbox_authoring_broadphase PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase5_hitbox_authoring_broadphase COMMAND test_combat_phase5_hitbox_authoring_broadphase)
+endif()
+
 # Explicit heavy multi-window test (heavy_2 triple window validation)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_heavy_multi_window.c AND NOT TARGET test_combat_heavy_multi_window)
     add_executable(test_combat_heavy_multi_window unit/test_combat_heavy_multi_window.c)

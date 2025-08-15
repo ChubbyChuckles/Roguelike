@@ -142,6 +142,7 @@ add_library(rogue_core
     src/core/vendor_ui.c
     src/core/stat_cache.c
     src/game/hitbox.c
+    src/game/hitbox_load.c
 )
 
 target_include_directories(rogue_core PUBLIC
