@@ -1,11 +1,12 @@
-feat(ui): implement Phase 2.1 core primitives (Image, Sprite, ProgressBar)
+feat(ui): add Phase 2.2 interactive widgets (Button/Toggle/Slider/TextInput)
 
-Adds extended primitive widgets:
- - Expanded RogueUINode with aux_color, value/value_max, data_i0/data_i1, kind enum extended to include image(2), sprite(3), progress(4).
- - New APIs: rogue_ui_image, rogue_ui_sprite, rogue_ui_progress_bar.
- - Unit test test_ui_phase2_primitives validates node kinds, progress value clamping, and field storage.
- - Roadmap updated (2.1 Done) and README augmented with Phase 2.1 summary.
+Implements immediate-mode interactive controls:
+ - Button: click detection (hot/active), exposes click via node.value=1.0f.
+ - Toggle: state flip on release inside bounds, color swap, state stored in node.value.
+ - Slider: horizontal drag computing normalized t; updates bound float & node.value each frame.
+ - TextInput: focus on click, accepts single char per frame + backspace, stores buffer pointer in node.text.
+ - New input state struct & injection API (rogue_ui_set_input) with hot/active/focus indices tracked.
+ - Unit test test_ui_phase2_interactive validates click→toggle release semantics, slider drag range, text input char + backspace behavior.
+ - Roadmap Phase 2.2 marked Done; README updated with interactive widget progress note.
 
-Also fixed struct initializer ordering for earlier primitives to avoid field mismatch under new layout.
-
-Next targets: 2.2 interactive widgets (Button/Toggle/Slider/TextInput) + 2.7 ID hashing groundwork, then 2.8 focus graph.
+Next steps: Phase 2.7 widget ID hashing & 2.8 focus/navigation graph before container/layout nodes (2.3) for stable addressing.

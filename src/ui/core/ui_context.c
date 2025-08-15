@@ -36,6 +36,55 @@ int rogue_ui_image(RogueUIContext* ctx, RogueUIRect r, const char* path, uint32_
 int rogue_ui_sprite(RogueUIContext* ctx, RogueUIRect r, int sheet_id, int frame, uint32_t tint){ if(!ctx||!ctx->frame_active) return -1; RogueUINode n; memset(&n,0,sizeof n); n.rect=r; n.color=tint; n.data_i0=sheet_id; n.data_i1=frame; n.kind=3; return push_node(ctx,n); }
 int rogue_ui_progress_bar(RogueUIContext* ctx, RogueUIRect r, float value, float max_value, uint32_t bg_color, uint32_t fill_color, int orientation){ if(!ctx||!ctx->frame_active) return -1; if(max_value<=0) max_value=1.0f; if(value<0) value=0; if(value>max_value) value=max_value; RogueUINode n; memset(&n,0,sizeof n); n.rect=r; n.color=bg_color; n.aux_color=fill_color; n.value=value; n.value_max=max_value; n.data_i0=orientation; n.kind=4; return push_node(ctx,n); }
 
+/* ---- Interaction helpers ---- */
+static int rect_contains(const RogueUIRect* r, float x, float y){ return x>=r->x && y>=r->y && x<=r->x+r->w && y<=r->y+r->h; }
+
+void rogue_ui_set_input(RogueUIContext* ctx, const RogueUIInputState* in){ if(!ctx||!in) return; ctx->input=*in; ctx->hot_index=-1; }
+int rogue_ui_focused_index(const RogueUIContext* ctx){ return ctx? ctx->focus_index:-1; }
+
+static int interactive_push(RogueUIContext* ctx, RogueUINode* node){
+    int idx = push_node(ctx,*node); if(idx<0) return idx;
+    float mx=ctx->input.mouse_x, my=ctx->input.mouse_y;
+    if(rect_contains(&node->rect,mx,my)) ctx->hot_index=idx;
+    return idx;
+}
+
+int rogue_ui_button(RogueUIContext* ctx, RogueUIRect r, const char* label, uint32_t bg_color, uint32_t text_color){
+    if(!ctx||!ctx->frame_active) return -1; RogueUINode n; memset(&n,0,sizeof n); n.rect=r; n.text=label; n.color=bg_color; n.aux_color=text_color; n.kind=5; int idx=interactive_push(ctx,&n); if(idx<0) return -1; int clicked=0; if(ctx->hot_index==idx){ if(ctx->input.mouse_pressed){ ctx->active_index=idx; } if(ctx->input.mouse_released && ctx->active_index==idx){ clicked=1; ctx->active_index=-1; } }
+    /* Overwrite value field to indicate click (1.0f) for retrieval by tests */
+    if(idx>=0 && clicked) ctx->nodes[idx].value=1.0f; return idx;
+}
+
+int rogue_ui_toggle(RogueUIContext* ctx, RogueUIRect r, const char* label, int* state, uint32_t off_color, uint32_t on_color, uint32_t text_color){
+    if(!ctx||!ctx->frame_active||!state) return -1; RogueUINode n; memset(&n,0,sizeof n); n.rect=r; n.text=label; n.color=*state? on_color:off_color; n.aux_color=text_color; n.kind=6; int idx=interactive_push(ctx,&n); if(idx<0) return -1; if(ctx->hot_index==idx){ if(ctx->input.mouse_pressed){ ctx->active_index=idx; } if(ctx->input.mouse_released && ctx->active_index==idx){ *state = !*state; ctx->nodes[idx].color=*state? on_color:off_color; ctx->active_index=-1; } }
+    ctx->nodes[idx].value=(float)(*state); return idx;
+}
+
+int rogue_ui_slider(RogueUIContext* ctx, RogueUIRect r, float min_v, float max_v, float* value, uint32_t track_color, uint32_t fill_color){
+    if(!ctx||!ctx->frame_active||!value) return -1; if(max_v==min_v){ max_v=min_v+1.0f; }
+    if(*value<min_v) *value=min_v; if(*value>max_v) *value=max_v;
+    RogueUINode n; memset(&n,0,sizeof n); n.rect=r; n.color=track_color; n.aux_color=fill_color; n.kind=7; n.value=*value; n.value_max=max_v; int idx=interactive_push(ctx,&n); if(idx<0) return -1;
+    if(ctx->hot_index==idx){ if(ctx->input.mouse_pressed){ ctx->active_index=idx; }
+        if(ctx->active_index==idx && ctx->input.mouse_down){
+            float t = (ctx->input.mouse_x - r.x)/r.w; if(t<0) t=0; if(t>1) t=1; *value = min_v + t*(max_v-min_v); ctx->nodes[idx].value=*value; }
+        if(ctx->input.mouse_released && ctx->active_index==idx){ ctx->active_index=-1; }
+    }
+    return idx;
+}
+
+int rogue_ui_text_input(RogueUIContext* ctx, RogueUIRect r, char* buffer, int buffer_cap, uint32_t bg_color, uint32_t text_color){
+    if(!ctx||!ctx->frame_active||!buffer||buffer_cap<=0) return -1; RogueUINode n; memset(&n,0,sizeof n); n.rect=r; n.text=buffer; n.color=bg_color; n.aux_color=text_color; n.kind=8; int idx=interactive_push(ctx,&n); if(idx<0) return -1;
+    int hovered = (ctx->hot_index==idx);
+    if(hovered && ctx->input.mouse_pressed){ ctx->focus_index=idx; }
+    if(ctx->focus_index==idx){
+        if(ctx->input.text_char){
+            int len=(int)strlen(buffer); if(len<buffer_cap-1){ buffer[len]=(char)ctx->input.text_char; buffer[len+1]='\0'; }
+        }
+        if(ctx->input.backspace){ int len=(int)strlen(buffer); if(len>0){ buffer[len-1]='\0'; } }
+    }
+    return idx;
+}
+
 const RogueUINode* rogue_ui_nodes(const RogueUIContext* ctx, int* count_out){ if(count_out) *count_out = ctx? ctx->node_count:0; return ctx? ctx->nodes:NULL; }
 
 unsigned int rogue_ui_rng_next(RogueUIContext* ctx){ if(!ctx) return 0; return xorshift32(&ctx->rng_state); }

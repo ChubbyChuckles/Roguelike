@@ -928,3 +928,13 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase2_primitives.c AND NOT T
     endif()
     add_test(NAME test_ui_phase2_primitives COMMAND test_ui_phase2_primitives)
 endif()
+
+# UI Phase 2.2 interactive widgets test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase2_interactive.c AND NOT TARGET test_ui_phase2_interactive)
+    add_executable(test_ui_phase2_interactive unit/test_ui_phase2_interactive.c)
+    target_link_libraries(test_ui_phase2_interactive PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ui_phase2_interactive PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ui_phase2_interactive COMMAND test_ui_phase2_interactive)
+endif()

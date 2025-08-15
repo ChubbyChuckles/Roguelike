@@ -25,7 +25,7 @@ PHASE 1. Core Architecture & Module Boundaries
 
 PHASE 2. Widget Primitives & Composition
 2.1 Core primitives: Panel, Text, Image, Sprite, ProgressBar (Done: nodes + unit test)
-2.2 Interactive: Button, Toggle, Slider, TextInput (buffer + cursor) (X)
+2.2 Interactive: Button, Toggle, Slider, TextInput (buffer + cursor) (Done: basic hit testing, toggle, slider drag, text input focus + char/backspace handling, tests)
 2.3 Container + layout nodes: Row, Column, Grid, LayerStack (X)
 2.4 Scroll container with inertial scrolling & virtualization hooks (X)
 2.5 Tooltip system (hover intent timing, anchored) (X)

@@ -456,6 +456,7 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
   - Extended unit tests: `test_ui_phase1_basic` (init, primitives, RNG stability) and `test_ui_phase1_features_ext` (arena alloc, snapshot separation, diff detection, capacity & arena exhaustion).
 * Next (Phase 2): Add additional primitives (Image/Sprite/ProgressBar) and interactive widgets (Button/Toggle/Slider/TextInput) with focus & ID plumbing.
   - Phase 2.1 completed: Added Image, Sprite, ProgressBar primitives with extended `RogueUINode` fields (aux_color, value/value_max, data_i0/i1) and test `test_ui_phase2_primitives` validating kinds & value clamping.
+  - Phase 2.2 completed: Added interactive Button, Toggle, Slider, TextInput widgets (immediate-mode hit test, active/hot/focus indices) with test `test_ui_phase2_interactive` covering click, toggle flip, slider drag value update, text input character insertion & backspace.
 
 ### v0.8.x (Current Development Branch)
 **Added**
