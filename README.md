@@ -61,7 +61,7 @@ Phase M2 added:
 Phase M3 in progress:
 * Unified key/value parser utility (`util/kv_parser.c,h`) with dedicated unit test `test_kv_parser`.
 * Basic schema + validation layer (`util/kv_schema.c,h`) with unit test `test_kv_schema` surfacing unknown keys, type errors, and missing required fields.
-* Initial hot reload infrastructure (`util/hot_reload.c,h`) providing a registry + manual force trigger (`test_hot_reload`). Upcoming increments will attach timestamp polling and wire loaders (skills, loot, world gen) to the registry.
+* Hot reload system (`util/hot_reload.c,h`) with registry, manual force trigger, and automatic content hash change detection (`test_hot_reload`). Subsystems can register loaders to enable live config iteration.
 
 Next phases (M3+) will introduce unified config schema, hot reload, and expanded deterministic replay/coverage gates.
 

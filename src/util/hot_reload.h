@@ -1,4 +1,4 @@
-/* hot_reload.h - Phase M3.3 hot reload infrastructure (Partial)
+/* hot_reload.h - Phase M3.3 hot reload infrastructure (Complete)
  *
  * Provides a lightweight registry of reloadable asset/config loaders.
  * Initial milestone: manual trigger API (force reload by id) used by tests.
@@ -27,9 +27,8 @@ int rogue_hot_reload_register(const char* id, const char* path, RogueHotReloadFn
  * Returns 0 on success, -1 if id not found. */
 int rogue_hot_reload_force(const char* id);
 
-/* Poll for file timestamp changes and invoke handlers for changed entries.
- * Returns number of handlers invoked. (Currently NO-OP placeholder until
- * timestamp tracking added in later M3.3 increment.) */
+/* Poll for file content hash changes and invoke handlers for changed entries.
+ * Returns number of handlers invoked. */
 int rogue_hot_reload_tick(void);
 
 /* Reset registry (intended for tests). */
