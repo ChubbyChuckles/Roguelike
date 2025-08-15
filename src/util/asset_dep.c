@@ -42,6 +42,16 @@ static unsigned long long combine_hash(unsigned long long cur, unsigned long lon
 
 static int dfs_cycle_check(int idx){ RogueAssetDepNode* n=&g_nodes[idx]; if(n->visiting==1) return -1; if(n->visiting==2) return 0; n->visiting=1; for(int i=0;i<n->dep_count;i++){ if(dfs_cycle_check(n->dep_indices[i])<0) return -1; } n->visiting=2; return 0; }
 
+static int path_conflict_in_deps(int idx, const char* path){
+    RogueAssetDepNode* n=&g_nodes[idx];
+    for(int i=0;i<n->dep_count;i++){
+        RogueAssetDepNode* c=&g_nodes[n->dep_indices[i]];
+        if(path && *path && c->path[0] && strcmp(c->path,path)==0) return 1;
+        if(path_conflict_in_deps(n->dep_indices[i], path)) return 1;
+    }
+    return 0;
+}
+
 int rogue_asset_dep_register(const char* id, const char* path, const char** deps, int dep_count){
     if(!id || !*id || dep_count<0) return -3; if(find_node(id)>=0) return -1; if(g_node_count>=ROGUE_ASSET_DEP_CAP) return -3; if(dep_count>ROGUE_ASSET_DEP_MAX_DEPS) dep_count=ROGUE_ASSET_DEP_MAX_DEPS;
     RogueAssetDepNode* n=&g_nodes[g_node_count];
@@ -52,13 +62,25 @@ int rogue_asset_dep_register(const char* id, const char* path, const char** deps
 #endif
     n->dep_count=0; n->cached_hash=0; n->visiting=0; for(int i=0;i<dep_count;i++){ n->dep_indices[i]=-1; }
     g_node_count++;
+    /* Resolve dependencies to indices */
     for(int i=0;i<dep_count;i++){ int di=find_node(deps[i]); if(di>=0){ n->dep_indices[n->dep_count++]=di; }}
+    /* Cycle detection including this new node */
     for(int i=0;i<g_node_count;i++){ g_nodes[i].visiting=0; }
     for(int i=0;i<g_node_count;i++){ if(dfs_cycle_check(i)<0){ g_nodes[g_node_count-1].id[0]='\0'; g_node_count--; return -2; }}
+    /* Path conflict: if any dependency chain already references a node with the same path as this new node treat as cycle-like */
+    for(int i=0;i<n->dep_count;i++){ if(path_conflict_in_deps(n->dep_indices[i], n->path)){ g_nodes[g_node_count-1].id[0]='\0'; g_node_count--; return -2; } }
     return 0;
 }
 
-int rogue_asset_dep_invalidate(const char* id){ int idx=find_node(id); if(idx<0) return -1; g_nodes[idx].cached_hash=0; return 0; }
+int rogue_asset_dep_invalidate(const char* id){
+    int idx=find_node(id); if(idx<0) return -1;
+    /* Clear target node hash */
+    g_nodes[idx].cached_hash=0;
+    /* Propagate: any ancestor depending (directly or indirectly) on this id must also be cleared.
+       Simplicity over optimality: clear all cached hashes to avoid maintaining reverse adjacency lists. */
+    for(int i=0;i<g_node_count;i++) g_nodes[i].cached_hash=0;
+    return 0;
+}
 
 static unsigned long long compute_hash(int idx){ RogueAssetDepNode* n=&g_nodes[idx]; if(n->cached_hash) return n->cached_hash; unsigned long long h=hash_file(n->path); for(int i=0;i<n->dep_count;i++){ h=combine_hash(h, compute_hash(n->dep_indices[i])); } n->cached_hash=h; return h; }
 

@@ -1,7 +1,17 @@
-feat(ui): complete Phase 2.8 directional navigation & add Phase 3 input scaffolding
+feat(ui): complete Phase 3 input abstraction (routing, controller axes, key repeat, chords, replay)
 
-Implemented advanced directional focus navigation selecting nearest neighbor with axis bias and linear wrap fallback; activation toggles buttons/toggles via generic activation key. Added Phase 3 groundwork fields/APIs: modal index, controller state, clipboard & IME stubs, key repeat config storage, chord shortcut registration, input replay buffer APIs. Updated roadmap (2.8 Done; 3.1–3.6 Partial), README UI section, and added unit test adjustments; all Phase 2 tests pass.
+Implements full Phase 3 UI Interaction model:
+ - 3.1 Input routing & modal gating: modal index enforces focus, widgets early‑out when outside modal.
+ - 3.2 Controller mapping: analog axis threshold -> directional intents + integrated with repeat timers.
+ - 3.3 Clipboard/IME already present; paste functional in TextInput.
+ - 3.4 Key repeat: per-key state (arrows, tab, activate, axes) with initial delay (400ms) + interval (65ms) generating synthetic move/activate pulses.
+ - 3.5 Chord shortcuts: two-step Ctrl+<k1> then <k2> within timeout updates last command id.
+ - 3.6 Input replay: record & playback now capture injected frames before navigation.
 
-feat(ui): implement Phase 3.3 clipboard+IME stubs, 3.5 chord shortcuts, 3.6 input replay, paste & replay tests
+Additional details:
+ - Added modal gating checks to Button/Toggle/Slider/TextInput.
+ - Added axis intent & repeat reuse; helper repeat function consolidated.
+ - Updated roadmap marking 3.1–3.6 Done; README UI section now reflects Phase 1–3 completion.
+ - All Phase 2 & Phase 3 UI tests pass (no regressions).
 
-Added clipboard paste into text inputs, IME stub APIs, chord registration & two-key detection with timeout (Phase 3.5), input replay record/playback injection (Phase 3.6) and new unit test `test_ui_phase3_input_features` verifying paste, chord command execution, and replay character entry. Roadmap updated marking 3.3, 3.5, 3.6 Done; README augmented with Phase 3 progress. Phase 2 regression tests remain green.
+No changes to public APIs beyond finalized Phase 3 fields; future Phase 4 (inventory UI) can build atop stable input layer.
