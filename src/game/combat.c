@@ -159,6 +159,16 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
     /* Include temporary strength buffs (e.g., PowerStrike) */
     int effective_strength = player->strength + rogue_buffs_get_total(0); /* 0 = ROGUE_BUFF_POWER_STRIKE */
     int base = 1 + effective_strength/5;
+    /* Apply attack definition base & scaling if available */
+    const RogueAttackDef* def = rogue_attack_get(pc->archetype, pc->chain_index);
+    float scaled = (float)base;
+    if(def){
+        scaled = def->base_damage
+            + (float)effective_strength * def->str_scale
+            + (float)player->dexterity * def->dex_scale
+            + (float)player->intelligence * def->int_scale;
+        if(scaled < 1.0f) scaled = 1.0f;
+    }
     /* Combo damage scaling (up to +40%). Integer truncation on small bases caused plateaus; enforce monotonic gain. */
     float combo_scale = 1.0f + (pc->combo * 0.08f); if(combo_scale>1.4f) combo_scale=1.4f;
     /* Crit chance: base derived from dex + flat stat; convert pct */
@@ -170,18 +180,18 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
         crit_mult = 1.0f + (float)(player->crit_damage) * 0.01f; /* 50 -> 1.5x etc */
         if(crit_mult > 5.0f) crit_mult = 5.0f;
     }
-    float raw = base * combo_scale * crit_mult;
+    float raw = scaled * combo_scale * crit_mult;
     int dmg = (int)floorf(raw + 0.5f);
     if(!crit && pc->combo>0){
         /* Guarantee at least +1 per combo step up to scaled cap (prevents early plateaus for low base values) */
-        int min_noncrit = base + pc->combo;
-        int hard_cap = (int)floorf(base * 1.4f + 0.5f); /* do not exceed nominal 40% cap rounding */
+    int min_noncrit = (int)floorf(scaled + pc->combo + 0.5f);
+    int hard_cap = (int)floorf(scaled * 1.4f + 0.5f); /* do not exceed nominal 40% cap rounding */
         if(min_noncrit > hard_cap) min_noncrit = hard_cap;
         if(dmg < min_noncrit) dmg = min_noncrit;
     } else if(crit && pc->combo>0){
         /* For crits, ensure damage not below non-crit minimum for that combo */
-        int noncrit_floor = base + pc->combo;
-        int hard_cap = (int)floorf(base * 1.4f * 1.9f + 0.5f);
+    int noncrit_floor = (int)floorf(scaled + pc->combo + 0.5f);
+    int hard_cap = (int)floorf(scaled * 1.4f * 1.9f + 0.5f);
         if(noncrit_floor > hard_cap) noncrit_floor = hard_cap;
         if(dmg < noncrit_floor) dmg = noncrit_floor;
     }

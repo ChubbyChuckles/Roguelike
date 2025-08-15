@@ -30,6 +30,10 @@ typedef struct RogueAttackDef {
     float stamina_cost;             /* stamina cost when initiating */
     float poise_damage;             /* future: applied to enemy poise */
     float base_damage;              /* additive base before stat scaling */
+    unsigned char damage_type;      /* 0=physical,1=fire,2=frost,3=arcane (temp enum) */
+    float str_scale;                /* strength scaling coefficient */
+    float dex_scale;                /* dex scaling coefficient */
+    float int_scale;                /* intelligence scaling coefficient */
     int   num_windows;              /* active hit windows (strike sub-intervals) */
     RogueAttackWindow windows[ROGUE_MAX_ATTACK_WINDOWS];
 } RogueAttackDef;
