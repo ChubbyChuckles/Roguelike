@@ -73,6 +73,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_determinism_damage_events.c AND 
     endif()
     add_test(NAME test_determinism_damage_events COMMAND test_determinism_damage_events)
 endif()
+
+# Phase M4.4 fuzz parsers (affix/persistence/kv)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_fuzz_parsers.c AND NOT TARGET test_fuzz_parsers)
+    add_executable(test_fuzz_parsers unit/test_fuzz_parsers.c)
+    target_link_libraries(test_fuzz_parsers PRIVATE rogue_core)
+    target_compile_definitions(test_fuzz_parsers PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_fuzz_parsers PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_fuzz_parsers COMMAND test_fuzz_parsers)
+endif()
 # Explicitly add combat damage observer test (maintainability phase M2) to avoid glob cache issues
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_damage_observer.c AND NOT TARGET test_combat_damage_observer)
     add_executable(test_combat_damage_observer unit/test_combat_damage_observer.c)

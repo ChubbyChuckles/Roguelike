@@ -64,7 +64,12 @@ PHASE M4. Testing & Quality Gates Expansion
    Added util/determinism.{c,h} with FNV-1a hash & damage event sequence hashing. Test test_determinism_damage_events generates deterministic event sequences (variant param), asserts identical sequences hash-equal and differing variants hash-different.
  4.3 Golden master event replay (Done)
    Same test writes text golden master, reloads, and memory-compares event structs; harness basis for future real combat log replay.
- 4.4 Fuzz parsers (loot/persistence/affix) (X)
+ 4.4 Fuzz parsers (loot/persistence/affix) (Done)
+   Added test_fuzz_parsers exercising three parsers under randomized & malformed inputs:
+    - Affix CSV loader: mixture of valid, truncated, random noise, and comment lines; asserts non-negative added count and cap not exceeded.
+    - Player persistence loader: randomized LEVEL, VERSION (negatives test clamp), GI item lines with varying fields/values, random keys, malformed noise; asserts version clamp never <=0.
+    - Unified kv_parser: randomized valid/malformed key=value lines (missing '=', empty key, spacing, inline comments, noise) consumed until EOF without runaway (>500) entries.
+   Establishes baseline robustness; future enhancement could integrate coverage-guided fuzz (libFuzzer/AFL harness) if toolchain expanded.
  4.5 Performance regression micro-bench tests (X)
  4.6 Mutation testing harness (X)
  4.7 Coverage threshold gate (Partial)
