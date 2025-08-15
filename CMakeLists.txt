@@ -177,6 +177,7 @@ add_library(rogue_core
     src/core/equipment.c
     src/core/equipment_stats.c
     src/core/vendor_ui.c
+    src/core/skill_graph_runtime.c
     src/core/stat_cache.c
     # UI Phase 1 scaffolding
     src/ui/core/ui_context.c
@@ -186,6 +187,7 @@ add_library(rogue_core
     src/util/hot_reload.c
     src/util/asset_dep.c
     src/util/determinism.c
+    src/util/file_search.c
     src/game/hitbox.c
     src/game/hitbox_load.c
         src/game/lock_on.c
@@ -255,3 +257,6 @@ if(CLANG_TIDY_EXE)
         COMMENT "clang-tidy configured via target property (invoked automatically on build)"
     )
 endif()
+
+# Skill icon PNGs are loaded at runtime from assets/ by skill tree; ensure install step (if any) copies *.png
+# (Assumes assets directory already handled elsewhere.)

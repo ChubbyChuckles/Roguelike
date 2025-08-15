@@ -53,16 +53,15 @@ static int effect_fireball(const RogueSkillDef* def, RogueSkillState* st, const 
 void rogue_skill_tree_register_baseline(void){
     /* Load from assets/skills.cfg */
     extern int rogue_skills_load_from_cfg(const char* path);
-    int loaded = rogue_skills_load_from_cfg("assets/skills_uhf87f.json");
+    int loaded = rogue_skills_load_from_cfg("../assets/skills.cfg");
     (void)loaded; /* could log */
-    /* Icon textures are loaded during registration with fallback search now. */
     /* Attach built-in effect callbacks to matching names */
     for(int i=0;i<g_app.skill_count;i++){
         RogueSkillDef* def = (RogueSkillDef*)rogue_skill_get_def(i); /* cast away const for assignment */
         if(!def) continue;
         if(strcmp(def->name,"PowerStrike")==0) def->on_activate=effect_power_strike;
         else if(strcmp(def->name,"Dash")==0) def->on_activate=effect_dash;
-        else if(strcmp(def->name,"Fireball")==0) def->on_activate=effect_fireball;
+        else if(strcmp(def->name,"Berserk")==0) def->on_activate=effect_fireball;
     }
     /* default bar assignment first 3 skills */
     for(int i=0;i<10;i++) g_app.skill_bar[i]=-1;

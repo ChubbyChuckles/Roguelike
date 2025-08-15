@@ -22,7 +22,7 @@ typedef int (*RogueSkillEffectFn)(const struct RogueSkillDef* def, struct RogueS
 typedef struct RogueSkillDef {
     int id;                     /* index into registry */
     const char* name;           /* display name */
-    const char* icon;           /* icon path (future) */
+    const char* icon;           /* icon file path (PNG 512x512 raw) */
     int max_rank;               /* maximum rank */
     float base_cooldown_ms;     /* base cooldown at rank 1 */
     float cooldown_reduction_ms_per_rank; /* linear reduction */
@@ -103,5 +103,8 @@ void rogue_skills_update(double now_ms);
 const RogueSkillDef* rogue_skill_get_def(int id);
 const struct RogueSkillState* rogue_skill_get_state(int id);
 int rogue_skill_synergy_total(int synergy_id);
+
+/* Data-driven loading */
+int rogue_skills_load_from_cfg(const char* path); /* returns number loaded; supports CSV (.cfg) or JSON (.json) */
 
 #endif

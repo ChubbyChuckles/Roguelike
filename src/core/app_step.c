@@ -44,6 +44,9 @@ void rogue_equipment_panel_render(void);
 #include <SDL.h>
 #endif
 
+/* Forward declare experimental skill graph runtime renderer */
+void rogue_skillgraph_runtime_render(void);
+
 int rogue_get_current_attack_frame(void){
     if(g_app.player_combat.phase==ROGUE_ATTACK_WINDUP || g_app.player_combat.phase==ROGUE_ATTACK_STRIKE || g_app.player_combat.phase==ROGUE_ATTACK_RECOVER){
         return g_app.player.anim_frame;
@@ -123,6 +126,8 @@ void rogue_app_step(void)
     rogue_stats_panel_render();
     rogue_vendor_panel_render();
     rogue_equipment_panel_render();
+    /* Experimental skill graph UI (toggle with 'G') */
+    rogue_skillgraph_runtime_render();
     rogue_equipment_apply_stat_bonuses(&g_app.player);
     rogue_stat_cache_update(&g_app.player);
     if(!g_app.headless){ SDL_RenderPresent(g_app.renderer); }

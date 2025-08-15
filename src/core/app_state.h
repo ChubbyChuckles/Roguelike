@@ -90,6 +90,12 @@ typedef struct RogueAppState {
     int vendor_confirm_active; int vendor_confirm_def_index; int vendor_confirm_price; double vendor_insufficient_flash_ms;
     /* Equipment panel UI */
     int show_equipment_panel;
+    /* Runtime skill graph (Phase 5 demo) */
+    int show_skill_graph; /* toggled via hotkey; renders experimental UI skill graph */
+    /* Skill icon textures (parallel to skill_defs by id). Loaded after skills.cfg parse. */
+#ifdef ROGUE_HAVE_SDL
+    RogueTexture* skill_icon_textures; /* array size skill_count */
+#endif
 } RogueAppState;
 
 extern RogueAppState g_app;

@@ -14,6 +14,7 @@
 #include "core/economy.h"
 #include "core/inventory.h"
 #include "core/equipment.h"
+#include "ui/core/ui_context.h" /* skill graph toggle */
 #include <string.h> /* memset */
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
@@ -84,6 +85,8 @@ void rogue_process_events(void){
                 if(ev.key.keysym.sym==SDLK_BACKSPACE){ g_app.show_vendor_panel=0; }
             }
             if(ev.key.keysym.sym==SDLK_k){ rogue_skill_tree_toggle(); }
+            /* Toggle experimental skill graph (new UI system) with G */
+            if(ev.key.keysym.sym==SDLK_g){ g_app.show_skill_graph = !g_app.show_skill_graph; }
             if(g_app.show_stats_panel){
                 if(ev.key.keysym.sym==SDLK_LEFT){ g_app.stats_panel_index=(g_app.stats_panel_index+5)%6; }
                 if(ev.key.keysym.sym==SDLK_RIGHT){ g_app.stats_panel_index=(g_app.stats_panel_index+1)%6; }

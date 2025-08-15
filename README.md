@@ -180,6 +180,15 @@ See full, fine‑grained roadmap in `implementation_plan.txt` (kept continuously
 * Phase 5.7 Undo Buffer: Allocation API records previous rank (stack up to 64). `rogue_ui_skillgraph_undo` reverts last allocation and leaves animation pipeline intact.
   New unit test `test_ui_phase5_skillgraph_advanced` exercises filtering, export/import, allocation + undo.
 
+#### Skill Graph Runtime Preview (Experimental)
+Press `G` in-game to toggle a prototype overlay rendering the new UI skill graph system (separate from the legacy skill tree `K`).
+
+Asset Placement: Add a sprite sheet at `assets/skill_icons.png` containing a uniform grid of icons (e.g., 8 columns x 4 rows = 32 icons, each 32x32). Icon IDs (0..N-1) map to frames in sheet id 0 (frame extraction hook pending). Until slicing is wired, panels + text still display (sprites may be blank if sheet not yet integrated).
+
+Demo Layout: The runtime builds a radial distribution of placeholder nodes with sample ranks, synergy flags, and tag bits to exercise quadtree culling + layered emission (background, glow, ring, icon placeholder, pip bar, rank text, pulse/spend animation layers).
+
+Next Steps: Bind allocation/undo to inputs, integrate real skill definitions, implement sprite sheet frame slicing, mouse hover + selection, panning/zoom interaction, and synergy aggregate panel rendering.
+
 #### Loot Foundations (Phases 1–4)
 * Item definition parser tolerant to optional later-added rarity column (backward compatibility).
 * Loot tables support weighted entries + quantity range (min..max) with deterministic LCG-driven batch roll.

@@ -49,8 +49,8 @@ static void skillgraph_emit_node(RogueUIContext* ctx, RogueUISkillNodeRec* n){
     if(n->synergy){ rogue_ui_panel(ctx,(RogueUIRect){r_icon.x-4,r_icon.y-4,r_icon.w+8,r_icon.h+8},0x30307040u); }
     /* Rank ring (outer thin border using panel as proxy) */
     rogue_ui_panel(ctx,(RogueUIRect){r_icon.x-2,r_icon.y-2,r_icon.w+4,r_icon.h+4}, n->synergy?0x5060C0A0u:0x404040A0u);
-    /* Icon sprite (placeholder: use sprite API referencing sheet=0, frame=icon_id) */
-    rogue_ui_sprite(ctx,(RogueUIRect){r_icon.x+2,r_icon.y+2,r_icon.w-4,r_icon.h-4}, 0, n->icon_id, 0xFFFFFFFFu);
+    /* Icon sprite: encode skill index in sheet_id (data_i0) so renderer can map to loaded textures. */
+    rogue_ui_sprite(ctx,(RogueUIRect){r_icon.x+2,r_icon.y+2,r_icon.w-4,r_icon.h-4}, n->icon_id, 0, 0xFFFFFFFFu);
     /* Rank text */
     char txt[24]; snprintf(txt,sizeof txt,"%d/%d", n->rank, n->max_rank);
     rogue_ui_text_dup(ctx,(RogueUIRect){r_icon.x, r_icon.y + r_icon.h + 2, r_icon.w, 12}, txt, 0xFFFFFFFFu);
