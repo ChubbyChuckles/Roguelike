@@ -1,28 +1,11 @@
-feat(ui): complete Phase 3 input abstraction (routing, controller axes, key repeat, chords, replay)
+UI: Implement Phase 4.2 & 4.3 Inventory Interactions
 
-Implements full Phase 3 UI Interaction model:
- - 3.1 Input routing & modal gating: modal index enforces focus, widgets early‑out when outside modal.
- - 3.2 Controller mapping: analog axis threshold -> directional intents + integrated with repeat timers.
- - 3.3 Clipboard/IME already present; paste functional in TextInput.
- - 3.4 Key repeat: per-key state (arrows, tab, activate, axes) with initial delay (400ms) + interval (65ms) generating synthetic move/activate pulses.
- - 3.5 Chord shortcuts: two-step Ctrl+<k1> then <k2> within timeout updates last command id.
- - 3.6 Input replay: record & playback now capture injected frames before navigation.
+Details:
+- Added drag & drop support to `rogue_ui_inventory_grid` (drag begin/end events, slot swap including empty target).
+- Introduced lightweight UI event queue + `rogue_ui_poll_event` API (ring buffer size 32).
+- Implemented stack split modal (CTRL+click to open, wheel to adjust, Activate to apply, release to cancel) with OPEN/APPLY/CANCEL events.
+- Added unit test `test_ui_phase4_drag_stack` covering drag begin/end, swap integrity, drag to empty slot, stack split apply, and cancel path.
+- Updated roadmap marking Phase 4.2 & 4.3 Done; README UI section documents new behaviors.
+- Minor test robustness improvements: event polling now drains queue to prevent missed events.
 
-Additional details:
- - Added modal gating checks to Button/Toggle/Slider/TextInput.
- - Added axis intent & repeat reuse; helper repeat function consolidated.
- - Updated roadmap marking 3.1–3.6 Done; README UI section now reflects Phase 1–3 completion.
- - All Phase 2 & Phase 3 UI tests pass (no regressions).
-
-No changes to public APIs beyond finalized Phase 3 fields; future Phase 4 (inventory UI) can build atop stable input layer.
-
-feat(ui): Phase 4.1 minimal inventory grid widget (nodes + deterministic serialization)
-
-Implements initial slice of Phase 4.1:
- - Adds `rogue_ui_inventory_grid` helper emitting container + per-slot panels (and count text for occupied slots).
- - Deterministic layout & serialization; new unit test `test_ui_phase4_inventory` validates node emission >0 and stable serialization across frames.
- - Leaves drag & drop, stack splitting, scrolling virtualization, and contextual actions for upcoming 4.2–4.4 work (not partially stubbed to avoid dead code risk).
- - Roadmap updated: 4.1 marked Done (notes remaining sub-features) to reflect delivered minimal vertical slice.
- - Removed debug init logging; cleaned test diagnostics.
-
-Rationale: Establishes reliable baseline before layering interaction complexity, preventing earlier regression cause (struct divergence & failing tests). Next steps: add scrolling row window + basic drag payload emission with dedicated tests.
+Follow-ups (deferred): ghost item rendering during drag, snapback animation, scroll virtualization & context menus (Phase 4.4+).

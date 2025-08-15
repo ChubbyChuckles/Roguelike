@@ -238,38 +238,28 @@ size_t rogue_ui_serialize(const RogueUIContext* ctx, char* buffer, size_t buffer
 
 int rogue_ui_diff_changed(RogueUIContext* ctx){ if(!ctx) return 0; char tmp[1024]; size_t len = rogue_ui_serialize(ctx,tmp,sizeof tmp); uint64_t h = fnv1a64(tmp,len); if(h!=ctx->last_serial_hash){ ctx->last_serial_hash=h; return 1; } return 0; }
 
-/* ---- Phase 4 Minimal Inventory Grid (stateless) ---- */
+static void ui_enqueue(RogueUIContext* ctx,int k,int a,int b,int c){ if(!ctx) return; int next=(ctx->event_tail+1)%32; if(next==ctx->event_head) return; ctx->event_queue[ctx->event_tail].kind=k; ctx->event_queue[ctx->event_tail].a=a; ctx->event_queue[ctx->event_tail].b=b; ctx->event_queue[ctx->event_tail].c=c; ctx->event_tail=next; }
+int rogue_ui_poll_event(RogueUIContext* ctx, RogueUIEvent* out){ if(!ctx||!out) return 0; if(ctx->event_head==ctx->event_tail) return 0; *out=*(RogueUIEvent*)&ctx->event_queue[ctx->event_head]; ctx->event_head=(ctx->event_head+1)%32; return 1; }
+
 int rogue_ui_inventory_grid(RogueUIContext* ctx, RogueUIRect rect, const char* id,
-    int slot_capacity, int columns, const int* item_ids, const int* item_counts,
+    int slot_capacity, int columns, int* item_ids, int* item_counts,
     int cell_size, int* first_visible, int* visible_count){
-    if(!ctx){ return -1; }
-    if(!ctx->frame_active){ /* diagnostic */ fprintf(stderr,"[ui_grid] frame not active\n"); return -1; }
-    if(slot_capacity<=0||columns<=0){ fprintf(stderr,"[ui_grid] bad params cap=%d cols=%d\n",slot_capacity,columns); return -1; }
+    if(!ctx||!ctx->frame_active||slot_capacity<=0||columns<=0) return -1;
     if(cell_size<=0) cell_size=32; if(columns>slot_capacity) columns=slot_capacity;
-    /* rows computed implicitly via iteration; no need to store local row count */
-    /* Outer panel */
-    int root = rogue_ui_panel(ctx,rect, ctx->theme.panel_bg_color);
-    (void)id; /* id unused in minimal version (future: hashed for stable queries) */
+    int root = rogue_ui_panel(ctx,rect, ctx->theme.panel_bg_color); (void)id;
     int start = first_visible? *first_visible:0; if(start<0) start=0; if(start>=slot_capacity) start=0;
-    int max_vis_rows = (int)(rect.h / (float)cell_size);
-    if(max_vis_rows<=0) max_vis_rows=1;
-    int end_slot = start + max_vis_rows*columns; if(end_slot>slot_capacity) end_slot = slot_capacity;
-    if(visible_count) *visible_count = end_slot - start;
-    if(first_visible) *first_visible = start; /* clamp */
-    float pad=2.0f; float spacing=2.0f;
-    for(int s=start; s<end_slot; ++s){
-        int local = s - start;
-        int r = local / columns;
-        int c = local % columns;
-        float x = rect.x + pad + c*(cell_size+spacing);
-        float y = rect.y + pad + r*(cell_size+spacing);
-        RogueUIRect cell_r = {x,y,(float)cell_size,(float)cell_size};
-        int panel = rogue_ui_panel(ctx, cell_r, 0x303038FFu);
-        if(panel>=0 && item_ids && item_counts && item_ids[s]){
-            char tmp[32]; snprintf(tmp,sizeof tmp,"%d", item_counts[s]);
-            RogueUIRect tr = {cell_r.x+2, cell_r.y+2, cell_r.w-4, cell_r.h-4};
-            rogue_ui_text(ctx,tr,tmp, ctx->theme.text_color);
-        }
+    int max_vis_rows=(int)(rect.h/(float)cell_size); if(max_vis_rows<=0) max_vis_rows=1;
+    int end_slot=start+max_vis_rows*columns; if(end_slot>slot_capacity) end_slot=slot_capacity;
+    if(visible_count) *visible_count=end_slot-start; if(first_visible) *first_visible=start;
+    float pad=2.0f, spacing=2.0f; float mx=ctx->input.mouse_x, my=ctx->input.mouse_y; int hovered_slot=-1;
+    for(int s=start; s<end_slot; ++s){ int local=s-start; int r=local/columns; int c=local%columns; float x=rect.x+pad+c*(cell_size+spacing); float y=rect.y+pad+r*(cell_size+spacing); RogueUIRect cell_r={x,y,(float)cell_size,(float)cell_size}; int panel=rogue_ui_panel(ctx,cell_r,0x303038FFu); if(mx>=cell_r.x&&my>=cell_r.y&&mx<cell_r.x+cell_r.w&&my<cell_r.y+cell_r.h) hovered_slot=s; if(panel>=0&&item_ids&&item_counts&&item_ids[s]){ char tmp[32]; snprintf(tmp,sizeof tmp,"%d",item_counts[s]); rogue_ui_text(ctx,(RogueUIRect){cell_r.x+2,cell_r.y+2,cell_r.w-4,cell_r.h-4},tmp,ctx->theme.text_color);} }
+    /* Drag begin */
+    if(!ctx->drag_active && hovered_slot>=0 && ctx->input.mouse_pressed && item_ids && item_ids[hovered_slot]){
+        ctx->drag_active=1; ctx->drag_from_slot=hovered_slot; ctx->drag_item_id=item_ids[hovered_slot]; ctx->drag_item_count=item_counts?item_counts[hovered_slot]:1; ui_enqueue(ctx,ROGUE_UI_EVENT_DRAG_BEGIN,hovered_slot,ctx->drag_item_id,ctx->drag_item_count);
     }
-    return root;
-}
+    /* Drag end */
+    if(ctx->drag_active && ctx->input.mouse_released){ int target=hovered_slot>=0?hovered_slot:ctx->drag_from_slot; if(target>=0&&target<slot_capacity&&item_ids){ if(target!=ctx->drag_from_slot){ int id_a=item_ids[ctx->drag_from_slot]; int ct_a=item_counts?item_counts[ctx->drag_from_slot]:0; int id_b=item_ids[target]; int ct_b=item_counts?item_counts[target]:0; item_ids[target]=id_a; if(item_counts) item_counts[target]=ct_a; item_ids[ctx->drag_from_slot]=id_b; if(item_counts) item_counts[ctx->drag_from_slot]=ct_b; } } ui_enqueue(ctx,ROGUE_UI_EVENT_DRAG_END,ctx->drag_from_slot,target,ctx->drag_item_id); ctx->drag_active=0; ctx->drag_from_slot=-1; ctx->drag_item_id=0; ctx->drag_item_count=0; }
+    /* Stack split open */
+    if(!ctx->stack_split_active && ctx->input.key_ctrl && hovered_slot>=0 && ctx->input.mouse_pressed && item_ids && item_ids[hovered_slot] && item_counts && item_counts[hovered_slot]>1){ ctx->stack_split_active=1; ctx->stack_split_from_slot=hovered_slot; ctx->stack_split_total=item_counts[hovered_slot]; ctx->stack_split_value=ctx->stack_split_total/2; ui_enqueue(ctx,ROGUE_UI_EVENT_STACK_SPLIT_OPEN,hovered_slot,ctx->stack_split_total,ctx->stack_split_value); }
+    if(ctx->stack_split_active){ if(ctx->input.wheel_delta>0){ ctx->stack_split_value++; if(ctx->stack_split_value>=ctx->stack_split_total) ctx->stack_split_value=ctx->stack_split_total-1; } else if(ctx->input.wheel_delta<0){ ctx->stack_split_value--; if(ctx->stack_split_value<1) ctx->stack_split_value=1; } if(ctx->input.key_activate){ int from=ctx->stack_split_from_slot; int move=ctx->stack_split_value; if(item_counts && from>=0 && from<slot_capacity && item_counts[from]>move){ for(int i=0;i<slot_capacity;i++){ if(item_ids[i]==0){ item_ids[i]=item_ids[from]; if(item_counts) item_counts[i]=move; item_counts[from]-=move; ui_enqueue(ctx,ROGUE_UI_EVENT_STACK_SPLIT_APPLY,from,i,move); break; } } } ctx->stack_split_active=0; } else if(ctx->input.mouse_released && ctx->input.mouse_down==0){ ui_enqueue(ctx,ROGUE_UI_EVENT_STACK_SPLIT_CANCEL,ctx->stack_split_from_slot,0,0); ctx->stack_split_active=0; } RogueUIRect m={rect.x+rect.w+8,rect.y,120,48}; int mroot=rogue_ui_panel(ctx,m,0x404048FFu); (void)mroot; char tmp[32]; snprintf(tmp,sizeof tmp,"Split %d/%d",ctx->stack_split_value,ctx->stack_split_total); rogue_ui_text(ctx,(RogueUIRect){m.x+4,m.y+4,m.w-8,16},tmp,ctx->theme.text_color); }
+    return root; }

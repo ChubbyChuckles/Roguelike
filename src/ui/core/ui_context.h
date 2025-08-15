@@ -102,6 +102,13 @@ typedef struct RogueUIContext {
     int chord_count; char pending_chord; double pending_chord_time_ms; double chord_timeout_ms; int last_command_executed;
     /* Input replay */
     int replay_recording; int replay_playing; int replay_count; int replay_cursor; RogueUIInputState replay_buffer[512];
+    /* Phase 4.2 Drag & Drop */
+    int drag_active; int drag_from_slot; int drag_item_id; int drag_item_count;
+    /* Phase 4.3 Stack Split */
+    int stack_split_active; int stack_split_from_slot; int stack_split_total; int stack_split_value;
+    /* Phase 4 event queue */
+    struct { int kind; int a; int b; int c; } event_queue[32];
+    int event_head; int event_tail;
 } RogueUIContext;
 
 int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg);
@@ -213,9 +220,15 @@ const RogueUINode* rogue_ui_find_by_id(const RogueUIContext* ctx, uint32_t id_ha
 /* Phase 4 (Incremental): Minimal inventory grid helper.
     Emits one panel per slot (and optional text node for item count) inside a container panel.
     Scrolling, dragging, and stack splitting deferred to later increments. */
+/* Inventory grid (Phase 4.1-4.3) now supports drag & drop and stack split (CTRL+click). */
 int rogue_ui_inventory_grid(RogueUIContext* ctx, RogueUIRect rect, const char* id,
-     int slot_capacity, int columns, const int* item_ids, const int* item_counts,
-     int cell_size, int* first_visible, int* visible_count);
+    int slot_capacity, int columns, int* item_ids, int* item_counts,
+    int cell_size, int* first_visible, int* visible_count);
+
+/* Phase 4 event kinds */
+enum { ROGUE_UI_EVENT_NONE=0, ROGUE_UI_EVENT_DRAG_BEGIN=1, ROGUE_UI_EVENT_DRAG_END=2, ROGUE_UI_EVENT_STACK_SPLIT_OPEN=3, ROGUE_UI_EVENT_STACK_SPLIT_APPLY=4, ROGUE_UI_EVENT_STACK_SPLIT_CANCEL=5 };
+typedef struct RogueUIEvent { int kind; int a; int b; int c; } RogueUIEvent;
+int rogue_ui_poll_event(RogueUIContext* ctx, RogueUIEvent* out);
 
 #ifdef __cplusplus
 }
