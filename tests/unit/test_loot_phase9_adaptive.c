@@ -18,7 +18,7 @@ int main(void){
     rogue_adaptive_reset();
     /* Load item definitions so record calls resolve categories. */
     rogue_item_defs_reset(); char pitems[256]; assert(rogue_find_asset_path("test_items.cfg", pitems, sizeof pitems));
-    assert(rogue_item_defs_load_from_cfg(pitems) > 0);
+    int loaded = rogue_item_defs_load_from_cfg(pitems); printf("loaded_items=%d\n", loaded); assert(loaded > 0);
     int gold_idx = rogue_item_def_index("gold_coin"); assert(gold_idx>=0);
     int bandage_idx = rogue_item_def_index("bandage"); assert(bandage_idx>=0);
     const RogueItemDef* gold = rogue_item_def_at(gold_idx); const RogueItemDef* band = rogue_item_def_at(bandage_idx);

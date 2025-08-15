@@ -15,6 +15,18 @@ typedef enum RogueWeaponArchetype {
     ROGUE_WEAPON_ARCHETYPE_COUNT
 } RogueWeaponArchetype;
 
+/* Phase 2.1 Damage Types */
+typedef enum RogueDamageType {
+    ROGUE_DMG_PHYSICAL = 0,
+    ROGUE_DMG_BLEED,
+    ROGUE_DMG_FIRE,
+    ROGUE_DMG_FROST,
+    ROGUE_DMG_ARCANE,
+    ROGUE_DMG_POISON,
+    ROGUE_DMG_TRUE,
+    ROGUE_DMG_TYPE_COUNT
+} RogueDamageType;
+
 #define ROGUE_MAX_ATTACK_WINDOWS 4
 
 typedef struct RogueAttackWindow {
@@ -36,7 +48,7 @@ typedef struct RogueAttackDef {
     float stamina_cost;             /* stamina cost when initiating */
     float poise_damage;             /* future: applied to enemy poise */
     float base_damage;              /* additive base before stat scaling */
-    unsigned char damage_type;      /* 0=physical,1=fire,2=frost,3=arcane (temp enum) */
+    unsigned char damage_type;      /* RogueDamageType */
     float str_scale;                /* strength scaling coefficient */
     float dex_scale;                /* dex scaling coefficient */
     float int_scale;                /* intelligence scaling coefficient */

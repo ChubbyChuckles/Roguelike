@@ -37,6 +37,19 @@ typedef struct RoguePlayerCombat {
 #define ROGUE_COMBAT_EVENT_BEGIN_WINDOW 1  /* data = window index */
 #define ROGUE_COMBAT_EVENT_END_WINDOW   2  /* data = window index */
 
+/* Phase 2.7: Damage Event (minimal for now) */
+typedef struct RogueDamageEvent {
+    unsigned short attack_id;   /* from RogueAttackDef->id */
+    unsigned char damage_type;  /* RogueDamageType */
+    unsigned char crit;         /* 1 if crit */
+    int raw_damage;             /* pre-mitigation */
+    int mitigated;              /* final applied */
+    int overkill;               /* amount beyond remaining health */
+} RogueDamageEvent;
+
+/* Apply mitigation (Phase 2 pipeline). Returns final damage >=1 unless health already <=0. */
+int rogue_apply_mitigation_enemy(struct RogueEnemy* e, int raw, unsigned char dmg_type, int *out_overkill);
+
 void rogue_combat_init(RoguePlayerCombat* pc);
 void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_pressed);
 /* Attempt to apply strike damage to enemies during STRIKE phase. Returns kills this frame */

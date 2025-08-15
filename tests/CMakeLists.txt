@@ -243,6 +243,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_block_cancel.c AND NOT TA
     add_test(NAME test_combat_block_cancel COMMAND test_combat_block_cancel)
 endif()
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_mitigation.c AND NOT TARGET test_combat_mitigation)
+    add_executable(test_combat_mitigation unit/test_combat_mitigation.c)
+    target_link_libraries(test_combat_mitigation PRIVATE rogue_core)
+    target_compile_definitions(test_combat_mitigation PRIVATE TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_mitigation PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_mitigation COMMAND test_combat_mitigation)
+endif()
+
 # Explicitly add combat drift timing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_drift_timing.c AND NOT TARGET test_combat_drift_timing)
     add_executable(test_combat_drift_timing unit/test_combat_drift_timing.c)

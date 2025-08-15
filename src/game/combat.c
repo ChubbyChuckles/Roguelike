@@ -12,6 +12,37 @@ void rogue_app_add_hitstop(float ms);
 void rogue_add_damage_number(float x,float y,int amount,int from_player);
 void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int crit);
 
+/* --- Phase 2 Mitigation Helpers ----------------------------------------------------------- */
+static int clampi(int v,int lo,int hi){ if(v<lo) return lo; if(v>hi) return hi; return v; }
+int rogue_apply_mitigation_enemy(RogueEnemy* e, int raw, unsigned char dmg_type, int *out_overkill){
+    if(!e || !e->alive) return 0;
+    int dmg = raw; if(dmg<0) dmg=0;
+    if(dmg_type != ROGUE_DMG_TRUE){
+        /* Flat armor (physical only) then percent resist by type. Penetration not yet per-player (Phase 2.3 partial). */
+        if(dmg_type == ROGUE_DMG_PHYSICAL){
+            int armor = e->armor; if(armor>0){
+                if(armor >= dmg) dmg = (dmg>1?1:dmg); else dmg -= armor; /* flat reduce, floor ensures chip */
+            }
+            int pr = clampi(e->resist_fire,0,90); /* misuse of field? keep physical percent placeholder = fire resist for now if not distinct */
+            if(pr>0){ int reduce = (dmg * pr)/100; dmg -= reduce; }
+        } else {
+            int resist=0;
+            switch(dmg_type){
+                case ROGUE_DMG_FIRE: resist = e->resist_fire; break;
+                case ROGUE_DMG_FROST: resist = e->resist_frost; break;
+                case ROGUE_DMG_ARCANE: resist = e->resist_arcane; break;
+                default: break;
+            }
+            resist = clampi(resist,0,90); if(resist>0){ int reduce=(dmg*resist)/100; dmg -= reduce; }
+        }
+    }
+    if(dmg < 1) dmg = 1; /* minimum floor */
+    int overkill = 0;
+    if(e->health - dmg < 0){ overkill = dmg - e->health; }
+    if(out_overkill) *out_overkill = overkill;
+    return dmg;
+}
+
 void rogue_combat_init(RoguePlayerCombat* pc){
     pc->phase=ROGUE_ATTACK_IDLE; pc->timer=0; pc->combo=0; pc->stamina=100.0f; pc->stamina_regen_delay=0.0f;
     pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0.0f;
@@ -261,9 +292,10 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             float raw = scaled * combo_scale * window_mult;
             int dmg = (int)floorf(raw + 0.5f);
             if(pc->combo>0){ int min_noncrit = (int)floorf(scaled + pc->combo + 0.5f); int hard_cap = (int)floorf(scaled * 1.4f + 0.5f); if(min_noncrit>hard_cap) min_noncrit=hard_cap; if(dmg<min_noncrit) dmg=min_noncrit; }
-            enemies[i].health -= dmg; enemies[i].hurt_timer=150.0f; enemies[i].flash_timer=70.0f; pc->hit_confirmed=1;
-            /* Spawn golden (player) damage number (non-crit flag for now; crit logic will extend) */
-            rogue_add_damage_number_ex(ex, ey - 0.25f, dmg, 1, 0);
+            int overkill=0;
+            int final_dmg = rogue_apply_mitigation_enemy(&enemies[i], dmg, def?def->damage_type:ROGUE_DMG_PHYSICAL, &overkill);
+            enemies[i].health -= final_dmg; enemies[i].hurt_timer=150.0f; enemies[i].flash_timer=70.0f; pc->hit_confirmed=1;
+            rogue_add_damage_number_ex(ex, ey - 0.25f, final_dmg, 1, 0);
             /* Accumulate status buildup placeholders (future: move to status system). */
             if(bleed_build>0){ enemies[i].bleed_buildup += bleed_build; }
             if(frost_build>0){ enemies[i].frost_buildup += frost_build; }

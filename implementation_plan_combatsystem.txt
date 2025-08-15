@@ -51,14 +51,14 @@ PHASE 1A. Temporal & Animation Sync Enhancements
 	- Fixed combo scaling test regression earlier by resetting processed_window_mask when strike_time resets (enables repeated isolated measurement without multi-hit gating).
 
 PHASE 2. Damage & Mitigation Pipeline
-2.1 Damage types (physical, bleed, fire, frost, arcane, poison, true) (X)
-2.2 Defense stats: armor (physical), resist(type), flat & percent reduction (X)
-2.3 Penetration model (flat + percent; order: flat→armor→percent) (X)
+2.1 Damage types (physical, bleed, fire, frost, arcane, poison, true) (Done: enum RogueDamageType added; attack defs map to types)
+2.2 Defense stats: armor (physical), resist(type), flat & percent reduction (Partial: enemy/player struct fields added; percent resist applied for fire/frost/arcane; physical percent placeholder uses fire resist field until dedicated field added; flat armor applied before percent)
+2.3 Penetration model (flat + percent; order: flat→armor→percent) (Partial: struct fields for player pen_flat/pen_percent added; not yet applied in mitigation function)
 2.4 Crit layering refactor: pre- vs post-mitigation toggles; additive vs multiplicative stacking audit (X)
-2.5 Minimum damage floor logic (post mitigation) (X)
-2.6 Overkill capture & execution triggers (X)
-2.7 Damage event struct (for logging, replay, network) (X)
-2.8 Tests: mitigation order correctness, penetration stacking, crit vs armor invariants (X)
+2.5 Minimum damage floor logic (post mitigation) (Done: enforced floor >=1 in rogue_apply_mitigation_enemy)
+2.6 Overkill capture & execution triggers (Partial: overkill amount computed in mitigation helper; execution trigger logic pending)
+2.7 Damage event struct (for logging, replay, network) (Partial: RogueDamageEvent struct defined; not yet populated/emitted)
+2.8 Tests: mitigation order correctness, penetration stacking, crit vs armor invariants (Partial: test_combat_mitigation covers armor flat->percent order, resist fire 50%, min floor)
 
 PHASE 3. Stamina, Poise, Encumbrance & Hyper Armor
 3.1 Separate Stamina vs Guard Meter vs Poise (temporary stability buffer) (X)

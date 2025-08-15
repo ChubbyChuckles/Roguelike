@@ -49,6 +49,15 @@ typedef struct RoguePlayer
     int intelligence;
     int crit_chance;   /* percent (0-100) additional flat crit chance */
     int crit_damage;   /* percent bonus over 100; e.g. 50 => 1.5x */
+    /* --- Phase 2 Mitigation / Penetration Stats (baseline) --- */
+    int armor;         /* flat physical mitigation base */
+    int resist_fire;   /* percent 0-90 */
+    int resist_frost;  /* percent 0-90 */
+    int resist_arcane; /* percent 0-90 */
+    int resist_bleed;  /* placeholder */
+    int resist_poison; /* placeholder */
+    int pen_flat;      /* flat armor penetration */
+    int pen_percent;   /* percent armor penetration (0-100) */
 } RoguePlayer;
 
 void rogue_player_init(RoguePlayer* p);
