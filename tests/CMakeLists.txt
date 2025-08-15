@@ -206,6 +206,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_context_menu.c AND NOT
     add_test(NAME test_ui_phase4_context_menu COMMAND test_ui_phase4_context_menu)
 endif()
 
+# UI Phase 4.5 stat delta preview test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_stat_preview.c AND NOT TARGET test_ui_phase4_stat_preview)
+    add_executable(test_ui_phase4_stat_preview unit/test_ui_phase4_stat_preview.c)
+    target_link_libraries(test_ui_phase4_stat_preview PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ui_phase4_stat_preview PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ui_phase4_stat_preview COMMAND test_ui_phase4_stat_preview)
+endif()
+
 # Explicitly add vendor restock rotation test (10.3)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_restock.c AND NOT TARGET test_vendor_restock)
     add_executable(test_vendor_restock unit/test_vendor_restock.c)

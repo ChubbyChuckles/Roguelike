@@ -46,7 +46,7 @@ PHASE 4. Inventory / Equipment / Vendor Interfaces
 4.2 Drag & drop (payload struct, ghost rendering, snapback) (Done: basic drag state, swap, events; ghost rendering/snapback animation TBD)
 4.3 Stack split UI (modal numeric adjust) (Done: CTRL+click open, wheel adjust, apply/cancel events)
 4.4 Context menus (equip, salvage, compare) (Done: basic right-click open, keyboard navigate, select/cancel events)
-4.5 Inline stat delta preview (green/red diff) (X)
+4.5 Inline stat delta preview (green/red diff) (Done: basic damage delta panel on hover with events STAT_PREVIEW_SHOW/HIDE; future: full equipment comparison, multiple stats)
 4.6 Price / rarity color theming integrated (Partial: rarity colors exist)
 4.7 Vendor restock timer bar & progress (X)
 4.8 Transaction confirmation & insufficient funds UX (X)

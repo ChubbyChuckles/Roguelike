@@ -113,6 +113,8 @@ typedef struct RogueUIContext {
     int event_head; int event_tail;
     /* Phase 4.4 Context Menu */
     int ctx_menu_active; int ctx_menu_slot; int ctx_menu_selection;
+    /* Phase 4.5 Inline Stat Delta Preview */
+    int stat_preview_slot; /* hovered slot last frame for which preview was generated (-1 if none) */
 } RogueUIContext;
 
 int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg);
@@ -231,7 +233,8 @@ int rogue_ui_inventory_grid(RogueUIContext* ctx, RogueUIRect rect, const char* i
 
 /* Phase 4 event kinds */
 enum { ROGUE_UI_EVENT_NONE=0, ROGUE_UI_EVENT_DRAG_BEGIN=1, ROGUE_UI_EVENT_DRAG_END=2, ROGUE_UI_EVENT_STACK_SPLIT_OPEN=3, ROGUE_UI_EVENT_STACK_SPLIT_APPLY=4, ROGUE_UI_EVENT_STACK_SPLIT_CANCEL=5,
-       ROGUE_UI_EVENT_CONTEXT_OPEN=6, ROGUE_UI_EVENT_CONTEXT_SELECT=7, ROGUE_UI_EVENT_CONTEXT_CANCEL=8 };
+       ROGUE_UI_EVENT_CONTEXT_OPEN=6, ROGUE_UI_EVENT_CONTEXT_SELECT=7, ROGUE_UI_EVENT_CONTEXT_CANCEL=8,
+       ROGUE_UI_EVENT_STAT_PREVIEW_SHOW=9, ROGUE_UI_EVENT_STAT_PREVIEW_HIDE=10 };
 typedef struct RogueUIEvent { int kind; int a; int b; int c; } RogueUIEvent;
 int rogue_ui_poll_event(RogueUIContext* ctx, RogueUIEvent* out);
 

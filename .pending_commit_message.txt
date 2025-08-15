@@ -1,12 +1,12 @@
-UI: Implement Phase 4.4 Inventory Context Menu
+UI Phase 4.5: Inline stat delta preview implemented
 
-Details:
-- Extended `RogueUIInputState` with secondary mouse button fields (mouse2_pressed/released).
-- Added context menu state to `RogueUIContext` (active flag, slot, selection index).
-- Added new UI events: CONTEXT_OPEN, CONTEXT_SELECT, CONTEXT_CANCEL (enum values 6-8).
-- Integrated context menu handling into `rogue_ui_inventory_grid`: right-click opens, arrow keys navigate, Activate selects, outside left-click cancels.
-- Simple rendered menu panel with highlighted selection and items: Equip / Salvage / Compare / Cancel.
-- New unit test `test_ui_phase4_context_menu` validating open, keyboard navigation (down/down), selection (Compare index=2), and cancel path via outside click.
-- Roadmap updated (Phase 4.4 marked Done) and README updated with context menu description.
+Summary:
+- Added stat delta preview panel to `rogue_ui_inventory_grid` (simple damage proxy via item_id heuristic) with colored delta (green/red/gray).
+- Introduced new events ROGUE_UI_EVENT_STAT_PREVIEW_SHOW / _HIDE and context state `stat_preview_slot`.
+- Extended event enum and initialized state in UI context init.
+- Added unit test `test_ui_phase4_stat_preview` covering show on hover, update between slots, and hide on exit.
+- Updated roadmap marking 4.5 Done and README UI section with feature description.
 
-Follow-ups: integrate actions with real inventory/equipment systems, add controller radial variant (Phase 4.10), and hook rarity color theming per option.
+Notes / Future:
+- Placeholder comparison logic (uses item id modulus) to be replaced with real equipment stat diff (weapon damage, armor, affixes) in later phases.
+- Will expand to multi-line aggregated stat categories and rarity-influenced styling alongside Phase 4.6 completion.

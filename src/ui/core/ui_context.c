@@ -12,6 +12,7 @@ int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg){
     memset(ctx,0,sizeof *ctx);
     int cap = cfg->max_nodes>0? cfg->max_nodes:128;
     ctx->nodes = (RogueUINode*)calloc((size_t)cap,sizeof(RogueUINode));
+        ctx->stat_preview_slot = -1; // Initialize stat_preview_slot
     if(!ctx->nodes) return 0;
     ctx->node_capacity = cap;
     ctx->rng_state = cfg->seed? cfg->seed: 0xC0FFEEu;
@@ -280,4 +281,23 @@ int rogue_ui_inventory_grid(RogueUIContext* ctx, RogueUIRect rect, const char* i
     /* Stack split open */
     if(!ctx->stack_split_active && ctx->input.key_ctrl && hovered_slot>=0 && ctx->input.mouse_pressed && item_ids && item_ids[hovered_slot] && item_counts && item_counts[hovered_slot]>1){ ctx->stack_split_active=1; ctx->stack_split_from_slot=hovered_slot; ctx->stack_split_total=item_counts[hovered_slot]; ctx->stack_split_value=ctx->stack_split_total/2; ui_enqueue(ctx,ROGUE_UI_EVENT_STACK_SPLIT_OPEN,hovered_slot,ctx->stack_split_total,ctx->stack_split_value); }
     if(ctx->stack_split_active){ if(ctx->input.wheel_delta>0){ ctx->stack_split_value++; if(ctx->stack_split_value>=ctx->stack_split_total) ctx->stack_split_value=ctx->stack_split_total-1; } else if(ctx->input.wheel_delta<0){ ctx->stack_split_value--; if(ctx->stack_split_value<1) ctx->stack_split_value=1; } if(ctx->input.key_activate){ int from=ctx->stack_split_from_slot; int move=ctx->stack_split_value; if(item_counts && from>=0 && from<slot_capacity && item_counts[from]>move){ for(int i=0;i<slot_capacity;i++){ if(item_ids[i]==0){ item_ids[i]=item_ids[from]; if(item_counts) item_counts[i]=move; item_counts[from]-=move; ui_enqueue(ctx,ROGUE_UI_EVENT_STACK_SPLIT_APPLY,from,i,move); break; } } } ctx->stack_split_active=0; } else if(ctx->input.mouse_released && ctx->input.mouse_down==0){ ui_enqueue(ctx,ROGUE_UI_EVENT_STACK_SPLIT_CANCEL,ctx->stack_split_from_slot,0,0); ctx->stack_split_active=0; } RogueUIRect m={rect.x+rect.w+8,rect.y,120,48}; int mroot=rogue_ui_panel(ctx,m,0x404048FFu); (void)mroot; char tmp[32]; snprintf(tmp,sizeof tmp,"Split %d/%d",ctx->stack_split_value,ctx->stack_split_total); rogue_ui_text(ctx,(RogueUIRect){m.x+4,m.y+4,m.w-8,16},tmp,ctx->theme.text_color); }
+
+    /* Inline stat delta preview (Phase 4.5) – simplistic placeholder:
+       When hovering an occupied slot, show a small panel with item's base damage or armor and a delta vs. a baseline (previous hovered item).
+       In real integration this would compare against equipped item of same slot; here we simulate by tracking last hovered slot stats. */
+    int show_preview = (hovered_slot>=0 && item_ids && item_ids[hovered_slot]);
+    if(show_preview){
+        int cur_slot = hovered_slot;
+        if(ctx->stat_preview_slot != cur_slot){ ui_enqueue(ctx,ROGUE_UI_EVENT_STAT_PREVIEW_SHOW,cur_slot,0,0); ctx->stat_preview_slot = cur_slot; }
+        /* Acquire fake stats: use item_id as proxy for base value for deterministic test (id % 100 as damage, id / 100 as armor). */
+        int item_id = item_ids[cur_slot];
+        int dmg = item_id % 100; int armor = item_id / 100; (void)armor;
+        int prev_item_id = (ctx->drag_active && ctx->drag_from_slot>=0)? item_ids[ctx->drag_from_slot] : (ctx->stat_preview_slot==cur_slot? item_id : item_id); /* simplified */
+        int prev_dmg = prev_item_id % 100;
+        int delta = dmg - prev_dmg;
+        char line[64]; snprintf(line,sizeof line,"DMG %d (%+d)", dmg, delta);
+        uint32_t col = 0x808080FFu; if(delta>0) col=0x30A050FFu; else if(delta<0) col=0xA03030FFu;
+        RogueUIRect pr={rect.x+rect.w+8, rect.y+ (ctx->stack_split_active?56: (ctx->ctx_menu_active? (float)(16*5+8):0)), 110, 20};
+        rogue_ui_panel(ctx,pr,0x202028FFu); rogue_ui_text(ctx,(RogueUIRect){pr.x+4,pr.y+2,pr.w-8,pr.h-4},line,col);
+    } else if(ctx->stat_preview_slot!=-1){ ui_enqueue(ctx,ROGUE_UI_EVENT_STAT_PREVIEW_HIDE,ctx->stat_preview_slot,0,0); ctx->stat_preview_slot=-1; }
     return root; }

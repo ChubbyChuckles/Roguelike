@@ -165,6 +165,7 @@ See full, fine‑grained roadmap in `implementation_plan.txt` (kept continuously
 * Phase 4.2 Drag & Drop: Added drag state (begin/end events), slot swapping (including empty target), and event queue API (`rogue_ui_poll_event`). Covered by expanded unit test `test_ui_phase4_drag_stack` (drag begin/end, swap correctness, drag to empty).
 * Phase 4.3 Stack Split Modal: CTRL+click opens split modal (half default), mouse wheel adjusts quantity (clamped 1..n-1), Activate key applies creating new stack in first empty slot, mouse release outside without activation cancels. Events emitted: OPEN/APPLY/CANCEL (validated in `test_ui_phase4_drag_stack`).
 * Phase 4.4 Context Menu: Right-click on occupied slot opens menu (Equip/Salvage/Compare/Cancel). Up/Down navigates, Activate selects (emits CONTEXT_SELECT) or Cancel closes (CONTEXT_CANCEL). Unit test `test_ui_phase4_context_menu` validates open, selection (Compare), and cancel via outside click.
+* Phase 4.5 Inline Stat Delta Preview: Hovering an occupied slot produces a compact panel to the side showing a simple damage value and delta (colored green/red/gray). Emits STAT_PREVIEW_SHOW when a new slot hover begins and STAT_PREVIEW_HIDE when leaving inventory items. Covered by new unit test `test_ui_phase4_stat_preview`.
 
 #### Loot Foundations (Phases 1–4)
 * Item definition parser tolerant to optional later-added rarity column (backward compatibility).
