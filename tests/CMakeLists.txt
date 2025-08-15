@@ -14,6 +14,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_left_facing.c AND NOT TAR
     add_test(NAME test_combat_left_facing COMMAND test_combat_left_facing)
 endif()
 
+# Phase 5.1 hitbox primitive test (explicit add to avoid glob cache issues)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase5_hitbox_primitives.c AND NOT TARGET test_combat_phase5_hitbox_primitives)
+    add_executable(test_combat_phase5_hitbox_primitives unit/test_combat_phase5_hitbox_primitives.c)
+    target_link_libraries(test_combat_phase5_hitbox_primitives PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase5_hitbox_primitives PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase5_hitbox_primitives COMMAND test_combat_phase5_hitbox_primitives)
+endif()
+
 # Explicit heavy multi-window test (heavy_2 triple window validation)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_heavy_multi_window.c AND NOT TARGET test_combat_heavy_multi_window)
     add_executable(test_combat_heavy_multi_window unit/test_combat_heavy_multi_window.c)

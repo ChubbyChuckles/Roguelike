@@ -82,7 +82,7 @@ PHASE 4. Hit Reactions & Crowd Control Integration
 4.6 Tests: reaction selection determinism, i-frame overlap protection, DI effect bounds (Expanded: selection & i-frame in `test_combat_phase4_reactions`; CC gating in `test_combat_phase4_cc`; `test_combat_phase4_reaction_cancel_di` (cancel window & DI clamp); new `test_combat_phase4_iframe_overlap` validating non-stacking i-frame grant (max replacement) and immunity during remaining frames. Remaining optional: launch aerial DI nuance.)
 
 PHASE 5. Spatial Targeting & Hit Detection
-5.1 Hitbox volume types: capsule, swept arc, multi-segment chain, projectile spawn descriptors (X)
+5.1 Hitbox volume types: capsule, swept arc, multi-segment chain, projectile spawn descriptors (Done: Added `hitbox.h/.c` with POD primitives + union `RogueHitbox`; implemented point intersection for capsule (segment distance), arc (angle & radial band with wrap handling + optional inner_radius for ring sectors), chain (capsule per-segment), and descriptive projectile spawn descriptor (angles computed evenly across spread). Provided builder helpers + chain mutator + projectile angle helper. Added unit test `test_combat_phase5_hitbox_primitives` covering inclusion/exclusion cases, inner radius hole, chain segment coverage, and projectile spread endpoints + center. No gameplay integration yet—pure primitives foundation for 5.2 authoring & 5.3 broadphase.)
 5.2 Authoring tool: JSON or binary layout for hitbox frames (X)
 5.3 Broadphase culling (grid / BVH reuse) for candidate entities (X)
 5.4 Friendly fire & team filter mask (X)
