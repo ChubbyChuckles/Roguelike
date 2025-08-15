@@ -173,8 +173,17 @@ void rogue_enemy_system_update(float dt_ms){
                 float emult = 1.0f + (float)e->crit_damage * 0.01f; if(emult>3.0f) emult=3.0f;
                 dmg = (int)floorf(dmg * emult + 0.5f);
             }
-            g_app.player.health -= dmg; if(g_app.player.health<0) g_app.player.health=0; e->hurt_timer=200.0f; g_app.time_since_player_hit_ms = 0.0f;
-            rogue_add_damage_number_ex(g_app.player.base.pos.x, g_app.player.base.pos.y - 0.2f, dmg, 0, ecrit);
+            /* Apply guard / perfect guard pipeline */
+            int blocked=0, perfect=0; float adx = -pdx; float ady = -pdy; /* direction from enemy to player -> incoming */
+            int final = rogue_player_apply_incoming_melee(&g_app.player, (float)dmg, adx, ady, &blocked, &perfect);
+            if(final>0){ g_app.player.health -= final; if(g_app.player.health<0) g_app.player.health=0; }
+            if(blocked){
+                /* Show chip damage differently (crit flag off for chip). Perfect guard shows zero damage (skip number if zero). */
+                if(final>0) rogue_add_damage_number_ex(g_app.player.base.pos.x, g_app.player.base.pos.y - 0.2f, final, 0, 0);
+            } else {
+                rogue_add_damage_number_ex(g_app.player.base.pos.x, g_app.player.base.pos.y - 0.2f, final, 0, ecrit);
+            }
+            e->hurt_timer=200.0f; g_app.time_since_player_hit_ms = 0.0f;
             e->attack_cooldown_ms = 1050.0f + (float)(rand()%700);
         }
         if(e->health<=0 && e->ai_state != ROGUE_ENEMY_AI_DEAD){

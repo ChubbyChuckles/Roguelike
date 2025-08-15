@@ -81,6 +81,25 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
 int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, RogueEnemy enemies[], int enemy_count);
 /* Pop (consume) queued combat events into caller-provided buffer; returns number copied. */
 int rogue_combat_consume_events(RoguePlayerCombat* pc, struct RogueCombatEvent* out_events, int max_events);
+/* --- Phase 3.8 Guard / 3.9 Perfect Guard / 3.10 Poise Regen Curve APIs --- */
+/* Begin guarding (directional block). Passing guard_dir (0..3 same as facing) caches facing; returns 1 if guard started. */
+int rogue_player_begin_guard(RoguePlayer* p, int guard_dir);
+/* Update guard state each frame (dt_ms). Should be called from main loop. Returns chip damage blocked this frame (for tests). */
+int rogue_player_update_guard(RoguePlayer* p, float dt_ms);
+/* Attempt to apply incoming enemy melee damage with guard / perfect guard logic. Returns final applied damage to health. */
+int rogue_player_apply_incoming_melee(RoguePlayer* p, float raw_damage, float attack_dir_x, float attack_dir_y, int *out_blocked, int *out_perfect);
+/* Poise regeneration tick (Phase 3.10) separate to allow tests to drive deterministically. */
+void rogue_player_poise_regen_tick(RoguePlayer* p, float dt_ms);
+/* Tunables (could move to config later) */
+#define ROGUE_GUARD_CONE_DOT 0.25f            /* minimum dot(facing, incoming) to count as frontal */
+#define ROGUE_GUARD_CHIP_PCT 0.20f            /* chip damage percent of mitigated damage (min 1) */
+#define ROGUE_GUARD_METER_DRAIN_ON_BLOCK 50.0f/* guard meter drain per successful block */
+#define ROGUE_GUARD_METER_DRAIN_HOLD_PER_MS 0.045f /* passive drain while holding guard */
+#define ROGUE_GUARD_METER_RECOVER_PER_MS 0.030f    /* regen when not guarding */
+#define ROGUE_PERFECT_GUARD_REFUND 35.0f      /* guard meter refunded on perfect guard */
+#define ROGUE_PERFECT_GUARD_POISE_BONUS 20.0f /* poise restored on perfect */
+#define ROGUE_POISE_REGEN_BASE_PER_MS 0.015f  /* base poise regen after delay */
+#define ROGUE_POISE_REGEN_DELAY_AFTER_HIT 650.0f /* ms delay after poise damage */
 
 /* Data-driven attack helpers */
 void rogue_combat_set_archetype(RoguePlayerCombat* pc, RogueWeaponArchetype arch);

@@ -354,6 +354,26 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase3_def_softcap.c AND 
     add_test(NAME test_combat_phase3_def_softcap COMMAND test_combat_phase3_def_softcap)
 endif()
 
+# Phase 3.8 guard blocking & perfect guard test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase3_guard_block.c AND NOT TARGET test_combat_phase3_guard_block)
+    add_executable(test_combat_phase3_guard_block unit/test_combat_phase3_guard_block.c)
+    target_link_libraries(test_combat_phase3_guard_block PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase3_guard_block PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase3_guard_block COMMAND test_combat_phase3_guard_block)
+endif()
+
+# Phase 3.10 poise regen curve test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase3_poise_regen_curve.c AND NOT TARGET test_combat_phase3_poise_regen_curve)
+    add_executable(test_combat_phase3_poise_regen_curve unit/test_combat_phase3_poise_regen_curve.c)
+    target_link_libraries(test_combat_phase3_poise_regen_curve PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_phase3_poise_regen_curve PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_phase3_poise_regen_curve COMMAND test_combat_phase3_poise_regen_curve)
+endif()
+
 # Explicitly add combat drift timing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_drift_timing.c AND NOT TARGET test_combat_drift_timing)
     add_executable(test_combat_drift_timing unit/test_combat_drift_timing.c)

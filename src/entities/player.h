@@ -68,6 +68,11 @@ typedef struct RoguePlayer
     float encumbrance;       /* current total equipped weight */
     float encumbrance_capacity; /* capacity before overload */
     int encumbrance_tier;    /* 0=light,1=medium,2=heavy,3=overloaded */
+    /* --- Phase 3.8+ Guard / Parry additions --- */
+    int guarding;            /* 1 if currently holding guard */
+    float guard_active_time_ms; /* time spent in current guard state */
+    float perfect_guard_window_ms; /* cached window threshold (configurable) */
+    float poise_regen_delay_ms; /* delay before poise begins regenerating after damage */
 } RoguePlayer;
 
 void rogue_player_init(RoguePlayer* p);

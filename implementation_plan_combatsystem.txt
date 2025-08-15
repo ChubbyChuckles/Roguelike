@@ -68,10 +68,10 @@ PHASE 3. Stamina, Poise, Encumbrance & Hyper Armor
 3.5 Dynamic stamina tax scaling with encumbrance tiers (light/med/heavy/overloaded) (Done: regen multiplier applied in combat update: 1.0 / 0.92 / 0.80 / 0.60; verified via `test_combat_phase3_encumbrance` decreasing regen values.)
 3.6 Soft cap on stacking defensive weight: diminishing returns curve on effective damage negation (Done: implemented combined physical reduction soft cap after armor+percent resist with threshold=65%, slope=0.45 for excess, max=85%; respects raw>=100 guard. Test `test_combat_phase3_def_softcap` validates cap behavior.)
 3.7 Tests: encumbrance tier transitions, stamina regen under load, i-frame reduction bounds, DR curve monotonicity (Partial: added `test_combat_phase3_guard_poise`, `test_combat_phase3_encumbrance`, `test_combat_phase3_poise_stagger`, `test_combat_phase3_hyper_armor`, `test_combat_phase3_def_softcap`; i-frame & future defensive weight curve refinements and actual hyper armor immunity tests pending.)
-3.8 Guard (blocking) state: directional reduction cone + chip damage (X)
-3.9 Perfect guard (parry timing window) producing posture break on attacker (X)
-3.10 Poise regen curve (delay + accelerated early regen) (X)
-3.11 Tests: stagger on threshold, hyper armor immunity, guard cone edge, perfect guard frame tolerance (X)
+3.8 Guard (blocking) state: directional reduction cone + chip damage (Done: implemented `rogue_player_begin_guard`, `rogue_player_apply_incoming_melee` with frontal cone dot>=0.25, chip damage 20%, guard meter drain holding + on block, integration in enemy melee; test `test_combat_phase3_guard_block` covers frontal block, perfect guard, chip, rear attack bypass.)
+3.9 Perfect guard (parry timing window) producing posture break on attacker (Done: perfect window first 140ms of guard; perfect guard negates damage, refunds guard meter, restores poise bonus; test asserts perfect behavior; future attacker posture impact deferred.)
+3.10 Poise regen curve (delay + accelerated early regen) (Done: quadratic early missing% scaling in `rogue_player_poise_regen_tick`, delay reset on taking damage; test `test_combat_phase3_poise_regen_curve` validates stronger low-poise recovery.)
+3.11 Tests: stagger on threshold, hyper armor immunity, guard cone edge, perfect guard frame tolerance (Partial: guard cone & perfect window validated; stagger & hyper armor immunity pending window flag authoring; need dedicated guard cone edge precision & hyper armor poise ignore tests.)
 
 PHASE 4. Hit Reactions & Crowd Control Integration
 4.1 Reaction categories: light flinch, medium stagger, heavy knockdown, launch (X)

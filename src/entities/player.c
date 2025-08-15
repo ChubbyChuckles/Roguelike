@@ -53,6 +53,9 @@ void rogue_player_init(RoguePlayer* p)
     p->guard_meter_max = 100.0f; p->guard_meter = p->guard_meter_max;
     p->poise_max = 60.0f; p->poise = p->poise_max;
     p->encumbrance_capacity = 50.0f; p->encumbrance = 0.0f; p->encumbrance_tier=0;
+    /* Guard / parry fields */
+    p->guarding = 0; p->guard_active_time_ms = 0.0f; p->perfect_guard_window_ms = 140.0f; /* first 140ms counts as perfect */
+    p->poise_regen_delay_ms = 0.0f;
     rogue_player_recalc_derived(p);
 }
 

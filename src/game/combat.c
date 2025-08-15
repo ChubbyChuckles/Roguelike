@@ -433,3 +433,38 @@ void rogue_combat_set_archetype(RoguePlayerCombat* pc, RogueWeaponArchetype arch
 RogueWeaponArchetype rogue_combat_current_archetype(const RoguePlayerCombat* pc){ return pc? pc->archetype : ROGUE_WEAPON_LIGHT; }
 int rogue_combat_current_chain_index(const RoguePlayerCombat* pc){ return pc? pc->chain_index : 0; }
 void rogue_combat_queue_branch(RoguePlayerCombat* pc, RogueWeaponArchetype branch_arch){ if(!pc) return; pc->queued_branch_archetype = branch_arch; pc->queued_branch_pending=1; }
+
+/* ---------------- Phase 3.8 Guard / 3.9 Perfect Guard / 3.10 Poise Regen Curve ---------------- */
+static void rogue_player_face(RoguePlayer* p, int dir){ if(!p) return; if(dir<0||dir>3) return; p->facing = dir; }
+int rogue_player_begin_guard(RoguePlayer* p, int guard_dir){ if(!p) return 0; if(p->guard_meter <= 0.0f){ p->guarding=0; return 0; } p->guarding=1; p->guard_active_time_ms = 0.0f; rogue_player_face(p,guard_dir); return 1; }
+int rogue_player_update_guard(RoguePlayer* p, float dt_ms){ if(!p) return 0; int chip=0; if(p->guarding){ p->guard_active_time_ms += dt_ms; p->guard_meter -= dt_ms * ROGUE_GUARD_METER_DRAIN_HOLD_PER_MS; if(p->guard_meter <= 0.0f){ p->guard_meter=0.0f; p->guarding=0; } } else { p->guard_meter += dt_ms * ROGUE_GUARD_METER_RECOVER_PER_MS; if(p->guard_meter > p->guard_meter_max) p->guard_meter = p->guard_meter_max; }
+    rogue_player_poise_regen_tick(p, dt_ms);
+    return chip; }
+/* Compute player's facing unit vector */
+static void rogue_player_facing_dir(const RoguePlayer* p, float* dx,float*dy){ switch(p->facing){ case 0:*dx=0;*dy=1;break; case 1:*dx=-1;*dy=0;break; case 2:*dx=1;*dy=0;break; case 3:*dx=0;*dy=-1;break; default:*dx=0;*dy=1;break; } }
+int rogue_player_apply_incoming_melee(RoguePlayer* p, float raw_damage, float attack_dir_x, float attack_dir_y, int *out_blocked, int *out_perfect){
+    if(out_blocked) *out_blocked=0; if(out_perfect) *out_perfect=0; if(!p) return (int)raw_damage;
+    if(raw_damage < 0) raw_damage = 0;
+    float fdx,fdy; rogue_player_facing_dir(p,&fdx,&fdy);
+    /* Normalize incoming attack dir */
+    float alen = sqrtf(attack_dir_x*attack_dir_x + attack_dir_y*attack_dir_y); if(alen>0.0001f){ attack_dir_x/=alen; attack_dir_y/=alen; }
+    float dot = fdx*attack_dir_x + fdy*attack_dir_y; int blocked = 0; int perfect = 0;
+    if(p->guarding && p->guard_meter > 0.0f && dot >= ROGUE_GUARD_CONE_DOT){
+        blocked = 1;
+        perfect = (p->guard_active_time_ms <= p->perfect_guard_window_ms)?1:0;
+        float chip = raw_damage * ROGUE_GUARD_CHIP_PCT; if(chip < 1.0f) chip = (raw_damage>0)?1.0f:0.0f;
+        if(perfect){ chip = 0.0f; p->guard_meter += ROGUE_PERFECT_GUARD_REFUND; if(p->guard_meter>p->guard_meter_max) p->guard_meter = p->guard_meter_max; p->poise += ROGUE_PERFECT_GUARD_POISE_BONUS; if(p->poise>p->poise_max) p->poise=p->poise_max; }
+        else { p->guard_meter -= ROGUE_GUARD_METER_DRAIN_ON_BLOCK; if(p->guard_meter < 0.0f) p->guard_meter = 0.0f; }
+        if(out_blocked) *out_blocked = 1; if(perfect && out_perfect) *out_perfect = 1;
+        return (int)chip;
+    }
+    /* Not blocked: apply full raw damage */
+    p->poise_regen_delay_ms = ROGUE_POISE_REGEN_DELAY_AFTER_HIT; /* hitting player delays poise regen */
+    return (int)raw_damage;
+}
+void rogue_player_poise_regen_tick(RoguePlayer* p, float dt_ms){ if(!p) return; if(p->poise_regen_delay_ms>0){ p->poise_regen_delay_ms -= dt_ms; if(p->poise_regen_delay_ms<0) p->poise_regen_delay_ms=0; }
+    if(p->poise_regen_delay_ms<=0 && p->poise < p->poise_max){ /* Non-linear early burst then taper: use ratio curve */
+        float missing = p->poise_max - p->poise; float ratio = missing / p->poise_max; if(ratio<0) ratio=0; if(ratio>1) ratio=1;
+        float regen = (ROGUE_POISE_REGEN_BASE_PER_MS * dt_ms) * (1.0f + 1.75f * ratio * ratio); /* quadratic emphasis when low */
+        p->poise += regen; if(p->poise > p->poise_max) p->poise = p->poise_max; }
+}
