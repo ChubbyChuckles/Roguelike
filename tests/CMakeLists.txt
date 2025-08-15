@@ -284,6 +284,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_crit_layering.c AND NOT T
     add_test(NAME test_combat_crit_layering COMMAND test_combat_crit_layering)
 endif()
 
+# Phase 2.6 execution trigger test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_execution.c AND NOT TARGET test_combat_execution)
+    add_executable(test_combat_execution unit/test_combat_execution.c)
+    target_link_libraries(test_combat_execution PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_execution PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_execution COMMAND test_combat_execution)
+endif()
+
 # Explicitly add combat drift timing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_drift_timing.c AND NOT TARGET test_combat_drift_timing)
     add_executable(test_combat_drift_timing unit/test_combat_drift_timing.c)

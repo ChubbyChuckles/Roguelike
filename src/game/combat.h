@@ -45,15 +45,24 @@ typedef struct RogueDamageEvent {
     int raw_damage;             /* pre-mitigation */
     int mitigated;              /* final applied */
     int overkill;               /* amount beyond remaining health */
+    unsigned char execution;    /* 1 if execution trigger (Phase 2.6) */
 } RogueDamageEvent;
 
 /* Simple global ring buffer for recent damage events (Phase 2.7) */
 #define ROGUE_DAMAGE_EVENT_CAP 64
 extern RogueDamageEvent g_damage_events[ROGUE_DAMAGE_EVENT_CAP];
 extern int g_damage_event_head; /* next write index */
-void rogue_damage_event_record(unsigned short attack_id, unsigned char dmg_type, unsigned char crit, int raw, int mitig, int overkill);
+extern int g_damage_event_total; /* total events recorded (unbounded) */
+void rogue_damage_event_record(unsigned short attack_id, unsigned char dmg_type, unsigned char crit, int raw, int mitig, int overkill, unsigned char execution);
+/* Consumer APIs (Phase 2.7): snapshot recent events in chronological order (oldest->newest). Returns count copied. */
+int rogue_damage_events_snapshot(RogueDamageEvent* out, int max_events);
+/* Clear all stored events (useful for tests). */
+void rogue_damage_events_clear(void);
 /* Crit layering mode (Phase 2.4): 0=crit multiplier applied pre-mitigation (default), 1=post-mitigation */
 extern int g_crit_layering_mode;
+/* Execution trigger thresholds (tunable). If enemy health prior to hit <= EXEC_HEALTH_PCT of max AND killing blow, or overkill exceeds OVERKILL_PCT of max health => execution. */
+#define ROGUE_EXEC_HEALTH_PCT 0.15f
+#define ROGUE_EXEC_OVERKILL_PCT 0.25f
 
 /* Apply mitigation (Phase 2 pipeline). Returns final damage >=1 unless health already <=0. */
 int rogue_apply_mitigation_enemy(struct RogueEnemy* e, int raw, unsigned char dmg_type, int *out_overkill);

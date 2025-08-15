@@ -7,11 +7,29 @@
 /* Damage event ring buffer (Phase 2.7) */
 RogueDamageEvent g_damage_events[ROGUE_DAMAGE_EVENT_CAP];
 int g_damage_event_head = 0;
+int g_damage_event_total = 0;
 int g_crit_layering_mode = 0; /* 0=pre-mitigation (legacy), 1=post-mitigation */
-void rogue_damage_event_record(unsigned short attack_id, unsigned char dmg_type, unsigned char crit, int raw, int mitig, int overkill){
+void rogue_damage_event_record(unsigned short attack_id, unsigned char dmg_type, unsigned char crit, int raw, int mitig, int overkill, unsigned char execution){
     RogueDamageEvent* ev = &g_damage_events[g_damage_event_head % ROGUE_DAMAGE_EVENT_CAP];
-    ev->attack_id = attack_id; ev->damage_type=dmg_type; ev->crit=crit; ev->raw_damage=raw; ev->mitigated=mitig; ev->overkill=overkill;
-    g_damage_event_head = (g_damage_event_head + 1) % ROGUE_DAMAGE_EVENT_CAP;
+    ev->attack_id = attack_id; ev->damage_type=dmg_type; ev->crit=crit; ev->raw_damage=raw; ev->mitigated=mitig; ev->overkill=overkill; ev->execution=execution?1:0;
+    g_damage_event_head = (g_damage_event_head + 1) % ROGUE_DAMAGE_EVENT_CAP; g_damage_event_total++;
+}
+
+int rogue_damage_events_snapshot(RogueDamageEvent* out, int max_events){
+    if(!out || max_events<=0) return 0;
+    int count = (g_damage_event_total < ROGUE_DAMAGE_EVENT_CAP)? g_damage_event_total : ROGUE_DAMAGE_EVENT_CAP;
+    if(count > max_events) count = max_events;
+    /* Oldest index is head - count (wrap) */
+    int start = (g_damage_event_head - count); while(start < 0) start += ROGUE_DAMAGE_EVENT_CAP;
+    for(int i=0;i<count;i++){
+        out[i] = g_damage_events[(start + i) % ROGUE_DAMAGE_EVENT_CAP];
+    }
+    return count;
+}
+
+void rogue_damage_events_clear(void){
+    for(int i=0;i<ROGUE_DAMAGE_EVENT_CAP;i++){ g_damage_events[i].attack_id=0; g_damage_events[i].damage_type=0; g_damage_events[i].crit=0; g_damage_events[i].raw_damage=0; g_damage_events[i].mitigated=0; g_damage_events[i].overkill=0; g_damage_events[i].execution=0; }
+    g_damage_event_head=0; g_damage_event_total=0;
 }
 
 /* External helpers */
@@ -315,14 +333,26 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                 int pen_pct = player->pen_percent; if(pen_pct>100) pen_pct=100; if(pen_pct>0){ int reduce = (enemies[i].armor * pen_pct)/100; eff_armor -= reduce; if(eff_armor<0) eff_armor=0; }
                 enemies[i].armor = eff_armor; /* temporary override for mitigation call */
             }
+            int health_before = enemies[i].health;
             int final_dmg = rogue_apply_mitigation_enemy(&enemies[i], dmg, def?def->damage_type:ROGUE_DMG_PHYSICAL, &overkill);
+            int execution = 0;
+            if(health_before>0){
+                int will_kill = (health_before - final_dmg) <= 0;
+                if(will_kill){
+                    float health_pct_before = (float)health_before / (float)(enemies[i].max_health>0?enemies[i].max_health:1);
+                    float overkill_pct = (float)overkill / (float)(enemies[i].max_health>0?enemies[i].max_health:1);
+                    if(health_pct_before <= ROGUE_EXEC_HEALTH_PCT || overkill_pct >= ROGUE_EXEC_OVERKILL_PCT){
+                        execution = 1;
+                    }
+                }
+            }
             /* If crit layering is post-mitigation (mode 1), apply multiplier now */
             if(is_crit && g_crit_layering_mode==1){
                 float cval = (float)final_dmg * crit_mult; final_dmg = (int)floorf(cval + 0.5f); if(final_dmg<1) final_dmg=1; /* floor */
             }
             enemies[i].health -= final_dmg; enemies[i].hurt_timer=150.0f; enemies[i].flash_timer=70.0f; pc->hit_confirmed=1;
             rogue_add_damage_number_ex(ex, ey - 0.25f, final_dmg, 1, is_crit);
-            rogue_damage_event_record((unsigned short)(def?def->id:0), (unsigned char)(def?def->damage_type:ROGUE_DMG_PHYSICAL), (unsigned char)is_crit, raw_before, final_dmg, overkill);
+            rogue_damage_event_record((unsigned short)(def?def->id:0), (unsigned char)(def?def->damage_type:ROGUE_DMG_PHYSICAL), (unsigned char)is_crit, raw_before, final_dmg, overkill, (unsigned char)execution);
             /* Accumulate status buildup placeholders (future: move to status system). */
             if(bleed_build>0){ enemies[i].bleed_buildup += bleed_build; }
             if(frost_build>0){ enemies[i].frost_buildup += frost_build; }
