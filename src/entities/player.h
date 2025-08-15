@@ -95,6 +95,8 @@ typedef struct RoguePlayer
     int lock_on_target_index;     /* enemy index targeted */
     float lock_on_radius;         /* acquisition radius (tiles) */
     float lock_on_switch_cooldown_ms; /* prevents rapid cycling */
+    /* --- Phase 6.5 Riposte Window --- */
+    float riposte_ms;            /* time window after successful parry/perfect guard to perform riposte */
 } RoguePlayer;
 
 void rogue_player_init(RoguePlayer* p);

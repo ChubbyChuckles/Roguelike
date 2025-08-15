@@ -34,6 +34,10 @@ typedef struct RoguePlayerCombat {
     unsigned short current_window_flags; /* active window flags (includes hyper armor) */
     /* Phase 6.1 Charged Attacks */
     int charging; float charge_time_ms; float pending_charge_damage_mult;
+    /* Phase 6.5 Parry / Riposte state */
+    int parry_active; float parry_window_ms; float parry_timer_ms; int riposte_ready; float riposte_window_ms;
+    /* Phase 6.4 Backstab positional crit grace timer (prevents repeat spam) */
+    float backstab_cooldown_ms;
 } RoguePlayerCombat;
 
 /* Event type ids (extend later): */
@@ -144,5 +148,15 @@ float rogue_combat_charge_progress(const RoguePlayerCombat* pc);
 
 /* Phase 6.3 Dodge Roll / I-frames (returns 1 on success) */
 int rogue_player_dodge_roll(struct RoguePlayer* p, RoguePlayerCombat* pc, int dir);
+/* Phase 6.4 Backstab detection: returns 1 if qualifies for positional crit */
+int rogue_combat_try_backstab(struct RoguePlayer* p, RoguePlayerCombat* pc, struct RogueEnemy* e);
+/* Phase 6.5 Parry / Riposte APIs */
+void rogue_player_begin_parry(struct RoguePlayer* p, RoguePlayerCombat* pc);
+int rogue_player_is_parry_active(const struct RoguePlayerCombat* pc);
+int rogue_player_register_incoming_attack_parry(struct RoguePlayer* p, struct RoguePlayerCombat* pc, float attack_dir_x, float attack_dir_y);
+int rogue_player_try_riposte(struct RoguePlayer* p, struct RoguePlayerCombat* pc, struct RogueEnemy* e);
+/* Phase 6.6 Guard break follow-up check */
+void rogue_player_set_guard_break(struct RoguePlayer* p, struct RoguePlayerCombat* pc);
+int rogue_player_consume_guard_break_bonus(struct RoguePlayerCombat* pc);
 
 #endif
