@@ -41,6 +41,11 @@ void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int c
 
 /* --- Phase 2 Mitigation Helpers ----------------------------------------------------------- */
 static int clampi(int v,int lo,int hi){ if(v<lo) return lo; if(v>hi) return hi; return v; }
+/* Phase 2.2 finalization: diminishing returns curve for physical percent resist.
+    Input: raw resist_physical 0..90 (authored directly on enemy). We map to effective percent via
+    a concave curve providing strong early gains and tapering late: eff = p - (p*p)/300.
+    At p=0 ->0, p=30 -> 27, p=60 -> 48, p=90 -> 63. (Armor flat reduction still applied first.) */
+static int rogue_effective_phys_resist(int p){ if(p<=0) return 0; if(p>90) p=90; int eff = p - (p*p)/300; if(eff<0) eff=0; if(eff>75) eff=75; return eff; }
 int rogue_apply_mitigation_enemy(RogueEnemy* e, int raw, unsigned char dmg_type, int *out_overkill){
     if(!e || !e->alive) return 0;
     int dmg = raw; if(dmg<0) dmg=0;
@@ -48,7 +53,7 @@ int rogue_apply_mitigation_enemy(RogueEnemy* e, int raw, unsigned char dmg_type,
         if(dmg_type == ROGUE_DMG_PHYSICAL){
             /* Armor flat reduction then percent physical resist */
             int armor = e->armor; if(armor>0){ if(armor >= dmg) dmg = (dmg>1?1:dmg); else dmg -= armor; }
-            int pr = clampi(e->resist_physical,0,90); if(pr>0){ int reduce=(dmg*pr)/100; dmg -= reduce; }
+            int pr_raw = clampi(e->resist_physical,0,90); int pr = rogue_effective_phys_resist(pr_raw); if(pr>0){ int reduce=(dmg*pr)/100; dmg -= reduce; }
         } else {
             int resist=0; switch(dmg_type){
                 case ROGUE_DMG_FIRE: resist = e->resist_fire; break;
