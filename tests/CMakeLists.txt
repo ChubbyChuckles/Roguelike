@@ -25,6 +25,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_heavy_multi_window.c AND 
     add_test(NAME test_combat_heavy_multi_window COMMAND test_combat_heavy_multi_window)
 endif()
 
+# Explicit window boundary overlap test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_window_boundary.c AND NOT TARGET test_combat_window_boundary)
+    add_executable(test_combat_window_boundary unit/test_combat_window_boundary.c)
+    target_link_libraries(test_combat_window_boundary PRIVATE rogue_core)
+    target_compile_definitions(test_combat_window_boundary PRIVATE TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_combat_window_boundary PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_combat_window_boundary COMMAND test_combat_window_boundary)
+endif()
+
 # Explicitly add vendor restock rotation test (10.3)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_restock.c AND NOT TARGET test_vendor_restock)
     add_executable(test_vendor_restock unit/test_vendor_restock.c)

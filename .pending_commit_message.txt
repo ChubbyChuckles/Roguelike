@@ -1,20 +1,24 @@
-combat: heavy_2 triple-window test + multi-hit robustness & combo scaling fix
+combat: Phase 1A frame cache + overlapping windows + boundary tests & event consume API
 
-Phase 1A incremental combat updates:
-- Added `test_combat_heavy_multi_window` validating heavy_2 three sequential active windows (damage applied per window, duplicate prevention via processed_window_mask, BEGIN/END events = 6 total).
-- Preserved const safety (removed prior experimental in-place caching); attack window structs keep sentinel start_frame/end_frame (-1) for future authoring tools.
-- Retained `rogue_attack_window_frame_span` helper (pure, no mutation) for external frame mapping & validation.
-- Fixed earlier combo scaling regression: reset `processed_window_mask` when `strike_time_ms` returns to 0 (isolated test harness strikes).
+Additions (Phase 1A focus):
+ - Frame data cache (1A.1 complete): builds once for all authored attack windows; `rogue_attack_window_frame_span` now O(1) after init.
+ - Overlapping multi-hit window authoring: heavy_2 windows adjusted (0-50, 40-80, 80-105) to exercise overlap semantics without duplicate damage.
+ - New overlap/boundary test `test_combat_window_boundary` validating inclusive/exclusive edges and that only newly active windows apply damage at overlaps.
+ - Event consumption API `rogue_combat_consume_events` (non-destructive) enabling future FX/SFX layers without corrupting multi-hit masks.
+ - Extended test coverage: heavy multi-window (`test_combat_heavy_multi_window`), overlap boundary (`test_combat_window_boundary`), existing events test stabilized after API addition.
 
-Docs & Plan:
-- README updated (multi-hit details, heavy_2 triple-window mention, frame span helper).
-- implementation_plan_combatsystem.txt updated under 1A.7 with heavy_2 test completion + notes on mask reset rationale.
+Fixes:
+ - Removed mask reset in event consume (previous attempt could re-emit events / double-hit); resolved segfault in `test_combat_events`.
 
-Tests:
-- New heavy multi-window test passes (expected dmg sequence & 6 events).
-- All existing combat tests (multi-hit, events, combo scaling) remain green.
+Documentation & Plan:
+ - Updated implementation_plan_combatsystem.txt: 1A.1 & 1A.7 marked Done; notes on overlap test & frame cache.
+ - README combat section expanded (overlap example, frame cache, consume API).
 
-Follow-ups:
-- Remaining Phase 1A coverage: boundary cancel edge tests (exact frame start/end, hit vs whiff thresholds) & overlapping window stacking scenario.
-- Status buildup threshold/decay system (bleed/frost) integration (Phase 2/3).
-- FX/SFX consumer layer for window events (Phase 1A.5 continuation).
+Quality Gates:
+ - All new/modified combat tests pass (heavy_multi_window, window_boundary, events).
+ - No regressions in existing multi-hit & combo scaling tests.
+
+Next Steps:
+ - Phase 2 damage type + mitigation pipeline (2.1–2.2) introduction.
+ - FX/SFX dispatch consumer using event ring.
+ - External attack data authoring tool (deferred) & status buildup application thresholds.

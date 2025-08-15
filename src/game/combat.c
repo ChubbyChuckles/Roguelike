@@ -284,6 +284,18 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
 
 void rogue_combat_notify_blocked(RoguePlayerCombat* pc){ if(!pc) return; if(pc->phase==ROGUE_ATTACK_STRIKE){ pc->blocked_this_strike=1; } }
 
+int rogue_combat_consume_events(RoguePlayerCombat* pc, struct RogueCombatEvent* out_events, int max_events){
+    if(!pc || !out_events || max_events<=0) return 0;
+    int n = pc->event_count; if(n>max_events) n = max_events;
+    for(int i=0;i<n;i++){ out_events[i] = pc->events[i]; }
+    /* Compact any overflow left (rare) */
+    int remaining = pc->event_count - n;
+    if(remaining>0){ for(int i=0;i<remaining && i < (int)(sizeof(pc->events)/sizeof(pc->events[0])); ++i){ pc->events[i] = pc->events[n+i]; } }
+    pc->event_count = remaining>0? remaining:0;
+    /* Don't reset masks here; they govern multi-hit & end event emission; clearing would allow duplicate events. */
+    return n;
+}
+
 void rogue_combat_set_archetype(RoguePlayerCombat* pc, RogueWeaponArchetype arch){ if(!pc) return; pc->archetype = arch; pc->chain_index = 0; }
 RogueWeaponArchetype rogue_combat_current_archetype(const RoguePlayerCombat* pc){ return pc? pc->archetype : ROGUE_WEAPON_LIGHT; }
 int rogue_combat_current_chain_index(const RoguePlayerCombat* pc){ return pc? pc->chain_index : 0; }

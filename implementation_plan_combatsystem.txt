@@ -38,15 +38,16 @@ PHASE 1. Core Model Expansion (Classless Universal Attack Data)
  1.7 Tests: archetype timing consistency, branch selection determinism, universal access invariants (no forbidden weapon) (Done: test_combat_attack_registry)
 
 PHASE 1A. Temporal & Animation Sync Enhancements
-1A.1 Fine-grained frame data authoring (ms → frames at runtime tick) (X)
-1A.2 Multi-hit active windows (e.g., sweep phases) (Partial: engine support + data for light_3 & heavy_2 multi-window splits + processed_window_mask duplicate prevention + unit test `test_combat_multi_hit`; added per-window damage_mult field; remaining: overlapping window stacking edge tests & external data authoring tool)
+1A.1 Fine-grained frame data authoring (ms → frames at runtime tick) (Done: centralized frame span computation + static cache for authored windows; helper rogue_attack_window_frame_span now cached)
+1A.2 Multi-hit active windows (e.g., sweep phases) (Partial: engine support + data for light_3 & heavy_2 multi-window splits + processed_window_mask duplicate prevention + unit tests `test_combat_multi_hit`, `test_combat_heavy_multi_window`; per-window damage_mult field; remaining: external data authoring tool)
 1A.3 Cancellable window flags (on_hit, on_whiff, on_block) (Done: global + per-window override resolution; hit/whiff/block early cancel logic + recovery late-chain grace window; pending: additional flag types for parry/dodge & hyper armor frames)
 1A.4 Whiff cancel partial credit (reduced window vs on_hit) (Partial: whiff_cancel_pct enforced + test; archetype-specific tuning pending)
-1A.5 Animation event injection (begin_active, end_active, fx triggers) (Partial: per-window begin/end events emitted to ring buffer + unit test `test_combat_events`; remaining: FX/SFX dispatch layer & external authoring integration)
+1A.5 Animation event injection (begin_active, end_active, fx triggers) (Partial: per-window begin/end events emitted to ring buffer + unit test `test_combat_events`; added API rogue_combat_consume_events (non-destructive to masks); remaining: FX/SFX dispatch layer & external authoring integration)
 1A.6 Drift-resistant timing (accumulator correcting float error >1ms) (Done: double accumulator + micro-step unit test)
-1A.7 Tests: cancel window edges, multi-hit ordering, drift bounds (Partial: multi-hit ordering + duplicate prevention covered; edge boundary & cancel window edge cases pending; need heavy_2 triple-window test)
-	- Added heavy_2 triple-window unit test (`test_combat_heavy_multi_window`) covering sequential window damage + BEGIN/END event emission (3 windows => 6 events).
-	- Helper `rogue_attack_window_frame_span` available (non-cached) for future frame authoring.
+1A.7 Tests: cancel window edges, multi-hit ordering, drift bounds (Done: multi-hit ordering + duplicate prevention + heavy_2 triple-window test + overlapping window boundary test)
+	- heavy_2 triple-window unit test (`test_combat_heavy_multi_window`) covering sequential window damage + BEGIN/END event emission (3 windows => 6 events).
+	- Overlap & boundary semantics test (`test_combat_window_boundary`) verifies inclusive/exclusive edges & overlapping window (0-50 overlaps 40-80) processes only new windows; ensures no duplicate damage or missing events.
+	- Helper `rogue_attack_window_frame_span` now cached (static frame cache) for future external frame authoring.
 	- Fixed combo scaling test regression earlier by resetting processed_window_mask when strike_time resets (enables repeated isolated measurement without multi-hit gating).
 
 PHASE 2. Damage & Mitigation Pipeline

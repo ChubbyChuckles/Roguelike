@@ -41,6 +41,8 @@ void rogue_combat_init(RoguePlayerCombat* pc);
 void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_pressed);
 /* Attempt to apply strike damage to enemies during STRIKE phase. Returns kills this frame */
 int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, RogueEnemy enemies[], int enemy_count);
+/* Pop (consume) queued combat events into caller-provided buffer; returns number copied. */
+int rogue_combat_consume_events(RoguePlayerCombat* pc, struct RogueCombatEvent* out_events, int max_events);
 
 /* Data-driven attack helpers */
 void rogue_combat_set_archetype(RoguePlayerCombat* pc, RogueWeaponArchetype arch);
