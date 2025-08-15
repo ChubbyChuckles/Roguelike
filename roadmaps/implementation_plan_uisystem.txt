@@ -49,7 +49,7 @@ PHASE 4. Inventory / Equipment / Vendor Interfaces
 4.5 Inline stat delta preview (green/red diff) (Done: basic damage delta panel on hover with events STAT_PREVIEW_SHOW/HIDE; future: full equipment comparison, multiple stats)
 4.6 Price / rarity color theming integrated (Done: inventory grid now renders rarity-colored borders & count text via deterministic mapping; future: hook actual item defs & price display overlay)
 4.7 Vendor restock timer bar & progress (Done: restock progress bar + ETA label in vendor panel; helper API exposes fraction; unit test validates fraction computation)
-4.8 Transaction confirmation & insufficient funds UX (X)
+4.8 Transaction confirmation & insufficient funds UX (Done: confirmation modal with item name & price, ENTER opens/accepts, ESC cancels, insufficient funds flash overlay ~0.5s; headless test `test_ui_phase4_vendor_transaction` simulates open->insufficient->fund->purchase)
 4.9 Equipment durability & repair UI with thresholds (X)
 4.10 Controller friendly radial selector (X)
 

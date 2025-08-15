@@ -100,6 +100,7 @@ void rogue_app_step(void)
         rogue_items_update(dt_ms);
         rogue_loot_pickup_update(0.6f);
         rogue_app_handle_vendor_restock(dt_ms);
+    if(g_app.vendor_insufficient_flash_ms>0){ g_app.vendor_insufficient_flash_ms -= dt_ms; if(g_app.vendor_insufficient_flash_ms<0) g_app.vendor_insufficient_flash_ms=0; }
         rogue_animation_update((float)g_app.dt * 1000.0f);
         rogue_buffs_update(g_app.game_time_ms);
         rogue_projectiles_update(dt_ms);

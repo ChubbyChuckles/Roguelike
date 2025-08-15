@@ -56,7 +56,25 @@ void rogue_process_events(void){
             if(g_app.show_vendor_panel){
                 if(ev.key.keysym.sym==SDLK_UP){ g_app.vendor_selection--; if(g_app.vendor_selection<0) g_app.vendor_selection=rogue_vendor_item_count()>0?rogue_vendor_item_count()-1:0; }
                 if(ev.key.keysym.sym==SDLK_DOWN){ g_app.vendor_selection++; if(g_app.vendor_selection>=rogue_vendor_item_count()) g_app.vendor_selection=0; }
-                if(ev.key.keysym.sym==SDLK_RETURN){ const RogueVendorItem* vi = rogue_vendor_get(g_app.vendor_selection); if(vi && rogue_econ_try_buy(vi)==0){ rogue_inventory_add(vi->def_index,1); } }
+                if(ev.key.keysym.sym==SDLK_RETURN){
+                    const RogueVendorItem* vi = rogue_vendor_get(g_app.vendor_selection);
+                    if(vi){
+                        int price = rogue_econ_buy_price(vi);
+                        if(!g_app.vendor_confirm_active){
+                            /* open confirmation modal */
+                            g_app.vendor_confirm_active=1; g_app.vendor_confirm_def_index=vi->def_index; g_app.vendor_confirm_price=price; g_app.vendor_insufficient_flash_ms=0.0;
+                        } else {
+                            /* Accept inside modal */
+                            if(rogue_econ_gold() >= g_app.vendor_confirm_price){
+                                if(rogue_econ_try_buy(vi)==0){ rogue_inventory_add(vi->def_index,1); }
+                                g_app.vendor_confirm_active=0;
+                            } else {
+                                g_app.vendor_insufficient_flash_ms = 480.0; /* flash for ~0.5s */
+                            }
+                        }
+                    }
+                }
+                if(ev.key.keysym.sym==SDLK_ESCAPE && g_app.vendor_confirm_active){ g_app.vendor_confirm_active=0; }
                 if(ev.key.keysym.sym==SDLK_BACKSPACE){ g_app.show_vendor_panel=0; }
             }
             if(ev.key.keysym.sym==SDLK_k){ rogue_skill_tree_toggle(); }

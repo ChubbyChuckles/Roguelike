@@ -37,6 +37,29 @@ void rogue_vendor_panel_render(void){
     rogue_font_draw_text(bar_x,bar_y-14,eta,1,(RogueColor){200,230,255,255});
     char footer[96]; snprintf(footer,sizeof footer,"Gold:%d  REP:%d  ENTER=Buy  V=Close", rogue_econ_gold(), rogue_econ_get_reputation());
     rogue_font_draw_text(panel.x+6,panel.y+panel.h-18,footer,1,(RogueColor){180,220,255,255});
+
+    /* Phase 4.8 Transaction confirmation modal */
+    if(g_app.vendor_confirm_active){
+        SDL_Rect modal={panel.x-140, panel.y+40, 130, 110};
+        SDL_SetRenderDrawColor(g_app.renderer,30,30,50,245); SDL_RenderFillRect(g_app.renderer,&modal);
+        SDL_SetRenderDrawColor(g_app.renderer,120,120,180,255); SDL_Rect mbr={modal.x-2,modal.y-2,modal.w+4,modal.h+4}; SDL_RenderDrawRect(g_app.renderer,&mbr);
+        const RogueItemDef* d= rogue_item_def_at(g_app.vendor_confirm_def_index);
+        char name[64]; snprintf(name,sizeof name,"%s", d?d->name:"Item");
+        char price[64]; snprintf(price,sizeof price,"Price:%dG", g_app.vendor_confirm_price);
+        int afford = rogue_econ_gold() >= g_app.vendor_confirm_price;
+        RogueColor name_col = {255,255,210,255};
+        RogueColor price_col = afford? (RogueColor){180,255,180,255} : (RogueColor){255,140,140,255};
+        rogue_font_draw_text(modal.x+6,modal.y+6,"Confirm",1,(RogueColor){200,220,255,255});
+        rogue_font_draw_text(modal.x+6,modal.y+24,name,1,name_col);
+        rogue_font_draw_text(modal.x+6,modal.y+40,price,1,price_col);
+        rogue_font_draw_text(modal.x+6,modal.y+58,"ENTER=Yes",1,(RogueColor){200,240,200,255});
+        rogue_font_draw_text(modal.x+6,modal.y+74,"ESC=No",1,(RogueColor){240,200,200,255});
+        if(!afford && g_app.vendor_insufficient_flash_ms>0){
+            /* simple flashing overlay */
+            int alpha_i = (int)(120 + 80 * ( ( (int)(g_app.vendor_insufficient_flash_ms/120.0) ) %2 )); if(alpha_i<0) alpha_i=0; if(alpha_i>255) alpha_i=255; Uint8 alpha=(Uint8)alpha_i;
+            SDL_SetRenderDrawColor(g_app.renderer,255,60,60,alpha); SDL_RenderFillRect(g_app.renderer,&modal);
+        }
+    }
 #endif
 }
 

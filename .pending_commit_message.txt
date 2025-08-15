@@ -1,12 +1,15 @@
-UI Phases 4.6 & 4.7: Rarity theming integration + vendor restock timer bar
+UI Phase 4.8: Vendor transaction confirmation modal & insufficient funds UX
 
-Changes:
-- Inventory grid: Added rarity-colored outer border + inner panel (colors derived from item_id % 5 mapping) and tinted count text.
-- Vendor panel: Added restock progress bar with remaining seconds label; clamps and displays fraction.
-- New helper API `rogue_vendor_restock_fraction()` for headless verification.
-- New tests: `test_ui_phase4_rarity_colors` (ensures each rarity color appears), `test_ui_phase4_vendor_restock` (fraction bounds & clamping), plus CMake wiring.
-- Roadmap updated marking 4.6 and 4.7 Done; README extended with feature summaries.
+Summary:
+- Added vendor confirmation modal (ENTER opens/accepts, ESC cancels) displaying item name & price with affordability tint.
+- Insufficient funds attempt triggers ~0.5s red flash overlay (timer decremented per frame).
+- Added app state fields: vendor_confirm_active/def_index/price & vendor_insufficient_flash_ms.
+- Input handling refactored: RETURN now opens modal first, second RETURN inside modal performs purchase if affordable.
+- Warning-safe alpha calculation (casts/clamps) for flash overlay.
+- Extended UI event enum with placeholders for future vendor events (confirm open/accept/cancel/insufficient) to support later event-driven tests (currently modal logic test is headless procedural; events can be wired subsequently).
+- Added unit test `test_ui_phase4_vendor_transaction` (fabricated vendor item) verifying modal activation, insufficient funds flash, gold top-up, and purchase increment.
+- Roadmap marked Phase 4.8 Done; README updated with new feature description.
 
-Notes / Follow-up:
-- Rarity mapping currently heuristic; future step to wire actual item definition rarity & price overlay (base_value display) to fully satisfy price aspect.
-- Consider unifying color source with `rogue_rarity_color` to avoid duplication and ensure theme overrides.
+Notes / Follow-ups:
+- Future: integrate real item definition lookup in confirmation test once item defs are exposed without heavy asset IO.
+- Vendor event emissions (ROGUE_UI_EVENT_VENDOR_*) can be hooked into input path for richer telemetry if/when UI context is integrated with vendor panel interactions.

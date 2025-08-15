@@ -168,6 +168,7 @@ See full, fine‑grained roadmap in `implementation_plan.txt` (kept continuously
 * Phase 4.5 Inline Stat Delta Preview: Hovering an occupied slot produces a compact panel to the side showing a simple damage value and delta (colored green/red/gray). Emits STAT_PREVIEW_SHOW when a new slot hover begins and STAT_PREVIEW_HIDE when leaving inventory items. Covered by new unit test `test_ui_phase4_stat_preview`.
 * Phase 4.6 Rarity Theming: Inventory grid now applies rarity-colored outer borders and count text (mapping item_id % 5 -> rarity tiers) to visualize item quality; unit test `test_ui_phase4_rarity_colors` validates presence of all tier colors.
 * Phase 4.7 Vendor Restock Timer: Vendor panel displays progress bar with remaining seconds (ETA) until automatic restock; helper `rogue_vendor_restock_fraction()` (unit test `test_ui_phase4_vendor_restock`) ensures fraction calculation correctness.
+* Phase 4.8 Transaction Confirmation: Vendor purchases now require confirmation modal (ENTER to open/accept, ESC to cancel) showing item name & price with green/red affordability tint and flashing insufficient funds overlay; unit test `test_ui_phase4_vendor_transaction` validates modal lifecycle and purchase success after funding.
 
 #### Loot Foundations (Phases 1–4)
 * Item definition parser tolerant to optional later-added rarity column (backward compatibility).

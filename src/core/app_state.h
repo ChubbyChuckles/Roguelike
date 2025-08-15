@@ -86,6 +86,8 @@ typedef struct RogueAppState {
     unsigned int session_rarity_drops[5];
     /* In-world vendor (interactive economy showcase) */
     float vendor_x, vendor_y; int show_vendor_panel; int vendor_selection; unsigned int vendor_seed; double vendor_time_accum_ms; double vendor_restock_interval_ms;
+    /* Phase 4.8 vendor transaction confirmation */
+    int vendor_confirm_active; int vendor_confirm_def_index; int vendor_confirm_price; double vendor_insufficient_flash_ms;
     /* Equipment panel UI */
     int show_equipment_panel;
 } RogueAppState;
