@@ -1,16 +1,11 @@
-feat(skills): input buffering (1A.1 partial) + channel tick scheduler (1A.5 partial) + prior casting foundation
+feat(skills): input buffering (1A.1 partial), adaptive haste (1A.3 partial), channel ticks & cast speed tests
 
-Adds per-skill input buffering window: cast skills can queue during another cast within `input_buffer_ms`; queued skill stores `queued_trigger_ms` and auto-activates immediately when the current cast finishes. Implements new `queued_trigger_ms` state field and queue processing loop on cast completion. Unit test `test_input_buffer_cast` verifies buffered instant skill fires right after long cast ends.
+Implements per-skill input buffering: queued cast skills (and buffered instants with buffer window) activate immediately after current cast completes using new `queued_trigger_ms` and existing `queued_until_ms` fields. Adds unit test `test_input_buffer_cast`.
 
-Extends channel system with periodic tick scheduler (Phase 1A.5 partial): fixed 250ms quantum ticks via `channel_next_tick_ms`, applying both skill callback and EffectSpec each tick. Unit test `test_channel_ticks_and_buffer` validates expected tick count over channel duration.
+Adds adaptive haste prototype (Phase 1A.3 partial): reuses POWER_STRIKE buff magnitude as a temporary haste scalar affecting cast progression speed and channel tick interval (faster with higher buff). Unit test `test_haste_cast_speed` validates reduced completion time.
 
-Updates roadmap: 1A.1 -> Partial, 1A.5 -> Partial (already), 1A.6 -> Partial (buffered ordering test added). README gains bullet for channel tick scheduler; commit consolidates previous casting/channel groundwork.
+Extends channel system (1A.5 partial previously) now interacting with haste for tick interval scaling. Existing `test_channel_ticks_and_buffer` still valid.
 
-Implementation details:
-- New fields: `channel_next_tick_ms`, `queued_trigger_ms` in `RogueSkillState`.
-- Activation logic: if attempting to start a cast skill while another cast is active, buffer instead of rejecting (no resource spend yet) when within buffer window.
-- On cast completion, buffered skills are scanned and activated deterministically (O(n) scan acceptable at small counts; future optimization could maintain a small queue).
-- Channel ticks loop uses while to catch up on missed ticks if frame delta bigger than quantum; drift correction not yet implemented.
+Roadmap updates: 1A.1, 1A.3, 1A.5, 1A.6 set to Partial with specifics (buffering, haste speed, ticks, tests). README earlier updated with input buffering & channel ticks; future update will add haste note.
 
-Next steps:
-- Drift-corrected channel scheduler (accumulate remainder), early cancel scaling (1A.4), haste adjustments (1A.3), channel interruption test, DOT/HOT EffectSpec kinds, and combo builder/spender logic.
+Next targets: early cancel scaling (1A.4), drift correction for channel ticks, dedicated haste buff type, DOT/HOT EffectSpec kinds, combo builder/spender logic.

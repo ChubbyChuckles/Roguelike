@@ -1,5 +1,6 @@
 #include "core/skills.h"
 #include "core/app_state.h"
+#include "core/buffs.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -175,7 +176,10 @@ void rogue_skills_update(double now_ms){
         }
         /* Casting progression */
         if(st->casting_active && def->cast_type==1 && def->cast_time_ms>0){
-            st->cast_progress_ms += 16.0; /* assume ~60fps step (improved later with dt) */
+            /* Simple adaptive haste: POWER_STRIKE buff magnitude reduces remaining time linearly (placeholder) */
+            int haste = rogue_buffs_get_total(ROGUE_BUFF_POWER_STRIKE); /* reuse existing buff slot */
+            double haste_factor = 1.0 - (haste * 0.02); if(haste_factor < 0.5) haste_factor = 0.5; /* clamp */
+            st->cast_progress_ms += 16.0 / haste_factor; /* progress faster with more haste */
             if(st->cast_progress_ms >= def->cast_time_ms){
                 st->casting_active = 0; st->cast_progress_ms = def->cast_time_ms;
                 /* On cast complete apply effect & EffectSpec */
@@ -196,7 +200,9 @@ void rogue_skills_update(double now_ms){
         }
         /* Channel periodic ticks (1A.5 basic scheduler) */
         if(st->channel_active && def->cast_type==2 && def->cast_time_ms>0){
-            double tick_interval = 250.0; /* fixed quantum for now */
+            int haste = rogue_buffs_get_total(ROGUE_BUFF_POWER_STRIKE);
+            double haste_factor = 1.0 - (haste * 0.02); if(haste_factor < 0.5) haste_factor = 0.5;
+            double tick_interval = 250.0 * haste_factor; /* faster ticks with haste (shorter interval) */
             while(st->channel_active && st->channel_next_tick_ms>0 && now_ms >= st->channel_next_tick_ms){
                 RogueSkillCtx ctx={0}; ctx.now_ms=st->channel_next_tick_ms; ctx.rng_state = (unsigned int)(i * 2654435761u) ^ (unsigned int)st->uses * 2246822519u + (unsigned int)(st->channel_next_tick_ms);
                 if(def->on_activate){ def->on_activate(def, st, &ctx); }

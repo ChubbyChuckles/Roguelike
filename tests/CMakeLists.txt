@@ -114,6 +114,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_input_buffer_cast.c AND NOT TARG
     add_test(NAME test_input_buffer_cast COMMAND test_input_buffer_cast)
 endif()
 
+# Explicitly add haste cast speed test (Phase 1A.3 partial)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_haste_cast_speed.c AND NOT TARGET test_haste_cast_speed)
+    add_executable(test_haste_cast_speed unit/test_haste_cast_speed.c)
+    target_link_libraries(test_haste_cast_speed PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_haste_cast_speed PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_haste_cast_speed COMMAND test_haste_cast_speed)
+endif()
+
 foreach(ut ${UNIT_TESTS})
     get_filename_component(name ${ut} NAME_WE)
     if(TARGET ${name})
