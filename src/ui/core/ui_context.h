@@ -45,11 +45,13 @@ typedef struct RogueUIInputState {
     int mouse_released; /* 1 on release this frame */
     float wheel_delta;  /* positive = scroll up, negative = down (per frame aggregated) */
     char text_char;     /* printable character input (ASCII) or 0 */
+    char key_char;      /* raw key character (for chords, not inserted into text) */
     int backspace;      /* 1 if backspace pressed this frame */
     int key_tab;
     int key_left, key_right, key_up, key_down;
     int key_activate;   /* generic activation (Enter / controller A) */
     int key_ctrl;       /* control modifier held */
+    int key_paste;      /* paste shortcut (Ctrl+V mapped by platform layer) */
 } RogueUIInputState;
 
 typedef struct RogueUIControllerState {

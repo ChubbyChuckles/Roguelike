@@ -1,7 +1,7 @@
 feat(ui): complete Phase 2.8 directional navigation & add Phase 3 input scaffolding
 
-Implemented advanced directional focus navigation selecting nearest neighbor with axis bias and linear wrap fallback; activation now toggles buttons/toggles via generic key. Added Phase 3 scaffolding: modal index, controller state, clipboard & IME stubs, key repeat config fields, chord shortcut registration, and input replay buffer APIs. Updated roadmap marking 2.8 Done and Phase 3 items Partial, extended UI context header with new APIs. All Phase 2 tests pass (4/4) confirming no regressions.
-feat(ui): implement Phase 2.3 containers & Phase 2.7 ID hashing (Row/Column/Grid helpers, layer node, FNV1a ids, tests)
+Implemented advanced directional focus navigation selecting nearest neighbor with axis bias and linear wrap fallback; activation toggles buttons/toggles via generic activation key. Added Phase 3 groundwork fields/APIs: modal index, controller state, clipboard & IME stubs, key repeat config storage, chord shortcut registration, input replay buffer APIs. Updated roadmap (2.8 Done; 3.1–3.6 Partial), README UI section, and added unit test adjustments; all Phase 2 tests pass.
 
-feat(ui): implement Phases 2.4–2.6 (scroll container, tooltip system, DSL macros) + expand navigation (tab/arrow), tests
+feat(ui): implement Phase 3.3 clipboard+IME stubs, 3.5 chord shortcuts, 3.6 input replay, paste & replay tests
 
+Added clipboard paste into text inputs, IME stub APIs, chord registration & two-key detection with timeout (Phase 3.5), input replay record/playback injection (Phase 3.6) and new unit test `test_ui_phase3_input_features` verifying paste, chord command execution, and replay character entry. Roadmap updated marking 3.3, 3.5, 3.6 Done; README augmented with Phase 3 progress. Phase 2 regression tests remain green.

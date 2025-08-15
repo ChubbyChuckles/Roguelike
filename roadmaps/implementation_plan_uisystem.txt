@@ -34,12 +34,12 @@ PHASE 2. Widget Primitives & Composition
 2.8 Focus & navigation graph (Done: directional heuristics selecting nearest neighbor with axis bias + activation; wraps fallback)
 
 PHASE 3. Input Abstraction & Interaction Model
-3.1 Input routing priority (modal -> focused -> hovered -> global) (Partial: context fields + modal setter; routing logic pending)
-3.2 Controller mapping: analog navigation & action binding layer (Partial: controller state struct + setter; nav not yet reading axes)
-3.3 Text input IME support stub & clipboard integration (Partial: clipboard in‑memory stub + IME stub functions)
-3.4 Key repeat timing & acceleration curve (Partial: config + storage fields; repeat processing not executed yet)
-3.5 Chorded shortcut / command palette infrastructure (Partial: chord registration storage + last command retrieval)
-3.6 Automated input replay for UI tests (Partial: replay buffer + record/playback stepping APIs; integration pending)
+3.1 Input routing priority (Partial: modal/focus fields + placeholder; full routing still pending)
+3.2 Controller mapping: analog navigation & action binding layer (Partial: controller struct + setter; axis nav not applied yet)
+3.3 Text input IME support stub & clipboard integration (Done: clipboard setter/getter + IME start/cancel/commit stubs + paste into text input)
+3.4 Key repeat timing & acceleration curve (Partial: config & per-key storage; repeat emission logic not yet firing synthetic presses)
+3.5 Chorded shortcut / command palette infrastructure (Done: chord register, two-step detection with timeout, last command query)
+3.6 Automated input replay for UI tests (Done: recording/playback buffer + per-frame injection step API)
 
 PHASE 4. Inventory / Equipment / Vendor Interfaces
 4.1 Inventory grid widget with slot virtualization (partial redraw) (X)

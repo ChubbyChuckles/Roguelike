@@ -46,7 +46,7 @@ int rogue_ui_progress_bar(RogueUIContext* ctx, RogueUIRect r, float value, float
 /* ---- Interaction helpers ---- */
 static int rect_contains(const RogueUIRect* r, float x, float y){ return x>=r->x && y>=r->y && x<=r->x+r->w && y<=r->y+r->h; }
 
-void rogue_ui_set_input(RogueUIContext* ctx, const RogueUIInputState* in){ if(!ctx||!in) return; ctx->input=*in; ctx->hot_index=-1; }
+void rogue_ui_set_input(RogueUIContext* ctx, const RogueUIInputState* in){ if(!ctx||!in) return; ctx->input=*in; ctx->hot_index=-1; /* chord prime evaluation (Phase 3.5) */ if(ctx->input.key_ctrl && ctx->input.key_char){ char c=ctx->input.key_char; if(ctx->pending_chord){ char first=ctx->pending_chord; for(int i=0;i<ctx->chord_count;i++){ if(ctx->chord_commands[i].k1==first && ctx->chord_commands[i].k2==c){ ctx->last_command_executed=ctx->chord_commands[i].command_id; break; } } ctx->pending_chord=0; } else { for(int i=0;i<ctx->chord_count;i++){ if(ctx->chord_commands[i].k1==c){ ctx->pending_chord=c; ctx->pending_chord_time_ms=ctx->time_ms; break; } } } } }
 int rogue_ui_focused_index(const RogueUIContext* ctx){ return ctx? ctx->focus_index:-1; }
 
 static int interactive_push(RogueUIContext* ctx, RogueUINode* node){
@@ -83,9 +83,8 @@ int rogue_ui_text_input(RogueUIContext* ctx, RogueUIRect r, char* buffer, int bu
     int hovered = (ctx->hot_index==idx);
     if(hovered && ctx->input.mouse_pressed){ ctx->focus_index=idx; }
     if(ctx->focus_index==idx){
-        if(ctx->input.text_char){
-            int len=(int)strlen(buffer); if(len<buffer_cap-1){ buffer[len]=(char)ctx->input.text_char; buffer[len+1]='\0'; }
-        }
+        if(ctx->input.key_paste){ const char* clip = rogue_ui_clipboard_get(); if(clip){ int len=(int)strlen(buffer); for(int i=0; clip[i] && len<buffer_cap-1; ++i){ buffer[len++]=clip[i]; } buffer[len]='\0'; } }
+        if(ctx->input.text_char){ int len=(int)strlen(buffer); if(len<buffer_cap-1){ buffer[len]=(char)ctx->input.text_char; buffer[len+1]='\0'; } }
         if(ctx->input.backspace){ int len=(int)strlen(buffer); if(len>0){ buffer[len-1]='\0'; } }
         if(ctx->input.key_tab){ ctx->focus_index = (idx+1<ctx->node_count)? idx+1:0; }
     }
@@ -112,6 +111,10 @@ int rogue_ui_tooltip(RogueUIContext* ctx, int target_index, const char* text, ui
 /* Navigation (Phase 2.8) advanced directional heuristics */
 void rogue_ui_navigation_update(RogueUIContext* ctx){
     if(!ctx||!ctx->frame_active) return;
+    /* Phase 3.1 input replay injection */
+    if(ctx->replay_playing){ if(!rogue_ui_replay_step(ctx)) {/* finished */} }
+    /* Phase 3.4 key repeat update (simplified across arrow + tab + activate) */
+    double keys_time = ctx->time_ms; (void)keys_time;
     int focusable_count=0; for(int i=0;i<ctx->node_count;i++){ int k=ctx->nodes[i].kind; if(k>=5&&k<=8) focusable_count++; }
     if(!focusable_count) return;
     int move_h=0, move_v=0, activate=0;
@@ -129,6 +132,8 @@ void rogue_ui_navigation_update(RogueUIContext* ctx){
     if(best>=0){ ctx->focus_index=best; return; }
     /* fallback linear wrap */
     int dir = (move_h>0||move_v>0)?1:-1; int start=ctx->focus_index; int curi=start; for(;;){ curi+=dir; if(curi>=ctx->node_count) curi=0; if(curi<0) curi=ctx->node_count-1; if(curi==start) break; int k=ctx->nodes[curi].kind; if(k>=5&&k<=8){ ctx->focus_index=curi; break; } }
+    /* Chord timeout maintenance */
+    if(ctx->pending_chord && (ctx->time_ms - ctx->pending_chord_time_ms) > ctx->chord_timeout_ms){ ctx->pending_chord=0; }
 }
 
 /* Phase 3 scaffolding implementations (stubs / storage already added in context) */
