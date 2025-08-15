@@ -20,9 +20,9 @@ int main(){
     float dirx=1.0f, diry=0.0f; float cx = p.base.pos.x + dirx * reach * 0.45f; float cy = p.base.pos.y;
     float lateral_limit = reach * 0.95f; /* must match runtime (non-permissive) */
     /* Inside enemy: within reach radius and within lateral limit */
-    RogueEnemy inside; inside.alive=1; inside.base.pos.x = cx + 0.4f; inside.base.pos.y = cy + 0.2f; inside.health=10; inside.max_health=10;
+    RogueEnemy inside; memset(&inside,0,sizeof inside); inside.alive=1; inside.team_id=1; inside.base.pos.x = cx + 0.4f; inside.base.pos.y = cy + 0.2f; inside.health=10; inside.max_health=10;
     /* Outside enemy: same forward distance but just beyond lateral limit */
-    RogueEnemy outside; outside.alive=1; outside.base.pos.x = cx + 0.4f; outside.base.pos.y = cy + (lateral_limit + 0.15f); outside.health=10; outside.max_health=10;
+    RogueEnemy outside; memset(&outside,0,sizeof outside); outside.alive=1; outside.team_id=1; outside.base.pos.x = cx + 0.4f; outside.base.pos.y = cy + (lateral_limit + 0.15f); outside.health=10; outside.max_health=10;
     RogueEnemy arr[2] = {inside,outside};
     int k = rogue_combat_player_strike(&combat,&p,arr,2); (void)k;
     if(arr[0].health==10){ printf("inside enemy not hit (inside=%d outside=%d)\n", arr[0].health, arr[1].health); return 1; }

@@ -20,7 +20,7 @@ int main(){
     /* Place enemy slightly left within expected reach arc.
        We keep small vertical offset (0) to stay centered; horizontal offset chosen within reach.
        Base reach for frame3 ~ 1.6 * 1.35 = 2.16 (+ strength*0.012). Enemy at -0.8 is safe. */
-    RogueEnemy e; e.alive=1; e.base.pos.x = p.base.pos.x - 0.8f; e.base.pos.y = p.base.pos.y; e.health=12; e.max_health=12;
+    RogueEnemy e; memset(&e,0,sizeof e); e.alive=1; e.team_id=1; e.base.pos.x = p.base.pos.x - 0.8f; e.base.pos.y = p.base.pos.y; e.health=12; e.max_health=12;
 
     int hp_before = e.health;
     rogue_combat_player_strike(&combat,&p,&e,1);

@@ -26,7 +26,7 @@ int main(){
     float reach = base_reach + (player.strength * 0.012f);
     float cx = player.base.pos.x + 1.0f * reach * 0.45f; /* dirx=1 */
     float target_x = cx + reach*0.30f; /* comfortably within circle */
-    RogueEnemy enemy; memset(&enemy,0,sizeof enemy); enemy.alive=1; enemy.base.pos.x=target_x; enemy.base.pos.y=0.05f; enemy.health=1000; enemy.max_health=1000; /* slight y to avoid perpendicular edge */
+    RogueEnemy enemy; memset(&enemy,0,sizeof enemy); enemy.alive=1; enemy.team_id=1; enemy.base.pos.x=target_x; enemy.base.pos.y=0.05f; enemy.health=1000; enemy.max_health=1000; /* slight y to avoid perpendicular edge */
     printf("debug reach=%.3f cx=%.3f ex=%.3f\n", reach, cx, enemy.base.pos.x);
 
     int hp0 = enemy.health;

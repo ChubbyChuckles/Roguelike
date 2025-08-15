@@ -141,6 +141,9 @@ int rogue_combat_current_chain_index(const RoguePlayerCombat* pc);
 void rogue_combat_queue_branch(RoguePlayerCombat* pc, RogueWeaponArchetype branch_arch);
 /* Notify combat system that current outgoing attack was blocked (defender blocked). */
 void rogue_combat_notify_blocked(RoguePlayerCombat* pc);
+/* Phase 5.5 test hook: allow unit tests to supply a direct line obstruction predicate.
+    Function should return 1 if line is obstructed, 0 if clear, or any other value to defer to tile DDA. */
+void rogue_combat_set_obstruction_line_test(int (*fn)(float sx,float sy,float ex,float ey));
 
 /* Exposed global (defined in app.c) for stamina regen stat scaling */
 extern RoguePlayer g_exposed_player_for_stats;

@@ -7,6 +7,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "core/navigation.h" /* Phase 5.5 obstruction checks */
+/* Optional test hook: tests may register a function returning 1 if the segment between
+    player and enemy should be considered obstructed (bypassing tile sampling & world dependency). */
+static int (*g_obstruction_line_test)(float sx,float sy,float ex,float ey) = NULL;
+void rogue_combat_set_obstruction_line_test(int (*fn)(float,float,float,float)){ g_obstruction_line_test = fn; }
+static int combat_nav_is_blocked(int tx,int ty){ return rogue_nav_is_blocked(tx,ty); }
 #include "game/lock_on.h" /* Phase 5.6 lock-on directional assist */
 /* Damage event ring buffer (Phase 2.7) */
 RogueDamageEvent g_damage_events[ROGUE_DAMAGE_EVENT_CAP];
@@ -424,25 +429,27 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             float part_arc  = raw * (comp_arc / t_parts);
             int dmg = (int)floorf(raw + 0.5f);
             if(pc->combo>0){ int min_noncrit = (int)floorf(scaled + pc->combo + 0.5f); int hard_cap = (int)floorf(scaled * 1.4f + 0.5f); if(min_noncrit>hard_cap) min_noncrit=hard_cap; if(dmg<min_noncrit) dmg=min_noncrit; }
-            /* raw_before retained for summary event */
-            int raw_before = dmg; /* overkill handled per-component aggregate */
             /* Phase 5.5: terrain obstruction attenuation.
-               Cast a simple DDA stepping between player center and enemy; if any blocking tile encountered, mark obstructed.
-               Obstructed hits deal 60% damage (rounded) and emit a future clank hook (TODO). */
-            int obstructed = 0;
-            {
+               Unit tests can supply rogue_test_obstruction_line() returning 0/1 to override detection
+               (avoids dependence on world map initialization). If override not used, perform tile DDA. */
+            int obstructed = 0; int override_used = 0;
+            if(g_obstruction_line_test){
+                int ov = g_obstruction_line_test(px,py,ex,ey);
+                if(ov==0 || ov==1){ obstructed = ov; override_used = 1; }
+            }
+            if(!override_used){
                 float rx0 = cx; float ry0 = cy; float rx1 = ex; float ry1 = ey;
                 int tx0 = (int)floorf(rx0); int ty0 = (int)floorf(ry0); int tx1 = (int)floorf(rx1); int ty1 = (int)floorf(ry1);
-                int steps = (abs(tx1-tx0) > abs(ty1-ty0)? abs(tx1-tx0): abs(ty1-ty0)); if(steps<1) steps=1; /* number of tile transitions */
-                /* We step inclusive of the last interior tile by using steps+1 samples after the origin. */
+                int steps = (abs(tx1-tx0) > abs(ty1-ty0)? abs(tx1-tx0): abs(ty1-ty0)); if(steps<1) steps=1;
                 float fx = (float)(tx1 - tx0)/(float)steps; float fy = (float)(ty1 - ty0)/(float)steps; float sx = (float)tx0 + 0.5f; float sy = (float)ty0 + 0.5f;
-                for(int si=0; si<=steps; ++si){ int cx_t = (int)floorf(sx); int cy_t = (int)floorf(sy); if(!(cx_t==tx0 && cy_t==ty0) && !(cx_t==tx1 && cy_t==ty1)){
-                        if(rogue_nav_is_blocked(cx_t,cy_t)){ obstructed=1; break; }
-                    }
-                    sx += fx; sy += fy;
-                }
-                if(obstructed){ dmg = (int)floorf(dmg * 0.60f + 0.5f); if(dmg<1) dmg=1; }
+                for(int si=0; si<=steps; ++si){ int cx_t = (int)floorf(sx); int cy_t = (int)floorf(sy); if(!(cx_t==tx0 && cy_t==ty0) && !(cx_t==tx1 && cy_t==ty1)){ if(combat_nav_is_blocked(cx_t,cy_t)){ obstructed=1; break; } } sx += fx; sy += fy; }
             }
+            if(obstructed){
+                float atten = 0.55f;
+                part_phys *= atten; part_fire *= atten; part_frost *= atten; part_arc *= atten; raw *= atten; dmg = (int)floorf(raw + 0.5f); if(dmg<1) dmg=1;
+            }
+            /* raw_before retained for summary event (final, post-attenuation) */
+            int raw_before = dmg; /* overkill handled per-component aggregate */
             /* Roll crit up-front; apply to each component according to layering mode later. */
             float dex_bonus = player->dexterity * 0.0035f; if(dex_bonus>0.55f) dex_bonus=0.55f; /* soft clamp so base + dex <= ~0.60 */
             float crit_chance = 0.05f + dex_bonus + (float)player->crit_chance * 0.01f; if(crit_chance>0.75f) crit_chance=0.75f; /* hard cap */

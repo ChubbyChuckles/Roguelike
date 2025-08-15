@@ -3,12 +3,15 @@
 #include <string.h>
 #include <assert.h>
 #include "game/combat.h"
-#define rogue_nav_is_blocked(tx,ty) test_nav_is_blocked(tx,ty)
+/* Use combat override hook instead of macro to avoid macro collisions. */
 #include "core/navigation.h"
 #include "game/combat_attacks.h"
 #include "core/app_state.h"
 #include "entities/player.h"
 #include "entities/enemy.h"
+/* Provide line obstruction hook via registration */
+static int g_obstruction_phase = 0; /* 0 baseline, 1 obstruct */
+static int test_line_obstruct(float sx,float sy,float ex,float ey){ (void)sx;(void)sy;(void)ex;(void)ey; return g_obstruction_phase?1:0; }
 
 /* Minimal overrides: only provide what isn't already in core or needs deterministic behavior. */
 RoguePlayer g_exposed_player_for_stats; /* required by combat.c for cc flags */
@@ -52,6 +55,7 @@ int main(){
     /* Force active strike frame */
     rogue_force_attack_active = 1; g_attack_frame_override = 3;
     RoguePlayerCombat pc; rogue_combat_init(&pc); pc.phase=ROGUE_ATTACK_STRIKE; pc.strike_time_ms=10; /* inside window */
+    rogue_combat_set_obstruction_line_test(test_line_obstruct);
     RoguePlayer player; memset(&player,0,sizeof player); player.team_id=0; player.strength=30; player.facing=2; player.base.pos.x=0; player.base.pos.y=0;
     /* Two enemies: ally (same team) and foe; both within reach; ensure ally untouched */
     RogueEnemy enemies[3]; memset(enemies,0,sizeof enemies);
@@ -63,10 +67,12 @@ int main(){
     int dmg_full = enemies[1].max_health - enemies[1].health;
     /* Obstruction test: place enemy behind blocking tile (2,0). Without obstruction would be in reach. */
     pc.phase=ROGUE_ATTACK_STRIKE; pc.strike_time_ms=10; pc.processed_window_mask=0; /* reset window */
-    enemies[1].health = enemies[1].max_health; enemies[1].base.pos.x=3.4f; /* line from (0,0) to (~3.4,0) passes through tile (2,0) */
+    g_obstruction_phase = 1; /* enable obstruction for second strike */
+    enemies[1].health = enemies[1].max_health; enemies[1].base.pos.x=3.6f; /* still within reach due to center shift; crosses tile (2,0) */
     int kills2 = rogue_combat_player_strike(&pc,&player,enemies,2); (void)kills2;
     int dmg_obstruct = enemies[1].max_health - enemies[1].health;
-    if(!(dmg_obstruct < dmg_full && dmg_obstruct*100 >= dmg_full*55 && dmg_obstruct*100 <= dmg_full*65)){ printf("fail_obstruction_scale full=%d obstruct=%d\n", dmg_full,dmg_obstruct); return 3; }
+    int ratio = (dmg_obstruct*100)/(dmg_full?dmg_full:1);
+    if(!(dmg_obstruct < dmg_full && ratio >=50 && ratio <=60)){ printf("fail_obstruction_scale full=%d obstruct=%d ratio=%d%%\n", dmg_full,dmg_obstruct,ratio); return 3; }
     printf("phase5_team_obstruction: OK full=%d obstruct=%d\n", dmg_full, dmg_obstruct);
     return 0;
 }
