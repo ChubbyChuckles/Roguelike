@@ -1,25 +1,11 @@
-UI Phase 4.9: Durability thresholds bar & warning icon
+UI Phase 5.1: Added zoomable panning Skill Graph with quadtree culling
 
-Summary:
-- Added durability bar to equipment panel with color-coded buckets: green (>=60%), amber (30-59%), red (<30%).
-- Added warning '!' overlay icon at critical (red) state for quick visual alert.
-- Text color for durability line now matches bucket for consistent theming.
-- Introduced helper `rogue_durability_bucket(pct)` (returns 2 good,1 warn,0 critical) for deterministic classification.
-- Unit test `test_ui_phase4_durability_thresholds` validates bucket boundaries including clamp behavior outside 0..1 range.
-- Roadmap updated marking Phase 4.9 Done; README updated with feature description.
+Details:
+- Extended `RogueUIContext` with skill graph state (viewport, zoom, dynamic node array, opaque quadtree ref).
+- Implemented APIs: `rogue_ui_skillgraph_begin`, `rogue_ui_skillgraph_add`, `rogue_ui_skillgraph_build`.
+- Quadtree built each frame (simple subdivision threshold=8) and queried against viewport to emit only visible nodes.
+- Node rendering: base panel, rank pip bar, rank text, synergy glow ring (partial Phase 5.2 layering groundwork).
+- Added unit test `test_ui_phase5_skillgraph` verifying emission count < total, non-zero, and presence of synergy glow.
+- Updated roadmap marking 5.1 Done and 5.2 Partial.
 
-Notes:
-- Future enhancement: animate gradual color transition and integrate repair cost preview tooltip.
-
-UI Phase 4.10: Controller-friendly radial selector menu
-
-Summary:
-- Added radial selector state to UI context (supports up to 12 wedges) with open/choose/cancel events.
-- Implemented `rogue_ui_radial_open/close` and `rogue_ui_radial_menu` builder rendering wedge panels + labels around a center.
-- Analog stick angle maps to wedge index (index 0 at Up, clockwise ordering). Keyboard arrows provide cycling fallback for KB users.
-- Event kinds added: ROGUE_UI_EVENT_RADIAL_OPEN / _CHOOSE / _CANCEL.
-- Unit test `test_ui_phase4_radial_selector` validates open event emission, axis-driven selection range, and choose event payload.
-- Roadmap & README updated marking Phase 4.10 Done.
-
-Notes:
-- Future: add mouse-driven selection (hover sectors), visual wedge slice geometry, and cancel via right-click / B button.
+Follow-ups (deferred): icon spritesheet integration, animation pulses, allocation interactions, lazy quadtree reuse & pooling.

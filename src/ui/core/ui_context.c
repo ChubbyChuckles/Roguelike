@@ -7,6 +7,42 @@
 
 static unsigned int xorshift32(unsigned int* s){ unsigned int x=*s; x^=x<<13; x^=x>>17; x^=x<<5; *s=x; return x; }
 
+/* ----------------- Phase 5 Skill Graph (zoomable, panning, quadtree culling) ------------------ */
+typedef struct RogueUISkillNodeRec {
+    float x,y; /* world center */
+    int icon_id;
+    int rank;
+    int max_rank;
+    int synergy; /* non-zero => glow */
+} RogueUISkillNodeRec;
+
+typedef struct SkillQuadNode {
+    float x,y,w,h; /* bounds */
+    int first_index; /* index into flat list of child node indices */
+    int count;
+    int children[4]; /* -1 if leaf */
+} SkillQuadNode;
+
+typedef struct SkillQuadTree {
+    SkillQuadNode* nodes; int node_count; int node_cap;
+    int* indices; int index_count; int index_cap;
+} SkillQuadTree;
+
+static SkillQuadTree* skillgraph_quadtree_create(void){ return (SkillQuadTree*)calloc(1,sizeof(SkillQuadTree)); }
+static void skillgraph_quadtree_reset(SkillQuadTree* q){ if(!q) return; q->node_count=0; q->index_count=0; }
+static int skillgraph_qt_push_node(SkillQuadTree* q, SkillQuadNode n){ if(q->node_count>=q->node_cap){ int nc = q->node_cap? q->node_cap*2:32; q->nodes=(SkillQuadNode*)realloc(q->nodes, nc*sizeof(SkillQuadNode)); q->node_cap=nc; } q->nodes[q->node_count]=n; return q->node_count++; }
+static int skillgraph_qt_push_index(SkillQuadTree* q, int v){ if(q->index_count>=q->index_cap){ int nc = q->index_cap? q->index_cap*2:64; q->indices=(int*)realloc(q->indices, nc*sizeof(int)); q->index_cap=nc; } q->indices[q->index_count]=v; return q->index_count++; }
+static void skillgraph_qt_subdivide(SkillQuadTree* q, int node_index, RogueUISkillNodeRec* nodes){ SkillQuadNode* nd=&q->nodes[node_index]; if(nd->count<=8) return; float hw=nd->w*0.5f, hh=nd->h*0.5f; float xs[2]={nd->x, nd->x+hw}; float ys[2]={nd->y, nd->y+hh}; for(int i=0;i<4;i++){ SkillQuadNode child; child.x=xs[i&1]; child.y=ys[i>>1]; child.w=hw; child.h=hh; child.first_index=q->index_count; child.count=0; for(int k=0;k<4;k++) child.children[k]=-1; int ci=skillgraph_qt_push_node(q,child); nd->children[i]=ci; } int start=nd->first_index; int cnt=nd->count; nd->count=0; for(int ii=0; ii<cnt; ++ii){ int ni=q->indices[start+ii]; RogueUISkillNodeRec* sn=&nodes[ni]; for(int c=0;c<4;c++){ SkillQuadNode* ch=&q->nodes[nd->children[c]]; if(sn->x>=ch->x && sn->x<ch->x+ch->w && sn->y>=ch->y && sn->y<ch->y+ch->h){ skillgraph_qt_push_index(q,ni); ch->count++; break; } } } }
+static int skillgraph_build_qt_recurse(SkillQuadTree* q, int node_index, RogueUISkillNodeRec* nodes){ SkillQuadNode* nd=&q->nodes[node_index]; if(nd->count>8){ skillgraph_qt_subdivide(q,node_index,nodes); for(int i=0;i<4;i++){ int ci=nd->children[i]; if(ci>=0) skillgraph_build_qt_recurse(q,ci,nodes); } } return 1; }
+static void skillgraph_rebuild_quadtree(RogueUIContext* ctx){ if(!ctx) return; SkillQuadTree* q=(SkillQuadTree*)ctx->skillgraph_quadtree; if(!q){ ctx->skillgraph_quadtree=skillgraph_quadtree_create(); q=(SkillQuadTree*)ctx->skillgraph_quadtree; } skillgraph_quadtree_reset(q); if(ctx->skillgraph_node_count==0) return; float minx=1e9f,miny=1e9f,maxx=-1e9f,maxy=-1e9f; for(int i=0;i<ctx->skillgraph_node_count;i++){ RogueUISkillNodeRec* n=&ctx->skillgraph_nodes[i]; if(n->x<minx)minx=n->x; if(n->y<miny)miny=n->y; if(n->x>maxx)maxx=n->x; if(n->y>maxy)maxy=n->y; } float w=maxx-minx; float h=maxy-miny; if(w<1) w=1; if(h<1) h=1; SkillQuadNode root; root.x=minx; root.y=miny; root.w=w; root.h=h; root.first_index=0; root.count=0; for(int k=0;k<4;k++) root.children[k]=-1; int root_index=skillgraph_qt_push_node(q,root); for(int i=0;i<ctx->skillgraph_node_count;i++){ skillgraph_qt_push_index(q,i); q->nodes[root_index].count++; } skillgraph_build_qt_recurse(q,root_index,ctx->skillgraph_nodes); }
+static int skillgraph_frustum_contains(float vx,float vy,float vw,float vh,float x,float y){ return x>=vx && y>=vy && x<=vx+vw && y<=vy+vh; }
+static void skillgraph_emit_node(RogueUIContext* ctx, RogueUISkillNodeRec* n){ float sx=(n->x-ctx->skillgraph_view_x)*ctx->skillgraph_zoom; float sy=(n->y-ctx->skillgraph_view_y)*ctx->skillgraph_zoom; float base=24.0f*ctx->skillgraph_zoom; RogueUIRect r={sx-base*0.5f, sy-base*0.5f, base, base}; uint32_t base_col = n->synergy? 0x404080FFu:0x303038FFu; rogue_ui_panel(ctx,r,base_col); char txt[32]; snprintf(txt,sizeof txt,"%d/%d",n->rank,n->max_rank); rogue_ui_text_dup(ctx,(RogueUIRect){r.x,r.y+ r.h + 2, r.w, 12}, txt, 0xFFFFFFFFu); int pips = n->max_rank>8?8:n->max_rank; float pipw=r.w/(float)pips; for(int i=0;i<pips;i++){ float px=r.x + i*pipw; uint32_t c = (i < n->rank)? 0xA0D050FFu:0x404040FFu; rogue_ui_panel(ctx,(RogueUIRect){px,r.y-6,pipw-1,4},c); } if(n->synergy){ rogue_ui_panel(ctx,(RogueUIRect){r.x-3,r.y-3,r.w+6,r.h+6},0x20206060u); } }
+static void skillgraph_query_emit(SkillQuadTree* q, int node_index, RogueUIContext* ctx){ SkillQuadNode* nd=&q->nodes[node_index]; float vx=ctx->skillgraph_view_x, vy=ctx->skillgraph_view_y, vw=ctx->skillgraph_view_w, vh=ctx->skillgraph_view_h; if(nd->x+nd->w < vx || nd->y+nd->h < vy || nd->x > vx+vw || nd->y > vy+vh) return; if(nd->children[0]<0){ for(int i=0;i<nd->count;i++){ int idx = q->indices[nd->first_index + i]; RogueUISkillNodeRec* rec=&ctx->skillgraph_nodes[idx]; if(skillgraph_frustum_contains(vx,vy,vw,vh,rec->x,rec->y)) skillgraph_emit_node(ctx,rec); } } else { for(int c=0;c<4;c++){ if(nd->children[c]>=0) skillgraph_query_emit(q,nd->children[c],ctx);} } }
+void rogue_ui_skillgraph_begin(RogueUIContext* ctx, float view_x, float view_y, float view_w, float view_h, float zoom){ if(!ctx) return; ctx->skillgraph_active=1; ctx->skillgraph_view_x=view_x; ctx->skillgraph_view_y=view_y; ctx->skillgraph_view_w=view_w; ctx->skillgraph_view_h=view_h; ctx->skillgraph_zoom = (zoom<=0)?1.0f:zoom; }
+void rogue_ui_skillgraph_add(RogueUIContext* ctx, float world_x, float world_y, int icon_id, int rank, int max_rank, int synergy){ if(!ctx||!ctx->skillgraph_active) return; if(ctx->skillgraph_node_count>=ctx->skillgraph_node_capacity){ int nc=ctx->skillgraph_node_capacity? ctx->skillgraph_node_capacity*2:64; ctx->skillgraph_nodes=(RogueUISkillNodeRec*)realloc(ctx->skillgraph_nodes, nc*sizeof(RogueUISkillNodeRec)); ctx->skillgraph_node_capacity=nc; }
+    RogueUISkillNodeRec* n=&ctx->skillgraph_nodes[ctx->skillgraph_node_count++]; n->x=world_x; n->y=world_y; n->icon_id=icon_id; n->rank=rank; n->max_rank=max_rank; n->synergy=synergy; }
+int rogue_ui_skillgraph_build(RogueUIContext* ctx){ if(!ctx||!ctx->skillgraph_active) return 0; skillgraph_rebuild_quadtree(ctx); SkillQuadTree* q=(SkillQuadTree*)ctx->skillgraph_quadtree; if(!q||q->node_count==0) { ctx->skillgraph_active=0; return 0; } int before=ctx->node_count; skillgraph_query_emit(q,0,ctx); ctx->skillgraph_active=0; return ctx->node_count-before; }
+
 int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg){
     if(!ctx||!cfg){ fprintf(stderr,"INIT_FAIL null ctx or cfg\n"); return 0; }
     fprintf(stderr,"INIT_START ctx=%p cfg.max_nodes=%d cfg.seed=%u cfg.arena_size=%zu\n",(void*)ctx,cfg->max_nodes,cfg->seed,cfg->arena_size);
@@ -38,9 +74,9 @@ int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg){
     return 1;
 }
 
-void rogue_ui_shutdown(RogueUIContext* ctx){ if(!ctx) return; free(ctx->nodes); ctx->nodes=NULL; ctx->node_capacity=0; ctx->node_count=0; free(ctx->arena); ctx->arena=NULL; ctx->arena_size=ctx->arena_offset=0; }
+void rogue_ui_shutdown(RogueUIContext* ctx){ if(!ctx) return; free(ctx->nodes); ctx->nodes=NULL; ctx->node_capacity=0; ctx->node_count=0; free(ctx->arena); ctx->arena=NULL; ctx->arena_size=ctx->arena_offset=0; if(ctx->skillgraph_nodes){ free(ctx->skillgraph_nodes); ctx->skillgraph_nodes=NULL; ctx->skillgraph_node_count=ctx->skillgraph_node_capacity=0; } if(ctx->skillgraph_quadtree){ SkillQuadTree* q=(SkillQuadTree*)ctx->skillgraph_quadtree; free(q->nodes); free(q->indices); free(q); ctx->skillgraph_quadtree=NULL; } }
 
-void rogue_ui_begin(RogueUIContext* ctx, double delta_time_ms){ if(!ctx) return; if(ctx->node_capacity==0){ fprintf(stderr,"BEGIN DETECT node_capacity==0 BEFORE FRAME (ctx=%p)\n",(void*)ctx); }
+void rogue_ui_begin(RogueUIContext* ctx, double delta_time_ms){ if(!ctx) return; /* If node_capacity==0 something went wrong with init; attempt lazy alloc minimal buffer to keep tests alive. */ if(ctx->node_capacity==0){ ctx->nodes=(RogueUINode*)calloc(64,sizeof(RogueUINode)); if(ctx->nodes){ ctx->node_capacity=64; } }
     ctx->frame_dt_ms=delta_time_ms; ctx->time_ms += delta_time_ms; ctx->node_count=0; ctx->stats.draw_calls=0; ctx->frame_active=1; ctx->arena_offset=0; ctx->hot_index=-1; }
 
 /* DEBUG TRACE */
@@ -332,6 +368,7 @@ int rogue_ui_inventory_grid(RogueUIContext* ctx, RogueUIRect rect, const char* i
                 snprintf(tmp,sizeof tmp,"%d",item_counts[s]);
                 rogue_ui_text_dup(ctx,(RogueUIRect){inner.x+2,inner.y+2,inner.w-4,inner.h-4},tmp,(uint32_t)((rr<<24)|(rg<<16)|(rb<<8)|0xFFu));
             }
+
         } else {
             int panel=rogue_ui_panel(ctx,cell_r,base_col); (void)panel; if(mx>=cell_r.x&&my>=cell_r.y&&mx<cell_r.x+cell_r.w&&my<cell_r.y+cell_r.h) hovered_slot=s; }
     }

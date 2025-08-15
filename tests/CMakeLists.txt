@@ -266,6 +266,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_radial_selector.c AND 
     add_test(NAME test_ui_phase4_radial_selector COMMAND test_ui_phase4_radial_selector)
 endif()
 
+# UI Phase 5.1 skill graph quadtree culling & layering test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase5_skillgraph.c AND NOT TARGET test_ui_phase5_skillgraph)
+    add_executable(test_ui_phase5_skillgraph unit/test_ui_phase5_skillgraph.c)
+    target_link_libraries(test_ui_phase5_skillgraph PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ui_phase5_skillgraph PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ui_phase5_skillgraph COMMAND test_ui_phase5_skillgraph)
+endif()
+
 # Explicitly add vendor restock rotation test (10.3)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_restock.c AND NOT TARGET test_vendor_restock)
     add_executable(test_vendor_restock unit/test_vendor_restock.c)

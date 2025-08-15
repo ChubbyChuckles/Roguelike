@@ -124,6 +124,15 @@ typedef struct RogueUIContext {
     int stat_preview_slot; /* hovered slot last frame for which preview was generated (-1 if none) */
     /* Phase 4.10 Radial selector */
     RogueUIRadialDesc radial;
+    /* Phase 5 Skill Graph (zoomable, panning, quadtree culling) */
+    int skillgraph_active;
+    float skillgraph_view_x, skillgraph_view_y; /* top-left world coords */
+    float skillgraph_view_w, skillgraph_view_h; /* viewport size in world units */
+    float skillgraph_zoom; /* scale factor (1=100%) */
+    struct RogueUISkillNodeRec* skillgraph_nodes; /* dynamic array (heap) */
+    int skillgraph_node_count;
+    int skillgraph_node_capacity;
+    void* skillgraph_quadtree; /* opaque pointer (rebuilt each build) */
 } RogueUIContext;
 
 int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg);
@@ -239,6 +248,14 @@ const RogueUINode* rogue_ui_find_by_id(const RogueUIContext* ctx, uint32_t id_ha
 int rogue_ui_inventory_grid(RogueUIContext* ctx, RogueUIRect rect, const char* id,
     int slot_capacity, int columns, int* item_ids, int* item_counts,
     int cell_size, int* first_visible, int* visible_count);
+
+/* Phase 5 Skill Graph API */
+/* Begin a skill graph frame section: defines viewport in world coordinates and zoom scale. */
+void rogue_ui_skillgraph_begin(RogueUIContext* ctx, float view_x, float view_y, float view_w, float view_h, float zoom);
+/* Add a skill node (world coordinate center) with icon id, rank, max_rank, and synergy flag (non-zero displays glow). */
+void rogue_ui_skillgraph_add(RogueUIContext* ctx, float world_x, float world_y, int icon_id, int rank, int max_rank, int synergy);
+/* Build (emit UI nodes) with quadtree culling. Returns number of visible skill nodes emitted (base icons counted once). */
+int rogue_ui_skillgraph_build(RogueUIContext* ctx);
 
 /* Phase 4 event kinds */
 enum { ROGUE_UI_EVENT_NONE=0, ROGUE_UI_EVENT_DRAG_BEGIN=1, ROGUE_UI_EVENT_DRAG_END=2, ROGUE_UI_EVENT_STACK_SPLIT_OPEN=3, ROGUE_UI_EVENT_STACK_SPLIT_APPLY=4, ROGUE_UI_EVENT_STACK_SPLIT_CANCEL=5,

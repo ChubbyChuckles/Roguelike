@@ -54,8 +54,8 @@ PHASE 4. Inventory / Equipment / Vendor Interfaces
 4.10 Controller friendly radial selector (Done: radial menu open/choose/cancel events, analog stick angle -> wedge selection, keyboard arrow cycling fallback, test `test_ui_phase4_radial_selector` validates open + axis mapping + choose event)
 
 PHASE 5. Skill Tree / Progression UI
-5.1 Zoomable panning skill graph (quad‑tree culling) (X)
-5.2 Node layering: base icon, rank pips, synergy glow (X)
+5.1 Zoomable panning skill graph (quad‑tree culling) (Done: basic world->screen transform, quadtree build, culling, emission API + unit test `test_ui_phase5_skillgraph`)
+5.2 Node layering: base icon, rank pips, synergy glow (Partial: base panel, rank pip bars, synergy glow ring implemented; pending distinct icon sprite & pip styling variants)
 5.3 Rank allocation animations (pulse, currency spend flyout) (X)
 5.4 Passive synergy aggregate panel (X)
 5.5 Search / filter by tag (fire, movement, defense) (X)
