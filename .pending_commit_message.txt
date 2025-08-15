@@ -1,16 +1,20 @@
-combat: multi-hit window helper + combo scaling test fix
+combat: heavy_2 triple-window test + multi-hit robustness & combo scaling fix
 
 Phase 1A incremental combat updates:
-- Added rogue_attack_window_frame_span() to derive inclusive animation frame span (0..7) for each authored active window (prepares for external frame data authoring & validation tooling).
-- Adjusted combat strike processing: if strike_time_ms resets to 0 (test harness scenario) processed_window_mask is cleared so repeated isolated damage measurements (combo scaling test) are not suppressed by prior window processing.
-- Updated README to note frame span helper and roadmap implementation plan with test regression fix note.
-- Implementation plan annotated under 1A.7 with helper + combo scaling mask reset rationale.
+- Added `test_combat_heavy_multi_window` validating heavy_2 three sequential active windows (damage applied per window, duplicate prevention via processed_window_mask, BEGIN/END events = 6 total).
+- Preserved const safety (removed prior experimental in-place caching); attack window structs keep sentinel start_frame/end_frame (-1) for future authoring tools.
+- Retained `rogue_attack_window_frame_span` helper (pure, no mutation) for external frame mapping & validation.
+- Fixed earlier combo scaling regression: reset `processed_window_mask` when `strike_time_ms` returns to 0 (isolated test harness strikes).
+
+Docs & Plan:
+- README updated (multi-hit details, heavy_2 triple-window mention, frame span helper).
+- implementation_plan_combatsystem.txt updated under 1A.7 with heavy_2 test completion + notes on mask reset rationale.
 
 Tests:
-- test_combat_combo_scaling now passes again (processed_window_mask reset logic).
-- All other combat tests remain green after changes.
+- New heavy multi-window test passes (expected dmg sequence & 6 events).
+- All existing combat tests (multi-hit, events, combo scaling) remain green.
 
 Follow-ups:
-- Add heavy_2 triple-window specific unit test covering overlapping window edges & frame span mapping.
-- Integrate status buildup thresholds (bleed/frost) & decay (Phase 2 / Phase 3 interplay) into damage pipeline.
-- FX/SFX consumption layer for emitted BEGIN/END window events.
+- Remaining Phase 1A coverage: boundary cancel edge tests (exact frame start/end, hit vs whiff thresholds) & overlapping window stacking scenario.
+- Status buildup threshold/decay system (bleed/frost) integration (Phase 2/3).
+- FX/SFX consumer layer for window events (Phase 1A.5 continuation).
