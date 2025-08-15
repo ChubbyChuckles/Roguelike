@@ -124,6 +124,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_haste_cast_speed.c AND NOT TARGE
     add_test(NAME test_haste_cast_speed COMMAND test_haste_cast_speed)
 endif()
 
+# Explicitly add cast weaving & early cancel test (Phase 1A.2/1A.4 partial)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_cast_weave_and_cancel.c AND NOT TARGET test_cast_weave_and_cancel)
+    add_executable(test_cast_weave_and_cancel unit/test_cast_weave_and_cancel.c)
+    target_link_libraries(test_cast_weave_and_cancel PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_cast_weave_and_cancel PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_cast_weave_and_cancel COMMAND test_cast_weave_and_cancel)
+endif()
+
 foreach(ut ${UNIT_TESTS})
     get_filename_component(name ${ut} NAME_WE)
     if(TARGET ${name})

@@ -1,11 +1,13 @@
-feat(skills): input buffering (1A.1 partial), adaptive haste (1A.3 partial), channel ticks & cast speed tests
+feat(skills): cast weaving (1A.2 partial) + early cancel scaling (1A.4 partial) + adaptive haste & buffering groundwork
 
-Implements per-skill input buffering: queued cast skills (and buffered instants with buffer window) activate immediately after current cast completes using new `queued_trigger_ms` and existing `queued_until_ms` fields. Adds unit test `test_input_buffer_cast`.
+Adds min_weave_ms to `RogueSkillDef` enforcing minimum separation between successive casts of the same skill (Phase 1A.2 partial). Currently no haste override; future enhancement will relax gate under sufficient haste.
 
-Adds adaptive haste prototype (Phase 1A.3 partial): reuses POWER_STRIKE buff magnitude as a temporary haste scalar affecting cast progression speed and channel tick interval (faster with higher buff). Unit test `test_haste_cast_speed` validates reduced completion time.
+Implements early cancel API `rogue_skill_try_cancel` enabling partial cast completion after reaching `early_cancel_min_pct`. Effect callback receives `partial_scalar` (linear progress fraction) via extended `RogueSkillCtx` (Phase 1A.4 partial). Cancelling applies skill effect & EffectSpec proportionally (future: non-linear scaling curves, resource refund tiers).
 
-Extends channel system (1A.5 partial previously) now interacting with haste for tick interval scaling. Existing `test_channel_ticks_and_buffer` still valid.
+Extends tests:
+ - `test_cast_weave_and_cancel` validates early cancel scalar (~0.4), weaving lockout (<min_weave_ms fails, after passes).
+ - Existing buffering (`test_input_buffer_cast`), haste (`test_haste_cast_speed`), channel ticks (`test_channel_ticks_and_buffer`) remain green.
 
-Roadmap updates: 1A.1, 1A.3, 1A.5, 1A.6 set to Partial with specifics (buffering, haste speed, ticks, tests). README earlier updated with input buffering & channel ticks; future update will add haste note.
+Roadmap updates: 1A.2, 1A.4 marked Partial; 1A.6 expanded to include weave/cancel scalar test coverage.
 
-Next targets: early cancel scaling (1A.4), drift correction for channel ticks, dedicated haste buff type, DOT/HOT EffectSpec kinds, combo builder/spender logic.
+Next steps: haste-aware weave bypass, drift-corrected channel scheduling, non-linear early cancel scaling curve, DOT/HOT EffectSpec kinds, combo builder/spender implementation.

@@ -12,6 +12,7 @@ typedef struct RogueSkillCtx {
     int player_level;
     int talent_points; /* remaining */
     unsigned int rng_state; /* deterministic per-activation RNG (Phase 1.6) */
+    float partial_scalar; /* early cancel scaling factor (1A.4) */
 } RogueSkillCtx;
 
 /* Effect callback (optional). Return 1 if activation consumed resources. */
@@ -37,6 +38,8 @@ typedef struct RogueSkillDef {
     float charge_recharge_ms;   /* per-charge regen time (1.3) */
     float cast_time_ms;         /* >0 => cast; 0 => instant; channel when cast_type==2 (1.3) */
     unsigned short input_buffer_ms; /* queue window (1.3 placeholder) */
+    unsigned short min_weave_ms;    /* minimum separation for weaving rule (1A.2) */
+    unsigned char early_cancel_min_pct; /* minimum % progress to allow early cancel (1A.4) */
     unsigned char cast_type;    /* 0 instant,1 cast,2 channel */
     unsigned char combo_builder;/* flag: grants combo point (1.3 placeholder) */
     unsigned char combo_spender;/* flag: spends combo points */
@@ -91,6 +94,7 @@ int rogue_skill_rank_up(int id); /* returns new rank or -1 */
 
 /* Activation */
 int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx); /* 1 success, 0 fail */
+int rogue_skill_try_cancel(int id, const RogueSkillCtx* ctx);   /* early cancel attempt for cast; 1 success */
 
 /* Frame update (cooldowns etc) */
 void rogue_skills_update(double now_ms);

@@ -100,6 +100,10 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx){
     if(def->resource_cost_mana>0){ if(g_app.player.mana < def->resource_cost_mana) return 0; }
     if(def->action_point_cost>0){ if(g_app.player.action_points < def->action_point_cost) return 0; }
     /* Deterministic RNG seed (id + uses) */
+    /* Cast weaving rule: prevent same skill re-cast within min_weave_ms of last_cast_ms */
+    if(def->min_weave_ms>0 && def->cast_type==1 && def->cast_time_ms>0){
+        if(st->last_cast_ms>0 && (now - st->last_cast_ms) < (double)def->min_weave_ms) return 0;
+    }
     RogueSkillCtx local_ctx = ctx? *ctx : (RogueSkillCtx){0};
     local_ctx.rng_state = (unsigned int)(id * 2654435761u) ^ (unsigned int)st->uses * 2246822519u;
     int consumed = 1;
@@ -165,6 +169,26 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx){
     if(def->effect_spec_id >=0 && !(def->cast_type==1 && def->cast_time_ms>0)){ rogue_effect_apply(def->effect_spec_id, now); }
     }
     return consumed;
+}
+
+int rogue_skill_try_cancel(int id, const RogueSkillCtx* ctx){
+    if(id<0 || id>=g_count) return 0; (void)ctx;
+    RogueSkillState* st=&g_states[id]; const RogueSkillDef* def=&g_defs[id];
+    if(!st->casting_active || def->cast_type!=1 || def->cast_time_ms<=0) return 0;
+    double progress_pct = (st->cast_progress_ms / def->cast_time_ms)*100.0;
+    if(def->early_cancel_min_pct>0 && progress_pct < def->early_cancel_min_pct) return 0; /* cannot cancel yet */
+    /* Scale effect on partial completion */
+    float scalar = (float)(st->cast_progress_ms / def->cast_time_ms);
+    double effective_now = (ctx? ctx->now_ms:0.0) + st->cast_progress_ms; /* approximate wall time of cancel */
+    st->casting_active=0; st->cast_progress_ms=0; /* reset cast */
+    RogueSkillCtx c2 = ctx? *ctx : (RogueSkillCtx){0};
+    c2.now_ms = effective_now;
+    c2.partial_scalar = scalar;
+    c2.rng_state = (unsigned int)(id * 2654435761u) ^ (unsigned int)st->uses * 2246822519u;
+    if(def->on_activate){ def->on_activate(def, st, &c2); }
+    if(def->effect_spec_id>=0){ rogue_effect_apply(def->effect_spec_id, c2.now_ms); }
+    st->last_cast_ms = effective_now;
+    return 1;
 }
 
 void rogue_skills_update(double now_ms){
