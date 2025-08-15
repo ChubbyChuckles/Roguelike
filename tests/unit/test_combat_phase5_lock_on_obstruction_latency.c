@@ -14,7 +14,8 @@
 static int test_nav_is_blocked(int tx,int ty){ return (tx==2 && ty==0)?1:0; }
 
 /* Minimal attack stub */
-static const RogueAttackDef g_stub_attack = {0,"stub",ROGUE_WEAPON_LIGHT,0,0,80,0,5,0,40,ROGUE_DMG_PHYSICAL,0.30f,0,0,1,{{0,80,0,1.0f,0,0,0,0}},0,0,0.50f,0,0};
+/* Match working stub parameters from team obstruction test for consistent damage */
+static const RogueAttackDef g_stub_attack = {0,"stub",ROGUE_WEAPON_LIGHT,0,0,80,0,5,0,20,ROGUE_DMG_PHYSICAL,0.30f,0,0,1,{{0,80,0,1.0f,0,0,0,0}},0,0,0.50f,0,0};
 const RogueAttackDef* rogue_attack_get(int a,int c){(void)a;(void)c; return &g_stub_attack;} int rogue_attack_chain_length(int a){(void)a; return 1;}
 int rogue_buffs_get_total(int t){(void)t; return 0;}
 void rogue_add_damage_number(float x,float y,int amount,int from_player){(void)x;(void)y;(void)amount;(void)from_player;}
@@ -27,8 +28,8 @@ static int strike_once(RoguePlayerCombat* pc, RoguePlayer* player, RogueEnemy* e
 }
 
 int main(){
-    rogue_force_attack_active=1; g_attack_frame_override=3; /* active frame */
-    RoguePlayer player; memset(&player,0,sizeof player); player.facing=2; player.strength=40; player.lock_on_radius=12.0f; player.base.pos.x=0; player.base.pos.y=0;
+    rogue_force_attack_active=1; g_attack_frame_override=3; /* align with active frame approach used elsewhere */
+    RoguePlayer player; memset(&player,0,sizeof player); player.team_id=0; player.facing=2; player.strength=40; player.lock_on_radius=12.0f; player.base.pos.x=0; player.base.pos.y=0;
     RoguePlayerCombat pc; rogue_combat_init(&pc);
 
     /* ENEMIES for latency + cycling */
@@ -57,18 +58,19 @@ int main(){
     printf("cycled after cooldown idx=%d\n", player.lock_on_target_index);
 
     /* Obstruction damping with lock-on: baseline unobstructed damage vs obstructed path */
-    RogueEnemy target; memset(&target,0,sizeof target); target.alive=1; target.base.pos.x=1.2f; target.base.pos.y=0.0f; target.health=200; target.max_health=200;
+    RogueEnemy target; memset(&target,0,sizeof target); target.alive=1; target.team_id=1; target.base.pos.x=1.0f; target.base.pos.y=0.0f; target.health=100; target.max_health=100;
     RogueEnemy list[1]; list[0]=target; rogue_lockon_reset(&player); if(!rogue_lockon_acquire(&player,list,1)){ printf("fail_acquire_single\n"); return 7; }
     {
         float dx,dy; rogue_lockon_get_dir(&player,list,1,&dx,&dy); player.facing = (dx>0)?2: (dx<0?6: player.facing);
         strike_once(&pc,&player,list,1); int dmg_full = list[0].max_health - list[0].health; printf("dmg_full=%d health=%d\n", dmg_full, list[0].health);
-        if(dmg_full==0){ printf("warn_no_baseline_damage_skip_obstruction\n"); printf("phase5_lock_on_latency_obstruction: OK (partial)\n"); return 0; }
+        if(dmg_full<=0){ printf("fail_no_baseline_damage\n"); return 9; }
         /* Reset health and move behind blocking tile (line crosses tile 2,0 at x=2..3) */
         list[0].health = list[0].max_health; list[0].base.pos.x = 3.4f; 
         float dx2,dy2; rogue_lockon_get_dir(&player,list,1,&dx2,&dy2); player.facing = (dx2>0)?2:(dx2<0?6:player.facing);
         strike_once(&pc,&player,list,1); int dmg_obstruct = list[0].max_health - list[0].health; printf("dmg_obstruct=%d health=%d\n", dmg_obstruct, list[0].health);
-        if(!(dmg_obstruct < dmg_full)){ printf("fail_obstruction_lockon full=%d obstruct=%d ratio=%d%%\n", dmg_full,dmg_obstruct, (dmg_obstruct*100)/(dmg_full?dmg_full:1)); return 8; }
-        printf("phase5_lock_on_latency_obstruction: OK initial=%d first=%d final=%d full=%d obstruct=%d\n", initial, after_first, player.lock_on_target_index, dmg_full, dmg_obstruct);
+        int ratio = (dmg_obstruct*100)/(dmg_full?dmg_full:1);
+        if(!(dmg_obstruct < dmg_full && ratio >=55 && ratio <=65)){ printf("fail_obstruction_lockon full=%d obstruct=%d ratio=%d%%\n", dmg_full,dmg_obstruct, ratio); return 8; }
+        printf("phase5_lock_on_latency_obstruction: OK initial=%d first=%d final=%d full=%d obstruct=%d ratio=%d%%\n", initial, after_first, player.lock_on_target_index, dmg_full, dmg_obstruct, ratio);
     }
     return 0;
 }
