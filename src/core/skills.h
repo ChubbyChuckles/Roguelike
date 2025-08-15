@@ -68,6 +68,7 @@ typedef struct RogueSkillState {
     double cast_progress_ms;    /* accumulated cast time (if casting) */
     double channel_end_ms;      /* channel completion time */
     double queued_until_ms;     /* queued activation window end */
+    double queued_trigger_ms;   /* when to attempt buffered activation (1A.1) */
     double channel_next_tick_ms;/* next scheduled channel tick (1A.5) */
     int action_points_spent_session; /* AP metric */
     int combo_points_accum;     /* combo point bank */

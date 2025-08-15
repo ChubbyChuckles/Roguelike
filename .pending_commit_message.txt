@@ -1,17 +1,16 @@
-feat(skills): EffectSpec minimal system (1.2 partial) + AP soft throttle (1.5 complete)
+feat(skills): input buffering (1A.1 partial) + channel tick scheduler (1A.5 partial) + prior casting foundation
 
-Adds foundational EffectSpec registry (`effect_spec.c/h`) with initial STAT_BUFF kind and automatic application via `RogueSkillDef.effect_spec_id` during activation.
-Introduces new buff type `ROGUE_BUFF_STAT_STRENGTH` and unit test `test_effectspec_basic` validating application.
-Completes AP economy Phase 1.5 by implementing soft throttle: large AP spends trigger temporary slowed regen (interval increase + gain reduction) with test `test_ap_soft_throttle` plus existing `test_skills_ap_economy`.
-Roadmap updated (1.2 Partial, 1.5 Done). README updated (Combat & Skills + changelog snapshot) to reflect soft throttle and EffectSpec.
+Adds per-skill input buffering window: cast skills can queue during another cast within `input_buffer_ms`; queued skill stores `queued_trigger_ms` and auto-activates immediately when the current cast finishes. Implements new `queued_trigger_ms` state field and queue processing loop on cast completion. Unit test `test_input_buffer_cast` verifies buffered instant skill fires right after long cast ends.
 
-Adds initial casting & channel support (1.3/1.4 partial): new fields `cast_time_ms`, `cast_type`, runtime flags, delayed effect on cast completion, channel duration tracking; test `test_skill_cast_and_channel` validates delayed completion and single-tick channel start.
+Extends channel system with periodic tick scheduler (Phase 1A.5 partial): fixed 250ms quantum ticks via `channel_next_tick_ms`, applying both skill callback and EffectSpec each tick. Unit test `test_channel_ticks_and_buffer` validates expected tick count over channel duration.
 
-Implements basic channel tick scheduler (1A.5 partial):
- - New state field `channel_next_tick_ms`.
- - Fixed 250ms quantum ticking for channel skills (immediate + periodic ticks until end).
- - EffectSpec application now occurs on each channel tick.
- - Unit test `test_channel_ticks_and_buffer` validates expected tick count over 800ms channel.
-README & roadmap updated: 1A.5 marked Partial.
+Updates roadmap: 1A.1 -> Partial, 1A.5 -> Partial (already), 1A.6 -> Partial (buffered ordering test added). README gains bullet for channel tick scheduler; commit consolidates previous casting/channel groundwork.
 
-Next: input buffering window (1A.1), drift-corrected tick scheduler & dynamic haste adjustment, additional EffectSpec kinds (DOT/HOT), stacking rules, snapshot vs dynamic scaling flags, combo builder/spender logic, proc system groundwork.
+Implementation details:
+- New fields: `channel_next_tick_ms`, `queued_trigger_ms` in `RogueSkillState`.
+- Activation logic: if attempting to start a cast skill while another cast is active, buffer instead of rejecting (no resource spend yet) when within buffer window.
+- On cast completion, buffered skills are scanned and activated deterministically (O(n) scan acceptable at small counts; future optimization could maintain a small queue).
+- Channel ticks loop uses while to catch up on missed ticks if frame delta bigger than quantum; drift correction not yet implemented.
+
+Next steps:
+- Drift-corrected channel scheduler (accumulate remainder), early cancel scaling (1A.4), haste adjustments (1A.3), channel interruption test, DOT/HOT EffectSpec kinds, and combo builder/spender logic.

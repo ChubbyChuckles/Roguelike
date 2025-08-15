@@ -104,6 +104,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_channel_ticks_and_buffer.c AND N
     add_test(NAME test_channel_ticks_and_buffer COMMAND test_channel_ticks_and_buffer)
 endif()
 
+# Explicitly add input buffering cast test (Phase 1A.1 partial)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_input_buffer_cast.c AND NOT TARGET test_input_buffer_cast)
+    add_executable(test_input_buffer_cast unit/test_input_buffer_cast.c)
+    target_link_libraries(test_input_buffer_cast PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_input_buffer_cast PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_input_buffer_cast COMMAND test_input_buffer_cast)
+endif()
+
 foreach(ut ${UNIT_TESTS})
     get_filename_component(name ${ut} NAME_WE)
     if(TARGET ${name})

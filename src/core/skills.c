@@ -35,7 +35,7 @@ static void ensure_capacity(int min_cap){
     if(!nd) return; g_defs=nd;
     RogueSkillState* ns = (RogueSkillState*)realloc(g_states, (size_t)new_cap*sizeof(RogueSkillState));
     if(!ns) return; g_states=ns;
-    for(int i=g_capacity;i<new_cap;i++){ g_states[i].rank=0; g_states[i].cooldown_end_ms=0; g_states[i].uses=0; g_states[i].charges_cur=0; g_states[i].next_charge_ready_ms=0; g_states[i].last_cast_ms=0; g_states[i].cast_progress_ms=0; g_states[i].channel_end_ms=0; g_states[i].queued_until_ms=0; g_states[i].channel_next_tick_ms=0; g_states[i].action_points_spent_session=0; g_states[i].combo_points_accum=0; g_states[i].casting_active=0; g_states[i].channel_active=0; }
+    for(int i=g_capacity;i<new_cap;i++){ g_states[i].rank=0; g_states[i].cooldown_end_ms=0; g_states[i].uses=0; g_states[i].charges_cur=0; g_states[i].next_charge_ready_ms=0; g_states[i].last_cast_ms=0; g_states[i].cast_progress_ms=0; g_states[i].channel_end_ms=0; g_states[i].queued_until_ms=0; g_states[i].queued_trigger_ms=0; g_states[i].channel_next_tick_ms=0; g_states[i].action_points_spent_session=0; g_states[i].combo_points_accum=0; g_states[i].casting_active=0; g_states[i].channel_active=0; }
     g_capacity = new_cap;
 }
 
@@ -60,7 +60,7 @@ int rogue_skill_register(const RogueSkillDef* def){
     RogueSkillDef* d = &g_defs[g_count];
     *d = *def; /* shallow copy (icon/name assumed static) */
     d->id = g_count;
-    g_states[g_count].rank=0; g_states[g_count].cooldown_end_ms=0; g_states[g_count].uses=0; g_states[g_count].charges_cur=d->max_charges>0?d->max_charges:0; g_states[g_count].next_charge_ready_ms=0; g_states[g_count].last_cast_ms=0; g_states[g_count].cast_progress_ms=0; g_states[g_count].channel_end_ms=0; g_states[g_count].queued_until_ms=0; g_states[g_count].channel_next_tick_ms=0; g_states[g_count].action_points_spent_session=0; g_states[g_count].combo_points_accum=0; g_states[g_count].casting_active=0; g_states[g_count].channel_active=0;
+    g_states[g_count].rank=0; g_states[g_count].cooldown_end_ms=0; g_states[g_count].uses=0; g_states[g_count].charges_cur=d->max_charges>0?d->max_charges:0; g_states[g_count].next_charge_ready_ms=0; g_states[g_count].last_cast_ms=0; g_states[g_count].cast_progress_ms=0; g_states[g_count].channel_end_ms=0; g_states[g_count].queued_until_ms=0; g_states[g_count].queued_trigger_ms=0; g_states[g_count].channel_next_tick_ms=0; g_states[g_count].action_points_spent_session=0; g_states[g_count].combo_points_accum=0; g_states[g_count].casting_active=0; g_states[g_count].channel_active=0;
     g_count++;
     g_app.skill_defs = g_defs; g_app.skill_states = g_states; g_app.skill_count=g_count;
     return d->id;
@@ -103,11 +103,25 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx){
     local_ctx.rng_state = (unsigned int)(id * 2654435761u) ^ (unsigned int)st->uses * 2246822519u;
     int consumed = 1;
     /* If casting/channeling, possibly queue if already busy with another cast and within buffer window */
-    if(def->cast_type==1 && def->cast_time_ms>0){
-        /* If a cast is already active for this skill, ignore (no multi-stack casts) */
+    if((def->cast_type==1 && def->cast_time_ms>0) || (def->cast_type==0 && def->input_buffer_ms>0)){
+        /* If a cast is already active for this skill, ignore duplicate */
         if(st->casting_active){ return 0; }
-        /* If another skill is casting, allow queue only if within that skill's buffer window */
-        /* Simplified: we only look at this skill's own queued window; real system would track global next-ready */
+        /* Simple global scan for an active cast to allow buffering */
+        for(int i2=0;i2<g_count;i2++){
+            if(i2==id) continue;
+            RogueSkillState* other=&g_states[i2]; const RogueSkillDef* odef=&g_defs[i2];
+            if(other->casting_active && odef->cast_type==1 && odef->cast_time_ms>0){
+                /* check if within buffer window from other cast end estimate */
+                double other_remaining = odef->cast_time_ms - other->cast_progress_ms;
+                double projected_finish = now + (other_remaining>0? other_remaining:0);
+                unsigned short buf = def->input_buffer_ms;
+                if(buf>0){
+                    st->queued_until_ms = projected_finish + (double)buf;
+                    st->queued_trigger_ms = projected_finish; /* attempt exactly when other finishes */
+                    return 1; /* accept queue (do not consume resources yet) */
+                }
+            }
+        }
     }
     /* If skill has cast time or is a channel, start casting instead of immediate effect */
     if(def->cast_type==1 && def->cast_time_ms > 0){
@@ -168,6 +182,16 @@ void rogue_skills_update(double now_ms){
                 RogueSkillCtx ctx = {0}; ctx.now_ms = now_ms; ctx.rng_state = (unsigned int)(i * 2654435761u) ^ (unsigned int)st->uses * 2246822519u;
                 if(def->on_activate){ def->on_activate(def, st, &ctx); }
                 if(def->effect_spec_id >=0){ rogue_effect_apply(def->effect_spec_id, now_ms); }
+                /* After this cast completes, attempt to fire any buffered cast skill whose trigger matches now */
+                for(int qi=0; qi<g_count; ++qi){
+                    RogueSkillState* qst=&g_states[qi];
+                    if(qst->queued_trigger_ms>0 && now_ms >= qst->queued_trigger_ms && now_ms <= qst->queued_until_ms){
+                        /* Clear queue markers before activation to avoid recursion */
+                        qst->queued_trigger_ms=0; qst->queued_until_ms=0;
+                        RogueSkillCtx qctx={0}; qctx.now_ms = now_ms; qctx.player_level=0; qctx.talent_points=0;
+                        rogue_skill_try_activate(qi, &qctx);
+                    }
+                }
             }
         }
         /* Channel periodic ticks (1A.5 basic scheduler) */

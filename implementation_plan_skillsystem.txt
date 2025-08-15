@@ -25,12 +25,12 @@ PHASE 1. Core Refactor & Data Model Expansion (No Global Cooldown – action eco
 1.7 Unit tests: charge recharge, AP insufficiency rejection, cast queue window, channel interruption, combo builder -> spender flow (Partial: charge + mana cost test added)
 
 PHASE 1A. Temporal Pacing Enhancements
-1A.1 Input buffering & latency compensation window (queue skill within N ms of cast finish) (X)
+1A.1 Input buffering & latency compensation window (queue skill within N ms of cast finish) (Partial: simple queued_trigger_ms per-skill, fires immediately after prior cast)
 1A.2 Cast weaving rules: prevent two identical archetype casts below a minimum separation unless haste threshold reached (X)
 1A.3 Adaptive haste windows: temporary acceleration buffs adjust cast_time_ms & AP regen snapshot vs dynamic evaluation modes (X)
 1A.4 Early cancel windows (cast trimming): partial effect scaling (e.g., 70% progress grants 50% effect) (X)
 1A.5 Channel tick scheduler decoupled from frame time (fixed tick quantum with drift correction) (Partial: basic fixed 250ms quantum, no drift correction yet)
-1A.6 Tests: buffered queue ordering, haste snapshot determinism, early cancel scaling accuracy, channel tick drift bounds (X)
+1A.6 Tests: buffered queue ordering, haste snapshot determinism, early cancel scaling accuracy, channel tick drift bounds (Partial: buffered queue ordering test added)
 
 PHASE 1.B. Skill Tree / Talent Graph (Early Skeleton - Open Allocation)
 1B.1 Minimal DAG data model: node, directed edge, node types (stat_bonus, skill_unlock, modifier, keystone, mastery) and lightweight adjacency list for lookup (X)
