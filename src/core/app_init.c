@@ -30,6 +30,7 @@ SOFTWARE.
 #include "core/animation_system.h"
 #include "core/persistence.h"
 #include "core/persistence_autosave.h"
+#include "core/save_manager.h" /* Phase1 scaffold present but not auto-initialized yet */
 #include "core/asset_config.h"
 #include "core/skills.h"
 #include "core/skill_tree.h"
@@ -82,6 +83,7 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     RogueGameLoopConfig loop_cfg = {.target_fps = cfg->target_fps};
     rogue_game_loop_init(&loop_cfg);
     rogue_persistence_load_generation_params();
+    /* Phase1 SaveManager scaffold available (manual tests only) */
     rogue_skills_init(); rogue_buffs_init(); rogue_projectiles_init();
     rogue_projectiles_config_load_and_watch("assets/projectiles.cfg");
     rogue_skill_tree_register_baseline();
@@ -91,10 +93,22 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     rogue_inventory_init();
     rogue_loot_logging_init_from_env();
      rogue_persistence_load_player_stats();
-     /* Cheat override: always start session with 100 talent points (do not reset while spending).
-         Applied AFTER loading persistence so prior saves don't reduce this. */
-     g_app.talent_points = 100;
-     g_app.stats_dirty = 1; /* ensure any dependent stat recalculations happen */
+     /* Cheat override (dev convenience): set talent points to 100 only if env var ROGUE_TALENT_CHEAT=1.
+        Keeps unit tests deterministic (they expect default progression) while allowing manual play sessions
+        to use the shortcut without editing code. */
+    const char* cheat_env = NULL; 
+#if defined(_MSC_VER)
+    char* cheat_tmp = NULL; size_t cheat_len = 0; if(_dupenv_s(&cheat_tmp,&cheat_len,"ROGUE_TALENT_CHEAT")==0 && cheat_tmp){ cheat_env = cheat_tmp; }
+#else
+    cheat_env = getenv("ROGUE_TALENT_CHEAT");
+#endif
+     if(cheat_env && cheat_env[0]=='1'){
+         g_app.talent_points = 100;
+         g_app.stats_dirty = 1; /* ensure any dependent stat recalculations happen */
+    }
+#if defined(_MSC_VER)
+    if(cheat_tmp) free(cheat_tmp);
+#endif
     RogueWorldGenConfig wcfg = rogue_world_gen_config_build(1337u, 1, 1);
     rogue_world_generate(&g_app.world_map, &wcfg);
     rogue_vegetation_init();
