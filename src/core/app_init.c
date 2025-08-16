@@ -90,7 +90,11 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     rogue_items_init_runtime();
     rogue_inventory_init();
     rogue_loot_logging_init_from_env();
-    rogue_persistence_load_player_stats();
+     rogue_persistence_load_player_stats();
+     /* Cheat override: always start session with 100 talent points (do not reset while spending).
+         Applied AFTER loading persistence so prior saves don't reduce this. */
+     g_app.talent_points = 100;
+     g_app.stats_dirty = 1; /* ensure any dependent stat recalculations happen */
     RogueWorldGenConfig wcfg = rogue_world_gen_config_build(1337u, 1, 1);
     rogue_world_generate(&g_app.world_map, &wcfg);
     rogue_vegetation_init();

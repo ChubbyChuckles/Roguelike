@@ -34,10 +34,19 @@ void rogue_skill_bar_render(void){
         if(def){
             const RogueSkillState* st = rogue_skill_get_state(skill_id);
             int rank = st->rank;
-            /* Icon fallback: first letter */
-            char icon_letter[2] = {'?',0};
-            if(def->name && def->name[0]) icon_letter[0] = def->name[0];
-            rogue_font_draw_text(cell.x+10, cell.y+4, icon_letter,1,(RogueColor){220,220,255,255});
+            /* Draw icon if available */
+#ifdef ROGUE_HAVE_SDL
+            if(g_app.skill_icon_textures && skill_id>=0 && skill_id<g_app.skill_count){
+                RogueTexture* tex=&g_app.skill_icon_textures[skill_id];
+                if(tex->handle){ SDL_Rect dst={cell.x+2,cell.y+2,cell.w-4,cell.h-4}; SDL_RenderCopy(g_app.renderer, tex->handle, NULL, &dst); }
+            }
+#endif
+            /* Fallback letter if no icon texture */
+            if(!g_app.skill_icon_textures || skill_id<0 || skill_id>=g_app.skill_count || !g_app.skill_icon_textures[skill_id].handle){
+                char icon_letter[2] = {'?',0};
+                if(def->name && def->name[0]) icon_letter[0] = def->name[0];
+                rogue_font_draw_text(cell.x+10, cell.y+4, icon_letter,1,(RogueColor){220,220,255,255});
+            }
             char label[5]; snprintf(label,sizeof label,"%d", rank);
             rogue_font_draw_text(cell.x+18, cell.y+20, label,1,(RogueColor){255,255,200,255});
             /* Cooldown overlay */
