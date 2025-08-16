@@ -518,6 +518,18 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
 * Rarity sampling integrates global floor + pity adjustments seamlessly.
 * Persistence ensures affix data round‑trips without loss.
 
+### Persistence Phase 1 (Core Save Architecture)
+Implemented initial binary save system:
+* Save descriptor (version=1, timestamp, component_mask, section_count, total_size, CRC32 payload checksum)
+* Deterministic component ordering (sorted by id) for stable hashing/diffs
+* Atomic temp write then rename for slot saves (save_slot_0..2.sav)
+* Components implemented: player (level/xp/health/talent_points), world_meta (seed + generation params subset), inventory (active item instances + affix data), skills (ranks + cooldown_end), buffs (active list snapshot), vendor (seed + restock timers)
+* Simple CRC32 integrity verification on load
+
+Deferred (next phases): autosave ring, fsync durability, migration registry & SAVE_FORMAT_VERSION constant, per-section hashes, compression, structured schema evolution, rollback & recovery.
+
+Roadmap file `roadmaps/implementation_plan_persistence_migration.txt` updated marking completed Phase 1 items.
+
 **Fixed**
 * Path resolution in tests via central `path_utils` abstraction.
 

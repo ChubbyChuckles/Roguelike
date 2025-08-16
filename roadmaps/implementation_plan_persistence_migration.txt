@@ -15,12 +15,12 @@ PHASE 0. Current Baseline (Partial)
 0.4 No integrity verification or atomic swap (X)
 
 PHASE 1. Core Save Architecture
-1.1 Central SaveManager module (save/ directory) (X)
-1.2 Save descriptor struct (version, timestamp, checksum, component mask) (X)
-1.3 Canonical save path strategy (profile slots + autosave ring) (X)
-1.4 Atomic write (temp file + fsync + rename) (X)
-1.5 Deterministic ordering of serialized sections (stable hash) (X)
-1.6 Component registries: player, inventory, skills, buffs, vendor, world_meta (X)
+1.1 Central SaveManager module (save/ directory) (Done)
+1.2 Save descriptor struct (version, timestamp, checksum, component mask) (Done)
+1.3 Canonical save path strategy (profile slots + autosave ring) (Partial: slot paths implemented, autosave ring deferred)
+1.4 Atomic write (temp file + rename) (Done; fsync not yet portable)
+1.5 Deterministic ordering of serialized sections (qsort by id) (Done)
+1.6 Component registries: player, inventory, skills, buffs, vendor, world_meta (Done)
 
 PHASE 2. Versioning & Migration Infrastructure
 2.1 Global SAVE_FORMAT_VERSION constant (X)
@@ -120,6 +120,6 @@ SUCCESS METRICS
 - Deterministic replay hash stable across save/load boundaries.
 
 NEXT ACTION CANDIDATES
-- Implement Phase 1 (SaveManager scaffold + descriptor).
-- Add Phase 2 migration registry + baseline version 1.
-- Write unit test: player stats roundtrip + checksum verify.
+- Add Phase 2 migration registry + baseline version constant.
+- Implement autosave ring + fsync durability option.
+- Unit tests: roundtrip (all components), deterministic order, checksum verify, partial component absence.
