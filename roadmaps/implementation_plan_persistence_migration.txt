@@ -30,7 +30,7 @@ PHASE 2. Versioning & Migration Infrastructure
 2.5 Test harness: fabricate legacy versions & auto-upgrade (Done: chain + metrics tests)
 
 PHASE 3. Serialization Format & Schema
-3.1 Sectioned binary format (header + TLV per component) (X)
+3.1 Sectioned binary format (header + TLV per component) (Done: v3 TLV headers uint16 id + uint32 size, tests: test_save_v3_tlv_headers, backward compat test_save_v2_backward_load)
 3.2 Human-readable debug export (JSON/TOML) toggle (Partial: JSON section list export implemented via rogue_save_export_json)
 3.3 Fixed endianness & numeric width assertions (Partial: runtime little-endian helper rogue_save_format_endianness_is_le, optional strict guard macro)
 3.4 Compact varint encoding for counts/ids (X)

@@ -11,7 +11,7 @@
 #define ROGUE_AUTOSAVE_RING 4
 
 /* Current binary save format version */
-#define ROGUE_SAVE_FORMAT_VERSION 2u /* version 2: migration runner + metrics */
+#define ROGUE_SAVE_FORMAT_VERSION 3u /* version 3: TLV section headers (uint16 id + uint32 size) */
 
 /* Component identifiers (stable) */
 typedef enum RogueSaveComponentId {
@@ -32,6 +32,11 @@ typedef struct RogueSaveDescriptor {
     uint64_t total_size;     /* total bytes of file (for sanity) */
     uint32_t checksum;       /* simple CRC32 of following bytes (Phase4 will extend) */
 } RogueSaveDescriptor;
+
+/* Version semantics:
+    v1: Initial binary prototype (unused in current tree, legacy test fabricates header only)
+    v2: Introduced migration runner + metrics (fixed 8-byte section headers: uint32 id + uint32 size)
+    v3: Switched to compact TLV headers: uint16 id + uint32 size per section (format change) */
 
 
 /* Component callback interface */

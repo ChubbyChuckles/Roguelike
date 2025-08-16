@@ -73,6 +73,26 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_component_reload.c AND NOT 
     add_test(NAME test_save_component_reload COMMAND test_save_component_reload)
 endif()
 
+# TLV header layout test (v3+)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_v3_tlv_headers.c AND NOT TARGET test_save_v3_tlv_headers)
+    add_executable(test_save_v3_tlv_headers unit/test_save_v3_tlv_headers.c)
+    target_link_libraries(test_save_v3_tlv_headers PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_save_v3_tlv_headers PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_save_v3_tlv_headers COMMAND test_save_v3_tlv_headers)
+endif()
+
+# Backward compatibility: load fabricated v2 under v3 build
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_v2_backward_load.c AND NOT TARGET test_save_v2_backward_load)
+    add_executable(test_save_v2_backward_load unit/test_save_v2_backward_load.c)
+    target_link_libraries(test_save_v2_backward_load PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_save_v2_backward_load PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_save_v2_backward_load COMMAND test_save_v2_backward_load)
+endif()
+
 # Basic save_manager smoke test (legacy simple test)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_manager.c AND NOT TARGET test_save_manager)
     add_executable(test_save_manager unit/test_save_manager.c)

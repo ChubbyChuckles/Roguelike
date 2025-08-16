@@ -20,6 +20,7 @@
 static RogueSaveComponent g_components[ROGUE_SAVE_MAX_COMPONENTS];
 static int g_component_count = 0;
 static int g_initialized = 0;
+static int g_migrations_registered = 0; /* ensure migrations registered once */
 
 /* Migration registry (linear chain for now) */
 static RogueSaveMigration g_migrations[16];
@@ -45,11 +46,21 @@ void rogue_save_manager_register(const RogueSaveComponent* comp){ if(g_component
 
 static int cmp_comp(const void* a, const void* b){ const RogueSaveComponent*ca=a; const RogueSaveComponent*cb=b; return (ca->id - cb->id); }
 
-void rogue_save_manager_init(void){ if(g_initialized) return; g_initialized=1; /* ensure deterministic order */ }
+/* Core migration registration (defined later) */
+static void rogue_register_core_migrations(void);
+void rogue_save_manager_init(void){
+    if(!g_initialized){
+        g_initialized=1; /* ensure deterministic order */
+    }
+    if(!g_migrations_registered){
+        rogue_register_core_migrations();
+        g_migrations_registered=1;
+    }
+}
 
 void rogue_save_register_migration(const RogueSaveMigration* mig){ if(g_migration_count< (int)(sizeof g_migrations/sizeof g_migrations[0])) g_migrations[g_migration_count++]=*mig; }
 
-void rogue_save_manager_reset_for_tests(void){ g_component_count=0; g_initialized=0; g_migration_count=0; g_last_migration_steps=0; g_last_migration_failed=0; g_last_migration_ms=0.0; }
+void rogue_save_manager_reset_for_tests(void){ g_component_count=0; g_initialized=0; g_migration_count=0; g_migrations_registered=0; g_last_migration_steps=0; g_last_migration_failed=0; g_last_migration_ms=0.0; }
 
 static char slot_path[128];
 static const char* build_slot_path(int slot){ snprintf(slot_path,sizeof slot_path,"save_slot_%d.sav", slot); return slot_path; }
@@ -73,11 +84,20 @@ static int internal_save_to(const char* final_path){
     desc.section_count=0; desc.component_mask=0;
     for(int i=0;i<g_component_count;i++){
         const RogueSaveComponent* c=&g_components[i]; long start=ftell(f);
-        uint32_t id=(uint32_t)c->id, size_placeholder=0; if(fwrite(&id,sizeof id,1,f)!=1){ fclose(f); return -4; } if(fwrite(&size_placeholder,sizeof size_placeholder,1,f)!=1){ fclose(f); return -4; }
-        long payload_start=ftell(f);
-        if(c->write_fn(f)!=0){ fclose(f); return -5; }
-        long end=ftell(f); uint32_t section_size=(uint32_t)(end - payload_start);
-        fseek(f,start+sizeof(uint32_t),SEEK_SET); fwrite(&section_size,sizeof section_size,1,f); fseek(f,end,SEEK_SET);
+    if(desc.version>=3){
+            uint16_t id16=(uint16_t)c->id; uint32_t size_placeholder32=0;
+            if(fwrite(&id16,sizeof id16,1,f)!=1){ fclose(f); return -4; }
+            if(fwrite(&size_placeholder32,sizeof size_placeholder32,1,f)!=1){ fclose(f); return -4; }
+            long payload_start=ftell(f);
+            if(c->write_fn(f)!=0){ fclose(f); return -5; }
+            long end=ftell(f); uint32_t section_size=(uint32_t)(end - payload_start);
+            fseek(f,start+sizeof(uint16_t),SEEK_SET); fwrite(&section_size,sizeof section_size,1,f); fseek(f,end,SEEK_SET);
+        } else {
+            uint32_t id=(uint32_t)c->id, size_placeholder=0; if(fwrite(&id,sizeof id,1,f)!=1){ fclose(f); return -4; } if(fwrite(&size_placeholder,sizeof size_placeholder,1,f)!=1){ fclose(f); return -4; }
+            long payload_start=ftell(f); if(c->write_fn(f)!=0){ fclose(f); return -5; }
+            long end=ftell(f); uint32_t section_size=(uint32_t)(end - payload_start);
+            fseek(f,start+sizeof(uint32_t),SEEK_SET); fwrite(&section_size,sizeof section_size,1,f); fseek(f,end,SEEK_SET);
+        }
         desc.section_count++; desc.component_mask |= (1u<<c->id);
     }
     long file_end=ftell(f); desc.total_size=(uint64_t)file_end; fflush(f);
@@ -119,29 +139,60 @@ static int load_and_validate(const char* path, RogueSaveDescriptor* out_desc, un
     fclose(f); *out_buf=buf; return 0;
 }
 
-int rogue_save_for_each_section(int slot_index, RogueSaveSectionIterFn fn, void* user){ if(slot_index<0||slot_index>=ROGUE_SAVE_SLOT_COUNT) return -1; RogueSaveDescriptor desc; unsigned char* buf=NULL; int rc=load_and_validate(build_slot_path(slot_index), &desc, &buf); if(rc!=0) return rc; unsigned char* p=buf; for(uint32_t s=0; s<desc.section_count; s++){ if((size_t)(p-buf)+8 > (size_t)(desc.total_size - sizeof desc)){ free(buf); return -8; } uint32_t id; memcpy(&id,p,4); uint32_t size; memcpy(&size,p+4,4); p+=8; if((size_t)(p-buf)+size > (size_t)(desc.total_size - sizeof desc)){ free(buf); return -8; } if(fn){ int frc=fn(&desc,id,p,size,user); if(frc!=0){ free(buf); return frc; } } p+=size; }
- free(buf); return 0; }
+int rogue_save_for_each_section(int slot_index, RogueSaveSectionIterFn fn, void* user){
+    if(slot_index<0||slot_index>=ROGUE_SAVE_SLOT_COUNT) return -1;
+    RogueSaveDescriptor desc; unsigned char* buf=NULL;
+    int rc=load_and_validate(build_slot_path(slot_index), &desc, &buf); if(rc!=0) return rc;
+    unsigned char* p=buf; size_t total_payload = (size_t)(desc.total_size - sizeof desc);
+    for(uint32_t s=0; s<desc.section_count; s++){
+        if(desc.version>=3){
+            if((size_t)(p-buf)+6 > total_payload){ free(buf); return -8; }
+            uint16_t id16; memcpy(&id16,p,2); uint32_t size; memcpy(&size,p+2,4); p+=6;
+            if((size_t)(p-buf)+size > total_payload){ free(buf); return -8; }
+            if(fn){ int frc=fn(&desc,(uint32_t)id16,p,size,user); if(frc!=0){ free(buf); return frc; } }
+            p+=size;
+        } else {
+            if((size_t)(p-buf)+8 > total_payload){ free(buf); return -8; }
+            uint32_t id; memcpy(&id,p,4); uint32_t size; memcpy(&size,p+4,4); p+=8;
+            if((size_t)(p-buf)+size > total_payload){ free(buf); return -8; }
+            if(fn){ int frc=fn(&desc,id,p,size,user); if(frc!=0){ free(buf); return frc; } }
+            p+=size;
+        }
+    }
+    free(buf);
+    return 0;
+}
 
-int rogue_save_export_json(int slot_index, char* out, size_t out_cap){ if(!out||out_cap==0) return -1; RogueSaveDescriptor d; unsigned char* buf=NULL; int rc=load_and_validate(build_slot_path(slot_index), &d, &buf); if(rc!=0){ return rc; } int written=snprintf(out,out_cap,"{\n  \"version\":%u,\n  \"timestamp\":%u,\n  \"sections\":[", d.version,d.timestamp_unix); unsigned char* p=buf; for(uint32_t s=0; s<d.section_count && written<(int)out_cap; s++){ uint32_t id; memcpy(&id,p,4); uint32_t size; memcpy(&size,p+4,4); p+=8; p+=size; written += snprintf(out+written, out_cap-written, "%s{\"id\":%u,\"size\":%u}", (s==0?"":","), id,size); } if(written<(int)out_cap) written += snprintf(out+written, out_cap-written, "]\n}\n"); free(buf); if(written>=(int)out_cap) return -2; return 0; }
+int rogue_save_export_json(int slot_index, char* out, size_t out_cap){
+    if(!out||out_cap==0) return -1;
+    RogueSaveDescriptor d; unsigned char* buf=NULL; int rc=load_and_validate(build_slot_path(slot_index), &d, &buf); if(rc!=0){ return rc; }
+    int written=snprintf(out,out_cap,"{\n  \"version\":%u,\n  \"timestamp\":%u,\n  \"sections\":[", d.version,d.timestamp_unix);
+    unsigned char* p=buf; size_t total_payload=(size_t)(d.total_size - sizeof d);
+    for(uint32_t s=0; s<d.section_count && written<(int)out_cap; s++){
+        uint32_t id=0; uint32_t size=0;
+        if(d.version>=3){ if((size_t)(p-buf)+6>total_payload) break; uint16_t id16; memcpy(&id16,p,2); memcpy(&size,p+2,4); id=(uint32_t)id16; p+=6; }
+        else { if((size_t)(p-buf)+8>total_payload) break; memcpy(&id,p,4); memcpy(&size,p+4,4); p+=8; }
+    if((size_t)(p-buf)+size>total_payload) break; p+=size;
+    written += snprintf(out+written, out_cap-written, "%s{\"id\":%u,\"size\":%u}", (s==0?"":","), id,size);
+    }
+    if(written<(int)out_cap) written += snprintf(out+written, out_cap-written, "]\n}\n");
+    free(buf);
+    if(written>=(int)out_cap) return -2; return 0;
+}
 
 int rogue_save_reload_component_from_slot(int slot_index, int component_id){
     if(slot_index<0||slot_index>=ROGUE_SAVE_SLOT_COUNT) return -1;
     const RogueSaveComponent* comp=find_component(component_id);
     if(!comp||!comp->read_fn) return -2;
-    RogueSaveDescriptor d; unsigned char* buf=NULL;
-    int rc=load_and_validate(build_slot_path(slot_index), &d, &buf);
-    if(rc!=0) return rc;
-    unsigned char* p=buf;
-    int applied=-3;
+    RogueSaveDescriptor d; unsigned char* buf=NULL; int rc=load_and_validate(build_slot_path(slot_index), &d, &buf); if(rc!=0) return rc;
+    unsigned char* p=buf; size_t total_payload=(size_t)(d.total_size - sizeof d); int applied=-3;
     for(uint32_t s=0; s<d.section_count; s++){
-        uint32_t id; memcpy(&id,p,4);
-        uint32_t size; memcpy(&size,p+4,4);
-        p+=8;
+        uint32_t id=0; uint32_t size=0;
+        if(d.version>=3){ if((size_t)(p-buf)+6>total_payload) break; uint16_t id16; memcpy(&id16,p,2); memcpy(&size,p+2,4); id=(uint32_t)id16; p+=6; }
+        else { if((size_t)(p-buf)+8>total_payload) break; memcpy(&id,p,4); memcpy(&size,p+4,4); p+=8; }
+        if((size_t)(p-buf)+size>total_payload) break;
         if((int)id==component_id){
-            /* Write payload to a temporary file so we can reuse existing component read_fn */
-            const unsigned char* payload=p;
-            char tmp[64];
-            snprintf(tmp,sizeof tmp,"_tmp_section_%d.bin", component_id);
+            const unsigned char* payload=p; char tmp[64]; snprintf(tmp,sizeof tmp,"_tmp_section_%d.bin", component_id);
             FILE* tf=NULL;
 #if defined(_MSC_VER)
             fopen_s(&tf,tmp,"wb");
@@ -149,20 +200,14 @@ int rogue_save_reload_component_from_slot(int slot_index, int component_id){
             tf=fopen(tmp,"wb");
 #endif
             if(!tf){ free(buf); return -4; }
-            fwrite(payload,1,size,tf);
-            fclose(tf);
+            fwrite(payload,1,size,tf); fclose(tf);
 #if defined(_MSC_VER)
             fopen_s(&tf,tmp,"rb");
 #else
             tf=fopen(tmp,"rb");
 #endif
             if(!tf){ free(buf); return -4; }
-            comp->read_fn(tf,size);
-            fclose(tf);
-            remove(tmp);
-            applied=0;
-            break;
-        }
+            comp->read_fn(tf,size); fclose(tf); remove(tmp); applied=0; break; }
         p+=size;
     }
     free(buf);
@@ -207,9 +252,17 @@ int rogue_save_manager_load_slot(int slot_index){
     }
     /* checksum */
     long file_end=0; fseek(f,0,SEEK_END); file_end=ftell(f); if((uint64_t)file_end!=desc.total_size){ fclose(f); return -5; } size_t rest=file_end - (long)sizeof desc; fseek(f,sizeof desc,SEEK_SET); unsigned char* buf=(unsigned char*)malloc(rest); if(!buf){ fclose(f); return -6; } size_t n=fread(buf,1,rest,f); if(n!=rest){ free(buf); fclose(f); return -6; } uint32_t crc=rogue_crc32(buf,rest); if(crc!=desc.checksum){ free(buf); fclose(f); return -7; } free(buf); fseek(f, sizeof desc, SEEK_SET);
-    for(uint32_t s=0;s<desc.section_count;s++){
-        uint32_t id=0; uint32_t size=0; if(fread(&id,sizeof id,1,f)!=1){ fclose(f); return -8; } if(fread(&size,sizeof size,1,f)!=1){ fclose(f); return -8; }
-        const RogueSaveComponent* comp=find_component((int)id); long payload_pos=ftell(f); if(comp && comp->read_fn){ if(comp->read_fn(f,size)!=0){ fclose(f); return -9; } } fseek(f,payload_pos+size,SEEK_SET);
+    if(desc.version>=3){
+        for(uint32_t s=0;s<desc.section_count;s++){
+            uint16_t id16=0; uint32_t size=0; if(fread(&id16,sizeof id16,1,f)!=1){ fclose(f); return -8; } if(fread(&size,sizeof size,1,f)!=1){ fclose(f); return -8; }
+            uint32_t id = (uint32_t)id16;
+            const RogueSaveComponent* comp=find_component((int)id); long payload_pos=ftell(f); if(comp && comp->read_fn){ if(comp->read_fn(f,size)!=0){ fclose(f); return -9; } } fseek(f,payload_pos+size,SEEK_SET);
+        }
+    } else {
+        for(uint32_t s=0;s<desc.section_count;s++){
+            uint32_t id=0; uint32_t size=0; if(fread(&id,sizeof id,1,f)!=1){ fclose(f); return -8; } if(fread(&size,sizeof size,1,f)!=1){ fclose(f); return -8; }
+            const RogueSaveComponent* comp=find_component((int)id); long payload_pos=ftell(f); if(comp && comp->read_fn){ if(comp->read_fn(f,size)!=0){ fclose(f); return -9; } } fseek(f,payload_pos+size,SEEK_SET);
+        }
     }
     fclose(f); return 0;
 }
@@ -298,4 +351,7 @@ void rogue_register_core_save_components(void){
     rogue_save_manager_register(&VENDOR_COMP);
 }
 
-/* (Removed experimental v2->v3 migration draft not yet supported) */
+/* Migration definitions */
+static int migrate_v2_to_v3(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
+static RogueSaveMigration MIG_V2_TO_V3 = {2u,3u,migrate_v2_to_v3,"v2_to_v3_tlv_header"};
+static void rogue_register_core_migrations(void){ if(!g_migrations_registered){ rogue_save_register_migration(&MIG_V2_TO_V3); /* flag set in init */ } }
