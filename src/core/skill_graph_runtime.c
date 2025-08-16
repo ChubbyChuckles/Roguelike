@@ -50,6 +50,7 @@ typedef struct RuntimeSkillGraphState {
     float render_offset_y;
     /* Debug bbox of sprites before offset */
     float bbox_minx, bbox_miny, bbox_maxx, bbox_maxy;
+    int auto_fit_active; /* when set, nodes already centered & scaled */
 } RuntimeSkillGraphState;
 static RuntimeSkillGraphState g_rt = {0};
 static RogueSkillMaze g_maze; static int g_maze_built=0;
@@ -69,27 +70,34 @@ static void build_live_graph(RogueUIContext* ui){
     if(g_app.skill_count<=0) return;
     /* Clear previously emitted panels/sprites so repeated builds in same frame don't layer lines above icons. */
     ui->node_count = 0;
-    /* Use full viewport dimensions for centered layout */
+    /* Start with viewport dimensions; we'll compute auto-fit zoom */
     float view_w = (float)g_app.viewport_w;
     float view_h = (float)g_app.viewport_h;
-    /* Freeze to screen center: neutral view; manual zoom applied to coordinates */
-    if(g_rt.zoom < 0.5f) g_rt.zoom = 0.5f; if(g_rt.zoom>2.5f) g_rt.zoom=2.5f;
     rogue_ui_skillgraph_begin(ui, 0.0f, 0.0f, view_w, view_h, 1.0f);
     if(g_rt.filter_mask) rogue_ui_skillgraph_set_filter_tags(ui, g_rt.filter_mask); else rogue_ui_skillgraph_set_filter_tags(ui, 0);
     /* Build maze once (could add hot-reload on config changes) */
     if(!g_maze_built){ if(rogue_skill_maze_generate("assets/skill_maze_config.json", &g_maze)) g_maze_built=1; }
     int count = g_app.skill_count;
     if(g_maze_built){
-        /* Ensure the view region fully encloses the maze so skill nodes on outer rings are not frustum-culled.
-           Coordinate scheme offsets node positions by view_* / 2 for centering, so ensure view_* >= 2*max_abs + margin. */
-        float max_abs_x = 0.0f, max_abs_y = 0.0f;
-        for(int n=0;n<g_maze.node_count;n++){ float ax=fabsf(g_maze.nodes[n].x); float ay=fabsf(g_maze.nodes[n].y); if(ax>max_abs_x) max_abs_x=ax; if(ay>max_abs_y) max_abs_y=ay; }
-    float needed_w = max_abs_x*2.0f + 32.0f; if(view_w < needed_w) view_w = needed_w;
-    float needed_h = max_abs_y*2.0f + 32.0f; if(view_h < needed_h) view_h = needed_h;
-    /* Aggressively expand view rectangle to avoid any culling misses (temporary until culling coordinate space refactor). */
-    view_w *= 2.5f; view_h *= 2.5f;
-        /* Re-begin (resize) if dimensions expanded */
-        rogue_ui_skillgraph_begin(ui, 0.0f, 0.0f, view_w, view_h, 1.0f);
+    /* Compute raw maze extents (node coordinates) */
+    float min_raw_x=1e9f,max_raw_x=-1e9f,min_raw_y=1e9f,max_raw_y=-1e9f;
+    for(int n=0;n<g_maze.node_count;n++){ float x=g_maze.nodes[n].x; float y=g_maze.nodes[n].y; if(x<min_raw_x)min_raw_x=x; if(x>max_raw_x)max_raw_x=x; if(y<min_raw_y)min_raw_y=y; if(y>max_raw_y)max_raw_y=y; }
+    /* Assume icon size 32 and edge thickness 4 add padding to raw extents */
+    const float ICON_SZ = 32.0f; const float EDGE_THICK = 4.0f; const float PAD = ICON_SZ*0.5f + EDGE_THICK*0.5f;
+    float raw_w = (max_raw_x - min_raw_x) + PAD*2.0f;
+    float raw_h = (max_raw_y - min_raw_y) + PAD*2.0f;
+    /* Available size with 20px margin on each side */
+    float avail_w = (float)g_app.viewport_w - 40.0f;
+    float avail_h = (float)g_app.viewport_h - 40.0f;
+    if(avail_w < 40.0f) avail_w = 40.0f; if(avail_h < 40.0f) avail_h = 40.0f;
+    float fit_z_w = avail_w / raw_w;
+    float fit_z_h = avail_h / raw_h;
+    float fit_z = fit_z_w < fit_z_h ? fit_z_w : fit_z_h;
+    if(fit_z <= 0.0f) fit_z = 1.0f;
+    g_rt.zoom = fit_z; /* override manual zoom: always fit */
+    g_rt.auto_fit_active = 1;
+    /* Re-begin so internal view uses current viewport (no oversized virtual space needed) */
+    rogue_ui_skillgraph_begin(ui, 0.0f, 0.0f, (float)g_app.viewport_w, (float)g_app.viewport_h, 1.0f);
         /* Full-population assignment with ring-aware multi-pass */
         int* assigned = (int*)malloc(sizeof(int)*g_maze.node_count); if(!assigned) return; for(int i=0;i<g_maze.node_count;i++) assigned[i]=-1; int filled=0; int count_safe = count>0?count:1; int cursor=0;
         for(int pass=0; pass<3 && filled<g_maze.node_count; ++pass){
@@ -101,7 +109,7 @@ static void build_live_graph(RogueUIContext* ui){
         }
         for(int n=0;n<g_maze.node_count;n++){ if(assigned[n]<0) assigned[n]= n % count_safe; }
         /* Connected line rendering already provided by reverted repo: keep algorithm but anchor to screen center independent of player. */
-        float z = g_rt.zoom; float center_x = view_w*0.5f; float center_y = view_h*0.5f;
+    float z = g_rt.zoom; float center_x = (float)g_app.viewport_w*0.5f; float center_y = (float)g_app.viewport_h*0.5f;
         for(int e=0;e<g_maze.edge_count;e++){ int a=g_maze.edges[e].from; int b=g_maze.edges[e].to; if((unsigned)a>=(unsigned)g_maze.node_count||(unsigned)b>=(unsigned)g_maze.node_count) continue; float ax=center_x + g_maze.nodes[a].x * z; float ay=center_y + g_maze.nodes[a].y * z; float bx=center_x + g_maze.nodes[b].x * z; float by=center_y + g_maze.nodes[b].y * z; float dx=bx-ax, dy=by-ay; float len=sqrtf(dx*dx+dy*dy); if(len<2) continue; int steps=(int)(len/3.0f); if(steps<1) steps=1; float inv=1.0f/(float)steps; float thickness=4.0f; float half=thickness*0.5f; for(int s=0;s<=steps;s++){ float t=(float)s*inv; float cx=ax+dx*t; float cy=ay+dy*t; rogue_ui_panel(ui,(RogueUIRect){cx-half,cy-half,thickness,thickness},0x303030D0u);} }
         for(int n=0;n<g_maze.node_count;n++){ int sid=assigned[n]; float cx=view_w*0.5f + g_maze.nodes[n].x * z; float cy=view_h*0.5f + g_maze.nodes[n].y * z; if(sid>=0){ const RogueSkillDef* def=rogue_skill_get_def(sid); const RogueSkillState* st=rogue_skill_get_state(sid); if(def&&st){ unsigned int tags=(unsigned int)def->tags; int synergy=def->is_passive && def->synergy_id>=0; rogue_ui_skillgraph_add(ui,cx,cy,sid,st->rank,def->max_rank,synergy,tags);} else { rogue_ui_panel(ui,(RogueUIRect){cx-4,cy-4,8,8},0xFF0000FFu);} } else { rogue_ui_panel(ui,(RogueUIRect){cx-4,cy-4,8,8},0xFF00FF80u);} }
         for(int n=0;n<g_maze.node_count;n++){ int sid=assigned[n]; float cx=view_w*0.5f + g_maze.nodes[n].x * z; float cy=view_h*0.5f + g_maze.nodes[n].y * z; if(sid>=0){ const RogueSkillDef* def=rogue_skill_get_def(sid); const RogueSkillState* st=rogue_skill_get_state(sid); if(def&&st){ unsigned int tags=(unsigned int)def->tags; int synergy=def->is_passive && def->synergy_id>=0; /* Larger icon scale: apply extra zoom factor */ rogue_ui_skillgraph_add(ui,cx,cy,sid,st->rank,def->max_rank,synergy,tags);} else { rogue_ui_panel(ui,(RogueUIRect){cx-4,cy-4,8,8},0xFF0000FFu);} } else { rogue_ui_panel(ui,(RogueUIRect){cx-4,cy-4,8,8},0xFF00FF80u);} }
@@ -202,18 +210,26 @@ void rogue_skillgraph_runtime_render(void){
     rogue_ui_begin(&g_skill_ui, g_app.dt * 1000.0);
     /* Build first so we have nodes for click hit-testing; we will process input then rebuild to reflect changes */
     build_live_graph(&g_skill_ui);
-    /* Compute centering offset based on current node bounding box BEFORE input so hit-tests use it */
+    /* When auto-fit active we already placed maze centered; skip dynamic offset adjustment */
     int pre_cnt=0; const RogueUINode* pre_nodes = rogue_ui_nodes(&g_skill_ui,&pre_cnt);
-    float minx=1e9f,maxx=-1e9f,miny=1e9f,maxy=-1e9f; int have_sprite=0;
-    for(int i=0;i<pre_cnt;i++){ const RogueUINode* n=&pre_nodes[i]; if(n->kind==3){ have_sprite=1; if(n->rect.x<minx)minx=n->rect.x; if(n->rect.y<miny)miny=n->rect.y; if(n->rect.x+n->rect.w>maxx)maxx=n->rect.x+n->rect.w; if(n->rect.y+n->rect.h>maxy)maxy=n->rect.y+n->rect.h; }}
-    if(have_sprite){ float bw = maxx-minx; float bh = maxy-miny; float desired_cx = g_app.viewport_w*0.5f; float desired_cy = g_app.viewport_h*0.5f; float cur_cx = minx + bw*0.5f; float cur_cy = miny + bh*0.5f; g_rt.render_offset_x = desired_cx - cur_cx; g_rt.render_offset_y = desired_cy - cur_cy; g_rt.bbox_minx=minx; g_rt.bbox_miny=miny; g_rt.bbox_maxx=maxx; g_rt.bbox_maxy=maxy; } else { g_rt.render_offset_x=0.0f; g_rt.render_offset_y=0.0f; g_rt.bbox_minx=g_rt.bbox_miny=0.0f; g_rt.bbox_maxx=g_rt.bbox_maxy=0.0f; }
+    if(!g_rt.auto_fit_active){
+        float minx=1e9f,maxx=-1e9f,miny=1e9f,maxy=-1e9f; int have_sprite=0;
+        for(int i=0;i<pre_cnt;i++){ const RogueUINode* n=&pre_nodes[i]; if(n->kind==3){ have_sprite=1; if(n->rect.x<minx)minx=n->rect.x; if(n->rect.y<miny)miny=n->rect.y; if(n->rect.x+n->rect.w>maxx)maxx=n->rect.x+n->rect.w; if(n->rect.y+n->rect.h>maxy)maxy=n->rect.y+n->rect.h; }}
+        if(have_sprite){ float bw = maxx-minx; float bh = maxy-miny; float desired_cx = g_app.viewport_w*0.5f; float desired_cy = g_app.viewport_h*0.5f; float cur_cx = minx + bw*0.5f; float cur_cy = miny + bh*0.5f; g_rt.render_offset_x = desired_cx - cur_cx; g_rt.render_offset_y = desired_cy - cur_cy; g_rt.bbox_minx=minx; g_rt.bbox_miny=miny; g_rt.bbox_maxx=maxx; g_rt.bbox_maxy=maxy; } else { g_rt.render_offset_x=0.0f; g_rt.render_offset_y=0.0f; g_rt.bbox_minx=g_rt.bbox_miny=0.0f; g_rt.bbox_maxx=g_rt.bbox_maxy=0.0f; }
+    } else {
+        g_rt.render_offset_x = 0.0f; g_rt.render_offset_y = 0.0f; /* preserve bbox for debug */
+    }
     runtime_skillgraph_handle_input();
     /* Rebuild after potential rank changes to update ranks in UI */
     build_live_graph(&g_skill_ui);
-    /* Recompute offset after rebuild (in case layout changed due to rank visuals) */
-    pre_cnt=0; pre_nodes = rogue_ui_nodes(&g_skill_ui,&pre_cnt); minx=1e9f;maxx=-1e9f;miny=1e9f;maxy=-1e9f;have_sprite=0;
-    for(int i=0;i<pre_cnt;i++){ const RogueUINode* n=&pre_nodes[i]; if(n->kind==3){ have_sprite=1; if(n->rect.x<minx)minx=n->rect.x; if(n->rect.y<miny)miny=n->rect.y; if(n->rect.x+n->rect.w>maxx)maxx=n->rect.x+n->rect.w; if(n->rect.y+n->rect.h>maxy)maxy=n->rect.y+n->rect.h; }}
-    if(have_sprite){ float bw = maxx-minx; float bh = maxy-miny; float desired_cx = g_app.viewport_w*0.5f; float desired_cy = g_app.viewport_h*0.5f; float cur_cx = minx + bw*0.5f; float cur_cy = miny + bh*0.5f; g_rt.render_offset_x = desired_cx - cur_cx; g_rt.render_offset_y = desired_cy - cur_cy; g_rt.bbox_minx=minx; g_rt.bbox_miny=miny; g_rt.bbox_maxx=maxx; g_rt.bbox_maxy=maxy; } else { g_rt.render_offset_x=0.0f; g_rt.render_offset_y=0.0f; g_rt.bbox_minx=g_rt.bbox_miny=0.0f; g_rt.bbox_maxx=g_rt.bbox_maxy=0.0f; }
+    if(!g_rt.auto_fit_active){
+        /* Recompute offset after rebuild (in case layout changed due to rank visuals) */
+        pre_cnt=0; pre_nodes = rogue_ui_nodes(&g_skill_ui,&pre_cnt); float minx=1e9f,maxx=-1e9f,miny=1e9f,maxy=-1e9f; int have_sprite=0;
+        for(int i=0;i<pre_cnt;i++){ const RogueUINode* n=&pre_nodes[i]; if(n->kind==3){ have_sprite=1; if(n->rect.x<minx)minx=n->rect.x; if(n->rect.y<miny)miny=n->rect.y; if(n->rect.x+n->rect.w>maxx)maxx=n->rect.x+n->rect.w; if(n->rect.y+n->rect.h>maxy)maxy=n->rect.y+n->rect.h; }}
+        if(have_sprite){ float bw = maxx-minx; float bh = maxy-miny; float desired_cx = g_app.viewport_w*0.5f; float desired_cy = g_app.viewport_h*0.5f; float cur_cx = minx + bw*0.5f; float cur_cy = miny + bh*0.5f; g_rt.render_offset_x = desired_cx - cur_cx; g_rt.render_offset_y = desired_cy - cur_cy; g_rt.bbox_minx=minx; g_rt.bbox_miny=miny; g_rt.bbox_maxx=maxx; g_rt.bbox_maxy=maxy; } else { g_rt.render_offset_x=0.0f; g_rt.render_offset_y=0.0f; g_rt.bbox_minx=g_rt.bbox_miny=0.0f; g_rt.bbox_maxx=g_rt.bbox_maxy=0.0f; }
+    } else {
+        g_rt.render_offset_x=0.0f; g_rt.render_offset_y=0.0f;
+    }
     /* Synergy/info panel removed for cleaner presentation */
     rogue_ui_end(&g_skill_ui);
     int count=0; const RogueUINode* nodes = rogue_ui_nodes(&g_skill_ui,&count);
