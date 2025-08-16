@@ -1,0 +1,5 @@
+{
+  "rings": 5,
+  "approx_intersections": 100,
+  "seed": 1337
+}

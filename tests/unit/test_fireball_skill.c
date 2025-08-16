@@ -10,11 +10,15 @@
 /* Test: passive fire synergy increases fireball damage; projectile spawns and damages enemy correctly. */
 
 static RogueSkillDef make_passive_pyro(void){
-    RogueSkillDef d = {-1,"Pyromancy","icon_pyro",5,0,0,NULL,1,ROGUE_SKILL_TAG_FIRE,ROGUE_SYNERGY_FIRE_POWER,2};
+    RogueSkillDef d = {0};
+    d.id=-1; d.name="Pyromancy"; d.icon="icon_pyro"; d.max_rank=5; d.skill_strength=0;
+    d.base_cooldown_ms=0.0f; d.cooldown_reduction_ms_per_rank=0.0f; d.on_activate=NULL; d.is_passive=1; d.tags=ROGUE_SKILL_TAG_FIRE; d.synergy_id=ROGUE_SYNERGY_FIRE_POWER; d.synergy_value_per_rank=2;
     return d;
 }
 static RogueSkillDef make_fireball(void){
-    RogueSkillDef d = {-1,"Fireball","icon_fire",5,6000,400,NULL,0,ROGUE_SKILL_TAG_FIRE,-1,0};
+    RogueSkillDef d = {0};
+    d.id=-1; d.name="Fireball"; d.icon="icon_fire"; d.max_rank=5; d.skill_strength=0;
+    d.base_cooldown_ms=6000.0f; d.cooldown_reduction_ms_per_rank=400.0f; d.on_activate=NULL; d.is_passive=0; d.tags=ROGUE_SKILL_TAG_FIRE; d.synergy_id=-1; d.synergy_value_per_rank=0;
     return d;
 }
 

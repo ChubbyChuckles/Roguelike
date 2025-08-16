@@ -9,8 +9,8 @@ void rogue_player_recalc_derived(RoguePlayer* p){ (void)p; }
 int main(void){
     rogue_persistence_set_paths("test_skillbar_stats.tmp","test_skillbar_gen.tmp");
     rogue_skills_init();
-    RogueSkillDef a={-1,"Alpha","icon_a",2, 1000,100,NULL};
-    RogueSkillDef b={-1,"Beta","icon_b",2, 1000,100,NULL};
+    RogueSkillDef a={0}; a.id=-1; a.name="Alpha"; a.icon="icon_a"; a.max_rank=2; a.skill_strength=0; a.base_cooldown_ms=1000.0f; a.cooldown_reduction_ms_per_rank=100.0f;
+    RogueSkillDef b={0}; b.id=-1; b.name="Beta"; b.icon="icon_b"; b.max_rank=2; b.skill_strength=0; b.base_cooldown_ms=1000.0f; b.cooldown_reduction_ms_per_rank=100.0f;
     int A=rogue_skill_register(&a); int B=rogue_skill_register(&b);
     if(A!=0||B!=1){ printf("bad ids\n"); return 1; }
     g_app.talent_points=5; rogue_skill_rank_up(A); rogue_skill_rank_up(B);

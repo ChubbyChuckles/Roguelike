@@ -15,7 +15,7 @@ int main(void){
     /* Initialize minimal world bounds so dash clamping logic has limits */
     g_app.world_map.width = 500; g_app.world_map.height = 500;
     rogue_skills_init();
-    RogueSkillDef dash={-1,"Dash","icon_dash",3, 3000,400,test_dash_effect};
+    RogueSkillDef dash={0}; dash.id=-1; dash.name="Dash"; dash.icon="icon_dash"; dash.max_rank=3; dash.skill_strength=0; dash.base_cooldown_ms=3000.0f; dash.cooldown_reduction_ms_per_rank=400.0f; dash.on_activate=test_dash_effect; dash.is_passive=0; dash.synergy_id=-1; dash.tags=0;
     int id = rogue_skill_register(&dash);
     if(id!=0){ printf("id mismatch\n"); return 1; }
     g_app.talent_points=5; if(rogue_skill_rank_up(id)<=0){ printf("rank fail\n"); return 2; }

@@ -12,8 +12,8 @@ static int effect_fireball(const struct RogueSkillDef* def, struct RogueSkillSta
 int main(void){
     rogue_skills_init();
     /* Define passive skill (no activation, modifies global bonus via rank). */
-    RogueSkillDef passive = {-1,"Pyromancy","icon_pyro",5,0,0,NULL,1,ROGUE_SKILL_TAG_FIRE,SYNERGY_FIRE_POWER,2};
-    RogueSkillDef fireball = {-1,"Fireball","icon_fire",5,3000,250,effect_fireball,0,ROGUE_SKILL_TAG_FIRE,-1,0};
+    RogueSkillDef passive = {0}; passive.id=-1; passive.name="Pyromancy"; passive.icon="icon_pyro"; passive.max_rank=5; passive.skill_strength=0; passive.base_cooldown_ms=0.0f; passive.cooldown_reduction_ms_per_rank=0.0f; passive.on_activate=NULL; passive.is_passive=1; passive.tags=ROGUE_SKILL_TAG_FIRE; passive.synergy_id=SYNERGY_FIRE_POWER; passive.synergy_value_per_rank=2;
+    RogueSkillDef fireball = {0}; fireball.id=-1; fireball.name="Fireball"; fireball.icon="icon_fire"; fireball.max_rank=5; fireball.skill_strength=0; fireball.base_cooldown_ms=3000.0f; fireball.cooldown_reduction_ms_per_rank=250.0f; fireball.on_activate=effect_fireball; fireball.is_passive=0; fireball.tags=ROGUE_SKILL_TAG_FIRE; fireball.synergy_id=-1; fireball.synergy_value_per_rank=0;
     int pid = rogue_skill_register(&passive);
     int fid = rogue_skill_register(&fireball);
     /* Grant talent points and rank up passive to rank 3 */

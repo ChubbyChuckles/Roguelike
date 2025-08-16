@@ -24,6 +24,7 @@ typedef struct RogueSkillDef {
     const char* name;           /* display name */
     const char* icon;           /* icon file path (PNG 512x512 raw) */
     int max_rank;               /* maximum rank */
+    int skill_strength;         /* ring constraint for maze layout (0 = any ring; N = must be placed on ring N where outermost ring == total rings) */
     float base_cooldown_ms;     /* base cooldown at rank 1 */
     float cooldown_reduction_ms_per_rank; /* linear reduction */
     RogueSkillEffectFn on_activate;

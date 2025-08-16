@@ -10,7 +10,7 @@ static int effect_counter(const RogueSkillDef* def, struct RogueSkillState* st, 
 
 int main(void){
     rogue_skills_init();
-    RogueSkillDef d={-1,"TestSkill","icon",3, 1000,100,effect_counter};
+    RogueSkillDef d={0}; d.id=-1; d.name="TestSkill"; d.icon="icon"; d.max_rank=3; d.skill_strength=0; d.base_cooldown_ms=1000.0f; d.cooldown_reduction_ms_per_rank=100.0f; d.on_activate=effect_counter;
     int id = rogue_skill_register(&d);
     if(id<0){ printf("register fail\n"); return 1; }
     g_app.talent_points=5;

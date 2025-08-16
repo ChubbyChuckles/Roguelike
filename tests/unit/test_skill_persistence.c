@@ -17,8 +17,8 @@ int main(void){
     /* Init skills and register baseline sample skills */
     rogue_skills_init();
     /* Register 2 deterministic skills for test */
-    RogueSkillDef a={-1,"Alpha","icon_a",5, 2000,200,NULL};
-    RogueSkillDef b={-1,"Beta","icon_b",3, 3000,300,NULL};
+    RogueSkillDef a={0}; a.id=-1; a.name="Alpha"; a.icon="icon_a"; a.max_rank=5; a.skill_strength=0; a.base_cooldown_ms=2000.0f; a.cooldown_reduction_ms_per_rank=200.0f;
+    RogueSkillDef b={0}; b.id=-1; b.name="Beta"; b.icon="icon_b"; b.max_rank=3; b.skill_strength=0; b.base_cooldown_ms=3000.0f; b.cooldown_reduction_ms_per_rank=300.0f;
     int idA = rogue_skill_register(&a);
     int idB = rogue_skill_register(&b);
     if(idA!=0 || idB!=1){ printf("bad ids %d %d\n", idA, idB); return 1; }

@@ -178,6 +178,7 @@ add_library(rogue_core
     src/core/equipment_stats.c
     src/core/vendor_ui.c
     src/core/skill_graph_runtime.c
+    src/core/skill_maze.c
     src/core/stat_cache.c
     # UI Phase 1 scaffolding
     src/ui/core/ui_context.c

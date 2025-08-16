@@ -3,6 +3,7 @@
     pulses, spend flyouts, synergy panel, tag filters. */
 #include "core/app_state.h"
 #include "core/skills.h"
+#include "core/skill_maze.h"
 #include "ui/core/ui_context.h"
 #include <stdio.h>
 #include <math.h>
@@ -35,6 +36,7 @@ typedef struct RuntimeSkillGraphState {
     int last_mouse_down; /* previous frame left button */
 } RuntimeSkillGraphState;
 static RuntimeSkillGraphState g_rt = {0};
+static RogueSkillMaze g_maze; static int g_maze_built=0;
 
 void rogue_skillgraph_runtime_init(void){
     if(g_skill_ui_inited) return;
@@ -54,25 +56,20 @@ static void build_live_graph(RogueUIContext* ui){
     if(g_rt.zoom < 0.25f) g_rt.zoom = 0.25f; if(g_rt.zoom>3.0f) g_rt.zoom=3.0f;
     rogue_ui_skillgraph_begin(ui, g_rt.view_x, g_rt.view_y, view_w/g_rt.zoom, view_h/g_rt.zoom, g_rt.zoom);
     if(g_rt.filter_mask) rogue_ui_skillgraph_set_filter_tags(ui, g_rt.filter_mask); else rogue_ui_skillgraph_set_filter_tags(ui, 0);
-    int layers = 3; /* simple layering by tag buckets */
-    float base_r = 60.0f;
+    /* Build maze once (could add hot-reload on config changes) */
+    if(!g_maze_built){ if(rogue_skill_maze_generate("assets/skill_maze_config.json", &g_maze)) g_maze_built=1; }
     int count = g_app.skill_count;
-    for(int i=0;i<count;i++){
-        const RogueSkillDef* def = rogue_skill_get_def(i);
-        const RogueSkillState* st = rogue_skill_get_state(i);
-        if(!def||!st) continue;
-        unsigned int tags = (unsigned int)def->tags;
-        int synergy = def->is_passive && def->synergy_id>=0;
-        /* Determine ring radius based on primary tag bit (first set bit) */
-        int layer = 0;
-        unsigned int tag_bits = tags?tags:1u; /* ensure non-zero */
-        while((tag_bits & 1u)==0){ tag_bits >>=1; layer++; if(layer>=layers) break; }
-        if(layer>=layers) layer = layers-1;
-        float radius = base_r + layer * 55.0f;
-        float ang = ((float)i / (float)count) * 6.2831853f;
-        float cx = view_w*0.5f + cosf(ang)*radius;
-        float cy = view_h*0.5f + sinf(ang)*radius;
-        rogue_ui_skillgraph_add(ui, cx, cy, i, st->rank, def->max_rank, synergy, tags);
+    if(g_maze_built){
+        /* Assign skill ids to maze nodes honoring skill_strength constraint. */
+        int* assigned = (int*)malloc(sizeof(int)*g_maze.node_count); for(int i=0;i<g_maze.node_count;i++) assigned[i]=-1;
+        int placed=0;
+        /* Simple multi-pass: iterate skills, find first eligible free node of matching ring. */
+        for(int sid=0; sid<count && placed<g_maze.node_count; ++sid){ const RogueSkillDef* def=rogue_skill_get_def(sid); const RogueSkillState* st=rogue_skill_get_state(sid); if(!def||!st) continue; int target_ring = def->skill_strength; if(target_ring<1) target_ring=0; for(int n=0;n<g_maze.node_count;n++){ if(assigned[n]<0){ int nr=g_maze.nodes[n].ring; if(target_ring==0 || target_ring==nr || (target_ring>g_maze.rings && nr==g_maze.rings)){ assigned[n]=sid; placed++; break; } } }
+        }
+        /* Emit edges as faint panels (lines) before nodes */
+    for(int e=0;e<g_maze.edge_count;e++){ int a=g_maze.edges[e].from; int b=g_maze.edges[e].to; if(a<0||b<0||a>=g_maze.node_count||b>=g_maze.node_count) continue; float ax = view_w*0.5f + g_maze.nodes[a].x; float ay = view_h*0.5f + g_maze.nodes[a].y; float bx = view_w*0.5f + g_maze.nodes[b].x; float by = view_h*0.5f + g_maze.nodes[b].y; /* approximate line with thin panel bounding box */ float dx=bx-ax, dy=by-ay; float len = sqrtf(dx*dx+dy*dy); if(len<1) len=1; /* Axis-aligned fallback: just rectangle covering endpoints */ float rx = (ax<bx?ax:bx); float ry=(ay<by?ay:by); float rw=fabsf(dx); float rh=fabsf(dy); if(rw<2) rw=2; if(rh<2) rh=2; rogue_ui_panel(ui,(RogueUIRect){rx-1,ry-1,rw+2,rh+2},0x30303080u); }
+        for(int n=0;n<g_maze.node_count;n++){ int sid=assigned[n]; if(sid>=0){ const RogueSkillDef* def=rogue_skill_get_def(sid); const RogueSkillState* st=rogue_skill_get_state(sid); if(!def||!st) continue; unsigned int tags=(unsigned int)def->tags; int synergy=def->is_passive && def->synergy_id>=0; float cx=view_w*0.5f + g_maze.nodes[n].x; float cy=view_h*0.5f + g_maze.nodes[n].y; rogue_ui_skillgraph_add(ui,cx,cy,sid,st->rank,def->max_rank,synergy,tags); } }
+        free(assigned);
     }
     rogue_ui_skillgraph_build(ui);
 }

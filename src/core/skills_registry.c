@@ -124,13 +124,14 @@ static const char* rogue__parse_number(const char* s, double* out){ s=rogue__ski
 static int rogue__json_load(const char* buf){
     const char* s=rogue__skip_ws(buf); if(*s!='[') return 0; ++s; int loaded=0; char key[64]; char sval[512];
     while(1){ s=rogue__skip_ws(s); if(*s==']'){ ++s; break; }
-        if(*s!='{') return loaded; ++s; RogueSkillDef def; memset(&def,0,sizeof def); def.id=-1; def.max_rank=1; def.synergy_id=-1; int done_obj=0; while(!done_obj){ s=rogue__skip_ws(s); if(*s=='}'){ ++s; break; }
+    if(*s!='{') return loaded; ++s; RogueSkillDef def; memset(&def,0,sizeof def); def.id=-1; def.max_rank=1; def.synergy_id=-1; def.skill_strength=0; int done_obj=0; while(!done_obj){ s=rogue__skip_ws(s); if(*s=='}'){ ++s; break; }
                 const char* ns=rogue__parse_string(s,key,sizeof key); if(!ns) return loaded; s=rogue__skip_ws(ns); if(*s!=':') return loaded; s++; s=rogue__skip_ws(s);
                 if(*s=='"'){ const char* vs=rogue__parse_string(s,sval,sizeof sval); if(!vs) return loaded; s=rogue__skip_ws(vs);
                     if(strcmp(key,"name")==0){ def.name=ROGUE_STRDUP(sval); }
                     else if(strcmp(key,"icon")==0){ def.icon=ROGUE_STRDUP(sval); }
                 } else if((*s>='0'&&*s<='9')||*s=='-' ){ double num; const char* vs=rogue__parse_number(s,&num); if(!vs) return loaded; s=rogue__skip_ws(vs);
                     if(strcmp(key,"max_rank")==0) def.max_rank=(int)num;
+                    else if(strcmp(key,"skill_strength")==0) def.skill_strength=(int)num;
                     else if(strcmp(key,"base_cooldown_ms")==0) def.base_cooldown_ms=(float)num;
                     else if(strcmp(key,"cooldown_reduction_ms_per_rank")==0) def.cooldown_reduction_ms_per_rank=(float)num;
                     else if(strcmp(key,"is_passive")==0) def.is_passive=(int)num;
