@@ -297,3 +297,5 @@ void rogue_register_core_save_components(void){
     rogue_save_manager_register(&BUFFS_COMP);
     rogue_save_manager_register(&VENDOR_COMP);
 }
+
+/* (Removed experimental v2->v3 migration draft not yet supported) */

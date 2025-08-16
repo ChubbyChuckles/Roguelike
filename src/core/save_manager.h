@@ -11,7 +11,7 @@
 #define ROGUE_AUTOSAVE_RING 4
 
 /* Current binary save format version */
-#define ROGUE_SAVE_FORMAT_VERSION 2u /* bumped after introducing migration runner */
+#define ROGUE_SAVE_FORMAT_VERSION 2u /* version 2: migration runner + metrics */
 
 /* Component identifiers (stable) */
 typedef enum RogueSaveComponentId {
@@ -32,6 +32,7 @@ typedef struct RogueSaveDescriptor {
     uint64_t total_size;     /* total bytes of file (for sanity) */
     uint32_t checksum;       /* simple CRC32 of following bytes (Phase4 will extend) */
 } RogueSaveDescriptor;
+
 
 /* Component callback interface */
 typedef struct RogueSaveComponent {

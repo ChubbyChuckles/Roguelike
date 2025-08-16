@@ -73,6 +73,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_component_reload.c AND NOT 
     add_test(NAME test_save_component_reload COMMAND test_save_component_reload)
 endif()
 
+# Basic save_manager smoke test (legacy simple test)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_manager.c AND NOT TARGET test_save_manager)
+    add_executable(test_save_manager unit/test_save_manager.c)
+    target_link_libraries(test_save_manager PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_save_manager PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_save_manager COMMAND test_save_manager)
+endif()
+
 # Explicitly add new maintainability phase M3.4 asset dependency graph test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_asset_dep.c AND NOT TARGET test_asset_dep)
     add_executable(test_asset_dep unit/test_asset_dep.c)

@@ -31,8 +31,8 @@ PHASE 2. Versioning & Migration Infrastructure
 
 PHASE 3. Serialization Format & Schema
 3.1 Sectioned binary format (header + TLV per component) (X)
-3.2 Human-readable debug export (JSON/TOML) toggle (X)
-3.3 Fixed endianness & numeric width assertions (X)
+3.2 Human-readable debug export (JSON/TOML) toggle (Partial: JSON section list export implemented via rogue_save_export_json)
+3.3 Fixed endianness & numeric width assertions (Partial: runtime little-endian helper rogue_save_format_endianness_is_le, optional strict guard macro)
 3.4 Compact varint encoding for counts/ids (X)
 3.5 String interning table for repeated keys (X)
 3.6 Optional compression (LZ4) per section threshold (X)
