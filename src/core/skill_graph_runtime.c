@@ -41,6 +41,15 @@ typedef struct RuntimeSkillGraphState {
     float drag_start_x, drag_start_y;
     float drag_cur_x, drag_cur_y;
     int drag_started_move; /* movement threshold passed */
+    float drag_w, drag_h; /* size of dragged icon */
+    /* Hover tooltip timing */
+    int hover_skill_id; /* currently hovered skill id (sprite under cursor) */
+    double hover_start_ms; /* when cursor first moved onto this skill */
+    /* Per-frame centering offset applied at render + hit-test so graph stays on screen */
+    float render_offset_x;
+    float render_offset_y;
+    /* Debug bbox of sprites before offset */
+    float bbox_minx, bbox_miny, bbox_maxx, bbox_maxy;
 } RuntimeSkillGraphState;
 static RuntimeSkillGraphState g_rt = {0};
 static RogueSkillMaze g_maze; static int g_maze_built=0;
@@ -50,8 +59,9 @@ void rogue_skillgraph_runtime_init(void){
     RogueUIContextConfig cfg = { .max_nodes = 4096, .seed = 1337u, .arena_size = 128*1024 };
     if(!rogue_ui_init(&g_skill_ui, &cfg)) return;
     g_skill_ui_inited = 1;
-    rogue_ui_skillgraph_enable_synergy_panel(&g_skill_ui,1);
-    g_rt.initialized=1; g_rt.view_x=0.0f; g_rt.view_y=0.0f; g_rt.zoom=1.0f; g_rt.filter_mask=0; g_rt.undo_count=0; g_rt.last_mouse_down=0;
+    /* Disable synergy panel for minimalist skill graph */
+    rogue_ui_skillgraph_enable_synergy_panel(&g_skill_ui,0);
+    g_rt.initialized=1; g_rt.view_x=0.0f; g_rt.view_y=0.0f; g_rt.zoom=1.0f; g_rt.filter_mask=0; g_rt.undo_count=0; g_rt.last_mouse_down=0; g_rt.drag_w=32.0f; g_rt.drag_h=32.0f; g_rt.hover_skill_id=-1; g_rt.hover_start_ms=0.0; g_rt.render_offset_x=0.0f; g_rt.render_offset_y=0.0f;
 }
 
 /* Build graph from actual registered skills; arrange in radial layers by tag groups. */
@@ -59,8 +69,9 @@ static void build_live_graph(RogueUIContext* ui){
     if(g_app.skill_count<=0) return;
     /* Clear previously emitted panels/sprites so repeated builds in same frame don't layer lines above icons. */
     ui->node_count = 0;
-    float view_w = (float)g_app.viewport_w * 0.70f;
-    float view_h = (float)g_app.viewport_h * 0.70f;
+    /* Use full viewport dimensions for centered layout */
+    float view_w = (float)g_app.viewport_w;
+    float view_h = (float)g_app.viewport_h;
     /* Freeze to screen center: neutral view; manual zoom applied to coordinates */
     if(g_rt.zoom < 0.5f) g_rt.zoom = 0.5f; if(g_rt.zoom>2.5f) g_rt.zoom=2.5f;
     rogue_ui_skillgraph_begin(ui, 0.0f, 0.0f, view_w, view_h, 1.0f);
@@ -105,9 +116,7 @@ static void build_live_graph(RogueUIContext* ui){
                 maze_nodes_debug, g_app.skill_count, visible, g_rt.filter_mask, view_w, view_h, g_rt.zoom);
             last_log_ms = g_app.game_time_ms;
         }
-        char dbg[96]; snprintf(dbg,sizeof dbg,"Skills: %d/%d vis zoom=%.2f", visible, maze_nodes_debug, g_rt.zoom);
-        rogue_ui_panel(ui,(RogueUIRect){8,(float)g_app.viewport_h - 140.0f,140,24},0x101018C0u);
-        rogue_ui_text_dup(ui,(RogueUIRect){12,(float)g_app.viewport_h - 132.0f,132,14},dbg,0xFFFFFFFFu);
+    /* Debug footer removed */
         return; /* early since we've already built UI skill graph */
     }
     rogue_ui_skillgraph_build(ui);
@@ -135,9 +144,7 @@ static void runtime_skillgraph_handle_input(void){
     if(kb[SDL_SCANCODE_RIGHT]|| kb[SDL_SCANCODE_D]) g_rt.view_x += pan_speed;
     if(kb[SDL_SCANCODE_UP] || kb[SDL_SCANCODE_W]) g_rt.view_y -= pan_speed;
     if(kb[SDL_SCANCODE_DOWN] || kb[SDL_SCANCODE_S]) g_rt.view_y += pan_speed;
-    /* Tag filtering: number keys 1..9 set single-bit filter; 0 clears */
-    for(int d=1; d<=9; ++d){ if(kb[SDL_SCANCODE_1 + (d-1)]){ g_rt.filter_mask = 1u << (d-1); break; } }
-    if(kb[SDL_SCANCODE_0]) g_rt.filter_mask = 0;
+    /* Tag filtering disabled (was bound to number keys and caused icons to vanish) */
     /* Undo (Ctrl+Z) */
     if( (kb[SDL_SCANCODE_LCTRL]||kb[SDL_SCANCODE_RCTRL]) && kb[SDL_SCANCODE_Z]){
         static int undo_consumed=0; /* simple edge guard */
@@ -159,9 +166,9 @@ static void runtime_skillgraph_handle_input(void){
         int node_count=0; const RogueUINode* nodes = rogue_ui_nodes(&g_skill_ui,&node_count);
         for(int i=0;i<node_count;i++){
             const RogueUINode* n=&nodes[i]; if(n->kind==3){ /* sprite */
-                float x=n->rect.x, y=n->rect.y, w=n->rect.w, h=n->rect.h;
+                float x=n->rect.x + g_rt.render_offset_x; float y=n->rect.y + g_rt.render_offset_y; float w=n->rect.w; float h=n->rect.h;
                 if(mx>=x && my>=y && mx<=x+w && my<=y+h){
-                    g_rt.drag_active=1; g_rt.drag_skill_id=n->data_i0; g_rt.drag_start_x=(float)mx; g_rt.drag_start_y=(float)my; g_rt.drag_cur_x=(float)mx; g_rt.drag_cur_y=(float)my; g_rt.drag_started_move=0; break;
+                    g_rt.drag_active=1; g_rt.drag_skill_id=n->data_i0; g_rt.drag_start_x=(float)mx; g_rt.drag_start_y=(float)my; g_rt.drag_cur_x=(float)mx; g_rt.drag_cur_y=(float)my; g_rt.drag_started_move=0; g_rt.drag_w=w; g_rt.drag_h=h; break;
                 }
             }
         }
@@ -195,55 +202,94 @@ void rogue_skillgraph_runtime_render(void){
     rogue_ui_begin(&g_skill_ui, g_app.dt * 1000.0);
     /* Build first so we have nodes for click hit-testing; we will process input then rebuild to reflect changes */
     build_live_graph(&g_skill_ui);
+    /* Compute centering offset based on current node bounding box BEFORE input so hit-tests use it */
+    int pre_cnt=0; const RogueUINode* pre_nodes = rogue_ui_nodes(&g_skill_ui,&pre_cnt);
+    float minx=1e9f,maxx=-1e9f,miny=1e9f,maxy=-1e9f; int have_sprite=0;
+    for(int i=0;i<pre_cnt;i++){ const RogueUINode* n=&pre_nodes[i]; if(n->kind==3){ have_sprite=1; if(n->rect.x<minx)minx=n->rect.x; if(n->rect.y<miny)miny=n->rect.y; if(n->rect.x+n->rect.w>maxx)maxx=n->rect.x+n->rect.w; if(n->rect.y+n->rect.h>maxy)maxy=n->rect.y+n->rect.h; }}
+    if(have_sprite){ float bw = maxx-minx; float bh = maxy-miny; float desired_cx = g_app.viewport_w*0.5f; float desired_cy = g_app.viewport_h*0.5f; float cur_cx = minx + bw*0.5f; float cur_cy = miny + bh*0.5f; g_rt.render_offset_x = desired_cx - cur_cx; g_rt.render_offset_y = desired_cy - cur_cy; g_rt.bbox_minx=minx; g_rt.bbox_miny=miny; g_rt.bbox_maxx=maxx; g_rt.bbox_maxy=maxy; } else { g_rt.render_offset_x=0.0f; g_rt.render_offset_y=0.0f; g_rt.bbox_minx=g_rt.bbox_miny=0.0f; g_rt.bbox_maxx=g_rt.bbox_maxy=0.0f; }
     runtime_skillgraph_handle_input();
     /* Rebuild after potential rank changes to update ranks in UI */
     build_live_graph(&g_skill_ui);
-    /* Synergy panel & info (constructed while frame active) */
-    if(g_skill_ui.skillgraph_synergy_panel_enabled){
-        /* Simple aggregate list (first 8 synergy ids) */
-        int x=15, y=15; int w=180; int h=14*10 + 40; /* rough */
-        rogue_ui_panel(&g_skill_ui,(RogueUIRect){(float)x,(float)y,(float)w,(float)h},0x202028E0u);
-        char line[96]; int ly=y+4;
-        rogue_ui_text_dup(&g_skill_ui,(RogueUIRect){(float)(x+6),(float)ly,(float)(w-12),12},"Synergies",0xFFFFFFFFu); ly+=14;
-        for(int s=0;s<8;s++){ int total = rogue_skill_synergy_total(s); if(total){ snprintf(line,sizeof line,"S%d: %d",s,total); rogue_ui_text_dup(&g_skill_ui,(RogueUIRect){(float)(x+6),(float)ly,(float)(w-12),12},line,0x90E0FFFFu); ly+=12; } }
-        ly+=4;
-        snprintf(line,sizeof line,"Talent Pts: %d", g_app.talent_points); rogue_ui_text_dup(&g_skill_ui,(RogueUIRect){(float)(x+6),(float)ly,(float)(w-12),12},line,0xFFFFFFFFu); ly+=12;
-        unsigned int fm = g_rt.filter_mask; if(fm){ snprintf(line,sizeof line,"Filter bit: %u", (unsigned) (log2((double)fm)+0.5)); } else { snprintf(line,sizeof line,"Filter: (none)"); }
-        rogue_ui_text_dup(&g_skill_ui,(RogueUIRect){(float)(x+6),(float)ly,(float)(w-12),12},line,0xFFFFFFFFu); ly+=12;
-        rogue_ui_text_dup(&g_skill_ui,(RogueUIRect){(float)(x+6),(float)ly,(float)(w-12),12},"1-9=Filter 0=Clear",0x8080FFFFu); ly+=12;
-        rogue_ui_text_dup(&g_skill_ui,(RogueUIRect){(float)(x+6),(float)ly,(float)(w-12),12},"+=Zoom - =Zoom",0x8080FFFFu); ly+=12;
-        rogue_ui_text_dup(&g_skill_ui,(RogueUIRect){(float)(x+6),(float)ly,(float)(w-12),12},"LClick=Rank Up",0x8080FFFFu); ly+=12;
-        rogue_ui_text_dup(&g_skill_ui,(RogueUIRect){(float)(x+6),(float)ly,(float)(w-12),12},"Ctrl+Z=Undo",0x8080FFFFu);
-    }
+    /* Recompute offset after rebuild (in case layout changed due to rank visuals) */
+    pre_cnt=0; pre_nodes = rogue_ui_nodes(&g_skill_ui,&pre_cnt); minx=1e9f;maxx=-1e9f;miny=1e9f;maxy=-1e9f;have_sprite=0;
+    for(int i=0;i<pre_cnt;i++){ const RogueUINode* n=&pre_nodes[i]; if(n->kind==3){ have_sprite=1; if(n->rect.x<minx)minx=n->rect.x; if(n->rect.y<miny)miny=n->rect.y; if(n->rect.x+n->rect.w>maxx)maxx=n->rect.x+n->rect.w; if(n->rect.y+n->rect.h>maxy)maxy=n->rect.y+n->rect.h; }}
+    if(have_sprite){ float bw = maxx-minx; float bh = maxy-miny; float desired_cx = g_app.viewport_w*0.5f; float desired_cy = g_app.viewport_h*0.5f; float cur_cx = minx + bw*0.5f; float cur_cy = miny + bh*0.5f; g_rt.render_offset_x = desired_cx - cur_cx; g_rt.render_offset_y = desired_cy - cur_cy; g_rt.bbox_minx=minx; g_rt.bbox_miny=miny; g_rt.bbox_maxx=maxx; g_rt.bbox_maxy=maxy; } else { g_rt.render_offset_x=0.0f; g_rt.render_offset_y=0.0f; g_rt.bbox_minx=g_rt.bbox_miny=0.0f; g_rt.bbox_maxx=g_rt.bbox_maxy=0.0f; }
+    /* Synergy/info panel removed for cleaner presentation */
     rogue_ui_end(&g_skill_ui);
     int count=0; const RogueUINode* nodes = rogue_ui_nodes(&g_skill_ui,&count);
     for(int i=0;i<count;i++){
         const RogueUINode* n=&nodes[i];
-        if(n->kind==0){ /* panel */
+    if(n->kind==0){ /* panel */
             Uint8 r=(Uint8)(n->color>>24); Uint8 g=(Uint8)(n->color>>16); Uint8 b=(Uint8)(n->color>>8); Uint8 a=(Uint8)(n->color);
             SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,r,g,b,a);
-            SDL_Rect rc={(int)n->rect.x,(int)n->rect.y,(int)n->rect.w,(int)n->rect.h};
+        SDL_Rect rc={(int)(n->rect.x + g_rt.render_offset_x),(int)(n->rect.y + g_rt.render_offset_y),(int)n->rect.w,(int)n->rect.h};
             SDL_RenderFillRect(g_internal_sdl_renderer_ref,&rc);
         } else if(n->kind==1 && n->text){ /* text */
-            rogue_font_draw_text((int)n->rect.x,(int)n->rect.y,n->text,1,(RogueColor){255,255,255,255});
+        rogue_font_draw_text((int)(n->rect.x + g_rt.render_offset_x),(int)(n->rect.y + g_rt.render_offset_y),n->text,1,(RogueColor){255,255,255,255});
         } else if(n->kind==3){ /* sprite (skill icon) */
             int skill_id = n->data_i0; /* sheet id we overloaded with skill index */
             if(g_app.skill_icon_textures && skill_id>=0 && skill_id<g_app.skill_count){
                 RogueTexture* tex = &g_app.skill_icon_textures[skill_id];
                 if(tex->handle){
-                    SDL_Rect dst={(int)n->rect.x,(int)n->rect.y,(int)n->rect.w,(int)n->rect.h};
+            SDL_Rect dst={(int)(n->rect.x + g_rt.render_offset_x),(int)(n->rect.y + g_rt.render_offset_y),(int)n->rect.w,(int)n->rect.h};
                     SDL_RenderCopy(g_internal_sdl_renderer_ref, tex->handle, NULL, &dst);
                 }
             }
+        }
+    }
+
+    /* Debug overlay: show offsets & bbox; draw bbox rectangle */
+    char dbg[160];
+    int ox=(int)g_rt.render_offset_x; int oy=(int)g_rt.render_offset_y;
+    SDL_snprintf(dbg,sizeof(dbg),"SkillGraph Center off=(%d,%d) bbox=(%.0f,%.0f)-(%.0f,%.0f)",ox,oy,g_rt.bbox_minx,g_rt.bbox_miny,g_rt.bbox_maxx,g_rt.bbox_maxy);
+    rogue_font_draw_text(8,8,dbg,1,(RogueColor){255,255,0,255});
+    if(g_rt.bbox_maxx>g_rt.bbox_minx){
+        SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,255,255,0,100);
+        SDL_Rect bb={(int)(g_rt.bbox_minx+g_rt.render_offset_x),(int)(g_rt.bbox_miny+g_rt.render_offset_y),(int)(g_rt.bbox_maxx-g_rt.bbox_minx),(int)(g_rt.bbox_maxy-g_rt.bbox_miny)};
+        SDL_RenderDrawRect(g_internal_sdl_renderer_ref,&bb);
+    }
+    /* Hover tooltip with delay */
+    int mx_hover, my_hover; SDL_GetMouseState(&mx_hover,&my_hover);
+    int hover_sid=-1; float hx=0,hy=0,hw=0,hh=0;
+    for(int i=count-1;i>=0;i--){ const RogueUINode* n=&nodes[i]; if(n->kind==3){ float x=n->rect.x + g_rt.render_offset_x; float y=n->rect.y + g_rt.render_offset_y; float w=n->rect.w; float h=n->rect.h; if(mx_hover>=x && my_hover>=y && mx_hover<=x+w && my_hover<=y+h){ hover_sid=n->data_i0; hx=x; hy=y; hw=w; hh=h; break; } } }
+    double now_ms = g_app.game_time_ms;
+    if(hover_sid != g_rt.hover_skill_id){ g_rt.hover_skill_id = hover_sid; g_rt.hover_start_ms = now_ms; }
+    const double HOVER_DELAY_MS = 220.0;
+    if(hover_sid>=0 && (now_ms - g_rt.hover_start_ms) >= HOVER_DELAY_MS){
+        const RogueSkillDef* def = rogue_skill_get_def(hover_sid);
+        const RogueSkillState* st = rogue_skill_get_state(hover_sid);
+        if(def && st){
+            /* Build multiline tooltip lines */
+            char line1[96]; snprintf(line1,sizeof line1,"%s  (Rank %d/%d)", def->name?def->name:"Skill", st->rank, def->max_rank);
+            char line2[96];
+            float cd_total = def->base_cooldown_ms - (st->rank-1)*def->cooldown_reduction_ms_per_rank; if(cd_total < 0) cd_total = 0;
+            if(def->is_passive){ snprintf(line2,sizeof line2,"Passive"); }
+            else snprintf(line2,sizeof line2,"Cooldown: %.1fs", cd_total/1000.0f);
+            char line3[96];
+            int any_cost = 0; char costbuf[64]=""; if(def->resource_cost_mana>0){ snprintf(costbuf,sizeof costbuf,"Mana %d", def->resource_cost_mana); any_cost=1; }
+            if(def->action_point_cost>0){ char apb[32]; snprintf(apb,sizeof apb, any_cost?", AP %d":"AP %d", def->action_point_cost); size_t have=strlen(costbuf); size_t left = (have<sizeof(costbuf))? sizeof(costbuf)-have-1:0; if(left>0){ size_t j=0; while(j<left && apb[j]){ costbuf[have+j]=apb[j]; j++; } costbuf[have+j]=0; } any_cost=1; }
+            if(!any_cost) snprintf(costbuf,sizeof costbuf,"No cost");
+            snprintf(line3,sizeof line3,"%s", costbuf);
+            /* Determine panel width from longest line */
+            int w1=(int)strlen(line1), w2=(int)strlen(line2), w3=(int)strlen(line3); int maxw=w1; if(w2>maxw) maxw=w2; if(w3>maxw) maxw=w3; int panel_w = maxw*6 + 10; int panel_h = 3*14 + 8; /* 3 lines */
+            int tx = (int)(hx + hw + 6); int ty = (int)(hy - 6); if(ty<4) ty=4; if(tx + panel_w > g_app.viewport_w) tx = (int)(hx - 6 - panel_w);
+            SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,18,18,30,235); SDL_Rect tip={tx,ty,panel_w,panel_h}; SDL_RenderFillRect(g_internal_sdl_renderer_ref,&tip);
+            SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,100,100,150,255); SDL_Rect top={tip.x,tip.y,tip.w,2}; SDL_RenderFillRect(g_internal_sdl_renderer_ref,&top);
+            rogue_font_draw_text(tip.x+4, tip.y+4, line1,1,(RogueColor){255,255,210,255});
+            rogue_font_draw_text(tip.x+4, tip.y+4+14, line2,1,(RogueColor){210,230,255,255});
+            rogue_font_draw_text(tip.x+4, tip.y+4+28, line3,1,(RogueColor){200,255,210,255});
         }
     }
     /* Render drag ghost & slot highlight */
     if(g_rt.drag_active){
         int bar_w = 10*34 + 8; int bar_h = 46; int bar_x = 4; int bar_y = g_app.viewport_h - bar_h - 4;
         int mx=(int)g_rt.drag_cur_x, my=(int)g_rt.drag_cur_y;
-        /* Ghost */
-        SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,200,200,255,160);
-        SDL_Rect ghost={mx-16,my-16,32,32}; SDL_RenderFillRect(g_internal_sdl_renderer_ref,&ghost);
+        /* Ghost: draw actual skill icon (semi-transparent) */
+        SDL_Rect ghost={mx-(int)(g_rt.drag_w*0.5f), my-(int)(g_rt.drag_h*0.5f), (int)g_rt.drag_w, (int)g_rt.drag_h};
+        int sid = g_rt.drag_skill_id;
+        int drew_icon=0;
+        if(sid>=0 && sid<g_app.skill_count && g_app.skill_icon_textures){ RogueTexture* tex=&g_app.skill_icon_textures[sid]; if(tex->handle){ SDL_SetTextureAlphaMod(tex->handle, 180); SDL_RenderCopy(g_internal_sdl_renderer_ref, tex->handle, NULL, &ghost); SDL_SetTextureAlphaMod(tex->handle, 255); drew_icon=1; }}
+        if(!drew_icon){ SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,200,200,255,160); SDL_RenderFillRect(g_internal_sdl_renderer_ref,&ghost); }
         /* Highlight slot under cursor */
         if(mx>=bar_x && mx<bar_x+bar_w && my>=bar_y && my<bar_y+bar_h){ int local_x = mx - (bar_x + 6); if(local_x>=0){ int slot=local_x/34; if(slot>=0 && slot<10){ int slot_x = bar_x + 6 + slot*34; SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,255,200,60,180); SDL_Rect hi={slot_x,bar_y+6,32,32}; SDL_RenderDrawRect(g_internal_sdl_renderer_ref,&hi); }} }
     }
