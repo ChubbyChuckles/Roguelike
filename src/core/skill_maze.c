@@ -11,11 +11,13 @@ static int rogue__uf_find(int* p,int x){ while(p[x]!=x){ p[x]=p[p[x]]; x=p[x]; }
 static unsigned int xrng(unsigned int* s){ unsigned int x=*s; x^=x<<13; x^=x>>17; x^=x<<5; *s=x; return x; }
 static float frand(unsigned int* s){ return (float)(xrng(s) / (double)0xFFFFFFFFu); }
 
-typedef struct MazeCfg { int rings; int approx; unsigned int seed; } MazeCfg;
+typedef struct MazeCfg { int rings; int approx; unsigned int seed; float radius; } MazeCfg;
 
-static int parse_cfg_json(const char* buf, MazeCfg* cfg){ cfg->rings=5; cfg->approx=120; cfg->seed=1337u; const char* p=buf; while(*p){ while(*p && *p!='"') p++; if(!*p) break; const char* kstart=++p; while(*p && *p!='"') p++; if(!*p) break; char key[64]; int klen=(int)(p-kstart); if(klen>63) klen=63; memcpy(key,kstart,klen); key[klen]='\0'; p++; while(*p && *p!=':') p++; if(!*p) break; p++; while(*p && (unsigned char)*p<=32) p++; if(*p=='-' || (*p>='0'&&*p<='9')){ char* end=NULL; long v=strtol(p,&end,10); if(end!=p){ if(strcmp(key,"rings")==0) cfg->rings=(int)v; else if(strcmp(key,"approx_intersections")==0) cfg->approx=(int)v; else if(strcmp(key,"seed")==0) cfg->seed=(unsigned int)v; p=end; } } else { while(*p && *p!=',' && *p!='}') p++; }
+static int parse_cfg_json(const char* buf, MazeCfg* cfg){ cfg->rings=5; cfg->approx=120; cfg->seed=1337u; cfg->radius=320.0f; const char* p=buf; while(*p){ while(*p && *p!='"') p++; if(!*p) break; const char* kstart=++p; while(*p && *p!='"') p++; if(!*p) break; char key[64]; int klen=(int)(p-kstart); if(klen>63) klen=63; memcpy(key,kstart,klen); key[klen]='\0'; p++; while(*p && *p!=':') p++; if(!*p) break; p++; while(*p && (unsigned char)*p<=32) p++; if(*p=='-' || (*p>='0'&&*p<='9')){ char* end=NULL; long v=strtol(p,&end,10); if(end!=p){ if(strcmp(key,"rings")==0) cfg->rings=(int)v; else if(strcmp(key,"approx_intersections")==0) cfg->approx=(int)v; else if(strcmp(key,"seed")==0) cfg->seed=(unsigned int)v; p=end; } } else if(*p=='"'){ /* could parse string but ignore */ while(*p && *p!='"') p++; if(*p=='"') p++; } else if(*p=='['||*p=='{'){ /* skip simple nested */ int depth=0; char open=*p; char close=(open=='{'?'}':']'); do { if(*p==open) depth++; else if(*p==close) depth--; p++; } while(*p && depth>0); }
+        else { /* maybe float for radius */ if(strcmp(key,"radius")==0){ char* endf=NULL; double fv=strtod(p,&endf); if(endf!=p){ cfg->radius=(float)fv; p=endf; } }
+        }
         if(*p==',') p++; }
-    if(cfg->rings<2) cfg->rings=2; if(cfg->approx<cfg->rings*8) cfg->approx = cfg->rings*8; return 1; }
+    if(cfg->rings<2) cfg->rings=2; if(cfg->approx<cfg->rings*8) cfg->approx = cfg->rings*8; if(cfg->radius<50.0f) cfg->radius=50.0f; return 1; }
 
 int rogue_skill_maze_generate(const char* config_path, RogueSkillMaze* out_maze){ if(!out_maze) return 0; memset(out_maze,0,sizeof *out_maze); char resolved[640]; const char* path=config_path; FILE* f=NULL; if(path){
 #if defined(_MSC_VER)
@@ -43,7 +45,8 @@ int rogue_skill_maze_generate(const char* config_path, RogueSkillMaze* out_maze)
  /* Allocate nodes roughly total + random extra */
  int max_nodes = total + rings*4; RogueSkillMazeNode* nodes=(RogueSkillMazeNode*)malloc(sizeof(RogueSkillMazeNode)* (size_t)max_nodes); int node_count=0; if(!nodes){ free(segs); return 0; }
  /* Build ring nodes */
- float ring_gap = 55.0f; float center_x=0.0f, center_y=0.0f; for(int r=0;r<rings;r++){ float radius = 60.0f + r*ring_gap; int s=segs[r]; for(int i=0;i<s;i++){ float ang = (float)i / (float)s * 6.2831853f; nodes[node_count].x = center_x + cosf(ang)*radius; nodes[node_count].y = center_y + sinf(ang)*radius; nodes[node_count].ring=r+1; nodes[node_count].a=-1; nodes[node_count].b=-1; node_count++; } }
+ /* Radius distribution: inner radius at ~15% of outer, evenly spaced by rings */
+ float outer_r = cfg.radius; float inner_r = outer_r * 0.15f; if(inner_r<30.0f) inner_r=30.0f; float center_x=0.0f, center_y=0.0f; for(int r=0;r<rings;r++){ float t = (rings==1)?0.0f:(float)r/(float)(rings-1); float radius = inner_r + t*(outer_r-inner_r); int s=segs[r]; for(int i=0;i<s;i++){ float ang = (float)i / (float)s * 6.2831853f; nodes[node_count].x = center_x + cosf(ang)*radius; nodes[node_count].y = center_y + sinf(ang)*radius; nodes[node_count].ring=r+1; nodes[node_count].a=-1; nodes[node_count].b=-1; node_count++; } }
  /* Carve maze: we treat ring arcs and radial spokes as potential edges, then perform randomized DFS to keep some edges (circular maze). */
  int max_edges = node_count * 4; RogueSkillMazeEdge* edges=(RogueSkillMazeEdge*)malloc(sizeof(RogueSkillMazeEdge)*(size_t)max_edges); int edge_count=0; if(!edges){ free(nodes); free(segs); return 0; }
  /* Precompute ring offsets for indexing */

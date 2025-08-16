@@ -11,7 +11,7 @@ typedef struct RogueSkillMazeEdge { int from; int to; } RogueSkillMazeEdge;
 
 typedef struct RogueSkillMaze { RogueSkillMazeNode* nodes; int node_count; RogueSkillMazeEdge* edges; int edge_count; int rings; } RogueSkillMaze;
 
-/* Load config JSON with fields: rings, approx_intersections, seed. Uses fallback search. Returns 1 on success. */
+/* Load config JSON with fields: rings, approx_intersections, seed, radius (float). Uses fallback search. Returns 1 on success. */
 int rogue_skill_maze_generate(const char* config_path, RogueSkillMaze* out_maze);
 void rogue_skill_maze_free(RogueSkillMaze* m);
 
