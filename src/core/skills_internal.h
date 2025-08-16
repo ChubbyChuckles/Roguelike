@@ -8,6 +8,8 @@ extern struct RogueSkillDef* g_skill_defs_internal;
 extern struct RogueSkillState* g_skill_states_internal;
 extern int g_skill_capacity_internal;
 extern int g_skill_count_internal;
+extern unsigned int g_skill_defs_canary;
+extern unsigned int g_skill_states_canary;
 
 /* Registry helpers */
 void rogue_skills_recompute_synergies(void);

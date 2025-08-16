@@ -7,6 +7,7 @@
 void rogue_effect_apply(int effect_spec_id, double now_ms);
 
 int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx){
+    extern unsigned int g_skill_defs_canary; extern unsigned int g_skill_states_canary; if(g_skill_defs_canary!=0xABCD1234u||g_skill_states_canary!=0xBEEF5678u){ fprintf(stderr,"SKILL CANARY CORRUPTION BEFORE ACTIVATE id=%d\n", id); abort(); }
     if(id<0 || id>=g_skill_count_internal) return 0;
     RogueSkillState* st = &g_skill_states_internal[id];
     const RogueSkillDef* def = &g_skill_defs_internal[id];
@@ -93,6 +94,7 @@ int rogue_skill_try_cancel(int id, const RogueSkillCtx* ctx){
 }
 
 void rogue_skills_update(double now_ms){
+    extern unsigned int g_skill_defs_canary; extern unsigned int g_skill_states_canary; if(g_skill_defs_canary!=0xABCD1234u||g_skill_states_canary!=0xBEEF5678u){ fprintf(stderr,"SKILL CANARY CORRUPTION BEFORE UPDATE\n"); abort(); }
     for(int i=0;i<g_skill_count_internal;i++){
         RogueSkillState* st=&g_skill_states_internal[i]; const RogueSkillDef* def=&g_skill_defs_internal[i];
         if(def->max_charges>0 && st->charges_cur < def->max_charges && st->next_charge_ready_ms>0 && now_ms >= st->next_charge_ready_ms){

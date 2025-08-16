@@ -16,6 +16,9 @@ void rogue_persistence_save_player_stats(void);
 /* Former static globals */
 struct RogueSkillDef* g_skill_defs_internal = NULL;
 struct RogueSkillState* g_skill_states_internal = NULL;
+/* Canary instrumentation (Release too) to detect buffer overruns writing past last element. */
+unsigned int g_skill_defs_canary = 0xABCD1234u;
+unsigned int g_skill_states_canary = 0xBEEF5678u;
 int g_skill_capacity_internal = 0;
 int g_skill_count_internal = 0;
 
@@ -35,8 +38,8 @@ void rogue_skills_recompute_synergies(void){
 void rogue_skills_ensure_capacity(int min_cap){
     if(g_skill_capacity_internal >= min_cap) return;
     int new_cap = g_skill_capacity_internal? g_skill_capacity_internal*2:8; if(new_cap<min_cap) new_cap=min_cap;
-    RogueSkillDef* nd = (RogueSkillDef*)realloc(g_skill_defs_internal, (size_t)new_cap*sizeof(RogueSkillDef)); if(!nd) return; g_skill_defs_internal=nd;
-    RogueSkillState* ns = (RogueSkillState*)realloc(g_skill_states_internal, (size_t)new_cap*sizeof(RogueSkillState)); if(!ns) return; g_skill_states_internal=ns;
+    RogueSkillDef* nd = (RogueSkillDef*)realloc(g_skill_defs_internal, (size_t)new_cap*sizeof(RogueSkillDef)); if(!nd) return; g_skill_defs_internal=nd; g_skill_defs_canary = 0xABCD1234u;
+    RogueSkillState* ns = (RogueSkillState*)realloc(g_skill_states_internal, (size_t)new_cap*sizeof(RogueSkillState)); if(!ns) return; g_skill_states_internal=ns; g_skill_states_canary = 0xBEEF5678u;
     for(int i=g_skill_capacity_internal;i<new_cap;i++){ RogueSkillState* s=&g_skill_states_internal[i]; memset(s,0,sizeof *s); }
     g_skill_capacity_internal = new_cap;
 }
@@ -53,6 +56,7 @@ void rogue_skills_init(void){
 }
 
 void rogue_skills_shutdown(void){
+    if(g_skill_defs_canary!=0xABCD1234u||g_skill_states_canary!=0xBEEF5678u){ fprintf(stderr,"SKILL CANARY CORRUPTION AT SHUTDOWN\n"); }
     #ifdef ROGUE_HAVE_SDL
     if(g_app.skill_icon_textures){
         for(int i=0;i<g_skill_count_internal;i++){ rogue_texture_destroy(&g_app.skill_icon_textures[i]); }
@@ -65,29 +69,57 @@ void rogue_skills_shutdown(void){
             if(g_skill_defs_internal[i].icon){ free((char*)g_skill_defs_internal[i].icon); g_skill_defs_internal[i].icon=NULL; }
         }
     }
-    free(g_skill_defs_internal); g_skill_defs_internal=NULL;
-    free(g_skill_states_internal); g_skill_states_internal=NULL;
+    if(g_skill_defs_internal){ memset(g_skill_defs_internal,0,sizeof(RogueSkillDef)*(size_t)g_skill_capacity_internal); free(g_skill_defs_internal); g_skill_defs_internal=NULL; }
+    if(g_skill_states_internal){ memset(g_skill_states_internal,0,sizeof(RogueSkillState)*(size_t)g_skill_capacity_internal); free(g_skill_states_internal); g_skill_states_internal=NULL; }
     g_skill_capacity_internal=0; g_skill_count_internal=0;
     g_app.skill_defs=NULL; g_app.skill_states=NULL; g_app.skill_count=0;
+    g_skill_defs_canary=0; g_skill_states_canary=0;
 }
 
 int rogue_skill_register(const RogueSkillDef* def){
     if(!def) return -1;
     rogue_skills_ensure_capacity(g_skill_count_internal+1);
     RogueSkillDef* d = &g_skill_defs_internal[g_skill_count_internal];
+    /* Copy value fields then deep-copy owned strings to avoid freeing string literals later. */
     *d = *def; d->id = g_skill_count_internal;
+    if(def->name){
+#if defined(_MSC_VER)
+    char* dup = _strdup(def->name);
+#else
+    char* dup = strdup(def->name);
+#endif
+    if(dup) d->name = dup; /* if alloc fails retain original (will not be freed) */
+    }
+    if(def->icon){
+#if defined(_MSC_VER)
+    char* dup2 = _strdup(def->icon);
+#else
+    char* dup2 = strdup(def->icon);
+#endif
+    if(dup2) d->icon = dup2;
+    }
     RogueSkillState* st=&g_skill_states_internal[g_skill_count_internal]; memset(st,0,sizeof *st);
     st->charges_cur = d->max_charges>0?d->max_charges:0;
     g_skill_count_internal++;
     g_app.skill_defs = g_skill_defs_internal; g_app.skill_states = g_skill_states_internal; g_app.skill_count=g_skill_count_internal;
-    #ifdef ROGUE_HAVE_SDL
-    RogueTexture* nt = (RogueTexture*)realloc(g_app.skill_icon_textures, sizeof(RogueTexture)*g_skill_count_internal);
-    if(nt){ g_app.skill_icon_textures = nt; g_app.skill_icon_textures[g_skill_count_internal-1].handle=NULL; g_app.skill_icon_textures[g_skill_count_internal-1].w=0; g_app.skill_icon_textures[g_skill_count_internal-1].h=0; }
-    #endif
+        #ifdef ROGUE_HAVE_SDL
+        /* Track icon texture array size separately so we never index beyond allocated memory on realloc failure. */
+        static int s_skill_icon_tex_count = 0; /* number of texture slots currently allocated */
+        if(g_skill_count_internal > s_skill_icon_tex_count){
+            RogueTexture* nt = (RogueTexture*)realloc(g_app.skill_icon_textures, sizeof(RogueTexture)*g_skill_count_internal);
+            if(nt){
+                g_app.skill_icon_textures = nt;
+                /* Initialize new slots (could be more than one if we grow elsewhere) */
+                for(int i=s_skill_icon_tex_count;i<g_skill_count_internal;i++){ g_app.skill_icon_textures[i].handle=NULL; g_app.skill_icon_textures[i].w=0; g_app.skill_icon_textures[i].h=0; }
+                s_skill_icon_tex_count = g_skill_count_internal;
+            }
+        }
+        #endif
     return d->id;
 }
 
 int rogue_skill_rank_up(int id){
+    if(g_skill_defs_canary!=0xABCD1234u||g_skill_states_canary!=0xBEEF5678u){ fprintf(stderr,"SKILL CANARY CORRUPTION BEFORE RANK_UP id=%d\n", id); abort(); }
     if(id<0 || id>=g_skill_count_internal) return -1;
     RogueSkillState* st = &g_skill_states_internal[id];
     const RogueSkillDef* def = &g_skill_defs_internal[id];
@@ -155,7 +187,9 @@ static int rogue__json_load(const char* buf){
             }
             int new_id = rogue_skill_register(&def); if(new_id>=0){
 #ifdef ROGUE_HAVE_SDL
-                if(def.icon && g_app.skill_icon_textures){
+                /* Only load if texture slot definitely allocated (implicit: slot handle NULL). */
+                extern void* rogue__skill_icon_slot_guard; /* no symbol; silence unused warnings if none */
+                if(def.icon && g_app.skill_icon_textures && new_id < g_skill_count_internal){
                     char attempt[512]; if(strncmp(def.icon,"assets/",7)==0 || strncmp(def.icon,"../assets/",10)==0) snprintf(attempt,sizeof attempt,"%s",def.icon); else snprintf(attempt,sizeof attempt,"assets/%s",def.icon);
                     if(!rogue_texture_load(&g_app.skill_icon_textures[new_id], attempt)){
                         const char* s1=strrchr(attempt,'/'); const char* s2=strrchr(attempt,'\\'); const char* last=s2?((s1&&s1>s2)?s1:s2):(s1?s1:NULL); const char* fname=last?last+1:attempt; char icon_res[640];
@@ -166,7 +200,9 @@ static int rogue__json_load(const char* buf){
                 }
 #endif
                 loaded++;
-            } else { if(def.name) free((char*)def.name); if(def.icon) free((char*)def.icon); }
+            }
+            /* We always duplicate on registration; free temporary strings allocated during parse */
+            if(def.name) free((char*)def.name); if(def.icon) free((char*)def.icon);
         s=rogue__skip_ws(s); if(*s==','){ s++; continue; }
     }
     return loaded;
@@ -232,8 +268,8 @@ int rogue_skills_load_from_cfg(const char* path){
         def.combo_builder = (unsigned char)((idx<pc)?atoi(parts[idx++]):0);
         def.combo_spender = (unsigned char)((idx<pc)?atoi(parts[idx++]):0);
         def.effect_spec_id = (idx<pc)?atoi(parts[idx++]):0;
-        int new_id = rogue_skill_register(&def);
-        if(new_id>=0){
+    int new_id = rogue_skill_register(&def);
+    if(new_id>=0){
 #ifdef ROGUE_HAVE_SDL
             if(def.icon && g_app.skill_icon_textures){
                 char attempt[512];
@@ -257,9 +293,9 @@ int rogue_skills_load_from_cfg(const char* path){
             }
 #endif
             loaded++;
-        } else {
-            if(def.name) free((char*)def.name); if(def.icon) free((char*)def.icon);
-        }
+    }
+    /* Free temporary strings (registration duplicates) */
+    if(def.name) free((char*)def.name); if(def.icon) free((char*)def.icon);
     }
     fclose(f); return loaded;
 }

@@ -6,6 +6,7 @@
 #include <SDL.h>
 #endif
 #include <stdio.h>
+#include <string.h>
 
 static int g_skill_tree_open = 0;
 static int g_tree_index = 0; /* selection */
