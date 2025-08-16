@@ -65,6 +65,15 @@ int rogue_save_last_migration_steps(void); /* number of successful version bumps
 int rogue_save_last_migration_failed(void); /* 1 if a migration apply_fn failed */
 double rogue_save_last_migration_ms(void); /* total time spent applying migrations (ms) */
 
+/* Debug & Testing (Phase 3 / 10) */
+int rogue_save_reload_component_from_slot(int slot_index, int component_id); /* reapply a single component payload from saved slot (no checksum rewrite) */
+int rogue_save_export_json(int slot_index, char* out, size_t out_cap); /* produce lightweight JSON summary (header + section list) */
+typedef int (*RogueSaveSectionIterFn)(const struct RogueSaveDescriptor* desc, uint32_t id, const void* data, uint32_t size, void* user);
+int rogue_save_for_each_section(int slot_index, RogueSaveSectionIterFn fn, void* user); /* iterate validated sections (post checksum) */
+
+/* Endianness / numeric width assertion helper (Phase 3.3) */
+int rogue_save_format_endianness_is_le(void); /* returns 1 if little-endian (required). */
+
 /* Test helpers */
 void rogue_save_manager_reset_for_tests(void);
 

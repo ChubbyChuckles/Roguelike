@@ -10,6 +10,7 @@
 #include <string.h>
 #include <time.h>
 #include <stdlib.h> /* qsort, malloc */
+#include <assert.h>
 #if defined(_WIN32)
 #include <io.h>
 #else
@@ -54,6 +55,8 @@ static char slot_path[128];
 static const char* build_slot_path(int slot){ snprintf(slot_path,sizeof slot_path,"save_slot_%d.sav", slot); return slot_path; }
 static char autosave_path[128];
 static const char* build_autosave_path(int logical){ int ring = logical % ROGUE_AUTOSAVE_RING; snprintf(autosave_path,sizeof autosave_path,"autosave_%d.sav", ring); return autosave_path; }
+
+int rogue_save_format_endianness_is_le(void){ uint32_t x=0x01020304u; unsigned char* p=(unsigned char*)&x; return p[0]==0x04; }
 
 static int internal_save_to(const char* final_path){
     qsort(g_components, g_component_count, sizeof(RogueSaveComponent), cmp_comp);
@@ -100,8 +103,77 @@ int rogue_save_manager_save_slot(int slot_index){ if(slot_index<0 || slot_index>
 int rogue_save_manager_autosave(int slot_index){ if(slot_index<0) slot_index=0; return internal_save_to(build_autosave_path(slot_index)); }
 int rogue_save_manager_set_durable(int enabled){ g_durable_writes = enabled?1:0; return 0; }
 
+/* Internal helper: validate & load entire save file (returns malloc buffer after header) */
+static int load_and_validate(const char* path, RogueSaveDescriptor* out_desc, unsigned char** out_buf){
+    FILE* f=NULL;
+#if defined(_MSC_VER)
+    fopen_s(&f, path, "rb");
+#else
+    f=fopen(path,"rb");
+#endif
+    if(!f) return -2; if(fread(out_desc,sizeof *out_desc,1,f)!=1){ fclose(f); return -3; }
+    long file_end=0; fseek(f,0,SEEK_END); file_end=ftell(f); if((uint64_t)file_end!=out_desc->total_size){ fclose(f); return -5; }
+    size_t rest=file_end - (long)sizeof *out_desc; fseek(f,sizeof *out_desc,SEEK_SET); unsigned char* buf=(unsigned char*)malloc(rest); if(!buf){ fclose(f); return -6; }
+    size_t n=fread(buf,1,rest,f); if(n!=rest){ free(buf); fclose(f); return -6; }
+    uint32_t crc=rogue_crc32(buf,rest); if(crc!=out_desc->checksum){ free(buf); fclose(f); return -7; }
+    fclose(f); *out_buf=buf; return 0;
+}
+
+int rogue_save_for_each_section(int slot_index, RogueSaveSectionIterFn fn, void* user){ if(slot_index<0||slot_index>=ROGUE_SAVE_SLOT_COUNT) return -1; RogueSaveDescriptor desc; unsigned char* buf=NULL; int rc=load_and_validate(build_slot_path(slot_index), &desc, &buf); if(rc!=0) return rc; unsigned char* p=buf; for(uint32_t s=0; s<desc.section_count; s++){ if((size_t)(p-buf)+8 > (size_t)(desc.total_size - sizeof desc)){ free(buf); return -8; } uint32_t id; memcpy(&id,p,4); uint32_t size; memcpy(&size,p+4,4); p+=8; if((size_t)(p-buf)+size > (size_t)(desc.total_size - sizeof desc)){ free(buf); return -8; } if(fn){ int frc=fn(&desc,id,p,size,user); if(frc!=0){ free(buf); return frc; } } p+=size; }
+ free(buf); return 0; }
+
+int rogue_save_export_json(int slot_index, char* out, size_t out_cap){ if(!out||out_cap==0) return -1; RogueSaveDescriptor d; unsigned char* buf=NULL; int rc=load_and_validate(build_slot_path(slot_index), &d, &buf); if(rc!=0){ return rc; } int written=snprintf(out,out_cap,"{\n  \"version\":%u,\n  \"timestamp\":%u,\n  \"sections\":[", d.version,d.timestamp_unix); unsigned char* p=buf; for(uint32_t s=0; s<d.section_count && written<(int)out_cap; s++){ uint32_t id; memcpy(&id,p,4); uint32_t size; memcpy(&size,p+4,4); p+=8; p+=size; written += snprintf(out+written, out_cap-written, "%s{\"id\":%u,\"size\":%u}", (s==0?"":","), id,size); } if(written<(int)out_cap) written += snprintf(out+written, out_cap-written, "]\n}\n"); free(buf); if(written>=(int)out_cap) return -2; return 0; }
+
+int rogue_save_reload_component_from_slot(int slot_index, int component_id){
+    if(slot_index<0||slot_index>=ROGUE_SAVE_SLOT_COUNT) return -1;
+    const RogueSaveComponent* comp=find_component(component_id);
+    if(!comp||!comp->read_fn) return -2;
+    RogueSaveDescriptor d; unsigned char* buf=NULL;
+    int rc=load_and_validate(build_slot_path(slot_index), &d, &buf);
+    if(rc!=0) return rc;
+    unsigned char* p=buf;
+    int applied=-3;
+    for(uint32_t s=0; s<d.section_count; s++){
+        uint32_t id; memcpy(&id,p,4);
+        uint32_t size; memcpy(&size,p+4,4);
+        p+=8;
+        if((int)id==component_id){
+            /* Write payload to a temporary file so we can reuse existing component read_fn */
+            const unsigned char* payload=p;
+            char tmp[64];
+            snprintf(tmp,sizeof tmp,"_tmp_section_%d.bin", component_id);
+            FILE* tf=NULL;
+#if defined(_MSC_VER)
+            fopen_s(&tf,tmp,"wb");
+#else
+            tf=fopen(tmp,"wb");
+#endif
+            if(!tf){ free(buf); return -4; }
+            fwrite(payload,1,size,tf);
+            fclose(tf);
+#if defined(_MSC_VER)
+            fopen_s(&tf,tmp,"rb");
+#else
+            tf=fopen(tmp,"rb");
+#endif
+            if(!tf){ free(buf); return -4; }
+            comp->read_fn(tf,size);
+            fclose(tf);
+            remove(tmp);
+            applied=0;
+            break;
+        }
+        p+=size;
+    }
+    free(buf);
+    return applied;
+}
+
 int rogue_save_manager_load_slot(int slot_index){
     if(slot_index<0 || slot_index>=ROGUE_SAVE_SLOT_COUNT) return -1; FILE* f=NULL;
+#ifdef ROGUE_STRICT_ENDIAN
+    if(!rogue_save_format_endianness_is_le()){ return -30; }
+#endif
 #if defined(_MSC_VER)
     fopen_s(&f, build_slot_path(slot_index), "rb");
 #else

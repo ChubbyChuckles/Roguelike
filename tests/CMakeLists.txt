@@ -53,6 +53,26 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_migration_metrics.c AND NOT
     add_test(NAME test_save_migration_metrics COMMAND test_save_migration_metrics)
 endif()
 
+# JSON export test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_json_export.c AND NOT TARGET test_save_json_export)
+    add_executable(test_save_json_export unit/test_save_json_export.c)
+    target_link_libraries(test_save_json_export PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_save_json_export PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_save_json_export COMMAND test_save_json_export)
+endif()
+
+# Component reload test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_component_reload.c AND NOT TARGET test_save_component_reload)
+    add_executable(test_save_component_reload unit/test_save_component_reload.c)
+    target_link_libraries(test_save_component_reload PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_save_component_reload PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_save_component_reload COMMAND test_save_component_reload)
+endif()
+
 # Explicitly add new maintainability phase M3.4 asset dependency graph test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_asset_dep.c AND NOT TARGET test_asset_dep)
     add_executable(test_asset_dep unit/test_asset_dep.c)
