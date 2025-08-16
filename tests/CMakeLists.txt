@@ -93,6 +93,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_v2_backward_load.c AND NOT 
     add_test(NAME test_save_v2_backward_load COMMAND test_save_v2_backward_load)
 endif()
 
+# Debug JSON toggle test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_debug_json_toggle.c AND NOT TARGET test_save_debug_json_toggle)
+    add_executable(test_save_debug_json_toggle unit/test_save_debug_json_toggle.c)
+    target_link_libraries(test_save_debug_json_toggle PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_save_debug_json_toggle PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_save_debug_json_toggle COMMAND test_save_debug_json_toggle)
+endif()
+
 # Basic save_manager smoke test (legacy simple test)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_manager.c AND NOT TARGET test_save_manager)
     add_executable(test_save_manager unit/test_save_manager.c)

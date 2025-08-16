@@ -29,6 +29,7 @@ static int g_durable_writes = 0; /* fsync/_commit toggle */
 static int g_last_migration_steps = 0; /* metrics */
 static int g_last_migration_failed = 0;
 static double g_last_migration_ms = 0.0; /* milliseconds */
+static int g_debug_json_dump = 0; /* Phase 3.2 debug export toggle */
 
 int rogue_save_last_migration_steps(void){ return g_last_migration_steps; }
 int rogue_save_last_migration_failed(void){ return g_last_migration_failed; }
@@ -61,6 +62,7 @@ void rogue_save_manager_init(void){
 void rogue_save_register_migration(const RogueSaveMigration* mig){ if(g_migration_count< (int)(sizeof g_migrations/sizeof g_migrations[0])) g_migrations[g_migration_count++]=*mig; }
 
 void rogue_save_manager_reset_for_tests(void){ g_component_count=0; g_initialized=0; g_migration_count=0; g_migrations_registered=0; g_last_migration_steps=0; g_last_migration_failed=0; g_last_migration_ms=0.0; }
+int rogue_save_set_debug_json(int enabled){ g_debug_json_dump = enabled?1:0; return 0; }
 
 static char slot_path[128];
 static const char* build_slot_path(int slot){ snprintf(slot_path,sizeof slot_path,"save_slot_%d.sav", slot); return slot_path; }
@@ -119,7 +121,14 @@ static int internal_save_to(const char* final_path){
     return 0;
 }
 
-int rogue_save_manager_save_slot(int slot_index){ if(slot_index<0 || slot_index>=ROGUE_SAVE_SLOT_COUNT) return -1; return internal_save_to(build_slot_path(slot_index)); }
+int rogue_save_manager_save_slot(int slot_index){ if(slot_index<0 || slot_index>=ROGUE_SAVE_SLOT_COUNT) return -1; int rc=internal_save_to(build_slot_path(slot_index)); if(rc==0 && g_debug_json_dump){ char json_path[128]; snprintf(json_path,sizeof json_path,"save_slot_%d.json", slot_index); char buf[2048]; if(rogue_save_export_json(slot_index,buf,sizeof buf)==0){ FILE* jf=NULL; 
+#if defined(_MSC_VER)
+    fopen_s(&jf,json_path,"wb");
+#else
+    jf=fopen(json_path,"wb");
+#endif
+    if(jf){ fwrite(buf,1,strlen(buf),jf); fclose(jf);} }
+    } return rc; }
 int rogue_save_manager_autosave(int slot_index){ if(slot_index<0) slot_index=0; return internal_save_to(build_autosave_path(slot_index)); }
 int rogue_save_manager_set_durable(int enabled){ g_durable_writes = enabled?1:0; return 0; }
 

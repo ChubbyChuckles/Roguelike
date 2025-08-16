@@ -74,6 +74,7 @@ double rogue_save_last_migration_ms(void); /* total time spent applying migratio
 /* Debug & Testing (Phase 3 / 10) */
 int rogue_save_reload_component_from_slot(int slot_index, int component_id); /* reapply a single component payload from saved slot (no checksum rewrite) */
 int rogue_save_export_json(int slot_index, char* out, size_t out_cap); /* produce lightweight JSON summary (header + section list) */
+int rogue_save_set_debug_json(int enabled); /* when enabled, writes full JSON dump alongside each save (save_slot_X.json) */
 typedef int (*RogueSaveSectionIterFn)(const struct RogueSaveDescriptor* desc, uint32_t id, const void* data, uint32_t size, void* user);
 int rogue_save_for_each_section(int slot_index, RogueSaveSectionIterFn fn, void* user); /* iterate validated sections (post checksum) */
 
