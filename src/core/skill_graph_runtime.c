@@ -52,32 +52,28 @@ static void build_live_graph(RogueUIContext* ui){
     if(g_app.skill_count<=0) return;
     float view_w = (float)g_app.viewport_w * 0.70f;
     float view_h = (float)g_app.viewport_h * 0.70f;
-    /* Use persistent pan/zoom state */
-    if(g_rt.zoom < 0.25f) g_rt.zoom = 0.25f; if(g_rt.zoom>3.0f) g_rt.zoom=3.0f;
-    rogue_ui_skillgraph_begin(ui, g_rt.view_x, g_rt.view_y, view_w/g_rt.zoom, view_h/g_rt.zoom, g_rt.zoom);
+    /* Freeze to screen center: neutral view; manual zoom applied to coordinates */
+    if(g_rt.zoom < 0.5f) g_rt.zoom = 0.5f; if(g_rt.zoom>2.5f) g_rt.zoom=2.5f;
+    rogue_ui_skillgraph_begin(ui, 0.0f, 0.0f, view_w, view_h, 1.0f);
     if(g_rt.filter_mask) rogue_ui_skillgraph_set_filter_tags(ui, g_rt.filter_mask); else rogue_ui_skillgraph_set_filter_tags(ui, 0);
     /* Build maze once (could add hot-reload on config changes) */
     if(!g_maze_built){ if(rogue_skill_maze_generate("assets/skill_maze_config.json", &g_maze)) g_maze_built=1; }
     int count = g_app.skill_count;
     if(g_maze_built){
-        /* Assign skill ids to maze nodes honoring skill_strength constraint; reuse skills if fewer than nodes. */
-        int* assigned = (int*)malloc(sizeof(int)*g_maze.node_count);
-        for(int i=0;i<g_maze.node_count;i++) assigned[i]=-1;
-        int placed=0;
-        /* Primary pass: unique assignment */
-        for(int sid=0; sid<count && placed<g_maze.node_count; ++sid){ const RogueSkillDef* def=rogue_skill_get_def(sid); const RogueSkillState* st=rogue_skill_get_state(sid); if(!def||!st) continue; int target_ring = def->skill_strength; if(target_ring<1) target_ring=0; for(int n=0;n<g_maze.node_count;n++){ if(assigned[n]<0){ int nr=g_maze.nodes[n].ring; if(target_ring==0 || target_ring==nr || (target_ring>g_maze.rings && nr==g_maze.rings)){ assigned[n]=sid; placed++; break; } } } }
-        /* Fill remaining with repeats while respecting ring preference if possible */
-        if(placed < g_maze.node_count && count>0){
-            for(int n=0;n<g_maze.node_count;n++){ if(assigned[n]<0){ int ring = g_maze.nodes[n].ring; /* find first skill matching ring */ int chosen=-1; for(int sid=0; sid<count; ++sid){ const RogueSkillDef* def=rogue_skill_get_def(sid); if(!def) continue; int trg=def->skill_strength; if(trg==0 || trg==ring || (trg>g_maze.rings && ring==g_maze.rings)){ chosen=sid; break; } }
-                if(chosen<0) chosen = n % count; assigned[n]=chosen; placed++; }
+        /* Full-population assignment with ring-aware multi-pass */
+        int* assigned = (int*)malloc(sizeof(int)*g_maze.node_count); if(!assigned) return; for(int i=0;i<g_maze.node_count;i++) assigned[i]=-1; int filled=0; int count_safe = count>0?count:1; int cursor=0;
+        for(int pass=0; pass<3 && filled<g_maze.node_count; ++pass){
+            for(int n=0;n<g_maze.node_count && filled<g_maze.node_count; ++n){ if(assigned[n]>=0) continue; int ring=g_maze.nodes[n].ring; for(int tries=0; tries<count; ++tries){ int sid=(cursor+tries)%count_safe; const RogueSkillDef* def=rogue_skill_get_def(sid); if(!def) continue; int trg=def->skill_strength; int ok=0; if(trg==0) ok=1; else if(trg==ring) ok=1; else if(trg>g_maze.rings && ring==g_maze.rings) ok=1; else if(pass>=1){ if(pass==1 && (trg==ring-1 || trg==ring+1)) ok=1; else if(pass==2) ok=1; }
+                    if(ok){ assigned[n]=sid; filled++; cursor=(sid+1)%count_safe; break; }
+                }
+                if(assigned[n]<0 && count>0){ assigned[n]=(n+cursor)%count_safe; filled++; }
             }
         }
-        /* Emit edges with pan/zoom aware smoother polyline squares */
-        float z = g_rt.zoom;
-        for(int e=0;e<g_maze.edge_count;e++){ int a=g_maze.edges[e].from; int b=g_maze.edges[e].to; if(a<0||b<0||a>=g_maze.node_count||b>=g_maze.node_count) continue; float ax = view_w*0.5f + (g_maze.nodes[a].x - g_rt.view_x)*z; float ay = view_h*0.5f + (g_maze.nodes[a].y - g_rt.view_y)*z; float bx = view_w*0.5f + (g_maze.nodes[b].x - g_rt.view_x)*z; float by = view_h*0.5f + (g_maze.nodes[b].y - g_rt.view_y)*z; float dx=bx-ax, dy=by-ay; float len = sqrtf(dx*dx+dy*dy); if(len<2) continue; int steps = (int)(len / (4.0f*z)); if(steps<1) steps=1; float invSteps = 1.0f/(float)steps; float thickness = 6.0f * z; if(thickness<3.0f) thickness=3.0f; for(int s=0;s<=steps;s++){ float t = (float)s * invSteps; float cx = ax + dx * t; float cy = ay + dy * t; float half = thickness*0.5f; rogue_ui_panel(ui,(RogueUIRect){cx-half, cy-half, thickness, thickness},0x30303070u); }
-        }
-        /* Add nodes (apply pan/zoom) */
-        for(int n=0;n<g_maze.node_count;n++){ int sid=assigned[n]; if(sid>=0){ const RogueSkillDef* def=rogue_skill_get_def(sid); const RogueSkillState* st=rogue_skill_get_state(sid); if(!def||!st) continue; unsigned int tags=(unsigned int)def->tags; int synergy=def->is_passive && def->synergy_id>=0; float cx=view_w*0.5f + (g_maze.nodes[n].x - g_rt.view_x)*g_rt.zoom; float cy=view_h*0.5f + (g_maze.nodes[n].y - g_rt.view_y)*g_rt.zoom; rogue_ui_skillgraph_add(ui,cx,cy,sid,st->rank,def->max_rank,synergy,tags); } }
+        for(int n=0;n<g_maze.node_count;n++){ if(assigned[n]<0) assigned[n]= n % count_safe; }
+        /* Connected line rendering already provided by reverted repo: keep algorithm but anchor to screen center independent of player. */
+        float z = g_rt.zoom; float center_x = view_w*0.5f; float center_y = view_h*0.5f;
+        for(int e=0;e<g_maze.edge_count;e++){ int a=g_maze.edges[e].from; int b=g_maze.edges[e].to; if((unsigned)a>=(unsigned)g_maze.node_count||(unsigned)b>=(unsigned)g_maze.node_count) continue; float ax=center_x + g_maze.nodes[a].x * z; float ay=center_y + g_maze.nodes[a].y * z; float bx=center_x + g_maze.nodes[b].x * z; float by=center_y + g_maze.nodes[b].y * z; float dx=bx-ax, dy=by-ay; float len=sqrtf(dx*dx+dy*dy); if(len<2) continue; int steps=(int)(len/3.0f); if(steps<1) steps=1; float inv=1.0f/(float)steps; float thickness=4.0f; float half=thickness*0.5f; for(int s=0;s<=steps;s++){ float t=(float)s*inv; float cx=ax+dx*t; float cy=ay+dy*t; rogue_ui_panel(ui,(RogueUIRect){cx-half,cy-half,thickness,thickness},0x303030D0u);} }
+        for(int n=0;n<g_maze.node_count;n++){ int sid=assigned[n]; float cx=view_w*0.5f + g_maze.nodes[n].x * z; float cy=view_h*0.5f + g_maze.nodes[n].y * z; if(sid>=0){ const RogueSkillDef* def=rogue_skill_get_def(sid); const RogueSkillState* st=rogue_skill_get_state(sid); if(def&&st){ unsigned int tags=(unsigned int)def->tags; int synergy=def->is_passive && def->synergy_id>=0; rogue_ui_skillgraph_add(ui,cx,cy,sid,st->rank,def->max_rank,synergy,tags);} else { rogue_ui_panel(ui,(RogueUIRect){cx-4,cy-4,8,8},0xFF0000FFu);} } else { rogue_ui_panel(ui,(RogueUIRect){cx-4,cy-4,8,8},0xFF00FF80u);} }
         free(assigned);
     }
     rogue_ui_skillgraph_build(ui);
