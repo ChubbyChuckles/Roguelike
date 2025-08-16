@@ -63,6 +63,12 @@ int rogue_skill_maze_generate(const char* config_path, RogueSkillMaze* out_maze)
  for(int i=0;i<node_count;i++) parent[i]=i;
  for(int i=0;i<cand_count;i++){ int a=cands[i].a; int b=cands[i].b; if(a<0||a>=node_count||b<0||b>=node_count) continue; int pa=rogue__uf_find(parent,a); int pb=rogue__uf_find(parent,b); if(pa!=pb || (frand(&rs)<0.25f && edge_count<node_count*3)){ if(edge_count<max_edges){ edges[edge_count].from=a; edges[edge_count].to=b; edge_count++; if(pa!=pb) parent[pa]=pb; } } }
  free(parent); free(cands); free(ring_offset); free(segs);
+ /* Mid-edge node augmentation: add a synthetic node at the midpoint of each edge to increase potential skill placement density.
+     We do NOT modify edges (rendering still samples full original edge), we only append new nodes so assignment can place skills on arcs.
+     Ring assignment: if both endpoints same ring use that ring; else (radial spoke) use the outer (max) ring. */
+ int original_node_count = node_count;
+ for(int e=0; e<edge_count; ++e){ int a=edges[e].from; int b=edges[e].to; if(a<0||a>=original_node_count||b<0||b>=original_node_count) continue; float mx = (nodes[a].x + nodes[b].x)*0.5f; float my = (nodes[a].y + nodes[b].y)*0.5f; int ring = nodes[a].ring == nodes[b].ring ? nodes[a].ring : (nodes[a].ring > nodes[b].ring ? nodes[a].ring : nodes[b].ring); if(node_count>=max_nodes){ int new_max = max_nodes*2; RogueSkillMazeNode* nn=(RogueSkillMazeNode*)realloc(nodes, sizeof(RogueSkillMazeNode)*(size_t)new_max); if(!nn) break; nodes=nn; max_nodes=new_max; }
+     nodes[node_count].x=mx; nodes[node_count].y=my; nodes[node_count].ring=ring; nodes[node_count].a=-1; nodes[node_count].b=-1; node_count++; }
  out_maze->nodes=nodes; out_maze->node_count=node_count; out_maze->edges=edges; out_maze->edge_count=edge_count; out_maze->rings=rings; return 1; }
 
 void rogue_skill_maze_free(RogueSkillMaze* m){ if(!m) return; free(m->nodes); free(m->edges); m->nodes=NULL; m->edges=NULL; m->node_count=m->edge_count=0; m->rings=0; }
