@@ -11,7 +11,7 @@
 #define ROGUE_AUTOSAVE_RING 4
 
 /* Current binary save format version */
-#define ROGUE_SAVE_FORMAT_VERSION 4u /* v3: TLV headers (uint16 id + uint32 size); v4: varint counts/ids in section payloads */
+#define ROGUE_SAVE_FORMAT_VERSION 5u /* v3: TLV headers (uint16 id + uint32 size); v4: varint counts/ids in section payloads; v5: string interning section */
 
 /* Component identifiers (stable) */
 typedef enum RogueSaveComponentId {
@@ -21,6 +21,7 @@ typedef enum RogueSaveComponentId {
     ROGUE_SAVE_COMP_SKILLS=4,
     ROGUE_SAVE_COMP_BUFFS=5,
     ROGUE_SAVE_COMP_VENDOR=6,
+    ROGUE_SAVE_COMP_STRINGS=7, /* v5 string intern table (optional) */
 } RogueSaveComponentId;
 
 /* Descriptor header written at start of save file */
@@ -37,7 +38,8 @@ typedef struct RogueSaveDescriptor {
     v1: Initial binary prototype (unused in current tree, legacy test fabricates header only)
     v2: Introduced migration runner + metrics (fixed 8-byte section headers: uint32 id + uint32 size)
     v3: Switched to compact TLV headers: uint16 id + uint32 size per section (format change)
-    v4: Introduced varint (LEB128) encoding for section-local counts & ids (inventory item count, item id fields, skill count & ranks, buff count) */
+    v4: Introduced varint (LEB128) encoding for section-local counts & ids (inventory item count, item id fields, skill count & ranks, buff count)
+    v5: Added optional string interning table section (component id 7) containing unique strings referenced indirectly by future sections */
 
 
 /* Component callback interface */
@@ -78,6 +80,11 @@ int rogue_save_export_json(int slot_index, char* out, size_t out_cap); /* produc
 int rogue_save_set_debug_json(int enabled); /* when enabled, writes full JSON dump alongside each save (save_slot_X.json) */
 typedef int (*RogueSaveSectionIterFn)(const struct RogueSaveDescriptor* desc, uint32_t id, const void* data, uint32_t size, void* user);
 int rogue_save_for_each_section(int slot_index, RogueSaveSectionIterFn fn, void* user); /* iterate validated sections (post checksum) */
+
+/* String interning API (Phase 3.5) */
+int rogue_save_intern_string(const char* s); /* returns index (>=0) or -1 on failure */
+const char* rogue_save_intern_get(int index); /* returns interned string or NULL */
+int rogue_save_intern_count(void);
 
 /* Endianness / numeric width assertion helper (Phase 3.3) */
 int rogue_save_format_endianness_is_le(void); /* returns 1 if little-endian (required). */

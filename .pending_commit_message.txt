@@ -12,3 +12,12 @@ feat(persistence): implement Phase 3.4 varint counts (v4 format)
 * Registered migration v3->v4 (no-op: backward compatibility handled by version branching)
 * Extended tests: new test_save_v4_varint_counts plus existing suite; roadmap updated (Phase 3.4 Done)
 * README Persistence section updated with v4 description & compatibility note
+
+feat(persistence): implement Phase 3.5 string interning (v5 format)
+
+* Bumped save format to v5 adding component id 7 (strings) auto-registered
+* Added intern APIs: rogue_save_intern_string / rogue_save_intern_get / rogue_save_intern_count
+* Varint encoded count + per-string (varint length + bytes) leveraging existing varint helpers
+* Migration v4->v5 registered (no-op) since new section optional and reader version-branches
+* Added unit test test_save_v5_strings verifying section presence & deduplication logic
+* Updated roadmap marking Phase 3.5 Done and README persistence summary with v5 details

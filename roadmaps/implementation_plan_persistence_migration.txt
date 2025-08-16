@@ -34,7 +34,7 @@ PHASE 3. Serialization Format & Schema
 3.2 Human-readable debug export (JSON/TOML) toggle (Done: runtime toggle via rogue_save_set_debug_json producing save_slot_X.json; tests: test_save_debug_json_toggle)
 3.3 Fixed endianness & numeric width assertions (Done: compile-time static_assert on uint16/32/64 sizes + runtime little-endian helper; optional ROGUE_STRICT_ENDIAN gate present)
 3.4 Compact varint encoding for counts/ids (Done: v4 introduces unsigned LEB128 for inventory item count, skill count, buff count; item/skill/buff ids remain unchanged where 32-bit needed; migration v3->v4 registered no-op since reader branches by version)
-3.5 String interning table for repeated keys (X)
+3.5 String interning table for repeated keys (Done: added component id 7 with varint-coded count + (len,varint)+bytes entries, API rogue_save_intern_string / get / count, included automatically in saves v5, migration v4->v5 no-op)
 3.6 Optional compression (LZ4) per section threshold (X)
 
 PHASE 4. Integrity & Security

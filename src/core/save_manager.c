@@ -32,6 +32,10 @@ static double g_last_migration_ms = 0.0; /* milliseconds */
 static int g_debug_json_dump = 0; /* Phase 3.2 debug export toggle */
 static uint32_t g_active_write_version = 0; /* version of file currently being written */
 static uint32_t g_active_read_version = 0;  /* version of file currently being read */
+/* String interning table (Phase 3.5) */
+#define ROGUE_SAVE_MAX_STRINGS 256
+static char* g_intern_strings[ROGUE_SAVE_MAX_STRINGS];
+static int g_intern_count = 0;
 
 /* Numeric width compile-time assertions (Phase 3.3) */
 #if defined(_MSC_VER)
@@ -86,6 +90,9 @@ void rogue_save_register_migration(const RogueSaveMigration* mig){ if(g_migratio
 
 void rogue_save_manager_reset_for_tests(void){ g_component_count=0; g_initialized=0; g_migration_count=0; g_migrations_registered=0; g_last_migration_steps=0; g_last_migration_failed=0; g_last_migration_ms=0.0; }
 int rogue_save_set_debug_json(int enabled){ g_debug_json_dump = enabled?1:0; return 0; }
+int rogue_save_intern_string(const char* s){ if(!s) return -1; for(int i=0;i<g_intern_count;i++) if(strcmp(g_intern_strings[i],s)==0) return i; if(g_intern_count>=ROGUE_SAVE_MAX_STRINGS) return -1; size_t len=strlen(s); char* dup=(char*)malloc(len+1); if(!dup) return -1; memcpy(dup,s,len+1); g_intern_strings[g_intern_count]=dup; return g_intern_count++; }
+const char* rogue_save_intern_get(int index){ if(index<0||index>=g_intern_count) return NULL; return g_intern_strings[index]; }
+int rogue_save_intern_count(void){ return g_intern_count; }
 
 static char slot_path[128];
 static const char* build_slot_path(int slot){ snprintf(slot_path,sizeof slot_path,"save_slot_%d.sav", slot); return slot_path; }
@@ -367,6 +374,21 @@ static int read_buffs_component(FILE* f, size_t size){ (void)size; int count=0; 
 static int write_vendor_component(FILE* f){ fwrite(&g_app.vendor_seed,sizeof g_app.vendor_seed,1,f); fwrite(&g_app.vendor_time_accum_ms,sizeof g_app.vendor_time_accum_ms,1,f); fwrite(&g_app.vendor_restock_interval_ms,sizeof g_app.vendor_restock_interval_ms,1,f); return 0; }
 static int read_vendor_component(FILE* f, size_t size){ (void)size; fread(&g_app.vendor_seed,sizeof g_app.vendor_seed,1,f); fread(&g_app.vendor_time_accum_ms,sizeof g_app.vendor_time_accum_ms,1,f); fread(&g_app.vendor_restock_interval_ms,sizeof g_app.vendor_restock_interval_ms,1,f); return 0; }
 
+/* STRING INTERN TABLE (component id 7) */
+static int write_strings_component(FILE* f){
+    int count = g_intern_count;
+    if(g_active_write_version >=4){ if(write_varuint(f,(uint32_t)count)!=0) return -1; }
+    else fwrite(&count,sizeof count,1,f);
+    for(int i=0;i<count;i++){
+        const char* s = g_intern_strings[i]; uint32_t len=(uint32_t)strlen(s);
+        if(g_active_write_version >=4){ if(write_varuint(f,len)!=0) return -1; }
+        else fwrite(&len,sizeof len,1,f);
+        if(fwrite(s,1,len,f)!=len) return -1;
+    }
+    return 0;
+}
+static int read_strings_component(FILE* f, size_t size){ (void)size; int count=0; if(g_active_read_version>=4){ uint32_t c=0; if(read_varuint(f,&c)!=0) return -1; count=(int)c; } else if(fread(&count,sizeof count,1,f)!=1) return -1; if(count>ROGUE_SAVE_MAX_STRINGS) return -1; for(int i=0;i<count;i++){ uint32_t len=0; if(g_active_read_version>=4){ if(read_varuint(f,&len)!=0) return -1; } else if(fread(&len,sizeof len,1,f)!=1) return -1; if(len>4096) return -1; char* buf=(char*)malloc(len+1); if(!buf) return -1; if(fread(buf,1,len,f)!=len){ free(buf); return -1; } buf[len]='\0'; g_intern_strings[i]=buf; } g_intern_count=count; return 0; }
+
 /* WORLD META: world seed + generation params subset */
 static int write_world_meta_component(FILE* f){ fwrite(&g_app.pending_seed,sizeof g_app.pending_seed,1,f); fwrite(&g_app.gen_water_level,sizeof g_app.gen_water_level,1,f); fwrite(&g_app.gen_cave_thresh,sizeof g_app.gen_cave_thresh,1,f); return 0; }
 static int read_world_meta_component(FILE* f, size_t size){ (void)size; fread(&g_app.pending_seed,sizeof g_app.pending_seed,1,f); fread(&g_app.gen_water_level,sizeof g_app.gen_water_level,1,f); fread(&g_app.gen_cave_thresh,sizeof g_app.gen_cave_thresh,1,f); return 0; }
@@ -376,6 +398,7 @@ static RogueSaveComponent INVENTORY_COMP={ ROGUE_SAVE_COMP_INVENTORY, write_inve
 static RogueSaveComponent SKILLS_COMP={ ROGUE_SAVE_COMP_SKILLS, write_skills_component, read_skills_component, "skills" };
 static RogueSaveComponent BUFFS_COMP={ ROGUE_SAVE_COMP_BUFFS, write_buffs_component, read_buffs_component, "buffs" };
 static RogueSaveComponent VENDOR_COMP={ ROGUE_SAVE_COMP_VENDOR, write_vendor_component, read_vendor_component, "vendor" };
+static RogueSaveComponent STRINGS_COMP={ ROGUE_SAVE_COMP_STRINGS, write_strings_component, read_strings_component, "strings" };
 static RogueSaveComponent WORLD_META_COMP={ ROGUE_SAVE_COMP_WORLD_META, write_world_meta_component, read_world_meta_component, "world_meta" };
 
 void rogue_register_core_save_components(void){
@@ -385,11 +408,14 @@ void rogue_register_core_save_components(void){
     rogue_save_manager_register(&SKILLS_COMP);
     rogue_save_manager_register(&BUFFS_COMP);
     rogue_save_manager_register(&VENDOR_COMP);
+    rogue_save_manager_register(&STRINGS_COMP);
 }
 
 /* Migration definitions */
 static int migrate_v2_to_v3(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
 static int migrate_v3_to_v4(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
+static int migrate_v4_to_v5(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
 static RogueSaveMigration MIG_V2_TO_V3 = {2u,3u,migrate_v2_to_v3,"v2_to_v3_tlv_header"};
 static RogueSaveMigration MIG_V3_TO_V4 = {3u,4u,migrate_v3_to_v4,"v3_to_v4_varint_counts"};
-static void rogue_register_core_migrations(void){ if(!g_migrations_registered){ rogue_save_register_migration(&MIG_V2_TO_V3); rogue_save_register_migration(&MIG_V3_TO_V4); /* flag set in init */ } }
+static RogueSaveMigration MIG_V4_TO_V5 = {4u,5u,migrate_v4_to_v5,"v4_to_v5_string_intern"};
+static void rogue_register_core_migrations(void){ if(!g_migrations_registered){ rogue_save_register_migration(&MIG_V2_TO_V3); rogue_save_register_migration(&MIG_V3_TO_V4); rogue_save_register_migration(&MIG_V4_TO_V5); /* flag set in init */ } }
