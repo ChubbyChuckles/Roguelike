@@ -268,11 +268,13 @@ Phase 2 foundations expanded:
 * Autosave ring (`rogue_save_manager_autosave`) rotates `autosave_0..N-1.sav` (N=ROGUE_AUTOSAVE_RING).
 * Durability toggle (`rogue_save_manager_set_durable`) optionally calls `_commit` / `fsync` after header rewrite.
 * Refactored internal save path routine consolidating checksum + ordering.
+* Incremental migration runner with rollback safety (loads payload into memory, applies sequential migrations, aborts on failure without mutating on-disk file).
+* Migration metrics (steps, duration ms, failure flag) exposed via `rogue_save_last_migration_*` accessors.
+* Test harnesses: `test_save_migration_chain` (legacy header upgrade), `test_save_migration_metrics` (metrics correctness), `test_save_ordering_determinism` (section ordering stable), plus existing roundtrip & autosave ring tests.
 
 Upcoming (Phase 2 / 3 targets):
-* Define first no-op migration (v1->v2) and harness for legacy blob upgrade simulation.
-* Per-section tests & corruption fuzzing.
-* Autosave ring + fsync toggle.
+* Per-section encode/decode unit tests & corruption fuzzing.
+* Section-level CRC + optional SHA256 (integrity hardening).
 * Section-level CRC + optional SHA256 (integrity hardening).
 * Debug CLI (inspect / diff saves) and JSON export.
 

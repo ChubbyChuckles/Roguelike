@@ -24,6 +24,13 @@ static int g_initialized = 0;
 static RogueSaveMigration g_migrations[16];
 static int g_migration_count = 0;
 static int g_durable_writes = 0; /* fsync/_commit toggle */
+static int g_last_migration_steps = 0; /* metrics */
+static int g_last_migration_failed = 0;
+static double g_last_migration_ms = 0.0; /* milliseconds */
+
+int rogue_save_last_migration_steps(void){ return g_last_migration_steps; }
+int rogue_save_last_migration_failed(void){ return g_last_migration_failed; }
+double rogue_save_last_migration_ms(void){ return g_last_migration_ms; }
 
 /* Simple CRC32 (polynomial 0xEDB88320) */
 uint32_t rogue_crc32(const void* data, size_t len){
@@ -41,7 +48,7 @@ void rogue_save_manager_init(void){ if(g_initialized) return; g_initialized=1; /
 
 void rogue_save_register_migration(const RogueSaveMigration* mig){ if(g_migration_count< (int)(sizeof g_migrations/sizeof g_migrations[0])) g_migrations[g_migration_count++]=*mig; }
 
-void rogue_save_manager_reset_for_tests(void){ g_component_count=0; g_initialized=0; g_migration_count=0; }
+void rogue_save_manager_reset_for_tests(void){ g_component_count=0; g_initialized=0; g_migration_count=0; g_last_migration_steps=0; g_last_migration_failed=0; g_last_migration_ms=0.0; }
 
 static char slot_path[128];
 static const char* build_slot_path(int slot){ snprintf(slot_path,sizeof slot_path,"save_slot_%d.sav", slot); return slot_path; }
@@ -104,18 +111,27 @@ int rogue_save_manager_load_slot(int slot_index){
     RogueSaveDescriptor desc; if(fread(&desc,sizeof desc,1,f)!=1){ fclose(f); return -3; }
     /* naive validation */
     if(desc.version!=ROGUE_SAVE_FORMAT_VERSION){
-        uint32_t cur = desc.version;
+        /* Load entire payload for potential in-place migration with rollback */
+        long file_end_pos=0; fseek(f,0,SEEK_END); file_end_pos=ftell(f); long payload_size = file_end_pos - (long)sizeof desc; if(payload_size<0){ fclose(f); return -4; }
+        unsigned char* payload=(unsigned char*)malloc((size_t)payload_size); if(!payload){ fclose(f); return -4; }
+        fseek(f,sizeof desc,SEEK_SET); if(fread(payload,1,(size_t)payload_size,f)!=(size_t)payload_size){ free(payload); fclose(f); return -4; }
+        unsigned char* rollback=(unsigned char*)malloc((size_t)payload_size); if(!rollback){ free(payload); fclose(f); return -4; }
+        memcpy(rollback,payload,(size_t)payload_size);
+        g_last_migration_steps=0; g_last_migration_failed=0; g_last_migration_ms=0.0; double t0=(double)clock();
+        uint32_t cur = desc.version; int failure=0;
         while(cur < ROGUE_SAVE_FORMAT_VERSION){
-            int advanced=0;
-            for(int i=0;i<g_migration_count;i++){
-                if(g_migrations[i].from_version==cur && g_migrations[i].to_version==cur+1){
-                    /* no-op migration currently */
-                    cur = g_migrations[i].to_version; advanced=1; break;
-                }
-            }
-            if(!advanced){ fclose(f); return ROGUE_SAVE_ERR_MIGRATION_CHAIN; }
+            int advanced=0; for(int i=0;i<g_migration_count;i++) if(g_migrations[i].from_version==cur && g_migrations[i].to_version==cur+1){
+                if(g_migrations[i].apply_fn){ int mrc=g_migrations[i].apply_fn(payload,(size_t)payload_size); if(mrc!=0){ failure=1; break; } }
+                cur=g_migrations[i].to_version; advanced=1; g_last_migration_steps++; break; }
+            if(failure) break; if(!advanced){ failure=1; break; }
         }
-        if(cur!=ROGUE_SAVE_FORMAT_VERSION){ fclose(f); return ROGUE_SAVE_ERR_MIGRATION_FAIL; }
+        g_last_migration_ms = ((double)clock() - t0) * 1000.0 / (double)CLOCKS_PER_SEC;
+        if(failure || cur!=ROGUE_SAVE_FORMAT_VERSION){ memcpy(payload,rollback,(size_t)payload_size); g_last_migration_failed=1; free(payload); free(rollback); fclose(f); return failure? ROGUE_SAVE_ERR_MIGRATION_FAIL : ROGUE_SAVE_ERR_MIGRATION_CHAIN; }
+        free(rollback);
+        /* For now we don't persist upgraded payload back; future phase may write-through */
+        /* Reset file pointer to just after header for section iteration; we still rely on on-disk layout (no structural changes yet) */
+        fseek(f, sizeof desc, SEEK_SET);
+        free(payload);
     }
     /* checksum */
     long file_end=0; fseek(f,0,SEEK_END); file_end=ftell(f); if((uint64_t)file_end!=desc.total_size){ fclose(f); return -5; } size_t rest=file_end - (long)sizeof desc; fseek(f,sizeof desc,SEEK_SET); unsigned char* buf=(unsigned char*)malloc(rest); if(!buf){ fclose(f); return -6; } size_t n=fread(buf,1,rest,f); if(n!=rest){ free(buf); fclose(f); return -6; } uint32_t crc=rogue_crc32(buf,rest); if(crc!=desc.checksum){ free(buf); fclose(f); return -7; } free(buf); fseek(f, sizeof desc, SEEK_SET);

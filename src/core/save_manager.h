@@ -60,6 +60,11 @@ void rogue_register_core_save_components(void); /* registers Phase 1 core compon
 void rogue_save_register_migration(const RogueSaveMigration* mig);
 int rogue_save_manager_set_durable(int enabled); /* enable fsync/_commit durability */
 
+/* Migration metrics (Phase 2.4) */
+int rogue_save_last_migration_steps(void); /* number of successful version bumps in last load */
+int rogue_save_last_migration_failed(void); /* 1 if a migration apply_fn failed */
+double rogue_save_last_migration_ms(void); /* total time spent applying migrations (ms) */
+
 /* Test helpers */
 void rogue_save_manager_reset_for_tests(void);
 
