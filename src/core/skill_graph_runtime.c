@@ -50,6 +50,8 @@ void rogue_skillgraph_runtime_init(void){
 /* Build graph from actual registered skills; arrange in radial layers by tag groups. */
 static void build_live_graph(RogueUIContext* ui){
     if(g_app.skill_count<=0) return;
+    /* Clear previously emitted panels/sprites so repeated builds in same frame don't layer lines above icons. */
+    ui->node_count = 0;
     float view_w = (float)g_app.viewport_w * 0.70f;
     float view_h = (float)g_app.viewport_h * 0.70f;
     /* Freeze to screen center: neutral view; manual zoom applied to coordinates */
@@ -60,6 +62,14 @@ static void build_live_graph(RogueUIContext* ui){
     if(!g_maze_built){ if(rogue_skill_maze_generate("assets/skill_maze_config.json", &g_maze)) g_maze_built=1; }
     int count = g_app.skill_count;
     if(g_maze_built){
+        /* Ensure the view region fully encloses the maze so skill nodes on outer rings are not frustum-culled.
+           Coordinate scheme offsets node positions by view_* / 2 for centering, so ensure view_* >= 2*max_abs + margin. */
+        float max_abs_x = 0.0f, max_abs_y = 0.0f;
+        for(int n=0;n<g_maze.node_count;n++){ float ax=fabsf(g_maze.nodes[n].x); float ay=fabsf(g_maze.nodes[n].y); if(ax>max_abs_x) max_abs_x=ax; if(ay>max_abs_y) max_abs_y=ay; }
+        float needed_w = max_abs_x*2.0f + 32.0f; if(view_w < needed_w) view_w = needed_w;
+        float needed_h = max_abs_y*2.0f + 32.0f; if(view_h < needed_h) view_h = needed_h;
+        /* Re-begin (resize) if dimensions expanded */
+        rogue_ui_skillgraph_begin(ui, 0.0f, 0.0f, view_w, view_h, 1.0f);
         /* Full-population assignment with ring-aware multi-pass */
         int* assigned = (int*)malloc(sizeof(int)*g_maze.node_count); if(!assigned) return; for(int i=0;i<g_maze.node_count;i++) assigned[i]=-1; int filled=0; int count_safe = count>0?count:1; int cursor=0;
         for(int pass=0; pass<3 && filled<g_maze.node_count; ++pass){

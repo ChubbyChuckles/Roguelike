@@ -2,5 +2,5 @@
   "rings": 5,
   "approx_intersections": 100,
   "seed": 1337,
-  "radius": 740.0
+  "radius": 1200.0
 }
