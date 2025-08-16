@@ -23,8 +23,8 @@ PHASE 1. Core Save Architecture
 1.6 Component registries: player, inventory, skills, buffs, vendor, world_meta (Done)
 
 PHASE 2. Versioning & Migration Infrastructure
-2.1 Global SAVE_FORMAT_VERSION constant (X)
-2.2 Migration registry array (from_version -> fn) (X)
+2.1 Global SAVE_FORMAT_VERSION constant (Done)
+2.2 Migration registry array (from_version -> fn) (Partial: registry struct & registration API; no migrations defined yet)
 2.3 Incremental migration runner w/ rollback if failure (X)
 2.4 Migration logging & metrics (duration, steps) (X)
 2.5 Test harness: fabricate legacy versions & auto-upgrade (X)
@@ -82,7 +82,7 @@ PHASE 9. Deterministic Replay Support
 9.4 Divergence diagnostics (first mismatching entity state diff) (X)
 
 PHASE 10. Testing & QA
-10.1 Unit tests: encode/decode roundtrip for each section (X)
+10.1 Unit tests: encode/decode roundtrip for each section (Partial: single integrated roundtrip test added; per-section tests pending)
 10.2 Fuzz tests: random truncated / corrupted bytes (X)
 10.3 Migration matrix test (all historical versions upgrade) (X)
 10.4 Performance test: incremental vs full save timing (X)

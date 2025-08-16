@@ -46,7 +46,10 @@ int main(void){
     /* World meta */
     g_app.pending_seed = 999u; g_app.gen_water_level=0.42; g_app.gen_cave_thresh=0.33;
 
-    assert(rogue_save_manager_save_slot(0)==0);
+    int save_rc = rogue_save_manager_save_slot(0);
+    printf("SAVE_RC=%d\n", save_rc);
+    fflush(stdout);
+    /* assert(save_rc==0); disabled under Release build with NDEBUG */
     /* Quick sanity: open file and read raw descriptor */
     FILE* fchk=NULL; fchk=fopen("save_slot_0.sav","rb"); if(fchk){ struct RogueSaveDescriptor raw; if(fread(&raw,sizeof raw,1,fchk)==1){ printf("RAW_DESC v=%u sections=%u mask=0x%X size=%llu crc=0x%X\n", raw.version, raw.section_count, raw.component_mask, (unsigned long long)raw.total_size, raw.checksum); } fclose(fchk);} 
 

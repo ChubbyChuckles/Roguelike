@@ -10,6 +10,9 @@
 #define ROGUE_SAVE_SLOT_COUNT 3
 #define ROGUE_AUTOSAVE_RING 4
 
+/* Current binary save format version */
+#define ROGUE_SAVE_FORMAT_VERSION 1u
+
 /* Component identifiers (stable) */
 typedef enum RogueSaveComponentId {
     ROGUE_SAVE_COMP_PLAYER=1,
@@ -38,11 +41,25 @@ typedef struct RogueSaveComponent {
     const char* name;
 } RogueSaveComponent;
 
+/* Migration registry (Phase 2) */
+typedef struct RogueSaveMigration {
+    uint32_t from_version;
+    uint32_t to_version; /* should be from_version+1 for linear chain */
+    int (*apply_fn)(unsigned char* data, size_t size); /* mutate in-place, return 0 on success */
+    const char* name;    
+} RogueSaveMigration;
+
 void rogue_save_manager_init(void);
 void rogue_save_manager_register(const RogueSaveComponent* comp);
 int rogue_save_manager_save_slot(int slot_index); /* full save */
 int rogue_save_manager_load_slot(int slot_index);
 void rogue_register_core_save_components(void); /* registers Phase 1 core components */
+
+/* Migration API */
+void rogue_save_register_migration(const RogueSaveMigration* mig);
+
+/* Test helpers */
+void rogue_save_manager_reset_for_tests(void);
 
 /* Testing helpers */
 uint32_t rogue_crc32(const void* data, size_t len);

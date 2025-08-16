@@ -1,0 +1,3 @@
+[SAVE] begin slot 0
+[SAVE] writing temp ./save_slot_0.tmp then final save_slot_0.sav
+[LOAD] section 0 failed read id

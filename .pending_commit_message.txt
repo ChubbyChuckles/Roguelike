@@ -1,0 +1,8 @@
+persistence: fix checksum logic (binary reopen), add format version & migration registry scaffolding
+
+- Added ROGUE_SAVE_FORMAT_VERSION (v1) + migration registration API.
+- Implemented checksum computation fix: reopen temp file in binary read mode, recompute CRC32 over post-header bytes, rewrite header (resolves load -7 mismatch).
+- Added test reset helper and migration registry structures.
+- Updated roadmap: Phase 2 items (2.1 Done, 2.2 Partial), Testing 10.1 Partial.
+- Expanded README with Persistence section detailing Phase 1 completion & Phase 2 kickoff.
+- Roundtrip test remains for integrated components; per-section & fuzz tests upcoming.

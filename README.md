@@ -254,6 +254,28 @@ Next Steps: Bind allocation/undo to inputs, integrate real skill definitions, im
 
 ---
 
+## Persistence & Save System (Phase 1 Complete; Phase 2 Kickoff)
+Phase 1 introduced a binary SaveManager with:
+* Descriptor header (`RogueSaveDescriptor`): version, timestamp, component mask, section count, total size, CRC32 payload checksum.
+* Deterministic section ordering (qsort by stable component id).
+* Components implemented: player, world_meta, inventory (instances + affix fields), skills (rank + cooldown), buffs (active list), vendor (seed + timers).
+* Atomic write (temp file then rename) minimizing corruption window.
+* Roundtrip integration test (`test_save_roundtrip`).
+
+Phase 2 foundations just added:
+* `ROGUE_SAVE_FORMAT_VERSION` macro (currently 1).
+* Migration registry scaffolding (`rogue_save_register_migration`) for future version upgrade chain.
+* Corrected checksum computation (re-open binary, compute over post-header bytes, rewrite header).
+
+Upcoming (Phase 2 / 3 targets):
+* Define first no-op migration (v1->v2) and harness for legacy blob upgrade simulation.
+* Per-section tests & corruption fuzzing.
+* Autosave ring + fsync toggle.
+* Section-level CRC + optional SHA256 (integrity hardening).
+* Debug CLI (inspect / diff saves) and JSON export.
+
+---
+
 ---
 
 ## 3. Loot System (Current Focus Area)

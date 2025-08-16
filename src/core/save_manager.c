@@ -15,6 +15,10 @@ static RogueSaveComponent g_components[ROGUE_SAVE_MAX_COMPONENTS];
 static int g_component_count = 0;
 static int g_initialized = 0;
 
+/* Migration registry (linear chain for now) */
+static RogueSaveMigration g_migrations[16];
+static int g_migration_count = 0;
+
 /* Simple CRC32 (polynomial 0xEDB88320) */
 uint32_t rogue_crc32(const void* data, size_t len){
     static uint32_t table[256]; static int have=0; if(!have){ for(uint32_t i=0;i<256;i++){ uint32_t c=i; for(int k=0;k<8;k++) c = (c & 1)? 0xEDB88320u ^ (c>>1) : (c>>1); table[i]=c; } have=1; }
@@ -29,22 +33,26 @@ static int cmp_comp(const void* a, const void* b){ const RogueSaveComponent*ca=a
 
 void rogue_save_manager_init(void){ if(g_initialized) return; g_initialized=1; /* ensure deterministic order */ }
 
+void rogue_save_register_migration(const RogueSaveMigration* mig){ if(g_migration_count< (int)(sizeof g_migrations/sizeof g_migrations[0])) g_migrations[g_migration_count++]=*mig; }
+
+void rogue_save_manager_reset_for_tests(void){ g_component_count=0; g_initialized=0; g_migration_count=0; }
+
 static char slot_path[128];
-static const char* build_slot_path(int slot){ snprintf(slot_path,sizeof slot_path,"./save_slot_%d.sav", slot); return slot_path; }
+static const char* build_slot_path(int slot){ snprintf(slot_path,sizeof slot_path,"save_slot_%d.sav", slot); return slot_path; }
 
 int rogue_save_manager_save_slot(int slot_index){
     if(slot_index<0 || slot_index>=ROGUE_SAVE_SLOT_COUNT) return -1;
     qsort(g_components, g_component_count, sizeof(RogueSaveComponent), cmp_comp);
     /* build temp file path */
-    char tmp_path[160]; snprintf(tmp_path,sizeof tmp_path,"save_slot_%d.tmp", slot_index);
+    char tmp_path[160]; snprintf(tmp_path,sizeof tmp_path,"./save_slot_%d.tmp", slot_index);
     FILE* f=NULL;
 #if defined(_MSC_VER)
-    fopen_s(&f,tmp_path,"wb");
+    fopen_s(&f,tmp_path,"w+b"); /* read/write so we can compute checksum without reopening */
 #else
-    f=fopen(tmp_path,"wb");
+    f=fopen(tmp_path,"w+b");
 #endif
-    if(!f) return -2;
-    RogueSaveDescriptor desc={0}; desc.version=1; desc.timestamp_unix=(uint32_t)time(NULL); desc.section_count=0; desc.component_mask=0; desc.total_size=0; desc.checksum=0;
+    if(!f){ return -2; }
+    RogueSaveDescriptor desc={0}; desc.version=ROGUE_SAVE_FORMAT_VERSION; desc.timestamp_unix=(uint32_t)time(NULL); desc.section_count=0; desc.component_mask=0; desc.total_size=0; desc.checksum=0;
     /* reserve header space */
     if(fwrite(&desc,sizeof desc,1,f)!=1){ fclose(f); return -3; }
     for(int i=0;i<g_component_count;i++){
@@ -59,12 +67,19 @@ int rogue_save_manager_save_slot(int slot_index){
     long file_end=ftell(f);
     desc.total_size = (uint64_t)file_end;
     /* compute checksum over bytes after header */
-    fflush(f); fseek(f,sizeof desc,SEEK_SET); size_t rest = file_end - (long)sizeof desc; unsigned char* buf=(unsigned char*)malloc(rest); if(buf){ fread(buf,1,rest,f); desc.checksum = rogue_crc32(buf,rest); free(buf);} fseek(f,0,SEEK_SET); fwrite(&desc,sizeof desc,1,f); fclose(f);
+    fflush(f);
+    /* incremental CRC to avoid large alloc (still simple) */
+    size_t rest = file_end - (long)sizeof desc; fseek(f,sizeof desc,SEEK_SET);
+    unsigned char chunk[512]; uint32_t crc=0xFFFFFFFFu; /* replicate rogue_crc32 inner for streaming */
+    static uint32_t table[256]; static int have=0; if(!have){ for(uint32_t i=0;i<256;i++){ uint32_t c=i; for(int k=0;k<8;k++) c = (c & 1)? 0xEDB88320u ^ (c>>1) : (c>>1); table[i]=c; } have=1; }
+    size_t remaining=rest; while(remaining>0){ size_t to_read = remaining>sizeof(chunk)?sizeof(chunk):remaining; size_t n=fread(chunk,1,to_read,f); if(n!=to_read){ fclose(f); return -13; } for(size_t i=0;i<n;i++){ crc = table[(crc ^ chunk[i]) & 0xFF] ^ (crc>>8); } remaining -= n; }
+    desc.checksum = crc ^ 0xFFFFFFFFu;
+    fseek(f,0,SEEK_SET); fwrite(&desc,sizeof desc,1,f); fclose(f);
     /* atomic rename */
 #if defined(_MSC_VER)
-    remove(build_slot_path(slot_index)); rename(tmp_path, build_slot_path(slot_index));
+    remove(build_slot_path(slot_index)); if(rename(tmp_path, build_slot_path(slot_index))!=0){ fprintf(stderr,"[SAVE] rename failed %s -> %s\n", tmp_path, build_slot_path(slot_index)); }
 #else
-    rename(tmp_path, build_slot_path(slot_index));
+    if(rename(tmp_path, build_slot_path(slot_index))!=0){ fprintf(stderr,"[SAVE] rename failed %s -> %s\n", tmp_path, build_slot_path(slot_index)); }
 #endif
     return 0;
 }
@@ -76,11 +91,12 @@ int rogue_save_manager_load_slot(int slot_index){
 #else
     f=fopen(build_slot_path(slot_index),"rb");
 #endif
-    if(!f) return -2; RogueSaveDescriptor desc; if(fread(&desc,sizeof desc,1,f)!=1){ fclose(f); return -3; }
+    if(!f){ return -2; }
+    RogueSaveDescriptor desc; if(fread(&desc,sizeof desc,1,f)!=1){ fclose(f); return -3; }
     /* naive validation */
-    if(desc.version!=1){ fclose(f); return -4; }
+    if(desc.version!=ROGUE_SAVE_FORMAT_VERSION){ /* future: attempt migrations */ fclose(f); return -4; }
     /* checksum */
-    long file_end=0; fseek(f,0,SEEK_END); file_end=ftell(f); if((uint64_t)file_end!=desc.total_size){ fclose(f); return -5; } size_t rest=file_end - (long)sizeof desc; fseek(f,sizeof desc,SEEK_SET); unsigned char* buf=(unsigned char*)malloc(rest); if(!buf){ fclose(f); return -6; } fread(buf,1,rest,f); uint32_t crc=rogue_crc32(buf,rest); free(buf); if(crc!=desc.checksum){ fclose(f); return -7; }
+    long file_end=0; fseek(f,0,SEEK_END); file_end=ftell(f); if((uint64_t)file_end!=desc.total_size){ fclose(f); return -5; } size_t rest=file_end - (long)sizeof desc; fseek(f,sizeof desc,SEEK_SET); unsigned char* buf=(unsigned char*)malloc(rest); if(!buf){ fclose(f); return -6; } size_t n=fread(buf,1,rest,f); if(n!=rest){ free(buf); fclose(f); return -6; } uint32_t crc=rogue_crc32(buf,rest); if(crc!=desc.checksum){ free(buf); fclose(f); return -7; } free(buf); fseek(f, sizeof desc, SEEK_SET);
     for(uint32_t s=0;s<desc.section_count;s++){
         uint32_t id=0; uint32_t size=0; if(fread(&id,sizeof id,1,f)!=1){ fclose(f); return -8; } if(fread(&size,sizeof size,1,f)!=1){ fclose(f); return -8; }
         const RogueSaveComponent* comp=find_component((int)id); long payload_pos=ftell(f); if(comp && comp->read_fn){ if(comp->read_fn(f,size)!=0){ fclose(f); return -9; } } fseek(f,payload_pos+size,SEEK_SET);
