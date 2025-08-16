@@ -11,7 +11,7 @@
 #define ROGUE_AUTOSAVE_RING 4
 
 /* Current binary save format version */
-#define ROGUE_SAVE_FORMAT_VERSION 3u /* version 3: TLV section headers (uint16 id + uint32 size) */
+#define ROGUE_SAVE_FORMAT_VERSION 4u /* v3: TLV headers (uint16 id + uint32 size); v4: varint counts/ids in section payloads */
 
 /* Component identifiers (stable) */
 typedef enum RogueSaveComponentId {
@@ -36,7 +36,8 @@ typedef struct RogueSaveDescriptor {
 /* Version semantics:
     v1: Initial binary prototype (unused in current tree, legacy test fabricates header only)
     v2: Introduced migration runner + metrics (fixed 8-byte section headers: uint32 id + uint32 size)
-    v3: Switched to compact TLV headers: uint16 id + uint32 size per section (format change) */
+    v3: Switched to compact TLV headers: uint16 id + uint32 size per section (format change)
+    v4: Introduced varint (LEB128) encoding for section-local counts & ids (inventory item count, item id fields, skill count & ranks, buff count) */
 
 
 /* Component callback interface */

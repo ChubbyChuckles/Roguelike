@@ -30,6 +30,29 @@ static int g_last_migration_steps = 0; /* metrics */
 static int g_last_migration_failed = 0;
 static double g_last_migration_ms = 0.0; /* milliseconds */
 static int g_debug_json_dump = 0; /* Phase 3.2 debug export toggle */
+static uint32_t g_active_write_version = 0; /* version of file currently being written */
+static uint32_t g_active_read_version = 0;  /* version of file currently being read */
+
+/* Numeric width compile-time assertions (Phase 3.3) */
+#if defined(_MSC_VER)
+static_assert(sizeof(uint16_t)==2, "uint16_t must be 2 bytes");
+static_assert(sizeof(uint32_t)==4, "uint32_t must be 4 bytes");
+static_assert(sizeof(uint64_t)==8, "uint64_t must be 8 bytes");
+#else
+_Static_assert(sizeof(uint16_t)==2, "uint16_t must be 2 bytes");
+_Static_assert(sizeof(uint32_t)==4, "uint32_t must be 4 bytes");
+_Static_assert(sizeof(uint64_t)==8, "uint64_t must be 8 bytes");
+#endif
+
+/* Unsigned LEB128 style varint (7 bits per byte) for counts & small ids (Phase 3.4) */
+static int write_varuint(FILE* f, uint32_t v){
+    while(v >= 0x80){ unsigned char b=(unsigned char)((v & 0x7Fu) | 0x80u); if(fwrite(&b,1,1,f)!=1) return -1; v >>= 7; }
+    unsigned char b=(unsigned char)(v & 0x7Fu); if(fwrite(&b,1,1,f)!=1) return -1; return 0;
+}
+static int read_varuint(FILE* f, uint32_t* out){
+    uint32_t result=0; int shift=0; for(int i=0;i<5;i++){ int c=fgetc(f); if(c==EOF) return -1; unsigned char b=(unsigned char)c; result |= (uint32_t)(b & 0x7F) << shift; if(!(b & 0x80)){ *out=result; return 0; } shift += 7; }
+    return -1;
+}
 
 int rogue_save_last_migration_steps(void){ return g_last_migration_steps; }
 int rogue_save_last_migration_failed(void){ return g_last_migration_failed; }
@@ -81,11 +104,11 @@ static int internal_save_to(const char* final_path){
     f=fopen(tmp_path,"w+b");
 #endif
     if(!f) return -2;
-    RogueSaveDescriptor desc={0}; desc.version=ROGUE_SAVE_FORMAT_VERSION; desc.timestamp_unix=(uint32_t)time(NULL);
+    RogueSaveDescriptor desc={0}; desc.version=ROGUE_SAVE_FORMAT_VERSION; desc.timestamp_unix=(uint32_t)time(NULL); g_active_write_version = desc.version;
     if(fwrite(&desc,sizeof desc,1,f)!=1){ fclose(f); return -3; }
     desc.section_count=0; desc.component_mask=0;
     for(int i=0;i<g_component_count;i++){
-        const RogueSaveComponent* c=&g_components[i]; long start=ftell(f);
+    const RogueSaveComponent* c=&g_components[i]; long start=ftell(f);
     if(desc.version>=3){
             uint16_t id16=(uint16_t)c->id; uint32_t size_placeholder32=0;
             if(fwrite(&id16,sizeof id16,1,f)!=1){ fclose(f); return -4; }
@@ -234,7 +257,7 @@ int rogue_save_manager_load_slot(int slot_index){
     f=fopen(build_slot_path(slot_index),"rb");
 #endif
     if(!f){ return -2; }
-    RogueSaveDescriptor desc; if(fread(&desc,sizeof desc,1,f)!=1){ fclose(f); return -3; }
+    RogueSaveDescriptor desc; if(fread(&desc,sizeof desc,1,f)!=1){ fclose(f); return -3; } g_active_read_version = desc.version;
     /* naive validation */
     if(desc.version!=ROGUE_SAVE_FORMAT_VERSION){
         /* Load entire payload for potential in-place migration with rollback */
@@ -295,7 +318,8 @@ static int write_inventory_component(FILE* f){
     int count = 0; if(g_app.item_instances){
         for(int i=0;i<g_app.item_instance_cap;i++) if(g_app.item_instances[i].active) count++;
     }
-    fwrite(&count, sizeof count,1,f);
+    if(g_active_write_version >= 4){ if(write_varuint(f,(uint32_t)count)!=0) return -1; }
+    else fwrite(&count, sizeof count,1,f);
     if(count==0) return 0;
     for(int i=0;i<g_app.item_instance_cap;i++) if(g_app.item_instances[i].active){
         RogueItemInstance* it=&g_app.item_instances[i];
@@ -310,7 +334,8 @@ static int write_inventory_component(FILE* f){
     return 0;
 }
 static int read_inventory_component(FILE* f, size_t size){
-    (void)size; int count=0; if(fread(&count,sizeof count,1,f)!=1) return -1; for(int i=0;i<count;i++){
+    (void)size; int count=0; if(g_active_read_version >=4){ uint32_t c=0; if(read_varuint(f,&c)!=0) return -1; count=(int)c; }
+    else if(fread(&count,sizeof count,1,f)!=1) return -1; for(int i=0;i<count;i++){
         int def_index,quantity,rarity,pidx,pval,sidx,sval; if(fread(&def_index,sizeof def_index,1,f)!=1) return -1;
         fread(&quantity,sizeof quantity,1,f); fread(&rarity,sizeof rarity,1,f); fread(&pidx,sizeof pidx,1,f);
         fread(&pval,sizeof pval,1,f); fread(&sidx,sizeof sidx,1,f); fread(&sval,sizeof sval,1,f);
@@ -319,22 +344,24 @@ static int read_inventory_component(FILE* f, size_t size){
 
 /* SKILLS: ranks + cooldown state (id ordered) */
 static int write_skills_component(FILE* f){
-    fwrite(&g_app.skill_count,sizeof g_app.skill_count,1,f);
+    if(g_active_write_version >=4){ if(write_varuint(f,(uint32_t)g_app.skill_count)!=0) return -1; }
+    else fwrite(&g_app.skill_count,sizeof g_app.skill_count,1,f);
     for(int i=0;i<g_app.skill_count;i++){
         const RogueSkillState* st = rogue_skill_get_state(i); int rank = st?st->rank:0; fwrite(&rank,sizeof rank,1,f);
         double cd= st? st->cooldown_end_ms:0; fwrite(&cd,sizeof cd,1,f);
     }
     return 0;
 }
-static int read_skills_component(FILE* f, size_t size){ (void)size; int count=0; if(fread(&count,sizeof count,1,f)!=1) return -1; int limit = (count<g_app.skill_count)?count:g_app.skill_count; for(int i=0;i<limit;i++){ int rank; double cd; fread(&rank,sizeof rank,1,f); fread(&cd,sizeof cd,1,f); const RogueSkillDef* d=rogue_skill_get_def(i); struct RogueSkillState* st=(struct RogueSkillState*)rogue_skill_get_state(i); if(d && st){ if(rank>d->max_rank) rank=d->max_rank; st->rank=rank; st->cooldown_end_ms=cd; } } /* skip any extra */ if(count>limit){ size_t skip = (size_t)(count-limit)*(sizeof(int)+sizeof(double)); fseek(f,(long)skip,SEEK_CUR); } return 0; }
+static int read_skills_component(FILE* f, size_t size){ (void)size; int count=0; if(g_active_read_version >=4){ uint32_t c=0; if(read_varuint(f,&c)!=0) return -1; count=(int)c; } else if(fread(&count,sizeof count,1,f)!=1) return -1; int limit = (count<g_app.skill_count)?count:g_app.skill_count; for(int i=0;i<limit;i++){ int rank; double cd; fread(&rank,sizeof rank,1,f); fread(&cd,sizeof cd,1,f); const RogueSkillDef* d=rogue_skill_get_def(i); struct RogueSkillState* st=(struct RogueSkillState*)rogue_skill_get_state(i); if(d && st){ if(rank>d->max_rank) rank=d->max_rank; st->rank=rank; st->cooldown_end_ms=cd; } } /* skip any extra */ if(count>limit){ size_t skip = (size_t)(count-limit)*(sizeof(int)+sizeof(double)); fseek(f,(long)skip,SEEK_CUR); } return 0; }
 
 /* BUFFS: active buffs list */
 extern RogueBuff g_buffs_internal[]; extern int g_buff_count_internal; /* assume symbols provided elsewhere */
 static int write_buffs_component(FILE* f){
     int active_count=0; for(int i=0;i<g_buff_count_internal;i++) if(g_buffs_internal[i].active) active_count++;
-    fwrite(&active_count,sizeof active_count,1,f);
+    if(g_active_write_version >=4){ if(write_varuint(f,(uint32_t)active_count)!=0) return -1; }
+    else fwrite(&active_count,sizeof active_count,1,f);
     for(int i=0;i<g_buff_count_internal;i++) if(g_buffs_internal[i].active){ fwrite(&g_buffs_internal[i], sizeof(RogueBuff),1,f);} return 0; }
-static int read_buffs_component(FILE* f, size_t size){ (void)size; int count=0; if(fread(&count,sizeof count,1,f)!=1) return -1; for(int i=0;i<count;i++){ RogueBuff b; if(fread(&b,sizeof b,1,f)!=1) return -1; rogue_buffs_apply(b.type,b.magnitude,b.end_ms,0.0); } return 0; }
+static int read_buffs_component(FILE* f, size_t size){ (void)size; int count=0; if(g_active_read_version >=4){ uint32_t c=0; if(read_varuint(f,&c)!=0) return -1; count=(int)c; } else if(fread(&count,sizeof count,1,f)!=1) return -1; for(int i=0;i<count;i++){ RogueBuff b; if(fread(&b,sizeof b,1,f)!=1) return -1; rogue_buffs_apply(b.type,b.magnitude,b.end_ms,0.0); } return 0; }
 
 /* VENDOR: seed + restock timers */
 static int write_vendor_component(FILE* f){ fwrite(&g_app.vendor_seed,sizeof g_app.vendor_seed,1,f); fwrite(&g_app.vendor_time_accum_ms,sizeof g_app.vendor_time_accum_ms,1,f); fwrite(&g_app.vendor_restock_interval_ms,sizeof g_app.vendor_restock_interval_ms,1,f); return 0; }
@@ -362,5 +389,7 @@ void rogue_register_core_save_components(void){
 
 /* Migration definitions */
 static int migrate_v2_to_v3(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
+static int migrate_v3_to_v4(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
 static RogueSaveMigration MIG_V2_TO_V3 = {2u,3u,migrate_v2_to_v3,"v2_to_v3_tlv_header"};
-static void rogue_register_core_migrations(void){ if(!g_migrations_registered){ rogue_save_register_migration(&MIG_V2_TO_V3); /* flag set in init */ } }
+static RogueSaveMigration MIG_V3_TO_V4 = {3u,4u,migrate_v3_to_v4,"v3_to_v4_varint_counts"};
+static void rogue_register_core_migrations(void){ if(!g_migrations_registered){ rogue_save_register_migration(&MIG_V2_TO_V3); rogue_save_register_migration(&MIG_V3_TO_V4); /* flag set in init */ } }

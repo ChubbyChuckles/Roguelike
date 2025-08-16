@@ -1,0 +1,14 @@
+feat(persistence): implement Phase 3.3 numeric width & endianness assertions
+
+* Added compile-time static_assert checks for uint16/uint32/uint64 sizes
+* Retained runtime little-endian helper + optional strict endian gate
+* Documentation updated (roadmap + README) marking Phase 3.3 Done
+
+feat(persistence): implement Phase 3.4 varint counts (v4 format)
+
+* Bumped save format to v4; writer records active version, reader tracks source version
+* Introduced unsigned LEB128 varint encoding for inventory item count, skill count, buff count (high-frequency small integers)
+* Added write_varuint/read_varuint helpers (bounded to 5 bytes for 32-bit)
+* Registered migration v3->v4 (no-op: backward compatibility handled by version branching)
+* Extended tests: new test_save_v4_varint_counts plus existing suite; roadmap updated (Phase 3.4 Done)
+* README Persistence section updated with v4 description & compatibility note

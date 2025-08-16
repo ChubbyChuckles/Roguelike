@@ -32,8 +32,8 @@ PHASE 2. Versioning & Migration Infrastructure
 PHASE 3. Serialization Format & Schema
 3.1 Sectioned binary format (header + TLV per component) (Done: v3 TLV headers uint16 id + uint32 size, tests: test_save_v3_tlv_headers, backward compat test_save_v2_backward_load)
 3.2 Human-readable debug export (JSON/TOML) toggle (Done: runtime toggle via rogue_save_set_debug_json producing save_slot_X.json; tests: test_save_debug_json_toggle)
-3.3 Fixed endianness & numeric width assertions (Partial: runtime little-endian helper rogue_save_format_endianness_is_le, optional strict guard macro)
-3.4 Compact varint encoding for counts/ids (X)
+3.3 Fixed endianness & numeric width assertions (Done: compile-time static_assert on uint16/32/64 sizes + runtime little-endian helper; optional ROGUE_STRICT_ENDIAN gate present)
+3.4 Compact varint encoding for counts/ids (Done: v4 introduces unsigned LEB128 for inventory item count, skill count, buff count; item/skill/buff ids remain unchanged where 32-bit needed; migration v3->v4 registered no-op since reader branches by version)
 3.5 String interning table for repeated keys (X)
 3.6 Optional compression (LZ4) per section threshold (X)
 
