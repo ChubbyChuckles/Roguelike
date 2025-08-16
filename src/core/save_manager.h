@@ -11,7 +11,7 @@
 #define ROGUE_AUTOSAVE_RING 4
 
 /* Current binary save format version */
-#define ROGUE_SAVE_FORMAT_VERSION 5u /* v3: TLV headers (uint16 id + uint32 size); v4: varint counts/ids in section payloads; v5: string interning section */
+#define ROGUE_SAVE_FORMAT_VERSION 6u /* v3: TLV headers (uint16 id + uint32 size); v4: varint counts/ids in section payloads; v5: string interning; v6: optional per-section compression */
 
 /* Component identifiers (stable) */
 typedef enum RogueSaveComponentId {
@@ -39,7 +39,8 @@ typedef struct RogueSaveDescriptor {
     v2: Introduced migration runner + metrics (fixed 8-byte section headers: uint32 id + uint32 size)
     v3: Switched to compact TLV headers: uint16 id + uint32 size per section (format change)
     v4: Introduced varint (LEB128) encoding for section-local counts & ids (inventory item count, item id fields, skill count & ranks, buff count)
-    v5: Added optional string interning table section (component id 7) containing unique strings referenced indirectly by future sections */
+    v5: Added optional string interning table section (component id 7) containing unique strings referenced indirectly by future sections
+    v6: Optional per-section RLE compression (flag in size high bit for version>=6) with uncompressed size prefix (uint32) */
 
 
 /* Component callback interface */
@@ -85,6 +86,9 @@ int rogue_save_for_each_section(int slot_index, RogueSaveSectionIterFn fn, void*
 int rogue_save_intern_string(const char* s); /* returns index (>=0) or -1 on failure */
 const char* rogue_save_intern_get(int index); /* returns interned string or NULL */
 int rogue_save_intern_count(void);
+
+/* Compression (Phase 3.6) */
+int rogue_save_set_compression(int enabled, int min_bytes); /* enable and set minimum payload size to consider compression */
 
 /* Endianness / numeric width assertion helper (Phase 3.3) */
 int rogue_save_format_endianness_is_le(void); /* returns 1 if little-endian (required). */

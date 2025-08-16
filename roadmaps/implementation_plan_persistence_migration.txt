@@ -35,7 +35,7 @@ PHASE 3. Serialization Format & Schema
 3.3 Fixed endianness & numeric width assertions (Done: compile-time static_assert on uint16/32/64 sizes + runtime little-endian helper; optional ROGUE_STRICT_ENDIAN gate present)
 3.4 Compact varint encoding for counts/ids (Done: v4 introduces unsigned LEB128 for inventory item count, skill count, buff count; item/skill/buff ids remain unchanged where 32-bit needed; migration v3->v4 registered no-op since reader branches by version)
 3.5 String interning table for repeated keys (Done: added component id 7 with varint-coded count + (len,varint)+bytes entries, API rogue_save_intern_string / get / count, included automatically in saves v5, migration v4->v5 no-op)
-3.6 Optional compression (LZ4) per section threshold (X)
+3.6 Optional compression (Done: simple RLE per-section when enabled; high bit of size marks compressed, uncompressed size prefix; API rogue_save_set_compression(enabled,min_bytes); migration v5->v6 no-op)
 
 PHASE 4. Integrity & Security
 4.1 CRC32 per section + overall SHA256 (X)

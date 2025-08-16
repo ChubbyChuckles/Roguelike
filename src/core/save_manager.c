@@ -32,6 +32,8 @@ static double g_last_migration_ms = 0.0; /* milliseconds */
 static int g_debug_json_dump = 0; /* Phase 3.2 debug export toggle */
 static uint32_t g_active_write_version = 0; /* version of file currently being written */
 static uint32_t g_active_read_version = 0;  /* version of file currently being read */
+static int g_compress_enabled = 0; static int g_compress_min_bytes = 64; /* Phase 3.6 */
+int rogue_save_set_compression(int enabled, int min_bytes){ g_compress_enabled = enabled?1:0; if(min_bytes>0) g_compress_min_bytes=min_bytes; return 0; }
 /* String interning table (Phase 3.5) */
 #define ROGUE_SAVE_MAX_STRINGS 256
 static char* g_intern_strings[ROGUE_SAVE_MAX_STRINGS];
@@ -115,15 +117,48 @@ static int internal_save_to(const char* final_path){
     if(fwrite(&desc,sizeof desc,1,f)!=1){ fclose(f); return -3; }
     desc.section_count=0; desc.component_mask=0;
     for(int i=0;i<g_component_count;i++){
-    const RogueSaveComponent* c=&g_components[i]; long start=ftell(f);
-    if(desc.version>=3){
+        const RogueSaveComponent* c=&g_components[i]; long start=ftell(f);
+        if(desc.version>=3){
             uint16_t id16=(uint16_t)c->id; uint32_t size_placeholder32=0;
             if(fwrite(&id16,sizeof id16,1,f)!=1){ fclose(f); return -4; }
             if(fwrite(&size_placeholder32,sizeof size_placeholder32,1,f)!=1){ fclose(f); return -4; }
             long payload_start=ftell(f);
-            if(c->write_fn(f)!=0){ fclose(f); return -5; }
-            long end=ftell(f); uint32_t section_size=(uint32_t)(end - payload_start);
-            fseek(f,start+sizeof(uint16_t),SEEK_SET); fwrite(&section_size,sizeof section_size,1,f); fseek(f,end,SEEK_SET);
+            /* Write to a memory buffer first if compression enabled & v6 */
+            if(desc.version>=6 && g_compress_enabled){
+                /* Capture uncompressed payload into temporary FILE* */
+                FILE* mem=NULL;
+#if defined(_MSC_VER)
+                tmpfile_s(&mem);
+#else
+                mem = tmpfile();
+#endif
+                if(!mem){ fclose(f); return -5; }
+                if(c->write_fn(mem)!=0){ fclose(mem); fclose(f); return -5; }
+                fflush(mem); fseek(mem,0,SEEK_END); long usz=ftell(mem); fseek(mem,0,SEEK_SET);
+                unsigned char* ubuf=(unsigned char*)malloc((size_t)usz); if(!ubuf){ fclose(mem); fclose(f); return -5; }
+                fread(ubuf,1,(size_t)usz,mem); fclose(mem);
+                /* Simple RLE: (byte, run_len uint8) pairs; runs 1..255; compress only if win */
+                unsigned char* cbuf=(unsigned char*)malloc((size_t)usz*2+16); if(!cbuf){ free(ubuf); fclose(f); return -5; }
+                size_t ci=0; for(long p=0;p<usz;){ unsigned char b=ubuf[p]; int run=1; while(p+run<usz && ubuf[p+run]==b && run<255) run++; cbuf[ci++]=b; cbuf[ci++]=(unsigned char)run; p+=run; }
+                int use_compressed = (usz >= g_compress_min_bytes && ci < (size_t)usz);
+                if(use_compressed){
+                    /* mark high bit of size, write uncompressed size then compressed payload */
+                    long payload_pos=ftell(f); fwrite(&usz,sizeof(uint32_t),1,f); if(fwrite(cbuf,1,ci,f)!=(size_t)ci){ free(cbuf); free(ubuf); fclose(f); return -5; }
+                    long end=ftell(f); uint32_t stored_size = (uint32_t)(end - payload_pos); /* includes uncompressed size prefix + compressed bytes */
+                    uint32_t header_size_field = stored_size | 0x80000000u; /* high bit indicates compressed; stored_size includes prefix */
+                    fseek(f,start+sizeof(uint16_t),SEEK_SET); fwrite(&header_size_field,sizeof header_size_field,1,f); fseek(f,end,SEEK_SET);
+                } else {
+                    /* fall back to uncompressed direct write */
+                    if(fwrite(ubuf,1,(size_t)usz,f)!=(size_t)usz){ free(cbuf); free(ubuf); fclose(f); return -5; }
+                    long end=ftell(f); uint32_t section_size=(uint32_t)(end - payload_start);
+                    fseek(f,start+sizeof(uint16_t),SEEK_SET); fwrite(&section_size,sizeof section_size,1,f); fseek(f,end,SEEK_SET);
+                }
+                free(cbuf); free(ubuf);
+            } else {
+                if(c->write_fn(f)!=0){ fclose(f); return -5; }
+                long end=ftell(f); uint32_t section_size=(uint32_t)(end - payload_start);
+                fseek(f,start+sizeof(uint16_t),SEEK_SET); fwrite(&section_size,sizeof section_size,1,f); fseek(f,end,SEEK_SET);
+            }
         } else {
             uint32_t id=(uint32_t)c->id, size_placeholder=0; if(fwrite(&id,sizeof id,1,f)!=1){ fclose(f); return -4; } if(fwrite(&size_placeholder,sizeof size_placeholder,1,f)!=1){ fclose(f); return -4; }
             long payload_start=ftell(f); if(c->write_fn(f)!=0){ fclose(f); return -5; }
@@ -295,7 +330,30 @@ int rogue_save_manager_load_slot(int slot_index){
         for(uint32_t s=0;s<desc.section_count;s++){
             uint16_t id16=0; uint32_t size=0; if(fread(&id16,sizeof id16,1,f)!=1){ fclose(f); return -8; } if(fread(&size,sizeof size,1,f)!=1){ fclose(f); return -8; }
             uint32_t id = (uint32_t)id16;
-            const RogueSaveComponent* comp=find_component((int)id); long payload_pos=ftell(f); if(comp && comp->read_fn){ if(comp->read_fn(f,size)!=0){ fclose(f); return -9; } } fseek(f,payload_pos+size,SEEK_SET);
+            int compressed = (desc.version>=6 && (size & 0x80000000u)); uint32_t stored_size = size & 0x7FFFFFFFu;
+            const RogueSaveComponent* comp=find_component((int)id); long payload_pos=ftell(f);
+            if(compressed){
+                uint32_t uncompressed_size=0; if(fread(&uncompressed_size,sizeof uncompressed_size,1,f)!=1){ fclose(f); return -11; }
+                uint32_t comp_bytes = stored_size - sizeof(uint32_t);
+                unsigned char* cbuf=(unsigned char*)malloc(comp_bytes); if(!cbuf){ fclose(f); return -12; }
+                if(fread(cbuf,1,comp_bytes,f)!=comp_bytes){ free(cbuf); fclose(f); return -12; }
+                unsigned char* ubuf=(unsigned char*)malloc(uncompressed_size); if(!ubuf){ free(cbuf); fclose(f); return -12; }
+                /* RLE decode */
+                size_t ci=0; size_t ui=0; while(ci<stored_size && ui<uncompressed_size){ unsigned char b=cbuf[ci++]; if(ci>=stored_size){ break; } unsigned char run=cbuf[ci++]; for(int r=0;r<run && ui<uncompressed_size;r++){ ubuf[ui++]=b; } }
+                /* feed via temp file to existing read_fn expecting FILE* */
+                if(comp && comp->read_fn){ FILE* mf=NULL; 
+#if defined(_MSC_VER)
+                    tmpfile_s(&mf);
+#else
+                    mf=tmpfile();
+#endif
+                    if(!mf){ free(cbuf); free(ubuf); fclose(f); return -12; }
+                    fwrite(ubuf,1,uncompressed_size,mf); fflush(mf); fseek(mf,0,SEEK_SET); if(comp->read_fn(mf,uncompressed_size)!=0){ fclose(mf); free(cbuf); free(ubuf); fclose(f); return -9; } fclose(mf); }
+                free(cbuf); free(ubuf); /* file already positioned just after compressed payload */
+            } else {
+                if(comp && comp->read_fn){ if(comp->read_fn(f,stored_size)!=0){ fclose(f); return -9; } }
+                fseek(f,payload_pos+stored_size,SEEK_SET);
+            }
         }
     } else {
         for(uint32_t s=0;s<desc.section_count;s++){
@@ -415,7 +473,9 @@ void rogue_register_core_save_components(void){
 static int migrate_v2_to_v3(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
 static int migrate_v3_to_v4(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
 static int migrate_v4_to_v5(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
+static int migrate_v5_to_v6(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
 static RogueSaveMigration MIG_V2_TO_V3 = {2u,3u,migrate_v2_to_v3,"v2_to_v3_tlv_header"};
 static RogueSaveMigration MIG_V3_TO_V4 = {3u,4u,migrate_v3_to_v4,"v3_to_v4_varint_counts"};
 static RogueSaveMigration MIG_V4_TO_V5 = {4u,5u,migrate_v4_to_v5,"v4_to_v5_string_intern"};
-static void rogue_register_core_migrations(void){ if(!g_migrations_registered){ rogue_save_register_migration(&MIG_V2_TO_V3); rogue_save_register_migration(&MIG_V3_TO_V4); rogue_save_register_migration(&MIG_V4_TO_V5); /* flag set in init */ } }
+static RogueSaveMigration MIG_V5_TO_V6 = {5u,6u,migrate_v5_to_v6,"v5_to_v6_section_compress"};
+static void rogue_register_core_migrations(void){ if(!g_migrations_registered){ rogue_save_register_migration(&MIG_V2_TO_V3); rogue_save_register_migration(&MIG_V3_TO_V4); rogue_save_register_migration(&MIG_V4_TO_V5); rogue_save_register_migration(&MIG_V5_TO_V6); /* flag set in init */ } }

@@ -1,23 +1,9 @@
-feat(persistence): implement Phase 3.3 numeric width & endianness assertions
+feat(persistence): implement Phase 3.6 per-section compression (v6)
 
-* Added compile-time static_assert checks for uint16/uint32/uint64 sizes
-* Retained runtime little-endian helper + optional strict endian gate
-* Documentation updated (roadmap + README) marking Phase 3.3 Done
-
-feat(persistence): implement Phase 3.4 varint counts (v4 format)
-
-* Bumped save format to v4; writer records active version, reader tracks source version
-* Introduced unsigned LEB128 varint encoding for inventory item count, skill count, buff count (high-frequency small integers)
-* Added write_varuint/read_varuint helpers (bounded to 5 bytes for 32-bit)
-* Registered migration v3->v4 (no-op: backward compatibility handled by version branching)
-* Extended tests: new test_save_v4_varint_counts plus existing suite; roadmap updated (Phase 3.4 Done)
-* README Persistence section updated with v4 description & compatibility note
-
-feat(persistence): implement Phase 3.5 string interning (v5 format)
-
-* Bumped save format to v5 adding component id 7 (strings) auto-registered
-* Added intern APIs: rogue_save_intern_string / rogue_save_intern_get / rogue_save_intern_count
-* Varint encoded count + per-string (varint length + bytes) leveraging existing varint helpers
-* Migration v4->v5 registered (no-op) since new section optional and reader version-branches
-* Added unit test test_save_v5_strings verifying section presence & deduplication logic
-* Updated roadmap marking Phase 3.5 Done and README persistence summary with v5 details
+* Bumped save format to v6 introducing optional RLE compression per section
+* Added API rogue_save_set_compression(enabled,min_bytes) controlling threshold
+* High bit of 32-bit section size marks compressed; payload begins with uncompressed size (uint32) then RLE (byte,run) pairs
+* Writer chooses compression when size>=min and compressed smaller than original
+* Loader transparently decompresses into temp buffer before invoking component read_fn
+* Added migration v5->v6 (no-op) and unit test test_save_v6_compression validating save/load under compression
+* Roadmap & README updated with v6 details
