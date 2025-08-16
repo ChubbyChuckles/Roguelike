@@ -10,6 +10,11 @@
 #include <string.h>
 #include <time.h>
 #include <stdlib.h> /* qsort, malloc */
+#if defined(_WIN32)
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 
 static RogueSaveComponent g_components[ROGUE_SAVE_MAX_COMPONENTS];
 static int g_component_count = 0;
@@ -18,6 +23,7 @@ static int g_initialized = 0;
 /* Migration registry (linear chain for now) */
 static RogueSaveMigration g_migrations[16];
 static int g_migration_count = 0;
+static int g_durable_writes = 0; /* fsync/_commit toggle */
 
 /* Simple CRC32 (polynomial 0xEDB88320) */
 uint32_t rogue_crc32(const void* data, size_t len){
@@ -39,50 +45,53 @@ void rogue_save_manager_reset_for_tests(void){ g_component_count=0; g_initialize
 
 static char slot_path[128];
 static const char* build_slot_path(int slot){ snprintf(slot_path,sizeof slot_path,"save_slot_%d.sav", slot); return slot_path; }
+static char autosave_path[128];
+static const char* build_autosave_path(int logical){ int ring = logical % ROGUE_AUTOSAVE_RING; snprintf(autosave_path,sizeof autosave_path,"autosave_%d.sav", ring); return autosave_path; }
 
-int rogue_save_manager_save_slot(int slot_index){
-    if(slot_index<0 || slot_index>=ROGUE_SAVE_SLOT_COUNT) return -1;
+static int internal_save_to(const char* final_path){
     qsort(g_components, g_component_count, sizeof(RogueSaveComponent), cmp_comp);
-    /* build temp file path */
-    char tmp_path[160]; snprintf(tmp_path,sizeof tmp_path,"./save_slot_%d.tmp", slot_index);
+    char tmp_path[160]; snprintf(tmp_path,sizeof tmp_path,"./tmp_save_%u.tmp", (unsigned)time(NULL));
     FILE* f=NULL;
 #if defined(_MSC_VER)
-    fopen_s(&f,tmp_path,"w+b"); /* read/write so we can compute checksum without reopening */
+    fopen_s(&f,tmp_path,"w+b");
 #else
     f=fopen(tmp_path,"w+b");
 #endif
-    if(!f){ return -2; }
-    RogueSaveDescriptor desc={0}; desc.version=ROGUE_SAVE_FORMAT_VERSION; desc.timestamp_unix=(uint32_t)time(NULL); desc.section_count=0; desc.component_mask=0; desc.total_size=0; desc.checksum=0;
-    /* reserve header space */
+    if(!f) return -2;
+    RogueSaveDescriptor desc={0}; desc.version=ROGUE_SAVE_FORMAT_VERSION; desc.timestamp_unix=(uint32_t)time(NULL);
     if(fwrite(&desc,sizeof desc,1,f)!=1){ fclose(f); return -3; }
+    desc.section_count=0; desc.component_mask=0;
     for(int i=0;i<g_component_count;i++){
         const RogueSaveComponent* c=&g_components[i]; long start=ftell(f);
-        uint32_t id=(uint32_t)c->id; uint32_t size_placeholder=0; if(fwrite(&id,sizeof id,1,f)!=1){ fclose(f); return -4; } if(fwrite(&size_placeholder,sizeof size_placeholder,1,f)!=1){ fclose(f); return -4; }
+        uint32_t id=(uint32_t)c->id, size_placeholder=0; if(fwrite(&id,sizeof id,1,f)!=1){ fclose(f); return -4; } if(fwrite(&size_placeholder,sizeof size_placeholder,1,f)!=1){ fclose(f); return -4; }
         long payload_start=ftell(f);
         if(c->write_fn(f)!=0){ fclose(f); return -5; }
         long end=ftell(f); uint32_t section_size=(uint32_t)(end - payload_start);
         fseek(f,start+sizeof(uint32_t),SEEK_SET); fwrite(&section_size,sizeof section_size,1,f); fseek(f,end,SEEK_SET);
         desc.section_count++; desc.component_mask |= (1u<<c->id);
     }
-    long file_end=ftell(f);
-    desc.total_size = (uint64_t)file_end;
-    /* compute checksum over bytes after header */
-    fflush(f);
-    /* incremental CRC to avoid large alloc (still simple) */
+    long file_end=ftell(f); desc.total_size=(uint64_t)file_end; fflush(f);
     size_t rest = file_end - (long)sizeof desc; fseek(f,sizeof desc,SEEK_SET);
-    unsigned char chunk[512]; uint32_t crc=0xFFFFFFFFu; /* replicate rogue_crc32 inner for streaming */
-    static uint32_t table[256]; static int have=0; if(!have){ for(uint32_t i=0;i<256;i++){ uint32_t c=i; for(int k=0;k<8;k++) c = (c & 1)? 0xEDB88320u ^ (c>>1) : (c>>1); table[i]=c; } have=1; }
-    size_t remaining=rest; while(remaining>0){ size_t to_read = remaining>sizeof(chunk)?sizeof(chunk):remaining; size_t n=fread(chunk,1,to_read,f); if(n!=to_read){ fclose(f); return -13; } for(size_t i=0;i<n;i++){ crc = table[(crc ^ chunk[i]) & 0xFF] ^ (crc>>8); } remaining -= n; }
-    desc.checksum = crc ^ 0xFFFFFFFFu;
-    fseek(f,0,SEEK_SET); fwrite(&desc,sizeof desc,1,f); fclose(f);
-    /* atomic rename */
-#if defined(_MSC_VER)
-    remove(build_slot_path(slot_index)); if(rename(tmp_path, build_slot_path(slot_index))!=0){ fprintf(stderr,"[SAVE] rename failed %s -> %s\n", tmp_path, build_slot_path(slot_index)); }
+    unsigned char chunk[512]; uint32_t crc=0xFFFFFFFFu; static uint32_t table[256]; static int have=0; if(!have){ for(uint32_t i=0;i<256;i++){ uint32_t c=i; for(int k=0;k<8;k++) c = (c & 1)? 0xEDB88320u ^ (c>>1) : (c>>1); table[i]=c; } have=1; }
+    size_t remaining=rest; while(remaining>0){ size_t to_read= remaining>sizeof(chunk)?sizeof(chunk):remaining; size_t n=fread(chunk,1,to_read,f); if(n!=to_read){ fclose(f); return -13; } for(size_t i=0;i<n;i++){ crc = table[(crc ^ chunk[i]) & 0xFF] ^ (crc>>8); } remaining-=n; }
+    desc.checksum = crc ^ 0xFFFFFFFFu; fseek(f,0,SEEK_SET); fwrite(&desc,sizeof desc,1,f); fflush(f);
+#if defined(_WIN32)
+    if(g_durable_writes){ int fd=_fileno(f); if(fd!=-1) _commit(fd); }
 #else
-    if(rename(tmp_path, build_slot_path(slot_index))!=0){ fprintf(stderr,"[SAVE] rename failed %s -> %s\n", tmp_path, build_slot_path(slot_index)); }
+    if(g_durable_writes){ int fd=fileno(f); if(fd!=-1) fsync(fd); }
+#endif
+    fclose(f);
+#if defined(_MSC_VER)
+    remove(final_path); rename(tmp_path, final_path);
+#else
+    rename(tmp_path, final_path);
 #endif
     return 0;
 }
+
+int rogue_save_manager_save_slot(int slot_index){ if(slot_index<0 || slot_index>=ROGUE_SAVE_SLOT_COUNT) return -1; return internal_save_to(build_slot_path(slot_index)); }
+int rogue_save_manager_autosave(int slot_index){ if(slot_index<0) slot_index=0; return internal_save_to(build_autosave_path(slot_index)); }
+int rogue_save_manager_set_durable(int enabled){ g_durable_writes = enabled?1:0; return 0; }
 
 int rogue_save_manager_load_slot(int slot_index){
     if(slot_index<0 || slot_index>=ROGUE_SAVE_SLOT_COUNT) return -1; FILE* f=NULL;
@@ -94,7 +103,20 @@ int rogue_save_manager_load_slot(int slot_index){
     if(!f){ return -2; }
     RogueSaveDescriptor desc; if(fread(&desc,sizeof desc,1,f)!=1){ fclose(f); return -3; }
     /* naive validation */
-    if(desc.version!=ROGUE_SAVE_FORMAT_VERSION){ /* future: attempt migrations */ fclose(f); return -4; }
+    if(desc.version!=ROGUE_SAVE_FORMAT_VERSION){
+        uint32_t cur = desc.version;
+        while(cur < ROGUE_SAVE_FORMAT_VERSION){
+            int advanced=0;
+            for(int i=0;i<g_migration_count;i++){
+                if(g_migrations[i].from_version==cur && g_migrations[i].to_version==cur+1){
+                    /* no-op migration currently */
+                    cur = g_migrations[i].to_version; advanced=1; break;
+                }
+            }
+            if(!advanced){ fclose(f); return ROGUE_SAVE_ERR_MIGRATION_CHAIN; }
+        }
+        if(cur!=ROGUE_SAVE_FORMAT_VERSION){ fclose(f); return ROGUE_SAVE_ERR_MIGRATION_FAIL; }
+    }
     /* checksum */
     long file_end=0; fseek(f,0,SEEK_END); file_end=ftell(f); if((uint64_t)file_end!=desc.total_size){ fclose(f); return -5; } size_t rest=file_end - (long)sizeof desc; fseek(f,sizeof desc,SEEK_SET); unsigned char* buf=(unsigned char*)malloc(rest); if(!buf){ fclose(f); return -6; } size_t n=fread(buf,1,rest,f); if(n!=rest){ free(buf); fclose(f); return -6; } uint32_t crc=rogue_crc32(buf,rest); if(crc!=desc.checksum){ free(buf); fclose(f); return -7; } free(buf); fseek(f, sizeof desc, SEEK_SET);
     for(uint32_t s=0;s<desc.section_count;s++){

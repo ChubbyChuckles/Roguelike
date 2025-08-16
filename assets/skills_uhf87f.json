@@ -20,7 +20,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 21,
     "cooldown_reduction_ms_per_rank": 256,
-    "icon": "assets/skills/01_Fireball.png",
+    "icon": "../assets/skills/01_Fireball.png",
     "combo_builder": 0
   },
   {
@@ -44,7 +44,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 6,
     "cooldown_reduction_ms_per_rank": 93,
-    "icon": "assets/skills/02_Lightning.png",
+    "icon": "../assets/skills/02_Lightning.png",
     "combo_builder": 0
   },
   {
@@ -68,7 +68,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 39,
     "cooldown_reduction_ms_per_rank": 147,
-    "icon": "assets/skills/03_IceShard.png",
+    "icon": "../assets/skills/03_IceShard.png",
     "combo_builder": 0
   },
   {
@@ -92,7 +92,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 34,
     "cooldown_reduction_ms_per_rank": 48,
-    "icon": "assets/skills/04_Heal.png",
+    "icon": "../assets/skills/04_Heal.png",
     "combo_builder": 0
   },
   {
@@ -116,7 +116,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 6,
     "cooldown_reduction_ms_per_rank": 146,
-    "icon": "assets/skills/05_Shield.png",
+    "icon": "../assets/skills/05_Shield.png",
     "combo_builder": 0
   },
   {
@@ -140,7 +140,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 21,
     "cooldown_reduction_ms_per_rank": 148,
-    "icon": "assets/skills/06_PoisonCloud.png",
+    "icon": "../assets/skills/06_PoisonCloud.png",
     "combo_builder": 0
   },
   {
@@ -164,7 +164,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 9,
     "cooldown_reduction_ms_per_rank": 299,
-    "icon": "assets/skills/07_Blink.png",
+    "icon": "../assets/skills/07_Blink.png",
     "combo_builder": 0
   },
   {
@@ -188,7 +188,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 0,
     "cooldown_reduction_ms_per_rank": 204,
-    "icon": "assets/skills/08_Earthquake.png",
+    "icon": "../assets/skills/08_Earthquake.png",
     "combo_builder": 0
   },
   {
@@ -212,7 +212,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 12,
     "cooldown_reduction_ms_per_rank": 125,
-    "icon": "assets/skills/09_Summon.png",
+    "icon": "../assets/skills/09_Summon.png",
     "combo_builder": 0
   },
   {
@@ -236,7 +236,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 9,
     "cooldown_reduction_ms_per_rank": 184,
-    "icon": "assets/skills/10_Curse.png",
+    "icon": "../assets/skills/10_Curse.png",
     "combo_builder": 0
   },
   {
@@ -260,7 +260,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 18,
     "cooldown_reduction_ms_per_rank": 105,
-    "icon": "assets/skills/100_Polymorph.png",
+    "icon": "../assets/skills/100_Polymorph.png",
     "combo_builder": 0
   },
   {
@@ -284,7 +284,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 22,
     "cooldown_reduction_ms_per_rank": 119,
-    "icon": "assets/skills/101_Roots.png",
+    "icon": "../assets/skills/101_Roots.png",
     "combo_builder": 0
   },
   {
@@ -308,7 +308,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 3,
     "cooldown_reduction_ms_per_rank": 121,
-    "icon": "assets/skills/102_Purify.png",
+    "icon": "../assets/skills/102_Purify.png",
     "combo_builder": 0
   },
   {
@@ -332,7 +332,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 16,
     "cooldown_reduction_ms_per_rank": 296,
-    "icon": "assets/skills/103_Calm.png",
+    "icon": "../assets/skills/103_Calm.png",
     "combo_builder": 0
   },
   {
@@ -356,7 +356,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 21,
     "cooldown_reduction_ms_per_rank": 80,
-    "icon": "assets/skills/104_ThunderClap.png",
+    "icon": "../assets/skills/104_ThunderClap.png",
     "combo_builder": 0
   },
   {
@@ -380,7 +380,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 17,
     "cooldown_reduction_ms_per_rank": 142,
-    "icon": "assets/skills/105_Shockwave.png",
+    "icon": "../assets/skills/105_Shockwave.png",
     "combo_builder": 0
   },
   {
@@ -404,7 +404,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 40,
     "cooldown_reduction_ms_per_rank": 140,
-    "icon": "assets/skills/106_Vortex.png",
+    "icon": "../assets/skills/106_Vortex.png",
     "combo_builder": 0
   },
   {
@@ -428,7 +428,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 30,
     "cooldown_reduction_ms_per_rank": 249,
-    "icon": "assets/skills/107_Aegis.png",
+    "icon": "../assets/skills/107_Aegis.png",
     "combo_builder": 0
   },
   {
@@ -452,7 +452,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 22,
     "cooldown_reduction_ms_per_rank": 171,
-    "icon": "assets/skills/108_Obliterate.png",
+    "icon": "../assets/skills/108_Obliterate.png",
     "combo_builder": 0
   },
   {
@@ -476,7 +476,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 0,
     "cooldown_reduction_ms_per_rank": 143,
-    "icon": "assets/skills/109_Frenzy.png",
+    "icon": "../assets/skills/109_Frenzy.png",
     "combo_builder": 0
   },
   {
@@ -500,7 +500,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 28,
     "cooldown_reduction_ms_per_rank": 190,
-    "icon": "assets/skills/11_Barrier.png",
+    "icon": "../assets/skills/11_Barrier.png",
     "combo_builder": 0
   },
   {
@@ -524,7 +524,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 33,
     "cooldown_reduction_ms_per_rank": 216,
-    "icon": "assets/skills/110_HarmonicWave.png",
+    "icon": "../assets/skills/110_HarmonicWave.png",
     "combo_builder": 0
   },
   {
@@ -548,7 +548,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 18,
     "cooldown_reduction_ms_per_rank": 294,
-    "icon": "assets/skills/111_Cascade.png",
+    "icon": "../assets/skills/111_Cascade.png",
     "combo_builder": 0
   },
   {
@@ -572,7 +572,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 36,
     "cooldown_reduction_ms_per_rank": 206,
-    "icon": "assets/skills/112_BoulderSmash.png",
+    "icon": "../assets/skills/112_BoulderSmash.png",
     "combo_builder": 0
   },
   {
@@ -596,7 +596,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 15,
     "cooldown_reduction_ms_per_rank": 21,
-    "icon": "assets/skills/113_Gouge.png",
+    "icon": "../assets/skills/113_Gouge.png",
     "combo_builder": 0
   },
   {
@@ -620,7 +620,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 32,
     "cooldown_reduction_ms_per_rank": 222,
-    "icon": "assets/skills/114_Obscure.png",
+    "icon": "../assets/skills/114_Obscure.png",
     "combo_builder": 0
   },
   {
@@ -644,7 +644,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 5,
     "cooldown_reduction_ms_per_rank": 17,
-    "icon": "assets/skills/115_NetherBlade.png",
+    "icon": "../assets/skills/115_NetherBlade.png",
     "combo_builder": 0
   },
   {
@@ -668,7 +668,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 26,
     "cooldown_reduction_ms_per_rank": 17,
-    "icon": "assets/skills/116_SpectralHands.png",
+    "icon": "../assets/skills/116_SpectralHands.png",
     "combo_builder": 0
   },
   {
@@ -692,7 +692,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 5,
     "cooldown_reduction_ms_per_rank": 78,
-    "icon": "assets/skills/117_IronSkin.png",
+    "icon": "../assets/skills/117_IronSkin.png",
     "combo_builder": 0
   },
   {
@@ -716,7 +716,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 26,
     "cooldown_reduction_ms_per_rank": 187,
-    "icon": "assets/skills/118_ManaSurge.png",
+    "icon": "../assets/skills/118_ManaSurge.png",
     "combo_builder": 0
   },
   {
@@ -740,7 +740,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 33,
     "cooldown_reduction_ms_per_rank": 137,
-    "icon": "assets/skills/119_ManaDrain.png",
+    "icon": "../assets/skills/119_ManaDrain.png",
     "combo_builder": 0
   },
   {
@@ -764,7 +764,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 27,
     "cooldown_reduction_ms_per_rank": 52,
-    "icon": "assets/skills/12_Meteor.png",
+    "icon": "../assets/skills/12_Meteor.png",
     "combo_builder": 0
   },
   {
@@ -788,7 +788,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 1,
     "cooldown_reduction_ms_per_rank": 34,
-    "icon": "assets/skills/120_FrostArmor.png",
+    "icon": "../assets/skills/120_FrostArmor.png",
     "combo_builder": 0
   },
   {
@@ -812,7 +812,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 0,
     "cooldown_reduction_ms_per_rank": 71,
-    "icon": "assets/skills/121_BlazingTrail.png",
+    "icon": "../assets/skills/121_BlazingTrail.png",
     "combo_builder": 0
   },
   {
@@ -836,7 +836,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 7,
     "cooldown_reduction_ms_per_rank": 178,
-    "icon": "assets/skills/122_StormShield.png",
+    "icon": "../assets/skills/122_StormShield.png",
     "combo_builder": 0
   },
   {
@@ -860,7 +860,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 39,
     "cooldown_reduction_ms_per_rank": 190,
-    "icon": "assets/skills/123_ViperStrike.png",
+    "icon": "../assets/skills/123_ViperStrike.png",
     "combo_builder": 0
   },
   {
@@ -884,7 +884,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 18,
     "cooldown_reduction_ms_per_rank": 236,
-    "icon": "assets/skills/124_RadiantBeam.png",
+    "icon": "../assets/skills/124_RadiantBeam.png",
     "combo_builder": 0
   },
   {
@@ -908,7 +908,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 6,
     "cooldown_reduction_ms_per_rank": 84,
-    "icon": "assets/skills/125_ShadowStep.png",
+    "icon": "../assets/skills/125_ShadowStep.png",
     "combo_builder": 0
   },
   {
@@ -932,7 +932,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 18,
     "cooldown_reduction_ms_per_rank": 189,
-    "icon": "assets/skills/126_EchoSlash.png",
+    "icon": "../assets/skills/126_EchoSlash.png",
     "combo_builder": 0
   },
   {
@@ -956,7 +956,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 36,
     "cooldown_reduction_ms_per_rank": 116,
-    "icon": "assets/skills/127_SporeCloud.png",
+    "icon": "../assets/skills/127_SporeCloud.png",
     "combo_builder": 0
   },
   {
@@ -980,7 +980,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 23,
     "cooldown_reduction_ms_per_rank": 123,
-    "icon": "assets/skills/128_FanOfKnives.png",
+    "icon": "../assets/skills/128_FanOfKnives.png",
     "combo_builder": 0
   },
   {
@@ -1004,7 +1004,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 9,
     "cooldown_reduction_ms_per_rank": 185,
-    "icon": "assets/skills/129_FlameNova.png",
+    "icon": "../assets/skills/129_FlameNova.png",
     "combo_builder": 0
   },
   {
@@ -1028,7 +1028,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 16,
     "cooldown_reduction_ms_per_rank": 288,
-    "icon": "assets/skills/13_ChainLightning.png",
+    "icon": "../assets/skills/13_ChainLightning.png",
     "combo_builder": 0
   },
   {
@@ -1052,7 +1052,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 21,
     "cooldown_reduction_ms_per_rank": 280,
-    "icon": "assets/skills/130_FrostShard.png",
+    "icon": "../assets/skills/130_FrostShard.png",
     "combo_builder": 0
   },
   {
@@ -1076,7 +1076,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 29,
     "cooldown_reduction_ms_per_rank": 221,
-    "icon": "assets/skills/131_BoneSpike.png",
+    "icon": "../assets/skills/131_BoneSpike.png",
     "combo_builder": 0
   },
   {
@@ -1100,7 +1100,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 37,
     "cooldown_reduction_ms_per_rank": 118,
-    "icon": "assets/skills/132_Witchfire.png",
+    "icon": "../assets/skills/132_Witchfire.png",
     "combo_builder": 0
   },
   {
@@ -1124,7 +1124,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 37,
     "cooldown_reduction_ms_per_rank": 226,
-    "icon": "assets/skills/133_SpiritBomb.png",
+    "icon": "../assets/skills/133_SpiritBomb.png",
     "combo_builder": 0
   },
   {
@@ -1148,7 +1148,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 6,
     "cooldown_reduction_ms_per_rank": 237,
-    "icon": "assets/skills/134_ArcaneBarrage.png",
+    "icon": "../assets/skills/134_ArcaneBarrage.png",
     "combo_builder": 0
   },
   {
@@ -1172,7 +1172,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 40,
     "cooldown_reduction_ms_per_rank": 69,
-    "icon": "assets/skills/135_BloodPact.png",
+    "icon": "../assets/skills/135_BloodPact.png",
     "combo_builder": 0
   },
   {
@@ -1196,7 +1196,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 1,
     "cooldown_reduction_ms_per_rank": 119,
-    "icon": "assets/skills/136_ChainBurst.png",
+    "icon": "../assets/skills/136_ChainBurst.png",
     "combo_builder": 0
   },
   {
@@ -1220,7 +1220,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 22,
     "cooldown_reduction_ms_per_rank": 174,
-    "icon": "assets/skills/137_EchoPulse.png",
+    "icon": "../assets/skills/137_EchoPulse.png",
     "combo_builder": 0
   },
   {
@@ -1244,7 +1244,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 36,
     "cooldown_reduction_ms_per_rank": 71,
-    "icon": "assets/skills/138_SolarShield.png",
+    "icon": "../assets/skills/138_SolarShield.png",
     "combo_builder": 0
   },
   {
@@ -1268,7 +1268,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 25,
     "cooldown_reduction_ms_per_rank": 19,
-    "icon": "assets/skills/139_MoonStrike.png",
+    "icon": "../assets/skills/139_MoonStrike.png",
     "combo_builder": 0
   },
   {
@@ -1292,7 +1292,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 27,
     "cooldown_reduction_ms_per_rank": 169,
-    "icon": "assets/skills/14_FrostNova.png",
+    "icon": "../assets/skills/14_FrostNova.png",
     "combo_builder": 0
   },
   {
@@ -1316,7 +1316,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 14,
     "cooldown_reduction_ms_per_rank": 214,
-    "icon": "assets/skills/140_Starfall.png",
+    "icon": "../assets/skills/140_Starfall.png",
     "combo_builder": 0
   },
   {
@@ -1340,7 +1340,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 26,
     "cooldown_reduction_ms_per_rank": 30,
-    "icon": "assets/skills/141_Comet.png",
+    "icon": "../assets/skills/141_Comet.png",
     "combo_builder": 0
   },
   {
@@ -1364,7 +1364,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 40,
     "cooldown_reduction_ms_per_rank": 66,
-    "icon": "assets/skills/142_Tempest.png",
+    "icon": "../assets/skills/142_Tempest.png",
     "combo_builder": 0
   },
   {
@@ -1388,7 +1388,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 10,
     "cooldown_reduction_ms_per_rank": 70,
-    "icon": "assets/skills/143_AegisOfLight.png",
+    "icon": "../assets/skills/143_AegisOfLight.png",
     "combo_builder": 0
   },
   {
@@ -1412,7 +1412,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 32,
     "cooldown_reduction_ms_per_rank": 187,
-    "icon": "assets/skills/144_Fireball.png",
+    "icon": "../assets/skills/144_Fireball.png",
     "combo_builder": 0
   },
   {
@@ -1436,7 +1436,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 12,
     "cooldown_reduction_ms_per_rank": 31,
-    "icon": "assets/skills/145_Lightning.png",
+    "icon": "../assets/skills/145_Lightning.png",
     "combo_builder": 0
   },
   {
@@ -1460,7 +1460,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 36,
     "cooldown_reduction_ms_per_rank": 254,
-    "icon": "assets/skills/146_IceShard.png",
+    "icon": "../assets/skills/146_IceShard.png",
     "combo_builder": 0
   },
   {
@@ -1484,7 +1484,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 35,
     "cooldown_reduction_ms_per_rank": 211,
-    "icon": "assets/skills/147_Heal.png",
+    "icon": "../assets/skills/147_Heal.png",
     "combo_builder": 0
   },
   {
@@ -1508,7 +1508,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 36,
     "cooldown_reduction_ms_per_rank": 138,
-    "icon": "assets/skills/148_Shield.png",
+    "icon": "../assets/skills/148_Shield.png",
     "combo_builder": 0
   },
   {
@@ -1532,7 +1532,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 14,
     "cooldown_reduction_ms_per_rank": 202,
-    "icon": "assets/skills/149_PoisonCloud.png",
+    "icon": "../assets/skills/149_PoisonCloud.png",
     "combo_builder": 0
   },
   {
@@ -1556,7 +1556,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 21,
     "cooldown_reduction_ms_per_rank": 118,
-    "icon": "assets/skills/15_Whirlwind.png",
+    "icon": "../assets/skills/15_Whirlwind.png",
     "combo_builder": 0
   },
   {
@@ -1580,7 +1580,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 3,
     "cooldown_reduction_ms_per_rank": 262,
-    "icon": "assets/skills/150_Blink.png",
+    "icon": "../assets/skills/150_Blink.png",
     "combo_builder": 0
   },
   {
@@ -1604,7 +1604,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 6,
     "cooldown_reduction_ms_per_rank": 195,
-    "icon": "assets/skills/151_Earthquake.png",
+    "icon": "../assets/skills/151_Earthquake.png",
     "combo_builder": 0
   },
   {
@@ -1628,7 +1628,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 31,
     "cooldown_reduction_ms_per_rank": 194,
-    "icon": "assets/skills/152_Summon.png",
+    "icon": "../assets/skills/152_Summon.png",
     "combo_builder": 0
   },
   {
@@ -1652,7 +1652,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 27,
     "cooldown_reduction_ms_per_rank": 91,
-    "icon": "assets/skills/153_Curse.png",
+    "icon": "../assets/skills/153_Curse.png",
     "combo_builder": 0
   },
   {
@@ -1676,7 +1676,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 18,
     "cooldown_reduction_ms_per_rank": 74,
-    "icon": "assets/skills/154_Barrier.png",
+    "icon": "../assets/skills/154_Barrier.png",
     "combo_builder": 0
   },
   {
@@ -1700,7 +1700,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 18,
     "cooldown_reduction_ms_per_rank": 145,
-    "icon": "assets/skills/155_Meteor.png",
+    "icon": "../assets/skills/155_Meteor.png",
     "combo_builder": 0
   },
   {
@@ -1724,7 +1724,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 4,
     "cooldown_reduction_ms_per_rank": 138,
-    "icon": "assets/skills/156_ChainLightning.png",
+    "icon": "../assets/skills/156_ChainLightning.png",
     "combo_builder": 0
   },
   {
@@ -1748,7 +1748,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 37,
     "cooldown_reduction_ms_per_rank": 244,
-    "icon": "assets/skills/157_FrostNova.png",
+    "icon": "../assets/skills/157_FrostNova.png",
     "combo_builder": 0
   },
   {
@@ -1772,7 +1772,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 13,
     "cooldown_reduction_ms_per_rank": 88,
-    "icon": "assets/skills/158_Whirlwind.png",
+    "icon": "../assets/skills/158_Whirlwind.png",
     "combo_builder": 0
   },
   {
@@ -1796,7 +1796,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 24,
     "cooldown_reduction_ms_per_rank": 110,
-    "icon": "assets/skills/159_Stealth.png",
+    "icon": "../assets/skills/159_Stealth.png",
     "combo_builder": 0
   },
   {
@@ -1820,7 +1820,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 11,
     "cooldown_reduction_ms_per_rank": 57,
-    "icon": "assets/skills/16_Stealth.png",
+    "icon": "../assets/skills/16_Stealth.png",
     "combo_builder": 0
   },
   {
@@ -1844,7 +1844,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 17,
     "cooldown_reduction_ms_per_rank": 282,
-    "icon": "assets/skills/17_Backstab.png",
+    "icon": "../assets/skills/17_Backstab.png",
     "combo_builder": 0
   },
   {
@@ -1868,7 +1868,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 1,
     "cooldown_reduction_ms_per_rank": 276,
-    "icon": "assets/skills/18_BloodRite.png",
+    "icon": "../assets/skills/18_BloodRite.png",
     "combo_builder": 0
   },
   {
@@ -1892,7 +1892,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 1,
     "cooldown_reduction_ms_per_rank": 247,
-    "icon": "assets/skills/19_Regenerate.png",
+    "icon": "../assets/skills/19_Regenerate.png",
     "combo_builder": 0
   },
   {
@@ -1916,7 +1916,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 14,
     "cooldown_reduction_ms_per_rank": 67,
-    "icon": "assets/skills/20_Haste.png",
+    "icon": "../assets/skills/20_Haste.png",
     "combo_builder": 0
   },
   {
@@ -1940,7 +1940,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 12,
     "cooldown_reduction_ms_per_rank": 188,
-    "icon": "assets/skills/21_Slow.png",
+    "icon": "../assets/skills/21_Slow.png",
     "combo_builder": 0
   },
   {
@@ -1964,7 +1964,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 3,
     "cooldown_reduction_ms_per_rank": 190,
-    "icon": "assets/skills/22_Entangle.png",
+    "icon": "../assets/skills/22_Entangle.png",
     "combo_builder": 0
   },
   {
@@ -1988,7 +1988,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 3,
     "cooldown_reduction_ms_per_rank": 18,
-    "icon": "assets/skills/23_Siphon.png",
+    "icon": "../assets/skills/23_Siphon.png",
     "combo_builder": 0
   },
   {
@@ -2012,7 +2012,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 4,
     "cooldown_reduction_ms_per_rank": 142,
-    "icon": "assets/skills/24_ManaBurst.png",
+    "icon": "../assets/skills/24_ManaBurst.png",
     "combo_builder": 0
   },
   {
@@ -2036,7 +2036,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 0,
     "cooldown_reduction_ms_per_rank": 145,
-    "icon": "assets/skills/25_ArcaneOrb.png",
+    "icon": "../assets/skills/25_ArcaneOrb.png",
     "combo_builder": 0
   },
   {
@@ -2060,7 +2060,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 37,
     "cooldown_reduction_ms_per_rank": 225,
-    "icon": "assets/skills/26_StoneSkin.png",
+    "icon": "../assets/skills/26_StoneSkin.png",
     "combo_builder": 0
   },
   {
@@ -2084,7 +2084,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 29,
     "cooldown_reduction_ms_per_rank": 97,
-    "icon": "assets/skills/27_SoulDrain.png",
+    "icon": "../assets/skills/27_SoulDrain.png",
     "combo_builder": 0
   },
   {
@@ -2108,7 +2108,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 12,
     "cooldown_reduction_ms_per_rank": 10,
-    "icon": "assets/skills/28_Radiance.png",
+    "icon": "../assets/skills/28_Radiance.png",
     "combo_builder": 0
   },
   {
@@ -2132,7 +2132,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 14,
     "cooldown_reduction_ms_per_rank": 64,
-    "icon": "assets/skills/29_ShadowBolt.png",
+    "icon": "../assets/skills/29_ShadowBolt.png",
     "combo_builder": 0
   },
   {
@@ -2156,7 +2156,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 23,
     "cooldown_reduction_ms_per_rank": 208,
-    "icon": "assets/skills/30_WindSlash.png",
+    "icon": "../assets/skills/30_WindSlash.png",
     "combo_builder": 0
   },
   {
@@ -2180,7 +2180,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 20,
     "cooldown_reduction_ms_per_rank": 176,
-    "icon": "assets/skills/31_FlameWave.png",
+    "icon": "../assets/skills/31_FlameWave.png",
     "combo_builder": 0
   },
   {
@@ -2204,7 +2204,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 17,
     "cooldown_reduction_ms_per_rank": 102,
-    "icon": "assets/skills/32_PoisonArrow.png",
+    "icon": "../assets/skills/32_PoisonArrow.png",
     "combo_builder": 0
   },
   {
@@ -2228,7 +2228,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 36,
     "cooldown_reduction_ms_per_rank": 157,
-    "icon": "assets/skills/33_Bolt.png",
+    "icon": "../assets/skills/33_Bolt.png",
     "combo_builder": 0
   },
   {
@@ -2252,7 +2252,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 2,
     "cooldown_reduction_ms_per_rank": 189,
-    "icon": "assets/skills/34_DrainLife.png",
+    "icon": "../assets/skills/34_DrainLife.png",
     "combo_builder": 0
   },
   {
@@ -2276,7 +2276,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 12,
     "cooldown_reduction_ms_per_rank": 267,
-    "icon": "assets/skills/35_GlyphOfBinding.png",
+    "icon": "../assets/skills/35_GlyphOfBinding.png",
     "combo_builder": 0
   },
   {
@@ -2300,7 +2300,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 37,
     "cooldown_reduction_ms_per_rank": 141,
-    "icon": "assets/skills/36_ThunderStrike.png",
+    "icon": "../assets/skills/36_ThunderStrike.png",
     "combo_builder": 0
   },
   {
@@ -2324,7 +2324,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 10,
     "cooldown_reduction_ms_per_rank": 225,
-    "icon": "assets/skills/37_GaleForce.png",
+    "icon": "../assets/skills/37_GaleForce.png",
     "combo_builder": 0
   },
   {
@@ -2348,7 +2348,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 35,
     "cooldown_reduction_ms_per_rank": 205,
-    "icon": "assets/skills/38_CrystalSpike.png",
+    "icon": "../assets/skills/38_CrystalSpike.png",
     "combo_builder": 0
   },
   {
@@ -2372,7 +2372,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 38,
     "cooldown_reduction_ms_per_rank": 194,
-    "icon": "assets/skills/39_BlinkStrike.png",
+    "icon": "../assets/skills/39_BlinkStrike.png",
     "combo_builder": 0
   },
   {
@@ -2396,7 +2396,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 0,
     "cooldown_reduction_ms_per_rank": 94,
-    "icon": "assets/skills/40_PhoenixDive.png",
+    "icon": "../assets/skills/40_PhoenixDive.png",
     "combo_builder": 0
   },
   {
@@ -2420,7 +2420,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 19,
     "cooldown_reduction_ms_per_rank": 153,
-    "icon": "assets/skills/41_IceLance.png",
+    "icon": "../assets/skills/41_IceLance.png",
     "combo_builder": 0
   },
   {
@@ -2444,7 +2444,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 15,
     "cooldown_reduction_ms_per_rank": 219,
-    "icon": "assets/skills/42_MagneticPulse.png",
+    "icon": "../assets/skills/42_MagneticPulse.png",
     "combo_builder": 0
   },
   {
@@ -2468,7 +2468,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 7,
     "cooldown_reduction_ms_per_rank": 172,
-    "icon": "assets/skills/43_TimeWarp.png",
+    "icon": "../assets/skills/43_TimeWarp.png",
     "combo_builder": 0
   },
   {
@@ -2492,7 +2492,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 28,
     "cooldown_reduction_ms_per_rank": 218,
-    "icon": "assets/skills/44_GravityWell.png",
+    "icon": "../assets/skills/44_GravityWell.png",
     "combo_builder": 0
   },
   {
@@ -2516,7 +2516,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 2,
     "cooldown_reduction_ms_per_rank": 98,
-    "icon": "assets/skills/45_Sunburst.png",
+    "icon": "../assets/skills/45_Sunburst.png",
     "combo_builder": 0
   },
   {
@@ -2540,7 +2540,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 15,
     "cooldown_reduction_ms_per_rank": 190,
-    "icon": "assets/skills/46_Lifebloom.png",
+    "icon": "../assets/skills/46_Lifebloom.png",
     "combo_builder": 0
   },
   {
@@ -2564,7 +2564,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 26,
     "cooldown_reduction_ms_per_rank": 197,
-    "icon": "assets/skills/47_SpiritLink.png",
+    "icon": "../assets/skills/47_SpiritLink.png",
     "combo_builder": 0
   },
   {
@@ -2588,7 +2588,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 10,
     "cooldown_reduction_ms_per_rank": 40,
-    "icon": "assets/skills/48_VoidPulse.png",
+    "icon": "../assets/skills/48_VoidPulse.png",
     "combo_builder": 0
   },
   {
@@ -2612,7 +2612,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 7,
     "cooldown_reduction_ms_per_rank": 281,
-    "icon": "assets/skills/49_MirrorImage.png",
+    "icon": "../assets/skills/49_MirrorImage.png",
     "combo_builder": 0
   },
   {
@@ -2636,7 +2636,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 16,
     "cooldown_reduction_ms_per_rank": 156,
-    "icon": "assets/skills/50_VampiricAura.png",
+    "icon": "../assets/skills/50_VampiricAura.png",
     "combo_builder": 0
   },
   {
@@ -2660,7 +2660,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 2,
     "cooldown_reduction_ms_per_rank": 177,
-    "icon": "assets/skills/51_SmokeBomb.png",
+    "icon": "../assets/skills/51_SmokeBomb.png",
     "combo_builder": 0
   },
   {
@@ -2684,7 +2684,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 40,
     "cooldown_reduction_ms_per_rank": 275,
-    "icon": "assets/skills/52_CleavingStrike.png",
+    "icon": "../assets/skills/52_CleavingStrike.png",
     "combo_builder": 0
   },
   {
@@ -2708,7 +2708,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 5,
     "cooldown_reduction_ms_per_rank": 161,
-    "icon": "assets/skills/53_RendingSlash.png",
+    "icon": "../assets/skills/53_RendingSlash.png",
     "combo_builder": 0
   },
   {
@@ -2732,7 +2732,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 2,
     "cooldown_reduction_ms_per_rank": 272,
-    "icon": "assets/skills/54_SearingTouch.png",
+    "icon": "../assets/skills/54_SearingTouch.png",
     "combo_builder": 0
   },
   {
@@ -2756,7 +2756,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 18,
     "cooldown_reduction_ms_per_rank": 149,
-    "icon": "assets/skills/55_Frostbite.png",
+    "icon": "../assets/skills/55_Frostbite.png",
     "combo_builder": 0
   },
   {
@@ -2780,7 +2780,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 39,
     "cooldown_reduction_ms_per_rank": 125,
-    "icon": "assets/skills/56_GlacialShield.png",
+    "icon": "../assets/skills/56_GlacialShield.png",
     "combo_builder": 0
   },
   {
@@ -2804,7 +2804,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 31,
     "cooldown_reduction_ms_per_rank": 189,
-    "icon": "assets/skills/57_StormCall.png",
+    "icon": "../assets/skills/57_StormCall.png",
     "combo_builder": 0
   },
   {
@@ -2828,7 +2828,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 31,
     "cooldown_reduction_ms_per_rank": 91,
-    "icon": "assets/skills/58_TidalWave.png",
+    "icon": "../assets/skills/58_TidalWave.png",
     "combo_builder": 0
   },
   {
@@ -2852,7 +2852,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 2,
     "cooldown_reduction_ms_per_rank": 291,
-    "icon": "assets/skills/59_ManaShield.png",
+    "icon": "../assets/skills/59_ManaShield.png",
     "combo_builder": 0
   },
   {
@@ -2876,7 +2876,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 37,
     "cooldown_reduction_ms_per_rank": 270,
-    "icon": "assets/skills/60_EtherealStep.png",
+    "icon": "../assets/skills/60_EtherealStep.png",
     "combo_builder": 0
   },
   {
@@ -2900,7 +2900,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 0,
     "cooldown_reduction_ms_per_rank": 120,
-    "icon": "assets/skills/61_BoneArmor.png",
+    "icon": "../assets/skills/61_BoneArmor.png",
     "combo_builder": 0
   },
   {
@@ -2924,7 +2924,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 31,
     "cooldown_reduction_ms_per_rank": 14,
-    "icon": "assets/skills/62_NecroticBlast.png",
+    "icon": "../assets/skills/62_NecroticBlast.png",
     "combo_builder": 0
   },
   {
@@ -2948,7 +2948,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 32,
     "cooldown_reduction_ms_per_rank": 170,
-    "icon": "assets/skills/63_HolySmite.png",
+    "icon": "../assets/skills/63_HolySmite.png",
     "combo_builder": 0
   },
   {
@@ -2972,7 +2972,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 0,
     "cooldown_reduction_ms_per_rank": 122,
-    "icon": "assets/skills/64_DivineBarrier.png",
+    "icon": "../assets/skills/64_DivineBarrier.png",
     "combo_builder": 0
   },
   {
@@ -2996,7 +2996,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 33,
     "cooldown_reduction_ms_per_rank": 96,
-    "icon": "assets/skills/65_Judgement.png",
+    "icon": "../assets/skills/65_Judgement.png",
     "combo_builder": 0
   },
   {
@@ -3020,7 +3020,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 15,
     "cooldown_reduction_ms_per_rank": 63,
-    "icon": "assets/skills/66_NetherGrasp.png",
+    "icon": "../assets/skills/66_NetherGrasp.png",
     "combo_builder": 0
   },
   {
@@ -3044,7 +3044,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 3,
     "cooldown_reduction_ms_per_rank": 64,
-    "icon": "assets/skills/67_ArcStrike.png",
+    "icon": "../assets/skills/67_ArcStrike.png",
     "combo_builder": 0
   },
   {
@@ -3068,7 +3068,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 19,
     "cooldown_reduction_ms_per_rank": 175,
-    "icon": "assets/skills/68_MoltenCore.png",
+    "icon": "../assets/skills/68_MoltenCore.png",
     "combo_builder": 0
   },
   {
@@ -3092,7 +3092,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 18,
     "cooldown_reduction_ms_per_rank": 62,
-    "icon": "assets/skills/69_IcicleRain.png",
+    "icon": "../assets/skills/69_IcicleRain.png",
     "combo_builder": 0
   },
   {
@@ -3116,7 +3116,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 4,
     "cooldown_reduction_ms_per_rank": 85,
-    "icon": "assets/skills/70_BrambleTrap.png",
+    "icon": "../assets/skills/70_BrambleTrap.png",
     "combo_builder": 0
   },
   {
@@ -3140,7 +3140,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 37,
     "cooldown_reduction_ms_per_rank": 211,
-    "icon": "assets/skills/71_ChainHook.png",
+    "icon": "../assets/skills/71_ChainHook.png",
     "combo_builder": 0
   },
   {
@@ -3164,7 +3164,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 31,
     "cooldown_reduction_ms_per_rank": 234,
-    "icon": "assets/skills/72_QuickStep.png",
+    "icon": "../assets/skills/72_QuickStep.png",
     "combo_builder": 0
   },
   {
@@ -3188,7 +3188,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 40,
     "cooldown_reduction_ms_per_rank": 33,
-    "icon": "assets/skills/73_IronWill.png",
+    "icon": "../assets/skills/73_IronWill.png",
     "combo_builder": 0
   },
   {
@@ -3212,7 +3212,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 13,
     "cooldown_reduction_ms_per_rank": 109,
-    "icon": "assets/skills/74_Rage.png",
+    "icon": "../assets/skills/74_Rage.png",
     "combo_builder": 0
   },
   {
@@ -3236,7 +3236,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 12,
     "cooldown_reduction_ms_per_rank": 113,
-    "icon": "assets/skills/75_Cleave.png",
+    "icon": "../assets/skills/75_Cleave.png",
     "combo_builder": 0
   },
   {
@@ -3260,7 +3260,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 1,
     "cooldown_reduction_ms_per_rank": 119,
-    "icon": "assets/skills/76_Sunder.png",
+    "icon": "../assets/skills/76_Sunder.png",
     "combo_builder": 0
   },
   {
@@ -3284,7 +3284,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 28,
     "cooldown_reduction_ms_per_rank": 181,
-    "icon": "assets/skills/77_Pierce.png",
+    "icon": "../assets/skills/77_Pierce.png",
     "combo_builder": 0
   },
   {
@@ -3308,7 +3308,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 0,
     "cooldown_reduction_ms_per_rank": 20,
-    "icon": "assets/skills/78_MindFlay.png",
+    "icon": "../assets/skills/78_MindFlay.png",
     "combo_builder": 0
   },
   {
@@ -3332,7 +3332,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 7,
     "cooldown_reduction_ms_per_rank": 101,
-    "icon": "assets/skills/79_ManaSiphon.png",
+    "icon": "../assets/skills/79_ManaSiphon.png",
     "combo_builder": 0
   },
   {
@@ -3356,7 +3356,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 16,
     "cooldown_reduction_ms_per_rank": 147,
-    "icon": "assets/skills/80_FlashFreeze.png",
+    "icon": "../assets/skills/80_FlashFreeze.png",
     "combo_builder": 0
   },
   {
@@ -3380,7 +3380,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 23,
     "cooldown_reduction_ms_per_rank": 224,
-    "icon": "assets/skills/81_StoneThrow.png",
+    "icon": "../assets/skills/81_StoneThrow.png",
     "combo_builder": 0
   },
   {
@@ -3404,7 +3404,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 0,
     "cooldown_reduction_ms_per_rank": 209,
-    "icon": "assets/skills/82_NatureWrath.png",
+    "icon": "../assets/skills/82_NatureWrath.png",
     "combo_builder": 0
   },
   {
@@ -3428,7 +3428,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 33,
     "cooldown_reduction_ms_per_rank": 52,
-    "icon": "assets/skills/83_SolarFlare.png",
+    "icon": "../assets/skills/83_SolarFlare.png",
     "combo_builder": 0
   },
   {
@@ -3452,7 +3452,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 38,
     "cooldown_reduction_ms_per_rank": 110,
-    "icon": "assets/skills/84_LunarBlessing.png",
+    "icon": "../assets/skills/84_LunarBlessing.png",
     "combo_builder": 0
   },
   {
@@ -3476,7 +3476,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 18,
     "cooldown_reduction_ms_per_rank": 239,
-    "icon": "assets/skills/85_AerialStrike.png",
+    "icon": "../assets/skills/85_AerialStrike.png",
     "combo_builder": 0
   },
   {
@@ -3500,7 +3500,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 9,
     "cooldown_reduction_ms_per_rank": 61,
-    "icon": "assets/skills/86_Anchor.png",
+    "icon": "../assets/skills/86_Anchor.png",
     "combo_builder": 0
   },
   {
@@ -3524,7 +3524,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 27,
     "cooldown_reduction_ms_per_rank": 149,
-    "icon": "assets/skills/87_Ritual.png",
+    "icon": "../assets/skills/87_Ritual.png",
     "combo_builder": 0
   },
   {
@@ -3548,7 +3548,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 6,
     "cooldown_reduction_ms_per_rank": 55,
-    "icon": "assets/skills/88_PhantomRush.png",
+    "icon": "../assets/skills/88_PhantomRush.png",
     "combo_builder": 0
   },
   {
@@ -3572,7 +3572,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 37,
     "cooldown_reduction_ms_per_rank": 122,
-    "icon": "assets/skills/89_CurseOfWeakness.png",
+    "icon": "../assets/skills/89_CurseOfWeakness.png",
     "combo_builder": 0
   },
   {
@@ -3596,7 +3596,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 39,
     "cooldown_reduction_ms_per_rank": 197,
-    "icon": "assets/skills/90_Blessing.png",
+    "icon": "../assets/skills/90_Blessing.png",
     "combo_builder": 0
   },
   {
@@ -3620,7 +3620,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 20,
     "cooldown_reduction_ms_per_rank": 130,
-    "icon": "assets/skills/91_MarkOfTheHunter.png",
+    "icon": "../assets/skills/91_MarkOfTheHunter.png",
     "combo_builder": 0
   },
   {
@@ -3644,7 +3644,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 27,
     "cooldown_reduction_ms_per_rank": 122,
-    "icon": "assets/skills/92_Volley.png",
+    "icon": "../assets/skills/92_Volley.png",
     "combo_builder": 0
   },
   {
@@ -3668,7 +3668,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 29,
     "cooldown_reduction_ms_per_rank": 212,
-    "icon": "assets/skills/93_Berserk.png",
+    "icon": "../assets/skills/93_Berserk.png",
     "combo_builder": 0
   },
   {
@@ -3692,7 +3692,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 22,
     "cooldown_reduction_ms_per_rank": 167,
-    "icon": "assets/skills/94_Adrenaline.png",
+    "icon": "../assets/skills/94_Adrenaline.png",
     "combo_builder": 0
   },
   {
@@ -3716,7 +3716,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 3,
     "cooldown_reduction_ms_per_rank": 115,
-    "icon": "assets/skills/95_Smokescreen.png",
+    "icon": "../assets/skills/95_Smokescreen.png",
     "combo_builder": 0
   },
   {
@@ -3740,7 +3740,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 4,
     "cooldown_reduction_ms_per_rank": 228,
-    "icon": "assets/skills/96_RogueTrick.png",
+    "icon": "../assets/skills/96_RogueTrick.png",
     "combo_builder": 0
   },
   {
@@ -3764,7 +3764,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 2,
     "cooldown_reduction_ms_per_rank": 138,
-    "icon": "assets/skills/97_SearingBolt.png",
+    "icon": "../assets/skills/97_SearingBolt.png",
     "combo_builder": 0
   },
   {
@@ -3788,7 +3788,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 1,
     "cooldown_reduction_ms_per_rank": 18,
-    "icon": "assets/skills/98_SonicBoom.png",
+    "icon": "../assets/skills/98_SonicBoom.png",
     "combo_builder": 0
   },
   {
@@ -3812,7 +3812,7 @@
     "synergy_id": -1,
     "early_cancel_min_pct": 25,
     "cooldown_reduction_ms_per_rank": 201,
-    "icon": "assets/skills/99_MagneticBurst.png",
+    "icon": "../assets/skills/99_MagneticBurst.png",
     "combo_builder": 0
   }
 ]

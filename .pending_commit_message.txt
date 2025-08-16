@@ -1,8 +1,9 @@
-persistence: fix checksum logic (binary reopen), add format version & migration registry scaffolding
+persistence: autosave ring, durability toggle, migration bump to v2, tests
 
-- Added ROGUE_SAVE_FORMAT_VERSION (v1) + migration registration API.
-- Implemented checksum computation fix: reopen temp file in binary read mode, recompute CRC32 over post-header bytes, rewrite header (resolves load -7 mismatch).
-- Added test reset helper and migration registry structures.
-- Updated roadmap: Phase 2 items (2.1 Done, 2.2 Partial), Testing 10.1 Partial.
-- Expanded README with Persistence section detailing Phase 1 completion & Phase 2 kickoff.
-- Roundtrip test remains for integrated components; per-section & fuzz tests upcoming.
+- Added autosave ring API (rogue_save_manager_autosave) with N=ROGUE_AUTOSAVE_RING rotating slots.
+- Implemented internal generic save path writer (atomic temp -> final) centralizing checksum + ordering.
+- Added durable write toggle (fsync/_commit) via rogue_save_manager_set_durable.
+- Bumped SAVE_FORMAT_VERSION to 2; added linear migration walker (no-op chain currently) with error codes.
+- Added autosave ring unit test (test_save_autosave_ring) ensuring ring file count constraint.
+- Refactored save code for reuse; roadmap updated (1.3, 2.2, 6.2 Done; durability note in 1.4; tests 10.1 Partial).
+- README persistence section pending further per-section tests (future work).

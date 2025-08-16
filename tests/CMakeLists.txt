@@ -13,6 +13,36 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_roundtrip.c AND NOT TARGET 
     add_test(NAME test_save_roundtrip COMMAND test_save_roundtrip)
 endif()
 
+# Autosave ring test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_autosave_ring.c AND NOT TARGET test_save_autosave_ring)
+    add_executable(test_save_autosave_ring unit/test_save_autosave_ring.c)
+    target_link_libraries(test_save_autosave_ring PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_save_autosave_ring PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_save_autosave_ring COMMAND test_save_autosave_ring)
+endif()
+
+# Component ordering determinism test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_ordering_determinism.c AND NOT TARGET test_save_ordering_determinism)
+    add_executable(test_save_ordering_determinism unit/test_save_ordering_determinism.c)
+    target_link_libraries(test_save_ordering_determinism PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_save_ordering_determinism PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_save_ordering_determinism COMMAND test_save_ordering_determinism)
+endif()
+
+# Migration chain test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_migration_chain.c AND NOT TARGET test_save_migration_chain)
+    add_executable(test_save_migration_chain unit/test_save_migration_chain.c)
+    target_link_libraries(test_save_migration_chain PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_save_migration_chain PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_save_migration_chain COMMAND test_save_migration_chain)
+endif()
+
 # Explicitly add new maintainability phase M3.4 asset dependency graph test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_asset_dep.c AND NOT TARGET test_asset_dep)
     add_executable(test_asset_dep unit/test_asset_dep.c)

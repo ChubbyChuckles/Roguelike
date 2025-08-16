@@ -11,7 +11,7 @@
 #define ROGUE_AUTOSAVE_RING 4
 
 /* Current binary save format version */
-#define ROGUE_SAVE_FORMAT_VERSION 1u
+#define ROGUE_SAVE_FORMAT_VERSION 2u /* bumped after introducing migration runner */
 
 /* Component identifiers (stable) */
 typedef enum RogueSaveComponentId {
@@ -53,15 +53,21 @@ void rogue_save_manager_init(void);
 void rogue_save_manager_register(const RogueSaveComponent* comp);
 int rogue_save_manager_save_slot(int slot_index); /* full save */
 int rogue_save_manager_load_slot(int slot_index);
+int rogue_save_manager_autosave(int slot_index); /* autosave ring save */
 void rogue_register_core_save_components(void); /* registers Phase 1 core components */
 
 /* Migration API */
 void rogue_save_register_migration(const RogueSaveMigration* mig);
+int rogue_save_manager_set_durable(int enabled); /* enable fsync/_commit durability */
 
 /* Test helpers */
 void rogue_save_manager_reset_for_tests(void);
 
 /* Testing helpers */
 uint32_t rogue_crc32(const void* data, size_t len);
+
+/* Error codes (negative) beyond basic IO */
+#define ROGUE_SAVE_ERR_MIGRATION_FAIL   -20
+#define ROGUE_SAVE_ERR_MIGRATION_CHAIN  -21
 
 #endif

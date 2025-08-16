@@ -17,14 +17,14 @@ PHASE 0. Current Baseline (Partial)
 PHASE 1. Core Save Architecture
 1.1 Central SaveManager module (save/ directory) (Done)
 1.2 Save descriptor struct (version, timestamp, checksum, component mask) (Done)
-1.3 Canonical save path strategy (profile slots + autosave ring) (Partial: slot paths implemented, autosave ring deferred)
-1.4 Atomic write (temp file + rename) (Done; fsync not yet portable)
+1.3 Canonical save path strategy (profile slots + autosave ring) (Done)
+1.4 Atomic write (temp file + rename) (Done; durability toggle added, fsync/_commit optional)
 1.5 Deterministic ordering of serialized sections (qsort by id) (Done)
 1.6 Component registries: player, inventory, skills, buffs, vendor, world_meta (Done)
 
 PHASE 2. Versioning & Migration Infrastructure
-2.1 Global SAVE_FORMAT_VERSION constant (Done)
-2.2 Migration registry array (from_version -> fn) (Partial: registry struct & registration API; no migrations defined yet)
+2.1 Global SAVE_FORMAT_VERSION constant (Done; bumped to v2)
+2.2 Migration registry array (from_version -> fn) (Done: registration + linear migration walking, no-op chain supported)
 2.3 Incremental migration runner w/ rollback if failure (X)
 2.4 Migration logging & metrics (duration, steps) (X)
 2.5 Test harness: fabricate legacy versions & auto-upgrade (X)
@@ -53,7 +53,7 @@ PHASE 5. Incremental & Streaming Saves
 
 PHASE 6. Autosave & Scheduling
 6.1 Autosave interval & conditions (combat idle / out of danger) (X)
-6.2 Ring buffer (N autosave slots with timestamp) (X)
+6.2 Ring buffer (N autosave slots with timestamp) (Done: basic ring save paths; timestamp future enhancement)
 6.3 On-demand quick save (manual trigger) (X)
 6.4 Failure telemetry (write time, size) (X)
 6.5 UI indicator + throttling (X)
@@ -82,7 +82,7 @@ PHASE 9. Deterministic Replay Support
 9.4 Divergence diagnostics (first mismatching entity state diff) (X)
 
 PHASE 10. Testing & QA
-10.1 Unit tests: encode/decode roundtrip for each section (Partial: single integrated roundtrip test added; per-section tests pending)
+10.1 Unit tests: encode/decode roundtrip for each section (Partial: integrated roundtrip + autosave ring test; per-section tests pending)
 10.2 Fuzz tests: random truncated / corrupted bytes (X)
 10.3 Migration matrix test (all historical versions upgrade) (X)
 10.4 Performance test: incremental vs full save timing (X)

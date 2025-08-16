@@ -262,10 +262,12 @@ Phase 1 introduced a binary SaveManager with:
 * Atomic write (temp file then rename) minimizing corruption window.
 * Roundtrip integration test (`test_save_roundtrip`).
 
-Phase 2 foundations just added:
-* `ROGUE_SAVE_FORMAT_VERSION` macro (currently 1).
-* Migration registry scaffolding (`rogue_save_register_migration`) for future version upgrade chain.
-* Corrected checksum computation (re-open binary, compute over post-header bytes, rewrite header).
+Phase 2 foundations expanded:
+* `ROGUE_SAVE_FORMAT_VERSION` bumped to 2 (no-op migration path prepared).
+* Migration registry + linear walker (currently no data transforms required v1->v2).
+* Autosave ring (`rogue_save_manager_autosave`) rotates `autosave_0..N-1.sav` (N=ROGUE_AUTOSAVE_RING).
+* Durability toggle (`rogue_save_manager_set_durable`) optionally calls `_commit` / `fsync` after header rewrite.
+* Refactored internal save path routine consolidating checksum + ordering.
 
 Upcoming (Phase 2 / 3 targets):
 * Define first no-op migration (v1->v2) and harness for legacy blob upgrade simulation.
