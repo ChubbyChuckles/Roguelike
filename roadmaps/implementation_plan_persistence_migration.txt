@@ -38,7 +38,7 @@ PHASE 3. Serialization Format & Schema
 3.6 Optional compression (Done: simple RLE per-section when enabled; high bit of size marks compressed, uncompressed size prefix; API rogue_save_set_compression(enabled,min_bytes); migration v5->v6 no-op)
 
 PHASE 4. Integrity & Security
-4.1 CRC32 per section + overall SHA256 (X)
+4.1 CRC32 per section + overall SHA256 (Done: v7 adds per-section CRC32 appended after each section payload (uncompressed) and overall SHA256 footer magic SH32+digest; APIs rogue_save_last_sha256/hex; test_save_v7_integrity validates roundtrip & enumeration)
 4.2 Replay hash of gameplay-critical inputs separated from UI state (X)
 4.3 Tamper detection flags (version mismatch / hash fail) (X)
 4.4 Recovery attempt (restore previous autosave) (X)

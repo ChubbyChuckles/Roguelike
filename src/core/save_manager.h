@@ -11,7 +11,7 @@
 #define ROGUE_AUTOSAVE_RING 4
 
 /* Current binary save format version */
-#define ROGUE_SAVE_FORMAT_VERSION 6u /* v3: TLV headers (uint16 id + uint32 size); v4: varint counts/ids in section payloads; v5: string interning; v6: optional per-section compression */
+#define ROGUE_SAVE_FORMAT_VERSION 7u /* v3: TLV headers (uint16 id + uint32 size); v4: varint counts/ids in section payloads; v5: string interning; v6: optional per-section compression; v7: per-section CRC32 + overall SHA256 footer */
 
 /* Component identifiers (stable) */
 typedef enum RogueSaveComponentId {
@@ -40,7 +40,8 @@ typedef struct RogueSaveDescriptor {
     v3: Switched to compact TLV headers: uint16 id + uint32 size per section (format change)
     v4: Introduced varint (LEB128) encoding for section-local counts & ids (inventory item count, item id fields, skill count & ranks, buff count)
     v5: Added optional string interning table section (component id 7) containing unique strings referenced indirectly by future sections
-    v6: Optional per-section RLE compression (flag in size high bit for version>=6) with uncompressed size prefix (uint32) */
+    v6: Optional per-section RLE compression (flag in size high bit for version>=6) with uncompressed size prefix (uint32)
+    v7: Integrity hardening: per-section CRC32 (of uncompressed payload) appended after each section payload + 4-byte CRC, and overall SHA256 footer ("SH32" magic + 32 raw bytes) */
 
 
 /* Component callback interface */
@@ -98,9 +99,13 @@ void rogue_save_manager_reset_for_tests(void);
 
 /* Testing helpers */
 uint32_t rogue_crc32(const void* data, size_t len);
+const unsigned char* rogue_save_last_sha256(void); /* returns pointer to 32-byte array (v7+) */
+void rogue_save_last_sha256_hex(char out[65]); /* null-terminated hex of last SHA256 (v7+) */
 
 /* Error codes (negative) beyond basic IO */
 #define ROGUE_SAVE_ERR_MIGRATION_FAIL   -20
 #define ROGUE_SAVE_ERR_MIGRATION_CHAIN  -21
+#define ROGUE_SAVE_ERR_SECTION_CRC      -22
+#define ROGUE_SAVE_ERR_SHA256           -23
 
 #endif

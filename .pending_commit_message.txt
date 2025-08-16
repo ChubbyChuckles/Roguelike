@@ -1,9 +1,11 @@
-feat(persistence): implement Phase 3.6 per-section compression (v6)
+Persistence: Phase 4.1 Integrity Hardening (v7)
+ - Bump ROGUE_SAVE_FORMAT_VERSION to 7
+ - Added per-section CRC32 (uncompressed payload) appended after each section in v7
+ - Added overall SHA256 footer (magic SH32 + 32 bytes) covering all post-header bytes pre-footer
+ - Implemented minimal SHA256 (no external deps) and exposed APIs: rogue_save_last_sha256(), rogue_save_last_sha256_hex()
+ - Writer now computes section CRCs and final digest; loader validates descriptor checksum, per-section CRCs, and footer digest
+ - Added new error codes: ROGUE_SAVE_ERR_SECTION_CRC, ROGUE_SAVE_ERR_SHA256
+ - Added migration stub v6->v7 (no data transform required)
+ - Added unit test test_save_v7_integrity (verifies digest stability, iteration under new layout, hex helper)
+ - Updated roadmap (Phase 4.1 Done) and README persistence section (v7 integrity)
 
-* Bumped save format to v6 introducing optional RLE compression per section
-* Added API rogue_save_set_compression(enabled,min_bytes) controlling threshold
-* High bit of 32-bit section size marks compressed; payload begins with uncompressed size (uint32) then RLE (byte,run) pairs
-* Writer chooses compression when size>=min and compressed smaller than original
-* Loader transparently decompresses into temp buffer before invoking component read_fn
-* Added migration v5->v6 (no-op) and unit test test_save_v6_compression validating save/load under compression
-* Roadmap & README updated with v6 details
