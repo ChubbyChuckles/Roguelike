@@ -90,6 +90,7 @@ add_library(rogue_core
     src/core/persistence_world.c
     src/core/persistence_player.c
     src/core/persistence_autosave.c
+    src/core/save_manager.c
     # skills module split
     src/core/skills_registry.c
     src/core/skills_runtime.c

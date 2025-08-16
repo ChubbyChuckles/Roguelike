@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <stdlib.h> /* qsort, malloc */
 
 static RogueSaveComponent g_components[ROGUE_SAVE_MAX_COMPONENTS];
 static int g_component_count = 0;
@@ -29,7 +30,7 @@ static int cmp_comp(const void* a, const void* b){ const RogueSaveComponent*ca=a
 void rogue_save_manager_init(void){ if(g_initialized) return; g_initialized=1; /* ensure deterministic order */ }
 
 static char slot_path[128];
-static const char* build_slot_path(int slot){ snprintf(slot_path,sizeof slot_path,"save_slot_%d.sav", slot); return slot_path; }
+static const char* build_slot_path(int slot){ snprintf(slot_path,sizeof slot_path,"./save_slot_%d.sav", slot); return slot_path; }
 
 int rogue_save_manager_save_slot(int slot_index){
     if(slot_index<0 || slot_index>=ROGUE_SAVE_SLOT_COUNT) return -1;
@@ -89,9 +90,7 @@ int rogue_save_manager_load_slot(int slot_index){
 
 /* Basic player + world meta adapters bridging existing ad-hoc text save for Phase1 demonstration */
 static int write_player_component(FILE* f){
-    /* reuse existing function into memory buffer (simpler approach later replaced by structured binary) */
-    char path_backup[260]; strncpy(path_backup, rogue__player_stats_path(), sizeof path_backup); /* assume path fits */
-    /* Temporarily redirect path to temp memory file not feasible in C easily; instead serialize subset binary */
+    /* Serialize subset of player progression (minimal Phase 1 binary form) */
     fwrite(&g_app.player.level,sizeof g_app.player.level,1,f);
     fwrite(&g_app.player.xp,sizeof g_app.player.xp,1,f);
     fwrite(&g_app.player.health,sizeof g_app.player.health,1,f);

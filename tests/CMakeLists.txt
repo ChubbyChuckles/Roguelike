@@ -3,6 +3,16 @@ file(GLOB UNIT_TESTS unit/test_*.c)
 # Filter out removed/legacy test filenames that may linger in generated projects
 list(FILTER UNIT_TESTS EXCLUDE REGEX ".*test_skills_phase1_foundation.c$")
 
+# Phase 1 SaveManager roundtrip binary test (explicit add to avoid glob cache issues)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_roundtrip.c AND NOT TARGET test_save_roundtrip)
+    add_executable(test_save_roundtrip unit/test_save_roundtrip.c)
+    target_link_libraries(test_save_roundtrip PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_save_roundtrip PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_save_roundtrip COMMAND test_save_roundtrip)
+endif()
+
 # Explicitly add new maintainability phase M3.4 asset dependency graph test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_asset_dep.c AND NOT TARGET test_asset_dep)
     add_executable(test_asset_dep unit/test_asset_dep.c)

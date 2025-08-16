@@ -42,6 +42,7 @@ void rogue_save_manager_init(void);
 void rogue_save_manager_register(const RogueSaveComponent* comp);
 int rogue_save_manager_save_slot(int slot_index); /* full save */
 int rogue_save_manager_load_slot(int slot_index);
+void rogue_register_core_save_components(void); /* registers Phase 1 core components */
 
 /* Testing helpers */
 uint32_t rogue_crc32(const void* data, size_t len);
