@@ -574,6 +574,11 @@ size_t rogue_ui_serialize(const RogueUIContext* ctx, char* buffer, size_t buffer
 
 int rogue_ui_diff_changed(RogueUIContext* ctx){ if(!ctx) return 0; char tmp[1024]; size_t len = rogue_ui_serialize(ctx,tmp,sizeof tmp); uint64_t h = fnv1a64(tmp,len); if(h!=ctx->last_serial_hash){ ctx->last_serial_hash=h; return 1; } return 0; }
 
+/* Phase 10.1 Headless harness implementation */
+uint64_t rogue_ui_tree_hash(RogueUIContext* ctx){ if(!ctx) return 0; char tmp[1024]; size_t len=rogue_ui_serialize(ctx,tmp,sizeof tmp); return fnv1a64(tmp,len); }
+int rogue_ui_headless_run(const RogueUIContextConfig* cfg, double delta_time_ms, RogueUIBuildFn build, void* user, uint64_t* out_hash){
+    if(!cfg||!build) return 0; RogueUIContext ctx; if(!rogue_ui_init(&ctx,cfg)) return 0; rogue_ui_begin(&ctx,delta_time_ms); RogueUIInputState zero_in={0}; rogue_ui_set_input(&ctx,&zero_in); build(&ctx,user); rogue_ui_end(&ctx); if(out_hash) *out_hash = rogue_ui_tree_hash(&ctx); rogue_ui_shutdown(&ctx); return 1; }
+
 static void ui_enqueue(RogueUIContext* ctx,int k,int a,int b,int c){ if(!ctx) return; int next=(ctx->event_tail+1)%32; if(next==ctx->event_head) return; ctx->event_queue[ctx->event_tail].kind=k; ctx->event_queue[ctx->event_tail].a=a; ctx->event_queue[ctx->event_tail].b=b; ctx->event_queue[ctx->event_tail].c=c; ctx->event_tail=next; }
 int rogue_ui_poll_event(RogueUIContext* ctx, RogueUIEvent* out){ if(!ctx||!out) return 0; if(ctx->event_head==ctx->event_tail) return 0; *out=*(RogueUIEvent*)&ctx->event_queue[ctx->event_head]; ctx->event_head=(ctx->event_head+1)%32; return 1; }
 

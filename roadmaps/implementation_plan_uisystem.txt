@@ -95,7 +95,7 @@ PHASE 9. Performance & Virtualization
 9.5 Frame time regression guardrails (baseline snapshot) (Done: baseline set + threshold %, regression flag, auto-baseline averaging)
 
 PHASE 10. Testing & QA Automation
-10.1 Headless UI harness (software raster target or hash) (X)
+10.1 Headless UI harness (software raster target or hash) (Done: deterministic single-frame runner + hash; test `test_ui_phase10_headless_harness`)
 10.2 Golden image diff tests (tolerance thresholds) (X)
 10.3 Automated navigation traversal test (focus cycles) (X)
 10.4 Property fuzz tests (layout never overlaps reserved system bars) (X)

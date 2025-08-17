@@ -99,6 +99,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase9_virtual_inventory.c AN
     add_test(NAME test_ui_phase9_virtual_inventory COMMAND test_ui_phase9_virtual_inventory)
 endif()
 
+# UI Phase 10.1 headless harness test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase10_headless_harness.c AND NOT TARGET test_ui_phase10_headless_harness)
+    add_executable(test_ui_phase10_headless_harness unit/test_ui_phase10_headless_harness.c)
+    target_link_libraries(test_ui_phase10_headless_harness PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ui_phase10_headless_harness PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ui_phase10_headless_harness COMMAND test_ui_phase10_headless_harness)
+endif()
+
 # Loot API doc generator test (Itemsystem 23.5)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase23_api_doc.c AND NOT TARGET test_loot_phase23_api_doc)
     add_executable(test_loot_phase23_api_doc unit/test_loot_phase23_api_doc.c)

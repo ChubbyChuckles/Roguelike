@@ -368,6 +368,14 @@ int rogue_ui_inventory_grid(RogueUIContext* ctx, RogueUIRect rect, const char* i
     int slot_capacity, int columns, int* item_ids, int* item_counts,
     int cell_size, int* first_visible, int* visible_count);
 
+/* Phase 10.1 Headless Harness */
+/* Build callback invoked between begin/end inside headless runner. */
+typedef void (*RogueUIBuildFn)(RogueUIContext* ctx, void* user);
+/* Runs a single deterministic headless frame (delta_time_ms supplied) returning serialized hash. Returns 1 on success. */
+int rogue_ui_headless_run(const RogueUIContextConfig* cfg, double delta_time_ms, RogueUIBuildFn build, void* user, uint64_t* out_hash);
+/* Direct helper: compute current tree hash (same algorithm used by diff) without mutating diff state. */
+uint64_t rogue_ui_tree_hash(RogueUIContext* ctx);
+
 /* Phase 5 Skill Graph API */
 /* Begin a skill graph frame section: defines viewport in world coordinates and zoom scale. */
 void rogue_ui_skillgraph_begin(RogueUIContext* ctx, float view_x, float view_y, float view_w, float view_h, float zoom);
