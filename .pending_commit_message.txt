@@ -1,4 +1,15 @@
 feat(itemsys/phase17): profiling timers + hash index for item defs
+feat(itemsys/phase18.1/18.2): loot analytics ring buffer + JSON export (phase17.5 diff deferred)
+
+Phase 17.5 (deferred):
+ - Initial attempt at record-level diff inside inventory component save rolled back after build instability. Current incremental mode only caches whole component sections. Metrics API placeholder returns zeros pending reimplementation.
+
+Phase 18.1 / 18.2:
+ - New analytics module loot_analytics.c/h: fixed-cap (512) ring buffer of drop events (def_index, rarity, timestamp seconds) with rarity distribution counters.
+ - JSON export API rogue_loot_analytics_export_json outputs summary object: {"drop_events":N,"rarity_counts":[...] }.
+ - Unit test test_loot_phase18_analytics validates ring wrap, retrieval ordering, counts, and JSON formatting.
+
+Docs updated: roadmap marks 17.5 In Implementation (diff deferred), 18.1 & 18.2 Done; README adds Phase 18 slice and notes 17.5 deferral.
 
 Phase 17 advancements:
  - 17.3 Profiling harness: Added high-resolution nanosecond timers capturing total time spent in affix roll sections and weight summations. New metrics fields: weight_sum_time_ns, affix_roll_time_ns. Public APIs rogue_loot_perf_affix_roll_begin/end guard roll scope.

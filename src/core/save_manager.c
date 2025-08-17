@@ -39,6 +39,7 @@ static int g_last_recovery_used = 0; /* Phase 4.4 */
 static const RogueSaveSignatureProvider* g_sig_provider = NULL; /* v9 */
 /* Incremental save state (Phase 5.* runtime only; does not change on-disk version) */
 static int g_incremental_enabled = 0;
+/* Phase 17.5 record-level diff deferred (no additional state) */
 typedef struct { int id; unsigned char* data; uint32_t size; uint32_t crc32; int valid; } RogueCachedSection;
 static RogueCachedSection g_cached_sections[ROGUE_SAVE_MAX_COMPONENTS];
 static uint32_t g_dirty_mask = 0xFFFFFFFFu; /* start dirty */
@@ -51,7 +52,7 @@ static uint32_t g_last_save_bytes = 0;
 static double g_last_save_ms = 0.0;
 static int g_in_save = 0;
 static int g_autosave_throttle_ms = 0; /* gap after any save */
-int rogue_save_set_incremental(int enabled){ g_incremental_enabled = enabled?1:0; if(!g_incremental_enabled){ /* free all */ for(int i=0;i<ROGUE_SAVE_MAX_COMPONENTS;i++){ free(g_cached_sections[i].data); g_cached_sections[i].data=NULL; g_cached_sections[i].valid=0; } g_dirty_mask=0xFFFFFFFFu; } return 0; }
+int rogue_save_set_incremental(int enabled){ g_incremental_enabled = enabled?1:0; if(!g_incremental_enabled){ for(int i=0;i<ROGUE_SAVE_MAX_COMPONENTS;i++){ free(g_cached_sections[i].data); g_cached_sections[i].data=NULL; g_cached_sections[i].valid=0; } g_dirty_mask=0xFFFFFFFFu; } return 0; }
 int rogue_save_mark_component_dirty(int component_id){ if(component_id<=0||component_id>=32) return -1; g_dirty_mask |= (1u<<component_id); return 0; }
 int rogue_save_mark_all_dirty(void){ g_dirty_mask=0xFFFFFFFFu; return 0; }
 int rogue_save_set_autosave_interval_ms(int ms){ g_autosave_interval_ms = ms; return 0; }
@@ -647,11 +648,16 @@ static int read_player_component(FILE* f, size_t size){
 
 /* INVENTORY: serialize active item instances (count + each record) */
 static int write_inventory_component(FILE* f){
-    int count = 0; if(g_app.item_instances){
+    /* Phase 17.5 diff logic deferred: write full records each save (baseline behavior). */
+    int count = 0;
+    if(g_app.item_instances){
         for(int i=0;i<g_app.item_instance_cap;i++) if(g_app.item_instances[i].active) count++;
     }
-    if(g_active_write_version >= 4){ if(write_varuint(f,(uint32_t)count)!=0) return -1; }
-    else fwrite(&count, sizeof count,1,f);
+    if(g_active_write_version >= 4){
+        if(write_varuint(f,(uint32_t)count)!=0) return -1;
+    } else {
+        if(fwrite(&count,sizeof count,1,f)!=1) return -1;
+    }
     if(count==0) return 0;
     for(int i=0;i<g_app.item_instance_cap;i++) if(g_app.item_instances[i].active){
         RogueItemInstance* it=&g_app.item_instances[i];
@@ -662,14 +668,13 @@ static int write_inventory_component(FILE* f){
         fwrite(&it->prefix_value,sizeof it->prefix_value,1,f);
         fwrite(&it->suffix_index,sizeof it->suffix_index,1,f);
         fwrite(&it->suffix_value,sizeof it->suffix_value,1,f);
-        /* Durability (Phase 7.4) */
         fwrite(&it->durability_cur,sizeof it->durability_cur,1,f);
         fwrite(&it->durability_max,sizeof it->durability_max,1,f);
-    /* Phase 15.2 enchant level (future affix field expansion) */
-    fwrite(&it->enchant_level,sizeof it->enchant_level,1,f);
+        fwrite(&it->enchant_level,sizeof it->enchant_level,1,f);
     }
     return 0;
 }
+void rogue_save_inventory_diff_metrics(unsigned* reused, unsigned* rewritten){ if(reused) *reused=0; if(rewritten) *rewritten=0; }
 static int read_inventory_component(FILE* f, size_t size){
     int count=0; size_t bytes_consumed=0; size_t start_pos=0; /* ftell unreliable for memory temp; track manually */
     if(g_active_read_version >=4){ uint32_t c=0; if(read_varuint(f,&c)!=0) return -1; count=(int)c; }
