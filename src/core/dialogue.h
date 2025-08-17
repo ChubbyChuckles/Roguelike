@@ -53,6 +53,14 @@ typedef struct RogueDialoguePlayback {
     int suspended_inputs;    /* 1 if combat inputs suspended while active */
 } RogueDialoguePlayback;
 
+/* Phase 4 Persistence snapshot struct */
+typedef struct RogueDialoguePersistState {
+    int active;
+    int script_id;
+    int line_index;
+    float reveal_ms;
+} RogueDialoguePersistState;
+
 /* Begin playback of a registered script (returns 0 on success, <0 on error/not found). */
 int rogue_dialogue_start(int script_id);
 /* Advance to next line or close if at end; returns 1 if advanced, 0 if closed, <0 on error. */
@@ -97,6 +105,11 @@ int rogue_dialogue_effect_flag_count(void);
 const char* rogue_dialogue_effect_flag(int index);
 int rogue_dialogue_effect_item_count(void);
 int rogue_dialogue_effect_item(int index, int* out_item_id, int* out_qty);
+
+/* Phase 4 Persistence APIs */
+int rogue_dialogue_capture(RogueDialoguePersistState* out); /* returns 1 if captured, 0 if no active dialogue */
+int rogue_dialogue_restore(const RogueDialoguePersistState* st); /* returns 0 on success, negative on invalid */
+void rogue_dialogue_register_save_component(void); /* registers dialogue save component with save manager */
 
 #ifdef __cplusplus
 }

@@ -37,10 +37,10 @@ PHASE 3. Simple Effects (Optional Triggers per Line) (Done)
 3.2 Execution when line first displayed (once) (Done)
 3.3 Unit Test: effect application order & idempotence (no double apply on re-render) (Done)
 
-PHASE 4. Persistence & Resume (X)
-4.1 Serialize active conversation: script_id, line_index, reveal_progress_ms (X)
-4.2 Backward compatibility: size-prefixed blob, future reserved bytes (X)
-4.3 Unit Test: mid-line save/load restores position & reveals remaining text (X)
+PHASE 4. Persistence & Resume (Done)
+4.1 Serialize active conversation: script_id, line_index, reveal_progress_ms (Done)
+4.2 Backward compatibility: size-prefixed blob, future reserved bytes (Done)
+4.3 Unit Test: mid-line save/load restores position & reveals remaining text (Done) /* (reveal_ms placeholder until typewriter Phase 6) */
 
 PHASE 5. Localization Foundation (X)
 5.1 External string table lookup by text_key; fallback to inline text if key not found (X)

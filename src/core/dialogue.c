@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <assert.h>
+#include "core/save_manager.h"
 
 #ifndef ROGUE_DIALOGUE_MAX_SCRIPTS
 #define ROGUE_DIALOGUE_MAX_SCRIPTS 64
@@ -125,6 +126,21 @@ void rogue_dialogue_reset(void){
     g_playback = (RogueDialoguePlayback){0};
     g_flag_count=0; g_item_count=0;
 }
+
+/* Phase 4 Persistence capture/restore */
+int rogue_dialogue_capture(RogueDialoguePersistState* out){
+    if(!out) return -1; memset(out,0,sizeof *out); if(!g_playback.active) return 0; out->active=1; out->script_id=g_playback.script_id; out->line_index=g_playback.line_index; out->reveal_ms=g_playback.reveal_ms; return 1;
+}
+int rogue_dialogue_restore(const RogueDialoguePersistState* st){
+    if(!st) return -1; if(!st->active){ g_playback=(RogueDialoguePlayback){0}; return 0; }
+    const RogueDialogueScript* sc = rogue_dialogue_get(st->script_id); if(!sc) return -2; if(st->line_index<0 || st->line_index>=sc->line_count) return -3; g_playback=(RogueDialoguePlayback){1, st->script_id, st->line_index, st->reveal_ms, 1}; return 0;
+}
+
+/* Save component (choose id 9 unused in save manager enum range) */
+#define ROGUE_SAVE_COMP_DIALOGUE 9
+static int dialogue_write_fn(FILE* f){ RogueDialoguePersistState st; int cap=rogue_dialogue_capture(&st); (void)cap; return fwrite(&st, sizeof st,1,f)==1?0:-1; }
+static int dialogue_read_fn(FILE* f, size_t size){ if(size!=sizeof(RogueDialoguePersistState)) return -1; RogueDialoguePersistState st; if(fread(&st,sizeof st,1,f)!=1) return -2; return rogue_dialogue_restore(&st); }
+void rogue_dialogue_register_save_component(void){ static RogueSaveComponent comp={ROGUE_SAVE_COMP_DIALOGUE, dialogue_write_fn, dialogue_read_fn, "dialogue"}; rogue_save_manager_register(&comp); }
 
 const RogueDialoguePlayback* rogue_dialogue_playback(void){ return g_playback.active? &g_playback : NULL; }
 

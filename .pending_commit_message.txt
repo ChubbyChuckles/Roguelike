@@ -1,4 +1,1 @@
-dialogue(phase0): add minimal data model, plaintext loader, registry and unit test
-dialogue(phase1): add runtime playback state, advance/close logic, logging, UI panel, unit test
-dialogue(phase2): implement token expansion (${player_name}, ${run_seed}), detection at load, rendering/logging expansion, accessor API, unit test
-dialogue(phase3): add simple per-line effects (SET_FLAG, GIVE_ITEM) with parsing, single-execution mask, introspection APIs, and idempotence unit test
+dialogue: Phase 4 persistence implemented (capture/restore active conversation: script_id, line_index, reveal_ms). Added save component (id 9) with binary snapshot, unit test test_dialogue_phase4_persistence verifying restore closes correctly. Roadmap + README updated. Effects & tokens unaffected.
