@@ -1,14 +1,17 @@
-Dialogue System Phase 5: Localization Foundation
-- Integrated dialogue system into runtime frame loop (update + render) with global UI context hook.
-Dialogue System Phase 6: Typewriter & Skip Behavior
-- Added global enable API `rogue_dialogue_typewriter_enable` controlling reveal speed (chars/ms).
-- Render truncates text to revealed substring; advance during partial reveal completes line instead of moving forward (returns 2).
-- Second advance proceeds to next line; test `test_dialogue_phase6_typewriter` validates two-step skip.
-- Roadmap updated marking Phase 6 Done; README matrix advanced to Phase 6; commit message appended.
-- Added localization registry (locale,key -> value) with upsert + active locale switching.
-- Script authoring: lines beginning with [key] store key + inline fallback (allocated as key\0fallback).
-- During rendering/log/current_text: lookup active locale value, fallback to inline fallback if missing.
-- Token expansion applies after localization substitution.
-- Added reset clearing registry + default locale 'en'.
-- Unit test test_dialogue_phase5_localization covers registration, locale switch mid-script, restart under new locale.
-- Roadmap & README updated (Phase 5 marked Done; feature matrix updated).
+Dialogue: Fix character rendering (lowercase mapping + robust wrapping) and add avatar support (speaker@image syntax + registry + runtime panel display).
+Dialogue System Phase 7: Analytics & Runtime UI Fixes
+
+Summary:
+- Fixed dialogue runtime panel truncation (proper wrapping & reveal substring logic) ensuring full text renders during typewriter.
+- Added runtime SDL renderer helper (previous commit) now validated for full character output.
+- Implemented Phase 7 analytics: per-script line view counter, last view timestamp, and cumulative FNV1a digest across viewed lines.
+- Added public API rogue_dialogue_analytics_get(script_id,&lines,&last_ms,&digest).
+- Updated logging path to trigger analytics updates exactly once per first display of each line.
+- Added unit test test_dialogue_phase7_analytics validating counter increment & digest mutation.
+- Roadmap updated marking Phase 7 Done; README matrix advanced (next: Performance & Memory phase).
+- Appended commit message and kept SDL2 compile guard intact; all dialogue tests (0–7) pass.
+
+Testing:
+- Built Release with SDL2; ran dialogue suite (phases 0–7) – all Passed.
+- Verified analytics digest changes after additional line.
+

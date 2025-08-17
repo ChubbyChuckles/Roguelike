@@ -102,7 +102,7 @@ Design goals:
 | Instrumentation | Logging categories, stats window, histogram export | Drift alerts, heatmaps |
 | Persistence | Inventory + affix round‑trip | Versioned migrations beyond affixes |
 | Tooling | Pre‑commit hooks, formatting, test harness | Asset validation CLI, balancing scripts |
-| Dialogue | Ph0 data model+loader; Ph1 playback & UI; Ph2 tokens (${player_name}, ${run_seed}); Ph3 effects (SET_FLAG/GIVE_ITEM) idempotent; Ph4 persistence; Ph5 localization; Ph6 typewriter + skip | Analytics |
+| Dialogue | Ph0 data model+loader; Ph1 playback & UI; Ph2 tokens (${player_name}, ${run_seed}); Ph3 effects (SET_FLAG/GIVE_ITEM) idempotent; Ph4 persistence; Ph5 localization; Ph6 typewriter + skip; Ph7 analytics (line counters + digest) | Performance & Memory |
 
 See full, fine‑grained roadmap in `implementation_plan.txt` (kept continuously updated).
 

@@ -83,7 +83,9 @@ void rogue_font_draw_text(int x, int y, const char* text, int scale, RogueColor 
     int penx = x;
     for(const char* p=text; *p; ++p){
         if(*p=='\n'){ penx = x; y += gh*scale + 1; continue; }
-        int c = (unsigned char)*p;
+    int c = (unsigned char)*p;
+    /* Map lowercase ASCII to uppercase since bitmap only has 32..90 */
+    if(c>='a' && c<='z') c = c - 'a' + 'A';
         if(c < FIRST_CHAR || c > LAST_CHAR){ penx += gw*scale + scale; continue; }
         int idx = (c - FIRST_CHAR) * gh;
         for(int row=0; row<gh; ++row){

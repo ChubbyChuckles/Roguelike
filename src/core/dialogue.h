@@ -123,6 +123,17 @@ void rogue_dialogue_typewriter_enable(int enabled, float chars_per_ms); /* enabl
 /* Runtime (SDL) immediate render helper used by game loop (draws panel directly with SDL & font). */
 void rogue_dialogue_render_runtime(void);
 
+/* Phase 7 Analytics */
+int rogue_dialogue_analytics_get(int script_id, int* out_lines_viewed, double* out_last_view_ms, unsigned int* out_digest);
+
+/* Avatar Support (runtime only, lightweight registry mapping speaker_id -> texture path) */
+/* Register or update an avatar image for a speaker (path loaded immediately). Returns 0 on success. */
+int rogue_dialogue_avatar_register(const char* speaker_id, const char* image_path);
+/* Clear all registered avatars (frees textures). */
+void rogue_dialogue_avatar_reset(void);
+/* Internal: fetch avatar texture (NULL if none). */
+struct RogueTexture* rogue_dialogue_avatar_get(const char* speaker_id);
+
 #ifdef __cplusplus
 }
 #endif
