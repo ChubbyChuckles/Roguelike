@@ -88,11 +88,11 @@ PHASE 10. Debugging & Tooling
 10.5 Determinism verifier (dual-run hash compare) (Done) [rogue_ai_determinism_verify factory-based dual run path hash aggregation; unit test]
 
 PHASE 11. Testing & QA
-11.1 Unit tests for core nodes & decorators (X)
-11.2 Fuzz tests for blackboard updates (X)
-11.3 Scenario scripts: patrol->detect->chase->lose track (X)
-11.4 Repro test: identical seeds produce identical traces (X)
-11.5 Performance regression guard (time budget) (X)
+11.1 Unit tests for core nodes & decorators (Done) [Edge cases: Parallel success/failure/running mix, Selector/Sequence short‑circuit, Utility tie break, Cooldown boundary, Retry exhaustion/reset]
+11.2 Fuzz tests for blackboard updates (Done) [Deterministic pseudo‑random application of Set/Max/Min/Accumulate policies vs mirrored model; invariants: value bounds, no overflow of entry cap]
+11.3 Scenario scripts: patrol->detect->chase->lose track (Done) [Scripted waypoint patrol until visibility flag set, chase player, then lose track after TTL decay and resume patrol cycle]
+11.4 Repro test: identical seeds produce identical traces (Done) [Dual tree instances with RNG‑driven branch leaf produce identical serialized path & hash sequences under same seed; diverge with different seed]
+11.5 Performance regression guard (time budget) (Done) [Profiler frame simulation near threshold then breach asserting exceeded flag + agent count accounting]
 
 PHASE 12. Documentation
 12.1 Behavior authoring guide (X)

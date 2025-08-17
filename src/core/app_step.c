@@ -1,4 +1,5 @@
 /* Frame update & render loop extracted from app.c */
+#include <string.h> /* strlen used for fallback dialogue buffer registration */
 #include "core/app.h"
 #include "core/app_state.h"
 #include "core/game_loop.h"
@@ -117,7 +118,7 @@ void rogue_app_step(void)
         rogue_scene_drawlist_flush();
         rogue_world_render_items();
         rogue_projectiles_render();
-        rogue_damage_numbers_render();
+    rogue_damage_numbers_render();
         rogue_minimap_update_and_render(240);
         rogue_skill_bar_update(dt_ms);
         /* Dialogue runtime panel (direct SDL draw) & input binding */

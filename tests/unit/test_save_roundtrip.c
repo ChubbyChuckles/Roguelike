@@ -13,12 +13,7 @@
 
 RogueAppState g_app; RoguePlayer g_exposed_player_for_stats; void rogue_player_recalc_derived(RoguePlayer* p){ (void)p; }
 
-/* Minimal buff runtime (not provided elsewhere in unit build) */
-RogueBuff g_buffs_internal[8]; int g_buff_count_internal = 8;
-int rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, double now_ms){ (void)duration_ms; (void)now_ms; for(int i=0;i<g_buff_count_internal;i++){ if(!g_buffs_internal[i].active){ g_buffs_internal[i].active=1; g_buffs_internal[i].type=type; g_buffs_internal[i].magnitude=magnitude; g_buffs_internal[i].end_ms=now_ms+duration_ms; return i; } } return -1; }
-int rogue_buffs_get_total(RogueBuffType type){ int total=0; for(int i=0;i<g_buff_count_internal;i++) if(g_buffs_internal[i].active && g_buffs_internal[i].type==type) total += g_buffs_internal[i].magnitude; return total; }
-void rogue_buffs_init(void){ for(int i=0;i<g_buff_count_internal;i++){ g_buffs_internal[i].active=0; } }
-void rogue_buffs_update(double now_ms){ for(int i=0;i<g_buff_count_internal;i++){ if(g_buffs_internal[i].active && g_buffs_internal[i].end_ms <= now_ms) g_buffs_internal[i].active=0; } }
+/* Use real buff system (no custom implementation). */
 
 int main(void){
     memset(&g_app,0,sizeof g_app);
@@ -57,7 +52,8 @@ int main(void){
     g_app.player.level=1; g_app.player.xp=0; g_app.player.health=1; g_app.talent_points=0;
     s0->rank=0; s0->cooldown_end_ms=0; s1->rank=0; s1->cooldown_end_ms=0;
     for(int i=0;i<g_app.item_instance_cap;i++) if(g_app.item_instances && g_app.item_instances[i].active) g_app.item_instances[i].active=0;
-    for(int i=0;i<g_buff_count_internal;i++) g_buffs_internal[i].active=0;
+    /* Expire buffs via update with far-future time instead of poking internals */
+    rogue_buffs_update(1e9);
     g_app.vendor_seed=0; g_app.vendor_time_accum_ms=0; g_app.vendor_restock_interval_ms=0; g_app.pending_seed=0; g_app.gen_water_level=0; g_app.gen_cave_thresh=0;
 
     int rc = rogue_save_manager_load_slot(0); printf("LOAD_RC=%d\n", rc); fflush(stdout); assert(rc==0);

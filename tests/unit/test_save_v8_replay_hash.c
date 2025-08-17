@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 
-/* Buff stubs to satisfy save_manager references */
-typedef struct RogueBuff { int type; int active; float magnitude; double end_ms; } RogueBuff; RogueBuff g_buffs_internal[2]; int g_buff_count_internal=0; void rogue_buffs_apply(int t,float m,double end,float now){ (void)t;(void)m;(void)end;(void)now; }
+/* Buff stub (deduplicated) */
+/* Use real buff system */
 
 int main(void){
     if(ROGUE_SAVE_FORMAT_VERSION < 8u){ printf("REPLAY_SKIP v=%u\n", (unsigned)ROGUE_SAVE_FORMAT_VERSION); return 0; }

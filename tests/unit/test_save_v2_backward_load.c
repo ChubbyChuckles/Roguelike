@@ -4,8 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-/* Buff stubs */
-typedef struct RogueBuff { int type; int active; float magnitude; double end_ms; } RogueBuff; RogueBuff g_buffs_internal[2]; int g_buff_count_internal=0; void rogue_buffs_apply(int t,float m,double end,float now){ (void)t;(void)m;(void)end;(void)now; }
+/* Buff stub (deduplicated) */
+/* Use real buff system */
 
 static int migrate_v2_to_v3(unsigned char* data, size_t sz){ (void)data; (void)sz; return 0; }
 static RogueSaveMigration MIG = {2u,3u,migrate_v2_to_v3,"v2_to_v3"};

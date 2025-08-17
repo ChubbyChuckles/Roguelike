@@ -15,8 +15,10 @@ int main(void){
     /* Initialize player position baseline */
     g_app.player.base.pos.x = 10.0f; g_app.player.base.pos.y = 10.0f;
     /* Register passive fire mastery contributing synergy bucket 0 */
-    RogueSkillDef fire_mastery = {-1,"FireMastery","icon_fm",5,0,0,NULL,1,ROGUE_SKILL_TAG_FIRE,0,2};
-    RogueSkillDef fireball = {-1,"Fireball","icon_fire",5,6000,400,effect_fireball,0,ROGUE_SKILL_TAG_FIRE,-1,0};
+    RogueSkillDef fire_mastery = {0};
+    fire_mastery.id=-1; fire_mastery.name="FireMastery"; fire_mastery.icon="icon_fm"; fire_mastery.max_rank=5; fire_mastery.skill_strength=0; fire_mastery.base_cooldown_ms=0.0f; fire_mastery.cooldown_reduction_ms_per_rank=0.0f; fire_mastery.on_activate=NULL; fire_mastery.is_passive=1; fire_mastery.tags=ROGUE_SKILL_TAG_FIRE; fire_mastery.synergy_id=0; fire_mastery.synergy_value_per_rank=2;
+    RogueSkillDef fireball = {0};
+    fireball.id=-1; fireball.name="Fireball"; fireball.icon="icon_fire"; fireball.max_rank=5; fireball.skill_strength=0; fireball.base_cooldown_ms=6000.0f; fireball.cooldown_reduction_ms_per_rank=400.0f; fireball.on_activate=effect_fireball; fireball.is_passive=0; fireball.tags=ROGUE_SKILL_TAG_FIRE; fireball.synergy_id=-1; fireball.synergy_value_per_rank=0;
     int mastery_id = rogue_skill_register(&fire_mastery);
     int fireball_id = rogue_skill_register(&fireball);
     g_app.talent_points = 4; assert(rogue_skill_rank_up(mastery_id)==1); assert(rogue_skill_rank_up(mastery_id)==2); assert(rogue_skill_rank_up(mastery_id)==3); /* rank 3 => synergy 3*2=6 */

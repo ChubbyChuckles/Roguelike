@@ -44,8 +44,12 @@ static void test_flank_and_regroup(){
 
 static void test_cover_seek(){
     RogueBlackboard bb; rogue_bb_init(&bb);
+    /* Provide required positional keys for cover seek (player, agent, obstacle) plus output keys */
+    rogue_bb_set_vec2(&bb,"player_pos",5.0f,0.0f);
+    rogue_bb_set_vec2(&bb,"agent_pos",0.0f,0.0f);
+    rogue_bb_set_vec2(&bb,"rock_pos",2.5f,0.0f);
     rogue_bb_set_bool(&bb,"in_cover",false);
-    RogueBTNode* cover = rogue_bt_tactical_cover_seek("cover","in_cover");
+    RogueBTNode* cover = rogue_bt_tactical_cover_seek("cover","player_pos","agent_pos","rock_pos","cover_point","in_cover",0.6f,6.0f);
     RogueBehaviorTree* tree = rogue_behavior_tree_create(cover);
     assert(rogue_behavior_tree_tick(tree,&bb,0.016f)==ROGUE_BT_SUCCESS);
     bool in_cover=false; rogue_bb_get_bool(&bb,"in_cover",&in_cover); assert(in_cover);

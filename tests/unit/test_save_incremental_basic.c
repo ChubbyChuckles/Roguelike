@@ -11,9 +11,8 @@ static int read_dummy_a(FILE* f, size_t size){ if(size < sizeof(int)) return -1;
 static int write_dummy_b(FILE* f){ fwrite(&g_dummy_b_value,sizeof g_dummy_b_value,1,f); return 0; }
 static int read_dummy_b(FILE* f, size_t size){ if(size < sizeof(int)) return -1; fread(&g_dummy_b_value,sizeof g_dummy_b_value,1,f); return 0; }
 
-/* Provide buff globals referenced by core save (remain inactive) */
-typedef struct RogueBuff { int type; int active; float magnitude; double end_ms; } RogueBuff;
-RogueBuff g_buffs_internal[1]; int g_buff_count_internal=0; void rogue_buffs_apply(int t,float m,double end,float now){ (void)t;(void)m;(void)end;(void)now; }
+/* Buff stub (deduplicated) */
+/* Use real buff system */
 
 int main(void){
     setvbuf(stdout,NULL,_IONBF,0);

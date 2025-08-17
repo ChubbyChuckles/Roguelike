@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 
-/* Buff stubs */
-typedef struct RogueBuff { int type; int active; float magnitude; double end_ms; } RogueBuff; RogueBuff g_buffs_internal[1]; int g_buff_count_internal=0; void rogue_buffs_apply(int t,float m,double end,float now){ (void)t;(void)m;(void)end;(void)now; }
+/* Buff stub (deduplicated) */
+/* Use real buff system */
 
 static int dummy_sign(const unsigned char* data, size_t len, unsigned char* out, uint32_t* out_len){ /* simple XOR checksum signature */ unsigned char x=0; for(size_t i=0;i<len;i++) x^=data[i]; if(*out_len < 1) return -1; out[0]=x; *out_len=1; return 0; }
 static int dummy_verify(const unsigned char* data, size_t len, const unsigned char* sig, uint32_t sig_len){ if(sig_len!=1) return -1; unsigned char x=0; for(size_t i=0;i<len;i++) x^=data[i]; return (x==sig[0])?0:-1; }
