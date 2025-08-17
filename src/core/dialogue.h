@@ -15,6 +15,8 @@ typedef struct RogueDialogueLine {
     unsigned int effect_mask;    /* Phase 3 placeholder (always 0 in Phase 0) */
     unsigned int token_flags;    /* Phase 2 placeholder (always 0 in Phase 0) */
     unsigned char _reserved[8];  /* forward compatibility (branch targets, conditions) */
+    struct RogueDialogueEffect* effects; /* Phase 3: optional small list (<=4) */
+    unsigned char effect_count;          /* number of effect entries */
 } RogueDialogueLine;
 
 /* Phase 2 token flag bits */
@@ -26,7 +28,21 @@ typedef struct RogueDialogueScript {
     RogueDialogueLine* lines;    /* contiguous array (owned) */
     void* _blob;                 /* backing allocation for strings + lines (single free) */
     int _blob_size;              /* size in bytes of backing allocation */
+    unsigned long long _executed_mask; /* Phase 3: bit per line (first 64 lines) */
 } RogueDialogueScript;
+
+/* Phase 3 effect kinds */
+typedef enum RogueDialogueEffectKind {
+    ROGUE_DIALOGUE_EFFECT_SET_FLAG = 1,
+    ROGUE_DIALOGUE_EFFECT_GIVE_ITEM = 2
+} RogueDialogueEffectKind;
+
+typedef struct RogueDialogueEffect {
+    unsigned char kind; /* RogueDialogueEffectKind */
+    unsigned short a;   /* item id or unused */
+    unsigned short b;   /* qty or unused */
+    char name[24];      /* flag name (for SET_FLAG) */
+} RogueDialogueEffect;
 
 /* Phase 1 Runtime Playback State */
 typedef struct RogueDialoguePlayback {
@@ -75,6 +91,12 @@ void rogue_dialogue_reset(void);
 
 /* Introspect current registered script count (Phase 0 test helper). */
 int rogue_dialogue_script_count(void);
+
+/* Phase 3 Effects Introspection (test helpers) */
+int rogue_dialogue_effect_flag_count(void);
+const char* rogue_dialogue_effect_flag(int index);
+int rogue_dialogue_effect_item_count(void);
+int rogue_dialogue_effect_item(int index, int* out_item_id, int* out_qty);
 
 #ifdef __cplusplus
 }

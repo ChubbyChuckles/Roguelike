@@ -1,3 +1,4 @@
 dialogue(phase0): add minimal data model, plaintext loader, registry and unit test
 dialogue(phase1): add runtime playback state, advance/close logic, logging, UI panel, unit test
 dialogue(phase2): implement token expansion (${player_name}, ${run_seed}), detection at load, rendering/logging expansion, accessor API, unit test
+dialogue(phase3): add simple per-line effects (SET_FLAG, GIVE_ITEM) with parsing, single-execution mask, introspection APIs, and idempotence unit test

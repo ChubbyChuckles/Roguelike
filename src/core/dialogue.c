@@ -5,6 +5,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
+#include <assert.h>
 
 #ifndef ROGUE_DIALOGUE_MAX_SCRIPTS
 #define ROGUE_DIALOGUE_MAX_SCRIPTS 64
@@ -16,6 +18,10 @@ static RogueDialoguePlayback g_playback; /* zero-inited */
 /* Phase 2 token context */
 static char g_player_name[64] = "Player"; /* default */
 static unsigned int g_run_seed = 0;
+/* Phase 3 execution accumulators (simple test harness state) */
+static const char* g_flags[64]; static int g_flag_count=0;
+typedef struct { int item_id; int qty; } GrantedItem;
+static GrantedItem g_items[64]; static int g_item_count=0;
 
 void rogue_dialogue_set_player_name(const char* name){ if(!name||!*name) return; size_t n=strlen(name); if(n>sizeof(g_player_name)-1) n=sizeof(g_player_name)-1; memcpy(g_player_name,name,n); g_player_name[n]='\0'; }
 void rogue_dialogue_set_run_seed(unsigned int seed){ g_run_seed = seed; }
@@ -52,44 +58,38 @@ static int find_script_index(int id){
 static void trim(char* s){ if(!s) return; int len=(int)strlen(s); int a=0; while(a<len && (s[a]==' '||s[a]=='\t' || s[a]=='\r')) a++; int b=len-1; while(b>=a && (s[b]==' '||s[b]=='\t' || s[b]=='\r')) b--; if(a>0 || b<len-1){ int n=b-a+1; if(n<0) n=0; memmove(s, s+a, (size_t)n); s[n]='\0'; } }
 
 static int parse_and_register(int id, const char* buffer, int length){
-    if(find_script(id)) return -2; /* duplicate */
-    if(g_script_count >= ROGUE_DIALOGUE_MAX_SCRIPTS) return -3; /* capacity */
-    /* First pass: count valid lines */
+    if(find_script(id)) return -2;
+    if(g_script_count >= ROGUE_DIALOGUE_MAX_SCRIPTS) return -3;
     int line_count=0; const char* p=buffer; const char* end=buffer+length;
-    while(p<end){ const char* line_start=p; const char* nl=(const char*)memchr(p,'\n', (size_t)(end-p)); int l = (int)(nl? (nl-p): (end-p));
-        int valid=0; for(int i=0;i<l;i++){ if(line_start[i]=='#'){ valid=0; break; } if(line_start[i]=='|'){ valid=1; break; } if(line_start[i]>' '){ /* some non-space char before '|' */ }
-        }
-        if(valid) line_count++; p = nl? nl+1 : end; }
-    if(line_count==0){ return -4; }
-    /* Allocate blob: lines array + copies of each line (speaker + text) */
+    while(p<end){ const char* nl=(const char*)memchr(p,'\n',(size_t)(end-p)); int l=(int)(nl? (nl-p):(end-p));
+        int has_bar=0; for(int i=0;i<l;i++){ if(p[i]=='#'){ has_bar=0; break; } if(p[i]=='|'){ has_bar=1; break; } }
+        if(has_bar) line_count++; p = nl? nl+1 : end; }
+    if(line_count==0) return -4;
     size_t lines_bytes = sizeof(RogueDialogueLine)* (size_t)line_count;
-    /* Rough over-allocation for strings: original buffer length + line_count for null terminators */
     size_t blob_size = lines_bytes + (size_t)length + 8;
-    char* blob = (char*)malloc(blob_size); if(!blob) return -5;
-    RogueDialogueLine* lines = (RogueDialogueLine*)blob;
-    char* str_cursor = blob + lines_bytes; size_t str_remaining = blob_size - lines_bytes;
-    memset(lines,0,lines_bytes);
-    /* Second pass: populate */
-    p=buffer; int idx=0; while(p<end && idx<line_count){ const char* line_start=p; const char* nl=(const char*)memchr(p,'\n',(size_t)(end-p)); int l=(int)(nl? (nl-p):(end-p));
-        /* copy to temp buffer for modification */
-        char temp[1024]; if(l> (int)sizeof(temp)-1) l = (int)sizeof(temp)-1; memcpy(temp,line_start,(size_t)l); temp[l]='\0';
-        p = nl? nl+1 : end;
-        /* Skip empty / comment */
-        int allspace=1; for(int i=0;i<l;i++){ if(temp[i]>' '){ allspace=0; break; } }
-        if(allspace || temp[0]=='#') continue;
-        char* bar = strchr(temp,'|'); if(!bar) continue; *bar='\0'; char* speaker=temp; char* text=bar+1; trim(speaker); while(*text==' '||*text=='\t') text++; /* left trim only */
-        /* store strings */
-        size_t speaker_len = strlen(speaker); size_t text_len = strlen(text);
-        if(speaker_len+text_len+2 > str_remaining){ free(blob); return -6; }
-        char* speaker_copy = str_cursor; memcpy(speaker_copy,speaker,speaker_len+1); str_cursor += speaker_len+1; str_remaining -= speaker_len+1;
-        char* text_copy = str_cursor; memcpy(text_copy,text,text_len+1); str_cursor += text_len+1; str_remaining -= text_len+1;
-    /* quick scan for token syntax "${" */
-    unsigned int token_flags = 0u; if(strstr(text_copy, "${")) token_flags |= ROGUE_DIALOGUE_LINE_HAS_TOKENS;
-    lines[idx].speaker_id = speaker_copy; lines[idx].text = text_copy; lines[idx].token_flags = token_flags; idx++;
+    char* blob=(char*)malloc(blob_size); if(!blob) return -5; RogueDialogueLine* lines=(RogueDialogueLine*)blob; memset(lines,0,lines_bytes);
+    char* str_cursor=blob+lines_bytes; size_t str_remaining = blob_size-lines_bytes;
+    p=buffer; int idx=0;
+    while(p<end && idx<line_count){ const char* nl=(const char*)memchr(p,'\n',(size_t)(end-p)); int l=(int)(nl? (nl-p):(end-p));
+        char temp[1024]; if(l> (int)sizeof(temp)-1) l=(int)sizeof(temp)-1; memcpy(temp,p,(size_t)l); temp[l]='\0'; p = nl? nl+1 : end;
+        int allspace=1; for(int i=0;i<l;i++){ if(temp[i]>' '){ allspace=0; break; } } if(allspace || temp[0]=='#') continue;
+        char* bar=strchr(temp,'|'); if(!bar) continue; *bar='\0'; char* speaker=temp; char* text=bar+1; trim(speaker); while(*text==' '||*text=='\t') text++;
+        RogueDialogueEffect* eff_list=NULL; unsigned char eff_count=0; /* effect sections may be chained with additional '|' delimiters */
+        char* next_section = strchr(text,'|');
+        while(next_section){ *next_section='\0'; char* eff_section = next_section+1; /* parse this section (comma separated effects) */
+            char* cursor=eff_section; while(*cursor){ while(*cursor==' '||*cursor==',') cursor++; if(!*cursor) break; if(strncmp(cursor,"SET_FLAG(",9)==0){ cursor+=9; char name[24]; int n=0; while(*cursor && *cursor!=')' && n<(int)sizeof(name)-1){ name[n++]=*cursor++; } name[n]='\0'; if(*cursor==')') cursor++; if(eff_count<4){ if(!eff_list) eff_list=(RogueDialogueEffect*)calloc(4,sizeof(RogueDialogueEffect)); eff_list[eff_count].kind=ROGUE_DIALOGUE_EFFECT_SET_FLAG; for(int ci=0; ci<(int)sizeof(eff_list[eff_count].name); ++ci) eff_list[eff_count].name[ci]=0; for(int ci=0; name[ci] && ci<(int)sizeof(eff_list[eff_count].name)-1; ++ci) eff_list[eff_count].name[ci]=name[ci]; eff_count++; } }
+                else if(strncmp(cursor,"GIVE_ITEM(",10)==0){ cursor+=10; int idv=0, qtyv=0; while(isdigit((unsigned char)*cursor)){ idv=idv*10+(*cursor-'0'); cursor++; } if(*cursor==','){ cursor++; while(isdigit((unsigned char)*cursor)){ qtyv=qtyv*10+(*cursor-'0'); cursor++; } } if(qtyv<=0) qtyv=1; if(*cursor==')') cursor++; if(eff_count<4){ if(!eff_list) eff_list=(RogueDialogueEffect*)calloc(4,sizeof(RogueDialogueEffect)); eff_list[eff_count].kind=ROGUE_DIALOGUE_EFFECT_GIVE_ITEM; eff_list[eff_count].a=(unsigned short)idv; eff_list[eff_count].b=(unsigned short)qtyv; eff_count++; } }
+                while(*cursor && *cursor!=',') cursor++; if(*cursor==',') cursor++; }
+            next_section = strchr(next_section+1,'|');
+        }
+        size_t speaker_len=strlen(speaker); size_t text_len=strlen(text); if(speaker_len+text_len+2 > str_remaining){ if(eff_list) free(eff_list); free(blob); return -6; }
+        char* speaker_copy=str_cursor; memcpy(speaker_copy,speaker,speaker_len+1); str_cursor+=speaker_len+1; str_remaining-=speaker_len+1;
+        char* text_copy=str_cursor; memcpy(text_copy,text,text_len+1); str_cursor+=text_len+1; str_remaining-=text_len+1;
+        unsigned int token_flags=0u; if(strstr(text_copy,"${")) token_flags|=ROGUE_DIALOGUE_LINE_HAS_TOKENS;
+        lines[idx].speaker_id=speaker_copy; lines[idx].text=text_copy; lines[idx].token_flags=token_flags; lines[idx].effects=eff_list; lines[idx].effect_count=eff_count; idx++;
     }
-    line_count = idx; if(line_count==0){ free(blob); return -7; }
-    RogueDialogueScript* dst = &g_scripts[g_script_count++];
-    *dst = (RogueDialogueScript){ id, line_count, lines, blob, (int)blob_size };
+    line_count=idx; if(line_count==0){ free(blob); return -7; }
+    RogueDialogueScript* dst=&g_scripts[g_script_count++]; *dst=(RogueDialogueScript){ id, line_count, lines, blob, (int)blob_size, 0ull };
     return 0;
 }
 
@@ -120,9 +120,10 @@ const RogueDialogueScript* rogue_dialogue_get(int id){ return find_script(id); }
 int rogue_dialogue_script_count(void){ return g_script_count; }
 
 void rogue_dialogue_reset(void){
-    for(int i=0;i<g_script_count;i++){ free(g_scripts[i]._blob); g_scripts[i]._blob=NULL; g_scripts[i].lines=NULL; }
+    for(int i=0;i<g_script_count;i++){ if(g_scripts[i].lines){ for(int l=0;l<g_scripts[i].line_count;l++){ if(g_scripts[i].lines[l].effects) free(g_scripts[i].lines[l].effects); } } free(g_scripts[i]._blob); g_scripts[i]._blob=NULL; g_scripts[i].lines=NULL; }
     g_script_count=0;
     g_playback = (RogueDialoguePlayback){0};
+    g_flag_count=0; g_item_count=0;
 }
 
 const RogueDialoguePlayback* rogue_dialogue_playback(void){ return g_playback.active? &g_playback : NULL; }
@@ -159,6 +160,14 @@ int rogue_dialogue_render_ui(struct RogueUIContext* ui){
     if(!ui || !g_playback.active) return 0; const RogueDialogueScript* sc = rogue_dialogue_get(g_playback.script_id); if(!sc) return 0;
     if(g_playback.line_index <0 || g_playback.line_index >= sc->line_count) return 0;
     const RogueDialogueLine* ln = &sc->lines[g_playback.line_index];
+    /* Phase 3: execute line effects once */
+    unsigned long long mask_bit = (g_playback.line_index < 64)? (1ull << g_playback.line_index):0ull;
+    if(mask_bit && !(sc->_executed_mask & mask_bit)){
+        ((RogueDialogueScript*)sc)->_executed_mask |= mask_bit; /* cast away const for internal mutation */
+        for(int ei=0; ei<ln->effect_count; ++ei){ const RogueDialogueEffect* ef = &ln->effects[ei]; if(ef->kind==ROGUE_DIALOGUE_EFFECT_SET_FLAG){ if(g_flag_count<64){ g_flags[g_flag_count++]=ef->name; } }
+            else if(ef->kind==ROGUE_DIALOGUE_EFFECT_GIVE_ITEM){ if(g_item_count<64){ g_items[g_item_count].item_id=ef->a; g_items[g_item_count].qty+= (int)ef->b; g_item_count++; } }
+        }
+    }
     /* Basic panel layout bottom of screen; using arbitrary coordinates (future: compute from viewport) */
     float panel_w = 420.0f, panel_h = 110.0f; float x = 16.0f, y = 360.0f; /* assumptions */
     uint32_t bg = 0x202020C0u; uint32_t fg = 0xFFFFFFFFu; uint32_t speaker_col = 0x80FFD040u;
@@ -170,3 +179,9 @@ int rogue_dialogue_render_ui(struct RogueUIContext* ui){
     rogue_ui_text(ui, (RogueUIRect){x+panel_w-80,y+panel_h-22,68,16}, "[Enter]", 0xA0A0A0FFu);
     return 1;
 }
+
+/* Phase 3 introspection */
+int rogue_dialogue_effect_flag_count(void){ return g_flag_count; }
+const char* rogue_dialogue_effect_flag(int index){ if(index<0||index>=g_flag_count) return NULL; return g_flags[index]; }
+int rogue_dialogue_effect_item_count(void){ return g_item_count; }
+int rogue_dialogue_effect_item(int index, int* out_item_id, int* out_qty){ if(index<0||index>=g_item_count) return 0; if(out_item_id) *out_item_id=g_items[index].item_id; if(out_qty) *out_qty=g_items[index].qty; return 1; }
