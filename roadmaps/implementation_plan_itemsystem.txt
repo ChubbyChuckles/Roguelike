@@ -149,9 +149,9 @@ X = Not started yet
 18. Analytics & Telemetry (Optional) (Pending)
 18.1 Drop event ring buffer (Done: fixed-cap ring (512) of recent drops: def_index, rarity, time; APIs record + query)
 18.2 Export JSON stats snapshot (Done: `rogue_loot_analytics_export_json` outputs counts + totals JSON)
-18.3 Rarity distribution drift alerts (In Implementation)
-18.4 Session summary overlay (In Implementation)
-18.5 Heatmap of drop positions (In Implementation)
+18.3 Rarity distribution drift alerts (Done: baseline fractions + relative deviation threshold; API `rogue_loot_analytics_set_baseline_counts/fractions`, `rogue_loot_analytics_set_drift_threshold`, `rogue_loot_analytics_check_drift` returning per-rarity drift flags)
+18.4 Session summary overlay (Done: aggregated `RogueLootSessionSummary` with drops, per-rarity counts, duration, drops/min, drift flags via `rogue_loot_analytics_session_summary`)
+18.5 Heatmap of drop positions (Done: 32x32 grid, positional record API `rogue_loot_analytics_record_pos`, query `rogue_loot_analytics_heat_at`, CSV export `rogue_loot_analytics_export_heatmap_csv`)
 
 19. Audio/Visual Polish (Pending)
 19.1 Per-rarity pickup sounds (X)

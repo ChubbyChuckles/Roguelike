@@ -554,6 +554,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase18_analytics.c AND NOT
     add_test(NAME test_loot_phase18_analytics COMMAND test_loot_phase18_analytics)
 endif()
 
+# Phase 18.3/18.4/18.5 advanced analytics (drift + summary + heatmap)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase18_3_4_5_advanced.c AND NOT TARGET test_loot_phase18_3_4_5_advanced)
+    add_executable(test_loot_phase18_3_4_5_advanced unit/test_loot_phase18_3_4_5_advanced.c)
+    target_link_libraries(test_loot_phase18_3_4_5_advanced PRIVATE rogue_core)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_loot_phase18_3_4_5_advanced PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_loot_phase18_3_4_5_advanced COMMAND test_loot_phase18_3_4_5_advanced)
+endif()
+
 # Autosave scheduler test (Phase 6.1/6.3/6.4)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_autosave_scheduler.c AND NOT TARGET test_save_autosave_scheduler)
     add_executable(test_save_autosave_scheduler unit/test_save_autosave_scheduler.c)
