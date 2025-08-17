@@ -126,12 +126,14 @@ int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg){
     memset(ctx,0,sizeof *ctx);
     /* (Removed temporary static asserts to diagnose runtime corruption) */
     int cap = cfg->max_nodes>0? cfg->max_nodes:128;
+    if(cap<=0){ fprintf(stderr,"INIT_WARN computed cap<=0 from cfg.max_nodes=%d forcing 128\n", cfg->max_nodes); cap=128; }
     size_t node_bytes = (size_t)cap * sizeof(RogueUINode);
     fprintf(stderr,"INIT_ALLOC nodes cap=%d bytes=%zu sizeof(node)=%zu\n",cap,node_bytes,sizeof(RogueUINode)); fflush(stderr);
     ctx->nodes = (RogueUINode*)calloc((size_t)cap,sizeof(RogueUINode));
     ctx->stat_preview_slot = -1; /* Initialize stat_preview_slot */
     if(!ctx->nodes){ fprintf(stderr,"INIT_FAIL node alloc bytes=%zu\n",node_bytes); fflush(stderr); return 0; }
     ctx->node_capacity = cap;
+    if(ctx->node_capacity==0){ fprintf(stderr,"INIT_ERROR node_capacity ended 0 after alloc bytes=%zu\n", node_bytes); }
     fprintf(stderr,"INIT_NODES_OK capacity=%d nodes_ptr=%p\n",ctx->node_capacity,(void*)ctx->nodes); fflush(stderr);
     ctx->rng_state = cfg->seed? cfg->seed: 0xC0FFEEu;
     ctx->theme.panel_bg_color = 0x202028FFu;

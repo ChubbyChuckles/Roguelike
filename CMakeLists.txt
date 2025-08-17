@@ -89,6 +89,7 @@ add_library(rogue_core
     src/core/hud_buff_belt.c
     src/core/hud_overlays.c
     src/ui/core/ui_theme.c
+    src/ui/core/ui_test_harness.c
     src/core/player_progress.c
     src/core/world_renderer.c
     src/core/animation_system.c
