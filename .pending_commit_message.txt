@@ -1,4 +1,1 @@
-roadmap(dialogue): add linear-only dialogue system plan with early UI focus
- - Removed branching, choices, cinematics, scripting VM from initial scope
- - Prioritized Phases 0-1 (data model + in-game UI) then minimal effects, tokens, persistence
- - Added forward-compat placeholders and deterministic/persistence notes
+dialogue(phase0): add minimal data model, plaintext loader, registry and unit test

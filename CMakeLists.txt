@@ -181,6 +181,7 @@ add_library(rogue_core
     src/core/skill_graph_runtime.c
     src/core/skill_maze.c
     src/core/stat_cache.c
+    src/core/dialogue.c
     # UI Phase 1 scaffolding
     src/ui/core/ui_context.c
     # maintainability phase M3: unified kv parser utility
