@@ -1,14 +1,33 @@
-Itemsystem Phase 18.3/18.4/18.5: Advanced loot analytics features
-Itemsystem Phase 19.1: Per-rarity pickup sounds mapping
-- Added rarity->pickup sound id storage (strings) with APIs rogue_rarity_set_pickup_sound / rogue_rarity_get_pickup_sound alongside existing spawn sound mapping.
-- Integrated pickup sound lookup into loot pickup loop; logs chosen sound id (audio playback stub for now) preserving deterministic behavior.
-- Added unit test test_loot_phase19_1_pickup_sounds verifying spawn, pickup deactivation, and absence of crash with configured pickup sounds.
-- Updated roadmap (19.1 Done) and README with Phase 19.1 feature summary.
-Itemsystem Phases 19.2–19.5: Loot visual polish (sparkle, beam, edge notifier, pulse)
-- Introduced loot_vfx module (loot_vfx.c/h) maintaining per-instance visual state (sparkle timer, beam_active, pulse_active & alpha) plus edge notifier counting.
-- Integrated spawn/despawn/update hooks in loot_instances.c (calls rogue_loot_vfx_on_spawn/on_despawn and rogue_loot_vfx_update).
-- Implemented rarity>=3 beam pillar flag; sparkle timer cycles every 1.2s (placeholder for frame selection); pulse engages final 5s before despawn with normalized alpha ramp.
-- Added query APIs rogue_loot_vfx_get and rogue_loot_vfx_edge_notifiers for UI consumption & testing.
-- Added unit test test_loot_phase19_2_5_vfx validating spawn state, pulse activation, alpha monotonic increase, and cleanup after despawn.
-- Roadmap entries 19.2–19.5 marked Done and README updated with feature summary.
+Itemsystem Phase 20.1: Loot Table Parser Fuzz Harness
+
+Summary:
+- Added new unit test `test_loot_phase20_1_fuzz_tables` generating 1200 randomized/malformed loot table lines (well-formed entries, missing rolls, long IDs, random noise, comments, empty lines).
+- Synthetic item defs (10 minimal entries) loaded into a temporary file to permit a subset of valid references while exercising invalid ids (>=10) and negative/zero weights.
+- Fuzz lines vary quantity ranges (including reversed to test qmax<qmin correction), rarity min/max (negative, reversed), and include segments with invalid structure.
+- Ensures loader:
+	* Never crashes or hangs under large malformed input corpus.
+	* Respects caps (`ROGUE_MAX_LOOT_TABLES`, `ROGUE_MAX_LOOT_ENTRIES`).
+	* Ignores entries with invalid item index or non-positive weight (no unintended entry_count inflation).
+	* Clamps negative rolls/quantity/rarity fields consistent with existing parser logic.
+- Spot checks a known table (`TAB0`) for entry cap integrity.
+
+Roadmap / Docs:
+- Marked roadmap Phase 20.1 as Done with description.
+- Updated README (Recent Loot Phases section) adding Phase 20.1 QA note and rationale (preps for statistical harness Phases 20.2–20.3).
+
+Build/Test Integration:
+- Registered new test executable in `tests/CMakeLists.txt` with SDL guard macro.
+
+Next Steps (Phase 20.x):
+- 20.4 Affix round-trip stress (randomized item generation + save/load cycles).
+- 20.5 Max ground item + merge performance stress scenario.
+
+Itemsystem Phases 20.2 & 20.3: Statistical Harness + Rarity Regression
+
+Summary:
+- Added `test_loot_phase20_2_3_stats_regression` performing 100k deterministic roll iterations against table ORC_BASE, tracking rarity frequencies for long_sword band (0-2).
+- Validates each rarity appears at least once and no rarity deviates >0.15 absolute from uniform expectation (~0.333) establishing an early skew detection guard.
+- Roadmap updated marking 20.2 (statistical harness) and 20.3 (probability regression) Done; README updated with new entry.
+- Provides baseline empirical tolerance prior to introducing more sophisticated adaptive weighting or pity tuning changes; future adjustments that systematically bias distribution will fail this test.
+
 
