@@ -42,10 +42,10 @@ PHASE 4. Persistence & Resume (Done)
 4.2 Backward compatibility: size-prefixed blob, future reserved bytes (Done)
 4.3 Unit Test: mid-line save/load restores position & reveals remaining text (Done) /* (reveal_ms placeholder until typewriter Phase 6) */
 
-PHASE 5. Localization Foundation (X)
-5.1 External string table lookup by text_key; fallback to inline text if key not found (X)
-5.2 Active locale switch runtime (basic) (X)
-5.3 Unit Test: locale swap returns different strings while counts identical (X)
+PHASE 5. Localization Foundation (Done)
+5.1 External string table lookup by text_key; fallback to inline text if key not found (Done)
+5.2 Active locale switch runtime (basic) (Done)
+5.3 Unit Test: locale swap returns different strings while counts identical (Done)
 
 PHASE 6. Typewriter & Skip Behavior (X)
 6.1 Reveal speed (chars/ms constant) (X)

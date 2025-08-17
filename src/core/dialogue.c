@@ -24,6 +24,37 @@ static const char* g_flags[64]; static int g_flag_count=0;
 typedef struct { int item_id; int qty; } GrantedItem;
 static GrantedItem g_items[64]; static int g_item_count=0;
 
+/* Phase 5 Localization Storage */
+typedef struct RogueLocEntry { char locale[8]; char key[64]; char value[256]; } RogueLocEntry;
+#ifndef ROGUE_DIALOGUE_MAX_LOC_ENTRIES
+#define ROGUE_DIALOGUE_MAX_LOC_ENTRIES 256
+#endif
+static RogueLocEntry g_loc_entries[ROGUE_DIALOGUE_MAX_LOC_ENTRIES];
+static int g_loc_entry_count = 0;
+static char g_active_locale[8] = "en"; /* default */
+
+int rogue_dialogue_locale_register(const char* locale, const char* key, const char* value){
+    if(!locale||!*locale||!key||!*key||!value) return -1;
+    for(int i=0;i<g_loc_entry_count;i++){
+        if(strcmp(g_loc_entries[i].locale, locale)==0 && strcmp(g_loc_entries[i].key, key)==0){
+            size_t vl=strlen(value); if(vl>sizeof(g_loc_entries[i].value)-1) vl=sizeof(g_loc_entries[i].value)-1;
+            memcpy(g_loc_entries[i].value,value,vl); g_loc_entries[i].value[vl]='\0';
+            return 0;
+        }
+    }
+    if(g_loc_entry_count >= ROGUE_DIALOGUE_MAX_LOC_ENTRIES) return -2;
+    RogueLocEntry* e = &g_loc_entries[g_loc_entry_count++];
+    size_t ll=strlen(locale); if(ll>sizeof(e->locale)-1) ll=sizeof(e->locale)-1; memcpy(e->locale,locale,ll); e->locale[ll]='\0';
+    size_t kl=strlen(key); if(kl>sizeof(e->key)-1) kl=sizeof(e->key)-1; memcpy(e->key,key,kl); e->key[kl]='\0';
+    size_t vl=strlen(value); if(vl>sizeof(e->value)-1) vl=sizeof(e->value)-1; memcpy(e->value,value,vl); e->value[vl]='\0';
+    return 0;
+}
+int rogue_dialogue_locale_set(const char* locale){ if(!locale||!*locale) return -1; size_t ll=strlen(locale); if(ll>sizeof(g_active_locale)-1) ll=sizeof(g_active_locale)-1; memcpy(g_active_locale,locale,ll); g_active_locale[ll]='\0'; return 0; }
+const char* rogue_dialogue_locale_active(void){ return g_active_locale; }
+static const char* loc_lookup(const char* key){ for(int i=0;i<g_loc_entry_count;i++){ if(strcmp(g_loc_entries[i].locale,g_active_locale)==0 && strcmp(g_loc_entries[i].key,key)==0) return g_loc_entries[i].value; } return NULL; }
+/* For IS_KEY lines we store key\0fallback_text\0 in text field region */
+static const char* localized_fallback(const RogueDialogueLine* ln){ if(!ln) return NULL; if(!(ln->token_flags & ROGUE_DIALOGUE_LINE_IS_KEY)) return NULL; const char* key=ln->text; size_t klen=strlen(key); const char* fb = key + klen + 1; if(!*fb) return NULL; return fb; }
+
 void rogue_dialogue_set_player_name(const char* name){ if(!name||!*name) return; size_t n=strlen(name); if(n>sizeof(g_player_name)-1) n=sizeof(g_player_name)-1; memcpy(g_player_name,name,n); g_player_name[n]='\0'; }
 void rogue_dialogue_set_run_seed(unsigned int seed){ g_run_seed = seed; }
 
@@ -44,8 +75,10 @@ static size_t expand_tokens(const char* src, char* dest, size_t cap){
 
 int rogue_dialogue_current_text(char* buffer, size_t cap){
     if(!buffer||cap==0) return -1; const RogueDialoguePlayback* pb = rogue_dialogue_playback(); if(!pb) return -2; const RogueDialogueScript* sc = rogue_dialogue_get(pb->script_id); if(!sc) return -3; if(pb->line_index<0||pb->line_index>=sc->line_count) return -4; const RogueDialogueLine* ln=&sc->lines[pb->line_index];
-    if(ln->token_flags & ROGUE_DIALOGUE_LINE_HAS_TOKENS){ return (int)expand_tokens(ln->text, buffer, cap); }
-    size_t len=strlen(ln->text); if(len>cap-1) len=cap-1; memcpy(buffer,ln->text,len); buffer[len]='\0'; return (int)len;
+    const char* text = ln->text;
+    if(ln->token_flags & ROGUE_DIALOGUE_LINE_IS_KEY){ const char* loc = loc_lookup(ln->text); if(!loc) loc = localized_fallback(ln); if(loc) text=loc; }
+    if(ln->token_flags & ROGUE_DIALOGUE_LINE_HAS_TOKENS){ return (int)expand_tokens(text, buffer, cap); }
+    size_t len=strlen(text); if(len>cap-1) len=cap-1; memcpy(buffer,text,len); buffer[len]='\0'; return (int)len;
 }
 
 static const RogueDialogueScript* find_script(int id){
@@ -83,11 +116,27 @@ static int parse_and_register(int id, const char* buffer, int length){
                 while(*cursor && *cursor!=',') cursor++; if(*cursor==',') cursor++; }
             next_section = strchr(next_section+1,'|');
         }
-        size_t speaker_len=strlen(speaker); size_t text_len=strlen(text); if(speaker_len+text_len+2 > str_remaining){ if(eff_list) free(eff_list); free(blob); return -6; }
-        char* speaker_copy=str_cursor; memcpy(speaker_copy,speaker,speaker_len+1); str_cursor+=speaker_len+1; str_remaining-=speaker_len+1;
-        char* text_copy=str_cursor; memcpy(text_copy,text,text_len+1); str_cursor+=text_len+1; str_remaining-=text_len+1;
-        unsigned int token_flags=0u; if(strstr(text_copy,"${")) token_flags|=ROGUE_DIALOGUE_LINE_HAS_TOKENS;
-        lines[idx].speaker_id=speaker_copy; lines[idx].text=text_copy; lines[idx].token_flags=token_flags; lines[idx].effects=eff_list; lines[idx].effect_count=eff_count; idx++;
+        int is_key=0; const char* key_part=NULL; const char* fallback_part=NULL;
+        if(text[0]=='['){ char* close_br = strchr(text,']'); if(close_br && close_br>text+1){ *close_br='\0'; key_part=text+1; fallback_part=close_br+1; while(*fallback_part==' '||*fallback_part=='\t') fallback_part++; is_key=1; } }
+        size_t speaker_len=strlen(speaker);
+        if(!is_key){
+            size_t text_len=strlen(text);
+            if(speaker_len+text_len+2 > str_remaining){ if(eff_list) free(eff_list); free(blob); return -6; }
+            char* speaker_copy=str_cursor; memcpy(speaker_copy,speaker,speaker_len+1); str_cursor+=speaker_len+1; str_remaining-=speaker_len+1;
+            char* text_copy=str_cursor; memcpy(text_copy,text,text_len+1); str_cursor+=text_len+1; str_remaining-=text_len+1;
+            unsigned int token_flags=0u; if(strstr(text_copy,"${")) token_flags|=ROGUE_DIALOGUE_LINE_HAS_TOKENS;
+            lines[idx].speaker_id=speaker_copy; lines[idx].text=text_copy; lines[idx].token_flags=token_flags; lines[idx].effects=eff_list; lines[idx].effect_count=eff_count; idx++;
+        } else {
+            if(!key_part){ if(eff_list) free(eff_list); continue; }
+            if(!fallback_part||!*fallback_part) fallback_part="";
+            size_t key_len=strlen(key_part); size_t fb_len=strlen(fallback_part);
+            if(speaker_len + key_len + fb_len + 3 > str_remaining){ if(eff_list) free(eff_list); free(blob); return -6; }
+            char* speaker_copy=str_cursor; memcpy(speaker_copy,speaker,speaker_len+1); str_cursor+=speaker_len+1; str_remaining-=speaker_len+1;
+            char* key_copy=str_cursor; memcpy(key_copy,key_part,key_len+1); str_cursor+=key_len+1; str_remaining-=key_len+1;
+            char* fb_copy=str_cursor; memcpy(fb_copy,fallback_part,fb_len+1); str_cursor+=fb_len+1; str_remaining-=fb_len+1;
+            unsigned int token_flags=ROGUE_DIALOGUE_LINE_IS_KEY; if(strstr(fb_copy,"${")) token_flags|=ROGUE_DIALOGUE_LINE_HAS_TOKENS;
+            lines[idx].speaker_id=speaker_copy; lines[idx].text=key_copy; lines[idx].token_flags=token_flags; lines[idx].effects=eff_list; lines[idx].effect_count=eff_count; idx++;
+        }
     }
     line_count=idx; if(line_count==0){ free(blob); return -7; }
     RogueDialogueScript* dst=&g_scripts[g_script_count++]; *dst=(RogueDialogueScript){ id, line_count, lines, blob, (int)blob_size, 0ull };
@@ -124,7 +173,7 @@ void rogue_dialogue_reset(void){
     for(int i=0;i<g_script_count;i++){ if(g_scripts[i].lines){ for(int l=0;l<g_scripts[i].line_count;l++){ if(g_scripts[i].lines[l].effects) free(g_scripts[i].lines[l].effects); } } free(g_scripts[i]._blob); g_scripts[i]._blob=NULL; g_scripts[i].lines=NULL; }
     g_script_count=0;
     g_playback = (RogueDialoguePlayback){0};
-    g_flag_count=0; g_item_count=0;
+    g_flag_count=0; g_item_count=0; g_loc_entry_count=0; g_active_locale[0]='e'; g_active_locale[1]='n'; g_active_locale[2]='\0';
 }
 
 /* Phase 4 Persistence capture/restore */
@@ -156,7 +205,8 @@ void rogue_dialogue_log_current_line(void){
     if(g_playback.line_index < 0 || g_playback.line_index >= sc->line_count) return;
     const RogueDialogueLine* ln = &sc->lines[g_playback.line_index];
     char expanded[512]; const char* text = ln->text;
-    if(ln->token_flags & ROGUE_DIALOGUE_LINE_HAS_TOKENS){ expand_tokens(ln->text, expanded, sizeof expanded); text=expanded; }
+    if(ln->token_flags & ROGUE_DIALOGUE_LINE_IS_KEY){ const char* loc = loc_lookup(ln->text); if(!loc) loc = localized_fallback(ln); if(loc) text=loc; }
+    if(ln->token_flags & ROGUE_DIALOGUE_LINE_HAS_TOKENS){ expand_tokens(text, expanded, sizeof expanded); text=expanded; }
     ROGUE_LOG_INFO("DIALOGUE[%d] %s: %s", sc->id, ln->speaker_id, text);
 }
 
@@ -190,7 +240,7 @@ int rogue_dialogue_render_ui(struct RogueUIContext* ui){
     rogue_ui_panel(ui, (RogueUIRect){x,y,panel_w,panel_h}, bg);
     rogue_ui_text(ui, (RogueUIRect){x+12,y+10,panel_w-24,18}, ln->speaker_id, speaker_col);
     /* Phase 2: expand tokens into stack buffer */
-    char expanded[512]; const char* text = ln->text; if(ln->token_flags & ROGUE_DIALOGUE_LINE_HAS_TOKENS){ expand_tokens(text, expanded, sizeof expanded); text=expanded; }
+    char expanded[512]; const char* text = ln->text; if(ln->token_flags & ROGUE_DIALOGUE_LINE_IS_KEY){ const char* loc = loc_lookup(ln->text); if(!loc) loc = localized_fallback(ln); if(loc) text=loc; } if(ln->token_flags & ROGUE_DIALOGUE_LINE_HAS_TOKENS){ expand_tokens(text, expanded, sizeof expanded); text=expanded; }
     rogue_ui_text(ui, (RogueUIRect){x+12,y+34,panel_w-24,48}, text, fg);
     rogue_ui_text(ui, (RogueUIRect){x+panel_w-80,y+panel_h-22,68,16}, "[Enter]", 0xA0A0A0FFu);
     return 1;

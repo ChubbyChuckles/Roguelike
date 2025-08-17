@@ -21,6 +21,7 @@ typedef struct RogueDialogueLine {
 
 /* Phase 2 token flag bits */
 #define ROGUE_DIALOGUE_LINE_HAS_TOKENS 0x1u
+#define ROGUE_DIALOGUE_LINE_IS_KEY    0x2u /* Phase 5: text field stores localization key */
 
 typedef struct RogueDialogueScript {
     int id;                      /* caller supplied id */
@@ -82,6 +83,11 @@ void rogue_dialogue_set_run_seed(unsigned int seed);
 /* Retrieve current line expanded into buffer (tokens replaced). Returns length written, or <0 on error/inactive. */
 int rogue_dialogue_current_text(char* buffer, size_t cap);
 
+/* Phase 5 Localization */
+int rogue_dialogue_locale_register(const char* locale, const char* key, const char* value); /* returns 0 on success */
+int rogue_dialogue_locale_set(const char* locale); /* returns 0 on success */
+const char* rogue_dialogue_locale_active(void);    /* returns current locale code */
+
 /* Load a plaintext script from file path. Format per line: speaker_id|text
  * Empty lines or lines beginning with '#' are ignored. Whitespace around speaker_id is trimmed.
  * Returns 0 on success, <0 on error (duplicate id, parse, IO, capacity).
@@ -110,6 +116,9 @@ int rogue_dialogue_effect_item(int index, int* out_item_id, int* out_qty);
 int rogue_dialogue_capture(RogueDialoguePersistState* out); /* returns 1 if captured, 0 if no active dialogue */
 int rogue_dialogue_restore(const RogueDialoguePersistState* st); /* returns 0 on success, negative on invalid */
 void rogue_dialogue_register_save_component(void); /* registers dialogue save component with save manager */
+
+/* Phase 6 Typewriter & Skip */
+void rogue_dialogue_typewriter_enable(int enabled, float chars_per_ms); /* enable/disable typewriter reveal */
 
 #ifdef __cplusplus
 }

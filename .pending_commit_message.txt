@@ -1,1 +1,8 @@
-dialogue: Phase 4 persistence implemented (capture/restore active conversation: script_id, line_index, reveal_ms). Added save component (id 9) with binary snapshot, unit test test_dialogue_phase4_persistence verifying restore closes correctly. Roadmap + README updated. Effects & tokens unaffected.
+Dialogue System Phase 5: Localization Foundation
+- Added localization registry (locale,key -> value) with upsert + active locale switching.
+- Script authoring: lines beginning with [key] store key + inline fallback (allocated as key\0fallback).
+- During rendering/log/current_text: lookup active locale value, fallback to inline fallback if missing.
+- Token expansion applies after localization substitution.
+- Added reset clearing registry + default locale 'en'.
+- Unit test test_dialogue_phase5_localization covers registration, locale switch mid-script, restart under new locale.
+- Roadmap & README updated (Phase 5 marked Done; feature matrix updated).
