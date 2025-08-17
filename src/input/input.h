@@ -32,7 +32,8 @@ typedef enum RogueKey
     ROGUE_KEY_DOWN,
     ROGUE_KEY_LEFT,
     ROGUE_KEY_RIGHT,
-    ROGUE_KEY_ACTION,
+    ROGUE_KEY_ACTION,      /* attacks / primary action (SPACE) */
+    ROGUE_KEY_DIALOGUE,    /* dialogue confirm/advance (ENTER) */
     ROGUE_KEY_COUNT
 } RogueKey;
 

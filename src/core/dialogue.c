@@ -602,9 +602,18 @@ void rogue_dialogue_render_runtime(void){
         dst.y = y + panel_h - fh - 12; dst.w=fw; dst.h=fh; SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,tr,tg,tb,220); SDL_RenderFillRect(g_internal_sdl_renderer_ref,&dst); SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,0,0,0,255); SDL_RenderDrawRect(g_internal_sdl_renderer_ref,&dst);
     }
     unsigned int sc_col=g_style.speaker_color; rogue_font_draw_text(text_left, y+10, ln->speaker_id?ln->speaker_id:"?",1,(RogueColor){(sc_col>>16)&255,(sc_col>>8)&255,sc_col&255,(sc_col>>24)&255});
+    /* Ensure text does not overlap avatar area: if avatar on left we already bumped text_left, if on right limit width */
+    int right_limit = x + panel_w - 14; if(av && av->handle && avatar_side==1){ /* avatar on right -> shrink right limit */
+        int aw=av->w; int ah=av->h; if(aw>154) aw=154; if(ah>320) ah=320; float scale_w = 1.0f; if(ah> panel_h-40){ scale_w = (float)(panel_h-40)/(float)ah; } int dw=(int)(aw*scale_w); right_limit -= (dw + 20); if(right_limit < text_left+40) right_limit = text_left+40; }
     /* Word wrapping with fixed glyph width assumption (6px) */
-    int interior_w = (x + panel_w - 14) - text_left; if(interior_w<40) interior_w=40; int char_w=6; int max_chars_line = interior_w / char_w; if(max_chars_line<8) max_chars_line=8;
-    const char* p = draw_text; char linebuf[256]; int line_chars=0; int line_idx=0; int base_y = y+38; int max_lines=4;
+    int interior_w = right_limit - text_left; if(interior_w<40) interior_w=40; int char_w=6; int max_chars_line = interior_w / char_w; if(max_chars_line<8) max_chars_line=8;
+    const char* p = draw_text; char linebuf[256]; int line_chars=0; int line_idx=0; int max_lines=4;
+    /* First pass to count wrapped lines for vertical centering */
+    const char* pcount = draw_text; int temp_line_chars=0; int counted_lines=0; while(*pcount && counted_lines < max_lines){ while(*pcount==' ') pcount++; if(!*pcount) break; const char* word=pcount; int wlen=0; while(word[wlen] && word[wlen] != ' ' && word[wlen] != '\n') wlen++; int needed=(temp_line_chars==0?0:1)+wlen; if(temp_line_chars>0 && temp_line_chars + needed > max_chars_line){ counted_lines++; temp_line_chars=0; if(counted_lines>=max_lines) break; }
+        if(temp_line_chars==0) temp_line_chars=wlen; else temp_line_chars += 1 + wlen; pcount += wlen; if(*pcount=='\n'){ counted_lines++; temp_line_chars=0; pcount++; }
+    }
+    if(temp_line_chars>0 && counted_lines<max_lines) counted_lines++;
+    if(counted_lines==0) counted_lines=1; int total_text_height = counted_lines * 20; int base_y = y + (panel_h - total_text_height)/2 + 4; if(base_y < y+34) base_y = y+34;
     unsigned int text_col=g_style.text_color; unsigned int sh_col=g_style.text_shadow_color; int draw_shadow=g_style.enable_text_shadow && (sh_col>>24)!=0;
     while(*p && line_idx < max_lines){ while(*p==' ') p++; if(!*p) break; const char* word=p; int wlen=0; while(word[wlen] && word[wlen] != ' ' && word[wlen] != '\n') wlen++; int needed = (line_chars==0?0:1) + wlen; if(line_chars>0 && needed + line_chars > max_chars_line){ linebuf[line_chars]='\0'; if(draw_shadow) rogue_font_draw_text(text_left+1, base_y + line_idx*20+1, linebuf,1,(RogueColor){(sh_col>>16)&255,(sh_col>>8)&255,sh_col&255,(sh_col>>24)&255}); rogue_font_draw_text(text_left, base_y + line_idx*20, linebuf,1,(RogueColor){(text_col>>16)&255,(text_col>>8)&255,text_col&255,(text_col>>24)&255}); line_idx++; line_chars=0; if(line_idx>=max_lines) break; }
         if(line_chars==0){ int copy=wlen; if(copy> (int)sizeof(linebuf)-1) copy=(int)sizeof(linebuf)-1; memcpy(linebuf, word, copy); line_chars=copy; linebuf[line_chars]='\0'; }

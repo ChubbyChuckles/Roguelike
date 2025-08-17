@@ -93,8 +93,11 @@ bool rogue_input_map_scancode(int scancode, RogueKey* out_key)
         *out_key = ROGUE_KEY_RIGHT;
         return true;
     case SDL_SCANCODE_SPACE:
+        *out_key = ROGUE_KEY_ACTION; /* attack */
+        return true;
     case SDL_SCANCODE_RETURN:
-        *out_key = ROGUE_KEY_ACTION;
+    case SDL_SCANCODE_KP_ENTER:
+        *out_key = ROGUE_KEY_DIALOGUE; /* dialogue only */
         return true;
     default:
         return false;

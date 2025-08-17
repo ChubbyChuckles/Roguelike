@@ -351,8 +351,9 @@ void rogue_app_step(void)
     rogue_player_controller_update();
     /* Now process any queued skill activations so they use updated player position */
     rogue_process_pending_skill_activations();
-    /* Attack input (SPACE/RETURN maps to ACTION) */
+    /* Attack input (SPACE) and dialogue input (ENTER) */
     int attack_pressed = rogue_input_was_pressed(&g_app.input, ROGUE_KEY_ACTION);
+    int dialogue_pressed = rogue_input_was_pressed(&g_app.input, ROGUE_KEY_DIALOGUE);
     float raw_dt_ms = (float)g_app.dt * 1000.0f;
     if(g_app.hitstop_timer_ms > 0){
         g_app.hitstop_timer_ms -= raw_dt_ms;

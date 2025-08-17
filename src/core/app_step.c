@@ -38,8 +38,8 @@
 #include "core/player_controller.h"
 
 /* UI panels (implemented in vendor_ui.c) */
-void rogue_vendor_panel_render(void);
-void rogue_equipment_panel_render(void);
+#include "core/vendor_ui.h"
+#include "core/equipment.h" /* if equipment panel declared elsewhere include appropriate header */
 #include "util/log.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
@@ -89,6 +89,7 @@ void rogue_app_step(void)
     extern void rogue_process_pending_skill_activations(void); /* declared in skills runtime */
     rogue_process_pending_skill_activations();
     int attack_pressed = rogue_input_was_pressed(&g_app.input, ROGUE_KEY_ACTION);
+    int dialogue_pressed = rogue_input_was_pressed(&g_app.input, ROGUE_KEY_DIALOGUE);
     float raw_dt_ms = (float)g_app.dt * 1000.0f;
         if(g_app.hitstop_timer_ms > 0){ g_app.hitstop_timer_ms -= raw_dt_ms; if(g_app.hitstop_timer_ms < 0) g_app.hitstop_timer_ms = 0; }
         float hitstop_scale = (g_app.hitstop_timer_ms > 0)? 0.25f : 1.0f;
@@ -121,8 +122,7 @@ void rogue_app_step(void)
         rogue_skill_bar_update(dt_ms);
         /* Dialogue runtime panel (direct SDL draw) & input binding */
         {
-            int action_pressed = attack_pressed; /* reuse action key */
-            if(action_pressed){
+            if(dialogue_pressed){
                 const RogueDialoguePlayback* dp = rogue_dialogue_playback();
                 if(dp){
                     /* Advance current script; rogue_dialogue_advance returns 0 when finished */
