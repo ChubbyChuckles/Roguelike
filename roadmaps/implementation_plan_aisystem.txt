@@ -17,10 +17,10 @@ PHASE 1. Core Behaviour Architecture
 1.1 Behaviour module scaffold (ai/) with subdirs: core/, nodes/, perception/, tactics/, test/ (Done) [Added ai/ with core/, nodes/, util/ (perception/tactics deferred); integrated into build]
 1.2 BehaviorTree + blackboard structs (Done) [Minimal BT (Selector, Sequence) + linear blackboard (int/float/bool/ptr); recursive destroy; unit test]
 1.3 Lightweight Utility AI scorer interface (BT leaf can delegate) (Done) [Introduced utility_scorer.h stub; no dynamic selection yet]
-1.4 Execution scheduler (tick budget & staggering) (X)
-1.5 Deterministic RNG stream per agent (X)
-1.6 Behavior trace ring buffer for debugging (X)
-1.7 Serialization of BT active path for save/replay (X)
+1.4 Execution scheduler (tick budget & staggering) (Done) [Initial accounting: per-tree tick counter + placeholder budget fields]
+1.5 Deterministic RNG stream per agent (Done) [ai/core/ai_rng.h xorshift64* stream; deterministic equality test]
+1.6 Behavior trace ring buffer for debugging (Done) [ai/core/ai_trace.{c,h} ring buffer with hash entries]
+1.7 Serialization of BT active path for save/replay (Done) [Preorder serialization of visited nodes; path hash used in trace test]
 
 PHASE 2. Blackboard & Memory
 2.1 Key-value typed memory (int, float, vec2, entity_ref, timer) (X)
@@ -110,5 +110,6 @@ SUCCESS METRICS
 - 95% node library unit test coverage.
 
 NEXT ACTION CANDIDATES
-- Implement Phase 1.1–1.3 scaffolding.
-- Add simple BT: (Selector: AttackIfVisible -> MoveToPlayer -> Patrol).
+- Phase 2.x blackboard extensions (vec2/entity_ref/timer + TTL & policies)
+- Add utility selector node leveraging scorer interface (Phase 4.6 precursor)
+- Integrate BT driving real enemy behaviors behind feature flag

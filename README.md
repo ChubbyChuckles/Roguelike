@@ -118,15 +118,16 @@ See full, fine‑grained roadmap in `implementation_plan.txt` (kept continuously
 * Vegetation collision distinguishes trunk (blocking) from canopy (visual) validated by trunk/canopy tests.
 * Biome directory structure prepped for per-biome loot modifiers (context already carries biome id).
 
-#### AI & Behaviour (Phase 1.1–1.3 Implemented)
-Initial scaffolding for the modular behaviour system now landed:
-* `ai/core/behavior_tree.[ch]` – minimal Behavior Tree engine (node struct, recursive destroy, tick dispatch).
-* `ai/core/blackboard.[ch]` – fixed-cap linear typed blackboard (int/float/bool/ptr) for early experimentation.
-* `ai/nodes/basic_nodes.[ch]` – core composites (Selector, Sequence) + trivial leaf/condition helpers.
-* `ai/util/utility_scorer.h` – lightweight scoring interface (stubs; dynamic utility selector node deferred to Phase 4/6).
-* Unit test: `test_ai_behavior_tree` validates blackboard write/read and composite traversal success/fallback behavior.
+#### AI & Behaviour (Phase 1.1–1.7 Implemented)
+Phase 1 core architecture established:
+* `ai/core/behavior_tree.[ch]` – minimal BT engine + tick accounting & active path serialization.
+* `ai/core/blackboard.[ch]` – fixed-cap typed store (int/float/bool/ptr).
+* `ai/nodes/basic_nodes.[ch]` – Selector / Sequence + simple condition & stub leaves.
+* `ai/util/utility_scorer.h` – scoring interface (utility composite deferred to later phase).
+* NEW (1.4–1.7): scheduler counters (tick_count), deterministic per-agent RNG (`ai_rng.h` xorshift64*), trace ring buffer (`ai_trace.{c,h}`) capturing hashed active path, preorder path serialization for future save/replay.
+* Tests: `test_ai_behavior_tree` (foundational) and `test_ai_phase1_scheduler_trace` (trace ring, RNG determinism, path hashing).
 
-Upcoming (Phase 1.4–1.7 & Phase 2+): execution scheduler, per-agent deterministic RNG stream, behavior trace ring, serialization of active path, richer blackboard value types (vec2, entity_ref, timers, decay / TTL), and perception-driven condition nodes.
+Next AI work: richer blackboard (vec2/entity_ref/timer + TTL & write policies), utility selector implementation, integrating BT-driven enemy behaviors behind a feature flag, and perception (LOS / vision cone conditions).
 
 
 #### Combat & Skills

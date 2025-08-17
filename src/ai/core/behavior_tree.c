@@ -1,6 +1,7 @@
 #include "behavior_tree.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 static RogueBTNode* rogue_bt_node_allocate(void) {
     RogueBTNode* n = (RogueBTNode*)calloc(1, sizeof(RogueBTNode));
@@ -59,5 +60,31 @@ void rogue_behavior_tree_destroy(RogueBehaviorTree* tree) {
 
 RogueBTStatus rogue_behavior_tree_tick(RogueBehaviorTree* tree, struct RogueBlackboard* bb, float dt) {
     if(!tree || !tree->root || !tree->root->vtable || !tree->root->vtable->tick) return ROGUE_BT_INVALID;
+    tree->tick_count++;
     return tree->root->vtable->tick(tree->root, bb, dt);
+}
+
+static void serialize_path_recursive(RogueBTNode* node, char** cursor, char* end, int* first_written) {
+    if(!node) return;
+    if(*cursor >= end) return;
+    int remaining = (int)(end - *cursor);
+    if(!*first_written) {
+        int w = snprintf(*cursor, remaining, "%s", node->debug_name?node->debug_name:"?");
+        if(w>0) *cursor += (w < remaining ? w : remaining);
+        *first_written = 1;
+    } else {
+        int w = snprintf(*cursor, remaining, ">%s", node->debug_name?node->debug_name:"?");
+        if(w>0) *cursor += (w < remaining ? w : remaining);
+    }
+    for(uint16_t i=0;i<node->child_count;i++) {
+        serialize_path_recursive(node->children[i], cursor, end, first_written);
+    }
+}
+
+int rogue_behavior_tree_serialize_active_path(RogueBehaviorTree* tree, char* out, int max_out) {
+    if(!tree || !out || max_out<=0) return -1;
+    char* cursor = out; char* end = out + (max_out-1); int first=0;
+    serialize_path_recursive(tree->root, &cursor, end, &first);
+    *cursor='\0';
+    return (int)(cursor - out);
 }

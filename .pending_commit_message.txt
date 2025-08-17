@@ -1,17 +1,17 @@
-AI Phase 1.1–1.3: Behavior Tree & Blackboard scaffolding
+AI Phase 1.4–1.7: Scheduler accounting, deterministic RNG, trace buffer, path serialization
 
 Summary:
-* Added ai/ module with core BT engine (behavior_tree.c,h) and linear typed blackboard (blackboard.c,h).
-* Implemented basic composite & leaf nodes (Selector, Sequence, always success/failure, bool check condition).
-* Introduced lightweight utility scorer interface (utility_scorer.h) for future dynamic utility selection.
-* Integrated new sources into build; added explicit unit test (test_ai_behavior_tree) exercising blackboard & traversal.
-* Updated AI roadmap marking 1.1–1.3 Done with implementation notes.
-* README updated with new AI & Behaviour section summarizing Phase 1 progress and upcoming work.
+* Extended BehaviorTree with tick counters & active path serialization helper.
+* Added deterministic per-agent RNG (xorshift64*) `ai/core/ai_rng.h`.
+* Implemented behavior trace ring buffer `ai/core/ai_trace.{c,h}` (stores tick index + path hash).
+* Added preorder active path serializer + hashing in tests for replay/consistency groundwork.
+* New unit test `test_ai_phase1_scheduler_trace` validating trace accumulation, path change hashing, and RNG determinism.
+* Roadmap updated (1.4–1.7 marked Done) & README AI section expanded to reflect new capabilities.
 
 Notes / Next Steps:
-- Phase 1.4–1.7: scheduler, per-agent RNG, trace buffer, serialization pipeline.
-- Phase 2: extend blackboard types (vec2, entity refs, timers + TTL/decay) and reactive invalidation.
-- Later: integrate BT driving enemy_system_ai.c (currently still procedural) behind feature flag.
+- Phase 2 blackboard extensions (vec2/entity_ref/timer + TTL / write policies).
+- Utility selector implementation using scorer interface.
+- Integrate BT into enemy update loop behind feature flag for incremental migration.
 
 Testing:
-- New unit test passes (Selector fallback path then conditional success scenario).
+- Both AI tests pass under Release build with SDL enabled (executed via ctest from build dir).

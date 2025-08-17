@@ -41,6 +41,10 @@ typedef struct RogueBTNode {
 // Behavior tree root wrapper
 typedef struct RogueBehaviorTree {
     RogueBTNode* root;
+    // Scheduler accounting
+    uint32_t tick_count;       // number of ticks executed
+    uint32_t last_tick_frame;  // frame index (if integrated with global frame counter)
+    uint32_t budget_micros;    // optional per-tree budget (microseconds) placeholder
 } RogueBehaviorTree;
 
 // API
@@ -51,6 +55,10 @@ bool rogue_bt_node_add_child(RogueBTNode* parent, RogueBTNode* child);
 RogueBehaviorTree* rogue_behavior_tree_create(RogueBTNode* root);
 void rogue_behavior_tree_destroy(RogueBehaviorTree* tree);
 RogueBTStatus rogue_behavior_tree_tick(RogueBehaviorTree* tree, struct RogueBlackboard* bb, float dt);
+
+// Serialize the active path (nodes that returned SUCCESS or RUNNING in order) into a buffer of debug names separated by '>'
+// Returns number of bytes written (excluding null terminator) or -1 on error.
+int rogue_behavior_tree_serialize_active_path(RogueBehaviorTree* tree, char* out, int max_out);
 
 #ifdef __cplusplus
 }
