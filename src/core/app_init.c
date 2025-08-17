@@ -48,6 +48,7 @@ SOFTWARE.
 #include "core/vendor.h"
 #include "core/economy.h"
 #include "core/tile_sprite_cache.h"
+#include "core/dialogue.h" /* dialogue system */
 #include "core/vegetation.h"
 #include "world/world_gen.h"
 #include "world/world_gen_config.h"
@@ -167,6 +168,42 @@ bool rogue_app_init(const RogueAppConfig* cfg)
         if(getcwd(cwd_buf, sizeof cwd_buf)){ ROGUE_LOG_INFO("CWD: %s", cwd_buf); }
         else { ROGUE_LOG_WARN("Could not determine CWD"); }
 #endif
+    }
+    /* Dialogue initialization (style + scripts). This block previously lived in old app.c which is no longer compiled.
+       We attempt a few relative roots so running from either repo root or build dir works. Non-fatal on failure. */
+    {
+        const char* style_candidates[] = {
+            "assets/dialogue/style_default.json",
+            "../assets/dialogue/style_default.json",
+            "../../assets/dialogue/style_default.json"
+        };
+        int style_loaded = 0;
+        for(size_t i=0;i<sizeof(style_candidates)/sizeof(style_candidates[0]);++i){
+            int r = rogue_dialogue_style_load_from_json(style_candidates[i]);
+            if(r==0){ ROGUE_LOG_INFO("Dialogue style loaded: %s", style_candidates[i]); style_loaded=1; break; }
+            else { ROGUE_LOG_WARN("Dialogue style load failed(code=%d): %s", r, style_candidates[i]); }
+        }
+        if(!style_loaded) ROGUE_LOG_WARN("No dialogue style loaded (all candidates failed)");
+
+        const char* script_candidates[] = {
+            "assets/dialogue/dialogues.json",
+            "../assets/dialogue/dialogues.json",
+            "../../assets/dialogue/dialogues.json"
+        };
+        int scripts_loaded=0; const char* used_path=NULL;
+        for(size_t i=0;i<sizeof(script_candidates)/sizeof(script_candidates[0]);++i){
+            int r = rogue_dialogue_load_script_from_json_file(script_candidates[i]);
+            if(r==0){ scripts_loaded=1; used_path=script_candidates[i]; break; }
+            else { ROGUE_LOG_WARN("Dialogue script load failed(code=%d): %s", r, script_candidates[i]); }
+        }
+        if(scripts_loaded){ ROGUE_LOG_INFO("Dialogue scripts loaded from: %s", used_path); }
+        else { ROGUE_LOG_WARN("No dialogue scripts loaded (all candidates failed)"); }
+
+        /* Diagnostics: dump registry */
+        extern int rogue_dialogue_script_count(void); extern const RogueDialogueScript* rogue_dialogue_get(int id);
+        int sc_total = rogue_dialogue_script_count();
+        ROGUE_LOG_INFO("Dialogue registry count=%d", sc_total);
+        for(int probe=50; probe<=1100; ++probe){ const RogueDialogueScript* sc = rogue_dialogue_get(probe); if(sc){ ROGUE_LOG_INFO("Dialogue present id=%d lines=%d", sc->id, sc->line_count); } }
     }
         g_app.analytics_damage_dealt_total = 0ULL;
         g_app.analytics_gold_earned_total = 0ULL;

@@ -196,9 +196,9 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     /* Vendor & equipment UI initial state */
     g_app.show_vendor_panel = 0; g_app.vendor_selection = 0; g_app.vendor_seed = 424242u; g_app.vendor_time_accum_ms = 0.0; g_app.vendor_restock_interval_ms = 30000.0; g_app.vendor_x = 4.5f; g_app.vendor_y = 4.5f; g_app.show_equipment_panel = 0;
     /* Load item definitions (directory first, fallback to test set) */
-    int items_loaded = rogue_item_defs_load_directory("assets/items");
-    if(items_loaded <= 0){ items_loaded = rogue_item_defs_load_from_cfg("assets/test_items.cfg"); }
-    int tables_loaded = rogue_loot_tables_load_from_cfg("assets/test_loot_tables.cfg");
+    int items_loaded = rogue_item_defs_load_directory("../assets/items");
+    if(items_loaded <= 0){ items_loaded = rogue_item_defs_load_from_cfg("../assets/test_items.cfg"); }
+    int tables_loaded = rogue_loot_tables_load_from_cfg("../assets/test_loot_tables.cfg");
     if(tables_loaded > 0){
         RogueGenerationContext vctx = { .enemy_level = g_app.player.level, .biome_id = 0, .enemy_archetype = 0, .player_luck = 0 };
         unsigned int seed = g_app.vendor_seed; rogue_vendor_reset(); rogue_vendor_generate_inventory(0,8,&vctx,&seed); g_app.vendor_seed = seed + 17u;
@@ -239,7 +239,7 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     rogue_combat_init(&g_app.player_combat);
     g_app.enemy_count = 0; g_app.total_kills = 0;
     g_app.enemy_type_count = ROGUE_MAX_ENEMY_TYPES; /* capacity passed to loader */
-    if(!rogue_enemy_load_config("assets/enemies.cfg", g_app.enemy_types, &g_app.enemy_type_count) || g_app.enemy_type_count<=0){
+    if(!rogue_enemy_load_config("../assets/enemies.cfg", g_app.enemy_types, &g_app.enemy_type_count) || g_app.enemy_type_count<=0){
     ROGUE_LOG_WARN("No enemy types loaded; injecting fallback dummy type.");
     g_app.enemy_type_count = 1;
     RogueEnemyTypeDef* t = &g_app.enemy_types[0]; memset(t,0,sizeof *t);
@@ -269,8 +269,43 @@ bool rogue_app_init(const RogueAppConfig* cfg)
 #endif
     }
     /* Dialogue: load style + dialogues (non-fatal on failure) */
-    if(rogue_dialogue_style_load_from_json("assets/dialogue/style_default.json")!=0){ ROGUE_LOG_WARN("Dialogue style JSON not loaded"); }
-    if(rogue_dialogue_load_script_from_json_file("assets/dialogue/dialogues.json")!=0){ ROGUE_LOG_WARN("Dialogue scripts not loaded"); } else { ROGUE_LOG_INFO("Dialogue scripts loaded (id=100)"); }
+    /* Dialogue: robust style + script loading (try several relative roots) */
+    ROGUE_LOG_WARN("DIALOGUE_INIT_BLOCK_ENTER");
+        {
+            const char* style_candidates[] = {
+                "assets/dialogue/style_default.json",
+                "../assets/dialogue/style_default.json",
+                "../../assets/dialogue/style_default.json"
+            };
+            int style_loaded=0;
+            for(size_t i=0;i<sizeof(style_candidates)/sizeof(style_candidates[0]);++i){
+                if(rogue_dialogue_style_load_from_json(style_candidates[i])==0){
+                    ROGUE_LOG_INFO("Dialogue style loaded: %s", style_candidates[i]); style_loaded=1; break;
+                } else {
+                    ROGUE_LOG_WARN("Dialogue style load failed: %s", style_candidates[i]);
+                }
+            }
+            if(!style_loaded){ ROGUE_LOG_WARN("No dialogue style loaded (all candidates failed)"); }
+            const char* script_candidates[] = {
+                "assets/dialogue/dialogues.json",
+                "../assets/dialogue/dialogues.json",
+                "../../assets/dialogue/dialogues.json"
+            };
+            int scripts_loaded=0; const char* used_path=NULL;
+            for(size_t i=0;i<sizeof(script_candidates)/sizeof(script_candidates[0]);++i){
+                int r = rogue_dialogue_load_script_from_json_file(script_candidates[i]);
+                if(r==0){ scripts_loaded=1; used_path=script_candidates[i]; break; }
+                else { ROGUE_LOG_WARN("Dialogue script load failed (code=%d): %s", r, script_candidates[i]); }
+            }
+            if(scripts_loaded){ ROGUE_LOG_INFO("Dialogue scripts loaded from: %s", used_path); }
+            else { ROGUE_LOG_WARN("No dialogue scripts loaded (all candidates failed)"); }
+        /* Dump registered dialogue scripts for diagnostics */
+        extern int rogue_dialogue_script_count(void); extern const RogueDialogueScript* rogue_dialogue_get(int id);
+        int sc_total = rogue_dialogue_script_count();
+        ROGUE_LOG_INFO("Dialogue registry count=%d", sc_total);
+        /* Since we don't have direct iteration, probe common id space (100..1100) quickly */
+        for(int probe=50; probe<=1100; ++probe){ const RogueDialogueScript* sc = rogue_dialogue_get(probe); if(sc){ ROGUE_LOG_INFO("Dialogue present id=%d lines=%d", sc->id, sc->line_count); } }
+        }
     return true;
 }
 

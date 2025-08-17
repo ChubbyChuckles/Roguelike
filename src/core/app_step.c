@@ -124,15 +124,26 @@ void rogue_app_step(void)
             int action_pressed = attack_pressed; /* reuse action key */
             if(action_pressed){
                 const RogueDialoguePlayback* dp = rogue_dialogue_playback();
-                if(dp){ rogue_dialogue_advance(); }
-                else {
-                    static int demo_loaded=0; if(!demo_loaded){
-                        const char* buf = "npc|Welcome to the realm, hero!\n" "npc|This is a dialogue test line with tokens: ${player_name}.\n";
-                        rogue_dialogue_register_from_buffer(1000, buf, (int)strlen(buf));
-                        rogue_dialogue_typewriter_enable(1, 0.08f);
-                        demo_loaded=1;
+                if(dp){
+                    /* Advance current script; rogue_dialogue_advance returns 0 when finished */
+                    rogue_dialogue_advance();
+                } else {
+                    /* Prefer JSON-loaded intro script (id=100) */
+                    const RogueDialogueScript* json_sc = rogue_dialogue_get(100);
+                    if(json_sc){
+                        static int typewriter_init=0; if(!typewriter_init){ rogue_dialogue_typewriter_enable(1,0.08f); typewriter_init=1; }
+                        rogue_dialogue_start(100);
+                    } else {
+                        /* Fallback legacy demo (only if JSON script missing) */
+                        static int demo_loaded=0; if(!demo_loaded){
+                            const char* buf = "npc|Welcome to the realm, hero!\n" "npc|This is a dialogue test line with tokens: ${player_name}.\n";
+                            rogue_dialogue_register_from_buffer(1000, buf, (int)strlen(buf));
+                            rogue_dialogue_typewriter_enable(1, 0.08f);
+                            ROGUE_LOG_WARN("Dialogue script id=100 not found; using fallback demo (1000)");
+                            demo_loaded=1;
+                        }
+                        rogue_dialogue_start(1000);
                     }
-                    rogue_dialogue_start(1000);
                 }
             }
             rogue_dialogue_update(dt_ms);

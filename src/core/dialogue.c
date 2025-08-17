@@ -188,24 +188,87 @@ static unsigned int rd_mood_tint(const char* mood){
     if(rd_strcasecmp(mood,"happy")==0)   return 0xFF80E070u; /* soft green */
     return 0xFFFFFFFFu; /* unknown -> neutral */
 }
+static int rd_debug_enabled(void){
+#if defined(_MSC_VER)
+    char* val = NULL; size_t len = 0; if(_dupenv_s(&val,&len,"ROGUE_DIALOGUE_DEBUG")!=0 || !val) return 0; int enabled = (*val=='1'||*val=='t'||*val=='T'||*val=='y'||*val=='Y'); free(val); return enabled;
+#else
+    const char* env = getenv("ROGUE_DIALOGUE_DEBUG");
+    return (env && (*env=='1'||*env=='t'||*env=='T'||*env=='y'||*env=='Y'))?1:0;
+#endif
+}
+static void rd_validate_mood(char* mood){ if(!mood||!*mood) return; const char* allowed[] = {"neutral","angry","excited","happy"}; for(size_t i=0;i<sizeof(allowed)/sizeof(allowed[0]);++i){ if(rd_strcasecmp(mood,allowed[i])==0) return; } if(rd_debug_enabled()) ROGUE_LOG_WARN("Dialogue: mood '%s' not allowed (forcing neutral)", mood); /* safe copy */
+#if defined(_MSC_VER)
+    strncpy_s(mood,64,"neutral",_TRUNCATE);
+#else
+    strncpy(mood,"neutral",63); mood[63]='\0';
+#endif
+}
 int rogue_dialogue_load_script_from_json_file(const char* path){
-    if(!path) return -1; char* buf=NULL; int len=0; if(load_file(path,&buf,&len)!=0) return -2; buf[len]='\0';
-    int registered=0;
+    if(!path) return -1; char* buf=NULL; int len=0; int lf=load_file(path,&buf,&len); if(lf!=0){ ROGUE_LOG_WARN("Dialogue JSON open failed (%d): %s", lf, path); return -2; } buf[len]='\0';
+    if(rd_debug_enabled()){ ROGUE_LOG_INFO("Dialogue JSON bytes=%d path=%s", len, path); }
+    int registered=0; int lines_total=0; int lines_kept=0; int lines_skipped=0; int single=0;
     char* scripts_root = strstr(buf,"\"scripts\"");
     if(scripts_root){ /* multi-script */
-        char* arr=strchr(scripts_root,'['); if(!arr){ free(buf); return -3; }
-        char* arr_end=strchr(arr,']'); if(!arr_end){ free(buf); return -4; }
+    char* arr=strchr(scripts_root,'['); if(!arr){ free(buf); return -3; }
+    /* Find matching closing bracket for scripts array (handle nested brackets inside objects) */
+    char* arr_end=NULL; int bdepth=0; for(char* p=arr; *p; ++p){ if(*p=='['){ if(bdepth==0 && p!=arr) { /* nested array start */ } bdepth++; } else if(*p==']'){ bdepth--; if(bdepth==0){ arr_end=p; break; } } }
+    if(!arr_end){ free(buf); return -4; }
         char* s=arr;
-        while(s < arr_end){ char* sobj=strchr(s,'{'); if(!sobj||sobj>=arr_end) break; char* sobj_end=strchr(sobj,'}'); if(!sobj_end||sobj_end>arr_end) break; char scopy[4096]; size_t slen=(size_t)(sobj_end - sobj +1); if(slen>sizeof scopy -1) slen=sizeof scopy -1; memcpy(scopy,sobj,slen); scopy[slen]='\0'; int sid=-1; jd_extract_int(scopy,"id",&sid); if(sid>=0){ char* lines_sec=strstr(scopy,"\"lines\""); if(lines_sec){ char* larr=strchr(lines_sec,'['); if(larr){ char* larr_end=strchr(larr,']'); if(larr_end){ char temp[20000]; size_t out=0; char* lc=larr; while(lc<larr_end){ char* lobj=strchr(lc,'{'); if(!lobj||lobj>=larr_end) break; char* lobj_end=strchr(lobj,'}'); if(!lobj_end||lobj_end>larr_end) break; char lcopy[1024]; size_t llen=(size_t)(lobj_end-lobj+1); if(llen>sizeof lcopy -1) llen=sizeof lcopy -1; memcpy(lcopy,lobj,llen); lcopy[llen]='\0'; char speaker[64]="",textv[512]=""; char race[64]="", name[64]="", mood[64]=""; char side[16]="", mirror[16]=""; jd_extract_string(lcopy,"speaker",speaker,sizeof speaker); jd_extract_string(lcopy,"text",textv,sizeof textv); jd_extract_string(lcopy,"race",race,sizeof race); jd_extract_string(lcopy,"name",name,sizeof name); jd_extract_string(lcopy,"mood",mood,sizeof mood); jd_extract_string(lcopy,"side",side,sizeof side); jd_extract_string(lcopy,"mirror",mirror,sizeof mirror); if(speaker[0]&&textv[0]){ char avatar_path[256]=""; if(race[0]&&name[0]&&mood[0]) snprintf(avatar_path,sizeof avatar_path,"../assets/avatar_icons/%s/%s/%s.png",race,name,mood); int sflag=(strcmp(side,"right")==0); int vflag=(mirror[0]=='v'||mirror[0]=='V'); unsigned int tint=rd_mood_tint(mood); char meta[320]; if(avatar_path[0]) snprintf(meta,sizeof meta,"%s;S=%d;V=%d;TR=%u;TG=%u;TB=%u",avatar_path,sflag,vflag,(tint>>16)&255,(tint>>8)&255,tint&255); else meta[0]='\0'; int n = avatar_path[0]? snprintf(temp+out,sizeof(temp)-out,"%s%s@%s|%s\n",out?"":"",speaker,meta,textv):snprintf(temp+out,sizeof(temp)-out,"%s%s|%s\n",out?"":"",speaker,textv); if(n>0) out += (size_t)n; } lc = lobj_end+1; } if(out>0 && rogue_dialogue_register_from_buffer(sid,temp,(int)out)==0) registered++; }}} } s = sobj_end+1; }
+        while(s < arr_end){
+            char* sobj=strchr(s,'{'); if(!sobj||sobj>=arr_end) break;
+            /* Find matching closing brace for this script object (brace depth) */
+            char* sobj_end=NULL; int depth=0; for(char* p=sobj; p<arr_end; ++p){ if(*p=='{'){ depth++; } else if(*p=='}'){ depth--; if(depth==0){ sobj_end=p; break; } } }
+            if(!sobj_end) break; /* malformed */
+            size_t slen = (size_t)(sobj_end - sobj + 1);
+            /* Copy full script object into temp buffer (enlarge if needed) */
+            char scopy[16384]; if(slen > sizeof scopy - 1) slen = sizeof scopy - 1; memcpy(scopy, sobj, slen); scopy[slen]='\0';
+            int sid=-1; jd_extract_int(scopy,"id",&sid);
+            if(sid>=0){
+                char* lines_sec=strstr(scopy,"\"lines\"");
+                if(lines_sec){
+                    char* larr=strchr(lines_sec,'[');
+                    if(larr){
+                        char* larr_end=strchr(larr,']');
+                        if(larr_end){
+                            char temp[20000]; size_t out=0; char* lc=larr; int line_idx=0;
+                            while(lc<larr_end){
+                                char* lobj=strchr(lc,'{'); if(!lobj||lobj>=larr_end) break;
+                                char* lobj_end=NULL; int ldepth=0; for(char* q=lobj; q<larr_end; ++q){ if(*q=='{'){ ldepth++; } else if(*q=='}'){ ldepth--; if(ldepth==0){ lobj_end=q; break; } } }
+                                if(!lobj_end) break;
+                                char lcopy[1024]; size_t llen=(size_t)(lobj_end-lobj+1); if(llen>sizeof lcopy -1) llen=sizeof lcopy -1; memcpy(lcopy,lobj,llen); lcopy[llen]='\0';
+                                char speaker[64]="",textv[512]=""; char race[64]="", name[64]="", mood[64]=""; char side[16]="", mirror[16]="";
+                                jd_extract_string(lcopy,"speaker",speaker,sizeof speaker); jd_extract_string(lcopy,"text",textv,sizeof textv);
+                                jd_extract_string(lcopy,"race",race,sizeof race); jd_extract_string(lcopy,"name",name,sizeof name);
+                                jd_extract_string(lcopy,"mood",mood,sizeof mood); jd_extract_string(lcopy,"side",side,sizeof side);
+                                jd_extract_string(lcopy,"mirror",mirror,sizeof mirror);
+                                if(mood[0]) rd_validate_mood(mood);
+                                lines_total++;
+                                if(!(speaker[0]&&textv[0])){ lines_skipped++; if(rd_debug_enabled()) ROGUE_LOG_WARN("Dialogue script %d skip line %d (missing speaker/text)", sid, line_idx); lc=lobj_end+1; line_idx++; continue; }
+                                char avatar_path[256]=""; if(race[0]&&name[0]&&mood[0]) snprintf(avatar_path,sizeof avatar_path,"../assets/avatar_icons/%s/%s/%s.png",race,name,mood);
+                                int sflag=(strcmp(side,"right")==0); int vflag=(mirror[0]=='v'||mirror[0]=='V'); unsigned int tint=rd_mood_tint(mood);
+                                char meta[320]; if(avatar_path[0]) snprintf(meta,sizeof meta,"%s;S=%d;V=%d;TR=%u;TG=%u;TB=%u",avatar_path,sflag,vflag,(tint>>16)&255,(tint>>8)&255,tint&255); else meta[0]='\0';
+                                int n = avatar_path[0]? snprintf(temp+out,sizeof(temp)-out,"%s%s@%s|%s\n",out?"":"",speaker,meta,textv):snprintf(temp+out,sizeof(temp)-out,"%s%s|%s\n",out?"":"",speaker,textv);
+                                if(n>0){ out += (size_t)n; lines_kept++; if(rd_debug_enabled()) ROGUE_LOG_INFO("Dialogue script %d keep line %d speaker='%s' text_len=%zu", sid, line_idx, speaker, strlen(textv)); } else { lines_skipped++; }
+                                lc = lobj_end+1; line_idx++;
+                            }
+                            if(out>0 && rogue_dialogue_register_from_buffer(sid,temp,(int)out)==0){ registered++; if(rd_debug_enabled()) ROGUE_LOG_INFO("Dialogue script %d registered lines=%d", sid, lines_kept); }
+                            else if(rd_debug_enabled()) { ROGUE_LOG_WARN("Dialogue script %d registration failed (out=%zu)", sid, out); }
+                        }
+                    }
+                }
+            }
+            s = sobj_end+1;
+        }
+        if(rd_debug_enabled()) ROGUE_LOG_INFO("Dialogue multi summary scripts=%d lines_total=%d kept=%d skipped=%d", registered, lines_total, lines_kept, lines_skipped);
         free(buf); return (registered>0)?0:-5;
     }
     /* single */
-    int script_id=-1; jd_extract_int(buf,"id",&script_id); if(script_id<0){ free(buf); return -6; }
+    single=1; int script_id=-1; jd_extract_int(buf,"id",&script_id); if(script_id<0){ if(rd_debug_enabled()) ROGUE_LOG_WARN("Dialogue single missing id"); free(buf); return -6; }
     char* lines_sec=strstr(buf,"\"lines\""); if(!lines_sec){ free(buf); return -7; }
     char* arr=strchr(lines_sec,'['); if(!arr){ free(buf); return -8; }
     char* arr_end=strchr(arr,']'); if(!arr_end){ free(buf); return -9; }
-    char temp[20000]; size_t out=0; char* cursor=arr; while(cursor<arr_end){ char* obj=strchr(cursor,'{'); if(!obj||obj>=arr_end) break; char* obj_end=strchr(obj,'}'); if(!obj_end||obj_end>arr_end) break; char oc[1024]; size_t olen=(size_t)(obj_end-obj+1); if(olen>sizeof oc -1) olen=sizeof oc -1; memcpy(oc,obj,olen); oc[olen]='\0'; char speaker[64]="",textv[512]=""; char race[64]="",name[64]="",mood[64]=""; char side[16]="",mirror[16]=""; jd_extract_string(oc,"speaker",speaker,sizeof speaker); jd_extract_string(oc,"text",textv,sizeof textv); jd_extract_string(oc,"race",race,sizeof race); jd_extract_string(oc,"name",name,sizeof name); jd_extract_string(oc,"mood",mood,sizeof mood); jd_extract_string(oc,"side",side,sizeof side); jd_extract_string(oc,"mirror",mirror,sizeof mirror); if(speaker[0]&&textv[0]){ char avatar_path[256]=""; if(race[0]&&name[0]&&mood[0]) snprintf(avatar_path,sizeof avatar_path,"../assets/avatar_icons/%s/%s/%s.png",race,name,mood); int sflag=(strcmp(side,"right")==0); int vflag=(mirror[0]=='v'||mirror[0]=='V'); unsigned int tint=rd_mood_tint(mood); char meta[320]; if(avatar_path[0]) snprintf(meta,sizeof meta,"%s;S=%d;V=%d;TR=%u;TG=%u;TB=%u",avatar_path,sflag,vflag,(tint>>16)&255,(tint>>8)&255,tint&255); else meta[0]='\0'; int n= avatar_path[0]? snprintf(temp+out,sizeof(temp)-out,"%s%s@%s|%s\n",out?"":"",speaker,meta,textv):snprintf(temp+out,sizeof(temp)-out,"%s%s|%s\n",out?"":"",speaker,textv); if(n>0) out+=(size_t)n; } cursor=obj_end+1; }
-    int r=(out>0)?rogue_dialogue_register_from_buffer(script_id,temp,(int)out):-10; free(buf); return r; }
+    char temp[20000]; size_t out=0; char* cursor=arr; int line_idx=0; while(cursor<arr_end){ char* obj=strchr(cursor,'{'); if(!obj||obj>=arr_end) break; char* obj_end=strchr(obj,'}'); if(!obj_end||obj_end>arr_end) break; char oc[1024]; size_t olen=(size_t)(obj_end-obj+1); if(olen>sizeof oc -1) olen=sizeof oc -1; memcpy(oc,obj,olen); oc[olen]='\0'; char speaker[64]="",textv[512]=""; char race[64]="",name[64]="",mood[64]=""; char side[16]="",mirror[16]=""; jd_extract_string(oc,"speaker",speaker,sizeof speaker); jd_extract_string(oc,"text",textv,sizeof textv); jd_extract_string(oc,"race",race,sizeof race); jd_extract_string(oc,"name",name,sizeof name); jd_extract_string(oc,"mood",mood,sizeof mood); jd_extract_string(oc,"side",side,sizeof side); jd_extract_string(oc,"mirror",mirror,sizeof mirror); if(mood[0]) rd_validate_mood(mood); lines_total++; if(!(speaker[0]&&textv[0])){ lines_skipped++; if(rd_debug_enabled()) ROGUE_LOG_WARN("Dialogue single skip line %d (missing speaker/text)", line_idx); cursor=obj_end+1; line_idx++; continue; } char avatar_path[256]=""; if(race[0]&&name[0]&&mood[0]) snprintf(avatar_path,sizeof avatar_path,"../assets/avatar_icons/%s/%s/%s.png",race,name,mood); int sflag=(strcmp(side,"right")==0); int vflag=(mirror[0]=='v'||mirror[0]=='V'); unsigned int tint=rd_mood_tint(mood); char meta[320]; if(avatar_path[0]) snprintf(meta,sizeof meta,"%s;S=%d;V=%d;TR=%u;TG=%u;TB=%u",avatar_path,sflag,vflag,(tint>>16)&255,(tint>>8)&255,tint&255); else meta[0]='\0'; int n= avatar_path[0]? snprintf(temp+out,sizeof(temp)-out,"%s%s@%s|%s\n",out?"":"",speaker,meta,textv):snprintf(temp+out,sizeof(temp)-out,"%s%s|%s\n",out?"":"",speaker,textv); if(n>0){ out+=(size_t)n; lines_kept++; if(rd_debug_enabled()) ROGUE_LOG_INFO("Dialogue single keep line %d speaker='%s' text_len=%zu", line_idx, speaker, strlen(textv)); } else { lines_skipped++; } cursor=obj_end+1; line_idx++; }
+    int r=(out>0)?rogue_dialogue_register_from_buffer(script_id,temp,(int)out):-10; if(rd_debug_enabled()) ROGUE_LOG_INFO("Dialogue single summary id=%d status=%d lines_total=%d kept=%d skipped=%d", script_id, r, lines_total, lines_kept, lines_skipped); free(buf); return r; }
 
 /* Phase 5 Localization Storage */
 typedef struct RogueLocEntry { char locale[8]; char key[64]; char value[256]; } RogueLocEntry;
