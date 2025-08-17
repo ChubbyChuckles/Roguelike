@@ -312,6 +312,13 @@ Next Steps: Bind allocation/undo to inputs, integrate real skill definitions, im
 * Generation quality test compares low vs high luck contexts ensuring no downward bias under identical seeds.
 * Persistence round-trip for affixes guards against format regressions.
 
+#### Loot Filter (Phase 12.1–12.2 Initial)
+* Rule file parser supports lines: `rarity>=N`, `rarity<=N`, `category=...`, `name~substr`, `def=item_id`, and mode switches `MODE=ANY` / `MODE=ALL` (default AND semantics).
+* Up to 64 rules stored; case-insensitive comparisons for names & substrings.
+* Runtime evaluation marks each `RogueItemInstance` with `hidden_filter` flag; visible count via `rogue_items_visible_count`.
+* Reapply API (`rogue_loot_filter_refresh_instances`) lets UI or console command reload filter and instantly hide/show existing ground items.
+* Unit test `test_loot_filter_basic` validates loading, rule count, visibility transition (rarity>=3 hides common sword but not epic blade).
+
 #### Logging & Debuggability
 * Consistent structured log format includes location for grep-based triage.
 

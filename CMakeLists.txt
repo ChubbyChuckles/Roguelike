@@ -169,6 +169,7 @@ add_library(rogue_core
     src/core/loot_pickup.c
     src/core/loot_logging.c
     src/core/loot_affixes.c
+    src/core/loot_filter.c
     src/core/path_utils.c
     src/core/loot_rarity.c
     src/core/loot_stats.c

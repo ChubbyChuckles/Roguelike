@@ -187,6 +187,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_reroll_affix.c AND NOT TARGET te
     add_test(NAME test_reroll_affix COMMAND test_reroll_affix)
 endif()
 
+# Loot filter tests (12.1 - 12.2)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_filter_basic.c AND NOT TARGET test_loot_filter_basic)
+    add_executable(test_loot_filter_basic unit/test_loot_filter_basic.c)
+    target_link_libraries(test_loot_filter_basic PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_loot_filter_basic PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_loot_filter_basic COMMAND test_loot_filter_basic)
+endif()
+
 # Ensure dialogue tests are included (some CI environments cache glob results pre-file creation)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dialogue_phase0.c AND NOT TARGET test_dialogue_phase0)
     add_executable(test_dialogue_phase0 unit/test_dialogue_phase0.c)

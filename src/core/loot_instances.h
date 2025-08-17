@@ -30,12 +30,15 @@ typedef struct RogueItemInstance {
     /* Durability (10.4 currency sink hook). Only meaningful for weapons/armor; others leave at 0. */
     int durability_cur;
     int durability_max;
+    int hidden_filter; /* 12.x loot filter: 1 if hidden by active filter */
 } RogueItemInstance;
 
 void rogue_items_init_runtime(void);
 void rogue_items_shutdown_runtime(void);
 int rogue_items_spawn(int def_index, int quantity, float x, float y);
 int rogue_items_active_count(void);
+int rogue_items_visible_count(void); /* excludes hidden_filter instances */
+void rogue_items_reapply_filter(void); /* re-evaluate all instances against current loot filter state */
 void rogue_items_update(float dt_ms);
 
 /* Affix APIs (7.5 / 7.6) */

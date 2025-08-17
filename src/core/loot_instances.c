@@ -16,7 +16,7 @@ int rogue_items_spawn(int def_index, int quantity, float x, float y){
         const RogueItemDef* idef = rogue_item_def_at(def_index);
     int rarity = (idef? idef->rarity : 0);
     g_instances[i].def_index = def_index; g_instances[i].quantity = quantity; g_instances[i].x = x; g_instances[i].y = y; g_instances[i].life_ms=0; g_instances[i].active=1; g_instances[i].rarity=rarity;
-    g_instances[i].prefix_index = -1; g_instances[i].suffix_index = -1; g_instances[i].prefix_value=0; g_instances[i].suffix_value=0;
+    g_instances[i].prefix_index = -1; g_instances[i].suffix_index = -1; g_instances[i].prefix_value=0; g_instances[i].suffix_value=0; g_instances[i].hidden_filter=0;
     /* Set durability baseline: weapons & armor categories get base derived from level & rarity. */
     if(idef && (idef->category==ROGUE_ITEM_WEAPON || idef->category==ROGUE_ITEM_ARMOR)){
         int base_dur = 50 + rarity*25; g_instances[i].durability_max = base_dur; g_instances[i].durability_cur = base_dur;
@@ -64,6 +64,10 @@ int rogue_item_instance_damage_durability(int inst_index, int amount){ if(amount
 int rogue_item_instance_repair_full(int inst_index){ const RogueItemInstance* itc = rogue_item_instance_at(inst_index); if(!itc) return -1; RogueItemInstance* it=(RogueItemInstance*)itc; if(it->durability_max<=0) return 0; it->durability_cur = it->durability_max; return it->durability_cur; }
 
 int rogue_items_active_count(void){ int c=0; for(int i=0;i<ROGUE_ITEM_INSTANCE_CAP;i++){ if(g_instances[i].active) c++; } return c; }
+int rogue_items_visible_count(void){ int c=0; for(int i=0;i<ROGUE_ITEM_INSTANCE_CAP;i++){ if(g_instances[i].active && !g_instances[i].hidden_filter) c++; } return c; }
+/* Forward declare to avoid heavy include; loot_filter.c provides implementation */
+int rogue_loot_filter_match(const RogueItemDef* def);
+void rogue_items_reapply_filter(void){ for(int i=0;i<ROGUE_ITEM_INSTANCE_CAP;i++){ if(!g_instances[i].active) continue; const RogueItemDef* d = rogue_item_def_at(g_instances[i].def_index); g_instances[i].hidden_filter = (rogue_loot_filter_match(d)==0)?1:0; } }
 void rogue_items_update(float dt_ms){
     /* Advance lifetime & mark for despawn */
     for(int i=0;i<ROGUE_ITEM_INSTANCE_CAP;i++) if(g_instances[i].active){

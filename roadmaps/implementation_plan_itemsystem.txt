@@ -102,9 +102,9 @@ X = Not started yet
 11.5 Reroll affix using currency + mats (Done: reroll API consumes materials + gold)
 11.6 Unit tests: salvage yields & recipe validity (Done: existing salvage_basic + new crafting_basic + reroll_affix)
 
-12. Loot Filtering & UI Overlay (Pending)
-12.1 Filter rules config (rarity, category, name pattern) (X)
-12.2 Runtime toggle: hide filtered ground items (X)
+12. Loot Filtering & UI Overlay (Partial)
+12.1 Filter rules config (rarity, category, name pattern) (Done)
+12.2 Runtime toggle: hide filtered ground items (Done: hidden_filter flag + reapply API)
 12.3 Color-coded outlines + glow (X)
 12.4 Mini-map loot pings by rarity (X)
 12.5 On-hover tooltip (base stats + affixes) (X)
