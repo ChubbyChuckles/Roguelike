@@ -5,3 +5,7 @@ Adds comprehensive `docs/LOOT_ARCHITECTURE.md` covering phase layering, data flo
 feat(items-docs): Phase 23.2 rarity & affix style guide
 
 Adds `docs/LOOT_RARITY_AFFIX_STYLE.md` defining conventions for rarity tier naming, affix id schema, per‑rarity weight patterns, stat range progression, quality scalar interaction, ordering/sorting, and an author checklist. Roadmap 23.2 marked Done and README updated with new documentation bullets.
+
+chore(items-cleanup): Begin Phase 24.5 const/bounds hardening
+
+Adds explicit bounds guard comment in affix parser path and documents progress by marking 24.5 as In Implementation (affix subsystem). README notes incremental hardening step.

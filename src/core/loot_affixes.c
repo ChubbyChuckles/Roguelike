@@ -30,7 +30,7 @@ static int parse_line(char* line){
     char* f_w3 = next_field(&cursor);
     char* f_w4 = next_field(&cursor);
     if(!f_type||!f_id||!f_stat||!f_min||!f_max||!f_w0||!f_w1||!f_w2||!f_w3||!f_w4) return -1;
-    if(g_affix_count >= ROGUE_MAX_AFFIXES) return -1;
+    if(g_affix_count >= ROGUE_MAX_AFFIXES) return -1; /* bounds guard */
     RogueAffixDef d; memset(&d,0,sizeof d);
     d.type = parse_type(f_type);
 #if defined(_MSC_VER)
