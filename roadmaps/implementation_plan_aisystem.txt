@@ -37,12 +37,12 @@ PHASE 3. Perception System
 3.6 Perception test harness (seeded scenarios) (Done) [Unit test test_ai_phase3_perception covers LOS block/unblock, FOV, threat gain/decay, hearing memory, broadcast]
 
 PHASE 4. Behavior Node Library
-4.1 Core composites: Selector, Sequence, Parallel, Decorators (X)
-4.2 Condition nodes (IsPlayerVisible, HealthBelow%, TimerElapsed) (X)
-4.3 Action nodes (MoveTo, FleeFrom, Strafe, AttackMelee, AttackRanged stub) (X)
+4.1 Core composites: Selector, Sequence, Parallel, Decorators (Done) [Parallel + existing Selector/Sequence + cooldown/retry decorators]
+4.2 Condition nodes (IsPlayerVisible, HealthBelow%, TimerElapsed) (Done) [Implemented 3 condition nodes with tests indirectly]
+4.3 Action nodes (MoveTo, FleeFrom, Strafe, AttackMelee, AttackRanged stub) (Partial) [MoveTo, FleeFrom, AttackMelee, AttackRanged stub implemented; Strafe not yet]
 4.4 Tactical nodes (FlankAttempt, Regroup, CoverSeek stub) (X)
-4.5 Cooldown & Retry decorators (X)
-4.6 Utility wrapper (choose best child by dynamic score) (X)
+4.5 Cooldown & Retry decorators (Done) [Both implemented; cooldown covered by test; retry untested yet]
+4.6 Utility wrapper (choose best child by dynamic score) (Done) [Utility selector with per-child scorer]
 
 PHASE 5. Movement & Pathing Enhancements
 5.1 Nav mesh / grid cost map refinement (Partial: basic block tests)
@@ -110,6 +110,6 @@ SUCCESS METRICS
 - 95% node library unit test coverage.
 
 NEXT ACTION CANDIDATES
-- Implement utility selector & dynamic scoring (Phase 4.6)
-- Add condition/action nodes (visibility, timer elapsed, move/flee stubs) (Phase 4.2/4.3 subset)
+- Add remaining action (Strafe) and tactical node stubs (Phase 4.3/4.4)
+- Add retry decorator test & broader node coverage (Phase 11.1 tie-in)
 - Integrate BT driving enemy behavior via feature flag and migrate one enemy type (initial integration)

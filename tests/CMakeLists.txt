@@ -40,6 +40,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase3_perception.c AND NOT T
     add_test(NAME test_ai_phase3_perception COMMAND test_ai_phase3_perception)
 endif()
 
+# AI Phase 4 node library test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase4_nodes.c AND NOT TARGET test_ai_phase4_nodes)
+    add_executable(test_ai_phase4_nodes unit/test_ai_phase4_nodes.c)
+    target_link_libraries(test_ai_phase4_nodes PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ai_phase4_nodes PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase4_nodes COMMAND test_ai_phase4_nodes)
+endif()
+
 # Filter out removed/legacy test filenames that may linger in generated projects
 list(FILTER UNIT_TESTS EXCLUDE REGEX ".*test_skills_phase1_foundation.c$")
 
