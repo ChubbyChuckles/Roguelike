@@ -138,14 +138,14 @@ Phase 3 (Perception System): New `ai/perception/perception.{c,h}` implements:
 * Agent struct (`RoguePerceptionAgent`) tracks facing vector, threat, last seen position & TTL
 Unit test `test_ai_phase3_perception` covers LOS blocking/unblocking, FOV inclusion/exclusion, threat gain & decay over time, hearing-based memory seeding, and broadcast radius filtering.
 
-Phase 4 (Behavior Node Library - partial) adds:
-* Parallel composite + existing Selector/Sequence forming core composite set.
-* Condition nodes: IsPlayerVisible, TimerElapsed, HealthBelow%.
-* Action nodes: MoveTo (position seek), FleeFrom (directional retreat), AttackMelee (cooldown gated), AttackRanged stub (placeholder logic mirrors melee gate); Strafe deferred.
-* Decorators: Cooldown (enforces timer between child successes), Retry (N-attempts before failure) – cooldown covered by unit test, retry pending dedicated test.
-* Utility Selector: dynamic child selection using per-child scorer callbacks (highest score child ticked each frame).
-Unit test `test_ai_phase4_nodes` validates utility scoring selection priority, movement action progression to target, and cooldown enforcement semantics.
-Upcoming AI work: remaining Strafe action + tactical node stubs (4.4), retry decorator test coverage, and first enemy integration pass toggled via feature flag.
+Phase 4 (Behavior Node Library) progress:
+* Composites: Parallel added (joins existing Selector/Sequence) + decorators (Cooldown, Retry).
+* Conditions: IsPlayerVisible, TimerElapsed, HealthBelow%.
+* Actions: MoveTo, FleeFrom, AttackMelee, AttackRanged stub, Strafe (perpendicular lateral movement with alternating direction flag).
+* Tactical (partial): FlankAttempt (computes perpendicular flank point), Regroup (movement toward regroup point), CoverSeek stub (immediate in-cover flag).
+* Utility Selector: dynamic highest-score child evaluation via per-child scorer callbacks.
+Tests: `test_ai_phase4_nodes` (utility, movement, cooldown) and `test_ai_phase4_tactical` (strafe duration + direction flip, flank point generation, regroup completion, cover flag).
+Upcoming AI work: complete tactical cover logic (environment query), add retry decorator failure-path test, integrate behavior trees into a live enemy archetype behind feature flag.
 
 
 #### Combat & Skills

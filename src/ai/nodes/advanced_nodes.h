@@ -30,6 +30,12 @@ RogueBTNode* rogue_bt_action_move_to(const char* name, const char* bb_target_pos
 RogueBTNode* rogue_bt_action_flee_from(const char* name, const char* bb_threat_pos_key, const char* bb_agent_pos_key, float speed);
 RogueBTNode* rogue_bt_action_attack_melee(const char* name, const char* bb_in_range_flag_key, const char* bb_cooldown_timer_key, float cooldown_seconds);
 RogueBTNode* rogue_bt_action_attack_ranged(const char* name, const char* bb_line_clear_flag_key, const char* bb_cooldown_timer_key, float cooldown_seconds);
+RogueBTNode* rogue_bt_action_strafe(const char* name, const char* bb_target_pos_key, const char* bb_agent_pos_key, const char* bb_strafe_left_flag_key, float speed, float duration_seconds);
+
+/* Tactical Nodes */
+RogueBTNode* rogue_bt_tactical_flank_attempt(const char* name, const char* bb_player_pos_key, const char* bb_agent_pos_key, const char* bb_out_flank_target_key, float offset);
+RogueBTNode* rogue_bt_tactical_regroup(const char* name, const char* bb_regroup_point_key, const char* bb_agent_pos_key, float speed);
+RogueBTNode* rogue_bt_tactical_cover_seek(const char* name, const char* bb_out_in_cover_flag_key);
 
 /* Decorators */
 RogueBTNode* rogue_bt_decorator_cooldown(const char* name, RogueBTNode* child, const char* bb_timer_key, float cooldown_seconds);
