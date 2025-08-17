@@ -26,6 +26,15 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_buff_belt.c AND NOT TA
     endif()
     add_test(NAME test_ui_phase6_buff_belt COMMAND test_ui_phase6_buff_belt)
 endif()
+    
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_minimap_metrics_alerts.c AND NOT TARGET test_ui_phase6_minimap_metrics_alerts)
+    add_executable(test_ui_phase6_minimap_metrics_alerts unit/test_ui_phase6_minimap_metrics_alerts.c)
+    target_link_libraries(test_ui_phase6_minimap_metrics_alerts PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ui_phase6_minimap_metrics_alerts PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ui_phase6_minimap_metrics_alerts COMMAND test_ui_phase6_minimap_metrics_alerts)
+endif()
 
 # Loot API doc generator test (Itemsystem 23.5)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase23_api_doc.c AND NOT TARGET test_loot_phase23_api_doc)

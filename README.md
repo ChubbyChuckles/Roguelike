@@ -646,6 +646,9 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
 * Phase 6.2 HUD Bars (NEW): Added layered smoothing health/mana/AP bars with trailing damage indicator (secondary lag bar) and new AP bar rendered beneath XP. API `hud_bars.h` exposes update + fraction accessors; unit test `test_ui_phase6_bars_ap` validates lag behavior and snap on heal.
 * Phase 6.3 Buff Belt (NEW): Added snapshot API (`rogue_buffs_snapshot`) and HUD buff belt module (`hud_buff_belt.c/h`) rendering active buffs (stack magnitude text + cooldown overlay). Test `test_ui_phase6_buff_belt` validates appearance/disappearance timing.
 * Phase 6.4 Damage Number Batch (NEW): Enhanced floating combat text with spatial batching (nearby merges), alpha ease-in/out, quadratic end fade, and per-number adaptive life extension on merges (no separate test yet—leverages existing combat tests implicitly).
+* Phase 6.5 Minimap Toggle (NEW): Added `show_minimap` flag & 'M' key toggle gating conditional minimap render path; test `test_ui_phase6_minimap_metrics_alerts` covers toggle logic.
+* Phase 6.6 Alerts System (NEW): Center-top queued alert banners (level up, low health, vendor restock) with fade-out; APIs `rogue_alert_level_up/low_health/vendor_restock`, manual test triggers via F2/F3/F4; integrated into `hud.c`.
+* Phase 6.7 Metrics Overlay (NEW): Runtime FPS, frame ms, rolling average displayed bottom-left; toggled with F1 (`show_metrics_overlay`); included in same test harness.
 
 ### v0.8.x (Current Development Branch)
 **Added**

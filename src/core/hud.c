@@ -3,6 +3,7 @@
 #include "core/hud_layout.h" /* Phase 6.1 data-driven HUD layout */
 #include "core/hud_bars.h" /* Phase 6.2 layered bar smoothing */
 #include "core/hud_buff_belt.h" /* Phase 6.3 buff belt */
+#include "core/hud_overlays.h" /* Phase 6.6 alerts + 6.7 metrics */
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
@@ -78,6 +79,10 @@ void rogue_hud_render(void){
     // After bars & level text, render buff belt center-top
     rogue_hud_buff_belt_refresh(&g_hud_buff_belt, g_app.game_time_ms);
     rogue_hud_buff_belt_render(&g_hud_buff_belt, g_app.viewport_w);
+    /* Alerts (Phase 6.6) rendered after primary HUD so they overlay center-top */
+    rogue_alerts_update_and_render(16.0f);
+    /* Metrics overlay (Phase 6.7) bottom-left */
+    rogue_metrics_overlay_render();
 #endif
 }
 

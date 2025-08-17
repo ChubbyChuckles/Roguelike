@@ -14,6 +14,7 @@
 #include "core/economy.h"
 #include "core/inventory.h"
 #include "core/equipment.h"
+#include "core/hud_overlays.h" /* alerts & metrics toggles */
 #include "ui/core/ui_context.h" /* skill graph toggle */
 #include <string.h> /* memset */
 #ifdef ROGUE_HAVE_SDL
@@ -57,6 +58,8 @@ void rogue_process_events(void){
             if(ev.key.keysym.sym==SDLK_TAB){ g_app.show_stats_panel=!g_app.show_stats_panel; }
             if(ev.key.keysym.sym==SDLK_v){ g_app.show_vendor_panel = !g_app.show_vendor_panel; g_app.vendor_selection = 0; }
             if(ev.key.keysym.sym==SDLK_e){ g_app.show_equipment_panel = !g_app.show_equipment_panel; }
+            if(ev.key.keysym.sym==SDLK_m){ g_app.show_minimap = !g_app.show_minimap; }
+            if(ev.key.keysym.sym==SDLK_F1){ g_app.show_metrics_overlay = !g_app.show_metrics_overlay; }
             if(g_app.show_equipment_panel && ev.key.keysym.sym==SDLK_r){ /* repair equipped weapon */
                 rogue_equip_repair_slot(ROGUE_EQUIP_WEAPON);
             }
@@ -101,6 +104,10 @@ void rogue_process_events(void){
                 if(ev.key.keysym.sym==SDLK_BACKSPACE){ g_app.show_stats_panel=0; }
             }
             if(ev.key.keysym.sym==SDLK_r){ g_app.player_state=(g_app.player_state==2)?1:2; }
+            /* Synthetic alert test triggers (for headless / manual) */
+            if(ev.key.keysym.sym==SDLK_F2){ rogue_alert_level_up(); }
+            if(ev.key.keysym.sym==SDLK_F3){ rogue_alert_low_health(); }
+            if(ev.key.keysym.sym==SDLK_F4){ rogue_alert_vendor_restock(); }
             /* Skill activation keys 1-0 */
             int key = ev.key.keysym.sym;
             if(key>=SDLK_1 && key<=SDLK_9){ int slot = key - SDLK_1; int sid = g_app.skill_bar[slot]; if(sid>=0){ queue_skill_activation(sid, slot); } }

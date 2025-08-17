@@ -62,6 +62,8 @@ typedef struct RogueAppState {
     double gen_water_level; int gen_noise_octaves; double gen_noise_gain; double gen_noise_lacunarity; int gen_river_sources; int gen_river_max_length; double gen_cave_thresh; int gen_params_dirty;
     RogueEnemy enemies[ROGUE_MAX_ENEMIES]; int enemy_count; RogueEnemyTypeDef enemy_types[ROGUE_MAX_ENEMY_TYPES]; int enemy_type_count; RoguePlayerCombat player_combat; int total_kills; int per_type_counts[ROGUE_MAX_ENEMY_TYPES]; double difficulty_scalar;
     int show_stats_panel; int stats_panel_index;
+    /* Phase 6.5 minimap toggle */
+    int show_minimap;
     float time_since_player_hit_ms; float health_regen_accum_ms; float mana_regen_accum_ms; float ap_regen_accum_ms; float levelup_aura_timer_ms;
     float ap_throttle_timer_ms; /* remaining ms of AP soft throttle (reduced regen) */
 #ifdef ROGUE_HAVE_SDL_MIXER
@@ -103,6 +105,12 @@ typedef struct RogueAppState {
     int permadeath_mode; /* 1 if run flagged permadeath */
     /* Inventory UI (13.5) */
     int inventory_sort_mode; /* RogueInventorySortMode persisted */
+    /* Phase 6.7 metrics overlay toggle */
+    int show_metrics_overlay;
+    /* Internal test hooks (non-persisted) */
+    int last_minimap_rendered;
+    int last_metrics_rendered;
+    int last_alerts_rendered;
 } RogueAppState;
 
 extern RogueAppState g_app;

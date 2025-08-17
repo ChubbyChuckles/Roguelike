@@ -67,9 +67,9 @@ PHASE 6. HUD Modularization & Overlays
 6.2 Health / Mana / AP bars: layered gradients + status overlays (Done: layered smoothing bars + AP bar; test `test_ui_phase6_bars_ap` validates fractions & lag)
 6.3 Buff & debuff icon belt with stack counters / timers (Done: buff snapshot + center-top belt render, test `test_ui_phase6_buff_belt` verifies add/expiry)
 6.4 Floating combat text batching + occlusion / fade curves (Done: damage number spatial batching + fade curve & alpha easing in/out)
-6.5 Minimap interactive overlay toggles (Partial: minimap exists)
-6.6 Alert system (level up, low health, vendor restock) (X)
-6.7 Performance metrics overlay with toggle (Partial: metrics module exists)
+6.5 Minimap interactive overlay toggles (Done: show_minimap toggle + key 'M', conditional render, test `test_ui_phase6_minimap_metrics_alerts`)
+6.6 Alert system (level up, low health, vendor restock) (Done: alert queue + fade, triggers via API & F2/F3/F4 keys, integrated in HUD render)
+6.7 Performance metrics overlay with toggle (Done: key F1 toggles metrics bottom-left, fps/frame/avg displayed, test covers callable path)
 
 PHASE 7. Theming & Accessibility
 7.1 Theme asset pack (colors, font sizes, padding metrics) (X)

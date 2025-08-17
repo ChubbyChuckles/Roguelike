@@ -1,17 +1,24 @@
-UI Phase 6.2: Layered HUD Bars & AP Integration
-- Added hud_bars.c/h implementing layered (primary + trailing secondary) smoothing model for Health, Mana, and new Action Point (AP) bars (fraction-per-second catchup; instant snap on heals).
-- Integrated into hud.c rendering: secondary darker lag fill behind brighter primary; added AP bar below XP with consistent frame.
-- New unit test test_ui_phase6_bars_ap exercises: full initialization, damage-induced lag, convergence, and heal snap.
-- Roadmap updated (6.2 Done); README updated with API summary.
+feat(ui/hud): phase 6.2 layered health/mana/AP bars with lag smoothing
+- Added hud_bars module (primary/secondary smoothing, AP integration)
+- Integrated into hud.c render path; unit test `test_ui_phase6_bars_ap` validates lag behavior
 
-UI Phase 6.3: Buff & Debuff Icon Belt
-- Implemented buff snapshot API (rogue_buffs_snapshot) for immutable active buff list without direct state mutation.
-- Added hud_buff_belt.c/h rendering centered top belt with icon placeholders, magnitude text, and cooldown overlay fill.
-- Test test_ui_phase6_buff_belt validates addition, expiry after duration, and magnitude aggregation.
-- Roadmap marked 6.3 Done; README updated.
+feat(ui/hud): phase 6.3 buff & debuff icon belt
+- Snapshot API `rogue_buffs_snapshot` + `hud_buff_belt` module (center-top belt)
+- Unit test `test_ui_phase6_buff_belt` covers add & expiry
 
-UI Phase 6.4: Floating Combat Text Batching & Fade Curves
-- Extended damage number struct with spawn_ms & alpha; implemented spatial batching (merge nearby numbers) and life extension.
-- Added ease-in (first 80ms) and quadratic end fade (last 150ms) alpha curve for smoother readability.
-- Implemented trailing fade & accumulation without separate allocation; minor occlusion reduction via batching.
-- Roadmap marked 6.4 Done; README updated.
+feat(ui/hud): phase 6.4 floating combat text batching & fade curves
+- Spatial batching (merge nearby same-origin numbers) with life extension
+- Alpha ease-in (80ms) + quadratic fade-out last 150ms; added spawn_ms/alpha fields
+
+feat(ui/hud): phase 6.5 minimap interactive toggle
+- Added `show_minimap` flag + 'M' key toggle; conditional render in `app_step.c`
+- Updated roadmap & README; test `test_ui_phase6_minimap_metrics_alerts`
+
+feat(ui/hud): phase 6.6 alert system (level up / low health / vendor restock)
+- Added alert queue (`hud_overlays.c`) with fade-out & center-top stacking
+- Public APIs + F2/F3/F4 key triggers; integrated into `hud.c`
+
+feat(ui/hud): phase 6.7 performance metrics overlay
+- Toggle with F1 (`show_metrics_overlay`); displays FPS, frame ms, avg
+- Shared test validates callable path; roadmap & README updated
+

@@ -119,7 +119,7 @@ void rogue_app_step(void)
         rogue_world_render_items();
         rogue_projectiles_render();
     rogue_damage_numbers_render();
-        rogue_minimap_update_and_render(240);
+    if(g_app.show_minimap){ rogue_minimap_update_and_render(240); g_app.last_minimap_rendered=1; } else { g_app.last_minimap_rendered=0; }
         rogue_skill_bar_update(dt_ms);
         /* Dialogue runtime panel (direct SDL draw) & input binding */
         {
@@ -151,7 +151,7 @@ void rogue_app_step(void)
             rogue_dialogue_render_runtime();
         }
     }
-    rogue_hud_render();
+    rogue_hud_render(); /* includes alerts + metrics overlay now */
     rogue_skill_bar_render();
     rogue_skill_tree_render();
     rogue_damage_numbers_update((float)g_app.dt);
