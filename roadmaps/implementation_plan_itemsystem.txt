@@ -190,9 +190,9 @@ X = Not started yet
 
 24. Cleanup / Refactors (Rolling) (Pending)
 24.1 Centralized path resolution helper (replaces ../ ../../) (Done)
-24.2 Remove legacy debug code / flags (X)
+24.2 Remove legacy debug code / flags (Done: audit found no remaining legacy flags beyond structured logging level macros)
 24.3 Consolidate rarity color mapping into utility (Done)
-24.4 Split oversized source modules (X)
+24.4 Split oversized source modules (In Implementation: generation affix logic extracted)
 24.5 Improve const-correctness & bounds asserts (In Implementation: added affix bounds guards)
 
 PRIORITY NEXT STEPS (Focused Subset)

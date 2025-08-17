@@ -9,3 +9,11 @@ Adds `docs/LOOT_RARITY_AFFIX_STYLE.md` defining conventions for rarity tier nami
 chore(items-cleanup): Begin Phase 24.5 const/bounds hardening
 
 Adds explicit bounds guard comment in affix parser path and documents progress by marking 24.5 as In Implementation (affix subsystem). README notes incremental hardening step.
+
+chore(items-cleanup): Phase 24.2 legacy debug flag audit complete
+
+Scanned loot modules for obsolete legacy debug defines; none present beyond structured `loot_logging` level macros. Roadmap marks 24.2 Done; README updated.
+
+refactor(items-cleanup): Phase 24.4 generation module split start
+
+Extracted affix gating & weighted roll helper from `loot_generation.c` into new `loot_generation_affix.c` to reduce file size and isolate responsibility. Roadmap marks 24.4 In Implementation; README documents split.
