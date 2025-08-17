@@ -78,7 +78,7 @@ PHASE 9. Performance & Scaling
 9.2 Incremental evaluation (spread heavy computations) (Done) [ai/core/ai_scheduler.{c,h}: bucketed frame scheduler gating BT ticks; unit test test_ai_phase9_incremental_lod validates deferred ticks still move]
 9.3 LOD behaviour (reduced detail off-screen) (Done) [Scheduler distance radius -> maintenance tick only; test covers exclusion then inclusion when radius expanded]
 9.4 Agent pooling & reinit (Done) [ai/core/ai_agent_pool.{c,h} slab-based pool for EnemyAIBlackboard blocks; integrated into enemy_ai_bt enable/disable; unit test test_ai_phase9_agent_pool exercises reuse + peak accounting]
-9.5 Stress test: 200 agents pathing simultaneously (X)
+9.5 Stress test: 200 agents pathing simultaneously (Done) [test_ai_phase9_stress spawns 200 enemies, validates LOD gating then full activation, ensures pool peak == count]
 
 PHASE 10. Debugging & Tooling
 10.1 On-screen behavior tree visualizer (X)

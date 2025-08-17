@@ -1,7 +1,18 @@
-AI Phase 9.4: Agent pooling & reinit
+AI Phase 9.4 & 9.5: Agent Pooling + 200-Agent Stress Test
 
-Added ai/core/ai_agent_pool.{c,h} implementing a slab-based reusable pool for EnemyAIBlackboard wrapper blocks (512B→2KB slab final) eliminating per-enable malloc/free churn. Integrated pool into rogue_enemy_ai_bt_enable/disable replacing calloc/free with acquire/release. Added diagnostic APIs (in_use, free, peak, slab_size) and unit test test_ai_phase9_agent_pool validating:
- - Peak allocation caps at first wave (16) and does not grow on subsequent reuse cycles
- - All blocks returned (in_use=0) after disable cycles; free list >= peak
- - Re-acquiring subset does not increase peak
-Scheduler & LOD (9.2/9.3) unchanged; roadmap & README updated with Phase 9.4 status.
+Phase 9.4:
+- Added ai/core/ai_agent_pool.{c,h} slab allocator for EnemyAIBlackboard blocks (reuse vs malloc/free churn)
+- Integrated pool into enemy_ai_bt enable/disable (rogue_ai_agent_acquire/release)
+- Diagnostic APIs: rogue_ai_agent_pool_{in_use,free,peak,reset_for_tests,slab_size}
+- New unit test test_ai_phase9_agent_pool validates reuse across cycles, peak stability, no leaks
+
+Phase 9.5:
+- New stress test test_ai_phase9_stress spawning 200 enemies; two-phase scheduler + LOD validation
+	* Phase 1: LOD radius 30 ensures only near subset moves (assert moved_near>=25, far static)
+	* Phase 2: Radius expanded to 400; previously far agents begin moving (assert moved_far>=100)
+	* Verifies agent pool peak == 200 and scheduler advanced 128 frames over 8 buckets
+- README & roadmap updated with Phase 9.5 section/status
+
+Notes:
+- Maintains SDL-enabled build
+- Provides regression guard for large-wave AI scalability and pooling correctness
