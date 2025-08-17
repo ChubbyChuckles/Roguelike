@@ -12,6 +12,7 @@ static int g_vendor_count = 0;
 void rogue_vendor_reset(void){ g_vendor_count = 0; }
 int rogue_vendor_item_count(void){ return g_vendor_count; }
 const RogueVendorItem* rogue_vendor_get(int index){ if(index<0||index>=g_vendor_count) return NULL; return &g_vendor_items[index]; }
+int rogue_vendor_append(int def_index, int rarity, int price){ if(g_vendor_count>=ROGUE_VENDOR_SLOT_CAP) return -1; RogueVendorItem v; v.def_index=def_index; v.rarity=rarity; v.price=price; g_vendor_items[g_vendor_count++] = v; return g_vendor_count; }
 
 /* Simple rarity -> price multiplier ladder (can be tuned later or data-driven). */
 static int rarity_multiplier(int rarity){ static const int mult[5]={1,3,9,27,81}; if(rarity<0||rarity>4) return 1; return mult[rarity]; }

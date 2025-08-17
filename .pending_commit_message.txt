@@ -1,8 +1,0 @@
-feat(persistence): Phase 7.5 vendor inventory persistence
-
-Extended vendor component serialization to include vendor inventory list (def_index, rarity; price recomputed on load for balancing) plus existing seed + restock timers. Added helper API rogue_vendor_append used by loader (avoids touching static internals directly). Added unit test test_save_phase7_vendor_inventory_roundtrip verifying count and entries restored. Roadmap updated marking 7.5 Done.
-
-feat(persistence): Phase 7.4 inventory durability + equipment + infusion; Phase 7.6 world gen params; run start timestamp
-
-Added durability (cur,max) fields to inventory item serialization (backward-compatible size heuristic). Persist equipped weapon id and weapon infusion plus run session_start_seconds in player component. Extended world_meta component with additional generation parameters (noise octaves/gain/lacunarity, river sources/max length) with backward-compatible reader gated by payload size. Added test_save_phase7_inventory_durability_roundtrip ensuring durability values survive save/load. Updated roadmap marking 7.4 & 7.6 Done and 7.8 note (start timestamp implemented). README to include new persistence coverage.
-

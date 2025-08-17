@@ -31,6 +31,8 @@ int rogue_vendor_generate_inventory(int loot_table_index, int slots, const Rogue
 int rogue_vendor_item_count(void);
 const RogueVendorItem* rogue_vendor_get(int index);
 int rogue_vendor_price_formula(int item_def_index, int rarity);
+/* Append vendor item (used by persistence restore). Returns new count or -1. */
+int rogue_vendor_append(int def_index, int rarity, int price);
 
 /* Rotation / Restock (10.3) */
 void rogue_vendor_rotation_init(RogueVendorRotation* rot, float interval_ms);

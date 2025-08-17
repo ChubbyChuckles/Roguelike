@@ -54,7 +54,7 @@ static int effect_fireball(const RogueSkillDef* def, RogueSkillState* st, const 
 void rogue_skill_tree_register_baseline(void){
     /* Load from assets/skills.cfg */
     extern int rogue_skills_load_from_cfg(const char* path);
-    int loaded = rogue_skills_load_from_cfg("assets/skills_uhf87f.json");
+    int loaded = rogue_skills_load_from_cfg("../assets/skills_uhf87f.json");
     (void)loaded; /* could log */
     /* Icon textures are loaded during registration with fallback search now. */
     /* Attach built-in effect callbacks to matching names */
