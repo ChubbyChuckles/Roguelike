@@ -152,6 +152,13 @@ Phase 9.4 (Agent Pooling & Reinit): Introduced `ai/core/ai_agent_pool.{c,h}` —
 
 Phase 9.5 (Stress Test – 200 Agents Pathing): Added large-scale scalability validation via `test_ai_phase9_stress` which spawns 200 enemies, enables their behavior trees, and advances the scheduler in two phases: (1) constrained LOD radius (30 units) verifying only near agents move while far agents remain static, then (2) expanded LOD radius (400 units) confirming deferred far agents begin moving. Test asserts minimum movement counts (>=25 near, >=100 far after expansion), validates scheduler bucket distribution (8 buckets over 128 frames), and ensures the agent pool peak equals the active enemy count (200) without leaks. Provides a regression guard for future pathing / scheduler / LOD changes impacting large waves.
 
+Phase 10.1–10.5 (AI Debug & Tooling): Introduced consolidated debug helpers in `ai/core/ai_debug.{c,h}`:
+* Behavior Tree Visualizer `rogue_ai_bt_visualize` outputs an indented ASCII tree for quick inspection in logs or overlays.
+* Perception Overlay Primitive Collector `rogue_ai_perception_collect_debug` emits simple line primitives (facing vector + LOS ray) for future on-screen rendering.
+* Blackboard Dump `rogue_ai_blackboard_dump` serializes current key/value pairs (ints, floats, vec2, timers) with consistent formatting.
+* Trace JSON Export `rogue_ai_trace_export_json` converts the ring buffer of path hashes into chronological JSON array for tooling ingestion.
+* Determinism Verifier `rogue_ai_determinism_verify` constructs two trees from a supplied factory, runs them in lockstep, and aggregates FNV-1a path hashes—failing on any divergence. New unit test `test_ai_phase10_debug` validates all helpers.
+
 
 #### Combat & Skills
 * Skill system supports active & passive examples (fireball, dash, passives) with forced short cooldowns under test macro.

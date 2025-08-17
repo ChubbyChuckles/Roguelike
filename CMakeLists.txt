@@ -197,6 +197,7 @@ add_library(rogue_core
         src/ai/core/ai_profiler.c
     src/ai/core/ai_scheduler.c
     src/ai/core/ai_agent_pool.c
+    src/ai/core/ai_debug.c
     src/util/kv_schema.c
     src/util/hot_reload.c
     src/util/asset_dep.c

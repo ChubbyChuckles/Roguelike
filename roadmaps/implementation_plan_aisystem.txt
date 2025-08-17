@@ -81,11 +81,11 @@ PHASE 9. Performance & Scaling
 9.5 Stress test: 200 agents pathing simultaneously (Done) [test_ai_phase9_stress spawns 200 enemies, validates LOD gating then full activation, ensures pool peak == count]
 
 PHASE 10. Debugging & Tooling
-10.1 On-screen behavior tree visualizer (X)
-10.2 Perception overlay (vision cones, LOS rays) (X)
-10.3 Blackboard inspector console commands (X)
-10.4 Trace export to JSON (X)
-10.5 Determinism verifier (dual-run hash compare) (X)
+10.1 On-screen behavior tree visualizer (Done) [ASCII visualizer via rogue_ai_bt_visualize]
+10.2 Perception overlay (vision cones, LOS rays) (Done) [rogue_ai_perception_collect_debug emits primitives]
+10.3 Blackboard inspector console commands (Done) [rogue_ai_blackboard_dump serializes key/value pairs]
+10.4 Trace export to JSON (Done) [rogue_ai_trace_export_json chronological ring export]
+10.5 Determinism verifier (dual-run hash compare) (Done) [rogue_ai_determinism_verify factory-based dual run path hash aggregation; unit test]
 
 PHASE 11. Testing & QA
 11.1 Unit tests for core nodes & decorators (X)

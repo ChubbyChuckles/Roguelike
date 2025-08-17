@@ -8,11 +8,22 @@ Phase 9.4:
 
 Phase 9.5:
 - New stress test test_ai_phase9_stress spawning 200 enemies; two-phase scheduler + LOD validation
-	* Phase 1: LOD radius 30 ensures only near subset moves (assert moved_near>=25, far static)
-	* Phase 2: Radius expanded to 400; previously far agents begin moving (assert moved_far>=100)
-	* Verifies agent pool peak == 200 and scheduler advanced 128 frames over 8 buckets
-- README & roadmap updated with Phase 9.5 section/status
+	* Phase 1 radius 30: near subset moves (moved_near>=25) far agents static
+	* Phase 2 radius 400: previously far agents move (moved_far>=100)
+	* Verifies agent pool peak == 200 and scheduler frame progression
+- README & roadmap updated (Phase 9.5 Done)
+
+AI Phase 10.1–10.5: Debug & Tooling Suite
+- Added ai/core/ai_debug.{c,h} implementing:
+	* rogue_ai_bt_visualize (ASCII behavior tree)
+	* rogue_ai_blackboard_dump (key/value listing)
+	* rogue_ai_perception_collect_debug (facing + LOS primitives for overlay)
+	* rogue_ai_trace_export_json (chronological ring buffer export)
+	* rogue_ai_determinism_verify (dual factory run path hash comparison)
+- New unit test test_ai_phase10_debug validates all helpers.
+- Trace export ordering fixed to chronological (old ring-forward order confusing).
+- Roadmap Phase 10.1–10.5 marked Done; README updated with new section.
 
 Notes:
-- Maintains SDL-enabled build
-- Provides regression guard for large-wave AI scalability and pooling correctness
+- Maintains SDL-enabled build; warnings treated as errors handled.
+- Provides foundation for future in-engine overlays & external tooling ingestion.
