@@ -345,6 +345,20 @@ void rogue_ui_replay_stop_record(RogueUIContext* ctx){ if(!ctx) return; ctx->rep
 void rogue_ui_replay_start_playback(RogueUIContext* ctx){ if(!ctx) return; ctx->replay_playing=1; ctx->replay_recording=0; ctx->replay_cursor=0; }
 int rogue_ui_replay_step(RogueUIContext* ctx){ if(!ctx) return 0; if(!ctx->replay_playing) return 0; if(ctx->replay_cursor>=ctx->replay_count){ ctx->replay_playing=0; return 0; } ctx->input = ctx->replay_buffer[ctx->replay_cursor++]; return 1; }
 
+/* Phase 7.5 Reduced Motion */
+void rogue_ui_set_reduced_motion(RogueUIContext* ctx, int enabled){ if(!ctx) return; ctx->reduced_motion = enabled?1:0; }
+int rogue_ui_reduced_motion(const RogueUIContext* ctx){ return ctx? ctx->reduced_motion:0; }
+
+/* Phase 7.6 Narration stub: store last narrated string (truncated) */
+void rogue_ui_narrate(RogueUIContext* ctx, const char* text){ if(!ctx) return; if(!text) text=""; size_t i=0; for(; i<sizeof(ctx->narration_last)-1 && text[i]; ++i){ ctx->narration_last[i]=text[i]; } ctx->narration_last[i]='\0'; }
+const char* rogue_ui_last_narration(const RogueUIContext* ctx){ return ctx? ctx->narration_last:NULL; }
+
+/* Phase 7.7 Focus audit */
+void rogue_ui_focus_audit_enable(RogueUIContext* ctx, int enabled){ if(!ctx) return; ctx->focus_audit_enabled = enabled?1:0; }
+int rogue_ui_focus_audit_enabled(const RogueUIContext* ctx){ return ctx? ctx->focus_audit_enabled:0; }
+int rogue_ui_focus_audit_emit_overlays(RogueUIContext* ctx, uint32_t highlight_color){ if(!ctx||!ctx->frame_active||!ctx->focus_audit_enabled) return 0; int added=0; for(int i=0;i<ctx->node_count;i++){ int k=ctx->nodes[i].kind; if(k>=5&&k<=8){ RogueUIRect r=ctx->nodes[i].rect; /* draw thin border panels (simplified) */ rogue_ui_panel(ctx,(RogueUIRect){r.x-1,r.y-1,r.w+2, r.h+2}, highlight_color); added++; } } return added; }
+size_t rogue_ui_focus_order_export(RogueUIContext* ctx, char* buffer, size_t cap){ if(!ctx||!buffer||cap==0) return 0; size_t off=0; for(int i=0;i<ctx->node_count;i++){ int k=ctx->nodes[i].kind; if(k>=5&&k<=8){ const char* label = ctx->nodes[i].text? ctx->nodes[i].text: (k==5?"button":(k==6?"toggle":(k==7?"slider":"textinput"))); size_t len=strlen(label); if(off+len+1>=cap) break; memcpy(buffer+off,label,len); off+=len; buffer[off++]='\n'; } } if(off<cap) buffer[off]='\0'; return off; }
+
 const RogueUINode* rogue_ui_nodes(const RogueUIContext* ctx, int* count_out){ if(count_out) *count_out = ctx? ctx->node_count:0; return ctx? ctx->nodes:NULL; }
 
 unsigned int rogue_ui_rng_next(RogueUIContext* ctx){ if(!ctx) return 0; return xorshift32(&ctx->rng_state); }

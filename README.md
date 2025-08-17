@@ -651,7 +651,11 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
 * Phase 6.7 Metrics Overlay (NEW): Runtime FPS, frame ms, rolling average displayed bottom-left; toggled with F1 (`show_metrics_overlay`); included in same test harness.
 * Phase 7.1 Theme Asset Pack (NEW): Added key/value driven `ui_theme_default.cfg` with palette (panel/bg/button/slider/tooltip/alert colors), spacing (padding_small/large), base font size, DPI scale integer for deterministic scaling.
 * Phase 7.2 Theme Hot-Swap & Diff (NEW): Loader `rogue_ui_theme_load`, apply API `rogue_ui_theme_apply`, and bitmask diff `rogue_ui_theme_diff` enabling targeted re-render invalidation (unit test exercises change detection for color + spacing fields).
-* Phase 7.3 Accessibility – Colorblind Modes COMPLETE: Added colorblind mode toggle with transforms for protanopia, deuteranopia, and tritanopia (`rogue_ui_colorblind_transform`). Existing unit test exercises protanopia path; transforms share approximation matrices. DPI scaling helpers (`rogue_ui_dpi_scale_x100`, `rogue_ui_scale_px`) added as groundwork for Phase 7.4 scalable UI.
+* Phase 7.3 Accessibility – Colorblind Modes COMPLETE: Added colorblind mode toggle with transforms for protanopia, deuteranopia, and tritanopia (`rogue_ui_colorblind_transform`). Existing unit test exercises protanopia path; transforms share approximation matrices.
+* Phase 7.4 Scalable UI Helpers: Introduced DPI scaling helpers (`rogue_ui_dpi_scale_x100`, `rogue_ui_scale_px`) enabling deterministic integer layout scaling (theme supplies dpi_scale_x100). Widgets not yet scaled will be migrated in Phase 8 animation/layout pass.
+* Phase 7.5 Reduced Motion Mode: Global toggle (`rogue_ui_set_reduced_motion` / `rogue_ui_reduced_motion`) for disabling or simplifying future large transitions / animations (pulse/spend already queryable).
+* Phase 7.6 Narration Stub: Added lightweight narration buffer + APIs (`rogue_ui_narrate`, `rogue_ui_last_narration`) to prepare for screen reader integration; currently stores last message for tests/tooling.
+* Phase 7.7 Focus Audit Tool: Developer overlay utilities (`rogue_ui_focus_audit_enable`, `rogue_ui_focus_audit_emit_overlays`) visually highlight focusable widgets and export deterministic tab/focus order (`rogue_ui_focus_order_export`) for automated auditing.
 
 ### v0.8.x (Current Development Branch)
 **Added**

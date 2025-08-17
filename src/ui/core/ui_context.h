@@ -144,6 +144,12 @@ typedef struct RogueUIContext {
     /* Phase 5.7 undo buffer */
     struct { int icon_id; int prev_rank; } skillgraph_undo[64];
     int skillgraph_undo_count;
+    /* Phase 7.5 Reduced Motion */
+    int reduced_motion;
+    /* Phase 7.6 Narration stub */
+    char narration_last[256];
+    /* Phase 7.7 Focus audit */
+    int focus_audit_enabled;
 } RogueUIContext;
 
 int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg);
@@ -213,6 +219,21 @@ void rogue_ui_replay_start_record(RogueUIContext* ctx);
 void rogue_ui_replay_stop_record(RogueUIContext* ctx);
 void rogue_ui_replay_start_playback(RogueUIContext* ctx);
 int rogue_ui_replay_step(RogueUIContext* ctx); /* returns 0 when finished */
+
+/* Phase 7.5 Reduced Motion Toggle */
+void rogue_ui_set_reduced_motion(RogueUIContext* ctx, int enabled);
+int rogue_ui_reduced_motion(const RogueUIContext* ctx);
+
+/* Phase 7.6 Screen reader / narration stub */
+void rogue_ui_narrate(RogueUIContext* ctx, const char* text);
+const char* rogue_ui_last_narration(const RogueUIContext* ctx);
+
+/* Phase 7.7 Focus audit: enable & emit overlay highlight panels around focusable widgets */
+void rogue_ui_focus_audit_enable(RogueUIContext* ctx, int enabled);
+int rogue_ui_focus_audit_enabled(const RogueUIContext* ctx);
+int rogue_ui_focus_audit_emit_overlays(RogueUIContext* ctx, uint32_t highlight_color);
+/* Export tab/focus order into buffer as newline separated labels (or kind index placeholder) */
+size_t rogue_ui_focus_order_export(RogueUIContext* ctx, char* buffer, size_t cap);
 
 /* Declarative Widget DSL (Phase 2.6) */
 #define UI_PANEL(ctx,X,Y,W,H,COLOR)      rogue_ui_panel((ctx),(RogueUIRect){(X),(Y),(W),(H)},(COLOR))

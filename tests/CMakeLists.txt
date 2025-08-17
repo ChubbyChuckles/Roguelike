@@ -45,6 +45,15 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase7_theme.c AND NOT TARGET
     add_test(NAME test_ui_phase7_theme COMMAND test_ui_phase7_theme)
 endif()
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase7_accessibility.c AND NOT TARGET test_ui_phase7_accessibility)
+    add_executable(test_ui_phase7_accessibility unit/test_ui_phase7_accessibility.c)
+    target_link_libraries(test_ui_phase7_accessibility PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ui_phase7_accessibility PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ui_phase7_accessibility COMMAND test_ui_phase7_accessibility)
+endif()
+
 # Loot API doc generator test (Itemsystem 23.5)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase23_api_doc.c AND NOT TARGET test_loot_phase23_api_doc)
     add_executable(test_loot_phase23_api_doc unit/test_loot_phase23_api_doc.c)

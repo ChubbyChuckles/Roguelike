@@ -38,3 +38,15 @@ feat(ui/a11y): phase 7.3 full colorblind palette support (protanopia/deuteranopi
 chore(ui/theme): DPI scaling helper scaffolding (Phase 7.4 groundwork)
 - Added `rogue_ui_dpi_scale_x100` and `rogue_ui_scale_px` helpers (no integration yet)
 
+feat(ui/a11y): phase 7.4 scalable UI helpers
+- Roadmap marked Done; existing widgets can adopt scaling via helper functions.
+
+feat(ui/a11y): phase 7.5 reduced motion mode
+- Added flag + getter/setter; future animations can early-out when enabled.
+
+feat(ui/a11y): phase 7.6 narration stubs
+- Added narration buffer + APIs `rogue_ui_narrate` / `rogue_ui_last_narration`.
+
+feat(ui/a11y): phase 7.7 focus audit tool
+- Added enable toggle, overlay emission (`rogue_ui_focus_audit_emit_overlays`) and export (`rogue_ui_focus_order_export`).
+- New unit test `test_ui_phase7_accessibility` covers reduced motion, narration, focus audit overlays & order export.

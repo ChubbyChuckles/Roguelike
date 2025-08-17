@@ -75,10 +75,10 @@ PHASE 7. Theming & Accessibility
 7.1 Theme asset pack (colors, font sizes, padding metrics) (Done: `ui_theme_default.cfg` + loader `rogue_ui_theme_load` and struct)
 7.2 Dynamic theme hot‑swap & diff (Done: apply API `rogue_ui_theme_apply`, diff bitmask `rogue_ui_theme_diff`, test validates change detection)
 7.3 High contrast / colorblind palettes (protanopia/deuteranopia/tritanopia) (Done: all three transforms + mode toggle + test coverage protanopia; deuteranopia/tritanopia share transform code)
-7.4 Scalable UI (DPI scaling & user preference) (X)
-7.5 Reduced motion mode (disables large transitions) (X)
-7.6 Screen reader / narration stubs (future extensibility) (X)
-7.7 Focus highlight & tab order auditing tool (X)
+7.4 Scalable UI (DPI scaling & user preference) (Done: dpi_scale_x100 + helpers added; integration pending broader layout adoption in Phase 8 but scaling API stable)
+7.5 Reduced motion mode (disables large transitions) (Done: runtime flag + accessor; animations can query flag)
+7.6 Screen reader / narration stubs (future extensibility) (Done: narration buffer & API rogue_ui_narrate / rogue_ui_last_narration)
+7.7 Focus highlight & tab order auditing tool (Done: overlay emitter + export of focus order + enable toggle)
 
 PHASE 8. Animation & Transitions
 8.1 Easing library (cubic, elastic, spring) (X)

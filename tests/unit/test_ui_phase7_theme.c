@@ -5,7 +5,10 @@
 
 int main(){
     RogueUIThemePack a,b; if(!rogue_ui_theme_load("assets/ui_theme_default.cfg", &a)){
-        if(!rogue_ui_theme_load("../assets/ui_theme_default.cfg", &a)){ printf("FAIL load default both paths\n"); return 1; }
+        if(!rogue_ui_theme_load("../assets/ui_theme_default.cfg", &a)){
+            if(!rogue_ui_theme_load("../../assets/ui_theme_default.cfg", &a)){
+                printf("FAIL load default all paths\n"); return 1; }
+        }
     }
     b=a; b.button_bg = 0x111111FF; b.padding_small=6; unsigned diff = rogue_ui_theme_diff(&a,&b); if(diff==0){ printf("FAIL diff none\n"); return 1; }
     rogue_ui_theme_apply(&a);
