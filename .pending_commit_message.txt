@@ -22,3 +22,19 @@ feat(ui/hud): phase 6.7 performance metrics overlay
 - Toggle with F1 (`show_metrics_overlay`); displays FPS, frame ms, avg
 - Shared test validates callable path; roadmap & README updated
 
+feat(ui/theme): phase 7.1 theme asset pack
+- Added `assets/ui_theme_default.cfg` with palette + spacing + DPI scale
+- `RogueUIThemePack` struct and loader `rogue_ui_theme_load`
+
+feat(ui/theme): phase 7.2 hot-swap & diff
+- Apply API `rogue_ui_theme_apply`; diff bitmask `rogue_ui_theme_diff`
+- Unit test `test_ui_phase7_theme` validates diff detection & apply
+
+feat(ui/a11y): phase 7.3 full colorblind palette support (protanopia/deuteranopia/tritanopia)
+- Extended enum + transform matrix approximations for three modes
+- Updated roadmap marking 7.3 Done (previously Partial)
+- Existing test exercises protanopia path; deuteranopia/tritanopia share transform infra
+
+chore(ui/theme): DPI scaling helper scaffolding (Phase 7.4 groundwork)
+- Added `rogue_ui_dpi_scale_x100` and `rogue_ui_scale_px` helpers (no integration yet)
+

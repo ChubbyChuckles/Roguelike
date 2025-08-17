@@ -649,6 +649,9 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
 * Phase 6.5 Minimap Toggle (NEW): Added `show_minimap` flag & 'M' key toggle gating conditional minimap render path; test `test_ui_phase6_minimap_metrics_alerts` covers toggle logic.
 * Phase 6.6 Alerts System (NEW): Center-top queued alert banners (level up, low health, vendor restock) with fade-out; APIs `rogue_alert_level_up/low_health/vendor_restock`, manual test triggers via F2/F3/F4; integrated into `hud.c`.
 * Phase 6.7 Metrics Overlay (NEW): Runtime FPS, frame ms, rolling average displayed bottom-left; toggled with F1 (`show_metrics_overlay`); included in same test harness.
+* Phase 7.1 Theme Asset Pack (NEW): Added key/value driven `ui_theme_default.cfg` with palette (panel/bg/button/slider/tooltip/alert colors), spacing (padding_small/large), base font size, DPI scale integer for deterministic scaling.
+* Phase 7.2 Theme Hot-Swap & Diff (NEW): Loader `rogue_ui_theme_load`, apply API `rogue_ui_theme_apply`, and bitmask diff `rogue_ui_theme_diff` enabling targeted re-render invalidation (unit test exercises change detection for color + spacing fields).
+* Phase 7.3 Accessibility – Colorblind Modes COMPLETE: Added colorblind mode toggle with transforms for protanopia, deuteranopia, and tritanopia (`rogue_ui_colorblind_transform`). Existing unit test exercises protanopia path; transforms share approximation matrices. DPI scaling helpers (`rogue_ui_dpi_scale_x100`, `rogue_ui_scale_px`) added as groundwork for Phase 7.4 scalable UI.
 
 ### v0.8.x (Current Development Branch)
 **Added**
