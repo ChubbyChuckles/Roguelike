@@ -91,7 +91,7 @@ PHASE 9. Performance & Virtualization
 9.1 CPU budget instrumentation per phase (update/render) (Done: per-phase begin/end APIs, frame/update/render split, accumulation arrays)
 9.2 Dirty rectangle culling & partial redraw (Done: union rect + changed flag + kind classification structural/content)
 9.3 Text shaping cache & glyph atlas compaction (Done: glyph cache with LRU ticks, hit/miss counters, compaction API)
-9.4 Large list virtualization (inventory, logs) (Partial: range + emission helpers in place; inventory/log integration still pending)
+9.4 Large list virtualization (inventory, logs) (Done: range + emission helpers + inventory grid row-based virtualization & scrolling test `test_ui_phase9_virtual_inventory`)
 9.5 Frame time regression guardrails (baseline snapshot) (Done: baseline set + threshold %, regression flag, auto-baseline averaging)
 
 PHASE 10. Testing & QA Automation

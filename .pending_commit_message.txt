@@ -1,19 +1,24 @@
-UI Phase 9 (Performance & Virtualization) – extended implementation
+UI Phase 9.4: Inventory Virtualization Integration
 
-- 9.1 CPU budget instrumentation per phase: Added per-phase timing APIs (begin/end/query), accumulated render phase timing, stored frame/update/render breakdown fields.
-- 9.2 Dirty rectangle: Added dirty kind classification (structural vs content) to RogueUIDirtyInfo; union logic sets kind based on node count delta.
-- 9.3 Text shaping cache & glyph atlas compaction: Implemented lightweight glyph cache (advance synthesis, LRU tick updates, compaction trimming oldest half, hit/miss counters, reset API, measurement function). Added associated public APIs.
-- 9.4 Large list virtualization: (previous partial) – groundwork retained; inventory virtual range integration still pending (will finalize in follow-up to avoid partial refactor mid-cycle).
-- 9.5 Frame time regression guardrails: Added baseline + percentage threshold APIs, auto-baseline accumulation, regression latch flag.
+Summary:
+* Completed Phase 9.4 by integrating row-based list virtualization & wheel scrolling into inventory grid (`rogue_ui_inventory_grid`).
+* Added unit test `test_ui_phase9_virtual_inventory` validating:
+	- Visible subset < total slots (inventory of 200, visible subset constrained by viewport height)
+	- Wheel scrolling advances first visible slot (row increments)
+	- Node count remains bounded (no linear growth on scroll)
+* Implemented persistent `s_scroll_row` and mapped rows -> slot index range via existing `rogue_ui_list_virtual_range` helper (treating rows as virtual items) eliminating prior ineffective per-frame start overrides.
+* Removed temporary debug/trace prints from grid and test after verification.
+* Updated roadmap (`implementation_plan_uisystem.txt`) marking 9.4 from Partial to Done with test reference.
+* Updated README UI section: removed "Mostly Done" / remaining partial note; now documents completed inventory virtualization.
 
-New tests:
-- test_ui_phase9_extended.c covering glyph cache growth/compaction, per-phase timing API smoke, dirty kind, regression guard, auto-baseline (relaxed assertions for platform timer granularity).
+Technical Notes:
+* Virtualization computes `total_rows = ceil(slots/columns)` and uses `item_pitch = cell_size + spacing` as row height. Wheel delta adjusts row index by ±1 clamped to [0, total_rows-1].
+* `rogue_ui_list_virtual_range` invoked with total_rows to derive first/visible rows; mapped back to slot range. Ensures constant O(visible_rows * columns) node emission independent of total inventory size.
+* Chosen approach avoids fractional pixel accumulation; potential future refinement: smooth pixel scroll offset + partial row culling.
 
-Other changes:
-- Extended RogueUIContext with perf_phase arrays, regression guard fields, glyph cache storage.
-- Added performance & glyph cache API declarations to ui_context.h.
-- Updated dirty info accessor to include kind classification.
+Follow Ups (Deferred):
+* Apply same row virtualization pattern to future log/history panel.
+* Consider inertial scrolling + easing integration using Phase 8 timeline system.
+* Hook rarity colors to real item definition metadata when available.
 
-Follow-ups planned:
-- Integrate virtualization directly into inventory grid & combat log (phase 9.4 completion) and add targeted node count stability test.
-- Strengthen per-phase timing test once deterministic high-resolution timer stub is integrated.
+All Phase 9 items now complete (9.1–9.5). Proceeding next to Phase 10 testing & QA automation tasks unless reprioritized.

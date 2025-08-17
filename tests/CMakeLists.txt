@@ -90,6 +90,15 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase9_extended.c AND NOT TAR
     add_test(NAME test_ui_phase9_extended COMMAND test_ui_phase9_extended)
 endif()
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase9_virtual_inventory.c AND NOT TARGET test_ui_phase9_virtual_inventory)
+    add_executable(test_ui_phase9_virtual_inventory unit/test_ui_phase9_virtual_inventory.c)
+    target_link_libraries(test_ui_phase9_virtual_inventory PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ui_phase9_virtual_inventory PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ui_phase9_virtual_inventory COMMAND test_ui_phase9_virtual_inventory)
+endif()
+
 # Loot API doc generator test (Itemsystem 23.5)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase23_api_doc.c AND NOT TARGET test_loot_phase23_api_doc)
     add_executable(test_loot_phase23_api_doc unit/test_loot_phase23_api_doc.c)

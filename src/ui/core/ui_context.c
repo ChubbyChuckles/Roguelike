@@ -602,21 +602,34 @@ int rogue_ui_radial_menu(RogueUIContext* ctx, float cx, float cy, float radius, 
 int rogue_ui_inventory_grid(RogueUIContext* ctx, RogueUIRect rect, const char* id,
     int slot_capacity, int columns, int* item_ids, int* item_counts,
     int cell_size, int* first_visible, int* visible_count){
-    dbg_trace("inv_grid_enter");
     if(ctx->node_capacity==0){ fprintf(stderr,"FATAL: node_capacity==0 (corrupted context)\n"); return -1; }
-    fprintf(stderr,"ADDR drag_active=%p drag_from_slot=%p stack_split_active=%p event_queue=%p stat_preview_slot=%p radial=%p\n",
-        (void*)&ctx->drag_active,(void*)&ctx->drag_from_slot,(void*)&ctx->stack_split_active,(void*)ctx->event_queue,(void*)&ctx->stat_preview_slot,(void*)&ctx->radial);
-    fflush(stderr);
     if(!ctx||!ctx->frame_active||slot_capacity<=0||columns<=0) return -1;
     /* TEMP DEBUG: instrumentation to locate segfault in tests */
     static int dbg_counter=0; dbg_counter++;
     if(cell_size<=0) cell_size=32; if(columns>slot_capacity) columns=slot_capacity;
     int root = rogue_ui_panel(ctx,rect, ctx->theme.panel_bg_color); (void)id;
-    int start = first_visible? *first_visible:0; if(start<0) start=0; if(start>=slot_capacity) start=0;
-    int max_vis_rows=(int)(rect.h/(float)cell_size); if(max_vis_rows<=0) max_vis_rows=1;
-    int end_slot=start+max_vis_rows*columns; if(end_slot>slot_capacity) end_slot=slot_capacity;
-    if(visible_count) *visible_count=end_slot-start; if(first_visible) *first_visible=start;
-    float pad=2.0f, spacing=2.0f; float mx=ctx->input.mouse_x, my=ctx->input.mouse_y; int hovered_slot=-1;
+      /* Virtualization integration (Phase 9.4 completion):
+          We virtualize by ROW (not individual slots) so one wheel notch scrolls a single row.
+          Steps:
+             1) Maintain persistent s_scroll_row advanced by wheel_delta sign.
+             2) Compute total_rows; clamp s_scroll_row.
+             3) Use rogue_ui_list_virtual_range() with total_rows and row height (item_pitch) to obtain
+                 first_row and visible_row_count.
+             4) Map rows back to slot index range. */
+     static int s_scroll_row = 0; /* persistent first row */
+     if(ctx->input.wheel_delta>0) s_scroll_row--; else if(ctx->input.wheel_delta<0) s_scroll_row++; /* one row per notch */
+     if(s_scroll_row<0) s_scroll_row=0;
+     float spacing=2.0f; float pad=2.0f;
+     int item_pitch = cell_size + (int)spacing; /* vertical stride per row */
+     int total_rows = (slot_capacity + columns -1)/columns;
+     int max_row = total_rows - 1; if(max_row<0) max_row=0; if(s_scroll_row>max_row) s_scroll_row=max_row;
+     int view_height = (int)rect.h;
+     int scroll_offset = s_scroll_row * item_pitch; /* pixels */
+     int first_row=0, visible_rows=0; rogue_ui_list_virtual_range(total_rows, item_pitch, view_height, scroll_offset, &first_row, &visible_rows);
+     int start = first_row * columns;
+     int end_slot = start + visible_rows * columns; if(end_slot>slot_capacity) end_slot = slot_capacity;
+    if(visible_count) *visible_count = end_slot - start; if(first_visible) *first_visible = start;
+    float mx=ctx->input.mouse_x, my=ctx->input.mouse_y; int hovered_slot=-1;
     for(int s=start; s<end_slot; ++s){ int local=s-start; int r=local/columns; int c=local%columns; float x=rect.x+pad+c*(cell_size+spacing); float y=rect.y+pad+r*(cell_size+spacing); RogueUIRect cell_r={x,y,(float)cell_size,(float)cell_size};
         uint32_t base_col=0x303038FFu;
         if(item_ids && item_ids[s]){
@@ -692,5 +705,5 @@ int rogue_ui_inventory_grid(RogueUIContext* ctx, RogueUIRect rect, const char* i
     rogue_ui_panel(ctx,pr,0x202028FFu); /* duplicate stat preview line so pointer is stable */
     rogue_ui_text_dup(ctx,(RogueUIRect){pr.x+4,pr.y+2,pr.w-8,pr.h-4},line,col);
     } else if(ctx->stat_preview_slot!=-1){ fprintf(stderr,"DBG %d preview_hide slot=%d\n",dbg_counter,ctx->stat_preview_slot); fflush(stderr); ui_enqueue(ctx,ROGUE_UI_EVENT_STAT_PREVIEW_HIDE,ctx->stat_preview_slot,0,0); ctx->stat_preview_slot=-1; }
-    dbg_trace("inv_grid_exit");
+    /* End inventory grid */
     return root; }
