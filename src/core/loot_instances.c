@@ -4,6 +4,8 @@
 #include "core/loot_logging.h"
 #include "core/loot_affixes.h"
 #include "core/loot_rarity_adv.h"
+/* Forward declaration (12.4) */
+int rogue_minimap_ping_loot(float x,float y,int rarity);
 
 static RogueItemInstance g_instances[ROGUE_ITEM_INSTANCE_CAP];
 
@@ -22,6 +24,8 @@ int rogue_items_spawn(int def_index, int quantity, float x, float y){
         int base_dur = 50 + rarity*25; g_instances[i].durability_max = base_dur; g_instances[i].durability_cur = base_dur;
     } else { g_instances[i].durability_max = 0; g_instances[i].durability_cur = 0; }
         if(i >= g_app.item_instance_count) g_app.item_instance_count = i+1;
+    /* 12.4 spawn minimap loot ping */
+    rogue_minimap_ping_loot(x,y,rarity);
     ROGUE_LOOT_LOG_INFO("loot_spawn: def=%d qty=%d at(%.2f,%.2f) slot=%d active_total=%d", def_index, quantity, x, y, i, rogue_items_active_count()+1);
         return i; }
     ROGUE_LOG_WARN("loot_spawn: pool full (cap=%d) def=%d qty=%d", ROGUE_ITEM_INSTANCE_CAP, def_index, quantity);

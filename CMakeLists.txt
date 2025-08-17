@@ -77,6 +77,8 @@ add_library(rogue_core
     src/core/app_state.c
     src/core/game_loop.c
     src/core/minimap.c
+    src/core/minimap_loot_pings.c
+    src/core/loot_tooltip.c
     src/core/player_controller.c
     src/core/input_events.c
     src/core/player_render.c

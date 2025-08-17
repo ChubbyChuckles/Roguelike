@@ -1,8 +1,0 @@
-Loot Filter + Visual Outline (Items 12.1–12.3)
-- Implemented loot_filter.[ch]: rules (rarity>= / rarity<= / category= / name~ / def=) + MODE=ANY/ALL logic, up to 64 rules.
-- Added item instance field hidden_filter, visible count API, and reapply function.
-- Unit test test_loot_filter_basic passes (filters common sword keeps epic blade visible).
-- world_renderer now skips hidden items and draws basic rarity-colored outline (12.3 placeholder for future glow).
-- Roadmap updated: 12.1, 12.2, 12.3 marked Done; README gains Loot Filter + outline note.
-
-Follow-ups: 12.4 minimap pings, 12.5/12.6 tooltips & comparison, richer glow animation & performance batching.

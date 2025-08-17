@@ -1,4 +1,5 @@
 #include "core/minimap.h"
+#include "core/minimap_loot_pings.h" /* 12.4 loot pings overlay */
 #include "util/log.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
@@ -86,6 +87,8 @@ void rogue_minimap_update_and_render(int mm_max_size){
         int pmx = mm_x_off + (int)((g_app.player.base.pos.x / (float)g_app.world_map.width) * mm_w);
         int pmy = mm_y_off + (int)((g_app.player.base.pos.y / (float)g_app.world_map.height) * mm_h);
         SDL_Rect mmpr={pmx,pmy,2,2}; SDL_RenderFillRect(g_app.renderer,&mmpr); g_app.frame_draw_calls++;
+        /* 12.4 render loot pings after player marker */
+        rogue_minimap_render_loot_pings(mm_x_off, mm_y_off, mm_w, mm_h);
     }
 #endif
 }

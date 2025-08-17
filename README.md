@@ -433,6 +433,21 @@ Minimal repair loop implemented:
 * Reroll UI & multi-item flows pending.
 
 ### Equip / Unequip Stat Delta Tests (14.5)
+### Mini-map Loot Pings (12.4)
+### Item Tooltips & Comparison (12.5–12.6)
+Implemented lightweight string builders for item inspection:
+* `rogue_item_tooltip_build(inst, buf, sz)` lists name, quantity, damage/armor lines, affix stat rolls, and durability.
+* `rogue_item_tooltip_build_compare(inst, slot, buf, sz)` appends a delta damage line vs equipped slot (currently weapon slot support).
+* Supports ground or equipped instances (uses instance index lookups; future integration will feed hover selection from UI layer).
+* Tests: `test_loot_tooltip_basic` (validates lines) and `test_loot_tooltip_compare` (ensures comparison delta appended).
+
+Added passive visualization of recent ground item spawns on the minimap:
+* Each item spawn registers a ping via `rogue_minimap_ping_loot(x,y,rarity)` triggered inside `rogue_items_spawn`.
+* Pings persist for 5 seconds, fading out during the final 20% of lifetime.
+* Rendering overlays small 3x3 colored squares (rarity color) on the minimap after the player marker.
+* Module: `minimap_loot_pings.c/h` with update (`rogue_minimap_pings_update`) and render hook (`rogue_minimap_render_loot_pings`).
+* Unit Test `test_minimap_loot_pings` validates spawn -> ping creation, active count increment, and expiry after lifetime advancement.
+
 Unit test `test_equipment_unequip_delta` verifies stat bonus application on equip and removal on unequip, completing roadmap item 14.5.
 
 ---

@@ -13,7 +13,7 @@
   "panel_height": 220,
   "border_thickness": 3,
   "use_parchment": 1,
-  "parchment_texture": "assets/ui/parchment.png",
+  "parchment_texture": "../assets/ui/parchment.png",
   "glow_color": "0x40FFD580",
   "rune_strip_color": "0x30D4B870",
   "glow_strength": 3,

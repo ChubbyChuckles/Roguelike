@@ -1,8 +1,0 @@
-{
-  "id": 100,
-  "lines": [
-    { "speaker": "sage", "text": "Welcome, traveler. The dungeon remembers every footstep." },
-    { "speaker": "player", "text": "If it remembers me, it should also fear me." },
-    { "speaker": "sage", "text": "Courage is a fine lantern. Keep it lit." }
-  ]
-}
