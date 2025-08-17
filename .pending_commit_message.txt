@@ -1,6 +1,12 @@
 itemsystem: tooling Phases 21.4-21.5 rarity rebalance scales + item defs auto-sort (APIs + tests)
 
 feat(items-tooling): finalize Phase 21.5 item definition auto-sorter
+- feat(items-security): Phase 22.1–22.3 loot security primitives (hash verification, seed obfuscation, config tamper hash)
+	- Added loot_security.c/h with FNV1a-32 roll verification (`rogue_loot_roll_hash`)
+	- Seed obfuscation opt-in (`rogue_loot_obfuscate_seed`, enable flag)
+	- Config file hash snapshot & verify (skips missing files for flexibility)
+	- Unit test `test_loot_phase22_security` covers deterministic hash, obfuscation toggle, snapshot/verify
+	- Roadmap & README updated (22.1–22.3 marked Done)
 - Fixed bug in sorter not closing output file causing immediate read failure (manifested as -1 added in test)
 - Added explicit fflush+fclose ensuring consumer can read file on Windows promptly
 - Removed temporary debug instrumentation and compile definition

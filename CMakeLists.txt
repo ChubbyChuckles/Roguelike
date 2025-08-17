@@ -220,6 +220,7 @@ add_library(rogue_core
     src/game/hitbox_load.c
         src/game/lock_on.c
         src/game/infusions.c
+        src/core/loot_security.c
 )
 
 target_include_directories(rogue_core PUBLIC
