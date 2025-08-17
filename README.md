@@ -118,6 +118,17 @@ See full, fine‑grained roadmap in `implementation_plan.txt` (kept continuously
 * Vegetation collision distinguishes trunk (blocking) from canopy (visual) validated by trunk/canopy tests.
 * Biome directory structure prepped for per-biome loot modifiers (context already carries biome id).
 
+#### AI & Behaviour (Phase 1.1–1.3 Implemented)
+Initial scaffolding for the modular behaviour system now landed:
+* `ai/core/behavior_tree.[ch]` – minimal Behavior Tree engine (node struct, recursive destroy, tick dispatch).
+* `ai/core/blackboard.[ch]` – fixed-cap linear typed blackboard (int/float/bool/ptr) for early experimentation.
+* `ai/nodes/basic_nodes.[ch]` – core composites (Selector, Sequence) + trivial leaf/condition helpers.
+* `ai/util/utility_scorer.h` – lightweight scoring interface (stubs; dynamic utility selector node deferred to Phase 4/6).
+* Unit test: `test_ai_behavior_tree` validates blackboard write/read and composite traversal success/fallback behavior.
+
+Upcoming (Phase 1.4–1.7 & Phase 2+): execution scheduler, per-agent deterministic RNG stream, behavior trace ring, serialization of active path, richer blackboard value types (vec2, entity_ref, timers, decay / TTL), and perception-driven condition nodes.
+
+
 #### Combat & Skills
 * Skill system supports active & passive examples (fireball, dash, passives) with forced short cooldowns under test macro.
 * Combat Attack Registry (Phase 1.1–1.3 partial): classless weapon archetypes (light, heavy, thrust, ranged, spell_focus) with static attack chains + branch queue logic (1.4/1.6 partial), scaling coefficients & damage type fields (1.5 partial), extended AttackDef fields (poise_cost, cancel_flags, whiff_cancel_pct, status buildup scaffolds) and validation tests (`test_combat_attack_registry`, `test_combat_chain_branch`, `test_combat_scaling_coeffs`, `test_combat_whiff_cancel`, `test_combat_block_cancel`, `test_combat_drift_timing`). Implements hit / whiff / block early cancel logic, late-chain grace window (<130ms idle chain continuation), and a drift-resistant double accumulator for precise phase timing.

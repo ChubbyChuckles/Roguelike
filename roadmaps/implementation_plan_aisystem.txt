@@ -14,9 +14,9 @@ PHASE 0. Current Baseline (Partial)
 0.3 Random patrol / spawn seeding (Partial)
 
 PHASE 1. Core Behaviour Architecture
-1.1 Behaviour module scaffold (ai/) with subdirs: core/, nodes/, perception/, tactics/, test/ (X)
-1.2 BehaviorTree + blackboard structs (X)
-1.3 Lightweight Utility AI scorer interface (BT leaf can delegate) (X)
+1.1 Behaviour module scaffold (ai/) with subdirs: core/, nodes/, perception/, tactics/, test/ (Done) [Added ai/ with core/, nodes/, util/ (perception/tactics deferred); integrated into build]
+1.2 BehaviorTree + blackboard structs (Done) [Minimal BT (Selector, Sequence) + linear blackboard (int/float/bool/ptr); recursive destroy; unit test]
+1.3 Lightweight Utility AI scorer interface (BT leaf can delegate) (Done) [Introduced utility_scorer.h stub; no dynamic selection yet]
 1.4 Execution scheduler (tick budget & staggering) (X)
 1.5 Deterministic RNG stream per agent (X)
 1.6 Behavior trace ring buffer for debugging (X)
