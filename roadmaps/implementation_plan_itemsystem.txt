@@ -160,12 +160,12 @@ X = Not started yet
 19.4 Screen edge notifier icons (Done: edge notifier count query via rogue_loot_vfx_edge_notifiers using distance > view radius heuristic)
 19.5 Subtle pulse animation near despawn time (Done: within final 5s before despawn sets pulse_active and increasing pulse_alpha 0..1)
 
-20. Quality Assurance & Testing Expansion (Pending)
+20. Quality Assurance & Testing Expansion (Done)
 20.1 Fuzz tests for loot table parsing (Done: randomized malformed line generator ensures no crash, respects caps, validates entry limits)
 20.2 Statistical test harness (Done: high-iteration roll sampling computing empirical rarity frequencies)
 20.3 Regression suite for rarity probability (Done: tolerance guard against skew >15% from uniform baseline for band 0-2 long_sword in ORC_BASE)
-20.4 Save/load round-trip with affixes (X)
-20.5 Stress test: max ground items + merges (X)
+20.4 Save/load round-trip with affixes (Done: `test_loot_phase20_4_persistence_roundtrip` generates 90 affix-bearing items, saves, reloads, and asserts 100% record fidelity incl. enchant & durability fields)
+20.5 Stress test: max ground items + merges (Done: `test_loot_phase20_5_merge_stress` spawns near-capacity clustered items, validates deterministic stack merge count reduction & no overflows)
 
 21. Tooling & Content Pipeline (Pending)
 21.1 External spreadsheet -> game CSV converter (X)

@@ -1,0 +1,6 @@
+itemsystem: finalize QA Phases 20.4–20.5 (affix persistence round‑trip & merge stress) and update docs
+
+* Roadmap: Mark 20.4 and 20.5 as Done with detailed descriptions (affix-rich save/load round‑trip; ground item merge stress harness).
+* README: Add Phase 20.4 and 20.5 QA highlights expanding Quality Assurance coverage narrative.
+* Tests already present (`test_loot_phase20_4_persistence_roundtrip`, `test_loot_phase20_5_merge_stress`) validated locally; documentation now reflects their existence.
+* Closes gap between implemented functionality and roadmap status, improving planning accuracy for upcoming Tooling (21.x) tasks.
