@@ -4,6 +4,7 @@
 #include "core/loot_logging.h"
 #include "core/loot_affixes.h"
 #include "core/loot_rarity_adv.h"
+#include "core/loot_vfx.h"
 /* Forward declaration (12.4) */
 int rogue_minimap_ping_loot(float x,float y,int rarity);
 
@@ -26,6 +27,7 @@ int rogue_items_spawn(int def_index, int quantity, float x, float y){
         if(i >= g_app.item_instance_count) g_app.item_instance_count = i+1;
     /* 12.4 spawn minimap loot ping */
     rogue_minimap_ping_loot(x,y,rarity);
+    rogue_loot_vfx_on_spawn(i,rarity);
     ROGUE_LOOT_LOG_INFO("loot_spawn: def=%d qty=%d at(%.2f,%.2f) slot=%d active_total=%d", def_index, quantity, x, y, i, rogue_items_active_count()+1);
         return i; }
     ROGUE_LOG_WARN("loot_spawn: pool full (cap=%d) def=%d qty=%d", ROGUE_ITEM_INSTANCE_CAP, def_index, quantity);
@@ -79,7 +81,7 @@ void rogue_items_update(float dt_ms){
     int override_ms = rogue_rarity_get_despawn_ms(g_instances[i].rarity); /* advanced rarity override */
     int limit = override_ms>0? override_ms : ROGUE_ITEM_DESPAWN_MS;
     if(g_instances[i].life_ms >= (float)limit){
-            g_instances[i].active=0; continue; }
+            g_instances[i].active=0; rogue_loot_vfx_on_despawn(i); continue; }
     }
     /* Stack merge pass (single sweep O(n^2) small cap) */
     for(int i=0;i<ROGUE_ITEM_INSTANCE_CAP;i++) if(g_instances[i].active){
@@ -101,4 +103,6 @@ void rogue_items_update(float dt_ms){
             }
         }
     }
+    /* Update VFX after lifetime & potential merges */
+    rogue_loot_vfx_update(dt_ms);
 }

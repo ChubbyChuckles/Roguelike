@@ -4,4 +4,11 @@ Itemsystem Phase 19.1: Per-rarity pickup sounds mapping
 - Integrated pickup sound lookup into loot pickup loop; logs chosen sound id (audio playback stub for now) preserving deterministic behavior.
 - Added unit test test_loot_phase19_1_pickup_sounds verifying spawn, pickup deactivation, and absence of crash with configured pickup sounds.
 - Updated roadmap (19.1 Done) and README with Phase 19.1 feature summary.
+Itemsystem Phases 19.2–19.5: Loot visual polish (sparkle, beam, edge notifier, pulse)
+- Introduced loot_vfx module (loot_vfx.c/h) maintaining per-instance visual state (sparkle timer, beam_active, pulse_active & alpha) plus edge notifier counting.
+- Integrated spawn/despawn/update hooks in loot_instances.c (calls rogue_loot_vfx_on_spawn/on_despawn and rogue_loot_vfx_update).
+- Implemented rarity>=3 beam pillar flag; sparkle timer cycles every 1.2s (placeholder for frame selection); pulse engages final 5s before despawn with normalized alpha ramp.
+- Added query APIs rogue_loot_vfx_get and rogue_loot_vfx_edge_notifiers for UI consumption & testing.
+- Added unit test test_loot_phase19_2_5_vfx validating spawn state, pulse activation, alpha monotonic increase, and cleanup after despawn.
+- Roadmap entries 19.2–19.5 marked Done and README updated with feature summary.
 

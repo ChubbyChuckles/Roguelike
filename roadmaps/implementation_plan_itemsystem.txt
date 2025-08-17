@@ -155,10 +155,10 @@ X = Not started yet
 
 19. Audio/Visual Polish (Pending)
 19.1 Per-rarity pickup sounds (Done: rarity->pickup sound id mapping APIs rogue_rarity_set_pickup_sound / rogue_rarity_get_pickup_sound; pickup loop logs sound id placeholder)
-19.2 Ground sparkle particle system (by rarity) (X)
-19.3 Beam / pillar effect for high rarity (X)
-19.4 Screen edge notifier icons (X)
-19.5 Subtle pulse animation near despawn time (X)
+19.2 Ground sparkle particle system (by rarity) (Done: timer-based sparkle cycle tracked per instance in loot_vfx.c, rarity influences beam flag only for now; future expansion can vary period)
+19.3 Beam / pillar effect for high rarity (Done: beam_active=1 for rarity>=3 set on spawn)
+19.4 Screen edge notifier icons (Done: edge notifier count query via rogue_loot_vfx_edge_notifiers using distance > view radius heuristic)
+19.5 Subtle pulse animation near despawn time (Done: within final 5s before despawn sets pulse_active and increasing pulse_alpha 0..1)
 
 20. Quality Assurance & Testing Expansion (Pending)
 20.1 Fuzz tests for loot table parsing (X)
