@@ -68,11 +68,19 @@ void rogue_save_manager_register(const RogueSaveComponent* comp);
 int rogue_save_manager_save_slot(int slot_index); /* full save */
 int rogue_save_manager_load_slot(int slot_index);
 int rogue_save_manager_autosave(int slot_index); /* autosave ring save */
+int rogue_save_manager_quicksave(void); /* writes quicksave.sav */
 void rogue_register_core_save_components(void); /* registers Phase 1 core components */
 
 /* Migration API */
 void rogue_save_register_migration(const RogueSaveMigration* mig);
 int rogue_save_manager_set_durable(int enabled); /* enable fsync/_commit durability */
+/* Autosave scheduling (Phase 6.1/6.3/6.4) */
+int rogue_save_set_autosave_interval_ms(int ms); /* set interval (<=0 disables) */
+int rogue_save_manager_update(uint32_t now_ms, int in_combat); /* call periodically; triggers autosave when idle */
+int rogue_save_last_save_rc(void); /* result code of last save/autosave/quicksave */
+uint32_t rogue_save_last_save_bytes(void); /* size in bytes of last successful save (0 if none) */
+double rogue_save_last_save_ms(void); /* duration ms of last save */
+uint32_t rogue_save_autosave_count(void); /* number of autosaves performed via scheduler */
 
 /* Migration metrics (Phase 2.4) */
 int rogue_save_last_migration_steps(void); /* number of successful version bumps in last load */

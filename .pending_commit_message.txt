@@ -8,3 +8,12 @@ feat(persistence): Phase 5.1/5.2 incremental save dirty tracking & cached sectio
 - Update roadmap marking phases 5.1 & 5.2 Done with implementation notes
 - README persistence section documents incremental mode usage & limits
 
+feat(persistence): Phase 6.1/6.3/6.4 autosave scheduler, quicksave & telemetry
+
+- Autosave interval scheduling (idle-only) with API rogue_save_set_autosave_interval_ms + update tick rogue_save_manager_update
+- Ring index advances; metrics recorded (rc, size bytes, duration ms, count)
+- Quicksave API rogue_save_manager_quicksave
+- Unit test test_save_autosave_scheduler simulates timeline producing multiple autosaves
+- Roadmap updated marking phases 6.1, 6.3, 6.4 Done; notes for future UI indicator (6.5)
+- README updated with autosave & metrics usage
+

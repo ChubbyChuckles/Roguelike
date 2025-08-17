@@ -42,9 +42,22 @@ static int g_incremental_enabled = 0;
 typedef struct { int id; unsigned char* data; uint32_t size; uint32_t crc32; int valid; } RogueCachedSection;
 static RogueCachedSection g_cached_sections[ROGUE_SAVE_MAX_COMPONENTS];
 static uint32_t g_dirty_mask = 0xFFFFFFFFu; /* start dirty */
+/* Autosave scheduling (Phase 6) */
+static int g_autosave_interval_ms = 0; /* disabled by default */
+static uint32_t g_last_autosave_time = 0;
+static uint32_t g_autosave_count = 0;
+static int g_last_save_rc = 0;
+static uint32_t g_last_save_bytes = 0;
+static double g_last_save_ms = 0.0;
+static int g_in_save = 0;
 int rogue_save_set_incremental(int enabled){ g_incremental_enabled = enabled?1:0; if(!g_incremental_enabled){ /* free all */ for(int i=0;i<ROGUE_SAVE_MAX_COMPONENTS;i++){ free(g_cached_sections[i].data); g_cached_sections[i].data=NULL; g_cached_sections[i].valid=0; } g_dirty_mask=0xFFFFFFFFu; } return 0; }
 int rogue_save_mark_component_dirty(int component_id){ if(component_id<=0||component_id>=32) return -1; g_dirty_mask |= (1u<<component_id); return 0; }
 int rogue_save_mark_all_dirty(void){ g_dirty_mask=0xFFFFFFFFu; return 0; }
+int rogue_save_set_autosave_interval_ms(int ms){ g_autosave_interval_ms = ms; return 0; }
+uint32_t rogue_save_autosave_count(void){ return g_autosave_count; }
+int rogue_save_last_save_rc(void){ return g_last_save_rc; }
+uint32_t rogue_save_last_save_bytes(void){ return g_last_save_bytes; }
+double rogue_save_last_save_ms(void){ return g_last_save_ms; }
 uint32_t rogue_save_last_tamper_flags(void){ return g_last_tamper_flags; }
 int rogue_save_last_recovery_used(void){ return g_last_recovery_used; }
 int rogue_save_set_compression(int enabled, int min_bytes){ g_compress_enabled = enabled?1:0; if(min_bytes>0) g_compress_min_bytes=min_bytes; return 0; }
@@ -144,6 +157,7 @@ static const char* build_autosave_path(int logical){ int ring = logical % ROGUE_
 int rogue_save_format_endianness_is_le(void){ uint32_t x=0x01020304u; unsigned char* p=(unsigned char*)&x; return p[0]==0x04; }
 
 static int internal_save_to(const char* final_path){
+    if(g_in_save) return -99; g_in_save=1; double t0=(double)clock();
     qsort(g_components, g_component_count, sizeof(RogueSaveComponent), cmp_comp);
     /* Unique temp path to avoid collisions under parallel test processes */
     char tmp_path[160];
@@ -271,7 +285,13 @@ static int internal_save_to(const char* final_path){
 #else
     rename(tmp_path, final_path);
 #endif
-    return 0;
+    int rc=0;
+    rc=0;
+    g_last_save_rc = rc;
+    g_last_save_bytes = (uint32_t)desc.total_size;
+    g_last_save_ms = ((double)clock()-t0)*1000.0/(double)CLOCKS_PER_SEC;
+    g_in_save=0;
+    return rc;
 }
 
 int rogue_save_manager_save_slot(int slot_index){ if(slot_index<0 || slot_index>=ROGUE_SAVE_SLOT_COUNT) return -1; int rc=internal_save_to(build_slot_path(slot_index)); if(rc==0 && g_debug_json_dump){ char json_path[128]; snprintf(json_path,sizeof json_path,"save_slot_%d.json", slot_index); char buf[2048]; if(rogue_save_export_json(slot_index,buf,sizeof buf)==0){ FILE* jf=NULL; 
@@ -283,7 +303,20 @@ int rogue_save_manager_save_slot(int slot_index){ if(slot_index<0 || slot_index>
     if(jf){ fwrite(buf,1,strlen(buf),jf); fclose(jf);} }
     } return rc; }
 int rogue_save_manager_autosave(int slot_index){ if(slot_index<0) slot_index=0; return internal_save_to(build_autosave_path(slot_index)); }
+int rogue_save_manager_quicksave(void){ return internal_save_to("quicksave.sav"); }
 int rogue_save_manager_set_durable(int enabled){ g_durable_writes = enabled?1:0; return 0; }
+int rogue_save_manager_update(uint32_t now_ms, int in_combat){
+    if(g_autosave_interval_ms<=0) return 0;
+    if(in_combat) return 0; /* only when idle */
+    if(g_last_autosave_time==0) g_last_autosave_time = now_ms; /* init */
+    if(now_ms - g_last_autosave_time >= (uint32_t)g_autosave_interval_ms){
+        int rc = rogue_save_manager_autosave(g_autosave_count); /* rotate ring */
+        if(rc==0){ g_autosave_count++; }
+        g_last_autosave_time = now_ms;
+        return rc;
+    }
+    return 0;
+}
 
 /* Internal helper: validate & load entire save file (returns malloc buffer after header) */
 static int load_and_validate(const char* path, RogueSaveDescriptor* out_desc, unsigned char** out_buf){
