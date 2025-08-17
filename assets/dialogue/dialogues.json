@@ -1,0 +1,17 @@
+{
+  "id": 100,
+  "lines": [
+    { "speaker": "narrator",  "race": "human", "name": "narrator", "mood": "neutral", "side": "left",  "mirror": "none", "text": "When the bells fell silent across the plazas and the web of the world closed like a net, no one thought escape would be so absolute." },
+  { "speaker": "narrator",  "race": "human", "name": "narrator", "mood": "angry",   "side": "left",  "mirror": "none", "text": "Men and women woke to stone beneath them, sky-iron above, and a single rule: death here is final." },
+  { "speaker": "nyrvessa",      "race": "dark_elf",   "name": "nyrvessa",      "mood": "angry",   "side": "right", "mirror": "v",    "text": "You did not enter by your own hand—yet the law binds you. If your heart stops here, it will not beat elsewhere." },
+  { "speaker": "player",    "race": "human", "name": "hero",      "mood": "excited", "side": "left",  "mirror": "none", "text": "Trapped? Then the blade truly cuts. There'll be no second chance for me or those I swore to protect." },
+  { "speaker": "nyrvessa",      "race": "dark_elf",   "name": "nyrvessa",      "mood": "angry", "side": "right", "mirror": "v",    "text": "Do not mistake courage for recklessness. One misstep and your tale seals shut." },
+  { "speaker": "narrator",  "race": "human", "name": "narrator", "mood": "neutral",  "side": "left",  "mirror": "none", "text": "Above, families keep vigil over empty beds. Heroes who fall here do not return." },
+  { "speaker": "player",    "race": "human", "name": "hero",      "mood": "excited", "side": "left",  "mirror": "none", "text": "Then each breath I spend will carve a path. I won't be a name spoken only in regret." },
+  { "speaker": "nyrvessa",      "race": "dark_elf",   "name": "nyrvessa",      "mood": "happy", "side": "right", "mirror": "v",    "text": "Maps lie. Allies fracture. Mercy costs coin you may not carry. Sharpen more than your steel." },
+    { "speaker": "narrator",  "race": "human", "name": "narrator", "mood": "neutral", "side": "left",  "mirror": "none", "text": "Beneath torchlight: bargains, oaths, and weighed souls. The dungeon keeps tally without pity." },
+  { "speaker": "player",    "race": "human", "name": "hero",      "mood": "neutral", "side": "left",  "mirror": "none", "text": "If death is the final ledger, my lines will be written in deeds." },
+  { "speaker": "nyrvessa",      "race": "dark_elf",   "name": "nyrvessa",      "mood": "happy",  "side": "right", "mirror": "v",    "text": "Go, then. Carry this ember. When you face what took your kin, remember what you will spend to win." },
+  { "speaker": "narrator",  "race": "human", "name": "narrator", "mood": "excited",   "side": "left",  "mirror": "none", "text": "The gates seal. A thousand hearts bind to one law: survive, or be forgotten. Your story begins." }
+  ]
+}

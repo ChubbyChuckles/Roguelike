@@ -178,16 +178,34 @@ int rogue_dialogue_style_load_from_json(const char* path){
     if(jd_extract_int(buf,"vignette",&iv)==0) st.vignette=iv;
     g_style=st; free(buf); return 0; }
 
+/* Mood -> tint color helper (portable case-insensitive compare) */
+static int rd_strcasecmp(const char* a, const char* b){ if(!a||!b) return (a?1:(b?-1:0)); while(*a && *b){ unsigned char ca=(unsigned char)*a; unsigned char cb=(unsigned char)*b; if(ca>='A'&&ca<='Z') ca=(unsigned char)(ca+32); if(cb>='A'&&cb<='Z') cb=(unsigned char)(cb+32); if(ca!=cb) return (int)ca - (int)cb; ++a; ++b; } return (int)(unsigned char)*a - (int)(unsigned char)*b; }
+static unsigned int rd_mood_tint(const char* mood){
+    if(!mood||!*mood) return 0xFFFFFFFFu; /* neutral default */
+    if(rd_strcasecmp(mood,"neutral")==0) return 0xFFFFFFFFu; /* no tint */
+    if(rd_strcasecmp(mood,"angry")==0)   return 0xFFFF6040u; /* fiery red/orange */
+    if(rd_strcasecmp(mood,"excited")==0) return 0xFFFFD040u; /* bright gold */
+    if(rd_strcasecmp(mood,"happy")==0)   return 0xFF80E070u; /* soft green */
+    return 0xFFFFFFFFu; /* unknown -> neutral */
+}
 int rogue_dialogue_load_script_from_json_file(const char* path){
     if(!path) return -1; char* buf=NULL; int len=0; if(load_file(path,&buf,&len)!=0) return -2; buf[len]='\0';
-    int script_id=-1; (void)jd_extract_int(buf,"id",&script_id); if(script_id<0){ free(buf); return -3; }
-    char* lines_sec=strstr(buf,"\"lines\""); if(!lines_sec){ free(buf); return -4; }
-    char* arr=strchr(lines_sec,'['); if(!arr){ free(buf); return -5; }
-    char* arr_end=strchr(arr,']'); if(!arr_end){ free(buf); return -6; }
-    char temp[16384]; size_t out=0; char* cursor=arr;
-    while(cursor < arr_end){ char* obj=strchr(cursor,'{'); if(!obj||obj>=arr_end) break; char* obj_end=strchr(obj,'}'); if(!obj_end||obj_end>arr_end) break; char obj_copy[1024]; size_t olen=(size_t)(obj_end-obj+1); if(olen>sizeof obj_copy -1) olen=sizeof obj_copy -1; memcpy(obj_copy,obj,olen); obj_copy[olen]='\0'; char speaker[64]="", textv[512]="", avatar[256]=""; jd_extract_string(obj_copy,"speaker",speaker,sizeof speaker); jd_extract_string(obj_copy,"text",textv,sizeof textv); jd_extract_string(obj_copy,"avatar",avatar,sizeof avatar); if(speaker[0] && textv[0]){ int n; if(avatar[0]) n=snprintf(temp+out,sizeof(temp)-out,"%s%s@%s|%s\n", out?"":"", speaker, avatar, textv); else n=snprintf(temp+out,sizeof(temp)-out,"%s%s|%s\n", out?"":"", speaker, textv); if(n>0) out += (size_t)n; }
-        cursor = obj_end+1; }
-    int r = (out>0)? rogue_dialogue_register_from_buffer(script_id,temp,(int)out):-7; free(buf); return r; }
+    int registered=0;
+    char* scripts_root = strstr(buf,"\"scripts\"");
+    if(scripts_root){ /* multi-script */
+        char* arr=strchr(scripts_root,'['); if(!arr){ free(buf); return -3; }
+        char* arr_end=strchr(arr,']'); if(!arr_end){ free(buf); return -4; }
+        char* s=arr;
+        while(s < arr_end){ char* sobj=strchr(s,'{'); if(!sobj||sobj>=arr_end) break; char* sobj_end=strchr(sobj,'}'); if(!sobj_end||sobj_end>arr_end) break; char scopy[4096]; size_t slen=(size_t)(sobj_end - sobj +1); if(slen>sizeof scopy -1) slen=sizeof scopy -1; memcpy(scopy,sobj,slen); scopy[slen]='\0'; int sid=-1; jd_extract_int(scopy,"id",&sid); if(sid>=0){ char* lines_sec=strstr(scopy,"\"lines\""); if(lines_sec){ char* larr=strchr(lines_sec,'['); if(larr){ char* larr_end=strchr(larr,']'); if(larr_end){ char temp[20000]; size_t out=0; char* lc=larr; while(lc<larr_end){ char* lobj=strchr(lc,'{'); if(!lobj||lobj>=larr_end) break; char* lobj_end=strchr(lobj,'}'); if(!lobj_end||lobj_end>larr_end) break; char lcopy[1024]; size_t llen=(size_t)(lobj_end-lobj+1); if(llen>sizeof lcopy -1) llen=sizeof lcopy -1; memcpy(lcopy,lobj,llen); lcopy[llen]='\0'; char speaker[64]="",textv[512]=""; char race[64]="", name[64]="", mood[64]=""; char side[16]="", mirror[16]=""; jd_extract_string(lcopy,"speaker",speaker,sizeof speaker); jd_extract_string(lcopy,"text",textv,sizeof textv); jd_extract_string(lcopy,"race",race,sizeof race); jd_extract_string(lcopy,"name",name,sizeof name); jd_extract_string(lcopy,"mood",mood,sizeof mood); jd_extract_string(lcopy,"side",side,sizeof side); jd_extract_string(lcopy,"mirror",mirror,sizeof mirror); if(speaker[0]&&textv[0]){ char avatar_path[256]=""; if(race[0]&&name[0]&&mood[0]) snprintf(avatar_path,sizeof avatar_path,"../assets/avatar_icons/%s/%s/%s.png",race,name,mood); int sflag=(strcmp(side,"right")==0); int vflag=(mirror[0]=='v'||mirror[0]=='V'); unsigned int tint=rd_mood_tint(mood); char meta[320]; if(avatar_path[0]) snprintf(meta,sizeof meta,"%s;S=%d;V=%d;TR=%u;TG=%u;TB=%u",avatar_path,sflag,vflag,(tint>>16)&255,(tint>>8)&255,tint&255); else meta[0]='\0'; int n = avatar_path[0]? snprintf(temp+out,sizeof(temp)-out,"%s%s@%s|%s\n",out?"":"",speaker,meta,textv):snprintf(temp+out,sizeof(temp)-out,"%s%s|%s\n",out?"":"",speaker,textv); if(n>0) out += (size_t)n; } lc = lobj_end+1; } if(out>0 && rogue_dialogue_register_from_buffer(sid,temp,(int)out)==0) registered++; }}} } s = sobj_end+1; }
+        free(buf); return (registered>0)?0:-5;
+    }
+    /* single */
+    int script_id=-1; jd_extract_int(buf,"id",&script_id); if(script_id<0){ free(buf); return -6; }
+    char* lines_sec=strstr(buf,"\"lines\""); if(!lines_sec){ free(buf); return -7; }
+    char* arr=strchr(lines_sec,'['); if(!arr){ free(buf); return -8; }
+    char* arr_end=strchr(arr,']'); if(!arr_end){ free(buf); return -9; }
+    char temp[20000]; size_t out=0; char* cursor=arr; while(cursor<arr_end){ char* obj=strchr(cursor,'{'); if(!obj||obj>=arr_end) break; char* obj_end=strchr(obj,'}'); if(!obj_end||obj_end>arr_end) break; char oc[1024]; size_t olen=(size_t)(obj_end-obj+1); if(olen>sizeof oc -1) olen=sizeof oc -1; memcpy(oc,obj,olen); oc[olen]='\0'; char speaker[64]="",textv[512]=""; char race[64]="",name[64]="",mood[64]=""; char side[16]="",mirror[16]=""; jd_extract_string(oc,"speaker",speaker,sizeof speaker); jd_extract_string(oc,"text",textv,sizeof textv); jd_extract_string(oc,"race",race,sizeof race); jd_extract_string(oc,"name",name,sizeof name); jd_extract_string(oc,"mood",mood,sizeof mood); jd_extract_string(oc,"side",side,sizeof side); jd_extract_string(oc,"mirror",mirror,sizeof mirror); if(speaker[0]&&textv[0]){ char avatar_path[256]=""; if(race[0]&&name[0]&&mood[0]) snprintf(avatar_path,sizeof avatar_path,"../assets/avatar_icons/%s/%s/%s.png",race,name,mood); int sflag=(strcmp(side,"right")==0); int vflag=(mirror[0]=='v'||mirror[0]=='V'); unsigned int tint=rd_mood_tint(mood); char meta[320]; if(avatar_path[0]) snprintf(meta,sizeof meta,"%s;S=%d;V=%d;TR=%u;TG=%u;TB=%u",avatar_path,sflag,vflag,(tint>>16)&255,(tint>>8)&255,tint&255); else meta[0]='\0'; int n= avatar_path[0]? snprintf(temp+out,sizeof(temp)-out,"%s%s@%s|%s\n",out?"":"",speaker,meta,textv):snprintf(temp+out,sizeof(temp)-out,"%s%s|%s\n",out?"":"",speaker,textv); if(n>0) out+=(size_t)n; } cursor=obj_end+1; }
+    int r=(out>0)?rogue_dialogue_register_from_buffer(script_id,temp,(int)out):-10; free(buf); return r; }
 
 /* Phase 5 Localization Storage */
 typedef struct RogueLocEntry { char locale[8]; char key[64]; char value[256]; } RogueLocEntry;
@@ -273,8 +291,8 @@ static int parse_and_register(int id, const char* buffer, int length){
         char temp[1024]; if(l> (int)sizeof(temp)-1) l=(int)sizeof(temp)-1; memcpy(temp,p,(size_t)l); temp[l]='\0'; p = nl? nl+1 : end;
         int allspace=1; for(int i=0;i<l;i++){ if(temp[i]>' '){ allspace=0; break; } } if(allspace || temp[0]=='#') continue;
     char* bar=strchr(temp,'|'); if(!bar) continue; *bar='\0'; char* speaker=temp; char* text=bar+1; trim(speaker); while(*text==' '||*text=='\t') text++;
-    /* Optional inline avatar syntax: Speaker@assets/avatars/hero.png */
-    char* at = strchr(speaker,'@'); if(at && at[1]){ *at='\0'; char* avatar_path = at+1; trim(speaker); trim(avatar_path); if(*avatar_path){ rogue_dialogue_avatar_register(speaker, avatar_path); } }
+    /* Optional inline avatar syntax: Speaker@path;S=...;V=...;TR=..;TG=..;TB=.. */
+    char* at = strchr(speaker,'@'); if(at && at[1]){ *at='\0'; char* avatar_path = at+1; trim(speaker); trim(avatar_path); if(*avatar_path){ int side_flag=0; int v_flag=0; int tr=-1,tg=-1,tb=-1; char* meta=strchr(avatar_path,';'); while(meta){ if(strncmp(meta,";S=",3)==0 && isdigit((unsigned char)meta[3])) side_flag=(meta[3]=='1'); else if(strncmp(meta,";V=",3)==0 && isdigit((unsigned char)meta[3])) v_flag=(meta[3]=='1'); else if(strncmp(meta,";TR=",4)==0) tr=atoi(meta+4); else if(strncmp(meta,";TG=",4)==0) tg=atoi(meta+4); else if(strncmp(meta,";TB=",4)==0) tb=atoi(meta+4); char* next_meta=strchr(meta+1,';'); if(!next_meta) break; meta=next_meta; } char* semi=strchr(avatar_path,';'); if(semi) *semi='\0'; if(*avatar_path){ rogue_dialogue_avatar_register(speaker, avatar_path); } lines[idx]._reserved[0]=(unsigned char)(side_flag?1:0); lines[idx]._reserved[1]=(unsigned char)(v_flag?1:0); if(tr>=0&&tr<=255 && tg>=0&&tg<=255 && tb>=0&&tb<=255){ lines[idx]._reserved[2]=(unsigned char)tr; lines[idx]._reserved[3]=(unsigned char)tg; lines[idx]._reserved[4]=(unsigned char)tb; lines[idx]._reserved[5]=255; } }}
         RogueDialogueEffect* eff_list=NULL; unsigned char eff_count=0; /* effect sections may be chained with additional '|' delimiters */
         char* next_section = strchr(text,'|');
         while(next_section){ *next_section='\0'; char* eff_section = next_section+1; /* parse this section (comma separated effects) */
@@ -470,7 +488,27 @@ void rogue_dialogue_render_runtime(void){
     if(g_style.vignette){ for(int i=0;i<12 && i<panel_w/2 && i<panel_h/2;i++){ Uint8 alpha=(Uint8)(8); SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,0,0,0,alpha); SDL_Rect vrect={x+i,y+i,panel_w-2*i,panel_h-2*i}; SDL_RenderDrawRect(g_internal_sdl_renderer_ref,&vrect);} }
     int text_left = x+14;
     RogueTexture* av = rogue_dialogue_avatar_get(ln->speaker_id);
-    if(av && av->handle){ int aw=av->w, ah=av->h; int max_h=panel_h-40; float scale=1.0f; if(ah>max_h) scale=(float)max_h/(float)ah; int dw=(int)(aw*scale); int dh=(int)(ah*scale); SDL_Rect dst={x+12,y+panel_h-dh-12,dw,dh}; SDL_RenderCopy(g_internal_sdl_renderer_ref,av->handle,NULL,&dst); text_left += dw + 20; }
+    int avatar_side = (ln->_reserved[0]==1)?1:0; /* 0 left, 1 right */
+    int avatar_v_mirror = (ln->_reserved[1] & 0x1)?1:0;
+    if(av && av->handle){
+        int aw=av->w, ah=av->h; int max_h=panel_h-40; float scale=1.0f; if(ah>max_h) scale=(float)max_h/(float)ah; int dw=(int)(aw*scale); int dh=(int)(ah*scale);
+        SDL_Rect dst;
+        if(avatar_side==0){ dst.x = x+12; text_left = dst.x + dw + 20; }
+        else { dst.x = x + panel_w - dw - 12; }
+        dst.y = y + panel_h - dh - 12; dst.w=dw; dst.h=dh;
+        /* Mood tint application if reserved[2..4] populated */
+        Uint8 tr=ln->_reserved[2], tg=ln->_reserved[3], tb=ln->_reserved[4]; Uint8 ta=ln->_reserved[5]? ln->_reserved[5] : 255; int has_tint = (ta!=0) && (tr||tg||tb) && !(tr==255 && tg==255 && tb==255);
+        Uint8 old_r=255,old_g=255,old_b=255,old_a=255; if(has_tint){ SDL_GetRenderDrawColor(g_internal_sdl_renderer_ref,&old_r,&old_g,&old_b,&old_a); SDL_SetTextureColorMod(av->handle,tr,tg,tb); }
+        if(avatar_v_mirror){ SDL_RendererFlip flip = SDL_FLIP_VERTICAL; SDL_RenderCopyEx(g_internal_sdl_renderer_ref,av->handle,NULL,&dst,0,NULL,flip); }
+        else { SDL_RenderCopy(g_internal_sdl_renderer_ref,av->handle,NULL,&dst); }
+        if(has_tint){ SDL_SetTextureColorMod(av->handle,255,255,255); }
+        if(avatar_side==1){ /* keep text_left default when avatar on right */ }
+    } else {
+        /* Fallback silhouette rectangle tinted by mood (using stored tint; default gray) */
+        Uint8 tr=ln->_reserved[2], tg=ln->_reserved[3], tb=ln->_reserved[4]; if(tr==0&&tg==0&&tb==0){ tr=80; tg=80; tb=90; }
+        int fw=72, fh=72; SDL_Rect dst; if(avatar_side==0){ dst.x=x+12; text_left=dst.x+fw+20; } else { dst.x = x+panel_w-fw-12; }
+        dst.y = y + panel_h - fh - 12; dst.w=fw; dst.h=fh; SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,tr,tg,tb,220); SDL_RenderFillRect(g_internal_sdl_renderer_ref,&dst); SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,0,0,0,255); SDL_RenderDrawRect(g_internal_sdl_renderer_ref,&dst);
+    }
     unsigned int sc_col=g_style.speaker_color; rogue_font_draw_text(text_left, y+10, ln->speaker_id?ln->speaker_id:"?",1,(RogueColor){(sc_col>>16)&255,(sc_col>>8)&255,sc_col&255,(sc_col>>24)&255});
     /* Word wrapping with fixed glyph width assumption (6px) */
     int interior_w = (x + panel_w - 14) - text_left; if(interior_w<40) interior_w=40; int char_w=6; int max_chars_line = interior_w / char_w; if(max_chars_line<8) max_chars_line=8;
