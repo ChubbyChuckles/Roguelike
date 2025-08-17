@@ -81,11 +81,11 @@ PHASE 7. Theming & Accessibility
 7.7 Focus highlight & tab order auditing tool (Done: overlay emitter + export of focus order + enable toggle)
 
 PHASE 8. Animation & Transitions
-8.1 Easing library (cubic, elastic, spring) (X)
-8.2 Timeline / keyframe system with interrupt policies (X)
-8.3 Entrance/exit transitions (mount/unmount) (X)
-8.4 Physics spring micro‑interactions (button press) (X)
-8.5 Global time dilation integration (hitstop aware UI timers) (X)
+8.1 Easing library (cubic, elastic, spring) (Done: cubic in/out/in-out, spring, elastic-out added; tests cover usage indirectly via animation & timeline sampling)
+8.2 Timeline / keyframe system with interrupt policies (Done: keyframes (scale/alpha/ease), play API, REPLACE/IGNORE implemented; APPEND reserved)
+8.3 Entrance/exit transitions (mount/unmount) (Done: scale + alpha fade, exit completion tracking)
+8.4 Physics spring micro‑interactions (button press) (Done: button press pulse with spring ease)
+8.5 Global time dilation integration (hitstop aware UI timers) (Done: anim_time_scale applied to all Phase 8 animations)
 
 PHASE 9. Performance & Virtualization
 9.1 CPU budget instrumentation per phase (update/render) (X)

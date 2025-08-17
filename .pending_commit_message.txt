@@ -1,52 +1,11 @@
-feat(ui/hud): phase 6.2 layered health/mana/AP bars with lag smoothing
-- Added hud_bars module (primary/secondary smoothing, AP integration)
-- Integrated into hud.c render path; unit test `test_ui_phase6_bars_ap` validates lag behavior
+UI Phase 8 Animation & Timelines:
+- Added easing library (cubic in/out/in-out, spring, elastic-out)
+- Implemented entrance/exit transitions (scale & alpha) + exit completion tracking list
+- Added button press spring pulse micro-interaction
+- Added global animation time scale control
+- Introduced timeline/keyframe system (scale & alpha channels) with REPLACE/IGNORE policies
+- Added timeline sampling APIs (rogue_ui_timeline_scale/alpha) + unit test test_ui_phase8_timeline
+- Integrated animation master step into frame begin (time-scaled)
+- Reduced motion mode now shortens entrance/exit durations (25%)
+- Updated roadmap Phase 8 statuses to Done
 
-feat(ui/hud): phase 6.3 buff & debuff icon belt
-- Snapshot API `rogue_buffs_snapshot` + `hud_buff_belt` module (center-top belt)
-- Unit test `test_ui_phase6_buff_belt` covers add & expiry
-
-feat(ui/hud): phase 6.4 floating combat text batching & fade curves
-- Spatial batching (merge nearby same-origin numbers) with life extension
-- Alpha ease-in (80ms) + quadratic fade-out last 150ms; added spawn_ms/alpha fields
-
-feat(ui/hud): phase 6.5 minimap interactive toggle
-- Added `show_minimap` flag + 'M' key toggle; conditional render in `app_step.c`
-- Updated roadmap & README; test `test_ui_phase6_minimap_metrics_alerts`
-
-feat(ui/hud): phase 6.6 alert system (level up / low health / vendor restock)
-- Added alert queue (`hud_overlays.c`) with fade-out & center-top stacking
-- Public APIs + F2/F3/F4 key triggers; integrated into `hud.c`
-
-feat(ui/hud): phase 6.7 performance metrics overlay
-- Toggle with F1 (`show_metrics_overlay`); displays FPS, frame ms, avg
-- Shared test validates callable path; roadmap & README updated
-
-feat(ui/theme): phase 7.1 theme asset pack
-- Added `assets/ui_theme_default.cfg` with palette + spacing + DPI scale
-- `RogueUIThemePack` struct and loader `rogue_ui_theme_load`
-
-feat(ui/theme): phase 7.2 hot-swap & diff
-- Apply API `rogue_ui_theme_apply`; diff bitmask `rogue_ui_theme_diff`
-- Unit test `test_ui_phase7_theme` validates diff detection & apply
-
-feat(ui/a11y): phase 7.3 full colorblind palette support (protanopia/deuteranopia/tritanopia)
-- Extended enum + transform matrix approximations for three modes
-- Updated roadmap marking 7.3 Done (previously Partial)
-- Existing test exercises protanopia path; deuteranopia/tritanopia share transform infra
-
-chore(ui/theme): DPI scaling helper scaffolding (Phase 7.4 groundwork)
-- Added `rogue_ui_dpi_scale_x100` and `rogue_ui_scale_px` helpers (no integration yet)
-
-feat(ui/a11y): phase 7.4 scalable UI helpers
-- Roadmap marked Done; existing widgets can adopt scaling via helper functions.
-
-feat(ui/a11y): phase 7.5 reduced motion mode
-- Added flag + getter/setter; future animations can early-out when enabled.
-
-feat(ui/a11y): phase 7.6 narration stubs
-- Added narration buffer + APIs `rogue_ui_narrate` / `rogue_ui_last_narration`.
-
-feat(ui/a11y): phase 7.7 focus audit tool
-- Added enable toggle, overlay emission (`rogue_ui_focus_audit_emit_overlays`) and export (`rogue_ui_focus_order_export`).
-- New unit test `test_ui_phase7_accessibility` covers reduced motion, narration, focus audit overlays & order export.

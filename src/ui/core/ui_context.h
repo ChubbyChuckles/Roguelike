@@ -150,6 +150,8 @@ typedef struct RogueUIContext {
     char narration_last[256];
     /* Phase 7.7 Focus audit */
     int focus_audit_enabled;
+    /* Phase 8 animation time scale (global UI time dilation) */
+    float anim_time_scale;
 } RogueUIContext;
 
 int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg);
@@ -234,6 +236,20 @@ int rogue_ui_focus_audit_enabled(const RogueUIContext* ctx);
 int rogue_ui_focus_audit_emit_overlays(RogueUIContext* ctx, uint32_t highlight_color);
 /* Export tab/focus order into buffer as newline separated labels (or kind index placeholder) */
 size_t rogue_ui_focus_order_export(RogueUIContext* ctx, char* buffer, size_t cap);
+
+/* Phase 8 Animation & Transitions */
+void rogue_ui_set_time_scale(RogueUIContext* ctx, float scale); /* Phase 8.5 */
+/* Easing types */
+typedef enum RogueUIEaseType { ROGUE_EASE_LINEAR=0, ROGUE_EASE_CUBIC_IN, ROGUE_EASE_CUBIC_OUT, ROGUE_EASE_CUBIC_IN_OUT, ROGUE_EASE_SPRING, ROGUE_EASE_ELASTIC_OUT } RogueUIEaseType;
+float rogue_ui_ease(RogueUIEaseType t, float x); /* Phase 8.1 */
+/* Entrance / Exit transitions (scale+alpha) Phase 8.3 */
+void rogue_ui_entrance(RogueUIContext* ctx, uint32_t id_hash, float duration_ms, RogueUIEaseType ease);
+void rogue_ui_exit(RogueUIContext* ctx, uint32_t id_hash, float duration_ms, RogueUIEaseType ease);
+/* Micro-interaction spring pulse (button press) Phase 8.4 */
+void rogue_ui_button_press_pulse(RogueUIContext* ctx, uint32_t id_hash);
+/* Query current animated scale/alpha (1.0 / 1.0 if none) */
+float rogue_ui_anim_scale(const RogueUIContext* ctx, uint32_t id_hash);
+float rogue_ui_anim_alpha(const RogueUIContext* ctx, uint32_t id_hash);
 
 /* Declarative Widget DSL (Phase 2.6) */
 #define UI_PANEL(ctx,X,Y,W,H,COLOR)      rogue_ui_panel((ctx),(RogueUIRect){(X),(Y),(W),(H)},(COLOR))
