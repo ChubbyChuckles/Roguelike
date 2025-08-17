@@ -582,6 +582,11 @@ static int write_player_component(FILE* f){
     fwrite(&g_app.analytics_damage_dealt_total,sizeof g_app.analytics_damage_dealt_total,1,f);
     fwrite(&g_app.analytics_gold_earned_total,sizeof g_app.analytics_gold_earned_total,1,f);
     fwrite(&g_app.permadeath_mode,sizeof g_app.permadeath_mode,1,f);
+    /* Phase 7.4 equipment slots + weapon infusion */
+    fwrite(&g_app.player.equipped_weapon_id, sizeof g_app.player.equipped_weapon_id,1,f);
+    fwrite(&g_app.player.weapon_infusion, sizeof g_app.player.weapon_infusion,1,f);
+    /* Phase 7.8 start timestamp (seconds since process epoch) */
+    fwrite(&g_app.session_start_seconds, sizeof g_app.session_start_seconds,1,f);
     return 0;
 }
 static int read_player_component(FILE* f, size_t size){
@@ -601,6 +606,9 @@ static int read_player_component(FILE* f, size_t size){
     if(remain >= (int)sizeof(unsigned long long)){ fread(&g_app.analytics_damage_dealt_total,sizeof g_app.analytics_damage_dealt_total,1,f); remain-=sizeof(unsigned long long);} else { g_app.analytics_damage_dealt_total=0ULL; }
     if(remain >= (int)sizeof(unsigned long long)){ fread(&g_app.analytics_gold_earned_total,sizeof g_app.analytics_gold_earned_total,1,f); remain-=sizeof(unsigned long long);} else { g_app.analytics_gold_earned_total=0ULL; }
     if(remain >= (int)sizeof(int)){ fread(&g_app.permadeath_mode,sizeof g_app.permadeath_mode,1,f); remain-=sizeof(int);} else { g_app.permadeath_mode=0; }
+    if(remain >= (int)sizeof(int)){ fread(&g_app.player.equipped_weapon_id,sizeof g_app.player.equipped_weapon_id,1,f); remain-=sizeof(int);} else { g_app.player.equipped_weapon_id = -1; }
+    if(remain >= (int)sizeof(int)){ fread(&g_app.player.weapon_infusion,sizeof g_app.player.weapon_infusion,1,f); remain-=sizeof(int);} else { g_app.player.weapon_infusion = 0; }
+    if(remain >= (int)sizeof(double)){ fread(&g_app.session_start_seconds,sizeof g_app.session_start_seconds,1,f); remain-=sizeof(double);} else { g_app.session_start_seconds = 0.0; }
     (void)start; return 0; }
 
 /* ---------------- Additional Phase 1 Components ---------------- */
@@ -622,17 +630,35 @@ static int write_inventory_component(FILE* f){
         fwrite(&it->prefix_value,sizeof it->prefix_value,1,f);
         fwrite(&it->suffix_index,sizeof it->suffix_index,1,f);
         fwrite(&it->suffix_value,sizeof it->suffix_value,1,f);
+        /* Durability (Phase 7.4) */
+        fwrite(&it->durability_cur,sizeof it->durability_cur,1,f);
+        fwrite(&it->durability_max,sizeof it->durability_max,1,f);
     }
     return 0;
 }
 static int read_inventory_component(FILE* f, size_t size){
-    (void)size; int count=0; if(g_active_read_version >=4){ uint32_t c=0; if(read_varuint(f,&c)!=0) return -1; count=(int)c; }
-    else if(fread(&count,sizeof count,1,f)!=1) return -1; for(int i=0;i<count;i++){
-        int def_index,quantity,rarity,pidx,pval,sidx,sval; if(fread(&def_index,sizeof def_index,1,f)!=1) return -1;
-        fread(&quantity,sizeof quantity,1,f); fread(&rarity,sizeof rarity,1,f); fread(&pidx,sizeof pidx,1,f);
-        fread(&pval,sizeof pval,1,f); fread(&sidx,sizeof sidx,1,f); fread(&sval,sizeof sval,1,f);
-        int inst = rogue_items_spawn(def_index, quantity, 0.0f,0.0f); if(inst>=0){ rogue_item_instance_apply_affixes(inst, rarity, pidx,pval,sidx,sval); }
-    } return 0; }
+    int count=0; size_t bytes_consumed=0; size_t start_pos=0; /* ftell unreliable for memory temp; track manually */
+    if(g_active_read_version >=4){ uint32_t c=0; if(read_varuint(f,&c)!=0) return -1; count=(int)c; }
+    else if(fread(&count,sizeof count,1,f)!=1) return -1;
+    for(int i=0;i<count;i++){
+        int def_index,quantity,rarity,pidx,pval,sidx,sval; if(fread(&def_index,sizeof def_index,1,f)!=1) return -1; bytes_consumed+=sizeof(def_index);
+        fread(&quantity,sizeof quantity,1,f); bytes_consumed+=sizeof(quantity); fread(&rarity,sizeof rarity,1,f); bytes_consumed+=sizeof(rarity); fread(&pidx,sizeof pidx,1,f); bytes_consumed+=sizeof(pidx);
+        fread(&pval,sizeof pval,1,f); bytes_consumed+=sizeof(pval); fread(&sidx,sizeof sidx,1,f); bytes_consumed+=sizeof(sidx); fread(&sval,sizeof sval,1,f); bytes_consumed+=sizeof(sval);
+        int durability_cur=0,durability_max=0;
+        /* Detect presence of durability fields by remaining size heuristic: original per-item record was 7 ints (28 bytes); new is 9 ints (36 bytes). */
+    size_t expected_ext = (size_t)count * (sizeof(int)*9);
+    if(size >= expected_ext && bytes_consumed <= size){
+            /* Enough bytes for extended form: read durability */
+            fread(&durability_cur,sizeof durability_cur,1,f); bytes_consumed+=sizeof(durability_cur);
+            fread(&durability_max,sizeof durability_max,1,f); bytes_consumed+=sizeof(durability_max);
+        }
+        int inst = rogue_items_spawn(def_index, quantity, 0.0f,0.0f); if(inst>=0){
+            rogue_item_instance_apply_affixes(inst, rarity, pidx,pval,sidx,sval);
+            /* Apply durability if present */
+            if(durability_max>0){ RogueItemInstance* it = (RogueItemInstance*)rogue_item_instance_at(inst); if(it){ it->durability_max=durability_max; it->durability_cur=durability_cur; }}
+        }
+    }
+    (void)start_pos; return 0; }
 
 /* SKILLS: ranks + cooldown state (id ordered) */
 /* PHASE 7.2: Extended skill state (backward-compatible). We always write the extended record, but reader detects legacy minimal form by payload size. */
@@ -705,8 +731,16 @@ static int read_buffs_component(FILE* f, size_t size){
     return 0; }
 
 /* VENDOR: seed + restock timers */
-static int write_vendor_component(FILE* f){ fwrite(&g_app.vendor_seed,sizeof g_app.vendor_seed,1,f); fwrite(&g_app.vendor_time_accum_ms,sizeof g_app.vendor_time_accum_ms,1,f); fwrite(&g_app.vendor_restock_interval_ms,sizeof g_app.vendor_restock_interval_ms,1,f); return 0; }
-static int read_vendor_component(FILE* f, size_t size){ (void)size; fread(&g_app.vendor_seed,sizeof g_app.vendor_seed,1,f); fread(&g_app.vendor_time_accum_ms,sizeof g_app.vendor_time_accum_ms,1,f); fread(&g_app.vendor_restock_interval_ms,sizeof g_app.vendor_restock_interval_ms,1,f); return 0; }
+static int write_vendor_component(FILE* f){
+    fwrite(&g_app.vendor_seed,sizeof g_app.vendor_seed,1,f);
+    fwrite(&g_app.vendor_time_accum_ms,sizeof g_app.vendor_time_accum_ms,1,f);
+    fwrite(&g_app.vendor_restock_interval_ms,sizeof g_app.vendor_restock_interval_ms,1,f);
+    /* Phase 7.5: serialize current vendor inventory (def_index, rarity, price) */
+    int count = rogue_vendor_item_count(); if(count<0) count=0; if(count>ROGUE_VENDOR_SLOT_CAP) count=ROGUE_VENDOR_SLOT_CAP;
+    fwrite(&count,sizeof count,1,f);
+    for(int i=0;i<count;i++){ const RogueVendorItem* it = rogue_vendor_get(i); if(!it){ int zero=0; fwrite(&zero,sizeof zero,1,f); fwrite(&zero,sizeof zero,1,f); fwrite(&zero,sizeof zero,1,f); } else { fwrite(&it->def_index,sizeof it->def_index,1,f); fwrite(&it->rarity,sizeof it->rarity,1,f); fwrite(&it->price,sizeof it->price,1,f); } }
+    return 0; }
+static int read_vendor_component(FILE* f, size_t size){ (void)size; fread(&g_app.vendor_seed,sizeof g_app.vendor_seed,1,f); fread(&g_app.vendor_time_accum_ms,sizeof g_app.vendor_time_accum_ms,1,f); fread(&g_app.vendor_restock_interval_ms,sizeof g_app.vendor_restock_interval_ms,1,f); int count=0; if(fread(&count,sizeof count,1,f)!=1) return 0; if(count<0 || count>ROGUE_VENDOR_SLOT_CAP) count=0; rogue_vendor_reset(); for(int i=0;i<count;i++){ int def=0,rar=0,price=0; if(fread(&def,sizeof def,1,f)!=1) return -1; if(fread(&rar,sizeof rar,1,f)!=1) return -1; if(fread(&price,sizeof price,1,f)!=1) return -1; if(def>=0){ int recomputed = rogue_vendor_price_formula(def,rar); rogue_vendor_append(def,rar,recomputed); } } return 0; }
 
 /* STRING INTERN TABLE (component id 7) */
 static int write_strings_component(FILE* f){
@@ -724,8 +758,29 @@ static int write_strings_component(FILE* f){
 static int read_strings_component(FILE* f, size_t size){ (void)size; int count=0; if(g_active_read_version>=4){ uint32_t c=0; if(read_varuint(f,&c)!=0) return -1; count=(int)c; } else if(fread(&count,sizeof count,1,f)!=1) return -1; if(count>ROGUE_SAVE_MAX_STRINGS) return -1; for(int i=0;i<count;i++){ uint32_t len=0; if(g_active_read_version>=4){ if(read_varuint(f,&len)!=0) return -1; } else if(fread(&len,sizeof len,1,f)!=1) return -1; if(len>4096) return -1; char* buf=(char*)malloc(len+1); if(!buf) return -1; if(fread(buf,1,len,f)!=len){ free(buf); return -1; } buf[len]='\0'; g_intern_strings[i]=buf; } g_intern_count=count; return 0; }
 
 /* WORLD META: world seed + generation params subset */
-static int write_world_meta_component(FILE* f){ fwrite(&g_app.pending_seed,sizeof g_app.pending_seed,1,f); fwrite(&g_app.gen_water_level,sizeof g_app.gen_water_level,1,f); fwrite(&g_app.gen_cave_thresh,sizeof g_app.gen_cave_thresh,1,f); return 0; }
-static int read_world_meta_component(FILE* f, size_t size){ (void)size; fread(&g_app.pending_seed,sizeof g_app.pending_seed,1,f); fread(&g_app.gen_water_level,sizeof g_app.gen_water_level,1,f); fread(&g_app.gen_cave_thresh,sizeof g_app.gen_cave_thresh,1,f); return 0; }
+static int write_world_meta_component(FILE* f){
+    fwrite(&g_app.pending_seed,sizeof g_app.pending_seed,1,f);
+    fwrite(&g_app.gen_water_level,sizeof g_app.gen_water_level,1,f);
+    fwrite(&g_app.gen_cave_thresh,sizeof g_app.gen_cave_thresh,1,f);
+    /* Phase 7.6 extended world gen params */
+    fwrite(&g_app.gen_noise_octaves,sizeof g_app.gen_noise_octaves,1,f);
+    fwrite(&g_app.gen_noise_gain,sizeof g_app.gen_noise_gain,1,f);
+    fwrite(&g_app.gen_noise_lacunarity,sizeof g_app.gen_noise_lacunarity,1,f);
+    fwrite(&g_app.gen_river_sources,sizeof g_app.gen_river_sources,1,f);
+    fwrite(&g_app.gen_river_max_length,sizeof g_app.gen_river_max_length,1,f);
+    return 0; }
+static int read_world_meta_component(FILE* f, size_t size){
+    /* Backward compatible: legacy record had 3 fields; new has 8. Use size to gate reads. */
+    size_t remain = size; if(remain < sizeof(unsigned int)+sizeof(double)*2) return -1; /* must have at least first three */
+    fread(&g_app.pending_seed,sizeof g_app.pending_seed,1,f); remain -= sizeof g_app.pending_seed;
+    fread(&g_app.gen_water_level,sizeof g_app.gen_water_level,1,f); remain -= sizeof g_app.gen_water_level;
+    fread(&g_app.gen_cave_thresh,sizeof g_app.gen_cave_thresh,1,f); remain -= sizeof g_app.gen_cave_thresh;
+    if(remain >= sizeof g_app.gen_noise_octaves){ fread(&g_app.gen_noise_octaves,sizeof g_app.gen_noise_octaves,1,f); remain -= sizeof g_app.gen_noise_octaves; }
+    if(remain >= sizeof g_app.gen_noise_gain){ fread(&g_app.gen_noise_gain,sizeof g_app.gen_noise_gain,1,f); remain -= sizeof g_app.gen_noise_gain; }
+    if(remain >= sizeof g_app.gen_noise_lacunarity){ fread(&g_app.gen_noise_lacunarity,sizeof g_app.gen_noise_lacunarity,1,f); remain -= sizeof g_app.gen_noise_lacunarity; }
+    if(remain >= sizeof g_app.gen_river_sources){ fread(&g_app.gen_river_sources,sizeof g_app.gen_river_sources,1,f); remain -= sizeof g_app.gen_river_sources; }
+    if(remain >= sizeof g_app.gen_river_max_length){ fread(&g_app.gen_river_max_length,sizeof g_app.gen_river_max_length,1,f); remain -= sizeof g_app.gen_river_max_length; }
+    return 0; }
 
 static RogueSaveComponent PLAYER_COMP={ ROGUE_SAVE_COMP_PLAYER, write_player_component, read_player_component, "player" };
 static RogueSaveComponent INVENTORY_COMP={ ROGUE_SAVE_COMP_INVENTORY, write_inventory_component, read_inventory_component, "inventory" };

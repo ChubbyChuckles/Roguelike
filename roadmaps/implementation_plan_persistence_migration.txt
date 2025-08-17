@@ -74,11 +74,11 @@ PHASE 7. Data Domains & Component Details
 7.1 Player stats & progression (level, xp, allocation) (Done: extended player component persists level,xp,xp_to_next, health,mana,AP, core stats, talent points)
 7.2 Skill ranks, cooldown states, casting progress (Done: extended skill record incl. cast/channel fields, charges, active flags; backward-compatible reader auto-detects legacy minimal record)
 7.3 Buff/debuff active list w/ remaining durations (Done: stores (type,magnitude,remaining_ms) relative duration; legacy absolute end_ms struct autodetected)
-7.4 Inventory instances, equipment slots, durability (Partial: durability logic runtime)
-7.5 Vendor inventory (seed, stock TTL) (X)
-7.6 World seeds & biome modifiers (Partial)
+7.4 Inventory instances, equipment slots, durability (Done: durability cur/max persisted; equipped weapon + infusion serialized)
+7.5 Vendor inventory (seed, stock TTL) (Done: vendor component now persists seed, restock timers, and current inventory list (def,rarity); price recomputed on load)
+7.6 World seeds & biome modifiers (Done: extended world_meta stores seed + noise octaves/gain/lacunarity + river params)
 7.7 Analytics counters (damage dealt, gold earned) (Done: cumulative counters persisted)
-7.8 Run metadata (permadeath flag, start timestamp) (Done: permadeath_mode flag persisted; start timestamp TBD future)
+7.8 Run metadata (permadeath flag, start timestamp) (Done: permadeath_mode + session_start_seconds persisted)
 
 PHASE 8. Migrations — Concrete Examples
 8.1 v1 -> v2: split CRIT stats into chance & damage (X)

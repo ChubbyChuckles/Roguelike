@@ -1,32 +1,8 @@
-feat(persistence): Phase 7.2/7.3 complete – extended skill & buff serialization
+feat(persistence): Phase 7.5 vendor inventory persistence
 
-Adds extended skill state serialization (rank, cooldown_end_ms, cast_progress_ms, channel_end_ms, next_charge_ready_ms, charges_cur, casting_active, channel_active) written unconditionally with backward-compatible reader auto-detecting legacy minimal records by payload size. Buff serialization now writes (type, magnitude, remaining_ms) using relative duration (computed vs current game time) with legacy struct (active,type,end_ms,magnitude) detection and conversion. Introduces buff snapshot query APIs (rogue_buffs_active_count/rogue_buffs_get_active) removing prior implicit globals from save layer. New unit test test_save_phase7_skill_buff_roundtrip validates roundtrip of extended state and relative duration restoration. Roadmap updated marking 7.2 & 7.3 Done. README updated.
+Extended vendor component serialization to include vendor inventory list (def_index, rarity; price recomputed on load for balancing) plus existing seed + restock timers. Added helper API rogue_vendor_append used by loader (avoids touching static internals directly). Added unit test test_save_phase7_vendor_inventory_roundtrip verifying count and entries restored. Roadmap updated marking 7.5 Done.
 
-feat(persistence): Phase 7.1/7.7/7.8 player progression, analytics & run metadata persistence
+feat(persistence): Phase 7.4 inventory durability + equipment + infusion; Phase 7.6 world gen params; run start timestamp
 
-Extended player component serialization (level,xp,xp_to_next, health,mana,action_points, core stats, talent_points) plus analytics counters (damage dealt, gold earned) and permadeath_mode flag with backward-compatible reader (legacy minimal layout). Added analytics module APIs (rogue_analytics_add_damage / rogue_analytics_add_gold). New unit test test_save_phase7_player_analytics_roundtrip validates roundtrip. Roadmap updated marking 7.1, 7.7, 7.8 Done. README updated.
-
-- Add runtime incremental mode APIs (enable, mark dirty, mark all dirty)
-- Cache section payload + CRC after baseline save; reuse unchanged sections skipping serialization/compression
-- Maintain full integrity: recompute descriptor CRC, SHA256 footer, signature each save
-- Do NOT bump format (remains v9); removed provisional v10 migration entry
-- Add unit test test_save_incremental_basic (dummy components) for reuse & dirty change path
-- Update roadmap marking phases 5.1 & 5.2 Done with implementation notes
-- README persistence section documents incremental mode usage & limits
-
-feat(persistence): Phase 6.1/6.3/6.4 autosave scheduler, quicksave & telemetry
-
-- Autosave interval scheduling (idle-only) with API rogue_save_set_autosave_interval_ms + update tick rogue_save_manager_update
-- Ring index advances; metrics recorded (rc, size bytes, duration ms, count)
-- Quicksave API rogue_save_manager_quicksave
-- Unit test test_save_autosave_scheduler simulates timeline producing multiple autosaves
-- Roadmap updated marking phases 6.1, 6.3, 6.4 Done; notes for future UI indicator (6.5)
-- README updated with autosave & metrics usage
-
-feat(persistence): Phase 6.5 autosave throttle + status string
-
-- Add autosave throttle API rogue_save_set_autosave_throttle_ms
-- Add status snapshot API rogue_save_status_string (UI integration)
-- Unit test test_save_autosave_indicator validates throttling & status formatting
-- Roadmap marks 6.5 done; README updated
+Added durability (cur,max) fields to inventory item serialization (backward-compatible size heuristic). Persist equipped weapon id and weapon infusion plus run session_start_seconds in player component. Extended world_meta component with additional generation parameters (noise octaves/gain/lacunarity, river sources/max length) with backward-compatible reader gated by payload size. Added test_save_phase7_inventory_durability_roundtrip ensuring durability values survive save/load. Updated roadmap marking 7.4 & 7.6 Done and 7.8 note (start timestamp implemented). README to include new persistence coverage.
 
