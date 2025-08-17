@@ -18,6 +18,8 @@ int  rogue_buffs_get_total(RogueBuffType type);
 	rogue_buffs_get_active copies the i-th active buff (0..count-1) into *out and returns 1 on success. */
 int  rogue_buffs_active_count(void);
 int  rogue_buffs_get_active(int index, RogueBuff* out);
+/* Phase 6.3 snapshot: copy up to max active buffs into out array, returns count. now_ms used to prune expired. */
+int  rogue_buffs_snapshot(RogueBuff* out, int max, double now_ms);
 
 #ifdef __cplusplus
 }

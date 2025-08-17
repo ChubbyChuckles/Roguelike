@@ -1,5 +1,17 @@
 UI Phase 6.2: Layered HUD Bars & AP Integration
 - Added hud_bars.c/h implementing layered (primary + trailing secondary) smoothing model for Health, Mana, and new Action Point (AP) bars (fraction-per-second catchup; instant snap on heals).
 - Integrated into hud.c rendering: secondary darker lag fill behind brighter primary; added AP bar below XP with consistent frame.
-- New unit test test_ui_phase6_bars_ap exercises: full initialization, damage-induced lag (secondary > primary immediately after drop), convergence over simulated time, and instant snap on heal.
-- Roadmap updated Phase 6.2 -> Done with test reference; README UI section notes new API & behavior.
+- New unit test test_ui_phase6_bars_ap exercises: full initialization, damage-induced lag, convergence, and heal snap.
+- Roadmap updated (6.2 Done); README updated with API summary.
+
+UI Phase 6.3: Buff & Debuff Icon Belt
+- Implemented buff snapshot API (rogue_buffs_snapshot) for immutable active buff list without direct state mutation.
+- Added hud_buff_belt.c/h rendering centered top belt with icon placeholders, magnitude text, and cooldown overlay fill.
+- Test test_ui_phase6_buff_belt validates addition, expiry after duration, and magnitude aggregation.
+- Roadmap marked 6.3 Done; README updated.
+
+UI Phase 6.4: Floating Combat Text Batching & Fade Curves
+- Extended damage number struct with spawn_ms & alpha; implemented spatial batching (merge nearby numbers) and life extension.
+- Added ease-in (first 80ms) and quadratic end fade (last 150ms) alpha curve for smoother readability.
+- Implemented trailing fade & accumulation without separate allocation; minor occlusion reduction via batching.
+- Roadmap marked 6.4 Done; README updated.

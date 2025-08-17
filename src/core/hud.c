@@ -2,11 +2,13 @@
 #include "graphics/font.h"
 #include "core/hud_layout.h" /* Phase 6.1 data-driven HUD layout */
 #include "core/hud_bars.h" /* Phase 6.2 layered bar smoothing */
+#include "core/hud_buff_belt.h" /* Phase 6.3 buff belt */
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
 
 static RogueHUDBarsState g_hud_bars_state; /* persistent smoothing */
+static RogueHUDBuffBeltState g_hud_buff_belt; /* buff overlay */
 
 void rogue_hud_render(void){
 #ifdef ROGUE_HAVE_SDL
@@ -72,6 +74,10 @@ void rogue_hud_render(void){
     char lvlbuf[32];
     snprintf(lvlbuf,sizeof lvlbuf,"Lv %d", g_app.player.level);
     rogue_font_draw_text(lay->level_text_x, lay->level_text_y, lvlbuf,1,(RogueColor){255,255,180,255});
+
+    // After bars & level text, render buff belt center-top
+    rogue_hud_buff_belt_refresh(&g_hud_buff_belt, g_app.game_time_ms);
+    rogue_hud_buff_belt_render(&g_hud_buff_belt, g_app.viewport_w);
 #endif
 }
 

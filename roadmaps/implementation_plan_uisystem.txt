@@ -65,8 +65,8 @@ PHASE 5. Skill Tree / Progression UI
 PHASE 6. HUD Modularization & Overlays
 6.1 HUD layout spec file (kv config) for placing bars/panels (Done)
 6.2 Health / Mana / AP bars: layered gradients + status overlays (Done: layered smoothing bars + AP bar; test `test_ui_phase6_bars_ap` validates fractions & lag)
-6.3 Buff & debuff icon belt with stack counters / timers (X)
-6.4 Floating combat text batching + occlusion / fade curves (Partial: damage numbers basic)
+6.3 Buff & debuff icon belt with stack counters / timers (Done: buff snapshot + center-top belt render, test `test_ui_phase6_buff_belt` verifies add/expiry)
+6.4 Floating combat text batching + occlusion / fade curves (Done: damage number spatial batching + fade curve & alpha easing in/out)
 6.5 Minimap interactive overlay toggles (Partial: minimap exists)
 6.6 Alert system (level up, low health, vendor restock) (X)
 6.7 Performance metrics overlay with toggle (Partial: metrics module exists)

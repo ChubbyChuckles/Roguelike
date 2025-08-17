@@ -17,6 +17,15 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARG
     endif()
     add_test(NAME test_ui_phase6_bars_ap COMMAND test_ui_phase6_bars_ap)
 endif()
+# UI Phase 6.3 buff belt test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_buff_belt.c AND NOT TARGET test_ui_phase6_buff_belt)
+    add_executable(test_ui_phase6_buff_belt unit/test_ui_phase6_buff_belt.c)
+    target_link_libraries(test_ui_phase6_buff_belt PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ui_phase6_buff_belt PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ui_phase6_buff_belt COMMAND test_ui_phase6_buff_belt)
+endif()
 
 # Loot API doc generator test (Itemsystem 23.5)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase23_api_doc.c AND NOT TARGET test_loot_phase23_api_doc)
@@ -1165,6 +1174,7 @@ endif()
 
 # Explicitly add generation quality test (ensure picked up even if glob cache stale)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase8_generation_quality.c AND NOT TARGET test_loot_phase8_generation_quality)
+   
     add_executable(test_loot_phase8_generation_quality unit/test_loot_phase8_generation_quality.c)
     target_link_libraries(test_loot_phase8_generation_quality PRIVATE rogue_core)
     if(ROGUE_ENABLE_SDL)

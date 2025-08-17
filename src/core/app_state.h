@@ -68,7 +68,7 @@ typedef struct RogueAppState {
     Mix_Chunk* sfx_levelup;
 #endif
     float attack_anim_time_ms;
-    struct { float x,y; float vx,vy; float life_ms; float total_ms; int amount; int from_player; int crit; float scale; } dmg_numbers[128];
+    struct { float x,y; float vx,vy; float life_ms; float total_ms; int amount; int from_player; int crit; float scale; float spawn_ms; float alpha; } dmg_numbers[128]; /* Phase 6.4 adds spawn_ms & alpha */
     int dmg_number_count;
     double spawn_accum_ms;
     float hitstop_timer_ms;

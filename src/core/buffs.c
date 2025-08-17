@@ -29,3 +29,4 @@ int rogue_buffs_get_total(RogueBuffType type){ int total=0; for(int i=0;i<ROGUE_
 
 int rogue_buffs_active_count(void){ int c=0; for(int i=0;i<ROGUE_MAX_ACTIVE_BUFFS;i++) if(g_buffs[i].active) c++; return c; }
 int rogue_buffs_get_active(int index, RogueBuff* out){ if(!out) return 0; int c=0; for(int i=0;i<ROGUE_MAX_ACTIVE_BUFFS;i++) if(g_buffs[i].active){ if(c==index){ *out=g_buffs[i]; return 1; } c++; } return 0; }
+int rogue_buffs_snapshot(RogueBuff* out, int max, double now_ms){ if(!out||max<=0) return 0; int c=0; for(int i=0;i<ROGUE_MAX_ACTIVE_BUFFS && c<max;i++){ if(g_buffs[i].active){ if(now_ms >= g_buffs[i].end_ms){ g_buffs[i].active=0; continue; } out[c++]=g_buffs[i]; } } return c; }
