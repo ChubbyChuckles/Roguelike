@@ -1,0 +1,91 @@
+DIALOGUE SYSTEM IMPLEMENTATION PLAN (Linear-Only / Early UI Focus)
+
+Legend:
+Done = Fully implemented & tests pass
+Partial = Some components implemented
+X = Not started yet
+
+Scope Adjustment:
+This plan intentionally removes branching, choices, cinematics, scripting VM, persuasion checks, and complex conditional gating. Goal: fast in‑game visibility of authored linear NPC dialogue sequences. Each dialogue asset is a strictly ordered list of lines optionally tagged with simple triggers (grant item, set flag). Player advances with a single input (e.g., Continue). No alternative paths, no timed choices, no camera choreography.
+
+High-Level Objectives:
+1. See dialogue in-game as soon as Phase 1 completes.
+2. Keep runtime minimal & deterministic; easy later extension to branching if needed (data model forward-compatible).
+3. Provide early persistence so partially viewed conversations restore correctly after save/load.
+
+PHASE 0. Minimal Data Model & Loader (X)
+0.1 Data structs: DialogueScript {id, line_count, lines[]}; DialogueLine {speaker_id, text_key_or_inline, effect_mask, token_flags} (X)
+0.2 Asset format v1: simple plaintext (e.g., speaker_id|text) compiled at load time to internal arrays (X)
+0.3 Registry: register scripts by id / path; linear retrieval API rogue_dialogue_get(id) (X)
+0.4 Unit Test: load a 3-line script; verify line ordering & speaker ids (X)
+
+PHASE 1. Core Playback & Immediate UI Integration (X)
+1.1 Runtime state: current_script_id, current_index, reveal_progress_ms (X)
+1.2 UI panel: basic box, speaker name, wrapped text, advance prompt (X)
+1.3 Input handling: press (E/Enter) to advance; at end -> close, clear state (X)
+1.4 Game integration: suspend combat inputs while panel active (minimal hook) (X)
+1.5 Logging: append transcript lines to debug log for testing (X)
+1.6 Unit Test: simulated advance produces expected transcript capture (X)
+
+PHASE 2. Token Expansion (Core Subset) (X)
+2.1 Inline token syntax ${player_name} & ${run_seed} (X)
+2.2 Replacement engine (single pass, no nested) (X)
+2.3 Unit Test: token expansion deterministic & unchanged when unknown token present (ignored) (X)
+
+PHASE 3. Simple Effects (Optional Triggers per Line) (X)
+3.1 Effect flags on line: SET_FLAG(name), GIVE_ITEM(id,qty) encoded as small opcode+params list (X)
+3.2 Execution when line first displayed (once) (X)
+3.3 Unit Test: effect application order & idempotence (no double apply on re-render) (X)
+
+PHASE 4. Persistence & Resume (X)
+4.1 Serialize active conversation: script_id, line_index, reveal_progress_ms (X)
+4.2 Backward compatibility: size-prefixed blob, future reserved bytes (X)
+4.3 Unit Test: mid-line save/load restores position & reveals remaining text (X)
+
+PHASE 5. Localization Foundation (X)
+5.1 External string table lookup by text_key; fallback to inline text if key not found (X)
+5.2 Active locale switch runtime (basic) (X)
+5.3 Unit Test: locale swap returns different strings while counts identical (X)
+
+PHASE 6. Typewriter & Skip Behavior (X)
+6.1 Reveal speed (chars/ms constant) (X)
+6.2 Skip behavior (if line still revealing, advance = finish reveal instead of next line) (X)
+6.3 Unit Test: two-step advance (finish then next) (X)
+
+PHASE 7. Basic Analytics (X)
+7.1 Counter: lines viewed per script; last_view_timestamp (X)
+7.2 Digest hash (script_id + line_count + total_lines_viewed) for run analytics (X)
+7.3 Unit Test: counter increments & hash stable (X)
+
+PHASE 8. Performance & Memory (X)
+8.1 Contiguous arena allocation for loaded scripts (X)
+8.2 Micro-bench: 100 scripts * 20 lines token expansion <0.1ms target (X)
+8.3 Unit Test: stress load/dump ensures no leaks (X)
+
+PHASE 9. Security / Determinism (X)
+9.1 Replay hash integrate dialogue digest into global save hash (X)
+9.2 Deterministic ordering: effects executed in line index ascending only once (X)
+9.3 Unit Test: re-load & re-play yields identical hash (X)
+
+PHASE 10. Future Extension Placeholders (Deferred / Explicitly Out-of-Scope Now) (X)
+10.1 Branching & Choices (deferred) (X)
+10.2 Cinematic Camera / Anim Hooks (deferred) (X)
+10.3 Advanced Tokens (pluralization, gender) (X)
+10.4 Embedded Script VM (X)
+10.5 Timed Auto-Advance / Interrupts (X)
+
+PRIORITY NEAR-TERM SUBSET
+- Phase 0 (data + loader)
+- Phase 1 (UI in-game)
+- Phase 3 (effects) to make dialogue impactful
+- Phase 2 (tokens) small, quick win
+- Phase 4 (persistence) early to avoid refactor later
+
+NOTES
+- Linear Guarantee: engine refuses registration of branching metadata; loader warns & strips any unsupported fields.
+- Forward Compatibility: DialogueLine reserves bytes for future branch_target or condition fields; currently zeroed.
+- Minimal Effects: keep opcode list capped (<=4 per line) to avoid premature complexity.
+- Testing Strategy: Each phase adds focused unit test(s) plus one integration test simulating start→finish transcript with effects & save/load.
+- Accessibility: Early large font & color contrast toggle piggybacks existing UI style system (no dedicated phase now).
+- Performance: Token expansion uses stack scratch buffer; no heap alloc per advance.
+- Determinism: No randomization; any future randomness must derive from global seeded run RNG.
