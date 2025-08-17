@@ -35,7 +35,7 @@ RogueBTNode* rogue_bt_action_strafe(const char* name, const char* bb_target_pos_
 /* Tactical Nodes */
 RogueBTNode* rogue_bt_tactical_flank_attempt(const char* name, const char* bb_player_pos_key, const char* bb_agent_pos_key, const char* bb_out_flank_target_key, float offset);
 RogueBTNode* rogue_bt_tactical_regroup(const char* name, const char* bb_regroup_point_key, const char* bb_agent_pos_key, float speed);
-RogueBTNode* rogue_bt_tactical_cover_seek(const char* name, const char* bb_out_in_cover_flag_key);
+RogueBTNode* rogue_bt_tactical_cover_seek(const char* name, const char* bb_player_pos_key, const char* bb_agent_pos_key, const char* bb_obstacle_pos_key, const char* bb_out_cover_point_key, const char* bb_out_in_cover_flag_key, float obstacle_radius, float move_speed);
 
 /* Decorators */
 RogueBTNode* rogue_bt_decorator_cooldown(const char* name, RogueBTNode* child, const char* bb_timer_key, float cooldown_seconds);

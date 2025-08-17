@@ -60,6 +60,25 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase4_tactical.c AND NOT TAR
     add_test(NAME test_ai_phase4_tactical COMMAND test_ai_phase4_tactical)
 endif()
 
+# AI Phase 4 cover seek test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase4_cover.c AND NOT TARGET test_ai_phase4_cover)
+    add_executable(test_ai_phase4_cover unit/test_ai_phase4_cover.c)
+    target_link_libraries(test_ai_phase4_cover PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ai_phase4_cover PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase4_cover COMMAND test_ai_phase4_cover)
+endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase4_retry.c AND NOT TARGET test_ai_phase4_retry)
+    add_executable(test_ai_phase4_retry unit/test_ai_phase4_retry.c)
+    target_link_libraries(test_ai_phase4_retry PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ai_phase4_retry PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase4_retry COMMAND test_ai_phase4_retry)
+endif()
+
 # Filter out removed/legacy test filenames that may linger in generated projects
 list(FILTER UNIT_TESTS EXCLUDE REGEX ".*test_skills_phase1_foundation.c$")
 

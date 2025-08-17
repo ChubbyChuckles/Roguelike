@@ -142,10 +142,10 @@ Phase 4 (Behavior Node Library) progress:
 * Composites: Parallel added (joins existing Selector/Sequence) + decorators (Cooldown, Retry).
 * Conditions: IsPlayerVisible, TimerElapsed, HealthBelow%.
 * Actions: MoveTo, FleeFrom, AttackMelee, AttackRanged stub, Strafe (perpendicular lateral movement with alternating direction flag).
-* Tactical (partial): FlankAttempt (computes perpendicular flank point), Regroup (movement toward regroup point), CoverSeek stub (immediate in-cover flag).
+* Tactical: FlankAttempt (computes perpendicular flank point), Regroup (movement toward regroup point), CoverSeek (computes cover point opposite player relative to obstacle; moves agent and validates line-of-sight occlusion via projection inside obstacle radius before success).
 * Utility Selector: dynamic highest-score child evaluation via per-child scorer callbacks.
-Tests: `test_ai_phase4_nodes` (utility, movement, cooldown) and `test_ai_phase4_tactical` (strafe duration + direction flip, flank point generation, regroup completion, cover flag).
-Upcoming AI work: complete tactical cover logic (environment query), add retry decorator failure-path test, integrate behavior trees into a live enemy archetype behind feature flag.
+Tests: `test_ai_phase4_nodes` (utility, movement, cooldown), `test_ai_phase4_tactical` (strafe duration + direction flip, flank point generation, regroup completion, basic cover flag), and `test_ai_phase4_cover` (full cover seek movement & occlusion validation).
+Upcoming AI work: add retry decorator failure-path test, integrate behavior trees into a live enemy archetype behind feature flag, introduce initial performance budget probe.
 
 
 #### Combat & Skills

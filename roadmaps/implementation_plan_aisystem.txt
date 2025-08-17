@@ -40,8 +40,8 @@ PHASE 4. Behavior Node Library
 4.1 Core composites: Selector, Sequence, Parallel, Decorators (Done) [Parallel + existing Selector/Sequence + cooldown/retry decorators]
 4.2 Condition nodes (IsPlayerVisible, HealthBelow%, TimerElapsed) (Done) [Implemented 3 condition nodes with tests indirectly]
 4.3 Action nodes (MoveTo, FleeFrom, Strafe, AttackMelee, AttackRanged stub) (Done) [All implemented incl. strafe action with alternating lateral direction]
-4.4 Tactical nodes (FlankAttempt, Regroup, CoverSeek stub) (Partial) [Flank point calc, regroup movement, cover seek flag stub implemented]
-4.5 Cooldown & Retry decorators (Done) [Both implemented; cooldown covered by test; retry untested yet]
+4.4 Tactical nodes (FlankAttempt, Regroup, CoverSeek) (Done) [Flank point calc, regroup movement, cover seek with geometric occlusion validation & movement to computed cover point]
+4.5 Cooldown & Retry decorators (Done) [Both implemented; cooldown + retry now covered by tests]
 4.6 Utility wrapper (choose best child by dynamic score) (Done) [Utility selector with per-child scorer]
 
 PHASE 5. Movement & Pathing Enhancements
@@ -110,6 +110,5 @@ SUCCESS METRICS
 - 95% node library unit test coverage.
 
 NEXT ACTION CANDIDATES
-- Flesh out tactical cover seeking with map query & obstacle awareness (Phase 4.4 completion)
-- Add retry decorator unit test & failure-mode scenarios (Phase 11.1 tie-in)
 - Begin enemy integration: feature flag enabling BT for one enemy archetype
+- Add performance budget probe (Phase 9.1 initial instrumentation)
