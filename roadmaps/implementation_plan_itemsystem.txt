@@ -182,7 +182,7 @@ X = Not started yet
 22.5 Log anomaly detector (weight spikes) (Done)
 
 23. Documentation & Developer Experience (Pending)
-23.1 Developer README: loot architecture (X)
+23.1 Developer README: loot architecture (Done)
 23.2 Rarity & affix style guide (X)
 23.3 Contribution checklist for new items (Done)
 23.4 Example config pack (Done)

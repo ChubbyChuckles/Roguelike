@@ -1,13 +1,3 @@
-feat(items-security): Phase 22.4–22.5 server authoritative + anomaly detector
+feat(items-docs): Phase 23.1 loot architecture documentation
 
-Adds server authoritative mode toggle & verification API (rogue_loot_security_set_server_mode / rogue_loot_server_verify) and rolling rarity spike anomaly detector (configurable baseline fraction, spike multiplier, high rarity threshold) with record + flag query APIs. Extends README and marks roadmap 22.4–22.5 Done. Tests: test_loot_phase22_security (existing) + test_loot_phase22_server_anomaly (server verify pass/fail + spike vs normal).
-
-feat(items-docs): Phase 23.5 loot API doc generator
-
-feat(items-docs): Phase 23.3–23.4 contribution checklist + example pack
-
-Adds initial example loot configuration pack (`assets/example_pack/` with items, loot_tables, affixes) and accompanying unit test `test_loot_phase23_example_pack` ensuring pack loads (3 items, 1+ tables, 2 affixes) and produces a deterministic roll. Marks roadmap 23.3 (contribution checklist scaffold via curated docs) & 23.4 Done and updates README with new documentation bullet.
-Adds lightweight curated API documentation generator (rogue_loot_generate_api_doc) enumerating key loot system functions with one-line descriptions. Provides deterministic text for README / contributor reference without external tooling. New unit test test_loot_phase23_api_doc validates generation success, key token presence, stable ordering, and small-buffer error path. Roadmap 23.5 marked Done and README updated.
-feat(cleanup): Extend path utils with doc path finder
-
-Adds `rogue_find_doc_path` (mirrors existing asset path search) and unit test `test_loot_phase23_doc_paths` validating positive and negative lookups; README & roadmap notes updated (24.1 extension) to reduce brittle relative doc references in future tests.
+Adds comprehensive `docs/LOOT_ARCHITECTURE.md` covering phase layering, data flow, determinism contract, module boundaries, performance principles, persistence, security hooks, testing strategy, extension guidelines, and future work. Roadmap 23.1 marked Done and README updated with reference bullet.
