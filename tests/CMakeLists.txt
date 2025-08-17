@@ -79,6 +79,15 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase4_retry.c AND NOT TARGET
     add_test(NAME test_ai_phase4_retry COMMAND test_ai_phase4_retry)
 endif()
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase5_enemy_integration.c AND NOT TARGET test_ai_phase5_enemy_integration)
+    add_executable(test_ai_phase5_enemy_integration unit/test_ai_phase5_enemy_integration.c)
+    target_link_libraries(test_ai_phase5_enemy_integration PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ai_phase5_enemy_integration PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase5_enemy_integration COMMAND test_ai_phase5_enemy_integration)
+endif()
+
 # Filter out removed/legacy test filenames that may linger in generated projects
 list(FILTER UNIT_TESTS EXCLUDE REGEX ".*test_skills_phase1_foundation.c$")
 

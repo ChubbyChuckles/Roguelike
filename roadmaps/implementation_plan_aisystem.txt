@@ -110,5 +110,5 @@ SUCCESS METRICS
 - 95% node library unit test coverage.
 
 NEXT ACTION CANDIDATES
-- Begin enemy integration: feature flag enabling BT for one enemy archetype
+- Begin enemy integration: feature flag enabling BT for one enemy archetype (Done: per-enemy enable API, simple MoveToPlayer tree, test_ai_phase5_enemy_integration validates movement)
 - Add performance budget probe (Phase 9.1 initial instrumentation)

@@ -145,7 +145,7 @@ Phase 4 (Behavior Node Library) progress:
 * Tactical: FlankAttempt (computes perpendicular flank point), Regroup (movement toward regroup point), CoverSeek (computes cover point opposite player relative to obstacle; moves agent and validates line-of-sight occlusion via projection inside obstacle radius before success).
 * Utility Selector: dynamic highest-score child evaluation via per-child scorer callbacks.
 Tests: `test_ai_phase4_nodes` (utility, movement, cooldown), `test_ai_phase4_tactical` (strafe duration + direction flip, flank point generation, regroup completion, basic cover flag), and `test_ai_phase4_cover` (full cover seek movement & occlusion validation).
-Upcoming AI work: add retry decorator failure-path test, integrate behavior trees into a live enemy archetype behind feature flag, introduce initial performance budget probe.
+Phase 5 (Initial Enemy Integration): Added per-enemy behavior tree enable/disable API and simple MoveToPlayer tree gated by a feature flag on the enemy struct; unit test `test_ai_phase5_enemy_integration` validates movement toward player when enabled. Performance probe instrumentation pending (Phase 9.1).
 
 
 #### Combat & Skills

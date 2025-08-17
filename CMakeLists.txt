@@ -147,6 +147,7 @@ add_library(rogue_core
     src/core/enemy_system.c
     src/core/enemy_system_spawn.c
     src/core/enemy_system_ai.c
+    src/core/enemy_ai_bt.c
     # AI Phase 1 scaffolding
     src/ai/core/behavior_tree.c
     src/ai/core/blackboard.c

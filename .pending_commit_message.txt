@@ -1,9 +1,0 @@
-AI Phase 4 Tactical Completion: Full Cover Seek Implementation
-
-- Implemented full CoverSeek tactical node: computes cover point opposite player relative to obstacle center, moves agent toward target, and validates geometric occlusion (projection of player->agent onto player->cover segment within obstacle radius) before success.
-- Updated tactical node status (Phase 4.4) to Done in roadmap; removed stale next-action about cover completion and added performance probe candidate.
-- Added dedicated unit test `test_ai_phase4_cover` validating cover point movement, occlusion success, and state flag behavior.
-- README Phase 4 section updated: tactical nodes marked complete; added cover seek details and new test; refreshed Upcoming AI work list.
-- Maintains passing existing tests: `test_ai_phase4_nodes`, `test_ai_phase4_tactical` remain green with expanded logic.
-- Added retry decorator unit test `test_ai_phase4_retry` covering success-after-retries and exhaustion paths; roadmap updated to reflect retry test coverage.
-- Next steps: begin enemy archetype integration behind feature flag, introduce initial performance budget instrumentation.

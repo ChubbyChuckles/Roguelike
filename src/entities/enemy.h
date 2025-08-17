@@ -61,11 +61,20 @@ typedef struct RogueEnemy {
     float guard_meter; float guard_meter_max; /* enemies may use in later AI phases */
     float poise; float poise_max;             /* depleted -> stagger (future Phase 4 reactions) */
     int staggered; float stagger_timer_ms;    /* Phase 3.3: simple stagger flag+timer (placeholder reaction) */
+    /* --- AI Integration Phase 5 (initial) --- */
+    unsigned char ai_bt_enabled; /* feature flag: when set, uses behavior tree instead of legacy logic */
+    struct RogueBehaviorTree* ai_tree; /* owned root (destroyed on despawn) */
+    void* ai_bt_state; /* blackboard/state wrapper pointer */
 } RogueEnemy;
 
 #define ROGUE_MAX_ENEMIES 256
 #define ROGUE_MAX_ENEMY_TYPES 16
 
 int rogue_enemy_load_config(const char* path, RogueEnemyTypeDef types[], int* inout_type_count);
+
+/* AI Behavior Tree integration API */
+void rogue_enemy_ai_bt_enable(struct RogueEnemy* e);
+void rogue_enemy_ai_bt_disable(struct RogueEnemy* e);
+void rogue_enemy_ai_bt_tick(struct RogueEnemy* e, float dt_seconds);
 
 #endif
