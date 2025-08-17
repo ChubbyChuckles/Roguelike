@@ -165,6 +165,7 @@ add_library(rogue_core
     src/core/vegetation_collision.c
     src/core/scene_drawlist.c
     src/core/loot_item_defs.c
+    src/core/loot_item_defs_convert.c
     src/core/loot_tables.c
     src/core/loot_instances.c
     src/core/inventory.c

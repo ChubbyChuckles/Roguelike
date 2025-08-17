@@ -168,7 +168,7 @@ X = Not started yet
 20.5 Stress test: max ground items + merges (Done: `test_loot_phase20_5_merge_stress` spawns near-capacity clustered items, validates deterministic stack merge count reduction & no overflows)
 
 21. Tooling & Content Pipeline (Pending)
-21.1 External spreadsheet -> game CSV converter (X)
+21.1 Done External spreadsheet -> game CSV converter: added rogue_item_defs_convert_tsv_to_csv + unit test (TSV -> CSV lines, skip comments/blank)
 21.2 Validation tool: highlight malformed lines (Done: `rogue_item_defs_validate_file` API + unit test `test_loot_tooling_phase21_2_validation` collecting malformed line numbers without mutating registries)
 21.3 Done Editor preview of affix ranges: added rogue_affixes_export_json + unit test (JSON contains ids/min/max)
 21.4 Batch rarity rebalance script (X)
