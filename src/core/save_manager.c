@@ -13,6 +13,7 @@
 #include <assert.h>
 #if defined(_WIN32)
 #include <io.h>
+#include <process.h>
 #else
 #include <unistd.h>
 #endif
@@ -136,7 +137,16 @@ int rogue_save_format_endianness_is_le(void){ uint32_t x=0x01020304u; unsigned c
 
 static int internal_save_to(const char* final_path){
     qsort(g_components, g_component_count, sizeof(RogueSaveComponent), cmp_comp);
-    char tmp_path[160]; snprintf(tmp_path,sizeof tmp_path,"./tmp_save_%u.tmp", (unsigned)time(NULL));
+    /* Unique temp path to avoid collisions under parallel test processes */
+    char tmp_path[160];
+#if defined(_WIN32)
+    unsigned pid=(unsigned)_getpid();
+#else
+    unsigned pid=(unsigned)getpid();
+#endif
+    unsigned t=(unsigned)time(NULL);
+    unsigned clk=(unsigned)clock();
+    snprintf(tmp_path,sizeof tmp_path,"./tmp_save_%u_%u_%u.tmp", t,pid,clk);
     FILE* f=NULL;
 #if defined(_MSC_VER)
     fopen_s(&f,tmp_path,"w+b");
@@ -206,21 +216,22 @@ static int internal_save_to(const char* final_path){
     long payload_end = ftell(f);
     /* Compute descriptor CRC (over payload only) */
     size_t crc_region = (size_t)(payload_end - (long)sizeof desc);
-    fseek(f,sizeof desc,SEEK_SET);
-    unsigned char chunk[512]; uint32_t crc=0xFFFFFFFFu; static uint32_t table[256]; static int have=0; if(!have){ for(uint32_t i=0;i<256;i++){ uint32_t c=i; for(int k=0;k<8;k++) c = (c & 1)? 0xEDB88320u ^ (c>>1) : (c>>1); table[i]=c; } have=1; }
-    size_t remaining=crc_region; while(remaining>0){ size_t to_read= remaining>sizeof(chunk)?sizeof(chunk):remaining; size_t n=fread(chunk,1,to_read,f); if(n!=to_read){ fclose(f); return -13; } for(size_t i=0;i<n;i++){ crc = table[(crc ^ chunk[i]) & 0xFF] ^ (crc>>8); } remaining-=n; }
-    desc.checksum = crc ^ 0xFFFFFFFFu;
+    unsigned char* crc_buf=(unsigned char*)malloc(crc_region); if(!crc_buf){ fclose(f); return -13; }
+    fseek(f,sizeof desc,SEEK_SET); if(fread(crc_buf,1,crc_region,f)!=crc_region){ free(crc_buf); fclose(f); return -13; }
+    uint32_t crc=rogue_crc32(crc_buf,crc_region); desc.checksum = crc; /* rogue_crc32 returns final xor */
+    /* debug removed */
     /* SHA256 footer (v7+) over same region */
-    if(desc.version>=7){ RogueSHA256Ctx sha; rogue_sha256_init(&sha); fseek(f,sizeof desc,SEEK_SET); long bytes_left = payload_end - (long)sizeof desc; while(bytes_left>0){ long take = bytes_left > (long)sizeof(chunk)? (long)sizeof(chunk): bytes_left; size_t n=fread(chunk,1,(size_t)take,f); if(n!=(size_t)take){ fclose(f); return -15; } rogue_sha256_update(&sha,chunk,n); bytes_left -= take; }
+    if(desc.version>=7){ RogueSHA256Ctx sha; rogue_sha256_init(&sha); rogue_sha256_update(&sha,crc_buf,crc_region);
         unsigned char digest[32]; rogue_sha256_final(&sha,digest); memcpy(g_last_sha256,digest,32); const char magic[4]={'S','H','3','2'}; fseek(f,0,SEEK_END); fwrite(magic,1,4,f); fwrite(digest,1,32,f);
         /* Optional signature (v9+) signs payload + SHA footer */
-        if(desc.version>=9 && g_sig_provider){ fseek(f,sizeof desc,SEEK_SET); long sign_region_end = ftell(f) + (payload_end - (long)sizeof desc) + 4 + 32; /* after writing SHA footer */
-            long total_for_sig = sign_region_end - (long)sizeof desc; unsigned char* sig_src=(unsigned char*)malloc((size_t)total_for_sig); if(!sig_src){ fclose(f); return -16; }
-            size_t rd=fread(sig_src,1,(size_t)total_for_sig,f); if(rd!=(size_t)total_for_sig){ free(sig_src); fclose(f); return -16; }
+        if(desc.version>=9 && g_sig_provider){ /* Signature covers payload + SHA footer */
+            size_t total_for_sig = crc_region + 4 + 32; unsigned char* sig_src=(unsigned char*)malloc(total_for_sig); if(!sig_src){ fclose(f); return -16; }
+        memcpy(sig_src,crc_buf,crc_region); memcpy(sig_src+crc_region,"SH32",4); memcpy(sig_src+crc_region+4,digest,32);
             unsigned char sigbuf[1024]; uint32_t slen=sizeof sigbuf; if(g_sig_provider->sign(sig_src,(size_t)total_for_sig,sigbuf,&slen)!=0){ free(sig_src); fclose(f); return -16; }
             free(sig_src); const char smagic[4]={'S','G','N','0'}; fwrite(&slen,sizeof(uint16_t),1,f); fwrite(smagic,1,4,f); fwrite(sigbuf,1,slen,f); }
     }
     long file_end = ftell(f); desc.total_size = (uint64_t)file_end;
+    free(crc_buf);
     /* Rewrite descriptor with final fields */
     fseek(f,0,SEEK_SET); fwrite(&desc,sizeof desc,1,f); fflush(f);
 #if defined(_WIN32)
@@ -384,13 +395,22 @@ int rogue_save_manager_load_slot(int slot_index){
         fseek(f, sizeof desc, SEEK_SET);
         free(payload);
     }
-    /* checksum */
+    /* checksum + integrity (v7+) with scan-based footer detection */
     long file_end=0; fseek(f,0,SEEK_END); file_end=ftell(f); if((uint64_t)file_end!=desc.total_size){ fclose(f); return -5; }
-    size_t footer_bytes = 0; if(desc.version>=7){ footer_bytes = 4+32; }
-    size_t rest=file_end - (long)sizeof desc; if(rest < footer_bytes){ fclose(f); return -5; }
-    size_t hashable = rest - footer_bytes; fseek(f,sizeof desc,SEEK_SET); unsigned char* buf=(unsigned char*)malloc(hashable); if(!buf){ fclose(f); return -6; } size_t n=fread(buf,1,hashable,f); if(n!=hashable){ free(buf); fclose(f); return -6; } uint32_t crc=rogue_crc32(buf,hashable); if(crc!=desc.checksum){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_DESCRIPTOR_CRC; free(buf); fclose(f); return -7; }
-    if(desc.version>=7){ unsigned char footer[36]; if(fread(footer,1,36,f)!=36){ free(buf); fclose(f); return -5; } if(memcmp(footer,"SH32",4)!=0){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SHA256; free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } memcpy(g_last_sha256,footer+4,32); /* verify recomputed hash */ RogueSHA256Ctx sha; rogue_sha256_init(&sha); rogue_sha256_update(&sha,buf,hashable); unsigned char dg[32]; rogue_sha256_final(&sha,dg); if(memcmp(dg,g_last_sha256,32)!=0){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SHA256; free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } }
-    free(buf); fseek(f, sizeof desc, SEEK_SET);
+    size_t rest = (size_t)(file_end - (long)sizeof desc);
+    if(desc.version>=7){
+        fseek(f,sizeof desc,SEEK_SET); unsigned char* full=(unsigned char*)malloc(rest); if(!full){ fclose(f); return -6; }
+        if(fread(full,1,rest,f)!=rest){ free(full); fclose(f); return -6; }
+        size_t sha_pos=0; int found=0; for(size_t i=0;i+4<=rest;i++){ if(memcmp(full+i,"SH32",4)==0){ sha_pos=i; found=1; } }
+        if(!found || sha_pos + 4 + 32 > rest){ free(full); fclose(f); g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SHA256; return ROGUE_SAVE_ERR_SHA256; }
+        size_t hashable = sha_pos; uint32_t crc=rogue_crc32(full,hashable); if(crc!=desc.checksum){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_DESCRIPTOR_CRC; free(full); fclose(f); return -7; }
+        RogueSHA256Ctx sha; rogue_sha256_init(&sha); rogue_sha256_update(&sha,full,hashable); unsigned char dg[32]; rogue_sha256_final(&sha,dg); if(memcmp(dg,full+sha_pos+4,32)!=0){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SHA256; free(full); fclose(f); return ROGUE_SAVE_ERR_SHA256; }
+        memcpy(g_last_sha256,full+sha_pos+4,32);
+        size_t after_sha = sha_pos + 36; if(desc.version>=9 && after_sha < rest){ size_t remain = rest - after_sha; if(remain >=6){ uint16_t sig_len=0; memcpy(&sig_len, full+after_sha,2); if(memcmp(full+after_sha+2,"SGN0",4)==0){ size_t sig_total=6+sig_len; if(sig_total<=remain){ if(g_sig_provider && sig_len>0){ size_t sign_src_len = hashable + 36; unsigned char* sign_src=(unsigned char*)malloc(sign_src_len); if(!sign_src){ free(full); fclose(f); return -6; } memcpy(sign_src,full,hashable); memcpy(sign_src+hashable,full+sha_pos,36); if(g_sig_provider->verify(sign_src,sign_src_len, full+after_sha+6, sig_len)!=0){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SIGNATURE; free(sign_src); free(full); fclose(f); return ROGUE_SAVE_ERR_SHA256; } free(sign_src); } } } } }
+        free(full); fseek(f,sizeof desc,SEEK_SET);
+    } else {
+        size_t hashable = rest; fseek(f,sizeof desc,SEEK_SET); unsigned char* buf=(unsigned char*)malloc(hashable); if(!buf){ fclose(f); return -6; } if(fread(buf,1,hashable,f)!=hashable){ free(buf); fclose(f); return -6; } uint32_t crc=rogue_crc32(buf,hashable); if(crc!=desc.checksum){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_DESCRIPTOR_CRC; free(buf); fclose(f); return -7; } free(buf); fseek(f,sizeof desc,SEEK_SET);
+    }
     if(desc.version>=3){
         for(uint32_t s=0;s<desc.section_count;s++){
             uint16_t id16=0; uint32_t size=0; if(fread(&id16,sizeof id16,1,f)!=1){ fclose(f); return -8; } if(fread(&size,sizeof size,1,f)!=1){ fclose(f); return -8; }
