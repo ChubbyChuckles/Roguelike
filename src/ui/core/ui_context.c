@@ -157,16 +157,21 @@ void rogue_ui_begin(RogueUIContext* ctx, double delta_time_ms){ if(!ctx) return;
     if(ctx->anim_time_scale<=0) ctx->anim_time_scale=1.0f;
     double scaled_dt = delta_time_ms * (double)ctx->anim_time_scale;
     ctx->frame_dt_ms=delta_time_ms; ctx->time_ms += scaled_dt; ctx->node_count=0; ctx->stats.draw_calls=0; ctx->frame_active=1; ctx->arena_offset=0; ctx->hot_index=-1;
+    ctx->dirty_reported_this_frame=0;
     /* Advance skill graph animations */
     for(int i=0;i<ctx->skillgraph_pulse_count;){ ctx->skillgraph_pulses[i].remaining_ms -= (float)delta_time_ms; if(ctx->skillgraph_pulses[i].remaining_ms <= 0){ ctx->skillgraph_pulses[i] = ctx->skillgraph_pulses[--ctx->skillgraph_pulse_count]; continue; } i++; }
     for(int i=0;i<ctx->skillgraph_spend_count;){ ctx->skillgraph_spends[i].remaining_ms -= (float)delta_time_ms; ctx->skillgraph_spends[i].y_offset += (float)delta_time_ms * 0.02f; if(ctx->skillgraph_spends[i].remaining_ms <= 0){ ctx->skillgraph_spends[i] = ctx->skillgraph_spends[--ctx->skillgraph_spend_count]; continue; } i++; }
     /* Phase 8 animation tick (scaled) */
     ui_animation_master_step(scaled_dt);
+    /* Perf timing begin (Phase 9) */
+    ctx->perf_frame_start_ms = ctx->time_ms;
+    ctx->perf_update_start_ms = ctx->time_ms; /* simplistic: update occurs inside begin for headless tests */
  }
 
 /* DEBUG TRACE */
 static void dbg_trace(const char* tag){ fprintf(stderr,"TRACE %s\n",tag); fflush(stderr); }
 void rogue_ui_end(RogueUIContext* ctx){ if(!ctx) return; ctx->frame_active=0; }
+/* ensure report flag resets for next frame's diff comparison */
 
 static int push_node(RogueUIContext* ctx, RogueUINode n){ if(ctx->node_count>=ctx->node_capacity) return -1; if(n.parent_index < -1) n.parent_index=-1; ctx->nodes[ctx->node_count]=n; ctx->node_count++; ctx->stats.node_count=ctx->node_count; return ctx->node_count-1; }
 
@@ -399,6 +404,39 @@ static void ui_anim_step(double dt_ms){
     for(int i=0;i<g_ui_exit_done_count;){ if(--g_ui_exit_done[i].ttl<=0){ g_ui_exit_done[i] = g_ui_exit_done[--g_ui_exit_done_count]; continue; } i++; }
 }
 static void ui_animation_master_step(double dt_ms){ ui_anim_step(dt_ms); ui_timeline_step(dt_ms); }
+
+/* ---------------- Phase 9 Performance & Virtualization ---------------- */
+int rogue_ui_list_virtual_range(int total_items, int item_height, int view_height, int scroll_offset, int* first_index_out, int* count_out){
+    if(item_height<=0||view_height<=0||total_items<=0){ if(first_index_out) *first_index_out=0; if(count_out) *count_out=0; return 0; }
+    if(scroll_offset<0) scroll_offset=0; int first = scroll_offset / item_height; if(first>=total_items) first=total_items-1; int visible = (view_height + item_height-1)/item_height; if(first + visible > total_items) visible = total_items - first; if(visible<0) visible=0; if(first_index_out) *first_index_out=first; if(count_out) *count_out=visible; return visible; }
+int rogue_ui_list_virtual_emit(RogueUIContext* ctx, RogueUIRect area, int total_items, int item_height, int scroll_offset, uint32_t color_base, uint32_t color_alt){
+    int first=0,count=0; int emitted=0; if(rogue_ui_list_virtual_range(total_items,item_height,(int)area.h,scroll_offset,&first,&count)<=0) return 0; for(int i=0;i<count;i++){ float y = area.y + (float)( (first + i)*item_height - scroll_offset ); RogueUIRect r={ area.x, y, area.w, (float)item_height}; uint32_t c = ((first+i)&1)?color_alt:color_base; rogue_ui_panel(ctx,r,c); emitted++; }
+    return emitted; }
+RogueUIDirtyInfo rogue_ui_dirty_info(const RogueUIContext* ctx){ RogueUIDirtyInfo di={0}; if(!ctx) return di; di.changed = ctx->dirty_changed; di.x=ctx->dirty_x; di.y=ctx->dirty_y; di.w=ctx->dirty_w; di.h=ctx->dirty_h; di.changed_node_count=ctx->dirty_node_count; return di; }
+void rogue_ui_perf_set_budget(RogueUIContext* ctx, double frame_budget_ms){ if(!ctx) return; ctx->perf_budget_ms=frame_budget_ms; }
+int rogue_ui_perf_frame_over_budget(const RogueUIContext* ctx){ return (ctx && ctx->perf_last_frame_ms > ctx->perf_budget_ms && ctx->perf_budget_ms>0)?1:0; }
+double rogue_ui_perf_last_update_ms(const RogueUIContext* ctx){ return ctx? ctx->perf_last_update_ms:0.0; }
+double rogue_ui_perf_last_render_ms(const RogueUIContext* ctx){ return ctx? ctx->perf_last_render_ms:0.0; }
+void rogue_ui_perf_set_time_provider(RogueUIContext* ctx, double (*now_ms_fn)(void*), void* user){ if(!ctx) return; ctx->perf_now=now_ms_fn; ctx->perf_now_user=user; }
+static double ui_perf_now(const RogueUIContext* ctx){ if(ctx && ctx->perf_now) return ctx->perf_now(ctx->perf_now_user); return ctx? ctx->time_ms:0.0; }
+void rogue_ui_render(RogueUIContext* ctx){ if(!ctx) return; double render_start = ui_perf_now(ctx); /* Simulate render time minimal */
+    /* Dirty tracking: union of node rects if node count changed or diff changed */
+    int node_delta = ctx->node_count - ctx->prev_node_count;
+    int diff = rogue_ui_diff_changed(ctx);
+    if(node_delta!=0 || (diff && !ctx->dirty_reported_this_frame)){
+        ctx->dirty_changed=1; ctx->dirty_node_count = ctx->node_count;
+        float minx=1e9f,miny=1e9f,maxx=-1e9f,maxy=-1e9f;
+        for(int i=0;i<ctx->node_count;i++){ RogueUIRect r=ctx->nodes[i].rect; if(r.x<minx)minx=r.x; if(r.y<miny)miny=r.y; if(r.x+r.w>maxx)maxx=r.x+r.w; if(r.y+r.h>maxy)maxy=r.y+r.h; }
+        if(ctx->node_count>0){ ctx->dirty_x=minx; ctx->dirty_y=miny; ctx->dirty_w=maxx-minx; ctx->dirty_h=maxy-miny; }
+        ctx->dirty_reported_this_frame=1;
+    } else { ctx->dirty_changed=0; }
+    ctx->prev_node_count = ctx->node_count;
+    double render_end = ui_perf_now(ctx);
+    ctx->perf_last_render_ms = render_end - render_start;
+    double frame_end = render_end;
+    ctx->perf_last_frame_ms = frame_end - ctx->perf_frame_start_ms;
+    ctx->perf_last_update_ms = ctx->perf_last_frame_ms - ctx->perf_last_render_ms; /* simplistic split */
+}
 
 float rogue_ui_anim_scale(const RogueUIContext* ctx, uint32_t id_hash){
     (void)ctx;

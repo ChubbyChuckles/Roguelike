@@ -152,6 +152,20 @@ typedef struct RogueUIContext {
     int focus_audit_enabled;
     /* Phase 8 animation time scale (global UI time dilation) */
     float anim_time_scale;
+        /* Phase 9 perf fields */
+        double perf_budget_ms;
+        double perf_last_frame_ms;
+        double perf_last_update_ms;
+        double perf_last_render_ms;
+        double perf_frame_start_ms;
+        double perf_update_start_ms;
+        double (*perf_now)(void*);
+        void* perf_now_user;
+        int prev_node_count;
+        int dirty_changed;
+        float dirty_x, dirty_y, dirty_w, dirty_h;
+        int dirty_node_count;
+        int dirty_reported_this_frame;
 } RogueUIContext;
 
 int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg);
@@ -250,6 +264,24 @@ void rogue_ui_button_press_pulse(RogueUIContext* ctx, uint32_t id_hash);
 /* Query current animated scale/alpha (1.0 / 1.0 if none) */
 float rogue_ui_anim_scale(const RogueUIContext* ctx, uint32_t id_hash);
 float rogue_ui_anim_alpha(const RogueUIContext* ctx, uint32_t id_hash);
+
+/* Phase 9 Performance & Virtualization */
+typedef struct RogueUIDirtyInfo { int changed; float x,y,w,h; int changed_node_count; } RogueUIDirtyInfo; /* union of changed rects */
+/* Virtualized list query helper (no nodes emitted, just computes visible range) */
+int rogue_ui_list_virtual_range(int total_items, int item_height, int view_height, int scroll_offset, int* first_index_out, int* count_out);
+/* Optional helper that emits panels for visible items (simple) */
+int rogue_ui_list_virtual_emit(RogueUIContext* ctx, RogueUIRect area, int total_items, int item_height, int scroll_offset, uint32_t color_base, uint32_t color_alt);
+/* Dirty rectangle info for last frame begin/end compared to previous */
+RogueUIDirtyInfo rogue_ui_dirty_info(const RogueUIContext* ctx);
+/* Performance instrumentation */
+void rogue_ui_perf_set_budget(RogueUIContext* ctx, double frame_budget_ms);
+int rogue_ui_perf_frame_over_budget(const RogueUIContext* ctx);
+double rogue_ui_perf_last_update_ms(const RogueUIContext* ctx);
+double rogue_ui_perf_last_render_ms(const RogueUIContext* ctx);
+/* Inject custom clock for deterministic tests */
+void rogue_ui_perf_set_time_provider(RogueUIContext* ctx, double (*now_ms_fn)(void*), void* user);
+/* Simulated render phase (records timing + dirty logic finalize) */
+void rogue_ui_render(RogueUIContext* ctx);
 
 /* Declarative Widget DSL (Phase 2.6) */
 #define UI_PANEL(ctx,X,Y,W,H,COLOR)      rogue_ui_panel((ctx),(RogueUIRect){(X),(Y),(W),(H)},(COLOR))

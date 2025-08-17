@@ -9,3 +9,11 @@ UI Phase 8 Animation & Timelines:
 - Reduced motion mode now shortens entrance/exit durations (25%)
 - Updated roadmap Phase 8 statuses to Done
 
+UI Phase 9 Performance & Virtualization (Partial):
+- Added virtual list range + emission helpers (large list virtualization groundwork)
+- Added dirty rectangle union tracking (changed flag + rect + node count)
+- Added performance timing fields (frame/update/render) + budget check API
+- Added render hook rogue_ui_render capturing timings & dirty state
+- Added unit test test_ui_phase9_perf_virtual (virtualization, dirty tracking, perf budget smoke)
+- Updated roadmap Phase 9 entries to Partial for implemented subsets
+
