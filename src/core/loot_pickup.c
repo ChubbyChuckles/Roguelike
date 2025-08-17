@@ -2,6 +2,7 @@
 #include "core/app_state.h"
 #include "core/loot_instances.h"
 #include "core/inventory.h"
+#include "core/loot_multiplayer.h"
 #include "util/log.h"
 #include "core/loot_adaptive.h"
 #include "core/metrics.h"
@@ -13,7 +14,8 @@ void rogue_loot_pickup_update(float radius){
     for(int i=0;i<g_app.item_instance_cap;i++) if(g_app.item_instances[i].active){
         RogueItemInstance* it = &g_app.item_instances[i];
     /* Phase 16.1: if item has specific owner and (future) local player id mismatches, skip. Single player local id assumed 0. */
-    if(it->owner_player_id >= 0 && it->owner_player_id != 0) continue;
+    if(it->owner_player_id >= 0 && it->owner_player_id != 0) continue; /* personal ownership gating */
+    if(rogue_loot_instance_locked(i)) continue; /* locked by unresolved need/greed session */
         float dx = it->x - g_app.player.base.pos.x;
         float dy = it->y - g_app.player.base.pos.y;
         float d2 = dx*dx + dy*dy;
