@@ -204,6 +204,7 @@ PRIORITY NEXT STEPS (Focused Subset)
 
 NOTES
 - Recent test path failures highlight need for path abstraction (24.1)
+- Added doc path finder helper (rogue_find_doc_path) extending 24.1 abstraction for documentation assets.
 - Rarity distribution tests (5.3) will protect against future balancing regressions.
 - Affix framework (7.x) is largest structural extension; design carefully before coding.
 - Logging volume must be tunable before large-scale statistical tests (6.2 precedes 5.3).

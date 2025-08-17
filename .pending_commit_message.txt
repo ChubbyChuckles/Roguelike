@@ -8,3 +8,6 @@ feat(items-docs): Phase 23.3–23.4 contribution checklist + example pack
 
 Adds initial example loot configuration pack (`assets/example_pack/` with items, loot_tables, affixes) and accompanying unit test `test_loot_phase23_example_pack` ensuring pack loads (3 items, 1+ tables, 2 affixes) and produces a deterministic roll. Marks roadmap 23.3 (contribution checklist scaffold via curated docs) & 23.4 Done and updates README with new documentation bullet.
 Adds lightweight curated API documentation generator (rogue_loot_generate_api_doc) enumerating key loot system functions with one-line descriptions. Provides deterministic text for README / contributor reference without external tooling. New unit test test_loot_phase23_api_doc validates generation success, key token presence, stable ordering, and small-buffer error path. Roadmap 23.5 marked Done and README updated.
+feat(cleanup): Extend path utils with doc path finder
+
+Adds `rogue_find_doc_path` (mirrors existing asset path search) and unit test `test_loot_phase23_doc_paths` validating positive and negative lookups; README & roadmap notes updated (24.1 extension) to reduce brittle relative doc references in future tests.
