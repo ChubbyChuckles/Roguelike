@@ -120,33 +120,35 @@ int rogue_ui_skillgraph_allocate(RogueUIContext* ctx, int icon_id){ if(!ctx) ret
 int rogue_ui_skillgraph_undo(RogueUIContext* ctx){ if(!ctx) return 0; if(ctx->skillgraph_undo_count<=0) return 0; ctx->skillgraph_undo_count--; int icon=ctx->skillgraph_undo[ctx->skillgraph_undo_count].icon_id; int prev=ctx->skillgraph_undo[ctx->skillgraph_undo_count].prev_rank; for(int i=0;i<ctx->skillgraph_node_count;i++){ RogueUISkillNodeRec* n=&ctx->skillgraph_nodes[i]; if(n->icon_id==icon){ n->rank=prev; return 1; } } return 0; }
 
 int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg){
+    fprintf(stderr,"INIT_ENTER raw ctx=%p cfg=%p\n",(void*)ctx,(void*)cfg); fflush(stderr);
     if(!ctx||!cfg){ fprintf(stderr,"INIT_FAIL null ctx or cfg\n"); return 0; }
-    fprintf(stderr,"INIT_START ctx=%p cfg.max_nodes=%d cfg.seed=%u cfg.arena_size=%zu\n",(void*)ctx,cfg->max_nodes,cfg->seed,cfg->arena_size);
+    fprintf(stderr,"INIT_START ctx=%p cfg.max_nodes=%d cfg.seed=%u cfg.arena_size=%zu sizeof(ctx)=%zu\n",(void*)ctx,cfg->max_nodes,cfg->seed,cfg->arena_size,sizeof *ctx); fflush(stderr);
     memset(ctx,0,sizeof *ctx);
     /* (Removed temporary static asserts to diagnose runtime corruption) */
     int cap = cfg->max_nodes>0? cfg->max_nodes:128;
     size_t node_bytes = (size_t)cap * sizeof(RogueUINode);
-    fprintf(stderr,"INIT allocating nodes cap=%d bytes=%zu sizeof(node)=%zu\n",cap,node_bytes,sizeof(RogueUINode));
+    fprintf(stderr,"INIT_ALLOC nodes cap=%d bytes=%zu sizeof(node)=%zu\n",cap,node_bytes,sizeof(RogueUINode)); fflush(stderr);
     ctx->nodes = (RogueUINode*)calloc((size_t)cap,sizeof(RogueUINode));
     ctx->stat_preview_slot = -1; /* Initialize stat_preview_slot */
-    if(!ctx->nodes){ fprintf(stderr,"INIT_FAIL node alloc bytes=%zu\n",node_bytes); return 0; }
+    if(!ctx->nodes){ fprintf(stderr,"INIT_FAIL node alloc bytes=%zu\n",node_bytes); fflush(stderr); return 0; }
     ctx->node_capacity = cap;
-    fprintf(stderr,"INIT node_capacity=%d ctx=%p nodes=%p size_ctx=%zu\n",ctx->node_capacity,(void*)ctx,(void*)ctx->nodes,sizeof *ctx);
+    fprintf(stderr,"INIT_NODES_OK capacity=%d nodes_ptr=%p\n",ctx->node_capacity,(void*)ctx->nodes); fflush(stderr);
     ctx->rng_state = cfg->seed? cfg->seed: 0xC0FFEEu;
     ctx->theme.panel_bg_color = 0x202028FFu;
     ctx->theme.text_color = 0xFFFFFFFFu;
     size_t arena_size = cfg->arena_size? cfg->arena_size: (size_t) (32*1024);
-    fprintf(stderr,"INIT allocating arena size=%zu\n",arena_size);
+    fprintf(stderr,"INIT_ALLOC arena size=%zu\n",arena_size); fflush(stderr);
     ctx->arena = (unsigned char*)malloc(arena_size);
-    if(!ctx->arena){ fprintf(stderr,"INIT_FAIL arena alloc size=%zu\n",arena_size); free(ctx->nodes); ctx->nodes=NULL; return 0; }
+    if(!ctx->arena){ fprintf(stderr,"INIT_FAIL arena alloc size=%zu\n",arena_size); fflush(stderr); free(ctx->nodes); ctx->nodes=NULL; return 0; }
     ctx->arena_size = arena_size;
+    fprintf(stderr,"INIT_ARENA_OK ptr=%p size=%zu\n",(void*)ctx->arena,ctx->arena_size); fflush(stderr);
     /* Default key repeat configuration */
     ctx->key_repeat_initial_ms = 400.0; /* typical desktop delay */
     ctx->key_repeat_interval_ms = 65.0; /* ~15 repeats/sec */
     ctx->chord_timeout_ms = 900.0; /* generous default */
     /* Radial selector initial */
     ctx->radial.active=0; ctx->radial.count=0; ctx->radial.selection=0;
-    fprintf(stderr,"INIT_SUCCESS ctx=%p\n",(void*)ctx);
+    fprintf(stderr,"INIT_SUCCESS ctx=%p\n",(void*)ctx); fflush(stderr);
     return 1;
 }
 
@@ -173,7 +175,18 @@ static void dbg_trace(const char* tag){ fprintf(stderr,"TRACE %s\n",tag); fflush
 void rogue_ui_end(RogueUIContext* ctx){ if(!ctx) return; ctx->frame_active=0; }
 /* ensure report flag resets for next frame's diff comparison */
 
-static int push_node(RogueUIContext* ctx, RogueUINode n){ if(ctx->node_count>=ctx->node_capacity) return -1; if(n.parent_index < -1) n.parent_index=-1; ctx->nodes[ctx->node_count]=n; ctx->node_count++; ctx->stats.node_count=ctx->node_count; return ctx->node_count-1; }
+static int push_node(RogueUIContext* ctx, RogueUINode n){
+    if(!ctx){ fprintf(stderr,"PUSH_NODE_FAIL null ctx\n"); return -1; }
+    if(!ctx->nodes){ fprintf(stderr,"PUSH_NODE_FAIL nodes NULL ctx=%p node_count=%d cap=%d\n",(void*)ctx,ctx->node_count,ctx->node_capacity); return -1; }
+    if(ctx->node_capacity<=0){ fprintf(stderr,"PUSH_NODE_FAIL capacity<=0 ctx=%p cap=%d\n",(void*)ctx,ctx->node_capacity); return -1; }
+    if(ctx->node_count>=ctx->node_capacity){ fprintf(stderr,"PUSH_NODE_FAIL overflow ctx=%p count=%d cap=%d kind=%d\n",(void*)ctx,ctx->node_count,ctx->node_capacity,n.kind); return -1; }
+    if(n.parent_index < -1) n.parent_index=-1;
+    ctx->nodes[ctx->node_count]=n;
+    ctx->node_count++;
+    if(ctx->node_count<=8){ fprintf(stderr,"PUSH_NODE ok idx=%d kind=%d count=%d cap=%d\\n",ctx->node_count-1,n.kind,ctx->node_count,ctx->node_capacity); }
+    ctx->stats.node_count=ctx->node_count;
+    return ctx->node_count-1;
+}
 
 /* Simple FNV1a 32-bit for IDs */
 static uint32_t fnv1a32(const char* s){ uint32_t h=2166136261u; while(s && *s){ h^=(unsigned char)(*s++); h*=16777619u; } return h; }
@@ -181,7 +194,11 @@ uint32_t rogue_ui_make_id(const char* label){ return fnv1a32(label?label:"\0"); 
 const RogueUINode* rogue_ui_find_by_id(const RogueUIContext* ctx, uint32_t id_hash){ if(!ctx) return NULL; for(int i=0;i<ctx->node_count;i++) if(ctx->nodes[i].id_hash==id_hash) return &ctx->nodes[i]; return NULL; }
 
 static void assign_id(RogueUINode* n){ if(n->text) n->id_hash = rogue_ui_make_id(n->text); }
-int rogue_ui_panel(RogueUIContext* ctx, RogueUIRect r, uint32_t color){ if(!ctx||!ctx->frame_active) return -1; RogueUINode n; memset(&n,0,sizeof n); n.rect=r; n.color=color; n.kind=0; assign_id(&n); return push_node(ctx,n); }
+int rogue_ui_panel(RogueUIContext* ctx, RogueUIRect r, uint32_t color){
+    if(!ctx){ fprintf(stderr,"PANEL_FAIL null ctx\n"); return -1; }
+    if(!ctx->frame_active){ fprintf(stderr,"PANEL_FAIL frame_inactive ctx=%p\n",(void*)ctx); return -1; }
+    if(!ctx->nodes){ fprintf(stderr,"PANEL_FAIL nodes NULL before push ctx=%p cap=%d\n",(void*)ctx,ctx->node_capacity); }
+    RogueUINode n; memset(&n,0,sizeof n); n.rect=r; n.color=color; n.kind=0; assign_id(&n); return push_node(ctx,n); }
 int rogue_ui_text(RogueUIContext* ctx, RogueUIRect r, const char* text, uint32_t color){ if(!ctx||!ctx->frame_active) return -1; RogueUINode n; memset(&n,0,sizeof n); n.rect=r; n.text=text; n.color=color; n.kind=1; assign_id(&n); return push_node(ctx,n); }
 int rogue_ui_image(RogueUIContext* ctx, RogueUIRect r, const char* path, uint32_t tint){ if(!ctx||!ctx->frame_active) return -1; RogueUINode n; memset(&n,0,sizeof n); n.rect=r; n.text=path; n.color=tint; n.kind=2; assign_id(&n); return push_node(ctx,n); }
 int rogue_ui_sprite(RogueUIContext* ctx, RogueUIRect r, int sheet_id, int frame, uint32_t tint){ if(!ctx||!ctx->frame_active) return -1; RogueUINode n; memset(&n,0,sizeof n); n.rect=r; n.color=tint; n.data_i0=sheet_id; n.data_i1=frame; n.kind=3; return push_node(ctx,n); }
