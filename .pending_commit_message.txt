@@ -1,9 +1,5 @@
-UI Phase 6.1: Implement data-driven HUD layout spec
-
-- Added `hud_layout.h/.c` providing kv-config driven placement for health, mana, XP bars and level text.
-- Integrated layout into `hud.c` (replaces hardcoded coordinates) with lazy default fallback.
-- Added asset file `assets/hud_layout.cfg` (modifiable without recompilation).
-- Added unit test `test_ui_phase6_hud_layout` validating parse & coordinate propagation.
-- Updated `implementation_plan_uisystem.txt` marking 6.1 Done (kv config instead of JSON/TOML) and README changelog.
-- CMakeLists updated to compile new source; roadmap & commit log updated.
-
+UI Phase 6.2: Layered HUD Bars & AP Integration
+- Added hud_bars.c/h implementing layered (primary + trailing secondary) smoothing model for Health, Mana, and new Action Point (AP) bars (fraction-per-second catchup; instant snap on heals).
+- Integrated into hud.c rendering: secondary darker lag fill behind brighter primary; added AP bar below XP with consistent frame.
+- New unit test test_ui_phase6_bars_ap exercises: full initialization, damage-induced lag (secondary > primary immediately after drop), convergence over simulated time, and instant snap on heal.
+- Roadmap updated Phase 6.2 -> Done with test reference; README UI section notes new API & behavior.

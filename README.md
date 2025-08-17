@@ -643,6 +643,7 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
   - Phase 2.6 completed: Minimal declarative DSL convenience macros (`UI_PANEL`, `UI_TEXT`, `UI_BUTTON`) providing clearer callsites and reducing boilerplate.
   - Phase 2.8 partial update: Linear Tab and arrow-key navigation cycling across interactive widgets implemented (`rogue_ui_navigation_update`); spatial heuristic & controller graph still pending.
   - Phase 6.1 completed: Data-driven HUD layout spec (`assets/hud_layout.cfg`) parsed via unified kv parser, providing configurable positions/sizes for health, mana, XP bars and level text. Loader APIs: `rogue_hud_layout_load`, `rogue_hud_layout`. New test `test_ui_phase6_hud_layout` verifies parse & coordinate propagation.
+* Phase 6.2 HUD Bars (NEW): Added layered smoothing health/mana/AP bars with trailing damage indicator (secondary lag bar) and new AP bar rendered beneath XP. API `hud_bars.h` exposes update + fraction accessors; unit test `test_ui_phase6_bars_ap` validates lag behavior and snap on heal.
 
 ### v0.8.x (Current Development Branch)
 **Added**

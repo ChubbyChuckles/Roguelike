@@ -8,6 +8,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_filter_predicates.c AND NOT
     add_test(NAME test_loot_filter_predicates COMMAND test_loot_filter_predicates)
 endif()
 
+# UI Phase 6.2 bars + AP smoothing test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARGET test_ui_phase6_bars_ap)
+    add_executable(test_ui_phase6_bars_ap unit/test_ui_phase6_bars_ap.c)
+    target_link_libraries(test_ui_phase6_bars_ap PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ui_phase6_bars_ap PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ui_phase6_bars_ap COMMAND test_ui_phase6_bars_ap)
+endif()
+
 # Loot API doc generator test (Itemsystem 23.5)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase23_api_doc.c AND NOT TARGET test_loot_phase23_api_doc)
     add_executable(test_loot_phase23_api_doc unit/test_loot_phase23_api_doc.c)
@@ -37,7 +47,6 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase23_doc_paths.c AND NOT
     endif()
     add_test(NAME test_loot_phase23_doc_paths COMMAND test_loot_phase23_doc_paths)
 endif()
-
 # Style guide doc presence test (Itemsystem 23.2)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase23_style_guide.c AND NOT TARGET test_loot_phase23_style_guide)
     add_executable(test_loot_phase23_style_guide unit/test_loot_phase23_style_guide.c)

@@ -1,9 +1,12 @@
 #include "core/hud.h"
 #include "graphics/font.h"
 #include "core/hud_layout.h" /* Phase 6.1 data-driven HUD layout */
+#include "core/hud_bars.h" /* Phase 6.2 layered bar smoothing */
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
+
+static RogueHUDBarsState g_hud_bars_state; /* persistent smoothing */
 
 void rogue_hud_render(void){
 #ifdef ROGUE_HAVE_SDL
@@ -11,28 +14,38 @@ void rogue_hud_render(void){
 
     // Load layout on first use (lazy) - test harness can call loader explicitly.
     const RogueHUDLayout* lay = rogue_hud_layout();
+
+    // Update smoothing state (assume ~16ms if unknown frame delta; using fixed 16 for simplicity here)
+    rogue_hud_bars_update(&g_hud_bars_state,
+        g_app.player.health, g_app.player.max_health,
+        g_app.player.mana, g_app.player.max_mana,
+        g_app.player.action_points, g_app.player.max_action_points,
+        16);
+
+    // Health bar
     int hp_w=lay->health.w,hp_h=lay->health.h,hp_x=lay->health.x,hp_y=lay->health.y;
-    float hp_ratio=(g_app.player.max_health>0)? (float)g_app.player.health/(float)g_app.player.max_health:0.0f;
-    if(hp_ratio<0) hp_ratio=0; if(hp_ratio>1) hp_ratio=1;
+    float hp_primary = rogue_hud_health_primary(&g_hud_bars_state);
+    float hp_secondary = rogue_hud_health_secondary(&g_hud_bars_state);
     SDL_SetRenderDrawColor(g_app.renderer,40,12,12,255);
     SDL_Rect hbgb={hp_x-2,hp_y-2,hp_w+4,hp_h+4}; SDL_RenderFillRect(g_app.renderer,&hbgb);
-    SDL_SetRenderDrawColor(g_app.renderer,95,0,0,255);
-    SDL_Rect hbf1={hp_x,hp_y,(int)(hp_w*hp_ratio),hp_h}; SDL_RenderFillRect(g_app.renderer,&hbf1);
-    SDL_SetRenderDrawColor(g_app.renderer,170,20,20,255);
-    SDL_Rect hbf2={hp_x,hp_y,(int)(hp_w*hp_ratio*0.55f),hp_h}; SDL_RenderFillRect(g_app.renderer,&hbf2);
+    // Secondary (lag) bar in darker tone behind
+    SDL_SetRenderDrawColor(g_app.renderer,120,25,25,255);
+    SDL_Rect hblag={hp_x,hp_y,(int)(hp_w*hp_secondary),hp_h}; SDL_RenderFillRect(g_app.renderer,&hblag);
+    SDL_SetRenderDrawColor(g_app.renderer,200,40,40,255);
+    SDL_Rect hbpri={hp_x,hp_y,(int)(hp_w*hp_primary),hp_h}; SDL_RenderFillRect(g_app.renderer,&hbpri);
 
     // Mana bar
     int mp_w=lay->mana.w,mp_h=lay->mana.h,mp_x=lay->mana.x,mp_y=lay->mana.y;
-    float mp_ratio=(g_app.player.max_mana>0)? (float)g_app.player.mana/(float)g_app.player.max_mana:0.0f;
-    if(mp_ratio<0) mp_ratio=0; if(mp_ratio>1) mp_ratio=1;
+    float mp_primary = rogue_hud_mana_primary(&g_hud_bars_state);
+    float mp_secondary = rogue_hud_mana_secondary(&g_hud_bars_state);
     SDL_SetRenderDrawColor(g_app.renderer,10,18,40,255);
     SDL_Rect mpbgb={mp_x-2,mp_y-2,mp_w+4,mp_h+4}; SDL_RenderFillRect(g_app.renderer,&mpbgb);
-    SDL_SetRenderDrawColor(g_app.renderer,15,50,140,255);
-    SDL_Rect mpbf1={mp_x,mp_y,(int)(mp_w*mp_ratio),mp_h}; SDL_RenderFillRect(g_app.renderer,&mpbf1);
-    SDL_SetRenderDrawColor(g_app.renderer,40,90,210,255);
-    SDL_Rect mpbf2={mp_x,mp_y,(int)(mp_w*mp_ratio*0.55f),mp_h}; SDL_RenderFillRect(g_app.renderer,&mpbf2);
+    SDL_SetRenderDrawColor(g_app.renderer,25,55,150,255);
+    SDL_Rect mplag={mp_x,mp_y,(int)(mp_w*mp_secondary),mp_h}; SDL_RenderFillRect(g_app.renderer,&mplag);
+    SDL_SetRenderDrawColor(g_app.renderer,60,110,230,255);
+    SDL_Rect mppri={mp_x,mp_y,(int)(mp_w*mp_primary),mp_h}; SDL_RenderFillRect(g_app.renderer,&mppri);
 
-    // XP bar
+    // XP bar (unchanged styling for now)
     int xp_w=lay->xp.w,xp_h=lay->xp.h,xp_x=lay->xp.x,xp_y=lay->xp.y;
     float xp_ratio=(g_app.player.xp_to_next>0)? (float)g_app.player.xp/(float)g_app.player.xp_to_next:0.0f;
     if(xp_ratio<0) xp_ratio=0; if(xp_ratio>1) xp_ratio=1;
@@ -42,6 +55,18 @@ void rogue_hud_render(void){
     SDL_Rect xpbf1={xp_x,xp_y,(int)(xp_w*xp_ratio),xp_h}; SDL_RenderFillRect(g_app.renderer,&xpbf1);
     SDL_SetRenderDrawColor(g_app.renderer,200,140,30,255);
     SDL_Rect xpbf2={xp_x,xp_y,(int)(xp_w*xp_ratio*0.55f),xp_h}; SDL_RenderFillRect(g_app.renderer,&xpbf2);
+
+    // AP bar (new) directly below XP bar with small gap
+    int ap_gap = 4;
+    int ap_h = 6; int ap_w = xp_w; int ap_x = xp_x; int ap_y = xp_y + xp_h + ap_gap; 
+    float ap_primary = rogue_hud_ap_primary(&g_hud_bars_state);
+    float ap_secondary = rogue_hud_ap_secondary(&g_hud_bars_state);
+    SDL_SetRenderDrawColor(g_app.renderer,18,18,36,255);
+    SDL_Rect apgb={ap_x-2,ap_y-2,ap_w+4,ap_h+4}; SDL_RenderFillRect(g_app.renderer,&apgb);
+    SDL_SetRenderDrawColor(g_app.renderer,35,95,95,255);
+    SDL_Rect aplag={ap_x,ap_y,(int)(ap_w*ap_secondary),ap_h}; SDL_RenderFillRect(g_app.renderer,&aplag);
+    SDL_SetRenderDrawColor(g_app.renderer,60,180,180,255);
+    SDL_Rect appri={ap_x,ap_y,(int)(ap_w*ap_primary),ap_h}; SDL_RenderFillRect(g_app.renderer,&appri);
 
     // Level text
     char lvlbuf[32];
