@@ -608,25 +608,80 @@ static int read_inventory_component(FILE* f, size_t size){
     } return 0; }
 
 /* SKILLS: ranks + cooldown state (id ordered) */
+/* PHASE 7.2: Extended skill state (backward-compatible). We always write the extended record, but reader detects legacy minimal form by payload size. */
 static int write_skills_component(FILE* f){
     if(g_active_write_version >=4){ if(write_varuint(f,(uint32_t)g_app.skill_count)!=0) return -1; }
     else fwrite(&g_app.skill_count,sizeof g_app.skill_count,1,f);
     for(int i=0;i<g_app.skill_count;i++){
-        const RogueSkillState* st = rogue_skill_get_state(i); int rank = st?st->rank:0; fwrite(&rank,sizeof rank,1,f);
-        double cd= st? st->cooldown_end_ms:0; fwrite(&cd,sizeof cd,1,f);
+        const RogueSkillState* st = rogue_skill_get_state(i);
+        int rank = st?st->rank:0; double cd = st?st->cooldown_end_ms:0.0;
+        fwrite(&rank,sizeof rank,1,f);
+        fwrite(&cd,sizeof cd,1,f);
+        /* Extended fields (Phase 7.2) */
+        double cast_progress = st? st->cast_progress_ms : 0.0;
+        double channel_end = st? st->channel_end_ms : 0.0;
+        double next_charge_ready = st? st->next_charge_ready_ms : 0.0;
+        int charges_cur = st? st->charges_cur : 0;
+        unsigned char casting_active = st? st->casting_active : 0;
+        unsigned char channel_active = st? st->channel_active : 0;
+        fwrite(&cast_progress,sizeof cast_progress,1,f);
+        fwrite(&channel_end,sizeof channel_end,1,f);
+        fwrite(&next_charge_ready,sizeof next_charge_ready,1,f);
+        fwrite(&charges_cur,sizeof charges_cur,1,f);
+        fwrite(&casting_active,sizeof casting_active,1,f);
+        fwrite(&channel_active,sizeof channel_active,1,f);
     }
     return 0;
 }
-static int read_skills_component(FILE* f, size_t size){ (void)size; int count=0; if(g_active_read_version >=4){ uint32_t c=0; if(read_varuint(f,&c)!=0) return -1; count=(int)c; } else if(fread(&count,sizeof count,1,f)!=1) return -1; int limit = (count<g_app.skill_count)?count:g_app.skill_count; for(int i=0;i<limit;i++){ int rank; double cd; fread(&rank,sizeof rank,1,f); fread(&cd,sizeof cd,1,f); const RogueSkillDef* d=rogue_skill_get_def(i); struct RogueSkillState* st=(struct RogueSkillState*)rogue_skill_get_state(i); if(d && st){ if(rank>d->max_rank) rank=d->max_rank; st->rank=rank; st->cooldown_end_ms=cd; } } /* skip any extra */ if(count>limit){ size_t skip = (size_t)(count-limit)*(sizeof(int)+sizeof(double)); fseek(f,(long)skip,SEEK_CUR); } return 0; }
+static int read_skills_component(FILE* f, size_t size){
+    long section_start = ftell(f);
+    int count=0; size_t count_bytes=0; if(g_active_read_version >=4){ uint32_t c=0; if(read_varuint(f,&c)!=0) return -1; count=(int)c; }
+    else { if(fread(&count,sizeof count,1,f)!=1) return -1; }
+    count_bytes = (size_t)(ftell(f) - section_start);
+    if(count<0 || count>4096) return -1; /* sanity */
+    size_t remaining = (size_t)size - count_bytes;
+    size_t minimal_rec = sizeof(int)+sizeof(double); /* legacy */
+    size_t extended_extra = sizeof(double)*3 + sizeof(int) + 2*sizeof(unsigned char); /* new appended fields */
+    int has_extended = 0;
+    if(count>0){ if(remaining >= (size_t)count*(minimal_rec + extended_extra)) has_extended=1; }
+    int limit = (count<g_app.skill_count)?count:g_app.skill_count;
+    for(int i=0;i<count;i++){
+        int rank=0; double cd=0.0; if(fread(&rank,sizeof rank,1,f)!=1) return -1; if(fread(&cd,sizeof cd,1,f)!=1) return -1;
+        double cast_progress=0.0, channel_end=0.0, next_charge_ready=0.0; int charges_cur=0; unsigned char casting_active=0, channel_active=0;
+        if(has_extended){ if(fread(&cast_progress,sizeof cast_progress,1,f)!=1) return -1; if(fread(&channel_end,sizeof channel_end,1,f)!=1) return -1; if(fread(&next_charge_ready,sizeof next_charge_ready,1,f)!=1) return -1; if(fread(&charges_cur,sizeof charges_cur,1,f)!=1) return -1; if(fread(&casting_active,sizeof casting_active,1,f)!=1) return -1; if(fread(&channel_active,sizeof channel_active,1,f)!=1) return -1; }
+        if(i<limit){ const RogueSkillDef* d=rogue_skill_get_def(i); struct RogueSkillState* st=(struct RogueSkillState*)rogue_skill_get_state(i); if(d && st){ if(rank>d->max_rank) rank=d->max_rank; st->rank=rank; st->cooldown_end_ms=cd; if(has_extended){ st->cast_progress_ms=cast_progress; st->channel_end_ms=channel_end; st->next_charge_ready_ms=next_charge_ready; st->charges_cur=charges_cur; st->casting_active=casting_active; st->channel_active=channel_active; } } }
+        else { /* skip unneeded extended already consumed */ }
+    }
+    /* If legacy (no extended) and there are extra bytes (unexpected), skip them */
+    return 0;
+}
 
 /* BUFFS: active buffs list */
 extern RogueBuff g_buffs_internal[]; extern int g_buff_count_internal; /* assume symbols provided elsewhere */
+/* PHASE 7.3: Buff serialization stores remaining duration (relative) instead of raw struct with absolute end time.
+   Backward compatible: detect legacy record size and convert. */
 static int write_buffs_component(FILE* f){
     int active_count=0; for(int i=0;i<g_buff_count_internal;i++) if(g_buffs_internal[i].active) active_count++;
     if(g_active_write_version >=4){ if(write_varuint(f,(uint32_t)active_count)!=0) return -1; }
     else fwrite(&active_count,sizeof active_count,1,f);
-    for(int i=0;i<g_buff_count_internal;i++) if(g_buffs_internal[i].active){ fwrite(&g_buffs_internal[i], sizeof(RogueBuff),1,f);} return 0; }
-static int read_buffs_component(FILE* f, size_t size){ (void)size; int count=0; if(g_active_read_version >=4){ uint32_t c=0; if(read_varuint(f,&c)!=0) return -1; count=(int)c; } else if(fread(&count,sizeof count,1,f)!=1) return -1; for(int i=0;i<count;i++){ RogueBuff b; if(fread(&b,sizeof b,1,f)!=1) return -1; rogue_buffs_apply(b.type,b.magnitude,b.end_ms,0.0); } return 0; }
+    for(int i=0;i<g_buff_count_internal;i++) if(g_buffs_internal[i].active){
+        /* Write type, magnitude, remaining_ms */
+        int type=g_buffs_internal[i].type; int magnitude=g_buffs_internal[i].magnitude; double remaining_ms=0.0; 
+        double now=g_app.game_time_ms; if(g_buffs_internal[i].end_ms > now) remaining_ms = g_buffs_internal[i].end_ms - now; else remaining_ms=0.0;
+        fwrite(&type,sizeof type,1,f); fwrite(&magnitude,sizeof magnitude,1,f); fwrite(&remaining_ms,sizeof remaining_ms,1,f);
+    }
+    return 0; }
+static int read_buffs_component(FILE* f, size_t size){
+    long start=ftell(f); int count=0; if(g_active_read_version >=4){ uint32_t c=0; if(read_varuint(f,&c)!=0) return -1; count=(int)c; }
+    else if(fread(&count,sizeof count,1,f)!=1) return -1; if(count<0 || count>512) return -1; size_t count_bytes=(size_t)(ftell(f)-start); size_t remaining = size - count_bytes; if(count==0) return 0; size_t rec_size = remaining / (size_t)count; /* approximate */
+    for(int i=0;i<count;i++){
+        if(rec_size >= sizeof(int)*3 + sizeof(double)){ /* legacy struct layout (active,int type,double end_ms,int magnitude) -> we read full struct */
+            struct LegacyBuff { int active; int type; double end_ms; int magnitude; } lb; if(fread(&lb,sizeof lb,1,f)!=1) return -1; double now=g_app.game_time_ms; double remaining_ms = (lb.end_ms>now)? (lb.end_ms - now):0.0; rogue_buffs_apply((RogueBuffType)lb.type, lb.magnitude, remaining_ms, now);
+        } else { /* new compact form: type,int magnitude,double remaining */
+            int type=0; int magnitude=0; double remaining_ms=0.0; if(fread(&type,sizeof type,1,f)!=1) return -1; if(fread(&magnitude,sizeof magnitude,1,f)!=1) return -1; if(fread(&remaining_ms,sizeof remaining_ms,1,f)!=1) return -1; double now=g_app.game_time_ms; rogue_buffs_apply((RogueBuffType)type, magnitude, remaining_ms, now);
+        }
+    }
+    return 0; }
 
 /* VENDOR: seed + restock timers */
 static int write_vendor_component(FILE* f){ fwrite(&g_app.vendor_seed,sizeof g_app.vendor_seed,1,f); fwrite(&g_app.vendor_time_accum_ms,sizeof g_app.vendor_time_accum_ms,1,f); fwrite(&g_app.vendor_restock_interval_ms,sizeof g_app.vendor_restock_interval_ms,1,f); return 0; }

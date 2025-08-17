@@ -1284,3 +1284,4 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase2_interactive.c AND NOT 
     endif()
     add_test(NAME test_ui_phase2_interactive COMMAND test_ui_phase2_interactive)
 endif()
+
