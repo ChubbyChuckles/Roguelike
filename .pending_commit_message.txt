@@ -1,13 +1,10 @@
-Persistence Phase 4.5: Add optional signature abstraction (save format v9)
+feat(persistence): Phase 5.1/5.2 incremental save dirty tracking & cached section reuse (no format bump)
 
-- Bump ROGUE_SAVE_FORMAT_VERSION to 9.
-- Add RogueSaveSignatureProvider API (sign/verify callbacks + registration).
-- Implement signature trailer layout: [uint16 sig_len]["SGN0"][sig bytes] appended after SHA256 footer (v7+) when provider registered.
-- Descriptor checksum logic clarified: checksum over payload only (excludes SHA footer + optional signature).
-- Signature covers payload + SHA footer; verification failure sets new tamper flag ROGUE_TAMPER_FLAG_SIGNATURE.
-- Add migration v8->v9 (no-op structural).
-- Update save_manager.c for consistent footer ordering (compute CRC then write SHA then signature).
-- Update load_and_validate to detect & verify optional signature (bounds + magic + length checks, len clamp <4096).
-- Add unit test test_save_v9_signature (dummy XOR signature) validating success path and tamper flag on corruption.
-- Update roadmap (Phase 4.5 marked Done) and README (v9 description + signature details).
-- Preserve prior integrity features (per-section CRC, SHA256, tamper flags, recovery) with passing builds.
+- Add runtime incremental mode APIs (enable, mark dirty, mark all dirty)
+- Cache section payload + CRC after baseline save; reuse unchanged sections skipping serialization/compression
+- Maintain full integrity: recompute descriptor CRC, SHA256 footer, signature each save
+- Do NOT bump format (remains v9); removed provisional v10 migration entry
+- Add unit test test_save_incremental_basic (dummy components) for reuse & dirty change path
+- Update roadmap marking phases 5.1 & 5.2 Done with implementation notes
+- README persistence section documents incremental mode usage & limits
+

@@ -47,9 +47,19 @@ PHASE 4. Integrity & Security
 PHASE 5. Incremental & Streaming Saves
 5.1 Dirty flag tracking per component (bitmask) (X)
 5.2 Incremental write of only dirty sections (X)
+5.1 Dirty flag tracking per component (bitmask) (Done)
+5.2 Incremental write of only dirty sections (Done)
 5.3 Background compression thread (non-blocking) (X)
 5.4 Save time budget enforcement (slice over frames) (X)
 5.5 Streaming world chunk meta (future expansion) (X)
+	IMPLEMENTED: Added runtime incremental mode (no format bump) with APIs:
+		- rogue_save_set_incremental(int enable)
+		- rogue_save_mark_component_dirty(int id)
+		- rogue_save_mark_all_dirty()
+	When enabled, after a full baseline save the system caches each section's raw payload bytes and per-section CRC (v7+). Subsequent saves that do not mark a component dirty will directly rewrite the cached bytes (including CRC) without invoking the component's write_fn.
+	Integrity: Descriptor checksum, SHA256 footer, and optional signature still recomputed over the reconstructed payload ensuring consistency. Dirty components are reserialized and their cache refreshed; clean components' cached payloads are reused verbatim.
+	Notes: No on-disk format change (remains v9). Migration entry for v10 removed. Future enhancements could include partial file patching instead of full rewrite, and cache invalidation based on size thresholds.
+	Tests: Added test_save_incremental_basic exercising reuse and dirty invalidation with dummy components.
 
 PHASE 6. Autosave & Scheduling
 6.1 Autosave interval & conditions (combat idle / out of danger) (X)

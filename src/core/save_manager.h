@@ -129,6 +129,11 @@ uint32_t rogue_save_last_tamper_flags(void); /* bitmask of ROGUE_TAMPER_FLAG_* f
 int rogue_save_manager_load_slot_with_recovery(int slot_index); /* returns 0 if primary ok, 1 if recovered via autosave, negative on failure */
 int rogue_save_last_recovery_used(void); /* 1 if last recovery load fell back to autosave */
 
+/* Incremental save (Phase 5.1/5.2): dirty tracking + cached section reuse */
+int rogue_save_set_incremental(int enabled); /* enable incremental mode */
+int rogue_save_mark_component_dirty(int component_id); /* mark a component dirty */
+int rogue_save_mark_all_dirty(void); /* mark all registered components dirty */
+
 /* Optional signature abstraction (v9). Register a provider to append & verify a detached signature over the hashed region (identical bytes covered by descriptor CRC & SHA256). */
 typedef struct RogueSaveSignatureProvider {
     uint32_t max_len; /* maximum signature length supported */

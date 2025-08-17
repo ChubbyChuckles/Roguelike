@@ -173,6 +173,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_v9_signature.c AND NOT TARG
     add_test(NAME test_save_v9_signature COMMAND test_save_v9_signature)
 endif()
 
+# Incremental save basic test (Phase 5)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_incremental_basic.c AND NOT TARGET test_save_incremental_basic)
+    add_executable(test_save_incremental_basic unit/test_save_incremental_basic.c)
+    target_link_libraries(test_save_incremental_basic PRIVATE rogue_core)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_save_incremental_basic PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_save_incremental_basic COMMAND test_save_incremental_basic)
+endif()
+
 # Basic save_manager smoke test (legacy simple test)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_manager.c AND NOT TARGET test_save_manager)
     add_executable(test_save_manager unit/test_save_manager.c)

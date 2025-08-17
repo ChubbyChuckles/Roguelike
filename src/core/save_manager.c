@@ -37,6 +37,14 @@ static int g_compress_enabled = 0; static int g_compress_min_bytes = 64; /* Phas
 static uint32_t g_last_tamper_flags = 0; /* Phase 4.3 tamper flags */
 static int g_last_recovery_used = 0; /* Phase 4.4 */
 static const RogueSaveSignatureProvider* g_sig_provider = NULL; /* v9 */
+/* Incremental save state (Phase 5.* runtime only; does not change on-disk version) */
+static int g_incremental_enabled = 0;
+typedef struct { int id; unsigned char* data; uint32_t size; uint32_t crc32; int valid; } RogueCachedSection;
+static RogueCachedSection g_cached_sections[ROGUE_SAVE_MAX_COMPONENTS];
+static uint32_t g_dirty_mask = 0xFFFFFFFFu; /* start dirty */
+int rogue_save_set_incremental(int enabled){ g_incremental_enabled = enabled?1:0; if(!g_incremental_enabled){ /* free all */ for(int i=0;i<ROGUE_SAVE_MAX_COMPONENTS;i++){ free(g_cached_sections[i].data); g_cached_sections[i].data=NULL; g_cached_sections[i].valid=0; } g_dirty_mask=0xFFFFFFFFu; } return 0; }
+int rogue_save_mark_component_dirty(int component_id){ if(component_id<=0||component_id>=32) return -1; g_dirty_mask |= (1u<<component_id); return 0; }
+int rogue_save_mark_all_dirty(void){ g_dirty_mask=0xFFFFFFFFu; return 0; }
 uint32_t rogue_save_last_tamper_flags(void){ return g_last_tamper_flags; }
 int rogue_save_last_recovery_used(void){ return g_last_recovery_used; }
 int rogue_save_set_compression(int enabled, int min_bytes){ g_compress_enabled = enabled?1:0; if(min_bytes>0) g_compress_min_bytes=min_bytes; return 0; }
@@ -165,6 +173,15 @@ static int internal_save_to(const char* final_path){
             if(fwrite(&id16,sizeof id16,1,f)!=1){ fclose(f); return -4; }
             if(fwrite(&size_placeholder32,sizeof size_placeholder32,1,f)!=1){ fclose(f); return -4; }
             long payload_start=ftell(f);
+            int reused_cache = 0;
+            if(g_incremental_enabled && !(g_dirty_mask & (1u<<c->id))){ /* attempt reuse */
+                for(int k=0;k<ROGUE_SAVE_MAX_COMPONENTS;k++) if(g_cached_sections[k].valid && g_cached_sections[k].id==c->id){
+                    if(fwrite(g_cached_sections[k].data,1,g_cached_sections[k].size,f)!=(size_t)g_cached_sections[k].size){ fclose(f); return -5; }
+                    long end=ftell(f); uint32_t section_size=g_cached_sections[k].size; fseek(f,start+sizeof(uint16_t),SEEK_SET); fwrite(&section_size,sizeof section_size,1,f); fseek(f,end,SEEK_SET);
+                    if(desc.version>=7){ uint32_t sec_crc=g_cached_sections[k].crc32; fwrite(&sec_crc,sizeof sec_crc,1,f); }
+                    reused_cache=1; break; }
+            }
+            if(!reused_cache){
             if(desc.version>=6 && g_compress_enabled){
                 FILE* mem=NULL;
 #if defined(_MSC_VER)
@@ -202,6 +219,15 @@ static int internal_save_to(const char* final_path){
                 if(fread(tmp,1,(size_t)payload_size,f)!=(size_t)payload_size){ free(tmp); fclose(f); return -14; }
                 uint32_t sec_crc = rogue_crc32(tmp,(size_t)payload_size); free(tmp);
                 fseek(f,end_after_payload,SEEK_SET); fwrite(&sec_crc,sizeof sec_crc,1,f);
+                if(g_incremental_enabled){ /* capture cache */
+                    for(int k=0;k<ROGUE_SAVE_MAX_COMPONENTS;k++){ if(!g_cached_sections[k].valid){
+                        g_cached_sections[k].id=c->id; g_cached_sections[k].size=(uint32_t)payload_size; g_cached_sections[k].data=(unsigned char*)malloc((size_t)payload_size);
+                        if(g_cached_sections[k].data){ fseek(f,payload_start,SEEK_SET); fread(g_cached_sections[k].data,1,(size_t)payload_size,f); fseek(f,end_after_payload+sizeof(uint32_t),SEEK_SET); g_cached_sections[k].crc32=sec_crc; g_cached_sections[k].valid=1; }
+                        break; }
+                    }
+                }
+            }
+            if(g_incremental_enabled){ g_dirty_mask &= ~(1u<<c->id); }
             }
         } else {
             uint32_t id=(uint32_t)c->id, size_placeholder=0; if(fwrite(&id,sizeof id,1,f)!=1){ fclose(f); return -4; }
@@ -278,7 +304,7 @@ static int load_and_validate(const char* path, RogueSaveDescriptor* out_desc, un
     size_t crc_region = rest - footer_bytes; fseek(f,sizeof *out_desc,SEEK_SET); unsigned char* buf=(unsigned char*)malloc(rest); if(!buf){ fclose(f); return -6; }
     size_t n=fread(buf,1,rest,f); if(n!=rest){ free(buf); fclose(f); return -6; }
     uint32_t crc=rogue_crc32(buf,crc_region); if(crc!=out_desc->checksum){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_DESCRIPTOR_CRC; free(buf); fclose(f); return -7; }
-    if(out_desc->version>=7){ /* SHA footer lives immediately after crc_region */ if(memcmp(buf+crc_region,"SH32",4)!=0){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SHA256; free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } RogueSHA256Ctx sha; rogue_sha256_init(&sha); rogue_sha256_update(&sha,buf,crc_region); unsigned char dg[32]; rogue_sha256_final(&sha,dg); if(memcmp(dg,buf+crc_region+4,32)!=0){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SHA256; free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } memcpy(g_last_sha256,buf+crc_region+4,32);
+    if(out_desc->version>=7){ /* SHA footer lives immediately after crc_region */ if(memcmp(buf+crc_region,"SH32",4)!=0){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SHA256; free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } RogueSHA256Ctx sha; rogue_sha256_init(&sha); rogue_sha256_update(&sha,buf,crc_region); unsigned char dg[32]; rogue_sha256_final(&sha,dg); if(memcmp(dg,buf+crc_region+4,32)!=0){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SHA256; /* debug */ fprintf(stderr,"SHA_MISMATCH path=%s crc_region=%zu desc_crc=0x%08X calc_sha_first=0x%02X stored_first=0x%02X\n", path, (size_t)crc_region, crc, dg[0], buf[crc_region+4]); free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } memcpy(g_last_sha256,buf+crc_region+4,32);
         if(out_desc->version>=9 && has_sig){ const unsigned char* p = buf + crc_region + 4 + 32; uint16_t slen=0; memcpy(&slen,p,2); if(slen==sig_len && memcmp(p+2,"SGN0",4)==0){ if(g_sig_provider){ if(g_sig_provider->verify(buf,crc_region+4+32, p+6, slen)!=0){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SIGNATURE; free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } } } }
     }
     fclose(f); *out_buf=buf; return 0;
