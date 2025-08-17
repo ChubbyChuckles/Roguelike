@@ -1,3 +1,7 @@
 feat(items-docs): Phase 23.1 loot architecture documentation
 
 Adds comprehensive `docs/LOOT_ARCHITECTURE.md` covering phase layering, data flow, determinism contract, module boundaries, performance principles, persistence, security hooks, testing strategy, extension guidelines, and future work. Roadmap 23.1 marked Done and README updated with reference bullet.
+
+feat(items-docs): Phase 23.2 rarity & affix style guide
+
+Adds `docs/LOOT_RARITY_AFFIX_STYLE.md` defining conventions for rarity tier naming, affix id schema, per‑rarity weight patterns, stat range progression, quality scalar interaction, ordering/sorting, and an author checklist. Roadmap 23.2 marked Done and README updated with new documentation bullets.
