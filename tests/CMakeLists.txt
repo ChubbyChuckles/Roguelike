@@ -81,6 +81,15 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase9_perf_virtual.c AND NOT
     add_test(NAME test_ui_phase9_perf_virtual COMMAND test_ui_phase9_perf_virtual)
 endif()
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase9_extended.c AND NOT TARGET test_ui_phase9_extended)
+    add_executable(test_ui_phase9_extended unit/test_ui_phase9_extended.c)
+    target_link_libraries(test_ui_phase9_extended PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ui_phase9_extended PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ui_phase9_extended COMMAND test_ui_phase9_extended)
+endif()
+
 # Loot API doc generator test (Itemsystem 23.5)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase23_api_doc.c AND NOT TARGET test_loot_phase23_api_doc)
     add_executable(test_loot_phase23_api_doc unit/test_loot_phase23_api_doc.c)

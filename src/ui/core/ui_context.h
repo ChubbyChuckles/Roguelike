@@ -166,6 +166,23 @@ typedef struct RogueUIContext {
         float dirty_x, dirty_y, dirty_w, dirty_h;
         int dirty_node_count;
         int dirty_reported_this_frame;
+    int dirty_kind; /* 0=none 1=structural 2=content */
+    /* Per-phase timings (ms) */
+    double perf_phase_accum[8];
+    double perf_phase_start[8];
+    /* Regression guard */
+    double perf_baseline_ms; /* baseline frame time */
+    double perf_regress_threshold_pct; /* e.g., 0.25 => 25% slower triggers */
+    int perf_regressed_flag; /* latched until baseline reset */
+    double perf_autob_samples[64];
+    int perf_autob_count;
+    /* Glyph cache (simple) */
+    struct RogueUIGlyphEntry { unsigned int codepoint; float advance; unsigned int lru_tick; } *glyph_cache;
+    int glyph_cache_count;
+    int glyph_cache_capacity;
+    unsigned int glyph_cache_tick;
+    int glyph_cache_hits;
+    int glyph_cache_misses;
 } RogueUIContext;
 
 int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg);
@@ -266,22 +283,44 @@ float rogue_ui_anim_scale(const RogueUIContext* ctx, uint32_t id_hash);
 float rogue_ui_anim_alpha(const RogueUIContext* ctx, uint32_t id_hash);
 
 /* Phase 9 Performance & Virtualization */
-typedef struct RogueUIDirtyInfo { int changed; float x,y,w,h; int changed_node_count; } RogueUIDirtyInfo; /* union of changed rects */
+typedef struct RogueUIDirtyInfo { int changed; float x,y,w,h; int changed_node_count; int kind; } RogueUIDirtyInfo; /* union of changed rects + kind classification */
 /* Virtualized list query helper (no nodes emitted, just computes visible range) */
 int rogue_ui_list_virtual_range(int total_items, int item_height, int view_height, int scroll_offset, int* first_index_out, int* count_out);
 /* Optional helper that emits panels for visible items (simple) */
 int rogue_ui_list_virtual_emit(RogueUIContext* ctx, RogueUIRect area, int total_items, int item_height, int scroll_offset, uint32_t color_base, uint32_t color_alt);
 /* Dirty rectangle info for last frame begin/end compared to previous */
 RogueUIDirtyInfo rogue_ui_dirty_info(const RogueUIContext* ctx);
+/* Extended dirty classification (Phase 9.2) kind: 0=none 1=structural (tree size/layout) 2=content (text/color diff) */
+/* NOTE: kind is exposed via RogueUIDirtyInfo.kind after Phase 9.2 implementation */
 /* Performance instrumentation */
 void rogue_ui_perf_set_budget(RogueUIContext* ctx, double frame_budget_ms);
 int rogue_ui_perf_frame_over_budget(const RogueUIContext* ctx);
 double rogue_ui_perf_last_update_ms(const RogueUIContext* ctx);
 double rogue_ui_perf_last_render_ms(const RogueUIContext* ctx);
+/* Per-phase CPU timings (Phase 9.1). phase_id 0=update/build 1=render 2=animation(optional) reserved others */
+void rogue_ui_perf_phase_begin(RogueUIContext* ctx, int phase_id);
+void rogue_ui_perf_phase_end(RogueUIContext* ctx, int phase_id);
+double rogue_ui_perf_phase_ms(const RogueUIContext* ctx, int phase_id);
 /* Inject custom clock for deterministic tests */
 void rogue_ui_perf_set_time_provider(RogueUIContext* ctx, double (*now_ms_fn)(void*), void* user);
 /* Simulated render phase (records timing + dirty logic finalize) */
 void rogue_ui_render(RogueUIContext* ctx);
+/* Frame time regression guardrails (Phase 9.5) */
+void rogue_ui_perf_set_baseline(RogueUIContext* ctx, double baseline_ms);
+void rogue_ui_perf_set_regression_threshold(RogueUIContext* ctx, double pct_over_baseline);
+int rogue_ui_perf_regressed(const RogueUIContext* ctx);
+/* Optionally accumulate N frames then set baseline to their average */
+void rogue_ui_perf_auto_baseline_reset(RogueUIContext* ctx);
+void rogue_ui_perf_auto_baseline_add_sample(RogueUIContext* ctx, double frame_ms, int target_count);
+
+/* Text shaping / glyph cache (Phase 9.3) */
+/* Simplified glyph cache storing per-codepoint advance width. For tests we synthesize width from codepoint. */
+void rogue_ui_text_cache_reset(RogueUIContext* ctx);
+float rogue_ui_text_cache_measure(RogueUIContext* ctx, const char* text);
+int rogue_ui_text_cache_hits(const RogueUIContext* ctx);
+int rogue_ui_text_cache_misses(const RogueUIContext* ctx);
+int rogue_ui_text_cache_size(const RogueUIContext* ctx);
+void rogue_ui_text_cache_compact(RogueUIContext* ctx); /* removes least-recently used half if over soft cap */
 
 /* Declarative Widget DSL (Phase 2.6) */
 #define UI_PANEL(ctx,X,Y,W,H,COLOR)      rogue_ui_panel((ctx),(RogueUIRect){(X),(Y),(W),(H)},(COLOR))

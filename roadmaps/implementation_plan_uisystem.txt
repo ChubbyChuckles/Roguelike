@@ -88,11 +88,11 @@ PHASE 8. Animation & Transitions
 8.5 Global time dilation integration (hitstop aware UI timers) (Done: anim_time_scale applied to all Phase 8 animations)
 
 PHASE 9. Performance & Virtualization
-9.1 CPU budget instrumentation per phase (update/render) (Partial: per-frame budget + frame/update/render timing stored; needs phase breakdown & aggregation)
-9.2 Dirty rectangle culling & partial redraw (Partial: union dirty rect & changed flag; no per-node diff classification yet)
-9.3 Text shaping cache & glyph atlas compaction (X)
-9.4 Large list virtualization (inventory, logs) (Partial: virtual range calc + emission helper; inventory integration pending)
-9.5 Frame time regression guardrails (baseline snapshot) (X)
+9.1 CPU budget instrumentation per phase (update/render) (Done: per-phase begin/end APIs, frame/update/render split, accumulation arrays)
+9.2 Dirty rectangle culling & partial redraw (Done: union rect + changed flag + kind classification structural/content)
+9.3 Text shaping cache & glyph atlas compaction (Done: glyph cache with LRU ticks, hit/miss counters, compaction API)
+9.4 Large list virtualization (inventory, logs) (Partial: range + emission helpers in place; inventory/log integration still pending)
+9.5 Frame time regression guardrails (baseline snapshot) (Done: baseline set + threshold %, regression flag, auto-baseline averaging)
 
 PHASE 10. Testing & QA Automation
 10.1 Headless UI harness (software raster target or hash) (X)

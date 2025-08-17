@@ -1,19 +1,19 @@
-UI Phase 8 Animation & Timelines:
-- Added easing library (cubic in/out/in-out, spring, elastic-out)
-- Implemented entrance/exit transitions (scale & alpha) + exit completion tracking list
-- Added button press spring pulse micro-interaction
-- Added global animation time scale control
-- Introduced timeline/keyframe system (scale & alpha channels) with REPLACE/IGNORE policies
-- Added timeline sampling APIs (rogue_ui_timeline_scale/alpha) + unit test test_ui_phase8_timeline
-- Integrated animation master step into frame begin (time-scaled)
-- Reduced motion mode now shortens entrance/exit durations (25%)
-- Updated roadmap Phase 8 statuses to Done
+UI Phase 9 (Performance & Virtualization) – extended implementation
 
-UI Phase 9 Performance & Virtualization (Partial):
-- Added virtual list range + emission helpers (large list virtualization groundwork)
-- Added dirty rectangle union tracking (changed flag + rect + node count)
-- Added performance timing fields (frame/update/render) + budget check API
-- Added render hook rogue_ui_render capturing timings & dirty state
-- Added unit test test_ui_phase9_perf_virtual (virtualization, dirty tracking, perf budget smoke)
-- Updated roadmap Phase 9 entries to Partial for implemented subsets
+- 9.1 CPU budget instrumentation per phase: Added per-phase timing APIs (begin/end/query), accumulated render phase timing, stored frame/update/render breakdown fields.
+- 9.2 Dirty rectangle: Added dirty kind classification (structural vs content) to RogueUIDirtyInfo; union logic sets kind based on node count delta.
+- 9.3 Text shaping cache & glyph atlas compaction: Implemented lightweight glyph cache (advance synthesis, LRU tick updates, compaction trimming oldest half, hit/miss counters, reset API, measurement function). Added associated public APIs.
+- 9.4 Large list virtualization: (previous partial) – groundwork retained; inventory virtual range integration still pending (will finalize in follow-up to avoid partial refactor mid-cycle).
+- 9.5 Frame time regression guardrails: Added baseline + percentage threshold APIs, auto-baseline accumulation, regression latch flag.
 
+New tests:
+- test_ui_phase9_extended.c covering glyph cache growth/compaction, per-phase timing API smoke, dirty kind, regression guard, auto-baseline (relaxed assertions for platform timer granularity).
+
+Other changes:
+- Extended RogueUIContext with perf_phase arrays, regression guard fields, glyph cache storage.
+- Added performance & glyph cache API declarations to ui_context.h.
+- Updated dirty info accessor to include kind classification.
+
+Follow-ups planned:
+- Integrate virtualization directly into inventory grid & combat log (phase 9.4 completion) and add targeted node count stability test.
+- Strengthen per-phase timing test once deterministic high-resolution timer stub is integrated.
