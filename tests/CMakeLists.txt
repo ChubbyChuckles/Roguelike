@@ -1067,6 +1067,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase5_skillgraph.c AND NOT T
     endif()
     add_test(NAME test_ui_phase5_skillgraph COMMAND test_ui_phase5_skillgraph)
 endif()
+
+# UI Phase 6.1 HUD layout spec test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_hud_layout.c AND NOT TARGET test_ui_phase6_hud_layout)
+    add_executable(test_ui_phase6_hud_layout unit/test_ui_phase6_hud_layout.c)
+    target_link_libraries(test_ui_phase6_hud_layout PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ui_phase6_hud_layout PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ui_phase6_hud_layout COMMAND test_ui_phase6_hud_layout)
+endif()
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_skill_maze_generation.c AND NOT TARGET test_ui_skill_maze_generation)
     add_executable(test_ui_skill_maze_generation unit/test_ui_skill_maze_generation.c)
     target_link_libraries(test_ui_skill_maze_generation PRIVATE rogue_core)

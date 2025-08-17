@@ -63,7 +63,7 @@ PHASE 5. Skill Tree / Progression UI
 5.7 Undo buffer (last N allocations) (Done: fixed ring (stack-style) buffer of prior rank, allocation API records, undo API restores; allocation triggers pulse animation)
 
 PHASE 6. HUD Modularization & Overlays
-6.1 HUD layout spec file (JSON/TOML) for placing bars/panels (X)
+6.1 HUD layout spec file (kv config) for placing bars/panels (Done)
 6.2 Health / Mana / AP bars: layered gradients + status overlays (X)
 6.3 Buff & debuff icon belt with stack counters / timers (X)
 6.4 Floating combat text batching + occlusion / fade curves (Partial: damage numbers basic)

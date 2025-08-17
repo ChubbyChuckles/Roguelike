@@ -1,5 +1,6 @@
 #include "core/hud.h"
 #include "graphics/font.h"
+#include "core/hud_layout.h" /* Phase 6.1 data-driven HUD layout */
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
@@ -8,8 +9,9 @@ void rogue_hud_render(void){
 #ifdef ROGUE_HAVE_SDL
     if(!g_app.renderer) return;
 
-    // Health bar
-    int hp_w=200,hp_h=10,hp_x=6,hp_y=4;
+    // Load layout on first use (lazy) - test harness can call loader explicitly.
+    const RogueHUDLayout* lay = rogue_hud_layout();
+    int hp_w=lay->health.w,hp_h=lay->health.h,hp_x=lay->health.x,hp_y=lay->health.y;
     float hp_ratio=(g_app.player.max_health>0)? (float)g_app.player.health/(float)g_app.player.max_health:0.0f;
     if(hp_ratio<0) hp_ratio=0; if(hp_ratio>1) hp_ratio=1;
     SDL_SetRenderDrawColor(g_app.renderer,40,12,12,255);
@@ -20,7 +22,7 @@ void rogue_hud_render(void){
     SDL_Rect hbf2={hp_x,hp_y,(int)(hp_w*hp_ratio*0.55f),hp_h}; SDL_RenderFillRect(g_app.renderer,&hbf2);
 
     // Mana bar
-    int mp_w=200,mp_h=8,mp_x=6,mp_y=hp_y+hp_h+6;
+    int mp_w=lay->mana.w,mp_h=lay->mana.h,mp_x=lay->mana.x,mp_y=lay->mana.y;
     float mp_ratio=(g_app.player.max_mana>0)? (float)g_app.player.mana/(float)g_app.player.max_mana:0.0f;
     if(mp_ratio<0) mp_ratio=0; if(mp_ratio>1) mp_ratio=1;
     SDL_SetRenderDrawColor(g_app.renderer,10,18,40,255);
@@ -31,7 +33,7 @@ void rogue_hud_render(void){
     SDL_Rect mpbf2={mp_x,mp_y,(int)(mp_w*mp_ratio*0.55f),mp_h}; SDL_RenderFillRect(g_app.renderer,&mpbf2);
 
     // XP bar
-    int xp_w=200,xp_h=6,xp_x=6,xp_y=mp_y+mp_h+6;
+    int xp_w=lay->xp.w,xp_h=lay->xp.h,xp_x=lay->xp.x,xp_y=lay->xp.y;
     float xp_ratio=(g_app.player.xp_to_next>0)? (float)g_app.player.xp/(float)g_app.player.xp_to_next:0.0f;
     if(xp_ratio<0) xp_ratio=0; if(xp_ratio>1) xp_ratio=1;
     SDL_SetRenderDrawColor(g_app.renderer,25,25,25,255);
@@ -44,7 +46,7 @@ void rogue_hud_render(void){
     // Level text
     char lvlbuf[32];
     snprintf(lvlbuf,sizeof lvlbuf,"Lv %d", g_app.player.level);
-    rogue_font_draw_text(hp_x+hp_w+8, hp_y, lvlbuf,1,(RogueColor){255,255,180,255});
+    rogue_font_draw_text(lay->level_text_x, lay->level_text_y, lvlbuf,1,(RogueColor){255,255,180,255});
 #endif
 }
 

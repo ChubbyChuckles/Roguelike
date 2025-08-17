@@ -84,6 +84,7 @@ add_library(rogue_core
     src/core/player_render.c
     src/core/enemy_render.c
     src/core/hud.c
+    src/core/hud_layout.c
     src/core/player_progress.c
     src/core/world_renderer.c
     src/core/animation_system.c
@@ -258,6 +259,7 @@ endif()
 # Force 1s cooldowns for all active skills during rapid iteration/testing
 target_compile_definitions(rogue_core PUBLIC ROGUE_TEST_SHORT_COOLDOWNS=1)
 
+include(CTest)
 enable_testing()
 add_subdirectory(tests)
 

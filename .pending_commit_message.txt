@@ -1,19 +1,9 @@
-feat(items-docs): Phase 23.1 loot architecture documentation
+UI Phase 6.1: Implement data-driven HUD layout spec
 
-Adds comprehensive `docs/LOOT_ARCHITECTURE.md` covering phase layering, data flow, determinism contract, module boundaries, performance principles, persistence, security hooks, testing strategy, extension guidelines, and future work. Roadmap 23.1 marked Done and README updated with reference bullet.
+- Added `hud_layout.h/.c` providing kv-config driven placement for health, mana, XP bars and level text.
+- Integrated layout into `hud.c` (replaces hardcoded coordinates) with lazy default fallback.
+- Added asset file `assets/hud_layout.cfg` (modifiable without recompilation).
+- Added unit test `test_ui_phase6_hud_layout` validating parse & coordinate propagation.
+- Updated `implementation_plan_uisystem.txt` marking 6.1 Done (kv config instead of JSON/TOML) and README changelog.
+- CMakeLists updated to compile new source; roadmap & commit log updated.
 
-feat(items-docs): Phase 23.2 rarity & affix style guide
-
-Adds `docs/LOOT_RARITY_AFFIX_STYLE.md` defining conventions for rarity tier naming, affix id schema, per‑rarity weight patterns, stat range progression, quality scalar interaction, ordering/sorting, and an author checklist. Roadmap 23.2 marked Done and README updated with new documentation bullets.
-
-chore(items-cleanup): Begin Phase 24.5 const/bounds hardening
-
-Adds explicit bounds guard comment in affix parser path and documents progress by marking 24.5 as In Implementation (affix subsystem). README notes incremental hardening step.
-
-chore(items-cleanup): Phase 24.2 legacy debug flag audit complete
-
-Scanned loot modules for obsolete legacy debug defines; none present beyond structured `loot_logging` level macros. Roadmap marks 24.2 Done; README updated.
-
-refactor(items-cleanup): Phase 24.4 generation module split start
-
-Extracted affix gating & weighted roll helper from `loot_generation.c` into new `loot_generation_affix.c` to reduce file size and isolate responsibility. Roadmap marks 24.4 In Implementation; README documents split.
