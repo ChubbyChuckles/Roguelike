@@ -20,6 +20,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase1_scheduler_trace.c AND 
     add_test(NAME test_ai_phase1_scheduler_trace COMMAND test_ai_phase1_scheduler_trace)
 endif()
 
+# AI Phase 2 blackboard extensions test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase2_blackboard.c AND NOT TARGET test_ai_phase2_blackboard)
+    add_executable(test_ai_phase2_blackboard unit/test_ai_phase2_blackboard.c)
+    target_link_libraries(test_ai_phase2_blackboard PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ai_phase2_blackboard PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase2_blackboard COMMAND test_ai_phase2_blackboard)
+endif()
+
 # Filter out removed/legacy test filenames that may linger in generated projects
 list(FILTER UNIT_TESTS EXCLUDE REGEX ".*test_skills_phase1_foundation.c$")
 

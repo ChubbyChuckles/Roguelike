@@ -23,10 +23,10 @@ PHASE 1. Core Behaviour Architecture
 1.7 Serialization of BT active path for save/replay (Done) [Preorder serialization of visited nodes; path hash used in trace test]
 
 PHASE 2. Blackboard & Memory
-2.1 Key-value typed memory (int, float, vec2, entity_ref, timer) (X)
-2.2 TTL / decay for transient entries (last seen player pos) (X)
-2.3 Write policies (Set, Max, Min, Accumulate) (X)
-2.4 Dirty flag propagation for reactive nodes (X)
+2.1 Key-value typed memory (int, float, vec2, entity_ref, timer) (Done) [Added vec2 & timer; entity_ref placeholder via PTR]
+2.2 TTL / decay for transient entries (last seen player pos) (Done) [Per-entry ttl field + rogue_bb_tick]
+2.3 Write policies (Set, Max, Min, Accumulate) (Done) [rogue_bb_write_int/float with policy switch]
+2.4 Dirty flag propagation for reactive nodes (Done) [Dirty bit per entry; clear/query API]
 
 PHASE 3. Perception System
 3.1 LOS raycast integration (tile blocking) (X)
@@ -110,6 +110,6 @@ SUCCESS METRICS
 - 95% node library unit test coverage.
 
 NEXT ACTION CANDIDATES
-- Phase 2.x blackboard extensions (vec2/entity_ref/timer + TTL & policies)
-- Add utility selector node leveraging scorer interface (Phase 4.6 precursor)
-- Integrate BT driving real enemy behaviors behind feature flag
+- Implement utility selector & dynamic scoring (Phase 4.6)
+- Add condition/action nodes (visibility, timer elapsed, move/flee stubs)
+- Integrate BT driving enemy behavior via feature flag and migrate one enemy type
