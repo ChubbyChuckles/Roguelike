@@ -129,7 +129,13 @@ uint32_t rogue_crc32(const void* data, size_t len){
 
 static const RogueSaveComponent* find_component(int id){ for(int i=0;i<g_component_count;i++) if(g_components[i].id==id) return &g_components[i]; return NULL; }
 
-void rogue_save_manager_register(const RogueSaveComponent* comp){ if(g_component_count>=ROGUE_SAVE_MAX_COMPONENTS) return; if(find_component(comp->id)) return; g_components[g_component_count++] = *comp; }
+void rogue_save_manager_register(const RogueSaveComponent* comp){
+    if(g_component_count>=ROGUE_SAVE_MAX_COMPONENTS){ fprintf(stderr,"DBG: register id=%d skipped (cap reached)\n", comp?comp->id:-1); return; }
+    if(!comp){ fprintf(stderr,"DBG: register NULL component\n"); return; }
+    if(find_component(comp->id)){ fprintf(stderr,"DBG: register id=%d skipped (already present count=%d)\n", comp->id, g_component_count); return; }
+    g_components[g_component_count++] = *comp;
+    fprintf(stderr,"DBG: registered id=%d name=%s new_count=%d\n", comp->id, comp->name?comp->name:"?", g_component_count);
+}
 
 static int cmp_comp(const void* a, const void* b){ const RogueSaveComponent*ca=a; const RogueSaveComponent*cb=b; return (ca->id - cb->id); }
 
@@ -187,6 +193,7 @@ static int internal_save_to(const char* final_path){
     desc.section_count=0; desc.component_mask=0;
     /* Write all sections */
     for(int i=0;i<g_component_count;i++){
+        fprintf(stderr,"DBG: writing component idx=%d id=%d name=%s at_offset=%ld\n", i, g_components[i].id, g_components[i].name?g_components[i].name:"?", ftell(f));
         const RogueSaveComponent* c=&g_components[i]; long start=ftell(f);
         if(desc.version>=3){
             uint16_t id16=(uint16_t)c->id; uint32_t size_placeholder32=0;
@@ -256,7 +263,11 @@ static int internal_save_to(const char* final_path){
             long end=ftell(f); uint32_t section_size=(uint32_t)(end - payload_start);
             fseek(f,start+sizeof(uint32_t),SEEK_SET); fwrite(&section_size,sizeof section_size,1,f); fseek(f,end,SEEK_SET);
         }
-        desc.section_count++; desc.component_mask |= (1u<<c->id);
+    long after=ftell(f);
+    if(after<0){ fclose(f); return -90; }
+    uint32_t wrote_bytes = (uint32_t)(after - start);
+    desc.section_count++; desc.component_mask |= (1u<<c->id);
+    fprintf(stderr,"DBG: finished component id=%d size_with_header=%u section_count=%u mask=0x%X\n", c->id, wrote_bytes, desc.section_count, desc.component_mask);
     }
     /* Marks end of payload (excludes integrity footers) */
     long payload_end = ftell(f);
@@ -410,11 +421,18 @@ int rogue_save_export_json(int slot_index, char* out, size_t out_cap){
     int written=snprintf(out,out_cap,"{\n  \"version\":%u,\n  \"timestamp\":%u,\n  \"sections\":[", d.version,d.timestamp_unix);
     unsigned char* p=buf; size_t total_payload=(size_t)(d.total_size - sizeof d);
     for(uint32_t s=0; s<d.section_count && written<(int)out_cap; s++){
-        uint32_t id=0; uint32_t size=0;
-        if(d.version>=3){ if((size_t)(p-buf)+6>total_payload) break; uint16_t id16; memcpy(&id16,p,2); memcpy(&size,p+2,4); id=(uint32_t)id16; p+=6; }
-        else { if((size_t)(p-buf)+8>total_payload) break; memcpy(&id,p,4); memcpy(&size,p+4,4); p+=8; }
-    if((size_t)(p-buf)+size>total_payload) break; p+=size;
-    written += snprintf(out+written, out_cap-written, "%s{\"id\":%u,\"size\":%u}", (s==0?"":","), id,size);
+        uint32_t id=0; uint32_t size=0; size_t header_bytes = (d.version>=3)?6:8;
+        if((size_t)(p-buf)+header_bytes>total_payload) break;
+        if(d.version>=3){ uint16_t id16; memcpy(&id16,p,2); memcpy(&size,p+2,4); id=(uint32_t)id16; p+=6; }
+        else { memcpy(&id,p,4); memcpy(&size,p+4,4); p+=8; }
+        uint32_t stored_size = size & 0x7FFFFFFFu; int compressed = (d.version>=6 && (size & 0x80000000u));
+        /* Skip payload */
+        if(compressed){ if((size_t)(p-buf)+stored_size>total_payload) break; p+=stored_size; }
+        else { if((size_t)(p-buf)+stored_size>total_payload) break; p+=stored_size; }
+        /* Skip per-section CRC (v7+) */
+        if(d.version>=7){ if((size_t)(p-buf)+4>total_payload) break; p+=4; }
+    /* Append section entry (comma separated) */
+    written += snprintf(out+written, out_cap-written, "%s{\"id\":%u,\"size\":%u}", (s==0?"":","), id, stored_size);
     }
     if(written<(int)out_cap) written += snprintf(out+written, out_cap-written, "]\n}\n");
     free(buf);
@@ -511,6 +529,7 @@ int rogue_save_manager_load_slot(int slot_index){
         for(uint32_t s=0;s<desc.section_count;s++){
             uint16_t id16=0; uint32_t size=0; if(fread(&id16,sizeof id16,1,f)!=1){ fclose(f); return -8; } if(fread(&size,sizeof size,1,f)!=1){ fclose(f); return -8; }
             uint32_t id = (uint32_t)id16;
+            fprintf(stderr,"DBG: load_slot section %u id=%u raw_size=0x%08X pos=%ld\n", s, id, size, ftell(f));
             int compressed = (desc.version>=6 && (size & 0x80000000u)); uint32_t stored_size = size & 0x7FFFFFFFu;
             const RogueSaveComponent* comp=find_component((int)id); long payload_pos=ftell(f);
             if(compressed){
@@ -532,12 +551,18 @@ int rogue_save_manager_load_slot(int slot_index){
                     fwrite(ubuf,1,uncompressed_size,mf); fflush(mf); fseek(mf,0,SEEK_SET); if(comp->read_fn(mf,uncompressed_size)!=0){ fclose(mf); free(cbuf); free(ubuf); fclose(f); return -9; } fclose(mf); }
                 free(cbuf); free(ubuf); /* file already positioned just after compressed payload */
             } else {
-                if(comp && comp->read_fn){ if(comp->read_fn(f,stored_size)!=0){ fclose(f); return -9; } }
+                if(comp && comp->read_fn){
+                    fprintf(stderr,"DBG: load_slot dispatch id=%u size=%u compressed=0\n", id, stored_size);
+                    if(comp->read_fn(f,stored_size)!=0){ fclose(f); return -9; }
+                } else {
+                    fprintf(stderr,"DBG: load_slot skip id=%u (no comp) size=%u\n", id, stored_size);
+                }
                 fseek(f,payload_pos+stored_size,SEEK_SET);
             }
             if(desc.version>=7){ /* read and verify per-section CRC of uncompressed payload */
                 /* We captured uncompressed bytes only for compressed path; for uncompressed, we must re-read */
                 long end_after_payload = ftell(f); uint32_t sec_crc=0; if(fread(&sec_crc,sizeof sec_crc,1,f)!=1){ fclose(f); return -10; }
+                fprintf(stderr,"DBG: load_slot section id=%u crc=0x%08X\n", id, sec_crc);
                 /* Reconstruct uncompressed bytes */
                 if(compressed){ /* Skipping deep verify for compressed section (future enhancement) */ (void)payload_pos; }
                 else {
@@ -702,8 +727,10 @@ static int write_inventory_component(FILE* f){
 }
 static int read_inventory_component(FILE* f, size_t size){
     int count=0; size_t bytes_consumed=0; size_t start_pos=0; /* ftell unreliable for memory temp; track manually */
+    fprintf(stderr,"DBG: read_inventory_component size=%zu\n", size);
     if(g_active_read_version >=4){ uint32_t c=0; if(read_varuint(f,&c)!=0) return -1; count=(int)c; }
     else if(fread(&count,sizeof count,1,f)!=1) return -1;
+    fprintf(stderr,"DBG: inventory count=%d version=%u\n", count, g_active_read_version);
     for(int i=0;i<count;i++){
         int def_index,quantity,rarity,pidx,pval,sidx,sval; if(fread(&def_index,sizeof def_index,1,f)!=1) return -1; bytes_consumed+=sizeof(def_index);
         fread(&quantity,sizeof quantity,1,f); bytes_consumed+=sizeof(quantity); fread(&rarity,sizeof rarity,1,f); bytes_consumed+=sizeof(rarity); fread(&pidx,sizeof pidx,1,f); bytes_consumed+=sizeof(pidx);
