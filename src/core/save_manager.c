@@ -33,6 +33,10 @@ static int g_debug_json_dump = 0; /* Phase 3.2 debug export toggle */
 static uint32_t g_active_write_version = 0; /* version of file currently being written */
 static uint32_t g_active_read_version = 0;  /* version of file currently being read */
 static int g_compress_enabled = 0; static int g_compress_min_bytes = 64; /* Phase 3.6 */
+static uint32_t g_last_tamper_flags = 0; /* Phase 4.3 tamper flags */
+static int g_last_recovery_used = 0; /* Phase 4.4 */
+uint32_t rogue_save_last_tamper_flags(void){ return g_last_tamper_flags; }
+int rogue_save_last_recovery_used(void){ return g_last_recovery_used; }
 int rogue_save_set_compression(int enabled, int min_bytes){ g_compress_enabled = enabled?1:0; if(min_bytes>0) g_compress_min_bytes=min_bytes; return 0; }
 /* String interning table (Phase 3.5) */
 #define ROGUE_SAVE_MAX_STRINGS 256
@@ -227,6 +231,7 @@ int rogue_save_manager_set_durable(int enabled){ g_durable_writes = enabled?1:0;
 
 /* Internal helper: validate & load entire save file (returns malloc buffer after header) */
 static int load_and_validate(const char* path, RogueSaveDescriptor* out_desc, unsigned char** out_buf){
+    g_last_tamper_flags = 0; /* reset per attempt */
     FILE* f=NULL;
 #if defined(_MSC_VER)
     fopen_s(&f, path, "rb");
@@ -238,8 +243,8 @@ static int load_and_validate(const char* path, RogueSaveDescriptor* out_desc, un
     size_t rest=file_end - (long)sizeof *out_desc; size_t footer_bytes = (out_desc->version>=7)? (size_t)(4+32):0; if(rest < footer_bytes){ fclose(f); return -5; }
     size_t crc_region = rest - footer_bytes; fseek(f,sizeof *out_desc,SEEK_SET); unsigned char* buf=(unsigned char*)malloc(rest); if(!buf){ fclose(f); return -6; }
     size_t n=fread(buf,1,rest,f); if(n!=rest){ free(buf); fclose(f); return -6; }
-    uint32_t crc=rogue_crc32(buf,crc_region); if(crc!=out_desc->checksum){ free(buf); fclose(f); return -7; }
-    if(out_desc->version>=7){ if(memcmp(buf+crc_region,"SH32",4)!=0){ free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } RogueSHA256Ctx sha; rogue_sha256_init(&sha); rogue_sha256_update(&sha,buf,crc_region); unsigned char dg[32]; rogue_sha256_final(&sha,dg); if(memcmp(dg,buf+crc_region+4,32)!=0){ free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } memcpy(g_last_sha256,buf+crc_region+4,32); }
+    uint32_t crc=rogue_crc32(buf,crc_region); if(crc!=out_desc->checksum){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_DESCRIPTOR_CRC; free(buf); fclose(f); return -7; }
+    if(out_desc->version>=7){ if(memcmp(buf+crc_region,"SH32",4)!=0){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SHA256; free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } RogueSHA256Ctx sha; rogue_sha256_init(&sha); rogue_sha256_update(&sha,buf,crc_region); unsigned char dg[32]; rogue_sha256_final(&sha,dg); if(memcmp(dg,buf+crc_region+4,32)!=0){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SHA256; free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } memcpy(g_last_sha256,buf+crc_region+4,32); }
     fclose(f); *out_buf=buf; return 0;
 }
 
@@ -358,8 +363,8 @@ int rogue_save_manager_load_slot(int slot_index){
     long file_end=0; fseek(f,0,SEEK_END); file_end=ftell(f); if((uint64_t)file_end!=desc.total_size){ fclose(f); return -5; }
     size_t footer_bytes = 0; if(desc.version>=7){ footer_bytes = 4+32; }
     size_t rest=file_end - (long)sizeof desc; if(rest < footer_bytes){ fclose(f); return -5; }
-    size_t hashable = rest - footer_bytes; fseek(f,sizeof desc,SEEK_SET); unsigned char* buf=(unsigned char*)malloc(hashable); if(!buf){ fclose(f); return -6; } size_t n=fread(buf,1,hashable,f); if(n!=hashable){ free(buf); fclose(f); return -6; } uint32_t crc=rogue_crc32(buf,hashable); if(crc!=desc.checksum){ free(buf); fclose(f); return -7; }
-    if(desc.version>=7){ unsigned char footer[36]; if(fread(footer,1,36,f)!=36){ free(buf); fclose(f); return -5; } if(memcmp(footer,"SH32",4)!=0){ free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } memcpy(g_last_sha256,footer+4,32); /* verify recomputed hash */ RogueSHA256Ctx sha; rogue_sha256_init(&sha); rogue_sha256_update(&sha,buf,hashable); unsigned char dg[32]; rogue_sha256_final(&sha,dg); if(memcmp(dg,g_last_sha256,32)!=0){ free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } }
+    size_t hashable = rest - footer_bytes; fseek(f,sizeof desc,SEEK_SET); unsigned char* buf=(unsigned char*)malloc(hashable); if(!buf){ fclose(f); return -6; } size_t n=fread(buf,1,hashable,f); if(n!=hashable){ free(buf); fclose(f); return -6; } uint32_t crc=rogue_crc32(buf,hashable); if(crc!=desc.checksum){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_DESCRIPTOR_CRC; free(buf); fclose(f); return -7; }
+    if(desc.version>=7){ unsigned char footer[36]; if(fread(footer,1,36,f)!=36){ free(buf); fclose(f); return -5; } if(memcmp(footer,"SH32",4)!=0){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SHA256; free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } memcpy(g_last_sha256,footer+4,32); /* verify recomputed hash */ RogueSHA256Ctx sha; rogue_sha256_init(&sha); rogue_sha256_update(&sha,buf,hashable); unsigned char dg[32]; rogue_sha256_final(&sha,dg); if(memcmp(dg,g_last_sha256,32)!=0){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SHA256; free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } }
     free(buf); fseek(f, sizeof desc, SEEK_SET);
     if(desc.version>=3){
         for(uint32_t s=0;s<desc.section_count;s++){
@@ -393,11 +398,11 @@ int rogue_save_manager_load_slot(int slot_index){
                 /* We captured uncompressed bytes only for compressed path; for uncompressed, we must re-read */
                 long end_after_payload = ftell(f); uint32_t sec_crc=0; if(fread(&sec_crc,sizeof sec_crc,1,f)!=1){ fclose(f); return -10; }
                 /* Reconstruct uncompressed bytes */
-                if(compressed){ /* we already decompressed into ubuf earlier but freed; we'll skip deep verify here for simplicity */ (void)payload_pos; /* optional: implement retention */ }
+                if(compressed){ /* Skipping deep verify for compressed section (future enhancement) */ (void)payload_pos; }
                 else {
                     long payload_size = stored_size; unsigned char* tmp=(unsigned char*)malloc((size_t)payload_size); if(!tmp){ fclose(f); return -12; }
                     fseek(f,payload_pos,SEEK_SET); if(fread(tmp,1,(size_t)payload_size,f)!=(size_t)payload_size){ free(tmp); fclose(f); return -12; }
-                    uint32_t calc=rogue_crc32(tmp,(size_t)payload_size); free(tmp); fseek(f,end_after_payload+4,SEEK_SET); if(calc!=sec_crc){ fclose(f); return ROGUE_SAVE_ERR_SECTION_CRC; }
+                    uint32_t calc=rogue_crc32(tmp,(size_t)payload_size); free(tmp); fseek(f,end_after_payload+4,SEEK_SET); if(calc!=sec_crc){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SECTION_CRC; fclose(f); return ROGUE_SAVE_ERR_SECTION_CRC; }
                 }
             }
         }
@@ -408,6 +413,44 @@ int rogue_save_manager_load_slot(int slot_index){
         }
     }
     fclose(f); return 0;
+}
+
+/* Recovery: attempt primary slot, on tamper/integrity error fall back to latest autosave ring entry (most recent by timestamp field) */
+int rogue_save_manager_load_slot_with_recovery(int slot_index){
+    g_last_recovery_used=0; int rc=rogue_save_manager_load_slot(slot_index); if(rc==0) return 0;
+    /* Only recover on integrity/tamper related errors */
+    if(rc!=ROGUE_SAVE_ERR_SECTION_CRC && rc!=ROGUE_SAVE_ERR_SHA256 && rc!=-7){ return rc; }
+    /* If descriptor checksum mismatch (-7) or SHA errors, flags already set; ensure descriptor CRC flag set on generic -7 */
+    if(rc==-7) g_last_tamper_flags |= ROGUE_TAMPER_FLAG_DESCRIPTOR_CRC;
+    /* Scan autosave ring for any successful load (pick newest timestamp) */
+    int best_index=-1; uint32_t best_ts=0; for(int i=0;i<ROGUE_AUTOSAVE_RING;i++){
+    const char* path = build_autosave_path(i);
+    FILE* f=NULL; 
+#if defined(_MSC_VER)
+    fopen_s(&f,path,"rb");
+#else
+    f=fopen(path,"rb");
+#endif
+    if(!f) continue; RogueSaveDescriptor desc; if(fread(&desc,sizeof desc,1,f)!=1){ fclose(f); continue; }
+    fclose(f); if(desc.version!=ROGUE_SAVE_FORMAT_VERSION) continue; if(desc.timestamp_unix>best_ts){ best_ts=desc.timestamp_unix; best_index=i; }
+    }
+    if(best_index<0) return rc; /* no fallback */
+    /* Try loading best autosave directly (bypass recovery recursion) */
+    const char* path = build_autosave_path(best_index);
+    /* Preserve existing tamper flags from failed primary before validation resets them */
+    uint32_t prev_flags = g_last_tamper_flags;
+    RogueSaveDescriptor d; unsigned char* buf=NULL; int lrc = load_and_validate(path,&d,&buf); if(lrc!=0){ /* restore original flags even if recovery attempt fails */ g_last_tamper_flags |= prev_flags; return rc; }
+    /* Replay section iteration and invoke read_fns (duplicated minimal logic from load_slot for reliability) */
+    unsigned char* p=buf; size_t total_payload=(size_t)(d.total_size - sizeof d); if(d.version>=3){ for(uint32_t s=0;s<d.section_count;s++){ if((size_t)(p-buf)+6>total_payload){ free(buf); return rc; } uint16_t id16; memcpy(&id16,p,2); uint32_t size; memcpy(&size,p+2,4); p+=6; if((size_t)(p-buf)+size>total_payload){ free(buf); return rc; } const RogueSaveComponent* comp=find_component((int)id16); if(comp && comp->read_fn){ /* feed via temp */ FILE* tf=NULL; 
+#if defined(_MSC_VER)
+        tmpfile_s(&tf);
+#else
+        tf=tmpfile();
+#endif
+        if(!tf){ free(buf); return rc; } fwrite(p,1,size,tf); fflush(tf); fseek(tf,0,SEEK_SET); if(comp->read_fn(tf,size)!=0){ fclose(tf); free(buf); return rc; } fclose(tf); }
+        p+=size; if(d.version>=7){ if((size_t)(p-buf)+4>total_payload){ free(buf); return rc; } p+=4; } }
+    }
+    free(buf); g_last_tamper_flags |= prev_flags; g_last_recovery_used=1; return 1; /* recovered */
 }
 
 /* Basic player + world meta adapters bridging existing ad-hoc text save for Phase1 demonstration */

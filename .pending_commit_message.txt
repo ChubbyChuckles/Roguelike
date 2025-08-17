@@ -8,3 +8,12 @@ Persistence: Phase 4.2 Replay Hash (v8)
 * Added unit test test_save_v8_replay_hash validating hash stability and count on save/load roundtrip
 * Roadmap & README updated to mark Phase 4.2 complete
 
+Persistence: Phase 4.3 Tamper Flags & 4.4 Recovery (v8)
+
+* Added tamper flag bitmask (descriptor CRC, section CRC, SHA256) with API rogue_save_last_tamper_flags
+* load_and_validate sets flags on checksum/digest mismatches; section CRC mismatches surfaced via existing error codes
+* Implemented recovery loader rogue_save_manager_load_slot_with_recovery returning 1 when autosave fallback used
+* Added APIs rogue_save_last_recovery_used and extended header with tamper/recovery declarations
+* Unit test test_save_v8_tamper_recovery corrupts primary save, triggers recovery, validates flags and recovery usage
+* Roadmap and README updated marking Phases 4.3 & 4.4 complete
+
