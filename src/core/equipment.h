@@ -2,7 +2,8 @@
 #ifndef ROGUE_EQUIPMENT_H
 #define ROGUE_EQUIPMENT_H
 
-enum RogueEquipSlot { ROGUE_EQUIP_WEAPON=0, ROGUE_EQUIP_ARMOR=1, ROGUE_EQUIP__COUNT };
+/* Expanded slot model (14.1): weapon + five armor slots */
+enum RogueEquipSlot { ROGUE_EQUIP_WEAPON=0, ROGUE_EQUIP_ARMOR_HEAD=1, ROGUE_EQUIP_ARMOR_CHEST=2, ROGUE_EQUIP_ARMOR_LEGS=3, ROGUE_EQUIP_ARMOR_HANDS=4, ROGUE_EQUIP_ARMOR_FEET=5, ROGUE_EQUIP__COUNT };
 
 void rogue_equip_reset(void);
 int rogue_equip_get(enum RogueEquipSlot slot); /* returns item instance index or -1 */

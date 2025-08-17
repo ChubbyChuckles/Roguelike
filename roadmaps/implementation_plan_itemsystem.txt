@@ -118,9 +118,9 @@ X = Not started yet
 13.4 Quick salvage / drop context actions (Done: helpers salvage_def and drop_one with inventory decrement + ground spawn)
 13.5 Persistence of UI state (sort mode) (Done: field inventory_sort_mode serialized in player component v9 tail)
 
-14. Equipment & Stat Integration (Pending)
-14.1 Equip slots & constraints (Partial: weapon/armor slots + basic API; initial UI panel and vendor integration added)
-14.2 Recalculation pipeline: base + affix + temporary buffs (Partial: simple agility -> dexterity aggregation applied each frame)
+14. Equipment & Stat Integration (Partial)
+14.1 Equip slots & constraints (Done: expanded slot model weapon + 5 armor slots with category enforcement)
+14.2 Recalculation pipeline: base + affix + temporary buffs (Done: stat_cache now aggregates weapon affix flat dmg, armor base armor into EHP heuristic, and existing agility->dexterity bonuses)
 14.3 Derived stat caching & invalidation (Done: stat_cache module + dirty marks on equip/unequip & bonus application)
 14.4 DPS & EHP (effective HP) estimator (Done: heuristic in stat_cache.c displayed in equipment panel)
 14.5 Unit tests: equip / unequip stat deltas (Done: equip bonus, unequip regression test)

@@ -48,7 +48,7 @@ static int find_instance_for_def(int def_index){ if(!g_app.item_instances) retur
 
 int rogue_inventory_ui_try_equip_def(int def_index){ const RogueItemDef* d=rogue_item_def_at(def_index); if(!d) return -1; int inst=find_instance_for_def(def_index); if(inst<0){ /* fabricate temp instance (non-persistent) */ inst = rogue_items_spawn(def_index,1,0,0); if(inst<0) return -2; }
     if(d->category==ROGUE_ITEM_WEAPON) return rogue_equip_try(ROGUE_EQUIP_WEAPON, inst);
-    if(d->category==ROGUE_ITEM_ARMOR) return rogue_equip_try(ROGUE_EQUIP_ARMOR, inst);
+    if(d->category==ROGUE_ITEM_ARMOR) return rogue_equip_try(ROGUE_EQUIP_ARMOR_CHEST, inst);
     return -3; }
 
 int rogue_inventory_ui_salvage_def(int def_index){ const RogueItemDef* d=rogue_item_def_at(def_index); if(!d) return 0; int rarity=d->rarity; int produced = rogue_salvage_item(def_index, rarity, rogue_inventory_add); if(produced>0){ rogue_inventory_consume(def_index,1); } return produced; }

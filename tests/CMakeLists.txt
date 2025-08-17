@@ -1490,6 +1490,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase4_inventory_persistenc
     endif()
 endif()
 
+# Phase 14 equipment expanded stat pipeline test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase14_extended.c AND NOT TARGET test_equipment_phase14_extended)
+    add_executable(test_equipment_phase14_extended unit/test_equipment_phase14_extended.c)
+    target_link_libraries(test_equipment_phase14_extended PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_equipment_phase14_extended PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_equipment_phase14_extended COMMAND test_equipment_phase14_extended)
+endif()
+
 # Explicitly add loot phase 5 rarity parse test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase5_rarity_parse.c AND NOT TARGET test_loot_phase5_rarity_parse)
     add_executable(test_loot_phase5_rarity_parse unit/test_loot_phase5_rarity_parse.c)
