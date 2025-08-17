@@ -42,7 +42,7 @@ PHASE 4. Integrity & Security
 4.2 Replay hash of gameplay-critical inputs separated from UI state (Done: v8 adds component id 8 serializing event count + (frame,action,value) tuples and SHA256 digest; APIs rogue_save_replay_record_input/reset/last_replay_hash(_hex)/last_replay_event_count; test_save_v8_replay_hash validates deterministic hash roundtrip)
 4.3 Tamper detection flags (version mismatch / hash fail) (Done: v8 adds tamper flag bitmask (descriptor CRC / section CRC / SHA256) via rogue_save_last_tamper_flags, set on load_and_validate failures)
 4.4 Recovery attempt (restore previous autosave) (Done: rogue_save_manager_load_slot_with_recovery tries primary then latest autosave by timestamp; return 1 indicates recovered; API rogue_save_last_recovery_used)
-4.5 Optional signature abstraction (future) (X)
+4.5 Optional signature abstraction (Done: v9 adds pluggable signature trailer [uint16 len][SGN0][sig]; API rogue_save_set_signature_provider; tamper flag SIGNATURE on verify fail; test_save_v9_signature passes sign/verify & tamper scenarios)
 
 PHASE 5. Incremental & Streaming Saves
 5.1 Dirty flag tracking per component (bitmask) (X)

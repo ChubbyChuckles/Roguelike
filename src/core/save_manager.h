@@ -11,7 +11,7 @@
 #define ROGUE_AUTOSAVE_RING 4
 
 /* Current binary save format version */
-#define ROGUE_SAVE_FORMAT_VERSION 8u /* v3: TLV headers (uint16 id + uint32 size); v4: varint counts/ids in section payloads; v5: string interning; v6: optional per-section compression; v7: per-section CRC32 + overall SHA256 footer; v8: replay hash + tamper recovery */
+#define ROGUE_SAVE_FORMAT_VERSION 9u /* v3: TLV headers (uint16 id + uint32 size); v4: varint counts/ids in section payloads; v5: string interning; v6: optional per-section compression; v7: per-section CRC32 + overall SHA256 footer; v8: replay hash + tamper recovery; v9: optional signature trailer */
 
 /* Component identifiers (stable) */
 typedef enum RogueSaveComponentId {
@@ -43,7 +43,8 @@ typedef struct RogueSaveDescriptor {
     v5: Added optional string interning table section (component id 7) containing unique strings referenced indirectly by future sections
     v6: Optional per-section RLE compression (flag in size high bit for version>=6) with uncompressed size prefix (uint32)
     v7: Integrity hardening: per-section CRC32 (of uncompressed payload) appended after each section payload + 4-byte CRC, and overall SHA256 footer ("SH32" magic + 32 raw bytes)
-    v8: Replay hash section (component id 8) capturing a SHA256 digest of recorded gameplay-critical input events (frame, action, value) + event count for deterministic divergence checks (UI state excluded) */
+    v8: Replay hash section (component id 8) capturing a SHA256 digest of recorded gameplay-critical input events (frame, action, value) + event count for deterministic divergence checks (UI state excluded)
+    v9: Optional signature trailer (if registered) appended after SHA256 footer: [uint16 sig_len]["SGN0"][sig_len raw bytes]; descriptor checksum excludes SHA+signature footers */
 
 
 /* Component callback interface */
@@ -121,10 +122,21 @@ uint32_t rogue_save_last_replay_event_count(void);
 #define ROGUE_TAMPER_FLAG_DESCRIPTOR_CRC 0x1u
 #define ROGUE_TAMPER_FLAG_SECTION_CRC    0x2u
 #define ROGUE_TAMPER_FLAG_SHA256         0x4u
+#define ROGUE_TAMPER_FLAG_SIGNATURE      0x8u
 uint32_t rogue_save_last_tamper_flags(void); /* bitmask of ROGUE_TAMPER_FLAG_* from last load attempt */
 
 /* Recovery load (Phase 4.4) */
 int rogue_save_manager_load_slot_with_recovery(int slot_index); /* returns 0 if primary ok, 1 if recovered via autosave, negative on failure */
 int rogue_save_last_recovery_used(void); /* 1 if last recovery load fell back to autosave */
+
+/* Optional signature abstraction (v9). Register a provider to append & verify a detached signature over the hashed region (identical bytes covered by descriptor CRC & SHA256). */
+typedef struct RogueSaveSignatureProvider {
+    uint32_t max_len; /* maximum signature length supported */
+    int (*sign)(const unsigned char* data, size_t len, unsigned char* out, uint32_t* out_len); /* produce signature */
+    int (*verify)(const unsigned char* data, size_t len, const unsigned char* sig, uint32_t sig_len); /* returns 0 on valid */
+    const char* name;
+} RogueSaveSignatureProvider;
+int rogue_save_set_signature_provider(const RogueSaveSignatureProvider* prov); /* returns 0 */
+const RogueSaveSignatureProvider* rogue_save_get_signature_provider(void);
 
 #endif

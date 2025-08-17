@@ -35,6 +35,7 @@ static uint32_t g_active_read_version = 0;  /* version of file currently being r
 static int g_compress_enabled = 0; static int g_compress_min_bytes = 64; /* Phase 3.6 */
 static uint32_t g_last_tamper_flags = 0; /* Phase 4.3 tamper flags */
 static int g_last_recovery_used = 0; /* Phase 4.4 */
+static const RogueSaveSignatureProvider* g_sig_provider = NULL; /* v9 */
 uint32_t rogue_save_last_tamper_flags(void){ return g_last_tamper_flags; }
 int rogue_save_last_recovery_used(void){ return g_last_recovery_used; }
 int rogue_save_set_compression(int enabled, int min_bytes){ g_compress_enabled = enabled?1:0; if(min_bytes>0) g_compress_min_bytes=min_bytes; return 0; }
@@ -70,6 +71,8 @@ static void rogue_sha256_final(RogueSHA256Ctx* c, unsigned char out[32]){ uint64
 static unsigned char g_last_sha256[32];
 const unsigned char* rogue_save_last_sha256(void){ return g_last_sha256; }
 void rogue_save_last_sha256_hex(char out[65]){ static const char* hx="0123456789abcdef"; for(int i=0;i<32;i++){ out[2*i]=hx[g_last_sha256[i]>>4]; out[2*i+1]=hx[g_last_sha256[i]&0xF]; } out[64]='\0'; }
+int rogue_save_set_signature_provider(const RogueSaveSignatureProvider* prov){ g_sig_provider = prov; return 0; }
+const RogueSaveSignatureProvider* rogue_save_get_signature_provider(void){ return g_sig_provider; }
 
 /* Replay hash state (v8). We capture event tuples (frame,action,value) and hash them in order. */
 typedef struct { uint32_t frame; uint32_t action; int32_t value; } RogueReplayEvent;
@@ -144,6 +147,7 @@ static int internal_save_to(const char* final_path){
     RogueSaveDescriptor desc={0}; desc.version=ROGUE_SAVE_FORMAT_VERSION; desc.timestamp_unix=(uint32_t)time(NULL); g_active_write_version = desc.version;
     if(fwrite(&desc,sizeof desc,1,f)!=1){ fclose(f); return -3; }
     desc.section_count=0; desc.component_mask=0;
+    /* Write all sections */
     for(int i=0;i<g_component_count;i++){
         const RogueSaveComponent* c=&g_components[i]; long start=ftell(f);
         if(desc.version>=3){
@@ -151,9 +155,7 @@ static int internal_save_to(const char* final_path){
             if(fwrite(&id16,sizeof id16,1,f)!=1){ fclose(f); return -4; }
             if(fwrite(&size_placeholder32,sizeof size_placeholder32,1,f)!=1){ fclose(f); return -4; }
             long payload_start=ftell(f);
-            /* Write to a memory buffer first if compression enabled & v6 */
             if(desc.version>=6 && g_compress_enabled){
-                /* Capture uncompressed payload into temporary FILE* */
                 FILE* mem=NULL;
 #if defined(_MSC_VER)
                 tmpfile_s(&mem);
@@ -165,18 +167,15 @@ static int internal_save_to(const char* final_path){
                 fflush(mem); fseek(mem,0,SEEK_END); long usz=ftell(mem); fseek(mem,0,SEEK_SET);
                 unsigned char* ubuf=(unsigned char*)malloc((size_t)usz); if(!ubuf){ fclose(mem); fclose(f); return -5; }
                 fread(ubuf,1,(size_t)usz,mem); fclose(mem);
-                /* Simple RLE: (byte, run_len uint8) pairs; runs 1..255; compress only if win */
                 unsigned char* cbuf=(unsigned char*)malloc((size_t)usz*2+16); if(!cbuf){ free(ubuf); fclose(f); return -5; }
                 size_t ci=0; for(long p=0;p<usz;){ unsigned char b=ubuf[p]; int run=1; while(p+run<usz && ubuf[p+run]==b && run<255) run++; cbuf[ci++]=b; cbuf[ci++]=(unsigned char)run; p+=run; }
                 int use_compressed = (usz >= g_compress_min_bytes && ci < (size_t)usz);
                 if(use_compressed){
-                    /* mark high bit of size, write uncompressed size then compressed payload */
                     long payload_pos=ftell(f); fwrite(&usz,sizeof(uint32_t),1,f); if(fwrite(cbuf,1,ci,f)!=(size_t)ci){ free(cbuf); free(ubuf); fclose(f); return -5; }
-                    long end=ftell(f); uint32_t stored_size = (uint32_t)(end - payload_pos); /* includes uncompressed size prefix + compressed bytes */
-                    uint32_t header_size_field = stored_size | 0x80000000u; /* high bit indicates compressed; stored_size includes prefix */
+                    long end=ftell(f); uint32_t stored_size = (uint32_t)(end - payload_pos);
+                    uint32_t header_size_field = stored_size | 0x80000000u;
                     fseek(f,start+sizeof(uint16_t),SEEK_SET); fwrite(&header_size_field,sizeof header_size_field,1,f); fseek(f,end,SEEK_SET);
                 } else {
-                    /* fall back to uncompressed direct write */
                     if(fwrite(ubuf,1,(size_t)usz,f)!=(size_t)usz){ free(cbuf); free(ubuf); fclose(f); return -5; }
                     long end=ftell(f); uint32_t section_size=(uint32_t)(end - payload_start);
                     fseek(f,start+sizeof(uint16_t),SEEK_SET); fwrite(&section_size,sizeof section_size,1,f); fseek(f,end,SEEK_SET);
@@ -187,23 +186,43 @@ static int internal_save_to(const char* final_path){
                 long end=ftell(f); uint32_t section_size=(uint32_t)(end - payload_start);
                 fseek(f,start+sizeof(uint16_t),SEEK_SET); fwrite(&section_size,sizeof section_size,1,f); fseek(f,end,SEEK_SET);
             }
-            /* Append per-section CRC32 (v7+) of uncompressed payload bytes */
-            if(desc.version>=7){ long end_after_payload = ftell(f); long payload_size = end_after_payload - payload_start; if(payload_size<0){ fclose(f); return -14; } fseek(f,payload_start,SEEK_SET); unsigned char* tmp=(unsigned char*)malloc((size_t)payload_size); if(!tmp){ fclose(f); return -14; } if(fread(tmp,1,(size_t)payload_size,f)!=(size_t)payload_size){ free(tmp); fclose(f); return -14; } uint32_t sec_crc = rogue_crc32(tmp,(size_t)payload_size); free(tmp); fseek(f,end_after_payload,SEEK_SET); fwrite(&sec_crc,sizeof sec_crc,1,f); }
+            if(desc.version>=7){
+                long end_after_payload = ftell(f); long payload_size = end_after_payload - payload_start; if(payload_size<0){ fclose(f); return -14; }
+                fseek(f,payload_start,SEEK_SET); unsigned char* tmp=(unsigned char*)malloc((size_t)payload_size); if(!tmp){ fclose(f); return -14; }
+                if(fread(tmp,1,(size_t)payload_size,f)!=(size_t)payload_size){ free(tmp); fclose(f); return -14; }
+                uint32_t sec_crc = rogue_crc32(tmp,(size_t)payload_size); free(tmp);
+                fseek(f,end_after_payload,SEEK_SET); fwrite(&sec_crc,sizeof sec_crc,1,f);
+            }
         } else {
-            uint32_t id=(uint32_t)c->id, size_placeholder=0; if(fwrite(&id,sizeof id,1,f)!=1){ fclose(f); return -4; } if(fwrite(&size_placeholder,sizeof size_placeholder,1,f)!=1){ fclose(f); return -4; }
+            uint32_t id=(uint32_t)c->id, size_placeholder=0; if(fwrite(&id,sizeof id,1,f)!=1){ fclose(f); return -4; }
+            if(fwrite(&size_placeholder,sizeof size_placeholder,1,f)!=1){ fclose(f); return -4; }
             long payload_start=ftell(f); if(c->write_fn(f)!=0){ fclose(f); return -5; }
             long end=ftell(f); uint32_t section_size=(uint32_t)(end - payload_start);
             fseek(f,start+sizeof(uint32_t),SEEK_SET); fwrite(&section_size,sizeof section_size,1,f); fseek(f,end,SEEK_SET);
         }
         desc.section_count++; desc.component_mask |= (1u<<c->id);
     }
-    long file_end=ftell(f); if(desc.version>=7){ /* finalize SHA256 footer */ RogueSHA256Ctx sha; rogue_sha256_init(&sha); fseek(f,sizeof desc,SEEK_SET); long payload_len = file_end - (long)sizeof desc; unsigned char buf2[512]; long remaining=payload_len; while(remaining>0){ long to_read = remaining > (long)sizeof(buf2)? (long)sizeof(buf2): remaining; size_t n=fread(buf2,1,(size_t)to_read,f); if(n!=(size_t)to_read){ fclose(f); return -15; } rogue_sha256_update(&sha,buf2,n); remaining -= to_read; }
-        unsigned char digest[32]; rogue_sha256_final(&sha,digest); memcpy(g_last_sha256,digest,32); /* write footer */ const char magic[4]={'S','H','3','2'}; fseek(f,0,SEEK_END); fwrite(magic,1,4,f); fwrite(digest,1,32,f); file_end=ftell(f); }
-    desc.total_size=(uint64_t)file_end; fflush(f);
-    size_t rest = file_end - (long)sizeof desc; size_t footer_bytes = (desc.version>=7)? (size_t)(4+32) : 0; size_t crc_region = (rest>=footer_bytes)? (rest - footer_bytes) : 0; fseek(f,sizeof desc,SEEK_SET);
+    /* Marks end of payload (excludes integrity footers) */
+    long payload_end = ftell(f);
+    /* Compute descriptor CRC (over payload only) */
+    size_t crc_region = (size_t)(payload_end - (long)sizeof desc);
+    fseek(f,sizeof desc,SEEK_SET);
     unsigned char chunk[512]; uint32_t crc=0xFFFFFFFFu; static uint32_t table[256]; static int have=0; if(!have){ for(uint32_t i=0;i<256;i++){ uint32_t c=i; for(int k=0;k<8;k++) c = (c & 1)? 0xEDB88320u ^ (c>>1) : (c>>1); table[i]=c; } have=1; }
     size_t remaining=crc_region; while(remaining>0){ size_t to_read= remaining>sizeof(chunk)?sizeof(chunk):remaining; size_t n=fread(chunk,1,to_read,f); if(n!=to_read){ fclose(f); return -13; } for(size_t i=0;i<n;i++){ crc = table[(crc ^ chunk[i]) & 0xFF] ^ (crc>>8); } remaining-=n; }
-    desc.checksum = crc ^ 0xFFFFFFFFu; fseek(f,0,SEEK_SET); fwrite(&desc,sizeof desc,1,f); fflush(f);
+    desc.checksum = crc ^ 0xFFFFFFFFu;
+    /* SHA256 footer (v7+) over same region */
+    if(desc.version>=7){ RogueSHA256Ctx sha; rogue_sha256_init(&sha); fseek(f,sizeof desc,SEEK_SET); long bytes_left = payload_end - (long)sizeof desc; while(bytes_left>0){ long take = bytes_left > (long)sizeof(chunk)? (long)sizeof(chunk): bytes_left; size_t n=fread(chunk,1,(size_t)take,f); if(n!=(size_t)take){ fclose(f); return -15; } rogue_sha256_update(&sha,chunk,n); bytes_left -= take; }
+        unsigned char digest[32]; rogue_sha256_final(&sha,digest); memcpy(g_last_sha256,digest,32); const char magic[4]={'S','H','3','2'}; fseek(f,0,SEEK_END); fwrite(magic,1,4,f); fwrite(digest,1,32,f);
+        /* Optional signature (v9+) signs payload + SHA footer */
+        if(desc.version>=9 && g_sig_provider){ fseek(f,sizeof desc,SEEK_SET); long sign_region_end = ftell(f) + (payload_end - (long)sizeof desc) + 4 + 32; /* after writing SHA footer */
+            long total_for_sig = sign_region_end - (long)sizeof desc; unsigned char* sig_src=(unsigned char*)malloc((size_t)total_for_sig); if(!sig_src){ fclose(f); return -16; }
+            size_t rd=fread(sig_src,1,(size_t)total_for_sig,f); if(rd!=(size_t)total_for_sig){ free(sig_src); fclose(f); return -16; }
+            unsigned char sigbuf[1024]; uint32_t slen=sizeof sigbuf; if(g_sig_provider->sign(sig_src,(size_t)total_for_sig,sigbuf,&slen)!=0){ free(sig_src); fclose(f); return -16; }
+            free(sig_src); const char smagic[4]={'S','G','N','0'}; fwrite(&slen,sizeof(uint16_t),1,f); fwrite(smagic,1,4,f); fwrite(sigbuf,1,slen,f); }
+    }
+    long file_end = ftell(f); desc.total_size = (uint64_t)file_end;
+    /* Rewrite descriptor with final fields */
+    fseek(f,0,SEEK_SET); fwrite(&desc,sizeof desc,1,f); fflush(f);
 #if defined(_WIN32)
     if(g_durable_writes){ int fd=_fileno(f); if(fd!=-1) _commit(fd); }
 #else
@@ -238,13 +257,19 @@ static int load_and_validate(const char* path, RogueSaveDescriptor* out_desc, un
 #else
     f=fopen(path,"rb");
 #endif
-    if(!f) return -2; if(fread(out_desc,sizeof *out_desc,1,f)!=1){ fclose(f); return -3; }
+    if(!f) return -2;
+    if(fread(out_desc,sizeof *out_desc,1,f)!=1){ fclose(f); return -3; }
     long file_end=0; fseek(f,0,SEEK_END); file_end=ftell(f); if((uint64_t)file_end!=out_desc->total_size){ fclose(f); return -5; }
-    size_t rest=file_end - (long)sizeof *out_desc; size_t footer_bytes = (out_desc->version>=7)? (size_t)(4+32):0; if(rest < footer_bytes){ fclose(f); return -5; }
+    size_t rest = file_end - (long)sizeof *out_desc; size_t footer_bytes=0; uint16_t sig_len=0; int has_sig=0;
+    if(out_desc->version>=7){ footer_bytes += 4+32; if(out_desc->version>=9 && rest >= (size_t)(4+32+6)){ /* probe signature */ long sig_tail_pos = file_end - 6; fseek(f,sig_tail_pos,SEEK_SET); unsigned char tail[6]; if(fread(tail,1,6,f)==6){ memcpy(&sig_len,tail,2); if(memcmp(tail+2,"SGN0",4)==0){ long sig_start = sig_tail_pos - sig_len; if(sig_start >= (long)sizeof *out_desc + (long)(4+32) && sig_len < 4096){ footer_bytes += 2+4 + sig_len; has_sig=1; } } } }
+    }
+    if(rest < footer_bytes){ fclose(f); return -5; }
     size_t crc_region = rest - footer_bytes; fseek(f,sizeof *out_desc,SEEK_SET); unsigned char* buf=(unsigned char*)malloc(rest); if(!buf){ fclose(f); return -6; }
     size_t n=fread(buf,1,rest,f); if(n!=rest){ free(buf); fclose(f); return -6; }
     uint32_t crc=rogue_crc32(buf,crc_region); if(crc!=out_desc->checksum){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_DESCRIPTOR_CRC; free(buf); fclose(f); return -7; }
-    if(out_desc->version>=7){ if(memcmp(buf+crc_region,"SH32",4)!=0){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SHA256; free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } RogueSHA256Ctx sha; rogue_sha256_init(&sha); rogue_sha256_update(&sha,buf,crc_region); unsigned char dg[32]; rogue_sha256_final(&sha,dg); if(memcmp(dg,buf+crc_region+4,32)!=0){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SHA256; free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } memcpy(g_last_sha256,buf+crc_region+4,32); }
+    if(out_desc->version>=7){ /* SHA footer lives immediately after crc_region */ if(memcmp(buf+crc_region,"SH32",4)!=0){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SHA256; free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } RogueSHA256Ctx sha; rogue_sha256_init(&sha); rogue_sha256_update(&sha,buf,crc_region); unsigned char dg[32]; rogue_sha256_final(&sha,dg); if(memcmp(dg,buf+crc_region+4,32)!=0){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SHA256; free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } memcpy(g_last_sha256,buf+crc_region+4,32);
+        if(out_desc->version>=9 && has_sig){ const unsigned char* p = buf + crc_region + 4 + 32; uint16_t slen=0; memcpy(&slen,p,2); if(slen==sig_len && memcmp(p+2,"SGN0",4)==0){ if(g_sig_provider){ if(g_sig_provider->verify(buf,crc_region+4+32, p+6, slen)!=0){ g_last_tamper_flags |= ROGUE_TAMPER_FLAG_SIGNATURE; free(buf); fclose(f); return ROGUE_SAVE_ERR_SHA256; } } } }
+    }
     fclose(f); *out_buf=buf; return 0;
 }
 
@@ -578,10 +603,12 @@ static int migrate_v4_to_v5(unsigned char* data, size_t size){ (void)data; (void
 static int migrate_v5_to_v6(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
 static int migrate_v6_to_v7(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
 static int migrate_v7_to_v8(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
+static int migrate_v8_to_v9(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
 static RogueSaveMigration MIG_V2_TO_V3 = {2u,3u,migrate_v2_to_v3,"v2_to_v3_tlv_header"};
 static RogueSaveMigration MIG_V3_TO_V4 = {3u,4u,migrate_v3_to_v4,"v3_to_v4_varint_counts"};
 static RogueSaveMigration MIG_V4_TO_V5 = {4u,5u,migrate_v4_to_v5,"v4_to_v5_string_intern"};
 static RogueSaveMigration MIG_V5_TO_V6 = {5u,6u,migrate_v5_to_v6,"v5_to_v6_section_compress"};
 static RogueSaveMigration MIG_V6_TO_V7 = {6u,7u,migrate_v6_to_v7,"v6_to_v7_integrity"};
 static RogueSaveMigration MIG_V7_TO_V8 = {7u,8u,migrate_v7_to_v8,"v7_to_v8_replay_hash"};
-static void rogue_register_core_migrations(void){ if(!g_migrations_registered){ rogue_save_register_migration(&MIG_V2_TO_V3); rogue_save_register_migration(&MIG_V3_TO_V4); rogue_save_register_migration(&MIG_V4_TO_V5); rogue_save_register_migration(&MIG_V5_TO_V6); rogue_save_register_migration(&MIG_V6_TO_V7); rogue_save_register_migration(&MIG_V7_TO_V8); } }
+static RogueSaveMigration MIG_V8_TO_V9 = {8u,9u,migrate_v8_to_v9,"v8_to_v9_signature_opt"};
+static void rogue_register_core_migrations(void){ if(!g_migrations_registered){ rogue_save_register_migration(&MIG_V2_TO_V3); rogue_save_register_migration(&MIG_V3_TO_V4); rogue_save_register_migration(&MIG_V4_TO_V5); rogue_save_register_migration(&MIG_V5_TO_V6); rogue_save_register_migration(&MIG_V6_TO_V7); rogue_save_register_migration(&MIG_V7_TO_V8); rogue_save_register_migration(&MIG_V8_TO_V9); } }

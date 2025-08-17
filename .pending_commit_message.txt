@@ -1,19 +1,13 @@
-Persistence: Phase 4.2 Replay Hash (v8)
+Persistence Phase 4.5: Add optional signature abstraction (save format v9)
 
-* Bump save format to v8 (replay hash + tamper recovery groundwork)
-* Added component id 8 (replay) capturing deterministic gameplay-critical input events (frame,action,value)
-* Implemented replay event recording API: rogue_save_replay_record_input, reset, hash accessors
-* SHA256 digest computed over event array persisted with count for divergence detection
-* Updated migration chain with v7->v8 stub, component auto-registered when format>=8
-* Added unit test test_save_v8_replay_hash validating hash stability and count on save/load roundtrip
-* Roadmap & README updated to mark Phase 4.2 complete
-
-Persistence: Phase 4.3 Tamper Flags & 4.4 Recovery (v8)
-
-* Added tamper flag bitmask (descriptor CRC, section CRC, SHA256) with API rogue_save_last_tamper_flags
-* load_and_validate sets flags on checksum/digest mismatches; section CRC mismatches surfaced via existing error codes
-* Implemented recovery loader rogue_save_manager_load_slot_with_recovery returning 1 when autosave fallback used
-* Added APIs rogue_save_last_recovery_used and extended header with tamper/recovery declarations
-* Unit test test_save_v8_tamper_recovery corrupts primary save, triggers recovery, validates flags and recovery usage
-* Roadmap and README updated marking Phases 4.3 & 4.4 complete
-
+- Bump ROGUE_SAVE_FORMAT_VERSION to 9.
+- Add RogueSaveSignatureProvider API (sign/verify callbacks + registration).
+- Implement signature trailer layout: [uint16 sig_len]["SGN0"][sig bytes] appended after SHA256 footer (v7+) when provider registered.
+- Descriptor checksum logic clarified: checksum over payload only (excludes SHA footer + optional signature).
+- Signature covers payload + SHA footer; verification failure sets new tamper flag ROGUE_TAMPER_FLAG_SIGNATURE.
+- Add migration v8->v9 (no-op structural).
+- Update save_manager.c for consistent footer ordering (compute CRC then write SHA then signature).
+- Update load_and_validate to detect & verify optional signature (bounds + magic + length checks, len clamp <4096).
+- Add unit test test_save_v9_signature (dummy XOR signature) validating success path and tamper flag on corruption.
+- Update roadmap (Phase 4.5 marked Done) and README (v9 description + signature details).
+- Preserve prior integrity features (per-section CRC, SHA256, tamper flags, recovery) with passing builds.
