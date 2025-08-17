@@ -151,6 +151,7 @@ add_library(rogue_core
     src/ai/core/behavior_tree.c
     src/ai/core/blackboard.c
     src/ai/nodes/basic_nodes.c
+    src/ai/perception/perception.c
     src/core/start_screen.c
     src/core/player_assets.c
     src/util/log.c

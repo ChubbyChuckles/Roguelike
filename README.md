@@ -118,7 +118,7 @@ See full, fine‑grained roadmap in `implementation_plan.txt` (kept continuously
 * Vegetation collision distinguishes trunk (blocking) from canopy (visual) validated by trunk/canopy tests.
 * Biome directory structure prepped for per-biome loot modifiers (context already carries biome id).
 
-#### AI & Behaviour (Phase 1.1–1.7 Implemented)
+#### AI & Behaviour (Phases 1.1–1.7, 2, 3 Implemented)
 Phase 1 core architecture established:
 * `ai/core/behavior_tree.[ch]` – minimal BT engine + tick accounting & active path serialization.
 * `ai/core/blackboard.[ch]` – fixed-cap typed store (int/float/bool/ptr).
@@ -127,7 +127,18 @@ Phase 1 core architecture established:
 * NEW (1.4–1.7): scheduler counters (tick_count), deterministic per-agent RNG (`ai_rng.h` xorshift64*), trace ring buffer (`ai_trace.{c,h}`) capturing hashed active path, preorder path serialization for future save/replay.
 * Tests: `test_ai_behavior_tree` (foundational) and `test_ai_phase1_scheduler_trace` (trace ring, RNG determinism, path hashing).
 
-Next AI work: richer blackboard (vec2/entity_ref/timer + TTL & write policies), utility selector implementation, integrating BT-driven enemy behaviors behind a feature flag, and perception (LOS / vision cone conditions).
+Phase 2 (Blackboard & Memory): Added vec2 & timer types, per-entry TTL decay, write policies (Set/Max/Min/Accumulate) for int/float writes, dirty flag API for reactive nodes, and deterministic tick-based decay (`rogue_bb_tick`). Test `test_ai_phase2_blackboard` validates vec2/timer storage, policies, TTL expiry, and dirty flag lifecycle.
+
+Phase 3 (Perception System): New `ai/perception/perception.{c,h}` implements:
+* LOS raycast (Bresenham tile walk) with overridable blocking predicate (used in tests)
+* Vision cone + distance check (FOV dot vs cos limit + range squared) integrated with LOS
+* Hearing event ring buffer (attack / footstep) with loudness radius queries
+* Threat accumulation (visible gain/sec) and linear decay + last seen position memory with TTL
+* Group alert broadcast elevating nearby agents' threat & seeding memory
+* Agent struct (`RoguePerceptionAgent`) tracks facing vector, threat, last seen position & TTL
+Unit test `test_ai_phase3_perception` covers LOS blocking/unblocking, FOV inclusion/exclusion, threat gain & decay over time, hearing-based memory seeding, and broadcast radius filtering.
+
+Next AI work: utility selector (Phase 4.6), initial condition/action nodes (Phase 4.2/4.3 visibility & timer elapsed, movement stubs), and integration of BT-driven behavior behind a feature flag.
 
 
 #### Combat & Skills

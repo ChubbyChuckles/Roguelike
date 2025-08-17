@@ -29,12 +29,12 @@ PHASE 2. Blackboard & Memory
 2.4 Dirty flag propagation for reactive nodes (Done) [Dirty bit per entry; clear/query API]
 
 PHASE 3. Perception System
-3.1 LOS raycast integration (tile blocking) (X)
-3.2 Vision cone & distance falloff (X)
-3.3 Hearing events (player attack, footsteps if later) (X)
-3.4 Threat score accumulation & decay (X)
-3.5 Group alert broadcast (X)
-3.6 Perception test harness (seeded scenarios) (X)
+3.1 LOS raycast integration (tile blocking) (Done) [Bresenham tile walk in perception.c with overridable blocking predicate]
+3.2 Vision cone & distance falloff (Done) [FOV angle test (dot vs cos(fov/2)) + max distance squared check]
+3.3 Hearing events (player attack, footsteps if later) (Done) [Ring buffer (cap 32) stores position + loudness radius; attack/footstep enums]
+3.4 Threat score accumulation & decay (Done) [rogue_perception_tick_agent applies gain when visible + linear decay each tick]
+3.5 Group alert broadcast (Done) [Broadcast elevates nearby agents' threat & seeds last seen memory]
+3.6 Perception test harness (seeded scenarios) (Done) [Unit test test_ai_phase3_perception covers LOS block/unblock, FOV, threat gain/decay, hearing memory, broadcast]
 
 PHASE 4. Behavior Node Library
 4.1 Core composites: Selector, Sequence, Parallel, Decorators (X)
@@ -111,5 +111,5 @@ SUCCESS METRICS
 
 NEXT ACTION CANDIDATES
 - Implement utility selector & dynamic scoring (Phase 4.6)
-- Add condition/action nodes (visibility, timer elapsed, move/flee stubs)
-- Integrate BT driving enemy behavior via feature flag and migrate one enemy type
+- Add condition/action nodes (visibility, timer elapsed, move/flee stubs) (Phase 4.2/4.3 subset)
+- Integrate BT driving enemy behavior via feature flag and migrate one enemy type (initial integration)
