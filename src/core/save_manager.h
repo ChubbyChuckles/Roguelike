@@ -81,6 +81,8 @@ int rogue_save_last_save_rc(void); /* result code of last save/autosave/quicksav
 uint32_t rogue_save_last_save_bytes(void); /* size in bytes of last successful save (0 if none) */
 double rogue_save_last_save_ms(void); /* duration ms of last save */
 uint32_t rogue_save_autosave_count(void); /* number of autosaves performed via scheduler */
+int rogue_save_set_autosave_throttle_ms(int ms); /* minimum gap after any save before next autosave */
+int rogue_save_status_string(char* buf, size_t cap); /* formatted status summary (UI indicator) */
 
 /* Migration metrics (Phase 2.4) */
 int rogue_save_last_migration_steps(void); /* number of successful version bumps in last load */

@@ -17,3 +17,10 @@ feat(persistence): Phase 6.1/6.3/6.4 autosave scheduler, quicksave & telemetry
 - Roadmap updated marking phases 6.1, 6.3, 6.4 Done; notes for future UI indicator (6.5)
 - README updated with autosave & metrics usage
 
+feat(persistence): Phase 6.5 autosave throttle + status string
+
+- Add autosave throttle API rogue_save_set_autosave_throttle_ms
+- Add status snapshot API rogue_save_status_string (UI integration)
+- Unit test test_save_autosave_indicator validates throttling & status formatting
+- Roadmap marks 6.5 done; README updated
+

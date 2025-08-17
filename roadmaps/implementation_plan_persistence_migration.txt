@@ -66,8 +66,9 @@ PHASE 6. Autosave & Scheduling
 6.2 Ring buffer (N autosave slots with timestamp) (Done: basic ring save paths; timestamp future enhancement)
 6.3 On-demand quick save (manual trigger) (Done)
 6.4 Failure telemetry (write time, size) (Done)
-6.5 UI indicator + throttling (X)
+6.5 UI indicator + throttling (Done)
 	IMPLEMENTED: Scheduler API (`rogue_save_set_autosave_interval_ms`, `rogue_save_manager_update`) triggers autosave when not in combat and interval elapsed. Tracks metrics (last rc, bytes, ms, count). Added quicksave API (`rogue_save_manager_quicksave`). Test `test_save_autosave_scheduler` simulates idle timeline producing multiple autosaves. Future: integrate combat state hook & UI indicator (6.5), timestamp ring selection refinement.
+	IMPLEMENTED (6.5): Added throttle gap (`rogue_save_set_autosave_throttle_ms`) & status string (`rogue_save_status_string`) for UI layer consumption; test `test_save_autosave_indicator` validates autosave occurrence & status formatting.
 
 PHASE 7. Data Domains & Component Details
 7.1 Player stats & progression (level, xp, allocation) (Partial)

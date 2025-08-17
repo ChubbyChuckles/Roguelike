@@ -50,6 +50,7 @@ static int g_last_save_rc = 0;
 static uint32_t g_last_save_bytes = 0;
 static double g_last_save_ms = 0.0;
 static int g_in_save = 0;
+static int g_autosave_throttle_ms = 0; /* gap after any save */
 int rogue_save_set_incremental(int enabled){ g_incremental_enabled = enabled?1:0; if(!g_incremental_enabled){ /* free all */ for(int i=0;i<ROGUE_SAVE_MAX_COMPONENTS;i++){ free(g_cached_sections[i].data); g_cached_sections[i].data=NULL; g_cached_sections[i].valid=0; } g_dirty_mask=0xFFFFFFFFu; } return 0; }
 int rogue_save_mark_component_dirty(int component_id){ if(component_id<=0||component_id>=32) return -1; g_dirty_mask |= (1u<<component_id); return 0; }
 int rogue_save_mark_all_dirty(void){ g_dirty_mask=0xFFFFFFFFu; return 0; }
@@ -58,6 +59,8 @@ uint32_t rogue_save_autosave_count(void){ return g_autosave_count; }
 int rogue_save_last_save_rc(void){ return g_last_save_rc; }
 uint32_t rogue_save_last_save_bytes(void){ return g_last_save_bytes; }
 double rogue_save_last_save_ms(void){ return g_last_save_ms; }
+int rogue_save_set_autosave_throttle_ms(int ms){ g_autosave_throttle_ms=ms; return 0; }
+int rogue_save_status_string(char* buf, size_t cap){ if(!buf||cap==0) return -1; int n=snprintf(buf,cap,"save rc=%d bytes=%u ms=%.2f autosaves=%u interval=%d throttle=%d", g_last_save_rc, g_last_save_bytes, g_last_save_ms, g_autosave_count, g_autosave_interval_ms, g_autosave_throttle_ms); if(n<0|| (size_t)n>=cap) return -1; return 0; }
 uint32_t rogue_save_last_tamper_flags(void){ return g_last_tamper_flags; }
 int rogue_save_last_recovery_used(void){ return g_last_recovery_used; }
 int rogue_save_set_compression(int enabled, int min_bytes){ g_compress_enabled = enabled?1:0; if(min_bytes>0) g_compress_min_bytes=min_bytes; return 0; }
@@ -310,9 +313,13 @@ int rogue_save_manager_update(uint32_t now_ms, int in_combat){
     if(in_combat) return 0; /* only when idle */
     if(g_last_autosave_time==0) g_last_autosave_time = now_ms; /* init */
     if(now_ms - g_last_autosave_time >= (uint32_t)g_autosave_interval_ms){
+        /* throttle: ensure a minimum gap since last save event */
+        static uint32_t g_last_any_save_time = 0; /* local static to track last save timestamp in ms domain */
+        if(g_last_any_save_time != 0 && g_autosave_throttle_ms>0 && now_ms - g_last_any_save_time < (uint32_t)g_autosave_throttle_ms){ return 0; }
         int rc = rogue_save_manager_autosave(g_autosave_count); /* rotate ring */
         if(rc==0){ g_autosave_count++; }
         g_last_autosave_time = now_ms;
+        g_last_any_save_time = now_ms;
         return rc;
     }
     return 0;
