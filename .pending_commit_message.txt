@@ -1,1 +1,7 @@
-feat(items-security): Phase 22.4–22.5 server authoritative + anomaly detector\n\n+Adds server authoritative mode toggle & verification API (rogue_loot_security_set_server_mode / rogue_loot_server_verify) and rolling rarity spike anomaly detector (configurable baseline fraction, spike multiplier, high rarity threshold) with record + flag query APIs. Extends README and marks roadmap 22.4–22.5 Done. Tests: test_loot_phase22_security (existing) + test_loot_phase22_server_anomaly (server verify pass/fail + spike vs normal).\n*** End Patch
+feat(items-security): Phase 22.4–22.5 server authoritative + anomaly detector
+
+Adds server authoritative mode toggle & verification API (rogue_loot_security_set_server_mode / rogue_loot_server_verify) and rolling rarity spike anomaly detector (configurable baseline fraction, spike multiplier, high rarity threshold) with record + flag query APIs. Extends README and marks roadmap 22.4–22.5 Done. Tests: test_loot_phase22_security (existing) + test_loot_phase22_server_anomaly (server verify pass/fail + spike vs normal).
+
+feat(items-docs): Phase 23.5 loot API doc generator
+
+Adds lightweight curated API documentation generator (rogue_loot_generate_api_doc) enumerating key loot system functions with one-line descriptions. Provides deterministic text for README / contributor reference without external tooling. New unit test test_loot_phase23_api_doc validates generation success, key token presence, stable ordering, and small-buffer error path. Roadmap 23.5 marked Done and README updated.

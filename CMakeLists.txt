@@ -221,6 +221,7 @@ add_library(rogue_core
         src/game/lock_on.c
         src/game/infusions.c
         src/core/loot_security.c
+        src/core/loot_api_doc.c
 )
 
 target_include_directories(rogue_core PUBLIC
