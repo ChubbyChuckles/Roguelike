@@ -6,6 +6,7 @@
 #include "util/log.h"
 #include "core/loot_adaptive.h"
 #include "core/metrics.h"
+#include "core/loot_rarity_adv.h"
 #include <math.h>
 
 void rogue_loot_pickup_update(float radius){
@@ -26,7 +27,9 @@ void rogue_loot_pickup_update(float radius){
                 /* Record pickup for preference learning + session metrics */
                 rogue_adaptive_record_pickup(it->def_index);
                 rogue_metrics_record_pickup(it->rarity);
-                ROGUE_LOG_INFO("Pickup def=%d qty=%d", it->def_index, it->quantity);
+                const char* sfx = rogue_rarity_get_pickup_sound(it->rarity);
+                if(sfx){ ROGUE_LOG_INFO("Pickup def=%d qty=%d sfx=%s", it->def_index, it->quantity, sfx); }
+                else { ROGUE_LOG_INFO("Pickup def=%d qty=%d", it->def_index, it->quantity); }
             }
         }
     }

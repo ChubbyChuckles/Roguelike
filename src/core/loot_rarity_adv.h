@@ -8,6 +8,9 @@ void rogue_rarity_adv_reset(void);
 /* 5.5: Per-rarity spawn sound / VFX hook mapping (stored as string id). */
 int  rogue_rarity_set_spawn_sound(int rarity, const char* id); /* returns 0 ok */
 const char* rogue_rarity_get_spawn_sound(int rarity);
+/* Phase 19.1: per-rarity pickup sounds */
+int  rogue_rarity_set_pickup_sound(int rarity, const char* id);
+const char* rogue_rarity_get_pickup_sound(int rarity);
 
 /* 5.6: Per-rarity despawn override (milliseconds). Pass <=0 to revert to default constant. */
 int  rogue_rarity_set_despawn_ms(int rarity, int ms);

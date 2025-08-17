@@ -1,7 +1,7 @@
 Itemsystem Phase 18.3/18.4/18.5: Advanced loot analytics features
-- Added rarity distribution drift detection with configurable baseline fractions or counts and relative deviation threshold. New APIs: rogue_loot_analytics_set_baseline_counts, rogue_loot_analytics_set_baseline_fractions, rogue_loot_analytics_set_drift_threshold, rogue_loot_analytics_check_drift.
-- Added session summary aggregation struct (RogueLootSessionSummary) exposing total drops, per-rarity counts, duration, drops/min, and drift flags via rogue_loot_analytics_session_summary.
-- Added positional heatmap (32x32) of drop events with recording (rogue_loot_analytics_record_pos), cell query (rogue_loot_analytics_heat_at) and CSV export (rogue_loot_analytics_export_heatmap_csv).
-- Refactored internal record function (internal_record_core) to unify code paths; extended analytics state with first/last timestamps.
-- Added advanced unit test test_loot_phase18_3_4_5_advanced covering drift alert (trigger + non-trigger), summary metrics, and heatmap export. Roadmap updated (18.3–18.5 Done) and README Phase 18 section expanded.
+Itemsystem Phase 19.1: Per-rarity pickup sounds mapping
+- Added rarity->pickup sound id storage (strings) with APIs rogue_rarity_set_pickup_sound / rogue_rarity_get_pickup_sound alongside existing spawn sound mapping.
+- Integrated pickup sound lookup into loot pickup loop; logs chosen sound id (audio playback stub for now) preserving deterministic behavior.
+- Added unit test test_loot_phase19_1_pickup_sounds verifying spawn, pickup deactivation, and absence of crash with configured pickup sounds.
+- Updated roadmap (19.1 Done) and README with Phase 19.1 feature summary.
 

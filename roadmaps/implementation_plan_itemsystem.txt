@@ -154,7 +154,7 @@ X = Not started yet
 18.5 Heatmap of drop positions (Done: 32x32 grid, positional record API `rogue_loot_analytics_record_pos`, query `rogue_loot_analytics_heat_at`, CSV export `rogue_loot_analytics_export_heatmap_csv`)
 
 19. Audio/Visual Polish (Pending)
-19.1 Per-rarity pickup sounds (X)
+19.1 Per-rarity pickup sounds (Done: rarity->pickup sound id mapping APIs rogue_rarity_set_pickup_sound / rogue_rarity_get_pickup_sound; pickup loop logs sound id placeholder)
 19.2 Ground sparkle particle system (by rarity) (X)
 19.3 Beam / pillar effect for high rarity (X)
 19.4 Screen edge notifier icons (X)
