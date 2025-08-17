@@ -174,12 +174,12 @@ X = Not started yet
 21.4 Done Batch rarity rebalance helper: rogue_rarity_rebalance_scales + JSON export + unit test (scale math & JSON contents)
 21.5 Done Auto-sorting asset references: rogue_item_defs_sort_cfg + unit test (sorted order, header preserved)
 
-22. Security / Cheat Resistance (Optional) (Pending)
+22. Security / Cheat Resistance (Optional) (Done)
 22.1 Hash-based verification of loot rolls (Done)
 22.2 Obfuscate seed mixing to deter prediction (Done)
 22.3 Anti-tamper detection of modified configs (Done)
-22.4 Server authoritative mode (future netcode) (X)
-22.5 Log anomaly detector (weight spikes) (X)
+22.4 Server authoritative mode (Done)
+22.5 Log anomaly detector (weight spikes) (Done)
 
 23. Documentation & Developer Experience (Pending)
 23.1 Developer README: loot architecture (X)

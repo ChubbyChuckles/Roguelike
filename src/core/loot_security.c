@@ -43,6 +43,42 @@ unsigned int rogue_loot_obfuscate_seed(unsigned int raw_seed, unsigned int salt)
 
 static uint32_t g_last_files_hash = 0;
 uint32_t rogue_loot_security_last_files_hash(void){ return g_last_files_hash; }
+static int g_server_mode = 0;
+void rogue_loot_security_set_server_mode(int enabled){ g_server_mode = enabled?1:0; }
+int  rogue_loot_security_server_mode(void){ return g_server_mode; }
+int rogue_loot_server_verify(int table_index, unsigned int seed_before,
+                             int drop_count, const int* item_def_indices,
+                             const int* quantities, const int* rarities,
+                             uint32_t reported_hash){
+    uint32_t h = rogue_loot_roll_hash(table_index, seed_before, drop_count, item_def_indices, quantities, rarities);
+    return (h==reported_hash)?0:1;
+}
+
+/* Anomaly detector */
+static int g_anom_window_cap=128;
+static float g_anom_baseline_high=0.05f; /* expected legendary+ fraction */
+static float g_anom_spike_mult=3.5f;      /* spike threshold multiplier */
+static int g_anom_per_roll_high_thresh=2; /* too many high rarity in single roll */
+static int g_anom_flag=0;
+static int g_anom_counts_high=0;
+static int g_anom_samples=0;
+void rogue_loot_anomaly_reset(void){ g_anom_flag=0; g_anom_counts_high=0; g_anom_samples=0; }
+void rogue_loot_anomaly_config(int window_size, float baseline_high_frac, float spike_mult, int per_roll_high_threshold){
+    if(window_size>8 && window_size<=1024) g_anom_window_cap=window_size;
+    if(baseline_high_frac>0.0001f && baseline_high_frac<0.5f) g_anom_baseline_high=baseline_high_frac;
+    if(spike_mult>=1.5f && spike_mult<20.f) g_anom_spike_mult=spike_mult;
+    if(per_roll_high_threshold>=1 && per_roll_high_threshold<32) g_anom_per_roll_high_thresh=per_roll_high_threshold;
+}
+void rogue_loot_anomaly_record(int drop_count, const int* rarities){
+    if(!rarities || drop_count<=0) return; int high=0; for(int i=0;i<drop_count;i++){ if(rarities[i]>=4) high++; }
+    if(high >= g_anom_per_roll_high_thresh) g_anom_flag=1;
+    g_anom_counts_high += high; g_anom_samples += drop_count;
+    if(g_anom_samples > g_anom_window_cap){ /* decay oldest proportionally (approx) */
+        float decay = 0.5f; g_anom_counts_high = (int)(g_anom_counts_high * decay); g_anom_samples = (int)(g_anom_samples * decay);
+    }
+    if(g_anom_samples>0){ float frac = (float)g_anom_counts_high / (float)g_anom_samples; if(frac > g_anom_baseline_high * g_anom_spike_mult) g_anom_flag=1; }
+}
+int  rogue_loot_anomaly_flag(void){ return g_anom_flag; }
 
 int rogue_loot_security_snapshot_files(const char* const* paths, int count){
     if(count<0) return -1; uint32_t h=2166136261u; char buf[512];

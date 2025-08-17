@@ -44,6 +44,21 @@ int rogue_loot_security_verify_files(const char* const* paths, int count);
 /* Retrieve last stored combined files hash (0 if none yet). */
 uint32_t rogue_loot_security_last_files_hash(void);
 
+/* Phase 22.4: Server authoritative mode toggle */
+void rogue_loot_security_set_server_mode(int enabled);
+int  rogue_loot_security_server_mode(void);
+/* Verify a client-provided loot roll hash (0=match, 1=mismatch). */
+int rogue_loot_server_verify(int table_index, unsigned int seed_before,
+                             int drop_count, const int* item_def_indices,
+                             const int* quantities, const int* rarities,
+                             uint32_t reported_hash);
+
+/* Phase 22.5: Anomaly detector (weight / high-rarity spike logging) */
+void rogue_loot_anomaly_reset(void);
+void rogue_loot_anomaly_config(int window_size, float baseline_high_frac, float spike_mult, int per_roll_high_threshold);
+void rogue_loot_anomaly_record(int drop_count, const int* rarities);
+int  rogue_loot_anomaly_flag(void); /* 1 if anomaly detected since last reset */
+
 #ifdef __cplusplus
 }
 #endif
