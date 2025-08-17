@@ -1,4 +1,10 @@
 Dialogue System Phase 5: Localization Foundation
+- Integrated dialogue system into runtime frame loop (update + render) with global UI context hook.
+Dialogue System Phase 6: Typewriter & Skip Behavior
+- Added global enable API `rogue_dialogue_typewriter_enable` controlling reveal speed (chars/ms).
+- Render truncates text to revealed substring; advance during partial reveal completes line instead of moving forward (returns 2).
+- Second advance proceeds to next line; test `test_dialogue_phase6_typewriter` validates two-step skip.
+- Roadmap updated marking Phase 6 Done; README matrix advanced to Phase 6; commit message appended.
 - Added localization registry (locale,key -> value) with upsert + active locale switching.
 - Script authoring: lines beginning with [key] store key + inline fallback (allocated as key\0fallback).
 - During rendering/log/current_text: lookup active locale value, fallback to inline fallback if missing.

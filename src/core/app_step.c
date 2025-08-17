@@ -5,6 +5,7 @@
 #include "core/metrics.h"
 #include "input/input.h"
 #include "core/player_controller.h"
+#include "core/dialogue.h"
 #include "core/player_assets.h"
 #include "core/player_progress.h"
 #include "core/persistence_autosave.h"
@@ -87,8 +88,8 @@ void rogue_app_step(void)
         rogue_player_controller_update();
     extern void rogue_process_pending_skill_activations(void); /* declared in skills runtime */
     rogue_process_pending_skill_activations();
-        int attack_pressed = rogue_input_was_pressed(&g_app.input, ROGUE_KEY_ACTION);
-        float raw_dt_ms = (float)g_app.dt * 1000.0f;
+    int attack_pressed = rogue_input_was_pressed(&g_app.input, ROGUE_KEY_ACTION);
+    float raw_dt_ms = (float)g_app.dt * 1000.0f;
         if(g_app.hitstop_timer_ms > 0){ g_app.hitstop_timer_ms -= raw_dt_ms; if(g_app.hitstop_timer_ms < 0) g_app.hitstop_timer_ms = 0; }
         float hitstop_scale = (g_app.hitstop_timer_ms > 0)? 0.25f : 1.0f;
         float dt_ms = raw_dt_ms * hitstop_scale;
@@ -118,6 +119,25 @@ void rogue_app_step(void)
         rogue_damage_numbers_render();
         rogue_minimap_update_and_render(240);
         rogue_skill_bar_update(dt_ms);
+        /* Dialogue runtime panel (direct SDL draw) & input binding */
+        {
+            int action_pressed = attack_pressed; /* reuse action key */
+            if(action_pressed){
+                const RogueDialoguePlayback* dp = rogue_dialogue_playback();
+                if(dp){ rogue_dialogue_advance(); }
+                else {
+                    static int demo_loaded=0; if(!demo_loaded){
+                        const char* buf = "npc|Welcome to the realm, hero!\n" "npc|This is a dialogue test line with tokens: ${player_name}.\n";
+                        rogue_dialogue_register_from_buffer(1000, buf, (int)strlen(buf));
+                        rogue_dialogue_typewriter_enable(1, 0.08f);
+                        demo_loaded=1;
+                    }
+                    rogue_dialogue_start(1000);
+                }
+            }
+            rogue_dialogue_update(dt_ms);
+            rogue_dialogue_render_runtime();
+        }
     }
     rogue_hud_render();
     rogue_skill_bar_render();
@@ -126,6 +146,7 @@ void rogue_app_step(void)
     rogue_stats_panel_render();
     rogue_vendor_panel_render();
     rogue_equipment_panel_render();
+    /* Dialogue runtime panel (direct SDL draw) & input binding */
     /* Experimental skill graph UI (toggle with 'G') */
     rogue_skillgraph_runtime_render();
     rogue_equipment_apply_stat_bonuses(&g_app.player);

@@ -8,6 +8,11 @@
 #include <ctype.h>
 #include <assert.h>
 #include "core/save_manager.h"
+#include "graphics/font.h"
+#include "core/app_state.h"
+#ifdef ROGUE_HAVE_SDL
+#include <SDL.h>
+#endif
 
 #ifndef ROGUE_DIALOGUE_MAX_SCRIPTS
 #define ROGUE_DIALOGUE_MAX_SCRIPTS 64
@@ -16,6 +21,7 @@
 static RogueDialogueScript g_scripts[ROGUE_DIALOGUE_MAX_SCRIPTS];
 static int g_script_count = 0;
 static RogueDialoguePlayback g_playback; /* zero-inited */
+static int g_typewriter_enabled = 0; static float g_chars_per_ms = 0.05f;
 /* Phase 2 token context */
 static char g_player_name[64] = "Player"; /* default */
 static unsigned int g_run_seed = 0;
@@ -213,6 +219,19 @@ void rogue_dialogue_log_current_line(void){
 int rogue_dialogue_advance(void){
     if(!g_playback.active) return -1;
     const RogueDialogueScript* sc = rogue_dialogue_get(g_playback.script_id); if(!sc) { g_playback.active=0; return -2; }
+    /* Phase 6 skip behavior: if typewriter active and current line not fully revealed yet, finish reveal instead of advancing */
+    if(g_typewriter_enabled){
+        const RogueDialogueLine* ln=&sc->lines[g_playback.line_index];
+        const char* text = ln->text; if(ln->token_flags & ROGUE_DIALOGUE_LINE_IS_KEY){ const char* loc=loc_lookup(ln->text); if(!loc) loc=localized_fallback(ln); if(loc) text=loc; }
+        char tmp[512]; if(ln->token_flags & ROGUE_DIALOGUE_LINE_HAS_TOKENS){ expand_tokens(text,tmp,sizeof tmp); text=tmp; }
+        size_t full_len = strlen(text);
+        float shown_chars = g_playback.reveal_ms * g_chars_per_ms;
+        if(shown_chars + 0.5f < (float)full_len){ /* not fully revealed */
+            /* jump reveal to end */
+            g_playback.reveal_ms = (float)full_len / (g_chars_per_ms>0?g_chars_per_ms:0.001f);
+            return 2; /* indicate reveal completed, no line advance */
+        }
+    }
     if(g_playback.line_index +1 < sc->line_count){
         g_playback.line_index++; g_playback.reveal_ms = 0.0f; rogue_dialogue_log_current_line(); return 1;
     } else { /* end */
@@ -241,9 +260,39 @@ int rogue_dialogue_render_ui(struct RogueUIContext* ui){
     rogue_ui_text(ui, (RogueUIRect){x+12,y+10,panel_w-24,18}, ln->speaker_id, speaker_col);
     /* Phase 2: expand tokens into stack buffer */
     char expanded[512]; const char* text = ln->text; if(ln->token_flags & ROGUE_DIALOGUE_LINE_IS_KEY){ const char* loc = loc_lookup(ln->text); if(!loc) loc = localized_fallback(ln); if(loc) text=loc; } if(ln->token_flags & ROGUE_DIALOGUE_LINE_HAS_TOKENS){ expand_tokens(text, expanded, sizeof expanded); text=expanded; }
-    rogue_ui_text(ui, (RogueUIRect){x+12,y+34,panel_w-24,48}, text, fg);
+    const char* draw_text = text; char temp_tw[512];
+    if(g_typewriter_enabled){ size_t full_len=strlen(text); float shown_chars = g_playback.reveal_ms * g_chars_per_ms; size_t shown = (size_t)(shown_chars+0.01f); if(shown>full_len) shown=full_len; memcpy(temp_tw,text,shown); temp_tw[shown]='\0'; draw_text=temp_tw; }
+    rogue_ui_text(ui, (RogueUIRect){x+12,y+34,panel_w-24,48}, draw_text, fg);
     rogue_ui_text(ui, (RogueUIRect){x+panel_w-80,y+panel_h-22,68,16}, "[Enter]", 0xA0A0A0FFu);
     return 1;
+}
+
+#ifdef ROGUE_HAVE_SDL
+extern SDL_Renderer* g_internal_sdl_renderer_ref;
+#endif
+
+void rogue_dialogue_render_runtime(void){
+#ifdef ROGUE_HAVE_SDL
+    if(!g_internal_sdl_renderer_ref) return;
+    const RogueDialoguePlayback* pb = rogue_dialogue_playback(); if(!pb) return; const RogueDialogueScript* sc = rogue_dialogue_get(pb->script_id); if(!sc) return; if(pb->line_index<0||pb->line_index>=sc->line_count) return;
+    const RogueDialogueLine* ln = &sc->lines[pb->line_index];
+    char expanded[512]; const char* text = ln->text; if(ln->token_flags & ROGUE_DIALOGUE_LINE_IS_KEY){ const char* loc = loc_lookup(ln->text); if(!loc) loc=localized_fallback(ln); if(loc) text=loc; } if(ln->token_flags & ROGUE_DIALOGUE_LINE_HAS_TOKENS){ expand_tokens(text,expanded,sizeof expanded); text=expanded; }
+    const char* draw_text = text; char temp_tw[512];
+    if(g_typewriter_enabled){ size_t full_len=strlen(text); float shown_chars = g_playback.reveal_ms * g_chars_per_ms; size_t shown=(size_t)(shown_chars+0.01f); if(shown>full_len) shown=full_len; memcpy(temp_tw,text,shown); temp_tw[shown]='\0'; draw_text=temp_tw; }
+    /* Panel placement: bottom center fraction of screen using g_app viewport (avoid hard-coded magic) */
+    extern struct RogueAppState g_app; /* access viewport */
+    int vw = g_app.viewport_w>0? g_app.viewport_w:1280; int vh = g_app.viewport_h>0? g_app.viewport_h:720;
+    int panel_w = (vw<500)? vw-20 : 480; int panel_h = 120; int x = (vw-panel_w)/2; int y = vh - panel_h - 20;
+    SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, 32,32,32,200); SDL_Rect bg={x,y,panel_w,panel_h}; SDL_RenderFillRect(g_internal_sdl_renderer_ref,&bg);
+    SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, 120,120,160,255); SDL_Rect top={x,y,panel_w,2}; SDL_RenderFillRect(g_internal_sdl_renderer_ref,&top);
+    rogue_font_draw_text(x+12,y+8, ln->speaker_id?ln->speaker_id:"?",1,(RogueColor){255,220,120,255});
+    /* Wrap text rudimentarily at ~ (panel_w-24)/6 chars */
+    int max_line_chars = (panel_w-24)/6; if(max_line_chars<10) max_line_chars=10; const char* src=draw_text; int line=0; char linebuf[256];
+    while(*src && line<3){ int count=0; const char* start=src; int last_space=-1; while(count < max_line_chars && count < (int)sizeof(linebuf)-1 && *src && *src!='\n'){ if(*src==' ') last_space=count; linebuf[count++]=*src++; }
+        if(count==max_line_chars && *src && *src!='\n' && last_space>0){ /* wrap back to last space */ src = start + last_space + 1; count = last_space; }
+        linebuf[count]='\0'; rogue_font_draw_text(x+12, y+34 + line*20, linebuf,1,(RogueColor){255,255,255,255}); if(*src=='\n') src++; while(*src==' ') src++; line++; }
+    rogue_font_draw_text(x+panel_w-80,y+panel_h-22, "[Enter]",1,(RogueColor){180,180,180,255});
+#endif
 }
 
 /* Phase 3 introspection */
@@ -251,3 +300,5 @@ int rogue_dialogue_effect_flag_count(void){ return g_flag_count; }
 const char* rogue_dialogue_effect_flag(int index){ if(index<0||index>=g_flag_count) return NULL; return g_flags[index]; }
 int rogue_dialogue_effect_item_count(void){ return g_item_count; }
 int rogue_dialogue_effect_item(int index, int* out_item_id, int* out_qty){ if(index<0||index>=g_item_count) return 0; if(out_item_id) *out_item_id=g_items[index].item_id; if(out_qty) *out_qty=g_items[index].qty; return 1; }
+
+void rogue_dialogue_typewriter_enable(int enabled, float chars_per_ms){ g_typewriter_enabled = enabled?1:0; if(chars_per_ms>0) g_chars_per_ms=chars_per_ms; }

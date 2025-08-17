@@ -120,6 +120,9 @@ void rogue_dialogue_register_save_component(void); /* registers dialogue save co
 /* Phase 6 Typewriter & Skip */
 void rogue_dialogue_typewriter_enable(int enabled, float chars_per_ms); /* enable/disable typewriter reveal */
 
+/* Runtime (SDL) immediate render helper used by game loop (draws panel directly with SDL & font). */
+void rogue_dialogue_render_runtime(void);
+
 #ifdef __cplusplus
 }
 #endif
