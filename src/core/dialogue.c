@@ -39,6 +39,9 @@ static GrantedItem g_items[64]; static int g_item_count=0;
 #define ROGUE_DIALOGUE_MAX_AVATARS 32
 typedef struct RogueDialogueAvatar { char speaker[64]; RogueTexture tex; int loaded; } RogueDialogueAvatar;
 static RogueDialogueAvatar g_avatars[ROGUE_DIALOGUE_MAX_AVATARS]; static int g_avatar_count=0;
+/* Dialogue style (theme) */
+static RogueDialogueStyle g_style = { 0xFF222228u, 0xFF1A1A1Fu, 0xFF5F5F8Cu, 0xFFFFDC8Cu, 0xFFFFFFFFu, 0x80000000u, 1, 1, 1, 1, 0, 0xFFAA8844u, 2, 0, 0x40C8A050u, 0x30FFD080u, 2, 1, 1 };
+static RogueTexture g_parchment_tex; static int g_parchment_loaded=0; /* optional parchment paper */
 
 int rogue_dialogue_avatar_register(const char* speaker_id, const char* image_path){
 #if defined(ROGUE_HAVE_SDL)
@@ -67,6 +70,124 @@ RogueTexture* rogue_dialogue_avatar_get(const char* speaker_id){
     (void)speaker_id; return NULL;
 #endif
 }
+
+int rogue_dialogue_load_avatars_from_file(const char* path){
+    if(!path) return -1; FILE* f=NULL; int line_no=0; int loaded=0;
+#if defined(_MSC_VER)
+    if(fopen_s(&f,path,"rb")!=0 || !f) return -2;
+#else
+    f=fopen(path,"rb"); if(!f) return -2;
+#endif
+    char line[512];
+    while(1){
+        char* got = fgets(line,sizeof line,f);
+        if(!got) break;
+        line_no++;
+        char* p=line; while(*p==' '||*p=='\t') p++;
+        if(*p=='#'||*p=='\n'||!*p) continue;
+        char* eq=strchr(p,'='); if(!eq) continue; *eq='\0';
+        char* speaker=p; char* img=eq+1; /* trim trail */
+        char* nl=strchr(img,'\n'); if(nl) *nl='\0';
+        char* cr=strchr(img,'\r'); if(cr) *cr='\0';
+        /* trim spaces end */ int sl=(int)strlen(speaker); while(sl>0 && (speaker[sl-1]==' '||speaker[sl-1]=='\t')) speaker[--sl]='\0'; while(*img==' '||*img=='\t') img++; int il=(int)strlen(img); while(il>0 && (img[il-1]==' '||img[il-1]=='\t')) img[--il]='\0'; if(*speaker && *img){ if(rogue_dialogue_avatar_register(speaker,img)==0) loaded++; }
+    }
+    fclose(f); return loaded; /* number of avatars loaded */
+}
+
+int rogue_dialogue_style_set(const RogueDialogueStyle* style){ if(!style) return -1; g_style=*style; return 0; }
+const RogueDialogueStyle* rogue_dialogue_style_get(void){ return &g_style; }
+
+/* --- Minimal JSON helpers (non-recursive, tolerant) --- */
+static const char* jd_skip_ws(const char* s){ while(*s==' '||*s=='\n'||*s=='\r'||*s=='\t') ++s; return s; }
+static unsigned int jd_hex_nibble(char c){ if(c>='0'&&c<='9') return (unsigned int)(c-'0'); if(c>='a'&&c<='f') return 10u+(unsigned int)(c-'a'); if(c>='A'&&c<='F') return 10u+(unsigned int)(c-'A'); return 0u; }
+static int jd_parse_color(const char* s, unsigned int* out){ if(!s||!out) return -1; if(s[0]=='#'){ size_t len=strlen(s); if(len==7){ unsigned int v=0; for(int i=1;i<7;i++){ v=(v<<4)|jd_hex_nibble(s[i]); } *out=0xFF000000u|v; return 0; } }
+    else if(s[0]=='0' && (s[1]=='x'||s[1]=='X')){ unsigned int v=0; for(int i=2; s[i] && i<10; ++i){ char c=s[i]; if(!isxdigit((unsigned char)c)) break; v=(v<<4)|jd_hex_nibble(c); } *out=v; return 0; }
+    else { /* decimal */ unsigned int v=0; for(int i=0;s[i];++i){ if(s[i]<'0'||s[i]>'9') break; v = v*10u + (unsigned int)(s[i]-'0'); } *out=v; return 0; }
+    return -1; }
+static int jd_extract_string(const char* json, const char* key, char* out, size_t cap){
+    const char* search = json;
+    size_t key_len = strlen(key);
+    while(1){
+        const char* found = strstr(search, key);
+        if(!found) return -1;
+        search = found + key_len; /* advance for next search if fails */
+        const char* colon = strchr(found, ':');
+        if(!colon) continue;
+        const char* v = jd_skip_ws(colon+1);
+        if(*v!='"') continue;
+        v++;
+        const char* end = strchr(v,'"');
+        if(!end) return -1;
+        size_t len=(size_t)(end-v); if(len>cap-1) len=cap-1;
+        memcpy(out,v,len); out[len]='\0'; return 0;
+    }
+}
+static int jd_extract_int(const char* json, const char* key, int* out){
+    const char* search = json; size_t key_len=strlen(key);
+    while(1){
+        const char* found = strstr(search,key);
+        if(!found) return -1;
+        search = found + key_len;
+        const char* colon = strchr(found, ':'); if(!colon) continue;
+        const char* v = jd_skip_ws(colon+1); int sign=1; if(*v=='-'){ sign=-1; v++; }
+        if(!isdigit((unsigned char)*v)) continue;
+        int val=0; while(isdigit((unsigned char)*v)){ val = val*10 + (*v-'0'); v++; }
+        *out = val*sign; return 0;
+    }
+}
+
+/* Simple file slurp (binary) placed here so JSON loaders can use it */
+static int load_file(const char* path, char** out_buf, int* out_len){
+    FILE* f = NULL;
+#if defined(_MSC_VER)
+    int fopen_result = fopen_s(&f, path, "rb");
+    if(fopen_result!=0 || !f) return -1;
+#else
+    f = fopen(path, "rb");
+    if(!f) return -1;
+#endif
+    if(fseek(f,0,SEEK_END)!=0){ fclose(f); return -2; }
+    long sz = ftell(f); if(sz<0){ fclose(f); return -3; } rewind(f);
+    char* buf=(char*)malloc((size_t)sz+1); if(!buf){ fclose(f); return -4; }
+    size_t rd = fread(buf,1,(size_t)sz,f); fclose(f); buf[rd]='\0'; *out_buf=buf; *out_len=(int)rd; return 0;
+}
+
+int rogue_dialogue_style_load_from_json(const char* path){
+    if(!path) return -1;
+    char* buf=NULL; int len=0; if(load_file(path,&buf,&len)!=0) return -2; buf[len]='\0';
+    RogueDialogueStyle st=g_style; char tmp[128]; unsigned int col; int iv;
+    if(jd_extract_string(buf,"panel_color_top",tmp,sizeof tmp)==0){ if(jd_parse_color(tmp,&col)==0) st.panel_color_top=col; }
+    if(jd_extract_string(buf,"panel_color_bottom",tmp,sizeof tmp)==0){ if(jd_parse_color(tmp,&col)==0) st.panel_color_bottom=col; }
+    if(jd_extract_string(buf,"border_color",tmp,sizeof tmp)==0){ if(jd_parse_color(tmp,&col)==0) st.border_color=col; }
+    if(jd_extract_string(buf,"speaker_color",tmp,sizeof tmp)==0){ if(jd_parse_color(tmp,&col)==0) st.speaker_color=col; }
+    if(jd_extract_string(buf,"text_color",tmp,sizeof tmp)==0){ if(jd_parse_color(tmp,&col)==0) st.text_color=col; }
+    if(jd_extract_string(buf,"text_shadow_color",tmp,sizeof tmp)==0){ if(jd_parse_color(tmp,&col)==0) st.text_shadow_color=col; }
+    if(jd_extract_string(buf,"accent_color",tmp,sizeof tmp)==0){ if(jd_parse_color(tmp,&col)==0) st.accent_color=col; }
+    if(jd_extract_string(buf,"parchment_texture",tmp,sizeof tmp)==0){ if(rogue_texture_load(&g_parchment_tex,tmp)) g_parchment_loaded=1; }
+    if(jd_extract_int(buf,"enable_gradient",&iv)==0) st.enable_gradient=iv;
+    if(jd_extract_int(buf,"enable_text_shadow",&iv)==0) st.enable_text_shadow=iv;
+    if(jd_extract_int(buf,"show_blink_prompt",&iv)==0) st.show_blink_prompt=iv;
+    if(jd_extract_int(buf,"show_caret",&iv)==0) st.show_caret=iv;
+    if(jd_extract_int(buf,"panel_height",&iv)==0) st.panel_height=iv;
+    if(jd_extract_int(buf,"border_thickness",&iv)==0) st.border_thickness=iv;
+    if(jd_extract_int(buf,"use_parchment",&iv)==0) st.use_parchment=iv;
+    if(jd_extract_string(buf,"glow_color",tmp,sizeof tmp)==0){ if(jd_parse_color(tmp,&col)==0) st.glow_color=col; }
+    if(jd_extract_string(buf,"rune_strip_color",tmp,sizeof tmp)==0){ if(jd_parse_color(tmp,&col)==0) st.rune_strip_color=col; }
+    if(jd_extract_int(buf,"glow_strength",&iv)==0) st.glow_strength=iv;
+    if(jd_extract_int(buf,"corner_ornaments",&iv)==0) st.corner_ornaments=iv;
+    if(jd_extract_int(buf,"vignette",&iv)==0) st.vignette=iv;
+    g_style=st; free(buf); return 0; }
+
+int rogue_dialogue_load_script_from_json_file(const char* path){
+    if(!path) return -1; char* buf=NULL; int len=0; if(load_file(path,&buf,&len)!=0) return -2; buf[len]='\0';
+    int script_id=-1; (void)jd_extract_int(buf,"id",&script_id); if(script_id<0){ free(buf); return -3; }
+    char* lines_sec=strstr(buf,"\"lines\""); if(!lines_sec){ free(buf); return -4; }
+    char* arr=strchr(lines_sec,'['); if(!arr){ free(buf); return -5; }
+    char* arr_end=strchr(arr,']'); if(!arr_end){ free(buf); return -6; }
+    char temp[16384]; size_t out=0; char* cursor=arr;
+    while(cursor < arr_end){ char* obj=strchr(cursor,'{'); if(!obj||obj>=arr_end) break; char* obj_end=strchr(obj,'}'); if(!obj_end||obj_end>arr_end) break; char obj_copy[1024]; size_t olen=(size_t)(obj_end-obj+1); if(olen>sizeof obj_copy -1) olen=sizeof obj_copy -1; memcpy(obj_copy,obj,olen); obj_copy[olen]='\0'; char speaker[64]="", textv[512]="", avatar[256]=""; jd_extract_string(obj_copy,"speaker",speaker,sizeof speaker); jd_extract_string(obj_copy,"text",textv,sizeof textv); jd_extract_string(obj_copy,"avatar",avatar,sizeof avatar); if(speaker[0] && textv[0]){ int n; if(avatar[0]) n=snprintf(temp+out,sizeof(temp)-out,"%s%s@%s|%s\n", out?"":"", speaker, avatar, textv); else n=snprintf(temp+out,sizeof(temp)-out,"%s%s|%s\n", out?"":"", speaker, textv); if(n>0) out += (size_t)n; }
+        cursor = obj_end+1; }
+    int r = (out>0)? rogue_dialogue_register_from_buffer(script_id,temp,(int)out):-7; free(buf); return r; }
 
 /* Phase 5 Localization Storage */
 typedef struct RogueLocEntry { char locale[8]; char key[64]; char value[256]; } RogueLocEntry;
@@ -191,20 +312,6 @@ static int parse_and_register(int id, const char* buffer, int length){
 
 int rogue_dialogue_register_from_buffer(int id, const char* buffer, int length){
     if(!buffer || length<=0) return -1; return parse_and_register(id, buffer, length);
-}
-
-/* Simple file slurp (binary) */
-static int load_file(const char* path, char** out_buf, int* out_len){
-    FILE* f = NULL;
-#if defined(_MSC_VER)
-    if(fopen_s(&f, path, "rb")!=0 || !f) return -1;
-#else
-    f = fopen(path, "rb"); if(!f) return -1;
-#endif
-    if(fseek(f,0,SEEK_END)!=0){ fclose(f); return -2; }
-    long sz = ftell(f); if(sz<0){ fclose(f); return -3; } rewind(f);
-    char* buf=(char*)malloc((size_t)sz+1); if(!buf){ fclose(f); return -4; }
-    size_t rd = fread(buf,1,(size_t)sz,f); fclose(f); buf[rd]='\0'; *out_buf=buf; *out_len=(int)rd; return 0;
 }
 
 int rogue_dialogue_load_script_from_file(int id, const char* path){
@@ -332,23 +439,53 @@ void rogue_dialogue_render_runtime(void){
     char temp_tw[512]; const char* draw_text = full_text;
     if(g_typewriter_enabled){ size_t full_len=strlen(full_text); float shown_chars = g_playback.reveal_ms * g_chars_per_ms; size_t shown=(size_t)(shown_chars+0.5f); if(shown>full_len) shown=full_len; memcpy(temp_tw,full_text,shown); temp_tw[shown]='\0'; draw_text=temp_tw; }
     extern struct RogueAppState g_app; int vw = g_app.viewport_w>0? g_app.viewport_w:1280; int vh = g_app.viewport_h>0? g_app.viewport_h:720;
-    int panel_w = (vw<700)? vw-20 : 640; int panel_h = 160; int x = (vw-panel_w)/2; int y = vh - panel_h - 24;
-    SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, 30,30,30,215); SDL_Rect bg={x,y,panel_w,panel_h}; SDL_RenderFillRect(g_internal_sdl_renderer_ref,&bg);
-    SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, 95,95,140,255); SDL_Rect top={x,y,panel_w,2}; SDL_RenderFillRect(g_internal_sdl_renderer_ref,&top);
+    int panel_w = (vw<700)? vw-20 : 680; int panel_h = g_style.panel_height>0? g_style.panel_height : 180; int x = (vw-panel_w)/2; int y = vh - panel_h - 30;
+    /* Gradient background */
+    if(g_style.use_parchment && g_parchment_loaded && g_parchment_tex.handle){ /* draw parchment texture tiled */
+        int tiles_x = panel_w / g_parchment_tex.w + 1; int tiles_y = panel_h / g_parchment_tex.h + 1; SDL_Rect dst; for(int ty=0; ty<tiles_y; ++ty){ for(int tx=0; tx<tiles_x; ++tx){ dst.x = x + tx * g_parchment_tex.w; dst.y = y + ty * g_parchment_tex.h; dst.w = g_parchment_tex.w; dst.h = g_parchment_tex.h; SDL_RenderCopy(g_internal_sdl_renderer_ref, g_parchment_tex.handle, NULL, &dst); }}
+    } else if(g_style.enable_gradient){
+        unsigned int c0=g_style.panel_color_top, c1=g_style.panel_color_bottom;
+        unsigned char r0=(unsigned char)((c0>>16)&0xFF), g0=(unsigned char)((c0>>8)&0xFF), b0=(unsigned char)(c0&0xFF), a0=(unsigned char)((c0>>24)&0xFF);
+        unsigned char r1=(unsigned char)((c1>>16)&0xFF), g1=(unsigned char)((c1>>8)&0xFF), b1=(unsigned char)(c1&0xFF), a1=(unsigned char)((c1>>24)&0xFF);
+        for(int row=0; row<panel_h; ++row){
+            float t = (panel_h>1)? (float)row/(float)(panel_h-1) : 0.0f;
+            int ri = (int)(r0 + (r1 - r0) * t + 0.5f);
+            int gi = (int)(g0 + (g1 - g0) * t + 0.5f);
+            int bi = (int)(b0 + (b1 - b0) * t + 0.5f);
+            int ai = (int)(a0 + (a1 - a0) * t + 0.5f);
+            if(ri<0)ri=0; if(ri>255)ri=255; if(gi<0)gi=0; if(gi>255)gi=255; if(bi<0)bi=0; if(bi>255)bi=255; if(ai<0)ai=0; if(ai>255)ai=255;
+            SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,(Uint8)ri,(Uint8)gi,(Uint8)bi,(Uint8)ai);
+            SDL_RenderDrawLine(g_internal_sdl_renderer_ref,x,y+row,x+panel_w-1,y+row);
+        }
+    } else { unsigned int c=g_style.panel_color_top; SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, (c>>16)&255,(c>>8)&255,c&255,(c>>24)&255); SDL_Rect bg={x,y,panel_w,panel_h}; SDL_RenderFillRect(g_internal_sdl_renderer_ref,&bg);}    
+    /* Border */
+    unsigned int bc=g_style.border_color; SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,(bc>>16)&255,(bc>>8)&255,bc&255,(bc>>24)&255); SDL_Rect br={x,y,panel_w,panel_h}; int bt = g_style.border_thickness<1?1:g_style.border_thickness; for(int i=0;i<bt;i++){ SDL_Rect r2={br.x+i,br.y+i,br.w-2*i,br.h-2*i}; SDL_RenderDrawRect(g_internal_sdl_renderer_ref,&r2);} unsigned int acc=g_style.accent_color; SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,(acc>>16)&255,(acc>>8)&255,acc&255,(acc>>24)&255); SDL_RenderDrawLine(g_internal_sdl_renderer_ref,x+8,y+28,x+panel_w-8,y+28);
+    /* Glow (simple expanding translucent border) */
+    if(g_style.glow_strength>0){ unsigned int gc=g_style.glow_color; int layers=g_style.glow_strength; for(int i=1;i<=layers;i++){ Uint8 a=(Uint8)(((gc>>24)&255)/(i+1)); SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,(gc>>16)&255,(gc>>8)&255,gc&255,a); SDL_Rect gr={br.x-i,br.y-i,br.w+2*i,br.h+2*i}; SDL_RenderDrawRect(g_internal_sdl_renderer_ref,&gr);} }
+    /* Rune strip overlay across top */
+    if(g_style.rune_strip_color>>24){ unsigned int rc=g_style.rune_strip_color; SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,(rc>>16)&255,(rc>>8)&255,rc&255,(rc>>24)&255); SDL_Rect rr={x+10,y+4,panel_w-20,16}; SDL_RenderDrawRect(g_internal_sdl_renderer_ref,&rr); }
+    /* Corner ornaments placeholder (simple small filled squares for now) */
+    if(g_style.corner_ornaments){ unsigned int oc=g_style.accent_color; SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,(oc>>16)&255,(oc>>8)&255,oc&255,(oc>>24)&255); SDL_Rect o1={x+4,y+4,8,8}; SDL_Rect o2={x+panel_w-12,y+4,8,8}; SDL_Rect o3={x+4,y+panel_h-12,8,8}; SDL_Rect o4={x+panel_w-12,y+panel_h-12,8,8}; SDL_RenderFillRect(g_internal_sdl_renderer_ref,&o1); SDL_RenderFillRect(g_internal_sdl_renderer_ref,&o2); SDL_RenderFillRect(g_internal_sdl_renderer_ref,&o3); SDL_RenderFillRect(g_internal_sdl_renderer_ref,&o4);}    
+    /* Vignette darkening inside edges */
+    if(g_style.vignette){ for(int i=0;i<12 && i<panel_w/2 && i<panel_h/2;i++){ Uint8 alpha=(Uint8)(8); SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,0,0,0,alpha); SDL_Rect vrect={x+i,y+i,panel_w-2*i,panel_h-2*i}; SDL_RenderDrawRect(g_internal_sdl_renderer_ref,&vrect);} }
     int text_left = x+14;
     RogueTexture* av = rogue_dialogue_avatar_get(ln->speaker_id);
-    if(av && av->handle){ int aw=av->w, ah=av->h; int max_h=panel_h-30; float scale=1.0f; if(ah>max_h) scale=(float)max_h/(float)ah; int dw=(int)(aw*scale); int dh=(int)(ah*scale); SDL_Rect dst={x+10,y+panel_h-dh-10,dw,dh}; SDL_RenderCopy(g_internal_sdl_renderer_ref,av->handle,NULL,&dst); text_left += dw + 16; }
-    rogue_font_draw_text(text_left, y+10, ln->speaker_id?ln->speaker_id:"?",1,(RogueColor){255,220,140,255});
+    if(av && av->handle){ int aw=av->w, ah=av->h; int max_h=panel_h-40; float scale=1.0f; if(ah>max_h) scale=(float)max_h/(float)ah; int dw=(int)(aw*scale); int dh=(int)(ah*scale); SDL_Rect dst={x+12,y+panel_h-dh-12,dw,dh}; SDL_RenderCopy(g_internal_sdl_renderer_ref,av->handle,NULL,&dst); text_left += dw + 20; }
+    unsigned int sc_col=g_style.speaker_color; rogue_font_draw_text(text_left, y+10, ln->speaker_id?ln->speaker_id:"?",1,(RogueColor){(sc_col>>16)&255,(sc_col>>8)&255,sc_col&255,(sc_col>>24)&255});
     /* Word wrapping with fixed glyph width assumption (6px) */
     int interior_w = (x + panel_w - 14) - text_left; if(interior_w<40) interior_w=40; int char_w=6; int max_chars_line = interior_w / char_w; if(max_chars_line<8) max_chars_line=8;
     const char* p = draw_text; char linebuf[256]; int line_chars=0; int line_idx=0; int base_y = y+38; int max_lines=4;
-    while(*p && line_idx < max_lines){ while(*p==' ') p++; if(!*p) break; const char* word=p; int wlen=0; while(word[wlen] && word[wlen] != ' ' && word[wlen] != '\n') wlen++; int needed = (line_chars==0?0:1) + wlen; if(line_chars>0 && needed + line_chars > max_chars_line){ linebuf[line_chars]='\0'; rogue_font_draw_text(text_left, base_y + line_idx*20, linebuf,1,(RogueColor){255,255,255,255}); line_idx++; line_chars=0; if(line_idx>=max_lines) break; }
+    unsigned int text_col=g_style.text_color; unsigned int sh_col=g_style.text_shadow_color; int draw_shadow=g_style.enable_text_shadow && (sh_col>>24)!=0;
+    while(*p && line_idx < max_lines){ while(*p==' ') p++; if(!*p) break; const char* word=p; int wlen=0; while(word[wlen] && word[wlen] != ' ' && word[wlen] != '\n') wlen++; int needed = (line_chars==0?0:1) + wlen; if(line_chars>0 && needed + line_chars > max_chars_line){ linebuf[line_chars]='\0'; if(draw_shadow) rogue_font_draw_text(text_left+1, base_y + line_idx*20+1, linebuf,1,(RogueColor){(sh_col>>16)&255,(sh_col>>8)&255,sh_col&255,(sh_col>>24)&255}); rogue_font_draw_text(text_left, base_y + line_idx*20, linebuf,1,(RogueColor){(text_col>>16)&255,(text_col>>8)&255,text_col&255,(text_col>>24)&255}); line_idx++; line_chars=0; if(line_idx>=max_lines) break; }
         if(line_chars==0){ int copy=wlen; if(copy> (int)sizeof(linebuf)-1) copy=(int)sizeof(linebuf)-1; memcpy(linebuf, word, copy); line_chars=copy; linebuf[line_chars]='\0'; }
         else { if(line_chars+1 < (int)sizeof(linebuf)-1){ linebuf[line_chars++]=' '; } int copy=wlen; if(line_chars+copy > (int)sizeof(linebuf)-1) copy=(int)sizeof(linebuf)-1 - line_chars; if(copy>0){ memcpy(linebuf+line_chars, word, copy); line_chars+=copy; linebuf[line_chars]='\0'; } }
-        p += wlen; if(*p=='\n'){ linebuf[line_chars]='\0'; rogue_font_draw_text(text_left, base_y + line_idx*20, linebuf,1,(RogueColor){255,255,255,255}); line_idx++; line_chars=0; p++; }
+        p += wlen; if(*p=='\n'){ linebuf[line_chars]='\0'; if(draw_shadow) rogue_font_draw_text(text_left+1, base_y + line_idx*20+1, linebuf,1,(RogueColor){(sh_col>>16)&255,(sh_col>>8)&255,sh_col&255,(sh_col>>24)&255}); rogue_font_draw_text(text_left, base_y + line_idx*20, linebuf,1,(RogueColor){(text_col>>16)&255,(text_col>>8)&255,text_col&255,(text_col>>24)&255}); line_idx++; line_chars=0; p++; }
     }
-    if(line_chars>0 && line_idx<max_lines){ linebuf[line_chars]='\0'; rogue_font_draw_text(text_left, base_y + line_idx*20, linebuf,1,(RogueColor){255,255,255,255}); }
-    rogue_font_draw_text(x+panel_w-90,y+panel_h-24, "[E]",1,(RogueColor){190,190,190,255});
+    if(line_chars>0 && line_idx<max_lines){ linebuf[line_chars]='\0'; if(draw_shadow) rogue_font_draw_text(text_left+1, base_y + line_idx*20+1, linebuf,1,(RogueColor){(sh_col>>16)&255,(sh_col>>8)&255,sh_col&255,(sh_col>>24)&255}); rogue_font_draw_text(text_left, base_y + line_idx*20, linebuf,1,(RogueColor){(text_col>>16)&255,(text_col>>8)&255,text_col&255,(text_col>>24)&255}); }
+    /* Typewriter caret */
+    if(g_typewriter_enabled){ size_t full_len=strlen(full_text); float shown_chars = g_playback.reveal_ms * g_chars_per_ms; if(shown_chars < (float)full_len && g_style.show_caret){ int caret_phase = ((int)g_playback.reveal_ms/150)%2; if(caret_phase==0){ int cx = text_left + ((int)shown_chars % max_chars_line)*char_w; int cy = base_y + (line_idx<max_lines? line_idx: (max_lines-1))*20; SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,255,255,255,200); SDL_Rect crr={cx,cy,6,2}; SDL_RenderFillRect(g_internal_sdl_renderer_ref,&crr);} }}
+    /* Advance prompt blinking */
+    if(g_style.show_blink_prompt){ extern struct RogueAppState g_app; int phase = ((int)g_app.game_time_ms/400)%2; if(phase==0){ rogue_font_draw_text(x+panel_w-70,y+panel_h-24, "[E]",1,(RogueColor){200,200,200,255}); }} else { rogue_font_draw_text(x+panel_w-70,y+panel_h-24, "[E]",1,(RogueColor){190,190,190,255}); }
 #endif
 }
 

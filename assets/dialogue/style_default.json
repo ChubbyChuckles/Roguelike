@@ -1,0 +1,22 @@
+{
+  "panel_color_top": "#2A2318",
+  "panel_color_bottom": "#1C1812",
+  "border_color": "#E3C27A",
+  "speaker_color": "#FFE6A0",
+  "text_color": "#FFF8E1",
+  "text_shadow_color": "#80000000",
+  "accent_color": "#C89B3C",
+  "enable_gradient": 1,
+  "enable_text_shadow": 1,
+  "show_blink_prompt": 1,
+  "show_caret": 1,
+  "panel_height": 220,
+  "border_thickness": 3,
+  "use_parchment": 1,
+  "parchment_texture": "assets/ui/parchment.png",
+  "glow_color": "0x40FFD580",
+  "rune_strip_color": "0x30D4B870",
+  "glow_strength": 3,
+  "corner_ornaments": 1,
+  "vignette": 1
+}

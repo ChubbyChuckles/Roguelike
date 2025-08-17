@@ -1,4 +1,5 @@
 Dialogue: Fix character rendering (lowercase mapping + robust wrapping) and add avatar support (speaker@image syntax + registry + runtime panel display).
+Dialogue: Add style/theming system (gradient, shadow, blinking prompt, caret) and avatar config file loader + external mapping API.
 Dialogue System Phase 7: Analytics & Runtime UI Fixes
 
 Summary:

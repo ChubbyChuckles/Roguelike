@@ -133,6 +133,41 @@ int rogue_dialogue_avatar_register(const char* speaker_id, const char* image_pat
 void rogue_dialogue_avatar_reset(void);
 /* Internal: fetch avatar texture (NULL if none). */
 struct RogueTexture* rogue_dialogue_avatar_get(const char* speaker_id);
+/* Load avatar mappings from a simple config file (lines: Speaker=path/to/image.png). */
+int rogue_dialogue_load_avatars_from_file(const char* path);
+
+/* Style configuration (simple theming) */
+typedef struct RogueDialogueStyle {
+    unsigned int panel_color_top;    /* ARGB */
+    unsigned int panel_color_bottom; /* ARGB (gradient target) */
+    unsigned int border_color;       /* ARGB */
+    unsigned int speaker_color;      /* ARGB */
+    unsigned int text_color;         /* ARGB */
+    unsigned int text_shadow_color;  /* ARGB (if 0 -> disabled) */
+    int enable_gradient;             /* 1 for vertical gradient */
+    int enable_text_shadow;          /* 1 draw shadow */
+    int show_blink_prompt;           /* 1 show blinking advance prompt */
+    int show_caret;                  /* 1 show typewriter caret when revealing */
+    int panel_height;                /* override height (0 => auto) */
+    unsigned int accent_color;       /* ARGB ornamental accent (medieval) */
+    int border_thickness;            /* >=1 */
+    int use_parchment;               /* draw parchment texture if available */
+    /* Creative extensions */
+    unsigned int glow_color;         /* additive glow around panel */
+    unsigned int rune_strip_color;   /* translucent rune strip overlay */
+    int glow_strength;               /* 0 disable, higher => thicker */
+    int corner_ornaments;            /* 1 draw corner ornament sprites */
+    int vignette;                    /* 1 darken edges inside panel */
+} RogueDialogueStyle;
+
+/* Set style (copies struct). NULL pointer leaves unchanged. Returns 0 on success. */
+int rogue_dialogue_style_set(const RogueDialogueStyle* style);
+/* Get active style (returns pointer to internal static style). */
+const RogueDialogueStyle* rogue_dialogue_style_get(void);
+
+/* JSON helpers */
+int rogue_dialogue_style_load_from_json(const char* path); /* returns 0 on success */
+int rogue_dialogue_load_script_from_json_file(const char* path); /* returns 0 on success */
 
 #ifdef __cplusplus
 }

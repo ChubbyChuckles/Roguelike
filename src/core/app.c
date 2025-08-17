@@ -25,6 +25,7 @@ SOFTWARE.
 #include "core/app_state.h"
 #include "core/game_loop.h"
 #include "util/log.h"
+#include "core/dialogue.h"
 #include "graphics/font.h"
 #include "world/world_gen.h"
 #include "world/world_gen_config.h"
@@ -267,6 +268,9 @@ bool rogue_app_init(const RogueAppConfig* cfg)
         } else { ROGUE_LOG_WARN("Could not determine CWD"); }
 #endif
     }
+    /* Dialogue: load default style + sample script (non-fatal on failure) */
+    if(rogue_dialogue_style_load_from_json("assets/dialogue/style_default.json")!=0){ ROGUE_LOG_WARN("Dialogue style JSON not loaded"); }
+    if(rogue_dialogue_load_script_from_json_file("assets/dialogue/script_intro.json")!=0){ ROGUE_LOG_WARN("Sample dialogue script not loaded"); } else { ROGUE_LOG_INFO("Sample dialogue script loaded (id=100)"); }
     return true;
 }
 
