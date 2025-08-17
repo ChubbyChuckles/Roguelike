@@ -4,6 +4,7 @@
 #include "core/loot_item_defs.h"
 #include "core/loot_instances.h"
 #include "core/loot_affixes.h"
+#include "core/loot_perf.h"
 #include "core/metrics.h"
 #include <string.h>
 
@@ -74,8 +75,10 @@ int rogue_generate_item(int loot_table_index, const RogueGenerationContext* ctx,
             const RogueItemDef* base_def = rogue_item_def_at(out->def_index);
             int want_prefix=0,want_suffix=0; if(rarity>=2){ if(rarity>=3){ want_prefix=1; want_suffix=1; } else { want_prefix = ((affix_seed)&1)==0; want_suffix = !want_prefix; } }
             int prefix_index=-1,suffix_index=-1; int prefix_value=0,suffix_value=0;
+            if(want_prefix || want_suffix){ rogue_loot_perf_affix_roll_begin(); }
             if(want_prefix){ prefix_index = gated_affix_roll(ROGUE_AFFIX_PREFIX, rarity, &affix_seed, base_def, -1, -1); if(prefix_index>=0){ float qscalar=g_quality_scalar_min; if(ctx){ float luck=(float)ctx->player_luck; float t = luck / (5.0f + luck); qscalar = g_quality_scalar_min + (g_quality_scalar_max - g_quality_scalar_min)*t; } prefix_value = rogue_affix_roll_value_scaled(prefix_index,&affix_seed,qscalar); }}
             if(want_suffix){ suffix_index = gated_affix_roll(ROGUE_AFFIX_SUFFIX, rarity, &affix_seed, base_def, prefix_index, -1); if(suffix_index>=0){ float qscalar=g_quality_scalar_min; if(ctx){ float luck=(float)ctx->player_luck; float t = luck / (5.0f + luck); qscalar = g_quality_scalar_min + (g_quality_scalar_max - g_quality_scalar_min)*t; } suffix_value = rogue_affix_roll_value_scaled(suffix_index,&affix_seed,qscalar); }}
+            if(want_prefix || want_suffix){ rogue_loot_perf_affix_roll_end(); }
             it->rarity = rarity; it->prefix_index=prefix_index; it->prefix_value=prefix_value; it->suffix_index=suffix_index; it->suffix_value=suffix_value;
             /* Record session drop metrics */
             rogue_metrics_record_drop(rarity);

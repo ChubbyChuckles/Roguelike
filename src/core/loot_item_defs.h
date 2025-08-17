@@ -46,5 +46,8 @@ int rogue_item_defs_count(void);
 void rogue_item_defs_reset(void);
 /* Internal convenience: get pointer by index (returns NULL if OOB) */
 const RogueItemDef* rogue_item_def_at(int index);
+/* Phase 17.4: Cache-friendly fast index lookups via open-addressed hash built post-load */
+int rogue_item_defs_build_index(void); /* rebuilds hash index (call after bulk load); returns 0 on success */
+int rogue_item_def_index_fast(const char* id); /* O(1) average hash lookup; falls back to linear if hash not built */
 
 #endif

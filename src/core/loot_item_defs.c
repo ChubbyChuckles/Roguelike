@@ -9,6 +9,17 @@
 
 static RogueItemDef g_item_defs[ROGUE_ITEM_DEF_CAP];
 static int g_item_def_count = 0;
+/* Phase 17.4: open-address hash index (power-of-two sized) for cache-friendly id->index lookup */
+static int g_hash_cap = 0; /* number of slots */
+static int* g_hash_slots = NULL; /* -1 empty, -2 tombstone (unused) or index into g_item_defs */
+
+static unsigned int hash_str(const char* s){ unsigned int h=2166136261u; while(*s){ unsigned char c=(unsigned char)*s++; h ^= c; h *= 16777619u; } return h; }
+
+int rogue_item_defs_build_index(void){ if(g_hash_slots){ free(g_hash_slots); g_hash_slots=NULL; g_hash_cap=0; }
+    if(g_item_def_count==0) return 0; int target = 1; while(target < g_item_def_count*2) target <<=1; g_hash_cap = target; g_hash_slots=(int*)malloc(sizeof(int)*g_hash_cap); if(!g_hash_slots){ g_hash_cap=0; return -1; } for(int i=0;i<g_hash_cap;i++) g_hash_slots[i]=-1; for(int i=0;i<g_item_def_count;i++){ unsigned int h=hash_str(g_item_defs[i].id); int mask=g_hash_cap-1; int pos=(int)(h & mask); int probes=0; while(g_hash_slots[pos]>=0){ pos=(pos+1)&mask; if(++probes>g_hash_cap){ return -2; } } g_hash_slots[pos]=i; }
+    return 0; }
+
+int rogue_item_def_index_fast(const char* id){ if(!id) return -1; if(!g_hash_slots || g_hash_cap==0) return rogue_item_def_index(id); unsigned int h=hash_str(id); int mask=g_hash_cap-1; int pos=(int)(h & mask); int probes=0; while(probes<g_hash_cap){ int v=g_hash_slots[pos]; if(v==-1) return -1; if(v>=0){ if(strcmp(g_item_defs[v].id,id)==0) return v; } pos=(pos+1)&mask; probes++; } return -1; }
 
 void rogue_item_defs_reset(void){ g_item_def_count = 0; }
 int rogue_item_defs_count(void){ return g_item_def_count; }
@@ -73,6 +84,8 @@ int rogue_item_defs_load_from_cfg(const char* path){
         g_item_defs[g_item_def_count++] = d; added++;
     }
     fclose(f);
+    /* Rebuild hash index after each file load to keep fast path current (cost acceptable for small counts) */
+    rogue_item_defs_build_index();
     return added;
 }
 
@@ -92,5 +105,6 @@ int rogue_item_defs_load_directory(const char* dir_path){
         int added = rogue_item_defs_load_from_cfg(path);
         if(added>0) total += (g_item_def_count - before); /* ensure we count only actually added lines */
     }
+    rogue_item_defs_build_index();
     return total;
 }

@@ -142,9 +142,9 @@ X = Not started yet
 17. Performance & Memory Optimizations (In Implementation)
 17.1 Object pooling for affix roll scratch buffers (Done: fixed-cap weight scratch pool with acquire/release metrics + max in-use tracking)
 17.2 SIMD batch evaluation for weight normalization (Done: SSE2 sum path with scalar fallback, metrics counters)
-17.3 Profiling harness (hot loops in roll) (Partial: perf metrics struct + counters; full timing harness pending)
-17.4 Cache-friendly item def indexing (X)
-17.5 Incremental serialization (dirty set only) (X)
+17.3 Profiling harness (hot loops in roll) (Done: high-resolution timers around affix roll + weight summations; nanosecond aggregates exposed)
+17.4 Cache-friendly item def indexing (Done: open-addressed FNV1a hash index + fast lookup API, unit test)
+17.5 Incremental serialization (dirty set only) (In Implementation: core incremental save w/ dirty mask already present; remaining work: per-item diff granularity & selective inventory record emission)
 
 18. Analytics & Telemetry (Optional) (Pending)
 18.1 Drop event ring buffer (X)
