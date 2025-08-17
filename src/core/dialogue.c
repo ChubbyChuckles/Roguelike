@@ -244,7 +244,11 @@ int rogue_dialogue_load_script_from_json_file(const char* path){
                                 if(mood[0]) rd_validate_mood(mood);
                                 lines_total++;
                                 if(!(speaker[0]&&textv[0])){ lines_skipped++; if(rd_debug_enabled()) ROGUE_LOG_WARN("Dialogue script %d skip line %d (missing speaker/text)", sid, line_idx); lc=lobj_end+1; line_idx++; continue; }
-                                char avatar_path[256]=""; if(race[0]&&name[0]&&mood[0]) snprintf(avatar_path,sizeof avatar_path,"../assets/avatar_icons/%s/%s/%s.png",race,name,mood);
+                                char avatar_path[256]="";
+                                if(race[0]&&name[0]&&mood[0]) {
+                                    /* Path scheme: assets/avatar_icons/<race>/<name>_<mood>.png (replaces older nested mood folder). */
+                                    snprintf(avatar_path,sizeof avatar_path,"../assets/avatar_icons/%s/%s_%s.png",race,name,mood);
+                                }
                                 int sflag=(strcmp(side,"right")==0); int vflag=(mirror[0]=='v'||mirror[0]=='V'); unsigned int tint=rd_mood_tint(mood);
                                 char meta[320]; if(avatar_path[0]) snprintf(meta,sizeof meta,"%s;S=%d;V=%d;TR=%u;TG=%u;TB=%u",avatar_path,sflag,vflag,(tint>>16)&255,(tint>>8)&255,tint&255); else meta[0]='\0';
                                 int n = avatar_path[0]? snprintf(temp+out,sizeof(temp)-out,"%s%s@%s|%s\n",out?"":"",speaker,meta,textv):snprintf(temp+out,sizeof(temp)-out,"%s%s|%s\n",out?"":"",speaker,textv);
@@ -267,7 +271,7 @@ int rogue_dialogue_load_script_from_json_file(const char* path){
     char* lines_sec=strstr(buf,"\"lines\""); if(!lines_sec){ free(buf); return -7; }
     char* arr=strchr(lines_sec,'['); if(!arr){ free(buf); return -8; }
     char* arr_end=strchr(arr,']'); if(!arr_end){ free(buf); return -9; }
-    char temp[20000]; size_t out=0; char* cursor=arr; int line_idx=0; while(cursor<arr_end){ char* obj=strchr(cursor,'{'); if(!obj||obj>=arr_end) break; char* obj_end=strchr(obj,'}'); if(!obj_end||obj_end>arr_end) break; char oc[1024]; size_t olen=(size_t)(obj_end-obj+1); if(olen>sizeof oc -1) olen=sizeof oc -1; memcpy(oc,obj,olen); oc[olen]='\0'; char speaker[64]="",textv[512]=""; char race[64]="",name[64]="",mood[64]=""; char side[16]="",mirror[16]=""; jd_extract_string(oc,"speaker",speaker,sizeof speaker); jd_extract_string(oc,"text",textv,sizeof textv); jd_extract_string(oc,"race",race,sizeof race); jd_extract_string(oc,"name",name,sizeof name); jd_extract_string(oc,"mood",mood,sizeof mood); jd_extract_string(oc,"side",side,sizeof side); jd_extract_string(oc,"mirror",mirror,sizeof mirror); if(mood[0]) rd_validate_mood(mood); lines_total++; if(!(speaker[0]&&textv[0])){ lines_skipped++; if(rd_debug_enabled()) ROGUE_LOG_WARN("Dialogue single skip line %d (missing speaker/text)", line_idx); cursor=obj_end+1; line_idx++; continue; } char avatar_path[256]=""; if(race[0]&&name[0]&&mood[0]) snprintf(avatar_path,sizeof avatar_path,"../assets/avatar_icons/%s/%s/%s.png",race,name,mood); int sflag=(strcmp(side,"right")==0); int vflag=(mirror[0]=='v'||mirror[0]=='V'); unsigned int tint=rd_mood_tint(mood); char meta[320]; if(avatar_path[0]) snprintf(meta,sizeof meta,"%s;S=%d;V=%d;TR=%u;TG=%u;TB=%u",avatar_path,sflag,vflag,(tint>>16)&255,(tint>>8)&255,tint&255); else meta[0]='\0'; int n= avatar_path[0]? snprintf(temp+out,sizeof(temp)-out,"%s%s@%s|%s\n",out?"":"",speaker,meta,textv):snprintf(temp+out,sizeof(temp)-out,"%s%s|%s\n",out?"":"",speaker,textv); if(n>0){ out+=(size_t)n; lines_kept++; if(rd_debug_enabled()) ROGUE_LOG_INFO("Dialogue single keep line %d speaker='%s' text_len=%zu", line_idx, speaker, strlen(textv)); } else { lines_skipped++; } cursor=obj_end+1; line_idx++; }
+    char temp[20000]; size_t out=0; char* cursor=arr; int line_idx=0; while(cursor<arr_end){ char* obj=strchr(cursor,'{'); if(!obj||obj>=arr_end) break; char* obj_end=strchr(obj,'}'); if(!obj_end||obj_end>arr_end) break; char oc[1024]; size_t olen=(size_t)(obj_end-obj+1); if(olen>sizeof oc -1) olen=sizeof oc -1; memcpy(oc,obj,olen); oc[olen]='\0'; char speaker[64]="",textv[512]=""; char race[64]="",name[64]="",mood[64]=""; char side[16]="",mirror[16]=""; jd_extract_string(oc,"speaker",speaker,sizeof speaker); jd_extract_string(oc,"text",textv,sizeof textv); jd_extract_string(oc,"race",race,sizeof race); jd_extract_string(oc,"name",name,sizeof name); jd_extract_string(oc,"mood",mood,sizeof mood); jd_extract_string(oc,"side",side,sizeof side); jd_extract_string(oc,"mirror",mirror,sizeof mirror); if(mood[0]) rd_validate_mood(mood); lines_total++; if(!(speaker[0]&&textv[0])){ lines_skipped++; if(rd_debug_enabled()) ROGUE_LOG_WARN("Dialogue single skip line %d (missing speaker/text)", line_idx); cursor=obj_end+1; line_idx++; continue; } char avatar_path[256]=""; if(race[0]&&name[0]&&mood[0]) { snprintf(avatar_path,sizeof avatar_path,"../assets/avatar_icons/%s/%s_%s.png",race,name,mood); } int sflag=(strcmp(side,"right")==0); int vflag=(mirror[0]=='v'||mirror[0]=='V'); unsigned int tint=rd_mood_tint(mood); char meta[320]; if(avatar_path[0]) snprintf(meta,sizeof meta,"%s;S=%d;V=%d;TR=%u;TG=%u;TB=%u",avatar_path,sflag,vflag,(tint>>16)&255,(tint>>8)&255,tint&255); else meta[0]='\0'; int n= avatar_path[0]? snprintf(temp+out,sizeof(temp)-out,"%s%s@%s|%s\n",out?"":"",speaker,meta,textv):snprintf(temp+out,sizeof(temp)-out,"%s%s|%s\n",out?"":"",speaker,textv); if(n>0){ out+=(size_t)n; lines_kept++; if(rd_debug_enabled()) ROGUE_LOG_INFO("Dialogue single keep line %d speaker='%s' text_len=%zu", line_idx, speaker, strlen(textv)); } else { lines_skipped++; } cursor=obj_end+1; line_idx++; }
     int r=(out>0)?rogue_dialogue_register_from_buffer(script_id,temp,(int)out):-10; if(rd_debug_enabled()) ROGUE_LOG_INFO("Dialogue single summary id=%d status=%d lines_total=%d kept=%d skipped=%d", script_id, r, lines_total, lines_kept, lines_skipped); free(buf); return r; }
 
 /* Phase 5 Localization Storage */
@@ -520,7 +524,20 @@ void rogue_dialogue_render_runtime(void){
     char temp_tw[512]; const char* draw_text = full_text;
     if(g_typewriter_enabled){ size_t full_len=strlen(full_text); float shown_chars = g_playback.reveal_ms * g_chars_per_ms; size_t shown=(size_t)(shown_chars+0.5f); if(shown>full_len) shown=full_len; memcpy(temp_tw,full_text,shown); temp_tw[shown]='\0'; draw_text=temp_tw; }
     extern struct RogueAppState g_app; int vw = g_app.viewport_w>0? g_app.viewport_w:1280; int vh = g_app.viewport_h>0? g_app.viewport_h:720;
-    int panel_w = (vw<700)? vw-20 : 680; int panel_h = g_style.panel_height>0? g_style.panel_height : 180; int x = (vw-panel_w)/2; int y = vh - panel_h - 30;
+    /* --- Dynamic panel sizing to accommodate large avatars (up to 154x320) --- */
+    enum { ROGUE_AVATAR_MAX_W = 154, ROGUE_AVATAR_MAX_H = 320 }; /* logical display caps */
+    int panel_w = (vw<700)? vw-20 : 680; int panel_h = g_style.panel_height>0? g_style.panel_height : 180;
+    /* Peek avatar now to allow panel enlargement before drawing background */
+    RogueTexture* av_peek = rogue_dialogue_avatar_get(ln->speaker_id);
+    int avatar_display_h = 0;
+    if(av_peek && av_peek->handle){
+        int raw_h = av_peek->h; if(raw_h > ROGUE_AVATAR_MAX_H) raw_h = ROGUE_AVATAR_MAX_H; avatar_display_h = raw_h; /* no scale yet; panel height decides scaling */
+        int needed_panel_h = avatar_display_h + 40; /* 20px top + 20px bottom padding approx */
+        if(needed_panel_h > panel_h) panel_h = needed_panel_h;
+        /* Keep panel from covering excessive screen (cap at ~60% viewport height) */
+        int max_panel_h = (int)(vh * 0.60f); if(panel_h > max_panel_h){ panel_h = max_panel_h; if(avatar_display_h > panel_h - 40) avatar_display_h = panel_h - 40; }
+    }
+    int x = (vw-panel_w)/2; int y = vh - panel_h - 30;
     /* Gradient background */
     if(g_style.use_parchment && g_parchment_loaded && g_parchment_tex.handle){ /* draw parchment texture tiled */
         int tiles_x = panel_w / g_parchment_tex.w + 1; int tiles_y = panel_h / g_parchment_tex.h + 1; SDL_Rect dst; for(int ty=0; ty<tiles_y; ++ty){ for(int tx=0; tx<tiles_x; ++tx){ dst.x = x + tx * g_parchment_tex.w; dst.y = y + ty * g_parchment_tex.h; dst.w = g_parchment_tex.w; dst.h = g_parchment_tex.h; SDL_RenderCopy(g_internal_sdl_renderer_ref, g_parchment_tex.handle, NULL, &dst); }}
@@ -550,11 +567,20 @@ void rogue_dialogue_render_runtime(void){
     /* Vignette darkening inside edges */
     if(g_style.vignette){ for(int i=0;i<12 && i<panel_w/2 && i<panel_h/2;i++){ Uint8 alpha=(Uint8)(8); SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,0,0,0,alpha); SDL_Rect vrect={x+i,y+i,panel_w-2*i,panel_h-2*i}; SDL_RenderDrawRect(g_internal_sdl_renderer_ref,&vrect);} }
     int text_left = x+14;
-    RogueTexture* av = rogue_dialogue_avatar_get(ln->speaker_id);
+    RogueTexture* av = av_peek; /* reuse earlier lookup */
     int avatar_side = (ln->_reserved[0]==1)?1:0; /* 0 left, 1 right */
     int avatar_v_mirror = (ln->_reserved[1] & 0x1)?1:0;
     if(av && av->handle){
-        int aw=av->w, ah=av->h; int max_h=panel_h-40; float scale=1.0f; if(ah>max_h) scale=(float)max_h/(float)ah; int dw=(int)(aw*scale); int dh=(int)(ah*scale);
+        int aw=av->w, ah=av->h;
+        /* Enforce caps (154x320) and scale proportionally if exceeding either */
+        float scale_w = (aw > ROGUE_AVATAR_MAX_W)? (float)ROGUE_AVATAR_MAX_W / (float)aw : 1.0f;
+        float scale_h_cap = (ah > ROGUE_AVATAR_MAX_H)? (float)ROGUE_AVATAR_MAX_H / (float)ah : 1.0f;
+        int max_panel_available_h = panel_h - 40; if(max_panel_available_h < 20) max_panel_available_h = 20; /* safety */
+        float scale_panel_fit = (ah > max_panel_available_h)? (float)max_panel_available_h / (float)ah : 1.0f;
+        float scale = scale_w; if(scale_panel_fit < scale) scale = scale_panel_fit; if(scale_h_cap < scale) scale = scale_h_cap; /* choose smallest to satisfy all */
+        int dw=(int)(aw*scale); int dh=(int)(ah*scale);
+        if(dw > ROGUE_AVATAR_MAX_W) { float adj = (float)ROGUE_AVATAR_MAX_W / (float)dw; dw = ROGUE_AVATAR_MAX_W; dh = (int)(dh*adj); }
+        if(dh > max_panel_available_h){ float adj = (float)max_panel_available_h / (float)dh; dh = max_panel_available_h; dw = (int)(dw*adj); }
         SDL_Rect dst;
         if(avatar_side==0){ dst.x = x+12; text_left = dst.x + dw + 20; }
         else { dst.x = x + panel_w - dw - 12; }
@@ -567,9 +593,12 @@ void rogue_dialogue_render_runtime(void){
         if(has_tint){ SDL_SetTextureColorMod(av->handle,255,255,255); }
         if(avatar_side==1){ /* keep text_left default when avatar on right */ }
     } else {
-        /* Fallback silhouette rectangle tinted by mood (using stored tint; default gray) */
+        /* Fallback silhouette rectangle tinted by mood (using stored tint; default gray)
+           Size scales with panel height but capped at avatar max caps. */
         Uint8 tr=ln->_reserved[2], tg=ln->_reserved[3], tb=ln->_reserved[4]; if(tr==0&&tg==0&&tb==0){ tr=80; tg=80; tb=90; }
-        int fw=72, fh=72; SDL_Rect dst; if(avatar_side==0){ dst.x=x+12; text_left=dst.x+fw+20; } else { dst.x = x+panel_w-fw-12; }
+        int max_avail_h = panel_h - 40; if(max_avail_h < 72) max_avail_h = 72; if(max_avail_h > ROGUE_AVATAR_MAX_H) max_avail_h = ROGUE_AVATAR_MAX_H;
+        int fh = max_avail_h; int fw = fh; if(fw > ROGUE_AVATAR_MAX_W) fw = ROGUE_AVATAR_MAX_W; /* square-ish, limited by width cap */
+        SDL_Rect dst; if(avatar_side==0){ dst.x=x+12; text_left=dst.x+fw+20; } else { dst.x = x+panel_w-fw-12; }
         dst.y = y + panel_h - fh - 12; dst.w=fw; dst.h=fh; SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,tr,tg,tb,220); SDL_RenderFillRect(g_internal_sdl_renderer_ref,&dst); SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref,0,0,0,255); SDL_RenderDrawRect(g_internal_sdl_renderer_ref,&dst);
     }
     unsigned int sc_col=g_style.speaker_color; rogue_font_draw_text(text_left, y+10, ln->speaker_id?ln->speaker_id:"?",1,(RogueColor){(sc_col>>16)&255,(sc_col>>8)&255,sc_col&255,(sc_col>>24)&255});
