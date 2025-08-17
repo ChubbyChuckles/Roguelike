@@ -1,3 +1,7 @@
-itemsystem: tooling Phase 21.1 TSV->CSV converter + test (rogue_item_defs_convert_tsv_to_csv)
-itemsystem: tooling Phase 21.3 affix range preview JSON export + test (rogue_affixes_export_json)
-itemsystem: tooling Phase 21.1 TSV->CSV converter + test (rogue_item_defs_convert_tsv_to_csv)
+itemsystem: tooling Phases 21.4-21.5 rarity rebalance scales + item defs auto-sort (APIs + tests)
+
+feat(items-tooling): finalize Phase 21.5 item definition auto-sorter
+- Fixed bug in sorter not closing output file causing immediate read failure (manifested as -1 added in test)
+- Added explicit fflush+fclose ensuring consumer can read file on Windows promptly
+- Removed temporary debug instrumentation and compile definition
+- All Phase 21 tooling tests now pass (21.1–21.5)

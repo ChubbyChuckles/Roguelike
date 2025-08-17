@@ -166,6 +166,8 @@ add_library(rogue_core
     src/core/scene_drawlist.c
     src/core/loot_item_defs.c
     src/core/loot_item_defs_convert.c
+    src/core/loot_rebalance.c
+    src/core/loot_item_defs_sort.c
     src/core/loot_tables.c
     src/core/loot_instances.c
     src/core/inventory.c
