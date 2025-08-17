@@ -16,7 +16,7 @@ typedef struct RogueDialogueLine {
     unsigned int token_flags;    /* Phase 2 placeholder (always 0 in Phase 0) */
     unsigned char _reserved[8];  /* forward compatibility.
                                    _reserved[0] = side (0 left, 1 right)
-                                   _reserved[1] = mirror flags (bit0: vertical mirror)
+                                   _reserved[1] = mirror flags (bit0: horizontal mirror)
                                    _reserved[2] = mood tint R (0-255)
                                    _reserved[3] = mood tint G
                                    _reserved[4] = mood tint B
