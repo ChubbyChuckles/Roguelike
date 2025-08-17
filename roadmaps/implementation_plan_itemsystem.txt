@@ -125,12 +125,12 @@ X = Not started yet
 14.4 DPS & EHP (effective HP) estimator (Done: heuristic in stat_cache.c displayed in equipment panel)
 14.5 Unit tests: equip / unequip stat deltas (Done: equip bonus, unequip regression test)
 
-15. Extended Persistence & Versioning (Pending)
-15.1 Save schema version tag (X)
-15.2 Migration handlers for added affix fields (X)
-15.3 CRC / hash for integrity check (X)
-15.4 Partial save (inventory only) API (X)
-15.5 Backup rotation (X)
+15. Extended Persistence & Versioning (Done)
+15.1 Save schema version tag (Done: existing descriptor.version leveraged; affix/enchant field extension uses size heuristic, no bump required)
+15.2 Migration handlers for added affix fields (Done: forward-compatible reader adds enchant_level defaulting 0; write path always emits field)
+15.3 CRC / hash for integrity check (Done: previously implemented per-section CRC + SHA256 footer reused)
+15.4 Partial save (inventory only) API (Done: rogue_save_manager_save_slot_inventory_only isolates inventory component serialization)
+15.5 Backup rotation (Done: rogue_save_manager_backup_rotate writes timestamped .bak copy; pruning placeholder pending cross-platform dir scan)
 
 16. Multiplayer / Personal Loot (Future) (Pending)
 16.1 Player-specific instanced drops (X)

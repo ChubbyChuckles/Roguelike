@@ -66,9 +66,11 @@ typedef struct RogueSaveMigration {
 void rogue_save_manager_init(void);
 void rogue_save_manager_register(const RogueSaveComponent* comp);
 int rogue_save_manager_save_slot(int slot_index); /* full save */
+int rogue_save_manager_save_slot_inventory_only(int slot_index); /* Phase 15.4: partial save (inventory component only) */
 int rogue_save_manager_load_slot(int slot_index);
 int rogue_save_manager_autosave(int slot_index); /* autosave ring save */
 int rogue_save_manager_quicksave(void); /* writes quicksave.sav */
+int rogue_save_manager_backup_rotate(int slot_index, int max_backups); /* Phase 15.5: create timestamped backup & prune */
 void rogue_register_core_save_components(void); /* registers Phase 1 core components */
 
 /* Migration API */

@@ -477,6 +477,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_v9_signature.c AND NOT TARG
     add_test(NAME test_save_v9_signature COMMAND test_save_v9_signature)
 endif()
 
+# Phase 15 inventory partial + backup test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_phase15_inventory_partial_backup.c AND NOT TARGET test_save_phase15_inventory_partial_backup)
+    add_executable(test_save_phase15_inventory_partial_backup unit/test_save_phase15_inventory_partial_backup.c)
+    target_link_libraries(test_save_phase15_inventory_partial_backup PRIVATE rogue_core)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_save_phase15_inventory_partial_backup PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_save_phase15_inventory_partial_backup COMMAND test_save_phase15_inventory_partial_backup)
+endif()
+
 # Incremental save basic test (Phase 5)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_incremental_basic.c AND NOT TARGET test_save_incremental_basic)
     add_executable(test_save_incremental_basic unit/test_save_incremental_basic.c)
