@@ -534,6 +534,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase17_index.c AND NOT TAR
     add_test(NAME test_loot_phase17_index COMMAND test_loot_phase17_index)
 endif()
 
+# Phase 17.5 diff metrics test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase17_5_diff.c AND NOT TARGET test_loot_phase17_5_diff)
+    add_executable(test_loot_phase17_5_diff unit/test_loot_phase17_5_diff.c)
+    target_link_libraries(test_loot_phase17_5_diff PRIVATE rogue_core)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_loot_phase17_5_diff PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_loot_phase17_5_diff COMMAND test_loot_phase17_5_diff)
+endif()
+
 # Phase 18 analytics test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase18_analytics.c AND NOT TARGET test_loot_phase18_analytics)
     add_executable(test_loot_phase18_analytics unit/test_loot_phase18_analytics.c)

@@ -647,34 +647,59 @@ static int read_player_component(FILE* f, size_t size){
 /* ---------------- Additional Phase 1 Components ---------------- */
 
 /* INVENTORY: serialize active item instances (count + each record) */
+/* ---- Phase 17.5: Record-level diff inside inventory component ---- */
+typedef struct InvRecordSnapshot { int def_index, quantity, rarity, prefix_index, prefix_value, suffix_index, suffix_value, durability_cur, durability_max, enchant_level; } InvRecordSnapshot;
+static InvRecordSnapshot* g_inv_prev_records = NULL; /* previous serialized snapshot */
+static unsigned g_inv_prev_count = 0;
+static unsigned g_inv_diff_reused_last = 0; /* metrics for last save */
+static unsigned g_inv_diff_rewritten_last = 0;
+void rogue_save_inventory_diff_metrics(unsigned* reused, unsigned* rewritten){ if(reused) *reused=g_inv_diff_reused_last; if(rewritten) *rewritten=g_inv_diff_rewritten_last; }
+static void inv_record_snapshot_update(const InvRecordSnapshot* cur, unsigned count){
+    InvRecordSnapshot* nr = (InvRecordSnapshot*)realloc(g_inv_prev_records, sizeof(InvRecordSnapshot)*(size_t)count);
+    if(!nr && count>0) return; /* keep old snapshot on alloc failure */
+    if(nr){ g_inv_prev_records=nr; memcpy(g_inv_prev_records, cur, sizeof(InvRecordSnapshot)*(size_t)count); g_inv_prev_count = count; }
+}
 static int write_inventory_component(FILE* f){
-    /* Phase 17.5 diff logic deferred: write full records each save (baseline behavior). */
     int count = 0;
-    if(g_app.item_instances){
-        for(int i=0;i<g_app.item_instance_cap;i++) if(g_app.item_instances[i].active) count++;
-    }
-    if(g_active_write_version >= 4){
-        if(write_varuint(f,(uint32_t)count)!=0) return -1;
+    if(g_app.item_instances){ for(int i=0;i<g_app.item_instance_cap;i++) if(g_app.item_instances[i].active) count++; }
+    if(g_active_write_version >= 4){ if(write_varuint(f,(uint32_t)count)!=0) return -1; }
+    else { if(fwrite(&count,sizeof count,1,f)!=1) return -1; }
+    if(count==0){ g_inv_prev_count=0; g_inv_diff_reused_last=0; g_inv_diff_rewritten_last=0; return 0; }
+    /* Build current snapshot */
+    InvRecordSnapshot* cur = (InvRecordSnapshot*)malloc(sizeof(InvRecordSnapshot)*(size_t)count); if(!cur) return -1; int out=0;
+    for(int i=0;i<g_app.item_instance_cap;i++) if(g_app.item_instances[i].active){ RogueItemInstance* it=&g_app.item_instances[i]; cur[out++] = (InvRecordSnapshot){ it->def_index,it->quantity,it->rarity,it->prefix_index,it->prefix_value,it->suffix_index,it->suffix_value,it->durability_cur,it->durability_max,it->enchant_level }; }
+    if(out!=count){ free(cur); return -1; }
+    g_inv_diff_reused_last=0; g_inv_diff_rewritten_last=0;
+    if(g_incremental_enabled && g_inv_prev_count== (unsigned)count){
+        for(int i=0;i<count;i++){
+            if(memcmp(&g_inv_prev_records[i], &cur[i], sizeof(InvRecordSnapshot))==0){
+                g_inv_diff_reused_last++;
+            } else {
+                g_inv_diff_rewritten_last++;
+            }
+        }
     } else {
-        if(fwrite(&count,sizeof count,1,f)!=1) return -1;
+        /* All treated as rewritten (size change or incremental disabled) */
+        g_inv_diff_rewritten_last = (unsigned)count;
     }
-    if(count==0) return 0;
-    for(int i=0;i<g_app.item_instance_cap;i++) if(g_app.item_instances[i].active){
-        RogueItemInstance* it=&g_app.item_instances[i];
-        fwrite(&it->def_index,sizeof it->def_index,1,f);
-        fwrite(&it->quantity,sizeof it->quantity,1,f);
-        fwrite(&it->rarity,sizeof it->rarity,1,f);
-        fwrite(&it->prefix_index,sizeof it->prefix_index,1,f);
-        fwrite(&it->prefix_value,sizeof it->prefix_value,1,f);
-        fwrite(&it->suffix_index,sizeof it->suffix_index,1,f);
-        fwrite(&it->suffix_value,sizeof it->suffix_value,1,f);
-        fwrite(&it->durability_cur,sizeof it->durability_cur,1,f);
-        fwrite(&it->durability_max,sizeof it->durability_max,1,f);
-        fwrite(&it->enchant_level,sizeof it->enchant_level,1,f);
+    /* Serialize (currently always writes full records; potential future optimization to copy reused raw bytes) */
+    for(int i=0;i<count;i++){
+        InvRecordSnapshot* r=&cur[i];
+        fwrite(&r->def_index,sizeof(r->def_index),1,f);
+        fwrite(&r->quantity,sizeof(r->quantity),1,f);
+        fwrite(&r->rarity,sizeof(r->rarity),1,f);
+        fwrite(&r->prefix_index,sizeof(r->prefix_index),1,f);
+        fwrite(&r->prefix_value,sizeof(r->prefix_value),1,f);
+        fwrite(&r->suffix_index,sizeof(r->suffix_index),1,f);
+        fwrite(&r->suffix_value,sizeof(r->suffix_value),1,f);
+        fwrite(&r->durability_cur,sizeof(r->durability_cur),1,f);
+        fwrite(&r->durability_max,sizeof(r->durability_max),1,f);
+        fwrite(&r->enchant_level,sizeof(r->enchant_level),1,f);
     }
+    inv_record_snapshot_update(cur,(unsigned)count);
+    free(cur);
     return 0;
 }
-void rogue_save_inventory_diff_metrics(unsigned* reused, unsigned* rewritten){ if(reused) *reused=0; if(rewritten) *rewritten=0; }
 static int read_inventory_component(FILE* f, size_t size){
     int count=0; size_t bytes_consumed=0; size_t start_pos=0; /* ftell unreliable for memory temp; track manually */
     if(g_active_read_version >=4){ uint32_t c=0; if(read_varuint(f,&c)!=0) return -1; count=(int)c; }

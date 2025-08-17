@@ -1,22 +1,16 @@
-feat(itemsys/phase17): profiling timers + hash index for item defs
-feat(itemsys/phase18.1/18.2): loot analytics ring buffer + JSON export (phase17.5 diff deferred)
+feat(itemsys/phase17.5): record-level inventory diff metrics (reused vs rewritten) in incremental save mode
+feat(itemsys/phase18.1/18.2): loot analytics ring buffer + JSON export
 
-Phase 17.5 (deferred):
- - Initial attempt at record-level diff inside inventory component save rolled back after build instability. Current incremental mode only caches whole component sections. Metrics API placeholder returns zeros pending reimplementation.
+Phase 17.5:
+ - Inventory save now snapshots ordered active item records (stable iteration over instance array).
+ - On incremental saves with unchanged count, compares each record to previous snapshot producing metrics via rogue_save_inventory_diff_metrics (reused vs rewritten).
+ - Test test_loot_phase17_5_diff covers: initial all rewritten, unchanged reuse, single modification causing 1 rewritten / N-1 reused.
+ - Roadmap marked 17.5 Done; README updated Phase 17 entry with metrics + test reference.
 
-Phase 18.1 / 18.2:
- - New analytics module loot_analytics.c/h: fixed-cap (512) ring buffer of drop events (def_index, rarity, timestamp seconds) with rarity distribution counters.
- - JSON export API rogue_loot_analytics_export_json outputs summary object: {"drop_events":N,"rarity_counts":[...] }.
- - Unit test test_loot_phase18_analytics validates ring wrap, retrieval ordering, counts, and JSON formatting.
+Phase 18.1 / 18.2 (previously implemented):
+ - Loot analytics module (ring buffer 512 events) + JSON export summarizing total drops and rarity counts.
+ - Tests validate wrap & export (test_loot_phase18_analytics).
 
-Docs updated: roadmap marks 17.5 In Implementation (diff deferred), 18.1 & 18.2 Done; README adds Phase 18 slice and notes 17.5 deferral.
-
-Phase 17 advancements:
- - 17.3 Profiling harness: Added high-resolution nanosecond timers capturing total time spent in affix roll sections and weight summations. New metrics fields: weight_sum_time_ns, affix_roll_time_ns. Public APIs rogue_loot_perf_affix_roll_begin/end guard roll scope.
- - 17.4 Cache-friendly indexing: Introduced open-addressed FNV-1a hash index for item definition id -> index lookups (rogue_item_defs_build_index / rogue_item_def_index_fast). Auto rebuild after item def loads; fast path falls back to linear scan on miss ensuring safety.
- - Added unit test test_loot_phase17_index verifying index build, hit/miss behavior, and parity with legacy lookup. Existing perf test unchanged.
- - Windows high-resolution timing fix: include <windows.h>, correct QueryPerformance* usage, and add <emmintrin.h> for SSE2 intrinsics.
- - Safety fix: rogue_loot_perf_get now guards NULL pointer (previous potential null deref).
- - Roadmap updated (17.3 & 17.4 Done; 17.5 In Implementation). README Phase 17 entry expanded to reflect new capabilities.
-
-Follow-up (17.5 remaining): fine-grained per-item record diff emission within inventory section to avoid rewriting unchanged records during incremental save mode.
+Follow-up candidates:
+ - Optimize Phase 17.5 by skipping serialization of reused records (would require per-record length encoding or secondary index) – deferred.
+ - Implement Analytics Phases 18.3–18.5 (drift alerts, session overlay, heatmap) building atop existing ring buffer.

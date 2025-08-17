@@ -144,14 +144,14 @@ X = Not started yet
 17.2 SIMD batch evaluation for weight normalization (Done: SSE2 sum path with scalar fallback, metrics counters)
 17.3 Profiling harness (hot loops in roll) (Done: high-resolution timers around affix roll + weight summations; nanosecond aggregates exposed)
 17.4 Cache-friendly item def indexing (Done: open-addressed FNV1a hash index + fast lookup API, unit test)
-17.5 Incremental serialization (dirty set only) (In Implementation: component-level incremental cache present; record-level diff deferred after build issues)
+17.5 Incremental serialization (dirty set only) (Done: component-level cached section reuse + record-level inventory diff metrics (reused vs rewritten) implemented)
 
 18. Analytics & Telemetry (Optional) (Pending)
 18.1 Drop event ring buffer (Done: fixed-cap ring (512) of recent drops: def_index, rarity, time; APIs record + query)
 18.2 Export JSON stats snapshot (Done: `rogue_loot_analytics_export_json` outputs counts + totals JSON)
-18.3 Rarity distribution drift alerts (X)
-18.4 Session summary overlay (X)
-18.5 Heatmap of drop positions (X)
+18.3 Rarity distribution drift alerts (In Implementation)
+18.4 Session summary overlay (In Implementation)
+18.5 Heatmap of drop positions (In Implementation)
 
 19. Audio/Visual Polish (Pending)
 19.1 Per-rarity pickup sounds (X)
