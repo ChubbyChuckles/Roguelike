@@ -39,7 +39,7 @@ PHASE 3. Serialization Format & Schema
 
 PHASE 4. Integrity & Security
 4.1 CRC32 per section + overall SHA256 (Done: v7 adds per-section CRC32 appended after each section payload (uncompressed) and overall SHA256 footer magic SH32+digest; APIs rogue_save_last_sha256/hex; test_save_v7_integrity validates roundtrip & enumeration)
-4.2 Replay hash of gameplay-critical inputs separated from UI state (X)
+4.2 Replay hash of gameplay-critical inputs separated from UI state (Done: v8 adds component id 8 serializing event count + (frame,action,value) tuples and SHA256 digest; APIs rogue_save_replay_record_input/reset/last_replay_hash(_hex)/last_replay_event_count; test_save_v8_replay_hash validates deterministic hash roundtrip)
 4.3 Tamper detection flags (version mismatch / hash fail) (X)
 4.4 Recovery attempt (restore previous autosave) (X)
 4.5 Optional signature abstraction (future) (X)

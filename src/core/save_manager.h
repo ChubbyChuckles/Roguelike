@@ -11,7 +11,7 @@
 #define ROGUE_AUTOSAVE_RING 4
 
 /* Current binary save format version */
-#define ROGUE_SAVE_FORMAT_VERSION 7u /* v3: TLV headers (uint16 id + uint32 size); v4: varint counts/ids in section payloads; v5: string interning; v6: optional per-section compression; v7: per-section CRC32 + overall SHA256 footer */
+#define ROGUE_SAVE_FORMAT_VERSION 8u /* v3: TLV headers (uint16 id + uint32 size); v4: varint counts/ids in section payloads; v5: string interning; v6: optional per-section compression; v7: per-section CRC32 + overall SHA256 footer; v8: replay hash + tamper recovery */
 
 /* Component identifiers (stable) */
 typedef enum RogueSaveComponentId {
@@ -22,6 +22,7 @@ typedef enum RogueSaveComponentId {
     ROGUE_SAVE_COMP_BUFFS=5,
     ROGUE_SAVE_COMP_VENDOR=6,
     ROGUE_SAVE_COMP_STRINGS=7, /* v5 string intern table (optional) */
+    ROGUE_SAVE_COMP_REPLAY=8, /* v8 replay hash section */
 } RogueSaveComponentId;
 
 /* Descriptor header written at start of save file */
@@ -41,7 +42,8 @@ typedef struct RogueSaveDescriptor {
     v4: Introduced varint (LEB128) encoding for section-local counts & ids (inventory item count, item id fields, skill count & ranks, buff count)
     v5: Added optional string interning table section (component id 7) containing unique strings referenced indirectly by future sections
     v6: Optional per-section RLE compression (flag in size high bit for version>=6) with uncompressed size prefix (uint32)
-    v7: Integrity hardening: per-section CRC32 (of uncompressed payload) appended after each section payload + 4-byte CRC, and overall SHA256 footer ("SH32" magic + 32 raw bytes) */
+    v7: Integrity hardening: per-section CRC32 (of uncompressed payload) appended after each section payload + 4-byte CRC, and overall SHA256 footer ("SH32" magic + 32 raw bytes)
+    v8: Replay hash section (component id 8) capturing a SHA256 digest of recorded gameplay-critical input events (frame, action, value) + event count for deterministic divergence checks (UI state excluded) */
 
 
 /* Component callback interface */
@@ -101,6 +103,13 @@ void rogue_save_manager_reset_for_tests(void);
 uint32_t rogue_crc32(const void* data, size_t len);
 const unsigned char* rogue_save_last_sha256(void); /* returns pointer to 32-byte array (v7+) */
 void rogue_save_last_sha256_hex(char out[65]); /* null-terminated hex of last SHA256 (v7+) */
+
+/* Replay hash API (v8) */
+void rogue_save_replay_reset(void);
+int rogue_save_replay_record_input(uint32_t frame, uint32_t action_code, int32_t value); /* returns 0 on success */
+const unsigned char* rogue_save_last_replay_hash(void); /* 32-byte hash (all zeroes if none) */
+void rogue_save_last_replay_hash_hex(char out[65]);
+uint32_t rogue_save_last_replay_event_count(void);
 
 /* Error codes (negative) beyond basic IO */
 #define ROGUE_SAVE_ERR_MIGRATION_FAIL   -20

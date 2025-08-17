@@ -66,6 +66,19 @@ static void rogue_sha256_final(RogueSHA256Ctx* c, unsigned char out[32]){ uint64
 static unsigned char g_last_sha256[32];
 const unsigned char* rogue_save_last_sha256(void){ return g_last_sha256; }
 void rogue_save_last_sha256_hex(char out[65]){ static const char* hx="0123456789abcdef"; for(int i=0;i<32;i++){ out[2*i]=hx[g_last_sha256[i]>>4]; out[2*i+1]=hx[g_last_sha256[i]&0xF]; } out[64]='\0'; }
+
+/* Replay hash state (v8). We capture event tuples (frame,action,value) and hash them in order. */
+typedef struct { uint32_t frame; uint32_t action; int32_t value; } RogueReplayEvent;
+#define ROGUE_REPLAY_MAX_EVENTS 4096
+static RogueReplayEvent g_replay_events[ROGUE_REPLAY_MAX_EVENTS];
+static uint32_t g_replay_event_count = 0;
+static unsigned char g_last_replay_hash[32];
+void rogue_save_replay_reset(void){ g_replay_event_count=0; memset(g_last_replay_hash,0,32); }
+int rogue_save_replay_record_input(uint32_t frame, uint32_t action_code, int32_t value){ if(g_replay_event_count>=ROGUE_REPLAY_MAX_EVENTS) return -1; g_replay_events[g_replay_event_count].frame=frame; g_replay_events[g_replay_event_count].action=action_code; g_replay_events[g_replay_event_count].value=value; g_replay_event_count++; return 0; }
+static void rogue_replay_compute_hash(void){ RogueSHA256Ctx sha; rogue_sha256_init(&sha); rogue_sha256_update(&sha,g_replay_events,g_replay_event_count*sizeof(RogueReplayEvent)); rogue_sha256_final(&sha,g_last_replay_hash); }
+const unsigned char* rogue_save_last_replay_hash(void){ return g_last_replay_hash; }
+void rogue_save_last_replay_hash_hex(char out[65]){ static const char* hx="0123456789abcdef"; for(int i=0;i<32;i++){ out[2*i]=hx[g_last_replay_hash[i]>>4]; out[2*i+1]=hx[g_last_replay_hash[i]&0xF]; } out[64]='\0'; }
+uint32_t rogue_save_last_replay_event_count(void){ return g_replay_event_count; }
 static int read_varuint(FILE* f, uint32_t* out){
     uint32_t result=0; int shift=0; for(int i=0;i<5;i++){ int c=fgetc(f); if(c==EOF) return -1; unsigned char b=(unsigned char)c; result |= (uint32_t)(b & 0x7F) << shift; if(!(b & 0x80)){ *out=result; return 0; } shift += 7; }
     return -1;
@@ -491,6 +504,15 @@ static RogueSaveComponent BUFFS_COMP={ ROGUE_SAVE_COMP_BUFFS, write_buffs_compon
 static RogueSaveComponent VENDOR_COMP={ ROGUE_SAVE_COMP_VENDOR, write_vendor_component, read_vendor_component, "vendor" };
 static RogueSaveComponent STRINGS_COMP={ ROGUE_SAVE_COMP_STRINGS, write_strings_component, read_strings_component, "strings" };
 static RogueSaveComponent WORLD_META_COMP={ ROGUE_SAVE_COMP_WORLD_META, write_world_meta_component, read_world_meta_component, "world_meta" };
+/* Replay component (v8) serializes event count + raw events + precomputed SHA256 of events (for forward compatibility). */
+static int write_replay_component(FILE* f){
+    /* Compute and serialize replay hash (events may be empty). */
+    rogue_replay_compute_hash();
+    uint32_t count = g_replay_event_count; fwrite(&count,sizeof count,1,f); if(count){ fwrite(g_replay_events,sizeof(RogueReplayEvent),count,f); }
+    fwrite(g_last_replay_hash,1,32,f); return 0; }
+static int read_replay_component(FILE* f, size_t size){ if(size < sizeof(uint32_t)+32) return -1; uint32_t count=0; fread(&count,sizeof count,1,f); size_t need = (size_t)count*sizeof(RogueReplayEvent) + 32; if(size < sizeof(uint32_t)+need) return -1; if(count>ROGUE_REPLAY_MAX_EVENTS) return -1; if(count){ fread(g_replay_events,sizeof(RogueReplayEvent),count,f); } else { /* no events */ }
+    fread(g_last_replay_hash,1,32,f); g_replay_event_count=count; /* Recompute to verify (optional) */ RogueSHA256Ctx sha; rogue_sha256_init(&sha); rogue_sha256_update(&sha,g_replay_events,count*sizeof(RogueReplayEvent)); unsigned char chk[32]; rogue_sha256_final(&sha,chk); if(memcmp(chk,g_last_replay_hash,32)!=0){ return -1; } return 0; }
+static RogueSaveComponent REPLAY_COMP={ ROGUE_SAVE_COMP_REPLAY, write_replay_component, read_replay_component, "replay" };
 
 void rogue_register_core_save_components(void){
     rogue_save_manager_register(&PLAYER_COMP);
@@ -500,6 +522,10 @@ void rogue_register_core_save_components(void){
     rogue_save_manager_register(&BUFFS_COMP);
     rogue_save_manager_register(&VENDOR_COMP);
     rogue_save_manager_register(&STRINGS_COMP);
+    /* v8+ replay component always registered when available */
+#if ROGUE_SAVE_FORMAT_VERSION >= 8
+    rogue_save_manager_register(&REPLAY_COMP);
+#endif
 }
 
 /* Migration definitions */
@@ -508,9 +534,11 @@ static int migrate_v3_to_v4(unsigned char* data, size_t size){ (void)data; (void
 static int migrate_v4_to_v5(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
 static int migrate_v5_to_v6(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
 static int migrate_v6_to_v7(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
+static int migrate_v7_to_v8(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
 static RogueSaveMigration MIG_V2_TO_V3 = {2u,3u,migrate_v2_to_v3,"v2_to_v3_tlv_header"};
 static RogueSaveMigration MIG_V3_TO_V4 = {3u,4u,migrate_v3_to_v4,"v3_to_v4_varint_counts"};
 static RogueSaveMigration MIG_V4_TO_V5 = {4u,5u,migrate_v4_to_v5,"v4_to_v5_string_intern"};
 static RogueSaveMigration MIG_V5_TO_V6 = {5u,6u,migrate_v5_to_v6,"v5_to_v6_section_compress"};
 static RogueSaveMigration MIG_V6_TO_V7 = {6u,7u,migrate_v6_to_v7,"v6_to_v7_integrity"};
-static void rogue_register_core_migrations(void){ if(!g_migrations_registered){ rogue_save_register_migration(&MIG_V2_TO_V3); rogue_save_register_migration(&MIG_V3_TO_V4); rogue_save_register_migration(&MIG_V4_TO_V5); rogue_save_register_migration(&MIG_V5_TO_V6); rogue_save_register_migration(&MIG_V6_TO_V7); } }
+static RogueSaveMigration MIG_V7_TO_V8 = {7u,8u,migrate_v7_to_v8,"v7_to_v8_replay_hash"};
+static void rogue_register_core_migrations(void){ if(!g_migrations_registered){ rogue_save_register_migration(&MIG_V2_TO_V3); rogue_save_register_migration(&MIG_V3_TO_V4); rogue_save_register_migration(&MIG_V4_TO_V5); rogue_save_register_migration(&MIG_V5_TO_V6); rogue_save_register_migration(&MIG_V6_TO_V7); rogue_save_register_migration(&MIG_V7_TO_V8); } }

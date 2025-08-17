@@ -143,6 +143,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_v7_integrity.c AND NOT TARG
     add_test(NAME test_save_v7_integrity COMMAND test_save_v7_integrity)
 endif()
 
+# Replay hash (v8) test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_v8_replay_hash.c AND NOT TARGET test_save_v8_replay_hash)
+    add_executable(test_save_v8_replay_hash unit/test_save_v8_replay_hash.c)
+    target_link_libraries(test_save_v8_replay_hash PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_save_v8_replay_hash PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_save_v8_replay_hash COMMAND test_save_v8_replay_hash)
+endif()
+
 # Basic save_manager smoke test (legacy simple test)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_manager.c AND NOT TARGET test_save_manager)
     add_executable(test_save_manager unit/test_save_manager.c)

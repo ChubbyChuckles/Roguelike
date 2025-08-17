@@ -1,11 +1,10 @@
-Persistence: Phase 4.1 Integrity Hardening (v7)
- - Bump ROGUE_SAVE_FORMAT_VERSION to 7
- - Added per-section CRC32 (uncompressed payload) appended after each section in v7
- - Added overall SHA256 footer (magic SH32 + 32 bytes) covering all post-header bytes pre-footer
- - Implemented minimal SHA256 (no external deps) and exposed APIs: rogue_save_last_sha256(), rogue_save_last_sha256_hex()
- - Writer now computes section CRCs and final digest; loader validates descriptor checksum, per-section CRCs, and footer digest
- - Added new error codes: ROGUE_SAVE_ERR_SECTION_CRC, ROGUE_SAVE_ERR_SHA256
- - Added migration stub v6->v7 (no data transform required)
- - Added unit test test_save_v7_integrity (verifies digest stability, iteration under new layout, hex helper)
- - Updated roadmap (Phase 4.1 Done) and README persistence section (v7 integrity)
+Persistence: Phase 4.2 Replay Hash (v8)
+
+* Bump save format to v8 (replay hash + tamper recovery groundwork)
+* Added component id 8 (replay) capturing deterministic gameplay-critical input events (frame,action,value)
+* Implemented replay event recording API: rogue_save_replay_record_input, reset, hash accessors
+* SHA256 digest computed over event array persisted with count for divergence detection
+* Updated migration chain with v7->v8 stub, component auto-registered when format>=8
+* Added unit test test_save_v8_replay_hash validating hash stability and count on save/load roundtrip
+* Roadmap & README updated to mark Phase 4.2 complete
 
