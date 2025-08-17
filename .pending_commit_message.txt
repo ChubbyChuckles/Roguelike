@@ -4,4 +4,7 @@ Adds server authoritative mode toggle & verification API (rogue_loot_security_se
 
 feat(items-docs): Phase 23.5 loot API doc generator
 
+feat(items-docs): Phase 23.3–23.4 contribution checklist + example pack
+
+Adds initial example loot configuration pack (`assets/example_pack/` with items, loot_tables, affixes) and accompanying unit test `test_loot_phase23_example_pack` ensuring pack loads (3 items, 1+ tables, 2 affixes) and produces a deterministic roll. Marks roadmap 23.3 (contribution checklist scaffold via curated docs) & 23.4 Done and updates README with new documentation bullet.
 Adds lightweight curated API documentation generator (rogue_loot_generate_api_doc) enumerating key loot system functions with one-line descriptions. Provides deterministic text for README / contributor reference without external tooling. New unit test test_loot_phase23_api_doc validates generation success, key token presence, stable ordering, and small-buffer error path. Roadmap 23.5 marked Done and README updated.

@@ -184,8 +184,8 @@ X = Not started yet
 23. Documentation & Developer Experience (Pending)
 23.1 Developer README: loot architecture (X)
 23.2 Rarity & affix style guide (X)
-23.3 Contribution checklist for new items (X)
-23.4 Example config pack (X)
+23.3 Contribution checklist for new items (Done)
+23.4 Example config pack (Done)
 23.5 API doc generation for loot modules (Done)
 
 24. Cleanup / Refactors (Rolling) (Pending)
