@@ -169,7 +169,7 @@ X = Not started yet
 
 21. Tooling & Content Pipeline (Pending)
 21.1 External spreadsheet -> game CSV converter (X)
-21.2 Validation tool: highlight malformed lines (X)
+21.2 Validation tool: highlight malformed lines (Done: `rogue_item_defs_validate_file` API + unit test `test_loot_tooling_phase21_2_validation` collecting malformed line numbers without mutating registries)
 21.3 Editor preview of affix ranges (X)
 21.4 Batch rarity rebalance script (X)
 21.5 Auto-sorting asset references (X)

@@ -50,4 +50,9 @@ const RogueItemDef* rogue_item_def_at(int index);
 int rogue_item_defs_build_index(void); /* rebuilds hash index (call after bulk load); returns 0 on success */
 int rogue_item_def_index_fast(const char* id); /* O(1) average hash lookup; falls back to linear if hash not built */
 
+/* Tooling Phase 21.2: validation helper for external content pipeline.
+    Scans a single cfg file without mutating global registries and reports malformed line numbers into 'out_lines' (cap entries).
+    Returns number of malformed lines (clamped to cap). */
+int rogue_item_defs_validate_file(const char* path, int* out_lines, int cap);
+
 #endif

@@ -60,6 +60,28 @@ static int parse_line(char* line, RogueItemDef* out){
     *out=d; return 1;
 }
 
+int rogue_item_defs_validate_file(const char* path, int* out_lines, int cap){
+    FILE* f=NULL; int collected=0; int malformed=0;
+#if defined(_MSC_VER)
+    fopen_s(&f,path,"rb");
+#else
+    f=fopen(path,"rb");
+#endif
+    if(!f) return -1;
+    char line[512]; int lineno=0; while(fgets(line,sizeof line,f)){
+        lineno++; char work[512];
+#if defined(_MSC_VER)
+        strncpy_s(work,sizeof work,line,_TRUNCATE);
+#else
+        strncpy(work,line,sizeof work -1); work[sizeof work -1]='\0';
+#endif
+        RogueItemDef tmp; int r=parse_line(work,&tmp);
+        if(r<0){ malformed++; if(out_lines && collected<cap){ out_lines[collected++]=lineno; } }
+    }
+    fclose(f);
+    return malformed;
+}
+
 int rogue_item_defs_load_from_cfg(const char* path){
     FILE* f=NULL;
 #if defined(_MSC_VER)
