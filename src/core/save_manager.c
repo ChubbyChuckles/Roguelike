@@ -657,19 +657,13 @@ static int read_skills_component(FILE* f, size_t size){
 }
 
 /* BUFFS: active buffs list */
-extern RogueBuff g_buffs_internal[]; extern int g_buff_count_internal; /* assume symbols provided elsewhere */
 /* PHASE 7.3: Buff serialization stores remaining duration (relative) instead of raw struct with absolute end time.
-   Backward compatible: detect legacy record size and convert. */
+    Backward compatible: detect legacy record size and convert. */
 static int write_buffs_component(FILE* f){
-    int active_count=0; for(int i=0;i<g_buff_count_internal;i++) if(g_buffs_internal[i].active) active_count++;
+     int active_count = rogue_buffs_active_count();
     if(g_active_write_version >=4){ if(write_varuint(f,(uint32_t)active_count)!=0) return -1; }
     else fwrite(&active_count,sizeof active_count,1,f);
-    for(int i=0;i<g_buff_count_internal;i++) if(g_buffs_internal[i].active){
-        /* Write type, magnitude, remaining_ms */
-        int type=g_buffs_internal[i].type; int magnitude=g_buffs_internal[i].magnitude; double remaining_ms=0.0; 
-        double now=g_app.game_time_ms; if(g_buffs_internal[i].end_ms > now) remaining_ms = g_buffs_internal[i].end_ms - now; else remaining_ms=0.0;
-        fwrite(&type,sizeof type,1,f); fwrite(&magnitude,sizeof magnitude,1,f); fwrite(&remaining_ms,sizeof remaining_ms,1,f);
-    }
+     for(int i=0;i<active_count;i++){ RogueBuff tmp; if(!rogue_buffs_get_active(i,&tmp)) break; double now=g_app.game_time_ms; double remaining_ms = (tmp.end_ms>now)? (tmp.end_ms - now):0.0; int type=tmp.type; int magnitude=tmp.magnitude; fwrite(&type,sizeof type,1,f); fwrite(&magnitude,sizeof magnitude,1,f); fwrite(&remaining_ms,sizeof remaining_ms,1,f); }
     return 0; }
 static int read_buffs_component(FILE* f, size_t size){
     long start=ftell(f); int count=0; if(g_active_read_version >=4){ uint32_t c=0; if(read_varuint(f,&c)!=0) return -1; count=(int)c; }

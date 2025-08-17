@@ -203,6 +203,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_autosave_indicator.c AND NO
     add_test(NAME test_save_autosave_indicator COMMAND test_save_autosave_indicator)
 endif()
 
+# Phase 7.2/7.3 skill & buff extended state roundtrip test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_phase7_skill_buff_roundtrip.c AND NOT TARGET test_save_phase7_skill_buff_roundtrip)
+    add_executable(test_save_phase7_skill_buff_roundtrip unit/test_save_phase7_skill_buff_roundtrip.c)
+    target_link_libraries(test_save_phase7_skill_buff_roundtrip PRIVATE rogue_core)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_save_phase7_skill_buff_roundtrip PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_save_phase7_skill_buff_roundtrip COMMAND test_save_phase7_skill_buff_roundtrip)
+endif()
+
 # Basic save_manager smoke test (legacy simple test)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_manager.c AND NOT TARGET test_save_manager)
     add_executable(test_save_manager unit/test_save_manager.c)

@@ -72,8 +72,8 @@ PHASE 6. Autosave & Scheduling
 
 PHASE 7. Data Domains & Component Details
 7.1 Player stats & progression (level, xp, allocation) (Partial)
-7.2 Skill ranks, cooldown states, casting progress (X)
-7.3 Buff/debuff active list w/ remaining durations (X)
+7.2 Skill ranks, cooldown states, casting progress (Done: extended skill record incl. cast/channel fields, charges, active flags; backward-compatible reader auto-detects legacy minimal record)
+7.3 Buff/debuff active list w/ remaining durations (Done: stores (type,magnitude,remaining_ms) relative duration; legacy absolute end_ms struct autodetected)
 7.4 Inventory instances, equipment slots, durability (Partial: durability logic runtime)
 7.5 Vendor inventory (seed, stock TTL) (X)
 7.6 World seeds & biome modifiers (Partial)

@@ -13,6 +13,11 @@ void rogue_buffs_init(void);
 void rogue_buffs_update(double now_ms);
 int  rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, double now_ms);
 int  rogue_buffs_get_total(RogueBuffType type);
+/* New Phase 7.3 helpers for persistence (non-mutating):
+	rogue_buffs_active_count returns number of active buff records.
+	rogue_buffs_get_active copies the i-th active buff (0..count-1) into *out and returns 1 on success. */
+int  rogue_buffs_active_count(void);
+int  rogue_buffs_get_active(int index, RogueBuff* out);
 
 #ifdef __cplusplus
 }

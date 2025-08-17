@@ -26,3 +26,6 @@ int rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, dou
 }
 
 int rogue_buffs_get_total(RogueBuffType type){ int total=0; for(int i=0;i<ROGUE_MAX_ACTIVE_BUFFS;i++) if(g_buffs[i].active && g_buffs[i].type==type) total+=g_buffs[i].magnitude; return total; }
+
+int rogue_buffs_active_count(void){ int c=0; for(int i=0;i<ROGUE_MAX_ACTIVE_BUFFS;i++) if(g_buffs[i].active) c++; return c; }
+int rogue_buffs_get_active(int index, RogueBuff* out){ if(!out) return 0; int c=0; for(int i=0;i<ROGUE_MAX_ACTIVE_BUFFS;i++) if(g_buffs[i].active){ if(c==index){ *out=g_buffs[i]; return 1; } c++; } return 0; }
