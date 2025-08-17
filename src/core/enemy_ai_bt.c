@@ -27,12 +27,14 @@ static void enemy_ai_sync_bb(EnemyAIBlackboard* ebb, RogueEnemy* e){
 }
 
 static RogueBehaviorTree* enemy_ai_build_bt(EnemyAIBlackboard* ebb){
-    RogueBTNode* move = rogue_bt_action_move_to("MoveToPlayer", ebb->player_pos_key, ebb->agent_pos_key, 2.0f, ebb->move_reached_flag);
+    RogueBTNode* move = rogue_bt_action_move_to("MoveToPlayer", ebb->player_pos_key, ebb->agent_pos_key, 5.0f, ebb->move_reached_flag);
     return rogue_behavior_tree_create(move);
 }
 
 void rogue_enemy_ai_bt_enable(RogueEnemy* e){
-    if(!e || e->ai_bt_enabled) return;
+    if(!e) return;
+    /* Allow re-enable if tree missing even if flag was left set */
+    if(e->ai_bt_enabled && e->ai_tree) return;
     e->ai_bt_enabled = 1;
     EnemyAIBlackboard* ebb = (EnemyAIBlackboard*)calloc(1,sizeof(EnemyAIBlackboard));
     rogue_bb_init(&ebb->bb);

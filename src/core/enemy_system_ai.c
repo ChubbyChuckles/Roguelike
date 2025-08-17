@@ -11,12 +11,15 @@
 #include "game/damage_numbers.h"
 #include "core/collision.h"
 #include "entities/enemy.h"
+#include "ai/core/ai_scheduler.h"
 
 static int enemy_tile_is_blocking(unsigned char t){
     switch(t){ case ROGUE_TILE_WATER: case ROGUE_TILE_RIVER: case ROGUE_TILE_RIVER_WIDE: case ROGUE_TILE_RIVER_DELTA: case ROGUE_TILE_MOUNTAIN: case ROGUE_TILE_CAVE_WALL: return 1; default: return 0; }
 }
 
 void rogue_enemy_ai_update(float dt_ms){
+    /* First pass: run scheduler to process BT-enabled enemies incrementally */
+    rogue_ai_scheduler_tick(g_app.enemies, ROGUE_MAX_ENEMIES, dt_ms * 0.001f);
     for(int i=0;i<ROGUE_MAX_ENEMIES;i++) if(g_app.enemies[i].alive){
         RogueEnemy* e=&g_app.enemies[i]; RogueEnemyTypeDef* t=&g_app.enemy_types[e->type_index];
         if(e->staggered){ e->stagger_timer_ms -= dt_ms; if(e->stagger_timer_ms <= 0.0f){ e->staggered=0; e->stagger_timer_ms=0.0f; e->poise = e->poise_max * 0.50f; } }
@@ -25,12 +28,8 @@ void rogue_enemy_ai_update(float dt_ms){
         if(p_dist2 > (float)(t->aggro_radius * t->aggro_radius * 64)) { e->alive=0; g_app.enemy_count--; if(g_app.per_type_counts[e->type_index]>0) g_app.per_type_counts[e->type_index]--; continue; }
         if(e->ai_state != ROGUE_ENEMY_AI_DEAD){ if(p_dist2 < (float)(t->aggro_radius * t->aggro_radius)) e->ai_state = ROGUE_ENEMY_AI_AGGRO; else if(e->ai_state == ROGUE_ENEMY_AI_AGGRO && p_dist2 > (float)((t->aggro_radius+5)*(t->aggro_radius+5))) e->ai_state = ROGUE_ENEMY_AI_PATROL; }
         float move_dx=0, move_dy=0; float move_speed = t->speed * (float)g_app.dt; int etx=(int)(e->base.pos.x+0.5f); int ety=(int)(e->base.pos.y+0.5f); if(etx>=0&&ety>=0&&etx<g_app.world_map.width&&ety<g_app.world_map.height){ move_speed *= rogue_vegetation_tile_move_scale(etx,ety); }
-        /* Behavior Tree Feature Flag: if enabled for enemy, skip legacy movement and drive via BT */
-        if(e->ai_bt_enabled && e->ai_tree){
-            /* Tick BT using seconds (dt_ms is ms) */
-            rogue_enemy_ai_bt_tick(e, dt_ms * 0.001f);
-            /* Legacy code path bypassed */
-        } else {
+    /* Behavior Tree Feature Flag: if enabled movement already driven by scheduler tick */
+    if(!(e->ai_bt_enabled && e->ai_tree)) {
             if(e->ai_state == ROGUE_ENEMY_AI_PATROL){ float tx=e->patrol_target_x; float ty=e->patrol_target_y; float dx=tx-e->base.pos.x; float dy=ty-e->base.pos.y; float d2=dx*dx+dy*dy; if(d2<0.4f){ for(int attempt=0; attempt<6; ++attempt){ float nrx=(float)((rand()%(t->patrol_radius*2+1))-t->patrol_radius); float nry=(float)((rand()%(t->patrol_radius*2+1))-t->patrol_radius); float nx=e->anchor_x+nrx; float ny=e->anchor_y+nry; float ar_dx=nx-e->anchor_x; float ar_dy=ny-e->anchor_y; if(ar_dx*ar_dx + ar_dy*ar_dy <= (float)(t->patrol_radius*t->patrol_radius)) { e->patrol_target_x=nx; e->patrol_target_y=ny; break; } } } else { float len=(float)sqrt(d2); if(len>0.0001f){ move_dx=dx/len; move_dy=dy/len; } } }
         else if(e->ai_state == ROGUE_ENEMY_AI_AGGRO){ int step_dx=0, step_dy=0; rogue_nav_cardinal_step_towards(e->base.pos.x,e->base.pos.y,g_app.player.base.pos.x,g_app.player.base.pos.y,&step_dx,&step_dy); move_dx=(float)step_dx; move_dy=(float)step_dy; }
         if(move_dx!=0.0f && move_dy!=0.0f){ float dpx=fabsf(g_app.player.base.pos.x - e->base.pos.x); float dpy=fabsf(g_app.player.base.pos.y - e->base.pos.y); if(dpx>dpy) move_dy=0; else move_dx=0; }

@@ -1,15 +1,14 @@
-feat(ai): enemy BT feature flag integration + per-frame AI budget profiler (Phase 5 & 9.1)
+AI Phase 9.2/9.3: Incremental evaluation scheduler + LOD gating
 
-Implemented Phase 5 initial enemy integration:
-- Added per-enemy behavior tree enable/disable + simple MoveToPlayer tree (feature flag field on RogueEnemy)
-- Conditional tick path in enemy_system_ai
-- Unit test test_ai_phase5_enemy_integration (uses SDL_MAIN_HANDLED)
-
-Resolved widespread duplicate symbol linker errors by removing local rogue_buffs_apply stubs from persistence tests (now rely on core buff system).
-
-Implemented Phase 9.1 performance instrumentation:
-- New ai/core/ai_profiler.{c,h}: budget setter, begin_frame, record_agent, snapshot (frame total, max agent, count, exceeded)
-- Added test_ai_phase9_budget validating non-exceeded and exceeded budget behavior
-- Updated AI roadmap marking 9.1 Done; README AI section documents profiler
-
-Follow-up: Migration chain & metrics tests still simulate legacy header by manual version rewrite; future refinement may recompute descriptor checksum instead of triggering tamper (-7). No functional changes to save_manager in this slice.
+Adds ai/core/ai_scheduler.{c,h} implementing:
+ - Bucketed frame distribution (configurable via rogue_ai_scheduler_set_buckets)
+ - Distance-based LOD radius (rogue_ai_lod_set_radius) skipping full BT ticks for far agents
+ - Cheap maintenance tick placeholder for skipped agents (future timers/decay)
+Integrates scheduler into enemy_system_ai update (BT-enabled enemies now tick via scheduler).
+Enhances robustness of rogue_enemy_ai_bt_enable (rebuild tree if flag set but tree missing).
+Increases MoveToPlayer action speed to 5.0f to ensure detectable movement in tests.
+New unit test test_ai_phase9_incremental_lod validates:
+ - Near agent moves under bucketed scheduling
+ - Far agent excluded while outside LOD radius
+ - Movement begins after expanding LOD radius
+Roadmap updated marking 9.2/9.3 Done; README documents scheduler & LOD controls.

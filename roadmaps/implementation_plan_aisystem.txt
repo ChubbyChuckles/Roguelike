@@ -75,8 +75,8 @@ PHASE 8. State & Cooldown Management
 
 PHASE 9. Performance & Scaling
 9.1 Per-frame AI time budget monitoring (Done) [ai/core/ai_profiler.{c,h} added: budget setter, per-frame begin, per-agent record, snapshot API; unit test test_ai_phase9_budget validates non-exceeded vs exceeded paths]
-9.2 Incremental evaluation (spread heavy computations) (X)
-9.3 LOD behaviour (reduced detail off-screen) (X)
+9.2 Incremental evaluation (spread heavy computations) (Done) [ai/core/ai_scheduler.{c,h}: bucketed frame scheduler gating BT ticks; unit test test_ai_phase9_incremental_lod validates deferred ticks still move]
+9.3 LOD behaviour (reduced detail off-screen) (Done) [Scheduler distance radius -> maintenance tick only; test covers exclusion then inclusion when radius expanded]
 9.4 Agent pooling & reinit (X)
 9.5 Stress test: 200 agents pathing simultaneously (X)
 
