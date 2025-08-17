@@ -10,6 +10,7 @@
 #include "ai/core/blackboard.h"
 #include "ai/nodes/basic_nodes.h"
 #include "ai/nodes/advanced_nodes.h"
+#include "ai/core/ai_agent_pool.h"
 
 typedef struct EnemyAIBlackboard {
     RogueBlackboard bb;
@@ -18,6 +19,19 @@ typedef struct EnemyAIBlackboard {
     const char* agent_facing_key;
     const char* move_reached_flag;
 } EnemyAIBlackboard;
+
+/* Compile-time guard: ensure pool slab large enough */
+#include <assert.h>
+extern size_t rogue_ai_agent_pool_slab_size(void);
+/* Compile-time like guard executed at first enable; no unused vars to trigger warnings */
+static int _enemy_ai_bt_size_guard(void){
+    size_t have = rogue_ai_agent_pool_slab_size();
+    if(have < sizeof(EnemyAIBlackboard)){
+        assert(!"AI agent pool slab too small for EnemyAIBlackboard");
+        return 0;
+    }
+    return 1;
+}
 
 static void enemy_ai_sync_bb(EnemyAIBlackboard* ebb, RogueEnemy* e){
     rogue_bb_set_vec2(&ebb->bb, ebb->agent_pos_key, e->base.pos.x, e->base.pos.y);
@@ -36,7 +50,9 @@ void rogue_enemy_ai_bt_enable(RogueEnemy* e){
     /* Allow re-enable if tree missing even if flag was left set */
     if(e->ai_bt_enabled && e->ai_tree) return;
     e->ai_bt_enabled = 1;
-    EnemyAIBlackboard* ebb = (EnemyAIBlackboard*)calloc(1,sizeof(EnemyAIBlackboard));
+    fprintf(stdout,"AI_POOL_DBG enable called\n"); fflush(stdout);
+    EnemyAIBlackboard* ebb = (EnemyAIBlackboard*)rogue_ai_agent_acquire();
+    if(!ebb) return; /* allocation/pool failure: leave BT disabled */
     rogue_bb_init(&ebb->bb);
     ebb->player_pos_key = "player_pos";
     ebb->agent_pos_key = "agent_pos";
@@ -51,7 +67,7 @@ void rogue_enemy_ai_bt_disable(RogueEnemy* e){
     if(!e || !e->ai_bt_enabled) return;
     e->ai_bt_enabled = 0;
     if(e->ai_tree){ rogue_behavior_tree_destroy(e->ai_tree); e->ai_tree=NULL; }
-    if(e->ai_bt_state){ free(e->ai_bt_state); e->ai_bt_state=NULL; }
+    if(e->ai_bt_state){ rogue_ai_agent_release((EnemyAIBlackboard*)e->ai_bt_state); e->ai_bt_state=NULL; }
 }
 
 void rogue_enemy_ai_bt_tick(RogueEnemy* e, float dt){

@@ -106,6 +106,15 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase9_incremental_lod.c AND 
     add_test(NAME test_ai_phase9_incremental_lod COMMAND test_ai_phase9_incremental_lod)
 endif()
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase9_agent_pool.c AND NOT TARGET test_ai_phase9_agent_pool)
+    add_executable(test_ai_phase9_agent_pool unit/test_ai_phase9_agent_pool.c)
+    target_link_libraries(test_ai_phase9_agent_pool PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ai_phase9_agent_pool PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase9_agent_pool COMMAND test_ai_phase9_agent_pool)
+endif()
+
 # Filter out removed/legacy test filenames that may linger in generated projects
 list(FILTER UNIT_TESTS EXCLUDE REGEX ".*test_skills_phase1_foundation.c$")
 
