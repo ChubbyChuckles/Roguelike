@@ -5,7 +5,7 @@
 
 /* Minimal component for scheduling */
 static int dummy_val=7; static int write_dummy(FILE* f){ fwrite(&dummy_val,sizeof dummy_val,1,f); return 0; } static int read_dummy(FILE* f,size_t sz){ if(sz<sizeof(int)) return -1; fread(&dummy_val,sizeof dummy_val,1,f); return 0; }
-typedef struct RogueBuff { int type; int active; float magnitude; double end_ms; } RogueBuff; RogueBuff g_buffs_internal[1]; int g_buff_count_internal=0; void rogue_buffs_apply(int t,float m,double end,float now){ (void)t;(void)m;(void)end;(void)now; }
+/* Use real buff system (no local stub). */
 
 int main(void){
     setvbuf(stdout,NULL,_IONBF,0);

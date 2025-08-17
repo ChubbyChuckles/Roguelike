@@ -4,21 +4,19 @@
 #include <stdio.h>
 #include <string.h>
 
-/* Buff stubs (same as other persistence tests) */
-typedef struct RogueBuff { int type; int active; float magnitude; double end_ms; } RogueBuff;
-RogueBuff g_buffs_internal[4];
-int g_buff_count_internal=0;
-void rogue_buffs_apply(int t,float m,double end,float now){ (void)t;(void)m;(void)end;(void)now; }
+/* Use real buff system (removed local stubs to avoid duplicate symbols). */
 
 static int migrate_v1_to_v2(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
 static RogueSaveMigration MIG1 = {1u,2u,migrate_v1_to_v2,"v1_to_v2"};
 
 int main(void){
     rogue_save_manager_reset_for_tests();
+    /* Register legacy v1->v2 migration before init so internal chain includes it */
+    rogue_save_register_migration(&MIG1);
     rogue_save_manager_init();
     rogue_register_core_save_components();
     if(rogue_save_manager_save_slot(0)!=0){ printf("MIGRATION_FAIL initial_save\n"); return 1; }
-    /* Downgrade header version to 1 */
+    /* Downgrade header version to 1 and recompute descriptor checksum so tamper check passes */
     FILE* f=NULL;
 #if defined(_MSC_VER)
     fopen_s(&f, "save_slot_0.sav", "r+b");
@@ -26,10 +24,18 @@ int main(void){
     f=fopen("save_slot_0.sav","r+b");
 #endif
     if(!f){ printf("MIGRATION_FAIL open\n"); return 1; }
-    unsigned version=1u; if(fwrite(&version,sizeof version,1,f)!=1){ fclose(f); printf("MIGRATION_FAIL write_version\n"); return 1; }
-    fclose(f);
-    /* Register migration and attempt load */
-    rogue_save_register_migration(&MIG1);
+    /* Read full descriptor + rest of file */
+    RogueSaveDescriptor desc; if(fread(&desc,sizeof desc,1,f)!=1){ fclose(f); printf("MIGRATION_FAIL read_desc\n"); return 1; }
+    long file_end=0; fseek(f,0,SEEK_END); file_end=ftell(f); size_t rest=(size_t)(file_end - (long)sizeof desc); unsigned char* buf=(unsigned char*)malloc(rest); if(!buf){ fclose(f); printf("MIGRATION_FAIL alloc\n"); return 1; }
+    fseek(f,sizeof desc,SEEK_SET); if(fread(buf,1,rest,f)!=rest){ free(buf); fclose(f); printf("MIGRATION_FAIL read_payload\n"); return 1; }
+    /* Downgrade version and recompute checksum over payload (pre-footer hashable region heuristic: if v>=7, exclude SHA/footer) */
+    desc.version = 1u; /* legacy */
+    size_t crc_region = rest; /* for version <7 entire payload is hashed */
+    uint32_t crc=rogue_crc32(buf,crc_region); desc.checksum=crc;
+    /* Rewrite file */
+    fseek(f,0,SEEK_SET); fwrite(&desc,sizeof desc,1,f); fwrite(buf,1,rest,f); fflush(f);
+    free(buf); fclose(f);
+    /* Attempt load which should invoke v1->v2 migration */
     int rc = rogue_save_manager_load_slot(0);
     if(rc!=0){ printf("MIGRATION_FAIL rc=%d\n", rc); return 1; }
     printf("MIGRATION_OK v1_to_v2 rc=%d\n", rc);

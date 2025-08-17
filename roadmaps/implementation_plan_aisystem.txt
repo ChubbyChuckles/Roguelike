@@ -74,7 +74,7 @@ PHASE 8. State & Cooldown Management
 8.4 Adaptive difficulty injection (increase aggression after lull) (X)
 
 PHASE 9. Performance & Scaling
-9.1 Per-frame AI time budget monitoring (X)
+9.1 Per-frame AI time budget monitoring (Done) [ai/core/ai_profiler.{c,h} added: budget setter, per-frame begin, per-agent record, snapshot API; unit test test_ai_phase9_budget validates non-exceeded vs exceeded paths]
 9.2 Incremental evaluation (spread heavy computations) (X)
 9.3 LOD behaviour (reduced detail off-screen) (X)
 9.4 Agent pooling & reinit (X)
@@ -111,4 +111,4 @@ SUCCESS METRICS
 
 NEXT ACTION CANDIDATES
 - Begin enemy integration: feature flag enabling BT for one enemy archetype (Done: per-enemy enable API, simple MoveToPlayer tree, test_ai_phase5_enemy_integration validates movement)
-- Add performance budget probe (Phase 9.1 initial instrumentation)
+- Add performance budget probe (Phase 9.1 initial instrumentation) (Done)

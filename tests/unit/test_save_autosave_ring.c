@@ -7,8 +7,7 @@
 
 RogueAppState g_app; RoguePlayer g_exposed_player_for_stats; void rogue_player_recalc_derived(RoguePlayer* p){ (void)p; }
 
-/* Buff stubs (match symbols required by save_manager) */
-RogueBuff g_buffs_internal[4]; int g_buff_count_internal=4; int rogue_buffs_apply(RogueBuffType t,int mag,double dur,double now){ (void)t;(void)mag;(void)dur;(void)now; return 0; }
+/* Use real buff system; no local stub to avoid duplicate symbol. */
 
 int main(void){
     memset(&g_app,0,sizeof g_app);

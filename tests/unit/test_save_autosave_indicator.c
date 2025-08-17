@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 
-typedef struct RogueBuff { int type; int active; float magnitude; double end_ms; } RogueBuff; RogueBuff g_buffs_internal[1]; int g_buff_count_internal=0; void rogue_buffs_apply(int t,float m,double end,float now){ (void)t;(void)m;(void)end;(void)now; }
+/* Use real buff system API; provide minimal forward decls instead of duplicate definitions to avoid LNK2005. */
+typedef struct RogueBuff RogueBuff; /* opaque for this test */
+int rogue_buffs_apply(int type, int magnitude, double duration_ms, double now_ms);
 static int write_comp(FILE* f){ int v=1; fwrite(&v,sizeof v,1,f); return 0; } static int read_comp(FILE* f,size_t s){ (void)s; int v; fread(&v,sizeof v,1,f); return 0; }
 
 int main(void){

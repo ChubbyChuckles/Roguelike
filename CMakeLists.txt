@@ -194,6 +194,7 @@ add_library(rogue_core
     # maintainability phase M3: unified kv parser utility
     src/util/kv_parser.c
     src/ai/core/ai_trace.c
+        src/ai/core/ai_profiler.c
     src/util/kv_schema.c
     src/util/hot_reload.c
     src/util/asset_dep.c

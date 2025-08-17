@@ -5,11 +5,7 @@
 #include <string.h>
 #include <time.h>
 
-/* Buff symbol stubs (link workaround mirroring autosave test) */
-typedef struct RogueBuff { int type; int active; float magnitude; double end_ms; } RogueBuff;
-RogueBuff g_buffs_internal[4];
-int g_buff_count_internal=0;
-void rogue_buffs_apply(int t,float m,double end,float now){ (void)t;(void)m;(void)end;(void)now; }
+/* Use real buff system symbols (no local stubs to avoid duplicate definitions). */
 
 static unsigned read_checksum(const char* path){
     FILE* f=NULL; 
