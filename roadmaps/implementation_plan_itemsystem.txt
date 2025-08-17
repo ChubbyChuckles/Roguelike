@@ -96,11 +96,11 @@ X = Not started yet
 
 11. Crafting & Materials (Pending)
 11.1 Salvage system: break items -> materials (Done)
-11.2 Material rarity tiers (X)
-11.3 Crafting recipes config parsing (X)
-11.4 Upgrade paths (evolve item rarity/stat) (X)
-11.5 Reroll affix using currency + mats (X)
-11.6 Unit tests: salvage yields & recipe validity (Partial: basic salvage yield test)
+11.2 Material rarity tiers (Done)
+11.3 Crafting recipes config parsing (Done)
+11.4 Upgrade paths (evolve item rarity/stat) (Done: rarity delta clamp API, upgrade recipe support)
+11.5 Reroll affix using currency + mats (Done: reroll API consumes materials + gold)
+11.6 Unit tests: salvage yields & recipe validity (Done: existing salvage_basic + new crafting_basic + reroll_affix)
 
 12. Loot Filtering & UI Overlay (Pending)
 12.1 Filter rules config (rarity, category, name pattern) (X)

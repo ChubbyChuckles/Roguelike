@@ -258,6 +258,13 @@ Next Steps: Bind allocation/undo to inputs, integrate real skill definitions, im
 
 #### Rarity System (Phase 5)
 * Rarity enum centralized; color mapping utility avoids scattering switch statements across UI layers.
+* NEW (Items 11.2–11.6): Crafting & Materials subsystem:
+  - Material tier query (`rogue_material_tier`) classifies material definitions by rarity.
+  - Recipe registry + parser (`rogue_craft_load_file`) supporting output item, quantity, up to 6 ingredients, and optional upgrade source + rarity delta.
+  - Upgrade path helper (`rogue_craft_apply_upgrade`) for controlled rarity evolution (clamped 0..10).
+  - Affix reroll API (`rogue_craft_reroll_affixes`) consuming materials + gold, delegating to existing affix roll generator; integrates economy & new inventory consume API.
+  - Inventory removal primitive (`rogue_inventory_consume`) enabling safe resource deduction shared by crafting and future sinks.
+  - Unit tests: `test_salvage_basic` (existing), `test_crafting_basic` (recipe execution + tier checks), `test_reroll_affix` (material + gold consumption, affix change).
 * Dynamic rarity weights (5.4) adjust under-performing tiers based on rolling window counts (proportional additive damping to avoid oscillation).
 * Per-rarity spawn sound & VFX hook table (5.5) decouples presentation from sampling.
 * Despawn overrides (5.6) allow premium tiers to linger longer on ground (checked each update cycle).

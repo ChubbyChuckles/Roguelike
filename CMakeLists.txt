@@ -182,6 +182,7 @@ add_library(rogue_core
     src/core/vendor.c
     src/core/economy.c
     src/core/salvage.c
+    src/core/crafting.c
     src/core/equipment.c
     src/core/equipment_stats.c
     src/core/vendor_ui.c

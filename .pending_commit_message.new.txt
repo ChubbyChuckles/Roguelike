@@ -1,0 +1,21 @@
+AI System Phase 11 (Testing & QA) Completion
+Added comprehensive test suite expansion for behaviour system quality gates:
+- Core node & decorator edge coverage (`test_ai_phase11_core_nodes`): Selector/Sequence short-circuit, Parallel success/failure/running aggregation, Utility selector deterministic tie-break, cooldown boundary reset, retry exhaustion & reset.
+- Blackboard fuzz harness (`test_ai_phase11_blackboard_fuzz`): 5k deterministic pseudo-random operations across Set/Max/Min/Accumulate + timers/vec2 ensuring policy invariants and capacity safety.
+- Scenario script (`test_ai_phase11_scenario`): Patrol waypoint cycle -> visibility-triggered chase -> loss & patrol resume validating movement & branch selection transitions.
+- Repro trace test (`test_ai_phase11_repro_trace`): Dual seeded RNG-branch trees produce identical active path serializations & hashes for 40 ticks; alternate seed diverges (determinism guard).
+- Performance regression guard (`test_ai_phase11_perf_guard`): Simulated profiler frames below and above budget asserting accurate exceeded flag & agent counts.
+
+Roadmap updates: Phase 11.1–11.5 marked Done with descriptive annotations. README gains Phase 11 summary section under AI & Behaviour.
+
+These additions solidify baseline for forthcoming Movement & Pathing (Phase 5.x) and Combat Behaviour Extensions (Phase 6.x) by catching behavioural drift, policy regressions, or perf budget creep early.
+
+Crafting & Materials (Itemsystem 11.2–11.6) Implementation
+New module `core/crafting.[ch]` introducing: material tier query, recipe registry (128 cap), CSV parser (id,output,qty,ingredients[,upgrade:src:+rarity]).
+Inventory consume API (`rogue_inventory_consume`) powering recipe execution & reroll currency spend; integrated into build.
+Upgrade helper `rogue_craft_apply_upgrade` (rarity clamped 0..10).
+Affix reroll API `rogue_craft_reroll_affixes` combining material + gold cost & retry/escalation loop (rarity escalation & affix clearing attempts) with elevated rarity fallback.
+Tests: `test_crafting_basic` (tier classification + simple dust->shard recipe) passing; `test_reroll_affix` validates material/gold consumption & affix regeneration (loads affixes, elevated rarity, debug instrumentation).
+README updated with crafting summary; roadmap 11.2–11.6 marked Done post green tests.
+
+Follow-ups: refine reroll API (avoid internal affix clearing by supporting explicit force rarity & allow "no-change" return), add upgrade recipe unit test, possibly unify commit message newline style.
