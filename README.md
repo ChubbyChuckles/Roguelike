@@ -318,6 +318,7 @@ Next Steps: Bind allocation/undo to inputs, integrate real skill definitions, im
 * Runtime evaluation marks each `RogueItemInstance` with `hidden_filter` flag; visible count via `rogue_items_visible_count`.
 * Reapply API (`rogue_loot_filter_refresh_instances`) lets UI or console command reload filter and instantly hide/show existing ground items.
 * Unit test `test_loot_filter_basic` validates loading, rule count, visibility transition (rarity>=3 hides common sword but not epic blade).
+* Basic rarity-colored item outline (12.3) added in `rogue_world_render_items` drawing a faint border; foundation for future glow/pulse effects.
 
 #### Logging & Debuggability
 * Consistent structured log format includes location for grep-based triage.

@@ -73,10 +73,15 @@ void rogue_world_render_items(void){
     if(!g_app.item_instances) return;
     for(int i=0;i<g_app.item_instance_cap;i++) if(g_app.item_instances[i].active){
         const RogueItemInstance* it = &g_app.item_instances[i];
+        if(it->hidden_filter) continue; /* 12.2 hide filtered items */
         RogueRarityColor c = rogue_rarity_color((RogueItemRarity)it->rarity);
     SDL_SetRenderDrawColor(g_app.renderer, c.r,c.g,c.b,c.a);
     SDL_Rect rect_ri={ (int)(it->x*ts - g_app.cam_x), (int)(it->y*ts - g_app.cam_y), ts/2, ts/2};
     SDL_RenderFillRect(g_app.renderer,&rect_ri);
+    /* 12.3 basic outline/glow placeholder: draw a thin border rectangle with alpha fade */
+    SDL_SetRenderDrawColor(g_app.renderer, c.r, c.g, c.b, 120);
+    SDL_Rect outline = { rect_ri.x-1, rect_ri.y-1, rect_ri.w+2, rect_ri.h+2 };
+    SDL_RenderDrawRect(g_app.renderer, &outline);
     }
 #endif
 }

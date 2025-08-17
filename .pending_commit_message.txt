@@ -1,25 +1,8 @@
-AI System Phase 11 (Testing & QA) Completion
-Added comprehensive test suite expansion for behaviour system quality gates:
-- Core node & decorator edge coverage (`test_ai_phase11_core_nodes`): Selector/Sequence short-circuit, Parallel aggregation, Utility selector tie-break, cooldown & retry edge cases.
-- Blackboard fuzz harness (`test_ai_phase11_blackboard_fuzz`) 5k ops.
-- Scenario script (`test_ai_phase11_scenario`) patrol -> chase -> reset.
-- Repro trace (`test_ai_phase11_repro_trace`) deterministic path hashing.
-- Perf guard (`test_ai_phase11_perf_guard`) budget exceed detection.
+Loot Filter + Visual Outline (Items 12.1–12.3)
+- Implemented loot_filter.[ch]: rules (rarity>= / rarity<= / category= / name~ / def=) + MODE=ANY/ALL logic, up to 64 rules.
+- Added item instance field hidden_filter, visible count API, and reapply function.
+- Unit test test_loot_filter_basic passes (filters common sword keeps epic blade visible).
+- world_renderer now skips hidden items and draws basic rarity-colored outline (12.3 placeholder for future glow).
+- Roadmap updated: 12.1, 12.2, 12.3 marked Done; README gains Loot Filter + outline note.
 
-Crafting & Materials (Items 11.2–11.6)
-- New module crafting.[ch] (material tier query, recipe registry+parser, upgrade rarity clamp, affix reroll API with material+gold consumption & retry/escalation loop).
-- Inventory consume API added.
-- Tests: test_crafting_basic, test_reroll_affix (resource consumption + affix regeneration).
-- README + roadmap updated (11.2–11.6 Done).
-
-Loot Filter (Items 12.1–12.2)
-- Rule parser (rarity>= / rarity<= / category= / name~substr / def=id, MODE=ANY/ALL) up to 64 rules.
-- Runtime evaluation marks item instances hidden via `hidden_filter`; visible count API `rogue_items_visible_count`.
-- Reapply API `rogue_loot_filter_refresh_instances` for dynamic updates.
-- Unit test `test_loot_filter_basic` validates filtering (hides common sword keeps epic blade).
-- Roadmap updated (12.1, 12.2 Done) & README Loot Filter subsection added.
-
-Follow-ups
-- Reroll API refinement (explicit force rarity, distinguish no-change without clearing).
-- Add upgrade recipe specific test.
-- Potential filter UI overlay (12.3+ outline/glow) next.
+Follow-ups: 12.4 minimap pings, 12.5/12.6 tooltips & comparison, richer glow animation & performance batching.
