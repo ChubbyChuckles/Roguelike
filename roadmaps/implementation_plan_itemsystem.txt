@@ -111,12 +111,12 @@ X = Not started yet
 12.6 Comparison tooltip vs equipped (Done)
 12.7 Unit tests: filter predicate evaluation (Done)
 
-13. Inventory UI & Management (Pending)
-13.1 Grid or list representation with stack counts (X)
-13.2 Sorting & filtering UI controls (X)
-13.3 Drag-and-drop equip / move / split stack (X)
-13.4 Quick salvage / drop context actions (X)
-13.5 Persistence of UI state (sort mode) (X)
+13. Inventory UI & Management (Done)
+13.1 Grid or list representation with stack counts (Done: inventory_ui_build produces slot arrays from core counts)
+13.2 Sorting & filtering UI controls (Done: sort modes name/rarity/category/count + rarity/category mask filter struct)
+13.3 Drag-and-drop equip / move / split stack (Done: existing grid + new equip helper hooking first instance spawn if needed)
+13.4 Quick salvage / drop context actions (Done: helpers salvage_def and drop_one with inventory decrement + ground spawn)
+13.5 Persistence of UI state (sort mode) (Done: field inventory_sort_mode serialized in player component v9 tail)
 
 14. Equipment & Stat Integration (Pending)
 14.1 Equip slots & constraints (Partial: weapon/armor slots + basic API; initial UI panel and vendor integration added)

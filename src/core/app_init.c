@@ -92,6 +92,7 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     rogue_loot_tables_reset();
     rogue_items_init_runtime();
     rogue_inventory_init();
+    g_app.inventory_sort_mode = 0; /* default sort none */
     rogue_loot_logging_init_from_env();
      rogue_persistence_load_player_stats();
      /* Cheat override (dev convenience): set talent points to 100 only if env var ROGUE_TALENT_CHEAT=1.

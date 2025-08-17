@@ -101,6 +101,8 @@ typedef struct RogueAppState {
 #endif
     /* Run metadata (Phase 7.8) */
     int permadeath_mode; /* 1 if run flagged permadeath */
+    /* Inventory UI (13.5) */
+    int inventory_sort_mode; /* RogueInventorySortMode persisted */
 } RogueAppState;
 
 extern RogueAppState g_app;

@@ -1478,6 +1478,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase4_inventory_persistenc
         target_compile_definitions(test_loot_phase4_inventory_persistence PRIVATE ROGUE_HAVE_SDL=1)
     endif()
     add_test(NAME test_loot_phase4_inventory_persistence COMMAND test_loot_phase4_inventory_persistence)
+
+    # Phase 13 inventory UI management test
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_ui_phase13.c AND NOT TARGET test_inventory_ui_phase13)
+        add_executable(test_inventory_ui_phase13 unit/test_inventory_ui_phase13.c)
+        target_link_libraries(test_inventory_ui_phase13 PRIVATE rogue_core)
+        if(ROGUE_ENABLE_SDL)
+            target_compile_definitions(test_inventory_ui_phase13 PRIVATE ROGUE_HAVE_SDL=1)
+        endif()
+        add_test(NAME test_inventory_ui_phase13 COMMAND test_inventory_ui_phase13)
+    endif()
 endif()
 
 # Explicitly add loot phase 5 rarity parse test

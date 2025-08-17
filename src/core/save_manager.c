@@ -587,6 +587,8 @@ static int write_player_component(FILE* f){
     fwrite(&g_app.player.weapon_infusion, sizeof g_app.player.weapon_infusion,1,f);
     /* Phase 7.8 start timestamp (seconds since process epoch) */
     fwrite(&g_app.session_start_seconds, sizeof g_app.session_start_seconds,1,f);
+    /* 13.5 inventory UI sort mode */
+    fwrite(&g_app.inventory_sort_mode, sizeof g_app.inventory_sort_mode,1,f);
     return 0;
 }
 static int read_player_component(FILE* f, size_t size){
@@ -609,6 +611,7 @@ static int read_player_component(FILE* f, size_t size){
     if(remain >= (int)sizeof(int)){ fread(&g_app.player.equipped_weapon_id,sizeof g_app.player.equipped_weapon_id,1,f); remain-=sizeof(int);} else { g_app.player.equipped_weapon_id = -1; }
     if(remain >= (int)sizeof(int)){ fread(&g_app.player.weapon_infusion,sizeof g_app.player.weapon_infusion,1,f); remain-=sizeof(int);} else { g_app.player.weapon_infusion = 0; }
     if(remain >= (int)sizeof(double)){ fread(&g_app.session_start_seconds,sizeof g_app.session_start_seconds,1,f); remain-=sizeof(double);} else { g_app.session_start_seconds = 0.0; }
+    if(remain >= (int)sizeof(int)){ fread(&g_app.inventory_sort_mode,sizeof g_app.inventory_sort_mode,1,f); remain-=sizeof(int);} else { g_app.inventory_sort_mode=0; }
     (void)start; return 0; }
 
 /* ---------------- Additional Phase 1 Components ---------------- */

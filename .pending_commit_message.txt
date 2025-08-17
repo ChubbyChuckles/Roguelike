@@ -1,0 +1,9 @@
+Itemsystem 13.x Inventory UI & Management
+ - 13.1 Slot array adapter: Added core/inventory_ui.{c,h} building ids+counts arrays from aggregated inventory counts (capacity clamp) for UI grid consumption.
+ - 13.2 Sorting & filtering: Implemented sort modes (NONE, NAME (case-insensitive), RARITY desc, CATEGORY asc, COUNT desc) plus `RogueInventoryFilter` (category bitmask, min rarity). QSort comparators with portable lowercasing (no strcasecmp dependency).
+ - 13.3 Equip integration: Helper `rogue_inventory_ui_try_equip_def` locates existing active instance or spawns a temp, then routes through equipment slot validation (weapon/armor) marking stat cache dirty.
+ - 13.4 Context actions: Salvage (`rogue_inventory_ui_salvage_def`) invokes salvage API and decrements inventory; Drop (`rogue_inventory_ui_drop_one`) spawns ground instance near player and consumes one from stack.
+ - 13.5 UI state persistence: Added `g_app.inventory_sort_mode` field (int) serialized at tail of player component (write/read) preserving backward compatibility (guarded by payload remaining bytes). Default initialized in `app_init`.
+Tests: New `test_inventory_ui_phase13` validates build occupancy, COUNT sort ordering (largest first), and min rarity filter reducing visible entries. All tests pass (ctest Release) and build integrates SDL2 as before.
+Docs: Roadmap section 13 marked Done with per-subtask notes; README updated with Phase 13 summary; commit message appended.
+

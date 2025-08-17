@@ -228,6 +228,7 @@ Phase 11.1–11.5 (AI Testing & QA Expansion): Added comprehensive quality gates
 * Phase 5.5 Tag Filtering: Nodes carry tag bitmask (fire/movement/defense). Filter mask skips non-matching nodes during quadtree emission.
 * Phase 5.6 Build Export/Import: Text format `icon:rank/max;tags` allows snapshotting & restoring rank distribution + tags (bounds-checked). Helper APIs `rogue_ui_skillgraph_export` / `rogue_ui_skillgraph_import`.
 * Phase 5.7 Undo Buffer: Allocation API records previous rank (stack up to 64). `rogue_ui_skillgraph_undo` reverts last allocation and leaves animation pipeline intact.
+* Phase 13 Inventory UI & Management: Added `inventory_ui.c/h` module bridging core aggregated counts to UI grid. Supports slot array build with stack counts, sorting modes (name, rarity descending, category, count descending), category bitmask + min rarity filtering, equip helper (creates instance if none active), salvage & drop context actions (inventory decrement + ground spawn), and persisted sort mode (`g_app.inventory_sort_mode`) serialized in player component section (save format v9 tail-safe backward compatible). Unit test `test_inventory_ui_phase13` validates build ordering, count sort, and rarity filter behavior.
   New unit test `test_ui_phase5_skillgraph_advanced` exercises filtering, export/import, allocation + undo.
 
 #### Skill Graph Runtime Preview (Experimental)
