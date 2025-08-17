@@ -30,4 +30,14 @@ int rogue_affix_roll_value(int affix_index, unsigned int* rng_state);
     quality_scalar <=1 behaves like baseline uniform. */
 int rogue_affix_roll_value_scaled(int affix_index, unsigned int* rng_state, float quality_scalar);
 
+/* Tooling Phase 21.3: Export affix range summary as JSON array of objects.
+    Format: [{"id":"...","type":0|1,"stat":N,"min":X,"max":Y,"w":[w0,w1,w2,w3,w4]}]
+    Returns number of bytes written (excluding NUL) or -1 on error; always NUL-terminates if cap>0. */
+int rogue_affixes_export_json(char* buf, int cap);
+
+/* Tooling Phase 21.3: Export affix range summary as JSON array of objects.
+    Format: [{"id":"...","type":0|1,"stat":N,"min":X,"max":Y,"w":[w0,w1,w2,w3,w4]},...]
+    Returns number of bytes written (excluding NUL) or -1 on error; always NUL-terminates if cap>0. */
+int rogue_affixes_export_json(char* buf, int cap);
+
 #endif

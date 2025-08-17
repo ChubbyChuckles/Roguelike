@@ -117,3 +117,20 @@ int rogue_affix_roll_value_scaled(int affix_index, unsigned int* rng_state, floa
     if(offset >= span) offset = span-1;
     return d->min_value + offset;
 }
+
+int rogue_affixes_export_json(char* buf, int cap){
+    if(!buf || cap<=0) return -1;
+    int w=0; buf[0]='\0';
+    int n = snprintf(buf+w, (w<cap? cap-w:0), "["); if(n>0) w+=n;
+    int first=1;
+    for(int i=0;i<g_affix_count;i++){
+        const RogueAffixDef* a=&g_affixes[i];
+        n = snprintf(buf+(w<cap?w:cap), (w<cap? cap-w:0), "%s{\"id\":\"%s\",\"type\":%d,\"stat\":%d,\"min\":%d,\"max\":%d,\"w\":[%d,%d,%d,%d,%d]}",
+            first?"":",", a->id, a->type, a->stat, a->min_value, a->max_value,
+            a->weight_per_rarity[0], a->weight_per_rarity[1], a->weight_per_rarity[2], a->weight_per_rarity[3], a->weight_per_rarity[4]);
+        if(n>0) w+=n; first=0;
+    }
+    n = snprintf(buf+(w<cap?w:cap), (w<cap? cap-w:0), "]"); if(n>0) w+=n;
+    if(w>=cap) buf[cap-1]='\0';
+    return w;
+}
