@@ -102,7 +102,7 @@ Design goals:
 | Instrumentation | Logging categories, stats window, histogram export | Drift alerts, heatmaps |
 | Persistence | Inventory + affix round‑trip | Versioned migrations beyond affixes |
 | Tooling | Pre‑commit hooks, formatting, test harness | Asset validation CLI, balancing scripts |
-| Dialogue | Phase 0 data model + plaintext loader + registry + unit test | Phase 1 UI panel & runtime state, tokens/effects, persistence |
+| Dialogue | Phase 0 data model + loader + registry + unit test; Phase 1 runtime playback & UI panel (advance/close + logging); Phase 2 token expansion (${player_name}, ${run_seed}) + unit test | Effects, persistence |
 
 See full, fine‑grained roadmap in `implementation_plan.txt` (kept continuously updated).
 

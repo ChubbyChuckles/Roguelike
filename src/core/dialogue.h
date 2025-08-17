@@ -17,6 +17,9 @@ typedef struct RogueDialogueLine {
     unsigned char _reserved[8];  /* forward compatibility (branch targets, conditions) */
 } RogueDialogueLine;
 
+/* Phase 2 token flag bits */
+#define ROGUE_DIALOGUE_LINE_HAS_TOKENS 0x1u
+
 typedef struct RogueDialogueScript {
     int id;                      /* caller supplied id */
     int line_count;              /* number of populated lines */
@@ -24,6 +27,36 @@ typedef struct RogueDialogueScript {
     void* _blob;                 /* backing allocation for strings + lines (single free) */
     int _blob_size;              /* size in bytes of backing allocation */
 } RogueDialogueScript;
+
+/* Phase 1 Runtime Playback State */
+typedef struct RogueDialoguePlayback {
+    int active;              /* 1 if a dialogue is currently open */
+    int script_id;           /* active script id */
+    int line_index;          /* current line index */
+    float reveal_ms;         /* accumulated ms for typewriter (Phase 6 future) */
+    int suspended_inputs;    /* 1 if combat inputs suspended while active */
+} RogueDialoguePlayback;
+
+/* Begin playback of a registered script (returns 0 on success, <0 on error/not found). */
+int rogue_dialogue_start(int script_id);
+/* Advance to next line or close if at end; returns 1 if advanced, 0 if closed, <0 on error. */
+int rogue_dialogue_advance(void);
+/* Get current playback (NULL if inactive). */
+const RogueDialoguePlayback* rogue_dialogue_playback(void);
+/* Internal update hook (dt_ms) - currently trivial placeholder for future typewriter. */
+void rogue_dialogue_update(double dt_ms);
+/* Forward declare UI context to avoid heavy include. */
+struct RogueUIContext;
+/* Render UI panel (no-op if inactive). Provided a UI context; returns 1 if drew. */
+int rogue_dialogue_render_ui(struct RogueUIContext* ui);
+/* Append entire transcript so far to log (used automatically on advance). */
+void rogue_dialogue_log_current_line(void);
+
+/* Phase 2 Token Context (simple global setters used by tests & game) */
+void rogue_dialogue_set_player_name(const char* name);
+void rogue_dialogue_set_run_seed(unsigned int seed);
+/* Retrieve current line expanded into buffer (tokens replaced). Returns length written, or <0 on error/inactive. */
+int rogue_dialogue_current_text(char* buffer, size_t cap);
 
 /* Load a plaintext script from file path. Format per line: speaker_id|text
  * Empty lines or lines beginning with '#' are ignored. Whitespace around speaker_id is trimmed.
