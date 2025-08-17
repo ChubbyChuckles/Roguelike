@@ -84,6 +84,9 @@ typedef struct RogueAppState {
     unsigned int session_items_dropped;
     unsigned int session_items_picked;
     unsigned int session_rarity_drops[5];
+    /* Analytics counters (Phase 7.7 persistence) */
+    unsigned long long analytics_damage_dealt_total; /* cumulative damage dealt */
+    unsigned long long analytics_gold_earned_total;  /* cumulative gold earned */
     /* In-world vendor (interactive economy showcase) */
     float vendor_x, vendor_y; int show_vendor_panel; int vendor_selection; unsigned int vendor_seed; double vendor_time_accum_ms; double vendor_restock_interval_ms;
     /* Phase 4.8 vendor transaction confirmation */
@@ -96,6 +99,8 @@ typedef struct RogueAppState {
 #ifdef ROGUE_HAVE_SDL
     RogueTexture* skill_icon_textures; /* array size skill_count */
 #endif
+    /* Run metadata (Phase 7.8) */
+    int permadeath_mode; /* 1 if run flagged permadeath */
 } RogueAppState;
 
 extern RogueAppState g_app;

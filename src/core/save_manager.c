@@ -569,12 +569,39 @@ static int write_player_component(FILE* f){
     /* Serialize subset of player progression (minimal Phase 1 binary form) */
     fwrite(&g_app.player.level,sizeof g_app.player.level,1,f);
     fwrite(&g_app.player.xp,sizeof g_app.player.xp,1,f);
+    fwrite(&g_app.player.xp_to_next,sizeof g_app.player.xp_to_next,1,f);
     fwrite(&g_app.player.health,sizeof g_app.player.health,1,f);
+    fwrite(&g_app.player.mana,sizeof g_app.player.mana,1,f);
+    fwrite(&g_app.player.action_points,sizeof g_app.player.action_points,1,f);
+    fwrite(&g_app.player.strength,sizeof g_app.player.strength,1,f);
+    fwrite(&g_app.player.dexterity,sizeof g_app.player.dexterity,1,f);
+    fwrite(&g_app.player.vitality,sizeof g_app.player.vitality,1,f);
+    fwrite(&g_app.player.intelligence,sizeof g_app.player.intelligence,1,f);
     fwrite(&g_app.talent_points,sizeof g_app.talent_points,1,f);
+    /* Analytics counters & run metadata */
+    fwrite(&g_app.analytics_damage_dealt_total,sizeof g_app.analytics_damage_dealt_total,1,f);
+    fwrite(&g_app.analytics_gold_earned_total,sizeof g_app.analytics_gold_earned_total,1,f);
+    fwrite(&g_app.permadeath_mode,sizeof g_app.permadeath_mode,1,f);
     return 0;
 }
 static int read_player_component(FILE* f, size_t size){
-    if(size < sizeof(int)*4) return -1; fread(&g_app.player.level,sizeof g_app.player.level,1,f); fread(&g_app.player.xp,sizeof g_app.player.xp,1,f); fread(&g_app.player.health,sizeof g_app.player.health,1,f); fread(&g_app.talent_points,sizeof g_app.talent_points,1,f); return 0; }
+    /* Support legacy minimal layout (level,xp,health,talent_points) and extended Phase 7.1/7.7/7.8 layout. */
+    if(size < sizeof(int)*4) return -1; long start=ftell(f); int remain=(int)size; /* naive */
+    fread(&g_app.player.level,sizeof g_app.player.level,1,f); fread(&g_app.player.xp,sizeof g_app.player.xp,1,f); remain-=sizeof(int)*2;
+    /* Try reading xp_to_next; if insufficient bytes fallback */
+    if(remain >= (int)sizeof(int)){ fread(&g_app.player.xp_to_next,sizeof g_app.player.xp_to_next,1,f); remain-=sizeof(int); } else { g_app.player.xp_to_next = 0; }
+    if(remain >= (int)sizeof(int)){ fread(&g_app.player.health,sizeof g_app.player.health,1,f); remain-=sizeof(int);} else { g_app.player.health=0; }
+    if(remain >= (int)sizeof(int)){ fread(&g_app.player.mana,sizeof g_app.player.mana,1,f); remain-=sizeof(int);} else { g_app.player.mana=0; }
+    if(remain >= (int)sizeof(int)){ fread(&g_app.player.action_points,sizeof g_app.player.action_points,1,f); remain-=sizeof(int);} else { g_app.player.action_points=0; }
+    if(remain >= (int)sizeof(int)){ fread(&g_app.player.strength,sizeof g_app.player.strength,1,f); remain-=sizeof(int);} else { g_app.player.strength=5; }
+    if(remain >= (int)sizeof(int)){ fread(&g_app.player.dexterity,sizeof g_app.player.dexterity,1,f); remain-=sizeof(int);} else { g_app.player.dexterity=5; }
+    if(remain >= (int)sizeof(int)){ fread(&g_app.player.vitality,sizeof g_app.player.vitality,1,f); remain-=sizeof(int);} else { g_app.player.vitality=15; }
+    if(remain >= (int)sizeof(int)){ fread(&g_app.player.intelligence,sizeof g_app.player.intelligence,1,f); remain-=sizeof(int);} else { g_app.player.intelligence=5; }
+    if(remain >= (int)sizeof(int)){ fread(&g_app.talent_points,sizeof g_app.talent_points,1,f); remain-=sizeof(int);} else { g_app.talent_points=0; }
+    if(remain >= (int)sizeof(unsigned long long)){ fread(&g_app.analytics_damage_dealt_total,sizeof g_app.analytics_damage_dealt_total,1,f); remain-=sizeof(unsigned long long);} else { g_app.analytics_damage_dealt_total=0ULL; }
+    if(remain >= (int)sizeof(unsigned long long)){ fread(&g_app.analytics_gold_earned_total,sizeof g_app.analytics_gold_earned_total,1,f); remain-=sizeof(unsigned long long);} else { g_app.analytics_gold_earned_total=0ULL; }
+    if(remain >= (int)sizeof(int)){ fread(&g_app.permadeath_mode,sizeof g_app.permadeath_mode,1,f); remain-=sizeof(int);} else { g_app.permadeath_mode=0; }
+    (void)start; return 0; }
 
 /* ---------------- Additional Phase 1 Components ---------------- */
 

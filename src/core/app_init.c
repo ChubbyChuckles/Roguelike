@@ -168,6 +168,9 @@ bool rogue_app_init(const RogueAppConfig* cfg)
         else { ROGUE_LOG_WARN("Could not determine CWD"); }
 #endif
     }
+        g_app.analytics_damage_dealt_total = 0ULL;
+        g_app.analytics_gold_earned_total = 0ULL;
+        g_app.permadeath_mode = 0;
     return true;
 }
 
