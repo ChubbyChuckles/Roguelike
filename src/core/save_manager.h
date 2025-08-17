@@ -117,4 +117,14 @@ uint32_t rogue_save_last_replay_event_count(void);
 #define ROGUE_SAVE_ERR_SECTION_CRC      -22
 #define ROGUE_SAVE_ERR_SHA256           -23
 
+/* Tamper flags (Phase 4.3) */
+#define ROGUE_TAMPER_FLAG_DESCRIPTOR_CRC 0x1u
+#define ROGUE_TAMPER_FLAG_SECTION_CRC    0x2u
+#define ROGUE_TAMPER_FLAG_SHA256         0x4u
+uint32_t rogue_save_last_tamper_flags(void); /* bitmask of ROGUE_TAMPER_FLAG_* from last load attempt */
+
+/* Recovery load (Phase 4.4) */
+int rogue_save_manager_load_slot_with_recovery(int slot_index); /* returns 0 if primary ok, 1 if recovered via autosave, negative on failure */
+int rogue_save_last_recovery_used(void); /* 1 if last recovery load fell back to autosave */
+
 #endif
