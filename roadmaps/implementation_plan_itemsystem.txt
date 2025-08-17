@@ -109,7 +109,7 @@ X = Not started yet
 12.4 Mini-map loot pings by rarity (Done)
 12.5 On-hover tooltip (base stats + affixes) (Done)
 12.6 Comparison tooltip vs equipped (Done)
-12.7 Unit tests: filter predicate evaluation (Pending) /* basic rule test exists (visibility) – expanded multi-rule ANY/ALL still pending */
+12.7 Unit tests: filter predicate evaluation (Done)
 
 13. Inventory UI & Management (Pending)
 13.1 Grid or list representation with stack counts (X)

@@ -435,6 +435,13 @@ Minimal repair loop implemented:
 ### Equip / Unequip Stat Delta Tests (14.5)
 ### Mini-map Loot Pings (12.4)
 ### Item Tooltips & Comparison (12.5–12.6)
+### Loot Filter Predicate Tests (12.7)
+Added comprehensive predicate evaluation test `test_loot_filter_predicates` covering:
+* MODE=ALL intersection of rarity threshold + category
+* MODE=ANY union of explicit def ids
+* MODE=ANY mixture of name substring and rarity threshold (ensuring substring broadens visibility)
+This finalizes 12.x filter correctness ensuring AND/OR semantics won't regress with future rule additions.
+
 Implemented lightweight string builders for item inspection:
 * `rogue_item_tooltip_build(inst, buf, sz)` lists name, quantity, damage/armor lines, affix stat rolls, and durability.
 * `rogue_item_tooltip_build_compare(inst, slot, buf, sz)` appends a delta damage line vs equipped slot (currently weapon slot support).
