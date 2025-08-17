@@ -497,6 +497,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_incremental_basic.c AND NOT
     add_test(NAME test_save_incremental_basic COMMAND test_save_incremental_basic)
 endif()
 
+# Phase 16 personal loot mode test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase16_personal_mode.c AND NOT TARGET test_loot_phase16_personal_mode)
+    add_executable(test_loot_phase16_personal_mode unit/test_loot_phase16_personal_mode.c)
+    target_link_libraries(test_loot_phase16_personal_mode PRIVATE rogue_core)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_loot_phase16_personal_mode PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_loot_phase16_personal_mode COMMAND test_loot_phase16_personal_mode)
+endif()
+
 # Autosave scheduler test (Phase 6.1/6.3/6.4)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_autosave_scheduler.c AND NOT TARGET test_save_autosave_scheduler)
     add_executable(test_save_autosave_scheduler unit/test_save_autosave_scheduler.c)

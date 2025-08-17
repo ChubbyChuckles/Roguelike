@@ -132,11 +132,11 @@ X = Not started yet
 15.4 Partial save (inventory only) API (Done: rogue_save_manager_save_slot_inventory_only isolates inventory component serialization)
 15.5 Backup rotation (Done: rogue_save_manager_backup_rotate writes timestamped .bak copy; pruning placeholder pending cross-platform dir scan)
 
-16. Multiplayer / Personal Loot (Future) (Pending)
-16.1 Player-specific instanced drops (X)
-16.2 Shared vs personal loot mode flag (X)
-16.3 Need/greed roll prototype (X)
-16.4 Trade window & validation (X)
+16. Multiplayer / Personal Loot (In Implementation)
+16.1 Player-specific instanced drops (Done: owner_player_id field on instances + assignment API rogue_loot_assign_owner; pickup gating active)
+16.2 Shared vs personal loot mode flag (Done: rogue_loot_set_mode / rogue_loot_get_mode with enum, default shared)
+16.3 Need/greed roll prototype (Partial: stub rogue_loot_need_greed_roll returns placeholder winner; no multi-player aggregation yet)
+16.4 Trade window & validation (Partial: rogue_loot_trade_request transfers ownership after basic checks; no UI / cooldown / distance validation yet)
 16.5 Anti-duplication safeguards (X)
 
 17. Performance & Memory Optimizations (Pending)

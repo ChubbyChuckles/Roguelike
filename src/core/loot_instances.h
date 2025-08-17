@@ -33,6 +33,8 @@ typedef struct RogueItemInstance {
     int hidden_filter; /* 12.x loot filter: 1 if hidden by active filter */
     /* Phase 15.2 forward-compatible affix extension placeholder (enchant level). Legacy saves omit this; reader defaults to 0. */
     int enchant_level;
+    /* Phase 16.x personal loot ownership (-1 = unowned/shared) */
+    int owner_player_id;
 } RogueItemInstance;
 
 void rogue_items_init_runtime(void);

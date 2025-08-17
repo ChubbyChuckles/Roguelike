@@ -12,6 +12,8 @@ void rogue_loot_pickup_update(float radius){
     float r2 = radius * radius;
     for(int i=0;i<g_app.item_instance_cap;i++) if(g_app.item_instances[i].active){
         RogueItemInstance* it = &g_app.item_instances[i];
+    /* Phase 16.1: if item has specific owner and (future) local player id mismatches, skip. Single player local id assumed 0. */
+    if(it->owner_player_id >= 0 && it->owner_player_id != 0) continue;
         float dx = it->x - g_app.player.base.pos.x;
         float dy = it->y - g_app.player.base.pos.y;
         float d2 = dx*dx + dy*dy;
