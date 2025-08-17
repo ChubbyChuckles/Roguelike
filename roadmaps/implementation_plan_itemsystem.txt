@@ -139,10 +139,10 @@ X = Not started yet
 16.4 Trade validation (Done: ownership check, lock rejection, self-trade rejection; placeholder distance/cooldown left for future UI integration)
 16.5 Anti-duplication safeguards (Done: instance lock via active need/greed session prevents pickup/trade until resolution)
 
-17. Performance & Memory Optimizations (Pending)
-17.1 Object pooling for affix roll scratch buffers (X)
-17.2 SIMD batch evaluation for weight normalization (X)
-17.3 Profiling harness (hot loops in roll) (X)
+17. Performance & Memory Optimizations (In Implementation)
+17.1 Object pooling for affix roll scratch buffers (Done: fixed-cap weight scratch pool with acquire/release metrics + max in-use tracking)
+17.2 SIMD batch evaluation for weight normalization (Done: SSE2 sum path with scalar fallback, metrics counters)
+17.3 Profiling harness (hot loops in roll) (Partial: perf metrics struct + counters; full timing harness pending)
 17.4 Cache-friendly item def indexing (X)
 17.5 Incremental serialization (dirty set only) (X)
 

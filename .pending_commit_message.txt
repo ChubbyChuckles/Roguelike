@@ -1,0 +1,42 @@
+feat(items/loot phase16): personal loot mode & ownership scaffolding
+
+Add multiplayer/personal loot initial slice:
+- owner_player_id field on item instances + assignment API
+- shared vs personal loot mode enum + setter/getter
+- pickup gating honoring ownership in personal mode
+- basic trade request transferring ownership (validation stub)
+- placeholder need/greed roll API
+- unit test test_loot_phase16_personal_mode validating shared vs personal pickup and trade flow
+- roadmap updated (16.1/16.2 Done, 16.3/16.4 Partial)
+- README highlights updated with Phase 16 summary
+
+Future: full need/greed aggregation, anti-dup safeguards, robust trade validation & network authority integration.
+
+---
+feat(items/loot phase16 complete): need/greed system, trade validation, anti-dup lock
+
+Complete Phase 16 Multiplayer / Personal Loot:
+- Need/Greed session API (begin/choose/resolve/winner) with NEED priority, deterministic LCG rolls (need 700-999, greed 400-699)
+- Instance lock while session active; pickup & trade honor lock (anti-dup safeguard)
+- Ownership assignment on resolve (forces temp personal mode) + winner persistence
+- Trade validation: rejects self, non-owner, locked; ownership transfer updates owner_player_id
+- Expanded multiplayer header with new APIs & lock query
+- Pickup loop integrates lock check
+- Tests: test_loot_phase16_personal_mode (unchanged still passing), new test_loot_phase16_need_greed_trade (need priority, pass, post-trade, rejection)
+- Roadmap Phase 16 all subtasks marked Done (16.1–16.5)
+- README updated Phase 16 summary (initial slice replaced with completed feature set)
+
+Notes: Distance/cooldown/net authority remain future enhancements; deterministic RNG seed mixes time + instance for now (will shift to session-wide seed in netcode phase).
+
+---
+feat(items/loot phase17 initial): perf object pool + SIMD weight sums + metrics
+
+Implement Phase 17 initial performance slice:
+- Added loot_perf module (object pool for affix roll scratch weight buffers)
+- Pool tracks acquires/releases and peak in-use; metrics struct exposed
+- SIMD (SSE2) accelerated weight summation (fallback to scalar) with counters
+- Test test_loot_phase17_perf validates pool correctness, counters, and weight aggregation
+- Roadmap updated (17.1/17.2 Done, 17.3 Partial)
+- README updated with Phase 17 summary
+
+Planned next: profiling harness timers, cache-friendly item def index reorder, incremental serialization tie-in.

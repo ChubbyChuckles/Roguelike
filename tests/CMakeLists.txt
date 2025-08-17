@@ -516,6 +516,15 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase16_need_greed_trade.c 
     add_test(NAME test_loot_phase16_need_greed_trade COMMAND test_loot_phase16_need_greed_trade)
 endif()
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase17_perf.c AND NOT TARGET test_loot_phase17_perf)
+    add_executable(test_loot_phase17_perf unit/test_loot_phase17_perf.c)
+    target_link_libraries(test_loot_phase17_perf PRIVATE rogue_core)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_loot_phase17_perf PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_loot_phase17_perf COMMAND test_loot_phase17_perf)
+endif()
+
 # Autosave scheduler test (Phase 6.1/6.3/6.4)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_autosave_scheduler.c AND NOT TARGET test_save_autosave_scheduler)
     add_executable(test_save_autosave_scheduler unit/test_save_autosave_scheduler.c)

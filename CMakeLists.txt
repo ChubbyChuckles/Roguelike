@@ -176,6 +176,7 @@ add_library(rogue_core
     src/core/loot_filter.c
     src/core/path_utils.c
     src/core/loot_rarity.c
+        src/core/loot_perf.c
     src/core/loot_stats.c
     src/core/loot_dynamic_weights.c
     src/core/loot_console.c
