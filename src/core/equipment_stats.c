@@ -57,6 +57,12 @@ static void gather_affix_primary_and_armor(void){
                 case ROGUE_AFFIX_STAT_RESIST_STATUS: r_status += it->prefix_value; break;
                 case ROGUE_AFFIX_STAT_BLOCK_CHANCE: block_chance += it->prefix_value; break; /* Phase 7 */
                 case ROGUE_AFFIX_STAT_BLOCK_VALUE: block_value += it->prefix_value; break;  /* Phase 7 */
+                case ROGUE_AFFIX_STAT_PHYS_CONV_FIRE_PCT: phys_conv_fire += it->prefix_value; break; /* 7.2 */
+                case ROGUE_AFFIX_STAT_PHYS_CONV_FROST_PCT: phys_conv_frost += it->prefix_value; break; /* 7.2 */
+                case ROGUE_AFFIX_STAT_PHYS_CONV_ARCANE_PCT: phys_conv_arc += it->prefix_value; break; /* 7.2 */
+                case ROGUE_AFFIX_STAT_GUARD_RECOVERY_PCT: guard_recovery += it->prefix_value; break; /* 7.3 */
+                case ROGUE_AFFIX_STAT_THORNS_PERCENT: thorns_pct += it->prefix_value; break; /* 7.5 */
+                case ROGUE_AFFIX_STAT_THORNS_CAP: thorns_cap += it->prefix_value; break; /* 7.5 */
                 default: break;
             }
         }}
@@ -76,6 +82,12 @@ static void gather_affix_primary_and_armor(void){
                 case ROGUE_AFFIX_STAT_RESIST_STATUS: r_status += it->suffix_value; break;
                 case ROGUE_AFFIX_STAT_BLOCK_CHANCE: block_chance += it->suffix_value; break; /* Phase 7 */
                 case ROGUE_AFFIX_STAT_BLOCK_VALUE: block_value += it->suffix_value; break;  /* Phase 7 */
+                case ROGUE_AFFIX_STAT_PHYS_CONV_FIRE_PCT: phys_conv_fire += it->suffix_value; break; /* 7.2 */
+                case ROGUE_AFFIX_STAT_PHYS_CONV_FROST_PCT: phys_conv_frost += it->suffix_value; break; /* 7.2 */
+                case ROGUE_AFFIX_STAT_PHYS_CONV_ARCANE_PCT: phys_conv_arc += it->suffix_value; break; /* 7.2 */
+                case ROGUE_AFFIX_STAT_GUARD_RECOVERY_PCT: guard_recovery += it->suffix_value; break; /* 7.3 */
+                case ROGUE_AFFIX_STAT_THORNS_PERCENT: thorns_pct += it->suffix_value; break; /* 7.5 */
+                case ROGUE_AFFIX_STAT_THORNS_CAP: thorns_cap += it->suffix_value; break; /* 7.5 */
                 default: break;
             }
         }}

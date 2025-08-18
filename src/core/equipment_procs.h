@@ -45,6 +45,12 @@ void rogue_proc_set_rate_cap_per_sec(int cap); /* global trigger cap */
 float rogue_proc_triggers_per_min(int id); /* triggers normalized to per-minute */
 int rogue_proc_last_trigger_sequence(int id); /* deterministic ordering sequence number */
 
+/* Phase 7.4 Reactive Shield helper API: treat any active proc with trigger ON_BLOCK as temporary absorb pool. */
+int rogue_procs_absorb_pool(void); /* sum of remaining absorb magnitude across active shield procs */
+int rogue_procs_consume_absorb(int amount); /* consume amount from active shields (returns actually consumed) */
+/* Test hook: force activate a proc id with given stacks & duration (bypasses trigger/ICD). */
+int rogue_proc_force_activate(int id, int stacks, int duration_ms);
+
 #ifdef __cplusplus
 }
 #endif

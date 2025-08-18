@@ -18,6 +18,16 @@ typedef struct RogueProcState {
 
 static RogueProcState g_proc_states[ROGUE_PROC_CAP];
 static int g_proc_count=0;
+/* Track global time & trigger rate (already declared further down in file in original context; ensure single definitions). */
+
+/* Forward declare utility to iterate active shield procs */
+static int is_shield_proc(const RogueProcState* st){ if(!st) return 0; return st->def.trigger == ROGUE_PROC_ON_BLOCK && st->stacks>0 && st->duration_remaining>0; }
+
+int rogue_procs_absorb_pool(void){ int total=0; for(int i=0;i<g_proc_count;i++){ const RogueProcState* st=&g_proc_states[i]; if(is_shield_proc(st)){ total += st->def.magnitude * st->stacks; }} return total; }
+int rogue_procs_consume_absorb(int amount){ if(amount<=0) return 0; int remaining=amount; for(int i=0;i<g_proc_count && remaining>0;i++){ RogueProcState* st=&g_proc_states[i]; if(!is_shield_proc(st)) continue; int avail = st->def.magnitude * st->stacks; if(avail<=0) continue; int take = (avail<remaining?avail:remaining); /* simplistic: consume whole proc if any taken */ remaining -= take; /* reduce stacks accordingly */ int per_stack = st->def.magnitude; if(per_stack>0){ int stacks_to_remove = (take + per_stack -1)/per_stack; st->stacks -= stacks_to_remove; if(st->stacks < 0) st->stacks=0; if(st->stacks==0){ st->duration_remaining=0; } }
+    }
+    return amount - remaining; }
+int rogue_proc_force_activate(int id, int stacks, int duration_ms){ if(id<0 || id>=g_proc_count) return -1; RogueProcState* st=&g_proc_states[id]; st->stacks = stacks; if(st->stacks<0) st->stacks=0; st->duration_remaining = duration_ms; if(st->duration_remaining<0) st->duration_remaining=0; return 0; }
 static int g_time_accum_ms=0;
 static int g_rate_cap_per_sec = 1000; /* effectively uncapped default */
 static int g_triggers_this_second=0;

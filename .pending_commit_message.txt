@@ -1,1 +1,18 @@
-Equipment Phase 7.1: Block Chance & Block Value Implementation\n\n- Added new defensive affix stats: block_chance, block_value (enum extensions in loot_affixes.h, parser updates in loot_affixes.c).\n- Extended stat cache (previous commit) now wired: equipment aggregation collects block stats from affixes.\n- Added passive block logic to combat_guard.c (roll vs aggregated block_chance even when not guarding; flat reduction by block_value).\n- Introduced new affix definitions in assets/affixes.cfg (bulwark / of_guarding) for block stats.\n- New tests: \n  * test_equipment_phase7_defensive validates passive block reduction path.\n  * test_equipment_phase7_block_affixes validates affix parsing & stat cache injection of block stats.\n- Roadmap updated marking Phase 7.1 Done.\n- README to be updated in subsequent phase batch (will summarize defensive extensions after 7.2–7.5).\n\nRationale: Establishes first defensive layer extension enabling subsequent phases (damage conversion, guard recovery, reactive shields, thorns) to integrate with a proven aggregation + combat application pattern.\n\n---\n\n
+Equipment System Phase 7.2–7.5: Damage Conversion, Guard Recovery, Thorns
+
+Summary:
+* Added new affix stats & enum entries: phys_conv_fire_pct, phys_conv_frost_pct, phys_conv_arcane_pct, guard_recovery_pct, thorns_percent, thorns_cap.
+* Parsing: extended affix CSV parser to recognize new identifiers.
+* Aggregation: equipment_stat pass now sums conversion, guard recovery, and thorns into stat cache.
+* Combat Logic: implemented physical → elemental conversion in melee damage pipeline with 95% cap & conservation; guard recovery modifier scales regen and inversely scales drain (clamped); thorns reflect applied post-conversion with per-hit cap.
+* Tests: new test_equipment_phase7_conversion_reflect exercising conversion conservation (normal & over-cap), guard recovery scaling math, and reflect path (no attacker application yet). Existing block tests unchanged and still pass.
+* Roadmap: Marked 7.2, 7.3, 7.5 Done; 7.4 deferred (reactive shield procs); 7.6 tests updated (partial – shield ordering pending 7.4).
+* README: Added section summarizing Phase 7.2–7.5 defensive extensions and deferral note for reactive shield procs.
+
+Notes / Next:
+* Reactive shield procs (7.4) will introduce absorb pool field + proc hook on block/hit before final damage application.
+* Subsequent test will validate ordering: block → conversion → absorb → reflect.
+
+Quality: Build & all related unit tests pass (block, affix parsing, conversion/reflect). SDL2 build flag respected.
+
+Additional Partial (7.4): Added absorb pool helper APIs (rogue_procs_absorb_pool / consume_absorb / force_activate) laying groundwork for reactive shield proc test in next slice (no affix or proc registration yet to keep scope minimal).

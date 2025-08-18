@@ -29,6 +29,12 @@ static RogueAffixStat parse_stat(const char* s){
     if(strcmp(s,"resist_status")==0) return ROGUE_AFFIX_STAT_RESIST_STATUS;
     if(strcmp(s,"block_chance")==0) return ROGUE_AFFIX_STAT_BLOCK_CHANCE; /* Phase 7 */
     if(strcmp(s,"block_value")==0) return ROGUE_AFFIX_STAT_BLOCK_VALUE;   /* Phase 7 */
+    if(strcmp(s,"phys_conv_fire_pct")==0) return ROGUE_AFFIX_STAT_PHYS_CONV_FIRE_PCT; /* Phase 7.2 */
+    if(strcmp(s,"phys_conv_frost_pct")==0) return ROGUE_AFFIX_STAT_PHYS_CONV_FROST_PCT; /* Phase 7.2 */
+    if(strcmp(s,"phys_conv_arcane_pct")==0) return ROGUE_AFFIX_STAT_PHYS_CONV_ARCANE_PCT; /* Phase 7.2 */
+    if(strcmp(s,"guard_recovery_pct")==0) return ROGUE_AFFIX_STAT_GUARD_RECOVERY_PCT; /* Phase 7.3 */
+    if(strcmp(s,"thorns_percent")==0) return ROGUE_AFFIX_STAT_THORNS_PERCENT; /* Phase 7.5 */
+    if(strcmp(s,"thorns_cap")==0) return ROGUE_AFFIX_STAT_THORNS_CAP; /* Phase 7.5 */
     return ROGUE_AFFIX_STAT_NONE;
 }
 

@@ -79,6 +79,16 @@ Phase M3 (data-driven pipeline) progress:
 
 Next phases (M3+) will introduce unified config schema, hot reload, and expanded deterministic replay/coverage gates.
 
+### Equipment System Phase 7.2–7.5 (Defensive Layer Extensions Continued)
+
+Implemented in this slice:
+* Damage Conversion (7.2): Added affix stats `phys_conv_fire_pct`, `phys_conv_frost_pct`, `phys_conv_arcane_pct` (enum + parser + aggregation). Incoming physical melee damage now partitions into elemental components with a 95% aggregate cap (always at least 5% remains physical). Conservation enforced (post‑conversion sum == original raw) – validated by new unit test `test_equipment_phase7_conversion_reflect`.
+* Guard Recovery Modifiers (7.3): New `guard_recovery_pct` affix scales guard meter regeneration (multiplicative, clamped 0.1x–3.0x) and inversely scales hold drain (floor 0.25x) inside `rogue_player_update_guard`.
+* Thorns / Reflect (7.5): Added `thorns_percent` and `thorns_cap` affix stats; reflect computed after conversion & mitigation ordering inside `combat_guard` (currently attacker application deferred until enemy context wire-up). Cap enforces upper bound per hit.
+* Tests (7.6 partial): `test_equipment_phase7_conversion_reflect` covers conversion conservation, cap behavior when total attempted conversion exceeds 95%, guard recovery positive scaling math, and thorns integration placeholder path (ensuring no crash and ordering stable). Existing block tests (`test_equipment_phase7_defensive`, `test_equipment_phase7_block_affixes`) remain green.
+
+Deferred (remaining Phase 7 element): Reactive shield procs (7.4) – requires adding an absorb pool field & on_block / on_hit proc effect path; slated for next slice to avoid placeholder logic without state tracking.
+
 ---
 
 ## 1. Overview
