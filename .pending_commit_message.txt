@@ -1,0 +1,26 @@
+UI Phase 10.3: Automated Navigation Traversal Test
+
+Summary:
+- Added new test `test_ui_phase10_navigation_traversal.c` exercising directional focus navigation (RIGHT & DOWN) across a deterministic 2x3 button grid.
+- Validates horizontal wrap after visiting all 6 focusable widgets (guards against focus traps / skipped widgets).
+- Validates vertical row transitions and wrap per column (ensures DOWN cycles rows consistently).
+- Integrates test into CMake (`test_ui_phase10_navigation_traversal`).
+- Marks Phase 10.3 as Done in `roadmaps/implementation_plan_uisystem.txt` with reference to test.
+- README updated with bullet noting Phase 10.3 completion.
+
+Motivation:
+Ensures regression protection for navigation heuristic changes (spatial search + linear fallback). Any future heuristic tweak causing non-unique traversal or broken wrap will fail the test.
+
+Notes:
+- Leaves existing debug instrumentation in ui_context (INIT_* / PUSH_NODE) untouched for now; can be pruned or macro-guarded in a subsequent cleanup commit once stability confirmed.
+
+Files Added:
+- tests/unit/test_ui_phase10_navigation_traversal.c
+
+Files Modified:
+- tests/CMakeLists.txt
+- roadmaps/implementation_plan_uisystem.txt
+- README.md
+- .pending_commit_message.txt (this message)
+
+No functional runtime UI changes beyond test harness; risk minimal.

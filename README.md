@@ -659,6 +659,7 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
 * Phase 7.6 Narration Stub: Added lightweight narration buffer + APIs (`rogue_ui_narrate`, `rogue_ui_last_narration`) to prepare for screen reader integration; currently stores last message for tests/tooling.
 * Phase 7.7 Focus Audit Tool: Developer overlay utilities (`rogue_ui_focus_audit_enable`, `rogue_ui_focus_audit_emit_overlays`) visually highlight focusable widgets and export deterministic tab/focus order (`rogue_ui_focus_order_export`) for automated auditing.
 * Phase 10.1 Headless Harness: Introduced deterministic one-shot frame runner (`rogue_ui_headless_run`) and tree hash helper (`rogue_ui_tree_hash`) with unit test `test_ui_phase10_headless_harness`—foundation for golden diff, navigation traversal, and performance smoke tests.
+* Phase 10.3 Navigation Traversal Test: Added `test_ui_phase10_navigation_traversal` verifying horizontal and vertical focus cycling across a grid without traps or skips (wrap correctness & uniqueness guarantees).
 
 ### v0.8.x (Current Development Branch)
 **Added**

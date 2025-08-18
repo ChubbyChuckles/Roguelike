@@ -97,7 +97,7 @@ PHASE 9. Performance & Virtualization
 PHASE 10. Testing & QA Automation
 10.1 Headless UI harness (software raster target or hash) (Done: deterministic single-frame runner + hash; test `test_ui_phase10_headless_harness`)
 10.2 Golden image diff tests (tolerance thresholds) (Done: structural golden capture via draw sample & hash; test `test_ui_phase10_golden_theming` validates zero-diff rebuild)
-10.3 Automated navigation traversal test (focus cycles) (X)
+10.3 Automated navigation traversal test (focus cycles) (Done: grid traversal horizontal & vertical wrap test `test_ui_phase10_navigation_traversal` ensures no focus traps)
 10.4 Property fuzz tests (layout never overlaps reserved system bars) (Done: layout grid fuzz ensuring cell bounds; test `test_ui_phase10_layout_fuzz`)
 10.5 Performance smoke test (scripted 5k widgets) (Done: bulk panel emission >=4500/5000 threshold; test `test_ui_phase10_perf_smoke`)
 10.6 Theming diff test (light vs dark invariants) (Done: theme diff bitmask field change detection in `test_ui_phase10_golden_theming`)
