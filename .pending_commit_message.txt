@@ -1,3 +1,10 @@
+- Equipment Phase 6.1–6.3: Initial proc engine
+	- Added equipment_procs.[ch] with unified proc descriptor (trigger, ICD, duration, stacking rule, magnitude)
+	- Registry + runtime update (icd + duration decrement, uptime tracking, global per-second trigger cap)
+	- Event APIs: rogue_procs_event_hit/kill/block/dodge + crit flag path
+	- Telemetry: trigger count, active stacks, uptime ratio
+	- Unit test test_equipment_phase6_proc_engine simulating hits/crit cadence validates triggers & stacking
+	- Roadmap updated marking 6.1–6.3 Done
 Equipment Phase 5.4–5.5: Implement enchant & reforge systems
 - Equipment Phase 5.6 (Optional): Implement protective seal locking mechanic
 	- Added lock flags to RogueItemInstance (prefix_locked / suffix_locked)

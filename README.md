@@ -549,6 +549,16 @@ Introduced affix modification crafting operations:
 * Protective Seal (5.6): Added optional crafting material `protective_seal` letting players lock prefix and/or suffix prior to an enchant. Locked affixes are skipped during reroll; attempt returns -2 if nothing remains to reroll. Single seal consumed per operation regardless of locks applied.
 * Roadmap: 5.4, 5.5, 5.6, 5.7 marked Done (5.6 implemented as optional feature).
 
+### Equipment Phase 6.1–6.3 – Proc Engine Foundations
+Implemented an initial conditional effect (proc) subsystem:
+* Unified Descriptor: `RogueProcDef` captures trigger (hit/crit/kill/block/dodge/low HP), internal cooldown, duration, stacking rule (refresh/stack/ignore), magnitude scalar, and max stacks.
+* Runtime: Registry with up to 64 procs, per-proc cooldown + duration timers, uptime accumulation for telemetry, simple global per-second trigger rate cap to prevent spam.
+* Events: APIs `rogue_procs_event_hit(was_crit)`, `rogue_procs_event_kill`, `rogue_procs_event_block`, `rogue_procs_event_dodge`, plus `rogue_procs_update(dt_ms,hp_cur,hp_max)` to tick timers.
+* Stacking Rules: Refresh (keeps stacks, resets duration), Stack (increments up to max, shared duration), Ignore (fires once until expiry).
+* Telemetry: Query trigger counts, current stacks, uptime ratio for future balancing & analytics integration.
+* Tests: `test_equipment_phase6_proc_engine` simulates mixed hit/crit sequence validating trigger counts and stacking persistence.
+* Roadmap: Marked 6.1–6.3 Done; forthcoming phases (6.4–6.7) will add advanced stacking semantics variety, rate limiting refinements, and deterministic ordering tests.
+
 
 
 * Each `RogueItemInstance` now tracks `item_level` (baseline 1 on spawn) driving a power budget.

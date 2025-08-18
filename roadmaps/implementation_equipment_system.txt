@@ -67,9 +67,9 @@ PHASE 5. Sockets, Gems & Enchanting
 5.7 Tests: deterministic gem effects stacking, enchant cost scaling, reforge budget compliance (Done - gem stacking, enchant/reforge + protective seal tests; cost scaling basic)
 
 PHASE 6. Conditional Effects & Proc Engine
-6.1 Unified proc descriptor: trigger (on_hit/on_crit/on_kill/on_block/on_dodge/when_low_hp) + ICD ms + magnitude scalar (X)
-6.2 Proc registry + evaluation pipeline in combat update (X)
-6.3 Cooldown bucketization to amortize checks (X)
+6.1 Unified proc descriptor: trigger (on_hit/on_crit/on_kill/on_block/on_dodge/when_low_hp) + ICD ms + magnitude scalar (Done)
+6.2 Proc registry + evaluation pipeline in combat update (Done – core event dispatch + update loop)
+6.3 Cooldown bucketization to amortize checks (Done – simple per-proc ICD & global rate cap window)
 6.4 Stacking rules (refresh vs stack vs ignore) (X)
 6.5 Rate limiting (global cap per second) (X)
 6.6 Telemetry counters (procs/min, uptime %) (X)
