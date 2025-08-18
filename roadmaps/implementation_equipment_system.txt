@@ -116,13 +116,13 @@ PHASE 11. Analytics, Power Budget & Balancing
 11.7 Tests: histogram sum consistency, outlier detection false positive ceiling (Done basic coverage)
 
 PHASE 12. UI / UX & Visualization
-12.1 Equipment panel refactor (group by slot groups & set progress) (X)
-12.2 Tooltip layering: base → implicit → affix → gem → set/runeword bonuses (X)
-12.3 Comparative delta lines with color-coded soft-cap saturation (X)
-12.4 Proc preview (expected DPS delta given current skill usage rates) (X)
-12.5 Socket drag & drop with gem inventory panel (X)
-12.6 Transmog UI (visual override selection) (X)
-12.7 Tests: tooltip deterministic serialization hash, delta accuracy under equip/unequip (X)
+12.1 Equipment panel refactor (group by slot groups & set progress) (Done)
+12.2 Tooltip layering: base → implicit → affix → gem → set/runeword bonuses (Done basic – implicit+gems+set; runeword placeholder)
+12.3 Comparative delta lines with color-coded soft-cap saturation (Done basic – damage delta only)
+12.4 Proc preview (expected DPS delta given current skill usage rates) (Done naive triggers/min aggregation)
+12.5 Socket drag & drop with gem inventory panel (Partial – selection & placement only)
+12.6 Transmog UI (visual override selection) (Done wrapper state)
+12.7 Tests: tooltip deterministic serialization hash, delta accuracy under equip/unequip (Done hash determinism; rich delta accuracy deferred)
 
 PHASE 13. Persistence & Migration
 13.1 Versioned equipment block schema (X)

@@ -159,6 +159,18 @@ Implemented core analytics instrumentation:
 * A/B Balance Harness (11.6): Lightweight variant registry (`rogue_balance_register`, `rogue_balance_select_deterministic(seed)`) allowing deterministic selection of tuned thresholds (MAD multiplier, proc oversat threshold, DR chain floor) for comparative testing; default variant auto-created if none registered.
 * Tests (11.7 initial): `test_equipment_phase11_analytics` covers snapshot, histograms, usage, outlier detection; `test_equipment_phase11_balance` validates proc oversaturation flagging, DR chain detection, and deterministic variant selection / threshold enforcement. Roadmap updated (11.1–11.6 Done; 11.7 basic Done).
 
+### Equipment System Phase 12 (Initial UI / Visualization Slice)
+Introduced deterministic, headless UI helpers for regression tests:
+* Panel Grouping (12.1): `rogue_equipment_panel_build` outputs grouped slot listing plus set progress counters.
+* Layered Tooltip (12.2 baseline): `rogue_item_tooltip_build_layered` adds implicit armor, gem sockets, and set tag atop existing base tooltip with stable ordering.
+* Comparative Deltas (12.3 baseline): `rogue_equipment_compare_deltas` damage delta appended when providing a comparison slot.
+* Proc Preview (12.4): `rogue_equipment_proc_preview_dps` aggregates proc triggers/minute into naive DPS contribution.
+* Socket Drag State (12.5 partial): selection + placement APIs (`rogue_equipment_socket_select` / `_place_gem`).
+* Transmog UI State (12.6): wrapper remembers last selection per slot.
+* Determinism Hash (12.7): `rogue_item_tooltip_hash` (FNV-1a) powering new unit test `test_equipment_phase12_ui`.
+
+Deferred aspects (documented as Partial): soft-cap saturation color coding, runeword explicit layer, richer delta stat lines, inventory gem panel visualization.
+
 ---
 
 ## 1. Overview

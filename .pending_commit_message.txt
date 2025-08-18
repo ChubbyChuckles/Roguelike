@@ -12,3 +12,16 @@ Implemented Phase 11 analytics & balance enhancements:
  - Unit tests: test_equipment_phase11_analytics (snapshot, histograms, usage, outlier) and test_equipment_phase11_balance (proc oversat, DR chain, deterministic variant selection).
  - Roadmap updated (11.1–11.6 Done; 11.7 basic tests Done); README Phase 11 section expanded with new APIs.
 
+feat(equipment phase12.1-12.7 initial): headless UI helpers (panel grouping, layered tooltip, deltas, proc preview, socket/transmog state, determinism hash)
+
+Implemented initial slice of Phase 12 UI / Visualization:
+ - Equipment panel refactor (rogue_equipment_panel_build) grouping Weapons/Armor/Jewelry/Charms + set progress counters.
+ - Layered tooltip builder (rogue_item_tooltip_build_layered) composing base tooltip + implicit armor line + gem socket lines + set tag with stable ordering.
+ - Comparative delta helper (rogue_equipment_compare_deltas) emitting damage delta vs equipped slot; integrated into layered tooltip when compare_slot>=0.
+ - Proc preview (rogue_equipment_proc_preview_dps) naive expected DPS contribution (sum triggers_per_min/60) for early balance surfacing.
+ - Socket drag/drop ephemeral selection + placement APIs (rogue_equipment_socket_select / _place_gem) – groundwork for interactive panel.
+ - Transmog selection wrapper remembering last chosen visual (rogue_equipment_transmog_select / _last_selected).
+ - Deterministic tooltip hash (rogue_item_tooltip_hash) FNV-1a for regression snapshot tests.
+ - Unit test test_equipment_phase12_ui validates panel sections presence, tooltip hash determinism, and non-negative proc preview.
+ - Roadmap Phase 12 entries updated (marking basics Done / Partial where deeper visuals deferred). README updated with Phase 12 summary.
+
