@@ -145,6 +145,7 @@ add_library(rogue_core
     src/world/world_gen_weather.c
     src/world/world_gen_stream.c
     src/world/world_gen_telemetry.c
+    src/world/world_gen_optimization.c
     src/world/world_gen_modding.c
     src/world/world_gen_foundation.c
     src/graphics/font.c

@@ -117,11 +117,11 @@ PHASE 13. Modding & Data Extensibility
 13.4 Unit tests: migration path, invalid pack rejection, hot reload stability (Done: test_worldgen_phase13_modding covers valid load, invalid pack rejection, hot reload with additional file, active pack clear)
 
 PHASE 14. Optimization & Memory
-14.1 Memory pool / arena for transient generation buffers (X)
-14.2 SIMD acceleration for noise & erosion kernels (X)
-14.3 Parallel river & biome classification pass (task dispatch) (X)
-14.4 Benchmark harness & regression guard (baseline ms, ± tolerance) (X)
-14.5 Unit tests / benchmarks: speedup presence when SIMD available, no drift in results (X)
+14.1 Memory pool / arena for transient generation buffers (Done (initial): arena implemented + integrated into macro temp buffers; further adoption pending across other passes)
+14.2 SIMD acceleration for noise & erosion kernels (Partial: SIMD toggle + batched fbm/value noise path calling scalar per-lane to preserve determinism; true vectorized kernel & erosion SIMD TBD)
+14.3 Parallel river & biome classification pass (task dispatch) (X: toggle plumbed, no threading yet)
+14.4 Benchmark harness & regression guard (Partial: benchmark API & timing struct implemented; regression baseline file & tolerance comparison TBD)
+14.5 Unit tests / benchmarks: speedup presence when SIMD available, no drift in results (Done (basic): Phase14 test validates benchmark invariants & optional speedup; deterministic equivalence implicitly retained since SIMD path reuses scalar)
 
 PHASE 15. Advanced Features (Stretch)
 15.1 Dynamic world events altering terrain (meteor crater pass) (X)

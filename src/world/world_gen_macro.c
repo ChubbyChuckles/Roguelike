@@ -15,17 +15,45 @@ typedef struct MacroTmp {
     float* elevation; /* elevation influenced by continent */
     float* temperature;
     float* moisture;
+    int used_arena;   /* flag: 1 if backed by arena (no free) */
 } MacroTmp;
 
+/* Minimal declarations for arena usage (implemented in optimization unit) */
+typedef struct RogueWorldGenArena RogueWorldGenArena; /* already opaque in public header */
+void* rogue_worldgen_arena_alloc(RogueWorldGenArena* a, size_t sz, size_t align);
+RogueWorldGenArena* rogue_worldgen_internal_get_global_arena(void);
+
+/* Portable alignof fallback for MSVC C prior to C11 */
+#ifndef ROGUE_ALIGNOF
+ #if defined(_MSC_VER)
+  #define ROGUE_ALIGNOF(T) __alignof(T)
+ #else
+  #define ROGUE_ALIGNOF(T) _Alignof(T)
+ #endif
+#endif
+
+static RogueWorldGenArena* try_get_arena(){ return rogue_worldgen_internal_get_global_arena(); }
+
 static int alloc_macro_tmp(MacroTmp* mt,int count){
-    mt->continent = (float*)malloc(sizeof(float)* (size_t)count);
-    mt->elevation = (float*)malloc(sizeof(float)* (size_t)count);
-    mt->temperature = (float*)malloc(sizeof(float)* (size_t)count);
-    mt->moisture = (float*)malloc(sizeof(float)* (size_t)count);
+    memset(mt,0,sizeof *mt);
+    RogueWorldGenArena* arena = try_get_arena();
+    size_t bytes = sizeof(float)*(size_t)count;
+    if(arena){
+    mt->continent = (float*)rogue_worldgen_arena_alloc(arena, bytes, ROGUE_ALIGNOF(float));
+    mt->elevation = (float*)rogue_worldgen_arena_alloc(arena, bytes, ROGUE_ALIGNOF(float));
+    mt->temperature = (float*)rogue_worldgen_arena_alloc(arena, bytes, ROGUE_ALIGNOF(float));
+    mt->moisture = (float*)rogue_worldgen_arena_alloc(arena, bytes, ROGUE_ALIGNOF(float));
+        if(!mt->continent||!mt->elevation||!mt->temperature||!mt->moisture){ return 0; }
+        mt->used_arena=1; return 1;
+    }
+    mt->continent = (float*)malloc(bytes);
+    mt->elevation = (float*)malloc(bytes);
+    mt->temperature = (float*)malloc(bytes);
+    mt->moisture = (float*)malloc(bytes);
     if(!mt->continent || !mt->elevation || !mt->temperature || !mt->moisture) return 0;
     return 1;
 }
-static void free_macro_tmp(MacroTmp* mt){ if(mt->continent) free(mt->continent); if(mt->elevation) free(mt->elevation); if(mt->temperature) free(mt->temperature); if(mt->moisture) free(mt->moisture); }
+static void free_macro_tmp(MacroTmp* mt){ if(!mt) return; if(mt->used_arena) return; if(mt->continent) free(mt->continent); if(mt->elevation) free(mt->elevation); if(mt->temperature) free(mt->temperature); if(mt->moisture) free(mt->moisture); }
 
 static void identify_continents(const RogueTileMap* map, int* out_count){
     if(!out_count) return; *out_count = 0;

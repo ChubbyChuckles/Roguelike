@@ -376,5 +376,19 @@ void rogue_pack_clear(void);
 /* CLI-oriented validation helper: run validation on a path and print errors to stdout/stderr (returns 0/1). */
 int rogue_pack_cli_validate(const char* dir_path);
 
+/* ---- Phase 14: Optimization & Memory ---- */
+typedef struct RogueWorldGenArena RogueWorldGenArena; /* opaque arena for transient buffers */
+RogueWorldGenArena* rogue_worldgen_arena_create(size_t capacity_bytes);
+void rogue_worldgen_arena_destroy(RogueWorldGenArena* a);
+void* rogue_worldgen_arena_alloc(RogueWorldGenArena* a, size_t sz, size_t align);
+void rogue_worldgen_arena_reset(RogueWorldGenArena* a);
+size_t rogue_worldgen_arena_used(const RogueWorldGenArena* a);
+size_t rogue_worldgen_arena_capacity(const RogueWorldGenArena* a);
+/* Enable/disable SIMD & parallel paths (0=off, non-zero=on). Parallel currently affects macro continent sampling. */
+void rogue_worldgen_enable_optimizations(int enable_simd, int enable_parallel);
+/* Provide global arena (NULL to clear). */
+void rogue_worldgen_set_arena(RogueWorldGenArena* arena);
+typedef struct RogueWorldGenBenchmark { double scalar_ms; double simd_ms; double speedup; int samples; } RogueWorldGenBenchmark;
+int rogue_worldgen_run_noise_benchmark(int width, int height, RogueWorldGenBenchmark* out_bench);
 
 #endif
