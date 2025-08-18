@@ -817,6 +817,8 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
 **Improved**
 * Rarity sampling integrates global floor + pity adjustments seamlessly.
 * Persistence ensures affix data round‑trips without loss.
+* Equipment System Phase 1 complete: slot expansion, two-hand atomicity handling (offhand clear & equip blocking), cosmetic transmog layer, and persistence roundtrip test (`test_equipment_phase1_persistence`). New test assets `test_equipment_items.cfg` provide deterministic two-hand + shield items.
+* Equipment System Phase 2 (in progress): Introduced layered stat cache (base/implicit/affix/buff/total per attribute), derived metric scaffolding (DPS, EHP, toughness, mobility, sustain placeholder), soft cap helper (`rogue_soft_cap_apply`), deterministic fingerprint hashing API (`rogue_stat_cache_fingerprint`), and unit test `test_equipment_phase2_stat_cache` validating layer integrity + fingerprint mutation + soft cap curve.
 
 ### Persistence Phase 1 (Core Save Architecture)
 Implemented initial binary save system:

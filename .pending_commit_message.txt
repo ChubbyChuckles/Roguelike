@@ -1,22 +1,25 @@
-Equipment System Phase 1.2-1.4 - Slot Expansion & Two-Hand Flag
- - Expanded slots (weapon, offhand, head, chest, legs, hands, feet, ring1, ring2, amulet, belt, cloak, charm1, charm2).
- - Added OFFHAND slot plus two-handed flag (ROGUE_ITEM_FLAG_TWO_HANDED) in item definitions and parsing (optional flags column).
- - Enforced occupancy: equipping two-handed weapon auto-clears OFFHAND; OFFHAND equip blocked while two-handed weapon active.
- - Updated save_manager to serialize expanded slot set (count + per-slot instance indices) with backward-compatible loader.
+Equipment System Phase 1 completion & Phase 2 initial layering
 
-Equipment System Phase 1.5 - Cosmetic Transmog Layer
- - Implemented per-slot cosmetic transmog override API (rogue_equip_set_transmog / rogue_equip_get_transmog).
- - Category validation ensures visual override shares category with target slot.
- - Added unit test test_equipment_phase1_transmog covering set, mismatch reject, clear.
- - Roadmap updated: 1.5 & 1.6 marked Done; 1.7 tests previously partial.
- - README updated with Phase 1 progress summary and transmog note.
+Phase 1 (recap):
+- Added additional equip slots (ring1, ring2, amulet, belt, boots, cloak, charm_a/b, offhand)
+- Two-handed weapon occupancy logic + atomic equip/unequip enforcement
+- Cosmetic transmog layer per-slot with category validation APIs
+- Persistence migration for new slots; save/load roundtrip test
+- New test assets (test_equipment_items.cfg) and unit tests: test_equipment_phase1_slots, test_equipment_phase1_transmog, test_equipment_phase1_persistence (atomicity + save/load)
 
-Equipment System Phase 1.7 - Atomicity & Persistence Tests
- - Added test_equipment_items.cfg with greatsword (two-handed flagged) and shield.
- - New unit test test_equipment_phase1_persistence validates:
-	 * Two-handed equip auto-clears OFFHAND & blocks shield.
-	 * Swapping to one-hand weapon permits OFFHAND equip.
-	 * Save/load roundtrip restores equipped instance indices (weapon, ring) verifying persistence.
- - CMake updated with test_equipment_phase1_persistence target.
- - Roadmap updated marking 1.7 Done (atomicity + persistence complete).
- - README will note Phase 1 completion status (1.1-1.7 Done).
+Phase 2 (Advanced Stat Aggregation) initial implementation:
+- Implemented layered stat cache structure (base/implicit/affix/buff/total per primary attribute) (2.1 Done)
+- Added derived metric scaffolding: dps_estimate, ehp_estimate, toughness_index, mobility_index, sustain_index placeholder (2.2 Partial)
+- Introduced soft cap helper function rogue_soft_cap_apply (2.4 Partial)
+- Added deterministic fingerprint hashing over layered + derived numeric fields (rogue_stat_cache_fingerprint) (2.5 Done)
+- New unit test test_equipment_phase2_stat_cache validating:
+	* Layer integrity (base vs total)
+	* Fingerprint changes on stat mutation
+	* Soft cap curve reduces over-cap values while preserving below-cap values (2.6 Partial)
+- Updated equipment roadmap: mark 2.1 Done, 2.2/2.4/2.6 Partial, 2.5 Done
+- Updated README changelog with Phase 1 completion and Phase 2 progress highlights
+
+Next steps (not yet implemented):
+- Populate implicit & affix layers from item defs and affix stats
+- Apply soft caps to specific aggregated metrics (dexterity->attack speed, vitality->EHP) and add monotonic derivative tests
+- Add ordering invariance test (equip sequence independence) and extended fingerprint determinism under multi-slot changes
