@@ -266,5 +266,35 @@ void rogue_weather_sample_lighting(const RogueActiveWeather* state, unsigned cha
 /* Movement debuff factor (1.0 = none, <1 reduce speed) */
 float rogue_weather_movement_factor(const RogueActiveWeather* state);
 
+/* ---- Phase 11: Runtime Streaming & Caching ---- */
+typedef struct RogueGeneratedChunk RogueGeneratedChunk; /* opaque to callers */
+typedef struct RogueChunkStreamStats {
+    unsigned long cache_hits;
+    unsigned long cache_misses;
+    unsigned long evictions;
+} RogueChunkStreamStats;
+
+typedef struct RogueChunkStreamManager RogueChunkStreamManager; /* opaque */
+
+/* Initialize streaming manager with a base world config template (width/height ignored; chunk size fixed). */
+RogueChunkStreamManager* rogue_chunk_stream_create(const RogueWorldGenConfig* base_cfg,
+                                                  int budget_per_tick, int capacity,
+                                                  const char* cache_dir, int enable_persistent_cache);
+void rogue_chunk_stream_destroy(RogueChunkStreamManager* mgr);
+/* Enqueue a chunk (cx,cy). Returns 1 if queued or already loaded, 0 on failure (queue full). */
+int  rogue_chunk_stream_enqueue(RogueChunkStreamManager* mgr, int cx, int cy);
+/* Advance streaming system one tick; processes up to budget queued generations. Returns number generated/loaded. */
+int  rogue_chunk_stream_update(RogueChunkStreamManager* mgr);
+/* Get loaded chunk (updates LRU access time). Returns NULL if not loaded. */
+const RogueGeneratedChunk* rogue_chunk_stream_get(const RogueChunkStreamManager* mgr, int cx, int cy);
+/* Convenience to request + ensure availability (enqueue if missing). */
+int  rogue_chunk_stream_request(RogueChunkStreamManager* mgr, int cx, int cy);
+/* Retrieve stats snapshot. */
+RogueChunkStreamStats rogue_chunk_stream_get_stats(const RogueChunkStreamManager* mgr);
+/* Count of loaded chunks. */
+int  rogue_chunk_stream_loaded_count(const RogueChunkStreamManager* mgr);
+/* Expose chunk hash for validation. Returns 1 on success. */
+int  rogue_chunk_stream_chunk_hash(const RogueChunkStreamManager* mgr, int cx, int cy, unsigned long long* out_hash);
+
 
 #endif

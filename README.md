@@ -246,6 +246,15 @@ Adds a deterministic, biome-weighted weather scheduling layer providing foundati
 * 10.5 Validation Test: `test_worldgen_phase10_weather` registers three patterns (clear, rain, storm), simulates 2000 ticks, asserts multiple transitions, verifies probability weighting (rain observations >= clear due to weight 10 vs 5), and confirms determinism by re-running with identical seed & registry and comparing per-pattern observation counts.
 APIs added: registry management (`rogue_weather_register`, `rogue_weather_clear_registry`, `rogue_weather_registry_count`), scheduler init (`rogue_weather_init`), update (`rogue_weather_update`), and effect sampling helpers.
 
+### World Generation Phase 11 (Runtime Streaming & Caching)
+Introduces a lightweight deterministic chunk streaming manager for progressive world materialization.
+* 11.1 Async Queue: Ring-buffer queue (capacity 512) with duplicate suppression storing chunk coordinates awaiting generation.
+* 11.2 Time-Sliced Budget: `rogue_chunk_stream_update` consumes up to `budget_per_tick` queued chunks per call, enabling the caller to distribute generation work across frames.
+* 11.3 LRU Eviction: Fixed-capacity in-memory cache (configurable) maintains last-access tick; generator evicts least recently accessed chunk upon needing space (records eviction stat).
+* 11.4 Persistent Cache: Flag & directory path plumbed but actual serialization deferred (future persistence phase). Current implementation purely in-memory; hashes facilitate future disk naming.
+* 11.5 Validation Test: `test_worldgen_phase11_streaming` requests more chunks than capacity, advances updates until cache full, accesses subset to refresh LRU, forces eviction via new request, asserts cache misses > 0, and validates deterministic regeneration by comparing hash of a chunk across a manager tear-down/recreate cycle.
+APIs: creation/destruction (`rogue_chunk_stream_create/destroy`), enqueue/request (`rogue_chunk_stream_enqueue/request`), update, retrieval (`rogue_chunk_stream_get`), stats, loaded count, and per-chunk hash exposure.
+
 Phase 11.1–11.5 (AI Testing & QA Expansion): Added comprehensive quality gates around core AI behaviours.
 * Core Node Edge Tests: `test_ai_phase11_core_nodes` exercises Selector/Sequence short‑circuiting, Parallel mixed status aggregation, Utility selector tie‑break determinism, cooldown boundary reset, and retry decorator exhaustion/reset semantics.
 * Blackboard Fuzz: `test_ai_phase11_blackboard_fuzz` performs 5k deterministic pseudo‑random operations (Set/Max/Min/Accumulate/int+float/timer/vec2) mirrored against an in‑memory model to ensure policy invariants and capacity bounds (no overflow of 32 entries).

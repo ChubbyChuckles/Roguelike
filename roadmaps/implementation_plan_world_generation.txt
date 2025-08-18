@@ -98,11 +98,11 @@ PHASE 10. Weather & Environmental Simulation
 10.5 Unit tests: cycle determinism, probability weighting matches configured distribution (Done: Phase 10 test simulates 2000 ticks; asserts rain >= clear count due to higher weight; distribution deterministic)
 
 PHASE 11. Runtime Streaming & Caching
-11.1 Async chunk generation queue (producer/consumer) (X)
-11.2 Chunk generation budget per frame (time-sliced) (X)
-11.3 Eviction strategy (LRU by distance/time) (X)
-11.4 Persistent on-disk chunk cache (hash naming by seed+coords) (X)
-11.5 Unit tests: budget adherence (simulated clock), eviction policy correctness, cache hit/miss stats (X)
+11.1 Async chunk generation queue (producer/consumer) (Done: ring buffer queue storing (cx,cy), duplicate suppression)
+11.2 Chunk generation budget per frame (time-sliced) (Done: `rogue_chunk_stream_update` processes up to budget_per_tick items)
+11.3 Eviction strategy (LRU by distance/time) (Done: least-recent-access tick eviction via `last_access_tick`)
+11.4 Persistent on-disk chunk cache (Partial/Deferred: interface flag stored but on-disk read/write deferred; roadmap will move persistence to later persistence phase)
+11.5 Unit tests: budget adherence (simulated ticks), eviction correctness, cache hit/miss stats (Done: Phase 11 test enqueues > capacity, advances updates until capacity reached, forces eviction, validates misses>0, and determinism via hash regeneration)
 
 PHASE 12. Telemetry & Analytics
 12.1 World gen metrics snapshot (timings, counts, retry stats) (X)
