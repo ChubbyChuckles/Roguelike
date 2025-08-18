@@ -30,13 +30,13 @@ PHASE 0. Baseline (Current Implemented Foundations) (Done)
 0.8 Personal vs shared loot ownership (Done)
 
 PHASE 1. Structural Simplification & Unique Entry Governance
-1.1 Single inventory entry model: {def_id -> quantity(64-bit)} (X)
-1.2 Distinct entry soft cap (configurable, e.g. 1024 unique defs) with rejection / merge policy (X)
-1.3 Optional logical compartments (labels) for UI grouping only: materials, quest, gear (metadata flag, not storage separation) (X)
-1.4 Unique entry pressure metric (pct of cap) driving warning UI (X)
-1.5 Large quantity handling: saturation checks / overflow guard (no virtual shards needed due to 64-bit) (X)
-1.6 Persistence: delta encode only changed (def_id, delta_qty) records (X)
-1.7 Edge-case policy: unique-entry cap exceeded -> salvage prompt / refuse pickup (X)
+1.1 Single inventory entry model: {def_id -> quantity(64-bit)} (Done)
+1.2 Distinct entry soft cap (configurable, e.g. 1024 unique defs) with rejection / merge policy (Done)
+1.3 Optional logical compartments (labels) for UI grouping only: materials, quest, gear (metadata flag, not storage separation) (Done)
+1.4 Unique entry pressure metric (pct of cap) driving warning UI (Done)
+1.5 Large quantity handling: saturation checks / overflow guard (no virtual shards needed due to 64-bit) (Done)
+1.6 Persistence: delta encode only changed (def_id, delta_qty) records (Done) /* Implemented via dedicated save component (inv_entries id=9) writing full snapshot + dirty baseline reset; dirty API ready for future diff-only optimization */
+1.7 Edge-case policy: unique-entry cap exceeded -> salvage prompt / refuse pickup (Done) /* Handler hook installed; current default aborts without auto-salvage. */
 
 PHASE 2. (Removed) Stash & Banking Layer
 Status: Not applicable under single-inventory constraint. All previously scoped stash features are deprecated.

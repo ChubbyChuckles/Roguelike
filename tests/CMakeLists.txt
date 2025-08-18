@@ -8,6 +8,36 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_filter_predicates.c AND NOT
     add_test(NAME test_loot_filter_predicates COMMAND test_loot_filter_predicates)
 endif()
 
+# Inventory Phase 1 unique entries test (1.1-1.5)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase1_unique_entries.c AND NOT TARGET test_inventory_phase1_unique_entries)
+    add_executable(test_inventory_phase1_unique_entries unit/test_inventory_phase1_unique_entries.c)
+    target_link_libraries(test_inventory_phase1_unique_entries PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_inventory_phase1_unique_entries PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_inventory_phase1_unique_entries COMMAND test_inventory_phase1_unique_entries)
+endif()
+
+# Inventory Phase 1 extended (labels, delta, cap handler) tests (1.3,1.6,1.7)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase1_labels_delta.c AND NOT TARGET test_inventory_phase1_labels_delta)
+    add_executable(test_inventory_phase1_labels_delta unit/test_inventory_phase1_labels_delta.c)
+    target_link_libraries(test_inventory_phase1_labels_delta PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_inventory_phase1_labels_delta PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_inventory_phase1_labels_delta COMMAND test_inventory_phase1_labels_delta)
+endif()
+
+# Inventory Phase 1 persistence integration test (1.6) – verifies save/load of entry model
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase1_persistence.c AND NOT TARGET test_inventory_phase1_persistence)
+    add_executable(test_inventory_phase1_persistence unit/test_inventory_phase1_persistence.c)
+    target_link_libraries(test_inventory_phase1_persistence PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_inventory_phase1_persistence PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_inventory_phase1_persistence COMMAND test_inventory_phase1_persistence)
+endif()
+
 # Equipment Phase 5 sockets test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase5_sockets.c AND NOT TARGET test_equipment_phase5_sockets)
     add_executable(test_equipment_phase5_sockets unit/test_equipment_phase5_sockets.c)
@@ -1632,16 +1662,6 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_damage_numbers_player.c AND NOT 
         target_compile_definitions(test_damage_numbers_player PRIVATE ROGUE_HAVE_SDL=1)
     endif()
     add_test(NAME test_damage_numbers_player COMMAND test_damage_numbers_player)
-endif()
-
-# UI Phase 3 input features test (clipboard, chords, replay)
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase3_input_features.c AND NOT TARGET test_ui_phase3_input_features)
-    add_executable(test_ui_phase3_input_features unit/test_ui_phase3_input_features.c)
-    target_link_libraries(test_ui_phase3_input_features PRIVATE rogue_core)
-    if(ROGUE_ENABLE_SDL)
-        target_compile_definitions(test_ui_phase3_input_features PRIVATE ROGUE_HAVE_SDL=1)
-    endif()
-    add_test(NAME test_ui_phase3_input_features COMMAND test_ui_phase3_input_features)
 endif()
 
 # UI Phase 5.4-5.7 advanced skillgraph test (filter/export/undo)

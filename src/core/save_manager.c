@@ -18,6 +18,7 @@
 #include <unistd.h>
 #endif
 #include "equipment.h"
+#include "core/inventory_entries.h" /* Phase 1.6 inventory entries persistence */
 
 static RogueSaveComponent g_components[ROGUE_SAVE_MAX_COMPONENTS];
 static int g_component_count = 0;
@@ -921,6 +922,35 @@ static int read_world_meta_component(FILE* f, size_t size){
 /* (Removed duplicate PLAYER_COMP and deferred equipment declarations; single definition earlier) */
 static RogueSaveComponent PLAYER_COMP={ ROGUE_SAVE_COMP_PLAYER, write_player_component, read_player_component, "player" };
 static RogueSaveComponent INVENTORY_COMP={ ROGUE_SAVE_COMP_INVENTORY, write_inventory_component, read_inventory_component, "inventory" };
+/* Inventory entries (unified def->quantity model) persistence (Phase 1.6). We currently write a full snapshot each save.
+   Record layout (per entry): int def_index, uint64_t quantity, unsigned labels.
+   Section payload: varuint entry_count, then that many records. */
+static int write_inv_entries_component(FILE* f){
+    /* Enumerate all entries by iterating over the public API: there is no direct iterator yet; use a dirty enumeration hack by forcing all as dirty. */
+    /* Simpler: since module lacks iterator, we snapshot via brute force def_index scan (bounded by ROGUE_INV_MAX_ENTRIES logical ids not exposed). For Phase 1 we assume item def indices are within 0..4095 similar to ROGUE_ITEM_DEF_CAP. */
+    /* We will scan a reasonable range (0..4095). Future optimization: expose iterator. */
+    uint32_t count=0; for(int i=0;i<4096;i++){ if(rogue_inventory_quantity(i)>0) count++; }
+    if(write_varuint(f,count)!=0) return -1;
+    for(int i=0;i<4096;i++){ uint64_t q=rogue_inventory_quantity(i); if(q>0){ unsigned lbl=rogue_inventory_entry_labels(i); int def=i; fwrite(&def,sizeof(def),1,f); fwrite(&q,sizeof(q),1,f); fwrite(&lbl,sizeof(lbl),1,f); }}
+    /* Reset dirty baseline after full snapshot */
+    rogue_inventory_entries_dirty_pairs(NULL,NULL,0);
+    return 0;
+}
+static int read_inv_entries_component(FILE* f, size_t size){
+    /* Robust read: need at least varuint present */
+    uint32_t count=0; if(read_varuint(f,&count)!=0) return -1; /* minimal: remaining bytes must fit */
+    /* Each record min size = sizeof(int)+sizeof(uint64_t)+sizeof(unsigned) */
+    size_t need = (size_t)count * (sizeof(int)+sizeof(uint64_t)+sizeof(unsigned));
+    if(size < need) return -1; /* malformed */
+    rogue_inventory_entries_init();
+    for(uint32_t k=0;k<count;k++){
+        int def=0; uint64_t qty=0; unsigned lbl=0; if(fread(&def,sizeof(def),1,f)!=1) return -1; if(fread(&qty,sizeof(qty),1,f)!=1) return -1; if(fread(&lbl,sizeof(lbl),1,f)!=1) return -1; if(def>=0){ rogue_inventory_register_pickup(def, qty); if(lbl) rogue_inventory_entry_set_labels(def,lbl); }
+    }
+    /* Baseline clean */
+    rogue_inventory_entries_dirty_pairs(NULL,NULL,0);
+    return 0;
+}
+static RogueSaveComponent INV_ENTRIES_COMP={ ROGUE_SAVE_COMP_INV_ENTRIES, write_inv_entries_component, read_inv_entries_component, "inv_entries" };
 static RogueSaveComponent SKILLS_COMP={ ROGUE_SAVE_COMP_SKILLS, write_skills_component, read_skills_component, "skills" };
 static RogueSaveComponent BUFFS_COMP={ ROGUE_SAVE_COMP_BUFFS, write_buffs_component, read_buffs_component, "buffs" };
 static RogueSaveComponent VENDOR_COMP={ ROGUE_SAVE_COMP_VENDOR, write_vendor_component, read_vendor_component, "vendor" };
@@ -940,6 +970,7 @@ void rogue_register_core_save_components(void){
     rogue_save_manager_register(&PLAYER_COMP);
     rogue_save_manager_register(&WORLD_META_COMP);
     rogue_save_manager_register(&INVENTORY_COMP);
+    rogue_save_manager_register(&INV_ENTRIES_COMP); /* Phase 1.6 unified entries */
     rogue_save_manager_register(&SKILLS_COMP);
     rogue_save_manager_register(&BUFFS_COMP);
     rogue_save_manager_register(&VENDOR_COMP);
