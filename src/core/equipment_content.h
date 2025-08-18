@@ -34,4 +34,11 @@ int rogue_sets_export_json(char* buf,int cap); /* returns chars written or -1 */
 /* Basic validation: ensure strictly increasing pieces thresholds and non-negative stats. Returns 0 ok else <0. */
 int rogue_set_validate(const RogueSetDef* def);
 
+/* Phase 17.2: Register a hot reload watcher for an external set definition JSON file.
+ * id: unique identifier for hot reload system.
+ * path: file path to JSON array of set definitions.
+ * Returns 0 on success, -1 on failure (duplicate id / bad args / capacity).
+ * After registration, invoke rogue_hot_reload_force(id) or modify the file and tick to load. */
+int rogue_equipment_sets_register_hot_reload(const char* id, const char* path);
+
 #endif

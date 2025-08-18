@@ -158,7 +158,7 @@ PHASE 16. Tooling & Authoring
 
 PHASE 17. Accessibility & Modding Exposure
 17.1 Public schema docs (JSON) for equipment assets (Done: added `equipment_schema_docs` module with exporter API `rogue_equipment_schema_docs_export` producing unified JSON documentation for item_def, set_def, proc_def, runeword_pattern rules; unit test `test_equipment_phase17_schema_docs` validates presence of sections and size bounds.)
-17.2 Hot reload of equipment defs & set bonuses (safe swap) (X)
+17.2 Hot reload of equipment defs & set bonuses (safe swap) (Done: integrated hot reload registration wrapper `rogue_equipment_sets_register_hot_reload` leveraging existing `hot_reload` infra; callback clears & reloads set registry atomically from JSON. Unit test `test_equipment_phase17_hot_reload` writes initial set file, registers watcher, forces load, mutates file adding second set, triggers tick detecting change, asserts new set count & determinism of forced reload.)
 17.3 Sandboxed scripting hooks for unique behaviors (restricted API) (X)
 17.4 Diff tool for mod vs base distribution (X)
 17.5 Tests: hot reload determinism (hash compare), sandbox enforcement (X)

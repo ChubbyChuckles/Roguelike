@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include "util/hot_reload.h" /* Phase 17.2 hot reload registration */
 
 #ifndef ROGUE_SET_CAP
 #define ROGUE_SET_CAP 64
@@ -62,6 +63,13 @@ int rogue_sets_load_from_json(const char* path){ if(!path) return -1; FILE* f=NU
     s=ws(s); if(*s==','){ ++s; continue; }
  }
  free(buf); return added; }
+
+/* Phase 17.2: Hot reload integration for external equipment content */
+static int on_sets_hot_reload(const char* id, void* user){ (void)id; const char* path=(const char*)user; /* reload file and atomically swap registry (we simply clear + load) */
+    rogue_sets_reset(); int added = rogue_sets_load_from_json(path); return (added>=0)?0:-1; }
+
+int rogue_equipment_sets_register_hot_reload(const char* id, const char* path){ return rogue_hot_reload_register(id,path,on_sets_hot_reload,(void*)path); }
+
 
 int rogue_sets_export_json(char* buf,int cap){ if(!buf||cap<4) return -1; int off=0; buf[off++]='['; for(int i=0;i<g_set_count;i++){ if(off+2>=cap) return -1; if(i>0) buf[off++]=','; buf[off++]='{'; char tmp[256]; int n=snprintf(tmp,sizeof tmp,"\"set_id\":%d,\"bonuses\":[", g_sets[i].set_id); if(n<0||off+n>=cap) return -1; memcpy(buf+off,tmp,(size_t)n); off+=n; for(int b=0;b<g_sets[i].bonus_count;b++){ if(off+2>=cap) return -1; if(b>0) buf[off++]=','; const RogueSetBonus* sb=&g_sets[i].bonuses[b]; n=snprintf(tmp,sizeof tmp,"{\"pieces\":%d,\"strength\":%d,\"dexterity\":%d,\"vitality\":%d,\"intelligence\":%d,\"armor_flat\":%d,\"resist_fire\":%d,\"resist_cold\":%d,\"resist_light\":%d,\"resist_poison\":%d,\"resist_status\":%d,\"resist_physical\":%d}", sb->pieces,sb->strength,sb->dexterity,sb->vitality,sb->intelligence,sb->armor_flat,sb->resist_fire,sb->resist_cold,sb->resist_light,sb->resist_poison,sb->resist_status,sb->resist_physical); if(n<0||off+n>=cap) return -1; memcpy(buf+off,tmp,(size_t)n); off+=n; }
         if(off+2>=cap) return -1; buf[off++]=']'; buf[off++]='}'; }

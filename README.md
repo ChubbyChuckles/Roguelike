@@ -188,6 +188,15 @@ Introduced `equipment_schema_docs` module exposing `rogue_equipment_schema_docs_
 - runeword pattern rules (lowercase alnum, single underscores, max 5 segments, max length 11, no double underscores)
 Test `test_equipment_phase17_schema_docs` asserts all sections and version tag present.
 
+## Phase 17.2 – Hot Reload of Equipment Set Definitions
+Added lightweight hot reload integration for external set definition JSON authoring:
+- New API: `rogue_equipment_sets_register_hot_reload(id, path)` registers a watcher using the shared `hot_reload` infrastructure.
+- Reload Strategy: on change detection (content hash diff) the callback clears the in‑memory set registry (`rogue_sets_reset`) then re-imports the JSON via `rogue_sets_load_from_json`, providing an atomic swap style refresh for tooling / iterative tuning.
+- Determinism: explicit `rogue_hot_reload_force(id)` enables controlled reloads in tests & editor; forcing after no file change leaves registry untouched.
+- Unit Test: `test_equipment_phase17_hot_reload` authoring flow simulation writing initial file (1 set), forcing load, modifying file to add second set, invoking `rogue_hot_reload_tick` and asserting updated count & presence; verifies subsequent force does not duplicate or alter counts.
+
+This establishes the minimal live-edit feedback loop ahead of Phase 17.3 sandbox scripting hooks. Future extensions may add: granular diff application (preserve unaffected sets), runeword & proc definition reload symmetry, and error surface (retain last good on parse failure).
+
 Public APIs (`equipment_persist.h`):
 * `rogue_equipment_serialize(buf, cap)` – emits versioned block; returns bytes written or -1.
 * `rogue_equipment_deserialize(text)` – idempotently reconstructs equipped items (spawning instances) from text; tolerates legacy headerless data.

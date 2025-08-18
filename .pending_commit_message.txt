@@ -51,3 +51,18 @@ Establishes a machine-readable + human-friendly reference for external tooling /
 Testing:
 New test passes in Release; output manually inspected for structural correctness and deterministic ordering of top-level sections.
 
+Equipment Phase 17.2: Hot Reload of Equipment Set Definitions
+
+Summary:
+- Added hot reload integration to equipment content: public API `rogue_equipment_sets_register_hot_reload(id,path)` wrapping existing hot reload registry.
+- Callback (`on_sets_hot_reload`) clears current set registry then reloads JSON file, providing safe swap semantics.
+- Header `equipment_content.h` updated with API declaration; implementation in `equipment_content.c` includes util/hot_reload.
+- Unit test `test_equipment_phase17_hot_reload` writes initial JSON with one set, registers watcher, forces initial load, modifies file adding second set, invokes tick (detects hash change) and asserts set count increments & new set id present; verifies subsequent force leaves count stable.
+- Roadmap updated marking Phase 17.2 Done; README new section documents API, strategy and future extension notes.
+
+Rationale:
+Enables rapid iteration on set tuning / bonus threshold balancing for external tooling & future mod ecosystem prior to introducing sandbox scripting. Establishes deterministic foundation (force reload) for forthcoming diff & validation tooling (Phase 17.4).
+
+Testing:
+New test passes locally (Release) alongside Phase 17.1 schema docs and prior Phase 16 suite. Manual inspection confirms no duplicate registrations & stable behavior on redundant force.
+
