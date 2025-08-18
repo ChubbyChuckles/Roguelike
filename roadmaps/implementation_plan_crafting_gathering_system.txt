@@ -198,3 +198,34 @@ NOTES
 - Reuse existing fuzz frameworks (loot, equipment) for journal & parser fuzz quickly.
 - Maintain deterministic ordering (sorted material IDs) for hashing & diff friendliness.
 - Post Phase 6, schedule balance iterations using telemetry rather than speculative tuning.
+\nCROSS-SYSTEM SYNERGIES (Added)
+Ordering (Enhancement Operation): Base Item Stats -> Equipment Budget & Affixes -> Crafting Enhancement (imbue/temper) Adjustments -> Progression Passives & Mastery Scalars -> Temporary Buffs -> Dungeon/Mutator Effects -> Enemy ΔL & Adaptive Encounter Scaling.
+
+Inputs Consumed:
+ - Inventory: Infinite stack ledger provides O(1) material availability checks; refinement & consumption operations append to inventory journal for unified replay.
+ - Loot & Equipment: Affix budget & item_level governance ensure crafting enhancement never exceeds cap; crafting reads remaining_budget(item) API before temper/imbue.
+ - Progression: Crafting discipline levels (Phase 5) can be influenced by progression mastery bonuses (if added) but are isolated from combat mastery; attribute-based negotiation or enhancement risk mitigation uses Finesse/Insight effective ratings.
+ - Vendor: Scarcity signals (vendor demand EWMAs) modulate gathering node spawn weights (Phase 10.1) and special offer blueprint availability; vendor refinement service acts as batch interface to crafting refine API.
+ - Dungeon: Rare room material node seeding (Dungeon Phase 8.4) references crafting material scarcity; dungeon mutators may temporarily boost specific node yields (optional future synergy).
+ - Enemy Difficulty / World Boss: Rare catalyst drops (world boss Phase 9.1) unlock enhanced enhancement recipes gated by crafting skill level & token presence.
+
+Outputs Produced:
+ - Material scarcity analytics (consumption_rate, deficit_index) consumed by vendor pricing & dungeon biome selection weighting.
+ - Enhancement outcome hash segments added to global build integrity signature (used in boss & death recap hashes).
+ - Upgrade potential hints (projected_affix_gain %) passed to equipment optimizer to consider craft-before-equip decisions.
+
+Integrity & Determinism:
+ - Enhancement journal entry structure: {op_id, item_guid, pre_budget, delta_stats_vector_hash, rng_stream_id, outcome_hash}; replay test compares post-replay item fingerprint vs recorded outcome_hash.
+ - Gathering node spawn schedule determinism validated against enemy difficulty & dungeon seeds to avoid cross-system seed collisions (seed namespaces documented).
+
+Risk Mitigation Cross-System:
+ - Budget Bypass Risk: Double-check remaining budget both pre and post enhancement commit; equipment layer rejects over-budget delta before state mutation.
+ - Inflation Feedback (vendor scarcity -> spawn weight -> oversupply): apply dampening factor & hysteresis on scarcity index adjustments.
+ - Enhancement Streak Misperception: share analytics expected_vs_observed enhancement distribution with UI to contextualize variance, reducing exploit-driven re-roll churn.
+
+Open Tasks:
+ - Expose APIs: crafting_get_material_scarcity(material_id), crafting_predict_enhancement_delta(item_guid, op_type), crafting_export_outcome_hashes().
+ - Add cross-system test: simulate 100 enhancements + vendor scarcity adjustments ensuring scarcity hysteresis prevents oscillation > threshold.
+ - Document RNG stream IDs for crafting in shared RNG registry file.
+
+Change Impact: Documentation only; future commits will implement described APIs, exports, and tests.

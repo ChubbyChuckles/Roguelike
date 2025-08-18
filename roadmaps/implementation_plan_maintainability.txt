@@ -187,3 +187,23 @@ NOTES
  - Avoid premature ECS; gather concrete pain points (dup logic, cache misses) first.
  - Coverage threshold after flake audit; track flake rate.
  - Memory + RNG separation lowers incidental coupling for future parallelization.
+\n+CROSS-SYSTEM SYNERGIES (Added)
+Ordering (Quality Gate Pipeline): Code Change -> Static Checks (format/lint/include boundary) -> Unit/Property/Fuzz Tests -> Determinism Replay Harness -> Performance Baseline Assertions -> Coverage & Health Metrics -> Artifact Packaging -> Integrity Hash Chain Update -> Analytics Snapshot (if enabled).
+Inputs Consumed:
+ - Subsystem Test Suites (combat, loot, equipment, world gen) feed determinism & performance baselines.
+ - Persistence schema versions inform migration registry & replay harness version mapping.
+ - RNG stream separation definitions from systems (loot/combat/world) integrated into central RNG policy doc.
+Outputs Provided:
+ - Unified simulation ordering spec powering AI, world gen, combat & replay docs.
+ - Integrity hash chain spec consumed by persistence, equipment anti-cheat, loot verification, audio/VFX digest.
+ - Analytics event schema used by balancing (loot distribution, proc rates, difficulty scaling).
+Integrity & Determinism:
+ - Replay harness canonical order: Input Capture -> RNG Snapshot -> Simulation Step -> Event Log -> Hash Append; divergence detector triggers classification (logic vs rendering).
+ - Boundary linter prevents forbidden cross-module includes preserving layering invariants ensuring deterministic initialization order.
+Risk Mitigation:
+ - Toolchain drift: pin analysis tool versions & embed manifest in build output; CI fails on mismatch.
+ - Flaky test noise: quarantine tag & flake triage metrics; coverage excludes quarantined tests to avoid masking regressions.
+Open Tasks:
+ - Expose maintainability_get_build_manifest_hash() for global integrity chain.
+ - Add cross-system determinism matrix doc enumerating allowed data mutation phases.
+Change Impact: Documentation only; APIs & docs to follow.

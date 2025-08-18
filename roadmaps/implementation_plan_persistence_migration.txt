@@ -135,3 +135,23 @@ NEXT ACTION CANDIDATES
 - Add Phase 2 migration registry + baseline version constant.
 - Implement autosave ring + fsync durability option.
 - Unit tests: roundtrip (all components), deterministic order, checksum verify, partial component absence.
+\n+CROSS-SYSTEM SYNERGIES (Added)
+Ordering (Save Cycle): Collect Dirty Component IDs -> Serialize (stable id order) -> Section CRC -> Aggregate SHA256 -> Optional Signature -> Atomic Write (temp + rename) -> Integrity Hash Publish -> Replay Input Stream (if enabled) Flush.
+Inputs Consumed:
+ - Equipment / Inventory / Loot: item & affix state + fingerprints for integrity chain.
+ - World Generation: seed & biome modifiers; ensures regenerated chunks remain deterministic after load.
+ - Combat & AI: replay-critical input events separated from ephemeral runtime stats; only canonical actions recorded to avoid cross-version drift.
+ - Analytics counters (damage dealt, loot rarity distribution) used for balancing dashboards.
+Outputs Provided:
+ - Canonical integrity hash (overall SHA256) consumed by anti-cheat, maintainability hash chain, and replay harness baseline.
+ - Migration registry status & version mapping used by tooling (save_inspect) and test harness.
+Integrity & Determinism:
+ - Section order & hash chain: H(prev_chain, section_id, section_crc, section_size) enabling early divergence pinpoint during replay.
+ - Replay separation ensures UI or cosmetic changes do not alter persistence-critical hashes.
+Risk Mitigation:
+ - Migration failure rollback: temp staging + backup restore prevents partial upgrade corruption.
+ - Incremental save stale cache: dirty bit invalidation enforced before reuse; test ensures stale reuse triggers failure.
+Open Tasks:
+ - Expose persistence_get_chain_head_hash().
+ - Cross-test: modify non-critical cosmetic field -> assert replay & save hashes unchanged.
+Change Impact: Documentation only; API & tests to follow.

@@ -121,3 +121,23 @@ SUCCESS METRICS
 NEXT ACTION CANDIDATES (If starting now)
 - Implement Phase 1.1–1.3 scaffolding.
 - Add headless test harness stub & a single Panel+Text widget demo.
+\n+CROSS-SYSTEM SYNERGIES (Added)
+Ordering (Per Frame UI Lifecycle): ui_begin (snapshot ingest & arena reset) -> Input Routing & Focus Update -> Widget Tree Build / Update -> Layout Pass -> Virtualization / Culling -> Animation Advance (time-dilated) -> Render Command Emission -> Hash & Telemetry (perf + determinism) -> ui_end.
+Inputs Consumed:
+ - Combat/Progression/Equipment Snapshots: read-only structs for health/xp, stat deltas, durability to render HUD & tooltips (never mutate sources).
+ - Loot & Inventory: ground item & inventory snapshots for grid virtualization & filter states; equipment fingerprint displayed in debug overlay.
+ - Persistence: UI state snapshot serializer integrates into crash & replay snapshots; reduced motion flag persisted.
+ - Audio/VFX: performance metrics & effect budget warnings surfaced via overlay.
+Outputs Provided:
+ - UI state diff hash to replay harness enabling deterministic verification separate from simulation.
+ - Accessibility narration buffer events used by analytics to measure a11y feature engagement (opt-in).
+Integrity & Determinism:
+ - Dedicated UI RNG stream (seeded from global frame + stable context salt) ensures cosmetic jitter consistent in replays without influencing gameplay RNG streams.
+ - Hash: H(widget_id_sequence, layout_rects, animation_states, theme_revision, ui_rng_state) appended to global frame chain for divergence diagnostics.
+Risk Mitigation:
+ - Performance regression from large inventories handled by virtualization gating (max emission budget) and dirty rectangle redraw; cross-test ensures inventory size scaling sub-linear draw cost.
+ - Input routing deadlocks avoided via modal stack invariant (at most one modal with interaction capture) validated each frame; failure triggers debug assert & telemetry.
+Open Tasks:
+ - Expose ui_get_frame_hash().
+ - Cross-system test: simulate equip change -> verify UI stat delta panel matches combat stat cache change.
+Change Impact: Documentation only; hash API & test to follow.

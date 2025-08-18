@@ -200,3 +200,34 @@ NOTES
 - Provide debug overlay for real-time price factor decomposition.
 - Use simulations pre-live to calibrate elasticity & sink parameters.
 - Integrate economy telemetry dashboards early to avoid silent inflation.
+\nCROSS-SYSTEM SYNERGIES (Added)
+Pricing / Value Ordering: Base Item Value (loot affix power model) -> Durability Scalar (equipment) -> Condition Modifiers -> Vendor Margin Policy -> Reputation Tier -> Negotiation Result -> Dynamic Demand / Scarcity Multipliers (crafting + global material deficits) -> Anti-Exploit Adjustments -> Final Clamp / Rounding.
+
+Inputs:
+ - Loot / Item System: Supplies base slot factors, rarity, affix power budget utilization; vendor stores snapshot hash to detect tampering.
+ - Equipment System: Durability %, familiarity (optional discount triggers), proc usage rates (inform scarcity weighting for complementary items).
+ - Progression: Attributes (Finesse/Insight) after DR for negotiation probability; specialization gaps (passive heatmap) bias special offer recommendation (offer underrepresented stat archetypes).
+ - Crafting & Gathering: Material scarcity analytics feed scarcity_multipliers; refinement service (Phase 8.3) consumes progression mastery hooks.
+ - Enemy Difficulty & Dungeon: Defeat of Nemesis / high dungeon rank emits vendor_special_offer_event increasing weight for certain blueprint tiers.
+ - World Boss: Boss token events unlock limited-time stock pools (world_boss_epoch_id influences seed derivation).
+
+Outputs:
+ - Economy telemetry (price elasticity curves) consumed by balancing dashboards & crafting spawn weighting adjustments.
+ - Scarcity feedback loop: vendor logs deficits -> gathering spawn weighting hint (crafting module) -> reduces scarcity multiplier next refresh.
+ - Negotiation outcome journal entries feed anti-cheat anomaly detection (progression & security layers).
+
+Integrity & Determinism:
+ - Hash chain includes (inventory_sorted_ids, price_components_vector_per_item, refresh_epoch, scarcity_state_hash, reputation_tier_state_hash).
+ - Replay harness reconstructs inventory & price set using same world_seed, vendor_id, epoch + external scarcity JSON; tests ensure divergence only if scarcity inputs differ.
+
+Cross-System Risk Mitigation:
+ - Inflation loop (progression power -> faster farming -> surplus currency): dynamic sink scaling ties fee multipliers to rolling gold_inflow_per_min percentile band.
+ - Negotiation abuse via skill re-spec loops: negotiation attempts reference pre-transaction progression snapshot hash; re-spec between negotiation rolls invalidates attempt (requires cooldown).
+ - Vendor-driven stat homogenization: offer algorithm enforces diversity cap (no stat category > 40% of special offers over rolling 10 refreshes) using progression heatmap.
+
+Open Tasks:
+ - API vendor_export_pricing_breakdown(vendor_id, item_id) for UI & telemetry.
+ - Provide cross-system event bus hooks: on_vendor_special_offer, on_vendor_refresh for dungeon & crafting modules.
+ - Add scarcity_state_export.json (public) consumed by dungeon material node seeding.
+
+Change Impact: Documentation only; future implementation will add described APIs, exports, and tests.

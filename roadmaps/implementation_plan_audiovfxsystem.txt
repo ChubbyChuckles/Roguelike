@@ -121,3 +121,23 @@ SUCCESS METRICS
 NEXT ACTION CANDIDATES
 - Implement Phase 1 + 2 minimal: event bus + basic registry + play sound.
 - Add particle pool stub & single sparkle effect for loot drop.
+\n+CROSS-SYSTEM SYNERGIES (Added)
+Ordering (Frame Pipeline): Collect Gameplay Events -> Normalize & Tag (rarity, biome, material) -> Priority Sort (critical/combat/ui/ambience) -> Budget Cull & Merge -> Dispatch (Audio Mixer / VFX Spawner) -> Instance Update & Lifetime Advance -> Frame Digest Hash Emit.
+Inputs Consumed:
+ - Combat & Skill: damage_applied, status_proc, cast_phase markers control layered cues (pre-cast, impact, resolve) ensuring synch with hitstop.
+ - Equipment & Loot: rarity tier & unique flags drive flourish intensity; proc triggers schedule chained sweetener sounds.
+ - AI & World Generation: ambient zone tags (biome, structure) select looping ambience & reverb preset; AI shouts & boss phase transitions raise high-priority ducking events.
+ - Persistence/Replay: recorded effect events injected verbatim for determinism validation.
+Outputs Provided:
+ - Frame effect digest contributes to global integrity chain (H(sorted_event_ids, culled_count, active_voice_ct, active_particle_ct)).
+ - Telemetry events (budget_overflow, cull_applied, voice_steal) feed Maintainability analytics & balancing review.
+Integrity & Determinism:
+ - Stable ordering tuple = (emit_frame, priority, sequence_id); strictly monotonic sequence per producer stream prevents nondeterministic ties.
+ - Cross-system replay test: feed captured combat log; expect identical digest across platforms.
+Risk Mitigation:
+ - Proc chain explosion: per-frame spawn quota & merge strategy (coalesce identical visual within N ms -> intensity scalar ramp). Prevents visual spam & audio clipping.
+ - Latency regression guard: probe measuring queue submit -> mixer dispatch; telemetry if >5ms three consecutive frames.
+Open Tasks:
+ - Expose audio_vfx_get_frame_digest() API for unified replay harness.
+ - Add cross-test linking loot generation of unique drop to expected flourish sequence & digest delta.
+Change Impact: Documentation only; follow-up adds API & tests.

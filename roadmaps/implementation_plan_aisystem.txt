@@ -112,3 +112,31 @@ SUCCESS METRICS
 NEXT ACTION CANDIDATES
 - Begin enemy integration: feature flag enabling BT for one enemy archetype (Done: per-enemy enable API, simple MoveToPlayer tree, test_ai_phase5_enemy_integration validates movement)
 - Add performance budget probe (Phase 9.1 initial instrumentation) (Done)
+\nCROSS-SYSTEM SYNERGIES (Added)
+Ordering (Decision Loop): Perception Update -> Blackboard TTL Decay -> Behavior Tree / Utility Evaluation -> Tactical Coordination (Group) -> Action Commitment (movement/attack intents) -> Combat Resolution -> Post-Action Feedback (threat, adaptive difficulty adjustments) -> Analytics Event Emission.
+
+Inputs Consumed:
+ - Enemy Difficulty: ΔL & adaptive difficulty modifiers inform aggression scaling, reaction delays, and role weighting caps (AI never overrides global adaptive clamps).
+ - Progression & Combat: Player state snapshots (hp%, stamina, poise, recent_damage_window) influence opportunistic attack nodes and retreat heuristics.
+ - Dungeon & World Generation: Room archetype / biome / structure tags adjust utility scores (e.g., cover seek allowed if structure_has_cover flag). Bridge & choke hints from world gen feed flank vs frontal choice.
+ - Skill & Combat Systems: Cooldown and stance states exposed as read-only flags; AI cannot trigger actions violating cooldown gating (prevents desync).
+ - Inventory/Equipment: Enemy loadout stats (weapon reach, poise damage) cached for utility scoring; equipment changes propagate via stat fingerprint delta to AI aggression heuristics.
+
+Outputs Provided:
+ - Tactical events (flank_attempt, regroup_call, focus_fire) consumed by encounter analytics.
+ - Threat & performance metrics (avg reaction_ms, missed_opportunities) feed enemy difficulty adaptive loop.
+ - Behavior trace hashes included in replay integrity chain for cross-subsystem divergence diagnostics.
+
+Integrity & Determinism:
+ - AI decision hash: H(frame, agent_id, bt_active_path_hash, blackboard_key_digests, rng_state, ΔL_params_version) exported for unified encounter replay.
+ - Determinism test across platform ensures floating-point pathing decisions quantized (use integer grid intermediates).
+
+Risk Mitigation:
+ - Circular escalation (AI aggression -> adaptive difficulty -> AI more aggression): adaptive difficulty modifications applied AFTER AI action commitment; next frame AI reads clamped modifiers only.
+ - Group coordination spam: rate limit tactical broadcast events per squad per N frames.
+
+Open Tasks:
+ - Expose C APIs: ai_get_agent_decision_hash(), ai_export_trace_json(agent_id).
+ - Add cross-test: simulate fixed encounter with adaptive enabled vs disabled, verify AI decision path divergence only due to adaptive parameters.
+
+Change Impact: Documentation only; follow-up commits to implement APIs/tests.

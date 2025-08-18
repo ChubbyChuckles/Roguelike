@@ -195,3 +195,34 @@ NOTES
 - Removed stash eliminates multi-tab complexity; focus on fast single-namespace queries.
 - Existing loot/equipment fuzz harness patterns reused for journal & query parser fuzz.
 - APIs remain internal until after Phase 8 stabilization.
+\nCROSS-SYSTEM SYNERGIES (Added)
+Role: Foundational container & query substrate feeding equipment, crafting, vendor, progression (re-spec tokens), dungeon reward validation, and analytics.
+
+Upstream Inputs:
+ - Loot System: Item spawn & affix instances increment counts; smart drop upgrade logic (dungeon Phase 8.3) queries inventory to avoid awarding duplicate low-value upgrades when upgrade guarantee condition unmet.
+ - Equipment System: Equip/unequip events adjust durability & familiarity, triggering inventory delta serialization only for affected def_ids when counts used for crafting (e.g., spare copies for fusion).
+ - Crafting & Gathering: Ledger consumption order (inventory Phase 6) aligns with crafting recipe cost optimizer; scarcity signals derive from inventory aging metrics (Phase 9.2) feeding vendor scarcity multipliers.
+ - Vendor System: Purchase & sale transactions pass through inventory mutation journal; vendor pricing engine can request aggregate rarity counts & turnover rate to tune dynamic demand (bounded by privacy/ anti-exploit constraints).
+ - Progression System: Re-spec tokens (if itemized) stored as infinite stack entries; progression layer queries quantity before allowing re-spec; mastery reward items injected directly to inventory ledger path.
+ - Dungeon System: Run reward orchestrator checks distinct entry pressure (Phase 1.2) before awarding many unique-def small stacks, substituting condensed currency bundles if near cap.
+ - World Boss: Token & unique catalyst drops use inventory delta encode path; pity trackers reference inventory has_item(token_id) for state without separate persistence.
+
+Downstream Outputs:
+ - Analytics: Inventory diff snapshots provide input to economy & progression drift detectors (power stagnation vs hoarding).
+ - Security Layers: Hash chain / Merkle root integrated into global build signature for death recap & boss outcome hashes.
+ - Automation: Auto-salvage safe list influences crafting material inflow projections (crafting simulation harness).
+
+Integrity & Determinism:
+ - Cross-system replay requires ordered application: (loot pickups + vendor transactions + crafting consumes + equipment salvage) sorted by journal timestamp; CI scenario replays aggregated multi-source journal verifying final Merkle root.
+ - Provide inventory_export_state_hash() used by world boss encounter hash for build signature.
+
+Risk Mitigation:
+ - Circular scarcity amplification (vendor sees deficit -> raises prices -> player delays usage -> inventory aging flags high scarcity) avoided by ignoring items with high aging + high quantity when computing scarcity.
+ - Auto-salvage interacting with upgrade guarantees: guarantee logic snapshots candidate items prior to automation batch.
+
+Open Tasks:
+ - Expose C APIs: inventory_query_rarity_counts(), inventory_get_item_age(def_id), inventory_export_merkle_root().
+ - Add JSON export: inventory_distinct_entry_pressure.json for dungeon reward planner.
+ - Add test: cross-system journal replay (synthetic sequence) producing stable hash.
+
+Change Impact: Documentation only; subsequent changes will introduce referenced APIs/tests.

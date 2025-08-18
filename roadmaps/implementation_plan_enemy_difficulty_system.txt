@@ -210,3 +210,34 @@ NOTES
 - Avoid awarding meaningful XP / rare loot for ΔL beyond dominance threshold to discourage trivial farming.
 - Keep ΔL parameterization data-driven for rapid tuning without recompilation.
 - Nemesis can ignore some dominance penalties to preserve narrative threat.
+\nCROSS-SYSTEM SYNERGIES (Added)
+Ordering (Encounter Resolution): Player/Eqp/Progression Base Stats -> Dungeon/Mutator Scalars -> Enemy Base Curve -> Relative ΔL Multipliers -> Enemy Tier & Procedural Modifiers -> Adaptive Difficulty Tweaks -> Boss/Nemesis Script Phases -> Final Reward Scaling.
+
+Upstream Inputs:
+ - Progression System: Provides player_effective_level and power_index; ΔL = player_effective_level - enemy_level. Ensure any future prestige/attunement modifies effective level function without breaking monotonicity tests.
+ - Equipment & Loot Systems: Contribute player DPS/EHP baseline for TTK modeling; simulation harness seeds representative gear snapshots (budget utilization percentiles) to derive target scaling.
+ - Dungeon System: Supplies depth_target_level table; enemy difficulty exports back a scaling_profile_id used by dungeon generation to pick encounter templates.
+ - Crafting & Gathering: Rare material deficit signals (vendor/crafting analytics) influence drop table rarity multipliers for specific enemy modifiers (e.g., Alchemic variant).
+ - Vendor System: Nemesis or elite defeats can unlock vendor special offer weighting; enemy difficulty emits defeat_event(vendor_hook_flags).
+ - Skill System: Provides classification of dominant damage archetype; encounter composer injects soft counters (Phase 10) referencing skill tags; must avoid hard immunity (cap counter multiplier).
+ - World Boss System: Boss phase scripts integrate ΔL & adaptive parameters; world boss defeats feed global difficulty epoch adjustments (data file version bump) to slightly retune base curve if median player power shifts.
+
+Downstream Outputs / Consumers:
+ - Loot: Reward multiplier after dominance/trivialization clamp; trivial farming sets reward_scalar_min path; provides structured cause codes for analytics (dominance_penalty_applied, adaptive_bonus_applied).
+ - Progression: XP award function uses final_reward_scalar ensuring ΔL exploitation dampened; catch-up mechanics (progression Phase 14) read average ΔL distribution to tune multiplier thresholds.
+ - Analytics: Emits per-encounter TTK sample with component contributions (base_curve, ΔL_penalty, modifier_bonus, adaptive_adjustment) for drift diagnostics shared with balancing dashboards.
+
+Integrity & Determinism:
+ - Hash Inputs: (seed, enemy_level, base_curve_version, ΔL_params_version, modifier_ids_sorted, dungeon_scaling_profile_id, adaptive_state_snapshot_hash) -> encounter_replay_hash; exported for cross-system replay harness comparability.
+ - Order Enforcement Test: CI scenario constructs identical player snapshot, varies dungeon_depth; verifies enemy stats differences match only depth_target_level deltas and not progression path noise.
+
+Risk Mitigation Cross-System:
+ - Circular Scaling Risk (adaptive using metrics influenced by reward dampening feeding back into adaptive): decouple inputs; adaptive reads raw combat metrics pre-reward-scaling.
+ - Over-countering Player Builds: Soft counter weighting draws from global build diversity histogram (skill analytics) with cap <= 15% spawn weight shift.
+
+Open Dependency Tasks:
+ - Expose C API enemy_difficulty_compute_reward_scalar(player_effective_level, enemy_level, modifier_complexity_score, adaptive_state) for loot & progression layers.
+ - Provide JSON export of ΔL -> expected_TTK bands per tier for dungeon seed explorer tooling.
+ - Register analytics channel IDs for component TTK contributions to unify dashboards.
+
+Change Impact: Documentation only; future commits will add APIs, JSON exports, and CI tests described above.

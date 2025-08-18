@@ -143,3 +143,24 @@ SUCCESS METRICS
 NEXT ACTION CANDIDATES (If starting now)
 - Implement Phase 1 foundational config & PRNG channels with unit tests.
 - Add golden hash test for macro continent mask (Phase 2.1) using fixed seed.
+\n+CROSS-SYSTEM SYNERGIES (Added)
+Ordering (Layered Generation): Macro Layout (continents/elevation/climate) -> Biome Classification -> Local Terrain & Caves -> Rivers & Erosion Refinement -> Structures & POIs -> Dungeon Entrances & Subterranean Graph -> Resource & Lootable Nodes -> Spawn Ecology Layer -> Weather Scheduling -> Streaming Queue Registration -> Telemetry Snapshot & Hash Export.
+Inputs Consumed:
+ - Persistence: world seed, versioned generation params guaranteeing replay across loads & migrations.
+ - Loot & Resource Definitions: biome gating weights & rarity details for resource node placement.
+ - Equipment / Progression (indirect): not consumed during generation; progression may query biome difficulty scaling later (ensures decoupling).
+ - AI & Spawn Tables: biome & structure tags describing valid spawn sets consumed during spawn ecology layer.
+Outputs Provided:
+ - Biome, structure, dungeon entrance, resource node indexes consumed by AI spawning, loot distribution adjustments, and dungeon system seeding.
+ - Bridge/crossing & POI metadata for pathfinding heuristics & tactical AI (flank route evaluation).
+ - World hash chain segment H(seed, macro_hash, biome_histogram, structure_placements, resource_nodes) used in persistence integrity & analytics anomaly detection.
+Integrity & Determinism:
+ - Dedicated RNG channels (macro/biome/micro) ensure local adjustments (e.g., adding new structure type) do not perturb earlier layers; cross-test adds structure type and verifies macro hash unchanged.
+ - Parallel river carving partitions deterministic start list ordering; test harness asserts identical river path sequence across thread counts.
+Risk Mitigation:
+ - Content expansion ripple: layering rule forbids lower layers referencing higher outputs; CI test scans for reverse dependency includes.
+ - Performance spikes from erosion: time budget instrumentation (Phase 12 metrics) flags any pass > budget; fallback to simplified erosion if exceeded N frames.
+Open Tasks:
+ - Expose worldgen_get_layer_hashes_json() for maintainability analytics.
+ - Cross-system test: spawn ecology sampling variation by biome remains within configured rarity tolerance after adding new resource nodes.
+Change Impact: Documentation only; APIs/tests follow.

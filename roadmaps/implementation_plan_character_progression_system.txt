@@ -205,4 +205,52 @@ NOTES
 - Provide early guided path suggestions to avoid analysis paralysis for new players.
 - Keep curves & maze costs data-driven (editable without recompilation) for rapid tuning.
 
+\nCROSS-SYSTEM SYNERGIES (Added)
+Ordering (High-Level) for final combat stat resolution: Base (Race/Core) -> Equipment/Base Affixes -> Progression (Attributes -> Passives/Maze Nodes -> Mastery Rings -> Perpetual Micro-Nodes) -> Temporary Buff/Debuff Layer -> Dungeon/Mutator Modifiers -> Enemy Relative ΔL & Adaptive Difficulty (applied at encounter) -> Final Clamps / Soft Caps.
+
+Key Integrations:
+1. Equipment System:
+	- Attribute & passive nodes consume equipment-provided tag & stat context (e.g., weapon_tag: "fire_blade" unlocking conditional +% Fire DoT node).
+	- Familiarity & durability curves influence effective skill usage DPS; mastery XP gain rate model should incorporate normalized effective_damage not raw base to avoid durability abuse (Phase 6 alignment with Equipment Phase 7+ durability). 
+	- Budget caps: Progression cannot bypass equipment budget governance; passive % increases use diminishing returns curves referencing equipment soft cap metadata (Equipment Phase 2.4).
+2. Loot / Item System:
+	- Smart drop / upgrade guarantee (Dungeon 8.3) leverages progression power index (13.3) to detect stagnation; provide API: progression_power_index(level, passive_snapshot_hash) to loot upgrade orchestrator.
+	- Reroll / salvage economy (Loot 11.x / 15.x) feeds re-spec token crafting (if tokens itemized) with drop gating via mastery tier thresholds.
+3. Combat System:
+	- Mastery rank bonuses limited to modifying: base damage scalar, resource cost reduction, status buildup; cannot alter frame data (Combat Phases 1A,5) to preserve predictability.
+	- Reaction / i-frame windows (Combat Phase 4) unaffected by passive stacking; any dodge_related passive uses percentage additive to stamina efficiency only.
+4. Skill System:
+	- Maze nodes unlock new skill effect variants; effect DSL compile (Skill Phase 8.x) must treat progression node multipliers as a separate coefficient array for replay hashing.
+	- Proc/buff stacking rules (Skill/Combat future phases) reference progression layer ordering to prevent snapshot abuse (snapshot vs dynamic flag recorded in unlock journal for auditing).
+5. Enemy Difficulty System:
+	- ΔL model (Enemy Phase 1) consumes player effective_level (could diverge from raw level if future prestige) – maintain function get_effective_level() = raw_level for now.
+	- Adaptive difficulty (Enemy Phase 4) reads recent progression velocity (levels/hour) to avoid compounding difficulty spikes during rapid early leveling bursts.
+6. Dungeon System:
+	- Depth -> target ΔL mapping (Dungeon 10.1) uses progression curve to keep same-level challenge; provide exported table each build.
+	- Puzzle gating (Dungeon 6.2) references specific maze node tags (mobility, insight) – maintain stable tag list & supply deprecation map on node rename.
+7. Crafting & Gathering:
+	- Mastery rank breakpoints can unlock advanced refining efficiency; progression supplies hook mastery_rank(skill_id) to crafting (Crafting Phase 5+).
+	- Attribute thresholds may unlock material transmutation recipes; recipe parser reads attribute_min fields.
+8. Vendor / Economy:
+	- Negotiation probability (Vendor Phase 4.3) pulls Finesse/Insight effective post-passive values; expose clamped rating after DR to vendor layer.
+	- Special offer weighting (Vendor Phase 6.2) can be biased by player passive specialization gaps (offer complementary stats) using progression heatmap (13.2).
+9. World Boss System:
+	- Boss phase unlock tokens can grant maze expansion triggers (Phase 7 ring layers); progression listens for boss_kill events with phase_id.
+	- Mastery XP multipliers granted post-boss kill for underutilized skills to encourage diversity.
+10. Analytics / Telemetry Synergy:
+	- Unified Power Index = f(equipment_budget_utilization, progression_attribute_vector, mastery_distribution_entropy, passive_keystone_count, effective_level).
+	- Drift detection across systems shares a consolidated StatsSnapshot (hash + component hashes: equip, progression, skill loadout) for multi-dimensional anomaly models.
+
+Testing & Integrity Cross-Checks:
+ - Golden Master: progression_snapshot_hash + equipment_stat_fingerprint must be deterministic across reload; CI test combines both and replays maze unlock sequence vs equip changes.
+ - Journal Replay: Apply equipment changes then progression unlocks vs reversed order -> identical final stat cache (commutativity guard except for intentional ordering of diminishing returns).
+ - Anti-Exploit: Re-spec rate limiter checks vendor transaction journal for token purchases to detect external economic acceleration.
+
+Open Dependency Actions (Not Yet Implemented):
+ - Provide public C API: progression_export_power_index(), progression_get_attribute_effective(), progression_get_mastery_rank(skill_id), progression_snapshot_serialize(buffer).
+ - Maintain tag registry file mapping skill/equipment/dungeon puzzle tags -> progression node predicates.
+ - Add per-node optional field: external_dependency_ids[] to quickly audit breakage when other systems rename identifiers.
+
+Change Impact: This section is documentation only; no code changes required but upcoming tasks should create the referenced APIs and audit tests linking multi-system ordering.
+
 

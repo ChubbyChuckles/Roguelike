@@ -216,4 +216,25 @@ NOTES
 - Rarity distribution tests (5.3) will protect against future balancing regressions.
 - Affix framework (7.x) is largest structural extension; design carefully before coding.
 - Logging volume must be tunable before large-scale statistical tests (6.2 precedes 5.3).
+\n+CROSS-SYSTEM SYNERGIES (Added)
+Ordering (Drop Generation Pipeline): Determine Drop Context (enemy/biome/player progression) -> Rarity Roll (pity/adaptive adjustments) -> Base Item Selection -> Affix Selection & Budget Enforcement -> Quality/Item Level Scaling -> Instance Hash & Integrity Tag -> Ground Spawn (visual/audio hooks) -> Pickup (inventory increment & equipment recompute) -> Telemetry/Analytics Update.
+Inputs Consumed:
+ - Enemy Difficulty & Progression: provides enemy_level & ΔL parameters influencing item_level, rarity floor, pity scaling.
+ - World Generation & Biome: biome tags adjust loot table weighting (e.g., more fire materials in volcanic biome) within capped variance.
+ - Equipment System: power budget definitions & affix weight rules enforce post-generation validation.
+ - Persistence: save manager supplies current schema version & RNG seed streams; loot uses dedicated RNG stream to avoid combat drift.
+Outputs Provided:
+ - Item instances & affix bundles consumed by equipment stat aggregation.
+ - Rarity & drop telemetry feeds adaptive difficulty economic normalization and analytic dashboards (distribution drift detection).
+ - Loot event hash (H(context, rarity, base_id, affix_ids, rolls)) appended to replay chain.
+Integrity & Determinism:
+ - Strict ordering and seed mixing (player_luck, enemy_archetype) ensure reproducible drops under replay; cross-test verifies identical sequence across 1000 simulated kills.
+ - Budget validator rejects out-of-band items before exposure to player; rejection logged & increments anomaly counter.
+Risk Mitigation:
+ - Economic inflation: adaptive weighting bounded by max_multiplier; analytics drift alerts require manual review before table adjustment persists.
+ - RNG coupling with combat: isolated RNG stream id LOOT prevents combat frame variation affecting drop sequence.
+Open Tasks:
+ - Expose API loot_get_last_event_hash().
+ - Add cross-system test: equip recompute after pickup matches expected stat delta from known affixes (loot->equipment integration).
+Change Impact: Documentation only; API & tests follow.
 

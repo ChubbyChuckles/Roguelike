@@ -194,3 +194,35 @@ NOTES
 - Reserve padding in structs for forward-compatible additions (version tags for persistence).
 - Hide internal arrays & pools in .c files; expose narrow C API surfaces.
 - Provide simulation scripts for rotation & resource curves before tuning live values.
+\nCROSS-SYSTEM SYNERGIES (Added)
+Ordering (Effect Resolution): Base Stats (Equipment + Progression) -> Skill Coefficients & Talent Modifiers -> Proc/Passive Synergy Buckets -> Buff/Debuff Layer -> Dungeon/Mutator Scalars -> Enemy ΔL & Adaptive Difficulty -> Final Mitigation / Caps.
+
+Inputs Consumed:
+ - Progression: Attribute & passive node modifiers feed coefficient scaling; mastery ranks may unlock additional EffectSpec variants while respecting snapshot/dynamic flags.
+ - Equipment: Affix & proc engine contribute pre-skill layer stat modifications; equipment procs can inject temporary buffs that the skill system treats as dynamic layer entities.
+ - Combat: Provides timing windows (i-frames, stagger) influencing applicability of certain instantaneous or channel ticks; skill cancel rules align with combat reaction states to avoid desync.
+ - Inventory / Crafting: Enhancement operations (imbue/temper) may tag skills or add conditional proc hooks (tag injection path) referencing skill tag taxonomy.
+ - Dungeon & Mutators: Inject run-level global effect scalars or conditional triggers (e.g., +X% DOT tick rate) processed after base skill + progression layers.
+ - Enemy Difficulty: ΔL model influences enemy mitigation & resistance curves which the skill system queries for DOT tick mitigation and CC DR stacking windows.
+ - Vendor / World Boss: Boss defeat tokens unlock skill variant definitions (EffectSpec entries) and vendor offers provide temporary skill augmentation items (time-limited buff items) consumed as dynamic buff layer entries.
+
+Outputs Provided:
+ - Per-skill usage & DPS contribution metrics consumed by balancing dashboards, progression anomaly detection (sudden power spikes), and vendor recommendation engines (offer complementary items to underused archetypes).
+ - Active buff/debuff snapshot hash used by world boss encounter hash and death recap panel.
+ - Proc efficiency stats inform equipment proc balance & crafting enhancement risk tuning.
+
+Integrity & Determinism:
+ - Unified effect_event_hash = H(activation_id, seed_stream_ids, effect_specs_sorted, snapshot_stat_vector_hash) exported for replay harness & cross-system validation.
+ - Snapshot vs dynamic misconfiguration test ensures no dynamic flag effect modifies historical snapshot hash mid-duration (prevents exploit via re-spec while effect active).
+
+Risk Mitigation Cross-System:
+ - Prevent multiplicative stacking runaway: enforce layering rule (progression * (1 + equipment_add + skill_add + buff_add)) then apply dungeon/mutator multiplier with cap; CI test enumerates extreme combination envelope.
+ - Proc Storm loops (equipment proc triggers skill proc triggers equipment): loop guard depth counter + cycle hash shared with equipment system.
+ - Tag Drift: Maintain central tag registry JSON (skills/equipment/dungeon) with versioned hash; skill load fails if registry hash mismatch outside migration path.
+
+Open Tasks:
+ - Expose C APIs: skill_export_active_buffs_hash(), skill_get_effective_coefficient(skill_id), skill_simulate_rotation(profile_json).
+ - Add registry: tag_registry.json with cross-system validation tool.
+ - Add test: cross-layer ordering invariance (swap equipment vs progression application order -> identical final coefficient vector).
+
+Change Impact: Documentation only; future commits will implement APIs, registry, and tests.

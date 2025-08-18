@@ -198,6 +198,38 @@ PRIORITY NEAR-TERM SUBSET
 - Phase 1 (1.1 – 1.7): Core universal attack data & branching
 - Phase 1A (1A.1 – 1A.7): Precise timing & cancel windows
 - Phase 3 (encumbrance + poise integration early for tradeoffs)
+\nCROSS-SYSTEM SYNERGIES (Added)
+Ordering (Damage Resolution): Base Weapon/Armor Stats -> Equipment Affixes/Implicits/Procs -> Progression Attributes/Passives/Mastery -> Skill Coefficients & Effect Modifiers -> Combat Stance & Contextual Multipliers (charge/backstab/guardbreak) -> Dungeon/Mutator Scalars -> Enemy ΔL & Adaptive Difficulty -> Mitigation (Armor/Resists/Conversions/Block/Guard) -> Post-Mitigation Effects (Leech, Proc On-Hit) -> Analytics Event Emission.
+
+Inputs Consumed:
+ - Equipment: Provides weapon archetype metadata, scaling coefficients, durability & familiarity (affect base damage & poise), infusion elemental splits, proc engine hooks at on_hit/crit/block points.
+ - Progression: Supplies final attribute-derived stat scalars (crit chance, resource regen) and passive multipliers before stance & contextual multipliers.
+ - Skill System: Delivers EffectSpec chain (e.g., multi-hit windows, DOT attachments) and snapshot flags determining which stats locked at strike start.
+ - Enemy Difficulty: ΔL multipliers applied after player-side offensive aggregation but before mitigation; adaptive difficulty adjustments applied after relative model; ordering test asserts invariance.
+ - Dungeon System: Mutators introduce global combat modifiers (e.g., +% trap damage, -% player stagger time) applied before enemy ΔL model for transparency.
+ - Crafting & Gathering: Enhancement operations alter affix values & sockets that feed equipment stats; fracture penalties modify weapon damage scalar.
+ - Vendor & World Boss: Vendor services (reroll, enhancement) and boss reward catalysts can change weapon/equipment stats mid-run -> triggers combat stat cache dirty path.
+
+Outputs Provided:
+ - Damage event ring used by analytics, death recap (boss & progression), and anomaly detectors (enemy TTK drift, proc rate validation).
+ - Poise & stagger events feed enemy AI adaptive behavior and progression mastery XP (if mastery awards based on successful stagger usage).
+ - Guard / parry timing metrics exported for progression reaction timing histograms & skill system proc conditions.
+
+Integrity & Determinism:
+ - Attack sequence hash includes ordered list: attack_def_id, window_flags, weapon_fingerprint, progression_snapshot_hash, skill_effect_snapshot_hash, stance_id, mutator_ids_sorted.
+ - Replay harness verifies identical sequence hash yields identical damage events & crit outcomes; equipment/progression reorder tests ensure commutativity pre-stance.
+
+Risk Mitigation Cross-System:
+ - Multiplicative explosion: Limit contextual multiplier stacking caps (e.g., charge*backstab*riposte) via configured max_total_context_scalar; analytics monitors outlier context scalar > threshold.
+ - Snapshot abuse: Skills flagged dynamic cannot be snapshot by combat attack start; enforcement test compares snapshot hash vs dynamic flag list.
+ - Proc Storm loops across equipment & skill system: shared loop guard depth & cycle hash.
+
+Open Tasks:
+ - Expose C APIs: combat_get_attack_sequence_hash(), combat_export_recent_damage_events_json().
+ - Add CI test combining equipment + progression + mutator permutations to verify scalar ordering invariance.
+ - Register combat RNG streams in global rng_registry.json.
+
+Change Impact: Documentation only; future code changes will implement APIs & tests described.
 - Phase 6 (parry, dodge roll baseline) for defensive depth
 - Phase 2 (damage pipeline) to enable soft caps & mitigation clarity
 - Phase 15 (death hash + run signature minimal subset) for permadeath integrity

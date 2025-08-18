@@ -227,3 +227,25 @@ NOTES
 - Avoid exponential combination explosion by capping simultaneous multiplicative layers (limit of N active proc auras considered in power budget).
 - Keep serialization backward-compatible: unknown future fields skipped with size bounds.
 - Plan intentionally front-loads governance (budget/stat layering) before breadth (sets, runewords) to maintain sustainable scaling.
+\n+CROSS-SYSTEM SYNERGIES (Added)
+Ordering (Stat Resolution Layering): Base Item -> Implicit -> Unique/Set/Runeword Modifiers -> Socket/Gem Additions -> Affixes -> Conditional Proc Auras (active) -> Temporary Buffs (skills/combat) -> Soft Caps & Diminishing Returns -> Derived Metrics (DPS/EHP/Mobility) -> Fingerprint Hash.
+Inputs Consumed:
+ - Loot/Item System: item definitions, rarity & affix pools supply legal ranges & budget weights.
+ - Skill & Combat Systems: active stance, skill usage rates feed proc preview calculations & expected DPS delta modeling.
+ - Progression: meta scaling (if any) provides external clamps; equipment never bypasses progression-defined maximums.
+ - Inventory: container ownership & quantity gating for crafting/upgrading materials.
+ - Persistence: version/migration registry ensures schema upgrades and hash continuity.
+Outputs Provided:
+ - Aggregated stat cache & fingerprint consumed by combat damage/mitigation & adaptive difficulty analytics.
+ - Proc trigger telemetry (rate, uptime) feeds balancing (enemy difficulty & analytics dashboards).
+ - Equipment state hash contributes to anti-cheat chain & replay validation.
+Integrity & Determinism:
+ - Equipment fingerprint: H(slot_ordered_serialization) published each recompute; integrated into combat replay header.
+ - Cross-test ensures equip/unequip permutations yield identical aggregate stats independent of order (commutativity guard).
+Risk Mitigation:
+ - Power creep loop (equipment -> faster progression -> higher item level -> more power): enforced by budget clamps & progression-tier gating; progression cannot read post-soft-cap inflated values for scaling.
+ - Proc storm performance: global proc rate throttle & amortized evaluation buckets prevent frame spikes.
+Open Tasks:
+ - Expose C APIs: equipment_get_fingerprint(), equipment_export_proc_stats_json().
+ - Add cross-subsystem test: simulate combat with fixed seed & equipment variations; assert only intended metrics shift.
+Change Impact: Documentation only; follow-up for APIs/tests.

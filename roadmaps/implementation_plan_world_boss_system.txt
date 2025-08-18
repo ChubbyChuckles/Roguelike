@@ -208,3 +208,36 @@ NOTES
 - Provide developer toggles: force_phase, force_mechanic, disable_enrage, lock_seed.
 - Simulation harness is essential before content expansion to prevent power creep or mechanic overload.
 - Future multiplayer adaptation: design scheduling & RNG so server authoritative ordering trivial to implement later.
+\nCROSS-SYSTEM SYNERGIES (Added)
+Ordering (Boss Encounter): Player/Eqp/Progression Baseline -> Dungeon Depth & Mutators (if spawned via dungeon prelude) -> Enemy Difficulty Base Curve & ΔL -> World Boss Phase Script Scalars -> Adaptive Micro-Scaling (boss-specific) -> Reward Budget Formula -> Vendor / Crafting / Progression Token Distribution.
+
+Upstream Dependencies:
+ - Progression System: Provides effective_level & maze unlock state; outer ring node gating consumes boss_token events (Phase 9.2). Mastery distribution entropy can influence adaptive assist thresholds (lower entropy -> encourage build diversity via scaled reward variety).
+ - Equipment & Loot: Power snapshot & rarity utilization feed baseline TTK calibration; unique reward generation consults equipment budget analyzer to avoid slot oversaturation.
+ - Enemy Difficulty: Supplies ΔL parameters and telegraph taxonomy base; world boss modifies downward penalty caps (Phase 6.2) via override table.
+ - Dungeon System: Boss activation may require dungeon score or echo chain; dungeon injects prelude event establishing arena seed link (arena_seed = world_seed ^ dungeon_seed ^ boss_id).
+ - Crafting & Gathering: Boss-specific materials (9.1) respond to global scarcity; scarcity multiplier file adjusts drop weights but bounded to prevent inflation.
+ - Vendor System: Defeat events emit vendor_special_offer(boss_id, epoch) increasing chance of related blueprint / refinement service discounts (Vendor Phase 6.x integration).
+ - Skill System: Mechanic counterplay tags (positioning, timing, resource) mapped to skill categories; analytics correlate failure modes to missing skill archetypes for future balancing.
+
+Downstream Effects:
+ - Progression: Skill maze expansion via tokens; mastery XP bonus schedule for underused skill categories post-defeat (diversity incentive).
+ - Loot & Equipment: Unique/legendary item unlock table version increment on first kill each epoch; pity tracker ensures deterministic rare material cadence.
+ - Dungeon: Echo spawn flag enabling mini-encounter insertion referencing boss lineage (11.2) with scaled-down mechanic subset.
+ - Analytics: Unified boss_run_summary includes component contributions (base_hp_curve, ΔL_multiplier, phase_scalars, adaptive_adjustments) for cross-system drift detection.
+
+Integrity & Determinism:
+ - Boss encounter hash = H(boss_id, phase_script_hash, mechanic_ids_sorted, arena_layout_hash, ΔL_params_version, adaptive_seed, player_build_signature_hash).
+ - Replay harness shared with enemy & dungeon requires stable ordering of added adaptive mechanics; adaptive micro-additions must be scheduled deterministically from adaptive_seed and performance metrics bucketed into discrete intervals.
+
+Risk Mitigation Cross-System:
+ - Reward Inflation Loop: Lock reward budget adjustments to post-fight analytics epoch; in-run adaptive scaling never alters drop rarity weights (only minor material bonus events).
+ - Token Hoarding Exploit: Token consumption (maze ring unlock) recorded and hashed; vendor & progression systems validate token spend vs defeat count to prevent duplication.
+ - Overlapping Scaling Layers: Explicit scalar ordering doc prevents stacking multiplicatively beyond intended (Enemy Base * ΔL * PhaseScript * AdaptiveClamp) with cap; test harness asserts monotonic TTK response across ΔL grid.
+
+Open Tasks:
+ - Export boss_phase_ttk_profile.json for balancing dashboards.
+ - Provide C API boss_register_defeat_listener(callback) for vendor/progression modules.
+ - Implement adaptive_seed derivation spec and document bucketization of performance metrics.
+
+Change Impact: Documentation only; subsequent commits will add exports, APIs, and deterministic scheduling tests.

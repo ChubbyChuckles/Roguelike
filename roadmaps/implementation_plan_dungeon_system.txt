@@ -203,3 +203,34 @@ NOTES
 - Use heatmaps & coverage reports early to prevent template underuse.
 - Provide dev toggles for: force archetype, force mutators, lock seed.
 - Integrate with enemy simulation harness to precompute target ΔL table per depth.
+\nCROSS-SYSTEM SYNERGIES (Added)
+Ordering (Run Scaling): Progression Power Table -> Depth Target Level Mapping -> Enemy Difficulty ΔL Application -> Mutator Effects -> Adaptive Encounter Tweaks -> Reward Orchestration (loot/material/vendor hooks) -> Score Calculation.
+
+Inputs Consumed:
+ - Progression: effective_level curve & power_index percentiles shape depth_target_level table generation; puzzle gating reads maze node tags (mobility, insight, elemental_affinity) for room accessibility.
+ - Enemy Difficulty: Provides ΔL->multiplier table; dungeon precomputes depth_difficulty_profile referencing that table to assign encounter budgets.
+ - Loot & Equipment: Upgrade detection heuristic (dungeon Phase 8.3) queries equipment power snapshot & progression attribute vector to ensure at least one meaningful upgrade chest; interacts with loot smart drop API.
+ - Crafting & Gathering: Material scarcity signals bias chest material nodes & rare room events; rare biome substitution (Phase 3.4) can inject scarce resource pockets.
+ - Vendor System: High score rank or optional challenge completion emits vendor_offer_event modifiers (e.g., discount token, special blueprint weighting).
+ - Skill System: Traversal/puzzle templates specify required skill tags; skill layer supplies capability flags to gating logic.
+ - World Boss: Boss defeat events unlock new mutator pools or rare biome variants; depth generator includes world_boss_epoch_id in seed to rotate content.
+
+Outputs Produced:
+ - depth_target_level_table.json (export) for analytics & balancing; consumed by enemy difficulty regression tests.
+ - run_reward_profile (expected materials, upgrade probability) ingested by economy telemetry & crafting balancing.
+ - mutator_selection_manifest (ordered) used by replay + integrity hash chain.
+
+Integrity / Determinism:
+ - Run hash includes (layout_graph_hash, depth_target_level_table_hash, mutator_ids_sorted, objective_chain_hash, enemy_curve_version); ensures cross-system replay comparability.
+ - Ordering rule test: Layout generation with fixed seed must produce identical sequence irrespective of current equipment or progression state (equipment/progression only influence smart drop contents, not layout graph). CI to assert invariance.
+
+Risk Mitigation Cross-System:
+ - Avoid power creep feedback loop (frequent upgrades speeding progression -> higher ΔL trivialization): enforce upgrade guarantee ceiling and feed realized upgrade count into enemy adaptive tuning epoch after run ends (not mid-run).
+ - Prevent exploit of mutator reward stacking with vendor special offers: vendor hooks only triggered once per unique mutator_id per run.
+
+Open Tasks:
+ - Expose API dungeon_export_depth_profile();
+ - Add gating manifest listing all puzzle/skill tags used in current seed for fast audit.
+ - Provide callback registration for vendor & crafting modules to listen to run_summary events.
+
+Change Impact: Documentation only; follow-up commits should implement exports, invariance tests, and callback interfaces referenced here.
