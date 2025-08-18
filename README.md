@@ -171,6 +171,7 @@ See `roadmaps/` for subsystem implementation plans (inventory, crafting & gather
 * Expanded crafting: sockets, gems, enchant/reforge, fusion, affix orbs, success chance.
 * Persistence: incremental saves, signature trailer, replay hash, compression, autosave throttle.
 * Inventory System Phase 1: unified def->quantity entries, soft distinct cap + pressure metric, overflow guard, labels (materials/quest/gear), cap handler hook, dirty delta tracking API, and binary save integration (new inv_entries component id=9).
+* Inventory System Phase 3 (partial): Added favorites/lock flags and per-item short tag metadata with persistence (inv_tags component id=10) + unit tests.
 * AI: LOD scheduler, stress test, agent pool, time budget profiler, tactical nodes.
 * Worldgen: streaming manager, weather scheduler, dungeon generator, analytics & anomalies.
 

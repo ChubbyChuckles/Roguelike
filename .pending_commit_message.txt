@@ -15,3 +15,10 @@ Next Steps:
 Extended: Added inventory entries persistence component (ROGUE_SAVE_COMP_INV_ENTRIES id=9) writing full snapshot {def_index, uint64 qty, labels}; integrated dirty baseline reset and save_manager incremental dirty marking.
 Added roundtrip persistence unit test (test_inventory_phase1_persistence) to verify save/load integration.
 Roadmap & README updated to reflect completed Phase 1.6 persistence integration.
+
+Inventory Phase 3 (3.1,3.2): favorites/lock flags + short string tags
+- Added inventory_tags.{h,c} managing per-def flags (favorite, locked) and up to 4 short tags (<=23 chars) with add/remove/list/has APIs.
+- Integrated new persistence component (ROGUE_SAVE_COMP_INV_TAGS id=10) with compact varuint encoding.
+- Implemented unit test test_inventory_phase3_tags covering flags, tag ops, and save/load roundtrip.
+- Updated roadmap marking 3.1 and 3.2 Done; README changelog updated.
+- Adjusted save_manager to register new component; incremental compatibility preserved.

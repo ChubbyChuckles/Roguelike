@@ -38,6 +38,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase1_persistence.c A
     add_test(NAME test_inventory_phase1_persistence COMMAND test_inventory_phase1_persistence)
 endif()
 
+# Inventory Phase 3 tags & flags test (3.1/3.2 partial scope) – favorites/locks + tag persistence
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase3_tags.c AND NOT TARGET test_inventory_phase3_tags)
+    add_executable(test_inventory_phase3_tags unit/test_inventory_phase3_tags.c)
+    target_link_libraries(test_inventory_phase3_tags PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_inventory_phase3_tags PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_inventory_phase3_tags COMMAND test_inventory_phase3_tags)
+endif()
+
 # Equipment Phase 5 sockets test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase5_sockets.c AND NOT TARGET test_equipment_phase5_sockets)
     add_executable(test_equipment_phase5_sockets unit/test_equipment_phase5_sockets.c)

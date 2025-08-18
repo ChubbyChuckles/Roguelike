@@ -19,6 +19,7 @@
 #endif
 #include "equipment.h"
 #include "core/inventory_entries.h" /* Phase 1.6 inventory entries persistence */
+#include "core/inventory_tags.h" /* Phase 3 inventory metadata */
 
 static RogueSaveComponent g_components[ROGUE_SAVE_MAX_COMPONENTS];
 static int g_component_count = 0;
@@ -951,6 +952,59 @@ static int read_inv_entries_component(FILE* f, size_t size){
     return 0;
 }
 static RogueSaveComponent INV_ENTRIES_COMP={ ROGUE_SAVE_COMP_INV_ENTRIES, write_inv_entries_component, read_inv_entries_component, "inv_entries" };
+/* Inventory tags component (Phase 3.1 favorites/locks + short tags)
+   Layout: varuint record_count; for each: int def_index, uint32 flags, uint8 tag_count, for each tag: uint8 len, bytes (len)
+*/
+static int write_inv_tags_component(FILE* f){
+    uint32_t count=0;
+    for(int i=0;i<ROGUE_INV_TAG_MAX_DEFS;i++){
+        if(rogue_inv_tags_get_flags(i) || rogue_inv_tags_list(i,NULL,0)>0) count++;
+    }
+    if(write_varuint(f,count)!=0) return -1;
+    if(count==0) return 0;
+    for(int i=0;i<ROGUE_INV_TAG_MAX_DEFS;i++){
+        unsigned fl=rogue_inv_tags_get_flags(i);
+        int tc = rogue_inv_tags_list(i,NULL,0);
+        if(fl==0 && tc<=0) continue;
+        if(tc<0) tc=0;
+        if(tc>ROGUE_INV_TAG_MAX_TAGS_PER_DEF) tc=ROGUE_INV_TAG_MAX_TAGS_PER_DEF;
+        fwrite(&i,sizeof(int),1,f);
+        fwrite(&fl,sizeof(fl),1,f);
+        unsigned char tcc=(unsigned char)tc;
+        fwrite(&tcc,1,1,f);
+        if(tc>0){
+            const char* tmp[ROGUE_INV_TAG_MAX_TAGS_PER_DEF];
+            rogue_inv_tags_list(i,tmp,ROGUE_INV_TAG_MAX_TAGS_PER_DEF);
+            for(int k=0;k<tc;k++){
+                size_t len=strlen(tmp[k]); if(len>255) len=255;
+                unsigned char l=(unsigned char)len;
+                fwrite(&l,1,1,f);
+                fwrite(tmp[k],1,len,f);
+            }
+        }
+    }
+    return 0;
+}
+static int read_inv_tags_component(FILE* f, size_t size){
+    uint32_t count=0; if(read_varuint(f,&count)!=0) return -1;
+    size_t consumed=0; rogue_inv_tags_init();
+    for(uint32_t r=0;r<count;r++){
+        int def=0; unsigned flags=0; unsigned char tcc=0;
+        if(fread(&def,sizeof(def),1,f)!=1) return -1;
+        if(fread(&flags,sizeof(flags),1,f)!=1) return -1;
+        if(fread(&tcc,1,1,f)!=1) return -1;
+        consumed += sizeof(def)+sizeof(flags)+1;
+        rogue_inv_tags_set_flags(def,flags);
+        for(unsigned char k=0;k<tcc;k++){
+            unsigned char l=0; if(fread(&l,1,1,f)!=1) return -1; consumed += 1;
+            if(l>0){ char buf[256]; if(l>=sizeof(buf)) l=(unsigned char)(sizeof(buf)-1);
+                if(fread(buf,1,l,f)!=l) return -1; buf[l]='\0'; rogue_inv_tags_add_tag(def,buf); consumed += l; }
+            if(consumed>size) return -1;
+        }
+    }
+    return 0;
+}
+static RogueSaveComponent INV_TAGS_COMP={ ROGUE_SAVE_COMP_INV_TAGS, write_inv_tags_component, read_inv_tags_component, "inv_tags" };
 static RogueSaveComponent SKILLS_COMP={ ROGUE_SAVE_COMP_SKILLS, write_skills_component, read_skills_component, "skills" };
 static RogueSaveComponent BUFFS_COMP={ ROGUE_SAVE_COMP_BUFFS, write_buffs_component, read_buffs_component, "buffs" };
 static RogueSaveComponent VENDOR_COMP={ ROGUE_SAVE_COMP_VENDOR, write_vendor_component, read_vendor_component, "vendor" };
@@ -971,6 +1025,7 @@ void rogue_register_core_save_components(void){
     rogue_save_manager_register(&WORLD_META_COMP);
     rogue_save_manager_register(&INVENTORY_COMP);
     rogue_save_manager_register(&INV_ENTRIES_COMP); /* Phase 1.6 unified entries */
+    rogue_save_manager_register(&INV_TAGS_COMP); /* Phase 3 metadata */
     rogue_save_manager_register(&SKILLS_COMP);
     rogue_save_manager_register(&BUFFS_COMP);
     rogue_save_manager_register(&VENDOR_COMP);

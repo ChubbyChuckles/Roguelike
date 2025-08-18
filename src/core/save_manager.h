@@ -24,6 +24,7 @@ typedef enum RogueSaveComponentId {
     ROGUE_SAVE_COMP_STRINGS=7, /* v5 string intern table (optional) */
     ROGUE_SAVE_COMP_REPLAY=8, /* v8 replay hash section */
     ROGUE_SAVE_COMP_INV_ENTRIES=9, /* Inventory entries (Phase 1.6 persistence of unified def->qty model) */
+    ROGUE_SAVE_COMP_INV_TAGS=10, /* Inventory tags & flags component (Phase 3 metadata) */
 } RogueSaveComponentId;
 
 /* Descriptor header written at start of save file */
