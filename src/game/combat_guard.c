@@ -1,5 +1,7 @@
 #include "game/combat.h"
 #include "game/combat_internal.h"
+#include "core/stat_cache.h"
+#include <stdlib.h>
 #include <math.h>
 
 /* Guard & Poise / Incoming Melee */
@@ -15,14 +17,25 @@ int rogue_player_apply_incoming_melee(RoguePlayer* p, float raw_damage, float at
     if(raw_damage < 0) raw_damage = 0; float fdx,fdy; rogue_player_facing_dir(p,&fdx,&fdy);
     float alen = sqrtf(attack_dir_x*attack_dir_x + attack_dir_y*attack_dir_y); if(alen>0.0001f){ attack_dir_x/=alen; attack_dir_y/=alen; }
     float dot = fdx*attack_dir_x + fdy*attack_dir_y; int blocked = 0; int perfect = 0;
+    /* Phase 7.1 passive block chance (independent of guarding) */
+    extern struct RogueStatCache g_player_stat_cache; /* use aggregated defensive stats */
+    int passive_block = 0; if(g_player_stat_cache.block_chance>0){ int roll = rand()%100; if(roll < g_player_stat_cache.block_chance){ passive_block = 1; } }
     if(p->guarding && p->guard_meter > 0.0f && dot >= ROGUE_GUARD_CONE_DOT){
         blocked = 1; perfect = (p->guard_active_time_ms <= p->perfect_guard_window_ms)?1:0; float chip = raw_damage * ROGUE_GUARD_CHIP_PCT; if(chip < 1.0f) chip = (raw_damage>0)?1.0f:0.0f;
         if(perfect){ chip = 0.0f; p->guard_meter += ROGUE_PERFECT_GUARD_REFUND; if(p->guard_meter>p->guard_meter_max) p->guard_meter = p->guard_meter_max; p->poise += ROGUE_PERFECT_GUARD_POISE_BONUS; if(p->poise>p->poise_max) p->poise=p->poise_max; }
         else { p->guard_meter -= ROGUE_GUARD_METER_DRAIN_ON_BLOCK; if(p->guard_meter < 0.0f) p->guard_meter = 0.0f; if(poise_damage>0){ float pd = (float)poise_damage * ROGUE_GUARD_BLOCK_POISE_SCALE; p->poise -= pd; if(p->poise < 0.0f) p->poise = 0.0f; p->poise_regen_delay_ms = ROGUE_POISE_REGEN_DELAY_AFTER_HIT; } }
         if(out_blocked) *out_blocked = 1; if(perfect && out_perfect) *out_perfect = 1; return (int)chip; }
+    if(passive_block){
+        blocked = 1; /* Flat reduction by block_value; never less than 0 */
+        int red = g_player_stat_cache.block_value; if(red<0) red=0; raw_damage -= (float)red; if(raw_damage < 0) raw_damage = 0;
+        if(out_blocked) *out_blocked = 1; return (int)raw_damage; }
     int triggered_reaction = 0; if(poise_damage>0 && !_rogue_player_is_hyper_armor_active()){ float before = p->poise; p->poise -= (float)poise_damage; if(p->poise < 0.0f) p->poise=0.0f; if(before > 0.0f && p->poise <= 0.0f){ rogue_player_apply_reaction(p, 2); triggered_reaction=1; } }
     if(!triggered_reaction){ if(raw_damage >= 80){ rogue_player_apply_reaction(p,3); } else if(raw_damage >= 25){ rogue_player_apply_reaction(p,1); } }
-    p->poise_regen_delay_ms = ROGUE_POISE_REGEN_DELAY_AFTER_HIT; return (int)raw_damage; }
+    p->poise_regen_delay_ms = ROGUE_POISE_REGEN_DELAY_AFTER_HIT;
+    /* Phase 7.2 damage conversion (physical -> elemental) placeholder: since we lack incoming type param here, skip actual split. */
+    /* Phase 7.5 thorns reflect: reflect percent limited by cap (UI/observer to consume) */
+    if(g_player_stat_cache.thorns_percent>0 && raw_damage>0){ int reflect = (int)((raw_damage * g_player_stat_cache.thorns_percent)/100.0f); if(g_player_stat_cache.thorns_cap>0 && reflect>g_player_stat_cache.thorns_cap) reflect = g_player_stat_cache.thorns_cap; (void)reflect; /* future: apply to attacker */ }
+    return (int)raw_damage; }
 
 void rogue_player_poise_regen_tick(RoguePlayer* p, float dt_ms){ if(!p) return; if(p->poise_regen_delay_ms>0){ p->poise_regen_delay_ms -= dt_ms; if(p->poise_regen_delay_ms<0) p->poise_regen_delay_ms=0; }
     if(p->poise_regen_delay_ms<=0 && p->poise < p->poise_max){ float missing = p->poise_max - p->poise; float ratio = missing / p->poise_max; if(ratio<0) ratio=0; if(ratio>1) ratio=1; float regen = (ROGUE_POISE_REGEN_BASE_PER_MS * dt_ms) * (1.0f + 1.75f * ratio * ratio); p->poise += regen; if(p->poise > p->poise_max) p->poise = p->poise_max; } }

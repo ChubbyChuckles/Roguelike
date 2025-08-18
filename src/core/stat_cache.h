@@ -25,6 +25,15 @@ typedef struct RogueStatCache {
     int resist_lightning;
     int resist_poison;    /* generic dot */
     int resist_status;    /* generic status buildup (bleed/frost/etc.) */
+    /* Phase 7 Defensive Extensions */
+    int block_chance;      /* percent 0-100 chance to block (passive) */
+    int block_value;       /* flat damage reduction on successful block */
+    int phys_conv_fire_pct;   /* percent of incoming physical converted to fire */
+    int phys_conv_frost_pct;  /* percent of incoming physical converted to frost */
+    int phys_conv_arcane_pct; /* percent of incoming physical converted to arcane */
+    int guard_recovery_pct;   /* increases guard meter regen %, reduces drain % */
+    int thorns_percent;       /* percent of post-mitigation damage reflected */
+    int thorns_cap;           /* max reflect per hit */
     /* Hash / fingerprint (Phase 2.5) */
     unsigned long long fingerprint;
     int dirty;        /* non-zero when cache invalid */

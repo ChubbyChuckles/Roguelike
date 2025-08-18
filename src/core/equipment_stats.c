@@ -33,6 +33,9 @@ static const RogueRuneword* item_runeword(const RogueItemDef* d){ return find_ru
 static void gather_affix_primary_and_armor(void){
     int str=0,dex=0,vit=0,intel=0,armor=0;
     int r_phys=0,r_fire=0,r_cold=0,r_light=0,r_poison=0,r_status=0;
+    int block_chance=0, block_value=0;
+    int phys_conv_fire=0, phys_conv_frost=0, phys_conv_arc=0;
+    int guard_recovery=0; int thorns_pct=0, thorns_cap=0;
     for(int slot=0; slot<ROGUE_EQUIP__COUNT; ++slot){
         int inst_index = rogue_equip_get((enum RogueEquipSlot)slot);
         if(inst_index<0) continue;
@@ -52,6 +55,8 @@ static void gather_affix_primary_and_armor(void){
                 case ROGUE_AFFIX_STAT_RESIST_LIGHTNING: r_light += it->prefix_value; break;
                 case ROGUE_AFFIX_STAT_RESIST_POISON: r_poison += it->prefix_value; break;
                 case ROGUE_AFFIX_STAT_RESIST_STATUS: r_status += it->prefix_value; break;
+                case ROGUE_AFFIX_STAT_BLOCK_CHANCE: block_chance += it->prefix_value; break; /* Phase 7 */
+                case ROGUE_AFFIX_STAT_BLOCK_VALUE: block_value += it->prefix_value; break;  /* Phase 7 */
                 default: break;
             }
         }}
@@ -69,6 +74,8 @@ static void gather_affix_primary_and_armor(void){
                 case ROGUE_AFFIX_STAT_RESIST_LIGHTNING: r_light += it->suffix_value; break;
                 case ROGUE_AFFIX_STAT_RESIST_POISON: r_poison += it->suffix_value; break;
                 case ROGUE_AFFIX_STAT_RESIST_STATUS: r_status += it->suffix_value; break;
+                case ROGUE_AFFIX_STAT_BLOCK_CHANCE: block_chance += it->suffix_value; break; /* Phase 7 */
+                case ROGUE_AFFIX_STAT_BLOCK_VALUE: block_value += it->suffix_value; break;  /* Phase 7 */
                 default: break;
             }
         }}
@@ -85,6 +92,15 @@ static void gather_affix_primary_and_armor(void){
     g_player_stat_cache.resist_lightning = r_light;
     g_player_stat_cache.resist_poison = r_poison;
     g_player_stat_cache.resist_status = r_status;
+    /* Phase 7 defensive extensions (currently zero until affix/stat sources defined) */
+    g_player_stat_cache.block_chance += block_chance;
+    g_player_stat_cache.block_value += block_value;
+    g_player_stat_cache.phys_conv_fire_pct += phys_conv_fire;
+    g_player_stat_cache.phys_conv_frost_pct += phys_conv_frost;
+    g_player_stat_cache.phys_conv_arcane_pct += phys_conv_arc;
+    g_player_stat_cache.guard_recovery_pct += guard_recovery;
+    g_player_stat_cache.thorns_percent += thorns_pct;
+    g_player_stat_cache.thorns_cap += thorns_cap;
 }
 
 /* Gather implicit stats from base item definitions of equipped items. These feed the implicit_* layer in stat cache. */
@@ -169,6 +185,9 @@ void rogue_equipment_apply_stat_bonuses(RoguePlayer* p){
     g_player_stat_cache.resist_physical = g_player_stat_cache.resist_fire = 0;
     g_player_stat_cache.resist_cold = g_player_stat_cache.resist_lightning = 0;
     g_player_stat_cache.resist_poison = g_player_stat_cache.resist_status = 0;
+    g_player_stat_cache.block_chance = g_player_stat_cache.block_value = 0;
+    g_player_stat_cache.phys_conv_fire_pct = g_player_stat_cache.phys_conv_frost_pct = 0; g_player_stat_cache.phys_conv_arcane_pct = 0;
+    g_player_stat_cache.guard_recovery_pct = 0; g_player_stat_cache.thorns_percent = 0; g_player_stat_cache.thorns_cap = 0;
     gather_affix_primary_and_armor(); /* affix layer (later in precedence) */
     gather_implicit_primary_and_armor();
     gather_unique_primary();

@@ -27,6 +27,8 @@ static RogueAffixStat parse_stat(const char* s){
     if(strcmp(s,"resist_lightning")==0) return ROGUE_AFFIX_STAT_RESIST_LIGHTNING;
     if(strcmp(s,"resist_poison")==0) return ROGUE_AFFIX_STAT_RESIST_POISON;
     if(strcmp(s,"resist_status")==0) return ROGUE_AFFIX_STAT_RESIST_STATUS;
+    if(strcmp(s,"block_chance")==0) return ROGUE_AFFIX_STAT_BLOCK_CHANCE; /* Phase 7 */
+    if(strcmp(s,"block_value")==0) return ROGUE_AFFIX_STAT_BLOCK_VALUE;   /* Phase 7 */
     return ROGUE_AFFIX_STAT_NONE;
 }
 

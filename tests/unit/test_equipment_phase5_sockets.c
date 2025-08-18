@@ -7,6 +7,7 @@
 int main(void){
     rogue_item_defs_reset();
     int added = rogue_item_defs_load_from_cfg("assets/equipment_test_sockets.cfg");
+    if(added<=0){ added = rogue_item_defs_load_from_cfg("../assets/equipment_test_sockets.cfg"); }
     assert(added==2);
     int parse_index = rogue_item_def_index("sock_parse");
     int fixed_index = rogue_item_def_index("sock_fixed");
