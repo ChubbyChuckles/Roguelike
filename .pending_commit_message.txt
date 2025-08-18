@@ -1,28 +1,15 @@
-Equipment Phase 16.1: External Item Definition JSON Tooling
-- Added JSON import/export for equipment (item) base definitions: new APIs `rogue_item_defs_load_from_json` and `rogue_item_defs_export_json` alongside existing CSV loader.
-- Parser: minimal hand-rolled forward-only scanner (whitespace skip, string & int number parsing) populating full `RogueItemDef` including implicit stats, set_id, socket_min/max with validation/clamps.
-- Exporter: deterministic field ordering per object enabling clean diffs for editor pipelines; writes compact array form.
-- Fast lookup integration: hash index rebuilt post JSON load; test exercises `rogue_item_def_index_fast` on loaded ids.
-- Unit test `test_equipment_phase16_itemdefs_json` performs roundtrip: writes temp JSON (2 records), loads, asserts count & fast index presence, exports to buffer, checks for id tokens and representative numeric fields (level_req=5, base_armor=5), ensuring schema coverage.
-- Roadmap updated marking 16.1 Done; README augmented with concise feature summary.
+Equipment Phase 16.4: Runeword Recipe Validator
 
+Summary:
+- Implemented runeword pattern validation API `rogue_runeword_validate_pattern` (lowercase alphanumeric + single underscores, max 5 segments, length <=11, rejects empty / double underscore / invalid chars).
+- Integrated validator into `rogue_runeword_register` (returns -3 when invalid) to prevent impossible or malformed patterns entering registry.
+- Added comprehensive unit test `test_equipment_phase16_runeword_validator` covering failure cases (null, empty, uppercase, invalid symbol, segment overflow, double underscore) and success cases including max segment pattern; verifies registration rejection on invalid pattern.
+- Updated roadmap marking Phase 16.4 Done with description.
+- Minor: Added public prototype to `equipment_content.h`.
 
-Equipment Phase 16.2: Set Builder & Live Preview Tooling
-- Added `equipment_content.c/h` module providing external registries for set and runeword definitions (decoupled from aggregation code) with registration, lookup, count, and reset APIs.
-- Implemented JSON import/export for set definitions (`rogue_sets_load_from_json`, `rogue_sets_export_json`) using minimal hand-rolled parser matching style of item defs; deterministic export ordering.
-- Added validation ensuring strictly increasing piece thresholds per set; invalid sets skipped upon load.
-- Implemented live preview interpolation helper `rogue_set_preview_apply` computing bonus stats at an arbitrary equipped count including partial linear progress toward next threshold (int truncation for stability/determinism).
-- Refactored `equipment_stats.c` to remove embedded static set/runeword registries, now sourcing data via `equipment_content` APIs; set aggregation rewritten to call preview helper per distinct set id.
-- Added unit test `test_equipment_phase16_set_builder` covering JSON load (1 set added), registry find, interpolation at 3 pieces between 2→4 thresholds (expecting truncated halfway stat values), and export JSON token presence.
-- Updated build system (CMake) to compile new module; roadmap marks 16.2 Done; README bullet added; commit message appended.
+Rationale:
+Prevents silent acceptance of malformed runeword recipes which would undermine deterministic matching & future crafting UI. Guarding early simplifies content tooling and future hot‑reload diffing.
 
-
-Equipment Phase 16.3: Proc Designer JSON Tooling
-- Extended `RogueProcDef` with `name` field for authoring/display; legacy registrations leave it empty.
-- Added validation API `rogue_proc_validate` (enum bounds, non-negative durations, stack limits).
-- Implemented JSON import/export (`rogue_procs_load_from_json`, `rogue_procs_export_json`) with schema supporting name, trigger string, icd_ms, duration_ms, magnitude, max_stacks, stack_rule, param.
-- Hand-rolled forward-only parser consistent with prior Phase 16 tooling (item defs, sets) for deterministic diff-friendly output.
-- Added string <-> enum mapping for triggers (ON_HIT/ON_CRIT/ON_KILL/ON_BLOCK/ON_DODGE/WHEN_LOW_HP) and stack rules (REFRESH/STACK/IGNORE).
-- Unit test `test_equipment_phase16_proc_designer` writes 2 proc definitions (stacking block shield & on-hit refresh), loads them, simulates block events to assert stacking (>1 stacks) and on-hit refresh (stack remains 1), then exports and checks for proc names.
-- Roadmap marks 16.3 Done; README updated with concise bullet.
+Testing:
+New test passes (Release build) alongside existing Phase 16.x tests. No warnings introduced.
 

@@ -23,7 +23,20 @@ const RogueSetDef* rogue_set_at(int index){ if(index<0||index>=g_set_count) retu
 int rogue_set_count(void){ return g_set_count; }
 const RogueSetDef* rogue_set_find(int set_id){ for(int i=0;i<g_set_count;i++) if(g_sets[i].set_id==set_id) return &g_sets[i]; return NULL; }
 
-int rogue_runeword_register(const RogueRuneword* rw){ if(!rw||!rw->pattern[0]) return -1; if(g_runeword_count>=ROGUE_RUNEWORD_CAP) return -2; g_runewords[g_runeword_count]=*rw; return g_runeword_count++; }
+/* Phase 16.4: Runeword recipe validator implementation */
+int rogue_runeword_validate_pattern(const char* pattern){
+    if(!pattern||!pattern[0]) return -1; /* empty */
+    int len=0; int segments=1; /* segments separated by '_' */
+    int max_len = (int)sizeof(((RogueRuneword*)0)->pattern)-1; /* leave space for NUL in storage */
+    for(const char* p=pattern; *p; ++p){
+        char c=*p; len++; if(len> max_len) return -4; /* too long */
+        if(c=='_'){ if(p[1]=='_') return -2; segments++; if(segments>5) return -3; continue; }
+        if(!( (c>='a'&&c<='z') || (c>='0'&&c<='9') )) return -2; /* invalid char */
+    }
+    return 0;
+}
+
+int rogue_runeword_register(const RogueRuneword* rw){ if(!rw||!rw->pattern[0]) return -1; if(rogue_runeword_validate_pattern(rw->pattern)!=0) return -3; if(g_runeword_count>=ROGUE_RUNEWORD_CAP) return -2; g_runewords[g_runeword_count]=*rw; return g_runeword_count++; }
 const RogueRuneword* rogue_runeword_at(int index){ if(index<0||index>=g_runeword_count) return NULL; return &g_runewords[index]; }
 int rogue_runeword_count(void){ return g_runeword_count; }
 const RogueRuneword* rogue_runeword_find(const char* pattern){ if(!pattern) return NULL; for(int i=0;i<g_runeword_count;i++) if(strcmp(g_runewords[i].pattern,pattern)==0) return &g_runewords[i]; return NULL; }

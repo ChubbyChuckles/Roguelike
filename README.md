@@ -152,6 +152,13 @@ Multiplayer integrity layer now includes proc anomaly auditing, banned affix bla
 
 Forward Work: Statistical proc distribution validation (Phase 18), authoritative network transport & signed state diffs (later multiplayer phases), and deeper anomaly heuristics (rolling Z-scores / EWMA) once broader telemetry (latency jitter, server tick alignment) is present.
 
+### Equipment System Phase 16.4 (Runeword Recipe Validator)
+Introduced validation for externally-authored runeword patterns to eliminate malformed or impossible recipes entering the registry:
+* Pattern Rules: lowercase letters/digits separated by single underscores, max 5 segments, max stored length 11 (fits internal buffer with NUL), no double underscores, no uppercase or symbols.
+* API: `rogue_runeword_validate_pattern` (returns 0 OK or negative error code) invoked by `rogue_runeword_register` (now rejects invalid with -3).
+* Test: `test_equipment_phase16_runeword_validator` exercises failure (null, empty, invalid char, segment overflow, double underscore) and success (single + multi-segment, max segment) cases plus registration path.
+* Roadmap updated marking Phase 16.4 Done.
+
 Public APIs (`equipment_persist.h`):
 * `rogue_equipment_serialize(buf, cap)` – emits versioned block; returns bytes written or -1.
 * `rogue_equipment_deserialize(text)` – idempotently reconstructs equipped items (spawning instances) from text; tolerates legacy headerless data.

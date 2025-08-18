@@ -1,4 +1,0 @@
-[
- {"name":"BurningAegis","trigger":"ON_BLOCK","icd_ms":5000,"duration_ms":3000,"magnitude":50,"max_stacks":3,"stack_rule":"STACK","param":0},
- {"name":"RelentlessStrikes","trigger":"ON_HIT","icd_ms":1000,"duration_ms":1500,"magnitude":10,"max_stacks":1,"stack_rule":"REFRESH","param":0}
-]

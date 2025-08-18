@@ -226,6 +226,15 @@ endif()
         add_test(NAME test_equipment_phase16_proc_designer COMMAND test_equipment_phase16_proc_designer)
         set_tests_properties(test_equipment_phase16_proc_designer PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+        # Phase 16.4 runeword validator
+        add_executable(test_equipment_phase16_runeword_validator unit/test_equipment_phase16_runeword_validator.c)
+        target_link_libraries(test_equipment_phase16_runeword_validator PRIVATE rogue_core)
+        if (SDL2_FOUND AND NOT ROGUE_HEADLESS)
+            target_compile_definitions(test_equipment_phase16_runeword_validator PRIVATE ROGUE_HAVE_SDL=1)
+        endif()
+        add_test(NAME test_equipment_phase16_runeword_validator COMMAND test_equipment_phase16_runeword_validator)
+        set_tests_properties(test_equipment_phase16_runeword_validator PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
 # UI Phase 6.2 bars + AP smoothing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARGET test_ui_phase6_bars_ap)
     add_executable(test_ui_phase6_bars_ap unit/test_ui_phase6_bars_ap.c)

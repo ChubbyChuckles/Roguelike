@@ -152,7 +152,7 @@ PHASE 16. Tooling & Authoring
 16.1 External equipment definition editor (base + implicits) (Done: JSON import/export APIs `rogue_item_defs_load_from_json` + `rogue_item_defs_export_json`, unit test `test_equipment_phase16_itemdefs_json` validates two-record load, fast index, and roundtrip content presence)
 16.2 Set builder with live bonus threshold preview (Done: introduced `equipment_content` module with external registries for sets & runewords, JSON import/export for set definitions, linear interpolation preview helper `rogue_set_preview_apply` supporting partial progress toward next threshold, reset APIs for tooling tests, unit test `test_equipment_phase16_set_builder` validates load, interpolation at mid threshold (3 between 2->4 pieces), and export token presence.)
 16.3 Proc designer (trigger/type/magnitude/ICD) (Done: JSON import/export for proc definitions with name, trigger enum string mapping, ICD, duration, magnitude, max_stacks, stack_rule, param; validation + unit test exercising stacking vs refresh semantics and export roundtrip)
-16.4 Runeword recipe validator (duplicate / impossible pattern detection) (X)
+16.4 Runeword recipe validator (duplicate / impossible pattern detection) (Done: added pattern validator `rogue_runeword_validate_pattern` enforcing lowercase alnum + underscores, max 5 segments, max length 11; integrated into registration returning -3 on invalid; unit test `test_equipment_phase16_runeword_validator` covers invalid chars, segment overflow, double underscore rejection, and positive registration path.)
 16.5 Budget analyzer report generator (X)
 16.6 Tests: validator catches malformed data, analyzer coverage (X)
 

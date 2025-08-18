@@ -16,6 +16,8 @@ int rogue_runeword_register(const RogueRuneword* rw);
 const RogueRuneword* rogue_runeword_at(int index);
 int rogue_runeword_count(void);
 const RogueRuneword* rogue_runeword_find(const char* pattern);
+/* Phase 16.4: Runeword recipe validator */
+int rogue_runeword_validate_pattern(const char* pattern); /* 0 ok, <0 error ( -1 null/empty, -2 invalid char, -3 too many segments, -4 too long ) */
 
 /* Testing / tooling support: reset registries (non-thread-safe) */
 void rogue_sets_reset(void);
