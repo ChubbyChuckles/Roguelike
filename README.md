@@ -174,6 +174,23 @@ Phase 10.1–10.5 (AI Debug & Tooling): Introduced consolidated debug helpers in
 * Added threshold biome classification (mountain / snow / swamp / forest / grass / water) assigning tile types used later for resource & spawn gating.
 * New unit test `test_worldgen_phase2_macro` validates: water ratio bounds, ≥1 continent, river adjacency to ocean, and full determinism (tilemap hash + biome histogram reproducibility for identical seed).
 
+#### World Generation Phase 3 (Biome Descriptors & Registry)
+* Introduced data-driven biome descriptor format (`*.biome.cfg`) parsed into `RogueBiomeDescriptor` containing name, music track, vegetation & decoration densities, ambient color, structure & weather flags, and normalized tile palette weights (`tile_*` entries for grass/forest/water/mountain/swamp/snow/river).
+* Added dynamic biome registry with directory loader and palette blending utility (`rogue_biome_blend_palettes`) for boundary transitions.
+* Implemented secure, deterministic parsing (normalizes weights sum->1, clamps densities 0..1, rejects descriptors with no tile entries).
+* Unit test `test_worldgen_phase3_biome_descriptors` covers: successful parse, failure on missing tiles, palette normalization, registry add, and blend normalization.
+* Lays groundwork for Phase 4 local terrain perturbation & Phase 5 advanced river/erosion passes by externalizing biome metadata for future modding & hot reload.
+
+### World Generation Phase 4 (Local Terrain & Caves)
+Adds micro-scale detailing atop the macro biome layout:
+* 4.1 Local Terrain Perturbation: Applied secondary fbm noise using micro RNG channel to subtly convert boundary grass<->forest tiles and erode select mountain tiles, improving natural transitions without altering macro shape.
+* 4.2 Cave Cellular Automata: Independent CA seeded only under mountain tiles (respecting configured fill chance & iterations) producing CAVE_WALL / CAVE_FLOOR layering separate from initial macro pass, enabling deterministic interior spaces.
+* 4.3 Lava Pockets: Deterministic pocket flood around sampled cave floor centers (radius 1–3) marking `ROGUE_TILE_LAVA` creating environmental hazards for future gameplay interactions.
+* 4.4 Ore Veins: Random-walk ("perlin worm" style) vein lines over cave wall cells converting them to `ROGUE_TILE_ORE_VEIN`; direction perturbs with 30% turn chance for organic branching.
+* 4.5 Passability Map: Introduced `RoguePassabilityMap` derivation marking walkable tiles (grass/forest/swamp/snow/cave_floor/delta) to support downstream pathing & spawn validation.
+* 4.6 Unit Test: `test_worldgen_phase4_local_caves` validates: cave openness ratio within 25–75%, presence of lava pockets & ore veins, passability map deterministic rebuild, and full multi-phase determinism via hash comparison after regeneration.
+New tile types: `ROGUE_TILE_LAVA`, `ROGUE_TILE_ORE_VEIN`. Implementation in `world_gen_local.c` using micro RNG channel; roadmap Phase 4 items marked Done.
+
 Phase 11.1–11.5 (AI Testing & QA Expansion): Added comprehensive quality gates around core AI behaviours.
 * Core Node Edge Tests: `test_ai_phase11_core_nodes` exercises Selector/Sequence short‑circuiting, Parallel mixed status aggregation, Utility selector tie‑break determinism, cooldown boundary reset, and retry decorator exhaustion/reset semantics.
 * Blackboard Fuzz: `test_ai_phase11_blackboard_fuzz` performs 5k deterministic pseudo‑random operations (Set/Max/Min/Accumulate/int+float/timer/vec2) mirrored against an in‑memory model to ensure policy invariants and capacity bounds (no overflow of 32 entries).

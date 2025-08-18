@@ -75,4 +75,19 @@ typedef enum RogueBiomeId {
 bool rogue_world_generate_macro_layout(const RogueWorldGenConfig* cfg, RogueWorldGenContext* ctx, RogueTileMap* out_map,
                                        int* out_biome_histogram, int* out_continent_count);
 
+/* ---- Phase 4: Local Terrain & Caves (new APIs) ---- */
+typedef struct RoguePassabilityMap {
+    int width;
+    int height;
+    unsigned char* walkable; /* 1 = walkable, 0 = blocked */
+} RoguePassabilityMap;
+
+bool rogue_world_generate_local_terrain(const RogueWorldGenConfig* cfg, RogueWorldGenContext* ctx, RogueTileMap* io_map);
+bool rogue_world_generate_caves_layer(const RogueWorldGenConfig* cfg, RogueWorldGenContext* ctx, RogueTileMap* io_map);
+bool rogue_world_place_lava_and_liquids(const RogueWorldGenConfig* cfg, RogueWorldGenContext* ctx, RogueTileMap* io_map, int target_pockets);
+bool rogue_world_place_ore_veins(const RogueWorldGenConfig* cfg, RogueWorldGenContext* ctx, RogueTileMap* io_map, int target_veins, int vein_len);
+bool rogue_world_build_passability(const RogueWorldGenConfig* cfg, const RogueTileMap* map, RoguePassabilityMap* out_pass);
+void rogue_world_passability_free(RoguePassabilityMap* pass);
+
+
 #endif

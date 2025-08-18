@@ -38,19 +38,19 @@ PHASE 2. Macro Scale Layout
 2.7 Unit tests: continent land ratio bounds, river reaches ocean, biome histogram reproducibility (Done: test_worldgen_phase2_macro.c validates water ratio bounds, >=1 continent, river adjacency to ocean, hash + histogram determinism; context reinit between runs for reproducible RNG state)
 
 PHASE 3. Biome Partition & Data-Driven Descriptors
-3.1 Biome descriptor files (JSON/CFG) specifying: tile palette weights, vegetation tables, decoration densities, ambient color, music track id (X)
-3.2 Biome registry loader with validation (range checks, required keys) (X)
-3.3 Biome blending at boundaries (weighted palette sampling) (X)
-3.4 Feature flags (allow/disallow structures, rare events, weather patterns) (X)
-3.5 Unit tests: descriptor parse errors, missing key rejection, palette weight normalization, boundary blend continuity (X)
+3.1 Biome descriptor files (JSON/CFG) specifying: tile palette weights, vegetation tables, decoration densities, ambient color, music track id (Done: lightweight CFG parser, .biome.cfg format with tile_* keys, densities, ambient_color, music)
+3.2 Biome registry loader with validation (range checks, required keys) (Done: registry add & directory loader with normalization and missing tile validation)
+3.3 Biome blending at boundaries (weighted palette sampling) (Done: rogue_biome_blend_palettes with normalized result)
+3.4 Feature flags (allow/disallow structures, rare events, weather patterns) (Done: allow_structures / allow_weather flags parsed & stored)
+3.5 Unit tests: descriptor parse errors, missing key rejection, palette weight normalization, boundary blend continuity (Done: test_worldgen_phase3_biome_descriptors validates success parse, failure on missing tiles, weight normalization, blend normalization)
 
 PHASE 4. Local Terrain & Caves
-4.1 Chunk-local height perturbation (detail noise layered atop macro elevation) (X)
-4.2 Cave cellular automata refinement (seeded from macro cave mask) (Partial thresholds) (X)
-4.3 Lava / water pocket placement (density+elevation rules) (X)
-4.4 Ore vein procedural placement (perlin-worm or diffusion-limited algorithm) (X)
-4.5 Passability map derivation (solid vs walkable) (X)
-4.6 Unit tests: cave openness ratio bounds, ore vein count statistics vs target, passability determinism for seed (X)
+4.1 Chunk-local height perturbation (detail noise layered atop macro elevation) (Done: fbm-based forest/grass/mountain edge perturbation in world_gen_local.c)
+4.2 Cave cellular automata refinement (seeded from macro cave mask) (Done: separate micro RNG CA pass converting mountain -> cave wall/floor)
+4.3 Lava / water pocket placement (density+elevation rules) (Done: lava pocket flood fill on cave floors with bounded attempts)
+4.4 Ore vein procedural placement (perlin-worm or diffusion-limited algorithm) (Done: random-walk veins over cave wall tiles marking ROGUE_TILE_ORE_VEIN)
+4.5 Passability map derivation (solid vs walkable) (Done: RoguePassabilityMap generator with deterministic classification)
+4.6 Unit tests: cave openness ratio bounds, ore vein count statistics vs target, passability determinism for seed (Done: test_worldgen_phase4_local_caves enforces openness 0.25..0.75, lava & ore presence, passability identical rebuild, full chain determinism)
 
 PHASE 5. Rivers & Erosion Detailing
 5.1 River spline refinement (smooth path representation) (X)

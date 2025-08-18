@@ -49,6 +49,9 @@ typedef enum RogueTileType
     ROGUE_TILE_SNOW,
     ROGUE_TILE_RIVER_DELTA,
     ROGUE_TILE_RIVER_WIDE,
+    /* Phase 4 additions (local terrain detailing) */
+    ROGUE_TILE_LAVA,        /* lava pocket */
+    ROGUE_TILE_ORE_VEIN,    /* ore vein marker embedded in rock/cave */
     ROGUE_TILE_MAX
 } RogueTileType;
 

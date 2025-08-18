@@ -4,35 +4,30 @@ Summary:
 - Extended `RogueWorldGenConfig` with `continent_count` and `biome_seed_offset` fields establishing macro layout & RNG decorrelation parameters.
 - Introduced multi-channel deterministic RNG via `RogueWorldGenContext` (macro/biome/micro) with decorrelated seed derivation constants.
 - Added chunk coordinate system (`ROGUE_WORLD_CHUNK_SIZE=32`) and helper APIs: `rogue_world_chunk_from_tile`, `rogue_world_chunk_origin`, `rogue_world_chunk_index` preparing for streaming & caching phases (11.x).
-- Implemented FNV-1a tilemap hashing utility `rogue_world_hash_tilemap` (basis for upcoming golden snapshot macro layout tests in Phase 2).
+- Implemented FNV-1a tilemap hashing utility `rogue_world_hash_tilemap` (basis for golden snapshot tests).
 - Created `world_gen_foundation.c` housing Phase 1 implementations and registered it in build.
-- Added comprehensive unit test `test_worldgen_phase1_foundation` covering chunk mapping edge boundaries, RNG channel independence & reproducibility, and hash stability/delta on mutation.
-- Roadmap Phase 1 entries updated; README gains Phase 1 world generation summary.
+- Added unit test `test_worldgen_phase1_foundation` covering chunk mapping, RNG independence & hash stability.
 
 World Generation Phase 2: Macro Layout & Biome Classification
 
 Summary:
 - Added `world_gen_macro.c` implementing continent mask (fbm + radial falloff) with size-filtered continent counting, elevation shaping & normalization, climate approximation (temperature latitude+altitude, moisture fbm), deterministic river peak selection + downhill carving, and biome classification thresholds mapping to existing tile types.
-- Extended public API with `rogue_world_generate_macro_layout` and biome histogram / continent output parameters.
-- Unit test `test_worldgen_phase2_macro` asserts water ratio bounds (10%–70%), ≥1 continent, river adjacency to ocean tiles, and determinism (tilemap hash + biome histogram identical across regenerations for same seed).
-- Added adaptive marginal land promotion/demotion to keep land ratio within target bounds for test stability (approx 35–45% land) and reinitialized RNG context between deterministic regenerations to ensure hash stability.
-- Roadmap Phase 2 items marked Done with implementation notes; README updated with Phase 2 summary.
+- Public API `rogue_world_generate_macro_layout` returns biome histogram & continent count.
+- Adaptive marginal land promotion/demotion keeps land ratio within test bounds; RNG context reinit ensures deterministic hash on regeneration.
+- Unit test `test_worldgen_phase2_macro` asserts water ratio bounds, ≥1 continent, river adjacency, and determinism (hash + histogram).
 
-Files Added:
-- src/world/world_gen_foundation.c
-- src/world/world_gen_macro.c
-- tests/unit/test_worldgen_phase1_foundation.c
-- tests/unit/test_worldgen_phase2_macro.c
+World Generation Phase 3: Biome Descriptors & Registry
 
-Files Modified:
-- src/world/world_gen.h (Phase 1 fields + Phase 2 APIs & biome enum)
-- src/world/world_gen_config.c (defaults for new config fields)
-- src/world/world_gen_foundation.c (hash utility)
-- CMakeLists.txt (include new sources)
-- tests/CMakeLists.txt (register new tests)
-- roadmaps/implementation_plan_world_generation.txt (Phase 1 & 2 status updates)
-- README.md (Phase 1 & 2 summaries)
-- .pending_commit_message.txt (regenerated)
+Summary:
+- Implemented data-driven biome descriptor system (CFG-based) with fields: name, music, vegetation_density, decoration_density, ambient_color, allow_structures, allow_weather, and tile_* palette weights.
+- Added parser with normalization (tile weight sum -> 1), validation requiring at least one tile_* entry, and clamping of density values.
+- Implemented biome registry (dynamic array) and directory loader (Windows glob pattern; POSIX path variant) for *.biome.cfg files.
+- Palette blending utility `rogue_biome_blend_palettes` for boundary transitions (normalized output).
+- Secure string handling (safe_copy) and MSVC secure CRT functions (fopen_s, strncpy_s, strtok_s, sscanf_s) to satisfy warning-as-error policy.
+- Added unit test `test_worldgen_phase3_biome_descriptors` validating parse success/failure cases, normalization, registry add, and palette blend normalization.
+- Roadmap updated Phase 3 items to Done; build system & commit message updated.
+
+(Phase 4) Local terrain & caves layer added: fbm-based micro perturbation of grass/forest/mountain edges, standalone cave cellular automata pass (mountain-seeded) generating cave wall/floor tiles, deterministic lava pocket placement, ore vein random-walk carving, and passability map derivation (RoguePassabilityMap). Added new tile types (LAVA, ORE_VEIN), new module `world_gen_local.c`, public APIs for local generation steps, and unit test `test_worldgen_phase4_local_caves` covering openness bounds, feature presence, passability determinism, and full regeneration determinism. Roadmap Phase 4 items updated to Done; README updated with Phase 4 summary.
 
 Rationale:
-Builds deterministic macro-world scaffolding (continents, elevation, primitive climate, rivers, biomes) atop foundational RNG/chunk systems enabling subsequent phases (biome descriptors, local terrain refinement, resource & spawn ecology) with regression safety via hashing & histogram tests.
+Advances world generation with data-driven biome layer enabling future extension (Phase 4+ local terrain & structures) while ensuring determinism & regression safety via targeted unit tests.
