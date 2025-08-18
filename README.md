@@ -149,13 +149,15 @@ Introduced scalable crafting success mechanic:
 * Attempt API: `rogue_craft_success_attempt(rarity,difficulty,rng)` deterministic w/ supplied RNG; upgrade helper `rogue_craft_attempt_upgrade` gates upgrade stone application on success.
 * Test `test_equipment_phase10_crafting_success` validates skill improves success rate distribution and that upgrade attempts eventually succeed under repeated tries even at low skill (probabilistic guard). Roadmap optional item 10.5 marked Done.
 
-### Equipment System Phase 11.1–11.4 / 11.7 (Analytics & Balancing Foundations)
+### Equipment System Phase 11.1–11.6 / 11.7 (Analytics & Balancing Foundations)
 Implemented core analytics instrumentation:
 * Snapshot Export (11.1): `rogue_equipment_stats_export_json` emits compact JSON of key aggregated metrics (DPS/EHP/Mobility + primary stats) for tooling ingestion.
 * Rarity/Slot Histograms (11.2): `rogue_equipment_histogram_record` accumulates DPS/EHP sums per rarity/slot with JSON export via `rogue_equipment_histograms_export_json` (average derivation at export time).
 * Set/Unique Usage (11.3): `rogue_equipment_usage_record` tallies equipped set id counts and unique base item occurrences with JSON export via `rogue_equipment_usage_export_json` enabling popularity & penetration analytics.
 * Outlier Detection (11.4): Median + MAD based detector `rogue_equipment_dps_outlier_flag` flags extreme DPS spikes (>5 MAD) enabling future automated balance telemetry.
-* Tests (11.7 initial): `test_equipment_phase11_analytics` validates JSON export structure, histogram population, usage export (non-error path), and outlier flagging after injecting a large DPS spike. Roadmap updated (11.1–11.4 Done; 11.7 basic Done).
+* Proc / DR Oversaturation Flags (11.5): Balance analytics module (`equipment_balance.c,h`) tracks burst proc trigger counts and stacked damage reduction sources; `rogue_equipment_analytics_analyze` raises `proc_oversaturation` when triggers exceed threshold and `dr_chain` when cumulative remaining damage fraction drops below configurable floor.
+* A/B Balance Harness (11.6): Lightweight variant registry (`rogue_balance_register`, `rogue_balance_select_deterministic(seed)`) allowing deterministic selection of tuned thresholds (MAD multiplier, proc oversat threshold, DR chain floor) for comparative testing; default variant auto-created if none registered.
+* Tests (11.7 initial): `test_equipment_phase11_analytics` covers snapshot, histograms, usage, outlier detection; `test_equipment_phase11_balance` validates proc oversaturation flagging, DR chain detection, and deterministic variant selection / threshold enforcement. Roadmap updated (11.1–11.6 Done; 11.7 basic Done).
 
 ---
 
