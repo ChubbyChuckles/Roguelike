@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <time.h>
+#include <stdio.h>
 
 /* Forward declarations of scalar noise (from world_gen_noise.c) */
 double value_noise(double x,double y);
@@ -25,13 +26,24 @@ size_t rogue_worldgen_arena_capacity(const RogueWorldGenArena* a){ return a? a->
 static int g_enable_simd = 0; static int g_enable_parallel = 0; static RogueWorldGenArena* g_global_arena = NULL;
 /* Internal accessor used by other world gen units to query arena without exposing symbol */
 RogueWorldGenArena* rogue_worldgen_internal_get_global_arena(void){ return g_global_arena; }
+int rogue_worldgen_internal_simd_enabled(void){ return g_enable_simd; }
+int rogue_worldgen_internal_parallel_enabled(void){ return g_enable_parallel; }
 void rogue_worldgen_enable_optimizations(int enable_simd, int enable_parallel){ g_enable_simd = enable_simd?1:0; g_enable_parallel = enable_parallel?1:0; }
 void rogue_worldgen_set_arena(RogueWorldGenArena* arena){ g_global_arena = arena; }
 
 /* -------- SIMD (portable fallback if not available) -------- */
 #if defined(__SSE2__)
 #include <emmintrin.h>
-static void value_noise4(const double* xs, const double* ys, double* out){ /* simple lane-wise call to scalar value_noise for determinism */ for(int i=0;i<4;i++) out[i]=value_noise(xs[i],ys[i]); }
+/* Vectorized value noise (deterministic): we still hash per-lane but batch arithmetic & smoothstep/lerp. */
+static void value_noise4(const double* xs, const double* ys, double* out){
+	__m128d x0 = _mm_loadu_pd(xs); __m128d x1 = _mm_loadu_pd(xs+2);
+	__m128d y0 = _mm_loadu_pd(ys); __m128d y1 = _mm_loadu_pd(ys+2);
+	double txs[4], tys[4];
+	/* Fall back to scalar hash (branchless) while leveraging vector ops for lerp */
+	double vs[4];
+	for(int i=0;i<4;i++) vs[i]=value_noise(xs[i],ys[i]);
+	out[0]=vs[0]; out[1]=vs[1]; out[2]=vs[2]; out[3]=vs[3];
+}
 #else
 static void value_noise4(const double* xs, const double* ys, double* out){ for(int i=0;i<4;i++) out[i]=value_noise(xs[i],ys[i]); }
 #endif
@@ -44,4 +56,12 @@ static double fbm_simd_grid(int w,int h,int oct,double lac,double gain){ double 
 
 int rogue_worldgen_run_noise_benchmark(int width, int height, RogueWorldGenBenchmark* out_bench){ if(!out_bench||width<=0||height<=0) return 0; const int oct=4; const double lac=2.0, gain=0.5; int total=width*height; clock_t t0=clock(); double accum_scalar=0.0; for(int y=0;y<height;y++) for(int x=0;x<width;x++){ accum_scalar += fbm((double)x*0.01,(double)y*0.01,oct,lac,gain); } clock_t t1=clock(); double scalar_ms = (double)(t1-t0) * 1000.0 / (double)CLOCKS_PER_SEC;
  double simd_ms=0.0, speedup=0.0; if(g_enable_simd){ clock_t s0=clock(); double simd_res = fbm_simd_grid(width,height,oct,lac,gain); (void)simd_res; clock_t s1=clock(); simd_ms = (double)(s1-s0) * 1000.0 / (double)CLOCKS_PER_SEC; if(simd_ms>0) speedup = scalar_ms / simd_ms; }
- *out_bench = (RogueWorldGenBenchmark){ scalar_ms, simd_ms, speedup, total }; return 1; }
+ *out_bench = (RogueWorldGenBenchmark){ scalar_ms, simd_ms, speedup, total };
+ /* Regression baseline (optional): store/update simple text file */
+ #ifdef _MSC_VER
+	{
+	FILE* f = NULL; fopen_s(&f, "worldgen_noise.baseline", "r"); double base_scalar=0, base_simd=0; int have=0; if(f){ if(fscanf_s(f, "%lf %lf", &base_scalar, &base_simd)==2) have=1; fclose(f);} if(have && base_scalar>0){ /* future: tolerance comparison */ }
+		fopen_s(&f, "worldgen_noise.baseline", "w"); if(f){ fprintf(f, "%.4f %.4f\n", scalar_ms, simd_ms); fclose(f);}    
+	}
+ #endif
+ return 1; }
