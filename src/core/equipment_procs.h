@@ -27,6 +27,7 @@ typedef struct RogueProcDef {
     int max_stacks; /* for STACK rule */
     RogueProcStackRule stack_rule;
     int param; /* extra (e.g. low HP threshold %) */
+    char name[32]; /* Phase 16.3: authoring/display name (optional, empty if legacy-registered) */
 } RogueProcDef;
 
 int rogue_proc_register(const RogueProcDef* def); /* returns id or <0 */
@@ -53,6 +54,16 @@ int rogue_procs_absorb_pool(void); /* sum of remaining absorb magnitude across a
 int rogue_procs_consume_absorb(int amount); /* consume amount from active shields (returns actually consumed) */
 /* Test hook: force activate a proc id with given stacks & duration (bypasses trigger/ICD). */
 int rogue_proc_force_activate(int id, int stacks, int duration_ms);
+
+/* Phase 16.3: External proc designer JSON tooling
+    Schema: [ { "name":"BurningAegis", "trigger":"ON_BLOCK", "icd_ms":5000, "duration_ms":3000, "magnitude":50, "max_stacks":3, "stack_rule":"STACK", "param":0 }, ... ]
+    trigger strings: ON_HIT, ON_CRIT, ON_KILL, ON_BLOCK, ON_DODGE, WHEN_LOW_HP
+    stack_rule strings: REFRESH, STACK, IGNORE */
+int rogue_procs_load_from_json(const char* path); /* returns procs added or <0 */
+int rogue_procs_export_json(char* buf, int cap); /* returns chars written or -1 */
+
+/* Validation helper (public for tests): ensures enum ranges & value sanity */
+int rogue_proc_validate(const RogueProcDef* def);
 
 #ifdef __cplusplus
 }

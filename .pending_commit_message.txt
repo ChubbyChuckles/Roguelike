@@ -16,3 +16,13 @@ Equipment Phase 16.2: Set Builder & Live Preview Tooling
 - Added unit test `test_equipment_phase16_set_builder` covering JSON load (1 set added), registry find, interpolation at 3 pieces between 2→4 thresholds (expecting truncated halfway stat values), and export JSON token presence.
 - Updated build system (CMake) to compile new module; roadmap marks 16.2 Done; README bullet added; commit message appended.
 
+
+Equipment Phase 16.3: Proc Designer JSON Tooling
+- Extended `RogueProcDef` with `name` field for authoring/display; legacy registrations leave it empty.
+- Added validation API `rogue_proc_validate` (enum bounds, non-negative durations, stack limits).
+- Implemented JSON import/export (`rogue_procs_load_from_json`, `rogue_procs_export_json`) with schema supporting name, trigger string, icd_ms, duration_ms, magnitude, max_stacks, stack_rule, param.
+- Hand-rolled forward-only parser consistent with prior Phase 16 tooling (item defs, sets) for deterministic diff-friendly output.
+- Added string <-> enum mapping for triggers (ON_HIT/ON_CRIT/ON_KILL/ON_BLOCK/ON_DODGE/WHEN_LOW_HP) and stack rules (REFRESH/STACK/IGNORE).
+- Unit test `test_equipment_phase16_proc_designer` writes 2 proc definitions (stacking block shield & on-hit refresh), loads them, simulates block events to assert stacking (>1 stacks) and on-hit refresh (stack remains 1), then exports and checks for proc names.
+- Roadmap marks 16.3 Done; README updated with concise bullet.
+

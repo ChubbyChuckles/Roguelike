@@ -1,5 +1,7 @@
 #include "core/equipment_procs.h"
 #include <string.h>
+#include <stdlib.h> /* malloc, free, strtol */
+#include <stdio.h>  /* FILE, fopen_s, fseek, ftell, fread, fclose, snprintf */
 
 #ifndef ROGUE_PROC_CAP
 #define ROGUE_PROC_CAP 64
@@ -28,6 +30,36 @@ int rogue_procs_consume_absorb(int amount){ if(amount<=0) return 0; int remainin
     }
     return amount - remaining; }
 int rogue_proc_force_activate(int id, int stacks, int duration_ms){ if(id<0 || id>=g_proc_count) return -1; RogueProcState* st=&g_proc_states[id]; st->stacks = stacks; if(st->stacks<0) st->stacks=0; st->duration_remaining = duration_ms; if(st->duration_remaining<0) st->duration_remaining=0; return 0; }
+
+/* ---------------- Phase 16.3 Proc Designer JSON Tooling ---------------- */
+int rogue_proc_validate(const RogueProcDef* def){ if(!def) return -1; if(def->trigger < 0 || def->trigger >= ROGUE_PROC__TRIGGER_COUNT) return -2; if(def->icd_ms < 0 || def->duration_ms < 0) return -3; if(def->max_stacks < 0 || def->max_stacks > 50) return -4; if(def->stack_rule < 0 || def->stack_rule > ROGUE_PROC_STACK_IGNORE) return -5; return 0; }
+
+static const char* ws(const char* s){ while(*s && (unsigned char)*s<=32) ++s; return s; }
+static const char* jstring(const char* s,char* out,int cap){ s=ws(s); if(*s!='"') return NULL; ++s; int i=0; while(*s && *s!='"'){ if(*s=='\\'&&s[1]) s++; if(i+1<cap) out[i++]=*s; ++s;} if(*s!='"') return NULL; out[i]='\0'; return s+1; }
+static const char* jnumber(const char* s,int* out){ s=ws(s); char* end=NULL; long v=strtol(s,&end,10); if(end==s) return NULL; *out=(int)v; return end; }
+static int parse_trigger(const char* str){ if(strcmp(str,"ON_HIT")==0) return ROGUE_PROC_ON_HIT; if(strcmp(str,"ON_CRIT")==0) return ROGUE_PROC_ON_CRIT; if(strcmp(str,"ON_KILL")==0) return ROGUE_PROC_ON_KILL; if(strcmp(str,"ON_BLOCK")==0) return ROGUE_PROC_ON_BLOCK; if(strcmp(str,"ON_DODGE")==0) return ROGUE_PROC_ON_DODGE; if(strcmp(str,"WHEN_LOW_HP")==0) return ROGUE_PROC_WHEN_LOW_HP; return -1; }
+static int parse_stack_rule(const char* str){ if(strcmp(str,"REFRESH")==0) return ROGUE_PROC_STACK_REFRESH; if(strcmp(str,"STACK")==0) return ROGUE_PROC_STACK_STACK; if(strcmp(str,"IGNORE")==0) return ROGUE_PROC_STACK_IGNORE; return -1; }
+
+int rogue_procs_load_from_json(const char* path){ if(!path) return -1; FILE* f=NULL; 
+#if defined(_MSC_VER)
+ if(fopen_s(&f,path,"rb")!=0) f=NULL;
+#else
+ f=fopen(path,"rb");
+#endif
+ if(!f) return -1; fseek(f,0,SEEK_END); long sz=ftell(f); if(sz<0){ fclose(f); return -1;} fseek(f,0,SEEK_SET); char* buf=(char*)malloc((size_t)sz+1); if(!buf){ fclose(f); return -1;} size_t rd=fread(buf,1,(size_t)sz,f); buf[rd]='\0'; fclose(f); const char* s=ws(buf); if(*s!='['){ free(buf); return -1;} ++s; char key[64]; int added=0; while(1){ s=ws(s); if(*s==']'){ ++s; break; } if(*s!='{') break; ++s; RogueProcDef def; memset(&def,0,sizeof def); while(1){ s=ws(s); if(*s=='}'){ ++s; break; } const char* ns=jstring(s,key,sizeof key); if(!ns){ s++; continue; } s=ws(ns); if(*s!=':'){ free(buf); return added; } ++s; if(strcmp(key,"name")==0){ char nbuf[64]; const char* adv=jstring(s,nbuf,sizeof nbuf); if(!adv){ free(buf); return added; } int ni=0; while(nbuf[ni] && ni < (int)sizeof(def.name)-1){ def.name[ni]=nbuf[ni]; ++ni; } def.name[ni]='\0'; s=adv; }
+            else if(strcmp(key,"trigger")==0){ char tbuf[32]; const char* ts=jstring(s,tbuf,sizeof tbuf); if(!ts){ free(buf); return added; } def.trigger = (RogueProcTrigger)parse_trigger(tbuf); s=ts; }
+            else if(strcmp(key,"stack_rule")==0){ char sbuf[32]; const char* ss=jstring(s,sbuf,sizeof sbuf); if(!ss){ free(buf); return added; } def.stack_rule=(RogueProcStackRule)parse_stack_rule(sbuf); s=ss; }
+            else { int v; const char* vs=jnumber(s,&v); if(!vs){ free(buf); return added; } if(strcmp(key,"icd_ms")==0) def.icd_ms=v; else if(strcmp(key,"duration_ms")==0) def.duration_ms=v; else if(strcmp(key,"magnitude")==0) def.magnitude=v; else if(strcmp(key,"max_stacks")==0) def.max_stacks=v; else if(strcmp(key,"param")==0) def.param=v; s=vs; }
+            s=ws(s); if(*s==','){ ++s; continue; }
+        }
+    if(rogue_proc_validate(&def)==0){ if(rogue_proc_register(&def)>=0) added++; }
+        s=ws(s); if(*s==','){ ++s; continue; }
+    }
+    free(buf); return added; }
+
+int rogue_procs_export_json(char* buf,int cap){ if(!buf||cap<4) return -1; int off=0; buf[off++]='['; for(int i=0;i<g_proc_count;i++){ if(off+2>=cap) return -1; if(i>0) buf[off++]=','; char tmp[256]; const RogueProcDef* d=&g_proc_states[i].def; const char* trig="UNKNOWN"; switch(d->trigger){ case ROGUE_PROC_ON_HIT: trig="ON_HIT"; break; case ROGUE_PROC_ON_CRIT: trig="ON_CRIT"; break; case ROGUE_PROC_ON_KILL: trig="ON_KILL"; break; case ROGUE_PROC_ON_BLOCK: trig="ON_BLOCK"; break; case ROGUE_PROC_ON_DODGE: trig="ON_DODGE"; break; case ROGUE_PROC_WHEN_LOW_HP: trig="WHEN_LOW_HP"; break; default: break; } const char* sr="REFRESH"; switch(d->stack_rule){ case ROGUE_PROC_STACK_REFRESH: sr="REFRESH"; break; case ROGUE_PROC_STACK_STACK: sr="STACK"; break; case ROGUE_PROC_STACK_IGNORE: sr="IGNORE"; break; }
+        int n=snprintf(tmp,sizeof tmp,"{\"name\":\"%s\",\"trigger\":\"%s\",\"icd_ms\":%d,\"duration_ms\":%d,\"magnitude\":%d,\"max_stacks\":%d,\"stack_rule\":\"%s\",\"param\":%d}", d->name, trig, d->icd_ms, d->duration_ms, d->magnitude, d->max_stacks, sr, d->param); if(n<0||off+n>=cap) return -1; memcpy(buf+off,tmp,(size_t)n); off+=n; }
+ if(off+2>=cap) return -1; buf[off++]=']'; buf[off]='\0'; return off; }
 static int g_time_accum_ms=0;
 static int g_rate_cap_per_sec = 1000; /* effectively uncapped default */
 static int g_triggers_this_second=0;
