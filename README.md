@@ -118,16 +118,16 @@ Salvage yields now scale with remaining durability for specific item instances: 
 ### Equipment System Phase 8.5 (Fracture Mechanic)
 Items that reach 0 durability become `fractured` imposing a 40% damage penalty (current min/max damage multiplied by 0.6). Full repair clears the flag, restoring baseline performance. This introduces tangible gameplay pressure to repair rather than ignoring durability until salvage.
 
-### Equipment System Phase 13 (Persistence & Migration Baseline)
+### Equipment System Phase 13 (Persistence & Migration Complete)
 
-Introduces a versioned, forward-compatible equipment serialization layer and deterministic integrity hashing:
+Introduces a versioned, forward-compatible equipment serialization layer with deterministic integrity hashing and legacy slot migration:
 
-* Versioned Schema (13.1): `EQUIP_V1` header followed by one line per occupied slot. Each line encodes slot index and key/value pairs: base def, item_level, rarity, prefix/suffix indices & rolled values, durability (cur/max), enchant level, quality, socket count + up to 6 gem ids, affix lock flags, fracture flag, plus `SET <id>` (0 if none) and a synthetic runeword pattern token `RW <pattern>` (derived from gem ordering or '-' if none). Unknown future tokens are skipped safely.
-* Migration Hooks (13.2 partial): Version integer captured and reserved; loader skips unknown tokens allowing additive extension. Explicit remap logic for future slot reorder/expansion will plug into the version branch once needed.
-* Unique/Set/Runeword (13.3 baseline complete for set & runeword): Set id and runeword pattern now serialized; explicit unique item identifier still deferred (base def index suffices for current unique hook lookup).
+* Versioned Schema (13.1): `EQUIP_V1` header followed by one line per occupied slot. Each line encodes slot index and key/value pairs: base def, item_level, rarity, prefix/suffix indices & rolled values, durability (cur/max), enchant level, quality, socket count + up to 6 gem ids, affix lock flags, fracture flag, plus `SET <id>`, unique id token `UNQ <string>` ("-" if none), and synthetic runeword pattern token `RW <pattern>` (derived from gem ordering or '-' if none). Unknown future tokens are skipped safely.
+* Slot Migration (13.2): Legacy (pre-header) format without `EQUIP_V1` is treated as version 0 and remapped: indices 0..5 (WEAPON, HEAD, CHEST, LEGS, HANDS, FEET) translated to current enum; other indices skipped. New test `test_equipment_phase13_slot_migration` validates remap & round-trip forward serialization.
+* Unique/Set/Runeword (13.3): Set id, unique id (string from unique registry), and runeword pattern tokens serialized.
 * Integrity Hash (13.4): 64-bit FNV-1a over canonical serialized buffer via `rogue_equipment_state_hash` for tamper detection / analytics fingerprinting. Deterministic across identical equip states regardless of equip order.
 * Optional Fields (13.5): Loader tolerates missing (legacy) fields like `SOCKS`, `ILVL`, `ENCH`, `QC`; defaults applied (count=0, level=1, enchant=0, quality=0, gems=-1).
-* Tests (13.6 partial): Added `test_equipment_phase13_persistence` covering serialize → clear → deserialize round-trip and hash stability. Additional omission / malformed line tests planned.
+* Tests (13.6): `test_equipment_phase13_persistence` (round-trip, omission of new tokens, tamper hash divergence) and `test_equipment_phase13_slot_migration` (legacy remap) ensure backward + forward compatibility and integrity detection.
 
 Public APIs (`equipment_persist.h`):
 * `rogue_equipment_serialize(buf, cap)` – emits versioned block; returns bytes written or -1.

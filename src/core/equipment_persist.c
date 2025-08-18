@@ -7,6 +7,7 @@
 #include "core/equipment.h"
 #include "core/loot_instances.h"
 #include "core/loot_item_defs.h"
+#include "core/equipment_uniques.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -36,10 +37,15 @@ int rogue_equipment_serialize(char* buf, int cap)
 		if(inst < 0) continue;
 		it = rogue_item_instance_at(inst);
 		if(!it) continue;
-		/* Retrieve set id via base definition (0 if none) & build synthetic runeword pattern. */
+		/* Retrieve set id via base definition (0 if none), unique id (if any), & build synthetic runeword pattern. */
 		{
 			const RogueItemDef* def = rogue_item_def_at(it->def_index);
 			int set_id = def ? def->set_id : 0;
+			const char* unique_id = "-";
+			{
+				int uidx = rogue_unique_find_by_base_def(it->def_index);
+				if(uidx>=0){ const RogueUniqueDef* u = rogue_unique_at(uidx); if(u && u->id[0]) unique_id = u->id; }
+			}
 			char pattern[64];
 			int i;
 			int pat_len = 0;
@@ -54,7 +60,7 @@ int rogue_equipment_serialize(char* buf, int cap)
 				pattern[pat_len] = '\0';
 			}
 		n = snprintf(buf + off, cap - off,
-					"SLOT %d DEF %d ILVL %d RAR %d PREF %d %d SUFF %d %d DUR %d %d ENCH %d QC %d SOCKS %d %d %d %d %d %d %d LOCKS %d %d FRACT %d SET %d RW %s\n",
+					"SLOT %d DEF %d ILVL %d RAR %d PREF %d %d SUFF %d %d DUR %d %d ENCH %d QC %d SOCKS %d %d %d %d %d %d %d LOCKS %d %d FRACT %d SET %d UNQ %s RW %s\n",
 					s,
 					it->def_index,
 					it->item_level,
@@ -71,7 +77,7 @@ int rogue_equipment_serialize(char* buf, int cap)
 					it->sockets[0], it->sockets[1], it->sockets[2],
 					it->sockets[3], it->sockets[4], it->sockets[5],
 					it->prefix_locked, it->suffix_locked, it->fractured,
-					set_id,
+					set_id, unique_id,
 					(pattern[0]?pattern:"-")
 				);
 		}
@@ -110,7 +116,20 @@ int rogue_equipment_deserialize(const char* buf)
 		if(!nl) return -2;
 		p = nl + 1;
 	}
-	(void)version; /* placeholder for future migration logic */
+	/* Migration notes (Phase 13.2):
+	   Version 0 (no header) predates slot model expansion. Legacy ordering:
+	     0 WEAPON, 1 HEAD, 2 CHEST, 3 LEGS, 4 HANDS, 5 FEET
+	   All other slots (rings, amulet, belt, cloak, charms, offhand) did not exist and are ignored if present.
+	   We remap these indices into the current enum. Future versions can extend this conditional.
+	*/
+	static const int legacy_v0_slot_map[6] = {
+		/* 0 */ ROGUE_EQUIP_WEAPON,
+		/* 1 */ ROGUE_EQUIP_ARMOR_HEAD,
+		/* 2 */ ROGUE_EQUIP_ARMOR_CHEST,
+		/* 3 */ ROGUE_EQUIP_ARMOR_LEGS,
+		/* 4 */ ROGUE_EQUIP_ARMOR_HANDS,
+		/* 5 */ ROGUE_EQUIP_ARMOR_FEET
+	};
 	while(*p){
 		if(strncmp(p, "SLOT", 4) == 0){
 			int slot;
@@ -124,6 +143,10 @@ int rogue_equipment_deserialize(const char* buf)
 			for(i = 0; i < 6; ++i) gems[i] = -1;
 			p += 4;
 			slot = parse_int(&p);
+			if(version==0){
+				if(slot >=0 && slot < 6){ slot = legacy_v0_slot_map[slot]; }
+				else { /* Unknown legacy slot -> skip entire line */ while(*p && *p!='\n') p++; if(*p=='\n') p++; continue; }
+			}
 			if(slot < 0 || slot >= ROGUE_EQUIP__COUNT) return -3;
 			while(*p && *p != '\n'){
 				if(strncmp(p, "DEF", 3) == 0){ p += 3; def_index = parse_int(&p); }
@@ -141,6 +164,7 @@ int rogue_equipment_deserialize(const char* buf)
 				} else if(strncmp(p, "LOCKS", 5) == 0){ p += 5; pl = parse_int(&p); sl = parse_int(&p); }
 				else if(strncmp(p, "FRACT", 5) == 0){ p += 5; fract = parse_int(&p); }
 				else if(strncmp(p, "SET", 3) == 0){ p += 3; (void)parse_int(&p); }
+				else if(strncmp(p, "UNQ", 3) == 0){ p += 3; while(*p==' ') p++; while(*p && *p!=' ' && *p!='\n') p++; }
 				else if(strncmp(p, "RW", 2) == 0){ p += 2; /* skip runeword pattern token */ while(*p==' ') p++; while(*p && *p!=' ' && *p!='\n') p++; }
 				else { p++; }
 			}

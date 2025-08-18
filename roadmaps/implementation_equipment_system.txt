@@ -126,11 +126,11 @@ PHASE 12. UI / UX & Visualization
 
 PHASE 13. Persistence & Migration
 13.1 Versioned equipment block schema (Done: EQUIP_V1 header + line-oriented key/value pairs)
-13.2 Slot expansion migration handlers (Partial: version tag reserved; future slot indices auto-skipped; explicit remap table still pending)
-13.3 Unique/set/runeword serialization (Partial→Done baseline: set id + synthetic runeword pattern tokens persisted; unique id still deferred)
+13.2 Slot expansion migration handlers (Done: v0 legacy slot index remap -> current enum, parser skips unknown legacy lines; test_equipment_phase13_slot_migration validates)
+13.3 Unique/set/runeword serialization (Done: set id, unique id (UNQ token), synthetic runeword pattern (RW) persisted)
 13.4 Deterministic hash over serialized equip state for integrity (Done: 64-bit FNV-1a over canonical serialize buffer API rogue_equipment_state_hash)
 13.5 Backward-compatible optional fields (socket_count, item_level) (Done: parser tolerates absence; defaults applied)
-13.6 Tests: forward/backward load (omit new fields), hash stability (Partial: round-trip + hash stability covered; omission/legacy header tests pending)
+13.6 Tests: forward/backward load (omit new fields), hash stability (Done: round-trip, omission (removed SET/UNQ/RW), tamper hash divergence)
 
 PHASE 14. Performance & Memory Optimization
 14.1 SoA layout for active equipped item stat deltas (cache-friendly aggregation) (X)

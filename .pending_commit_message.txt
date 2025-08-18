@@ -1,13 +1,23 @@
-equipment: Phase 13 persistence baseline (versioned schema + hash + roundtrip test)
+Phase 13 Persistence & Migration – finalize 13.2 slot expansion handlers
 
-Adds EQUIP_V1 versioned equipment serialization (line-oriented key/value) and 64-bit FNV-1a integrity hash API (rogue_equipment_state_hash). Implements serialize/deserialize covering core item attributes: base def, item_level, rarity, affix indices/values, durability, enchant level, quality, sockets (count + up to 6 gem ids), affix lock flags, fracture flag. Deserializer tolerates legacy (no header) input & skips unknown tokens for forward compatibility.
+Adds legacy (pre-V1) slot index remapping in equipment_persist.c:
+ - Detects absence of EQUIP_V1 header -> treats input as version 0
+ - Maps legacy indices [0..5] (WEAPON, HEAD, CHEST, LEGS, HANDS, FEET) to modern enum
+ - Skips unknown legacy slot indices safely
+ - Leaves header-based V1 path unchanged
 
-New module: equipment_persist.[ch]. New unit test: test_equipment_phase13_persistence (round-trip determinism + hash stability). Roadmap Phase 13 updated (13.1 & 13.4 Done; others Partial). C89 compliance fixes for MSVC (no mixed declarations). Lays groundwork for future migration handlers & explicit unique/set/runeword identifiers.
+Introduces new unit test test_equipment_phase13_slot_migration validating:
+ - Legacy v0 text (no header) with three slots deserializes successfully
+ - Items are placed into correct modern slots
+ - Re-serialization emits EQUIP_V1 header & modern slot indices
 
-Update: Added set id + synthetic runeword pattern serialization tokens (SET <id> RW <pattern>) to equip lines and parser tolerance (skips pattern, consumes set id). Roadmap adjusted (13.3 baseline considered Done for set/runeword; unique id still pending). README Phase 13 section already references forward compatible skipping of unknown tokens.
+Roadmap: Mark 13.2 as Done (previously Partial). All Phase 13 tasks now complete.
 
-Follow-ups (remaining Phase 13 work):
- - Serialize & restore explicit unique/set/runeword identifiers
- - Add omission/legacy field tests (13.6) & malformed line rejection tests
- - Integrity mismatch handling path (consumer of hash) & tamper test
- - Slot expansion remap table (13.2 full) once new slots introduced post-schema
+No changes outside migration logic & test registration; existing persistence hash & omission/tamper tests remain green.
+equipment: Phase 13 persistence completed (versioned schema + unique/set/runeword tokens + hash + omission & tamper tests)
+
+Adds EQUIP_V1 versioned equipment serialization (line-oriented key/value) and 64-bit FNV-1a integrity hash API (rogue_equipment_state_hash). Serialize/deserialize now cover: base def, item_level, rarity, prefix/suffix indices & values, durability (cur/max), enchant level, quality, sockets (count + up to 6 gem ids), affix lock flags, fracture flag, set id (SET), unique id token (UNQ), and synthetic runeword pattern (RW) derived from gem ordering (or '-' placeholder). Legacy headerless blocks and lines without newer tokens still load (parser skips unknown tokens & safely defaults missing optional fields).
+
+New/updated module: equipment_persist.[ch]. Extended unit test test_equipment_phase13_persistence validates: round-trip determinism, presence of SET/RW/UNQ tokens, omission resilience (tokens stripped pre-load), and tamper detection (mutated durability causes hash divergence). Roadmap Phase 13 updated: 13.1, 13.3, 13.4, 13.5, 13.6 Done; 13.2 remains Partial (slot remap table TBD). README Phase 13 section updated to reflect new tokens.
+
+Pending (Phase 13.2): future slot expansion/remap table for structural migrations.

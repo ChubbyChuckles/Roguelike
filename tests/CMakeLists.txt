@@ -208,6 +208,15 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARG
     endif()
     add_test(NAME test_ui_phase6_bars_ap COMMAND test_ui_phase6_bars_ap)
 endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase13_slot_migration.c AND NOT TARGET test_equipment_phase13_slot_migration)
+    add_executable(test_equipment_phase13_slot_migration unit/test_equipment_phase13_slot_migration.c)
+    target_link_libraries(test_equipment_phase13_slot_migration PRIVATE rogue_core)
+    if(ROGUE_BUILD_WITH_SDL2)
+        target_compile_definitions(test_equipment_phase13_slot_migration PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_equipment_phase13_slot_migration COMMAND test_equipment_phase13_slot_migration)
+endif()
 # UI Phase 6.3 buff belt test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_buff_belt.c AND NOT TARGET test_ui_phase6_buff_belt)
     add_executable(test_ui_phase6_buff_belt unit/test_ui_phase6_buff_belt.c)
