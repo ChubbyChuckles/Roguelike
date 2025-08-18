@@ -1,0 +1,145 @@
+WORLD GENERATION & PROCEDURAL CONTENT IMPLEMENTATION PLAN (Roadmap & Status)
+
+Legend:
+Done = Fully implemented & tests pass (or validated deterministically in headless mode)
+Partial = Some components implemented (details in parentheses)
+X = Not started yet
+
+Scope Overview:
+Layered, deterministic world generation pipeline producing replayable, varied biomes, dungeons, surface overworld, and point-of-interest (POI) structures while supporting runtime streaming, persistence-friendly chunk boundaries, and future mod/data-driven extensions. Emphasis on:
+- Determinism (seed -> identical world topology & feature placement)
+- Multi-scale generation (macro continental layout -> biome partitioning -> local terrain noise -> micro decoration & loot spawn sets)
+- Content layering with strict phase ordering (lower layers never depend on higher layers)
+- Performance (parallel chunk precompute, incremental generation caches)
+- Testability (unit tests for each algorithmic layer; golden hash snapshots for representative seeds)
+- Extensibility (data-driven biome & structure descriptors; plugin hooks for mods)
+
+PHASE 0. Current Baseline (Partial)
+0.1 Tilemap loader & basic biome directories (Partial: existing biome folders with static assets)
+0.2 Vegetation placement (Partial: trees/plants config loaded) 
+0.3 Simple dungeon / cave noise carve (Partial: cave thresholds & water level parameters stored in saves)
+0.4 World meta persistence (Done: generation parameters serialized with versioning)
+
+PHASE 1. Foundational Data & APIs
+1.1 Unified WorldGenConfig struct (seed, world_size, continent_count, biome_seed_offset, cave_params, river_params) (X)
+1.2 Deterministic PRNG channels (macro, biome, micro) (X)
+1.3 Chunk coordinate system (fixed-size tiles per chunk, origin mapping) (X)
+1.4 WorldGenContext (holds config, caching arenas, temp buffers) (X)
+1.5 Hash/Checksum utilities for golden snapshot tests (X)
+1.6 Unit test: config initialization & seed channel independence (X)
+
+PHASE 2. Macro Scale Layout
+2.1 Continent mask generation (multi-octave FBM + threshold; ensures at least N landmasses) (X)
+2.2 Ocean/sea level normalization & coastal smoothing (X)
+2.3 Elevation map (base noise + continental mask influence + plate offset seeds) (X)
+2.4 River source selection (peak detection & downhill pathfinding to ocean with erosion) (Partial: parameters exist) (X)
+2.5 Climate simulation approximation (temperature & moisture gradients, latitude + elevation modifiers) (X)
+2.6 Biome classification map (lookup table by (temp, moisture) bins; deterministic) (X)
+2.7 Unit tests: continent land ratio bounds, river reaches ocean, biome histogram reproducibility (X)
+
+PHASE 3. Biome Partition & Data-Driven Descriptors
+3.1 Biome descriptor files (JSON/CFG) specifying: tile palette weights, vegetation tables, decoration densities, ambient color, music track id (X)
+3.2 Biome registry loader with validation (range checks, required keys) (X)
+3.3 Biome blending at boundaries (weighted palette sampling) (X)
+3.4 Feature flags (allow/disallow structures, rare events, weather patterns) (X)
+3.5 Unit tests: descriptor parse errors, missing key rejection, palette weight normalization, boundary blend continuity (X)
+
+PHASE 4. Local Terrain & Caves
+4.1 Chunk-local height perturbation (detail noise layered atop macro elevation) (X)
+4.2 Cave cellular automata refinement (seeded from macro cave mask) (Partial thresholds) (X)
+4.3 Lava / water pocket placement (density+elevation rules) (X)
+4.4 Ore vein procedural placement (perlin-worm or diffusion-limited algorithm) (X)
+4.5 Passability map derivation (solid vs walkable) (X)
+4.6 Unit tests: cave openness ratio bounds, ore vein count statistics vs target, passability determinism for seed (X)
+
+PHASE 5. Rivers & Erosion Detailing
+5.1 River spline refinement (smooth path representation) (X)
+5.2 Erosion pass (thermal + hydraulic simplified) updating elevation & sediment deposition (X)
+5.3 Delta & estuary widening rules (X)
+5.4 Bridge / crossing hint markers (for later pathing & structure placement) (X)
+5.5 Unit tests: river continuity (no upward segments), erosion reduces steepness variance, bridge markers spaced (X)
+
+PHASE 6. Structures & Points of Interest
+6.1 Structure descriptor format (footprint, allowed biomes, rarity, elevation constraints) (X)
+6.2 Placement solver (poisson disk + constraint satisfaction for non-overlap & biome match) (X)
+6.3 Multi-piece structure assembly (prefab stitching with connection rules) (X)
+6.4 Dungeon entrance / exit portal placement logic (connect surface to subterranean graph) (X)
+6.5 POI metadata index (fast spatial queries for AI / spawning) (X)
+6.6 Unit tests: structure overlap rejection, placement reproducibility, biome mismatch rejection (X)
+
+PHASE 7. Dungeon Generator (Layered)
+7.1 Graph-based room layout (BSP or Voronoi relaxation) (X)
+7.2 Corridor carving with loop percentage target (X)
+7.3 Thematic room tagging (treasure, elite, puzzle) (X)
+7.4 Secret room generation & hidden door markers (X)
+7.5 Key/lock progression graph (ensures reachable ordering) (X)
+7.6 Trap & hazard placement with safety buffer (X)
+7.7 Unit tests: reachable graph, loop ratio within bounds, secret room count distribution (X)
+
+PHASE 8. Fauna & Spawn Ecology Layer
+8.1 Spawn table registry (per biome & dungeon theme) (X)
+8.2 Density map influenced by elevation & proximity to water (X)
+8.3 Dynamic spawn suppression near player hubs (camp, towns) (X)
+8.4 Rare encounter injection (deterministic low-prob events) (X)
+8.5 Unit tests: spawn distribution histogram vs expected, suppression radius enforcement (X)
+
+PHASE 9. Lootable & Resource Nodes
+9.1 Resource node descriptor (rarity, required tool tier, yield range) (X)
+9.2 Placement algorithm (clustering rules, biome gating) (X)
+9.3 Respawn timer scheduling (seeded jitter) (X)
+9.4 Rare node upgrade (chance to produce enhanced variant) (X)
+9.5 Unit tests: yield range adherence, cluster size bounds, upgrade probability within tolerance (X)
+
+PHASE 10. Weather & Environmental Simulation
+10.1 Weather pattern descriptors (duration ranges, intensity curves) (X)
+10.2 Weather scheduler (seeded cycle with transitional blending) (X)
+10.3 Biome-influenced probability weighting (X)
+10.4 Environmental effects hooks (lighting tint, particle spawners, movement debuffs) (X)
+10.5 Unit tests: cycle determinism, probability weighting matches configured distribution (X)
+
+PHASE 11. Runtime Streaming & Caching
+11.1 Async chunk generation queue (producer/consumer) (X)
+11.2 Chunk generation budget per frame (time-sliced) (X)
+11.3 Eviction strategy (LRU by distance/time) (X)
+11.4 Persistent on-disk chunk cache (hash naming by seed+coords) (X)
+11.5 Unit tests: budget adherence (simulated clock), eviction policy correctness, cache hit/miss stats (X)
+
+PHASE 12. Telemetry & Analytics
+12.1 World gen metrics snapshot (timings, counts, retry stats) (X)
+12.2 Anomaly detection (land ratio out-of-bounds, missing rivers) (X)
+12.3 Heatmap export (biome frequencies, structure density) (X)
+12.4 Unit tests: anomaly triggers on contrived bad parameters, metric counters increment (X)
+
+PHASE 13. Modding & Data Extensibility
+13.1 Hot-reloadable descriptor packs (biomes, structures, resources) (X)
+13.2 Versioned descriptor schemas with migration hooks (X)
+13.3 Sandbox validation CLI (lint all descriptors, print summary) (X)
+13.4 Unit tests: migration path, invalid pack rejection, hot reload stability (X)
+
+PHASE 14. Optimization & Memory
+14.1 Memory pool / arena for transient generation buffers (X)
+14.2 SIMD acceleration for noise & erosion kernels (X)
+14.3 Parallel river & biome classification pass (task dispatch) (X)
+14.4 Benchmark harness & regression guard (baseline ms, ± tolerance) (X)
+14.5 Unit tests / benchmarks: speedup presence when SIMD available, no drift in results (X)
+
+PHASE 15. Advanced Features (Stretch)
+15.1 Dynamic world events altering terrain (meteor crater pass) (X)
+15.2 Seasonal variation (temp/moisture drifts, biome transient overlay) (X)
+15.3 World mutation diff serialization (patch records for persistence) (X)
+15.4 Procedural lore placement (table-driven narrative seeds at POIs) (X)
+15.5 Unit tests: seasonal cycle determinism, mutation diff idempotency (X)
+
+DEPENDENCIES / RISKS
+- Complex erosion & river algorithms risk performance spikes; needs profiling & budget instrumentation early.
+- Data-driven descriptors must remain backward compatible across schema migrations.
+- Parallel generation introduces race risk; must isolate per-chunk buffers.
+
+SUCCESS METRICS
+- Seed determinism: identical seed -> identical biome & structure maps (hash equality) across platforms.
+- Generation latency: 95% of chunk generations < target ms budget.
+- Test coverage: >85% of core generation algorithms lines.
+
+NEXT ACTION CANDIDATES (If starting now)
+- Implement Phase 1 foundational config & PRNG channels with unit tests.
+- Add golden hash test for macro continent mask (Phase 2.1) using fixed seed.
