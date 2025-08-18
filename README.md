@@ -129,6 +129,16 @@ Introduces a versioned, forward-compatible equipment serialization layer with de
 * Optional Fields (13.5): Loader tolerates missing (legacy) fields like `SOCKS`, `ILVL`, `ENCH`, `QC`; defaults applied (count=0, level=1, enchant=0, quality=0, gems=-1).
 * Tests (13.6): `test_equipment_phase13_persistence` (round-trip, omission of new tokens, tamper hash divergence) and `test_equipment_phase13_slot_migration` (legacy remap) ensure backward + forward compatibility and integrity detection.
 
+### Equipment System Phase 14 (Performance & Memory – Initial Slice)
+
+Introduced foundational performance instrumentation & data layout optimizations:
+* SoA Slot Arrays (14.1): Added `equipment_perf.c,h` maintaining per-slot primary stat & armor contributions plus cached totals for quick inspection / future hot paths.
+* Frame Arena (14.2 Partial): Simple linear arena allocator with high-water tracking (`rogue_equip_frame_alloc/reset/high_water`) – future phases will migrate transient buffers here.
+* Batch Aggregation (14.3 Conceptual SIMD): Added 4-slot batch “simd-like” aggregator producing identical results to the scalar path; true SIMD intrinsics deferred for portability and later profiling data.
+* Micro-Profiler (14.5): Lightweight zone profiler (begin/end) capturing ms totals & counts; aggregation paths instrumented (`agg_scalar`, `agg_simd`). Dump helper emits JSON-like summary.
+* Perf Test (14.6): `test_equipment_phase14_perf` validates scalar vs batch equality, profiler capture, and arena capacity bounds; prints timing metrics for CI logs.
+Remaining: threaded parallel affinity & broader arena adoption (14.2 completion, 14.4 parallel loadout search).
+
 Public APIs (`equipment_persist.h`):
 * `rogue_equipment_serialize(buf, cap)` – emits versioned block; returns bytes written or -1.
 * `rogue_equipment_deserialize(text)` – idempotently reconstructs equipped items (spawning instances) from text; tolerates legacy headerless data.

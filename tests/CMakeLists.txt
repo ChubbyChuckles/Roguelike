@@ -2227,6 +2227,15 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase14_extended.c AND
     add_test(NAME test_equipment_phase14_extended COMMAND test_equipment_phase14_extended)
 endif()
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase14_perf.c AND NOT TARGET test_equipment_phase14_perf)
+    add_executable(test_equipment_phase14_perf unit/test_equipment_phase14_perf.c)
+    target_link_libraries(test_equipment_phase14_perf PRIVATE rogue_core)
+    if(ROGUE_BUILD_WITH_SDL2)
+        target_compile_definitions(test_equipment_phase14_perf PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_equipment_phase14_perf COMMAND test_equipment_phase14_perf)
+endif()
+
 # Equipment System Phase 1 slot expansion test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase1_slots.c AND NOT TARGET test_equipment_phase1_slots)
     add_executable(test_equipment_phase1_slots unit/test_equipment_phase1_slots.c)

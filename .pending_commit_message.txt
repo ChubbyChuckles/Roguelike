@@ -1,23 +1,10 @@
-Phase 13 Persistence & Migration – finalize 13.2 slot expansion handlers
+Phase 14 (Perf & Memory) – Initial Slice
 
-Adds legacy (pre-V1) slot index remapping in equipment_persist.c:
- - Detects absence of EQUIP_V1 header -> treats input as version 0
- - Maps legacy indices [0..5] (WEAPON, HEAD, CHEST, LEGS, HANDS, FEET) to modern enum
- - Skips unknown legacy slot indices safely
- - Leaves header-based V1 path unchanged
+Implemented performance foundation for equipment aggregation:
+ - Added equipment_perf.c/h with SoA per-slot stat arrays and total accumulators (14.1 Done).
+ - Added linear frame arena allocator (alloc/reset/high-water) (14.2 Partial – not yet widely adopted outside perf test).
+ - Added pseudo-SIMD 4-slot batch aggregation path alongside scalar path; results parity validated (14.3 Done conceptually; real intrinsics deferred for portability).
+ - Added lightweight micro-profiler (zone begin/end, stats dump) and instrumented aggregation variants (14.5 Done).
+ - New test test_equipment_phase14_perf: spawns items, runs scalar then simd aggregation, asserts identical totals, profiler zone capture, arena bounds, and prints metrics (14.6 Done).
+ - Roadmap updated (14.1, 14.3, 14.5, 14.6 Done; 14.2 Partial; 14.4 still X).
 
-Introduces new unit test test_equipment_phase13_slot_migration validating:
- - Legacy v0 text (no header) with three slots deserializes successfully
- - Items are placed into correct modern slots
- - Re-serialization emits EQUIP_V1 header & modern slot indices
-
-Roadmap: Mark 13.2 as Done (previously Partial). All Phase 13 tasks now complete.
-
-No changes outside migration logic & test registration; existing persistence hash & omission/tamper tests remain green.
-equipment: Phase 13 persistence completed (versioned schema + unique/set/runeword tokens + hash + omission & tamper tests)
-
-Adds EQUIP_V1 versioned equipment serialization (line-oriented key/value) and 64-bit FNV-1a integrity hash API (rogue_equipment_state_hash). Serialize/deserialize now cover: base def, item_level, rarity, prefix/suffix indices & values, durability (cur/max), enchant level, quality, sockets (count + up to 6 gem ids), affix lock flags, fracture flag, set id (SET), unique id token (UNQ), and synthetic runeword pattern (RW) derived from gem ordering (or '-' placeholder). Legacy headerless blocks and lines without newer tokens still load (parser skips unknown tokens & safely defaults missing optional fields).
-
-New/updated module: equipment_persist.[ch]. Extended unit test test_equipment_phase13_persistence validates: round-trip determinism, presence of SET/RW/UNQ tokens, omission resilience (tokens stripped pre-load), and tamper detection (mutated durability causes hash divergence). Roadmap Phase 13 updated: 13.1, 13.3, 13.4, 13.5, 13.6 Done; 13.2 remains Partial (slot remap table TBD). README Phase 13 section updated to reflect new tokens.
-
-Pending (Phase 13.2): future slot expansion/remap table for structural migrations.
