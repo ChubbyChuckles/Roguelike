@@ -125,12 +125,12 @@ PHASE 12. UI / UX & Visualization
 12.7 Tests: tooltip deterministic serialization hash, delta accuracy under equip/unequip (Done – hash + expanded delta fields + softcap saturation helper)
 
 PHASE 13. Persistence & Migration
-13.1 Versioned equipment block schema (X)
-13.2 Slot expansion migration handlers (X)
-13.3 Unique/set/runeword serialization (X)
-13.4 Deterministic hash over serialized equip state for integrity (X)
-13.5 Backward-compatible optional fields (socket_count, item_level) (X)
-13.6 Tests: forward/backward load (omit new fields), hash stability (X)
+13.1 Versioned equipment block schema (Done: EQUIP_V1 header + line-oriented key/value pairs)
+13.2 Slot expansion migration handlers (Partial: version tag reserved; future slot indices auto-skipped; no explicit remap logic yet)
+13.3 Unique/set/runeword serialization (Partial: base item + affix/socket state persisted; explicit unique/set/runeword identifiers deferred)
+13.4 Deterministic hash over serialized equip state for integrity (Done: 64-bit FNV-1a over canonical serialize buffer API rogue_equipment_state_hash)
+13.5 Backward-compatible optional fields (socket_count, item_level) (Done: parser tolerates absence; defaults applied)
+13.6 Tests: forward/backward load (omit new fields), hash stability (Partial: round-trip + hash stability covered; omission/legacy header tests pending)
 
 PHASE 14. Performance & Memory Optimization
 14.1 SoA layout for active equipped item stat deltas (cache-friendly aggregation) (X)

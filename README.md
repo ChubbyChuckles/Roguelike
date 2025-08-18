@@ -118,6 +118,24 @@ Salvage yields now scale with remaining durability for specific item instances: 
 ### Equipment System Phase 8.5 (Fracture Mechanic)
 Items that reach 0 durability become `fractured` imposing a 40% damage penalty (current min/max damage multiplied by 0.6). Full repair clears the flag, restoring baseline performance. This introduces tangible gameplay pressure to repair rather than ignoring durability until salvage.
 
+### Equipment System Phase 13 (Persistence & Migration Baseline)
+
+Introduces a versioned, forward-compatible equipment serialization layer and deterministic integrity hashing:
+
+* Versioned Schema (13.1): `EQUIP_V1` header followed by one line per occupied slot. Each line encodes slot index and key/value pairs: base def, item_level, rarity, prefix/suffix indices & rolled values, durability (cur/max), enchant level, quality, socket count + up to 6 gem ids, affix lock flags, and fracture flag. Unknown future tokens are skipped safely.
+* Migration Hooks (13.2 partial): Version integer captured and reserved; loader skips unknown tokens allowing additive extension. Explicit remap logic for future slot reorder/expansion will plug into the version branch once needed.
+* Unique/Set/Runeword (13.3 partial): Core statistical effects already reconstituted via existing aggregation (implicits, set bonuses, runeword socket patterns). Explicit serialization of unique IDs / set progress / runeword recipe string deferred to a later slice.
+* Integrity Hash (13.4): 64-bit FNV-1a over canonical serialized buffer via `rogue_equipment_state_hash` for tamper detection / analytics fingerprinting. Deterministic across identical equip states regardless of equip order.
+* Optional Fields (13.5): Loader tolerates missing (legacy) fields like `SOCKS`, `ILVL`, `ENCH`, `QC`; defaults applied (count=0, level=1, enchant=0, quality=0, gems=-1).
+* Tests (13.6 partial): Added `test_equipment_phase13_persistence` covering serialize → clear → deserialize round-trip and hash stability. Additional omission / malformed line tests planned.
+
+Public APIs (`equipment_persist.h`):
+* `rogue_equipment_serialize(buf, cap)` – emits versioned block; returns bytes written or -1.
+* `rogue_equipment_deserialize(text)` – idempotently reconstructs equipped items (spawning instances) from text; tolerates legacy headerless data.
+* `rogue_equipment_state_hash()` – stable 64-bit fingerprint for auditing & future multiplayer anti-cheat chain.
+
+Follow-up targets: serialize explicit unique/set/runeword identifiers, negative test harness (malformed tokens), hash mismatch consumer path (alert & reject), and slot expansion remap table when new cosmetic/aux slots are introduced.
+
 ### Equipment System Phase 8.6 (Expanded Tests)
 Added `test_equipment_phase8_salvage_fracture` validating: (a) salvage yield decreases after durability loss, (b) fracture penalty reduces damage output versus an otherwise identical non-fractured item. Existing repair cost test covers cost monotonicity. Durability model smoke persists pending broader integration hooks.
 
