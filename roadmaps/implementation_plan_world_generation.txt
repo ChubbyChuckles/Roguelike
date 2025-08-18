@@ -21,12 +21,12 @@ PHASE 0. Current Baseline (Partial)
 0.4 World meta persistence (Done: generation parameters serialized with versioning)
 
 PHASE 1. Foundational Data & APIs
-1.1 Unified WorldGenConfig struct (seed, world_size, continent_count, biome_seed_offset, cave_params, river_params) (X)
-1.2 Deterministic PRNG channels (macro, biome, micro) (X)
-1.3 Chunk coordinate system (fixed-size tiles per chunk, origin mapping) (X)
-1.4 WorldGenContext (holds config, caching arenas, temp buffers) (X)
-1.5 Hash/Checksum utilities for golden snapshot tests (X)
-1.6 Unit test: config initialization & seed channel independence (X)
+1.1 Unified WorldGenConfig struct (seed, world_size, continent_count, biome_seed_offset, cave_params, river_params) (Done: extended struct in world_gen.h + defaults in world_gen_config.c)
+1.2 Deterministic PRNG channels (macro, biome, micro) (Done: rogue_worldgen_context_init seeds 3 RogueRngChannel states with decorrelated constants)
+1.3 Chunk coordinate system (fixed-size tiles per chunk, origin mapping) (Done: ROGUE_WORLD_CHUNK_SIZE=32, mapping/origin/index helpers in world_gen_foundation.c)
+1.4 WorldGenContext (holds config, caching arenas, temp buffers) (Done: basic context with RNG channels; arenas deferred until needed in later phases)
+1.5 Hash/Checksum utilities for golden snapshot tests (Done: FNV-1a based rogue_world_hash_tilemap)
+1.6 Unit test: config initialization & seed channel independence (Done: test_worldgen_phase1_foundation.c validates chunk mapping, RNG independence & hash stability)
 
 PHASE 2. Macro Scale Layout
 2.1 Continent mask generation (multi-octave FBM + threshold; ensures at least N landmasses) (X)

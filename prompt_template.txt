@@ -35,3 +35,8 @@ Read the "roadmaps\implementation_plan_dialoguesystem.txt", go to the next featu
 ### Enemy-AI-System
 
 Read the "roadmaps\implementation_plan_aisystem.txt", go to the next features in line that need implementation and implement as many of them as possible and don't just partially implement the features. Use unit tests and modularize the code as much as possible to prevent regression. Execute the unit tests and build the project to verify there are no errors. Never build without SDL2. After a successful implementation update the "roadmaps\implementation_plan_aisystem.txt", generate a descriptive commit message that you append to ".pending_commit_message.txt" and update the README.md. Iterate this process as often as you can in one request.
+
+
+### World Generation
+
+Read the "roadmaps\implementation_plan_world_generation.txt", go to the next features in line that need implementation and implement as many of them as possible and don't just partially implement the features. Use unit tests and modularize the code as much as possible to prevent regression. Execute the unit tests and build the project to verify there are no errors. Never build without SDL2. After a successful implementation update the "roadmaps\implementation_plan_world_generation.txt", generate a descriptive commit message that you append to ".pending_commit_message.txt" and update the README.md. Iterate this process as often as you can in one request.

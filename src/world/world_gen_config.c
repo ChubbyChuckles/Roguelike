@@ -8,6 +8,8 @@ RogueWorldGenConfig rogue_world_gen_config_build(unsigned int seed, int use_app_
     cfg.seed = seed;
     cfg.width = 80; cfg.height = 60; /* base logical dimensions before optional scaling */
     cfg.biome_regions = 10; /* base count; may be overridden by scaling */
+    cfg.continent_count = 3; /* default macro layout target */
+    cfg.biome_seed_offset = 7919u; /* large prime offset for biome rng decorrelation */
     cfg.cave_iterations = 3;
     cfg.cave_fill_chance = 0.45;
     cfg.river_attempts = 2;

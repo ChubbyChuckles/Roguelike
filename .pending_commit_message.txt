@@ -29,3 +29,30 @@ Files Modified:
 
 Rationale:
 Advances QA automation (navigation traversal), adds documentation/catalog tooling, improves debuggability (inspector + snapshot), and widens test surface to reduce regression risk for future UI changes.
+
+World Generation Phase 1: Foundational Data & APIs
+
+Summary:
+- Extended `RogueWorldGenConfig` with `continent_count` and `biome_seed_offset` fields establishing macro layout & RNG decorrelation parameters.
+- Introduced multi-channel deterministic RNG via `RogueWorldGenContext` (macro/biome/micro) with decorrelated seed derivation constants.
+- Added chunk coordinate system (`ROGUE_WORLD_CHUNK_SIZE=32`) and helper APIs: `rogue_world_chunk_from_tile`, `rogue_world_chunk_origin`, `rogue_world_chunk_index` preparing for streaming & caching phases (11.x).
+- Implemented FNV-1a tilemap hashing utility `rogue_world_hash_tilemap` (basis for upcoming golden snapshot macro layout tests in Phase 2).
+- Created `world_gen_foundation.c` housing Phase 1 implementations and registered it in build.
+- Added comprehensive unit test `test_worldgen_phase1_foundation` covering chunk mapping edge boundaries, RNG channel independence & reproducibility, and hash stability/delta on mutation.
+- Updated roadmap Phase 1 entries to Done with implementation notes; README gains Phase 1 summary section.
+
+Files Added:
+- src/world/world_gen_foundation.c (foundation APIs)
+- tests/unit/test_worldgen_phase1_foundation.c (unit tests)
+
+Files Modified:
+- src/world/world_gen.h (new config fields + context/chunk/hash APIs)
+- src/world/world_gen_config.c (defaults for new fields)
+- CMakeLists.txt (include foundation source)
+- tests/CMakeLists.txt (register foundation test)
+- roadmaps/implementation_plan_world_generation.txt (Phase 1 marked Done)
+- README.md (Phase 1 summary)
+- .pending_commit_message.txt (appended)
+
+Rationale:
+Establishes deterministic, testable scaffolding (config, RNG channels, chunk math, hashing) required before macro continent mask & biome classification (Phase 2) while ensuring reproducibility and isolation of randomness sources to prevent cross-layer coupling.

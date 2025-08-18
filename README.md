@@ -159,6 +159,13 @@ Phase 10.1–10.5 (AI Debug & Tooling): Introduced consolidated debug helpers in
 * Trace JSON Export `rogue_ai_trace_export_json` converts the ring buffer of path hashes into chronological JSON array for tooling ingestion.
 * Determinism Verifier `rogue_ai_determinism_verify` constructs two trees from a supplied factory, runs them in lockstep, and aggregates FNV-1a path hashes—failing on any divergence. New unit test `test_ai_phase10_debug` validates all helpers.
 
+#### World Generation Phase 1 (Foundations)
+* Extended `RogueWorldGenConfig` with macro layout fields (`continent_count`, `biome_seed_offset`).
+* Added deterministic multi-channel RNG (macro/biome/micro) via `RogueWorldGenContext` for decorrelated generation layers.
+* Introduced chunk coordinate utilities (`ROGUE_WORLD_CHUNK_SIZE=32`, mapping/origin/index helpers) laying groundwork for streaming & caching phases.
+* Implemented FNV-1a tilemap hashing (`rogue_world_hash_tilemap`) for future golden snapshot regression tests.
+* New unit test `test_worldgen_phase1_foundation` validates chunk mapping edge cases, RNG channel independence & reproducibility, and hash stability/difference on mutation.
+
 Phase 11.1–11.5 (AI Testing & QA Expansion): Added comprehensive quality gates around core AI behaviours.
 * Core Node Edge Tests: `test_ai_phase11_core_nodes` exercises Selector/Sequence short‑circuiting, Parallel mixed status aggregation, Utility selector tie‑break determinism, cooldown boundary reset, and retry decorator exhaustion/reset semantics.
 * Blackboard Fuzz: `test_ai_phase11_blackboard_fuzz` performs 5k deterministic pseudo‑random operations (Set/Max/Min/Accumulate/int+float/timer/vec2) mirrored against an in‑memory model to ensure policy invariants and capacity bounds (no overflow of 32 entries).
