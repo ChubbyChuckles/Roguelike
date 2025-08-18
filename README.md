@@ -91,6 +91,18 @@ Reactive shield procs (7.4) now implemented: proc system exposes absorb pool hel
 
 ---
 
+### Equipment System Phase 8.1 (Durability Model)
+
+Implemented non-linear durability decay (logarithmic severity scaling with rarity mitigation) in `core/durability.c`:
+* Formula: `loss = ceil(base * log2(1 + severity/25) * (1/(1+0.35*rarity)))`, with `base=2` for severe events (>=50 severity).
+* Diminishing returns on extremely large severity values while retaining meaningful chip damage for small hits (minimum scaled floor).
+* Higher rarity items degrade more slowly (rarity factor divisor), reinforcing acquisition value without granting infinite endurance.
+* API: `rogue_item_instance_apply_durability_event(inst,severity)` – future integration slice will replace fixed per-hit decrement sites.
+* Unit test `test_equipment_phase8_durability_model` validates: (a) monotonic non‑decreasing loss vs severity for a single item, (b) higher rarity never exceeds common loss for identical severity events.
+* Roadmap updated (Phase 8.1 Done; 8.6 partial until repair cost & salvage coupling tests land).
+
+---
+
 ## 1. Overview
 This repository provides a layered implementation of a top‑down roguelike / Zelda‑like engine:
 * Core game loop, entity & world subsystems.

@@ -221,6 +221,7 @@ add_library(rogue_core
     src/core/equipment_uniques.c
         src/core/equipment_enchant.c
         src/core/equipment_procs.c
+    src/core/durability.c
     src/core/vendor_ui.c
     src/core/skill_graph_runtime.c
     src/core/skill_graph_assignment.c

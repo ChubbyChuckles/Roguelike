@@ -84,12 +84,12 @@ PHASE 7. Defensive Layer Extensions
 7.6 Tests: conversion conservation (sum output=original), reflect cap, ordering invariants (Done: test_equipment_phase7_conversion_reflect (conversion & cap & guard recovery), test_equipment_phase7_reactive_shield (absorb precedes reflect), plus existing block tests cover pre-conversion ordering)
 
 PHASE 8. Durability, Degradation & Economy
-8.1 Non-linear durability loss model (hit severity & rarity scaling) (X)
+8.1 Non-linear durability loss model (hit severity & rarity scaling) (Done: durability.c implements log-based diminishing model with rarity factor; test validates monotonicity & rarity reduction)
 8.2 Repair cost formula (rarity, missing durability, item_level) (X)
 8.3 Auto-warn thresholds + UI color states (X)
 8.4 Salvage yield influenced by remaining durability (X)
 8.5 Optional fracture mechanic (0 durability penalty until repaired) (Optional) (X)
-8.6 Tests: cost monotonicity, salvage yield bounds, fracture gating (X)
+8.6 Tests: cost monotonicity, salvage yield bounds, fracture gating (Partial: durability loss monotonicity & rarity differential added in test_equipment_phase8_durability_model)
 
 PHASE 9. Loadout Optimization & Weight Management
 9.1 Loadout comparison tool (diff two saved configurations) (X)

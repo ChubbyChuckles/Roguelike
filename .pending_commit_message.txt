@@ -1,26 +1,11 @@
-Equipment System Phase 7.2–7.6: Defensive Layer Extensions Completed
-
-Includes:
-* 7.2 Damage Conversion: phys_conv_fire_pct/frost_pct/arcane_pct affix stats (enum, parser, aggregation) + melee damage conversion pipeline (95% cap, conservation) in combat_guard.
-* 7.3 Guard Recovery: guard_recovery_pct affix scaling regen (multiplicative, clamp 0.1x–3x) and inversely scaling hold drain (floor 0.25x).
-* 7.4 Reactive Shield Procs: Added absorb pool helpers (proc engine) + block event integration; melee pipeline consumes absorb before reflect; test ensures ordering & depletion.
-* 7.5 Thorns / Reflect: thorns_percent & thorns_cap affix stats aggregated; reflect applied after conversion & absorb with per-hit cap.
-* 7.6 Tests: Added / updated tests:
-	- test_equipment_phase7_defensive (block chance/value)
-	- test_equipment_phase7_block_affixes (block affix injection)
-	- test_equipment_phase7_affix_parsing_newstats (new defensive affix parsing)
-	- test_equipment_phase7_conversion_reflect (conversion conservation, over-cap, guard recovery scaling, reflect path)
-	- test_equipment_phase7_reactive_shield (absorb ordering: block → conversion → absorb → reflect; depletion)
-
-Implementation Notes:
-* Ordering enforced inside combat_guard: passive/active block → conversion split & cap → reactive shield absorb consumption → reflect.
-* Proc engine extended with absorb pool APIs (rogue_procs_absorb_pool, rogue_procs_consume_absorb, rogue_proc_force_activate).
-* Affix CSV updated with embered, glacial, eldritch, of_resurgence, of_spines, of_rebuke.
-* README section updated with Phase 7.2–7.5 summary and shield completion note.
-* Roadmap updated: 7.2,7.3,7.4,7.5,7.6 all marked Done.
-
-Quality:
-* All new/modified tests build & pass (validated individually).
-* SDL2 build configuration maintained; no linker regressions.
-
-Next (future phases): Proceed to Phase 8 durability systems or begin Phase 8.1–8.3 slice with durability loss model + repair cost + UI thresholds.
+Equipment Phase 8.1 – Non-linear Durability Model
+-------------------------------------------------
+Adds centralized durability helper module (`core/durability.[ch]`) implementing logarithmic severity scaling with rarity mitigation:
+	loss = ceil(base * log2(1 + severity/25) * (1 / (1 + 0.35 * rarity))) with base=2 for severity>=50 else 1 (minimum 1 when severity>0).
+Higher rarity items now lose proportionally less durability per identical event; extreme severities exhibit diminishing returns.
+Introduces API `rogue_item_instance_apply_durability_event(inst,severity)` for later migration of fixed decrement call sites.
+Unit test `test_equipment_phase8_durability_model` covers:
+	* Rarity differential (epic <= common loss for identical severities)
+	* Monotonic non-decreasing loss across ascending severities.
+Roadmap: Phase 8.1 marked Done; Phase 8.6 marked Partial (additional repair cost monotonicity, salvage yield & fracture tests pending subsequent slices).
+README updated with Phase 8.1 section.
