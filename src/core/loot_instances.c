@@ -19,7 +19,7 @@ int rogue_items_spawn(int def_index, int quantity, float x, float y){
         const RogueItemDef* idef = rogue_item_def_at(def_index);
     int rarity = (idef? idef->rarity : 0);
     g_instances[i].def_index = def_index; g_instances[i].quantity = quantity; g_instances[i].x = x; g_instances[i].y = y; g_instances[i].life_ms=0; g_instances[i].active=1; g_instances[i].rarity=rarity; g_instances[i].item_level = 1; /* baseline */
-    g_instances[i].prefix_index = -1; g_instances[i].suffix_index = -1; g_instances[i].prefix_value=0; g_instances[i].suffix_value=0; g_instances[i].hidden_filter=0; g_instances[i].fractured=0; g_instances[i].quality=0;
+    g_instances[i].prefix_index = -1; g_instances[i].suffix_index = -1; g_instances[i].prefix_value=0; g_instances[i].suffix_value=0; g_instances[i].hidden_filter=0; g_instances[i].fractured=0; g_instances[i].quality=0; g_instances[i].stored_affix_index=-1; g_instances[i].stored_affix_value=0; g_instances[i].stored_affix_used=0;
     /* Initialize sockets (Phase 5.1). Random count inside min..max if range >0 using local deterministic LCG seeded from position & def_index. */
     g_instances[i].socket_count = 0; for(int s=0;s<6;s++) g_instances[i].sockets[s] = -1;
     if(idef){ int min=idef->socket_min, max=idef->socket_max; if(max>6) max=6; if(min<0) min=0; if(max>=min && max>0){ unsigned int seed = (unsigned int)(i*2654435761u) ^ (unsigned int)def_index ^ (unsigned int)((int)x*73856093) ^ (unsigned int)((int)y*19349663); seed = seed*1664525u + 1013904223u; int span = (max-min)+1; int roll = (span>0)? (int)(seed % (unsigned int)span) : 0; g_instances[i].socket_count = min + roll; if(g_instances[i].socket_count>6) g_instances[i].socket_count=6; }}
@@ -102,6 +102,59 @@ int rogue_item_instance_repair_full(int inst_index){ const RogueItemInstance* it
 int rogue_item_instance_get_quality(int inst_index){ const RogueItemInstance* it=rogue_item_instance_at(inst_index); if(!it) return -1; return it->quality; }
 int rogue_item_instance_set_quality(int inst_index, int quality){ RogueItemInstance* it=(RogueItemInstance*)rogue_item_instance_at(inst_index); if(!it) return -1; if(quality<0) quality=0; if(quality>20) quality=20; it->quality=quality; return it->quality; }
 int rogue_item_instance_improve_quality(int inst_index, int delta){ RogueItemInstance* it=(RogueItemInstance*)rogue_item_instance_at(inst_index); if(!it) return -1; int q=it->quality+delta; if(q<0) q=0; if(q>20) q=20; it->quality=q; return it->quality; }
+
+/* ---- Phase 10.1 Upgrade Stone Implementation ---- */
+int rogue_item_instance_apply_upgrade_stone(int inst_index, int tiers, unsigned int* rng_state){
+    if(tiers<=0) return 0; RogueItemInstance* it=(RogueItemInstance*)rogue_item_instance_at(inst_index); if(!it) return -1; int before_level = it->item_level; int rc = rogue_item_instance_upgrade_level(inst_index, tiers, rng_state); if(rc<0) return rc; /* reuse existing upgrade logic */
+    (void)before_level; return 0;
+}
+
+/* ---- Phase 10.2 Affix Transfer (Extraction to Orb) ---- */
+static RogueItemInstance* item_mut(int idx){ return (RogueItemInstance*)rogue_item_instance_at(idx); }
+int rogue_item_instance_affix_extract(int inst_index, int is_prefix, int orb_inst_index){
+    RogueItemInstance* src = item_mut(inst_index); RogueItemInstance* orb = item_mut(orb_inst_index);
+    if(!src || !orb) return -1; if(orb->stored_affix_index>=0) return -2; if(orb->active==0) return -3; if(orb_inst_index==inst_index) return -4;
+    int *a_index = is_prefix? &src->prefix_index : &src->suffix_index; int *a_value = is_prefix? &src->prefix_value : &src->suffix_value;
+    if(*a_index < 0) return -5; /* nothing to extract */
+    orb->stored_affix_index = *a_index; orb->stored_affix_value = *a_value; orb->stored_affix_used = 0;
+    *a_index = -1; *a_value = 0; /* clear from source */
+    return 0;
+}
+
+/* Apply orb to target: picks prefix if affix is prefix, else suffix based on affix definition category. */
+int rogue_item_instance_affix_orb_apply(int orb_inst_index, int target_inst_index){
+    RogueItemInstance* orb = item_mut(orb_inst_index); RogueItemInstance* tgt = item_mut(target_inst_index);
+    if(!orb || !tgt) return -1; if(orb->stored_affix_index<0) return -2; if(orb->stored_affix_used) return -3; if(orb_inst_index==target_inst_index) return -4;
+    const RogueAffixDef* a = rogue_affix_at(orb->stored_affix_index); if(!a) return -5;
+    int is_prefix = (a->type == ROGUE_AFFIX_PREFIX);
+    int *slot_index = is_prefix? &tgt->prefix_index : &tgt->suffix_index;
+    int *slot_value = is_prefix? &tgt->prefix_value : &tgt->suffix_value;
+    if(*slot_index >=0) return -6; /* occupied */
+    /* Validate budget after applying */
+    int cap = rogue_budget_max(tgt->item_level, tgt->rarity);
+    int current = rogue_item_instance_total_affix_weight(target_inst_index);
+    if(current < 0) return -7; if(current + orb->stored_affix_value > cap) return -8; /* over budget */
+    *slot_index = orb->stored_affix_index; *slot_value = orb->stored_affix_value;
+    orb->stored_affix_used = 1; /* one-time use */
+    return 0;
+}
+
+/* ---- Phase 10.3 Fusion Implementation ---- */
+static int highest_affix(const RogueItemInstance* it, int* is_prefix_out, int* index_out, int* value_out){
+    if(!it) return -1; int have=-1; int idx=-1; int val=0; int pref=0;
+    if(it->prefix_index>=0){ have=1; idx=it->prefix_index; val=it->prefix_value; pref=1; }
+    if(it->suffix_index>=0){ if(have<0 || it->suffix_value > val){ have=1; idx=it->suffix_index; val=it->suffix_value; pref=0; }}
+    if(have<0) return -1; if(is_prefix_out) *is_prefix_out = pref; if(index_out) *index_out = idx; if(value_out) *value_out = val; return 0; }
+
+int rogue_item_instance_fusion(int target_inst_index, int sacrifice_inst_index){
+    if(target_inst_index==sacrifice_inst_index) return -10; RogueItemInstance* tgt=item_mut(target_inst_index); RogueItemInstance* sac=item_mut(sacrifice_inst_index); if(!tgt||!sac) return -1; if(!sac->active) return -2;
+    int is_pref, a_index, a_value; if(highest_affix(sac,&is_pref,&a_index,&a_value)<0) return -3; /* nothing to transfer */
+    int cap = rogue_budget_max(tgt->item_level, tgt->rarity); int cur = rogue_item_instance_total_affix_weight(target_inst_index); if(cur<0) return -4; if(cur + a_value > cap) return -5; /* over budget */
+    int *slot_index = is_pref? &tgt->prefix_index : &tgt->suffix_index; int *slot_value = is_pref? &tgt->prefix_value : &tgt->suffix_value; if(*slot_index>=0) return -6; /* occupied */
+    *slot_index = a_index; *slot_value = a_value;
+    sac->active = 0; /* sacrifice consumed */
+    return 0;
+}
 
 /* ---- Phase 5.1 Socket API implementation ---- */
 int rogue_item_instance_socket_count(int inst_index){ const RogueItemInstance* it=rogue_item_instance_at(inst_index); if(!it) return -1; return it->socket_count; }

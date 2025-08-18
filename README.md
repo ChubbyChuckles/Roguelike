@@ -135,6 +135,14 @@ Future extensions (later phases) can layer weight/encumbrance penalties, multi-o
 ### Equipment System Phase 10.4 (Quality Metric)
 Added per-item instance quality (0–20) influencing base weapon damage (and future armor) via up to +10% linear scaling. APIs: `rogue_item_instance_get_quality`, `rogue_item_instance_set_quality`, `rogue_item_instance_improve_quality`. Unit test `test_equipment_phase10_quality` validates monotonic damage increase and clamped maximum.
 
+### Equipment System Phase 10.1–10.3 (Crafting & Upgrade Pipelines)
+Implemented foundational crafting upgrade mechanics:
+* Upgrade Stones (10.1): `rogue_item_instance_apply_upgrade_stone` elevates item level by N tiers leveraging existing deterministic affix elevation logic (`rogue_item_instance_upgrade_level`) expanding budget headroom without exceeding caps.
+* Affix Transfer (10.2): Added transient affix orb storage fields to item instances (`stored_affix_index/value/used`). Extraction API `rogue_item_instance_affix_extract` moves a chosen prefix or suffix into an empty orb (generic container item) clearing the source slot. Application API `rogue_item_instance_affix_orb_apply` validates slot vacancy, one-time use, and post-application budget compliance (rejects over‑cap insertions) before consuming the orb charge.
+* Fusion (10.3): `rogue_item_instance_fusion` sacrifices a donor item, transferring its single highest-value affix (prefix or suffix) into a vacant corresponding slot on the target if budget allows; donor instance is deactivated atomically.
+* Tests (10.6 completion): `test_equipment_phase10_crafting` covers upgrade level increase + non‑decreasing affix total, successful extraction → application (including one-time consumption flag), and fusion increasing affix weight while respecting budget & deactivating donor.
+* Roadmap updated: 10.1–10.3 Done; 10.6 tests marked Done (quality monotonicity + fusion budget + transfer one-time use).
+
 ---
 
 ## 1. Overview

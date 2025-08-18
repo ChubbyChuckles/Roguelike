@@ -45,6 +45,10 @@ typedef struct RogueItemInstance {
     int suffix_locked;
     /* Phase 10.4: Quality metric (0-20). Influences base damage/armor scaling. */
     int quality;
+    /* Phase 10.2: Affix transfer orbs – store a single extracted affix temporarily. */
+    int stored_affix_index; /* -1 none */
+    int stored_affix_value; /* value of stored affix */
+    int stored_affix_used;  /* 1 if orb already applied to a target */
 } RogueItemInstance;
 
 void rogue_items_init_runtime(void);
@@ -79,6 +83,16 @@ int rogue_item_instance_repair_full(int inst_index);
 int rogue_item_instance_get_quality(int inst_index);
 int rogue_item_instance_set_quality(int inst_index, int quality);
 int rogue_item_instance_improve_quality(int inst_index, int delta); /* clamps in range */
+
+/* Phase 10.1 / 10.2 / 10.3 Crafting & Upgrade pipelines */
+/* Apply an upgrade stone: increases item level by tiers and gently elevates affix values within new budget. */
+int rogue_item_instance_apply_upgrade_stone(int inst_index, int tiers, unsigned int* rng_state);
+/* Extract an affix (prefix if is_prefix!=0 else suffix) into an empty orb instance; clears affix from source. */
+int rogue_item_instance_affix_extract(int inst_index, int is_prefix, int orb_inst_index);
+/* Apply an affix orb to a target item (consumes orb one-time); fails if slot occupied or orb used. */
+int rogue_item_instance_affix_orb_apply(int orb_inst_index, int target_inst_index);
+/* Fuse (sacrifice) one item into target, transferring its highest-value affix if budget allows; deactivates sacrifice. */
+int rogue_item_instance_fusion(int target_inst_index, int sacrifice_inst_index);
 
 /* Phase 5.1 Socket API (initial): query & set gem (simple index id). Returns 0 on success. */
 int rogue_item_instance_socket_count(int inst_index);

@@ -1,16 +1,9 @@
-feat(equipment/phase9): loadout optimizer (snapshot diff, hill-climb DPS maximizer, constraint gating, evaluated cache) + tests
+feat(equipment phase10.1-10.3): crafting & upgrade pipelines (upgrade stones, affix transfer orbs, fusion)
 
-Implements Equipment System Phase 9 (9.1–9.5):
- - Snapshot & compare APIs (rogue_loadout_snapshot/compare/hash)
- - Deterministic hill-climb optimizer maximizing DPS under mobility/EHP thresholds
- - Evaluated combination cache (FNV-1a hash, open addressing) with stats accessor
- - Added unit test test_equipment_phase9_loadout_opt covering snapshot diff, optimization improvement non-decrease, cache instrumentation
- - Roadmap & README updated, macro slot count wired
- - Provides extendable foundation for future multi-objective & parallel search (Phase 14.4)
+Implemented Phase 10.1–10.3 equipment crafting features:
+ - Upgrade Stones: API rogue_item_instance_apply_upgrade_stone tiers item_level and leverages existing upgrade logic for budget-respecting affix elevation.
+ - Affix Transfer: Added per-instance orb storage fields (stored_affix_index/value/used) with extraction (rogue_item_instance_affix_extract) and application (rogue_item_instance_affix_orb_apply) enforcing slot vacancy, one-time consumption, and budget cap.
+ - Fusion: rogue_item_instance_fusion transfers highest-value affix from sacrificed donor to target if slot free and within remaining budget, deactivating donor atomically.
+ - Added comprehensive unit test test_equipment_phase10_crafting validating upgrade progression, extraction->apply path, one-time orb use, fusion increases total affix weight, donor deactivation, and budget adherence. Roadmap updated (10.1–10.3 Done; 10.6 tests Done).
+ - README updated with new Phase 10.1–10.3 section.
 
-feat(equipment/phase10.4): item quality metric (0-20) scaling base damage + API + tests
-
-- Added quality field to `RogueItemInstance` with linear scaling (max +10% at quality 20) applied to base weapon damage before affixes & fracture penalty.
-- Introduced API: get/set/improve quality functions with clamping.
-- Unit test `test_equipment_phase10_quality` ensures monotonic scaling and clamp behavior.
-- Roadmap updated (10.4 Done, 10.6 partial), README documents feature.
