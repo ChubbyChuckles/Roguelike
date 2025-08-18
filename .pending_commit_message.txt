@@ -7,3 +7,10 @@ Implements Equipment System Phase 9 (9.1–9.5):
  - Added unit test test_equipment_phase9_loadout_opt covering snapshot diff, optimization improvement non-decrease, cache instrumentation
  - Roadmap & README updated, macro slot count wired
  - Provides extendable foundation for future multi-objective & parallel search (Phase 14.4)
+
+feat(equipment/phase10.4): item quality metric (0-20) scaling base damage + API + tests
+
+- Added quality field to `RogueItemInstance` with linear scaling (max +10% at quality 20) applied to base weapon damage before affixes & fracture penalty.
+- Introduced API: get/set/improve quality functions with clamping.
+- Unit test `test_equipment_phase10_quality` ensures monotonic scaling and clamp behavior.
+- Roadmap updated (10.4 Done, 10.6 partial), README documents feature.

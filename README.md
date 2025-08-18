@@ -132,6 +132,9 @@ Implemented a foundational yet deterministic loadout optimization pipeline:
 
 Future extensions (later phases) can layer weight/encumbrance penalties, multi-objective scoring, and parallel search (Phase 14.4) atop this deterministic core.
 
+### Equipment System Phase 10.4 (Quality Metric)
+Added per-item instance quality (0–20) influencing base weapon damage (and future armor) via up to +10% linear scaling. APIs: `rogue_item_instance_get_quality`, `rogue_item_instance_set_quality`, `rogue_item_instance_improve_quality`. Unit test `test_equipment_phase10_quality` validates monotonic damage increase and clamped maximum.
+
 ---
 
 ## 1. Overview

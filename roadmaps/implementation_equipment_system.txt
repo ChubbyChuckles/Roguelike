@@ -102,9 +102,9 @@ PHASE 10. Crafting & Upgrade Pipelines
 10.1 Upgrade stones (tier1→tier2 etc.) (X)
 10.2 Affix transfer (extract affix to blank orb) (X)
 10.3 Fusion (sacrifice item -> transfer highest affix if budget permits) (X)
-10.4 Quality metric raising base implicit values (X)
+10.4 Quality metric raising base implicit values (Done)
 10.5 Crafting success chance scaling with skill (future skill system tie) (Optional) (X)
-10.6 Tests: budget after fusion, quality monotonicity, transfer one-time use (X)
+10.6 Tests: budget after fusion, quality monotonicity, transfer one-time use (Partial: quality monotonicity test done)
 
 PHASE 11. Analytics, Power Budget & Balancing
 11.1 Item stat snapshot export (JSON) (X)

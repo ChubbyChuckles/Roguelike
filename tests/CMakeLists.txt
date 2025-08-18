@@ -136,6 +136,15 @@ endif()
         add_test(NAME test_equipment_phase9_loadout_opt COMMAND test_equipment_phase9_loadout_opt)
         set_tests_properties(test_equipment_phase9_loadout_opt PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+        # Phase 10.4 Quality metric test
+        add_executable(test_equipment_phase10_quality unit/test_equipment_phase10_quality.c)
+        target_link_libraries(test_equipment_phase10_quality PRIVATE rogue_core)
+        if (SDL2_FOUND AND NOT ROGUE_HEADLESS)
+            target_compile_definitions(test_equipment_phase10_quality PRIVATE ROGUE_HAVE_SDL=1)
+        endif()
+        add_test(NAME test_equipment_phase10_quality COMMAND test_equipment_phase10_quality)
+        set_tests_properties(test_equipment_phase10_quality PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
 # UI Phase 6.2 bars + AP smoothing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARGET test_ui_phase6_bars_ap)
     add_executable(test_ui_phase6_bars_ap unit/test_ui_phase6_bars_ap.c)

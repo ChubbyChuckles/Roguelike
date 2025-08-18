@@ -19,7 +19,7 @@ int rogue_items_spawn(int def_index, int quantity, float x, float y){
         const RogueItemDef* idef = rogue_item_def_at(def_index);
     int rarity = (idef? idef->rarity : 0);
     g_instances[i].def_index = def_index; g_instances[i].quantity = quantity; g_instances[i].x = x; g_instances[i].y = y; g_instances[i].life_ms=0; g_instances[i].active=1; g_instances[i].rarity=rarity; g_instances[i].item_level = 1; /* baseline */
-    g_instances[i].prefix_index = -1; g_instances[i].suffix_index = -1; g_instances[i].prefix_value=0; g_instances[i].suffix_value=0; g_instances[i].hidden_filter=0; g_instances[i].fractured=0;
+    g_instances[i].prefix_index = -1; g_instances[i].suffix_index = -1; g_instances[i].prefix_value=0; g_instances[i].suffix_value=0; g_instances[i].hidden_filter=0; g_instances[i].fractured=0; g_instances[i].quality=0;
     /* Initialize sockets (Phase 5.1). Random count inside min..max if range >0 using local deterministic LCG seeded from position & def_index. */
     g_instances[i].socket_count = 0; for(int s=0;s<6;s++) g_instances[i].sockets[s] = -1;
     if(idef){ int min=idef->socket_min, max=idef->socket_max; if(max>6) max=6; if(min<0) min=0; if(max>=min && max>0){ unsigned int seed = (unsigned int)(i*2654435761u) ^ (unsigned int)def_index ^ (unsigned int)((int)x*73856093) ^ (unsigned int)((int)y*19349663); seed = seed*1664525u + 1013904223u; int span = (max-min)+1; int roll = (span>0)? (int)(seed % (unsigned int)span) : 0; g_instances[i].socket_count = min + roll; if(g_instances[i].socket_count>6) g_instances[i].socket_count=6; }}
@@ -74,8 +74,9 @@ static int affix_damage_bonus(const RogueItemInstance* it){
     return bonus;
 }
 
-int rogue_item_instance_damage_min(int inst_index){ const RogueItemInstance* it = rogue_item_instance_at(inst_index); if(!it) return 0; const RogueItemDef* d = rogue_item_def_at(it->def_index); int base = d? d->base_damage_min:0; int val = base + affix_damage_bonus(it); if(it->fractured) val = (int)(val * 0.6f); return val; }
-int rogue_item_instance_damage_max(int inst_index){ const RogueItemInstance* it = rogue_item_instance_at(inst_index); if(!it) return 0; const RogueItemDef* d = rogue_item_def_at(it->def_index); int base = d? d->base_damage_max:0; int val = base + affix_damage_bonus(it); if(it->fractured) val = (int)(val * 0.6f); return val; }
+static int apply_quality_scale(int base, int quality){ if(quality<=0) return base; if(quality>20) quality=20; /* linear 0..20 -> up to +10% */ int scaled = (int)(base * (1.0f + (quality * 0.005f))); if(scaled<base) return base; return scaled; }
+int rogue_item_instance_damage_min(int inst_index){ const RogueItemInstance* it = rogue_item_instance_at(inst_index); if(!it) return 0; const RogueItemDef* d = rogue_item_def_at(it->def_index); int base = d? d->base_damage_min:0; base = apply_quality_scale(base,it->quality); int val = base + affix_damage_bonus(it); if(it->fractured) val = (int)(val * 0.6f); return val; }
+int rogue_item_instance_damage_max(int inst_index){ const RogueItemInstance* it = rogue_item_instance_at(inst_index); if(!it) return 0; const RogueItemDef* d = rogue_item_def_at(it->def_index); int base = d? d->base_damage_max:0; base = apply_quality_scale(base,it->quality); int val = base + affix_damage_bonus(it); if(it->fractured) val = (int)(val * 0.6f); return val; }
 
 int rogue_item_instance_apply_affixes(int inst_index, int rarity, int prefix_index, int prefix_value, int suffix_index, int suffix_value){
     if(inst_index<0 || inst_index>=ROGUE_ITEM_INSTANCE_CAP) return -1; RogueItemInstance* it=&g_instances[inst_index]; if(!it->active) return -1;
@@ -97,6 +98,10 @@ int rogue_item_instance_upgrade_level(int inst_index, int levels, unsigned int* 
 int rogue_item_instance_get_durability(int inst_index, int* cur, int* max){ const RogueItemInstance* it = rogue_item_instance_at(inst_index); if(!it) return -1; if(cur) *cur = it->durability_cur; if(max) *max = it->durability_max; return 0; }
 int rogue_item_instance_damage_durability(int inst_index, int amount){ if(amount<=0) return 0; const RogueItemInstance* itc = rogue_item_instance_at(inst_index); if(!itc) return -1; RogueItemInstance* it = (RogueItemInstance*)itc; if(it->durability_max<=0) return it->durability_cur; it->durability_cur -= amount; if(it->durability_cur<0) it->durability_cur=0; if(it->durability_cur==0) it->fractured=1; return it->durability_cur; }
 int rogue_item_instance_repair_full(int inst_index){ const RogueItemInstance* itc = rogue_item_instance_at(inst_index); if(!itc) return -1; RogueItemInstance* it=(RogueItemInstance*)itc; if(it->durability_max<=0) return 0; it->durability_cur = it->durability_max; it->fractured=0; return it->durability_cur; }
+
+int rogue_item_instance_get_quality(int inst_index){ const RogueItemInstance* it=rogue_item_instance_at(inst_index); if(!it) return -1; return it->quality; }
+int rogue_item_instance_set_quality(int inst_index, int quality){ RogueItemInstance* it=(RogueItemInstance*)rogue_item_instance_at(inst_index); if(!it) return -1; if(quality<0) quality=0; if(quality>20) quality=20; it->quality=quality; return it->quality; }
+int rogue_item_instance_improve_quality(int inst_index, int delta){ RogueItemInstance* it=(RogueItemInstance*)rogue_item_instance_at(inst_index); if(!it) return -1; int q=it->quality+delta; if(q<0) q=0; if(q>20) q=20; it->quality=q; return it->quality; }
 
 /* ---- Phase 5.1 Socket API implementation ---- */
 int rogue_item_instance_socket_count(int inst_index){ const RogueItemInstance* it=rogue_item_instance_at(inst_index); if(!it) return -1; return it->socket_count; }

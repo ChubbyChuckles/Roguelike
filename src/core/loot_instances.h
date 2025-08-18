@@ -43,6 +43,8 @@ typedef struct RogueItemInstance {
     /* Phase 5.6: Protective seal flags (bitfield simplified to two ints). */
     int prefix_locked;
     int suffix_locked;
+    /* Phase 10.4: Quality metric (0-20). Influences base damage/armor scaling. */
+    int quality;
 } RogueItemInstance;
 
 void rogue_items_init_runtime(void);
@@ -72,6 +74,11 @@ int rogue_item_instance_upgrade_level(int inst_index, int levels, unsigned int* 
 int rogue_item_instance_get_durability(int inst_index, int* cur, int* max);
 int rogue_item_instance_damage_durability(int inst_index, int amount); /* returns remaining */
 int rogue_item_instance_repair_full(int inst_index);
+
+/* Quality (Phase 10.4): query and adjust quality value (0-20). Returns new quality or <0 on error. */
+int rogue_item_instance_get_quality(int inst_index);
+int rogue_item_instance_set_quality(int inst_index, int quality);
+int rogue_item_instance_improve_quality(int inst_index, int delta); /* clamps in range */
 
 /* Phase 5.1 Socket API (initial): query & set gem (simple index id). Returns 0 on success. */
 int rogue_item_instance_socket_count(int inst_index);
