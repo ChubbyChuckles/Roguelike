@@ -312,6 +312,15 @@ endif()
             add_test(NAME test_equipment_phase18_fuzz COMMAND test_equipment_phase18_fuzz)
             set_tests_properties(test_equipment_phase18_fuzz PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+            # Phase 18.3 statistical proc rate test
+            add_executable(test_equipment_phase18_proc_stats unit/test_equipment_phase18_proc_stats.c)
+            target_link_libraries(test_equipment_phase18_proc_stats PRIVATE rogue_core)
+            if (SDL2_FOUND AND NOT ROGUE_HEADLESS)
+                target_compile_definitions(test_equipment_phase18_proc_stats PRIVATE ROGUE_HAVE_SDL=1)
+            endif()
+            add_test(NAME test_equipment_phase18_proc_stats COMMAND test_equipment_phase18_proc_stats)
+            set_tests_properties(test_equipment_phase18_proc_stats PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
 # UI Phase 6.2 bars + AP smoothing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARGET test_ui_phase6_bars_ap)
     add_executable(test_ui_phase6_bars_ap unit/test_ui_phase6_bars_ap.c)

@@ -145,3 +145,17 @@ Establishes a deterministic, low-overhead fuzz scaffold for subsequent expansion
 Testing:
 New fuzz test passes (Release) with zero violations over 500 iterations. Initial stricter stat cache stability assertion produced false positives and was intentionally removed to defer to later statistical phases; final harness stable across repeated runs.
 
+
+Equipment Phase 18.3: Statistical Proc Rate Tests
+
+Summary:
+- Added new unit test `test_equipment_phase18_proc_stats` performing a 100s deterministic combat simulation (20ms ticks) with three registered procs: fast ON_HIT (100ms ICD), slow ON_HIT (250ms ICD), and ON_CRIT (500ms ICD, crit every 15th hit). Counts are compared to analytical expectations derived from simulation duration & ICD (floor(sim_ms/icd)+1, bounded by event occurrences for ON_CRIT) with ±1 tolerance. Also verifies ratio of fast:slow triggers ~ ICD ratio (2.5) within 1%.
+- Integrated test into `tests/CMakeLists.txt`; roadmap Phase 18.3 marked Done; README section documents methodology and rationale for deterministic (non-random) approach.
+- Test intentionally avoids `rogue_proc_triggers_per_min` due to rolling one-second window implementation which under-reports long simulation totals; relies directly on trigger counters for stability.
+
+Rationale:
+Codifies expected deterministic scaling of proc triggers under current ICD-driven model, guarding against future regressions in cooldown gating, event dispatch ordering, or global rate cap changes. Establishes a groundwork for later statistical variance checks should probabilistic proc chances be introduced (then harness can pivot to binomial expectation with variance bounds).
+
+Testing:
+New proc stats test passes (Release) with counts matching expectations (fast≈1001, slow≈401, crit≈bounded by events) and ratio within margin. Existing Phase 18.1/18.2 tests unaffected.
+
