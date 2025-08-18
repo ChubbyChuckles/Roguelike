@@ -159,6 +159,22 @@ Introduced validation for externally-authored runeword patterns to eliminate mal
 * Test: `test_equipment_phase16_runeword_validator` exercises failure (null, empty, invalid char, segment overflow, double underscore) and success (single + multi-segment, max segment) cases plus registration path.
 * Roadmap updated marking Phase 16.4 Done.
 
+## Phase 16.5 – Budget Analyzer Report Generator
+*(Tooling / Analytics)* Introduced `equipment_budget_analyzer` module providing aggregate affix budget utilization metrics over all active item instances.
+
+Exposed APIs:
+- `rogue_budget_analyzer_run(&report)` – scans active instances computing:
+  - `item_count`
+  - `over_budget_count`
+  - `avg_utilization` (mean ratio of total affix weight / cap)
+  - `max_utilization` + `max_item_index`
+  - histogram buckets: `<25%`, `<50%`, `<75%`, `<90%`, `<=100%`, `>100%`
+- `rogue_budget_analyzer_export_json(buf,cap)` – deterministic JSON suitable for CI dashboards.
+
+Test `test_equipment_phase16_budget_analyzer` fabricates synthetic items spanning utilization brackets (including an intentional over‑budget item) asserting bucket population, over-budget detection, and JSON field presence.
+
+Planned (Phase 16.6): Add boundary tests for empty inventory (graceful zero report), extreme item_level values, and additional runeword pattern edge cases.
+
 Public APIs (`equipment_persist.h`):
 * `rogue_equipment_serialize(buf, cap)` – emits versioned block; returns bytes written or -1.
 * `rogue_equipment_deserialize(text)` – idempotently reconstructs equipped items (spawning instances) from text; tolerates legacy headerless data.

@@ -13,3 +13,17 @@ Prevents silent acceptance of malformed runeword recipes which would undermine d
 Testing:
 New test passes (Release build) alongside existing Phase 16.x tests. No warnings introduced.
 
+Equipment Phase 16.5: Budget Analyzer Report Generator
+
+Summary:
+- Added `equipment_budget_analyzer.{h,c}` implementing aggregate affix budget utilization scan across active item instances.
+- Report fields: item_count, over_budget_count, avg_utilization, max_utilization + index, histogram buckets (<25,<50,<75,<90,<=100,>100).
+- Deterministic JSON export API `rogue_budget_analyzer_export_json` for CI / telemetry ingestion.
+- Unit test `test_equipment_phase16_budget_analyzer` spawns synthetic items to exercise each utilization bucket plus an intentional over-budget case; asserts bucket population, over_budget_count >=1, and JSON field presence.
+
+Rationale:
+Provides immediate visibility into affix budget distribution enabling early detection of systemic power creep or overly generous roll patterns before broader content expansion. Histogram design matches existing analytics style (Phase 11) for consistency.
+
+Testing:
+New test passes locally with existing Phase 16 suite. JSON output manually inspected for deterministic key ordering.
+

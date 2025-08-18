@@ -153,8 +153,8 @@ PHASE 16. Tooling & Authoring
 16.2 Set builder with live bonus threshold preview (Done: introduced `equipment_content` module with external registries for sets & runewords, JSON import/export for set definitions, linear interpolation preview helper `rogue_set_preview_apply` supporting partial progress toward next threshold, reset APIs for tooling tests, unit test `test_equipment_phase16_set_builder` validates load, interpolation at mid threshold (3 between 2->4 pieces), and export token presence.)
 16.3 Proc designer (trigger/type/magnitude/ICD) (Done: JSON import/export for proc definitions with name, trigger enum string mapping, ICD, duration, magnitude, max_stacks, stack_rule, param; validation + unit test exercising stacking vs refresh semantics and export roundtrip)
 16.4 Runeword recipe validator (duplicate / impossible pattern detection) (Done: added pattern validator `rogue_runeword_validate_pattern` enforcing lowercase alnum + underscores, max 5 segments, max length 11; integrated into registration returning -3 on invalid; unit test `test_equipment_phase16_runeword_validator` covers invalid chars, segment overflow, double underscore rejection, and positive registration path.)
-16.5 Budget analyzer report generator (X)
-16.6 Tests: validator catches malformed data, analyzer coverage (X)
+16.5 Budget analyzer report generator (Done: new module `equipment_budget_analyzer` computes aggregate affix budget utilization across active item instances: item_count, over_budget_count, avg & max utilization, histogram buckets (<25,<50,<75,<90,<=100,>100); deterministic JSON export API `rogue_budget_analyzer_export_json`; unit test `test_equipment_phase16_budget_analyzer` spawns synthetic items to exercise each bucket and over-budget detection.)
+16.6 Analyzer malformed / boundary tests & extended validator coverage (Next: add tests for empty inventory (zero items) JSON output stability, extremely high item_level edge ensuring no divide-by-zero, and runeword validator additional boundary cases for max length and segment count.)
 
 PHASE 17. Accessibility & Modding Exposure
 17.1 Public schema docs (JSON) for equipment assets (X)

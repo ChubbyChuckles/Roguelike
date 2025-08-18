@@ -249,6 +249,7 @@ add_library(rogue_core
     src/util/determinism.c
     src/util/file_search.c
     src/game/hitbox.c
+        src/core/equipment_budget_analyzer.c
     src/game/hitbox_load.c
         src/game/lock_on.c
         src/game/infusions.c
