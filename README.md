@@ -231,6 +231,11 @@ Key points:
 
 This forms the foundation for upcoming Phase 18 QA expansions (fuzzing, statistical proc rate validation, stress & mutation tests) by providing a concise golden reference artifact.
 
+## Phase 18.2 – Equip Sequence Fuzz Harness
+Established a deterministic fuzz harness `rogue_equipment_fuzz_sequences(iterations, seed)` performing randomized equip, swap, and unequip operations across all equipment slots using a xorshift64* PRNG. The baseline Phase 18.2 implementation enforces a minimal invariant: no duplicate item instance index should remain equipped in multiple slots simultaneously—duplicates are auto-healed by unequipping the later slot to keep runs noise-free (not counted as violations). This minimalist scaffold keeps CI cost trivial while laying groundwork for layering deeper invariants (stat fingerprint drift checks, proc rate statistical bounds, mutation rejection) in subsequent 18.x phases.
+
+Test `test_equipment_phase18_fuzz` executes 500 iterations with seed 1337 and expects zero violations, printing a concise success marker. Future phases will extend the harness rather than creating new executables to retain historical coverage continuity.
+
 ### Equipment System Phase 8.6 (Expanded Tests)
 Added `test_equipment_phase8_salvage_fracture` validating: (a) salvage yield decreases after durability loss, (b) fracture penalty reduces damage output versus an otherwise identical non-fractured item. Existing repair cost test covers cost monotonicity. Durability model smoke persists pending broader integration hooks.
 

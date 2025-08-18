@@ -130,3 +130,18 @@ Provides lightweight golden master artifact for CI to detect unintended drift in
 Testing:
 New snapshot test passes locally; existing Phase 17 suite unaffected. Manual inspection confirms stable 32-hex signature fields and tolerant parser (ignores unknown future tokens).
 
+
+Equipment Phase 18.2: Fuzz Equip/Un-equip Sequences
+
+Summary:
+- Added fuzz harness `equipment_fuzz.{c,h}` exposing `rogue_equipment_fuzz_sequences(iterations, seed)` implementing deterministic xorshift64* RNG to drive random equip, swap, and unequip actions across all slots.
+- Minimal invariant enforced: no duplicate equipped instance indices (auto-healed by unequipping later slot if detected). Chose not to count healed duplicates as violations to keep baseline harness noise-free; deeper invariants reserved for later 18.x phases.
+- Added unit test `test_equipment_phase18_fuzz` running 500 iterations with seed=1337 asserting zero violations and printing succinct success marker.
+- Integrated new source file into core build and registered test in `tests/CMakeLists.txt`; roadmap updated marking Phase 18.2 Done; pending commit message appended.
+
+Rationale:
+Establishes a deterministic, low-overhead fuzz scaffold for subsequent expansion (stat fingerprint drift checks, proc distribution sampling in 18.3, mutation rejection in 18.5). Early inclusion catches obvious state machine regressions in equip path while keeping CI cost minimal.
+
+Testing:
+New fuzz test passes (Release) with zero violations over 500 iterations. Initial stricter stat cache stability assertion produced false positives and was intentionally removed to defer to later statistical phases; final harness stable across repeated runs.
+

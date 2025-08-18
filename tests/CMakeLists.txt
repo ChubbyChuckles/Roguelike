@@ -303,6 +303,15 @@ endif()
             add_test(NAME test_equipment_phase18_snapshot COMMAND test_equipment_phase18_snapshot)
             set_tests_properties(test_equipment_phase18_snapshot PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+            # Phase 18.2 fuzz equip/un-equip sequences test
+            add_executable(test_equipment_phase18_fuzz unit/test_equipment_phase18_fuzz.c)
+            target_link_libraries(test_equipment_phase18_fuzz PRIVATE rogue_core)
+            if (SDL2_FOUND AND NOT ROGUE_HEADLESS)
+                target_compile_definitions(test_equipment_phase18_fuzz PRIVATE ROGUE_HAVE_SDL=1)
+            endif()
+            add_test(NAME test_equipment_phase18_fuzz COMMAND test_equipment_phase18_fuzz)
+            set_tests_properties(test_equipment_phase18_fuzz PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
 # UI Phase 6.2 bars + AP smoothing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARGET test_ui_phase6_bars_ap)
     add_executable(test_ui_phase6_bars_ap unit/test_ui_phase6_bars_ap.c)

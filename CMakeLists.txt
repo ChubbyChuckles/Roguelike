@@ -226,6 +226,7 @@ add_library(rogue_core
     src/core/equipment_balance.c
     src/core/equipment_ui.c
     src/core/equipment_persist.c
+    src/core/equipment_fuzz.c
     src/core/loadout_optimizer.c
     src/core/durability.c
     src/core/vendor_ui.c
