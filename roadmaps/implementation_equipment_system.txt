@@ -51,11 +51,11 @@ PHASE 3. Item Level & Power Budget Governance
 PHASE 4. Implicits, Uniques, Sets & Runewords
 4.1 Implicit modifier layer per base item (static per definition) (Done)
 4.2 Unique items: definition schema with fixed affix list + custom behavior hooks (function pointer or ID dispatch) (Done)
-4.3 Set items: set_id + rank thresholds -> bonus stat bundles (X)
-4.4 Partial set synergy scaling (linear or tiered) (X)
-4.5 Runeword system: socket recipe string → injected affix bundle + visual tag (X)
-4.6 Conflict resolution (unique + set + runeword precedence rules) (X)
-4.7 Tests: set bonus equip ordering, runeword formation determinism, unique custom hook invocation (X)
+4.3 Set items: set_id + rank thresholds -> bonus stat bundles (Done)
+4.4 Partial set synergy scaling (linear or tiered) (Done)
+4.5 Runeword system: socket recipe string → injected affix bundle + visual tag (Done)
+4.6 Conflict resolution (unique + set + runeword precedence rules) (Done)
+4.7 Tests: set bonus equip ordering, runeword formation determinism, unique custom hook invocation (Done)
 
 PHASE 5. Sockets, Gems & Enchanting
 5.1 Socket count roll (range per base + item_level influence) (X)

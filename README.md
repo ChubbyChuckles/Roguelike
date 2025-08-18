@@ -500,6 +500,26 @@ Introduces a simple data-driven unique item system layered cleanly between impli
 * Extensibility: Hook id reserved for future behavior (on-hit effects, conditional procs) while preserving pure stat aggregation now.
 * Test: `test_equipment_phase4_2_uniques` validates registration, aggregation, resist contributions, and fingerprint change when a second unique (helm) is added post-equip.
 
+#### Equipment Phase 4.3–4.7: Sets, Partial Scaling, Runewords & Precedence
+
+These slices extend the equipment identity layers beyond uniques, introducing cumulative set bonuses, smooth interpolation between tier thresholds, an initial runeword scaffold, and a deterministic precedence contract across all stat contributors.
+
+Key Additions:
+* Set Registry (4.3): Static descriptors (id, threshold table). Each threshold specifies required piece count and a bundled stat delta (primary attributes, flat armor, resistances). Equipping pieces with matching `set_id` accumulates active thresholds and sums their bundles.
+* Partial Scaling (4.4): If current equipped piece count lies between two defined thresholds, a linear interpolation per stat bridges the gap producing incremental gains (integer floor) instead of a flat plateau. Prevents abrupt jumps when approaching the next tier.
+* Runeword Scaffold (4.5): Introduces a lightweight registry (id, pattern string, stat bundle). Present prototype matches pattern to base item id (placeholder until sockets/gems in Phase 5 supply ordered rune data). On match, runeword bonuses populate a dedicated `runeword_*` layer.
+* Precedence Rules (4.6): Finalized deterministic aggregation order and total formula composition: implicit → unique → set → runeword → affix → buff → derived metrics. Earlier layers remain immutable input for later ones, simplifying reasoning and future conflict policies (e.g., runeword superseding an affix stat intentionally).
+* Comprehensive Tests (4.7): `test_equipment_phase4_3_5_sets_runewords` validates: set counting, threshold activation, interpolation math (midpoint correctness), runeword layer population, multi-layer stacking with uniques & implicits, and fingerprint invariance under equip order permutations ensuring no regression in determinism.
+
+Implementation Notes:
+* Set & runeword registries live in `equipment_stats.c` for the initial slice to minimize plumbing overhead; a later refactor may mirror the standalone uniques module for data-driven loading / hot reload.
+* Interpolation formula: `interp = prev + ( (next - prev) * (pieces - prev_req) ) / (next_req - prev_req )` applied per numeric field; resistant to division by zero because thresholds are validated strictly increasing.
+* No special casing for negative deltas (future design could allow inverse scaling). Current stat bundle fields all non-negative ensuring monotonic progression.
+* Fingerprint automatically encompasses new layers (structure ordering places new fields before the fingerprint member) providing regression protection without logic changes.
+
+Planned Next (Phase 5 preview): Introduce sockets & gems feeding into or enabling real runeword pattern verification (ordered rune sequence + socket count), along with enchant & reforge mechanics. The present runeword pattern placeholder will be replaced by socket composition matching, preserving existing layer precedence.
+
+
 
 * Each `RogueItemInstance` now tracks `item_level` (baseline 1 on spawn) driving a power budget.
 * Budget formula: `budget = 20 + item_level * 5 + (rarity^2) * 10` (rarity clamped 0..4). Provides quadratic headroom for premium tiers while keeping early levels constrained.

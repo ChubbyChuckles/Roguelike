@@ -6,10 +6,10 @@
 
 typedef struct RogueStatCache {
     /* Layered attribute model (Phase 2.1) */
-    int base_strength, implicit_strength, unique_strength, affix_strength, buff_strength, total_strength;
-    int base_dexterity, implicit_dexterity, unique_dexterity, affix_dexterity, buff_dexterity, total_dexterity;
-    int base_vitality, implicit_vitality, unique_vitality, affix_vitality, buff_vitality, total_vitality;
-    int base_intelligence, implicit_intelligence, unique_intelligence, affix_intelligence, buff_intelligence, total_intelligence;
+    int base_strength, implicit_strength, unique_strength, set_strength, runeword_strength, affix_strength, buff_strength, total_strength;
+    int base_dexterity, implicit_dexterity, unique_dexterity, set_dexterity, runeword_dexterity, affix_dexterity, buff_dexterity, total_dexterity;
+    int base_vitality, implicit_vitality, unique_vitality, set_vitality, runeword_vitality, affix_vitality, buff_vitality, total_vitality;
+    int base_intelligence, implicit_intelligence, unique_intelligence, set_intelligence, runeword_intelligence, affix_intelligence, buff_intelligence, total_intelligence;
     /* Additional layered defensive contributions */
     int affix_armor_flat; /* aggregated from armor_flat affixes (Phase 2.1 extension) */
     /* Derived metrics (Phase 2.2 early) */

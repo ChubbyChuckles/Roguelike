@@ -80,3 +80,32 @@ Implemented Features:
 * Roadmap Phase 4.2 marked Done.
 
 Upcoming: Set bonuses (4.3/4.4) leveraging existing `set_id` field, then runeword scaffold (4.5) and precedence spec (4.6) with comprehensive tests (4.7).
+
+---
+
+Equipment System Phase 4.3–4.7 – Sets, Partial Scaling, Runewords, Precedence & Comprehensive Tests
+
+Implemented Features:
+* 4.3 Set Items & Threshold Bonuses: Activated `set_id` field on base item definitions. Added static in-module set registry (id, piece bonus table) with rank threshold descriptors (pieces_required -> stat bundle). Aggregation counts equipped pieces per set and applies cumulative bonuses up to current rank.
+* 4.4 Partial Scaling (Interpolation) Between Set Tiers: When a set defines non-consecutive thresholds (e.g., 2-piece then 4-piece), equipping an intermediate piece (e.g., 3rd) linearly interpolates each numeric stat between prior and next threshold (floor at integer) producing smooth power curve and eliminating abrupt spikes.
+* 4.5 Runeword System (Initial Scaffold): Added static runeword registry (id, recipe pattern string, stat bundle). Matching currently uses a simplified predicate (base item id == pattern) standing in for future socket & rune ordering logic. On match, runeword bonuses populate dedicated layer.
+* 4.6 Precedence / Layer Ordering: Established deterministic stat layer ordering in aggregation & total formulas: implicit -> unique -> set -> runeword -> affix -> buff. Ensures later layers can intentionally override earlier contributions without mutation side-effects. Updated `stat_cache` total computations to sum new layers.
+* 4.7 Comprehensive Tests: New unit test `test_equipment_phase4_3_5_sets_runewords` covers: set piece counting, threshold activation, interpolation correctness (mid tier fractional scaling), runeword bonus aggregation, combined stacking with unique/implicit layers, precedence invariance & deterministic fingerprint across equip order permutations.
+
+Technical Notes:
+* Registries for sets & runewords are currently static arrays inside `equipment_stats.c` (intentional for early slice simplicity); later refactor may externalize similar to uniques module to reduce file size / enable hot reload.
+* Interpolation uses integer linear scaling: value = prev + ( (next - prev) * (pieces - prev_req) ) / (next_req - prev_req ). All relevant primary & resist stats included; avoids overshoot by integer division floor.
+* Fingerprint coverage automatically extended since new layer fields reside before fingerprint member; no hashing code changes required.
+
+Roadmap & Documentation Updates:
+* Marked Phase 4.3–4.7 Done in `roadmaps/implementation_equipment_system.txt`.
+* README: Added consolidated section detailing sets, partial scaling, runewords, precedence ordering, and test coverage.
+
+Follow-Up Candidates:
+* Externalize set & runeword registries to dedicated modules + prospective data-driven config loader (Phase 16 tooling alignment).
+* Replace placeholder runeword pattern match with socket/gem pipeline once Phase 5 sockets implemented.
+* Add golden snapshot JSON export of layered stat breakdown for future regression hashing (ties into Phase 18 golden master goals).
+
+Validation:
+* All existing and new Phase 4 tests pass (including prior implicits & uniques) confirming no fingerprint drift / layering regression.
+
