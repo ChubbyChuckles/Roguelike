@@ -171,7 +171,7 @@ See `roadmaps/` for subsystem implementation plans (inventory, crafting & gather
 * Expanded crafting: sockets, gems, enchant/reforge, fusion, affix orbs, success chance.
 * Persistence: incremental saves, signature trailer, replay hash, compression, autosave throttle.
 * Inventory System Phase 1: unified def->quantity entries, soft distinct cap + pressure metric, overflow guard, labels (materials/quest/gear), cap handler hook, dirty delta tracking API, and binary save integration (new inv_entries component id=9).
-* Inventory System Phase 3 (partial): Added favorites/lock flags and per-item short tag metadata with persistence (inv_tags component id=10) + unit tests.
+* Inventory System Phase 3 (expanded): Added favorites/lock flags and per-item short tag metadata with persistence (inv_tags component id=10) plus auto-tag rule engine (rarity/category predicates) with persistence (inv_tag_rules component id=11). Rules assign tags & optional accent colors deterministically on first acquisition; first matching rule providing a non-zero color establishes the accent. New tests: `test_inventory_phase3_tags` (flags/tags persistence) and `test_inventory_phase3_rules` (rule persistence & application hook). API additions: `inventory_tag_rules.{c,h}` with `rogue_inv_tag_rules_add`, `rogue_inv_tag_rules_apply_def`, and `rogue_inv_tag_rules_accent_color`.
 * AI: LOD scheduler, stress test, agent pool, time budget profiler, tactical nodes.
 * Worldgen: streaming manager, weather scheduler, dungeon generator, analytics & anomalies.
 

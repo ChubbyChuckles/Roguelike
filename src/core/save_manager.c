@@ -19,6 +19,7 @@
 #endif
 #include "equipment.h"
 #include "core/inventory_entries.h" /* Phase 1.6 inventory entries persistence */
+#include "core/inventory_tag_rules.h" /* Phase 3.3 auto-tag rules persistence */
 #include "core/inventory_tags.h" /* Phase 3 inventory metadata */
 
 static RogueSaveComponent g_components[ROGUE_SAVE_MAX_COMPONENTS];
@@ -1005,6 +1006,10 @@ static int read_inv_tags_component(FILE* f, size_t size){
     return 0;
 }
 static RogueSaveComponent INV_TAGS_COMP={ ROGUE_SAVE_COMP_INV_TAGS, write_inv_tags_component, read_inv_tags_component, "inv_tags" };
+/* Inventory auto-tag rules component (Phase 3.3/3.4) */
+static int write_inv_tag_rules_component(FILE* f){ return rogue_inv_tag_rules_write(f); }
+static int read_inv_tag_rules_component(FILE* f, size_t size){ return rogue_inv_tag_rules_read(f,size); }
+static RogueSaveComponent INV_TAG_RULES_COMP={ ROGUE_SAVE_COMP_INV_TAG_RULES, write_inv_tag_rules_component, read_inv_tag_rules_component, "inv_tag_rules" };
 static RogueSaveComponent SKILLS_COMP={ ROGUE_SAVE_COMP_SKILLS, write_skills_component, read_skills_component, "skills" };
 static RogueSaveComponent BUFFS_COMP={ ROGUE_SAVE_COMP_BUFFS, write_buffs_component, read_buffs_component, "buffs" };
 static RogueSaveComponent VENDOR_COMP={ ROGUE_SAVE_COMP_VENDOR, write_vendor_component, read_vendor_component, "vendor" };
@@ -1026,6 +1031,7 @@ void rogue_register_core_save_components(void){
     rogue_save_manager_register(&INVENTORY_COMP);
     rogue_save_manager_register(&INV_ENTRIES_COMP); /* Phase 1.6 unified entries */
     rogue_save_manager_register(&INV_TAGS_COMP); /* Phase 3 metadata */
+    rogue_save_manager_register(&INV_TAG_RULES_COMP); /* Phase 3.3/3.4 auto-tag rules */
     rogue_save_manager_register(&SKILLS_COMP);
     rogue_save_manager_register(&BUFFS_COMP);
     rogue_save_manager_register(&VENDOR_COMP);

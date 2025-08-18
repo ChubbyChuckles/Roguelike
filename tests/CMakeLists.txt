@@ -48,6 +48,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase3_tags.c AND NOT 
     add_test(NAME test_inventory_phase3_tags COMMAND test_inventory_phase3_tags)
 endif()
 
+# Inventory Phase 3 auto-tag rules test (3.3/3.4 persistence + application)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase3_rules.c AND NOT TARGET test_inventory_phase3_rules)
+    add_executable(test_inventory_phase3_rules unit/test_inventory_phase3_rules.c)
+    target_link_libraries(test_inventory_phase3_rules PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_inventory_phase3_rules PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_inventory_phase3_rules COMMAND test_inventory_phase3_rules)
+endif()
+
 # Equipment Phase 5 sockets test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase5_sockets.c AND NOT TARGET test_equipment_phase5_sockets)
     add_executable(test_equipment_phase5_sockets unit/test_equipment_phase5_sockets.c)

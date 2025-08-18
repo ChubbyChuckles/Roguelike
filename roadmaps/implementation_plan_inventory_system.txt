@@ -45,9 +45,9 @@ PHASE 3. Item Metadata & Tagging
 3.1 Favorite / lock flags (prevent salvage/drop unless override) (Done)
 3.2 Player-defined tags (short strings; pooled intern table) (Done)
 3.3 Auto-tag rules (e.g., rarity>=3 => "HighValue") (X)
-3.4 Tag expression storage (serialized rule DSL) (X)
-3.5 Tag-based color accents in UI (X)
-3.6 Tests: lock enforcement, rule application determinism (X)
+3.4 Tag expression storage (serialized rule DSL) (Done) /* Simple rarity/category rule struct persisted in new save component (inv_tag_rules id=11) */
+3.5 Tag-based color accents in UI (Done) /* Accent color precedence first rule; color retrievable via rogue_inv_tag_rules_accent_color() */
+3.6 Tests: lock enforcement, rule application determinism (Partial) /* Lock enforcement covered in phase3_tags; rule persistence & application covered in phase3_rules; deterministic order implicit via linear array. */
 
 PHASE 4. Advanced Query & Sorting
 4.1 Query expression parser: grammar (fields: rarity, affix_weight, tag, equip_slot, quality, durability_pct, qty, category) (X)

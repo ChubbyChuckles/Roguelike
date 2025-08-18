@@ -1,3 +1,4 @@
+Inventory System Phase 3.3-3.5: Implemented auto-tag rule engine (rarity/category predicates) with deterministic application on first pickup, added accent color support (first matching rule precedence), persisted rules via new save component id=11 (inv_tag_rules), integrated rule application hook into pickup registration, added unit test `test_inventory_phase3_rules` (rule persistence & basic application), updated roadmap (3.3-3.5 Done, 3.6 partial), expanded README inventory section, and wired build (CMake) + save manager registrations.
 core(inventory): implement Phase 1 (1.1-1.7) unified entry governance
 
 Details:
