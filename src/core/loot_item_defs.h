@@ -32,7 +32,11 @@ typedef struct RogueItemDef {
     char sprite_sheet[128];
     int sprite_tx, sprite_ty, sprite_tw, sprite_th;
     int rarity; /* RogueItemRarity enum value */
+    int flags; /* bitmask: ROGUE_ITEM_FLAG_* (two-handed etc.) */
 } RogueItemDef;
+
+/* Item definition flags */
+#define ROGUE_ITEM_FLAG_TWO_HANDED 0x01
 
 /* Runtime registry */
 int rogue_item_defs_load_from_cfg(const char* path); /* returns count added or <0 on error */

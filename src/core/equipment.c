@@ -22,7 +22,7 @@ static int category_for_slot(enum RogueEquipSlot slot){
 	}
 }
 
-int rogue_equip_item_is_two_handed(int inst_index){ const RogueItemInstance* it = rogue_item_instance_at(inst_index); if(!it) return 0; const RogueItemDef* d = rogue_item_def_at(it->def_index); if(!d) return 0; /* Heuristic: negative base_armor & weapon category and high damage maybe two-handed; for now use suffix bit in rarity reserved? Placeholder always false. */ return 0; }
+int rogue_equip_item_is_two_handed(int inst_index){ const RogueItemInstance* it = rogue_item_instance_at(inst_index); if(!it) return 0; const RogueItemDef* d = rogue_item_def_at(it->def_index); if(!d) return 0; if(d->category!=ROGUE_ITEM_WEAPON) return 0; return (d->flags & ROGUE_ITEM_FLAG_TWO_HANDED) ? 1 : 0; }
 
 int rogue_equip_try(enum RogueEquipSlot slot, int inst_index){
 	const RogueItemInstance* it = rogue_item_instance_at(inst_index); if(!it) return -1; const RogueItemDef* d = rogue_item_def_at(it->def_index); if(!d) return -2; int want_cat = category_for_slot(slot); if(d->category != want_cat) return -3; 

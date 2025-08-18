@@ -6,3 +6,4 @@ Equipment System Phase 1 - Slot Expansion (Initial)
  - Added basic unit test `test_equipment_phase1_slots` ensuring new headers compile & slot API callable.
  - Updated roadmap (implementation_equipment_system.txt) marking Phase 1.1/1.3 Done, 1.2/1.4/1.7 Partial.
 Next: persist new slots (save/load migration), implement true two-hand weapon flag in weapon defs, robust equip/unequip transactional tests, dedicated categories for shields/foci & jewelry stat contributions.
+ Added equipment two-handed flag (item definition bitmask) + parsing (optional flags column) and persistence of expanded equipment slots (count + per-slot instance indices). Implemented two-hand occupancy logic (auto-clear offhand, block offhand equip) using flags. Added basic test coverage (smoke) and updated roadmap (Phase 1 status). Save loader remains backward compatible.

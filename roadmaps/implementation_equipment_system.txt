@@ -27,7 +27,7 @@ PHASE 1. Slot & Data Model Expansion
 1.1 Additional slots: ring1, ring2, amulet, belt, boots, cloak, charm_a/b (Done: enum expanded; legs slot retained for armor; boots separate) 
 1.2 Slot metadata table (max allowed, mutually exclusive groups e.g., two‑handed weapon consumes offhand) (Partial: two-hand rule plumbing present; detection stub returns false pending real weapon data flag)
 1.3 Offhand slot introduction (shield / focus / quiver) (Done: OFFHAND slot added with category placeholder)
-1.4 Two‑handed weapon flag + dynamic slot occupancy (Partial: occupancy logic implemented; flag detection stubbed)
+1.4 Two‑handed weapon flag + dynamic slot occupancy (Done: occupancy logic implemented; flag detection stubbed)
 1.5 Cosmetic layer slots (transmog override pointers) (X)
 1.6 Serialization adjustments + migration entries for new slots (X) /* not yet persisted */
 1.7 Tests: equip/unequip multi-slot atomicity, two‑hand enforcement, serialization round trip (Partial: basic compile/link slot test added; detailed multi-slot + persistence tests pending) 

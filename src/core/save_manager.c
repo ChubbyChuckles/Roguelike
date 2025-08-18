@@ -17,6 +17,7 @@
 #else
 #include <unistd.h>
 #endif
+#include "equipment.h"
 
 static RogueSaveComponent g_components[ROGUE_SAVE_MAX_COMPONENTS];
 static int g_component_count = 0;
@@ -578,7 +579,8 @@ int rogue_save_manager_load_slot(int slot_index){
             const RogueSaveComponent* comp=find_component((int)id); long payload_pos=ftell(f); if(comp && comp->read_fn){ if(comp->read_fn(f,size)!=0){ fclose(f); return -9; } } fseek(f,payload_pos+size,SEEK_SET);
         }
     }
-    fclose(f); return 0;
+    fclose(f);
+    return 0;
 }
 
 /* Recovery: attempt primary slot, on tamper/integrity error fall back to latest autosave ring entry (most recent by timestamp field) */
@@ -644,6 +646,10 @@ static int write_player_component(FILE* f){
     fwrite(&g_app.session_start_seconds, sizeof g_app.session_start_seconds,1,f);
     /* 13.5 inventory UI sort mode */
     fwrite(&g_app.inventory_sort_mode, sizeof g_app.inventory_sort_mode,1,f);
+    /* Equipment System Phase 1.6: persist expanded equipment slots (count + each) */
+    int equip_count = ROGUE_EQUIP__COUNT;
+    fwrite(&equip_count, sizeof equip_count,1,f);
+    for(int i=0;i<equip_count;i++){ int inst = rogue_equip_get((enum RogueEquipSlot)i); fwrite(&inst,sizeof inst,1,f); }
     return 0;
 }
 static int read_player_component(FILE* f, size_t size){
@@ -667,6 +673,13 @@ static int read_player_component(FILE* f, size_t size){
     if(remain >= (int)sizeof(int)){ fread(&g_app.player.weapon_infusion,sizeof g_app.player.weapon_infusion,1,f); remain-=sizeof(int);} else { g_app.player.weapon_infusion = 0; }
     if(remain >= (int)sizeof(double)){ fread(&g_app.session_start_seconds,sizeof g_app.session_start_seconds,1,f); remain-=sizeof(double);} else { g_app.session_start_seconds = 0.0; }
     if(remain >= (int)sizeof(int)){ fread(&g_app.inventory_sort_mode,sizeof g_app.inventory_sort_mode,1,f); remain-=sizeof(int);} else { g_app.inventory_sort_mode=0; }
+        /* Equipment slots (Phase 1.6) backward-compatible: read and attempt immediate apply (inventory component precedes player in registration order). */
+        if(remain >= (int)sizeof(int)){
+            int equip_count=0; fread(&equip_count,sizeof equip_count,1,f); remain-=sizeof(int);
+            if(equip_count>0 && equip_count <= ROGUE_EQUIP__COUNT){
+                for(int i=0;i<equip_count && remain >= (int)sizeof(int); i++){ int inst=-1; fread(&inst,sizeof inst,1,f); remain-=sizeof(int); if(inst>=0) rogue_equip_try((enum RogueEquipSlot)i, inst); }
+            }
+        }
     (void)start; return 0; }
 
 /* ---------------- Additional Phase 1 Components ---------------- */
@@ -880,6 +893,7 @@ static int read_world_meta_component(FILE* f, size_t size){
     if(remain >= sizeof g_app.gen_river_max_length){ fread(&g_app.gen_river_max_length,sizeof g_app.gen_river_max_length,1,f); remain -= sizeof g_app.gen_river_max_length; }
     return 0; }
 
+/* (Removed duplicate PLAYER_COMP and deferred equipment declarations; single definition earlier) */
 static RogueSaveComponent PLAYER_COMP={ ROGUE_SAVE_COMP_PLAYER, write_player_component, read_player_component, "player" };
 static RogueSaveComponent INVENTORY_COMP={ ROGUE_SAVE_COMP_INVENTORY, write_inventory_component, read_inventory_component, "inventory" };
 static RogueSaveComponent SKILLS_COMP={ ROGUE_SAVE_COMP_SKILLS, write_skills_component, read_skills_component, "skills" };
@@ -910,6 +924,8 @@ void rogue_register_core_save_components(void){
     rogue_save_manager_register(&REPLAY_COMP);
 #endif
 }
+
+/* (Deferred post-apply system removed for simplicity in Phase 1.6) */
 
 /* Migration definitions */
 static int migrate_v2_to_v3(unsigned char* data, size_t size){ (void)data; (void)size; return 0; }
