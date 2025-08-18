@@ -26,3 +26,29 @@ Next Steps:
 2) Add stress determinism test over many random equip permutations (hash collision guard).
 3) Introduce implicit layer sources (base item implicit stats) feeding into cache.
 
+---
+
+Equipment System Phase 3 – Item Level & Power Budget Governance
+
+Implemented Features:
+* 3.1 Item level field added to `RogueItemInstance` (initialized to 1 on spawn).
+* 3.2 Power budget formula: `budget = 20 + item_level*5 + rarity^2*10` (capped rarity range) via `rogue_budget_max`.
+* 3.3 Budget enforcement during affix generation: post-roll clamp reduces larger affix first until within cap.
+* 3.4 Validation API: `rogue_item_instance_validate_budget` returns 0 (ok) or negative on invalid / over-budget.
+* 3.5 Upgrade API: `rogue_item_instance_upgrade_level` increases item_level and incrementally elevates affix values toward new cap deterministically.
+* 3.6 Unit test `test_equipment_phase3_budget` covers under-cap validity, forced over-cap detection, and multi‑level upgrade progression staying within budget.
+
+Technical Notes:
+* Generation clamp chooses decrement target by comparing prefix vs suffix value (ties favor prefix) for deterministic convergence.
+* Upgrade loop uses lightweight LCG step to choose which affix to increment when both present, maintaining reproducibility across builds.
+* Validation integrates with prospective persistence/tooling to flag legacy over-budget artifacts.
+
+Documentation & Roadmap:
+* Roadmap file updated with new Phase 15 (renumbered equipment subsection for item system) entries marked Done for 15.1–15.6.
+* README gains Phase 3 section summarizing budget formula, enforcement, and APIs.
+
+Follow-Up Candidates:
+* Add statistical distribution test ensuring average affix utilization fraction stays within target band after many upgrades.
+* Extend budget to multi-affix (future multi-prefix/suffix) by proportional scaling rather than decrement loop.
+* UI exposure of item level + budget utilization (progress bar) in equipment panel.
+

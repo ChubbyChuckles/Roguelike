@@ -125,6 +125,14 @@ X = Not started yet
 14.4 DPS & EHP (effective HP) estimator (Done: heuristic in stat_cache.c displayed in equipment panel)
 14.5 Unit tests: equip / unequip stat deltas (Done: equip bonus, unequip regression test)
 
+15. Item Level & Power Budget Governance (In Implementation)
+15.1 Introduce item_level field on instances influencing stat growth (Done)
+15.2 Define max power budget formula (affix weight cap) (Done: rogue_budget_max base 20 + level*5 + rarity^2*10)
+15.3 Enforce budget during affix generation (Done: post-roll clamp reduces larger affix first)
+15.4 Validation API to detect out-of-band items (Done: rogue_item_instance_validate_budget)
+15.5 Level upgrade API that increases item_level and elevates affix values within new budget (Done: deterministic incremental elevation loop)
+15.6 Unit tests: budget validation (over/under), upgrade within budget progression (Done: test_equipment_phase3_budget)
+
 15. Extended Persistence & Versioning (Done)
 15.1 Save schema version tag (Done: existing descriptor.version leveraged; affix/enchant field extension uses size heuristic, no bump required)
 15.2 Migration handlers for added affix fields (Done: forward-compatible reader adds enchant_level defaulting 0; write path always emits field)

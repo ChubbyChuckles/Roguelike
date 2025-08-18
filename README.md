@@ -476,6 +476,14 @@ Next Steps: Bind allocation/undo to inputs, integrate real skill definitions, im
 * Generation quality test compares low vs high luck contexts ensuring no downward bias under identical seeds.
 * Persistence round-trip for affixes guards against format regressions.
 
+#### Equipment Phase 3: Item Level & Power Budget
+* Each `RogueItemInstance` now tracks `item_level` (baseline 1 on spawn) driving a power budget.
+* Budget formula: `budget = 20 + item_level * 5 + (rarity^2) * 10` (rarity clamped 0..4). Provides quadratic headroom for premium tiers while keeping early levels constrained.
+* Affix roll enforcement: After prefix/suffix value rolls, aggregate weight is clamped to budget by decrementing the larger affix first (ties favor prefix) ensuring no over-budget items enter the ecosystem.
+* Upgrade API: `rogue_item_instance_upgrade_level(inst, levels, &seed)` raises item_level and gently increases affix values (+1 steps with deterministic LCG selection) until reaching new cap.
+* Validation: `rogue_item_instance_validate_budget` returns 0 if compliant, negative error codes if over or invalid. A lightweight safeguard for persistence or external tooling ingest.
+* Test `test_equipment_phase3_budget` covers: (a) baseline under-cap item, (b) forced over-cap detection, (c) multi-level upgrade increasing affix value without exceeding new budget.
+
 #### Loot Filter (Phase 12.1–12.2 Initial)
 * Rule file parser supports lines: `rarity>=N`, `rarity<=N`, `category=...`, `name~substr`, `def=item_id`, and mode switches `MODE=ANY` / `MODE=ALL` (default AND semantics).
 * Up to 64 rules stored; case-insensitive comparisons for names & substrings.

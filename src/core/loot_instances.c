@@ -18,7 +18,7 @@ int rogue_items_spawn(int def_index, int quantity, float x, float y){
     for(int i=0;i<ROGUE_ITEM_INSTANCE_CAP;i++) if(!g_instances[i].active){
         const RogueItemDef* idef = rogue_item_def_at(def_index);
     int rarity = (idef? idef->rarity : 0);
-    g_instances[i].def_index = def_index; g_instances[i].quantity = quantity; g_instances[i].x = x; g_instances[i].y = y; g_instances[i].life_ms=0; g_instances[i].active=1; g_instances[i].rarity=rarity;
+    g_instances[i].def_index = def_index; g_instances[i].quantity = quantity; g_instances[i].x = x; g_instances[i].y = y; g_instances[i].life_ms=0; g_instances[i].active=1; g_instances[i].rarity=rarity; g_instances[i].item_level = 1; /* baseline */
     g_instances[i].prefix_index = -1; g_instances[i].suffix_index = -1; g_instances[i].prefix_value=0; g_instances[i].suffix_value=0; g_instances[i].hidden_filter=0;
     /* Set durability baseline: weapons & armor categories get base derived from level & rarity. */
     if(idef && (idef->category==ROGUE_ITEM_WEAPON || idef->category==ROGUE_ITEM_ARMOR)){
@@ -44,6 +44,23 @@ int rogue_item_instance_generate_affixes(int inst_index, unsigned int* rng_state
     if(rarity >= 2){ if(rarity >=3){ want_prefix=1; want_suffix=1; } else { want_prefix = ((*rng_state)&1)==0; want_suffix = !want_prefix; } }
     if(want_prefix){ int pi = rogue_affix_roll(ROGUE_AFFIX_PREFIX, rarity, rng_state); if(pi>=0){ it->prefix_index = pi; it->prefix_value = rogue_affix_roll_value(pi, rng_state); }}
     if(want_suffix){ int si = rogue_affix_roll(ROGUE_AFFIX_SUFFIX, rarity, rng_state); if(si>=0){ it->suffix_index = si; it->suffix_value = rogue_affix_roll_value(si, rng_state); }}
+    /* Phase 3.3: clamp any over-budget rolls immediately */
+    int cap = rogue_budget_max(it->item_level, it->rarity);
+    int total = 0;
+    if(it->prefix_index>=0){ total += it->prefix_value; }
+    if(it->suffix_index>=0){ total += it->suffix_value; }
+    if(total > cap){
+        /* Reduce larger affix first until within cap */
+        while(total > cap){
+            int reduce_prefix = 0;
+            if(it->prefix_index>=0 && it->suffix_index>=0){ reduce_prefix = (it->prefix_value >= it->suffix_value); }
+            else if(it->prefix_index>=0){ reduce_prefix = 1; }
+            else reduce_prefix = 0;
+            if(reduce_prefix && it->prefix_index>=0 && it->prefix_value>0){ it->prefix_value--; total--; }
+            else if(it->suffix_index>=0 && it->suffix_value>0){ it->suffix_value--; total--; }
+            else break; /* cannot reduce further */
+        }
+    }
     return 0;
 }
 
@@ -64,6 +81,15 @@ int rogue_item_instance_apply_affixes(int inst_index, int rarity, int prefix_ind
     it->suffix_index = suffix_index; it->suffix_value = suffix_value;
     return 0;
 }
+
+/* -------- Phase 3 Budget Governance Implementation (minimal) -------- */
+int rogue_budget_max(int item_level, int rarity){ if(item_level<1) item_level=1; if(rarity<0) rarity=0; if(rarity>4) rarity=4; /* simple scaling: base 20 + item_level*5 + rarity^2 * 10 */ return 20 + item_level*5 + (rarity*rarity)*10; }
+
+int rogue_item_instance_total_affix_weight(int inst_index){ const RogueItemInstance* it = rogue_item_instance_at(inst_index); if(!it) return -1; int total=0; if(it->prefix_index>=0){ total += it->prefix_value; } if(it->suffix_index>=0){ total += it->suffix_value; } return total; }
+
+int rogue_item_instance_validate_budget(int inst_index){ const RogueItemInstance* it = rogue_item_instance_at(inst_index); if(!it) return -1; int cap = rogue_budget_max(it->item_level, it->rarity); int total = rogue_item_instance_total_affix_weight(inst_index); if(total<0) return -2; return (total <= cap)? 0 : -3; }
+
+int rogue_item_instance_upgrade_level(int inst_index, int levels, unsigned int* rng_state){ if(levels<=0) return 0; RogueItemInstance* it = (RogueItemInstance*)rogue_item_instance_at(inst_index); if(!it) return -1; it->item_level += levels; if(it->item_level>999) it->item_level=999; /* attempt gentle elevation: +1 to each affix value if under new cap */ int cap = rogue_budget_max(it->item_level, it->rarity); int total = rogue_item_instance_total_affix_weight(inst_index); if(total<0) return -2; while(total < cap && (it->prefix_index>=0 || it->suffix_index>=0)){ if(rng_state){ *rng_state = (*rng_state * 1664525u) + 1013904223u; } int choose_prefix = (it->prefix_index>=0 && it->suffix_index>=0)? ((*rng_state)&1) : (it->suffix_index<0); if(choose_prefix && it->prefix_index>=0 && it->prefix_value < cap){ it->prefix_value++; total++; } else if(it->suffix_index>=0 && it->suffix_value < cap){ it->suffix_value++; total++; } else break; } return 0; }
 
 int rogue_item_instance_get_durability(int inst_index, int* cur, int* max){ const RogueItemInstance* it = rogue_item_instance_at(inst_index); if(!it) return -1; if(cur) *cur = it->durability_cur; if(max) *max = it->durability_max; return 0; }
 int rogue_item_instance_damage_durability(int inst_index, int amount){ if(amount<=0) return 0; const RogueItemInstance* itc = rogue_item_instance_at(inst_index); if(!itc) return -1; RogueItemInstance* it = (RogueItemInstance*)itc; if(it->durability_max<=0) return it->durability_cur; it->durability_cur -= amount; if(it->durability_cur<0) it->durability_cur=0; return it->durability_cur; }

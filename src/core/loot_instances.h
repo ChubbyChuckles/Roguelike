@@ -22,6 +22,7 @@ typedef struct RogueItemInstance {
     float life_ms; /* for future despawn */
     int active;
     int rarity; /* cached from definition for render color */
+    int item_level; /* Phase 3.1: governs affix budget */
     /* Affix attachments (7.5): one prefix + one suffix for initial implementation */
     int prefix_index; /* -1 if none */
     int prefix_value; /* rolled stat value */
@@ -53,6 +54,12 @@ int rogue_item_instance_damage_min(int inst_index);
 int rogue_item_instance_damage_max(int inst_index);
 /* Apply affix + rarity data to existing active instance (used for persistence load). */
 int rogue_item_instance_apply_affixes(int inst_index, int rarity, int prefix_index, int prefix_value, int suffix_index, int suffix_value);
+
+/* Phase 3: Power budget governance */
+int rogue_budget_max(int item_level, int rarity); /* returns max allowed total affix weight */
+int rogue_item_instance_total_affix_weight(int inst_index); /* sum of affix values */
+int rogue_item_instance_validate_budget(int inst_index); /* 0 ok, <0 over budget */
+int rogue_item_instance_upgrade_level(int inst_index, int levels, unsigned int* rng_state); /* raises item_level and attempts to elevate affix values within new budget deterministically */
 
 /* Durability APIs (currency sink for repair costs) */
 int rogue_item_instance_get_durability(int inst_index, int* cur, int* max);
