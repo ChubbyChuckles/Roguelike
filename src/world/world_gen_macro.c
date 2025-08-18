@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <stdio.h>
 
 /* Local helper noise using existing fbm() from world_gen_noise via forward declarations */
 double fbm(double x,double y,int octaves,double lacunarity,double gain);
@@ -33,6 +34,23 @@ RogueWorldGenArena* rogue_worldgen_internal_get_global_arena(void);
 #endif
 
 static RogueWorldGenArena* try_get_arena(){ return rogue_worldgen_internal_get_global_arena(); }
+int rogue_worldgen_internal_parallel_enabled(void); /* from optimization module */
+
+/* Forward declarations for river parallelization */
+struct RiverStart { int x; int y; };
+struct CarveParams { const MacroTmp* mt; RogueTileMap* map; const RogueWorldGenConfig* cfg; int w,h; const struct RiverStart* starts; int count; };
+static void carve_rivers_worker(const struct CarveParams* p, int begin, int end){
+    const MacroTmp* mt=p->mt; RogueTileMap* map=p->map; int w=p->w, h=p->h; int max_steps = p->cfg->river_max_length>0? p->cfg->river_max_length : (h*2);
+    for(int i=begin;i<end;i++){
+        int cx=p->starts[i].x, cy=p->starts[i].y; float prev_e = mt->elevation[cy*w+cx]; int steps=0;
+        while(steps<max_steps){ size_t tidx=(size_t)cy*w+cx; map->tiles[tidx]=ROGUE_TILE_RIVER; if(prev_e < 0.05f) break; int bestx=cx,besty=cy; float beste=prev_e; for(int oy=-1;oy<=1;oy++) for(int ox=-1;ox<=1;ox++){ if(!ox&&!oy) continue; int nx=cx+ox, ny=cy+oy; if(nx<0||ny<0||nx>=w||ny>=h) continue; float ne=mt->elevation[ny*w+nx]; if(ne < beste){ beste=ne; bestx=nx; besty=ny; } } if(bestx==cx && besty==cy) break; cx=bestx; cy=besty; prev_e=beste; steps++; }
+    }
+}
+#if defined(_WIN32)
+#include <windows.h>
+struct ThreadCtx { struct CarveParams params; int b; int e; };
+static DWORD WINAPI river_thread_proc(LPVOID user){ struct ThreadCtx* tc=(struct ThreadCtx*)user; carve_rivers_worker(&tc->params, tc->b, tc->e); free(tc); return 0; }
+#endif
 
 static int alloc_macro_tmp(MacroTmp* mt,int count){
     memset(mt,0,sizeof *mt);
@@ -138,30 +156,38 @@ bool rogue_world_generate_macro_layout(const RogueWorldGenConfig* cfg, RogueWorl
         moist = (moist<0?0: (moist>1?1:moist));
         tmp.moisture[idx]=moist;
     }
-    /* 2.4 Simple river source selection: choose peaks above elevation threshold and random-walk downhill */
-    int desired_sources = cfg->river_sources>0? cfg->river_sources : 8; int created=0;
-    int safety=0; /* guard against infinite loop if no valid peaks */
-    while(created < desired_sources && safety < desired_sources*20){
+    /* 2.4 River source selection & carving (sequential or parallel deterministic) */
+    int desired_sources = cfg->river_sources>0? cfg->river_sources : 8;
+    if(desired_sources < 0) desired_sources = 0;
+    struct RiverStart* starts = (struct RiverStart*)malloc(sizeof(struct RiverStart)*(size_t)desired_sources);
+    int start_count=0; int safety=0;
+    while(start_count < desired_sources && safety < desired_sources*40){
         safety++;
         int rx = (int)(rogue_worldgen_rand_norm(&ctx->macro_rng)* (double)w);
-        int ry = (int)(rogue_worldgen_rand_norm(&ctx->macro_rng)*(double)h);
-        if(rx<0||ry<0||rx>=w||ry>=h) continue;
-        int idx=ry*w+rx;
-        if(tmp.continent[idx] < 0) continue;
-        if(tmp.elevation[idx] < 0.55f) continue; /* peak selection */
-        int steps=0; int max_steps = cfg->river_max_length>0? cfg->river_max_length : (h*2);
-        int cx=rx, cy=ry; float prev_e = tmp.elevation[cy*w+cx];
-        while(steps<max_steps){
-            size_t tidx=(size_t)cy*w+cx; out_map->tiles[tidx] = ROGUE_TILE_RIVER;
-            if(prev_e < 0.05f) break; /* reached sea */
-            int bestx=cx,besty=cy; float beste=prev_e;
-            for(int oy=-1;oy<=1;oy++) for(int ox=-1;ox<=1;ox++){
-                if(!ox && !oy) continue; int nx=cx+ox, ny=cy+oy; if(nx<0||ny<0||nx>=w||ny>=h) continue; float ne=tmp.elevation[ny*w+nx]; if(ne < beste){ beste=ne; bestx=nx; besty=ny; }
-            }
-            if(bestx==cx && besty==cy) break; cx=bestx; cy=besty; prev_e=beste; steps++;
-        }
-        created++;
+        int ry = (int)(rogue_worldgen_rand_norm(&ctx->macro_rng)* (double)h);
+        if(rx<0||ry<0||rx>=w||ry>=h) continue; int idx=ry*w+rx;
+        if(tmp.continent[idx] < 0) continue; if(tmp.elevation[idx] < 0.55f) continue;
+    starts[start_count].x = rx; starts[start_count].y = ry; start_count++;
     }
+    /* Carving function */
+    if(rogue_worldgen_internal_parallel_enabled() && start_count>2){
+        int threads = 4; if(threads > start_count) threads = start_count; if(threads<1) threads=1;
+        struct CarveParams params = { &tmp, out_map, cfg, w, h, starts, start_count };
+#if defined(_WIN32)
+    HANDLE handles[8]; if(threads>8) threads=8; int chunk = (start_count + threads -1)/threads; int launched=0;
+    for(int t=0;t<threads;t++){ int b=t*chunk; if(b>=start_count) break; int e=b+chunk; if(e>start_count) e=start_count; struct ThreadCtx* tc = (struct ThreadCtx*)malloc(sizeof *tc); tc->params=params; tc->b=b; tc->e=e; handles[launched++] = CreateThread(NULL,0,river_thread_proc, tc,0,NULL); }
+        WaitForMultipleObjects(launched, handles, TRUE, INFINITE);
+        for(int i=0;i<launched;i++) CloseHandle(handles[i]);
+#else
+        /* Fallback: simple stripe splitting sequentially (no true parallel if threads unsupported) */
+        int chunk = (start_count + threads -1)/threads; for(int t=0;t<threads;t++){ int b=t*chunk; if(b>=start_count) break; int e=b+chunk; if(e>start_count) e=start_count; carve_rivers_worker(&params,b,e); }
+#endif
+    } else {
+        /* Sequential carving */
+        struct CarveParams params = { &tmp, out_map, cfg, w, h, starts, start_count };
+        carve_rivers_worker(&params,0,start_count);
+    }
+    free(starts);
     /* 2.6 Biome classification & tile write */
     int local_hist[ROGUE_TILE_MAX]; memset(local_hist,0,sizeof local_hist);
     for(int y=0;y<h;y++) for(int x=0;x<w;x++){

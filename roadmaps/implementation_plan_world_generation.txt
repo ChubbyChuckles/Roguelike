@@ -118,10 +118,10 @@ PHASE 13. Modding & Data Extensibility
 
 PHASE 14. Optimization & Memory
 14.1 Memory pool / arena for transient generation buffers (Done (initial): arena implemented + integrated into macro temp buffers; further adoption pending across other passes)
-14.2 SIMD acceleration for noise & erosion kernels (Partial: SIMD toggle + batched fbm/value noise path calling scalar per-lane to preserve determinism; true vectorized kernel & erosion SIMD TBD)
-14.3 Parallel river & biome classification pass (task dispatch) (X: toggle plumbed, no threading yet)
-14.4 Benchmark harness & regression guard (Partial: benchmark API & timing struct implemented; regression baseline file & tolerance comparison TBD)
-14.5 Unit tests / benchmarks: speedup presence when SIMD available, no drift in results (Done (basic): Phase14 test validates benchmark invariants & optional speedup; deterministic equivalence implicitly retained since SIMD path reuses scalar)
+14.2 SIMD acceleration for noise & erosion kernels (Partial: SIMD toggle + batched fbm/value noise path; scalar per-lane hash preserves determinism; vector math scaffold present, erosion SIMD TBD)
+14.3 Parallel river & biome classification pass (task dispatch) (Done (initial): deterministic multi-thread river carving on Windows using chunked start list; fallback sequential elsewhere; biome classification remains single-thread for now)
+14.4 Benchmark harness & regression guard (Partial: benchmark API + baseline write-out for MSVC builds; tolerance comparison & CI gating TBD)
+14.5 Unit tests / benchmarks: speedup presence when SIMD available, no drift in results (Done (basic): Phase14 test validates invariants & optional speedup; noise outputs identical)
 
 PHASE 15. Advanced Features (Stretch)
 15.1 Dynamic world events altering terrain (meteor crater pass) (X)
