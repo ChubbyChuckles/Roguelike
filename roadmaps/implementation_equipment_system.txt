@@ -79,9 +79,9 @@ PHASE 7. Defensive Layer Extensions
 7.1 Block value & block chance stats (armor/offhand) (Done: stat cache fields, affix enum+parsing, aggregation wiring, passive block logic in combat_guard, tests: test_equipment_phase7_defensive (runtime reduction), test_equipment_phase7_block_affixes (affix injection))
 7.2 Damage conversion affixes (e.g., 15% incoming physical -> fire) (Done: phys_conv_* affix enum + parsing + aggregation; conversion applied in combat_guard with 95% cap and conservation)
 7.3 Guard break recovery modifiers (equipment-based) (Done: guard_recovery_pct affix enum + aggregation; affects regen (positive scaling) and drain (inverse scaling) with clamps)
-7.4 Reactive shield procs (temporary absorb pool) (Partial: absorb pool helpers (proc-based) added – activation via actual affix/proc definition deferred; no test until trigger source added)
+7.4 Reactive shield procs (temporary absorb pool) (Done: proc-based absorb pool helpers + block event integration + unit test test_equipment_phase7_reactive_shield validating absorb ordering & depletion)
 7.5 Thorns / reflect w/ cap & DR layering order spec (Done: thorns_percent + thorns_cap affix enum + aggregation; reflect applied after conversion; cap enforced)
-7.6 Tests: conversion conservation (sum output=original), reflect cap, ordering invariants (Done: test_equipment_phase7_conversion_reflect validates conservation, cap, guard recovery scaling; ordering currently implicit – future reactive shield test pending Phase 7.4)
+7.6 Tests: conversion conservation (sum output=original), reflect cap, ordering invariants (Done: test_equipment_phase7_conversion_reflect (conversion & cap & guard recovery), test_equipment_phase7_reactive_shield (absorb precedes reflect), plus existing block tests cover pre-conversion ordering)
 
 PHASE 8. Durability, Degradation & Economy
 8.1 Non-linear durability loss model (hit severity & rarity scaling) (X)

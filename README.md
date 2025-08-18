@@ -87,7 +87,7 @@ Implemented in this slice:
 * Thorns / Reflect (7.5): Added `thorns_percent` and `thorns_cap` affix stats; reflect computed after conversion & mitigation ordering inside `combat_guard` (currently attacker application deferred until enemy context wire-up). Cap enforces upper bound per hit.
 * Tests (7.6 partial): `test_equipment_phase7_conversion_reflect` covers conversion conservation, cap behavior when total attempted conversion exceeds 95%, guard recovery positive scaling math, and thorns integration placeholder path (ensuring no crash and ordering stable). Existing block tests (`test_equipment_phase7_defensive`, `test_equipment_phase7_block_affixes`) remain green.
 
-Deferred (remaining Phase 7 element): Reactive shield procs (7.4) – requires adding an absorb pool field & on_block / on_hit proc effect path; slated for next slice to avoid placeholder logic without state tracking.
+Reactive shield procs (7.4) now implemented: proc system exposes absorb pool helpers consumed in melee pipeline prior to reflect. Test `test_equipment_phase7_reactive_shield` validates shield absorption ordering (block → conversion → absorb → reflect) and depletion.
 
 ---
 

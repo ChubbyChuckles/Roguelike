@@ -3,6 +3,7 @@
 #include "core/stat_cache.h"
 #include <stdlib.h>
 #include <math.h>
+#include "core/equipment_procs.h" /* for reactive shield procs */
 
 /* Guard & Poise / Incoming Melee */
 static void rogue_player_face(RoguePlayer* p, int dir){ if(!p) return; if(dir<0||dir>3) return; p->facing = dir; }
@@ -24,10 +25,12 @@ int rogue_player_apply_incoming_melee(RoguePlayer* p, float raw_damage, float at
         blocked = 1; perfect = (p->guard_active_time_ms <= p->perfect_guard_window_ms)?1:0; float chip = raw_damage * ROGUE_GUARD_CHIP_PCT; if(chip < 1.0f) chip = (raw_damage>0)?1.0f:0.0f;
         if(perfect){ chip = 0.0f; p->guard_meter += ROGUE_PERFECT_GUARD_REFUND; if(p->guard_meter>p->guard_meter_max) p->guard_meter = p->guard_meter_max; p->poise += ROGUE_PERFECT_GUARD_POISE_BONUS; if(p->poise>p->poise_max) p->poise=p->poise_max; }
         else { p->guard_meter -= ROGUE_GUARD_METER_DRAIN_ON_BLOCK; if(p->guard_meter < 0.0f) p->guard_meter = 0.0f; if(poise_damage>0){ float pd = (float)poise_damage * ROGUE_GUARD_BLOCK_POISE_SCALE; p->poise -= pd; if(p->poise < 0.0f) p->poise = 0.0f; p->poise_regen_delay_ms = ROGUE_POISE_REGEN_DELAY_AFTER_HIT; } }
+        rogue_procs_event_block(); /* trigger potential reactive shield proc */
         if(out_blocked) *out_blocked = 1; if(perfect && out_perfect) *out_perfect = 1; return (int)chip; }
     if(passive_block){
         blocked = 1; /* Flat reduction by block_value; never less than 0 */
         int red = g_player_stat_cache.block_value; if(red<0) red=0; raw_damage -= (float)red; if(raw_damage < 0) raw_damage = 0;
+        rogue_procs_event_block(); /* passive block also triggers block procs */
         if(out_blocked) *out_blocked = 1; return (int)raw_damage; }
     int triggered_reaction = 0; if(poise_damage>0 && !_rogue_player_is_hyper_armor_active()){ float before = p->poise; p->poise -= (float)poise_damage; if(p->poise < 0.0f) p->poise=0.0f; if(before > 0.0f && p->poise <= 0.0f){ rogue_player_apply_reaction(p, 2); triggered_reaction=1; } }
     if(!triggered_reaction){ if(raw_damage >= 80){ rogue_player_apply_reaction(p,3); } else if(raw_damage >= 25){ rogue_player_apply_reaction(p,1); } }
@@ -43,7 +46,9 @@ int rogue_player_apply_incoming_melee(RoguePlayer* p, float raw_damage, float at
      int total_conv = c_fire + c_frost + c_arc; if(total_conv > 95) total_conv = 95; /* retain at least 5% physical identity */
      float fire_amt = 0, frost_amt=0, arc_amt=0; if(total_conv>0 && remain_phys>0){ fire_amt = remain_phys * ((float)c_fire / 100.0f); frost_amt = remain_phys * ((float)c_frost/100.0f); arc_amt = remain_phys * ((float)c_arc/100.0f); float sum = fire_amt + frost_amt + arc_amt; if(sum > remain_phys){ float scale = remain_phys / sum; fire_amt*=scale; frost_amt*=scale; arc_amt*=scale; } remain_phys -= (fire_amt+frost_amt+arc_amt); }
      /* (Future) Apply elemental resistances once player stat cache exposes them (currently only enemy has). */
-     raw_damage = remain_phys + fire_amt + frost_amt + arc_amt; /* conservation (equal original unless capped) */
+    raw_damage = remain_phys + fire_amt + frost_amt + arc_amt; /* conservation */
+    /* Phase 7.4 reactive shield absorb: consume before reflect. */
+    int absorb_pool = rogue_procs_absorb_pool(); if(absorb_pool>0 && raw_damage>0){ int consumed = rogue_procs_consume_absorb((int)raw_damage); raw_damage -= (float)consumed; if(raw_damage<0) raw_damage=0; }
      /* Phase 7.5 thorns reflect: reflect percent of final post-conversion damage; cap applies. */
      if(g_player_stat_cache.thorns_percent>0 && raw_damage>0){ int reflect = (int)((raw_damage * g_player_stat_cache.thorns_percent)/100.0f); if(g_player_stat_cache.thorns_cap>0 && reflect>g_player_stat_cache.thorns_cap) reflect = g_player_stat_cache.thorns_cap; /* TODO: hook into enemy damage pipeline when attacker context available */ (void)reflect; }
     return (int)raw_damage; }
