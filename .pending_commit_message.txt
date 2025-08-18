@@ -1,17 +1,8 @@
-Phase 14 (Optimization & Memory) - Parallel River Carving & Docs Update
-
-WorldGen:
- - Implemented initial parallel river carving when optimization parallel flag enabled (Windows). Collects ordered river start points, partitions list into contiguous chunks, launches threads via CreateThread. Deterministic because input ordering + per-river carve logic unchanged; overlapping writes (rare) are idempotent (same tile set to water).
- - Added sequential fallback on non-Windows or when flag disabled.
-
-Optimization Scaffolding:
- - Exposed internal accessor for parallel enable already consumed by macro generator.
- - Maintained SIMD stub path (unchanged functionally) preparing for true vector kernels.
-
-Documentation:
- - Roadmap Phase 14: Marked 14.3 Done (initial), clarified remaining 14.2 (true SIMD) & 14.4 (regression guard) partial work.
- - README Phase 14 section expanded: details arena allocator, SIMD batching, new parallel river carving, benchmark baseline, next steps.
-
-Next Planned (not in this commit): parallel biome classification, true vectorized noise & erosion kernels, regression timing tolerance + CI gating, determinism test comparing parallel enabled vs disabled hash outputs.
-
-No functional changes outside worldgen; existing tests pass locally (macro phase 2 test exercised with parallel flag both off/on).
+Equipment System Phase 1 - Slot Expansion (Initial)
+ - Added expanded equipment slot enum: weapon, offhand, full armor set (head/chest/legs/hands/feet), jewelry (ring1/ring2/amulet), utility (belt/cloak), charms (charm1/charm2).
+ - Implemented offhand slot and two-handed occupancy plumbing (detection stub currently always false; future weapon flag to drive logic).
+ - Updated stat cache armor aggregation to ignore jewelry/charms & include new armor slots.
+ - Added placeholder category mapping (offhand/jewelry temporarily treated as armor category until distinct categories introduced).
+ - Added basic unit test `test_equipment_phase1_slots` ensuring new headers compile & slot API callable.
+ - Updated roadmap (implementation_equipment_system.txt) marking Phase 1.1/1.3 Done, 1.2/1.4/1.7 Partial.
+Next: persist new slots (save/load migration), implement true two-hand weapon flag in weapon defs, robust equip/unequip transactional tests, dedicated categories for shields/foci & jewelry stat contributions.

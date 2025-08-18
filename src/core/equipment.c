@@ -13,13 +13,24 @@ int rogue_equip_get(enum RogueEquipSlot slot){ if(slot<0||slot>=ROGUE_EQUIP__COU
 static int category_for_slot(enum RogueEquipSlot slot){
 	switch(slot){
 		case ROGUE_EQUIP_WEAPON: return ROGUE_ITEM_WEAPON;
+		case ROGUE_EQUIP_OFFHAND: return ROGUE_ITEM_ARMOR; /* placeholder: treat shields/foci as armor category until distinct */
 		case ROGUE_EQUIP_ARMOR_HEAD: case ROGUE_EQUIP_ARMOR_CHEST: case ROGUE_EQUIP_ARMOR_LEGS:
 		case ROGUE_EQUIP_ARMOR_HANDS: case ROGUE_EQUIP_ARMOR_FEET: return ROGUE_ITEM_ARMOR;
+		case ROGUE_EQUIP_RING1: case ROGUE_EQUIP_RING2: case ROGUE_EQUIP_AMULET:
+		case ROGUE_EQUIP_BELT: case ROGUE_EQUIP_CLOAK: case ROGUE_EQUIP_CHARM1: case ROGUE_EQUIP_CHARM2: return ROGUE_ITEM_ARMOR; /* reuse armor pipeline for now */
 		default: return -1;
 	}
 }
 
-int rogue_equip_try(enum RogueEquipSlot slot, int inst_index){ const RogueItemInstance* it = rogue_item_instance_at(inst_index); if(!it) return -1; const RogueItemDef* d = rogue_item_def_at(it->def_index); if(!d) return -2; int want_cat = category_for_slot(slot); if(d->category != want_cat) return -3; g_slots[slot]=inst_index; rogue_stat_cache_mark_dirty(); return 0; }
+int rogue_equip_item_is_two_handed(int inst_index){ const RogueItemInstance* it = rogue_item_instance_at(inst_index); if(!it) return 0; const RogueItemDef* d = rogue_item_def_at(it->def_index); if(!d) return 0; /* Heuristic: negative base_armor & weapon category and high damage maybe two-handed; for now use suffix bit in rarity reserved? Placeholder always false. */ return 0; }
+
+int rogue_equip_try(enum RogueEquipSlot slot, int inst_index){
+	const RogueItemInstance* it = rogue_item_instance_at(inst_index); if(!it) return -1; const RogueItemDef* d = rogue_item_def_at(it->def_index); if(!d) return -2; int want_cat = category_for_slot(slot); if(d->category != want_cat) return -3; 
+	/* Two-handed weapon occupancy rule */
+	if(slot==ROGUE_EQUIP_WEAPON){ if(rogue_equip_item_is_two_handed(inst_index)){ if(g_slots[ROGUE_EQUIP_OFFHAND]>=0) { g_slots[ROGUE_EQUIP_OFFHAND]=-1; } } }
+	/* Equipping offhand while two-handed weapon equipped should fail */
+	if(slot==ROGUE_EQUIP_OFFHAND){ int winst = g_slots[ROGUE_EQUIP_WEAPON]; if(winst>=0 && rogue_equip_item_is_two_handed(winst)) return -4; }
+	g_slots[slot]=inst_index; rogue_stat_cache_mark_dirty(); return 0; }
 int rogue_equip_unequip(enum RogueEquipSlot slot){ if(slot<0||slot>=ROGUE_EQUIP__COUNT) return -1; int prev=g_slots[slot]; g_slots[slot]=-1; if(prev>=0) rogue_stat_cache_mark_dirty(); return prev; }
 
 int rogue_equip_repair_slot(enum RogueEquipSlot slot){

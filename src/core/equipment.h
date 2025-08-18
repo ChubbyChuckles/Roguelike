@@ -2,8 +2,30 @@
 #ifndef ROGUE_EQUIPMENT_H
 #define ROGUE_EQUIPMENT_H
 
-/* Expanded slot model (14.1): weapon + five armor slots */
-enum RogueEquipSlot { ROGUE_EQUIP_WEAPON=0, ROGUE_EQUIP_ARMOR_HEAD=1, ROGUE_EQUIP_ARMOR_CHEST=2, ROGUE_EQUIP_ARMOR_LEGS=3, ROGUE_EQUIP_ARMOR_HANDS=4, ROGUE_EQUIP_ARMOR_FEET=5, ROGUE_EQUIP__COUNT };
+/* Expanded slot model (Phase Equipment 1): weapon + armor + jewelry + utility + charms + offhand */
+enum RogueEquipSlot {
+	ROGUE_EQUIP_WEAPON=0,
+	ROGUE_EQUIP_OFFHAND=1,            /* shield / focus / quiver */
+	ROGUE_EQUIP_ARMOR_HEAD=2,
+	ROGUE_EQUIP_ARMOR_CHEST=3,
+	ROGUE_EQUIP_ARMOR_LEGS=4,
+	ROGUE_EQUIP_ARMOR_HANDS=5,
+	ROGUE_EQUIP_ARMOR_FEET=6,
+	ROGUE_EQUIP_RING1=7,
+	ROGUE_EQUIP_RING2=8,
+	ROGUE_EQUIP_AMULET=9,
+	ROGUE_EQUIP_BELT=10,
+	ROGUE_EQUIP_CLOAK=11,
+	ROGUE_EQUIP_CHARM1=12,
+	ROGUE_EQUIP_CHARM2=13,
+	ROGUE_EQUIP__COUNT
+};
+
+/* Slot metadata flags */
+#define ROGUE_EQUIP_META_FLAG_TWOHAND   0x01 /* weapon instance occupies offhand */
+
+/* Public query describing current slot occupancy rules for an item instance. If returns 1 for two_handed, OFFHAND will be cleared automatically on equip. */
+int rogue_equip_item_is_two_handed(int inst_index);
 
 void rogue_equip_reset(void);
 int rogue_equip_get(enum RogueEquipSlot slot); /* returns item instance index or -1 */

@@ -22,7 +22,9 @@ static int weapon_base_damage_estimate(void){
 }
 
 /* Aggregate defensive stat (simple armor sum) and secondary affix bonuses for derived estimates */
-static int total_armor_value(void){ int sum=0; for(int s=ROGUE_EQUIP_ARMOR_HEAD;s<ROGUE_EQUIP__COUNT;s++){ int inst=rogue_equip_get((enum RogueEquipSlot)s); if(inst<0) continue; const RogueItemInstance* it=rogue_item_instance_at(inst); if(!it) continue; const RogueItemDef* d=rogue_item_def_at(it->def_index); if(d) sum += d->base_armor; /* affix scaling could apply later */ }
+static int total_armor_value(void){ int sum=0; for(int s=ROGUE_EQUIP_ARMOR_HEAD;s<ROGUE_EQUIP__COUNT;s++){ /* restrict to armor-like slots */
+        if(s==ROGUE_EQUIP_RING1||s==ROGUE_EQUIP_RING2||s==ROGUE_EQUIP_AMULET||s==ROGUE_EQUIP_CHARM1||s==ROGUE_EQUIP_CHARM2) continue; /* jewelry not contributing base armor */
+        int inst=rogue_equip_get((enum RogueEquipSlot)s); if(inst<0) continue; const RogueItemInstance* it=rogue_item_instance_at(inst); if(!it) continue; const RogueItemDef* d=rogue_item_def_at(it->def_index); if(d) sum += d->base_armor; }
     return sum; }
 
 void rogue_stat_cache_update(const RoguePlayer* p){

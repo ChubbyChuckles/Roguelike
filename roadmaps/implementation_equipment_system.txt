@@ -1,0 +1,229 @@
+EQUIPMENT SYSTEM IMPLEMENTATION PLAN (Roadmap & Status)
+
+Legend:
+Done = Fully implemented & tests pass (baseline already in codebase)
+Partial = Some components implemented (details in parentheses)
+X = Not started yet
+Optional = Nice-to-have / stretch (not required for core loop)
+
+Scope Overview:
+A feature‑rich, data‑driven, deterministic equipment & loadout framework layered on top of the existing loot, affix, combat, and stat cache systems. Focus areas: deep horizontal build diversity (sets, uniques, runewords, socketables, conditional procs), strong systemic cohesion with skills & combat (encumbrance, stance, elemental conversion), tight power budget governance (item level, rarity bands, tiered upgrade curves), robust authoring + validation tooling, upgrade & crafting economy, anti‑cheat / integrity, analytics‑assisted balancing, and forward‑compatible persistence/migration. All progression remains roguelike‑appropriate: permanent meta advantages avoided; equipment power resets per run while analytics inform tuning.
+
+PHASE 0. Current Baseline (Done)
+0.1 Core equip slots (weapon + head/chest/legs/hands/feet) (Done)
+0.2 Category enforcement (weapon vs armor gating) (Done)
+0.3 Stat cache aggregation (weapon affix flat dmg, armor base armor → EHP) (Done)
+0.4 Armor weight classes & encumbrance integration (Done)
+0.5 Stances affecting stamina/damage/poise scalars (Done)
+0.6 Infusions converting damage components + status buildup (Done)
+0.7 Familiarity usage soft bonus (+10% cap) (Done)
+0.8 Durability scalar (damage & poise effectiveness degrade <50%) (Done)
+0.9 Affix framework & rarity weighting (Done – loot subsystem)
+0.10 Persistence of equipped items & affixes (Done – loot/save subsystems)
+0.11 DPS & EHP heuristic in stat cache / UI (Done)
+0.12 Unit tests covering equip stat deltas & armor EHP impact (Done)
+
+PHASE 1. Slot & Data Model Expansion
+1.1 Additional slots: ring1, ring2, amulet, belt, boots, cloak, charm_a/b (Done: enum expanded; legs slot retained for armor; boots separate) 
+1.2 Slot metadata table (max allowed, mutually exclusive groups e.g., two‑handed weapon consumes offhand) (Partial: two-hand rule plumbing present; detection stub returns false pending real weapon data flag)
+1.3 Offhand slot introduction (shield / focus / quiver) (Done: OFFHAND slot added with category placeholder)
+1.4 Two‑handed weapon flag + dynamic slot occupancy (Partial: occupancy logic implemented; flag detection stubbed)
+1.5 Cosmetic layer slots (transmog override pointers) (X)
+1.6 Serialization adjustments + migration entries for new slots (X) /* not yet persisted */
+1.7 Tests: equip/unequip multi-slot atomicity, two‑hand enforcement, serialization round trip (Partial: basic compile/link slot test added; detailed multi-slot + persistence tests pending) 
+
+PHASE 2. Advanced Stat Aggregation & Derived Metrics
+2.1 Distinguish base, implicit, affix, temporary buff layers in stat cache (X)
+2.2 Add secondary derived metrics: toughness (EHP factoring block/guard DR), mobility index (speed * stamina regen * encumbrance inverse), sustain index (life steal proxy when implemented) (X)
+2.3 Resist breakdown panel (physical, each elemental, status buildup resistance) (X)
+2.4 Dynamic soft caps & diminishing returns curves integrated (X)
+2.5 Hash / fingerprint of aggregated stats for determinism audits (X)
+2.6 Tests: invariance ordering, soft cap continuity (slope monotonic), stat fingerprint determinism (X)
+
+PHASE 3. Item Level & Power Budget Governance
+3.1 Introduce item_level per item definition / drop context (X)
+3.2 Budget formula mapping item_level + rarity → max total stat weight (X)
+3.3 Affix roll clamping by remaining budget (X)
+3.4 Deviation validator (reject out‑of‑budget items) (X)
+3.5 Upgrade tier scaling (increment item_level; re‑roll or partially elevate affix ranges) (X)
+3.6 Tests: budget adherence, upgrade preserving deterministic seed influence, no overflow beyond cap (X)
+
+PHASE 4. Implicits, Uniques, Sets & Runewords
+4.1 Implicit modifier layer per base item (static per definition) (X)
+4.2 Unique items: definition schema with fixed affix list + custom behavior hooks (function pointer or ID dispatch) (X)
+4.3 Set items: set_id + rank thresholds -> bonus stat bundles (X)
+4.4 Partial set synergy scaling (linear or tiered) (X)
+4.5 Runeword system: socket recipe string → injected affix bundle + visual tag (X)
+4.6 Conflict resolution (unique + set + runeword precedence rules) (X)
+4.7 Tests: set bonus equip ordering, runeword formation determinism, unique custom hook invocation (X)
+
+PHASE 5. Sockets, Gems & Enchanting
+5.1 Socket count roll (range per base + item_level influence) (X)
+5.2 Gem definitions (flat stat, percent, conditional, proc chance) (X)
+5.3 Socket insertion/removal with cost & failure safety (no item deletion) (X)
+5.4 Enchant system (reroll subset of affixes using currency + rare mat) (X)
+5.5 Reforge: full reroll preserving item_level & socket count (X)
+5.6 Protective seal item to lock an affix during reroll (Optional) (X)
+5.7 Tests: deterministic gem effects stacking, enchant cost scaling, reforge budget compliance (X)
+
+PHASE 6. Conditional Effects & Proc Engine
+6.1 Unified proc descriptor: trigger (on_hit/on_crit/on_kill/on_block/on_dodge/when_low_hp) + ICD ms + magnitude scalar (X)
+6.2 Proc registry + evaluation pipeline in combat update (X)
+6.3 Cooldown bucketization to amortize checks (X)
+6.4 Stacking rules (refresh vs stack vs ignore) (X)
+6.5 Rate limiting (global cap per second) (X)
+6.6 Telemetry counters (procs/min, uptime %) (X)
+6.7 Tests: ICD enforcement, stacking semantics, deterministic ordering with mixed triggers (X)
+
+PHASE 7. Defensive Layer Extensions
+7.1 Block value & block chance stats (armor/offhand) (X)
+7.2 Damage conversion affixes (e.g., 15% incoming physical -> fire) (X)
+7.3 Guard break recovery modifiers (equipment-based) (X)
+7.4 Reactive shield procs (temporary absorb pool) (X)
+7.5 Thorns / reflect w/ cap & DR layering order spec (X)
+7.6 Tests: conversion conservation (sum output=original), reflect cap, ordering invariants (X)
+
+PHASE 8. Durability, Degradation & Economy
+8.1 Non-linear durability loss model (hit severity & rarity scaling) (X)
+8.2 Repair cost formula (rarity, missing durability, item_level) (X)
+8.3 Auto-warn thresholds + UI color states (X)
+8.4 Salvage yield influenced by remaining durability (X)
+8.5 Optional fracture mechanic (0 durability penalty until repaired) (Optional) (X)
+8.6 Tests: cost monotonicity, salvage yield bounds, fracture gating (X)
+
+PHASE 9. Loadout Optimization & Weight Management
+9.1 Loadout comparison tool (diff two saved configurations) (X)
+9.2 Optimizer heuristic: maximize DPS subject to mobility >= threshold & EHP >= floor (X)
+9.3 Gradient / hill-climb search over combinatorial slot space (X)
+9.4 Caching of evaluated combinations (hash set) (X)
+9.5 Tests: optimizer determinism, constraint satisfaction, search pruning coverage (X)
+
+PHASE 10. Crafting & Upgrade Pipelines
+10.1 Upgrade stones (tier1→tier2 etc.) (X)
+10.2 Affix transfer (extract affix to blank orb) (X)
+10.3 Fusion (sacrifice item -> transfer highest affix if budget permits) (X)
+10.4 Quality metric raising base implicit values (X)
+10.5 Crafting success chance scaling with skill (future skill system tie) (Optional) (X)
+10.6 Tests: budget after fusion, quality monotonicity, transfer one-time use (X)
+
+PHASE 11. Analytics, Power Budget & Balancing
+11.1 Item stat snapshot export (JSON) (X)
+11.2 Distribution histograms per rarity & slot (X)
+11.3 Set/unique usage rate collection (X)
+11.4 Outlier detection (Z-score / MAD on DPS contribution) (X)
+11.5 Auto flag oversaturated procs or stacked DR chains (X)
+11.6 A/B test harness for alternative balance tables (X)
+11.7 Tests: histogram sum consistency, outlier detection false positive ceiling (X)
+
+PHASE 12. UI / UX & Visualization
+12.1 Equipment panel refactor (group by slot groups & set progress) (X)
+12.2 Tooltip layering: base → implicit → affix → gem → set/runeword bonuses (X)
+12.3 Comparative delta lines with color-coded soft-cap saturation (X)
+12.4 Proc preview (expected DPS delta given current skill usage rates) (X)
+12.5 Socket drag & drop with gem inventory panel (X)
+12.6 Transmog UI (visual override selection) (X)
+12.7 Tests: tooltip deterministic serialization hash, delta accuracy under equip/unequip (X)
+
+PHASE 13. Persistence & Migration
+13.1 Versioned equipment block schema (X)
+13.2 Slot expansion migration handlers (X)
+13.3 Unique/set/runeword serialization (X)
+13.4 Deterministic hash over serialized equip state for integrity (X)
+13.5 Backward-compatible optional fields (socket_count, item_level) (X)
+13.6 Tests: forward/backward load (omit new fields), hash stability (X)
+
+PHASE 14. Performance & Memory Optimization
+14.1 SoA layout for active equipped item stat deltas (cache-friendly aggregation) (X)
+14.2 Arena / frame pool for temporary aggregation buffers (X)
+14.3 SIMD aggregation of numeric stat sums (X)
+14.4 Parallel affinity: separate threads for expensive optimization (loadout search) (X)
+14.5 Micro-profiler zones for equip recompute & proc evaluation (X)
+14.6 Tests: aggregation perf guard (baseline +/- tolerance), memory leak check (X)
+
+PHASE 15. Multiplayer & Integrity / Anti-Cheat
+15.1 Server validation of equipment changes (budget, slot legality) (X)
+15.2 Hash chain of equip state transitions (X)
+15.3 Anti-duplication ephemeral GUIDs per item instance (X)
+15.4 Replay auditor for suspicious proc rate anomalies (X)
+15.5 Cross-run banned affix combination blacklist (server distributed) (X)
+15.6 Tests: invalid equip rejection, hash mismatch trigger, duplicate instance detection (X)
+
+PHASE 16. Tooling & Authoring
+16.1 External equipment definition editor (base + implicits) (X)
+16.2 Set builder with live bonus threshold preview (X)
+16.3 Proc designer (trigger/type/magnitude/ICD) (X)
+16.4 Runeword recipe validator (duplicate / impossible pattern detection) (X)
+16.5 Budget analyzer report generator (X)
+16.6 Tests: validator catches malformed data, analyzer coverage (X)
+
+PHASE 17. Accessibility & Modding Exposure
+17.1 Public schema docs (JSON) for equipment assets (X)
+17.2 Hot reload of equipment defs & set bonuses (safe swap) (X)
+17.3 Sandboxed scripting hooks for unique behaviors (restricted API) (X)
+17.4 Diff tool for mod vs base distribution (X)
+17.5 Tests: hot reload determinism (hash compare), sandbox enforcement (X)
+
+PHASE 18. Testing & QA Expansion
+18.1 Golden master snapshot (serialized equip diff guard) (X)
+18.2 Fuzz equip/un-equip sequences (state machine coverage) (X)
+18.3 Statistical proc rate tests (expected vs empirical ± tolerance) (X)
+18.4 Stress: max sockets + gems + set + runeword combination (X)
+18.5 Mutation tests (random bit flips -> robust rejection) (X)
+18.6 Tests: all above harnesses integrated into CI gating (X)
+
+PHASE 19. Live Ops, Telemetry & A/B Tuning
+19.1 Real-time dashboard ingestion (slot usage, set completion rates) (X)
+19.2 Remote tuning tables (signed fetch) (X)
+19.3 A/B variant assignment (weighted) (X)
+19.4 Rollback & cache layering (graceful downgrade) (X)
+19.5 Tests: signed payload validation, deterministic variant assignment (X)
+
+PHASE 20. Cleanup / Refactors (Rolling)
+20.1 Const-correctness hardening on stat aggregation APIs (X)
+20.2 Narrower visibility (static/internal) of helper symbols (X)
+20.3 Remove legacy interim durability code after 8.x finalized (X)
+20.4 Centralize numeric curve definitions (soft caps, familiarity, quality) (X)
+20.5 Code size & compile time audit (header trimming) (X)
+
+CROSS-PHASE DEPENDENCIES & ORDERING NOTES
+- Phase 1 precedes many others (slots needed for sets, runewords).
+- Phase 3 (budget) should lock before large influx of Phase 4/5 content to prevent power creep.
+- Phase 6 proc engine underpins many later conditional affixes and gems; implement early with tests.
+- Phase 11 analytics depends on stable stat aggregation (Phase 2) & proc metrics (Phase 6).
+- Phase 13 persistence should trail initial content additions but precede large-scale live ops (Phase 19).
+- Performance (Phase 14) defers until functionality stable to avoid premature optimization except obvious hotspots.
+
+RISK & MITIGATION
+- Power Creep: Enforce Phase 3 budget & automated outlier detection (Phase 11) before releasing large unique/set catalogs.
+- Determinism Drift: Stat fingerprinting + golden master snapshots (Phases 2 & 18) catch ordering regressions.
+- Complexity Bloat: Modularize feature toggles; ensure each layer (sockets, runewords, procs) can be disabled at compile/runtime.
+- Authoring Errors: Tooling validators (Phase 16) + schema docs (Phase 17) + CI data validation gate.
+- Performance Regressions: Baseline perf tests (Phase 14) capturing aggregation & optimization step timings.
+
+TEST STRATEGY OVERVIEW
+- Unit: Slot enforcement, budget math, proc ICD logic, stat curve continuity.
+- Property: Random equip sequences maintain invariants (no negative durability, no duplicate unique beyond allowed, budgets never exceed cap).
+- Fuzz: Proc triggers under randomized combat events (bounded) verifying expected distribution.
+- Regression: Golden master aggregated stat JSON hash.
+- Performance: Micro-bench of aggregation across N=10k random loadouts.
+
+PRIORITY NEAR-TERM (Initial Execution Slice Suggestion)
+1) Phase 1.2/1.4 slot model & two‑hand occupancy
+2) Phase 2.1 layered stat cache refactor
+3) Phase 6.1–6.3 proc engine minimal (on_hit/on_crit with ICD) + tests
+4) Phase 3.1/3.2 item_level + budget scaffolding
+5) Phase 4.1 implicits + 4.2 basic unique (one exemplar) to validate pipeline
+6) Phase 13.1 versioned equipment schema to future-proof before broad expansion
+
+METRICS & SUCCESS CRITERIA
+- Deterministic hash stability across 1000 randomized equip permutations (0 mismatches).
+- Budget adherence: 100% items <= target budget; outlier detector false positives <1% on synthetic dataset.
+- Proc engine: variance of proc rate within ±7% of theoretical expectation over 50k simulated strikes.
+- Aggregation latency: P95 equip recompute < 200µs on reference hardware.
+- Memory: Aggregation temp allocations = 0 (arena only) after Phase 14.2.
+
+NOTES
+- Unique item hooks must remain pure / deterministic given seed + input state; side effects limited to stat modifications or scheduled events.
+- Avoid exponential combination explosion by capping simultaneous multiplicative layers (limit of N active proc auras considered in power budget).
+- Keep serialization backward-compatible: unknown future fields skipped with size bounds.
+- Plan intentionally front-loads governance (budget/stat layering) before breadth (sets, runewords) to maintain sustainable scaling.

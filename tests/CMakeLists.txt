@@ -2027,6 +2027,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase14_extended.c AND
     add_test(NAME test_equipment_phase14_extended COMMAND test_equipment_phase14_extended)
 endif()
 
+# Equipment System Phase 1 slot expansion test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase1_slots.c AND NOT TARGET test_equipment_phase1_slots)
+    add_executable(test_equipment_phase1_slots unit/test_equipment_phase1_slots.c)
+    target_link_libraries(test_equipment_phase1_slots PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_equipment_phase1_slots PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_equipment_phase1_slots COMMAND test_equipment_phase1_slots)
+endif()
+
 # Explicitly add loot phase 5 rarity parse test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase5_rarity_parse.c AND NOT TARGET test_loot_phase5_rarity_parse)
     add_executable(test_loot_phase5_rarity_parse unit/test_loot_phase5_rarity_parse.c)
