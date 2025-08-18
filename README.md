@@ -219,14 +219,15 @@ Adds an underground dungeon layer built from a deterministic room graph.
 * 7.7 Validation: Unit test asserts full reachability, minimum loop ratio threshold, non-zero carving, deterministic regeneration (room centers), secret/lock/trap counts non-negative, and tagging invariants (exactly one treasure, at least one elite).
 New tile types: `ROGUE_TILE_DUNGEON_WALL`, `ROGUE_TILE_DUNGEON_FLOOR`, `ROGUE_TILE_DUNGEON_DOOR`, `ROGUE_TILE_DUNGEON_LOCKED_DOOR`, `ROGUE_TILE_DUNGEON_SECRET_DOOR`, `ROGUE_TILE_DUNGEON_TRAP`, `ROGUE_TILE_DUNGEON_KEY`.
 
-### Equipment System Phase 1 (In Progress)
+### Equipment System Phase 1 (Completed)
 * Added expanded equipment slot enum: weapon, offhand, head, chest, legs, hands, feet, ring1, ring2, amulet, belt, cloak, charm1, charm2.
 * Implemented data-driven two-handed weapon flag (item definition `flags` bitmask) powering automatic offhand clearing and offhand equip blocking.
 * Persisting full equipment slot state in player save component (count + per-slot instance indices) with backward-compatible loader.
 * Added cosmetic transmog layer (per-slot override definition index) with API and basic validation (same category requirement).
 * Basic smoke test (`test_equipment_phase1_slots`) exercises new API and validates two-hand/offhand guard if a flagged weapon exists in definitions.
 * New test `test_equipment_phase1_transmog` validates transmog set/clear and category mismatch rejection.
-* Roadmap updated (Phase 1.1–1.6 Done; 1.7 tests partial). Follow-up: richer transactional equip tests, serialization roundtrip assertion, distinct category for shields/foci, jewelry stat differentiation, cosmetic layer placeholders.
+* Added persistence + atomicity test `test_equipment_phase1_persistence` with dedicated test items (`test_equipment_items.cfg`) ensuring two-hand offhand clearing, swap behavior, and save/load roundtrip.
+* Roadmap updated (Phase 1.1–1.7 Done). Note: broader suite has pre-existing unrelated failures; new equipment tests pass. Next: begin Phase 2 stat layering refactor.
 
 ### World Generation Phase 8 (Fauna & Spawn Ecology)
 Introduces deterministic wildlife/creature spawn sampling decoupled from runtime AI specifics.

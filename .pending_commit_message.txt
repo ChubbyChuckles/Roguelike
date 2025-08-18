@@ -1,20 +1,22 @@
-Equipment System Phase 1 - Slot Expansion (Initial)
-- Added expanded equipment slot enum: weapon, offhand, full armor set (head/chest/legs/hands/feet), jewelry (ring1/ring2/amulet), utility (belt/cloak), charms (charm1/charm2).
-- Implemented offhand slot and two-handed occupancy plumbing (detection now data-driven via item definition flags).
-- Updated stat cache armor aggregation to ignore jewelry/charms & include new armor slots.
-- Added placeholder category mapping (offhand/jewelry temporarily treated as armor category until distinct categories introduced).
-- Added basic unit test `test_equipment_phase1_slots` ensuring new headers compile & slot API callable.
-
-Equipment System Phase 1.2/1.4/1.6 - Two-Hand Flag & Persistence
-- Added equipment two-handed flag (item definition bitmask) + parsing (optional flags column) and persistence of expanded equipment slots (count + per-slot instance indices).
-- Implemented two-hand occupancy logic (auto-clear offhand, block offhand equip) using flags.
-- Updated roadmap & README; save loader backward compatible (conditional read of slot block).
+Equipment System Phase 1.2-1.4 - Slot Expansion & Two-Hand Flag
+ - Expanded slots (weapon, offhand, head, chest, legs, hands, feet, ring1, ring2, amulet, belt, cloak, charm1, charm2).
+ - Added OFFHAND slot plus two-handed flag (ROGUE_ITEM_FLAG_TWO_HANDED) in item definitions and parsing (optional flags column).
+ - Enforced occupancy: equipping two-handed weapon auto-clears OFFHAND; OFFHAND equip blocked while two-handed weapon active.
+ - Updated save_manager to serialize expanded slot set (count + per-slot instance indices) with backward-compatible loader.
 
 Equipment System Phase 1.5 - Cosmetic Transmog Layer
-- Implemented per-slot cosmetic transmog override API (`rogue_equip_set_transmog` / `rogue_equip_get_transmog`).
-- Category validation ensures visual override shares category with target slot (prevents weapon-as-helm misuse).
-- Added unit test `test_equipment_phase1_transmog` covering set, reject mismatch, clear operations.
-- Roadmap updated: 1.5 & 1.6 marked Done; 1.7 tests partial (persistence roundtrip & multi-slot atomicity still pending).
+ - Implemented per-slot cosmetic transmog override API (rogue_equip_set_transmog / rogue_equip_get_transmog).
+ - Category validation ensures visual override shares category with target slot.
+ - Added unit test test_equipment_phase1_transmog covering set, mismatch reject, clear.
+ - Roadmap updated: 1.5 & 1.6 marked Done; 1.7 tests previously partial.
+ - README updated with Phase 1 progress summary and transmog note.
 
-README: Document transmog test addition
- - Extended Equipment System Phase 1 section to mention cosmetic transmog layer and dedicated test.
+Equipment System Phase 1.7 - Atomicity & Persistence Tests
+ - Added test_equipment_items.cfg with greatsword (two-handed flagged) and shield.
+ - New unit test test_equipment_phase1_persistence validates:
+	 * Two-handed equip auto-clears OFFHAND & blocks shield.
+	 * Swapping to one-hand weapon permits OFFHAND equip.
+	 * Save/load roundtrip restores equipped instance indices (weapon, ring) verifying persistence.
+ - CMake updated with test_equipment_phase1_persistence target.
+ - Roadmap updated marking 1.7 Done (atomicity + persistence complete).
+ - README will note Phase 1 completion status (1.1-1.7 Done).

@@ -30,7 +30,7 @@ PHASE 1. Slot & Data Model Expansion
 1.4 Two‑handed weapon flag + dynamic slot occupancy (Done: occupancy logic implemented; flag detection stubbed)
 1.5 Cosmetic layer slots (transmog override pointers) (Done: per-slot transmog def index, API set/get, category validation)
 1.6 Serialization adjustments + migration entries for new slots (Done: slot indices persisted; transmog def persistence deferred to Phase 12 UI layer) 
-1.7 Tests: equip/unequip multi-slot atomicity, two‑hand enforcement, serialization round trip (Partial: slot + two-hand + transmog category tests; persistence round trip still pending) 
+1.7 Tests: equip/unequip multi-slot atomicity, two‑hand enforcement, serialization round trip (Done: slot + two-hand, transmog category, atomicity & persistence roundtrip tests added) 
 
 PHASE 2. Advanced Stat Aggregation & Derived Metrics
 2.1 Distinguish base, implicit, affix, temporary buff layers in stat cache (X)
