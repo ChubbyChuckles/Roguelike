@@ -1,0 +1,193 @@
+INVENTORY SYSTEM IMPLEMENTATION PLAN (Roadmap & Status)
+
+Legend:
+Done = Fully implemented & tests pass (leveraging existing code)
+Partial = Some components implemented (details in parentheses)
+X = Not started yet
+Optional = Nice-to-have / stretch goal (scoped for later waves)
+
+Scope Overview:
+Design a robust, data‑driven, low‑latency inventory platform building on existing loot, affix, equipment, salvage, durability, quality, socket, rarity, filter, analytics, and persistence foundations. Goals: scalability (thousands of items across tabs), deterministic multiplayer safety, rich querying, automation assists, minimal save deltas, integrity guarantees, and future extensibility (marketplace, account‑wide vault).
+
+PHASE 0. Baseline (Current Implemented Foundations) (Done)
+0.1 Core count-based inventory (stacking by def id) (Done)
+0.2 Equip integration & stat cache invalidation (Done)
+0.3 Ground loot pickup -> inventory increment (Done)
+0.4 Salvage, drop, auto-pickup, stack merge (Done)
+0.5 Persistence round‑trip (inventory component) (Done)
+0.6 Basic UI list/grid + sorting & rarity/category filters (Done)
+0.7 Affix / rarity / quality / durability metadata on instances (Done)
+0.8 Personal vs shared loot ownership (Done)
+
+PHASE 1. Structural & Capacity Enhancements
+1.1 Introduce capacity model abstraction (slot_count, weight, volume) (X)
+1.2 Hybrid stacking: partial stacks fill, overflow auto-creates new slot (X)
+1.3 Compartment architecture: {main_bag, materials_ledger, quest_items, currency} (X)
+1.4 Dynamic bag expansion (progression unlocks, craftable pouches) (X)
+1.5 Virtualized large stack representation (shard big counts into fixed-size nodes) (X)
+1.6 Capacity progression config file + parser + tests (X)
+1.7 Edge-case policy: over-cap grace, blocked pickups, auto‑send to stash (X)
+
+PHASE 2. Stash & Banking Layer
+2.1 Multi-tab stash (tab metadata: name, capacity, theme) (X)
+2.2 Personal vs account-shared tabs (permission flags) (X)
+2.3 Tab hot-loading (lazy deserialize on first access) (X)
+2.4 Transactional move operations (begin, apply, commit/rollback) (X)
+2.5 Bulk move (CTRL+click all matching query) with atomic batch (X)
+2.6 Stash tab compression (RLE + varint quantities) (X)
+2.7 Tab rename & reorder persistence (X)
+2.8 Unit tests: atomicity, partial failure rollback (X)
+
+PHASE 3. Item Metadata & Tagging
+3.1 Favorite / lock flags (prevent salvage/drop unless override) (X)
+3.2 Player-defined tags (short strings; pooled intern table) (X)
+3.3 Auto-tag rules (e.g., rarity>=3 => "HighValue") (X)
+3.4 Tag expression storage (serialized rule DSL) (X)
+3.5 Tag-based color accents in UI (X)
+3.6 Tests: lock enforcement, rule application determinism (X)
+
+PHASE 4. Advanced Query & Sorting
+4.1 Query expression parser: grammar (field ops: rarity, affix_weight, tag, slot, quality, durability_pct) (X)
+4.2 Fuzzy text search (normalized trigram index per tab) (X)
+4.3 Composite sorting pipeline (multi-key stable chain) (X)
+4.4 Saved searches + quick slot bar (X)
+4.5 Incremental re-index on item mutation (affix change, quality, durability) (X)
+4.6 Query cache & LRU eviction (X)
+4.7 Tests: parser fuzz, stability of multi-key sorts, cache hit ratios (X)
+
+PHASE 5. Loadouts & Presets
+5.1 Equipment loadout save slots (serialized equip slot -> inst guid mapping) (X)
+5.2 Loadout diff engine (stat delta summary: DPS, EHP, aggregated affix categories) (X)
+5.3 One-click swap with atomic validation (all items present & free) (X)
+5.4 Partial fallback (swap those available, report misses) (X)
+5.5 Hotbar binding of loadouts + cooldown gating to prevent spam (X)
+5.6 Tests: round-trip, missing item detection, deterministic diffs (X)
+
+PHASE 6. Crafting & Material Ledger Integration
+6.1 Materials ledger (non-slot, infinite stacking ledger entries) (X)
+6.2 Auto-route crafting drops (salvage outputs bypass bag) (X)
+6.3 Cost preview aggregator (query ledger + bag + stash) (X)
+6.4 Smart consumption order (use oldest / lowest-quality first) (X)
+6.5 Salvage batch pipeline (multi-select salvage -> ledger entries) (X)
+6.6 Tests: ledger persistence, consumption order, salvage multi (X)
+
+PHASE 7. Multiplayer Transaction & Concurrency Safety
+7.1 Inventory state version number (monotonic) (X)
+7.2 Operation journal (append-only entries hashed chain) (X)
+7.3 Optimistic concurrency on apply (compare version) (X)
+7.4 Conflict resolution policies (retry, reject, merge counts) (X)
+7.5 Atomic multi-party trade escrow (begin, deposit, lock, finalize) (X)
+7.6 Timeouts & auto-rollback (X)
+7.7 Server authoritative validator hooks (X)
+7.8 Tests: race simulation harness, trade escrow invariants (X)
+
+PHASE 8. Performance & Memory Optimization
+8.1 SoA layout for high-frequency fields (quantity, rarity, flags) (X)
+8.2 Free-list compaction (fragmentation metrics) (X)
+8.3 Incremental serialization (delta encode mutated slots only) (X)
+8.4 Tab compression benchmarks (target <1.5 ms decompress 5k items) (X)
+8.5 Bloom filters per tab for quick existence (affix/rareness) (X)
+8.6 Cache-line alignment analysis & micro-profiler marks (X)
+8.7 Tests: perf budget CI gate (N items ops/sec threshold) (X)
+
+PHASE 9. Analytics & Telemetry
+9.1 Acquisition source tagging (drop, craft, trade, gift) (X)
+9.2 Time-in-inventory metric (aging) (X)
+9.3 Turnover rate: salvage vs kept ratio (X)
+9.4 Value density (aggregate power / slot cost) (X)
+9.5 Hoarding detection heuristic (stale high-value items) (X)
+9.6 JSON export snapshot & diff (X)
+9.7 Tests: metric correctness under simulated sessions (X)
+
+PHASE 10. UI / UX Enhancements
+10.1 Multi-select marquee & shift range select (X)
+10.2 Inline search highlight & filter chips (X)
+10.3 Affix percentile bars & roll quality heat tint (X)
+10.4 Side-by-side comparison pane (3 item compare) (X)
+10.5 Undo last action (single-step stack within N seconds) (X)
+10.6 Accessibility: color-blind palette & text mode (X)
+10.7 Animated capacity meter (weight, slots, ledger usage) (X)
+10.8 Tests: selection correctness, undo invariants (X)
+
+PHASE 11. Automation & Smart Assist
+11.1 Auto-salvage rules (whitelist overrides) (X)
+11.2 Smart stash packing (First Fit Decreasing by category/size) (X)
+11.3 Salvage vs keep scoring model (rarity, affix percentile, set bonuses future) (X)
+11.4 Duplicate detection (functional equivalence hash) (X)
+11.5 Idle cleanup suggestions panel (X)
+11.6 Background prefetch: probable next tab index warm (X)
+11.7 Tests: no accidental salvage of locked/favorites, duplicate hash collisions (X)
+
+PHASE 12. Security / Anti-Cheat
+12.1 Hash chain of mutations (inventory-level) (X)
+12.2 Tamper-evident stash snapshot signature (X)
+12.3 Merkle tree over tabs for partial verification (X)
+12.4 Anomaly detector (sudden high-tier influx) (X)
+12.5 Rate limiter (ops per minute thresholds) (X)
+12.6 Replay validator (journal -> recompute final state) (X)
+12.7 Tests: hash mismatch detection, forged snapshot rejection (X)
+
+PHASE 13. Persistence & Migration
+13.1 Versioned inventory header (capabilities bitmask) (X)
+13.2 Migration handlers (expand slot struct, add flags) (X)
+13.3 Lazy tab streaming (pointer table + offsets) (X)
+13.4 Integrity: per-tab CRC + global SHA/Merkle root (X)
+13.5 Backup rotation & pruning policy (last N daily, M weekly) (X)
+13.6 Tests: partial load, migration forward/back compat (X)
+
+PHASE 14. Testing & Quality Gates
+14.1 Unit: capacity add/remove boundary (X)
+14.2 Fuzz: random transaction sequences (X)
+14.3 Property: salvage+undo idempotence (X)
+14.4 Stress: 50k item synthetic dataset (X)
+14.5 Deterministic replay harness (seeded journal) (X)
+14.6 CI performance thresholds & regression alerts (X)
+
+PHASE 15. Tooling & Developer Experience
+15.1 CLI inventory inspector (dump queries) (X)
+15.2 JSON import/export for test seeds (X)
+15.3 Static analyzer: unused >T hours highlight (X)
+15.4 Capacity progression balancer script (X)
+15.5 Sankey flow visualization generator (acquisition -> sink) (X)
+15.6 Docs: inventory architecture README (X)
+
+PHASE 16. Future / Optional Extensions
+16.1 Cross-character account vault (Optional)
+16.2 Marketplace listing scaffolding (Optional)
+16.3 Cloud sync & conflict merge (Optional)
+16.4 Blueprint / recipe discovery tagging (Optional)
+16.5 Seasonal vault archival & restore (Optional)
+
+DEPENDENCIES & INTEGRATIONS
+- Relies on existing loot instance GUIDs, affix data, durability, quality, rarity color mapping, persistence manager, analytics export.
+- Multiplayer phases require finalized authority pipeline & network message schemas.
+- Automation depends on advanced query engine (Phase 4) & analytics metrics (Phase 9).
+
+RISK & MITIGATION
+- Performance: Large stash tabs -> mitigate via lazy loading (2.3), delta serialization (8.3).
+- Complexity creep: Keep each phase gated behind feature flags; cut optional features early if perf budget exceeded.
+- Data corruption: Journal + hash chain (7.2,12.1) plus replay validator (12.6) for recovery.
+- False-positive auto-salvage: Locked/favorite precedence (3.1) enforced early in rule pipeline.
+
+METRICS / DONE DEFINITIONS
+- Query latency (Phase 4): P95 < 1 ms for 5k items (cached), < 5 ms cold.
+- Atomic move (Phase 2): 0 failures without rollback under fuzz (14.2) in 1M ops.
+- Serialization delta (8.3): Typical delta < 2% full snapshot size during steady play.
+- Journal replay determinism: 100% identical hash vs live state across 100 seeded runs.
+
+ROLL-OUT STRATEGY
+1. Deliver Phase 1 + minimal Phase 2 (single stash tab) for immediate UX gain.
+2. Implement Phase 3 (locks/favorites) before enabling auto-salvage (Phase 11) to avoid accidental loss.
+3. Introduce query engine (Phase 4) then loadouts (Phase 5) to leverage expression diffs.
+4. Performance optimizations (Phase 8) before expanding stash scale or enabling analytics heavy features (Phase 9).
+5. Security & migration (12,13) align with multiplayer test window.
+
+TEST PRIORITIZATION ORDER
+Early: 1,2,3,4,5,8 (critical foundations)
+Mid: 6,7,9,10,11
+Late: 12,13,14,15,16
+
+NOTES
+- Many foundational elements (affixes, rarity, persistence, logging, analytics) already exist; focus is orchestration & new abstractions.
+- Keep APIs minimal & internal until stabilized; expose scripting or mod hooks post Phase 8.
+- Leverage existing fuzz harness patterns from loot & equipment for transaction and parser robustness.

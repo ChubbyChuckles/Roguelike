@@ -1,0 +1,1 @@
+Analogous to the implementation plans in the "roadmaps/" directory. Work out a sophisticated, state-of-the-art inventory system build upon the already implemented features. Write a step-by-step implementation plan to "roadmaps/implementation_plan_inventory_system.txt".
