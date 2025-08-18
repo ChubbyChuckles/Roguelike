@@ -5,6 +5,7 @@
 #include "core/loot_affixes.h"
 #include "core/stat_cache.h"
 #include "core/equipment_uniques.h"
+#include "core/equipment_gems.h" /* Phase 5.2 gem aggregation */
 
 /* ---- Set & Runeword Data (Phase 4.3–4.5) ---- */
 typedef struct RogueSetBonus { int pieces; int strength,dexterity,vitality,intelligence; int armor_flat; int resist_fire,resist_cold,resist_light,resist_poison,resist_status,resist_physical; } RogueSetBonus;
@@ -171,6 +172,7 @@ void rogue_equipment_apply_stat_bonuses(RoguePlayer* p){
     gather_affix_primary_and_armor(); /* affix layer (later in precedence) */
     gather_implicit_primary_and_armor();
     gather_unique_primary();
+    rogue_gems_aggregate_equipped(); /* Phase 5.2: gem contributions before sets/runewords (still additive into affix_* layer) */
     gather_set_bonuses();
     gather_runeword_bonuses();
     rogue_stat_cache_mark_dirty();
