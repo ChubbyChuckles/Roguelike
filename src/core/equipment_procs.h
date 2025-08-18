@@ -42,6 +42,8 @@ int rogue_proc_trigger_count(int id);
 int rogue_proc_active_stacks(int id);
 float rogue_proc_uptime_ratio(int id); /* uptime_ms / total_time_ms */
 void rogue_proc_set_rate_cap_per_sec(int cap); /* global trigger cap */
+float rogue_proc_triggers_per_min(int id); /* triggers normalized to per-minute */
+int rogue_proc_last_trigger_sequence(int id); /* deterministic ordering sequence number */
 
 #ifdef __cplusplus
 }

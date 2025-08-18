@@ -559,6 +559,15 @@ Implemented an initial conditional effect (proc) subsystem:
 * Tests: `test_equipment_phase6_proc_engine` simulates mixed hit/crit sequence validating trigger counts and stacking persistence.
 * Roadmap: Marked 6.1–6.3 Done; forthcoming phases (6.4–6.7) will add advanced stacking semantics variety, rate limiting refinements, and deterministic ordering tests.
 
+### Equipment Phase 6.4–6.7 – Advanced Stacking, Rate Limiting & Telemetry
+Extended the proc subsystem with full stacking semantics, deterministic ordering, enhanced rate limiting, and richer analytics:
+* Stacking Rules Finalized (6.4): Implemented explicit enum dispatch – Refresh (duration reset, stack count stable), Stack (increments up to max_stacks; shared duration window), Ignore (first trigger holds until expiry). Internal state machine refactored for clarity & future extension (e.g., decay stacking).
+* Global Rate Limiting (6.5): Consolidated per-proc ICD with a global rolling window trigger cap to prevent burst spam; added monotonically increasing global sequence id assigned at each successful trigger to guarantee deterministic ordering across mixed trigger types even when throttled.
+* Telemetry Expansion (6.6): Added per-proc triggers-per-minute calculation (scaled from total triggers & accumulated active milliseconds) plus last trigger sequence accessor for ordering assertions; existing uptime accumulation retained for later balancing dashboards.
+* Deterministic Ordering (6.6 adjunct): Sequence numbers provide stable comparison for replay / audit tooling; no dependence on registration index once triggered.
+* Tests (6.7): New `test_equipment_phase6_proc_engine_extended` exercises rapid hit events verifying: (a) refresh rule never increases stack count, (b) stacking rule caps at max, (c) ignore rule maintains single stack, (d) non-zero triggers-per-minute, (e) positive and ordered sequence numbers.
+* Roadmap Updated: Phase 6.4–6.7 marked Done; foundation ready for later conditional affix categories and analytics phases (11.x).
+
 
 
 * Each `RogueItemInstance` now tracks `item_level` (baseline 1 on spawn) driving a power budget.

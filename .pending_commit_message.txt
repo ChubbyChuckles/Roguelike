@@ -51,3 +51,19 @@ Notes / Future Work:
 * Extend gem definitions with proc chance/effect execution hooks and rarity-based cost scaling.
 * Implement Phases 5.4 (Enchant selective reroll) & 5.5 (Reforge preserving item level & sockets), optionally 5.6 protective seal, then robustness/determinism tests (5.7).
 
+Equipment Phase 6.4–6.7 – Advanced Proc Engine Completion
+Implemented Features:
+* Stacking Semantics (6.4): Explicit enum-driven logic paths for REFRESH (reset duration only), STACK (increment up to max_stacks and refresh shared duration timer), IGNORE (no re-trigger until expiry). Simplifies future extension (e.g., decay or rolling window strategies).
+* Rate Limiting (6.5): Maintained per-proc ICD and integrated with a global per-second cap using a rolling window; prevents pathological burst storms while preserving deterministic ordering.
+* Deterministic Ordering: Added monotonically increasing global sequence counter; each successful trigger stores its sequence id enabling ordering assertions & replay diffing regardless of registration order.
+* Telemetry (6.6): Added triggers-per-minute metric (computed from total triggers and accumulated active milliseconds) and last trigger sequence accessors; existing uptime ratio and trigger counts retained. APIs: rogue_proc_triggers_per_min(id), rogue_proc_last_trigger_sequence(id).
+* Tests (6.7): New unit test `test_equipment_phase6_proc_engine_extended` validates stacking rule behaviors (refresh stays at 1, stack caps <= max, ignore remains 1), non-zero triggers-per-minute, and positive sequence numbers post rapid event simulation.
+* Documentation: Roadmap entries 6.4–6.7 updated to Done with descriptive notes; README new section summarizing advanced proc engine enhancements.
+
+Rationale / Impact:
+Completes foundational conditional effect layer required for upcoming analytics (Phase 11) and more complex conditional affix/gem behaviors. Deterministic sequence IDs reduce future debugging complexity and enable purge/replay tooling to assert exact proc ordering.
+
+Next Steps:
+* Phase 7 defensive layer extensions (block value stats, conversion, guard break recovery, reactive shield, thorns stacking).
+* Integrate proc effects with upcoming defensive/offensive stat modifiers once those layers land.
+
