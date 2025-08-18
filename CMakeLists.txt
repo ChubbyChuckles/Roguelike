@@ -262,6 +262,7 @@ add_library(rogue_core
     src/core/equipment_perf.c
     src/core/equipment_modding.c
     src/core/inventory_tag_rules.c
+    src/core/inventory_query.c
 )
 
 target_include_directories(rogue_core PUBLIC

@@ -50,13 +50,13 @@ PHASE 3. Item Metadata & Tagging
 3.6 Tests: lock enforcement, rule application determinism (Done) /* New test_inventory_phase3_lock_rule_enforce covers salvage/drop prevention and tag rule order (both tags present, first color precedence). */
 
 PHASE 4. Advanced Query & Sorting
-4.1 Query expression parser: grammar (fields: rarity, affix_weight, tag, equip_slot, quality, durability_pct, qty, category) (X)
-4.2 Fuzzy text search (single inventory trigram index) (X)
-4.3 Composite sorting pipeline (stable; multi-key chain) (X)
-4.4 Saved searches + quick action bar (applies filter + bulk salvage preview) (X)
-4.5 Incremental re-index on item mutation (affix change, quality, durability) (X)
-4.6 Query result cache & LRU eviction (keyed by normalized AST hash) (X)
-4.7 Tests: parser fuzz, stable sort determinism, memory leak guard, cache hit ratio thresholds (X)
+4.1 Query expression parser: grammar (fields: rarity, affix_weight, tag, equip_slot, quality, durability_pct, qty, category) (Partial) /* Implemented basic recursive-descent parser with AND / OR, predicates, numeric & string value support. Instance-derived fields use ANY-instance semantics. Missing: full fuzz harness & error diagnostics. */
+4.2 Fuzzy text search (single inventory trigram index) (Done) /* Implemented trigram containment index with lazy build + rebuild API. */
+4.3 Composite sorting pipeline (Partial) /* Multi-key chain implemented (reverse pass qsort) supporting rarity, qty, name, category with descending (-key) handling. Lacks true stable secondary ordering guarantees for equal primary keys (current tie-breaker def_index). */
+4.4 Saved searches + quick action bar (Partial) /* In-memory registry + persistence (component id=12) + unit tests (basic & persistence). Quick action bar/UI binding pending. */
+4.5 Incremental re-index on item mutation (X) /* Hook API added (rogue_inventory_query_on_instance_mutation) marking trigram dirty bits; still needs wiring to actual mutation call sites. */
+4.6 Query result cache & LRU eviction (X)
+4.7 Tests: parser fuzz, stable sort determinism, memory leak guard, cache hit ratio thresholds (Partial) /* Added query/sort, saved search, and persistence tests. Still need fuzz harness, cache metrics once caching implemented, and leak guards. */
 
 PHASE 5. Loadouts & Presets
 5.1 Equipment loadout save slots (serialized equip slot -> inst guid mapping) (X)

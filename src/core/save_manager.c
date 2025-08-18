@@ -21,6 +21,7 @@
 #include "core/inventory_entries.h" /* Phase 1.6 inventory entries persistence */
 #include "core/inventory_tag_rules.h" /* Phase 3.3 auto-tag rules persistence */
 #include "core/inventory_tags.h" /* Phase 3 inventory metadata */
+#include "core/inventory_query.h" /* Phase 4.4 saved searches persistence */
 
 static RogueSaveComponent g_components[ROGUE_SAVE_MAX_COMPONENTS];
 static int g_component_count = 0;
@@ -1010,6 +1011,10 @@ static RogueSaveComponent INV_TAGS_COMP={ ROGUE_SAVE_COMP_INV_TAGS, write_inv_ta
 static int write_inv_tag_rules_component(FILE* f){ return rogue_inv_tag_rules_write(f); }
 static int read_inv_tag_rules_component(FILE* f, size_t size){ return rogue_inv_tag_rules_read(f,size); }
 static RogueSaveComponent INV_TAG_RULES_COMP={ ROGUE_SAVE_COMP_INV_TAG_RULES, write_inv_tag_rules_component, read_inv_tag_rules_component, "inv_tag_rules" };
+/* Inventory saved searches (Phase 4.4) */
+static int write_inv_saved_searches_component(FILE* f){ return rogue_inventory_saved_searches_write(f); }
+static int read_inv_saved_searches_component(FILE* f, size_t size){ return rogue_inventory_saved_searches_read(f,size); }
+static RogueSaveComponent INV_SAVED_SEARCHES_COMP={ ROGUE_SAVE_COMP_INV_SAVED_SEARCHES, write_inv_saved_searches_component, read_inv_saved_searches_component, "inv_saved_searches" };
 static RogueSaveComponent SKILLS_COMP={ ROGUE_SAVE_COMP_SKILLS, write_skills_component, read_skills_component, "skills" };
 static RogueSaveComponent BUFFS_COMP={ ROGUE_SAVE_COMP_BUFFS, write_buffs_component, read_buffs_component, "buffs" };
 static RogueSaveComponent VENDOR_COMP={ ROGUE_SAVE_COMP_VENDOR, write_vendor_component, read_vendor_component, "vendor" };
@@ -1032,6 +1037,7 @@ void rogue_register_core_save_components(void){
     rogue_save_manager_register(&INV_ENTRIES_COMP); /* Phase 1.6 unified entries */
     rogue_save_manager_register(&INV_TAGS_COMP); /* Phase 3 metadata */
     rogue_save_manager_register(&INV_TAG_RULES_COMP); /* Phase 3.3/3.4 auto-tag rules */
+    rogue_save_manager_register(&INV_SAVED_SEARCHES_COMP); /* Phase 4.4 saved searches */
     rogue_save_manager_register(&SKILLS_COMP);
     rogue_save_manager_register(&BUFFS_COMP);
     rogue_save_manager_register(&VENDOR_COMP);
