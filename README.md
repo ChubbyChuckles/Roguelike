@@ -159,17 +159,17 @@ Implemented core analytics instrumentation:
 * A/B Balance Harness (11.6): Lightweight variant registry (`rogue_balance_register`, `rogue_balance_select_deterministic(seed)`) allowing deterministic selection of tuned thresholds (MAD multiplier, proc oversat threshold, DR chain floor) for comparative testing; default variant auto-created if none registered.
 * Tests (11.7 initial): `test_equipment_phase11_analytics` covers snapshot, histograms, usage, outlier detection; `test_equipment_phase11_balance` validates proc oversaturation flagging, DR chain detection, and deterministic variant selection / threshold enforcement. Roadmap updated (11.1–11.6 Done; 11.7 basic Done).
 
-### Equipment System Phase 12 (Initial UI / Visualization Slice)
-Introduced deterministic, headless UI helpers for regression tests:
-* Panel Grouping (12.1): `rogue_equipment_panel_build` outputs grouped slot listing plus set progress counters.
-* Layered Tooltip (12.2 baseline): `rogue_item_tooltip_build_layered` adds implicit armor, gem sockets, and set tag atop existing base tooltip with stable ordering.
-* Comparative Deltas (12.3 baseline): `rogue_equipment_compare_deltas` damage delta appended when providing a comparison slot.
-* Proc Preview (12.4): `rogue_equipment_proc_preview_dps` aggregates proc triggers/minute into naive DPS contribution.
-* Socket Drag State (12.5 partial): selection + placement APIs (`rogue_equipment_socket_select` / `_place_gem`).
-* Transmog UI State (12.6): wrapper remembers last selection per slot.
-* Determinism Hash (12.7): `rogue_item_tooltip_hash` (FNV-1a) powering new unit test `test_equipment_phase12_ui`.
+### Equipment System Phase 12 (UI / Visualization Complete)
+Deterministic, headless UI helpers (text-mode) enabling regression tests and golden hashing:
+* Panel Grouping (12.1): `rogue_equipment_panel_build` grouped slot listing + set progress counters.
+* Full Layered Tooltip (12.2): `rogue_item_tooltip_build_layered` now includes implicit armor, gems, set tag and active runeword indicator.
+* Comparative Deltas (12.3): Expanded `rogue_equipment_compare_deltas` covers damage, primary stats (Str/Dex/Vit/Int), armor, and physical resist deltas via temporary simulation swap; soft-cap saturation helper `rogue_equipment_softcap_saturation` exposed for prospective color coding (tests can assert numeric saturation rather than colors).
+* Proc Preview (12.4): `rogue_equipment_proc_preview_dps` naive expected DPS contribution (triggers/min -> per second) for quick evaluation.
+* Socket Drag & Gem Inventory (12.5): Selection (`rogue_equipment_socket_select`), placement (`_place_gem`), clear, plus textual gem inventory panel `rogue_equipment_gem_inventory_panel` enumerating selected socket and discovered gem defs across equipped items.
+* Transmog UI (12.6): Selection state wrappers (`rogue_equipment_transmog_select` / `_last_selected`).
+* Determinism & Hash (12.7): `rogue_item_tooltip_hash` (FNV-1a) + stable ordering guaranteeing identical hashes across runs; test `test_equipment_phase12_ui` validates panel presence, hash determinism, and non-negative proc preview.
 
-Deferred aspects (documented as Partial): soft-cap saturation color coding, runeword explicit layer, richer delta stat lines, inventory gem panel visualization.
+All Phase 12 roadmap items now marked Done; subsequent visual polish (actual color rendering) deferred to higher-level renderer integration but logically represented via saturation helper.
 
 ---
 

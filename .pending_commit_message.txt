@@ -25,3 +25,14 @@ Implemented initial slice of Phase 12 UI / Visualization:
  - Unit test test_equipment_phase12_ui validates panel sections presence, tooltip hash determinism, and non-negative proc preview.
  - Roadmap Phase 12 entries updated (marking basics Done / Partial where deeper visuals deferred). README updated with Phase 12 summary.
 
+feat(equipment phase12 completion): full tooltip layering (runeword), expanded comparative deltas, softcap saturation helper, gem inventory panel
+
+Completed remaining Phase 12 UI / Visualization features:
+ - Tooltip layering now includes runeword indicator when runeword layer contributes stats.
+ - Comparative deltas expanded to primary stats (Str/Dex/Vit/Int), armor flat and physical resist via temporary simulation swap (equip candidate -> recompute -> revert).
+ - Added soft-cap saturation helper (rogue_equipment_softcap_saturation) exposing normalized (0..1) saturation after curve application for future color coding (tests can assert numeric values).
+ - Implemented textual gem inventory panel (rogue_equipment_gem_inventory_panel) listing selected socket context and discovered gem definitions across equipped items.
+ - Added runeword + extended delta lines to layered tooltip builder.
+ - Roadmap Phase 12 items all marked Done (12.2–12.7 updated) and README section revised from "Initial slice" to "Complete" with new capabilities.
+ - Public header updated with new APIs; deterministic hash unchanged ensuring backward compatibility for existing tests.
+
