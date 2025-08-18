@@ -199,6 +199,20 @@ Determinism Guard (Phase 17.5 early): Added `rogue_sets_state_hash` (FNV-1a over
 
 This establishes the minimal live-edit feedback loop ahead of Phase 17.3 sandbox scripting hooks. Future extensions may add: granular diff application (preserve unaffected sets), runeword & proc definition reload symmetry, error surfacing (retain last good on parse failure), and sandboxed scripting integration.
 
+## Phase 17.3 – Sandboxed Scripting Hooks (Minimal)
+Introduced a deterministic, restricted scripting format for unique behavior stat adjustments:
+- Script Lines: `add <stat> <int>` or `mul <stat> <percent>`; up to 16 instructions; comments with `#` and blanks ignored.
+- Supported Stats: strength, dexterity, vitality, intelligence, armor_flat, all six resist variants.
+- Application Order: All add operations applied first (aggregating base deltas) followed by all mul operations (percentage increases) to ensure deterministic stacking independent of file line order for identical op ordering.
+- APIs: `rogue_script_load`, `rogue_script_hash`, `rogue_script_apply` defined in new `equipment_modding` module.
+- Test `test_equipment_phase17_sandbox_script` validates successful parse, math correctness (10 add +20% => 12), non-zero hash, and rejection of invalid opcode line.
+
+## Phase 17.4 – Set Definition Diff Tool
+Implemented mod vs base diff utility for set definitions:
+- API `rogue_sets_diff(base_path, mod_path, buf, cap)` emits JSON object with arrays: `added`, `removed`, `changed` (changed determined by FNV hash of bonuses array per set id).
+- Use Case: CI tooling & mod review to surface drift in set catalogs (e.g., tuning changes vs new content removal/additions).
+- Unit test `test_equipment_phase17_sets_diff` constructs base & mod JSON: detects removed id 20, added id 30, changed id 10.
+
 Public APIs (`equipment_persist.h`):
 * `rogue_equipment_serialize(buf, cap)` – emits versioned block; returns bytes written or -1.
 * `rogue_equipment_deserialize(text)` – idempotently reconstructs equipped items (spawning instances) from text; tolerates legacy headerless data.

@@ -80,3 +80,27 @@ Provides early safety net for future sandbox scripting & diff tooling by locking
 Testing:
 All three Phase 17 tests pass (schema docs, hot reload, hash). No impact on previous phases; spot check runeword validator still green.
 
+Equipment Phase 17.3: Sandboxed Scripting Hooks
+
+Summary:
+- Added minimal deterministic sandbox scripting system (file-based) for future unique item / mod stat adjustments.
+- Instruction set: `add <stat> <val>` (additive), `mul <stat> <percent>` (post-add multiplicative). Supported 11 stats.
+- Loader (`rogue_script_load`) parses up to 16 instructions; invalid tokens abort load (no partial state). Hash (`rogue_script_hash`) provides deterministic fingerprint (FNV-1a fold). Applier (`rogue_script_apply`) executes two-pass (adds then muls) ensuring order invariance among same-op groups.
+- Unit test `test_equipment_phase17_sandbox_script` covers parsing, arithmetic result (10 add +20% => 12), hash non-zero, and invalid opcode rejection.
+
+Rationale:
+Provides controlled, auditable extension point without introducing dynamic language complexity. Facilitates future unique behavior tuning & safe mod contributions.
+
+Equipment Phase 17.4: Set Definition Diff Tool
+
+Summary:
+- Implemented `rogue_sets_diff` generating JSON diff of set definitions between base and mod files: `added`, `removed`, `changed` (hash-based bonus comparison).
+- Internally loads both files (temporary registry usage) hashing bonuses per set id (FNV-1a of bonuses struct bytes) to detect content changes.
+- Unit test `test_equipment_phase17_sets_diff` validates detection of added (30), removed (20), and changed (10) ids.
+
+Rationale:
+Equips CI / review pipeline with quick visibility into tuning vs content additions/removals, supporting governance before broad mod distribution.
+
+Testing:
+Expanded Phase 17 test suite now includes sandbox script & diff tool; all five Phase 17 tests pass (schema docs, hot reload, hash, sandbox script, sets diff) under Release config.
+

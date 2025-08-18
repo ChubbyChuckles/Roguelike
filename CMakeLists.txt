@@ -257,6 +257,7 @@ add_library(rogue_core
         src/core/loot_security.c
     src/core/loot_api_doc.c
     src/core/equipment_perf.c
+    src/core/equipment_modding.c
 )
 
 target_include_directories(rogue_core PUBLIC

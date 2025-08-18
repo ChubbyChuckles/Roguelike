@@ -277,6 +277,22 @@ endif()
             endif()
             add_test(NAME test_equipment_phase17_hot_reload_hash COMMAND test_equipment_phase17_hot_reload_hash)
             set_tests_properties(test_equipment_phase17_hot_reload_hash PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+            # Phase 17.3 sandbox scripting test
+            add_executable(test_equipment_phase17_sandbox_script unit/test_equipment_phase17_sandbox_script.c)
+            target_link_libraries(test_equipment_phase17_sandbox_script PRIVATE rogue_core)
+            if (SDL2_FOUND AND NOT ROGUE_HEADLESS)
+                target_compile_definitions(test_equipment_phase17_sandbox_script PRIVATE ROGUE_HAVE_SDL=1)
+            endif()
+            add_test(NAME test_equipment_phase17_sandbox_script COMMAND test_equipment_phase17_sandbox_script)
+            set_tests_properties(test_equipment_phase17_sandbox_script PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+            # Phase 17.4 sets diff tool test
+            add_executable(test_equipment_phase17_sets_diff unit/test_equipment_phase17_sets_diff.c)
+            target_link_libraries(test_equipment_phase17_sets_diff PRIVATE rogue_core)
+            if (SDL2_FOUND AND NOT ROGUE_HEADLESS)
+                target_compile_definitions(test_equipment_phase17_sets_diff PRIVATE ROGUE_HAVE_SDL=1)
+            endif()
+            add_test(NAME test_equipment_phase17_sets_diff COMMAND test_equipment_phase17_sets_diff)
+            set_tests_properties(test_equipment_phase17_sets_diff PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 # UI Phase 6.2 bars + AP smoothing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARGET test_ui_phase6_bars_ap)
