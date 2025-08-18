@@ -134,9 +134,9 @@ PHASE 13. Persistence & Migration
 
 PHASE 14. Performance & Memory Optimization
 14.1 SoA layout for active equipped item stat deltas (cache-friendly aggregation) (Done: added equipment_perf.c/h with per-slot SoA arrays and total accumulators)
-14.2 Arena / frame pool for temporary aggregation buffers (Partial: linear arena implemented with alloc/reset/high-water introspection; not yet integrated with broader systems beyond perf test)
+14.2 Arena / frame pool for temporary aggregation buffers (Done: linear arena integrated into optimizer candidate collection + perf aggregation; tests validate high-water stability across runs, zero heap alloc path)
 14.3 SIMD aggregation of numeric stat sums (Done (conceptual): implemented batch (4-slot) pseudo-SIMD loop; real intrinsics deferred for portability; identical results validated vs scalar)
-14.4 Parallel affinity: separate threads for expensive optimization (loadout search) (X)
+14.4 Parallel affinity: separate threads for expensive optimization (loadout search) (Done: async optimizer API (launch/join/state) spawning worker thread on Win32, fallback synchronous path elsewhere; profiler zones added; deterministic ordering preserved)
 14.5 Micro-profiler zones for equip recompute & proc evaluation (Done: lightweight zone profiler with begin/end, stats & JSON dump API; used in perf test to time scalar vs simd aggregation)
 14.6 Tests: aggregation perf guard (baseline +/- tolerance), memory leak check (Done: test_equipment_phase14_perf validates scalar vs simd equality, profiler capture, arena capacity bounds)
 

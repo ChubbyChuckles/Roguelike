@@ -129,15 +129,15 @@ Introduces a versioned, forward-compatible equipment serialization layer with de
 * Optional Fields (13.5): Loader tolerates missing (legacy) fields like `SOCKS`, `ILVL`, `ENCH`, `QC`; defaults applied (count=0, level=1, enchant=0, quality=0, gems=-1).
 * Tests (13.6): `test_equipment_phase13_persistence` (round-trip, omission of new tokens, tamper hash divergence) and `test_equipment_phase13_slot_migration` (legacy remap) ensure backward + forward compatibility and integrity detection.
 
-### Equipment System Phase 14 (Performance & Memory – Initial Slice)
+### Equipment System Phase 14 (Performance & Memory – Expanded)
 
-Introduced foundational performance instrumentation & data layout optimizations:
-* SoA Slot Arrays (14.1): Added `equipment_perf.c,h` maintaining per-slot primary stat & armor contributions plus cached totals for quick inspection / future hot paths.
-* Frame Arena (14.2 Partial): Simple linear arena allocator with high-water tracking (`rogue_equip_frame_alloc/reset/high_water`) – future phases will migrate transient buffers here.
-* Batch Aggregation (14.3 Conceptual SIMD): Added 4-slot batch “simd-like” aggregator producing identical results to the scalar path; true SIMD intrinsics deferred for portability and later profiling data.
-* Micro-Profiler (14.5): Lightweight zone profiler (begin/end) capturing ms totals & counts; aggregation paths instrumented (`agg_scalar`, `agg_simd`). Dump helper emits JSON-like summary.
-* Perf Test (14.6): `test_equipment_phase14_perf` validates scalar vs batch equality, profiler capture, and arena capacity bounds; prints timing metrics for CI logs.
-Remaining: threaded parallel affinity & broader arena adoption (14.2 completion, 14.4 parallel loadout search).
+Performance layer now covers memory pooling, aggregation variants, micro-profiling, and parallel loadout optimization:
+* SoA Slot Arrays (14.1): `equipment_perf.c,h` maintain per-slot primary stat & armor contributions plus cached totals.
+* Frame Arena (14.2 Complete): Linear arena (`rogue_equip_frame_alloc/reset/high_water/capacity`) integrated into loadout optimizer candidate enumeration eliminating per-iteration stack/heap pressure; tests assert high-water stability across repeated invocations.
+* Batch Aggregation (14.3 Conceptual SIMD): 4-slot batch loop produces identical totals to scalar baseline; pluggable path allows future SSE/AVX implementation guarded by feature detection.
+* Parallel Affinity (14.4): Async optimizer API (`rogue_loadout_optimize_async/join/async_running`) dispatches optimization on a worker thread (Win32 CreateThread) with deterministic fallback synchronous path when threading unavailable; preserves deterministic results (fixed slot & instance ordering) and instruments launch + body with profiler zones.
+* Micro-Profiler (14.5): Zone profiler covers aggregation modes, synchronous optimize, and async launch; JSON dump helper for potential CI perf diffing.
+* Perf & Parallel Tests (14.6 Extended): `test_equipment_phase14_perf` (aggregation parity & profiler), and new `test_equipment_phase14_parallel` validating async improvement non-decrease, join semantics, and arena reuse (no capacity overflow across successive optimizer runs).
 
 Public APIs (`equipment_persist.h`):
 * `rogue_equipment_serialize(buf, cap)` – emits versioned block; returns bytes written or -1.

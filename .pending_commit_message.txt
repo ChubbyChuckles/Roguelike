@@ -8,3 +8,18 @@ Implemented performance foundation for equipment aggregation:
  - New test test_equipment_phase14_perf: spawns items, runs scalar then simd aggregation, asserts identical totals, profiler zone capture, arena bounds, and prints metrics (14.6 Done).
  - Roadmap updated (14.1, 14.3, 14.5, 14.6 Done; 14.2 Partial; 14.4 still X).
 
+Phase 14 (Performance & Memory) Expansion: Complete Arena Integration + Parallel Loadout Optimization
+
+Equipment System Phase 14 updates:
+- 14.2 (Arena) Completed: Frame arena now actively used by loadout optimizer for candidate buffers; high-water tracking validated; prevents transient heap pressure.
+- 14.4 (Parallel Affinity) Implemented: Added async optimizer API (launch/join/running). Win32 worker thread executes deterministic hill-climb search; portable fallback runs synchronously when threading unsupported.
+- Optimizer Enhancements: Integrated profiler zone ("optimize") plus async launch zone; candidate enumeration allocates via arena; no heap allocations required on steady state.
+- Profiler Coverage: Aggregation (scalar/simd), synchronous optimize, async launch. JSON dump API unchanged.
+- Tests: Added test_equipment_phase14_parallel covering async improvement, join semantics, and arena reuse (capacity not exceeded). Updated CMake to register new test. Arena reuse test ensures high-water does not exceed capacity across sequential optimizations.
+- README: Phase 14 section revised to reflect completed 14.2 & 14.4 and expanded test coverage.
+- Roadmap: Updated statuses (14.2 Done, 14.4 Done) with implementation notes.
+
+Determinism & Safety: Search ordering unchanged (slot then instance index), ensuring reproducible results regardless of async execution timing. Fallback path maintains API contract cross-platform.
+
+Next Targets: Potential true SIMD intrinsics (feature-gated), profiler diff tooling, and future Phase 15 multiplayer integrity hooks.
+

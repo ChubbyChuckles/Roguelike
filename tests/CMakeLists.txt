@@ -449,6 +449,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_worldgen_phase14_optimization.c 
     add_test(NAME test_worldgen_phase14_optimization COMMAND test_worldgen_phase14_optimization)
 endif()
 
+# Phase 14.4 parallel optimization test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase14_parallel.c AND NOT TARGET test_equipment_phase14_parallel)
+    add_executable(test_equipment_phase14_parallel unit/test_equipment_phase14_parallel.c)
+    target_link_libraries(test_equipment_phase14_parallel PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_equipment_phase14_parallel PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_equipment_phase14_parallel COMMAND test_equipment_phase14_parallel)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase10_golden_theming.c AND NOT TARGET test_ui_phase10_golden_theming)
     add_executable(test_ui_phase10_golden_theming unit/test_ui_phase10_golden_theming.c)
     target_link_libraries(test_ui_phase10_golden_theming PRIVATE rogue_core)

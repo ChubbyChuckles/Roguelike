@@ -25,6 +25,16 @@ int rogue_loadout_compare(const RogueLoadoutSnapshot* a, const RogueLoadoutSnaps
    Returns number of improvements applied. Non-destructive if no improvement keeps constraints. */
 int rogue_loadout_optimize(int min_mobility, int min_ehp);
 
+/* Phase 14.4: Asynchronous (background thread) variant. Launches optimization on a worker
+    thread so the caller can continue (e.g., main loop). Returns 0 on successful launch,
+    negative on failure or if a job is already running. Use join to retrieve the result. */
+int rogue_loadout_optimize_async(int min_mobility, int min_ehp);
+/* Blocks until async optimization (if any) completes. Returns improvements count or negative
+    if no job was running. */
+int rogue_loadout_optimize_join(void);
+/* Query async state: returns 1 if running, 0 otherwise. */
+int rogue_loadout_optimize_async_running(void);
+
 /* Internal: deterministic hash of snapshot (FNV-1a) for caching & pruning (Phase 9.4). */
 unsigned int rogue_loadout_hash(const RogueLoadoutSnapshot* s);
 

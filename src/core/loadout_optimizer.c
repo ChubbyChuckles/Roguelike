@@ -8,6 +8,10 @@
 #include "core/equipment.h"
 #include "core/inventory.h"
 #include <string.h>
+#include "core/equipment_perf.h" /* arena + profiler (Phase 14) */
+#if defined(_WIN32)
+#include <windows.h>
+#endif
 
 /* Simple FNV-1a 32-bit */
 static unsigned int fnv1a(const void* data, size_t len){ const unsigned char* p=(const unsigned char*)data; unsigned int h=2166136261u; for(size_t i=0;i<len;i++){ h ^= p[i]; h *= 16777619u; } return h; }
@@ -45,22 +49,45 @@ static int collect_candidates(enum RogueEquipSlot slot, int* out_indices, int ca
     return count; }
 
 /* Hill-climb: single pass trying improving swaps per slot until no improvement. */
-int rogue_loadout_optimize(int min_mobility, int min_ehp){ ensure_stats(); RogueLoadoutSnapshot baseline; rogue_loadout_snapshot(&baseline); unsigned int base_hash = rogue_loadout_hash(&baseline); cache_insert(base_hash); g_cache_inserts++; int improved_total=0; int progress=1; int guard=0; while(progress && guard<32){ progress=0; guard++; for(int slot=0; slot<ROGUE_EQUIP_SLOT_COUNT; ++slot){ int current_inst = rogue_equip_get((enum RogueEquipSlot)slot); int candidates[128]; int ccount = collect_candidates((enum RogueEquipSlot)slot, candidates, 128); int best_dps = g_player_stat_cache.dps_estimate; int best_inst = current_inst; for(int ci=0; ci<ccount; ++ci){ int cand = candidates[ci]; if(cand==current_inst) continue; int prev; if(try_equip_slot((enum RogueEquipSlot)slot, cand, &prev)==0){ recompute_stats(); RogueLoadoutSnapshot snap; rogue_loadout_snapshot(&snap); unsigned int h = rogue_loadout_hash(&snap); if(cache_contains(h)){ g_cache_hits++; /* revert */ rogue_equip_try((enum RogueEquipSlot)slot, prev); continue; } else { cache_insert(h); g_cache_inserts++; }
-                    /* Check constraints first */
+int rogue_loadout_optimize(int min_mobility, int min_ehp){
+    rogue_equip_profiler_zone_begin("optimize");
+    ensure_stats(); RogueLoadoutSnapshot baseline; rogue_loadout_snapshot(&baseline); unsigned int base_hash = rogue_loadout_hash(&baseline); cache_insert(base_hash); g_cache_inserts++; int improved_total=0; int progress=1; int guard=0; while(progress && guard<32){ progress=0; guard++; for(int slot=0; slot<ROGUE_EQUIP_SLOT_COUNT; ++slot){ int current_inst = rogue_equip_get((enum RogueEquipSlot)slot); int* candidates = (int*)rogue_equip_frame_alloc(sizeof(int)*128, sizeof(int)); if(!candidates){ int candidates_stack[128]; candidates=candidates_stack; } int ccount = collect_candidates((enum RogueEquipSlot)slot, candidates, 128); int best_dps = g_player_stat_cache.dps_estimate; int best_inst = current_inst; for(int ci=0; ci<ccount; ++ci){ int cand = candidates[ci]; if(cand==current_inst) continue; int prev; if(try_equip_slot((enum RogueEquipSlot)slot, cand, &prev)==0){ recompute_stats(); RogueLoadoutSnapshot snap; rogue_loadout_snapshot(&snap); unsigned int h = rogue_loadout_hash(&snap); if(cache_contains(h)){ g_cache_hits++; /* revert */ rogue_equip_try((enum RogueEquipSlot)slot, prev); continue; } else { cache_insert(h); g_cache_inserts++; }
                     if(constraints_ok(min_mobility, min_ehp)){
                         if(g_player_stat_cache.dps_estimate > best_dps){ best_dps = g_player_stat_cache.dps_estimate; best_inst = cand; }
                     }
-                    /* revert for next candidate */
-                    rogue_equip_try((enum RogueEquipSlot)slot, prev);
-                    recompute_stats();
+                    rogue_equip_try((enum RogueEquipSlot)slot, prev); recompute_stats();
                 }
             }
-            if(best_inst != current_inst){ /* apply best */
-                rogue_equip_try((enum RogueEquipSlot)slot, best_inst);
-                recompute_stats();
-                improved_total++;
-                progress=1;
-            }
+            if(best_inst != current_inst){ rogue_equip_try((enum RogueEquipSlot)slot, best_inst); recompute_stats(); improved_total++; progress=1; }
         }
     }
+    rogue_equip_profiler_zone_end("optimize");
     return improved_total; }
+
+/* ---------------- Phase 14.4: Async optimization ---------------- */
+static volatile int g_async_running=0; static int g_async_min_mob=0, g_async_min_ehp=0; static int g_async_result=0; 
+#if defined(_WIN32)
+static HANDLE g_async_thread=NULL;
+static DWORD WINAPI rogue__opt_thread(LPVOID p){ (void)p; g_async_result = rogue_loadout_optimize(g_async_min_mob, g_async_min_ehp); g_async_running=0; return 0; }
+#endif
+int rogue_loadout_optimize_async(int min_mobility, int min_ehp){ if(g_async_running) return -1; g_async_running=1; g_async_min_mob=min_mobility; g_async_min_ehp=min_ehp; g_async_result=0; rogue_equip_profiler_zone_begin("optimize_async_launch"); rogue_equip_profiler_zone_end("optimize_async_launch");
+#if defined(_WIN32)
+    g_async_thread = CreateThread(NULL,0,rogue__opt_thread,NULL,0,NULL); if(!g_async_thread){ g_async_running=0; return -2; }
+    return 0;
+#else
+    /* Fallback: run synchronously (still sets result) */
+    g_async_result = rogue_loadout_optimize(min_mobility, min_ehp); g_async_running=0; return 0;
+#endif
+}
+int rogue_loadout_optimize_join(void){ if(!g_async_running){
+#if defined(_WIN32)
+        if(g_async_thread){ WaitForSingleObject(g_async_thread, INFINITE); CloseHandle(g_async_thread); g_async_thread=NULL; return g_async_result; }
+#endif
+        return -1; }
+#if defined(_WIN32)
+    WaitForSingleObject(g_async_thread, INFINITE); CloseHandle(g_async_thread); g_async_thread=NULL; int res=g_async_result; g_async_running=0; return res;
+#else
+    return g_async_result; /* already done in fallback */
+#endif
+}
+int rogue_loadout_optimize_async_running(void){ return g_async_running?1:0; }
