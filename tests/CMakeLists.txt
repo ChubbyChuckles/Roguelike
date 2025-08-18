@@ -294,6 +294,15 @@ endif()
             add_test(NAME test_equipment_phase17_sets_diff COMMAND test_equipment_phase17_sets_diff)
             set_tests_properties(test_equipment_phase17_sets_diff PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+            # Phase 18.1 snapshot golden master test
+            add_executable(test_equipment_phase18_snapshot unit/test_equipment_phase18_snapshot.c)
+            target_link_libraries(test_equipment_phase18_snapshot PRIVATE rogue_core)
+            if (SDL2_FOUND AND NOT ROGUE_HEADLESS)
+                target_compile_definitions(test_equipment_phase18_snapshot PRIVATE ROGUE_HAVE_SDL=1)
+            endif()
+            add_test(NAME test_equipment_phase18_snapshot COMMAND test_equipment_phase18_snapshot)
+            set_tests_properties(test_equipment_phase18_snapshot PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
 # UI Phase 6.2 bars + AP smoothing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARGET test_ui_phase6_bars_ap)
     add_executable(test_ui_phase6_bars_ap unit/test_ui_phase6_bars_ap.c)

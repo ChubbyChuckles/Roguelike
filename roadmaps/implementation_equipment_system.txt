@@ -164,7 +164,7 @@ PHASE 17. Accessibility & Modding Exposure
 17.5 Tests: hot reload determinism (hash compare), sandbox enforcement (Done: added `rogue_sets_state_hash` + test `test_equipment_phase17_hot_reload_hash`; sandbox enforcement completed with value range validation in `rogue_script_load` (add range -1000..1000, mul range -90..500) preventing runaway or overflow behaviors.)
 
 PHASE 18. Testing & QA Expansion
-18.1 Golden master snapshot (serialized equip diff guard) (X)
+18.1 Golden master snapshot (serialized equip diff guard) (Done)
 18.2 Fuzz equip/un-equip sequences (state machine coverage) (X)
 18.3 Statistical proc rate tests (expected vs empirical ± tolerance) (X)
 18.4 Stress: max sockets + gems + set + runeword combination (X)

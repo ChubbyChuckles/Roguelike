@@ -220,6 +220,17 @@ Public APIs (`equipment_persist.h`):
 
 Follow-up targets: serialize explicit unique/set/runeword identifiers, negative test harness (malformed tokens), hash mismatch consumer path (alert & reject), and slot expansion remap table when new cosmetic/aux slots are introduced.
 
+## Phase 18.1 – Golden Master Snapshot
+Introduced deterministic single-line snapshot of combined equipment serialization hash and aggregated stat fingerprint enabling lightweight golden master regression guards in CI.
+
+Key points:
+* Format: `EQSNAP v1 EQUIP_HASH=<16hex> STAT_FP=<16hex>` produced by `rogue_equipment_snapshot_export`.
+* Comparison: `rogue_equipment_snapshot_compare(text)` parses expected hashes (ignoring unknown future tokens) returning 0 match, 1 mismatch, -1 error.
+* Internals: Reuses Phase 13 equipment state hash and Phase 2.5 stat cache fingerprint (stable across equip ordering) to detect unintended drift from serialization or aggregation logic changes.
+* Test `test_equipment_phase18_snapshot` captures baseline snapshot, asserts match, mutates state (equip new item) and validates mismatch against prior baseline.
+
+This forms the foundation for upcoming Phase 18 QA expansions (fuzzing, statistical proc rate validation, stress & mutation tests) by providing a concise golden reference artifact.
+
 ### Equipment System Phase 8.6 (Expanded Tests)
 Added `test_equipment_phase8_salvage_fracture` validating: (a) salvage yield decreases after durability loss, (b) fracture penalty reduces damage output versus an otherwise identical non-fractured item. Existing repair cost test covers cost monotonicity. Durability model smoke persists pending broader integration hooks.
 

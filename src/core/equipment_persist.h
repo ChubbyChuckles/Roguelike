@@ -22,6 +22,11 @@ int rogue_equipment_deserialize(const char* buf);
 /* Deterministic 64-bit FNV-1a hash over serialized equipment state (V1). Returns 0 on error. */
 unsigned long long rogue_equipment_state_hash(void);
 
+/* Phase 18.1: Golden master snapshot export (deterministic compressed signature of serialized block + stat fingerprint). */
+int rogue_equipment_snapshot_export(char* buf, int cap); /* returns bytes written or -1 */
+/* Compare snapshot text vs current state; returns 0 match, 1 mismatch, -1 error. */
+int rogue_equipment_snapshot_compare(const char* snapshot_text);
+
 #ifdef __cplusplus
 }
 #endif

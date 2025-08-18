@@ -117,3 +117,16 @@ Closes remaining risk gap on newly introduced scripting surface before broader m
 Testing:
 Existing sandbox test remains valid (values in-range). Added enforcement requires no new test yet; future negative test can be added when expanding Phase 18 fuzz harness.
 
+Equipment Phase 18.1: Golden Master Snapshot
+
+Summary:
+- Implemented deterministic snapshot APIs `rogue_equipment_snapshot_export` and `rogue_equipment_snapshot_compare` producing single-line signature `EQSNAP v1 EQUIP_HASH=<16hex> STAT_FP=<16hex>` combining equipment serialization hash and stat cache fingerprint.
+- Added unit test `test_equipment_phase18_snapshot` validating baseline match then mismatch after equipping a new item instance.
+- Updated roadmap marking 18.1 Done; README new section documents format, comparison semantics, and role in upcoming QA expansions.
+
+Rationale:
+Provides lightweight golden master artifact for CI to detect unintended drift in serialization or stat aggregation without storing full serialized blocks. Serves as anchor for forthcoming fuzz, statistical proc rate, and mutation tests (Phases 18.2–18.5).
+
+Testing:
+New snapshot test passes locally; existing Phase 17 suite unaffected. Manual inspection confirms stable 32-hex signature fields and tolerant parser (ignores unknown future tokens).
+

@@ -11,6 +11,9 @@
 #include <string.h>
 #include <stdio.h>
 
+/* Forward declaration to avoid repeated block-scope externs (MSVC warning C4210). */
+extern unsigned long long rogue_stat_cache_fingerprint(void);
+
 static unsigned long long fnv1a64(const unsigned char* data, size_t n)
 {
 	unsigned long long h = 1469598103934665603ULL;
@@ -212,4 +215,64 @@ unsigned long long rogue_equipment_state_hash(void)
 	int n = rogue_equipment_serialize(tmp, (int)sizeof tmp);
 	if(n < 0) return 0ULL;
 	return fnv1a64((const unsigned char*)tmp, (size_t)n);
+}
+
+/* Phase 18.1: Golden master snapshot implementation.
+   Format (single line, no trailing '\n'):
+	 EQSNAP v1 EQUIP_HASH=<16hex> STAT_FP=<16hex>
+   (Future fields append as KEY=VALUE tokens separated by space; unknown keys ignored by comparator.)
+   Rationale: short, deterministic, friendly to git diff and CI golden master pattern.
+*/
+int rogue_equipment_snapshot_export(char* buf, int cap)
+{
+	unsigned long long equip_h;
+	unsigned long long stat_fp = 0ULL;
+	int n;
+	if(!buf || cap < 8) return -1;
+	equip_h = rogue_equipment_state_hash();
+	/* Stat fingerprint API (Phase 2.5) */
+	stat_fp = rogue_stat_cache_fingerprint();
+	n = snprintf(buf, cap, "EQSNAP v1 EQUIP_HASH=%016llx STAT_FP=%016llx", (unsigned long long)equip_h, (unsigned long long)stat_fp);
+	if(n < 0 || n >= cap) return -1;
+	return n; /* bytes written (excluding NUL) */
+}
+
+int rogue_equipment_snapshot_compare(const char* snapshot_text)
+{
+	unsigned long long expect_equip = 0ULL, expect_fp = 0ULL;
+	unsigned long long cur_equip, cur_fp;
+	const char* p;
+	if(!snapshot_text) return -1;
+	p = snapshot_text;
+	if(strncmp(p, "EQSNAP", 6) != 0) return -1;
+	/* tokenize by space; look for EQUIP_HASH= and STAT_FP= prefixes */
+	while(*p){
+		if(strncmp(p, "EQUIP_HASH=", 11) == 0){
+			p += 11;
+			/* parse 16 hex digits (ignore shorter) */
+			int i; expect_equip = 0ULL;
+			for(i=0;i<16 && ((*p>='0'&&*p<='9')||(*p>='a'&&*p<='f')||(*p>='A'&&*p<='F')); ++i){
+				unsigned char c = (unsigned char)*p++;
+				unsigned long long v = (c>='0'&&c<='9')? (unsigned long long)(c-'0') : (c>='a'&&c<='f')? (unsigned long long)(10 + c-'a') : (unsigned long long)(10 + c-'A');
+				expect_equip = (expect_equip<<4) | v;
+			}
+		} else if(strncmp(p, "STAT_FP=", 8) == 0){
+			p += 8;
+			int i; expect_fp = 0ULL;
+			for(i=0;i<16 && ((*p>='0'&&*p<='9')||(*p>='a'&&*p<='f')||(*p>='A'&&*p<='F')); ++i){
+				unsigned char c = (unsigned char)*p++;
+				unsigned long long v = (c>='0'&&c<='9')? (unsigned long long)(c-'0') : (c>='a'&&c<='f')? (unsigned long long)(10 + c-'a') : (unsigned long long)(10 + c-'A');
+				expect_fp = (expect_fp<<4) | v;
+			}
+		} else {
+			/* advance to next space */
+			while(*p && *p!=' ') p++;
+		}
+		while(*p==' ') p++;
+	}
+	cur_equip = rogue_equipment_state_hash();
+	cur_fp = rogue_stat_cache_fingerprint();
+	if(expect_equip==0ULL && expect_fp==0ULL) return -1; /* nothing parsed */
+	if(cur_equip==expect_equip && cur_fp==expect_fp) return 0;
+	return 1; /* mismatch */
 }
