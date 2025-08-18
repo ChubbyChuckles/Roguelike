@@ -98,6 +98,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase4_saved_searches_
     add_test(NAME test_inventory_phase4_saved_searches_persist COMMAND test_inventory_phase4_saved_searches_persist)
 endif()
 
+# Inventory Phase 4 query result cache test (4.6)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase4_query_cache.c AND NOT TARGET test_inventory_phase4_query_cache)
+    add_executable(test_inventory_phase4_query_cache unit/test_inventory_phase4_query_cache.c)
+    target_link_libraries(test_inventory_phase4_query_cache PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_inventory_phase4_query_cache PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_inventory_phase4_query_cache COMMAND test_inventory_phase4_query_cache)
+endif()
+
 # Equipment Phase 5 sockets test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase5_sockets.c AND NOT TARGET test_equipment_phase5_sockets)
     add_executable(test_equipment_phase5_sockets unit/test_equipment_phase5_sockets.c)

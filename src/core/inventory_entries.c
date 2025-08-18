@@ -1,6 +1,7 @@
 #include "core/inventory_entries.h"
 #include "core/save_manager.h" /* mark component dirty for incremental saves */
 #include "core/inventory_tag_rules.h" /* Phase 3.3 auto-tag rules */
+#include "core/inventory_query.h" /* Phase 4.6 cache invalidation */
 #include <string.h>
 #include <stdlib.h>
 
@@ -42,9 +43,9 @@ int rogue_inventory_can_accept(int def_index, uint64_t add_qty){ if(add_qty==0) 
 int rogue_inventory_register_pickup(int def_index, uint64_t add_qty){ if(add_qty==0) return 0; int rc = rogue_inventory_can_accept(def_index, add_qty); if(rc==ROGUE_INV_ERR_UNIQUE_CAP && g_cap_handler){ /* attempt mitigation */
         int h = g_cap_handler(def_index, add_qty); if(h==0){ rc = rogue_inventory_can_accept(def_index, add_qty); }
     }
-    if(rc!=0) return rc; int idx=find_entry(def_index); if(idx<0){ if(ensure_capacity(g_entry_count+1)!=0) return -1; g_entries[g_entry_count++] = (InvEntry){ def_index, add_qty, 0u }; dirty_mark(def_index); /* apply auto-tag rules on first acquisition */ rogue_inv_tag_rules_apply_def(def_index); return 0; } uint64_t before=g_entries[idx].qty; g_entries[idx].qty += add_qty; if(g_entries[idx].qty!=before) dirty_mark(def_index); return 0; }
+    if(rc!=0) return rc; int idx=find_entry(def_index); if(idx<0){ if(ensure_capacity(g_entry_count+1)!=0) return -1; g_entries[g_entry_count++] = (InvEntry){ def_index, add_qty, 0u }; dirty_mark(def_index); rogue_inv_tag_rules_apply_def(def_index); rogue_inventory_query_cache_invalidate_all(); return 0; } uint64_t before=g_entries[idx].qty; g_entries[idx].qty += add_qty; if(g_entries[idx].qty!=before){ dirty_mark(def_index); rogue_inventory_query_cache_invalidate_all(); } return 0; }
 
-int rogue_inventory_register_remove(int def_index, uint64_t remove_qty){ if(remove_qty==0) return 0; int idx=find_entry(def_index); if(idx<0) return -1; if(remove_qty > g_entries[idx].qty) return -1; uint64_t before = g_entries[idx].qty; g_entries[idx].qty -= remove_qty; if(g_entries[idx].qty!=before) dirty_mark(def_index); if(g_entries[idx].qty==0){ /* remove by swap-back */ unsigned last = g_entry_count-1; if(idx != (int)last) g_entries[idx] = g_entries[last]; g_entry_count--; dirty_mark(def_index); }
+int rogue_inventory_register_remove(int def_index, uint64_t remove_qty){ if(remove_qty==0) return 0; int idx=find_entry(def_index); if(idx<0) return -1; if(remove_qty > g_entries[idx].qty) return -1; uint64_t before = g_entries[idx].qty; g_entries[idx].qty -= remove_qty; if(g_entries[idx].qty!=before){ dirty_mark(def_index); rogue_inventory_query_cache_invalidate_all(); } if(g_entries[idx].qty==0){ unsigned last = g_entry_count-1; if(idx != (int)last) g_entries[idx] = g_entries[last]; g_entry_count--; dirty_mark(def_index); rogue_inventory_query_cache_invalidate_all(); }
     return 0; }
 
 int rogue_inventory_entry_set_labels(int def_index, unsigned labels){ int idx=find_entry(def_index); if(idx<0) return -1; g_entries[idx].labels = labels; return 0; }

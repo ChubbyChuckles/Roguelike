@@ -38,6 +38,14 @@ int rogue_inventory_query_sort(int* def_indices, int count, const char* sort_key
 int rogue_inventory_fuzzy_search(const char* text, int* out_def_indices, int cap);
 int rogue_inventory_fuzzy_rebuild_index(void);
 
+/* Query result cache (Phase 4.6): cached execution w/ automatic invalidation on inventory or instance metadata mutation.
+ * Returns number of results (like execute). Falls back to direct execution on cache miss.
+ */
+int rogue_inventory_query_execute_cached(const char* expr, int* out_def_indices, int cap);
+void rogue_inventory_query_cache_invalidate_all(void); /* global invalidation (inventory mutation, mass changes) */
+void rogue_inventory_query_cache_stats(unsigned* out_hits, unsigned* out_misses); /* optional metrics */
+void rogue_inventory_query_cache_stats_reset(void);
+
 /* Saved searches (Phase 4.4): store up to N named query+sort expressions persisted via save component.
  * API returns 0 success / -1 failure. Names case-insensitive unique.
  */
@@ -45,6 +53,8 @@ int rogue_inventory_saved_search_store(const char* name, const char* query_expr,
 int rogue_inventory_saved_search_get(const char* name, char* out_query, int qcap, char* out_sort, int scap);
 int rogue_inventory_saved_search_count(void);
 int rogue_inventory_saved_search_name(int index, char* out_name, int cap);
+/* Quick apply helper (Phase 4.4 UI binding): execute named saved search (query + optional sort) via cache+sort pipeline */
+int rogue_inventory_saved_search_apply(const char* name, int* out_def_indices, int cap);
 
 /* Persistence (Phase 4.4): write/read saved searches as component id ROGUE_SAVE_COMP_INV_SAVED_SEARCHES */
 int rogue_inventory_saved_searches_write(FILE* f); /* returns 0 */
@@ -53,6 +63,9 @@ int rogue_inventory_saved_searches_read(FILE* f, size_t size); /* returns 0 */
 
 /* Mutation hook: call when item instance metadata (affix weight / quality / durability) changes so we can re-index fuzzy needed sets (Phase 4.5). */
 void rogue_inventory_query_on_instance_mutation(int inst_index);
+
+/* Parser diagnostics (Phase 4.1 enhancement): returns last parse error message (or empty string if none). */
+const char* rogue_inventory_query_last_error(void);
 
 
 #ifdef __cplusplus
