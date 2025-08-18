@@ -4,6 +4,7 @@
 #include "core/loot_instances.h"
 #include "core/equipment.h"
 #include "core/salvage.h"
+#include "core/inventory_tags.h" /* lock/favorite enforcement */
 #include "core/app_state.h"
 #include <string.h>
 #include <stdlib.h>
@@ -51,9 +52,9 @@ int rogue_inventory_ui_try_equip_def(int def_index){ const RogueItemDef* d=rogue
     if(d->category==ROGUE_ITEM_ARMOR) return rogue_equip_try(ROGUE_EQUIP_ARMOR_CHEST, inst);
     return -3; }
 
-int rogue_inventory_ui_salvage_def(int def_index){ const RogueItemDef* d=rogue_item_def_at(def_index); if(!d) return 0; int rarity=d->rarity; int inst=find_instance_for_def(def_index); int produced=0; if(inst>=0){ produced = rogue_salvage_item_instance(inst, rogue_inventory_add); }
+int rogue_inventory_ui_salvage_def(int def_index){ const RogueItemDef* d=rogue_item_def_at(def_index); if(!d) return 0; if(!rogue_inv_tags_can_salvage(def_index)) return 0; int rarity=d->rarity; int inst=find_instance_for_def(def_index); int produced=0; if(inst>=0){ produced = rogue_salvage_item_instance(inst, rogue_inventory_add); }
     if(produced<=0){ produced = rogue_salvage_item(def_index, rarity, rogue_inventory_add); }
     if(produced>0){ rogue_inventory_consume(def_index,1); } return produced; }
 
-int rogue_inventory_ui_drop_one(int def_index){ const RogueItemDef* d=rogue_item_def_at(def_index); if(!d) return -1; if(rogue_inventory_get_count(def_index)<=0) return -2; float x=g_app.player.base.pos.x; float y=g_app.player.base.pos.y; int inst = rogue_items_spawn(def_index,1,x,y); if(inst>=0){ rogue_inventory_consume(def_index,1); }
+int rogue_inventory_ui_drop_one(int def_index){ const RogueItemDef* d=rogue_item_def_at(def_index); if(!d) return -1; if(rogue_inventory_get_count(def_index)<=0) return -2; if(!rogue_inv_tags_can_salvage(def_index)) return -3; float x=g_app.player.base.pos.x; float y=g_app.player.base.pos.y; int inst = rogue_items_spawn(def_index,1,x,y); if(inst>=0){ rogue_inventory_consume(def_index,1); }
     return inst; }

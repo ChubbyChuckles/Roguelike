@@ -58,6 +58,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase3_rules.c AND NOT
     add_test(NAME test_inventory_phase3_rules COMMAND test_inventory_phase3_rules)
 endif()
 
+# Inventory Phase 3 rule enforcement & determinism test (3.6)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase3_lock_rule_enforce.c AND NOT TARGET test_inventory_phase3_lock_rule_enforce)
+    add_executable(test_inventory_phase3_lock_rule_enforce unit/test_inventory_phase3_lock_rule_enforce.c)
+    target_link_libraries(test_inventory_phase3_lock_rule_enforce PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_inventory_phase3_lock_rule_enforce PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_inventory_phase3_lock_rule_enforce COMMAND test_inventory_phase3_lock_rule_enforce)
+endif()
+
 # Equipment Phase 5 sockets test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase5_sockets.c AND NOT TARGET test_equipment_phase5_sockets)
     add_executable(test_equipment_phase5_sockets unit/test_equipment_phase5_sockets.c)

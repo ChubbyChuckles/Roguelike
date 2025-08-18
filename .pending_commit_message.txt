@@ -1,25 +1,2 @@
 Inventory System Phase 3.3-3.5: Implemented auto-tag rule engine (rarity/category predicates) with deterministic application on first pickup, added accent color support (first matching rule precedence), persisted rules via new save component id=11 (inv_tag_rules), integrated rule application hook into pickup registration, added unit test `test_inventory_phase3_rules` (rule persistence & basic application), updated roadmap (3.3-3.5 Done, 3.6 partial), expanded README inventory section, and wired build (CMake) + save manager registrations.
-core(inventory): implement Phase 1 (1.1-1.7) unified entry governance
-
-Details:
- - Added inventory_entries.{h,c} extensions: label metadata (materials/quest/gear), soft distinct cap, overflow guards, pressure metric, cap exceed handler hook.
- - Implemented dirty delta tracking API (enumerate and clear) supporting future binary save diff integration.
- - Added unit tests: test_inventory_phase1_unique_entries, test_inventory_phase1_labels_delta (labels, delta tracking, cap handler behavior).
- - Updated roadmap (Phase 1 items marked Done) and README changelog with new inventory slice summary.
- - Modular design avoids touching legacy inventory.c path; future migration step will bridge persistence component to delta API.
-
-Next Steps:
- - Integrate dirty delta enumeration into save_manager inventory component (write compact delta block when incremental save enabled).
- - Add UI grouping utilization of labels and pressure warning indicator.
- - Implement automated mitigation strategy in cap handler (auto-salvage low-value) once salvage scoring exposed.
-
-Extended: Added inventory entries persistence component (ROGUE_SAVE_COMP_INV_ENTRIES id=9) writing full snapshot {def_index, uint64 qty, labels}; integrated dirty baseline reset and save_manager incremental dirty marking.
-Added roundtrip persistence unit test (test_inventory_phase1_persistence) to verify save/load integration.
-Roadmap & README updated to reflect completed Phase 1.6 persistence integration.
-
-Inventory Phase 3 (3.1,3.2): favorites/lock flags + short string tags
-- Added inventory_tags.{h,c} managing per-def flags (favorite, locked) and up to 4 short tags (<=23 chars) with add/remove/list/has APIs.
-- Integrated new persistence component (ROGUE_SAVE_COMP_INV_TAGS id=10) with compact varuint encoding.
-- Implemented unit test test_inventory_phase3_tags covering flags, tag ops, and save/load roundtrip.
-- Updated roadmap marking 3.1 and 3.2 Done; README changelog updated.
-- Adjusted save_manager to register new component; incremental compatibility preserved.
+Inventory System Phase 3.6: Completed enforcement & determinism tests. Added salvage/drop lock check into `inventory_ui` (returns early if locked/favorite). Added `test_inventory_phase3_lock_rule_enforce` verifying locked/favorite prevent salvage & drop (-3 code) and that rule order yields both tags with first color precedence. Roadmap updated (3.6 Done).
