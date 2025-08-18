@@ -139,15 +139,18 @@ Performance layer now covers memory pooling, aggregation variants, micro-profili
 * Micro-Profiler (14.5): Zone profiler covers aggregation modes, synchronous optimize, and async launch; JSON dump helper for potential CI perf diffing.
 * Perf & Parallel Tests (14.6 Extended): `test_equipment_phase14_perf` (aggregation parity & profiler), and new `test_equipment_phase14_parallel` validating async improvement non-decrease, join semantics, and arena reuse (no capacity overflow across successive optimizer runs).
 
-### Equipment System Phase 15 (Integrity & Anti-Cheat Foundations)
+### Equipment System Phase 15 (Integrity & Anti-Cheat Foundations – Completed)
 
-Initial multiplayer integrity scaffolding implemented client-side to enable future authoritative server reconciliation:
-* GUIDs (15.3): Every spawned item instance now receives a 64-bit pseudo-random GUID derived from deterministic mix of instance index, definition id, and quantity. Uniqueness within active pool validated via `test_equipment_phase15_integrity` (no collisions over sample spawns).
-* Equip Hash Chain (15.2): Each item maintains a rolling 64-bit hash chain updated on equip and unequip events (slot id + GUID + distinct salt per action). Chain acts as a tamper-evident transcript of an item's lifecycle for post-hoc server audit—server can recompute from logged events and compare.
-* Validation Hook (15.1 partial / client scaffolding): Equip API already enforces slot category & two-hand constraints before mutating state; with GUID + hash chain present, server logic (future) can reject desynchronized states or duplicated GUID submissions.
-* Tests: `test_equipment_phase15_integrity` asserts GUID uniqueness and that equip hash chain mutates from 0→non-zero on first equip and changes again on unequip.
+Multiplayer integrity layer now includes proc anomaly auditing, banned affix blacklist, hash chain & GUID tamper detection:
+* GUIDs (15.3): Every spawned item instance receives a 64-bit pseudo-random GUID (definition id, instance index entropy, quantity). `test_equipment_phase15_integrity` validates uniqueness.
+* Equip Hash Chain (15.2): Rolling 64-bit chain per item updated on equip/unequip (slot id + GUID + action salt) forming a tamper-evident transcript of lifecycle events.
+* Server Validation Scaffolding (15.1): Equip path maintains strict slot category & two-hand gating prior to state mutation; with GUID + chain available, an authoritative server can replay events and compare chains.
+* Proc Replay Auditor (15.4): `rogue_integrity_scan_proc_anomalies` scans registered procs and returns any exceeding a configurable triggers-per-minute threshold (simple absolute check suitable for first-line heuristic flagging). Exercised in `test_equipment_phase15_replay_auditor` using fast vs slow proc definitions.
+* Banned Affix Blacklist (15.5): Lightweight unordered pair list of forbidden affix combinations (`rogue_integrity_add_banned_affix_pair`, `rogue_integrity_is_item_banned`). Unit test injects an item with both affixes and asserts ban detection.
+* Hash Chain / GUID Tamper Tests (15.6): Replay auditor test mutates an item's stored chain and GUID directly; mismatch & duplicate detection surfaces anomalies via `rogue_integrity_scan_equip_chain_mismatches` and `rogue_integrity_scan_duplicate_guids`.
+* Public Integrity APIs (`equipment_integrity.h`): Proc anomaly scan, affix blacklist management, expected equip hash recomputation, mismatch & duplicate GUID scanners.
 
-Remaining Phase 15 roadmap work (server-side validators, replay auditor, banned affix blacklist, broader negative tests) deferred until multiplayer transport layer & authoritative simulation are introduced.
+Forward Work: Statistical proc distribution validation (Phase 18), authoritative network transport & signed state diffs (later multiplayer phases), and deeper anomaly heuristics (rolling Z-scores / EWMA) once broader telemetry (latency jitter, server tick alignment) is present.
 
 Public APIs (`equipment_persist.h`):
 * `rogue_equipment_serialize(buf, cap)` – emits versioned block; returns bytes written or -1.

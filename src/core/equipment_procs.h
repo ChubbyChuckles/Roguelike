@@ -44,6 +44,9 @@ float rogue_proc_uptime_ratio(int id); /* uptime_ms / total_time_ms */
 void rogue_proc_set_rate_cap_per_sec(int cap); /* global trigger cap */
 float rogue_proc_triggers_per_min(int id); /* triggers normalized to per-minute */
 int rogue_proc_last_trigger_sequence(int id); /* deterministic ordering sequence number */
+/* Phase 15.4 auditor helpers */
+int rogue_proc_count(void); /* number of registered procs */
+const RogueProcDef* rogue_proc_def(int id); /* readonly access to definition */
 
 /* Phase 7.4 Reactive Shield helper API: treat any active proc with trigger ON_BLOCK as temporary absorb pool. */
 int rogue_procs_absorb_pool(void); /* sum of remaining absorb magnitude across active shield procs */

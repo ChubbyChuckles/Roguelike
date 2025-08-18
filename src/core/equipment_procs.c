@@ -83,3 +83,5 @@ int rogue_proc_active_stacks(int id){ if(id<0||id>=g_proc_count) return 0; retur
 float rogue_proc_uptime_ratio(int id){ if(id<0||id>=g_proc_count) return 0.f; if(g_time_accum_ms<=0) return 0.f; return (float)g_proc_states[id].active_time_ms / (float) ( (g_time_accum_ms) ); }
 float rogue_proc_triggers_per_min(int id){ if(id<0||id>=g_proc_count) return 0.f; if(g_time_accum_ms<=0) return 0.f; float minutes = (float)g_time_accum_ms/60000.f; if(minutes<=0.f) return 0.f; return (float)g_proc_states[id].trigger_count / minutes; }
 int rogue_proc_last_trigger_sequence(int id){ if(id<0||id>=g_proc_count) return 0; return g_proc_states[id].last_sequence; }
+int rogue_proc_count(void){ return g_proc_count; }
+const RogueProcDef* rogue_proc_def(int id){ if(id<0||id>=g_proc_count) return 0; return &g_proc_states[id].def; }

@@ -469,6 +469,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase15_integrity.c AN
     add_test(NAME test_equipment_phase15_integrity COMMAND test_equipment_phase15_integrity)
 endif()
 
+# Phase 15.4–15.6 replay auditor & blacklist tests
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase15_replay_auditor.c AND NOT TARGET test_equipment_phase15_replay_auditor)
+    add_executable(test_equipment_phase15_replay_auditor unit/test_equipment_phase15_replay_auditor.c)
+    target_link_libraries(test_equipment_phase15_replay_auditor PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_equipment_phase15_replay_auditor PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_equipment_phase15_replay_auditor COMMAND test_equipment_phase15_replay_auditor)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase10_golden_theming.c AND NOT TARGET test_ui_phase10_golden_theming)
     add_executable(test_ui_phase10_golden_theming unit/test_ui_phase10_golden_theming.c)
     target_link_libraries(test_ui_phase10_golden_theming PRIVATE rogue_core)
