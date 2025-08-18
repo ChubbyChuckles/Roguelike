@@ -1,0 +1,210 @@
+WORLD BOSS SYSTEM IMPLEMENTATION PLAN (Roadmap & Status)
+
+Legend:
+Done = Fully implemented & tests pass
+Partial = Some components implemented (details in parentheses)
+X = Not started yet
+Optional = Stretch / future wave
+
+Scope Overview:
+Design and implement a deterministic, large-scale world boss framework integrating spawn orchestration, multi-phase mechanics, dynamic scaling (relative level differential & infinite player progression), environmental hazards, telegraph clarity, loot & crafting material injections, vendor & dungeon synergy, nemesis continuity hooks, analytics, anti-exploit safeguards, and persistent state. Constraints: single character, infinite leveling, no classes (universal skills), infinite inventory stacking. Although currently single-player, architecture anticipates future authoritative multiplayer or asynchronous ghost participation. Emphasis: cinematic, mechanically rich encounters that remain fair, legible, and rewarding while avoiding trivialization or grind exploitation.
+
+FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
+- Enemy difficulty relative ΔL model (Partial)
+- Boss framework (basic definitions, phases) (Partial / Assumed minimal)
+- Loot/affix, crafting material registry, vendor special offers (Planned / Partial)
+- Dungeon system (Planned) for prelude event triggers
+- Persistence hash chain (Done)
+- Analytics scaffolding (Partial)
+
+PHASE 0. Audit & Taxonomy
+0.1 Define world boss taxonomy (Colossus, Avatar, Swarm-Core, Siege Engine, Seasonal) (X)
+0.2 Reserve ID ranges for boss entities, phase scripts, mechanic templates (X)
+0.3 Enumerate baseline mechanical archetypes (area denial, add waves, positional puzzle, DPS check shield, phase chase) (X)
+0.4 Define impact budget metrics (max simultaneous high-threat mechanics) (X)
+0.5 Tests: taxonomy uniqueness, ID collision checks (X)
+
+PHASE 1. Spawn Orchestration & Scheduling
+1.1 Spawn schedule data file (boss_id, cycle_rule, biome_tags, prerequisite_flags) (X)
+1.2 Deterministic timing: world_seed ^ day_index ^ boss_id -> schedule offsets (X)
+1.3 Player-triggered activation tokens (crafted keystone or dungeon score threshold) (X)
+1.4 Cooldown & lockout rules (prevent rapid re-farming) (X)
+1.5 Tests: schedule determinism across seeds, lockout enforcement, trigger validation (X)
+
+PHASE 2. Arena Generation & Environmental Integration
+2.1 Arena template file (layout_id, hazard_slots, environmental_props, camera_bounds) (X)
+2.2 Adaptive arena scaling (size adjusts to mechanics complexity) (X)
+2.3 Environmental hazard palette (lava vents, rotating beams, collapsing tiles) (X)
+2.4 Safe zone logic & dynamic relocation events (X)
+2.5 Tests: arena bounds validity, hazard placement determinism, relocation invariants (X)
+
+PHASE 3. Multi-Phase Script System
+3.1 Phase script data file (phase_id, entry_condition, mechanic_set, hp_threshold, enrages[]) (X)
+3.2 Mechanic scheduling engine (priority queue, cooldown governance) (X)
+3.3 Overload guard (caps simultaneous high-threat mechanics) (X)
+3.4 Enrage timer & soft fail scaling (progressively shorter telegraphs) (X)
+3.5 Tests: phase transition determinism, overload prevention, enrage scaling monotonicity (X)
+
+PHASE 4. Mechanic Template Library
+4.1 Mechanic DSL (type, telegraph_duration, shape, damage_profile, mitigation_tags, counterplay_hint) (X)
+4.2 Complex composite mechanics (e.g., beam + adds + zone shrink) via nested templates (X)
+4.3 Dynamic parameterization (scale damage & frequency by ΔL band) (X)
+4.4 Counterplay classification (positioning, timing, resource, skill reaction) (X)
+4.5 Tests: DSL parse, composite expansion determinism, parameter scaling bounds (X)
+
+PHASE 5. Add Wave & Minion Ecosystem
+5.1 Add archetype definition (support, shield, berserker, artillery) (X)
+5.2 Wave pattern file (timing, composition weights, conditional triggers) (X)
+5.3 Shield / tether mechanics (adds confer barrier until eliminated) (X)
+5.4 Anti-stall: spawn throttle if adds remain alive too long (X)
+5.5 Tests: wave timing determinism, shield removal triggers, anti-stall activation (X)
+
+PHASE 6. Scaling & Relative Level Integration
+6.1 Boss stat scaling curves anchored to same-level TTK targets (20–40s per major phase) (X)
+6.2 Relative ΔL adjustments with more conservative downward penalties (avoid trivialization; world boss dominance threshold higher than standard enemies) (X)
+6.3 Adaptive micro-scaling (if sustained dominance > threshold apply minor health regen pulses or add hazard intensification) (X)
+6.4 Hard caps to prevent unwinnable overlaps (no one-shot beyond design spike limit) (X)
+6.5 Tests: TTK simulations across ΔL ±15, dominance threshold detection, cap enforcement (X)
+
+PHASE 7. Telegraph & Readability Enhancements
+7.1 High-contrast telegraphs with layering rules (floor > beam > projectile) (X)
+7.2 Multi-stage warning (pre-shimmer -> shape outline -> fill) (X)
+7.3 Audio cue taxonomy & pitch variance for overlapping mechanics (X)
+7.4 Accessibility scaling mode (longer telegraphs, reduced overlap) (Optional) (X)
+7.5 Tests: minimum telegraph duration compliance, layering order determinism (X)
+
+PHASE 8. Resource & Attrition Management
+8.1 Soft resource stressors (periodic mana drain zones, healing debuff intervals) (X)
+8.2 Sustain checks (phases requiring controlled DPS to avoid resource depletion) (X)
+8.3 Safe window scheduling (healing / buff refresh intervals) (X)
+8.4 Anti-exploit infinite kite guard (arena boundary pressure, chase phases) (X)
+8.5 Tests: resource drain bounds, safe window regularity, kite guard activation (X)
+
+PHASE 9. Unique Rewards & Progression Hooks
+9.1 Boss-specific material & catalyst drops (crafting enhancements) (X)
+9.2 Skill maze node unlock tokens (outer ring keystone gating) (X)
+9.3 Vendor special offer triggers (spawn special stock on defeat) (X)
+9.4 Cosmetic / title tokens (rarity-weighted) (X)
+9.5 Drop pity tracker (guarantee rare after N dry kills) (X)
+9.6 Tests: pity trigger determinism, reward EV vs difficulty, token uniqueness (X)
+
+PHASE 10. Loot & Anti-Inflation Controls
+10.1 Reward budget formula ties to effective difficulty (ΔL, attempt count, no-death bonus) (X)
+10.2 Diminished rewards on rapid re-entries (lockout penalty scaling) (X)
+10.3 Distinct loot table versioning for balance patches (X)
+10.4 Analytics-driven drop weight auto-tuner (Optional) (X)
+10.5 Tests: budget conservation, penalty scaling monotonicity, tuner convergence (X)
+
+PHASE 11. Nemesis & Narrative Continuity
+11.1 World boss lineage entries (defeat count, fastest time, highest ΔL kill) (X)
+11.2 Escalating echo spawn (mini version appears in dungeons post defeat) (X)
+11.3 Adaptive dialogue / telegraph variance after repeated defeats (X)
+11.4 Persistent scar environmental changes in biome (Optional) (X)
+11.5 Tests: lineage serialization, echo spawn probability, variance pool cycling (X)
+
+PHASE 12. Persistence & Replay
+12.1 Spawn schedule snapshot + activation method journaling (X)
+12.2 Phase & mechanic event journal (hash chain) (X)
+12.3 Replay harness (seed + journal -> identical mechanic sequence) (X)
+12.4 Partial resume pre-fight vs mid-fight policy (mid-fight restore limited) (X)
+12.5 Tests: replay equivalence, journal tamper detection, resume safety (X)
+
+PHASE 13. Performance & Memory
+13.1 SoA data for active mechanics (positions, timers, telegraph states) (X)
+13.2 Object pool for large VFX & hazard projectors (X)
+13.3 Micro-bench: max mechanics concurrency still < frame budget (X)
+13.4 Frame budget target: boss system < 1.8 ms P95 (single-player context) (X)
+13.5 Memory target: boss runtime state < 160 KB typical, < 256 KB peak (X)
+13.6 Tests: frame timing under stress, pool churn rate, memory caps (X)
+
+PHASE 14. Analytics & Telemetry
+14.1 Per-phase TTK distribution & variance (X)
+14.2 Mechanic dodge/fail rates (X)
+14.3 Resource usage timeline (potions, cooldowns) (X)
+14.4 Death cause categorization (mechanic_id mapping) (X)
+14.5 Rage quit / abandon detection (exit before defeat) (X)
+14.6 Drift alerts (phase TTK drift > threshold) (X)
+14.7 Tests: analytic aggregation correctness, drift false positive rate (X)
+
+PHASE 15. Adaptive & Dynamic Difficulty (Optional Early or Later)
+15.1 Optional adaptive assist (if sustained failures: extend telegraphs modestly) (X)
+15.2 Optional adaptive challenge (if dominance: inject one extra minor mechanic) (X)
+15.3 Strict envelope clamps to preserve designed core experience (X)
+15.4 Tests: assist/challenge activation thresholds, envelope enforcement (X)
+
+PHASE 16. Anti-Exploit & Integrity
+16.1 AFK / low input detection (no mechanic interactions + time) (X)
+16.2 Phase skip exploit detector (HP drop vs expected mechanic progression) (X)
+16.3 Unintended safe spot scanning (player stationary + near zero hits taken + overlapping hazards) (X)
+16.4 Journal hash validation & outcome hash (boss_id, defeat_time, ΔL, build signature) (X)
+16.5 Tests: exploit scenario simulation, false positive rate bounds (X)
+
+PHASE 17. UI / UX & Presentation
+17.1 Intro cinematic / short banner (skippable) (X)
+17.2 Phase tracker & upcoming mechanic preview icons (X)
+17.3 Telegraph clarity overlays (contrast boosting) toggle (X)
+17.4 Reward preview panel (unique drop slots & pity progress) (X)
+17.5 Post-fight summary (phase durations, fail stats, improvement tips) (X)
+17.6 Accessibility: colorblind hazard palette, audio cue emphasis mode (X)
+17.7 Tests: icon ordering determinism, summary stat accuracy (X)
+
+PHASE 18. Tooling & Dev Experience
+18.1 Boss script validator CLI (phase graph & mechanic budget audit) (X)
+18.2 Simulation harness (10k synthetic runs across ΔL grid) (X)
+18.3 Mechanic coverage report (usage frequency) (X)
+18.4 Balance tuner (optimize phase HP to target TTK) (X)
+18.5 Visual timeline editor for mechanic scheduling (Optional) (X)
+18.6 Tests: harness reproducibility, tuner convergence, validator completeness (X)
+
+PHASE 19. Future / Optional Extensions
+19.1 Asynchronous ghost echoes (other players' best runs) (Optional)
+19.2 Multi-boss gauntlets (rotating arenas) (Optional)
+19.3 Seasonal morph forms (purely cosmetic variant mechanics) (Optional)
+19.4 Community global unlock events (defeat count threshold) (Optional)
+19.5 Cooperative sync adaptation (future multiplayer) (Optional)
+
+DEPENDENCIES & INTEGRATIONS
+- Enemy difficulty relative ΔL scaling & telegraph systems.
+- Loot, crafting, vendor systems (unique drops, catalysts, vendor unlock triggers).
+- Progression (skill maze) for gating outer ring nodes via boss tokens.
+- Dungeon system (boss triggers, echo spawns inside dungeons post-defeat).
+- Persistence & analytics frameworks for journaling & telemetry.
+
+RISKS & MITIGATIONS
+- Overly punishing complexity -> Mechanic budget caps & layering rules (3.3,4.3)
+- Trivialization at high ΔL -> Conservative downward penalties & dominance adjustments (6.2)
+- Replay fatigue -> Variance pools and echo mechanics (11.x)
+- Performance spikes -> SoA + pooled VFX + concurrency limits (13.x)
+- Exploits (safe spots, phase skips) -> Detection heuristics & integrity hashing (16.x)
+- Reward inflation -> Budget formulas + diminishing returns on rapid re-farm (10.x,1.4)
+
+KEY METRICS (Targets)
+- Same-level phase TTK median: 20–40s
+- Dominance ΔL=+10 phase TTK: <= 55% of same-level (not below trivial floor)
+- Fail rate (first 3 attempts) same-level: 35–55% target band
+- Telegraph reaction success rate: > 70% after 3 learning attempts
+- Mechanic overlap violations: 0 (by design rules) per 1000 simulated runs
+- Frame cost (boss system peak): < 1.8 ms P95
+- Replay determinism: 100% identical mechanic sequence over 100 seeds
+
+ROLL-OUT STRATEGY
+1. Phases 0–3 taxonomy + multi-phase scripting foundation.
+2. Phase 4 mechanic library & Phase 5 add ecosystem.
+3. Phase 6 scaling integration & baseline tuning.
+4. Phases 7–9 readability & reward hooks.
+5. Phases 10–11 inflation control & narrative continuity.
+6. Persistence, performance, analytics (12–14) stabilization.
+7. Anti-exploit & UI polish (15–17).
+8. Tooling (18) for rapid iteration; optional extensions (19) last.
+
+TEST PRIORITIZATION
+Early: 0,1,2,3,4,5
+Mid: 6,7,8,9,10,11,12,13
+Late: 14,15,16,17,18,19
+
+NOTES
+- Sort mechanic IDs & phase lists before hashing for deterministic verification.
+- Keep all numeric scaling, telegraph durations, and budget caps in external data for live tuning.
+- Provide developer toggles: force_phase, force_mechanic, disable_enrage, lock_seed.
+- Simulation harness is essential before content expansion to prevent power creep or mechanic overload.
+- Future multiplayer adaptation: design scheduling & RNG so server authoritative ordering trivial to implement later.

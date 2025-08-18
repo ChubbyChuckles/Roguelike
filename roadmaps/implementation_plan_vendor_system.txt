@@ -1,0 +1,202 @@
+VENDOR SYSTEM IMPLEMENTATION PLAN (Roadmap & Status)
+
+Legend:
+Done = Fully implemented & tests pass
+Partial = Some components implemented (details in parentheses)
+X = Not started yet
+Optional = Stretch / future wave
+
+Scope Overview:
+Deliver a data‑driven vendor & economy interaction framework: procedural shop generation, dynamic pricing influenced by supply/demand & player behavior, reputation/negotiation mechanics, currency & material sinks, fair buy/sell policies, anti-exploit safeguards, integration with crafting, loot, difficulty, progression (infinite leveling), and analytics. Constraints: single character, infinite inventory stacking, no stash, universal skill access, infinite leveling, deterministic simulation for future authoritative multiplayer. Vendors act as controlled faucets/sinks balancing material & item flow, supporting late-game progression without runaway inflation.
+
+FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
+- Loot generation & rarity weighting (Done)
+- Item affix / budget system (Done)
+- Salvage -> materials pipeline (Done)
+- Crafting & material registry (Planned / Partial)
+- Infinite inventory stacking (Partial – design adopted)
+- Persistence integrity hash chain (Done)
+- Analytics scaffolding (Partial) (loot usage, equip rates)
+
+PHASE 0. Audit & Economic Baseline
+0.1 Catalog existing currencies/materials (gold, upgrade stones, essences, etc.) (X)
+0.2 Establish base value per material (if not already in material registry) (X)
+0.3 Define item value model: base_slot_factor + rarity_multiplier + affix_power_scalar + durability_fraction (X)
+0.4 Identify expected gold/material inflow per hour at reference levels (simulation) (X)
+0.5 Tests: valuation monotonicity vs affix power, no negative value edge cases (X)
+
+PHASE 1. Data Model & Registry
+1.1 Vendor definition file (vendor_id, archetype, biome_tags, refresh_interval_ms, price_policy_id) (X)
+1.2 Price policy file (policy_id, base_buy_margin, base_sell_margin, rarity_mods[], category_mods[]) (X)
+1.3 Reputation tier file (tier_id, rep_min, buy_discount, sell_bonus, unlock_inventory_tags) (X)
+1.4 Negotiation rule file (skill_checks, min_roll, success_discount_range) (X)
+1.5 Tests: parsing, collision detection, forward compatibility padding (X)
+
+PHASE 2. Vendor Inventory Generation
+2.1 Inventory template file (vendor_archetype -> pools: item_category weights, quality tiers) (X)
+2.2 Deterministic seed composition (world_seed ^ vendor_id ^ day_cycle) (X)
+2.3 Roll algorithm with constraints: uniqueness rules, cap per rarity, guaranteed utility slot (e.g., potions) (X)
+2.4 Material & recipe slot injection (crafting synergy) (X)
+2.5 Tests: deterministic reproduction, rarity distribution bounds, uniqueness invariants (X)
+
+PHASE 3. Pricing Engine
+3.1 Base price compute pipeline (value model -> baseline coins) (X)
+3.2 Vendor buy/sell margins application order (value -> condition -> vendor margin -> reputation -> negotiation -> dynamic demand mod -> rounding) (X)
+3.3 Dynamic demand tracking: per item_category sold/bought counts update EWMA (X)
+3.4 Scarcity multipliers: upward adjust when vendor stock outpaces resupply or buyback backlog (X)
+3.5 Tests: ordering determinism, price floor/ceiling enforcement, demand elasticity simulation (X)
+
+PHASE 4. Reputation & Negotiation
+4.1 Reputation gain events (successful purchases, quests, rescue vendor events) (X)
+4.2 Diminishing rep gains at higher tiers (logistic curve) (X)
+4.3 Negotiation mini-check: skill tags (Insight / Finesse) -> probability to reduce buy price (X)
+4.4 Failure penalty & lockout timer (prevent spam) (X)
+4.5 Tests: logistic progression monotonicity, negotiation probability correctness (X)
+
+PHASE 5. Buyback & Transaction Journaling
+5.1 Buyback ring buffer (recent N sold items with timestamp & original price) (X)
+5.2 Depreciation schedule over time & restock assimilation after T threshold (X)
+5.3 Transaction journal (hash-chained for integrity) (X)
+5.4 Anti-dupe: item GUID lineage verification on sale/purchase (X)
+5.5 Tests: journal replay equivalence, depreciation monotonicity, GUID uniqueness enforcement (X)
+
+PHASE 6. Special Offers & Rotations
+6.1 Time-limited offer slots (rare blueprint, high-tier material bundle) (X)
+6.2 Roll weighting influenced by global scarcity analytics (crafting material deficits) (X)
+6.3 Player performance tie-in: defeating Nemesis adds chance for special vendor stock (X)
+6.4 Offer pity timer (after K refreshes no special -> guarantee) (X)
+6.5 Tests: pity timer guarantee, scarcity injection rules, refresh determinism (X)
+
+PHASE 7. Currency & Sink Mechanics
+7.1 Gold sink categories: repair, enhancement catalysts, vendor fees (X)
+7.2 Vendor-exclusive upgrade service (reroll single affix with catalyst + fee) (X)
+7.3 Material trade-in: convert surplus low-tier -> higher-tier at unfavorable rate (X)
+7.4 Fee scaling with player level (soft inflation counter) (X)
+7.5 Tests: sink effectiveness simulation vs inflow, no zero-cost exploit paths (X)
+
+PHASE 8. Integration With Crafting & Gathering
+8.1 Crafting recipe unlock purchases (data-driven gating) (X)
+8.2 Gathering node boosters (temporary yield buff item) (Optional) (X)
+8.3 Material quality refinement service (npc performs batch refine for fee) (X)
+8.4 Cross-system scarcity feedback loop (vendor logs deficits -> gathering spawn weighting hint) (X)
+8.5 Tests: unlock gating correctness, refine batch conservation/ loss ratio enforcement (X)
+
+PHASE 9. Adaptive Vendor Behavior
+9.1 Personalization: track player purchase profile categories (potions, weapons, materials) (X)
+9.2 Preference adaptation: slight weight boost on under-purchased categories to encourage variety (X)
+9.3 Anti-exploit detection: rapid flip pattern (buy low vendor, salvage, resell cycle) triggers margin increase (X)
+9.4 Cooldown gating for large batch purchases (throttle flood) (X)
+9.5 Tests: adaptation boundedness, exploit detector false positive rate (X)
+
+PHASE 10. Multi-Vendor Economy Balancing
+10.1 Global inflation index (average basket cost) (X)
+10.2 Automated margin rebalance if inflation index drifts beyond threshold (X)
+10.3 Regional price variance (biome coefficient within small envelope) (X)
+10.4 Inter-vendor competition events (temporary discounts) (Optional) (X)
+10.5 Tests: inflation control convergence, variance envelope adherence (X)
+
+PHASE 11. Performance & Memory
+11.1 SoA layout for per-vendor dynamic stats (demand counters, reputation states) (X)
+11.2 Batch refresh scheduler (coalesce tick updates) (X)
+11.3 Micro-bench: 200 vendors refresh cycle within budget (X)
+11.4 Memory target < 16 KB dynamic data per 50 vendors (X)
+11.5 Tests: refresh latency P95, memory ceiling adherence (X)
+
+PHASE 12. Determinism & RNG Governance
+12.1 RNG streams: inventory generation, special offers, negotiation rolls (X)
+12.2 Seed derivation: world_seed ^ vendor_id ^ refresh_epoch (X)
+12.3 Snapshot hash: inventory_list + price_mod_params + timestamp (X)
+12.4 Replay harness: same seed -> identical inventories & prices (X)
+12.5 Tests: stream isolation, replay determinism (X)
+
+PHASE 13. Persistence & Migration
+13.1 Vendor state serialization: reputation, dynamic demand EWMAs, buyback buffer, special offer timers (X)
+13.2 Versioned economy header (curve versions, margin policy version) (X)
+13.3 Migration tool for value model parameter changes (X)
+13.4 Journal compaction (aggregate old transactions into summary) (X)
+13.5 Tests: backward compatibility, compaction equivalence (X)
+
+PHASE 14. Analytics & Telemetry
+14.1 Purchase frequency by category & rarity (X)
+14.2 Gold sink effectiveness (inflow vs outflow ratio) (X)
+14.3 Price elasticity curves (quantity sold vs price adjustments) (X)
+14.4 Negotiation success distribution & skill correlation (X)
+14.5 Inflation index drift monitor & alerting (X)
+14.6 Tests: elasticity model stability, drift false positive rate (X)
+
+PHASE 15. Security / Anti-Exploit
+15.1 Rapid flip detection (buy->sell cycle time analysis) (X)
+15.2 Negotiation spam rate limit & anomaly detection (X)
+15.3 Price manipulation guard (sudden large-volume purchases -> temporary margin buff) (X)
+15.4 Journal hash chain verification on load (X)
+15.5 Tests: exploit scenario simulations, false positives bounded (X)
+
+PHASE 16. UI / UX
+16.1 Vendor panel: tabs (Buy, Sell, Buyback, Special) (X)
+16.2 Dynamic pricing tooltips: breakdown chain (value, margin, rep, negotiation, demand) (X)
+16.3 Negotiation mini interaction UI (skill chance preview, risk) (X)
+16.4 Reputation progress bar & tier benefits preview (X)
+16.5 Search/filter (category, rarity, stat range) (X)
+16.6 Accessibility: high-contrast value change deltas, text-only mode (X)
+16.7 Tests: tooltip correctness snapshot, filter persistence (X)
+
+PHASE 17. Tooling & Dev Experience
+17.1 CLI: simulate vendor refresh & export JSON (X)
+17.2 Economy sandbox: run multi-hour inflow/outflow simulation (X)
+17.3 Elasticity tuner (auto-adjust demand coefficients to target turnover rate) (X)
+17.4 Value model diff visualizer (before/after parameters) (X)
+17.5 Load test harness (simulate 1k transactions) (X)
+17.6 Tests: sandbox reproducibility, tuner convergence (X)
+
+PHASE 18. Future / Optional Extensions
+18.1 Vendor quest contracts (source specific materials) (Optional)
+18.2 Global market board (authoritative future multiplayer) (Optional)
+18.3 Traveling vendor with stochastic route (Optional)
+18.4 Blueprint crafting commissions (player submits materials + fee) (Optional)
+18.5 Vendor sponsored events (temporary crafting/refinement discount) (Optional)
+
+DEPENDENCIES & INTEGRATIONS
+- Relies on item value model (loot & affix data) and material registry.
+- Hooks into crafting for recipe unlocks & refinement services.
+- Uses progression (attributes/skills) for negotiation probabilities.
+- Shares RNG governance & persistence integrity frameworks.
+- Feeds analytics with transaction & pricing events.
+
+RISKS & MITIGATIONS
+- Inflation / runaway gold -> Dynamic margins + sink scaling (7.x,10.x)
+- Price exploitation loops -> Flip detection & diminishing returns (9.3,15.1)
+- Player overwhelm (info overload) -> Progressive reveal of advanced pricing breakdown (UI gating) (16.x)
+- Determinism regression -> Seed & hash verification (12.x)
+- Performance issues with mass vendors -> Batched refresh & SoA (11.x)
+- Negotiation spam -> Rate limits & cooldown (4.4,15.2)
+
+KEY METRICS (Targets)
+- Vendor refresh latency: < 5 ms per vendor P95 (batch context)
+- Pricing determinism: 100% identical hash replay over 100 seeds
+- Inflation index drift: |drift| < 8% over 24h simulated period
+- Gold sink coverage: 55–75% of gross inflow absorbed at target tier
+- Negotiation success CV: within design band vs skill rating predictions (< 0.15 deviation)
+- Flip exploit detection response time: < 2 transactions after pattern onset
+
+ROLL-OUT STRATEGY
+1. Phases 0–1: Economic baseline & data schemas.
+2. Phases 2–3: Inventory generation & pricing engine core.
+3. Phase 4 reputation/negotiation then Phase 5 journaling & buyback.
+4. Phase 6 special offers & Phase 7 sinks to stabilize economy early.
+5. Phase 8 crafting integration & Phase 9 adaptive vendor behavior.
+6. Phase 10 multi-vendor balancing before large content scaling.
+7. Performance/determinism (11–12) then persistence & analytics (13–14).
+8. Security/exploits (15) & UI pass (16) iterative across phases.
+9. Tooling (17) post-stability; optional extensions (18) later.
+
+TEST PRIORITIZATION
+Early: 0,1,2,3
+Mid: 4,5,6,7,8,9,10,11,12
+Late: 13,14,15,16,17,18
+
+NOTES
+- Deterministic ordering: sort inventory items by id for hashing & diff friendliness.
+- Keep pricing factors externally tuneable (no recompilation needed).
+- Provide debug overlay for real-time price factor decomposition.
+- Use simulations pre-live to calibrate elasticity & sink parameters.
+- Integrate economy telemetry dashboards early to avoid silent inflation.

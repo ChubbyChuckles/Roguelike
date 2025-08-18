@@ -1,0 +1,212 @@
+ENEMY DIFFICULTY SYSTEM IMPLEMENTATION PLAN (Roadmap & Status)
+
+Legend:
+Done = Fully implemented & tests pass
+Partial = Some components implemented (details in parentheses)
+X = Not started yet
+Optional = Stretch / future wave
+
+Scope Overview:
+Deliver a data‑driven, extensible enemy difficulty framework governing baseline stat scaling, procedural modifiers, encounter composition, adaptive difficulty (player performance feedback), telegraph clarity, AI behavior intensity, and reward calibration. Goals: Fair challenge at SAME LEVEL, clear readability, low variance TTK (time-to-kill) bands, decisive dominance vs significantly LOWER LEVEL enemies, credible threat vs substantially HIGHER LEVEL enemies, anti-exploit safeguards, deterministic simulation for analytics & future multiplayer authority, and smooth infinite player progression integration. Constraints: single character per account, infinite player leveling, no classes (universal skill acquisition), existing loot/affix/equipment/stat systems, durability, skill maze, and persistence hash chain.
+
+FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
+- Enemy base definitions (assets/enemies.cfg) (Partial)
+- Loot table & rarity weighting system (Done)
+- Combat stat calculation pipeline for player (Partial) / enemies (Partial)
+- Affix/mod system for items; procedural patterns reusable for enemies (Done)
+- Analytics scaffolding (loot & equipment) extends for enemy stats (Partial)
+
+PHASE 0. Audit & Taxonomy Normalization
+0.1 Inventory existing enemy archetypes (melee, ranged, caster, elite, boss) (X)
+0.2 Define canonical difficulty attributes: hp_budget, dps_budget, control_budget, mobility_budget (X)
+0.3 Establish tier bands (Normal, Veteran, Elite, MiniBoss, Boss, Nemesis) with budget multipliers (X)
+0.4 Reserve ID ranges for future special tiers (Mythic, Event) (X)
+0.5 Tests: uniqueness, multiplier table monotonicity (X)
+
+PHASE 1. Baseline Scaling & Relative Level Differential
+1.1 Base level-scaling functions for enemy HP, Damage, Defense anchored to player infinite level curve reference (sublinear vs player growth) (X)
+1.2 Relative level differential model: ΔL = player_level - enemy_level drives effective stat multipliers:
+		- If ΔL = 0 (same level): target challenge TTK band maintained (4–8s normal, 20–40s boss)
+		- If ΔL > 0: enemy receives diminishing defensive & offensive penalties: mult_def = (1 - clamp(ΔL * d_def, 0, cap_def)), mult_dmg = (1 - clamp(ΔL * d_dmg, 0, cap_dmg))
+			Dominance threshold at ΔL >= D_dom (e.g., 8) -> trivialization flags (reduced telegraph complexity, optional auto-finish below %HP) (X)
+		- If ΔL < 0: enemy gains escalating multipliers: mult_def = 1 + clamp(|ΔL| * u_def - ramp_soft, 0, cap_u_def), similar for damage; ensure no one-shot floor by enforcing survivable max spike rule (X)
+1.3 Attribute derivation (crit_chance, resistances) from rating curves similar to player DR system with relative adjustment applied post-base, pre-modifiers (X)
+1.4 Difficulty coefficient data file (per biome + time epoch) holds base multipliers AND relative differential parameters (d_def, d_dmg, caps, dominance threshold, upward caps) (X)
+1.5 Reward scaling tie-in: XP & loot weight multipliers normalized to effective difficulty; farming trivial (ΔL >= D_trivial) yields sharply reduced rewards (X)
+1.6 Encounter UI indicators reflect large ΔL (icon or color tint) (X)
+1.7 Tests: TTK simulation harness across 50 player levels & ±15 ΔL; monotonic penalty / bonus application; dominance threshold triggers; no overflow / underflow in extreme ΔL scenarios (X)
+
+PHASE 2. Procedural Enemy Modifier (Affix) System
+2.1 Enemy modifier definition file (id, weight, tiers, effect DSL) (X)
+2.2 Affix budget allocation: ensure combined modifiers remain within tier control/dps budgets (X)
+2.3 Stacking rules & incompatibility matrix (X)
+2.4 Visual telegraph mapping per modifier (color aura, icon) (X)
+2.5 Tests: budget compliance, incompatibility enforcement, deterministic seed generation (X)
+
+PHASE 3. Encounter Composition & Spawn Budget
+3.1 Encounter template file (composition archetype: swarm, mixed, champion_pack) (X)
+3.2 Spawn budget algorithm converting area difficulty rating -> composition units (X)
+3.3 Elite insertion logic (chance & spacing constraints) (X)
+3.4 Boss room seeding with pre-announced telegraphs & environmental props (X)
+3.5 Tests: budget conservation, pack density bounds, elite spacing invariants (X)
+
+PHASE 4. Adaptive Difficulty Feedback Loop
+4.1 Player performance KPIs: recent TTK, damage_taken_rate, potion_usage, death_frequency (X)
+4.2 Rolling window analytic smoothing (EMA) (X)
+4.3 Adaptive coefficient adjustments: mild +/- scaling within bounded envelope (X)
+4.4 Opt-out / locked difficulty toggle (player agency) (X)
+4.5 Anti rubber-band: hysteresis thresholds to prevent oscillation (X)
+4.6 Tests: stability under alternating performance, envelope clamps (X)
+
+PHASE 5. AI Behavior Intensity Layers
+5.1 Intensity tiers (Passive, Standard, Aggressive, Frenzied) with action frequency multipliers (X)
+5.2 Behavior tree condition gating by intensity (cooldown reductions, reposition frequency) (X)
+5.3 Escalation triggers (player low HP, time elapsed, pack member deaths) (X)
+5.4 De-escalation safety (avoid perpetual frenzied lock) (X)
+5.5 Tests: escalation path determinism, cooldown floor enforcement (X)
+
+PHASE 6. Telegraph & Readability
+6.1 Standardized telegraph taxonomy: windup, persistent hazard, delayed strike, cone, ground rune (X)
+6.2 Minimum telegraph duration guidelines per damage magnitude (X)
+6.3 Color/shape contrast accessibility mapping (X)
+6.4 Overlap resolver (multiple AOEs merges / layering rules) (X)
+6.5 Tests: telegraph duration compliance, overlap resolver determinism (X)
+
+PHASE 7. Control & Debuff Fairness System
+7.1 Diminishing returns categories for crowd control effects on player (stun, root, slow) (X)
+7.2 Internal resistance counter increments & decay (X)
+7.3 Cap on concurrent harmful zones per screen region (X)
+7.4 Boss immunity phase scripting (predictable windows) (X)
+7.5 Tests: DR stack progression, zone cap enforcement (X)
+
+PHASE 8. Risk-Reward Calibration
+8.1 Reward multiplier mapping: enemy tier + affix complexity + adaptive difficulty state (X)
+8.2 Diminishing returns for farming same biome repeatedly (X)
+8.3 Rare material injection hooks to crafting system integration (X)
+8.4 Boss chest quality scaling with unspent dodge/potion metrics (Optional) (X)
+8.5 Tests: reward fairness (EV vs difficulty), no negative drop scenarios (X)
+
+PHASE 9. Boss & Nemesis Mechanics Framework
+9.1 Phase script definition file (phase_id, hp_threshold, behavior_set, environmental_modifiers) (X)
+9.2 Nemesis system: persistent rival that levels with player & adaptive loadout (X)
+9.3 Mechanics scheduler (stagger overlapping high-impact attacks) (X)
+9.4 Fail-safe checks (mechanic density & unavoidable overlap guard) (X)
+9.5 Tests: phase transition determinism, mechanic density bounds (X)
+
+PHASE 10. Scaling With Player Build Diversity
+10.1 Damage profile classification (player dominant damage types & control usage) (X)
+10.2 Encounter diversification injection (spawn counters to over-leveraged strategies) (X)
+10.3 Soft counter weighting (avoid hard shut-out) (X)
+10.4 Analytics: build vs failure correlation heatmap (X)
+10.5 Tests: counter weighting stays within tolerance envelope, no hard lockouts (X)
+
+PHASE 11. Performance & Memory
+11.1 SoA layout for enemy runtime stats & modifiers (X)
+11.2 Batched update loops (cache-friendly, minimize branch mispredicts) (X)
+11.3 Micro-bench: 500 concurrent enemies AI+mod evaluation budget < target ms (X)
+11.4 Object pool for telegraph visuals & hazard entities (X)
+11.5 Tests: frame time P95, memory ceiling (< defined KB/enemy) (X)
+
+PHASE 12. Determinism & RNG Governance
+12.1 Distinct RNG streams: spawn composition, modifier rolls, AI proc effects, loot (existing) (X)
+12.2 Seed derivation chain (world_seed ^ region_id ^ encounter_id) (X)
+12.3 Encounter replay hash (composition+mods+initial states) (X)
+12.4 Replay harness verifying identical seeds produce identical enemy stats & telegraph schedule (X)
+12.5 Tests: RNG stream isolation, replay equivalence (X)
+
+PHASE 13. Persistence & Migration
+13.1 Versioned enemy balance header (scaling curves version, modifier tables version) (X)
+13.2 Nemesis state serialization (level, mod set, last encounter timestamp) (X)
+13.3 Adaptive difficulty state persistence (bounded window snapshot) (X)
+13.4 Migration path for curve adjustments (delta patches) (X)
+13.5 Tests: backward compatibility, nemesis state restore equivalence (X)
+
+PHASE 14. Analytics & Telemetry
+14.1 TTK distribution logging per tier & biome (X)
+14.2 Player damage intake profile (burst vs sustained) (X)
+14.3 Modifier effectiveness analytics (kill contribution scoring) (X)
+14.4 Adaptive coefficient change audit log (X)
+14.5 Early warning drift detection (TTK deviates from target band > threshold) (X)
+14.6 Tests: drift false positive rate, modifier scoring stability (X)
+
+PHASE 15. Anti-Exploit & Abuse Detection
+15.1 AFK farming detection (movement variance + encounter time anomalies) (X)
+15.2 Spawn camping dampening (reduced respawn intensity if player stationary) (X)
+15.3 Infinite kite exploit guard (leash & escalate timer) (X)
+15.4 Mod roll manipulation detection (unexpected variance vs RNG model) (X)
+15.5 Tests: false positive tolerance, leash boundary correctness (X)
+
+PHASE 16. UI / UX
+16.1 Enemy tooltip: tier, modifiers, danger icons (X)
+16.2 Telegraph intensity legend (X)
+16.3 Adaptive difficulty indicator (subtle) (X)
+16.4 Boss phase preview UI (locked until seen) (X)
+16.5 Damage type hinting (resist aura color) (X)
+16.6 Accessibility: colorblind palette mode for telegraphs (X)
+16.7 Tests: tooltip caching, color mode switch integrity (X)
+
+PHASE 17. Tooling & Dev Experience
+17.1 CLI: simulate encounter composition & export JSON (X)
+17.2 Balance sandbox: run 10k synthetic fights vs baseline player archetypes (X)
+17.3 Modifier synergy audit tool (detect oppressive combos) (X)
+17.4 Curve tuner (auto-fit scaling curves to target TTK dataset) (X)
+17.5 Visual diff tool for curve version changes (X)
+17.6 Tests: sandbox reproducibility, tuner convergence (X)
+
+PHASE 18. Future / Optional Extensions
+18.1 Environmental dynamic modifiers (weather / lunar cycle) (Optional)
+18.2 Territory control meta (biome difficulty shifts based on player success) (Optional)
+18.3 Cooperative synergy scaling (future multiplayer) (Optional)
+18.4 AI learning layer (statistical adaptation) (Optional)
+18.5 Multi-phase world bosses with community unlock triggers (Optional)
+
+DEPENDENCIES & INTEGRATIONS
+- Relies on player stat progression curves for relative baseline.
+- Integrates with loot system for reward multipliers.
+- Feeds crafting system with rare material drop hooks.
+- Uses persistence chain for nemesis & adaptive state integrity.
+- Shares RNG governance with existing item/skill systems.
+
+RISKS & MITIGATIONS
+- Overtuning at relative extremes -> Simulation sweeps across ΔL grid + drift alerts (14.x)
+- Dominance farming exploitation -> Reward dampening & diminishing returns for ΔL > D_trivial (1.5, 8.2)
+- Under-challenge at mid ΔL due to overlapping adaptive & relative penalties -> Apply adaptive scaling after relative model with clamps (ordering rule) (4.x)
+- Modifier readability overload -> Strict telegraph mapping & overlap resolver (6.x)
+- Power creep mismatch vs infinite player levels -> Sublinear base scaling + capped upward relative multipliers (1.x + analytics)
+- Performance regression with many modifiers -> SoA + batched evaluation (11.x)
+- Exploits (AFK farm, spawn abuse) -> Detection & dampening (15.x)
+
+KEY METRICS (Targets)
+- Normal enemy average SAME-LEVEL TTK band: 4–8s (reference build)
+- SAME-LEVEL Boss TTK: 20–40s target median
+- Dominance ratio: TTK at ΔL = +8 <= 40% of same-level TTK; at ΔL = +12 <= 25%
+- Over-level threat: TTK at ΔL = -5 >= 150% of same-level; at ΔL = -10 >= 250% without exceeding survivable spike guidelines
+- Elite TTK variance coefficient (CV): < 0.30
+- Telegraph pre-impact warning time vs damage: >= design minimum curve (monotonic)
+- Adaptive scaling envelope: +/- 12% stat adjustment max (applied after relative model)
+- Frame budget: enemy update (500 active) < 4 ms P95 on reference hardware
+- Modifier top 5 frequency share < 55% (diversity goal)
+
+ROLL-OUT STRATEGY
+1. Phases 0–1: Establish scaling foundation & budgets.
+2. Phase 2 procedural modifiers to enrich early diversity.
+3. Phase 3 encounter composition & spawn budgets for pacing.
+4. Phase 4 adaptive loop cautiously (telemetry gated) after baseline fixed.
+5. Phases 5–7 readability & fairness before expanding complexity.
+6. Phases 8–9 reward tuning & bosses once core challenge stable.
+7. Performance & determinism (11–12) before mass content add.
+8. Persistence, analytics, anti-exploit (13–15) before external playtests.
+9. UI & tooling iterative but formalized after core (16–17).
+
+TEST PRIORITIZATION
+Early: 0,1,2,3
+Mid: 4,5,6,7,8,9,11,12
+Late: 10,13,14,15,16,17,18
+
+NOTES
+- Relative level differential model sits BEFORE adaptive scaling & AFTER base curve; ordering is Base -> Relative ΔL multipliers -> Tier/Modifier adjustments -> Adaptive tweak.
+- Provide dev toggle to lock ΔL multipliers to 1.0 for isolated curve calibration.
+- Simulation harness should output heatmaps (ΔL vs TTK) to verify dominance & threat bands.
+- Avoid awarding meaningful XP / rare loot for ΔL beyond dominance threshold to discourage trivial farming.
+- Keep ΔL parameterization data-driven for rapid tuning without recompilation.
+- Nemesis can ignore some dominance penalties to preserve narrative threat.

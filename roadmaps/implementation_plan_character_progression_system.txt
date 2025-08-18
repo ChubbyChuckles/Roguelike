@@ -1,0 +1,208 @@
+CHARACTER VERTICAL PROGRESSION SYSTEM IMPLEMENTATION PLAN (Roadmap & Status)
+
+Legend:
+Done = Fully implemented & tests pass
+Partial = Some components implemented (details in parentheses)
+X = Not started yet
+Optional = Stretch / future wave
+
+Scope Overview:
+Design and implement a deep, extensible vertical progression framework covering infinite XP & leveling (no hard cap), attributes, passive & active skill acquisition via a maze-based skill graph, mastery (per-skill usage growth), universal skill learning (no classes / ascendancies), perpetual advancement scaling (soft diminishing returns instead of post-cap switch), synergy with equipment/skills/affixes, performance-friendly stat aggregation, deterministic & auditable growth, anti-grind safeguards, and rich analytics. Constraints: single character per account, no stash/bank, infinite inventory stacking, no seasonal resets. All players can eventually unlock every skill; specialization emerges from stat distribution, path efficiency through the maze, and investment sequencing.
+
+FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
+- Skills framework & cooldown / cost logic (Done)
+- Equipment stat & affix budget governance (Done)
+- Persistence & integrity hashing chain (Done)
+- Inventory infinite stacking + material ledger (Partial)
+- Combat stat calculation pipeline (Partial – assumed basic stats exist)
+- Maze skill configuration file exists (`assets/skill_maze_config.json`) providing structural seed for graph integration.
+
+PHASE 0. Baseline Audit & Stat Taxonomy (Partial)
+0.1 Enumerate current combat stats (attack_power, spell_power, crit_chance, etc.) (X)
+0.2 Define canonical stat taxonomy (primary, derived, rating, modifier) (X)
+0.3 Gap analysis vs planned progression layers (talents, mastery, ascendancy) (X)
+0.4 Reserve ID ranges for future stats to avoid collisions (X)
+0.5 Tests: taxonomy uniqueness, stable serialized order (X)
+
+PHASE 1. Infinite XP & Level Core
+1.1 Level scaling function definition file (level -> total_xp, xp_to_next) with asymptotic growth but no terminal cap (X)
+1.2 Adaptive curve variants: early smooth ramp, mid exponential, late logarithmic compression to slow but never stop progress (X)
+1.3 XP sources integration hooks (kills, quests/events, crafting milestone, exploration) (X)
+1.4 Dynamic catch-up modifier for players below global moving median level (X)
+1.5 Overflow safety: 64-bit accumulation with saturation alerts well before limit (X)
+1.6 Tests: monotonicity, floating / integer blend accuracy, absence of cap edge conditions (X)
+
+PHASE 2. Attribute Allocation Layer
+2.1 Primary attributes set (e.g., Power, Finesse, Resilience, Insight) (X)
+2.2 Allocation points per level (base + milestone bonuses) (X)
+2.3 Re-spec token mechanism w/ integrity logging (X)
+2.4 Derived stat formulas (crit_chance = finesse_rating_table(finesse), etc.) (X)
+2.5 Tests: formula determinism, re-spec reversibility invariants (X)
+
+PHASE 3. Rating & Diminishing Returns System
+3.1 Rating categories (crit_rating, haste_rating, avoidance_rating) (X)
+3.2 DR curves (sigmoid / soft cap multi-band) data file (X)
+3.3 Aggregation order specification (base -> additive -> rating curve -> multiplicative mods) (X)
+3.4 Visualization helper (return effective % from rating) (X)
+3.5 Tests: monotonic mapping, curve continuity at band edges (X)
+
+PHASE 4. Maze Skill Graph Framework
+4.1 Maze graph ingestion from `skill_maze_config.json` (nodes: skill_id/passive_id, edges, traversal cost types) (X)
+4.2 Procedural gap filling & difficulty tagging (add dynamic optional branches) (X)
+4.3 Pathfinding utilities (shortest cost path to target node given current unlocks) (X)
+4.4 Node gating predicates (minimum level, attribute threshold, previous node chains) (X)
+4.5 Tests: graph consistency (no orphan unless flagged), cost determinism, path uniqueness stability (X)
+
+PHASE 5. Skill & Passive Unlock Integration
+5.1 Unified effect DSL (active skill modifiers + passive stat changes) (X)
+5.2 Runtime compile to dispatch tables (X)
+5.3 Unlock transaction journal (node_id, timestamp, cost_vector) hashed (X)
+5.4 Precomputed passive snapshot & incremental diff application when unlocking adjacent nodes (X)
+5.5 Hot reload of maze (dev) with migration mapping (X)
+5.6 Tests: DSL parse, snapshot correctness, unlock rollback invariants (X)
+
+PHASE 6. Mastery System
+6.1 Mastery XP separate track (earns via sustained skill usage) (X)
+6.2 Mastery levels unlocking minor passive rings (circular radial UI concept) (X)
+6.3 Per-skill mastery bonus scaling tiers (rank brackets) (X)
+6.4 Decay or plateau mechanic to prevent runaway specialization (optional toggle) (X)
+6.5 Tests: mastery XP distribution fairness, decay correctness (X)
+
+PHASE 7. Expanded Passive Rings (Former Ascendancy Slot Replacement)
+7.1 Unlockable passive ring layers (outer maze expansions at milestone levels) (X)
+7.2 Keystone-like universal nodes (powerful effects balanced by cost & prerequisite chain length) (X)
+7.3 Anti-stack safeguards (budget & diminishing synergy coefficients) (X)
+7.4 Visualization layering (zoomable maze out to ring expansions) (X)
+7.5 Tests: ring integration, keystone cost scaling integrity (X)
+
+PHASE 8. Perpetual Scaling Layer
+8.1 Continuous micro-node progression (minor stat nodes always available) (X)
+8.2 Diminishing power function (aggregate_stat_bonus(level) uses sublinear growth) (X)
+8.3 Global balancing coefficient adjustable server-side (future-proof) (X)
+8.4 Inflation guard telemetry integration (adjust coefficient if median TTK drifts) (X)
+8.5 Tests: sublinear asymptote verification, no runaway accumulation (X)
+
+PHASE 9. Synergy With Equipment & Skills
+9.1 Unified modifier combination order (equipment -> talents -> ascendancy -> mastery -> paragon) (X)
+9.2 Cap enforcement (hard & soft) for key stats (crit, cooldown_reduction) (X)
+9.3 Equipment affix tags consumed by talent conditional logic (X)
+9.4 Skill tag synergy injection (e.g., Fire tag scaling with Elementalist node) (X)
+9.5 Tests: ordering determinism, cap clamps, synergy correctness (X)
+
+PHASE 10. Buff/Debuff Integration
+10.1 Extend stat engine to treat timed buffs as layer after passives (X)
+10.2 Snapshot vs dynamic recalculation toggle per buff (X)
+10.3 Stacking rules (unique, refresh, extend, add) (X)
+10.4 Anti-oscillation dampening (avoid rapid stat flicker) (X)
+10.5 Tests: stacking semantics, snapshot freeze invariants (X)
+
+PHASE 11. Performance & Caching
+11.1 Incremental stat recomputation dirty flags (attribute change, talent change) (X)
+11.2 Flattened SoA arrays for passive effects (X)
+11.3 Micro-bench (stat recompute under 200 talent effects) (X)
+11.4 Cache size target (< 64 KB hot path) (X)
+11.5 Tests: recompute latency P95, no stale cache after re-spec (X)
+
+PHASE 12. Persistence & Migration
+12.1 Versioned progression header (level, xp, mastery, ascendancy, paragon) (X)
+12.2 Talent/ascendancy bitset or sparse list encoding (X)
+12.3 Re-spec journal entries with hash chaining (X)
+12.4 Migration for added stats & new talent nodes (X)
+12.5 Tests: backwards compatibility, migration invariants (X)
+
+PHASE 13. Analytics & Telemetry
+13.1 Leveling velocity metrics (xp/hour by bracket) (X)
+13.2 Point distribution heatmaps (talent node selection frequency) (X)
+13.3 Power index (aggregate combat rating) trend lines (X)
+13.4 Anomaly detection (sudden power spikes beyond expected curve) (X)
+13.5 Balance dashboard export JSON (X)
+13.6 Tests: anomaly false positive rate, distribution sum consistency (X)
+
+PHASE 14. Anti-Grind & Catch-Up Mechanics
+14.1 Diminishing XP returns on trivial content (gray mob scaling) (X)
+14.2 Dynamic catch-up multiplier (no rested / no seasonal reset required) (X)
+14.3 Soft gate for mastery spam (cooldown on identical skill XP events) (X)
+14.4 Adaptive XP smoothing to mitigate streak variance (X)
+14.5 Tests: multiplier boundaries, smoothing preserves mean, no negative XP scenarios (X)
+
+PHASE 15. Security / Integrity / Exploit Mitigation
+15.1 Hash-chained progression journal (level ups, point spends, re-specs) (X)
+15.2 Rate limits on point re-spec & mastery gain events (X)
+15.3 Deterministic stat snapshot hashing for anti-tampering (X)
+15.4 Replay validator (journal -> final stats) (X)
+15.5 Anomaly model (improbable mastery speed) (X)
+15.6 Tests: journal tamper detection, false positive analysis (X)
+
+PHASE 16. UI / UX
+16.1 Level & XP bar with overflow indicator (X)
+16.2 Attribute allocation panel (inline derived stat preview) (X)
+16.3 Talent tree interactive graph (hover tooltips, path highlight) (X)
+16.4 Mastery radial board + progression ring (X)
+16.5 Ascendancy selection cinematic & compare panel (X)
+16.6 Post-cap paragon lattice (scrollable infinite feel) (X)
+16.7 Re-spec cost preview & diff summary (X)
+16.8 Accessibility: text-only hierarchical list fallback (X)
+16.9 Tests: state persistence (last selected tab), diff accuracy snapshot (X)
+
+PHASE 17. Tooling & Dev Experience
+17.1 CLI: dump progression snapshot & recompute verification (X)
+17.2 Balance simulator (simulate 10k kill XP sessions) (X)
+17.3 Talent dependency graph DOT export (X)
+17.4 Automated curve tuner (optimize xp_to_next to target session length) (X)
+17.5 Stress harness: random point spend / re-spec fuzz (X)
+17.6 Docs auto-generation (talent markdown tables) (X)
+
+PHASE 18. Future / Optional Extensions
+18.1 Dynamic world attunements granting temporary stat shifts (Optional)
+18.2 Prestige cosmetic imprint (purely visual, no stat reset) (Optional)
+18.3 Mentor boost token economy (Optional)
+18.4 Procedural maze mutation mini-events (Optional)
+18.5 Collaborative global maze expansion unlock (Optional)
+
+DEPENDENCIES & INTEGRATIONS
+- Integrates with skills (mastery XP triggers, skill tags for effect conditions, maze unlock gating)
+- Equipment stats feed baseline before passive layering
+- Utilizes persistence hash chain & future anti-cheat validation modules
+- Maze graph loader requires `skill_maze_config.json` & supports hot reload in dev
+- Requires inventory for re-spec / maze reroute tokens (if implemented as items) else internal currency
+
+RISKS & MITIGATIONS
+- Infinite level runaway -> Sublinear growth functions + inflation telemetry (8.x,13.x)
+- Maze complexity overwhelm -> Fog-of-war reveal & guided path suggestions early (UI 16)
+- Path homogenization (everyone same route) -> Multiple near-equivalent path costs & rotating micro incentives (14.4,18.4)
+- Stat calc latency -> Incremental dirty flags (11.1) + SoA layout (11.2)
+- Exploit (XP macro / automated maze unlock) -> Rate limit + anomaly detection (15.x)
+- Migration fragility -> Versioned headers + deterministic sorted node IDs (12.x)
+
+KEY METRICS (Targets)
+- Stat recompute time: < 0.4 ms P95 after maze unlock (local)
+- Memory footprint (progression state excluding journal): < 28 KB (maze adds structure)
+- Journal replay determinism: 100% identical hash over 100 seeds
+- Level interval time variance (rolling 10-level window): CV < 0.20
+- Maze path diversity: top path usage share < 40% after 2 weeks
+- Sublinear scaling adherence: Effective Power growth exponent < 0.65 beyond level 200
+
+ROLL-OUT STRATEGY
+1. Phases 0–1: Taxonomy + infinite leveling core.
+2. Phases 2–3: Attributes & rating curves for baseline combat scaling.
+3. Phases 4–5: Maze graph ingestion + skill/passive unlock execution engine.
+4. Phase 6 mastery after core maze routes proven stable.
+5. Phase 7 expanded rings & keystone nodes to deepen progression.
+6. Phase 8 perpetual scaling tuning once initial balance telemetry gathered.
+7. Performance (11) & analytics (13) gates before large content infusion.
+8. Security (15) prior to external testing; UI (16) iterative from earlier phases.
+
+TEST PRIORITIZATION
+Early: 0,1,2,3,4,5
+Mid: 6,7,8,9,11,12,13
+Late: 10,14,15,16,17,18
+
+NOTES
+- Infinite leveling avoids post-cap discontinuity; smoothing functions crucial to pacing.
+- Maze replaces traditional class/ascendancy; all skills eventual but order matters.
+- Deterministic sorted node ID list forms part of progression snapshot hash.
+- Use existing fuzz infra from equipment serialization to fuzz unlock & mastery journals.
+- Provide early guided path suggestions to avoid analysis paralysis for new players.
+- Keep curves & maze costs data-driven (editable without recompilation) for rapid tuning.
+
+

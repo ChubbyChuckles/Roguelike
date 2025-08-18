@@ -1,0 +1,205 @@
+DUNGEON SYSTEM IMPLEMENTATION PLAN (Roadmap & Status)
+
+Legend:
+Done = Fully implemented & tests pass
+Partial = Some components implemented (details in parentheses)
+X = Not started yet
+Optional = Stretch / future wave
+
+Scope Overview:
+Deliver a data‑driven, procedural dungeon framework integrating layout generation, biome & thematic layering, enemy difficulty (relative level differential), objective orchestration, environmental hazards, puzzle & traversal mechanics, dynamic events, loot & crafting hooks, infinite player progression pacing, analytics, and deterministic replay. Constraints: single character, infinite leveling (no classes; universal skill access), infinite inventory stack, existing systems (loot, affixes, enemy difficulty, crafting, vendor, skill maze). Goals: High encounter variety, readable progression of challenge, systemic synergy (materials, recipes, vendors, mastery), minimal content authoring overhead, robust anti-exploit & performance guarantees.
+
+FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
+- Tile / biome configuration files (assets/tiles.cfg, assets/biomes/*) (Partial)
+- Enemy definitions & relative level differential model (Planned / Partial)
+- Loot tables & affix system (Done)
+- Skill maze & progression (Planned / Partial)
+- Crafting material registry (Planned)
+- Persistence + hash chain (Done)
+- Basic world generation (Partial)
+
+PHASE 0. Audit & Core Taxonomy
+0.1 Catalog existing biome assets & tiles; map to dungeon theme tags (X)
+0.2 Define dungeon archetypes: Linear, Branching, Looping, Hub, Gauntlet, Puzzle, Arena (X)
+0.3 Establish difficulty tier matrix (depth vs target player level delta) (X)
+0.4 Reserve ID ranges for room templates, event types, objective types (X)
+0.5 Tests: taxonomy uniqueness, template id collisions (X)
+
+PHASE 1. Layout Generation Kernel
+1.1 Graph grammar DSL (room_node, connector, constraint tags) (X)
+1.2 Layout generator (seed -> abstract graph) with pluggable archetype heuristics (X)
+1.3 Constraint solver: enforce min/max branch factor, loop quota, dead-end limit (X)
+1.4 Critical path length target (objective pacing) (X)
+1.5 Tests: deterministic reproduction, constraint satisfaction, path length distribution (X)
+
+PHASE 2. Room Template & Tile Assembly
+2.1 Room template file (template_id, size_class, biome_tags, encounter_slots, hazard_slots, puzzle_slot, exit_points) (X)
+2.2 Tile stamping engine (assemble template -> tile grid; handle rotations/reflections) (X)
+2.3 Portal / door placement & locking metadata (X)
+2.4 Environmental deco layering (aesthetic & minor collision) (X)
+2.5 Tests: template bounds correctness, exit alignment, rotation determinism (X)
+
+PHASE 3. Biome & Theme Layering
+3.1 Biome selection policy per floor/segment (weighted by desired difficulty & scarcity analytics) (X)
+3.2 Thematic modifier injection (fog density, lighting color, ambient SFX) (X)
+3.3 Biome hazard palette (trap types, environmental DoT, movement penalty tiles) (X)
+3.4 Rare biome event substitution (chance to swap standard segment with rare theme) (X)
+3.5 Tests: biome distribution bounds, hazard palette completeness, rare event probability (X)
+
+PHASE 4. Encounter Seeding & Enemy Composition
+4.1 Encounter slot definition (slot_type: combat, elite_pack, mini_boss, puzzle_guard) (X)
+4.2 Difficulty budget allocation along critical path vs optional branches (X)
+4.3 Relative level delta mapping per depth (tie to enemy scaling phase model) (X)
+4.4 Elite & modifier distribution smoothing (no clustering beyond thresholds) (X)
+4.5 Nemesis injection hook (chance / triggered conditions) (X)
+4.6 Tests: budget conservation, modifier spacing invariants, ΔL mapping correctness (X)
+
+PHASE 5. Objectives & Progression Gates
+5.1 Objective taxonomy: Clear, Collect, Activate, Escort, Survive, PuzzleComplete, Boss (X)
+5.2 Objective chain scripting file (sequence, optional branches, fail conditions) (X)
+5.3 Gate mechanics (sealed door, barrier rune, keystone item) (X)
+5.4 Dynamic objective substitution (adaptive if player overpowered: insert optional challenge) (X)
+5.5 Tests: chain determinism, gate unlock integrity, substitution constraints (X)
+
+PHASE 6. Puzzle & Traversal Subsystem
+6.1 Puzzle template file (logic_type, param set, min_skill_requirements) (X)
+6.2 Traversal mechanics (moving platforms, timed doors, jump glyphs, secret passages) (X)
+6.3 Assist mode toggles (longer timers, highlight interactables) (Optional) (X)
+6.4 Fail reset & soft-lock prevention watchdog (X)
+6.5 Tests: solvability, time limit variance, soft-lock detection (X)
+
+PHASE 7. Hazard & Trap System
+7.1 Trap definition file (trigger_type, telegraph_duration, damage_profile, cooldown) (X)
+7.2 Scaling trap damage with relative level differential & player avoidance stats (X)
+7.3 Overlap resolver (cap active simultaneous high-damage hazards) (X)
+7.4 Disarm interaction & skill-based success probability (X)
+7.5 Tests: telegraph compliance, damage scaling monotonicity, disarm probability accuracy (X)
+
+PHASE 8. Loot & Reward Orchestration
+8.1 Chest distribution algorithm (reserve for dead-end & milestone rooms) (X)
+8.2 Reward tier weighting by depth, optional branch completion, challenge objectives (X)
+8.3 Smart drop injection (ensure at least one upgrade opportunity per run unless top-tier equipped) (X)
+8.4 Material & crafting recipe seeding (rare nodes inside dungeons) (X)
+8.5 Tests: EV consistency vs difficulty, upgrade guarantee logic, chest placement constraints (X)
+
+PHASE 9. Run Modifiers & Mutators
+9.1 Mutator definition file (id, weight, effect DSL, reward_multiplier) (X)
+9.2 Pre-run mutator selection UI (roll K choose N) (X)
+9.3 Stacking rules & incompatibility matrix (X)
+9.4 Dynamic mid-run mutator event (optional challenge offer) (X)
+9.5 Tests: reward scaling correctness, incompatibility enforcement, deterministic selection (X)
+
+PHASE 10. Scaling & Adaptive Difficulty Integration
+10.1 Map dungeon depth -> target enemy relative ΔL band (X)
+10.2 Performance-based on-the-fly tweaks (if player dominance sustained: optional side-elite spawn) (X)
+10.3 Cap adaptive stacking: relative model first, mutators second, adaptive last (ordering doc) (X)
+10.4 Boss difficulty calibration vs player TTK metrics (X)
+10.5 Tests: ordering invariants, adaptive envelope clamps, TTK variance bounds (X)
+
+PHASE 11. Time & Score Systems
+11.1 Run timer & segment splits (X)
+11.2 Scoring formula (time efficiency, damage taken, optional objectives, mutator intensity) (X)
+11.3 Rank thresholds & reward bundles (X)
+11.4 Anti-speed exploit (detect path skipping anomalies) (X)
+11.5 Tests: score reproducibility, exploit detection false positive rate (X)
+
+PHASE 12. Persistence & Replay
+12.1 Run seed & config snapshot (layout graph, mutators, objectives) (X)
+12.2 Journal (enter_room, encounter_start, objective_events) hash chain (X)
+12.3 Replay harness (seed + journal -> deterministic state) (X)
+12.4 Partial resume (disconnect safety) (X)
+12.5 Tests: replay equivalence, resume integrity (X)
+
+PHASE 13. Performance & Memory
+13.1 Streaming room activation (load active + neighbors; unload far) (X)
+13.2 SoA for room runtime metadata (visited, cleared, hazard_flags) (X)
+13.3 Object pool for traps, projectiles, particle VFX (X)
+13.4 Micro-bench: 100 rooms generated < target ms; active tick budget < frame slice (X)
+13.5 Memory targets: layout + runtime meta < 256 KB typical run (X)
+13.6 Tests: generation latency P95, memory ceiling, GC/pool churn rate (X)
+
+PHASE 14. Analytics & Telemetry
+14.1 Layout shape metrics (branch factor, loop count, depth) (X)
+14.2 TTK & death heatmaps per room archetype (X)
+14.3 Puzzle failure & retry counts (X)
+14.4 Mutator adoption rates & impact on score (X)
+14.5 Loot upgrade success rate per run (X)
+14.6 Drift alerts (TTK or upgrade rate deviates) (X)
+14.7 Tests: analytic aggregation correctness, drift false positive rate (X)
+
+PHASE 15. Anti-Exploit & Integrity
+15.1 Room skip detection (teleport / clip anomalies) (X)
+15.2 Chest prediction / reroll abuse guard (limit retries on layout regen) (X)
+15.3 AFK farm detection (minimal movement + periodic spawn kills) (X)
+15.4 Journal tamper detection (hash mismatch) (X)
+15.5 Tests: exploit scenario simulation, false positive bounds (X)
+
+PHASE 16. UI / UX
+16.1 Procedural map panel (fog-of-war, discovered rooms, objective markers) (X)
+16.2 Mutator selection UI & mid-run offer dialog (X)
+16.3 Reward summary screen (score breakdown, upgrade diff highlights) (X)
+16.4 Puzzle assist toggles & accessibility overlays (X)
+16.5 Danger indicators (trap density, elite presence) (X)
+16.6 Tests: map reveal determinism, summary correctness snapshot (X)
+
+PHASE 17. Tooling & Dev Experience
+17.1 Layout debugger (render abstract graph with budgets) (X)
+17.2 Seed explorer CLI (generate N seeds stats table) (X)
+17.3 Mutator impact simulator (expected difficulty delta & reward scaling) (X)
+17.4 TTK simulation harness integration (enemy difficulty model tie-in) (X)
+17.5 Template coverage analyzer (unused templates report) (X)
+17.6 Tests: deterministic tool outputs, harness reproducibility (X)
+
+PHASE 18. Future / Optional Extensions
+18.1 Multi-floor meta progression (carry-over mutator stacking) (Optional)
+18.2 Rogue events (choose-one narrative modifiers) (Optional)
+18.3 Dynamic live modifiers (global weekend mutator) (Optional)
+18.4 Co-op synchronization hooks (future) (Optional)
+18.5 Procedural puzzle generator (beyond templates) (Optional)
+
+DEPENDENCIES & INTEGRATIONS
+- Uses enemy difficulty relative ΔL model (depth mapping).
+- Integrates with loot & crafting for chest & material spawns.
+- Pulls progression (skill unlocks) for puzzle gating / traversal requirements.
+- Vendor special offer triggers can reference dungeon score ranks.
+- Persistence journal & RNG governance reuse existing infrastructure.
+
+RISKS & MITIGATIONS
+- Repetitive layouts -> Graph grammar diversity + template coverage analyzer (17.5)
+- Overtuned difficulty spikes -> Depth-based ΔL smoothing + analytics drift alerts (14.6)
+- Performance stalls on generation -> Streaming & preallocation (13.x)
+- Puzzle soft-locks -> Reset watchdog & solvability tests (6.4/6.5)
+- Exploit path skipping -> Skip detection & scoring validation (11.4,15.1)
+- Reward inflation -> EV normalization & upgrade guarantee cap (8.x)
+
+KEY METRICS (Targets)
+- Layout generation time: < 40 ms P95 (standard size)
+- Active tick cost (dungeon systems): < 1.5 ms/frame P95
+- Same-level path TTK variance (combat rooms): CV < 0.28
+- Upgrade opportunity realization: >= 85% runs produce ≥1 potential equip upgrade
+- Puzzle soft-lock incidence: < 0.1% runs
+- Mutator selection diversity: top mutator pick share < 45%
+- Replay determinism: 100% identical layout + objectives over 100 seeds
+
+ROLL-OUT STRATEGY
+1. Phases 0–1 taxonomy + abstract layout kernel.
+2. Phases 2–3 templates & biome layering for visual/thematic grounding.
+3. Phases 4–5 encounter seeding + objectives gating core loop.
+4. Phases 6–7 puzzle & hazard depth for interaction variety.
+5. Phases 8–9 reward orchestration + mutators to deepen replay.
+6. Phases 10–11 scaling and scoring systems.
+7. Performance, persistence, analytics (12–14) for stability.
+8. Anti-exploit, UI, tooling (15–17) finalize & refine.
+9. Optional extensions (18) post stabilization.
+
+TEST PRIORITIZATION
+Early: 0,1,2,3,4,5
+Mid: 6,7,8,9,10,11,12,13
+Late: 14,15,16,17,18
+
+NOTES
+- Deterministic ordering critical: sort room IDs & mutators before hashing.
+- Keep all numeric curve parameters externalized for live tuning.
+- Use heatmaps & coverage reports early to prevent template underuse.
+- Provide dev toggles for: force archetype, force mutators, lock seed.
+- Integrate with enemy simulation harness to precompute target ΔL table per depth.

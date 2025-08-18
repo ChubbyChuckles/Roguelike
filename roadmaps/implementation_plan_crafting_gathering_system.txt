@@ -1,0 +1,200 @@
+CRAFTING & GATHERING SYSTEM IMPLEMENTATION PLAN (Roadmap & Status)
+
+Legend:
+Done = Fully implemented & tests pass
+Partial = Some components implemented (details in parentheses)
+X = Not started yet
+Optional = Stretch / future wave
+
+Scope Overview:
+Deliver a data‑driven, deterministic crafting & gathering ecosystem layered atop existing loot, salvage, affix, durability, quality, socket, upgrade, rarity, analytics, and persistence foundations. Goals: meaningful player agency, long‑term progression loops, balanced material economy, low latency, replay determinism, future multiplayer authority safety, and extensibility for later systems (marketplace, seasonal content). Constrained by: single character per account, no stash/bank, infinite per‑item stack counts.
+
+CURRENT FOUNDATIONS (Baseline References)
+- Salvage -> materials (Done) (existing salvage system yields material IDs & amounts)
+- Upgrade stones / quality / durability / affix governance (Done)
+- Loot analytics export & rarity weighting (Done)
+- Inventory infinite stacking model & single namespace (Revised plan) (Partial: infinite stacking assumption)
+- Persistence & integrity hashing (Done)
+
+PHASE 0. Baseline Consolidation (Partial)
+0.1 Enumerate existing material types & unify into material registry (X)
+0.2 Map salvage outputs to registry entries (Partial: salvage yields raw integers)
+0.3 Define material rarity / tier taxonomy (X)
+0.4 Consolidate upgrade stone & reroll currencies into material taxonomy (X)
+0.5 Tests: salvage -> registry mapping stability (X)
+
+PHASE 1. Material Registry & Data Model
+1.1 Material definition file (id, name, tier, category: ore|plant|essence|component|currency, base_value) (X)
+1.2 Parser + validation (dup id, tier bounds) (X)
+1.3 Runtime registry APIs (lookup by id/name/prefix) (X)
+1.4 Deterministic seed mixing for material node generation (foundation for gathering) (X)
+1.5 Tests: parsing, collisions, deterministic order (X)
+
+PHASE 2. Gathering Nodes & World Integration
+2.1 Node definition file (node_id, spawn_table(material_id:weight), min_roll, max_roll, respawn_ms, tool_required, biome_tags) (X)
+2.2 Spawn scheduler: deterministic per chunk seed -> candidate nodes (X)
+2.3 Depletion state machine (active -> harvested -> respawn timer) (X)
+2.4 Tool gating (pickaxe tier, sickle, essence extractor) (X)
+2.5 Rare proc: rich vein / pristine plant variant (bonus yield or quality) (X)
+2.6 Analytics counters (gathers/hour by biome & node type) (X)
+2.7 Tests: deterministic respawn, tool gating rejection, yield bounds (X)
+
+PHASE 3. Material Quality & Refinement
+3.1 Per‑material quality scalar (0..100) affecting crafted item affix roll bias (X)
+3.2 Quality bucket collapse (store counts per bucket to reduce save size) (X)
+3.3 Refinement recipes (convert N low-quality -> M higher-quality with loss ratio) (X)
+3.4 Failure chance / critical refine success (extra tier skip) (X)
+3.5 Tests: refinement conservation bounds, critical elevate probability (X)
+
+PHASE 4. Crafting Recipe System
+4.1 Recipe definition file (recipe_id, output_def_id, output_qty, inputs(list material_id|item_def), time_ms, station_tag, skill_req, exp_reward) (X)
+4.2 Recipe parsing + forward compatibility padding (X)
+4.3 Crafting station registry (forge, alchemy_table, workbench, mystic_altar) (X)
+4.4 Queue model (parallel slots limited by station capacity) (X)
+4.5 Cancel / partial refund policy (X)
+4.6 Tests: parsing, queue order determinism, cancel refund invariants (X)
+
+PHASE 5. Crafting Skill & Proficiency Progression
+5.1 Per crafting discipline XP & level curves (smithing, alchemy, enchanting, cooking if added) (X)
+5.2 Success modifiers: higher skill reduces failure / increases quality roll floor (X)
+5.3 Discovery system: unlock recipe on first successful craft of precursor or via drop (X)
+5.4 Mastery perks: chance duplicate output, reduced material cost, speed reduction (X)
+5.5 Tests: XP gain boundary, perk activation probability bands (X)
+
+PHASE 6. Item Modification & Enhancement Pathways
+6.1 Imbue: add new affix using material catalysts (budget safe guard) (X)
+6.2 Temper: raise existing affix value within budget using rare material (X)
+6.3 Transmute: reroll affixes (already exists) integrate material scaling (X)
+6.4 Socket crafting: add socket or reroll socket layout (X)
+6.5 Fracture risk mechanic for aggressive enhancement attempts (increases durability loss rate on failure) (X)
+6.6 Tests: budget constraint preservation, fracture probability distribution (X)
+
+PHASE 7. Determinism & RNG Governance
+7.1 Separate RNG streams: gathering, refinement, craft quality, enhancement risk (X)
+7.2 Seed derivation (session_seed ^ world_chunk ^ player_level) (X)
+7.3 Craft outcome hash for integrity & analytics (X)
+7.4 Replay harness to validate identical journal -> identical outputs (X)
+7.5 Tests: stream isolation (statistical independence), replay determinism (X)
+
+PHASE 8. UI / UX Layer
+8.1 Gathering node highlight & depletion timer overlay (X)
+8.2 Crafting station panel: searchable recipes, filter by available, missing materials dim (X)
+8.3 Queue progress bars + batch craft multi-quantity slider (X)
+8.4 Enhancement risk preview (expected value, fracture risk, material burn) (X)
+8.5 Material ledger panel (tier segmentation, quality histograms) (X)
+8.6 Loadout integration: show craft that upgrades currently equipped item (diff metrics) (X)
+8.7 Accessibility: text-only recipe list fallback (X)
+8.8 Tests: UI state persistence (last filters), diff accuracy snapshot (X)
+
+PHASE 9. Automation & Smart Assist
+9.1 Craft planner: goal item -> compute required materials & missing gap (X)
+9.2 Gathering route suggestion (biome nodes optimization solver, simple heuristic first) (X)
+9.3 Auto-refine suggestion queue (convert excess low-quality) (X)
+9.4 Salvage vs craft decision scoring (expected affix tier improvement / material cost) (X)
+9.5 Idle recommendation panel (what to gather next) (X)
+9.6 Tests: planner determinism, no negative material projection, salvage/craft score monotonicity (X)
+
+PHASE 10. Economy & Balance Hooks
+10.1 Material drop rate adjustment via dynamic weights (feedback from scarcity metrics) (X)
+10.2 Crafting inflation guard (diminishing XP returns on mass low-tier crafts) (X)
+10.3 Soft caps for high-tier material accumulation (suggest refine / spend) (X)
+10.4 Value model: base_value + quality multiplier + rarity adjustment (X)
+10.5 Tests: inflation guard thresholds, value consistency vs affix power (X)
+
+PHASE 11. Analytics & Telemetry
+11.1 Gathering session metrics (nodes/hour, rare proc rate) (X)
+11.2 Craft outcome distribution (quality histogram, success/failure ratio) (X)
+11.3 Enhancement risk realized vs expected variance monitor (X)
+11.4 Material flow Sankey (acquire -> consume -> leftover) (X)
+11.5 JSON export for dashboards (X)
+11.6 Drift alert (actual high-quality output deviates > threshold) (X)
+11.7 Tests: variance bounds, drift detection false positive rate (X)
+
+PHASE 12. Performance & Memory
+12.1 SoA arrays for recipe lookup acceleration (X)
+12.2 Node spawn cache warm & eviction policy (X)
+12.3 Incremental save deltas for material ledger (X)
+12.4 Micro-bench harness (craft queue throughput, 10k synthetic nodes) (X)
+12.5 Memory budget: < 256 KB for node runtime states at 2k active nodes (X)
+12.6 Tests: perf CI gate (ops/sec), memory cap check (X)
+
+PHASE 13. Security / Integrity / Multiplayer Prep
+13.1 Journal craft & enhancement operations (append-only, hash chain) (X)
+13.2 Server validation stubs (recompute outcomes) (X)
+13.3 Anti-duplication: GUID tie for crafted outputs & enhancement lineage chain (X)
+13.4 Rate limiter (crafts/min, enhancements/min) (X)
+13.5 Anomaly detector (sustained improbable enhancement success) (X)
+13.6 Replay verification tool (journal -> final state) (X)
+13.7 Tests: anomaly detection sensitivity, lineage integrity traversal (X)
+
+PHASE 14. Persistence & Migration
+14.1 Versioned material ledger header + feature bits (X)
+14.2 Material quality bucket encoding & migration path (X)
+14.3 Recipe discovery bitset serialization (X)
+14.4 Journal compaction (squash old entries into state snapshot) (X)
+14.5 Integrity: ledger CRC + craft outcome hash accumulation (X)
+14.6 Tests: forward/back compat, compaction equivalence (X)
+
+PHASE 15. Testing & QA Expansion
+15.1 Fuzz: random gather -> craft -> enhance sequences (X)
+15.2 Property: material conservation (inputs consumed == outputs + waste) (X)
+15.3 Statistical: enhancement success distribution vs expected (X)
+15.4 Boundary: max quality refine loops, overflow guards (X)
+15.5 Replay: journal determinism across seeds (X)
+15.6 CI gating: performance & variance thresholds (X)
+
+PHASE 16. Tooling & Developer Experience
+16.1 CLI: dump materials, recipes, unresolved dependencies (X)
+16.2 JSON export: recipe graph (nodes=recipes, edges=material dependencies) (X)
+16.3 Balancing assistant: sensitivity analysis (material weight deltas -> output quality shift) (X)
+16.4 Visualization: heatmap of material scarcity vs usage (X)
+16.5 Auto-doc: craft station manual & enhancement rules (X)
+16.6 Test data generator (bulk synthetic recipes) (X)
+
+PHASE 17. Future / Optional Extensions
+17.1 Time‑gated world events boosting specific node yields (Optional)
+17.2 Seasonal unique refinement catalysts (Optional)
+17.3 Legendary crafting quest chains (multi-stage recipe unlock) (Optional)
+17.4 Collaborative world project (global material contributions) (Optional)
+17.5 Procedural recipe mutation system (Optional)
+17.6 Cosmetic transmutation variants (Optional)
+
+DEPENDENCIES & INTEGRATIONS
+- Uses existing inventory infinite stack & material ledger (to be formalized Phase 1).
+- Leverages affix budget & upgrade logic for enhancement safeguards.
+- Integrates with equipment diff & stat cache for loadout improvement predictions.
+- Optional multiplayer authority uses existing journaling & hash chain infrastructure.
+
+RISKS & MITIGATIONS
+- Power creep via enhancement loops -> enforce budget & fracture risk (6.5) + diminishing returns.
+- Material inflation -> dynamic drop weighting (10.1) + soft caps (10.3).
+- RNG perception (streaks) -> variance smoothing / telemetry transparency (11.x).
+- Save bloat -> quality bucket aggregation + delta encoding (3.2,12.3).
+- Exploit (crafted duplication) -> journal hash chain + lineage chain (13.1,13.3).
+
+KEY METRICS (Targets)
+- Craft queue latency: enqueue < 0.3 ms P95 (local).
+- Enhancement EV accuracy: observed mean within ±3% expected over 10k trials.
+- Node respawn determinism: 100% reproducible across 50 seeds.
+- Delta save size: < 5% of full ledger snapshot for typical session tick.
+- Replay determinism: 100% identical outcome hash over 100 seeded replays.
+
+ROLL-OUT STRATEGY
+1. Phases 0–1: Registry unification & deterministic grounding.
+2. Phase 2 basic gathering (common nodes) to feed early recipes.
+3. Phase 4 minimal recipe set + Phase 5 progression skeleton.
+4. Phase 6 enhancement pathways (core loops) with strict guards.
+5. Phase 8 UI & basic analytics (11 subset) for feedback before automation.
+6. Performance (12) & security (13) before scaling recipe volume.
+7. Tooling (16) last to accelerate balancing.
+
+TEST PRIORITIZATION
+Early: 0,1,2,4,5,6,7
+Mid: 8,10,11,12,14
+Late: 9,13,15,16,17
+
+NOTES
+- Single inventory + infinite stack simplifies node yield insertion & cost aggregation logic.
+- Reuse existing fuzz frameworks (loot, equipment) for journal & parser fuzz quickly.
+- Maintain deterministic ordering (sorted material IDs) for hashing & diff friendliness.
+- Post Phase 6, schedule balance iterations using telemetry rather than speculative tuning.
