@@ -529,6 +529,15 @@ Implemented foundational socketing support:
 
 Upcoming (5.2+): Introduce gem definition category (`ROGUE_ITEM_GEM`) stat contributions layered before affixes, economic insertion/removal costs & safety (5.3), enchanting & reforge mechanics (5.4–5.5), and optional protective seal (5.6). Runeword placeholder matching will transition to socket rune sequence evaluation once gem typing exists.
 
+### Equipment Phase 5.2–5.3 – Gems & Economic Socket Operations
+Implemented gem system and paid socketing:
+* Gem Registry (5.2): Added `equipment_gems.[ch]` with `RogueGemDef` (flat primary/resist/armor, percent primary bonuses, proc metadata placeholders). CSV loader `gems_test.cfg` demonstrates format.
+* Aggregation: `rogue_gems_aggregate_equipped` integrates into equipment stat pipeline prior to sets/runewords, contributing flats and approximate percent conversions (converted to flat based on base primary stats for deterministic simplicity pending a dedicated percent layer).
+* Economic Insertion (5.3): High-level APIs `rogue_item_instance_socket_insert_pay` and `rogue_item_instance_socket_remove_refund` wrap base socket operations, charging gold (`cost = 10 + 2*(sum flat + sum pct)`) and refunding 50% on removal plus optional gem return to inventory.
+* Safety: Failure modes (insufficient funds, slot occupied, invalid gem) abort without mutating sockets or gold. Removal always preserves the item (never destroys base equipment) and optionally returns gem item to inventory.
+* Tests: `test_equipment_phase5_gems` loads gem and item fixtures, forces socket count, inserts flat and percent gems, validates stat increases (strength >= base + flat), fire resist accumulation, and successful removal with refund path.
+* Roadmap: Marked 5.2 and 5.3 Done; groundwork laid for 5.4 Enchant & 5.5 Reforge to extend economic model.
+
 
 
 * Each `RogueItemInstance` now tracks `item_level` (baseline 1 on spawn) driving a power budget.

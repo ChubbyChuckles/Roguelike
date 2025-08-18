@@ -32,6 +32,9 @@ int rogue_equip_get(enum RogueEquipSlot slot); /* returns item instance index or
 int rogue_equip_try(enum RogueEquipSlot slot, int inst_index); /* 0 on success */
 int rogue_equip_unequip(enum RogueEquipSlot slot); /* returns previous inst index */
 
+/* Convenience wrapper (Phase 5 tests) aliasing rogue_equip_try for naming consistency */
+static inline int rogue_equip_equip(enum RogueEquipSlot slot, int inst_index){ return rogue_equip_try(slot, inst_index); }
+
 /* Repair utilities (10.4 integration) */
 /* Attempts to fully repair the item in slot; spends gold via economy; returns 0 success, <0 failure (no item or insufficient gold). */
 int rogue_equip_repair_slot(enum RogueEquipSlot slot);

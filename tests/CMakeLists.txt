@@ -18,6 +18,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase5_sockets.c AND N
     add_test(NAME test_equipment_phase5_sockets COMMAND test_equipment_phase5_sockets)
 endif()
 
+# Equipment Phase 5 gems test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase5_gems.c AND NOT TARGET test_equipment_phase5_gems)
+    add_executable(test_equipment_phase5_gems unit/test_equipment_phase5_gems.c)
+    target_link_libraries(test_equipment_phase5_gems PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_equipment_phase5_gems PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_equipment_phase5_gems COMMAND test_equipment_phase5_gems)
+    set_tests_properties(test_equipment_phase5_gems PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+endif()
+
 # UI Phase 6.2 bars + AP smoothing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARGET test_ui_phase6_bars_ap)
     add_executable(test_ui_phase6_bars_ap unit/test_ui_phase6_bars_ap.c)

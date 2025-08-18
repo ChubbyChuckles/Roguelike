@@ -14,3 +14,19 @@ Notes / Next Steps:
 * Phase 5.3: Add economic + safety model (currency cost, guaranteed item retention) and potential failure modifiers.
 * Transition runeword matching (Phase 4.5 placeholder) to use ordered rune/gem sequence once gem typing established.
 
+Equipment System Phases 5.2–5.3 – Gem Definitions & Socket Economy
+
+Implemented Features:
+* Gem Registry: Added `equipment_gems.c/h` implementing `RogueGemDef` (flat + percent primary stats, armor, resistances, proc placeholders) with static array registry + bounds checks, capacity 128.
+* CSV Loader: Reused config parsing path to load `assets/gems_test.cfg` test fixture; validates numeric fields and maps `item_def_index` for gem->item linkage.
+* Aggregation Layer: Inserted `rogue_gems_aggregate_equipped` into equipment stat pipeline prior to set/runeword layering; percent bonuses presently approximated by converting to flat using base primary totals for deterministic minimal-scope integration (future: distinct percent layer).
+* Economic Socket Operations: Added paid insertion `rogue_item_instance_socket_insert_pay` (charges gold via heuristic `10 + 2*(sum flats + sum pct)`) and refund removal `rogue_item_instance_socket_remove_refund` (refunds 50% cost, optional inventory return of gem item). Safety: early validation prevents partial state mutation on failure.
+* Unit Test: `test_equipment_phase5_gems` covers gem load, insertion cost gating, stat aggregation (flat + percent), removal refund logic, and socket state integrity. Forces socket count for deterministic coverage.
+* README: Added Phase 5.2–5.3 section detailing design decisions and future refinements.
+* Roadmap: Marked 5.2 & 5.3 Done post-implementation (awaiting build/test validation in this commit step).
+
+Notes / Future Work:
+* Introduce true percent stat layering affecting post-affix totals (requires ordering review with unique/set/runeword multipliers).
+* Extend gem definitions with proc chance/effect execution hooks and rarity-based cost scaling.
+* Implement Phases 5.4 (Enchant selective reroll) & 5.5 (Reforge preserving item level & sockets), optionally 5.6 protective seal, then robustness/determinism tests (5.7).
+
