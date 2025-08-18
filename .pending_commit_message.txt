@@ -1,3 +1,11 @@
+Equipment Phase 5.4–5.5: Implement enchant & reforge systems
+- Added equipment_enchant.[ch] with APIs: rogue_item_instance_enchant (selective prefix/suffix reroll) and rogue_item_instance_reforge (full reroll preserving item_level, sockets, rarity)
+- Cost formulas (enchant: 50 + 5*level + rarity^2*25 + 10*sockets; reforge: 2x enchant cost) with gold + material consumption (enchant_orb for dual reroll, reforge_hammer for reforge)
+- Deterministic RNG seeding and budget validation guard (-5 on validation failure)
+- Added material item defs (enchant_orb, reforge_hammer) to test_items.cfg
+- Unit test test_equipment_phase5_enchant_reforge exercising selective reroll, full reforge, and failure paths (insufficient gold, missing material)
+- Roadmap equipment phases 5.4, 5.5, 5.7 marked Done (5.6 optional still open)
+- README section documenting operations, costs, return codes
 Equipment System Phase 5.1 – Socket Count Infrastructure
 
 Implemented Features:

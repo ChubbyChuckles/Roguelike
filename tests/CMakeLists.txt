@@ -29,6 +29,14 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase5_gems.c AND NOT 
     set_tests_properties(test_equipment_phase5_gems PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 endif()
 
+    add_executable(test_equipment_phase5_enchant_reforge unit/test_equipment_phase5_enchant_reforge.c)
+    target_link_libraries(test_equipment_phase5_enchant_reforge PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_equipment_phase5_enchant_reforge PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_equipment_phase5_enchant_reforge COMMAND test_equipment_phase5_enchant_reforge)
+    set_tests_properties(test_equipment_phase5_enchant_reforge PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
 # UI Phase 6.2 bars + AP smoothing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARGET test_ui_phase6_bars_ap)
     add_executable(test_ui_phase6_bars_ap unit/test_ui_phase6_bars_ap.c)

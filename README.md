@@ -538,6 +538,16 @@ Implemented gem system and paid socketing:
 * Tests: `test_equipment_phase5_gems` loads gem and item fixtures, forces socket count, inserts flat and percent gems, validates stat increases (strength >= base + flat), fire resist accumulation, and successful removal with refund path.
 * Roadmap: Marked 5.2 and 5.3 Done; groundwork laid for 5.4 Enchant & 5.5 Reforge to extend economic model.
 
+### Equipment Phase 5.4–5.5 – Enchant & Reforge
+Introduced affix modification crafting operations:
+* Enchant: Selectively reroll prefix and/or suffix while preserving the untouched affix, item_level, rarity, sockets & existing gems. Cost formula `50 + 5*item_level + (rarity^2)*25 + 10*sockets`. If both affixes are rerolled, a rare material `enchant_orb` is also consumed. Failure leaves item unchanged.
+* Reforge: Full affix wipe + reroll (respecting rarity rules) preserving item_level, socket_count, rarity; clears gem contents (socket_count retained). Cost = 2x enchant cost and consumes `reforge_hammer`.
+* Determinism: Seed basis mixes instance index and item_level for stable reroll results in tests.
+* Validation: Post-operation budget check ensures no illegal stat inflation; failure aborts.
+* Materials: Added `enchant_orb`, `reforge_hammer` to test item defs (category material).
+* Tests: New unit test `test_equipment_phase5_enchant_reforge` covers selective reroll, dual reroll, reforge preservation (level, rarity, socket_count) and failure modes (insufficient gold, missing material). Existing gem test already validates gem stacking; roadmap Phase 5.7 updated accordingly.
+* Roadmap: 5.4, 5.5, 5.7 marked Done; optional 5.6 protective seal remains open.
+
 
 
 * Each `RogueItemInstance` now tracks `item_level` (baseline 1 on spawn) driving a power budget.
