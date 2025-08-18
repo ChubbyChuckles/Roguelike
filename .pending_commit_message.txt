@@ -66,3 +66,17 @@ Enables rapid iteration on set tuning / bonus threshold balancing for external t
 Testing:
 New test passes locally (Release) alongside Phase 17.1 schema docs and prior Phase 16 suite. Manual inspection confirms no duplicate registrations & stable behavior on redundant force.
 
+Equipment Phase 17.5 (Early Part): Hot Reload Determinism Hash
+
+Summary:
+- Introduced registry hash API `rogue_sets_state_hash` (FNV-1a 64 -> 32-bit fold) to fingerprint current set definitions enabling detection of unintended mutations between reloads.
+- Added unit test `test_equipment_phase17_hot_reload_hash` covering: empty vs post-load hash change, stable hash on identical force reload, hash change after modifying JSON (bonus stat tweak), integration with existing hot reload path.
+- Updated roadmap marking Phase 17.5 partial (hash determinism complete; sandbox scripting enforcement pending).
+- README Phase 17.2 section extended with determinism guard note.
+
+Rationale:
+Provides early safety net for future sandbox scripting & diff tooling by locking in deterministic state hashing now while surface area is small.
+
+Testing:
+All three Phase 17 tests pass (schema docs, hot reload, hash). No impact on previous phases; spot check runeword validator still green.
+

@@ -41,4 +41,7 @@ int rogue_set_validate(const RogueSetDef* def);
  * After registration, invoke rogue_hot_reload_force(id) or modify the file and tick to load. */
 int rogue_equipment_sets_register_hot_reload(const char* id, const char* path);
 
+/* Phase 17.5: Determinism guard – hash current in-memory set registry (FNV-1a 64 truncated to 32-bit for simplicity). */
+unsigned int rogue_sets_state_hash(void);
+
 #endif

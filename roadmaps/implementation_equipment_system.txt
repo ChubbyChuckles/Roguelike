@@ -161,7 +161,7 @@ PHASE 17. Accessibility & Modding Exposure
 17.2 Hot reload of equipment defs & set bonuses (safe swap) (Done: integrated hot reload registration wrapper `rogue_equipment_sets_register_hot_reload` leveraging existing `hot_reload` infra; callback clears & reloads set registry atomically from JSON. Unit test `test_equipment_phase17_hot_reload` writes initial set file, registers watcher, forces load, mutates file adding second set, triggers tick detecting change, asserts new set count & determinism of forced reload.)
 17.3 Sandboxed scripting hooks for unique behaviors (restricted API) (X)
 17.4 Diff tool for mod vs base distribution (X)
-17.5 Tests: hot reload determinism (hash compare), sandbox enforcement (X)
+17.5 Tests: hot reload determinism (hash compare), sandbox enforcement (Partial: set registry hash + determinism tests implemented: API `rogue_sets_state_hash`, tests `test_equipment_phase17_hot_reload_hash`; sandbox enforcement pending)
 
 PHASE 18. Testing & QA Expansion
 18.1 Golden master snapshot (serialized equip diff guard) (X)

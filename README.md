@@ -195,7 +195,9 @@ Added lightweight hot reload integration for external set definition JSON author
 - Determinism: explicit `rogue_hot_reload_force(id)` enables controlled reloads in tests & editor; forcing after no file change leaves registry untouched.
 - Unit Test: `test_equipment_phase17_hot_reload` authoring flow simulation writing initial file (1 set), forcing load, modifying file to add second set, invoking `rogue_hot_reload_tick` and asserting updated count & presence; verifies subsequent force does not duplicate or alter counts.
 
-This establishes the minimal live-edit feedback loop ahead of Phase 17.3 sandbox scripting hooks. Future extensions may add: granular diff application (preserve unaffected sets), runeword & proc definition reload symmetry, and error surface (retain last good on parse failure).
+Determinism Guard (Phase 17.5 early): Added `rogue_sets_state_hash` (FNV-1a over registry) and test `test_equipment_phase17_hot_reload_hash` verifying stable hash across identical reloads and change after file modification.
+
+This establishes the minimal live-edit feedback loop ahead of Phase 17.3 sandbox scripting hooks. Future extensions may add: granular diff application (preserve unaffected sets), runeword & proc definition reload symmetry, error surfacing (retain last good on parse failure), and sandboxed scripting integration.
 
 Public APIs (`equipment_persist.h`):
 * `rogue_equipment_serialize(buf, cap)` – emits versioned block; returns bytes written or -1.

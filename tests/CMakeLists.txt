@@ -269,6 +269,14 @@ endif()
             endif()
             add_test(NAME test_equipment_phase17_hot_reload COMMAND test_equipment_phase17_hot_reload)
             set_tests_properties(test_equipment_phase17_hot_reload PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+            # Phase 17.5 early: hot reload determinism hash test
+            add_executable(test_equipment_phase17_hot_reload_hash unit/test_equipment_phase17_hot_reload_hash.c)
+            target_link_libraries(test_equipment_phase17_hot_reload_hash PRIVATE rogue_core)
+            if (SDL2_FOUND AND NOT ROGUE_HEADLESS)
+                target_compile_definitions(test_equipment_phase17_hot_reload_hash PRIVATE ROGUE_HAVE_SDL=1)
+            endif()
+            add_test(NAME test_equipment_phase17_hot_reload_hash COMMAND test_equipment_phase17_hot_reload_hash)
+            set_tests_properties(test_equipment_phase17_hot_reload_hash PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 # UI Phase 6.2 bars + AP smoothing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARGET test_ui_phase6_bars_ap)
