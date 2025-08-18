@@ -183,6 +183,9 @@ typedef struct RogueUIContext {
     unsigned int glyph_cache_tick;
     int glyph_cache_hits;
     int glyph_cache_misses;
+    /* Phase 11.2 Inspector */
+    int inspector_enabled;
+    int inspector_selected_index;
 } RogueUIContext;
 
 int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg);
@@ -375,6 +378,20 @@ typedef void (*RogueUIBuildFn)(RogueUIContext* ctx, void* user);
 int rogue_ui_headless_run(const RogueUIContextConfig* cfg, double delta_time_ms, RogueUIBuildFn build, void* user, uint64_t* out_hash);
 /* Direct helper: compute current tree hash (same algorithm used by diff) without mutating diff state. */
 uint64_t rogue_ui_tree_hash(RogueUIContext* ctx);
+
+/* Phase 11.1 Style Guide Catalog */
+void rogue_ui_style_guide_build(RogueUIContext* ctx);
+
+/* Phase 11.2 Developer Hierarchy Inspector */
+void rogue_ui_inspector_enable(RogueUIContext* ctx, int enabled);
+int  rogue_ui_inspector_enabled(const RogueUIContext* ctx);
+void rogue_ui_inspector_select(RogueUIContext* ctx, int node_index);
+int  rogue_ui_inspector_emit(RogueUIContext* ctx, uint32_t highlight_color); /* returns overlay node index or -1 */
+int  rogue_ui_inspector_edit_color(RogueUIContext* ctx, int node_index, uint32_t new_color);
+
+/* Phase 11.3 Crash Snapshot */
+typedef struct RogueUICrashSnapshot { int node_count; uint64_t tree_hash; RogueUIInputState input; } RogueUICrashSnapshot;
+int rogue_ui_snapshot(const RogueUIContext* ctx, RogueUICrashSnapshot* out);
 
 /* Phase 5 Skill Graph API */
 /* Begin a skill graph frame section: defines viewport in world coordinates and zoom scale. */

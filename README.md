@@ -660,6 +660,9 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
 * Phase 7.7 Focus Audit Tool: Developer overlay utilities (`rogue_ui_focus_audit_enable`, `rogue_ui_focus_audit_emit_overlays`) visually highlight focusable widgets and export deterministic tab/focus order (`rogue_ui_focus_order_export`) for automated auditing.
 * Phase 10.1 Headless Harness: Introduced deterministic one-shot frame runner (`rogue_ui_headless_run`) and tree hash helper (`rogue_ui_tree_hash`) with unit test `test_ui_phase10_headless_harness`—foundation for golden diff, navigation traversal, and performance smoke tests.
 * Phase 10.3 Navigation Traversal Test: Added `test_ui_phase10_navigation_traversal` verifying horizontal and vertical focus cycling across a grid without traps or skips (wrap correctness & uniqueness guarantees).
+* Phase 11.1 Style Guide Catalog: Programmatic widget catalog builder (`rogue_ui_style_guide_build`) produces representative panel/button/toggle/slider/textinput/progress examples for documentation & visual diffing.
+* Phase 11.2 Developer Inspector: Hierarchy overlay + selection & live color edit APIs (`rogue_ui_inspector_enable`, `rogue_ui_inspector_emit`, `rogue_ui_inspector_edit_color`) with automated test coverage.
+* Phase 11.3 Crash Snapshot: Lightweight snapshot (`rogue_ui_snapshot`) capturing node count, last tree hash placeholder, and input state for post-mortem debugging.
 
 ### v0.8.x (Current Development Branch)
 **Added**

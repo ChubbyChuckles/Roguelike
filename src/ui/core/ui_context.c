@@ -218,6 +218,39 @@ void rogue_ui_set_input(RogueUIContext* ctx, const RogueUIInputState* in){
 }
 int rogue_ui_focused_index(const RogueUIContext* ctx){ return ctx? ctx->focus_index:-1; }
 
+/* ---------------- Phase 11.1 Style Guide Catalog ---------------- */
+void rogue_ui_style_guide_build(RogueUIContext* ctx){
+    if(!ctx||!ctx->frame_active) return; /* Emit a representative catalog of widgets using deterministic layout */
+    float x=10, y=10;
+    rogue_ui_text(ctx,(RogueUIRect){x,y,160,14},"STYLE GUIDE",0xFFFFFFFFu); y+=18;
+    rogue_ui_panel(ctx,(RogueUIRect){x,y,140,28},0x303030FFu); y+=34;
+    rogue_ui_button(ctx,(RogueUIRect){x,y,100,22},"Button",0x406090FFu,0xFFFFFFFFu); y+=28;
+    int tgl_state=1; rogue_ui_toggle(ctx,(RogueUIRect){x,y,100,22},"Toggle",&tgl_state,0x505050FFu,0x208020FFu,0xFFFFFFFFu); y+=28;
+    float slider_v=0.5f; rogue_ui_slider(ctx,(RogueUIRect){x,y,120,16},0.0f,1.0f,&slider_v,0x202020FFu,0x80C040FFu); y+=24;
+    char buf[16]="Txt"; rogue_ui_text_input(ctx,(RogueUIRect){x,y,120,20},buf,(int)sizeof buf,0x202020FFu,0xFFFFFFFFu); y+=26;
+    rogue_ui_progress_bar(ctx,(RogueUIRect){x,y,120,10},66,100,0x202020FFu,0x60A0F0FFu,0); y+=18;
+}
+
+/* ---------------- Phase 11.2 Developer Inspector ---------------- */
+void rogue_ui_inspector_enable(RogueUIContext* ctx, int enabled){ if(ctx) ctx->inspector_enabled = enabled?1:0; }
+int  rogue_ui_inspector_enabled(const RogueUIContext* ctx){ return ctx? ctx->inspector_enabled:0; }
+void rogue_ui_inspector_select(RogueUIContext* ctx, int node_index){ if(!ctx) return; if(node_index>=0 && node_index<ctx->node_count) ctx->inspector_selected_index=node_index; }
+int rogue_ui_inspector_emit(RogueUIContext* ctx, uint32_t highlight_color){
+    if(!ctx||!ctx->frame_active||!ctx->inspector_enabled) return -1;
+    for(int i=0;i<ctx->node_count;i++){
+        const RogueUINode* n=&ctx->nodes[i];
+        if(n->kind>=5 && n->kind<=8){ /* focusable */
+            RogueUIRect r=n->rect; r.x-=2; r.y-=2; r.w+=4; r.h+=4;
+            rogue_ui_panel(ctx,r, (i==ctx->inspector_selected_index)?highlight_color:0xFF00FF30u);
+        }
+    }
+    return ctx->node_count-1; /* last overlay index */
+}
+int rogue_ui_inspector_edit_color(RogueUIContext* ctx, int node_index, uint32_t new_color){ if(!ctx) return 0; if(node_index<0||node_index>=ctx->node_count) return 0; ctx->nodes[node_index].color=new_color; return 1; }
+
+/* ---------------- Phase 11.3 Crash Snapshot ---------------- */
+int rogue_ui_snapshot(const RogueUIContext* ctx, RogueUICrashSnapshot* out){ if(!ctx||!out) return 0; out->node_count=ctx->node_count; out->tree_hash = ((RogueUIContext*)ctx)->last_serial_hash? ctx->last_serial_hash: 0; out->input = ctx->input; return 1; }
+
 static int interactive_push(RogueUIContext* ctx, RogueUINode* node){
     int idx = push_node(ctx,*node); if(idx<0) return idx;
     float mx=ctx->input.mouse_x, my=ctx->input.mouse_y;

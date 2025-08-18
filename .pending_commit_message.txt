@@ -3,24 +3,29 @@ UI Phase 10.3: Automated Navigation Traversal Test
 Summary:
 - Added new test `test_ui_phase10_navigation_traversal.c` exercising directional focus navigation (RIGHT & DOWN) across a deterministic 2x3 button grid.
 - Validates horizontal wrap after visiting all 6 focusable widgets (guards against focus traps / skipped widgets).
-- Validates vertical row transitions and wrap per column (ensures DOWN cycles rows consistently).
-- Integrates test into CMake (`test_ui_phase10_navigation_traversal`).
-- Marks Phase 10.3 as Done in `roadmaps/implementation_plan_uisystem.txt` with reference to test.
-- README updated with bullet noting Phase 10.3 completion.
+- Validates vertical row transitions per column (DOWN reaches counterpart in next row).
+- Integrated test into CMake and marked roadmap Phase 10.3 Done; README updated.
 
-Motivation:
-Ensures regression protection for navigation heuristic changes (spatial search + linear fallback). Any future heuristic tweak causing non-unique traversal or broken wrap will fail the test.
+UI Phase 11.1–11.3: Style Guide Catalog, Developer Inspector, Crash Snapshot
 
-Notes:
-- Leaves existing debug instrumentation in ui_context (INIT_* / PUSH_NODE) untouched for now; can be pruned or macro-guarded in a subsequent cleanup commit once stability confirmed.
+Summary:
+- Implemented style guide catalog builder (`rogue_ui_style_guide_build`) producing deterministic representative widget set for documentation & visual regression baselines.
+- Added developer hierarchy inspector overlay + selection & live color edit APIs (`rogue_ui_inspector_enable`, `rogue_ui_inspector_select`, `rogue_ui_inspector_emit`, `rogue_ui_inspector_edit_color`).
+- Added crash snapshot facility (`rogue_ui_snapshot`) capturing node count, tree hash placeholder, and input state for post-crash diagnostics.
+- New test `test_ui_phase11_docs_tooling` validates catalog emission, overlay creation, color edit, and snapshot capture.
+- Roadmap updated marking 11.1, 11.2, 11.3 Done; README gains Phase 11 entries.
 
 Files Added:
 - tests/unit/test_ui_phase10_navigation_traversal.c
+- tests/unit/test_ui_phase11_docs_tooling.c
 
 Files Modified:
-- tests/CMakeLists.txt
-- roadmaps/implementation_plan_uisystem.txt
-- README.md
-- .pending_commit_message.txt (this message)
+- src/ui/core/ui_context.h (Phase 11 fields + APIs)
+- src/ui/core/ui_context.c (implementations for Phase 11)
+- tests/CMakeLists.txt (register new tests)
+- roadmaps/implementation_plan_uisystem.txt (status updates)
+- README.md (Phase 10.3 & 11 feature summaries)
+- .pending_commit_message.txt (regenerated)
 
-No functional runtime UI changes beyond test harness; risk minimal.
+Rationale:
+Advances QA automation (navigation traversal), adds documentation/catalog tooling, improves debuggability (inspector + snapshot), and widens test surface to reduce regression risk for future UI changes.

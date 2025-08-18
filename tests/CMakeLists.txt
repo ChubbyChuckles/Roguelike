@@ -146,6 +146,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase10_navigation_traversal.
     add_test(NAME test_ui_phase10_navigation_traversal COMMAND test_ui_phase10_navigation_traversal)
 endif()
 
+# UI Phase 11 docs & tooling test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase11_docs_tooling.c AND NOT TARGET test_ui_phase11_docs_tooling)
+    add_executable(test_ui_phase11_docs_tooling unit/test_ui_phase11_docs_tooling.c)
+    target_link_libraries(test_ui_phase11_docs_tooling PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ui_phase11_docs_tooling PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ui_phase11_docs_tooling COMMAND test_ui_phase11_docs_tooling)
+endif()
+
 # Loot API doc generator test (Itemsystem 23.5)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase23_api_doc.c AND NOT TARGET test_loot_phase23_api_doc)
     add_executable(test_loot_phase23_api_doc unit/test_loot_phase23_api_doc.c)

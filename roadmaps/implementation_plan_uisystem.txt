@@ -103,9 +103,9 @@ PHASE 10. Testing & QA Automation
 10.6 Theming diff test (light vs dark invariants) (Done: theme diff bitmask field change detection in `test_ui_phase10_golden_theming`)
 
 PHASE 11. Documentation & Tooling
-11.1 UI component style guide (generated catalog) (X)
-11.2 Developer overlay: hierarchy inspector & live property edit (X)
-11.3 Crash snapshot: serialize UI tree & inputs (X)
+11.1 UI component style guide (generated catalog) (Done: catalog builder `rogue_ui_style_guide_build` + test `test_ui_phase11_docs_tooling` emits representative widgets)
+11.2 Developer overlay: hierarchy inspector & live property edit (Done: enable/select/edit APIs + overlay emission + color edit; covered by test)
+11.3 Crash snapshot: serialize UI tree & inputs (Done: `rogue_ui_snapshot` captures node count, hash placeholder, input state; tested)
 11.4 Contribution checklist (API stability, a11y compliance) (X)
 
 DEPENDENCIES / RISKS
