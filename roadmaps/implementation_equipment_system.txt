@@ -126,8 +126,8 @@ PHASE 12. UI / UX & Visualization
 
 PHASE 13. Persistence & Migration
 13.1 Versioned equipment block schema (Done: EQUIP_V1 header + line-oriented key/value pairs)
-13.2 Slot expansion migration handlers (Partial: version tag reserved; future slot indices auto-skipped; no explicit remap logic yet)
-13.3 Unique/set/runeword serialization (Partial: base item + affix/socket state persisted; explicit unique/set/runeword identifiers deferred)
+13.2 Slot expansion migration handlers (Partial: version tag reserved; future slot indices auto-skipped; explicit remap table still pending)
+13.3 Unique/set/runeword serialization (Partial→Done baseline: set id + synthetic runeword pattern tokens persisted; unique id still deferred)
 13.4 Deterministic hash over serialized equip state for integrity (Done: 64-bit FNV-1a over canonical serialize buffer API rogue_equipment_state_hash)
 13.5 Backward-compatible optional fields (socket_count, item_level) (Done: parser tolerates absence; defaults applied)
 13.6 Tests: forward/backward load (omit new fields), hash stability (Partial: round-trip + hash stability covered; omission/legacy header tests pending)

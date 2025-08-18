@@ -6,6 +6,7 @@
 #include "core/equipment_persist.h"
 #include "core/equipment.h"
 #include "core/loot_instances.h"
+#include "core/loot_item_defs.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -35,24 +36,45 @@ int rogue_equipment_serialize(char* buf, int cap)
 		if(inst < 0) continue;
 		it = rogue_item_instance_at(inst);
 		if(!it) continue;
+		/* Retrieve set id via base definition (0 if none) & build synthetic runeword pattern. */
+		{
+			const RogueItemDef* def = rogue_item_def_at(it->def_index);
+			int set_id = def ? def->set_id : 0;
+			char pattern[64];
+			int i;
+			int pat_len = 0;
+			pattern[0] = '\0';
+			if(it->socket_count > 0){
+				for(i=0;i<it->socket_count && i<6; ++i){
+					int g = it->sockets[i];
+					if(g>=0 && pat_len < (int)sizeof(pattern)-3){
+						pattern[pat_len++] = 'A' + (g % 26);
+					}
+				}
+				pattern[pat_len] = '\0';
+			}
 		n = snprintf(buf + off, cap - off,
-					 "SLOT %d DEF %d ILVL %d RAR %d PREF %d %d SUFF %d %d DUR %d %d ENCH %d QC %d SOCKS %d %d %d %d %d %d %d LOCKS %d %d FRACT %d\n",
-					 s,
-					 it->def_index,
-					 it->item_level,
-					 it->rarity,
-					 it->prefix_index,
-					 it->prefix_value,
-					 it->suffix_index,
-					 it->suffix_value,
-					 it->durability_cur,
-					 it->durability_max,
-					 it->enchant_level,
-					 it->quality,
-					 it->socket_count,
-					 it->sockets[0], it->sockets[1], it->sockets[2],
-					 it->sockets[3], it->sockets[4], it->sockets[5],
-					 it->prefix_locked, it->suffix_locked, it->fractured);
+					"SLOT %d DEF %d ILVL %d RAR %d PREF %d %d SUFF %d %d DUR %d %d ENCH %d QC %d SOCKS %d %d %d %d %d %d %d LOCKS %d %d FRACT %d SET %d RW %s\n",
+					s,
+					it->def_index,
+					it->item_level,
+					it->rarity,
+					it->prefix_index,
+					it->prefix_value,
+					it->suffix_index,
+					it->suffix_value,
+					it->durability_cur,
+					it->durability_max,
+					it->enchant_level,
+					it->quality,
+					it->socket_count,
+					it->sockets[0], it->sockets[1], it->sockets[2],
+					it->sockets[3], it->sockets[4], it->sockets[5],
+					it->prefix_locked, it->suffix_locked, it->fractured,
+					set_id,
+					(pattern[0]?pattern:"-")
+				);
+		}
 		if(n < 0 || n >= cap - off) return -1;
 		off += n;
 	}
@@ -118,6 +140,8 @@ int rogue_equipment_deserialize(const char* buf)
 					for(i = 0; i < 6; ++i){ gems[i] = parse_int(&p); }
 				} else if(strncmp(p, "LOCKS", 5) == 0){ p += 5; pl = parse_int(&p); sl = parse_int(&p); }
 				else if(strncmp(p, "FRACT", 5) == 0){ p += 5; fract = parse_int(&p); }
+				else if(strncmp(p, "SET", 3) == 0){ p += 3; (void)parse_int(&p); }
+				else if(strncmp(p, "RW", 2) == 0){ p += 2; /* skip runeword pattern token */ while(*p==' ') p++; while(*p && *p!=' ' && *p!='\n') p++; }
 				else { p++; }
 			}
 			if(def_index >= 0){

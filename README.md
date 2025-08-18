@@ -122,9 +122,9 @@ Items that reach 0 durability become `fractured` imposing a 40% damage penalty (
 
 Introduces a versioned, forward-compatible equipment serialization layer and deterministic integrity hashing:
 
-* Versioned Schema (13.1): `EQUIP_V1` header followed by one line per occupied slot. Each line encodes slot index and key/value pairs: base def, item_level, rarity, prefix/suffix indices & rolled values, durability (cur/max), enchant level, quality, socket count + up to 6 gem ids, affix lock flags, and fracture flag. Unknown future tokens are skipped safely.
+* Versioned Schema (13.1): `EQUIP_V1` header followed by one line per occupied slot. Each line encodes slot index and key/value pairs: base def, item_level, rarity, prefix/suffix indices & rolled values, durability (cur/max), enchant level, quality, socket count + up to 6 gem ids, affix lock flags, fracture flag, plus `SET <id>` (0 if none) and a synthetic runeword pattern token `RW <pattern>` (derived from gem ordering or '-' if none). Unknown future tokens are skipped safely.
 * Migration Hooks (13.2 partial): Version integer captured and reserved; loader skips unknown tokens allowing additive extension. Explicit remap logic for future slot reorder/expansion will plug into the version branch once needed.
-* Unique/Set/Runeword (13.3 partial): Core statistical effects already reconstituted via existing aggregation (implicits, set bonuses, runeword socket patterns). Explicit serialization of unique IDs / set progress / runeword recipe string deferred to a later slice.
+* Unique/Set/Runeword (13.3 baseline complete for set & runeword): Set id and runeword pattern now serialized; explicit unique item identifier still deferred (base def index suffices for current unique hook lookup).
 * Integrity Hash (13.4): 64-bit FNV-1a over canonical serialized buffer via `rogue_equipment_state_hash` for tamper detection / analytics fingerprinting. Deterministic across identical equip states regardless of equip order.
 * Optional Fields (13.5): Loader tolerates missing (legacy) fields like `SOCKS`, `ILVL`, `ENCH`, `QC`; defaults applied (count=0, level=1, enchant=0, quality=0, gems=-1).
 * Tests (13.6 partial): Added `test_equipment_phase13_persistence` covering serialize → clear → deserialize round-trip and hash stability. Additional omission / malformed line tests planned.

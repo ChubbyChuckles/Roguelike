@@ -4,6 +4,8 @@ Adds EQUIP_V1 versioned equipment serialization (line-oriented key/value) and 64
 
 New module: equipment_persist.[ch]. New unit test: test_equipment_phase13_persistence (round-trip determinism + hash stability). Roadmap Phase 13 updated (13.1 & 13.4 Done; others Partial). C89 compliance fixes for MSVC (no mixed declarations). Lays groundwork for future migration handlers & explicit unique/set/runeword identifiers.
 
+Update: Added set id + synthetic runeword pattern serialization tokens (SET <id> RW <pattern>) to equip lines and parser tolerance (skips pattern, consumes set id). Roadmap adjusted (13.3 baseline considered Done for set/runeword; unique id still pending). README Phase 13 section already references forward compatible skipping of unknown tokens.
+
 Follow-ups (remaining Phase 13 work):
  - Serialize & restore explicit unique/set/runeword identifiers
  - Add omission/legacy field tests (13.6) & malformed line rejection tests
