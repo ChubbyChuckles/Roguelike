@@ -13,4 +13,13 @@ int rogue_item_instance_enchant(int inst_index, int reroll_prefix, int reroll_su
    Consumes a reforge material (reforge_hammer) and gold. Returns 0 success; negatives mirror enchant plus -6 if material missing. */
 int rogue_item_instance_reforge(int inst_index, int* out_cost);
 
+/* Phase 5.6 (Optional now implemented): Protective seal to lock prefix and/or suffix during enchant.
+   Consumes a protective_seal material item if at least one lock flag is set and item has that affix.
+   Returns 0 success; -1 invalid item; -2 nothing to lock; -3 missing seal material. */
+int rogue_item_instance_apply_protective_seal(int inst_index, int lock_prefix, int lock_suffix);
+
+/* Query helpers for tests/UI */
+int rogue_item_instance_is_prefix_locked(int inst_index);
+int rogue_item_instance_is_suffix_locked(int inst_index);
+
 #endif /* ROGUE_EQUIPMENT_ENCHANT_H */

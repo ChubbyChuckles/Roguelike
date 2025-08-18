@@ -546,7 +546,8 @@ Introduced affix modification crafting operations:
 * Validation: Post-operation budget check ensures no illegal stat inflation; failure aborts.
 * Materials: Added `enchant_orb`, `reforge_hammer` to test item defs (category material).
 * Tests: New unit test `test_equipment_phase5_enchant_reforge` covers selective reroll, dual reroll, reforge preservation (level, rarity, socket_count) and failure modes (insufficient gold, missing material). Existing gem test already validates gem stacking; roadmap Phase 5.7 updated accordingly.
-* Roadmap: 5.4, 5.5, 5.7 marked Done; optional 5.6 protective seal remains open.
+* Protective Seal (5.6): Added optional crafting material `protective_seal` letting players lock prefix and/or suffix prior to an enchant. Locked affixes are skipped during reroll; attempt returns -2 if nothing remains to reroll. Single seal consumed per operation regardless of locks applied.
+* Roadmap: 5.4, 5.5, 5.6, 5.7 marked Done (5.6 implemented as optional feature).
 
 
 

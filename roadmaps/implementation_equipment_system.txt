@@ -63,8 +63,8 @@ PHASE 5. Sockets, Gems & Enchanting
 5.3 Socket insertion/removal with cost & failure safety (no item deletion) (Done)
 5.4 Enchant system (reroll subset of affixes using currency + rare mat) (Done)
 5.5 Reforge: full reroll preserving item_level & socket count (Done)
-5.6 Protective seal item to lock an affix during reroll (Optional) (X)
-5.7 Tests: deterministic gem effects stacking, enchant cost scaling, reforge budget compliance (Done - gem stacking & new enchant/reforge tests added; cost scaling basic)
+5.6 Protective seal item to lock an affix during reroll (Optional implemented) (Done)
+5.7 Tests: deterministic gem effects stacking, enchant cost scaling, reforge budget compliance (Done - gem stacking, enchant/reforge + protective seal tests; cost scaling basic)
 
 PHASE 6. Conditional Effects & Proc Engine
 6.1 Unified proc descriptor: trigger (on_hit/on_crit/on_kill/on_block/on_dodge/when_low_hp) + ICD ms + magnitude scalar (X)

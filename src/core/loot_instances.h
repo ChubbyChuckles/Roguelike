@@ -39,6 +39,9 @@ typedef struct RogueItemInstance {
     /* Phase 5.1: Socketing – current socket count & occupied gem indices (-1 empty). For initial slice, cap small (6). */
     int socket_count;
     int sockets[6];
+    /* Phase 5.6: Protective seal flags (bitfield simplified to two ints). */
+    int prefix_locked;
+    int suffix_locked;
 } RogueItemInstance;
 
 void rogue_items_init_runtime(void);

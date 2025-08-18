@@ -1,4 +1,10 @@
 Equipment Phase 5.4–5.5: Implement enchant & reforge systems
+- Equipment Phase 5.6 (Optional): Implement protective seal locking mechanic
+	- Added lock flags to RogueItemInstance (prefix_locked / suffix_locked)
+	- New APIs: rogue_item_instance_apply_protective_seal, rogue_item_instance_is_prefix_locked, _is_suffix_locked
+	- Enchant path respects locks (ignores reroll request for locked affixes, returns -2 if nothing to reroll)
+	- Added protective_seal material to test items + unit test test_equipment_phase5_protective_seal
+	- Roadmap & README updated to mark 5.6 Done
 - Added equipment_enchant.[ch] with APIs: rogue_item_instance_enchant (selective prefix/suffix reroll) and rogue_item_instance_reforge (full reroll preserving item_level, sockets, rarity)
 - Cost formulas (enchant: 50 + 5*level + rarity^2*25 + 10*sockets; reforge: 2x enchant cost) with gold + material consumption (enchant_orb for dual reroll, reforge_hammer for reforge)
 - Deterministic RNG seeding and budget validation guard (-5 on validation failure)

@@ -35,6 +35,10 @@ int rogue_item_instance_enchant(int inst_index, int reroll_prefix, int reroll_su
     if(!reroll_prefix && !reroll_suffix) return -2;
     int has_prefix = itc->prefix_index>=0; int has_suffix = itc->suffix_index>=0;
     if(reroll_prefix && !has_prefix && reroll_suffix && !has_suffix) return -2; /* neither present */
+    /* Respect protective locks: if locked, ignore reroll request for that affix */
+    if(itc->prefix_locked) reroll_prefix = 0;
+    if(itc->suffix_locked) reroll_suffix = 0;
+    if(!reroll_prefix && !reroll_suffix) return -2; /* after lock filtering nothing to do */
     unsigned int rng = (unsigned int)(inst_index*2654435761u) ^ (unsigned int)itc->item_level ^ 0xBEEF1234u; /* deterministic seed basis */
     int cost = enchant_cost_formula(itc->item_level, itc->rarity, itc->socket_count);
     resolve_material_ids();
@@ -75,3 +79,21 @@ int rogue_item_instance_reforge(int inst_index, int* out_cost){
     if(rogue_item_instance_validate_budget(inst_index)!=0) return -5;
     rogue_stat_cache_mark_dirty(); if(out_cost) *out_cost=cost; return 0;
 }
+
+/* Protective seal implementation */
+static int g_seal_mat_def = -1; /* protective_seal */
+int rogue_item_instance_apply_protective_seal(int inst_index, int lock_prefix, int lock_suffix){
+    RogueItemInstance* it = (RogueItemInstance*)rogue_item_instance_at(inst_index); if(!it) return -1;
+    if(!lock_prefix && !lock_suffix) return -2;
+    int need_prefix = lock_prefix && it->prefix_index>=0 && !it->prefix_locked;
+    int need_suffix = lock_suffix && it->suffix_index>=0 && !it->suffix_locked;
+    if(!need_prefix && !need_suffix) return -2;
+    if(g_seal_mat_def<0) g_seal_mat_def = rogue_item_def_index("protective_seal");
+    if(g_seal_mat_def<0 || rogue_inventory_get_count(g_seal_mat_def)<=0) return -3;
+    rogue_inventory_consume(g_seal_mat_def,1);
+    if(need_prefix) it->prefix_locked = 1;
+    if(need_suffix) it->suffix_locked = 1;
+    return 0;
+}
+int rogue_item_instance_is_prefix_locked(int inst_index){ const RogueItemInstance* it=rogue_item_instance_at(inst_index); return it?it->prefix_locked:0; }
+int rogue_item_instance_is_suffix_locked(int inst_index){ const RogueItemInstance* it=rogue_item_instance_at(inst_index); return it?it->suffix_locked:0; }
