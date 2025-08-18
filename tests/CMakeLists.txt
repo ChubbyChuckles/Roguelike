@@ -111,6 +111,22 @@ endif()
         add_test(NAME test_equipment_phase8_durability_model COMMAND test_equipment_phase8_durability_model)
         set_tests_properties(test_equipment_phase8_durability_model PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+        add_executable(test_equipment_phase8_repair_cost unit/test_equipment_phase8_repair_cost.c)
+        target_link_libraries(test_equipment_phase8_repair_cost PRIVATE rogue_core)
+        if(ROGUE_ENABLE_SDL)
+            target_compile_definitions(test_equipment_phase8_repair_cost PRIVATE ROGUE_HAVE_SDL=1)
+        endif()
+        add_test(NAME test_equipment_phase8_repair_cost COMMAND test_equipment_phase8_repair_cost)
+        set_tests_properties(test_equipment_phase8_repair_cost PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+        add_executable(test_equipment_phase8_salvage_fracture unit/test_equipment_phase8_salvage_fracture.c)
+        target_link_libraries(test_equipment_phase8_salvage_fracture PRIVATE rogue_core)
+        if(ROGUE_ENABLE_SDL)
+            target_compile_definitions(test_equipment_phase8_salvage_fracture PRIVATE ROGUE_HAVE_SDL=1)
+        endif()
+        add_test(NAME test_equipment_phase8_salvage_fracture COMMAND test_equipment_phase8_salvage_fracture)
+        set_tests_properties(test_equipment_phase8_salvage_fracture PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
 # UI Phase 6.2 bars + AP smoothing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARGET test_ui_phase6_bars_ap)
     add_executable(test_ui_phase6_bars_ap unit/test_ui_phase6_bars_ap.c)

@@ -31,6 +31,7 @@ typedef struct RogueItemInstance {
     /* Durability (10.4 currency sink hook). Only meaningful for weapons/armor; others leave at 0. */
     int durability_cur;
     int durability_max;
+    int fractured; /* Phase 8.5: set to 1 when durability reaches 0; cleared on repair */
     int hidden_filter; /* 12.x loot filter: 1 if hidden by active filter */
     /* Phase 15.2 forward-compatible affix extension placeholder (enchant level). Legacy saves omit this; reader defaults to 0. */
     int enchant_level;

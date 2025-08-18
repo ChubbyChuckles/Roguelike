@@ -85,11 +85,11 @@ PHASE 7. Defensive Layer Extensions
 
 PHASE 8. Durability, Degradation & Economy
 8.1 Non-linear durability loss model (hit severity & rarity scaling) (Done: durability.c implements log-based diminishing model with rarity factor; test validates monotonicity & rarity reduction)
-8.2 Repair cost formula (rarity, missing durability, item_level) (X)
-8.3 Auto-warn thresholds + UI color states (X)
-8.4 Salvage yield influenced by remaining durability (X)
-8.5 Optional fracture mechanic (0 durability penalty until repaired) (Optional) (X)
-8.6 Tests: cost monotonicity, salvage yield bounds, fracture gating (Partial: durability loss monotonicity & rarity differential added in test_equipment_phase8_durability_model)
+8.2 Repair cost formula (rarity, missing durability, item_level) (Done: extended API rogue_econ_repair_cost_ex with sqrt(item_level) scaling + rarity factor, legacy wrapper retained)
+	8.3 Auto-warn thresholds + UI color states (Done: centralized bucket + transition notification API; duplicate UI helper removed)
+	8.4 Salvage yield influenced by remaining durability (Done: instance-aware salvage scales 40%-100% based on durability)
+	8.5 Optional fracture mechanic (0 durability penalty until repaired) (Done: fractured flag + 40% damage penalty, cleared on repair)
+	8.6 Tests: cost monotonicity, salvage yield bounds, fracture gating (Done: repair cost monotonicity, salvage scaling vs full, fracture damage penalty)
 
 PHASE 9. Loadout Optimization & Weight Management
 9.1 Loadout comparison tool (diff two saved configurations) (X)

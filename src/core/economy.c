@@ -17,14 +17,20 @@ int rogue_econ_try_buy(const RogueVendorItem* v){ if(!v) return -1; int cost = r
 int rogue_econ_sell(const RogueVendorItem* v){ if(!v) return 0; int credit = rogue_econ_sell_value(v); rogue_econ_add_gold(credit); return credit; }
 
 /* Currency sink helpers (10.4) */
-int rogue_econ_repair_cost(int durability_missing, int rarity){
+int rogue_econ_repair_cost_ex(int durability_missing, int rarity, int item_level){
 	if(durability_missing <= 0) return 0;
 	if(rarity < 0) rarity = 0; if(rarity > 10) rarity = 10;
-	int unit = 5 + rarity * 5; /* linear scaling */
-	long long cost = (long long)durability_missing * unit;
+	if(item_level < 1) item_level = 1; if(item_level > 999) item_level = 999;
+	/* Base unit cost rises gently with rarity; item_level introduces quadratic soft curve via sqrt.
+	   Formula: unit = (6 + rarity*6) * (1 + sqrt(item_level)/45)
+	   Total cost = durability_missing * unit rounded. */
+	double unit = (6.0 + (double)rarity * 6.0) * (1.0 + sqrt((double)item_level) / 45.0);
+	double raw = unit * (double)durability_missing;
+	long long cost = (long long)(raw + 0.5);
 	if(cost > 2000000000LL) cost = 2000000000LL;
 	return (int)cost;
 }
+int rogue_econ_repair_cost(int durability_missing, int rarity){ return rogue_econ_repair_cost_ex(durability_missing, rarity, 1); }
 
 int rogue_econ_reroll_affix_cost(int rarity){
 	if(rarity < 0) rarity = 0; if(rarity > 10) rarity = 10;

@@ -25,7 +25,8 @@ int rogue_econ_try_buy(const RogueVendorItem* v);
 int rogue_econ_sell(const RogueVendorItem* v);
 
 /* Currency sinks (10.4): repair & reroll cost helpers */
-int rogue_econ_repair_cost(int durability_missing, int rarity);
+int rogue_econ_repair_cost(int durability_missing, int rarity); /* legacy wrapper: item_level=1 */
+int rogue_econ_repair_cost_ex(int durability_missing, int rarity, int item_level); /* Phase 8.2 */
 int rogue_econ_reroll_affix_cost(int rarity);
 
 #endif

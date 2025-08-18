@@ -101,6 +101,26 @@ Implemented non-linear durability decay (logarithmic severity scaling with rarit
 * Unit test `test_equipment_phase8_durability_model` validates: (a) monotonic non‑decreasing loss vs severity for a single item, (b) higher rarity never exceeds common loss for identical severity events.
 * Roadmap updated (Phase 8.1 Done; 8.6 partial until repair cost & salvage coupling tests land).
 
+### Equipment System Phase 8.2 (Repair Cost Scaling)
+
+Added `rogue_econ_repair_cost_ex(missing, rarity, item_level)` implementing multi-factor repair cost:
+* Unit cost = `(6 + rarity*6) * (1 + sqrt(item_level)/45)` producing gentle early scaling and higher late-game sink without explosive growth.
+* Legacy `rogue_econ_repair_cost` kept as wrapper (item_level=1) for existing call sites; equipment repair updated to use new API with item instance level.
+* Unit test `test_equipment_phase8_repair_cost` validates monotonic increase with missing durability, higher cost for higher rarity, and level-driven growth (1 < 50 < 200).
+* Roadmap Phase 8.2 marked Done; Phase 8.6 test coverage extended (cost monotonicity).
+
+### Equipment System Phase 8.3 (Auto-warn Thresholds & Notifications)
+Centralized durability bucket helper (good >=60%, warn >=30%, critical <30%) moved to `durability.c` and exposed to both UI and systems. Added transition notification state (`rogue_durability_last_transition`) allowing tests or future HUD flashes to react exactly once when dropping into warn or critical without polling each frame.
+
+### Equipment System Phase 8.4 (Instance-aware Salvage Yield)
+Salvage yields now scale with remaining durability for specific item instances: factor = `0.4 + 0.6 * (cur/max)` (40% floor for broken gear). Implemented via `rogue_salvage_item_instance` used preferentially by inventory UI when an active instance exists; falls back to definition-based salvage otherwise.
+
+### Equipment System Phase 8.5 (Fracture Mechanic)
+Items that reach 0 durability become `fractured` imposing a 40% damage penalty (current min/max damage multiplied by 0.6). Full repair clears the flag, restoring baseline performance. This introduces tangible gameplay pressure to repair rather than ignoring durability until salvage.
+
+### Equipment System Phase 8.6 (Expanded Tests)
+Added `test_equipment_phase8_salvage_fracture` validating: (a) salvage yield decreases after durability loss, (b) fracture penalty reduces damage output versus an otherwise identical non-fractured item. Existing repair cost test covers cost monotonicity. Durability model smoke persists pending broader integration hooks.
+
 ---
 
 ## 1. Overview

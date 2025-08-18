@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include "core/stat_cache.h"
 #include "core/vendor_ui.h"
+#include "core/durability.h" /* durability bucket */
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
@@ -67,9 +68,7 @@ float rogue_vendor_restock_fraction(void){
     double t = g_app.vendor_time_accum_ms; double interval = g_app.vendor_restock_interval_ms; if(interval<=0.0) return 0.0f; if(t<0) t=0; if(t>interval) t=interval; return (float)(t/interval);
 }
 
-/* Phase 4.9: Helper to classify durability percentage into threshold bucket:
-    returns 2=good (>=0.6), 1=warn (>=0.3 && <0.6), 0=critical (<0.3) */
-int rogue_durability_bucket(float pct){ if(pct<0) pct=0; if(pct>1) pct=1; if(pct < 0.30f) return 0; if(pct < 0.60f) return 1; return 2; }
+/* Durability bucket helper moved to durability.c (Phase 8). */
 
 void rogue_equipment_panel_render(void){
 #ifdef ROGUE_HAVE_SDL
