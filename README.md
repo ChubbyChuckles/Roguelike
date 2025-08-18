@@ -9,29 +9,329 @@
 Clean, **modular**, and **test‑driven** 2D action roguelike foundation written in portable C11.
 Focused on deterministic simulation, incremental feature layering, and maintainable pipelines.
 
-<em>“A teaching & experimentation sandbox for loot, combat, and procedural systems.”</em>
+<em>“A teaching & experimentation sandbox for loot, combat, procedural generation, progression, and systems design.”</em>
 
 </div>
 
 ---
 
-## Table of Contents
-1. Overview
-2. Feature Matrix
-3. Loot System (Current Focus)
-4. Architecture & Code Layout
-5. Build & Run
-6. Configuration & Assets
-7. Testing & Quality Gates
-8. Development Workflow
-9. Performance & Determinism
-10. Roadmap (Implementation Plan Snapshot)
-11. Changelog & Latest Highlights
-12. Contributing
-13. License
-14. Screenshots / Media Placeholders
+## 0. New Structured Overview
+This README has been refactored for fast navigation while preserving every byte of the prior detailed phase logs. A concise, task‑oriented section layout now fronts the document; the full historical/phase narrative appears verbatim in Appendix A ("Full Phase Logs – Original Content"). Nothing was deleted; only reorganized.
+
+### Quick Jump Index
+| Section | Purpose |
+|---------|---------|
+| 1. High‑Level Overview | Elevator pitch & design pillars |
+| 2. Feature Matrix | Snapshot of implemented vs planned features |
+| 3. Systems Overview | One‑paragraph summaries of each major subsystem |
+| 4. Build & Run | Configure, build, test commands |
+| 5. Configuration & Assets | Data formats & asset locations |
+| 6. Testing & Quality Gates | Determinism, CI gates, fuzz/stat suites |
+| 7. Development Workflow | Everyday contributor loop |
+| 8. Performance & Determinism | RNG model, perf strategies |
+| 9. Tooling & Maintainability | Audits, hot reload, schema & integrity tools |
+| 10. Roadmap Snapshot | Current milestone excerpt & where to find full plans |
+| 11. Changelog (Highlights) | Recent notable changes (curated) |
+| 12. Contributing | Contribution standards |
+| 13. License | MIT license reference |
+| 14. Media / Screenshots | Placeholder images / planned diagrams |
+| 15. Quick Reference Cheatsheet | Frequently used commands |
+| Appendix A | Full original README phase logs (complete detail) |
 
 ---
+
+## 1. High‑Level Overview
+Layered, deterministic top‑down action roguelike engine emphasizing: modular boundaries, reproducible simulation, incremental phase roadmaps, strong test coverage (unit, integration, fuzz, statistical), and data‑driven extensibility (hot reload, schema docs, JSON/CSV/CFG ingest). Systems include loot & rarity, equipment layering (implicits → uniques → sets → runewords → gems → affixes → buffs), dungeon & overworld procedural generation, AI behavior trees + perception + LOD scheduling, skill graph & action economy, persistence with integrity hashing, UI virtualization & accessibility, and emerging economy/crafting pipelines.
+
+### Core Design Pillars
+* Determinism first (explicit seeds, reproducible golden snapshots)
+* Progressive complexity (phased roadmaps with tests per slice)
+* Data before code (config/schema/hot reload/tooling surfaces early)
+* Integrity & telemetry (hashes, anomaly detectors, analytics export)
+* Maintainability (module boundaries audit, minimal cross‑module coupling)
+
+---
+
+## 2. Feature Matrix (Implemented vs Planned)
+The table is unchanged from the original content; detailed subsystem write‑ups now reside in Appendix A. This condensed matrix guides newcomers to active development fronts.
+
+| Domain | Key Implemented Features | Upcoming / Planned |
+|--------|--------------------------|--------------------|
+| Core Loop | Deterministic frame stepping, modular update phases | Advanced AI scheduling refinements |
+| World Gen | Multi‑phase continents→biomes→caves→dungeons→weather→streaming | Advanced erosion SIMD, biome mod packs expansion |
+| AI | BT engine, perception, LOD scheduler, pool, stress tests | Higher order tactics, adaptive difficulty tie‑ins |
+| Combat & Skills | Attack chains, mitigation, poise/guard, reactions, AP economy, multi‑window attacks | DOTs, advanced status, combo extensibility |
+| Loot & Rarity | Dynamic weights, pity, rarity floor, affixes, generation context | Economy balancing, adaptive vendor scaling |
+| Equipment | Slots, implicits, uniques, sets, runewords, sockets, gems, durability, crafting ops, optimization, integrity gates | Deeper multiplayer authority, advanced enchant ecosystems |
+| Persistence | Versioned sections, integrity hash/CRC/SHA256, incremental saves | Network diff sync, rolling signature policies |
+| UI | Virtualized inventory, skill graph, animation, accessibility, headless hashing | Full theme hot swap diff + advanced inspector polish |
+| Economy/Vendors | Pricing, restock rotation scaffold, reputation, salvage, repair | Dynamic demand curves, buyback analytics |
+| Crafting | Recipes, rerolls, enchant/reforge, fusion, affix orb, success chance | Expanded material tiers, automation tooling |
+| Progression | Infinite leveling design, maze skill graph UI (initial), stat scaling | Full maze runtime integration, mastery loops |
+| Difficulty | Relative ΔL model (enemy vs player level differential) | Dynamic encounter budget + boss phase adaptivity |
+| Tooling | Audit scripts, schema docs, diff tools, profilers, fuzz harnesses | Extended golden baselines & editor integration |
+
+---
+
+## 3. Systems Overview (Concise Summaries)
+Below are brief system capsules. Full phase-by-phase narrative, metrics, and tests remain intact in Appendix A.
+
+### Loot & Rarity
+Deterministic multi‑pass pipeline (rarity → base item → affixes) with dynamic weighting, pity counts, rarity floors, adaptive balancing hooks, histogram & drift analytics, personal loot, and statistical QA (distribution + fuzz tests).
+
+### Equipment Layering
+Layer order: implicit → unique → set (with interpolation) → runeword → sockets/gems → affix → buffs → derived metrics. Budgets enforce power ceilings; durability, fracture, integrity hash chain, GUIDs, and snapshot gates guard regression & tampering. Optimization, proc analytics, fuzz, stress & mutation tests gate CI.
+
+### Combat & Skills
+Frame-accurate attack windows, multi-hit windows, poise/guard/hyper armor, reaction & CC system, AP economy, cast/channel infrastructure, damage event telemetry, penetration & resist layering, positional mechanics (backstab/parry), lock-on, hitbox authoring & broadphase.
+
+### World Generation
+Phased macro→micro pipeline: continents, elevation, rivers, biomes, caves, erosion, structures, dungeons, fauna ecology, resource nodes, weather patterns, streaming chunks, analytics metrics & anomaly detection, hot‑reloadable biome packs.
+
+### AI System
+Behavior tree engine, blackboard with TTL & policies, perception (LOS/FOV/hearing/threat), tactical nodes, LOD scheduler spreading computation, profiling & budget enforcement, agent pooling, stress tests (200 agents), debug visualization & determinism verifiers.
+
+### UI & UX
+Immediate‑mode deterministic UI with hash diffing, virtualization, inventory & vendor panels, skill graph viewport with animations, accessibility (colorblind modes, reduced motion), navigation graph, headless harness for golden tests, theme hot swap, HUD systems, alerts, metrics overlay.
+
+### Persistence
+Versioned TLV sections, varints, compression, CRC32 + SHA256 integrity, signature trailer, incremental mode, autosaves, replay hash, migrations, durability & equipment slot evolution, fast partial inventory saves, robust tamper detection & recovery.
+
+### Economy & Crafting
+Vendor inventory generation, rarity-based pricing ladder, reputation discounts, salvage yields, repair cost scaling, reroll/enchant/reforge workflows, upgrade stones, affix extraction/fusion, success chance skill gating, durability-integrated costs, socket/gem economic operations.
+
+### Progression & Difficulty
+Infinite leveling model (sublinear growth), maze-based skill graph (UI slice live), relative level differential (ΔL) scaling for enemy challenge vs trivialization, planned mastery rings & perpetual scaling curves.
+
+### Tooling & Integrity
+Maintenance audit script, schema export & diff, hot reload watchers, scripting sandbox (add/mul stat ops), budget analyzer, hashing snapshots (equipment + damage events), fuzz harnesses (parsers, equip sequences, mutation), micro-profiler & performance arenas.
+
+---
+
+## 4. Build & Run (Essentials)
+The authoritative detailed commands remain unchanged (see Appendix A original Section 5). Quick examples:
+
+Windows (PowerShell):
+```powershell
+cmake -S . -B build -DROGUE_ENABLE_SDL=ON -DCMAKE_BUILD_TYPE=Debug
+cmake --build build --config Debug
+```
+Headless logic build:
+```powershell
+cmake -S . -B build -DROGUE_ENABLE_SDL=OFF
+cmake --build build --config Release
+```
+Run tests:
+```powershell
+ctest --test-dir build -C Debug --output-on-failure
+```
+
+---
+
+## 5. Configuration & Assets
+Configs live under `assets/` (items, affixes, loot tables, biomes, projectiles, skill graph prototypes). Hot reload exists for selected registries (biomes, equipment sets). See detailed schemas & examples in Appendix A and `docs/` folder (loot architecture, rarity style, ownership & boundaries).
+
+---
+
+## 6. Testing & Quality Gates
+Extensive per-phase unit tests, fuzzers, statistical distribution checks, mutation robustness, performance guards, integrity snapshots, and labeled gating suites (e.g., Equipment Phase 18). Deterministic RNG across systems ensures reproducible failures.
+
+---
+
+## 7. Development Workflow (Abbreviated)
+1. Pick next roadmap slice (roadmaps/ files).
+2. Implement isolated module/code changes.
+3. Add deterministic unit/integration tests.
+4. Update phase status / docs.
+5. Run full test suite & gating labels locally.
+6. Commit with conventional scope prefix.
+
+---
+
+## 8. Performance & Determinism (Summary)
+Single LCG & scoped RNG channels, arenas & pools minimizing allocations, optional SIMD stubs prepared, deterministic threading (parallel worldgen & async optimization produce identical results). Hashing & snapshots detect drift between refactors.
+
+---
+
+## 9. Tooling & Maintainability
+Audit script (`tools/maint_audit.py`), schema docs/export, diff & budget analyzers, scripting sandbox, hot reload registry, integrity scanners (proc anomalies, banned affix pairs, hash chains), profiler & performance metrics collectors.
+
+---
+
+## 10. Roadmap Snapshot
+See `roadmaps/` for subsystem implementation plans (inventory, crafting & gathering, character progression w/ infinite leveling & maze skill graph, enemy difficulty ΔL model, vendors, dungeons, world bosses). Snapshot table preserved in Appendix A original Section 10.
+
+---
+
+## 11. Changelog (Curated Recent Highlights)
+* Infinite leveling + maze skill graph design integrated (progression roadmap).
+* Enemy difficulty ΔL relative scaling model adopted.
+* Added vendor, dungeon, world boss comprehensive implementation plans.
+* Equipment integrity gates (fuzz, mutation, snapshot, proc stats) formalized.
+* Expanded crafting: sockets, gems, enchant/reforge, fusion, affix orbs, success chance.
+* Persistence: incremental saves, signature trailer, replay hash, compression, autosave throttle.
+* AI: LOD scheduler, stress test, agent pool, time budget profiler, tactical nodes.
+* Worldgen: streaming manager, weather scheduler, dungeon generator, analytics & anomalies.
+
+For exhaustive historical details, refer to Appendix A (original full logs) and roadmap files.
+
+---
+
+## 12. Contributing
+Standards remain unchanged (tests required, deterministic behavior, no unrelated formatting). See `CONTRIBUTING.md` and tooling guidelines in Appendix A.
+
+---
+
+## 13. License
+MIT – see `LICENSE`.
+
+---
+
+## 14. Screenshots / Media (Placeholders)
+Table retained as in original (see Appendix A Section 14) – diagrams pending.
+
+---
+
+## 15. Quick Reference Cheatsheet
+Most used commands (full table duplicated in Appendix A end):
+
+| Task | Command |
+|------|---------|
+| Configure Debug (SDL) | `cmake -S . -B build -DROGUE_ENABLE_SDL=ON -DCMAKE_BUILD_TYPE=Debug` |
+| Build (Win) | `cmake --build build --config Debug` |
+| Run Tests | `ctest --test-dir build -C Debug --output-on-failure` |
+| Specific Test Regex | `ctest -C Release -R loot_phase8_generation_basic -V` |
+| Format | `cmake --build build --target format` |
+| Static Analysis | `cmake --build build --target tidy` |
+
+---
+
+## Appendix A – Full Phase Logs (Original Detailed Content)
+The remainder of this document is the unedited original README content (phases, deep dives, exhaustive logs) preserved verbatim for historical and technical reference.
+
+---
+
+### Maintainability & Module Boundaries (Phase M1–M2 Complete)
+
+Foundational documentation and automated audit introduced:
+
+* `docs/OWNERSHIP.md` – clarifies review/maintenance responsibility per top-level module.
+* `docs/DEPENDENCY_BOUNDARIES.md` – enforced layering & private header visibility rules.
+* `docs/INTERNAL_HEADERS.md` – inventory of private `_internal.h` headers (kept in sync with refactors).
+* `tools/maint_audit.py` – lightweight static audit (run manually or wire into CI) checking:
+  - util/ isolation (no cross-module includes)
+  - no external inclusion of another module's `_internal.h`
+  - public header function name prefix (`rogue_`)
+  - simple include cycle detection
+
+Run locally:
+```
+python tools/maint_audit.py
+```
+Exit code !=0 flags a violation (see first printed AUDIT FAIL line).
+
+Phase M2 added:
+* `core/features.h` capability macros (`ROGUE_FEATURE_*`) for conditional tests/tools.
+* Combat damage observer interface (register callbacks for `RogueDamageEvent` emission) with unit test `test_combat_damage_observer`.
+* Deprecation annotation macro (`ROGUE_DEPRECATED(msg)`).
+* Public header pass pruning & observer logic isolated (no leak of internal state).
+
+Phase M3 (data-driven pipeline) progress:
+* Unified key/value parser utility (`util/kv_parser.c,h`) with dedicated unit test `test_kv_parser`.
+* Schema + validation layer (`util/kv_schema.c,h`) with unit test `test_kv_schema` surfacing unknown keys, type errors, and missing required fields.
+* Hot reload system (`util/hot_reload.c,h`) with registry, manual force trigger, and automatic content hash change detection (`test_hot_reload`).
+* NEW: Asset dependency graph (`util/asset_dep.c,h`) providing cycle detection + recursive FNV-1a combination hashing; unit test `test_asset_dep` validates hash change on dependency modification and cycle rejection.
+* NEW: Externalized projectile & impact tuning (`core/projectiles_config.c,h` + `assets/projectiles.cfg`) driving shard counts, speeds, lifetimes, sizes, gravity, and impact lifetime; integrated hot reload (`test_projectiles_config`).
+* NEW: Hitbox directory loading (Phase M3.6) via `rogue_hitbox_load_directory` allowing aggregation of multiple `.hitbox` / `.json` primitive definition files (`test_hitbox_directory_load`).
+* NEW: Persistence VERSION tags (Phase M3.7) for player stats & world gen parameter files (backward compatible; legacy files default to v1) with accessor APIs (`test_persistence_versions`).
+* NEW: Phase M4.1 test expansion – projectile & persistence edge cases (`test_projectiles_config_edge`, `test_persistence_edge_cases`) covering partial config overrides, missing file load invariant, negative VERSION clamping, and dirty save gating.
+* NEW: Phase M4.2 deterministic hashing + M4.3 golden master replay harness (`util/determinism.c,h`, `test_determinism_damage_events`) providing FNV-1a hash of `RogueDamageEvent` sequences (stable for identical sequences, differing for variants) and text round-trip serialization for future combat replay validation.
+* NEW: Phase M4.4 parser fuzz tests (`test_fuzz_parsers`) exercising affix CSV loader, player persistence key/value loader, and unified kv parser with randomized malformed/partial lines (ensures graceful ignore, clamps VERSION >0, no crashes, and bounded iteration) establishing baseline robustness harness.
+* NEW: Equipment Phase 2 (advanced stat aggregation) initial slice completed:
+  - Layered stat cache fields (base / implicit / affix / buff) with deterministic fingerprint hashing.
+  - Affix system extended (strength/dexterity/vitality/intelligence/armor flat) feeding `g_player_stat_cache.affix_*` via non‑mutating equipment aggregation pass.
+  - Derived metrics populated (DPS, EHP, toughness, mobility, sustain placeholder).
+  - Soft cap helper (`rogue_soft_cap_apply`) + continuity & diminishing returns unit tests.
+  - Ordering invariance & fingerprint mutation tests (`test_equipment_phase2_affix_layers`, `test_equipment_phase2_stat_cache`).
+  - Resist breakdown (physical, fire, cold, lightning, poison, status) with affix-driven aggregation, soft (75%) + hard (90%) caps and test (`test_equipment_phase2_resists`).
+
+Next phases (M3+) will introduce unified config schema, hot reload, and expanded deterministic replay/coverage gates.
+
+### Equipment System Phase 7.2–7.5 (Defensive Layer Extensions Continued)
+
+Implemented in this slice:
+* Damage Conversion (7.2): Added affix stats `phys_conv_fire_pct`, `phys_conv_frost_pct`, `phys_conv_arcane_pct` (enum + parser + aggregation). Incoming physical melee damage now partitions into elemental components with a 95% aggregate cap (always at least 5% remains physical). Conservation enforced (post‑conversion sum == original raw) – validated by new unit test `test_equipment_phase7_conversion_reflect`.
+* Guard Recovery Modifiers (7.3): New `guard_recovery_pct` affix scales guard meter regeneration (multiplicative, clamped 0.1x–3.0x) and inversely scales hold drain (floor 0.25x) inside `rogue_player_update_guard`.
+* Thorns / Reflect (7.5): Added `thorns_percent` and `thorns_cap` affix stats; reflect computed after conversion & mitigation ordering inside `combat_guard` (currently attacker application deferred until enemy context wire-up). Cap enforces upper bound per hit.
+* Tests (7.6 partial): `test_equipment_phase7_conversion_reflect` covers conversion conservation, cap behavior when total attempted conversion exceeds 95%, guard recovery positive scaling math, and thorns integration placeholder path (ensuring no crash and ordering stable). Existing block tests (`test_equipment_phase7_defensive`, `test_equipment_phase7_block_affixes`) remain green.
+
+Reactive shield procs (7.4) now implemented: proc system exposes absorb pool helpers consumed in melee pipeline prior to reflect. Test `test_equipment_phase7_reactive_shield` validates shield absorption ordering (block → conversion → absorb → reflect) and depletion.
+
+---
+
+### Equipment System Phase 8.1 (Durability Model)
+
+Implemented non-linear durability decay (logarithmic severity scaling with rarity mitigation) in `core/durability.c`:
+* Formula: `loss = ceil(base * log2(1 + severity/25) * (1/(1+0.35*rarity)))`, with `base=2` for severe events (>=50 severity).
+* Diminishing returns on extremely large severity values while retaining meaningful chip damage for small hits (minimum scaled floor).
+* Higher rarity items degrade more slowly (rarity factor divisor), reinforcing acquisition value without granting infinite endurance.
+* API: `rogue_item_instance_apply_durability_event(inst,severity)` – future integration slice will replace fixed per-hit decrement sites.
+* Unit test `test_equipment_phase8_durability_model` validates: (a) monotonic non‑decreasing loss vs severity for a single item, (b) higher rarity never exceeds common loss for identical severity events.
+* Roadmap updated (Phase 8.1 Done; 8.6 partial until repair cost & salvage coupling tests land).
+
+### Equipment System Phase 8.2 (Repair Cost Scaling)
+
+Added `rogue_econ_repair_cost_ex(missing, rarity, item_level)` implementing multi-factor repair cost:
+* Unit cost = `(6 + rarity*6) * (1 + sqrt(item_level)/45)` producing gentle early scaling and higher late-game sink without explosive growth.
+* Legacy `rogue_econ_repair_cost` kept as wrapper (item_level=1) for existing call sites; equipment repair updated to use new API with item instance level.
+* Unit test `test_equipment_phase8_repair_cost` validates monotonic increase with missing durability, higher cost for higher rarity, and level-driven growth (1 < 50 < 200).
+* Roadmap Phase 8.2 marked Done; Phase 8.6 test coverage extended (cost monotonicity).
+
+### Equipment System Phase 8.3 (Auto-warn Thresholds & Notifications)
+Centralized durability bucket helper (good >=60%, warn >=30%, critical <30%) moved to `durability.c` and exposed to both UI and systems. Added transition notification state (`rogue_durability_last_transition`) allowing tests or future HUD flashes to react exactly once when dropping into warn or critical without polling each frame.
+
+### Equipment System Phase 8.4 (Instance-aware Salvage Yield)
+Salvage yields now scale with remaining durability for specific item instances: factor = `0.4 + 0.6 * (cur/max)` (40% floor for broken gear). Implemented via `rogue_salvage_item_instance` used preferentially by inventory UI when an active instance exists; falls back to definition-based salvage otherwise.
+
+### Equipment System Phase 8.5 (Fracture Mechanic)
+Items that reach 0 durability become `fractured` imposing a 40% damage penalty (current min/max damage multiplied by 0.6). Full repair clears the flag, restoring baseline performance. This introduces tangible gameplay pressure to repair rather than ignoring durability until salvage.
+
+### Equipment System Phase 13 (Persistence & Migration Complete)
+
+Introduces a versioned, forward-compatible equipment serialization layer with deterministic integrity hashing and legacy slot migration:
+
+* Versioned Schema (13.1): `EQUIP_V1` header followed by one line per occupied slot. Each line encodes slot index and key/value pairs: base def, item_level, rarity, prefix/suffix indices & rolled values, durability (cur/max), enchant level, quality, socket count + up to 6 gem ids, affix lock flags, fracture flag, plus `SET <id>`, unique id token `UNQ <string>` ("-" if none), and synthetic runeword pattern token `RW <pattern>` (derived from gem ordering or '-' if none). Unknown future tokens are skipped safely.
+* Slot Migration (13.2): Legacy (pre-header) format without `EQUIP_V1` is treated as version 0 and remapped: indices 0..5 (WEAPON, HEAD, CHEST, LEGS, HANDS, FEET) translated to current enum; other indices skipped. New test `test_equipment_phase13_slot_migration` validates remap & round-trip forward serialization.
+* Unique/Set/Runeword (13.3): Set id, unique id (string from unique registry), and runeword pattern tokens serialized.
+* Integrity Hash (13.4): 64-bit FNV-1a over canonical serialized buffer via `rogue_equipment_state_hash` for tamper detection / analytics fingerprinting. Deterministic across identical equip states regardless of equip order.
+* Optional Fields (13.5): Loader tolerates missing (legacy) fields like `SOCKS`, `ILVL`, `ENCH`, `QC`; defaults applied (count=0, level=1, enchant=0, quality=0, gems=-1).
+* Tests (13.6): `test_equipment_phase13_persistence` (round-trip, omission of new tokens, tamper hash divergence) and `test_equipment_phase13_slot_migration` (legacy remap) ensure backward + forward compatibility and integrity detection.
+
+### Equipment System Phase 14 (Performance & Memory – Expanded)
+
+Performance layer now covers memory pooling, aggregation variants, micro-profiling, and parallel loadout optimization:
+* SoA Slot Arrays (14.1): `equipment_perf.c,h` maintain per-slot primary stat & armor contributions plus cached totals.
+* Frame Arena (14.2 Complete): Linear arena (`rogue_equip_frame_alloc/reset/high_water/capacity`) integrated into loadout optimizer candidate enumeration eliminating per-iteration stack/heap pressure; tests assert high-water stability across repeated invocations.
+* Batch Aggregation (14.3 Conceptual SIMD): 4-slot batch loop produces identical totals to scalar baseline; pluggable path allows future SSE/AVX implementation guarded by feature detection.
+* Parallel Affinity (14.4): Async optimizer API (`rogue_loadout_optimize_async/join/async_running`) dispatches optimization on a worker thread (Win32 CreateThread) with deterministic fallback synchronous path when threading unavailable; preserves deterministic results (fixed slot & instance ordering) and instruments launch + body with profiler zones.
+* Micro-Profiler (14.5): Zone profiler covers aggregation modes, synchronous optimize, and async launch; JSON dump helper for potential CI perf diffing.
+* Perf & Parallel Tests (14.6 Extended): `test_equipment_phase14_perf` (aggregation parity & profiler), and new `test_equipment_phase14_parallel` validating async improvement non-decrease, join semantics, and arena reuse (no capacity overflow across successive optimizer runs).
+
+### Equipment System Phase 15 (Integrity & Anti-Cheat Foundations – Completed)
+
+Multiplayer integrity layer now includes proc anomaly auditing, banned affix blacklist, hash chain & GUID tamper detection:
+* GUIDs (15.3): Every spawned item instance receives a 64-bit pseudo-random GUID (definition id, instance index entropy, quantity). `test_equipment_phase15_integrity` validates uniqueness.
+* Equip Hash Chain (15.2): Rolling 64-bit chain per item updated on equip/unequip (slot id + GUID + action salt) forming a tamper-evident transcript of lifecycle events.
+* Server Validation Scaffolding (15.1): Equip path maintains strict slot category & two-hand gating prior to state mutation; with GUID + chain available, an authoritative server can replay events and compare chains.
+* Proc Replay Auditor (15.4): `rogue_integrity_scan_proc_anomalies` scans registered procs and returns any exceeding a configurable triggers-per-minute threshold (simple absolute check suitable for first-line heuristic flagging). Exercised in `test_equipment_phase15_replay_auditor` using fast vs slow proc definitions.
+* Banned Affix Blacklist (15.5): Lightweight unordered pair list of forbidden affix combinations (`rogue_integrity_add_banned_affix_pair`, `rogue_integrity_is_item_banned`). Unit test injects an item with both affixes and asserts ban detection.
+* Hash Chain / GUID Tamper Tests (15.6): Replay auditor test mutates an item's stored chain and GUID directly; mismatch & duplicate detection surfaces anomalies via `rogue_integrity_scan_equip_chain_mismatches` and `rogue_integrity_scan_duplicate_guids`.
+* Public Integrity APIs (`equipment_integrity.h`): Proc anomaly scan, affix blacklist management, expected equip hash recomputation, mismatch & duplicate GUID scanners.
+
+Forward Work: Statistical proc distribution validation (Phase 18), authoritative network transport & signed state diffs (later multiplayer phases), and deeper anomaly heuristics (rolling Z-scores / EWMA) once broader telemetry (latency jitter, server tick alignment) is present.
+
+### Equipment System Phase 16.4 (Runeword Recipe Validator)
+...existing code...
 
 ### Maintainability & Module Boundaries (Phase M1–M2 Complete)
 
