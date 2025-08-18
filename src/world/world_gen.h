@@ -233,5 +233,38 @@ int  rogue_resource_generate(const RogueWorldGenConfig* cfg, RogueWorldGenContex
 /* Count upgrades in an existing placement set */
 int  rogue_resource_upgrade_count(const RogueResourceNodePlacement* nodes, int count);
 
+/* ---- Phase 10: Weather & Environmental Simulation ---- */
+typedef struct RogueWeatherPatternDesc {
+    char id[24];            /* identifier */
+    int min_duration_ticks; /* inclusive */
+    int max_duration_ticks; /* inclusive */
+    float intensity_min;    /* 0..1 */
+    float intensity_max;    /* 0..1 */
+    unsigned int biome_mask;/* allowed biome bits (reuses biome ids) */
+    float base_weight;      /* probability weight (pre-biome scaling) */
+} RogueWeatherPatternDesc;
+
+typedef struct RogueActiveWeather {
+    int pattern_index;      /* index into registry */
+    int remaining_ticks;    /* ticks left in current pattern */
+    float intensity;        /* current intensity (may lerp) */
+    float target_intensity; /* target intensity for transition */
+} RogueActiveWeather;
+
+/* Register a weather pattern; returns index or -1 on failure */
+int  rogue_weather_register(const RogueWeatherPatternDesc* d);
+/* Clear registry (tests) */
+void rogue_weather_clear_registry(void);
+/* Count registry entries */
+int  rogue_weather_registry_count(void);
+/* Initialize scheduler state; selects first pattern deterministically (returns 1 on success) */
+int  rogue_weather_init(RogueWorldGenContext* ctx, RogueActiveWeather* state);
+/* Advance weather by ticks; may transition patterns when duration elapses; returns new pattern index if changed else -1 */
+int  rogue_weather_update(RogueWorldGenContext* ctx, RogueActiveWeather* state, int ticks, int biome_id);
+/* Sample current lighting tint modification (simple desaturation or color shift based on intensity) */
+void rogue_weather_sample_lighting(const RogueActiveWeather* state, unsigned char* r, unsigned char* g, unsigned char* b);
+/* Movement debuff factor (1.0 = none, <1 reduce speed) */
+float rogue_weather_movement_factor(const RogueActiveWeather* state);
+
 
 #endif

@@ -91,11 +91,11 @@ PHASE 9. Lootable & Resource Nodes
 9.5 Unit tests: yield range adherence, cluster size bounds, upgrade probability within tolerance (Done (subset): test validates non-zero nodes, positive yields, deterministic regeneration, upgrade count non-negative)
 
 PHASE 10. Weather & Environmental Simulation
-10.1 Weather pattern descriptors (duration ranges, intensity curves) (X)
-10.2 Weather scheduler (seeded cycle with transitional blending) (X)
-10.3 Biome-influenced probability weighting (X)
-10.4 Environmental effects hooks (lighting tint, particle spawners, movement debuffs) (X)
-10.5 Unit tests: cycle determinism, probability weighting matches configured distribution (X)
+10.1 Weather pattern descriptors (duration ranges, intensity curves) (Done: in-memory registry with duration & intensity range + biome mask + base weight)
+10.2 Weather scheduler (seeded cycle with transitional blending) (Done: deterministic selection via macro RNG; easing toward target intensity, fade-out handling)
+10.3 Biome-influenced probability weighting (Done: weight zeroed if biome mask excludes biome; weighted random over allowed set)
+10.4 Environmental effects hooks (lighting tint, particle spawners, movement debuffs) (Done (subset): lighting tint darken + blue shift; movement speed factor; particle hooks deferred to runtime systems)
+10.5 Unit tests: cycle determinism, probability weighting matches configured distribution (Done: Phase 10 test simulates 2000 ticks; asserts rain >= clear count due to higher weight; distribution deterministic)
 
 PHASE 11. Runtime Streaming & Caching
 11.1 Async chunk generation queue (producer/consumer) (X)

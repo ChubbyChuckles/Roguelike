@@ -199,6 +199,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_worldgen_phase9_resources.c AND 
     add_test(NAME test_worldgen_phase9_resources COMMAND test_worldgen_phase9_resources)
 endif()
 
+# World Generation Phase 10 weather simulation test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_worldgen_phase10_weather.c AND NOT TARGET test_worldgen_phase10_weather)
+    add_executable(test_worldgen_phase10_weather unit/test_worldgen_phase10_weather.c)
+    target_link_libraries(test_worldgen_phase10_weather PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_worldgen_phase10_weather PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_worldgen_phase10_weather COMMAND test_worldgen_phase10_weather)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase10_golden_theming.c AND NOT TARGET test_ui_phase10_golden_theming)
     add_executable(test_ui_phase10_golden_theming unit/test_ui_phase10_golden_theming.c)
     target_link_libraries(test_ui_phase10_golden_theming PRIVATE rogue_core)
