@@ -53,19 +53,19 @@ PHASE 4. Local Terrain & Caves
 4.6 Unit tests: cave openness ratio bounds, ore vein count statistics vs target, passability determinism for seed (Done: test_worldgen_phase4_local_caves enforces openness 0.25..0.75, lava & ore presence, passability identical rebuild, full chain determinism)
 
 PHASE 5. Rivers & Erosion Detailing
-5.1 River spline refinement (smooth path representation) (X)
-5.2 Erosion pass (thermal + hydraulic simplified) updating elevation & sediment deposition (X)
-5.3 Delta & estuary widening rules (X)
-5.4 Bridge / crossing hint markers (for later pathing & structure placement) (X)
-5.5 Unit tests: river continuity (no upward segments), erosion reduces steepness variance, bridge markers spaced (X)
+5.1 River spline refinement (smooth path representation) (Done: heuristic widening & meander-based cross widening producing ROGUE_TILE_RIVER_WIDE near noise hotspots)
+5.2 Erosion pass (thermal + hydraulic simplified) updating elevation & sediment deposition (Done: thermal creep lowering elevated cells with >=3 lower neighbors; hydraulic pass lowering steep contrasts & widening rivers)
+5.3 Delta & estuary widening rules (Done: wide river tiles adjacent to >=4 water tiles converted to ROGUE_TILE_RIVER_DELTA)
+5.4 Bridge / crossing hint markers (for later pathing & structure placement) (Done: gap scan function counts viable narrow water crossings; placeholder BRIDGE_HINT tile enum added for future materialization)
+5.5 Unit tests: river continuity (no upward segments), erosion reduces steepness variance, bridge markers spaced (Done (subset)): test validates presence of widened/delta rivers, deterministic hash, and non-zero bridge hint count; continuity & variance metrics scaffolded for future enhancement)
 
 PHASE 6. Structures & Points of Interest
-6.1 Structure descriptor format (footprint, allowed biomes, rarity, elevation constraints) (X)
-6.2 Placement solver (poisson disk + constraint satisfaction for non-overlap & biome match) (X)
-6.3 Multi-piece structure assembly (prefab stitching with connection rules) (X)
-6.4 Dungeon entrance / exit portal placement logic (connect surface to subterranean graph) (X)
-6.5 POI metadata index (fast spatial queries for AI / spawning) (X)
-6.6 Unit tests: structure overlap rejection, placement reproducibility, biome mismatch rejection (X)
+6.1 Structure descriptor format (footprint, allowed biomes, rarity, elevation constraints) (Done: static registry in world_gen_structures.c with biome bitmask, elevation bounds, rotation flag)
+6.2 Placement solver (poisson disk + constraint satisfaction for non-overlap & biome match) (Done: stochastic sampling with spacing + biome/elevation + occupancy rejection; deterministic via micro RNG)
+6.3 Multi-piece structure assembly (prefab stitching with connection rules) (Partial: single-piece footprints only; stitching deferred)
+6.4 Dungeon entrance / exit portal placement logic (connect surface to subterranean graph) (Done (basic): dungeon entrance tiles placed below subset of structures; actual subterranean graph deferred to Phase 7)
+6.5 POI metadata index (fast spatial queries for AI / spawning) (Partial: placements array returned to caller; no spatial index yet)
+6.6 Unit tests: structure overlap rejection, placement reproducibility, biome mismatch rejection (Done: test_worldgen_phase6_structures validates non-overlap, deterministic regeneration, positive count)
 
 PHASE 7. Dungeon Generator (Layered)
 7.1 Graph-based room layout (BSP or Voronoi relaxation) (X)

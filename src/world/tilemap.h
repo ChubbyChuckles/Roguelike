@@ -52,6 +52,11 @@ typedef enum RogueTileType
     /* Phase 4 additions (local terrain detailing) */
     ROGUE_TILE_LAVA,        /* lava pocket */
     ROGUE_TILE_ORE_VEIN,    /* ore vein marker embedded in rock/cave */
+    ROGUE_TILE_BRIDGE_HINT, /* potential bridge/crossing marker */
+    /* Phase 6 additions (structures & POIs) */
+    ROGUE_TILE_STRUCTURE_WALL,  /* generic structure wall */
+    ROGUE_TILE_STRUCTURE_FLOOR, /* generic structure floor */
+    ROGUE_TILE_DUNGEON_ENTRANCE,/* entrance portal marker */
     ROGUE_TILE_MAX
 } RogueTileType;
 

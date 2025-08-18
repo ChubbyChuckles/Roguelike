@@ -89,5 +89,49 @@ bool rogue_world_place_ore_veins(const RogueWorldGenConfig* cfg, RogueWorldGenCo
 bool rogue_world_build_passability(const RogueWorldGenConfig* cfg, const RogueTileMap* map, RoguePassabilityMap* out_pass);
 void rogue_world_passability_free(RoguePassabilityMap* pass);
 
+/* ---- Phase 5: Rivers & Erosion Detailing ---- */
+bool rogue_world_refine_rivers(const RogueWorldGenConfig* cfg, RogueWorldGenContext* ctx, RogueTileMap* io_map);
+bool rogue_world_apply_erosion(const RogueWorldGenConfig* cfg, RogueWorldGenContext* ctx, RogueTileMap* io_map, int thermal_passes, int hydraulic_passes);
+int  rogue_world_mark_bridge_hints(const RogueWorldGenConfig* cfg, const RogueTileMap* map, int min_gap, int max_gap);
+/* Utility to compute steepness variance for tests */
+double rogue_world_compute_steepness_metric(const RogueTileMap* before, const RogueTileMap* after);
+
+/* ---- Phase 6: Structures & Points of Interest ---- */
+typedef struct RogueStructureDesc {
+    const char* id;              /* unique identifier */
+    int width;                   /* footprint width */
+    int height;                  /* footprint height */
+    unsigned int biome_mask;     /* bitmask of allowed biomes */
+    double rarity;               /* probability weight */
+    int min_elevation;           /* min elevation heuristic (0-3) */
+    int max_elevation;           /* max elevation heuristic (0-3) */
+    int allow_rotation;          /* whether rotations permitted */
+} RogueStructureDesc;
+
+typedef struct RogueStructurePlacement {
+    int x; int y;                /* top-left tile */
+    int w; int h;                /* final placed size (post-rotation) */
+    int rotation;                /* 0,1,2,3 quarter turns */
+    const RogueStructureDesc* desc; /* descriptor reference */
+} RogueStructurePlacement;
+
+/* Register built-in baseline structures (hardcoded for now; later data-driven) */
+int  rogue_world_register_default_structures(void);
+/* Returns number of registered structure descriptors */
+int  rogue_world_structure_desc_count(void);
+/* Get descriptor by index */
+const RogueStructureDesc* rogue_world_get_structure_desc(int index);
+/* Clear structure registry (used in tests) */
+void rogue_world_clear_structure_registry(void);
+
+/* Placement: runs Poisson-disk style sampling with overlap & biome constraints */
+int rogue_world_place_structures(const RogueWorldGenConfig* cfg, RogueWorldGenContext* ctx, RogueTileMap* io_map,
+                                 RogueStructurePlacement* out_array, int max_out, int min_spacing);
+
+/* Dungeon entrance linking: mark N entrances near structure centers or biome transitions */
+int rogue_world_place_dungeon_entrances(const RogueWorldGenConfig* cfg, RogueWorldGenContext* ctx, RogueTileMap* io_map,
+                                       const RogueStructurePlacement* placements, int placement_count, int max_entrances);
+
+
 
 #endif

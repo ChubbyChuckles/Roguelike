@@ -1,33 +1,14 @@
-World Generation Phase 1: Foundational Data & APIs
+World Generation Phases 1-5 Implementation Summary
 
-Summary:
-- Extended `RogueWorldGenConfig` with `continent_count` and `biome_seed_offset` fields establishing macro layout & RNG decorrelation parameters.
-- Introduced multi-channel deterministic RNG via `RogueWorldGenContext` (macro/biome/micro) with decorrelated seed derivation constants.
-- Added chunk coordinate system (`ROGUE_WORLD_CHUNK_SIZE=32`) and helper APIs: `rogue_world_chunk_from_tile`, `rogue_world_chunk_origin`, `rogue_world_chunk_index` preparing for streaming & caching phases (11.x).
-- Implemented FNV-1a tilemap hashing utility `rogue_world_hash_tilemap` (basis for golden snapshot tests).
-- Created `world_gen_foundation.c` housing Phase 1 implementations and registered it in build.
-- Added unit test `test_worldgen_phase1_foundation` covering chunk mapping, RNG independence & hash stability.
+Phase 1 (Foundation): Added WorldGenConfig, multi-channel deterministic RNG (macro/biome/micro), chunk coord utilities, FNV-1a hash for golden snapshots, and unit test validating RNG independence and mapping correctness.
 
-World Generation Phase 2: Macro Layout & Biome Classification
+Phase 2 (Macro Layout): Implemented continent mask (fbm + radial falloff + adaptive land ratio balancing), elevation normalization, climate approximation (temperature + moisture), river downhill tracing, biome classification, and unit test asserting land ratio bounds, river reaches water, biome histogram determinism (with context re-init fix).
 
-Summary:
-- Added `world_gen_macro.c` implementing continent mask (fbm + radial falloff) with size-filtered continent counting, elevation shaping & normalization, climate approximation (temperature latitude+altitude, moisture fbm), deterministic river peak selection + downhill carving, and biome classification thresholds mapping to existing tile types.
-- Public API `rogue_world_generate_macro_layout` returns biome histogram & continent count.
-- Adaptive marginal land promotion/demotion keeps land ratio within test bounds; RNG context reinit ensures deterministic hash on regeneration.
-- Unit test `test_worldgen_phase2_macro` asserts water ratio bounds, ≥1 continent, river adjacency, and determinism (hash + histogram).
+Phase 3 (Biome Descriptors & Registry): Added CFG-based biome descriptor parser (tile_* weights, densities, ambient color, music, feature flags), registry loader (directory scan + validation + normalization), palette blending, secure CRT compliance, and unit test covering parse success/failure, normalization, blend output.
 
-World Generation Phase 3: Biome Descriptors & Registry
+Phase 4 (Local Terrain & Caves): Introduced micro-scale fbm perturbation of grass/forest and mountain edge softening, cave cellular automata seeded under mountains, lava pocket placement, ore vein random-walk carving, passability map derivation, new tiles (LAVA, ORE_VEIN), and unit test verifying openness bounds, feature presence, passability determinism, full regeneration determinism.
 
-Summary:
-- Implemented data-driven biome descriptor system (CFG-based) with fields: name, music, vegetation_density, decoration_density, ambient_color, allow_structures, allow_weather, and tile_* palette weights.
-- Added parser with normalization (tile weight sum -> 1), validation requiring at least one tile_* entry, and clamping of density values.
-- Implemented biome registry (dynamic array) and directory loader (Windows glob pattern; POSIX path variant) for *.biome.cfg files.
-- Palette blending utility `rogue_biome_blend_palettes` for boundary transitions (normalized output).
-- Secure string handling (safe_copy) and MSVC secure CRT functions (fopen_s, strncpy_s, strtok_s, sscanf_s) to satisfy warning-as-error policy.
-- Added unit test `test_worldgen_phase3_biome_descriptors` validating parse success/failure cases, normalization, registry add, and palette blend normalization.
-- Roadmap updated Phase 3 items to Done; build system & commit message updated.
+Phase 5 (Rivers & Erosion Detailing): Added river refinement (noise-guided widening -> RIVER_WIDE, delta conversion with water adjacency), simplified thermal + hydraulic erosion passes reducing elevation proxies (mountain -> forest/grass), bridge hint gap scanner (placeholder BRIDGE_HINT enum), and unit test ensuring widened/delta presence, deterministic hash, and non-zero bridge hint count. README updated with Phase 4 & 5 summaries; roadmap advanced marking Phases 4-5 done.
 
-(Phase 4) Local terrain & caves layer added: fbm-based micro perturbation of grass/forest/mountain edges, standalone cave cellular automata pass (mountain-seeded) generating cave wall/floor tiles, deterministic lava pocket placement, ore vein random-walk carving, and passability map derivation (RoguePassabilityMap). Added new tile types (LAVA, ORE_VEIN), new module `world_gen_local.c`, public APIs for local generation steps, and unit test `test_worldgen_phase4_local_caves` covering openness bounds, feature presence, passability determinism, and full regeneration determinism. Roadmap Phase 4 items updated to Done; README updated with Phase 4 summary.
+Phase 6 (Structures & Points of Interest): Added structure descriptor registry (static baseline: hut, watchtower, shrine) with footprint, biome bitmask, rarity weight, elevation bounds, rotation flag; introduced placement solver (stochastic sampling + spacing, biome, elevation, and occupancy constraints) carving STRUCTURE_WALL/STRUCTURE_FLOOR tiles; added dungeon entrance placement marking DUNGEON_ENTRANCE tiles for a deterministic subset of structures; provided APIs for registry inspection and placement; unit test validates non-overlap, deterministic regeneration (placements & hash), and entrance placement. Roadmap updated (Phase 6 items marked Done/Partial per multi-piece & POI index deferrals); README extended with Phase 6 summary; new tiles STRUCTURE_WALL, STRUCTURE_FLOOR, DUNGEON_ENTRANCE, plus earlier BRIDGE_HINT enumerated.
 
-Rationale:
-Advances world generation with data-driven biome layer enabling future extension (Phase 4+ local terrain & structures) while ensuring determinism & regression safety via targeted unit tests.

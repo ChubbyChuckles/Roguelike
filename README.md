@@ -191,6 +191,23 @@ Adds micro-scale detailing atop the macro biome layout:
 * 4.6 Unit Test: `test_worldgen_phase4_local_caves` validates: cave openness ratio within 25–75%, presence of lava pockets & ore veins, passability map deterministic rebuild, and full multi-phase determinism via hash comparison after regeneration.
 New tile types: `ROGUE_TILE_LAVA`, `ROGUE_TILE_ORE_VEIN`. Implementation in `world_gen_local.c` using micro RNG channel; roadmap Phase 4 items marked Done.
 
+### World Generation Phase 5 (Rivers & Erosion Detailing)
+* 5.1 River Refinement: Noise-guided widening around existing river tiles introducing `ROGUE_TILE_RIVER_WIDE` clusters and converting highly aquatic-adjacent wide tiles into deltas (`ROGUE_TILE_RIVER_DELTA`).
+* 5.2 Simplified Erosion: Thermal creep (>=3 lower neighbors) and hydraulic lowering of steep differences; mountain tiles reduced to forest/grass as elevation proxy drops.
+* 5.3 Deltas & Estuaries: Post-widen pass marks delta tiles where widened rivers meet large water bodies (>=4 adjacent water tiles).
+* 5.4 Bridge Hints: Gap scan function counts candidate short crossings (water span 3–6) for future structure placement; placeholder tile enum `ROGUE_TILE_BRIDGE_HINT` added (not yet painted onto base map, counted logically).
+* 5.5 Unit Test: `test_worldgen_phase5_rivers_erosion` ensures deterministic refinement (hash match), presence of widened/delta river tiles, and non-zero bridge hint count.
+
+### World Generation Phase 6 (Structures & Points of Interest)
+Introduces overland structure placement and dungeon entrance markers.
+* 6.1 Structure Descriptors: Static registry (`world_gen_structures.c`) with id, footprint (w,h), biome bitmask, rarity weight, elevation bounds (0–3 heuristic), and rotation flag. Example baseline set: hut, watchtower, shrine.
+* 6.2 Placement Solver: Stochastic sampling (attempt budget = 20x target) using micro RNG channel; per candidate applies: bounds check, min spacing (Poisson-esque), biome mask match, elevation clamp, occupancy rejection (no water/mountain/river in footprint). Successful placements carve border walls (`ROGUE_TILE_STRUCTURE_WALL`) plus interior floors (`ROGUE_TILE_STRUCTURE_FLOOR`) ensuring deterministic footprint tiles.
+* 6.3 Multi-piece Assembly: Deferred (single-piece only in this slice); design leaves room for later prefab stitching.
+* 6.4 Dungeon Entrances: Deterministic subset selection of placed structures; converts a floor tile near structure base into `ROGUE_TILE_DUNGEON_ENTRANCE` (future linkage to subterranean graph in Phase 7).
+* 6.5 POI Index: Deferred – placements array returned; spatial acceleration structure slated for a later optimization phase (Phase 11 or 14). 
+* 6.6 Unit Test: `test_worldgen_phase6_structures` validates non-zero placement count, absence of overlap (AABB test), deterministic regeneration (placements & hash), and successful entrance placement count (>=0).
+New tile types: `ROGUE_TILE_STRUCTURE_WALL`, `ROGUE_TILE_STRUCTURE_FLOOR`, `ROGUE_TILE_DUNGEON_ENTRANCE`.
+
 Phase 11.1–11.5 (AI Testing & QA Expansion): Added comprehensive quality gates around core AI behaviours.
 * Core Node Edge Tests: `test_ai_phase11_core_nodes` exercises Selector/Sequence short‑circuiting, Parallel mixed status aggregation, Utility selector tie‑break determinism, cooldown boundary reset, and retry decorator exhaustion/reset semantics.
 * Blackboard Fuzz: `test_ai_phase11_blackboard_fuzz` performs 5k deterministic pseudo‑random operations (Set/Max/Min/Accumulate/int+float/timer/vec2) mirrored against an in‑memory model to ensure policy invariants and capacity bounds (no overflow of 32 entries).
