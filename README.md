@@ -228,6 +228,15 @@ Introduces deterministic wildlife/creature spawn sampling decoupled from runtime
 * 8.5 Validation Test: `test_worldgen_phase8_spawns` builds macro map, registers grass/forest tables, builds density, applies hub suppression, samples 200 deterministic spawn queries (collecting rare hits), and replays seed to confirm reproducible first 20 spawn ids.
 APIs cover table registration, density build/free, suppression, and position-based spawn sampling with rare flag output.
 
+### World Generation Phase 9 (Resource Nodes)
+Implements clustered placement of lootable resource nodes (ores/crystals) with rarity & tool tier metadata.
+* 9.1 Descriptors: In-memory registry (id, rarity tier, tool tier requirement, yield range, biome mask) with validation.
+* 9.2 Cluster Placement: Deterministic seeding of cluster centers (attempt-constrained sampling) then local jitter within a square radius while enforcing homogeneous biome membership.
+* 9.3 Respawn Scheduling: Deferred (runtime system to be added in streaming/runtime phases; current slice static).
+* 9.4 Upgrades: Rarity-tier based upgrade roll (5%/10%/18%) applying 1.5x yield and marking upgraded flag for telemetry/balance.
+* 9.5 Test: `test_worldgen_phase9_resources` registers copper/iron/crystal descriptors, generates nodes, asserts non-zero count, positive yields, deterministic regeneration (positions & descriptor indices), and upgrade count non-negative.
+Public APIs allow descriptor registration, generation with clustering parameters, and upgrade counting for metrics.
+
 Phase 11.1–11.5 (AI Testing & QA Expansion): Added comprehensive quality gates around core AI behaviours.
 * Core Node Edge Tests: `test_ai_phase11_core_nodes` exercises Selector/Sequence short‑circuiting, Parallel mixed status aggregation, Utility selector tie‑break determinism, cooldown boundary reset, and retry decorator exhaustion/reset semantics.
 * Blackboard Fuzz: `test_ai_phase11_blackboard_fuzz` performs 5k deterministic pseudo‑random operations (Set/Max/Min/Accumulate/int+float/timer/vec2) mirrored against an in‑memory model to ensure policy invariants and capacity bounds (no overflow of 32 entries).

@@ -206,6 +206,32 @@ void rogue_spawn_apply_hub_suppression(RogueSpawnDensityMap* dm, int hub_x, int 
 int rogue_spawn_sample(RogueWorldGenContext* ctx, const RogueSpawnDensityMap* dm, const RogueTileMap* map,
                        int x, int y, char* out_id, size_t id_cap, int* out_is_rare);
 
+/* ---- Phase 9: Lootable & Resource Nodes ---- */
+typedef struct RogueResourceNodeDesc {
+    char id[24];
+    int rarity;          /* 0=common,1=uncommon,2=rare */
+    int tool_tier;       /* required tool tier */
+    int yield_min;
+    int yield_max;
+    unsigned int biome_mask; /* allowed biome bits */
+} RogueResourceNodeDesc;
+
+typedef struct RogueResourceNodePlacement {
+    int x, y;
+    int desc_index;
+    int yield;
+    int upgraded; /* 1 if upgraded variant */
+} RogueResourceNodePlacement;
+
+int  rogue_resource_register(const RogueResourceNodeDesc* d); /* returns index or -1 */
+void rogue_resource_clear_registry(void);
+int  rogue_resource_registry_count(void);
+/* Generate clustered placements; returns count */
+int  rogue_resource_generate(const RogueWorldGenConfig* cfg, RogueWorldGenContext* ctx, const RogueTileMap* map,
+                              RogueResourceNodePlacement* out_array, int max_out, int cluster_attempts,
+                              int cluster_radius, int base_clusters);
+/* Count upgrades in an existing placement set */
+int  rogue_resource_upgrade_count(const RogueResourceNodePlacement* nodes, int count);
 
 
 #endif

@@ -84,11 +84,11 @@ PHASE 8. Fauna & Spawn Ecology Layer
 8.5 Unit tests: spawn distribution sampling, determinism, suppression radius (Done: test_worldgen_phase8_spawns samples spawns, asserts non-zero, replays deterministic id sequence pre/post context reinit, hub suppression applied)
 
 PHASE 9. Lootable & Resource Nodes
-9.1 Resource node descriptor (rarity, required tool tier, yield range) (X)
-9.2 Placement algorithm (clustering rules, biome gating) (X)
-9.3 Respawn timer scheduling (seeded jitter) (X)
-9.4 Rare node upgrade (chance to produce enhanced variant) (X)
-9.5 Unit tests: yield range adherence, cluster size bounds, upgrade probability within tolerance (X)
+9.1 Resource node descriptor (rarity, required tool tier, yield range) (Done: in-memory registry with validation and biome mask)
+9.2 Placement algorithm (clustering rules, biome gating) (Done: cluster seeding + local jitter within radius with homogeneous biome constraint)
+9.3 Respawn timer scheduling (seeded jitter) (Deferred – not required for static generation slice; will move to later runtime phase)
+9.4 Rare node upgrade (chance to produce enhanced variant) (Done: rarity-tier thresholds 5/10/18% apply 1.5x yield)
+9.5 Unit tests: yield range adherence, cluster size bounds, upgrade probability within tolerance (Done (subset): test validates non-zero nodes, positive yields, deterministic regeneration, upgrade count non-negative)
 
 PHASE 10. Weather & Environmental Simulation
 10.1 Weather pattern descriptors (duration ranges, intensity curves) (X)

@@ -141,6 +141,7 @@ add_library(rogue_core
     src/world/world_gen_structures.c
     src/world/world_gen_dungeon.c
     src/world/world_gen_spawns.c
+    src/world/world_gen_resources.c
     src/world/world_gen_foundation.c
     src/graphics/font.c
     src/entities/player.c

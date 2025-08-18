@@ -189,6 +189,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_worldgen_phase8_spawns.c AND NOT
     add_test(NAME test_worldgen_phase8_spawns COMMAND test_worldgen_phase8_spawns)
 endif()
 
+# World Generation Phase 9 resource nodes test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_worldgen_phase9_resources.c AND NOT TARGET test_worldgen_phase9_resources)
+    add_executable(test_worldgen_phase9_resources unit/test_worldgen_phase9_resources.c)
+    target_link_libraries(test_worldgen_phase9_resources PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_worldgen_phase9_resources PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_worldgen_phase9_resources COMMAND test_worldgen_phase9_resources)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase10_golden_theming.c AND NOT TARGET test_ui_phase10_golden_theming)
     add_executable(test_ui_phase10_golden_theming unit/test_ui_phase10_golden_theming.c)
     target_link_libraries(test_ui_phase10_golden_theming PRIVATE rogue_core)
