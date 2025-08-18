@@ -145,6 +145,102 @@ int rogue_item_defs_load_from_cfg(const char* path){
     return added;
 }
 
+/* ---- Phase 16.1: JSON Import / Export ---- */
+static const char* skip_ws(const char* s){ while(*s && (unsigned char)*s<=32) ++s; return s; }
+static const char* parse_string(const char* s, char* out, int cap){ s=skip_ws(s); if(*s!='"') return NULL; ++s; int i=0; while(*s && *s!='"'){ if(*s=='\\' && s[1]) s++; if(i+1<cap) out[i++]=*s; ++s; } if(*s!='"') return NULL; out[i]='\0'; return s+1; }
+static const char* parse_number(const char* s, int* out){ s=skip_ws(s); char* end=NULL; long v=strtol(s,&end,10); if(end==s) return NULL; *out=(int)v; return end; }
+
+int rogue_item_defs_load_from_json(const char* path){
+    if(!path) return -1; FILE* f=NULL; 
+#if defined(_MSC_VER)
+    if(fopen_s(&f,path,"rb")!=0) f=NULL;
+#else
+    f=fopen(path,"rb");
+#endif
+    if(!f) return -1; fseek(f,0,SEEK_END); long sz=ftell(f); if(sz<0){ fclose(f); return -1; } fseek(f,0,SEEK_SET); char* buf=(char*)malloc((size_t)sz+1); if(!buf){ fclose(f); return -1; } size_t rd=fread(buf,1,(size_t)sz,f); buf[rd]='\0'; fclose(f);
+    const char* s=skip_ws(buf); if(*s!='['){ free(buf); return -1; } ++s; int added=0; char key[64]; char sval[256];
+    while(1){ s=skip_ws(s); if(*s==']'){ ++s; break; } if(*s!='{') { break; } ++s; RogueItemDef d; memset(&d,0,sizeof d); d.stack_max=1; int have_id=0,have_name=0; int done_obj=0; while(!done_obj){ s=skip_ws(s); if(*s=='}'){ ++s; break; }
+            const char* ns=parse_string(s,key,sizeof key); if(!ns){ done_obj=1; break; } s=skip_ws(ns); if(*s!=':'){ done_obj=1; break; } ++s; s=skip_ws(s);
+            if(*s=='"'){ const char* vs=parse_string(s,sval,sizeof sval); if(!vs){ done_obj=1; break; } s=skip_ws(vs);
+                if(strcmp(key,"id")==0){
+#if defined(_MSC_VER)
+                    strncpy_s(d.id,sizeof d.id,sval,_TRUNCATE);
+#else
+                    strncpy(d.id,sval,sizeof d.id -1);
+#endif
+                    have_id=1;
+                } else if(strcmp(key,"name")==0){
+#if defined(_MSC_VER)
+                    strncpy_s(d.name,sizeof d.name,sval,_TRUNCATE);
+#else
+                    strncpy(d.name,sval,sizeof d.name -1);
+#endif
+                    have_name=1;
+                } else if(strcmp(key,"sprite_sheet")==0){
+#if defined(_MSC_VER)
+                    strncpy_s(d.sprite_sheet,sizeof d.sprite_sheet,sval,_TRUNCATE);
+#else
+                    strncpy(d.sprite_sheet,sval,sizeof d.sprite_sheet -1);
+#endif
+                }
+            } else if((*s>='0'&&*s<='9')||*s=='-' ){ int num; const char* vs=parse_number(s,&num); if(!vs){ done_obj=1; break; } s=skip_ws(vs);
+                if(strcmp(key,"category")==0) d.category=(RogueItemCategory)num;
+                else if(strcmp(key,"level_req")==0) d.level_req=num;
+                else if(strcmp(key,"stack_max")==0) d.stack_max=num>0?num:1;
+                else if(strcmp(key,"base_value")==0) d.base_value=num;
+                else if(strcmp(key,"base_damage_min")==0) d.base_damage_min=num;
+                else if(strcmp(key,"base_damage_max")==0) d.base_damage_max=num;
+                else if(strcmp(key,"base_armor")==0) d.base_armor=num;
+                else if(strcmp(key,"sprite_tx")==0) d.sprite_tx=num;
+                else if(strcmp(key,"sprite_ty")==0) d.sprite_ty=num;
+                else if(strcmp(key,"sprite_tw")==0) d.sprite_tw=num>0?num:1;
+                else if(strcmp(key,"sprite_th")==0) d.sprite_th=num>0?num:1;
+                else if(strcmp(key,"rarity")==0) d.rarity=num<0?0:num;
+                else if(strcmp(key,"flags")==0) d.flags=num;
+                else if(strcmp(key,"implicit_strength")==0) d.implicit_strength=num;
+                else if(strcmp(key,"implicit_dexterity")==0) d.implicit_dexterity=num;
+                else if(strcmp(key,"implicit_vitality")==0) d.implicit_vitality=num;
+                else if(strcmp(key,"implicit_intelligence")==0) d.implicit_intelligence=num;
+                else if(strcmp(key,"implicit_armor_flat")==0) d.implicit_armor_flat=num;
+                else if(strcmp(key,"implicit_resist_physical")==0) d.implicit_resist_physical=num;
+                else if(strcmp(key,"implicit_resist_fire")==0) d.implicit_resist_fire=num;
+                else if(strcmp(key,"implicit_resist_cold")==0) d.implicit_resist_cold=num;
+                else if(strcmp(key,"implicit_resist_lightning")==0) d.implicit_resist_lightning=num;
+                else if(strcmp(key,"implicit_resist_poison")==0) d.implicit_resist_poison=num;
+                else if(strcmp(key,"implicit_resist_status")==0) d.implicit_resist_status=num;
+                else if(strcmp(key,"set_id")==0) d.set_id=num;
+                else if(strcmp(key,"socket_min")==0) d.socket_min=num;
+                else if(strcmp(key,"socket_max")==0) d.socket_max=num;
+            }
+            s=skip_ws(s); if(*s==','){ ++s; continue; }
+        }
+        if(have_id && have_name && g_item_def_count<ROGUE_ITEM_DEF_CAP){ if(d.socket_min<0) d.socket_min=0; if(d.socket_max<d.socket_min) d.socket_max=d.socket_min; if(d.socket_max>6) d.socket_max=6; g_item_defs[g_item_def_count++]=d; added++; }
+        s=skip_ws(s); if(*s==','){ ++s; continue; }
+    }
+    free(buf); rogue_item_defs_build_index(); return added;
+}
+
+int rogue_item_defs_export_json(char* buf, int cap){ if(!buf||cap<=2) return -1; int off=0; buf[off++]='['; for(int i=0;i<g_item_def_count;i++){ if(off+2>=cap) return -1; if(i>0) buf[off++]=','; if(off+1>=cap) return -1; buf[off++]='{'; const RogueItemDef* d=&g_item_defs[i]; char tmp[256];
+#define APPEND_FMT(fmt,...) do{ int n=snprintf(tmp,sizeof tmp,fmt,__VA_ARGS__); if(n<0) return -1; if(off+n>=cap) return -1; memcpy(buf+off,tmp,(size_t)n); off+=n; }while(0)
+        APPEND_FMT("\"id\":\"%s\",", d->id);
+        APPEND_FMT("\"name\":\"%s\",", d->name);
+        APPEND_FMT("\"category\":%d,", d->category);
+        APPEND_FMT("\"level_req\":%d,", d->level_req);
+        APPEND_FMT("\"stack_max\":%d,", d->stack_max);
+        APPEND_FMT("\"base_value\":%d,", d->base_value);
+        APPEND_FMT("\"base_damage_min\":%d,", d->base_damage_min);
+        APPEND_FMT("\"base_damage_max\":%d,", d->base_damage_max);
+        APPEND_FMT("\"base_armor\":%d,", d->base_armor);
+        APPEND_FMT("\"sprite_sheet\":\"%s\",", d->sprite_sheet);
+        APPEND_FMT("\"sprite_tx\":%d,\"sprite_ty\":%d,\"sprite_tw\":%d,\"sprite_th\":%d,", d->sprite_tx,d->sprite_ty,d->sprite_tw,d->sprite_th);
+        APPEND_FMT("\"rarity\":%d,\"flags\":%d,", d->rarity,d->flags);
+        APPEND_FMT("\"implicit_strength\":%d,\"implicit_dexterity\":%d,\"implicit_vitality\":%d,\"implicit_intelligence\":%d,", d->implicit_strength,d->implicit_dexterity,d->implicit_vitality,d->implicit_intelligence);
+        APPEND_FMT("\"implicit_armor_flat\":%d,\"implicit_resist_physical\":%d,\"implicit_resist_fire\":%d,\"implicit_resist_cold\":%d,\"implicit_resist_lightning\":%d,\"implicit_resist_poison\":%d,\"implicit_resist_status\":%d,", d->implicit_armor_flat,d->implicit_resist_physical,d->implicit_resist_fire,d->implicit_resist_cold,d->implicit_resist_lightning,d->implicit_resist_poison,d->implicit_resist_status);
+        APPEND_FMT("\"set_id\":%d,\"socket_min\":%d,\"socket_max\":%d", d->set_id,d->socket_min,d->socket_max);
+        if(off+2>=cap) return -1; buf[off++]='}';
+    }
+    if(off+2>=cap) return -1; buf[off++]=']'; buf[off]='\0'; return off; }
+
 const RogueItemDef* rogue_item_def_by_id(const char* id){ if(!id) return NULL; for(int i=0;i<g_item_def_count;i++){ if(strcmp(g_item_defs[i].id,id)==0) return &g_item_defs[i]; } return NULL; }
 int rogue_item_def_index(const char* id){ if(!id) return -1; for(int i=0;i<g_item_def_count;i++){ if(strcmp(g_item_defs[i].id,id)==0) return i; } return -1; }
 const RogueItemDef* rogue_item_def_at(int index){ if(index<0 || index>=g_item_def_count) return NULL; return &g_item_defs[index]; }

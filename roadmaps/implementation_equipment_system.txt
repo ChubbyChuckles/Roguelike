@@ -149,7 +149,7 @@ PHASE 15. Multiplayer & Integrity / Anti-Cheat
 15.6 Tests: invalid equip rejection, hash mismatch trigger, duplicate instance detection (Done: replay auditor test mutates chain & GUID to detect mismatches / duplicates)
 
 PHASE 16. Tooling & Authoring
-16.1 External equipment definition editor (base + implicits) (X)
+16.1 External equipment definition editor (base + implicits) (Done: JSON import/export APIs `rogue_item_defs_load_from_json` + `rogue_item_defs_export_json`, unit test `test_equipment_phase16_itemdefs_json` validates two-record load, fast index, and roundtrip content presence)
 16.2 Set builder with live bonus threshold preview (X)
 16.3 Proc designer (trigger/type/magnitude/ICD) (X)
 16.4 Runeword recipe validator (duplicate / impossible pattern detection) (X)

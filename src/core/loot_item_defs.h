@@ -57,6 +57,10 @@ typedef struct RogueItemDef {
 
 /* Runtime registry */
 int rogue_item_defs_load_from_cfg(const char* path); /* returns count added or <0 on error */
+/* Phase 16.1 (Tooling): JSON import path (array of objects). Path must end with .json. */
+int rogue_item_defs_load_from_json(const char* path); /* returns count added or <0 on error */
+/* Phase 16.1 (Tooling): Export all currently loaded item defs to JSON array string. Returns number of chars written (excludes null terminator) or -1 if cap too small. */
+int rogue_item_defs_export_json(char* buf, int cap);
 /* Convenience: load multiple item definition cfg files from a directory of category files (swords.cfg, potions.cfg, etc.).
  * Implementation keeps simple portability: attempts to open a known set of filenames inside dir.
  * Returns total successfully added (aggregate) or <0 if dir invalid. */
