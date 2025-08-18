@@ -35,7 +35,7 @@ PHASE 1. Slot & Data Model Expansion
 PHASE 2. Advanced Stat Aggregation & Derived Metrics
 2.1 Distinguish base, implicit, affix, temporary buff layers in stat cache (Done: layered fields added; affix layer populated via equipment aggregation)
 2.2 Add secondary derived metrics: toughness (EHP factoring block/guard DR), mobility index (speed * stamina regen * encumbrance inverse), sustain index (life steal proxy when implemented) (Done: preliminary formulas implemented; future DR/block extensions will refine but current metrics populated & tested)
-2.3 Resist breakdown panel (physical, each elemental, status buildup resistance) (X)
+2.3 Resist breakdown panel (physical, each elemental, status buildup resistance) (Done: resistance fields + aggregation + soft cap & tests)
 2.4 Dynamic soft caps & diminishing returns curves integrated (Done: helper rogue_soft_cap_apply + monotonic diminishing returns unit test)
 2.5 Hash / fingerprint of aggregated stats for determinism audits (Done: fingerprint computed over layered + derived numeric fields; API rogue_stat_cache_fingerprint)
 2.6 Tests: invariance ordering, soft cap continuity (slope monotonic), stat fingerprint determinism (Done: test_equipment_phase2_stat_cache + test_equipment_phase2_affix_layers validate layering, fingerprint mutation, equip ordering invariance, soft cap curve & monotonic slope)

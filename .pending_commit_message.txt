@@ -1,23 +1,28 @@
-Equipment System Phase 2 – Layered Stat Cache Affix Aggregation & Derived Metrics
+Equipment System Phase 2 – Layered Stat Cache, Derived Metrics, and Resist Breakdown
 
-Implemented features:
-* Added new affix stat kinds: strength_flat, dexterity_flat, vitality_flat, intelligence_flat, armor_flat (parser + enum).
-* Refactored equipment stat aggregation to populate g_player_stat_cache.affix_* layers instead of mutating player base stats.
-* Extended stat cache structure with affix_armor_flat and preserved externally gathered affix_* values during layer recompute.
-* Added derived metrics (dps_estimate, ehp_estimate, toughness_index, mobility_index, sustain_index placeholder) populated each update.
-* Introduced soft cap helper (rogue_soft_cap_apply) with continuity & diminishing returns tests.
-* Fingerprint hashing over layered + derived fields retained (determinism audit).
-* New tests:
-	- test_equipment_phase2_affix_layers (affix layer population, fingerprint mutation on affix change, equip ordering invariance)
-	- test_equipment_phase2_stat_cache (layer integrity, fingerprint change on base stat mutation, soft cap curve + monotonic slope)
-* Roadmap updated: Phase 2 items 2.1, 2.2, 2.4, 2.5, 2.6 marked Done (2.3 pending).
-* README changelog updated with Phase 2 highlight summary.
+Completed Features:
+* 2.1 Layered stat cache (base/implicit/affix/buff) with affix layer population via equipment aggregation.
+* 2.2 Derived metrics (DPS, EHP, toughness, mobility, sustain placeholder) fully computed each update.
+* 2.4 Soft cap helper (rogue_soft_cap_apply) + monotonic diminishing returns tests.
+* 2.5 Deterministic fingerprint hashing across layered + derived numeric fields.
+* 2.6 Tests for layer integrity, ordering invariance, fingerprint mutation, soft cap curve & slope.
+* 2.3 Resist breakdown: new resistance affix stats (physical, fire, cold, lightning, poison, status), aggregation into stat cache, soft + hard caps, and validation test.
 
-Notes:
-* Resist breakdown panel (2.3) remains unimplemented.
-* Future phases will introduce implicit/base item modifiers and buff layers feeding existing cache structure without breaking fingerprint hashing.
+Implementation Details:
+* Added new affix stat enums: strength_flat, dexterity_flat, vitality_flat, intelligence_flat, armor_flat, and resist_* variants; parser updated accordingly.
+* Refactored equipment aggregation to populate g_player_stat_cache.affix_* and resistance fields (no direct player stat mutation).
+* Extended stat_cache: affix_armor_flat + per-resistance fields; compute_derived applies soft cap (75%) with diminishing (softness=0.65) and hard cap (90%).
+* Fingerprint logic unchanged but automatically captures new fields (positioned before fingerprint member) ensuring determinism auditing includes resistance changes.
+* New unit tests:
+	- test_equipment_phase2_affix_layers: affix primary stats, armor, fingerprint mutation on affix change, equip ordering invariance.
+	- test_equipment_phase2_stat_cache: base layer integrity, fingerprint change on base stat mutation, soft cap curve + monotonic slope.
+	- test_equipment_phase2_resists: resistance aggregation, diminishing above soft cap, hard cap enforcement (e.g., 120% -> 90%).
 
-Next steps:
-1) Implement Phase 2.3 resist breakdown panel + data model.
-2) Begin Phase 3 item_level + budget governance scaffolding.
-3) Add additional tests for large multi-slot equip permutations (stress determinism hashing).
+Roadmap Updates:
+* Phase 2 items 2.1, 2.2, 2.3, 2.4, 2.5, 2.6 all marked Done.
+
+Next Steps:
+1) Start Phase 3 (item_level + budget governance scaffolding).
+2) Add stress determinism test over many random equip permutations (hash collision guard).
+3) Introduce implicit layer sources (base item implicit stats) feeding into cache.
+

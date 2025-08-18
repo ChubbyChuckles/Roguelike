@@ -2074,6 +2074,14 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase2_affix_layers.c 
     endif()
     add_test(NAME test_equipment_phase2_affix_layers COMMAND test_equipment_phase2_affix_layers)
 endif()
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase2_resists.c AND NOT TARGET test_equipment_phase2_resists)
+    add_executable(test_equipment_phase2_resists unit/test_equipment_phase2_resists.c)
+    target_link_libraries(test_equipment_phase2_resists PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_equipment_phase2_resists PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_equipment_phase2_resists COMMAND test_equipment_phase2_resists)
+endif()
 
 # Explicitly add loot phase 5 rarity parse test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase5_rarity_parse.c AND NOT TARGET test_loot_phase5_rarity_parse)

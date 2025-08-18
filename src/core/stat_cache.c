@@ -52,6 +52,13 @@ static void compute_layers(const RoguePlayer* p){
     g_player_stat_cache.total_dexterity = g_player_stat_cache.base_dexterity + g_player_stat_cache.implicit_dexterity + g_player_stat_cache.affix_dexterity + g_player_stat_cache.buff_dexterity;
     g_player_stat_cache.total_vitality = g_player_stat_cache.base_vitality + g_player_stat_cache.implicit_vitality + g_player_stat_cache.affix_vitality + g_player_stat_cache.buff_vitality;
     g_player_stat_cache.total_intelligence = g_player_stat_cache.base_intelligence + g_player_stat_cache.implicit_intelligence + g_player_stat_cache.affix_intelligence + g_player_stat_cache.buff_intelligence;
+    /* Resist layers currently only from affix layer (future: implicit, buffs). Leave existing if externally populated. */
+    if(g_player_stat_cache.resist_physical < 0) g_player_stat_cache.resist_physical=0;
+    if(g_player_stat_cache.resist_fire < 0) g_player_stat_cache.resist_fire=0;
+    if(g_player_stat_cache.resist_cold < 0) g_player_stat_cache.resist_cold=0;
+    if(g_player_stat_cache.resist_lightning < 0) g_player_stat_cache.resist_lightning=0;
+    if(g_player_stat_cache.resist_poison < 0) g_player_stat_cache.resist_poison=0;
+    if(g_player_stat_cache.resist_status < 0) g_player_stat_cache.resist_status=0;
 }
 
 static void compute_derived(const RoguePlayer* p){
@@ -67,6 +74,10 @@ static void compute_derived(const RoguePlayer* p){
     g_player_stat_cache.toughness_index = g_player_stat_cache.ehp_estimate; /* placeholder */
     g_player_stat_cache.mobility_index = (int)(100 + g_player_stat_cache.total_dexterity * 1.5f); /* simple scalar baseline */
     g_player_stat_cache.sustain_index = 0; /* no life-steal implemented yet */
+    /* Apply soft cap at 75% with diminishing above (hard cap 90%). */
+    const float soft_cap=75.f; const float softness=0.65f; const int hard_cap=90;
+    int* res_array[] = { &g_player_stat_cache.resist_physical,&g_player_stat_cache.resist_fire,&g_player_stat_cache.resist_cold,&g_player_stat_cache.resist_lightning,&g_player_stat_cache.resist_poison,&g_player_stat_cache.resist_status };
+    for(size_t i=0;i<sizeof(res_array)/sizeof(res_array[0]);++i){ int v=*res_array[i]; if(v> (int)soft_cap){ float adj=rogue_soft_cap_apply((float)v,soft_cap,softness); v=(int)(adj+0.5f); } if(v>hard_cap) v=hard_cap; *res_array[i]=v; if(v<0) *res_array[i]=0; }
 }
 
 static void compute_fingerprint(void){

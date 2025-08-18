@@ -21,6 +21,12 @@ static RogueAffixStat parse_stat(const char* s){
     if(strcmp(s,"vitality_flat")==0) return ROGUE_AFFIX_STAT_VITALITY_FLAT;
     if(strcmp(s,"intelligence_flat")==0) return ROGUE_AFFIX_STAT_INTELLIGENCE_FLAT;
     if(strcmp(s,"armor_flat")==0) return ROGUE_AFFIX_STAT_ARMOR_FLAT;
+    if(strcmp(s,"resist_physical")==0) return ROGUE_AFFIX_STAT_RESIST_PHYSICAL;
+    if(strcmp(s,"resist_fire")==0) return ROGUE_AFFIX_STAT_RESIST_FIRE;
+    if(strcmp(s,"resist_cold")==0) return ROGUE_AFFIX_STAT_RESIST_COLD;
+    if(strcmp(s,"resist_lightning")==0) return ROGUE_AFFIX_STAT_RESIST_LIGHTNING;
+    if(strcmp(s,"resist_poison")==0) return ROGUE_AFFIX_STAT_RESIST_POISON;
+    if(strcmp(s,"resist_status")==0) return ROGUE_AFFIX_STAT_RESIST_STATUS;
     return ROGUE_AFFIX_STAT_NONE;
 }
 

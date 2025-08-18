@@ -75,6 +75,7 @@ Phase M3 (data-driven pipeline) progress:
   - Derived metrics populated (DPS, EHP, toughness, mobility, sustain placeholder).
   - Soft cap helper (`rogue_soft_cap_apply`) + continuity & diminishing returns unit tests.
   - Ordering invariance & fingerprint mutation tests (`test_equipment_phase2_affix_layers`, `test_equipment_phase2_stat_cache`).
+  - Resist breakdown (physical, fire, cold, lightning, poison, status) with affix-driven aggregation, soft (75%) + hard (90%) caps and test (`test_equipment_phase2_resists`).
 
 Next phases (M3+) will introduce unified config schema, hot reload, and expanded deterministic replay/coverage gates.
 
