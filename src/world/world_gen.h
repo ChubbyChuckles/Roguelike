@@ -296,5 +296,33 @@ int  rogue_chunk_stream_loaded_count(const RogueChunkStreamManager* mgr);
 /* Expose chunk hash for validation. Returns 1 on success. */
 int  rogue_chunk_stream_chunk_hash(const RogueChunkStreamManager* mgr, int cx, int cy, unsigned long long* out_hash);
 
+/* ---- Phase 12: Telemetry & Analytics ---- */
+typedef struct RogueWorldGenMetrics {
+    unsigned long macro_ms;
+    unsigned long local_ms;
+    unsigned long rivers_ms;
+    unsigned long structures_ms;
+    unsigned long dungeon_ms;
+    unsigned long spawns_ms;
+    unsigned long resources_ms;
+    unsigned long weather_ms;
+    /* counts */
+    int continents;
+    int rivers;
+    int structures;
+    int dungeon_rooms;
+    int spawn_tables;
+    int resource_nodes;
+    /* anomalies bitmask */
+    unsigned int anomalies; /* bit0=land_ratio_out_of_bounds, bit1=no_rivers */
+} RogueWorldGenMetrics;
+
+/* Compute metrics & anomaly flags from a fully generated tilemap. Returns 1 on success. */
+int rogue_world_metrics_collect(const RogueTileMap* map, RogueWorldGenMetrics* out_m);
+/* Human readable anomaly list into buffer (comma separated). */
+void rogue_world_metrics_anomaly_list(const RogueWorldGenMetrics* m, char* buf, size_t cap);
+/* Export simple biome frequency heatmap (writes width*height bytes into out, each = biome id). Returns 1 on success. */
+int rogue_world_export_biome_heatmap(const RogueTileMap* map, unsigned char* out, size_t cap);
+
 
 #endif

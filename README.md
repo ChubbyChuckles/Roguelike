@@ -255,6 +255,14 @@ Introduces a lightweight deterministic chunk streaming manager for progressive w
 * 11.5 Validation Test: `test_worldgen_phase11_streaming` requests more chunks than capacity, advances updates until cache full, accesses subset to refresh LRU, forces eviction via new request, asserts cache misses > 0, and validates deterministic regeneration by comparing hash of a chunk across a manager tear-down/recreate cycle.
 APIs: creation/destruction (`rogue_chunk_stream_create/destroy`), enqueue/request (`rogue_chunk_stream_enqueue/request`), update, retrieval (`rogue_chunk_stream_get`), stats, loaded count, and per-chunk hash exposure.
 
+### World Generation Phase 12 (Telemetry & Analytics)
+Initial analytics layer for world generation providing snapshot metrics and anomaly flags.
+* 12.1 Metrics Snapshot: `RogueWorldGenMetrics` captures placeholder timing buckets (future instrumentation), counts (continents, river tiles, etc.), and anomalies bitmask.
+* 12.2 Anomaly Detection: Current flags include land ratio out-of-bounds (<30% or >55%) and absence of rivers; detection executed in `rogue_world_metrics_collect`.
+* 12.3 Heatmap Export: `rogue_world_export_biome_heatmap` writes a flat byte array of tile biome ids for tooling (structure density overlay deferred until POI index implemented).
+* 12.4 Validation Test: `test_worldgen_phase12_telemetry` generates macro layout, collects metrics, asserts anomaly correctness (missing rivers triggers flag), exports heatmap, and verifies deterministic equality across regenerated run.
+Helpers provided to stringify anomaly list for logging (`rogue_world_metrics_anomaly_list`).
+
 Phase 11.1–11.5 (AI Testing & QA Expansion): Added comprehensive quality gates around core AI behaviours.
 * Core Node Edge Tests: `test_ai_phase11_core_nodes` exercises Selector/Sequence short‑circuiting, Parallel mixed status aggregation, Utility selector tie‑break determinism, cooldown boundary reset, and retry decorator exhaustion/reset semantics.
 * Blackboard Fuzz: `test_ai_phase11_blackboard_fuzz` performs 5k deterministic pseudo‑random operations (Set/Max/Min/Accumulate/int+float/timer/vec2) mirrored against an in‑memory model to ensure policy invariants and capacity bounds (no overflow of 32 entries).

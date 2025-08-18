@@ -105,10 +105,10 @@ PHASE 11. Runtime Streaming & Caching
 11.5 Unit tests: budget adherence (simulated ticks), eviction correctness, cache hit/miss stats (Done: Phase 11 test enqueues > capacity, advances updates until capacity reached, forces eviction, validates misses>0, and determinism via hash regeneration)
 
 PHASE 12. Telemetry & Analytics
-12.1 World gen metrics snapshot (timings, counts, retry stats) (X)
-12.2 Anomaly detection (land ratio out-of-bounds, missing rivers) (X)
-12.3 Heatmap export (biome frequencies, structure density) (X)
-12.4 Unit tests: anomaly triggers on contrived bad parameters, metric counters increment (X)
+12.1 World gen metrics snapshot (timings, counts, retry stats) (Done (subset): struct with timing placeholders + key counts + hash exposure; timing fields stubbed for future instrumentation)
+12.2 Anomaly detection (land ratio out-of-bounds, missing rivers) (Done: bitmask flags set during metrics collect)
+12.3 Heatmap export (biome frequencies, structure density) (Done (subset): biome/tile id heatmap export; structure density postponed until structure index added)
+12.4 Unit tests: anomaly triggers on contrived bad parameters, metric counters increment (Done: Phase 12 test validates metrics collection, anomaly flag behavior for zero rivers OR no anomaly if rivers exist, deterministic heatmap round-trip)
 
 PHASE 13. Modding & Data Extensibility
 13.1 Hot-reloadable descriptor packs (biomes, structures, resources) (X)

@@ -219,6 +219,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_worldgen_phase11_streaming.c AND
     add_test(NAME test_worldgen_phase11_streaming COMMAND test_worldgen_phase11_streaming)
 endif()
 
+# World Generation Phase 12 telemetry & analytics test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_worldgen_phase12_telemetry.c AND NOT TARGET test_worldgen_phase12_telemetry)
+    add_executable(test_worldgen_phase12_telemetry unit/test_worldgen_phase12_telemetry.c)
+    target_link_libraries(test_worldgen_phase12_telemetry PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_worldgen_phase12_telemetry PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_worldgen_phase12_telemetry COMMAND test_worldgen_phase12_telemetry)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase10_golden_theming.c AND NOT TARGET test_ui_phase10_golden_theming)
     add_executable(test_ui_phase10_golden_theming unit/test_ui_phase10_golden_theming.c)
     target_link_libraries(test_ui_phase10_golden_theming PRIVATE rogue_core)
