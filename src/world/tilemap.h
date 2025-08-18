@@ -57,6 +57,14 @@ typedef enum RogueTileType
     ROGUE_TILE_STRUCTURE_WALL,  /* generic structure wall */
     ROGUE_TILE_STRUCTURE_FLOOR, /* generic structure floor */
     ROGUE_TILE_DUNGEON_ENTRANCE,/* entrance portal marker */
+    /* Phase 7 additions (dungeon generator) */
+    ROGUE_TILE_DUNGEON_WALL,    /* solid dungeon wall */
+    ROGUE_TILE_DUNGEON_FLOOR,   /* walkable dungeon floor */
+    ROGUE_TILE_DUNGEON_DOOR,    /* regular door */
+    ROGUE_TILE_DUNGEON_LOCKED_DOOR, /* locked door requiring key */
+    ROGUE_TILE_DUNGEON_SECRET_DOOR, /* secret door to hidden room */
+    ROGUE_TILE_DUNGEON_TRAP,    /* trap tile */
+    ROGUE_TILE_DUNGEON_KEY,     /* key pickup tile */
     ROGUE_TILE_MAX
 } RogueTileType;
 

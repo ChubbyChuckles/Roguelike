@@ -208,6 +208,17 @@ Introduces overland structure placement and dungeon entrance markers.
 * 6.6 Unit Test: `test_worldgen_phase6_structures` validates non-zero placement count, absence of overlap (AABB test), deterministic regeneration (placements & hash), and successful entrance placement count (>=0).
 New tile types: `ROGUE_TILE_STRUCTURE_WALL`, `ROGUE_TILE_STRUCTURE_FLOOR`, `ROGUE_TILE_DUNGEON_ENTRANCE`.
 
+### World Generation Phase 7 (Dungeon Generator)
+Adds an underground dungeon layer built from a deterministic room graph.
+* 7.1 Room Sampling: Non-overlapping rectangular rooms stochastically sampled (size 4–10x4–9) with overlap rejection producing node set.
+* 7.2 Corridors & Loops: Nearest-neighbor MST plus percentage-based extra loop edges; L-shaped corridor carving guarantees connectivity while enabling cycles for navigation variety.
+* 7.3 Thematic Tagging: Deterministic tagging assigns largest room as TREASURE, the two farthest from the start as ELITE, and small leaf rooms (degree 1, area below average) as PUZZLE. Tags aid future spawn & loot weighting.
+* 7.4 Secret Rooms: Probability-driven (configurable chance) selection flags suitable larger rooms as secret; converts a wall to SECRET_DOOR tile for discovery gameplay.
+* 7.5 Key/Lock Progression: Subset of rooms gated by LOCKED_DOOR tiles with placed keys guaranteed to appear in earlier reachable rooms ensuring linearized progression without softlocks.
+* 7.6 Traps & Hazards: Deterministic interior trap placement up to target count, leveraging micro RNG channel; future safety radius tuning planned.
+* 7.7 Validation: Unit test asserts full reachability, minimum loop ratio threshold, non-zero carving, deterministic regeneration (room centers), secret/lock/trap counts non-negative, and tagging invariants (exactly one treasure, at least one elite).
+New tile types: `ROGUE_TILE_DUNGEON_WALL`, `ROGUE_TILE_DUNGEON_FLOOR`, `ROGUE_TILE_DUNGEON_DOOR`, `ROGUE_TILE_DUNGEON_LOCKED_DOOR`, `ROGUE_TILE_DUNGEON_SECRET_DOOR`, `ROGUE_TILE_DUNGEON_TRAP`, `ROGUE_TILE_DUNGEON_KEY`.
+
 Phase 11.1–11.5 (AI Testing & QA Expansion): Added comprehensive quality gates around core AI behaviours.
 * Core Node Edge Tests: `test_ai_phase11_core_nodes` exercises Selector/Sequence short‑circuiting, Parallel mixed status aggregation, Utility selector tie‑break determinism, cooldown boundary reset, and retry decorator exhaustion/reset semantics.
 * Blackboard Fuzz: `test_ai_phase11_blackboard_fuzz` performs 5k deterministic pseudo‑random operations (Set/Max/Min/Accumulate/int+float/timer/vec2) mirrored against an in‑memory model to ensure policy invariants and capacity bounds (no overflow of 32 entries).

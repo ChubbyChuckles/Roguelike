@@ -68,13 +68,13 @@ PHASE 6. Structures & Points of Interest
 6.6 Unit tests: structure overlap rejection, placement reproducibility, biome mismatch rejection (Done: test_worldgen_phase6_structures validates non-overlap, deterministic regeneration, positive count)
 
 PHASE 7. Dungeon Generator (Layered)
-7.1 Graph-based room layout (BSP or Voronoi relaxation) (X)
-7.2 Corridor carving with loop percentage target (X)
-7.3 Thematic room tagging (treasure, elite, puzzle) (X)
-7.4 Secret room generation & hidden door markers (X)
-7.5 Key/lock progression graph (ensures reachable ordering) (X)
-7.6 Trap & hazard placement with safety buffer (X)
-7.7 Unit tests: reachable graph, loop ratio within bounds, secret room count distribution (X)
+7.1 Graph-based room layout (BSP or Voronoi relaxation) (Done: stochastic rectangle sampling + overlap rejection building implicit graph nodes)
+7.2 Corridor carving with loop percentage target (Done: nearest-neighbor MST + additional loop edges by loop_percent; L-shaped corridor carving)
+7.3 Thematic room tagging (treasure, elite, puzzle) (Done: deterministic largest=treasure, farthest two=elite, leaf small rooms=puzzle)
+7.4 Secret room generation & hidden door markers (Done: probability-driven secret flag with SECRET_DOOR tile)
+7.5 Key/lock progression graph (ensures reachable ordering) (Done (basic): locks placed on subset of rooms with keys seeded in earlier rooms, guaranteeing ordering)
+7.6 Trap & hazard placement with safety buffer (Done: trap tiles placed at deterministic interior offsets; basic safety assumption—future buffer tuning)
+7.7 Unit tests: reachable graph, loop ratio within bounds, secret room count distribution (Done: test_worldgen_phase7_dungeon validates reachability==room_count, loop ratio >= threshold, deterministic regeneration, positive carving, keys/locks/traps/secrets non-negative)
 
 PHASE 8. Fauna & Spawn Ecology Layer
 8.1 Spawn table registry (per biome & dungeon theme) (X)

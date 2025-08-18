@@ -132,6 +132,48 @@ int rogue_world_place_structures(const RogueWorldGenConfig* cfg, RogueWorldGenCo
 int rogue_world_place_dungeon_entrances(const RogueWorldGenConfig* cfg, RogueWorldGenContext* ctx, RogueTileMap* io_map,
                                        const RogueStructurePlacement* placements, int placement_count, int max_entrances);
 
+/* ---- Phase 7: Dungeon Generator (Graph-based rooms & corridors) ---- */
+/* Dungeon room tag bitmask values (Phase 7.3 thematic tagging) */
+#define ROGUE_DUNGEON_ROOM_TREASURE 0x1
+#define ROGUE_DUNGEON_ROOM_ELITE    0x2
+#define ROGUE_DUNGEON_ROOM_PUZZLE   0x4
+typedef struct RogueDungeonRoom {
+    int id;              /* room id */
+    int x, y, w, h;      /* axis-aligned rectangle */
+    int tag;             /* thematic tag bitmask (ROGUE_DUNGEON_ROOM_*) */
+    int secret;          /* 1 if secret room */
+} RogueDungeonRoom;
+
+typedef struct RogueDungeonEdge { int a; int b; int loop; } RogueDungeonEdge; /* loop=1 if extra loop connection */
+
+typedef struct RogueDungeonGraph {
+    RogueDungeonRoom* rooms;
+    int room_count;
+    RogueDungeonEdge* edges;
+    int edge_count;
+} RogueDungeonGraph;
+
+/* Generate a dungeon graph (rooms + corridors) honoring loop percentage target (0..100) */
+bool rogue_dungeon_generate_graph(RogueWorldGenContext* ctx, int target_rooms, int loop_percent,
+                                  RogueDungeonGraph* out_graph);
+void rogue_dungeon_free_graph(RogueDungeonGraph* g);
+
+/* Carve dungeon into tilemap region starting at (ox,oy) with given bounds (w,h). Returns carved floor count. */
+int rogue_dungeon_carve_into_map(RogueWorldGenContext* ctx, RogueTileMap* io_map, const RogueDungeonGraph* graph,
+                                 int ox, int oy, int w, int h);
+
+/* Place keys and locked doors to enforce progression ordering; returns number of locked doors placed */
+int rogue_dungeon_place_keys_and_locks(RogueWorldGenContext* ctx, RogueTileMap* io_map, const RogueDungeonGraph* graph);
+
+/* Place traps & secret rooms; returns count of traps */
+int rogue_dungeon_place_traps_and_secrets(RogueWorldGenContext* ctx, RogueTileMap* io_map, const RogueDungeonGraph* graph,
+                                          int target_traps, double secret_room_chance);
+
+/* Validation helpers */
+int rogue_dungeon_validate_reachability(const RogueDungeonGraph* graph);
+double rogue_dungeon_loop_ratio(const RogueDungeonGraph* graph);
+int rogue_dungeon_secret_room_count(const RogueDungeonGraph* graph);
+
 
 
 #endif
