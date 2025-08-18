@@ -222,6 +222,7 @@ add_library(rogue_core
         src/core/equipment_enchant.c
         src/core/equipment_procs.c
         src/core/equipment_integrity.c
+    src/core/equipment_content.c
     src/core/equipment_balance.c
     src/core/equipment_ui.c
     src/core/equipment_persist.c

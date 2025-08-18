@@ -6,25 +6,11 @@
 #include "core/stat_cache.h"
 #include "core/equipment_uniques.h"
 #include "core/equipment_gems.h" /* Phase 5.2 gem aggregation */
+#include "core/equipment_content.h" /* Phase 16.2 external set/runeword registries */
 
-/* ---- Set & Runeword Data (Phase 4.3–4.5) ---- */
-typedef struct RogueSetBonus { int pieces; int strength,dexterity,vitality,intelligence; int armor_flat; int resist_fire,resist_cold,resist_light,resist_poison,resist_status,resist_physical; } RogueSetBonus;
-typedef struct RogueSetDef { int set_id; int bonus_count; RogueSetBonus bonuses[4]; /* support up to 4 thresholds */ } RogueSetDef;
-/* Simple static registry (could move to separate module later) */
-#define ROGUE_SET_CAP 32
-static RogueSetDef g_sets[ROGUE_SET_CAP]; static int g_set_count=0;
-int rogue_set_register(const RogueSetDef* def){ if(!def||def->set_id<=0||def->bonus_count<=0) return -1; if(g_set_count>=ROGUE_SET_CAP) return -2; g_sets[g_set_count]=*def; return g_set_count++; }
-static const RogueSetDef* find_set(int set_id){ for(int i=0;i<g_set_count;i++) if(g_sets[i].set_id==set_id) return &g_sets[i]; return NULL; }
-
-/* Runeword recipe (socket pattern -> stat bundle) */
-typedef struct RogueRuneword { char pattern[12]; int strength,dexterity,vitality,intelligence; int armor_flat; int resist_fire,resist_cold,resist_light,resist_poison,resist_status,resist_physical; } RogueRuneword;
-#define ROGUE_RUNEWORD_CAP 32
-static RogueRuneword g_runewords[ROGUE_RUNEWORD_CAP]; static int g_runeword_count=0;
-int rogue_runeword_register(const RogueRuneword* rw){ if(!rw||!rw->pattern[0]) return -1; if(g_runeword_count>=ROGUE_RUNEWORD_CAP) return -2; g_runewords[g_runeword_count]=*rw; return g_runeword_count++; }
-static const RogueRuneword* find_runeword(const char* pattern){ if(!pattern) return NULL; for(int i=0;i<g_runeword_count;i++) if(strcmp(g_runewords[i].pattern,pattern)==0) return &g_runewords[i]; return NULL; }
-
-/* Placeholder: determine runeword pattern for an item instance (Phase 4.5). Without sockets yet, treat any item_id matching pattern exactly for demo purposes. */
-static const RogueRuneword* item_runeword(const RogueItemDef* d){ return find_runeword(d?d->id:NULL); }
+/* Placeholder: determine runeword pattern for an item instance (Phase 4.5).
+    For now, reuse item id as pattern key. */
+static const RogueRuneword* item_runeword(const RogueItemDef* d){ return rogue_runeword_find(d?d->id:NULL); }
 /* Phase 4.1: Implicit + set bonus + runeword scaffolding
     For Phase 4.1 we populate only implicits; future sub-phases will extend with unique/set/runeword layers. */
 
@@ -168,24 +154,15 @@ static void gather_unique_primary(void){
 
 /* Aggregate set bonuses (Phase 4.3 & 4.4 partial scaling). Approach: count equipped items per set_id, then apply any bonuses whose threshold <= count. Partial scaling: if count is between thresholds and next threshold exists, interpolate linearly. */
 static void gather_set_bonuses(void){
-    int counts[ROGUE_SET_CAP]; for(int i=0;i<ROGUE_SET_CAP;i++) counts[i]=0;
-    /* Map set ids present to counts (simple O(n*m); small n so fine) */
-    for(int slot=0; slot<ROGUE_EQUIP__COUNT; ++slot){ int inst=rogue_equip_get((enum RogueEquipSlot)slot); if(inst<0) continue; const RogueItemInstance* it=rogue_item_instance_at(inst); if(!it) continue; const RogueItemDef* d=rogue_item_def_at(it->def_index); if(!d||d->set_id<=0) continue; for(int si=0;si<g_set_count;si++){ if(g_sets[si].set_id==d->set_id){ counts[si]++; break; } } }
     int str=0,dex=0,vit=0,intel=0,armor=0; int r_phys=0,r_fire=0,r_cold=0,r_light=0,r_poison=0,r_status=0;
-    for(int si=0; si<g_set_count; ++si){ int have=counts[si]; if(have<=0) continue; const RogueSetDef* sd=&g_sets[si]; const RogueSetBonus* last=NULL; const RogueSetBonus* next=NULL; for(int b=0;b<sd->bonus_count;b++){ const RogueSetBonus* cur=&sd->bonuses[b]; if(have>=cur->pieces){ last=cur; } else { next=cur; break; } }
-        if(last){ str+=last->strength; dex+=last->dexterity; vit+=last->vitality; intel+=last->intelligence; armor+=last->armor_flat; r_phys+=last->resist_physical; r_fire+=last->resist_fire; r_cold+=last->resist_cold; r_light+=last->resist_light; r_poison+=last->resist_poison; r_status+=last->resist_status; }
-        if(!last && next){ /* no threshold reached yet; treat partial scaling from 0 to first threshold */ last=&sd->bonuses[0]; next=last; }
-    if(last && next && next!=last && have>last->pieces && have<next->pieces){ float t=(float)(have-last->pieces)/(float)(next->pieces-last->pieces); str+=(int)( (next->strength-last->strength)*t ); dex+=(int)((next->dexterity-last->dexterity)*t); vit+=(int)((next->vitality-last->vitality)*t); intel+=(int)((next->intelligence-last->intelligence)*t); armor+=(int)((next->armor_flat-last->armor_flat)*t); r_phys+=(int)((next->resist_physical-last->resist_physical)*t); r_fire+=(int)((next->resist_fire-last->resist_fire)*t); r_cold+=(int)((next->resist_cold-last->resist_cold)*t); r_light+=(int)((next->resist_light-last->resist_light)*t); r_poison+=(int)((next->resist_poison-last->resist_poison)*t); r_status+=(int)((next->resist_status-last->resist_status)*t); }
+    /* For each distinct set encountered gather count first (small N approach). */
+    for(int si=0; si<rogue_set_count(); ++si){ const RogueSetDef* sd=rogue_set_at(si); if(!sd) continue; int have=0; for(int slot=0; slot<ROGUE_EQUIP__COUNT; ++slot){ int inst=rogue_equip_get((enum RogueEquipSlot)slot); if(inst<0) continue; const RogueItemInstance* it=rogue_item_instance_at(inst); if(!it) continue; const RogueItemDef* d=rogue_item_def_at(it->def_index); if(!d) continue; if(d->set_id==sd->set_id) have++; }
+        if(have>0){ rogue_set_preview_apply(sd->set_id, have, &str,&dex,&vit,&intel,&armor,&r_fire,&r_cold,&r_light,&r_poison,&r_status,&r_phys); }
     }
-    g_player_stat_cache.set_strength = str; g_player_stat_cache.set_dexterity=dex; g_player_stat_cache.set_vitality=vit; g_player_stat_cache.set_intelligence=intel; g_player_stat_cache.affix_armor_flat += armor; g_player_stat_cache.resist_physical+=r_phys; g_player_stat_cache.resist_fire+=r_fire; g_player_stat_cache.resist_cold+=r_cold; g_player_stat_cache.resist_lightning+=r_light; g_player_stat_cache.resist_poison+=r_poison; g_player_stat_cache.resist_status+=r_status;
-}
+    g_player_stat_cache.set_strength = str; g_player_stat_cache.set_dexterity=dex; g_player_stat_cache.set_vitality=vit; g_player_stat_cache.set_intelligence=intel; g_player_stat_cache.affix_armor_flat += armor; g_player_stat_cache.resist_physical+=r_phys; g_player_stat_cache.resist_fire+=r_fire; g_player_stat_cache.resist_cold+=r_cold; g_player_stat_cache.resist_lightning+=r_light; g_player_stat_cache.resist_poison+=r_poison; g_player_stat_cache.resist_status+=r_status; }
 
 /* Aggregate runeword bonuses (Phase 4.5) */
-static void gather_runeword_bonuses(void){
-    int str=0,dex=0,vit=0,intel=0,armor=0; int r_phys=0,r_fire=0,r_cold=0,r_light=0,r_poison=0,r_status=0;
-    for(int slot=0; slot<ROGUE_EQUIP__COUNT; ++slot){ int inst=rogue_equip_get((enum RogueEquipSlot)slot); if(inst<0) continue; const RogueItemInstance* it=rogue_item_instance_at(inst); if(!it) continue; const RogueItemDef* d=rogue_item_def_at(it->def_index); if(!d) continue; const RogueRuneword* rw=item_runeword(d); if(!rw) continue; str+=rw->strength; dex+=rw->dexterity; vit+=rw->vitality; intel+=rw->intelligence; armor+=rw->armor_flat; r_phys+=rw->resist_physical; r_fire+=rw->resist_fire; r_cold+=rw->resist_cold; r_light+=rw->resist_light; r_poison+=rw->resist_poison; r_status+=rw->resist_status; }
-    g_player_stat_cache.runeword_strength = str; g_player_stat_cache.runeword_dexterity=dex; g_player_stat_cache.runeword_vitality=vit; g_player_stat_cache.runeword_intelligence=intel; g_player_stat_cache.affix_armor_flat += armor; g_player_stat_cache.resist_physical+=r_phys; g_player_stat_cache.resist_fire+=r_fire; g_player_stat_cache.resist_cold+=r_cold; g_player_stat_cache.resist_lightning+=r_light; g_player_stat_cache.resist_poison+=r_poison; g_player_stat_cache.resist_status+=r_status;
-}
+static void gather_runeword_bonuses(void){ int str=0,dex=0,vit=0,intel=0,armor=0; int r_phys=0,r_fire=0,r_cold=0,r_light=0,r_poison=0,r_status=0; for(int slot=0; slot<ROGUE_EQUIP__COUNT; ++slot){ int inst=rogue_equip_get((enum RogueEquipSlot)slot); if(inst<0) continue; const RogueItemInstance* it=rogue_item_instance_at(inst); if(!it) continue; const RogueItemDef* d=rogue_item_def_at(it->def_index); if(!d) continue; const RogueRuneword* rw=item_runeword(d); if(!rw) continue; str+=rw->strength; dex+=rw->dexterity; vit+=rw->vitality; intel+=rw->intelligence; armor+=rw->armor_flat; r_phys+=rw->resist_physical; r_fire+=rw->resist_fire; r_cold+=rw->resist_cold; r_light+=rw->resist_light; r_poison+=rw->resist_poison; r_status+=rw->resist_status; } g_player_stat_cache.runeword_strength = str; g_player_stat_cache.runeword_dexterity=dex; g_player_stat_cache.runeword_vitality=vit; g_player_stat_cache.runeword_intelligence=intel; g_player_stat_cache.affix_armor_flat += armor; g_player_stat_cache.resist_physical+=r_phys; g_player_stat_cache.resist_fire+=r_fire; g_player_stat_cache.resist_cold+=r_cold; g_player_stat_cache.resist_lightning+=r_light; g_player_stat_cache.resist_poison+=r_poison; g_player_stat_cache.resist_status+=r_status; }
 
 void rogue_equipment_apply_stat_bonuses(RoguePlayer* p){
     (void)p; /* player base unchanged here; layering system pulls from p + cache additions */
