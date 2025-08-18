@@ -447,28 +447,53 @@ int rogue_save_reload_component_from_slot(int slot_index, int component_id){
     RogueSaveDescriptor d; unsigned char* buf=NULL; int rc=load_and_validate(build_slot_path(slot_index), &d, &buf); if(rc!=0) return rc;
     unsigned char* p=buf; size_t total_payload=(size_t)(d.total_size - sizeof d); int applied=-3;
     for(uint32_t s=0; s<d.section_count; s++){
-        uint32_t id=0; uint32_t size=0;
-        if(d.version>=3){ if((size_t)(p-buf)+6>total_payload) break; uint16_t id16; memcpy(&id16,p,2); memcpy(&size,p+2,4); id=(uint32_t)id16; p+=6; }
-        else { if((size_t)(p-buf)+8>total_payload) break; memcpy(&id,p,4); memcpy(&size,p+4,4); p+=8; }
-        if((size_t)(p-buf)+size>total_payload) break;
+        uint32_t id=0; uint32_t raw_size=0; size_t header_bytes = (d.version>=3)?6:8;
+        if((size_t)(p-buf)+header_bytes>total_payload) break;
+        if(d.version>=3){ uint16_t id16; memcpy(&id16,p,2); memcpy(&raw_size,p+2,4); id=(uint32_t)id16; p+=6; }
+        else { memcpy(&id,p,4); memcpy(&raw_size,p+4,4); p+=8; }
+        int compressed = (d.version>=6 && (raw_size & 0x80000000u));
+        uint32_t stored_size = raw_size & 0x7FFFFFFFu; /* size on disk including uncompressed_size field for compressed */
+    fprintf(stderr,"DBG: reload scan s=%u id=%u raw_size=0x%08X stored_size=%u compressed=%d off=%zu remaining=%zu\n", s,id,raw_size,stored_size,compressed,(size_t)(p-buf), total_payload - (size_t)(p-buf));
+        /* Bounds check payload + optional CRC */
+        size_t need = stored_size + (d.version>=7?4:0);
+        if((size_t)(p-buf)+need>total_payload) break;
         if((int)id==component_id){
-            const unsigned char* payload=p; char tmp[64]; snprintf(tmp,sizeof tmp,"_tmp_section_%d.bin", component_id);
-            FILE* tf=NULL;
+            /* Prepare uncompressed bytes (decompress if necessary) */
+            unsigned char* udata=NULL; size_t ulen=0; int free_udata=0;
+            if(compressed){
+                if(stored_size < sizeof(uint32_t)){ free(buf); return -4; }
+                uint32_t uncompressed_size=0; memcpy(&uncompressed_size,p,4);
+                if(uncompressed_size> (16u*1024u*1024u)){ /* sanity cap 16MB */ free(buf); return -4; }
+                uint32_t comp_bytes = stored_size - 4; const unsigned char* csrc = p + 4;
+                unsigned char* out = (unsigned char*)malloc(uncompressed_size); if(!out){ free(buf); return -4; }
+                size_t ci=0; size_t ui=0; while(ci<comp_bytes && ui<uncompressed_size){ unsigned char b=csrc[ci++]; if(ci>=comp_bytes) break; unsigned char run=csrc[ci++]; for(int r=0;r<run && ui<uncompressed_size; r++){ out[ui++]=b; } }
+                udata=out; ulen=ui; free_udata=1; /* ui may be < uncompressed_size if truncated; still feed what we have */
+            } else {
+                udata=p; ulen=stored_size;
+            }
+            /* Feed through temp FILE* to reuse component read_fn contract */
+            char tmp[64]; snprintf(tmp,sizeof tmp,"_tmp_section_%d.bin", component_id); FILE* tf=NULL;
 #if defined(_MSC_VER)
             fopen_s(&tf,tmp,"wb");
 #else
             tf=fopen(tmp,"wb");
 #endif
-            if(!tf){ free(buf); return -4; }
-            fwrite(payload,1,size,tf); fclose(tf);
+            if(!tf){ if(free_udata) free(udata); free(buf); return -4; }
+            fwrite(udata,1,ulen,tf); fclose(tf);
 #if defined(_MSC_VER)
             fopen_s(&tf,tmp,"rb");
 #else
             tf=fopen(tmp,"rb");
 #endif
-            if(!tf){ free(buf); return -4; }
-            comp->read_fn(tf,size); fclose(tf); remove(tmp); applied=0; break; }
-        p+=size;
+            if(!tf){ if(free_udata) free(udata); free(buf); return -4; }
+            comp->read_fn(tf,(uint32_t)ulen); fclose(tf); remove(tmp); if(free_udata) free(udata); applied=0; /* success */
+            /* Advance pointer past payload */
+        }
+        /* Advance past stored payload */
+        p += stored_size;
+        /* Skip per-section CRC (v7+) */
+        if(d.version>=7){ p += 4; }
+        if(applied==0) break; /* done */
     }
     free(buf);
     return applied;

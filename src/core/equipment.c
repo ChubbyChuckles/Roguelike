@@ -2,6 +2,7 @@
 #include "core/loot_instances.h"
 #include "core/loot_item_defs.h"
 #include "core/stat_cache.h"
+#include "core/equipment_stats.h" /* ensure rogue_equipment_apply_stat_bonuses prototype */
 #include "core/economy.h"
 #include <string.h>
 
@@ -35,8 +36,13 @@ int rogue_equip_try(enum RogueEquipSlot slot, int inst_index){
 	g_slots[slot]=inst_index; 
 	/* Phase 15.2: update item equip hash chain (equip event) */
 	RogueItemInstance* mut=(RogueItemInstance*)it; mut->equip_hash_chain = equip_mix64(mut->equip_hash_chain, ((unsigned long long)slot<<56) ^ mut->guid ^ 0xE11AFBULL);
-	rogue_stat_cache_mark_dirty(); return 0; }
-int rogue_equip_unequip(enum RogueEquipSlot slot){ if(slot<0||slot>=ROGUE_EQUIP__COUNT) return -1; int prev=g_slots[slot]; g_slots[slot]=-1; if(prev>=0){ const RogueItemInstance* it=rogue_item_instance_at(prev); if(it){ RogueItemInstance* mut=(RogueItemInstance*)it; mut->equip_hash_chain = equip_mix64(mut->equip_hash_chain, ((unsigned long long)slot<<56) ^ mut->guid ^ 0x51CED9ULL); } rogue_stat_cache_mark_dirty(); } return prev; }
+	rogue_stat_cache_mark_dirty();
+	/* Immediate stat recompute so synchronous tests / UI observe updated totals */
+	extern RoguePlayer g_exposed_player_for_stats; /* declared in app_state.h */
+	rogue_equipment_apply_stat_bonuses(&g_exposed_player_for_stats);
+	rogue_stat_cache_force_update(&g_exposed_player_for_stats);
+	return 0; }
+int rogue_equip_unequip(enum RogueEquipSlot slot){ if(slot<0||slot>=ROGUE_EQUIP__COUNT) return -1; int prev=g_slots[slot]; g_slots[slot]=-1; if(prev>=0){ const RogueItemInstance* it=rogue_item_instance_at(prev); if(it){ RogueItemInstance* mut=(RogueItemInstance*)it; mut->equip_hash_chain = equip_mix64(mut->equip_hash_chain, ((unsigned long long)slot<<56) ^ mut->guid ^ 0x51CED9ULL); } rogue_stat_cache_mark_dirty(); extern RoguePlayer g_exposed_player_for_stats; rogue_equipment_apply_stat_bonuses(&g_exposed_player_for_stats); rogue_stat_cache_force_update(&g_exposed_player_for_stats); } return prev; }
 
 int rogue_equip_set_transmog(enum RogueEquipSlot slot, int def_index){ if(slot<0||slot>=ROGUE_EQUIP__COUNT) return -1; if(def_index<-1) return -2; if(def_index>=0){ const RogueItemDef* d = rogue_item_def_at(def_index); if(!d) return -3; /* Only allow same broad category for now */ int cat = category_for_slot(slot); if(d->category!=cat) return -4; }
 	g_transmog_defs[slot]=def_index; return 0; }

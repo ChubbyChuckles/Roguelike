@@ -71,6 +71,7 @@ typedef struct RogueUIControllerState {
 
 typedef struct RogueUIContext {
     RogueUITheme theme;
+    int initialized_flag; /* set to 0xC0DEFACE after successful init, zeroed on shutdown to make idempotent */
     RogueUIRuntimeStats stats;
     RogueUINode* nodes;
     int node_capacity;

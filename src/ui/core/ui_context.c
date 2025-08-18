@@ -142,6 +142,7 @@ int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg){
     fprintf(stderr,"INIT_ALLOC arena size=%zu\n",arena_size); fflush(stderr);
     ctx->arena = (unsigned char*)malloc(arena_size);
     if(!ctx->arena){ fprintf(stderr,"INIT_FAIL arena alloc size=%zu\n",arena_size); fflush(stderr); free(ctx->nodes); ctx->nodes=NULL; return 0; }
+    memset(ctx->arena,0,arena_size);
     ctx->arena_size = arena_size;
     fprintf(stderr,"INIT_ARENA_OK ptr=%p size=%zu\n",(void*)ctx->arena,ctx->arena_size); fflush(stderr);
     /* Default key repeat configuration */
@@ -150,14 +151,35 @@ int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg){
     ctx->chord_timeout_ms = 900.0; /* generous default */
     /* Radial selector initial */
     ctx->radial.active=0; ctx->radial.count=0; ctx->radial.selection=0;
-    fprintf(stderr,"INIT_SUCCESS ctx=%p\n",(void*)ctx); fflush(stderr);
+    ctx->initialized_flag = 0xC0DEFACE; /* magic */
+    fprintf(stderr,"INIT_SUCCESS ctx=%p magic=0x%X\n",(void*)ctx,ctx->initialized_flag); fflush(stderr);
     return 1;
 }
 
-void rogue_ui_shutdown(RogueUIContext* ctx){ if(!ctx) return; free(ctx->nodes); ctx->nodes=NULL; ctx->node_capacity=0; ctx->node_count=0; free(ctx->arena); ctx->arena=NULL; ctx->arena_size=ctx->arena_offset=0; if(ctx->skillgraph_nodes){ free(ctx->skillgraph_nodes); ctx->skillgraph_nodes=NULL; ctx->skillgraph_node_count=ctx->skillgraph_node_capacity=0; } if(ctx->skillgraph_quadtree){ SkillQuadTree* q=(SkillQuadTree*)ctx->skillgraph_quadtree; free(q->nodes); free(q->indices); free(q); ctx->skillgraph_quadtree=NULL; } }
+void rogue_ui_shutdown(RogueUIContext* ctx){
+    if(!ctx) return; 
+    if(ctx->initialized_flag != 0xC0DEFACE){ return; } /* already shut down or never init */
+    free(ctx->nodes); ctx->nodes=NULL; ctx->node_capacity=0; ctx->node_count=0;
+    free(ctx->arena); ctx->arena=NULL; ctx->arena_size=ctx->arena_offset=0;
+    if(ctx->skillgraph_nodes){ free(ctx->skillgraph_nodes); ctx->skillgraph_nodes=NULL; ctx->skillgraph_node_count=ctx->skillgraph_node_capacity=0; }
+    if(ctx->skillgraph_quadtree){ SkillQuadTree* q=(SkillQuadTree*)ctx->skillgraph_quadtree; free(q->nodes); free(q->indices); free(q); ctx->skillgraph_quadtree=NULL; }
+    ctx->initialized_flag = 0; /* mark shutdown */
+}
 
 static void ui_animation_master_step(double dt_ms); /* forward */
-void rogue_ui_begin(RogueUIContext* ctx, double delta_time_ms){ if(!ctx) return; /* If node_capacity==0 something went wrong with init; attempt lazy alloc minimal buffer to keep tests alive. */ if(ctx->node_capacity==0){ ctx->nodes=(RogueUINode*)calloc(64,sizeof(RogueUINode)); if(ctx->nodes){ ctx->node_capacity=64; } }
+void rogue_ui_begin(RogueUIContext* ctx, double delta_time_ms){
+    if(!ctx) return;
+    if(ctx->initialized_flag != 0xC0DEFACE){ fprintf(stderr,"UI_BEGIN_ABORT not initialized ctx=%p flag=0x%X\n",(void*)ctx,ctx->initialized_flag); return; }
+    fprintf(stderr,"UI_BEGIN enter ctx=%p dt=%.2f cap=%d nodes=%p arena=%p arena_size=%zu\n",
+        (void*)ctx, delta_time_ms, ctx->node_capacity, (void*)ctx->nodes, (void*)ctx->arena, ctx->arena_size);
+    /* If node_capacity==0 something went wrong with init; attempt lazy alloc minimal buffer to keep tests alive. */
+    if(ctx->node_capacity==0){
+        fprintf(stderr,"UI_BEGIN alloc fallback nodes 64\n");
+        ctx->nodes=(RogueUINode*)calloc(64,sizeof(RogueUINode));
+        if(ctx->nodes){ ctx->node_capacity=64; }
+    }
+    if(!ctx->nodes){ fprintf(stderr,"UI_BEGIN_FATAL nodes NULL after alloc attempt\n"); return; }
+    if(!ctx->arena){ fprintf(stderr,"UI_BEGIN_WARN arena NULL (continuing)\n"); }
     if(ctx->anim_time_scale<=0) ctx->anim_time_scale=1.0f;
     double scaled_dt = delta_time_ms * (double)ctx->anim_time_scale;
     ctx->frame_dt_ms=delta_time_ms; ctx->time_ms += scaled_dt; ctx->node_count=0; ctx->stats.draw_calls=0; ctx->frame_active=1; ctx->arena_offset=0; ctx->hot_index=-1;
@@ -170,6 +192,7 @@ void rogue_ui_begin(RogueUIContext* ctx, double delta_time_ms){ if(!ctx) return;
     /* Perf timing begin (Phase 9) */
     ctx->perf_frame_start_ms = ctx->time_ms;
     ctx->perf_update_start_ms = ctx->time_ms; /* simplistic: update occurs inside begin for headless tests */
+    fprintf(stderr,"UI_BEGIN exit ctx=%p node_cap=%d\n", (void*)ctx, ctx->node_capacity);
  }
 
 /* DEBUG TRACE */
