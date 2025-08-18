@@ -168,8 +168,8 @@ PHASE 18. Testing & QA Expansion
 18.2 Fuzz equip/un-equip sequences (state machine coverage) (Done)
 18.3 Statistical proc rate tests (expected vs empirical ± tolerance) (Done)
 18.4 Stress: max sockets + gems + set + runeword combination (Done)
-18.5 Mutation tests (random bit flips -> robust rejection) (X)
-18.6 Tests: all above harnesses integrated into CI gating (X)
+18.5 Mutation tests (random bit flips -> robust rejection) (Done)
+18.6 Tests: all above harnesses integrated into CI gating (Done: added CTest LABELS EQUIP_GATES on Phase18 snapshot/fuzz/proc_stats/stress/mutation tests + PowerShell script `scripts/run_equipment_gates.ps1` for CI; README section documents gating expectations.)
 
 PHASE 19. Live Ops, Telemetry & A/B Tuning
 19.1 Real-time dashboard ingestion (slot usage, set completion rates) (X)

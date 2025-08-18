@@ -9,6 +9,9 @@
 int rogue_minimap_ping_loot(float x,float y,int rarity);
 
 static RogueItemInstance g_instances[ROGUE_ITEM_INSTANCE_CAP];
+/* Runtime flag (Phase 18.6): allow tests to suppress INFO spam from loot spawns without
+    requiring compile-time macro injection into core sources. */
+int g_rogue_loot_suppress_spawn_log = 0;
 
 void rogue_items_init_runtime(void){ memset(g_instances,0,sizeof g_instances); g_app.item_instances = g_instances; g_app.item_instance_cap = ROGUE_ITEM_INSTANCE_CAP; g_app.item_instance_count = 0; }
 void rogue_items_shutdown_runtime(void){ g_app.item_instances=NULL; g_app.item_instance_cap=0; g_app.item_instance_count=0; }
@@ -31,7 +34,9 @@ int rogue_items_spawn(int def_index, int quantity, float x, float y){
     /* 12.4 spawn minimap loot ping */
     rogue_minimap_ping_loot(x,y,rarity);
     rogue_loot_vfx_on_spawn(i,rarity);
-    ROGUE_LOOT_LOG_INFO("loot_spawn: def=%d qty=%d at(%.2f,%.2f) slot=%d active_total=%d", def_index, quantity, x, y, i, rogue_items_active_count()+1);
+    if(!g_rogue_loot_suppress_spawn_log){
+        ROGUE_LOOT_LOG_INFO("loot_spawn: def=%d qty=%d at(%.2f,%.2f) slot=%d active_total=%d", def_index, quantity, x, y, i, rogue_items_active_count()+1);
+    }
         return i; }
     ROGUE_LOG_WARN("loot_spawn: pool full (cap=%d) def=%d qty=%d", ROGUE_ITEM_INSTANCE_CAP, def_index, quantity);
     return -1;

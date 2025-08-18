@@ -208,6 +208,19 @@ endif()
             endif()
             add_test(NAME test_equipment_phase18_stress_combo COMMAND test_equipment_phase18_stress_combo)
             set_tests_properties(test_equipment_phase18_stress_combo PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+            set_tests_properties(test_equipment_phase18_stress_combo PROPERTIES LABELS "EQUIP_GATES;EQUIP_PHASE18")
+        endif()
+
+        # Phase 18.5 mutation / corruption robustness test
+        if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase18_mutation.c AND NOT TARGET test_equipment_phase18_mutation)
+            add_executable(test_equipment_phase18_mutation unit/test_equipment_phase18_mutation.c)
+            target_link_libraries(test_equipment_phase18_mutation PRIVATE rogue_core)
+            if (SDL2_FOUND AND NOT ROGUE_HEADLESS)
+                target_compile_definitions(test_equipment_phase18_mutation PRIVATE ROGUE_HAVE_SDL=1)
+            endif()
+            add_test(NAME test_equipment_phase18_mutation COMMAND test_equipment_phase18_mutation)
+            set_tests_properties(test_equipment_phase18_mutation PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+            set_tests_properties(test_equipment_phase18_mutation PROPERTIES LABELS "EQUIP_GATES;EQUIP_PHASE18")
         endif()
 
         # Phase 16.1 equipment item definition JSON tooling test
@@ -313,6 +326,7 @@ endif()
             endif()
             add_test(NAME test_equipment_phase18_snapshot COMMAND test_equipment_phase18_snapshot)
             set_tests_properties(test_equipment_phase18_snapshot PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+            set_tests_properties(test_equipment_phase18_snapshot PROPERTIES LABELS "EQUIP_GATES;EQUIP_PHASE18")
 
             # Phase 18.2 fuzz equip/un-equip sequences test
             add_executable(test_equipment_phase18_fuzz unit/test_equipment_phase18_fuzz.c)
@@ -322,6 +336,7 @@ endif()
             endif()
             add_test(NAME test_equipment_phase18_fuzz COMMAND test_equipment_phase18_fuzz)
             set_tests_properties(test_equipment_phase18_fuzz PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+            set_tests_properties(test_equipment_phase18_fuzz PROPERTIES LABELS "EQUIP_GATES;EQUIP_PHASE18")
 
             # Phase 18.3 statistical proc rate test
             add_executable(test_equipment_phase18_proc_stats unit/test_equipment_phase18_proc_stats.c)
@@ -331,6 +346,7 @@ endif()
             endif()
             add_test(NAME test_equipment_phase18_proc_stats COMMAND test_equipment_phase18_proc_stats)
             set_tests_properties(test_equipment_phase18_proc_stats PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+            set_tests_properties(test_equipment_phase18_proc_stats PROPERTIES LABELS "EQUIP_GATES;EQUIP_PHASE18")
 
 # UI Phase 6.2 bars + AP smoothing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARGET test_ui_phase6_bars_ap)

@@ -1159,6 +1159,24 @@ Purpose: guard against overflow/ordering regressions when multiple late-phase sy
 * Equipment System Phase 1 complete: slot expansion, two-hand atomicity handling (offhand clear & equip blocking), cosmetic transmog layer, and persistence roundtrip test (`test_equipment_phase1_persistence`). New test assets `test_equipment_items.cfg` provide deterministic two-hand + shield items.
 * Equipment System Phase 2 (in progress): Introduced layered stat cache (base/implicit/affix/buff/total per attribute), derived metric scaffolding (DPS, EHP, toughness, mobility, sustain placeholder), soft cap helper (`rogue_soft_cap_apply`), deterministic fingerprint hashing API (`rogue_stat_cache_fingerprint`), and unit test `test_equipment_phase2_stat_cache` validating layer integrity + fingerprint mutation + soft cap curve.
 
+### Equipment Phase 18.5 – Mutation Robustness Tests
+Added `test_equipment_phase18_mutation` focusing on persistence corruption handling & tamper detection:
+* Baseline serialize → deserialize round‑trip hash equality (integrity preservation).
+* Targeted invalid slot mutation (`SLOT 999`) reliably rejected (negative return path exercised).
+* 200 deterministic single bit flips across the serialized buffer: each iteration either rejects safely or loads without crash (asserts both success and rejection paths occur, proving robustness under random corruption).
+* Durability digit tamper causes equipment state hash divergence (integrity hash is sensitive to semantic field change).
+* Test harness now resets the item instance pool between iterations to suppress noisy spawn pool full warnings observed during early runs (mutation sometimes produced spurious extra spawn attempts). This keeps CI logs clean while still exercising parser rejection logic.
+Establishes a foundation for Phase 18.6 gating where mutation/fuzz, snapshot, statistical proc, and stress tests will become mandatory quality gates.
+
+### Equipment Phase 18.6 – CI Gating Integration
+Phase 18 critical harnesses are now formal quality gates:
+* Labeled tests: snapshot (`test_equipment_phase18_snapshot`), fuzz sequences (`test_equipment_phase18_fuzz`), statistical proc rates (`test_equipment_phase18_proc_stats`), max combo stress (`test_equipment_phase18_stress_combo`), and mutation robustness (`test_equipment_phase18_mutation`).
+* Each carries CTest labels: `EQUIP_GATES;EQUIP_PHASE18` allowing selective execution.
+* Added script `scripts/run_equipment_gates.ps1` to run only gating tests (used by CI pipeline stages before merge). Example (PowerShell): `pwsh scripts/run_equipment_gates.ps1`.
+* Failure in any gating test blocks the pipeline; logs remain concise (mutation test suppresses item instance pool spam via per-iteration pool reset).
+* Extensibility: Future equipment phases can join the gating set by appending the `EQUIP_GATES` label in `tests/CMakeLists.txt` and (optionally) documenting rationale here.
+Rationale: Ensures persistence integrity, rejection robustness, statistical proc stability, and complex layering resilience never regress unnoticed.
+
 ### Persistence Phase 1 (Core Save Architecture)
 Implemented initial binary save system:
 * Save descriptor (version=1, timestamp, component_mask, section_count, total_size, CRC32 payload checksum)

@@ -58,6 +58,8 @@ typedef struct RogueItemInstance {
 void rogue_items_init_runtime(void);
 void rogue_items_shutdown_runtime(void);
 int rogue_items_spawn(int def_index, int quantity, float x, float y);
+/* Runtime suppression flag for high-volume spawn logging (e.g., fuzz tests). 0=log, 1=suppress. */
+extern int g_rogue_loot_suppress_spawn_log;
 int rogue_items_active_count(void);
 int rogue_items_visible_count(void); /* excludes hidden_filter instances */
 void rogue_items_reapply_filter(void); /* re-evaluate all instances against current loot filter state */
