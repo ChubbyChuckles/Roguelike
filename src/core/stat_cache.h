@@ -41,6 +41,21 @@ typedef struct RogueStatCache {
 
 extern RogueStatCache g_player_stat_cache;
 
+/* Phase 11: Equipment analytics export & histograms */
+/* Serialize current aggregated equipment stats to JSON (subset) into buffer; returns bytes written (excl NUL) or -1 on error. */
+int rogue_equipment_stats_export_json(char* buf, int cap);
+/* Record current DPS/EHP into rolling histograms keyed by rarity & slot for later analysis. */
+void rogue_equipment_histogram_record(void);
+/* Dump histograms as JSON object string into buffer. Returns bytes written or -1. */
+int rogue_equipment_histograms_export_json(char* buf, int cap);
+/* Simple outlier detector using mean + MAD; returns 1 if current DPS considered outlier for player's weapon rarity. */
+int rogue_equipment_dps_outlier_flag(void);
+/* Phase 11.3: Set & unique usage tracking */
+/* Record current equipped set ids and unique base item occurrences. */
+void rogue_equipment_usage_record(void);
+/* Export usage metrics as JSON: {"set_<id>":count,"unique_<base_def_index>":count,...} */
+int rogue_equipment_usage_export_json(char* buf, int cap);
+
 void rogue_stat_cache_mark_dirty(void);
 void rogue_stat_cache_update(const RoguePlayer* p); /* no-op if not dirty */
 void rogue_stat_cache_force_update(const RoguePlayer* p); /* always recompute */

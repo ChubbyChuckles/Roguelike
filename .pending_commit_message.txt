@@ -1,3 +1,21 @@
+feat(equipment phase11.1-11.4): analytics snapshot, histograms, MAD outlier detection
+feat(equipment phase11.3): set & unique usage tracking
+
+Completed Phase 11.3 analytics enhancement:
+ - Added usage tracking accumulators for set ids and unique base item occurrences.
+ - APIs: rogue_equipment_usage_record, rogue_equipment_usage_export_json producing compact JSON counts.
+ - Updated test_equipment_phase11_analytics to exercise usage export path.
+ - Roadmap: 11.3 moved from Partial to Done; README Phase 11 section updated to document new APIs.
+
+
+Implemented Phase 11 analytics foundations:
+ - JSON snapshot export (rogue_equipment_stats_export_json) for key aggregated stats.
+ - Per rarity/slot DPS & EHP histograms with export (rogue_equipment_histograms_export_json) and recording API.
+ - Median/MAD based DPS outlier detector (rogue_equipment_dps_outlier_flag) with rolling sample buffer.
+ - Unit test test_equipment_phase11_analytics validates snapshot content, histogram population, and outlier flag after artificial spike.
+ - Roadmap updated: 11.1, 11.2, 11.4 Done; 11.3 Partial (set/unique usage pending content tags); 11.7 test coverage basic Done.
+ - README updated with Phase 11 section.
+
 feat(equipment phase10.5 optional): crafting success chance scaling with skill
 
 Added optional Phase 10.5 crafting success system:

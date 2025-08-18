@@ -163,6 +163,15 @@ endif()
         add_test(NAME test_equipment_phase10_crafting_success COMMAND test_equipment_phase10_crafting_success)
         set_tests_properties(test_equipment_phase10_crafting_success PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+        # Phase 11 analytics snapshot & histogram test
+        add_executable(test_equipment_phase11_analytics unit/test_equipment_phase11_analytics.c)
+        target_link_libraries(test_equipment_phase11_analytics PRIVATE rogue_core)
+        if (SDL2_FOUND AND NOT ROGUE_HEADLESS)
+            target_compile_definitions(test_equipment_phase11_analytics PRIVATE ROGUE_HAVE_SDL=1)
+        endif()
+        add_test(NAME test_equipment_phase11_analytics COMMAND test_equipment_phase11_analytics)
+        set_tests_properties(test_equipment_phase11_analytics PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
 # UI Phase 6.2 bars + AP smoothing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARGET test_ui_phase6_bars_ap)
     add_executable(test_ui_phase6_bars_ap unit/test_ui_phase6_bars_ap.c)

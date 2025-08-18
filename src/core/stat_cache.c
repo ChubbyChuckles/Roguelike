@@ -1,5 +1,7 @@
 /* Phase 2.1+ layered stat cache implementation */
 #include "core/stat_cache.h"
+#include <stdio.h>
+#include <string.h>
 #include "core/equipment.h"
 #include "core/loot_instances.h"
 #include "core/loot_affixes.h"
@@ -60,6 +62,91 @@ static void compute_layers(const RoguePlayer* p){
     if(g_player_stat_cache.resist_poison < 0) g_player_stat_cache.resist_poison=0;
     if(g_player_stat_cache.resist_status < 0) g_player_stat_cache.resist_status=0;
 }
+
+/* ---- Phase 11 Analytics Implementation ---- */
+typedef struct EquipHistBin { int count; long long dps_sum; long long ehp_sum; } EquipHistBin;
+/* rarity (0-4) x slot count (reuse ROGUE_EQUIP_SLOT_COUNT if available else 16) */
+#ifndef ROGUE_EQUIP_SLOT_COUNT
+#define ROGUE_EQUIP_SLOT_COUNT 16
+#endif
+static EquipHistBin g_hist[5][ROGUE_EQUIP_SLOT_COUNT];
+/* Basic rolling DPS samples for outlier detection (weapon rarity only). */
+static int g_dps_samples[256]; static int g_dps_sample_count=0; static int g_dps_sample_pos=0; static int g_weapon_rarity_last=0;
+/* Phase 11.3: Usage tracking (simple fixed-size accumulators). */
+#define ROGUE_ANALYTICS_SET_CAP 64
+static int g_set_ids[ROGUE_ANALYTICS_SET_CAP];
+static int g_set_counts[ROGUE_ANALYTICS_SET_CAP];
+static int g_set_unique_count=0;
+#define ROGUE_ANALYTICS_UNIQUE_CAP 128
+static int g_unique_base_defs[ROGUE_ANALYTICS_UNIQUE_CAP]; /* store base item def indices for uniques */
+static int g_unique_counts[ROGUE_ANALYTICS_UNIQUE_CAP];
+static int g_unique_used=0;
+
+int rogue_equipment_stats_export_json(char* buf, int cap){
+    if(!buf || cap<=0) return -1; int w = snprintf(buf, (size_t)cap,
+        "{\"dps\":%d,\"ehp\":%d,\"mobility\":%d,\"strength\":%d,\"dexterity\":%d,\"vitality\":%d,\"intelligence\":%d}",
+        g_player_stat_cache.dps_estimate, g_player_stat_cache.ehp_estimate, g_player_stat_cache.mobility_index,
+        g_player_stat_cache.total_strength, g_player_stat_cache.total_dexterity, g_player_stat_cache.total_vitality, g_player_stat_cache.total_intelligence);
+    if(w >= cap) return -1; return w; }
+
+/* Forward decls to query equipment; keep header deps minimal */
+int rogue_equip_get(enum RogueEquipSlot slot);
+const RogueItemInstance* rogue_item_instance_at(int index);
+const RogueItemDef* rogue_item_def_at(int index);
+
+void rogue_equipment_histogram_record(void){
+    for(int slot=0; slot<ROGUE_EQUIP_SLOT_COUNT; ++slot){ int inst = rogue_equip_get((enum RogueEquipSlot)slot); if(inst<0) continue; const RogueItemInstance* it = rogue_item_instance_at(inst); if(!it) continue; int rarity = it->rarity; if(rarity<0||rarity>4) continue; EquipHistBin* b = &g_hist[rarity][slot]; b->count++; b->dps_sum += g_player_stat_cache.dps_estimate; b->ehp_sum += g_player_stat_cache.ehp_estimate; if(slot==ROGUE_EQUIP_WEAPON){ g_weapon_rarity_last = rarity; if(g_dps_sample_count < (int)(sizeof g_dps_samples/sizeof g_dps_samples[0])){ g_dps_samples[g_dps_sample_count++] = g_player_stat_cache.dps_estimate; } else { g_dps_samples[g_dps_sample_pos] = g_player_stat_cache.dps_estimate; g_dps_sample_pos = (g_dps_sample_pos+1) % g_dps_sample_count; } } }
+}
+
+int rogue_equipment_histograms_export_json(char* buf, int cap){
+    if(!buf || cap<=2) return -1; int off=0; buf[off++]='{' ;
+    for(int r=0;r<5;r++){
+        for(int s=0;s<ROGUE_EQUIP_SLOT_COUNT;s++){
+            EquipHistBin* b=&g_hist[r][s]; if(b->count==0) continue; int avg_dps = (int)(b->dps_sum / b->count); int avg_ehp = (int)(b->ehp_sum / b->count);
+            int n = snprintf(buf+off, (size_t)(cap-off), "\"r%d_s%d\":{\"count\":%d,\"avg_dps\":%d,\"avg_ehp\":%d},", r,s,b->count,avg_dps,avg_ehp); if(n<0 || n >= cap-off) return -1; off+=n; }
+    }
+    if(off>1 && buf[off-1]==',') off--; buf[off++]='}'; if(off<cap) buf[off]='\0'; else return -1; return off;
+}
+
+int rogue_equipment_dps_outlier_flag(void){
+    if(g_dps_sample_count < 8) return 0; /* need baseline */
+    /* Compute median and MAD (median absolute deviation) */
+    int tmp[256]; memcpy(tmp,g_dps_samples,(size_t)g_dps_sample_count*sizeof(int)); /* naive nth_element substitute: simple insertion sort small N */
+    for(int i=1;i<g_dps_sample_count;i++){ int v=tmp[i]; int j=i-1; while(j>=0 && tmp[j]>v){ tmp[j+1]=tmp[j]; j--; } tmp[j+1]=v; }
+    int median = tmp[g_dps_sample_count/2];
+    for(int i=0;i<g_dps_sample_count;i++){ int d = g_dps_samples[i]-median; if(d<0) d=-d; tmp[i]=d; }
+    for(int i=1;i<g_dps_sample_count;i++){ int v=tmp[i]; int j=i-1; while(j>=0 && tmp[j]>v){ tmp[j+1]=tmp[j]; j--; } tmp[j+1]=v; }
+    int mad = tmp[g_dps_sample_count/2]; if(mad<=0) mad=1;
+    int latest = g_player_stat_cache.dps_estimate; int deviation = latest - median; if(deviation<0) deviation = -deviation; /* flag if > 5 * MAD */
+    if(deviation > 5 * mad) return 1; return 0;
+}
+
+/* Forward decls for usage tracking */
+const RogueItemDef* rogue_item_def_at(int index);
+int rogue_unique_find_by_base_def(int def_index);
+
+void rogue_equipment_usage_record(void){
+    /* Iterate equipped items; accumulate set id counts and unique base occurrences. */
+    for(int slot=0; slot<ROGUE_EQUIP_SLOT_COUNT; ++slot){
+        int inst = rogue_equip_get((enum RogueEquipSlot)slot); if(inst<0) continue; const RogueItemInstance* it = rogue_item_instance_at(inst); if(!it) continue; const RogueItemDef* d = rogue_item_def_at(it->def_index); if(!d) continue;
+        if(d->set_id>0){ /* accumulate */
+            int found=-1; for(int i=0;i<g_set_unique_count;i++){ if(g_set_ids[i]==d->set_id){ found=i; break; } }
+            if(found<0){ if(g_set_unique_count<ROGUE_ANALYTICS_SET_CAP){ g_set_ids[g_set_unique_count]=d->set_id; g_set_counts[g_set_unique_count]=1; g_set_unique_count++; }
+            } else { g_set_counts[found]++; }
+        }
+        /* Unique base detection via registry lookup */
+        if(rogue_unique_find_by_base_def(it->def_index)>=0){ int found=-1; for(int i=0;i<g_unique_used;i++){ if(g_unique_base_defs[i]==it->def_index){ found=i; break; } }
+            if(found<0){ if(g_unique_used<ROGUE_ANALYTICS_UNIQUE_CAP){ g_unique_base_defs[g_unique_used]=it->def_index; g_unique_counts[g_unique_used]=1; g_unique_used++; }
+            } else { g_unique_counts[found]++; }
+        }
+    }
+}
+
+int rogue_equipment_usage_export_json(char* buf, int cap){
+    if(!buf||cap<2) return -1; int off=0; buf[off++]='{';
+    for(int i=0;i<g_set_unique_count;i++){ int n=snprintf(buf+off,(size_t)(cap-off),"\"set_%d\":%d,", g_set_ids[i], g_set_counts[i]); if(n<0||n>=cap-off) return -1; off+=n; }
+    for(int i=0;i<g_unique_used;i++){ int n=snprintf(buf+off,(size_t)(cap-off),"\"unique_%d\":%d,", g_unique_base_defs[i], g_unique_counts[i]); if(n<0||n>=cap-off) return -1; off+=n; }
+    if(off>1 && buf[off-1]==',') off--; buf[off++]='}'; if(off<cap) buf[off]='\0'; else return -1; return off; }
 
 static void compute_derived(const RoguePlayer* p){
     int base_weapon = weapon_base_damage_estimate();

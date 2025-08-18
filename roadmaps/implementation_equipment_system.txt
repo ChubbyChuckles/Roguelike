@@ -107,13 +107,13 @@ PHASE 10. Crafting & Upgrade Pipelines
 10.6 Tests: budget after fusion, quality monotonicity, transfer one-time use (Done)
 
 PHASE 11. Analytics, Power Budget & Balancing
-11.1 Item stat snapshot export (JSON) (X)
-11.2 Distribution histograms per rarity & slot (X)
-11.3 Set/unique usage rate collection (X)
-11.4 Outlier detection (Z-score / MAD on DPS contribution) (X)
+11.1 Item stat snapshot export (JSON) (Done)
+11.2 Distribution histograms per rarity & slot (Done)
+11.3 Set/unique usage rate collection (Done)
+11.4 Outlier detection (Z-score / MAD on DPS contribution) (Done: MAD threshold implementation)
 11.5 Auto flag oversaturated procs or stacked DR chains (X)
 11.6 A/B test harness for alternative balance tables (X)
-11.7 Tests: histogram sum consistency, outlier detection false positive ceiling (X)
+11.7 Tests: histogram sum consistency, outlier detection false positive ceiling (Done basic coverage)
 
 PHASE 12. UI / UX & Visualization
 12.1 Equipment panel refactor (group by slot groups & set progress) (X)
