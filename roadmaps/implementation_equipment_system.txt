@@ -103,7 +103,7 @@ PHASE 10. Crafting & Upgrade Pipelines
 10.2 Affix transfer (extract affix to blank orb) (Done)
 10.3 Fusion (sacrifice item -> transfer highest affix if budget permits) (Done)
 10.4 Quality metric raising base implicit values (Done)
-10.5 Crafting success chance scaling with skill (future skill system tie) (Optional) (X)
+10.5 Crafting success chance scaling with skill (future skill system tie) (Optional) (Done)
 10.6 Tests: budget after fusion, quality monotonicity, transfer one-time use (Done)
 
 PHASE 11. Analytics, Power Budget & Balancing

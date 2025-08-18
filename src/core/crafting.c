@@ -130,3 +130,18 @@ int rogue_craft_reroll_affixes(int inst_index, int rarity, int material_def_inde
     }
     return -7; /* no change after attempts */
 }
+
+/* ---- Phase 10.5 Crafting Success Chance Implementation ---- */
+static int g_craft_skill = 0;
+void rogue_craft_set_skill(int skill){ if(skill<0) skill=0; g_craft_skill = skill; }
+int  rogue_craft_get_skill(void){ return g_craft_skill; }
+static int craft_success_chance_pct(int base_rarity, int difficulty){
+    if(base_rarity<0) base_rarity=0; if(base_rarity>4) base_rarity=4; if(difficulty<0) difficulty=0; if(difficulty>10) difficulty=10;
+    int pct = 35 + g_craft_skill*4 - base_rarity*5 - difficulty*3; if(pct<5) pct=5; if(pct>95) pct=95; return pct;
+}
+int rogue_craft_success_attempt(int base_rarity, int difficulty, unsigned int* rng_state){
+    if(!rng_state) return 0; *rng_state = (*rng_state * 1664525u) + 1013904223u; unsigned int roll = (*rng_state % 100u); int chance = craft_success_chance_pct(base_rarity,difficulty); return roll < (unsigned int)chance ? 1 : 0;
+}
+int rogue_craft_attempt_upgrade(int inst_index, int tiers, int difficulty, unsigned int* rng_state){
+    if(tiers<=0) return -1; RogueItemInstance* it=(RogueItemInstance*)rogue_item_instance_at(inst_index); if(!it) return -2; if(!rng_state) return -3; int success = rogue_craft_success_attempt(it->rarity,difficulty,rng_state); if(!success) return 1; return rogue_item_instance_apply_upgrade_stone(inst_index, tiers, rng_state);
+}

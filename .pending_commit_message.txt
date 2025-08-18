@@ -1,9 +1,9 @@
-feat(equipment phase10.1-10.3): crafting & upgrade pipelines (upgrade stones, affix transfer orbs, fusion)
+feat(equipment phase10.5 optional): crafting success chance scaling with skill
 
-Implemented Phase 10.1–10.3 equipment crafting features:
- - Upgrade Stones: API rogue_item_instance_apply_upgrade_stone tiers item_level and leverages existing upgrade logic for budget-respecting affix elevation.
- - Affix Transfer: Added per-instance orb storage fields (stored_affix_index/value/used) with extraction (rogue_item_instance_affix_extract) and application (rogue_item_instance_affix_orb_apply) enforcing slot vacancy, one-time consumption, and budget cap.
- - Fusion: rogue_item_instance_fusion transfers highest-value affix from sacrificed donor to target if slot free and within remaining budget, deactivating donor atomically.
- - Added comprehensive unit test test_equipment_phase10_crafting validating upgrade progression, extraction->apply path, one-time orb use, fusion increases total affix weight, donor deactivation, and budget adherence. Roadmap updated (10.1–10.3 Done; 10.6 tests Done).
- - README updated with new Phase 10.1–10.3 section.
+Added optional Phase 10.5 crafting success system:
+ - New APIs: rogue_craft_set_skill / rogue_craft_get_skill manage crafting skill metric.
+ - Success formula: 35% + skill*4 - rarity*5 - difficulty*3 (clamped 5..95) implemented with deterministic RNG path via rogue_craft_success_attempt.
+ - Integrated upgrade gating: rogue_craft_attempt_upgrade wraps success check then applies upgrade stone on success.
+ - Unit test test_equipment_phase10_crafting_success validates increased success distribution at higher skill and upgrade attempt eventual success.
+ - Roadmap updated (10.5 Done) and README section added documenting formula & APIs.
 

@@ -143,6 +143,12 @@ Implemented foundational crafting upgrade mechanics:
 * Tests (10.6 completion): `test_equipment_phase10_crafting` covers upgrade level increase + non‑decreasing affix total, successful extraction → application (including one-time consumption flag), and fusion increasing affix weight while respecting budget & deactivating donor.
 * Roadmap updated: 10.1–10.3 Done; 10.6 tests marked Done (quality monotonicity + fusion budget + transfer one-time use).
 
+### Equipment System Phase 10.5 (Crafting Success Chance – Optional)
+Introduced scalable crafting success mechanic:
+* Skill-Based Chance: `rogue_craft_set_skill` / `rogue_craft_get_skill` manage crafting skill; success chance = `35% + skill*4 - rarity*5 - difficulty*3` (clamped 5%..95%).
+* Attempt API: `rogue_craft_success_attempt(rarity,difficulty,rng)` deterministic w/ supplied RNG; upgrade helper `rogue_craft_attempt_upgrade` gates upgrade stone application on success.
+* Test `test_equipment_phase10_crafting_success` validates skill improves success rate distribution and that upgrade attempts eventually succeed under repeated tries even at low skill (probabilistic guard). Roadmap optional item 10.5 marked Done.
+
 ---
 
 ## 1. Overview

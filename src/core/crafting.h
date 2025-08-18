@@ -57,6 +57,18 @@ int rogue_craft_reroll_affixes(int inst_index, int rarity, int material_def_inde
     int gold_cost, RogueInvGetFn inv_get, RogueInvConsumeFn inv_consume, int (*gold_spend_fn)(int amount),
     RogueAffixRerollFn reroll_fn, unsigned int* rng_state);
 
+/* Phase 10.5 (Optional): Crafting success chance scaling with player crafting skill.
+ * Skill is an integer (0+). Success % formula (subject to tuning):
+ *   base 35% + skill*4% - rarity*5% - difficulty*3% (clamped 5%..95%).
+ * Exposed APIs allow deterministic tests (caller supplies rng_state).
+ */
+void rogue_craft_set_skill(int skill);
+int  rogue_craft_get_skill(void);
+/* Returns success (1) or failure (0). base_rarity influences difficulty. */
+int rogue_craft_success_attempt(int base_rarity, int difficulty, unsigned int* rng_state);
+/* Convenience: attempt an upgrade stone application gated by success; returns 0 success, >0 fail code (1=fail), <0 error. */
+int rogue_craft_attempt_upgrade(int inst_index, int tiers, int difficulty, unsigned int* rng_state);
+
 #ifdef __cplusplus
 }
 #endif
