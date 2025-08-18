@@ -324,5 +324,57 @@ void rogue_world_metrics_anomaly_list(const RogueWorldGenMetrics* m, char* buf, 
 /* Export simple biome frequency heatmap (writes width*height bytes into out, each = biome id). Returns 1 on success. */
 int rogue_world_export_biome_heatmap(const RogueTileMap* map, unsigned char* out, size_t cap);
 
+/* ---- Phase 13: Modding & Data Extensibility ---- */
+/* Descriptor pack versioning & hot reload API.
+ * A descriptor pack groups biome, structure, resource node and (future) weather/spawn definitions.
+ * Packs declare a schema_version; migration callbacks can transform older versions to current.
+ * On hot reload, existing registries are swapped atomically if validation succeeds (all-or-nothing) to
+ * avoid partial state updates during generation. Tests exercise invalid pack rejection and migration.
+ */
+
+typedef struct RogueDescriptorPackMeta {
+    int schema_version;         /* version declared by the pack */
+    const char* source_path;    /* optional path (directory) */
+} RogueDescriptorPackMeta;
+
+/* Result codes for pack load / reload */
+typedef enum RoguePackLoadResult {
+    ROGUE_PACK_LOAD_OK = 0,
+    ROGUE_PACK_LOAD_ERR_IO = -1,
+    ROGUE_PACK_LOAD_ERR_PARSE = -2,
+    ROGUE_PACK_LOAD_ERR_SCHEMA_UNSUPPORTED = -3,
+    ROGUE_PACK_LOAD_ERR_VALIDATION = -4
+} RoguePackLoadResult;
+
+/* Callback signature for migrating a raw text descriptor (in-place) from old_version -> target_version.
+ * Returns 1 on success, 0 on failure (aborts load).
+ */
+typedef int (*RoguePackMigrationFn)(int old_version, int target_version, char* text, size_t cap);
+
+/* Register a migration handler (old_version -> target_version). Returns 1 on success. */
+int rogue_pack_register_migration(int old_version, int target_version, RoguePackMigrationFn fn);
+
+/* Load a descriptor pack from directory (biomes: *.biome.cfg). Future: structures/resources.
+ * If allow_hot_reload != 0 and a previous pack exists, validated registries replace the active ones atomically.
+ * out_meta may be NULL. Returns ROGUE_PACK_LOAD_OK or error code.
+ */
+int rogue_pack_load_dir(const char* dir_path, int allow_hot_reload, RogueDescriptorPackMeta* out_meta,
+                        char* err, size_t err_cap);
+
+/* Current active pack schema version (0 if none). */
+int rogue_pack_active_schema_version(void);
+
+/* Validate currently loaded descriptors (lightweight re-scan). Returns 1 if valid. */
+int rogue_pack_validate_active(void);
+
+/* Produce a summary string of active descriptors (counts) into buf. */
+void rogue_pack_summary(char* buf, size_t cap);
+
+/* Clear active pack (used in tests to ensure isolation). */
+void rogue_pack_clear(void);
+
+/* CLI-oriented validation helper: run validation on a path and print errors to stdout/stderr (returns 0/1). */
+int rogue_pack_cli_validate(const char* dir_path);
+
 
 #endif

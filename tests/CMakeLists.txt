@@ -229,6 +229,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_worldgen_phase12_telemetry.c AND
     add_test(NAME test_worldgen_phase12_telemetry COMMAND test_worldgen_phase12_telemetry)
 endif()
 
+# World Generation Phase 13 modding & data extensibility test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_worldgen_phase13_modding.c AND NOT TARGET test_worldgen_phase13_modding)
+    add_executable(test_worldgen_phase13_modding unit/test_worldgen_phase13_modding.c)
+    target_link_libraries(test_worldgen_phase13_modding PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_worldgen_phase13_modding PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_worldgen_phase13_modding COMMAND test_worldgen_phase13_modding)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase10_golden_theming.c AND NOT TARGET test_ui_phase10_golden_theming)
     add_executable(test_ui_phase10_golden_theming unit/test_ui_phase10_golden_theming.c)
     target_link_libraries(test_ui_phase10_golden_theming PRIVATE rogue_core)

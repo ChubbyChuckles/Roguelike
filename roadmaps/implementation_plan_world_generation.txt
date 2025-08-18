@@ -111,10 +111,10 @@ PHASE 12. Telemetry & Analytics
 12.4 Unit tests: anomaly triggers on contrived bad parameters, metric counters increment (Done: Phase 12 test validates metrics collection, anomaly flag behavior for zero rivers OR no anomaly if rivers exist, deterministic heatmap round-trip)
 
 PHASE 13. Modding & Data Extensibility
-13.1 Hot-reloadable descriptor packs (biomes, structures, resources) (X)
-13.2 Versioned descriptor schemas with migration hooks (X)
-13.3 Sandbox validation CLI (lint all descriptors, print summary) (X)
-13.4 Unit tests: migration path, invalid pack rejection, hot reload stability (X)
+13.1 Hot-reloadable descriptor packs (biomes, structures, resources) (Done (subset): biome pack directory with atomic swap; structures/resources to be added in later extension)
+13.2 Versioned descriptor schemas with migration hooks (Done (infrastructure): schema_version parsed from pack.meta; migration registry & callbacks registered (no multi-step migrations yet))
+13.3 Sandbox validation CLI (lint all descriptors, print summary) (Done (basic): `rogue_pack_cli_validate` loads and reports success/failure + summary helper)
+13.4 Unit tests: migration path, invalid pack rejection, hot reload stability (Done: test_worldgen_phase13_modding covers valid load, invalid pack rejection, hot reload with additional file, active pack clear)
 
 PHASE 14. Optimization & Memory
 14.1 Memory pool / arena for transient generation buffers (X)

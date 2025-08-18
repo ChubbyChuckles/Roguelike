@@ -263,6 +263,14 @@ Initial analytics layer for world generation providing snapshot metrics and anom
 * 12.4 Validation Test: `test_worldgen_phase12_telemetry` generates macro layout, collects metrics, asserts anomaly correctness (missing rivers triggers flag), exports heatmap, and verifies deterministic equality across regenerated run.
 Helpers provided to stringify anomaly list for logging (`rogue_world_metrics_anomaly_list`).
 
+### World Generation Phase 13 (Modding & Data Extensibility)
+Introduces the first slice of data-driven hot reload infrastructure focused on biome descriptors.
+* 13.1 Hot-Reloadable Descriptor Packs: A pack directory contains a `pack.meta` (declaring `schema_version=`) plus one or more `*.biome.cfg` files. Loading builds a temporary biome registry which, on successful parse & validation, atomically swaps with the active registry (all-or-nothing) ensuring generators never observe partial state.
+* 13.2 Versioned Schema & Migration Hooks: Pack loader parses `schema_version` and exposes migration registration API (`rogue_pack_register_migration(old,target,fn)`). Current slice scaffolds callback registry (no multi-step migrations yet) establishing forward compatibility path.
+* 13.3 Sandbox Validation / CLI: `rogue_pack_cli_validate(path)` loads a pack and prints success or failure (with error). Lightweight summary API (`rogue_pack_summary`) yields counts for diagnostics & analytics overlays.
+* 13.4 Unit Tests: `test_worldgen_phase13_modding` exercises valid load, invalid pack rejection (missing `pack.meta`), hot reload with an additional biome file (verifying atomic swap), summary content, and clearing the active pack (`rogue_pack_clear`).
+Implementation Notes: Uses safe file I/O (fopen_s on Windows), platform-specific directory enumeration (Win32 / POSIX), removes unsafe `strcpy`, and avoids compiler-specific constructor attributes in favor of lazy initialization. Roadmap marks Phase 13 items Done (future extension will incorporate structures/resources & multi-step migration application).
+
 Phase 11.1–11.5 (AI Testing & QA Expansion): Added comprehensive quality gates around core AI behaviours.
 * Core Node Edge Tests: `test_ai_phase11_core_nodes` exercises Selector/Sequence short‑circuiting, Parallel mixed status aggregation, Utility selector tie‑break determinism, cooldown boundary reset, and retry decorator exhaustion/reset semantics.
 * Blackboard Fuzz: `test_ai_phase11_blackboard_fuzz` performs 5k deterministic pseudo‑random operations (Set/Max/Min/Accumulate/int+float/timer/vec2) mirrored against an in‑memory model to ensure policy invariants and capacity bounds (no overflow of 32 entries).
