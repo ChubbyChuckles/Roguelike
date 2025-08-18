@@ -70,8 +70,27 @@ static int parse_line(char* line, RogueItemDef* out){
          24: implicit_resist_lightning
          25: implicit_resist_poison
          26: implicit_resist_status
-         27: set_id (Phase 4.3) */
-     if(nf>16){ int idx=16; if(idx<nf) d.implicit_strength = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_dexterity = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_vitality = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_intelligence = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_armor_flat = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_resist_physical = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_resist_fire = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_resist_cold = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_resist_lightning = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_resist_poison = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_resist_status = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.set_id = (int)strtol(fields[idx++],NULL,10); }
+         27: set_id (Phase 4.3)
+         28: socket_min (Phase 5.1 optional)
+         29: socket_max (Phase 5.1 optional) */
+     if(nf>16){
+         int idx=16;
+         if(idx<nf) d.implicit_strength = (int)strtol(fields[idx++],NULL,10);
+         if(idx<nf) d.implicit_dexterity = (int)strtol(fields[idx++],NULL,10);
+         if(idx<nf) d.implicit_vitality = (int)strtol(fields[idx++],NULL,10);
+         if(idx<nf) d.implicit_intelligence = (int)strtol(fields[idx++],NULL,10);
+         if(idx<nf) d.implicit_armor_flat = (int)strtol(fields[idx++],NULL,10);
+         if(idx<nf) d.implicit_resist_physical = (int)strtol(fields[idx++],NULL,10);
+         if(idx<nf) d.implicit_resist_fire = (int)strtol(fields[idx++],NULL,10);
+         if(idx<nf) d.implicit_resist_cold = (int)strtol(fields[idx++],NULL,10);
+         if(idx<nf) d.implicit_resist_lightning = (int)strtol(fields[idx++],NULL,10);
+         if(idx<nf) d.implicit_resist_poison = (int)strtol(fields[idx++],NULL,10);
+         if(idx<nf) d.implicit_resist_status = (int)strtol(fields[idx++],NULL,10);
+         if(idx<nf) d.set_id = (int)strtol(fields[idx++],NULL,10);
+         if(idx<nf) d.socket_min = (int)strtol(fields[idx++],NULL,10);
+         if(idx<nf) d.socket_max = (int)strtol(fields[idx++],NULL,10);
+         if(d.socket_min<0) d.socket_min=0; if(d.socket_max<d.socket_min) d.socket_max=d.socket_min; if(d.socket_max>6) d.socket_max=6;
+     }
     *out=d; return 1;
 }
 

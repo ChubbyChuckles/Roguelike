@@ -47,6 +47,9 @@ typedef struct RogueItemDef {
     int implicit_resist_status;
     /* Phase 4.3: Optional set id (integer key). 0 = none. Parsed if final extra column present. */
     int set_id;
+    /* Phase 5.1: Socket range (min..max). Optional columns after set_id; default 0 (unsocketed). */
+    int socket_min;
+    int socket_max;
 } RogueItemDef;
 
 /* Item definition flags */

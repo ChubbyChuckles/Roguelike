@@ -519,6 +519,16 @@ Implementation Notes:
 
 Planned Next (Phase 5 preview): Introduce sockets & gems feeding into or enabling real runeword pattern verification (ordered rune sequence + socket count), along with enchant & reforge mechanics. The present runeword pattern placeholder will be replaced by socket composition matching, preserving existing layer precedence.
 
+### Equipment Phase 5.1 – Socket Count Infrastructure
+Implemented foundational socketing support:
+* Definition Schema: Added `socket_min` / `socket_max` optional columns (indices 28/29 after `set_id`) in item definition CSV; parser clamps negative to 0 and max to <=6, enforcing `max>=min`.
+* Instance Initialization: Spawn path rolls deterministic socket counts using a lightweight LCG seeded by instance slot, definition index, and integer world position, producing a value in `[min,max]` (capped 6). Empty sockets initialized to `-1`.
+* Runtime API: `rogue_item_instance_socket_count`, `rogue_item_instance_get_socket`, `rogue_item_instance_socket_insert`, `rogue_item_instance_socket_remove` for querying and mutating gem occupancy (placeholder gem id = item def index until dedicated gem registry in 5.2).
+* Determinism & Bounds: Fixed-count case (`min==max`) yields invariant socket count; range case covered by unit test across multiple spawn positions asserting bounds `[min,max]`.
+* Testing: New unit test `test_equipment_phase5_sockets` loads a dedicated `equipment_test_sockets.cfg`, validates parser ingestion (`2..4` and `3..3`), exercises multiple spawns to observe distribution within bounds, and verifies insert/remove + occupied slot rejection.
+
+Upcoming (5.2+): Introduce gem definition category (`ROGUE_ITEM_GEM`) stat contributions layered before affixes, economic insertion/removal costs & safety (5.3), enchanting & reforge mechanics (5.4–5.5), and optional protective seal (5.6). Runeword placeholder matching will transition to socket rune sequence evaluation once gem typing exists.
+
 
 
 * Each `RogueItemInstance` now tracks `item_level` (baseline 1 on spawn) driving a power budget.

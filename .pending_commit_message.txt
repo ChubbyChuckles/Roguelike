@@ -1,111 +1,16 @@
-Equipment System Phase 2 – Layered Stat Cache, Derived Metrics, and Resist Breakdown
-
-Completed Features:
-* 2.1 Layered stat cache (base/implicit/affix/buff) with affix layer population via equipment aggregation.
-* 2.2 Derived metrics (DPS, EHP, toughness, mobility, sustain placeholder) fully computed each update.
-* 2.4 Soft cap helper (rogue_soft_cap_apply) + monotonic diminishing returns tests.
-* 2.5 Deterministic fingerprint hashing across layered + derived numeric fields.
-* 2.6 Tests for layer integrity, ordering invariance, fingerprint mutation, soft cap curve & slope.
-* 2.3 Resist breakdown: new resistance affix stats (physical, fire, cold, lightning, poison, status), aggregation into stat cache, soft + hard caps, and validation test.
-
-Implementation Details:
-* Added new affix stat enums: strength_flat, dexterity_flat, vitality_flat, intelligence_flat, armor_flat, and resist_* variants; parser updated accordingly.
-* Refactored equipment aggregation to populate g_player_stat_cache.affix_* and resistance fields (no direct player stat mutation).
-* Extended stat_cache: affix_armor_flat + per-resistance fields; compute_derived applies soft cap (75%) with diminishing (softness=0.65) and hard cap (90%).
-* Fingerprint logic unchanged but automatically captures new fields (positioned before fingerprint member) ensuring determinism auditing includes resistance changes.
-* New unit tests:
-	- test_equipment_phase2_affix_layers: affix primary stats, armor, fingerprint mutation on affix change, equip ordering invariance.
-	- test_equipment_phase2_stat_cache: base layer integrity, fingerprint change on base stat mutation, soft cap curve + monotonic slope.
-	- test_equipment_phase2_resists: resistance aggregation, diminishing above soft cap, hard cap enforcement (e.g., 120% -> 90%).
-
-Roadmap Updates:
-* Phase 2 items 2.1, 2.2, 2.3, 2.4, 2.5, 2.6 all marked Done.
-
----
-
-Equipment System Phase 3 – Item Level & Power Budget Governance
+Equipment System Phase 5.1 – Socket Count Infrastructure
 
 Implemented Features:
-* 3.1 Item level field added to `RogueItemInstance` (initialized to 1 on spawn).
-* 3.2 Power budget formula: `budget = 20 + item_level*5 + rarity^2*10` (capped rarity range) via `rogue_budget_max`.
-* 3.3 Budget enforcement during affix generation: post-roll clamp reduces larger affix first until within cap.
-* 3.4 Validation API: `rogue_item_instance_validate_budget` returns 0 (ok) or negative on invalid / over-budget.
-* 3.5 Upgrade API: `rogue_item_instance_upgrade_level` increases item_level and incrementally elevates affix values toward new cap deterministically.
-* 3.6 Unit test `test_equipment_phase3_budget` covers under-cap validity, forced over-cap detection, and multi‑level upgrade progression staying within budget.
+* Added optional `socket_min` / `socket_max` columns to `RogueItemDef` CSV schema (indices 28/29 after `set_id`), parsed with validation (clamp <0 to 0, enforce max>=min, cap max at 6).
+* Extended `RogueItemDef` & `RogueItemInstance` structs with socket range and per-instance `socket_count` plus `sockets[6]` (-1 empty) fields.
+* Deterministic socket count roll on spawn using local LCG seeded by instance index, definition index, and integer position; supports fixed and ranged counts.
+* Socket Runtime API: count/query/insert/remove functions with robust error codes for OOB, occupied, and invalid gem indices.
+* New asset fixture `assets/equipment_test_sockets.cfg` for parser testing (range + fixed examples).
+* Unit test `test_equipment_phase5_sockets` validates parser ingestion, deterministic fixed-count, bounded range distribution across multiple spawns, and insert/remove semantics.
+* Roadmap updated marking Phase 5.1 Done; README section added describing design & upcoming Phase 5.2+ work.
 
-Technical Notes:
-* Generation clamp chooses decrement target by comparing prefix vs suffix value (ties favor prefix) for deterministic convergence.
-* Upgrade loop uses lightweight LCG step to choose which affix to increment when both present, maintaining reproducibility across builds.
-* Validation integrates with prospective persistence/tooling to flag legacy over-budget artifacts.
-
-Documentation & Roadmap:
-* equipment roadmap (implementation_equipment_system.txt) Phase 3 entries marked Done (3.1–3.6).
-* README updated with Equipment Phase 3 section summarizing formula, enforcement, and APIs.
-
-Follow-Up Candidates:
-* Add statistical distribution test ensuring average affix utilization fraction stays within target band after many upgrades.
-* Extend budget to multi-affix (future multi-prefix/suffix) by proportional scaling rather than decrement loop.
-* UI exposure of item level + budget utilization (progress bar) in equipment panel.
-
-Equipment Roadmap Phase 3 Completed (implementation_equipment_system.txt):
-* Marked 3.1–3.6 Done (item_level field, budget formula, generation clamp, validator, upgrade scaling, unit tests).
-* Added affix roll post-processing clamp ensuring no over-budget instances persist.
-* Updated README with Phase 3 section; roadmap updated to reflect completion.
-
----
-
-Equipment System Phase 4.1 – Implicit Modifier Layer
-
-Implemented Features:
-* Added implicit stat fields to `RogueItemDef` (primary attributes, flat armor, six resistances) plus `set_id` groundwork.
-* Parser extended to accept optional implicit columns after flags; backward compatible (missing fields default to zero).
-* New aggregation path in `equipment_stats.c` populates `implicit_*` layer and augments resist/armor sums prior to stat cache recompute.
-* `stat_cache.c` layering updated to preserve externally populated implicit values (no zeroing during compute_layers).
-* Unit test `test_equipment_phase4_1_implicits` validates parsing, implicit aggregation correctness, equip ordering fingerprint invariance, and fingerprint mutation when new implicit stats introduced.
-
-Roadmap Updates:
-* Phase 4.1 marked Done.
-
-Next Steps (Phase 4 continuation): implement unique item schema + hook dispatch (4.2), set bonuses & partial scaling (4.3/4.4), runeword recipe scaffold (4.5), and precedence rules (4.6) with comprehensive tests (4.7).
----
-
-Equipment System Phase 4.2 – Unique Item Registry & Layer
-
-Implemented Features:
-* Added `equipment_uniques.{h,c}` module with registry APIs (`rogue_unique_register`, `rogue_unique_find_by_base_def`).
-* Unique definitions provide fixed primary/resist/armor bonuses applied via new `unique_*` layer in stat cache (struct extended).
-* Aggregation pass updated (`gather_unique_primary`) to sum unique bonuses for equipped base items flagged by registry.
-* Stat cache layering formula extended to include unique_* between implicit and affix layers ensuring deterministic ordering.
-* Unit test `test_equipment_phase4_2_uniques` validates registration, aggregation, resist contribution, fingerprint mutation when adding second unique.
-* Roadmap Phase 4.2 marked Done.
-
-Upcoming: Set bonuses (4.3/4.4) leveraging existing `set_id` field, then runeword scaffold (4.5) and precedence spec (4.6) with comprehensive tests (4.7).
-
----
-
-Equipment System Phase 4.3–4.7 – Sets, Partial Scaling, Runewords, Precedence & Comprehensive Tests
-
-Implemented Features:
-* 4.3 Set Items & Threshold Bonuses: Activated `set_id` field on base item definitions. Added static in-module set registry (id, piece bonus table) with rank threshold descriptors (pieces_required -> stat bundle). Aggregation counts equipped pieces per set and applies cumulative bonuses up to current rank.
-* 4.4 Partial Scaling (Interpolation) Between Set Tiers: When a set defines non-consecutive thresholds (e.g., 2-piece then 4-piece), equipping an intermediate piece (e.g., 3rd) linearly interpolates each numeric stat between prior and next threshold (floor at integer) producing smooth power curve and eliminating abrupt spikes.
-* 4.5 Runeword System (Initial Scaffold): Added static runeword registry (id, recipe pattern string, stat bundle). Matching currently uses a simplified predicate (base item id == pattern) standing in for future socket & rune ordering logic. On match, runeword bonuses populate dedicated layer.
-* 4.6 Precedence / Layer Ordering: Established deterministic stat layer ordering in aggregation & total formulas: implicit -> unique -> set -> runeword -> affix -> buff. Ensures later layers can intentionally override earlier contributions without mutation side-effects. Updated `stat_cache` total computations to sum new layers.
-* 4.7 Comprehensive Tests: New unit test `test_equipment_phase4_3_5_sets_runewords` covers: set piece counting, threshold activation, interpolation correctness (mid tier fractional scaling), runeword bonus aggregation, combined stacking with unique/implicit layers, precedence invariance & deterministic fingerprint across equip order permutations.
-
-Technical Notes:
-* Registries for sets & runewords are currently static arrays inside `equipment_stats.c` (intentional for early slice simplicity); later refactor may externalize similar to uniques module to reduce file size / enable hot reload.
-* Interpolation uses integer linear scaling: value = prev + ( (next - prev) * (pieces - prev_req) ) / (next_req - prev_req ). All relevant primary & resist stats included; avoids overshoot by integer division floor.
-* Fingerprint coverage automatically extended since new layer fields reside before fingerprint member; no hashing code changes required.
-
-Roadmap & Documentation Updates:
-* Marked Phase 4.3–4.7 Done in `roadmaps/implementation_equipment_system.txt`.
-* README: Added consolidated section detailing sets, partial scaling, runewords, precedence ordering, and test coverage.
-
-Follow-Up Candidates:
-* Externalize set & runeword registries to dedicated modules + prospective data-driven config loader (Phase 16 tooling alignment).
-* Replace placeholder runeword pattern match with socket/gem pipeline once Phase 5 sockets implemented.
-* Add golden snapshot JSON export of layered stat breakdown for future regression hashing (ties into Phase 18 golden master goals).
-
-Validation:
-* All existing and new Phase 4 tests pass (including prior implicits & uniques) confirming no fingerprint drift / layering regression.
+Notes / Next Steps:
+* Phase 5.2: Introduce gem definition registry & stat layering contribution (primary/resist/proc placeholders) feeding aggregation before affixes.
+* Phase 5.3: Add economic + safety model (currency cost, guaranteed item retention) and potential failure modifiers.
+* Transition runeword matching (Phase 4.5 placeholder) to use ordered rune/gem sequence once gem typing established.
 

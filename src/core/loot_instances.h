@@ -36,6 +36,9 @@ typedef struct RogueItemInstance {
     int enchant_level;
     /* Phase 16.x personal loot ownership (-1 = unowned/shared) */
     int owner_player_id;
+    /* Phase 5.1: Socketing – current socket count & occupied gem indices (-1 empty). For initial slice, cap small (6). */
+    int socket_count;
+    int sockets[6];
 } RogueItemInstance;
 
 void rogue_items_init_runtime(void);
@@ -65,5 +68,11 @@ int rogue_item_instance_upgrade_level(int inst_index, int levels, unsigned int* 
 int rogue_item_instance_get_durability(int inst_index, int* cur, int* max);
 int rogue_item_instance_damage_durability(int inst_index, int amount); /* returns remaining */
 int rogue_item_instance_repair_full(int inst_index);
+
+/* Phase 5.1 Socket API (initial): query & set gem (simple index id). Returns 0 on success. */
+int rogue_item_instance_socket_count(int inst_index);
+int rogue_item_instance_get_socket(int inst_index, int slot); /* returns gem def index or -1 */
+int rogue_item_instance_socket_insert(int inst_index, int slot, int gem_def_index); /* fails if slot OOB or occupied */
+int rogue_item_instance_socket_remove(int inst_index, int slot); /* clears slot */
 
 #endif

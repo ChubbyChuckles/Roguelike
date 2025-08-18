@@ -58,7 +58,7 @@ PHASE 4. Implicits, Uniques, Sets & Runewords
 4.7 Tests: set bonus equip ordering, runeword formation determinism, unique custom hook invocation (Done)
 
 PHASE 5. Sockets, Gems & Enchanting
-5.1 Socket count roll (range per base + item_level influence) (X)
+5.1 Socket count roll (range per base + item_level influence) (Done)
 5.2 Gem definitions (flat stat, percent, conditional, proc chance) (X)
 5.3 Socket insertion/removal with cost & failure safety (no item deletion) (X)
 5.4 Enchant system (reroll subset of affixes using currency + rare mat) (X)

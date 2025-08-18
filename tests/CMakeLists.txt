@@ -8,6 +8,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_filter_predicates.c AND NOT
     add_test(NAME test_loot_filter_predicates COMMAND test_loot_filter_predicates)
 endif()
 
+# Equipment Phase 5 sockets test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase5_sockets.c AND NOT TARGET test_equipment_phase5_sockets)
+    add_executable(test_equipment_phase5_sockets unit/test_equipment_phase5_sockets.c)
+    target_link_libraries(test_equipment_phase5_sockets PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_equipment_phase5_sockets PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_equipment_phase5_sockets COMMAND test_equipment_phase5_sockets)
+endif()
+
 # UI Phase 6.2 bars + AP smoothing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARGET test_ui_phase6_bars_ap)
     add_executable(test_ui_phase6_bars_ap unit/test_ui_phase6_bars_ap.c)
