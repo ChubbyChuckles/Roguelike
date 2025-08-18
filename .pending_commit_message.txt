@@ -27,3 +27,15 @@ Provides immediate visibility into affix budget distribution enabling early dete
 Testing:
 New test passes locally with existing Phase 16 suite. JSON output manually inspected for deterministic key ordering.
 
+Equipment Phase 16.6: Analyzer Boundary & Validator Edge Tests
+
+Summary:
+- Added `test_equipment_phase16_analyzer_boundaries` covering empty inventory analyzer run, extreme high item_level utilization scan, and runeword validator boundary cases (max length accepted, over-length rejected, max segments accepted, overflow segments rejected).
+- Marks Phase 16.6 Done; roadmap & README updated.
+
+Rationale:
+Strengthens robustness of newly introduced tooling modules by asserting graceful behavior on edge inputs, reducing regression surface prior to future Phase 17 modding exposure.
+
+Testing:
+All Phase 16 tests pass in Release (including new boundary test). Analyzer JSON export verified under zero and non-zero item population.
+

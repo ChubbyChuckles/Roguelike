@@ -173,7 +173,12 @@ Exposed APIs:
 
 Test `test_equipment_phase16_budget_analyzer` fabricates synthetic items spanning utilization brackets (including an intentional over‑budget item) asserting bucket population, over-budget detection, and JSON field presence.
 
-Planned (Phase 16.6): Add boundary tests for empty inventory (graceful zero report), extreme item_level values, and additional runeword pattern edge cases.
+## Phase 16.6 – Analyzer Boundary & Validator Edge Tests
+Added `test_equipment_phase16_analyzer_boundaries` exercising:
+- Empty inventory: analyzer run & JSON export (item_count field present, no crash)
+- Extreme item_level + rarity producing large cap (no divide-by-zero / overflow path covered)
+- Runeword validator edge patterns (max length accepted, over-length rejected, max segments accepted, overflow segments rejected)
+Closes tooling hardening for Phase 16 block.
 
 Public APIs (`equipment_persist.h`):
 * `rogue_equipment_serialize(buf, cap)` – emits versioned block; returns bytes written or -1.

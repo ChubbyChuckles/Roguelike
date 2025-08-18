@@ -244,6 +244,15 @@ endif()
         add_test(NAME test_equipment_phase16_budget_analyzer COMMAND test_equipment_phase16_budget_analyzer)
         set_tests_properties(test_equipment_phase16_budget_analyzer PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+        # Phase 16.6 analyzer boundary + validator edge tests
+        add_executable(test_equipment_phase16_analyzer_boundaries unit/test_equipment_phase16_analyzer_boundaries.c)
+        target_link_libraries(test_equipment_phase16_analyzer_boundaries PRIVATE rogue_core)
+        if (SDL2_FOUND AND NOT ROGUE_HEADLESS)
+            target_compile_definitions(test_equipment_phase16_analyzer_boundaries PRIVATE ROGUE_HAVE_SDL=1)
+        endif()
+        add_test(NAME test_equipment_phase16_analyzer_boundaries COMMAND test_equipment_phase16_analyzer_boundaries)
+        set_tests_properties(test_equipment_phase16_analyzer_boundaries PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
 # UI Phase 6.2 bars + AP smoothing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARGET test_ui_phase6_bars_ap)
     add_executable(test_ui_phase6_bars_ap unit/test_ui_phase6_bars_ap.c)
