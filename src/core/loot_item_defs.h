@@ -33,6 +33,20 @@ typedef struct RogueItemDef {
     int sprite_tx, sprite_ty, sprite_tw, sprite_th;
     int rarity; /* RogueItemRarity enum value */
     int flags; /* bitmask: ROGUE_ITEM_FLAG_* (two-handed etc.) */
+    /* Phase 4.1: Implicit modifier layer (static per base definition). Optional extended columns in cfg; zero if omitted. */
+    int implicit_strength;
+    int implicit_dexterity;
+    int implicit_vitality;
+    int implicit_intelligence;
+    int implicit_armor_flat; /* additional flat armor beyond base_armor */
+    int implicit_resist_physical;
+    int implicit_resist_fire;
+    int implicit_resist_cold;
+    int implicit_resist_lightning;
+    int implicit_resist_poison;
+    int implicit_resist_status;
+    /* Phase 4.3: Optional set id (integer key). 0 = none. Parsed if final extra column present. */
+    int set_id;
 } RogueItemDef;
 
 /* Item definition flags */

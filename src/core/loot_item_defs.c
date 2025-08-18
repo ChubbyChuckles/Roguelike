@@ -33,8 +33,8 @@ static char* next_field(char** cur){
 static int parse_line(char* line, RogueItemDef* out){
     for(char* p=line; *p; ++p){ if(*p=='\r'||*p=='\n'){ *p='\0'; break; } }
     if(line[0]=='#' || line[0]=='\0') return 0;
-    char* cursor=line; char* fields[16]; int nf=0; while(cursor && nf<16){ fields[nf++] = next_field(&cursor); }
-    if(nf<14) return -1; /* rarity (14/15th) optional, flags optional (16th) */
+    char* cursor=line; char* fields[32]; int nf=0; while(cursor && nf<32){ fields[nf++] = next_field(&cursor); }
+    if(nf<14) return -1; /* rarity (14/15th) optional, flags optional (16th), implicit/set fields optional (post-16) */
     RogueItemDef d; memset(&d,0,sizeof d);
 #if defined(_MSC_VER)
     strncpy_s(d.id,sizeof d.id, fields[0], _TRUNCATE);
@@ -56,8 +56,22 @@ static int parse_line(char* line, RogueItemDef* out){
     d.sprite_ty = (int)strtol(fields[11],NULL,10);
     d.sprite_tw = (int)strtol(fields[12],NULL,10); if(d.sprite_tw<=0) d.sprite_tw=1;
     d.sprite_th = (int)strtol(fields[13],NULL,10); if(d.sprite_th<=0) d.sprite_th=1;
-    d.rarity = 0; if(nf>=15){ d.rarity = (int)strtol(fields[14],NULL,10); if(d.rarity<0) d.rarity=0; }
-    d.flags = 0; if(nf>=16){ d.flags = (int)strtol(fields[15],NULL,10); }
+     d.rarity = 0; if(nf>=15){ d.rarity = (int)strtol(fields[14],NULL,10); if(d.rarity<0) d.rarity=0; }
+     d.flags = 0; if(nf>=16){ d.flags = (int)strtol(fields[15],NULL,10); }
+     /* Implicit stat columns (Phase 4.1) start at index 16 if present:
+         16: implicit_strength
+         17: implicit_dexterity
+         18: implicit_vitality
+         19: implicit_intelligence
+         20: implicit_armor_flat
+         21: implicit_resist_physical
+         22: implicit_resist_fire
+         23: implicit_resist_cold
+         24: implicit_resist_lightning
+         25: implicit_resist_poison
+         26: implicit_resist_status
+         27: set_id (Phase 4.3) */
+     if(nf>16){ int idx=16; if(idx<nf) d.implicit_strength = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_dexterity = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_vitality = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_intelligence = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_armor_flat = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_resist_physical = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_resist_fire = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_resist_cold = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_resist_lightning = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_resist_poison = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.implicit_resist_status = (int)strtol(fields[idx++],NULL,10); if(idx<nf) d.set_id = (int)strtol(fields[idx++],NULL,10); }
     *out=d; return 1;
 }
 

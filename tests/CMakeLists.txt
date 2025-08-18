@@ -2093,6 +2093,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase3_budget.c AND NO
     add_test(NAME test_equipment_phase3_budget COMMAND test_equipment_phase3_budget)
 endif()
 
+# Equipment System Phase 4.1 implicit layer test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase4_1_implicits.c AND NOT TARGET test_equipment_phase4_1_implicits)
+    add_executable(test_equipment_phase4_1_implicits unit/test_equipment_phase4_1_implicits.c)
+    target_link_libraries(test_equipment_phase4_1_implicits PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_equipment_phase4_1_implicits PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_equipment_phase4_1_implicits COMMAND test_equipment_phase4_1_implicits)
+endif()
+
 # Explicitly add loot phase 5 rarity parse test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase5_rarity_parse.c AND NOT TARGET test_loot_phase5_rarity_parse)
     add_executable(test_loot_phase5_rarity_parse unit/test_loot_phase5_rarity_parse.c)

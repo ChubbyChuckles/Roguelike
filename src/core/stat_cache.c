@@ -41,17 +41,17 @@ static void compute_layers(const RoguePlayer* p){
     g_player_stat_cache.base_dexterity = p->dexterity;
     g_player_stat_cache.base_vitality = p->vitality;
     g_player_stat_cache.base_intelligence = p->intelligence;
-    g_player_stat_cache.implicit_strength = g_player_stat_cache.implicit_dexterity = 0;
-    g_player_stat_cache.implicit_vitality = g_player_stat_cache.implicit_intelligence = 0;
-    /* affix_* fields may have been pre-populated by equipment aggregation pass */
+    /* Implicit layer populated by equipment aggregation (Phase 4.1). Leave existing values (zero if none). */
+    /* affix_* fields pre-populated by equipment aggregation pass */
     /* Leave existing affix_* values intact (do not zero) to allow external gather step before update. */
     g_player_stat_cache.buff_strength = g_player_stat_cache.buff_dexterity = 0;
     g_player_stat_cache.buff_vitality = g_player_stat_cache.buff_intelligence = 0;
     /* TODO Phase 2.3+: gather implicit & buff stats once systems exist. */
-    g_player_stat_cache.total_strength = g_player_stat_cache.base_strength + g_player_stat_cache.implicit_strength + g_player_stat_cache.affix_strength + g_player_stat_cache.buff_strength;
-    g_player_stat_cache.total_dexterity = g_player_stat_cache.base_dexterity + g_player_stat_cache.implicit_dexterity + g_player_stat_cache.affix_dexterity + g_player_stat_cache.buff_dexterity;
-    g_player_stat_cache.total_vitality = g_player_stat_cache.base_vitality + g_player_stat_cache.implicit_vitality + g_player_stat_cache.affix_vitality + g_player_stat_cache.buff_vitality;
-    g_player_stat_cache.total_intelligence = g_player_stat_cache.base_intelligence + g_player_stat_cache.implicit_intelligence + g_player_stat_cache.affix_intelligence + g_player_stat_cache.buff_intelligence;
+    /* unique_* layer reserved for Phase 4.2 unique item hooks; default zero if not yet populated */
+    g_player_stat_cache.total_strength = g_player_stat_cache.base_strength + g_player_stat_cache.implicit_strength + g_player_stat_cache.unique_strength + g_player_stat_cache.affix_strength + g_player_stat_cache.buff_strength;
+    g_player_stat_cache.total_dexterity = g_player_stat_cache.base_dexterity + g_player_stat_cache.implicit_dexterity + g_player_stat_cache.unique_dexterity + g_player_stat_cache.affix_dexterity + g_player_stat_cache.buff_dexterity;
+    g_player_stat_cache.total_vitality = g_player_stat_cache.base_vitality + g_player_stat_cache.implicit_vitality + g_player_stat_cache.unique_vitality + g_player_stat_cache.affix_vitality + g_player_stat_cache.buff_vitality;
+    g_player_stat_cache.total_intelligence = g_player_stat_cache.base_intelligence + g_player_stat_cache.implicit_intelligence + g_player_stat_cache.unique_intelligence + g_player_stat_cache.affix_intelligence + g_player_stat_cache.buff_intelligence;
     /* Resist layers currently only from affix layer (future: implicit, buffs). Leave existing if externally populated. */
     if(g_player_stat_cache.resist_physical < 0) g_player_stat_cache.resist_physical=0;
     if(g_player_stat_cache.resist_fire < 0) g_player_stat_cache.resist_fire=0;

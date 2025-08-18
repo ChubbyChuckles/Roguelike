@@ -477,6 +477,19 @@ Next Steps: Bind allocation/undo to inputs, integrate real skill definitions, im
 * Persistence round-trip for affixes guards against format regressions.
 
 #### Equipment Phase 3: Item Level & Power Budget
+#### Equipment Phase 4.1: Implicit Modifier Layer
+
+Phase 4 begins expanding beyond affixes into richer base item identity. Phase 4.1 introduces an explicit implicit modifier layer:
+
+* Schema Extension: `RogueItemDef` gains optional implicit fields for primary attributes (strength/dexterity/vitality/intelligence), flat armor, and six resist types plus a `set_id` placeholder (future set bonuses).
+* Backward Compatibility: Existing item config rows (14 core columns + optional rarity + flags) remain valid; any omitted implicit columns default to zero. Extended format appends: flags, imp_str, imp_dex, imp_vit, imp_int, imp_armor, imp_rphys, imp_rfire, imp_rcold, imp_rlight, imp_rpoison, imp_rstatus, set_id.
+* Aggregation: New implicit gather pass sums definition implicit stats across equipped items, populating `implicit_*` fields in the layered stat cache and contributing defensive values (resists, flat armor) alongside affix sources.
+* Layering Integrity: `compute_layers` no longer zeroes implicit fields, preserving deterministic pre-populated values prior to derived metric calculation and fingerprint hashing.
+* Determinism: Fingerprint includes implicit contributions automatically (fields precede the fingerprint member). Equip ordering invariance verified in new unit test.
+* Test: `test_equipment_phase4_1_implicits` covers parsing extended columns, implicit layer population, fingerprint stability under equip order swap, and mutation when adding a new implicit source.
+
+Upcoming (remaining Phase 4 goals): unique item registry & hooks (4.2), set bonus thresholds & partial scaling (4.3/4.4), runeword recipe scaffold (4.5), and deterministic precedence rules (4.6) with comprehensive test suite (4.7).
+
 * Each `RogueItemInstance` now tracks `item_level` (baseline 1 on spawn) driving a power budget.
 * Budget formula: `budget = 20 + item_level * 5 + (rarity^2) * 10` (rarity clamped 0..4). Provides quadratic headroom for premium tiers while keeping early levels constrained.
 * Affix roll enforcement: After prefix/suffix value rolls, aggregate weight is clamped to budget by decrementing the larger affix first (ties favor prefix) ensuring no over-budget items enter the ecosystem.
