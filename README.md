@@ -166,6 +166,14 @@ Phase 10.1–10.5 (AI Debug & Tooling): Introduced consolidated debug helpers in
 * Implemented FNV-1a tilemap hashing (`rogue_world_hash_tilemap`) for future golden snapshot regression tests.
 * New unit test `test_worldgen_phase1_foundation` validates chunk mapping edge cases, RNG channel independence & reproducibility, and hash stability/difference on mutation.
 
+#### World Generation Phase 2 (Macro Layout & Biomes)
+* Implemented macro continent mask (fbm + radial falloff) producing landmass count (size-filtered) and water/land ratio within bounded range.
+* Added elevation normalization (land only) combining continental mask + secondary fbm shaping for smoother gradients.
+* Introduced latitude + altitude temperature model and fbm-based moisture field for rudimentary climate approximation.
+* Implemented deterministic river carving: peak selection (elev>0.55) with greedy downhill descent marking river tiles until sea level reached.
+* Added threshold biome classification (mountain / snow / swamp / forest / grass / water) assigning tile types used later for resource & spawn gating.
+* New unit test `test_worldgen_phase2_macro` validates: water ratio bounds, ≥1 continent, river adjacency to ocean, and full determinism (tilemap hash + biome histogram reproducibility for identical seed).
+
 Phase 11.1–11.5 (AI Testing & QA Expansion): Added comprehensive quality gates around core AI behaviours.
 * Core Node Edge Tests: `test_ai_phase11_core_nodes` exercises Selector/Sequence short‑circuiting, Parallel mixed status aggregation, Utility selector tie‑break determinism, cooldown boundary reset, and retry decorator exhaustion/reset semantics.
 * Blackboard Fuzz: `test_ai_phase11_blackboard_fuzz` performs 5k deterministic pseudo‑random operations (Set/Max/Min/Accumulate/int+float/timer/vec2) mirrored against an in‑memory model to ensure policy invariants and capacity bounds (no overflow of 32 entries).

@@ -119,6 +119,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_worldgen_phase1_foundation.c AND
     add_test(NAME test_worldgen_phase1_foundation COMMAND test_worldgen_phase1_foundation)
 endif()
 
+# World Generation Phase 2 macro layout test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_worldgen_phase2_macro.c AND NOT TARGET test_worldgen_phase2_macro)
+    add_executable(test_worldgen_phase2_macro unit/test_worldgen_phase2_macro.c)
+    target_link_libraries(test_worldgen_phase2_macro PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_worldgen_phase2_macro PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_worldgen_phase2_macro COMMAND test_worldgen_phase2_macro)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase10_golden_theming.c AND NOT TARGET test_ui_phase10_golden_theming)
     add_executable(test_ui_phase10_golden_theming unit/test_ui_phase10_golden_theming.c)
     target_link_libraries(test_ui_phase10_golden_theming PRIVATE rogue_core)

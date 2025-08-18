@@ -29,13 +29,13 @@ PHASE 1. Foundational Data & APIs
 1.6 Unit test: config initialization & seed channel independence (Done: test_worldgen_phase1_foundation.c validates chunk mapping, RNG independence & hash stability)
 
 PHASE 2. Macro Scale Layout
-2.1 Continent mask generation (multi-octave FBM + threshold; ensures at least N landmasses) (X)
-2.2 Ocean/sea level normalization & coastal smoothing (X)
-2.3 Elevation map (base noise + continental mask influence + plate offset seeds) (X)
-2.4 River source selection (peak detection & downhill pathfinding to ocean with erosion) (Partial: parameters exist) (X)
-2.5 Climate simulation approximation (temperature & moisture gradients, latitude + elevation modifiers) (X)
-2.6 Biome classification map (lookup table by (temp, moisture) bins; deterministic) (X)
-2.7 Unit tests: continent land ratio bounds, river reaches ocean, biome histogram reproducibility (X)
+2.1 Continent mask generation (multi-octave FBM + threshold; ensures at least N landmasses) (Done: fbm radial-falloff mask in world_gen_macro.c, counts continents >16 tiles; adaptive marginal promotion/demotion to keep land ratio bounds)
+2.2 Ocean/sea level normalization & coastal smoothing (Done: threshold + radial attenuation; normalization of land elevations; adaptive balancing maintains ~35-45% land target window)
+2.3 Elevation map (base noise + continental mask influence + plate offset seeds) (Done: secondary fbm blend with continent weight -> normalized 0..1 for land)
+2.4 River source selection (peak detection & downhill pathfinding to ocean with erosion) (Done: peak selection elev>0.55, downhill greedy descent until sea; erosion deferred to later dedicated phase)
+2.5 Climate simulation approximation (temperature & moisture gradients, latitude + elevation modifiers) (Done: latitude-based temp + altitude cooling; moisture fbm noise)
+2.6 Biome classification map (lookup table by (temp, moisture) bins; deterministic) (Done: classify_biome thresholds mapping to tile types)
+2.7 Unit tests: continent land ratio bounds, river reaches ocean, biome histogram reproducibility (Done: test_worldgen_phase2_macro.c validates water ratio bounds, >=1 continent, river adjacency to ocean, hash + histogram determinism; context reinit between runs for reproducible RNG state)
 
 PHASE 3. Biome Partition & Data-Driven Descriptors
 3.1 Biome descriptor files (JSON/CFG) specifying: tile palette weights, vegetation tables, decoration densities, ambient color, music track id (X)

@@ -134,6 +134,7 @@ add_library(rogue_core
     src/world/world_gen_biomes.c
     src/world/world_gen_features.c
     src/world/world_gen_config.c
+    src/world/world_gen_macro.c
     src/world/world_gen_foundation.c
     src/graphics/font.c
     src/entities/player.c

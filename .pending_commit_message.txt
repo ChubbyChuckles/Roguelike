@@ -1,35 +1,3 @@
-UI Phase 10.3: Automated Navigation Traversal Test
-
-Summary:
-- Added new test `test_ui_phase10_navigation_traversal.c` exercising directional focus navigation (RIGHT & DOWN) across a deterministic 2x3 button grid.
-- Validates horizontal wrap after visiting all 6 focusable widgets (guards against focus traps / skipped widgets).
-- Validates vertical row transitions per column (DOWN reaches counterpart in next row).
-- Integrated test into CMake and marked roadmap Phase 10.3 Done; README updated.
-
-UI Phase 11.1–11.3: Style Guide Catalog, Developer Inspector, Crash Snapshot
-
-Summary:
-- Implemented style guide catalog builder (`rogue_ui_style_guide_build`) producing deterministic representative widget set for documentation & visual regression baselines.
-- Added developer hierarchy inspector overlay + selection & live color edit APIs (`rogue_ui_inspector_enable`, `rogue_ui_inspector_select`, `rogue_ui_inspector_emit`, `rogue_ui_inspector_edit_color`).
-- Added crash snapshot facility (`rogue_ui_snapshot`) capturing node count, tree hash placeholder, and input state for post-crash diagnostics.
-- New test `test_ui_phase11_docs_tooling` validates catalog emission, overlay creation, color edit, and snapshot capture.
-- Roadmap updated marking 11.1, 11.2, 11.3 Done; README gains Phase 11 entries.
-
-Files Added:
-- tests/unit/test_ui_phase10_navigation_traversal.c
-- tests/unit/test_ui_phase11_docs_tooling.c
-
-Files Modified:
-- src/ui/core/ui_context.h (Phase 11 fields + APIs)
-- src/ui/core/ui_context.c (implementations for Phase 11)
-- tests/CMakeLists.txt (register new tests)
-- roadmaps/implementation_plan_uisystem.txt (status updates)
-- README.md (Phase 10.3 & 11 feature summaries)
-- .pending_commit_message.txt (regenerated)
-
-Rationale:
-Advances QA automation (navigation traversal), adds documentation/catalog tooling, improves debuggability (inspector + snapshot), and widens test surface to reduce regression risk for future UI changes.
-
 World Generation Phase 1: Foundational Data & APIs
 
 Summary:
@@ -39,20 +7,32 @@ Summary:
 - Implemented FNV-1a tilemap hashing utility `rogue_world_hash_tilemap` (basis for upcoming golden snapshot macro layout tests in Phase 2).
 - Created `world_gen_foundation.c` housing Phase 1 implementations and registered it in build.
 - Added comprehensive unit test `test_worldgen_phase1_foundation` covering chunk mapping edge boundaries, RNG channel independence & reproducibility, and hash stability/delta on mutation.
-- Updated roadmap Phase 1 entries to Done with implementation notes; README gains Phase 1 summary section.
+- Roadmap Phase 1 entries updated; README gains Phase 1 world generation summary.
+
+World Generation Phase 2: Macro Layout & Biome Classification
+
+Summary:
+- Added `world_gen_macro.c` implementing continent mask (fbm + radial falloff) with size-filtered continent counting, elevation shaping & normalization, climate approximation (temperature latitude+altitude, moisture fbm), deterministic river peak selection + downhill carving, and biome classification thresholds mapping to existing tile types.
+- Extended public API with `rogue_world_generate_macro_layout` and biome histogram / continent output parameters.
+- Unit test `test_worldgen_phase2_macro` asserts water ratio bounds (10%–70%), ≥1 continent, river adjacency to ocean tiles, and determinism (tilemap hash + biome histogram identical across regenerations for same seed).
+- Added adaptive marginal land promotion/demotion to keep land ratio within target bounds for test stability (approx 35–45% land) and reinitialized RNG context between deterministic regenerations to ensure hash stability.
+- Roadmap Phase 2 items marked Done with implementation notes; README updated with Phase 2 summary.
 
 Files Added:
-- src/world/world_gen_foundation.c (foundation APIs)
-- tests/unit/test_worldgen_phase1_foundation.c (unit tests)
+- src/world/world_gen_foundation.c
+- src/world/world_gen_macro.c
+- tests/unit/test_worldgen_phase1_foundation.c
+- tests/unit/test_worldgen_phase2_macro.c
 
 Files Modified:
-- src/world/world_gen.h (new config fields + context/chunk/hash APIs)
-- src/world/world_gen_config.c (defaults for new fields)
-- CMakeLists.txt (include foundation source)
-- tests/CMakeLists.txt (register foundation test)
-- roadmaps/implementation_plan_world_generation.txt (Phase 1 marked Done)
-- README.md (Phase 1 summary)
-- .pending_commit_message.txt (appended)
+- src/world/world_gen.h (Phase 1 fields + Phase 2 APIs & biome enum)
+- src/world/world_gen_config.c (defaults for new config fields)
+- src/world/world_gen_foundation.c (hash utility)
+- CMakeLists.txt (include new sources)
+- tests/CMakeLists.txt (register new tests)
+- roadmaps/implementation_plan_world_generation.txt (Phase 1 & 2 status updates)
+- README.md (Phase 1 & 2 summaries)
+- .pending_commit_message.txt (regenerated)
 
 Rationale:
-Establishes deterministic, testable scaffolding (config, RNG channels, chunk math, hashing) required before macro continent mask & biome classification (Phase 2) while ensuring reproducibility and isolation of randomness sources to prevent cross-layer coupling.
+Builds deterministic macro-world scaffolding (continents, elevation, primitive climate, rivers, biomes) atop foundational RNG/chunk systems enabling subsequent phases (biome descriptors, local terrain refinement, resource & spawn ecology) with regression safety via hashing & histogram tests.

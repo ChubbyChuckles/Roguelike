@@ -57,4 +57,22 @@ double rogue_worldgen_rand_norm(RogueRngChannel* ch);
 /* Hash utility for deterministic snapshot comparisons */
 unsigned long long rogue_world_hash_tilemap(const RogueTileMap* map);
 
+/* ---- Phase 2: Macro Layout / Biome Classification ---- */
+typedef enum RogueBiomeId {
+    ROGUE_BIOME_OCEAN = 0,
+    ROGUE_BIOME_PLAINS,
+    ROGUE_BIOME_FOREST_BIOME,
+    ROGUE_BIOME_MOUNTAIN_BIOME,
+    ROGUE_BIOME_SNOW_BIOME,
+    ROGUE_BIOME_SWAMP_BIOME,
+    ROGUE_BIOME_MAX
+} RogueBiomeId;
+
+/* Generate macro-scale world layout & classify biomes.
+ * Populates out_map tiles (water / land biome tiles + rivers) and returns biome histogram & continent count if provided.
+ * Returns false on allocation failure or invalid args. Deterministic for (cfg->seed).
+ */
+bool rogue_world_generate_macro_layout(const RogueWorldGenConfig* cfg, RogueWorldGenContext* ctx, RogueTileMap* out_map,
+                                       int* out_biome_histogram, int* out_continent_count);
+
 #endif
