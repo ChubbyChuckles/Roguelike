@@ -219,6 +219,15 @@ Adds an underground dungeon layer built from a deterministic room graph.
 * 7.7 Validation: Unit test asserts full reachability, minimum loop ratio threshold, non-zero carving, deterministic regeneration (room centers), secret/lock/trap counts non-negative, and tagging invariants (exactly one treasure, at least one elite).
 New tile types: `ROGUE_TILE_DUNGEON_WALL`, `ROGUE_TILE_DUNGEON_FLOOR`, `ROGUE_TILE_DUNGEON_DOOR`, `ROGUE_TILE_DUNGEON_LOCKED_DOOR`, `ROGUE_TILE_DUNGEON_SECRET_DOOR`, `ROGUE_TILE_DUNGEON_TRAP`, `ROGUE_TILE_DUNGEON_KEY`.
 
+### World Generation Phase 8 (Fauna & Spawn Ecology)
+Introduces deterministic wildlife/creature spawn sampling decoupled from runtime AI specifics.
+* 8.1 Spawn Table Registry: Lightweight in-memory registry keyed by representative biome/dungeon tile (GRASS, FOREST, DUNGEON_FLOOR, etc.) with normal & rare weights per entry.
+* 8.2 Density Map: Per-tile float density derives from tile type plus water adjacency dampening (coastal & wetland scarcity), leveraging existing tile categories as elevation proxy.
+* 8.3 Hub Suppression: API `rogue_spawn_apply_hub_suppression` clears density inside configurable hub radius (player settlements) and smoothly attenuates outward ring.
+* 8.4 Rare Encounters: Basis-point rare roll switches to alternative weight column enabling rarities without separate tables; deterministic via micro RNG channel.
+* 8.5 Validation Test: `test_worldgen_phase8_spawns` builds macro map, registers grass/forest tables, builds density, applies hub suppression, samples 200 deterministic spawn queries (collecting rare hits), and replays seed to confirm reproducible first 20 spawn ids.
+APIs cover table registration, density build/free, suppression, and position-based spawn sampling with rare flag output.
+
 Phase 11.1–11.5 (AI Testing & QA Expansion): Added comprehensive quality gates around core AI behaviours.
 * Core Node Edge Tests: `test_ai_phase11_core_nodes` exercises Selector/Sequence short‑circuiting, Parallel mixed status aggregation, Utility selector tie‑break determinism, cooldown boundary reset, and retry decorator exhaustion/reset semantics.
 * Blackboard Fuzz: `test_ai_phase11_blackboard_fuzz` performs 5k deterministic pseudo‑random operations (Set/Max/Min/Accumulate/int+float/timer/vec2) mirrored against an in‑memory model to ensure policy invariants and capacity bounds (no overflow of 32 entries).

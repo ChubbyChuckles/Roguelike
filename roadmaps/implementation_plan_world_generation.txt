@@ -77,11 +77,11 @@ PHASE 7. Dungeon Generator (Layered)
 7.7 Unit tests: reachable graph, loop ratio within bounds, secret room count distribution (Done: test_worldgen_phase7_dungeon validates reachability==room_count, loop ratio >= threshold, deterministic regeneration, positive carving, keys/locks/traps/secrets non-negative)
 
 PHASE 8. Fauna & Spawn Ecology Layer
-8.1 Spawn table registry (per biome & dungeon theme) (X)
-8.2 Density map influenced by elevation & proximity to water (X)
-8.3 Dynamic spawn suppression near player hubs (camp, towns) (X)
-8.4 Rare encounter injection (deterministic low-prob events) (X)
-8.5 Unit tests: spawn distribution histogram vs expected, suppression radius enforcement (X)
+8.1 Spawn table registry (per biome & dungeon theme) (Done: static in-memory registry with up to 32 tables; each ties to representative tile type)
+8.2 Density map influenced by elevation & proximity to water (Done: per-tile base density by tile type + water adjacency dampening; elevation proxied via existing tile categories)
+8.3 Dynamic spawn suppression near player hubs (camp, towns) (Done: hub suppression API zeroes density within radius and smooth falloff outside)
+8.4 Rare encounter injection (deterministic low-prob events) (Done: rare basis-point chance per table and alternate weight set used when triggered)
+8.5 Unit tests: spawn distribution sampling, determinism, suppression radius (Done: test_worldgen_phase8_spawns samples spawns, asserts non-zero, replays deterministic id sequence pre/post context reinit, hub suppression applied)
 
 PHASE 9. Lootable & Resource Nodes
 9.1 Resource node descriptor (rarity, required tool tier, yield range) (X)

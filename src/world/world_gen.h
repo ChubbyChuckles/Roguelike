@@ -174,6 +174,38 @@ int rogue_dungeon_validate_reachability(const RogueDungeonGraph* graph);
 double rogue_dungeon_loop_ratio(const RogueDungeonGraph* graph);
 int rogue_dungeon_secret_room_count(const RogueDungeonGraph* graph);
 
+/* ---- Phase 8: Fauna & Spawn Ecology Layer ---- */
+typedef struct RogueSpawnEntry {
+    char id[32];      /* creature identifier */
+    int weight;       /* common weight */
+    int rare_weight;  /* weight used when rare roll triggers */
+} RogueSpawnEntry;
+
+typedef struct RogueSpawnTable {
+    int biome_tile;                 /* representative base tile (e.g., GRASS / FOREST / DUNGEON_FLOOR) */
+    int rare_chance_bp;             /* rare encounter chance in basis points (0..10000) */
+    RogueSpawnEntry entries[16];
+    int entry_count;
+} RogueSpawnTable;
+
+/* Density map influenced by elevation proxies & water proximity */
+typedef struct RogueSpawnDensityMap {
+    int width, height;
+    float* density; /* length width*height */
+} RogueSpawnDensityMap;
+
+void rogue_spawn_clear_tables(void);
+int  rogue_spawn_register_table(const RogueSpawnTable* table); /* returns index or -1 */
+const RogueSpawnTable* rogue_spawn_get_table_for_tile(int tile_type);
+/* Build density map (0..>=) using current tilemap */
+bool rogue_spawn_build_density(const RogueTileMap* map, RogueSpawnDensityMap* out_dm);
+void rogue_spawn_free_density(RogueSpawnDensityMap* dm);
+/* Apply hub suppression (zero density inside radius, smooth falloff outside) */
+void rogue_spawn_apply_hub_suppression(RogueSpawnDensityMap* dm, int hub_x, int hub_y, int radius);
+/* Sample spawn id for tile position (x,y) using density + biome mapping; returns 1 on success */
+int rogue_spawn_sample(RogueWorldGenContext* ctx, const RogueSpawnDensityMap* dm, const RogueTileMap* map,
+                       int x, int y, char* out_id, size_t id_cap, int* out_is_rare);
+
 
 
 #endif
