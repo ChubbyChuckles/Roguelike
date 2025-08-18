@@ -201,7 +201,7 @@ This establishes the minimal live-edit feedback loop ahead of Phase 17.3 sandbox
 
 ## Phase 17.3 – Sandboxed Scripting Hooks (Minimal)
 Introduced a deterministic, restricted scripting format for unique behavior stat adjustments:
-- Script Lines: `add <stat> <int>` or `mul <stat> <percent>`; up to 16 instructions; comments with `#` and blanks ignored.
+- Script Lines: `add <stat> <int>` or `mul <stat> <percent>`; up to 16 instructions; comments with `#` and blanks ignored. Enforcement: add values must be within [-1000,1000]; mul percents within [-90,500] (guarding against runaway scaling / negative overflow while still allowing debuffs).
 - Supported Stats: strength, dexterity, vitality, intelligence, armor_flat, all six resist variants.
 - Application Order: All add operations applied first (aggregating base deltas) followed by all mul operations (percentage increases) to ensure deterministic stacking independent of file line order for identical op ordering.
 - APIs: `rogue_script_load`, `rogue_script_hash`, `rogue_script_apply` defined in new `equipment_modding` module.

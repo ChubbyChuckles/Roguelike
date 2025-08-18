@@ -23,7 +23,14 @@ int rogue_script_load(const char* path, RogueSandboxScript* out){ if(!path||!out
 #else
     scanned = sscanf(p,"%7s %31s %d", op, stat, &val);
 #endif
-    if(scanned!=3){ fclose(f); return -1; } int sidx=stat_index(stat); if(sidx<0){ fclose(f); return -1; } if(out->instr_count>=16){ fclose(f); return -1; } RogueSandboxInstr* ins=&out->instrs[out->instr_count]; if(strcmp(op,"add")==0){ ins->op=1; ins->stat=(unsigned char)sidx; ins->value=val; } else if(strcmp(op,"mul")==0){ ins->op=2; ins->stat=(unsigned char)sidx; ins->value=val; } else { fclose(f); return -1; } out->instr_count++; }
+    if(scanned!=3){ fclose(f); return -1; }
+    int sidx=stat_index(stat); if(sidx<0){ fclose(f); return -1; }
+    if(out->instr_count>=16){ fclose(f); return -1; }
+    /* Enforcement: additive values must be within -1000..1000; mul percent within -90..500 to avoid runaway stats */
+    if(strcmp(op,"add")==0){ if(val < -1000 || val > 1000){ fclose(f); return -1; } RogueSandboxInstr* ins=&out->instrs[out->instr_count]; ins->op=1; ins->stat=(unsigned char)sidx; ins->value=val; }
+    else if(strcmp(op,"mul")==0){ if(val < -90 || val > 500){ fclose(f); return -1; } RogueSandboxInstr* ins=&out->instrs[out->instr_count]; ins->op=2; ins->stat=(unsigned char)sidx; ins->value=val; }
+    else { fclose(f); return -1; }
+    out->instr_count++; }
     fclose(f); return 0; }
 
 unsigned int rogue_script_hash(const RogueSandboxScript* s){ if(!s) return 0u; unsigned long long h=1469598103934665603ull; for(int i=0;i<s->instr_count;i++){ const RogueSandboxInstr* ins=&s->instrs[i]; const unsigned char* b=(const unsigned char*)ins; for(size_t k=0;k<sizeof(*ins);k++){ h ^= b[k]; h*=1099511628211ull; } } return (unsigned int)(h ^ (h>>32)); }

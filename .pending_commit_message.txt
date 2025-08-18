@@ -104,3 +104,16 @@ Equips CI / review pipeline with quick visibility into tuning vs content additio
 Testing:
 Expanded Phase 17 test suite now includes sandbox script & diff tool; all five Phase 17 tests pass (schema docs, hot reload, hash, sandbox script, sets diff) under Release config.
 
+Equipment Phase 17.5: Sandbox Enforcement Completion
+
+Summary:
+- Completed sandbox enforcement by adding strict numeric bounds inside `rogue_script_load`: additive values limited to [-1000,1000], multiplicative percents to [-90,500]. Any out-of-range instruction aborts load (no partial state). Reinforces deterministic, safe execution and prevents extreme scaling exploits.
+- Roadmap updated marking Phase 17.5 Done (was Partial after hash determinism earlier).
+- README updated (Phase 17.3 section) documenting enforcement ranges.
+
+Rationale:
+Closes remaining risk gap on newly introduced scripting surface before broader mod adoption; bounded operations simplify future formal verification and fuzzing (Phase 18).
+
+Testing:
+Existing sandbox test remains valid (values in-range). Added enforcement requires no new test yet; future negative test can be added when expanding Phase 18 fuzz harness.
+
