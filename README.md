@@ -223,7 +223,9 @@ New tile types: `ROGUE_TILE_DUNGEON_WALL`, `ROGUE_TILE_DUNGEON_FLOOR`, `ROGUE_TI
 * Added expanded equipment slot enum: weapon, offhand, head, chest, legs, hands, feet, ring1, ring2, amulet, belt, cloak, charm1, charm2.
 * Implemented data-driven two-handed weapon flag (item definition `flags` bitmask) powering automatic offhand clearing and offhand equip blocking.
 * Persisting full equipment slot state in player save component (count + per-slot instance indices) with backward-compatible loader.
+* Added cosmetic transmog layer (per-slot override definition index) with API and basic validation (same category requirement).
 * Basic smoke test (`test_equipment_phase1_slots`) exercises new API and validates two-hand/offhand guard if a flagged weapon exists in definitions.
+* New test `test_equipment_phase1_transmog` validates transmog set/clear and category mismatch rejection.
 * Roadmap updated (Phase 1.1–1.6 Done; 1.7 tests partial). Follow-up: richer transactional equip tests, serialization roundtrip assertion, distinct category for shields/foci, jewelry stat differentiation, cosmetic layer placeholders.
 
 ### World Generation Phase 8 (Fauna & Spawn Ecology)

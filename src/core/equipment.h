@@ -38,4 +38,8 @@ int rogue_equip_repair_slot(enum RogueEquipSlot slot);
 /* Repairs all equipped items, returns count repaired. */
 int rogue_equip_repair_all(void);
 
+/* Cosmetic transmog layer (Phase 1.5) */
+int rogue_equip_set_transmog(enum RogueEquipSlot slot, int def_index); /* def_index: base item definition for visual override (-1 clears) */
+int rogue_equip_get_transmog(enum RogueEquipSlot slot); /* returns def_index or -1 if none */
+
 #endif
