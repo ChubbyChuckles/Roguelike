@@ -39,3 +39,15 @@ Strengthens robustness of newly introduced tooling modules by asserting graceful
 Testing:
 All Phase 16 tests pass in Release (including new boundary test). Analyzer JSON export verified under zero and non-zero item population.
 
+Equipment Phase 17.1: Public Schema Docs
+
+Summary:
+- Added `equipment_schema_docs.{h,c}` providing `rogue_equipment_schema_docs_export` which emits canonical JSON documentation for item_def, set_def, proc_def and runeword pattern rules (versioned root object).
+- Unit test `test_equipment_phase17_schema_docs` validates presence of all sections, version field, and size bounds.
+
+Rationale:
+Establishes a machine-readable + human-friendly reference for external tooling / modders before enabling hot reload & sandbox scripting (upcoming Phase 17 items), reducing ambiguity and aiding validation gates.
+
+Testing:
+New test passes in Release; output manually inspected for structural correctness and deterministic ordering of top-level sections.
+

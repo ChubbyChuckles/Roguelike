@@ -180,6 +180,14 @@ Added `test_equipment_phase16_analyzer_boundaries` exercising:
 - Runeword validator edge patterns (max length accepted, over-length rejected, max segments accepted, overflow segments rejected)
 Closes tooling hardening for Phase 16 block.
 
+## Phase 17.1 – Public Schema Docs
+Introduced `equipment_schema_docs` module exposing `rogue_equipment_schema_docs_export` to emit a consolidated JSON document describing equipment authoring schemas:
+- item_def field list (id, name, category, rarity, base damage, sockets)
+- set_def structure (set_id, bonuses array with stat fields)
+- proc_def fields (name, trigger enum, icd_ms, duration_ms, magnitude, max_stacks, stack_rule, param)
+- runeword pattern rules (lowercase alnum, single underscores, max 5 segments, max length 11, no double underscores)
+Test `test_equipment_phase17_schema_docs` asserts all sections and version tag present.
+
 Public APIs (`equipment_persist.h`):
 * `rogue_equipment_serialize(buf, cap)` – emits versioned block; returns bytes written or -1.
 * `rogue_equipment_deserialize(text)` – idempotently reconstructs equipped items (spawning instances) from text; tolerates legacy headerless data.
