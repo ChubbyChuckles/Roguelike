@@ -92,11 +92,11 @@ PHASE 8. Durability, Degradation & Economy
 	8.6 Tests: cost monotonicity, salvage yield bounds, fracture gating (Done: repair cost monotonicity, salvage scaling vs full, fracture damage penalty)
 
 PHASE 9. Loadout Optimization & Weight Management
-9.1 Loadout comparison tool (diff two saved configurations) (X)
-9.2 Optimizer heuristic: maximize DPS subject to mobility >= threshold & EHP >= floor (X)
-9.3 Gradient / hill-climb search over combinatorial slot space (X)
-9.4 Caching of evaluated combinations (hash set) (X)
-9.5 Tests: optimizer determinism, constraint satisfaction, search pruning coverage (X)
+9.1 Loadout comparison tool (diff two saved configurations) (Done)
+9.2 Optimizer heuristic: maximize DPS subject to mobility >= threshold & EHP >= floor (Done)
+9.3 Gradient / hill-climb search over combinatorial slot space (Done)
+9.4 Caching of evaluated combinations (hash set) (Done)
+9.5 Tests: optimizer determinism, constraint satisfaction, search pruning coverage (Done)
 
 PHASE 10. Crafting & Upgrade Pipelines
 10.1 Upgrade stones (tier1→tier2 etc.) (X)

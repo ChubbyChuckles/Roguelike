@@ -121,6 +121,17 @@ Items that reach 0 durability become `fractured` imposing a 40% damage penalty (
 ### Equipment System Phase 8.6 (Expanded Tests)
 Added `test_equipment_phase8_salvage_fracture` validating: (a) salvage yield decreases after durability loss, (b) fracture penalty reduces damage output versus an otherwise identical non-fractured item. Existing repair cost test covers cost monotonicity. Durability model smoke persists pending broader integration hooks.
 
+### Equipment System Phase 9 (Loadout Optimization & Comparison)
+
+Implemented a foundational yet deterministic loadout optimization pipeline:
+* Snapshot & Diff (9.1): `rogue_loadout_snapshot` captures equipped instance + definition indices and derived heuristic stats (DPS/EHP/Mobility). `rogue_loadout_compare` returns per-slot change mask and diff count enabling UI deltas and regression tests.
+* Heuristic Optimizer (9.2): `rogue_loadout_optimize(min_mobility, min_ehp)` performs constraint‑aware search maximizing DPS while maintaining minimum mobility and EHP thresholds. Constraints are evaluated after each candidate swap; violating candidates are discarded.
+* Hill-Climb Search (9.3): Iterative improvement loop scans each slot, enumerates viable candidate instances of matching category, simulates equip, recomputes stat cache, and tracks the best improvement. Applies improvements greedily per pass until convergence or safety guard trips.
+* Combination Caching (9.4): Open‑addressed hash set (256 entries) over snapshot hash (FNV‑1a of slot def indices + heuristic stats) prunes already evaluated configurations, tracking hit/insert counts via `rogue_loadout_cache_stats` for test instrumentation.
+* Tests (9.5): `test_equipment_phase9_loadout_opt` covers snapshot diff correctness, non‑decreasing DPS after optimization under constraints, and cache insert accounting (capacity & basic hit path). Determinism is ensured by absence of RNG in the search ordering (stable iteration over instance indices + slot order).
+
+Future extensions (later phases) can layer weight/encumbrance penalties, multi-objective scoring, and parallel search (Phase 14.4) atop this deterministic core.
+
 ---
 
 ## 1. Overview

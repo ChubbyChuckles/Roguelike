@@ -1,23 +1,9 @@
-Equipment Phase 8.1 – Non-linear Durability Model
--------------------------------------------------
-Adds centralized durability helper module (`core/durability.[ch]`) implementing logarithmic severity scaling with rarity mitigation:
-	loss = ceil(base * log2(1 + severity/25) * (1 / (1 + 0.35 * rarity))) with base=2 for severity>=50 else 1 (minimum 1 when severity>0).
-Higher rarity items now lose proportionally less durability per identical event; extreme severities exhibit diminishing returns.
-Introduces API `rogue_item_instance_apply_durability_event(inst,severity)` for later migration of fixed decrement call sites.
-Unit test `test_equipment_phase8_durability_model` covers:
-	* Rarity differential (epic <= common loss for identical severities)
-	* Monotonic non-decreasing loss across ascending severities.
-Roadmap: Phase 8.1 marked Done; Phase 8.6 marked Partial (additional repair cost monotonicity, salvage yield & fracture tests pending subsequent slices).
-README updated with Phase 8.1 section.
+feat(equipment/phase9): loadout optimizer (snapshot diff, hill-climb DPS maximizer, constraint gating, evaluated cache) + tests
 
-Equipment Phase 8.2 – Repair Cost Scaling
------------------------------------------
-Extended economy repair cost with item level & refined rarity scaling: new API `rogue_econ_repair_cost_ex(missing,rarity,item_level)` using unit formula `(6 + rarity*6) * (1 + sqrt(item_level)/45)`; total cost = unit * missing (rounded). Legacy wrapper retained for backward compatibility. Updated `rogue_equip_repair_slot` to consume new API (real item_level). Added unit test `test_equipment_phase8_repair_cost` verifying monotonicity (missing durability & level) and rarity cost ordering. Roadmap Phase 8.2 marked Done; Phase 8.6 partial tests expanded.
-
-Equipment Phase 8.3–8.6 – Auto-warn, Salvage Scaling, Fracture, Tests
----------------------------------------------------------------------
-* Centralized durability bucket + transition notification API (duplicate helper removed from vendor_ui.c).
-* Instance-aware salvage (`rogue_salvage_item_instance`) scales yield by durability factor = 0.4 + 0.6*(cur/max). Inventory UI prefers instance path; fallback to definition salvage retained.
-* Fracture mechanic: items at 0 durability flagged `fractured`, applying 40% damage penalty (min/max damage *0.6) until full repair (flag cleared).
-* Expanded tests: `test_equipment_phase8_salvage_fracture` validates salvage yield decrease after damage and fracture penalty on DPS (damage min). Existing repair cost test covers cost monotonicity.
-* Roadmap & README updated: Phase 8.3, 8.4, 8.5, 8.6 marked Done (durability model, repair cost, salvage scaling, fracture, and associated tests).
+Implements Equipment System Phase 9 (9.1–9.5):
+ - Snapshot & compare APIs (rogue_loadout_snapshot/compare/hash)
+ - Deterministic hill-climb optimizer maximizing DPS under mobility/EHP thresholds
+ - Evaluated combination cache (FNV-1a hash, open addressing) with stats accessor
+ - Added unit test test_equipment_phase9_loadout_opt covering snapshot diff, optimization improvement non-decrease, cache instrumentation
+ - Roadmap & README updated, macro slot count wired
+ - Provides extendable foundation for future multi-objective & parallel search (Phase 14.4)

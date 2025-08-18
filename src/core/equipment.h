@@ -21,6 +21,8 @@ enum RogueEquipSlot {
 	ROGUE_EQUIP__COUNT
 };
 
+#define ROGUE_EQUIP_SLOT_COUNT ROGUE_EQUIP__COUNT
+
 /* Slot metadata flags */
 #define ROGUE_EQUIP_META_FLAG_TWOHAND   0x01 /* weapon instance occupies offhand */
 
