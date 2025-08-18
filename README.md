@@ -1148,6 +1148,13 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
 
 **Improved**
 * Rarity sampling integrates global floor + pity adjustments seamlessly.
+
+### Equipment Phase 18.4 – Max Combination Stress Test
+Added `test_equipment_phase18_stress_combo` constructing an extreme deterministic stack: weapon + armor + amulet all forced to 6 sockets (filled with identical gem), full multi-piece set bonuses (interpolated at 7 pieces) and a runeword simultaneously. The test registers synthetic in-memory item definitions, a set (thresholds 2/4/6), a runeword, and a gem; spawns & equips items, injects sockets, aggregates stats, and validates:
+* Stat fingerprint stability across consecutive recomputes.
+* Total strength / fire resistance meet analytical expectations from implicits + set + runeword + gem layering.
+* No negative stats; layering strictly additive.
+Purpose: guard against overflow/ordering regressions when multiple late-phase systems (sockets, gems, sets, runewords) interact at maximum plausible density.
 * Persistence ensures affix data round‑trips without loss.
 * Equipment System Phase 1 complete: slot expansion, two-hand atomicity handling (offhand clear & equip blocking), cosmetic transmog layer, and persistence roundtrip test (`test_equipment_phase1_persistence`). New test assets `test_equipment_items.cfg` provide deterministic two-hand + shield items.
 * Equipment System Phase 2 (in progress): Introduced layered stat cache (base/implicit/affix/buff/total per attribute), derived metric scaffolding (DPS, EHP, toughness, mobility, sustain placeholder), soft cap helper (`rogue_soft_cap_apply`), deterministic fingerprint hashing API (`rogue_stat_cache_fingerprint`), and unit test `test_equipment_phase2_stat_cache` validating layer integrity + fingerprint mutation + soft cap curve.

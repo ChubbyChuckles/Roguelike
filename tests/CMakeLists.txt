@@ -199,6 +199,17 @@ endif()
         add_test(NAME test_equipment_phase13_persistence COMMAND test_equipment_phase13_persistence)
         set_tests_properties(test_equipment_phase13_persistence PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+        # Phase 18.4 stress combo test (max sockets + gems + set + runeword)
+        if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase18_stress_combo.c AND NOT TARGET test_equipment_phase18_stress_combo)
+            add_executable(test_equipment_phase18_stress_combo unit/test_equipment_phase18_stress_combo.c)
+            target_link_libraries(test_equipment_phase18_stress_combo PRIVATE rogue_core)
+            if (SDL2_FOUND AND NOT ROGUE_HEADLESS)
+                target_compile_definitions(test_equipment_phase18_stress_combo PRIVATE ROGUE_HAVE_SDL=1)
+            endif()
+            add_test(NAME test_equipment_phase18_stress_combo COMMAND test_equipment_phase18_stress_combo)
+            set_tests_properties(test_equipment_phase18_stress_combo PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+        endif()
+
         # Phase 16.1 equipment item definition JSON tooling test
         add_executable(test_equipment_phase16_itemdefs_json unit/test_equipment_phase16_itemdefs_json.c)
         target_link_libraries(test_equipment_phase16_itemdefs_json PRIVATE rogue_core)

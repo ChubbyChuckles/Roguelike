@@ -157,5 +157,19 @@ Rationale:
 Codifies expected deterministic scaling of proc triggers under current ICD-driven model, guarding against future regressions in cooldown gating, event dispatch ordering, or global rate cap changes. Establishes a groundwork for later statistical variance checks should probabilistic proc chances be introduced (then harness can pivot to binomial expectation with variance bounds).
 
 Testing:
-New proc stats test passes (Release) with counts matching expectations (fast≈1001, slow≈401, crit≈bounded by events) and ratio within margin. Existing Phase 18.1/18.2 tests unaffected.
+Final refined expectation model (effective spacing rounding + crit schedule) yields empirical counts fast=1000, slow=385, crit=167 over 100s simulation; all within tolerance of analytical schedule (spacing_fast=100ms, spacing_slow=260ms effective, iterative crit schedule). Ratio fast/slow ≈2.597 within ±2% of expected 2.6. Existing Phase 18.1/18.2 tests unaffected.
+
+Equipment Phase 18.4: Max Combination Stress Test
+
+Summary:
+- Added `test_equipment_phase18_stress_combo` constructing maximal layering scenario: synthetic item defs (weapon + armor pieces + amulet) all forced to 6 sockets, uniform gem fill, shared set id (thresholds 2/4/6 interpolated at 7 pieces), and runeword active.
+- Registers minimal set, runeword, and gem definitions in-memory (no external asset dependency) ensuring deterministic isolation.
+- Forces stat cache recompute twice verifying identical fingerprint; asserts aggregated strength & fire resist meet or exceed analytical sum of implicits + set bonus (clamped at 6-piece threshold) + runeword + gems (pieces*6 each) and remain non-negative.
+- Roadmap marks 18.4 Done; README updated with rationale & invariants section.
+
+Rationale:
+Guards aggregation ordering & additive layer correctness under extreme density (multiple overlapping systems) detecting potential future overflow, ordering, or double-count regressions early.
+
+Testing:
+Stress test passes (Release) printing fingerprint, equipped piece count, and observed vs expected strength/fire resist. Prior Phase 18 tests remain green (snapshot, fuzz, proc stats).
 

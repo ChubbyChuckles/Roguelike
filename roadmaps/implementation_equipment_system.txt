@@ -167,7 +167,7 @@ PHASE 18. Testing & QA Expansion
 18.1 Golden master snapshot (serialized equip diff guard) (Done)
 18.2 Fuzz equip/un-equip sequences (state machine coverage) (Done)
 18.3 Statistical proc rate tests (expected vs empirical ± tolerance) (Done)
-18.4 Stress: max sockets + gems + set + runeword combination (X)
+18.4 Stress: max sockets + gems + set + runeword combination (Done)
 18.5 Mutation tests (random bit flips -> robust rejection) (X)
 18.6 Tests: all above harnesses integrated into CI gating (X)
 
