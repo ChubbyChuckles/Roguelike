@@ -1,0 +1,30 @@
+[
+  {
+    "id": "iron_sword",
+    "name": "Iron Sword",
+    "category": 2,
+    "level_req": 1,
+    "stack_max": 1,
+    "base_value": 25,
+    "base_damage_min": 3,
+    "base_damage_max": 5,
+    "base_armor": 0,
+  "sprite_path": "../assets/items/iron_sword.png",
+  "sprite_tx": 0, "sprite_ty": 0, "sprite_tw": 32, "sprite_th": 32,
+    "rarity": 0, "flags": 0
+  },
+  {
+    "id": "healing_potion_small",
+    "name": "Small Healing Potion",
+    "category": 1,
+    "level_req": 1,
+    "stack_max": 20,
+    "base_value": 5,
+    "base_damage_min": 0,
+    "base_damage_max": 0,
+    "base_armor": 0,
+  "sprite_path": "assets/items/healing_potion_small.png",
+  "sprite_tx": 0, "sprite_ty": 0, "sprite_tw": 32, "sprite_th": 32,
+    "rarity": 0, "flags": 0
+  }
+]

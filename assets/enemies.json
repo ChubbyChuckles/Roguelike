@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Orc Basic",
+    "group_min": 1,
+    "group_max": 3,
+    "patrol_radius": 4,
+    "aggro_radius": 6,
+    "speed": 28.0,
+    "pop_target": 30,
+    "xp_reward": 5,
+    "loot_chance": 0.35,
+    "idle_sheet": "../assets/biomes/default/Mobs/Orc Crew/Orc/Idle/Idle-Sheet.png",
+    "run_sheet": "../assets/biomes/default/Mobs/Orc Crew/Orc/Run/Run-Sheet.png",
+    "death_sheet": "../assets/biomes/default/Mobs/Orc Crew/Orc/Death/Death-Sheet.png",
+    "loot_table": "basic_enemies"
+  },
+  {
+    "name": "Orc Warrior",
+    "group_min": 1,
+    "group_max": 2,
+    "patrol_radius": 5,
+    "aggro_radius": 8,
+    "speed": 30.0,
+    "pop_target": 20,
+    "xp_reward": 8,
+    "loot_chance": 0.30,
+    "idle_sheet": "../assets/biomes/default/Mobs/Orc Crew/Orc - Warrior/Idle/Idle-Sheet.png",
+    "run_sheet": "../assets/biomes/default/Mobs/Orc Crew/Orc - Warrior/Run/Run-Sheet.png",
+    "death_sheet": "../assets/biomes/default/Mobs/Orc Crew/Orc - Warrior/Death/Death-Sheet.png",
+    "loot_table": "basic_enemies"
+  }
+]

@@ -1,0 +1,11 @@
+[
+  {
+    "id": "basic_enemies",
+    "rolls_min": 1,
+    "rolls_max": 1,
+    "entries": [
+      { "item_id": "iron_sword", "weight": 10, "qmin": 0, "qmax": 1 },
+      { "item_id": "healing_potion_small", "weight": 25, "qmin": 1, "qmax": 3 }
+    ]
+  }
+]
