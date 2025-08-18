@@ -4,6 +4,7 @@
 #include "core/loot_instances.h"
 #include "core/loot_affixes.h"
 #include "core/stat_cache.h"
+#include "core/equipment_uniques.h"
 /* Phase 4.1: Implicit + set bonus + runeword scaffolding
     For Phase 4.1 we populate only implicits; future sub-phases will extend with unique/set/runeword layers. */
 
@@ -104,6 +105,19 @@ static void gather_implicit_primary_and_armor(void){
     g_player_stat_cache.resist_status += r_status;
 }
 
+/* Gather unique item fixed bonuses into unique_* layer (Phase 4.2). */
+static void gather_unique_primary(void){
+    int str=0,dex=0,vit=0,intel=0; int armor_flat=0; int r_phys=0,r_fire=0,r_cold=0,r_light=0,r_poison=0,r_status=0;
+    for(int slot=0; slot<ROGUE_EQUIP__COUNT; ++slot){
+        int inst_index = rogue_equip_get((enum RogueEquipSlot)slot); if(inst_index<0) continue; const RogueItemInstance* it=rogue_item_instance_at(inst_index); if(!it) continue; const RogueItemDef* d=rogue_item_def_at(it->def_index); if(!d) continue; int uidx = rogue_unique_find_by_base_def(it->def_index); if(uidx<0) continue; const RogueUniqueDef* u = rogue_unique_at(uidx); if(!u) continue; str += u->strength; dex += u->dexterity; vit += u->vitality; intel += u->intelligence; armor_flat += u->armor_flat; r_phys += u->resist_physical; r_fire += u->resist_fire; r_cold += u->resist_cold; r_light += u->resist_lightning; r_poison += u->resist_poison; r_status += u->resist_status; }
+    g_player_stat_cache.unique_strength = str;
+    g_player_stat_cache.unique_dexterity = dex;
+    g_player_stat_cache.unique_vitality = vit;
+    g_player_stat_cache.unique_intelligence = intel;
+    g_player_stat_cache.affix_armor_flat += armor_flat; /* fold into shared flat armor contribution */
+    g_player_stat_cache.resist_physical += r_phys; g_player_stat_cache.resist_fire += r_fire; g_player_stat_cache.resist_cold += r_cold; g_player_stat_cache.resist_lightning += r_light; g_player_stat_cache.resist_poison += r_poison; g_player_stat_cache.resist_status += r_status;
+}
+
 void rogue_equipment_apply_stat_bonuses(RoguePlayer* p){
     (void)p; /* player base unchanged here; layering system pulls from p + cache additions */
     /* Reset dynamic aggregation fields we own before recomputing. Base & implicit fields cleared in stat cache compute_layers. */
@@ -116,5 +130,6 @@ void rogue_equipment_apply_stat_bonuses(RoguePlayer* p){
     g_player_stat_cache.resist_poison = g_player_stat_cache.resist_status = 0;
     gather_affix_primary_and_armor();
     gather_implicit_primary_and_armor();
+    gather_unique_primary();
     rogue_stat_cache_mark_dirty();
 }

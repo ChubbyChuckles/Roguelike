@@ -490,6 +490,17 @@ Phase 4 begins expanding beyond affixes into richer base item identity. Phase 4.
 
 Upcoming (remaining Phase 4 goals): unique item registry & hooks (4.2), set bonus thresholds & partial scaling (4.3/4.4), runeword recipe scaffold (4.5), and deterministic precedence rules (4.6) with comprehensive test suite (4.7).
 
+#### Equipment Phase 4.2: Unique Item Registry & Layer
+
+Introduces a simple data-driven unique item system layered cleanly between implicit and affix contributions:
+
+* Registry: `equipment_uniques.c` maintains up to 64 `RogueUniqueDef` entries (id, base_item_id, fixed stat bonuses, future hook id).
+* Layering: Stat cache expanded with `unique_*` fields; aggregation pass detects equipped items whose base definition matches a registered unique and sums bonuses.
+* Determinism: Unique layer ordered after implicit and before affixes, ensuring predictable overrides without mutating base or implicit stats.
+* Extensibility: Hook id reserved for future behavior (on-hit effects, conditional procs) while preserving pure stat aggregation now.
+* Test: `test_equipment_phase4_2_uniques` validates registration, aggregation, resist contributions, and fingerprint change when a second unique (helm) is added post-equip.
+
+
 * Each `RogueItemInstance` now tracks `item_level` (baseline 1 on spawn) driving a power budget.
 * Budget formula: `budget = 20 + item_level * 5 + (rarity^2) * 10` (rarity clamped 0..4). Provides quadratic headroom for premium tiers while keeping early levels constrained.
 * Affix roll enforcement: After prefix/suffix value rolls, aggregate weight is clamped to budget by decrementing the larger affix first (ties favor prefix) ensuring no over-budget items enter the ecosystem.

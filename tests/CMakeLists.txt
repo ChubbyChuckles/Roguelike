@@ -2103,6 +2103,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase4_1_implicits.c A
     add_test(NAME test_equipment_phase4_1_implicits COMMAND test_equipment_phase4_1_implicits)
 endif()
 
+# Equipment System Phase 4.2 unique layer test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase4_2_uniques.c AND NOT TARGET test_equipment_phase4_2_uniques)
+    add_executable(test_equipment_phase4_2_uniques unit/test_equipment_phase4_2_uniques.c)
+    target_link_libraries(test_equipment_phase4_2_uniques PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_equipment_phase4_2_uniques PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_equipment_phase4_2_uniques COMMAND test_equipment_phase4_2_uniques)
+endif()
+
 # Explicitly add loot phase 5 rarity parse test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase5_rarity_parse.c AND NOT TARGET test_loot_phase5_rarity_parse)
     add_executable(test_loot_phase5_rarity_parse unit/test_loot_phase5_rarity_parse.c)

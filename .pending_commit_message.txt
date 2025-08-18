@@ -67,3 +67,16 @@ Roadmap Updates:
 * Phase 4.1 marked Done.
 
 Next Steps (Phase 4 continuation): implement unique item schema + hook dispatch (4.2), set bonuses & partial scaling (4.3/4.4), runeword recipe scaffold (4.5), and precedence rules (4.6) with comprehensive tests (4.7).
+---
+
+Equipment System Phase 4.2 – Unique Item Registry & Layer
+
+Implemented Features:
+* Added `equipment_uniques.{h,c}` module with registry APIs (`rogue_unique_register`, `rogue_unique_find_by_base_def`).
+* Unique definitions provide fixed primary/resist/armor bonuses applied via new `unique_*` layer in stat cache (struct extended).
+* Aggregation pass updated (`gather_unique_primary`) to sum unique bonuses for equipped base items flagged by registry.
+* Stat cache layering formula extended to include unique_* between implicit and affix layers ensuring deterministic ordering.
+* Unit test `test_equipment_phase4_2_uniques` validates registration, aggregation, resist contribution, fingerprint mutation when adding second unique.
+* Roadmap Phase 4.2 marked Done.
+
+Upcoming: Set bonuses (4.3/4.4) leveraging existing `set_id` field, then runeword scaffold (4.5) and precedence spec (4.6) with comprehensive tests (4.7).
