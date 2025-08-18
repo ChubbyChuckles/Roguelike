@@ -108,6 +108,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase4_query_cache.c A
     add_test(NAME test_inventory_phase4_query_cache COMMAND test_inventory_phase4_query_cache)
 endif()
 
+# Inventory Phase 4 quick actions test (4.4 UI binding)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase4_quick_actions.c AND NOT TARGET test_inventory_phase4_quick_actions)
+    add_executable(test_inventory_phase4_quick_actions unit/test_inventory_phase4_quick_actions.c)
+    target_link_libraries(test_inventory_phase4_quick_actions PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_inventory_phase4_quick_actions PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_inventory_phase4_quick_actions COMMAND test_inventory_phase4_quick_actions)
+endif()
+
 # Equipment Phase 5 sockets test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_phase5_sockets.c AND NOT TARGET test_equipment_phase5_sockets)
     add_executable(test_equipment_phase5_sockets unit/test_equipment_phase5_sockets.c)

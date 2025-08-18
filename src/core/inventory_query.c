@@ -91,24 +91,29 @@ static int def_has_tag(int def_index, const char* tag){ return rogue_inv_tags_ha
 
 static int compare_int(int lhs, int rhs, CmpOp op){ switch(op){ case CMP_EQ: return lhs==rhs; case CMP_NE: return lhs!=rhs; case CMP_LT: return lhs<rhs; case CMP_LE: return lhs<=rhs; case CMP_GT: return lhs>rhs; case CMP_GE: return lhs>=rhs; default: return 0; } }
 
-static int eval_predicate(const Predicate* p, int def_index){ const RogueItemDef* d = rogue_item_def_at(def_index); if(!d) return 0; int qty = (int)rogue_inventory_quantity(def_index);
+static int eval_predicate(const Predicate* p, int def_index){ int qty = (int)rogue_inventory_quantity(def_index); const RogueItemDef* d = NULL;
     switch(p->field){
-        case PRED_RARITY: return compare_int(d->rarity, p->int_val, p->op);
         case PRED_QTY: return compare_int(qty, p->int_val, p->op);
+        case PRED_RARITY: d = rogue_item_def_at(def_index); if(!d) return 0; return compare_int(d->rarity, p->int_val, p->op);
         case PRED_CATEGORY: {
+            d = rogue_item_def_at(def_index); if(!d) return 0;
             int cat = -1; if(p->str_val[0]) cat = category_from_string(p->str_val); if(cat<0) cat = p->int_val; if(p->op==CMP_SUBSTR && p->str_val[0]){ /* substring match on name */ return icase_strstr(d->name,p->str_val); }
             return compare_int(d->category, cat, p->op); }
         case PRED_TAG: {
+            d = rogue_item_def_at(def_index); if(!d) return 0;
             if(p->op==CMP_EQ){ return def_has_tag(def_index,p->str_val); }
             if(p->op==CMP_NE){ return !def_has_tag(def_index,p->str_val); }
             if(p->op==CMP_SUBSTR){ /* any tag contains substring */ const char* tags[8]; int n=rogue_inv_tags_list(def_index,tags,8); for(int i=0;i<n;i++){ if(tags[i] && icase_strstr(tags[i],p->str_val)) return 1; } return 0; }
             return 0; }
-        case PRED_EQUIP_SLOT: return equip_slot_matches_category(p->str_val, d->category);
+        case PRED_EQUIP_SLOT: d = rogue_item_def_at(def_index); if(!d) return 0; return equip_slot_matches_category(p->str_val, d->category);
         case PRED_AFFIX_WEIGHT: {
+            d = rogue_item_def_at(def_index); if(!d) return 0;
             /* ANY instance semantics */ for(int i=0;i<ROGUE_ITEM_INSTANCE_CAP;i++){ const RogueItemInstance* it = rogue_item_instance_at(i); if(!it) continue; if(it->def_index!=def_index) continue; int w = rogue_item_instance_total_affix_weight(i); if(compare_int(w,p->int_val,p->op)) return 1; } return 0; }
         case PRED_QUALITY: {
+            d = rogue_item_def_at(def_index); if(!d) return 0;
             for(int i=0;i<ROGUE_ITEM_INSTANCE_CAP;i++){ const RogueItemInstance* it = rogue_item_instance_at(i); if(!it) continue; if(it->def_index!=def_index) continue; int q = rogue_item_instance_get_quality(i); if(compare_int(q,p->int_val,p->op)) return 1; } return 0; }
         case PRED_DUR_PCT: {
+            d = rogue_item_def_at(def_index); if(!d) return 0;
             for(int i=0;i<ROGUE_ITEM_INSTANCE_CAP;i++){ const RogueItemInstance* it = rogue_item_instance_at(i); if(!it) continue; if(it->def_index!=def_index) continue; if(it->durability_max>0){ int pct = (int)((it->durability_cur * 100)/ (it->durability_max)); if(compare_int(pct,p->int_val,p->op)) return 1; } } return 0; }
     }
     return 0; }
@@ -219,6 +224,11 @@ int rogue_inventory_saved_search_name(int index, char* out_name, int cap){ if(in
 /* Persistence for saved searches (component id 12) */
 int rogue_inventory_saved_searches_write(FILE* f){ uint32_t count=(uint32_t)g_saved_count; if(fwrite(&count,sizeof count,1,f)!=1) return -1; for(uint32_t i=0;i<count;i++){ const SavedSearch* s=&g_saved[i]; unsigned char nl=(unsigned char)strlen(s->name); unsigned char ql=(unsigned char)strlen(s->query); unsigned char sl=(unsigned char)strlen(s->sort); fwrite(&nl,1,1,f); fwrite(s->name,1,nl,f); fwrite(&ql,1,1,f); fwrite(s->query,1,ql,f); fwrite(&sl,1,1,f); fwrite(s->sort,1,sl,f); } return 0; }
 int rogue_inventory_saved_searches_read(FILE* f, size_t size){ (void)size; uint32_t count=0; if(fread(&count,sizeof count,1,f)!=1) return -1; if(count>ROGUE_INV_SAVED_MAX) count=ROGUE_INV_SAVED_MAX; g_saved_count=0; for(uint32_t i=0;i<count;i++){ unsigned char nl=0,ql=0,sl=0; if(fread(&nl,1,1,f)!=1) return -1; if(nl>=sizeof g_saved[0].name) nl=(unsigned char)(sizeof g_saved[0].name -1); if(fread(g_saved[i].name,1,nl,f)!=nl) return -1; g_saved[i].name[nl]='\0'; if(fread(&ql,1,1,f)!=1) return -1; if(ql>=sizeof g_saved[0].query) ql=(unsigned char)(sizeof g_saved[0].query -1); if(fread(g_saved[i].query,1,ql,f)!=ql) return -1; g_saved[i].query[ql]='\0'; if(fread(&sl,1,1,f)!=1) return -1; if(sl>=sizeof g_saved[0].sort) sl=(unsigned char)(sizeof g_saved[0].sort -1); if(fread(g_saved[i].sort,1,sl,f)!=sl) return -1; g_saved[i].sort[sl]='\0'; g_saved_count++; } return 0; }
+
+/* Quick Action Bar wrappers (Phase 4.4) */
+int rogue_inventory_quick_actions_count(void){ return rogue_inventory_saved_search_count(); }
+int rogue_inventory_quick_action_name(int index, char* out_name, int cap){ return rogue_inventory_saved_search_name(index,out_name,cap); }
+int rogue_inventory_quick_action_apply(int index, int* out_def_indices, int cap){ if(index<0||index>=rogue_inventory_saved_search_count()) return 0; char name[32]; if(rogue_inventory_saved_search_name(index,name,sizeof name)!=0) return 0; return rogue_inventory_saved_search_apply(name,out_def_indices,cap); }
 
 /* ---- Query Result Cache (Phase 4.6) ---- */
 #define ROGUE_INV_QUERY_CACHE_MAX 32

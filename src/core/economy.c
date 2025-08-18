@@ -1,4 +1,5 @@
 #include "core/economy.h"
+#include <math.h> /* sqrt for dynamic pricing curves */
 #include <string.h>
 
 static int g_gold = 0;

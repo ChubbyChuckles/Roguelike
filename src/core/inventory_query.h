@@ -1,4 +1,4 @@
-/* Inventory Query & Advanced Sorting (Inventory System Phase 4.1-4.3)
+/* Inventory Query & Advanced Sorting (Inventory System Phase 4.1-4.4)
  * Provides a lightweight expression parser over aggregated inventory definition entries.
  * Grammar (recursive descent, case-insensitive identifiers):
  *   expr := term { OR term }
@@ -15,6 +15,8 @@
  * - category value accepts numeric or string: misc, consumable, weapon, armor, gem, material.
  * - tag '=' means tag present (exact), '!=' tag absent, '~' substring case-insensitive across any tag.
  * - qty and quantity are aliases.
+ * - Quick action bar (Phase 4.4): thin enumeration/apply layer over saved searches for UI binding.
+ * - Parser diagnostics (Phase 4.1 enhancement): last error string accessible after failed parse.
  */
 #ifndef ROGUE_INVENTORY_QUERY_H
 #define ROGUE_INVENTORY_QUERY_H
@@ -55,6 +57,11 @@ int rogue_inventory_saved_search_count(void);
 int rogue_inventory_saved_search_name(int index, char* out_name, int cap);
 /* Quick apply helper (Phase 4.4 UI binding): execute named saved search (query + optional sort) via cache+sort pipeline */
 int rogue_inventory_saved_search_apply(const char* name, int* out_def_indices, int cap);
+
+/* Quick Action Bar (Phase 4.4): index-based wrappers (UI can cache indices without copying names) */
+int rogue_inventory_quick_actions_count(void); /* mirrors saved_search_count */
+int rogue_inventory_quick_action_name(int index, char* out_name, int cap); /* wraps saved_search_name */
+int rogue_inventory_quick_action_apply(int index, int* out_def_indices, int cap); /* apply by index */
 
 /* Persistence (Phase 4.4): write/read saved searches as component id ROGUE_SAVE_COMP_INV_SAVED_SEARCHES */
 int rogue_inventory_saved_searches_write(FILE* f); /* returns 0 */

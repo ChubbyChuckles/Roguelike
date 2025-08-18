@@ -44,7 +44,7 @@ Status: Not applicable under single-inventory constraint. All previously scoped 
 PHASE 3. Item Metadata & Tagging
 3.1 Favorite / lock flags (prevent salvage/drop unless override) (Done)
 3.2 Player-defined tags (short strings; pooled intern table) (Done)
-3.3 Auto-tag rules (e.g., rarity>=3 => "HighValue") (X)
+3.3 Auto-tag rules (e.g., rarity>=3 => "HighValue") (Done)
 3.4 Tag expression storage (serialized rule DSL) (Done) /* Simple rarity/category rule struct persisted in new save component (inv_tag_rules id=11) */
 3.5 Tag-based color accents in UI (Done) /* Accent color precedence first rule; color retrievable via rogue_inv_tag_rules_accent_color() */
 3.6 Tests: lock enforcement, rule application determinism (Done) /* New test_inventory_phase3_lock_rule_enforce covers salvage/drop prevention and tag rule order (both tags present, first color precedence). */
@@ -53,7 +53,7 @@ PHASE 4. Advanced Query & Sorting
 4.1 Query expression parser: grammar (fields: rarity, affix_weight, tag, equip_slot, quality, durability_pct, qty, category) (Partial) /* Implemented basic recursive-descent parser with AND / OR, predicates, numeric & string value support. Instance-derived fields use ANY-instance semantics. Missing: full fuzz harness & error diagnostics. */
 4.2 Fuzzy text search (single inventory trigram index) (Done) /* Implemented trigram containment index with lazy build + rebuild API. */
 4.3 Composite sorting pipeline (Done) /* Stable multi-key sort implemented via decoration (single pass) supporting rarity, qty, name, category with descending (-key). Deterministic ordering across equal primary keys (def_index final tie). */
-4.4 Saved searches + quick action bar (Partial) /* In-memory registry + persistence (component id=12) + unit tests (basic & persistence). Quick action bar/UI binding pending. */
+4.4 Saved searches + quick action bar (Done) /* Registry + persistence (component id=12) + unit tests (basic, persistence, quick action index API) + quick action bar wrappers (enumerate/apply by index). */
 4.5 Incremental re-index on item mutation (Partial) /* Mutation hook implemented & wired to instance mutation + inventory quantity changes now invalidate trigram dirty bits & query cache. Remaining: wire to durability/quality/affix change APIs if any missing. */
 4.6 Query result cache & LRU eviction (Done) /* Added 32-entry LRU cache keyed by FNV-1a hash of expression with full invalidation on inventory or instance mutation. */
 4.7 Tests: parser fuzz, stable sort determinism, memory leak guard, cache hit ratio thresholds (Partial) /* Added query/sort, saved search, persistence, and query cache tests; stable sort now deterministic; cache stats API exposed (hits/misses). Pending: fuzz harness, hit ratio assertion test, leak guards. */
