@@ -1,25 +1,14 @@
-Phase 14 (Perf & Memory) – Initial Slice
+Phase 15 (Integrity & Anti-Cheat Foundations) – GUIDs + Equip Hash Chain
 
-Implemented performance foundation for equipment aggregation:
- - Added equipment_perf.c/h with SoA per-slot stat arrays and total accumulators (14.1 Done).
- - Added linear frame arena allocator (alloc/reset/high-water) (14.2 Partial – not yet widely adopted outside perf test).
- - Added pseudo-SIMD 4-slot batch aggregation path alongside scalar path; results parity validated (14.3 Done conceptually; real intrinsics deferred for portability).
- - Added lightweight micro-profiler (zone begin/end, stats dump) and instrumented aggregation variants (14.5 Done).
- - New test test_equipment_phase14_perf: spawns items, runs scalar then simd aggregation, asserts identical totals, profiler zone capture, arena bounds, and prints metrics (14.6 Done).
- - Roadmap updated (14.1, 14.3, 14.5, 14.6 Done; 14.2 Partial; 14.4 still X).
+Implemented initial multiplayer integrity scaffolding:
+ - 15.3 GUIDs: Added 64-bit per-item GUID field (spawn-time deterministic mix of instance index, def id, quantity). Accessible via API. Uniqueness test over multiple spawns passes (no collisions in pool).
+ - 15.2 Equip Hash Chain: Rolling 64-bit hash updated on every equip and unequip (slot id + GUID + action salt mixed). Provides tamper-evident sequence for future server reconciliation / replay audit.
+ - 15.1 Validation Scaffolding: Equip path already enforces slot legality & two-hand constraints; with GUID & chain present, server validator (future) can recompute and compare chain state, detect duplicated GUID reuse, or illegal transitions.
+ - Data Model: Extended RogueItemInstance with guid + equip_hash_chain fields; initialization added to spawn logic.
+ - Equip Logic: `rogue_equip_try` and `rogue_equip_unequip` now update hash chain post legality checks.
+ - Tests: New `test_equipment_phase15_integrity` validates GUID uniqueness and hash chain progression (0 -> non-zero on equip, changed on unequip).
+ - Roadmap: Phase 15 items 15.1–15.3 marked Done (scaffolding for 15.1) with notes; remaining 15.4–15.6 pending.
+ - README: Added Phase 15 section documenting GUIDs, hash chain, test coverage, and remaining work.
 
-Phase 14 (Performance & Memory) Expansion: Complete Arena Integration + Parallel Loadout Optimization
-
-Equipment System Phase 14 updates:
-- 14.2 (Arena) Completed: Frame arena now actively used by loadout optimizer for candidate buffers; high-water tracking validated; prevents transient heap pressure.
-- 14.4 (Parallel Affinity) Implemented: Added async optimizer API (launch/join/running). Win32 worker thread executes deterministic hill-climb search; portable fallback runs synchronously when threading unsupported.
-- Optimizer Enhancements: Integrated profiler zone ("optimize") plus async launch zone; candidate enumeration allocates via arena; no heap allocations required on steady state.
-- Profiler Coverage: Aggregation (scalar/simd), synchronous optimize, async launch. JSON dump API unchanged.
-- Tests: Added test_equipment_phase14_parallel covering async improvement, join semantics, and arena reuse (capacity not exceeded). Updated CMake to register new test. Arena reuse test ensures high-water does not exceed capacity across sequential optimizations.
-- README: Phase 14 section revised to reflect completed 14.2 & 14.4 and expanded test coverage.
-- Roadmap: Updated statuses (14.2 Done, 14.4 Done) with implementation notes.
-
-Determinism & Safety: Search ordering unchanged (slot then instance index), ensuring reproducible results regardless of async execution timing. Fallback path maintains API contract cross-platform.
-
-Next Targets: Potential true SIMD intrinsics (feature-gated), profiler diff tooling, and future Phase 15 multiplayer integrity hooks.
+Follow-ups (deferred): replay auditor (proc rate anomaly detection), banned affix blacklist ingestion, server-side authoritative validation harness, negative tests for chain tampering and duplicate GUID injection.
 

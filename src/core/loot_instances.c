@@ -19,7 +19,7 @@ int rogue_items_spawn(int def_index, int quantity, float x, float y){
         const RogueItemDef* idef = rogue_item_def_at(def_index);
     int rarity = (idef? idef->rarity : 0);
     g_instances[i].def_index = def_index; g_instances[i].quantity = quantity; g_instances[i].x = x; g_instances[i].y = y; g_instances[i].life_ms=0; g_instances[i].active=1; g_instances[i].rarity=rarity; g_instances[i].item_level = 1; /* baseline */
-    g_instances[i].prefix_index = -1; g_instances[i].suffix_index = -1; g_instances[i].prefix_value=0; g_instances[i].suffix_value=0; g_instances[i].hidden_filter=0; g_instances[i].fractured=0; g_instances[i].quality=0; g_instances[i].stored_affix_index=-1; g_instances[i].stored_affix_value=0; g_instances[i].stored_affix_used=0;
+    g_instances[i].prefix_index = -1; g_instances[i].suffix_index = -1; g_instances[i].prefix_value=0; g_instances[i].suffix_value=0; g_instances[i].hidden_filter=0; g_instances[i].fractured=0; g_instances[i].quality=0; g_instances[i].stored_affix_index=-1; g_instances[i].stored_affix_value=0; g_instances[i].stored_affix_used=0; g_instances[i].guid = ((unsigned long long)def_index<<32) ^ (unsigned long long)((i+1)*0x9E3779B185EBCA87ULL) ^ (unsigned long long)(quantity*0xC2B2AE3D27D4EB4FULL); g_instances[i].equip_hash_chain=0ULL;
     /* Initialize sockets (Phase 5.1). Random count inside min..max if range >0 using local deterministic LCG seeded from position & def_index. */
     g_instances[i].socket_count = 0; for(int s=0;s<6;s++) g_instances[i].sockets[s] = -1;
     if(idef){ int min=idef->socket_min, max=idef->socket_max; if(max>6) max=6; if(min<0) min=0; if(max>=min && max>0){ unsigned int seed = (unsigned int)(i*2654435761u) ^ (unsigned int)def_index ^ (unsigned int)((int)x*73856093) ^ (unsigned int)((int)y*19349663); seed = seed*1664525u + 1013904223u; int span = (max-min)+1; int roll = (span>0)? (int)(seed % (unsigned int)span) : 0; g_instances[i].socket_count = min + roll; if(g_instances[i].socket_count>6) g_instances[i].socket_count=6; }}
@@ -38,6 +38,9 @@ int rogue_items_spawn(int def_index, int quantity, float x, float y){
 }
 
 const RogueItemInstance* rogue_item_instance_at(int index){ if(index<0 || index>=ROGUE_ITEM_INSTANCE_CAP) return NULL; if(!g_instances[index].active) return NULL; return &g_instances[index]; }
+
+unsigned long long rogue_item_instance_guid(int inst_index){ const RogueItemInstance* it=rogue_item_instance_at(inst_index); return it? it->guid : 0ULL; }
+unsigned long long rogue_item_instance_equip_chain(int inst_index){ const RogueItemInstance* it=rogue_item_instance_at(inst_index); return it? it->equip_hash_chain : 0ULL; }
 
 int rogue_item_instance_generate_affixes(int inst_index, unsigned int* rng_state, int rarity){
     if(inst_index<0 || inst_index>=ROGUE_ITEM_INSTANCE_CAP) return -1; if(!rng_state) return -1;

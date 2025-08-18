@@ -25,14 +25,18 @@ static int category_for_slot(enum RogueEquipSlot slot){
 
 int rogue_equip_item_is_two_handed(int inst_index){ const RogueItemInstance* it = rogue_item_instance_at(inst_index); if(!it) return 0; const RogueItemDef* d = rogue_item_def_at(it->def_index); if(!d) return 0; if(d->category!=ROGUE_ITEM_WEAPON) return 0; return (d->flags & ROGUE_ITEM_FLAG_TWO_HANDED) ? 1 : 0; }
 
+static unsigned long long equip_mix64(unsigned long long h, unsigned long long v){ h ^= v + 0x9E3779B97F4A7C15ULL + (h<<6) + (h>>2); return h; }
 int rogue_equip_try(enum RogueEquipSlot slot, int inst_index){
 	const RogueItemInstance* it = rogue_item_instance_at(inst_index); if(!it) return -1; const RogueItemDef* d = rogue_item_def_at(it->def_index); if(!d) return -2; int want_cat = category_for_slot(slot); if(d->category != want_cat) return -3; 
 	/* Two-handed weapon occupancy rule */
 	if(slot==ROGUE_EQUIP_WEAPON){ if(rogue_equip_item_is_two_handed(inst_index)){ if(g_slots[ROGUE_EQUIP_OFFHAND]>=0) { g_slots[ROGUE_EQUIP_OFFHAND]=-1; } } }
 	/* Equipping offhand while two-handed weapon equipped should fail */
 	if(slot==ROGUE_EQUIP_OFFHAND){ int winst = g_slots[ROGUE_EQUIP_WEAPON]; if(winst>=0 && rogue_equip_item_is_two_handed(winst)) return -4; }
-	g_slots[slot]=inst_index; rogue_stat_cache_mark_dirty(); return 0; }
-int rogue_equip_unequip(enum RogueEquipSlot slot){ if(slot<0||slot>=ROGUE_EQUIP__COUNT) return -1; int prev=g_slots[slot]; g_slots[slot]=-1; if(prev>=0) rogue_stat_cache_mark_dirty(); return prev; }
+	g_slots[slot]=inst_index; 
+	/* Phase 15.2: update item equip hash chain (equip event) */
+	RogueItemInstance* mut=(RogueItemInstance*)it; mut->equip_hash_chain = equip_mix64(mut->equip_hash_chain, ((unsigned long long)slot<<56) ^ mut->guid ^ 0xE11AFBULL);
+	rogue_stat_cache_mark_dirty(); return 0; }
+int rogue_equip_unequip(enum RogueEquipSlot slot){ if(slot<0||slot>=ROGUE_EQUIP__COUNT) return -1; int prev=g_slots[slot]; g_slots[slot]=-1; if(prev>=0){ const RogueItemInstance* it=rogue_item_instance_at(prev); if(it){ RogueItemInstance* mut=(RogueItemInstance*)it; mut->equip_hash_chain = equip_mix64(mut->equip_hash_chain, ((unsigned long long)slot<<56) ^ mut->guid ^ 0x51CED9ULL); } rogue_stat_cache_mark_dirty(); } return prev; }
 
 int rogue_equip_set_transmog(enum RogueEquipSlot slot, int def_index){ if(slot<0||slot>=ROGUE_EQUIP__COUNT) return -1; if(def_index<-1) return -2; if(def_index>=0){ const RogueItemDef* d = rogue_item_def_at(def_index); if(!d) return -3; /* Only allow same broad category for now */ int cat = category_for_slot(slot); if(d->category!=cat) return -4; }
 	g_transmog_defs[slot]=def_index; return 0; }

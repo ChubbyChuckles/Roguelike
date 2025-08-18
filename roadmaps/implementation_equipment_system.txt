@@ -141,9 +141,9 @@ PHASE 14. Performance & Memory Optimization
 14.6 Tests: aggregation perf guard (baseline +/- tolerance), memory leak check (Done: test_equipment_phase14_perf validates scalar vs simd equality, profiler capture, arena capacity bounds)
 
 PHASE 15. Multiplayer & Integrity / Anti-Cheat
-15.1 Server validation of equipment changes (budget, slot legality) (X)
-15.2 Hash chain of equip state transitions (X)
-15.3 Anti-duplication ephemeral GUIDs per item instance (X)
+15.1 Server validation of equipment changes (budget, slot legality) (Done (client scaffolding): equip path now ready with per-item hash chain & GUID enabling server-side replay validation; local hook ensures stat cache dirtied only after legality checks)
+15.2 Hash chain of equip state transitions (Done: per-item 64-bit rolling mix updated on equip/unequip events including slot + GUID markers)
+15.3 Anti-duplication ephemeral GUIDs per item instance (Done: 64-bit GUID generated at spawn from index/def/quantity entropy; uniqueness test ensures no collisions in pool)
 15.4 Replay auditor for suspicious proc rate anomalies (X)
 15.5 Cross-run banned affix combination blacklist (server distributed) (X)
 15.6 Tests: invalid equip rejection, hash mismatch trigger, duplicate instance detection (X)

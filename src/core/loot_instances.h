@@ -49,6 +49,10 @@ typedef struct RogueItemInstance {
     int stored_affix_index; /* -1 none */
     int stored_affix_value; /* value of stored affix */
     int stored_affix_used;  /* 1 if orb already applied to a target */
+    /* Phase 15.3: Anti-duplication GUID (unique per spawn). 64-bit for low collision probability. */
+    unsigned long long guid;
+    /* Phase 15.2: Hash chain of equipment state transitions (slot equips/unequips). Stored locally for audit; server would recompute. */
+    unsigned long long equip_hash_chain;
 } RogueItemInstance;
 
 void rogue_items_init_runtime(void);
@@ -62,6 +66,10 @@ void rogue_items_update(float dt_ms);
 /* Affix APIs (7.5 / 7.6) */
 int rogue_item_instance_generate_affixes(int inst_index, unsigned int* rng_state, int rarity);
 const RogueItemInstance* rogue_item_instance_at(int index);
+/* Phase 15.3: GUID helper */
+unsigned long long rogue_item_instance_guid(int inst_index);
+/* Phase 15.2: Hash chain getter (for audits) */
+unsigned long long rogue_item_instance_equip_chain(int inst_index);
 /* Derived damage range including affix flat damage bonuses */
 int rogue_item_instance_damage_min(int inst_index);
 int rogue_item_instance_damage_max(int inst_index);

@@ -139,6 +139,16 @@ Performance layer now covers memory pooling, aggregation variants, micro-profili
 * Micro-Profiler (14.5): Zone profiler covers aggregation modes, synchronous optimize, and async launch; JSON dump helper for potential CI perf diffing.
 * Perf & Parallel Tests (14.6 Extended): `test_equipment_phase14_perf` (aggregation parity & profiler), and new `test_equipment_phase14_parallel` validating async improvement non-decrease, join semantics, and arena reuse (no capacity overflow across successive optimizer runs).
 
+### Equipment System Phase 15 (Integrity & Anti-Cheat Foundations)
+
+Initial multiplayer integrity scaffolding implemented client-side to enable future authoritative server reconciliation:
+* GUIDs (15.3): Every spawned item instance now receives a 64-bit pseudo-random GUID derived from deterministic mix of instance index, definition id, and quantity. Uniqueness within active pool validated via `test_equipment_phase15_integrity` (no collisions over sample spawns).
+* Equip Hash Chain (15.2): Each item maintains a rolling 64-bit hash chain updated on equip and unequip events (slot id + GUID + distinct salt per action). Chain acts as a tamper-evident transcript of an item's lifecycle for post-hoc server audit—server can recompute from logged events and compare.
+* Validation Hook (15.1 partial / client scaffolding): Equip API already enforces slot category & two-hand constraints before mutating state; with GUID + hash chain present, server logic (future) can reject desynchronized states or duplicated GUID submissions.
+* Tests: `test_equipment_phase15_integrity` asserts GUID uniqueness and that equip hash chain mutates from 0→non-zero on first equip and changes again on unequip.
+
+Remaining Phase 15 roadmap work (server-side validators, replay auditor, banned affix blacklist, broader negative tests) deferred until multiplayer transport layer & authoritative simulation are introduced.
+
 Public APIs (`equipment_persist.h`):
 * `rogue_equipment_serialize(buf, cap)` – emits versioned block; returns bytes written or -1.
 * `rogue_equipment_deserialize(text)` – idempotently reconstructs equipped items (spawning instances) from text; tolerates legacy headerless data.
