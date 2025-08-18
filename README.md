@@ -226,6 +226,13 @@ Adds an underground dungeon layer built from a deterministic room graph.
 * 7.7 Validation: Unit test asserts full reachability, minimum loop ratio threshold, non-zero carving, deterministic regeneration (room centers), secret/lock/trap counts non-negative, and tagging invariants (exactly one treasure, at least one elite).
 New tile types: `ROGUE_TILE_DUNGEON_WALL`, `ROGUE_TILE_DUNGEON_FLOOR`, `ROGUE_TILE_DUNGEON_DOOR`, `ROGUE_TILE_DUNGEON_LOCKED_DOOR`, `ROGUE_TILE_DUNGEON_SECRET_DOOR`, `ROGUE_TILE_DUNGEON_TRAP`, `ROGUE_TILE_DUNGEON_KEY`.
 
+### Equipment System Phase 7.1 (Defensive Layer – Block Stats)
+Introduced first defensive extensions toward Phase 7 goals:
+* New affix stats: `block_chance`, `block_value` (bulwark / of_guarding) parsed & rollable.
+* Stat cache aggregation wiring plus passive block application when not actively guarding.
+* Unit tests: `test_equipment_phase7_defensive` (runtime block reduction) and `test_equipment_phase7_block_affixes` (affix parsing + cache injection).
+Forms baseline for upcoming damage conversion, guard recovery, reactive shields, and thorns reflect phases.
+
 ### Equipment System Phase 1 (Completed)
 * Added expanded equipment slot enum: weapon, offhand, head, chest, legs, hands, feet, ring1, ring2, amulet, belt, cloak, charm1, charm2.
 * Implemented data-driven two-handed weapon flag (item definition `flags` bitmask) powering automatic offhand clearing and offhand equip blocking.

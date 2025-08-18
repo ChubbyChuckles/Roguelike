@@ -71,6 +71,14 @@ endif()
         add_test(NAME test_equipment_phase7_defensive COMMAND test_equipment_phase7_defensive)
         set_tests_properties(test_equipment_phase7_defensive PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+        add_executable(test_equipment_phase7_block_affixes unit/test_equipment_phase7_block_affixes.c)
+        target_link_libraries(test_equipment_phase7_block_affixes PRIVATE rogue_core)
+        if(ROGUE_ENABLE_SDL)
+            target_compile_definitions(test_equipment_phase7_block_affixes PRIVATE ROGUE_HAVE_SDL=1)
+        endif()
+        add_test(NAME test_equipment_phase7_block_affixes COMMAND test_equipment_phase7_block_affixes)
+        set_tests_properties(test_equipment_phase7_block_affixes PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
 # UI Phase 6.2 bars + AP smoothing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARGET test_ui_phase6_bars_ap)
     add_executable(test_ui_phase6_bars_ap unit/test_ui_phase6_bars_ap.c)

@@ -76,7 +76,7 @@ PHASE 6. Conditional Effects & Proc Engine
 6.7 Tests: ICD enforcement, stacking semantics, deterministic ordering with mixed triggers (Done – extended proc engine test covers stacking varieties, sequence ordering, telemetry non-zero)
 
 PHASE 7. Defensive Layer Extensions
-7.1 Block value & block chance stats (armor/offhand) (X)
+7.1 Block value & block chance stats (armor/offhand) (Done: stat cache fields, affix enum+parsing, aggregation wiring, passive block logic in combat_guard, tests: test_equipment_phase7_defensive (runtime reduction), test_equipment_phase7_block_affixes (affix injection))
 7.2 Damage conversion affixes (e.g., 15% incoming physical -> fire) (X)
 7.3 Guard break recovery modifiers (equipment-based) (X)
 7.4 Reactive shield procs (temporary absorb pool) (X)
