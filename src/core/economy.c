@@ -30,7 +30,19 @@ int rogue_econ_repair_cost_ex(int durability_missing, int rarity, int item_level
 	if(cost > 2000000000LL) cost = 2000000000LL;
 	return (int)cost;
 }
-int rogue_econ_repair_cost(int durability_missing, int rarity){ return rogue_econ_repair_cost_ex(durability_missing, rarity, 1); }
+/* Legacy wrapper preserves original linear Phase 10.4 semantics used by older tests:
+   unit = 5 + rarity*5 (rarity clamped 0..10), total = durability_missing * unit.
+   Extended API ( _ex ) introduced rarity*6 + sqrt(level) scaling, but tests like
+   test_economy_sink still assert the legacy costs (50, 250 for missing=10 r0/r4).
+   Keep wrapper independent so changes to the extended formula don't break legacy tests. */
+int rogue_econ_repair_cost(int durability_missing, int rarity){
+	if(durability_missing <= 0) return 0;
+	if(rarity < 0) rarity = 0; if(rarity > 10) rarity = 10;
+	int unit = 5 + rarity * 5;
+	long long cost = (long long)durability_missing * unit;
+	if(cost > 2000000000LL) cost = 2000000000LL;
+	return (int)cost;
+}
 
 int rogue_econ_reroll_affix_cost(int rarity){
 	if(rarity < 0) rarity = 0; if(rarity > 10) rarity = 10;
