@@ -10,6 +10,8 @@ typedef struct RogueStatCache {
     int base_dexterity, implicit_dexterity, affix_dexterity, buff_dexterity, total_dexterity;
     int base_vitality, implicit_vitality, affix_vitality, buff_vitality, total_vitality;
     int base_intelligence, implicit_intelligence, affix_intelligence, buff_intelligence, total_intelligence;
+    /* Additional layered defensive contributions */
+    int affix_armor_flat; /* aggregated from armor_flat affixes (Phase 2.1 extension) */
     /* Derived metrics (Phase 2.2 early) */
     int dps_estimate; /* simple heuristic */
     int ehp_estimate; /* effective HP proxy */

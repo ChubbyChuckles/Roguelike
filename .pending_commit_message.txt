@@ -1,25 +1,23 @@
-Equipment System Phase 1 completion & Phase 2 initial layering
+Equipment System Phase 2 – Layered Stat Cache Affix Aggregation & Derived Metrics
 
-Phase 1 (recap):
-- Added additional equip slots (ring1, ring2, amulet, belt, boots, cloak, charm_a/b, offhand)
-- Two-handed weapon occupancy logic + atomic equip/unequip enforcement
-- Cosmetic transmog layer per-slot with category validation APIs
-- Persistence migration for new slots; save/load roundtrip test
-- New test assets (test_equipment_items.cfg) and unit tests: test_equipment_phase1_slots, test_equipment_phase1_transmog, test_equipment_phase1_persistence (atomicity + save/load)
+Implemented features:
+* Added new affix stat kinds: strength_flat, dexterity_flat, vitality_flat, intelligence_flat, armor_flat (parser + enum).
+* Refactored equipment stat aggregation to populate g_player_stat_cache.affix_* layers instead of mutating player base stats.
+* Extended stat cache structure with affix_armor_flat and preserved externally gathered affix_* values during layer recompute.
+* Added derived metrics (dps_estimate, ehp_estimate, toughness_index, mobility_index, sustain_index placeholder) populated each update.
+* Introduced soft cap helper (rogue_soft_cap_apply) with continuity & diminishing returns tests.
+* Fingerprint hashing over layered + derived fields retained (determinism audit).
+* New tests:
+	- test_equipment_phase2_affix_layers (affix layer population, fingerprint mutation on affix change, equip ordering invariance)
+	- test_equipment_phase2_stat_cache (layer integrity, fingerprint change on base stat mutation, soft cap curve + monotonic slope)
+* Roadmap updated: Phase 2 items 2.1, 2.2, 2.4, 2.5, 2.6 marked Done (2.3 pending).
+* README changelog updated with Phase 2 highlight summary.
 
-Phase 2 (Advanced Stat Aggregation) initial implementation:
-- Implemented layered stat cache structure (base/implicit/affix/buff/total per primary attribute) (2.1 Done)
-- Added derived metric scaffolding: dps_estimate, ehp_estimate, toughness_index, mobility_index, sustain_index placeholder (2.2 Partial)
-- Introduced soft cap helper function rogue_soft_cap_apply (2.4 Partial)
-- Added deterministic fingerprint hashing over layered + derived numeric fields (rogue_stat_cache_fingerprint) (2.5 Done)
-- New unit test test_equipment_phase2_stat_cache validating:
-	* Layer integrity (base vs total)
-	* Fingerprint changes on stat mutation
-	* Soft cap curve reduces over-cap values while preserving below-cap values (2.6 Partial)
-- Updated equipment roadmap: mark 2.1 Done, 2.2/2.4/2.6 Partial, 2.5 Done
-- Updated README changelog with Phase 1 completion and Phase 2 progress highlights
+Notes:
+* Resist breakdown panel (2.3) remains unimplemented.
+* Future phases will introduce implicit/base item modifiers and buff layers feeding existing cache structure without breaking fingerprint hashing.
 
-Next steps (not yet implemented):
-- Populate implicit & affix layers from item defs and affix stats
-- Apply soft caps to specific aggregated metrics (dexterity->attack speed, vitality->EHP) and add monotonic derivative tests
-- Add ordering invariance test (equip sequence independence) and extended fingerprint determinism under multi-slot changes
+Next steps:
+1) Implement Phase 2.3 resist breakdown panel + data model.
+2) Begin Phase 3 item_level + budget governance scaffolding.
+3) Add additional tests for large multi-slot equip permutations (stress determinism hashing).

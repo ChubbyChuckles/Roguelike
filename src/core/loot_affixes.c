@@ -13,7 +13,16 @@ int rogue_affix_index(const char* id){ if(!id) return -1; for(int i=0;i<g_affix_
 
 static char* next_field(char** cur){ if(!*cur) return NULL; char* s=*cur; char* p=*cur; while(*p && *p!=','){ p++; } if(*p==','){ *p='\0'; p++; } else if(*p=='\0'){} *cur = (*p)? p:NULL; return s; }
 static RogueAffixType parse_type(const char* s){ if(strcmp(s,"PREFIX")==0) return ROGUE_AFFIX_PREFIX; return ROGUE_AFFIX_SUFFIX; }
-static RogueAffixStat parse_stat(const char* s){ if(strcmp(s,"damage_flat")==0) return ROGUE_AFFIX_STAT_DAMAGE_FLAT; if(strcmp(s,"agility_flat")==0) return ROGUE_AFFIX_STAT_AGILITY_FLAT; return ROGUE_AFFIX_STAT_NONE; }
+static RogueAffixStat parse_stat(const char* s){
+    if(strcmp(s,"damage_flat")==0) return ROGUE_AFFIX_STAT_DAMAGE_FLAT;
+    if(strcmp(s,"agility_flat")==0) return ROGUE_AFFIX_STAT_AGILITY_FLAT; /* legacy */
+    if(strcmp(s,"strength_flat")==0) return ROGUE_AFFIX_STAT_STRENGTH_FLAT;
+    if(strcmp(s,"dexterity_flat")==0) return ROGUE_AFFIX_STAT_DEXTERITY_FLAT;
+    if(strcmp(s,"vitality_flat")==0) return ROGUE_AFFIX_STAT_VITALITY_FLAT;
+    if(strcmp(s,"intelligence_flat")==0) return ROGUE_AFFIX_STAT_INTELLIGENCE_FLAT;
+    if(strcmp(s,"armor_flat")==0) return ROGUE_AFFIX_STAT_ARMOR_FLAT;
+    return ROGUE_AFFIX_STAT_NONE;
+}
 
 static int parse_line(char* line){
     for(char* p=line; *p; ++p){ if(*p=='\r'||*p=='\n'){ *p='\0'; break; } }

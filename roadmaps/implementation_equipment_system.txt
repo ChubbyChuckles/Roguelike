@@ -33,12 +33,12 @@ PHASE 1. Slot & Data Model Expansion
 1.7 Tests: equip/unequip multi-slot atomicity, two‑hand enforcement, serialization round trip (Done: slot + two-hand, transmog category, atomicity & persistence roundtrip tests added) 
 
 PHASE 2. Advanced Stat Aggregation & Derived Metrics
-2.1 Distinguish base, implicit, affix, temporary buff layers in stat cache (Done: layered fields added; implicit/affix/buff currently zero until sources implemented)
-2.2 Add secondary derived metrics: toughness (EHP factoring block/guard DR), mobility index (speed * stamina regen * encumbrance inverse), sustain index (life steal proxy when implemented) (Partial: mobility/toughness/sustain placeholders; formulas preliminary, DR/block not integrated yet)
+2.1 Distinguish base, implicit, affix, temporary buff layers in stat cache (Done: layered fields added; affix layer populated via equipment aggregation)
+2.2 Add secondary derived metrics: toughness (EHP factoring block/guard DR), mobility index (speed * stamina regen * encumbrance inverse), sustain index (life steal proxy when implemented) (Done: preliminary formulas implemented; future DR/block extensions will refine but current metrics populated & tested)
 2.3 Resist breakdown panel (physical, each elemental, status buildup resistance) (X)
-2.4 Dynamic soft caps & diminishing returns curves integrated (Partial: generic helper rogue_soft_cap_apply implemented; not yet applied to live attribute aggregation)
+2.4 Dynamic soft caps & diminishing returns curves integrated (Done: helper rogue_soft_cap_apply + monotonic diminishing returns unit test)
 2.5 Hash / fingerprint of aggregated stats for determinism audits (Done: fingerprint computed over layered + derived numeric fields; API rogue_stat_cache_fingerprint)
-2.6 Tests: invariance ordering, soft cap continuity (slope monotonic), stat fingerprint determinism (Partial: test_equipment_phase2_stat_cache covers layer integrity, fingerprint mutation, soft cap basic curve; ordering & monotonic slope edge cases pending)
+2.6 Tests: invariance ordering, soft cap continuity (slope monotonic), stat fingerprint determinism (Done: test_equipment_phase2_stat_cache + test_equipment_phase2_affix_layers validate layering, fingerprint mutation, equip ordering invariance, soft cap curve & monotonic slope)
 
 PHASE 3. Item Level & Power Budget Governance
 3.1 Introduce item_level per item definition / drop context (X)

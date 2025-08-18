@@ -27,10 +27,24 @@ static void test_basic_layer_integrity(void){
 static void test_soft_cap_curve(void){
     float cap=100.f, soft=0.5f; float below = rogue_soft_cap_apply(80.f,cap,soft); float over = rogue_soft_cap_apply(200.f,cap,soft); assert(below==80.f); assert(over < 200.f && over > 100.f); }
 
+static void test_soft_cap_monotonic_slope(void){
+    /* Verify diminishing returns: incremental gain beyond cap shrinks with larger raw value. */
+    float cap=100.f, soft=0.75f; float base=cap;
+    float v1 = rogue_soft_cap_apply(base+10.f,cap,soft);
+    float v2 = rogue_soft_cap_apply(base+20.f,cap,soft);
+    float v3 = rogue_soft_cap_apply(base+40.f,cap,soft);
+    float d1 = v1 - cap; float d2 = v2 - v1; float d3 = v3 - v2;
+    /* Each successive delta after the cap should not increase (d3 <= d2 <= d1). */
+    assert(d1 > 0.f && d2 > 0.f && d3 > 0.f);
+    assert(d2 <= d1 + 1e-4f);
+    assert(d3 <= d2 + 1e-4f);
+}
+
 int main(void){
     rogue_item_defs_reset(); load_items(); rogue_equip_reset();
     test_basic_layer_integrity();
     test_soft_cap_curve();
+    test_soft_cap_monotonic_slope();
     printf("stat_cache_phase2_ok\n");
     return 0;
 }

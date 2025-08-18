@@ -69,6 +69,12 @@ Phase M3 (data-driven pipeline) progress:
 * NEW: Phase M4.1 test expansion – projectile & persistence edge cases (`test_projectiles_config_edge`, `test_persistence_edge_cases`) covering partial config overrides, missing file load invariant, negative VERSION clamping, and dirty save gating.
 * NEW: Phase M4.2 deterministic hashing + M4.3 golden master replay harness (`util/determinism.c,h`, `test_determinism_damage_events`) providing FNV-1a hash of `RogueDamageEvent` sequences (stable for identical sequences, differing for variants) and text round-trip serialization for future combat replay validation.
 * NEW: Phase M4.4 parser fuzz tests (`test_fuzz_parsers`) exercising affix CSV loader, player persistence key/value loader, and unified kv parser with randomized malformed/partial lines (ensures graceful ignore, clamps VERSION >0, no crashes, and bounded iteration) establishing baseline robustness harness.
+* NEW: Equipment Phase 2 (advanced stat aggregation) initial slice completed:
+  - Layered stat cache fields (base / implicit / affix / buff) with deterministic fingerprint hashing.
+  - Affix system extended (strength/dexterity/vitality/intelligence/armor flat) feeding `g_player_stat_cache.affix_*` via non‑mutating equipment aggregation pass.
+  - Derived metrics populated (DPS, EHP, toughness, mobility, sustain placeholder).
+  - Soft cap helper (`rogue_soft_cap_apply`) + continuity & diminishing returns unit tests.
+  - Ordering invariance & fingerprint mutation tests (`test_equipment_phase2_affix_layers`, `test_equipment_phase2_stat_cache`).
 
 Next phases (M3+) will introduce unified config schema, hot reload, and expanded deterministic replay/coverage gates.
 
