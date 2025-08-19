@@ -68,3 +68,11 @@ feat(enemy-difficulty): Phase 2 procedural modifiers (initial slice)
 - Integrated new source into core CMake target & added test to tests/CMakeLists.txt.
 - Roadmap Phase 2 entries 2.1–2.5 marked Done; 2.6 (advanced analytics/adaptive weighting) Deferred.
 - README changelog updated with Phase 2 bullet.
+
+feat(enemy-difficulty): Phase 1.6 UI ΔL indicator
+
+- Added HUD delta level severity indicator (near level text) showing ΔL numeric value and color-coded severity via existing classifier.
+- Introduced app state fields (target_enemy_active/target_enemy_level) to drive indicator; default-inited (constructor for non-MSVC, explicit init call for MSVC).
+- Updated `hud.c` to render when a target enemy is active; severity colors chosen for accessibility contrast.
+- Roadmap updated marking Phase 1.6 Done; README changelog entry added.
+- Maintains modularity (no coupling into combat logic yet); future work can set target fields from lock-on system.

@@ -4,6 +4,7 @@
 #include "core/hud_bars.h" /* Phase 6.2 layered bar smoothing */
 #include "core/hud_buff_belt.h" /* Phase 6.3 buff belt */
 #include "core/hud_overlays.h" /* Phase 6.6 alerts + 6.7 metrics */
+#include "core/enemy_difficulty_scaling.h" /* ΔL severity classifier */
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
@@ -83,6 +84,25 @@ void rogue_hud_render(void){
     rogue_alerts_update_and_render(16.0f);
     /* Metrics overlay (Phase 6.7) bottom-left */
     rogue_metrics_overlay_render();
+    /* Enemy ΔL severity indicator (Enemy Difficulty Phase 1.6) */
+    if(g_app.target_enemy_active){
+        int player_level = g_app.player.level;
+        int enemy_level = g_app.target_enemy_level;
+        RogueEnemyDeltaLSeverity sev = rogue_enemy_difficulty_classify_delta(player_level, enemy_level);
+        int dl = player_level - enemy_level; /* positive => player higher */
+        char buf[48]; snprintf(buf,sizeof buf,"ΔL %d", dl);
+        int x = lay->level_text_x + 60; int y = lay->level_text_y; /* offset near level */
+        unsigned char r=200,g=200,b=200;
+        switch(sev){
+            case ROGUE_DLVL_EQUAL: r=200;g=200;b=200; break;
+            case ROGUE_DLVL_MINOR: r=120;g=220;b=120; break;
+            case ROGUE_DLVL_MODERATE: r=255;g=210;b=80; break;
+            case ROGUE_DLVL_MAJOR: r=255;g=120;b=60; break;
+            case ROGUE_DLVL_DOMINANCE: r=80;g=200;b=80; break; /* strong advantage */
+            case ROGUE_DLVL_TRIVIAL: r=40;g=140;b=40; break; /* trivialized */
+        }
+        rogue_font_draw_text(x, y, buf, 1, (RogueColor){r,g,b,255});
+    }
 #endif
 }
 

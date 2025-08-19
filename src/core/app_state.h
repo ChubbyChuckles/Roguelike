@@ -113,9 +113,15 @@ typedef struct RogueAppState {
     int last_alerts_rendered;
     /* Hit System Phase 6 debug toggle */
     int show_hit_debug;
+    /* Enemy Difficulty Phase 1.6 UI indicator state */
+    int target_enemy_active; /* 1 if a target enemy is selected/focused */
+    int target_enemy_level;  /* level of targeted enemy */
 } RogueAppState;
 
 extern RogueAppState g_app;
 extern RoguePlayer g_exposed_player_for_stats;
+#if defined(_MSC_VER)
+void rogue_app_state_maybe_init(void);
+#endif
 
 #endif

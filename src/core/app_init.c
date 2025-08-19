@@ -72,6 +72,9 @@ SOFTWARE.
 
 bool rogue_app_init(const RogueAppConfig* cfg)
 {
+#if defined(_MSC_VER)
+    rogue_app_state_maybe_init();
+#endif
     g_app.cfg = *cfg;
     g_app.show_start_screen = 1;
     rogue_input_clear(&g_app.input);
