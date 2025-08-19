@@ -1,0 +1,18 @@
+{
+  "id": "skeleton_rogue",
+  "name": "Skeleton Rogue",
+  "group_min": 2,
+  "group_max": 4,
+  "patrol_radius": 6,
+  "aggro_radius": 7,
+  "speed": 32.0,
+  "pop_target": 20,
+  "xp_reward": 3,
+  "loot_chance": 0.08,
+  "base_level_offset": 2,
+  "tier_id": 0,
+  "archetype_id": 0,
+  "idle_sheet": "../assets/biomes/default/Mobs/Skeleton Crew/Skeleton - Rogue/Idle/Idle-Sheet.png",
+  "run_sheet": "../assets/biomes/default/Mobs/Skeleton Crew/Skeleton - Rogue/Run/Run-Sheet.png",
+  "death_sheet": "../assets/biomes/default/Mobs/Skeleton Crew/Skeleton - Rogue/Death/Death-Sheet.png"
+}

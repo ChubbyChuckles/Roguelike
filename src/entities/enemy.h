@@ -6,6 +6,7 @@
 typedef enum RogueEnemyAIState { ROGUE_ENEMY_AI_PATROL=0, ROGUE_ENEMY_AI_AGGRO, ROGUE_ENEMY_AI_DEAD } RogueEnemyAIState;
 
 typedef struct RogueEnemyTypeDef {
+    char id[32];        /* unique identifier (JSON) */
     char name[32];
     int weight;          /* spawn weighting (currently unused basic single type) */
     int group_min;
@@ -16,6 +17,9 @@ typedef struct RogueEnemyTypeDef {
     int pop_target;      /* desired population for this type */
     int xp_reward;       /* xp per kill */
     float loot_chance;   /* 0..1 */
+    int base_level_offset; /* relative to area / player level */
+    int tier_id;         /* difficulty tier mapping (Phase 0 taxonomy) */
+    int archetype_id;    /* archetype classification (melee/ranged/etc) */
     /* Animation sheets (side-only) */
     RogueTexture idle_tex, run_tex, death_tex;
     RogueSprite  idle_frames[8]; int idle_count;
@@ -72,6 +76,7 @@ typedef struct RogueEnemy {
 #define ROGUE_MAX_ENEMY_TYPES 16
 
 int rogue_enemy_load_config(const char* path, RogueEnemyTypeDef types[], int* inout_type_count);
+int rogue_enemy_types_load_directory_json(const char* dir_path, RogueEnemyTypeDef types[], int max_types, int* out_count);
 
 /* AI Behavior Tree integration API */
 void rogue_enemy_ai_bt_enable(struct RogueEnemy* e);

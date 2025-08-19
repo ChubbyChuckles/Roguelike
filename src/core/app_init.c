@@ -165,9 +165,10 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.anim_dt_accum_ms = 0.0f; g_app.frame_draw_calls = 0; g_app.frame_tile_quads = 0;
     rogue_combat_init(&g_app.player_combat);
     g_app.enemy_count = 0; g_app.total_kills = 0;
-    g_app.enemy_type_count = ROGUE_MAX_ENEMY_TYPES;
-    if(!rogue_enemy_load_config("assets/enemies.cfg", g_app.enemy_types, &g_app.enemy_type_count) || g_app.enemy_type_count<=0){
-        ROGUE_LOG_WARN("No enemy types loaded; injecting fallback dummy type.");
+    g_app.enemy_type_count = ROGUE_MAX_ENEMY_TYPES; int loaded_json_count=0; int json_ok = rogue_enemy_types_load_directory_json("assets/enemies", g_app.enemy_types, ROGUE_MAX_ENEMY_TYPES, &loaded_json_count);
+    if(json_ok && loaded_json_count>0){ g_app.enemy_type_count = loaded_json_count; ROGUE_LOG_INFO("Loaded %d enemy JSON type(s)", loaded_json_count); }
+    else if(!rogue_enemy_load_config("assets/enemies.cfg", g_app.enemy_types, &g_app.enemy_type_count) || g_app.enemy_type_count<=0){
+        ROGUE_LOG_WARN("No enemy types loaded (json+cfg); injecting fallback dummy type.");
         g_app.enemy_type_count = 1; RogueEnemyTypeDef* t = &g_app.enemy_types[0]; memset(t,0,sizeof *t);
 #if defined(_MSC_VER)
         strncpy_s(t->name,sizeof t->name,"dummy",_TRUNCATE);
@@ -175,7 +176,7 @@ bool rogue_app_init(const RogueAppConfig* cfg)
         strncpy(t->name,"dummy",sizeof t->name -1); t->name[sizeof t->name -1]='\0';
 #endif
         t->group_min=1; t->group_max=2; t->patrol_radius=5; t->aggro_radius=6; t->speed=30.0f; t->pop_target=15; t->xp_reward=2; t->loot_chance=0.05f;
-    } else { ROGUE_LOG_INFO("Loaded %d enemy types", g_app.enemy_type_count); }
+    } else { ROGUE_LOG_INFO("Loaded %d enemy cfg type(s)", g_app.enemy_type_count); }
     /* Weapon hit geometry load (Phase 1). Try multiple candidate roots for dev/build execution contexts. */
     const char* geo_candidates[] = {
         "assets/weapon_hit_geo.json",
