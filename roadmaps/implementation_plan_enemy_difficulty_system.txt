@@ -17,11 +17,11 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 - Analytics scaffolding (loot & equipment) extends for enemy stats (Partial)
 
 PHASE 0. Audit & Taxonomy Normalization
-0.1 Inventory existing enemy archetypes (melee, ranged, caster, elite, boss) (X)
-0.2 Define canonical difficulty attributes: hp_budget, dps_budget, control_budget, mobility_budget (X)
-0.3 Establish tier bands (Normal, Veteran, Elite, MiniBoss, Boss, Nemesis) with budget multipliers (X)
-0.4 Reserve ID ranges for future special tiers (Mythic, Event) (X)
-0.5 Tests: uniqueness, multiplier table monotonicity (X)
+0.1 Inventory existing enemy archetypes (melee, ranged, caster, elite, boss) (Done)
+0.2 Define canonical difficulty attributes: hp_budget, dps_budget, control_budget, mobility_budget (Done)
+0.3 Establish tier bands (Normal, Veteran, Elite, MiniBoss, Boss, Nemesis) with budget multipliers (Done)
+0.4 Reserve ID ranges for future special tiers (Mythic, Event) (Done)
+0.5 Tests: uniqueness, multiplier table monotonicity (Done)
 
 PHASE 1. Baseline Scaling & Relative Level Differential
 1.1 Base level-scaling functions for enemy HP, Damage, Defense anchored to player infinite level curve reference (sublinear vs player growth) (X)

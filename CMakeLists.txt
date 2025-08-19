@@ -269,6 +269,7 @@ add_library(rogue_core
     src/game/hit_feedback.c
     src/game/weapon_pose.c
     src/game/hit_debug_overlay.c
+    src/core/enemy_difficulty.c
 )
 
 target_include_directories(rogue_core PUBLIC
