@@ -79,7 +79,7 @@ Status: Done (runtime loader `weapon_pose.c/h`, integrated rendering overlay in 
 
 PHASE 5A. GUI Pose Authoring Tool
 5A.1 Executable: weapon_pose_tool (SDL2). Inputs: --weapon <id> [--player-sheet path] [--out path]
-5A.2 Loads 1 weapon PNG + player reference sheet.
+5A.2 Loads single weapon image + player slash animation sheet (extracts 8 frames horizontally). Side-right frames reused mirrored for left in runtime.
 5A.3 Controls:
 	  Arrow keys: dx/dy ±1 (Shift: ±5)
 	  Q/E: rotate ∓2° (Shift: 10°)
@@ -95,7 +95,7 @@ PHASE 5A. GUI Pose Authoring Tool
 5A.5 Saving: Writes canonical JSON with 4-decimal floats, sorted keys; validates frame count.
 5A.6 Logging: Warn missing PNGs, note fallback usage.
 5A.7 Future: Batch export to CSV, drag with mouse, multi-weapon batch mode.
-Status: Partial (MVP implemented as `weapon_pose_tool` – SDL2 window, per-frame transforms dx/dy/angle/scale/pivot editing via keyboard, JSON save with canonical format; current build loads BMPs due to no SDL_image; lacks HUD text polish, copy/paste & mouse drag not yet implemented, no PNG loader yet). Future enhancements (CSV export, mouse drag, batch) still pending.
+Status: Partial (Reworked `weapon_pose_tool`: single weapon image overlay across sliced 8 frames from a player sheet; per-frame dx/dy/angle/scale/pivot editing; auto PNG (WIC) or BMP load; HUD title shows current frame; JSON now records direction + frame_size. Still missing copy/paste, mouse drag, multi-direction batch, and left-mirror preview).
 
 PHASE 6. Debug & Developer Tooling
 6.1 Toggle key (F) sets g_app.show_hit_debug (implemented; reuses g_hit_debug_enabled).

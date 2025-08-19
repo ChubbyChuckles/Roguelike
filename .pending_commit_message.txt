@@ -40,3 +40,8 @@ feat(hit-system): Phase 6 debug overlay core (capsule+hits+normals+text) + toggl
 
 Implemented hit debug overlay (toggle key F) drawing weapon sweep capsule (cyan), impact points & normals (yellow) and textual metrics (frame id, hit count, player pos & tuning values). Added `hit_debug_overlay.c` module and integrated render call post scene draw. Added unit test `test_hit_phase6_debug_toggle` verifying toggle API. Roadmap updated (Phase 6 Partial-Done: remaining enemy AABB & ring buffer playback deferred). README changelog entry added.
 
+
+chore(tool): rework weapon_pose_tool for single weapon image over player sheet frames
+
+Refactored pose tool to overlay one weapon image across 8 frames sliced from a player slash animation sheet (PNG via WIC or BMP). Added direction & frame_size metadata in JSON; auto output naming weapon_<id>_<direction>_pose.json; HUD updates title with current frame transforms. Roadmap + README changelog updated.
+
