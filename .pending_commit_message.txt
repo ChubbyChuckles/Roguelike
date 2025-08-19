@@ -23,3 +23,16 @@ feat(debug): render enemy pursuit target (red circle)
 
 Draws a small red circle at player position + pursue_offset (when hit debug enabled) so designers can visually align AI approach point with weapon capsule center.
 
+feat(hit-system): implement Phase 5 weapon frame overlay & pose tool MVP
+
+Replaced slash VFX spritesheet dependency with per-weapon 8-frame pose system:
+ - Added weapon_pose module (weapon_pose.c/h) loading assets/weapons/<id>_pose.json + 8 frame images (<id>_f0..f7) with per-frame {dx,dy,angle,scale,pivot_x,pivot_y}.
+ - Integrated overlay render into player_render (attack frames derive deterministic frame index from attack timer).
+ - Fallback defaults when pose JSON absent; missing frame image warns and reuses nearest prior.
+ - Added unit test test_weapon_pose_loader (validates JSON parse & frame value mapping, directory create path) – green.
+ - Added MVP SDL2 authoring tool weapon_pose_tool (keyboard editing: translate, rotate, scale, pivot adjust, frame select, save JSON).
+ - Roadmap updated: Phase 5 marked Done, Phase 5A Partial (MVP). Procedural trail effect deferred.
+ - README changelog updated with Phase 5 entry.
+
+Future: Phase 6 debug textual overlay, Phase 7 legacy reach removal & perf profiling, PNG loader integration (currently BMP), advanced tool features (copy/paste, mouse drag, batch export), optional procedural trail.
+

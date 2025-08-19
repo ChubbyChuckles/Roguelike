@@ -75,6 +75,8 @@ Goal: Eliminate reliance on composite slash VFX spritesheet. Drive visual of wea
 5.5 Determinism: Frame index strictly derived from attack phase timer (integer division of elapsed_ms by frame_ms) for replay stability.
 5.6 Tests: JSON load & pad (auto-add frames if <8), pivot correctness (unit harness checks rotated bounding box), deterministic frame advance.
 
+Status: Done (runtime loader `weapon_pose.c/h`, integrated rendering overlay in `player_render.c`, unit test `test_weapon_pose_loader` validates JSON load & frame values, deterministic frame index derivation). Procedural trail (5.4) explicitly Deferred.
+
 PHASE 5A. GUI Pose Authoring Tool
 5A.1 Executable: weapon_pose_tool (SDL2). Inputs: --weapon <id> [--player-sheet path] [--out path]
 5A.2 Loads 8 weapon frame PNGs + optional player reference sheet (or grid placeholder if missing).
@@ -93,7 +95,7 @@ PHASE 5A. GUI Pose Authoring Tool
 5A.5 Saving: Writes canonical JSON with 4-decimal floats, sorted keys; validates frame count.
 5A.6 Logging: Warn missing PNGs, note fallback usage.
 5A.7 Future: Batch export to CSV, drag with mouse, multi-weapon batch mode.
-Status: NOT STARTED.
+Status: Partial (MVP implemented as `weapon_pose_tool` – SDL2 window, per-frame transforms dx/dy/angle/scale/pivot editing via keyboard, JSON save with canonical format; current build loads BMPs due to no SDL_image; lacks HUD text polish, copy/paste & mouse drag not yet implemented, no PNG loader yet). Future enhancements (CSV export, mouse drag, batch) still pending.
 
 PHASE 6. Debug & Developer Tooling
 6.1 Toggle key (F8 or via cfg) sets g_app.show_hit_debug.
@@ -161,6 +163,6 @@ SUCCESS CRITERIA
 STATUS SUMMARY
 Phases 1–3: Done (geometry, runtime sweep, overlap + normals, per-strike mask, debug capture).
 Phase 4: Done (refined knockback magnitude function, SFX stub, particle system w/ overkill burst, explosion flag, tests for magnitude & particle ranges).
-Phase 5 (weapon frame overlay) : NOT STARTED.
-Phase 5A (pose authoring tool) : NOT STARTED.
-Next: Implement Phase 5 runtime loader & rendering path, then tool (5A), followed by Phase 6 (debug textual overlay & toggles), Phase 7 (legacy reach removal & perf profiling), Phase 8 (tuning), Phase 9 (documentation).
+Phase 5 (weapon frame overlay): Done (8-frame per-weapon pose system replaces slash sheet; JSON pose loader + textures + renderer integration; procedural trail deferred).
+Phase 5A (pose authoring tool): Partial (keyboard-driven MVP saving JSON; lacks advanced features & PNG support).
+Next: Phase 6 (debug textual overlay & toggles), Phase 7 (legacy reach removal & perf profiling), Phase 8 (tuning), Phase 9 (documentation) followed by procedural trail revisit.

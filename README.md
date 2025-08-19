@@ -176,6 +176,7 @@ See `roadmaps/` for subsystem implementation plans (inventory, crafting & gather
 * AI: LOD scheduler, stress test, agent pool, time budget profiler, tactical nodes.
 * Worldgen: streaming manager, weather scheduler, dungeon generator, analytics & anomalies.
 * Hit System Phases 1–4: Weapon-length capsule sweep with directional normals; per-strike duplicate prevention; runtime tuning JSON; refined knockback scaling (level+strength differential); impact flash + particle bursts (overkill explosion variant); SFX hook stub; tests for geometry, sweep normals, knockback, and Phase 4 feedback.
+* Hit System Phase 5: Replaced legacy slash sheet with 8-frame per-weapon pose overlay (JSON pose + 8 discrete frame images) rendered with per-frame dx/dy/angle/scale/pivot transforms; added `weapon_pose` loader module and integrated rendering path; unit test `test_weapon_pose_loader` verifies JSON load & defaults. Added MVP `weapon_pose_tool` (SDL2) for authoring frame transforms (keyboard controls) – PNG trail effect deferred.
 
 For exhaustive historical details, refer to Appendix A (original full logs) and roadmap files.
 

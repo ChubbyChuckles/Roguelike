@@ -266,6 +266,7 @@ add_library(rogue_core
     src/core/inventory_query.c
     src/game/hit_system.c
     src/game/hit_feedback.c
+    src/game/weapon_pose.c
 )
 
 target_include_directories(rogue_core PUBLIC
@@ -289,6 +290,13 @@ endif()
 target_compile_options(rogue_core PRIVATE ${rogue_warnings})
 if(ROGUE_WARNINGS_AS_ERRORS)
     target_compile_options(rogue_core PRIVATE $<$<C_COMPILER_ID:MSVC>:/WX> $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Werror>)
+endif()
+
+# Unit test: weapon pose loader
+add_executable(test_weapon_pose_loader tests/unit/test_weapon_pose_loader.c)
+target_link_libraries(test_weapon_pose_loader PRIVATE rogue_core)
+if(ROGUE_ENABLE_SDL)
+    target_link_libraries(test_weapon_pose_loader PRIVATE SDL2::SDL2)
 endif()
 
 add_executable(roguelike src/main.c)
