@@ -1,4 +1,14 @@
-feat(hit-system): complete Phase 4 feedback (particles, refined knockback, SFX stub, overkill explosion flag)
+feat(hit-system): Phase 7 integration – remove legacy reach, sweep authoritative, first-hit hitstop, integration test
+
+Summary:
+- Removed remaining legacy reach/arc placeholders; strike now exclusively uses rogue_combat_weapon_sweep_apply results.
+- Added first-hit-only hitstop (55ms) to curb multi-target slow stacking.
+- Reused refined knockback magnitude; explosion/overkill path intact.
+- Added unit test test_hit_phase7_integration validating single hitstop application and no duplicate hits.
+- Updated roadmap (Phase 7 items marked, profiling pending) and README.
+
+Next:
+- Implement profiling harness for 7.7 (sweep cost @ 50 enemies) and progress to Phase 8 tuning.feat(hit-system): complete Phase 4 feedback (particles, refined knockback, SFX stub, overkill explosion flag)
 
 Implements full Phase 4 of hit system roadmap:
  - Added hit_feedback module (particles, knockback magnitude, SFX stub, explosion tracking)

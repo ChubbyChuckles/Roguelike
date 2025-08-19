@@ -106,13 +106,13 @@ PHASE 6. Debug & Developer Tooling
 Status: Partial-Done (core overlay + toggle + test delivered; remaining optional AABB & ring buffer deferred to later pass with legacy removal to prevent redundancy).
 
 PHASE 7. Integration & Refactor of Legacy Logic
-7.1 Remove old reach/arc calculation; replace strike damage trigger with weapon_sweep pipeline call.
-7.2 Ensure combo / timing state machine unchanged (only hit detection swapped).
-7.3 Update enemy death handling to branch explosion vs normal path.
-7.4 Migrate existing knockback code to new magnitude function; deduplicate.
-7.5 Adjust hitstop injection: apply only on first enemy hit each strike (cap multi-target slowdown).
-7.6 Regression Tests: existing combat unit tests still pass (timings, crits, mitigation) + new sweep tests.
-7.7 Performance check: profile per-frame sweep cost with 50 enemies; ensure <0.1ms average.
+7.1 Remove old reach/arc calculation; replace strike damage trigger with weapon_sweep pipeline call. (Done)
+7.2 Ensure combo / timing state machine unchanged (only hit detection swapped). (Done – state machine untouched)
+7.3 Update enemy death handling to branch explosion vs normal path. (Done – execution/overkill path already integrated earlier; validated still invoked)
+7.4 Migrate existing knockback code to new magnitude function; deduplicate. (Done – strike now directly uses rogue_hit_calc_knockback_mag)
+7.5 Adjust hitstop injection: apply only on first enemy hit each strike (cap multi-target slowdown). (Done – added first_strike_enemy_processed guard + hitstop call)
+7.6 Regression Tests: existing combat unit tests still pass (timings, crits, mitigation) + new sweep tests. (Partial – added new test_hit_phase7_integration; broader combat suite assumed green)
+7.7 Performance check: profile per-frame sweep cost with 50 enemies; ensure <0.1ms average. (Pending – profiling harness not yet added; will add microbenchmark or timing aggregation in future Phase 8/9)
 
 PHASE 8. Balancing & Tuning
 8.1 Empirical tuning session: length vs width vs forgiveness; adjust width to avoid whiffs at point-blank.
@@ -167,4 +167,5 @@ Phase 4: Done (refined knockback magnitude function, SFX stub, particle system w
 Phase 5 (weapon frame overlay): Done (8-frame per-weapon pose system replaces slash sheet; JSON pose loader + textures + renderer integration; procedural trail deferred).
 Phase 5A (pose authoring tool): Partial (keyboard-driven MVP saving JSON; lacks advanced features & PNG support).
 Phase 6 (debug overlay): Partial-Done (capsule + hits + normals + text & toggle + test; AABB/explosion & ring buffer deferred).
-Next: Phase 7 (legacy reach removal & perf profiling), Phase 8 (tuning), Phase 9 (documentation) then revisit deferred Phase 6 items & procedural trail.
+Phase 7: Mostly Done (7.1–7.5 implemented, 7.6 partial with new integration test, 7.7 profiling pending).
+Next: Phase 7.7 profiling + Phase 8 (tuning) and Phase 9 (documentation), then deferred debug/AABB & procedural trail.

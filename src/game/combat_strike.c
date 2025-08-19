@@ -12,7 +12,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-extern int g_attack_frame_override; extern int rogue_force_attack_active; extern int g_crit_layering_mode; /* from events */
+extern int g_attack_frame_override; /* from events */
+extern int rogue_force_attack_active; /* from events */
+extern int g_crit_layering_mode; /* from events */
+extern void rogue_app_add_hitstop(float ms); /* hitstop API */
 
 static int combat_nav_is_blocked(int tx,int ty){ return rogue_nav_is_blocked(tx,ty); }
 
@@ -24,18 +27,16 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
     if(pc->phase != ROGUE_ATTACK_STRIKE) return 0;
     if(pc->strike_time_ms <= 0.0f && pc->processed_window_mask != 0){ pc->processed_window_mask = 0; pc->emitted_events_mask = 0; pc->event_count = 0; }
     int kills=0;
-    /* Legacy reach_curve and directional gating removed: geometry sweep now defines hits */
-    extern int rogue_get_current_attack_frame(void);
-    int afr = (g_attack_frame_override>=0)? g_attack_frame_override : rogue_get_current_attack_frame(); if(afr<0 || afr>7) afr=0; /* still used for window timing */
+    /* Legacy reach/arc fully removed: hit candidates sourced exclusively from sweep (Phase 7.1) */
     float px = player->base.pos.x; float py = player->base.pos.y; float cx = px; float cy = py;
     unsigned int newly_active_mask = 0; pc->current_window_flags = 0; const RogueAttackDef* def = rogue_attack_get(pc->archetype, pc->chain_index);
     if(def && def->num_windows>0){ for(int wi=0; wi<def->num_windows && wi<32; ++wi){ const RogueAttackWindow* w = &def->windows[wi]; int active = (pc->strike_time_ms >= w->start_ms && pc->strike_time_ms < w->end_ms); if(active){ newly_active_mask |= (1u<<wi); pc->current_window_flags = w->flags; if(!(pc->emitted_events_mask & (1u<<wi))){ if(pc->event_count < (int)(sizeof(pc->events)/sizeof(pc->events[0]))) { pc->events[pc->event_count].type = ROGUE_COMBAT_EVENT_BEGIN_WINDOW; pc->events[pc->event_count].data = (unsigned short)wi; pc->events[pc->event_count].t_ms = pc->strike_time_ms; pc->event_count++; } pc->emitted_events_mask |= (1u<<wi); } } else if(!active && (pc->emitted_events_mask & (1u<<wi)) && !(pc->processed_window_mask & (1u<<wi))){ if(pc->event_count < (int)(sizeof(pc->events)/sizeof(pc->events[0]))) { pc->events[pc->event_count].type = ROGUE_COMBAT_EVENT_END_WINDOW; pc->events[pc->event_count].data = (unsigned short)wi; pc->events[pc->event_count].t_ms = pc->strike_time_ms; pc->event_count++; } pc->processed_window_mask |= (1u<<wi); } } }
     else if(def){ newly_active_mask = 1u; if(pc->strike_time_ms >= def->active_ms) newly_active_mask = 0; }
     unsigned int process_mask = newly_active_mask & ~pc->processed_window_mask; if(process_mask==0) return 0;
     for(int wi=0; wi<32; ++wi){ if(!(process_mask & (1u<<wi))) continue; float window_mult = 1.0f; float bleed_build = 0.0f, frost_build = 0.0f; if(def && wi < def->num_windows){ const RogueAttackWindow* w = &def->windows[wi]; if(w->damage_mult > 0.0f) window_mult = w->damage_mult; bleed_build = w->bleed_build; frost_build = w->frost_build; if(w->flags & ROGUE_WINDOW_HYPER_ARMOR){ rogue_player_set_hyper_armor_active(1); } }
-    /* Phase 2 integration slice: if geometry sweep enabled, precompute list by marking enemies that pass sweep; we keep legacy reach logic as fallback for now. */
-    int use_sweep = 1; /* temporary always-on; can gate by compile flag later */
-    const int* sweep_indices=NULL; int sweep_count=0; if(use_sweep){ sweep_count = rogue_combat_weapon_sweep_apply(pc, player, enemies, enemy_count); rogue_hit_last_indices(&sweep_indices); }
+    /* Phase 7 integrated: sweep apply returns definitive enemy list */
+    const int* sweep_indices=NULL; int sweep_count = rogue_combat_weapon_sweep_apply(pc, player, enemies, enemy_count); rogue_hit_last_indices(&sweep_indices);
+    int first_strike_enemy_processed = 0; /* for hitstop (Phase 7.5) */
     for(int si=0; si<sweep_count; ++si){ int i = sweep_indices[si]; if(i<0 || i>=enemy_count) continue; if(!enemies[i].alive) continue; if(enemies[i].team_id == player->team_id) continue; float ex = enemies[i].base.pos.x; float ey = enemies[i].base.pos.y; int effective_strength = player->strength + rogue_buffs_get_total(0); int base = 1 + effective_strength/5; float scaled = (float)base; if(def){ scaled = def->base_damage + (float)effective_strength * def->str_scale + (float)player->dexterity * def->dex_scale + (float)player->intelligence * def->int_scale; if(scaled<1.0f) scaled=1.0f; }
             float combo_scale = 1.0f + (pc->combo * 0.08f); if(combo_scale>1.4f) combo_scale=1.4f; const RogueWeaponDef* wdef = rogue_weapon_get(player->equipped_weapon_id); RogueStanceModifiers sm = rogue_stance_get_mods(player->combat_stance); const RogueInfusionDef* inf = rogue_infusion_get(player->weapon_infusion); if(wdef){ scaled += wdef->base_damage; scaled += (float)player->strength * wdef->str_scale + (float)player->dexterity * wdef->dex_scale + (float)player->intelligence * wdef->int_scale; }
             float fam_bonus = rogue_weapon_get_familiarity_bonus(player->equipped_weapon_id); float durability_mult = 1.0f; if(wdef){ float cur = rogue_weapon_current_durability(wdef->id); if(cur>0){ float pct = cur / (wdef->durability_max>0? wdef->durability_max:1.0f); if(pct < 0.5f){ float frac = pct/0.5f; durability_mult = 0.70f + 0.30f * frac; } } }
@@ -67,6 +68,7 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             /* Refined magnitude uses level+strength differential (enemy->level may be 0 default) */
             float mag = rogue_hit_calc_knockback_mag(player->level, enemies[i].level, player->strength, enemies[i].armor /* reuse armor as pseudo strength if enemy stat absent */);
             enemies[i].base.pos.x += nx * mag; enemies[i].base.pos.y += ny * mag;
+            if(!first_strike_enemy_processed){ rogue_app_add_hitstop(55.0f); first_strike_enemy_processed=1; }
             int was_overkill = execution; /* treat execution as overkill for explosion path */
             if(first_hit){ rogue_hit_play_impact_sfx(player->equipped_weapon_id, is_crit?1:0); }
             rogue_hit_particles_spawn_impact(ex, ey, nx, ny, was_overkill);
