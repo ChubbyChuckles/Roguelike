@@ -29,6 +29,7 @@ typedef struct RogueEnemy {
     int type_index;      /* index into type def array */
     int health;
     int max_health;      /* persistent max for ratio */
+    int level;           /* Phase 4 knockback scaling (player_level - enemy_level) */
     int alive;           /* 1 alive, 0 removed */
     float hurt_timer;    /* ms */
     float anim_time;     /* ms */

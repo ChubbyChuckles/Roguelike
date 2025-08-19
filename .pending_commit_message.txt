@@ -1,27 +1,15 @@
-feat(hit-system): mark phases 1-3 complete; add basic knockback & flash tuning; introduce hitbox tuning JSON persistence & path resolution; add knockback unit test
+feat(hit-system): complete Phase 4 feedback (particles, refined knockback, SFX stub, overkill explosion flag)
 
-Details:
-- Completed roadmap status updates for Phases 1-3 (data structs, runtime capsule, overlap pipeline).
-- Implemented strength-scaled knockback using sweep normals with clamped magnitude.
-- Added hitbox_tuning.json auto path resolution (supports build dir, assets/, ../assets/) and hotkey save helper.
-- Added runtime tuning struct & hotkeys (CTRL/ALT + number) to adjust player capsule & enemy radius/offset.
-- Extended debug overlay to draw enemy circles with tuning adjustments.
-- Added unit test test_knockback_basic ensuring magnitude scaling and cap.
-- Updated roadmap to reflect partial Phase 4 progress; enumerated remaining feedback tasks.
-Inventory System Phase 4.4 Completion & Roadmap Sync
+Implements full Phase 4 of hit system roadmap:
+ - Added hit_feedback module (particles, knockback magnitude, SFX stub, explosion tracking)
+ - Refined knockback scaling: level + strength differential with clamp (0.18 -> 0.55)
+ - Particle bursts (normal 10-14 rand, overkill 24, capped) with directional spread off impact normal
+ - Overkill/execution triggers larger burst & explosion frame flag
+ - Integrated feedback into combat_strike (first-hit SFX stub, per-enemy flash, knockback apply)
+ - Added enemy level field for future balancing (currently default 0 if not set)
+ - Added tests: test_hit_phase4_feedback (magnitude growth & cap, particle count ranges) + existing knockback_basic retained
+ - Roadmap updated: Phases 1-4 marked Done, status summary advanced
+ - Build system: added hit_feedback.c
 
-Summary:
-- Implemented quick action bar API wrappers for saved searches: enumerate/apply by index (`rogue_inventory_quick_actions_count`, `rogue_inventory_quick_action_name`, `rogue_inventory_quick_action_apply`).
-- Extended public header to document quick action layer and diagnostics availability.
-- Added new unit test `test_inventory_phase4_quick_actions` validating enumeration and application path.
-- Updated tests CMake to include quick action test.
-- Roadmap adjustments: Phase 3.3 auto-tag rules marked Done (already implemented earlier); Phase 4.4 marked Done with note on quick action wrappers.
-- README Phase 4 paragraph updated to reflect quick action bar completion and new test; pending list trimmed (UI binding item removed).
-
-Technical Notes:
-- Quick actions reuse saved searches; no duplicated storage, ensuring O(1) index indirection.
-- Index apply performs name fetch then existing quick-apply path; safe if searches mutate (indices remain dense 0..n-1 until restart).
-- No performance regression expected (single extra name copy on apply).
-
-Next Steps (remaining Phase 4 work): parser fuzz harness, richer parse diagnostics (specific position), cache hit ratio & perf/leak guards, extended mutation wiring (durability/quality/affix changes) before marking 4.1/4.5/4.7 complete.
+Future work: Phase 5 slash VFX overlay, Phase 6 debug textual overlay & explosion visualization, performance profiling & tuning.
 

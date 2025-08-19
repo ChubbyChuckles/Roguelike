@@ -3,6 +3,7 @@
 #include "game/combat_attacks.h"
 #include "game/weapons.h"
 #include "game/hit_system.h" /* Phase 1-2 geometry (currently unused gating placeholder) */
+#include "game/hit_feedback.h"
 #include "game/infusions.h"
 #include "core/navigation.h"
 #include "game/lock_on.h"
@@ -57,9 +58,19 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             int overkill = overkill_accum; int execution = 0; if(health_before>0){ int health_after = enemies[i].health; if(health_after <= 0){ float health_pct_before = (float)health_before / (float)(enemies[i].max_health>0?enemies[i].max_health:1); float overkill_pct = (float)overkill / (float)(enemies[i].max_health>0?enemies[i].max_health:1); if(health_pct_before <= ROGUE_EXEC_HEALTH_PCT || overkill_pct >= ROGUE_EXEC_OVERKILL_PCT){ execution = 1; } } }
             rogue_damage_event_record((unsigned short)(def?def->id:0), (unsigned char)(def?def->damage_type:ROGUE_DMG_PHYSICAL), (unsigned char)is_crit, raw_before, final_dmg, overkill, (unsigned char)execution);
             enemies[i].hurt_timer=150.0f; enemies[i].flash_timer=90.0f; pc->hit_confirmed=1;
-            /* Phase 4.1-4.5 subset: apply basic knockback using stored normal */
-            do { const RogueHitDebugFrame* dbg = rogue_hit_debug_last(); if(dbg){ int idx_in_dbg=-1; for(int di=0; di<dbg->hit_count; ++di){ if(dbg->last_hits[di]==i){ idx_in_dbg=di; break; } } if(idx_in_dbg>=0){ float nx = dbg->normals[idx_in_dbg][0]; float ny = dbg->normals[idx_in_dbg][1]; float str_scale = (float)player->strength * 0.015f; if(str_scale>0.37f) str_scale=0.37f; float mag = 0.18f + str_scale; enemies[i].base.pos.x += nx * mag; enemies[i].base.pos.y += ny * mag; } }
-            } while(0);
+            /* Phase 4 full feedback: refined knockback, SFX (first hit), particles, overkill explosion flag */
+            extern int g_app_frame_audio_guard; /* optional future global */
+            int first_hit = (si==0);
+            const RogueHitDebugFrame* dbg = rogue_hit_debug_last();
+            int idx_in_dbg=-1; if(dbg){ for(int di=0; di<dbg->hit_count; ++di){ if(dbg->last_hits[di]==i){ idx_in_dbg=di; break; } } }
+            float nx=0,ny=1; if(idx_in_dbg>=0){ nx=dbg->normals[idx_in_dbg][0]; ny=dbg->normals[idx_in_dbg][1]; }
+            /* Refined magnitude uses level+strength differential (enemy->level may be 0 default) */
+            float mag = rogue_hit_calc_knockback_mag(player->level, enemies[i].level, player->strength, enemies[i].armor /* reuse armor as pseudo strength if enemy stat absent */);
+            enemies[i].base.pos.x += nx * mag; enemies[i].base.pos.y += ny * mag;
+            int was_overkill = execution; /* treat execution as overkill for explosion path */
+            if(first_hit){ rogue_hit_play_impact_sfx(player->equipped_weapon_id, is_crit?1:0); }
+            rogue_hit_particles_spawn_impact(ex, ey, nx, ny, was_overkill);
+            if(was_overkill){ rogue_hit_mark_explosion(); }
             if(bleed_build>0){ enemies[i].bleed_buildup += bleed_build; }
             if(frost_build>0){ enemies[i].frost_buildup += frost_build; }
             if(def && def->poise_damage > 0.0f && enemies[i].poise_max > 0.0f){ float poise_dmg = def->poise_damage; if(wdef){ poise_dmg *= wdef->poise_damage_mult; } poise_dmg *= sm.poise_damage_mult; if(inf){ poise_dmg *= inf->phys_scalar; } enemies[i].poise -= poise_dmg; if(enemies[i].poise < 0.0f){ enemies[i].poise = 0.0f; } if(enemies[i].poise <= 0.0f && !enemies[i].staggered){ enemies[i].staggered = 1; enemies[i].stagger_timer_ms = 600.0f; if(pc->event_count < (int)(sizeof(pc->events)/sizeof(pc->events[0]))){ pc->events[pc->event_count].type = ROGUE_COMBAT_EVENT_STAGGER_ENEMY; pc->events[pc->event_count].data = (unsigned short)i; pc->events[pc->event_count].t_ms = pc->strike_time_ms; pc->event_count++; } } }

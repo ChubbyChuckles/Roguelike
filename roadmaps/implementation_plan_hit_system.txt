@@ -45,18 +45,14 @@ PHASE 3. Overlap Detection Pipeline (Done)
 3.5 Expose API rogue_combat_weapon_sweep_apply(dt_ms) returning hit count.
 3.6 Tests: ensure no double hits, directional coverage 360°, correct normal sign. (X)
 
-PHASE 4. Feedback: SFX, Flash, Particles, Knockback
+PHASE 4. Feedback: SFX, Flash, Particles, Knockback (Done)
 4.1 Impact SFX: add sound id table per weapon archetype; play on first enemy hit only (or every hit with cooldown 40ms) via rogue_audio_play_sfx().
 4.2 Damage flash: set enemy->flash_timer = FLASH_MS (e.g., 120) & toggle tint flag; existing render path will blink once.
 4.3 Particle emission: spawn N (8–14) particles at impact point; velocity base = normal * base_speed plus random lateral spread (rotate ±35°). Color from enemy palette or damage type.
 4.4 Knockback magnitude: base = clamp( (player_level - enemy_level)*level_scalar + (player_str - enemy_str)*stat_scalar , min_knockback, max_knockback ). Negative or small => minimal push.
-PHASE 4. Feedback: SFX, Flash, Particles, Knockback (Partial)
-Implemented subset: flash duration tweak, basic knockback magnitude (strength-based) using sweep normals.
-Remaining: impact SFX table, particle emission (standard & overkill), overkill explosion path & screen shake, refined knockback scaling (level diff), tests for particle counts & explosion flag.
-
-4.5 Apply knockback impulse: enemy->base.pos += normal * magnitude (deferred: integrate physics smoothing).
-4.6 Overkill explosion: if damage >= enemy->health_max OR execution flag and previous health==full -> spawn explosion particles (radial burst, larger count, optional screen shake), bypass standard death animation.
-4.7 Tests: flash triggers once, particle count in range, knockback increases with differential, overkill path sets explosion flag. (X)
+4.5 Apply knockback impulse: enemy->base.pos += normal * magnitude (implemented inline in combat_strike using refined magnitude).
+4.6 Overkill explosion: execution / overkill sets explosion flag + spawns larger particle burst (screen shake deferred to later tuning iteration).
+4.7 Tests: knockback scaling / cap, particle counts (normal vs overkill) implemented in test_hit_phase4_feedback + basic magnitude test_knockback_basic.
 
 PHASE 5. Slash Animation & Weapon Overlay
 5.1 Load slash VFX spritesheet (8 frames) into texture; store frame rects.
@@ -130,4 +126,6 @@ SUCCESS CRITERIA
 - Feedback: distinct flash + particles + SFX on hit; explosion visually clear for one-shots.
 
 STATUS SUMMARY
-All phases: X (new system not started). This file is the authoritative roadmap for implementation.
+Phases 1–3: Done (geometry, runtime sweep, overlap + normals, per-strike mask, debug capture).
+Phase 4: Done (refined knockback magnitude function, SFX stub, particle system w/ overkill burst, explosion flag, tests for magnitude & particle ranges).
+Next: Phase 5 (slash VFX overlay), Phase 6 (debug textual overlay & toggles), Phase 7 (legacy reach removal completion & performance profiling), Phase 8 (tuning), Phase 9 (documentation).

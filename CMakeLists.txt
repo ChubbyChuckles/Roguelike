@@ -264,6 +264,7 @@ add_library(rogue_core
     src/core/inventory_tag_rules.c
     src/core/inventory_query.c
     src/game/hit_system.c
+    src/game/hit_feedback.c
 )
 
 target_include_directories(rogue_core PUBLIC
