@@ -87,11 +87,11 @@ void rogue_player_render(void){
             int player_cx = player_px + tsz/2; /* approximate sprite center */
             int player_cy = player_py + tsz/2;
             const RogueHitboxTuning* tune = rogue_hitbox_tuning_get(); int facing = g_app.player.facing; if(facing<0||facing>3) facing=0;
-            /* Live merge of stored frame pose + current tuning deltas */
-            float live_dx = dbg->mask_pose_dx + tune->mask_dx[facing];
-            float live_dy = dbg->mask_pose_dy + tune->mask_dy[facing];
-            float scale_x = dbg->mask_scale_x * ((tune->mask_scale_x[facing]>0)?tune->mask_scale_x[facing]:1.0f);
-            float scale_y = dbg->mask_scale_y * ((tune->mask_scale_y[facing]>0)?tune->mask_scale_y[facing]:1.0f);
+            /* Use captured pose + scale directly (avoid double applying tuning which is already in capture) */
+            float live_dx = dbg->mask_pose_dx;
+            float live_dy = dbg->mask_pose_dy;
+            float scale_x = dbg->mask_scale_x;
+            float scale_y = dbg->mask_scale_y;
             int ox = (int)(player_cx + live_dx); /* rotation origin (weapon pivot) */
             int oy = (int)(player_cy + live_dy);
             /* AABB for visualization */

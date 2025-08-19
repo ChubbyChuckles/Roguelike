@@ -211,15 +211,41 @@ int rogue_combat_weapon_sweep_apply(struct RoguePlayerCombat* pc, struct RoguePl
     RogueHitPixelMaskFrame* f=NULL; /* capture frame even if no hits for visualization */
     if(g_hit_use_pixel_masks){
         RogueHitPixelMaskSet* set = rogue_hit_pixel_masks_ensure(player->equipped_weapon_id);
-        if(set && set->ready){ int fi = player->anim_frame & 7; f = &set->frames[fi]; const RogueWeaponPoseFrame* pf = rogue_weapon_pose_get(player->equipped_weapon_id, fi); if(pf){ pose_dx=pf->dx; pose_dy=pf->dy; pose_scale_x=pf->scale; pose_scale_y=pf->scale; }
+        if(set && set->ready){
+            /* Convert everything to pixel space for sampling to match overlay drawing.
+               player base position px/py is in world tiles; convert to pixels using tile size (tsz). */
+            int fi = player->anim_frame & 7; f = &set->frames[fi];
+            const RogueWeaponPoseFrame* pf = rogue_weapon_pose_get(player->equipped_weapon_id, fi);
+            if(pf){ pose_dx=pf->dx; pose_dy=pf->dy; pose_scale_x=pf->scale; pose_scale_y=pf->scale; }
             mask_w = f->width; mask_h=f->height; mask_origin_x=f->origin_x; mask_origin_y=f->origin_y; mask_pitch_words = (unsigned)f->pitch_words; mask_bits = f->bits;
-            /* Apply per-facing overrides (0=down,1=left,2=right,3=up) */
             int facing = player->facing; if(facing<0||facing>3) facing=0; const RogueHitboxTuning* tune = rogue_hitbox_tuning_get();
-            pose_dx += tune->mask_dx[facing]; pose_dy += tune->mask_dy[facing]; if(tune->mask_scale_x[facing] > 0.0f) pose_scale_x *= tune->mask_scale_x[facing]; if(tune->mask_scale_y[facing] > 0.0f) pose_scale_y *= tune->mask_scale_y[facing];
-            /* Only perform pixel sampling if we have a frame pointer (unrotated, axis-aligned scaling) */
-            float aabb_min_x = px + pose_dx - enemy_r_cfg; float aabb_max_x = px + pose_dx + mask_w * pose_scale_x + enemy_r_cfg; float aabb_min_y = py + pose_dy - enemy_r_cfg; float aabb_max_y = py + pose_dy + mask_h * pose_scale_y + enemy_r_cfg;
-            for(int i=0;i<enemy_count && f;i++){ if(!enemies[i].alive) continue; float ex=enemies[i].base.pos.x + g_tuning.enemy_offset_x; float ey=enemies[i].base.pos.y + g_tuning.enemy_offset_y; if(ex < aabb_min_x || ex > aabb_max_x || ey < aabb_min_y || ey > aabb_max_y) continue; float lx = (ex - (px + pose_dx))/pose_scale_x + f->origin_x; float ly = (ey - (py + pose_dy))/pose_scale_y + f->origin_y; int hpix_x=0,hpix_y=0; if(rogue_hit_mask_enemy_test(f,lx,ly,enemy_r_cfg/((pose_scale_x+pose_scale_y)*0.5f),&hpix_x,&hpix_y)){ pixel_hits[pixel_hc]=i; pixel_hc++; if(pixel_hc>=32) break; } }
-            if(pixel_hc>0) pixel_used=1;
+            pose_dx += tune->mask_dx[facing]; pose_dy += tune->mask_dy[facing];
+            if(tune->mask_scale_x[facing] > 0.0f) pose_scale_x *= tune->mask_scale_x[facing];
+            if(tune->mask_scale_y[facing] > 0.0f) pose_scale_y *= tune->mask_scale_y[facing];
+            float tsz = (float)(g_app.tile_size ? g_app.tile_size : 32);
+            float player_px = px * tsz; float player_py = py * tsz; /* player base in pixels */
+            /* Build pixel-space aabb expanded by enemy radius in pixels */
+            float enemy_r_px = enemy_r_cfg * tsz;
+            float aabb_min_x = player_px + pose_dx - enemy_r_px;
+            float aabb_max_x = player_px + pose_dx + mask_w * pose_scale_x + enemy_r_px;
+            float aabb_min_y = player_py + pose_dy - enemy_r_px;
+            float aabb_max_y = player_py + pose_dy + mask_h * pose_scale_y + enemy_r_px;
+            for(int i=0;i<enemy_count && f;i++){
+                if(!enemies[i].alive) continue;
+                float ex_px = (enemies[i].base.pos.x + g_tuning.enemy_offset_x) * tsz;
+                float ey_px = (enemies[i].base.pos.y + g_tuning.enemy_offset_y) * tsz;
+                if(ex_px < aabb_min_x || ex_px > aabb_max_x || ey_px < aabb_min_y || ey_px > aabb_max_y) continue;
+                /* Map enemy position into mask local pixel coordinates */
+                float lx = (ex_px - (player_px + pose_dx)) / pose_scale_x + f->origin_x;
+                float ly = (ey_px - (player_py + pose_dy)) / pose_scale_y + f->origin_y;
+                int hpix_x=0,hpix_y=0;
+                float enemy_r_mask_px = enemy_r_px / ((pose_scale_x + pose_scale_y)*0.5f); /* approximate */
+                if(rogue_hit_mask_enemy_test(f,lx,ly,enemy_r_mask_px,&hpix_x,&hpix_y)){
+                    pixel_hits[pixel_hc]=i; pixel_hc++; if(pixel_hc>=32) break;
+                }
+            }
+            /* Authoritative path should always be pixel mask if available, even with zero hits */
+            pixel_used = 1;
         }
     }
     /* Build authoritative hit list + mismatch stats */
@@ -227,7 +253,7 @@ int rogue_combat_weapon_sweep_apply(struct RoguePlayerCombat* pc, struct RoguePl
     for(int i=0;i<pixel_hc;i++){ int idx=pixel_hits[i]; int found=0; for(int j=0;j<capsule_hc;j++){ if(capsule_hits[j]==idx){ found=1; break; } } if(!found){ mis_pix_only++; }}
     for(int i=0;i<capsule_hc;i++){ int idx=capsule_hits[i]; int found=0; for(int j=0;j<pixel_hc;j++){ if(pixel_hits[j]==idx){ found=1; break; } } if(!found){ mis_cap_only++; }}
     if(mis_pix_only) g_mismatch_pixel_only_total += mis_pix_only; if(mis_cap_only) g_mismatch_capsule_only_total += mis_cap_only;
-    int final_hits[32]; int final_hc=0; if(pixel_used){ for(int i=0;i<pixel_hc;i++){ final_hits[final_hc++]=pixel_hits[i]; if(final_hc>=32) break; } } else { for(int i=0;i<capsule_hc;i++){ final_hits[final_hc++]=capsule_hits[i]; if(final_hc>=32) break; } }
+    int final_hits[32]; int final_hc=0; if(pixel_used){ /* always authoritative if mask available */ for(int i=0;i<pixel_hc;i++){ final_hits[final_hc++]=pixel_hits[i]; if(final_hc>=32) break; } } else { for(int i=0;i<capsule_hc;i++){ final_hits[final_hc++]=capsule_hits[i]; if(final_hc>=32) break; } }
     /* Compute normals for authoritative hits (simple: from capsule segment or from pixel impact approximate) */
     for(int i=0;i<final_hc;i++){ int ei = final_hits[i]; float ex=enemies[ei].base.pos.x + g_tuning.enemy_offset_x; float ey=enemies[ei].base.pos.y + g_tuning.enemy_offset_y; float nx=0,ny=1; if(pixel_used){ /* approximate using capsule for now; later derive from pixel impact */ float cx,cy; float d2 = closest_point_seg(cap.x0,cap.y0,cap.x1,cap.y1,ex,ey,&cx,&cy,&nx,&ny); (void)d2; } else { float cx,cy; float d2 = closest_point_seg(cap.x0,cap.y0,cap.x1,cap.y1,ex,ey,&cx,&cy,&nx,&ny); (void)d2; } normals[i][0]=nx; normals[i][1]=ny; }
     g_last_count = final_hc; for(int k=0;k<final_hc;k++) g_last_indices[k]=final_hits[k];
