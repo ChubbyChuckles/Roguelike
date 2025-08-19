@@ -403,7 +403,7 @@ void rogue_app_step(void)
     rogue_vegetation_render(); /* queues vegetation */
     rogue_player_render();      /* queues player */
     rogue_enemy_render();       /* queues enemies */
-    rogue_scene_drawlist_flush();
+    rogue_scene_drawlist_flush(); /* also flushes weapon overlay queued after sprites */
     /* Render ground item instances */
     rogue_world_render_items();
     /* Render projectiles (after world, before HUD) */

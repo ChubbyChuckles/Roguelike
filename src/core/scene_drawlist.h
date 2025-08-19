@@ -22,6 +22,12 @@ void rogue_scene_drawlist_begin(void);
 void rogue_scene_drawlist_push_sprite(const RogueSprite* spr,int dx,int dy,int y_base,int flip,unsigned char r,unsigned char g,unsigned char b,unsigned char a);
 void rogue_scene_drawlist_flush(void);
 
+/* Weapon overlay (single texture with transform) queued after normal sprites so it renders on top */
+void rogue_scene_drawlist_push_weapon_overlay(void* sdl_texture,
+    float x, float y, float w, float h,
+    float pivot_x, float pivot_y, float angle_deg, int flip,
+    unsigned char r, unsigned char g, unsigned char b, unsigned char a);
+
 #ifdef __cplusplus
 }
 #endif

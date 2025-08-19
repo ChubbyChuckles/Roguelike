@@ -5,6 +5,14 @@
 #include <math.h>
 #include "game/hit_system.h"
 #include "game/weapon_pose.h"
+#include <stddef.h>
+#ifdef ROGUE_HAVE_SDL
+/* drawlist API for weapon overlay */
+void rogue_scene_drawlist_push_weapon_overlay(void* sdl_texture,
+    float x, float y, float w, float h,
+    float pivot_x, float pivot_y, float angle_deg, int flip,
+    unsigned char r, unsigned char g, unsigned char b, unsigned char a);
+#endif
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
@@ -29,23 +37,11 @@ void rogue_player_render(void){
         rogue_scene_drawlist_push_sprite(spr,dst_x,dst_y,y_base,flip_flag,255,255,255,255);
         if(render_state==3){
             int wid = g_app.player.equipped_weapon_id;
-            /* Map facing to directional group: 0=down,1=up,2=side */
-            int dir_group = (dir==3)?1 : (dir==0?0:2); /* original dir indices: 0=down,1=left,2=right,3=up */
+            int dir_group = (dir==3)?1 : (dir==0?0:2);
             int facing_left = (dir==1);
             if(rogue_weapon_pose_ensure_dir(wid, dir_group)){
                 const RogueWeaponPoseFrame* pf = rogue_weapon_pose_get_dir(wid, dir_group, g_app.player.anim_frame);
-                if(pf){ int ww=0, wh=0; void* tex = rogue_weapon_pose_get_texture_single(wid, &ww, &wh);
-                    if(tex){
-                        SDL_Texture* wt=(SDL_Texture*)tex; float center_x = px + spr->sw*0.5f; float center_y = py + spr->sh*0.5f;
-                        float eff_dx = rogue_weapon_pose_effective_dx(pf, facing_left);
-                        float eff_angle = pf->angle * (facing_left? -1.0f:1.0f);
-                        SDL_FRect dstR; dstR.w = ww * pf->scale; dstR.h = wh * pf->scale;
-                        dstR.x = center_x + eff_dx - dstR.w * pf->pivot_x;
-                        dstR.y = center_y + pf->dy - dstR.h * pf->pivot_y;
-                        SDL_FPoint pivot={ dstR.w * pf->pivot_x, dstR.h * pf->pivot_y };
-                        SDL_RenderCopyExF(g_app.renderer, wt, NULL, &dstR, (double)eff_angle, &pivot, facing_left? SDL_FLIP_HORIZONTAL: SDL_FLIP_NONE);
-                    }
-                }
+                if(pf){ int ww=0, wh=0; void* tex = rogue_weapon_pose_get_texture_single(wid, &ww, &wh); if(tex){ float center_x = px + spr->sw*0.5f; float center_y = py + spr->sh*0.5f; float eff_dx = rogue_weapon_pose_effective_dx(pf, facing_left); float eff_angle = pf->angle * (facing_left? -1.0f:1.0f); float wdst = ww * pf->scale; float hdst = wh * pf->scale; float draw_x = center_x + eff_dx - wdst * pf->pivot_x; float draw_y = center_y + pf->dy - hdst * pf->pivot_y; rogue_scene_drawlist_push_weapon_overlay(tex, draw_x, draw_y, wdst, hdst, pf->pivot_x, pf->pivot_y, eff_angle, facing_left, 255,255,255,255); } }
             }
         }
     } /* end sprite present */
