@@ -1,0 +1,18 @@
+{
+  "id": "orc_shaman",
+  "name": "Orc Shaman",
+  "group_min": 1,
+  "group_max": 1,
+  "patrol_radius": 16,
+  "aggro_radius": 17,
+  "speed": 4.0,
+  "pop_target": 20,
+  "xp_reward": 20,
+  "loot_chance": 0.08,
+  "base_level_offset": 5,
+  "tier_id": 0,
+  "archetype_id": 0,
+  "idle_sheet": "../assets/biomes/default/Mobs/Orc Crew/Orc - Shaman/Idle/Idle-Sheet.png",
+  "run_sheet": "../assets/biomes/default/Mobs/Orc Crew/Orc - Shaman/Run/Run-Sheet.png",
+  "death_sheet": "../assets/biomes/default/Mobs/Orc Crew/Orc - Shaman/Death/Death-Sheet.png"
+}
