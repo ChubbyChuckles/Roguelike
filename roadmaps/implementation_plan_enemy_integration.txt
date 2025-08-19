@@ -19,11 +19,11 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 - Enemy base definitions file(s) exist (Partial – may lack explicit linkage to difficulty ids)
 
 PHASE 0. Data & Runtime Structure Alignment
-0.1 Audit enemy base data (assets/enemies.*) to ensure each enemy has: archetype id, tier (if fixed), base level or level offset, enemy_type_id, and display name (X)
-0.2 Introduce mapping table: enemy_type_id -> difficulty_archetype + base_level_offset + visual prefab (X)
-0.3 Extend runtime enemy struct with: difficulty_level, tier_id, modifier_mask/ids[<=8], elite_flag, boss_flag, support_flag, encounter_id, replay_hash_fragment (X)
-0.4 Add pointer / reference to computed final stats block (hp, dmg, defense, crit, resists) generated once at spawn (X)
-0.5 Tests: mapping uniqueness, serialization round-trip (X)
+0.1 Audit enemy base data (assets/enemies.*) to ensure each enemy has: archetype id, tier (if fixed), base level or level offset, enemy_type_id, and display name (Done – JSON schema + struct fields present)
+0.2 Introduce mapping table: enemy_type_id -> difficulty_archetype + base_level_offset + visual prefab (Done – mapping builder API)
+0.3 Extend runtime enemy struct with: difficulty_level, tier_id, modifier_mask/ids[<=8], elite_flag, boss_flag, support_flag, encounter_id, replay_hash_fragment (Done – new fields added; modifier fields reserved)
+0.4 Add pointer / reference to computed final stats block (hp, dmg, defense, crit, resists) generated once at spawn (Done – final hp/damage/defense cached via apply_spawn)
+0.5 Tests: mapping uniqueness, serialization round-trip (Done – unit test validates uniqueness & spawn stat application)
 
 PHASE 1. Spawn Seed Derivation & Determinism
 1.1 Define encounter_seed = world_seed ^ region_id ^ room_id ^ encounter_index (X)

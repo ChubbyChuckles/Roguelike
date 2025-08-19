@@ -86,3 +86,14 @@ feat(enemy-difficulty): Phase 3 encounter composition (initial slice)
 - Unit test `test_enemy_difficulty_phase3` verifies template load (2 templates), count bounds, level consistency, boss presence and support range, multi-seed robustness for swarm pack.
 - Roadmap updated (Phase 3: 3.1–3.3,3.5 Done; 3.4 partial – telegraph/environment props deferred to later phases).
 - README changelog updated with Phase 3 entry.
+
+feat(enemy-integration): Phase 0 data & runtime structure alignment
+
+- Extended `RogueEnemyTypeDef` & `RogueEnemy` with integration metadata (id, tier_id, archetype_id, base_level_offset, encounter/replay fields, modifier slots, final stat cache, flags).
+- Added JSON enemy directory loader already providing id/name/offset/tier; Phase 0 now wires these into mapping.
+- New module `enemy_integration.c/h` building per-type mapping (type_index -> archetype, tier, base_level_offset, ids) and spawn apply helper computing final stats via existing scaling API.
+- Added unit test `test_enemy_integration_phase0` verifying mapping uniqueness, tier/offset propagation, and stat computation on spawn application.
+- Updated roadmap `implementation_plan_enemy_integration.txt` marking Phase 0 (0.1–0.5) Done.
+- CMake updated (added enemy_integration.c); struct field additions prepared for subsequent phases (modifiers, replay hash, flags).
+- README pending integration section update in next aggregation pass.
+ - README changelog updated with Enemy Integration Phase 0 entry.

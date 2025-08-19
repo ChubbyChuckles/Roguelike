@@ -70,6 +70,16 @@ typedef struct RogueEnemy {
     unsigned char ai_bt_enabled; /* feature flag: when set, uses behavior tree instead of legacy logic */
     struct RogueBehaviorTree* ai_tree; /* owned root (destroyed on despawn) */
     void* ai_bt_state; /* blackboard/state wrapper pointer */
+    /* --- Integration Phase 0 additions --- */
+    int tier_id;              /* difficulty tier */
+    int base_level_offset;    /* cached from type for quick level derivation */
+    int encounter_id;         /* id of encounter instance (for replay/analytics) */
+    unsigned int replay_hash_fragment; /* partial hash of composition+mods */
+    unsigned char elite_flag; unsigned char boss_flag; unsigned char support_flag;
+    unsigned char modifier_count;
+    int modifier_ids[8];      /* up to 8 modifiers */
+    /* Cached final combat stats snapshot at spawn (Phase 0.4). Basic subset for now. */
+    float final_hp; float final_damage; float final_defense;
 } RogueEnemy;
 
 #define ROGUE_MAX_ENEMIES 256

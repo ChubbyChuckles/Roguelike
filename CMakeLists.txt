@@ -152,6 +152,7 @@ add_library(rogue_core
     src/graphics/font.c
     src/entities/player.c
     src/entities/enemy.c
+    src/core/enemy_integration.c
     src/game/combat_events.c
     # maintainability phase M2: damage observer dispatch layer
     src/game/combat_observer.c
