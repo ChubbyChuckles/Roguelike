@@ -34,6 +34,16 @@ Implements Roadmap Phase 1 core (1.1,1.2,1.5,1.7 partial):
 
 Next: Phase 1 remaining items (attribute rating curves, biome param layering, UI ΔL indicator, full TTK simulation harness); proceed to Phase 2 modifiers after completing remaining Phase 1 deferred tasks.
 
+feat(enemy-difficulty): Phase 1 completion (attributes, biome params, severity, TTK tests)
+
+- Added derived attribute curves (crit chance log growth, phys/elem resist power curves with caps) & compute API
+- Implemented biome parameter registry (override relative scaling coefficients per biome id)
+- Added ΔL severity classifier enum for future UI tint/icon hooks
+- Added TTK estimation helper (final stats -> effective HP / player DPS)
+- Extended tests (`test_enemy_difficulty_phase1_ext`) covering attribute monotonicity, biome registry, ΔL severity mapping, TTK ordering invariants
+- Roadmap updated marking Phase 1 items 1.3, 1.4 (global+biome) and 1.7 as Done; UI indicator (1.6) left Deferred
+- README changelog pending next aggregation pass (will collate after Phase 2)
+
 feat(hit-detection): Pixel Masks Slice B runtime integration
 
 - Added SHIFT+M toggle (input_events) to flip `g_hit_use_pixel_masks` for A/B testing

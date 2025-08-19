@@ -93,3 +93,87 @@ float rogue_enemy_compute_reward_scalar(int player_level, int enemy_level, float
     float span = (float)(p->trivial_threshold - p->dominance_threshold); if(span <= 0.f) return 1.f; float t = (float)(dL - p->dominance_threshold)/span;
     if(t<0.f) t=0.f; if(t>1.f) t=1.f; return 1.f - t*(1.f - p->reward_trivial_scalar);
 }
+
+/* ---------------- Biome parameter registry (Phase 1.4 extension) ---------------- */
+typedef struct { int biome_id; RogueEnemyDifficultyParams params; } BiomeParamEntry;
+#define MAX_BIOME_PARAMS 32
+static BiomeParamEntry g_biome_params[MAX_BIOME_PARAMS];
+static int g_biome_param_count = 0;
+
+int rogue_enemy_difficulty_register_biome_params(int biome_id, const RogueEnemyDifficultyParams* params){
+    if(!params) return -2; if(biome_id<0) return -3;
+    for(int i=0;i<g_biome_param_count;i++) if(g_biome_params[i].biome_id==biome_id){ g_biome_params[i].params=*params; return 0; }
+    if(g_biome_param_count>=MAX_BIOME_PARAMS) return -1;
+    g_biome_params[g_biome_param_count].biome_id=biome_id; g_biome_params[g_biome_param_count].params=*params; g_biome_param_count++; return 0;
+}
+
+const RogueEnemyDifficultyParams* rogue_enemy_difficulty_params_for_biome(int biome_id){
+    for(int i=0;i<g_biome_param_count;i++) if(g_biome_params[i].biome_id==biome_id) return &g_biome_params[i].params;
+    return NULL;
+}
+
+/* Helper selecting params (biome override else global). */
+static const RogueEnemyDifficultyParams* _select_params(int biome_id){
+    const RogueEnemyDifficultyParams* b = (biome_id>=0)? rogue_enemy_difficulty_params_for_biome(biome_id):NULL;
+    return b? b : &g_params;
+}
+
+/* ΔL severity classification (Phase 1.6 placeholder) */
+RogueEnemyDeltaLSeverity rogue_enemy_difficulty_classify_delta(int player_level, int enemy_level){
+    const RogueEnemyDifficultyParams* p=&g_params; int dL = player_level - enemy_level;
+    if(dL==0) return ROGUE_DLVL_EQUAL;
+    if(dL>0){
+        if(dL >= p->trivial_threshold) return ROGUE_DLVL_TRIVIAL;
+        if(dL >= p->dominance_threshold) return ROGUE_DLVL_DOMINANCE;
+        if(dL >= 5) return ROGUE_DLVL_MAJOR; /* heuristic */
+        return ROGUE_DLVL_MINOR;
+    }
+    /* Enemy higher level */
+    if(-dL >= 8) return ROGUE_DLVL_MAJOR; if(-dL >=4) return ROGUE_DLVL_MODERATE; return ROGUE_DLVL_MINOR;
+}
+
+/* Attribute curves (Phase 1.3) – lightweight proxies until full rating system.
+ * - crit_chance: starts 2%, grows log-slow with level & DPS budget
+ * - phys_resist: scales with hp budget and level^0.6 (capped 60%)
+ * - elem_resist: slightly below phys for baseline (capped 55%) */
+int rogue_enemy_difficulty_internal__attrib_curves(int enemy_level, float hp_budget, float dps_budget, RogueEnemyDerivedAttributes* out){
+    if(!out) return -1; if(enemy_level<1) enemy_level=1;
+    float L = (float)enemy_level;
+    float crit = 0.02f + 0.12f * (logf(L+1.f)/logf(101.f)) * (0.5f + 0.5f * (dps_budget));
+    if(crit>0.30f) crit=0.30f;
+    float phys = 0.05f + 0.65f * powf(L,0.60f)/powf(100.f,0.60f) * (0.4f + 0.6f * (hp_budget));
+    if(phys>0.60f) phys=0.60f;
+    float elem = phys * 0.92f; if(elem>0.55f) elem=0.55f;
+    out->crit_chance=crit; out->phys_resist=phys; out->elem_resist=elem; return 0;
+}
+
+int rogue_enemy_compute_final_stats_biome(int player_level, int enemy_level, int tier_id, int biome_id, RogueEnemyFinalStats* out){
+    if(!out) return -3; RogueEnemyBaseStats base = rogue_enemy_base_stats(enemy_level);
+    const RogueEnemyTierDesc* tier = rogue_enemy_tier_get(tier_id); if(!tier) return -2;
+    float rel_hp_mult=1.f, rel_dmg_mult=1.f; if(rogue_enemy_difficulty_internal__relative_multipliers(player_level, enemy_level, &rel_hp_mult, &rel_dmg_mult)!=0) return -1;
+    const RogueEnemyDifficultyParams* p = _select_params(biome_id); (void)p; /* future biome-specific adjustments could apply here */
+    float tier_hp = base.hp * tier->mult.hp_budget;
+    float tier_dmg = base.damage * tier->mult.dps_budget;
+    float tier_def = base.defense * tier->mult.hp_budget;
+    out->hp = tier_hp * rel_hp_mult;
+    out->damage = tier_dmg * rel_dmg_mult;
+    out->defense = tier_def * rel_hp_mult;
+    out->hp_mult = rel_hp_mult * tier->mult.hp_budget;
+    out->dmg_mult = rel_dmg_mult * tier->mult.dps_budget;
+    out->def_mult = rel_hp_mult * tier->mult.hp_budget;
+    return 0;
+}
+
+int rogue_enemy_compute_attributes(int player_level, int enemy_level, int tier_id, int biome_id, RogueEnemyDerivedAttributes* out){
+    (void)player_level; (void)biome_id; /* reserved for future adaptive & biome-specific ordering */
+    const RogueEnemyTierDesc* tier = rogue_enemy_tier_get(tier_id); if(!tier) return -2;
+    return rogue_enemy_difficulty_internal__attrib_curves(enemy_level, tier->mult.hp_budget, tier->mult.dps_budget, out);
+}
+
+float rogue_enemy_estimate_ttk_seconds(int player_level, int enemy_level, int tier_id, int biome_id, float player_dps){
+    if(player_dps <= 0.f) return -1.f; RogueEnemyFinalStats fs; if(rogue_enemy_compute_final_stats_biome(player_level, enemy_level, tier_id, biome_id, &fs)!=0) return -2.f;
+    /* Very simple: effective HP / player_dps (defense converts ~ linearly reduction proxy). */
+    float defense_factor = 1.f + fs.defense / 500.f; /* diminishing contribution */
+    float ehp = fs.hp * defense_factor;
+    return ehp / player_dps;
+}

@@ -31,6 +31,9 @@ typedef struct RogueEnemyBaseStats { float hp; float damage; float defense; } Ro
 
 typedef struct RogueEnemyFinalStats { float hp; float damage; float defense; float hp_mult; float dmg_mult; float def_mult; } RogueEnemyFinalStats;
 
+/* Derived combat attributes (Phase 1.3) */
+typedef struct RogueEnemyDerivedAttributes { float crit_chance; float phys_resist; float elem_resist; } RogueEnemyDerivedAttributes;
+
 /* Load params from file (returns 0 on success). Missing file => keep defaults. */
 int rogue_enemy_difficulty_load_params_file(const char* path);
 /* Get current params (pointer to internal immutable instance). */
@@ -51,12 +54,30 @@ RogueEnemyBaseStats rogue_enemy_base_stats(int enemy_level);
  */
 int rogue_enemy_compute_final_stats(int player_level, int enemy_level, int tier_id, RogueEnemyFinalStats* out);
 
+/* Variant using biome-specific params (if registered) */
+int rogue_enemy_compute_final_stats_biome(int player_level, int enemy_level, int tier_id, int biome_id, RogueEnemyFinalStats* out);
+
+/* Derived attributes (crit/resists) after final stat scaling; biome_id optional (-1 => global). */
+int rogue_enemy_compute_attributes(int player_level, int enemy_level, int tier_id, int biome_id, RogueEnemyDerivedAttributes* out);
+
 /* Reward scalar (Phase 1 basic): returns scalar in [reward_trivial_scalar, 1.0].
  * modifier_complexity_score, adaptive_state currently ignored (future phases). */
 float rogue_enemy_compute_reward_scalar(int player_level, int enemy_level, float modifier_complexity_score, float adaptive_state_scalar);
 
+/* Biome parameter registry (Phase 1.4) */
+int rogue_enemy_difficulty_register_biome_params(int biome_id, const RogueEnemyDifficultyParams* params); /* returns 0 on success */
+const RogueEnemyDifficultyParams* rogue_enemy_difficulty_params_for_biome(int biome_id); /* NULL if none */
+
+/* ΔL severity categorization (Phase 1.6 UI hook placeholder) */
+typedef enum RogueEnemyDeltaLSeverity { ROGUE_DLVL_EQUAL=0, ROGUE_DLVL_MINOR, ROGUE_DLVL_MODERATE, ROGUE_DLVL_MAJOR, ROGUE_DLVL_DOMINANCE, ROGUE_DLVL_TRIVIAL } RogueEnemyDeltaLSeverity;
+RogueEnemyDeltaLSeverity rogue_enemy_difficulty_classify_delta(int player_level, int enemy_level);
+
+/* TTK estimation helper for analytics & tests: simplistic model using provided player_dps estimate. */
+float rogue_enemy_estimate_ttk_seconds(int player_level, int enemy_level, int tier_id, int biome_id, float player_dps);
+
 /* Test helpers */
 int rogue_enemy_difficulty_internal__relative_multipliers(int player_level, int enemy_level, float* out_hp_mult, float* out_dmg_mult);
+int rogue_enemy_difficulty_internal__attrib_curves(int enemy_level, float hp_budget, float dps_budget, RogueEnemyDerivedAttributes* out);
 
 #ifdef __cplusplus
 }

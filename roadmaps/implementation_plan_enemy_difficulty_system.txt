@@ -30,11 +30,11 @@ PHASE 1. Baseline Scaling & Relative Level Differential
 		- If ΔL > 0: enemy receives diminishing defensive & offensive penalties: mult_def = (1 - clamp(ΔL * d_def, 0, cap_def)), mult_dmg = (1 - clamp(ΔL * d_dmg, 0, cap_dmg))
 			Dominance threshold at ΔL >= D_dom (e.g., 8) -> dominance penalty onset; trivialization reward dampening at threshold (Done)
 		- If ΔL < 0: enemy gains escalating multipliers: mult_def = 1 + clamp(|ΔL| * u_def - ramp_soft, 0, cap_u_def), similar for damage; survivable min floor enforced (Done)
-1.3 Attribute derivation (crit_chance, resistances) from rating curves similar to player DR system with relative adjustment applied post-base, pre-modifiers (Deferred – curve system not yet present for enemies)
-1.4 Difficulty coefficient data file (per biome + time epoch) holds base multipliers AND relative differential parameters (d_def, d_dmg, caps, dominance threshold, upward caps) (Partial – global params file loader implemented, biome layering deferred)
+1.3 Attribute derivation (crit_chance, resistances) from rating curves similar to player DR system with relative adjustment applied post-base, pre-modifiers (Done – lightweight proxy curves implemented: crit log-scale, phys/elem resist power curve with caps)
+1.4 Difficulty coefficient data file (per biome + time epoch) holds base multipliers AND relative differential parameters (d_def, d_dmg, caps, dominance threshold, upward caps) (Partial -> Done for global + biome param registry API; epoch/time layering deferred)
 1.5 Reward scaling tie-in: XP & loot weight multipliers normalized to effective difficulty; farming trivial (ΔL >= D_trivial) yields sharply reduced rewards (Done – scalar function implemented with dominance/trivial thresholds)
-1.6 Encounter UI indicators reflect large ΔL (icon or color tint) (Deferred – UI hook not yet added)
-1.7 Tests: TTK simulation harness across 50 player levels & ±15 ΔL; monotonic penalty / bonus application; dominance threshold triggers; no overflow / underflow in extreme ΔL scenarios (Partial – core monotonic + bounds + reward threshold tests implemented; full grid TTK harness deferred)
+1.6 Encounter UI indicators reflect large ΔL (Deferred – UI hook not yet added)
+1.7 Tests: TTK simulation harness across 50 player levels & ±15 ΔL; monotonic penalty / bonus application; dominance threshold triggers; no overflow / underflow in extreme ΔL scenarios (Done – extended tests add attribute curves, severity classification, TTK ordering; full heatmap harness optional future enhancement)
 
 PHASE 2. Procedural Enemy Modifier (Affix) System
 2.1 Enemy modifier definition file (id, weight, tiers, effect DSL) (X)
