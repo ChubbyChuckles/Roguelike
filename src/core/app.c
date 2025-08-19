@@ -239,8 +239,11 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     rogue_combat_init(&g_app.player_combat);
     g_app.enemy_count = 0; g_app.total_kills = 0;
     g_app.enemy_type_count = ROGUE_MAX_ENEMY_TYPES; /* capacity passed to loader */
-    if(!rogue_enemy_load_config("../assets/enemies.cfg", g_app.enemy_types, &g_app.enemy_type_count) || g_app.enemy_type_count<=0){
-    ROGUE_LOG_WARN("No enemy types loaded; injecting fallback dummy type.");
+    int json_count=0; int json_ok = rogue_enemy_types_load_directory_json("../../assets/enemies", g_app.enemy_types, ROGUE_MAX_ENEMY_TYPES, &json_count);
+    if(json_ok && json_count>0){
+    g_app.enemy_type_count = json_count; ROGUE_LOG_INFO("Loaded %d enemy JSON type(s) (legacy app.c path)", json_count);
+    } else {
+    ROGUE_LOG_WARN("No enemy JSON types loaded (legacy app.c path); injecting fallback dummy type.");
     g_app.enemy_type_count = 1;
     RogueEnemyTypeDef* t = &g_app.enemy_types[0]; memset(t,0,sizeof *t);
 #if defined(_MSC_VER)
@@ -249,8 +252,6 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     strncpy(t->name,"dummy",sizeof t->name -1); t->name[sizeof t->name -1]='\0';
 #endif
     t->group_min=1; t->group_max=2; t->patrol_radius=5; t->aggro_radius=6; t->speed=30.0f; t->pop_target=15; t->xp_reward=2; t->loot_chance=0.05f;
-    } else {
-    ROGUE_LOG_INFO("Loaded %d enemy types", g_app.enemy_type_count);
     }
     /* Ensure per-type population counters start at zero (uninitialized memory previously blocked spawns) */
     for(int i=0;i<ROGUE_MAX_ENEMY_TYPES;i++){ g_app.per_type_counts[i]=0; }

@@ -6,7 +6,7 @@
 
 int main(void){
     RogueEnemyTypeDef types[ROGUE_MAX_ENEMY_TYPES]; int count=0;
-    int ok = rogue_enemy_types_load_directory_json("assets/enemies", types, ROGUE_MAX_ENEMY_TYPES, &count);
+    int ok = rogue_enemy_types_load_directory_json("../assets/enemies", types, ROGUE_MAX_ENEMY_TYPES, &count);
     if(!ok || count < 2){ printf("FAIL expected >=2 enemy types json loaded count=%d\n", count); return 1; }
     int found_grunt=0, found_elite=0;
     for(int i=0;i<count;i++){

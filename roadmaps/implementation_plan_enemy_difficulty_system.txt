@@ -10,7 +10,7 @@ Scope Overview:
 Deliver a data‑driven, extensible enemy difficulty framework governing baseline stat scaling, procedural modifiers, encounter composition, adaptive difficulty (player performance feedback), telegraph clarity, AI behavior intensity, and reward calibration. Goals: Fair challenge at SAME LEVEL, clear readability, low variance TTK (time-to-kill) bands, decisive dominance vs significantly LOWER LEVEL enemies, credible threat vs substantially HIGHER LEVEL enemies, anti-exploit safeguards, deterministic simulation for analytics & future multiplayer authority, and smooth infinite player progression integration. Constraints: single character per account, infinite player leveling, no classes (universal skill acquisition), existing loot/affix/equipment/stat systems, durability, skill maze, and persistence hash chain.
 
 FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
-- Enemy base definitions (assets/enemies.cfg) (Partial)
+- Enemy base definitions (../assets/enemies.cfg) (Partial)
 - Loot table & rarity weighting system (Done)
 - Combat stat calculation pipeline for player (Partial) / enemies (Partial)
 - Affix/mod system for items; procedural patterns reusable for enemies (Done)
