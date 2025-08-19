@@ -15,6 +15,7 @@
 #include "core/inventory.h"
 #include "core/equipment.h"
 #include "core/hud_overlays.h" /* alerts & metrics toggles */
+#include "game/hit_system.h" /* debug toggle */
 #include "ui/core/ui_context.h" /* skill graph toggle */
 #include <string.h> /* memset */
 #ifdef ROGUE_HAVE_SDL
@@ -118,6 +119,34 @@ void rogue_process_events(void){
             if(ev.key.keysym.sym==SDLK_F8){ g_app.gen_noise_octaves--; if(g_app.gen_noise_octaves<3) g_app.gen_noise_octaves=3; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
             if(ev.key.keysym.sym==SDLK_F9){ g_app.gen_river_sources+=2; if(g_app.gen_river_sources>40) g_app.gen_river_sources=40; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
             if(ev.key.keysym.sym==SDLK_F10){ g_app.gen_river_sources-=2; if(g_app.gen_river_sources<2) g_app.gen_river_sources=2; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
+            if(ev.key.keysym.sym==SDLK_f){ g_hit_debug_enabled = !g_hit_debug_enabled; }
+            /* Hitbox tuning hotkeys: hold CTRL to modify player capsule, ALT for enemy hit circles.
+               Number keys 1-9 adjust magnitude; 0 saves to file. Without modifiers we cycle nothing (reserved).
+               CTRL + (1/2) adjust player_offset_x +/-; (3/4) adjust player_offset_y; (5/6) adjust length; (7/8) adjust width.
+               ALT + (1/2) adjust enemy_offset_x; (3/4) enemy_offset_y; (5/6) enemy_radius +/-.
+            */
+            const Uint8* ks_state = SDL_GetKeyboardState(NULL);
+            int ctrl_down = ks_state[SDL_SCANCODE_LCTRL] || ks_state[SDL_SCANCODE_RCTRL];
+            int alt_down2 = ks_state[SDL_SCANCODE_LALT] || ks_state[SDL_SCANCODE_RALT];
+            if(ctrl_down || alt_down2){
+                RogueHitboxTuning* tune = rogue_hitbox_tuning_get();
+                float step = 0.02f; /* base granularity */
+                int k = ev.key.keysym.sym;
+                if(ctrl_down){
+                    if(k==SDLK_1) tune->player_offset_x -= step; else if(k==SDLK_2) tune->player_offset_x += step;
+                    else if(k==SDLK_3) tune->player_offset_y -= step; else if(k==SDLK_4) tune->player_offset_y += step;
+                    else if(k==SDLK_5) tune->player_length -= step; else if(k==SDLK_6) tune->player_length += step;
+                    else if(k==SDLK_7) tune->player_width -= step; else if(k==SDLK_8) tune->player_width += step;
+                    else if(k==SDLK_9){ tune->player_offset_x=0; tune->player_offset_y=0; }
+                    else if(k==SDLK_0){ rogue_hitbox_tuning_save_resolved(); }
+                } else if(alt_down2){
+                    if(k==SDLK_1) tune->enemy_offset_x -= step; else if(k==SDLK_2) tune->enemy_offset_x += step;
+                    else if(k==SDLK_3) tune->enemy_offset_y -= step; else if(k==SDLK_4) tune->enemy_offset_y += step;
+                    else if(k==SDLK_5) tune->enemy_radius -= step; else if(k==SDLK_6) tune->enemy_radius += step;
+                    else if(k==SDLK_9){ tune->enemy_offset_x=0; tune->enemy_offset_y=0; }
+                    else if(k==SDLK_0){ rogue_hitbox_tuning_save_resolved(); }
+                }
+            }
             if(ev.key.keysym.sym==SDLK_F11){ g_app.gen_noise_gain += 0.02; if(g_app.gen_noise_gain>0.8) g_app.gen_noise_gain=0.8; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
             if(ev.key.keysym.sym==SDLK_F12){ g_app.gen_noise_gain -= 0.02; if(g_app.gen_noise_gain<0.3) g_app.gen_noise_gain=0.3; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
             if(ev.key.keysym.sym==SDLK_BACKQUOTE){

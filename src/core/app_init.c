@@ -55,6 +55,7 @@ SOFTWARE.
 #include "entities/player.h"
 #include "entities/enemy.h"
 #include "game/combat.h"
+#include "game/hit_system.h" /* weapon geometry JSON */
 #include "util/log.h"
 #include <string.h>
 #include <stdlib.h>
@@ -94,6 +95,13 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     rogue_inventory_init();
     g_app.inventory_sort_mode = 0; /* default sort none */
     rogue_loot_logging_init_from_env();
+        /* Load hitbox tuning if present */
+        RogueHitboxTuning* tune = rogue_hitbox_tuning_get();
+        tune->enemy_radius = 0.40f; /* default */
+            if(rogue_hitbox_tuning_resolve_path()){
+                const char* tpath = rogue_hitbox_tuning_path();
+                if(tpath && rogue_hitbox_tuning_load(tpath, tune)==0){ ROGUE_LOG_INFO("hitbox_tuning_loaded: %s", tpath); }
+            }
      rogue_persistence_load_player_stats();
      /* Cheat override (dev convenience): set talent points to 100 only if env var ROGUE_TALENT_CHEAT=1.
         Keeps unit tests deterministic (they expect default progression) while allowing manual play sessions
@@ -158,6 +166,14 @@ bool rogue_app_init(const RogueAppConfig* cfg)
 #endif
         t->group_min=1; t->group_max=2; t->patrol_radius=5; t->aggro_radius=6; t->speed=30.0f; t->pop_target=15; t->xp_reward=2; t->loot_chance=0.05f;
     } else { ROGUE_LOG_INFO("Loaded %d enemy types", g_app.enemy_type_count); }
+    /* Weapon hit geometry load (Phase 1). Try multiple candidate roots for dev/build execution contexts. */
+    const char* geo_candidates[] = {
+        "assets/weapon_hit_geo.json",
+        "../assets/weapon_hit_geo.json",
+        "../../assets/weapon_hit_geo.json"
+    };
+    int geo_loaded = 0; for(size_t gi=0; gi<sizeof(geo_candidates)/sizeof(geo_candidates[0]); ++gi){ int r = rogue_weapon_hit_geo_load_json(geo_candidates[gi]); if(r>0){ ROGUE_LOG_INFO("Weapon hit geometry loaded: %d entries (%s)", r, geo_candidates[gi]); geo_loaded=1; break; } else { ROGUE_LOG_DEBUG("Weapon hit geo load attempt failed (%s)", geo_candidates[gi]); } }
+    if(!geo_loaded){ rogue_weapon_hit_geo_ensure_default(); ROGUE_LOG_WARN("No weapon_hit_geo.json loaded; using default geometry"); }
     for(int i=0;i<ROGUE_MAX_ENEMY_TYPES;i++){ g_app.per_type_counts[i]=0; }
     for(int i=0;i<ROGUE_MAX_ENEMIES;i++){ g_app.enemies[i].alive=0; }
     {

@@ -1,4 +1,5 @@
 #include "game/combat.h"
+#include "game/hit_system.h" /* for rogue_hit_sweep_reset */
 #include "game/combat_attacks.h"
 #include "game/weapons.h"
 #include "game/infusions.h"
@@ -61,7 +62,7 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
             float cost = def?def->stamina_cost:14.0f; cost *= sm.stamina_mult;
             pc->phase = ROGUE_ATTACK_WINDUP; pc->timer = 0; pc->stamina -= cost; pc->stamina_regen_delay = 500.0f; pc->buffered_attack=0; pc->hit_confirmed=0; pc->strike_time_ms=0; }
     } else if(pc->phase==ROGUE_ATTACK_WINDUP){
-        if(pc->timer >= WINDUP_MS){ pc->phase = ROGUE_ATTACK_STRIKE; pc->timer = 0; pc->precise_accum_ms=0.0; pc->strike_time_ms=0; pc->blocked_this_strike=0; pc->processed_window_mask=0; pc->emitted_events_mask=0; pc->event_count=0; }
+    if(pc->timer >= WINDUP_MS){ pc->phase = ROGUE_ATTACK_STRIKE; pc->timer = 0; pc->precise_accum_ms=0.0; pc->strike_time_ms=0; pc->blocked_this_strike=0; pc->processed_window_mask=0; pc->emitted_events_mask=0; pc->event_count=0; rogue_hit_sweep_reset(); }
     } else if(pc->phase==ROGUE_ATTACK_STRIKE){
         pc->strike_time_ms += dt_ms;
         unsigned short active_window_flags = 0; if(def && def->num_windows>0){ for(int wi=0; wi<def->num_windows; ++wi){ const RogueAttackWindow* w = &def->windows[wi]; if(pc->strike_time_ms >= w->start_ms && pc->strike_time_ms < w->end_ms){ active_window_flags = w->flags; break; } } }

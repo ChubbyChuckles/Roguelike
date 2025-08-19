@@ -1,0 +1,6 @@
+[
+  { "weapon_id": 0, "length": 1.60, "width": 0.55, "pivot_dx": 0.0, "pivot_dy": 0.0, "slash_vfx_id": 0 },
+  { "weapon_id": 1, "length": 1.95, "width": 0.80, "pivot_dx": 0.0, "pivot_dy": 0.0, "slash_vfx_id": 1 },
+  { "weapon_id": 2, "length": 2.10, "width": 0.40, "pivot_dx": 0.0, "pivot_dy": 0.0, "slash_vfx_id": 2 },
+  { "weapon_id": 3, "length": 1.35, "width": 0.50, "pivot_dx": 0.0, "pivot_dy": 0.0, "slash_vfx_id": 3 }
+]

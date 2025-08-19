@@ -2,6 +2,7 @@
 #include "core/buffs.h"
 #include "game/combat_attacks.h"
 #include "game/weapons.h"
+#include "game/hit_system.h" /* Phase 1-2 geometry (currently unused gating placeholder) */
 #include "game/infusions.h"
 #include "core/navigation.h"
 #include "game/lock_on.h"
@@ -22,27 +23,19 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
     if(pc->phase != ROGUE_ATTACK_STRIKE) return 0;
     if(pc->strike_time_ms <= 0.0f && pc->processed_window_mask != 0){ pc->processed_window_mask = 0; pc->emitted_events_mask = 0; pc->event_count = 0; }
     int kills=0;
-    static const float reach_curve[8] = {0.65f,0.95f,1.25f,1.35f,1.35f,1.18f,0.95f,0.75f};
-    static const unsigned char hit_mask[8] = {0,0,1,1,1,1,0,0};
+    /* Legacy reach_curve and directional gating removed: geometry sweep now defines hits */
     extern int rogue_get_current_attack_frame(void);
-    int afr = (g_attack_frame_override>=0)? g_attack_frame_override : rogue_get_current_attack_frame(); if(afr<0 || afr>7) afr=0;
-    int gating = hit_mask[afr];
-#ifndef TEST_COMBAT_PERMISSIVE
-    if(!rogue_force_attack_active){
-        if(!gating){ if(g_attack_frame_override < 0){ int test_frame = 3; int tf_gate = hit_mask[test_frame]; if(tf_gate){ afr = test_frame; gating = 1; } } if(!gating) return 0; }
-    }
-#endif
-    float px = player->base.pos.x; float py = player->base.pos.y;
-    float base_reach = 1.6f * reach_curve[afr]; float reach = base_reach + (player->strength * 0.012f);
-    float dirx=0, diry=0; switch(player->facing){ case 0: diry=1; break; case 1: dirx=-1; break; case 2: dirx=1; break; case 3: diry=-1; break; }
-    if(player->lock_on_active){ float ldx=0,ldy=0; if(rogue_lockon_get_dir(player,enemies,enemy_count,&ldx,&ldy)){ dirx=ldx; diry=ldy; }}
-    float cx = px + dirx * reach * 0.45f; float cy = py + diry * reach * 0.45f; float reach2 = reach*reach;
+    int afr = (g_attack_frame_override>=0)? g_attack_frame_override : rogue_get_current_attack_frame(); if(afr<0 || afr>7) afr=0; /* still used for window timing */
+    float px = player->base.pos.x; float py = player->base.pos.y; float cx = px; float cy = py;
     unsigned int newly_active_mask = 0; pc->current_window_flags = 0; const RogueAttackDef* def = rogue_attack_get(pc->archetype, pc->chain_index);
     if(def && def->num_windows>0){ for(int wi=0; wi<def->num_windows && wi<32; ++wi){ const RogueAttackWindow* w = &def->windows[wi]; int active = (pc->strike_time_ms >= w->start_ms && pc->strike_time_ms < w->end_ms); if(active){ newly_active_mask |= (1u<<wi); pc->current_window_flags = w->flags; if(!(pc->emitted_events_mask & (1u<<wi))){ if(pc->event_count < (int)(sizeof(pc->events)/sizeof(pc->events[0]))) { pc->events[pc->event_count].type = ROGUE_COMBAT_EVENT_BEGIN_WINDOW; pc->events[pc->event_count].data = (unsigned short)wi; pc->events[pc->event_count].t_ms = pc->strike_time_ms; pc->event_count++; } pc->emitted_events_mask |= (1u<<wi); } } else if(!active && (pc->emitted_events_mask & (1u<<wi)) && !(pc->processed_window_mask & (1u<<wi))){ if(pc->event_count < (int)(sizeof(pc->events)/sizeof(pc->events[0]))) { pc->events[pc->event_count].type = ROGUE_COMBAT_EVENT_END_WINDOW; pc->events[pc->event_count].data = (unsigned short)wi; pc->events[pc->event_count].t_ms = pc->strike_time_ms; pc->event_count++; } pc->processed_window_mask |= (1u<<wi); } } }
     else if(def){ newly_active_mask = 1u; if(pc->strike_time_ms >= def->active_ms) newly_active_mask = 0; }
     unsigned int process_mask = newly_active_mask & ~pc->processed_window_mask; if(process_mask==0) return 0;
     for(int wi=0; wi<32; ++wi){ if(!(process_mask & (1u<<wi))) continue; float window_mult = 1.0f; float bleed_build = 0.0f, frost_build = 0.0f; if(def && wi < def->num_windows){ const RogueAttackWindow* w = &def->windows[wi]; if(w->damage_mult > 0.0f) window_mult = w->damage_mult; bleed_build = w->bleed_build; frost_build = w->frost_build; if(w->flags & ROGUE_WINDOW_HYPER_ARMOR){ rogue_player_set_hyper_armor_active(1); } }
-        for(int i=0;i<enemy_count;i++){ if(!enemies[i].alive) continue; if(enemies[i].team_id == player->team_id) continue; float ex = enemies[i].base.pos.x; float ey = enemies[i].base.pos.y; float dx = ex - cx; float dy = ey - cy; float dist2 = dx*dx + dy*dy; if(dist2 > reach2) continue; float dot = dx*dirx + dy*diry; float forward_player_dot = (ex - px)*dirx + (ey - py)*diry; if(dot < -0.60f && forward_player_dot < 0.0f) continue; float perp = dx* (-diry) + dy* dirx; float lateral_limit = reach * 0.95f; if(fabsf(perp) > lateral_limit) continue; int effective_strength = player->strength + rogue_buffs_get_total(0); int base = 1 + effective_strength/5; float scaled = (float)base; if(def){ scaled = def->base_damage + (float)effective_strength * def->str_scale + (float)player->dexterity * def->dex_scale + (float)player->intelligence * def->int_scale; if(scaled<1.0f) scaled=1.0f; }
+    /* Phase 2 integration slice: if geometry sweep enabled, precompute list by marking enemies that pass sweep; we keep legacy reach logic as fallback for now. */
+    int use_sweep = 1; /* temporary always-on; can gate by compile flag later */
+    const int* sweep_indices=NULL; int sweep_count=0; if(use_sweep){ sweep_count = rogue_combat_weapon_sweep_apply(pc, player, enemies, enemy_count); rogue_hit_last_indices(&sweep_indices); }
+    for(int si=0; si<sweep_count; ++si){ int i = sweep_indices[si]; if(i<0 || i>=enemy_count) continue; if(!enemies[i].alive) continue; if(enemies[i].team_id == player->team_id) continue; float ex = enemies[i].base.pos.x; float ey = enemies[i].base.pos.y; int effective_strength = player->strength + rogue_buffs_get_total(0); int base = 1 + effective_strength/5; float scaled = (float)base; if(def){ scaled = def->base_damage + (float)effective_strength * def->str_scale + (float)player->dexterity * def->dex_scale + (float)player->intelligence * def->int_scale; if(scaled<1.0f) scaled=1.0f; }
             float combo_scale = 1.0f + (pc->combo * 0.08f); if(combo_scale>1.4f) combo_scale=1.4f; const RogueWeaponDef* wdef = rogue_weapon_get(player->equipped_weapon_id); RogueStanceModifiers sm = rogue_stance_get_mods(player->combat_stance); const RogueInfusionDef* inf = rogue_infusion_get(player->weapon_infusion); if(wdef){ scaled += wdef->base_damage; scaled += (float)player->strength * wdef->str_scale + (float)player->dexterity * wdef->dex_scale + (float)player->intelligence * wdef->int_scale; }
             float fam_bonus = rogue_weapon_get_familiarity_bonus(player->equipped_weapon_id); float durability_mult = 1.0f; if(wdef){ float cur = rogue_weapon_current_durability(wdef->id); if(cur>0){ float pct = cur / (wdef->durability_max>0? wdef->durability_max:1.0f); if(pct < 0.5f){ float frac = pct/0.5f; durability_mult = 0.70f + 0.30f * frac; } } }
             float base_composite = scaled * combo_scale * window_mult * sm.damage_mult * (1.0f + fam_bonus) * durability_mult; float comp_phys = base_composite; float comp_fire = 0.0f, comp_frost = 0.0f, comp_arc = 0.0f; if(inf){ comp_fire  = base_composite * inf->fire_add; comp_frost = base_composite * inf->frost_add; comp_arc   = base_composite * inf->arcane_add; comp_phys  = base_composite * inf->phys_scalar; }
@@ -53,7 +46,7 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             if(pc->pending_charge_damage_mult > 1.0f){ raw *= pc->pending_charge_damage_mult; }
             float t_parts = comp_phys + comp_fire + comp_frost + comp_arc; if(t_parts < 0.0001f) t_parts = 1.0f; float part_phys = raw * (comp_phys / t_parts); float part_fire = raw * (comp_fire / t_parts); float part_frost= raw * (comp_frost/ t_parts); float part_arc  = raw * (comp_arc / t_parts); int dmg = (int)floorf(raw + 0.5f); if(pc->combo>0){ int min_noncrit = (int)floorf(scaled + pc->combo + 0.5f); int hard_cap = (int)floorf(scaled * 1.4f + 0.5f); if(min_noncrit>hard_cap) min_noncrit=hard_cap; if(dmg<min_noncrit) dmg=min_noncrit; }
             int obstructed = 0; int override_used = 0; int ov = _rogue_combat_call_obstruction_test(px,py,ex,ey); if(ov==0 || ov==1){ obstructed = ov; override_used=1; }
-            if(!override_used){ float rx0 = cx; float ry0 = cy; float rx1 = ex; float ry1 = ey; int tx0 = (int)floorf(rx0); int ty0 = (int)floorf(ry0); int tx1 = (int)floorf(rx1); int ty1 = (int)floorf(ry1); int steps = (abs(tx1-tx0) > abs(ty1-ty0)? abs(tx1-tx0): abs(ty1-ty0)); if(steps<1) steps=1; float fx = (float)(tx1 - tx0)/(float)steps; float fy = (float)(ty1 - ty0)/(float)steps; float sx = (float)tx0 + 0.5f; float sy = (float)ty0 + 0.5f; for(int si=0; si<=steps; ++si){ int cx_t = (int)floorf(sx); int cy_t = (int)floorf(sy); if(!(cx_t==tx0 && cy_t==ty0) && !(cx_t==tx1 && cy_t==ty1)){ if(combat_nav_is_blocked(cx_t,cy_t)){ obstructed=1; break; } } sx += fx; sy += fy; } }
+            if(!override_used){ float rx0 = cx; float ry0 = cy; float rx1 = ex; float ry1 = ey; int tx0 = (int)floorf(rx0); int ty0 = (int)floorf(ry0); int tx1 = (int)floorf(rx1); int ty1 = (int)floorf(ry1); int steps = (abs(tx1-tx0) > abs(ty1-ty0)? abs(tx1-tx0): abs(ty1-ty0)); if(steps<1) steps=1; float fx = (float)(tx1 - tx0)/(float)steps; float fy = (float)(ty1 - ty0)/(float)steps; float sx = (float)tx0 + 0.5f; float sy = (float)ty0 + 0.5f; for(int step_i=0; step_i<=steps; ++step_i){ int cx_t = (int)floorf(sx); int cy_t = (int)floorf(sy); if(!(cx_t==tx0 && cy_t==ty0) && !(cx_t==tx1 && cy_t==ty1)){ if(combat_nav_is_blocked(cx_t,cy_t)){ obstructed=1; break; } } sx += fx; sy += fy; } }
             if(obstructed){ float atten = 0.55f; part_phys *= atten; part_fire *= atten; part_frost *= atten; part_arc *= atten; raw *= atten; dmg = (int)floorf(raw + 0.5f); if(dmg<1) dmg=1; }
             int raw_before = dmg; float dex_bonus = player->dexterity * 0.0035f; if(dex_bonus>0.55f) dex_bonus=0.55f; float crit_chance = 0.05f + dex_bonus + (float)player->crit_chance * 0.01f; if(crit_chance>0.75f) crit_chance=0.75f; int is_crit = 0; if(pc->force_crit_next_strike){ is_crit=1; pc->force_crit_next_strike=0; } else { is_crit = (((float)rand()/(float)RAND_MAX) < crit_chance)?1:0; } float crit_mult = 1.0f; if(is_crit){ crit_mult = 1.0f + ((float)player->crit_damage * 0.01f); if(crit_mult > 5.0f) crit_mult = 5.0f; }
             int health_before = enemies[i].health; int final_dmg = 0; int overkill_accum = 0;
