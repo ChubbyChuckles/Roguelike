@@ -22,7 +22,7 @@ PHASE 0. Baseline Audit & Decomposition (Immediate)
 0.4 Gather existing rendering hooks for debug draw & damage flash (tint/flash_timer).
 Deliverable: summary doc in docs/hit_system_audit.md (optional) (X)
 
-PHASE 1. Data Structures & Configuration
+PHASE 1. Data Structures & Configuration (Done)
 1.1 Weapon geometry struct: length_px, width_px (for capsule), pivot_offset (from player origin), slash_vfx_id.
 1.2 Enemy hitbox standardization: ensure each enemy exposes canonical hurt AABB and derived capsule (center,radius,height) if vertical layering needed.
 1.3 Slash animation table: 8 entries with per-frame weapon overlay transform {dx, dy, angle_deg, scale}.
@@ -30,14 +30,14 @@ PHASE 1. Data Structures & Configuration
 1.5 Loader functions with fallback logging & validation (length>0, frame count==8).
 1.6 Tests: load valid JSON, reject malformed, ensure overlay frame count. (X)
 
-PHASE 2. Runtime Hit Volume Generation
+PHASE 2. Runtime Hit Volume Generation (Done)
 2.1 Represent weapon sweep this frame as capsule: start = player_pos + pivot_offset, end = start + facing * length_px.
 2.2 During strike phase only: compute instantaneous capsule; optionally expand slightly for fast weapons (speed scalar * 0.1 * length) to mitigate tunneling.
 2.3 Multi-frame accumulation: maintain last capsule and union test for enemies not yet hit (one-hit per strike unless multi-hit weapon flag later).
 2.4 Debug overlay: append capsule to debug draw list (color: cyan) when hit_debug enabled.
 2.5 Tests (unit): geometric overlap between capsule and synthetic enemy AABB / circle across directions (N,E,S,W, diagonals). (X)
 
-PHASE 3. Overlap Detection Pipeline
+PHASE 3. Overlap Detection Pipeline (Done)
 3.1 Broadphase: AABB of capsule vs enemy AABB array (reuse or add lightweight loop; small enemy counts justify O(n)).
 3.2 Narrowphase: capsule vs AABB intersection (segment distance <= (weapon_width/2 + enemy_padding)).
 3.3 Directional normal: compute from enemy center to closest point on segment; normalize for VFX emission direction & knockback.
@@ -50,6 +50,10 @@ PHASE 4. Feedback: SFX, Flash, Particles, Knockback
 4.2 Damage flash: set enemy->flash_timer = FLASH_MS (e.g., 120) & toggle tint flag; existing render path will blink once.
 4.3 Particle emission: spawn N (8–14) particles at impact point; velocity base = normal * base_speed plus random lateral spread (rotate ±35°). Color from enemy palette or damage type.
 4.4 Knockback magnitude: base = clamp( (player_level - enemy_level)*level_scalar + (player_str - enemy_str)*stat_scalar , min_knockback, max_knockback ). Negative or small => minimal push.
+PHASE 4. Feedback: SFX, Flash, Particles, Knockback (Partial)
+Implemented subset: flash duration tweak, basic knockback magnitude (strength-based) using sweep normals.
+Remaining: impact SFX table, particle emission (standard & overkill), overkill explosion path & screen shake, refined knockback scaling (level diff), tests for particle counts & explosion flag.
+
 4.5 Apply knockback impulse: enemy->base.pos += normal * magnitude (deferred: integrate physics smoothing).
 4.6 Overkill explosion: if damage >= enemy->health_max OR execution flag and previous health==full -> spawn explosion particles (radial burst, larger count, optional screen shake), bypass standard death animation.
 4.7 Tests: flash triggers once, particle count in range, knockback increases with differential, overkill path sets explosion flag. (X)
