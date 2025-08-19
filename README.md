@@ -188,6 +188,7 @@ See `roadmaps/` for subsystem implementation plans (inventory, crafting & gather
 * Enemy Difficulty Phase 1 (completed): Added attribute curves (crit/resists), biome parameter registry, ΔL severity classifier, TTK estimation helper, extended tests validating attributes, biome overrides, severity & TTK ordering.
 * Enemy Difficulty Phase 2 (initial modifiers slice): Added procedural modifier system core: definition parser (id/name/weight/tier mask/budget costs/incompat/telegraph), deterministic weighted selection respecting per-dimension (dps/control/mobility) budget caps, incompatibility mask enforcement, telegraph token stored for future UI, and unit tests covering load, determinism, incompat exclusion, and budget compliance.
 * Enemy Difficulty Phase 1.6 UI indicator: Added HUD ΔL severity indicator adjacent to player level text with color-coded severity categories (advantage, dominance, trivial, threat, major threat, fatal) sourced from classifier; roadmap updated marking 1.6 Done.
+* Enemy Difficulty Phase 3 (initial encounter composition slice): Added encounter template loader (`encounters.cfg`), deterministic spawn composer (counts, elite spacing & chance, boss + support units), unit tests verifying template load, count bounds, boss/support presence & level assignment; roadmap updated (3.1–3.3,3.5 Done; 3.4 partial telegraph/env props deferred).
 
 For exhaustive historical details, refer to Appendix A (original full logs) and roadmap files.
 

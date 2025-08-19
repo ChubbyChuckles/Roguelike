@@ -54,11 +54,11 @@ PHASE 2. Procedural Enemy Modifier (Affix) System
 2.5 Tests: budget compliance, incompatibility enforcement, deterministic seed generation (X)
 
 PHASE 3. Encounter Composition & Spawn Budget
-3.1 Encounter template file (composition archetype: swarm, mixed, champion_pack) (X)
-3.2 Spawn budget algorithm converting area difficulty rating -> composition units (X)
-3.3 Elite insertion logic (chance & spacing constraints) (X)
-3.4 Boss room seeding with pre-announced telegraphs & environmental props (X)
-3.5 Tests: budget conservation, pack density bounds, elite spacing invariants (X)
+3.1 Encounter template file (composition archetype: swarm, mixed, champion_pack, boss_room) (Done – `assets/encounters.cfg` with id/name/type/min/max/elite spacing/chance + boss support ranges)
+3.2 Spawn budget algorithm converting area difficulty rating -> composition units (Done – deterministic count in [min,max] using seed; aligns unit levels to difficulty_rating)
+3.3 Elite insertion logic (chance & spacing constraints) (Done – spacing counter & probability; boss flag forces first unit elite and tracks boss_present)
+3.4 Boss room seeding with pre-announced telegraphs & environmental props (Partial – boss template & support adds implemented; telegraph/environment integration deferred to Phase 5/6 systems)
+3.5 Tests: budget conservation, pack density bounds, elite spacing invariants (Done – phase3 unit test validates count bounds, boss presence, support count range, level assignment)
 
 PHASE 4. Adaptive Difficulty Feedback Loop
 4.1 Player performance KPIs: recent TTK, damage_taken_rate, potion_usage, death_frequency (X)

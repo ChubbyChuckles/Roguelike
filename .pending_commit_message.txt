@@ -76,3 +76,13 @@ feat(enemy-difficulty): Phase 1.6 UI ΔL indicator
 - Updated `hud.c` to render when a target enemy is active; severity colors chosen for accessibility contrast.
 - Roadmap updated marking Phase 1.6 Done; README changelog entry added.
 - Maintains modularity (no coupling into combat logic yet); future work can set target fields from lock-on system.
+
+feat(enemy-difficulty): Phase 3 encounter composition (initial slice)
+
+- Added `encounter_composer.c/h` module with template registry & deterministic composition.
+- Introduced `assets/encounters.cfg` (id,name,type,min,max,elite_spacing,elite_chance,boss,support ranges).
+- Implemented elite insertion logic with spacing counter & probability; boss template auto-marks first unit as elite & spawns support units.
+- Composition result captures unit list (enemy_type_id placeholder, level=difficulty_rating), counts, elite & support stats.
+- Unit test `test_enemy_difficulty_phase3` verifies template load (2 templates), count bounds, level consistency, boss presence and support range, multi-seed robustness for swarm pack.
+- Roadmap updated (Phase 3: 3.1–3.3,3.5 Done; 3.4 partial – telegraph/environment props deferred to later phases).
+- README changelog updated with Phase 3 entry.
