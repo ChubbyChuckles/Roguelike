@@ -54,13 +54,46 @@ PHASE 4. Feedback: SFX, Flash, Particles, Knockback (Done)
 4.6 Overkill explosion: execution / overkill sets explosion flag + spawns larger particle burst (screen shake deferred to later tuning iteration).
 4.7 Tests: knockback scaling / cap, particle counts (normal vs overkill) implemented in test_hit_phase4_feedback + basic magnitude test_knockback_basic.
 
-PHASE 5. Slash Animation & Weapon Overlay
-5.1 Load slash VFX spritesheet (8 frames) into texture; store frame rects.
-5.2 At strike start: start VFX playback timer; per frame compute elapsed -> frame index.
-5.3 Overlay weapon sprite: for current frame apply transform {dx,dy,angle,scale} relative to player pivot (supports rotation about weapon pivot).
-5.4 Blend order: slash VFX drawn first (additive or alpha) then weapon sprite to preserve crisp silhouette.
-5.5 Optional motion trail: faint previous 1–2 frames with reduced alpha (defer if scope risk).
-5.6 Tests: frame advancement deterministic at 60fps; overlay transforms applied (sample frame 0 & 4 offset vs expected). (X)
+PHASE 5. Weapon Frame Overlay (Remove Slash Sheet Dependency)
+Goal: Eliminate reliance on composite slash VFX spritesheet. Drive visual of weapon during attack strictly from 8 discrete per-frame PNGs + per-frame transform data.
+5.1 Asset Convention: For weapon archetype <id>, expect PNGs:
+	assets/weapons/<id>_f0.png .. <id>_f7.png
+	Missing file => fallback to nearest lower frame or f0 (warn once).
+5.2 Pose JSON: assets/weapons/<id>_pose.json
+	{
+	  "weapon_id": <id>,
+	  "frames": [ {"dx":0,"dy":0,"angle":0,"scale":1.0,"pivot_x":0.5,"pivot_y":0.5}, ... x8 ]
+	}
+	- dx,dy : pixel offsets relative to player torso origin / anchor.
+	- angle : degrees (clockwise positive).
+	- scale : uniform scalar.
+	- pivot_x/pivot_y : normalized (0..1) weapon image space pivot for rotation.
+5.3 Runtime Rendering: When attack animation frame i (0..7) active:
+	- Select texture i; apply translation (dx,dy) + rotation around pivot + scale; render above player base sprite.
+	- Slash arc effect deprecated; optional future procedural trail (deferred).
+5.4 Procedural Trail (Deferred): Optionally compute weapon tip across previous N frames and draw additive poly strip (no authored assets).
+5.5 Determinism: Frame index strictly derived from attack phase timer (integer division of elapsed_ms by frame_ms) for replay stability.
+5.6 Tests: JSON load & pad (auto-add frames if <8), pivot correctness (unit harness checks rotated bounding box), deterministic frame advance.
+
+PHASE 5A. GUI Pose Authoring Tool
+5A.1 Executable: weapon_pose_tool (SDL2). Inputs: --weapon <id> [--player-sheet path] [--out path]
+5A.2 Loads 8 weapon frame PNGs + optional player reference sheet (or grid placeholder if missing).
+5A.3 Controls:
+	  Arrow keys: dx/dy ±1 (Shift: ±5)
+	  Q/E: rotate ∓2° (Shift: 10°)
+	  Z/X: scale -/+0.05
+	  Ctrl+Arrow Left/Right: pivot_x -/+0.01
+	  Ctrl+Arrow Up/Down: pivot_y -/+0.01
+	  PageUp/PageDown or 1..8: select frame index
+	  C: copy current frame transform
+	  V: paste to current frame
+	  S: save JSON (creates .bak)
+	  Esc: quit
+5A.4 HUD Text: frame index, dx, dy, angle, scale, pivot values; unsaved flag.
+5A.5 Saving: Writes canonical JSON with 4-decimal floats, sorted keys; validates frame count.
+5A.6 Logging: Warn missing PNGs, note fallback usage.
+5A.7 Future: Batch export to CSV, drag with mouse, multi-weapon batch mode.
+Status: NOT STARTED.
 
 PHASE 6. Debug & Developer Tooling
 6.1 Toggle key (F8 or via cfg) sets g_app.show_hit_debug.
@@ -128,4 +161,6 @@ SUCCESS CRITERIA
 STATUS SUMMARY
 Phases 1–3: Done (geometry, runtime sweep, overlap + normals, per-strike mask, debug capture).
 Phase 4: Done (refined knockback magnitude function, SFX stub, particle system w/ overkill burst, explosion flag, tests for magnitude & particle ranges).
-Next: Phase 5 (slash VFX overlay), Phase 6 (debug textual overlay & toggles), Phase 7 (legacy reach removal completion & performance profiling), Phase 8 (tuning), Phase 9 (documentation).
+Phase 5 (weapon frame overlay) : NOT STARTED.
+Phase 5A (pose authoring tool) : NOT STARTED.
+Next: Implement Phase 5 runtime loader & rendering path, then tool (5A), followed by Phase 6 (debug textual overlay & toggles), Phase 7 (legacy reach removal & perf profiling), Phase 8 (tuning), Phase 9 (documentation).
