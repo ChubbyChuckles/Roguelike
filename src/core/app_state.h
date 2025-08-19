@@ -116,6 +116,8 @@ typedef struct RogueAppState {
     /* Enemy Difficulty Phase 1.6 UI indicator state */
     int target_enemy_active; /* 1 if a target enemy is selected/focused */
     int target_enemy_level;  /* level of targeted enemy */
+    /* Enemy Integration Phase 1: global world seed used for encounter seed derivation */
+    unsigned int world_seed;
 } RogueAppState;
 
 extern RogueAppState g_app;

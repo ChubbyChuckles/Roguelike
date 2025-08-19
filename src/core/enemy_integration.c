@@ -1,7 +1,12 @@
 #include "core/enemy_integration.h"
 #include "core/app_state.h"
 #include "core/enemy_difficulty_scaling.h"
+#include "util/determinism.h"
 #include <string.h>
+
+/* Phase 1 debug ring */
+typedef struct RogueEncounterDebugRec { unsigned int seed; unsigned long long hash; int template_id; int unit_count; } RogueEncounterDebugRec;
+static RogueEncounterDebugRec g_enc_dbg_ring[32]; static int g_enc_dbg_count=0; static int g_enc_dbg_head=0;
 
 int rogue_enemy_integration_build_mappings(RogueEnemyTypeMapping* out, int max, int* out_count){
     if(!out||max<=0){ if(out_count) *out_count=0; return 0; }
@@ -23,3 +28,34 @@ int rogue_enemy_integration_find_by_type(int type_index, const RogueEnemyTypeMap
 int rogue_enemy_integration_validate_unique(const RogueEnemyTypeMapping* arr, int count){ if(!arr||count<=0) return 0; for(int i=0;i<count;i++){ for(int j=i+1;j<count;j++){ if(arr[i].type_index==arr[j].type_index) return 0; if(arr[i].id[0] && arr[j].id[0] && strcmp(arr[i].id,arr[j].id)==0) return 0; } } return 1; }
 
 void rogue_enemy_integration_apply_spawn(struct RogueEnemy* e, const RogueEnemyTypeMapping* map_entry, int player_level){ if(!e||!map_entry) return; e->tier_id = map_entry->tier_id; e->base_level_offset = map_entry->base_level_offset; int enemy_level = player_level + e->base_level_offset; if(enemy_level<1) enemy_level=1; e->level = enemy_level; RogueEnemyFinalStats stats; if(rogue_enemy_compute_final_stats(player_level, enemy_level, e->tier_id, &stats)==0){ e->final_hp=stats.hp; e->final_damage=stats.damage; e->final_defense=stats.defense; e->max_health=(int)(stats.hp); if(e->max_health<1) e->max_health=1; e->health=e->max_health; } }
+
+/* ================= Phase 1 implementations ================= */
+unsigned int rogue_enemy_integration_encounter_seed(unsigned int world_seed, int region_id, int room_id, int encounter_index){
+        return world_seed ^ (unsigned int)region_id ^ (unsigned int)room_id ^ (unsigned int)encounter_index;
+}
+
+unsigned long long rogue_enemy_integration_replay_hash(int template_id, const int* unit_levels, int unit_count, const int* modifier_ids, int modifier_count){
+        unsigned long long h = 0xcbf29ce484222325ULL; /* FNV offset */
+        h = rogue_fnv1a64(&template_id, sizeof(template_id), h);
+        for(int i=0;i<unit_count;i++) h = rogue_fnv1a64(&unit_levels[i], sizeof(unit_levels[i]), h);
+        /* modifiers sorted externally (Phase 3); include count */
+        h = rogue_fnv1a64(&modifier_count, sizeof(modifier_count), h);
+        for(int m=0;m<modifier_count;m++) h = rogue_fnv1a64(&modifier_ids[m], sizeof(modifier_ids[m]), h);
+        return h;
+}
+
+void rogue_enemy_integration_debug_record(unsigned int seed, unsigned long long hash, int template_id, int unit_count){
+        int idx = g_enc_dbg_head; g_enc_dbg_ring[idx].seed=seed; g_enc_dbg_ring[idx].hash=hash; g_enc_dbg_ring[idx].template_id=template_id; g_enc_dbg_ring[idx].unit_count=unit_count;
+        g_enc_dbg_head = (g_enc_dbg_head + 1) % 32; if(g_enc_dbg_count<32) g_enc_dbg_count++;
+}
+
+int rogue_enemy_integration_debug_dump(char* buf, int buf_size){
+        if(!buf||buf_size<=0) return 0; int written=0; int n=g_enc_dbg_count; for(int i=0;i<n;i++){
+                int idx = (g_enc_dbg_head - 1 - i); if(idx<0) idx += 32;
+                RogueEncounterDebugRec* r=&g_enc_dbg_ring[idx];
+                int w = snprintf(buf+written, buf_size-written, "%d seed=%u hash=%llu tmpl=%d units=%d\n", i, r->seed, (unsigned long long)r->hash, r->template_id, r->unit_count);
+                if(w<=0) break; written += w; if(written >= buf_size) { written = buf_size; break; }
+        }
+        if(written < buf_size) buf[written]='\0'; else buf[buf_size-1]='\0';
+        return written;
+}

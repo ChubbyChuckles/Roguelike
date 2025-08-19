@@ -97,3 +97,14 @@ feat(enemy-integration): Phase 0 data & runtime structure alignment
 - CMake updated (added enemy_integration.c); struct field additions prepared for subsequent phases (modifiers, replay hash, flags).
 - README pending integration section update in next aggregation pass.
  - README changelog updated with Enemy Integration Phase 0 entry.
+
+feat(enemy-integration): Phase 1 deterministic encounter seeds & replay hash
+
+- Added global `world_seed` field to `RogueAppState` for integration path.
+- Implemented encounter seed derivation helper (world_seed ^ region_id ^ room_id ^ encounter_index).
+- Added replay hash generator (FNV-1a 64) over template id + unit levels (+ future modifier ids placeholder).
+- Introduced debug ring buffer (last 32) with dump API for encounter seed/hash inspection.
+- Extended enemy integration module with new Phase 1 APIs; no gameplay behavior change yet (foundation for modifiers & persistence).
+- New unit test `test_enemy_integration_phase1` ensures identical seeds reproduce identical compositions & hashes; different world seed yields differing hash.
+- Roadmap `implementation_plan_enemy_integration.txt` Phase 1 tasks (1.1–1.5) marked Done.
+- README changelog updated with Enemy Integration Phase 1 entry.
