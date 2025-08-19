@@ -64,7 +64,8 @@ void rogue_player_render(void){
             /* Draw enemy circles (collision approximation) */
             const RogueHitboxTuning* tune = rogue_hitbox_tuning_get();
             float enemy_r_cfg = (tune->enemy_radius>0)?tune->enemy_radius:0.40f;
-            for(int ei=0; ei<g_app.enemy_count; ++ei){ if(!g_app.enemies[ei].alive) continue; float exw = g_app.enemies[ei].base.pos.x + anchor + tune->enemy_offset_x; float eyw = g_app.enemies[ei].base.pos.y + anchor + tune->enemy_offset_y; int ecx=(int)(exw*tsz - g_app.cam_x); int ecy=(int)(eyw*tsz - g_app.cam_y); int er = (int)(enemy_r_cfg * tsz); SDL_SetRenderDrawColor(g_app.renderer,40,255,120,120); for(int dy=-er; dy<=er; ++dy){ int dx_lim=(int)sqrt(er*er - dy*dy); SDL_RenderDrawLine(g_app.renderer,ecx-dx_lim,ecy+dy,ecx+dx_lim,ecy+dy); } }
+            /* Iterate full capacity instead of enemy_count to avoid skipping alive enemies with index >= enemy_count when holes exist. */
+            for(int ei=0; ei<ROGUE_MAX_ENEMIES; ++ei){ if(!g_app.enemies[ei].alive) continue; float exw = g_app.enemies[ei].base.pos.x + anchor + tune->enemy_offset_x; float eyw = g_app.enemies[ei].base.pos.y + anchor + tune->enemy_offset_y; int ecx=(int)(exw*tsz - g_app.cam_x); int ecy=(int)(eyw*tsz - g_app.cam_y); int er = (int)(enemy_r_cfg * tsz); SDL_SetRenderDrawColor(g_app.renderer,40,255,120,120); for(int dy=-er; dy<=er; ++dy){ int dx_lim=(int)sqrt(er*er - dy*dy); SDL_RenderDrawLine(g_app.renderer,ecx-dx_lim,ecy+dy,ecx+dx_lim,ecy+dy); } }
             /* Draw enemy pursuit target (AI path destination relative to player) */
             if(tune){
                 float txw = g_app.player.base.pos.x + tune->pursue_offset_x + anchor;

@@ -10,8 +10,9 @@ void rogue_lockon_reset(RoguePlayer* p){ if(!p) return; p->lock_on_active=0; p->
 
 /* Internal candidate gather: returns number of valid targets within radius (fills idxs up to max). */
 static int rogue_lockon_collect(RoguePlayer* p, RogueEnemy enemies[], int enemy_count, int* out_indices, int max_out){
-    if(!p||!enemies||enemy_count<=0) return 0; int c=0; float pr=p->lock_on_radius; float pr2=pr*pr; float px=p->base.pos.x; float py=p->base.pos.y;
-    for(int i=0;i<enemy_count && c<max_out;i++){ if(!enemies[i].alive) continue; float dx=enemies[i].base.pos.x - px; float dy=enemies[i].base.pos.y - py; if(rogue_lockon_vec_len2(dx,dy) <= pr2){ out_indices[c++]=i; } }
+    if(!p||!enemies) return 0; (void)enemy_count; int c=0; float pr=p->lock_on_radius; float pr2=pr*pr; float px=p->base.pos.x; float py=p->base.pos.y;
+    /* Scan full capacity instead of enemy_count to include alive enemies whose indices exceed current compact count. */
+    for(int i=0;i<ROGUE_MAX_ENEMIES && c<max_out;i++){ if(!enemies[i].alive) continue; float dx=enemies[i].base.pos.x - px; float dy=enemies[i].base.pos.y - py; if(rogue_lockon_vec_len2(dx,dy) <= pr2){ out_indices[c++]=i; } }
     return c;
 }
 

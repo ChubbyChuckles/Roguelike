@@ -203,7 +203,9 @@ int rogue_combat_weapon_sweep_apply(struct RoguePlayerCombat* pc, struct RoguePl
     /* We'll use a temporary local hit mask state; reset separately so we can also test pixel path without interference */
     unsigned char hit_mask_snapshot[256/8]; memcpy(hit_mask_snapshot, g_sweep_hit_mask, sizeof hit_mask_snapshot);
     /* Capsule pass */
-    for(int i=0;i<enemy_count;i++){ if(!enemies[i].alive) continue; if(test_and_set_hit(i)) continue; float ex=enemies[i].base.pos.x + g_tuning.enemy_offset_x; float ey=enemies[i].base.pos.y + g_tuning.enemy_offset_y; if(ex < cap_aabb_xmin-0.6f || ex > cap_aabb_xmax+0.6f || ey < cap_aabb_ymin-0.6f || ey > cap_aabb_ymax+0.6f) continue; float cx,cy,nx,ny; float d2 = closest_point_seg(cap.x0,cap.y0,cap.x1,cap.y1,ex,ey,&cx,&cy,&nx,&ny); float rr = enemy_r_cfg + cap.r; if(d2 <= rr*rr){ capsule_hits[capsule_hc]=i; capsule_hc++; if(capsule_hc>=32) break; } }
+    /* Iterate full capacity rather than enemy_count so holes do not cause later-spawned enemies to be skipped. */
+    int scan_limit = ROGUE_MAX_ENEMIES; if(enemy_count > scan_limit) enemy_count = scan_limit; /* preserve interface but ignore sparsity */
+    for(int i=0;i<scan_limit;i++){ if(!enemies[i].alive) continue; if(test_and_set_hit(i)) continue; float ex=enemies[i].base.pos.x + g_tuning.enemy_offset_x; float ey=enemies[i].base.pos.y + g_tuning.enemy_offset_y; if(ex < cap_aabb_xmin-0.6f || ex > cap_aabb_xmax+0.6f || ey < cap_aabb_ymin-0.6f || ey > cap_aabb_ymax+0.6f) continue; float cx,cy,nx,ny; float d2 = closest_point_seg(cap.x0,cap.y0,cap.x1,cap.y1,ex,ey,&cx,&cy,&nx,&ny); float rr = enemy_r_cfg + cap.r; if(d2 <= rr*rr){ capsule_hits[capsule_hc]=i; capsule_hc++; if(capsule_hc>=32) break; } }
     /* Save normals separately after we pick authoritative path */
     /* Restore hit mask so pixel path sees clean slate */
     memcpy(g_sweep_hit_mask, hit_mask_snapshot, sizeof g_sweep_hit_mask);
@@ -230,7 +232,7 @@ int rogue_combat_weapon_sweep_apply(struct RoguePlayerCombat* pc, struct RoguePl
             float aabb_max_x = player_px + pose_dx + mask_w * pose_scale_x + enemy_r_px;
             float aabb_min_y = player_py + pose_dy - enemy_r_px;
             float aabb_max_y = player_py + pose_dy + mask_h * pose_scale_y + enemy_r_px;
-            for(int i=0;i<enemy_count && f;i++){
+            for(int i=0;i<scan_limit && f;i++){
                 if(!enemies[i].alive) continue;
                 float ex_px = (enemies[i].base.pos.x + g_tuning.enemy_offset_x) * tsz;
                 float ey_px = (enemies[i].base.pos.y + g_tuning.enemy_offset_y) * tsz;
