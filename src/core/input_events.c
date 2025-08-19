@@ -119,7 +119,7 @@ void rogue_process_events(void){
             if(ev.key.keysym.sym==SDLK_F8){ g_app.gen_noise_octaves--; if(g_app.gen_noise_octaves<3) g_app.gen_noise_octaves=3; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
             if(ev.key.keysym.sym==SDLK_F9){ g_app.gen_river_sources+=2; if(g_app.gen_river_sources>40) g_app.gen_river_sources=40; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
             if(ev.key.keysym.sym==SDLK_F10){ g_app.gen_river_sources-=2; if(g_app.gen_river_sources<2) g_app.gen_river_sources=2; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
-            if(ev.key.keysym.sym==SDLK_f){ g_hit_debug_enabled = !g_hit_debug_enabled; }
+            if(ev.key.keysym.sym==SDLK_f){ g_hit_debug_enabled = !g_hit_debug_enabled; g_app.show_hit_debug = g_hit_debug_enabled; }
             /* Hitbox tuning hotkeys: hold CTRL to modify player capsule, ALT for enemy hit circles.
                Number keys 1-9 adjust magnitude; 0 saves to file. Without modifiers we cycle nothing (reserved).
                CTRL + (1/2) adjust player_offset_x +/-; (3/4) adjust player_offset_y; (5/6) adjust length; (7/8) adjust width.

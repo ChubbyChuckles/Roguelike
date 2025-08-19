@@ -408,6 +408,8 @@ void rogue_app_step(void)
     rogue_world_render_items();
     /* Render projectiles (after world, before HUD) */
     rogue_projectiles_render();
+    /* Hit System Phase 6: debug overlay (capsule, hits, normals, stats) */
+    if(g_app.show_hit_debug){ extern void rogue_hit_debug_render(void); rogue_hit_debug_render(); }
 
     /* Floating damage numbers */
     rogue_damage_numbers_render();

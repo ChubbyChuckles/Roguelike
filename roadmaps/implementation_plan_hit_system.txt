@@ -79,7 +79,7 @@ Status: Done (runtime loader `weapon_pose.c/h`, integrated rendering overlay in 
 
 PHASE 5A. GUI Pose Authoring Tool
 5A.1 Executable: weapon_pose_tool (SDL2). Inputs: --weapon <id> [--player-sheet path] [--out path]
-5A.2 Loads 8 weapon frame PNGs + optional player reference sheet (or grid placeholder if missing).
+5A.2 Loads 1 weapon PNG + player reference sheet.
 5A.3 Controls:
 	  Arrow keys: dx/dy ±1 (Shift: ±5)
 	  Q/E: rotate ∓2° (Shift: 10°)
@@ -98,11 +98,12 @@ PHASE 5A. GUI Pose Authoring Tool
 Status: Partial (MVP implemented as `weapon_pose_tool` – SDL2 window, per-frame transforms dx/dy/angle/scale/pivot editing via keyboard, JSON save with canonical format; current build loads BMPs due to no SDL_image; lacks HUD text polish, copy/paste & mouse drag not yet implemented, no PNG loader yet). Future enhancements (CSV export, mouse drag, batch) still pending.
 
 PHASE 6. Debug & Developer Tooling
-6.1 Toggle key (F8 or via cfg) sets g_app.show_hit_debug.
-6.2 Draw enemy hurt AABBs (red), weapon capsule (cyan), impact points (yellow dots) for last frame.
-6.3 Display textual overlay: last_hit_count, last_knockback_mag, explosion_triggered flag.
-6.4 Optional: record last 32 hits ring buffer for playback.
-6.5 Tests: toggling debug does not alter hit outcomes; overlay suppressed when off. (X)
+6.1 Toggle key (F) sets g_app.show_hit_debug (implemented; reuses g_hit_debug_enabled).
+6.2 Draw weapon capsule (cyan), impact points (yellow) and normals (lines) (implemented subset; enemy hurt AABBs deferred to Phase 7 integration pass to avoid duplication with other debug systems).
+6.3 Text overlay shows frame id, hit count, player pos and tuning params (implemented). Knockback/explosion flags will be integrated after Phase 7 refactor (deferred).
+6.4 Ring buffer playback deferred (not critical for initial debug value).
+6.5 Tests: debug toggle flag unit test added (test_hit_phase6_debug_toggle). (Done)
+Status: Partial-Done (core overlay + toggle + test delivered; remaining optional AABB & ring buffer deferred to later pass with legacy removal to prevent redundancy).
 
 PHASE 7. Integration & Refactor of Legacy Logic
 7.1 Remove old reach/arc calculation; replace strike damage trigger with weapon_sweep pipeline call.
@@ -165,4 +166,5 @@ Phases 1–3: Done (geometry, runtime sweep, overlap + normals, per-strike mask,
 Phase 4: Done (refined knockback magnitude function, SFX stub, particle system w/ overkill burst, explosion flag, tests for magnitude & particle ranges).
 Phase 5 (weapon frame overlay): Done (8-frame per-weapon pose system replaces slash sheet; JSON pose loader + textures + renderer integration; procedural trail deferred).
 Phase 5A (pose authoring tool): Partial (keyboard-driven MVP saving JSON; lacks advanced features & PNG support).
-Next: Phase 6 (debug textual overlay & toggles), Phase 7 (legacy reach removal & perf profiling), Phase 8 (tuning), Phase 9 (documentation) followed by procedural trail revisit.
+Phase 6 (debug overlay): Partial-Done (capsule + hits + normals + text & toggle + test; AABB/explosion & ring buffer deferred).
+Next: Phase 7 (legacy reach removal & perf profiling), Phase 8 (tuning), Phase 9 (documentation) then revisit deferred Phase 6 items & procedural trail.

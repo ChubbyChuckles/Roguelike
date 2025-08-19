@@ -36,3 +36,7 @@ Replaced slash VFX spritesheet dependency with per-weapon 8-frame pose system:
 
 Future: Phase 6 debug textual overlay, Phase 7 legacy reach removal & perf profiling, PNG loader integration (currently BMP), advanced tool features (copy/paste, mouse drag, batch export), optional procedural trail.
 
+feat(hit-system): Phase 6 debug overlay core (capsule+hits+normals+text) + toggle & test
+
+Implemented hit debug overlay (toggle key F) drawing weapon sweep capsule (cyan), impact points & normals (yellow) and textual metrics (frame id, hit count, player pos & tuning values). Added `hit_debug_overlay.c` module and integrated render call post scene draw. Added unit test `test_hit_phase6_debug_toggle` verifying toggle API. Roadmap updated (Phase 6 Partial-Done: remaining enemy AABB & ring buffer playback deferred). README changelog entry added.
+

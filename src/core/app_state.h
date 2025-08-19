@@ -111,6 +111,8 @@ typedef struct RogueAppState {
     int last_minimap_rendered;
     int last_metrics_rendered;
     int last_alerts_rendered;
+    /* Hit System Phase 6 debug toggle */
+    int show_hit_debug;
 } RogueAppState;
 
 extern RogueAppState g_app;
