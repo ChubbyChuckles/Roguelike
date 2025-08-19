@@ -11,6 +11,29 @@ Implements Pixel Mask Detection Slice C:
 
 Next: performance counters & rotation-aware bounding (Slice D), pixel-normal refinement, actual bit visualization.
 
+feat(enemy-difficulty): Phase 0 taxonomy & tier multipliers
+
+Implements Roadmap Phase 0 (0.1-0.5):
+ - Established archetype inventory (Melee, Ranged, Caster, EliteSupport, Boss)
+ - Defined canonical budgets (hp, dps, control, mobility)
+ - Added tier table (Normal→Nemesis) with monotonic HP & mostly monotonic DPS (intentional Nemesis DPS dip)
+ - Reserved ID ranges for future Mythic/Event tiers
+ - Added API (tier introspection, archetype names, base budget compute)
+ - Added unit test `test_enemy_difficulty_phase0` (id uniqueness, monotonicity, archetype names, budget copy)
+
+feat(enemy-difficulty): Phase 1 baseline scaling & relative ΔL model (partial)
+
+Implements Roadmap Phase 1 core (1.1,1.2,1.5,1.7 partial):
+ - Added sublinear base curves (HP L^1.15, DMG L^1.08, DEF L^1.05)
+ - Implemented relative level differential scaling (downward penalties with caps, upward buffs with ramp offset & caps)
+ - Dominance + trivial thresholds with reward scalar dampening function
+ - Parameter file loader (global coefficients) + reset API
+ - Final stat computation (base -> tier -> ΔL) and reward scalar API
+ - Unit test `test_enemy_difficulty_phase1` verifying base monotonicity, relative multiplier grid invariants, reward thresholds, and stat positivity bounds
+ - Roadmap updated marking completed / partial / deferred items (1.3 resist/crit derivation deferred, 1.4 biome-specific params deferred, 1.6 UI indicators deferred, TTK heatmap harness deferred)
+
+Next: Phase 1 remaining items (attribute rating curves, biome param layering, UI ΔL indicator, full TTK simulation harness); proceed to Phase 2 modifiers after completing remaining Phase 1 deferred tasks.
+
 feat(hit-detection): Pixel Masks Slice B runtime integration
 
 - Added SHIFT+M toggle (input_events) to flip `g_hit_use_pixel_masks` for A/B testing

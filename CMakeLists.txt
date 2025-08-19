@@ -270,6 +270,7 @@ add_library(rogue_core
     src/game/weapon_pose.c
     src/game/hit_debug_overlay.c
     src/core/enemy_difficulty.c
+    src/core/enemy_difficulty_scaling.c
 )
 
 target_include_directories(rogue_core PUBLIC

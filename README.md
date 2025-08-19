@@ -183,6 +183,8 @@ See `roadmaps/` for subsystem implementation plans (inventory, crafting & gather
 * Tool Update: Reworked `weapon_pose_tool` to use single weapon image overlaid on 8 sliced frames from a player slash animation sheet (PNG via WIC or BMP fallback), adding direction/frame_size metadata to exported JSON.
 * Hit Detection Pixel Masks Slice B: Runtime toggle-integrated pixel broadphase (AABB) + narrowphase sampling path in `rogue_combat_weapon_sweep_apply`, helper APIs, integration test, fallback safety retained.
 * Hit Detection Pixel Masks Slice C: Dual-path (capsule + pixel) evaluation with mismatch logging, cumulative counters, extended debug overlay (mask AABB placeholder + per-hit coloring), and mismatch unit test.
+* Enemy Difficulty Phase 0: Introduced taxonomy (archetypes + canonical budgets) & tier multipliers (Normal→Nemesis) with monotonic HP growth and test coverage.
+* Enemy Difficulty Phase 1 (core slice): Added sublinear base scaling curves, relative level differential (ΔL) penalty/buff model with dominance + trivial thresholds, reward scalar function, parameter file loader, and unit tests (monotonicity, multiplier invariants, reward thresholds). Roadmap updated (remaining Phase 1 items deferred: attribute rating curves, biome param variants, UI indicator, full TTK heatmap harness).
 
 For exhaustive historical details, refer to Appendix A (original full logs) and roadmap files.
 
