@@ -1,0 +1,140 @@
+ENEMY INTEGRATION IMPLEMENTATION PLAN (Map Runtime Assignment & Visualization)
+
+Legend:
+Done = Fully implemented & validated in-game + tests pass
+Partial = Some components implemented (details in parentheses)
+X = Not started yet
+Optional = Stretch / future wave
+
+Scope Overview:
+Integrate existing enemy difficulty & AI-related systems (baseline scaling, relative ΔL model, modifiers, encounter composition, tier taxonomy, severity UI indicator) into the live dungeon / world spawning pipeline so that procedurally generated map regions populate with data‑driven enemies whose stats, modifiers, composition patterns, and telegraphs are visible in-game. Deliver deterministic, seed‑driven spawns; consistent stat computation between simulation & runtime; readable UI (modifier + ΔL + elite/boss cues); and hooks for persistence & analytics. Short term goal: "See all currently implemented enemy difficulty features working in an actual play session" (no placeholder JSON dumps—real rendered entities).
+
+FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
+- Difficulty core (Phases 0–1) implemented (taxonomies, scaling, ΔL severity) (Done)
+- Procedural modifiers initial slice (Phase 2) (Done – selection algorithm & data loader, visuals not integrated)
+- Encounter composition initial slice (Phase 3: templates, elite logic, boss+support) (Done – runtime not yet wired)
+- HUD ΔL severity text indicator (Phase 1.6) (Done – requires target acquisition feed)
+- AI behavior tiers & telegraph systems NOT yet implemented (future phases) (X)
+- Dungeon / room generation system exists (assumed basic structure) (Partial – integration points to be added)
+- Enemy base definitions file(s) exist (Partial – may lack explicit linkage to difficulty ids)
+
+PHASE 0. Data & Runtime Structure Alignment
+0.1 Audit enemy base data (assets/enemies.*) to ensure each enemy has: archetype id, tier (if fixed), base level or level offset, enemy_type_id, and display name (X)
+0.2 Introduce mapping table: enemy_type_id -> difficulty_archetype + base_level_offset + visual prefab (X)
+0.3 Extend runtime enemy struct with: difficulty_level, tier_id, modifier_mask/ids[<=8], elite_flag, boss_flag, support_flag, encounter_id, replay_hash_fragment (X)
+0.4 Add pointer / reference to computed final stats block (hp, dmg, defense, crit, resists) generated once at spawn (X)
+0.5 Tests: mapping uniqueness, serialization round-trip (X)
+
+PHASE 1. Spawn Seed Derivation & Determinism
+1.1 Define encounter_seed = world_seed ^ region_id ^ room_id ^ encounter_index (X)
+1.2 Allocate RNG streams (already have xorshift32) for: composition, modifiers, future AI procs (X)
+1.3 Generate replay descriptor (composition template id + sorted modifier ids + unit levels) -> hash (X)
+1.4 Debug command: dump last N encounter hashes & seeds for verification (X)
+1.5 Tests: identical seeds produce identical unit arrays + modifiers + stats (X)
+
+PHASE 2. Encounter Template → Room Placement
+2.1 Add dungeon generation hook: for each eligible room, choose encounter template id using difficulty target rating (room depth) + biome weighting (X)
+2.2 Compute area difficulty rating -> pass to encounter_composer (already implemented API) (X)
+2.3 Integrate elite & boss flags into spawn schedule; reserve spatial slots (avoid overlap with props) (X)
+2.4 Fallback handling if template load fails (log + safe default minimal pack) (X)
+2.5 Tests: deterministic template selection with fixed seeds; pack counts within template bounds (X)
+
+PHASE 3. Stat & Modifier Application at Spawn
+3.1 For each composed unit, determine enemy_level (currently composition uses difficulty_rating) and compute final stats via existing scaling API (X)
+3.2 Roll modifiers (if allowed) using modifier RNG stream per unit or per encounter (decide policy: per-encounter set for elites + boss, optionally some normals) (X)
+3.3 Enforce modifier eligibility: tier mask vs unit tier; elite/boss may expand budget cap (config) (X)
+3.4 Attach modifier ids & cumulative budget metrics to runtime enemy struct (X)
+3.5 Tests: budget cap adherence, incompatibility preserved post-assignment, stat non-negativity (X)
+
+PHASE 4. Visual & UI Exposure (Current Implemented Features)
+4.1 HUD target feed: when player target/hover changes, set app_state target_enemy_level & gather ΔL severity (Done for HUD path; feed hookup X)
+4.2 Nameplate / tooltip shows: enemy name, tier icon, elite/boss badge, ΔL numeric, modifier short tags (X)
+4.3 Color coding / outline for elite, boss, support (temporary placeholder colors) (X)
+4.4 Basic modifier visual telegraph placeholder: colored aura / icon over head using telegraph token field (X)
+4.5 Tests: tooltip caching & correctness (ΔL recompute only on target change), no overlap of modifier icons beyond limit (X)
+
+PHASE 5. Spatial Spawn & Navigation Integration
+5.1 Spawn position solver: ensure pack members spread with min_distance and within room bounds (X)
+5.2 Respect elite spacing & boss central anchoring (leverages composition ordering) (X)
+5.3 Collision check & fallback reposition attempts (bounded) (X)
+5.4 Navmesh registration / pathing handle initialization (X)
+5.5 Tests: spawn success rate > 99% over 1000 simulated seeds; no overlapping bounding boxes initially (X)
+
+PHASE 6. Target Acquisition & Combat Hook
+6.1 Add enemy registry lookups for nearest / hovered enemy to drive HUD ΔL indicator (X)
+6.2 Integrate stat block into combat resolution (attack damage uses computed final stats) (X)
+6.3 Death event emits encounter_id for analytics & potential adaptive future loops (X)
+6.4 Tests: combat damage invariants (elite > normal HP), death cleanup frees registry slot (X)
+
+PHASE 7. Persistence & Replay (Minimal Slice)
+7.1 Save encounter seeds & replay hash fragments for active rooms on save (X)
+7.2 On load, reconstruct encounters deterministically (do NOT serialize full stats) (X)
+7.3 Version tag with difficulty curve / modifier table version to detect drift (X)
+7.4 Tests: save/load equivalence for enemy stats & modifier sets (X)
+
+PHASE 8. Analytics & Debug Instrumentation (Immediate Integration)
+8.1 Log per-encounter: template id, unit_count, elite_count, boss_flag, avg_enemy_level, ΔL distribution (X)
+8.2 In debug build, on keypress show overlay list of current room enemies with modifiers & ΔL severity (X)
+8.3 Emit structured event on outlier TTK (placeholder threshold) (X)
+8.4 Tests: logging toggles without performance regression (X)
+
+PHASE 9. Performance & Memory Validation (Integration Slice)
+9.1 Measure spawn pipeline cost (composition + stat calc + modifiers) vs target threshold (e.g., <1 ms for typical room) (X)
+9.2 Micro-batch stat computations for cache locality (Optional) (X)
+9.3 Pool enemy structs & modifier arrays to reduce alloc churn (X)
+9.4 Tests: spawn 500 enemies stress test (time & memory) (X)
+
+PHASE 10. Rollout & Feature Flagging
+10.1 Add master toggle enable_enemy_difficulty_integration (dev config) (X)
+10.2 Graceful fallback path (vanilla enemies) if toggle off (X)
+10.3 QA checklist & gating metrics (TTK band vs design) before enabling by default (X)
+10.4 Tests: toggle flip runtime (new spawns use integrated path, existing unaffected) (X)
+
+DEPENDENCIES & INTEGRATIONS
+- Uses existing: enemy_difficulty_scaling, enemy_modifiers, encounter_composer modules.
+- Requires dungeon system hooks for room metadata (depth/biome) and spawn slots.
+- HUD already supports ΔL severity; needs targeting feed.
+- Future telegraph & AI intensity phases will build atop integrated runtime struct.
+
+RISKS & MITIGATIONS
+- Inconsistent stat calc between tests & runtime -> Single API invocation at spawn; no duplication of formula code.
+- Modifier visual clutter -> Limit visible modifier icons (<=4) until Phase 16 UI refinements.
+- Non-deterministic spawns due to mixed RNG usage -> Isolate RNG streams & document order of calls.
+- Performance spike on room load -> Batch compute stats & reuse buffers.
+- Save incompat after curve tuning -> Version tagging & graceful regenerate on mismatch.
+
+KEY METRICS (Integration Slice Targets)
+- Spawn pipeline (typical room <= 12 enemies): <= 0.5 ms (debug) / 0.2 ms (release) average.
+- Deterministic equivalence: 100 seeds produce identical hashes across 3 runs.
+- Tooltip latency: < 1 frame to populate after target change.
+- Memory overhead per enemy (integration fields): < 128 bytes incremental (excluding existing AI state).
+- Pack placement failure retries: < 2 average.
+
+ROLLOUT STRATEGY
+1. Implement Phases 0–3 (data mapping, determinism, composition integration, stat application) behind flag.
+2. Add Phase 4 UI exposures to verify in-game visibility (player can inspect modifiers & ΔL).
+3. Layer spatial & combat integration (Phases 5–6) for full playtest loop.
+4. Introduce minimal persistence (Phase 7) before large-scale testing.
+5. Add analytics & performance validation (Phases 8–9) then enable by default.
+6. Post-rollout, proceed with higher roadmap phases (Adaptive, AI intensity, Telegraph expansions).
+
+TEST PRIORITIZATION
+Early: 0,1,2,3
+Mid: 4,5,6,7
+Late: 8,9,10
+
+NOTES
+- Maintain separation: encounter composition result is immutable; runtime enemy struct copies essentials + adds mutable combat state.
+- Keep a single function rogue_enemy_spawn_apply_difficulty(...) that orchestrates stat computation & modifier assignment, facilitating test harness reuse.
+- Provide debug CLI to simulate spawn for a given room seed without entering dungeon (dev convenience).
+- Reuse existing xorshift32; document seed chain in header comment for reproducibility.
+- Avoid premature AI behavior intensity until base integration stable.
+
+FUTURE / OPTIONAL EXTENSIONS (Post Integration)
+- Dynamic ambient spawn streaming (outside rooms) reusing encounter composer.
+- On-the-fly difficulty scaling preview in dungeon planner UI.
+- Modifier synergy warnings (aggregate risk rating) on tooltip.
+- Automated screenshot harness labeling elites/bosses for visual QA.
+
+CHANGE IMPACT
+- New roadmap file only; no runtime code changes yet. Subsequent commits will implement phases in order with tests & documentation updates referencing this plan.
