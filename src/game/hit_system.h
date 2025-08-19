@@ -57,6 +57,7 @@ typedef struct RogueHitboxTuning {
     float player_length, player_width;      /* overrides geometry length/width if >0 */
     float enemy_radius;                     /* enemy collision circle radius */
     float enemy_offset_x, enemy_offset_y;   /* shift enemy circle center */
+    float pursue_offset_x, pursue_offset_y; /* enemy AI target point relative to player (Shift+1..4 adjust) */
 } RogueHitboxTuning;
 
 RogueHitboxTuning* rogue_hitbox_tuning_get(void);

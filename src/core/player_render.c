@@ -30,6 +30,16 @@ void rogue_player_render(void){
             const RogueHitboxTuning* tune = rogue_hitbox_tuning_get();
             float enemy_r_cfg = (tune->enemy_radius>0)?tune->enemy_radius:0.40f;
             for(int ei=0; ei<g_app.enemy_count; ++ei){ if(!g_app.enemies[ei].alive) continue; float exw = g_app.enemies[ei].base.pos.x + anchor + tune->enemy_offset_x; float eyw = g_app.enemies[ei].base.pos.y + anchor + tune->enemy_offset_y; int ecx=(int)(exw*tsz - g_app.cam_x); int ecy=(int)(eyw*tsz - g_app.cam_y); int er = (int)(enemy_r_cfg * tsz); SDL_SetRenderDrawColor(g_app.renderer,40,255,120,120); for(int dy=-er; dy<=er; ++dy){ int dx_lim=(int)sqrt(er*er - dy*dy); SDL_RenderDrawLine(g_app.renderer,ecx-dx_lim,ecy+dy,ecx+dx_lim,ecy+dy); } }
+            /* Draw enemy pursuit target (AI path destination relative to player) */
+            if(tune){
+                float txw = g_app.player.base.pos.x + tune->pursue_offset_x + anchor;
+                float tyw = g_app.player.base.pos.y + tune->pursue_offset_y + anchor;
+                int tcx = (int)(txw*tsz - g_app.cam_x);
+                int tcy = (int)(tyw*tsz - g_app.cam_y);
+                int tr = 4; /* fixed small radius in screen pixels */
+                SDL_SetRenderDrawColor(g_app.renderer,255,40,40,210);
+                for(int dy=-tr; dy<=tr; ++dy){ int dx_lim=(int)sqrt(tr*tr - dy*dy); SDL_RenderDrawLine(g_app.renderer,tcx-dx_lim,tcy+dy,tcx+dx_lim,tcy+dy); }
+            }
             /* Highlight hits + normals */
             SDL_SetRenderDrawColor(g_app.renderer,255,235,0,200);
             for(int i=0;i<dbg->hit_count;i++){ int ei=dbg->last_hits[i]; if(ei>=0 && ei<ROGUE_MAX_ENEMIES && g_app.enemies[ei].alive){ int hx=(int)(((g_app.enemies[ei].base.pos.x + anchor)*tsz) - g_app.cam_x); int hy=(int)(((g_app.enemies[ei].base.pos.y + anchor)*tsz) - g_app.cam_y); SDL_Rect r={hx-2,hy-2,4,4}; SDL_RenderFillRect(g_app.renderer,&r); SDL_SetRenderDrawColor(g_app.renderer,255,120,0,230); int nx=(int)(hx + dbg->normals[i][0]*12); int ny=(int)(hy + dbg->normals[i][1]*12); SDL_RenderDrawLine(g_app.renderer,hx,hy,nx,ny); SDL_SetRenderDrawColor(g_app.renderer,255,235,0,200); } }

@@ -128,7 +128,8 @@ void rogue_process_events(void){
             const Uint8* ks_state = SDL_GetKeyboardState(NULL);
             int ctrl_down = ks_state[SDL_SCANCODE_LCTRL] || ks_state[SDL_SCANCODE_RCTRL];
             int alt_down2 = ks_state[SDL_SCANCODE_LALT] || ks_state[SDL_SCANCODE_RALT];
-            if(ctrl_down || alt_down2){
+            int shift_down = ks_state[SDL_SCANCODE_LSHIFT] || ks_state[SDL_SCANCODE_RSHIFT];
+            if(ctrl_down || alt_down2 || shift_down){
                 RogueHitboxTuning* tune = rogue_hitbox_tuning_get();
                 float step = 0.02f; /* base granularity */
                 int k = ev.key.keysym.sym;
@@ -144,6 +145,11 @@ void rogue_process_events(void){
                     else if(k==SDLK_3) tune->enemy_offset_y -= step; else if(k==SDLK_4) tune->enemy_offset_y += step;
                     else if(k==SDLK_5) tune->enemy_radius -= step; else if(k==SDLK_6) tune->enemy_radius += step;
                     else if(k==SDLK_9){ tune->enemy_offset_x=0; tune->enemy_offset_y=0; }
+                    else if(k==SDLK_0){ rogue_hitbox_tuning_save_resolved(); }
+                } else if(shift_down){
+                    if(k==SDLK_1) tune->pursue_offset_x -= step; else if(k==SDLK_2) tune->pursue_offset_x += step;
+                    else if(k==SDLK_3) tune->pursue_offset_y -= step; else if(k==SDLK_4) tune->pursue_offset_y += step;
+                    else if(k==SDLK_9){ tune->pursue_offset_x=0; tune->pursue_offset_y=0; }
                     else if(k==SDLK_0){ rogue_hitbox_tuning_save_resolved(); }
                 }
             }

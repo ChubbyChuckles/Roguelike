@@ -13,3 +13,13 @@ Implements full Phase 4 of hit system roadmap:
 
 Future work: Phase 5 slash VFX overlay, Phase 6 debug textual overlay & explosion visualization, performance profiling & tuning.
 
+feat(hit-system): tunable enemy pursuit offset (Shift+1..4 + JSON persistence)
+
+Added pursue_offset_x/pursue_offset_y to hitbox tuning JSON; load/save extended.
+Shift + (1/2) adjusts X, (3/4) adjusts Y, 9 resets, 0 saves (mirrors existing CTRL/ALT schemes).
+Enemy aggro movement now targets player position plus pursue offsets, allowing centering or forward lead tweaks to align attack capsule visually.
+
+feat(debug): render enemy pursuit target (red circle)
+
+Draws a small red circle at player position + pursue_offset (when hit debug enabled) so designers can visually align AI approach point with weapon capsule center.
+
