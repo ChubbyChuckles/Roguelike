@@ -1,65 +1,11 @@
-feat(hit-system): Phase 7 integration – remove legacy reach, sweep authoritative, first-hit hitstop, integration test
+feat(hit-detection): Pixel Masks Slice B runtime integration
 
-Summary:
-- Removed remaining legacy reach/arc placeholders; strike now exclusively uses rogue_combat_weapon_sweep_apply results.
-- Added first-hit-only hitstop (55ms) to curb multi-target slow stacking.
-- Reused refined knockback magnitude; explosion/overkill path intact.
-- Added unit test test_hit_phase7_integration validating single hitstop application and no duplicate hits.
-- Updated roadmap (Phase 7 items marked, profiling pending) and README.
+- Added SHIFT+M toggle (input_events) to flip `g_hit_use_pixel_masks` for A/B testing
+- Integrated pixel mask broadphase (AABB) + narrowphase sampling into `rogue_combat_weapon_sweep_apply` guarded by feature flag, with capsule fallback
+- Implemented helper APIs in hit_pixel_mask.c/h: frame AABB query, enemy test sampling (center + 8-ring), local pixel → world transform
+- Added math includes & pose usage (dx/dy/scale/angle) for transform; simplified rotation handling (no pre-rotation optimizations yet)
+- New unit test `test_hit_mask_integration` verifying a pixel-mask registered hit; existing `test_hit_mask_basic` & Phase 7 integration tests still pass
+- Roadmap `implementation_plan_detection.txt` updated with Slice B progress section
+- README changelog updated (Pixel Detection Slice B entry)
 
-Next:
-- Implement profiling harness for 7.7 (sweep cost @ 50 enemies) and progress to Phase 8 tuning.feat(hit-system): complete Phase 4 feedback (particles, refined knockback, SFX stub, overkill explosion flag)
-
-Implements full Phase 4 of hit system roadmap:
- - Added hit_feedback module (particles, knockback magnitude, SFX stub, explosion tracking)
- - Refined knockback scaling: level + strength differential with clamp (0.18 -> 0.55)
- - Particle bursts (normal 10-14 rand, overkill 24, capped) with directional spread off impact normal
- - Overkill/execution triggers larger burst & explosion frame flag
- - Integrated feedback into combat_strike (first-hit SFX stub, per-enemy flash, knockback apply)
- - Added enemy level field for future balancing (currently default 0 if not set)
- - Added tests: test_hit_phase4_feedback (magnitude growth & cap, particle count ranges) + existing knockback_basic retained
- - Roadmap updated: Phases 1-4 marked Done, status summary advanced
- - Build system: added hit_feedback.c
-
-Future work: Phase 5 slash VFX overlay, Phase 6 debug textual overlay & explosion visualization, performance profiling & tuning.
-
-feat(hit-system): tunable enemy pursuit offset (Shift+1..4 + JSON persistence)
-
-Added pursue_offset_x/pursue_offset_y to hitbox tuning JSON; load/save extended.
-Shift + (1/2) adjusts X, (3/4) adjusts Y, 9 resets, 0 saves (mirrors existing CTRL/ALT schemes).
-Enemy aggro movement now targets player position plus pursue offsets, allowing centering or forward lead tweaks to align attack capsule visually.
-
-feat(debug): render enemy pursuit target (red circle)
-
-Draws a small red circle at player position + pursue_offset (when hit debug enabled) so designers can visually align AI approach point with weapon capsule center.
-
-feat(hit-system): implement Phase 5 weapon frame overlay & pose tool MVP
-
-Replaced slash VFX spritesheet dependency with per-weapon 8-frame pose system:
- - Added weapon_pose module (weapon_pose.c/h) loading ../assets/weapons/<id>_pose.json + 8 frame images (<id>_f0..f7) with per-frame {dx,dy,angle,scale,pivot_x,pivot_y}.
- - Integrated overlay render into player_render (attack frames derive deterministic frame index from attack timer).
- - Fallback defaults when pose JSON absent; missing frame image warns and reuses nearest prior.
- - Added unit test test_weapon_pose_loader (validates JSON parse & frame value mapping, directory create path) – green.
- - Added MVP SDL2 authoring tool weapon_pose_tool (keyboard editing: translate, rotate, scale, pivot adjust, frame select, save JSON).
- - Roadmap updated: Phase 5 marked Done, Phase 5A Partial (MVP). Procedural trail effect deferred.
- - README changelog updated with Phase 5 entry.
-
-Future: Phase 6 debug textual overlay, Phase 7 legacy reach removal & perf profiling, PNG loader integration (currently BMP), advanced tool features (copy/paste, mouse drag, batch export), optional procedural trail.
-
-feat(hit-system): Phase 6 debug overlay core (capsule+hits+normals+text) + toggle & test
-
-Implemented hit debug overlay (toggle key F) drawing weapon sweep capsule (cyan), impact points & normals (yellow) and textual metrics (frame id, hit count, player pos & tuning values). Added `hit_debug_overlay.c` module and integrated render call post scene draw. Added unit test `test_hit_phase6_debug_toggle` verifying toggle API. Roadmap updated (Phase 6 Partial-Done: remaining enemy AABB & ring buffer playback deferred). README changelog entry added.
-
-
-chore(tool): rework weapon_pose_tool for single weapon image over player sheet frames
-
-Refactored pose tool to overlay one weapon image across 8 frames sliced from a player slash animation sheet (PNG via WIC or BMP). Added direction & frame_size metadata in JSON; auto output naming weapon_<id>_<direction>_pose.json; HUD updates title with current frame transforms. Roadmap + README changelog updated.
-
-feat(hit-detection): Slice A pixel mask scaffolding & basic test
-
-- Added `hit_pixel_mask.c/h` defining mask frame + set structures (8 frames per weapon) with packed bit storage.
-- Implemented placeholder procedural mask generation (horizontal bar progression) for immediate integration testing.
-- Introduced global toggle flag `g_hit_use_pixel_masks` (inactive by default) for upcoming runtime switch.
-- Added unit test `test_hit_mask_basic` verifying mask population & frame progression; integrated into CMake.
-- Updated detection roadmap with progress note (Slice A done, image-derived masks & toggle key pending next slice).
-
+Next: Slice C will log capsule vs pixel mismatches and surface debug overlay differentials.

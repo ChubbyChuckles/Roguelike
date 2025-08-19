@@ -5,6 +5,8 @@
 #include <string.h>
 #include <math.h>
 #include <stdlib.h>
+#include "game/hit_pixel_mask.h"
+#include "game/weapon_pose.h"
 
 #define MAX_HIT_GEO 16
 static RogueWeaponHitGeo g_hit_geo[MAX_HIT_GEO];
@@ -160,12 +162,41 @@ static float closest_point_seg(float x0,float y0,float x1,float y1,float px,floa
 
 int rogue_combat_weapon_sweep_apply(struct RoguePlayerCombat* pc, struct RoguePlayer* player, struct RogueEnemy enemies[], int enemy_count){
     if(!pc||!player||!enemies) return 0; if(pc->phase != ROGUE_ATTACK_STRIKE) return 0; const RogueWeaponHitGeo* geo = rogue_weapon_hit_geo_get(player->equipped_weapon_id); if(!geo){ rogue_weapon_hit_geo_ensure_default(); geo = rogue_weapon_hit_geo_get(player->equipped_weapon_id); }
+    /* Pixel mask path (Slice B) */
+    if(g_hit_use_pixel_masks){
+        float px = player->base.pos.x; float py = player->base.pos.y;
+        RogueHitPixelMaskSet* set = rogue_hit_pixel_masks_ensure(player->equipped_weapon_id);
+        if(set && set->ready){
+            /* frame index reuse player anim_frame (0..7) */
+            int fi = player->anim_frame & 7; RogueHitPixelMaskFrame* f = &set->frames[fi];
+            /* Acquire pose frame for offsets */
+            const RogueWeaponPoseFrame* pf = rogue_weapon_pose_get(player->equipped_weapon_id, fi);
+            float pose_dx = 0.0f, pose_dy = 0.0f, pose_scale = 1.0f, pose_angle_deg=0.0f;
+            if(pf){ pose_dx = pf->dx; pose_dy = pf->dy; pose_scale = pf->scale; pose_angle_deg = pf->angle; }
+            float angle_rad = pose_angle_deg * 3.14159265358979323846f / 180.0f;
+            int hit_indices[32]; float normals[32][2]; int hc=0;
+            float enemy_r = (g_tuning.enemy_radius>0)? g_tuning.enemy_radius : 0.40f;
+            /* Broadphase AABB (no rotation for Slice B) using local mask extents from (0,0) to (width,height) scaled */
+            float aabb_min_x = px + pose_dx - enemy_r;
+            float aabb_max_x = px + pose_dx + f->width * pose_scale + enemy_r;
+            float aabb_min_y = py + pose_dy - enemy_r;
+            float aabb_max_y = py + pose_dy + f->height * pose_scale + enemy_r;
+            for(int i=0;i<enemy_count;i++){ if(!enemies[i].alive) continue; if(test_and_set_hit(i)) continue; float ex=enemies[i].base.pos.x + g_tuning.enemy_offset_x; float ey=enemies[i].base.pos.y + g_tuning.enemy_offset_y; if(ex < aabb_min_x || ex > aabb_max_x || ey < aabb_min_y || ey > aabb_max_y) continue; /* broadphase reject */
+                /* Inverse rotate/scale to local (angle may be zero for now) */
+                float ca=(float)cos(-angle_rad), sa=(float)sin(-angle_rad); float lx = ( (ex - (px + pose_dx))*ca - (ey - (py + pose_dy))*sa)/pose_scale + f->origin_x; float ly = ( (ex - (px + pose_dx))*sa + (ey - (py + pose_dy))*ca)/pose_scale + f->origin_y; int hit_pix_x=0, hit_pix_y=0; if(rogue_hit_mask_enemy_test(f,lx,ly,enemy_r/pose_scale,&hit_pix_x,&hit_pix_y)){
+                    /* Approx normal from enemy center to impact pixel */
+                    float wx,wy; rogue_hit_mask_local_pixel_to_world(f, hit_pix_x, hit_pix_y, px, py, pose_dx, pose_dy, pose_scale, angle_rad, &wx, &wy); float nx = ex - wx; float ny = ey - wy; float nd = (float)sqrt(nx*nx+ny*ny); if(nd>0){ nx/=nd; ny/=nd; } else { nx=0; ny=1; }
+                    hit_indices[hc]=i; normals[hc][0]=nx; normals[hc][1]=ny; hc++; if(hc>=32) break; }
+            }
+            g_last_count = hc; for(int k=0;k<hc;k++) g_last_indices[k]=hit_indices[k];
+            RogueCapsule dummy_cap={0}; rogue_hit_debug_store(&dummy_cap, hit_indices, normals, hc, g_app.frame_count);
+            if(hc>0) return hc; /* if no mask hits fall through to capsule for safety */
+        }
+    }
+    /* Capsule fallback (existing) */
     RogueCapsule cap; if(!rogue_weapon_build_capsule(player,geo,&cap)) return 0; int hit_indices[32]; float normals[32][2]; int hc=0; float cap_aabb_xmin = fminf(cap.x0,cap.x1) - cap.r; float cap_aabb_xmax = fmaxf(cap.x0,cap.x1) + cap.r; float cap_aabb_ymin = fminf(cap.y0,cap.y1) - cap.r; float cap_aabb_ymax = fmaxf(cap.y0,cap.y1) + cap.r;
     float enemy_r = (g_tuning.enemy_radius>0)? g_tuning.enemy_radius : 0.40f;
-    for(int i=0;i<enemy_count;i++){ if(!enemies[i].alive) continue; if(test_and_set_hit(i)) continue; float ex=enemies[i].base.pos.x + g_tuning.enemy_offset_x; float ey=enemies[i].base.pos.y + g_tuning.enemy_offset_y; /* treat enemy as circle */
-        if(ex < cap_aabb_xmin-0.6f || ex > cap_aabb_xmax+0.6f || ey < cap_aabb_ymin-0.6f || ey > cap_aabb_ymax+0.6f) continue; /* broadphase reject */
-        float cx,cy,nx,ny; float d2 = closest_point_seg(cap.x0,cap.y0,cap.x1,cap.y1,ex,ey,&cx,&cy,&nx,&ny); float cr=enemy_r; float rr = cr + cap.r; if(d2 <= rr*rr){ hit_indices[hc]=i; normals[hc][0]=nx; normals[hc][1]=ny; hc++; if(hc>=32) break; }
-    }
+    for(int i=0;i<enemy_count;i++){ if(!enemies[i].alive) continue; if(test_and_set_hit(i)) continue; float ex=enemies[i].base.pos.x + g_tuning.enemy_offset_x; float ey=enemies[i].base.pos.y + g_tuning.enemy_offset_y; if(ex < cap_aabb_xmin-0.6f || ex > cap_aabb_xmax+0.6f || ey < cap_aabb_ymin-0.6f || ey > cap_aabb_ymax+0.6f) continue; float cx,cy,nx,ny; float d2 = closest_point_seg(cap.x0,cap.y0,cap.x1,cap.y1,ex,ey,&cx,&cy,&nx,&ny); float cr=enemy_r; float rr = cr + cap.r; if(d2 <= rr*rr){ hit_indices[hc]=i; normals[hc][0]=nx; normals[hc][1]=ny; hc++; if(hc>=32) break; } }
     g_last_count = hc; for(int k=0;k<hc;k++) g_last_indices[k]=hit_indices[k];
     rogue_hit_debug_store(&cap, hit_indices, normals, hc, g_app.frame_count);
     return hc;

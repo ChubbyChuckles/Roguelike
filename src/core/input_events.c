@@ -16,6 +16,7 @@
 #include "core/equipment.h"
 #include "core/hud_overlays.h" /* alerts & metrics toggles */
 #include "game/hit_system.h" /* debug toggle */
+#include "game/hit_pixel_mask.h" // pixel hit detection toggle
 #include "ui/core/ui_context.h" /* skill graph toggle */
 #include <string.h> /* memset */
 #ifdef ROGUE_HAVE_SDL
@@ -120,6 +121,9 @@ void rogue_process_events(void){
             if(ev.key.keysym.sym==SDLK_F9){ g_app.gen_river_sources+=2; if(g_app.gen_river_sources>40) g_app.gen_river_sources=40; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
             if(ev.key.keysym.sym==SDLK_F10){ g_app.gen_river_sources-=2; if(g_app.gen_river_sources<2) g_app.gen_river_sources=2; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
             if(ev.key.keysym.sym==SDLK_f){ g_hit_debug_enabled = !g_hit_debug_enabled; g_app.show_hit_debug = g_hit_debug_enabled; }
+            const Uint8* ks_state2 = SDL_GetKeyboardState(NULL);
+            /* SHIFT+M toggles pixel-mask hit detection (Slice B) */
+            if((ks_state2[SDL_SCANCODE_LSHIFT]||ks_state2[SDL_SCANCODE_RSHIFT]) && ev.key.keysym.sym==SDLK_m){ g_hit_use_pixel_masks = !g_hit_use_pixel_masks; ROGUE_LOG_INFO("hit_pixel_masks_toggle: %d", g_hit_use_pixel_masks); }
             /* Hitbox tuning hotkeys: hold CTRL to modify player capsule, ALT for enemy hit circles.
                Number keys 1-9 adjust magnitude; 0 saves to file. Without modifiers we cycle nothing (reserved).
                CTRL + (1/2) adjust player_offset_x +/-; (3/4) adjust player_offset_y; (5/6) adjust length; (7/8) adjust width.

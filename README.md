@@ -1,4 +1,4 @@
-<div align="center">
+<div align="center>
 
 # Roguelike (Top‑Down Zelda‑like) – C / SDL2
 
@@ -219,128 +219,6 @@ Most used commands (full table duplicated in Appendix A end):
 The remainder of this document is the unedited original README content (phases, deep dives, exhaustive logs) preserved verbatim for historical and technical reference.
 
 ---
-
-### Maintainability & Module Boundaries (Phase M1–M2 Complete)
-
-Foundational documentation and automated audit introduced:
-
-* `docs/OWNERSHIP.md` – clarifies review/maintenance responsibility per top-level module.
-* `docs/DEPENDENCY_BOUNDARIES.md` – enforced layering & private header visibility rules.
-* `docs/INTERNAL_HEADERS.md` – inventory of private `_internal.h` headers (kept in sync with refactors).
-* `tools/maint_audit.py` – lightweight static audit (run manually or wire into CI) checking:
-  - util/ isolation (no cross-module includes)
-  - no external inclusion of another module's `_internal.h`
-  - public header function name prefix (`rogue_`)
-  - simple include cycle detection
-
-Run locally:
-```
-python tools/maint_audit.py
-```
-Exit code !=0 flags a violation (see first printed AUDIT FAIL line).
-
-Phase M2 added:
-* `core/features.h` capability macros (`ROGUE_FEATURE_*`) for conditional tests/tools.
-* Combat damage observer interface (register callbacks for `RogueDamageEvent` emission) with unit test `test_combat_damage_observer`.
-* Deprecation annotation macro (`ROGUE_DEPRECATED(msg)`).
-* Public header pass pruning & observer logic isolated (no leak of internal state).
-
-Phase M3 (data-driven pipeline) progress:
-* Unified key/value parser utility (`util/kv_parser.c,h`) with dedicated unit test `test_kv_parser`.
-* Schema + validation layer (`util/kv_schema.c,h`) with unit test `test_kv_schema` surfacing unknown keys, type errors, and missing required fields.
-* Hot reload system (`util/hot_reload.c,h`) with registry, manual force trigger, and automatic content hash change detection (`test_hot_reload`).
-* NEW: Asset dependency graph (`util/asset_dep.c,h`) providing cycle detection + recursive FNV-1a combination hashing; unit test `test_asset_dep` validates hash change on dependency modification and cycle rejection.
-* NEW: Externalized projectile & impact tuning (`core/projectiles_config.c,h` + `assets/projectiles.cfg`) driving shard counts, speeds, lifetimes, sizes, gravity, and impact lifetime; integrated hot reload (`test_projectiles_config`).
-* NEW: Hitbox directory loading (Phase M3.6) via `rogue_hitbox_load_directory` allowing aggregation of multiple `.hitbox` / `.json` primitive definition files (`test_hitbox_directory_load`).
-* NEW: Persistence VERSION tags (Phase M3.7) for player stats & world gen parameter files (backward compatible; legacy files default to v1) with accessor APIs (`test_persistence_versions`).
-* NEW: Phase M4.1 test expansion – projectile & persistence edge cases (`test_projectiles_config_edge`, `test_persistence_edge_cases`) covering partial config overrides, missing file load invariant, negative VERSION clamping, and dirty save gating.
-* NEW: Phase M4.2 deterministic hashing + M4.3 golden master replay harness (`util/determinism.c,h`, `test_determinism_damage_events`) providing FNV-1a hash of `RogueDamageEvent` sequences (stable for identical sequences, differing for variants) and text round-trip serialization for future combat replay validation.
-* NEW: Phase M4.4 parser fuzz tests (`test_fuzz_parsers`) exercising affix CSV loader, player persistence key/value loader, and unified kv parser with randomized malformed/partial lines (ensures graceful ignore, clamps VERSION >0, no crashes, and bounded iteration) establishing baseline robustness harness.
-* NEW: Equipment Phase 2 (advanced stat aggregation) initial slice completed:
-  - Layered stat cache fields (base / implicit / affix / buff) with deterministic fingerprint hashing.
-  - Affix system extended (strength/dexterity/vitality/intelligence/armor flat) feeding `g_player_stat_cache.affix_*` via non‑mutating equipment aggregation pass.
-  - Derived metrics populated (DPS, EHP, toughness, mobility, sustain placeholder).
-  - Soft cap helper (`rogue_soft_cap_apply`) + continuity & diminishing returns unit tests.
-  - Ordering invariance & fingerprint mutation tests (`test_equipment_phase2_affix_layers`, `test_equipment_phase2_stat_cache`).
-  - Resist breakdown (physical, fire, cold, lightning, poison, status) with affix-driven aggregation, soft (75%) + hard (90%) caps and test (`test_equipment_phase2_resists`).
-
-Next phases (M3+) will introduce unified config schema, hot reload, and expanded deterministic replay/coverage gates.
-
-### Equipment System Phase 7.2–7.5 (Defensive Layer Extensions Continued)
-
-Implemented in this slice:
-* Damage Conversion (7.2): Added affix stats `phys_conv_fire_pct`, `phys_conv_frost_pct`, `phys_conv_arcane_pct` (enum + parser + aggregation). Incoming physical melee damage now partitions into elemental components with a 95% aggregate cap (always at least 5% remains physical). Conservation enforced (post‑conversion sum == original raw) – validated by new unit test `test_equipment_phase7_conversion_reflect`.
-* Guard Recovery Modifiers (7.3): New `guard_recovery_pct` affix scales guard meter regeneration (multiplicative, clamped 0.1x–3.0x) and inversely scales hold drain (floor 0.25x) inside `rogue_player_update_guard`.
-* Thorns / Reflect (7.5): Added `thorns_percent` and `thorns_cap` affix stats; reflect computed after conversion & mitigation ordering inside `combat_guard` (currently attacker application deferred until enemy context wire-up). Cap enforces upper bound per hit.
-* Tests (7.6 partial): `test_equipment_phase7_conversion_reflect` covers conversion conservation, cap behavior when total attempted conversion exceeds 95%, guard recovery positive scaling math, and thorns integration placeholder path (ensuring no crash and ordering stable). Existing block tests (`test_equipment_phase7_defensive`, `test_equipment_phase7_block_affixes`) remain green.
-
-Reactive shield procs (7.4) now implemented: proc system exposes absorb pool helpers consumed in melee pipeline prior to reflect. Test `test_equipment_phase7_reactive_shield` validates shield absorption ordering (block → conversion → absorb → reflect) and depletion.
-
----
-
-### Equipment System Phase 8.1 (Durability Model)
-
-Implemented non-linear durability decay (logarithmic severity scaling with rarity mitigation) in `core/durability.c`:
-* Formula: `loss = ceil(base * log2(1 + severity/25) * (1/(1+0.35*rarity)))`, with `base=2` for severe events (>=50 severity).
-* Diminishing returns on extremely large severity values while retaining meaningful chip damage for small hits (minimum scaled floor).
-* Higher rarity items degrade more slowly (rarity factor divisor), reinforcing acquisition value without granting infinite endurance.
-* API: `rogue_item_instance_apply_durability_event(inst,severity)` – future integration slice will replace fixed per-hit decrement sites.
-* Unit test `test_equipment_phase8_durability_model` validates: (a) monotonic non‑decreasing loss vs severity for a single item, (b) higher rarity never exceeds common loss for identical severity events.
-* Roadmap updated (Phase 8.1 Done; 8.6 partial until repair cost & salvage coupling tests land).
-
-### Equipment System Phase 8.2 (Repair Cost Scaling)
-
-Added `rogue_econ_repair_cost_ex(missing, rarity, item_level)` implementing multi-factor repair cost:
-* Unit cost = `(6 + rarity*6) * (1 + sqrt(item_level)/45)` producing gentle early scaling and higher late-game sink without explosive growth.
-* Legacy `rogue_econ_repair_cost` kept as wrapper (item_level=1) for existing call sites; equipment repair updated to use new API with item instance level.
-* Unit test `test_equipment_phase8_repair_cost` validates monotonic increase with missing durability, higher cost for higher rarity, and level-driven growth (1 < 50 < 200).
-* Roadmap Phase 8.2 marked Done; Phase 8.6 test coverage extended (cost monotonicity).
-
-### Equipment System Phase 8.3 (Auto-warn Thresholds & Notifications)
-Centralized durability bucket helper (good >=60%, warn >=30%, critical <30%) moved to `durability.c` and exposed to both UI and systems. Added transition notification state (`rogue_durability_last_transition`) allowing tests or future HUD flashes to react exactly once when dropping into warn or critical without polling each frame.
-
-### Equipment System Phase 8.4 (Instance-aware Salvage Yield)
-Salvage yields now scale with remaining durability for specific item instances: factor = `0.4 + 0.6 * (cur/max)` (40% floor for broken gear). Implemented via `rogue_salvage_item_instance` used preferentially by inventory UI when an active instance exists; falls back to definition-based salvage otherwise.
-
-### Equipment System Phase 8.5 (Fracture Mechanic)
-Items that reach 0 durability become `fractured` imposing a 40% damage penalty (current min/max damage multiplied by 0.6). Full repair clears the flag, restoring baseline performance. This introduces tangible gameplay pressure to repair rather than ignoring durability until salvage.
-
-### Equipment System Phase 13 (Persistence & Migration Complete)
-
-Introduces a versioned, forward-compatible equipment serialization layer with deterministic integrity hashing and legacy slot migration:
-
-* Versioned Schema (13.1): `EQUIP_V1` header followed by one line per occupied slot. Each line encodes slot index and key/value pairs: base def, item_level, rarity, prefix/suffix indices & rolled values, durability (cur/max), enchant level, quality, socket count + up to 6 gem ids, affix lock flags, fracture flag, plus `SET <id>`, unique id token `UNQ <string>` ("-" if none), and synthetic runeword pattern token `RW <pattern>` (derived from gem ordering or '-' if none). Unknown future tokens are skipped safely.
-* Slot Migration (13.2): Legacy (pre-header) format without `EQUIP_V1` is treated as version 0 and remapped: indices 0..5 (WEAPON, HEAD, CHEST, LEGS, HANDS, FEET) translated to current enum; other indices skipped. New test `test_equipment_phase13_slot_migration` validates remap & round-trip forward serialization.
-* Unique/Set/Runeword (13.3): Set id, unique id (string from unique registry), and runeword pattern tokens serialized.
-* Integrity Hash (13.4): 64-bit FNV-1a over canonical serialized buffer via `rogue_equipment_state_hash` for tamper detection / analytics fingerprinting. Deterministic across identical equip states regardless of equip order.
-* Optional Fields (13.5): Loader tolerates missing (legacy) fields like `SOCKS`, `ILVL`, `ENCH`, `QC`; defaults applied (count=0, level=1, enchant=0, quality=0, gems=-1).
-* Tests (13.6): `test_equipment_phase13_persistence` (round-trip, omission of new tokens, tamper hash divergence) and `test_equipment_phase13_slot_migration` (legacy remap) ensure backward + forward compatibility and integrity detection.
-
-### Equipment System Phase 14 (Performance & Memory – Expanded)
-
-Performance layer now covers memory pooling, aggregation variants, micro-profiling, and parallel loadout optimization:
-* SoA Slot Arrays (14.1): `equipment_perf.c,h` maintain per-slot primary stat & armor contributions plus cached totals.
-* Frame Arena (14.2 Complete): Linear arena (`rogue_equip_frame_alloc/reset/high_water/capacity`) integrated into loadout optimizer candidate enumeration eliminating per-iteration stack/heap pressure; tests assert high-water stability across repeated invocations.
-* Batch Aggregation (14.3 Conceptual SIMD): 4-slot batch loop produces identical totals to scalar baseline; pluggable path allows future SSE/AVX implementation guarded by feature detection.
-* Parallel Affinity (14.4): Async optimizer API (`rogue_loadout_optimize_async/join/async_running`) dispatches optimization on a worker thread (Win32 CreateThread) with deterministic fallback synchronous path when threading unavailable; preserves deterministic results (fixed slot & instance ordering) and instruments launch + body with profiler zones.
-* Micro-Profiler (14.5): Zone profiler covers aggregation modes, synchronous optimize, and async launch; JSON dump helper for potential CI perf diffing.
-* Perf & Parallel Tests (14.6 Extended): `test_equipment_phase14_perf` (aggregation parity & profiler), and new `test_equipment_phase14_parallel` validating async improvement non-decrease, join semantics, and arena reuse (no capacity overflow across successive optimizer runs).
-
-### Equipment System Phase 15 (Integrity & Anti-Cheat Foundations – Completed)
-
-Multiplayer integrity layer now includes proc anomaly auditing, banned affix blacklist, hash chain & GUID tamper detection:
-* GUIDs (15.3): Every spawned item instance receives a 64-bit pseudo-random GUID (definition id, instance index entropy, quantity). `test_equipment_phase15_integrity` validates uniqueness.
-* Equip Hash Chain (15.2): Rolling 64-bit chain per item updated on equip/unequip (slot id + GUID + action salt) forming a tamper-evident transcript of lifecycle events.
-* Server Validation Scaffolding (15.1): Equip path maintains strict slot category & two-hand gating prior to state mutation; with GUID + chain available, an authoritative server can replay events and compare chains.
-* Proc Replay Auditor (15.4): `rogue_integrity_scan_proc_anomalies` scans registered procs and returns any exceeding a configurable triggers-per-minute threshold (simple absolute check suitable for first-line heuristic flagging). Exercised in `test_equipment_phase15_replay_auditor` using fast vs slow proc definitions.
-* Banned Affix Blacklist (15.5): Lightweight unordered pair list of forbidden affix combinations (`rogue_integrity_add_banned_affix_pair`, `rogue_integrity_is_item_banned`). Unit test injects an item with both affixes and asserts ban detection.
-* Hash Chain / GUID Tamper Tests (15.6): Replay auditor test mutates an item's stored chain and GUID directly; mismatch & duplicate detection surfaces anomalies via `rogue_integrity_scan_equip_chain_mismatches` and `rogue_integrity_scan_duplicate_guids`.
-* Public Integrity APIs (`equipment_integrity.h`): Proc anomaly scan, affix blacklist management, expected equip hash recomputation, mismatch & duplicate GUID scanners.
-
-Forward Work: Statistical proc distribution validation (Phase 18), authoritative network transport & signed state diffs (later multiplayer phases), and deeper anomaly heuristics (rolling Z-scores / EWMA) once broader telemetry (latency jitter, server tick alignment) is present.
-
-### Equipment System Phase 16.4 (Runeword Recipe Validator)
-...existing code...
 
 ### Maintainability & Module Boundaries (Phase M1–M2 Complete)
 
@@ -855,7 +733,7 @@ Phase 11.1–11.5 (AI Testing & QA Expansion): Added comprehensive quality gates
 * Phase 4.4 Crowd Control: Added stun/root/slow/disarm timers & gating; stun & disarm suppress attack buffering, root halts movement but preserves attack usage, slow applies capped (≤95%) speed reduction. Test `test_combat_phase4_cc` validates suppression and allowed actions per CC type.
 * Phase 4.5 Reaction Cancel Windows & Directional Influence: Implemented early recovery windows per reaction type (light 40–75%, stagger 55–85%, knockdown 60–80%, launch 65–78%) via `rogue_player_try_reaction_cancel`, rejecting attempts outside bounds. Directional Influence (DI) during active reactions accumulates small movement intent vectors clamped by per-reaction radius caps (0.35 / 0.55 / 0.85 / 1.0). Player struct tracks original reaction duration and DI accumulators; new test `test_combat_phase4_reaction_cancel_di` verifies early cancel gating and DI clamp.
 * Phase 4.6 Test Expansion: Added i-frame overlap protection helper (`rogue_player_add_iframes`) using max replacement (no additive stacking) and test `test_combat_phase4_iframe_overlap` ensuring grants don't accumulate and immunity persists until timer expiry.
-* Phase 5.1 Hitbox Primitives: Introduced foundational spatial volume types (`RogueHitbox` union) for future hit detection: capsule (segment+radius), swept arc (angle sector with optional inner radius), multi-segment chain (series of capsules), and projectile spawn descriptor (count, spread, speed). Added intersection helpers for point testing (capsule/arc/chain) and projectile spread angle helper. Unit test `test_combat_phase5_hitbox_primitives` validates geometry inclusion/exclusion and evenly distributed projectile angles. These are pure POD utilities (no allocations) ready for external authoring (5.2) and broadphase culling integration (5.3).
+* Phase 5.1 Hitbox Primitives: Introduced foundational spatial volume types (`RogueHitbox` union) for future hit detection: capsule (segment+radius), swept arc (angle sector with optional inner radius), multi-segment chain (series of capsules), and projectile spawn descriptor (count, spread, speed) with basic intersection helpers for point testing (capsule/arc/chain) and projectile spread angle helper. Unit test `test_combat_phase5_hitbox_primitives` validates geometry inclusion/exclusion and evenly distributed projectile angles. These are pure POD utilities (no allocations) ready for external authoring (5.2) and broadphase culling integration (5.3).
 * Phase 5.2 Authoring & 5.3 Broadphase: Added lightweight JSON subset parser (`hitbox_load.c`) to load arrays of hitbox definitions (capsule / arc / chain / projectile_spawn). Parser ignores unknown keys for forward compatibility and exposes memory + file APIs. Implemented broadphase collection helper computing primitive AABB bounds, pruning points before precise intersection. New test `test_combat_phase5_hitbox_authoring_broadphase` validates parsing, projectile spread angle endpoints/center, and correct candidate collection (inclusion + exclusion) for a capsule.
 * Phase 5.4 Friendly Fire / Team Filtering: Introduced `team_id` on `RoguePlayer` & `RogueEnemy`; strike loop now skips same-team entities (prevents ally damage). Validated via new unit test `test_combat_phase5_team_obstruction` (ally health unchanged while enemy takes damage).
 * Phase 5.5 Terrain Obstruction Attenuation: Added simple tile DDA trace between attacker and target; encountering a blocking tile applies 60% damage scaling (rounded) simulating partial wall / obstacle dampening. Integrated pre-mitigation; covered by obstruction portion of `test_combat_phase5_team_obstruction`. (Future: distinct clank SFX / spark event hook.)
@@ -900,18 +778,10 @@ Phase 11.1–11.5 (AI Testing & QA Expansion): Added comprehensive quality gates
 * Phase 9 Performance & Virtualization: Added per-phase timing APIs (begin/end/query) with frame/update/render breakdown, dirty rectangle union + kind classification (structural vs content changes), lightweight glyph cache with LRU compaction + hit/miss metrics, regression guardrails (baseline + % threshold + auto-baseline averaging), virtual list helpers, and completed inventory grid row-based virtualization + scrolling (`test_ui_phase9_virtual_inventory`).
 * Phase 13 Inventory UI & Management: Added `inventory_ui.c/h` module bridging core aggregated counts to UI grid. Supports slot array build with stack counts, sorting modes (name, rarity descending, category, count descending), category bitmask + min rarity filtering, equip helper (creates instance if none active), salvage & drop context actions (inventory decrement + ground spawn), and persisted sort mode (`g_app.inventory_sort_mode`) serialized in player component section (save format v9 tail-safe backward compatible). Unit test `test_inventory_ui_phase13` validates build ordering, count sort, and rarity filter behavior.
 * Phase 14 Equipment & Stat Integration: Expanded equip slot model (weapon + head/chest/legs/hands/feet). Category gating enforces armor vs weapon. Stat cache pipeline now integrates weapon affix flat damage bonuses, sums armor base_armor across equipped pieces into EHP heuristic ((HP + armor*2) * vitality scalar), and retains agility->dexterity aggregation. Unit test `test_equipment_phase14_extended` validates DPS > 0 and that equipping armor increases EHP.
-* Phase 16.1 Equipment Tooling – Item Definition JSON: Added editor-facing JSON import/export for item (equipment) base definitions including implicit stats, set id and socket ranges. APIs `rogue_item_defs_load_from_json(path)` and `rogue_item_defs_export_json(buf,cap)` mirror existing CSV loader; exporter produces array of objects with stable field ordering suitable for diffing. Unit test `test_equipment_phase16_itemdefs_json` writes a temp JSON, loads (2 records), validates fast hash index lookup, exports, and asserts presence of key numeric & id fields ensuring roundtrip integrity.
-* Phase 16.2 Equipment Tooling – Set Builder & Live Preview: Introduced `equipment_content` module decoupling set & runeword registries from runtime aggregation file. Provides JSON loader/exporter for set definitions (`rogue_sets_load_from_json`, `rogue_sets_export_json`), validation (strictly increasing piece thresholds), registry reset helpers for tooling, and interpolation helper `rogue_set_preview_apply` that produces current threshold stats plus proportional progress toward the next threshold (linear, truncated toward int). Unit test `test_equipment_phase16_set_builder` loads a sample set (2 & 4 piece thresholds), asserts registry integrity, verifies mid-threshold interpolation at 3 pieces (expecting truncated halfway values), and confirms export JSON tokens.
-* Phase 16.3 Equipment Tooling – Proc Designer: Added JSON authoring for proc definitions (`rogue_procs_load_from_json`, `rogue_procs_export_json`) supporting name, trigger (ON_HIT/ON_CRIT/ON_KILL/ON_BLOCK/ON_DODGE/WHEN_LOW_HP), ICD, duration, magnitude, max_stacks, stack rule (REFRESH/STACK/IGNORE), and param (e.g., HP threshold). Validation enforces enum bounds & sane limits; test `test_equipment_phase16_proc_designer` loads 2 procs, validates stacking vs refresh semantics, and asserts export contains names.
-* Equipment System Phase 1 (In Progress): Expanded slot enum (weapon, offhand, head, chest, legs, hands, feet, ring1, ring2, amulet, belt, cloak, charm1, charm2). Offhand slot + two-hand occupancy plumbing added (flag detection stubbed). Armor aggregation updated to exclude jewelry/charms. Basic compile-time slot test `test_equipment_phase1_slots` added. Roadmap marks 1.1/1.3 done; 1.2/1.4 partial pending true two-hand metadata & persistence migration.
-  New unit test `test_ui_phase5_skillgraph_advanced` exercises filtering, export/import, allocation + undo.
-* Phase 15 Extended Persistence & Versioning: Introduced forward-compatible item instance field `enchant_level` with size-heuristic reader (no format bump). Added inventory-only partial save API `rogue_save_manager_save_slot_inventory_only` enabling lightweight persistence of inventory changes without rewriting other components, and backup rotation helper `rogue_save_manager_backup_rotate` producing timestamped `.bak` copies (pruning hook ready). Inventory section writer now emits enchant level; reader auto-populates when present while legacy saves load with default 0. New unit test `test_save_phase15_inventory_partial_backup` validates partial save path updates quantity and backup path creation.
 * Phase 16 Multiplayer / Personal Loot: Completed full feature slice. Per-item ownership (`owner_player_id`) + loot mode enum (shared/personal). Need/Greed system with session begin/choose/resolve APIs (`rogue_loot_need_greed_begin/choose/resolve/winner`) prioritizes NEED over GREED, deterministic LCG-based 400–699 (greed) / 700–999 (need) roll ranges, and locks the instance (pickup & trade gated) until resolution. Ownership assigned to winner (forcing temporary personal mode for assignment). Trade validation now rejects self-trade, non-owner attempts, and locked instances. Anti-duplication safeguard: unresolved need/greed session sets logical lock consumed by pickup loop (`rogue_loot_instance_locked`). Tests: `test_loot_phase16_personal_mode` (ownership gating + trade) and `test_loot_phase16_need_greed_trade` (need vs greed priority, pass handling, post-resolution trade, rejection paths).
 * Phase 17 Performance & Memory: Added `loot_perf.c/h` module providing object pool for affix roll scratch buffers with metrics (acquires, releases, peak usage) and SIMD (SSE2) accelerated weight summation path (with scalar fallback) tracking separate counters. Expanded profiling harness (17.3) adds high-resolution nanosecond timing for weight summations and full affix roll sections (`weight_sum_time_ns`, `affix_roll_time_ns`) via `rogue_loot_perf_affix_roll_begin/end`. Implemented cache-friendly item definition indexing (17.4) using an open-addressed FNV-1a hash table rebuilt after config loads; fast lookup API `rogue_item_def_index_fast` falls back to linear scan on miss. Unit tests `test_loot_phase17_index` and `test_loot_phase17_perf` cover index correctness, pool lifecycle, and SIMD metrics. Incremental serialization Phase 17.5 now extends incremental mode with record-level inventory diff metrics: consecutive saves in incremental mode count reused vs rewritten item records (`rogue_save_inventory_diff_metrics`). Test `test_loot_phase17_5_diff` validates first-save rewrite, unchanged reuse, and single-record modification paths.
 * Phase 18 Analytics: Initial slice plus advanced features. Base module provides drop event ring buffer (512 capacity) and JSON export summarizing event count & rarity distribution (APIs: `rogue_loot_analytics_record`, `rogue_loot_analytics_recent`, `rogue_loot_analytics_export_json`; test `test_loot_phase18_analytics`). New (18.3) rarity distribution drift detection with configurable baseline fractions or counts (`rogue_loot_analytics_set_baseline_counts`, `rogue_loot_analytics_set_baseline_fractions`) and relative deviation threshold (`rogue_loot_analytics_set_drift_threshold`) producing per-rarity flags via `rogue_loot_analytics_check_drift`. New (18.4) session summary struct `RogueLootSessionSummary` aggregating totals, counts, duration, drops/min, and drift OR (`rogue_loot_analytics_session_summary`). New (18.5) positional heatmap (32x32 grid) APIs: `rogue_loot_analytics_record_pos`, `rogue_loot_analytics_heat_at`, `rogue_loot_analytics_export_heatmap_csv`. Advanced test `test_loot_phase18_3_4_5_advanced` validates drift alert triggering, summary values, and heatmap export.
-* Phase 19.1 Audio/Visual Polish (initial): Added per-rarity pickup sound id mapping APIs (`rogue_rarity_set_pickup_sound`, `rogue_rarity_get_pickup_sound`) with integration in pickup loop logging selected sound id (placeholder for future audio backend). Unit test `test_loot_phase19_1_pickup_sounds` validates mapping usage and absence of regressions in pickup flow.
-* Phase 19.2–19.5 Visual Polish: Added lightweight loot VFX state module (`loot_vfx.c/h`) tracking sparkle timer, high-rarity beam flag (rarity>=3), edge notifier distance check, and final 5s despawn pulse (alpha 0→1). APIs: `rogue_loot_vfx_on_spawn`, `rogue_loot_vfx_on_despawn`, `rogue_loot_vfx_update`, `rogue_loot_vfx_get`, `rogue_loot_vfx_edge_notifiers`. Integrated into spawn/despawn/update loops. Unit test `test_loot_phase19_2_5_vfx` validates lifecycle: spawn state, pulse activation window, alpha increase, despawn cleanup.
-* Phase 20.1 QA – Loot Table Fuzz: Introduced dedicated fuzz harness `test_loot_phase20_1_fuzz_tables` generating 1200 randomized table lines (well‑formed, malformed, long ids, random noise, empty, comments) with mixed valid/invalid item ids, negative & zero weights, reversed quantity ranges, and varied rarity min/max (including negatives). Ensures loader never crashes, respects table/entry caps (`ROGUE_MAX_LOOT_TABLES`, `ROGUE_MAX_LOOT_ENTRIES`), clamps invalid fields (negative weights → 0 ignored, qmax<qmin corrected), and tolerates malformed segments gracefully. Provides early regression shield before large statistical sampling (20.2/20.3). 
+* Phase 19.1 QA – Loot Table Fuzz: Introduced dedicated fuzz harness `test_loot_phase20_1_fuzz_tables` generating 1200 randomized table lines (well‑formed, malformed, long ids, random noise, empty, comments) with mixed valid/invalid item ids, negative & zero weights, reversed quantity ranges, and varied rarity min/max (including negatives). Ensures loader never crashes, respects table/entry caps (`ROGUE_MAX_LOOT_TABLES`, `ROGUE_MAX_LOOT_ENTRIES`), clamps invalid fields (negative weights → 0 ignored, qmax<qmin corrected), and tolerates malformed segments gracefully. Provides early regression shield before large statistical sampling (20.2/20.3). 
 * Phase 20.2–20.3 QA – Statistical & Rarity Regression Harness: Added `test_loot_phase20_2_3_stats_regression` performing 100k rolls on `ORC_BASE` for `long_sword` rarity band (0–2), asserting each rarity appears ≥1 time and empirical frequencies stay within ±0.15 absolute of uniform (≈0.33). Early warning guard against unintended sampler bias from future dynamic weighting, pity, or floor adjustments.
 * Phase 21.2 Tooling – Item Definition Validation: Introduced lightweight content validation API `rogue_item_defs_validate_file` plus unit test `test_loot_tooling_phase21_2_validation` detecting malformed CSV lines (insufficient fields) and returning their line numbers for editor integration. Non‑destructive (no registry mutation) enabling external batch validation workflows.
 * Phase 21.1 Tooling – Spreadsheet Converter: Added `rogue_item_defs_convert_tsv_to_csv` utility and unit test `test_loot_tooling_phase21_1_convert` converting designer-maintained TSV exports into game CSV format (ignores blank/comment lines) for streamlined content pipeline.
@@ -944,7 +814,7 @@ Next Steps: Bind allocation/undo to inputs, integrate real skill definitions, im
 * NEW (Persistence Phase 2 tooling): Migration runner with rollback + metrics (steps, ms) and tests (ordering determinism, chain, metrics).
 * NEW (Persistence Phase 3): Binary format upgraded to v3 TLV section headers (uint16 id + uint32 size) with backward compatibility migration (tests: `test_save_v3_tlv_headers`, `test_save_v2_backward_load`). Lightweight JSON export (`rogue_save_export_json`) lists descriptor + section ids/sizes, targeted component reload API (`rogue_save_reload_component_from_slot`), and a debug toggle (`rogue_save_set_debug_json`) that emits `save_slot_X.json` on each save (`test_save_debug_json_toggle`). Phase 3.3 adds compile-time numeric width assertions + endianness guard. Phase 3.4 bumps format to v4 introducing unsigned LEB128 varint encoding for high-frequency counts (inventory items, skills, buffs) shrinking those fields for small values while maintaining backward compatibility (no data transform migration needed—reader branches on `descriptor.version`). Phase 3.5 adds a string interning table (component id 7, v5) with APIs `rogue_save_intern_string`, `rogue_save_intern_get`, `rogue_save_intern_count` to deduplicate repeated textual identifiers; section serialized with varint count and per-entry varint length + bytes. Phase 3.6 adds optional per-section RLE compression (v6) gated by `rogue_save_set_compression(enabled,min_bytes)`; compressed sections set high bit of size and store uncompressed size + RLE stream (byte,run) pairs. Phase 4.1 elevates integrity (v7) by appending a CRC32 (uncompressed payload) after every section and writing a final SHA256 footer (magic `SH32` + 32 bytes) over the entire post-header body; loader validates descriptor checksum, per-section CRCs, and footer digest (`test_save_v7_integrity`). Phase 4.2 (v8) introduces a replay hash section (component id 8) serializing deterministic gameplay-critical input events (frame, action code, value) and a SHA256 digest over the linear event buffer for future divergence diagnostics (`test_save_v8_replay_hash`). Phase 4.3 adds tamper detection flags (descriptor CRC / section CRC / SHA256) surfaced via `rogue_save_last_tamper_flags`, Phase 4.4 implements recovery loading (`rogue_save_manager_load_slot_with_recovery`) which falls back to the newest autosave on integrity failure (`test_save_v8_tamper_recovery`), and Phase 4.5 (v9) introduces an optional signature trailer (`[uint16 sig_len]["SGN0"][sig bytes]`) appended after the SHA256 footer when a provider is registered (`rogue_save_set_signature_provider`); verification failure sets tamper flag `ROGUE_TAMPER_FLAG_SIGNATURE`.
 * NEW (Persistence Phase 5.1/5.2 runtime feature, no format bump): Incremental save mode with cached section payload reuse. Enabling via `rogue_save_set_incremental(1)` causes subsequent saves to reuse unchanged section bytes directly (skipping `write_fn` & compression) while recomputing global integrity (descriptor CRC, SHA256 footer, optional signature). Dirty components are marked using `rogue_save_mark_component_dirty(id)` or `rogue_save_mark_all_dirty()`. Test `test_save_incremental_basic` validates baseline reuse & dirty invalidation.
-* NEW (Persistence Phase 6.1/6.3/6.4): Autosave scheduler & metrics: `rogue_save_set_autosave_interval_ms(ms)` + periodic `rogue_save_manager_update(now_ms, in_combat)` trigger ring autosaves when idle; quicksave via `rogue_save_manager_quicksave()`. Metrics (`rogue_save_last_save_rc/bytes/ms`, `rogue_save_autosave_count`) expose telemetry for future UI indicator (Phase 6.5). Test `test_save_autosave_scheduler` simulates elapsed time generating multiple autosaves.
+* NEW (Persistence Phase 6.1/6.3/6.4): Autosave scheduler & metrics: `rogue_save_set_autosave_interval_ms(ms)` + periodic `rogue_save_manager_update(now_ms, in_combat)` trigger ring autosaves when idle; quicksave via `rogue_save_manager_quicksave()`. Metrics (`rogue_save_last_save_rc/bytes/ms`, `rogue_save_autosave_count`) expose telemetry for future UI indicator (Phase 6.5). Test harness `test_save_autosave_scheduler` simulates elapsed time generating multiple autosaves.
 * NEW (Persistence Phase 6.5): Autosave throttling + status string. API `rogue_save_set_autosave_throttle_ms(gap_ms)` enforces a minimum gap after any save; `rogue_save_status_string(buf,cap)` returns a concise snapshot for UI display. Test `test_save_autosave_indicator` covers throttled scheduling and status formatting.
 * NEW (Persistence Phase 7.2/7.3): Extended skill & buff serialization. Skills now persist full extended runtime state (cast/channel progress, charge timers/counters, casting/channel active flags) appended to legacy (rank + cooldown) without format bump; loader auto-detects legacy minimal records via size heuristic. Buffs serialize relative remaining duration `(type,magnitude,remaining_ms)` (legacy absolute end time struct auto-converted). New APIs `rogue_buffs_active_count` / `rogue_buffs_get_active` decouple save layer from buff internals. Unit test `test_save_phase7_skill_buff_roundtrip` validates roundtrip integrity.
 * NEW (Persistence Phase 7.1/7.7/7.8): Player progression + analytics + run metadata persistence. Player section now includes level, xp, xp_to_next, health, mana, action points, core stats, talent points, cumulative analytics counters (damage dealt, gold earned), permadeath_mode flag, equipped weapon id, current weapon infusion, and session_start_seconds (run start timestamp). Legacy minimal layouts still load. Unit test `test_save_phase7_player_analytics_roundtrip` verifies roundtrip.
@@ -1087,12 +957,12 @@ Implemented an initial conditional effect (proc) subsystem:
 * Unified Descriptor: `RogueProcDef` captures trigger (hit/crit/kill/block/dodge/low HP), internal cooldown, duration, stacking rule (refresh/stack/ignore), magnitude scalar, and max stacks.
 * Runtime: Registry with up to 64 procs, per-proc cooldown + duration timers, uptime accumulation for telemetry, simple global per-second trigger rate cap to prevent spam.
 * Events: APIs `rogue_procs_event_hit(was_crit)`, `rogue_procs_event_kill`, `rogue_procs_event_block`, `rogue_procs_event_dodge`, plus `rogue_procs_update(dt_ms,hp_cur,hp_max)` to tick timers.
-* Stacking Rules: Refresh (keeps stacks, resets duration), Stack (increments up to max, shared duration), Ignore (fires once until expiry).
+* Stacking Rules: Refresh (keeps stacks, resets duration) and Stack (increments up to max, shared duration) implemented; Ignore (fires once until expiry) reserved for future.
 * Telemetry: Query trigger counts, current stacks, uptime ratio for future balancing & analytics integration.
 * Tests: `test_equipment_phase6_proc_engine` simulates mixed hit/crit sequence validating trigger counts and stacking persistence.
 * Roadmap: Marked 6.1–6.3 Done; forthcoming phases (6.4–6.7) will add advanced stacking semantics variety, rate limiting refinements, and deterministic ordering tests.
 
-### Equipment Phase 6.4–6.7 – Advanced Stacking, Rate Limiting & Telemetry
+### Equipment Phase 6.4–6.7: Advanced Stacking, Rate Limiting & Telemetry
 Extended the proc subsystem with full stacking semantics, deterministic ordering, enhanced rate limiting, and richer analytics:
 * Stacking Rules Finalized (6.4): Implemented explicit enum dispatch – Refresh (duration reset, stack count stable), Stack (increments up to max_stacks; shared duration window), Ignore (first trigger holds until expiry). Internal state machine refactored for clarity & future extension (e.g., decay stacking).
 * Global Rate Limiting (6.5): Consolidated per-proc ICD with a global rolling window trigger cap to prevent burst spam; added monotonically increasing global sequence id assigned at each successful trigger to guarantee deterministic ordering across mixed trigger types even when throttled.
@@ -1116,129 +986,6 @@ Extended the proc subsystem with full stacking semantics, deterministic ordering
 * Runtime evaluation marks each `RogueItemInstance` with `hidden_filter` flag; visible count via `rogue_items_visible_count`.
 * Reapply API (`rogue_loot_filter_refresh_instances`) lets UI or console command reload filter and instantly hide/show existing ground items.
 * Unit test `test_loot_filter_basic` validates loading, rule count, visibility transition (rarity>=3 hides common sword but not epic blade).
-* Basic rarity-colored item outline (12.3) added in `rogue_world_render_items` drawing a faint border; foundation for future glow/pulse effects.
-
-#### Logging & Debuggability
-* Consistent structured log format includes location for grep-based triage.
-
-#### Intentional Simplifications (Documented)
-* Single prefix + suffix slot (multi-slot & rerolling deferred to economy/crafting phases).
-* Hard-coded gating rules (will migrate to data-driven rule graph in 8.2+ extended or tooling 21.x).
-* Simple additive dynamic weighting (PID / smoothing reserved for 9.x adaptive balancing).
-
----
-
-## Persistence & Save System (Phase 1 Complete; Phase 2 Kickoff)
-Phase 1 introduced a binary SaveManager with:
-* Descriptor header (`RogueSaveDescriptor`): version, timestamp, component mask, section count, total size, CRC32 payload checksum.
-* Deterministic section ordering (qsort by stable component id).
-* Components implemented: player, world_meta, inventory (instances + affix fields), skills (rank + cooldown), buffs (active list), vendor (seed + timers).
-* Atomic write (temp file then rename) minimizing corruption window.
-* Roundtrip integration test (`test_save_roundtrip`).
-
-Phase 2 foundations expanded:
-* `ROGUE_SAVE_FORMAT_VERSION` bumped to 2 (no-op migration path prepared).
-* Migration registry + linear walker (currently no data transforms required v1->v2).
-* Autosave ring (`rogue_save_manager_autosave`) rotates `autosave_0..N-1.sav` (N=ROGUE_AUTOSAVE_RING).
-* Durability toggle (`rogue_save_manager_set_durable`) optionally calls `_commit` / `fsync` after header rewrite.
-* Refactored internal save path routine consolidating checksum + ordering.
-* Incremental migration runner with rollback safety (loads payload into memory, applies sequential migrations, aborts on failure without mutating on-disk file).
-* Migration metrics (steps, duration ms, failure flag) exposed via `rogue_save_last_migration_*` accessors.
-* Test harnesses: `test_save_migration_chain` (legacy header upgrade), `test_save_migration_metrics` (metrics correctness), `test_save_ordering_determinism` (section ordering stable), plus existing roundtrip & autosave ring tests.
-
-Upcoming (Phase 2 / 3 targets):
-* Per-section encode/decode unit tests & corruption fuzzing.
-* Section-level CRC + optional SHA256 (integrity hardening).
-* Section-level CRC + optional SHA256 (integrity hardening).
-* Debug CLI (inspect / diff saves) and JSON export.
-
----
-
----
-
-## 3. Loot System (Current Focus Area)
-Recent development concentrated on Phases 5–8 of the roadmap:
-* Rarity Enhancements: dynamic weighting, per‑rarity spawn sound hooks, despawn overrides, rarity floor, pity counter.
-* Affix Framework: definition parsing, rarity weighting, deterministic stat rolls, instance attachment & persistence.
-* Advanced Generation Pipeline (8.x): context (enemy level / biome / archetype / player luck), multi‑pass rarity→base→affixes, seed mixing, affix gating, quality scalar bias, duplicate avoidance.
-* Telemetry: rolling rarity window stats, on‑demand histogram print, JSON export snapshot.
-
-These layers enable reproducible progression tuning while preserving deterministic seeds for testability.
-
-### 3.1 Loot Tuning Console Commands (Phase 9.6)
-A lightweight developer/testing command interface (string parser; no GUI dependency) allows rapid runtime tuning & verification of rarity dynamics:
-
-Supported commands:
-* `weight <rarity 0-4> <factor>` – Set dynamic rarity multiplier (applied before sampling). Factors <=0 clamped to tiny positive.
-* `get <rarity>` – Query current multiplier.
-* `reset_dyn` – Reset all rarity multipliers to 1.0.
-* `reset_stats` – Clear rolling rarity statistics window.
-* `stats` – One-line snapshot: `STATS: C=.. U=.. R=.. E=.. L=..` (Common→Legendary).
-
-Usage pattern inside tests (see `test_loot_phase9_tuning_console.c`):
-```c
-char buf[128];
-rogue_loot_run_command("weight 4 25", buf, sizeof buf); // Heavily bias legendary
-rogue_loot_run_command("stats", buf, sizeof buf);        // Inspect rarity distribution window
-```
-This enables scripting future balancing harnesses (e.g., fuzz/statistical drift tests) without adding gameplay UI complexity.
-
-### 3.2 Vendor Economy (Phase 10.1–10.3 Progress)
-An initial vendor system now layers the economy foundation atop the loot pipeline:
-* Inventory Generation (10.1): `rogue_vendor_generate_inventory(table_index, slots, ctx, &seed)` reuses deterministic loot generation (rarity roll, base item selection, affix eligibility) to populate shop slots.
-* Price Formula (10.2): Rarity multiplier ladder applied to `base_value` (1x/3x/9x/27x/81x for Common→Legendary). Affix & demand scaling hooks slated for 10.4/10.5.
-* Restock & Rotation (10.3): `RogueVendorRotation` tracks candidate loot tables, accumulates elapsed time, and on interval rotates active table + regenerates inventory (`rogue_vendor_update_and_maybe_restock`). Ensures evolving shop composition during extended sessions.
-* Drop Rate Safety: Vendor generation force-initializes drop rate scalars to avoid Release-build static zero-initialization suppressing all categories when tests omit earlier gameplay initialization.
-* Test Coverage: `test_vendor_inventory.c` validates (a) non-zero bounded generation, (b) price >0 for all items, (c) monotonic multiplier ladder. Runtime checks replace asserts so Release builds surface failures (asserts compiled out when `NDEBUG`).
-
-Planned follow-ups (remaining 10.x): currency sinks (repairs/rerolls), reputation-based price scaling, buyback/sell value bounds, affix-aware dynamic pricing.
-
-### 3.3 Economy & Salvage Extensions (10.4–10.6, 11.1)
-New systems added:
-* Gold Wallet: `rogue_econ_add_gold`, `rogue_econ_gold` for central currency tracking (clamped, overflow safe).
-* Reputation Scaling (10.5): `rogue_econ_set_reputation` influences buy price via linear discount capped at 50% of base price.
-* Buy/Sell Operations: `rogue_econ_try_buy` and `rogue_econ_sell` enforce bounded sell value (10%..70% of vendor base) with unit test safeguards.
-* Salvage (11.1): `rogue_salvage_item` converts items to materials (rarity & value bracket scaled) using existing material defs (`arcane_dust`, `primal_shard`). Basic yield test in `test_salvage_basic.c`.
-* Currency Sink Cost Formulas (10.4 partial): `rogue_econ_repair_cost(missing, rarity)` linear scaling (unit = 5 + rarity*5) and `rogue_econ_reroll_affix_cost(rarity)` exponential (50 * 2^rarity clamped) now implemented + unit test (`test_economy_sink.c`). Integration hooks (actual durability consumption, affix reroll op) still pending.
-* Equipment & Durability Groundwork: Item instances now carry `durability_cur/max` (initialized for weapon/armor categories) and a minimal equip API (weapon + armor slots) to enable future repair fee application & stat recomputation pipeline.
-Upcoming: full repair action, affix reroll operation consuming gold/materials, richer material tier mapping & recipe parser (11.2–11.3).
-
-### In-Game Vendor & Equipment Panels (Initial 14.x Integration)
-Interactive panels (development placeholder visuals) demonstrate economy + equipment linkage:
-* Toggle Vendor Panel: press `V` (lists up to 8 generated items from first loot table). Navigate with UP/DOWN, ENTER to attempt purchase (applies reputation discount, requires sufficient gold), BACKSPACE or `V` to close.
-* Toggle Equipment Panel: press `E` (shows core stats snapshot and placeholder slot labels for weapon/armor).
-* Restock Timer: shop auto-regenerates every 30s real time (simple timer; will be replaced by rotation logic using multiple tables).
-* Stat Aggregation (14.2 partial): agility affix values on equipped items add to player dexterity each frame via `rogue_equipment_apply_stat_bonuses`.
-* Unit Test: `test_equipment_stat_bonus` deterministically validates dexterity increase from an attached agility affix on an equipped weapon instance.
-
-Planned enhancements: equip/unequip UI actions, durability display & expanded repair/reroll UI (initial repair hotkey in place), affix reroll interface, comparison tooltips & delta coloring, multi-table vendor rotation, sell/tab & buyback.
-
-### Derived Stat Cache & DPS / EHP Estimators (14.3–14.4)
-Implemented a lightweight caching layer (`stat_cache.c`) providing:
-* Dirty Flag Invalidation: `rogue_stat_cache_mark_dirty` invoked on equip/unequip and when equipment bonuses apply.
-* Cached Totals: Strength/Dexterity/Vitality/Intelligence post-equipment aggregation retained for UI queries.
-* Heuristic DPS Estimate: `base_weapon_damage * (1 + DEX/50) * (1 + critChance% * critDamageMultiplier)`
-* Heuristic EHP Estimate: `max_health * (1 + VIT/200)` ensuring monotonic increase with vitality.
-* Equipment Panel Display: Real-time DPS & EHP shown beneath raw stat lines.
-
-Rationale: Avoid recomputing scaling formulas & affix traversals every frame across multiple UI/tooling consumers while keeping deterministic results. Future expansions will incorporate armor / resistance mitigation and percent-based affix modifiers; current heuristics are intentionally simple but validated through the new `test_stat_cache` unit test (asserts DPS increases after equipping a weapon).
-
-### Repair Currency Sink (10.4 partial integration)
-Minimal repair loop implemented:
-* Hotkey `R` while Equipment panel open repairs equipped weapon (if damaged) using gold.
-* Cost: `rogue_econ_repair_cost(missing, rarity)`; API `rogue_equip_repair_slot` / `rogue_equip_repair_all`.
-* Unit test `test_repair_costs` asserts durability restoration and exact gold deduction.
-* Reroll UI & multi-item flows pending.
-
-### Equip / Unequip Stat Delta Tests (14.5)
-### Mini-map Loot Pings (12.4)
-### Item Tooltips & Comparison (12.5–12.6)
-### Loot Filter Predicate Tests (12.7)
-Added comprehensive predicate evaluation test `test_loot_filter_predicates` covering:
-* MODE=ALL intersection of rarity threshold + category
-* MODE=ANY union of explicit def ids
-* MODE=ANY mixture of name substring and rarity threshold (ensuring substring broadens visibility)
-This finalizes 12.x filter correctness ensuring AND/OR semantics won't regress with future rule additions.
 
 Implemented lightweight string builders for item inspection:
 * `rogue_item_tooltip_build(inst, buf, sz)` lists name, quantity, damage/armor lines, affix stat rolls, and durability.
@@ -1251,7 +998,7 @@ Added passive visualization of recent ground item spawns on the minimap:
 * Pings persist for 5 seconds, fading out during the final 20% of lifetime.
 * Rendering overlays small 3x3 colored squares (rarity color) on the minimap after the player marker.
 * Module: `minimap_loot_pings.c/h` with update (`rogue_minimap_pings_update`) and render hook (`rogue_minimap_render_loot_pings`).
-* Unit Test `test_minimap_loot_pings` validates spawn -> ping creation, active count increment, and expiry after lifetime advancement.
+* Unit Test `test_equipment_phase19_2_5_vfx` validates lifecycle: spawn state, pulse activation window, alpha increase, despawn cleanup.
 
 Unit test `test_equipment_unequip_delta` verifies stat bonus application on equip and removal on unequip, completing roadmap item 14.5.
 
@@ -1260,7 +1007,7 @@ Unit test `test_equipment_unequip_delta` verifies stat bonus application on equi
 ## 4. Architecture & Code Layout
 ```
 src/
-  core/      Game loop, systems (loot_*, combat, persistence, skills)
+  core/      Game loop, entity & world subsystems.
   entities/  Player & enemy logic
   graphics/  Renderer & sprite handling
   input/     Input mapping & event processing
@@ -1316,7 +1063,7 @@ ctest --test-dir build -C Debug --output-on-failure
 ```
 Filter specific tests:
 ```bash
-ctest -C Release -R loot_phase8_generation_quality -V
+ctest -C Release -R loot_phase8_generation_basic -V
 ```
 
 Formatting:
@@ -1360,7 +1107,7 @@ Quality gates enforced by CI & optional pre‑commit:
 1. Update or consult `implementation_plan.txt` for next milestone steps.
 2. Implement feature in isolated module (`loot_generation.c`, etc.).
 3. Add/extend a unit test capturing deterministic behavior and boundary cases.
-4. Update roadmap statuses & craft descriptive commit message (stored as `.pending_commit_message.txt`).
+4. Update phase status / docs.
 5. Run full test suite locally before pushing.
 
 Hooks (optional):
@@ -1368,6 +1115,7 @@ Hooks (optional):
 pip install pre-commit
 pre-commit install
 ```
+
 Environment overrides:
 * `ROGUE_PRECOMMIT_COVERAGE=1` – enable extra coverage pass (if lcov available).
 
@@ -1376,7 +1124,7 @@ Environment overrides:
 ## 9. Performance & Determinism
 * Fixed LCG RNG for item/affix rolls.
 * Limited dynamic allocations; most pools are static arrays.
-* Affix selection uses small stack arrays; no heap fragmentation during generation.
+* Affix selection uses on-stack arrays; no heap fragmentation during generation.
 * Ready for later profiling hooks (see roadmap 17.x).
 
 ---
@@ -1403,7 +1151,7 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
 ### UI System Phase 1 Progress
 * Completed Phase 1.1–1.7 core architecture slice:
   - Module scaffolding, `RogueUIContext` lifecycle, panel & text primitives.
-  - Dedicated deterministic UI RNG channel (xorshift32) isolated from simulation RNG.
+  - Deterministic RNG channel (xorshift32) isolated from simulation RNG.
   - Simulation snapshot separation (opaque pointer + size) enabling read-only UI consumption without coupling.
   - Per-frame transient memory arena (configurable size, default 32KB) with `rogue_ui_arena_alloc` + `rogue_ui_text_dup` helper eliminating heap churn for ephemeral strings.
   - Deterministic UI tree serializer (stable line format) + FNV-1a hashing diff API (`rogue_ui_diff_changed`) for regression tests & future golden snapshots.
@@ -1436,114 +1184,4 @@ Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), 
 * Phase 11.1 Style Guide Catalog: Programmatic widget catalog builder (`rogue_ui_style_guide_build`) produces representative panel/button/toggle/slider/textinput/progress examples for documentation & visual diffing.
 * Phase 11.2 Developer Inspector: Hierarchy overlay + selection & live color edit APIs (`rogue_ui_inspector_enable`, `rogue_ui_inspector_emit`, `rogue_ui_inspector_edit_color`) with automated test coverage.
 * Phase 11.3 Crash Snapshot: Lightweight snapshot (`rogue_ui_snapshot`) capturing node count, last tree hash placeholder, and input state for post-mortem debugging.
-
-### v0.8.x (Current Development Branch)
-**Added**
-* Action Point (AP) economy core (Phase 1.5): player AP pool + regen + per-skill cost + soft throttle + tests.
-* Minimal EffectSpec system (Phase 1.2 partial): registry + stat buff kind + skill linkage + tests.
-* Casting & channel basics (Phases 1.3/1.4 partial): added `cast_time_ms`, `cast_type` with delayed completion for casts and simple duration channel start tick; unit test `test_skill_cast_and_channel` validates timing.
-* Advanced loot generation context (enemy level / biome / archetype / player luck).
-* Seed mixing & deterministic multi‑pass generation.
-* Affix gating rules by item category.
-* Quality scalar (luck‑driven) influencing upper stat roll bias.
-* Duplicate affix avoidance in prefix/suffix selection.
-* Telemetry exports & histogram command.
-* Global + per-category drop rate control layer (phase 9.1) enabling early balancing knobs.
-* Adaptive weighting engine (phase 9.2) applying smoothed corrective factors (0.5x–2.0x) to rarity & category frequencies to reduce streaky droughts without hard forcing outcomes.
-* Player preference learning (phase 9.3) tracking pickup counts to gently dampen over-picked categories.
-* Accelerated pity thresholds (phase 9.4) reducing required consecutive misses after midpoint.
-* Session metrics (phase 9.5) tracking per-session items dropped/picked, rarity distribution, and instantaneous items/hour + rarity/hour rates.
-* Session metrics instrumentation (phase 9.5) exposing real-time items/hour and rarity/hour allowing balancing dashboards & future drift alerts to use normalized rates independent of session length.
-
-**Improved**
-* Rarity sampling integrates global floor + pity adjustments seamlessly.
-
-### Equipment Phase 18.4 – Max Combination Stress Test
-Added `test_equipment_phase18_stress_combo` constructing an extreme deterministic stack: weapon + armor + amulet all forced to 6 sockets (filled with identical gem), full multi-piece set bonuses (interpolated at 7 pieces) and a runeword simultaneously. The test registers synthetic in-memory item definitions, a set (thresholds 2/4/6), a runeword, and a gem; spawns & equips items, injects sockets, aggregates stats, and validates:
-* Stat fingerprint stability across consecutive recomputes.
-* Total strength / fire resistance meet analytical expectations from implicits + set + runeword + gem layering.
-* No negative stats; layering strictly additive.
-Purpose: guard against overflow/ordering regressions when multiple late-phase systems (sockets, gems, sets, runewords) interact at maximum plausible density.
-* Persistence ensures affix data round‑trips without loss.
-* Equipment System Phase 1 complete: slot expansion, two-hand atomicity handling (offhand clear & equip blocking), cosmetic transmog layer, and persistence roundtrip test (`test_equipment_phase1_persistence`). New test assets `test_equipment_items.cfg` provide deterministic two-hand + shield items.
-* Equipment System Phase 2 (in progress): Introduced layered stat cache (base/implicit/affix/buff/total per attribute), derived metric scaffolding (DPS, EHP, toughness, mobility, sustain placeholder), soft cap helper (`rogue_soft_cap_apply`), deterministic fingerprint hashing API (`rogue_stat_cache_fingerprint`), and unit test `test_equipment_phase2_stat_cache` validating layer integrity + fingerprint mutation + soft cap curve.
-
-### Equipment Phase 18.5 – Mutation Robustness Tests
-Added `test_equipment_phase18_mutation` focusing on persistence corruption handling & tamper detection:
-* Baseline serialize → deserialize round‑trip hash equality (integrity preservation).
-* Targeted invalid slot mutation (`SLOT 999`) reliably rejected (negative return path exercised).
-* 200 deterministic single bit flips across the serialized buffer: each iteration either rejects safely or loads without crash (asserts both success and rejection paths occur, proving robustness under random corruption).
-* Durability digit tamper causes equipment state hash divergence (integrity hash is sensitive to semantic field change).
-* Test harness now resets the item instance pool between iterations to suppress noisy spawn pool full warnings observed during early runs (mutation sometimes produced spurious extra spawn attempts). This keeps CI logs clean while still exercising parser rejection logic.
-Establishes a foundation for Phase 18.6 gating where mutation/fuzz, snapshot, statistical proc, and stress tests will become mandatory quality gates.
-
-### Equipment Phase 18.6 – CI Gating Integration
-Phase 18 critical harnesses are now formal quality gates:
-* Labeled tests: snapshot (`test_equipment_phase18_snapshot`), fuzz sequences (`test_equipment_phase18_fuzz`), statistical proc rates (`test_equipment_phase18_proc_stats`), max combo stress (`test_equipment_phase18_stress_combo`), and mutation robustness (`test_equipment_phase18_mutation`).
-* Each carries CTest labels: `EQUIP_GATES;EQUIP_PHASE18` allowing selective execution.
-* Added script `scripts/run_equipment_gates.ps1` to run only gating tests (used by CI pipeline stages before merge). Example (PowerShell): `pwsh scripts/run_equipment_gates.ps1`.
-* Failure in any gating test blocks the pipeline; logs remain concise (mutation test suppresses item instance pool spam via per-iteration pool reset).
-* Extensibility: Future equipment phases can join the gating set by appending the `EQUIP_GATES` label in `tests/CMakeLists.txt` and (optionally) documenting rationale here.
-Rationale: Ensures persistence integrity, rejection robustness, statistical proc stability, and complex layering resilience never regress unnoticed.
-
-### Persistence Phase 1 (Core Save Architecture)
-Implemented initial binary save system:
-* Save descriptor (version=1, timestamp, component_mask, section_count, total_size, CRC32 payload checksum)
-* Deterministic component ordering (sorted by id) for stable hashing/diffs
-* Atomic temp write then rename for slot saves (save_slot_0..2.sav)
-* Components implemented: player (level/xp/health/talent_points), world_meta (seed + generation params subset), inventory (active item instances + affix data), skills (ranks + cooldown_end), buffs (active list snapshot), vendor (seed + restock timers)
-* Simple CRC32 integrity verification on load
-
-Deferred (next phases): autosave ring, fsync durability, migration registry & SAVE_FORMAT_VERSION constant, per-section hashes, compression, structured schema evolution, rollback & recovery.
-
-Roadmap file `roadmaps/implementation_plan_persistence_migration.txt` updated marking completed Phase 1 items.
-
-**Fixed**
-* Path resolution in tests via central `path_utils` abstraction.
-
-Previous milestones summarized within the roadmap file; formal tagged releases forthcoming once 9.x balancing ships.
-
----
-
-## 12. Contributing
-See `CONTRIBUTING.md` for coding standards, review checklist, and branching guidance. External contributions should:
-* Include/update unit tests.
-* Avoid unrelated formatting churn.
-* Provide a succinct commit message (imperative mood, scope prefix e.g. `feat(loot): ...`).
-
-Security / integrity considerations (future): server authoritative mode, roll verification (22.x).
-
----
-
-## 13. License
-Distributed under the MIT License. See `LICENSE` for details.
-
----
-
-## 14. Screenshots / Media (Placeholders)
-
-| Gameplay | Loot Drop | Telemetry Overlay | Inventory | Histogram Export |
-|----------|-----------|------------------|-----------|------------------|
-| ![Gameplay WIP](docs/images/placeholder_gameplay.png) | ![Loot Drop](docs/images/placeholder_loot.png) | ![Telemetry](docs/images/placeholder_telemetry.png) | ![Inventory](docs/images/placeholder_inventory.png) | ![Histogram](docs/images/placeholder_histogram.png) |
-
-Additional diagrams planned:
-* Generation pipeline flowchart.
-* Rarity weighting adjustment graph.
-* Affix selection gating decision tree.
-
----
-
-### Quick Reference Cheatsheet
-| Task | Command |
-|------|---------|
-| Configure Debug (SDL ON) | `cmake -S . -B build -DROGUE_ENABLE_SDL=ON -DCMAKE_BUILD_TYPE=Debug` |
-| Build (Win) | `cmake --build build --config Debug` |
-| Run Tests | `ctest --test-dir build -C Debug --output-on-failure` |
-| Specific Test | `ctest -C Release -R loot_phase8_generation_basic -V` |
-| Format Code | `cmake --build build --target format` |
-| Static Analysis | `cmake --build build --target tidy` |
-
----
-
-Happy hacking & may your drops be ever in your favor.
 
