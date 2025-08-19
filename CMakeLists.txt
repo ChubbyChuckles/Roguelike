@@ -265,6 +265,7 @@ add_library(rogue_core
     src/core/inventory_tag_rules.c
     src/core/inventory_query.c
     src/game/hit_system.c
+    src/game/hit_pixel_mask.c
     src/game/hit_feedback.c
     src/game/weapon_pose.c
     src/game/hit_debug_overlay.c

@@ -1,0 +1,159 @@
+PIXEL-DRIVEN HIT DETECTION REWORK PLAN (Slash & Weapon Overlay Based)
+
+Goal
+Replace (or augment) the current capsule sweep with a pixel-accurate / mask-based detection derived from the rendered slash animation frames plus the transformed weapon sprite. Any enemy whose hurt circle/AABB intersects at least one active (opaque) pixel of either the slash VFX or weapon image for the current attack frame should register a hit (once per strike window).
+
+Design Tenets
+1. Deterministic: Given the same inputs (frame index, transforms, assets), hit results are identical across runs/platforms.
+2. Incremental Adoption: Run new pixel mask pipeline in parallel with existing capsule initially (A/B or debug compare) before flipping authoritative flag.
+3. Performance Conscious: Avoid per-pixel CPU iteration per enemy each frame. Use coarse broadphase + compact bitmask tests and early-outs.
+4. Authoring Stability: No change to existing pose JSON or attack timing data required; masks auto-generated offline or at load.
+5. Fallback Safety: If any frame asset missing or mask generation fails, fall back to current capsule to avoid broken combat.
+
+High-Level Phases
+P0 Research & Constraints
+P1 Data Extraction & Mask Format
+P2 Runtime Structures & Loading
+P3 Broadphase + Pixel Mask Narrowphase
+P4 Integration With Strike Logic
+P5 Optimization & Caching
+P6 Testing & Validation
+P7 Tooling & Visualization
+P8 Migration & Toggle Removal
+P9 Documentation & Future Extensions
+
+----------------------------------------
+P0. Research & Constraints (Short)
+0.1 Inventory current slash frame dimensions & weapon overlay transform ranges (angle, scale).  
+0.2 Define enemy hurt shape canonical form (circle r=enemy_radius or small AABB).  
+0.3 Decide resolution & alignment: masks stored unrotated in local frame; runtime applies rotation/scale via integer transform or pre-rotated cache.  
+0.4 Set memory budget target (e.g., <256 KB per weapon archetype for masks).  
+Deliverable: design note appended to this file (updated) & constants in a new header `hit_pixel_config.h`.
+
+----------------------------------------
+P1. Data Extraction & Mask Format
+1.1 For each slash animation frame (existing 8) & weapon sprite: load surface -> derive binary mask (opaque alpha > threshold or non-colorkey pixel).  
+1.2 Normalize to a local coordinate origin: player anchor (torso) at (0,0). Pose JSON dx/dy offsets applied when sampling.  
+1.3 Weapon mask handled separately; combine (OR) at runtime OR pre-compose per frame into a unified mask if memory acceptable.  
+1.4 Choose storage: packed bitmask (1 bit per pixel) inside minimal bounding rectangle per frame. Structure:  
+```
+struct RogueHitPixelMaskFrame {
+  int width, height;         // in pixels
+  int origin_x, origin_y;    // pixel offset aligning (0,0) local anchor inside mask
+  int pitch_words;           // 32-bit words per row
+  uint32_t* bits;            // width*height bits
+};
+```
+1.5 Optional mask thinning: morphological dilation configurable (tuning) to slightly expand mask for gameplay forgiveness.  
+1.6 Add offline generation path: If SDL_Image available, generate once at load; else provide a tool `mask_builder` to pre-write `.pmask` binary files.  
+Deliverables: `hit_pixel_mask.c/h`, loader producing array[8] per weapon archetype.
+
+----------------------------------------
+P2. Runtime Structures & Loading
+2.1 Central registry keyed by (weapon_id, attack_archetype) -> PixelMaskSet (8 frames).  
+2.2 Lazy load on first use in combat or preload at startup (config flag).  
+2.3 Validate frame count (must be 8). Fallback to capsule if absent.  
+2.4 Maintain a runtime toggle: `g_hit_use_pixel_masks` (config & debug key) for A/B validation.  
+Deliverables: `rogue_hit_pixel_masks_ensure(weapon_id)` API.
+
+----------------------------------------
+P3. Broadphase + Pixel Mask Narrowphase
+3.1 Broadphase step still uses existing capsule OR a per-frame bounding AABB of combined mask (faster). Compute bounding box by transforming frame mask extents (dx/dy, scale, rotation) into world space.  
+3.2 Candidate enemy list: if enemy center outside expanded AABB (half-diagonal + enemy radius) reject.  
+3.3 Narrowphase (pixel test):
+    a) Compute inverse transform from world enemy center to mask local pixel coordinates (apply inverse rotation, scale, translation).  
+    b) For an enemy circle (radius r): approximate by sampling a small ring of points (e.g., 8 or 12) OR perform circle-to-mask test using bounding square iteration clipped to circle.  
+    c) Early exit on first opaque pixel.  
+3.4 Support scaling: if scale != 1, map local coords -> mask indices via division; clamp.  
+3.5 Rotation: Use precomputed sin/cos per frame. (Angle from pose JSON + per-frame anim orientation).  
+Deliverables: `rogue_hit_mask_test_enemy(mask_frame, transform, enemy)` returning bool + impact normal approximation (vector from closest opaque pixel to enemy center, fallback to facing if not derivable quickly).  
+
+----------------------------------------
+P4. Integration With Strike Logic
+4.1 Modify sweep application path: if pixel-mask enabled & loaded -> build candidate hits using Phase 3; else fallback to capsule.  
+4.2 Maintain existing per-strike dedup bitset.  
+4.3 Record normals: For pixel collision, normal approximated by normalized (enemy_center - sampled_pixel_world).  
+4.4 Preserve timing windows & damage pipeline untouched.  
+Deliverables: extended `rogue_combat_weapon_sweep_apply` internally branching to pixel or capsule path.
+
+----------------------------------------
+P5. Optimization & Caching
+5.1 Pre-rotated Cache (optional): If rotation angles limited (quantize to 5° or actual per-frame angle fixed), pre-generate rotated bounding extents / maybe rotated bitmasks if profiling shows hotspots.  
+5.2 SIMD bit-scan acceleration: pack enemy sample pixels and use mask row word AND tests.  
+5.3 Early empty row/column pruning: store row occupancy bitset to skip rows with no opaque pixels intersecting candidate area.  
+5.4 Micro-profiler counters: cycles or time (high-resolution timer) aggregated for: broadphase count, narrowphase successes, pixel checks.  
+Deliverables: optional compile flag `HIT_MASK_OPTIMIZED` enabling these paths.
+
+----------------------------------------
+P6. Testing & Validation
+6.1 Unit: Mask load (dimensions, bits set >0) from sample slash & weapon test images.  
+6.2 Unit: Pixel collision deterministic vs fixture (enemy positions vs expected hits).  
+6.3 Property test: For scale=1, rotation=0, mask with single horizontal line -> collision results match analytic capsule fallback for equivalently sized line.  
+6.4 Regression: Compare capsule vs pixel for standard attack; ensure pixel does not miss enemies obviously inside visual slash (log mismatches).  
+6.5 Performance test: 50 enemies arranged radial; measure average ms over 1000 frames (< target threshold e.g., 0.18ms).  
+Deliverables: tests `test_hit_mask_load.c`, `test_hit_mask_collision.c`, `test_hit_mask_perf.c` (perf can assert upper bound using coarse timer, skip on CI if nondeterministic).  
+
+----------------------------------------
+P7. Tooling & Visualization
+7.1 Debug overlay: draw mask bounding box and (optionally) low-res mask (downscaled) for current frame when debug enabled.  
+7.2 Overlay mismatch mode: show differences between capsule & pixel detection (green = both, yellow = pixel-only, red = capsule-only).  
+7.3 Author tool extension: weapon_pose_tool gains a preview of derived mask & a toggle to run dilation (with live forgiveness radius).  
+7.4 Live toggle key (SHIFT+M) switches between pixel/capsule for immediate feel comparison.  
+Deliverables: updates to `hit_debug_overlay.*` and `weapon_pose_tool`.
+
+----------------------------------------
+P8. Migration & Toggle Removal
+8.1 Gather telemetry (log mismatch counts) over playtest sessions.  
+8.2 If mismatch ratio (pixel hits missed by capsule) below threshold and performance acceptable, set pixel-based as default.  
+8.3 Retain fallback capsule code behind compile flag for a few iterations; mark deprecation.  
+8.4 Remove redundant capsule path only after stabilization (future milestone).  
+
+----------------------------------------
+P9. Documentation & Future Extensions
+9.1 Write `docs/hit_pixel_masks.md` detailing format, generation, runtime transforms, and tuning params.  
+9.2 Schema / binary spec for optional `.pmask` precompiled files.  
+9.3 Explain forgiveness dilation & recommended values by weapon speed.  
+9.4 Future: multi-layer damage zones (edge vs core), partial hits (glancing), dynamic trails (procedural extension).  
+
+Data & Math Details
+- Local Mask Space: X right, Y down; origin (0,0) at player anchor (torso).  
+- Transform to world:  world = player_pos + R(angle) * ( (px - origin_x + 0.5) * scale, (py - origin_y + 0.5) * scale ) + (pose_dx, pose_dy).  
+- Inverse for enemy center: local = R(-angle)*(enemy_pos - player_pos - pose_offset)/scale + origin.  
+- Pixel Hit Condition: 0 <= lx < width && 0 <= ly < height && test_bit(bits, ly*pitch_words + (lx>>5)) & (1<<(lx&31)).  
+- Circle Sampling Heuristic: Sample center; if not hit, sample 8 offset points at radius*0.7 (compromise). If still miss and enemy radius large, optionally iterate bounding square to limit.  
+
+Performance Considerations
+- Most frames: Broadphase culls majority.  
+- AABB calculation cost negligible vs pixel loops; sin/cos cached per frame.  
+- Worst-case (dense cluster): 50 enemies * ~10 pixel samples -> 500 tests; each test is two multiplies + bit lookup. Well under budget.  
+- Optional deeper sampling fallback only if edge-case (fast whiff) and mask-sampling returns no hit but circle intersects bounding AABB & legacy capsule would have hit (consistency guard).  
+
+Risk & Mitigation
+- Rotation/scale aliasing causing gaps: apply small dilation (1px) after rotation or adjust sampling ring count.  
+- Memory bloat for many weapons: add optional RLE compression; decompress on first equip.  
+- Performance spikes on large frame sizes: guard by max mask dimension (e.g., 256x256) + early row occupancy map.  
+- Determinism across platforms (float differences): quantize sin/cos to fixed 1e-5 grid when storing normals for debug; for sampling use double internally if needed.  
+
+Milestone Slice Breakdown (Recommended)
+Slice A: P0+P1+minimal loader & unit test (no runtime use).  
+Slice B: P2+P3 broadphase & basic pixel test (behind toggle) + simple overlay.  
+Slice C: P4 integrate into strike path (logging mismatch vs capsule).  
+Slice D: P5 optimizations (only if profiling warrants).  
+Slice E: P6 full test suite & perf target locking.  
+Slice F: P7 tooling & debug visualization.  
+Slice G: P8 migration + default switch.  
+Slice H: P9 docs & cleanup.  
+
+Success Criteria
+- Pixel path detects >= 99% of visually obvious contacts (manual test scenes).  
+- No more than 2% pixel-only vs capsule-only mismatches after tuning (or justified by improved visual correctness).  
+- Sweep application added CPU time < 0.20ms @ 50 enemies on baseline test hardware.  
+- All added unit & perf tests passing on CI.  
+
+Initial TODO (Next Implementation Step)
+- Create `hit_pixel_mask.c/h` scaffolding with frame struct + allocation + test for bit packing.  
+- Add config flag & debug key to toggle pixel detection.  
+- Implement offline mask generation (simple in-memory for now).  
+
+(End of Plan)
+\nProgress Update (Slice A Executed)\n+----------------------------------------\n+Implemented scaffolding: `hit_pixel_mask.c/h` with frame + set structures, allocation, bit packing helpers, placeholder procedural mask generation for 8 frames (advancing horizontal bar). Added unit test `test_hit_mask_basic` verifying frames populated and progression logic. Global toggle variable `g_hit_use_pixel_masks` introduced (debug key binding pending). Offline real image-derived mask generation not yet implemented (placeholder only). Next slice: integrate toggle key + registry hookup in strike path behind feature flag (P2/P3 start).\n*** End Patch

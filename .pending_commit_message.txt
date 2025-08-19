@@ -55,3 +55,11 @@ chore(tool): rework weapon_pose_tool for single weapon image over player sheet f
 
 Refactored pose tool to overlay one weapon image across 8 frames sliced from a player slash animation sheet (PNG via WIC or BMP). Added direction & frame_size metadata in JSON; auto output naming weapon_<id>_<direction>_pose.json; HUD updates title with current frame transforms. Roadmap + README changelog updated.
 
+feat(hit-detection): Slice A pixel mask scaffolding & basic test
+
+- Added `hit_pixel_mask.c/h` defining mask frame + set structures (8 frames per weapon) with packed bit storage.
+- Implemented placeholder procedural mask generation (horizontal bar progression) for immediate integration testing.
+- Introduced global toggle flag `g_hit_use_pixel_masks` (inactive by default) for upcoming runtime switch.
+- Added unit test `test_hit_mask_basic` verifying mask population & frame progression; integrated into CMake.
+- Updated detection roadmap with progress note (Slice A done, image-derived masks & toggle key pending next slice).
+
