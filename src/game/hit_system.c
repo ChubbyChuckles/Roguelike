@@ -17,11 +17,15 @@ static RogueHitDebugFrame g_last_debug = {0};
 static int g_mismatch_pixel_only_total = 0;
 static int g_mismatch_capsule_only_total = 0;
 static RogueHitboxTuning g_tuning = {0};
+static void rogue_hitbox_tuning_defaults(void){
+    for(int i=0;i<4;i++){ g_tuning.mask_scale_x[i] = 1.0f; g_tuning.mask_scale_y[i] = 1.0f; }
+}
 static char g_tuning_path[260];
 
 const char* rogue_hitbox_tuning_path(void){ return g_tuning_path[0]? g_tuning_path : NULL; }
 
 int rogue_hitbox_tuning_resolve_path(void){
+    static int inited=0; if(!inited){ rogue_hitbox_tuning_defaults(); inited=1; }
     if(g_tuning_path[0]) return 1; /* already resolved */
     const char* candidates[] = {
         "hitbox_tuning.json",
@@ -79,7 +83,11 @@ int rogue_hitbox_tuning_load(const char* path, RogueHitboxTuning* out){ if(!path
     if(!f) return -1; fseek(f,0,SEEK_END); long sz=ftell(f); fseek(f,0,SEEK_SET); if(sz<=0||sz>4096){ fclose(f); return -1; } char* buf=(char*)malloc((size_t)sz+1); if(!buf){ fclose(f); return -1; } if(fread(buf,1,(size_t)sz,f)!=(size_t)sz){ free(buf); fclose(f); return -1; } buf[sz]='\0'; fclose(f);
     /* extremely small JSON object parser expecting: { "player_offset_x":0.0, ... } */
     const char* s=buf; while(*s){ while(*s && *s!='"') s++; if(!*s) break; s++; const char* key=s; while(*s && *s!='"') s++; if(!*s) break; size_t klen=(size_t)(s-key); s++; while(*s && *s!=':') s++; if(*s==':') s++; while(*s==' '||*s=='\n'||*s=='\r') s++; char val[64]; int vi=0; if(*s=='"'){ s++; while(*s && *s!='"' && vi<63){ val[vi++]=*s++; } if(*s=='"') s++; } else { while(*s && *s!=',' && *s!='}' && vi<63){ val[vi++]=*s++; } } val[vi]='\0'; float fv=(float)atof(val);
-    if(klen==15 && strncmp(key,"player_offset_x",15)==0) out->player_offset_x=fv; else if(klen==15 && strncmp(key,"player_offset_y",15)==0) out->player_offset_y=fv; else if(klen==13 && strncmp(key,"player_length",13)==0) out->player_length=fv; else if(klen==12 && strncmp(key,"player_width",12)==0) out->player_width=fv; else if(klen==12 && strncmp(key,"enemy_radius",12)==0) out->enemy_radius=fv; else if(klen==14 && strncmp(key,"enemy_offset_x",14)==0) out->enemy_offset_x=fv; else if(klen==14 && strncmp(key,"enemy_offset_y",14)==0) out->enemy_offset_y=fv; else if(klen==15 && strncmp(key,"pursue_offset_x",15)==0) out->pursue_offset_x=fv; else if(klen==15 && strncmp(key,"pursue_offset_y",15)==0) out->pursue_offset_y=fv; if(*s==',') s++; }
+    if(klen==15 && strncmp(key,"player_offset_x",15)==0) out->player_offset_x=fv; else if(klen==15 && strncmp(key,"player_offset_y",15)==0) out->player_offset_y=fv; else if(klen==13 && strncmp(key,"player_length",13)==0) out->player_length=fv; else if(klen==12 && strncmp(key,"player_width",12)==0) out->player_width=fv; else if(klen==12 && strncmp(key,"enemy_radius",12)==0) out->enemy_radius=fv; else if(klen==14 && strncmp(key,"enemy_offset_x",14)==0) out->enemy_offset_x=fv; else if(klen==14 && strncmp(key,"enemy_offset_y",14)==0) out->enemy_offset_y=fv; else if(klen==15 && strncmp(key,"pursue_offset_x",15)==0) out->pursue_offset_x=fv; else if(klen==15 && strncmp(key,"pursue_offset_y",15)==0) out->pursue_offset_y=fv; \
+    else if(klen==8 && strncmp(key,"mask_dx0",8)==0) out->mask_dx[0]=fv; else if(klen==8 && strncmp(key,"mask_dx1",8)==0) out->mask_dx[1]=fv; else if(klen==8 && strncmp(key,"mask_dx2",8)==0) out->mask_dx[2]=fv; else if(klen==8 && strncmp(key,"mask_dx3",8)==0) out->mask_dx[3]=fv; \
+    else if(klen==8 && strncmp(key,"mask_dy0",8)==0) out->mask_dy[0]=fv; else if(klen==8 && strncmp(key,"mask_dy1",8)==0) out->mask_dy[1]=fv; else if(klen==8 && strncmp(key,"mask_dy2",8)==0) out->mask_dy[2]=fv; else if(klen==8 && strncmp(key,"mask_dy3",8)==0) out->mask_dy[3]=fv; \
+    else if(klen==13 && strncmp(key,"mask_scale_x0",13)==0) out->mask_scale_x[0]=fv; else if(klen==13 && strncmp(key,"mask_scale_x1",13)==0) out->mask_scale_x[1]=fv; else if(klen==13 && strncmp(key,"mask_scale_x2",13)==0) out->mask_scale_x[2]=fv; else if(klen==13 && strncmp(key,"mask_scale_x3",13)==0) out->mask_scale_x[3]=fv; \
+    else if(klen==13 && strncmp(key,"mask_scale_y0",13)==0) out->mask_scale_y[0]=fv; else if(klen==13 && strncmp(key,"mask_scale_y1",13)==0) out->mask_scale_y[1]=fv; else if(klen==13 && strncmp(key,"mask_scale_y2",13)==0) out->mask_scale_y[2]=fv; else if(klen==13 && strncmp(key,"mask_scale_y3",13)==0) out->mask_scale_y[3]=fv; if(*s==',') s++; }
     free(buf); return 0; }
 
 int rogue_hitbox_tuning_save(const char* path, const RogueHitboxTuning* t){ if(!path||!t) return -1; FILE* f=NULL;
@@ -88,7 +96,9 @@ int rogue_hitbox_tuning_save(const char* path, const RogueHitboxTuning* t){ if(!
 #else
     f=fopen(path,"wb");
 #endif
-    if(!f) return -1; fprintf(f,"{\n  \"player_offset_x\": %.4f,\n  \"player_offset_y\": %.4f,\n  \"player_length\": %.4f,\n  \"player_width\": %.4f,\n  \"enemy_radius\": %.4f,\n  \"enemy_offset_x\": %.4f,\n  \"enemy_offset_y\": %.4f,\n  \"pursue_offset_x\": %.4f,\n  \"pursue_offset_y\": %.4f\n}\n", t->player_offset_x,t->player_offset_y,t->player_length,t->player_width,t->enemy_radius,t->enemy_offset_x,t->enemy_offset_y,t->pursue_offset_x,t->pursue_offset_y); fclose(f); ROGUE_LOG_INFO("hitbox_tuning_saved: %s", path); return 0; }
+    if(!f) return -1; fprintf(f,"{\n  \"player_offset_x\": %.4f,\n  \"player_offset_y\": %.4f,\n  \"player_length\": %.4f,\n  \"player_width\": %.4f,\n  \"enemy_radius\": %.4f,\n  \"enemy_offset_x\": %.4f,\n  \"enemy_offset_y\": %.4f,\n  \"pursue_offset_x\": %.4f,\n  \"pursue_offset_y\": %.4f,\n  \"mask_dx0\": %.4f,\n  \"mask_dx1\": %.4f,\n  \"mask_dx2\": %.4f,\n  \"mask_dx3\": %.4f,\n  \"mask_dy0\": %.4f,\n  \"mask_dy1\": %.4f,\n  \"mask_dy2\": %.4f,\n  \"mask_dy3\": %.4f,\n  \"mask_scale_x0\": %.4f,\n  \"mask_scale_x1\": %.4f,\n  \"mask_scale_x2\": %.4f,\n  \"mask_scale_x3\": %.4f,\n  \"mask_scale_y0\": %.4f,\n  \"mask_scale_y1\": %.4f,\n  \"mask_scale_y2\": %.4f,\n  \"mask_scale_y3\": %.4f\n}\n",\
+        t->player_offset_x,t->player_offset_y,t->player_length,t->player_width,t->enemy_radius,t->enemy_offset_x,t->enemy_offset_y,t->pursue_offset_x,t->pursue_offset_y,\
+        t->mask_dx[0],t->mask_dx[1],t->mask_dx[2],t->mask_dx[3], t->mask_dy[0],t->mask_dy[1],t->mask_dy[2],t->mask_dy[3], t->mask_scale_x[0],t->mask_scale_x[1],t->mask_scale_x[2],t->mask_scale_x[3], t->mask_scale_y[0],t->mask_scale_y[1],t->mask_scale_y[2],t->mask_scale_y[3]); fclose(f); ROGUE_LOG_INFO("hitbox_tuning_saved: %s", path); return 0; }
 
 const RogueHitDebugFrame* rogue_hit_debug_last(void){ return &g_last_debug; }
 RogueHitDebugFrame* rogue__debug_frame_mut(void){ return &g_last_debug; }
@@ -104,7 +114,7 @@ void rogue_hit_debug_store_dual(const RogueCapsule* c,
     int mismatch_pixel_only, int mismatch_capsule_only,
     int frame_id,
     int mask_w, int mask_h, int mask_origin_x, int mask_origin_y,
-    float player_x, float player_y, float pose_dx, float pose_dy, float scale, float angle_rad){
+    float player_x, float player_y, float pose_dx, float pose_dy, float scale_x, float scale_y){
     if(c){ g_last_debug.last_capsule = *c; g_last_debug.capsule_valid=1; }
     g_last_debug.capsule_hit_count = capsule_count>32?32:capsule_count; for(int i=0;i<g_last_debug.capsule_hit_count;i++) g_last_debug.capsule_hits[i]=capsule_indices[i];
     g_last_debug.pixel_hit_count = pixel_count>32?32:pixel_count; for(int i=0;i<g_last_debug.pixel_hit_count;i++) g_last_debug.pixel_hits[i]=pixel_indices[i];
@@ -114,7 +124,7 @@ void rogue_hit_debug_store_dual(const RogueCapsule* c,
     for(int i=0;i<g_last_debug.hit_count && normals; ++i){ g_last_debug.normals[i][0]=normals[i][0]; g_last_debug.normals[i][1]=normals[i][1]; }
     g_last_debug.pixel_used = pixel_used; g_last_debug.mismatch_pixel_only = mismatch_pixel_only; g_last_debug.mismatch_capsule_only = mismatch_capsule_only;
     g_last_debug.pixel_mask_valid = (mask_w>0 && mask_h>0); g_last_debug.mask_w = mask_w; g_last_debug.mask_h = mask_h; g_last_debug.mask_origin_x = mask_origin_x; g_last_debug.mask_origin_y = mask_origin_y;
-    g_last_debug.mask_player_x = player_x; g_last_debug.mask_player_y = player_y; g_last_debug.mask_pose_dx = pose_dx; g_last_debug.mask_pose_dy = pose_dy; g_last_debug.mask_scale = scale; g_last_debug.mask_angle_rad = angle_rad;
+    g_last_debug.mask_player_x = player_x; g_last_debug.mask_player_y = player_y; g_last_debug.mask_pose_dx = pose_dx; g_last_debug.mask_pose_dy = pose_dy; g_last_debug.mask_scale_x = scale_x; g_last_debug.mask_scale_y = scale_y;
     g_last_debug.frame_id = frame_id;
 }
 void rogue_hit_debug_toggle(int on){ g_hit_debug_enabled = on?1:0; }
@@ -197,15 +207,18 @@ int rogue_combat_weapon_sweep_apply(struct RoguePlayerCombat* pc, struct RoguePl
     /* Save normals separately after we pick authoritative path */
     /* Restore hit mask so pixel path sees clean slate */
     memcpy(g_sweep_hit_mask, hit_mask_snapshot, sizeof g_sweep_hit_mask);
-    int pixel_hits[32]; int pixel_hc=0; float normals[32][2]; int pixel_used=0; int mis_pix_only=0, mis_cap_only=0; int mask_w=0, mask_h=0, mask_origin_x=0, mask_origin_y=0; unsigned int mask_pitch_words=0; const uint32_t* mask_bits=NULL; float pose_dx=0, pose_dy=0, pose_scale=1, angle_rad=0; float px = player->base.pos.x; float py = player->base.pos.y;
+    int pixel_hits[32]; int pixel_hc=0; float normals[32][2]; int pixel_used=0; int mis_pix_only=0, mis_cap_only=0; int mask_w=0, mask_h=0, mask_origin_x=0, mask_origin_y=0; unsigned int mask_pitch_words=0; const uint32_t* mask_bits=NULL; float pose_dx=0, pose_dy=0, pose_scale_x=1, pose_scale_y=1; float px = player->base.pos.x; float py = player->base.pos.y;
     RogueHitPixelMaskFrame* f=NULL; /* capture frame even if no hits for visualization */
     if(g_hit_use_pixel_masks){
         RogueHitPixelMaskSet* set = rogue_hit_pixel_masks_ensure(player->equipped_weapon_id);
-        if(set && set->ready){ int fi = player->anim_frame & 7; f = &set->frames[fi]; const RogueWeaponPoseFrame* pf = rogue_weapon_pose_get(player->equipped_weapon_id, fi); float pose_angle_deg=0.0f; if(pf){ pose_dx=pf->dx; pose_dy=pf->dy; pose_scale=pf->scale; pose_angle_deg=pf->angle; }
-            angle_rad = pose_angle_deg * 3.14159265358979323846f / 180.0f; mask_w = f->width; mask_h=f->height; mask_origin_x=f->origin_x; mask_origin_y=f->origin_y; mask_pitch_words = (unsigned)f->pitch_words; mask_bits = f->bits;
-            /* Only perform pixel sampling if we have a frame pointer */
-            float aabb_min_x = px + pose_dx - enemy_r_cfg; float aabb_max_x = px + pose_dx + mask_w * pose_scale + enemy_r_cfg; float aabb_min_y = py + pose_dy - enemy_r_cfg; float aabb_max_y = py + pose_dy + mask_h * pose_scale + enemy_r_cfg;
-            for(int i=0;i<enemy_count && f;i++){ if(!enemies[i].alive) continue; float ex=enemies[i].base.pos.x + g_tuning.enemy_offset_x; float ey=enemies[i].base.pos.y + g_tuning.enemy_offset_y; if(ex < aabb_min_x || ex > aabb_max_x || ey < aabb_min_y || ey > aabb_max_y) continue; float ca=(float)cos(-angle_rad), sa=(float)sin(-angle_rad); float lx = ( (ex - (px + pose_dx))*ca - (ey - (py + pose_dy))*sa)/pose_scale + f->origin_x; float ly = ( (ex - (px + pose_dx))*sa + (ey - (py + pose_dy))*ca)/pose_scale + f->origin_y; int hpix_x=0,hpix_y=0; if(rogue_hit_mask_enemy_test(f,lx,ly,enemy_r_cfg/pose_scale,&hpix_x,&hpix_y)){ pixel_hits[pixel_hc]=i; pixel_hc++; if(pixel_hc>=32) break; } }
+        if(set && set->ready){ int fi = player->anim_frame & 7; f = &set->frames[fi]; const RogueWeaponPoseFrame* pf = rogue_weapon_pose_get(player->equipped_weapon_id, fi); if(pf){ pose_dx=pf->dx; pose_dy=pf->dy; pose_scale_x=pf->scale; pose_scale_y=pf->scale; }
+            mask_w = f->width; mask_h=f->height; mask_origin_x=f->origin_x; mask_origin_y=f->origin_y; mask_pitch_words = (unsigned)f->pitch_words; mask_bits = f->bits;
+            /* Apply per-facing overrides (0=down,1=left,2=right,3=up) */
+            int facing = player->facing; if(facing<0||facing>3) facing=0; const RogueHitboxTuning* tune = rogue_hitbox_tuning_get();
+            pose_dx += tune->mask_dx[facing]; pose_dy += tune->mask_dy[facing]; if(tune->mask_scale_x[facing] > 0.0f) pose_scale_x *= tune->mask_scale_x[facing]; if(tune->mask_scale_y[facing] > 0.0f) pose_scale_y *= tune->mask_scale_y[facing];
+            /* Only perform pixel sampling if we have a frame pointer (unrotated, axis-aligned scaling) */
+            float aabb_min_x = px + pose_dx - enemy_r_cfg; float aabb_max_x = px + pose_dx + mask_w * pose_scale_x + enemy_r_cfg; float aabb_min_y = py + pose_dy - enemy_r_cfg; float aabb_max_y = py + pose_dy + mask_h * pose_scale_y + enemy_r_cfg;
+            for(int i=0;i<enemy_count && f;i++){ if(!enemies[i].alive) continue; float ex=enemies[i].base.pos.x + g_tuning.enemy_offset_x; float ey=enemies[i].base.pos.y + g_tuning.enemy_offset_y; if(ex < aabb_min_x || ex > aabb_max_x || ey < aabb_min_y || ey > aabb_max_y) continue; float lx = (ex - (px + pose_dx))/pose_scale_x + f->origin_x; float ly = (ey - (py + pose_dy))/pose_scale_y + f->origin_y; int hpix_x=0,hpix_y=0; if(rogue_hit_mask_enemy_test(f,lx,ly,enemy_r_cfg/((pose_scale_x+pose_scale_y)*0.5f),&hpix_x,&hpix_y)){ pixel_hits[pixel_hc]=i; pixel_hc++; if(pixel_hc>=32) break; } }
             if(pixel_hc>0) pixel_used=1;
         }
     }
@@ -218,7 +231,7 @@ int rogue_combat_weapon_sweep_apply(struct RoguePlayerCombat* pc, struct RoguePl
     /* Compute normals for authoritative hits (simple: from capsule segment or from pixel impact approximate) */
     for(int i=0;i<final_hc;i++){ int ei = final_hits[i]; float ex=enemies[ei].base.pos.x + g_tuning.enemy_offset_x; float ey=enemies[ei].base.pos.y + g_tuning.enemy_offset_y; float nx=0,ny=1; if(pixel_used){ /* approximate using capsule for now; later derive from pixel impact */ float cx,cy; float d2 = closest_point_seg(cap.x0,cap.y0,cap.x1,cap.y1,ex,ey,&cx,&cy,&nx,&ny); (void)d2; } else { float cx,cy; float d2 = closest_point_seg(cap.x0,cap.y0,cap.x1,cap.y1,ex,ey,&cx,&cy,&nx,&ny); (void)d2; } normals[i][0]=nx; normals[i][1]=ny; }
     g_last_count = final_hc; for(int k=0;k<final_hc;k++) g_last_indices[k]=final_hits[k];
-    rogue_hit_debug_store_dual(&cap, capsule_hits, capsule_hc, pixel_hits, pixel_hc, normals, pixel_used, mis_pix_only, mis_cap_only, g_app.frame_count, mask_w, mask_h, mask_origin_x, mask_origin_y, px, py, pose_dx, pose_dy, pose_scale, angle_rad);
+    rogue_hit_debug_store_dual(&cap, capsule_hits, capsule_hc, pixel_hits, pixel_hc, normals, pixel_used, mis_pix_only, mis_cap_only, g_app.frame_count, mask_w, mask_h, mask_origin_x, mask_origin_y, px, py, pose_dx, pose_dy, pose_scale_x, pose_scale_y);
     g_last_debug.mask_pitch_words = mask_pitch_words; g_last_debug.mask_bits = mask_bits;
     return final_hc;
 }

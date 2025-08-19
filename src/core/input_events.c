@@ -124,19 +124,29 @@ void rogue_process_events(void){
             const Uint8* ks_state2 = SDL_GetKeyboardState(NULL);
             /* SHIFT+M toggles pixel-mask hit detection (Slice B) */
             if((ks_state2[SDL_SCANCODE_LSHIFT]||ks_state2[SDL_SCANCODE_RSHIFT]) && ev.key.keysym.sym==SDLK_m){ g_hit_use_pixel_masks = !g_hit_use_pixel_masks; if(g_hit_use_pixel_masks){ g_hit_debug_enabled=1; g_app.show_hit_debug=1; } else { /* keep overlay state visible if previously on */ g_app.show_hit_debug = g_hit_debug_enabled; } ROGUE_LOG_INFO("hit_pixel_masks_toggle: %d (debug_overlay=%d show_hit_debug=%d)", g_hit_use_pixel_masks, g_hit_debug_enabled, g_app.show_hit_debug); }
-            /* Pixel mask positional nudge (hold SHIFT + arrow keys) & scale adjust (SHIFT + PageUp/PageDown) */
+            /* Pixel mask per-facing adjustment: hold SHIFT and use arrow keys / PageUp/PageDown; press SHIFT+0 to save */
             if((ks_state2[SDL_SCANCODE_LSHIFT]||ks_state2[SDL_SCANCODE_RSHIFT])){
-                extern RogueHitDebugFrame* rogue__debug_frame_mut(void); /* forward (internal) */
-                RogueHitDebugFrame* df = rogue__debug_frame_mut();
-                if(df && df->pixel_mask_valid){
-                    float step = 0.05f; /* world units */
-                    if(ev.key.keysym.sym==SDLK_UP){ df->mask_pose_dy -= step; }
-                    else if(ev.key.keysym.sym==SDLK_DOWN){ df->mask_pose_dy += step; }
-                    else if(ev.key.keysym.sym==SDLK_LEFT){ df->mask_pose_dx -= step; }
-                    else if(ev.key.keysym.sym==SDLK_RIGHT){ df->mask_pose_dx += step; }
-                    else if(ev.key.keysym.sym==SDLK_PAGEUP){ df->mask_scale *= 1.05f; }
-                    else if(ev.key.keysym.sym==SDLK_PAGEDOWN){ df->mask_scale *= 0.95f; if(df->mask_scale<0.05f) df->mask_scale=0.05f; }
-                }
+                RogueHitboxTuning* tune = rogue_hitbox_tuning_get(); int facing = g_app.player.facing; if(facing<0||facing>3) facing=0;
+                float step_px = 1.0f; /* pixel units */
+                if(ev.key.keysym.sym==SDLK_UP){ tune->mask_dy[facing] -= step_px; return; }
+                if(ev.key.keysym.sym==SDLK_DOWN){ tune->mask_dy[facing] += step_px; return; }
+                if(ev.key.keysym.sym==SDLK_LEFT){ tune->mask_dx[facing] -= step_px; return; }
+                if(ev.key.keysym.sym==SDLK_RIGHT){ tune->mask_dx[facing] += step_px; return; }
+                if(ev.key.keysym.sym==SDLK_PAGEUP){ tune->mask_scale_x[facing] *= 1.05f; tune->mask_scale_y[facing] *= 1.05f; return; }
+                if(ev.key.keysym.sym==SDLK_PAGEDOWN){ tune->mask_scale_x[facing] *= 0.95f; tune->mask_scale_y[facing] *= 0.95f; if(tune->mask_scale_x[facing] < 0.05f) tune->mask_scale_x[facing]=0.05f; if(tune->mask_scale_y[facing] < 0.05f) tune->mask_scale_y[facing]=0.05f; return; }
+                /* Numpad adjustments (independent of NumLock state handled by SDL keysyms) */
+                if(ev.key.keysym.sym==SDLK_KP_8){ tune->mask_dy[facing] -= step_px; return; }
+                if(ev.key.keysym.sym==SDLK_KP_2){ tune->mask_dy[facing] += step_px; return; }
+                if(ev.key.keysym.sym==SDLK_KP_4){ tune->mask_dx[facing] -= step_px; return; }
+                if(ev.key.keysym.sym==SDLK_KP_6){ tune->mask_dx[facing] += step_px; return; }
+                /* Numpad scaling: KP9 widen (x only), KP3 heighten (y only) */
+                if(ev.key.keysym.sym==SDLK_KP_9){ tune->mask_scale_x[facing] *= 1.05f; if(tune->mask_scale_x[facing] < 0.05f) tune->mask_scale_x[facing]=0.05f; return; }
+                if(ev.key.keysym.sym==SDLK_KP_3){ tune->mask_scale_y[facing] *= 1.05f; if(tune->mask_scale_y[facing] < 0.05f) tune->mask_scale_y[facing]=0.05f; return; }
+                /* Fine shrink with KP_MINUS (x) and KP_PLUS (y) */
+                if(ev.key.keysym.sym==SDLK_KP_MINUS){ tune->mask_scale_x[facing] *= 0.95f; if(tune->mask_scale_x[facing] < 0.05f) tune->mask_scale_x[facing]=0.05f; return; }
+                if(ev.key.keysym.sym==SDLK_KP_PLUS){ tune->mask_scale_y[facing] *= 0.95f; if(tune->mask_scale_y[facing] < 0.05f) tune->mask_scale_y[facing]=0.05f; return; }
+                if(ev.key.keysym.sym==SDLK_0){ rogue_hitbox_tuning_save_resolved(); return; }
+                if(ev.key.keysym.sym==SDLK_KP_0){ rogue_hitbox_tuning_save_resolved(); return; }
             }
             /* Hitbox tuning hotkeys: hold CTRL to modify player capsule, ALT for enemy hit circles.
                Number keys 1-9 adjust magnitude; 0 saves to file. Without modifiers we cycle nothing (reserved).

@@ -50,7 +50,7 @@ typedef struct RogueHitDebugFrame {
     int mismatch_capsule_only;                  /* count for this frame */
     /* Pixel mask visualization data */
     int pixel_mask_valid; int mask_w, mask_h; int mask_origin_x, mask_origin_y; unsigned int mask_pitch_words; const uint32_t* mask_bits;
-    float mask_player_x, mask_player_y; float mask_pose_dx, mask_pose_dy; float mask_scale; float mask_angle_rad;
+    float mask_player_x, mask_player_y; float mask_pose_dx, mask_pose_dy; float mask_scale_x; float mask_scale_y; /* independent axis scale */
     int frame_id;
 } RogueHitDebugFrame;
 
@@ -66,7 +66,7 @@ void rogue_hit_debug_store_dual(const RogueCapsule* c,
     int mismatch_pixel_only, int mismatch_capsule_only,
     int frame_id,
     int mask_w, int mask_h, int mask_origin_x, int mask_origin_y,
-    float player_x, float player_y, float pose_dx, float pose_dy, float scale, float angle_rad);
+    float player_x, float player_y, float pose_dx, float pose_dy, float scale_x, float scale_y);
 void rogue_hit_debug_toggle(int on);
 extern int g_hit_debug_enabled;
 
@@ -86,6 +86,11 @@ typedef struct RogueHitboxTuning {
     float enemy_radius;                     /* enemy collision circle radius */
     float enemy_offset_x, enemy_offset_y;   /* shift enemy circle center */
     float pursue_offset_x, pursue_offset_y; /* enemy AI target point relative to player (Shift+1..4 adjust) */
+    /* Per facing (0=down,1=left,2=right,3=up) pixel mask offset + scale overrides for visualization & sampling */
+    float mask_dx[4];
+    float mask_dy[4];
+    float mask_scale_x[4]; /* width scale */
+    float mask_scale_y[4]; /* height scale */
 } RogueHitboxTuning;
 
 RogueHitboxTuning* rogue_hitbox_tuning_get(void);
