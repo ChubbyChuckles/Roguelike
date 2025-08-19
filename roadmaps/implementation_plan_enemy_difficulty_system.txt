@@ -36,6 +36,16 @@ PHASE 1. Baseline Scaling & Relative Level Differential
 1.6 Encounter UI indicators reflect large ΔL (Deferred – UI hook not yet added)
 1.7 Tests: TTK simulation harness across 50 player levels & ±15 ΔL; monotonic penalty / bonus application; dominance threshold triggers; no overflow / underflow in extreme ΔL scenarios (Done – extended tests add attribute curves, severity classification, TTK ordering; full heatmap harness optional future enhancement)
 
+Phase 2 (Procedural Enemy Modifiers) – In Progress
+2.1 Modifier definition format & loader (id, name, weights, tier mask, budget costs, incompatibility, telegraph token) – Done (basic parser, supports required fields, defaults applied)
+2.2 Deterministic weighted selection algorithm respecting per-dimension budget caps and incompatibility masks – Done (xorshift32 RNG, mask enforcement, budget accumulation with configurable cap)
+2.3 Stacking rules & incompatibility matrix – Done (bitmask per modifier, selection phase skips conflicts)
+2.4 Visual telegraph mapping stubs – Done (telegraph field stored; integration into rendering/UI deferred to Phase 5 UI hooks)
+2.5 Determinism & budget compliance tests – Done (phase2 unit test validates load, determinism, incompat exclusion, budget caps)
+2.6 Advanced future work (NOT YET): dynamic budget scaling by biome, rarity weighting curves, adaptive selection based on player build analytics – Deferred
+
+Next Planned: Phase 2 extended analytics/export hooks (2.6) or proceed to Phase 1.6 UI ΔL indicator if prioritizing visual feedback before deeper modifier analytics.
+
 PHASE 2. Procedural Enemy Modifier (Affix) System
 2.1 Enemy modifier definition file (id, weight, tiers, effect DSL) (X)
 2.2 Affix budget allocation: ensure combined modifiers remain within tier control/dps budgets (X)

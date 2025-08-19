@@ -55,3 +55,16 @@ feat(hit-detection): Pixel Masks Slice B runtime integration
 - README changelog updated (Pixel Detection Slice B entry)
 
 Next: Slice C will log capsule vs pixel mismatches and surface debug overlay differentials.
+
+feat(enemy-difficulty): Phase 2 procedural modifiers (initial slice)
+
+- Added enemy_modifiers module (c/h) with registry of up to 64 modifier defs.
+- Definition parser (simple key=value blocks separated by blank lines) loads: id, name, weight, tiers mask, dps/control/mobility budget costs, incompat mask (digit list), telegraph token.
+- Deterministic selection algorithm (xorshift32 RNG) builds a modifier set honoring per-dimension budget cap (default 0.6) & incompatibility; maximum 8 active modifiers.
+- Budget dimensions tracked cumulatively (dps/control/mobility) with early candidate filtering preventing cap breaches.
+- Incompatibility enforcement via bitmask check (modifier's incompat_mask & already applied mask).
+- Public APIs: load_file, reset, count, by index, by id, roll, RNG helpers.
+- Unit test `test_enemy_difficulty_phase2` validating: load & introspection (4 mods), deterministic repeatable roll (same seed => identical sequence), incompat exclusion (Frenzied vs Overcharged mutually exclusive), and budget cap compliance.
+- Integrated new source into core CMake target & added test to tests/CMakeLists.txt.
+- Roadmap Phase 2 entries 2.1–2.5 marked Done; 2.6 (advanced analytics/adaptive weighting) Deferred.
+- README changelog updated with Phase 2 bullet.

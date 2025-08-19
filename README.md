@@ -186,6 +186,7 @@ See `roadmaps/` for subsystem implementation plans (inventory, crafting & gather
 * Enemy Difficulty Phase 0: Introduced taxonomy (archetypes + canonical budgets) & tier multipliers (Normal→Nemesis) with monotonic HP growth and test coverage.
 * Enemy Difficulty Phase 1 (core slice): Added sublinear base scaling curves, relative level differential (ΔL) penalty/buff model with dominance + trivial thresholds, reward scalar function, parameter file loader, and unit tests (monotonicity, multiplier invariants, reward thresholds). Roadmap updated (remaining Phase 1 items deferred: attribute rating curves, biome param variants, UI indicator, full TTK heatmap harness).
 * Enemy Difficulty Phase 1 (completed): Added attribute curves (crit/resists), biome parameter registry, ΔL severity classifier, TTK estimation helper, extended tests validating attributes, biome overrides, severity & TTK ordering.
+* Enemy Difficulty Phase 2 (initial modifiers slice): Added procedural modifier system core: definition parser (id/name/weight/tier mask/budget costs/incompat/telegraph), deterministic weighted selection respecting per-dimension (dps/control/mobility) budget caps, incompatibility mask enforcement, telegraph token stored for future UI, and unit tests covering load, determinism, incompat exclusion, and budget compliance.
 
 For exhaustive historical details, refer to Appendix A (original full logs) and roadmap files.
 
