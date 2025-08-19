@@ -408,8 +408,8 @@ void rogue_app_step(void)
     rogue_world_render_items();
     /* Render projectiles (after world, before HUD) */
     rogue_projectiles_render();
-    /* Hit System Phase 6: debug overlay (capsule, hits, normals, stats) */
-    if(g_app.show_hit_debug){ extern void rogue_hit_debug_render(void); rogue_hit_debug_render(); }
+    /* (TEMP) Call hit debug overlay early (may be overwritten later) */
+    extern void rogue_hit_debug_render(void); if(g_app.show_hit_debug){ rogue_hit_debug_render(); }
 
     /* Floating damage numbers */
     rogue_damage_numbers_render();
@@ -435,6 +435,8 @@ void rogue_app_step(void)
     rogue_equipment_apply_stat_bonuses(&g_app.player);
     /* Update cached derived stats (14.3) */
     rogue_stat_cache_update(&g_app.player);
+    /* Draw debug overlay again just before present to ensure visibility */
+    if(g_app.show_hit_debug){ rogue_hit_debug_render(); }
     if(!g_app.headless){ SDL_RenderPresent(g_app.renderer); }
     /* Refresh exported player after all stat changes this frame */
     g_exposed_player_for_stats = g_app.player;

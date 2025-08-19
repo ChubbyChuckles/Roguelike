@@ -156,4 +156,21 @@ Initial TODO (Next Implementation Step)
 - Implement offline mask generation (simple in-memory for now).  
 
 (End of Plan)
-\nProgress Update (Slice A Executed)\n+----------------------------------------\n+Implemented scaffolding: `hit_pixel_mask.c/h` with frame + set structures, allocation, bit packing helpers, placeholder procedural mask generation for 8 frames (advancing horizontal bar). Added unit test `test_hit_mask_basic` verifying frames populated and progression logic. Global toggle variable `g_hit_use_pixel_masks` introduced (debug key binding pending). Offline real image-derived mask generation not yet implemented (placeholder only). Next slice: integrate toggle key + registry hookup in strike path behind feature flag (P2/P3 start).\n\nProgress Update (Slice B Executed)\n+----------------------------------------\n+Implemented Slice B (P2+P3 initial runtime path): Added toggle (SHIFT+M) binding flipping global `g_hit_use_pixel_masks`, integrated pixel mask broadphase (AABB) & narrowphase sampling path into `rogue_combat_weapon_sweep_apply` behind feature flag. Added helper APIs (`rogue_hit_mask_enemy_test`, `rogue_hit_mask_local_pixel_to_world`) and basic world transform math (no rotation optimization yet). Added unit test `test_hit_mask_integration` validating a mask-registered hit, kept existing capsule fallback when no mask hits or toggle disabled. Updated input system to log toggle usage. Next: Slice C will branch strike damage logic for mismatch logging & introduce comparison stats plus overlay visualization.\n*** End Patch
+\nProgress Update (Slice A Executed)
+----------------------------------------
+Implemented scaffolding: `hit_pixel_mask.c/h` with frame + set structures, allocation, bit packing helpers, placeholder procedural mask generation for 8 frames (advancing horizontal bar). Added unit test `test_hit_mask_basic` verifying frames populated and progression logic. Global toggle variable `g_hit_use_pixel_masks` introduced (debug key binding pending). Offline real image-derived mask generation not yet implemented (placeholder only). Next slice: integrate toggle key + registry hookup in strike path behind feature flag (P2/P3 start).
+
+Progress Update (Slice B Executed)
+----------------------------------------
+Implemented Slice B (P2+P3 initial runtime path): Added toggle (SHIFT+M) binding flipping global `g_hit_use_pixel_masks`, integrated pixel mask broadphase (AABB) & narrowphase sampling path into `rogue_combat_weapon_sweep_apply` behind feature flag. Added helper APIs (`rogue_hit_mask_enemy_test`, `rogue_hit_mask_local_pixel_to_world`) and basic world transform math (no rotation optimization yet). Added unit test `test_hit_mask_integration` validating a mask-registered hit, kept existing capsule fallback when no mask hits or toggle disabled. Updated input system to log toggle usage. Next: Slice C will branch strike damage logic for mismatch logging & introduce comparison stats plus overlay visualization.
+
+Progress Update (Slice C Executed)
+----------------------------------------
+Implemented Slice C (P4 integration + mismatch logging & visualization groundwork):
+1. Dual-path evaluation: capsule always computed; pixel set computed when toggle active. Selection favors pixel hits if any found, else legacy capsule.
+2. Extended `RogueHitDebugFrame` with capsule & pixel hit arrays, mismatch counts, path usage flag, and mask transform meta (size, origin, offsets, scale, angle) for overlay.
+3. Added cumulative mismatch counters + reset/accessor APIs for telemetry.
+4. Modified `rogue_combat_weapon_sweep_apply` to compute set differences and store extended debug data.
+5. New unit test `test_hit_mask_mismatch` ensures capsule-only mismatch is logged.
+6. Debug overlay now renders mask AABB placeholder grid plus per-enemy coloring: green(shared), yellow(pixel-only), red(capsule-only), plus summary line with counts and path used.
+7. Maintains previous behavior when toggle disabled; groundwork laid for future optimization (Slice D) and detailed bit visualization.

@@ -75,6 +75,27 @@ void rogue_player_render(void){
             SDL_SetRenderDrawColor(g_app.renderer,255,235,0,200);
             for(int i=0;i<dbg->hit_count;i++){ int ei=dbg->last_hits[i]; if(ei>=0 && ei<ROGUE_MAX_ENEMIES && g_app.enemies[ei].alive){ int hx=(int)(((g_app.enemies[ei].base.pos.x + anchor)*tsz) - g_app.cam_x); int hy=(int)(((g_app.enemies[ei].base.pos.y + anchor)*tsz) - g_app.cam_y); SDL_Rect r={hx-2,hy-2,4,4}; SDL_RenderFillRect(g_app.renderer,&r); SDL_SetRenderDrawColor(g_app.renderer,255,120,0,230); int nx=(int)(hx + dbg->normals[i][0]*12); int ny=(int)(hy + dbg->normals[i][1]*12); SDL_RenderDrawLine(g_app.renderer,hx,hy,nx,ny); SDL_SetRenderDrawColor(g_app.renderer,255,235,0,200); } }
         }
+        /* Integrated pixel mask visualization (shares same toggle) */
+        if(dbg && dbg->pixel_mask_valid && dbg->mask_bits){
+            /* Pose dx/dy captured as pixel offsets (NOT tiles). Player base position is world tiles; convert to screen pixels first, then apply offsets. */
+            int player_px = (int)(g_app.player.base.pos.x * tsz - g_app.cam_x);
+            int player_py = (int)(g_app.player.base.pos.y * tsz - g_app.cam_y);
+            int player_cx = player_px + tsz/2; /* approximate sprite center */
+            int player_cy = player_py + tsz/2;
+            float scale_px = dbg->mask_scale; /* scale in sprite pixel space */
+            int base_x = (int)(player_cx + dbg->mask_pose_dx - (float)dbg->mask_origin_x * scale_px);
+            int base_y = (int)(player_cy + dbg->mask_pose_dy - (float)dbg->mask_origin_y * scale_px);
+            SDL_Rect aabb = { base_x, base_y, (int)(dbg->mask_w * scale_px), (int)(dbg->mask_h * scale_px) };
+            SDL_SetRenderDrawColor(g_app.renderer,60,60,60,160);
+            SDL_RenderDrawRect(g_app.renderer,&aabb);
+            int step = (dbg->mask_w * dbg->mask_h > 8000)?2:1;
+            for(int y=0;y<dbg->mask_h;y+=step){ const uint32_t* row = dbg->mask_bits + (size_t)y * dbg->mask_pitch_words; for(int x=0;x<dbg->mask_w;x+=step){ uint32_t w = row[x>>5]; if(w & (1u<<(x&31))){ int sx = base_x + (int)(x * scale_px); int sy = base_y + (int)(y * scale_px); SDL_SetRenderDrawColor(g_app.renderer,120,120,255,160); SDL_RenderDrawPoint(g_app.renderer,sx,sy); } } }
+            int ox = (int)(player_cx + dbg->mask_pose_dx);
+            int oy = (int)(player_cy + dbg->mask_pose_dy);
+            SDL_SetRenderDrawColor(g_app.renderer,255,0,255,200);
+            SDL_RenderDrawLine(g_app.renderer, ox-5, oy, ox+5, oy);
+            SDL_RenderDrawLine(g_app.renderer, ox, oy-5, ox, oy+5);
+        }
     }
 #endif
 }

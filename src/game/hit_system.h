@@ -38,11 +38,35 @@ int rogue_combat_weapon_sweep_apply(struct RoguePlayerCombat* pc, struct RoguePl
 
 /* Debug capture for overlay */
 typedef struct RogueHitDebugFrame {
-    RogueCapsule last_capsule; int capsule_valid; int last_hits[32]; int hit_count; int frame_id; float normals[32][2];
+    /* Legacy capsule debug */
+    RogueCapsule last_capsule; int capsule_valid;
+    /* Authoritative hits used for damage (pixel if available else capsule) */
+    int last_hits[32]; int hit_count; float normals[32][2];
+    /* Dual-path comparison (Slice C) */
+    int capsule_hits[32]; int capsule_hit_count; /* raw capsule results */
+    int pixel_hits[32]; int pixel_hit_count;     /* raw pixel results */
+    int pixel_used;                              /* 1 if pixel hits were authoritative */
+    int mismatch_pixel_only;                    /* count for this frame */
+    int mismatch_capsule_only;                  /* count for this frame */
+    /* Pixel mask visualization data */
+    int pixel_mask_valid; int mask_w, mask_h; int mask_origin_x, mask_origin_y; unsigned int mask_pitch_words; const uint32_t* mask_bits;
+    float mask_player_x, mask_player_y; float mask_pose_dx, mask_pose_dy; float mask_scale; float mask_angle_rad;
+    int frame_id;
 } RogueHitDebugFrame;
 
 const RogueHitDebugFrame* rogue_hit_debug_last(void);
+/* Internal debug helper (not for gameplay code) */
+struct RogueHitDebugFrame* rogue__debug_frame_mut(void);
 void rogue_hit_debug_store(const RogueCapsule* c, int* indices, float (*normals)[2], int hit_count, int frame_id);
+/* Extended dual-path store capturing both capsule & pixel sets plus transform info (Slice C) */
+void rogue_hit_debug_store_dual(const RogueCapsule* c,
+    int* capsule_indices, int capsule_count,
+    int* pixel_indices, int pixel_count,
+    float (*normals)[2], int pixel_used,
+    int mismatch_pixel_only, int mismatch_capsule_only,
+    int frame_id,
+    int mask_w, int mask_h, int mask_origin_x, int mask_origin_y,
+    float player_x, float player_y, float pose_dx, float pose_dy, float scale, float angle_rad);
 void rogue_hit_debug_toggle(int on);
 extern int g_hit_debug_enabled;
 
@@ -50,6 +74,10 @@ extern int g_hit_debug_enabled;
 void rogue_hit_sweep_reset(void);
 /* Retrieve last sweep indices list (returns count, sets *out_indices) */
 int rogue_hit_last_indices(const int** out_indices);
+
+/* Mismatch counters (cumulative since start / reset on demand) */
+void rogue_hit_mismatch_counters(int* out_pixel_only, int* out_capsule_only);
+void rogue_hit_mismatch_counters_reset(void);
 
 /* Runtime hitbox tuning (adjustable via hotkeys, persisted to external file) */
 typedef struct RogueHitboxTuning {

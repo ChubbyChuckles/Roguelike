@@ -181,6 +181,8 @@ See `roadmaps/` for subsystem implementation plans (inventory, crafting & gather
 * Hit System Phase 7 (integration): Removed legacy reach/arc logic (sweep authoritative), first-hit-only hitstop injection, maintained unchanged combo/timing FSM, ensured explosion vs normal death path preserved, integrated knockback magnitude function reuse, added integration test (single hitstop & non-duplicate hits). Profiling (7.7) pending.
 * Hit Detection Pixel Masks Slice A: Introduced `hit_pixel_mask` module (frame/set structs, packed bit storage, placeholder procedural masks) and unit test `test_hit_mask_basic`; groundwork for upcoming pixel-based collision path alongside existing capsule sweep.
 * Tool Update: Reworked `weapon_pose_tool` to use single weapon image overlaid on 8 sliced frames from a player slash animation sheet (PNG via WIC or BMP fallback), adding direction/frame_size metadata to exported JSON.
+* Hit Detection Pixel Masks Slice B: Runtime toggle-integrated pixel broadphase (AABB) + narrowphase sampling path in `rogue_combat_weapon_sweep_apply`, helper APIs, integration test, fallback safety retained.
+* Hit Detection Pixel Masks Slice C: Dual-path (capsule + pixel) evaluation with mismatch logging, cumulative counters, extended debug overlay (mask AABB placeholder + per-hit coloring), and mismatch unit test.
 
 For exhaustive historical details, refer to Appendix A (original full logs) and roadmap files.
 

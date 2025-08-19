@@ -1,3 +1,16 @@
+feat(hit-detection): Slice C dual-path comparison, mismatch logging & overlay enhancements
+
+Implements Pixel Mask Detection Slice C:
+ - Always compute capsule + (toggled) pixel hit sets; pixel authoritative only if it yields hits.
+ - Extended RogueHitDebugFrame with capsule/pixel arrays, mismatch counts, mask transform metadata.
+ - Added cumulative mismatch counters + reset/accessors.
+ - Updated rogue_combat_weapon_sweep_apply with dual evaluation, set difference stats, and extended debug store.
+ - Added mismatch unit test (test_hit_mask_mismatch) validating capsule-only mismatch logging path.
+ - Enhanced debug overlay: mask AABB placeholder grid, per-enemy hit coloring (green shared, yellow pixel-only, red capsule-only), summary line with counts & path used.
+ - Roadmap & README changelog updated to reflect Slice C progress.
+
+Next: performance counters & rotation-aware bounding (Slice D), pixel-normal refinement, actual bit visualization.
+
 feat(hit-detection): Pixel Masks Slice B runtime integration
 
 - Added SHIFT+M toggle (input_events) to flip `g_hit_use_pixel_masks` for A/B testing

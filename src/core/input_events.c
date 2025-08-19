@@ -120,10 +120,24 @@ void rogue_process_events(void){
             if(ev.key.keysym.sym==SDLK_F8){ g_app.gen_noise_octaves--; if(g_app.gen_noise_octaves<3) g_app.gen_noise_octaves=3; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
             if(ev.key.keysym.sym==SDLK_F9){ g_app.gen_river_sources+=2; if(g_app.gen_river_sources>40) g_app.gen_river_sources=40; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
             if(ev.key.keysym.sym==SDLK_F10){ g_app.gen_river_sources-=2; if(g_app.gen_river_sources<2) g_app.gen_river_sources=2; g_app.gen_params_dirty=1; ev.key.keysym.sym=SDLK_BACKQUOTE; }
-            if(ev.key.keysym.sym==SDLK_f){ g_hit_debug_enabled = !g_hit_debug_enabled; g_app.show_hit_debug = g_hit_debug_enabled; }
+            if(ev.key.keysym.sym==SDLK_f){ g_hit_debug_enabled = !g_hit_debug_enabled; g_app.show_hit_debug = g_hit_debug_enabled; ROGUE_LOG_INFO("hit_debug_toggle_f: enabled=%d", g_hit_debug_enabled); }
             const Uint8* ks_state2 = SDL_GetKeyboardState(NULL);
             /* SHIFT+M toggles pixel-mask hit detection (Slice B) */
-            if((ks_state2[SDL_SCANCODE_LSHIFT]||ks_state2[SDL_SCANCODE_RSHIFT]) && ev.key.keysym.sym==SDLK_m){ g_hit_use_pixel_masks = !g_hit_use_pixel_masks; ROGUE_LOG_INFO("hit_pixel_masks_toggle: %d", g_hit_use_pixel_masks); }
+            if((ks_state2[SDL_SCANCODE_LSHIFT]||ks_state2[SDL_SCANCODE_RSHIFT]) && ev.key.keysym.sym==SDLK_m){ g_hit_use_pixel_masks = !g_hit_use_pixel_masks; if(g_hit_use_pixel_masks){ g_hit_debug_enabled=1; g_app.show_hit_debug=1; } else { /* keep overlay state visible if previously on */ g_app.show_hit_debug = g_hit_debug_enabled; } ROGUE_LOG_INFO("hit_pixel_masks_toggle: %d (debug_overlay=%d show_hit_debug=%d)", g_hit_use_pixel_masks, g_hit_debug_enabled, g_app.show_hit_debug); }
+            /* Pixel mask positional nudge (hold SHIFT + arrow keys) & scale adjust (SHIFT + PageUp/PageDown) */
+            if((ks_state2[SDL_SCANCODE_LSHIFT]||ks_state2[SDL_SCANCODE_RSHIFT])){
+                extern RogueHitDebugFrame* rogue__debug_frame_mut(void); /* forward (internal) */
+                RogueHitDebugFrame* df = rogue__debug_frame_mut();
+                if(df && df->pixel_mask_valid){
+                    float step = 0.05f; /* world units */
+                    if(ev.key.keysym.sym==SDLK_UP){ df->mask_pose_dy -= step; }
+                    else if(ev.key.keysym.sym==SDLK_DOWN){ df->mask_pose_dy += step; }
+                    else if(ev.key.keysym.sym==SDLK_LEFT){ df->mask_pose_dx -= step; }
+                    else if(ev.key.keysym.sym==SDLK_RIGHT){ df->mask_pose_dx += step; }
+                    else if(ev.key.keysym.sym==SDLK_PAGEUP){ df->mask_scale *= 1.05f; }
+                    else if(ev.key.keysym.sym==SDLK_PAGEDOWN){ df->mask_scale *= 0.95f; if(df->mask_scale<0.05f) df->mask_scale=0.05f; }
+                }
+            }
             /* Hitbox tuning hotkeys: hold CTRL to modify player capsule, ALT for enemy hit circles.
                Number keys 1-9 adjust magnitude; 0 saves to file. Without modifiers we cycle nothing (reserved).
                CTRL + (1/2) adjust player_offset_x +/-; (3/4) adjust player_offset_y; (5/6) adjust length; (7/8) adjust width.
