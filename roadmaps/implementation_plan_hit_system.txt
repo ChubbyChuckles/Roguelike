@@ -57,9 +57,9 @@ PHASE 4. Feedback: SFX, Flash, Particles, Knockback (Done)
 PHASE 5. Weapon Frame Overlay (Remove Slash Sheet Dependency)
 Goal: Eliminate reliance on composite slash VFX spritesheet. Drive visual of weapon during attack strictly from 8 discrete per-frame PNGs + per-frame transform data.
 5.1 Asset Convention: For weapon archetype <id>, expect PNGs:
-	assets/weapons/<id>_f0.png .. <id>_f7.png
+	../assets/weapons/<id>_f0.png .. <id>_f7.png
 	Missing file => fallback to nearest lower frame or f0 (warn once).
-5.2 Pose JSON: assets/weapons/<id>_pose.json
+5.2 Pose JSON: ../assets/weapons/<id>_pose.json
 	{
 	  "weapon_id": <id>,
 	  "frames": [ {"dx":0,"dy":0,"angle":0,"scale":1.0,"pivot_x":0.5,"pivot_y":0.5}, ... x8 ]

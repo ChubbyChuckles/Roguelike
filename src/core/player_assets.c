@@ -151,4 +151,25 @@ void rogue_player_assets_update_animation(float frame_dt_ms, float dt_ms, float 
     }
     int kills = rogue_combat_player_strike(&g_app.player_combat, &g_app.player, g_app.enemies, g_app.enemy_count);
     if(kills>0){ g_app.total_kills += kills; g_app.player.xp += kills * (3 + g_app.player.level); }
+
+    /* Advance animation frames */
+    int state = g_app.player_state; if(g_app.player_combat.phase==ROGUE_ATTACK_WINDUP || g_app.player_combat.phase==ROGUE_ATTACK_STRIKE || g_app.player_combat.phase==ROGUE_ATTACK_RECOVER) state=3;
+    int dir = g_app.player.facing; int sheet_dir=(dir==1||dir==2)?1:dir; /* map left/right to side index */
+    int frame_count = g_app.player_frame_count[state][sheet_dir]; if(frame_count<=0) frame_count=1; if(frame_count>8) frame_count=8;
+    g_app.player.anim_time += dt_ms*1000.0f; /* dt_ms is seconds (?) if already ms remove *1000 */
+    /* Determine per-frame time: attack uses configured times if loaded */
+    float frame_time = 120.0f; /* default */
+    int next_frame = g_app.player.anim_frame;
+    if(state==3){ /* attack */
+        /* Use the per-frame configured times if present (>0) */
+        while(next_frame < frame_count && g_app.player.anim_time >= g_app.player_frame_time_ms[state][sheet_dir][next_frame]){
+            g_app.player.anim_time -= g_app.player_frame_time_ms[state][sheet_dir][next_frame];
+            next_frame++;
+        }
+        if(next_frame >= frame_count){ next_frame = frame_count-1; }
+    } else {
+        frame_time = (float)g_app.player_frame_time_ms[state][sheet_dir][g_app.player.anim_frame]; if(frame_time<=0) frame_time=120.0f;
+        if(g_app.player.anim_time >= frame_time){ g_app.player.anim_time -= frame_time; next_frame = (g_app.player.anim_frame + 1) % frame_count; }
+    }
+    g_app.player.anim_frame = next_frame;
 }

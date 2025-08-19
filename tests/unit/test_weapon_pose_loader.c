@@ -14,7 +14,7 @@ int main(){
     mkdir("assets/weapons",0755);
 #endif
     /* Write a temporary pose file */
-    const char* path = "assets/weapons/weapon_0_pose.json";
+    const char* path = "../assets/weapons/weapon_0_pose.json";
     /* Ensure directory exists (assumed). */
     FILE* f=NULL; fopen_s(&f,path,"wb"); if(!f){ printf("cannot_open_pose_dir\n"); return 1; }
     fprintf(f,"{\n  \"weapon_id\":0,\n  \"frames\":[\n");

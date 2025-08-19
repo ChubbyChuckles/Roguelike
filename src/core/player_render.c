@@ -28,10 +28,23 @@ void rogue_player_render(void){
         int dst_x = px; int dst_y = py; int y_base = py + spr->sh/2; int flip_flag = (dir==1)? 1:0;
         rogue_scene_drawlist_push_sprite(spr,dst_x,dst_y,y_base,flip_flag,255,255,255,255);
         if(render_state==3){
-            if(rogue_weapon_pose_ensure(g_app.player.equipped_weapon_id)){
-                const RogueWeaponPoseFrame* pf = rogue_weapon_pose_get(g_app.player.equipped_weapon_id, g_app.player.anim_frame);
-                if(pf){ int ww=0, wh=0; void* tex = rogue_weapon_pose_get_texture(g_app.player.equipped_weapon_id, g_app.player.anim_frame, &ww, &wh);
-                    if(tex){ SDL_Texture* wt=(SDL_Texture*)tex; float center_x = px + spr->sw*0.5f; float center_y = py + spr->sh*0.5f; SDL_FRect dstR; dstR.w = ww * pf->scale; dstR.h = wh * pf->scale; dstR.x = center_x + pf->dx - dstR.w * pf->pivot_x; dstR.y = center_y + pf->dy - dstR.h * pf->pivot_y; SDL_FPoint pivot={ dstR.w * pf->pivot_x, dstR.h * pf->pivot_y }; SDL_RenderCopyExF(g_app.renderer, wt, NULL, &dstR, (double)pf->angle * ((flip_flag)? -1.0 : 1.0), &pivot, flip_flag? SDL_FLIP_HORIZONTAL: SDL_FLIP_NONE); }
+            int wid = g_app.player.equipped_weapon_id;
+            /* Map facing to directional group: 0=down,1=up,2=side */
+            int dir_group = (dir==3)?1 : (dir==0?0:2); /* original dir indices: 0=down,1=left,2=right,3=up */
+            int facing_left = (dir==1);
+            if(rogue_weapon_pose_ensure_dir(wid, dir_group)){
+                const RogueWeaponPoseFrame* pf = rogue_weapon_pose_get_dir(wid, dir_group, g_app.player.anim_frame);
+                if(pf){ int ww=0, wh=0; void* tex = rogue_weapon_pose_get_texture_single(wid, &ww, &wh);
+                    if(tex){
+                        SDL_Texture* wt=(SDL_Texture*)tex; float center_x = px + spr->sw*0.5f; float center_y = py + spr->sh*0.5f;
+                        float eff_dx = rogue_weapon_pose_effective_dx(pf, facing_left);
+                        float eff_angle = pf->angle * (facing_left? -1.0f:1.0f);
+                        SDL_FRect dstR; dstR.w = ww * pf->scale; dstR.h = wh * pf->scale;
+                        dstR.x = center_x + eff_dx - dstR.w * pf->pivot_x;
+                        dstR.y = center_y + pf->dy - dstR.h * pf->pivot_y;
+                        SDL_FPoint pivot={ dstR.w * pf->pivot_x, dstR.h * pf->pivot_y };
+                        SDL_RenderCopyExF(g_app.renderer, wt, NULL, &dstR, (double)eff_angle, &pivot, facing_left? SDL_FLIP_HORIZONTAL: SDL_FLIP_NONE);
+                    }
                 }
             }
         }

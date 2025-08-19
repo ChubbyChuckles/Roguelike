@@ -145,11 +145,11 @@ int main(int argc, char** argv){
         fprintf(stderr,"ERR: failed to load player sheet %s\n", player_sheet_path); return 1; }
     if(player_sheet_w < frame_size * FRAME_COUNT){ fprintf(stderr,"WARN: sheet width (%d) < expected %d; frames may crop.\n", player_sheet_w, frame_size*FRAME_COUNT); }
     /* Load single weapon image */
-    char inferred_path[256]; if(!weapon_image_path){ snprintf(inferred_path,sizeof inferred_path,"assets/weapons/weapon_%s.bmp", weapon_id); weapon_image_path=inferred_path; }
+    char inferred_path[256]; if(!weapon_image_path){ snprintf(inferred_path,sizeof inferred_path,"../assets/weapons/weapon_%s.bmp", weapon_id); weapon_image_path=inferred_path; }
     if(!load_texture_auto(ren, weapon_image_path, &weapon_tex_single, &weapon_w, &weapon_h)){
         fprintf(stderr,"ERR: failed load weapon image %s\n", weapon_image_path); return 1; }
     init_default_poses();
-    if(!out_path){ static char auto_out[256]; snprintf(auto_out,sizeof auto_out,"assets/weapons/weapon_%s_%s_pose.json", weapon_id, direction_label); out_path=auto_out; }
+    if(!out_path){ static char auto_out[256]; snprintf(auto_out,sizeof auto_out,"../assets/weapons/weapon_%s_%s_pose.json", weapon_id, direction_label); out_path=auto_out; }
     int running=1; while(running){
         SDL_Event e; while(SDL_PollEvent(&e)){
             if(e.type==SDL_QUIT) running=0; else if(e.type==SDL_KEYDOWN){ if(e.key.keysym.sym==SDLK_ESCAPE) running=0; else handle_key(&e); }
