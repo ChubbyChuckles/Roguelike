@@ -28,6 +28,11 @@ typedef struct RogueWorldGenConfig {
 } RogueWorldGenConfig;
 
 bool rogue_world_generate(RogueTileMap* out_map, const RogueWorldGenConfig* cfg);
+/* Full layered generation pipeline (Phases 2-10 integrated) producing a fully featured world.
+ * This augments the legacy rogue_world_generate (which provides only early macro + legacy passes).
+ * Deterministic for given cfg->seed. Returns 1 on success. On failure the out_map is freed.
+ */
+int rogue_world_generate_full(RogueTileMap* out_map, const RogueWorldGenConfig* cfg);
 
 /* ---- Phase 1 foundational types & APIs ---- */
 #define ROGUE_WORLD_CHUNK_SIZE 32 /* tiles per dimension in a world chunk */
@@ -390,5 +395,10 @@ void rogue_worldgen_enable_optimizations(int enable_simd, int enable_parallel);
 void rogue_worldgen_set_arena(RogueWorldGenArena* arena);
 typedef struct RogueWorldGenBenchmark { double scalar_ms; double simd_ms; double speedup; int samples; } RogueWorldGenBenchmark;
 int rogue_worldgen_run_noise_benchmark(int width, int height, RogueWorldGenBenchmark* out_bench);
+
+/* Convenience: sample a random walkable spawn point from a generated tilemap (excludes water, lava, walls, mountains).
+ * Returns 1 and writes tile coords to out_tx/out_ty on success, 0 if no suitable tile found.
+ */
+int rogue_world_find_random_spawn(const RogueTileMap* map, unsigned int seed, int* out_tx, int* out_ty);
 
 #endif

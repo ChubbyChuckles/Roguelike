@@ -120,7 +120,14 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     if(cheat_tmp) free(cheat_tmp);
 #endif
     RogueWorldGenConfig wcfg = rogue_world_gen_config_build(1337u, 1, 1);
-    rogue_world_generate(&g_app.world_map, &wcfg);
+    if(!rogue_world_generate_full(&g_app.world_map, &wcfg)){
+        rogue_world_generate(&g_app.world_map, &wcfg); /* fallback */
+    }
+    /* Random player spawn on walkable tile (seed-derived) */
+    int spawn_x=2, spawn_y=2; if(rogue_world_find_random_spawn(&g_app.world_map, wcfg.seed * 1664525u + 1013904223u, &spawn_x, &spawn_y)){
+        g_app.player.base.pos.x = (float)spawn_x + 0.5f;
+        g_app.player.base.pos.y = (float)spawn_y + 0.5f;
+    }
     rogue_vegetation_init();
     rogue_vegetation_load_defs("assets/plants.cfg","assets/trees.cfg");
     rogue_vegetation_generate(0.12f, 1337u);

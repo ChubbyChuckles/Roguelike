@@ -158,7 +158,13 @@ void rogue_process_events(void){
             if(ev.key.keysym.sym==SDLK_BACKQUOTE){
                 g_app.pending_seed=(unsigned int)SDL_GetTicks();
                 RogueWorldGenConfig wcfg = rogue_world_gen_config_build(g_app.pending_seed, 1, 1);
-                rogue_tilemap_free(&g_app.world_map); rogue_world_generate(&g_app.world_map,&wcfg); g_app.minimap_dirty=1;
+                rogue_tilemap_free(&g_app.world_map); 
+                if(!rogue_world_generate_full(&g_app.world_map,&wcfg)){
+                    rogue_world_generate(&g_app.world_map,&wcfg);
+                }
+                int sx=2, sy=2; if(rogue_world_find_random_spawn(&g_app.world_map, wcfg.seed ^ 0xA5A5u, &sx, &sy)){
+                    g_app.player.base.pos.x = (float)sx + 0.5f; g_app.player.base.pos.y = (float)sy + 0.5f; }
+                g_app.minimap_dirty=1;
                 /* Regenerate vegetation with same cover and new seed */
                 rogue_vegetation_generate(rogue_vegetation_get_tree_cover(), g_app.pending_seed);
             }
@@ -173,7 +179,11 @@ void rogue_process_events(void){
                 if(ev.key.keysym.sym==SDLK_RETURN){
                     rogue_tilemap_free(&g_app.world_map);
                     RogueWorldGenConfig wcfg = rogue_world_gen_config_build(g_app.pending_seed, 0, 0);
-                    rogue_world_generate(&g_app.world_map,&wcfg);
+                    if(!rogue_world_generate_full(&g_app.world_map,&wcfg)){
+                        rogue_world_generate(&g_app.world_map,&wcfg);
+                    }
+                    int sx=2, sy=2; if(rogue_world_find_random_spawn(&g_app.world_map, wcfg.seed ^ 0x51C3u, &sx, &sy)){
+                        g_app.player.base.pos.x = (float)sx + 0.5f; g_app.player.base.pos.y = (float)sy + 0.5f; }
                     g_app.chunks_x=(g_app.world_map.width + g_app.chunk_size - 1)/g_app.chunk_size;
                     g_app.chunks_y=(g_app.world_map.height + g_app.chunk_size - 1)/g_app.chunk_size;
                     size_t ctotal=(size_t)g_app.chunks_x * (size_t)g_app.chunks_y; if(ctotal){ g_app.chunk_dirty=(unsigned char*)malloc(ctotal); if(g_app.chunk_dirty) memset(g_app.chunk_dirty,0,ctotal);} g_app.entering_seed=0;
