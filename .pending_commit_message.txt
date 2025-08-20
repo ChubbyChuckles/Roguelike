@@ -48,6 +48,36 @@ Vendor System Phase 5 Completion: Buyback & Transaction Journaling
 - Added vendor_buyback.c/h implementing per-vendor circular buyback buffer (cap 32) storing item guid, def index, rarity, category, condition pct, original price, sell & assimilation timestamps.
 - Depreciation model: 10% price decay per minute (discrete intervals) to 50% floor of original vendor payout; query API returns current depreciated resale price.
 - Assimilation: entries auto-expire after 5 minutes (currently marked inactive placeholder for future stock merge in Phase 6+).
+
+Enemy Integration Phase 5-6 Completion: Spatial Spawn & Combat Hook Implementation
+
+- Added Phase 5: Spatial Spawn & Navigation Integration
+  * Implemented comprehensive spawn position solver with obstacle avoidance and minimum distance enforcement
+  * Added boss central positioning with room center anchoring for encounter leadership
+  * Created collision detection with bounded retry attempts to ensure high spawn success rates
+  * Added navmesh integration placeholders for future AI pathfinding hookup
+  * Comprehensive test suite validates deterministic spawn behavior and spatial constraints
+  
+- Added Phase 6: Target Acquisition & Combat Hook
+  * Implemented RogueEnemyRegistry system for runtime enemy tracking with position-based queries
+  * Added nearest enemy search and position-based targeting for HUD integration
+  * Created combat stats extraction system linking display info to actual combat calculations
+  * Implemented damage application with armor reduction and resistance-based mitigation
+  * Added death event system with analytics hooks and registry cleanup mechanisms
+  * Extended RogueEnemyDisplayInfo with RogueEnemyFinalStats for seamless combat integration
+
+- Enhanced enemy integration API with Phase 5-6 functions:
+  * rogue_enemy_integration_solve_spawn_positions() - spatial position solver
+  * rogue_enemy_integration_validate_spawn_position() - collision and constraint checking  
+  * rogue_enemy_integration_register_enemy() - runtime enemy registration
+  * rogue_enemy_integration_find_nearest_enemy() - distance-based enemy queries
+  * rogue_enemy_integration_apply_damage() - combat damage with mitigation
+  * rogue_enemy_integration_cleanup_dead_enemies() - registry maintenance
+
+- All Phase 2-6 tests pass with full backward compatibility maintained
+- Deterministic behavior preserved across all spawn and combat operations
+
+Phase 5-6 now complete: enemy integration pipeline provides full spatial spawn solving and combat hook integration ready for live gameplay.
 - Transaction journal vendor_tx_journal.c/h: FNV1a hash-chained append-only log (sale=1, buyback=2, future assimilate=3) capturing sequence id, synthetic timestamp, vendor id, action, guid low32, price, rep delta, discount pct; accum hash accessor for integrity.
 - Anti-duplicate GUID lineage: recent GUID ring buffer (128) with lookup to detect repeat resale exploit attempts; exposed rogue_vendor_buyback_guid_recent.
 - Unit test test_vendor_phase5_buyback_journal validates: ring buffer wrap (no crash, bounded count), monotonic depreciation (p0>=p1>=p2 & floor respected), journal hash determinism (two identical sequences -> same accum hash), duplicate guid detection returns flagged state on repeat.
