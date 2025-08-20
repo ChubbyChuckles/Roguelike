@@ -5,6 +5,13 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_crafting_phase5_skill.c)
     add_test(NAME test_crafting_phase5_skill COMMAND test_crafting_phase5_skill)
 endif()
 
+# Progression Phase 6.2-6.5 mastery extended test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase6_mastery_extended.c)
+    add_executable(test_progression_phase6_mastery_extended unit/test_progression_phase6_mastery_extended.c)
+    target_link_libraries(test_progression_phase6_mastery_extended PRIVATE rogue_core)
+    add_test(NAME test_progression_phase6_mastery_extended COMMAND test_progression_phase6_mastery_extended)
+endif()
+
 # Phase 6 enhancement pathways test
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_crafting_phase6_enhancement.c)
     add_executable(test_crafting_phase6_enhancement unit/test_crafting_phase6_enhancement.c)

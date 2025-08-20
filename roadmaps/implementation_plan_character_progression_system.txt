@@ -63,10 +63,10 @@ PHASE 5. Skill & Passive Unlock Integration (Done)
 
 PHASE 6. Mastery System
 6.1 Mastery XP separate track (earns via sustained skill usage) (Done - minimal per-skill mastery XP module added: `src/core/progression_mastery.[ch]` with deterministic rank thresholds and unit test `tests/unit/test_progression_mastery.c`)
-6.2 Mastery levels unlocking minor passive rings (circular radial UI concept) (X)
-6.3 Per-skill mastery bonus scaling tiers (rank brackets) (X)
-6.4 Decay or plateau mechanic to prevent runaway specialization (optional toggle) (X)
-6.5 Tests: mastery XP distribution fairness, decay correctness (X)
+6.2 Mastery levels unlocking minor passive rings (Done - distinct skill rank >=5 contributes ring point via `rogue_mastery_minor_ring_points`)
+6.3 Per-skill mastery bonus scaling tiers (Done - bracketed scalar 1.01→1.20 by rank thresholds in `rogue_mastery_bonus_scalar`)
+6.4 Decay or plateau mechanic to prevent runaway specialization (Done - inactivity grace 60s then geometric surplus decay windows 10% each; toggle `rogue_mastery_set_decay`)
+6.5 Tests: mastery XP distribution fairness, decay correctness (Done - `test_progression_phase6_mastery_extended` validates rank growth, ring points, bonus ordering, decay loss)
 
 PHASE 7. Expanded Passive Rings (Former Ascendancy Slot Replacement)
 7.1 Unlockable passive ring layers (outer maze expansions at milestone levels) (X)
