@@ -243,6 +243,8 @@ add_library(rogue_core
     src/core/progression_attributes.c
     # progression phase 3 ratings & diminishing returns module
     src/core/progression_ratings.c
+    # progression phase 4 maze skill graph framework wrapper
+    src/core/progression_maze.c
     src/core/dialogue.c
     # UI Phase 1 scaffolding
     src/ui/core/ui_context.c

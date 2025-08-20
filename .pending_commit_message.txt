@@ -12,3 +12,15 @@ Details:
 
 Verification: test passes (progression_phase3_ratings: OK) with SDL2 build.
 
+progression: Phase 4 Maze Skill Graph Framework
+
+Implemented progression maze wrapper (progression_maze.[ch]) layering metadata atop geometric skill maze:
+- Node meta: ring-derived level & attribute requirements, point cost ramp, flags, adjacency indices.
+- Procedural optional branch augmentation (~5% new leaves) & difficulty tagging for dense inner hubs.
+- Shortest cost path utility (Dijkstra) and gating predicate API.
+- Orphan audit & optional node counting.
+- Unit test test_progression_phase4_maze (build, gating, path cost sanity, orphan audit) added to test suite.
+- Roadmap Phase 4 marked Done; README progression row updated.
+
+Verification: SDL2 build + test_progression_phase4_maze passes.
+

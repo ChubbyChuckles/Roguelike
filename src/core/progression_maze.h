@@ -1,0 +1,51 @@
+/* Progression Maze Skill Graph Framework (Phase 4)
+ * Wraps the lower-level skill_maze generator with progression metadata:
+ * - Node gating predicates (level & attribute thresholds derived from ring)
+ * - Traversal costs (allocation point cost per node)
+ * - Procedural optional branch augmentation & difficulty tagging
+ * - Adjacency lists & shortest path utilities (Dijkstra over small graph)
+ */
+#ifndef ROGUE_PROGRESSION_MAZE_H
+#define ROGUE_PROGRESSION_MAZE_H
+#include "core/skill_maze.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct RogueProgressionMazeNodeMeta {
+    int node_id;           /* 0..node_count-1 */
+    int ring;              /* copy of generation ring */
+    int level_req;         /* derived: ring*5 baseline */
+    int str_req, dex_req, int_req, vit_req; /* derived attribute thresholds */
+    int cost_points;       /* point cost to unlock (sublinear ramp by ring) */
+    unsigned int tags;     /* future classification (e.g., offensive/defensive/utility) */
+    unsigned int flags;    /* bit0: optional_branch, bit1: difficulty_tag_high */
+    int adj_start;         /* offset into adjacency index array */
+    int adj_count;         /* number of neighbors */
+} RogueProgressionMazeNodeMeta;
+
+typedef struct RogueProgressionMaze {
+    RogueSkillMaze base;              /* underlying geometric graph */
+    RogueProgressionMazeNodeMeta* meta; /* meta per node */
+    int* adjacency;                   /* flattened adjacency indices */
+    int total_adjacency;              /* length of adjacency array */
+    int optional_nodes;               /* count of nodes flagged optional */
+} RogueProgressionMaze;
+
+/* Build progression maze from config JSON; performs procedural augmentation (optional branches). Returns 1 on success. */
+int rogue_progression_maze_build(const char* config_path, RogueProgressionMaze* out_maze);
+void rogue_progression_maze_free(RogueProgressionMaze* m);
+
+/* Query gating: returns 1 if unlockable given player level & attributes, else 0. */
+int rogue_progression_maze_node_unlockable(const RogueProgressionMaze* m, int node_id, int level,int str,int dex,int intel,int vit);
+
+/* Compute shortest point cost between two nodes (cost_points as edge weight of destination node). Returns -1 if unreachable. */
+int rogue_progression_maze_shortest_cost(const RogueProgressionMaze* m, int from_node, int to_node);
+
+/* Simple orphan audit: returns number of non-root nodes (node_id>0) with adj_count==0 and not optional. */
+int rogue_progression_maze_orphan_count(const RogueProgressionMaze* m);
+
+#ifdef __cplusplus
+}
+#endif
+#endif

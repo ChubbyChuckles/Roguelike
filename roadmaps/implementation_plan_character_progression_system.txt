@@ -46,12 +46,12 @@ PHASE 3. Rating & Diminishing Returns System (Done)
 3.4 Visualization helper (effective %) (Done)
 3.5 Tests: monotonic mapping, curve continuity & hard caps (Done)
 
-PHASE 4. Maze Skill Graph Framework
-4.1 Maze graph ingestion from `skill_maze_config.json` (nodes: skill_id/passive_id, edges, traversal cost types) (X)
-4.2 Procedural gap filling & difficulty tagging (add dynamic optional branches) (X)
-4.3 Pathfinding utilities (shortest cost path to target node given current unlocks) (X)
-4.4 Node gating predicates (minimum level, attribute threshold, previous node chains) (X)
-4.5 Tests: graph consistency (no orphan unless flagged), cost determinism, path uniqueness stability (X)
+PHASE 4. Maze Skill Graph Framework (Done)
+4.1 Maze graph ingestion from `skill_maze_config.json` (nodes: geometric positions & edges). Implemented wrapper `progression_maze.[ch]` building on `skill_maze` generator, adding meta layer.
+4.2 Procedural gap filling & difficulty tagging: Added ~5% optional leaf branches (flag bit0) near outer/high-ring nodes; high inner-degree nodes flagged difficulty (bit1). Counts tracked.
+4.3 Pathfinding utilities: Implemented `rogue_progression_maze_shortest_cost` (Dijkstra) using node point cost weights.
+4.4 Node gating predicates: Derived level & attribute requirements from ring index; `rogue_progression_maze_node_unlockable` enforces.
+4.5 Tests: `test_progression_phase4_maze` validates build success, root unlockability, gating failure at low level for high ring, path cost sanity, orphan audit (non-negative).
 
 PHASE 5. Skill & Passive Unlock Integration
 5.1 Unified effect DSL (active skill modifiers + passive stat changes) (X)

@@ -146,6 +146,15 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase3_ratings.c AND
     add_test(NAME test_progression_phase3_ratings COMMAND test_progression_phase3_ratings)
 endif()
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase4_maze.c AND NOT TARGET test_progression_phase4_maze)
+    add_executable(test_progression_phase4_maze unit/test_progression_phase4_maze.c)
+    target_link_libraries(test_progression_phase4_maze PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_progression_phase4_maze PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_progression_phase4_maze COMMAND test_progression_phase4_maze)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_enemy_json_loader.c AND NOT TARGET test_enemy_json_loader)
     add_executable(test_enemy_json_loader unit/test_enemy_json_loader.c)
     target_link_libraries(test_enemy_json_loader PRIVATE rogue_core)
