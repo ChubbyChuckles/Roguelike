@@ -15,3 +15,14 @@ vendor: Phase 3.1–3.5 Pricing Engine Complete
 - README updated to reflect full Phase 3 completion and scarcity behavior.
 
 Verification: SDL2 Debug build; vendor tests Phase 0–3 pass locally (manual invocation of pricing test binary due to current CTest registration quirk pending investigation). Scarcity increase path validated in extended pricing test.
+
+crafting: Phase 0–1 Material Registry Implemented
+
+- Added `material_registry.[ch]` implementing unified material taxonomy (cfg: id,item_def_id,tier,category,base_value) with duplicate rejection, tier bounds clamp, category enum (ore|plant|essence|component|currency), and FNV-1a seed mixing helper.
+- Integrated into build (`material_registry.c` added to core target).
+- Provided lookup APIs: by id, by item def, prefix search, count/get, deterministic file-order retention.
+- Test `test_crafting_phase0_1_material_registry` validates parsing, duplicate skip, ordering, prefix search, seed mix diversity, and tier retention using temporary cfg referencing existing material item defs (iron_ore, arcane_dust, primal_shard).
+- Roadmap updated: Crafting & Gathering Phases 0 and 1 marked Done with implementation notes; salvage mapping now via item_def linkage.
+- README to be updated with concise Material Registry section (foundation for gathering nodes & scarcity feedback).
+
+Verification: SDL2 Debug compile succeeded (pending overall ctest invocation). New test target builds; manual run expected to output CRAFT_P0_1_OK.

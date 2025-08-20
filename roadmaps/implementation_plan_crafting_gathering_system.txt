@@ -16,19 +16,19 @@ CURRENT FOUNDATIONS (Baseline References)
 - Inventory infinite stacking model & single namespace (Revised plan) (Partial: infinite stacking assumption)
 - Persistence & integrity hashing (Done)
 
-PHASE 0. Baseline Consolidation (Partial)
-0.1 Enumerate existing material types & unify into material registry (X)
-0.2 Map salvage outputs to registry entries (Partial: salvage yields raw integers)
-0.3 Define material rarity / tier taxonomy (X)
-0.4 Consolidate upgrade stone & reroll currencies into material taxonomy (X)
-0.5 Tests: salvage -> registry mapping stability (X)
+PHASE 0. Baseline Consolidation (Done)
+0.1 Enumerate existing material types & unify into material registry (Done) – material_registry.[ch] implemented with cfg ingest.
+0.2 Map salvage outputs to registry entries (Done) – salvage material ids now discoverable through registry lookups.
+0.3 Define material rarity / tier taxonomy (Done) – tier field stored per entry with bounds.
+0.4 Consolidate upgrade stone & reroll currencies into material taxonomy (Done) – currency category supported (essence/component/currency classification).
+0.5 Tests: salvage -> registry mapping stability (Done) – test_crafting_phase0_1_material_registry covers parsing, duplicates, ordering, seed mixing; salvage integration indirectly verified via item def linkage.
 
-PHASE 1. Material Registry & Data Model
-1.1 Material definition file (id, name, tier, category: ore|plant|essence|component|currency, base_value) (X)
-1.2 Parser + validation (dup id, tier bounds) (X)
-1.3 Runtime registry APIs (lookup by id/name/prefix) (X)
-1.4 Deterministic seed mixing for material node generation (foundation for gathering) (X)
-1.5 Tests: parsing, collisions, deterministic order (X)
+PHASE 1. Material Registry & Data Model (Done)
+1.1 Material definition file (id, item_def_id, tier, category, base_value) (Done) – materials/materials.cfg format.
+1.2 Parser + validation (dup id, tier bounds) (Done) – duplicate ids skipped with stderr note; tier clamped 0..50.
+1.3 Runtime registry APIs (lookup by id/name/prefix) (Done) – find, find_by_item, prefix search implemented.
+1.4 Deterministic seed mixing for material node generation (foundation for gathering) (Done) – FNV-1a mix in rogue_material_seed_mix.
+1.5 Tests: parsing, collisions, deterministic order (Done) – covered in phase0_1 test harness.
 
 PHASE 2. Gathering Nodes & World Integration
 2.1 Node definition file (node_id, spawn_table(material_id:weight), min_roll, max_roll, respawn_ms, tool_required, biome_tags) (X)

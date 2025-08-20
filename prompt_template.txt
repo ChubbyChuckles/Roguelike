@@ -79,3 +79,8 @@ Read the "roadmaps\implementation_plan_character_progression_system.txt", go to 
 ### Vendor System
 
 Read the "roadmaps\implementation_plan_vendor_system.txt", go to the next features in line that need implementation and implement as many of them as possible and don't just partially implement the features. Use unit tests and modularize the code as much as possible to prevent regression. Execute the unit tests and build the project to verify there are no errors. Never build without SDL2. After a successful implementation update the "roadmaps\implementation_plan_vendor_system.txt", generate a descriptive commit message that you append to ".pending_commit_message.txt" and update the README.md. Iterate this process as often as you can in one request.
+
+
+### Crafting and gathering
+
+Read the "roadmaps\implementation_plan_crafting_gathering_system.txt", go to the next features in line that need implementation and implement as many of them as possible and don't just partially implement the features. Use unit tests and modularize the code as much as possible to prevent regression. Execute the unit tests and build the project to verify there are no errors. Never build without SDL2. After a successful implementation update the "roadmaps\implementation_plan_crafting_gathering_system.txt", generate a descriptive commit message that you append to ".pending_commit_message.txt" and update the README.md. Iterate this process as often as you can in one request.
