@@ -15,3 +15,24 @@ const RogueVendorTxEntry* rogue_vendor_tx_journal_entry(int index){ if(index<0||
 unsigned int rogue_vendor_tx_journal_accum_hash(void){ return g_accum_hash; }
 
 void rogue_vendor_tx_journal_record(int vendor_def_index, unsigned long long item_guid, int action_code, int price, int rep_delta, int discount_pct){ /* timestamp not integrated with real clock yet; using op_id*10 as synthetic placeholder */ unsigned int ts = (unsigned int)(g_entry_count*10u); rogue_vendor_tx_journal_append(ts,vendor_def_index,action_code,item_guid,(unsigned int)price,rep_delta,discount_pct); }
+
+int rogue_vendor_tx_journal_compact_summary(RogueVendorTxCompactionSummary* out_summary) {
+	if (!out_summary || g_entry_count == 0) return -1;
+	memset(out_summary, 0, sizeof(RogueVendorTxCompactionSummary));
+	out_summary->first_timestamp_ms = g_entries[0].timestamp_ms;
+	out_summary->last_timestamp_ms = g_entries[g_entry_count-1].timestamp_ms;
+	for (int i = 0; i < g_entry_count; ++i) {
+		const RogueVendorTxEntry* e = &g_entries[i];
+		if (e->action_code == 1) { // sale
+			out_summary->total_sales++;
+			out_summary->total_gold_sold += e->price;
+		} else if (e->action_code == 2) { // buyback
+			out_summary->total_buybacks++;
+			out_summary->total_gold_bought += e->price;
+		} else if (e->action_code == 3) {
+			out_summary->total_assimilated++;
+		}
+		out_summary->total_rep_delta += e->rep_delta;
+	}
+	return 0;
+}

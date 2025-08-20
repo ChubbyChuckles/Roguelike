@@ -21,6 +21,21 @@ typedef struct RogueVendorTxEntry {
     unsigned int discount_pct;    /* negotiation discount if any (vendor -> player) */
 } RogueVendorTxEntry;
 
+/* Phase 13: Journal Compaction & Summary Aggregation */
+typedef struct RogueVendorTxCompactionSummary {
+    unsigned int total_sales;
+    unsigned int total_buybacks;
+    unsigned int total_assimilated;
+    unsigned int total_gold_sold;
+    unsigned int total_gold_bought;
+    unsigned int total_rep_delta;
+    unsigned int first_timestamp_ms;
+    unsigned int last_timestamp_ms;
+} RogueVendorTxCompactionSummary;
+
+/* Aggregates a summary from the current journal entries. Returns 0 on success, -1 if journal empty. */
+int rogue_vendor_tx_journal_compact_summary(RogueVendorTxCompactionSummary* out_summary);
+
 void rogue_vendor_tx_journal_reset(void);
 int rogue_vendor_tx_journal_append(unsigned int timestamp_ms, int vendor_def_index, int action_code, unsigned long long item_guid, unsigned int price, int rep_delta, int discount_pct);
 int rogue_vendor_tx_journal_count(void);

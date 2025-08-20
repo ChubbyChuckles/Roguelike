@@ -42,6 +42,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_hit_geometry.c AND NOT TARGET te
     endif()
     add_test(NAME test_hit_geometry COMMAND test_hit_geometry)
 endif()
+
+# Phase 13: Vendor Journal Compaction Summary Test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase13_compaction.c AND NOT TARGET test_vendor_phase13_compaction)
+    add_executable(test_vendor_phase13_compaction unit/test_vendor_phase13_compaction.c)
+    target_link_libraries(test_vendor_phase13_compaction PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+            target_compile_definitions(test_vendor_phase13_compaction PRIVATE ROGUE_HAVE_SDL=1)
+        endif()
+    add_test(NAME test_vendor_phase13_compaction COMMAND test_vendor_phase13_compaction)
+endif()
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_hit_sweep_normals.c AND NOT TARGET test_hit_sweep_normals)
     add_executable(test_hit_sweep_normals unit/test_hit_sweep_normals.c)
     target_link_libraries(test_hit_sweep_normals PRIVATE rogue_core)
