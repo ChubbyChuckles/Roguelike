@@ -67,6 +67,14 @@ int rogue_progression_maze_expand(RogueProgressionMaze* m, int extra_rings, unsi
 /* Return total rings including expansions (wrapper for m->base.rings). */
 int rogue_progression_maze_total_rings(const RogueProgressionMaze* m);
 
+/* Phase 7.4 Visualization Layering */
+/* Populate out_layers array (capacity >= m->base.rings) with ring radii (average distance from origin) and returns ring count; returns 0 on failure. */
+int rogue_progression_maze_layers(const RogueProgressionMaze* m, float* out_layers, int max_layers);
+/* Project node index to polar coordinates (radius,theta) relative to center (computed centroid). Returns 1 on success. */
+int rogue_progression_maze_project(const RogueProgressionMaze* m, int node_id, float* out_radius, float* out_theta);
+/* Generate a coarse ASCII overview (concentric approximation). Writes up to `buf_size-1` chars incl NUL. Returns chars written (excluding NUL) or -1. */
+int rogue_progression_maze_ascii_overview(const RogueProgressionMaze* m, char* buffer, int buf_size, int cols, int rows);
+
 #ifdef __cplusplus
 }
 #endif

@@ -28,6 +28,11 @@ unsigned long long rogue_progression_passives_journal_hash(void);
 
 int rogue_progression_passives_reload(const struct RogueProgressionMaze* maze, const char* text,int level,int str,int dex,int intel,int vit);
 
+/* Phase 7.3 anti-stack: current keystone counts per category (offense, defense, utility) */
+int rogue_progression_passives_keystone_count_offense(void);
+int rogue_progression_passives_keystone_count_defense(void);
+int rogue_progression_passives_keystone_count_utility(void);
+
 #ifdef __cplusplus
 }
 #endif

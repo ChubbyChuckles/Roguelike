@@ -21,7 +21,9 @@ static PassiveNodeEffects* g_node_effects=NULL; /* size = maze->base.node_count 
 static unsigned char* g_unlocked=NULL; /* bitset bytes per node (0/1) */
 static int g_node_count=0;
 static int g_initialized=0;
-static unsigned long long g_passive_stat_accum[512]; /* stat_id (index) -> total delta (sparse small) */
+static double g_passive_stat_accum[512]; /* stat_id (index) -> total (supports fractional scaling) */
+static const struct RogueProgressionMaze* g_maze_ref=NULL; /* for keystone flag & future metadata */
+static int g_keystone_category_counts[3]={0,0,0}; /* offense, defense, utility */
 
 /* Journal entry */
 typedef struct PassiveJournalEntry { int node_id; unsigned int ts; } PassiveJournalEntry;
@@ -36,13 +38,13 @@ static void journal_append(int node_id, unsigned int ts){
 }
 
 int rogue_progression_passives_init(const struct RogueProgressionMaze* maze){
-    if(g_initialized) return 0; if(!maze) return -1; g_node_count=maze->base.node_count; if(g_node_count<=0) return -1;
+    if(g_initialized) return 0; if(!maze) return -1; g_node_count=maze->base.node_count; if(g_node_count<=0) return -1; g_maze_ref=maze; memset(g_keystone_category_counts,0,sizeof g_keystone_category_counts);
     g_node_effects=(PassiveNodeEffects*)calloc((size_t)g_node_count,sizeof(PassiveNodeEffects)); if(!g_node_effects) return -1;
     g_unlocked=(unsigned char*)calloc((size_t)g_node_count,1); if(!g_unlocked){ free(g_node_effects); g_node_effects=NULL; return -1; }
     g_initialized=1; g_effect_count=0; memset(g_passive_stat_accum,0,sizeof g_passive_stat_accum); g_journal_count=0; g_journal_cap=0; free(g_journal); g_journal=NULL; g_journal_hash=1469598103934665603ull; return 0;
 }
 
-void rogue_progression_passives_shutdown(void){ free(g_node_effects); g_node_effects=NULL; free(g_unlocked); g_unlocked=NULL; free(g_journal); g_journal=NULL; g_journal_count=0; g_journal_cap=0; g_initialized=0; g_effect_count=0; g_node_count=0; }
+void rogue_progression_passives_shutdown(void){ free(g_node_effects); g_node_effects=NULL; free(g_unlocked); g_unlocked=NULL; free(g_journal); g_journal=NULL; g_journal_count=0; g_journal_cap=0; g_initialized=0; g_effect_count=0; g_node_count=0; g_maze_ref=NULL; }
 
 static int stat_code_to_id(const char* code){ size_t count=0; const RogueStatDef* defs=rogue_stat_def_all(&count); for(size_t i=0;i<count;i++){ if(strcmp(defs[i].code,code)==0) return defs[i].id; } return -1; }
 
@@ -67,15 +69,31 @@ int rogue_progression_passives_load_dsl(const char* text){ if(!g_initialized||!t
     return 0;
 }
 
-int rogue_progression_passive_unlock(int node_id, unsigned int timestamp_ms, int level,int str,int dex,int intel,int vit){ if(!g_initialized) return -1; if(node_id<0||node_id>=g_node_count) return -1; if(g_unlocked[node_id]) return -2; /* gating: simple level/attr for now via maze meta stub (assume unlockable) */
-    g_unlocked[node_id]=1; PassiveNodeEffects* pne=&g_node_effects[node_id]; for(int i=0;i<pne->count;i++){ PassiveEffect* pe=&g_effects[pne->offset+i]; if(pe->stat_id>=0 && pe->stat_id<512){ g_passive_stat_accum[pe->stat_id]+=pe->delta; } }
+static int classify_keystone_effect(const PassiveNodeEffects* pne){
+    /* simplistic classification: offense if any damage/crit stat, defense if any resist/toughness, else utility */
+    for(int i=0;i<pne->count;i++){
+        PassiveEffect* pe=&g_effects[pne->offset+i]; int sid=pe->stat_id; if(sid==300 || sid==100 || sid==101){ return 0; } /* offense */
+        if((sid>=120 && sid<=125) || sid==104){ return 1; } /* defense */
+    }
+    return 2; /* utility */
+}
+
+int rogue_progression_passive_unlock(int node_id, unsigned int timestamp_ms, int level,int str,int dex,int intel,int vit){ if(!g_initialized) return -1; if(node_id<0||node_id>=g_node_count) return -1; if(g_unlocked[node_id]) return -2; 
+    g_unlocked[node_id]=1; PassiveNodeEffects* pne=&g_node_effects[node_id]; int is_keystone=0; int kcat=-1; 
+    if(g_maze_ref && g_maze_ref->meta && node_id < g_maze_ref->base.node_count){ if(g_maze_ref->meta[node_id].flags & 0x4u){ is_keystone=1; kcat=classify_keystone_effect(pne); }}
+    double coeff=1.0; if(is_keystone){ int kcount = ++g_keystone_category_counts[kcat]; coeff = 1.0 / (1.0 + 0.15 * (double)(kcount-1)); }
+    for(int i=0;i<pne->count;i++){ PassiveEffect* pe=&g_effects[pne->offset+i]; if(pe->stat_id>=0 && pe->stat_id<512){ double delta = (double)pe->delta; if(is_keystone) delta *= coeff; g_passive_stat_accum[pe->stat_id]+=delta; } }
     journal_append(node_id,timestamp_ms); (void)level;(void)str;(void)dex;(void)intel;(void)vit; return pne->count?0:-3; }
 
-int rogue_progression_passives_stat_total(int stat_id){ if(stat_id<0||stat_id>=512) return 0; return (int)g_passive_stat_accum[stat_id]; }
+int rogue_progression_passives_stat_total(int stat_id){ if(stat_id<0||stat_id>=512) return 0; double v=g_passive_stat_accum[stat_id]; if(v<0) v=0; return (int)(v+0.5); }
 int rogue_progression_passives_is_unlocked(int node_id){ if(node_id<0||node_id>=g_node_count) return 0; return g_unlocked && g_unlocked[node_id]?1:0; }
 unsigned long long rogue_progression_passives_journal_hash(void){ return g_journal_hash; }
 
-int rogue_progression_passives_reload(const struct RogueProgressionMaze* maze, const char* text,int level,int str,int dex,int intel,int vit){ if(!g_initialized) return -1; (void)maze; /* capture prior journal */ int saved_count=g_journal_count; PassiveJournalEntry* saved=(PassiveJournalEntry*)malloc(sizeof(PassiveJournalEntry)*(size_t)saved_count); if(!saved) return -1; memcpy(saved,g_journal,sizeof(PassiveJournalEntry)*(size_t)saved_count); unsigned long long old_hash=g_journal_hash;
+int rogue_progression_passives_keystone_count_offense(void){ return g_keystone_category_counts[0]; }
+int rogue_progression_passives_keystone_count_defense(void){ return g_keystone_category_counts[1]; }
+int rogue_progression_passives_keystone_count_utility(void){ return g_keystone_category_counts[2]; }
+
+int rogue_progression_passives_reload(const struct RogueProgressionMaze* maze, const char* text,int level,int str,int dex,int intel,int vit){ if(!g_initialized) return -1; g_maze_ref=maze; memset(g_keystone_category_counts,0,sizeof g_keystone_category_counts); /* capture prior journal */ int saved_count=g_journal_count; PassiveJournalEntry* saved=(PassiveJournalEntry*)malloc(sizeof(PassiveJournalEntry)*(size_t)saved_count); if(!saved) return -1; memcpy(saved,g_journal,sizeof(PassiveJournalEntry)*(size_t)saved_count); unsigned long long old_hash=g_journal_hash;
     /* reset unlock state & accumulators (keep journal separate) */ memset(g_unlocked,0,(size_t)g_node_count); memset(g_passive_stat_accum,0,sizeof g_passive_stat_accum); g_journal_count=0; g_journal_cap=0; free(g_journal); g_journal=NULL; g_journal_hash=1469598103934665603ull;
     if(rogue_progression_passives_load_dsl(text)<0){ free(saved); return -1; }
     for(int i=0;i<saved_count;i++){ PassiveJournalEntry* e=&saved[i]; rogue_progression_passive_unlock(e->node_id,e->ts,level,str,dex,intel,vit); }

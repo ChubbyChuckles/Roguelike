@@ -111,3 +111,31 @@ int rogue_progression_maze_expand(RogueProgressionMaze* m, int extra_rings, unsi
     }
     return added;
 }
+
+/* Phase 7.4 Visualization helpers */
+int rogue_progression_maze_layers(const RogueProgressionMaze* m, float* out_layers, int max_layers){
+    if(!m||!out_layers||max_layers<=0) return 0; int rings=m->base.rings; if(rings>max_layers) rings=max_layers; if(!m->base.nodes||m->base.node_count<=0) return 0; 
+    /* Compute centroid */
+    double cx=0,cy=0; for(int i=0;i<m->base.node_count;i++){ cx+=m->base.nodes[i].x; cy+=m->base.nodes[i].y; } cx/=m->base.node_count; cy/=m->base.node_count;
+    for(int r=0;r<rings;r++){ double acc=0; int count=0; for(int i=0;i<m->base.node_count;i++){ if(m->base.nodes[i].ring==r){ double dx=m->base.nodes[i].x - cx; double dy=m->base.nodes[i].y - cy; acc += sqrt(dx*dx+dy*dy); count++; } }
+        out_layers[r] = (count>0)? (float)(acc / (double)count): (r>0? out_layers[r-1]+40.0f:40.0f);
+    }
+    return rings;
+}
+
+int rogue_progression_maze_project(const RogueProgressionMaze* m, int node_id, float* out_radius, float* out_theta){
+    if(!m||!m->base.nodes||node_id<0||node_id>=m->base.node_count||!out_radius||!out_theta) return 0; 
+    double cx=0,cy=0; for(int i=0;i<m->base.node_count;i++){ cx+=m->base.nodes[i].x; cy+=m->base.nodes[i].y; } cx/=m->base.node_count; cy/=m->base.node_count; 
+    double dx = m->base.nodes[node_id].x - cx; double dy = m->base.nodes[node_id].y - cy; *out_radius=(float)sqrt(dx*dx+dy*dy); *out_theta=(float)atan2(dy,dx); return 1; }
+
+int rogue_progression_maze_ascii_overview(const RogueProgressionMaze* m, char* buffer, int buf_size, int cols, int rows){
+    if(!m||!buffer||buf_size<=0||cols<8||rows<4) return -1; 
+    if(!m->base.nodes||m->base.node_count<=0){ if(buf_size>0) buffer[0]='\0'; return 0; }
+    if(cols*rows + (rows) >= buf_size) { /* ensure space (rows newlines + NUL) */ rows = (buf_size-1)/ (cols+1); if(rows<=0){ buffer[0]='\0'; return -1; } }
+    /* Determine normalization using layer radii */
+    float layers[32]; int lr=rogue_progression_maze_layers(m,layers,32); float max_r= (lr>0)? layers[lr-1]:1.0f; if(max_r<1.0f) max_r=1.0f;
+    /* Init grid */
+    int total_chars=0; for(int y=0;y<rows;y++){ for(int x=0;x<cols;x++){ buffer[y*(cols+1)+x]='.'; } buffer[y*(cols+1)+cols]='\n'; total_chars += cols+1; }
+    /* Plot nodes: map polar to grid center */
+    int cx=cols/2; int cy=rows/2; for(int i=0;i<m->base.node_count;i++){ float r,a; if(!rogue_progression_maze_project(m,i,&r,&a)) continue; float nr = r / max_r; int gx = cx + (int)(cos(a)* nr * (float)(cols/2 -1)); int gy = cy + (int)(sin(a)* nr * (float)(rows/2 -1)); if(gx>=0&&gx<cols&&gy>=0&&gy<rows){ char c='o'; if(m->meta && (m->meta[i].flags & ROGUE_MAZE_FLAG_KEYSTONE)) c='K'; else if(m->meta && (m->meta[i].flags & ROGUE_MAZE_FLAG_OPTIONAL)) c='?'; buffer[gy*(cols+1)+gx]=c; } }
+    int write_len = rows*(cols+1); if(write_len >= buf_size) write_len = buf_size-1; buffer[write_len]='\0'; return write_len; }

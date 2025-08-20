@@ -29,3 +29,24 @@ Next Steps (future phases):
 - Dynamic maze expansion structure allocation & persistence serialization.
 - Anti-stack synergy coefficient integration into stat aggregation & passive application layers.
 - UI layering & zoom integration (Phase 7.4) once dynamic expansion implemented.
+
+Progression Phase 7 (Anti-Stack & Visualization Completion)
+
+Enhancements:
+- Implemented Phase 7.3 anti-stack diminishing returns: keystone unlock now applies per-category coefficient 1/(1+0.15*(k-1)) with heuristic classification (STR/DEX/CRIT -> offense, RES/ARMOR -> defense, else utility). Added category count accessors and widened passive stat accumulator to double to preserve fractional contributions pre-rounding.
+- Added unit test `test_progression_phase7_antistack` validating diminished second offense STR increment, defense independence, and keystone count APIs.
+- Implemented Phase 7.4 visualization APIs: `rogue_progression_maze_layers` (ring radii), `rogue_progression_maze_project` (polar coords), and `rogue_progression_maze_ascii_overview` (lightweight concentric textual map) supporting dynamic expansions.
+- Added unit test `test_progression_phase7_visualization` ensuring layer count matches total rings, radii monotonicity, successful projection, and non-empty ASCII plot.
+- Updated roadmap: 7.3 & 7.4 marked Done; documentation (README) reflects anti-stack safeguards & visualization layer support.
+
+Rationale:
+- Diminishing returns mitigate runaway stacking of high-impact keystones while preserving first-pick value and categorical diversity.
+- Visualization primitives unblock UI/UX Phase 16 integration without binding core logic to rendering libraries.
+
+Follow-ups:
+- Persist keystone category counts & expanded ring layout in snapshot serialization (Phase 12 alignment).
+- Replace heuristic keystone classification with data-driven tags; expose JSON-driven overrides.
+- Integrate coefficient application into future composite stat cache (Phases 9 & 11) for multiplicative vs additive ordering validation.
+
+Summary:
+- Phase 7 core now feature-complete (7.1–7.5 implemented/tested) pending future data-driven refinement & UI polish.

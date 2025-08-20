@@ -71,8 +71,8 @@ PHASE 6. Mastery System
 PHASE 7. Expanded Passive Rings (Former Ascendancy Slot Replacement)
 7.1 Unlockable passive ring layers (outer maze expansions at milestone levels) (Done – milestone function + dynamic expansion API `rogue_progression_maze_expand` with procedural node placement & adjacency rebuild; test covers ring count growth)
 7.2 Keystone-like universal nodes (powerful effects balanced by cost & prerequisite chain length) (Done (scaffold) – heuristic keystone flagging + query helpers; effect payload & balancing costs to follow in Phase 9 integration)
-7.3 Anti-stack safeguards (budget & diminishing synergy coefficients) (Partial – structural separation & no optional/keystone overlap enforced; coefficient application pending stat layer work)
-7.4 Visualization layering (zoomable maze out to ring expansions) (X)
+7.3 Anti-stack safeguards (budget & diminishing synergy coefficients) (Done – implemented per-category (offense/defense/utility) diminishing for keystones: coefficient = 1/(1+0.15*(k-1)), classification heuristic from effect mix, accumulator widened to double, journal replay resets counts; unit test `test_progression_phase7_antistack` verifies reduced incremental STR and independence across categories + count APIs.)
+7.4 Visualization layering (zoomable maze out to ring expansions) (Done – added ring layer export & projection helpers: `rogue_progression_maze_layers`, `rogue_progression_maze_project`, and ASCII overview generator `rogue_progression_maze_ascii_overview` enabling UI to render concentric scalable layout; supports dynamic expansions. Unit test `test_progression_phase7_visualization` validates layer count == total rings, monotonic radii, projection bounds, and ASCII summary integrity.)
 7.5 Tests: ring integration, keystone cost scaling integrity (Done (initial) – `test_progression_phase7_rings` validates milestones, expansion, keystone invariants)
 
 PHASE 8. Perpetual Scaling Layer
