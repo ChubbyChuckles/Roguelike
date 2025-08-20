@@ -167,6 +167,7 @@ See `roadmaps/` for subsystem implementation plans (inventory, crafting & gather
 * Infinite leveling + maze skill graph design integrated (progression roadmap).
 * Enemy difficulty ΔL relative scaling model adopted.
 * Added vendor, dungeon, world boss comprehensive implementation plans.
+* Vendor System Phase 0 (baseline slice): Added material catalog (econ_materials.[ch]), deterministic item value model (econ_value.[ch]) with rarity ladder, slot factors, diminishing affix scalar p/(p+20), durability floor scalar (0.4+0.6f), integrated vendor pricing path, and unit test `test_vendor_phase0_value` (catalog population, rarity & affix monotonicity, durability ordering).
 * Equipment integrity gates (fuzz, mutation, snapshot, proc stats) formalized.
 * Expanded crafting: sockets, gems, enchant/reforge, fusion, affix orbs, success chance.
 * Persistence: incremental saves, signature trailer, replay hash, compression, autosave throttle.

@@ -217,6 +217,8 @@ add_library(rogue_core
     src/core/loot_adaptive.c
     src/core/loot_commands.c
     src/core/vendor.c
+    src/core/econ_value.c
+    src/core/econ_materials.c
     src/core/economy.c
     src/core/salvage.c
     src/core/crafting.c

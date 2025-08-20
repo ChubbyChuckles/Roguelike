@@ -5,6 +5,7 @@
 #include "core/loot_rarity.h"
 #include "core/loot_drop_rates.h"
 #include <string.h>
+#include "core/econ_value.h"
 
 static RogueVendorItem g_vendor_items[ROGUE_VENDOR_SLOT_CAP];
 static int g_vendor_count = 0;
@@ -15,15 +16,8 @@ const RogueVendorItem* rogue_vendor_get(int index){ if(index<0||index>=g_vendor_
 int rogue_vendor_append(int def_index, int rarity, int price){ if(g_vendor_count>=ROGUE_VENDOR_SLOT_CAP) return -1; RogueVendorItem v; v.def_index=def_index; v.rarity=rarity; v.price=price; g_vendor_items[g_vendor_count++] = v; return g_vendor_count; }
 
 /* Simple rarity -> price multiplier ladder (can be tuned later or data-driven). */
-static int rarity_multiplier(int rarity){ static const int mult[5]={1,3,9,27,81}; if(rarity<0||rarity>4) return 1; return mult[rarity]; }
-
 int rogue_vendor_price_formula(int item_def_index, int rarity){
-    const RogueItemDef* idef = rogue_item_def_at(item_def_index); if(!idef) return 0;
-    int base = idef->base_value>0? idef->base_value:1;
-    int price = base * rarity_multiplier(rarity);
-    /* Clamp to avoid overflow or zero */
-    if(price < 1) price = 1; if(price > 100000000) price = 100000000;
-    return price;
+    return rogue_econ_item_value(item_def_index, rarity, 0, 1.0f);
 }
 
 int rogue_vendor_generate_inventory(int loot_table_index, int slots, const RogueGenerationContext* ctx, unsigned int* rng_state){

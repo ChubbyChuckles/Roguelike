@@ -19,11 +19,11 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 - Analytics scaffolding (Partial) (loot usage, equip rates)
 
 PHASE 0. Audit & Economic Baseline
-0.1 Catalog existing currencies/materials (gold, upgrade stones, essences, etc.) (X)
-0.2 Establish base value per material (if not already in material registry) (X)
-0.3 Define item value model: base_slot_factor + rarity_multiplier + affix_power_scalar + durability_fraction (X)
+0.1 Catalog existing currencies/materials (gold, upgrade stones, essences, etc.) (Done) – econ_materials.[ch] builds catalog (id heuristics + material category) with base values captured.
+0.2 Establish base value per material (if not already in material registry) (Done) – catalog stores normalized >=1 base_value for each entry.
+0.3 Define item value model: base_slot_factor + rarity_multiplier + affix_power_scalar + durability_fraction (Done) – econ_value.[ch] formula implemented; integrated into vendor.c pricing path.
 0.4 Identify expected gold/material inflow per hour at reference levels (simulation) (X)
-0.5 Tests: valuation monotonicity vs affix power, no negative value edge cases (X)
+0.5 Tests: valuation monotonicity vs affix power, no negative value edge cases (Done) – unit test test_vendor_phase0_value validates catalog population, rarity & affix monotonicity, durability floor.
 
 PHASE 1. Data Model & Registry
 1.1 Vendor definition file (vendor_id, archetype, biome_tags, refresh_interval_ms, price_policy_id) (X)

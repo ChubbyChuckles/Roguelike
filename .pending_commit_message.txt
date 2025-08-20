@@ -30,3 +30,14 @@ Added AI intensity system introducing tiers (Passive, Standard, Aggressive, Fren
 
 Verification: SDL2 build; unit tests compiled including new test_enemy_difficulty_phase5 (passes locally).
 
+vendor: Phase 0 Economic Baseline (Catalog + Value Model)
+
+Implemented foundational vendor economy slice:
+- econ_materials.[ch]: material/currency catalog builder (category + id heuristics) capturing base values (>=1) with query APIs.
+- econ_value.[ch]: deterministic item valuation formula base_value * slot_factor * rarity_mult * (1 + p/(p+20)) * (0.4 + 0.6*durability) (clamped) with rarity ladder {1,3,9,27,81} and slot factors (weapon 1.4, armor 1.3, gem 1.2, consumable 0.8, material 1.0, misc 0.9).
+- vendor.c integration: pricing now delegates to rogue_econ_item_value ensuring single source of truth.
+- Unit test test_vendor_phase0_value: validates catalog population (arcane_dust, primal_shard present), rarity monotonicity, affix power monotonicity (DR curve), durability floor & ordering.
+- Roadmap Phase 0 items 0.1,0.2,0.3,0.5 marked Done; README changelog updated.
+
+Verification: SDL2 build & test_vendor_phase0_value passes (valuation invariants OK).
+

@@ -2067,6 +2067,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_restock.c AND NOT TARGET 
     add_test(NAME test_vendor_restock COMMAND test_vendor_restock)
 endif()
 
+# Vendor System Phase 0 valuation & catalog test (0.1-0.3,0.5)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase0_value.c AND NOT TARGET test_vendor_phase0_value)
+    add_executable(test_vendor_phase0_value unit/test_vendor_phase0_value.c)
+    target_link_libraries(test_vendor_phase0_value PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_vendor_phase0_value PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_vendor_phase0_value COMMAND test_vendor_phase0_value)
+endif()
+
 # Explicitly add loot phase 9 drop rates test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_drop_rates.c AND NOT TARGET test_loot_phase9_drop_rates)
     add_executable(test_loot_phase9_drop_rates unit/test_loot_phase9_drop_rates.c)
