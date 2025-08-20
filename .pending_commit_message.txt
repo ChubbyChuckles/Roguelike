@@ -8,6 +8,34 @@ Character Progression Phase 12 Completion: Added V3 progression persistence (pro
 - Extended tests: new test_progression_phase12_v3 validates roundtrip, replay counts (3 ops), chain hash stability
 - Roadmap Phase 12.2–12.5 marked Done; README changelog updated
 
+feat(enemy-integration): Implement Phases 2-3 enemy integration pipeline
+
+- Added Phase 2: Encounter Template → Room Placement
+  * Implemented room-based encounter template selection with depth-based logic
+  * Added difficulty rating computation based on room properties (depth, area, tags) 
+  * Implemented template placement validation with space requirements
+  * Added graceful fallback to basic templates if primary selection fails
+  * Comprehensive test coverage for deterministic template selection
+
+- Added Phase 3: Stat & Modifier Application at Spawn  
+  * Implemented stat application with elite scaling bonuses (1.5x HP, 1.2x damage, 1.1x defense)
+  * Added probabilistic modifier system with type-based chances (boss: always, elite: 75%, normal: 20%)
+  * Implemented budget cap system (boss: 1.0, elite: 0.8, normal: 0.6) for modifier selection
+  * Added comprehensive spawn finalization pipeline combining stats, modifiers, and encounter metadata
+  * Extensive validation tests for stat consistency and modifier determinism
+
+- Enhanced enemy integration API with new functions:
+  * rogue_enemy_integration_choose_template() - depth-based template selection
+  * rogue_enemy_integration_compute_room_difficulty() - room difficulty calculation  
+  * rogue_enemy_integration_prepare_room_encounter() - complete encounter preparation
+  * rogue_enemy_integration_finalize_spawn() - full spawn pipeline
+  * rogue_enemy_integration_validate_final_stats() - stat validation
+
+- All tests pass with deterministic behavior preserved
+- Maintains backward compatibility with existing Phase 0-1 implementations
+
+Phase 2-3 now complete: enemy integration pipeline can generate room encounters with proper stat scaling and modifier application.
+
 Vendor System Phase 4 Completion: Reputation & Negotiation Implementation
 - Added vendor_reputation.c/h module providing per-vendor reputation tracking with diminishing returns (logistic scaling)
 - Reputation gain API (rogue_vendor_rep_gain) and raw adjust for penalties; progress & tier query helpers

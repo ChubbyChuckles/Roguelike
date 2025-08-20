@@ -33,18 +33,18 @@ PHASE 1. Spawn Seed Derivation & Determinism
 1.5 Tests: identical seeds produce identical unit arrays + modifiers + stats (X)
 
 PHASE 2. Encounter Template → Room Placement
-2.1 Add dungeon generation hook: for each eligible room, choose encounter template id using difficulty target rating (room depth) + biome weighting (X)
-2.2 Compute area difficulty rating -> pass to encounter_composer (already implemented API) (X)
-2.3 Integrate elite & boss flags into spawn schedule; reserve spatial slots (avoid overlap with props) (X)
-2.4 Fallback handling if template load fails (log + safe default minimal pack) (X)
-2.5 Tests: deterministic template selection with fixed seeds; pack counts within template bounds (X)
+2.1 Add dungeon generation hook: for each eligible room, choose encounter template id using difficulty target rating (room depth) + biome weighting (Done – template selection API implemented with depth-based logic)
+2.2 Compute area difficulty rating -> pass to encounter_composer (already implemented API) (Done – room difficulty computation based on depth, area, and tags)
+2.3 Integrate elite & boss flags into spawn schedule; reserve spatial slots (avoid overlap with props) (Done – template validation ensures space requirements)
+2.4 Fallback handling if template load fails (log + safe default minimal pack) (Done – graceful fallback to basic templates)
+2.5 Tests: deterministic template selection with fixed seeds; pack counts within template bounds (Done – comprehensive test suite validates determinism and bounds)
 
 PHASE 3. Stat & Modifier Application at Spawn
-3.1 For each composed unit, determine enemy_level (currently composition uses difficulty_rating) and compute final stats via existing scaling API (X)
-3.2 Roll modifiers (if allowed) using modifier RNG stream per unit or per encounter (decide policy: per-encounter set for elites + boss, optionally some normals) (X)
-3.3 Enforce modifier eligibility: tier mask vs unit tier; elite/boss may expand budget cap (config) (X)
-3.4 Attach modifier ids & cumulative budget metrics to runtime enemy struct (X)
-3.5 Tests: budget cap adherence, incompatibility preserved post-assignment, stat non-negativity (X)
+3.1 For each composed unit, determine enemy_level (currently composition uses difficulty_rating) and compute final stats via existing scaling API (Done – stats applied with elite scaling bonuses)
+3.2 Roll modifiers (if allowed) using modifier RNG stream per unit or per encounter (decide policy: per-encounter set for elites + boss, optionally some normals) (Done – probabilistic modifier application based on unit type)
+3.3 Enforce modifier eligibility: tier mask vs unit tier; elite/boss may expand budget cap (config) (Done – budget caps implemented for different enemy types)
+3.4 Attach modifier ids & cumulative budget metrics to runtime enemy struct (Done – modifier arrays populated with rolled modifiers)
+3.5 Tests: budget cap adherence, incompatibility preserved post-assignment, stat non-negativity (Done – comprehensive validation and determinism tests)
 
 PHASE 4. Visual & UI Exposure (Current Implemented Features)
 4.1 HUD target feed: when player target/hover changes, set app_state target_enemy_level & gather ΔL severity (Done for HUD path; feed hookup X)
