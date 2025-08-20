@@ -162,6 +162,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase3_pricing.c AND NOT 
     add_test(NAME test_vendor_phase3_pricing COMMAND test_vendor_phase3_pricing)
 endif()
 
+# Vendor Phase 4 reputation & negotiation test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase4_reputation_negotiation.c AND NOT TARGET test_vendor_phase4_reputation_negotiation)
+    add_executable(test_vendor_phase4_reputation_negotiation unit/test_vendor_phase4_reputation_negotiation.c)
+    target_link_libraries(test_vendor_phase4_reputation_negotiation PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2main)
+        target_link_libraries(test_vendor_phase4_reputation_negotiation PRIVATE SDL2::SDL2main SDL2::SDL2)
+        target_compile_definitions(test_vendor_phase4_reputation_negotiation PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_vendor_phase4_reputation_negotiation COMMAND test_vendor_phase4_reputation_negotiation)
+endif()
+
 # Crafting & Gathering Phase 0-1 material registry test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_crafting_phase0_1_material_registry.c AND NOT TARGET test_crafting_phase0_1_material_registry)
     add_executable(test_crafting_phase0_1_material_registry unit/test_crafting_phase0_1_material_registry.c)

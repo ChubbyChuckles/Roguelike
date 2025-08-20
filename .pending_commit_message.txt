@@ -7,3 +7,11 @@ Character Progression Phase 12 Completion: Added V3 progression persistence (pro
 - Added attribute journal infrastructure (ops array) & public accessors for persistence tests
 - Extended tests: new test_progression_phase12_v3 validates roundtrip, replay counts (3 ops), chain hash stability
 - Roadmap Phase 12.2–12.5 marked Done; README changelog updated
+
+Vendor System Phase 4 Completion: Reputation & Negotiation Implementation
+- Added vendor_reputation.c/h module providing per-vendor reputation tracking with diminishing returns (logistic scaling)
+- Reputation gain API (rogue_vendor_rep_gain) and raw adjust for penalties; progress & tier query helpers
+- Deterministic negotiation attempt (rogue_vendor_attempt_negotiation) using attribute-derived skill tag scores (insight->intelligence, finesse->dexterity) + d20 style roll
+- Success yields uniform discount within rule range, small rep gain, short lockout (5s); failure applies rep penalty (-1), longer lockout (10s)
+- Added Phase 4 unit test (test_vendor_phase4_reputation_negotiation) verifying diminishing rep deltas and increased negotiation success with higher attributes
+- Updated CMake to compile vendor_reputation module & register new test; roadmap Phase 4 entries marked Done

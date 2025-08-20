@@ -47,11 +47,11 @@ PHASE 3. Pricing Engine
 3.5 Tests: ordering determinism, price floor/ceiling enforcement, demand elasticity simulation (Done) – `test_vendor_phase3_pricing` covers demand monotonic response, condition scaling, rep & negotiation adjustments, and margin differential.
 
 PHASE 4. Reputation & Negotiation
-4.1 Reputation gain events (successful purchases, quests, rescue vendor events) (X)
-4.2 Diminishing rep gains at higher tiers (logistic curve) (X)
-4.3 Negotiation mini-check: skill tags (Insight / Finesse) -> probability to reduce buy price (X)
-4.4 Failure penalty & lockout timer (prevent spam) (X)
-4.5 Tests: logistic progression monotonicity, negotiation probability correctness (X)
+4.1 Reputation gain events (successful purchases, quests, rescue vendor events) (Done) – API rogue_vendor_rep_gain(base_amount) + raw adjust hook (penalties)
+4.2 Diminishing rep gains at higher tiers (logistic curve) (Done) – logistic_scalar normalizes early gains, min scale 0.15 near threshold
+4.3 Negotiation mini-check: skill tags (Insight / Finesse) -> probability to reduce buy price (Done) – deterministic seed, attribute avg + d20 style roll vs min_roll, uniform discount range
+4.4 Failure penalty & lockout timer (prevent spam) (Done) – failure applies rep -1 raw and 10s lockout; success grants small rep + 5s lockout
+4.5 Tests: logistic progression monotonicity, negotiation probability correctness (Done) – test_vendor_phase4_reputation_negotiation validates diminishing deltas & higher success with higher attributes
 
 PHASE 5. Buyback & Transaction Journaling
 5.1 Buyback ring buffer (recent N sold items with timestamp & original price) (X)
