@@ -583,7 +583,7 @@ Phase 4 (Behavior Node Library) progress:
 Tests: `test_ai_phase4_nodes` (utility, movement, cooldown), `test_ai_phase4_tactical` (strafe duration + direction flip, flank point generation, regroup completion, basic cover flag), and `test_ai_phase4_cover` (full cover seek movement & occlusion validation).
 Phase 5 (Initial Enemy Integration): Added per-enemy behavior tree enable/disable API and simple MoveToPlayer tree gated by a feature flag on the enemy struct; unit test `test_ai_phase5_enemy_integration` validates movement toward player when enabled. Performance probe instrumentation pending (Phase 9.1).
 Enemy Integration Phase 0 (Data & Runtime Structure Alignment): Introduced JSON-based enemy type definitions (`../assets/enemies/*.json`) with fields for archetype id, tier id, base level offset, and type id; added mapping builder (`rogue_enemy_integration_build_mappings`) producing a validated type table (uniqueness enforced). Extended `RogueEnemyTypeDef` and `RogueEnemy` with integration fields (tier_id, base_level_offset, encounter_id, replay_hash_fragment, modifier id slots, flags) plus a cached final stats block. Added spawn apply helper (`rogue_enemy_integration_apply_spawn`) invoking existing difficulty scaling once at instantiation and storing results. New tests: `test_enemy_json_loader` (JSON loader & field assertions) and `test_enemy_integration_phase0` (mapping uniqueness, stat cache population). Roadmap Phase 0 tasks (0.1–0.5) marked Done; sets foundation for deterministic seed & modifier phases.
-Enemy Integration Phase 1 (Deterministic Seeds & Replay Hash): Added encounter seed derivation API (`rogue_enemy_integration_encounter_seed`) implementing world_seed ^ region_id ^ room_id ^ encounter_index, replay hash generator (`rogue_enemy_integration_replay_hash`) summarizing template id + unit levels (modifier ids placeholder for Phase 3), and a debug ring buffer with dump API for last 32 encounters. New test `test_enemy_integration_phase1` validates seed reproducibility (two passes identical) and divergence under different world seed. Roadmap Phase 1 (1.1–1.5) marked Done.
+Enemy Integration Phase 1 (Deterministic Seeds & Replay Hash): Added encounter seed derivation API (`rogue_enemy_integration_encounter_seed`) implementing world_seed ^ region_id ^ room_id ^ encounter_index, replay hash generator (`rogue_enemy_integration_replay_hash`) summarizing template id + unit levels (modifier ids placeholder for Phase 3), and a debug ring buffer with dump API for last 32 encounters. New test `test_enemy_integration_phase1` validates seed reproducibility (two passes identical) and divergence under a different world seed. Roadmap Phase 1 (1.1–1.5) marked Done.
 Phase 9.1 (AI Time Budget Profiler): Introduced lightweight per-frame AI timing instrumentation (`ai/core/ai_profiler.{c,h}`) with API to set a millisecond budget, begin a frame, record per-agent tick durations, and snapshot cumulative totals (frame total, max agent, agent count, exceeded flag). New unit test `test_ai_phase9_budget` covers non-exceeded and exceeded budget paths; groundwork for later incremental evaluation (9.2) and LOD behavior (9.3).
 Phase 9.2 / 9.3 (Incremental Evaluation + LOD Behaviour): Added `ai/core/ai_scheduler.{c,h}` providing a bucketed frame scheduler and distance-based Level of Detail gating. Enemies only execute their behavior tree when (a) they are within the active LOD radius and (b) their index falls into the current frame's bucket (spreading expensive AI work across frames). Outside the radius they receive a cheap maintenance tick (hook for future status decay). Radius & bucket count are runtime tunables (`rogue_ai_lod_set_radius`, `rogue_ai_scheduler_set_buckets`). Unit test `test_ai_phase9_incremental_lod` validates: near agent movement under bucketed ticking, far agent exclusion, and subsequent movement after expanding the LOD radius.
 Phase 9.4 (Agent Pooling & Reinit): Introduced `ai/core/ai_agent_pool.{c,h}` — a slab-based reusable pool for per-enemy AI blackboard wrapper blocks used by behavior tree enabled enemies. Eliminates malloc/free churn when large waves of enemies spawn/despawn or toggle AI feature flags. Integrated into `rogue_enemy_ai_bt_enable/disable` replacing direct allocation. Unit test `test_ai_phase9_agent_pool` exercises repeated acquire/release cycles, verifies peak allocation does not grow after reuse, and asserts absence of leaks (in_use returns to 0 with free list >= peak). Diagnostic APIs: `rogue_ai_agent_pool_in_use`, `rogue_ai_agent_pool_free`, `rogue_ai_agent_pool_peak`.
@@ -627,7 +627,7 @@ Adds micro-scale detailing atop the macro biome layout:
 * 4.4 Ore Veins: Random-walk ("perlin worm" style) vein lines over cave wall cells converting them to `ROGUE_TILE_ORE_VEIN`; direction perturbs with 30% turn chance for organic branching.
 * 4.5 Passability Map: Introduced `RoguePassabilityMap` derivation marking walkable tiles (grass/forest/swamp/snow/cave_floor/delta) to support downstream pathing & spawn validation.
 * 4.6 Unit Test: `test_worldgen_phase4_local_caves` validates: cave openness ratio within 25–75%, presence of lava pockets & ore veins, passability map deterministic rebuild, and full multi-phase determinism via hash comparison after regeneration.
-New tile types: `ROGUE_TILE_LAVA`, `ROGUE_TILE_ORE_VEIN`. Implementation in `world_gen_local.c` using micro RNG channel; roadmap Phase 4 items marked Done.
+New tile types: `ROGUE_TILE_LAVA`, `ROGUE_TILEORE_VEIN`. Implementation in `world_gen_local.c` using micro RNG channel; roadmap Phase 4 items marked Done.
 
 ### World Generation Phase 5 (Rivers & Erosion Detailing)
 * 5.1 River Refinement: Noise-guided widening around existing river tiles introducing `ROGUE_TILE_RIVER_WIDE` clusters and converting highly aquatic-adjacent wide tiles into deltas (`ROGUE_TILE_RIVER_DELTA`).
@@ -797,7 +797,7 @@ Phase 11.1–11.5 (AI Testing & QA Expansion): Added comprehensive quality gates
 * Phase 4.8 Transaction Confirmation: Vendor purchases now require confirmation modal (ENTER to open/accept, ESC to cancel) showing item name & price with green/red affordability tint and flashing insufficient funds overlay; unit test `test_ui_phase4_vendor_transaction` validates modal lifecycle and purchase success after funding.
 * Phase 4.9 Durability Thresholds: Equipment panel displays a durability bar with color buckets (green >=60%, amber 30–59%, red <30%) and flashing warning icon (!) when critical; helper `rogue_durability_bucket` and test `test_ui_phase4_durability_thresholds` validate classification logic.
 * Phase 4.10 Radial Selector: Controller-friendly radial menu (up to 12 wedges) with analog stick angle -> selection mapping (index 0 at Up, clockwise ordering). Keyboard arrows cycle as fallback. Events emitted: RADIAL_OPEN, RADIAL_CHOOSE, RADIAL_CANCEL. Unit test `test_ui_phase4_radial_selector` verifies open event, axis-driven selection, and choose event consistency.
-* Phase 5.1 Skill Graph (Initial): Added zoomable, pannable skill graph API with quadtree culling and node emission (base icon panel placeholder, rank pip bars, synergy glow ring). Unit test `test_ui_phase5_skillgraph` validates visible subset emission & glow presence.
+* Phase 5.1 Skill Graph (Initial): Added zoomable, pannable skill graph API with quadtree culling and node emission (base icon panel placeholder, rank pip bars, synergy glow ring) and unit test `test_ui_phase5_skillgraph` validates visible subset emission & glow presence.
 * Phase 5.2 Skill Graph Layering: Implemented full node layering (background panel, synergy glow underlay 0x30307040u, rank ring, icon sprite placeholder sheet=0, per-rank pip bars with fill overlay, rank text) replacing earlier partial slice.
 * Phase 5.3 Skill Graph Animations: Added rank allocation pulse (280ms scale+fade) and spend flyout animation (600ms upward fade) managed via arrays `skillgraph_pulses[32]` / `skillgraph_spends[32]` advanced each frame in `rogue_ui_begin`. Unit test `test_ui_phase5_skillgraph_anim` validates spawn + decay lifecycle.
 * Phase 5.4 Synergy Aggregate Panel (Plumbing): Context flag + enable API; placeholder (non-rendering) currently tests integration path for future stat aggregation.
@@ -832,7 +832,7 @@ Press `G` in-game to toggle a prototype overlay rendering the new UI skill graph
 
 Asset Placement: Add a sprite sheet at `assets/skill_icons.png` containing a uniform grid of icons (e.g., 8 columns x 4 rows = 32 icons, each 32x32). Icon IDs (0..N-1) map to frames in sheet id 0 (frame extraction hook pending). Until slicing is wired, panels + text still display (sprites may be blank if sheet not yet integrated).
 
-Demo Layout: The runtime builds a radial distribution of placeholder nodes with sample ranks, synergy flags, and tag bits to exercise quadtree culling + layered emission (background, glow, ring, icon placeholder, pip bar, rank text, pulse/spend animation layers).
+Demo Layout: The runtime builds a radial distribution of placeholder nodes with sample ranks, synergy flags, and tag bits to exercise quadtree culling + layered emission (background, glow, ring, icon placeholder, pip bar, rank text) and unit test `test_ui_phase5_skillgraph` validates visible subset emission & glow presence.
 
 Next Steps: Bind allocation/undo to inputs, integrate real skill definitions, implement sprite sheet frame slicing, mouse hover + selection, panning/zoom interaction, and synergy aggregate panel rendering.
 
@@ -859,7 +859,7 @@ Next Steps: Bind allocation/undo to inputs, integrate real skill definitions, im
   - Material tier query (`rogue_material_tier`) classifies material definitions by rarity.
   - Recipe registry + parser (`rogue_craft_load_file`) supporting output item, quantity, up to 6 ingredients, and optional upgrade source + rarity delta.
   - Upgrade path helper (`rogue_craft_apply_upgrade`) for controlled rarity evolution (clamped 0..10).
-  - Affix reroll API (`rogue_craft_reroll_affixes`) consuming materials + gold, delegating to existing affix roll generator; integrates economy & new inventory consume API.
+  - Affix reroll API (`rogue_item_instance_reroll_affixes`) consuming materials + gold, delegating to existing affix roll generator; integrates economy & new inventory consume API.
   - Inventory removal primitive (`rogue_inventory_consume`) enabling safe resource deduction shared by crafting and future sinks.
   - Unit tests: `test_salvage_basic` (existing), `test_crafting_basic` (recipe execution + tier checks), `test_reroll_affix` (material + gold consumption, affix change).
 * Dynamic rarity weights (5.4) adjust under-performing tiers based on rolling window counts (proportional additive damping to avoid oscillation).
@@ -902,317 +902,4 @@ Next Steps: Bind allocation/undo to inputs, integrate real skill definitions, im
 
 #### Memory / Performance
 * Static arrays for item defs, affixes, instances; index references instead of pointers ease persistence & future network replication.
-* Affix selection uses on-stack arrays bounded by `ROGUE_MAX_AFFIXES`; early break prevents unnecessary iteration.
-
-#### Testing Highlights
-* Phase-specific test executables (name pattern `test_loot_phaseX_...`) provide granular failure localization.
-* Generation quality test compares low vs high luck contexts ensuring no downward bias under identical seeds.
-* Persistence round-trip for affixes guards against format regressions.
-
-#### Equipment Phase 3: Item Level & Power Budget
-#### Equipment Phase 4.1: Implicit Modifier Layer
-
-Phase 4 begins expanding beyond affixes into richer base item identity. Phase 4.1 introduces an explicit implicit modifier layer:
-
-* Schema Extension: `RogueItemDef` gains optional implicit fields for primary attributes (strength/dexterity/vitality/intelligence), flat armor, and six resist types plus a `set_id` placeholder (future set bonuses).
-* Backward Compatibility: Existing item config rows (14 core columns + optional rarity + flags) remain valid; any omitted implicit columns default to zero. Extended format appends: flags, imp_str, imp_dex, imp_vit, imp_int, imp_armor, imp_rphys, imp_rfire, imp_rcold, imp_rlight, imp_rpoison, imp_rstatus, set_id.
-* Aggregation: New implicit gather pass sums definition implicit stats across equipped items, populating `implicit_*` fields in the layered stat cache and contributing defensive values (resists, flat armor) alongside affix sources.
-* Layering Integrity: `compute_layers` no longer zeroes implicit fields, preserving deterministic pre-populated values prior to derived metric calculation and fingerprint hashing.
-* Determinism: Fingerprint includes implicit contributions automatically (fields precede the fingerprint member). Equip ordering invariance verified in new unit test.
-* Test: `test_equipment_phase4_1_implicits` covers parsing extended columns, implicit layer population, fingerprint stability under equip order swap, and mutation when adding a new implicit source.
-
-Upcoming (remaining Phase 4 goals): unique item registry & hooks (4.2), set bonus thresholds & partial scaling (4.3/4.4), runeword recipe scaffold (4.5), and deterministic precedence rules (4.6) with comprehensive test suite (4.7).
-
-#### Equipment Phase 4.2: Unique Item Registry & Layer
-
-Introduces a simple data-driven unique item system layered cleanly between implicit and affix contributions:
-
-* Registry: `equipment_uniques.c` maintains up to 64 `RogueUniqueDef` entries (id, base_item_id, fixed stat bonuses, future hook id).
-* Layering: Stat cache expanded with `unique_*` fields; aggregation pass detects equipped items whose base definition matches a registered unique and sums bonuses.
-* Determinism: Unique layer ordered after implicit and before affixes, ensuring predictable overrides without mutating base or implicit stats.
-* Extensibility: Hook id reserved for future behavior (on-hit effects, conditional procs) while preserving pure stat aggregation now.
-* Test: `test_equipment_phase4_2_uniques` validates registration, aggregation, resist contributions, and fingerprint change when a second unique (helm) is added post-equip.
-
-#### Equipment Phase 4.3–4.7: Sets, Partial Scaling, Runewords & Precedence
-
-These slices extend the equipment identity layers beyond uniques, introducing cumulative set bonuses, smooth interpolation between tier thresholds, an initial runeword scaffold, and a deterministic precedence contract across all stat contributors.
-
-Key Additions:
-* Set Registry (4.3): Static descriptors (id, threshold table). Each threshold specifies required piece count and a bundled stat delta (primary attributes, flat armor, resistances). Equipping pieces with matching `set_id` accumulates active thresholds and sums their bundles.
-* Partial Scaling (4.4): If current equipped piece count lies between two defined thresholds, a linear interpolation per stat bridges the gap producing incremental gains (integer floor) instead of a flat plateau. Prevents abrupt jumps when approaching the next tier.
-* Runeword Scaffold (4.5): Introduces a lightweight registry (id, pattern string, stat bundle). Present prototype matches pattern to base item id (placeholder until sockets/gems in Phase 5 supply ordered rune data). On match, runeword bonuses populate a dedicated `runeword_*` layer.
-* Precedence Rules (4.6): Finalized deterministic aggregation order and total formula composition: implicit → unique → set → runeword → affix → buff → derived metrics. Earlier layers remain immutable input for later ones, simplifying reasoning and future conflict policies (e.g., runeword superseding an affix stat intentionally).
-* Comprehensive Tests (4.7): `test_equipment_phase4_3_5_sets_runewords` validates: set counting, threshold activation, interpolation math (midpoint correctness), runeword layer population, multi-layer stacking with uniques & implicits, and fingerprint invariance under equip order permutations ensuring no regression in determinism.
-
-Implementation Notes:
-* Set & runeword registries live in `equipment_stats.c` for the initial slice to minimize plumbing overhead; a later refactor may mirror the standalone uniques module for data-driven loading / hot reload.
-* Interpolation formula: `interp = prev + ( (next - prev) * (pieces - prev_req) ) / (next_req - prev_req )` applied per numeric field; resistant to division by zero because thresholds are validated strictly increasing.
-* No special casing for negative deltas (future design could allow inverse scaling). Current stat bundle fields all non-negative ensuring monotonic progression.
-* Fingerprint automatically encompasses new layers (structure ordering places new fields before the fingerprint member) providing regression protection without logic changes.
-
-Planned Next (Phase 5 preview): Introduce sockets & gems feeding into or enabling real runeword pattern verification (ordered rune sequence + socket count), along with enchant & reforge mechanics. The present runeword pattern placeholder will be replaced by socket composition matching, preserving existing layer precedence.
-
-### Equipment Phase 5.1 – Socket Count Infrastructure
-Implemented foundational socketing support:
-* Definition Schema: Added `socket_min` / `socket_max` optional columns (indices 28/29 after `set_id`) in item definition CSV; parser clamps negative to 0 and max to <=6, enforcing `max>=min`.
-* Instance Initialization: Spawn path rolls deterministic socket counts using a lightweight LCG seeded by instance slot, definition index, and integer world position, producing a value in `[min,max]` (capped 6). Empty sockets initialized to `-1`.
-* Runtime API: `rogue_item_instance_socket_count`, `rogue_item_instance_get_socket`, `rogue_item_instance_socket_insert`, `rogue_item_instance_socket_remove` for querying and mutating gem occupancy (placeholder gem id = item def index until dedicated gem registry in 5.2).
-* Determinism & Bounds: Fixed-count case (`min==max`) yields invariant socket count; range case covered by unit test across multiple spawn positions asserting bounds `[min,max]`.
-* Testing: New unit test `test_equipment_phase5_sockets` loads a dedicated `equipment_test_sockets.cfg`, validates parser ingestion (`2..4` and `3..3`), exercises multiple spawns to observe distribution within bounds, and verifies insert/remove + occupied slot rejection.
-
-Upcoming (5.2+): Introduce gem definition category (`ROGUE_ITEM_GEM`) stat contributions layered before affixes, economic insertion/removal costs & safety (5.3), enchanting & reforge mechanics (5.4–5.5), and optional protective seal (5.6). Runeword placeholder matching will transition to socket rune sequence evaluation once gem typing exists.
-
-### Equipment Phase 5.2–5.3 – Gems & Economic Socket Operations
-Implemented gem system and paid socketing:
-* Gem Registry (5.2): Added `equipment_gems.[ch]` with `RogueGemDef` (flat primary/resist/armor, percent primary bonuses, proc metadata placeholders). CSV loader `gems_test.cfg` demonstrates format.
-* Aggregation: `rogue_gems_aggregate_equipped` integrates into equipment stat pipeline prior to sets/runewords, contributing flats and approximate percent conversions (converted to flat based on base primary stats for deterministic simplicity pending a dedicated percent layer).
-* Economic Insertion (5.3): High-level APIs `rogue_item_instance_socket_insert_pay` and `rogue_item_instance_socket_remove_refund` wrap base socket operations, charging gold (`cost = 10 + 2*(sum flat + sum pct)`) and refunding 50% on removal plus optional gem return to inventory.
-* Safety: Failure modes (insufficient funds, slot occupied, invalid gem) abort without mutating sockets or gold. Removal always preserves the item (never destroys base equipment) and optionally returns gem item to inventory.
-* Tests: `test_equipment_phase5_gems` loads gem and item fixtures, forces socket count, inserts flat and percent gems, validates stat increases (strength >= base + flat), fire resist accumulation, and successful removal with refund path.
-* Roadmap: Marked 5.2 and 5.3 Done; groundwork laid for 5.4 Enchant & 5.5 Reforge to extend economic model.
-
-### Equipment Phase 5.4–5.5 – Enchant & Reforge
-Introduced affix modification crafting operations:
-* Enchant: Selectively reroll prefix and/or suffix while preserving the untouched affix, item_level, rarity, sockets & existing gems. Cost formula `50 + 5*item_level + (rarity^2)*25 + 10*sockets`. If both affixes are rerolled, a rare material `enchant_orb` is also consumed. Failure leaves item unchanged.
-* Reforge: Full affix wipe + reroll (respecting rarity rules) preserving item_level, socket_count, rarity; clears gem contents (socket_count retained). Cost = 2x enchant cost and consumes `reforge_hammer`.
-* Determinism: Seed basis mixes instance index and item_level for stable reroll results in tests.
-* Validation: Post-operation budget check ensures no illegal stat inflation; failure aborts.
-* Materials: Added `enchant_orb`, `reforge_hammer` to test item defs (category material).
-* Tests: New unit test `test_equipment_phase5_enchant_reforge` covers selective reroll, dual reroll, reforge preservation (level, rarity, socket_count) and failure modes (insufficient gold, missing material). Existing gem test already validates gem stacking; roadmap Phase 5.7 updated accordingly.
-* Protective Seal (5.6): Added optional crafting material `protective_seal` letting players lock prefix and/or suffix prior to an enchant. Locked affixes are skipped during reroll; attempt returns -2 if nothing remains to reroll. Single seal consumed per operation regardless of locks applied.
-* Roadmap: 5.4, 5.5, 5.6, 5.7 marked Done (5.6 implemented as optional feature).
-
-### Equipment Phase 6.1–6.3 – Proc Engine Foundations
-Implemented an initial conditional effect (proc) subsystem:
-* Unified Descriptor: `RogueProcDef` captures trigger (hit/crit/kill/block/dodge/low HP), internal cooldown, duration, stacking rule (refresh/stack/ignore), magnitude scalar, and max stacks.
-* Runtime: Registry with up to 64 procs, per-proc cooldown + duration timers, uptime accumulation for telemetry, simple global per-second trigger rate cap to prevent spam.
-* Events: APIs `rogue_procs_event_hit(was_crit)`, `rogue_procs_event_kill`, `rogue_procs_event_block`, `rogue_procs_event_dodge`, plus `rogue_procs_update(dt_ms,hp_cur,hp_max)` to tick timers.
-* Stacking Rules: Refresh (keeps stacks, resets duration) and Stack (increments up to max, shared duration) implemented; Ignore (fires once until expiry) reserved for future.
-* Telemetry: Query trigger counts, current stacks, uptime ratio for future balancing & analytics integration.
-* Tests: `test_equipment_phase6_proc_engine` simulates mixed hit/crit sequence validating trigger counts and stacking persistence.
-* Roadmap: Marked 6.1–6.3 Done; forthcoming phases (6.4–6.7) will add advanced stacking semantics variety, rate limiting refinements, and deterministic ordering tests.
-
-### Equipment Phase 6.4–6.7: Advanced Stacking, Rate Limiting & Telemetry
-Extended the proc subsystem with full stacking semantics, deterministic ordering, enhanced rate limiting, and richer analytics:
-* Stacking Rules Finalized (6.4): Implemented explicit enum dispatch – Refresh (duration reset, stack count stable), Stack (increments up to max_stacks; shared duration window), Ignore (first trigger holds until expiry). Internal state machine refactored for clarity & future extension (e.g., decay stacking).
-* Global Rate Limiting (6.5): Consolidated per-proc ICD with a global rolling window trigger cap to prevent burst spam; added monotonically increasing global sequence id assigned at each successful trigger to guarantee deterministic ordering across mixed trigger types even when throttled.
-* Telemetry Expansion (6.6): Added per-proc triggers-per-minute calculation (scaled from total triggers & accumulated active milliseconds) plus last trigger sequence accessor for ordering assertions; existing uptime accumulation retained for later balancing dashboards.
-* Deterministic Ordering (6.6 adjunct): Sequence numbers provide stable comparison for replay / audit tooling; no dependence on registration index once triggered.
-* Tests (6.7): New `test_equipment_phase6_proc_engine_extended` exercises rapid hit events verifying: (a) refresh rule never increases stack count, (b) stacking rule caps at max, (c) ignore rule maintains single stack, (d) non-zero triggers-per-minute, (e) positive and ordered sequence numbers.
-* Roadmap Updated: Phase 6.4–6.7 marked Done; foundation ready for later conditional affix categories and analytics phases (11.x).
-
-
-
-* Each `RogueItemInstance` now tracks `item_level` (baseline 1 on spawn) driving a power budget.
-* Budget formula: `budget = 20 + item_level * 5 + (rarity^2) * 10` (rarity clamped 0..4). Provides quadratic headroom for premium tiers while keeping early levels constrained.
-* Affix roll enforcement: After prefix/suffix value rolls, aggregate weight is clamped to budget by decrementing the larger affix first (ties favor prefix) ensuring no over-budget items enter the ecosystem.
-* Upgrade API: `rogue_item_instance_upgrade_level(inst, levels, &seed)` raises item_level and gently increases affix values (+1 steps with deterministic LCG selection) until reaching new cap.
-* Validation: `rogue_item_instance_validate_budget` returns 0 if compliant, negative error codes if over or invalid. A lightweight safeguard for persistence or external tooling ingest.
-* Test `test_equipment_phase3_budget` covers: (a) baseline under-cap item, (b) forced over-cap detection, (c) multi-level upgrade increasing affix value without exceeding new budget.
-
-#### Loot Filter (Phase 12.1–12.2 Initial)
-* Rule file parser supports lines: `rarity>=N`, `rarity<=N`, `category=...`, `name~substr`, `def=item_id`, and mode switches `MODE=ANY` / `MODE=ALL` (default AND semantics).
-* Up to 64 rules stored; case-insensitive comparisons for names & substrings.
-* Runtime evaluation marks each `RogueItemInstance` with `hidden_filter` flag; visible count via `rogue_items_visible_count`.
-* Reapply API (`rogue_loot_filter_refresh_instances`) lets UI or console command reload filter and instantly hide/show existing ground items.
-* Unit test `test_loot_filter_basic` validates loading, rule count, visibility transition (rarity>=3 hides common sword but not epic blade).
-
-Implemented lightweight string builders for item inspection:
-* `rogue_item_tooltip_build(inst, buf, sz)` lists name, quantity, damage/armor lines, affix stat rolls, and durability.
-* `rogue_item_tooltip_build_compare(inst, slot, buf, sz)` appends a delta damage line vs equipped slot (currently weapon slot support).
-* Supports ground or equipped instances (uses instance index lookups; future integration will feed hover selection from UI layer).
-* Tests: `test_loot_tooltip_basic` (validates lines) and `test_loot_tooltip_compare` (ensures comparison delta appended).
-
-Added passive visualization of recent ground item spawns on the minimap:
-* Each item spawn registers a ping via `rogue_minimap_ping_loot(x,y,rarity)` triggered inside `rogue_items_spawn`.
-* Pings persist for 5 seconds, fading out during the final 20% of lifetime.
-* Rendering overlays small 3x3 colored squares (rarity color) on the minimap after the player marker.
-* Module: `minimap_loot_pings.c/h` with update (`rogue_minimap_pings_update`) and render hook (`rogue_minimap_render_loot_pings`).
-* Unit Test `test_equipment_phase19_2_5_vfx` validates lifecycle: spawn state, pulse activation window, alpha increase, despawn cleanup.
-
-Unit test `test_equipment_unequip_delta` verifies stat bonus application on equip and removal on unequip, completing roadmap item 14.5.
-
----
-
-## 4. Architecture & Code Layout
-```
-src/
-  core/      Game loop, entity & world subsystems.
-  entities/  Player & enemy logic
-  graphics/  Renderer & sprite handling
-  input/     Input mapping & event processing
-  world/     Tilemap, procedural world generation, vegetation
-  util/      Logging & utility helpers
-  platform/  SDL2 platform layer (can be disabled)
-tests/
-  unit/      Deterministic small-scope tests
-  integration/ Boot, world gen, combat & longer flows
-assets/      Item, loot, affix, and visual asset configs
-cmake/       Toolchain & warning configuration
-```
-
-Key module naming conventions:
-* `loot_*` – Self‑contained loot subsystems (tables, rarity, affixes, generation, instrumentation).
-* `*_adv` – “Advanced” augmentation layer to a baseline system.
-* `path_utils` – Centralized path resolution (avoids brittle relative paths in tests).
-
----
-
-## 5. Build & Run
-### Dependencies
-* CMake ≥ 3.20
-* C11 compiler (MSVC, Clang, GCC)
-* (Optional) SDL2 (+ SDL_image, SDL_mixer) for rendering/audio.
-
-### Configure & Build (Examples)
-Windows (PowerShell):
-```powershell
-cmake -S . -B build -DROGUE_ENABLE_SDL=ON -DCMAKE_BUILD_TYPE=Debug -DROGUE_SDL2_ROOT=C:/libs/SDL2
-cmake --build build --config Debug
-```
-Linux / macOS:
-```bash
-cmake -S . -B build -DROGUE_ENABLE_SDL=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo
-cmake --build build -- -j$(nproc)
-```
-
-Headless (logic only):
-```bash
-cmake -S . -B build -DROGUE_ENABLE_SDL=OFF
-cmake --build build
-```
-
-Run game (if SDL enabled):
-```bash
-./build/roguelike   # or build/Release/roguelike.exe on Windows
-```
-
-### Tests
-```bash
-ctest --test-dir build -C Debug --output-on-failure
-```
-Filter specific tests:
-```bash
-ctest -C Release -R loot_phase8_generation_basic -V
-```
-
-Formatting:
-```bash
-cmake --build build --target format
-```
-Static analysis (if clang-tidy found):
-```bash
-cmake --build build --target tidy
-```
-
----
-
-## 6. Configuration & Assets
-Item, loot table, and affix definitions live under `assets/` with CSV‑like schemas. Examples:
-* `test_items.cfg` – Base item fields: id, name, category, level req, stack, value, damage/armor, sprite, rarity.
-* `assets/items/*.cfg` – Modular category files (e.g. `swords.cfg`, `potions.cfg`, `armor.cfg`, `gems.cfg`, `materials.cfg`, `misc.cfg`). Each uses the same 15-column schema. Load them in bulk via `rogue_item_defs_load_directory("../assets/items")` for cleaner content scaling.
-* `test_loot_tables.cfg` – Weighted loot entries + quantity ranges + rarity band overrides.
-* `affixes.cfg` – Prefix/suffix definitions with stat ranges and per‑rarity weights.
-
-Runtime path resolution uses `rogue_find_asset_path()` ensuring tests remain portable.
-
----
-
-## 7. Testing & Quality Gates
-Principles:
-* **Deterministic RNG**: simple LCG; seeds passed explicitly; reproducibility prioritized.
-* **Layered Tests**: each roadmap phase contributes new dedicated test(s).
-* **Instrumentation Safety**: histogram / telemetry utilities validated for format & counts.
-
-Quality gates enforced by CI & optional pre‑commit:
-* Warnings-as-errors (configurable).
-* clang-format compliance.
-* clang-tidy (if available) informational target.
-* Statistical rarity distribution tests (baseline probability regression guard).
-* Persistence round‑trip tests for affix data integrity.
-
----
-
-## 8. Development Workflow
-1. Update or consult `implementation_plan.txt` for next milestone steps.
-2. Implement feature in isolated module (`loot_generation.c`, etc.).
-3. Add/extend a unit test capturing deterministic behavior and boundary cases.
-4. Update phase status / docs.
-5. Run full test suite locally before pushing.
-
-Hooks (optional):
-```bash
-pip install pre-commit
-pre-commit install
-```
-
-Environment overrides:
-* `ROGUE_PRECOMMIT_COVERAGE=1` – enable extra coverage pass (if lcov available).
-
----
-
-## 9. Performance & Determinism
-* Fixed LCG RNG for item/affix rolls.
-* Limited dynamic allocations; most pools are static arrays.
 * Affix selection uses on-stack arrays; no heap fragmentation during generation.
-* Ready for later profiling hooks (see roadmap 17.x).
-
----
-
-## 10. Roadmap Snapshot (Excerpt)
-| Phase | Status | Summary |
-|-------|--------|---------|
-| 5.x Rarity Enhancements | Done | Dynamic weights, floor, pity, per‑rarity overrides |
-| 6.x Instrumentation | Done | Logging categories, histogram & telemetry export |
-| 7.x Affix Framework | Done | Parsing, weighted rolls, stat aggregation, persistence |
-| 8.x Generation Pipeline | Partially Done | Contextual generation complete (up through duplicate avoidance, quality bias) |
-| 9.x Dynamic Balancing | Pending | Adaptive drop rates, global rate layers |
-| 10.x Economy & Vendors | Partial | Shop generation + rarity-based pricing implemented; restock & scaling pending |
-
-Refer to `implementation_plan.txt` for granularity (over 150 line milestones).
-
----
-
-## 11. Changelog & Latest Highlights
-
-### [Unreleased]
-Planned: Dynamic drop balancing (9.x), economy systems (10.x), crafting (11.x), loot filtering UI (12.x).
-
-### UI System Phase 1 Progress
-* Completed Phase 1.1–1.7 core architecture slice:
-  - Module scaffolding, `RogueUIContext` lifecycle, panel & text primitives.
-  - Deterministic RNG channel (xorshift32) isolated from simulation RNG.
-  - Simulation snapshot separation (opaque pointer + size) enabling read-only UI consumption without coupling.
-  - Per-frame transient memory arena (configurable size, default 32KB) with `rogue_ui_arena_alloc` + `rogue_ui_text_dup` helper eliminating heap churn for ephemeral strings.
-  - Deterministic UI tree serializer (stable line format) + FNV-1a hashing diff API (`rogue_ui_diff_changed`) for regression tests & future golden snapshots.
-  - Extended unit tests: `test_ui_phase1_basic` (init, primitives, RNG stability) and `test_ui_phase1_features_ext` (arena alloc, snapshot separation, diff detection, capacity & arena exhaustion).
-* Next (Phase 2): Add additional primitives (Image/Sprite/ProgressBar) and interactive widgets (Button/Toggle/Slider/TextInput) with focus & ID plumbing.
-  - Phase 2.1 completed: Added Image, Sprite, ProgressBar primitives with extended `RogueUINode` fields (aux_color, value/value_max, data_i0/i1) and test `test_ui_phase2_primitives` validating kinds & value clamping.
-  - Phase 2.2 completed: Added interactive Button, Toggle, Slider, TextInput widgets (immediate-mode hit test, active/hot/focus indices) with test `test_ui_phase2_interactive` covering click, toggle flip, slider drag value update, text input character insertion & backspace.
-  - Phase 2.3 completed: Added Row & Column incremental layout helpers (begin + next APIs maintaining internal cursor with padding & spacing), grid cell rect helper for uniform grids, and lightweight layer node (order stored in `data_i0`). Unit test `test_ui_phase2_layout_id` validates horizontal/vertical placement ordering, grid math, and non-overlap.
-  - Phase 2.7 completed: Widget ID hashing (FNV1a over label text) automatically assigns `id_hash` for lookup via `rogue_ui_find_by_id`; stable across frames (verified in `test_ui_phase2_layout_id`).
-  - Phase 2.4 completed: Scroll container (vertical) with wheel-driven offset clamped to content height; helper APIs (`rogue_ui_scroll_begin`, `rogue_ui_scroll_apply`, `rogue_ui_scroll_offset`) – foundation for future inertial easing & virtualization. Covered in `test_ui_phase2_scroll_tooltip_nav` (offset advances after wheel input).
-  - Phase 2.5 completed: Tooltip system with hover intent delay; creates anchored panel + text after configurable ms threshold; validated by forcing time advance in unit test.
-  - Phase 2.6 completed: Minimal declarative DSL convenience macros (`UI_PANEL`, `UI_TEXT`, `UI_BUTTON`) providing clearer callsites and reducing boilerplate.
-  - Phase 2.8 partial update: Linear Tab and arrow-key navigation cycling across interactive widgets implemented (`rogue_ui_navigation_update`); spatial heuristic & controller graph still pending.
-  - Phase 6.1 completed: Data-driven HUD layout spec (`assets/hud_layout.cfg`) parsed via unified kv parser, providing configurable positions/sizes for health, mana, XP bars and level text. Loader APIs: `rogue_hud_layout_load`, `rogue_hud_layout`. New test `test_ui_phase6_hud_layout` verifies parse & coordinate propagation.
-* Phase 6.2 HUD Bars (NEW): Added layered smoothing health/mana/AP bars with trailing damage indicator (secondary lag bar) and new AP bar rendered beneath XP. API `hud_bars.h` exposes update + fraction accessors; unit test `test_ui_phase6_bars_ap` validates lag behavior and snap on heal.
-* Phase 6.3 Buff Belt (NEW): Added snapshot API (`rogue_buffs_snapshot`) and HUD buff belt module (`hud_buff_belt.c/h`) rendering active buffs (stack magnitude text + cooldown overlay). Test `test_ui_phase6_buff_belt` validates appearance/disappearance timing.
-* Crafting Phase 6.3 (NEW): Transmute (enchant/reforge) cost formulas now scale with catalyst material tier (linear 2% per tier capped at 25%). Added material tier lookup to `material_registry` and updated `equipment_enchant.c`. Test `test_crafting_phase6_3_transmute_scaling` ensures reforge cost > enchant cost with scaling active.
-* Crafting Phase 7 (NEW): Determinism & RNG Governance foundation. Added segregated RNG streams (gathering/refinement/craft_quality/enhancement) via `rng_streams.[ch]` with session seeding + `rogue_seed_derive` helper, append-only crafting/enhancement journal (`crafting_journal.[ch]`) building a FNV-1a hash chain for outcome integrity, integrated journal appends into enhancement/enchant paths, and replay/hash determinism tests (`test_crafting_phase7_rng_journal`, `test_crafting_phase7_determinism`) validating stream independence and identical hash reproduction across replays.
-* Phase 6.4 Damage Number Batch (NEW): Enhanced floating combat text with spatial batching (nearby merges), alpha ease-in/out, quadratic end fade, and per-number adaptive life extension on merges (no separate test yet—leverages existing combat tests implicitly).
-* Phase 6.5 Minimap Toggle (NEW): Added `show_minimap` flag & 'M' key toggle gating conditional minimap render path; test `test_ui_phase6_minimap_metrics_alerts` covers toggle logic.
-* Phase 6.6 Alerts System (NEW): Center-top queued alert banners (level up, low health, vendor restock) with fade-out; APIs `rogue_alert_level_up/low_health/vendor_restock`, manual test triggers via F2/F3/F4; integrated into `hud.c`.
-* Phase 6.7 Metrics Overlay (NEW): Runtime FPS, frame ms, rolling average displayed bottom-left; toggled with F1 (`show_metrics_overlay`); included in same test harness.
-* Phase 7.1 Theme Asset Pack (NEW): Added key/value driven `ui_theme_default.cfg` with palette (panel/bg/button/slider/tooltip/alert colors), spacing (padding_small/large), base font size, DPI scale integer for deterministic scaling.
-* Phase 7.2 Theme Hot-Swap & Diff (NEW): Loader `rogue_ui_theme_load`, apply API `rogue_ui_theme_apply`, and bitmask diff `rogue_ui_theme_diff` enabling targeted re-render invalidation (unit test exercises change detection for color + spacing fields).
-* Phase 7.3 Accessibility – Colorblind Modes COMPLETE: Added colorblind mode toggle with transforms for protanopia, deuteranopia, and tritanopia (`rogue_ui_colorblind_transform`). Existing unit test exercises protanopia path; transforms share approximation matrices.
-* Phase 7.4 Scalable UI Helpers: Introduced DPI scaling helpers (`rogue_ui_dpi_scale_x100`, `rogue_ui_scale_px`) enabling deterministic integer layout scaling (theme supplies dpi_scale_x100). Widgets not yet scaled will be migrated in Phase 8 animation/layout pass.
-* Phase 7.5 Reduced Motion Mode: Global toggle (`rogue_ui_set_reduced_motion` / `rogue_ui_reduced_motion`) for disabling or simplifying future large transitions / animations (pulse/spend already queryable).
-* Phase 7.6 Narration Stub: Added lightweight narration buffer + APIs (`rogue_ui_narrate`, `rogue_ui_last_narration`) to prepare for screen reader integration; currently stores last message for tests/tooling.
-* Phase 7.7 Focus Audit Tool: Developer overlay utilities (`rogue_ui_focus_audit_enable`, `rogue_ui_focus_audit_emit_overlays`) visually highlight focusable widgets and export deterministic tab/focus order (`rogue_ui_focus_order_export`) for automated auditing.
-* Phase 10.1 Headless Harness: Introduced deterministic one-shot frame runner (`rogue_ui_headless_run`) and tree hash helper (`rogue_ui_tree_hash`) with unit test `test_ui_phase10_headless_harness`—foundation for golden diff, navigation traversal, and performance smoke tests.
-* Phase 10.3 Navigation Traversal Test: Added `test_ui_phase10_navigation_traversal` verifying horizontal and vertical focus cycling across a grid without traps or skips (wrap correctness & uniqueness guarantees).
-* Phase 11.1 Style Guide Catalog: Programmatic widget catalog builder (`rogue_ui_style_guide_build`) produces representative panel/button/toggle/slider/textinput/progress examples for documentation & visual diffing.
-* Phase 11.2 Developer Inspector: Hierarchy overlay + selection & live color edit APIs (`rogue_ui_inspector_enable`, `rogue_ui_inspector_emit`, `rogue_ui_inspector_edit_color`) with automated test coverage.
-* Phase 11.3 Crash Snapshot: Lightweight snapshot (`rogue_ui_snapshot`) capturing node count, last tree hash placeholder, and input state for post-mortem debugging.

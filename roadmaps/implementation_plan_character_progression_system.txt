@@ -62,7 +62,7 @@ PHASE 5. Skill & Passive Unlock Integration (Done)
 5.6 Tests: DSL parse, stat totals, duplicate unlock prevention, hash change & reload invariants (`test_progression_phase5_passives` prints PROG_P5_OK) (Done)
 
 PHASE 6. Mastery System
-6.1 Mastery XP separate track (earns via sustained skill usage) (X)
+6.1 Mastery XP separate track (earns via sustained skill usage) (Done - minimal per-skill mastery XP module added: `src/core/progression_mastery.[ch]` with deterministic rank thresholds and unit test `tests/unit/test_progression_mastery.c`)
 6.2 Mastery levels unlocking minor passive rings (circular radial UI concept) (X)
 6.3 Per-skill mastery bonus scaling tiers (rank brackets) (X)
 6.4 Decay or plateau mechanic to prevent runaway specialization (optional toggle) (X)

@@ -262,6 +262,7 @@ add_library(rogue_core
     # progression phase 4 maze skill graph framework wrapper
     src/core/progression_maze.c
     src/core/progression_passives.c
+    src/core/progression_mastery.c
     src/core/dialogue.c
     # UI Phase 1 scaffolding
     src/ui/core/ui_context.c
