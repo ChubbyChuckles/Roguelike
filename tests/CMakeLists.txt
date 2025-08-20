@@ -1,3 +1,9 @@
+# Phase 5 crafting skill test explicit add (ensure included regardless of glob ordering)
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_crafting_phase5_skill.c)
+    add_executable(test_crafting_phase5_skill unit/test_crafting_phase5_skill.c)
+    target_link_libraries(test_crafting_phase5_skill PRIVATE rogue_core)
+    add_test(NAME test_crafting_phase5_skill COMMAND test_crafting_phase5_skill)
+endif()
 # Loot filter predicate evaluation test (Itemsystem 12.7)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_hit_geometry.c AND NOT TARGET test_hit_geometry)
     add_executable(test_hit_geometry unit/test_hit_geometry.c)
@@ -765,7 +771,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_buff_belt.c AND NOT TA
     endif()
     add_test(NAME test_ui_phase6_buff_belt COMMAND test_ui_phase6_buff_belt)
 endif()
-    
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_minimap_metrics_alerts.c AND NOT TARGET test_ui_phase6_minimap_metrics_alerts)
     add_executable(test_ui_phase6_minimap_metrics_alerts unit/test_ui_phase6_minimap_metrics_alerts.c)
     target_link_libraries(test_ui_phase6_minimap_metrics_alerts PRIVATE rogue_core)
@@ -2242,7 +2248,7 @@ endif()
 
 # Explicitly add generation quality test (ensure picked up even if glob cache stale)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase8_generation_quality.c AND NOT TARGET test_loot_phase8_generation_quality)
-   
+
     add_executable(test_loot_phase8_generation_quality unit/test_loot_phase8_generation_quality.c)
     target_link_libraries(test_loot_phase8_generation_quality PRIVATE rogue_core)
     if(ROGUE_ENABLE_SDL)
@@ -2565,7 +2571,7 @@ endif()
 # Explicitly add combat multi-hit window test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_multi_hit.c AND NOT TARGET test_combat_multi_hit)
     add_executable(test_combat_multi_hit unit/test_combat_multi_hit.c)
-   
+
     target_link_libraries(test_combat_multi_hit PRIVATE rogue_core)
     target_compile_definitions(test_combat_multi_hit PRIVATE TEST_COMBAT_PERMISSIVE=1)
     if(ROGUE_ENABLE_SDL)
@@ -2922,4 +2928,3 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase2_interactive.c AND NOT 
     endif()
     add_test(NAME test_ui_phase2_interactive COMMAND test_ui_phase2_interactive)
 endif()
-

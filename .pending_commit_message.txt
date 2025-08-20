@@ -70,9 +70,21 @@ crafting: Phase 4.3–4.6 Station Registry, Queue Model, Cancel/Refund & Tests
 - Update API `rogue_craft_queue_update(elapsed_ms, add_cb)` advances active jobs, finalizes completion (granting outputs through callback) once accumulated time >= recipe->time_ms, then promotes waiting jobs while respecting capacity.
 - Cancel API `rogue_craft_queue_cancel(job_id, recipe, add_cb)` supports full refund for waiting jobs (all inputs restored) and partial refund (50%) for active jobs, marking state canceled and freeing capacity for promotion.
 - Helper APIs: `rogue_craft_station_id(name)`, `rogue_craft_queue_active_count(station_id)`, `rogue_craft_queue_job_count()` for diagnostics & tests; internal promotion helper ensures deterministic iteration order stable across runs.
-- Added unit test `test_crafting_phase4_queue` covering: capacity enforcement (forge activates 2, third waits), timed completion after exact time slice, activation of waiting job post-completion, active cancel partial refund (2 of 4 ore refunded), additional craft to reach dust requirement, shard recipe execution at mystic_altar, waiting cancel full refund, and final output correctness (dust & shard counts) printing CRAFT_P4Q_OK.
+- Added unit test `test_crafting_phase4_queue` covering: capacity enforcement (forge activates 2, third waits), timed completion after exact time slice, activation of waiting job post-completion, active cancel partial refund (2 of 4 ore refunded), production of additional dust batches, shard recipe execution at mystic_altar with second shard job waiting + full refund cancel path, and final output correctness (dust & shard counts) printing CRAFT_P4Q_OK. Adjusted job state machine to include delivered state (4) preventing duplicate output credit.
 - Roadmap `implementation_plan_crafting_gathering_system.txt` updated: Phase 4 tasks 4.3–4.6 marked Done (crafting recipe system now fully implemented for Phase 4 scope).
 - README changelog updated with concise Phase 4 queue subsystem entry (stations, queue, cancel/refund policy, determinism guarantees).
 - Notes: Future Phase 5 integration will hook exp_reward & skill_req into progression XP ledger; future balancing may adjust station capacities or introduce dynamic scaling.
 
 Verification: SDL2 Debug build planned with full test suite (existing crafting tests + new queue test expecting CRAFT_P4Q_OK). Queue logic isolated; no existing recipe/refinement tests require modification. Added file to tests CMake via existing glob pattern; explicit add optional future improvement.
+
+crafting: Phase 5.1–5.5 Crafting Skill & Proficiency Progression
+
+- Added `crafting_skill.[ch]` implementing per-discipline XP & level curve (quadratic incremental), perk tier scaling (material cost %, speed %, duplicate output chance %, quality floor bonus placeholder) and recipe discovery bitset with dependency unlock.
+- Integrated perks into queue enqueue (cost & speed reduction) and job completion (duplicate chance + XP gain by station discipline).
+- Added discipline mapping via station id; EXP reward field of recipe leveraged for skill progression.
+- Deterministic duplicate roll using job id hash ensures replay stability.
+- Unit test `test_crafting_phase5_skill` validates smithing XP gain, cost reduction perk activation, enchanting XP gain via shard craft, and successful shard production.
+- Roadmap Phase 5 tasks 5.1–5.5 marked Done; README changelog updated to reflect new progression layer and perk effects.
+- Follow-ups deferred: UI exposure of discovery & perks, quality floor application to item outcome rolls (hook stub present), balancing duplicate chance distribution.
+
+Verification: SDL2 Debug build; new test passes (CRAFT_P5_OK) alongside existing Phase 4 tests after integration adjustments.

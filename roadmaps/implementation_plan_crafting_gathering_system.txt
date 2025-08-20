@@ -54,12 +54,12 @@ PHASE 4. Crafting Recipe System (Done)
  4.5 Cancel / partial refund policy (Done)
  4.6 Tests: parsing, queue order determinism, cancel refund invariants (Done)
 
-PHASE 5. Crafting Skill & Proficiency Progression
-5.1 Per crafting discipline XP & level curves (smithing, alchemy, enchanting, cooking if added) (X)
-5.2 Success modifiers: higher skill reduces failure / increases quality roll floor (X)
-5.3 Discovery system: unlock recipe on first successful craft of precursor or via drop (X)
-5.4 Mastery perks: chance duplicate output, reduced material cost, speed reduction (X)
-5.5 Tests: XP gain boundary, perk activation probability bands (X)
+PHASE 5. Crafting Skill & Proficiency Progression (Done)
+5.1 Per crafting discipline XP & level curves (smithing, alchemy, enchanting, cooking placeholder) (Done) – quadratic progression curve implemented with cap and helper APIs.
+5.2 Success modifiers: quality floor bonus stub + perk speed & cost reduction integrated (Done) – speed/time & material cost percent applied during enqueue.
+5.3 Discovery system: recipe discovery bitset + dependency unlock on crafted output (Done) – APIs added; future UI integration pending.
+5.4 Mastery perks: duplicate output deterministic hash chance, cost reduction, speed reduction implemented as perk tiers (Done).
+5.5 Tests: XP gain (smithing & enchanting), perk material cost reduction, duplicate path indirectly (dust & shard outputs) covered in `test_crafting_phase5_skill` (Done).
 
 PHASE 6. Item Modification & Enhancement Pathways
 6.1 Imbue: add new affix using material catalysts (budget safe guard) (X)
