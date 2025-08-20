@@ -24,3 +24,20 @@ Vendor System Phase 5 Completion: Buyback & Transaction Journaling
 - Anti-duplicate GUID lineage: recent GUID ring buffer (128) with lookup to detect repeat resale exploit attempts; exposed rogue_vendor_buyback_guid_recent.
 - Unit test test_vendor_phase5_buyback_journal validates: ring buffer wrap (no crash, bounded count), monotonic depreciation (p0>=p1>=p2 & floor respected), journal hash determinism (two identical sequences -> same accum hash), duplicate guid detection returns flagged state on repeat.
 - Integrated new sources into core CMake target & added test target (SDL2 linked if available). Roadmap Phase 5.1–5.5 marked Done; README changelog updated.
+
+Vendor System Phase 6 Completion: Special Offers & Rotations
+- Added vendor_special_offers.c/h providing up to 4 concurrent time-limited special offers (10 min duration) with compaction & expiry handling.
+- Scarcity weighting: heuristic selects lowest base_value material (proxy deficit) for elevated inclusion probability; flag stored on offer.
+- Nemesis performance tie-in: nemesis_defeated flag biases roll (25% branch) toward high-rarity blueprint injection (rarity forced 4) with origin flag.
+- Pity timer: tracks consecutive roll cycles producing zero new offers; after threshold (3) guarantees a scarcity offer if available.
+- Deterministic seed mixing uses world seed, nemesis flag salt, and prior roll seed for reproducibility.
+- Unit test test_vendor_phase6_special_offers validates: offer accumulation, expiry compaction, nemesis rare occurrence, slot bounds, and prints VENDOR_PHASE6_SPECIAL_OFFERS_OK.
+- Roadmap Phase 6.1–6.5 marked Done; README updated; CMake includes new module & test target.
+
+Vendor System Phase 7 Completion: Currency & Sink Mechanics
+- Added vendor_sinks.c/h module introducing sink category tracking (repair, upgrade, trade-in, fees) with cumulative counters and grand total API.
+- Implemented upgrade service API rogue_vendor_upgrade_reroll_affix supporting single or dual affix reroll (dual consumes catalyst) with gold fee scaling by player level (base 40+rarity*60 scaled by 1+0.015*level; dual cost *1.75).
+- Implemented material trade-in API rogue_vendor_material_trade_in converting surplus low-tier materials to higher-tier at unfavorable 6:1 ratio plus gold fee proportional to source material base value and level scaling.
+- Fee scaling helper scale_fee(base,level) (linear factor) provides early inflation counter hook tied to progression.
+- Added unit test test_vendor_phase7_sinks exercising upgrade reroll (fee + sink accumulation) and trade-in path (conversion, fee) producing VENDOR_PHASE7_SINKS_OK.
+- Updated core & tests CMake (added vendor_sinks.c and test target), roadmap Phase 7.1–7.5 entries marked Done with notes, README changelog appended.

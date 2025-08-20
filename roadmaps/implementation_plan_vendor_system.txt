@@ -61,18 +61,18 @@ PHASE 5. Buyback & Transaction Journaling
 5.5 Tests: journal replay equivalence, depreciation monotonicity, GUID uniqueness enforcement (Done) – test_vendor_phase5_buyback_journal exercises wrap, monotonic price decay, deterministic hash, duplicate guid detection.
 
 PHASE 6. Special Offers & Rotations
-6.1 Time-limited offer slots (rare blueprint, high-tier material bundle) (X)
-6.2 Roll weighting influenced by global scarcity analytics (crafting material deficits) (X)
-6.3 Player performance tie-in: defeating Nemesis adds chance for special vendor stock (X)
-6.4 Offer pity timer (after K refreshes no special -> guarantee) (X)
-6.5 Tests: pity timer guarantee, scarcity injection rules, refresh determinism (X)
+6.1 Time-limited offer slots (rare blueprint, high-tier material bundle) (Done) – `vendor_special_offers.[ch]` with up to 4 active offers, 10 min expiry.
+6.2 Roll weighting influenced by global scarcity analytics (crafting material deficits) (Done) – scarcity heuristic selects lowest base_value material for boosted chance and flag.
+6.3 Player performance tie-in: defeating Nemesis adds chance for special vendor stock (Done) – nemesis flag increases chance to inject high rarity blueprint (rarity 4) offers.
+6.4 Offer pity timer (after K refreshes no special -> guarantee) (Done) – consecutive miss counter triggers guaranteed scarcity offer after threshold.
+6.5 Tests: pity timer guarantee, scarcity injection rules, refresh determinism (Done) – `test_vendor_phase6_special_offers` validates persistence, expiry, nemesis rare generation, structural invariants.
 
 PHASE 7. Currency & Sink Mechanics
-7.1 Gold sink categories: repair, enhancement catalysts, vendor fees (X)
-7.2 Vendor-exclusive upgrade service (reroll single affix with catalyst + fee) (X)
-7.3 Material trade-in: convert surplus low-tier -> higher-tier at unfavorable rate (X)
-7.4 Fee scaling with player level (soft inflation counter) (X)
-7.5 Tests: sink effectiveness simulation vs inflow, no zero-cost exploit paths (X)
+7.1 Gold sink categories: repair, enhancement catalysts, vendor fees (Done) – added vendor_sinks.[ch] tracking ROGUE_SINK_* cumulative totals.
+7.2 Vendor-exclusive upgrade service (reroll single affix with catalyst + fee) (Done) – API rogue_vendor_upgrade_reroll_affix consuming gold + catalyst (dual reroll) leveraging enchant path.
+7.3 Material trade-in: convert surplus low-tier -> higher-tier at unfavorable rate (Done) – rogue_vendor_material_trade_in 6:1 conversion + gold fee scaled by source value.
+7.4 Fee scaling with player level (soft inflation counter) (Done) – scale_fee(base,level) linear factor (1 + 0.015*level) applied to upgrade/trade-in fees.
+7.5 Tests: sink effectiveness simulation vs inflow, no zero-cost exploit paths (Done) – test_vendor_phase7_sinks validates upgrade reroll fee, trade-in path, sink accumulation.
 
 PHASE 8. Integration With Crafting & Gathering
 8.1 Crafting recipe unlock purchases (data-driven gating) (X)
