@@ -103,11 +103,11 @@ PHASE 11. Performance & Memory
 11.5 Tests: refresh latency P95, memory ceiling adherence (Done) – test_vendor_phase11_perf processes all vendors within 6 ticks
 
 PHASE 12. Determinism & RNG Governance
-12.1 RNG streams: inventory generation, special offers, negotiation rolls (X)
-12.2 Seed derivation: world_seed ^ vendor_id ^ refresh_epoch (X)
-12.3 Snapshot hash: inventory_list + price_mod_params + timestamp (X)
-12.4 Replay harness: same seed -> identical inventories & prices (X)
-12.5 Tests: stream isolation, replay determinism (X)
+12.1 RNG streams: inventory generation, special offers, negotiation rolls (Done) – stream enum + governed seed compose applied to inventory & offers (negotiation already deterministic per attempt seed)
+12.2 Seed derivation: world_seed ^ vendor_id ^ refresh_epoch (Done) – rogue_vendor_seed_compose with avalanche & stream id
+12.3 Snapshot hash: inventory_list + price_mod_params + timestamp (Done) – rogue_vendor_snapshot_hash + price_modifiers_hash
+12.4 Replay harness: same seed -> identical inventories & prices (Done) – test harness compares snapshot hashes
+12.5 Tests: stream isolation, replay determinism (Done) – test_vendor_phase12_determinism token
 
 PHASE 13. Persistence & Migration
 13.1 Vendor state serialization: reputation, dynamic demand EWMAs, buyback buffer, special offer timers (X)

@@ -2,6 +2,7 @@
 #include "core/vendor_adaptive.h"
 #include "core/vendor_econ_balance.h"
 #include "core/econ_value.h"
+#include "core/vendor_rng.h"
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
@@ -96,4 +97,19 @@ int rogue_vendor_compute_price(int vendor_def_index, int item_def_index, int rar
     if(price < 1.0f) price = 1.0f;
     if(price > 1000000.0f) price = 1000000.0f; /* safety upper bound */
     int final_price = (int)floorf(price + 0.5f); if(final_price<1) final_price=1; return final_price;
+}
+
+/* Phase 12: lightweight hash over current demand/scarcity arrays to integrate into snapshot hash. */
+uint32_t rogue_vendor_price_modifiers_hash(void){
+    ensure_init();
+    uint32_t h = 2166136261u; /* FNV1a */
+    for(int i=0;i<ROGUE_VENDOR_DEMAND_CATEGORIES;i++){
+        /* Mix demand */
+        uint32_t bits; memcpy(&bits, &g_demand_score[i], sizeof bits); h ^= bits; h *= 16777619u;
+        memcpy(&bits, &g_scarcity_score[i], sizeof bits); h ^= bits; h *= 16777619u;
+    }
+    /* Final avalanche */
+    h ^= (h>>15); h *= 0x85EBCA6Bu; h ^= (h>>13); h *= 0xC2B2AE35u; h ^= (h>>16);
+    if(h==0) h=0xA136AAADu;
+    return h;
 }

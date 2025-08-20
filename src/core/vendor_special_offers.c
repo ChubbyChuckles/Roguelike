@@ -2,6 +2,7 @@
 #include "core/vendor_special_offers.h"
 #include "core/loot_item_defs.h"
 #include "core/vendor_pricing.h"
+#include "core/vendor_rng.h"
 #include "core/material_registry.h"
 #include <string.h>
 
@@ -29,7 +30,8 @@ int rogue_vendor_offers_roll(unsigned int world_seed, unsigned int now_ms, int n
     for(int i=0;i<g_offer_count;i++){ if(g_offers[i].active && now_ms >= g_offers[i].expires_at_ms) g_offers[i].active=0; }
     /* compact */
     int w=0; for(int i=0;i<g_offer_count;i++){ if(g_offers[i].active){ if(i!=w) g_offers[w]=g_offers[i]; w++; } } g_offer_count=w;
-    unsigned int seed = world_seed ^ 0xB17E55u ^ (unsigned int)(nemesis_defeated_flag?0xDEADBEAFu:0x1234u) ^ (g_last_roll_seed*0x9E3779B9u);
+    /* Phase 12 governed offers RNG (vendor_id not yet differentiated, pass NULL) */
+    unsigned int seed = rogue_vendor_seed_compose(world_seed ^ (nemesis_defeated_flag?0xDEADBEAFu:0x1234u), NULL, g_last_roll_seed, ROGUE_VENDOR_RNG_OFFERS);
     g_last_roll_seed = seed;
     int scarcity_material_index = -1; int scarcity_found=0;
     /* Scarcity heuristic: pick material with lowest base value (proxy for deficit) */

@@ -11,6 +11,7 @@
 #include "core/crafting.h"
 #include "core/vendor_pricing.h"
 #include "core/vendor_adaptive.h"
+#include "core/vendor_rng.h"
 #include <stdio.h> /* debug diagnostics */
 
 static RogueVendorItem g_vendor_items[ROGUE_VENDOR_SLOT_CAP];
@@ -66,7 +67,8 @@ int rogue_vendor_generate_constrained(const char* vendor_id, unsigned int world_
     int rarity_caps[5]; int rarity_used[5]; int ensured_consumable; int ensured_material; int ensured_recipe; int used_defs[ROGUE_VENDOR_SLOT_CAP]; int used_count; int cat_lists[ROGUE_ITEM__COUNT][512]; int cat_counts[ROGUE_ITEM__COUNT]; int total_defs; unsigned int seed; int produced; int attempts_guard; int i;
     if(slots <=0) return 0; if(slots>ROGUE_VENDOR_SLOT_CAP) slots = ROGUE_VENDOR_SLOT_CAP;
     const RogueVendorDef* vd = rogue_vendor_def_find(vendor_id); if(!vd) return 0; const RogueVendorInventoryTemplate* tpl = rogue_vendor_inventory_template_find(vd->archetype); if(!tpl) return 0;
-    seed = rogue_vendor_inventory_seed(world_seed, vendor_id, day_cycle);
+    /* Phase 12: use governed RNG stream for inventory */
+    seed = rogue_vendor_seed_compose(world_seed, vendor_id, (uint32_t)day_cycle, ROGUE_VENDOR_RNG_INVENTORY);
     rogue_vendor_reset();
     rarity_caps[0]=slots; rarity_caps[1]=slots; rarity_caps[2]=4; rarity_caps[3]=2; rarity_caps[4]=1;
     for(i=0;i<5;i++) rarity_used[i]=0; ensured_consumable=0; ensured_material=0; ensured_recipe=0; used_count=0;

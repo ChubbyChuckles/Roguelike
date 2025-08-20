@@ -42,6 +42,9 @@ int rogue_vendor_compute_price(int vendor_def_index, int item_def_index, int rar
                                int is_vendor_selling, int condition_pct,
                                int rep_tier_index, float negotiation_discount_pct);
 
+/* Phase 12: hash of pricing modifier state for snapshot hashing */
+unsigned int rogue_vendor_price_modifiers_hash(void);
+
 #ifdef __cplusplus
 }
 #endif

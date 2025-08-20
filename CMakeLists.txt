@@ -230,6 +230,7 @@ add_library(rogue_core
     src/core/vendor_buyback.c
     src/core/vendor_tx_journal.c
     src/core/vendor_special_offers.c
+    src/core/vendor_rng.c
     src/core/vendor_sinks.c
     src/core/vendor_crafting_integration.c
     src/core/economy.c
