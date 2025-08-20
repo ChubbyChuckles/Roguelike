@@ -50,3 +50,12 @@ Vendor System Phase 8 Partial Completion: Crafting & Gathering Integration (Impl
 - Implemented Phase 8 unit test (test_vendor_phase8_crafting_integration) verifying recipe unlock (single charge), scarcity accumulation (+5 then -2 -> 3), batch refine invocation path, and success token VENDOR_PHASE8_CRAFTING_INTEGRATION_OK.
 - Roadmap updated: 8.1, 8.3, 8.4, 8.5 marked Done; 8.2 (gathering node boosters – optional) left X.
 - README changelog appended with Phase 8 summary; CMake updated to compile new module & test target.
+
+Vendor System Phase 9 Completion: Adaptive Behavior, Preference Boosts & Exploit Mitigation
+- Added vendor_adaptive.c/h module tracking per-category purchase & sale counts and recent purchase timestamps.
+- Preference adaptation: computes under-purchase score (1 - p/max_p) with smoothstep mapping to +15% max weight boost (bounded final scalar [0.85,1.15]); applied during constrained inventory generation via adaptive weight array.
+- Rapid flip detection: identifies sale occurring within 15s of a purchase (single pair increments) with exponential decay (5s half-life); exploit scalar +1% per active pair capped at +10% applied to vendor sell prices inside pricing engine.
+- Batch purchase gating: >8 purchases in a 10s sliding window triggers 5s cooldown (API rogue_vendor_adaptive_can_purchase / _purchase_cooldown_remaining).
+- Integrated exploit scalar into vendor_pricing.c and adaptive weights into vendor.c generation path.
+- Added unit test test_vendor_phase9_adaptive validating: baseline scalar ~1, boost activation for under-purchased category (>1.0 and <=1.15), exploit scalar >1 after induced flip, cooldown remaining bound, and success token VENDOR_PHASE9_ADAPTIVE_OK.
+- Roadmap Phase 9.1–9.5 marked Done with parameter notes; README changelog updated; core & tests CMake updated.

@@ -82,11 +82,11 @@ PHASE 8. Integration With Crafting & Gathering
 8.5 Tests: unlock gating correctness, refine batch conservation/ loss ratio enforcement (Done) – test_vendor_phase8_crafting_integration exercises unlock idempotence, scarcity accounting, batch refine call path.
 
 PHASE 9. Adaptive Vendor Behavior
-9.1 Personalization: track player purchase profile categories (potions, weapons, materials) (X)
-9.2 Preference adaptation: slight weight boost on under-purchased categories to encourage variety (X)
-9.3 Anti-exploit detection: rapid flip pattern (buy low vendor, salvage, resell cycle) triggers margin increase (X)
-9.4 Cooldown gating for large batch purchases (throttle flood) (X)
-9.5 Tests: adaptation boundedness, exploit detector false positive rate (X)
+9.1 Personalization: track player purchase profile categories (potions, weapons, materials) (Done)
+9.2 Preference adaptation: slight weight boost on under-purchased categories to encourage variety (Done) – smoothstep boost up to +15%, bounded [0.85,1.15]
+9.3 Anti-exploit detection: rapid flip pattern (buy low vendor, salvage, resell cycle) triggers margin increase (Done) – flip window 15s, +1% per detected pair capped +10%
+9.4 Cooldown gating for large batch purchases (throttle flood) (Done) – >8 purchases in 10s -> 5s cooldown
+9.5 Tests: adaptation boundedness, exploit detector false positive rate (Done) – test_vendor_phase9_adaptive ensures scalar bounds & cooldown token
 
 PHASE 10. Multi-Vendor Economy Balancing
 10.1 Global inflation index (average basket cost) (X)

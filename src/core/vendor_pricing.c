@@ -1,4 +1,5 @@
 #include "core/vendor_pricing.h"
+#include "core/vendor_adaptive.h"
 #include "core/econ_value.h"
 #include <string.h>
 #include <stdio.h>
@@ -79,7 +80,10 @@ int rogue_vendor_compute_price(int vendor_def_index, int item_def_index, int rar
     /* Demand & scarcity scalars */
     float demand_scalar = rogue_vendor_pricing_get_demand_scalar(category);
     float scarcity_scalar = rogue_vendor_pricing_get_scarcity_scalar(category);
-    price *= demand_scalar * scarcity_scalar;
+    /* Adaptive exploit scalar (anti rapid flip) applies only when vendor buying items from player? We apply when vendor sells to player to damp exploitation; if flipping detected we raise vendor sell price slightly. */
+    float exploit_scalar = 1.0f;
+    if(is_vendor_selling){ exploit_scalar = rogue_vendor_adaptive_exploit_scalar(); }
+    price *= demand_scalar * scarcity_scalar * exploit_scalar;
     /* Clamp reasonable bounds */
     if(price < 1.0f) price = 1.0f;
     if(price > 1000000.0f) price = 1000000.0f; /* safety upper bound */

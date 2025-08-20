@@ -10,6 +10,7 @@
 #include "core/vendor_inventory_templates.h"
 #include "core/crafting.h"
 #include "core/vendor_pricing.h"
+#include "core/vendor_adaptive.h"
 #include <stdio.h> /* debug diagnostics */
 
 static RogueVendorItem g_vendor_items[ROGUE_VENDOR_SLOT_CAP];
@@ -83,7 +84,9 @@ int rogue_vendor_generate_constrained(const char* vendor_id, unsigned int world_
             int rr = rarity; while(rr>0 && rarity_used[rr] >= rarity_caps[rr]) rr--; rarity = rr;
             if(rarity_used[rarity] >= rarity_caps[rarity]) continue; /* all tiers exhausted */
         }
-        cat = weighted_pick(tpl->category_weights, ROGUE_ITEM__COUNT, &seed);
+    int adaptive_weights[ROGUE_ITEM__COUNT];
+    rogue_vendor_adaptive_apply_category_weights(adaptive_weights, tpl->category_weights, ROGUE_ITEM__COUNT);
+    cat = weighted_pick(adaptive_weights, ROGUE_ITEM__COUNT, &seed);
         if(cat<0) cat=ROGUE_ITEM_MISC; if(cat>=ROGUE_ITEM__COUNT) cat=ROGUE_ITEM_MISC;
         if(cat_counts[cat]==0) continue;
         pick_index = cat_lists[cat][ xorshift32_local(&seed) % cat_counts[cat] ];
