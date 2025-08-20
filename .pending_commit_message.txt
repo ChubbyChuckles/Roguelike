@@ -64,3 +64,15 @@ Migrated vendor registries to JSON with fallback to legacy .cfg:
 
 Verification: All vendor-related tests (8) pass using JSON assets (ctest -R vendor). No regressions in UI/vendor restock or save roundtrip tests.
 
+vendor: Phase 1.4 Negotiation Rules + Complete 1.5 Test Coverage
+
+Implemented negotiation rules data model & JSON loader:
+- Added struct RogueNegotiationRule (id, skill_checks, min_roll, discount_min_pct, discount_max_pct) + accessors.
+- New asset `assets/vendors/negotiation_rules.json` with standard rule and TEMPLATE rule (includes forward-compat `extra_field` ignored by loader).
+- Extended `vendor_registry` to load negotiation_rules.json (required for JSON success path) and perform post-load uniqueness audit across vendors, policies, rep tiers, and negotiation rules.
+- Added unit test `test_vendor_phase1_negotiation` validating: load success, non-zero rule count, duplicate ID absence, field range invariants.
+- Updated existing `test_vendor_phase1_registry` for JSON vendor id (`blacksmith_standard`) and to assert negotiation rule presence.
+- Roadmap Phase 1 items 1.4 & 1.5 marked Done (collision detection + forward compatibility padding via ignored extra JSON field); README changelog notated earlier JSON migration now implicitly covers negotiation file.
+
+Verification: All vendor tests (9) pass (`ctest -R vendor`). Loader emits no duplicate warnings; negotiation rules integrated without affecting legacy pricing paths.
+

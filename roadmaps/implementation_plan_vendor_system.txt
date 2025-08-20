@@ -29,8 +29,8 @@ PHASE 1. Data Model & Registry
 1.1 Vendor definition file (vendor_id, archetype, biome_tags, refresh_interval_ms, price_policy_id) (Done) – vendors/vendors.cfg parsed into vendor_registry.
 1.2 Price policy file (policy_id, base_buy_margin, base_sell_margin, rarity_mods[], category_mods[]) (Done) – price_policies.cfg parsed with rarity/category percent arrays (default 100 fill).
 1.3 Reputation tier file (tier_id, rep_min, buy_discount, sell_bonus, unlock_inventory_tags) (Done) – tiers parsed; ordering maintained.
-1.4 Negotiation rule file (skill_checks, min_roll, success_discount_range) (X)
-1.5 Tests: parsing, collision detection, forward compatibility padding (Partial) – test_vendor_phase1_registry covers load + linkage + rep ordering; collision & padding tests pending (future extension).
+1.4 Negotiation rule file (skill_checks, min_roll, success_discount_range) (Done) – negotiation_rules.json parsed into negotiation rule registry with id, skill tags, roll threshold, discount range.
+1.5 Tests: parsing, collision detection, forward compatibility padding (Done) – test_vendor_phase1_registry (updated JSON path + negotiation presence), test_vendor_phase1_negotiation (duplicate id collision scan, range validation); uniqueness audit added in loader; extra JSON fields ignored (forward compat demonstrated via 'extra_field').
 
 PHASE 2. Vendor Inventory Generation
 2.1 Inventory template file (vendor_archetype -> pools: item_category weights, quality tiers) (X)

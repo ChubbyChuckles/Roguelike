@@ -2097,6 +2097,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase1_registry.c AND NOT
     add_test(NAME test_vendor_phase1_registry COMMAND test_vendor_phase1_registry)
 endif()
 
+# Vendor System Phase 1 negotiation & rule tests (1.4 + remainder 1.5)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase1_negotiation.c AND NOT TARGET test_vendor_phase1_negotiation)
+    add_executable(test_vendor_phase1_negotiation unit/test_vendor_phase1_negotiation.c)
+    target_link_libraries(test_vendor_phase1_negotiation PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_vendor_phase1_negotiation PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_vendor_phase1_negotiation COMMAND test_vendor_phase1_negotiation)
+endif()
+
 # Explicitly add loot phase 9 drop rates test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_drop_rates.c AND NOT TARGET test_loot_phase9_drop_rates)
     add_executable(test_loot_phase9_drop_rates unit/test_loot_phase9_drop_rates.c)

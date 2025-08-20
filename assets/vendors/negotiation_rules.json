@@ -1,0 +1,19 @@
+{
+  "negotiation_rules": [
+    {
+      "id": "standard_skill_check",
+      "skill_checks": "insight finesse",
+      "min_roll": 15,
+      "discount_min_pct": 3,
+      "discount_max_pct": 8,
+      "extra_field": 123
+    },
+    {
+      "id": "TEMPLATE_RULE_ID",
+      "skill_checks": "skillA skillB",
+      "min_roll": 10,
+      "discount_min_pct": 2,
+      "discount_max_pct": 5
+    }
+  ]
+}
