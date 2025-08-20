@@ -6,6 +6,9 @@
 /* Simple rolling hash fold */
 static unsigned long long fold(unsigned long long h, unsigned long long v){ h ^= v + 0x9e3779b97f4a7c15ULL + (h<<6) + (h>>2); return h; }
 
+/* Global attribute state (exposed for progression persistence) */
+RogueAttributeState g_attr_state;
+
 void rogue_attr_state_init(RogueAttributeState* st, int str,int dex,int vit,int intl){ if(!st) return; memset(st,0,sizeof *st); st->strength=str; st->dexterity=dex; st->vitality=vit; st->intelligence=intl; st->journal_hash=0xcbf29ce484222325ULL; }
 
 int rogue_attr_unspent_points(void){ return g_app.unspent_stat_points; }

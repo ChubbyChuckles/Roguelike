@@ -265,6 +265,7 @@ add_library(rogue_core
     src/core/progression_mastery.c
     src/core/progression_perpetual.c
     src/core/progression_synergy.c
+    src/core/progression_persist.c
     src/core/dialogue.c
     # UI Phase 1 scaffolding
     src/ui/core/ui_context.c

@@ -16,6 +16,9 @@ typedef struct RogueAttributeState {
     unsigned long long journal_hash; /* simplistic rolling hash over operations */
 } RogueAttributeState;
 
+/* Global singleton attribute state (Phase 12 persistence relies on this symbol). */
+extern RogueAttributeState g_attr_state;
+
 /* Initialize state from player base stats. */
 void rogue_attr_state_init(RogueAttributeState* st, int str,int dex,int vit,int intl);
 
