@@ -1,5 +1,6 @@
 #include "core/vendor_pricing.h"
 #include "core/vendor_adaptive.h"
+#include "core/vendor_econ_balance.h"
 #include "core/econ_value.h"
 #include <string.h>
 #include <stdio.h>
@@ -83,7 +84,14 @@ int rogue_vendor_compute_price(int vendor_def_index, int item_def_index, int rar
     /* Adaptive exploit scalar (anti rapid flip) applies only when vendor buying items from player? We apply when vendor sells to player to damp exploitation; if flipping detected we raise vendor sell price slightly. */
     float exploit_scalar = 1.0f;
     if(is_vendor_selling){ exploit_scalar = rogue_vendor_adaptive_exploit_scalar(); }
-    price *= demand_scalar * scarcity_scalar * exploit_scalar;
+     price *= demand_scalar * scarcity_scalar * exploit_scalar;
+     /* Multi-vendor balancing (Phase 10): dynamic global margin & biome variance
+         For now we approximate biome tags via vendor def's biome_tags field through registry if available. */
+     float global_scalar = rogue_vendor_dynamic_margin_scalar();
+     float biome_scalar = 1.0f; if(vd){ biome_scalar = rogue_vendor_biome_scalar(vd->biome_tags); }
+     price *= global_scalar * biome_scalar;
+     /* Feed observed price (pre-round) into inflation tracker */
+     rogue_vendor_econ_balance_note_price((int)price);
     /* Clamp reasonable bounds */
     if(price < 1.0f) price = 1.0f;
     if(price > 1000000.0f) price = 1000000.0f; /* safety upper bound */

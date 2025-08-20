@@ -59,3 +59,12 @@ Vendor System Phase 9 Completion: Adaptive Behavior, Preference Boosts & Exploit
 - Integrated exploit scalar into vendor_pricing.c and adaptive weights into vendor.c generation path.
 - Added unit test test_vendor_phase9_adaptive validating: baseline scalar ~1, boost activation for under-purchased category (>1.0 and <=1.15), exploit scalar >1 after induced flip, cooldown remaining bound, and success token VENDOR_PHASE9_ADAPTIVE_OK.
 - Roadmap Phase 9.1–9.5 marked Done with parameter notes; README changelog updated; core & tests CMake updated.
+
+Vendor System Phase 10 Partial Completion: Multi-Vendor Economy Balancing (10.1–10.3,10.5)
+- Implemented vendor_econ_balance.c/h providing:
+	* Global inflation index via EWMA (alpha 0.05) of observed vendor prices (tracked opportunistically in pricing engine post-scalar application pre-round).
+	* Automated margin rebalance: global dynamic margin scalar adjusts linearly (-0.1*deviation) with clamp producing scalar in [0.90,1.10] to nudge prices counter to inflation drift.
+	* Regional price variance: deterministic FNV1a hash of vendor biome tags produces per-biome scalar in [0.97,1.03] for subtle regional flavor without destabilizing economy.
+- Integrated global + biome scalars into vendor_pricing.c after demand/scarcity/exploit factors; fed realized price into inflation tracker each computation.
+- Added unit test test_vendor_phase10_balancing exercising inflation index evolution (bounded), global scalar clamp, biome scalar envelope, and prints VENDOR_PHASE10_BALANCING_OK.
+- Roadmap updated (10.1–10.3,10.5 Done; 10.4 competition events left optional X); README changelog appended Phase 10 summary.

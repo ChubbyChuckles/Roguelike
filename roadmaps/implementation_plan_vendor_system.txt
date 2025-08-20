@@ -89,11 +89,11 @@ PHASE 9. Adaptive Vendor Behavior
 9.5 Tests: adaptation boundedness, exploit detector false positive rate (Done) – test_vendor_phase9_adaptive ensures scalar bounds & cooldown token
 
 PHASE 10. Multi-Vendor Economy Balancing
-10.1 Global inflation index (average basket cost) (X)
-10.2 Automated margin rebalance if inflation index drifts beyond threshold (X)
-10.3 Regional price variance (biome coefficient within small envelope) (X)
+10.1 Global inflation index (average basket cost) (Done) – EWMA of observed prices (alpha 0.05)
+10.2 Automated margin rebalance if inflation index drifts beyond threshold (Done) – global scalar adjusts ±5% for ±0.5 drift (clamped [0.90,1.10])
+10.3 Regional price variance (biome coefficient within small envelope) (Done) – deterministic FNV1a-derived scalar [0.97,1.03]
 10.4 Inter-vendor competition events (temporary discounts) (Optional) (X)
-10.5 Tests: inflation control convergence, variance envelope adherence (X)
+10.5 Tests: inflation control convergence, variance envelope adherence (Done) – test_vendor_phase10_balancing
 
 PHASE 11. Performance & Memory
 11.1 SoA layout for per-vendor dynamic stats (demand counters, reputation states) (X)
