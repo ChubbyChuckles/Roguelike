@@ -110,4 +110,4 @@ crafting-ui: Phase 7–8 Determinism & UI Layer
 	* Minimal fallback recipe seeding when no asset recipes loaded (test harness support)
 - Added test_crafting_phase8_ui validating search filtering, text-only mode path, and risk expectation bounds.
 - Roadmap updated marking Phase 8 tasks Done; README changelog extended with Phase 7 & 8 summaries.
-- Note: Gathering node highlight overlay & queue batch slider represented as structural placeholders pending visual integration pass.
+- Implemented queue progress rendering, batch quantity state, and gathering node overlay (timers & rare flag) beyond initial stubs.

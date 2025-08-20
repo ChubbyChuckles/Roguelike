@@ -24,6 +24,16 @@ int  rogue_crafting_ui_text_only(void);
 /* Render main crafting panel (recipes + optional upgrade tags). Returns number of recipe lines rendered. */
 int rogue_crafting_ui_render_panel(RogueUIContext* ctx, float x, float y, float w, float h);
 
+/* Batch quantity slider state (1..N). Set and get for persistence/testing. */
+void rogue_crafting_ui_set_batch(int qty);
+int  rogue_crafting_ui_get_batch(void);
+
+/* Render queue progress bars for active crafting jobs (time fraction). Returns bars rendered. */
+int rogue_crafting_ui_render_queue(RogueUIContext* ctx, float x, float y, float w, float h);
+
+/* Render gathering node overlay: active nodes with depletion timers (ms remaining) and rare flag. Returns nodes shown. */
+int rogue_crafting_ui_render_gather_overlay(RogueUIContext* ctx, float x, float y, float w, float h);
+
 /* Render material ledger quality overview; returns lines emitted. */
 int rogue_crafting_ui_render_material_ledger(RogueUIContext* ctx, float x, float y, float w, float h);
 

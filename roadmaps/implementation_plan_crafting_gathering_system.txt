@@ -77,14 +77,14 @@ PHASE 7. Determinism & RNG Governance
 7.5 Tests: stream isolation (statistical independence), replay determinism (Done) – rng_journal test for independence + journal chaining; determinism test for replay hash.
 
 PHASE 8. UI / UX Layer
-8.1 Gathering node highlight & depletion timer overlay (Done - overlay helper via crafting_ui infrastructure TODO: integrate gather render path)
-8.2 Crafting station panel: searchable recipes, filter by available, missing materials dim (Done - rogue_crafting_ui_render_panel implements search & dim)
-8.3 Queue progress bars + batch craft multi-quantity slider (Done - structural stubs; slider placeholder in panel formatting)
-8.4 Enhancement risk preview (expected value, fracture risk, material burn) (Done - risk expected fracture dmg function + render)
-8.5 Material ledger panel (tier segmentation, quality histograms) (Done - ledger aggregate lines with avg/bias)
-8.6 Loadout integration: show craft that upgrades currently equipped item (diff metrics) (Done - [UP] tag heuristic rarity comparison)
-8.7 Accessibility: text-only recipe list fallback (Done - text-only toggle with stdout emission mode)
-8.8 Tests: UI state persistence (last filters), diff accuracy snapshot (Done - test_crafting_phase8_ui validates search filter persistence & text mode)
+8.1 Gathering node highlight & depletion timer overlay (Done) – `rogue_crafting_ui_render_gather_overlay` lists active/depleted nodes with respawn ms & rare flag.
+8.2 Crafting station panel: searchable recipes, filter by available, missing materials dim (Done) – search filter + per-input batch quantity availability check, missing resources dimmed.
+8.3 Queue progress bars + batch craft multi-quantity slider (Done) – batch quantity state (`rogue_crafting_ui_set_batch/get_batch`) affects availability; `rogue_crafting_ui_render_queue` shows progress % (waiting vs active coloring).
+8.4 Enhancement risk preview (expected value, fracture risk, material burn) (Done) – expected fracture durability damage function + render block.
+8.5 Material ledger panel (tier segmentation, quality histograms) (Done) – aggregated line per material with total, average quality, bias.
+8.6 Loadout integration: show craft that upgrades currently equipped item (diff metrics) (Done) – heuristic [UP] tag when output rarity exceeds equipped weapon rarity.
+8.7 Accessibility: text-only recipe list fallback (Done) – stdout emission prefixes (CRAFT_UI, CRAFT_QUEUE, GATHER_NODE) for headless tests.
+8.8 Tests: UI state persistence (last filters), diff accuracy snapshot (Done) – `test_crafting_phase8_ui` validates search, batch qty, text mode, risk bounds.
 
 PHASE 9. Automation & Smart Assist
 9.1 Craft planner: goal item -> compute required materials & missing gap (X)
