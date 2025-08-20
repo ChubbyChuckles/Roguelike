@@ -159,6 +159,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_crafting_phase3_refinement.c AND
     endif()
     add_test(NAME test_crafting_phase3_refinement COMMAND test_crafting_phase3_refinement)
 endif()
+ # Crafting & Gathering Phase 4 recipe parsing test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_crafting_phase4_recipes.c AND NOT TARGET test_crafting_phase4_recipes)
+    add_executable(test_crafting_phase4_recipes unit/test_crafting_phase4_recipes.c)
+    target_link_libraries(test_crafting_phase4_recipes PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2main)
+        target_link_libraries(test_crafting_phase4_recipes PRIVATE SDL2::SDL2main SDL2::SDL2)
+        target_compile_definitions(test_crafting_phase4_recipes PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_crafting_phase4_recipes COMMAND test_crafting_phase4_recipes)
+endif()
 # Phase 4 adaptive difficulty test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_enemy_difficulty_phase4.c AND NOT TARGET test_enemy_difficulty_phase4)
     add_executable(test_enemy_difficulty_phase4 unit/test_enemy_difficulty_phase4.c)

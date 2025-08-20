@@ -28,6 +28,10 @@ typedef struct RogueCraftRecipe {
     int input_count;
     int upgrade_source_def; /* if this is an upgrade path transforming an existing item */
     int rarity_upgrade_delta; /* +rarity applied to upgraded item (11.4) */
+    int time_ms;            /* Phase 4.1: crafting time requirement */
+    char station[24];       /* Phase 4.1: required station tag (forge/alchemy_table/workbench/mystic_altar) */
+    int skill_req;          /* Phase 4.1: minimum crafting skill required */
+    int exp_reward;         /* Phase 4.1: XP rewarded on completion */
 } RogueCraftRecipe;
 
 int rogue_craft_reset(void);

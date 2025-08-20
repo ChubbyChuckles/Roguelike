@@ -51,3 +51,13 @@ crafting: Phase 3 Material Quality & Refinement Implemented
 - Future follow-up: statistical distribution test (binomial tolerance on failure/critical), delta save encoding (Phase 12.3), RNG stream separation (Phase 7.1), and integration into crafted item quality roll bias.
 
 Verification: SDL2 Debug build; Phase 3 test binary executes successfully outputting CRAFT_P3_OK; no warnings introduced.
+
+crafting: Phase 4.1–4.2 Recipe Definition & Parsing
+
+- Extended `RogueCraftRecipe` with fields: time_ms, station tag, skill_req, exp_reward (future integration with queue & progression XP awards).
+- Updated `rogue_craft_load_file` parser to support optional upgrade token and new ordered tokens plus forward-compatible trailing tokens (ignored) ensuring schema evolution safety.
+- Added unit test `test_crafting_phase4_recipes` generating synthetic recipe file lines (dust_to_shard, ore_to_dust) verifying: extended field parsing, ingredient counts, execution success using minimal in-memory inventory callbacks, forward-compatible token ignore, and emits CRAFT_P4_OK.
+- Roadmap updated marking 4.1 & 4.2 Done (Phase 4 now Partial); README changelog to include concise Phase 4 entry.
+- Parser resilient to absent upgrade spec (empty field) and differentiates upgrade vs time token; defaults safe (0 time, empty station, 0 skill/exp) when omitted.
+
+Verification: SDL2 Debug build; new test binary passes (CRAFT_P4_OK). Existing crafting & refinement tests remain green.

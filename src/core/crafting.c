@@ -64,14 +64,48 @@ int rogue_craft_load_file(const char* path){
 #endif
     if(!tok) continue; char ingred_buf[256]; memset(ingred_buf,0,sizeof ingred_buf); strncpy(ingred_buf,tok,sizeof(ingred_buf)-1);
     char upgrade_buf[128]={0};
+    int time_ms = 0; char station_buf[24]={0}; int skill_req=0; int exp_reward=0; /* Phase 4 defaults */
+#if defined(_MSC_VER)
+    tok = strtok_s(NULL, ",", &context); /* upgrade or time */
+#else
+    tok = strtok(NULL, ",");
+#endif
+    if(tok){
+        /* If token starts with upgrade: treat as upgrade spec, else treat as time_ms numeric (legacy empty upgrade supported) */
+        if(strncmp(tok,"upgrade:",8)==0){ strncpy(upgrade_buf,tok,sizeof(upgrade_buf)-1); /* next tokens: time, station, skill, exp */
+#if defined(_MSC_VER)
+            tok = strtok_s(NULL, ",", &context);
+#else
+            tok = strtok(NULL, ",");
+#endif
+            if(tok){ time_ms = atoi(tok); if(time_ms<0) time_ms=0; }
+        } else if(tok[0]=='\0'){ /* empty */ }
+        else { /* token was actually time_ms */ time_ms = atoi(tok); if(time_ms<0) time_ms=0; }
+    }
 #if defined(_MSC_VER)
     tok = strtok_s(NULL, ",", &context);
 #else
     tok = strtok(NULL, ",");
 #endif
-    if(tok){ memset(upgrade_buf,0,sizeof upgrade_buf); strncpy(upgrade_buf,tok,sizeof(upgrade_buf)-1); }
+    if(tok){ if(!upgrade_buf[0] && strncmp(tok,"upgrade:",8)==0){ strncpy(upgrade_buf,tok,sizeof(upgrade_buf)-1); }
+        else if(!station_buf[0]){ strncpy(station_buf,tok,sizeof(station_buf)-1); }
+    }
+#if defined(_MSC_VER)
+    tok = strtok_s(NULL, ",", &context);
+#else
+    tok = strtok(NULL, ",");
+#endif
+    if(tok){ if(skill_req==0 || (tok[0]>='0' && tok[0]<='9')){ int v=atoi(tok); if(v>0) skill_req=v; }
+        else if(!station_buf[0]){ strncpy(station_buf,tok,sizeof(station_buf)-1); }
+    }
+#if defined(_MSC_VER)
+    tok = strtok_s(NULL, ",", &context);
+#else
+    tok = strtok(NULL, ",");
+#endif
+    if(tok){ exp_reward = atoi(tok); if(exp_reward<0) exp_reward=0; }
     if(g_recipe_count >= ROGUE_CRAFT_RECIPE_CAP){ fprintf(stderr,"craft: capacity reached\n"); break; }
-    RogueCraftRecipe* r = &g_recipes[g_recipe_count]; memset(r,0,sizeof *r); strncpy(r->id,rid,sizeof(r->id)-1); r->output_def=out_def; r->output_qty=out_qty; r->input_count=0; r->upgrade_source_def=-1; r->rarity_upgrade_delta=0;
+    RogueCraftRecipe* r = &g_recipes[g_recipe_count]; memset(r,0,sizeof *r); strncpy(r->id,rid,sizeof(r->id)-1); r->output_def=out_def; r->output_qty=out_qty; r->input_count=0; r->upgrade_source_def=-1; r->rarity_upgrade_delta=0; r->time_ms=time_ms; r->skill_req=skill_req; r->exp_reward=exp_reward; if(station_buf[0]) strncpy(r->station,station_buf,sizeof(r->station)-1);
     /* parse ingredients separated by ; */
 #if defined(_MSC_VER)
     char* ctx2=NULL; char* itok = strtok_s(ingred_buf, ";", &ctx2);
