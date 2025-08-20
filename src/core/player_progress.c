@@ -6,6 +6,7 @@
 #endif
 #include <stdio.h>
 #include "core/persistence.h"
+#include "core/progression_xp.h"
 
 void rogue_player_progress_update(double dt_seconds){
     float raw_dt_ms = (float)dt_seconds * 1000.0f;
@@ -17,7 +18,8 @@ void rogue_player_progress_update(double dt_seconds){
     g_app.talent_points += 1; /* grant a talent point each level */
     /* Persist talent point gain immediately so quitting right after still saves it */
     rogue_persistence_save_player_stats();
-        g_app.player.xp_to_next = (int)(g_app.player.xp_to_next * 1.35f + 15);
+        /* Recompute xp_to_next using infinite curve */
+        g_app.player.xp_to_next = (int)rogue_xp_to_next_for_level(g_app.player.level);
         rogue_player_recalc_derived(&g_app.player);
         g_app.player.health = g_app.player.max_health;
         g_app.player.mana = g_app.player.max_mana;
@@ -28,6 +30,13 @@ void rogue_player_progress_update(double dt_seconds){
     g_app.stats_dirty = 1;
     /* Immediate save on each level-up to ensure persistence even if player quits before autosave interval */
     rogue_persistence_save_player_stats();
+    }
+    /* Accumulate lifetime XP (safe saturating) */
+    if(g_app.player.xp > 0){ /* current partial progress */
+        unsigned long long partial = (unsigned long long)g_app.player.xp;
+        if(g_app.player.xp_total_accum < ULLONG_MAX) {
+            rogue_xp_safe_add(&g_app.player.xp_total_accum, partial);
+        }
     }
     g_app.difficulty_scalar = 1.0 + (double)g_app.player.level * 0.15 + (double)g_app.total_kills * 0.002;
     /* Passive regen */

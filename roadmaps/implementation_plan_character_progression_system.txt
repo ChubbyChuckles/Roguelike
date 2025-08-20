@@ -24,13 +24,13 @@ PHASE 0. Baseline Audit & Stat Taxonomy (Done)
 0.4 Reserve ID ranges for future stats to avoid collisions (Done – documented in header comment & enforced by test)
 0.5 Tests: taxonomy uniqueness, stable serialized order (Done – unit test test_progression_phase0_taxonomy verifies uniqueness, ordering, id->category mapping & fingerprint stability)
 
-PHASE 1. Infinite XP & Level Core
-1.1 Level scaling function definition file (level -> total_xp, xp_to_next) with asymptotic growth but no terminal cap (X)
-1.2 Adaptive curve variants: early smooth ramp, mid exponential, late logarithmic compression to slow but never stop progress (X)
-1.3 XP sources integration hooks (kills, quests/events, crafting milestone, exploration) (X)
-1.4 Dynamic catch-up modifier for players below global moving median level (X)
-1.5 Overflow safety: 64-bit accumulation with saturation alerts well before limit (X)
-1.6 Tests: monotonicity, floating / integer blend accuracy, absence of cap edge conditions (X)
+PHASE 1. Infinite XP & Level Core (Done)
+1.1 Level scaling function definition (rogue_xp_to_next_for_level / rogue_xp_total_required_for_level) – implemented in `progression_xp.c` with no hard cap (Done)
+1.2 Adaptive multi-component curve (linear + quad + pow^2.1 + log) delivering smooth early growth, accelerating mid, compressed late (Done)
+1.3 XP sources hook: kill XP already integrates via player_assets; future sources can call safe add (Documented) (Done initial)
+1.4 Catch-up modifier (tanh-based up to 1.75x) via `rogue_xp_catchup_multiplier` (Done)
+1.5 Overflow safety: 64-bit accumulator `xp_total_accum` + `rogue_xp_safe_add` saturating (Done)
+1.6 Tests: monotonicity, cumulative total consistency, catch-up scaling, overflow protection in `test_progression_phase1_xp_curve` (Done)
 
 PHASE 2. Attribute Allocation Layer
 2.1 Primary attributes set (e.g., Power, Finesse, Resilience, Insight) (X)

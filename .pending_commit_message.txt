@@ -1,4 +1,19 @@
 feat(progression): implement Phase 0 stat taxonomy (canonical registry, ID ranges, fingerprint, tests)
+feat(progression): implement Phase 1 infinite XP & level core (multi-component curve, catch-up, 64-bit accum, tests)
+
+Adds progression_xp.{c,h} with leveling functions:
+ - rogue_xp_to_next_for_level(level)
+ - rogue_xp_total_required_for_level(level)
+ - rogue_xp_catchup_multiplier(player_level, median_level) (tanh-based up to 1.75x)
+ - rogue_xp_safe_add (saturating 64-bit)
+
+Player struct gains xp_total_accum (64-bit lifetime). Player progression now recalculates xp_to_next via new curve per level-up. Persistence updated (binary + text) for xp_total_accum. Unit test `test_progression_phase1_xp_curve` validates:
+ - Monotonic non-decreasing xp_to_next across 1..249
+ - Cumulative total consistency (sum of steps)
+ - Catch-up multiplier ordering
+ - Overflow/saturation behavior
+
+Roadmap Phase 1 entries marked Done with notes; README Progression row updated reflecting Phase 1 implementation.
 
 Adds progression_stats.[ch] providing stable stat enumeration with categorized ID ranges:
  - Primary (0-99): STR/DEX/VIT/INT

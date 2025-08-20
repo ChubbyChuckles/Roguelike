@@ -116,6 +116,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase0_taxonomy.c AN
     add_test(NAME test_progression_phase0_taxonomy COMMAND test_progression_phase0_taxonomy)
 endif()
 
+# Character Progression Phase 1 XP curve test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase1_xp_curve.c AND NOT TARGET test_progression_phase1_xp_curve)
+    add_executable(test_progression_phase1_xp_curve unit/test_progression_phase1_xp_curve.c)
+    target_link_libraries(test_progression_phase1_xp_curve PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_progression_phase1_xp_curve PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_progression_phase1_xp_curve COMMAND test_progression_phase1_xp_curve)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_enemy_json_loader.c AND NOT TARGET test_enemy_json_loader)
     add_executable(test_enemy_json_loader unit/test_enemy_json_loader.c)
     target_link_libraries(test_enemy_json_loader PRIVATE rogue_core)

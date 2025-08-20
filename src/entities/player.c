@@ -42,6 +42,7 @@ void rogue_player_init(RoguePlayer* p)
     p->level = 1;
     p->xp = 0;
     p->xp_to_next = 20;
+    p->xp_total_accum = 0ULL;
     p->strength = 5;
     p->dexterity = 5;
     p->vitality = 15; /* starting vitality */

@@ -43,6 +43,7 @@ typedef struct RoguePlayer
     int level;
     int xp;
     int xp_to_next;
+    unsigned long long xp_total_accum; /* 64-bit lifetime XP (Phase 1.5 overflow safety) */
     /* Core stats */
     int strength;
     int dexterity;

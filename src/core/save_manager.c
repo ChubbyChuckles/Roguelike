@@ -656,6 +656,7 @@ static int write_player_component(FILE* f){
     fwrite(&g_app.player.level,sizeof g_app.player.level,1,f);
     fwrite(&g_app.player.xp,sizeof g_app.player.xp,1,f);
     fwrite(&g_app.player.xp_to_next,sizeof g_app.player.xp_to_next,1,f);
+    fwrite(&g_app.player.xp_total_accum,sizeof g_app.player.xp_total_accum,1,f);
     fwrite(&g_app.player.health,sizeof g_app.player.health,1,f);
     fwrite(&g_app.player.mana,sizeof g_app.player.mana,1,f);
     fwrite(&g_app.player.action_points,sizeof g_app.player.action_points,1,f);
@@ -687,6 +688,7 @@ static int read_player_component(FILE* f, size_t size){
     fread(&g_app.player.level,sizeof g_app.player.level,1,f); fread(&g_app.player.xp,sizeof g_app.player.xp,1,f); remain-=sizeof(int)*2;
     /* Try reading xp_to_next; if insufficient bytes fallback */
     if(remain >= (int)sizeof(int)){ fread(&g_app.player.xp_to_next,sizeof g_app.player.xp_to_next,1,f); remain-=sizeof(int); } else { g_app.player.xp_to_next = 0; }
+    if(remain >= (int)sizeof(unsigned long long)){ fread(&g_app.player.xp_total_accum,sizeof g_app.player.xp_total_accum,1,f); remain -= (int)sizeof(unsigned long long); } else { g_app.player.xp_total_accum = 0ULL; }
     if(remain >= (int)sizeof(int)){ fread(&g_app.player.health,sizeof g_app.player.health,1,f); remain-=sizeof(int);} else { g_app.player.health=0; }
     if(remain >= (int)sizeof(int)){ fread(&g_app.player.mana,sizeof g_app.player.mana,1,f); remain-=sizeof(int);} else { g_app.player.mana=0; }
     if(remain >= (int)sizeof(int)){ fread(&g_app.player.action_points,sizeof g_app.player.action_points,1,f); remain-=sizeof(int);} else { g_app.player.action_points=0; }

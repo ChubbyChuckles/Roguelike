@@ -29,7 +29,14 @@ void rogue_persistence_load_player_stats(void){
         if(strcmp(key,"VERSION")==0){ g_player_stats_version = atoi(val); if(g_player_stats_version<=0) g_player_stats_version=1; continue; }
         if(strcmp(key,"LEVEL")==0) g_app.player.level = atoi(val);
         else if(strcmp(key,"XP")==0) g_app.player.xp = atoi(val);
-        else if(strcmp(key,"XP_TO_NEXT")==0) g_app.player.xp_to_next = atoi(val);
+    else if(strcmp(key,"XP_TO_NEXT")==0) g_app.player.xp_to_next = atoi(val);
+    else if(strcmp(key,"XP_TOTAL")==0) { unsigned long long v=0ULL; 
+#if defined(_MSC_VER)
+        sscanf_s(val, "%llu", &v);
+#else
+        sscanf(val, "%llu", &v);
+#endif
+        g_app.player.xp_total_accum = v; }
         else if(strcmp(key,"STR")==0) g_app.player.strength = atoi(val);
         else if(strcmp(key,"DEX")==0) g_app.player.dexterity = atoi(val);
         else if(strcmp(key,"VIT")==0) g_app.player.vitality = atoi(val);
@@ -80,6 +87,7 @@ void rogue_persistence_save_player_stats(void){
         fprintf(f,"VERSION=%d\n", g_player_stats_version);
     fprintf(f,"XP=%d\n", g_app.player.xp);
     fprintf(f,"XP_TO_NEXT=%d\n", g_app.player.xp_to_next);
+    fprintf(f,"XP_TOTAL=%llu\n", g_app.player.xp_total_accum);
     fprintf(f,"STR=%d\n", g_app.player.strength);
     fprintf(f,"DEX=%d\n", g_app.player.dexterity);
     fprintf(f,"VIT=%d\n", g_app.player.vitality);

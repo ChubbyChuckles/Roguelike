@@ -67,7 +67,7 @@ The table is unchanged from the original content; detailed subsystem write‑ups
 | UI | Virtualized inventory, skill graph, animation, accessibility, headless hashing | Full theme hot swap diff + advanced inspector polish |
 | Economy/Vendors | Pricing, restock rotation scaffold, reputation, salvage, repair | Dynamic demand curves, buyback analytics |
 | Crafting | Recipes, rerolls, enchant/reforge, fusion, affix orb, success chance | Expanded material tiers, automation tooling |
-| Progression | Infinite leveling design, Phase 0 stat taxonomy (canonical registry + fingerprint + tests), maze skill graph UI (initial), stat scaling | Full maze runtime integration, mastery loops |
+| Progression | Infinite leveling design, Phase 0 stat taxonomy (registry+fingerprint), Phase 1 infinite XP curve (multi-component, catch-up, 64-bit accum + tests), maze skill graph UI (initial), stat scaling | Full maze runtime integration, mastery loops |
 | Difficulty | Relative ΔL model (enemy vs player level differential) + adaptive performance scalar (+/-12%) | Dynamic encounter budget + boss phase adaptivity |
 | Tooling | Audit scripts, schema docs, diff tools, profilers, fuzz harnesses | Extended golden baselines & editor integration |
 
