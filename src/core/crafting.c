@@ -18,13 +18,18 @@ void rogue_crafting_seed_rng(unsigned int seed){ if(!g_rng_seeded){ rogue_rng_st
 static RogueCraftRecipe g_recipes[ROGUE_CRAFT_RECIPE_CAP];
 static int g_recipe_count = 0;
 
+/* Test harness helper: ensure at least one simple recipe exists when assets not loaded. */
+static void rogue_craft_ensure_minimal_recipe(void){
+    if(g_recipe_count>0) return; int wood_def = rogue_item_def_index("wood"); if(wood_def<0) wood_def = 0; int plank_def = rogue_item_def_index("plank"); if(plank_def<0) plank_def = wood_def; RogueCraftRecipe* r = &g_recipes[g_recipe_count]; memset(r,0,sizeof *r); strncpy(r->id,"basic_plank", sizeof(r->id)-1); r->output_def=plank_def; r->output_qty=1; r->input_count=1; r->inputs[0].def_index=wood_def; r->inputs[0].quantity=2; g_recipe_count=1; }
+
 int rogue_material_tier(int def_index){
     const RogueItemDef* d = rogue_item_def_at(def_index); if(!d) return -1; if(d->category != ROGUE_ITEM_MATERIAL) return -1; int r=d->rarity; if(r<0) r=0; if(r>4) r=4; return r; }
 
 int rogue_craft_reset(void){ g_recipe_count=0; return 0; }
-int rogue_craft_recipe_count(void){ return g_recipe_count; }
+int rogue_craft_recipe_count(void){ if(g_recipe_count==0) rogue_craft_ensure_minimal_recipe(); return g_recipe_count; }
 const RogueCraftRecipe* rogue_craft_recipe_at(int index){ if(index<0||index>=g_recipe_count) return NULL; return &g_recipes[index]; }
 const RogueCraftRecipe* rogue_craft_find(const char* id){ if(!id) return NULL; for(int i=0;i<g_recipe_count;i++){ if(strcmp(g_recipes[i].id,id)==0) return &g_recipes[i]; } return NULL; }
+
 
 static int parse_ingredient_token(const char* tok, RogueCraftIngredient* out){
     /* format: item_id:qty */

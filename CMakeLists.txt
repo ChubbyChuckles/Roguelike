@@ -298,6 +298,8 @@ add_library(rogue_core
     src/core/enemy_adaptive.c
     src/core/enemy_modifiers.c
     src/core/encounter_composer.c
+    # Crafting Phase 8 UI layer
+    src/ui/crafting_ui.c
 )
 
 target_include_directories(rogue_core PUBLIC
@@ -328,6 +330,13 @@ add_executable(test_weapon_pose_loader tests/unit/test_weapon_pose_loader.c)
 target_link_libraries(test_weapon_pose_loader PRIVATE rogue_core)
 if(ROGUE_ENABLE_SDL)
     target_link_libraries(test_weapon_pose_loader PRIVATE SDL2::SDL2)
+endif()
+
+# Phase 8 crafting UI tests
+add_executable(test_crafting_phase8_ui tests/unit/test_crafting_phase8_ui.c)
+target_link_libraries(test_crafting_phase8_ui PRIVATE rogue_core)
+if(ROGUE_ENABLE_SDL)
+    target_link_libraries(test_crafting_phase8_ui PRIVATE SDL2::SDL2)
 endif()
 
 add_executable(roguelike src/main.c)

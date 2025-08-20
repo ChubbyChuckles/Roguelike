@@ -97,3 +97,17 @@ crafting: Phase 6.3 Transmute Material Scaling
 - Added unit test test_crafting_phase6_3_transmute_scaling validating load path & cost relation.
 - Roadmap updated marking 6.3 Done; README changelog entry added.
 - Temporary test macro ROGUE_TEST_DISABLE_CATALYSTS used to bypass catalyst inventory in isolated cost scaling test (future improvement: inject test inventory instead).
+
+crafting-ui: Phase 7–8 Determinism & UI Layer
+
+- Added multi-stream RNG segregation (gathering/refinement/craft quality/enhancement) via rng_streams.[ch] and append-only crafting journal with FNV-1a hash chain (crafting_journal.[ch]); tests test_crafting_phase7_rng_journal & test_crafting_phase7_determinism ensure stream isolation and replay hash stability.
+- Implemented Phase 8 UI layer module crafting_ui.[ch] providing:
+	* Searchable recipe panel (availability dim if inputs missing)
+	* Upgrade heuristic tag [UP] comparing recipe output rarity vs equipped weapon
+	* Enhancement risk preview (expected fracture durability damage calculation)
+	* Material ledger panel (total units, average quality, bias per material)
+	* Accessibility text-only fallback (stdout emission for headless validation)
+	* Minimal fallback recipe seeding when no asset recipes loaded (test harness support)
+- Added test_crafting_phase8_ui validating search filtering, text-only mode path, and risk expectation bounds.
+- Roadmap updated marking Phase 8 tasks Done; README changelog extended with Phase 7 & 8 summaries.
+- Note: Gathering node highlight overlay & queue batch slider represented as structural placeholders pending visual integration pass.

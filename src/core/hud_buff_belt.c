@@ -18,6 +18,9 @@ void rogue_hud_buff_belt_refresh(RogueHUDBuffBeltState* st, double now_ms){
 }
 
 void rogue_hud_buff_belt_render(const RogueHUDBuffBeltState* st, int screen_w){
+#ifndef ROGUE_HAVE_SDL
+    (void)st; (void)screen_w; /* suppress unused warnings when SDL disabled */
+#endif
 #ifdef ROGUE_HAVE_SDL
     if(!st || !g_app.renderer) return; int icon_w=22, icon_h=22; int gap=4; int x = (screen_w - (st->count*icon_w + (st->count-1)*gap))/2; int y=4; if(x<4) x=4;
     for(int i=0;i<st->count;i++){
