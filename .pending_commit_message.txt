@@ -1,3 +1,12 @@
+Phase 10: Economy & Balance Hooks
+- Added crafting_economy.[ch] implementing:
+	* Scarcity metric & dynamic spawn scalar (10.1)
+	* Inflation guard diminishing XP scalar (10.2)
+	* Soft cap pressure reducing over-abundant spawn boosts (10.3)
+	* Enhanced item value model with quality + tempered rarity curve (10.4)
+- Added unit test test_crafting_phase10_economy printing CRAFT_P10_OK
+- Updated CMakeLists, roadmap statuses (Phase 10 Done), documentation pending README bullet.
+
 vendor: Phase 2.3–2.5 Constrained Inventory Generation
 
 - Added `rogue_vendor_generate_constrained` implementing template‑driven inventory with uniqueness, rarity caps (legendary<=1, epic<=2, rare<=4) and guaranteed consumable & material presence, optional recipe injection, deterministic sort ordering.

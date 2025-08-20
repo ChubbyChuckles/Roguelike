@@ -95,11 +95,11 @@ PHASE 9. Automation & Smart Assist (Done)
 9.6 Tests: phase9 automation test exercising planner, refine suggestions, decision, route, idle (Done)
 
 PHASE 10. Economy & Balance Hooks
-10.1 Material drop rate adjustment via dynamic weights (feedback from scarcity metrics) (X)
-10.2 Crafting inflation guard (diminishing XP returns on mass low-tier crafts) (X)
-10.3 Soft caps for high-tier material accumulation (suggest refine / spend) (X)
-10.4 Value model: base_value + quality multiplier + rarity adjustment (X)
-10.5 Tests: inflation guard thresholds, value consistency vs affix power (X)
+10.1 Material drop rate adjustment via dynamic weights (feedback from scarcity metrics) (Done) [crafting_phase10_material_drop_weighting]
+10.2 Crafting inflation guard (diminishing XP returns on mass low-tier crafts) (Done) [inflation counters + crafting_phase10_inflation_xp_guard]
+10.3 Soft caps for high-tier material accumulation (Done) [crafting_phase10_softcap_pressure influences material spawn]
+10.4 Value model: base_value + quality multiplier + rarity adjustment (Done) [crafting_phase10_value_model]
+10.5 Tests: inflation guard thresholds, value consistency vs affix power (Done) [test_crafting_phase10_economy_hooks]
 
 PHASE 11. Analytics & Telemetry
 11.1 Gathering session metrics (nodes/hour, rare proc rate) (X)
