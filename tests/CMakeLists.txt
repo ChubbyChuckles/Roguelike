@@ -105,6 +105,14 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_enemy_difficulty_phase4.c AND NO
     endif()
     add_test(NAME test_enemy_difficulty_phase4 COMMAND test_enemy_difficulty_phase4)
 endif()
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_enemy_difficulty_phase5.c AND NOT TARGET test_enemy_difficulty_phase5)
+    add_executable(test_enemy_difficulty_phase5 unit/test_enemy_difficulty_phase5.c)
+    target_link_libraries(test_enemy_difficulty_phase5 PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_enemy_difficulty_phase5 PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_enemy_difficulty_phase5 COMMAND test_enemy_difficulty_phase5)
+endif()
 
 # Character Progression Phase 0 taxonomy test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase0_taxonomy.c AND NOT TARGET test_progression_phase0_taxonomy)

@@ -80,6 +80,10 @@ typedef struct RogueEnemy {
     int modifier_ids[8];      /* up to 8 modifiers */
     /* Cached final combat stats snapshot at spawn (Phase 0.4). Basic subset for now. */
     float final_hp; float final_damage; float final_defense;
+    /* --- Phase 5 AI Intensity --- */
+    unsigned char ai_intensity; /* RogueEnemyAIIntensity enum value */
+    float ai_intensity_score;    /* internal escalation score */
+    float ai_intensity_cooldown_ms; /* hysteresis cooldown preventing rapid oscillation */
 } RogueEnemy;
 
 #define ROGUE_MAX_ENEMIES 256

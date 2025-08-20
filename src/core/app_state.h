@@ -118,6 +118,8 @@ typedef struct RogueAppState {
     int target_enemy_level;  /* level of targeted enemy */
     /* Enemy Integration Phase 1: global world seed used for encounter seed derivation */
     unsigned int world_seed;
+    /* Enemy Difficulty Phase 5: recent death timer for intensity escalation */
+    float time_since_last_enemy_death_ms;
 } RogueAppState;
 
 extern RogueAppState g_app;

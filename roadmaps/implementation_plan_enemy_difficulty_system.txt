@@ -69,11 +69,11 @@ PHASE 4. Adaptive Difficulty Feedback Loop
 4.6 Tests: stability under alternating performance, envelope clamps (Done – unit test validates disable, upward, downward, relaxation convergence)
 
 PHASE 5. AI Behavior Intensity Layers
-5.1 Intensity tiers (Passive, Standard, Aggressive, Frenzied) with action frequency multipliers (X)
-5.2 Behavior tree condition gating by intensity (cooldown reductions, reposition frequency) (X)
-5.3 Escalation triggers (player low HP, time elapsed, pack member deaths) (X)
-5.4 De-escalation safety (avoid perpetual frenzied lock) (X)
-5.5 Tests: escalation path determinism, cooldown floor enforcement (X)
+5.1 Intensity tiers (Passive, Standard, Aggressive, Frenzied) with action frequency multipliers (Done – profiles w/ action, move, cooldown scalars)
+5.2 Behavior tree condition gating by intensity (cooldown reductions, reposition frequency) (Done – integrated into legacy loop: cooldown & animation speed scaling; BT hook ready)
+5.3 Escalation triggers (player low HP, time elapsed, pack member deaths) (Done – proximity + player health + recent deaths raise score)
+5.4 De-escalation safety (avoid perpetual frenzied lock) (Done – drift toward baseline + hysteresis cooldown + calm decay)
+5.5 Tests: escalation path determinism, cooldown floor enforcement (Done – unit test drives escalation & relaxation through tiers)
 
 PHASE 6. Telegraph & Readability
 6.1 Standardized telegraph taxonomy: windup, persistent hazard, delayed strike, cone, ground rune (X)

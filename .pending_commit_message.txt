@@ -24,3 +24,9 @@ Implemented progression maze wrapper (progression_maze.[ch]) layering metadata a
 
 Verification: SDL2 build + test_progression_phase4_maze passes.
 
+enemy_difficulty: Phase 5 AI Behavior Intensity Layers
+
+Added AI intensity system introducing tiers (Passive, Standard, Aggressive, Frenzied) each with action frequency, movement speed, and attack cooldown multipliers. Implemented escalation logic (proximity, player low health threshold, recent pack member deaths) and de-escalation (calm drift toward baseline, high player health & distance decay) with hysteresis cooldown to prevent rapid oscillation. Integrated into spawn initialization, per-tick AI update (movement speed, animation pacing, attack cooldown calculation), and exposed profiles via `enemy_ai_intensity.[ch]`. Added unit test `test_enemy_difficulty_phase5` validating escalation to Frenzied and subsequent relaxation below Frenzied. Roadmap Phase 5 items (5.1–5.5) marked Done; README changelog updated.
+
+Verification: SDL2 build; unit tests compiled including new test_enemy_difficulty_phase5 (passes locally).
+
