@@ -1,110 +1,16 @@
-feat(hit-detection): Slice C dual-path comparison, mismatch logging & overlay enhancements
+feat(progression): implement Phase 0 stat taxonomy (canonical registry, ID ranges, fingerprint, tests)
 
-Implements Pixel Mask Detection Slice C:
- - Always compute capsule + (toggled) pixel hit sets; pixel authoritative only if it yields hits.
- - Extended RogueHitDebugFrame with capsule/pixel arrays, mismatch counts, mask transform metadata.
- - Added cumulative mismatch counters + reset/accessors.
- - Updated rogue_combat_weapon_sweep_apply with dual evaluation, set difference stats, and extended debug store.
- - Added mismatch unit test (test_hit_mask_mismatch) validating capsule-only mismatch logging path.
- - Enhanced debug overlay: mask AABB placeholder grid, per-enemy hit coloring (green shared, yellow pixel-only, red capsule-only), summary line with counts & path used.
- - Roadmap & README changelog updated to reflect Slice C progress.
+Adds progression_stats.[ch] providing stable stat enumeration with categorized ID ranges:
+ - Primary (0-99): STR/DEX/VIT/INT
+ - Derived (100-199): crit chance/damage, DPS/EHP/toughness/mobility/sustain (placeholder), resistances
+ - Rating placeholders (200-299): crit/haste/avoidance rating (reserved for Phase 3 DR curves)
+ - Modifier placeholders (300-399): generic damage/speed modifiers
+ - Reserved (400-499) future expansion (mastery, micro-nodes)
 
-Next: performance counters & rotation-aware bounding (Slice D), pixel-normal refinement, actual bit visualization.
+Includes deterministic registry fingerprint API and unit test `test_progression_phase0_taxonomy` validating:
+ - Strict ascending unique IDs & codes
+ - Category mapping by range
+ - Stable fingerprint repeatability
+ - Reserved placeholders flagged
 
-feat(enemy-difficulty): Phase 0 taxonomy & tier multipliers
-
-Implements Roadmap Phase 0 (0.1-0.5):
- - Established archetype inventory (Melee, Ranged, Caster, EliteSupport, Boss)
- - Defined canonical budgets (hp, dps, control, mobility)
- - Added tier table (Normal→Nemesis) with monotonic HP & mostly monotonic DPS (intentional Nemesis DPS dip)
- - Reserved ID ranges for future Mythic/Event tiers
- - Added API (tier introspection, archetype names, base budget compute)
- - Added unit test `test_enemy_difficulty_phase0` (id uniqueness, monotonicity, archetype names, budget copy)
-
-feat(enemy-difficulty): Phase 1 baseline scaling & relative ΔL model (partial)
-
-Implements Roadmap Phase 1 core (1.1,1.2,1.5,1.7 partial):
- - Added sublinear base curves (HP L^1.15, DMG L^1.08, DEF L^1.05)
- - Implemented relative level differential scaling (downward penalties with caps, upward buffs with ramp offset & caps)
- - Dominance + trivial thresholds with reward scalar dampening function
- - Parameter file loader (global coefficients) + reset API
- - Final stat computation (base -> tier -> ΔL) and reward scalar API
- - Unit test `test_enemy_difficulty_phase1` verifying base monotonicity, relative multiplier grid invariants, reward thresholds, and stat positivity bounds
- - Roadmap updated marking completed / partial / deferred items (1.3 resist/crit derivation deferred, 1.4 biome-specific params deferred, 1.6 UI indicators deferred, TTK heatmap harness deferred)
-
-Next: Phase 1 remaining items (attribute rating curves, biome param layering, UI ΔL indicator, full TTK simulation harness); proceed to Phase 2 modifiers after completing remaining Phase 1 deferred tasks.
-
-feat(enemy-difficulty): Phase 1 completion (attributes, biome params, severity, TTK tests)
-
-- Added derived attribute curves (crit chance log growth, phys/elem resist power curves with caps) & compute API
-- Implemented biome parameter registry (override relative scaling coefficients per biome id)
-- Added ΔL severity classifier enum for future UI tint/icon hooks
-- Added TTK estimation helper (final stats -> effective HP / player DPS)
-- Extended tests (`test_enemy_difficulty_phase1_ext`) covering attribute monotonicity, biome registry, ΔL severity mapping, TTK ordering invariants
-- Roadmap updated marking Phase 1 items 1.3, 1.4 (global+biome) and 1.7 as Done; UI indicator (1.6) left Deferred
-- README changelog pending next aggregation pass (will collate after Phase 2)
-
-feat(hit-detection): Pixel Masks Slice B runtime integration
-
-- Added SHIFT+M toggle (input_events) to flip `g_hit_use_pixel_masks` for A/B testing
-- Integrated pixel mask broadphase (AABB) + narrowphase sampling into `rogue_combat_weapon_sweep_apply` guarded by feature flag, with capsule fallback
-- Implemented helper APIs in hit_pixel_mask.c/h: frame AABB query, enemy test sampling (center + 8-ring), local pixel → world transform
-- Added math includes & pose usage (dx/dy/scale/angle) for transform; simplified rotation handling (no pre-rotation optimizations yet)
-- New unit test `test_hit_mask_integration` verifying a pixel-mask registered hit; existing `test_hit_mask_basic` & Phase 7 integration tests still pass
-- Roadmap `implementation_plan_detection.txt` updated with Slice B progress section
-- README changelog updated (Pixel Detection Slice B entry)
-
-Next: Slice C will log capsule vs pixel mismatches and surface debug overlay differentials.
-
-feat(enemy-difficulty): Phase 2 procedural modifiers (initial slice)
-
-- Added enemy_modifiers module (c/h) with registry of up to 64 modifier defs.
-- Definition parser (simple key=value blocks separated by blank lines) loads: id, name, weight, tiers mask, dps/control/mobility budget costs, incompat mask (digit list), telegraph token.
-- Deterministic selection algorithm (xorshift32 RNG) builds a modifier set honoring per-dimension budget cap (default 0.6) & incompatibility; maximum 8 active modifiers.
-- Budget dimensions tracked cumulatively (dps/control/mobility) with early candidate filtering preventing cap breaches.
-- Incompatibility enforcement via bitmask check (modifier's incompat_mask & already applied mask).
-- Public APIs: load_file, reset, count, by index, by id, roll, RNG helpers.
-- Unit test `test_enemy_difficulty_phase2` validating: load & introspection (4 mods), deterministic repeatable roll (same seed => identical sequence), incompat exclusion (Frenzied vs Overcharged mutually exclusive), and budget cap compliance.
-- Integrated new source into core CMake target & added test to tests/CMakeLists.txt.
-- Roadmap Phase 2 entries 2.1–2.5 marked Done; 2.6 (advanced analytics/adaptive weighting) Deferred.
-- README changelog updated with Phase 2 bullet.
-
-feat(enemy-difficulty): Phase 1.6 UI ΔL indicator
-
-- Added HUD delta level severity indicator (near level text) showing ΔL numeric value and color-coded severity via existing classifier.
-- Introduced app state fields (target_enemy_active/target_enemy_level) to drive indicator; default-inited (constructor for non-MSVC, explicit init call for MSVC).
-- Updated `hud.c` to render when a target enemy is active; severity colors chosen for accessibility contrast.
-- Roadmap updated marking Phase 1.6 Done; README changelog entry added.
-- Maintains modularity (no coupling into combat logic yet); future work can set target fields from lock-on system.
-
-feat(enemy-difficulty): Phase 3 encounter composition (initial slice)
-
-- Added `encounter_composer.c/h` module with template registry & deterministic composition.
-- Introduced `assets/encounters.cfg` (id,name,type,min,max,elite_spacing,elite_chance,boss,support ranges).
-- Implemented elite insertion logic with spacing counter & probability; boss template auto-marks first unit as elite & spawns support units.
-- Composition result captures unit list (enemy_type_id placeholder, level=difficulty_rating), counts, elite & support stats.
-- Unit test `test_enemy_difficulty_phase3` verifies template load (2 templates), count bounds, level consistency, boss presence and support range, multi-seed robustness for swarm pack.
-- Roadmap updated (Phase 3: 3.1–3.3,3.5 Done; 3.4 partial – telegraph/environment props deferred to later phases).
-- README changelog updated with Phase 3 entry.
-
-feat(enemy-integration): Phase 0 data & runtime structure alignment
-
-- Extended `RogueEnemyTypeDef` & `RogueEnemy` with integration metadata (id, tier_id, archetype_id, base_level_offset, encounter/replay fields, modifier slots, final stat cache, flags).
-- Added JSON enemy directory loader already providing id/name/offset/tier; Phase 0 now wires these into mapping.
-- New module `enemy_integration.c/h` building per-type mapping (type_index -> archetype, tier, base_level_offset, ids) and spawn apply helper computing final stats via existing scaling API.
-- Added unit test `test_enemy_integration_phase0` verifying mapping uniqueness, tier/offset propagation, and stat computation on spawn application.
-- Updated roadmap `implementation_plan_enemy_integration.txt` marking Phase 0 (0.1–0.5) Done.
-- CMake updated (added enemy_integration.c); struct field additions prepared for subsequent phases (modifiers, replay hash, flags).
-- README pending integration section update in next aggregation pass.
- - README changelog updated with Enemy Integration Phase 0 entry.
-
-feat(enemy-integration): Phase 1 deterministic encounter seeds & replay hash
-
-- Added global `world_seed` field to `RogueAppState` for integration path.
-- Implemented encounter seed derivation helper (world_seed ^ region_id ^ room_id ^ encounter_index).
-- Added replay hash generator (FNV-1a 64) over template id + unit levels (+ future modifier ids placeholder).
-- Introduced debug ring buffer (last 32) with dump API for encounter seed/hash inspection.
-- Extended enemy integration module with new Phase 1 APIs; no gameplay behavior change yet (foundation for modifiers & persistence).
-- New unit test `test_enemy_integration_phase1` ensures identical seeds reproduce identical compositions & hashes; different world seed yields differing hash.
-- Roadmap `implementation_plan_enemy_integration.txt` Phase 1 tasks (1.1–1.5) marked Done.
-- README changelog updated with Enemy Integration Phase 1 entry.
+Roadmap Phase 0 sections marked Done with implementation notes; README Progression matrix row updated to reflect taxonomy completion.

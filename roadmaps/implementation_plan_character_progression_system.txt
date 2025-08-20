@@ -17,12 +17,12 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 - Combat stat calculation pipeline (Partial – assumed basic stats exist)
 - Maze skill configuration file exists (`assets/skill_maze_config.json`) providing structural seed for graph integration.
 
-PHASE 0. Baseline Audit & Stat Taxonomy (Partial)
-0.1 Enumerate current combat stats (attack_power, spell_power, crit_chance, etc.) (X)
-0.2 Define canonical stat taxonomy (primary, derived, rating, modifier) (X)
-0.3 Gap analysis vs planned progression layers (talents, mastery, ascendancy) (X)
-0.4 Reserve ID ranges for future stats to avoid collisions (X)
-0.5 Tests: taxonomy uniqueness, stable serialized order (X)
+PHASE 0. Baseline Audit & Stat Taxonomy (Done)
+0.1 Enumerate current combat stats (attack_power, spell_power, crit_chance, etc.) (Done – mapped existing: strength,dexterity,vitality,intelligence, crit_chance, crit_damage, resist set, derived dps/ehp indices)
+0.2 Define canonical stat taxonomy (primary, derived, rating, modifier) (Done – see progression_stats.[ch] ranges 0-99/100-199/200-299/300-399 with 400-499 reserved)
+0.3 Gap analysis vs planned progression layers (talents, mastery, ascendancy) (Done – placeholders added for ratings & modifiers + sustainability index reserved)
+0.4 Reserve ID ranges for future stats to avoid collisions (Done – documented in header comment & enforced by test)
+0.5 Tests: taxonomy uniqueness, stable serialized order (Done – unit test test_progression_phase0_taxonomy verifies uniqueness, ordering, id->category mapping & fingerprint stability)
 
 PHASE 1. Infinite XP & Level Core
 1.1 Level scaling function definition file (level -> total_xp, xp_to_next) with asymptotic growth but no terminal cap (X)
