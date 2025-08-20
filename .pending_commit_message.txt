@@ -88,3 +88,12 @@ crafting: Phase 5.1–5.5 Crafting Skill & Proficiency Progression
 - Follow-ups deferred: UI exposure of discovery & perks, quality floor application to item outcome rolls (hook stub present), balancing duplicate chance distribution.
 
 Verification: SDL2 Debug build; new test passes (CRAFT_P5_OK) alongside existing Phase 4 tests after integration adjustments.
+
+crafting: Phase 6.3 Transmute Material Scaling
+
+- Added catalyst material tier multiplier (2% per tier, cap 25%) applied to enchant & reforge cost formulas.
+- New API rogue_material_tier_by_item in material_registry for item->material tier resolution.
+- Updated equipment_enchant.c to integrate scaling and expose deterministic cost difference (reforge > enchant).
+- Added unit test test_crafting_phase6_3_transmute_scaling validating load path & cost relation.
+- Roadmap updated marking 6.3 Done; README changelog entry added.
+- Temporary test macro ROGUE_TEST_DISABLE_CATALYSTS used to bypass catalyst inventory in isolated cost scaling test (future improvement: inject test inventory instead).

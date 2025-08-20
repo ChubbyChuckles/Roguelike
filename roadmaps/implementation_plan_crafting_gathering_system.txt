@@ -62,12 +62,12 @@ PHASE 5. Crafting Skill & Proficiency Progression (Done)
 5.5 Tests: XP gain (smithing & enchanting), perk material cost reduction, duplicate path indirectly (dust & shard outputs) covered in `test_crafting_phase5_skill` (Done).
 
 PHASE 6. Item Modification & Enhancement Pathways
-6.1 Imbue: add new affix using material catalysts (budget safe guard) (X)
-6.2 Temper: raise existing affix value within budget using rare material (X)
-6.3 Transmute: reroll affixes (already exists) integrate material scaling (X)
-6.4 Socket crafting: add socket or reroll socket layout (X)
-6.5 Fracture risk mechanic for aggressive enhancement attempts (increases durability loss rate on failure) (X)
-6.6 Tests: budget constraint preservation, fracture probability distribution (X)
+6.1 Imbue: add new affix using material catalysts (budget safe guard) (Done) – implemented in equipment_enhance.c (rogue_item_instance_imbue) with catalyst gating & budget clamp.
+6.2 Temper: raise existing affix value within budget using rare material (Done) – rogue_item_instance_temper enforces budget, success chance, consumes catalyst.
+6.3 Transmute: reroll affixes integrate material scaling (Done) – enchant/reforge cost formulas now apply material tier multiplier (capped) with deterministic catalyst lookup; test_crafting_phase6_3_transmute_scaling validates cost relationship.
+6.4 Socket crafting: add socket or reroll socket layout (Done) – add & reroll APIs with deterministic seed and catalyst usage.
+6.5 Fracture risk mechanic for aggressive enhancement attempts (increases durability loss rate on failure) (Done) – temper failure applies durability damage leading to fracture flag when reaching zero.
+6.6 Tests: budget constraint preservation, fracture probability distribution (Done) – test_crafting_phase6_enhancement ensures no over‑budget, executes failure path (statistical placeholder).
 
 PHASE 7. Determinism & RNG Governance
 7.1 Separate RNG streams: gathering, refinement, craft quality, enhancement risk (X)

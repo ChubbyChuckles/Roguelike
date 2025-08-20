@@ -71,12 +71,14 @@ int rogue_material_registry_load_path(const char* path){ FILE* f=NULL;
 
 int rogue_material_registry_load_default(void){
         char path[256];
-        /* Adjusted search path to actual repo location assets/items/materials.cfg */
-        if(!rogue_find_asset_path("items/materials.cfg", path, sizeof path)){
-                /* fallback to legacy path if ever moved */
-                if(!rogue_find_asset_path("materials/materials.cfg", path, sizeof path)) return -1;
+        /* Actual repo path uses assets/materials/materials.cfg; still support previous items/materials.cfg if introduced later */
+        if(!rogue_find_asset_path("materials/materials.cfg", path, sizeof path)){
+                if(!rogue_find_asset_path("items/materials.cfg", path, sizeof path)) return -1;
         }
         return rogue_material_registry_load_path(path);
 }
 
 unsigned int rogue_material_seed_mix(unsigned int world_seed, int material_index){ /* FNV-1a 32bit mix */ unsigned int h=2166136261u; h^=world_seed; h*=16777619u; h^=(unsigned int)material_index; h*=16777619u; return h; }
+
+/* Phase 6.3 helper: resolve material tier by associated item id (string) */
+int rogue_material_tier_by_item(const char* item_id){ if(!item_id) return -1; for(int i=0;i<g_material_count;i++){ const RogueMaterialDef* m=&g_materials[i]; if(m->item_def_index>=0){ const RogueItemDef* d = rogue_item_def_at(m->item_def_index); if(d && strcmp(d->id,item_id)==0) return m->tier; } } return -1; }

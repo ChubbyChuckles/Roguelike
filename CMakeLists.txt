@@ -231,6 +231,7 @@ add_library(rogue_core
     src/core/crafting.c
     src/core/crafting_queue.c
     src/core/crafting_skill.c
+    src/core/equipment_enhance.c
     src/core/equipment.c
     src/core/equipment_stats.c
     src/core/equipment_gems.c

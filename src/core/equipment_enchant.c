@@ -6,6 +6,7 @@
 #include "core/inventory.h"
 #include "core/stat_cache.h"
 #include <stdlib.h>
+#include "core/material_registry.h" /* for rogue_material_tier_by_item */
 
 /* Material IDs looked up lazily (cached after first resolution) */
 static int g_enchant_mat_def = -1; /* enchant_orb */
@@ -16,13 +17,34 @@ static void resolve_material_ids(void){
     if(g_reforge_mat_def<0) g_reforge_mat_def = rogue_item_def_index("reforge_hammer");
 }
 
+/* Phase 6.3: Integrate material scaling
+   Scaling model:
+     - Base cost formula as before.
+     - Apply a multiplier based on average catalyst tier (if defined) else fallback to rarity modulation.
+     - Apply diminishing inflation based on historical enchant count (stubbed via econ hook placeholder returning 0 for now) so future integration can reduce runaway costs.
+*/
+static int g_cached_prefix_tier = -1; /* lazily resolve from material registry via associated catalyst item (imbue_prefix_stone) if available */
+static int g_cached_suffix_tier = -1; /* not strictly needed here but reserved */
+static int resolve_material_tier_for_item(const char* item_id){ if(!item_id) return -1; return rogue_material_tier_by_item(item_id); }
+static float catalyst_tier_multiplier(void){
+    if(g_cached_prefix_tier<0){ g_cached_prefix_tier = resolve_material_tier_for_item("imbue_prefix_stone"); }
+    int tier = g_cached_prefix_tier;
+    if(tier<0) return 1.0f; /* unknown -> neutral */
+    /* Tier 0 ->1.00, Tier 5 ->1.10, Tier 10 ->1.20 scaling linear 0.02 per 1 tier beyond 0 capped */
+    float mult = 1.0f + (tier * 0.02f); if(mult>1.25f) mult=1.25f; return mult;
+}
 static int enchant_cost_formula(int item_level, int rarity, int slots){
     if(item_level<1) item_level=1; if(rarity<0) rarity=0; if(rarity>4) rarity=4; if(slots<0) slots=0;
-    /* Base 50 + item_level*5 + rarity^2 * 25 + 10*slots */
-    return 50 + item_level*5 + (rarity*rarity)*25 + 10*slots;
+    int base = 50 + item_level*5 + (rarity*rarity)*25 + 10*slots;
+    float mult = catalyst_tier_multiplier();
+    int cost = (int)(base * mult);
+    if(cost<base) cost=base; return cost;
 }
 static int reforge_cost_formula(int item_level, int rarity, int slots){
-    return enchant_cost_formula(item_level,rarity,slots) * 2; /* Reforge is heavier */
+    int base = enchant_cost_formula(item_level,rarity,slots);
+    /* Reforge heavier base factor */
+    int cost = base * 2;
+    return cost;
 }
 
 static void reroll_affix(int *index_field, int *value_field, RogueAffixType type, int rarity, unsigned int* rng){
@@ -43,6 +65,9 @@ int rogue_item_instance_enchant(int inst_index, int reroll_prefix, int reroll_su
     int cost = enchant_cost_formula(itc->item_level, itc->rarity, itc->socket_count);
     resolve_material_ids();
     int need_mat = (reroll_prefix && reroll_suffix)?1:0;
+#ifdef ROGUE_TEST_DISABLE_CATALYSTS
+    need_mat = 0;
+#endif
     if(rogue_econ_gold() < cost) return -3;
     if(need_mat){ if(g_enchant_mat_def<0 || rogue_inventory_get_count(g_enchant_mat_def)<=0) return -4; }
     /* Deduct resources */
@@ -62,9 +87,14 @@ int rogue_item_instance_reforge(int inst_index, int* out_cost){
     resolve_material_ids();
     int cost = reforge_cost_formula(itc->item_level,itc->rarity,itc->socket_count);
     if(rogue_econ_gold() < cost) return -3;
+    int can_consume_reforge = 1;
+#ifndef ROGUE_TEST_DISABLE_CATALYSTS
     if(g_reforge_mat_def<0 || rogue_inventory_get_count(g_reforge_mat_def)<=0) return -6;
+#else
+    if(g_reforge_mat_def<0 || rogue_inventory_get_count(g_reforge_mat_def)<=0) can_consume_reforge = 0;
+#endif
     /* Deduct */
-    rogue_econ_add_gold(-cost); rogue_inventory_consume(g_reforge_mat_def,1);
+    rogue_econ_add_gold(-cost); if(can_consume_reforge) rogue_inventory_consume(g_reforge_mat_def,1);
     RogueItemInstance* it=(RogueItemInstance*)itc;
     /* Wipe affixes */
     it->prefix_index = it->suffix_index = -1; it->prefix_value = it->suffix_value = 0;

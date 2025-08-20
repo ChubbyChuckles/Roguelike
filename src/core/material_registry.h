@@ -38,6 +38,7 @@ int rogue_material_registry_load_path(const char* path);
 /* Reset registry (clears entries). */
 void rogue_material_registry_reset(void);
 
+int rogue_material_tier_by_item(const char* item_id);
 int rogue_material_count(void);
 const RogueMaterialDef* rogue_material_get(int idx);
 const RogueMaterialDef* rogue_material_find(const char* id);
