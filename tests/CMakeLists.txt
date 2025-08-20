@@ -300,6 +300,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_mastery.c AND NOT TA
     add_test(NAME test_progression_mastery COMMAND test_progression_mastery)
 endif()
 
+# Character Progression Phase 7 ring expansion & keystone heuristic scaffold test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase7_rings.c AND NOT TARGET test_progression_phase7_rings)
+    add_executable(test_progression_phase7_rings unit/test_progression_phase7_rings.c)
+    target_link_libraries(test_progression_phase7_rings PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_progression_phase7_rings PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_progression_phase7_rings COMMAND test_progression_phase7_rings)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_enemy_json_loader.c AND NOT TARGET test_enemy_json_loader)
     add_executable(test_enemy_json_loader unit/test_enemy_json_loader.c)
     target_link_libraries(test_enemy_json_loader PRIVATE rogue_core)

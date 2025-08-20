@@ -19,7 +19,7 @@ typedef struct RogueProgressionMazeNodeMeta {
     int str_req, dex_req, int_req, vit_req; /* derived attribute thresholds */
     int cost_points;       /* point cost to unlock (sublinear ramp by ring) */
     unsigned int tags;     /* future classification (e.g., offensive/defensive/utility) */
-    unsigned int flags;    /* bit0: optional_branch, bit1: difficulty_tag_high */
+    unsigned int flags;    /* bit0: optional_branch, bit1: difficulty_tag_high, bit2: keystone */
     int adj_start;         /* offset into adjacency index array */
     int adj_count;         /* number of neighbors */
 } RogueProgressionMazeNodeMeta;
@@ -44,6 +44,20 @@ int rogue_progression_maze_shortest_cost(const RogueProgressionMaze* m, int from
 
 /* Simple orphan audit: returns number of non-root nodes (node_id>0) with adj_count==0 and not optional. */
 int rogue_progression_maze_orphan_count(const RogueProgressionMaze* m);
+
+/* Phase 7 additions */
+/* Flag helpers */
+#define ROGUE_MAZE_FLAG_OPTIONAL   0x1u
+#define ROGUE_MAZE_FLAG_DIFFICULTY 0x2u
+#define ROGUE_MAZE_FLAG_KEYSTONE   0x4u
+
+/* Returns 1 if node flagged a keystone else 0. */
+int rogue_progression_maze_is_keystone(const RogueProgressionMaze* m, int node_id);
+/* Count keystone nodes in the maze. */
+int rogue_progression_maze_keystone_total(const RogueProgressionMaze* m);
+
+/* Ring expansion milestones (conceptual extra outer rings unlocked at milestone levels). Returns additional ring layers available beyond the base maze->base.rings. */
+int rogue_progression_ring_expansions_unlocked(int player_level);
 
 #ifdef __cplusplus
 }

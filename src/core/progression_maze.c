@@ -38,9 +38,15 @@ int rogue_progression_maze_build(const char* config_path, RogueProgressionMaze* 
         m->cost_points = 1 + (m->ring-1)/2; m->tags=0; m->flags=0; m->adj_start=offsets[i]; m->adj_count=deg[i];
     }
     /* Flag optional leaf nodes (degree==1 and ring>= base.rings-1) */
-    int optional=0; for(int i=0;i<n;i++){ if(deg[i]==1 && out_maze->base.nodes[i].ring >= out_maze->base.rings-1){ out_maze->meta[i].flags |= 1u; optional++; } }
+    int optional=0; for(int i=0;i<n;i++){ if(deg[i]==1 && out_maze->base.nodes[i].ring >= out_maze->base.rings-1){ out_maze->meta[i].flags |= ROGUE_MAZE_FLAG_OPTIONAL; optional++; } }
     /* Difficulty tagging: nodes with degree>4 in inner 50% rings get high difficulty flag */
-    int half_ring = out_maze->base.rings/2 + 1; for(int i=0;i<n;i++){ if(out_maze->meta[i].ring <= half_ring && deg[i]>4){ out_maze->meta[i].flags |= 2u; } }
+    int half_ring = out_maze->base.rings/2 + 1; for(int i=0;i<n;i++){ if(out_maze->meta[i].ring <= half_ring && deg[i]>4){ out_maze->meta[i].flags |= ROGUE_MAZE_FLAG_DIFFICULTY; } }
+    /* Keystone heuristic (Phase 7 scaffolding): Nodes that are articulation-like (high degree >=5) on outer 30% rings become keystones. */
+    int ring_threshold = (int)(out_maze->base.rings * 0.70f); if(ring_threshold<1) ring_threshold=1;
+    for(int i=0;i<n;i++){
+        int ring = out_maze->meta[i].ring; int degree = deg[i];
+        if(ring >= ring_threshold && degree >=5){ out_maze->meta[i].flags |= ROGUE_MAZE_FLAG_KEYSTONE; }
+    }
     out_maze->optional_nodes=optional; free(offsets); free(fill); free(deg); return 1; }
 
 void rogue_progression_maze_free(RogueProgressionMaze* m){ if(!m) return; rogue_skill_maze_free(&m->base); free(m->meta); free(m->adjacency); m->meta=NULL; m->adjacency=NULL; m->optional_nodes=0; m->total_adjacency=0; }
@@ -51,3 +57,9 @@ int rogue_progression_maze_shortest_cost(const RogueProgressionMaze* m, int from
     int out = dist[to_node]==INT_MAX? -1: dist[to_node]; free(dist); free(vis); return out; }
 
 int rogue_progression_maze_orphan_count(const RogueProgressionMaze* m){ if(!m||!m->meta) return -1; int n=m->base.node_count; int orphans=0; for(int i=1;i<n;i++){ const RogueProgressionMazeNodeMeta* meta=&m->meta[i]; if(meta->adj_count==0 && !(meta->flags & 1u)) orphans++; } return orphans; }
+
+int rogue_progression_maze_is_keystone(const RogueProgressionMaze* m, int node_id){ if(!m||!m->meta||node_id<0||node_id>=m->base.node_count) return 0; return (m->meta[node_id].flags & ROGUE_MAZE_FLAG_KEYSTONE)?1:0; }
+int rogue_progression_maze_keystone_total(const RogueProgressionMaze* m){ if(!m||!m->meta) return 0; int n=m->base.node_count; int c=0; for(int i=0;i<n;i++) if(m->meta[i].flags & ROGUE_MAZE_FLAG_KEYSTONE) c++; return c; }
+
+int rogue_progression_ring_expansions_unlocked(int player_level){ /* simple milestone: +1 ring every 25 levels starting at 50 (Phase 7 baseline) */
+    if(player_level < 50) return 0; int extra = (player_level - 50)/25 + 1; if(extra>4) extra=4; return extra; }
