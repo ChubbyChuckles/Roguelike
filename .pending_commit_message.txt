@@ -50,3 +50,22 @@ Follow-ups:
 
 Summary:
 - Phase 7 core now feature-complete (7.1–7.5 implemented/tested) pending future data-driven refinement & UI polish.
+Progression Phase 8 (Perpetual Scaling Layer)
+
+Implemented continuous micro-node progression system with sublinear aggregate scaling.
+
+Details:
+- Added module `progression_perpetual.[ch]` providing APIs: allowance (`rogue_perpetual_micro_nodes_allowed`), spend guard (`rogue_perpetual_spend_node`), raw power (diminishing per-node), level scalar (smooth asymptote), global coefficient tuning, inflation guard adjust, and effective power aggregation.
+- Diminishing formula: per-node contribution BASE/(1+CURV*i) (BASE=0.015, CURV=0.07) ensuring decreasing marginal returns.
+- Level scalar: (1-exp(-L/140))^0.80 producing soft early acceleration, tapering mid-late; combined with node diminishing keeps effective exponent <0.65 beyond level 200 (roadmap metric).
+- Inflation guard: `rogue_perpetual_inflation_adjust(delta)` clamps resulting coefficient inside [0.85,1.15] for stable balance tuning loops.
+- Unit test `test_progression_phase8_perpetual` validates: allowance pacing, spend cap enforcement, diminishing increments (first vs last), sublinear growth (power ratio level200/level100 < 2x).
+- Roadmap Phase 8 items 8.1–8.5 marked Done; README updated with changelog entry.
+
+Rationale:
+- Provides endless but controlled progression track post primary maze & mastery layers, avoiding hard caps while guarding against runaway inflation.
+
+Follow-ups:
+- Integrate effective power into analytics power index (Phase 13) & difficulty scaler (Phase 14) inputs.
+- Persist micro-node spend count (Phase 12) with versioned header.
+- Telemetry feedback loop hooking TTK distributions to inflation adjust API.

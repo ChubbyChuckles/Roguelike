@@ -317,6 +317,14 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase7_visualization
     endif()
     add_test(NAME test_progression_phase7_visualization COMMAND test_progression_phase7_visualization)
 endif()
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase8_perpetual.c AND NOT TARGET test_progression_phase8_perpetual)
+    add_executable(test_progression_phase8_perpetual unit/test_progression_phase8_perpetual.c)
+    target_link_libraries(test_progression_phase8_perpetual PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_progression_phase8_perpetual PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_progression_phase8_perpetual COMMAND test_progression_phase8_perpetual)
+endif()
 
 # Character Progression Phase 7.3 anti-stack safeguards test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase7_antistack.c AND NOT TARGET test_progression_phase7_antistack)

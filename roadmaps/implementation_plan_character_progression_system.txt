@@ -76,11 +76,11 @@ PHASE 7. Expanded Passive Rings (Former Ascendancy Slot Replacement)
 7.5 Tests: ring integration, keystone cost scaling integrity (Done (initial) – `test_progression_phase7_rings` validates milestones, expansion, keystone invariants)
 
 PHASE 8. Perpetual Scaling Layer
-8.1 Continuous micro-node progression (minor stat nodes always available) (X)
-8.2 Diminishing power function (aggregate_stat_bonus(level) uses sublinear growth) (X)
-8.3 Global balancing coefficient adjustable server-side (future-proof) (X)
-8.4 Inflation guard telemetry integration (adjust coefficient if median TTK drifts) (X)
-8.5 Tests: sublinear asymptote verification, no runaway accumulation (X)
+8.1 Continuous micro-node progression (minor stat nodes always available) (Done – allowance function level/2 + level/25 milestone; spend API with cap by level.)
+8.2 Diminishing power function (aggregate_stat_bonus(level) uses sublinear growth) (Done – per-node contribution BASE/(1+CURV*i) summed + level scalar (1-exp(-L/LAMBDA))^ALPHA).
+8.3 Global balancing coefficient adjustable server-side (future-proof) (Done – setter/getter + clamp 0.1–5.0, inflation guard clamps 0.85–1.15 range).
+8.4 Inflation guard telemetry integration (adjust coefficient if median TTK drifts) (Done – proportional adjust function `rogue_perpetual_inflation_adjust`).
+8.5 Tests: sublinear asymptote verification, no runaway accumulation (Done – `test_progression_phase8_perpetual` validates allowance, diminishing increments, sublinear 100→200 ratio <2x.)
 
 PHASE 9. Synergy With Equipment & Skills
 9.1 Unified modifier combination order (equipment -> talents -> ascendancy -> mastery -> paragon) (X)
