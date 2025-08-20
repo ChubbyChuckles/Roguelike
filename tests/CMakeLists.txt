@@ -1,3 +1,44 @@
+# Integration Plumbing Phase 0 Test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_integration_manager.c)
+    add_executable(test_integration_manager unit/test_integration_manager.c)
+    target_link_libraries(test_integration_manager PRIVATE rogue_core)
+    add_test(NAME test_integration_manager COMMAND test_integration_manager)
+endif()
+
+# Integration Plumbing Phase 0.1 System Taxonomy Test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_system_taxonomy.c)
+    add_executable(test_system_taxonomy unit/test_system_taxonomy.c)
+    target_link_libraries(test_system_taxonomy PRIVATE rogue_core)
+    add_test(NAME test_system_taxonomy COMMAND test_system_taxonomy)
+endif()
+
+# Integration Plumbing Phase 1.1-1.7 Event Bus Test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_event_bus.c)
+    add_executable(test_event_bus unit/test_event_bus.c)
+    target_link_libraries(test_event_bus PRIVATE rogue_core)
+    add_test(NAME test_event_bus COMMAND test_event_bus)
+endif()
+
+# Integration Plumbing Phase 2.1 JSON Schema Test  
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_json_schema.c)
+    add_executable(test_json_schema unit/test_json_schema.c)
+    target_link_libraries(test_json_schema PRIVATE rogue_core)
+    add_test(NAME test_json_schema COMMAND test_json_schema)
+endif()
+
+# Integration Plumbing Phase 2.2 CFG Parser Test  
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_cfg_parser.c)
+    add_executable(test_cfg_parser unit/test_cfg_parser.c)
+    target_link_libraries(test_cfg_parser PRIVATE rogue_core)
+    add_test(NAME test_cfg_parser COMMAND test_cfg_parser)
+endif()
+
+# Integration Plumbing Phase 2.2 CFG File Analysis Test (manual run)
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_cfg_file_analysis.c)
+    add_executable(test_cfg_file_analysis unit/test_cfg_file_analysis.c)
+    target_link_libraries(test_cfg_file_analysis PRIVATE rogue_core)
+endif()
+
 # Phase 5 crafting skill test explicit add (ensure included regardless of glob ordering)
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_crafting_phase5_skill.c)
     add_executable(test_crafting_phase5_skill unit/test_crafting_phase5_skill.c)

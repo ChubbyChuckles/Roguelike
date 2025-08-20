@@ -93,6 +93,13 @@ add_library(rogue_core
     src/core/player_progress.c
     src/core/world_renderer.c
     src/core/animation_system.c
+    # Integration plumbing
+    src/core/integration_manager.c
+    src/core/system_taxonomy.c
+    src/core/event_bus.c
+    src/core/json_schema.c
+    src/core/json_parser.c
+    src/core/cfg_parser.c
     # persistence module split
     src/core/persistence_io.c
     src/core/persistence_world.c
