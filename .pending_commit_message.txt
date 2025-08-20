@@ -41,3 +41,12 @@ Vendor System Phase 7 Completion: Currency & Sink Mechanics
 - Fee scaling helper scale_fee(base,level) (linear factor) provides early inflation counter hook tied to progression.
 - Added unit test test_vendor_phase7_sinks exercising upgrade reroll (fee + sink accumulation) and trade-in path (conversion, fee) producing VENDOR_PHASE7_SINKS_OK.
 - Updated core & tests CMake (added vendor_sinks.c and test target), roadmap Phase 7.1–7.5 entries marked Done with notes, README changelog appended.
+
+Vendor System Phase 8 Partial Completion: Crafting & Gathering Integration (Implemented 8.1, 8.3–8.5)
+- Added vendor_crafting_integration.c/h providing:
+	* Recipe unlock purchase (rogue_vendor_purchase_recipe_unlock) with idempotent gold fee and optional callback.
+	* Batch material refinement service (rogue_vendor_batch_refine) applying percentage gold service fee then invoking underlying refine op repeatedly (promoted unit aggregation).
+	* Scarcity feedback loop APIs (rogue_vendor_scarcity_record / _score) accumulating material deficit scores for gathering spawn weighting.
+- Implemented Phase 8 unit test (test_vendor_phase8_crafting_integration) verifying recipe unlock (single charge), scarcity accumulation (+5 then -2 -> 3), batch refine invocation path, and success token VENDOR_PHASE8_CRAFTING_INTEGRATION_OK.
+- Roadmap updated: 8.1, 8.3, 8.4, 8.5 marked Done; 8.2 (gathering node boosters – optional) left X.
+- README changelog appended with Phase 8 summary; CMake updated to compile new module & test target.

@@ -206,6 +206,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase7_sinks.c AND NOT TA
     add_test(NAME test_vendor_phase7_sinks COMMAND test_vendor_phase7_sinks)
 endif()
 
+# Vendor Phase 8 crafting integration test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase8_crafting_integration.c AND NOT TARGET test_vendor_phase8_crafting_integration)
+    add_executable(test_vendor_phase8_crafting_integration unit/test_vendor_phase8_crafting_integration.c)
+    target_link_libraries(test_vendor_phase8_crafting_integration PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2main)
+        target_link_libraries(test_vendor_phase8_crafting_integration PRIVATE SDL2::SDL2main SDL2::SDL2)
+        target_compile_definitions(test_vendor_phase8_crafting_integration PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_vendor_phase8_crafting_integration COMMAND test_vendor_phase8_crafting_integration)
+endif()
+
 # Crafting & Gathering Phase 0-1 material registry test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_crafting_phase0_1_material_registry.c AND NOT TARGET test_crafting_phase0_1_material_registry)
     add_executable(test_crafting_phase0_1_material_registry unit/test_crafting_phase0_1_material_registry.c)

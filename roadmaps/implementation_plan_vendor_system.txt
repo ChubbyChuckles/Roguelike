@@ -75,11 +75,11 @@ PHASE 7. Currency & Sink Mechanics
 7.5 Tests: sink effectiveness simulation vs inflow, no zero-cost exploit paths (Done) – test_vendor_phase7_sinks validates upgrade reroll fee, trade-in path, sink accumulation.
 
 PHASE 8. Integration With Crafting & Gathering
-8.1 Crafting recipe unlock purchases (data-driven gating) (X)
+8.1 Crafting recipe unlock purchases (data-driven gating) (Done) – vendor_purchase_recipe_unlock unlocks undiscovered recipe with gold fee.
 8.2 Gathering node boosters (temporary yield buff item) (Optional) (X)
-8.3 Material quality refinement service (npc performs batch refine for fee) (X)
-8.4 Cross-system scarcity feedback loop (vendor logs deficits -> gathering spawn weighting hint) (X)
-8.5 Tests: unlock gating correctness, refine batch conservation/ loss ratio enforcement (X)
+8.3 Material quality refinement service (npc performs batch refine for fee) (Done) – batch refine API charges fee %, loops underlying refine op.
+8.4 Cross-system scarcity feedback loop (vendor logs deficits -> gathering spawn weighting hint) (Done) – scarcity deficit record & score APIs.
+8.5 Tests: unlock gating correctness, refine batch conservation/ loss ratio enforcement (Done) – test_vendor_phase8_crafting_integration exercises unlock idempotence, scarcity accounting, batch refine call path.
 
 PHASE 9. Adaptive Vendor Behavior
 9.1 Personalization: track player purchase profile categories (potions, weapons, materials) (X)
