@@ -346,6 +346,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase10_buffs.c AND 
     add_test(NAME test_progression_phase10_buffs COMMAND test_progression_phase10_buffs)
 endif()
 
+# Character Progression Phase 11 cache/dirty flags performance scaffolding test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase11_cache.c AND NOT TARGET test_progression_phase11_cache)
+    add_executable(test_progression_phase11_cache unit/test_progression_phase11_cache.c)
+    target_link_libraries(test_progression_phase11_cache PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_progression_phase11_cache PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_progression_phase11_cache COMMAND test_progression_phase11_cache)
+endif()
+
 # Character Progression Phase 7.3 anti-stack safeguards test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase7_antistack.c AND NOT TARGET test_progression_phase7_antistack)
     add_executable(test_progression_phase7_antistack unit/test_progression_phase7_antistack.c)

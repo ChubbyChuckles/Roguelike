@@ -16,7 +16,13 @@ int rogue_buffs_strength_bonus(void);
 
 RogueStatCache g_player_stat_cache = {0};
 
-void rogue_stat_cache_mark_dirty(void){ g_player_stat_cache.dirty = 1; }
+void rogue_stat_cache_mark_dirty(void){ g_player_stat_cache.dirty = 1; g_player_stat_cache.dirty_bits = 0xFFFFFFFFu; }
+void rogue_stat_cache_mark_attr_dirty(void){ g_player_stat_cache.dirty = 1; g_player_stat_cache.dirty_bits |= 1u; }
+void rogue_stat_cache_mark_passive_dirty(void){ g_player_stat_cache.dirty = 1; g_player_stat_cache.dirty_bits |= 2u; }
+void rogue_stat_cache_mark_buff_dirty(void){ g_player_stat_cache.dirty = 1; g_player_stat_cache.dirty_bits |= 4u; }
+void rogue_stat_cache_mark_equipment_dirty(void){ g_player_stat_cache.dirty = 1; g_player_stat_cache.dirty_bits |= 8u; }
+unsigned int rogue_stat_cache_heavy_passive_recompute_count(void){ return g_player_stat_cache.heavy_passive_recompute_count; }
+size_t rogue_stat_cache_sizeof(void){ return sizeof(RogueStatCache); }
 
 static int weapon_base_damage_estimate(void){
     int inst = rogue_equip_get(ROGUE_EQUIP_WEAPON);
@@ -41,7 +47,7 @@ float rogue_soft_cap_apply(float value, float cap, float softness){ if(cap<=0.f)
 
 static unsigned long long fingerprint_fold(unsigned long long fp, unsigned long long v){ fp ^= v + 0x9e3779b97f4a7c15ULL + (fp<<6) + (fp>>2); return fp; }
 
-static void compute_layers(const RoguePlayer* p){
+static void compute_layers(const RoguePlayer* p, unsigned int dirty_bits){
     /* For Phase 2 we only have base layer (player stats) + affix contributions (weapon damage already indirect) */
     g_player_stat_cache.base_strength = p->strength;
     g_player_stat_cache.base_dexterity = p->dexterity;
@@ -51,7 +57,9 @@ static void compute_layers(const RoguePlayer* p){
     /* affix_* fields pre-populated by equipment aggregation pass */
     /* Leave existing affix_* values intact (do not zero) to allow external gather step before update. */
     /* Buff layer (Phase 10.1) fetched via buff system for snapshot/dynamic layering (currently strength only exemplar) */
-    g_player_stat_cache.buff_strength = rogue_buffs_strength_bonus();
+    if(dirty_bits & 4u){
+        g_player_stat_cache.buff_strength = rogue_buffs_strength_bonus();
+    }
     g_player_stat_cache.buff_dexterity = 0;
     g_player_stat_cache.buff_vitality = 0;
     g_player_stat_cache.buff_intelligence = 0;
@@ -189,6 +197,6 @@ static void compute_fingerprint(void){
 
 void rogue_stat_cache_update(const RoguePlayer* p){ if(!p) return; if(!g_player_stat_cache.dirty) return; rogue_stat_cache_force_update(p); }
 
-void rogue_stat_cache_force_update(const RoguePlayer* p){ if(!p) return; compute_layers(p); compute_derived(p); compute_fingerprint(); g_player_stat_cache.dirty = 0; }
+void rogue_stat_cache_force_update(const RoguePlayer* p){ if(!p) return; unsigned int bits = g_player_stat_cache.dirty_bits ? g_player_stat_cache.dirty_bits : 0xFFFFFFFFu; compute_layers(p,bits); compute_derived(p); compute_fingerprint(); g_player_stat_cache.dirty = 0; g_player_stat_cache.dirty_bits = 0; g_player_stat_cache.recompute_count++; if(bits & 2u) g_player_stat_cache.heavy_passive_recompute_count++; }
 
 unsigned long long rogue_stat_cache_fingerprint(void){ return g_player_stat_cache.fingerprint; }

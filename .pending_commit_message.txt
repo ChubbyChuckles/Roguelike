@@ -108,3 +108,22 @@ Follow-ups:
 - Extend buff system to support additional attribute/stat types and negative debuffs with separate accessor categories.
 - Implement snapshot vs dynamic application in combat formulas (e.g., snapshotting at cast start vs real-time tick updates) once skill effect layer (Phase 10.2 extended) requires.
 - Persistence & hashing of active buffs (Phase 12/15) for anti-tamper verification.
+
+Progression Phase 11 (Performance & Caching – Initial Dirty Flags & Size Guard)
+
+Enhancements:
+- Implemented incremental dirty flag system in `stat_cache` with bitmask (attr=1, passive=2, buff=4, equipment=8). `rogue_stat_cache_mark_*` APIs now selectively flag layers; full mark sets 0xFFFFFFFF.
+- Added instrumentation counters: `recompute_count` (total cache rebuilds) and `heavy_passive_recompute_count` (expensive passive layer recomputes) to support future micro-bench & latency tracking.
+- Integrated selective recompute path: buff-only dirties avoid re-running passive aggregation; passive dirty increments heavy counter.
+- Added size/accessor helpers: `rogue_stat_cache_sizeof` & `rogue_stat_cache_heavy_passive_recompute_count` for tests & telemetry.
+- New unit test `test_progression_phase11_cache` validates: buff dirty does not trigger passive recompute, passive dirty does; struct size < 2 KB (well below <64 KB target) establishing early guardrail.
+- Roadmap updated: 11.1 Done, 11.4 Done, 11.5 Partial (initial correctness test) with notes; remaining 11.2 (SoA passives), 11.3 (micro-bench), further latency metrics pending.
+
+Rationale:
+- Lays groundwork for future performance optimization by preventing redundant passive effect aggregation when only transient layers (buffs) change.
+- Early size tracking ensures hot cache remains comfortably within L1/L2 friendly bounds before adding more fields in subsequent phases.
+
+Follow-ups:
+- Implement SoA layout for passive effect accumulators (Phase 11.2) to improve data locality & vectorization potential.
+- Add micro-benchmark harness measuring recompute cost under synthetic 200-node passive unlock scenario (Phase 11.3) with timing histograms.
+- Expand tests to assert recompute counter deltas under mixed dirty sequences & integrate simple time threshold assertions (feature-gated to avoid flakiness).

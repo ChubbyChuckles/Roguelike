@@ -39,6 +39,9 @@ typedef struct RogueStatCache {
     /* Hash / fingerprint (Phase 2.5) */
     unsigned long long fingerprint;
     int dirty;        /* non-zero when cache invalid */
+    unsigned int dirty_bits; /* bitmask: 1=attributes,2=passives,4=buffs,8=equipment (Phase 11.1) */
+    unsigned int recompute_count; /* total updates performed */
+    unsigned int heavy_passive_recompute_count; /* times passive aggregation recomputed */
 } RogueStatCache;
 
 extern RogueStatCache g_player_stat_cache;
@@ -59,6 +62,13 @@ void rogue_equipment_usage_record(void);
 int rogue_equipment_usage_export_json(char* buf, int cap);
 
 void rogue_stat_cache_mark_dirty(void);
+void rogue_stat_cache_mark_attr_dirty(void);
+void rogue_stat_cache_mark_passive_dirty(void);
+void rogue_stat_cache_mark_buff_dirty(void);
+void rogue_stat_cache_mark_equipment_dirty(void);
+/* Export instrumentation counters (Phase 11 tests) */
+unsigned int rogue_stat_cache_heavy_passive_recompute_count(void);
+size_t rogue_stat_cache_sizeof(void);
 void rogue_stat_cache_update(const RoguePlayer* p); /* no-op if not dirty */
 void rogue_stat_cache_force_update(const RoguePlayer* p); /* always recompute */
 unsigned long long rogue_stat_cache_fingerprint(void);
