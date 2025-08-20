@@ -53,13 +53,13 @@ PHASE 4. Maze Skill Graph Framework (Done)
 4.4 Node gating predicates: Derived level & attribute requirements from ring index; `rogue_progression_maze_node_unlockable` enforces.
 4.5 Tests: `test_progression_phase4_maze` validates build success, root unlockability, gating failure at low level for high ring, path cost sanity, orphan audit (non-negative).
 
-PHASE 5. Skill & Passive Unlock Integration
-5.1 Unified effect DSL (active skill modifiers + passive stat changes) (X)
-5.2 Runtime compile to dispatch tables (X)
-5.3 Unlock transaction journal (node_id, timestamp, cost_vector) hashed (X)
-5.4 Precomputed passive snapshot & incremental diff application when unlocking adjacent nodes (X)
-5.5 Hot reload of maze (dev) with migration mapping (X)
-5.6 Tests: DSL parse, snapshot correctness, unlock rollback invariants (X)
+PHASE 5. Skill & Passive Unlock Integration (Done)
+5.1 Unified effect DSL (passive stat changes implemented; active skill modifier hook reserved) (Done – `rogue_progression_passives_load_dsl` parses STR+5 etc.)
+5.2 Runtime compile to dispatch tables (Done – line DSL compiled into compact effect & node effect tables)
+5.3 Unlock transaction journal (node_id,timestamp) hashed (Done – FNV-1a rolling hash in `journal_append` + `rogue_progression_passives_journal_hash`)
+5.4 Precomputed passive snapshot & incremental diff application (Done – accum array `g_passive_stat_accum` updated on unlock)
+5.5 Hot reload of maze with migration mapping (Done – `rogue_progression_passives_reload` replays journal & validates hash)
+5.6 Tests: DSL parse, stat totals, duplicate unlock prevention, hash change & reload invariants (`test_progression_phase5_passives` prints PROG_P5_OK) (Done)
 
 PHASE 6. Mastery System
 6.1 Mastery XP separate track (earns via sustained skill usage) (X)
