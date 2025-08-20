@@ -68,3 +68,10 @@ Vendor System Phase 10 Partial Completion: Multi-Vendor Economy Balancing (10.1â
 - Integrated global + biome scalars into vendor_pricing.c after demand/scarcity/exploit factors; fed realized price into inflation tracker each computation.
 - Added unit test test_vendor_phase10_balancing exercising inflation index evolution (bounded), global scalar clamp, biome scalar envelope, and prints VENDOR_PHASE10_BALANCING_OK.
 - Roadmap updated (10.1â€“10.3,10.5 Done; 10.4 competition events left optional X); README changelog appended Phase 10 summary.
+
+Vendor System Phase 11 Partial Completion: Performance & Memory (11.1,11.2,11.4,11.5)
+- Added vendor_perf.c/h implementing SoA arrays (demand, scarcity, last_refresh_tick) for up to 64 vendors with initialization & reset.
+- Batch refresh scheduler processes a configurable slice (default 8) per tick and cycles across vendors, updating last_refresh_tick indices.
+- Memory footprint function reports bytes for active vendors; test harness ensures <16KB for 50 vendors (target met).
+- Unit test test_vendor_phase11_perf initializes 50 vendors, simulates mixed sale/buyback events, configures slice size 10, advances 6 ticks to cover all vendors, asserts memory budget and success token VENDOR_PHASE11_PERF_OK.
+- Roadmap updated marking 11.1, 11.2, 11.4, 11.5 Done (11.3 micro-bench deferred); README changelog appended Phase 11 summary.

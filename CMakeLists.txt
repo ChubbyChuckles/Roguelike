@@ -225,6 +225,7 @@ add_library(rogue_core
     src/core/vendor_pricing.c
     src/core/vendor_adaptive.c
     src/core/vendor_econ_balance.c
+    src/core/vendor_perf.c
     src/core/vendor_reputation.c
     src/core/vendor_buyback.c
     src/core/vendor_tx_journal.c
