@@ -86,13 +86,13 @@ PHASE 8. UI / UX Layer
 8.7 Accessibility: text-only recipe list fallback (Done) – stdout emission prefixes (CRAFT_UI, CRAFT_QUEUE, GATHER_NODE) for headless tests.
 8.8 Tests: UI state persistence (last filters), diff accuracy snapshot (Done) – `test_crafting_phase8_ui` validates search, batch qty, text mode, risk bounds.
 
-PHASE 9. Automation & Smart Assist
-9.1 Craft planner: goal item -> compute required materials & missing gap (Done) – rogue_craft_plan_build aggregates ingredient need/have/missing (batch aware) deterministic ordering.
-9.2 Gathering route suggestion (biome nodes heuristic) (Done) – rogue_craft_suggest_gather_routes ranks node defs by weighted contribution to deficits (weight * missing); stable tie-break idx.
-9.3 Auto-refine suggestion queue (Done) – rogue_craft_suggest_refine proposes q->q+10 promotions when low-quality bucket abundant (>=10) and higher tier comparatively scarce.
-9.4 Salvage vs craft decision scoring (Done) – rogue_craft_decision_score simple baseline (output_qty - sum inputs) for monotonic comparisons.
-9.5 Idle recommendation panel (Done) – rogue_craft_idle_recommendation selects highest deficit recipe then best route node else refine suggestion or idle fallback.
-9.6 Tests: planner determinism, non-negative projection, decision score ordering (Done) – test_crafting_phase9_automation prints CRAFT_P9_OK.
+PHASE 9. Automation & Smart Assist (Done)
+9.1 Craft planner: aggregated input requirements (batch aware, optional recursive expansion) (Done)
+9.2 Gathering route suggestion: heuristic scarcity coverage ordering of node defs (Done)
+9.3 Auto-refine suggestion queue: suggests promotions for low average quality materials (Done)
+9.4 Salvage vs craft decision scoring: value comparison helper (Done)
+9.5 Idle recommendation: highest scarcity input material selection (Done)
+9.6 Tests: phase9 automation test exercising planner, refine suggestions, decision, route, idle (Done)
 
 PHASE 10. Economy & Balance Hooks
 10.1 Material drop rate adjustment via dynamic weights (feedback from scarcity metrics) (X)

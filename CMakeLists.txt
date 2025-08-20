@@ -235,7 +235,6 @@ add_library(rogue_core
     src/core/crafting_queue.c
     src/core/crafting_skill.c
     src/core/equipment_enhance.c
-    src/core/crafting_automation.c
     src/core/equipment.c
     src/core/equipment_stats.c
     src/core/equipment_gems.c
@@ -301,6 +300,7 @@ add_library(rogue_core
     src/core/encounter_composer.c
     # Crafting Phase 8 UI layer
     src/ui/crafting_ui.c
+    src/core/crafting_automation.c
 )
 
 target_include_directories(rogue_core PUBLIC
@@ -338,6 +338,12 @@ add_executable(test_crafting_phase8_ui tests/unit/test_crafting_phase8_ui.c)
 target_link_libraries(test_crafting_phase8_ui PRIVATE rogue_core)
 if(ROGUE_ENABLE_SDL)
     target_link_libraries(test_crafting_phase8_ui PRIVATE SDL2::SDL2)
+endif()
+
+add_executable(test_crafting_phase9_automation tests/unit/test_crafting_phase9_automation.c)
+target_link_libraries(test_crafting_phase9_automation PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_crafting_phase9_automation PRIVATE SDL2::SDL2)
 endif()
 
 add_executable(roguelike src/main.c)
