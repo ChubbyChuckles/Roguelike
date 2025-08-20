@@ -41,3 +41,9 @@ Implemented foundational vendor economy slice:
 
 Verification: SDL2 build & test_vendor_phase0_value passes (valuation invariants OK).
 
+vendor: Phase 0 Economic Baseline Completion (Inflow Simulation)
+
+Added econ_inflow_sim.[ch] providing deterministic baseline inflow estimator (kills/min * hours * average item/material drops) computing expected counts & economic value using mean base values across loaded definitions + material catalog. Implemented unit test test_vendor_phase0_inflow validating parameter reflection, expected counts arithmetic, and positive total value composition. Updated roadmap (0.4 Done), README changelog appended, CMake lists include econ_inflow_sim and test target.
+
+Verification: SDL2 build; tests test_vendor_phase0_value & test_vendor_phase0_inflow pass (vendor subset all green).
+
