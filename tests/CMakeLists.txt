@@ -366,6 +366,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase11_bench.c AND 
     add_test(NAME test_progression_phase11_bench COMMAND test_progression_phase11_bench)
 endif()
 
+# Character Progression Phase 11 re-spec stale cache test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase11_respec.c AND NOT TARGET test_progression_phase11_respec)
+    add_executable(test_progression_phase11_respec unit/test_progression_phase11_respec.c)
+    target_link_libraries(test_progression_phase11_respec PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_progression_phase11_respec PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_progression_phase11_respec COMMAND test_progression_phase11_respec)
+endif()
+
 # Character Progression Phase 7.3 anti-stack safeguards test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase7_antistack.c AND NOT TARGET test_progression_phase7_antistack)
     add_executable(test_progression_phase7_antistack unit/test_progression_phase7_antistack.c)

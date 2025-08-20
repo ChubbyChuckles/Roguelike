@@ -10,6 +10,8 @@
 #include "core/progression_ratings.h"
 #include <string.h>
 #include <stddef.h>
+#include "core/progression_passives.h"
+#include "core/progression_stats.h"
 
 /* Forward buff query (Phase 10) */
 int rogue_buffs_strength_bonus(void);
@@ -56,6 +58,16 @@ static void compute_layers(const RoguePlayer* p, unsigned int dirty_bits){
     /* Implicit layer populated by equipment aggregation (Phase 4.1). Leave existing values (zero if none). */
     /* affix_* fields pre-populated by equipment aggregation pass */
     /* Leave existing affix_* values intact (do not zero) to allow external gather step before update. */
+    /* Passive layer (Phase 11.5 integration) only recomputed / fetched if passive dirty bit set to avoid extra calls. */
+    if(dirty_bits & 2u){
+        size_t def_count=0; const RogueStatDef* defs = rogue_stat_def_all(&def_count); (void)defs; /* avoid unused warning if registry stable */
+        /* Primary stat IDs assumed 0..3 by taxonomy but resolve defensively */
+        int sid_str=-1,sid_dex=-1,sid_vit=-1,sid_int=-1; for(size_t i=0;i<def_count;i++){ const RogueStatDef* d=&defs[i]; if(d->id==0) sid_str=d->id; else if(d->id==1) sid_dex=d->id; else if(d->id==2) sid_vit=d->id; else if(d->id==3) sid_int=d->id; }
+        if(sid_str>=0) g_player_stat_cache.passive_strength = rogue_progression_passives_stat_total(sid_str); else g_player_stat_cache.passive_strength = 0;
+        if(sid_dex>=0) g_player_stat_cache.passive_dexterity = rogue_progression_passives_stat_total(sid_dex); else g_player_stat_cache.passive_dexterity = 0;
+        if(sid_vit>=0) g_player_stat_cache.passive_vitality = rogue_progression_passives_stat_total(sid_vit); else g_player_stat_cache.passive_vitality = 0;
+        if(sid_int>=0) g_player_stat_cache.passive_intelligence = rogue_progression_passives_stat_total(sid_int); else g_player_stat_cache.passive_intelligence = 0;
+    }
     /* Buff layer (Phase 10.1) fetched via buff system for snapshot/dynamic layering (currently strength only exemplar) */
     if(dirty_bits & 4u){
         g_player_stat_cache.buff_strength = rogue_buffs_strength_bonus();
@@ -65,10 +77,10 @@ static void compute_layers(const RoguePlayer* p, unsigned int dirty_bits){
     g_player_stat_cache.buff_intelligence = 0;
     /* TODO Phase 2.3+: gather implicit & buff stats once systems exist. */
     /* unique_* layer reserved for Phase 4.2 unique item hooks; default zero if not yet populated */
-    g_player_stat_cache.total_strength = g_player_stat_cache.base_strength + g_player_stat_cache.implicit_strength + g_player_stat_cache.unique_strength + g_player_stat_cache.set_strength + g_player_stat_cache.runeword_strength + g_player_stat_cache.affix_strength + g_player_stat_cache.buff_strength;
-    g_player_stat_cache.total_dexterity = g_player_stat_cache.base_dexterity + g_player_stat_cache.implicit_dexterity + g_player_stat_cache.unique_dexterity + g_player_stat_cache.set_dexterity + g_player_stat_cache.runeword_dexterity + g_player_stat_cache.affix_dexterity + g_player_stat_cache.buff_dexterity;
-    g_player_stat_cache.total_vitality = g_player_stat_cache.base_vitality + g_player_stat_cache.implicit_vitality + g_player_stat_cache.unique_vitality + g_player_stat_cache.set_vitality + g_player_stat_cache.runeword_vitality + g_player_stat_cache.affix_vitality + g_player_stat_cache.buff_vitality;
-    g_player_stat_cache.total_intelligence = g_player_stat_cache.base_intelligence + g_player_stat_cache.implicit_intelligence + g_player_stat_cache.unique_intelligence + g_player_stat_cache.set_intelligence + g_player_stat_cache.runeword_intelligence + g_player_stat_cache.affix_intelligence + g_player_stat_cache.buff_intelligence;
+    g_player_stat_cache.total_strength = g_player_stat_cache.base_strength + g_player_stat_cache.implicit_strength + g_player_stat_cache.unique_strength + g_player_stat_cache.set_strength + g_player_stat_cache.runeword_strength + g_player_stat_cache.affix_strength + g_player_stat_cache.passive_strength + g_player_stat_cache.buff_strength;
+    g_player_stat_cache.total_dexterity = g_player_stat_cache.base_dexterity + g_player_stat_cache.implicit_dexterity + g_player_stat_cache.unique_dexterity + g_player_stat_cache.set_dexterity + g_player_stat_cache.runeword_dexterity + g_player_stat_cache.affix_dexterity + g_player_stat_cache.passive_dexterity + g_player_stat_cache.buff_dexterity;
+    g_player_stat_cache.total_vitality = g_player_stat_cache.base_vitality + g_player_stat_cache.implicit_vitality + g_player_stat_cache.unique_vitality + g_player_stat_cache.set_vitality + g_player_stat_cache.runeword_vitality + g_player_stat_cache.affix_vitality + g_player_stat_cache.passive_vitality + g_player_stat_cache.buff_vitality;
+    g_player_stat_cache.total_intelligence = g_player_stat_cache.base_intelligence + g_player_stat_cache.implicit_intelligence + g_player_stat_cache.unique_intelligence + g_player_stat_cache.set_intelligence + g_player_stat_cache.runeword_intelligence + g_player_stat_cache.affix_intelligence + g_player_stat_cache.passive_intelligence + g_player_stat_cache.buff_intelligence;
     g_player_stat_cache.rating_crit = p->crit_rating; g_player_stat_cache.rating_haste = p->haste_rating; g_player_stat_cache.rating_avoidance = p->avoidance_rating;
     g_player_stat_cache.rating_crit_eff_pct = (int)(rogue_rating_effective_percent(ROGUE_RATING_CRIT, g_player_stat_cache.rating_crit)+0.5f);
     g_player_stat_cache.rating_haste_eff_pct = (int)(rogue_rating_effective_percent(ROGUE_RATING_HASTE, g_player_stat_cache.rating_haste)+0.5f);
@@ -189,9 +201,13 @@ static void compute_derived(const RoguePlayer* p){
 static void compute_fingerprint(void){
     unsigned long long fp=0xcbf29ce484222325ULL; /* FNV offset basis variant seed */
     const int* ints = (const int*)&g_player_stat_cache;
-    /* Only include layered + derived numeric fields before fingerprint & dirty itself (exclude fingerprint, dirty) */
-    size_t count = offsetof(RogueStatCache,fingerprint)/sizeof(int); /* number of int fields preceding fingerprint */
+    size_t count = offsetof(RogueStatCache,fingerprint)/sizeof(int);
     for(size_t i=0;i<count;i++){ fp = fingerprint_fold(fp, (unsigned long long)(unsigned int)ints[i]); }
+    /* Incorporate passive layer hash (proxy: totals) to ensure fingerprint shifts after passive DSL reload */
+    fp = fingerprint_fold(fp,(unsigned long long)(unsigned int)g_player_stat_cache.total_strength);
+    fp = fingerprint_fold(fp,(unsigned long long)(unsigned int)g_player_stat_cache.total_dexterity);
+    fp = fingerprint_fold(fp,(unsigned long long)(unsigned int)g_player_stat_cache.total_vitality);
+    fp = fingerprint_fold(fp,(unsigned long long)(unsigned int)g_player_stat_cache.total_intelligence);
     g_player_stat_cache.fingerprint = fp;
 }
 

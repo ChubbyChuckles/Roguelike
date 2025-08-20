@@ -142,3 +142,21 @@ Rationale:
 Follow-ups:
 - Integrate re-spec replay stale-cache test (mark passives dirty, reapply DSL, ensure counters increment & fingerprints differ appropriately).
 - Collect percentile timing (P50/P95) using high-res timer (platform abstraction) and export metrics for CI threshold gating.
+
+Update: Added Phase 11.5 re-spec stale cache test `test_progression_phase11_respec` confirming stat cache fingerprint changes after passive DSL reload + unlock replay (guards against stale passive layer after re-spec). Roadmap 11.5 note updated (percentile latency still pending).
+
+Progression Phase 11 (Passive Layer Integration & Re-spec Completion)
+
+Enhancements:
+- Integrated passive stat totals into stat cache layering: added passive_* fields (primary attributes) between affix and buff layers; totals now include passive contributions.
+- Selective recompute: passive layer queried only when passive dirty bit set; buff-only dirties remain lightweight.
+- Re-spec stale cache integrity: fingerprint now changes on passive DSL reload due to passive layer inclusion; `test_progression_phase11_respec` passes.
+- Roadmap Phase 11.5 updated to Done (functional correctness). P95 latency metric explicitly deferred to future perf tooling phase.
+
+Rationale:
+- Prevents stale combat stat snapshots after talent re-spec ensuring downstream analytics & anti-tamper hashes remain sensitive to passive graph changes.
+- Maintains performance focus by avoiding unnecessary passive queries on frequent buff updates.
+
+Follow-ups:
+- Add high-resolution timing sampler (QueryPerformanceCounter / std::chrono fallback) and percentile aggregation for future CI perf gating.
+
