@@ -187,6 +187,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_crafting_phase3_refinement.c AND
     endif()
     add_test(NAME test_crafting_phase3_refinement COMMAND test_crafting_phase3_refinement)
 endif()
+
+# Crafting & Gathering Phase 9 automation & smart assist test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_crafting_phase9_automation.c AND NOT TARGET test_crafting_phase9_automation)
+    add_executable(test_crafting_phase9_automation unit/test_crafting_phase9_automation.c)
+    target_link_libraries(test_crafting_phase9_automation PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2main)
+        target_link_libraries(test_crafting_phase9_automation PRIVATE SDL2::SDL2main SDL2::SDL2)
+        target_compile_definitions(test_crafting_phase9_automation PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_crafting_phase9_automation COMMAND test_crafting_phase9_automation)
+endif()
  # Crafting & Gathering Phase 4 recipe parsing test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_crafting_phase4_recipes.c AND NOT TARGET test_crafting_phase4_recipes)
     add_executable(test_crafting_phase4_recipes unit/test_crafting_phase4_recipes.c)

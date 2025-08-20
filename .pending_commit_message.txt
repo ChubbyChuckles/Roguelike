@@ -110,4 +110,14 @@ crafting-ui: Phase 7–8 Determinism & UI Layer
 	* Minimal fallback recipe seeding when no asset recipes loaded (test harness support)
 - Added test_crafting_phase8_ui validating search filtering, text-only mode path, and risk expectation bounds.
 - Roadmap updated marking Phase 8 tasks Done; README changelog extended with Phase 7 & 8 summaries.
+crafting: Phase 9 Automation & Smart Assist
+
+- Added module crafting_automation.[ch] implementing:
+	* Craft planner (rogue_craft_plan_build) aggregating per-ingredient need/have/missing for batch quantity.
+	* Gathering route suggestion (rogue_craft_suggest_gather_routes) scoring node defs by weighted missing material contribution.
+	* Auto-refine suggestion queue (rogue_craft_suggest_refine) proposing quality promotions for abundant low-quality buckets.
+	* Salvage vs craft decision score heuristic (rogue_craft_decision_score) baseline monotonic output-minus-input metric.
+	* Idle recommendation generator (rogue_craft_idle_recommendation) selecting highest deficit recipe or refinement action.
+- Added unit test test_crafting_phase9_automation covering planner determinism, non-negative projections, refine suggestion structure, decision score ordering, and idle recommendation determinism (outputs CRAFT_P9_OK).
+- Roadmap Phase 9 tasks 9.1–9.6 updated to Done with implementation notes; README changelog entry added.
 - Implemented queue progress rendering, batch quantity state, and gathering node overlay (timers & rare flag) beyond initial stubs.
