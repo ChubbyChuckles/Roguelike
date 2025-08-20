@@ -30,14 +30,14 @@ PHASE 1. Material Registry & Data Model (Done)
 1.4 Deterministic seed mixing for material node generation (foundation for gathering) (Done) – FNV-1a mix in rogue_material_seed_mix.
 1.5 Tests: parsing, collisions, deterministic order (Done) – covered in phase0_1 test harness.
 
-PHASE 2. Gathering Nodes & World Integration
-2.1 Node definition file (node_id, spawn_table(material_id:weight), min_roll, max_roll, respawn_ms, tool_required, biome_tags) (X)
-2.2 Spawn scheduler: deterministic per chunk seed -> candidate nodes (X)
-2.3 Depletion state machine (active -> harvested -> respawn timer) (X)
-2.4 Tool gating (pickaxe tier, sickle, essence extractor) (X)
-2.5 Rare proc: rich vein / pristine plant variant (bonus yield or quality) (X)
-2.6 Analytics counters (gathers/hour by biome & node type) (X)
-2.7 Tests: deterministic respawn, tool gating rejection, yield bounds (X)
+PHASE 2. Gathering Nodes & World Integration (Done)
+2.1 Node definition file (node_id, spawn_table(material_id:weight), min_roll, max_roll, respawn_ms, tool_required, biome_tags, spawn_chance_pct, rare_proc_pct, rare_multiplier) (Done) – parsed in gathering.c.
+2.2 Spawn scheduler: deterministic per chunk seed -> candidate nodes (Done) – hash mix(world_seed, chunk_id, def_index) with spawn_chance gate.
+2.3 Depletion state machine (active -> harvested -> respawn timer) (Done) – state flag + timer decrement in update.
+2.4 Tool gating (pickaxe tier, etc.) (Done) – harvest returns -3 until player tool tier raised.
+2.5 Rare proc: rich vein variant (bonus yield multiplier & flag) (Done) – per harvest chance, counts tracked.
+2.6 Analytics counters (harvest & rare totals) (Done) – exposed via getter APIs.
+2.7 Tests: deterministic spawn presence, tool gating rejection, yield bounds, respawn cycle, rare proc path (Done) – test_crafting_phase2_gathering outputs CRAFT_P2_OK.
 
 PHASE 3. Material Quality & Refinement
 3.1 Per‑material quality scalar (0..100) affecting crafted item affix roll bias (X)

@@ -137,6 +137,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_crafting_phase0_1_material_regis
     endif()
     add_test(NAME test_crafting_phase0_1_material_registry COMMAND test_crafting_phase0_1_material_registry)
 endif()
+
+# Crafting & Gathering Phase 2 gathering nodes test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_crafting_phase2_gathering.c AND NOT TARGET test_crafting_phase2_gathering)
+    add_executable(test_crafting_phase2_gathering unit/test_crafting_phase2_gathering.c)
+    target_link_libraries(test_crafting_phase2_gathering PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2main)
+        target_link_libraries(test_crafting_phase2_gathering PRIVATE SDL2::SDL2main SDL2::SDL2)
+        target_compile_definitions(test_crafting_phase2_gathering PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_crafting_phase2_gathering COMMAND test_crafting_phase2_gathering)
+endif()
 # Phase 4 adaptive difficulty test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_enemy_difficulty_phase4.c AND NOT TARGET test_enemy_difficulty_phase4)
     add_executable(test_enemy_difficulty_phase4 unit/test_enemy_difficulty_phase4.c)

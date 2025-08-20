@@ -5,6 +5,23 @@
 #include "core/loot_item_defs.h"
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+#ifdef _MSC_VER
+#include <direct.h>
+#define CHDIR _chdir
+#else
+#include <unistd.h>
+#define CHDIR chdir
+#endif
+
+static int file_exists(const char* p){ struct stat st; return stat(p,&st)==0; }
+static void attempt_cd_to_root(void){
+    /* Try up to 5 levels to locate assets/items/materials.cfg */
+    for(int i=0;i<5;i++){
+        if(file_exists("assets/items/materials.cfg")) return; /* found */
+    CHDIR("..");
+    }
+}
 
 static int ensure_item_defs(void){ if(rogue_item_defs_count()>0) return 1; /* attempt to load materials cfg directory */
     char p[256]; if(rogue_find_asset_path("items/materials.cfg", p, sizeof p)){
@@ -23,6 +40,7 @@ static int ensure_item_defs(void){ if(rogue_item_defs_count()>0) return 1; /* at
 
 int main(void){
     printf("CRAFT_P0_DEBUG start\n"); fflush(stdout);
+    attempt_cd_to_root();
     if(!ensure_item_defs()){ printf("CRAFT_P0_FAIL items load\n"); fflush(stdout); return 1; }
     rogue_material_registry_reset();
     /* Create a temporary materials file in working dir referencing known items */

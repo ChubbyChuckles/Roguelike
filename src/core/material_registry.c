@@ -69,6 +69,14 @@ int rogue_material_registry_load_path(const char* path){ FILE* f=NULL;
     }
     fclose(f); return added; }
 
-int rogue_material_registry_load_default(void){ char path[256]; if(!rogue_find_asset_path("materials/materials.cfg", path, sizeof path)) return -1; return rogue_material_registry_load_path(path); }
+int rogue_material_registry_load_default(void){
+        char path[256];
+        /* Adjusted search path to actual repo location assets/items/materials.cfg */
+        if(!rogue_find_asset_path("items/materials.cfg", path, sizeof path)){
+                /* fallback to legacy path if ever moved */
+                if(!rogue_find_asset_path("materials/materials.cfg", path, sizeof path)) return -1;
+        }
+        return rogue_material_registry_load_path(path);
+}
 
 unsigned int rogue_material_seed_mix(unsigned int world_seed, int material_index){ /* FNV-1a 32bit mix */ unsigned int h=2166136261u; h^=world_seed; h*=16777619u; h^=(unsigned int)material_index; h*=16777619u; return h; }

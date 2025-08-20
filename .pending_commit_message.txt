@@ -26,3 +26,16 @@ crafting: Phase 0–1 Material Registry Implemented
 - README to be updated with concise Material Registry section (foundation for gathering nodes & scarcity feedback).
 
 Verification: SDL2 Debug compile succeeded (pending overall ctest invocation). New test target builds; manual run expected to output CRAFT_P0_1_OK.
+
+crafting: Phase 2 Gathering Nodes Implemented
+
+- Added `gathering.h` & `gathering.c` implementing node definitions parsing (id, material weighted table, min/max roll, respawn, tool tier requirement, biome tags, spawn chance %, rare proc % & multiplier).
+- Deterministic per-chunk spawn via mixed hash of world seed, chunk id, def index, honoring spawn chance.
+- Harvest API with tool gating (-3 code), depletion state, respawn timer progression (`rogue_gather_update`), weighted material selection, rare proc applying quantity multiplier and tracking counters.
+- Analytics: total harvests & rare proc counts accessible.
+- Unit test `test_crafting_phase2_gathering` creates synthetic node defs cfg, loads item defs & material registry, validates tool gating, deterministic spawn presence, depletion/respawn cycle, rare proc path (50% chance config) and quantity bounds, emitting CRAFT_P2_OK token.
+- Added dedicated material registry asset `assets/materials/materials.cfg` aligned with Phase 0–1 format (duplicate entry to exercise skip path).
+- Integrated `gathering.c` into core target & registered new test in tests CMake.
+- Roadmap pending update to mark Phase 2 subtasks (2.1–2.6) Done; README addition pending summarizing gathering system.
+
+Verification: SDL2 Debug build; Phase 2 test outputs CRAFT_P2_OK with expected counters; material registry duplicate skip observed.
