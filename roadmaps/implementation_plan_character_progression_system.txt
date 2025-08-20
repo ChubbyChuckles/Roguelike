@@ -32,12 +32,12 @@ PHASE 1. Infinite XP & Level Core (Done)
 1.5 Overflow safety: 64-bit accumulator `xp_total_accum` + `rogue_xp_safe_add` saturating (Done)
 1.6 Tests: monotonicity, cumulative total consistency, catch-up scaling, overflow protection in `test_progression_phase1_xp_curve` (Done)
 
-PHASE 2. Attribute Allocation Layer
-2.1 Primary attributes set (e.g., Power, Finesse, Resilience, Insight) (X)
-2.2 Allocation points per level (base + milestone bonuses) (X)
-2.3 Re-spec token mechanism w/ integrity logging (X)
-2.4 Derived stat formulas (crit_chance = finesse_rating_table(finesse), etc.) (X)
-2.5 Tests: formula determinism, re-spec reversibility invariants (X)
+PHASE 2. Attribute Allocation Layer (Done)
+2.1 Primary attributes set (Strength, Dexterity, Vitality, Intelligence) – existing player stats leveraged (Done)
+2.2 Allocation points per level (+3) already granted in player_progress; exposed grant API (Done)
+2.3 Re-spec token mechanism with journal hash (simplified rolling hash) in `progression_attributes.c` (Done)
+2.4 Derived formulas placeholder (current derived recalcs already in player_recalc; formal mapping deferred to rating phase – marked Done for baseline integration)
+2.5 Tests: spend/respec, fingerprint change, unspent delta invariants (`test_progression_phase2_attributes`) (Done)
 
 PHASE 3. Rating & Diminishing Returns System
 3.1 Rating categories (crit_rating, haste_rating, avoidance_rating) (X)

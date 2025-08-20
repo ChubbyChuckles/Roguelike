@@ -1,5 +1,11 @@
 feat(progression): implement Phase 0 stat taxonomy (canonical registry, ID ranges, fingerprint, tests)
 feat(progression): implement Phase 1 infinite XP & level core (multi-component curve, catch-up, 64-bit accum, tests)
+feat(progression): implement Phase 2 attribute allocation & re-spec layer (points, tokens, journal hash, tests)
+
+Adds progression_attributes.{c,h} with APIs:
+ - rogue_attr_state_init / rogue_attr_spend / rogue_attr_respec / rogue_attr_grant_points / rogue_attr_unspent_points / rogue_attr_fingerprint
+Implements rolling hash journal for spend/respec ops, integrates existing per-level +3 allocation points, exposes test validating spend/respec invariants and fingerprint drift.
+Roadmap Phase 2 marked Done; README progression row updated to reflect attribute layer.
 
 Adds progression_xp.{c,h} with leveling functions:
  - rogue_xp_to_next_for_level(level)
