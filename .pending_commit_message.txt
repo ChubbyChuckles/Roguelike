@@ -69,3 +69,23 @@ Follow-ups:
 - Integrate effective power into analytics power index (Phase 13) & difficulty scaler (Phase 14) inputs.
 - Persist micro-node spend count (Phase 12) with versioned header.
 - Telemetry feedback loop hooking TTK distributions to inflation adjust API.
+
+Progression Phase 9 (Synergy & Caps)
+
+Enhancements:
+- Added `progression_synergy.[ch]` implementing unified layered damage aggregation helper (`rogue_progression_layered_damage`) applying canonical order Equipment -> Passives -> Mastery -> Micro (perpetual) over a base flat value.
+- Implemented crit chance soft cap (60%) with diminishing smoothing (softness=0.55) and hard cap (95%) via `rogue_progression_final_crit_chance`.
+- Implemented cooldown reduction soft cap (50%) with diminishing curve (softness=0.60) and hard cap (70%) via `rogue_progression_final_cdr`.
+- Introduced tag mask derivation bridging weapon infusion (fire/frost/arcane) to skill tag bits (`rogue_progression_synergy_tag_mask`).
+- Added conditional fire synergy helper (`rogue_progression_synergy_fire_bonus`) returning passive bonus only when FIRE tag present (scaffold for future multi-tag conditionals).
+- New unit test `test_progression_phase9_synergy` validates: layered damage multiplicative math (~1.4786x expected), attribute aggregation sum, crit & CDR cap clamps (pre & post soft cap), tag mask mapping, and conditional fire bonus gating.
+- Roadmap Phase 9 items 9.1–9.5 updated to Done with implementation notes. README changelog updated accordingly.
+
+Rationale:
+- Establishes explicit, audited ordering preventing ambiguous stacking exploits and provides early enforcement of key stat ceilings prior to buff/debuff layer integration (Phase 10).
+- Tag bridge lays groundwork for data-driven synergy expansions (equipment affix & passive conditional interplay) without entangling core effect DSL yet.
+
+Follow-ups:
+- Extend tag mask to include future affix-origin tags & skill-learned tags beyond weapon infusion (data registry). 
+- Integrate crit/CDr clamps into final combat stat snapshot hashing for anti-tamper verification (Phase 15).
+- Expand synergy helpers for multi-element composites and additive vs multiplicative classification audit.

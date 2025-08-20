@@ -326,6 +326,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase8_perpetual.c A
     add_test(NAME test_progression_phase8_perpetual COMMAND test_progression_phase8_perpetual)
 endif()
 
+# Character Progression Phase 9 synergy test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase9_synergy.c AND NOT TARGET test_progression_phase9_synergy)
+    add_executable(test_progression_phase9_synergy unit/test_progression_phase9_synergy.c)
+    target_link_libraries(test_progression_phase9_synergy PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_progression_phase9_synergy PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_progression_phase9_synergy COMMAND test_progression_phase9_synergy)
+endif()
+
 # Character Progression Phase 7.3 anti-stack safeguards test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase7_antistack.c AND NOT TARGET test_progression_phase7_antistack)
     add_executable(test_progression_phase7_antistack unit/test_progression_phase7_antistack.c)

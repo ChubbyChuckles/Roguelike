@@ -83,11 +83,11 @@ PHASE 8. Perpetual Scaling Layer
 8.5 Tests: sublinear asymptote verification, no runaway accumulation (Done – `test_progression_phase8_perpetual` validates allowance, diminishing increments, sublinear 100→200 ratio <2x.)
 
 PHASE 9. Synergy With Equipment & Skills
-9.1 Unified modifier combination order (equipment -> talents -> ascendancy -> mastery -> paragon) (X)
-9.2 Cap enforcement (hard & soft) for key stats (crit, cooldown_reduction) (X)
-9.3 Equipment affix tags consumed by talent conditional logic (X)
-9.4 Skill tag synergy injection (e.g., Fire tag scaling with Elementalist node) (X)
-9.5 Tests: ordering determinism, cap clamps, synergy correctness (X)
+9.1 Unified modifier combination order (equipment -> passives -> mastery -> micro) (Done – implemented layered aggregation helper `rogue_progression_layered_damage` applying multiplicative chain in canonical order.)
+9.2 Cap enforcement (hard & soft) for key stats (crit, cooldown_reduction) (Done – added crit soft cap 60% with diminishing above + hard cap 95%; cooldown reduction soft cap 50% & hard cap 70% in `rogue_progression_final_crit_chance` / `_final_cdr`.)
+9.3 Equipment affix tags consumed by talent conditional logic (Done (initial) – weapon infusion mapped to skill tag mask via `rogue_progression_synergy_tag_mask`.)
+9.4 Skill tag synergy injection (e.g., Fire tag scaling with Elementalist node) (Done (scaffold) – conditional fire bonus function `rogue_progression_synergy_fire_bonus`; future nodes can query with tag mask.)
+9.5 Tests: ordering determinism, cap clamps, synergy correctness (Done – unit test `test_progression_phase9_synergy` validates layered damage math, attribute sum, crit/CDr clamping, tag bonus gating.)
 
 PHASE 10. Buff/Debuff Integration
 10.1 Extend stat engine to treat timed buffs as layer after passives (X)
