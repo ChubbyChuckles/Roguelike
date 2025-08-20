@@ -169,6 +169,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_crafting_phase4_recipes.c AND NO
     endif()
     add_test(NAME test_crafting_phase4_recipes COMMAND test_crafting_phase4_recipes)
 endif()
+ # Crafting & Gathering Phase 4 queue & stations test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_crafting_phase4_queue.c AND NOT TARGET test_crafting_phase4_queue)
+    add_executable(test_crafting_phase4_queue unit/test_crafting_phase4_queue.c)
+    target_link_libraries(test_crafting_phase4_queue PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2main)
+        target_link_libraries(test_crafting_phase4_queue PRIVATE SDL2::SDL2main SDL2::SDL2)
+        target_compile_definitions(test_crafting_phase4_queue PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_crafting_phase4_queue COMMAND test_crafting_phase4_queue)
+endif()
 # Phase 4 adaptive difficulty test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_enemy_difficulty_phase4.c AND NOT TARGET test_enemy_difficulty_phase4)
     add_executable(test_enemy_difficulty_phase4 unit/test_enemy_difficulty_phase4.c)

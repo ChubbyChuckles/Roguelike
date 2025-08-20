@@ -46,13 +46,13 @@ PHASE 3. Material Quality & Refinement (Done)
 3.4 Failure chance / critical refine success (extra tier skip) (Done) – RNG branch: 10% failure (25% of base output), 5% critical (+50% output & 20% products promoted +1 quality).
 3.5 Tests: refinement conservation bounds, critical elevate probability (Done) – unit test `test_crafting_phase3_refinement` seeds ledger, exercises multiple refinements, validates average/bias bounds & output token `CRAFT_P3_OK`.
 
-PHASE 4. Crafting Recipe System (Partial)
+PHASE 4. Crafting Recipe System (Done)
 4.1 Recipe definition file (recipe_id, output_def_id, output_qty, inputs(list material_id|item_def), time_ms, station_tag, skill_req, exp_reward) (Done) – extended `RogueCraftRecipe` struct with time_ms, station, skill_req, exp_reward.
 4.2 Recipe parsing + forward compatibility padding (Done) – parser accepts optional upgrade token then extended tokens; ignores trailing extras.
-4.3 Crafting station registry (forge, alchemy_table, workbench, mystic_altar) (X)
-4.4 Queue model (parallel slots limited by station capacity) (X)
-4.5 Cancel / partial refund policy (X)
-4.6 Tests: parsing, queue order determinism, cancel refund invariants (X)
+ 4.3 Crafting station registry (forge, alchemy_table, workbench, mystic_altar) (Done)
+ 4.4 Queue model (parallel slots limited by station capacity) (Done)
+ 4.5 Cancel / partial refund policy (Done)
+ 4.6 Tests: parsing, queue order determinism, cancel refund invariants (Done)
 
 PHASE 5. Crafting Skill & Proficiency Progression
 5.1 Per crafting discipline XP & level curves (smithing, alchemy, enchanting, cooking if added) (X)

@@ -61,3 +61,18 @@ crafting: Phase 4.1–4.2 Recipe Definition & Parsing
 - Parser resilient to absent upgrade spec (empty field) and differentiates upgrade vs time token; defaults safe (0 time, empty station, 0 skill/exp) when omitted.
 
 Verification: SDL2 Debug build; new test binary passes (CRAFT_P4_OK). Existing crafting & refinement tests remain green.
+
+crafting: Phase 4.3–4.6 Station Registry, Queue Model, Cancel/Refund & Tests
+
+- Implemented crafting station registry & queue subsystem (`crafting_queue.[ch]`) with fixed station set (forge, alchemy_table, workbench, mystic_altar) and capacity model (forge=2, others=1 initial constants) enabling parallel active jobs per station.
+- Added `RogueCraftJob` state machine (waiting -> active -> done/canceled) with time accounting, deterministic activation order (FIFO within station), and per-job recipe/def index linkage.
+- Enqueue API `rogue_craft_queue_enqueue` performs availability & skill requirement checks then reserves inputs immediately (consumption via provided callback) to prevent overcommit race; jobs requiring additional station slots remain waiting until capacity frees.
+- Update API `rogue_craft_queue_update(elapsed_ms, add_cb)` advances active jobs, finalizes completion (granting outputs through callback) once accumulated time >= recipe->time_ms, then promotes waiting jobs while respecting capacity.
+- Cancel API `rogue_craft_queue_cancel(job_id, recipe, add_cb)` supports full refund for waiting jobs (all inputs restored) and partial refund (50%) for active jobs, marking state canceled and freeing capacity for promotion.
+- Helper APIs: `rogue_craft_station_id(name)`, `rogue_craft_queue_active_count(station_id)`, `rogue_craft_queue_job_count()` for diagnostics & tests; internal promotion helper ensures deterministic iteration order stable across runs.
+- Added unit test `test_crafting_phase4_queue` covering: capacity enforcement (forge activates 2, third waits), timed completion after exact time slice, activation of waiting job post-completion, active cancel partial refund (2 of 4 ore refunded), additional craft to reach dust requirement, shard recipe execution at mystic_altar, waiting cancel full refund, and final output correctness (dust & shard counts) printing CRAFT_P4Q_OK.
+- Roadmap `implementation_plan_crafting_gathering_system.txt` updated: Phase 4 tasks 4.3–4.6 marked Done (crafting recipe system now fully implemented for Phase 4 scope).
+- README changelog updated with concise Phase 4 queue subsystem entry (stations, queue, cancel/refund policy, determinism guarantees).
+- Notes: Future Phase 5 integration will hook exp_reward & skill_req into progression XP ledger; future balancing may adjust station capacities or introduce dynamic scaling.
+
+Verification: SDL2 Debug build planned with full test suite (existing crafting tests + new queue test expecting CRAFT_P4Q_OK). Queue logic isolated; no existing recipe/refinement tests require modification. Added file to tests CMake via existing glob pattern; explicit add optional future improvement.
