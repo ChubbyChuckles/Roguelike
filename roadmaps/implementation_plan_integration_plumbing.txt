@@ -1,0 +1,176 @@
+INTEGRATION PLUMBING IMPLEMENTATION PLAN (Cross-System Communication & Data Flow)
+
+Legend:
+Done = Fully implemented & tests pass
+Partial = Some components implemented (details in parentheses)
+X = Not started yet
+Optional = Stretch / future wave
+
+Scope Overview:
+Design and implement the foundational integration layer that connects all major game systems (enemy integration, AI, combat, progression, loot, crafting, UI, persistence, world generation) through standardized APIs, event buses, shared data structures, and configuration management. Goals: eliminate system silos, enable seamless cross-system communication, support hot-reloading of JSON configurations, provide deterministic event ordering, maintain backwards compatibility, and establish patterns for future system additions. This forms the backbone that allows independently developed systems to work cohesively in a unified game experience.
+
+FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
+- Individual systems implemented with basic functionality (Done – per roadmap analysis)
+- Systems use mixed CFG/JSON configuration formats (Current – 78 CFG, 60 JSON files)
+- Limited cross-system communication exists (Partial – some direct API calls)
+- Save/load system handles individual system persistence (Done)
+- No centralized event bus or integration manager (X)
+- Systems assume specific initialization order (Partial – implicit dependencies)
+
+PHASE 0. Integration Architecture Foundation
+0.1 Define system taxonomy & dependency graph (enemy→AI→combat→loot→progression flow) (X)
+0.2 Create integration manager struct with system lifecycle tracking (initialization, shutdown, hot-reload) (X)
+0.3 Establish system ID enumeration & registration API for runtime discovery (X)
+0.4 Design inter-system data exchange contracts (read-only snapshots, mutable references, event payloads) (X)
+0.5 Create dependency validation framework to detect circular dependencies & missing prerequisites (X)
+0.6 Tests: dependency graph validation, system registration uniqueness, lifecycle state transitions (X)
+
+PHASE 1. Event Bus & Message Passing
+1.1 Implement central event bus with typed message system (subscribe/publish pattern) (X)
+1.2 Define core event types: ENTITY_SPAWNED, PLAYER_LEVEL_UP, ITEM_EQUIPPED, COMBAT_HIT, RESOURCE_GATHERED, CONFIG_RELOADED (X)
+1.3 Add event priority system & deterministic ordering (timestamp + sequence number) (X)
+1.4 Implement event filtering & conditional subscriptions (system can filter by event properties) (X)
+1.5 Create event replay system for debugging & determinism validation (X)
+1.6 Add performance monitoring: event queue depth, processing latency, subscriber count (X)
+1.7 Tests: event ordering determinism, subscription management, replay consistency, performance bounds (X)
+
+PHASE 2. JSON Configuration Standardization
+2.1 Design unified JSON schema system with validation (required/optional fields, type checking, range validation) (X)
+2.2 Create CFG→JSON migration tools with data integrity verification (X)
+2.3 Implement hot-reload system for JSON configurations with change detection (X)
+2.4 Establish JSON file organization structure (assets/json/{system}/{category}/) (X)
+2.5 Add configuration version management & migration support (X)
+2.6 Create configuration dependency tracking (item.json references affixes.json) (X)
+2.7 Tests: schema validation, migration data integrity, hot-reload without data loss, dependency resolution (X)
+
+PHASE 3. Cross-System Data Flow Integration
+3.1 Implement Enemy Integration ↔ AI System bridge (enemy spawn triggers behavior tree initialization) (X)
+3.2 Implement Combat System ↔ Equipment System bridge (gear stats modify attack definitions) (X)
+3.3 Implement Loot System ↔ Crafting System bridge (dropped materials feed crafting recipes) (X)
+3.4 Implement Character Progression ↔ Skill System bridge (XP gains unlock skill maze nodes) (X)
+3.5 Implement Vendor System ↔ Inventory System bridge (trade operations modify inventories atomically) (X)
+3.6 Implement World Generation ↔ Enemy Integration bridge (biome affects encounter tables) (X)
+3.7 Tests: data flow integrity, transaction atomicity, rollback on failure, performance impact measurement (X)
+
+PHASE 4. Shared Data Structure Optimization
+4.1 Create unified entity ID system across all systems (player, enemies, items, world objects) (X)
+4.2 Implement shared memory pools for common data structures (enemy instances, items, effects) (X)
+4.3 Design cache invalidation system for derived data (equipment stats cache, enemy final stats) (X)
+4.4 Add reference counting & lifecycle management for shared resources (X)
+4.5 Implement copy-on-write semantics for performance-critical shared data (X)
+4.6 Create data structure versioning for save/load compatibility (X)
+4.7 Tests: entity ID uniqueness, memory pool integrity, cache coherence, reference leak detection (X)
+
+PHASE 5. System State Synchronization
+5.1 Implement system state snapshot API (each system provides read-only state view) (X)
+5.2 Create differential synchronization for changed data only (minimize update overhead) (X)
+5.3 Add transaction support for multi-system operations (equip item affects multiple systems) (X)
+5.4 Implement rollback mechanism for failed multi-system transactions (X)
+5.5 Create state validation checkpoints for debugging & integrity verification (X)
+5.6 Add deadlock detection for systems with circular dependencies (X)
+5.7 Tests: snapshot consistency, differential sync accuracy, transaction rollback, deadlock prevention (X)
+
+PHASE 6. Performance & Resource Management
+6.1 Implement system update scheduling with time budgets (prevent any system from blocking others) (X)
+6.2 Create priority-based processing queues (critical updates vs background tasks) (X)
+6.3 Add memory usage tracking per system with configurable limits (X)
+6.4 Implement lazy loading for non-critical system data (X)
+6.5 Create resource contention detection & resolution (multiple systems accessing same data) (X)
+6.6 Add system hibernation for inactive systems (pause when not needed) (X)
+6.7 Tests: time budget adherence, memory limit enforcement, contention resolution, hibernation state integrity (X)
+
+PHASE 7. Development & Debugging Tools
+7.1 Create system dependency visualizer (graph view of system relationships) (X)
+7.2 Implement real-time integration monitoring dashboard (event flow, resource usage) (X)
+7.3 Add integration log aggregation with system tagging & filtering (X)
+7.4 Create system state inspector for runtime debugging (view any system's internal state) (X)
+7.5 Implement integration test harness (automated cross-system scenario testing) (X)
+7.6 Add configuration diff viewer (compare JSON changes, migration impact) (X)
+7.7 Tests: visualizer accuracy, monitoring data integrity, log aggregation completeness, inspector safety (X)
+
+PHASE 8. Error Handling & Recovery
+8.1 Define integration error categories (configuration, communication, synchronization, resource) (X)
+8.2 Implement graceful degradation strategies (system can continue with reduced functionality) (X)
+8.3 Create automatic recovery mechanisms (restart failed systems, reload configurations) (X)
+8.4 Add error propagation & containment (prevent cascading failures) (X)
+8.5 Implement health check system with system vitality monitoring (X)
+8.6 Create emergency shutdown procedures (safe system termination on critical errors) (X)
+8.7 Tests: error recovery scenarios, graceful degradation behavior, containment effectiveness, shutdown safety (X)
+
+PHASE 9. API Standardization & Documentation
+9.1 Standardize system interface contracts (initialization, update, shutdown, state access) (X)
+9.2 Create integration API documentation with usage examples (X)
+9.3 Implement API versioning for backwards compatibility (X)
+9.4 Add integration pattern templates for new systems (X)
+9.5 Create system integration checklist & validation tools (X)
+9.6 Implement automated API compatibility testing (X)
+9.7 Tests: API contract compliance, backwards compatibility, pattern template correctness, checklist validation (X)
+
+PHASE 10. Advanced Integration Features
+10.1 Implement plugin system for external integrations (mod support) (X)
+10.2 Create distributed system support foundation (future multiplayer) (X)
+10.3 Add integration analytics & metrics collection (system interaction patterns) (X)
+10.4 Implement A/B testing framework for system configuration variations (X)
+10.5 Create integration profiling tools (bottleneck identification) (X)
+10.6 Add system sandboxing for security & isolation (X)
+10.7 Tests: plugin safety, distributed consistency, analytics accuracy, profiling precision, sandbox security (X)
+
+DEPENDENCIES & INTEGRATIONS
+- Requires all individual systems to be functionally complete (Current state: most systems Done)
+- Needs existing persistence system for configuration & state management (Done)
+- Uses existing deterministic RNG for event ordering (Done)
+- Integrates with existing build system for hot-reload support (Done)
+- Future expansion point for multiplayer networking layer (Optional)
+
+RISKS & MITIGATIONS
+- Performance overhead from integration layer → Time budget enforcement, lazy evaluation, profiling tools
+- Increased complexity from cross-system dependencies → Dependency validation, clear contracts, documentation
+- Configuration migration breaking existing saves → Version management, migration validation, rollback support
+- Event bus becoming bottleneck → Priority queues, filtering, performance monitoring
+- System coupling reducing modularity → Interface standardization, dependency injection, plugin architecture
+
+KEY METRICS (Integration Success Targets)
+- All existing system unit tests continue passing: 100%
+- Event bus latency: <1ms average, <10ms P99
+- JSON hot-reload time: <500ms for any configuration file
+- Cross-system transaction success rate: >99.9%
+- Memory overhead from integration layer: <5% of total usage
+- System initialization time: <2s total for all systems
+
+ROLLOUT STRATEGY
+1. Implement Phase 0-1 (architecture + event bus) with minimal system integration
+2. Add Phase 2 (JSON standardization) and migrate 25% of CFG files as proof of concept
+3. Layer Phase 3 (data flow integration) for core gameplay loop (enemy spawn → combat → loot)
+4. Complete Phase 4-5 (optimization + synchronization) for performance & stability
+5. Add Phase 6-7 (resource management + tools) for development productivity
+6. Finalize Phase 8-9 (error handling + APIs) for robustness & maintainability
+7. Optional Phase 10 (advanced features) based on future requirements
+
+TEST PRIORITIZATION
+Early: 0, 1, 2, 3
+Mid: 4, 5, 6, 7
+Late: 8, 9, 10
+
+NOTES
+- Integration layer should be transparent to individual systems (minimal API changes)
+- Event bus must maintain deterministic ordering for replay consistency
+- JSON migration tools should validate 100% data integrity
+- Hot-reload must not disrupt active gameplay sessions
+- Performance monitoring should be lightweight and always-on
+- Error handling should prioritize game session continuity over perfect recovery
+
+FUTURE EXTENSIONS (Post Integration)
+- Distributed system coordination for multiplayer
+- Real-time system performance analytics dashboard
+- Machine learning integration for system optimization
+- Cloud configuration management & synchronization
+- System behavior prediction & preemptive scaling
+- Integration with external tools (editors, debuggers, analytics platforms)
+
+CHANGE IMPACT
+- New integration/ module with core interfaces
+- Modified system initialization sequences
+- Enhanced JSON configuration loading
+- Extended save/load format for integration state
+- Additional unit & integration test suites
+- Updated build system for hot-reload support
