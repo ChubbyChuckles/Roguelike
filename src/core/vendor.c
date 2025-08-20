@@ -6,6 +6,10 @@
 #include "core/loot_drop_rates.h"
 #include <string.h>
 #include "core/econ_value.h"
+#include "core/vendor_registry.h"
+#include "core/vendor_inventory_templates.h"
+#include "core/crafting.h"
+#include <stdio.h> /* debug diagnostics */
 
 static RogueVendorItem g_vendor_items[ROGUE_VENDOR_SLOT_CAP];
 static int g_vendor_count = 0;
@@ -41,6 +45,76 @@ int rogue_vendor_generate_inventory(int loot_table_index, int slots, const Rogue
         }
     }
     *rng_state = local;
+    return produced;
+}
+
+/* --- Phase 2.3–2.5 Constrained Template‑Driven Generation Implementation --- */
+static unsigned int xorshift32_local(unsigned int* s){ unsigned int x=*s; x^=x<<13; x^=x>>17; x^=x<<5; *s=x; return x; }
+static int weighted_pick(const int* weights, int count, unsigned int* state){ int total=0; for(int i=0;i<count;i++){ if(weights[i]>0) total+=weights[i]; }
+    if(total<=0) return -1; unsigned int r = xorshift32_local(state) % (unsigned int)total; int acc=0; for(int i=0;i<count;i++){ if(weights[i]<=0) continue; acc += weights[i]; if((int)r < acc) return i; } return -1; }
+
+/* Clamp rarity respecting remaining caps */
+static int rarity_from_weights_with_caps(const int* weights, int caps[5], unsigned int* state){
+    int adj[5]; for(int i=0;i<5;i++){ adj[i] = (caps[i]==0)?0:weights[i]; if(adj[i]<0) adj[i]=0; }
+    return weighted_pick(adj,5,state);
+}
+
+int rogue_vendor_generate_constrained(const char* vendor_id, unsigned int world_seed, int day_cycle, int slots){
+    int rarity_caps[5]; int rarity_used[5]; int ensured_consumable; int ensured_material; int ensured_recipe; int used_defs[ROGUE_VENDOR_SLOT_CAP]; int used_count; int cat_lists[ROGUE_ITEM__COUNT][512]; int cat_counts[ROGUE_ITEM__COUNT]; int total_defs; unsigned int seed; int produced; int attempts_guard; int i;
+    if(slots <=0) return 0; if(slots>ROGUE_VENDOR_SLOT_CAP) slots = ROGUE_VENDOR_SLOT_CAP;
+    const RogueVendorDef* vd = rogue_vendor_def_find(vendor_id); if(!vd) return 0; const RogueVendorInventoryTemplate* tpl = rogue_vendor_inventory_template_find(vd->archetype); if(!tpl) return 0;
+    seed = rogue_vendor_inventory_seed(world_seed, vendor_id, day_cycle);
+    rogue_vendor_reset();
+    rarity_caps[0]=slots; rarity_caps[1]=slots; rarity_caps[2]=4; rarity_caps[3]=2; rarity_caps[4]=1;
+    for(i=0;i<5;i++) rarity_used[i]=0; ensured_consumable=0; ensured_material=0; ensured_recipe=0; used_count=0;
+    memset(cat_counts,0,sizeof cat_counts);
+    total_defs = rogue_item_defs_count();
+    for(i=0;i<total_defs;i++){ const RogueItemDef* d = rogue_item_def_at(i); if(!d) continue; if(d->category<0||d->category>=ROGUE_ITEM__COUNT) continue; if(cat_counts[d->category] < 512){ cat_lists[d->category][cat_counts[d->category]++] = i; } }
+    /* total_defs may be zero in atypical test harness situations; generation loop will then produce 0 */
+    produced=0; attempts_guard = slots * 10;
+    while(produced < slots && attempts_guard-- > 0){
+        int rarity = rarity_from_weights_with_caps(tpl->rarity_weights, rarity_caps, &seed);
+        int cat; int pick_index; const RogueItemDef* d;
+        if(rarity<0) rarity=0; if(rarity>4) rarity=4;
+        /* If template suggests a rarity whose cap is exhausted, fallback to next lower tier with availability */
+        if(rarity_used[rarity] >= rarity_caps[rarity]){
+            int rr = rarity; while(rr>0 && rarity_used[rr] >= rarity_caps[rr]) rr--; rarity = rr;
+            if(rarity_used[rarity] >= rarity_caps[rarity]) continue; /* all tiers exhausted */
+        }
+        cat = weighted_pick(tpl->category_weights, ROGUE_ITEM__COUNT, &seed);
+        if(cat<0) cat=ROGUE_ITEM_MISC; if(cat>=ROGUE_ITEM__COUNT) cat=ROGUE_ITEM_MISC;
+        if(cat_counts[cat]==0) continue;
+        pick_index = cat_lists[cat][ xorshift32_local(&seed) % cat_counts[cat] ];
+        /* duplicate check */
+        int dup=0; for(i=0;i<used_count;i++){ if(used_defs[i]==pick_index){ dup=1; break; } }
+        if(dup) continue;
+        d = rogue_item_def_at(pick_index); if(!d) continue;
+        if(d->rarity>=0){
+            int dr = d->rarity; if(dr<0) dr=0; if(dr>4) dr=4;
+            /* enforce caps: if item intrinsic rarity exceeds remaining cap, downgrade to lowest available */
+            if(rarity_used[dr] < rarity_caps[dr]) rarity = dr; else {
+                int rr = dr; while(rr>0 && rarity_used[rr] >= rarity_caps[rr]) rr--; if(rarity_used[rr] < rarity_caps[rr]) rarity = rr; else continue; /* cannot place */
+            }
+        }
+        { RogueVendorItem v; v.def_index=pick_index; v.rarity=rarity; v.price=rogue_vendor_price_formula(pick_index,rarity); g_vendor_items[g_vendor_count++]=v; }
+        used_defs[used_count++]=pick_index; rarity_used[rarity]++; produced++;
+        if(d->category==ROGUE_ITEM_CONSUMABLE) ensured_consumable=1; else if(d->category==ROGUE_ITEM_MATERIAL) ensured_material=1;
+    }
+    if(produced>0 && (!ensured_consumable || !ensured_material)){
+        for(int c_try=0;c_try<ROGUE_ITEM__COUNT && (!ensured_consumable || !ensured_material); c_try++){
+            for(i=0;i<total_defs && (!ensured_consumable || !ensured_material); i++){
+                const RogueItemDef* d = rogue_item_def_at(i); int j; int dup=0; if(!d) continue; for(j=0;j<used_count;j++){ if(used_defs[j]==i){ dup=1; break; } } if(dup) continue;
+                if(!ensured_consumable && d->category==ROGUE_ITEM_CONSUMABLE){ if(produced<slots){ RogueVendorItem v; v.def_index=i; v.rarity=d->rarity>=0?d->rarity:0; v.price=rogue_vendor_price_formula(i,v.rarity); g_vendor_items[g_vendor_count++]=v; used_defs[used_count++]=i; produced++; } else { g_vendor_items[produced-1].def_index=i; g_vendor_items[produced-1].rarity=d->rarity>=0?d->rarity:0; g_vendor_items[produced-1].price=rogue_vendor_price_formula(i,g_vendor_items[produced-1].rarity); } ensured_consumable=1; }
+                if(!ensured_material && d->category==ROGUE_ITEM_MATERIAL){ if(produced<slots){ RogueVendorItem v; v.def_index=i; v.rarity=d->rarity>=0?d->rarity:0; v.price=rogue_vendor_price_formula(i,v.rarity); g_vendor_items[g_vendor_count++]=v; used_defs[used_count++]=i; produced++; } else { g_vendor_items[0].def_index=i; g_vendor_items[0].rarity=d->rarity>=0?d->rarity:0; g_vendor_items[0].price=rogue_vendor_price_formula(i,g_vendor_items[0].rarity); } ensured_material=1; }
+            }
+        }
+    }
+    if(produced < slots){
+        int rcnt = rogue_craft_recipe_count();
+        for(int r=0;r<rcnt && !ensured_recipe;r++){
+            const RogueCraftRecipe* cr = rogue_craft_recipe_at(r); int di; const RogueItemDef* d; int j; int dup=0; if(!cr) continue; di = cr->output_def; if(di<0) continue; for(j=0;j<used_count;j++){ if(used_defs[j]==di){ dup=1; break; } } if(dup) continue; d = rogue_item_def_at(di); if(!d) continue; { RogueVendorItem v; int rarity = d->rarity>=0?d->rarity:0; v.def_index=di; v.rarity=rarity; v.price= rogue_vendor_price_formula(di,rarity); g_vendor_items[g_vendor_count++] = v; } used_defs[used_count++]=di; produced++; ensured_recipe=1; }
+    }
+    for(i=0;i<produced;i++){ int j; for(j=i+1;j<produced;j++){ if(g_vendor_items[j].def_index < g_vendor_items[i].def_index){ RogueVendorItem tmp=g_vendor_items[i]; g_vendor_items[i]=g_vendor_items[j]; g_vendor_items[j]=tmp; } } }
     return produced;
 }
 

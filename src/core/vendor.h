@@ -34,6 +34,19 @@ int rogue_vendor_price_formula(int item_def_index, int rarity);
 /* Append vendor item (used by persistence restore). Returns new count or -1. */
 int rogue_vendor_append(int def_index, int rarity, int price);
 
+/* Phase 2.3–2.5: Template‑driven constrained generation
+ * Uses vendor archetype inventory template (category & rarity weights) plus deterministic seed
+ * (rogue_vendor_inventory_seed) to roll a constrained inventory obeying:
+ *  - Uniqueness: no duplicate base item definitions
+ *  - Rarity caps: at most 1 legendary (4), 2 epic (3), 4 rare (2) per refresh (tunable constants)
+ *  - Guaranteed utility (consumable) slot: ensure >=1 consumable (ROGUE_ITEM_CONSUMABLE)
+ *  - Material & recipe injection: inject at least one material item (category MATERIAL) and, if crafting
+ *    recipes are loaded, a recipe output item (treated as purchasable blueprint) when space permits.
+ * Determinism: identical (world_seed,vendor_id,day_cycle,slots) -> identical ordered inventory.
+ * Returns count produced (may be < slots if constraints + asset scarcity).
+ */
+int rogue_vendor_generate_constrained(const char* vendor_id, unsigned int world_seed, int day_cycle, int slots);
+
 /* Rotation / Restock (10.3) */
 void rogue_vendor_rotation_init(RogueVendorRotation* rot, float interval_ms);
 int rogue_vendor_rotation_add_table(RogueVendorRotation* rot, int loot_table_index);

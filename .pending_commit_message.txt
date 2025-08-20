@@ -88,3 +88,17 @@ Added inventory template registry module:
 
 Verification: SDL build compiles new module; test `test_vendor_phase2_inventory` passes alongside prior vendor tests (now 10 total). Templates & seed function ready for Phase 2.3 roll constraint implementation.
 
+vendor: Phase 2.3–2.5 Constrained Inventory Generation
+
+Implemented template-driven constrained inventory algorithm completing Phase 2 of vendor system:
+- Added `rogue_vendor_generate_constrained(vendor_id, world_seed, day_cycle, slots)` using archetype template weights + deterministic seed (`rogue_vendor_inventory_seed`) to roll inventories.
+- Constraints enforced: uniqueness (no duplicate base defs), rarity caps (legendary<=1, epic<=2, rare<=4), guaranteed utility slot (>=1 consumable). Replacement strategy triggers if initial generation omitted required categories.
+- Material & recipe injection: ensures >=1 material item; optionally injects a crafting recipe output (blueprint) if recipes loaded and slot available.
+- Deterministic ordering: final vendor items sorted by definition index for stable hashing/replay.
+- Unit test `test_vendor_phase2_constrained` validates determinism, uniqueness, rarity caps, guaranteed consumable/material presence.
+- Roadmap updated marking 2.3, 2.4, 2.5 Done; README changelog will reflect full Phase 2 completion.
+
+Verification: SDL build + tests `test_vendor_phase2_inventory` and `test_vendor_phase2_constrained` pass; vendor suite green (Phase 0–2 total tests updated).
+
+Follow-up Fix: Adjusted rarity cap enforcement to downgrade intrinsic item rarity when cap exhausted (instead of violating cap) and added robust asset path resolution in constrained test. Removed temporary debug prints.
+

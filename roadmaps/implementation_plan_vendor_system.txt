@@ -35,9 +35,9 @@ PHASE 1. Data Model & Registry
 PHASE 2. Vendor Inventory Generation
 2.1 Inventory template file (vendor_archetype -> pools: item_category weights, quality tiers) (Done) – Added `inventory_templates.json` with per-archetype category_weights (length=ROGUE_ITEM__COUNT) and rarity_weights arrays plus template entry. Loader module `vendor_inventory_templates.[ch]` parses JSON (lightweight pattern scan) into in-memory templates (up to 32). Test `test_vendor_phase2_inventory` validates load, non‑negative weights & positive sums.
 2.2 Deterministic seed composition (world_seed ^ vendor_id ^ day_cycle) (Done) – Implemented `rogue_vendor_inventory_seed(world_seed,vendor_id,day_cycle)` using FNV-1a hash of vendor_id folded to 32-bit then xor mix with world_seed & day_cycle. Test asserts determinism and variance across vendor_id and day cycle.
-2.3 Roll algorithm with constraints: uniqueness rules, cap per rarity, guaranteed utility slot (e.g., potions) (X)
-2.4 Material & recipe slot injection (crafting synergy) (X)
-2.5 Tests: deterministic reproduction, rarity distribution bounds, uniqueness invariants (X) – Partial early coverage: determinism & template load validated in Phase 2.1/2.2 test; distribution & uniqueness rules pending roll algorithm (2.3).
+2.3 Roll algorithm with constraints: uniqueness rules, cap per rarity, guaranteed utility slot (e.g., potions) (Done) – Implemented `rogue_vendor_generate_constrained` (template-driven) enforcing no duplicate base defs, rarity caps (legendary<=1, epic<=2, rare<=4) and guaranteed at least one consumable via replacement if absent.
+2.4 Material & recipe slot injection (crafting synergy) (Done) – Constrained generator injects at least one material (category MATERIAL) and, when crafting recipes loaded, adds one recipe output (blueprint) if space & not duplicate.
+2.5 Tests: deterministic reproduction, rarity distribution bounds, uniqueness invariants (Done) – Added `test_vendor_phase2_constrained` validating determinism (same seed -> identical count), uniqueness, rarity caps, guaranteed consumable & material presence.
 
 PHASE 3. Pricing Engine
 3.1 Base price compute pipeline (value model -> baseline coins) (X)
