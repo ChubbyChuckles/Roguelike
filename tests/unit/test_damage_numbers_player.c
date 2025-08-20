@@ -8,13 +8,13 @@
 
 /* Minimal stubs */
 RoguePlayer g_exposed_player_for_stats = {0};
-int rogue_get_current_attack_frame(void){ return 3; }
-void rogue_app_add_hitstop(float ms){ (void)ms; }
-void rogue_add_damage_number(float x,float y,int amount,int from_player){ (void)x;(void)y;(void)amount;(void)from_player; }
-void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int crit){
+static int rogue_get_current_attack_frame(void){ return 3; }
+static void rogue_app_add_hitstop(float ms){ (void)ms; }
+static void rogue_add_damage_number(float x,float y,int amount,int from_player){ (void)x;(void)y;(void)amount;(void)from_player; }
+static void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int crit){
     if(amount==0) return; if(g_app.dmg_number_count < 128){ int i=g_app.dmg_number_count++; g_app.dmg_numbers[i].x=x; g_app.dmg_numbers[i].y=y; g_app.dmg_numbers[i].amount=amount; g_app.dmg_numbers[i].from_player=from_player; g_app.dmg_numbers[i].crit=crit; }
 }
-int rogue_app_damage_number_count(void){ return g_app.dmg_number_count; }
+/* use core implementation of rogue_app_damage_number_count (no local duplicate) */
 
 static void reset_app_state(void){ g_app.dmg_number_count=0; }
 

@@ -61,12 +61,12 @@ PHASE 3. Encounter Composition & Spawn Budget
 3.5 Tests: budget conservation, pack density bounds, elite spacing invariants (Done – phase3 unit test validates count bounds, boss presence, support count range, level assignment)
 
 PHASE 4. Adaptive Difficulty Feedback Loop
-4.1 Player performance KPIs: recent TTK, damage_taken_rate, potion_usage, death_frequency (X)
-4.2 Rolling window analytic smoothing (EMA) (X)
-4.3 Adaptive coefficient adjustments: mild +/- scaling within bounded envelope (X)
-4.4 Opt-out / locked difficulty toggle (player agency) (X)
-4.5 Anti rubber-band: hysteresis thresholds to prevent oscillation (X)
-4.6 Tests: stability under alternating performance, envelope clamps (X)
+4.1 Player performance KPIs: recent TTK, damage_taken_rate, potion_usage, death_frequency (Done)
+4.2 Rolling window analytic smoothing (EMA) (Done)
+4.3 Adaptive coefficient adjustments: mild +/- scaling within bounded envelope (Done – bounded scalar 0.88–1.12 applied post relative ΔL & tier/mod modifiers)
+4.4 Opt-out / locked difficulty toggle (player agency) (Done – feature flag returns neutral scalar)
+4.5 Anti rubber-band: hysteresis thresholds to prevent oscillation (Done – kill-event gating, recent_kill_pressure decay, idle relaxation driving scalar toward 1.0)
+4.6 Tests: stability under alternating performance, envelope clamps (Done – unit test validates disable, upward, downward, relaxation convergence)
 
 PHASE 5. AI Behavior Intensity Layers
 5.1 Intensity tiers (Passive, Standard, Aggressive, Frenzied) with action frequency multipliers (X)

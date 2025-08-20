@@ -68,7 +68,7 @@ The table is unchanged from the original content; detailed subsystem write‑ups
 | Economy/Vendors | Pricing, restock rotation scaffold, reputation, salvage, repair | Dynamic demand curves, buyback analytics |
 | Crafting | Recipes, rerolls, enchant/reforge, fusion, affix orb, success chance | Expanded material tiers, automation tooling |
 | Progression | Infinite leveling design, maze skill graph UI (initial), stat scaling | Full maze runtime integration, mastery loops |
-| Difficulty | Relative ΔL model (enemy vs player level differential) | Dynamic encounter budget + boss phase adaptivity |
+| Difficulty | Relative ΔL model (enemy vs player level differential) + adaptive performance scalar (+/-12%) | Dynamic encounter budget + boss phase adaptivity |
 | Tooling | Audit scripts, schema docs, diff tools, profilers, fuzz harnesses | Extended golden baselines & editor integration |
 
 ---
@@ -189,6 +189,7 @@ See `roadmaps/` for subsystem implementation plans (inventory, crafting & gather
 * Enemy Difficulty Phase 2 (initial modifiers slice): Added procedural modifier system core: definition parser (id/name/weight/tier mask/budget costs/incompat/telegraph), deterministic weighted selection respecting per-dimension (dps/control/mobility) budget caps, incompatibility mask enforcement, telegraph token stored for future UI, and unit tests covering load, determinism, incompat exclusion, and budget compliance.
 * Enemy Difficulty Phase 1.6 UI indicator: Added HUD ΔL severity indicator adjacent to player level text with color-coded severity categories (advantage, dominance, trivial, threat, major threat, fatal) sourced from classifier; roadmap updated marking 1.6 Done.
 * Enemy Difficulty Phase 3 (initial encounter composition slice): Added encounter template loader (`encounters.cfg`), deterministic spawn composer (counts, elite spacing & chance, boss + support units), unit tests verifying template load, count bounds, boss/support presence & level assignment; roadmap updated (3.1–3.3,3.5 Done; 3.4 partial telegraph/env props deferred).
+* Enemy Difficulty Phase 4 (adaptive feedback loop): Performance KPIs (avg TTK, damage intake rate, potion usage, death frequency) with EMA smoothing, kill-event gated upward pressure, decay & idle relaxation, bounded scalar (0.88–1.12) applied after relative ΔL & tier/modifier adjustments, opt-out flag, and unit test covering disable, upward, downward, relaxation convergence.
 
 For exhaustive historical details, refer to Appendix A (original full logs) and roadmap files.
 

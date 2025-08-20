@@ -96,6 +96,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_enemy_difficulty_phase3.c AND NO
     add_test(NAME test_enemy_difficulty_phase3 COMMAND test_enemy_difficulty_phase3)
 endif()
 
+# Phase 4 adaptive difficulty test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_enemy_difficulty_phase4.c AND NOT TARGET test_enemy_difficulty_phase4)
+    add_executable(test_enemy_difficulty_phase4 unit/test_enemy_difficulty_phase4.c)
+    target_link_libraries(test_enemy_difficulty_phase4 PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_enemy_difficulty_phase4 PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_enemy_difficulty_phase4 COMMAND test_enemy_difficulty_phase4)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_enemy_json_loader.c AND NOT TARGET test_enemy_json_loader)
     add_executable(test_enemy_json_loader unit/test_enemy_json_loader.c)
     target_link_libraries(test_enemy_json_loader PRIVATE rogue_core)

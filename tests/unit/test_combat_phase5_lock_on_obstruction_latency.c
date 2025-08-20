@@ -18,11 +18,11 @@ static int test_nav_is_blocked(int tx,int ty){ return (tx==2 && ty==0)?1:0; }
 /* Minimal attack stub */
 /* Match working stub parameters from team obstruction test for consistent damage */
 static const RogueAttackDef g_stub_attack = {0,"stub",ROGUE_WEAPON_LIGHT,0,0,80,0,5,0,20,ROGUE_DMG_PHYSICAL,0.30f,0,0,1,{{0,80,0,1.0f,0,0,0,0}},0,0,0.50f,0,0};
-const RogueAttackDef* rogue_attack_get(int a,int c){(void)a;(void)c; return &g_stub_attack;} int rogue_attack_chain_length(int a){(void)a; return 1;}
-int rogue_buffs_get_total(int t){(void)t; return 0;}
-void rogue_add_damage_number(float x,float y,int amount,int from_player){(void)x;(void)y;(void)amount;(void)from_player;}
-void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int crit){(void)x;(void)y;(void)amount;(void)from_player;(void)crit;}
-extern int rogue_force_attack_active; extern int g_attack_frame_override; int rogue_get_current_attack_frame(void){ return 3; }
+static const RogueAttackDef* rogue_attack_get(int a,int c){(void)a;(void)c; return &g_stub_attack;} static int rogue_attack_chain_length(int a){(void)a; return 1;}
+static int rogue_buffs_get_total(int t){(void)t; return 0;}
+static void rogue_add_damage_number(float x,float y,int amount,int from_player){(void)x;(void)y;(void)amount;(void)from_player;}
+static void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int crit){(void)x;(void)y;(void)amount;(void)from_player;(void)crit;}
+extern int rogue_force_attack_active; extern int g_attack_frame_override; static int rogue_get_current_attack_frame(void){ return 3; }
 
 static int strike_once(RoguePlayerCombat* pc, RoguePlayer* player, RogueEnemy* enemies, int enemy_count){
     pc->phase=ROGUE_ATTACK_STRIKE; pc->strike_time_ms=10; pc->processed_window_mask=0; pc->emitted_events_mask=0; /* reset */

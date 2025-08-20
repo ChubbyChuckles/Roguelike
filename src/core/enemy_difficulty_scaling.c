@@ -4,6 +4,7 @@
 #include <math.h>
 #include <string.h>
 #include "core/enemy_difficulty_scaling.h"
+#include "core/enemy_adaptive.h"
 
 #ifndef ROGUE_CLAMP
 #define ROGUE_CLAMP(v,lo,hi) ((v)<(lo)?(lo):((v)>(hi)?(hi):(v)))
@@ -79,6 +80,8 @@ int rogue_enemy_compute_final_stats(int player_level, int enemy_level, int tier_
     float final_hp = tier_hp * rel_hp_mult;
     float final_dmg = tier_dmg * rel_dmg_mult;
     float final_def = tier_def * rel_hp_mult;
+    /* Adaptive scalar applies uniformly post-tier & relative scaling */
+    float adapt = rogue_enemy_adaptive_scalar(); if(adapt<0.01f) adapt=0.01f; final_hp*=adapt; final_dmg*=adapt; final_def*=adapt;
     out->hp=final_hp; out->damage=final_dmg; out->defense=final_def;
     out->hp_mult = rel_hp_mult * tier->mult.hp_budget; out->dmg_mult = rel_dmg_mult * tier->mult.dps_budget; out->def_mult = rel_hp_mult * tier->mult.hp_budget;
     return 0;
@@ -155,9 +158,10 @@ int rogue_enemy_compute_final_stats_biome(int player_level, int enemy_level, int
     float tier_hp = base.hp * tier->mult.hp_budget;
     float tier_dmg = base.damage * tier->mult.dps_budget;
     float tier_def = base.defense * tier->mult.hp_budget;
-    out->hp = tier_hp * rel_hp_mult;
-    out->damage = tier_dmg * rel_dmg_mult;
-    out->defense = tier_def * rel_hp_mult;
+    float adapt = rogue_enemy_adaptive_scalar(); if(adapt<0.01f) adapt=0.01f;
+    out->hp = tier_hp * rel_hp_mult * adapt;
+    out->damage = tier_dmg * rel_dmg_mult * adapt;
+    out->defense = tier_def * rel_hp_mult * adapt;
     out->hp_mult = rel_hp_mult * tier->mult.hp_budget;
     out->dmg_mult = rel_dmg_mult * tier->mult.dps_budget;
     out->def_mult = rel_hp_mult * tier->mult.hp_budget;
