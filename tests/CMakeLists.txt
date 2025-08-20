@@ -2087,6 +2087,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase0_inflow.c AND NOT T
     add_test(NAME test_vendor_phase0_inflow COMMAND test_vendor_phase0_inflow)
 endif()
 
+# Vendor System Phase 1 registry test (1.1-1.3)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase1_registry.c AND NOT TARGET test_vendor_phase1_registry)
+    add_executable(test_vendor_phase1_registry unit/test_vendor_phase1_registry.c)
+    target_link_libraries(test_vendor_phase1_registry PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_vendor_phase1_registry PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_vendor_phase1_registry COMMAND test_vendor_phase1_registry)
+endif()
+
 # Explicitly add loot phase 9 drop rates test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_drop_rates.c AND NOT TARGET test_loot_phase9_drop_rates)
     add_executable(test_loot_phase9_drop_rates unit/test_loot_phase9_drop_rates.c)

@@ -47,3 +47,20 @@ Added econ_inflow_sim.[ch] providing deterministic baseline inflow estimator (ki
 
 Verification: SDL2 build; tests test_vendor_phase0_value & test_vendor_phase0_inflow pass (vendor subset all green).
 
+vendor: Phase 1 Data Model (Foundational Registries)
+
+Implemented vendor_registry.[ch] with parsed definitions for vendors (id/archetype/biome tags/refresh interval/policy link), price policies (buy/sell margins + rarity & category percent arrays), and reputation tiers (rep_min thresholds, buy discount, sell bonus, unlock tags). Added asset config directory assets/vendors with vendors.cfg, price_policies.cfg, reputation_tiers.cfg. Added unit test test_vendor_phase1_registry verifying load success, linkage (policy index resolution), rep tier ordering, and non-zero margins. Updated roadmap marking 1.1–1.3 Done; test entry notes partial 1.5 coverage (collision/padding deferred). README changelog updated.
+
+Verification: SDL2 build; tests vendor_phase0_value, vendor_phase0_inflow, vendor_phase1_registry all pass.
+
+vendor: Phase 1 JSON Migration for Registries
+
+Migrated vendor registries to JSON with fallback to legacy .cfg:
+- Added assets/vendors/price_policies.json, vendors.json, reputation_tiers.json including template entries (TEMPLATE_* IDs) for authoring guidance.
+- Extended vendor_registry.[ch] to prefer JSON loading (lightweight pattern-based parser) for price policies, vendors, and rep tiers; keeps legacy CSV loaders as fallback if any JSON file missing/incomplete.
+- JSON loaders populate identical in-memory structs; existing tests unchanged and pass via JSON path.
+- Ensured policy-first load ordering preserved so vendor price_policy references resolve.
+- Safeguards: if any JSON stage fails or yields zero counts, registry resets and re-loads legacy .cfg assets.
+
+Verification: All vendor-related tests (8) pass using JSON assets (ctest -R vendor). No regressions in UI/vendor restock or save roundtrip tests.
+

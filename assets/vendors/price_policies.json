@@ -1,0 +1,18 @@
+{
+  "price_policies": [
+    {
+      "id": "default",
+      "base_buy_margin": 120,
+      "base_sell_margin": 50,
+      "rarity_mods": [100,100,110,120,130],
+      "category_mods": [100,100,100,100,100,100]
+    },
+    {
+      "id": "TEMPLATE_REPLACE_ME",
+      "base_buy_margin": 125,
+      "base_sell_margin": 55,
+      "rarity_mods": [100,105,110,120,140],
+      "category_mods": [100,100,100,100,100,100]
+    }
+  ]
+}

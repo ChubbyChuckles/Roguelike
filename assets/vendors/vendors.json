@@ -1,0 +1,18 @@
+{
+  "vendors": [
+    {
+      "id": "blacksmith_standard",
+      "archetype": "blacksmith",
+      "biome_tags": "town",
+      "refresh_interval_ms": 600000,
+      "price_policy": "default"
+    },
+    {
+      "id": "TEMPLATE_VENDOR_ID",
+      "archetype": "archetype_name",
+      "biome_tags": "tag1 tag2",
+      "refresh_interval_ms": 900000,
+      "price_policy": "default"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "reputation_tiers": [
+    { "id": "neutral",   "rep_min": 0,   "buy_discount_pct": 0,  "sell_bonus_pct": 0,  "unlock_tags": "" },
+    { "id": "friendly",  "rep_min": 100, "buy_discount_pct": 5,  "sell_bonus_pct": 5,  "unlock_tags": "unlock:basic_discount" },
+    { "id": "respected", "rep_min": 300, "buy_discount_pct": 10, "sell_bonus_pct": 8,  "unlock_tags": "unlock:respected" },
+    { "id": "TEMPLATE_REP_TIER", "rep_min": 9999, "buy_discount_pct": 0, "sell_bonus_pct": 0, "unlock_tags": "unlock:placeholder" }
+  ]
+}
