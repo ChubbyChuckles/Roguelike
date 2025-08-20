@@ -1,5 +1,11 @@
 #define _CRT_SECURE_NO_WARNINGS 1
 #include "core/crafting.h"
+#include "core/rng_streams.h"
+#include "core/crafting_journal.h"
+
+/* Ensure RNG streams seeded once; simple lazy init hook */
+static int g_rng_seeded=0;
+void rogue_crafting_seed_rng(unsigned int seed){ if(!g_rng_seeded){ rogue_rng_streams_seed(seed); g_rng_seeded=1; } }
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>

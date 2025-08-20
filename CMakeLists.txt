@@ -227,6 +227,9 @@ add_library(rogue_core
     src/core/salvage.c
     src/core/material_registry.c
     src/core/material_refine.c
+    # Phase 7 determinism governance new modules
+    src/core/rng_streams.c
+    src/core/crafting_journal.c
     src/core/gathering.c
     src/core/crafting.c
     src/core/crafting_queue.c

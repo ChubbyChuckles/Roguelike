@@ -7,6 +7,8 @@
 #include "core/stat_cache.h"
 #include <stdlib.h>
 #include "core/material_registry.h" /* for rogue_material_tier_by_item */
+#include "core/crafting_journal.h"
+#include "core/rng_streams.h"
 
 /* Material IDs looked up lazily (cached after first resolution) */
 static int g_enchant_mat_def = -1; /* enchant_orb */
@@ -78,7 +80,10 @@ int rogue_item_instance_enchant(int inst_index, int reroll_prefix, int reroll_su
     if(reroll_suffix && has_suffix){ reroll_affix(&it->suffix_index,&it->suffix_value,ROGUE_AFFIX_SUFFIX,it->rarity,&rng); }
     /* Budget validation */
     if(rogue_item_instance_validate_budget(inst_index)!=0) return -5; /* Should not happen; treat as failure */
-    rogue_stat_cache_mark_dirty(); if(out_cost) *out_cost = cost; return 0;
+    rogue_stat_cache_mark_dirty(); if(out_cost) *out_cost = cost; /* journal entry */
+    unsigned int outcome_hash = (unsigned int)(it->prefix_index*1315423911u) ^ (unsigned int)(it->suffix_index*2654435761u) ^ (unsigned int)cost;
+    rogue_craft_journal_append((unsigned int)inst_index,0,0,ROGUE_RNG_STREAM_ENHANCEMENT,outcome_hash);
+    return 0;
 }
 
 int rogue_item_instance_reforge(int inst_index, int* out_cost){
@@ -107,7 +112,7 @@ int rogue_item_instance_reforge(int inst_index, int* out_cost){
     /* Clear existing gem sockets content (preserve count) */
     for(int s=0;s<it->socket_count && s<6; ++s){ it->sockets[s] = -1; }
     if(rogue_item_instance_validate_budget(inst_index)!=0) return -5;
-    rogue_stat_cache_mark_dirty(); if(out_cost) *out_cost=cost; return 0;
+    rogue_stat_cache_mark_dirty(); if(out_cost) *out_cost=cost; unsigned int outcome_hash = (unsigned int)(it->prefix_index*109951u) ^ (unsigned int)(it->suffix_index*334214467u) ^ (unsigned int)cost; rogue_craft_journal_append((unsigned int)inst_index,0,0,ROGUE_RNG_STREAM_ENHANCEMENT,outcome_hash); return 0;
 }
 
 /* Protective seal implementation */

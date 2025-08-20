@@ -70,11 +70,11 @@ PHASE 6. Item Modification & Enhancement Pathways
 6.6 Tests: budget constraint preservation, fracture probability distribution (Done) – test_crafting_phase6_enhancement ensures no over‑budget, executes failure path (statistical placeholder).
 
 PHASE 7. Determinism & RNG Governance
-7.1 Separate RNG streams: gathering, refinement, craft quality, enhancement risk (X)
-7.2 Seed derivation (session_seed ^ world_chunk ^ player_level) (X)
-7.3 Craft outcome hash for integrity & analytics (X)
-7.4 Replay harness to validate identical journal -> identical outputs (X)
-7.5 Tests: stream isolation (statistical independence), replay determinism (X)
+7.1 Separate RNG streams: gathering, refinement, craft quality, enhancement risk (Done) – implemented rng_streams.[ch] with xorshift32 states.
+7.2 Seed derivation (session_seed ^ world_chunk ^ player_level) (Done) – rogue_seed_derive mixes session/world/player/stream.
+7.3 Craft outcome hash for integrity & analytics (Done) – crafting_journal.[ch] append-only log + FNV-1a hash chain.
+7.4 Replay harness to validate identical journal -> identical outputs (Done) – test_crafting_phase7_determinism simulates session twice, compares hash.
+7.5 Tests: stream isolation (statistical independence), replay determinism (Done) – rng_journal test for independence + journal chaining; determinism test for replay hash.
 
 PHASE 8. UI / UX Layer
 8.1 Gathering node highlight & depletion timer overlay (X)

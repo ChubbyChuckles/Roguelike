@@ -1,3 +1,10 @@
+Commit: Crafting Phase 7 Determinism & RNG Governance
+ - Added rng_streams.[ch] with segregated RNG streams (gathering/refinement/craft_quality/enhancement) and seed derivation helper.
+ - Added crafting_journal.[ch] append-only log + FNV-1a hash accumulation for outcome integrity.
+ - Integrated journaling into enhancement/enchant paths.
+ - Added tests: test_crafting_phase7_rng_journal (stream independence + hash chain) and test_crafting_phase7_determinism (replay reproducibility).
+ - Updated roadmap (Phase 7 all Done) and README with new Phase 7 bullet.
+
 [SAVE] begin slot 0
 [SAVE] writing temp ./save_slot_0.tmp then final save_slot_0.sav
 [LOAD] section 0 failed read id
