@@ -76,3 +76,15 @@ Implemented negotiation rules data model & JSON loader:
 
 Verification: All vendor tests (9) pass (`ctest -R vendor`). Loader emits no duplicate warnings; negotiation rules integrated without affecting legacy pricing paths.
 
+vendor: Phase 2.1 Inventory Templates & 2.2 Deterministic Seed
+
+Added inventory template registry module:
+- New JSON asset `assets/vendors/inventory_templates.json` (blacksmith archetype + TEMPLATE entry) specifying `category_weights` (ROGUE_ITEM__COUNT length) and `rarity_weights` arrays.
+- Implemented `vendor_inventory_templates.[ch]` with lightweight JSON loader (pattern scan, no external dependency) storing up to 32 templates.
+- Deterministic seed API `rogue_vendor_inventory_seed(world_seed,vendor_id,day_cycle)` uses FNV-1a hash of vendor_id folded to 32-bit then xor with world_seed & day_cycle for reproducible inventory generation epochs.
+- Unit test `test_vendor_phase2_inventory` exercises load success, positive weight sums, and seed determinism (same inputs -> same seed; changing vendor id or day changes seed).
+- Roadmap: Marked Phase 2.1 & 2.2 Done (documented); 2.3–2.5 remain pending (roll algorithm, material/recipe injection, distribution & uniqueness tests).
+- README changelog updated with Phase 2 partial completion entry.
+
+Verification: SDL build compiles new module; test `test_vendor_phase2_inventory` passes alongside prior vendor tests (now 10 total). Templates & seed function ready for Phase 2.3 roll constraint implementation.
+

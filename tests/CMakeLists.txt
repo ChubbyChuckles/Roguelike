@@ -96,6 +96,15 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_enemy_difficulty_phase3.c AND NO
     add_test(NAME test_enemy_difficulty_phase3 COMMAND test_enemy_difficulty_phase3)
 endif()
 
+# Vendor Phase 2 inventory template & seed tests
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase2_inventory.c AND NOT TARGET test_vendor_phase2_inventory)
+    add_executable(test_vendor_phase2_inventory unit/test_vendor_phase2_inventory.c)
+    target_link_libraries(test_vendor_phase2_inventory PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_vendor_phase2_inventory PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_vendor_phase2_inventory COMMAND test_vendor_phase2_inventory)
+endif()
 # Phase 4 adaptive difficulty test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_enemy_difficulty_phase4.c AND NOT TARGET test_enemy_difficulty_phase4)
     add_executable(test_enemy_difficulty_phase4 unit/test_enemy_difficulty_phase4.c)
