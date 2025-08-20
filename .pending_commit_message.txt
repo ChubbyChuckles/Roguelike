@@ -127,3 +127,18 @@ Follow-ups:
 - Implement SoA layout for passive effect accumulators (Phase 11.2) to improve data locality & vectorization potential.
 - Add micro-benchmark harness measuring recompute cost under synthetic 200-node passive unlock scenario (Phase 11.3) with timing histograms.
 - Expand tests to assert recompute counter deltas under mixed dirty sequences & integrate simple time threshold assertions (feature-gated to avoid flakiness).
+
+Progression Phase 11 (Continued – SoA & Micro-Benchmark)
+
+Enhancements:
+- Implemented Phase 11.2 SoA mirrors for passive effects: arrays `g_effect_stat_ids[]` and `g_effect_deltas[]` populated during DSL parse; unlock application loop now iterates SoA for improved spatial locality (preparing future SIMD / batching).
+- Added Phase 11.3 micro-benchmark test `test_progression_phase11_bench` executing 4k iterations comparing full dirty vs buff-only dirty recompute paths; asserts >5% speed differential unless total time extremely small (<5ms guard) to avoid flaky failures on fast hosts.
+- Updated roadmap: 11.2 and 11.3 marked Done; 11.5 Partial adjusted to reflect added coverage (latency ratio + dirty avoidance). README pending next aggregation update.
+
+Rationale:
+- SoA structure reduces cache line thrash when iterating many passive effects and sets stage for vectorized accumulation or per-stat reduction passes.
+- Early benchmark provides regression signal for future optimization phases (ensuring dirty path remains materially cheaper as layers expand).
+
+Follow-ups:
+- Integrate re-spec replay stale-cache test (mark passives dirty, reapply DSL, ensure counters increment & fingerprints differ appropriately).
+- Collect percentile timing (P50/P95) using high-res timer (platform abstraction) and export metrics for CI threshold gating.

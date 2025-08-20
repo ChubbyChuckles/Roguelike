@@ -8,6 +8,8 @@
 #define PASSIVE_MAX_NODE_EFFECTS 8
 #define PASSIVE_MAX_EFFECTS_TOTAL 4096
 
+/* Phase 11.2: SoA-friendly effect storage. Retain AoS struct for parsing simplicity but mirror into
+    parallel arrays for cache-friendly aggregation / future vectorization. */
 typedef struct PassiveEffect { int stat_id; int delta; } PassiveEffect;
 
 typedef struct PassiveNodeEffects {
@@ -17,6 +19,9 @@ typedef struct PassiveNodeEffects {
 
 static PassiveEffect g_effects[PASSIVE_MAX_EFFECTS_TOTAL];
 static int g_effect_count=0;
+/* SoA mirrors */
+static int g_effect_stat_ids[PASSIVE_MAX_EFFECTS_TOTAL];
+static int g_effect_deltas[PASSIVE_MAX_EFFECTS_TOTAL];
 static PassiveNodeEffects* g_node_effects=NULL; /* size = maze->base.node_count */
 static unsigned char* g_unlocked=NULL; /* bitset bytes per node (0/1) */
 static int g_node_count=0;
@@ -63,7 +68,7 @@ int rogue_progression_passives_load_dsl(const char* text){ if(!g_initialized||!t
         for(;;){
             eff = ROGUE_STRTOK(NULL," \t",&ctx);
             if(!eff) break;
-            char* plus=strchr(eff,'+'); if(!plus) continue; *plus='\0'; const char* scode=eff; int delta=atoi(plus+1); int sid=stat_code_to_id(scode); if(sid<0) continue; if(pne->count<PASSIVE_MAX_NODE_EFFECTS && g_effect_count<PASSIVE_MAX_EFFECTS_TOTAL){ g_effects[g_effect_count].stat_id=sid; g_effects[g_effect_count].delta=delta; g_effect_count++; pne->count++; }
+            char* plus=strchr(eff,'+'); if(!plus) continue; *plus='\0'; const char* scode=eff; int delta=atoi(plus+1); int sid=stat_code_to_id(scode); if(sid<0) continue; if(pne->count<PASSIVE_MAX_NODE_EFFECTS && g_effect_count<PASSIVE_MAX_EFFECTS_TOTAL){ g_effects[g_effect_count].stat_id=sid; g_effects[g_effect_count].delta=delta; g_effect_stat_ids[g_effect_count]=sid; g_effect_deltas[g_effect_count]=delta; g_effect_count++; pne->count++; }
         }
     }
     return 0;
@@ -82,7 +87,8 @@ int rogue_progression_passive_unlock(int node_id, unsigned int timestamp_ms, int
     g_unlocked[node_id]=1; PassiveNodeEffects* pne=&g_node_effects[node_id]; int is_keystone=0; int kcat=-1; 
     if(g_maze_ref && g_maze_ref->meta && node_id < g_maze_ref->base.node_count){ if(g_maze_ref->meta[node_id].flags & 0x4u){ is_keystone=1; kcat=classify_keystone_effect(pne); }}
     double coeff=1.0; if(is_keystone){ int kcount = ++g_keystone_category_counts[kcat]; coeff = 1.0 / (1.0 + 0.15 * (double)(kcount-1)); }
-    for(int i=0;i<pne->count;i++){ PassiveEffect* pe=&g_effects[pne->offset+i]; if(pe->stat_id>=0 && pe->stat_id<512){ double delta = (double)pe->delta; if(is_keystone) delta *= coeff; g_passive_stat_accum[pe->stat_id]+=delta; } }
+    /* Use SoA mirrors to improve cache predictability */
+    int off=pne->offset; int cnt=pne->count; for(int i=0;i<cnt;i++){ int sid=g_effect_stat_ids[off+i]; int delta=g_effect_deltas[off+i]; if(sid>=0 && sid<512){ double d=(double)delta; if(is_keystone) d*=coeff; g_passive_stat_accum[sid]+=d; } }
     journal_append(node_id,timestamp_ms); (void)level;(void)str;(void)dex;(void)intel;(void)vit; return pne->count?0:-3; }
 
 int rogue_progression_passives_stat_total(int stat_id){ if(stat_id<0||stat_id>=512) return 0; double v=g_passive_stat_accum[stat_id]; if(v<0) v=0; return (int)(v+0.5); }

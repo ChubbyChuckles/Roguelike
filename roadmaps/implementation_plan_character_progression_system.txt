@@ -98,10 +98,10 @@ PHASE 10. Buff/Debuff Integration
 
 PHASE 11. Performance & Caching
 11.1 Incremental stat recomputation dirty flags (attribute change, talent change) (Done – added dirty bit mask (attr=1,passive=2,buff=4,equipment=8) with selective layer refresh; instrumentation counters `recompute_count` & `heavy_passive_recompute_count`.)
-11.2 Flattened SoA arrays for passive effects (X)
-11.3 Micro-bench (stat recompute under 200 talent effects) (X)
+11.2 Flattened SoA arrays for passive effects (Done – introduced SoA mirrors (stat_id[], delta[]) feeding unlock accumulation loop for cache-friendly iteration.)
+11.3 Micro-bench (stat recompute under 200 talent effects) (Done – added synthetic benchmark test `test_progression_phase11_bench` measuring full vs buff-only recompute ratio.)
 11.4 Cache size target (< 64 KB hot path) (Done – stat cache struct currently <2 KB; size accessor & test assert threshold.)
-11.5 Tests: recompute latency P95, no stale cache after re-spec (Partial – initial unit test validates dirty flag prevents unnecessary passive recompute; latency micro-bench pending.)
+11.5 Tests: recompute latency P95, no stale cache after re-spec (Partial – dirty avoidance + micro-bench ratio + size guard complete; P95 timing & re-spec stale verification pending.)
 
 PHASE 12. Persistence & Migration
 12.1 Versioned progression header (level, xp, mastery, ascendancy, paragon) (X)
