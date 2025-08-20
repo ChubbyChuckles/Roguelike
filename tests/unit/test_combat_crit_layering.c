@@ -14,9 +14,13 @@
 
 /* Provide minimal stubs & globals locally so we do NOT depend on full app state (prevents gating issues). */
 RoguePlayer g_exposed_player_for_stats = {0}; /* referenced by player combat update/strike */
-int rogue_get_current_attack_frame(void){ return 3; } /* guaranteed hit frame (hit_mask[3]==1) */
-void rogue_add_damage_number(float x,float y,int amount,int from_player){ (void)x;(void)y;(void)amount;(void)from_player; }
-void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int crit){ (void)x;(void)y;(void)amount;(void)from_player;(void)crit; }
+static int rogue_get_current_attack_frame(void){ return 3; } /* guaranteed hit frame (hit_mask[3]==1) */
+static void rogue_add_damage_number(float x,float y,int amount,int from_player){ (void)x;(void)y;(void)amount;(void)from_player; }
+static void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int crit){ (void)x;(void)y;(void)amount;(void)from_player;(void)crit; }
+/* Deterministic minimal attack def to ensure consistent damage output */
+static const RogueAttackDef g_attack = {0,"crit_layer",ROGUE_WEAPON_LIGHT,0,0,60,0,5,0,50,ROGUE_DMG_PHYSICAL,0.0f,0,0,1,{{0,60,ROGUE_CANCEL_ON_HIT,1.0f,0,0,0,0}},0,ROGUE_CANCEL_ON_HIT,0.40f,0,0};
+const RogueAttackDef* rogue_attack_get(int a,int b){ (void)a; (void)b; return &g_attack; }
+int rogue_attack_chain_length(int a){ (void)a; return 1; }
 
 extern int rogue_force_attack_active; /* from combat_player_state.c */
 extern int g_attack_frame_override; /* override still available */

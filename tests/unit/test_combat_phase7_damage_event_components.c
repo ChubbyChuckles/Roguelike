@@ -7,10 +7,10 @@
 #include "entities/player.h"
 #include "entities/enemy.h"
 
-extern int rogue_force_attack_active; extern int g_attack_frame_override; int rogue_get_current_attack_frame(void){ return 3; }
-int rogue_buffs_get_total(int t){(void)t; return 0;}
-void rogue_add_damage_number(float x,float y,int amount,int from_player){(void)x;(void)y;(void)amount;(void)from_player;}
-void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int crit){(void)x;(void)y;(void)amount;(void)from_player;(void)crit;}
+extern int rogue_force_attack_active; extern int g_attack_frame_override; static int rogue_get_current_attack_frame(void){ return 3; }
+static int rogue_buffs_get_total(int t){(void)t; return 0;}
+static void rogue_add_damage_number(float x,float y,int amount,int from_player){(void)x;(void)y;(void)amount;(void)from_player;}
+static void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int crit){(void)x;(void)y;(void)amount;(void)from_player;(void)crit;}
 
 /* Attack with enough base to produce multi-component infusion */
 static const RogueAttackDef g_attack = {0,"comp_event",ROGUE_WEAPON_LIGHT,0,0,60,0,8,0,30,ROGUE_DMG_PHYSICAL,0.4f,0.0f,0.0f,1,{{0,60,ROGUE_CANCEL_ON_HIT,1.0f,0,0,0,0}},0,ROGUE_CANCEL_ON_HIT,0.40f,0,0};

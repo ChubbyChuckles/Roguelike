@@ -8,10 +8,11 @@
 #include "entities/player.h"
 #include "entities/enemy.h"
 
-extern int rogue_force_attack_active; extern int g_attack_frame_override; int rogue_get_current_attack_frame(void){ return 3; }
-int rogue_buffs_get_total(int t){(void)t; return 0;}
-void rogue_add_damage_number(float x,float y,int amount,int from_player){(void)x;(void)y;(void)amount;(void)from_player;}
-void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int crit){(void)x;(void)y;(void)amount;(void)from_player;(void)crit;}
+extern int rogue_force_attack_active; extern int g_attack_frame_override; static int rogue_get_current_attack_frame(void){ return 3; }
+RoguePlayer g_exposed_player_for_stats = {0};
+static int rogue_buffs_get_total(int t){(void)t; return 0;}
+static void rogue_add_damage_number(float x,float y,int amount,int from_player){(void)x;(void)y;(void)amount;(void)from_player;}
+static void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int crit){(void)x;(void)y;(void)amount;(void)from_player;(void)crit;}
 /* Minimal single-window attack def for deterministic output */
 static const RogueAttackDef g_test_attack = {0,"light",ROGUE_WEAPON_LIGHT,0,0,80,0,5,0,20,ROGUE_DMG_PHYSICAL,0.0f,0,0,1,{{0,80,ROGUE_CANCEL_ON_HIT,1.0f,0,0,0,0}},0,ROGUE_CANCEL_ON_HIT,0.40f,0,0};
 const RogueAttackDef* rogue_attack_get(int a,int b){(void)a;(void)b; return &g_test_attack;} int rogue_attack_chain_length(int a){(void)a; return 1;}
@@ -21,7 +22,7 @@ static int do_strike(RoguePlayerCombat* pc, RoguePlayer* player, RogueEnemy* ene
 int main(){
     rogue_force_attack_active=1; g_attack_frame_override=3;
     RoguePlayerCombat pc; rogue_combat_init(&pc);
-    RoguePlayer player; memset(&player,0,sizeof player); player.team_id=0; player.strength=40; player.facing=2; player.poise_max=50; player.poise=25; player.base.pos.x=0; player.base.pos.y=0; player.lock_on_radius=5.0f;
+    RoguePlayer player; memset(&player,0,sizeof player); player.team_id=0; player.strength=40; player.facing=2; player.poise_max=50; player.poise=25; player.base.pos.x=0; player.base.pos.y=0; player.lock_on_radius=5.0f; g_exposed_player_for_stats = player;
     RogueEnemy enemy; memset(&enemy,0,sizeof enemy); enemy.alive=1; enemy.team_id=1; enemy.base.pos.x=1.0f; enemy.base.pos.y=0.0f; enemy.health=200; enemy.max_health=200;
 
     /* Baseline strike (no charge) */
