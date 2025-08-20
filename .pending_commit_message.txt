@@ -1,3 +1,8 @@
+Phase 11: Analytics & Telemetry
+- Added crafting_analytics.[ch]: node harvest metrics (nodes/hour, rare rate), craft outcome distribution (quality histogram, success ratio), enhancement risk variance, material flow counters, drift alert, JSON export.
+- Added unit test test_crafting_phase11_analytics printing CRAFT_P11_OK (validates variance near expectation, drift latch logic).
+- Updated roadmap (Phase 11 Done) and integrated into build.
+
 Phase 10: Economy & Balance Hooks
 - Added crafting_economy.[ch] implementing:
 	* Scarcity metric & dynamic spawn scalar (10.1)

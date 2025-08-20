@@ -302,6 +302,7 @@ add_library(rogue_core
     src/ui/crafting_ui.c
     src/core/crafting_automation.c
     src/core/crafting_economy.c
+        src/core/crafting_analytics.c
 )
 
 target_include_directories(rogue_core PUBLIC
@@ -351,6 +352,12 @@ add_executable(test_crafting_phase10_economy tests/unit/test_crafting_phase10_ec
 target_link_libraries(test_crafting_phase10_economy PRIVATE rogue_core)
 if(TARGET SDL2::SDL2)
     target_link_libraries(test_crafting_phase10_economy PRIVATE SDL2::SDL2)
+endif()
+
+add_executable(test_crafting_phase11_analytics tests/unit/test_crafting_phase11_analytics.c)
+target_link_libraries(test_crafting_phase11_analytics PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_crafting_phase11_analytics PRIVATE SDL2::SDL2)
 endif()
 
 add_executable(roguelike src/main.c)

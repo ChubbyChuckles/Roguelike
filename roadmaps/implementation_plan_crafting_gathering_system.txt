@@ -102,13 +102,13 @@ PHASE 10. Economy & Balance Hooks
 10.5 Tests: inflation guard thresholds, value consistency vs affix power (Done) [test_crafting_phase10_economy_hooks]
 
 PHASE 11. Analytics & Telemetry
-11.1 Gathering session metrics (nodes/hour, rare proc rate) (X)
-11.2 Craft outcome distribution (quality histogram, success/failure ratio) (X)
-11.3 Enhancement risk realized vs expected variance monitor (X)
-11.4 Material flow Sankey (acquire -> consume -> leftover) (X)
-11.5 JSON export for dashboards (X)
-11.6 Drift alert (actual high-quality output deviates > threshold) (X)
-11.7 Tests: variance bounds, drift detection false positive rate (X)
+11.1 Gathering session metrics (nodes/hour, rare proc rate) (Done) [rogue_craft_analytics_on_node_harvest]
+11.2 Craft outcome distribution (quality histogram, success/failure ratio) (Done) [rogue_craft_analytics_on_craft]
+11.3 Enhancement risk realized vs expected variance monitor (Done) [rogue_craft_analytics_on_enhancement]
+11.4 Material flow counters (acquire -> consume -> leftover) (Done) [rogue_craft_analytics_material_*]
+11.5 JSON export for dashboards (Done) [rogue_craft_analytics_export_json]
+11.6 Drift alert (quality avg deviation threshold) (Done) [rogue_craft_analytics_check_quality_drift]
+11.7 Tests: variance bounds, drift detection (Done) [test_crafting_phase11_analytics token CRAFT_P11_OK]
 
 PHASE 12. Performance & Memory
 12.1 SoA arrays for recipe lookup acceleration (X)
