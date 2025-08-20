@@ -15,3 +15,12 @@ Vendor System Phase 4 Completion: Reputation & Negotiation Implementation
 - Success yields uniform discount within rule range, small rep gain, short lockout (5s); failure applies rep penalty (-1), longer lockout (10s)
 - Added Phase 4 unit test (test_vendor_phase4_reputation_negotiation) verifying diminishing rep deltas and increased negotiation success with higher attributes
 - Updated CMake to compile vendor_reputation module & register new test; roadmap Phase 4 entries marked Done
+
+Vendor System Phase 5 Completion: Buyback & Transaction Journaling
+- Added vendor_buyback.c/h implementing per-vendor circular buyback buffer (cap 32) storing item guid, def index, rarity, category, condition pct, original price, sell & assimilation timestamps.
+- Depreciation model: 10% price decay per minute (discrete intervals) to 50% floor of original vendor payout; query API returns current depreciated resale price.
+- Assimilation: entries auto-expire after 5 minutes (currently marked inactive placeholder for future stock merge in Phase 6+).
+- Transaction journal vendor_tx_journal.c/h: FNV1a hash-chained append-only log (sale=1, buyback=2, future assimilate=3) capturing sequence id, synthetic timestamp, vendor id, action, guid low32, price, rep delta, discount pct; accum hash accessor for integrity.
+- Anti-duplicate GUID lineage: recent GUID ring buffer (128) with lookup to detect repeat resale exploit attempts; exposed rogue_vendor_buyback_guid_recent.
+- Unit test test_vendor_phase5_buyback_journal validates: ring buffer wrap (no crash, bounded count), monotonic depreciation (p0>=p1>=p2 & floor respected), journal hash determinism (two identical sequences -> same accum hash), duplicate guid detection returns flagged state on repeat.
+- Integrated new sources into core CMake target & added test target (SDL2 linked if available). Roadmap Phase 5.1–5.5 marked Done; README changelog updated.

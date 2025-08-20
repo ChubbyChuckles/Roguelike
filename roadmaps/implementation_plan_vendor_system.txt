@@ -54,11 +54,11 @@ PHASE 4. Reputation & Negotiation
 4.5 Tests: logistic progression monotonicity, negotiation probability correctness (Done) – test_vendor_phase4_reputation_negotiation validates diminishing deltas & higher success with higher attributes
 
 PHASE 5. Buyback & Transaction Journaling
-5.1 Buyback ring buffer (recent N sold items with timestamp & original price) (X)
-5.2 Depreciation schedule over time & restock assimilation after T threshold (X)
-5.3 Transaction journal (hash-chained for integrity) (X)
-5.4 Anti-dupe: item GUID lineage verification on sale/purchase (X)
-5.5 Tests: journal replay equivalence, depreciation monotonicity, GUID uniqueness enforcement (X)
+5.1 Buyback ring buffer (recent N sold items with timestamp & original price) (Done) – vendor_buyback.[ch] circular buffer per vendor (cap 32) storing guid, def, rarity, condition, price, times.
+5.2 Depreciation schedule over time & restock assimilation after T threshold (Done) – linear 10% per minute to 50% floor; auto-assimilate after 5 min (current impl marks inactive placeholder for future inventory injection).
+5.3 Transaction journal (hash-chained for integrity) (Done) – vendor_tx_journal.[ch] FNV1a chained entries (sale, buyback) capturing price & discount.
+5.4 Anti-dupe: item GUID lineage verification on sale/purchase (Done) – recent GUID ring (128) with query API; duplicate detection surfaced in test.
+5.5 Tests: journal replay equivalence, depreciation monotonicity, GUID uniqueness enforcement (Done) – test_vendor_phase5_buyback_journal exercises wrap, monotonic price decay, deterministic hash, duplicate guid detection.
 
 PHASE 6. Special Offers & Rotations
 6.1 Time-limited offer slots (rare blueprint, high-tier material bundle) (X)
