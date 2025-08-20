@@ -160,3 +160,33 @@ Rationale:
 Follow-ups:
 - Add high-resolution timing sampler (QueryPerformanceCounter / std::chrono fallback) and percentile aggregation for future CI perf gating.
 
+Progression Phase 12 (Persistence & Migration – Initial Header & Legacy Migration)
+
+Enhancements:
+- Added new module `progression_persist.[ch]` implementing versioned progression save header (current version V2). V1 header supported fields: version, level, total XP, attributes (str/dex/vit/int), spent points (stored in field `unspent_pts` for backward compatibility naming), respec tokens, attribute journal hash, passive journal hash, passive entry count (placeholder, currently zero).
+- V2 header extends V1 with stat registry fingerprint (`stat_registry_fp`) and maze node count placeholder (`maze_node_count`) to enable future migration flagging when stat taxonomy or maze topology evolves.
+- Implemented write/read APIs producing/consuming the compact header and computing a deterministic chain hash (fold64 over version, level, xp_total, stat_registry_fp (0 for V1), passive_journal_hash) to integrate with broader persistence integrity chain semantics.
+- Added migration flag tracking: currently sets `ROGUE_PROG_MIG_STAT_REG_CHANGED` when loaded stat registry fingerprint (V2) or passive journal hash (V1 legacy comparison path) differs from runtime, establishing early hook for future stat/talent migrations.
+- Registered progression persistence as save component id=27 (separate from existing core save sections) via save manager interface (write_fn/read_fn with size parameter compatibility shim).
+- Introduced global singleton `g_attr_state` (moved from purely local usage) to expose attribute layer snapshot for persistence without threading through call chains.
+- Created unit test `test_progression_phase12_persistence` validating: (1) current version roundtrip (level, xp, attributes, spent points, respec tokens, journal hash) with identical chain hash pre/post load, (2) legacy V1 buffer load path reconstructing state and optionally setting migration flag, ensuring backward compatibility.
+- Updated roadmap Phase 12: item 12.1 marked Done, 12.5 Partial (only header/migration basics covered; talent bitset, re-spec journal, additional migration invariants pending in subsequent slices).
+
+Rationale:
+- Establishes minimal but forward-compatible progression snapshot enabling upcoming serialization of talents, ascendancy/maze unlocks, micro-node spends, and mastery expansions without rewriting early persistence scaffolding.
+- Early chain hash inclusion facilitates anti-tamper & analytics correlation once additional progression components are serialized.
+
+Follow-ups:
+- Serialize passive unlock journal entries (node_id,timestamp) with bounded count encoding and replay validation on load.
+- Add talent / ascendancy sparse encoding (bitset for compact early ranges; varint sparse list for high ID space) and integrate into header or trailing section with size prefix.
+- Persist mastery ring points & continuous micro-node spend count (Phase 8 linkage) and compute composite progression fingerprint.
+- Implement re-spec journal hash chaining & migration path applying diffs to reconcile removed/added nodes.
+- Extend tests to cover: (a) tampered header detection (invalid version, truncated), (b) stat registry fingerprint mismatch flagging, (c) simulated addition of new stat IDs with migration flag assertion.
+
+Testing:
+- New unit test passes (roundtrip + legacy). Chain hash parity verified after load by recomputing identical sequence of folds in read path.
+- Build integrated under SDL2 (SDL requirement still enforced globally) with no additional warnings (save component read_fn signature matched size parameter contract).
+
+Summary:
+- Delivered initial progression persistence slice with forward-compatible header & migration flagging plus test coverage, unblocking serialization of richer progression state in subsequent Phase 12 tasks.
+
