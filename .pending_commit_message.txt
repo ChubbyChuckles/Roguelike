@@ -39,3 +39,15 @@ crafting: Phase 2 Gathering Nodes Implemented
 - Roadmap pending update to mark Phase 2 subtasks (2.1–2.6) Done; README addition pending summarizing gathering system.
 
 Verification: SDL2 Debug build; Phase 2 test outputs CRAFT_P2_OK with expected counters; material registry duplicate skip observed.
+
+crafting: Phase 3 Material Quality & Refinement Implemented
+
+- Added `material_refine.[ch]` implementing per-material quality ledger (0..100 buckets) with APIs: reset, add, consume, total, count, average, bias, and refinement operation.
+- Refinement algorithm: consumes source quantity, base 70% efficiency -> produced units; failure branch (10%) reduces to 25% of base output; critical branch (5%) adds +50% output and promotes 20% of produced units by +1 quality bucket (capped 100).
+- Quality bias function returns normalized average/100 for future affix roll influence (Phase 6+ crafting enhancement integration).
+- Deterministic lightweight LCG local RNG (placeholder until Phase 7 RNG stream segregation) used; hooks ready for stream injection.
+- Unit test `test_crafting_phase3_refinement` seeds mixed quality distribution, performs multiple refinements validating: source consumption, produced quantity within expected bounds per outcome class, average quality monotonic shift when promoting, bias within [0,1], and distinct execution of failure/critical paths across iterations (prints CRAFT_P3_OK).
+- Roadmap updated marking Phase 3 (3.1–3.5) Done with implementation notes; README changelog pending update next.
+- Future follow-up: statistical distribution test (binomial tolerance on failure/critical), delta save encoding (Phase 12.3), RNG stream separation (Phase 7.1), and integration into crafted item quality roll bias.
+
+Verification: SDL2 Debug build; Phase 3 test binary executes successfully outputting CRAFT_P3_OK; no warnings introduced.

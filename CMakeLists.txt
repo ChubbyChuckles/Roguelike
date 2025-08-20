@@ -226,6 +226,7 @@ add_library(rogue_core
     src/core/economy.c
     src/core/salvage.c
     src/core/material_registry.c
+    src/core/material_refine.c
     src/core/gathering.c
     src/core/crafting.c
     src/core/equipment.c

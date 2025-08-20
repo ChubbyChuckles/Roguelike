@@ -39,12 +39,12 @@ PHASE 2. Gathering Nodes & World Integration (Done)
 2.6 Analytics counters (harvest & rare totals) (Done) – exposed via getter APIs.
 2.7 Tests: deterministic spawn presence, tool gating rejection, yield bounds, respawn cycle, rare proc path (Done) – test_crafting_phase2_gathering outputs CRAFT_P2_OK.
 
-PHASE 3. Material Quality & Refinement
-3.1 Per‑material quality scalar (0..100) affecting crafted item affix roll bias (X)
-3.2 Quality bucket collapse (store counts per bucket to reduce save size) (X)
-3.3 Refinement recipes (convert N low-quality -> M higher-quality with loss ratio) (X)
-3.4 Failure chance / critical refine success (extra tier skip) (X)
-3.5 Tests: refinement conservation bounds, critical elevate probability (X)
+PHASE 3. Material Quality & Refinement (Done)
+3.1 Per‑material quality scalar (0..100) affecting crafted item affix roll bias (Done) – quality ledger implemented in `material_refine.[ch]` storing counts per 0..100 bucket.
+3.2 Quality bucket collapse (store counts per bucket to reduce save size) (Done) – sparse 2D array (material x 101 buckets) with aggregation helpers (total, count, average, bias) prepared for future delta encoding.
+3.3 Refinement recipes (convert N low-quality -> M higher-quality with loss ratio) (Done) – `rogue_material_refine` consumes source qty, applies 70% base efficiency, promotion chance via bucket shift.
+3.4 Failure chance / critical refine success (extra tier skip) (Done) – RNG branch: 10% failure (25% of base output), 5% critical (+50% output & 20% products promoted +1 quality).
+3.5 Tests: refinement conservation bounds, critical elevate probability (Done) – unit test `test_crafting_phase3_refinement` seeds ledger, exercises multiple refinements, validates average/bias bounds & output token `CRAFT_P3_OK`.
 
 PHASE 4. Crafting Recipe System
 4.1 Recipe definition file (recipe_id, output_def_id, output_qty, inputs(list material_id|item_def), time_ms, station_tag, skill_req, exp_reward) (X)
