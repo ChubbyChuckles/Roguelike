@@ -69,11 +69,11 @@ PHASE 6. Mastery System
 6.5 Tests: mastery XP distribution fairness, decay correctness (Done - `test_progression_phase6_mastery_extended` validates rank growth, ring points, bonus ordering, decay loss)
 
 PHASE 7. Expanded Passive Rings (Former Ascendancy Slot Replacement)
-7.1 Unlockable passive ring layers (outer maze expansions at milestone levels) (Partial – milestone function `rogue_progression_ring_expansions_unlocked` added: +1 ring at level 50 then every 25 levels capped at +4; still needs dynamic maze growth & persistence integration)
-7.2 Keystone-like universal nodes (powerful effects balanced by cost & prerequisite chain length) (Partial – heuristic flagging added: high-degree (>=5) nodes in outer 30%% rings flagged with `ROGUE_MAZE_FLAG_KEYSTONE`; future: explicit data-driven list + effect application)
-7.3 Anti-stack safeguards (budget & diminishing synergy coefficients) (Partial – foundational flag separation ensures keystones never overlap optional leafs; synergy coefficient application to be implemented in stat aggregation layer Phase 9/11)
+7.1 Unlockable passive ring layers (outer maze expansions at milestone levels) (Done – milestone function + dynamic expansion API `rogue_progression_maze_expand` with procedural node placement & adjacency rebuild; test covers ring count growth)
+7.2 Keystone-like universal nodes (powerful effects balanced by cost & prerequisite chain length) (Done (scaffold) – heuristic keystone flagging + query helpers; effect payload & balancing costs to follow in Phase 9 integration)
+7.3 Anti-stack safeguards (budget & diminishing synergy coefficients) (Partial – structural separation & no optional/keystone overlap enforced; coefficient application pending stat layer work)
 7.4 Visualization layering (zoomable maze out to ring expansions) (X)
-7.5 Tests: ring integration, keystone cost scaling integrity (Partial – new test `test_progression_phase7_rings` validates milestone ring unlock function, keystone flag invariants, optional-keystone exclusion)
+7.5 Tests: ring integration, keystone cost scaling integrity (Done (initial) – `test_progression_phase7_rings` validates milestones, expansion, keystone invariants)
 
 PHASE 8. Perpetual Scaling Layer
 8.1 Continuous micro-node progression (minor stat nodes always available) (X)

@@ -1,4 +1,20 @@
 Progression Phase 7 (Scaffold) – Added ring expansion milestones & keystone heuristic
+Progression Phase 7 (Dynamic Expansion Completion)
+
+Enhancements:
+- Implemented full dynamic maze ring expansion API `rogue_progression_maze_expand` (procedural outer ring generation, node placement on radial bands, linkage to prior outer ring, full adjacency rebuild & meta refresh). Added helper `rogue_progression_maze_total_rings`.
+- Integrated milestone logic + expansion in new unit test `test_progression_phase7_rings` (synthetic minimal maze -> validates milestone ring unlocks, keystone flag invariants, expansion adds >0 rings, ring count increases correctly, no optional/keystone overlap, keystone helper queries correct).
+- Upgraded roadmap Phase 7: 7.1 & 7.2 marked Done (scaffold for keystone effects), 7.3 Partial (structural anti-stack guard), 7.5 Done initial; 7.4 pending (visualization layer).
+- Cleaned test debug instrumentation; final test emits single success line.
+
+Rationale:
+- Provides concrete data structure growth path ahead of visualization & persistence integration.
+- Establishes deterministic seed input for future replay & telemetry (seed parameter retained in API).
+
+Follow-ups:
+- Persist expanded rings & keystone selection in save snapshot.
+- Data-driven keystone definitions + cost/prereq balancing coefficients.
+- Integrate anti-stack synergy coefficients in stat aggregation (Phase 9/11) + UI ring layering (7.4).
 
 Summary:
 - Implemented Phase 7 groundwork: added ring expansion milestone function `rogue_progression_ring_expansions_unlocked` (+1 ring at level 50 then every 25 levels, capped at +4) to prepare for dynamic outer layer unlocks.

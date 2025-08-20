@@ -59,6 +59,14 @@ int rogue_progression_maze_keystone_total(const RogueProgressionMaze* m);
 /* Ring expansion milestones (conceptual extra outer rings unlocked at milestone levels). Returns additional ring layers available beyond the base maze->base.rings. */
 int rogue_progression_ring_expansions_unlocked(int player_level);
 
+/* Dynamically expand the maze by appending `extra_rings` outer ring layers (Phase 7.1 full implementation).
+ * Returns number of new rings actually added (0 if none). New nodes are procedurally placed in a circular band.
+ */
+int rogue_progression_maze_expand(RogueProgressionMaze* m, int extra_rings, unsigned int seed);
+
+/* Return total rings including expansions (wrapper for m->base.rings). */
+int rogue_progression_maze_total_rings(const RogueProgressionMaze* m);
+
 #ifdef __cplusplus
 }
 #endif

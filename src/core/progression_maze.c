@@ -63,3 +63,51 @@ int rogue_progression_maze_keystone_total(const RogueProgressionMaze* m){ if(!m|
 
 int rogue_progression_ring_expansions_unlocked(int player_level){ /* simple milestone: +1 ring every 25 levels starting at 50 (Phase 7 baseline) */
     if(player_level < 50) return 0; int extra = (player_level - 50)/25 + 1; if(extra>4) extra=4; return extra; }
+
+int rogue_progression_maze_total_rings(const RogueProgressionMaze* m){ return m? m->base.rings:0; }
+
+/* Expand maze by adding concentric ring layers with procedurally positioned nodes and linking them
+ * to prior outer ring nodes. Simplified deterministic placement for Phase 7.1 full implementation. */
+int rogue_progression_maze_expand(RogueProgressionMaze* m, int extra_rings, unsigned int seed){
+    if(!m||extra_rings<=0) return 0; if(!m->meta||!m->base.nodes) return 0; int added=0; unsigned int rs=seed?seed:0xA77EA77Eu;
+    for(int r=0; r<extra_rings; ++r){
+        int target_ring = m->base.rings; /* next ring index */
+        /* Determine node count for new ring (~ average of last ring degree * 1.2) */
+        int existing_nodes=m->base.node_count; int outer_count=0; for(int i=0;i<existing_nodes;i++) if(m->base.nodes[i].ring==m->base.rings-1) outer_count++;
+        int new_nodes = outer_count>0? (int)(outer_count*1.2f)+1: 12; if(new_nodes<8) new_nodes=8; if(new_nodes>256) new_nodes=256;
+        /* Resize base node array */
+        RogueSkillMazeNode* nn = (RogueSkillMazeNode*)realloc(m->base.nodes, sizeof(RogueSkillMazeNode)*(size_t)(m->base.node_count + new_nodes)); if(!nn) break; m->base.nodes=nn;
+        /* Append meta array capacity */
+        RogueProgressionMazeNodeMeta* nmeta = (RogueProgressionMazeNodeMeta*)realloc(m->meta, sizeof(RogueProgressionMazeNodeMeta)*(size_t)(m->base.node_count + new_nodes)); if(!nmeta) break; m->meta=nmeta;
+        /* For each new node: place on circle radius scaled by ring index (assume base radius ~ (rings*60)) */
+        float base_radius = (float)(m->base.rings * 60.0f); float new_radius = base_radius + 60.0f; 
+        for(int k=0;k<new_nodes;k++){
+            float angle = (float)( (double)k / (double)new_nodes * 6.283185307179586 + (double)(xrng_pm(&rs)%1000)/1000.0 * 0.2 );
+            int idx = m->base.node_count + k; m->base.nodes[idx].x = new_radius * (float)cos(angle); m->base.nodes[idx].y = new_radius * (float)sin(angle); m->base.nodes[idx].ring = target_ring; m->base.nodes[idx].a=-1; m->base.nodes[idx].b=-1;
+            RogueProgressionMazeNodeMeta* mm=&m->meta[idx]; mm->node_id=idx; mm->ring=target_ring; if(mm->ring<1) mm->ring=1; mm->level_req=mm->ring*5; mm->str_req=(mm->ring>=3)?(mm->ring*2):0; mm->dex_req=(mm->ring>=2)?(mm->ring*2 -2):0; mm->int_req=(mm->ring>=4)?(mm->ring*2 -4):0; mm->vit_req=(mm->ring>=5)?(mm->ring*2 -6):0; mm->cost_points=1 + (mm->ring-1)/2; mm->tags=0; mm->flags=0; mm->adj_start=0; mm->adj_count=0; }
+        /* Link each new node to a random prior outer ring node */
+        int prior_outer_count=0; for(int i=0;i<m->base.node_count;i++) if(m->base.nodes[i].ring==target_ring-1) prior_outer_count++;
+        if(prior_outer_count>0){
+            /* Build list of prior outer indices */
+            int* prior=(int*)malloc(sizeof(int)*(size_t)prior_outer_count); if(prior){ int c=0; for(int i=0;i<m->base.node_count;i++) if(m->base.nodes[i].ring==target_ring-1) prior[c++]=i;
+                for(int k=0;k<new_nodes;k++){
+                    int outer_idx = prior[xrng_pm(&rs)% (unsigned)prior_outer_count];
+                    RogueSkillMazeEdge* ne=(RogueSkillMazeEdge*)realloc(m->base.edges, sizeof(RogueSkillMazeEdge)*(size_t)(m->base.edge_count+1)); if(ne){ m->base.edges=ne; m->base.edges[m->base.edge_count].from=outer_idx; m->base.edges[m->base.edge_count].to=m->base.node_count + k; m->base.edge_count++; }
+                }
+                free(prior);
+            }
+        }
+        m->base.node_count += new_nodes; m->base.rings++; added++;
+        /* Rebuild adjacency for entire maze (simpler; optimize later) */
+        free(m->adjacency); m->adjacency=NULL; m->total_adjacency=0; int n=m->base.node_count; int e=m->base.edge_count; int* deg=(int*)calloc((size_t)n,sizeof(int)); if(!deg) break; for(int i=0;i<e;i++){ int a=m->base.edges[i].from; int b=m->base.edges[i].to; if((unsigned)a<(unsigned)n && (unsigned)b<(unsigned)n){ deg[a]++; deg[b]++; } }
+        int total=0; for(int i=0;i<n;i++) total+=deg[i]; m->adjacency=(int*)malloc(sizeof(int)*(size_t)total); if(!m->adjacency){ free(deg); break; } m->total_adjacency=total; int* offsets=(int*)malloc(sizeof(int)*(size_t)n); int* fill=(int*)calloc((size_t)n,sizeof(int)); if(!offsets||!fill){ free(deg); free(offsets); free(fill); break; }
+        int acc=0; for(int i=0;i<n;i++){ offsets[i]=acc; acc+=deg[i]; }
+        for(int i=0;i<e;i++){ int a=m->base.edges[i].from; int b=m->base.edges[i].to; if((unsigned)a<(unsigned)n && (unsigned)b<(unsigned)n){ m->adjacency[offsets[a]+fill[a]++]=b; m->adjacency[offsets[b]+fill[b]++]=a; } }
+        /* Update meta adjacency spans */
+        for(int i=0;i<n;i++){ m->meta[i].adj_start=offsets[i]; m->meta[i].adj_count=deg[i]; }
+        free(deg); free(offsets); free(fill);
+        /* Recompute optional & difficulty flags for new nodes only */
+        for(int i=m->base.node_count - new_nodes; i<m->base.node_count; ++i){ if(m->meta[i].adj_count==1) m->meta[i].flags |= ROGUE_MAZE_FLAG_OPTIONAL; }
+    }
+    return added;
+}
