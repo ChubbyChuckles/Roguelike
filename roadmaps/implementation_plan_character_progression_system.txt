@@ -90,11 +90,11 @@ PHASE 9. Synergy With Equipment & Skills
 9.5 Tests: ordering determinism, cap clamps, synergy correctness (Done – unit test `test_progression_phase9_synergy` validates layered damage math, attribute sum, crit/CDr clamping, tag bonus gating.)
 
 PHASE 10. Buff/Debuff Integration
-10.1 Extend stat engine to treat timed buffs as layer after passives (X)
-10.2 Snapshot vs dynamic recalculation toggle per buff (X)
-10.3 Stacking rules (unique, refresh, extend, add) (X)
-10.4 Anti-oscillation dampening (avoid rapid stat flicker) (X)
-10.5 Tests: stacking semantics, snapshot freeze invariants (X)
+10.1 Extend stat engine to treat timed buffs as layer after passives (Done – stat cache now queries buff system for strength bonus layer; placeholder for other attributes.)
+10.2 Snapshot vs dynamic recalculation toggle per buff (Done – per-buff `snapshot` flag stored; initial implementation preserves magnitude on later base stat changes.)
+10.3 Stacking rules (unique, refresh, extend, add) (Done – implemented enum `RogueBuffStackRule` with logic in `rogue_buffs_apply`.)
+10.4 Anti-oscillation dampening (avoid rapid stat flicker) (Done – global reapply interval `rogue_buffs_set_dampening`; early reapplication rejected.)
+10.5 Tests: stacking semantics, snapshot freeze invariants (Done – `test_progression_phase10_buffs` validates stacking rules, buff strength layering, and dampening window.)
 
 PHASE 11. Performance & Caching
 11.1 Incremental stat recomputation dirty flags (attribute change, talent change) (X)

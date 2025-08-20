@@ -35,7 +35,7 @@ void rogue_effect_apply(int id, double now_ms){
     if(!s) return;
     switch(s->kind){
         case ROGUE_EFFECT_STAT_BUFF:
-            rogue_buffs_apply((RogueBuffType)s->buff_type, s->magnitude, s->duration_ms, now_ms);
+            rogue_buffs_apply((RogueBuffType)s->buff_type, s->magnitude, s->duration_ms, now_ms, ROGUE_BUFF_STACK_ADD, 0);
             break;
         default: /* future kinds */ break;
     }

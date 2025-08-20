@@ -7,11 +7,26 @@ extern "C" {
 
 typedef enum RogueBuffType { ROGUE_BUFF_POWER_STRIKE = 0, ROGUE_BUFF_STAT_STRENGTH = 1, ROGUE_BUFF_MAX } RogueBuffType;
 
-typedef struct RogueBuff { int active; RogueBuffType type; double end_ms; int magnitude; } RogueBuff;
+/* Stacking behavior (Phase 10.3) */
+typedef enum RogueBuffStackRule { ROGUE_BUFF_STACK_UNIQUE=0, /* if active: reject */
+	ROGUE_BUFF_STACK_REFRESH=1, /* reset duration, keep highest magnitude */
+	ROGUE_BUFF_STACK_EXTEND=2,  /* add duration (clamped by max) */
+	ROGUE_BUFF_STACK_ADD=3      /* additive magnitude + extend if longer */ } RogueBuffStackRule;
+
+typedef struct RogueBuff {
+	int active; RogueBuffType type; double end_ms; int magnitude;
+	int snapshot; /* 1 if magnitude snapshot (does not change after apply even if base stats change) */
+	RogueBuffStackRule stack_rule;
+	double last_apply_ms; /* for dampening */
+} RogueBuff;
 
 void rogue_buffs_init(void);
 void rogue_buffs_update(double now_ms);
-int  rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, double now_ms);
+int  rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, double now_ms, RogueBuffStackRule rule, int snapshot);
+/* Combined scalar effect for strength buffs (Phase 10.1 integration). */
+int  rogue_buffs_strength_bonus(void);
+/* Anti-oscillation dampening: minimum ms gap between same-type applications (Phase 10.4). */
+void rogue_buffs_set_dampening(double min_interval_ms);
 int  rogue_buffs_get_total(RogueBuffType type);
 /* New Phase 7.3 helpers for persistence (non-mutating):
 	rogue_buffs_active_count returns number of active buff records.

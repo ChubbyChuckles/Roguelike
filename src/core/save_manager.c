@@ -865,9 +865,9 @@ static int read_buffs_component(FILE* f, size_t size){
     else if(fread(&count,sizeof count,1,f)!=1) return -1; if(count<0 || count>512) return -1; size_t count_bytes=(size_t)(ftell(f)-start); size_t remaining = size - count_bytes; if(count==0) return 0; size_t rec_size = remaining / (size_t)count; /* approximate */
     for(int i=0;i<count;i++){
         if(rec_size >= sizeof(int)*3 + sizeof(double)){ /* legacy struct layout (active,int type,double end_ms,int magnitude) -> we read full struct */
-            struct LegacyBuff { int active; int type; double end_ms; int magnitude; } lb; if(fread(&lb,sizeof lb,1,f)!=1) return -1; double now=g_app.game_time_ms; double remaining_ms = (lb.end_ms>now)? (lb.end_ms - now):0.0; rogue_buffs_apply((RogueBuffType)lb.type, lb.magnitude, remaining_ms, now);
+            struct LegacyBuff { int active; int type; double end_ms; int magnitude; } lb; if(fread(&lb,sizeof lb,1,f)!=1) return -1; double now=g_app.game_time_ms; double remaining_ms = (lb.end_ms>now)? (lb.end_ms - now):0.0; rogue_buffs_apply((RogueBuffType)lb.type, lb.magnitude, remaining_ms, now, ROGUE_BUFF_STACK_ADD, 1);
         } else { /* new compact form: type,int magnitude,double remaining */
-            int type=0; int magnitude=0; double remaining_ms=0.0; if(fread(&type,sizeof type,1,f)!=1) return -1; if(fread(&magnitude,sizeof magnitude,1,f)!=1) return -1; if(fread(&remaining_ms,sizeof remaining_ms,1,f)!=1) return -1; double now=g_app.game_time_ms; rogue_buffs_apply((RogueBuffType)type, magnitude, remaining_ms, now);
+            int type=0; int magnitude=0; double remaining_ms=0.0; if(fread(&type,sizeof type,1,f)!=1) return -1; if(fread(&magnitude,sizeof magnitude,1,f)!=1) return -1; if(fread(&remaining_ms,sizeof remaining_ms,1,f)!=1) return -1; double now=g_app.game_time_ms; rogue_buffs_apply((RogueBuffType)type, magnitude, remaining_ms, now, ROGUE_BUFF_STACK_ADD, 1);
         }
     }
     return 0; }

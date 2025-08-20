@@ -11,6 +11,9 @@
 #include <string.h>
 #include <stddef.h>
 
+/* Forward buff query (Phase 10) */
+int rogue_buffs_strength_bonus(void);
+
 RogueStatCache g_player_stat_cache = {0};
 
 void rogue_stat_cache_mark_dirty(void){ g_player_stat_cache.dirty = 1; }
@@ -47,8 +50,11 @@ static void compute_layers(const RoguePlayer* p){
     /* Implicit layer populated by equipment aggregation (Phase 4.1). Leave existing values (zero if none). */
     /* affix_* fields pre-populated by equipment aggregation pass */
     /* Leave existing affix_* values intact (do not zero) to allow external gather step before update. */
-    g_player_stat_cache.buff_strength = g_player_stat_cache.buff_dexterity = 0;
-    g_player_stat_cache.buff_vitality = g_player_stat_cache.buff_intelligence = 0;
+    /* Buff layer (Phase 10.1) fetched via buff system for snapshot/dynamic layering (currently strength only exemplar) */
+    g_player_stat_cache.buff_strength = rogue_buffs_strength_bonus();
+    g_player_stat_cache.buff_dexterity = 0;
+    g_player_stat_cache.buff_vitality = 0;
+    g_player_stat_cache.buff_intelligence = 0;
     /* TODO Phase 2.3+: gather implicit & buff stats once systems exist. */
     /* unique_* layer reserved for Phase 4.2 unique item hooks; default zero if not yet populated */
     g_player_stat_cache.total_strength = g_player_stat_cache.base_strength + g_player_stat_cache.implicit_strength + g_player_stat_cache.unique_strength + g_player_stat_cache.set_strength + g_player_stat_cache.runeword_strength + g_player_stat_cache.affix_strength + g_player_stat_cache.buff_strength;

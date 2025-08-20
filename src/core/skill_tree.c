@@ -15,7 +15,7 @@ static int g_tree_index = 0; /* selection */
 /* PowerStrike: applies timed buff (rank*2 strength) for 5s */
 #include "core/buffs.h"
 #include "core/projectiles.h"
-static int effect_power_strike(const RogueSkillDef* def, RogueSkillState* st, const RogueSkillCtx* ctx){ (void)def; if(!ctx) return 0; int mag = st->rank * 2; if(mag<=0) return 0; rogue_buffs_apply(ROGUE_BUFF_POWER_STRIKE, mag, 5000.0, ctx->now_ms); g_app.stats_dirty=1; return 1; }
+static int effect_power_strike(const RogueSkillDef* def, RogueSkillState* st, const RogueSkillCtx* ctx){ (void)def; if(!ctx) return 0; int mag = st->rank * 2; if(mag<=0) return 0; rogue_buffs_apply(ROGUE_BUFF_POWER_STRIKE, mag, 5000.0, ctx->now_ms, ROGUE_BUFF_STACK_REFRESH, 0); g_app.stats_dirty=1; return 1; }
 /* Dash: move player forward a short distance based on facing (clamped to map bounds) */
 static int effect_dash(const RogueSkillDef* def, RogueSkillState* st, const RogueSkillCtx* ctx){ (void)def;(void)ctx; float dist = 25.0f + st->rank * 10.0f; float nx = g_app.player.base.pos.x; float ny = g_app.player.base.pos.y; switch(g_app.player.facing){ case 0: ny += dist; break; case 1: nx -= dist; break; case 2: nx += dist; break; case 3: ny -= dist; break; }
     if(nx<0) nx=0; if(ny<0) ny=0; if(nx>g_app.world_map.width-1) nx=(float)(g_app.world_map.width-1); if(ny>g_app.world_map.height-1) ny=(float)(g_app.world_map.height-1);

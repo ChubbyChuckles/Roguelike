@@ -336,6 +336,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase9_synergy.c AND
     add_test(NAME test_progression_phase9_synergy COMMAND test_progression_phase9_synergy)
 endif()
 
+# Character Progression Phase 10 buffs/debuff integration test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase10_buffs.c AND NOT TARGET test_progression_phase10_buffs)
+    add_executable(test_progression_phase10_buffs unit/test_progression_phase10_buffs.c)
+    target_link_libraries(test_progression_phase10_buffs PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_progression_phase10_buffs PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_progression_phase10_buffs COMMAND test_progression_phase10_buffs)
+endif()
+
 # Character Progression Phase 7.3 anti-stack safeguards test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase7_antistack.c AND NOT TARGET test_progression_phase7_antistack)
     add_executable(test_progression_phase7_antistack unit/test_progression_phase7_antistack.c)

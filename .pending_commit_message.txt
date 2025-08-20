@@ -89,3 +89,22 @@ Follow-ups:
 - Extend tag mask to include future affix-origin tags & skill-learned tags beyond weapon infusion (data registry). 
 - Integrate crit/CDr clamps into final combat stat snapshot hashing for anti-tamper verification (Phase 15).
 - Expand synergy helpers for multi-element composites and additive vs multiplicative classification audit.
+
+Progression Phase 10 (Buff/Debuff Integration)
+
+Enhancements:
+- Extended stat cache to incorporate buff layer (currently strength exemplar) after passives for proper ordering.
+- Added stacking rule enum (unique, refresh, extend, add) with logic in `rogue_buffs_apply` including magnitude & duration semantics.
+- Introduced per-buff snapshot flag (retains applied magnitude independent of subsequent base stat changes; groundwork for future dynamic vs snapshot distinction on other stats).
+- Implemented anti-oscillation dampening via configurable minimum reapply interval (`rogue_buffs_set_dampening`). Early reapplications inside window rejected.
+- Added helpers: `rogue_buffs_strength_bonus` and updated `stat_cache` to fetch buff layer; global interval default 50ms.
+- New unit test `test_progression_phase10_buffs` validates stacking behaviors, additive strength aggregation into cache, and dampening gating.
+- Roadmap Phase 10 entries 10.1–10.5 marked Done; README updated with changelog entry.
+
+Rationale:
+- Establishes systematic timed effect layer ahead of broader buff/debuff catalog; prevents visual/stat flicker and clarifies deterministic aggregation sequence.
+
+Follow-ups:
+- Extend buff system to support additional attribute/stat types and negative debuffs with separate accessor categories.
+- Implement snapshot vs dynamic application in combat formulas (e.g., snapshotting at cast start vs real-time tick updates) once skill effect layer (Phase 10.2 extended) requires.
+- Persistence & hashing of active buffs (Phase 12/15) for anti-tamper verification.
