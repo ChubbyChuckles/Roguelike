@@ -115,6 +115,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase2_constrained.c AND 
     endif()
     add_test(NAME test_vendor_phase2_constrained COMMAND test_vendor_phase2_constrained)
 endif()
+
+# Vendor Phase 3 pricing engine test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase3_pricing.c AND NOT TARGET test_vendor_phase3_pricing)
+    add_executable(test_vendor_phase3_pricing unit/test_vendor_phase3_pricing.c)
+    target_link_libraries(test_vendor_phase3_pricing PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2main)
+        target_link_libraries(test_vendor_phase3_pricing PRIVATE SDL2::SDL2main SDL2::SDL2)
+        target_compile_definitions(test_vendor_phase3_pricing PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_vendor_phase3_pricing COMMAND test_vendor_phase3_pricing)
+endif()
 # Phase 4 adaptive difficulty test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_enemy_difficulty_phase4.c AND NOT TARGET test_enemy_difficulty_phase4)
     add_executable(test_enemy_difficulty_phase4 unit/test_enemy_difficulty_phase4.c)

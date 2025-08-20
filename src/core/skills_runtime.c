@@ -3,6 +3,7 @@
 #include "core/app_state.h"
 #include "core/buffs.h"
 #include <string.h>
+#include <stdlib.h>
 
 void rogue_effect_apply(int effect_spec_id, double now_ms);
 

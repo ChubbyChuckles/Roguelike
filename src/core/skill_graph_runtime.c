@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
 #include "core/skill_bar.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>

@@ -40,11 +40,11 @@ PHASE 2. Vendor Inventory Generation
 2.5 Tests: deterministic reproduction, rarity distribution bounds, uniqueness invariants (Done) – Added `test_vendor_phase2_constrained` validating determinism (same seed -> identical count), uniqueness, rarity caps, guaranteed consumable & material presence.
 
 PHASE 3. Pricing Engine
-3.1 Base price compute pipeline (value model -> baseline coins) (X)
-3.2 Vendor buy/sell margins application order (value -> condition -> vendor margin -> reputation -> negotiation -> dynamic demand mod -> rounding) (X)
-3.3 Dynamic demand tracking: per item_category sold/bought counts update EWMA (X)
-3.4 Scarcity multipliers: upward adjust when vendor stock outpaces resupply or buyback backlog (X)
-3.5 Tests: ordering determinism, price floor/ceiling enforcement, demand elasticity simulation (X)
+3.1 Base price compute pipeline (value model -> baseline coins) (Done) – `vendor_pricing.[ch]` computes base via econ_value + condition scalar.
+3.2 Vendor buy/sell margins application order (value -> condition -> vendor margin -> reputation -> negotiation -> dynamic demand mod -> rounding) (Done) – Implemented ordered scalar chain in `rogue_vendor_compute_price` with margin + rarity/category modifiers, reputation discount/bonus, negotiation discount.
+3.3 Dynamic demand tracking: per item_category sold/bought counts update EWMA (Done) – EWMA demand scores (sales increase, buybacks decrease) mapped to scalar in [0.85,1.15]. APIs: `rogue_vendor_pricing_record_sale/buyback`.
+3.4 Scarcity multipliers: upward adjust when vendor stock outpaces resupply or buyback backlog (Done) – implemented long‑term scarcity EWMA (slow decay) mapped to scalar ~[0.9,1.2].
+3.5 Tests: ordering determinism, price floor/ceiling enforcement, demand elasticity simulation (Done) – `test_vendor_phase3_pricing` covers demand monotonic response, condition scaling, rep & negotiation adjustments, and margin differential.
 
 PHASE 4. Reputation & Negotiation
 4.1 Reputation gain events (successful purchases, quests, rescue vendor events) (X)

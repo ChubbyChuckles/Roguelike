@@ -9,6 +9,7 @@
 #include "core/vendor_registry.h"
 #include "core/vendor_inventory_templates.h"
 #include "core/crafting.h"
+#include "core/vendor_pricing.h"
 #include <stdio.h> /* debug diagnostics */
 
 static RogueVendorItem g_vendor_items[ROGUE_VENDOR_SLOT_CAP];
@@ -21,7 +22,8 @@ int rogue_vendor_append(int def_index, int rarity, int price){ if(g_vendor_count
 
 /* Simple rarity -> price multiplier ladder (can be tuned later or data-driven). */
 int rogue_vendor_price_formula(int item_def_index, int rarity){
-    return rogue_econ_item_value(item_def_index, rarity, 0, 1.0f);
+    /* Delegate to pricing engine with neutral context (vendor selling, full condition, no rep/negotiation) */
+    return rogue_vendor_compute_price(-1, item_def_index, rarity, -1, 1, 100, -1, 0.0f);
 }
 
 int rogue_vendor_generate_inventory(int loot_table_index, int slots, const RogueGenerationContext* ctx, unsigned int* rng_state){

@@ -12,6 +12,8 @@
 void draw_text(int x,int y,const char* msg){
 #ifdef ROGUE_HAVE_SDL
     if(!g_app.renderer) return; int ox=x; const unsigned char* p=(const unsigned char*)msg; while(*p){ unsigned char c=*p++; if(c=='\n'){ y+=12; x=ox; continue; } SDL_Rect r={x,y,6,10}; SDL_SetRenderDrawColor(g_app.renderer,255,255,255,255); SDL_RenderDrawRect(g_app.renderer,&r); x+=7; }
+#else
+    (void)x; (void)y; (void)msg;
 #endif
 }
 

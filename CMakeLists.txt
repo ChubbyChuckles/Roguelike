@@ -222,6 +222,7 @@ add_library(rogue_core
     src/core/econ_inflow_sim.c
     src/core/vendor_registry.c
     src/core/vendor_inventory_templates.c
+    src/core/vendor_pricing.c
     src/core/economy.c
     src/core/salvage.c
     src/core/crafting.c

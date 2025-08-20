@@ -1,104 +1,17 @@
-progression: Phase 3 Ratings & Diminishing Returns System
-
-Added rating categories (crit/haste/avoidance) with multi-band diminishing returns curves and integration into combat strike & stat cache.
-
-Details:
-- progression_ratings.[ch] with rogue_rating_effective_percent / rogue_rating_apply_chain
-- Player struct & persistence (CRIT_R/HASTE_R/AVOID_R)
-- Stat cache raw & effective rating fields
-- Combat crit chance includes rating (cap 80%)
-- Unit test test_progression_phase3_ratings (monotonic, continuity, caps)
-- Roadmap Phase 3 marked Done; README progression row updated
-
-Verification: test passes (progression_phase3_ratings: OK) with SDL2 build.
-
-progression: Phase 4 Maze Skill Graph Framework
-
-Implemented progression maze wrapper (progression_maze.[ch]) layering metadata atop geometric skill maze:
-- Node meta: ring-derived level & attribute requirements, point cost ramp, flags, adjacency indices.
-- Procedural optional branch augmentation (~5% new leaves) & difficulty tagging for dense inner hubs.
-- Shortest cost path utility (Dijkstra) and gating predicate API.
-- Orphan audit & optional node counting.
-- Unit test test_progression_phase4_maze (build, gating, path cost sanity, orphan audit) added to test suite.
-- Roadmap Phase 4 marked Done; README progression row updated.
-
-Verification: SDL2 build + test_progression_phase4_maze passes.
-
-enemy_difficulty: Phase 5 AI Behavior Intensity Layers
-
-Added AI intensity system introducing tiers (Passive, Standard, Aggressive, Frenzied) each with action frequency, movement speed, and attack cooldown multipliers. Implemented escalation logic (proximity, player low health threshold, recent pack member deaths) and de-escalation (calm drift toward baseline, high player health & distance decay) with hysteresis cooldown to prevent rapid oscillation. Integrated into spawn initialization, per-tick AI update (movement speed, animation pacing, attack cooldown calculation), and exposed profiles via `enemy_ai_intensity.[ch]`. Added unit test `test_enemy_difficulty_phase5` validating escalation to Frenzied and subsequent relaxation below Frenzied. Roadmap Phase 5 items (5.1–5.5) marked Done; README changelog updated.
-
-Verification: SDL2 build; unit tests compiled including new test_enemy_difficulty_phase5 (passes locally).
-
-vendor: Phase 0 Economic Baseline (Catalog + Value Model)
-
-Implemented foundational vendor economy slice:
-- econ_materials.[ch]: material/currency catalog builder (category + id heuristics) capturing base values (>=1) with query APIs.
-- econ_value.[ch]: deterministic item valuation formula base_value * slot_factor * rarity_mult * (1 + p/(p+20)) * (0.4 + 0.6*durability) (clamped) with rarity ladder {1,3,9,27,81} and slot factors (weapon 1.4, armor 1.3, gem 1.2, consumable 0.8, material 1.0, misc 0.9).
-- vendor.c integration: pricing now delegates to rogue_econ_item_value ensuring single source of truth.
-- Unit test test_vendor_phase0_value: validates catalog population (arcane_dust, primal_shard present), rarity monotonicity, affix power monotonicity (DR curve), durability floor & ordering.
-- Roadmap Phase 0 items 0.1,0.2,0.3,0.5 marked Done; README changelog updated.
-
-Verification: SDL2 build & test_vendor_phase0_value passes (valuation invariants OK).
-
-vendor: Phase 0 Economic Baseline Completion (Inflow Simulation)
-
-Added econ_inflow_sim.[ch] providing deterministic baseline inflow estimator (kills/min * hours * average item/material drops) computing expected counts & economic value using mean base values across loaded definitions + material catalog. Implemented unit test test_vendor_phase0_inflow validating parameter reflection, expected counts arithmetic, and positive total value composition. Updated roadmap (0.4 Done), README changelog appended, CMake lists include econ_inflow_sim and test target.
-
-Verification: SDL2 build; tests test_vendor_phase0_value & test_vendor_phase0_inflow pass (vendor subset all green).
-
-vendor: Phase 1 Data Model (Foundational Registries)
-
-Implemented vendor_registry.[ch] with parsed definitions for vendors (id/archetype/biome tags/refresh interval/policy link), price policies (buy/sell margins + rarity & category percent arrays), and reputation tiers (rep_min thresholds, buy discount, sell bonus, unlock tags). Added asset config directory assets/vendors with vendors.cfg, price_policies.cfg, reputation_tiers.cfg. Added unit test test_vendor_phase1_registry verifying load success, linkage (policy index resolution), rep tier ordering, and non-zero margins. Updated roadmap marking 1.1–1.3 Done; test entry notes partial 1.5 coverage (collision/padding deferred). README changelog updated.
-
-Verification: SDL2 build; tests vendor_phase0_value, vendor_phase0_inflow, vendor_phase1_registry all pass.
-
-vendor: Phase 1 JSON Migration for Registries
-
-Migrated vendor registries to JSON with fallback to legacy .cfg:
-- Added assets/vendors/price_policies.json, vendors.json, reputation_tiers.json including template entries (TEMPLATE_* IDs) for authoring guidance.
-- Extended vendor_registry.[ch] to prefer JSON loading (lightweight pattern-based parser) for price policies, vendors, and rep tiers; keeps legacy CSV loaders as fallback if any JSON file missing/incomplete.
-- JSON loaders populate identical in-memory structs; existing tests unchanged and pass via JSON path.
-- Ensured policy-first load ordering preserved so vendor price_policy references resolve.
-- Safeguards: if any JSON stage fails or yields zero counts, registry resets and re-loads legacy .cfg assets.
-
-Verification: All vendor-related tests (8) pass using JSON assets (ctest -R vendor). No regressions in UI/vendor restock or save roundtrip tests.
-
-vendor: Phase 1.4 Negotiation Rules + Complete 1.5 Test Coverage
-
-Implemented negotiation rules data model & JSON loader:
-- Added struct RogueNegotiationRule (id, skill_checks, min_roll, discount_min_pct, discount_max_pct) + accessors.
-- New asset `assets/vendors/negotiation_rules.json` with standard rule and TEMPLATE rule (includes forward-compat `extra_field` ignored by loader).
-- Extended `vendor_registry` to load negotiation_rules.json (required for JSON success path) and perform post-load uniqueness audit across vendors, policies, rep tiers, and negotiation rules.
-- Added unit test `test_vendor_phase1_negotiation` validating: load success, non-zero rule count, duplicate ID absence, field range invariants.
-- Updated existing `test_vendor_phase1_registry` for JSON vendor id (`blacksmith_standard`) and to assert negotiation rule presence.
-- Roadmap Phase 1 items 1.4 & 1.5 marked Done (collision detection + forward compatibility padding via ignored extra JSON field); README changelog notated earlier JSON migration now implicitly covers negotiation file.
-
-Verification: All vendor tests (9) pass (`ctest -R vendor`). Loader emits no duplicate warnings; negotiation rules integrated without affecting legacy pricing paths.
-
-vendor: Phase 2.1 Inventory Templates & 2.2 Deterministic Seed
-
-Added inventory template registry module:
-- New JSON asset `assets/vendors/inventory_templates.json` (blacksmith archetype + TEMPLATE entry) specifying `category_weights` (ROGUE_ITEM__COUNT length) and `rarity_weights` arrays.
-- Implemented `vendor_inventory_templates.[ch]` with lightweight JSON loader (pattern scan, no external dependency) storing up to 32 templates.
-- Deterministic seed API `rogue_vendor_inventory_seed(world_seed,vendor_id,day_cycle)` uses FNV-1a hash of vendor_id folded to 32-bit then xor with world_seed & day_cycle for reproducible inventory generation epochs.
-- Unit test `test_vendor_phase2_inventory` exercises load success, positive weight sums, and seed determinism (same inputs -> same seed; changing vendor id or day changes seed).
-- Roadmap: Marked Phase 2.1 & 2.2 Done (documented); 2.3–2.5 remain pending (roll algorithm, material/recipe injection, distribution & uniqueness tests).
-- README changelog updated with Phase 2 partial completion entry.
-
-Verification: SDL build compiles new module; test `test_vendor_phase2_inventory` passes alongside prior vendor tests (now 10 total). Templates & seed function ready for Phase 2.3 roll constraint implementation.
-
 vendor: Phase 2.3–2.5 Constrained Inventory Generation
 
-Implemented template-driven constrained inventory algorithm completing Phase 2 of vendor system:
-- Added `rogue_vendor_generate_constrained(vendor_id, world_seed, day_cycle, slots)` using archetype template weights + deterministic seed (`rogue_vendor_inventory_seed`) to roll inventories.
-- Constraints enforced: uniqueness (no duplicate base defs), rarity caps (legendary<=1, epic<=2, rare<=4), guaranteed utility slot (>=1 consumable). Replacement strategy triggers if initial generation omitted required categories.
-- Material & recipe injection: ensures >=1 material item; optionally injects a crafting recipe output (blueprint) if recipes loaded and slot available.
-- Deterministic ordering: final vendor items sorted by definition index for stable hashing/replay.
-- Unit test `test_vendor_phase2_constrained` validates determinism, uniqueness, rarity caps, guaranteed consumable/material presence.
-- Roadmap updated marking 2.3, 2.4, 2.5 Done; README changelog will reflect full Phase 2 completion.
+- Added `rogue_vendor_generate_constrained` implementing template‑driven inventory with uniqueness, rarity caps (legendary<=1, epic<=2, rare<=4) and guaranteed consumable & material presence, optional recipe injection, deterministic sort ordering.
+- Introduced rarity downgrade when cap exhausted (rather than rejecting item) ensuring slot fill while honoring caps.
+- Added test `test_vendor_phase2_constrained` (determinism, caps, uniqueness, guarantees) and robust asset path resolution for item defs load.
 
-Verification: SDL build + tests `test_vendor_phase2_inventory` and `test_vendor_phase2_constrained` pass; vendor suite green (Phase 0–2 total tests updated).
+vendor: Phase 3.1–3.5 Pricing Engine Complete
 
-Follow-up Fix: Adjusted rarity cap enforcement to downgrade intrinsic item rarity when cap exhausted (instead of violating cap) and added robust asset path resolution in constrained test. Removed temporary debug prints.
+- Added `vendor_pricing.[ch]` implementing ordered pricing pipeline (econ base -> condition scalar -> policy margins + rarity/category modifiers -> reputation discount / sell bonus -> negotiation discount -> dynamic demand scalar -> scarcity multiplier -> clamp & rounding).
+- EWMA demand tracking per category (`rogue_vendor_pricing_record_sale` / `record_buyback`) mapped to scalar ~[0.85,1.15].
+- Integrated pricing into existing vendor price formula (delegation in `vendor.c`).
+- Test `test_vendor_phase3_pricing` validates demand monotonicity, condition scaling, negotiation & reputation effects, margins differential, and price floors.
+- Implemented scarcity multiplier (Phase 3.4) via long‑term EWMA (slow decay) mapped to ~[0.9,1.2] scalar; sustained sales raise, net buybacks lower.
+- Roadmap updated: 3.1–3.5 all marked Done.
+- README updated to reflect full Phase 3 completion and scarcity behavior.
 
+Verification: SDL2 Debug build; vendor tests Phase 0–3 pass locally (manual invocation of pricing test binary due to current CTest registration quirk pending investigation). Scarcity increase path validated in extended pricing test.
