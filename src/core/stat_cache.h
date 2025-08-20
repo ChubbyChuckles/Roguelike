@@ -18,6 +18,8 @@ typedef struct RogueStatCache {
     int toughness_index; /* alias of ehp for now until block/DR added */
     int mobility_index;  /* dexterity scaled heuristic */
     int sustain_index;   /* placeholder (life steal etc. not present) */
+    int rating_crit, rating_haste, rating_avoidance; /* raw ratings */
+    int rating_crit_eff_pct, rating_haste_eff_pct, rating_avoidance_eff_pct; /* effective % */
     /* Resist breakdown (Phase 2.3) expressed as integer percentages (0-100 cap). */
     int resist_physical;  /* mitigates direct physical damage */
     int resist_fire;

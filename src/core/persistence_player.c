@@ -41,7 +41,10 @@ void rogue_persistence_load_player_stats(void){
         else if(strcmp(key,"DEX")==0) g_app.player.dexterity = atoi(val);
         else if(strcmp(key,"VIT")==0) g_app.player.vitality = atoi(val);
         else if(strcmp(key,"INT")==0) g_app.player.intelligence = atoi(val);
-        else if(strcmp(key,"CRITC")==0) g_app.player.crit_chance = atoi(val);
+    else if(strcmp(key,"CRITC")==0) g_app.player.crit_chance = atoi(val);
+    else if(strcmp(key,"CRIT_R")==0) g_app.player.crit_rating = atoi(val);
+    else if(strcmp(key,"HASTE_R")==0) g_app.player.haste_rating = atoi(val);
+    else if(strcmp(key,"AVOID_R")==0) g_app.player.avoidance_rating = atoi(val);
         else if(strcmp(key,"CRITD")==0) g_app.player.crit_damage = atoi(val);
         else if(strcmp(key,"UNSPENT")==0) g_app.unspent_stat_points = atoi(val);
         else if(strcmp(key,"HP")==0) g_app.player.health = atoi(val);
@@ -93,6 +96,9 @@ void rogue_persistence_save_player_stats(void){
     fprintf(f,"VIT=%d\n", g_app.player.vitality);
     fprintf(f,"INT=%d\n", g_app.player.intelligence);
     fprintf(f,"CRITC=%d\n", g_app.player.crit_chance);
+    fprintf(f,"CRIT_R=%d\n", g_app.player.crit_rating);
+    fprintf(f,"HASTE_R=%d\n", g_app.player.haste_rating);
+    fprintf(f,"AVOID_R=%d\n", g_app.player.avoidance_rating);
     fprintf(f,"CRITD=%d\n", g_app.player.crit_damage);
     fprintf(f,"UNSPENT=%d\n", g_app.unspent_stat_points);
     fprintf(f,"HP=%d\n", g_app.player.health);

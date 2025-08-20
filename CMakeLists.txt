@@ -241,6 +241,8 @@ add_library(rogue_core
     src/core/progression_stats.c
     src/core/progression_xp.c
     src/core/progression_attributes.c
+    # progression phase 3 ratings & diminishing returns module
+    src/core/progression_ratings.c
     src/core/dialogue.c
     # UI Phase 1 scaffolding
     src/ui/core/ui_context.c

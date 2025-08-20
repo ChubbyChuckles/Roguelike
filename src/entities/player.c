@@ -49,6 +49,7 @@ void rogue_player_init(RoguePlayer* p)
     p->intelligence = 5;
     p->crit_chance = 0;
     p->crit_damage = 50; /* base 1.5x */
+    p->crit_rating = 0; p->haste_rating = 0; p->avoidance_rating = 0;
     /* Phase 2 baseline mitigation & penetration */
     p->armor = 0; p->resist_physical=0; p->resist_fire=0; p->resist_frost=0; p->resist_arcane=0; p->resist_bleed=0; p->resist_poison=0; p->pen_flat=0; p->pen_percent=0;
     /* Phase 3.1 new meters */

@@ -1,0 +1,7 @@
+/* Phase 3 Ratings & DR Tests */
+#include <stdio.h>
+#include "core/progression_ratings.h"
+static int test_monotonic(enum RogueRatingType t){ float prev=-1.f; for(int r=0;r<=5000;r+=17){ float eff=rogue_rating_effective_percent(t,r); if(eff<prev-1e-4f){ fprintf(stderr,"Non-monotonic %d at %d\n",t,r); return -1;} prev=eff; } return 0; }
+static int test_cont(enum RogueRatingType t){ int bps[]={0,200,600,1400,2600}; for(int i=1;i<5;i++){ int bp=bps[i]; float a=rogue_rating_effective_percent(t,bp-1); float c=rogue_rating_effective_percent(t,bp); if(c<a){ fprintf(stderr,"Decrease %d bp %d\n",t,bp); return -1;} float jump=c-a; if(jump>2.0f){ fprintf(stderr,"Jump %f %d\n",jump,bp); return -1;} } return 0; }
+static int test_caps(void){ float c=rogue_rating_effective_percent(ROGUE_RATING_CRIT,400000); float h=rogue_rating_effective_percent(ROGUE_RATING_HASTE,400000); float a=rogue_rating_effective_percent(ROGUE_RATING_AVOIDANCE,400000); if(c>75.05f||h>55.05f||a>65.05f){ fprintf(stderr,"Cap overflow %.2f %.2f %.2f\n",c,h,a); return -1;} return 0; }
+int main(void){ if(test_monotonic(ROGUE_RATING_CRIT)<0) return 1; if(test_monotonic(ROGUE_RATING_HASTE)<0) return 1; if(test_monotonic(ROGUE_RATING_AVOIDANCE)<0) return 1; if(test_cont(ROGUE_RATING_CRIT)<0) return 1; if(test_cont(ROGUE_RATING_HASTE)<0) return 1; if(test_cont(ROGUE_RATING_AVOIDANCE)<0) return 1; if(test_caps()<0) return 1; printf("progression_phase3_ratings: OK\n"); return 0; }

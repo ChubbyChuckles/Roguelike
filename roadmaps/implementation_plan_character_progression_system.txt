@@ -39,12 +39,12 @@ PHASE 2. Attribute Allocation Layer (Done)
 2.4 Derived formulas placeholder (current derived recalcs already in player_recalc; formal mapping deferred to rating phase – marked Done for baseline integration)
 2.5 Tests: spend/respec, fingerprint change, unspent delta invariants (`test_progression_phase2_attributes`) (Done)
 
-PHASE 3. Rating & Diminishing Returns System
-3.1 Rating categories (crit_rating, haste_rating, avoidance_rating) (X)
-3.2 DR curves (sigmoid / soft cap multi-band) data file (X)
-3.3 Aggregation order specification (base -> additive -> rating curve -> multiplicative mods) (X)
-3.4 Visualization helper (return effective % from rating) (X)
-3.5 Tests: monotonic mapping, curve continuity at band edges (X)
+PHASE 3. Rating & Diminishing Returns System (Done)
+3.1 Rating categories (crit_rating, haste_rating, avoidance_rating) (Done)
+3.2 DR curves (multi-band concave) (Done)
+3.3 Aggregation order (base -> rating -> multiplicative) (Done)
+3.4 Visualization helper (effective %) (Done)
+3.5 Tests: monotonic mapping, curve continuity & hard caps (Done)
 
 PHASE 4. Maze Skill Graph Framework
 4.1 Maze graph ingestion from `skill_maze_config.json` (nodes: skill_id/passive_id, edges, traversal cost types) (X)

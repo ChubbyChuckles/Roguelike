@@ -1,0 +1,13 @@
+{
+  "weapon_id":2,
+  "frames":[
+    {"dx":1,"dy":0,"angle":0,"scale":1,"pivot_x":0.5,"pivot_y":0.5} ,
+    {"dx":1,"dy":1,"angle":0,"scale":1,"pivot_x":0.5,"pivot_y":0.5} ,
+    {"dx":1,"dy":2,"angle":0,"scale":1,"pivot_x":0.5,"pivot_y":0.5} ,
+    {"dx":1,"dy":3,"angle":0,"scale":1,"pivot_x":0.5,"pivot_y":0.5} ,
+    {"dx":1,"dy":4,"angle":0,"scale":1,"pivot_x":0.5,"pivot_y":0.5} ,
+    {"dx":1,"dy":5,"angle":0,"scale":1,"pivot_x":0.5,"pivot_y":0.5} ,
+    {"dx":1,"dy":6,"angle":0,"scale":1,"pivot_x":0.5,"pivot_y":0.5} ,
+    {"dx":1,"dy":7,"angle":0,"scale":1,"pivot_x":0.5,"pivot_y":0.5}
+  ]
+}

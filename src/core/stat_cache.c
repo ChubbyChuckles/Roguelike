@@ -7,6 +7,7 @@
 #include "core/loot_affixes.h"
 #include "core/equipment_stats.h"
 #include "core/loot_item_defs.h"
+#include "core/progression_ratings.h"
 #include <string.h>
 #include <stddef.h>
 
@@ -54,6 +55,10 @@ static void compute_layers(const RoguePlayer* p){
     g_player_stat_cache.total_dexterity = g_player_stat_cache.base_dexterity + g_player_stat_cache.implicit_dexterity + g_player_stat_cache.unique_dexterity + g_player_stat_cache.set_dexterity + g_player_stat_cache.runeword_dexterity + g_player_stat_cache.affix_dexterity + g_player_stat_cache.buff_dexterity;
     g_player_stat_cache.total_vitality = g_player_stat_cache.base_vitality + g_player_stat_cache.implicit_vitality + g_player_stat_cache.unique_vitality + g_player_stat_cache.set_vitality + g_player_stat_cache.runeword_vitality + g_player_stat_cache.affix_vitality + g_player_stat_cache.buff_vitality;
     g_player_stat_cache.total_intelligence = g_player_stat_cache.base_intelligence + g_player_stat_cache.implicit_intelligence + g_player_stat_cache.unique_intelligence + g_player_stat_cache.set_intelligence + g_player_stat_cache.runeword_intelligence + g_player_stat_cache.affix_intelligence + g_player_stat_cache.buff_intelligence;
+    g_player_stat_cache.rating_crit = p->crit_rating; g_player_stat_cache.rating_haste = p->haste_rating; g_player_stat_cache.rating_avoidance = p->avoidance_rating;
+    g_player_stat_cache.rating_crit_eff_pct = (int)(rogue_rating_effective_percent(ROGUE_RATING_CRIT, g_player_stat_cache.rating_crit)+0.5f);
+    g_player_stat_cache.rating_haste_eff_pct = (int)(rogue_rating_effective_percent(ROGUE_RATING_HASTE, g_player_stat_cache.rating_haste)+0.5f);
+    g_player_stat_cache.rating_avoidance_eff_pct = (int)(rogue_rating_effective_percent(ROGUE_RATING_AVOIDANCE, g_player_stat_cache.rating_avoidance)+0.5f);
     /* Resist layers currently only from affix layer (future: implicit, buffs). Leave existing if externally populated. */
     if(g_player_stat_cache.resist_physical < 0) g_player_stat_cache.resist_physical=0;
     if(g_player_stat_cache.resist_fire < 0) g_player_stat_cache.resist_fire=0;

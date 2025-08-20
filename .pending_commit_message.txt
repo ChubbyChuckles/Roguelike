@@ -1,37 +1,14 @@
-feat(progression): implement Phase 0 stat taxonomy (canonical registry, ID ranges, fingerprint, tests)
-feat(progression): implement Phase 1 infinite XP & level core (multi-component curve, catch-up, 64-bit accum, tests)
-feat(progression): implement Phase 2 attribute allocation & re-spec layer (points, tokens, journal hash, tests)
+progression: Phase 3 Ratings & Diminishing Returns System
 
-Adds progression_attributes.{c,h} with APIs:
- - rogue_attr_state_init / rogue_attr_spend / rogue_attr_respec / rogue_attr_grant_points / rogue_attr_unspent_points / rogue_attr_fingerprint
-Implements rolling hash journal for spend/respec ops, integrates existing per-level +3 allocation points, exposes test validating spend/respec invariants and fingerprint drift.
-Roadmap Phase 2 marked Done; README progression row updated to reflect attribute layer.
+Added rating categories (crit/haste/avoidance) with multi-band diminishing returns curves and integration into combat strike & stat cache.
 
-Adds progression_xp.{c,h} with leveling functions:
- - rogue_xp_to_next_for_level(level)
- - rogue_xp_total_required_for_level(level)
- - rogue_xp_catchup_multiplier(player_level, median_level) (tanh-based up to 1.75x)
- - rogue_xp_safe_add (saturating 64-bit)
+Details:
+- progression_ratings.[ch] with rogue_rating_effective_percent / rogue_rating_apply_chain
+- Player struct & persistence (CRIT_R/HASTE_R/AVOID_R)
+- Stat cache raw & effective rating fields
+- Combat crit chance includes rating (cap 80%)
+- Unit test test_progression_phase3_ratings (monotonic, continuity, caps)
+- Roadmap Phase 3 marked Done; README progression row updated
 
-Player struct gains xp_total_accum (64-bit lifetime). Player progression now recalculates xp_to_next via new curve per level-up. Persistence updated (binary + text) for xp_total_accum. Unit test `test_progression_phase1_xp_curve` validates:
- - Monotonic non-decreasing xp_to_next across 1..249
- - Cumulative total consistency (sum of steps)
- - Catch-up multiplier ordering
- - Overflow/saturation behavior
+Verification: test passes (progression_phase3_ratings: OK) with SDL2 build.
 
-Roadmap Phase 1 entries marked Done with notes; README Progression row updated reflecting Phase 1 implementation.
-
-Adds progression_stats.[ch] providing stable stat enumeration with categorized ID ranges:
- - Primary (0-99): STR/DEX/VIT/INT
- - Derived (100-199): crit chance/damage, DPS/EHP/toughness/mobility/sustain (placeholder), resistances
- - Rating placeholders (200-299): crit/haste/avoidance rating (reserved for Phase 3 DR curves)
- - Modifier placeholders (300-399): generic damage/speed modifiers
- - Reserved (400-499) future expansion (mastery, micro-nodes)
-
-Includes deterministic registry fingerprint API and unit test `test_progression_phase0_taxonomy` validating:
- - Strict ascending unique IDs & codes
- - Category mapping by range
- - Stable fingerprint repeatability
- - Reserved placeholders flagged
-
-Roadmap Phase 0 sections marked Done with implementation notes; README Progression matrix row updated to reflect taxonomy completion.
