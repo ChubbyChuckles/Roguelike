@@ -386,6 +386,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase12_persistence.
     add_test(NAME test_progression_phase12_persistence COMMAND test_progression_phase12_persistence)
 endif()
 
+# Character Progression Phase 12 V3 extended persistence test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase12_v3.c AND NOT TARGET test_progression_phase12_v3)
+    add_executable(test_progression_phase12_v3 unit/test_progression_phase12_v3.c)
+    target_link_libraries(test_progression_phase12_v3 PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_progression_phase12_v3 PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_progression_phase12_v3 COMMAND test_progression_phase12_v3)
+endif()
+
 # Character Progression Phase 7.3 anti-stack safeguards test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase7_antistack.c AND NOT TARGET test_progression_phase7_antistack)
     add_executable(test_progression_phase7_antistack unit/test_progression_phase7_antistack.c)

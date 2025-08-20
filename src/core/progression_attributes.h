@@ -14,6 +14,10 @@ typedef struct RogueAttributeState {
     int spent_points; /* total spent so far (not counting refunds) */
     int respec_tokens; /* available refund tokens */
     unsigned long long journal_hash; /* simplistic rolling hash over operations */
+    /* Phase 12.3: operation journal for audit & migration replay (spend/respec). */
+    struct RogueAttrOp* ops; /* dynamic array (allocated) */
+    int op_count;
+    int op_cap;
 } RogueAttributeState;
 
 /* Global singleton attribute state (Phase 12 persistence relies on this symbol). */
@@ -36,5 +40,12 @@ int rogue_attr_unspent_points(void);
 
 /* Deterministic fingerprint of attribute state (for tests). */
 unsigned long long rogue_attr_fingerprint(const RogueAttributeState* st);
+
+/* Attribute journal (Phase 12.3) accessors */
+int rogue_attr_journal_count(void);
+/* Returns 0 success; outputs code ('S','D','V','I') and kind (0=spend,1=respec). */
+int rogue_attr_journal_entry(int index, char* code_out, int* kind_out);
+/* Internal append helpers (exposed for persistence replay) */
+void rogue_attr__journal_append(char code, int kind);
 
 #endif
