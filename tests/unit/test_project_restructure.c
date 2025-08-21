@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "../src/core/project_restructure.h"
-#include "../src/core/dependency_manager.h"
+// #include "../src/core/project_restructure.h"  // Header doesn't exist
+#include "../../src/core/integration/dependency_manager.h"
 
 // Test file grouping and organization
 void test_file_group_definitions(void) {

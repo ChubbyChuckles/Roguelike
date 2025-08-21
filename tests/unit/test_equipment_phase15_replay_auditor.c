@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include "core/equipment/equipment_procs.h"
-#include "core/equipment_integrity.h"
+#include "../../src/core/equipment/equipment_integrity.h"
 #include "core/loot/loot_item_defs.h"
 #include "core/loot/loot_instances.h"
 #include "core/equipment/equipment.h"

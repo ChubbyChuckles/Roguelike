@@ -3,7 +3,7 @@
 #include <assert.h>
 
 /* Include the enemy integration header which includes needed types */
-#include "../../src/core/enemy_integration.h"
+#include "../../src/core/enemy/enemy_integration.h"
 
 /* Mock enemy types for testing */
 static RogueEnemyTypeDef mock_enemy_types[3];
@@ -306,7 +306,7 @@ static void test_deterministic_display() {
     printf("    ✓ Display info deterministic\n");
 }
 
-int main() {
+int main(void) {
     printf("Running Enemy Integration Phase 4 Tests (Visual/UI Exposure)...\n");
     
     test_build_display_info_basic();

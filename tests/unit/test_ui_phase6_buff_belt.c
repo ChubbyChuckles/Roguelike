@@ -1,6 +1,6 @@
 #define SDL_MAIN_HANDLED 1
 #include <stdio.h>
-#include "core/buffs.h"
+#include "../../src/core/buffs.h"
 #include "core/hud_buff_belt.h"
 #include "core/app_state.h"
 
@@ -10,8 +10,8 @@ RogueAppState g_app; RoguePlayer g_exposed_player_for_stats;
 int main(){
     g_app.game_time_ms = 0.0; rogue_buffs_init();
     double now=0.0; /* apply two buffs */
-    rogue_buffs_apply(ROGUE_BUFF_POWER_STRIKE, 5, 5000.0, now);
-    rogue_buffs_apply(ROGUE_BUFF_STAT_STRENGTH, 3, 3000.0, now);
+    rogue_buffs_apply(ROGUE_BUFF_POWER_STRIKE, 5, 5000.0, now, ROGUE_BUFF_STACK_ADD, 0);
+    rogue_buffs_apply(ROGUE_BUFF_STAT_STRENGTH, 3, 3000.0, now, ROGUE_BUFF_STACK_ADD, 0);
     RogueHUDBuffBeltState belt={0};
     rogue_hud_buff_belt_refresh(&belt, now);
     if(belt.count != 2){ printf("FAIL expected 2 buffs got %d\n", belt.count); return 1; }

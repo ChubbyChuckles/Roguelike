@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "../../src/core/enemy_integration.h"
+#include "../../src/core/enemy/enemy_integration.h"
 
 /* Test enemy registry management */
 static void test_enemy_registry_management(void) {

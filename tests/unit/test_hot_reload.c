@@ -1,8 +1,9 @@
-#include "core/hot_reload.h"
+#include "../../src/util/hot_reload.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdbool.h>
 #include <time.h>
 #include <sys/stat.h>
 

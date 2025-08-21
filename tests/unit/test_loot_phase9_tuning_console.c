@@ -1,6 +1,6 @@
 /* Test 9.6 tuning console commands (set weight, reset counters) */
 #include "core/loot/loot_commands.h"
-#include "core/loot_dynamic_weights.h"
+#include "../../src/core/loot/loot_dynamic_weights.h"
 #include "core/loot/loot_stats.h"
 #include "core/loot/loot_tables.h"
 #include "core/path_utils.h"

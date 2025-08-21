@@ -1,6 +1,6 @@
 /* Crafting Phase 4.3–4.6: Station registry, queue model, cancel/refund, determinism */
 #include "core/crafting/crafting.h"
-#include "core/crafting_queue.h"
+#include "../../src/core/crafting/crafting_queue.h"
 #include "core/loot/loot_item_defs.h"
 #include <stdio.h>
 #include <string.h>

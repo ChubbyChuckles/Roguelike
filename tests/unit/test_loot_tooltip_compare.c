@@ -1,6 +1,6 @@
 #include "core/loot/loot_item_defs.h"
 #include "core/loot/loot_instances.h"
-#include "core/loot_tooltip.h"
+#include "../../src/core/loot/loot_tooltip.h"
 #include "core/equipment/equipment.h"
 #include "core/path_utils.h"
 #include <stdio.h>

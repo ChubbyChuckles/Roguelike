@@ -2,7 +2,7 @@
 #include "core/loot/loot_tables.h"
 #include "core/loot/loot_instances.h"
 #include "core/inventory.h"
-#include "core/loot_pickup.h"
+#include "../../src/core/loot/loot_pickup.h"
 #include "core/path_utils.h"
 #include "core/app_state.h"
 #include <assert.h>

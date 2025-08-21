@@ -3,7 +3,7 @@
 #include "core/loot/loot_item_defs.h"
 #include "core/loot/loot_tables.h"
 #include "core/path_utils.h"
-#include "core/loot_drop_rates.h"
+#include "../../src/core/loot/loot_drop_rates.h"
 #include <assert.h>
 #include <stdio.h>
 

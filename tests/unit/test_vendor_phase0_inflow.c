@@ -1,6 +1,6 @@
 /* Vendor System Phase 0 (0.4) inflow simulation baseline test */
 #include "core/vendor/econ_inflow_sim.h"
-#include "core/econ_materials.h"
+#include "../../src/core/vendor/econ_materials.h"
 #include "core/loot/loot_item_defs.h"
 #include "core/path_utils.h"
 #include <stdio.h>

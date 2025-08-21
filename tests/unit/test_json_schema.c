@@ -1,4 +1,4 @@
-#include "../../src/core/json_schema.h"
+#include "../../src/core/integration/json_schema.h"
 #include "../../src/core/json_parser.h"
 #include <assert.h>
 #include <stdio.h>

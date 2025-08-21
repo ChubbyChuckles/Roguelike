@@ -1,5 +1,5 @@
 #include "core/loot/loot_instances.h"
-#include "core/loot_multiplayer.h"
+#include "../../src/core/loot/loot_multiplayer.h"
 #include "core/app_state.h"
 #include <stdio.h>
 #include <string.h>

@@ -1,4 +1,4 @@
-#include "core/dependency_manager.h"
+#include "../../src/core/integration/dependency_manager.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

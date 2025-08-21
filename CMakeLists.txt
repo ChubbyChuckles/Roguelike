@@ -103,7 +103,6 @@ add_library(rogue_core
     src/core/integration/cfg_migration.c
     src/core/integration/hot_reload.c
     src/core/integration/dependency_manager.c
-    src/core/project_restructure.c
     # persistence module split
     src/core/persistence_io.c
     src/core/persistence_world.c

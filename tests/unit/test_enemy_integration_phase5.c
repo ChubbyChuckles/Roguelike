@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "../../src/core/enemy_integration.h"
+#include "../../src/core/enemy/enemy_integration.h"
 
 /* Test spawn position solver for basic room layout */
 static void test_spawn_position_solver_basic() {

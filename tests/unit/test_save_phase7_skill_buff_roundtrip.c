@@ -1,6 +1,6 @@
 #include "core/save_manager.h"
 #include "core/skills.h"
-#include "core/buffs.h"
+#include "../../src/core/buffs.h"
 #include "core/app_state.h"
 #include <stdio.h>
 #include <string.h>
@@ -40,8 +40,8 @@ int main(void){
 
     /* Apply two buffs */
     double now=10000.0; g_app.game_time_ms=now; /* set global time */
-    rogue_buffs_apply(ROGUE_BUFF_POWER_STRIKE, 4, 5000.0, now); /* ends at 15000 */
-    rogue_buffs_apply(ROGUE_BUFF_STAT_STRENGTH, 2, 3000.0, now); /* ends at 13000 */
+    rogue_buffs_apply(ROGUE_BUFF_POWER_STRIKE, 4, 5000.0, now, ROGUE_BUFF_STACK_ADD, 0); /* ends at 15000 */
+    rogue_buffs_apply(ROGUE_BUFF_STAT_STRENGTH, 2, 3000.0, now, ROGUE_BUFF_STACK_ADD, 0); /* ends at 13000 */
 
     if(rogue_save_manager_save_slot(0)!=0){ printf("FAIL: initial save\n"); return 1; }
 

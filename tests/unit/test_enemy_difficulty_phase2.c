@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "core/enemy/enemy_difficulty.h"
-#include "core/enemy_modifiers.h"
+#include "../../src/core/enemy/enemy_modifiers.h"
 
 /* Minimal synthetic modifier config for tests */
 static const char* kTempModFile = "test_modifiers.cfg"; /* current working dir is build/ when running ctest */

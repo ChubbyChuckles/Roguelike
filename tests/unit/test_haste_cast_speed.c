@@ -2,9 +2,9 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
-#include "core/skills.h"
-#include "core/app_state.h"
-#include "core/buffs.h"
+#include "../../src/core/skills.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/buffs.h"
 
 static int g_hits=0;
 static int cb_cast(const RogueSkillDef* d, struct RogueSkillState* st, const RogueSkillCtx* ctx){ (void)d;(void)st;(void)ctx; g_hits++; return 1; }
@@ -24,7 +24,7 @@ int main(void){
     /* Move timeline forward to avoid overlapping previous progress */
     ctx.now_ms=1000.0;
     ((struct RogueSkillState*)rogue_skill_get_state(id))->cooldown_end_ms = 0.0;
-    rogue_buffs_apply(ROGUE_BUFF_POWER_STRIKE,25,1000.0,ctx.now_ms); /* strong haste (clamped at 0.5 factor) */
+    rogue_buffs_apply(ROGUE_BUFF_POWER_STRIKE,25,1000.0,ctx.now_ms,ROGUE_BUFF_STACK_ADD,0); /* strong haste (clamped at 0.5 factor) */
     assert(rogue_skill_try_activate(id,&ctx)==1);
     advance(1000.0, 1000.0+230.0); /* should finish well before baseline 400ms */
     assert(g_hits==1); /* finished faster than baseline 400ms window */

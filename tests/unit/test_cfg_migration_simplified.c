@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <sys/stat.h>
 
-#include "../../src/core/cfg_migration.h"
+#include "../../src/core/integration/cfg_migration.h"
 
 // Test configuration
 static const char* TEST_SOURCE_DIR = "test_assets";

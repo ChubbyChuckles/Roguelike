@@ -3,7 +3,7 @@
 #include "core/app_state.h"
 #include "core/skills.h"
 #include "core/loot/loot_instances.h"
-#include "core/buffs.h"
+#include "../../src/core/buffs.h"
 #include "core/loot/loot_item_defs.h"
 #include "core/loot/loot_affixes.h"
 #include "core/persistence.h"
@@ -33,7 +33,7 @@ int main(void){
     int inst = rogue_items_spawn(2,4,0,0); if(inst>=0){ g_app.item_instances[inst].rarity=2; g_app.item_instances[inst].prefix_index=1; g_app.item_instances[inst].prefix_value=5; }
 
     /* Buff */
-    rogue_buffs_apply(ROGUE_BUFF_POWER_STRIKE, 2, 5000.0, 0.0);
+    rogue_buffs_apply(ROGUE_BUFF_POWER_STRIKE, 2, 5000.0, 0.0, ROGUE_BUFF_STACK_ADD, 0);
 
     /* Vendor */
     g_app.vendor_seed = 4242u; g_app.vendor_time_accum_ms=1500.0; g_app.vendor_restock_interval_ms=30000.0;

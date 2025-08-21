@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "core/equipment_schema_docs.h"
+#include "../../src/core/equipment/equipment_schema_docs.h"
 
 static void assert_true(int cond, const char* msg){ if(!cond){ printf("FAIL:%s\n", msg); exit(1);} }
 

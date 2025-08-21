@@ -1,6 +1,6 @@
 /* Vendor System Phase 0 Tests (0.1-0.5) */
 #include "core/vendor/econ_value.h"
-#include "core/econ_materials.h"
+#include "../../src/core/vendor/econ_materials.h"
 #include "core/vendor/vendor.h"
 #include "core/loot/loot_item_defs.h"
 #include "core/path_utils.h"
