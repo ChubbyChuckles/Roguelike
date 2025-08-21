@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include "core/skills.h"
 #include "core/app_state.h"
-#include "core/player_progress.h"
+#include "../../src/core/player/player_progress.h"
 #include "entities/player.h"
 
 static int cb_dummy(const RogueSkillDef* def, RogueSkillState* st, const RogueSkillCtx* ctx){(void)def;(void)st;(void)ctx; return 1;}

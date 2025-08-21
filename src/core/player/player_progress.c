@@ -1,4 +1,4 @@
-#include "core/player_progress.h"
+#include "player_progress.h"
 #include "core/app_state.h"
 #include "entities/player.h"
 #ifdef ROGUE_HAVE_SDL_MIXER

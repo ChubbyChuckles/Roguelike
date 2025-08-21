@@ -81,7 +81,7 @@ add_library(rogue_core
     src/core/loot/loot_tooltip.c
     src/core/player/player_controller.c
     src/core/input_events.c
-    src/core/player_render.c
+    src/core/player/player_render.c
     src/core/enemy/enemy_render.c
     src/core/hud.c
     src/core/hud_layout.c
@@ -90,7 +90,7 @@ add_library(rogue_core
     src/core/hud_overlays.c
     src/ui/core/ui_theme.c
     src/ui/core/ui_test_harness.c
-    src/core/player_progress.c
+    src/core/player/player_progress.c
     src/core/world_renderer.c
     src/core/animation_system.c
     # Integration plumbing

@@ -4,7 +4,7 @@
 #include <string.h>
 #include "core/skills.h"
 #include "core/app_state.h"
-#include "core/player_progress.h"
+#include "../../src/core/player/player_progress.h"
 #include "entities/player.h"
 
 static int cb_ok(const RogueSkillDef* d, struct RogueSkillState* st, const struct RogueSkillCtx* ctx){ (void)d;(void)st;(void)ctx; return 1; }

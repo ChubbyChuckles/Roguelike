@@ -44,10 +44,10 @@ SOFTWARE.
 #include "graphics/tile_sprites.h"
 #include "core/scene_drawlist.h"
 #include "input_events.h"
-#include "core/player_render.h"
+#include "player/player_render.h"
 #include "core/enemy/enemy_render.h"
 #include "core/hud.h"
-#include "core/player_progress.h"
+#include "player/player_progress.h"
 #include "core/persistence_autosave.h"
 #include "game/damage_numbers.h" /* will provide render/update */
 #include "core/world_renderer.h"

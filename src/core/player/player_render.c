@@ -1,4 +1,4 @@
-#include "core/player_render.h"
+#include "player_render.h"
 #include "graphics/sprite.h"
 #include "graphics/font.h"
 #include "core/scene_drawlist.h"
