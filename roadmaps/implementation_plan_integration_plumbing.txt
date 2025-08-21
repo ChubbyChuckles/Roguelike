@@ -396,13 +396,14 @@ PHASE 4. Shared Data Structure Optimization & Entity Management
     4.4.7 Implement reference counting persistence for save/load (Done – textual snapshot id/type/strong/weak)
 
 4.5 Copy-on-Write & Data Sharing
-    4.5.1 Design copy-on-write semantics for large shared data structures (X)
-    4.5.2 Implement copy-on-write trigger detection (write access monitoring) (X)
-    4.5.3 Create efficient data copying strategies (incremental, delta-based) (X)
-    4.5.4 Add copy-on-write memory usage optimization (shared pages, deduplication) (X)
-    4.5.5 Implement copy-on-write debugging tools (copy event tracking) (X)
-    4.5.6 Create copy-on-write performance profiling (copy frequency, cost analysis) (X)
-    4.5.7 Add copy-on-write integration with save/load system (X)
+    4.5.1 Design copy-on-write semantics for large shared data structures (Done – page‑granular buffer with intrusive ref‑counted pages; fixed logical length)
+    4.5.2 Implement copy-on-write trigger detection (write access monitoring) (Done – on write path ensures unique page via refcount guard; counts cow_triggers)
+    4.5.3 Create efficient data copying strategies (incremental, delta-based) (Done – per‑page clone only on first write; untouched pages shared; partial page writes only copy modified page)
+    4.5.4 Add copy-on-write memory usage optimization (shared pages, deduplication) (Done – open‑addressing hash dedup merges identical page contents, bumps dedup_hits, reduces duplicate storage)
+    4.5.5 Implement copy-on-write debugging tools (copy event tracking) (Done – stats struct (buffers/pages/cow_triggers/page_copies/dedup_hits/serialize_linearizations) + rogue_cow_dump page refcounts)
+    4.5.6 Create copy-on-write performance profiling (copy frequency, cost analysis) (Done – counters for triggers & copies & dedup; serialization linearization count for IO cost visibility)
+    4.5.7 Add copy-on-write integration with save/load system (Done – serialize/deserialze linearize logical buffer; deterministic page reconstruction)
+        SUMMARY: Added `cow.h/cow.c` implementing a page‑based copy‑on‑write buffer leveraging existing intrusive ref counting. Writes trigger per‑page duplication only when shared (tracked via stats). Added hash‑based page dedup to collapse identical content. Exposed diagnostics (stats + dump) and serialization/deserialization for persistence. Unit test `test_cow` validates clone isolation, dedup behavior, and serialization round‑trip under MSVC.
 
 4.6 Data Structure Versioning & Migration
     4.6.1 Design data structure version tracking (struct version numbers) (X)

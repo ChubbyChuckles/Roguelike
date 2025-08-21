@@ -341,6 +341,11 @@ add_library(rogue_core
     src/core/integration/entity_id.c
         # Phase 4.2 shared memory pool system
         src/core/integration/memory_pool.c
+        # Phase 4.3 cache management & invalidation system
+        src/core/integration/cache_system.c
+    # Phase 4.4 reference counting & lifecycle system
+    src/core/integration/ref_count.c
+    src/core/integration/cow.c
 )
 
 target_include_directories(rogue_core PUBLIC

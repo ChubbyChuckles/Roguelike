@@ -40,3 +40,18 @@ Details:
  - Build fixes: resolved initial MSVC fatal error (stdatomic unsupported) by introducing conditional compilation and replacing atomics with Interlocked* operations plus custom spin lock under _MSC_VER.
  - All tests (test_ref_count) pass on Windows Debug build; warnings-as-errors clean for new code.
 
+feat(integration): implement Phase 4.5 Copy-on-Write & Data Sharing (page COW buffer, dedup, stats, serialization, tests)
+
+Details:
+ - Added src/core/integration/cow.c and cow.h implementing a page-granular copy-on-write buffer (`RogueCowBuffer`) using intrusive ref-counted page allocations (leveraging Phase 4.4 ref_count system).
+ - API: create_from_bytes, clone, destroy, size, read (offset/length), write (triggers per-page copy if shared), dedup (hash-based page content deduplication), serialize, deserialize, stats snapshot, dump, page refcount query.
+ - Copy-on-write trigger detection: write path checks strong refcount >1 before modification; copies only that page, tracking `cow_triggers` and `page_copies` metrics.
+ - Efficient copying strategy: incremental page-level duplication; untouched pages remain shared; partial writes confined to single page; avoids whole-buffer duplication.
+ - Memory optimization: open-addressing hash table pass merges identical page contents (including previously cloned but unchanged pages), bumping `dedup_hits` and reclaiming redundant copies via refcount adjustments.
+ - Debugging & profiling: stats struct exposes buffers_created, pages_created, cow_triggers, page_copies, dedup_hits, serialize_linearizations; `rogue_cow_dump` prints per-page sizes and refcounts for inspection.
+ - Persistence integration: serialize linearizes logical buffer length (zero-pads trailing page slack) with corresponding deserialize constructor; unit test validates round-trip integrity.
+ - Unit test tests/unit/test_cow.c covers: clone sharing & isolation on write (page refcount goes from 2 to independent after write), dedup collapsing identical pages (refcounts equalized), serialization round-trip (100-byte buffer across 3 pages) and stats smoke.
+ - MSVC portability: removed variable-length arrays in test (replaced with fixed-size buffers) ensuring successful Windows build.
+ - Roadmap 4.5.1–4.5.7 marked Done with summary; README updated with Phase 4.5 bullet.
+ - Builds & test execution: test_cow passes (Debug, MSVC, SDL enabled); no new warnings.
+
