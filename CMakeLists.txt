@@ -79,7 +79,7 @@ add_library(rogue_core
     src/core/minimap.c
     src/core/minimap_loot_pings.c
     src/core/loot/loot_tooltip.c
-    src/core/player_controller.c
+    src/core/player/player_controller.c
     src/core/input_events.c
     src/core/player_render.c
     src/core/enemy/enemy_render.c
@@ -190,7 +190,7 @@ add_library(rogue_core
     src/ai/nodes/advanced_nodes.c
     src/ai/perception/perception.c
     src/core/start_screen.c
-    src/core/player_assets.c
+    src/core/player/player_assets.c
     src/util/log.c
     src/core/vegetation/vegetation_defs.c
     src/core/vegetation/vegetation_generate.c

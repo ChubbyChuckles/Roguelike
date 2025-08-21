@@ -5,9 +5,9 @@
 #include "core/game_loop.h"
 #include "core/metrics.h"
 #include "input/input.h"
-#include "core/player_controller.h"
+#include "player/player_controller.h"
 #include "core/dialogue.h"
-#include "core/player_assets.h"
+#include "player/player_assets.h"
 #include "core/player_progress.h"
 #include "core/persistence_autosave.h"
 #include "core/enemy/enemy_system.h"
@@ -35,8 +35,8 @@
 #include "core/loot/loot_tables.h" /* rogue_loot_tables_count */
 #include "input_events.h" /* rogue_process_events */
 #include "core/vegetation/vegetation.h" /* rogue_vegetation_render */
-#include "core/player_assets.h" /* animation update */
-#include "core/player_controller.h"
+#include "player/player_assets.h" /* animation update */
+#include "player/player_controller.h"
 
 /* UI panels (implemented in vendor_ui.c) */
 #include "core/vendor/vendor_ui.h"

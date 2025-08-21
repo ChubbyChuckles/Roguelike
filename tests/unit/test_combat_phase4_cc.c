@@ -13,7 +13,7 @@ void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int c
 
 /* Use real app struct to avoid symbol redefinition; stub input functions via existing input API expectations. */
 #include "core/app.h"
-#include "core/player_controller.h"
+#include "../../src/core/player/player_controller.h"
 /* Override movement-affecting helpers with no-op via macros if needed */
 float rogue_vegetation_tile_move_scale(int x,int y){ (void)x;(void)y; return 1.0f; }
 int rogue_vegetation_tile_blocking(int x,int y){ (void)x;(void)y; return 0; }

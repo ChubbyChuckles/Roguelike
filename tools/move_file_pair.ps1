@@ -250,95 +250,96 @@ function Update-IncludesInFile {
         if (-not $content) { return $false }
         
         $changed = $false
+        $currentFileDir = Split-Path $FilePath -Parent
+        $currentRelativeDir = $currentFileDir.Replace($ProjectRoot, "").TrimStart('\', '/').Replace('\', '/')
         
         foreach ($oldInclude in $ReplacementMap.Keys) {
             $newInclude = $ReplacementMap[$oldInclude]
             
-            # Handle quoted includes
-            $quotedOld = "#include `"$oldInclude`""
-            $quotedNew = "#include `"$newInclude`""
-            if ($content -match [regex]::Escape($quotedOld)) {
-                $content = $content -replace [regex]::Escape($quotedOld), $quotedNew
-                $changed = $true
-            }
+            # Calculate the correct relative path from current file to the new include location
+            $newIncludeDir = Split-Path $newInclude -Parent
+            $correctPath = $newInclude
             
-            # Handle angle bracket includes  
-            $angledOld = "#include <$oldInclude>"
-            $angledNew = "#include <$newInclude>"
-            if ($content -match [regex]::Escape($angledOld)) {
-                $content = $content -replace [regex]::Escape($angledOld), $angledNew
-                $changed = $true
-            }
-            
-            # Handle relative includes (just the filename) with context awareness
-            foreach ($oldInclude in $ReplacementMap.Keys) {
-                $newInclude = $ReplacementMap[$oldInclude]
-                $baseName = [System.IO.Path]::GetFileNameWithoutExtension($oldInclude)
+            # For files within src/core/, calculate proper relative path
+            if ($currentRelativeDir -match "^src/core" -and $newIncludeDir -match "^src/core") {
+                # Both in src/core - calculate relative path
+                $currentParts = $currentRelativeDir -split '/'
+                $targetParts = $newIncludeDir -split '/'
                 
-                $filenameOnly = "$baseName.h"
-                $quotedFilenameOld = "#include `"$filenameOnly`""
-                if ($content -match [regex]::Escape($quotedFilenameOld)) {
-                    # Determine if current file is in same directory as target
-                    $currentFileDir = Split-Path $FilePath -Parent
-                    $currentRelativeDir = $currentFileDir.Replace($ProjectRoot, "").TrimStart('\', '/').Replace('\', '/')
-                    $targetRelativeDir = $newInclude.Contains('/') ? (Split-Path $newInclude -Parent) : ""
-                    
-                    # If in same directory, keep as filename-only; otherwise use full path
-                    if ($currentRelativeDir -eq $targetRelativeDir) {
-                        $quotedRelativeNew = "#include `"$filenameOnly`""
+                # Find common parts
+                $commonLength = 0
+                $minLength = [Math]::Min($currentParts.Length, $targetParts.Length)
+                for ($i = 0; $i -lt $minLength; $i++) {
+                    if ($currentParts[$i] -eq $targetParts[$i]) {
+                        $commonLength++
                     } else {
-                        $quotedRelativeNew = "#include `"$newInclude`""
+                        break
                     }
-                    $content = $content -replace [regex]::Escape($quotedFilenameOld), $quotedRelativeNew
+                }
+                
+                # Calculate relative path
+                $upLevels = $currentParts.Length - $commonLength
+                $downPath = $targetParts[$commonLength..($targetParts.Length-1)] -join '/'
+                $headerName = Split-Path $newInclude -Leaf
+                
+                if ($upLevels -gt 0 -and $downPath) {
+                    $correctPath = ("../" * $upLevels) + $downPath + "/" + $headerName
+                } elseif ($upLevels -gt 0) {
+                    $correctPath = ("../" * ($upLevels-1)) + $headerName
+                } elseif ($downPath) {
+                    $correctPath = $downPath + "/" + $headerName
+                } else {
+                    $correctPath = $headerName
+                }
+            } elseif ($currentRelativeDir -match "tests/unit") {
+                # For test files, use full relative path from tests/unit/
+                $correctPath = "../../$newInclude"
+            }
+            
+            # Handle exact path matches
+            $patterns = @(
+                "#include `"$oldInclude`"",
+                "#include <$oldInclude>",
+                # Handle core-relative paths
+                "#include `"$($oldInclude.Replace('src/core/', 'core/'))`"",
+                # Handle various relative path patterns
+                "#include `"../$oldInclude`"",
+                "#include `"../../$oldInclude`"",
+                "#include `"../../../$oldInclude`""
+            )
+            
+            foreach ($pattern in $patterns) {
+                if ($content -match [regex]::Escape($pattern)) {
+                    $replacement = $pattern.Replace($oldInclude, $correctPath).Replace("core/", "").Replace("src/core/", "")
+                    # Clean up double slashes and fix angle/quote brackets
+                    if ($pattern.StartsWith("#include <")) {
+                        $replacement = "#include <$correctPath>"
+                    } else {
+                        $replacement = "#include `"$correctPath`""
+                    }
+                    $content = $content -replace [regex]::Escape($pattern), $replacement
                     $changed = $true
                 }
             }
             
-            # Handle various relative path patterns (../../src/core/, ../src/core/, etc.)
-            foreach ($oldInclude in $ReplacementMap.Keys) {
-                $newInclude = $ReplacementMap[$oldInclude]
+            # Handle filename-only includes
+            $baseName = [System.IO.Path]::GetFileNameWithoutExtension($oldInclude)
+            $filenamePattern = "#include `"$baseName.h`""
+            if ($content -match [regex]::Escape($filenamePattern)) {
+                # If target is in same directory, keep filename-only; otherwise use calculated path
+                $targetDir = Split-Path ($newIncludeDir) -Leaf
+                $currentDir = Split-Path $currentRelativeDir -Leaf
                 
-                # Extract base name from the include path for relative pattern matching
-                $baseName = [System.IO.Path]::GetFileNameWithoutExtension($oldInclude)
-                
-                # Generate comprehensive relative path patterns
-                $relativePatternsOld = @()
-                
-                # Add patterns with different numbers of "../" prefixes
-                for ($upLevels = 1; $upLevels -le 6; $upLevels++) {
-                    $upPrefix = "../" * $upLevels
-                    $relativePatternsOld += "$upPrefix$oldInclude"
-                    
-                    # Also try with just the basename for deeply nested includes
-                    if ($upLevels -le 3) {
-                        $relativePatternsOld += "$upPrefix$baseName.h"
-                    }
-                }
-                
-                # Add common project structure patterns
-                $relativePatternsOld += @(
-                    $oldInclude,                                    # Full path
-                    "$baseName.h",                                  # Just filename
-                    "src/$oldInclude",                             # With src/ prefix
-                    $oldInclude.Replace("src/", "")                # Without src/ prefix
-                )
-                
-                foreach ($relativeOld in $relativePatternsOld) {
-                    if ($relativeOld -and $relativeOld -ne "") {
-                        $quotedRelativeOld = "#include `"$relativeOld`""
-                        if ($content -match [regex]::Escape($quotedRelativeOld)) {
-                            $quotedRelativeNew = "#include `"$newInclude`""
-                            $content = $content -replace [regex]::Escape($quotedRelativeOld), $quotedRelativeNew
-                            $changed = $true
-                        }
-                    }
+                if ($currentRelativeDir -eq $newIncludeDir) {
+                    # Same directory - keep filename only
+                    # No change needed
+                } else {
+                    # Different directory - use calculated relative path
+                    $replacement = "#include `"$correctPath`""
+                    $content = $content -replace [regex]::Escape($filenamePattern), $replacement
+                    $changed = $true
                 }
             }
-        }
-        
-        if ($changed) {
-            Set-Content -Path $FilePath -Value $content -NoNewline
-            return $true
         }
         
         # Special handling for test files that may have inconsistent include patterns
@@ -361,11 +362,11 @@ function Update-IncludesInFile {
                     }
                 }
             }
-            
-            if ($changed) {
-                Set-Content -Path $FilePath -Value $content -NoNewline
-                return $true
-            }
+        }
+        
+        if ($changed) {
+            Set-Content -Path $FilePath -Value $content -NoNewline
+            return $true
         }
 
         return $false
@@ -483,17 +484,20 @@ try {
             $content = Get-Content -Path $movedCFile -Raw
             if ($content) {
                 $changed = $false
+                $targetDir = Split-Path $movedCFile -Parent
+                $targetRelativeDir = $targetDir.Replace($ProjectRoot, "").TrimStart('\', '/').Replace('\', '/')
                 
-                # Fix includes for files now in the same directory
+                # Fix includes for files now in the same directory (should be just filename)
                 foreach ($otherFileInfo in $fileInfoList) {
                     if ($otherFileInfo.HasHeaderFile) {
                         $headerName = "$($otherFileInfo.BaseName).h"
-                        # Replace absolute paths with relative filename
-                        $oldPatterns = @(
+                        $patterns = @(
                             "#include `"$($otherFileInfo.OldIncludePath)`"",
-                            "#include `"$($otherFileInfo.OldCoreRelativePath)`""
+                            "#include `"$($otherFileInfo.OldCoreRelativePath)`"",
+                            "#include `"../$($otherFileInfo.BaseName)/$headerName`"",
+                            "#include `"../$(Split-Path $targetRelativeDir -Leaf)/$headerName`""
                         )
-                        foreach ($pattern in $oldPatterns) {
+                        foreach ($pattern in $patterns) {
                             if ($pattern -and $content -match [regex]::Escape($pattern)) {
                                 $content = $content -replace [regex]::Escape($pattern), "#include `"$headerName`""
                                 $changed = $true
@@ -502,17 +506,52 @@ try {
                     }
                 }
                 
-                # Fix includes for other core headers using relative paths
-                $content = [regex]::Replace($content, '#include "core/([^"]+)"', { param($match)
-                    return "#include `"../$($match.Groups[1].Value)`""
-                })
-                $changed = $true
+                # Fix includes for other core headers - calculate proper relative paths
+                # Get the current file's directory relative to src/core/
+                $currentFileDir = Split-Path $targetRelativeDir -Leaf
                 
-                # Fix includes with src/core prefix using relative paths  
-                $content = [regex]::Replace($content, '#include "src/core/([^"]+)"', { param($match)
-                    return "#include `"../$($match.Groups[1].Value)`""
+                # Pattern: #include "core/something/header.h" -> #include "../something/header.h"
+                $content = [regex]::Replace($content, '#include "core/([^"]+)"', { param($match)
+                    $targetPath = $match.Groups[1].Value
+                    return "#include `"../$targetPath`""
                 })
-                $changed = $true
+                
+                # Handle src/core includes with a two-step approach
+                # First, find all src/core includes and process them
+                $srcCoreMatches = [regex]::Matches($content, '#include "src/core/([^"]+)"')
+                foreach ($match in $srcCoreMatches) {
+                    $oldInclude = $match.Value
+                    $targetPath = $match.Groups[1].Value
+                    
+                    # If the target path is in the same directory as the moved file, just use filename
+                    if ($targetPath.Contains("$currentFileDir/")) {
+                        $fileName = Split-Path $targetPath -Leaf
+                        $newInclude = "#include `"$fileName`""
+                    } else {
+                        # Otherwise, go up one level and then to the target
+                        $newInclude = "#include `"../$targetPath`""
+                    }
+                    
+                    $content = $content.Replace($oldInclude, $newInclude)
+                }
+                
+                # Fix any remaining absolute project paths
+                $absoluteMatches = [regex]::Matches($content, '#include "([^"]*src/core/[^"]+)"')
+                foreach ($match in $absoluteMatches) {
+                    $oldInclude = $match.Value
+                    $fullPath = $match.Groups[1].Value
+                    $corePath = $fullPath -replace '.*src/core/', ''
+                    
+                    # If the target path is in the same directory as the moved file, just use filename
+                    if ($corePath.Contains("$currentFileDir/")) {
+                        $fileName = Split-Path $corePath -Leaf
+                        $newInclude = "#include `"$fileName`""
+                    } else {
+                        $newInclude = "#include `"../$corePath`""
+                    }
+                    
+                    $content = $content.Replace($oldInclude, $newInclude)
+                }
                 
                 if ($changed) {
                     Set-Content -Path $movedCFile -Value $content -NoNewline
@@ -528,16 +567,20 @@ try {
                 $content = Get-Content -Path $movedHFile -Raw
                 if ($content) {
                     $changed = $false
+                    $targetDir = Split-Path $movedHFile -Parent
+                    $targetRelativeDir = $targetDir.Replace($ProjectRoot, "").TrimStart('\', '/').Replace('\', '/')
                     
                     # Fix includes for files now in the same directory
                     foreach ($otherFileInfo in $fileInfoList) {
                         if ($otherFileInfo.HasHeaderFile) {
                             $headerName = "$($otherFileInfo.BaseName).h"
-                            $oldPatterns = @(
+                            $patterns = @(
                                 "#include `"$($otherFileInfo.OldIncludePath)`"",
-                                "#include `"$($otherFileInfo.OldCoreRelativePath)`""
+                                "#include `"$($otherFileInfo.OldCoreRelativePath)`"",
+                                "#include `"../$($otherFileInfo.BaseName)/$headerName`"",
+                                "#include `"../$(Split-Path $targetRelativeDir -Leaf)/$headerName`""
                             )
-                            foreach ($pattern in $oldPatterns) {
+                            foreach ($pattern in $patterns) {
                                 if ($pattern -and $content -match [regex]::Escape($pattern)) {
                                     $content = $content -replace [regex]::Escape($pattern), "#include `"$headerName`""
                                     $changed = $true
@@ -547,16 +590,47 @@ try {
                     }
                     
                     # Fix includes for other core headers using relative paths
+                    $currentFileDir = Split-Path $targetRelativeDir -Leaf
+                    
                     $content = [regex]::Replace($content, '#include "core/([^"]+)"', { param($match)
                         return "#include `"../$($match.Groups[1].Value)`""
                     })
-                    $changed = $true
                     
-                    # Fix includes with src/core prefix using relative paths
-                    $content = [regex]::Replace($content, '#include "src/core/([^"]+)"', { param($match)
-                        return "#include `"../$($match.Groups[1].Value)`""
-                    })
-                    $changed = $true
+                    # Handle src/core includes with a two-step approach
+                    $srcCoreMatches = [regex]::Matches($content, '#include "src/core/([^"]+)"')
+                    foreach ($match in $srcCoreMatches) {
+                        $oldInclude = $match.Value
+                        $targetPath = $match.Groups[1].Value
+                        
+                        # If the target path is in the same directory as the moved file, just use filename
+                        if ($targetPath.Contains("$currentFileDir/")) {
+                            $fileName = Split-Path $targetPath -Leaf
+                            $newInclude = "#include `"$fileName`""
+                        } else {
+                            # Otherwise, go up one level and then to the target
+                            $newInclude = "#include `"../$targetPath`""
+                        }
+                        
+                        $content = $content.Replace($oldInclude, $newInclude)
+                    }
+                    
+                    # Fix any remaining absolute project paths
+                    $absoluteMatches = [regex]::Matches($content, '#include "([^"]*src/core/[^"]+)"')
+                    foreach ($match in $absoluteMatches) {
+                        $oldInclude = $match.Value
+                        $fullPath = $match.Groups[1].Value
+                        $corePath = $fullPath -replace '.*src/core/', ''
+                        
+                        # If the target path is in the same directory as the moved file, just use filename
+                        if ($corePath.Contains("$currentFileDir/")) {
+                            $fileName = Split-Path $corePath -Leaf
+                            $newInclude = "#include `"$fileName`""
+                        } else {
+                            $newInclude = "#include `"../$corePath`""
+                        }
+                        
+                        $content = $content.Replace($oldInclude, $newInclude)
+                    }
                     
                     if ($changed) {
                         Set-Content -Path $movedHFile -Value $content -NoNewline
