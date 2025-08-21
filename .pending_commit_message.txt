@@ -13,3 +13,12 @@ integration: Phase 4.7 Shared Resource Access Control complete
 Follow-up ideas:
 * Consider finer-grained timed waits using condition variables on POSIX / Slim SRW lock timeouts
 * Potential future priority inversion handling with boost/escalation
+
+integration: Phase 4.8 Shared Data Structure Validation Suite
+
+- Added aggregate test `test_integration_phase4_8_shared_validation` covering:
+	* 4.8.1 Entity ID bulk uniqueness & validation (2K IDs)
+	* 4.8.5 Copy-on-write interleaved modification isolation
+	* 4.8.7 Multi-thread mutex contention stress (profiling acquisitions)
+- Roadmap 4.8 items marked Done referencing existing dedicated tests (memory pool, cache system, ref counting, performance) to avoid duplication
+- README updated with Phase 4.8 summary

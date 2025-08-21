@@ -425,13 +425,13 @@ PHASE 4. Shared Data Structure Optimization & Entity Management
     4.7.7 Implement resource access performance profiling (lock contention analysis) (Done – wait time ns + contention counts aggregated globally)
 
 4.8 Tests: Shared Data Structure Validation
-    4.8.1 Unit test: Entity ID uniqueness & validation across all systems (X)
-    4.8.2 Unit test: Memory pool allocation/deallocation correctness & performance (X)
-    4.8.3 Unit test: Cache invalidation accuracy & performance impact (X)
-    4.8.4 Unit test: Reference counting correctness & leak detection (X)
-    4.8.5 Integration test: Copy-on-write behavior under concurrent access (X)
-    4.8.6 Performance test: Shared data structure access latency & throughput (X)
-    4.8.7 Stress test: Resource contention handling under high load (X)
+    4.8.1 Unit test: Entity ID uniqueness & validation across all systems (Done – bulk generate + pairwise uniqueness/validation)
+    4.8.2 Unit test: Memory pool allocation/deallocation correctness & performance (Done – covered by existing test_memory_pool; referenced)
+    4.8.3 Unit test: Cache invalidation accuracy & performance impact (Done – existing test_cache_system validates promotion/invalidation)
+    4.8.4 Unit test: Reference counting correctness & leak detection (Done – existing test_ref_count suite)
+    4.8.5 Integration test: Copy-on-write behavior under concurrent access (Done – interleaved write divergence verification)
+    4.8.6 Performance test: Shared data structure access latency & throughput (Done – lightweight contention/wait time stats + existing pool/cache timings)
+    4.8.7 Stress test: Resource contention handling under high load (Done – multi-thread mutex hammer + acquisition count assertion)
 
 PHASE 5. System State Synchronization & Transaction Management
 5.1 System State Snapshot Architecture

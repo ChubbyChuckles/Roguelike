@@ -40,6 +40,11 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_cache_system.c AND NOT TARGET test
     target_include_directories(test_versioning PRIVATE ${CMAKE_SOURCE_DIR}/src/core/integration)
     target_link_libraries(test_versioning PRIVATE rogue_core)
     add_test(NAME test_versioning COMMAND test_versioning)
+    # Phase 4.7 shared resource access control tests
+    add_executable(test_resource_lock unit/test_resource_lock.c)
+    target_include_directories(test_resource_lock PRIVATE ${CMAKE_SOURCE_DIR}/src/core/integration)
+    target_link_libraries(test_resource_lock PRIVATE rogue_core)
+    add_test(NAME test_resource_lock COMMAND test_resource_lock)
 endif()
 
 # Integration Plumbing Phase 0.1 System Taxonomy Test
@@ -236,6 +241,13 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_hit_sweep_normals.c AND NOT TARG
         target_compile_definitions(test_hit_sweep_normals PRIVATE ROGUE_HAVE_SDL=1)
     endif()
     add_test(NAME test_hit_sweep_normals COMMAND test_hit_sweep_normals)
+endif()
+
+# Integration Plumbing Phase 4.8 Shared Data Structure Validation aggregate tests
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_integration_phase4_8_shared_validation.c AND NOT TARGET test_integration_phase4_8_shared_validation)
+    add_executable(test_integration_phase4_8_shared_validation unit/test_integration_phase4_8_shared_validation.c)
+    target_link_libraries(test_integration_phase4_8_shared_validation PRIVATE rogue_core)
+    add_test(NAME test_integration_phase4_8_shared_validation COMMAND test_integration_phase4_8_shared_validation)
 endif()
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_knockback_basic.c AND NOT TARGET test_knockback_basic)
     add_executable(test_knockback_basic unit/test_knockback_basic.c)
