@@ -354,6 +354,8 @@ add_library(rogue_core
     src/core/integration/transaction_manager.c
     # Phase 5.4 rollback & recovery framework
     src/core/integration/rollback_manager.c
+    # Phase 5.5 state validation & integrity checking
+    src/core/integration/state_validation_manager.c
 )
 
 target_include_directories(rogue_core PUBLIC
@@ -438,6 +440,14 @@ target_link_libraries(test_rollback_events PRIVATE rogue_core)
 target_include_directories(test_rollback_events PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/core/integration)
 if(TARGET SDL2::SDL2)
     target_link_libraries(test_rollback_events PRIVATE SDL2::SDL2)
+endif()
+
+# Phase 5.5 state validation tests
+add_executable(test_state_validation_manager tests/unit/test_state_validation_manager.c)
+target_link_libraries(test_state_validation_manager PRIVATE rogue_core)
+target_include_directories(test_state_validation_manager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/core/integration)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_state_validation_manager PRIVATE SDL2::SDL2)
 endif()
 
 add_executable(roguelike src/main.c)

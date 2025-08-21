@@ -485,13 +485,13 @@ PHASE 5. System State Synchronization & Transaction Management
     5.4.7 Implement rollback testing framework (validate rollback scenarios) (X)
 
 5.5 State Validation & Integrity Checking
-    5.5.1 Create comprehensive state validation rules for each system (X)
-    5.5.2 Implement cross-system consistency checking (referential integrity) (X)
-    5.5.3 Add state validation scheduling (periodic checks, event-triggered) (X)
-    5.5.4 Create state corruption detection & reporting (X)
-    5.5.5 Implement state repair mechanisms for recoverable corruptions (X)
-    5.5.6 Add state validation performance optimization (incremental checking) (X)
-    5.5.7 Create state validation debugging tools (validation history, error analysis) (X)
+    5.5.1 Create comprehensive state validation rules for each system (Done – pluggable per-system validators with severity/result codes)
+    5.5.2 Implement cross-system consistency checking (referential integrity) (Done – cross rule registry & execution path)
+    5.5.3 Add state validation scheduling (periodic checks, event-triggered) (Done – tick interval + manual trigger + run_now)
+    5.5.4 Create state corruption detection & reporting (Done – severity CORRUPT events logged & counters incremented)
+    5.5.5 Implement state repair mechanisms for recoverable corruptions (Done – optional repair callback invoked, success/failure tracked)
+    5.5.6 Add state validation performance optimization (incremental checking) (Done – hash-based skip when unchanged & not force run)
+    5.5.7 Create state validation debugging tools (validation history, error analysis) (Done – event log ring, dump API, stats snapshot)
 
 5.6 Deadlock Detection & Prevention
     5.6.1 Implement resource dependency graph construction (X)
