@@ -2,11 +2,11 @@
 #include <assert.h>
 #include <stdio.h>
 #include "core/stat_cache.h"
-#include "core/equipment.h"
-#include "core/loot_affixes.h"
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
-#include "core/equipment_stats.h"
+#include "core/equipment/equipment.h"
+#include "core/loot/loot_affixes.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
+#include "core/equipment/equipment_stats.h"
 #include "core/app_state.h"
 
 RogueAppState g_app; RoguePlayer g_exposed_player_for_stats; void rogue_player_recalc_derived(RoguePlayer* p){(void)p;}

@@ -5,9 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "core/inventory_entries.h"
+#include "core/inventory/inventory_entries.h"
 #include "core/inventory_tags.h"
-#include "core/inventory_query.h"
+#include "src/core/inventory/inventory_query.h"
 
 static void setup(){ rogue_inventory_entries_init(); rogue_inv_tags_init(); }
 

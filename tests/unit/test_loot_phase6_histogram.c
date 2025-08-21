@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
-#include "core/loot_console.h"
-#include "core/loot_stats.h"
-#include "core/loot_rarity.h"
+#include "core/loot/loot_console.h"
+#include "core/loot/loot_stats.h"
+#include "core/loot/loot_rarity.h"
 
 /* Simple unit test for histogram formatting (6.4) */
 int main(){

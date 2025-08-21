@@ -10,14 +10,14 @@
    The test avoids undefined behaviour by always operating within buffer bounds and resetting equip state between attempts.
 */
 #define SDL_MAIN_HANDLED 1
-#include "core/loot_instances.h" /* for g_rogue_loot_suppress_spawn_log */
+#include "core/loot/loot_instances.h" /* for g_rogue_loot_suppress_spawn_log */
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "core/equipment_persist.h"
-#include "core/equipment.h"
-#include "core/loot_instances.h"
+#include "core/equipment/equipment_persist.h"
+#include "core/equipment/equipment.h"
+#include "core/loot/loot_instances.h"
 
 extern int rogue_items_spawn(int def_index,int quantity,float x,float y);
 extern unsigned long long rogue_equipment_state_hash(void);

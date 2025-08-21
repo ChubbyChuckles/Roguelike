@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <math.h>
-#include "core/economy.h"
+#include "core/vendor/economy.h"
 
 int main(void){
     /* Monotonic: higher missing durability => higher or equal cost */

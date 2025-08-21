@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include "core/progression_stats.h"
+#include "core/progression/progression_stats.h"
 
 static void test_uniqueness_and_order(void){
     size_t n=0; const RogueStatDef* all = rogue_stat_def_all(&n); assert(n>0);

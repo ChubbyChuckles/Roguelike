@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-#include "core/equipment_perf.h"
-#include "core/equipment.h"
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
+#include "core/equipment/equipment_perf.h"
+#include "core/equipment/equipment.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
 #include "core/stat_cache.h"
 
 /* prototypes already provided by included headers; avoid redefinition */

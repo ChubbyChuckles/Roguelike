@@ -34,8 +34,8 @@ SOFTWARE.
 #include "entities/enemy.h"
 #include "game/combat.h"
 #include "game/damage_numbers.h"
-#include "core/enemy_system.h"
-#include "core/vegetation.h"
+#include "core/enemy/enemy_system.h"
+#include "core/vegetation/vegetation.h"
 #include "core/start_screen.h"
 #include "core/player_assets.h"
 #include "core/player_controller.h"
@@ -43,9 +43,9 @@ SOFTWARE.
 #include "graphics/sprite.h"
 #include "graphics/tile_sprites.h"
 #include "core/scene_drawlist.h"
-#include "core/input_events.h"
+#include "input_events.h"
 #include "core/player_render.h"
-#include "core/enemy_render.h"
+#include "core/enemy/enemy_render.h"
 #include "core/hud.h"
 #include "core/player_progress.h"
 #include "core/persistence_autosave.h"
@@ -59,19 +59,19 @@ SOFTWARE.
 #include "core/tile_sprite_cache.h"
 #include "core/skills.h"
 #include "core/skill_tree.h"
-#include "core/loot_logging.h"
+#include "core/loot/loot_logging.h"
 #include "core/skill_bar.h"
 #include "core/buffs.h"
 #include "core/projectiles.h"
-#include "core/loot_item_defs.h"
-#include "core/loot_tables.h"
-#include "core/loot_instances.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_tables.h"
+#include "core/loot/loot_instances.h"
 #include "core/inventory.h"
-#include "core/loot_pickup.h"
-#include "core/equipment_stats.h"
+#include "core/loot/loot_pickup.h"
+#include "core/equipment/equipment_stats.h"
 #include "core/stat_cache.h"
-#include "core/vendor.h"
-#include "core/economy.h"
+#include "core/vendor/vendor.h"
+#include "core/vendor/economy.h"
 
 /* UI panels (vendor & equipment) */
 void rogue_vendor_panel_render(void);
@@ -80,7 +80,7 @@ void rogue_equipment_panel_render(void);
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include "core/equipment.h" // Integrate equipment stats application
+#include "core/equipment/equipment.h" // Integrate equipment stats application
 #ifdef _WIN32
 #include <direct.h>
 #else

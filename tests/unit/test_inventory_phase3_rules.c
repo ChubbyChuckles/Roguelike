@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
-#include "core/inventory_entries.h"
+#include "core/inventory/inventory_entries.h"
 #include "core/inventory_tags.h"
 #include "core/inventory_tag_rules.h"
 #include "core/save_manager.h"

@@ -13,7 +13,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "core/loot_affixes.h"
+#include "core/loot/loot_affixes.h"
 #include "core/persistence.h"
 #include "core/app_state.h"
 #include "util/kv_parser.h"

@@ -1,5 +1,5 @@
-#include "core/loot_vfx.h"
-#include "core/loot_instances.h"
+#include "core/loot/loot_vfx.h"
+#include "core/loot/loot_instances.h"
 #include "core/app_state.h"
 #include <stdio.h>
 

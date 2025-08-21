@@ -4,7 +4,7 @@
 #include "core/hud_bars.h" /* Phase 6.2 layered bar smoothing */
 #include "core/hud_buff_belt.h" /* Phase 6.3 buff belt */
 #include "core/hud_overlays.h" /* Phase 6.6 alerts + 6.7 metrics */
-#include "core/enemy_difficulty_scaling.h" /* ΔL severity classifier */
+#include "core/enemy/enemy_difficulty_scaling.h" /* ΔL severity classifier */
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif

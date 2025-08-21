@@ -10,21 +10,21 @@
 #include "core/player_assets.h"
 #include "core/player_progress.h"
 #include "core/persistence_autosave.h"
-#include "core/enemy_system.h"
+#include "core/enemy/enemy_system.h"
 #include "core/skill_bar.h"
 #include "core/skill_tree.h"
 #include "core/skills.h"
 #include "core/buffs.h"
 #include "core/projectiles.h"
-#include "core/loot_instances.h"
-#include "core/loot_pickup.h"
-#include "core/vendor.h"
+#include "core/loot/loot_instances.h"
+#include "core/loot/loot_pickup.h"
+#include "core/vendor/vendor.h"
 #include "core/stat_cache.h"
-#include "core/equipment_stats.h"
+#include "core/equipment/equipment_stats.h"
 #include "core/hud.h"
 #include "core/minimap.h"
 #include "core/scene_drawlist.h"
-#include "core/enemy_render.h"
+#include "core/enemy/enemy_render.h"
 #include "core/player_render.h"
 #include "core/world_renderer.h"
 #include "game/damage_numbers.h"
@@ -32,15 +32,15 @@
 #include "core/tile_sprite_cache.h"
 #include "core/animation_system.h"
 #include "core/start_screen.h"
-#include "core/loot_tables.h" /* rogue_loot_tables_count */
-#include "core/input_events.h" /* rogue_process_events */
-#include "core/vegetation.h" /* rogue_vegetation_render */
+#include "core/loot/loot_tables.h" /* rogue_loot_tables_count */
+#include "input_events.h" /* rogue_process_events */
+#include "core/vegetation/vegetation.h" /* rogue_vegetation_render */
 #include "core/player_assets.h" /* animation update */
 #include "core/player_controller.h"
 
 /* UI panels (implemented in vendor_ui.c) */
-#include "core/vendor_ui.h"
-#include "core/equipment.h" /* if equipment panel declared elsewhere include appropriate header */
+#include "core/vendor/vendor_ui.h"
+#include "core/equipment/equipment.h" /* if equipment panel declared elsewhere include appropriate header */
 #include "util/log.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>

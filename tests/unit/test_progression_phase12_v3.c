@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-#include "core/progression_persist.h"
-#include "core/progression_attributes.h"
+#include "core/progression/progression_persist.h"
+#include "core/progression/progression_attributes.h"
 
 extern struct AppState { int level; unsigned long long xp_total_accum; int unspent_stat_points; } g_app;
 extern RogueAttributeState g_attr_state;

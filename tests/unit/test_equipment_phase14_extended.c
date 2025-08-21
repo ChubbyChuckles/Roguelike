@@ -1,8 +1,8 @@
-#include "core/equipment.h"
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
+#include "core/equipment/equipment.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
 #include "core/stat_cache.h"
-#include "core/equipment_stats.h"
+#include "core/equipment/equipment_stats.h"
 #include "core/path_utils.h"
 #include <stdio.h>
 #include <string.h>

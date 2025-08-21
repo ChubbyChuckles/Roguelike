@@ -1,12 +1,12 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "core/equipment_enchant.h"
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
-#include "core/loot_affixes.h"
+#include "core/equipment/equipment_enchant.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
+#include "core/loot/loot_affixes.h"
 #include "core/inventory.h"
-#include "core/economy.h"
+#include "core/vendor/economy.h"
 
 static void load_items(){
     rogue_item_defs_reset();

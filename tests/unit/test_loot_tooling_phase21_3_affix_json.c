@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "core/loot_affixes.h"
+#include "core/loot/loot_affixes.h"
 
 static int write_cfg(const char* path){
     FILE* f=fopen(path, "wb"); if(!f) return -1;

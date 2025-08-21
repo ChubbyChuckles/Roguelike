@@ -11,7 +11,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "core/progression_ratings.h"
+#include "core/progression/progression_ratings.h"
 
 extern int g_attack_frame_override; /* from events */
 extern int rogue_force_attack_active; /* from events */

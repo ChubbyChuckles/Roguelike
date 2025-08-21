@@ -2,9 +2,9 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
-#include "core/equipment_persist.h"
-#include "core/equipment.h"
-#include "core/loot_instances.h"
+#include "core/equipment/equipment_persist.h"
+#include "core/equipment/equipment.h"
+#include "core/loot/loot_instances.h"
 
 /* Basic setup helpers (spawn simple dummy items). We assume item defs 0..2 exist in test assets. */
 extern int rogue_items_spawn(int def_index,int quantity,float x,float y);

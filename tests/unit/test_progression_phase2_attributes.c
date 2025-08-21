@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
-#include "core/progression_attributes.h"
+#include "core/progression/progression_attributes.h"
 
 static void test_spend_and_respec(void){
     RogueAttributeState st; rogue_attr_state_init(&st,5,5,15,5);

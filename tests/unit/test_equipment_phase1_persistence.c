@@ -6,9 +6,9 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "core/equipment.h"
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
+#include "core/equipment/equipment.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
 #include "core/save_manager.h"
 #include "core/app_state.h"
 #include "core/path_utils.h"

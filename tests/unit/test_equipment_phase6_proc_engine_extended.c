@@ -1,7 +1,7 @@
 /* Extended tests for proc stacking semantics, ICD, ordering, telemetry */
 #include <assert.h>
 #include <stdio.h>
-#include "core/equipment_procs.h"
+#include "core/equipment/equipment_procs.h"
 
 static void setup(){ rogue_procs_reset(); }
 

@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
-#include "core/equipment_procs.h"
+#include "core/equipment/equipment_procs.h"
 
 static void register_sample_procs(){
     rogue_procs_reset();

@@ -1,4 +1,4 @@
-#include "core/input_events.h"
+#include "input_events.h"
 #include "core/game_loop.h"
 #include "world/world_gen.h"
 #include "world/world_gen_config.h"
@@ -9,11 +9,11 @@
 #include "core/skill_tree.h"
 #include "core/skill_bar.h"
 #include "core/skills.h"
-#include "core/vegetation.h"
-#include "core/vendor.h"
-#include "core/economy.h"
+#include "core/vegetation/vegetation.h"
+#include "core/vendor/vendor.h"
+#include "core/vendor/economy.h"
 #include "core/inventory.h"
-#include "core/equipment.h"
+#include "core/equipment/equipment.h"
 #include "core/hud_overlays.h" /* alerts & metrics toggles */
 #include "game/hit_system.h" /* debug toggle */
 #include "game/hit_pixel_mask.h" // pixel hit detection toggle

@@ -1,5 +1,5 @@
 #include "ui/crafting_ui.h"
-#include "core/crafting.h"
+#include "core/crafting/crafting.h"
 #include "core/inventory.h"
 #include <stdio.h>
 #include <string.h>

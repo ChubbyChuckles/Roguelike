@@ -3,7 +3,7 @@
 #include "core/stat_cache.h"
 #include <stdlib.h>
 #include <math.h>
-#include "core/equipment_procs.h" /* for reactive shield procs */
+#include "core/equipment/equipment_procs.h" /* for reactive shield procs */
 
 /* Guard & Poise / Incoming Melee */
 static void rogue_player_face(RoguePlayer* p, int dir){ if(!p) return; if(dir<0||dir>3) return; p->facing = dir; }

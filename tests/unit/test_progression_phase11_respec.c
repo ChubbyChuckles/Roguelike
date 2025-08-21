@@ -2,10 +2,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include "core/progression_passives.h"
-#include "core/progression_maze.h"
+#include "core/progression/progression_passives.h"
+#include "core/progression/progression_maze.h"
 #include "core/stat_cache.h"
-#include "core/progression_stats.h"
+#include "core/progression/progression_stats.h"
 #include "entities/player.h"
 
 static void build_maze(struct RogueProgressionMaze* m){ memset(m,0,sizeof(*m)); m->base.node_count=2; }

@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <string.h>
-#include "core/crafting.h"
+#include "core/crafting/crafting.h"
 #include "core/crafting_automation.h"
-#include "core/material_registry.h"
-#include "core/material_refine.h"
+#include "core/crafting/material_registry.h"
+#include "core/crafting/material_refine.h"
 #include "core/inventory.h"
 #include "core/inventory.h" /* ensure consume prototype */
 

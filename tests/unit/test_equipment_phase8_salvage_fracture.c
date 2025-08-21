@@ -3,9 +3,9 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
-#include "core/salvage.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
+#include "core/vendor/salvage.h"
 #include "core/durability.h"
 
 /* Minimal stubs */

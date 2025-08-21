@@ -2,10 +2,10 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "core/loot_affixes.h"
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
-#include "core/equipment_stats.h" /* for consistency (no direct calls) */
+#include "core/loot/loot_affixes.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
+#include "core/equipment/equipment_stats.h" /* for consistency (no direct calls) */
 #include "core/stat_cache.h"
 
 extern struct RogueStatCache g_player_stat_cache;

@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "core/loot_instances.h"
-#include "core/loot_item_defs.h"
-#include "core/loot_affixes.h"
-#include "core/equipment_budget_analyzer.h"
+#include "core/loot/loot_instances.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_affixes.h"
+#include "core/equipment/equipment_budget_analyzer.h"
 
 /* Minimal mocks: we rely on existing runtime init from rogue_core test harness; if not available we include minimal init.
    This test crafts synthetic item instances with controlled affix weights to exercise analyzer buckets and over-budget detection. */

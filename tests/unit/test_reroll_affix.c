@@ -1,9 +1,9 @@
-#include "core/crafting.h"
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
-#include "core/loot_affixes.h"
+#include "core/crafting/crafting.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
+#include "core/loot/loot_affixes.h"
 #include "core/inventory.h"
-#include "core/economy.h"
+#include "core/vendor/economy.h"
 #include "core/path_utils.h"
 #include <stdio.h>
 #include <string.h>

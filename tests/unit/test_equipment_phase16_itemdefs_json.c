@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "core/loot_item_defs.h"
+#include "core/loot/loot_item_defs.h"
 
 static int write_temp_json(const char* path){
     const char* json = "[\n"

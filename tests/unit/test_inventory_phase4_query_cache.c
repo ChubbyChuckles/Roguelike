@@ -1,8 +1,8 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "core/inventory_entries.h"
-#include "core/inventory_query.h"
+#include "core/inventory/inventory_entries.h"
+#include "src/core/inventory/inventory_query.h"
 
 static void seed(){ rogue_inventory_entries_init(); /* use def indices known to exist in other tests */
     rogue_inventory_register_pickup(2,12); /* >=4 */

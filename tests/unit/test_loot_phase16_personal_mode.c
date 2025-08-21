@@ -1,4 +1,4 @@
-#include "core/loot_instances.h"
+#include "core/loot/loot_instances.h"
 #include "core/loot_multiplayer.h"
 #include "core/app_state.h"
 #include <stdio.h>

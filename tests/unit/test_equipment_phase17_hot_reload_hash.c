@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "core/equipment_content.h"
+#include "core/equipment/equipment_content.h"
 #include "util/hot_reload.h"
 
 static int write_file(const char* path, const char* text){ FILE* f=NULL; 

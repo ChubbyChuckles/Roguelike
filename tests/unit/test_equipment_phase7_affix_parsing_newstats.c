@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "core/loot_affixes.h"
+#include "core/loot/loot_affixes.h"
 
 int main(){
     int added = rogue_affixes_load_from_cfg("assets/affixes.cfg");

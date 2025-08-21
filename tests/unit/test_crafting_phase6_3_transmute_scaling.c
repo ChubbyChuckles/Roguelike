@@ -1,9 +1,9 @@
 /* Phase 6.3: Transmute (enchant/reforge) material scaling integration test */
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
-#include "core/loot_affixes.h"
-#include "core/equipment_enchant.h"
-#include "core/material_registry.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
+#include "core/loot/loot_affixes.h"
+#include "core/equipment/equipment_enchant.h"
+#include "core/crafting/material_registry.h"
 #include "core/path_utils.h"
 #include <stdio.h>
 

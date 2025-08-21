@@ -1,6 +1,6 @@
 /* Crafting & Gathering Phase 4.1–4.2: Recipe parsing + extended fields + forward compat */
-#include "core/crafting.h"
-#include "core/loot_item_defs.h"
+#include "core/crafting/crafting.h"
+#include "core/loot/loot_item_defs.h"
 #include <stdio.h>
 #include <string.h>
 

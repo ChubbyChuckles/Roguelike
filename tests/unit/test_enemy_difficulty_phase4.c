@@ -7,8 +7,8 @@
  */
 #include <stdio.h>
 #include <math.h>
-#include "core/enemy_adaptive.h"
-#include "core/enemy_difficulty_scaling.h"
+#include "core/enemy/enemy_adaptive.h"
+#include "core/enemy/enemy_difficulty_scaling.h"
 
 static int approx(float a,float b,float eps){ float d=a-b; if(d<0) d=-d; return d<=eps; }
 

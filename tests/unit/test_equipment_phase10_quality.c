@@ -2,8 +2,8 @@
 #define SDL_MAIN_HANDLED 1
 #include <assert.h>
 #include <stdio.h>
-#include "core/loot_instances.h"
-#include "core/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
+#include "core/loot/loot_item_defs.h"
 
 int rogue_minimap_ping_loot(float x,float y,int r){ (void)x;(void)y;(void)r; return 0; }
 void rogue_stat_cache_mark_dirty(void){}

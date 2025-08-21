@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
-#include "core/loot_item_defs_sort.h"
-#include "core/loot_item_defs.h"
+#include "core/loot/loot_item_defs_sort.h"
+#include "core/loot/loot_item_defs.h"
 
 int main(void){
     const char* in="./temp_items_unsorted.cfg"; const char* out="./temp_items_sorted.cfg";

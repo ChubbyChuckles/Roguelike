@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <assert.h>
-#include "core/progression_mastery.h"
+#include "core/progression/progression_mastery.h"
 
 int main(void){
     if(rogue_progression_mastery_init()<0){ printf("init_fail\n"); return 1; }

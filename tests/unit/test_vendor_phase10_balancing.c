@@ -1,6 +1,6 @@
-#include "core/vendor_econ_balance.h"
-#include "core/vendor_pricing.h"
-#include "core/vendor_registry.h"
+#include "core/vendor/vendor_econ_balance.h"
+#include "core/vendor/vendor_pricing.h"
+#include "core/vendor/vendor_registry.h"
 #include <assert.h>
 #include <stdio.h>
 

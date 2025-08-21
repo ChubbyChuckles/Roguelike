@@ -1,12 +1,12 @@
 /* Tests for advanced generation API (8.1, partial 8.3, 8.5) */
-#include "core/loot_generation.h"
+#include "core/loot/loot_generation.h"
 #include "core/app_state.h"
 #include "entities/player.h"
-#include "core/loot_item_defs.h"
-#include "core/loot_tables.h"
-#include "core/loot_instances.h"
-#include "core/loot_affixes.h"
-#include "core/loot_rarity_adv.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_tables.h"
+#include "core/loot/loot_instances.h"
+#include "core/loot/loot_affixes.h"
+#include "core/loot/loot_rarity_adv.h"
 #include "core/path_utils.h"
 #include <stdio.h>
 #include <assert.h>

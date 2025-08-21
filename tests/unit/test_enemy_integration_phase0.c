@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include "core/enemy_integration.h"
-#include "core/enemy_difficulty_scaling.h"
+#include "core/enemy/enemy_integration.h"
+#include "core/enemy/enemy_difficulty_scaling.h"
 #include "entities/enemy.h"
 #include "core/app_state.h"
 

@@ -1,5 +1,5 @@
-#include "core/loot_rarity_adv.h"
-#include "core/loot_instances.h"
+#include "core/loot/loot_rarity_adv.h"
+#include "core/loot/loot_instances.h"
 #include "core/loot_pickup.h"
 #include "core/app_state.h"
 #include <stdio.h>

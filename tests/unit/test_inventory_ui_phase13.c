@@ -1,6 +1,6 @@
 #include "core/inventory_ui.h"
 #include "core/inventory.h"
-#include "core/loot_item_defs.h"
+#include "core/loot/loot_item_defs.h"
 #include "core/path_utils.h"
 #include <stdio.h>
 #include <string.h>

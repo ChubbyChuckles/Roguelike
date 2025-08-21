@@ -3,10 +3,10 @@
 */
 #include <assert.h>
 #include <stdio.h>
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
-#include "core/equipment.h"
-#include "core/equipment_stats.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
+#include "core/equipment/equipment.h"
+#include "core/equipment/equipment_stats.h"
 #include "core/stat_cache.h"
 #include "entities/player.h"
 

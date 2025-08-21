@@ -6,7 +6,7 @@
 #endif
 #include <stdio.h>
 #include "core/persistence.h"
-#include "core/progression_xp.h"
+#include "core/progression/progression_xp.h"
 
 void rogue_player_progress_update(double dt_seconds){
     float raw_dt_ms = (float)dt_seconds * 1000.0f;

@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "core/equipment_budget_analyzer.h"
-#include "core/loot_instances.h"
-#include "core/equipment_content.h"
+#include "core/equipment/equipment_budget_analyzer.h"
+#include "core/loot/loot_instances.h"
+#include "core/equipment/equipment_content.h"
 
 static void assert_true(int cond, const char* msg){ if(!cond){ printf("FAIL:%s\n", msg); exit(1);} }
 

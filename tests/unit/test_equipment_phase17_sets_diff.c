@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "core/equipment_modding.h"
-#include "core/equipment_content.h"
+#include "core/equipment/equipment_modding.h"
+#include "core/equipment/equipment_content.h"
 
 static int write_file(const char* path, const char* text){ FILE* f=NULL; 
 #if defined(_MSC_VER)

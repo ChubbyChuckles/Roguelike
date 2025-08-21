@@ -27,7 +27,7 @@ SOFTWARE.
 #include <assert.h>
 #include <string.h>
 #include <stdbool.h>
-#include "core/integration_manager.h"
+#include "core/integration/integration_manager.h"
 
 /* Test system data structures */
 typedef struct {

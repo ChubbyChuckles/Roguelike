@@ -1,9 +1,9 @@
 /* Equipment System Phase 1 Slot Expansion Tests */
 #include <assert.h>
-#include "core/equipment.h"
+#include "core/equipment/equipment.h"
 #include "core/stat_cache.h"
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
 
 static void reset(){ rogue_equip_reset(); }
 

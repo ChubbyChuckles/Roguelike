@@ -1,5 +1,5 @@
-#include "core/salvage.h"
-#include "core/loot_item_defs.h"
+#include "core/vendor/salvage.h"
+#include "core/loot/loot_item_defs.h"
 #include "core/path_utils.h"
 #include "core/inventory.h"
 #include <stdio.h>

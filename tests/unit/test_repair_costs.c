@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <assert.h>
-#include "core/equipment.h"
-#include "core/economy.h"
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
+#include "core/equipment/equipment.h"
+#include "core/vendor/economy.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
 #include "core/path_utils.h"
 
 int main(){

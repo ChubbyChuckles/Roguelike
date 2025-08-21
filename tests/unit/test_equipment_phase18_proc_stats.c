@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "core/equipment_procs.h"
+#include "core/equipment/equipment_procs.h"
 
 static int nearly_equal_int(int a, int b, int tol){ return (a>=b? (a-b):(b-a)) <= tol; }
 

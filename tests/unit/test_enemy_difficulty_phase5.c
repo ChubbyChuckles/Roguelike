@@ -6,7 +6,7 @@
 #include <math.h>
 #include <string.h>
 #include "entities/enemy.h"
-#include "core/enemy_ai_intensity.h"
+#include "core/enemy/enemy_ai_intensity.h"
 #include "core/app_state.h"
 
 /* Minimal stub enemy for logic test (no world/app dependency for score math) */

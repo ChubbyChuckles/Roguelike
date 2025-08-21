@@ -1,9 +1,9 @@
 /* Phase 18.1: Golden master snapshot export & compare test */
 #include <stdio.h>
 #include <string.h>
-#include "core/equipment_persist.h"
+#include "core/equipment/equipment_persist.h"
 #include "core/stat_cache.h"
-#include "core/equipment.h"
+#include "core/equipment/equipment.h"
 
 static void fail(const char* m){ printf("FAIL:%s\n", m); fflush(stdout); exit(1);} 
 static void ck(int c,const char* m){ if(!c) fail(m); }

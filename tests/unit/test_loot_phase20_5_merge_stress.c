@@ -5,9 +5,9 @@
  */
 #include <stdio.h>
 #include <assert.h>
-#include "core/loot_item_defs.h"
-#include "core/loot_tables.h"
-#include "core/loot_instances.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_tables.h"
+#include "core/loot/loot_instances.h"
 #include "core/path_utils.h"
 #include "core/app_state.h"
 

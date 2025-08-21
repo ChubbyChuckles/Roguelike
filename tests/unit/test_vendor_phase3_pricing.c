@@ -1,9 +1,9 @@
 /* Vendor System Phase 3.1–3.5 Pricing Engine Tests
    Validates pipeline ordering, determinism, floor/ceiling, demand response, and reputation/negotiation effects.
 */
-#include "core/vendor_pricing.h"
-#include "core/vendor_registry.h"
-#include "core/loot_item_defs.h"
+#include "core/vendor/vendor_pricing.h"
+#include "core/vendor/vendor_registry.h"
+#include "core/loot/loot_item_defs.h"
 #include <stdio.h>
 #include <string.h>
 

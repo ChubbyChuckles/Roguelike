@@ -1,6 +1,6 @@
 #include "core/app_state.h"
-#include "core/vegetation.h"
-#include "core/enemy_system.h"
+#include "core/vegetation/vegetation.h"
+#include "core/enemy/enemy_system.h"
 #include "core/collision.h"
 #include "entities/enemy.h"
 #include "entities/player.h"

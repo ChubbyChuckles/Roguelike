@@ -1,6 +1,6 @@
 #include "core/save_manager.h"
 #include "core/app_state.h"
-#include "core/loot_instances.h"
+#include "core/loot/loot_instances.h"
 #include <stdio.h>
 #include <string.h>
 

@@ -1,8 +1,8 @@
 /* Crafting & Gathering Phase 0–1 Tests
  * Validates material registry parsing, duplicate rejection, lookup APIs, deterministic ordering, and seed mixing.
  */
-#include "core/material_registry.h"
-#include "core/loot_item_defs.h"
+#include "core/crafting/material_registry.h"
+#include "core/loot/loot_item_defs.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>

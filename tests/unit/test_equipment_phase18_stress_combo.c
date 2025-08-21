@@ -12,13 +12,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "core/equipment.h"
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
-#include "core/equipment_content.h"
-#include "core/equipment_gems.h"
+#include "core/equipment/equipment.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
+#include "core/equipment/equipment_content.h"
+#include "core/equipment/equipment_gems.h"
 #include "core/stat_cache.h"
-#include "core/equipment_stats.h"
+#include "core/equipment/equipment_stats.h"
 #include "entities/player.h"
 
 extern int rogue_items_spawn(int def_index,int quantity,float x,float y);

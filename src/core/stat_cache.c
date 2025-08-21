@@ -2,16 +2,16 @@
 #include "core/stat_cache.h"
 #include <stdio.h>
 #include <string.h>
-#include "core/equipment.h"
-#include "core/loot_instances.h"
-#include "core/loot_affixes.h"
-#include "core/equipment_stats.h"
-#include "core/loot_item_defs.h"
-#include "core/progression_ratings.h"
+#include "core/equipment/equipment.h"
+#include "core/loot/loot_instances.h"
+#include "core/loot/loot_affixes.h"
+#include "core/equipment/equipment_stats.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/progression/progression_ratings.h"
 #include <string.h>
 #include <stddef.h>
-#include "core/progression_passives.h"
-#include "core/progression_stats.h"
+#include "core/progression/progression_passives.h"
+#include "core/progression/progression_stats.h"
 
 /* Forward buff query (Phase 10) */
 int rogue_buffs_strength_bonus(void);

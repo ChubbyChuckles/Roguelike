@@ -1,5 +1,5 @@
-#include "core/crafting_economy.h"
-#include "core/crafting.h"
+#include "core/crafting/crafting_economy.h"
+#include "core/crafting/crafting.h"
 #include "core/inventory.h"
 #include <stdio.h>
 #include <assert.h>

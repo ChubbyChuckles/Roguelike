@@ -1,9 +1,9 @@
 /* Equipment Phase 3.1/3.2/3.4 item_level + budget governance tests */
 #include <assert.h>
 #include <stdio.h>
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
-#include "core/loot_affixes.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
+#include "core/loot/loot_affixes.h"
 #include "core/app_state.h"
 
 RogueAppState g_app; RoguePlayer g_exposed_player_for_stats; void rogue_player_recalc_derived(RoguePlayer* p){(void)p;}

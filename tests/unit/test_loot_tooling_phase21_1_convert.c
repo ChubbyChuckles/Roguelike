@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
-#include "core/loot_item_defs_convert.h"
-#include "core/loot_item_defs.h"
+#include "core/loot/loot_item_defs_convert.h"
+#include "core/loot/loot_item_defs.h"
 
 int main(void){
     const char* tsv="temp_items.tsv"; const char* csv="temp_items_converted.csv";

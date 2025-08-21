@@ -1,4 +1,4 @@
-#include "core/rng_streams.h"
+#include "core/crafting/rng_streams.h"
 #include "core/crafting_journal.h"
 #include <stdio.h>
 #include <assert.h>

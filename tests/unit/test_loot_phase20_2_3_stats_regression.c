@@ -10,12 +10,12 @@
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
-#include "core/loot_tables.h"
-#include "core/loot_item_defs.h"
+#include "core/loot/loot_tables.h"
+#include "core/loot/loot_item_defs.h"
 #include "core/path_utils.h"
 #include "core/loot_dynamic_weights.h"
 #include "core/loot_drop_rates.h"
-#include "core/loot_rarity_adv.h"
+#include "core/loot/loot_rarity_adv.h"
 
 static int nearly_eq(float a, float b, float tol){ return fabsf(a-b) <= tol; }
 

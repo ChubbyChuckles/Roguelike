@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "core/loot_rebalance.h"
+#include "core/loot/loot_rebalance.h"
 
 int main(void){
     int current[5] = {100,50,25,10,5};

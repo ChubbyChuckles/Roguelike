@@ -1,7 +1,7 @@
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
-#include "core/loot_affixes.h"
-#include "core/equipment_enhance.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
+#include "core/loot/loot_affixes.h"
+#include "core/equipment/equipment_enhance.h"
 #include <stdio.h>
 #include <string.h>
 

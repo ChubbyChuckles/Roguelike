@@ -1,8 +1,8 @@
 #include "core/world_renderer.h"
 #include "core/app_state.h"
-#include "core/loot_instances.h"
+#include "core/loot/loot_instances.h"
 #include "graphics/tile_sprites.h"
-#include "core/loot_rarity.h"
+#include "core/loot/loot_rarity.h"
 #include "graphics/sprite.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>

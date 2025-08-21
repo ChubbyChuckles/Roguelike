@@ -1,5 +1,5 @@
-#include "core/gathering.h"
-#include "core/material_registry.h"
+#include "core/crafting/gathering.h"
+#include "core/crafting/material_registry.h"
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>

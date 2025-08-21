@@ -1,7 +1,7 @@
-#include "core/vendor_sinks.h"
-#include "core/material_registry.h"
-#include "core/loot_instances.h"
-#include "core/loot_item_defs.h"
+#include "core/vendor/vendor_sinks.h"
+#include "core/crafting/material_registry.h"
+#include "core/loot/loot_instances.h"
+#include "core/loot/loot_item_defs.h"
 #include <assert.h>
 #include <stdio.h>
 

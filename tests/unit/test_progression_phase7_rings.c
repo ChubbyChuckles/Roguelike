@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "core/progression_maze.h"
-#include "core/progression_passives.h"
-#include "core/progression_mastery.h"
+#include "core/progression/progression_maze.h"
+#include "core/progression/progression_passives.h"
+#include "core/progression/progression_mastery.h"
 
 /* Phase 7 initial scaffold test: ring expansion milestones & keystone heuristic */
 int main(void){

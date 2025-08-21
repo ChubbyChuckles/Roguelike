@@ -1,10 +1,10 @@
-#include "core/equipment_gems.h"
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
-#include "core/equipment_stats.h"
-#include "core/equipment.h"
+#include "core/equipment/equipment_gems.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
+#include "core/equipment/equipment_stats.h"
+#include "core/equipment/equipment.h"
 #include "core/stat_cache.h"
-#include "core/economy.h"
+#include "core/vendor/economy.h"
 #include <assert.h>
 #include <stdio.h>
 

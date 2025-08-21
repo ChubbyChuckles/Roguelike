@@ -1,5 +1,5 @@
 /* Tests procedural stat roll for affix values (7.4) */
-#include "core/loot_affixes.h"
+#include "core/loot/loot_affixes.h"
 #include "core/path_utils.h"
 #include <stdio.h>
 

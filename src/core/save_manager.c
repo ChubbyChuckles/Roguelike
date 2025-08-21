@@ -3,8 +3,8 @@
 #include "core/app_state.h"
 #include "core/skills.h"
 #include "core/buffs.h"
-#include "core/loot_instances.h"
-#include "core/vendor.h"
+#include "core/loot/loot_instances.h"
+#include "core/vendor/vendor.h"
 #include "world/tilemap.h"
 #include <stdio.h>
 #include <string.h>
@@ -17,11 +17,11 @@
 #else
 #include <unistd.h>
 #endif
-#include "equipment.h"
-#include "core/inventory_entries.h" /* Phase 1.6 inventory entries persistence */
+#include "core/equipment/equipment.h"
+#include "core/inventory/inventory_entries.h" /* Phase 1.6 inventory entries persistence */
 #include "core/inventory_tag_rules.h" /* Phase 3.3 auto-tag rules persistence */
 #include "core/inventory_tags.h" /* Phase 3 inventory metadata */
-#include "core/inventory_query.h" /* Phase 4.4 saved searches persistence */
+#include "core/inventory/inventory_query.h" /* Phase 4.4 saved searches persistence */
 
 static RogueSaveComponent g_components[ROGUE_SAVE_MAX_COMPONENTS];
 static int g_component_count = 0;

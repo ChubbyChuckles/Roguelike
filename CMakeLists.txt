@@ -78,11 +78,11 @@ add_library(rogue_core
     src/core/game_loop.c
     src/core/minimap.c
     src/core/minimap_loot_pings.c
-    src/core/loot_tooltip.c
+    src/core/loot/loot_tooltip.c
     src/core/player_controller.c
     src/core/input_events.c
     src/core/player_render.c
-    src/core/enemy_render.c
+    src/core/enemy/enemy_render.c
     src/core/hud.c
     src/core/hud_layout.c
     src/core/hud_bars.c
@@ -94,15 +94,16 @@ add_library(rogue_core
     src/core/world_renderer.c
     src/core/animation_system.c
     # Integration plumbing
-    src/core/integration_manager.c
-    src/core/system_taxonomy.c
-    src/core/event_bus.c
-    src/core/json_schema.c
+    src/core/integration/integration_manager.c
+    src/core/integration/system_taxonomy.c
+    src/core/integration/event_bus.c
+    src/core/integration/json_schema.c
     src/core/json_parser.c
     src/core/cfg_parser.c
-    src/core/cfg_migration.c
-    src/core/hot_reload.c
-    src/core/dependency_manager.c
+    src/core/integration/cfg_migration.c
+    src/core/integration/hot_reload.c
+    src/core/integration/dependency_manager.c
+    src/core/project_restructure.c
     # persistence module split
     src/core/persistence_io.c
     src/core/persistence_world.c
@@ -162,7 +163,7 @@ add_library(rogue_core
     src/graphics/font.c
     src/entities/player.c
     src/entities/enemy.c
-    src/core/enemy_integration.c
+    src/core/enemy/enemy_integration.c
     src/game/combat_events.c
     # maintainability phase M2: damage observer dispatch layer
     src/game/combat_observer.c
@@ -178,11 +179,11 @@ add_library(rogue_core
     src/game/damage_numbers.c
     src/game/weapons.c
     src/game/armor.c
-    src/core/enemy_system.c
-    src/core/enemy_system_spawn.c
-    src/core/enemy_system_ai.c
-    src/core/enemy_ai_bt.c
-    src/core/enemy_ai_intensity.c
+    src/core/enemy/enemy_system.c
+    src/core/enemy/enemy_system_spawn.c
+    src/core/enemy/enemy_system_ai.c
+    src/core/enemy/enemy_ai_bt.c
+    src/core/enemy/enemy_ai_intensity.c
     # AI Phase 1 scaffolding
     src/ai/core/behavior_tree.c
     src/ai/core/blackboard.c
@@ -192,100 +193,100 @@ add_library(rogue_core
     src/core/start_screen.c
     src/core/player_assets.c
     src/util/log.c
-    src/core/vegetation_defs.c
-    src/core/vegetation_generate.c
-    src/core/vegetation_render.c
-    src/core/vegetation_collision.c
+    src/core/vegetation/vegetation_defs.c
+    src/core/vegetation/vegetation_generate.c
+    src/core/vegetation/vegetation_render.c
+    src/core/vegetation/vegetation_collision.c
     src/core/scene_drawlist.c
-    src/core/loot_item_defs.c
-    src/core/loot_item_defs_convert.c
-    src/core/loot_rebalance.c
-    src/core/loot_item_defs_sort.c
-    src/core/loot_tables.c
-    src/core/loot_instances.c
+    src/core/loot/loot_item_defs.c
+    src/core/loot/loot_item_defs_convert.c
+    src/core/loot/loot_rebalance.c
+    src/core/loot/loot_item_defs_sort.c
+    src/core/loot/loot_tables.c
+    src/core/loot/loot_instances.c
     src/core/inventory.c
-    src/core/inventory_entries.c
+    src/core/inventory/inventory_entries.c
     src/core/inventory_ui.c
     src/core/inventory_tags.c
-    src/core/loot_pickup.c
-    src/core/loot_multiplayer.c
-    src/core/loot_logging.c
-    src/core/loot_affixes.c
-    src/core/loot_filter.c
+    src/core/loot/loot_pickup.c
+    src/core/loot/loot_multiplayer.c
+    src/core/loot/loot_logging.c
+    src/core/loot/loot_affixes.c
+    src/core/loot/loot_filter.c
     src/core/path_utils.c
-    src/core/loot_rarity.c
-        src/core/loot_perf.c
-    src/core/loot_analytics.c
-        src/core/loot_vfx.c
-    src/core/loot_stats.c
-    src/core/loot_dynamic_weights.c
-    src/core/loot_console.c
-    src/core/loot_rarity_adv.c
-    src/core/loot_generation.c
-    src/core/loot_generation_affix.c
-    src/core/loot_drop_rates.c
-    src/core/loot_adaptive.c
-    src/core/loot_commands.c
-    src/core/vendor.c
-    src/core/econ_value.c
-    src/core/econ_materials.c
-    src/core/econ_inflow_sim.c
-    src/core/vendor_registry.c
-    src/core/vendor_inventory_templates.c
-    src/core/vendor_pricing.c
-    src/core/vendor_adaptive.c
-    src/core/vendor_econ_balance.c
-    src/core/vendor_perf.c
-    src/core/vendor_reputation.c
-    src/core/vendor_buyback.c
-    src/core/vendor_tx_journal.c
-    src/core/vendor_special_offers.c
-    src/core/vendor_rng.c
-    src/core/vendor_sinks.c
-    src/core/vendor_crafting_integration.c
-    src/core/economy.c
-    src/core/salvage.c
-    src/core/material_registry.c
-    src/core/material_refine.c
+    src/core/loot/loot_rarity.c
+        src/core/loot/loot_perf.c
+    src/core/loot/loot_analytics.c
+        src/core/loot/loot_vfx.c
+    src/core/loot/loot_stats.c
+    src/core/loot/loot_dynamic_weights.c
+    src/core/loot/loot_console.c
+    src/core/loot/loot_rarity_adv.c
+    src/core/loot/loot_generation.c
+    src/core/loot/loot_generation_affix.c
+    src/core/loot/loot_drop_rates.c
+    src/core/loot/loot_adaptive.c
+    src/core/loot/loot_commands.c
+    src/core/vendor/vendor.c
+    src/core/vendor/econ_value.c
+    src/core/vendor/econ_materials.c
+    src/core/vendor/econ_inflow_sim.c
+    src/core/vendor/vendor_registry.c
+    src/core/vendor/vendor_inventory_templates.c
+    src/core/vendor/vendor_pricing.c
+    src/core/vendor/vendor_adaptive.c
+    src/core/vendor/vendor_econ_balance.c
+    src/core/vendor/vendor_perf.c
+    src/core/vendor/vendor_reputation.c
+    src/core/vendor/vendor_buyback.c
+    src/core/vendor/vendor_tx_journal.c
+    src/core/vendor/vendor_special_offers.c
+    src/core/vendor/vendor_rng.c
+    src/core/vendor/vendor_sinks.c
+    src/core/vendor/vendor_crafting_integration.c
+    src/core/vendor/economy.c
+    src/core/vendor/salvage.c
+    src/core/crafting/material_registry.c
+    src/core/crafting/material_refine.c
     # Phase 7 determinism governance new modules
-    src/core/rng_streams.c
-    src/core/crafting_journal.c
-    src/core/gathering.c
-    src/core/crafting.c
-    src/core/crafting_queue.c
-    src/core/crafting_skill.c
-    src/core/equipment_enhance.c
-    src/core/equipment.c
-    src/core/equipment_stats.c
-    src/core/equipment_gems.c
-    src/core/equipment_uniques.c
-        src/core/equipment_enchant.c
-        src/core/equipment_procs.c
-        src/core/equipment_integrity.c
-    src/core/equipment_content.c
-    src/core/equipment_balance.c
-    src/core/equipment_ui.c
-    src/core/equipment_persist.c
-    src/core/equipment_fuzz.c
+    src/core/crafting/rng_streams.c
+    src/core/crafting/crafting_journal.c
+    src/core/crafting/gathering.c
+    src/core/crafting/crafting.c
+    src/core/crafting/crafting_queue.c
+    src/core/crafting/crafting_skill.c
+    src/core/equipment/equipment_enhance.c
+    src/core/equipment/equipment.c
+    src/core/equipment/equipment_stats.c
+    src/core/equipment/equipment_gems.c
+    src/core/equipment/equipment_uniques.c
+        src/core/equipment/equipment_enchant.c
+        src/core/equipment/equipment_procs.c
+        src/core/equipment/equipment_integrity.c
+    src/core/equipment/equipment_content.c
+    src/core/equipment/equipment_balance.c
+    src/core/equipment/equipment_ui.c
+    src/core/equipment/equipment_persist.c
+    src/core/equipment/equipment_fuzz.c
     src/core/loadout_optimizer.c
     src/core/durability.c
-    src/core/vendor_ui.c
+    src/core/vendor/vendor_ui.c
     src/core/skill_graph_runtime.c
     src/core/skill_graph_assignment.c
     src/core/skill_maze.c
     src/core/stat_cache.c
-    src/core/progression_stats.c
-    src/core/progression_xp.c
-    src/core/progression_attributes.c
+    src/core/progression/progression_stats.c
+    src/core/progression/progression_xp.c
+    src/core/progression/progression_attributes.c
     # progression phase 3 ratings & diminishing returns module
-    src/core/progression_ratings.c
+    src/core/progression/progression_ratings.c
     # progression phase 4 maze skill graph framework wrapper
-    src/core/progression_maze.c
-    src/core/progression_passives.c
-    src/core/progression_mastery.c
-    src/core/progression_perpetual.c
-    src/core/progression_synergy.c
-    src/core/progression_persist.c
+    src/core/progression/progression_maze.c
+    src/core/progression/progression_passives.c
+    src/core/progression/progression_mastery.c
+    src/core/progression/progression_perpetual.c
+    src/core/progression/progression_synergy.c
+    src/core/progression/progression_persist.c
     src/core/dialogue.c
     # UI Phase 1 scaffolding
     src/ui/core/ui_context.c
@@ -302,32 +303,32 @@ add_library(rogue_core
     src/util/determinism.c
     src/util/file_search.c
     src/game/hitbox.c
-        src/core/equipment_budget_analyzer.c
-        src/core/equipment_schema_docs.c
+        src/core/equipment/equipment_budget_analyzer.c
+        src/core/equipment/equipment_schema_docs.c
     src/game/hitbox_load.c
         src/game/lock_on.c
         src/game/infusions.c
-        src/core/loot_security.c
-    src/core/loot_api_doc.c
-    src/core/equipment_perf.c
-    src/core/equipment_modding.c
+        src/core/loot/loot_security.c
+    src/core/loot/loot_api_doc.c
+    src/core/equipment/equipment_perf.c
+    src/core/equipment/equipment_modding.c
     src/core/inventory_tag_rules.c
-    src/core/inventory_query.c
+    src/core/inventory/inventory_query.c
     src/game/hit_system.c
     src/game/hit_pixel_mask.c
     src/game/hit_feedback.c
     src/game/weapon_pose.c
     src/game/hit_debug_overlay.c
-    src/core/enemy_difficulty.c
-    src/core/enemy_difficulty_scaling.c
-    src/core/enemy_adaptive.c
-    src/core/enemy_modifiers.c
-    src/core/encounter_composer.c
+    src/core/enemy/enemy_difficulty.c
+    src/core/enemy/enemy_difficulty_scaling.c
+    src/core/enemy/enemy_adaptive.c
+    src/core/enemy/enemy_modifiers.c
+    src/core/enemy/encounter_composer.c
     # Crafting Phase 8 UI layer
     src/ui/crafting_ui.c
-    src/core/crafting_automation.c
-    src/core/crafting_economy.c
-        src/core/crafting_analytics.c
+    src/core/crafting/crafting_automation.c
+    src/core/crafting/crafting_economy.c
+        src/core/crafting/crafting_analytics.c
 )
 
 target_include_directories(rogue_core PUBLIC
@@ -442,3 +443,52 @@ endif()
 
 # Skill icon PNGs are loaded at runtime from assets/ by skill tree; ensure install step (if any) copies *.png
 # (Assumes assets directory already handled elsewhere.)
+
+# Project restructuring tool
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/restructure_project.c)
+    add_executable(restructure_project tools/restructure_project.c)
+    target_link_libraries(restructure_project PRIVATE rogue_core)
+    target_include_directories(restructure_project PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    
+    add_custom_target(restructure
+        COMMAND $<TARGET_FILE:restructure_project>
+        DEPENDS restructure_project
+        COMMENT "Running project restructuring tool"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+endif()
+
+# Project restructuring execution tool
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/execute_restructure.c)
+    add_executable(execute_restructure tools/execute_restructure.c)
+    target_link_libraries(execute_restructure PRIVATE rogue_core)
+    target_include_directories(execute_restructure PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    
+    add_custom_target(execute_project_restructure
+        COMMAND $<TARGET_FILE:execute_restructure>
+        DEPENDS execute_restructure
+        COMMENT "Executing project restructuring"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+endif()
+
+# Actual file moving tool
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/actually_move_files.c)
+    add_executable(actually_move_files tools/actually_move_files.c)
+    target_link_libraries(actually_move_files PRIVATE rogue_core)
+    target_include_directories(actually_move_files PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    
+    add_custom_target(move_files_now
+        COMMAND $<TARGET_FILE:actually_move_files>
+        DEPENDS actually_move_files
+        COMMENT "Actually moving project files"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+endif()
+
+# Structure analysis tool  
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/analyze_structure.c)
+    add_executable(analyze_structure tools/analyze_structure.c)
+    target_link_libraries(analyze_structure PRIVATE rogue_core)
+    target_include_directories(analyze_structure PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+endif()

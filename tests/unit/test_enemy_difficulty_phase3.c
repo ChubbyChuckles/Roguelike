@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "core/encounter_composer.h"
+#include "core/enemy/encounter_composer.h"
 
 static const char* kEncFile = "encounters.cfg"; /* tests run in build dir */
 

@@ -4,11 +4,11 @@
 #include <stdio.h>
 #include <string.h>
 #include "core/loadout_optimizer.h"
-#include "core/loot_instances.h"
-#include "core/loot_item_defs.h"
-#include "core/equipment.h"
+#include "core/loot/loot_instances.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/equipment/equipment.h"
 #include "core/stat_cache.h"
-#include "core/equipment_stats.h"
+#include "core/equipment/equipment_stats.h"
 #include "core/app_state.h"
 
 /* Provide required player symbol for stat cache recomputation */

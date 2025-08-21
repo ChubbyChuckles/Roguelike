@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "core/equipment_balance.h"
+#include "core/equipment/equipment_balance.h"
 
 static void test_proc_oversaturation(void){
     rogue_equipment_analytics_reset();

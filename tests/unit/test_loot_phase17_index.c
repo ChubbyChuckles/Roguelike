@@ -1,5 +1,5 @@
 /* Phase 17.4 cache-friendly item def index tests */
-#include "core/loot_item_defs.h"
+#include "core/loot/loot_item_defs.h"
 #include <stdio.h>
 #include <string.h>
 

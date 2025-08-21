@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "core/loot_item_defs.h"
+#include "core/loot/loot_item_defs.h"
 
 /* Simple test creating an in-memory temp file to validate malformed detection.
    We simulate by writing a small temporary file with good + bad lines. */

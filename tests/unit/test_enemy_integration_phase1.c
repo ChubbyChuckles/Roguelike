@@ -3,8 +3,8 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "core/enemy_integration.h"
-#include "core/encounter_composer.h"
+#include "core/enemy/enemy_integration.h"
+#include "core/enemy/encounter_composer.h"
 #include "core/app_state.h"
 
 static void write_encounters_file(void){

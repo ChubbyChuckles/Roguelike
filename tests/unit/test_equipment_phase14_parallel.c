@@ -4,13 +4,13 @@
 #include <stdio.h>
 #include <string.h>
 #include "core/loadout_optimizer.h"
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
-#include "core/equipment.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
+#include "core/equipment/equipment.h"
 #include "core/stat_cache.h"
-#include "core/equipment_stats.h"
+#include "core/equipment/equipment_stats.h"
 #include "core/app_state.h"
-#include "core/equipment_perf.h"
+#include "core/equipment/equipment_perf.h"
 
 RoguePlayer g_exposed_player_for_stats = {0};
 int rogue_item_defs_load_from_cfg(const char* path);

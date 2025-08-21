@@ -2,7 +2,7 @@
  * Directly manipulates the flag because SDL events aren't dispatched in headless unit tests.
  */
 #include "core/app_state.h"
-#include "core/vendor_ui.h"
+#include "core/vendor/vendor_ui.h"
 #include <stdio.h>
 
 int main(void){

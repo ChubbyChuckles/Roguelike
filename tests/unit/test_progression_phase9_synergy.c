@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "core/progression_synergy.h"
+#include "core/progression/progression_synergy.h"
 
 static int test_layered_damage(void){
     float base=100.f; float dmg = rogue_progression_layered_damage(base,25.f,10.f,5.f,2.f); /* (1.25*1.10*1.05*1.02)=~1.4786 */

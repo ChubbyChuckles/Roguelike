@@ -1,4 +1,4 @@
-#include "core/vegetation.h"
+#include "core/vegetation/vegetation.h"
 #include "core/app_state.h"
 #include <stdio.h>
 

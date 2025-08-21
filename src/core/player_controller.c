@@ -1,7 +1,7 @@
 #include "core/player_controller.h"
 #include "world/tilemap.h"
 #include "input/input.h"
-#include "core/vegetation.h"
+#include "core/vegetation/vegetation.h"
 
 static int pc_tile_block(unsigned char t){
     switch(t){

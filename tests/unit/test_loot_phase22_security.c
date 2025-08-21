@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "core/loot_security.h"
+#include "core/loot/loot_security.h"
 
 static int expect(int cond, const char* msg){ if(!cond){ fprintf(stderr,"FAIL %s\n", msg); return 0;} return 1; }
 

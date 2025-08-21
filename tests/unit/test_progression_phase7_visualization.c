@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "core/progression_maze.h"
+#include "core/progression/progression_maze.h"
 
 /* Phase 7.4 visualization layering test */
 int main(void){

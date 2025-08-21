@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include "core/equipment_content.h"
+#include "core/equipment/equipment_content.h"
 
 static void expect_fail(const char* pattern){
     int rc = rogue_runeword_validate_pattern(pattern);

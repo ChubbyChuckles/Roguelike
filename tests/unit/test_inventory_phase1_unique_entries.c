@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "core/inventory_entries.h"
+#include "core/inventory/inventory_entries.h"
 
 static void test_basic_addition(){
     rogue_inventory_entries_init();

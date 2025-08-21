@@ -1,5 +1,5 @@
-#include "core/vendor_buyback.h"
-#include "core/vendor_tx_journal.h"
+#include "core/vendor/vendor_buyback.h"
+#include "core/vendor/vendor_tx_journal.h"
 #include <stdio.h>
 #include <assert.h>
 

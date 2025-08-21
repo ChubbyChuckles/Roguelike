@@ -1,9 +1,9 @@
 #include "core/inventory_ui.h"
 #include "core/inventory.h"
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
-#include "core/equipment.h"
-#include "core/salvage.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
+#include "core/equipment/equipment.h"
+#include "core/vendor/salvage.h"
 #include "core/inventory_tags.h" /* lock/favorite enforcement */
 #include "core/app_state.h"
 #include <string.h>

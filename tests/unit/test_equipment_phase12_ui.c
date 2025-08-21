@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "core/equipment_ui.h"
+#include "core/equipment/equipment_ui.h"
 
 /* Provide minimal stubs for dependencies so the tooltip functions can operate without full engine context. */
 int rogue_minimap_ping_loot(float x,float y,int r){(void)x;(void)y;(void)r;return 0;}

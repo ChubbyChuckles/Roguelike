@@ -3,7 +3,7 @@
 #include "core/app_state.h"
 #include "core/game_loop.h"
 #include "core/metrics.h"
-#include "core/loot_rarity_adv.h"
+#include "core/loot/loot_rarity_adv.h"
 
 static double now_seconds(void) { return (double) clock() / (double) CLOCKS_PER_SEC; }
 

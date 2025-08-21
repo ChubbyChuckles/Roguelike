@@ -1,7 +1,7 @@
 #include "core/save_manager.h"
-#include "core/vendor.h"
-#include "core/loot_item_defs.h"
-#include "core/loot_tables.h"
+#include "core/vendor/vendor.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_tables.h"
 #include "core/path_utils.h"
 #include "core/loot_drop_rates.h"
 #include <stdio.h>

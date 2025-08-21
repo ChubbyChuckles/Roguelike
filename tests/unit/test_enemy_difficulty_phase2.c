@@ -2,7 +2,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "core/enemy_difficulty.h"
+#include "core/enemy/enemy_difficulty.h"
 #include "core/enemy_modifiers.h"
 
 /* Minimal synthetic modifier config for tests */

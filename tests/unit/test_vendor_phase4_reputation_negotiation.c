@@ -1,7 +1,7 @@
 /* Vendor System Phase 4.1–4.5 Tests */
-#include "core/vendor_reputation.h"
-#include "core/vendor_registry.h"
-#include "core/loot_item_defs.h"
+#include "core/vendor/vendor_reputation.h"
+#include "core/vendor/vendor_registry.h"
+#include "core/loot/loot_item_defs.h"
 #include "core/path_utils.h"
 #include <stdio.h>
 

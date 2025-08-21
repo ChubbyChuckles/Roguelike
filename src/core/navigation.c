@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "core/navigation.h"
 #include "core/app_state.h"
-#include "core/vegetation.h"
+#include "core/vegetation/vegetation.h"
 
 static int tile_block(unsigned char t){
     switch(t){

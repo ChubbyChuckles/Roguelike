@@ -2,10 +2,10 @@
 #include "core/save_manager.h"
 #include "core/app_state.h"
 #include "core/skills.h"
-#include "core/loot_instances.h"
+#include "core/loot/loot_instances.h"
 #include "core/buffs.h"
-#include "core/loot_item_defs.h"
-#include "core/loot_affixes.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_affixes.h"
 #include "core/persistence.h"
 #include <assert.h>
 #include <stdio.h>

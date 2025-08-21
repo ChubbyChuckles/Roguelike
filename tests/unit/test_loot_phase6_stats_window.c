@@ -1,5 +1,5 @@
 /* Test rolling window rarity statistics (6.3) */
-#include "core/loot_stats.h"
+#include "core/loot/loot_stats.h"
 #include <stdio.h>
 
 static int fail(const char* m){ fprintf(stderr,"FAIL:%s\n", m); return 1; }

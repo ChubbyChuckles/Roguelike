@@ -2,10 +2,10 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "core/loot_item_defs.h"
-#include "core/loot_instances.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/loot/loot_instances.h"
 #include "core/durability.h"
-#include "core/equipment.h"
+#include "core/equipment/equipment.h"
 #include "core/app_state.h"
 
 /* Minimal stubs: Only override item defs; reuse real budget + affix functions from core. */

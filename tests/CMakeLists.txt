@@ -54,6 +54,13 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_dependency_manager.c)
     add_test(NAME test_dependency_manager COMMAND test_dependency_manager)
 endif()
 
+# Project Restructuring Test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_project_restructure.c)
+    add_executable(test_project_restructure unit/test_project_restructure.c)
+    target_link_libraries(test_project_restructure PRIVATE rogue_core)
+    add_test(NAME test_project_restructure COMMAND test_project_restructure)
+endif()
+
 # Integration Plumbing Phase 2.2 CFG File Analysis Test (manual run)
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_cfg_file_analysis.c)
     add_executable(test_cfg_file_analysis unit/test_cfg_file_analysis.c)

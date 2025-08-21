@@ -7,7 +7,7 @@
  */
 #include <stdio.h>
 #include <math.h>
-#include "core/enemy_difficulty_scaling.h"
+#include "core/enemy/enemy_difficulty_scaling.h"
 
 static int test_attributes_monotonic(void){
     RogueEnemyDerivedAttributes prev={0};

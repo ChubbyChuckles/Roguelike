@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "core/equipment_content.h"
+#include "core/equipment/equipment_content.h"
 
 static int write_temp_sets(const char* path){
     const char* json = "[\n"

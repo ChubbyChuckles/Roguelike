@@ -1,5 +1,5 @@
-#include "core/vendor_special_offers.h"
-#include "core/loot_item_defs.h"
+#include "core/vendor/vendor_special_offers.h"
+#include "core/loot/loot_item_defs.h"
 #include <assert.h>
 #include <stdio.h>
 

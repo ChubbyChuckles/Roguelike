@@ -7,7 +7,7 @@
  *  - Base budget fetch matches table
  */
 #include <stdio.h>
-#include "core/enemy_difficulty.h"
+#include "core/enemy/enemy_difficulty.h"
 
 /* Forward declare internal validation helpers (not part of public API) */
 int rogue_enemy_difficulty__test_validate_ids(void);

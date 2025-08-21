@@ -1,5 +1,5 @@
-#include "core/economy.h"
-#include "core/vendor.h"
+#include "core/vendor/economy.h"
+#include "core/vendor/vendor.h"
 #include "core/inventory.h"
 #include "core/app_state.h"
 #include <stdio.h>

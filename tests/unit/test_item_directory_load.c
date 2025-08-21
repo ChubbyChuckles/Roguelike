@@ -1,5 +1,5 @@
 /* Test loading multiple category item definition files via directory loader */
-#include "core/loot_item_defs.h"
+#include "core/loot/loot_item_defs.h"
 #include "core/path_utils.h"
 #include <stdio.h>
 

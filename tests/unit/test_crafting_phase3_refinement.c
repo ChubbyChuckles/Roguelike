@@ -1,6 +1,6 @@
-#include "core/material_refine.h"
-#include "core/material_registry.h"
-#include "core/loot_item_defs.h"
+#include "core/crafting/material_refine.h"
+#include "core/crafting/material_registry.h"
+#include "core/loot/loot_item_defs.h"
 #include <stdio.h>
 #include <assert.h>
 

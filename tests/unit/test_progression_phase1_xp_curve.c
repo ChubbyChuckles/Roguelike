@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
-#include "core/progression_xp.h"
+#include "core/progression/progression_xp.h"
 
 static void test_monotonicity(void){
     unsigned int prev = rogue_xp_to_next_for_level(1);

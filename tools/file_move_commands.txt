@@ -1,0 +1,2 @@
+Single file mode: .\move_file_pair.ps1 -SourceFile "path/to/file.c" -TargetDirectory "new/directory"
+Multi-file mode: .\move_file_pair.ps1 -SourceFiles @("file1.c", "file2.c", "file3.c") -TargetDirectory "new/directory"

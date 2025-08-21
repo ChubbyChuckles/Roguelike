@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include <string.h>
 #include "core/stat_cache.h"
-#include "core/loot_instances.h"
-#include "core/loot_item_defs.h"
-#include "core/equipment.h"
+#include "core/loot/loot_instances.h"
+#include "core/loot/loot_item_defs.h"
+#include "core/equipment/equipment.h"
 
 int rogue_minimap_ping_loot(float x,float y,int r){(void)x;(void)y;(void)r;return 0;}
 /* Stubs for required access */

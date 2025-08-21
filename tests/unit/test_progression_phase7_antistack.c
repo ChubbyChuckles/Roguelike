@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "core/progression_maze.h"
-#include "core/progression_passives.h"
-#include "core/progression_stats.h"
+#include "core/progression/progression_maze.h"
+#include "core/progression/progression_passives.h"
+#include "core/progression/progression_stats.h"
 
 /* Phase 7.3 anti-stack safeguards test: ensures diminishing contribution of multiple keystones per category */
 static const char* dsl =

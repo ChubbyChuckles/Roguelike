@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include "core/loot_api_doc.h"
+#include "core/loot/loot_api_doc.h"
 
 /* Unit test for Itemsystem Phase 23.5 API doc generator */
 int main(void){

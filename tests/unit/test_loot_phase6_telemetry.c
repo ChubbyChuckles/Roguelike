@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
-#include "core/loot_console.h"
-#include "core/loot_stats.h"
+#include "core/loot/loot_console.h"
+#include "core/loot/loot_stats.h"
 
 /* Simple unit test for telemetry export (6.5) */
 int main(){

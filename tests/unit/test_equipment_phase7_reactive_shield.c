@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "game/combat.h"
-#include "core/equipment_procs.h"
+#include "core/equipment/equipment_procs.h"
 #include "core/stat_cache.h"
 
 extern struct RogueStatCache g_player_stat_cache;

@@ -2,11 +2,11 @@
    - Constrained template-driven generation (uniqueness, rarity caps, guaranteed consumable, material & recipe injection)
    - Deterministic reproduction across identical seeds
 */
-#include "core/vendor_inventory_templates.h"
-#include "core/vendor_registry.h"
-#include "core/vendor.h"
-#include "core/crafting.h"
-#include "core/loot_item_defs.h"
+#include "core/vendor/vendor_inventory_templates.h"
+#include "core/vendor/vendor_registry.h"
+#include "core/vendor/vendor.h"
+#include "core/crafting/crafting.h"
+#include "core/loot/loot_item_defs.h"
 #include <stdio.h>
 #include <string.h>
 

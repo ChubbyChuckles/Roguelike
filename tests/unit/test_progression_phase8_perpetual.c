@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <math.h>
-#include "core/progression_perpetual.h"
+#include "core/progression/progression_perpetual.h"
 
 /* Phase 8 tests: verify sublinear growth, allowance pacing, diminishing increments */
 int main(void){

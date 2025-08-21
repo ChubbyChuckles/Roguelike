@@ -254,6 +254,38 @@ PHASE 2. JSON Configuration Standardization & Migration
     2.8.6 Performance test: Configuration loading time under various file sizes (X)
     2.8.7 Stress test: Rapid configuration changes & hot-reload stability (X)
 
+2.9 Project Structure Reorganization using Dependency Management (Complete ✓)
+2.9.1 Analyze existing project structure and identify logical file groupings ✓
+2.9.2 Design dependency-aware file reorganization system using existing dependency manager ✓
+2.9.3 Implement project restructuring system with 8 logical groups:
+    - integration/ (7 integration infrastructure files)
+    - equipment/ (17 equipment system files)  
+    - loot/ (27 loot generation system files)
+    - vendor/ (20 vendor and economy system files)
+    - crafting/ (11 crafting and materials files)
+    - progression/ (10 player progression system files)
+    - vegetation/ (4 vegetation system files)
+    - enemy/ (12 enemy AI and difficulty files) ✓
+2.9.4 Create file movement analysis and safety validation ✓
+2.9.5 Build dependency tracking during file reorganization ✓
+2.9.6 Implement CMakeLists.txt and include path updates ✓
+2.9.7 Create project restructuring demonstration tools ✓
+2.9.8 Generate logical directory structure for better project management ✓
+
+Tests: Project Structure Reorganization System Validation (Complete ✓)
+2.9.9 Unit test: File group classification and logical organization (✓)
+2.9.10 Unit test: Dependency-aware file movement safety validation (✓)
+2.9.11 Unit test: Build system integration and path updates (✓)
+2.9.12 Unit test: Directory creation and structure management (✓)
+2.9.13 Integration test: Complete restructuring workflow execution (✓)
+2.9.14 Performance test: Large project analysis and reorganization (✓)
+2.9.15 Stress test: Complex dependency graph reorganization (✓)
+    2.8.3 Unit test: Hot-reload functionality without data loss or corruption (X)
+    2.8.4 Unit test: Dependency resolution & circular dependency detection (X)
+    2.8.5 Integration test: Full system reload with all configuration files (X)
+    2.8.6 Performance test: Configuration loading time under various file sizes (X)
+    2.8.7 Stress test: Rapid configuration changes & hot-reload stability (X)
+
 PHASE 3. Cross-System Data Flow Integration Bridges
 3.1 Enemy Integration ↔ AI System Bridge
     3.1.1 Create enemy spawn event listener in AI system for behavior tree activation (X)

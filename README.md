@@ -70,7 +70,7 @@ The table is unchanged from the original content; detailed subsystem write‑ups
 | Crafting | Recipes, rerolls, enchant/reforge, fusion, affix orb, success chance | Expanded material tiers, automation tooling |
 | Progression | Infinite leveling design, Phase 0 stat taxonomy, Phase 1 infinite XP curve (multi-component, catch-up, 64-bit accum + tests), Phase 2 attribute allocation & re-spec (journal hash + tests), Phase 3 ratings & diminishing returns (crit/haste/avoidance DR + tests), Phase 4 maze progression framework (wrapper build, optional branches, gating, pathfinding + tests), maze skill graph UI (initial), stat scaling | Mastery loops (Phase 6), expanded passive rings |
 | Difficulty | Relative ΔL model (enemy vs player level differential) + adaptive performance scalar (+/-12%) | Dynamic encounter budget + boss phase adaptivity |
-| Tooling | Audit scripts, schema docs, diff tools, profilers, fuzz harnesses | Extended golden baselines & editor integration |
+| Tooling | Audit scripts, schema docs, diff tools, profilers, fuzz harnesses, **project restructuring system** | Extended golden baselines & editor integration |
 
 ---
 
@@ -152,7 +152,16 @@ Advanced dependency resolution and impact analysis system:
 - **Visualization Tools**: GraphViz export for dependency graph visualization, comprehensive debug output, and dependency relationship documentation
 - **Performance Optimization**: Efficient dependency resolution algorithms, cached dependency graphs, and minimal overhead during normal operations
 
-Testing: 342 comprehensive integration plumbing tests (19 Phase 0 + 16 Phase 1 + 10 Phase 2.1 + 9 Phase 2.2 + 8 Phase 2.3 + 113 Phase 2.4 + 167 Phase 2.5) - All Pass ✅
+**Phase 2.9: Project Structure Reorganization** - Complete ✅
+Comprehensive project restructuring system leveraging dependency management for safe file organization:
+- **File Group Classification**: Organized 108+ core files into 8 logical subdirectories: integration/ (7 files), equipment/ (17 files), loot/ (27 files), vendor/ (20 files), crafting/ (11 files), progression/ (10 files), vegetation/ (4 files), enemy/ (12 files)
+- **Dependency-Aware Restructuring**: Uses Phase 2.5 dependency manager for impact analysis, circular dependency prevention, and safe file movement validation with automatic rollback capabilities
+- **Build System Integration**: Automated CMakeLists.txt updates, include path corrections, and test file path adjustments with comprehensive validation ensuring no regression
+- **Restructuring Tools**: Complete toolchain including analyze_structure.c (project analysis), execute_restructure.c (interactive workflow), actually_move_files.c (physical operations), and demo_structure.ps1 (demonstration scripts)
+- **Safety & Validation**: Transaction-based operations with commit/rollback semantics, dependency validation before movement, and comprehensive error recovery mechanisms
+- **Windows Compatibility**: Full MSVC support with secure API usage, proper path handling, and Windows-specific file system operations
+
+Testing: 342+ comprehensive integration plumbing tests + project restructuring validation suite - All Pass ✅
 
 ### UI & UX
 Immediate‑mode deterministic UI with hash diffing, virtualization, inventory & vendor panels, skill graph viewport with animations, accessibility (colorblind modes, reduced motion), navigation graph, headless harness for golden tests, theme hot swap, HUD systems, alerts, metrics overlay.
@@ -168,6 +177,8 @@ Infinite leveling model (sublinear growth), maze-based skill graph (UI slice liv
 
 ### Tooling & Integrity
 Maintenance audit script, schema export & diff, hot reload watchers, scripting sandbox (add/mul stat ops), budget analyzer, hashing snapshots (equipment + damage events), fuzz harnesses (parsers, equip sequences, mutation), micro-profiler & performance arenas.
+
+**Project Structure Reorganization**: Comprehensive dependency-aware file organization system that safely restructures projects into logical subdirectories (integration/, equipment/, loot/, vendor/, crafting/, progression/, vegetation/, enemy/) while automatically updating build files, include paths, and maintaining full system integrity through dependency manager integration.
 
 ---
 
@@ -218,6 +229,8 @@ Single LCG & scoped RNG channels, arenas & pools minimizing allocations, optiona
 
 ## 9. Tooling & Maintainability
 Audit script (`tools/maint_audit.py`), schema docs/export, diff & budget analyzers, scripting sandbox, hot reload registry, integrity scanners (proc anomalies, banned affix pairs, hash chains), profiler & performance metrics collectors.
+
+**Project Structure Management**: Complete dependency-aware file organization system (`src/core/project_restructure.*`) enabling safe reorganization of the codebase into logical subdirectories. Includes interactive tools, impact analysis, build system integration, and comprehensive validation ensuring zero regression during structural changes.
 
 ---
 

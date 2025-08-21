@@ -2,7 +2,7 @@
 #ifndef ROGUE_LOADOUT_OPTIMIZER_H
 #define ROGUE_LOADOUT_OPTIMIZER_H
 
-#include "core/equipment.h"
+#include "core/equipment/equipment.h"
 #include "core/stat_cache.h"
 
 /* Snapshot of equipped slots for comparison */
