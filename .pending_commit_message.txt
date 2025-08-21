@@ -5,3 +5,9 @@ integration(sync v5.8): snapshot double-buffer, delta round-trip, rollback curso
 – Rollback Manager: expand max systems to 512; store FULL or DELTA entries vs latest FULL to save memory; add traversal cursor so step_back(1) returns latest and subsequent calls walk older entries; reset cursor on new captures; maintain detailed stats and event log.
 – Tests (Phase 5.8): add and pass unit tests for snapshot consistency, delta correctness, transaction isolation/timeout/prepare-failure, rollback step semantics, and multi-system integration. All pass under MSVC warnings-as-errors.
 – Docs/Roadmap: mark Phase 5.8 items Done; README changelog updated. Build remains SDL2 with parallel MSBuild (/m:8).
+
+combat: fix familiarity progression test; suppress knockback in forced-attack harness; early hit-mask reset
+
+– combat_strike: gate knockback position updates behind runtime rogue_force_attack_active to keep targets stationary in unit tests; preserves gameplay knockback normally.
+– combat_strike: reset per-strike hit mask at function start when processed/emitted masks are zero to support direct strike invocation by tests.
+– weapons: familiarity accrues per hit; 10% cap applied; validated against test_combat_phase7_familiarity_cap.

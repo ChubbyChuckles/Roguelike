@@ -137,4 +137,5 @@ Quality gates per iteration
 Notes from current run
 - Assets fallback paths working; many PNG loads use fallback; Dialogue/style loaded via fallback; Hit geometry loaded 4 entries.
 - Combat failures show systemic zero damage; prioritize restoring base damage and event emission.
+- Fixed: test_combat_phase7_familiarity_cap now passes by ensuring per-strike hit mask reset at strike start and keeping targets stationary during forced-attack harness runs (suppress knockback when rogue_force_attack_active). This lets familiarity usage accumulate and clamps bonus at 10% cap.
 - Keep changes in C (no C++), with small, test-driven patches.

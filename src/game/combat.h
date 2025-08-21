@@ -89,6 +89,8 @@ int rogue_damage_events_snapshot(RogueDamageEvent* out, int max_events);
 void rogue_damage_events_clear(void);
 /* Crit layering mode (Phase 2.4): 0=crit multiplier applied pre-mitigation (default), 1=post-mitigation */
 extern int g_crit_layering_mode;
+/* Deterministic crit testing: when >=0, overrides RNG-based crits. 0=force non-crit, 1=force crit. -1=normal RNG. */
+extern int g_force_crit_mode;
 /* Execution trigger thresholds (tunable). If enemy health prior to hit <= EXEC_HEALTH_PCT of max AND killing blow, or overkill exceeds OVERKILL_PCT of max health => execution. */
 #define ROGUE_EXEC_HEALTH_PCT 0.15f
 #define ROGUE_EXEC_OVERKILL_PCT 0.25f

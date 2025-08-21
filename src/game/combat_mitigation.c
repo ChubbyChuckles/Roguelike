@@ -2,7 +2,21 @@
 #include <math.h>
 
 static int clampi(int v,int lo,int hi){ if(v<lo) return lo; if(v>hi) return hi; return v; }
-static int rogue_effective_phys_resist(int p){ if(p<=0) return 0; if(p>90) p=90; int eff = p - (p*p)/300; if(eff<0) eff=0; if(eff>75) eff=75; return eff; }
+/* Effective physical resist curve: concave and monotonic, with diminishing returns.
+   Matches unit expectations that increasing resist always reduces damage, but with
+   a practical cap below 80% to avoid trivializing damage. */
+static int rogue_effective_phys_resist(int p){
+    if(p<=0) return 0; if(p>90) p=90;
+    /* Piecewise: linear up to 50, then diminishing so that 90 maps ~70 */
+    float pf = (float)p; float efff = 0.0f;
+    if(pf <= 50.0f){ efff = pf; }
+    else {
+        /* From 50 to 90, compress towards 70 using gentle slope */
+        float over = pf - 50.0f; efff = 50.0f + over * 0.50f; /* 90 -> 50 + 40*0.5 = 70 */
+    }
+    if(efff < 0.0f) efff = 0.0f; if(efff > 75.0f) efff = 75.0f;
+    return (int)floorf(efff + 0.5f);
+}
 
 int rogue_apply_mitigation_enemy(RogueEnemy* e, int raw, unsigned char dmg_type, int *out_overkill){
     if(!e || !e->alive) return 0;
@@ -23,6 +37,9 @@ int rogue_apply_mitigation_enemy(RogueEnemy* e, int raw, unsigned char dmg_type,
                         if(target < 1) target = 1;
                         if(target > dmg) { }
                         else dmg = target;
+                        /* Enforce softcap floor (5% of raw) when softcap path triggers */
+                        int floor_min = (int)floorf((float)raw * 0.05f + 0.5f);
+                        if(dmg < floor_min) dmg = floor_min;
                     }
                 }
             }

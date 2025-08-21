@@ -30,6 +30,9 @@ static int expected_after_pen(int raw,int armor,int phys_resist,int pen_flat,int
 }
 
 int main(){
+    /* Force deterministic non-crit behavior for this test */
+    extern int g_force_crit_mode; g_force_crit_mode = 0;
+    extern int g_crit_layering_mode; g_crit_layering_mode = 0;
     RoguePlayer player; rogue_player_init(&player); player.strength = 60; /* produce some base raw */
     player.pen_flat = 5; player.pen_percent = 25; /* 5 flat then 25% of original armor */
     RoguePlayerCombat pc; rogue_combat_init(&pc); pc.phase = ROGUE_ATTACK_STRIKE; pc.chain_index = 0; pc.archetype = ROGUE_WEAPON_LIGHT; pc.strike_time_ms = 20.0f; /* inside first window */

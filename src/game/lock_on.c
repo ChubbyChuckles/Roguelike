@@ -10,14 +10,14 @@ void rogue_lockon_reset(RoguePlayer* p){ if(!p) return; p->lock_on_active=0; p->
 
 /* Internal candidate gather: returns number of valid targets within radius (fills idxs up to max). */
 static int rogue_lockon_collect(RoguePlayer* p, RogueEnemy enemies[], int enemy_count, int* out_indices, int max_out){
-    if(!p||!enemies) return 0; (void)enemy_count; int c=0; float pr=p->lock_on_radius; float pr2=pr*pr; float px=p->base.pos.x; float py=p->base.pos.y;
-    /* Scan full capacity instead of enemy_count to include alive enemies whose indices exceed current compact count. */
-    for(int i=0;i<ROGUE_MAX_ENEMIES && c<max_out;i++){ if(!enemies[i].alive) continue; float dx=enemies[i].base.pos.x - px; float dy=enemies[i].base.pos.y - py; if(rogue_lockon_vec_len2(dx,dy) <= pr2){ out_indices[c++]=i; } }
+    if(!p||!enemies) return 0; if(enemy_count<=0) return 0; int c=0; float pr=p->lock_on_radius; float pr2=pr*pr; float px=p->base.pos.x; float py=p->base.pos.y;
+    int scan = enemy_count; if(scan > ROGUE_MAX_ENEMIES) scan = ROGUE_MAX_ENEMIES;
+    for(int i=0;i<scan && c<max_out;i++){ if(!enemies[i].alive) continue; float dx=enemies[i].base.pos.x - px; float dy=enemies[i].base.pos.y - py; if(rogue_lockon_vec_len2(dx,dy) <= pr2){ out_indices[c++]=i; } }
     return c;
 }
 
 int rogue_lockon_acquire(RoguePlayer* p, RogueEnemy enemies[], int enemy_count){
-    if(!p) return 0; int idxs[256]; int n = rogue_lockon_collect(p,enemies,enemy_count,idxs,256); if(n<=0){ p->lock_on_active=0; p->lock_on_target_index=-1; return 0; }
+    if(!p||!enemies||enemy_count<=0) return 0; int idxs[256]; int n = rogue_lockon_collect(p,enemies,enemy_count,idxs,256); if(n<=0){ p->lock_on_active=0; p->lock_on_target_index=-1; return 0; }
 #ifdef COMBAT_DEBUG
     printf("[lock_on_acquire] candidates=%d radius=%.2f\n", n, p->lock_on_radius);
 #endif
@@ -36,7 +36,7 @@ void rogue_lockon_validate(RoguePlayer* p, RogueEnemy enemies[], int enemy_count
 }
 
 int rogue_lockon_cycle(RoguePlayer* p, RogueEnemy enemies[], int enemy_count, int direction){
-    if(!p) return 0; if(p->lock_on_switch_cooldown_ms>0) return 0; int idxs[256]; int n=rogue_lockon_collect(p,enemies,enemy_count,idxs,256); if(n<=1){ return 0; }
+    if(!p||!enemies||enemy_count<=0) return 0; if(p->lock_on_switch_cooldown_ms>0) return 0; int idxs[256]; int n=rogue_lockon_collect(p,enemies,enemy_count,idxs,256); if(n<=1){ return 0; }
     /* Sort candidates by angle around player */
     float angles[256]; float px=p->base.pos.x; float py=p->base.pos.y; for(int i=0;i<n;i++){ float dx=enemies[idxs[i]].base.pos.x - px; float dy=enemies[idxs[i]].base.pos.y - py; angles[i]=rogue_lockon_angle(dx,dy); }
     /* Simple insertion sort (n small) */

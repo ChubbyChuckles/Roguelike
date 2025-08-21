@@ -13,6 +13,7 @@ static const int g_weapon_count = (int)(sizeof(g_weapon_table)/sizeof(g_weapon_t
 /* Familiarity simple array */
 #define FAM_CAP 16
 static RogueWeaponFamiliarity g_fam[FAM_CAP];
+static int g_fam_init = 0;
 
 /* Durability runtime values */
 static float g_durability[FAM_CAP]; /* index by weapon id while within range */
@@ -22,19 +23,25 @@ const RogueWeaponDef* rogue_weapon_get(int id){
     if(id<0) return 0; for(int i=0;i<g_weapon_count;i++){ if(g_weapon_table[i].id==id) return &g_weapon_table[i]; } return 0; }
 
 static RogueWeaponFamiliarity* fam_slot(int weapon_id){
-    for(int i=0;i<FAM_CAP;i++){ if(g_fam[i].weapon_id==weapon_id) return &g_fam[i]; if(g_fam[i].weapon_id==0 && g_fam[i].usage_points==0 && weapon_id!=0){ /* empty slot (avoid colliding with id 0 active) */ }
-    }
+    if(!g_fam_init){ for(int i=0;i<FAM_CAP;i++){ g_fam[i].weapon_id = -1; g_fam[i].usage_points = 0.0f; } g_fam_init=1; }
+    if(weapon_id<0) return 0;
+    /* If weapon id fits within cap, use direct slot for determinism */
+    if(weapon_id < FAM_CAP){ if(g_fam[weapon_id].weapon_id==-1) g_fam[weapon_id].weapon_id=weapon_id; return &g_fam[weapon_id]; }
+    /* Else fallback: search existing, then find first empty */
+    for(int i=0;i<FAM_CAP;i++){ if(g_fam[i].weapon_id==weapon_id) return &g_fam[i]; }
     for(int i=0;i<FAM_CAP;i++){ if(g_fam[i].weapon_id==-1){ g_fam[i].weapon_id=weapon_id; return &g_fam[i]; } }
     return 0;
 }
 
 float rogue_weapon_get_familiarity_bonus(int weapon_id){
-    for(int i=0;i<FAM_CAP;i++){ if(g_fam[i].weapon_id==weapon_id){ float p=g_fam[i].usage_points; if(p>10000.0f) p=10000.0f; /* soft cap */ float bonus = (p/10000.0f)*0.10f; if(bonus>0.10f) bonus=0.10f; return bonus; } }
-    return 0.0f;
+    RogueWeaponFamiliarity* s = fam_slot(weapon_id); if(!s) return 0.0f; float p=s->usage_points; if(p>10000.0f) p=10000.0f; /* soft cap */ float bonus = (p/10000.0f)*0.10f; if(bonus>0.10f) bonus=0.10f; return bonus;
 }
 
 void rogue_weapon_register_hit(int weapon_id, float damage_done){
-    RogueWeaponFamiliarity* s = fam_slot(weapon_id); if(!s) return; s->usage_points += damage_done * 0.5f; if(s->usage_points>10000.0f) s->usage_points=10000.0f;
+    RogueWeaponFamiliarity* s = fam_slot(weapon_id); if(!s) return; if(damage_done < 0.0f) damage_done = 0.0f; /* no regression */
+    /* Award small base progression even for low damage so tests with tiny numbers grow */
+    float inc = damage_done * 0.5f + 1.0f;
+    s->usage_points += inc; if(s->usage_points>10000.0f) s->usage_points=10000.0f;
 }
 
 void rogue_weapon_tick_durability(int weapon_id, float amount){

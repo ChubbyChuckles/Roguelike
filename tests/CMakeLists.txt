@@ -2902,6 +2902,18 @@ endif()
         add_test(NAME test_combat_phase7_damage_event_components COMMAND test_combat_phase7_damage_event_components)
     endif()
 
+    # Execution flag behavior: low-health and overkill triggers
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_execution.c AND NOT TARGET test_combat_execution)
+        add_executable(test_combat_execution unit/test_combat_execution.c)
+        target_link_libraries(test_combat_execution PRIVATE rogue_core)
+        target_compile_definitions(test_combat_execution PRIVATE SDL_MAIN_HANDLED=1)
+        target_compile_definitions(test_combat_execution PRIVATE TEST_COMBAT_PERMISSIVE=1)
+        if(ROGUE_ENABLE_SDL)
+            target_compile_definitions(test_combat_execution PRIVATE ROGUE_HAVE_SDL=1)
+        endif()
+        add_test(NAME test_combat_execution COMMAND test_combat_execution)
+    endif()
+
 # Explicitly add cast weaving & early cancel test (Phase 1A.2/1A.4 partial)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_cast_weave_and_cancel.c AND NOT TARGET test_cast_weave_and_cancel)
     add_executable(test_cast_weave_and_cancel unit/test_cast_weave_and_cancel.c)

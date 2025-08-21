@@ -19,6 +19,7 @@ RogueDamageEvent g_damage_events[ROGUE_DAMAGE_EVENT_CAP];
 int g_damage_event_head = 0;
 int g_damage_event_total = 0;
 int g_crit_layering_mode = 0; /* 0=pre-mitigation (legacy), 1=post-mitigation */
+int g_force_crit_mode = -1;     /* -1 = RNG, 0 = force non-crit, 1 = force crit (tests) */
 
 /* Base implementation separated so observer module can wrap */
 void rogue_damage_event_record_base(unsigned short attack_id, unsigned char dmg_type, unsigned char crit, int raw, int mitig, int overkill, unsigned char execution){

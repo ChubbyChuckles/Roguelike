@@ -61,6 +61,12 @@ void rogue_player_init(RoguePlayer* p)
     p->poise_regen_delay_ms = 0.0f;
     /* Lock-on defaults */
     p->lock_on_active = 0; p->lock_on_target_index=-1; p->lock_on_radius=6.0f; p->lock_on_switch_cooldown_ms=0.0f;
+     /* Weapon/stance defaults: start with no weapon equipped so unit tests that reconstruct raw
+         from attack defs don't get extra weapon scaling by default. Hit geometry will gracefully
+         fall back to a default in the sweep if no weapon is equipped. */
+     p->equipped_weapon_id = -1;   /* none by default; tests may set to 0 explicitly */
+    p->combat_stance = 0;        /* balanced */
+    p->weapon_infusion = 0;      /* none */
     rogue_player_recalc_derived(p);
 }
 

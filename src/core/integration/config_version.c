@@ -241,11 +241,17 @@ bool rogue_event_type_register_safe(uint32_t event_id, const char* name,
         return false;
     }
     
-    /* Check for collision */
-    char collision_info[512];
-    if (rogue_event_type_check_collision(event_id, collision_info, sizeof(collision_info))) {
-        ROGUE_LOG_ERROR("Event type ID collision detected: %s", collision_info);
-        return false;
+    /* Check for collision: allow registrations inside reserved ranges. If the
+       ID is already registered, treat this as idempotent (no-op) and succeed,
+       preserving the original registration metadata and name. */
+    for (uint32_t i = 0; i < g_event_type_count; i++) {
+        if (g_event_type_registry[i].event_id == event_id) {
+            ROGUE_LOG_WARN("Event type ID %u already registered as '%s' (idempotent re-register from %s:%u)",
+                            event_id, g_event_type_registry[i].name,
+                            source_file ? source_file : "unknown",
+                            line_number);
+            return true;
+        }
     }
     
     /* Check if we have room for more event types */

@@ -18,6 +18,46 @@
 				"$msCompile"
 			],
 			"group": "build"
+		},
+		{
+			"label": "Build Debug SDL2 with parallelism",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"problemMatcher": [
+				"$gcc",
+				"$msCompile"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Rebuild tests (Debug, -j8) after event and team filter fixes",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"problemMatcher": [
+				"$gcc",
+				"$msCompile"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Rebuild after warning fix",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"problemMatcher": [
+				"$gcc",
+				"$msCompile"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Rebuild after cast fix",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"problemMatcher": [
+				"$gcc",
+				"$msCompile"
+			],
+			"group": "build"
 		}
 	]
 }
