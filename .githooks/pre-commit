@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Project pre-commit hook: run formatting, license header, structural test, fast build+tests, optional clang-tidy (best-effort).
+# Excludes TODO issue check per user requirement.
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+cd "$ROOT_DIR"
+
+# Ensure Python available
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "[pre-commit] python3 not found" >&2; exit 1;
+fi
+
+PARALLEL_CORES() { nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2; }
+
+echo "[pre-commit] Running clang-format check (cmake format-check target)"
+if ! cmake -S . -B build/precommit_format_check -DROGUE_ENABLE_SDL=OFF -DROGUE_WARNINGS_AS_ERRORS=ON >/dev/null 2>&1; then
+  echo "[pre-commit] Initial CMake configure (format) failed" >&2; exit 1; fi
+if ! cmake --build build/precommit_format_check --target format-check --config Debug -- -j $(PARALLEL_CORES); then
+  echo "[pre-commit] Formatting issues detected. Run: cmake --build build/precommit_format_check --target format" >&2; exit 1; fi
+
+echo "[pre-commit] Checking license headers"
+python3 tools/precommit/license_header_check.py || { echo "[pre-commit] License header check failed"; exit 1; }
+
+echo "[pre-commit] Structural test coverage check"
+python3 tools/precommit/structural_test_check.py || { echo "[pre-commit] Structural test coverage failed"; exit 1; }
+
+echo "[pre-commit] Fast build & unit tests"
+python3 tools/precommit/build_and_test.py || { echo "[pre-commit] Build/tests failed"; exit 1; }
+
+echo "[pre-commit] Optional clang-tidy (skip on absence)"
+python3 tools/precommit/clang_tidy_wrapper.py || { echo "[pre-commit] clang-tidy reported issues"; exit 1; }
+
+echo "[pre-commit] All required checks passed. Proceeding with commit."
+exit 0
