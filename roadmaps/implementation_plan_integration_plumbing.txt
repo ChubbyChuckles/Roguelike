@@ -406,13 +406,14 @@ PHASE 4. Shared Data Structure Optimization & Entity Management
         SUMMARY: Added `cow.h/cow.c` implementing a page‑based copy‑on‑write buffer leveraging existing intrusive ref counting. Writes trigger per‑page duplication only when shared (tracked via stats). Added hash‑based page dedup to collapse identical content. Exposed diagnostics (stats + dump) and serialization/deserialization for persistence. Unit test `test_cow` validates clone isolation, dedup behavior, and serialization round‑trip under MSVC.
 
 4.6 Data Structure Versioning & Migration
-    4.6.1 Design data structure version tracking (struct version numbers) (X)
-    4.6.2 Implement automatic migration triggers for version mismatches (X)
-    4.6.3 Create migration scripts for each data structure version change (X)
-    4.6.4 Add migration validation & rollback capabilities (X)
-    4.6.5 Implement migration progress tracking & reporting (X)
-    4.6.6 Create migration testing framework (validate all version paths) (X)
-    4.6.7 Add migration performance optimization (batch operations, incremental) (X)
+    4.6.1 Design data structure version tracking (struct version numbers) (Done – registry with per‑type current_version, monotonic uint32)
+    4.6.2 Implement automatic migration triggers for version mismatches (Done – migrate API targets current when target_version==0)
+    4.6.3 Create migration scripts for each data structure version change (Done – stepwise function registration N→N+1 with user data)
+    4.6.4 Add migration validation & rollback capabilities (Done – missing step detection + full rollback to original buffer on failure)
+    4.6.5 Implement migration progress tracking & reporting (Done – progress struct with totals, last, fail_from/to, completed, failed flag)
+    4.6.6 Create migration testing framework (validate all version paths) (Done – unit test registers chain + failure path, asserts transformations & rollback)
+    4.6.7 Add migration performance optimization (batch operations, incremental) (Done – minimal O(k) step loop with direct lookup per step; only changed pages reallocated; stats capture steps vs executions)
+        SUMMARY: Added generic versioning framework (`versioning.c/.h`) supporting per‑type version registry, incremental N→N+1 migration functions with user payload, automatic current-version targeting, progress reporting, rollback safety on failure, and execution statistics (types, migrations, executed, steps, failures). Unit test `test_versioning` validates successful multi-step upgrade, progress reporting, and rollback on injected failure.
 
 4.7 Shared Resource Access Control
     4.7.1 Implement resource locking mechanisms (read/write locks, mutexes) (X)

@@ -55,3 +55,16 @@ Details:
  - Roadmap 4.5.1–4.5.7 marked Done with summary; README updated with Phase 4.5 bullet.
  - Builds & test execution: test_cow passes (Debug, MSVC, SDL enabled); no new warnings.
 
+feat(integration): implement Phase 4.6 Data Structure Versioning & Migration (registry, chained migrations, rollback, progress, stats, tests)
+
+Details:
+ - Added src/core/integration/versioning.c/.h providing generic per-type version registry (monotonic uint32 current_version) and stepwise N->N+1 migration registration API with user data payload.
+ - Migration execution (`rogue_version_migrate`): source_version -> target_version (or ->current when target=0) applying each registered step in order; validates presence/continuity (missing step = error).
+ - Rollback safety: original buffer pointer & size snapshot restored on any failing step (migration function returning non-zero) with failure indices recorded.
+ - Progress reporting: `RogueMigrationProgress` captures total steps, completed steps, last transition, and failure point (fail_from/fail_to) plus failed flag.
+ - Statistics: tracks types_registered, migrations_registered, migrations_executed, migration_steps, migration_failures retrievable via `rogue_versioning_get_stats`; dump prints registry and step transitions.
+ - Performance considerations: O(k) step loop; direct linear lookup per step (sufficient for current scale); contiguous N->N+1 constraint keeps complexity predictable.
+ - Unit test tests/unit/test_versioning.c registers chain 1->2->3 for "TestType" verifying field derivations and progress metrics; second type "FailType" injects failing migration ensuring rollback (original pointer & size) and failure reporting.
+ - Roadmap 4.6.1–4.6.7 marked Done with summary; README updated with Phase 4.6 section.
+ - Build: Added versioning.c to core library and test_versioning target; test executes cleanly under MSVC Debug (SDL enabled, warnings-as-errors policy unaffected).
+

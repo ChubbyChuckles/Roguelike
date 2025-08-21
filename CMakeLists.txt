@@ -346,6 +346,7 @@ add_library(rogue_core
     # Phase 4.4 reference counting & lifecycle system
     src/core/integration/ref_count.c
     src/core/integration/cow.c
+    src/core/integration/versioning.c
 )
 
 target_include_directories(rogue_core PUBLIC

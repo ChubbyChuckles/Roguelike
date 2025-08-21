@@ -35,6 +35,11 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_cache_system.c AND NOT TARGET test
     target_include_directories(test_cow PRIVATE ${CMAKE_SOURCE_DIR}/src/core/integration)
     target_link_libraries(test_cow PRIVATE rogue_core)
     add_test(NAME test_cow COMMAND test_cow)
+    # Phase 4.6 data structure versioning & migration tests
+    add_executable(test_versioning unit/test_versioning.c)
+    target_include_directories(test_versioning PRIVATE ${CMAKE_SOURCE_DIR}/src/core/integration)
+    target_link_libraries(test_versioning PRIVATE rogue_core)
+    add_test(NAME test_versioning COMMAND test_versioning)
 endif()
 
 # Integration Plumbing Phase 0.1 System Taxonomy Test
