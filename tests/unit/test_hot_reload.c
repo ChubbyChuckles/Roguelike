@@ -1,9 +1,10 @@
-#include "../../src/util/hot_reload.h"
+#include "../../src/core/integration/hot_reload.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <time.h>
 #include <sys/stat.h>
 

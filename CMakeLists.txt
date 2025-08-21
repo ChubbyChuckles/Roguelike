@@ -207,6 +207,7 @@ add_library(rogue_core
     src/core/inventory/inventory_entries.c
     src/core/inventory/inventory_ui.c
     src/core/inventory/inventory_tags.c
+    src/core/inventory/inventory_panel.c
     src/core/loot/loot_pickup.c
     src/core/loot/loot_multiplayer.c
     src/core/loot/loot_logging.c
