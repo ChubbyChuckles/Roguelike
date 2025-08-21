@@ -10,6 +10,7 @@ option(ROGUE_ENABLE_SDL_IMAGE "Load PNG textures via SDL_image" ON)
 option(ROGUE_ENABLE_SDL_MIXER "Enable audio playback (mp3/ogg) via SDL_mixer" ON)
 option(ROGUE_WARNINGS_AS_ERRORS "Treat warnings as errors" ON)
 option(ROGUE_CODE_COVERAGE "Enable code coverage instrumentation (GNU/Clang)" OFF)
+option(ROGUE_SUPPRESS_WINDOWS_ERROR_DIALOGS "Suppress Windows/MSVC error popups in tests by routing errors to stderr" ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -362,6 +363,14 @@ add_library(rogue_core
     # Phase 5.6 deadlock detection & prevention
     src/core/integration/deadlock_manager.c
 )
+
+# Suppress Windows error/abort popups in tests and tools; route to stderr instead.
+if(WIN32)
+    target_sources(rogue_core PRIVATE src/core/win_suppress_error_dialogs.c)
+    if(ROGUE_SUPPRESS_WINDOWS_ERROR_DIALOGS)
+        target_compile_definitions(rogue_core PUBLIC ROGUE_SUPPRESS_WINDOWS_ERROR_DIALOGS=1)
+    endif()
+endif()
 
 target_include_directories(rogue_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src

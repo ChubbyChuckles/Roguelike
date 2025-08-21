@@ -1,4 +1,9 @@
 #include "game/combat.h"
+#if defined(_WIN32) && defined(ROGUE_SUPPRESS_WINDOWS_ERROR_DIALOGS)
+/* Pull in the suppression TU from the static lib and install early for tests. */
+extern int rogue_win_disable_error_dialogs_anchor;
+extern void rogue_win_disable_error_dialogs_install_if_needed(void);
+#endif
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -23,6 +28,10 @@ int g_force_crit_mode = -1;     /* -1 = RNG, 0 = force non-crit, 1 = force crit 
 
 /* Base implementation separated so observer module can wrap */
 void rogue_damage_event_record_base(unsigned short attack_id, unsigned char dmg_type, unsigned char crit, int raw, int mitig, int overkill, unsigned char execution){
+#if defined(_WIN32) && defined(ROGUE_SUPPRESS_WINDOWS_ERROR_DIALOGS)
+    (void)rogue_win_disable_error_dialogs_anchor; /* force link */
+    rogue_win_disable_error_dialogs_install_if_needed();
+#endif
     RogueDamageEvent* ev = &g_damage_events[g_damage_event_head % ROGUE_DAMAGE_EVENT_CAP];
     ev->attack_id = attack_id; ev->damage_type=dmg_type; ev->crit=crit; ev->raw_damage=raw; ev->mitigated=mitig; ev->overkill=overkill; ev->execution=execution?1:0;
     g_damage_event_head = (g_damage_event_head + 1) % ROGUE_DAMAGE_EVENT_CAP; g_damage_event_total++;
