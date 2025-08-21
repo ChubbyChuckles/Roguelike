@@ -100,6 +100,7 @@ add_library(rogue_core
     src/core/json_schema.c
     src/core/json_parser.c
     src/core/cfg_parser.c
+    src/core/cfg_migration.c
     # persistence module split
     src/core/persistence_io.c
     src/core/persistence_world.c

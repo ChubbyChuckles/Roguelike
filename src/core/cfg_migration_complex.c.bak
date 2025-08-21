@@ -1,0 +1,680 @@
+#include "cfg_migration.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <errno.h>
+
+// Windows compatibility
+#ifdef _WIN32
+#include <direct.h>
+#define mkdir(path, mode) _mkdir(path)
+#else
+#include <sys/stat.h>
+#endif
+
+// Logging macros (consistent with existing codebase)
+#define ROGUE_LOG_DEBUG(fmt, ...) printf("[DEBUG] " fmt "\n", ##__VA_ARGS__)
+#define ROGUE_LOG_INFO(fmt, ...) printf("[INFO] " fmt "\n", ##__VA_ARGS__)
+#define ROGUE_LOG_WARN(fmt, ...) printf("[WARN] " fmt "\n", ##__VA_ARGS__)  
+#define ROGUE_LOG_ERROR(fmt, ...) printf("[ERROR] " fmt "\n", ##__VA_ARGS__)
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+static bool create_directory_recursive(const char* path) {
+    char tmp[512];
+    char* p = NULL;
+    size_t len;
+    
+    snprintf(tmp, sizeof(tmp), "%s", path);
+    len = strlen(tmp);
+    if (tmp[len - 1] == '/' || tmp[len - 1] == '\\') {
+        tmp[len - 1] = 0;
+    }
+    
+    for (p = tmp + 1; *p; p++) {
+        if (*p == '/' || *p == '\\') {
+            *p = 0;
+            mkdir(tmp, 0755);
+            *p = '/';  // Normalize to forward slash
+        }
+    }
+    return mkdir(tmp, 0755) == 0 || errno == EEXIST;
+}
+
+static bool file_exists(const char* path) {
+    struct stat st;
+    return stat(path, &st) == 0;
+}
+
+static char* string_trim(char* str) {
+    char* end;
+    
+    // Trim leading space
+    while (*str == ' ' || *str == '\t' || *str == '\n' || *str == '\r') str++;
+    
+    if (*str == 0) return str;
+    
+    // Trim trailing space
+    end = str + strlen(str) - 1;
+    while (end > str && (*end == ' ' || *end == '\t' || *end == '\n' || *end == '\r')) end--;
+    
+    *(end + 1) = 0;
+    return str;
+}
+
+// =============================================================================
+// Migration Configuration
+// =============================================================================
+
+void rogue_migration_config_init(RogueMigrationConfig* config) {
+    if (!config) return;
+    
+    memset(config, 0, sizeof(RogueMigrationConfig));
+    config->source_dir = "assets";
+    config->target_dir = "assets/json";
+    config->validate_schemas = true;
+    config->create_backup = true;
+    config->overwrite_existing = false;
+}
+
+bool rogue_migration_create_schemas(RogueMigrationConfig* config) {
+    if (!config) return false;
+    
+    config->item_schema = rogue_create_item_schema();
+    config->affix_schema = rogue_create_affix_schema();
+    
+    return config->item_schema != NULL && config->affix_schema != NULL;
+}
+
+void rogue_migration_config_cleanup(RogueMigrationConfig* config) {
+    if (!config) return;
+    
+    if (config->item_schema) {
+        rogue_json_schema_destroy(config->item_schema);
+        config->item_schema = NULL;
+    }
+    
+    if (config->affix_schema) {
+        rogue_json_schema_destroy(config->affix_schema);
+        config->affix_schema = NULL;
+    }
+}
+
+// =============================================================================
+// Schema Definitions
+// =============================================================================
+
+RogueJsonSchema* rogue_create_item_schema(void) {
+    RogueJsonSchema* schema = rogue_json_schema_create("ItemSchema");
+    if (!schema) return NULL;
+    
+    // Core item fields
+    rogue_json_schema_add_field(schema, "id", ROGUE_JSON_STRING, true);
+    rogue_json_schema_add_field(schema, "name", ROGUE_JSON_STRING, true);
+    rogue_json_schema_add_field(schema, "category", ROGUE_JSON_INTEGER, true);
+    rogue_json_schema_add_field(schema, "level_req", ROGUE_JSON_INTEGER, false);
+    rogue_json_schema_add_field(schema, "stack_max", ROGUE_JSON_INTEGER, false);
+    rogue_json_schema_add_field(schema, "base_value", ROGUE_JSON_INTEGER, false);
+    
+    // Combat stats
+    rogue_json_schema_add_field(schema, "base_damage_min", ROGUE_JSON_INTEGER, false);
+    rogue_json_schema_add_field(schema, "base_damage_max", ROGUE_JSON_INTEGER, false);
+    rogue_json_schema_add_field(schema, "base_armor", ROGUE_JSON_INTEGER, false);
+    
+    // Visual properties
+    rogue_json_schema_add_field(schema, "sprite_path", ROGUE_JSON_STRING, false);
+    rogue_json_schema_add_field(schema, "sprite_tx", ROGUE_JSON_INTEGER, false);
+    rogue_json_schema_add_field(schema, "sprite_ty", ROGUE_JSON_INTEGER, false);
+    rogue_json_schema_add_field(schema, "sprite_tw", ROGUE_JSON_INTEGER, false);
+    rogue_json_schema_add_field(schema, "sprite_th", ROGUE_JSON_INTEGER, false);
+    
+    // Meta properties
+    rogue_json_schema_add_field(schema, "rarity", ROGUE_JSON_INTEGER, false);
+    rogue_json_schema_add_field(schema, "flags", ROGUE_JSON_INTEGER, false);
+    
+    return schema;
+}
+
+RogueJsonSchema* rogue_create_affix_schema(void) {
+    RogueJsonSchema* schema = rogue_json_schema_create("AffixSchema");
+    if (!schema) return NULL;
+    
+    // Core affix fields
+    rogue_json_schema_add_field(schema, "type", ROGUE_JSON_STRING, true); // PREFIX/SUFFIX
+    rogue_json_schema_add_field(schema, "id", ROGUE_JSON_STRING, true);
+    rogue_json_schema_add_field(schema, "stat", ROGUE_JSON_STRING, true);
+    rogue_json_schema_add_field(schema, "min_value", ROGUE_JSON_INTEGER, true);
+    rogue_json_schema_add_field(schema, "max_value", ROGUE_JSON_INTEGER, true);
+    
+    // Rarity weights
+    rogue_json_schema_add_field(schema, "weight_common", ROGUE_JSON_INTEGER, false);
+    rogue_json_schema_add_field(schema, "weight_uncommon", ROGUE_JSON_INTEGER, false);
+    rogue_json_schema_add_field(schema, "weight_rare", ROGUE_JSON_INTEGER, false);
+    rogue_json_schema_add_field(schema, "weight_epic", ROGUE_JSON_INTEGER, false);
+    rogue_json_schema_add_field(schema, "weight_legendary", ROGUE_JSON_INTEGER, false);
+    
+    return schema;
+}
+
+// =============================================================================
+// Items Migration (Phase 2.3.1)
+// =============================================================================
+
+RogueJsonValue* rogue_cfg_item_to_json(const RogueCfgParseResult* cfg_data, int record_index) {
+    if (!cfg_data || record_index >= cfg_data->num_records) return NULL;
+    
+    const RogueCfgRecord* record = &cfg_data->records[record_index];
+    RogueJsonValue* item = json_create_object();
+    
+    if (!item) return NULL;
+    
+    // Parse CSV format: id,name,category,level_req,stack_max,base_value,dmg_min,dmg_max,armor,sheet,tx,ty,tw,th,rarity
+    if (record->num_fields >= 15) {
+        json_object_set(item, "id", json_create_string(record->fields[0]));
+        json_object_set(item, "name", json_create_string(record->fields[1]));
+        json_object_set(item, "category", json_create_integer(atoi(record->fields[2])));
+        json_object_set(item, "level_req", json_create_integer(atoi(record->fields[3])));
+        json_object_set(item, "stack_max", json_create_integer(atoi(record->fields[4])));
+        json_object_set(item, "base_value", json_create_integer(atoi(record->fields[5])));
+        json_object_set(item, "base_damage_min", json_create_integer(atoi(record->fields[6])));
+        json_object_set(item, "base_damage_max", json_create_integer(atoi(record->fields[7])));
+        json_object_set(item, "base_armor", json_create_integer(atoi(record->fields[8])));
+        json_object_set(item, "sprite_path", json_create_string(record->fields[9]));
+        json_object_set(item, "sprite_tx", json_create_integer(atoi(record->fields[10])));
+        json_object_set(item, "sprite_ty", json_create_integer(atoi(record->fields[11])));
+        json_object_set(item, "sprite_tw", json_create_integer(atoi(record->fields[12])));
+        json_object_set(item, "sprite_th", json_create_integer(atoi(record->fields[13])));
+        json_object_set(item, "rarity", json_create_integer(atoi(record->fields[14])));
+        json_object_set(item, "flags", json_create_integer(0)); // Default value
+    }
+    
+    return item;
+}
+
+bool rogue_validate_migrated_item(const RogueJsonValue* item, const RogueJsonSchema* schema, char* error_msg, size_t error_size) {
+    if (!item || !schema) {
+        snprintf(error_msg, error_size, "Invalid item or schema");
+        return false;
+    }
+    
+    RogueJsonValidationResult result = rogue_json_schema_validate(schema, item);
+    if (!result.is_valid) {
+        snprintf(error_msg, error_size, "Schema validation failed: %s", result.error_message);
+        return false;
+    }
+    
+    // Additional business rule validation
+    const RogueJsonValue* category = rogue_json_object_get(item, "category");
+    const RogueJsonValue* damage_min = rogue_json_object_get(item, "base_damage_min");
+    const RogueJsonValue* damage_max = rogue_json_object_get(item, "base_damage_max");
+    
+    if (category && damage_min && damage_max) {
+        int cat_val = (int)rogue_json_value_get_number(category);
+        int min_val = (int)rogue_json_value_get_number(damage_min);
+        int max_val = (int)rogue_json_value_get_number(damage_max);
+        
+        // Weapons (category 2) should have damage > 0
+        if (cat_val == 2 && (min_val <= 0 || max_val <= 0)) {
+            snprintf(error_msg, error_size, "Weapon items must have positive damage values");
+            return false;
+        }
+        
+        // Damage min should not exceed damage max
+        if (min_val > max_val) {
+            snprintf(error_msg, error_size, "Minimum damage cannot exceed maximum damage");
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+RogueMigrationResult rogue_migrate_item_file(const char* source_path, const char* target_path, const RogueJsonSchema* schema) {
+    RogueMigrationResult result = {0};
+    strncpy(result.source_file, source_path, sizeof(result.source_file) - 1);
+    strncpy(result.target_file, target_path, sizeof(result.target_file) - 1);
+    
+    // Parse source CFG file
+    RogueCfgParseResult cfg_data = rogue_cfg_parse_file(source_path);
+    if (cfg_data.status != ROGUE_CFG_SUCCESS) {
+        result.status = ROGUE_MIGRATION_PARSE_ERROR;
+        snprintf(result.error_message, sizeof(result.error_message), 
+                "Failed to parse CFG file: %s", source_path);
+        return result;
+    }
+    
+    // Create JSON array for items
+    RogueJsonValue* items_array = rogue_json_value_create_array();
+    if (!items_array) {
+        result.status = ROGUE_MIGRATION_PARSE_ERROR;
+        snprintf(result.error_message, sizeof(result.error_message), "Failed to create JSON array");
+        rogue_cfg_parse_result_cleanup(&cfg_data);
+        return result;
+    }
+    
+    // Convert each CFG record to JSON
+    result.records_processed = cfg_data.num_records;
+    for (int i = 0; i < cfg_data.num_records; i++) {
+        RogueJsonValue* item_json = rogue_cfg_item_to_json(&cfg_data, i);
+        if (item_json) {
+            char error_msg[512];
+            if (schema && !rogue_validate_migrated_item(item_json, schema, error_msg, sizeof(error_msg))) {
+                ROGUE_LOG_WARN("Item validation failed for record %d: %s", i, error_msg);
+                result.validation_errors++;
+                rogue_json_value_destroy(item_json);
+                continue;
+            }
+            
+            rogue_json_array_push(items_array, item_json);
+            result.records_migrated++;
+        }
+    }
+    
+    // Write JSON to target file
+    const char* target_dir = strrchr(target_path, '/');
+    if (target_dir) {
+        char dir_path[512];
+        size_t dir_len = target_dir - target_path;
+        strncpy(dir_path, target_path, dir_len);
+        dir_path[dir_len] = '\0';
+        create_directory_recursive(dir_path);
+    }
+    
+    FILE* output_file = fopen(target_path, "w");
+    if (!output_file) {
+        result.status = ROGUE_MIGRATION_WRITE_ERROR;
+        snprintf(result.error_message, sizeof(result.error_message), 
+                "Failed to create output file: %s", target_path);
+        rogue_json_value_destroy(items_array);
+        rogue_cfg_parse_result_cleanup(&cfg_data);
+        return result;
+    }
+    
+    // Write formatted JSON
+    fprintf(output_file, "[\n");
+    size_t array_size = rogue_json_array_size(items_array);
+    for (size_t i = 0; i < array_size; i++) {
+        RogueJsonValue* item = rogue_json_array_get(items_array, i);
+        fprintf(output_file, "  {\n");
+        
+        // Write each field with proper formatting
+        const RogueJsonValue* id = rogue_json_object_get(item, "id");
+        const RogueJsonValue* name = rogue_json_object_get(item, "name");
+        const RogueJsonValue* category = rogue_json_object_get(item, "category");
+        
+        if (id) fprintf(output_file, "    \"id\": \"%s\",\n", rogue_json_value_get_string(id));
+        if (name) fprintf(output_file, "    \"name\": \"%s\",\n", rogue_json_value_get_string(name));
+        if (category) fprintf(output_file, "    \"category\": %d,\n", (int)rogue_json_value_get_number(category));
+        
+        // Continue with other fields...
+        const RogueJsonValue* level_req = rogue_json_object_get(item, "level_req");
+        const RogueJsonValue* stack_max = rogue_json_object_get(item, "stack_max");
+        const RogueJsonValue* base_value = rogue_json_object_get(item, "base_value");
+        
+        if (level_req) fprintf(output_file, "    \"level_req\": %d,\n", (int)rogue_json_value_get_number(level_req));
+        if (stack_max) fprintf(output_file, "    \"stack_max\": %d,\n", (int)rogue_json_value_get_number(stack_max));
+        if (base_value) fprintf(output_file, "    \"base_value\": %d,\n", (int)rogue_json_value_get_number(base_value));
+        
+        const RogueJsonValue* damage_min = rogue_json_object_get(item, "base_damage_min");
+        const RogueJsonValue* damage_max = rogue_json_object_get(item, "base_damage_max");
+        const RogueJsonValue* armor = rogue_json_object_get(item, "base_armor");
+        
+        if (damage_min) fprintf(output_file, "    \"base_damage_min\": %d,\n", (int)rogue_json_value_get_number(damage_min));
+        if (damage_max) fprintf(output_file, "    \"base_damage_max\": %d,\n", (int)rogue_json_value_get_number(damage_max));
+        if (armor) fprintf(output_file, "    \"base_armor\": %d,\n", (int)rogue_json_value_get_number(armor));
+        
+        const RogueJsonValue* sprite_path = rogue_json_object_get(item, "sprite_path");
+        if (sprite_path) fprintf(output_file, "    \"sprite_path\": \"%s\",\n", rogue_json_value_get_string(sprite_path));
+        
+        const RogueJsonValue* sprite_tx = rogue_json_object_get(item, "sprite_tx");
+        const RogueJsonValue* sprite_ty = rogue_json_object_get(item, "sprite_ty");
+        const RogueJsonValue* sprite_tw = rogue_json_object_get(item, "sprite_tw");
+        const RogueJsonValue* sprite_th = rogue_json_object_get(item, "sprite_th");
+        
+        if (sprite_tx) fprintf(output_file, "    \"sprite_tx\": %d,\n", (int)rogue_json_value_get_number(sprite_tx));
+        if (sprite_ty) fprintf(output_file, "    \"sprite_ty\": %d,\n", (int)rogue_json_value_get_number(sprite_ty));
+        if (sprite_tw) fprintf(output_file, "    \"sprite_tw\": %d,\n", (int)rogue_json_value_get_number(sprite_tw));
+        if (sprite_th) fprintf(output_file, "    \"sprite_th\": %d,\n", (int)rogue_json_value_get_number(sprite_th));
+        
+        const RogueJsonValue* rarity = rogue_json_object_get(item, "rarity");
+        const RogueJsonValue* flags = rogue_json_object_get(item, "flags");
+        
+        if (rarity) fprintf(output_file, "    \"rarity\": %d,\n", (int)rogue_json_value_get_number(rarity));
+        if (flags) fprintf(output_file, "    \"flags\": %d\n", (int)rogue_json_value_get_number(flags));
+        
+        fprintf(output_file, "  }%s\n", (i < array_size - 1) ? "," : "");
+    }
+    fprintf(output_file, "]\n");
+    
+    fclose(output_file);
+    result.status = ROGUE_MIGRATION_SUCCESS;
+    
+    // Cleanup
+    rogue_json_value_destroy(items_array);
+    rogue_cfg_parse_result_cleanup(&cfg_data);
+    
+    return result;
+}
+
+RogueMigrationResult rogue_migrate_items(const RogueMigrationConfig* config) {
+    RogueMigrationResult result = {0};
+    
+    // Migrate test_items.cfg to items.json
+    char source_path[512];
+    char target_path[512];
+    
+    snprintf(source_path, sizeof(source_path), "%s/test_items.cfg", config->source_dir);
+    snprintf(target_path, sizeof(target_path), "%s/items/items.json", config->target_dir);
+    
+    if (!file_exists(source_path)) {
+        result.status = ROGUE_MIGRATION_FILE_ERROR;
+        snprintf(result.error_message, sizeof(result.error_message), "Source file not found: %s", source_path);
+        return result;
+    }
+    
+    return rogue_migrate_item_file(source_path, target_path, config->item_schema);
+}
+
+// =============================================================================
+// Affixes Migration (Phase 2.3.2)
+// =============================================================================
+
+RogueJsonValue* rogue_cfg_affix_to_json(const RogueCfgParseResult* cfg_data, int record_index) {
+    if (!cfg_data || record_index >= cfg_data->num_records) return NULL;
+    
+    const RogueCfgRecord* record = &cfg_data->records[record_index];
+    RogueJsonValue* affix = rogue_json_value_create_object();
+    
+    if (!affix) return NULL;
+    
+    // Parse CSV format: type,id,stat,min,max,w_common,w_uncommon,w_rare,w_epic,w_legendary
+    if (record->num_fields >= 10) {
+        rogue_json_object_set_string(affix, "type", record->fields[0]);
+        rogue_json_object_set_string(affix, "id", record->fields[1]);
+        rogue_json_object_set_string(affix, "stat", record->fields[2]);
+        rogue_json_object_set_integer(affix, "min_value", atoi(record->fields[3]));
+        rogue_json_object_set_integer(affix, "max_value", atoi(record->fields[4]));
+        rogue_json_object_set_integer(affix, "weight_common", atoi(record->fields[5]));
+        rogue_json_object_set_integer(affix, "weight_uncommon", atoi(record->fields[6]));
+        rogue_json_object_set_integer(affix, "weight_rare", atoi(record->fields[7]));
+        rogue_json_object_set_integer(affix, "weight_epic", atoi(record->fields[8]));
+        rogue_json_object_set_integer(affix, "weight_legendary", atoi(record->fields[9]));
+    }
+    
+    return affix;
+}
+
+bool rogue_validate_migrated_affix(const RogueJsonValue* affix, const RogueJsonSchema* schema, char* error_msg, size_t error_size) {
+    if (!affix || !schema) {
+        snprintf(error_msg, error_size, "Invalid affix or schema");
+        return false;
+    }
+    
+    RogueJsonValidationResult result = rogue_json_schema_validate(schema, affix);
+    if (!result.is_valid) {
+        snprintf(error_msg, error_size, "Schema validation failed: %s", result.error_message);
+        return false;
+    }
+    
+    // Business rule validation
+    const RogueJsonValue* type_val = rogue_json_object_get(affix, "type");
+    const RogueJsonValue* min_val = rogue_json_object_get(affix, "min_value");
+    const RogueJsonValue* max_val = rogue_json_object_get(affix, "max_value");
+    
+    if (type_val) {
+        const char* type_str = rogue_json_value_get_string(type_val);
+        if (strcmp(type_str, "PREFIX") != 0 && strcmp(type_str, "SUFFIX") != 0) {
+            snprintf(error_msg, error_size, "Invalid affix type: %s (must be PREFIX or SUFFIX)", type_str);
+            return false;
+        }
+    }
+    
+    if (min_val && max_val) {
+        int min_int = (int)rogue_json_value_get_number(min_val);
+        int max_int = (int)rogue_json_value_get_number(max_val);
+        if (min_int > max_int) {
+            snprintf(error_msg, error_size, "Minimum value cannot exceed maximum value");
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+RogueMigrationResult rogue_migrate_affixes(const RogueMigrationConfig* config) {
+    RogueMigrationResult result = {0};
+    
+    char source_path[512];
+    char target_path[512];
+    
+    snprintf(source_path, sizeof(source_path), "%s/affixes.cfg", config->source_dir);
+    snprintf(target_path, sizeof(target_path), "%s/items/affixes.json", config->target_dir);
+    
+    strncpy(result.source_file, source_path, sizeof(result.source_file) - 1);
+    strncpy(result.target_file, target_path, sizeof(result.target_file) - 1);
+    
+    if (!file_exists(source_path)) {
+        result.status = ROGUE_MIGRATION_FILE_ERROR;
+        snprintf(result.error_message, sizeof(result.error_message), "Source file not found: %s", source_path);
+        return result;
+    }
+    
+    // Parse source CFG file
+    RogueCfgParseResult cfg_data = rogue_cfg_parse_file(source_path);
+    if (cfg_data.status != ROGUE_CFG_SUCCESS) {
+        result.status = ROGUE_MIGRATION_PARSE_ERROR;
+        snprintf(result.error_message, sizeof(result.error_message), 
+                "Failed to parse CFG file: %s", source_path);
+        return result;
+    }
+    
+    // Create JSON array for affixes
+    RogueJsonValue* affixes_array = rogue_json_value_create_array();
+    if (!affixes_array) {
+        result.status = ROGUE_MIGRATION_PARSE_ERROR;
+        snprintf(result.error_message, sizeof(result.error_message), "Failed to create JSON array");
+        rogue_cfg_parse_result_cleanup(&cfg_data);
+        return result;
+    }
+    
+    // Convert each CFG record to JSON
+    result.records_processed = cfg_data.num_records;
+    for (int i = 0; i < cfg_data.num_records; i++) {
+        RogueJsonValue* affix_json = rogue_cfg_affix_to_json(&cfg_data, i);
+        if (affix_json) {
+            char error_msg[512];
+            if (config->affix_schema && !rogue_validate_migrated_affix(affix_json, config->affix_schema, error_msg, sizeof(error_msg))) {
+                ROGUE_LOG_WARN("Affix validation failed for record %d: %s", i, error_msg);
+                result.validation_errors++;
+                rogue_json_value_destroy(affix_json);
+                continue;
+            }
+            
+            rogue_json_array_push(affixes_array, affix_json);
+            result.records_migrated++;
+        }
+    }
+    
+    // Create target directory
+    const char* target_dir = strrchr(target_path, '/');
+    if (target_dir) {
+        char dir_path[512];
+        size_t dir_len = target_dir - target_path;
+        strncpy(dir_path, target_path, dir_len);
+        dir_path[dir_len] = '\0';
+        create_directory_recursive(dir_path);
+    }
+    
+    // Write JSON to target file
+    FILE* output_file = fopen(target_path, "w");
+    if (!output_file) {
+        result.status = ROGUE_MIGRATION_WRITE_ERROR;
+        snprintf(result.error_message, sizeof(result.error_message), 
+                "Failed to create output file: %s", target_path);
+        rogue_json_value_destroy(affixes_array);
+        rogue_cfg_parse_result_cleanup(&cfg_data);
+        return result;
+    }
+    
+    // Write formatted JSON
+    fprintf(output_file, "[\n");
+    size_t array_size = rogue_json_array_size(affixes_array);
+    for (size_t i = 0; i < array_size; i++) {
+        RogueJsonValue* affix = rogue_json_array_get(affixes_array, i);
+        fprintf(output_file, "  {\n");
+        
+        const RogueJsonValue* type = rogue_json_object_get(affix, "type");
+        const RogueJsonValue* id = rogue_json_object_get(affix, "id");
+        const RogueJsonValue* stat = rogue_json_object_get(affix, "stat");
+        
+        if (type) fprintf(output_file, "    \"type\": \"%s\",\n", rogue_json_value_get_string(type));
+        if (id) fprintf(output_file, "    \"id\": \"%s\",\n", rogue_json_value_get_string(id));
+        if (stat) fprintf(output_file, "    \"stat\": \"%s\",\n", rogue_json_value_get_string(stat));
+        
+        const RogueJsonValue* min_val = rogue_json_object_get(affix, "min_value");
+        const RogueJsonValue* max_val = rogue_json_object_get(affix, "max_value");
+        
+        if (min_val) fprintf(output_file, "    \"min_value\": %d,\n", (int)rogue_json_value_get_number(min_val));
+        if (max_val) fprintf(output_file, "    \"max_value\": %d,\n", (int)rogue_json_value_get_number(max_val));
+        
+        const RogueJsonValue* w_common = rogue_json_object_get(affix, "weight_common");
+        const RogueJsonValue* w_uncommon = rogue_json_object_get(affix, "weight_uncommon");
+        const RogueJsonValue* w_rare = rogue_json_object_get(affix, "weight_rare");
+        const RogueJsonValue* w_epic = rogue_json_object_get(affix, "weight_epic");
+        const RogueJsonValue* w_legendary = rogue_json_object_get(affix, "weight_legendary");
+        
+        if (w_common) fprintf(output_file, "    \"weight_common\": %d,\n", (int)rogue_json_value_get_number(w_common));
+        if (w_uncommon) fprintf(output_file, "    \"weight_uncommon\": %d,\n", (int)rogue_json_value_get_number(w_uncommon));
+        if (w_rare) fprintf(output_file, "    \"weight_rare\": %d,\n", (int)rogue_json_value_get_number(w_rare));
+        if (w_epic) fprintf(output_file, "    \"weight_epic\": %d,\n", (int)rogue_json_value_get_number(w_epic));
+        if (w_legendary) fprintf(output_file, "    \"weight_legendary\": %d\n", (int)rogue_json_value_get_number(w_legendary));
+        
+        fprintf(output_file, "  }%s\n", (i < array_size - 1) ? "," : "");
+    }
+    fprintf(output_file, "]\n");
+    
+    fclose(output_file);
+    result.status = ROGUE_MIGRATION_SUCCESS;
+    
+    // Cleanup
+    rogue_json_value_destroy(affixes_array);
+    rogue_cfg_parse_result_cleanup(&cfg_data);
+    
+    return result;
+}
+
+// =============================================================================
+// Cross-Reference Validation
+// =============================================================================
+
+bool rogue_validate_item_id_uniqueness(const char* items_dir, char* error_msg, size_t error_size) {
+    // Implementation stub - would scan all JSON files for duplicate IDs
+    ROGUE_LOG_INFO("Item ID uniqueness validation: %s", items_dir);
+    return true;
+}
+
+bool rogue_validate_item_balance(const RogueJsonValue* item, char* error_msg, size_t error_size) {
+    // Implementation stub - would check stat ranges and power budget
+    return true;
+}
+
+bool rogue_validate_affix_budget(const RogueJsonValue* affix, char* error_msg, size_t error_size) {
+    // Implementation stub - would check affix power levels
+    return true;
+}
+
+// =============================================================================
+// Batch Processing (Phase 2.3)
+// =============================================================================
+
+RogueMigrationStats rogue_migrate_phase_2_3_1(const RogueMigrationConfig* config) {
+    RogueMigrationStats stats = {0};
+    
+    ROGUE_LOG_INFO("Starting Phase 2.3.1: Items & Equipment Migration");
+    
+    // Migrate items
+    RogueMigrationResult item_result = rogue_migrate_items(config);
+    stats.total_files++;
+    if (item_result.status == ROGUE_MIGRATION_SUCCESS) {
+        stats.successful_files++;
+        stats.total_records += item_result.records_processed;
+        stats.successful_records += item_result.records_migrated;
+        stats.validation_errors += item_result.validation_errors;
+        ROGUE_LOG_INFO("Items migration completed: %d/%d records migrated", 
+                      item_result.records_migrated, item_result.records_processed);
+    } else {
+        stats.failed_files++;
+        ROGUE_LOG_ERROR("Items migration failed: %s", item_result.error_message);
+    }
+    
+    return stats;
+}
+
+RogueMigrationStats rogue_migrate_phase_2_3_2(const RogueMigrationConfig* config) {
+    RogueMigrationStats stats = {0};
+    
+    ROGUE_LOG_INFO("Starting Phase 2.3.2: Affixes & Modifiers Migration");
+    
+    // Migrate affixes
+    RogueMigrationResult affix_result = rogue_migrate_affixes(config);
+    stats.total_files++;
+    if (affix_result.status == ROGUE_MIGRATION_SUCCESS) {
+        stats.successful_files++;
+        stats.total_records += affix_result.records_processed;
+        stats.successful_records += affix_result.records_migrated;
+        stats.validation_errors += affix_result.validation_errors;
+        ROGUE_LOG_INFO("Affixes migration completed: %d/%d records migrated",
+                      affix_result.records_migrated, affix_result.records_processed);
+    } else {
+        stats.failed_files++;
+        ROGUE_LOG_ERROR("Affixes migration failed: %s", affix_result.error_message);
+    }
+    
+    return stats;
+}
+
+// =============================================================================
+// Utility Functions
+// =============================================================================
+
+void rogue_migration_print_stats(const RogueMigrationStats* stats) {
+    if (!stats) return;
+    
+    ROGUE_LOG_INFO("=== Migration Statistics ===");
+    ROGUE_LOG_INFO("Files: %d total, %d successful, %d failed", 
+                   stats->total_files, stats->successful_files, stats->failed_files);
+    ROGUE_LOG_INFO("Records: %d total, %d migrated", 
+                   stats->total_records, stats->successful_records);
+    ROGUE_LOG_INFO("Validation errors: %d", stats->validation_errors);
+    ROGUE_LOG_INFO("Schema errors: %d", stats->schema_errors);
+}
+
+void rogue_migration_print_result(const RogueMigrationResult* result) {
+    if (!result) return;
+    
+    const char* status_str;
+    switch (result->status) {
+        case ROGUE_MIGRATION_SUCCESS: status_str = "SUCCESS"; break;
+        case ROGUE_MIGRATION_FILE_ERROR: status_str = "FILE_ERROR"; break;
+        case ROGUE_MIGRATION_PARSE_ERROR: status_str = "PARSE_ERROR"; break;
+        case ROGUE_MIGRATION_VALIDATION_ERROR: status_str = "VALIDATION_ERROR"; break;
+        case ROGUE_MIGRATION_WRITE_ERROR: status_str = "WRITE_ERROR"; break;
+        case ROGUE_MIGRATION_SCHEMA_ERROR: status_str = "SCHEMA_ERROR"; break;
+        default: status_str = "UNKNOWN"; break;
+    }
+    
+    ROGUE_LOG_INFO("Migration Result: %s", status_str);
+    ROGUE_LOG_INFO("  Source: %s", result->source_file);
+    ROGUE_LOG_INFO("  Target: %s", result->target_file);
+    ROGUE_LOG_INFO("  Records: %d processed, %d migrated", 
+                   result->records_processed, result->records_migrated);
+    if (result->validation_errors > 0) {
+        ROGUE_LOG_INFO("  Validation errors: %d", result->validation_errors);
+    }
+    if (result->error_message[0] != '\0') {
+        ROGUE_LOG_INFO("  Error: %s", result->error_message);
+    }
+}

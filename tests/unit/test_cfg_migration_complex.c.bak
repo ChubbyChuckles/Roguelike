@@ -1,0 +1,434 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include <sys/stat.h>
+
+#include "../../src/core/cfg_migration.h"
+
+// Test configuration
+static const char* TEST_SOURCE_DIR = "test_assets";
+static const char* TEST_TARGET_DIR = "test_output";
+
+// Test file cleanup
+static void cleanup_test_files(void) {
+#ifdef _WIN32
+    system("rmdir /s /q test_assets 2>nul");
+    system("rmdir /s /q test_output 2>nul");
+#else
+    system("rm -rf test_assets test_output");
+#endif
+}
+
+// Test file creation
+static void create_test_directories(void) {
+#ifdef _WIN32
+    _mkdir("test_assets");
+    _mkdir("test_output");
+#else
+    mkdir("test_assets", 0755);
+    mkdir("test_output", 0755);
+#endif
+}
+
+static void create_test_items_cfg(void) {
+    FILE* f = fopen("test_assets/test_items.cfg", "w");
+    assert(f != NULL);
+    
+    fprintf(f, "# id,name,category,level_req,stack_max,base_value,dmg_min,dmg_max,armor,sheet,tx,ty,tw,th,rarity\n");
+    fprintf(f, "iron_sword,Iron Sword,2,1,1,25,3,7,0,../assets/weapons/sword.png,0,0,32,32,1\n");
+    fprintf(f, "healing_potion,Healing Potion,1,0,20,5,0,0,0,../assets/items/potion.png,0,0,16,16,0\n");
+    fprintf(f, "leather_armor,Leather Armor,3,1,1,15,0,0,5,../assets/armor/leather.png,0,0,32,32,0\n");
+    
+    fclose(f);
+}
+
+static void create_test_affixes_cfg(void) {
+    FILE* f = fopen("test_assets/affixes.cfg", "w");
+    assert(f != NULL);
+    
+    fprintf(f, "# type,id,stat,min,max,w_common,w_uncommon,w_rare,w_epic,w_legendary\n");
+    fprintf(f, "PREFIX,sharp,damage_flat,1,3,50,30,15,4,1\n");
+    fprintf(f, "SUFFIX,of_the_fox,agility_flat,1,2,40,35,15,7,3\n");
+    fprintf(f, "PREFIX,heavy,damage_flat,2,5,25,25,20,10,4\n");
+    fprintf(f, "SUFFIX,of_protection,armor_flat,3,8,20,25,25,15,10\n");
+    
+    fclose(f);
+}
+
+// =============================================================================
+// Test Functions
+// =============================================================================
+
+void test_migration_config_init(void) {
+    printf("Testing migration config initialization...\n");
+    
+    RogueMigrationConfig config;
+    rogue_migration_config_init(&config);
+    
+    assert(strcmp(config.source_dir, "assets") == 0);
+    assert(strcmp(config.target_dir, "assets/json") == 0);
+    assert(config.validate_schemas == true);
+    assert(config.create_backup == true);
+    assert(config.overwrite_existing == false);
+    assert(config.item_schema == NULL);
+    assert(config.affix_schema == NULL);
+    
+    printf("✓ Migration config initialization passed\n");
+}
+
+void test_schema_creation(void) {
+    printf("Testing schema creation...\n");
+    
+    RogueMigrationConfig config;
+    rogue_migration_config_init(&config);
+    
+    bool result = rogue_migration_create_schemas(&config);
+    assert(result == true);
+    assert(config.item_schema != NULL);
+    assert(config.affix_schema != NULL);
+    
+    // Verify item schema has expected fields
+    assert(rogue_json_schema_has_field(config.item_schema, "id"));
+    assert(rogue_json_schema_has_field(config.item_schema, "name"));
+    assert(rogue_json_schema_has_field(config.item_schema, "category"));
+    
+    // Verify affix schema has expected fields
+    assert(rogue_json_schema_has_field(config.affix_schema, "type"));
+    assert(rogue_json_schema_has_field(config.affix_schema, "stat"));
+    assert(rogue_json_schema_has_field(config.affix_schema, "min_value"));
+    
+    rogue_migration_config_cleanup(&config);
+    printf("✓ Schema creation passed\n");
+}
+
+void test_cfg_item_to_json_conversion(void) {
+    printf("Testing CFG item to JSON conversion...\n");
+    
+    // Create mock CFG parse result
+    RogueCfgParseResult cfg_data = {0};
+    cfg_data.status = ROGUE_CFG_SUCCESS;
+    cfg_data.num_records = 1;
+    cfg_data.records = calloc(1, sizeof(RogueCfgRecord));
+    
+    RogueCfgRecord* record = &cfg_data.records[0];
+    record->num_fields = 15;
+    record->fields = calloc(15, sizeof(char*));
+    
+    record->fields[0] = "iron_sword";
+    record->fields[1] = "Iron Sword";
+    record->fields[2] = "2";  // weapon category
+    record->fields[3] = "1";  // level requirement
+    record->fields[4] = "1";  // stack max
+    record->fields[5] = "25"; // base value
+    record->fields[6] = "3";  // damage min
+    record->fields[7] = "7";  // damage max
+    record->fields[8] = "0";  // armor
+    record->fields[9] = "../assets/weapons/sword.png"; // sprite path
+    record->fields[10] = "0"; // sprite tx
+    record->fields[11] = "0"; // sprite ty
+    record->fields[12] = "32"; // sprite tw
+    record->fields[13] = "32"; // sprite th
+    record->fields[14] = "1"; // rarity
+    
+    RogueJsonValue* item = rogue_cfg_item_to_json(&cfg_data, 0);
+    assert(item != NULL);
+    
+    // Verify converted data
+    const RogueJsonValue* id = rogue_json_object_get(item, "id");
+    assert(id != NULL);
+    assert(strcmp(rogue_json_value_get_string(id), "iron_sword") == 0);
+    
+    const RogueJsonValue* category = rogue_json_object_get(item, "category");
+    assert(category != NULL);
+    assert((int)rogue_json_value_get_number(category) == 2);
+    
+    const RogueJsonValue* damage_min = rogue_json_object_get(item, "base_damage_min");
+    assert(damage_min != NULL);
+    assert((int)rogue_json_value_get_number(damage_min) == 3);
+    
+    // Cleanup
+    rogue_json_value_destroy(item);
+    free(record->fields);
+    free(cfg_data.records);
+    
+    printf("✓ CFG item to JSON conversion passed\n");
+}
+
+void test_cfg_affix_to_json_conversion(void) {
+    printf("Testing CFG affix to JSON conversion...\n");
+    
+    // Create mock CFG parse result
+    RogueCfgParseResult cfg_data = {0};
+    cfg_data.status = ROGUE_CFG_SUCCESS;
+    cfg_data.num_records = 1;
+    cfg_data.records = calloc(1, sizeof(RogueCfgRecord));
+    
+    RogueCfgRecord* record = &cfg_data.records[0];
+    record->num_fields = 10;
+    record->fields = calloc(10, sizeof(char*));
+    
+    record->fields[0] = "PREFIX";
+    record->fields[1] = "sharp";
+    record->fields[2] = "damage_flat";
+    record->fields[3] = "1";  // min value
+    record->fields[4] = "3";  // max value
+    record->fields[5] = "50"; // weight common
+    record->fields[6] = "30"; // weight uncommon
+    record->fields[7] = "15"; // weight rare
+    record->fields[8] = "4";  // weight epic
+    record->fields[9] = "1";  // weight legendary
+    
+    RogueJsonValue* affix = rogue_cfg_affix_to_json(&cfg_data, 0);
+    assert(affix != NULL);
+    
+    // Verify converted data
+    const RogueJsonValue* type = rogue_json_object_get(affix, "type");
+    assert(type != NULL);
+    assert(strcmp(rogue_json_value_get_string(type), "PREFIX") == 0);
+    
+    const RogueJsonValue* id = rogue_json_object_get(affix, "id");
+    assert(id != NULL);
+    assert(strcmp(rogue_json_value_get_string(id), "sharp") == 0);
+    
+    const RogueJsonValue* min_val = rogue_json_object_get(affix, "min_value");
+    assert(min_val != NULL);
+    assert((int)rogue_json_value_get_number(min_val) == 1);
+    
+    // Cleanup
+    rogue_json_value_destroy(affix);
+    free(record->fields);
+    free(cfg_data.records);
+    
+    printf("✓ CFG affix to JSON conversion passed\n");
+}
+
+void test_item_validation(void) {
+    printf("Testing item validation...\n");
+    
+    RogueJsonSchema* schema = rogue_create_item_schema();
+    assert(schema != NULL);
+    
+    // Create valid item
+    RogueJsonValue* valid_item = rogue_json_value_create_object();
+    rogue_json_object_set_string(valid_item, "id", "test_sword");
+    rogue_json_object_set_string(valid_item, "name", "Test Sword");
+    rogue_json_object_set_integer(valid_item, "category", 2); // weapon
+    rogue_json_object_set_integer(valid_item, "base_damage_min", 5);
+    rogue_json_object_set_integer(valid_item, "base_damage_max", 10);
+    
+    char error_msg[512];
+    bool result = rogue_validate_migrated_item(valid_item, schema, error_msg, sizeof(error_msg));
+    assert(result == true);
+    
+    // Test invalid item (weapon with zero damage)
+    RogueJsonValue* invalid_item = rogue_json_value_create_object();
+    rogue_json_object_set_string(invalid_item, "id", "bad_sword");
+    rogue_json_object_set_string(invalid_item, "name", "Bad Sword");
+    rogue_json_object_set_integer(invalid_item, "category", 2); // weapon
+    rogue_json_object_set_integer(invalid_item, "base_damage_min", 0); // invalid
+    rogue_json_object_set_integer(invalid_item, "base_damage_max", 0); // invalid
+    
+    result = rogue_validate_migrated_item(invalid_item, schema, error_msg, sizeof(error_msg));
+    assert(result == false);
+    assert(strstr(error_msg, "positive damage") != NULL);
+    
+    // Cleanup
+    rogue_json_value_destroy(valid_item);
+    rogue_json_value_destroy(invalid_item);
+    rogue_json_schema_destroy(schema);
+    
+    printf("✓ Item validation passed\n");
+}
+
+void test_affix_validation(void) {
+    printf("Testing affix validation...\n");
+    
+    RogueJsonSchema* schema = rogue_create_affix_schema();
+    assert(schema != NULL);
+    
+    // Create valid affix
+    RogueJsonValue* valid_affix = rogue_json_value_create_object();
+    rogue_json_object_set_string(valid_affix, "type", "PREFIX");
+    rogue_json_object_set_string(valid_affix, "id", "sharp");
+    rogue_json_object_set_string(valid_affix, "stat", "damage_flat");
+    rogue_json_object_set_integer(valid_affix, "min_value", 1);
+    rogue_json_object_set_integer(valid_affix, "max_value", 3);
+    
+    char error_msg[512];
+    bool result = rogue_validate_migrated_affix(valid_affix, schema, error_msg, sizeof(error_msg));
+    assert(result == true);
+    
+    // Test invalid affix type
+    RogueJsonValue* invalid_affix = rogue_json_value_create_object();
+    rogue_json_object_set_string(invalid_affix, "type", "INVALID");
+    rogue_json_object_set_string(invalid_affix, "id", "test");
+    rogue_json_object_set_string(invalid_affix, "stat", "damage_flat");
+    rogue_json_object_set_integer(invalid_affix, "min_value", 1);
+    rogue_json_object_set_integer(invalid_affix, "max_value", 3);
+    
+    result = rogue_validate_migrated_affix(invalid_affix, schema, error_msg, sizeof(error_msg));
+    assert(result == false);
+    assert(strstr(error_msg, "Invalid affix type") != NULL);
+    
+    // Cleanup
+    rogue_json_value_destroy(valid_affix);
+    rogue_json_value_destroy(invalid_affix);
+    rogue_json_schema_destroy(schema);
+    
+    printf("✓ Affix validation passed\n");
+}
+
+void test_file_migration_items(void) {
+    printf("Testing complete items file migration...\n");
+    
+    cleanup_test_files();
+    create_test_directories();
+    create_test_items_cfg();
+    
+    RogueMigrationConfig config;
+    rogue_migration_config_init(&config);
+    config.source_dir = TEST_SOURCE_DIR;
+    config.target_dir = TEST_TARGET_DIR;
+    
+    bool schema_result = rogue_migration_create_schemas(&config);
+    assert(schema_result == true);
+    
+    RogueMigrationResult result = rogue_migrate_items(&config);
+    assert(result.status == ROGUE_MIGRATION_SUCCESS);
+    assert(result.records_processed > 0);
+    assert(result.records_migrated > 0);
+    
+    // Verify output file exists
+    struct stat st;
+    assert(stat("test_output/items/items.json", &st) == 0);
+    
+    rogue_migration_config_cleanup(&config);
+    cleanup_test_files();
+    
+    printf("✓ Complete items file migration passed\n");
+}
+
+void test_file_migration_affixes(void) {
+    printf("Testing complete affixes file migration...\n");
+    
+    cleanup_test_files();
+    create_test_directories();
+    create_test_affixes_cfg();
+    
+    RogueMigrationConfig config;
+    rogue_migration_config_init(&config);
+    config.source_dir = TEST_SOURCE_DIR;
+    config.target_dir = TEST_TARGET_DIR;
+    
+    bool schema_result = rogue_migration_create_schemas(&config);
+    assert(schema_result == true);
+    
+    RogueMigrationResult result = rogue_migrate_affixes(&config);
+    assert(result.status == ROGUE_MIGRATION_SUCCESS);
+    assert(result.records_processed > 0);
+    assert(result.records_migrated > 0);
+    
+    // Verify output file exists
+    struct stat st;
+    assert(stat("test_output/items/affixes.json", &st) == 0);
+    
+    rogue_migration_config_cleanup(&config);
+    cleanup_test_files();
+    
+    printf("✓ Complete affixes file migration passed\n");
+}
+
+void test_phase_2_3_1_migration(void) {
+    printf("Testing complete Phase 2.3.1 migration...\n");
+    
+    cleanup_test_files();
+    create_test_directories();
+    create_test_items_cfg();
+    
+    RogueMigrationConfig config;
+    rogue_migration_config_init(&config);
+    config.source_dir = TEST_SOURCE_DIR;
+    config.target_dir = TEST_TARGET_DIR;
+    
+    bool schema_result = rogue_migration_create_schemas(&config);
+    assert(schema_result == true);
+    
+    RogueMigrationStats stats = rogue_migrate_phase_2_3_1(&config);
+    assert(stats.total_files > 0);
+    assert(stats.successful_files > 0);
+    assert(stats.successful_records > 0);
+    
+    rogue_migration_print_stats(&stats);
+    
+    rogue_migration_config_cleanup(&config);
+    cleanup_test_files();
+    
+    printf("✓ Complete Phase 2.3.1 migration passed\n");
+}
+
+void test_phase_2_3_2_migration(void) {
+    printf("Testing complete Phase 2.3.2 migration...\n");
+    
+    cleanup_test_files();
+    create_test_directories();
+    create_test_affixes_cfg();
+    
+    RogueMigrationConfig config;
+    rogue_migration_config_init(&config);
+    config.source_dir = TEST_SOURCE_DIR;
+    config.target_dir = TEST_TARGET_DIR;
+    
+    bool schema_result = rogue_migration_create_schemas(&config);
+    assert(schema_result == true);
+    
+    RogueMigrationStats stats = rogue_migrate_phase_2_3_2(&config);
+    assert(stats.total_files > 0);
+    assert(stats.successful_files > 0);
+    assert(stats.successful_records > 0);
+    
+    rogue_migration_print_stats(&stats);
+    
+    rogue_migration_config_cleanup(&config);
+    cleanup_test_files();
+    
+    printf("✓ Complete Phase 2.3.2 migration passed\n");
+}
+
+void test_migration_error_handling(void) {
+    printf("Testing migration error handling...\n");
+    
+    RogueMigrationConfig config;
+    rogue_migration_config_init(&config);
+    config.source_dir = "nonexistent_dir";
+    config.target_dir = TEST_TARGET_DIR;
+    
+    RogueMigrationResult result = rogue_migrate_items(&config);
+    assert(result.status == ROGUE_MIGRATION_FILE_ERROR);
+    assert(strstr(result.error_message, "not found") != NULL);
+    
+    printf("✓ Migration error handling passed\n");
+}
+
+// =============================================================================
+// Test Runner
+// =============================================================================
+
+int main(void) {
+    printf("=== CFG Migration Tests ===\n\n");
+    
+    test_migration_config_init();
+    test_schema_creation();
+    test_cfg_item_to_json_conversion();
+    test_cfg_affix_to_json_conversion();
+    test_item_validation();
+    test_affix_validation();
+    test_file_migration_items();
+    test_file_migration_affixes();
+    test_phase_2_3_1_migration();
+    test_phase_2_3_2_migration();
+    test_migration_error_handling();
+    
+    printf("\n✅ All CFG migration tests passed!\n");
+    return 0;
+}
