@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include "core/save_manager.h"
-#include "core/inventory/inventory_entries.h"
+#include "../../src/core/inventory/inventory_entries.h"
 
 /* Test Phase 1.6 persistence integration of inventory entries component. */
 static void test_roundtrip(){

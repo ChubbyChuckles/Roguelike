@@ -1,6 +1,6 @@
-#include "core/inventory_tag_rules.h"
-#include "core/loot/loot_item_defs.h" /* for rogue_item_def_at */
-#include "core/inventory_tags.h"
+#include "inventory_tag_rules.h"
+#include "../loot/loot_item_defs.h" /* for rogue_item_def_at */
+#include "inventory_tags.h"
 #include <string.h>
 #include <stdlib.h>
 

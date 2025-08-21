@@ -1,4 +1,4 @@
-#include "core/inventory_tags.h"
+#include "inventory_tags.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>

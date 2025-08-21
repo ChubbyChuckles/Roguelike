@@ -1,9 +1,9 @@
 #include <assert.h>
 #include <stdio.h>
-#include "core/inventory/inventory_entries.h"
-#include "core/inventory_tags.h"
-#include "core/inventory_tag_rules.h"
-#include "core/save_manager.h"
+#include "../../src/core/inventory/inventory_entries.h"
+#include "../../src/core/inventory/inventory_tags.h"
+#include "../../src/core/inventory/inventory_tag_rules.h"
+#include "../../src/core/save_manager.h"
 
 static void test_rule_application_basic(){
     rogue_inventory_entries_init();

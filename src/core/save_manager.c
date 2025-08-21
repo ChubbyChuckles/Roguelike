@@ -17,11 +17,11 @@
 #else
 #include <unistd.h>
 #endif
-#include "core/equipment/equipment.h"
-#include "core/inventory/inventory_entries.h" /* Phase 1.6 inventory entries persistence */
-#include "core/inventory_tag_rules.h" /* Phase 3.3 auto-tag rules persistence */
-#include "core/inventory_tags.h" /* Phase 3 inventory metadata */
-#include "core/inventory/inventory_query.h" /* Phase 4.4 saved searches persistence */
+#include "equipment/equipment.h"
+#include "inventory/inventory_entries.h" /* Phase 1.6 inventory entries persistence */
+#include "inventory/inventory_tag_rules.h" /* Phase 3.3 auto-tag rules persistence */
+#include "inventory/inventory_tags.h" /* Phase 3 inventory metadata */
+#include "inventory/inventory_query.h" /* Phase 4.4 saved searches persistence */
 
 static RogueSaveComponent g_components[ROGUE_SAVE_MAX_COMPONENTS];
 static int g_component_count = 0;

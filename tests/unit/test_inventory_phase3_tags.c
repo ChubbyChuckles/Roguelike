@@ -1,8 +1,8 @@
 #include <assert.h>
 #include <stdio.h>
-#include "core/inventory_tags.h"
-#include "core/save_manager.h"
-#include "core/inventory/inventory_entries.h"
+#include "../../src/core/inventory/inventory_tags.h"
+#include "../../src/core/save_manager.h"
+#include "../../src/core/inventory/inventory_entries.h"
 
 static void test_basic_flags_tags(){
     rogue_inv_tags_init();

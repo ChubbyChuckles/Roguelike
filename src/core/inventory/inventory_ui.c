@@ -1,11 +1,11 @@
-#include "core/inventory_ui.h"
-#include "core/inventory.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/loot/loot_instances.h"
-#include "core/equipment/equipment.h"
-#include "core/vendor/salvage.h"
-#include "core/inventory_tags.h" /* lock/favorite enforcement */
-#include "core/app_state.h"
+#include "inventory_ui.h"
+#include "../inventory.h"
+#include "../loot/loot_item_defs.h"
+#include "../loot/loot_instances.h"
+#include "../equipment/equipment.h"
+#include "../vendor/salvage.h"
+#include "inventory_tags.h" /* lock/favorite enforcement */
+#include "../app_state.h"
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>

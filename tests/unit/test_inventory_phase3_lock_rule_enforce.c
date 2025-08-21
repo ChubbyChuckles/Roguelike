@@ -1,10 +1,10 @@
 #include <assert.h>
 #include <stdio.h>
-#include "core/inventory/inventory_entries.h"
-#include "core/inventory_tags.h"
-#include "core/inventory_tag_rules.h"
-#include "core/inventory_ui.h"
-#include "core/save_manager.h"
+#include "../../src/core/inventory/inventory_entries.h"
+#include "../../src/core/inventory/inventory_tags.h"
+#include "../../src/core/inventory/inventory_tag_rules.h"
+#include "../../src/core/inventory/inventory_ui.h"
+#include "../../src/core/save_manager.h"
 
 /* Ensures locked/favorite items cannot be salvaged/dropped and rule application order deterministic. */
 static void test_lock_prevents_salvage_drop(){

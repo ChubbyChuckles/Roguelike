@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdint.h>
-#include "core/inventory/inventory_entries.h"
+#include "../../src/core/inventory/inventory_entries.h"
 
 static int g_handler_invocations = 0;
 static int sample_cap_handler(int def_index, uint64_t add_qty){

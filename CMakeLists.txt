@@ -205,8 +205,8 @@ add_library(rogue_core
     src/core/loot/loot_instances.c
     src/core/inventory.c
     src/core/inventory/inventory_entries.c
-    src/core/inventory_ui.c
-    src/core/inventory_tags.c
+    src/core/inventory/inventory_ui.c
+    src/core/inventory/inventory_tags.c
     src/core/loot/loot_pickup.c
     src/core/loot/loot_multiplayer.c
     src/core/loot/loot_logging.c
@@ -311,7 +311,7 @@ add_library(rogue_core
     src/core/loot/loot_api_doc.c
     src/core/equipment/equipment_perf.c
     src/core/equipment/equipment_modding.c
-    src/core/inventory_tag_rules.c
+    src/core/inventory/inventory_tag_rules.c
     src/core/inventory/inventory_query.c
     src/game/hit_system.c
     src/game/hit_pixel_mask.c

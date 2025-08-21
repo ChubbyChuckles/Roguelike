@@ -341,6 +341,33 @@ function Update-IncludesInFile {
             return $true
         }
         
+        # Special handling for test files that may have inconsistent include patterns
+        if ($FilePath -match "tests[\\/]unit[\\/]") {
+            foreach ($oldInclude in $ReplacementMap.Keys) {
+                $newInclude = $ReplacementMap[$oldInclude]
+                
+                # Fix common test file include patterns
+                $testPatterns = @(
+                    "#include `"src/$oldInclude`"",
+                    "#include `"core/$($oldInclude.Replace('src/core/', ''))`""
+                )
+                
+                foreach ($pattern in $testPatterns) {
+                    if ($content -match [regex]::Escape($pattern)) {
+                        # For test files, use the full relative path from tests/unit/
+                        $testInclude = "../../$newInclude"
+                        $content = $content -replace [regex]::Escape($pattern), "#include `"$testInclude`""
+                        $changed = $true
+                    }
+                }
+            }
+            
+            if ($changed) {
+                Set-Content -Path $FilePath -Value $content -NoNewline
+                return $true
+            }
+        }
+
         return $false
     }
     catch {
@@ -446,6 +473,99 @@ try {
     }
     
     Write-Host "`nFiles moved successfully!" -ForegroundColor Green
+    
+    # Update includes in moved files themselves
+    Write-Host "`nUpdating includes in moved files..." -ForegroundColor Yellow
+    foreach ($fileInfo in $fileInfoList) {
+        # Update the moved C file's includes
+        $movedCFile = $fileInfo.TargetCFile
+        if (Test-Path $movedCFile) {
+            $content = Get-Content -Path $movedCFile -Raw
+            if ($content) {
+                $changed = $false
+                
+                # Fix includes for files now in the same directory
+                foreach ($otherFileInfo in $fileInfoList) {
+                    if ($otherFileInfo.HasHeaderFile) {
+                        $headerName = "$($otherFileInfo.BaseName).h"
+                        # Replace absolute paths with relative filename
+                        $oldPatterns = @(
+                            "#include `"$($otherFileInfo.OldIncludePath)`"",
+                            "#include `"$($otherFileInfo.OldCoreRelativePath)`""
+                        )
+                        foreach ($pattern in $oldPatterns) {
+                            if ($pattern -and $content -match [regex]::Escape($pattern)) {
+                                $content = $content -replace [regex]::Escape($pattern), "#include `"$headerName`""
+                                $changed = $true
+                            }
+                        }
+                    }
+                }
+                
+                # Fix includes for other core headers using relative paths
+                $content = [regex]::Replace($content, '#include "core/([^"]+)"', { param($match)
+                    return "#include `"../$($match.Groups[1].Value)`""
+                })
+                $changed = $true
+                
+                # Fix includes with src/core prefix using relative paths  
+                $content = [regex]::Replace($content, '#include "src/core/([^"]+)"', { param($match)
+                    return "#include `"../$($match.Groups[1].Value)`""
+                })
+                $changed = $true
+                
+                if ($changed) {
+                    Set-Content -Path $movedCFile -Value $content -NoNewline
+                    Write-Host "  Updated includes in: $(Split-Path $movedCFile -Leaf)" -ForegroundColor Green
+                }
+            }
+        }
+        
+        # Update the moved H file's includes if it exists
+        if ($fileInfo.HasHeaderFile) {
+            $movedHFile = $fileInfo.TargetHFile
+            if (Test-Path $movedHFile) {
+                $content = Get-Content -Path $movedHFile -Raw
+                if ($content) {
+                    $changed = $false
+                    
+                    # Fix includes for files now in the same directory
+                    foreach ($otherFileInfo in $fileInfoList) {
+                        if ($otherFileInfo.HasHeaderFile) {
+                            $headerName = "$($otherFileInfo.BaseName).h"
+                            $oldPatterns = @(
+                                "#include `"$($otherFileInfo.OldIncludePath)`"",
+                                "#include `"$($otherFileInfo.OldCoreRelativePath)`""
+                            )
+                            foreach ($pattern in $oldPatterns) {
+                                if ($pattern -and $content -match [regex]::Escape($pattern)) {
+                                    $content = $content -replace [regex]::Escape($pattern), "#include `"$headerName`""
+                                    $changed = $true
+                                }
+                            }
+                        }
+                    }
+                    
+                    # Fix includes for other core headers using relative paths
+                    $content = [regex]::Replace($content, '#include "core/([^"]+)"', { param($match)
+                        return "#include `"../$($match.Groups[1].Value)`""
+                    })
+                    $changed = $true
+                    
+                    # Fix includes with src/core prefix using relative paths
+                    $content = [regex]::Replace($content, '#include "src/core/([^"]+)"', { param($match)
+                        return "#include `"../$($match.Groups[1].Value)`""
+                    })
+                    $changed = $true
+                    
+                    if ($changed) {
+                        Set-Content -Path $movedHFile -Value $content -NoNewline
+                        Write-Host "  Updated includes in: $(Split-Path $movedHFile -Leaf)" -ForegroundColor Green
+                    }
+                }
+            }
+        }
+    }
 }
 catch {
     Write-Error "Failed to move files: $_"

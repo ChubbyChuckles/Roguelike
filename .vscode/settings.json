@@ -2,6 +2,8 @@
     "files.associations": {
         "*.py": "python",
         "app_state.h": "c",
-        "material_registry.h": "c"
+        "material_registry.h": "c",
+        "inventory_tag_rules.h": "c",
+        "stdlib.h": "c"
     }
 }

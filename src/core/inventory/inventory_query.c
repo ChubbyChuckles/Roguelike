@@ -1,9 +1,9 @@
 #include "inventory_query.h"
 #include "inventory_entries.h"
-#include "core/inventory_tags.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/loot/loot_instances.h"
-#include "core/save_manager.h"
+#include "inventory_tags.h"
+#include "../loot/loot_item_defs.h"
+#include "../loot/loot_instances.h"
+#include "../save_manager.h"
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>

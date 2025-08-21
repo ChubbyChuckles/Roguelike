@@ -1,7 +1,7 @@
-#include "core/inventory_ui.h"
-#include "core/inventory.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/path_utils.h"
+#include "../../src/core/inventory/inventory_ui.h"
+#include "../../src/core/inventory.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/path_utils.h"
 #include <stdio.h>
 #include <string.h>
 

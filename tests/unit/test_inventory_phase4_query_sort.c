@@ -1,9 +1,9 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "core/inventory/inventory_entries.h"
-#include "core/inventory_tags.h"
-#include "core/inventory_tag_rules.h"
+#include "../../src/core/inventory/inventory_entries.h"
+#include "../../src/core/inventory/inventory_tags.h"
+#include "../../src/core/inventory/inventory_tag_rules.h"
 #include "../../src/core/inventory/inventory_query.h"
 #include "core/loot/loot_item_defs.h"
 

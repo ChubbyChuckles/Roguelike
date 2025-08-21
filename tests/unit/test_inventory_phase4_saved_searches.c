@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
-#include "core/inventory/inventory_entries.h"
-#include "core/inventory_tags.h"
+#include "../../src/core/inventory/inventory_entries.h"
+#include "../../src/core/inventory/inventory_tags.h"
 #include "../../src/core/inventory/inventory_query.h"
 
 static void setup(){ rogue_inventory_entries_init(); rogue_inv_tags_init(); }
