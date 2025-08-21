@@ -494,22 +494,23 @@ PHASE 5. System State Synchronization & Transaction Management
     5.5.7 Create state validation debugging tools (validation history, error analysis) (Done – event log ring, dump API, stats snapshot)
 
 5.6 Deadlock Detection & Prevention
-    5.6.1 Implement resource dependency graph construction (X)
-    5.6.2 Create deadlock detection algorithms (cycle detection in dependency graph) (X)
-    5.6.3 Add deadlock prevention strategies (resource ordering, timeout-based) (X)
-    5.6.4 Implement deadlock resolution mechanisms (abort transactions, resource preemption) (X)
-    5.6.5 Create deadlock monitoring & alerting systems (X)
-    5.6.6 Add deadlock debugging tools (dependency visualization, deadlock history) (X)
-    5.6.7 Implement deadlock performance impact measurement & optimization (X)
+    5.6.1 Implement resource dependency graph construction (Done – wait‑for graph via per-resource holder + FIFO waiter queue, per-tx wait & held bitsets)
+    5.6.2 Create deadlock detection algorithms (cycle detection in dependency graph) (Done – DFS from waiting tx, path stack, cycle capture up to 16 tx ids)
+    5.6.3 Add deadlock prevention strategies (resource ordering, timeout-based) (Done – complements existing lock ordering (Phase 4.7); FIFO waiter promotion prevents starvation; timeout hook ready)
+    5.6.4 Implement deadlock resolution mechanisms (abort transactions, resource preemption) (Done – victim selection heuristic (highest tx id), abort callback, automatic full release & promotions)
+    5.6.5 Create deadlock monitoring & alerting systems (Done – stats: acquisitions, waits, deadlocks_detected, victims_aborted, releases, wait_promotions, ticks)
+    5.6.6 Add deadlock debugging tools (dependency visualization, deadlock history) (Done – cycle log ring (seq, path, victim) + dump API)
+    5.6.7 Implement deadlock performance impact measurement & optimization (Done – constant-time bitset holds, bounded DFS depth, stats foundation)
+        SUMMARY: Added deadlock_manager (resource registration, acquire/wait, release, release_all, tick detection, stats, cycle log, dump, abort callback hook) and unit test `test_deadlock_manager` validating 3‑way cycle detection and victim resolution.
 
 5.7 Concurrency Control & Thread Safety
-    5.7.1 Design thread-safe system state access patterns (X)
-    5.7.2 Implement lock-free data structures where possible (X)
-    5.7.3 Create thread synchronization primitives (barriers, semaphores) (X)
-    5.7.4 Add thread pool management for system operations (X)
-    5.7.5 Implement thread priority management & scheduling (X)
-    5.7.6 Create thread safety debugging tools (race condition detection) (X)
-    5.7.7 Add thread performance monitoring & optimization (X)
+    5.7.1 Design thread-safe system state access patterns (Done – SDL-based primitives + barrier enable safe phased handoffs; SPSC queue for producer/consumer)
+    5.7.2 Implement lock-free data structures where possible (Partial – SPSC task ring with SDL atomics in thread pool; broader MPMC queues deferred)
+    5.7.3 Create thread synchronization primitives (barriers, semaphores) (Done – `threading.c/.h` adds RogueSem, RogueCond, reusable RogueBarrier; unit test `test_thread_barrier` passes)
+    5.7.4 Add thread pool management for system operations (Done – `thread_pool.c/.h` with SDL threads, semaphore-driven workers, lock-free ring; unit test `test_thread_pool` passes)
+    5.7.5 Implement thread priority management & scheduling (Done – pool exposes `rogue_thread_pool_set_priority`; workers apply priority on wake; debug-yield toggle aids scheduling stress)
+    5.7.6 Create thread safety debugging tools (race condition detection) (Partial – debug yield knob + deterministic countdown/timeout in tests; advanced race detectors deferred)
+    5.7.7 Add thread performance monitoring & optimization (Done – stats snapshot: tasks_submitted/executed, worker_wakeups, pending, peak_queue; peak tracking and pending query added)
 
 5.8 Tests: Synchronization System Validation
     5.8.1 Unit test: State snapshot consistency & versioning accuracy (X)

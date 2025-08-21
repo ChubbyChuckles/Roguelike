@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build thread tests (MSBuild /m)",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --target test_thread_pool test_thread_barrier -- /m:8",
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": "build"
+		}
+	]
+}

@@ -348,6 +348,9 @@ add_library(rogue_core
     src/core/integration/cow.c
     src/core/integration/versioning.c
     src/core/integration/resource_lock.c
+    # Phase 5.7 threading primitives & thread pool
+    src/core/integration/threading.c
+    src/core/integration/thread_pool.c
     # Phase 5.1 snapshot & 5.2 differential sync system
     src/core/integration/snapshot_manager.c
     # Phase 5.3 multi-system transaction framework
@@ -356,6 +359,8 @@ add_library(rogue_core
     src/core/integration/rollback_manager.c
     # Phase 5.5 state validation & integrity checking
     src/core/integration/state_validation_manager.c
+    # Phase 5.6 deadlock detection & prevention
+    src/core/integration/deadlock_manager.c
 )
 
 target_include_directories(rogue_core PUBLIC
@@ -448,6 +453,29 @@ target_link_libraries(test_state_validation_manager PRIVATE rogue_core)
 target_include_directories(test_state_validation_manager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/core/integration)
 if(TARGET SDL2::SDL2)
     target_link_libraries(test_state_validation_manager PRIVATE SDL2::SDL2)
+endif()
+
+# Phase 5.6 deadlock detection tests
+add_executable(test_deadlock_manager tests/unit/test_deadlock_manager.c)
+target_link_libraries(test_deadlock_manager PRIVATE rogue_core)
+target_include_directories(test_deadlock_manager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/core/integration)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_deadlock_manager PRIVATE SDL2::SDL2)
+endif()
+
+# Phase 5.7 concurrency control tests
+add_executable(test_thread_pool tests/unit/test_thread_pool.c)
+target_link_libraries(test_thread_pool PRIVATE rogue_core)
+target_include_directories(test_thread_pool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/core/integration)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_thread_pool PRIVATE SDL2::SDL2)
+endif()
+
+add_executable(test_thread_barrier tests/unit/test_thread_barrier.c)
+target_link_libraries(test_thread_barrier PRIVATE rogue_core)
+target_include_directories(test_thread_barrier PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/core/integration)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_thread_barrier PRIVATE SDL2::SDL2)
 endif()
 
 add_executable(roguelike src/main.c)
