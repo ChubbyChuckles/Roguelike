@@ -1,0 +1,12 @@
+feat(integration): implement Phase 4.1 Unified Entity ID System (64-bit IDs, validation, registry, persistence helpers, tests)
+
+Details:
+- Added entity_id.h/.c: 64-bit ID layout [8-bit type | 48-bit sequence | 8-bit checksum]
+- Per-type monotonic generators (player, enemy, item, world) with wrap guard
+- XOR checksum validation + decoding helpers (type/sequence/checksum)
+- Lightweight registry (8K slots) for ID→pointer tracking (register/lookup/release)
+- Hex serialization & strict parsing (no unsafe sscanf)
+- Debug stats dump function
+- Unit test test_entity_id: uniqueness (1K), decoding, tamper checksum fail, registry lifecycle, serialize/parse round-trip
+- Integrated sources & test into CMake, marked roadmap 4.1.* Done, updated README roadmap snapshot
+- Foundation for upcoming Phase 4 shared memory/cache/refcount systems
