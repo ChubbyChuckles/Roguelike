@@ -6,7 +6,7 @@
 #include "core/app_state.h"
 #include "core/equipment/equipment_stats.h"
 #include "core/equipment/equipment.h"
-#include "core/inventory.h"
+#include "core\inventory\inventory.h"
 #include <string.h>
 #include "core/equipment/equipment_perf.h" /* arena + profiler (Phase 14) */
 #if defined(_WIN32)

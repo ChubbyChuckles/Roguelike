@@ -3,7 +3,7 @@
 #include "core/app_state.h"
 #include "entities/player.h"
 #include "core/skills.h"
-#include "core/inventory.h"
+#include "core\inventory\inventory.h"
 #include "core/loot/loot_instances.h"
 #include "core/loot/loot_affixes.h"
 #include <stdlib.h>

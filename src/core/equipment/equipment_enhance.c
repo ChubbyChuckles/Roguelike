@@ -3,7 +3,7 @@
 #include "core/loot/loot_item_defs.h"
 #include "core/loot/loot_affixes.h"
 #include "core/vendor/economy.h"
-#include "core/inventory.h"
+#include "core\inventory\inventory.h"
 #include "core/stat_cache.h"
 #include <stdlib.h>
 

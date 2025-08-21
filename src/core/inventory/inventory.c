@@ -1,4 +1,4 @@
-#include "core/inventory.h"
+#include "inventory.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

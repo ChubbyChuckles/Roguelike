@@ -48,7 +48,7 @@ SOFTWARE.
 #include "core/enemy/enemy_render.h"
 #include "core/hud/hud.h"
 #include "player/player_progress.h"
-#include "core/src\core\persistence\persistence_autosave.h"
+#include "core/persistence/persistence_autosave.h"
 #include "game/damage_numbers.h" /* will provide render/update */
 #include "core/world_renderer.h"
 #include "core/animation_system.h"
@@ -66,7 +66,7 @@ SOFTWARE.
 #include "core/loot/loot_item_defs.h"
 #include "core/loot/loot_tables.h"
 #include "core/loot/loot_instances.h"
-#include "core/inventory.h"
+#include "core/src\core\inventory\inventory.h"
 #include "core/loot/loot_pickup.h"
 #include "core/equipment/equipment_stats.h"
 #include "core/stat_cache.h"

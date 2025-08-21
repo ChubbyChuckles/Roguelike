@@ -203,7 +203,7 @@ add_library(rogue_core
     src/core/loot/loot_item_defs_sort.c
     src/core/loot/loot_tables.c
     src/core/loot/loot_instances.c
-    src/core/inventory.c
+    src/core/inventory/inventory.c
     src/core/inventory/inventory_entries.c
     src/core/inventory/inventory_ui.c
     src/core/inventory/inventory_tags.c

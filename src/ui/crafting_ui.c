@@ -3,7 +3,7 @@
 #include "core/crafting/crafting_queue.h"
 #include "core/crafting/material_refine.h"
 #include "core/crafting/material_registry.h"
-#include "core/inventory.h"
+#include "../core/inventory/inventory.h"
 #include "core/equipment/equipment.h"
 #include "core/loot/loot_instances.h"
 #include "core/crafting/gathering.h"

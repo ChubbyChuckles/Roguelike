@@ -2,7 +2,7 @@
 #include "core/vendor/vendor.h"
 #include "core/vendor/economy.h"
 #include "graphics/font.h"
-#include "core/inventory.h"
+#include "core\inventory\inventory.h"
 #include "core/loot/loot_item_defs.h"
 #include "core/equipment/equipment.h"
 #include "core/loot/loot_instances.h"

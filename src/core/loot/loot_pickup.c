@@ -1,7 +1,7 @@
 #include "core/loot/loot_pickup.h"
 #include "core/app_state.h"
 #include "core/loot/loot_instances.h"
-#include "core/inventory.h"
+#include "core\inventory\inventory.h"
 #include "core/loot/loot_multiplayer.h"
 #include "util/log.h"
 #include "core/loot/loot_adaptive.h"

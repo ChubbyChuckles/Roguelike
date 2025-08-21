@@ -12,7 +12,7 @@
 #include "core/vegetation/vegetation.h"
 #include "core/vendor/vendor.h"
 #include "core/vendor/economy.h"
-#include "core/inventory.h"
+#include "core\inventory\inventory.h"
 #include "core/equipment/equipment.h"
 #include "core/hud/hud_overlays.h" /* alerts & metrics toggles */
 #include "game/hit_system.h" /* debug toggle */

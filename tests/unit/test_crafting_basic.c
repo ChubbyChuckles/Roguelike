@@ -1,6 +1,6 @@
 #include "core/crafting/crafting.h"
 #include "core/loot/loot_item_defs.h"
-#include "core/inventory.h"
+#include "core\inventory\inventory.h"
 #include "core/path_utils.h"
 #include <stdio.h>
 #include <string.h>

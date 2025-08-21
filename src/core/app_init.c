@@ -29,7 +29,7 @@ SOFTWARE.
 #include "core/metrics.h"
 #include "core/animation_system.h"
 #include "core/persistence.h"
-#include "persistence\persistence_autosave.h"
+#include "persistence/persistence_autosave.h"
 #include "core/save_manager.h" /* Phase1 scaffold present but not auto-initialized yet */
 #include "core/asset_config.h"
 #include "core/skills.h"
@@ -41,7 +41,7 @@ SOFTWARE.
 #include "core/loot/loot_item_defs.h"
 #include "core/loot/loot_tables.h"
 #include "core/loot/loot_instances.h"
-#include "core/inventory.h"
+#include "core\inventory\inventory.h"
 #include "core/loot/loot_logging.h"
 #include "core/equipment/equipment_stats.h"
 #include "core/stat_cache.h"

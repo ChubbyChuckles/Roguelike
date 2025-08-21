@@ -1,4 +1,4 @@
-#include "core/inventory.h"
+#include "core\inventory\inventory.h"
 #include "core/persistence.h"
 #include "core/app_state.h"
 #include <assert.h>

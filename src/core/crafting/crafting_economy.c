@@ -1,7 +1,7 @@
 #include "crafting_economy.h"
 #include "crafting.h"
 #include "core/loot/loot_item_defs.h"
-#include "../inventory.h" /* assumed existing for count accessor prototypes */
+#include "core/inventory/inventory.h" /* assumed existing for count accessor prototypes */
 #include "../vendor/econ_value.h"
 #include <math.h>
 #include <string.h>

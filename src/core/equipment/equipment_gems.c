@@ -4,7 +4,7 @@
 #include "core/equipment/equipment.h"
 #include "core/stat_cache.h"
 #include "core/vendor/economy.h"
-#include "core/inventory.h"
+#include "core\inventory\inventory.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
