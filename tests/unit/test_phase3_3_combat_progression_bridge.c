@@ -35,8 +35,6 @@ static int tests_passed = 0;
 
 /* External function stubs */
 extern int rogue_equip_get(int slot) { (void)slot; return 1; }
-extern void rogue_event_bus_init(void) {}
-extern void rogue_event_bus_shutdown(void) {}
 
 /* Phase 3.3.1: Combat XP Distribution Tests */
 int test_combat_xp_distribution() {

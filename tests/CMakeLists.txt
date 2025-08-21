@@ -96,6 +96,20 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_phase3_3_combat_progression_bridge
     add_test(NAME test_phase3_3_combat_progression_bridge COMMAND test_phase3_3_combat_progression_bridge)
 endif()
 
+# Integration Plumbing Phase 3.7 WorldGen-Enemy Bridge Test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_phase3_7_worldgen_enemy_bridge.c)
+    add_executable(test_phase3_7_worldgen_enemy_bridge unit/test_phase3_7_worldgen_enemy_bridge.c)
+    target_link_libraries(test_phase3_7_worldgen_enemy_bridge PRIVATE rogue_core)
+    add_test(NAME test_phase3_7_worldgen_enemy_bridge COMMAND test_phase3_7_worldgen_enemy_bridge)
+endif()
+
+# Integration Plumbing Phase 3.8 World Generation ↔ Resource/Gathering Bridge Test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_phase3_8_worldgen_resource_bridge.c)
+    add_executable(test_phase3_8_worldgen_resource_bridge unit/test_phase3_8_worldgen_resource_bridge.c)
+    target_link_libraries(test_phase3_8_worldgen_resource_bridge PRIVATE rogue_core)
+    add_test(NAME test_phase3_8_worldgen_resource_bridge COMMAND test_phase3_8_worldgen_resource_bridge)
+endif()
+
 # Integration Plumbing Phase 3.3 Simple Test (for debugging)
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_phase3_3_simple.c)
     add_executable(test_phase3_3_simple unit/test_phase3_3_simple.c)

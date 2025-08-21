@@ -13,9 +13,6 @@
 
 #include "core/integration/enemy_ai_bridge.h"
 #include "core/integration/config_version.h"
-
-/* Forward declaration to satisfy linker requirements */
-int main(void);
 #include "entities/enemy.h"
 #include <stdio.h>
 #include <stdlib.h>
