@@ -386,14 +386,14 @@ PHASE 4. Shared Data Structure Optimization & Entity Management
     4.3.7 Add cache debugging tools (invalidation tracking, performance analysis) (Done)
         SUMMARY: Implemented multi-level (L1/L2/L3) open-addressing caches with promotion on access, size-based initial placement, put/get/invalidate(single/all) APIs, targeted preloading via loader callback, manual promotion, full iteration & stats snapshot. Added optional RLE compression (threshold tunable) tracking compressed entries and bytes saved. Stats include per-level hits/misses, evictions, invalidations, promotions, preloads. Debug dump prints hierarchy state. Unit test `test_cache_system` validates insertion, retrieval, promotion, miss path, preload batch, iteration, targeted & full invalidation, compression efficacy and stats consistency under MSVC warnings-as-errors.
 
-4.4 Reference Counting & Lifecycle Management
-    4.4.1 Implement atomic reference counting for shared resources (X)
-    4.4.2 Create weak reference system to avoid circular dependencies (X)
-    4.4.3 Add automatic cleanup triggers when reference count reaches zero (X)
-    4.4.4 Implement reference leak detection & reporting (X)
-    4.4.5 Create reference graph visualization for debugging (X)
-    4.4.6 Add reference counting performance optimization (lock-free operations) (X)
-    4.4.7 Implement reference counting persistence for save/load (X)
+4.4 Reference Counting & Lifecycle Management (Done)
+    4.4.1 Implement atomic reference counting for shared resources (Done – intrusive header with strong/weak counters; Interlocked on MSVC, stdatomic elsewhere)
+    4.4.2 Create weak reference system to avoid circular dependencies (Done – weak handles with upgrade acquire loop)
+    4.4.3 Add automatic cleanup triggers when reference count reaches zero (Done – dtor invoked on last strong; memory freed when both strong & weak reach zero)
+    4.4.4 Implement reference leak detection & reporting (Done – live list + dump and stats)
+    4.4.5 Create reference graph visualization for debugging (Done – pluggable edge enumerators + DOT generator)
+    4.4.6 Add reference counting performance optimization (lock-free operations) (Done – atomic counters; minimal spin lock only for live list)
+    4.4.7 Implement reference counting persistence for save/load (Done – textual snapshot id/type/strong/weak)
 
 4.5 Copy-on-Write & Data Sharing
     4.5.1 Design copy-on-write semantics for large shared data structures (X)

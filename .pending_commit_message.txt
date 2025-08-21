@@ -21,4 +21,22 @@ Details:
 - Fixed MSVC warnings-as-errors (initialized csize, formatted hash pow2 macro) ensuring clean build.
 - Roadmap 4.3.1–4.3.7 marked Done with summary; README updated with Phase 4.3 section.
 - Prepares groundwork for upcoming 4.4 reference counting & 4.5 copy-on-write leveraging shared cache + memory pool foundations.
+ - Prepares groundwork for upcoming 4.4 reference counting & 4.5 copy-on-write leveraging shared cache + memory pool foundations.
+
+feat(integration): implement Phase 4.4 Reference Counting & Lifecycle Management (intrusive strong/weak refs, leak tracking, graph viz, snapshot, tests)
+
+Details:
+ - Added src/core/integration/ref_count.c/.h implementing intrusive header with atomic strong & weak counters (stdatomic on non-MSVC; Windows Interlocked fallback on MSVC where <stdatomic.h> unsupported in C mode).
+ - APIs: rogue_rc_alloc/retain/release, weak_from/weak_acquire/weak_release, id/type/strong/weak getters, stats snapshot, leak dump, iterate (live strong objects), edge enumerator registration, DOT graph generation, textual snapshot, validation.
+ - Automatic destructor invocation on last strong release; memory freed only after both strong and weak reach zero (implicit weak held during strong lifetime dropped on last strong release).
+ - Live object doubly-linked list guarded by minimal spin lock; counters remain lock-free for fast hot-path retain/release.
+ - Leak detection via stats + dump printing id/type/strong/weak; peak live tracking with monotonic update.
+ - Graph visualization: pluggable edge enumerators (registry up to 64) enabling traversal for DOT output (nodes labeled with type & counts, edges from registered relationships).
+ - Persistence snapshot helper (text lines: id type strong weak) for future save/load or tooling diff operations.
+ - Validation helper cross-checks live list length vs live_objects counter and ensures no node has strong==0 while still in list.
+ - Unit test tests/unit/test_ref_count.c covers retain/release, weak upgrade success + failure after destruction, DOT generation (contains both node ids), snapshot content, leak dump smoke, validation invariants, and stats (allocs==frees at end, live==0).
+ - CMake: added ref_count.c to core library; added test_ref_count target with include path to integration headers.
+ - Roadmap 4.4.1–4.4.7 marked Done with detailed summaries; README updated with Phase 4.4 bullet.
+ - Build fixes: resolved initial MSVC fatal error (stdatomic unsupported) by introducing conditional compilation and replacing atomics with Interlocked* operations plus custom spin lock under _MSC_VER.
+ - All tests (test_ref_count) pass on Windows Debug build; warnings-as-errors clean for new code.
 

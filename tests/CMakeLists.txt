@@ -19,6 +19,19 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_memory_pool.c AND NOT TARGET test_
     add_test(NAME test_memory_pool COMMAND test_memory_pool)
 endif()
 
+# Integration Plumbing Phase 4.3 Cache Management & Invalidation Test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_cache_system.c AND NOT TARGET test_cache_system)
+    add_executable(test_cache_system unit/test_cache_system.c)
+    target_link_libraries(test_cache_system PRIVATE rogue_core)
+    add_test(NAME test_cache_system COMMAND test_cache_system)
+
+    # Phase 4.4 reference counting & lifecycle management tests
+    add_executable(test_ref_count unit/test_ref_count.c)
+    target_include_directories(test_ref_count PRIVATE ${CMAKE_SOURCE_DIR}/src/core/integration)
+    target_link_libraries(test_ref_count PRIVATE rogue_core)
+    add_test(NAME test_ref_count COMMAND test_ref_count)
+endif()
+
 # Integration Plumbing Phase 0.1 System Taxonomy Test
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_system_taxonomy.c)
     add_executable(test_system_taxonomy unit/test_system_taxonomy.c)
