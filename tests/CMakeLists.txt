@@ -12,6 +12,13 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_entity_id.c AND NOT TARGET test_en
     add_test(NAME test_entity_id COMMAND test_entity_id)
 endif()
 
+# Integration Plumbing Phase 4.2 Shared Memory Pool System Test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_memory_pool.c AND NOT TARGET test_memory_pool)
+    add_executable(test_memory_pool unit/test_memory_pool.c)
+    target_link_libraries(test_memory_pool PRIVATE rogue_core)
+    add_test(NAME test_memory_pool COMMAND test_memory_pool)
+endif()
+
 # Integration Plumbing Phase 0.1 System Taxonomy Test
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_system_taxonomy.c)
     add_executable(test_system_taxonomy unit/test_system_taxonomy.c)

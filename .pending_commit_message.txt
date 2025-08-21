@@ -1,12 +1,23 @@
 feat(integration): implement Phase 4.1 Unified Entity ID System (64-bit IDs, validation, registry, persistence helpers, tests)
 
 Details:
-- Added entity_id.h/.c: 64-bit ID layout [8-bit type | 48-bit sequence | 8-bit checksum]
-- Per-type monotonic generators (player, enemy, item, world) with wrap guard
-- XOR checksum validation + decoding helpers (type/sequence/checksum)
-- Lightweight registry (8K slots) for ID→pointer tracking (register/lookup/release)
-- Hex serialization & strict parsing (no unsafe sscanf)
-- Debug stats dump function
-- Unit test test_entity_id: uniqueness (1K), decoding, tamper checksum fail, registry lifecycle, serialize/parse round-trip
-- Integrated sources & test into CMake, marked roadmap 4.1.* Done, updated README roadmap snapshot
-- Foundation for upcoming Phase 4 shared memory/cache/refcount systems
+
+feat(integration): implement Phase 4.2 Shared Memory Pool System (fixed-block, buddy, slab allocators + diagnostics)
+
+Details:
+- Added memory_pool.h/.c implementing multi-strategy allocator stack:
+	* Five fixed block pools (32/64/128/256/512B) with per-page bitmap (up to 32 slots/page)
+	* Buddy allocator (power-of-two blocks 32B..arena_size, default 1MB arena auto-rounded) for mid/large & non-class-size allocations
+	* Slab allocator (<=64 classes, 8–32 objs/page, ctor/dtor hooks) for high-churn homogeneous objects
+- Unified allocation entrypoints (rogue_mp_alloc / rogue_mp_alloc_category / rogue_mp_free) embed lightweight headers (origin, category, requested size)
+- Stats API: capacity/in-use per category, buddy free/total, fragmentation heuristic, slab live/capacity, live alloc count, bytes, peak, failures
+- Recommendation API with simple heuristics (expand tiny, reduce XL, rebalance buddy, add slab page, enable thread safety)
+- Optional thread safety via SDL mutex (enabled at init flag)
+- Shrink & defragment hooks (slab page reclamation; buddy merge scaffold)
+- Validation routine cross-checks fixed pool bitmaps vs in-use accounting
+- Human-readable dump for debugging; placeholder leak enumeration hook
+- Unit test test_memory_pool.c covering: fixed pool churn (300 tiny alloc/free), large buddy alloc/free, slab class register + alloc/free + shrink, stats & recommendations access, invariants validation, dump smoke test
+- Roadmap 4.2.1–4.2.7 marked Done with summary; README updated with Phase 4.2 section
+- Builds with MSVC warnings-as-errors (replaced strncpy, removed unused vars, guarded 64-bit pow2 logic)
+- Establishes deterministic shared allocator substrate for upcoming 4.3 cache mgmt, 4.4 ref counting, 4.5 copy-on-write
+
