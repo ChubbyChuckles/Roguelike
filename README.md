@@ -174,6 +174,16 @@ Comprehensive project restructuring system leveraging dependency management for 
 
 Testing: 342+ comprehensive integration plumbing tests + project restructuring validation suite - All Pass ✅
 
+**Phase 4.7: Shared Resource Access Control** - Complete ✅  
+Introduced cross-platform mutex & read/write lock abstractions with:  
+* Deadlock Prevention: Deterministic lock ordering enforcement via per-thread order stack (prevents descending acquisition; counts prevented attempts).  
+* Priority Tracking: Acquire API accepts priority (Background/Normal/Critical) with per-priority acquisition statistics for profiling future inversion scenarios.  
+* Timeouts & Non-Blocking Try: timeout_ms=0 implements fast try path; bounded timed waits implemented with 1ms polling loop (sufficient for coarse engine resources; future refinement can use condition primitives).  
+* Contention Monitoring: Per-lock counters for contended acquisitions, accumulated wait nanoseconds, global aggregation (total acquisitions, contention, timeouts, deadlock preventions).  
+* Auditing & Debug: Global dump API enumerates all locks and their stats; reset function clears metrics (used in tests).  
+* Performance Profiling Hooks: Wait-time accumulation enables derived average/percentile analysis; contention counts feed optimization decisions (e.g., lock sharding candidates).  
+Unit tests cover: basic mutex acquisition, deterministic cross-thread contention try-failure, ordering (ascending allowed, descending prevented), rwlock multi-reader and writer exclusivity, and stats sanity.
+
 ### UI & UX
 Immediate‑mode deterministic UI with hash diffing, virtualization, inventory & vendor panels, skill graph viewport with animations, accessibility (colorblind modes, reduced motion), navigation graph, headless harness for golden tests, theme hot swap, HUD systems, alerts, metrics overlay.
 

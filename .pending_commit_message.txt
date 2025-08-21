@@ -1,70 +1,15 @@
-feat(integration): implement Phase 4.1 Unified Entity ID System (64-bit IDs, validation, registry, persistence helpers, tests)
+integration: Phase 4.7 Shared Resource Access Control complete
 
-Details:
+- Added cross-platform resource_lock module (mutex + rwlock abstractions)
+- Implemented lock ordering based deadlock prevention (per-thread order stack)
+- Added priority-aware acquire API (Background/Normal/Critical) with per-priority stats
+- Implemented non-blocking try (timeout=0) and bounded timed waits
+- Added contention detection, wait time accumulation, global aggregation
+- Added auditing APIs: global stats snapshot, dump, per-lock stats & reset
+- Added performance profiling hooks (wait time nanoseconds, contention counts)
+- Created deterministic unit tests: basic mutex, cross-thread contention, ordering prevention, rwlock multi-reader/writer
+- Updated roadmap (Phase 4.7 tasks marked Done) and README (Phase 4.7 summary)
 
-feat(integration): implement Phase 4.2 Shared Memory Pool System (fixed-block, buddy, slab allocators + diagnostics)
-
-Details:
-	* Five fixed block pools (32/64/128/256/512B) with per-page bitmap (up to 32 slots/page)
-	* Buddy allocator (power-of-two blocks 32B..arena_size, default 1MB arena auto-rounded) for mid/large & non-class-size allocations
-	* Slab allocator (<=64 classes, 8–32 objs/page, ctor/dtor hooks) for high-churn homogeneous objects
-
-feat(integration): implement Phase 4.3 Cache Management & Invalidation (multi-level cache, promotion, preload, compression, stats, tests)
-
-Details:
-- Added cache_system.h/.c providing 3-level (L1/L2/L3) open-addressing hash caches (linear probing, power-of-two tables) with size-based placement and optional hint level.
-- Implemented APIs: rogue_cache_init/shutdown, put, get (auto-promotion to L1 on hit from colder levels), invalidate(single/all), preload (batch loader callback with ownership transfer), iterate (early-stop capable), promote (manual level bump), stats snapshot, dump, compression threshold control.
-- RLE compression (byte,run) automatically applied for entries >= threshold (default 1024) when compressed size saves at least raw/8; tracks compressed entry count & bytes saved.
-- Simple eviction policy when logical capacity (50% load factor target) exceeded: linear scan removes first live entry (placeholder for future smarter policy) with eviction metrics.
-- Stats track per-level hits, misses, evictions, invalidations, promotions, preload operations plus compression metrics.
-- Unit test test_cache_system.c validates: insertion/update, retrieval & promotion (L2/L3 → L1), miss path accounting, large repetitive buffer compression, preload (5 keys) ingestion, iteration traversal, targeted invalidation & global flush, stats consistency.
-- Fixed MSVC warnings-as-errors (initialized csize, formatted hash pow2 macro) ensuring clean build.
-- Roadmap 4.3.1–4.3.7 marked Done with summary; README updated with Phase 4.3 section.
-- Prepares groundwork for upcoming 4.4 reference counting & 4.5 copy-on-write leveraging shared cache + memory pool foundations.
- - Prepares groundwork for upcoming 4.4 reference counting & 4.5 copy-on-write leveraging shared cache + memory pool foundations.
-
-feat(integration): implement Phase 4.4 Reference Counting & Lifecycle Management (intrusive strong/weak refs, leak tracking, graph viz, snapshot, tests)
-
-Details:
- - Added src/core/integration/ref_count.c/.h implementing intrusive header with atomic strong & weak counters (stdatomic on non-MSVC; Windows Interlocked fallback on MSVC where <stdatomic.h> unsupported in C mode).
- - APIs: rogue_rc_alloc/retain/release, weak_from/weak_acquire/weak_release, id/type/strong/weak getters, stats snapshot, leak dump, iterate (live strong objects), edge enumerator registration, DOT graph generation, textual snapshot, validation.
- - Automatic destructor invocation on last strong release; memory freed only after both strong and weak reach zero (implicit weak held during strong lifetime dropped on last strong release).
- - Live object doubly-linked list guarded by minimal spin lock; counters remain lock-free for fast hot-path retain/release.
- - Leak detection via stats + dump printing id/type/strong/weak; peak live tracking with monotonic update.
- - Graph visualization: pluggable edge enumerators (registry up to 64) enabling traversal for DOT output (nodes labeled with type & counts, edges from registered relationships).
- - Persistence snapshot helper (text lines: id type strong weak) for future save/load or tooling diff operations.
- - Validation helper cross-checks live list length vs live_objects counter and ensures no node has strong==0 while still in list.
- - Unit test tests/unit/test_ref_count.c covers retain/release, weak upgrade success + failure after destruction, DOT generation (contains both node ids), snapshot content, leak dump smoke, validation invariants, and stats (allocs==frees at end, live==0).
- - CMake: added ref_count.c to core library; added test_ref_count target with include path to integration headers.
- - Roadmap 4.4.1–4.4.7 marked Done with detailed summaries; README updated with Phase 4.4 bullet.
- - Build fixes: resolved initial MSVC fatal error (stdatomic unsupported) by introducing conditional compilation and replacing atomics with Interlocked* operations plus custom spin lock under _MSC_VER.
- - All tests (test_ref_count) pass on Windows Debug build; warnings-as-errors clean for new code.
-
-feat(integration): implement Phase 4.5 Copy-on-Write & Data Sharing (page COW buffer, dedup, stats, serialization, tests)
-
-Details:
- - Added src/core/integration/cow.c and cow.h implementing a page-granular copy-on-write buffer (`RogueCowBuffer`) using intrusive ref-counted page allocations (leveraging Phase 4.4 ref_count system).
- - API: create_from_bytes, clone, destroy, size, read (offset/length), write (triggers per-page copy if shared), dedup (hash-based page content deduplication), serialize, deserialize, stats snapshot, dump, page refcount query.
- - Copy-on-write trigger detection: write path checks strong refcount >1 before modification; copies only that page, tracking `cow_triggers` and `page_copies` metrics.
- - Efficient copying strategy: incremental page-level duplication; untouched pages remain shared; partial writes confined to single page; avoids whole-buffer duplication.
- - Memory optimization: open-addressing hash table pass merges identical page contents (including previously cloned but unchanged pages), bumping `dedup_hits` and reclaiming redundant copies via refcount adjustments.
- - Debugging & profiling: stats struct exposes buffers_created, pages_created, cow_triggers, page_copies, dedup_hits, serialize_linearizations; `rogue_cow_dump` prints per-page sizes and refcounts for inspection.
- - Persistence integration: serialize linearizes logical buffer length (zero-pads trailing page slack) with corresponding deserialize constructor; unit test validates round-trip integrity.
- - Unit test tests/unit/test_cow.c covers: clone sharing & isolation on write (page refcount goes from 2 to independent after write), dedup collapsing identical pages (refcounts equalized), serialization round-trip (100-byte buffer across 3 pages) and stats smoke.
- - MSVC portability: removed variable-length arrays in test (replaced with fixed-size buffers) ensuring successful Windows build.
- - Roadmap 4.5.1–4.5.7 marked Done with summary; README updated with Phase 4.5 bullet.
- - Builds & test execution: test_cow passes (Debug, MSVC, SDL enabled); no new warnings.
-
-feat(integration): implement Phase 4.6 Data Structure Versioning & Migration (registry, chained migrations, rollback, progress, stats, tests)
-
-Details:
- - Added src/core/integration/versioning.c/.h providing generic per-type version registry (monotonic uint32 current_version) and stepwise N->N+1 migration registration API with user data payload.
- - Migration execution (`rogue_version_migrate`): source_version -> target_version (or ->current when target=0) applying each registered step in order; validates presence/continuity (missing step = error).
- - Rollback safety: original buffer pointer & size snapshot restored on any failing step (migration function returning non-zero) with failure indices recorded.
- - Progress reporting: `RogueMigrationProgress` captures total steps, completed steps, last transition, and failure point (fail_from/fail_to) plus failed flag.
- - Statistics: tracks types_registered, migrations_registered, migrations_executed, migration_steps, migration_failures retrievable via `rogue_versioning_get_stats`; dump prints registry and step transitions.
- - Performance considerations: O(k) step loop; direct linear lookup per step (sufficient for current scale); contiguous N->N+1 constraint keeps complexity predictable.
- - Unit test tests/unit/test_versioning.c registers chain 1->2->3 for "TestType" verifying field derivations and progress metrics; second type "FailType" injects failing migration ensuring rollback (original pointer & size) and failure reporting.
- - Roadmap 4.6.1–4.6.7 marked Done with summary; README updated with Phase 4.6 section.
- - Build: Added versioning.c to core library and test_versioning target; test executes cleanly under MSVC Debug (SDL enabled, warnings-as-errors policy unaffected).
-
+Follow-up ideas:
+* Consider finer-grained timed waits using condition variables on POSIX / Slim SRW lock timeouts
+* Potential future priority inversion handling with boost/escalation
