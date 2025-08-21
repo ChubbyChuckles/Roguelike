@@ -5,15 +5,17 @@
 #ifndef ROGUE_PROGRESSION_SYNERGY_H
 #define ROGUE_PROGRESSION_SYNERGY_H
 
-#include "entities/player.h"
 #include "core/skills.h" /* for tag bits */
+#include "entities/player.h"
 
 /* Layered damage aggregation (Phase 9.1) applying documented order:
    Base -> Equipment -> Passives -> Mastery -> Perpetual (micro) */
-float rogue_progression_layered_damage(float base_flat, float equipment_pct, float passive_pct, float mastery_pct, float micro_pct);
+float rogue_progression_layered_damage(float base_flat, float equipment_pct, float passive_pct,
+                                       float mastery_pct, float micro_pct);
 
 /* Simple linear attribute aggregation (kept for symmetry & future auditing). */
-int rogue_progression_layered_strength(int base_val, int equipment_bonus, int passive_bonus, int mastery_bonus, int micro_bonus);
+int rogue_progression_layered_strength(int base_val, int equipment_bonus, int passive_bonus,
+                                       int mastery_bonus, int micro_bonus);
 
 /* Cap enforcement (Phase 9.2) */
 int rogue_progression_final_crit_chance(int flat_crit_percent);

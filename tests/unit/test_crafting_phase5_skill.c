@@ -1,7 +1,7 @@
 /* Phase 5: Crafting Skill & Proficiency Progression Tests */
-#include "core/crafting/crafting.h"
 #include "../../src/core/crafting/crafting_queue.h"
 #include "../../src/core/crafting/crafting_skill.h"
+#include "core/crafting/crafting.h"
 #include "core/loot/loot_item_defs.h"
 #include <stdio.h>
 #include <string.h>

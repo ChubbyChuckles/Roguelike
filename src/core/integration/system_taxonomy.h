@@ -30,66 +30,69 @@ SOFTWARE.
 #include <stdint.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /* Maximum number of known systems in taxonomy */
 #define ROGUE_TAXONOMY_MAX_SYSTEMS 64
 
-/* System identification structure (Phase 0.1.1) */
-typedef struct {
-    uint32_t system_id;
-    const char* name;
-    const char* description;
-    RogueSystemType type;
-    RogueSystemPriority priority;
-    uint32_t capabilities;
-    bool is_implemented;
-    const char* implementation_status;
-    const char* version;
-} RogueSystemInfo;
+    /* System identification structure (Phase 0.1.1) */
+    typedef struct
+    {
+        uint32_t system_id;
+        const char* name;
+        const char* description;
+        RogueSystemType type;
+        RogueSystemPriority priority;
+        uint32_t capabilities;
+        bool is_implemented;
+        const char* implementation_status;
+        const char* version;
+    } RogueSystemInfo;
 
-/* System taxonomy database */
-typedef struct {
-    RogueSystemInfo systems[ROGUE_TAXONOMY_MAX_SYSTEMS];
-    uint32_t system_count;
-    bool initialized;
-} RogueSystemTaxonomy;
+    /* System taxonomy database */
+    typedef struct
+    {
+        RogueSystemInfo systems[ROGUE_TAXONOMY_MAX_SYSTEMS];
+        uint32_t system_count;
+        bool initialized;
+    } RogueSystemTaxonomy;
 
-/* Global taxonomy instance */
-extern RogueSystemTaxonomy g_system_taxonomy;
+    /* Global taxonomy instance */
+    extern RogueSystemTaxonomy g_system_taxonomy;
 
-/* Core API */
-bool rogue_system_taxonomy_init(void);
-void rogue_system_taxonomy_shutdown(void);
+    /* Core API */
+    bool rogue_system_taxonomy_init(void);
+    void rogue_system_taxonomy_shutdown(void);
 
-/* System enumeration (Phase 0.1.1) */
-bool rogue_system_taxonomy_add_system(const RogueSystemInfo* system_info);
-const RogueSystemInfo* rogue_system_taxonomy_get_system(uint32_t system_id);
-const RogueSystemInfo* rogue_system_taxonomy_find_system_by_name(const char* name);
-uint32_t rogue_system_taxonomy_get_system_count(void);
+    /* System enumeration (Phase 0.1.1) */
+    bool rogue_system_taxonomy_add_system(const RogueSystemInfo* system_info);
+    const RogueSystemInfo* rogue_system_taxonomy_get_system(uint32_t system_id);
+    const RogueSystemInfo* rogue_system_taxonomy_find_system_by_name(const char* name);
+    uint32_t rogue_system_taxonomy_get_system_count(void);
 
-/* System classification utilities (Phase 0.1.2-0.1.3) */
-uint32_t rogue_system_taxonomy_count_by_type(RogueSystemType type);
-uint32_t rogue_system_taxonomy_count_by_priority(RogueSystemPriority priority);
-uint32_t rogue_system_taxonomy_count_implemented(void);
-uint32_t rogue_system_taxonomy_count_by_capability(RogueSystemCapability capability);
+    /* System classification utilities (Phase 0.1.2-0.1.3) */
+    uint32_t rogue_system_taxonomy_count_by_type(RogueSystemType type);
+    uint32_t rogue_system_taxonomy_count_by_priority(RogueSystemPriority priority);
+    uint32_t rogue_system_taxonomy_count_implemented(void);
+    uint32_t rogue_system_taxonomy_count_by_capability(RogueSystemCapability capability);
 
-/* Capability matrix generation (Phase 0.1.4) */
-void rogue_system_taxonomy_generate_capability_matrix(char* buffer, size_t buffer_size);
+    /* Capability matrix generation (Phase 0.1.4) */
+    void rogue_system_taxonomy_generate_capability_matrix(char* buffer, size_t buffer_size);
 
-/* Resource usage analysis (Phase 0.1.6) */
-void rogue_system_taxonomy_analyze_resource_usage(char* buffer, size_t buffer_size);
+    /* Resource usage analysis (Phase 0.1.6) */
+    void rogue_system_taxonomy_analyze_resource_usage(char* buffer, size_t buffer_size);
 
-/* Initialization sequence analysis (Phase 0.1.5) */
-void rogue_system_taxonomy_generate_init_report(char* buffer, size_t buffer_size);
+    /* Initialization sequence analysis (Phase 0.1.5) */
+    void rogue_system_taxonomy_generate_init_report(char* buffer, size_t buffer_size);
 
-/* Populate taxonomy with known systems */
-void rogue_system_taxonomy_populate_known_systems(void);
+    /* Populate taxonomy with known systems */
+    void rogue_system_taxonomy_populate_known_systems(void);
 
-/* Validation and integrity checks */
-bool rogue_system_taxonomy_validate(void);
-void rogue_system_taxonomy_generate_report(char* buffer, size_t buffer_size);
+    /* Validation and integrity checks */
+    bool rogue_system_taxonomy_validate(void);
+    void rogue_system_taxonomy_generate_report(char* buffer, size_t buffer_size);
 
 #ifdef __cplusplus
 }

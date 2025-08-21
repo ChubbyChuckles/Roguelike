@@ -8,46 +8,49 @@
  * Sequence: monotonically increasing per type (wrap guarded)
  * Checksum: simple xor of bytes (for quick validation, not cryptographic)
  */
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-typedef enum RogueEntityType {
-    ROGUE_ENTITY_PLAYER = 0,
-    ROGUE_ENTITY_ENEMY  = 1,
-    ROGUE_ENTITY_ITEM   = 2,
-    ROGUE_ENTITY_WORLD  = 3,
-    ROGUE_ENTITY_MAX_TYPE = 4
-} RogueEntityType;
+    typedef enum RogueEntityType
+    {
+        ROGUE_ENTITY_PLAYER = 0,
+        ROGUE_ENTITY_ENEMY = 1,
+        ROGUE_ENTITY_ITEM = 2,
+        ROGUE_ENTITY_WORLD = 3,
+        ROGUE_ENTITY_MAX_TYPE = 4
+    } RogueEntityType;
 
-/* Public opaque 64-bit ID */
-typedef uint64_t RogueEntityId;
+    /* Public opaque 64-bit ID */
+    typedef uint64_t RogueEntityId;
 
-/* Generate a new ID for given type; returns 0 on failure (exhausted) */
-RogueEntityId rogue_entity_id_generate(RogueEntityType type);
+    /* Generate a new ID for given type; returns 0 on failure (exhausted) */
+    RogueEntityId rogue_entity_id_generate(RogueEntityType type);
 
-/* Decode helpers */
-RogueEntityType rogue_entity_id_type(RogueEntityId id);
-uint64_t rogue_entity_id_sequence(RogueEntityId id);
-uint8_t rogue_entity_id_checksum(RogueEntityId id);
+    /* Decode helpers */
+    RogueEntityType rogue_entity_id_type(RogueEntityId id);
+    uint64_t rogue_entity_id_sequence(RogueEntityId id);
+    uint8_t rogue_entity_id_checksum(RogueEntityId id);
 
-/* Validation (checksum + type range + nonzero) */
-bool rogue_entity_id_validate(RogueEntityId id);
+    /* Validation (checksum + type range + nonzero) */
+    bool rogue_entity_id_validate(RogueEntityId id);
 
-/* Lookup & tracking (Phase 4.1.3 / 4.1.5) */
-int rogue_entity_register(RogueEntityId id, void* ptr);
-void* rogue_entity_lookup(RogueEntityId id);
-int rogue_entity_release(RogueEntityId id);
+    /* Lookup & tracking (Phase 4.1.3 / 4.1.5) */
+    int rogue_entity_register(RogueEntityId id, void* ptr);
+    void* rogue_entity_lookup(RogueEntityId id);
+    int rogue_entity_release(RogueEntityId id);
 
-/* Persistence hooks (Phase 4.1.4): serialize/deserialize single id */
-int rogue_entity_id_serialize(RogueEntityId id, char* buf, int buf_sz); /* returns bytes written or -1 */
-int rogue_entity_id_parse(const char* str, RogueEntityId* out_id);      /* returns 0 on success */
+    /* Persistence hooks (Phase 4.1.4): serialize/deserialize single id */
+    int rogue_entity_id_serialize(RogueEntityId id, char* buf,
+                                  int buf_sz); /* returns bytes written or -1 */
+    int rogue_entity_id_parse(const char* str, RogueEntityId* out_id); /* returns 0 on success */
 
-/* Debug tools (Phase 4.1.6) */
-void rogue_entity_dump_stats(void);
+    /* Debug tools (Phase 4.1.6) */
+    void rogue_entity_dump_stats(void);
 
 #ifdef __cplusplus
 }

@@ -10,28 +10,31 @@
 #ifndef ROGUE_PROGRESSION_PASSIVES_H
 #define ROGUE_PROGRESSION_PASSIVES_H
 #ifdef __cplusplus
-extern "C" { 
+extern "C"
+{
 #endif
 
-struct RogueProgressionMaze; /* fwd */
+    struct RogueProgressionMaze; /* fwd */
 
-int rogue_progression_passives_init(const struct RogueProgressionMaze* maze);
-void rogue_progression_passives_shutdown(void);
+    int rogue_progression_passives_init(const struct RogueProgressionMaze* maze);
+    void rogue_progression_passives_shutdown(void);
 
-int rogue_progression_passives_load_dsl(const char* text);
+    int rogue_progression_passives_load_dsl(const char* text);
 
-int rogue_progression_passive_unlock(int node_id, unsigned int timestamp_ms, int level,int str,int dex,int intel,int vit);
+    int rogue_progression_passive_unlock(int node_id, unsigned int timestamp_ms, int level, int str,
+                                         int dex, int intel, int vit);
 
-int rogue_progression_passives_stat_total(int stat_id);
-int rogue_progression_passives_is_unlocked(int node_id);
-unsigned long long rogue_progression_passives_journal_hash(void);
+    int rogue_progression_passives_stat_total(int stat_id);
+    int rogue_progression_passives_is_unlocked(int node_id);
+    unsigned long long rogue_progression_passives_journal_hash(void);
 
-int rogue_progression_passives_reload(const struct RogueProgressionMaze* maze, const char* text,int level,int str,int dex,int intel,int vit);
+    int rogue_progression_passives_reload(const struct RogueProgressionMaze* maze, const char* text,
+                                          int level, int str, int dex, int intel, int vit);
 
-/* Phase 7.3 anti-stack: current keystone counts per category (offense, defense, utility) */
-int rogue_progression_passives_keystone_count_offense(void);
-int rogue_progression_passives_keystone_count_defense(void);
-int rogue_progression_passives_keystone_count_utility(void);
+    /* Phase 7.3 anti-stack: current keystone counts per category (offense, defense, utility) */
+    int rogue_progression_passives_keystone_count_offense(void);
+    int rogue_progression_passives_keystone_count_defense(void);
+    int rogue_progression_passives_keystone_count_utility(void);
 
 #ifdef __cplusplus
 }

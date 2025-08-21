@@ -9,8 +9,9 @@
 #define ROGUE_ITEM_DEF_CAP 512
 #endif
 
-typedef enum RogueItemCategory {
-    ROGUE_ITEM_MISC=0,
+typedef enum RogueItemCategory
+{
+    ROGUE_ITEM_MISC = 0,
     ROGUE_ITEM_CONSUMABLE,
     ROGUE_ITEM_WEAPON,
     ROGUE_ITEM_ARMOR,
@@ -19,12 +20,13 @@ typedef enum RogueItemCategory {
     ROGUE_ITEM__COUNT
 } RogueItemCategory;
 
-typedef struct RogueItemDef {
+typedef struct RogueItemDef
+{
     char id[ROGUE_MAX_ITEM_ID_LEN];
     char name[ROGUE_MAX_ITEM_NAME_LEN];
     RogueItemCategory category;
     int level_req;
-    int stack_max; /* 1 = not stackable */
+    int stack_max;  /* 1 = not stackable */
     int base_value; /* gold */
     int base_damage_min;
     int base_damage_max;
@@ -32,8 +34,9 @@ typedef struct RogueItemDef {
     char sprite_sheet[128];
     int sprite_tx, sprite_ty, sprite_tw, sprite_th;
     int rarity; /* RogueItemRarity enum value */
-    int flags; /* bitmask: ROGUE_ITEM_FLAG_* (two-handed etc.) */
-    /* Phase 4.1: Implicit modifier layer (static per base definition). Optional extended columns in cfg; zero if omitted. */
+    int flags;  /* bitmask: ROGUE_ITEM_FLAG_* (two-handed etc.) */
+    /* Phase 4.1: Implicit modifier layer (static per base definition). Optional extended columns in
+     * cfg; zero if omitted. */
     int implicit_strength;
     int implicit_dexterity;
     int implicit_vitality;
@@ -59,11 +62,13 @@ typedef struct RogueItemDef {
 int rogue_item_defs_load_from_cfg(const char* path); /* returns count added or <0 on error */
 /* Phase 16.1 (Tooling): JSON import path (array of objects). Path must end with .json. */
 int rogue_item_defs_load_from_json(const char* path); /* returns count added or <0 on error */
-/* Phase 16.1 (Tooling): Export all currently loaded item defs to JSON array string. Returns number of chars written (excludes null terminator) or -1 if cap too small. */
+/* Phase 16.1 (Tooling): Export all currently loaded item defs to JSON array string. Returns number
+ * of chars written (excludes null terminator) or -1 if cap too small. */
 int rogue_item_defs_export_json(char* buf, int cap);
-/* Convenience: load multiple item definition cfg files from a directory of category files (swords.cfg, potions.cfg, etc.).
- * Implementation keeps simple portability: attempts to open a known set of filenames inside dir.
- * Returns total successfully added (aggregate) or <0 if dir invalid. */
+/* Convenience: load multiple item definition cfg files from a directory of category files
+ * (swords.cfg, potions.cfg, etc.). Implementation keeps simple portability: attempts to open a
+ * known set of filenames inside dir. Returns total successfully added (aggregate) or <0 if dir
+ * invalid. */
 int rogue_item_defs_load_directory(const char* dir_path);
 const RogueItemDef* rogue_item_def_by_id(const char* id);
 int rogue_item_def_index(const char* id); /* -1 if not found */
@@ -72,12 +77,14 @@ void rogue_item_defs_reset(void);
 /* Internal convenience: get pointer by index (returns NULL if OOB) */
 const RogueItemDef* rogue_item_def_at(int index);
 /* Phase 17.4: Cache-friendly fast index lookups via open-addressed hash built post-load */
-int rogue_item_defs_build_index(void); /* rebuilds hash index (call after bulk load); returns 0 on success */
-int rogue_item_def_index_fast(const char* id); /* O(1) average hash lookup; falls back to linear if hash not built */
+int rogue_item_defs_build_index(
+    void); /* rebuilds hash index (call after bulk load); returns 0 on success */
+int rogue_item_def_index_fast(
+    const char* id); /* O(1) average hash lookup; falls back to linear if hash not built */
 
 /* Tooling Phase 21.2: validation helper for external content pipeline.
-    Scans a single cfg file without mutating global registries and reports malformed line numbers into 'out_lines' (cap entries).
-    Returns number of malformed lines (clamped to cap). */
+    Scans a single cfg file without mutating global registries and reports malformed line numbers
+   into 'out_lines' (cap entries). Returns number of malformed lines (clamped to cap). */
 int rogue_item_defs_validate_file(const char* path, int* out_lines, int cap);
 
 #endif

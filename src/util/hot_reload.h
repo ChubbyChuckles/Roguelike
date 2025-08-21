@@ -9,30 +9,32 @@
 #define ROGUE_UTIL_HOT_RELOAD_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-typedef void (*RogueHotReloadFn)(const char* path, void* user_data);
+    typedef void (*RogueHotReloadFn)(const char* path, void* user_data);
 
-/* Register a reload handler.
- * id: unique identifier (stored by copy, truncated if needed)
- * path: file path to reload (stored by copy)
- * fn: callback invoked on force or detected change
- * user_data: opaque pointer passed to callback
- * Returns 0 on success, -1 on failure (capacity / bad args / duplicate id).
- */
-int rogue_hot_reload_register(const char* id, const char* path, RogueHotReloadFn fn, void* user_data);
+    /* Register a reload handler.
+     * id: unique identifier (stored by copy, truncated if needed)
+     * path: file path to reload (stored by copy)
+     * fn: callback invoked on force or detected change
+     * user_data: opaque pointer passed to callback
+     * Returns 0 on success, -1 on failure (capacity / bad args / duplicate id).
+     */
+    int rogue_hot_reload_register(const char* id, const char* path, RogueHotReloadFn fn,
+                                  void* user_data);
 
-/* Force invoke the reload handler for id (ignores timestamps).
- * Returns 0 on success, -1 if id not found. */
-int rogue_hot_reload_force(const char* id);
+    /* Force invoke the reload handler for id (ignores timestamps).
+     * Returns 0 on success, -1 if id not found. */
+    int rogue_hot_reload_force(const char* id);
 
-/* Poll for file content hash changes and invoke handlers for changed entries.
- * Returns number of handlers invoked. */
-int rogue_hot_reload_tick(void);
+    /* Poll for file content hash changes and invoke handlers for changed entries.
+     * Returns number of handlers invoked. */
+    int rogue_hot_reload_tick(void);
 
-/* Reset registry (intended for tests). */
-void rogue_hot_reload_reset(void);
+    /* Reset registry (intended for tests). */
+    void rogue_hot_reload_reset(void);
 
 #ifdef __cplusplus
 }

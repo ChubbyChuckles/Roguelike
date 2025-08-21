@@ -3,9 +3,12 @@
 #include <assert.h>
 #include <stdio.h>
 
-int main(void){
+int main(void)
+{
     rogue_item_defs_reset();
-    char pitems[256]; int ok = rogue_find_asset_path("test_items.cfg", pitems, sizeof pitems); assert(ok);
+    char pitems[256];
+    int ok = rogue_find_asset_path("test_items.cfg", pitems, sizeof pitems);
+    assert(ok);
     int added = rogue_item_defs_load_from_cfg(pitems);
     assert(added >= 3);
     const RogueItemDef* gold = rogue_item_def_by_id("gold_coin");

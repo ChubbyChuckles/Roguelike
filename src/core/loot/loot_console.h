@@ -4,7 +4,8 @@
 
 /* Format rarity histogram into buffer. Returns written length or -1. */
 int rogue_loot_histogram_format(char* out, int out_sz);
-/* Export telemetry snapshot (rarity counts + dynamic rarity factors) as JSON to path. Returns 0 on success. */
+/* Export telemetry snapshot (rarity counts + dynamic rarity factors) as JSON to path. Returns 0 on
+ * success. */
 int rogue_loot_export_telemetry(const char* path);
 
 #endif

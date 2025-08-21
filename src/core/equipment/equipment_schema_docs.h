@@ -9,10 +9,11 @@
 #ifndef ROGUE_EQUIPMENT_SCHEMA_DOCS_H
 #define ROGUE_EQUIPMENT_SCHEMA_DOCS_H
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-int rogue_equipment_schema_docs_export(char* buf,int cap); /* returns bytes written or -1 */
+    int rogue_equipment_schema_docs_export(char* buf, int cap); /* returns bytes written or -1 */
 
 #ifdef __cplusplus
 }

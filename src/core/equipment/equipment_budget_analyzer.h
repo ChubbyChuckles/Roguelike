@@ -10,21 +10,25 @@
 #ifndef ROGUE_EQUIPMENT_BUDGET_ANALYZER_H
 #define ROGUE_EQUIPMENT_BUDGET_ANALYZER_H
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-typedef struct RogueBudgetReport {
-    int item_count;
-    int over_budget_count;
-    float avg_utilization; /* average of ratios (0..1+) */
-    float max_utilization; int max_item_index; /* index of item instance with highest ratio */
-    int bucket_counts[6]; /* buckets: 0: <0.25,1:<0.5,2:<0.75,3:<0.9,4:<=1.0,5:>1.0 */
-} RogueBudgetReport;
+    typedef struct RogueBudgetReport
+    {
+        int item_count;
+        int over_budget_count;
+        float avg_utilization; /* average of ratios (0..1+) */
+        float max_utilization;
+        int max_item_index;   /* index of item instance with highest ratio */
+        int bucket_counts[6]; /* buckets: 0: <0.25,1:<0.5,2:<0.75,3:<0.9,4:<=1.0,5:>1.0 */
+    } RogueBudgetReport;
 
-void rogue_budget_analyzer_reset(void); /* clears last computed report */
-void rogue_budget_analyzer_run(RogueBudgetReport* out); /* scans active instances & populates (also caches internally) */
-const RogueBudgetReport* rogue_budget_analyzer_last(void); /* pointer to last report or NULL */
-int rogue_budget_analyzer_export_json(char* buf,int cap); /* returns bytes or -1 */
+    void rogue_budget_analyzer_reset(void); /* clears last computed report */
+    void rogue_budget_analyzer_run(
+        RogueBudgetReport* out); /* scans active instances & populates (also caches internally) */
+    const RogueBudgetReport* rogue_budget_analyzer_last(void); /* pointer to last report or NULL */
+    int rogue_budget_analyzer_export_json(char* buf, int cap); /* returns bytes or -1 */
 
 #ifdef __cplusplus
 }

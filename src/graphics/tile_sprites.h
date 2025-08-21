@@ -1,8 +1,8 @@
 #ifndef ROGUE_GRAPHICS_TILE_SPRITES_H
 #define ROGUE_GRAPHICS_TILE_SPRITES_H
 
-#include "world/tilemap.h"
 #include "graphics/sprite.h"
+#include "world/tilemap.h"
 #include <stdbool.h>
 
 /* External configuration driven tile sprite registry with variant support. */
@@ -14,10 +14,10 @@ bool rogue_tile_sprites_init(int tile_size);
 void rogue_tile_sprite_define(RogueTileType type, const char* path, int col, int row);
 
 /* Load definitions from a text config file. Format per non-empty/non-comment line:
-	TILE,NAME,path/to/sheet.png,col,row
-	NAME matches enum token without prefix (e.g. GRASS, WATER, FOREST, MOUNTAIN, CAVE_WALL, CAVE_FLOOR, RIVER, EMPTY)
-	Multiple lines with same NAME create variants.
-	Lines starting with '#'(possibly preceded by whitespace) are ignored. */
+        TILE,NAME,path/to/sheet.png,col,row
+        NAME matches enum token without prefix (e.g. GRASS, WATER, FOREST, MOUNTAIN, CAVE_WALL,
+   CAVE_FLOOR, RIVER, EMPTY) Multiple lines with same NAME create variants. Lines starting with
+   '#'(possibly preceded by whitespace) are ignored. */
 bool rogue_tile_sprites_load_config(const char* path);
 
 /* Finalize (load textures & slice). Safe to call multiple times; only loads once. */

@@ -1,18 +1,33 @@
 #define SDL_MAIN_HANDLED
+#include "entities/player.h"
+#include "game/combat.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include "game/combat.h"
-#include "entities/player.h"
 
 RoguePlayer g_exposed_player_for_stats = {0};
-int rogue_get_current_attack_frame(void){ return 3; }
-void rogue_app_add_hitstop(float ms){ (void)ms; }
-void rogue_add_damage_number(float x,float y,int amount,int from_player){ (void)x;(void)y;(void)amount;(void)from_player; }
-void rogue_add_damage_number_ex(float x,float y,int amount,int from_player,int crit){ (void)x;(void)y;(void)amount;(void)from_player;(void)crit; }
+int rogue_get_current_attack_frame(void) { return 3; }
+void rogue_app_add_hitstop(float ms) { (void) ms; }
+void rogue_add_damage_number(float x, float y, int amount, int from_player)
+{
+    (void) x;
+    (void) y;
+    (void) amount;
+    (void) from_player;
+}
+void rogue_add_damage_number_ex(float x, float y, int amount, int from_player, int crit)
+{
+    (void) x;
+    (void) y;
+    (void) amount;
+    (void) from_player;
+    (void) crit;
+}
 
-int main(){
-    RoguePlayer p; rogue_player_init(&p);
+int main()
+{
+    RoguePlayer p;
+    rogue_player_init(&p);
     g_exposed_player_for_stats = p;
     /* Drain poise significantly and set delay */
     p.poise = p.poise_max * 0.10f; /* very low */

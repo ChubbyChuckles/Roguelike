@@ -3,12 +3,15 @@
 #include "world/world_gen_config.h"
 #include "core/app_state.h" /* for g_app when use_app_params */
 
-RogueWorldGenConfig rogue_world_gen_config_build(unsigned int seed, int use_app_params, int apply_scale){
+RogueWorldGenConfig rogue_world_gen_config_build(unsigned int seed, int use_app_params,
+                                                 int apply_scale)
+{
     RogueWorldGenConfig cfg;
     cfg.seed = seed;
-    cfg.width = 80; cfg.height = 60; /* base logical dimensions before optional scaling */
-    cfg.biome_regions = 10; /* base count; may be overridden by scaling */
-    cfg.continent_count = 3; /* default macro layout target */
+    cfg.width = 80;
+    cfg.height = 60;               /* base logical dimensions before optional scaling */
+    cfg.biome_regions = 10;        /* base count; may be overridden by scaling */
+    cfg.continent_count = 3;       /* default macro layout target */
     cfg.biome_seed_offset = 7919u; /* large prime offset for biome rng decorrelation */
     cfg.cave_iterations = 3;
     cfg.cave_fill_chance = 0.45;
@@ -17,7 +20,8 @@ RogueWorldGenConfig rogue_world_gen_config_build(unsigned int seed, int use_app_
     cfg.small_island_passes = 2;
     cfg.shore_fill_passes = 1;
     cfg.advanced_terrain = 1;
-    if(use_app_params){
+    if (use_app_params)
+    {
         cfg.water_level = g_app.gen_water_level;
         cfg.noise_octaves = g_app.gen_noise_octaves;
         cfg.noise_gain = g_app.gen_noise_gain;
@@ -25,7 +29,9 @@ RogueWorldGenConfig rogue_world_gen_config_build(unsigned int seed, int use_app_
         cfg.river_sources = g_app.gen_river_sources;
         cfg.river_max_length = g_app.gen_river_max_length;
         cfg.cave_mountain_elev_thresh = g_app.gen_cave_thresh;
-    } else {
+    }
+    else
+    {
         /* Default baseline constants (match persistence defaults & previous hardcoded path) */
         cfg.water_level = 0.34;
         cfg.noise_octaves = 6;
@@ -35,7 +41,8 @@ RogueWorldGenConfig rogue_world_gen_config_build(unsigned int seed, int use_app_
         cfg.river_max_length = 1200;
         cfg.cave_mountain_elev_thresh = 0.60;
     }
-    if(apply_scale){
+    if (apply_scale)
+    {
         cfg.width *= 10;
         cfg.height *= 10;
         cfg.biome_regions = 1000; /* 10 * 100 legacy scaling */

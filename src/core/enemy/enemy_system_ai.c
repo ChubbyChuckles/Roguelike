@@ -1,73 +1,495 @@
-#include <math.h>
-#include <string.h>
-#include <stdlib.h>
-#include "enemy_system_internal.h"
-#include "core/vegetation/vegetation.h"
-#include "core/navigation.h"
-#include "core/loot/loot_tables.h"
+#include "ai/core/ai_scheduler.h"
+#include "core/collision.h"
+#include "core/enemy/enemy_ai_intensity.h"
 #include "core/loot/loot_instances.h"
 #include "core/loot/loot_logging.h"
+#include "core/loot/loot_tables.h"
 #include "core/metrics.h"
-#include "game/damage_numbers.h"
-#include "core/collision.h"
+#include "core/navigation.h"
+#include "core/vegetation/vegetation.h"
+#include "enemy_system_internal.h"
 #include "entities/enemy.h"
-#include "core/enemy/enemy_ai_intensity.h"
-#include "ai/core/ai_scheduler.h"
+#include "game/damage_numbers.h"
 #include "game/hit_system.h"
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
-static int enemy_tile_is_blocking(unsigned char t){
-    switch(t){ case ROGUE_TILE_WATER: case ROGUE_TILE_RIVER: case ROGUE_TILE_RIVER_WIDE: case ROGUE_TILE_RIVER_DELTA: case ROGUE_TILE_MOUNTAIN: case ROGUE_TILE_CAVE_WALL: return 1; default: return 0; }
+static int enemy_tile_is_blocking(unsigned char t)
+{
+    switch (t)
+    {
+    case ROGUE_TILE_WATER:
+    case ROGUE_TILE_RIVER:
+    case ROGUE_TILE_RIVER_WIDE:
+    case ROGUE_TILE_RIVER_DELTA:
+    case ROGUE_TILE_MOUNTAIN:
+    case ROGUE_TILE_CAVE_WALL:
+        return 1;
+    default:
+        return 0;
+    }
 }
 
-void rogue_enemy_ai_update(float dt_ms){
+void rogue_enemy_ai_update(float dt_ms)
+{
     /* First pass: run scheduler to process BT-enabled enemies incrementally */
     rogue_ai_scheduler_tick(g_app.enemies, ROGUE_MAX_ENEMIES, dt_ms * 0.001f);
     g_app.time_since_last_enemy_death_ms += dt_ms;
-    for(int i=0;i<ROGUE_MAX_ENEMIES;i++) if(g_app.enemies[i].alive){
-        RogueEnemy* e=&g_app.enemies[i]; RogueEnemyTypeDef* t=&g_app.enemy_types[e->type_index];
-        if(e->staggered){ e->stagger_timer_ms -= dt_ms; if(e->stagger_timer_ms <= 0.0f){ e->staggered=0; e->stagger_timer_ms=0.0f; e->poise = e->poise_max * 0.50f; } }
-        else if(e->poise < e->poise_max){ e->poise += dt_ms * 0.04f; if(e->poise > e->poise_max) e->poise = e->poise_max; }
-        float pdx = g_app.player.base.pos.x - e->base.pos.x; float pdy = g_app.player.base.pos.y - e->base.pos.y; float p_dist2 = pdx*pdx + pdy*pdy;
-    if(p_dist2 > (float)(t->aggro_radius * t->aggro_radius * 64)) { e->alive=0; g_app.enemy_count--; if(g_app.per_type_counts[e->type_index]>0) g_app.per_type_counts[e->type_index]--; continue; }
-    /* Phase 5: update intensity scoring before movement/attack decisions */
-    int player_low = (g_app.player.health < (int)(g_app.player.max_health * 0.35f));
-    int pack_deaths_recent = (g_app.time_since_last_enemy_death_ms < 2500.0f)?1:0; /* app state must provide this timer; if absent treat as 0 */
-    rogue_ai_intensity_update(e, dt_ms, player_low, pack_deaths_recent);
-        if(e->ai_state != ROGUE_ENEMY_AI_DEAD){ if(p_dist2 < (float)(t->aggro_radius * t->aggro_radius)) e->ai_state = ROGUE_ENEMY_AI_AGGRO; else if(e->ai_state == ROGUE_ENEMY_AI_AGGRO && p_dist2 > (float)((t->aggro_radius+5)*(t->aggro_radius+5))) e->ai_state = ROGUE_ENEMY_AI_PATROL; }
-    float move_dx=0, move_dy=0; float move_speed = t->speed * (float)g_app.dt; int etx=(int)(e->base.pos.x+0.5f); int ety=(int)(e->base.pos.y+0.5f); if(etx>=0&&ety>=0&&etx<g_app.world_map.width&&ety<g_app.world_map.height){ move_speed *= rogue_vegetation_tile_move_scale(etx,ety); }
-    /* Phase 5: intensity influenced movement scaling (applied post vegetation) */
-    const RogueAIIntensityProfile* prof = rogue_ai_intensity_profile((RogueEnemyAIIntensity)e->ai_intensity); if(prof){ move_speed *= prof->move_speed_mult; }
-    /* Behavior Tree Feature Flag: if enabled movement already driven by scheduler tick */
-    if(!(e->ai_bt_enabled && e->ai_tree)) {
-            if(e->ai_state == ROGUE_ENEMY_AI_PATROL){ float tx=e->patrol_target_x; float ty=e->patrol_target_y; float dx=tx-e->base.pos.x; float dy=ty-e->base.pos.y; float d2=dx*dx+dy*dy; if(d2<0.4f){ for(int attempt=0; attempt<6; ++attempt){ float nrx=(float)((rand()%(t->patrol_radius*2+1))-t->patrol_radius); float nry=(float)((rand()%(t->patrol_radius*2+1))-t->patrol_radius); float nx=e->anchor_x+nrx; float ny=e->anchor_y+nry; float ar_dx=nx-e->anchor_x; float ar_dy=ny-e->anchor_y; if(ar_dx*ar_dx + ar_dy*ar_dy <= (float)(t->patrol_radius*t->patrol_radius)) { e->patrol_target_x=nx; e->patrol_target_y=ny; break; } } } else { float len=(float)sqrt(d2); if(len>0.0001f){ move_dx=dx/len; move_dy=dy/len; } } }
-    else if(e->ai_state == ROGUE_ENEMY_AI_AGGRO){ int step_dx=0, step_dy=0; const RogueHitboxTuning* tune = rogue_hitbox_tuning_get(); float target_x = g_app.player.base.pos.x + (tune? tune->pursue_offset_x:0.0f); float target_y = g_app.player.base.pos.y + (tune? tune->pursue_offset_y:0.0f); rogue_nav_cardinal_step_towards(e->base.pos.x,e->base.pos.y,target_x,target_y,&step_dx,&step_dy); move_dx=(float)step_dx; move_dy=(float)step_dy; }
-        if(move_dx!=0.0f && move_dy!=0.0f){ float dpx=fabsf(g_app.player.base.pos.x - e->base.pos.x); float dpy=fabsf(g_app.player.base.pos.y - e->base.pos.y); if(dpx>dpy) move_dy=0; else move_dx=0; }
-        if(p_dist2 < 1.00f){ move_dx=0; move_dy=0; move_speed=0; }
-        if(move_dx!=0 || move_dy!=0){ int nx=(int)(e->base.pos.x + move_dx*move_speed + 0.5f); int ny=(int)(e->base.pos.y + move_dy*move_speed + 0.5f); if(nx>=0&&ny>=0&&nx<g_app.world_map.width&&ny<g_app.world_map.height){ unsigned char nt=g_app.world_map.tiles[ny*g_app.world_map.width + nx]; int veg_block = rogue_vegetation_tile_blocking(nx,ny) || rogue_vegetation_entity_blocking(e->base.pos.x,e->base.pos.y,e->base.pos.x + move_dx * move_speed, e->base.pos.y + move_dy * move_speed); if(enemy_tile_is_blocking(nt) || veg_block){ float try_x = e->base.pos.x + move_dx * move_speed; int txi = (int)(try_x + 0.5f); int tyi = (int)(e->base.pos.y + 0.5f); int blocked_x=0, blocked_y=0; if(txi>=0&&tyi>=0&&txi<g_app.world_map.width&&tyi<g_app.world_map.height){ if(enemy_tile_is_blocking(g_app.world_map.tiles[tyi*g_app.world_map.width + txi]) || rogue_vegetation_tile_blocking(txi,tyi) || rogue_vegetation_entity_blocking(e->base.pos.x,e->base.pos.y,try_x,e->base.pos.y)) blocked_x=1; } float try_y = e->base.pos.y + move_dy * move_speed; txi = (int)(e->base.pos.x + 0.5f); tyi = (int)(try_y + 0.5f); if(txi>=0&&tyi>=0&&txi<g_app.world_map.width&&tyi<g_app.world_map.height){ if(enemy_tile_is_blocking(g_app.world_map.tiles[tyi*g_app.world_map.width + txi]) || rogue_vegetation_tile_blocking(txi,tyi) || rogue_vegetation_entity_blocking(e->base.pos.x,e->base.pos.y,e->base.pos.x,try_y)) blocked_y=1; } if(!blocked_x && blocked_y){ move_dy=0; } else if(blocked_x && !blocked_y){ move_dx=0; } else { move_dx=move_dy=0; } } } }
-            e->base.pos.x += move_dx * move_speed; e->base.pos.y += move_dy * move_speed; e->facing = (move_dx < 0)?1:2; if(e->hurt_timer>0) e->hurt_timer -= dt_ms; if(e->flash_timer>0) e->flash_timer -= dt_ms; if(e->attack_cooldown_ms>0) e->attack_cooldown_ms -= dt_ms; int in_melee = (p_dist2 < 1.00f); if(in_melee){ move_dx=move_dy=0; }
+    for (int i = 0; i < ROGUE_MAX_ENEMIES; i++)
+        if (g_app.enemies[i].alive)
+        {
+            RogueEnemy* e = &g_app.enemies[i];
+            RogueEnemyTypeDef* t = &g_app.enemy_types[e->type_index];
+            if (e->staggered)
+            {
+                e->stagger_timer_ms -= dt_ms;
+                if (e->stagger_timer_ms <= 0.0f)
+                {
+                    e->staggered = 0;
+                    e->stagger_timer_ms = 0.0f;
+                    e->poise = e->poise_max * 0.50f;
+                }
+            }
+            else if (e->poise < e->poise_max)
+            {
+                e->poise += dt_ms * 0.04f;
+                if (e->poise > e->poise_max)
+                    e->poise = e->poise_max;
+            }
+            float pdx = g_app.player.base.pos.x - e->base.pos.x;
+            float pdy = g_app.player.base.pos.y - e->base.pos.y;
+            float p_dist2 = pdx * pdx + pdy * pdy;
+            if (p_dist2 > (float) (t->aggro_radius * t->aggro_radius * 64))
+            {
+                e->alive = 0;
+                g_app.enemy_count--;
+                if (g_app.per_type_counts[e->type_index] > 0)
+                    g_app.per_type_counts[e->type_index]--;
+                continue;
+            }
+            /* Phase 5: update intensity scoring before movement/attack decisions */
+            int player_low = (g_app.player.health < (int) (g_app.player.max_health * 0.35f));
+            int pack_deaths_recent =
+                (g_app.time_since_last_enemy_death_ms < 2500.0f)
+                    ? 1
+                    : 0; /* app state must provide this timer; if absent treat as 0 */
+            rogue_ai_intensity_update(e, dt_ms, player_low, pack_deaths_recent);
+            if (e->ai_state != ROGUE_ENEMY_AI_DEAD)
+            {
+                if (p_dist2 < (float) (t->aggro_radius * t->aggro_radius))
+                    e->ai_state = ROGUE_ENEMY_AI_AGGRO;
+                else if (e->ai_state == ROGUE_ENEMY_AI_AGGRO &&
+                         p_dist2 > (float) ((t->aggro_radius + 5) * (t->aggro_radius + 5)))
+                    e->ai_state = ROGUE_ENEMY_AI_PATROL;
+            }
+            float move_dx = 0, move_dy = 0;
+            float move_speed = t->speed * (float) g_app.dt;
+            int etx = (int) (e->base.pos.x + 0.5f);
+            int ety = (int) (e->base.pos.y + 0.5f);
+            if (etx >= 0 && ety >= 0 && etx < g_app.world_map.width && ety < g_app.world_map.height)
+            {
+                move_speed *= rogue_vegetation_tile_move_scale(etx, ety);
+            }
+            /* Phase 5: intensity influenced movement scaling (applied post vegetation) */
+            const RogueAIIntensityProfile* prof =
+                rogue_ai_intensity_profile((RogueEnemyAIIntensity) e->ai_intensity);
+            if (prof)
+            {
+                move_speed *= prof->move_speed_mult;
+            }
+            /* Behavior Tree Feature Flag: if enabled movement already driven by scheduler tick */
+            if (!(e->ai_bt_enabled && e->ai_tree))
+            {
+                if (e->ai_state == ROGUE_ENEMY_AI_PATROL)
+                {
+                    float tx = e->patrol_target_x;
+                    float ty = e->patrol_target_y;
+                    float dx = tx - e->base.pos.x;
+                    float dy = ty - e->base.pos.y;
+                    float d2 = dx * dx + dy * dy;
+                    if (d2 < 0.4f)
+                    {
+                        for (int attempt = 0; attempt < 6; ++attempt)
+                        {
+                            float nrx =
+                                (float) ((rand() % (t->patrol_radius * 2 + 1)) - t->patrol_radius);
+                            float nry =
+                                (float) ((rand() % (t->patrol_radius * 2 + 1)) - t->patrol_radius);
+                            float nx = e->anchor_x + nrx;
+                            float ny = e->anchor_y + nry;
+                            float ar_dx = nx - e->anchor_x;
+                            float ar_dy = ny - e->anchor_y;
+                            if (ar_dx * ar_dx + ar_dy * ar_dy <=
+                                (float) (t->patrol_radius * t->patrol_radius))
+                            {
+                                e->patrol_target_x = nx;
+                                e->patrol_target_y = ny;
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        float len = (float) sqrt(d2);
+                        if (len > 0.0001f)
+                        {
+                            move_dx = dx / len;
+                            move_dy = dy / len;
+                        }
+                    }
+                }
+                else if (e->ai_state == ROGUE_ENEMY_AI_AGGRO)
+                {
+                    int step_dx = 0, step_dy = 0;
+                    const RogueHitboxTuning* tune = rogue_hitbox_tuning_get();
+                    float target_x =
+                        g_app.player.base.pos.x + (tune ? tune->pursue_offset_x : 0.0f);
+                    float target_y =
+                        g_app.player.base.pos.y + (tune ? tune->pursue_offset_y : 0.0f);
+                    rogue_nav_cardinal_step_towards(e->base.pos.x, e->base.pos.y, target_x,
+                                                    target_y, &step_dx, &step_dy);
+                    move_dx = (float) step_dx;
+                    move_dy = (float) step_dy;
+                }
+                if (move_dx != 0.0f && move_dy != 0.0f)
+                {
+                    float dpx = fabsf(g_app.player.base.pos.x - e->base.pos.x);
+                    float dpy = fabsf(g_app.player.base.pos.y - e->base.pos.y);
+                    if (dpx > dpy)
+                        move_dy = 0;
+                    else
+                        move_dx = 0;
+                }
+                if (p_dist2 < 1.00f)
+                {
+                    move_dx = 0;
+                    move_dy = 0;
+                    move_speed = 0;
+                }
+                if (move_dx != 0 || move_dy != 0)
+                {
+                    int nx = (int) (e->base.pos.x + move_dx * move_speed + 0.5f);
+                    int ny = (int) (e->base.pos.y + move_dy * move_speed + 0.5f);
+                    if (nx >= 0 && ny >= 0 && nx < g_app.world_map.width &&
+                        ny < g_app.world_map.height)
+                    {
+                        unsigned char nt = g_app.world_map.tiles[ny * g_app.world_map.width + nx];
+                        int veg_block =
+                            rogue_vegetation_tile_blocking(nx, ny) ||
+                            rogue_vegetation_entity_blocking(e->base.pos.x, e->base.pos.y,
+                                                             e->base.pos.x + move_dx * move_speed,
+                                                             e->base.pos.y + move_dy * move_speed);
+                        if (enemy_tile_is_blocking(nt) || veg_block)
+                        {
+                            float try_x = e->base.pos.x + move_dx * move_speed;
+                            int txi = (int) (try_x + 0.5f);
+                            int tyi = (int) (e->base.pos.y + 0.5f);
+                            int blocked_x = 0, blocked_y = 0;
+                            if (txi >= 0 && tyi >= 0 && txi < g_app.world_map.width &&
+                                tyi < g_app.world_map.height)
+                            {
+                                if (enemy_tile_is_blocking(
+                                        g_app.world_map.tiles[tyi * g_app.world_map.width + txi]) ||
+                                    rogue_vegetation_tile_blocking(txi, tyi) ||
+                                    rogue_vegetation_entity_blocking(e->base.pos.x, e->base.pos.y,
+                                                                     try_x, e->base.pos.y))
+                                    blocked_x = 1;
+                            }
+                            float try_y = e->base.pos.y + move_dy * move_speed;
+                            txi = (int) (e->base.pos.x + 0.5f);
+                            tyi = (int) (try_y + 0.5f);
+                            if (txi >= 0 && tyi >= 0 && txi < g_app.world_map.width &&
+                                tyi < g_app.world_map.height)
+                            {
+                                if (enemy_tile_is_blocking(
+                                        g_app.world_map.tiles[tyi * g_app.world_map.width + txi]) ||
+                                    rogue_vegetation_tile_blocking(txi, tyi) ||
+                                    rogue_vegetation_entity_blocking(e->base.pos.x, e->base.pos.y,
+                                                                     e->base.pos.x, try_y))
+                                    blocked_y = 1;
+                            }
+                            if (!blocked_x && blocked_y)
+                            {
+                                move_dy = 0;
+                            }
+                            else if (blocked_x && !blocked_y)
+                            {
+                                move_dx = 0;
+                            }
+                            else
+                            {
+                                move_dx = move_dy = 0;
+                            }
+                        }
+                    }
+                }
+                e->base.pos.x += move_dx * move_speed;
+                e->base.pos.y += move_dy * move_speed;
+                e->facing = (move_dx < 0) ? 1 : 2;
+                if (e->hurt_timer > 0)
+                    e->hurt_timer -= dt_ms;
+                if (e->flash_timer > 0)
+                    e->flash_timer -= dt_ms;
+                if (e->attack_cooldown_ms > 0)
+                    e->attack_cooldown_ms -= dt_ms;
+                int in_melee = (p_dist2 < 1.00f);
+                if (in_melee)
+                {
+                    move_dx = move_dy = 0;
+                }
+            }
+            if (p_dist2 < 1.00f && g_app.player.health > 0 && e->attack_cooldown_ms <= 0)
+            {
+                int dmg = (int) (1 + g_app.difficulty_scalar * 0.6);
+                if (dmg < 1)
+                    dmg = 1;
+                float ech = (float) e->crit_chance * 0.01f;
+                if (ech > 0.35f)
+                    ech = 0.35f;
+                int ecrit = (((float) rand() / (float) RAND_MAX) < ech) ? 1 : 0;
+                if (ecrit)
+                {
+                    float emult = 1.0f + (float) e->crit_damage * 0.01f;
+                    if (emult > 3.0f)
+                        emult = 3.0f;
+                    dmg = (int) floorf(dmg * emult + 0.5f);
+                }
+                int blocked = 0, perfect = 0;
+                float adx = -pdx;
+                float ady = -pdy;
+                int final = rogue_player_apply_incoming_melee(&g_app.player, (float) dmg, adx, ady,
+                                                              8, &blocked, &perfect);
+                if (final > 0)
+                {
+                    g_app.player.health -= final;
+                    if (g_app.player.health < 0)
+                        g_app.player.health = 0;
+                }
+                if (blocked)
+                {
+                    if (final > 0)
+                        rogue_add_damage_number_ex(g_app.player.base.pos.x,
+                                                   g_app.player.base.pos.y - 0.2f, final, 0, 0);
+                }
+                else
+                {
+                    rogue_add_damage_number_ex(g_app.player.base.pos.x,
+                                               g_app.player.base.pos.y - 0.2f, final, 0, ecrit);
+                }
+                e->hurt_timer = 200.0f;
+                g_app.time_since_player_hit_ms = 0.0f;
+                /* Tune cooldown range to align with DPS test expectations; keep slight randomness.
+                 */
+                float base_cd = 1200.0f + (float) (rand() % 900); /* 1200..2100 ms */
+                if (prof)
+                {
+                    base_cd *= prof->cooldown_mult;
+                }
+                /* Clamp to reasonable bounds (900..2600) to avoid outliers due to intensity
+                 * multipliers. */
+                if (base_cd < 900.0f)
+                    base_cd = 900.0f;
+                if (base_cd > 2600.0f)
+                    base_cd = 2600.0f;
+                e->attack_cooldown_ms = base_cd;
+            }
+            if (e->health <= 0 && e->ai_state != ROGUE_ENEMY_AI_DEAD)
+            {
+                e->ai_state = ROGUE_ENEMY_AI_DEAD;
+                g_app.time_since_last_enemy_death_ms = 0.0f;
+                e->anim_time = 0;
+                e->anim_frame = 0;
+                e->death_fade = 1.0f;
+                g_app.player.xp += t->xp_reward;
+                if (((float) rand() / (float) RAND_MAX) < t->loot_chance)
+                {
+                    g_app.player.health += 2 + (g_app.player.vitality / 3);
+                    if (g_app.player.health > g_app.player.max_health)
+                        g_app.player.health = g_app.player.max_health;
+                }
+                char tbl_id[ROGUE_MAX_LOOT_TABLE_ID];
+                int k = 0;
+                for (; k < (int) sizeof tbl_id - 1 && t->name[k]; ++k)
+                {
+                    char c = t->name[k];
+                    if (c >= 'a' && c <= 'z')
+                        c = (char) (c - 'a' + 'A');
+                    if (c == ' ')
+                        c = '_';
+                    tbl_id[k] = c;
+                }
+                tbl_id[k] = '\0';
+                const char* suffix = "_BASIC";
+                size_t ln = strlen(tbl_id);
+                size_t sl = strlen(suffix);
+                if (ln + sl < sizeof tbl_id)
+                {
+                    memcpy(tbl_id + ln, suffix, sl + 1);
+                }
+                int table_idx = rogue_loot_table_index(tbl_id);
+                if (table_idx < 0)
+                {
+                    table_idx = rogue_loot_table_index("GOBLIN_BASIC");
+                }
+                if (table_idx >= 0)
+                {
+                    unsigned int seed = (unsigned int) (e->base.pos.x * 73856093u) ^
+                                        (unsigned int) (e->base.pos.y * 19349663u) ^
+                                        (unsigned int) g_app.total_kills;
+                    int idef[8];
+                    int qty[8];
+                    int rar[8];
+                    int drops = rogue_loot_roll_ex(table_idx, &seed, 8, idef, qty, rar);
+                    ROGUE_LOOT_LOG_INFO("loot_roll: enemy_type=%s table=%s drops=%d", t->name,
+                                        tbl_id, drops);
+                    for (int di = 0; di < drops; ++di)
+                    {
+                        if (idef[di] >= 0)
+                        {
+                            unsigned int jseed = seed + (unsigned int) (di * 60493u);
+                            float jr = (float) (jseed % 1000) / 1000.0f;
+                            float jang = (float) ((jseed / 1000u) % 6283u) * 0.001f;
+                            float radius = jr * 0.35f;
+                            float jx = e->base.pos.x + cosf(jang) * radius;
+                            float jy = e->base.pos.y + sinf(jang) * radius;
+                            ROGUE_LOOT_LOG_DEBUG(
+                                "loot_entry: idx=%d qty=%d rarity=%d enemy_pos=(%.2f,%.2f) "
+                                "spawn_pos=(%.2f,%.2f) off=(%.2f,%.2f)",
+                                idef[di], qty[di], rar[di], e->base.pos.x, e->base.pos.y, jx, jy,
+                                jx - e->base.pos.x, jy - e->base.pos.y);
+                            int inst = rogue_items_spawn(idef[di], qty[di], jx, jy);
+                            if (inst >= 0 && rar[di] >= 0 && inst < g_app.item_instance_cap)
+                            {
+                                g_app.item_instances[inst].rarity = rar[di];
+                            }
+                            if (rar[di] >= 0)
+                                rogue_metrics_record_drop(rar[di]);
+                            else
+                                rogue_metrics_record_drop(0);
+                        }
+                    }
+                }
+            }
+            RogueSprite* frames = NULL;
+            int fcount = 0;
+            if (e->ai_state == ROGUE_ENEMY_AI_AGGRO)
+            {
+                frames = t->run_frames;
+                fcount = t->run_count;
+            }
+            else if (e->ai_state == ROGUE_ENEMY_AI_PATROL)
+            {
+                frames = t->idle_frames;
+                fcount = t->idle_count;
+            }
+            else
+            {
+                frames = t->death_frames;
+                fcount = t->death_count;
+            }
+            float base_frame_ms = (e->ai_state == ROGUE_ENEMY_AI_AGGRO) ? 110.0f : 160.0f;
+            if (prof)
+            {
+                base_frame_ms /= prof->action_freq_mult;
+                if (base_frame_ms < 40.0f)
+                    base_frame_ms = 40.0f;
+            }
+            e->anim_time += dt_ms;
+            if (fcount <= 0)
+                fcount = 1;
+            if (e->anim_time >= base_frame_ms)
+            {
+                e->anim_time -= base_frame_ms;
+                e->anim_frame = (e->anim_frame + 1) % fcount;
+            }
+            e->tint_phase += dt_ms;
+            if (e->ai_state == ROGUE_ENEMY_AI_DEAD)
+            {
+                if (e->anim_frame == fcount - 1)
+                {
+                    e->death_fade -= (float) g_app.dt * 0.8f;
+                    if (e->death_fade <= 0.0f)
+                    {
+                        e->alive = 0;
+                        g_app.enemy_count--;
+                        if (g_app.per_type_counts[e->type_index] > 0)
+                            g_app.per_type_counts[e->type_index]--;
+                    }
+                }
+            }
+            float target_r = 255.0f, target_g = 255.0f, target_b = 255.0f;
+            int close_combat = (p_dist2 < 0.36f);
+            if (e->ai_state == ROGUE_ENEMY_AI_AGGRO && !close_combat)
+            {
+                float pulse = 0.5f + 0.5f * (float) sin(e->tint_phase * 0.01f);
+                target_r = 255.0f;
+                target_g = 180.0f + 75.0f * pulse;
+                target_b = 0.0f;
+            }
+            if (close_combat)
+            {
+                target_r = 255.0f;
+                target_g = 40.0f;
+                target_b = 40.0f;
+            }
+            if (e->hurt_timer > 0)
+            {
+                target_r = 255.0f;
+                target_g = 255.0f;
+                target_b = 255.0f;
+            }
+            if (e->flash_timer > 0)
+            {
+                target_r = 255.0f;
+                target_g = 230.0f;
+                target_b = 90.0f;
+            }
+            if (e->ai_state == ROGUE_ENEMY_AI_DEAD)
+            {
+                float gcol = 120.0f * e->death_fade;
+                target_r = target_g = target_b = gcol;
+            }
+            float lerp = (float) g_app.dt * 8.0f;
+            if (lerp > 1.0f)
+                lerp = 1.0f;
+            e->tint_r += (target_r - e->tint_r) * lerp;
+            e->tint_g += (target_g - e->tint_g) * lerp;
+            e->tint_b += (target_b - e->tint_b) * lerp;
         }
-    if(p_dist2 < 1.00f && g_app.player.health>0 && e->attack_cooldown_ms<=0){ int dmg=(int)(1 + g_app.difficulty_scalar * 0.6); if(dmg<1) dmg=1; float ech=(float)e->crit_chance * 0.01f; if(ech>0.35f) ech=0.35f; int ecrit = (((float)rand()/(float)RAND_MAX) < ech)?1:0; if(ecrit){ float emult = 1.0f + (float)e->crit_damage * 0.01f; if(emult>3.0f) emult=3.0f; dmg = (int)floorf(dmg * emult + 0.5f); } int blocked=0, perfect=0; float adx=-pdx; float ady=-pdy; int final = rogue_player_apply_incoming_melee(&g_app.player, (float)dmg, adx, ady, 8, &blocked, &perfect); if(final>0){ g_app.player.health -= final; if(g_app.player.health<0) g_app.player.health=0; } if(blocked){ if(final>0) rogue_add_damage_number_ex(g_app.player.base.pos.x, g_app.player.base.pos.y - 0.2f, final, 0, 0); } else { rogue_add_damage_number_ex(g_app.player.base.pos.x, g_app.player.base.pos.y - 0.2f, final, 0, ecrit); } e->hurt_timer=200.0f; g_app.time_since_player_hit_ms=0.0f; 
-        /* Tune cooldown range to align with DPS test expectations; keep slight randomness. */
-        float base_cd = 1200.0f + (float)(rand()%900); /* 1200..2100 ms */
-        if(prof){ base_cd *= prof->cooldown_mult; }
-        /* Clamp to reasonable bounds (900..2600) to avoid outliers due to intensity multipliers. */
-        if(base_cd < 900.0f) base_cd = 900.0f; if(base_cd > 2600.0f) base_cd = 2600.0f;
-        e->attack_cooldown_ms = base_cd; }
-    if(e->health<=0 && e->ai_state != ROGUE_ENEMY_AI_DEAD){ e->ai_state = ROGUE_ENEMY_AI_DEAD; g_app.time_since_last_enemy_death_ms = 0.0f; e->anim_time=0; e->anim_frame=0; e->death_fade=1.0f; g_app.player.xp += t->xp_reward; if(((float)rand()/(float)RAND_MAX) < t->loot_chance){ g_app.player.health += 2 + (g_app.player.vitality/3); if(g_app.player.health>g_app.player.max_health) g_app.player.health=g_app.player.max_health; } char tbl_id[ROGUE_MAX_LOOT_TABLE_ID]; int k=0; for(; k< (int)sizeof tbl_id -1 && t->name[k]; ++k){ char c=t->name[k]; if(c>='a'&&c<='z') c=(char)(c-'a'+'A'); if(c==' ') c='_'; tbl_id[k]=c; } tbl_id[k]='\0'; const char* suffix="_BASIC"; size_t ln=strlen(tbl_id); size_t sl=strlen(suffix); if(ln+sl<sizeof tbl_id){ memcpy(tbl_id+ln,suffix,sl+1); } int table_idx=rogue_loot_table_index(tbl_id); if(table_idx<0){ table_idx=rogue_loot_table_index("GOBLIN_BASIC"); } if(table_idx>=0){ unsigned int seed=(unsigned int)(e->base.pos.x*73856093u) ^ (unsigned int)(e->base.pos.y*19349663u) ^ (unsigned int)g_app.total_kills; int idef[8]; int qty[8]; int rar[8]; int drops=rogue_loot_roll_ex(table_idx,&seed,8,idef,qty,rar); ROGUE_LOOT_LOG_INFO("loot_roll: enemy_type=%s table=%s drops=%d", t->name, tbl_id, drops); for(int di=0; di<drops; ++di){ if(idef[di]>=0){ unsigned int jseed=seed + (unsigned int)(di*60493u); float jr=(float)(jseed % 1000) / 1000.0f; float jang=(float)((jseed / 1000u) % 6283u) * 0.001f; float radius=jr * 0.35f; float jx=e->base.pos.x + cosf(jang) * radius; float jy=e->base.pos.y + sinf(jang) * radius; ROGUE_LOOT_LOG_DEBUG("loot_entry: idx=%d qty=%d rarity=%d enemy_pos=(%.2f,%.2f) spawn_pos=(%.2f,%.2f) off=(%.2f,%.2f)", idef[di], qty[di], rar[di], e->base.pos.x, e->base.pos.y, jx, jy, jx-e->base.pos.x, jy-e->base.pos.y); int inst=rogue_items_spawn(idef[di], qty[di], jx, jy); if(inst>=0 && rar[di]>=0 && inst < g_app.item_instance_cap){ g_app.item_instances[inst].rarity = rar[di]; } if(rar[di] >= 0) rogue_metrics_record_drop(rar[di]); else rogue_metrics_record_drop(0); } } } }
-    RogueSprite* frames=NULL; int fcount=0; if(e->ai_state==ROGUE_ENEMY_AI_AGGRO){ frames=t->run_frames; fcount=t->run_count; } else if(e->ai_state==ROGUE_ENEMY_AI_PATROL){ frames=t->idle_frames; fcount=t->idle_count; } else { frames=t->death_frames; fcount=t->death_count; } float base_frame_ms=(e->ai_state==ROGUE_ENEMY_AI_AGGRO)?110.0f:160.0f; if(prof){ base_frame_ms /= prof->action_freq_mult; if(base_frame_ms<40.0f) base_frame_ms=40.0f; }
-    e->anim_time += dt_ms; if(fcount<=0) fcount=1; if(e->anim_time >= base_frame_ms){ e->anim_time -= base_frame_ms; e->anim_frame = (e->anim_frame+1) % fcount; }
-    e->tint_phase += dt_ms; if(e->ai_state==ROGUE_ENEMY_AI_DEAD){ if(e->anim_frame == fcount-1){ e->death_fade -= (float)g_app.dt * 0.8f; if(e->death_fade <= 0.0f){ e->alive=0; g_app.enemy_count--; if(g_app.per_type_counts[e->type_index]>0) g_app.per_type_counts[e->type_index]--; } } }
-    float target_r=255.0f,target_g=255.0f,target_b=255.0f; int close_combat=(p_dist2<0.36f); if(e->ai_state==ROGUE_ENEMY_AI_AGGRO && !close_combat){ float pulse=0.5f + 0.5f * (float)sin(e->tint_phase * 0.01f); target_r=255.0f; target_g=180.0f + 75.0f * pulse; target_b=0.0f; } if(close_combat){ target_r=255.0f; target_g=40.0f; target_b=40.0f; }
-    if(e->hurt_timer>0){ target_r=255.0f; target_g=255.0f; target_b=255.0f; } if(e->flash_timer>0){ target_r=255.0f; target_g=230.0f; target_b=90.0f; } if(e->ai_state==ROGUE_ENEMY_AI_DEAD){ float gcol=120.0f * e->death_fade; target_r=target_g=target_b=gcol; }
-    float lerp=(float)g_app.dt * 8.0f; if(lerp>1.0f) lerp=1.0f; e->tint_r += (target_r - e->tint_r) * lerp; e->tint_g += (target_g - e->tint_g) * lerp; e->tint_b += (target_b - e->tint_b) * lerp; }
 }
 
-void rogue_enemy_separation_pass(void){
-    for(int i=0;i<ROGUE_MAX_ENEMIES;i++) if(g_app.enemies[i].alive){
-        RogueEnemy* a=&g_app.enemies[i];
-        for(int j=i+1;j<ROGUE_MAX_ENEMIES;j++) if(g_app.enemies[j].alive){
-            RogueEnemy* b=&g_app.enemies[j]; float dx=b->base.pos.x - a->base.pos.x; float dy=b->base.pos.y - a->base.pos.y; float d2=dx*dx+dy*dy; float minr=0.30f; float min2=minr*minr; if(d2>0.00001f && d2<min2){ float d=(float)sqrt(d2); float push=(minr - d)*0.5f; dx/=d; dy/=d; a->base.pos.x-=dx*push; a->base.pos.y-=dy*push; b->base.pos.x+=dx*push; b->base.pos.y+=dy*push; }
+void rogue_enemy_separation_pass(void)
+{
+    for (int i = 0; i < ROGUE_MAX_ENEMIES; i++)
+        if (g_app.enemies[i].alive)
+        {
+            RogueEnemy* a = &g_app.enemies[i];
+            for (int j = i + 1; j < ROGUE_MAX_ENEMIES; j++)
+                if (g_app.enemies[j].alive)
+                {
+                    RogueEnemy* b = &g_app.enemies[j];
+                    float dx = b->base.pos.x - a->base.pos.x;
+                    float dy = b->base.pos.y - a->base.pos.y;
+                    float d2 = dx * dx + dy * dy;
+                    float minr = 0.30f;
+                    float min2 = minr * minr;
+                    if (d2 > 0.00001f && d2 < min2)
+                    {
+                        float d = (float) sqrt(d2);
+                        float push = (minr - d) * 0.5f;
+                        dx /= d;
+                        dy /= d;
+                        a->base.pos.x -= dx * push;
+                        a->base.pos.y -= dy * push;
+                        b->base.pos.x += dx * push;
+                        b->base.pos.y += dy * push;
+                    }
+                }
         }
-    }
-    for(int i=0;i<ROGUE_MAX_ENEMIES;i++) if(g_app.enemies[i].alive){ rogue_collision_resolve_enemy_player(&g_app.enemies[i]); }
+    for (int i = 0; i < ROGUE_MAX_ENEMIES; i++)
+        if (g_app.enemies[i].alive)
+        {
+            rogue_collision_resolve_enemy_player(&g_app.enemies[i]);
+        }
 }

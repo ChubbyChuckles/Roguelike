@@ -4,7 +4,8 @@
 #include "core/skills.h"
 
 /* Synergy buckets enumeration (extend as needed) */
-enum {
+enum
+{
     ROGUE_SYNERGY_FIRE_POWER = 0,
     ROGUE_SYNERGY_COUNT
 };

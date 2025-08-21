@@ -5,9 +5,16 @@
 
 #define ROGUE_HUD_MAX_BUFF_ICONS 16
 
-typedef struct RogueHUDBuffIcon { int type; int magnitude; float remaining_ms; float total_ms; } RogueHUDBuffIcon;
+typedef struct RogueHUDBuffIcon
+{
+    int type;
+    int magnitude;
+    float remaining_ms;
+    float total_ms;
+} RogueHUDBuffIcon;
 
-typedef struct RogueHUDBuffBeltState {
+typedef struct RogueHUDBuffBeltState
+{
     RogueHUDBuffIcon icons[ROGUE_HUD_MAX_BUFF_ICONS];
     int count;
 } RogueHUDBuffBeltState;

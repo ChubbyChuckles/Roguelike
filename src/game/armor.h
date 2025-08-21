@@ -3,9 +3,18 @@
 
 /* Phase 7.2 Armor Weight Classes */
 
-typedef enum RogueArmorSlot { ROGUE_ARMOR_HEAD=0, ROGUE_ARMOR_CHEST=1, ROGUE_ARMOR_LEGS=2, ROGUE_ARMOR_HANDS=3, ROGUE_ARMOR_FEET=4, ROGUE_ARMOR_SLOT_COUNT } RogueArmorSlot;
+typedef enum RogueArmorSlot
+{
+    ROGUE_ARMOR_HEAD = 0,
+    ROGUE_ARMOR_CHEST = 1,
+    ROGUE_ARMOR_LEGS = 2,
+    ROGUE_ARMOR_HANDS = 3,
+    ROGUE_ARMOR_FEET = 4,
+    ROGUE_ARMOR_SLOT_COUNT
+} RogueArmorSlot;
 
-typedef struct RogueArmorDef {
+typedef struct RogueArmorDef
+{
     int id;
     const char* name;
     int weight_class; /* 0=light,1=medium,2=heavy */
@@ -15,8 +24,8 @@ typedef struct RogueArmorDef {
     int resist_fire;
     int resist_frost;
     int resist_arcane;
-    float poise_bonus;       /* added to poise_max */
-    float stamina_regen_mult;/* multiplicative regen modifier */
+    float poise_bonus;        /* added to poise_max */
+    float stamina_regen_mult; /* multiplicative regen modifier */
 } RogueArmorDef;
 
 const RogueArmorDef* rogue_armor_get(int id);

@@ -12,13 +12,14 @@
 #define ROGUE_LOOT_API_DOC_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/* Generate API doc into caller buffer. Returns number of bytes written (excluding
- * terminating NUL) or -1 if cap too small (<128) or arguments invalid. Always
- * terminates NUL if cap>0. Ordering is stable for regression tests. */
-int rogue_loot_generate_api_doc(char* buf, int cap);
+    /* Generate API doc into caller buffer. Returns number of bytes written (excluding
+     * terminating NUL) or -1 if cap too small (<128) or arguments invalid. Always
+     * terminates NUL if cap>0. Ordering is stable for regression tests. */
+    int rogue_loot_generate_api_doc(char* buf, int cap);
 
 #ifdef __cplusplus
 }

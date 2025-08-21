@@ -1,10 +1,11 @@
 /* Phase 7.1-7.3 UI Theme & Accessibility */
 #ifndef ROGUE_UI_THEME_H
 #define ROGUE_UI_THEME_H
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
-typedef struct RogueUIThemePack {
+typedef struct RogueUIThemePack
+{
     /* Core palette */
     uint32_t panel_bg;
     uint32_t panel_border;
@@ -31,11 +32,12 @@ void rogue_ui_theme_apply(const RogueUIThemePack* pack);
 unsigned int rogue_ui_theme_diff(const RogueUIThemePack* a, const RogueUIThemePack* b);
 
 /* Accessibility (Phase 7.3): colorblind remap modes */
-typedef enum RogueUIColorBlindMode {
-    ROGUE_COLOR_NORMAL=0,
-    ROGUE_COLOR_PROTANOPIA=1,
-    ROGUE_COLOR_DEUTERANOPIA=2,
-    ROGUE_COLOR_TRITANOPIA=3
+typedef enum RogueUIColorBlindMode
+{
+    ROGUE_COLOR_NORMAL = 0,
+    ROGUE_COLOR_PROTANOPIA = 1,
+    ROGUE_COLOR_DEUTERANOPIA = 2,
+    ROGUE_COLOR_TRITANOPIA = 3
 } RogueUIColorBlindMode;
 void rogue_ui_colorblind_set_mode(RogueUIColorBlindMode mode);
 RogueUIColorBlindMode rogue_ui_colorblind_mode(void);

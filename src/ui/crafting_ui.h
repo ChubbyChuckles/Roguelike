@@ -10,39 +10,46 @@
 #define ROGUE_CRAFTING_UI_H
 #include "ui/core/ui_context.h"
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/* Configure search filter string (persists across frames). */
-void rogue_crafting_ui_set_search(const char* s);
-const char* rogue_crafting_ui_last_search(void);
+    /* Configure search filter string (persists across frames). */
+    void rogue_crafting_ui_set_search(const char* s);
+    const char* rogue_crafting_ui_last_search(void);
 
-/* Toggle accessibility text-only recipe list fallback. */
-void rogue_crafting_ui_set_text_only(int enabled);
-int  rogue_crafting_ui_text_only(void);
+    /* Toggle accessibility text-only recipe list fallback. */
+    void rogue_crafting_ui_set_text_only(int enabled);
+    int rogue_crafting_ui_text_only(void);
 
-/* Render main crafting panel (recipes + optional upgrade tags). Returns number of recipe lines rendered. */
-int rogue_crafting_ui_render_panel(RogueUIContext* ctx, float x, float y, float w, float h);
+    /* Render main crafting panel (recipes + optional upgrade tags). Returns number of recipe lines
+     * rendered. */
+    int rogue_crafting_ui_render_panel(RogueUIContext* ctx, float x, float y, float w, float h);
 
-/* Batch quantity slider state (1..N). Set and get for persistence/testing. */
-void rogue_crafting_ui_set_batch(int qty);
-int  rogue_crafting_ui_get_batch(void);
+    /* Batch quantity slider state (1..N). Set and get for persistence/testing. */
+    void rogue_crafting_ui_set_batch(int qty);
+    int rogue_crafting_ui_get_batch(void);
 
-/* Render queue progress bars for active crafting jobs (time fraction). Returns bars rendered. */
-int rogue_crafting_ui_render_queue(RogueUIContext* ctx, float x, float y, float w, float h);
+    /* Render queue progress bars for active crafting jobs (time fraction). Returns bars rendered.
+     */
+    int rogue_crafting_ui_render_queue(RogueUIContext* ctx, float x, float y, float w, float h);
 
-/* Render gathering node overlay: active nodes with depletion timers (ms remaining) and rare flag. Returns nodes shown. */
-int rogue_crafting_ui_render_gather_overlay(RogueUIContext* ctx, float x, float y, float w, float h);
+    /* Render gathering node overlay: active nodes with depletion timers (ms remaining) and rare
+     * flag. Returns nodes shown. */
+    int rogue_crafting_ui_render_gather_overlay(RogueUIContext* ctx, float x, float y, float w,
+                                                float h);
 
-/* Render material ledger quality overview; returns lines emitted. */
-int rogue_crafting_ui_render_material_ledger(RogueUIContext* ctx, float x, float y, float w, float h);
+    /* Render material ledger quality overview; returns lines emitted. */
+    int rogue_crafting_ui_render_material_ledger(RogueUIContext* ctx, float x, float y, float w,
+                                                 float h);
 
-/* Render enhancement risk preview block (temper). intensity parameter influences displayed durability damage.
- * Returns 0 on success. */
-int rogue_crafting_ui_render_enhancement_risk(RogueUIContext* ctx, float x, float y, int intensity);
+    /* Render enhancement risk preview block (temper). intensity parameter influences displayed
+     * durability damage. Returns 0 on success. */
+    int rogue_crafting_ui_render_enhancement_risk(RogueUIContext* ctx, float x, float y,
+                                                  int intensity);
 
-/* Compute expected fracture durability damage (failure probability * durability_damage). */
-float rogue_crafting_ui_expected_fracture_damage(int intensity);
+    /* Compute expected fracture durability damage (failure probability * durability_damage). */
+    float rogue_crafting_ui_expected_fracture_damage(int intensity);
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,6 @@
 /* Infinite XP & Level Core (Phase 1)
- * Provides data-driven leveling curve without hard cap, catch-up multiplier, and 64-bit accumulation helpers.
+ * Provides data-driven leveling curve without hard cap, catch-up multiplier, and 64-bit
+ * accumulation helpers.
  */
 #ifndef ROGUE_PROGRESSION_XP_H
 #define ROGUE_PROGRESSION_XP_H

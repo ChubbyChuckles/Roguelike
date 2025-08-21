@@ -6,13 +6,14 @@
 
 #include <stddef.h>
 
-typedef struct RogueAttributeState {
+typedef struct RogueAttributeState
+{
     int strength;
     int dexterity;
     int vitality;
     int intelligence;
-    int spent_points; /* total spent so far (not counting refunds) */
-    int respec_tokens; /* available refund tokens */
+    int spent_points;                /* total spent so far (not counting refunds) */
+    int respec_tokens;               /* available refund tokens */
     unsigned long long journal_hash; /* simplistic rolling hash over operations */
     /* Phase 12.3: operation journal for audit & migration replay (spend/respec). */
     struct RogueAttrOp* ops; /* dynamic array (allocated) */
@@ -24,9 +25,10 @@ typedef struct RogueAttributeState {
 extern RogueAttributeState g_attr_state;
 
 /* Initialize state from player base stats. */
-void rogue_attr_state_init(RogueAttributeState* st, int str,int dex,int vit,int intl);
+void rogue_attr_state_init(RogueAttributeState* st, int str, int dex, int vit, int intl);
 
-/* Spend one point into attribute by code: 'S','D','V','I'. Returns 0 success, <0 error (no points). Updates hash. */
+/* Spend one point into attribute by code: 'S','D','V','I'. Returns 0 success, <0 error (no points).
+ * Updates hash. */
 int rogue_attr_spend(RogueAttributeState* st, char code);
 
 /* Grant unspent allocation points (e.g., on level up). */

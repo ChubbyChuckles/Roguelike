@@ -2,13 +2,13 @@
 #ifndef ROGUE_PROGRESSION_PERSIST_H
 #define ROGUE_PROGRESSION_PERSIST_H
 
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #define ROGUE_PROG_MIG_STAT_REG_CHANGED 0x1u
-#define ROGUE_PROG_MIG_MAZE_NODECOUNT  0x2u
-#define ROGUE_PROG_MIG_TALENT_SCHEMA   0x4u /* passive/talent node set changed */
-#define ROGUE_PROG_MIG_ATTR_REPLAY     0x8u /* attribute journal replay applied */
+#define ROGUE_PROG_MIG_MAZE_NODECOUNT 0x2u
+#define ROGUE_PROG_MIG_TALENT_SCHEMA 0x4u /* passive/talent node set changed */
+#define ROGUE_PROG_MIG_ATTR_REPLAY 0x8u   /* attribute journal replay applied */
 
 int rogue_progression_persist_register(void);
 int rogue_progression_persist_write(FILE* f);

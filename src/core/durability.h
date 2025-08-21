@@ -13,9 +13,9 @@ int rogue_durability_bucket(float pct);
 int rogue_item_instance_apply_durability_event(int inst_index, int severity);
 
 /* Phase 8.3: Auto-warn notification helpers.
-   Call rogue_durability_notify_tick after durability-affecting events (the apply API already does this).
-   rogue_durability_last_transition returns and clears:
-      0 none, 1 entered warn bucket (>=30% && <60%), 2 entered critical bucket (<30%). */
+   Call rogue_durability_notify_tick after durability-affecting events (the apply API already does
+   this). rogue_durability_last_transition returns and clears: 0 none, 1 entered warn bucket (>=30%
+   && <60%), 2 entered critical bucket (<30%). */
 void rogue_durability_notify_tick(void);
 int rogue_durability_last_transition(void);
 

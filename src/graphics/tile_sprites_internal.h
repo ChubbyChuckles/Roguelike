@@ -5,21 +5,24 @@
 #include "graphics/tile_sprites.h"
 #include <stddef.h>
 
-typedef struct TileVariant {
+typedef struct TileVariant
+{
     char path[256];
-    int col,row;
+    int col, row;
     RogueTexture texture;
     RogueSprite sprite;
     int loaded;
 } TileVariant;
 
-typedef struct TileBucket {
+typedef struct TileBucket
+{
     TileVariant* variants;
     int count;
     int cap;
 } TileBucket;
 
-struct RogueTileSpritesGlobal {
+struct RogueTileSpritesGlobal
+{
     int initialized;
     int tile_size;
     TileBucket buckets[ROGUE_TILE_MAX];

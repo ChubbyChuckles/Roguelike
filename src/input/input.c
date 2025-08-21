@@ -63,7 +63,7 @@ void rogue_input_next_frame(RogueInputState* st)
 
 void rogue_input_push_char(RogueInputState* st, char c)
 {
-    if (st->text_len < (int)(sizeof st->text_buffer) - 1)
+    if (st->text_len < (int) (sizeof st->text_buffer) - 1)
     {
         st->text_buffer[st->text_len++] = c;
         st->text_buffer[st->text_len] = '\0';

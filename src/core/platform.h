@@ -2,8 +2,8 @@
 #ifndef ROGUE_CORE_PLATFORM_H
 #define ROGUE_CORE_PLATFORM_H
 
-#include <stdbool.h>
 #include "core/app.h"
+#include <stdbool.h>
 
 bool rogue_platform_init(const RogueAppConfig* cfg);
 void rogue_platform_apply_window_mode(void);

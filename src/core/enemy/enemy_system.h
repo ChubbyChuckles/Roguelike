@@ -7,18 +7,19 @@
  */
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #include "core/app_state.h"
 
-/* Update spawning (group waves + deterministic fallback) and AI for all enemies.
- * dt_ms: scaled delta milliseconds (after hitstop scaling) matching previous usage in app.c
- */
-void rogue_enemy_system_update(float dt_ms);
+    /* Update spawning (group waves + deterministic fallback) and AI for all enemies.
+     * dt_ms: scaled delta milliseconds (after hitstop scaling) matching previous usage in app.c
+     */
+    void rogue_enemy_system_update(float dt_ms);
 
-/* For tests: allow explicit decay / tick if ever needed (currently just an alias). */
-static inline void rogue_enemy_system_tick(float dt_ms){ rogue_enemy_system_update(dt_ms); }
+    /* For tests: allow explicit decay / tick if ever needed (currently just an alias). */
+    static inline void rogue_enemy_system_tick(float dt_ms) { rogue_enemy_system_update(dt_ms); }
 
 #ifdef __cplusplus
 }

@@ -3,8 +3,8 @@
 #define ROGUE_PNG_WIC_H
 
 #ifdef _WIN32
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
 bool rogue_png_load_rgba(const char* path, unsigned char** out_pixels, int* w, int* h);
 #endif
 

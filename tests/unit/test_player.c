@@ -5,7 +5,7 @@ int main(void)
 {
     RoguePlayer p;
     rogue_player_init(&p);
-    int expected = 300 + p.vitality*2 + (p.level-1)*15;
+    int expected = 300 + p.vitality * 2 + (p.level - 1) * 15;
     if (p.health != expected)
     {
         printf("player health init fail\n");

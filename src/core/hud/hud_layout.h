@@ -10,8 +10,12 @@
 #ifndef ROGUE_HUD_LAYOUT_H
 #define ROGUE_HUD_LAYOUT_H
 
-typedef struct RogueHUDBarRect { int x,y,w,h; } RogueHUDBarRect;
-typedef struct RogueHUDLayout {
+typedef struct RogueHUDBarRect
+{
+    int x, y, w, h;
+} RogueHUDBarRect;
+typedef struct RogueHUDLayout
+{
     RogueHUDBarRect health;
     RogueHUDBarRect mana;
     RogueHUDBarRect xp;

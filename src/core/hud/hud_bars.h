@@ -11,7 +11,8 @@
 #ifndef ROGUE_HUD_BARS_H
 #define ROGUE_HUD_BARS_H
 
-typedef struct RogueHUDBarsState {
+typedef struct RogueHUDBarsState
+{
     float health_primary, health_secondary;
     float mana_primary, mana_secondary;
     float ap_primary, ap_secondary;
@@ -22,11 +23,8 @@ typedef struct RogueHUDBarsState {
 void rogue_hud_bars_reset(RogueHUDBarsState* st);
 
 /* Update bar state given current raw values. dt_ms used for smoothing progression. */
-void rogue_hud_bars_update(RogueHUDBarsState* st,
-    int hp, int hp_max,
-    int mp, int mp_max,
-    int ap, int ap_max,
-    int dt_ms);
+void rogue_hud_bars_update(RogueHUDBarsState* st, int hp, int hp_max, int mp, int mp_max, int ap,
+                           int ap_max, int dt_ms);
 
 /* Accessors clamp to [0,1]. */
 float rogue_hud_health_primary(const RogueHUDBarsState* st);

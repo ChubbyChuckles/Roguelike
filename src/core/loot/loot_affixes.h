@@ -5,9 +5,14 @@
 
 #define ROGUE_MAX_AFFIXES 256
 
-typedef enum RogueAffixType { ROGUE_AFFIX_PREFIX=0, ROGUE_AFFIX_SUFFIX=1 } RogueAffixType;
-typedef enum RogueAffixStat {
-    ROGUE_AFFIX_STAT_NONE=0,
+typedef enum RogueAffixType
+{
+    ROGUE_AFFIX_PREFIX = 0,
+    ROGUE_AFFIX_SUFFIX = 1
+} RogueAffixType;
+typedef enum RogueAffixStat
+{
+    ROGUE_AFFIX_STAT_NONE = 0,
     ROGUE_AFFIX_STAT_DAMAGE_FLAT,
     ROGUE_AFFIX_STAT_AGILITY_FLAT, /* legacy alias for dexterity until full rename */
     ROGUE_AFFIX_STAT_STRENGTH_FLAT,
@@ -33,7 +38,8 @@ typedef enum RogueAffixStat {
     ROGUE_AFFIX_STAT__COUNT
 } RogueAffixStat;
 
-typedef struct RogueAffixDef {
+typedef struct RogueAffixDef
+{
     char id[48];
     RogueAffixType type;
     RogueAffixStat stat;
@@ -57,12 +63,14 @@ int rogue_affix_roll_value_scaled(int affix_index, unsigned int* rng_state, floa
 
 /* Tooling Phase 21.3: Export affix range summary as JSON array of objects.
     Format: [{"id":"...","type":0|1,"stat":N,"min":X,"max":Y,"w":[w0,w1,w2,w3,w4]}]
-    Returns number of bytes written (excluding NUL) or -1 on error; always NUL-terminates if cap>0. */
+    Returns number of bytes written (excluding NUL) or -1 on error; always NUL-terminates if cap>0.
+ */
 int rogue_affixes_export_json(char* buf, int cap);
 
 /* Tooling Phase 21.3: Export affix range summary as JSON array of objects.
     Format: [{"id":"...","type":0|1,"stat":N,"min":X,"max":Y,"w":[w0,w1,w2,w3,w4]},...]
-    Returns number of bytes written (excluding NUL) or -1 on error; always NUL-terminates if cap>0. */
+    Returns number of bytes written (excluding NUL) or -1 on error; always NUL-terminates if cap>0.
+ */
 int rogue_affixes_export_json(char* buf, int cap);
 
 #endif

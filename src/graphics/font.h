@@ -1,12 +1,13 @@
 #ifndef ROGUE_GRAPHICS_FONT_H
 #define ROGUE_GRAPHICS_FONT_H
 
-#include <stddef.h>
 #include "graphics/renderer.h"
+#include <stddef.h>
 
 /* Very small built-in 5x7 ASCII subset font (generated). */
 
-typedef struct RogueBitmapFont {
+typedef struct RogueBitmapFont
+{
     int glyph_w;
     int glyph_h;
 } RogueBitmapFont;

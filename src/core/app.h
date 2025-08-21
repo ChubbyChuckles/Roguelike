@@ -24,8 +24,8 @@ SOFTWARE.
 #ifndef ROGUE_CORE_APP_H
 #define ROGUE_CORE_APP_H
 
-#include <stdbool.h>
 #include "graphics/renderer.h"
+#include <stdbool.h>
 
 typedef enum RogueWindowMode
 {
@@ -38,17 +38,17 @@ typedef enum RogueWindowMode
 
 typedef struct RogueAppConfig
 {
-    const char* window_title;            /* Title bar text */
-    int window_width;                    /* Initial physical window width */
-    int window_height;                   /* Initial physical window height */
-    int logical_width;                   /* Virtual/logical render width (e.g. 320) */
-    int logical_height;                  /* Virtual/logical render height (e.g. 180) */
-    int target_fps;                      /* 0 = uncapped busy loop */
-    int enable_vsync;                    /* 1 = request vsync, 0 = no vsync */
-    int allow_resize;                    /* 1 = user can resize window */
-    int integer_scale;                   /* 1 = force integer scaling for crisp pixels */
-    RogueWindowMode window_mode;         /* initial window mode */
-    RogueColor background_color;         /* Clear color */
+    const char* window_title;    /* Title bar text */
+    int window_width;            /* Initial physical window width */
+    int window_height;           /* Initial physical window height */
+    int logical_width;           /* Virtual/logical render width (e.g. 320) */
+    int logical_height;          /* Virtual/logical render height (e.g. 180) */
+    int target_fps;              /* 0 = uncapped busy loop */
+    int enable_vsync;            /* 1 = request vsync, 0 = no vsync */
+    int allow_resize;            /* 1 = user can resize window */
+    int integer_scale;           /* 1 = force integer scaling for crisp pixels */
+    RogueWindowMode window_mode; /* initial window mode */
+    RogueColor background_color; /* Clear color */
 } RogueAppConfig;
 
 bool rogue_app_init(const RogueAppConfig* cfg);

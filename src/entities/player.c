@@ -30,7 +30,7 @@ void rogue_player_init(RoguePlayer* p)
     p->base.vel.x = 0.0f;
     p->base.vel.y = 0.0f;
     p->team_id = 0; /* player faction */
-    p->health = 0; /* will be set after first recalc */
+    p->health = 0;  /* will be set after first recalc */
     p->max_health = 0;
     p->mana = 0;
     p->max_mana = 0;
@@ -49,24 +49,43 @@ void rogue_player_init(RoguePlayer* p)
     p->intelligence = 5;
     p->crit_chance = 0;
     p->crit_damage = 50; /* base 1.5x */
-    p->crit_rating = 0; p->haste_rating = 0; p->avoidance_rating = 0;
+    p->crit_rating = 0;
+    p->haste_rating = 0;
+    p->avoidance_rating = 0;
     /* Phase 2 baseline mitigation & penetration */
-    p->armor = 0; p->resist_physical=0; p->resist_fire=0; p->resist_frost=0; p->resist_arcane=0; p->resist_bleed=0; p->resist_poison=0; p->pen_flat=0; p->pen_percent=0;
+    p->armor = 0;
+    p->resist_physical = 0;
+    p->resist_fire = 0;
+    p->resist_frost = 0;
+    p->resist_arcane = 0;
+    p->resist_bleed = 0;
+    p->resist_poison = 0;
+    p->pen_flat = 0;
+    p->pen_percent = 0;
     /* Phase 3.1 new meters */
-    p->guard_meter_max = 100.0f; p->guard_meter = p->guard_meter_max;
-    p->poise_max = 60.0f; p->poise = p->poise_max;
-    p->encumbrance_capacity = 50.0f; p->encumbrance = 0.0f; p->encumbrance_tier=0;
+    p->guard_meter_max = 100.0f;
+    p->guard_meter = p->guard_meter_max;
+    p->poise_max = 60.0f;
+    p->poise = p->poise_max;
+    p->encumbrance_capacity = 50.0f;
+    p->encumbrance = 0.0f;
+    p->encumbrance_tier = 0;
     /* Guard / parry fields */
-    p->guarding = 0; p->guard_active_time_ms = 0.0f; p->perfect_guard_window_ms = 140.0f; /* first 140ms counts as perfect */
+    p->guarding = 0;
+    p->guard_active_time_ms = 0.0f;
+    p->perfect_guard_window_ms = 140.0f; /* first 140ms counts as perfect */
     p->poise_regen_delay_ms = 0.0f;
     /* Lock-on defaults */
-    p->lock_on_active = 0; p->lock_on_target_index=-1; p->lock_on_radius=6.0f; p->lock_on_switch_cooldown_ms=0.0f;
-     /* Weapon/stance defaults: start with no weapon equipped so unit tests that reconstruct raw
-         from attack defs don't get extra weapon scaling by default. Hit geometry will gracefully
-         fall back to a default in the sweep if no weapon is equipped. */
-     p->equipped_weapon_id = -1;   /* none by default; tests may set to 0 explicitly */
-    p->combat_stance = 0;        /* balanced */
-    p->weapon_infusion = 0;      /* none */
+    p->lock_on_active = 0;
+    p->lock_on_target_index = -1;
+    p->lock_on_radius = 6.0f;
+    p->lock_on_switch_cooldown_ms = 0.0f;
+    /* Weapon/stance defaults: start with no weapon equipped so unit tests that reconstruct raw
+        from attack defs don't get extra weapon scaling by default. Hit geometry will gracefully
+        fall back to a default in the sweep if no weapon is equipped. */
+    p->equipped_weapon_id = -1; /* none by default; tests may set to 0 explicitly */
+    p->combat_stance = 0;       /* balanced */
+    p->weapon_infusion = 0;     /* none */
     rogue_player_recalc_derived(p);
 }
 
@@ -74,25 +93,46 @@ void rogue_player_recalc_derived(RoguePlayer* p)
 {
     int old_max = p->max_health;
     /* New scaling: higher base + stronger vitality impact */
-    p->max_health = 300 + p->vitality * 2 + (p->level-1) * 15; /* base 300 */
+    p->max_health = 300 + p->vitality * 2 + (p->level - 1) * 15; /* base 300 */
     /* Mana scaling: modest base, intelligence focus */
     int old_mmax = p->max_mana;
-    p->max_mana = 50 + p->intelligence * 5 + (p->level-1) * 8;
+    p->max_mana = 50 + p->intelligence * 5 + (p->level - 1) * 8;
     /* AP scaling: flat base + mild dexterity contribution */
     int old_apmax = p->max_action_points;
-    p->max_action_points = 100 + p->dexterity * 2 + (p->level-1) * 3;
-    if(p->health == 0 || p->health == old_max) p->health = p->max_health; /* fill to max on init or level-based rescale */
-    if(p->health > p->max_health) p->health = p->max_health;
-    if(p->mana == 0 || p->mana == old_mmax) p->mana = p->max_mana;
-    if(p->mana > p->max_mana) p->mana = p->max_mana;
-    if(p->action_points == 0 || p->action_points == old_apmax) p->action_points = p->max_action_points;
-    if(p->action_points > p->max_action_points) p->action_points = p->max_action_points;
-    if(p->crit_chance < 0) p->crit_chance = 0; if(p->crit_chance > 100) p->crit_chance = 100;
-    if(p->crit_damage < 0) p->crit_damage = 0; if(p->crit_damage > 400) p->crit_damage = 400; /* cap 5x */
+    p->max_action_points = 100 + p->dexterity * 2 + (p->level - 1) * 3;
+    if (p->health == 0 || p->health == old_max)
+        p->health = p->max_health; /* fill to max on init or level-based rescale */
+    if (p->health > p->max_health)
+        p->health = p->max_health;
+    if (p->mana == 0 || p->mana == old_mmax)
+        p->mana = p->max_mana;
+    if (p->mana > p->max_mana)
+        p->mana = p->max_mana;
+    if (p->action_points == 0 || p->action_points == old_apmax)
+        p->action_points = p->max_action_points;
+    if (p->action_points > p->max_action_points)
+        p->action_points = p->max_action_points;
+    if (p->crit_chance < 0)
+        p->crit_chance = 0;
+    if (p->crit_chance > 100)
+        p->crit_chance = 100;
+    if (p->crit_damage < 0)
+        p->crit_damage = 0;
+    if (p->crit_damage > 400)
+        p->crit_damage = 400; /* cap 5x */
     /* Clamp new meters (recalc may later scale with stats/gear) */
-    if(p->guard_meter > p->guard_meter_max) p->guard_meter = p->guard_meter_max;
-    if(p->poise > p->poise_max) p->poise = p->poise_max;
+    if (p->guard_meter > p->guard_meter_max)
+        p->guard_meter = p->guard_meter_max;
+    if (p->poise > p->poise_max)
+        p->poise = p->poise_max;
     /* Recompute encumbrance tier (simple thresholds) */
-    float ratio = (p->encumbrance_capacity>0)? (p->encumbrance / p->encumbrance_capacity) : 0.0f;
-    if(ratio < 0.40f) p->encumbrance_tier = 0; else if(ratio < 0.70f) p->encumbrance_tier = 1; else if(ratio < 1.0f) p->encumbrance_tier = 2; else p->encumbrance_tier = 3;
+    float ratio = (p->encumbrance_capacity > 0) ? (p->encumbrance / p->encumbrance_capacity) : 0.0f;
+    if (ratio < 0.40f)
+        p->encumbrance_tier = 0;
+    else if (ratio < 0.70f)
+        p->encumbrance_tier = 1;
+    else if (ratio < 1.0f)
+        p->encumbrance_tier = 2;
+    else
+        p->encumbrance_tier = 3;
 }

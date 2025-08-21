@@ -6,14 +6,16 @@
 #include <SDL.h>
 #endif
 
-typedef struct RogueTexture {
+typedef struct RogueTexture
+{
 #ifdef ROGUE_HAVE_SDL
     SDL_Texture* handle;
 #endif
     int w, h;
 } RogueTexture;
 
-typedef struct RogueSprite {
+typedef struct RogueSprite
+{
     RogueTexture* tex;
     int sx, sy, sw, sh;
 } RogueSprite;
