@@ -20,6 +20,7 @@ typedef struct RogueSnapshotDesc {
     RogueSnapshotCaptureFn capture;
     void* user;
     size_t max_size; // advisory ceiling; 0 = unlimited
+    int (*restore)(void* user, const void* data, size_t size, uint32_t version); // optional restore hook (for rollback)
 } RogueSnapshotDesc;
 
 typedef struct RogueSystemSnapshot {
@@ -69,6 +70,8 @@ void rogue_snapshot_delta_free(RogueSnapshotDelta* d);
 void rogue_snapshot_get_stats(RogueSnapshotStats* out);
 void rogue_snapshot_dump(void* fptr);
 uint64_t rogue_snapshot_rehash(const RogueSystemSnapshot* snap);
+// Apply snapshot back to live system via registered restore hook (if provided)
+int rogue_snapshot_restore(int system_id, const RogueSystemSnapshot* snap);
 
 // ---- Dependency Ordering (5.2.4) ----
 // Declare that 'system_id' requires snapshot/delta of 'depends_on' applied first.

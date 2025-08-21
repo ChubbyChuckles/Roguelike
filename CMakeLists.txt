@@ -352,6 +352,8 @@ add_library(rogue_core
     src/core/integration/snapshot_manager.c
     # Phase 5.3 multi-system transaction framework
     src/core/integration/transaction_manager.c
+    # Phase 5.4 rollback & recovery framework
+    src/core/integration/rollback_manager.c
 )
 
 target_include_directories(rogue_core PUBLIC
@@ -421,6 +423,14 @@ add_executable(test_transaction_manager tests/unit/test_transaction_manager.c)
 target_link_libraries(test_transaction_manager PRIVATE rogue_core)
 if(TARGET SDL2::SDL2)
     target_link_libraries(test_transaction_manager PRIVATE SDL2::SDL2)
+endif()
+
+# Phase 5.4 rollback & recovery tests
+add_executable(test_rollback_manager tests/unit/test_rollback_manager.c)
+target_link_libraries(test_rollback_manager PRIVATE rogue_core)
+target_include_directories(test_rollback_manager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/core/integration)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_rollback_manager PRIVATE SDL2::SDL2)
 endif()
 
 add_executable(roguelike src/main.c)

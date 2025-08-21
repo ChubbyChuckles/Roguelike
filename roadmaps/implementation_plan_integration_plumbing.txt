@@ -465,6 +465,16 @@ PHASE 5. System State Synchronization & Transaction Management
     5.3.6 Create transaction recovery & rollback procedures (Done – abort path invokes per-participant on_abort + rollback counters)
     5.3.7 Add transaction performance monitoring & optimization (Done – stats for started/committed/aborted/prepare_fail/isolation/timeouts/rollback + peak active)
 
+    PHASE 5.4: Rollback & Recovery Mechanisms
+        5.4.1 Implement system state checkpointing for rollback points (X)
+        5.4.2 Create rollback triggers & automatic recovery initiation (X)
+        5.4.3 Add partial rollback capabilities (rollback specific systems only) (X)
+        5.4.4 Implement rollback validation (ensure consistent state after rollback) (X)
+        5.4.5 Create rollback debugging tools (rollback history, impact analysis) (X)
+        5.4.6 Add rollback performance optimization (incremental rollback) (X)
+        5.4.7 Implement rollback testing framework (validate rollback scenarios) (X)
+        CURRENT PROGRESS: Added restore hook to snapshot manager (foundation). Implemented rollback_manager with per-system ring buffer, capture, step-back, purge, and unit test covering basic rollback and negative bounds.
+
 5.4 Rollback & Recovery Mechanisms
     5.4.1 Implement system state checkpointing for rollback points (X)
     5.4.2 Create rollback triggers & automatic recovery initiation (X)

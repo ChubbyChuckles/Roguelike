@@ -44,6 +44,9 @@ void rogue_snapshot_get_stats(RogueSnapshotStats* out){ if(!out) return; *out=g_
 
 uint64_t rogue_snapshot_rehash(const RogueSystemSnapshot* snap){ if(!snap||!snap->data) return 0; return fnv1a64(snap->data,snap->size); }
 
+int rogue_snapshot_restore(int system_id, const RogueSystemSnapshot* snap){ if(!snap) return -1; int idx=index_of(system_id); if(idx<0) return -2; RogueSnapshotDesc* d=&g_descs[idx]; if(!d->restore) return -3; // no hook
+ return d->restore(d->user, snap->data, snap->size, snap->version); }
+
 void rogue_snapshot_dump(void* fptr){ FILE* f=fptr? (FILE*)fptr: stdout; fprintf(f,"[snapshots] systems=%u captures=%llu deltas=%llu bytes=%llu delta_bytes=%llu saved=%llu\n", g_stats.registered_systems,(unsigned long long)g_stats.total_captures,(unsigned long long)g_stats.total_delta_generated,(unsigned long long)g_stats.total_bytes_stored,(unsigned long long)g_stats.total_delta_bytes,(unsigned long long)g_stats.bytes_saved_via_delta); for(uint32_t i=0;i<g_reg_count;i++){ RogueSystemSnapshot* s=&g_snaps[i]; fprintf(f," sys id=%d name=%s ver=%u size=%zu hash=%016llx\n", s->system_id,s->name? s->name:"?", s->version, s->size,(unsigned long long)s->hash); } }
 
 // ---- Dependency management ----
