@@ -513,11 +513,11 @@ PHASE 5. System State Synchronization & Transaction Management
     5.7.7 Add thread performance monitoring & optimization (Done – stats snapshot: tasks_submitted/executed, worker_wakeups, pending, peak_queue; peak tracking and pending query added)
 
 5.8 Tests: Synchronization System Validation
-    5.8.1 Unit test: State snapshot consistency & versioning accuracy (X)
-    5.8.2 Unit test: Differential synchronization correctness & performance (X)
-    5.8.3 Unit test: Transaction atomicity & isolation under concurrent access (X)
-    5.8.4 Unit test: Rollback completeness & state consistency after rollback (X)
-    5.8.5 Integration test: Multi-system transaction scenarios (success & failure cases) (X)
+    5.8.1 Unit test: State snapshot consistency & versioning accuracy (Done – double-buffered snapshots; restore verifies content)
+    5.8.2 Unit test: Differential synchronization correctness & performance (Done – byte-range delta build/apply; hash and memcmp match)
+    5.8.3 Unit test: Transaction atomicity & isolation under concurrent access (Done – 2PC paths incl. prepare-failure and timeouts)
+    5.8.4 Unit test: Rollback completeness & state consistency after rollback (Done – ring with full/delta entries; cursor semantics validated)
+    5.8.5 Integration test: Multi-system transaction scenarios (success & failure cases) (Done)
     5.8.6 Performance test: Synchronization overhead measurement & optimization (X)
     5.8.7 Stress test: Deadlock detection & resolution under high contention (X)
 

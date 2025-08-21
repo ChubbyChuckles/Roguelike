@@ -400,6 +400,37 @@ if(ROGUE_ENABLE_SDL)
     target_link_libraries(test_crafting_phase8_ui PRIVATE SDL2::SDL2)
 endif()
 
+# Phase 5.8 synchronization validation tests
+add_executable(test_sync_phase5_8_snapshot tests/unit/test_sync_phase5_8_snapshot.c)
+target_link_libraries(test_sync_phase5_8_snapshot PRIVATE rogue_core)
+if(ROGUE_ENABLE_SDL)
+    target_link_libraries(test_sync_phase5_8_snapshot PRIVATE SDL2::SDL2)
+endif()
+
+add_executable(test_sync_phase5_8_delta tests/unit/test_sync_phase5_8_delta.c)
+target_link_libraries(test_sync_phase5_8_delta PRIVATE rogue_core)
+if(ROGUE_ENABLE_SDL)
+    target_link_libraries(test_sync_phase5_8_delta PRIVATE SDL2::SDL2)
+endif()
+
+add_executable(test_sync_phase5_8_tx tests/unit/test_sync_phase5_8_tx.c)
+target_link_libraries(test_sync_phase5_8_tx PRIVATE rogue_core)
+if(ROGUE_ENABLE_SDL)
+    target_link_libraries(test_sync_phase5_8_tx PRIVATE SDL2::SDL2)
+endif()
+
+add_executable(test_sync_phase5_8_rollback tests/unit/test_sync_phase5_8_rollback.c)
+target_link_libraries(test_sync_phase5_8_rollback PRIVATE rogue_core)
+if(ROGUE_ENABLE_SDL)
+    target_link_libraries(test_sync_phase5_8_rollback PRIVATE SDL2::SDL2)
+endif()
+
+add_executable(test_sync_phase5_8_integration tests/unit/test_sync_phase5_8_integration.c)
+target_link_libraries(test_sync_phase5_8_integration PRIVATE rogue_core)
+if(ROGUE_ENABLE_SDL)
+    target_link_libraries(test_sync_phase5_8_integration PRIVATE SDL2::SDL2)
+endif()
+
 add_executable(test_crafting_phase9_automation tests/unit/test_crafting_phase9_automation.c)
 target_link_libraries(test_crafting_phase9_automation PRIVATE rogue_core)
 if(TARGET SDL2::SDL2)

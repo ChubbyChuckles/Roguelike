@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 #ifndef ROGUE_MAX_SYSTEMS
-#define ROGUE_MAX_SYSTEMS 64
+#define ROGUE_MAX_SYSTEMS 512
 #endif
 
 #ifndef ROGUE_MAX_ROLLBACK_SNAPSHOTS
@@ -28,6 +28,7 @@ typedef struct RollbackRing {
     uint32_t capacity; // <= ROGUE_MAX_ROLLBACK_SNAPSHOTS
     uint32_t head; // next write
     uint32_t count; // number of valid entries
+    uint32_t cursor_offset; // how many steps already traversed from latest (0 = latest next)
     RollbackEntry entries[ROGUE_MAX_ROLLBACK_SNAPSHOTS];
 } RollbackRing;
 
@@ -49,7 +50,7 @@ int rogue_rollback_configure(int system_id, uint32_t capacity){
     if(capacity == 0 || capacity > ROGUE_MAX_ROLLBACK_SNAPSHOTS) return -2;
     RollbackRing* r = &g_rb[system_id];
     memset(r,0,sizeof(*r));
-    r->configured=1; r->capacity=capacity; r->head=0; r->count=0;
+    r->configured=1; r->capacity=capacity; r->head=0; r->count=0; r->cursor_offset=0;
     return 0;
 }
 
@@ -87,6 +88,7 @@ static int rb_capture_locked(int system_id){
     e->size=full_size; e->data=store_buf; e->version=snap->version; e->hash=snap->hash; e->type=type; e->base_version=base_version; e->delta_applied=delta_bytes;    
     r->head = (r->head + 1) % r->capacity;
     if(r->count < r->capacity) r->count++;
+    r->cursor_offset = 0; // reset traversal on new capture sequence
     g_rb_stats.checkpoints_captured++;
     return 0;
 }
@@ -103,15 +105,17 @@ int rogue_rollback_step_back(int system_id, uint32_t steps){
     if(system_id < 0 || system_id >= ROGUE_MAX_SYSTEMS) return -1;
     RollbackRing* r = &g_rb[system_id];
     if(!r->configured) return -2;
-    if(r->count==0){
-        if(steps==0) return 0; // treat as no-op if asking for latest with no history (graceful)
-        return -3; // no history to step back
-    }
-    if(steps >= r->count) return -4; // cannot step beyond history
-    // head points to next write; latest is head-1
-    int32_t idx = (int32_t)r->head - 1 - (int32_t)steps;
+    if(r->count==0){ return -3; }
+    if(steps==0) steps = 1; // interpret 0 as latest
+    // Compute target offset from latest considering prior traversals
+    uint32_t target_offset = r->cursor_offset + (steps - 1);
+    if(target_offset >= r->count) return -4; // cannot step beyond oldest
+    // head points to next write; latest is head-1; older entries increase offset
+    int32_t idx = (int32_t)r->head - 1 - (int32_t)target_offset;
     while(idx < 0) idx += r->capacity;
     RollbackEntry* e = &r->entries[idx]; if(!e->data) return -5;
+    // advance cursor so next step continues older
+    r->cursor_offset = target_offset + 1;
     // reconstruct if delta
     unsigned char* full_buf=NULL; if(e->type==RB_ENTRY_DELTA){ // find base FULL entry
         RollbackEntry* base=NULL; for(uint32_t k=0;k<r->count;k++){ int pos=(int)r->head-1-(int)k; while(pos<0) pos+=(int)r->capacity; RollbackEntry* cand=&r->entries[pos]; if(cand->type==RB_ENTRY_FULL && cand->version==e->base_version){ base=cand; break; } }

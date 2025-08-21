@@ -9,6 +9,15 @@
 				"$msCompile"
 			],
 			"group": "build"
+		},
+		{
+			"label": "Build sync tests (MSBuild /m)",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --target test_sync_phase5_8_snapshot test_sync_phase5_8_delta test_sync_phase5_8_tx test_sync_phase5_8_rollback test_sync_phase5_8_integration -- /m:8",
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": "build"
 		}
 	]
 }
