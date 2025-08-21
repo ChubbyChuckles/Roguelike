@@ -22,3 +22,5 @@ integration: Phase 4.8 Shared Data Structure Validation Suite
 	* 4.8.7 Multi-thread mutex contention stress (profiling acquisitions)
 - Roadmap 4.8 items marked Done referencing existing dedicated tests (memory pool, cache system, ref counting, performance) to avoid duplication
 - README updated with Phase 4.8 summary
+
+integration(phase5): extend snapshot manager (5.2.4-5.2.7) dependency ordering, validation, replay log, stats
