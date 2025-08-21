@@ -5,6 +5,13 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_integration_manager.c)
     add_test(NAME test_integration_manager COMMAND test_integration_manager)
 endif()
 
+# Integration Plumbing Phase 4.1 Unified Entity ID System Test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_entity_id.c AND NOT TARGET test_entity_id)
+    add_executable(test_entity_id unit/test_entity_id.c)
+    target_link_libraries(test_entity_id PRIVATE rogue_core)
+    add_test(NAME test_entity_id COMMAND test_entity_id)
+endif()
+
 # Integration Plumbing Phase 0.1 System Taxonomy Test
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_system_taxonomy.c)
     add_executable(test_system_taxonomy unit/test_system_taxonomy.c)
@@ -123,6 +130,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_phase3_10_persistence_integration_
     target_link_libraries(test_phase3_10_persistence_integration_bridge PRIVATE rogue_core)
     add_test(NAME test_phase3_10_persistence_integration_bridge COMMAND test_phase3_10_persistence_integration_bridge)
 endif()
+
 
 # Integration Plumbing Phase 3.3 Simple Test (for debugging)
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_phase3_3_simple.c)

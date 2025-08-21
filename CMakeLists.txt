@@ -337,6 +337,8 @@ add_library(rogue_core
     src/core/crafting/crafting_automation.c
     src/core/crafting/crafting_economy.c
         src/core/crafting/crafting_analytics.c
+    # Phase 4.1 unified entity id system
+    src/core/integration/entity_id.c
 )
 
 target_include_directories(rogue_core PUBLIC
