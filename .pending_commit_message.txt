@@ -5,19 +5,20 @@ Details:
 feat(integration): implement Phase 4.2 Shared Memory Pool System (fixed-block, buddy, slab allocators + diagnostics)
 
 Details:
-- Added memory_pool.h/.c implementing multi-strategy allocator stack:
 	* Five fixed block pools (32/64/128/256/512B) with per-page bitmap (up to 32 slots/page)
 	* Buddy allocator (power-of-two blocks 32B..arena_size, default 1MB arena auto-rounded) for mid/large & non-class-size allocations
 	* Slab allocator (<=64 classes, 8–32 objs/page, ctor/dtor hooks) for high-churn homogeneous objects
-- Unified allocation entrypoints (rogue_mp_alloc / rogue_mp_alloc_category / rogue_mp_free) embed lightweight headers (origin, category, requested size)
-- Stats API: capacity/in-use per category, buddy free/total, fragmentation heuristic, slab live/capacity, live alloc count, bytes, peak, failures
-- Recommendation API with simple heuristics (expand tiny, reduce XL, rebalance buddy, add slab page, enable thread safety)
-- Optional thread safety via SDL mutex (enabled at init flag)
-- Shrink & defragment hooks (slab page reclamation; buddy merge scaffold)
-- Validation routine cross-checks fixed pool bitmaps vs in-use accounting
-- Human-readable dump for debugging; placeholder leak enumeration hook
-- Unit test test_memory_pool.c covering: fixed pool churn (300 tiny alloc/free), large buddy alloc/free, slab class register + alloc/free + shrink, stats & recommendations access, invariants validation, dump smoke test
-- Roadmap 4.2.1–4.2.7 marked Done with summary; README updated with Phase 4.2 section
-- Builds with MSVC warnings-as-errors (replaced strncpy, removed unused vars, guarded 64-bit pow2 logic)
-- Establishes deterministic shared allocator substrate for upcoming 4.3 cache mgmt, 4.4 ref counting, 4.5 copy-on-write
+
+feat(integration): implement Phase 4.3 Cache Management & Invalidation (multi-level cache, promotion, preload, compression, stats, tests)
+
+Details:
+- Added cache_system.h/.c providing 3-level (L1/L2/L3) open-addressing hash caches (linear probing, power-of-two tables) with size-based placement and optional hint level.
+- Implemented APIs: rogue_cache_init/shutdown, put, get (auto-promotion to L1 on hit from colder levels), invalidate(single/all), preload (batch loader callback with ownership transfer), iterate (early-stop capable), promote (manual level bump), stats snapshot, dump, compression threshold control.
+- RLE compression (byte,run) automatically applied for entries >= threshold (default 1024) when compressed size saves at least raw/8; tracks compressed entry count & bytes saved.
+- Simple eviction policy when logical capacity (50% load factor target) exceeded: linear scan removes first live entry (placeholder for future smarter policy) with eviction metrics.
+- Stats track per-level hits, misses, evictions, invalidations, promotions, preload operations plus compression metrics.
+- Unit test test_cache_system.c validates: insertion/update, retrieval & promotion (L2/L3 → L1), miss path accounting, large repetitive buffer compression, preload (5 keys) ingestion, iteration traversal, targeted invalidation & global flush, stats consistency.
+- Fixed MSVC warnings-as-errors (initialized csize, formatted hash pow2 macro) ensuring clean build.
+- Roadmap 4.3.1–4.3.7 marked Done with summary; README updated with Phase 4.3 section.
+- Prepares groundwork for upcoming 4.4 reference counting & 4.5 copy-on-write leveraging shared cache + memory pool foundations.
 
