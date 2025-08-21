@@ -457,13 +457,13 @@ PHASE 5. System State Synchronization & Transaction Management
     5.2.7 Implement delta performance monitoring & optimization (X)
 
 5.3 Multi-System Transaction Framework
-    5.3.1 Design distributed transaction protocol for cross-system operations (X)
-    5.3.2 Implement two-phase commit protocol for atomicity guarantees (X)
-    5.3.3 Create transaction isolation levels (read committed, repeatable read) (X)
-    5.3.4 Add transaction timeout & abort mechanisms (X)
-    5.3.5 Implement transaction logging & audit trail (X)
-    5.3.6 Create transaction recovery & rollback procedures (X)
-    5.3.7 Add transaction performance monitoring & optimization (X)
+    5.3.1 Design distributed transaction protocol for cross-system operations (Done – central manager with participant registry, bitmask membership)
+    5.3.2 Implement two-phase commit protocol for atomicity guarantees (Done – prepare callbacks gather versions then commit callbacks; abort on failure)
+    5.3.3 Create transaction isolation levels (read committed, repeatable read) (Done – isolation enum with repeatable-read version snapshot validation)
+    5.3.4 Add transaction timeout & abort mechanisms (Done – per-tx timeout_ms + logical clock source triggers TIMED_OUT state)
+    5.3.5 Implement transaction logging & audit trail (Done – optional ring buffer capturing state transitions with timestamps)
+    5.3.6 Create transaction recovery & rollback procedures (Done – abort path invokes per-participant on_abort + rollback counters)
+    5.3.7 Add transaction performance monitoring & optimization (Done – stats for started/committed/aborted/prepare_fail/isolation/timeouts/rollback + peak active)
 
 5.4 Rollback & Recovery Mechanisms
     5.4.1 Implement system state checkpointing for rollback points (X)

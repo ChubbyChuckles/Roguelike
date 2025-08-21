@@ -24,3 +24,5 @@ integration: Phase 4.8 Shared Data Structure Validation Suite
 - README updated with Phase 4.8 summary
 
 integration(phase5): extend snapshot manager (5.2.4-5.2.7) dependency ordering, validation, replay log, stats
+
+integration(phase5): implement multi-system transaction framework (5.3) with 2PC, isolation levels, timeouts, logging, rollback, stats, tests

@@ -350,6 +350,8 @@ add_library(rogue_core
     src/core/integration/resource_lock.c
     # Phase 5.1 snapshot & 5.2 differential sync system
     src/core/integration/snapshot_manager.c
+    # Phase 5.3 multi-system transaction framework
+    src/core/integration/transaction_manager.c
 )
 
 target_include_directories(rogue_core PUBLIC
@@ -412,6 +414,13 @@ add_executable(test_snapshot_manager tests/unit/test_snapshot_manager.c)
 target_link_libraries(test_snapshot_manager PRIVATE rogue_core)
 if(TARGET SDL2::SDL2)
     target_link_libraries(test_snapshot_manager PRIVATE SDL2::SDL2)
+endif()
+
+# Phase 5.3 transaction framework tests
+add_executable(test_transaction_manager tests/unit/test_transaction_manager.c)
+target_link_libraries(test_transaction_manager PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_transaction_manager PRIVATE SDL2::SDL2)
 endif()
 
 add_executable(roguelike src/main.c)
