@@ -470,10 +470,10 @@ PHASE 5. System State Synchronization & Transaction Management
     5.4.2 Create rollback triggers & automatic recovery initiation (Done – participant→system mapping + auto rollback API for tx abort)
         5.4.3 Add partial rollback capabilities (rollback specific systems only) (Done – rogue_rollback_partial API)
     5.4.4 Implement rollback validation (ensure consistent state after rollback) (Done – hash comparison after restore increments validation_failures on mismatch)
-    5.4.5 Create rollback debugging tools (rollback history, impact analysis) (Partial – dump enumerates versions; impact stats (systems_rewound/bytes_rewound) gathered; detailed per-op diff reporting pending)
+    5.4.5 Create rollback debugging tools (rollback history, impact analysis) (Done – dump + event log ring with per-operation impact: system, from_version, to_version, bytes, delta flag, auto trigger flag; cumulative stats systems/bytes rewound)
         5.4.6 Add rollback performance optimization (incremental rollback) (Done – delta storage when smaller than full snapshot)
         5.4.7 Implement rollback testing framework (validate rollback scenarios) (Done – extended unit test: multi-system, step-back, partial rollback, negative bounds)
-            CURRENT PROGRESS: Ring with full+delta snapshots, partial rollback, multi-capture, validation hash checks, auto rollback API, impact stats (systems/bytes rewound). Remaining: richer per-operation impact reporting & actual invocation from transaction abort path.
+            CURRENT PROGRESS: Ring with full+delta snapshots, partial rollback, multi-capture, validation hash checks, auto rollback API, per-op event log impact reporting & cumulative stats. Remaining: invoke auto rollback automatically inside transaction abort helper (currently explicit API) & potential future stress/perf harness.
 
 5.4 Rollback & Recovery Mechanisms
     5.4.1 Implement system state checkpointing for rollback points (X)

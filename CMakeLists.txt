@@ -433,6 +433,13 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_rollback_manager PRIVATE SDL2::SDL2)
 endif()
 
+add_executable(test_rollback_events tests/unit/test_rollback_events.c)
+target_link_libraries(test_rollback_events PRIVATE rogue_core)
+target_include_directories(test_rollback_events PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/core/integration)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_rollback_events PRIVATE SDL2::SDL2)
+endif()
+
 add_executable(roguelike src/main.c)
 target_link_libraries(roguelike PRIVATE rogue_core)
 

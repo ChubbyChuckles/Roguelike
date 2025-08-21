@@ -24,6 +24,21 @@ typedef struct RogueRollbackStats {
 	uint64_t bytes_rewound;   // cumulative bytes of state restored
 } RogueRollbackStats;
 
+// Per-operation rollback impact record
+typedef struct RogueRollbackEvent {
+	uint64_t timestamp;        // monotonic event index
+	int system_id;             // system affected
+	uint32_t from_version;     // version prior to rollback (best-effort; 0 if unknown)
+	uint32_t to_version;       // target version restored
+	size_t bytes_rewound;      // size of restored snapshot
+	uint8_t was_delta;         // 1 if restored entry was stored as delta
+	uint8_t auto_triggered;    // 1 if initiated via auto rollback (transaction abort)
+} RogueRollbackEvent;
+
+// Retrieve pointer to internal immutable array of rollback events (chronological oldest->newest).
+// Returns 0 on success; out_events set to NULL if no events; count set to number of valid entries.
+int rogue_rollback_events_get(const RogueRollbackEvent** out_events, size_t* count);
+
 int rogue_rollback_configure(int system_id, uint32_t capacity); // enable ring for system
 int rogue_rollback_capture(int system_id); // capture via snapshot manager + enqueue
 int rogue_rollback_capture_multi(const int* system_ids, size_t count);
