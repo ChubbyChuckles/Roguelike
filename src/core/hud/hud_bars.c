@@ -1,5 +1,5 @@
 /* hud_bars.c - UI Phase 6.2 layered HUD bars implementation */
-#include "core/hud_bars.h"
+#include "hud_bars.h"
 
 static float clamp01(float v){ if(v<0) return 0.0f; if(v>1) return 1.0f; return v; }
 

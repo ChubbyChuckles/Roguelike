@@ -55,6 +55,17 @@ $TargetDirectory = if ([System.IO.Path]::IsPathRooted($TargetDirectory)) { $Targ
 
 # Convert file paths to absolute paths
 $AbsoluteFilePaths = @()
+
+# Support comma-separated single argument scenario
+if ($FilePath.Count -eq 1 -and $FilePath[0] -match ',') {
+    $expanded = @()
+    foreach ($part in ($FilePath[0] -split ',')) {
+        $trimmed = $part.Trim().Trim('"')
+        if ($trimmed) { $expanded += $trimmed }
+    }
+    if ($expanded.Count -gt 1) { $FilePath = $expanded }
+}
+
 foreach ($file in $FilePath) {
     $absPath = if ([System.IO.Path]::IsPathRooted($file)) { $file } else { Join-Path $ProjectRoot $file }
     $AbsoluteFilePaths += $absPath
@@ -435,24 +446,28 @@ $filesToUpdate += $cmakeFiles
 
 Write-Host "Found $($filesToUpdate.Count) files to check for updates."
 
-# Update includes in all relevant files
-Write-Host "`nUpdating include statements..." -ForegroundColor Yellow
+# (PRE-MOVE PASS DISABLED)
+# Originally we attempted to rewrite includes before moving files which produced
+# incorrect absolute paths like "src/core/<subdir>/<header>.h". We now defer all
+# include rewriting until AFTER the move when we can reason about the final
+# locations. Keeping this block for reference but skipping execution.
+Write-Host "\nSkipping pre-move include update (handled post-move now)." -ForegroundColor Yellow
+
+<#
 $updatedCount = 0
 $progressCount = 0
-
 foreach ($file in $filesToUpdate) {
     $progressCount++
     if ($progressCount % 50 -eq 0) {
         Write-Host "  Progress: $progressCount/$($filesToUpdate.Count)" -ForegroundColor Gray
     }
-    
     if (Update-IncludesInFile -FilePath $file.FullName -ReplacementMap $replacementMap) {
         $updatedCount++
         Write-Host "  Updated: $($file.Name)" -ForegroundColor Green
     }
 }
-
 Write-Host "Updated includes in $updatedCount files." -ForegroundColor Green
+#>
 
 # Move the files
 Write-Host "`nMoving files..." -ForegroundColor Yellow
@@ -475,7 +490,105 @@ try {
     
     Write-Host "`nFiles moved successfully!" -ForegroundColor Green
     
-    # Update includes in moved files themselves
+    # Post-move include normalization utilities
+    function Invoke-PostMoveIncludeFix {
+        param(
+            [Parameter(Mandatory)] [array]$FileInfoList,
+            [Parameter(Mandatory)] [System.IO.FileInfo[]] $AllFiles,
+            [Parameter(Mandatory)] [string] $ProjectRoot
+        )
+
+    # Core root retained for potential future logic (currently unused)
+    # $coreRoot = (Join-Path $ProjectRoot 'src/core')
+    # (unused) $coreRootNorm = $coreRoot.Replace('\\','/').ToLowerInvariant()
+
+        # Build rewrite table entries
+        $entries = @()
+        foreach ($fi in $FileInfoList) {
+            if ($fi.HasHeaderFile) {
+                $oldHeaderRelCore = $fi.OldIncludePath # e.g. src/core/foo.h
+                $oldHeaderName = [IO.Path]::GetFileName($fi.HeaderFile)
+                $targetHeaderPath = $fi.TargetHFile
+                $coreRelativeNew = ($targetHeaderPath.Replace($ProjectRoot,'').TrimStart(@('\','/'))) -replace '^src/core/',''
+                $newDir = Split-Path $targetHeaderPath -Parent
+                $entries += [pscustomobject]@{
+                    OldHeaderName     = $oldHeaderName
+                    OldAbsolute       = $oldHeaderRelCore
+                    OldCorePrefixed   = ($oldHeaderRelCore -replace '^src/','') # core/foo.h
+                    NewCoreRelative   = $coreRelativeNew # hud/foo.h or foo.h if at root
+                    NewDirectory      = $newDir
+                    TargetHeaderPath  = $targetHeaderPath
+                }
+            }
+        }
+
+        if (-not $entries) { return }
+
+        Write-Host "`nPost-move include normalization..." -ForegroundColor Yellow
+        $processed = 0
+        foreach ($file in $AllFiles) {
+            $path = $file.FullName
+            $content = Get-Content -Path $path -Raw -ErrorAction SilentlyContinue
+            if (-not $content) { continue }
+            $original = $content
+            $dir = Split-Path $path -Parent
+            # (unused) $dirNorm = $dir.Replace('\\','/')
+            # Normalize any Windows style backslash include paths to forward slashes first so pattern matching works
+            # Only touch within quotes after #include to reduce risk of altering string literals unrelated to includes
+            $content = [regex]::Replace($content, '#include\s+"([^"]+)"', {
+                param($m)
+                $inner = $m.Groups[1].Value
+                $norm = $inner -replace '\\','/'
+                if($inner -ne $norm){ return '#include "' + $norm + '"' } else { return $m.Value }
+            })
+            foreach ($e in $entries) {
+                # Patterns that might exist before / after move
+                $patterns = @(
+                    "src/core/$($e.OldHeaderName)",
+                    "core/$($e.OldHeaderName)",
+                    $e.OldHeaderName,
+                    "src/core/$($e.NewCoreRelative)",
+                    "core/$($e.NewCoreRelative)",
+                    $e.NewCoreRelative,
+                    # Sometimes we end up with duplicated directory segments, catch those too
+                    "src/core/src/core/$($e.NewCoreRelative)",
+                    "core/core/$($e.NewCoreRelative)",
+                    # Backslash variants (after normalization they should already be forward but keep for safety)
+                    "src\\core\\$($e.OldHeaderName)",
+                    "src\\core\\$($e.NewCoreRelative)"
+                ) | Where-Object { $_ -and $_.Length -gt 0 } | Select-Object -Unique
+
+                foreach ($p in $patterns) {
+                    # Build regex for an exact include match: #include "<p>"
+                    # Escape backslashes for regex if they slipped through
+                    $safeP = $p -replace '\\','/'
+                    $regex = '#include\s+"' + [regex]::Escape($safeP) + '"'
+                    if ($content -match $regex) {
+                        # Decide replacement: inside same directory -> filename only, else use new core-relative path
+                        if ($dir -eq $e.NewDirectory) {
+                            $replacementInclude = '#include "' + $e.OldHeaderName + '"'
+                        }
+                        else {
+                            $nr = $e.NewCoreRelative
+                            if($nr -notmatch '^core\/'){ $nr = 'core/' + $nr }
+                            $replacementInclude = '#include "' + $nr + '"'
+                        }
+                        $content = [regex]::Replace($content, $regex, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $replacementInclude })
+                    }
+                }
+            }
+            # Final generic cleanup: collapse any remaining src/core/ or backslash variants to core/
+            $content = $content -replace '#include\s+"src/core/([^"\n]+)"', '#include "core/$1"'
+            $content = $content -replace '#include\s+"src\\core\\([^"\n]+)"', '#include "core/$1"'
+            if ($content -ne $original) {
+                Set-Content -Path $path -Value $content -NoNewline
+                $processed++
+            }
+        }
+        Write-Host "  Normalized includes in $processed files." -ForegroundColor Green
+    }
+
+    # Update includes in moved files themselves (self include -> header only; normalize others)
     Write-Host "`nUpdating includes in moved files..." -ForegroundColor Yellow
     foreach ($fileInfo in $fileInfoList) {
         # Update the moved C file's includes
@@ -644,6 +757,14 @@ try {
 catch {
     Write-Error "Failed to move files: $_"
     exit 1
+}
+
+# Global normalization of include paths now that files are in final locations
+try {
+    Invoke-PostMoveIncludeFix -FileInfoList $fileInfoList -AllFiles $filesToUpdate -ProjectRoot $ProjectRoot
+}
+catch {
+    Write-Warning "Post-move include normalization failed: $_"
 }
 
 # Update CMakeLists.txt to reflect new file paths

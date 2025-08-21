@@ -1,6 +1,6 @@
-#include "core/persistence_autosave.h"
-#include "core/app_state.h"
-#include "core/persistence.h"
+#include "persistence_autosave.h"
+#include "../app_state.h"
+#include "../persistence.h"
 
 static double s_stats_save_timer = 0.0;
 

@@ -46,9 +46,9 @@ SOFTWARE.
 #include "input_events.h"
 #include "player/player_render.h"
 #include "core/enemy/enemy_render.h"
-#include "core/hud.h"
+#include "core/hud/hud.h"
 #include "player/player_progress.h"
-#include "core/persistence_autosave.h"
+#include "core/src\core\persistence\persistence_autosave.h"
 #include "game/damage_numbers.h" /* will provide render/update */
 #include "core/world_renderer.h"
 #include "core/animation_system.h"

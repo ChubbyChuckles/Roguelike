@@ -1,5 +1,5 @@
 /* hud_layout.c - UI Phase 6.1 HUD layout spec loader implementation */
-#include "core/hud_layout.h"
+#include "hud_layout.h"
 #include "util/kv_parser.h"
 #include <string.h>
 #include <stdio.h>

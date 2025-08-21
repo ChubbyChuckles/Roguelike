@@ -1,7 +1,7 @@
 #define SDL_MAIN_HANDLED 1
 #include <stdio.h>
 #include <string.h>
-#include "core/hud_layout.h"
+#include "core/hud/hud_layout.h"
 
 /* UI Phase 6.1 test: load HUD layout file, verify parsed coordinates propagate */
 int main(){

@@ -1,7 +1,7 @@
 #define SDL_MAIN_HANDLED 1
 #include <stdio.h>
 #include "../../src/core/buffs.h"
-#include "core/hud_buff_belt.h"
+#include "core/hud/hud_buff_belt.h"
 #include "core/app_state.h"
 
 /* Minimal g_app stub fields used */

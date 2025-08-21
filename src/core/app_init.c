@@ -29,7 +29,7 @@ SOFTWARE.
 #include "core/metrics.h"
 #include "core/animation_system.h"
 #include "core/persistence.h"
-#include "core/persistence_autosave.h"
+#include "persistence\persistence_autosave.h"
 #include "core/save_manager.h" /* Phase1 scaffold present but not auto-initialized yet */
 #include "core/asset_config.h"
 #include "core/skills.h"

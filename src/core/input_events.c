@@ -14,7 +14,7 @@
 #include "core/vendor/economy.h"
 #include "core/inventory.h"
 #include "core/equipment/equipment.h"
-#include "core/hud_overlays.h" /* alerts & metrics toggles */
+#include "core/hud/hud_overlays.h" /* alerts & metrics toggles */
 #include "game/hit_system.h" /* debug toggle */
 #include "game/hit_pixel_mask.h" // pixel hit detection toggle
 #include "ui/core/ui_context.h" /* skill graph toggle */

@@ -1,6 +1,6 @@
-#include "core/hud_overlays.h"
+#include "hud_overlays.h"
 #include "graphics/font.h"
-#include "core/metrics.h"
+#include "../metrics.h"
 #include <string.h>
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>

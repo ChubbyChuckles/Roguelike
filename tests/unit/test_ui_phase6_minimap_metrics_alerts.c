@@ -1,7 +1,7 @@
 #define SDL_MAIN_HANDLED 1
 #include <stdio.h>
 #include "core/app_state.h"
-#include "core/hud_overlays.h"
+#include "core/hud/hud_overlays.h"
 #include "core/minimap.h"
 #include "core/buffs.h"
 

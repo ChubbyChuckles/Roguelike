@@ -83,11 +83,11 @@ add_library(rogue_core
     src/core/input_events.c
     src/core/player/player_render.c
     src/core/enemy/enemy_render.c
-    src/core/hud.c
-    src/core/hud_layout.c
-    src/core/hud_bars.c
-    src/core/hud_buff_belt.c
-    src/core/hud_overlays.c
+    src/core/hud/hud.c
+    src/core/hud/hud_layout.c
+    src/core/hud/hud_bars.c
+    src/core/hud/hud_buff_belt.c
+    src/core/hud/hud_overlays.c
     src/ui/core/ui_theme.c
     src/ui/core/ui_test_harness.c
     src/core/player/player_progress.c
@@ -107,7 +107,7 @@ add_library(rogue_core
     src/core/persistence_io.c
     src/core/persistence_world.c
     src/core/persistence_player.c
-    src/core/persistence_autosave.c
+    src/core/persistence/persistence_autosave.c
     src/core/save_manager.c
     # skills module split
     src/core/skills_registry.c
