@@ -8,6 +8,7 @@
 // Simple fake system state structure
 typedef struct FakeState { int value; int version_applied; } FakeState;
 static FakeState g_state;
+static FakeState g_state2;
 
 static int capture_cb(void* user, void** out_data, size_t* out_size, uint32_t* out_version){
     FakeState* st = (FakeState*)user;
@@ -31,13 +32,11 @@ int main(){
     setvbuf(stdout,NULL,_IONBF,0);
     memset(&g_state,0,sizeof(g_state));
     RogueSnapshotDesc desc = {0};
-    desc.system_id = 1;
-    desc.name = "fake";
-    desc.capture = capture_cb;
-    desc.restore = restore_cb;
-    desc.user = &g_state;
-    assert(rogue_snapshot_register(&desc) == 0);
-    assert(rogue_rollback_configure(1,4)==0);
+    desc.system_id = 1; desc.name = "fake"; desc.capture = capture_cb; desc.restore = restore_cb; desc.user = &g_state; assert(rogue_snapshot_register(&desc) == 0);
+    RogueSnapshotDesc desc2 = {0};
+    desc2.system_id = 2; desc2.name = "fake2"; desc2.capture = capture_cb; desc2.restore = restore_cb; desc2.user = &g_state2; assert(rogue_snapshot_register(&desc2) == 0);
+    assert(rogue_rollback_configure(1,6)==0);
+    assert(rogue_rollback_configure(2,6)==0);
 
     // capture baseline
     g_state.value = 10; g_state.version_applied = 1; assert(rogue_rollback_capture(1)==0);
@@ -59,8 +58,14 @@ int main(){
 
     // purge
     assert(rogue_rollback_purge(1)==0);
-    assert(rogue_rollback_step_back(1,0)<0); // no history
+    assert(rogue_rollback_step_back(1,0)==0); // now treated as no-op when no history
 
-    printf("test_rollback_manager OK\n");
+    // second system small diffs to exercise delta capture (value increments by 1 -> likely small delta vs full)
+    g_state2.value=5; g_state2.version_applied=1; assert(rogue_rollback_capture(2)==0);
+    g_state2.value=6; g_state2.version_applied=2; assert(rogue_rollback_capture(2)==0);
+    g_state2.value=7; g_state2.version_applied=3; assert(rogue_rollback_capture(2)==0);
+    // partial rollback: system2 back 2 steps, system1 no change
+    int ids[2]={1,2}; uint32_t steps[2]={0,2}; assert(rogue_rollback_partial(ids,steps,2)==0); assert(g_state2.value==5 && g_state2.version_applied==1);
+    fprintf(stderr, "test_rollback_manager OK\n");
     return 0;
 }

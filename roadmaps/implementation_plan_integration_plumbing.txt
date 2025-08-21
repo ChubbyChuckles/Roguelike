@@ -466,14 +466,14 @@ PHASE 5. System State Synchronization & Transaction Management
     5.3.7 Add transaction performance monitoring & optimization (Done – stats for started/committed/aborted/prepare_fail/isolation/timeouts/rollback + peak active)
 
     PHASE 5.4: Rollback & Recovery Mechanisms
-        5.4.1 Implement system state checkpointing for rollback points (X)
-        5.4.2 Create rollback triggers & automatic recovery initiation (X)
-        5.4.3 Add partial rollback capabilities (rollback specific systems only) (X)
-        5.4.4 Implement rollback validation (ensure consistent state after rollback) (X)
-        5.4.5 Create rollback debugging tools (rollback history, impact analysis) (X)
-        5.4.6 Add rollback performance optimization (incremental rollback) (X)
-        5.4.7 Implement rollback testing framework (validate rollback scenarios) (X)
-        CURRENT PROGRESS: Added restore hook to snapshot manager (foundation). Implemented rollback_manager with per-system ring buffer, capture, step-back, purge, and unit test covering basic rollback and negative bounds.
+        5.4.1 Implement system state checkpointing for rollback points (Done – rollback_manager ring with full & delta entries)
+    5.4.2 Create rollback triggers & automatic recovery initiation (Done – participant→system mapping + auto rollback API for tx abort)
+        5.4.3 Add partial rollback capabilities (rollback specific systems only) (Done – rogue_rollback_partial API)
+    5.4.4 Implement rollback validation (ensure consistent state after rollback) (Done – hash comparison after restore increments validation_failures on mismatch)
+    5.4.5 Create rollback debugging tools (rollback history, impact analysis) (Partial – dump enumerates versions; impact stats (systems_rewound/bytes_rewound) gathered; detailed per-op diff reporting pending)
+        5.4.6 Add rollback performance optimization (incremental rollback) (Done – delta storage when smaller than full snapshot)
+        5.4.7 Implement rollback testing framework (validate rollback scenarios) (Done – extended unit test: multi-system, step-back, partial rollback, negative bounds)
+            CURRENT PROGRESS: Ring with full+delta snapshots, partial rollback, multi-capture, validation hash checks, auto rollback API, impact stats (systems/bytes rewound). Remaining: richer per-operation impact reporting & actual invocation from transaction abort path.
 
 5.4 Rollback & Recovery Mechanisms
     5.4.1 Implement system state checkpointing for rollback points (X)
