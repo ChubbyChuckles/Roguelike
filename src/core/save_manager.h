@@ -149,8 +149,12 @@ int rogue_save_last_recovery_used(void); /* 1 if last recovery load fell back to
 int rogue_save_set_incremental(int enabled); /* enable incremental mode */
 int rogue_save_mark_component_dirty(int component_id); /* mark a component dirty */
 int rogue_save_mark_all_dirty(void); /* mark all registered components dirty */
+int rogue_save_component_is_dirty(int component_id); /* returns 1 if dirty, 0 if clean, -1 invalid */
+int rogue_save_component_is_dirty(int component_id); /* returns 1 if dirty, 0 if clean, -1 invalid */
 /* Phase 17.5 metrics */
 void rogue_save_inventory_diff_metrics(unsigned* reused, unsigned* rewritten);
+void rogue_save_last_section_reuse(unsigned* reused, unsigned* written); /* incremental section reuse metrics (Phase 3.10) */
+void rogue_save_last_section_reuse(unsigned* reused, unsigned* written); /* incremental section reuse metrics (Phase 3.10) */
 
 /* Optional signature abstraction (v9). Register a provider to append & verify a detached signature over the hashed region (identical bytes covered by descriptor CRC & SHA256). */
 typedef struct RogueSaveSignatureProvider {

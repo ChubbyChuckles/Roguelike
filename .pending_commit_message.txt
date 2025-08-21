@@ -1,3 +1,26 @@
+feat(integration Phase 3.9): implement UI ↔ systems bridge with real-time HUD bindings, inventory/combat/skill/vendor/crafting/world map event capture
+
+Details:
+ - Added ui_integration_bridge (header+impl) with ring buffers (combat, inventory, skills, vendor, crafting, world map) and binding array (health, mana, xp, level, stats, inventory count, gold, materials, skill points, discovered areas, quests)
+ - Subscribed to core event categories: movement, item pickup, damage, level up, xp gained, skill unlocked, currency changed, trade completed, area entered, resource spawned, config reload
+ - Added new test test_phase3_9_ui_integration_bridge (14 assertions) covering initialization, event flow (damage/xp/currency/area/resource), binding dirtiness, ring buffer capture, forced binding updates
+ - Updated roadmap Phase 3.9 entries to (Done)
+ - Extended CMake to compile bridge and register test
+ - Enhanced bridge metrics tracking additional events and binding updates
+
+Next: begin Phase 3.10 persistence integration after validating broader integration tests.
+
+feat(integration Phase 3.10): add persistence integration bridge (event-driven dirty tracking + incremental save metrics)
+
+Details:
+ - Added persistence_integration_bridge (header+impl) subscribing to item pickup, xp gained, level up, skill unlock, trade completed, currency changed, area entered, config reloaded
+ - Event handlers map to save components (player/world/meta/inventory/entries/skills) and mark them dirty via save manager API
+ - Added save wrappers (slot, autosave, quicksave) harvesting incremental reuse/write metrics and publishing SAVE_COMPLETED event
+ - Added save manager APIs: rogue_save_component_is_dirty & rogue_save_last_section_reuse (tracks sections reused/written)
+ - New test test_phase3_10_persistence_integration_bridge validates reuse vs write after events and section enumeration
+ - Roadmap Phase 3.10 entries marked Done; README changelog updated
+
+
 feat(integration): Complete Phase 0+1+2.1 Integration Architecture & Configuration
 
 Phase 0: Integration Architecture Foundation - Complete ✅

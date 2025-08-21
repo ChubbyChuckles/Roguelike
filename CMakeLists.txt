@@ -104,6 +104,8 @@ add_library(rogue_core
     src/core/integration/combat_progression_bridge.c
     src/core/integration/worldgen_enemy_bridge.c
     src/core/integration/worldgen_resource_bridge.c
+    src/core/integration/ui_integration_bridge.c
+    src/core/integration/persistence_integration_bridge.c
     src/core/json_parser.c
     src/core/cfg_parser.c
     src/core/integration/cfg_migration.c

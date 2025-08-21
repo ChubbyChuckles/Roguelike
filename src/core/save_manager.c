@@ -48,6 +48,9 @@ static int g_incremental_enabled = 0;
 typedef struct { int id; unsigned char* data; uint32_t size; uint32_t crc32; int valid; } RogueCachedSection;
 static RogueCachedSection g_cached_sections[ROGUE_SAVE_MAX_COMPONENTS];
 static uint32_t g_dirty_mask = 0xFFFFFFFFu; /* start dirty */
+static unsigned g_last_sections_reused = 0, g_last_sections_written = 0; /* Phase 3.10 incremental metrics */
+void rogue_save_last_section_reuse(unsigned* reused, unsigned* written){ if(reused) *reused=g_last_sections_reused; if(written) *written=g_last_sections_written; }
+int rogue_save_component_is_dirty(int component_id){ if(component_id<=0||component_id>=32) return -1; return (g_dirty_mask & (1u<<component_id))?1:0; }
 /* Autosave scheduling (Phase 6) */
 static int g_autosave_interval_ms = 0; /* disabled by default */
 static uint32_t g_last_autosave_time = 0;
@@ -197,6 +200,7 @@ static int internal_save_to(const char* final_path){
     if(fwrite(&desc,sizeof desc,1,f)!=1){ fclose(f); return -3; }
     desc.section_count=0; desc.component_mask=0;
     /* Write all sections */
+    g_last_sections_reused=0; g_last_sections_written=0;
     for(int i=0;i<g_component_count;i++){
         fprintf(stderr,"DBG: writing component idx=%d id=%d name=%s at_offset=%ld\n", i, g_components[i].id, g_components[i].name?g_components[i].name:"?", ftell(f));
         const RogueSaveComponent* c=&g_components[i]; long start=ftell(f);
@@ -208,12 +212,16 @@ static int internal_save_to(const char* final_path){
             int reused_cache = 0;
             if(g_incremental_enabled && !(g_dirty_mask & (1u<<c->id))){ /* attempt reuse */
                 for(int k=0;k<ROGUE_SAVE_MAX_COMPONENTS;k++) if(g_cached_sections[k].valid && g_cached_sections[k].id==c->id){
+                    /* Reuse cached raw payload (already contains optional uncompressed_size prefix for compressed data) */
                     if(fwrite(g_cached_sections[k].data,1,g_cached_sections[k].size,f)!=(size_t)g_cached_sections[k].size){ fclose(f); return -5; }
                     long end=ftell(f); uint32_t section_size=g_cached_sections[k].size; fseek(f,start+sizeof(uint16_t),SEEK_SET); fwrite(&section_size,sizeof section_size,1,f); fseek(f,end,SEEK_SET);
                     if(desc.version>=7){ uint32_t sec_crc=g_cached_sections[k].crc32; fwrite(&sec_crc,sizeof sec_crc,1,f); }
                     reused_cache=1; break; }
             }
-            if(!reused_cache){
+            if(reused_cache){
+                g_last_sections_reused++;
+            } else {
+                g_last_sections_written++; /* fresh payload */
             if(desc.version>=6 && g_compress_enabled){
                 FILE* mem=NULL;
 #if defined(_MSC_VER)
@@ -252,28 +260,39 @@ static int internal_save_to(const char* final_path){
                 uint32_t sec_crc = rogue_crc32(tmp,(size_t)payload_size); free(tmp);
                 fseek(f,end_after_payload,SEEK_SET); fwrite(&sec_crc,sizeof sec_crc,1,f);
                 if(g_incremental_enabled){ /* capture cache */
-                    for(int k=0;k<ROGUE_SAVE_MAX_COMPONENTS;k++){ if(!g_cached_sections[k].valid){
-                        g_cached_sections[k].id=c->id; g_cached_sections[k].size=(uint32_t)payload_size; g_cached_sections[k].data=(unsigned char*)malloc((size_t)payload_size);
-                        if(g_cached_sections[k].data){ fseek(f,payload_start,SEEK_SET); fread(g_cached_sections[k].data,1,(size_t)payload_size,f); fseek(f,end_after_payload+sizeof(uint32_t),SEEK_SET); g_cached_sections[k].crc32=sec_crc; g_cached_sections[k].valid=1; }
-                        break; }
+                    int placed=0;
+                    for(int k=0;k<ROGUE_SAVE_MAX_COMPONENTS;k++){ if(g_cached_sections[k].valid && g_cached_sections[k].id==c->id){ /* update existing (component dirty and rewritten) */
+                            if(g_cached_sections[k].data && g_cached_sections[k].size!= (uint32_t)payload_size){ unsigned char* nd=(unsigned char*)realloc(g_cached_sections[k].data,(size_t)payload_size); if(nd){ g_cached_sections[k].data=nd; g_cached_sections[k].size=(uint32_t)payload_size; } }
+                            if(g_cached_sections[k].data){ fseek(f,payload_start,SEEK_SET); fread(g_cached_sections[k].data,1,(size_t)payload_size,f); fseek(f,end_after_payload+sizeof(uint32_t),SEEK_SET); g_cached_sections[k].crc32=sec_crc; }
+                            placed=1; break; }
+                    }
+                    if(!placed){
+                        for(int k=0;k<ROGUE_SAVE_MAX_COMPONENTS;k++){ if(!g_cached_sections[k].valid){
+                            g_cached_sections[k].id=c->id; g_cached_sections[k].size=(uint32_t)payload_size; g_cached_sections[k].data=(unsigned char*)malloc((size_t)payload_size);
+                            if(g_cached_sections[k].data){ fseek(f,payload_start,SEEK_SET); fread(g_cached_sections[k].data,1,(size_t)payload_size,f); fseek(f,end_after_payload+sizeof(uint32_t),SEEK_SET); g_cached_sections[k].crc32=sec_crc; g_cached_sections[k].valid=1; }
+                            break; }
+                        }
                     }
                 }
-            }
+            } /* end if(desc.version>=7) */
+            } /* end fresh write vs reused */
             if(g_incremental_enabled){ g_dirty_mask &= ~(1u<<c->id); }
-            }
-        } else {
+        } /* end version>=3 path */
+        else {
             uint32_t id=(uint32_t)c->id, size_placeholder=0; if(fwrite(&id,sizeof id,1,f)!=1){ fclose(f); return -4; }
             if(fwrite(&size_placeholder,sizeof size_placeholder,1,f)!=1){ fclose(f); return -4; }
             long payload_start=ftell(f); if(c->write_fn(f)!=0){ fclose(f); return -5; }
             long end=ftell(f); uint32_t section_size=(uint32_t)(end - payload_start);
             fseek(f,start+sizeof(uint32_t),SEEK_SET); fwrite(&section_size,sizeof section_size,1,f); fseek(f,end,SEEK_SET);
         }
-    long after=ftell(f);
-    if(after<0){ fclose(f); return -90; }
-    uint32_t wrote_bytes = (uint32_t)(after - start);
-    desc.section_count++; desc.component_mask |= (1u<<c->id);
-    fprintf(stderr,"DBG: finished component id=%d size_with_header=%u section_count=%u mask=0x%X\n", c->id, wrote_bytes, desc.section_count, desc.component_mask);
-    }
+        long after=ftell(f);
+        if(after<0){ fclose(f); return -90; }
+        uint32_t wrote_bytes = (uint32_t)(after - start);
+        desc.section_count++; desc.component_mask |= (1u<<c->id);
+        fprintf(stderr,"DBG: finished component id=%d size_with_header=%u section_count=%u mask=0x%X reused=%u written=%u\n", c->id, wrote_bytes, desc.section_count, desc.component_mask, g_last_sections_reused, g_last_sections_written);
+    } /* end for each component */
+    /* After a full save in incremental mode, all components become clean (unless marked during write) so subsequent save can reuse */
+    if(g_incremental_enabled){ g_dirty_mask = 0; }
     /* Marks end of payload (excludes integrity footers) */
     long payload_end = ftell(f);
     /* Compute descriptor CRC (over payload only) */
@@ -404,10 +423,11 @@ int rogue_save_for_each_section(int slot_index, RogueSaveSectionIterFn fn, void*
     for(uint32_t s=0; s<desc.section_count; s++){
         if(desc.version>=3){
             if((size_t)(p-buf)+6 > total_payload){ free(buf); return -8; }
-            uint16_t id16; memcpy(&id16,p,2); uint32_t size; memcpy(&size,p+2,4); p+=6;
-            if((size_t)(p-buf)+size > total_payload){ free(buf); return -8; }
-            if(fn){ int frc=fn(&desc,(uint32_t)id16,p,size,user); if(frc!=0){ free(buf); return frc; } }
-            p+=size; if(desc.version>=7){ if((size_t)(p-buf)+4>total_payload){ free(buf); return -8; } p+=4; }
+            uint16_t id16; memcpy(&id16,p,2); uint32_t size_field; memcpy(&size_field,p+2,4); p+=6;
+            uint32_t stored_size = size_field & 0x7FFFFFFFu; /* strip compression flag */
+            if((size_t)(p-buf)+stored_size > total_payload){ free(buf); return -8; }
+            if(fn){ int frc=fn(&desc,(uint32_t)id16,p,stored_size,user); if(frc!=0){ free(buf); return frc; } }
+            p+=stored_size; if(desc.version>=7){ if((size_t)(p-buf)+4>total_payload){ free(buf); return -8; } p+=4; }
         } else {
             if((size_t)(p-buf)+8 > total_payload){ free(buf); return -8; }
             uint32_t id; memcpy(&id,p,4); uint32_t size; memcpy(&size,p+4,4); p+=8;
