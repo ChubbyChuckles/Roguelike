@@ -54,6 +54,55 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_dependency_manager.c)
     add_test(NAME test_dependency_manager COMMAND test_dependency_manager)
 endif()
 
+# Integration Plumbing Phase 2.6 Configuration Version Management Test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_config_version.c)
+    add_executable(test_config_version unit/test_config_version.c)
+    target_link_libraries(test_config_version PRIVATE rogue_core)
+    add_test(NAME test_config_version COMMAND test_config_version)
+endif()
+
+# Integration Plumbing Phase 2.8 Configuration System Validation Test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_config_system_validation.c)
+    add_executable(test_config_system_validation unit/test_config_system_validation.c)
+    target_link_libraries(test_config_system_validation PRIVATE rogue_core)
+    add_test(NAME test_config_system_validation COMMAND test_config_system_validation)
+endif()
+
+# Integration Plumbing Phase 3.1 Enemy-AI Bridge Test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_phase3_1_enemy_ai_bridge.c)
+    add_executable(test_phase3_1_enemy_ai_bridge unit/test_phase3_1_enemy_ai_bridge.c)
+    target_link_libraries(test_phase3_1_enemy_ai_bridge PRIVATE rogue_core)
+    add_test(NAME test_phase3_1_enemy_ai_bridge COMMAND test_phase3_1_enemy_ai_bridge)
+endif()
+
+# Integration Plumbing Phase 3.2 Combat-Equipment Bridge Test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_phase3_2_combat_equip_bridge.c)
+    add_executable(test_phase3_2_combat_equip_bridge unit/test_phase3_2_combat_equip_bridge.c)
+    target_link_libraries(test_phase3_2_combat_equip_bridge PRIVATE rogue_core)
+    add_test(NAME test_phase3_2_combat_equip_bridge COMMAND test_phase3_2_combat_equip_bridge)
+endif()
+
+# Integration Plumbing Phase 3.2 Simple Test (for debugging)
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_phase3_2_simple.c)
+    add_executable(test_phase3_2_simple unit/test_phase3_2_simple.c)
+    target_link_libraries(test_phase3_2_simple PRIVATE rogue_core)
+    add_test(NAME test_phase3_2_simple COMMAND test_phase3_2_simple)
+endif()
+
+# Integration Plumbing Phase 3.3 Combat-Progression Bridge Test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_phase3_3_combat_progression_bridge.c)
+    add_executable(test_phase3_3_combat_progression_bridge unit/test_phase3_3_combat_progression_bridge.c)
+    target_link_libraries(test_phase3_3_combat_progression_bridge PRIVATE rogue_core)
+    add_test(NAME test_phase3_3_combat_progression_bridge COMMAND test_phase3_3_combat_progression_bridge)
+endif()
+
+# Integration Plumbing Phase 3.3 Simple Test (for debugging)
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_phase3_3_simple.c)
+    add_executable(test_phase3_3_simple unit/test_phase3_3_simple.c)
+    target_link_libraries(test_phase3_3_simple PRIVATE rogue_core)
+    add_test(NAME test_phase3_3_simple COMMAND test_phase3_3_simple)
+endif()
+
 # Integration Plumbing Phase 2.2 CFG File Analysis Test (manual run)
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_cfg_file_analysis.c)
     add_executable(test_cfg_file_analysis unit/test_cfg_file_analysis.c)

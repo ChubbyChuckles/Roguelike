@@ -16,10 +16,10 @@ typedef struct RogueEventBus RogueEventBus;
 typedef struct RogueEvent RogueEvent;
 typedef struct RogueEventSubscription RogueEventSubscription;
 
-/* Constants (Phase 1.1.1) */
+/* Constants (Phase 1.1.1 - Updated Phase 2.6) */
 #define ROGUE_MAX_EVENT_SUBSCRIBERS 256
 #define ROGUE_MAX_EVENT_QUEUE_SIZE 4096
-#define ROGUE_MAX_EVENT_TYPES 512
+#define ROGUE_MAX_EVENT_TYPES 4096  /* Expanded from 512 for Phase 2.6 */
 #define ROGUE_MAX_EVENT_PAYLOAD_SIZE 512
 #define ROGUE_EVENT_BUS_NAME_MAX 64
 

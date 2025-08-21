@@ -141,7 +141,7 @@ static bool test_event_type_registry(void) {
     assert(strcmp(name, "DAMAGE_DEALT") == 0);
     
     /* Test custom type registration */
-    const uint32_t CUSTOM_EVENT_TYPE = 0x9999;
+    const uint32_t CUSTOM_EVENT_TYPE = 0x9001; /* Updated to use reserved test range */
     assert(rogue_event_register_type(CUSTOM_EVENT_TYPE, "CUSTOM_TEST_EVENT") == true);
     
     name = rogue_event_get_type_name(CUSTOM_EVENT_TYPE);

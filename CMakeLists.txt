@@ -98,6 +98,10 @@ add_library(rogue_core
     src/core/integration/system_taxonomy.c
     src/core/integration/event_bus.c
     src/core/integration/json_schema.c
+    src/core/integration/config_version.c
+    src/core/integration/enemy_ai_bridge.c
+    src/core/integration/combat_equip_bridge.c
+    src/core/integration/combat_progression_bridge.c
     src/core/json_parser.c
     src/core/cfg_parser.c
     src/core/integration/cfg_migration.c

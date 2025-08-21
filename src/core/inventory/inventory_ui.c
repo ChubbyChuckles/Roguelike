@@ -1,5 +1,5 @@
 #include "inventory_ui.h"
-#include "../inventory.h"
+#include "inventory.h"
 #include "../loot/loot_item_defs.h"
 #include "../loot/loot_instances.h"
 #include "../equipment/equipment.h"
