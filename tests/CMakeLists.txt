@@ -40,6 +40,20 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_cfg_migration.c)
     add_test(NAME test_cfg_migration COMMAND test_cfg_migration)
 endif()
 
+# Integration Plumbing Phase 2.4 Hot Reload System Test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_hot_reload.c)
+    add_executable(test_hot_reload unit/test_hot_reload.c)
+    target_link_libraries(test_hot_reload PRIVATE rogue_core)
+    add_test(NAME test_hot_reload COMMAND test_hot_reload)
+endif()
+
+# Integration Plumbing Phase 2.5 Dependency Management System Test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_dependency_manager.c)
+    add_executable(test_dependency_manager unit/test_dependency_manager.c)
+    target_link_libraries(test_dependency_manager PRIVATE rogue_core)
+    add_test(NAME test_dependency_manager COMMAND test_dependency_manager)
+endif()
+
 # Integration Plumbing Phase 2.2 CFG File Analysis Test (manual run)
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_cfg_file_analysis.c)
     add_executable(test_cfg_file_analysis unit/test_cfg_file_analysis.c)
