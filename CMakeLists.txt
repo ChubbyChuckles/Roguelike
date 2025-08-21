@@ -347,6 +347,9 @@ add_library(rogue_core
     src/core/integration/ref_count.c
     src/core/integration/cow.c
     src/core/integration/versioning.c
+    src/core/integration/resource_lock.c
+    # Phase 5.1 snapshot & 5.2 differential sync system
+    src/core/integration/snapshot_manager.c
 )
 
 target_include_directories(rogue_core PUBLIC
@@ -402,6 +405,13 @@ add_executable(test_crafting_phase11_analytics tests/unit/test_crafting_phase11_
 target_link_libraries(test_crafting_phase11_analytics PRIVATE rogue_core)
 if(TARGET SDL2::SDL2)
     target_link_libraries(test_crafting_phase11_analytics PRIVATE SDL2::SDL2)
+endif()
+
+# Phase 5 snapshot & differential sync tests
+add_executable(test_snapshot_manager tests/unit/test_snapshot_manager.c)
+target_link_libraries(test_snapshot_manager PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_snapshot_manager PRIVATE SDL2::SDL2)
 endif()
 
 add_executable(roguelike src/main.c)
