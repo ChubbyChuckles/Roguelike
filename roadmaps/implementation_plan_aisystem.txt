@@ -59,9 +59,9 @@ PHASE 6. Combat Behaviour Extensions
 	Unit test `test_ai_phase6_2_reactions` validates parry window open/close behavior and dodge vector/duration window.]
 6.3 Opportunistic attack (when player in recovery) (Done) [Added BT action `rogue_bt_action_opportunistic_attack`: SUCCESS when `target_in_recovery` is true and, if provided, agent-target distance <= max_distance; on SUCCESS optionally resets a cooldown timer key to 0. Unit test `test_ai_phase6_3_opportunistic` covers: FAILURE when no recovery, FAILURE when out of range, SUCCESS within range, and cooldown reset.]
 6.4 Kiting logic (maintain preferred distance band) (Done) [Added action node `rogue_bt_action_kite_band` keeping agent within [min,max] distance of target by moving away when too close and toward when too far; returns SUCCESS when within band. Unit test `test_ai_phase6_4_kiting` validates approach/retreat behavior and idle when already in band.]
-6.5 Focus fire coordination (threat leader broadcast) (X)
-6.6 Execution / finisher attempt below health threshold (X)
-6.7 Difficulty scaler (reaction time, aggression) (X)
+6.5 Focus fire coordination (threat leader broadcast) (Done) [Tactical focus broadcast-if-leader with TTL decay/clear path. Implemented `rogue_bt_tactical_focus_broadcast_if_leader` and `rogue_bt_tactical_focus_decay`. Unit test `test_ai_phase6_5_focus` validates leader propagation and decay clearing.]
+6.6 Execution / finisher attempt below health threshold (Done) [Finisher `rogue_bt_action_finisher_execute` triggers when target HP% below threshold and within range; optional cooldown/reset hooks. Unit test `test_ai_phase6_6_finisher` covers thresholds, range, and cooldown.]
+6.7 Difficulty scaler (reaction time, aggression) (Done) [Decorators: reaction delay (`rogue_bt_decorator_reaction_delay`) accumulates timer until ≥ reaction_seconds before ticking child; aggression gate (`rogue_bt_decorator_aggression_gate`) requires min aggression scalar. Unit test `test_ai_phase6_7_decorators` passes.]
 
 PHASE 7. Group Tactics & Coordination
 7.1 Squad formation metadata (shared blackboard) (X)

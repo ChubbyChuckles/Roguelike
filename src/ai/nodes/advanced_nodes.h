@@ -104,10 +104,38 @@ extern "C"
                                               const char* bb_out_in_cover_flag_key,
                                               float obstacle_radius, float move_speed);
 
+    /* Phase 6.5: Focus fire coordination
+       Broadcast focus target (if this agent is leader by threat score) and manage TTL decay. */
+    RogueBTNode* rogue_bt_tactical_focus_broadcast_if_leader(
+        const char* name, const char* bb_threat_score_key, float leader_threshold,
+        const char* bb_target_pos_key, const char* bb_out_group_focus_flag_key,
+        const char* bb_out_group_focus_pos_key, const char* bb_group_focus_ttl_timer_key);
+
+    RogueBTNode* rogue_bt_tactical_focus_decay(const char* name,
+                                               const char* bb_group_focus_flag_key,
+                                               const char* bb_group_focus_ttl_timer_key,
+                                               float ttl_seconds);
+
+    /* Phase 6.6: Finisher execute below target health threshold (optional distance constraint) */
+    RogueBTNode* rogue_bt_action_finisher_execute(const char* name,
+                                                  const char* bb_target_health_key, float threshold,
+                                                  const char* bb_agent_pos_key,
+                                                  const char* bb_target_pos_key,
+                                                  float max_distance_allowed, /* <=0 to ignore */
+                                                  const char* bb_optional_cooldown_timer_key);
+
     /* Decorators */
     RogueBTNode* rogue_bt_decorator_cooldown(const char* name, RogueBTNode* child,
                                              const char* bb_timer_key, float cooldown_seconds);
     RogueBTNode* rogue_bt_decorator_retry(const char* name, RogueBTNode* child, int max_attempts);
+
+    /* Phase 6.7: Difficulty scaler helpers */
+    RogueBTNode* rogue_bt_decorator_reaction_delay(const char* name, RogueBTNode* child,
+                                                   const char* bb_reaction_timer_key,
+                                                   float reaction_seconds);
+    RogueBTNode* rogue_bt_decorator_aggression_gate(const char* name, RogueBTNode* child,
+                                                    const char* bb_aggression_scalar_key,
+                                                    float min_required);
 
     /* Decorator: Stuck detection. Monitors an agent vec2 position; if position hasn't advanced
         beyond threshold for window_seconds, returns FAILURE and resets its window timer. Otherwise

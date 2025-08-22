@@ -1,13 +1,9 @@
 Integration Plumbing: Wire auto rollback into transaction abort; add unit test; update roadmap/README
 
-- Phase 5.4: Implemented automatic rollback invocation from transaction abort path.
   - transaction_manager.c now includes rollback_manager.h and calls
     rogue_rollback_auto_for_participant(...) for each marked participant during abort.
   - Counts rollback invocation in stats; participant on_abort still notified.
-- Added unit test test_sync_phase5_8_auto_rollback exercising prepare-failure path and
   validating RogueRollbackStats.auto_rollbacks/restores_performed and auto-triggered event.
-- Registered the test in tests/CMakeLists.txt (SDL2 linked when available).
-- Updated roadmap Phase 5.4 summary to reflect completion of auto-rollback wiring and added test reference.
 
 Build: Debug, SDL2, -j8; Phase 5.8 sync tests (including new auto_rollback) pass.Integration Phase 3.6.6–3.6.7: Add specialization subsystem and integrate into damage/cooldown
 

@@ -1228,6 +1228,223 @@ RogueBTNode* rogue_bt_tactical_cover_seek(const char* name, const char* bb_playe
     return n;
 }
 
+/* ===================== Phase 6.5: Focus Fire Coordination ===================== */
+typedef struct FocusBroadcast
+{
+    const char* threat_score_key;      /* float */
+    float leader_threshold;            /* minimum score to be leader */
+    const char* target_pos_key;        /* vec2 */
+    const char* out_group_focus_flag;  /* bool */
+    const char* out_group_focus_pos;   /* vec2 */
+    const char* group_focus_ttl_timer; /* timer */
+} FocusBroadcast;
+
+static RogueBTStatus tick_focus_broadcast_if_leader(RogueBTNode* node, RogueBlackboard* bb,
+                                                    float dt)
+{
+    (void) dt;
+    FocusBroadcast* d = (FocusBroadcast*) node->user_data;
+    float score = 0.0f;
+    if (!rogue_bb_get_float(bb, d->threat_score_key, &score))
+        return ROGUE_BT_FAILURE;
+    if (score < d->leader_threshold)
+        return ROGUE_BT_FAILURE;
+    RogueBBVec2 target;
+    if (!rogue_bb_get_vec2(bb, d->target_pos_key, &target))
+        return ROGUE_BT_FAILURE;
+    rogue_bb_set_bool(bb, d->out_group_focus_flag, true);
+    rogue_bb_set_vec2(bb, d->out_group_focus_pos, target.x, target.y);
+    rogue_bb_set_timer(bb, d->group_focus_ttl_timer, 0.0f);
+    return ROGUE_BT_SUCCESS;
+}
+
+RogueBTNode* rogue_bt_tactical_focus_broadcast_if_leader(
+    const char* name, const char* bb_threat_score_key, float leader_threshold,
+    const char* bb_target_pos_key, const char* bb_out_group_focus_flag_key,
+    const char* bb_out_group_focus_pos_key, const char* bb_group_focus_ttl_timer_key)
+{
+    RogueBTNode* n = rogue_bt_node_create(name, 0, tick_focus_broadcast_if_leader);
+    if (!n)
+        return NULL;
+    FocusBroadcast* d = (FocusBroadcast*) calloc(1, sizeof(FocusBroadcast));
+    d->threat_score_key = bb_threat_score_key;
+    d->leader_threshold = leader_threshold;
+    d->target_pos_key = bb_target_pos_key;
+    d->out_group_focus_flag = bb_out_group_focus_flag_key;
+    d->out_group_focus_pos = bb_out_group_focus_pos_key;
+    d->group_focus_ttl_timer = bb_group_focus_ttl_timer_key;
+    n->user_data = d;
+    return n;
+}
+
+typedef struct FocusDecay
+{
+    const char* flag_key;  /* bool */
+    const char* timer_key; /* timer */
+    float ttl_seconds;     /* time to keep focus active */
+} FocusDecay;
+
+static RogueBTStatus tick_focus_decay(RogueBTNode* node, RogueBlackboard* bb, float dt)
+{
+    FocusDecay* d = (FocusDecay*) node->user_data;
+    bool active = false;
+    rogue_bb_get_bool(bb, d->flag_key, &active);
+    if (!active)
+        return ROGUE_BT_FAILURE;
+    float t = 0.0f;
+    rogue_bb_get_timer(bb, d->timer_key, &t);
+    t += dt;
+    rogue_bb_set_timer(bb, d->timer_key, t);
+    if (t >= d->ttl_seconds)
+    {
+        rogue_bb_set_bool(bb, d->flag_key, false);
+        return ROGUE_BT_FAILURE;
+    }
+    return ROGUE_BT_SUCCESS;
+}
+
+RogueBTNode* rogue_bt_tactical_focus_decay(const char* name, const char* bb_group_focus_flag_key,
+                                           const char* bb_group_focus_ttl_timer_key,
+                                           float ttl_seconds)
+{
+    RogueBTNode* n = rogue_bt_node_create(name, 0, tick_focus_decay);
+    if (!n)
+        return NULL;
+    FocusDecay* d = (FocusDecay*) calloc(1, sizeof(FocusDecay));
+    d->flag_key = bb_group_focus_flag_key;
+    d->timer_key = bb_group_focus_ttl_timer_key;
+    d->ttl_seconds = ttl_seconds;
+    n->user_data = d;
+    return n;
+}
+
+/* ===================== Phase 6.6: Finisher Execute ===================== */
+typedef struct ActionFinisher
+{
+    const char* target_health_key;  /* float */
+    float threshold;                /* success when hp <= threshold */
+    const char* agent_pos_key;      /* vec2 */
+    const char* target_pos_key;     /* vec2 */
+    float max_distance;             /* <=0 ignore */
+    const char* opt_cool_timer_key; /* timer */
+} ActionFinisher;
+
+static RogueBTStatus tick_action_finisher_execute(RogueBTNode* node, RogueBlackboard* bb, float dt)
+{
+    (void) dt;
+    ActionFinisher* d = (ActionFinisher*) node->user_data;
+    float hp = 0.0f;
+    if (!rogue_bb_get_float(bb, d->target_health_key, &hp))
+        return ROGUE_BT_FAILURE;
+    if (hp > d->threshold)
+        return ROGUE_BT_FAILURE;
+    if (d->max_distance > 0.0f)
+    {
+        RogueBBVec2 agent, target;
+        if (!rogue_bb_get_vec2(bb, d->agent_pos_key, &agent) ||
+            !rogue_bb_get_vec2(bb, d->target_pos_key, &target))
+            return ROGUE_BT_FAILURE;
+        float dx = target.x - agent.x, dy = target.y - agent.y;
+        float dist2 = dx * dx + dy * dy;
+        if (dist2 > d->max_distance * d->max_distance)
+            return ROGUE_BT_FAILURE;
+    }
+    if (d->opt_cool_timer_key)
+        rogue_bb_set_timer(bb, d->opt_cool_timer_key, 0.0f);
+    return ROGUE_BT_SUCCESS;
+}
+
+RogueBTNode* rogue_bt_action_finisher_execute(const char* name, const char* bb_target_health_key,
+                                              float threshold, const char* bb_agent_pos_key,
+                                              const char* bb_target_pos_key,
+                                              float max_distance_allowed,
+                                              const char* bb_optional_cooldown_timer_key)
+{
+    RogueBTNode* n = rogue_bt_node_create(name, 0, tick_action_finisher_execute);
+    if (!n)
+        return NULL;
+    ActionFinisher* d = (ActionFinisher*) calloc(1, sizeof(ActionFinisher));
+    d->target_health_key = bb_target_health_key;
+    d->threshold = threshold;
+    d->agent_pos_key = bb_agent_pos_key;
+    d->target_pos_key = bb_target_pos_key;
+    d->max_distance = max_distance_allowed;
+    d->opt_cool_timer_key = bb_optional_cooldown_timer_key;
+    n->user_data = d;
+    return n;
+}
+
+/* ===================== Phase 6.7: Difficulty Scaler Helpers ===================== */
+typedef struct DecorReactionDelay
+{
+    RogueBTNode* child;
+    const char* timer_key; /* timer */
+    float reaction_seconds;
+} DecorReactionDelay;
+
+static RogueBTStatus tick_decor_reaction_delay(RogueBTNode* node, RogueBlackboard* bb, float dt)
+{
+    DecorReactionDelay* d = (DecorReactionDelay*) node->user_data;
+    float t = 0.0f;
+    rogue_bb_get_timer(bb, d->timer_key, &t);
+    if (t < d->reaction_seconds)
+    {
+        rogue_bb_set_timer(bb, d->timer_key, t + dt);
+        return ROGUE_BT_FAILURE;
+    }
+    return d->child->vtable->tick(d->child, bb, dt);
+}
+
+RogueBTNode* rogue_bt_decorator_reaction_delay(const char* name, RogueBTNode* child,
+                                               const char* bb_reaction_timer_key,
+                                               float reaction_seconds)
+{
+    RogueBTNode* n = rogue_bt_node_create(name, 1, tick_decor_reaction_delay);
+    if (!n)
+        return NULL;
+    DecorReactionDelay* d = (DecorReactionDelay*) calloc(1, sizeof(DecorReactionDelay));
+    d->child = child;
+    d->timer_key = bb_reaction_timer_key;
+    d->reaction_seconds = reaction_seconds;
+    n->user_data = d;
+    ensure_child_array(n);
+    rogue_bt_node_add_child(n, child);
+    return n;
+}
+
+typedef struct DecorAggressionGate
+{
+    RogueBTNode* child;
+    const char* scalar_key; /* float */
+    float min_required;
+} DecorAggressionGate;
+
+static RogueBTStatus tick_decor_aggression_gate(RogueBTNode* node, RogueBlackboard* bb, float dt)
+{
+    DecorAggressionGate* d = (DecorAggressionGate*) node->user_data;
+    float s = 0.0f;
+    if (!rogue_bb_get_float(bb, d->scalar_key, &s) || s < d->min_required)
+        return ROGUE_BT_FAILURE;
+    return d->child->vtable->tick(d->child, bb, dt);
+}
+
+RogueBTNode* rogue_bt_decorator_aggression_gate(const char* name, RogueBTNode* child,
+                                                const char* bb_aggression_scalar_key,
+                                                float min_required)
+{
+    RogueBTNode* n = rogue_bt_node_create(name, 1, tick_decor_aggression_gate);
+    if (!n)
+        return NULL;
+    DecorAggressionGate* d = (DecorAggressionGate*) calloc(1, sizeof(DecorAggressionGate));
+    d->child = child;
+    d->scalar_key = bb_aggression_scalar_key;
+    d->min_required = min_required;
+    n->user_data = d;
+    ensure_child_array(n);
+    rogue_bt_node_add_child(n, child);
+    return n;
+}
+
 /**
  * @brief Decorator that enforces a cooldown between child successes.
  *
