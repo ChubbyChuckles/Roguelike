@@ -64,11 +64,11 @@ PHASE 6. Combat Behaviour Extensions
 6.7 Difficulty scaler (reaction time, aggression) (Done) [Decorators: reaction delay (`rogue_bt_decorator_reaction_delay`) accumulates timer until ≥ reaction_seconds before ticking child; aggression gate (`rogue_bt_decorator_aggression_gate`) requires min aggression scalar. Unit test `test_ai_phase6_7_decorators` passes.]
 
 PHASE 7. Group Tactics & Coordination
-7.1 Squad formation metadata (shared blackboard) (X)
-7.2 Role assignment (Bruiser, Harrier, Support) emergent via utility (X)
-7.3 Surround / encircle scoring (X)
-7.4 Retreat & regroup triggers (X)
-7.5 Chain attack sequencing (delayed staggered entries) (X)
+7.1 Squad formation metadata (shared blackboard) (Done) [Node `rogue_bt_tactical_squad_set_ids` writes squad_id, member_index, member_total]
+7.2 Role assignment (Bruiser, Harrier, Support) emergent via utility (Done) [Node `rogue_bt_tactical_role_assign` picks by weights if present else idx%3]
+7.3 Surround / encircle scoring (Done) [Node `rogue_bt_tactical_surround_assign_slot` writes even slot on circle around target]
+7.4 Retreat & regroup triggers (Done) [Condition `rogue_bt_condition_should_retreat` succeeds on hp<pct or recent_deaths>=threshold]
+7.5 Chain attack sequencing (delayed staggered entries) (Done) [Decorator `rogue_bt_decorator_stagger_by_index` gates child by index*base_delay with timer reset on SUCCESS]
 
 PHASE 8. State & Cooldown Management
 8.1 Central CooldownManager (shared or per-agent) (X)

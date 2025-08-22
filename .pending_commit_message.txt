@@ -110,3 +110,15 @@ feat(ai-phase6): Opportunistic attack and kiting logic (Phases 6.3–6.4) with u
 - Build: Debug with SDL2, parallel (`--parallel 8`); targeted CTest runs for both tests pass.
 - Docs: Updated `roadmaps/implementation_plan_aisystem.txt` marking 6.3 & 6.4 Done; README changelog now
 	includes entries for 6.3 and 6.4.
+
+feat(ai-phase7): Group tactics & coordination (7.1–7.5) with consolidated unit test
+
+- Nodes:
+	- `rogue_bt_tactical_squad_set_ids`: writes squad_id, member_index, member_total to blackboard
+	- `rogue_bt_tactical_role_assign`: role selection by weights (bruiser/harrier/support) or fallback idx%3
+	- `rogue_bt_tactical_surround_assign_slot`: even circle slot assignment around target at radius
+	- `rogue_bt_condition_should_retreat`: SUCCESS when hp<pct or recent_deaths>=threshold
+	- `rogue_bt_decorator_stagger_by_index`: gates child until timer >= base_delay*member_index; resets on SUCCESS
+- Tests: Added `tests/unit/test_ai_phase7_group_tactics.c` covering 7.1–7.5 including timer accumulation assertions for stagger decorator. Registered in CTest.
+- Build: Debug, SDL2, parallel (`--parallel 8`); `ctest -C Debug -R test_ai_phase7_group_tactics --output-on-failure` passes 100%.
+- Docs: Roadmap `roadmaps/implementation_plan_aisystem.txt` updated to mark 7.1–7.5 Done with notes. README changelog updated with AI Phase 7 entry.

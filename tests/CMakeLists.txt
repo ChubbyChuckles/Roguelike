@@ -106,6 +106,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase6_7_decorators.c AND NOT
     add_test(NAME test_ai_phase6_7_decorators COMMAND test_ai_phase6_7_decorators)
 endif()
 
+# Phase 7 Group tactics & coordination tests
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase7_group_tactics.c AND NOT TARGET test_ai_phase7_group_tactics)
+    add_executable(test_ai_phase7_group_tactics unit/test_ai_phase7_group_tactics.c)
+    target_link_libraries(test_ai_phase7_group_tactics PRIVATE rogue_core)
+    target_compile_definitions(test_ai_phase7_group_tactics PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_ai_phase7_group_tactics PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase7_group_tactics COMMAND test_ai_phase7_group_tactics)
+endif()
+
 # Integration Plumbing Phase 2.3.4 Resource nodes JSON ingestion tests
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_resource_json.c AND NOT TARGET test_resource_json)
     add_executable(test_resource_json unit/test_resource_json.c)

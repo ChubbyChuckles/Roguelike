@@ -145,6 +145,48 @@ extern "C"
                                                  const char* bb_window_timer_key,
                                                  float window_seconds, float min_move_threshold);
 
+    /* =====================
+        Phase 7: Group Tactics & Coordination
+        ===================== */
+
+    /* 7.1 Squad formation metadata (shared blackboard via common keys)
+        Sets squad_id, member_index, and member_total integers into the blackboard. */
+    RogueBTNode* rogue_bt_tactical_squad_set_ids(const char* name, const char* bb_squad_id_key,
+                                                 int squad_id, const char* bb_member_index_key,
+                                                 int member_index, const char* bb_member_total_key,
+                                                 int member_total);
+
+    /* 7.2 Role assignment (Bruiser=0, Harrier=1, Support=2) using optional weight keys.
+        If weight keys are absent, falls back to member_index % 3. */
+    RogueBTNode* rogue_bt_tactical_role_assign(const char* name, const char* bb_out_role_key,
+                                               const char* bb_member_index_key,
+                                               const char* bb_member_total_key,
+                                               const char* bb_weight_bruiser_key,
+                                               const char* bb_weight_harrier_key,
+                                               const char* bb_weight_support_key);
+
+    /* 7.3 Surround/encircle slot assignment: writes an offset point on a circle around target
+        evenly spaced by member_index/member_total with given radius. */
+    RogueBTNode* rogue_bt_tactical_surround_assign_slot(const char* name,
+                                                        const char* bb_target_pos_key,
+                                                        const char* bb_member_index_key,
+                                                        const char* bb_member_total_key,
+                                                        float radius, const char* bb_out_point_key);
+
+    /* 7.4 Retreat & regroup triggers: condition that succeeds if self HP% < min_pct or
+        recent_deaths >= threshold. Expects HP in [0,1]. */
+    RogueBTNode* rogue_bt_condition_should_retreat(const char* name, const char* bb_self_hp_pct_key,
+                                                   float min_pct, const char* bb_recent_deaths_key,
+                                                   int deaths_threshold);
+
+    /* 7.5 Chain attack sequencing: decorator that delays child until timer >= base_delay_seconds
+        * member_index. Uses/intakes a named timer that accumulates dt. Resets timer on child
+       SUCCESS to maintain repeated staggered entries. */
+    RogueBTNode* rogue_bt_decorator_stagger_by_index(const char* name, RogueBTNode* child,
+                                                     const char* bb_member_index_key,
+                                                     const char* bb_delay_timer_key,
+                                                     float base_delay_seconds);
+
 #ifdef __cplusplus
 }
 #endif

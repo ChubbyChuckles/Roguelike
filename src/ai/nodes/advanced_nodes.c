@@ -237,6 +237,253 @@ void rogue_bt_advanced_cleanup(RogueBTNode* node)
     node->user_data = NULL;
 }
 
+/* =====================
+   Phase 7: Group Tactics & Coordination
+   ===================== */
+
+typedef struct SquadSetIdsData
+{
+    const char* squad_id_key;
+    int squad_id;
+    const char* member_index_key;
+    int member_index;
+    const char* member_total_key;
+    int member_total;
+} SquadSetIdsData;
+
+static RogueBTStatus tick_squad_set_ids(RogueBTNode* node, RogueBlackboard* bb, float dt)
+{
+    (void) dt;
+    SquadSetIdsData* d = (SquadSetIdsData*) node->user_data;
+    rogue_bb_set_int(bb, d->squad_id_key, d->squad_id);
+    rogue_bb_set_int(bb, d->member_index_key, d->member_index);
+    rogue_bb_set_int(bb, d->member_total_key, d->member_total);
+    return ROGUE_BT_SUCCESS;
+}
+
+RogueBTNode* rogue_bt_tactical_squad_set_ids(const char* name, const char* bb_squad_id_key,
+                                             int squad_id, const char* bb_member_index_key,
+                                             int member_index, const char* bb_member_total_key,
+                                             int member_total)
+{
+    RogueBTNode* n = rogue_bt_node_create(name, 0, tick_squad_set_ids);
+    if (!n)
+        return NULL;
+    SquadSetIdsData* d = (SquadSetIdsData*) calloc(1, sizeof(SquadSetIdsData));
+    d->squad_id_key = bb_squad_id_key;
+    d->squad_id = squad_id;
+    d->member_index_key = bb_member_index_key;
+    d->member_index = member_index;
+    d->member_total_key = bb_member_total_key;
+    d->member_total = member_total;
+    n->user_data = d;
+    return n;
+}
+
+typedef struct RoleAssignData
+{
+    const char* out_role_key;
+    const char* member_index_key;
+    const char* member_total_key;
+    const char* w_bruiser_key;
+    const char* w_harrier_key;
+    const char* w_support_key;
+} RoleAssignData;
+
+static RogueBTStatus tick_role_assign(RogueBTNode* node, RogueBlackboard* bb, float dt)
+{
+    (void) dt;
+    RoleAssignData* d = (RoleAssignData*) node->user_data;
+    int idx = 0, total = 0;
+    rogue_bb_get_int(bb, d->member_index_key, &idx);
+    rogue_bb_get_int(bb, d->member_total_key, &total);
+    float wb = 0, wh = 0, ws = 0;
+    bool hb = rogue_bb_get_float(bb, d->w_bruiser_key, &wb);
+    bool hh = rogue_bb_get_float(bb, d->w_harrier_key, &wh);
+    bool hs = rogue_bb_get_float(bb, d->w_support_key, &ws);
+    int role = 0; /* 0=Bruiser,1=Harrier,2=Support */
+    if (hb || hh || hs)
+    {
+        float best = wb;
+        role = 0;
+        if (wh > best)
+        {
+            best = wh;
+            role = 1;
+        }
+        if (ws > best)
+        {
+            role = 2;
+        }
+    }
+    else
+    {
+        if (total <= 0)
+            total = 3;
+        role = idx % 3;
+    }
+    rogue_bb_set_int(bb, d->out_role_key, role);
+    return ROGUE_BT_SUCCESS;
+}
+
+RogueBTNode* rogue_bt_tactical_role_assign(const char* name, const char* bb_out_role_key,
+                                           const char* bb_member_index_key,
+                                           const char* bb_member_total_key,
+                                           const char* bb_weight_bruiser_key,
+                                           const char* bb_weight_harrier_key,
+                                           const char* bb_weight_support_key)
+{
+    RogueBTNode* n = rogue_bt_node_create(name, 0, tick_role_assign);
+    if (!n)
+        return NULL;
+    RoleAssignData* d = (RoleAssignData*) calloc(1, sizeof(RoleAssignData));
+    d->out_role_key = bb_out_role_key;
+    d->member_index_key = bb_member_index_key;
+    d->member_total_key = bb_member_total_key;
+    d->w_bruiser_key = bb_weight_bruiser_key;
+    d->w_harrier_key = bb_weight_harrier_key;
+    d->w_support_key = bb_weight_support_key;
+    n->user_data = d;
+    return n;
+}
+
+typedef struct SurroundAssignData
+{
+    const char* target_pos_key;
+    const char* member_index_key;
+    const char* member_total_key;
+    float radius;
+    const char* out_point_key;
+} SurroundAssignData;
+
+static RogueBTStatus tick_surround_assign(RogueBTNode* node, RogueBlackboard* bb, float dt)
+{
+    (void) dt;
+    SurroundAssignData* d = (SurroundAssignData*) node->user_data;
+    RogueBBVec2 target;
+    if (!rogue_bb_get_vec2(bb, d->target_pos_key, &target))
+        return ROGUE_BT_FAILURE;
+    int idx = 0, total = 0;
+    rogue_bb_get_int(bb, d->member_index_key, &idx);
+    rogue_bb_get_int(bb, d->member_total_key, &total);
+    if (total <= 0)
+        total = 1;
+    float t = (float) idx / (float) total;
+    /* Use a local PI constant to avoid relying on non-standard M_PI macro */
+    const float PI_F = 3.14159265358979323846f;
+    float angle = t * 2.0f * PI_F;
+    float x = target.x + cosf(angle) * d->radius;
+    float y = target.y + sinf(angle) * d->radius;
+    rogue_bb_set_vec2(bb, d->out_point_key, x, y);
+    return ROGUE_BT_SUCCESS;
+}
+
+RogueBTNode* rogue_bt_tactical_surround_assign_slot(const char* name, const char* bb_target_pos_key,
+                                                    const char* bb_member_index_key,
+                                                    const char* bb_member_total_key, float radius,
+                                                    const char* bb_out_point_key)
+{
+    RogueBTNode* n = rogue_bt_node_create(name, 0, tick_surround_assign);
+    if (!n)
+        return NULL;
+    SurroundAssignData* d = (SurroundAssignData*) calloc(1, sizeof(SurroundAssignData));
+    d->target_pos_key = bb_target_pos_key;
+    d->member_index_key = bb_member_index_key;
+    d->member_total_key = bb_member_total_key;
+    d->radius = radius;
+    d->out_point_key = bb_out_point_key;
+    n->user_data = d;
+    return n;
+}
+
+typedef struct CondShouldRetreatData
+{
+    const char* self_hp_pct_key;
+    float min_pct;
+    const char* recent_deaths_key;
+    int deaths_threshold;
+} CondShouldRetreatData;
+
+static RogueBTStatus tick_cond_should_retreat(RogueBTNode* node, RogueBlackboard* bb, float dt)
+{
+    (void) dt;
+    CondShouldRetreatData* d = (CondShouldRetreatData*) node->user_data;
+    float hp = 1.0f;
+    int deaths = 0;
+    bool ok_hp = rogue_bb_get_float(bb, d->self_hp_pct_key, &hp);
+    rogue_bb_get_int(bb, d->recent_deaths_key, &deaths);
+    if (ok_hp && hp < d->min_pct)
+        return ROGUE_BT_SUCCESS;
+    if (deaths >= d->deaths_threshold)
+        return ROGUE_BT_SUCCESS;
+    return ROGUE_BT_FAILURE;
+}
+
+RogueBTNode* rogue_bt_condition_should_retreat(const char* name, const char* bb_self_hp_pct_key,
+                                               float min_pct, const char* bb_recent_deaths_key,
+                                               int deaths_threshold)
+{
+    RogueBTNode* n = rogue_bt_node_create(name, 0, tick_cond_should_retreat);
+    if (!n)
+        return NULL;
+    CondShouldRetreatData* d = (CondShouldRetreatData*) calloc(1, sizeof(CondShouldRetreatData));
+    d->self_hp_pct_key = bb_self_hp_pct_key;
+    d->min_pct = min_pct;
+    d->recent_deaths_key = bb_recent_deaths_key;
+    d->deaths_threshold = deaths_threshold;
+    n->user_data = d;
+    return n;
+}
+
+typedef struct DecorStaggerByIndexData
+{
+    RogueBTNode* child;
+    const char* member_index_key;
+    const char* delay_timer_key;
+    float base_delay_seconds;
+} DecorStaggerByIndexData;
+
+static RogueBTStatus tick_decor_stagger_by_index(RogueBTNode* node, RogueBlackboard* bb, float dt)
+{
+    DecorStaggerByIndexData* d = (DecorStaggerByIndexData*) node->user_data;
+    int idx = 0;
+    rogue_bb_get_int(bb, d->member_index_key, &idx);
+    float t = 0.0f;
+    rogue_bb_get_timer(bb, d->delay_timer_key, &t);
+    t += dt;
+    rogue_bb_set_timer(bb, d->delay_timer_key, t);
+    float needed = d->base_delay_seconds * (float) (idx < 0 ? 0 : idx);
+    if (t < needed)
+        return ROGUE_BT_RUNNING;
+    RogueBTStatus st = d->child->vtable->tick(d->child, bb, dt);
+    if (st == ROGUE_BT_SUCCESS)
+    {
+        /* reset for next chain round */
+        rogue_bb_set_timer(bb, d->delay_timer_key, 0.0f);
+    }
+    return st;
+}
+
+RogueBTNode* rogue_bt_decorator_stagger_by_index(const char* name, RogueBTNode* child,
+                                                 const char* bb_member_index_key,
+                                                 const char* bb_delay_timer_key,
+                                                 float base_delay_seconds)
+{
+    RogueBTNode* n = rogue_bt_node_create(name, 1, tick_decor_stagger_by_index);
+    if (!n)
+        return NULL;
+    DecorStaggerByIndexData* d =
+        (DecorStaggerByIndexData*) calloc(1, sizeof(DecorStaggerByIndexData));
+    d->child = child;
+    d->member_index_key = bb_member_index_key;
+    d->delay_timer_key = bb_delay_timer_key;
+    d->base_delay_seconds = base_delay_seconds;
+    n->user_data = d;
+    ensure_child_array(n);
+    rogue_bt_node_add_child(n, child);
+    return n;
+}
+
 /**
  * @brief Condition data for checking if the player is visible to an agent.
  *
