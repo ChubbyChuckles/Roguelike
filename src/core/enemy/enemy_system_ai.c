@@ -6,6 +6,7 @@
 #include "core/loot/loot_tables.h"
 #include "core/metrics.h"
 #include "core/navigation.h"
+#include "core/progression/progression_award.h"
 #include "core/vegetation/vegetation.h"
 #include "enemy_system_internal.h"
 #include "entities/enemy.h"
@@ -301,7 +302,9 @@ void rogue_enemy_ai_update(float dt_ms)
                 e->anim_time = 0;
                 e->anim_frame = 0;
                 e->death_fade = 1.0f;
-                g_app.player.xp += t->xp_reward;
+                /* Award XP via progression bridge (publishes XP_GAINED) */
+                rogue_award_xp((unsigned int) (t->xp_reward > 0 ? t->xp_reward : 1), 1u,
+                               (unsigned int) e->type_index);
                 if (((float) rand() / (float) RAND_MAX) < t->loot_chance)
                 {
                     g_app.player.health += 2 + (g_app.player.vitality / 3);

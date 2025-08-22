@@ -177,6 +177,17 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_phase3_3_simple.c)
     add_test(NAME test_phase3_3_simple COMMAND test_phase3_3_simple)
 endif()
 
+# Integration Plumbing Phase 3.6.1 XP/LevelUp event publishing test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_xp_events.c AND NOT TARGET test_progression_phase3_6_xp_events)
+    add_executable(test_progression_phase3_6_xp_events unit/test_progression_phase3_6_xp_events.c)
+    target_link_libraries(test_progression_phase3_6_xp_events PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_progression_phase3_6_xp_events PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_progression_phase3_6_xp_events PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_progression_phase3_6_xp_events COMMAND test_progression_phase3_6_xp_events)
+endif()
+
 # Integration Plumbing Phase 2.2 CFG File Analysis Test (manual run)
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_cfg_file_analysis.c)
     add_executable(test_cfg_file_analysis unit/test_cfg_file_analysis.c)

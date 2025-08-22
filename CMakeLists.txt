@@ -296,6 +296,7 @@ add_library(rogue_core
     src/core/progression/progression_perpetual.c
     src/core/progression/progression_synergy.c
     src/core/progression/progression_persist.c
+    src/core/progression/progression_award.c
     src/core/dialogue.c
     # UI Phase 1 scaffolding
     src/ui/core/ui_context.c
@@ -581,7 +582,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/restructure_project.c)
     add_executable(restructure_project tools/restructure_project.c)
     target_link_libraries(restructure_project PRIVATE rogue_core)
     target_include_directories(restructure_project PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-    
+
     add_custom_target(restructure
         COMMAND $<TARGET_FILE:restructure_project>
         DEPENDS restructure_project
@@ -595,7 +596,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/execute_restructure.c)
     add_executable(execute_restructure tools/execute_restructure.c)
     target_link_libraries(execute_restructure PRIVATE rogue_core)
     target_include_directories(execute_restructure PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-    
+
     add_custom_target(execute_project_restructure
         COMMAND $<TARGET_FILE:execute_restructure>
         DEPENDS execute_restructure
@@ -609,7 +610,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/actually_move_files.c)
     add_executable(actually_move_files tools/actually_move_files.c)
     target_link_libraries(actually_move_files PRIVATE rogue_core)
     target_include_directories(actually_move_files PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-    
+
     add_custom_target(move_files_now
         COMMAND $<TARGET_FILE:actually_move_files>
         DEPENDS actually_move_files
@@ -618,7 +619,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/actually_move_files.c)
     )
 endif()
 
-# Structure analysis tool  
+# Structure analysis tool
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/analyze_structure.c)
     add_executable(analyze_structure tools/analyze_structure.c)
     target_link_libraries(analyze_structure PRIVATE rogue_core)

@@ -4,6 +4,7 @@
 #ifdef ROGUE_HAVE_SDL_MIXER
 #include <SDL_mixer.h>
 #endif
+#include "core/integration/event_bus.h"
 #include "core/persistence.h"
 #include "core/progression/progression_xp.h"
 #include <stdio.h>
@@ -14,6 +15,7 @@ void rogue_player_progress_update(double dt_seconds)
     /* Level-up loop */
     while (g_app.player.xp >= g_app.player.xp_to_next)
     {
+        int old_level = g_app.player.level;
         g_app.player.xp -= g_app.player.xp_to_next;
         g_app.player.level++;
         g_app.unspent_stat_points += 3;
@@ -33,6 +35,13 @@ void rogue_player_progress_update(double dt_seconds)
         }
 #endif
         g_app.stats_dirty = 1;
+        /* Publish LEVEL_UP event */
+        RogueEventPayload pl = {0};
+        pl.level_up.player_id = 0;
+        pl.level_up.old_level = (uint8_t) old_level;
+        pl.level_up.new_level = (uint8_t) g_app.player.level;
+        rogue_event_publish(ROGUE_EVENT_LEVEL_UP, &pl, ROGUE_EVENT_PRIORITY_HIGH, 0x50524F47,
+                            "progression");
         /* Immediate save on each level-up to ensure persistence even if player quits before
          * autosave interval */
         rogue_persistence_save_player_stats();
