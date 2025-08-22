@@ -1,3 +1,13 @@
+/**
+ * @file crafting_economy.c
+ * @brief Crafting economy helpers: inflation guards, scarcity, and value model.
+ *
+ * Contains tuning and lightweight runtime helpers used by crafting to
+ * avoid runaway inflation (recent craft decay), map scarcity to
+ * dynamic spawn scalars, compute softcap pressure and produce an
+ * enhanced item value estimate that composes base econ_value with
+ * material/rarity/affix considerations.
+ */
 #include "crafting_economy.h"
 #include "../vendor/econ_value.h"
 #include "core/inventory/inventory.h" /* assumed existing for count accessor prototypes */
@@ -13,6 +23,14 @@
 static unsigned short s_recent_craft_counts[MAX_RECIPES_TRACKED];
 
 /* Decay counters gradually (called maybe once per in-game minute or per test). */
+/**
+ * @brief Decay recent craft counters gradually.
+ *
+ * Intended to be called periodically (eg once per in-game minute or
+ * test tick). Applies a 25% decay to each tracked recipe's recent
+ * craft counter to model cooling demand and prevent permanent
+ * inflation adjustments.
+ */
 void rogue_craft_inflation_decay_tick(void)
 {
     for (int i = 0; i < MAX_RECIPES_TRACKED; i++)
@@ -28,6 +46,14 @@ void rogue_craft_inflation_decay_tick(void)
     }
 }
 
+/**
+ * @brief Increment recent craft counter for a recipe.
+ *
+ * Bounds-checked against internal tracking capacity. The cap guards
+ * against overflow in long-running sessions.
+ *
+ * @param recipe_index Index of the crafted recipe
+ */
 void rogue_craft_inflation_on_craft(int recipe_index)
 {
     if (recipe_index >= 0 && recipe_index < MAX_RECIPES_TRACKED)
@@ -39,6 +65,16 @@ void rogue_craft_inflation_on_craft(int recipe_index)
     }
 }
 
+/**
+ * @brief Compute an XP scalar based on recent craft frequency.
+ *
+ * Implements a diminishing-return scalar that reduces XP provided
+ * by repeated crafting of the same recipe to mitigate grinding
+ * inflation. Returns 1.0 for new recipes and clamps to [0.25,1.0].
+ *
+ * @param recipe_index Index of recipe to evaluate
+ * @return XP multiplier
+ */
 float rogue_craft_inflation_xp_scalar(int recipe_index)
 {
     if (recipe_index < 0 || recipe_index >= MAX_RECIPES_TRACKED)
@@ -56,6 +92,17 @@ float rogue_craft_inflation_xp_scalar(int recipe_index)
 }
 
 /* Scarcity estimation: look over all recipes and compute net demand for this material's def id. */
+/**
+ * @brief Estimate scarcity of an item by aggregating recipe demand.
+ *
+ * Scans registered craft recipes and sums the absolute input
+ * demand for `item_def_index`. This naive estimator returns
+ * deficit/(have+1) where `have` currently uses a platform
+ * inventory accessor when available. Returns 0 when no scarcity.
+ *
+ * @param item_def_index Item definition index to evaluate
+ * @return Scarcity score (>=0)
+ */
 float rogue_craft_material_scarcity(int item_def_index)
 {
     if (item_def_index < 0)
@@ -82,6 +129,16 @@ float rogue_craft_material_scarcity(int item_def_index)
     return (float) deficit / (float) (have + 1);
 }
 
+/**
+ * @brief Compute a dynamic spawn scalar for an item based on scarcity.
+ *
+ * Returns a multiplicative boost in [0.75,1.35] where higher values
+ * encourage spawning of scarce materials. The scalar is attenuated by
+ * softcap pressure so that abundant items do not over-inflate supply.
+ *
+ * @param item_def_index Item definition index
+ * @return Spawn multiplier
+ */
 float rogue_craft_dynamic_spawn_scalar(int item_def_index)
 {
     float scarcity = rogue_craft_material_scarcity(item_def_index);
@@ -101,6 +158,17 @@ float rogue_craft_dynamic_spawn_scalar(int item_def_index)
     return boost;
 }
 
+/**
+ * @brief Compute softcap pressure for an item based on on-hand counts.
+ *
+ * Uses item rarity to compute a tier-threshold; when player 'have'
+ * exceeds threshold pressure grows toward 1.0 and saturates, which
+ * downstream systems can use to suppress additional spawns or
+ * bonuses.
+ *
+ * @param item_def_index Item definition index
+ * @return Pressure in [0,1]
+ */
 float rogue_craft_material_softcap_pressure(int item_def_index)
 {
     if (item_def_index < 0)
@@ -130,6 +198,21 @@ float rogue_craft_material_softcap_pressure(int item_def_index)
 
 /* Enhanced value model: integrate material quality bias and rarity curvature. We delegate base
  * logic to existing econ_value then adjust. */
+/**
+ * @brief Compute an enhanced numeric value for an item.
+ *
+ * Combines the item's base_value with slot multipliers (weapon/armor),
+ * rarity curvature, affix contribution, durability scaling and a
+ * material quality bias factor. The model is intentionally simple and
+ * deterministic for predictable analytics and tooling.
+ *
+ * @param def_index Item definition index
+ * @param rarity Rarity step (0..n), used to compute multiplier
+ * @param affix_power_raw Raw affix power contributing to value
+ * @param durability_fraction Fractional durability in [0,1]
+ * @param material_quality_bias Bias in [0,1] representing material quality
+ * @return Integer estimated item value (>=1)
+ */
 int rogue_craft_enhanced_item_value(int def_index, int rarity, int affix_power_raw,
                                     float durability_fraction, float material_quality_bias)
 {
