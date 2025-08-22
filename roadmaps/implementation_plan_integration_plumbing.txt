@@ -191,14 +191,15 @@ PHASE 2. JSON Configuration Standardization & Migration
         2.3.2.6 Implement affix weight balancing for generation (Done)
         2.3.2.7 Create affix budget validation (prevent overpowered combinations) (Done)
 
-    2.3.3 Materials & Crafting (materials.cfg → json/crafting/materials.json) priority 2 (X)
-        2.3.3.1 Migrate crafting material definitions with properties (X)
-        2.3.3.2 Migrate gathering node definitions with spawn rules (X)
-        2.3.3.3 Migrate recipe definitions with requirements & outputs (X)
-        2.3.3.4 Create material tier organization & progression paths (X)
-        2.3.3.5 Add recipe dependency validation (required materials exist) (X)
-        2.3.3.6 Implement crafting balance validation (input/output ratios) (X)
-        2.3.3.7 Create crafting skill requirement validation (X)
+    2.3.3 Materials & Crafting (materials.cfg → json/crafting/materials.json) priority 2 (Done)
+        2.3.3.1 Migrate crafting material definitions with properties (Done)
+        2.3.3.2 Migrate gathering node definitions with spawn rules (Done)
+        2.3.3.3 Migrate recipe definitions with requirements & outputs (Done)
+        2.3.3.4 Create material tier organization & progression paths (Done)
+        2.3.3.5 Add recipe dependency validation (required materials exist) (Done)
+        2.3.3.6 Implement crafting balance validation (input/output ratios) (Done)
+        2.3.3.7 Create crafting skill requirement validation (Done)
+        SUMMARY: Added JSON loaders for materials (`rogue_material_registry_load_path` supports JSON), gathering nodes (`rogue_gather_defs_load_path` JSON branch), and crafting recipes (`rogue_craft_load_json`). Implemented tier helpers (`rogue_material_find_by_category_and_tier`, `rogue_material_next_tier_index`) and three validations: dependency integrity (`rogue_craft_validate_dependencies`), balance ratio bounds (`rogue_craft_validate_balance`), and skill requirement ranges (`rogue_craft_validate_skill_requirements`). New unit tests `test_materials_and_gathering_json` and `test_crafting_json_and_validations` pass under SDL2 with -j8.
 
     2.3.4 Biomes & World Generation (biome_assets.cfg → json/world/biomes.json) priority 2 (X)
         2.3.4.1 Migrate biome definitions with generation parameters (X)

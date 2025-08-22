@@ -284,6 +284,7 @@ See `roadmaps/` for subsystem implementation plans (inventory, crafting & gather
 ---
 
 ## 11. Changelog (Curated Recent Highlights)
+* JSON Migration Phase 2.3.3 (Materials & Crafting): Added JSON loaders for materials, gathering nodes, and crafting recipes with validation helpers (dependency, balance ratios, skill requirement bounds). New unit tests `test_materials_and_gathering_json` and `test_crafting_json_and_validations` registered in CTest and passing (Debug, SDL2, -j8).
 * Infinite leveling + maze skill graph design integrated (progression roadmap).
 * Integration Plumbing 3.6.1–3.6.2: Centralized XP award + LevelUp events; first‑unlock skill gating (level >= 5×skill_strength) and SKILL_UNLOCKED event emission with UI/Persistence-compatible payload. Added tests validating XP/LevelUp and skill unlock flow.
 * Enemy difficulty ΔL relative scaling model adopted.

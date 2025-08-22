@@ -6,3 +6,20 @@ Integration Phase 3.6.6–3.6.7: Add specialization subsystem and integrate into
 - Added unit test test_progression_phase3_6_specialization validating baseline → POWER damage increase, respec token consumption, CONTROL cooldown reduction; success token PH3_6_SPECIALIZATION_OK
 - Wired new module and test into CMake; built with SDL2 and parallelism (-j8)
 - Updated roadmap (3.6.6–3.6.7) and README changelog
+
+feat(integration-plumbing): JSON migration for Materials & Crafting with validations and tests
+
+- Phase 2.3.3 complete (Materials & Crafting JSON):
+	- Materials: `rogue_material_registry_load_path` now supports JSON; added tier helpers
+		`rogue_material_find_by_category_and_tier` and `rogue_material_next_tier_index`.
+	- Gathering: `rogue_gather_defs_load_path` JSON branch supports node defs with weighted materials,
+		deterministic spawn/harvest, tool tier gating, and rare proc fields.
+	- Crafting: `rogue_craft_load_json` parses recipes (inputs/outputs, time_ms, station, skill_req, exp_reward).
+		Added validations: `rogue_craft_validate_dependencies`, `rogue_craft_validate_balance(min,max)`,
+		`rogue_craft_validate_skill_requirements`.
+- Tests: Added `test_materials_and_gathering_json` and `test_crafting_json_and_validations`; registered in CTest.
+	Both pass in Debug with SDL2 and -j8.
+- Build: Kept SDL2 enabled; MSBuild parallel builds via CMake `--parallel 8`.
+- Docs: Roadmap updated (2.3.3 marked Done with summary). README changelog notes new JSON loaders and validations.
+
+Refs: roadmaps/implementation_plan_integration_plumbing.txt 2.3.3

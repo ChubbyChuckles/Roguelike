@@ -8,6 +8,27 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_integration_manager.c)
     add_test(NAME test_integration_manager COMMAND test_integration_manager)
 endif()
 
+# Integration Plumbing Phase 2.3.3 Materials & Crafting JSON tests
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_materials_and_gathering_json.c AND NOT TARGET test_materials_and_gathering_json)
+    add_executable(test_materials_and_gathering_json unit/test_materials_and_gathering_json.c)
+    target_link_libraries(test_materials_and_gathering_json PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_materials_and_gathering_json PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_materials_and_gathering_json PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_materials_and_gathering_json COMMAND test_materials_and_gathering_json)
+endif()
+
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_crafting_json_and_validations.c AND NOT TARGET test_crafting_json_and_validations)
+    add_executable(test_crafting_json_and_validations unit/test_crafting_json_and_validations.c)
+    target_link_libraries(test_crafting_json_and_validations PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_crafting_json_and_validations PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_crafting_json_and_validations PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_crafting_json_and_validations COMMAND test_crafting_json_and_validations)
+endif()
+
 # Integration Plumbing Phase 4.1 Unified Entity ID System Test
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_entity_id.c AND NOT TARGET test_entity_id)
     add_executable(test_entity_id unit/test_entity_id.c)
