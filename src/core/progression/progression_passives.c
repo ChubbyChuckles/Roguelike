@@ -239,6 +239,16 @@ int rogue_progression_passive_unlock(int node_id, unsigned int timestamp_ms, int
         return -1;
     if (g_unlocked[node_id])
         return -2;
+    /* Phase 3.6.3: gate unlocks using progression maze thresholds (level & attributes). */
+    if (g_maze_ref && g_maze_ref->meta && node_id < g_maze_ref->base.node_count)
+    {
+        if (!rogue_progression_maze_node_unlockable(g_maze_ref, node_id, level, str, dex, intel,
+                                                    vit))
+        {
+            /* Not unlockable yet; caller can retry later when requirements met. */
+            return -1;
+        }
+    }
     g_unlocked[node_id] = 1;
     PassiveNodeEffects* pne = &g_node_effects[node_id];
     int is_keystone = 0;

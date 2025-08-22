@@ -29,13 +29,6 @@ int rogue_progression_maze_build(const char* config_path, RogueProgressionMaze* 
         rogue_progression_maze_free(out_maze);
         return 0;
     }
-    out_maze->meta =
-        (RogueProgressionMazeNodeMeta*) malloc(sizeof(RogueProgressionMazeNodeMeta) * (size_t) n);
-    if (!out_maze->meta)
-    {
-        rogue_progression_maze_free(out_maze);
-        return 0;
-    }
     /* Build temporary adjacency counts */
     int* deg = (int*) calloc((size_t) n, sizeof(int));
     if (!deg)
@@ -157,6 +150,17 @@ int rogue_progression_maze_build(const char* config_path, RogueProgressionMaze* 
             out_maze->adjacency[offsets[a] + fill[a]++] = b;
             out_maze->adjacency[offsets[b] + fill[b]++] = a;
         }
+    }
+    /* Allocate and populate meta (after any augmentation so size matches final node_count) */
+    out_maze->meta =
+        (RogueProgressionMazeNodeMeta*) malloc(sizeof(RogueProgressionMazeNodeMeta) * (size_t) n);
+    if (!out_maze->meta)
+    {
+        free(offsets);
+        free(fill);
+        free(deg);
+        rogue_progression_maze_free(out_maze);
+        return 0;
     }
     /* Populate meta */
     for (int i = 0; i < n; i++)

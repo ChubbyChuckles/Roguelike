@@ -188,6 +188,28 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_xp_events.c A
     add_test(NAME test_progression_phase3_6_xp_events COMMAND test_progression_phase3_6_xp_events)
 endif()
 
+# Phase 3.6.3 test: progression maze unlock gating
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_maze_unlocks.c AND NOT TARGET test_progression_phase3_6_maze_unlocks)
+    add_executable(test_progression_phase3_6_maze_unlocks unit/test_progression_phase3_6_maze_unlocks.c)
+    target_link_libraries(test_progression_phase3_6_maze_unlocks PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_progression_phase3_6_maze_unlocks PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_progression_phase3_6_maze_unlocks PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_progression_phase3_6_maze_unlocks COMMAND test_progression_phase3_6_maze_unlocks)
+endif()
+
+# Integration Plumbing Phase 3.6.4 Effect Scaling test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_effect_scaling.c AND NOT TARGET test_progression_phase3_6_effect_scaling)
+    add_executable(test_progression_phase3_6_effect_scaling unit/test_progression_phase3_6_effect_scaling.c)
+    target_link_libraries(test_progression_phase3_6_effect_scaling PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_progression_phase3_6_effect_scaling PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_progression_phase3_6_effect_scaling PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_progression_phase3_6_effect_scaling COMMAND test_progression_phase3_6_effect_scaling)
+endif()
+
 # Integration Plumbing Phase 2.2 CFG File Analysis Test (manual run)
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_cfg_file_analysis.c)
     add_executable(test_cfg_file_analysis unit/test_cfg_file_analysis.c)

@@ -1,6 +1,7 @@
 /* Skill registry & ranking management (extracted from monolithic skills.c) */
 #include "core/app_state.h"
 #include "core/buffs.h"
+#include "core/integration/event_bus.h"
 #include "core/skills_internal.h"
 #include "util/file_search.h"
 #include "util/log.h"
@@ -218,11 +219,37 @@ int rogue_skill_rank_up(int id)
         return st->rank;
     if (g_app.talent_points <= 0)
         return -1;
+    /* Phase 3.6.2: prerequisite gating with progression level gates.
+       Use data-driven ring strength as a proxy for minimum level: require lvl >= 5*skill_strength.
+       Default strength (0) implies no extra gate beyond talent points. */
+    if (st->rank == 0)
+    {
+        int required_level = (def->skill_strength > 0) ? (def->skill_strength * 5) : 1;
+        if (g_app.player.level < required_level)
+        {
+            ROGUE_LOG_INFO("Skill unlock gated: id=%d name=%s player_lvl=%d required=%d", id,
+                           def->name ? def->name : "<noname>", g_app.player.level, required_level);
+            return -1;
+        }
+    }
     st->rank++;
     g_app.talent_points--;
     g_app.stats_dirty = 1;
     rogue_skills_recompute_synergies();
     rogue_persistence_save_player_stats();
+    /* Emit SKILL_UNLOCKED event on first unlock (rank 1). Reuse xp_gained.source_id to carry
+       skill_id per existing UI/persistence bridges. */
+    if (st->rank == 1)
+    {
+        RogueEventPayload p;
+        memset(&p, 0, sizeof p);
+        p.xp_gained.player_id = 0;
+        p.xp_gained.xp_amount = 0;
+        p.xp_gained.source_type = 0;
+        p.xp_gained.source_id = (uint32_t) id; /* skill id */
+        rogue_event_publish(ROGUE_EVENT_SKILL_UNLOCKED, &p, ROGUE_EVENT_PRIORITY_NORMAL, 0x534B494C,
+                            "skills");
+    }
     return st->rank;
 }
 
