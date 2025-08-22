@@ -32,6 +32,7 @@ SOFTWARE.
 #include "core/equipment/equipment_stats.h"
 #include "core/game_loop.h"
 #include "core/hud/hud.h"
+#include "core/inventory/inventory.h"
 #include "core/loot/loot_instances.h"
 #include "core/loot/loot_item_defs.h"
 #include "core/loot/loot_logging.h"
@@ -47,7 +48,6 @@ SOFTWARE.
 #include "core/skill_bar.h"
 #include "core/skill_tree.h"
 #include "core/skills.h"
-#include "core/src\core\inventory\inventory.h"
 #include "core/start_screen.h"
 #include "core/stat_cache.h"
 #include "core/tile_sprite_cache.h"
@@ -158,16 +158,7 @@ RogueEnemy* rogue_test_spawn_hostile_enemy(float x, float y)
 
 /* damage number functions moved to damage_numbers.c */
 
-/* Public helper to add hitstop (clamped) */
-void rogue_app_add_hitstop(float ms)
-{
-    if (ms < 0)
-        return;
-    if (ms > 180.0f)
-        ms = 180.0f;
-    if (g_app.hitstop_timer_ms < ms)
-        g_app.hitstop_timer_ms = ms; /* take longer value */
-}
+/* hitstop helper moved to app_step.c to avoid duplicate symbol during link. */
 
 /* frame timing helpers moved to metrics.c */
 

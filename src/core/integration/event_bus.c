@@ -28,6 +28,15 @@ static RogueEventBus g_event_bus = {0};
 /* Event type name registry (Phase 1.1.2) */
 static char g_event_type_names[ROGUE_MAX_EVENT_TYPES][64];
 static bool g_event_type_registered[ROGUE_MAX_EVENT_TYPES];
+/* Overflow registry for IDs >= ROGUE_MAX_EVENT_TYPES (e.g., reserved test ranges).
+   This avoids hard-capping valid reserved IDs while keeping the fast path intact. */
+typedef struct
+{
+    uint32_t id;
+    char name[64];
+    bool used;
+} RogueEventTypeOverflow;
+static RogueEventTypeOverflow g_event_type_overflow[128]; /* small cap to prevent abuse */
 
 /* Forward declarations */
 static void event_bus_lock(void);
@@ -326,6 +335,11 @@ bool rogue_event_publish_with_deadline(RogueEventTypeId type_id, const RogueEven
 
     event_bus_unlock();
 
+    ROGUE_LOG_DEBUG(
+        "Post-publish stats: total_queue_size=%u, current_queue_depth=%u, events_published=%llu",
+        g_event_bus.total_queue_size, g_event_bus.stats.current_queue_depth,
+        (unsigned long long) g_event_bus.stats.events_published);
+
     ROGUE_LOG_DEBUG("Published event type %u from system %u (Queue depth: %u)", type_id,
                     source_system_id, g_event_bus.total_queue_size);
 
@@ -382,6 +396,7 @@ bool rogue_event_publish_batch(const RogueEvent* events, uint32_t event_count)
 
     /* Update statistics */
     g_event_bus.stats.events_published += successfully_queued;
+    g_event_bus.stats.current_queue_depth = g_event_bus.total_queue_size;
 
     event_bus_unlock();
 
@@ -615,91 +630,127 @@ uint32_t rogue_event_process_sync(uint32_t max_events, uint32_t time_budget_us)
 
             event_bus_unlock();
 
-            /* Process event with all subscribers */
-            uint64_t process_start = rogue_event_get_timestamp_us();
+            /* Process event with retry semantics */
+            uint64_t overall_process_start = rogue_event_get_timestamp_us();
             bool event_processed = false;
+            bool callback_invoked = false;
 
-            uint32_t type_hash = hash_event_type(event->type_id);
-            RogueEventSubscription* sub = g_event_bus.subscriptions[type_hash];
+            ROGUE_LOG_DEBUG("process_sync: begin event type=%u retries=%u max=%u priority=%d",
+                            event->type_id, (unsigned) event->retry_count,
+                            (unsigned) event->max_retries, (int) event->priority);
 
-            while (sub)
+            for (;;)
             {
-                if (sub->active && sub->event_type_id == event->type_id)
+                uint32_t type_hash = hash_event_type(event->type_id);
+                RogueEventSubscription* sub = g_event_bus.subscriptions[type_hash];
+
+                /* Track whether any callback was actually invoked this attempt */
+                bool invoked_this_attempt = false;
+
+                while (sub)
                 {
-                    /* Check priority filter */
-                    if (event->priority > sub->min_priority)
+                    if (sub->active && sub->event_type_id == event->type_id)
                     {
-                        sub = sub->next;
-                        continue;
+                        /* Check priority filter */
+                        if (event->priority > sub->min_priority)
+                        {
+                            sub = sub->next;
+                            continue;
+                        }
+
+                        /* Check rate limiting */
+                        if (is_subscription_rate_limited(sub))
+                        {
+                            sub = sub->next;
+                            continue; /* Rate-limited: treated as not eligible for retry */
+                        }
+
+                        /* Check predicate if present */
+                        if (sub->predicate && !sub->predicate(event))
+                        {
+                            sub = sub->next;
+                            continue; /* Predicate filtered: not eligible for retry */
+                        }
+
+                        /* Call subscriber */
+                        uint64_t callback_start = rogue_event_get_timestamp_us();
+                        bool callback_result = sub->callback(event, sub->user_data);
+                        uint64_t callback_end = rogue_event_get_timestamp_us();
+
+                        /* Update subscription statistics */
+                        sub->total_callbacks++;
+                        sub->total_processing_time_us += (callback_end - callback_start);
+                        sub->last_processing_time_us = callback_end - callback_start;
+                        sub->last_callback_time_us = callback_end;
+
+                        invoked_this_attempt = true;
+                        callback_invoked = true;
+
+                        if (callback_result)
+                        {
+                            event_processed = true;
+                            ROGUE_LOG_DEBUG("process_sync: callback success for type=%u",
+                                            event->type_id);
+                        }
+                        else
+                        {
+                            ROGUE_LOG_DEBUG("process_sync: callback failed for type=%u",
+                                            event->type_id);
+                        }
                     }
 
-                    /* Check rate limiting */
-                    if (is_subscription_rate_limited(sub))
-                    {
-                        sub = sub->next;
-                        continue;
-                    }
-
-                    /* Check predicate if present */
-                    if (sub->predicate && !sub->predicate(event))
-                    {
-                        sub = sub->next;
-                        continue;
-                    }
-
-                    /* Call subscriber */
-                    uint64_t callback_start = rogue_event_get_timestamp_us();
-                    bool callback_result = sub->callback(event, sub->user_data);
-                    uint64_t callback_end = rogue_event_get_timestamp_us();
-
-                    /* Update subscription statistics */
-                    sub->total_callbacks++;
-                    sub->total_processing_time_us += (callback_end - callback_start);
-                    sub->last_processing_time_us = callback_end - callback_start;
-                    sub->last_callback_time_us = callback_end;
-
-                    if (callback_result)
-                    {
-                        event_processed = true;
-                    }
+                    sub = sub->next;
                 }
 
-                sub = sub->next;
-            }
+                /* If processed successfully, finalize */
+                if (event_processed)
+                {
+                    uint64_t process_end = rogue_event_get_timestamp_us();
+                    event_bus_lock();
+                    update_statistics_on_process(event, process_end - overall_process_start);
+                    event->processed = true;
+                    processed_count++;
+                    free_event(event);
+                    ROGUE_LOG_DEBUG("process_sync: success finalize, processed_count=%u",
+                                    processed_count);
+                    break;
+                }
 
-            uint64_t process_end = rogue_event_get_timestamp_us();
+                /* If no callback ran (rate limited, predicate filtered, or no subscribers) */
+                if (!invoked_this_attempt)
+                {
+                    /* Consume the event without counting as failure (no eligible handler) */
+                    event_bus_lock();
+                    /* Do not call update_statistics_on_process, as it's not a success */
+                    processed_count++;
+                    free_event(event);
+                    ROGUE_LOG_DEBUG(
+                        "process_sync: no eligible subscriber, consumed, processed_count=%u",
+                        processed_count);
+                    break;
+                }
 
-            event_bus_lock();
-
-            /* Update statistics */
-            update_statistics_on_process(event, process_end - process_start);
-
-            if (event_processed)
-            {
-                event->processed = true;
-                processed_count++;
-            }
-            else
-            {
-                /* No subscriber processed the event successfully */
+                /* Callbacks ran but none succeeded: consider retry */
                 if (event->retry_count < event->max_retries)
                 {
                     event->retry_count++;
-                    enqueue_event(event); /* Re-queue for retry */
-                    ROGUE_LOG_DEBUG("Re-queued event type %u for retry (%u/%u)", event->type_id,
-                                    event->retry_count, event->max_retries);
+                    /* Retry immediately within the same processing call */
+                    ROGUE_LOG_DEBUG("process_sync: retrying type=%u attempt=%u/%u", event->type_id,
+                                    (unsigned) event->retry_count, (unsigned) event->max_retries);
+                    continue;
                 }
                 else
                 {
-                    ROGUE_LOG_WARN("Event type %u failed after %u retries", event->type_id,
-                                   event->max_retries);
-                    free_event(event);
+                    /* Exhausted retries: mark as failed and drop without incrementing processed */
+                    event_bus_lock();
                     g_event_bus.stats.events_failed++;
+                    free_event(event);
+                    ROGUE_LOG_DEBUG("process_sync: exhausted retries for type=%u; dropping "
+                                    "(processed_count=%u)",
+                                    event->type_id, processed_count);
+                    break;
                 }
-                continue;
             }
-
-            free_event(event);
         }
     }
 
@@ -742,44 +793,69 @@ uint32_t rogue_event_process_priority(RogueEventPriority priority, uint32_t time
 
         event_bus_unlock();
 
-        /* Process event (simplified version for priority-specific processing) */
-        uint64_t process_start = rogue_event_get_timestamp_us();
+        /* Process event (priority-specific) with retry semantics */
+        uint64_t overall_process_start = rogue_event_get_timestamp_us();
         bool event_processed = false;
 
-        uint32_t type_hash = hash_event_type(event->type_id);
-        RogueEventSubscription* sub = g_event_bus.subscriptions[type_hash];
-
-        while (sub)
+        for (;;)
         {
-            if (sub->active && sub->event_type_id == event->type_id &&
-                event->priority <= sub->min_priority)
+            uint32_t type_hash = hash_event_type(event->type_id);
+            RogueEventSubscription* sub = g_event_bus.subscriptions[type_hash];
+            bool invoked_this_attempt = false;
+
+            while (sub)
             {
-
-                if (!is_subscription_rate_limited(sub) &&
-                    (!sub->predicate || sub->predicate(event)))
+                if (sub->active && sub->event_type_id == event->type_id &&
+                    event->priority <= sub->min_priority)
                 {
+                    if (is_subscription_rate_limited(sub) ||
+                        (sub->predicate && !sub->predicate(event)))
+                    {
+                        sub = sub->next;
+                        continue;
+                    }
 
+                    invoked_this_attempt = true;
                     if (sub->callback(event, sub->user_data))
                     {
                         event_processed = true;
                     }
                 }
+                sub = sub->next;
             }
-            sub = sub->next;
+
+            if (event_processed)
+            {
+                uint64_t process_end = rogue_event_get_timestamp_us();
+                event_bus_lock();
+                update_statistics_on_process(event, process_end - overall_process_start);
+                processed_count++;
+                free_event(event);
+                break;
+            }
+
+            if (!invoked_this_attempt)
+            {
+                /* No eligible subscriber path: consume without failure */
+                event_bus_lock();
+                processed_count++;
+                free_event(event);
+                break;
+            }
+
+            if (event->retry_count < event->max_retries)
+            {
+                event->retry_count++;
+                continue; /* retry */
+            }
+            else
+            {
+                event_bus_lock();
+                g_event_bus.stats.events_failed++;
+                free_event(event);
+                break;
+            }
         }
-
-        uint64_t process_end = rogue_event_get_timestamp_us();
-
-        event_bus_lock();
-
-        update_statistics_on_process(event, process_end - process_start);
-
-        if (event_processed)
-        {
-            processed_count++;
-        }
-
-        free_event(event);
     }
 
     event_bus_unlock();
@@ -799,7 +875,18 @@ bool rogue_event_process_async(uint32_t worker_count)
 
 const RogueEventBusStats* rogue_event_bus_get_stats(void)
 {
-    return g_event_bus.initialized ? &g_event_bus.stats : NULL;
+    if (!g_event_bus.initialized)
+    {
+        return NULL;
+    }
+
+    ROGUE_LOG_DEBUG("get_stats: total_queue_size=%u, current_queue_depth=%u, "
+                    "events_published=%llu, events_processed=%llu",
+                    g_event_bus.total_queue_size, g_event_bus.stats.current_queue_depth,
+                    (unsigned long long) g_event_bus.stats.events_published,
+                    (unsigned long long) g_event_bus.stats.events_processed);
+
+    return &g_event_bus.stats;
 }
 
 void rogue_event_bus_reset_stats(void)
@@ -841,47 +928,82 @@ bool rogue_event_bus_is_overloaded(void)
 
 bool rogue_event_register_type(RogueEventTypeId type_id, const char* type_name)
 {
-    if (type_id >= ROGUE_MAX_EVENT_TYPES)
-    {
-        ROGUE_LOG_ERROR("Event type ID %u exceeds maximum %u", type_id, ROGUE_MAX_EVENT_TYPES);
-        return false;
-    }
-
     if (!type_name)
     {
         ROGUE_LOG_ERROR("Event type name is NULL");
         return false;
     }
 
-    if (g_event_type_registered[type_id])
+    if (type_id < ROGUE_MAX_EVENT_TYPES)
     {
-        ROGUE_LOG_WARN("Event type %u already registered as '%s'", type_id,
-                       g_event_type_names[type_id]);
+        if (g_event_type_registered[type_id])
+        {
+            ROGUE_LOG_WARN("Event type %u already registered as '%s'", type_id,
+                           g_event_type_names[type_id]);
+            return true;
+        }
+#ifdef _MSC_VER
+        strncpy_s(g_event_type_names[type_id], sizeof(g_event_type_names[type_id]), type_name,
+                  _TRUNCATE);
+#else
+        strncpy(g_event_type_names[type_id], type_name, sizeof(g_event_type_names[type_id]) - 1);
+        g_event_type_names[type_id][sizeof(g_event_type_names[type_id]) - 1] = '\0';
+#endif
+        g_event_type_registered[type_id] = true;
+        ROGUE_LOG_DEBUG("Registered event type %u: '%s'", type_id, type_name);
         return true;
     }
 
+    /* Fallback: store in overflow table */
+    for (size_t i = 0; i < sizeof(g_event_type_overflow) / sizeof(g_event_type_overflow[0]); ++i)
+    {
+        if (g_event_type_overflow[i].used && g_event_type_overflow[i].id == type_id)
+        {
+            /* Idempotent: already registered */
+            return true;
+        }
+    }
+    for (size_t i = 0; i < sizeof(g_event_type_overflow) / sizeof(g_event_type_overflow[0]); ++i)
+    {
+        if (!g_event_type_overflow[i].used)
+        {
+            g_event_type_overflow[i].id = type_id;
 #ifdef _MSC_VER
-    strncpy_s(g_event_type_names[type_id], sizeof(g_event_type_names[type_id]), type_name,
-              _TRUNCATE);
+            strncpy_s(g_event_type_overflow[i].name, sizeof(g_event_type_overflow[i].name),
+                      type_name, _TRUNCATE);
 #else
-    strncpy(g_event_type_names[type_id], type_name, sizeof(g_event_type_names[type_id]) - 1);
-    g_event_type_names[type_id][sizeof(g_event_type_names[type_id]) - 1] = '\0';
+            strncpy(g_event_type_overflow[i].name, type_name,
+                    sizeof(g_event_type_overflow[i].name) - 1);
+            g_event_type_overflow[i].name[sizeof(g_event_type_overflow[i].name) - 1] = '\0';
 #endif
-
-    g_event_type_registered[type_id] = true;
-
-    ROGUE_LOG_DEBUG("Registered event type %u: '%s'", type_id, type_name);
-    return true;
+            g_event_type_overflow[i].used = true;
+            ROGUE_LOG_DEBUG("Registered overflow event type %u: '%s'", type_id, type_name);
+            return true;
+        }
+    }
+    ROGUE_LOG_ERROR("Event type overflow registry full; cannot register id %u ('%s')", type_id,
+                    type_name);
+    return false;
 }
 
 const char* rogue_event_get_type_name(RogueEventTypeId type_id)
 {
-    if (type_id >= ROGUE_MAX_EVENT_TYPES || !g_event_type_registered[type_id])
+    if (type_id < ROGUE_MAX_EVENT_TYPES)
     {
-        return "UNKNOWN_EVENT_TYPE";
+        if (!g_event_type_registered[type_id])
+        {
+            return "UNKNOWN_EVENT_TYPE";
+        }
+        return g_event_type_names[type_id];
     }
-
-    return g_event_type_names[type_id];
+    for (size_t i = 0; i < sizeof(g_event_type_overflow) / sizeof(g_event_type_overflow[0]); ++i)
+    {
+        if (g_event_type_overflow[i].used && g_event_type_overflow[i].id == type_id)
+        {
+            return g_event_type_overflow[i].name;
+        }
+    }
+    return "UNKNOWN_EVENT_TYPE";
 }
 
 /* ===== Configuration & Replay Implementation ===== */
@@ -1122,6 +1244,16 @@ static void enqueue_event(RogueEvent* event)
     {
         g_event_bus.stats.max_queue_depth_reached = g_event_bus.total_queue_size;
     }
+
+    /* Keep current queue depth stat in sync on enqueue as well */
+    g_event_bus.stats.current_queue_depth = g_event_bus.total_queue_size;
+
+    /* Debug tracing to validate queue depth updates */
+    ROGUE_LOG_DEBUG("enqueue_event: priority=%d, queue_sizes[%d]=%u, total_queue_size=%u, "
+                    "current_queue_depth=%u",
+                    (int) event->priority, (int) event->priority,
+                    g_event_bus.queue_sizes[event->priority], g_event_bus.total_queue_size,
+                    g_event_bus.stats.current_queue_depth);
 }
 
 static RogueEvent* dequeue_event(RogueEventPriority priority)
@@ -1180,7 +1312,11 @@ static void record_event_for_replay(const RogueEvent* event)
     }
 }
 
-static void update_statistics_on_publish(void) { g_event_bus.stats.events_published++; }
+static void update_statistics_on_publish(void)
+{
+    g_event_bus.stats.events_published++;
+    g_event_bus.stats.current_queue_depth = g_event_bus.total_queue_size;
+}
 
 static void update_statistics_on_process(const RogueEvent* event, uint64_t processing_time_us)
 {

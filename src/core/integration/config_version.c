@@ -458,8 +458,20 @@ bool rogue_event_type_validate_id(uint32_t event_id, char* error_msg, size_t err
         return false;
     }
 
-    /* Check against expanded maximum (increased from 512 to 4096) */
-    if (event_id > g_config_manager.current_schema.max_event_types)
+    /* Allow IDs that fall within reserved ranges (e.g., 0x9000-0x9FFF for tests),
+       even if they exceed the normal max_event_types soft limit. */
+    bool in_reserved_range = false;
+    for (uint32_t i = 0; i < g_reserved_range_count; i++)
+    {
+        if (event_id >= g_reserved_ranges[i].start_id && event_id <= g_reserved_ranges[i].end_id)
+        {
+            in_reserved_range = true;
+            break;
+        }
+    }
+
+    /* Check against expanded maximum (increased from 512 to 4096) unless reserved */
+    if (!in_reserved_range && event_id > g_config_manager.current_schema.max_event_types)
     {
         snprintf(error_msg, error_msg_size, "Event type ID %u exceeds maximum %u", event_id,
                  g_config_manager.current_schema.max_event_types);

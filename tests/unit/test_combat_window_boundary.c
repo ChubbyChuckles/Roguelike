@@ -8,7 +8,7 @@
 /* Stubs */
 RoguePlayer g_exposed_player_for_stats = {0};
 static int rogue_get_current_attack_frame(void) { return 3; }
-void rogue_app_add_hitstop(float ms) { (void) ms; }
+static void rogue_app_add_hitstop(float ms) { (void) ms; }
 /* Test stub removed - using library version */
 static void rogue_add_damage_number_ex(float x, float y, int amount, int from_player, int crit)
 {

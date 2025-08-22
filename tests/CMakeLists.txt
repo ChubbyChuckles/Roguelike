@@ -61,14 +61,14 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_event_bus.c)
     add_test(NAME test_event_bus COMMAND test_event_bus)
 endif()
 
-# Integration Plumbing Phase 2.1 JSON Schema Test  
+# Integration Plumbing Phase 2.1 JSON Schema Test
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_json_schema.c)
     add_executable(test_json_schema unit/test_json_schema.c)
     target_link_libraries(test_json_schema PRIVATE rogue_core)
     add_test(NAME test_json_schema COMMAND test_json_schema)
 endif()
 
-# Integration Plumbing Phase 2.2 CFG Parser Test  
+# Integration Plumbing Phase 2.2 CFG Parser Test
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_cfg_parser.c)
     add_executable(test_cfg_parser unit/test_cfg_parser.c)
     target_link_libraries(test_cfg_parser PRIVATE rogue_core)
@@ -146,8 +146,8 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/test_phase3_7_worldgen_enemy_bridge.c)
 endif()
 
 # Integration Plumbing Phase 3.8 World Generation ↔ Resource/Gathering Bridge Test
-if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/test_phase3_8_worldgen_resource_bridge.c)
-    add_executable(test_phase3_8_worldgen_resource_bridge test_phase3_8_worldgen_resource_bridge.c)
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_phase3_8_worldgen_resource_bridge.c)
+    add_executable(test_phase3_8_worldgen_resource_bridge unit/test_phase3_8_worldgen_resource_bridge.c)
     target_link_libraries(test_phase3_8_worldgen_resource_bridge PRIVATE rogue_core)
     add_test(NAME test_phase3_8_worldgen_resource_bridge COMMAND test_phase3_8_worldgen_resource_bridge)
 endif()
@@ -2952,6 +2952,8 @@ foreach(ut ${UNIT_TESTS})
     endif()
     add_executable(${name} ${ut})
     target_link_libraries(${name} PRIVATE rogue_core)
+    # Prevent SDL from redefining main to SDL_main when SDL headers transitively included
+    target_compile_definitions(${name} PRIVATE SDL_MAIN_HANDLED=1)
     target_compile_definitions(${name} PRIVATE TEST_COMBAT_PERMISSIVE=1)
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(${name} PRIVATE ROGUE_HAVE_SDL=1)
@@ -3109,6 +3111,8 @@ endif()
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_astar.c AND NOT TARGET test_astar)
     add_executable(test_astar unit/test_astar.c)
     target_link_libraries(test_astar PRIVATE rogue_core)
+    # Prevent SDL from redefining main to SDL_main when SDL headers transitively included
+    target_compile_definitions(test_astar PRIVATE SDL_MAIN_HANDLED=1)
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_astar PRIVATE ROGUE_HAVE_SDL=1)
     endif()
