@@ -162,7 +162,8 @@ RogueCfgCategory rogue_cfg_classify_file(const char* filename)
         return ROGUE_CFG_CATEGORY_DIALOGUE;
     }
 
-    if (strstr(lower_filename, "skill") || strstr(lower_filename, "ability"))
+    if (strstr(lower_filename, "skill") || strstr(lower_filename, "abilities") ||
+        strstr(lower_filename, "ability"))
     {
         return ROGUE_CFG_CATEGORY_SKILLS;
     }
@@ -327,6 +328,21 @@ RogueCfgFileAnalysis* rogue_cfg_analyze_file(const char* filename)
         {
             in_header_comment = false;
             strncpy(analysis->header_comment, header_buffer, sizeof(analysis->header_comment) - 1);
+
+            /* If we couldn't classify by filename, try header-based heuristics */
+            if (analysis->category == ROGUE_CFG_CATEGORY_MISC)
+            {
+                if (strstr(header_buffer, "type,id,stat") || strstr(header_buffer, "type,id") ||
+                    strstr(header_buffer, "stat,min,max"))
+                {
+                    analysis->category = ROGUE_CFG_CATEGORY_AFFIXES;
+                }
+                else if (strstr(header_buffer, "id,name,category") ||
+                         strstr(header_buffer, "dmg_min,dmg_max"))
+                {
+                    analysis->category = ROGUE_CFG_CATEGORY_ITEMS;
+                }
+            }
         }
 
         analysis->data_lines++;
@@ -337,6 +353,19 @@ RogueCfgFileAnalysis* rogue_cfg_analyze_file(const char* filename)
             /* Parse field structure from first data line */
             char* line_copy = strdup(line);
             char* token = strtok(line_copy, ",");
+            /* Content-based category inference if still unknown */
+            if (analysis->category == ROGUE_CFG_CATEGORY_MISC && token)
+            {
+                /* Normalize first token */
+                char first_tok[64] = {0};
+                strncpy(first_tok, token, sizeof(first_tok) - 1);
+                for (char* p = first_tok; *p; ++p)
+                    *p = (char) tolower((unsigned char) *p);
+                if (strcmp(first_tok, "prefix") == 0 || strcmp(first_tok, "suffix") == 0)
+                {
+                    analysis->category = ROGUE_CFG_CATEGORY_AFFIXES;
+                }
+            }
 
             while (token && analysis->field_count < ROGUE_CFG_MAX_FIELDS)
             {

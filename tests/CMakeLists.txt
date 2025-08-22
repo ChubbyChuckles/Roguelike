@@ -1,3 +1,6 @@
+# Ensure SDL doesn't redefine main() in any unit test binaries
+add_compile_definitions(SDL_MAIN_HANDLED=1)
+
 # Integration Plumbing Phase 0 Test
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_integration_manager.c)
     add_executable(test_integration_manager unit/test_integration_manager.c)
