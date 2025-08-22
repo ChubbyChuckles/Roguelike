@@ -1,8 +1,29 @@
+/**
+ * @file behavior_tree.c
+ * @brief Simple behavior tree node & tree utilities.
+ *
+ * Provides node allocation, destruction, basic dynamic child array growth,
+ * tree lifecycle management, ticking, and a utility to serialize the active
+ * path into a compact string form. The implementation is intentionally
+ * minimal and suitable for deterministic unit tests and small AI trees.
+ */
 #include "behavior_tree.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @brief Create a new behavior tree node.
+ *
+ * Allocates and zero-initializes a RogueBTNode and its vtable, sets the
+ * provided tick function and debug name, and optionally preallocates the
+ * children pointer array to initial_capacity entries.
+ *
+ * @param debug_name Optional debug name for human-readable dumps; pointer is stored (not copied).
+ * @param initial_capacity Initial child capacity to preallocate (0 allowed).
+ * @param tick_fn Tick function pointer stored in the node vtable.
+ * @return RogueBTNode* Newly allocated node or NULL on allocation failure.
+ */
 RogueBTNode* rogue_bt_node_create(const char* debug_name, uint16_t initial_capacity,
                                   RogueBTNodeTick tick_fn)
 {
@@ -30,11 +51,29 @@ RogueBTNode* rogue_bt_node_create(const char* debug_name, uint16_t initial_capac
  */
 /* Forward declaration; advanced_nodes.c provides implementation. Provide weak fallback via macro if
  * not linked. */
+/**
+ * @brief Optional per-node advanced cleanup hook.
+ *
+ * Some advanced node implementations may require specialized cleanup. If
+ * linked, advanced_nodes.c should provide this symbol. A no-op fallback is
+ * provided when ROGUE_NO_ADVANCED_NODES is defined.
+ *
+ * @param node Node to clean up.
+ */
 void rogue_bt_advanced_cleanup(RogueBTNode* node);
 #ifdef ROGUE_NO_ADVANCED_NODES
 void rogue_bt_advanced_cleanup(RogueBTNode* node) { (void) node; }
 #endif
 
+/**
+ * @brief Recursively destroy a node and its children.
+ *
+ * Performs a post-order traversal, invoking advanced cleanup for the node
+ * (no-op if fallback), freeing child arrays, the vtable, and finally the
+ * node itself. NULL input is ignored.
+ *
+ * @param node Root of the subtree to destroy.
+ */
 void rogue_bt_node_destroy(RogueBTNode* node)
 {
     if (!node)
@@ -50,6 +89,17 @@ void rogue_bt_node_destroy(RogueBTNode* node)
     free(node);
 }
 
+/**
+ * @brief Add a child node to a parent, growing the child array as needed.
+ *
+ * If the parent's child array is full, it grows the capacity (double up
+ * to initial fallback of 4). Returns true on success and false on OOM or
+ * invalid inputs.
+ *
+ * @param parent Parent node to append the child to.
+ * @param child Child node to add.
+ * @return bool True on success, false on failure.
+ */
 bool rogue_bt_node_add_child(RogueBTNode* parent, RogueBTNode* child)
 {
     if (!parent || !child)
@@ -68,6 +118,15 @@ bool rogue_bt_node_add_child(RogueBTNode* parent, RogueBTNode* child)
     return true;
 }
 
+/**
+ * @brief Create a behavior tree wrapper for a given root node.
+ *
+ * Allocates a RogueBehaviorTree and assigns the provided root. Returns NULL
+ * on invalid input or allocation failure.
+ *
+ * @param root Root node for the new tree.
+ * @return RogueBehaviorTree* Pointer to the created tree or NULL.
+ */
 RogueBehaviorTree* rogue_behavior_tree_create(RogueBTNode* root)
 {
     if (!root)
@@ -79,6 +138,14 @@ RogueBehaviorTree* rogue_behavior_tree_create(RogueBTNode* root)
     return t;
 }
 
+/**
+ * @brief Destroy a behavior tree and free associated memory.
+ *
+ * Destroys the entire node subtree rooted at tree->root and frees the
+ * tree wrapper itself. NULL tree is ignored.
+ *
+ * @param tree Tree to destroy.
+ */
 void rogue_behavior_tree_destroy(RogueBehaviorTree* tree)
 {
     if (!tree)
@@ -87,6 +154,18 @@ void rogue_behavior_tree_destroy(RogueBehaviorTree* tree)
     free(tree);
 }
 
+/**
+ * @brief Tick the behavior tree by invoking the root node's tick function.
+ *
+ * Validates the tree & root tick function, increments the tick counter, and
+ * forwards the call to the root vtable tick function. Returns
+ * ROGUE_BT_INVALID on invalid inputs.
+ *
+ * @param tree Behavior tree to tick.
+ * @param bb Optional blackboard passed to the tick function.
+ * @param dt Delta time in seconds.
+ * @return RogueBTStatus Status returned by the root tick or ROGUE_BT_INVALID.
+ */
 RogueBTStatus rogue_behavior_tree_tick(RogueBehaviorTree* tree, struct RogueBlackboard* bb,
                                        float dt)
 {
@@ -123,6 +202,18 @@ static void serialize_path_recursive(RogueBTNode* node, char** cursor, char* end
     }
 }
 
+/**
+ * @brief Serialize the active path (pre-order names) into a buffer.
+ *
+ * Walks the tree and concatenates node debug names separated by '>' into the
+ * provided buffer. Returns -1 on invalid input; otherwise returns the number
+ * of bytes written excluding the trailing NUL.
+ *
+ * @param tree Tree to serialize.
+ * @param out Output buffer to receive the serialized path.
+ * @param max_out Size of the output buffer in bytes (must be > 0).
+ * @return int Number of bytes written (excluding NUL) or -1 on invalid args.
+ */
 int rogue_behavior_tree_serialize_active_path(RogueBehaviorTree* tree, char* out, int max_out)
 {
     if (!tree || !out || max_out <= 0)
