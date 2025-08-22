@@ -8,6 +8,28 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_integration_manager.c)
     add_test(NAME test_integration_manager COMMAND test_integration_manager)
 endif()
 
+# AI Phase 5.2 Flow Field test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase5_2_flow_field.c AND NOT TARGET test_ai_phase5_2_flow_field)
+    add_executable(test_ai_phase5_2_flow_field unit/test_ai_phase5_2_flow_field.c)
+    target_link_libraries(test_ai_phase5_2_flow_field PRIVATE rogue_core)
+    target_compile_definitions(test_ai_phase5_2_flow_field PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ai_phase5_2_flow_field PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase5_2_flow_field COMMAND test_ai_phase5_2_flow_field)
+endif()
+
+# AI Phase 5.3 Local Avoidance test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase5_3_local_avoid.c AND NOT TARGET test_ai_phase5_3_local_avoid)
+    add_executable(test_ai_phase5_3_local_avoid unit/test_ai_phase5_3_local_avoid.c)
+    target_link_libraries(test_ai_phase5_3_local_avoid PRIVATE rogue_core)
+    target_compile_definitions(test_ai_phase5_3_local_avoid PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ai_phase5_3_local_avoid PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase5_3_local_avoid COMMAND test_ai_phase5_3_local_avoid)
+endif()
+
 # Integration Plumbing Phase 2.3.4 Resource nodes JSON ingestion tests
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_resource_json.c AND NOT TARGET test_resource_json)
     add_executable(test_resource_json unit/test_resource_json.c)

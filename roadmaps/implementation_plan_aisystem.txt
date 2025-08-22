@@ -46,8 +46,8 @@ PHASE 4. Behavior Node Library
 
 PHASE 5. Movement & Pathing Enhancements
 5.1 Nav mesh / grid cost map refinement (Partial: basic block tests)
-5.2 Flow field precomputation for frequent targets (X)
-5.3 Local avoidance (simple steering) (X)
+5.2 Flow field precomputation for frequent targets (Done) [Added ai/pathing/flow_field.{c,h}: reverse Dijkstra over grid respecting rogue_nav_is_blocked & rogue_nav_tile_cost; stores per-cell distance and recommended cardinal step; APIs build/step/free. Unit test test_ai_phase5_2_flow_field validates target dist=0, finiteness of reachable cells, and monotonic descent along recommended steps.]
+5.3 Local avoidance (simple steering) (Done) [Added ai/pathing/local_avoidance.{c,h}: adjusts intended cardinal step to avoid immediate collision via perpendicular probes (left/right priority), with no-move fallback; deterministic and grid-aware. Unit test test_ai_phase5_3_local_avoid ensures blocked forward detours to an unblocked side step.]
 5.4 Path smoothing (corner cutting) (Done) [Added rogue_nav_path_simplify in navigation; preserves endpoints, collapses collinear segments; unit test test_ai_phase5_path_smoothing_and_stuck]
 5.5 Stuck detection & recovery action (Done) [Decorator rogue_bt_decorator_stuck_detect detects low displacement over window; integrated with blackboard timer/vec2; unit test test_ai_phase5_stuck_detect]
 

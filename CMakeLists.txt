@@ -201,6 +201,8 @@ add_library(rogue_core
     src/ai/nodes/basic_nodes.c
     src/ai/nodes/advanced_nodes.c
     src/ai/perception/perception.c
+    src/ai/pathing/flow_field.c
+    src/ai/pathing/local_avoidance.c
     src/core/start_screen.c
     src/core/player/player_assets.c
     src/util/log.c

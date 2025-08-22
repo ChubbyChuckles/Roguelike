@@ -72,3 +72,17 @@ feat(worldgen-json): Complete Phase 2.3.4 with resource nodes + asset dependency
 - Docs: Roadmap 2.3.4.3 and 2.3.4.7 marked Done with updated SUMMARY; README changelog updated.
 
 Refs: roadmaps/implementation_plan_integration_plumbing.txt 2.3.4.3, 2.3.4.7
+
+feat(ai-phase5): Flow field precompute (5.2) and local avoidance (5.3) with unit tests
+
+- Flow Field: Added `ai/pathing/flow_field.{c,h}` building a reverse Dijkstra flow field over the grid
+	honoring `rogue_nav_is_blocked` and `rogue_nav_tile_cost`. Stores per-cell distance and a recommended
+	cardinal step toward the target. Public APIs: build(tx,ty,&field), step(x,y,&dx,&dy), free(&field).
+- Local Avoidance: Added `ai/pathing/local_avoidance.{c,h}` providing `rogue_local_avoid_adjust(x,y, &dx,&dy)`
+	that probes perpendicular detours when an intended forward step is blocked, preferring left/right
+	options deterministically with safe no-move fallback.
+- Tests: New unit tests `test_ai_phase5_2_flow_field` (target dist=0, reachable finiteness, monotonic descent
+	along recommended steps) and `test_ai_phase5_3_local_avoid` (blocked forward detours to side) registered in CTest.
+- Build: Debug with SDL2 and `--parallel 8` succeeded; focused CTest run for both tests passed (0 failures).
+- Docs: Updated `roadmaps/implementation_plan_aisystem.txt` marking 5.2 & 5.3 Done with notes; README changelog
+	now highlights the new modules and tests.
