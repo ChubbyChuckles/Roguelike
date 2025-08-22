@@ -8,6 +8,28 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_integration_manager.c)
     add_test(NAME test_integration_manager COMMAND test_integration_manager)
 endif()
 
+# Integration Plumbing Phase 2.3.4 Resource nodes JSON ingestion tests
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_resource_json.c AND NOT TARGET test_resource_json)
+    add_executable(test_resource_json unit/test_resource_json.c)
+    target_link_libraries(test_resource_json PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_resource_json PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_resource_json PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_resource_json COMMAND test_resource_json)
+endif()
+
+# Integration Plumbing Phase 2.3.4 Biome asset dependency validation tests
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_biome_assets_validate.c AND NOT TARGET test_biome_assets_validate)
+    add_executable(test_biome_assets_validate unit/test_biome_assets_validate.c)
+    target_link_libraries(test_biome_assets_validate PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_biome_assets_validate PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_biome_assets_validate PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_biome_assets_validate COMMAND test_biome_assets_validate)
+endif()
+
 # Integration Plumbing Phase 2.3.4 Biomes JSON loader/validation tests
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_worldgen_phase3_4_biome_json.c AND NOT TARGET test_worldgen_phase3_4_biome_json)
     add_executable(test_worldgen_phase3_4_biome_json unit/test_worldgen_phase3_4_biome_json.c)

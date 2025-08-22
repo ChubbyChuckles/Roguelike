@@ -155,6 +155,8 @@ add_library(rogue_core
     src/world/world_gen_config.c
     src/world/world_gen_biome_desc.c
     src/world/world_gen_biome_json.c
+    src/world/world_gen_resource_json.c
+    src/world/world_gen_biome_assets_validate.c
     src/world/world_gen_macro.c
     src/world/world_gen_local.c
     src/world/world_gen_rivers.c

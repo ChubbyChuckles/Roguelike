@@ -204,12 +204,12 @@ PHASE 2. JSON Configuration Standardization & Migration
     2.3.4 Biomes & World Generation (biome_assets.cfg → json/world/biomes.json) priority 2 (Partial)
         2.3.4.1 Migrate biome definitions with generation parameters (Done)
         2.3.4.2 Migrate vegetation definitions (trees.cfg, plants.cfg) (Done)
-        2.3.4.3 Migrate resource node definitions (mining_nodes.cfg) (X)
+    2.3.4.3 Migrate resource node definitions (mining_nodes.cfg) (Done)
         2.3.4.4 Create biome transition rules & compatibility matrix (Done)
         2.3.4.5 Add biome balance validation (resource density, difficulty scaling) (Done)
         2.3.4.6 Implement biome encounter table validation (Done)
-        2.3.4.7 Create biome asset dependency validation (textures, models) (X)
-        SUMMARY: Added C JSON loaders/validators for biomes and vegetation. `world_gen_biome_json.c` ingests biomes, normalizes tile weights, builds transitions, and validates encounter tables and balance ranges. `vegetation_json.c` loads plant and tree defs and registers them via a new internal helper. Integrated into build; unit tests `test_worldgen_phase3_4_biome_json` and `test_vegetation_json` pass under SDL2 with -j8.
+    2.3.4.7 Create biome asset dependency validation (textures, models) (Done)
+    SUMMARY: Added C JSON loaders/validators for biomes, vegetation, and resource nodes. `world_gen_biome_json.c` ingests biomes, normalizes tile weights, builds transitions, and validates encounter tables and balance ranges. `vegetation_json.c` loads plant and tree defs and registers them via a new internal helper. Implemented resource node JSON loader `world_gen_resource_json.c` (id, rarity, tool_tier, yields, biome masks) that registers nodes and participates in generation. Implemented biome asset dependency validator `world_gen_biome_assets_validate.c` that verifies referenced texture paths with robust relative fallbacks. Integrated into build; unit tests `test_worldgen_phase3_4_biome_json`, `test_vegetation_json`, `test_resource_json`, and `test_biome_assets_validate` pass under SDL2 with -j8.
 
 2.4 Hot-Reload System Implementation (Done)
     2.4.1 Create file system watcher for JSON configuration changes (Done)

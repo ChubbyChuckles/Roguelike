@@ -37,3 +37,17 @@ feat(worldgen-json): Phase 2.3.4 biomes & vegetation JSON loaders, validations, 
 	left resource nodes and asset dependency validation for a follow-up.
 
 Refs: roadmaps/implementation_plan_integration_plumbing.txt 2.3.4
+
+feat(worldgen-json): Complete Phase 2.3.4 with resource nodes + asset dependency validation
+
+- Implemented resource node JSON loader (`world_gen_resource_json.c/.h`): parses id, rarity,
+	tool_tier, yield_min/max, biome_mask or biomes[]; validates ranges; defaults to non-ocean biomes;
+	registers via `rogue_resource_register` and integrates with generation.
+- Implemented biome asset dependency validator (`world_gen_biome_assets_validate.c/.h`): scans
+	biome tile/sprite references and verifies texture file existence with robust relative fallbacks
+	(as-is, ../, ../../) for ctest working directories.
+- Tests: Added `test_resource_json` and `test_biome_assets_validate`; fixed initialization & path
+	handling; both pass in Debug under SDL2 with parallel build (-j8).
+- Docs: Roadmap 2.3.4.3 and 2.3.4.7 marked Done with updated SUMMARY; README changelog updated.
+
+Refs: roadmaps/implementation_plan_integration_plumbing.txt 2.3.4.3, 2.3.4.7
