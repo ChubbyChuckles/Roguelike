@@ -3,7 +3,28 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Helper: allocate child array if needed */
+/**
+ * @file advanced_nodes.c
+ * @brief Advanced behavior-tree node implementations and helpers.
+ *
+ * This file provides higher-level behavior tree nodes (parallel, utility selector,
+ * various conditions, tactical actions, and decorators) used by the AI subsystem.
+ * Existing inline comments are preserved; all public factory functions and
+ * internal helpers are documented with Doxygen blocks to ease API generation.
+ */
+
+/**
+ * @brief Ensure a node has an allocated children array.
+ *
+ * Allocates the children pointer on the provided node if it is NULL. The
+ * function will initialize a default capacity of 4 if the node's
+ * child_capacity is zero. This is a best-effort helper and returns false on
+ * allocation failure or invalid input.
+ *
+ * @param n Pointer to the behavior tree node to ensure children for.
+ * @return int 1 if children array exists or was successfully allocated,
+ *             0 on failure or if n is NULL.
+ */
 static int ensure_child_array(RogueBTNode* n)
 {
     if (!n)
@@ -16,7 +37,19 @@ static int ensure_child_array(RogueBTNode* n)
     return n->children != NULL;
 }
 
-/* Parallel */
+/**
+ * @brief Tick function for a Parallel node.
+ *
+ * The Parallel node ticks all children. If any child fails the whole node
+ * fails immediately. If any child is still running the Parallel node returns
+ * ROGUE_BT_RUNNING. Only when all children succeed will the Parallel node
+ * return ROGUE_BT_SUCCESS.
+ *
+ * @param node The parallel node being ticked.
+ * @param bb The blackboard providing shared data for children.
+ * @param dt Delta time since last tick (seconds).
+ * @return RogueBTStatus The resulting status (SUCCESS, RUNNING, or FAILURE).
+ */
 static RogueBTStatus tick_parallel(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     int any_running = 0;
@@ -31,20 +64,55 @@ static RogueBTStatus tick_parallel(RogueBTNode* node, RogueBlackboard* bb, float
     }
     return any_running ? ROGUE_BT_RUNNING : ROGUE_BT_SUCCESS;
 }
+/**
+ * @brief Create a Parallel behavior-tree node.
+ *
+ * A Parallel node will tick all its children each frame and aggregate their
+ * results as described in @ref tick_parallel.
+ *
+ * @param name Human-readable name for the node (may be NULL).
+ * @return RogueBTNode* Allocated node on success, or NULL on allocation failure.
+ */
 RogueBTNode* rogue_bt_parallel(const char* name)
 {
     return rogue_bt_node_create(name, 2, tick_parallel);
 }
 
-/* Utility Selector */
+/**
+ * @brief Per-child metadata for utility selector nodes.
+ *
+ * Stores the scorer callback and its user data for a single child of a utility
+ * selector node.
+ */
 typedef struct UtilityChildMeta
 {
-    RogueUtilityScorer scorer;
+    RogueUtilityScorer scorer; /**< Scorer used to evaluate this child. */
 } UtilityChildMeta;
+
+/**
+ * @brief Runtime data for a utility selector node.
+ *
+ * Holds an array of UtilityChildMeta entries, allocated to match the
+ * node->child_capacity. The array is resized when children are added.
+ */
 typedef struct UtilitySelectorData
 {
-    UtilityChildMeta* metas;
+    UtilityChildMeta* metas; /**< Array of per-child scorer metadata. */
 } UtilitySelectorData;
+/**
+ * @brief Tick function for the Utility Selector node.
+ *
+ * Evaluates all child scorer functions and executes the child with the
+ * highest score. If no scorer is available the default score is 0.0. Returns
+ * FAILURE when the node or its data are invalid or when there are no
+ * children. The chosen child's tick result is propagated as this node's
+ * result.
+ *
+ * @param node The utility selector node being ticked.
+ * @param bb The shared blackboard.
+ * @param dt Delta time (unused by scorers but passed through to children).
+ * @return RogueBTStatus Result of the chosen child's tick or FAILURE on error.
+ */
 static RogueBTStatus tick_utility_selector(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     if (!node)
@@ -71,6 +139,17 @@ static RogueBTStatus tick_utility_selector(RogueBTNode* node, RogueBlackboard* b
         return ROGUE_BT_FAILURE;
     return node->children[best_i]->vtable->tick(node->children[best_i], bb, dt);
 }
+/**
+ * @brief Create a Utility Selector node.
+ *
+ * The utility selector maintains per-child scorers that return a float score
+ * indicating the desirability of executing that child. The child with the
+ * highest score is ticked when this node runs.
+ *
+ * @param name Optional name for the node.
+ * @return RogueBTNode* Newly allocated utility selector node, or NULL on
+ *                      allocation failure.
+ */
 RogueBTNode* rogue_bt_utility_selector(const char* name)
 {
     RogueBTNode* n = rogue_bt_node_create(name, 2, tick_utility_selector);
@@ -81,6 +160,21 @@ RogueBTNode* rogue_bt_utility_selector(const char* name)
     }
     return n;
 }
+/**
+ * @brief Add a child to a utility selector and assign a scorer.
+ *
+ * This helper adds the provided child to the utility selector's child list
+ * and stores the scorer callback in the per-child metadata array. The
+ * function resizes the metadata array to match the node's child capacity when
+ * needed.
+ *
+ * @param utility_node Utility selector node previously created by
+ *                     rogue_bt_utility_selector.
+ * @param child Child node to add.
+ * @param scorer Scorer callback and user_data to evaluate the child.
+ * @return int 1 on success, 0 on failure (invalid args, wrong node type,
+ *             allocation failure).
+ */
 int rogue_bt_utility_set_child_scorer(RogueBTNode* utility_node, RogueBTNode* child,
                                       RogueUtilityScorer scorer)
 {
@@ -108,7 +202,17 @@ int rogue_bt_utility_set_child_scorer(RogueBTNode* utility_node, RogueBTNode* ch
     return 1;
 }
 
-/* Custom destroy hook for nodes with allocated user_data */
+/**
+ * @brief Custom cleanup hook for advanced nodes' user_data.
+ *
+ * Frees node->user_data for nodes that allocated runtime data. The utility
+ * selector stores an array of metas and requires a dedicated cleanup path; all
+ * other advanced nodes are assumed to have a single allocation and are freed
+ * directly.
+ *
+ * @param node Node whose user_data should be freed. No-op if node or
+ *             node->user_data is NULL.
+ */
 void rogue_bt_advanced_cleanup(RogueBTNode* node)
 {
     if (!node)
@@ -132,15 +236,32 @@ void rogue_bt_advanced_cleanup(RogueBTNode* node)
     node->user_data = NULL;
 }
 
-/* Conditions */
+/**
+ * @brief Condition data for checking if the player is visible to an agent.
+ *
+ * The condition reads player and agent positions and the agent facing
+ * vector from the blackboard and queries the perception helper.
+ */
 typedef struct CondPlayerVisible
 {
-    const char* player_pos_key;
-    const char* agent_pos_key;
-    const char* agent_facing_key;
-    float fov_deg;
-    float max_dist;
+    const char* player_pos_key;   /**< BB key for player position (vec2). */
+    const char* agent_pos_key;    /**< BB key for agent position (vec2). */
+    const char* agent_facing_key; /**< BB key for agent facing vector (vec2). */
+    float fov_deg;                /**< Field-of-view angle in degrees. */
+    float max_dist;               /**< Maximum visible distance. */
 } CondPlayerVisible;
+/**
+ * @brief Tick for the PlayerVisible condition node.
+ *
+ * Reads positions and facing from the blackboard and delegates to the
+ * perception subsystem (rogue_perception_can_see). Returns SUCCESS if the
+ * player is visible within the provided FOV and distance, otherwise FAILURE.
+ *
+ * @param node Condition node with CondPlayerVisible in node->user_data.
+ * @param bb Shared blackboard.
+ * @param dt Unused.
+ * @return RogueBTStatus SUCCESS if visible, FAILURE otherwise.
+ */
 static RogueBTStatus tick_cond_player_visible(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     (void) dt;
@@ -161,6 +282,17 @@ static RogueBTStatus tick_cond_player_visible(RogueBTNode* node, RogueBlackboard
                ? ROGUE_BT_SUCCESS
                : ROGUE_BT_FAILURE;
 }
+/**
+ * @brief Factory for a PlayerVisible condition node.
+ *
+ * @param name Node name.
+ * @param bb_player_pos_key Blackboard key for player position (vec2).
+ * @param bb_agent_pos_key Blackboard key for agent position (vec2).
+ * @param bb_agent_facing_key Blackboard key for agent facing vector (vec2).
+ * @param fov_deg Field of view angle in degrees.
+ * @param max_dist Maximum visible distance.
+ * @return RogueBTNode* Allocated condition node or NULL on failure.
+ */
 RogueBTNode* rogue_bt_condition_player_visible(const char* name, const char* bb_player_pos_key,
                                                const char* bb_agent_pos_key,
                                                const char* bb_agent_facing_key, float fov_deg,
@@ -179,11 +311,20 @@ RogueBTNode* rogue_bt_condition_player_visible(const char* name, const char* bb_
     return n;
 }
 
+/**
+ * @brief Condition that succeeds when a named timer has reached a minimum.
+ */
 typedef struct CondTimerElapsed
 {
-    const char* timer_key;
-    float min_value;
+    const char* timer_key; /**< BB key for the timer value. */
+    float min_value;       /**< Minimum timer value to consider elapsed. */
 } CondTimerElapsed;
+/**
+ * @brief Tick for the TimerElapsed condition node.
+ *
+ * Reads a timer from the blackboard and returns SUCCESS when its value is
+ * greater than or equal to min_value.
+ */
 static RogueBTStatus tick_cond_timer_elapsed(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     (void) dt;
@@ -193,6 +334,14 @@ static RogueBTStatus tick_cond_timer_elapsed(RogueBTNode* node, RogueBlackboard*
         return ROGUE_BT_FAILURE;
     return (t >= d->min_value) ? ROGUE_BT_SUCCESS : ROGUE_BT_FAILURE;
 }
+/**
+ * @brief Factory for a TimerElapsed condition node.
+ *
+ * @param name Node name.
+ * @param bb_timer_key Blackboard key containing the timer value.
+ * @param min_value Threshold for success.
+ * @return RogueBTNode* Allocated node or NULL on failure.
+ */
 RogueBTNode* rogue_bt_condition_timer_elapsed(const char* name, const char* bb_timer_key,
                                               float min_value)
 {
@@ -206,11 +355,19 @@ RogueBTNode* rogue_bt_condition_timer_elapsed(const char* name, const char* bb_t
     return n;
 }
 
+/**
+ * @brief Condition that checks if a health value is below a threshold.
+ */
 typedef struct CondHealthBelow
 {
-    const char* health_key;
-    float threshold;
+    const char* health_key; /**< BB key for health (float). */
+    float threshold;        /**< Threshold below which the condition succeeds. */
 } CondHealthBelow;
+/**
+ * @brief Tick for HealthBelow condition node.
+ *
+ * Returns SUCCESS when the float at health_key is less than threshold.
+ */
 static RogueBTStatus tick_cond_health_below(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     (void) dt;
@@ -220,6 +377,14 @@ static RogueBTStatus tick_cond_health_below(RogueBTNode* node, RogueBlackboard* 
         return ROGUE_BT_FAILURE;
     return (hp < d->threshold) ? ROGUE_BT_SUCCESS : ROGUE_BT_FAILURE;
 }
+/**
+ * @brief Factory for a HealthBelow condition node.
+ *
+ * @param name Node name.
+ * @param bb_health_key Blackboard key storing the float health value.
+ * @param threshold Threshold to compare against.
+ * @return RogueBTNode* Allocated node or NULL on failure.
+ */
 RogueBTNode* rogue_bt_condition_health_below(const char* name, const char* bb_health_key,
                                              float threshold)
 {
@@ -233,14 +398,26 @@ RogueBTNode* rogue_bt_condition_health_below(const char* name, const char* bb_he
     return n;
 }
 
-/* Actions */
+/**
+ * @brief Action data for moving an agent toward a target position.
+ *
+ * The action reads a target vec2 and the agent vec2, moves the agent toward
+ * the target at the specified speed, writes the updated agent vec2 back to
+ * the blackboard, and sets a reached flag when close enough.
+ */
 typedef struct ActionMoveTo
 {
-    const char* target_pos_key;
-    const char* agent_pos_key;
-    float speed;
-    const char* reached_flag_key;
+    const char* target_pos_key;   /**< BB key for target position (vec2). */
+    const char* agent_pos_key;    /**< BB key for agent position (vec2). */
+    float speed;                  /**< Movement speed (units per second). */
+    const char* reached_flag_key; /**< BB key for boolean 'reached' flag. */
 } ActionMoveTo;
+/**
+ * @brief Tick function for the MoveTo action.
+ *
+ * Moves the agent toward the target position, sets the reached flag to true
+ * when within a small threshold, otherwise returns RUNNING while moving.
+ */
 static RogueBTStatus tick_action_move_to(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     ActionMoveTo* d = (ActionMoveTo*) node->user_data;
@@ -264,6 +441,16 @@ static RogueBTStatus tick_action_move_to(RogueBTNode* node, RogueBlackboard* bb,
     rogue_bb_set_bool(bb, d->reached_flag_key, false);
     return ROGUE_BT_RUNNING;
 }
+/**
+ * @brief Factory for the MoveTo action node.
+ *
+ * @param name Node name.
+ * @param bb_target_pos_key Blackboard key for the target position.
+ * @param bb_agent_pos_key Blackboard key for the agent position.
+ * @param speed Movement speed.
+ * @param bb_out_reached_flag Blackboard key for the reached boolean flag.
+ * @return RogueBTNode* Allocated action node or NULL on failure.
+ */
 RogueBTNode* rogue_bt_action_move_to(const char* name, const char* bb_target_pos_key,
                                      const char* bb_agent_pos_key, float speed,
                                      const char* bb_out_reached_flag)
@@ -280,12 +467,21 @@ RogueBTNode* rogue_bt_action_move_to(const char* name, const char* bb_target_pos
     return n;
 }
 
+/**
+ * @brief Action data for fleeing away from a threat position.
+ */
 typedef struct ActionFleeFrom
 {
-    const char* threat_pos_key;
-    const char* agent_pos_key;
-    float speed;
+    const char* threat_pos_key; /**< BB key for threat position (vec2). */
+    const char* agent_pos_key;  /**< BB key for agent position (vec2). */
+    float speed;                /**< Fleeing speed (units per second). */
 } ActionFleeFrom;
+/**
+ * @brief Tick implementation for the FleeFrom action.
+ *
+ * Moves the agent directly away from the threat position at the configured
+ * speed. Always returns RUNNING unless the blackboard keys are missing.
+ */
 static RogueBTStatus tick_action_flee_from(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     ActionFleeFrom* d = (ActionFleeFrom*) node->user_data;
@@ -308,6 +504,15 @@ static RogueBTStatus tick_action_flee_from(RogueBTNode* node, RogueBlackboard* b
     rogue_bb_set_vec2(bb, d->agent_pos_key, agent.x, agent.y);
     return ROGUE_BT_RUNNING;
 }
+/**
+ * @brief Factory for the FleeFrom action node.
+ *
+ * @param name Node name.
+ * @param bb_threat_pos_key Blackboard key for the threat position.
+ * @param bb_agent_pos_key Blackboard key for the agent position.
+ * @param speed Speed to flee at.
+ * @return RogueBTNode* Allocated node or NULL on failure.
+ */
 RogueBTNode* rogue_bt_action_flee_from(const char* name, const char* bb_threat_pos_key,
                                        const char* bb_agent_pos_key, float speed)
 {
@@ -322,12 +527,25 @@ RogueBTNode* rogue_bt_action_flee_from(const char* name, const char* bb_threat_p
     return n;
 }
 
+/**
+ * @brief Action data for melee or ranged attack checks.
+ *
+ * The action checks a boolean flag (in-range or clear-line) and resets the
+ * configured cooldown timer when an attack is initiated. The cooldown value is
+ * stored for informational purposes and reset behavior in the tick.
+ */
 typedef struct ActionAttack
 {
-    const char* flag_key;
-    const char* cooldown_timer_key;
-    float cooldown;
+    const char* flag_key;           /**< BB key for the in-range/clear-line flag. */
+    const char* cooldown_timer_key; /**< BB key for the cooldown timer (float). */
+    float cooldown;                 /**< Configured cooldown in seconds (informational). */
 } ActionAttack;
+/**
+ * @brief Tick for melee attack action.
+ *
+ * Succeeds immediately when the in-range flag is true and resets the
+ * cooldown timer. Otherwise returns FAILURE.
+ */
 static RogueBTStatus tick_action_attack_melee(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     (void) dt;
@@ -338,6 +556,9 @@ static RogueBTStatus tick_action_attack_melee(RogueBTNode* node, RogueBlackboard
     rogue_bb_set_timer(bb, d->cooldown_timer_key, 0.0f);
     return ROGUE_BT_SUCCESS;
 }
+/**
+ * @brief Factory for melee attack action node.
+ */
 RogueBTNode* rogue_bt_action_attack_melee(const char* name, const char* bb_in_range_flag_key,
                                           const char* bb_cooldown_timer_key, float cooldown_seconds)
 {
@@ -351,6 +572,12 @@ RogueBTNode* rogue_bt_action_attack_melee(const char* name, const char* bb_in_ra
     n->user_data = d;
     return n;
 }
+/**
+ * @brief Tick for ranged attack action.
+ *
+ * Similar to melee attack but checks a line-clear flag before succeeding and
+ * resetting the cooldown timer.
+ */
 static RogueBTStatus tick_action_attack_ranged(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     (void) dt;
@@ -361,6 +588,9 @@ static RogueBTStatus tick_action_attack_ranged(RogueBTNode* node, RogueBlackboar
     rogue_bb_set_timer(bb, d->cooldown_timer_key, 0.0f);
     return ROGUE_BT_SUCCESS;
 }
+/**
+ * @brief Factory for ranged attack action node.
+ */
 RogueBTNode* rogue_bt_action_attack_ranged(const char* name, const char* bb_line_clear_flag_key,
                                            const char* bb_cooldown_timer_key,
                                            float cooldown_seconds)
@@ -376,18 +606,29 @@ RogueBTNode* rogue_bt_action_attack_ranged(const char* name, const char* bb_line
     return n;
 }
 
-/* Strafe Action: move perpendicular to vector (target - agent) alternating left/right via bool
- * flag; succeeds after duration */
+/**
+ * @brief Action to strafe perpendicular to the vector from agent to target.
+ *
+ * Alternates left/right based on a boolean flag stored in the blackboard and
+ * runs for a fixed duration, after which it flips the flag and returns
+ * SUCCESS.
+ */
 typedef struct ActionStrafe
 {
-    const char* target_pos_key;
-    const char* agent_pos_key;
-    const char* left_flag_key;
-    float speed;
-    float duration;
-    float elapsed;
-    int direction;
+    const char* target_pos_key; /**< BB key for target position. */
+    const char* agent_pos_key;  /**< BB key for agent position. */
+    const char* left_flag_key;  /**< BB key for the left/right toggle flag. */
+    float speed;                /**< Strafing speed. */
+    float duration;             /**< Total duration to strafe. */
+    float elapsed;              /**< Elapsed time since start. */
+    int direction;              /**< Current direction multiplier (-1 or 1). */
 } ActionStrafe;
+/**
+ * @brief Tick for the Strafe action.
+ *
+ * Computes a perpendicular vector to the target direction and moves the
+ * agent along that perpendicular for the configured duration.
+ */
 static RogueBTStatus tick_action_strafe(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     ActionStrafe* d = (ActionStrafe*) node->user_data;
@@ -422,6 +663,9 @@ static RogueBTStatus tick_action_strafe(RogueBTNode* node, RogueBlackboard* bb, 
     }
     return ROGUE_BT_RUNNING;
 }
+/**
+ * @brief Factory for the Strafe action node.
+ */
 RogueBTNode* rogue_bt_action_strafe(const char* name, const char* bb_target_pos_key,
                                     const char* bb_agent_pos_key,
                                     const char* bb_strafe_left_flag_key, float speed,
@@ -442,15 +686,24 @@ RogueBTNode* rogue_bt_action_strafe(const char* name, const char* bb_target_pos_
     return n;
 }
 
-/* Tactical Flank Attempt: compute flank point perpendicular to approach vector at distance offset;
- * write to BB vector key; success immediate */
+/**
+ * @brief Data for a tactical flank attempt action.
+ *
+ * Computes a flank point perpendicular to the agent->player vector at the
+ * configured offset and writes the flank target to the blackboard.
+ */
 typedef struct TacticalFlank
 {
-    const char* player_pos_key;
-    const char* agent_pos_key;
-    const char* out_flank_key;
-    float offset;
+    const char* player_pos_key; /**< BB key for player position. */
+    const char* agent_pos_key;  /**< BB key for agent position. */
+    const char* out_flank_key;  /**< BB key to store computed flank target. */
+    float offset;               /**< Distance offset from player for flank point. */
 } TacticalFlank;
+/**
+ * @brief Tick for the tactical flank computation action.
+ *
+ * Always returns SUCCESS after computing and writing the flank point.
+ */
 static RogueBTStatus tick_tactical_flank(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     (void) dt;
@@ -477,6 +730,9 @@ static RogueBTStatus tick_tactical_flank(RogueBTNode* node, RogueBlackboard* bb,
     rogue_bb_set_vec2(bb, d->out_flank_key, flank_x, flank_y);
     return ROGUE_BT_SUCCESS;
 }
+/**
+ * @brief Factory for the Tactical Flank Attempt node.
+ */
 RogueBTNode* rogue_bt_tactical_flank_attempt(const char* name, const char* bb_player_pos_key,
                                              const char* bb_agent_pos_key,
                                              const char* bb_out_flank_target_key, float offset)
@@ -493,13 +749,21 @@ RogueBTNode* rogue_bt_tactical_flank_attempt(const char* name, const char* bb_pl
     return n;
 }
 
-/* Tactical Regroup: move toward a regroup point until within small radius then success */
+/**
+ * @brief Data for a Tactical Regroup action.
+ *
+ * Moves the agent toward a regroup point until within a small radius, then
+ * returns SUCCESS.
+ */
 typedef struct TacticalRegroup
 {
-    const char* regroup_pos_key;
-    const char* agent_pos_key;
-    float speed;
+    const char* regroup_pos_key; /**< BB key for regroup target position. */
+    const char* agent_pos_key;   /**< BB key for agent position. */
+    float speed;                 /**< Movement speed toward regroup point. */
 } TacticalRegroup;
+/**
+ * @brief Tick for Tactical Regroup action.
+ */
 static RogueBTStatus tick_tactical_regroup(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     TacticalRegroup* d = (TacticalRegroup*) node->user_data;
@@ -520,6 +784,9 @@ static RogueBTStatus tick_tactical_regroup(RogueBTNode* node, RogueBlackboard* b
     rogue_bb_set_vec2(bb, d->agent_pos_key, agent.x, agent.y);
     return ROGUE_BT_RUNNING;
 }
+/**
+ * @brief Factory for the Tactical Regroup node.
+ */
 RogueBTNode* rogue_bt_tactical_regroup(const char* name, const char* bb_regroup_point_key,
                                        const char* bb_agent_pos_key, float speed)
 {
@@ -534,20 +801,31 @@ RogueBTNode* rogue_bt_tactical_regroup(const char* name, const char* bb_regroup_
     return n;
 }
 
-/* Tactical Cover Seek: move to point on obstacle perimeter opposite player line; succeed when
- * reached & flag set */
+/**
+ * @brief Data for seeking cover behind an obstacle.
+ *
+ * Computes a cover point on the perimeter of an obstacle opposite the player
+ * and moves the agent to that point. When arrival and occlusion checks pass
+ * the node returns SUCCESS and sets the out flag.
+ */
 typedef struct TacticalCoverSeek
 {
-    const char* player_pos_key;
-    const char* agent_pos_key;
-    const char* obstacle_pos_key;
-    const char* out_cover_point_key;
-    const char* out_flag_key;
-    float obstacle_radius;
-    float speed;
-    int computed;
-    float cover_x, cover_y;
+    const char* player_pos_key;      /**< BB key for player position. */
+    const char* agent_pos_key;       /**< BB key for agent position. */
+    const char* obstacle_pos_key;    /**< BB key for obstacle center position. */
+    const char* out_cover_point_key; /**< BB key to store computed cover point. */
+    const char* out_flag_key;        /**< BB key to set when in cover. */
+    float obstacle_radius;           /**< Radius of obstacle used for perimeter calc. */
+    float speed;                     /**< Movement speed toward cover. */
+    int computed;                    /**< Internal flag whether cover point computed. */
+    float cover_x, cover_y;          /**< Cached cover point coordinates. */
 } TacticalCoverSeek;
+/**
+ * @brief Tick for Tactical Cover Seek.
+ *
+ * Computes the cover point once and moves the agent toward it. Performs an
+ * occlusion check on arrival and sets the out_flag to true when occluded.
+ */
 static RogueBTStatus tick_tactical_cover_seek(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     TacticalCoverSeek* d = (TacticalCoverSeek*) node->user_data;
@@ -609,6 +887,9 @@ static RogueBTStatus tick_tactical_cover_seek(RogueBTNode* node, RogueBlackboard
     rogue_bb_set_vec2(bb, d->agent_pos_key, agent.x, agent.y);
     return ROGUE_BT_RUNNING;
 }
+/**
+ * @brief Factory for the Tactical Cover Seek node.
+ */
 RogueBTNode* rogue_bt_tactical_cover_seek(const char* name, const char* bb_player_pos_key,
                                           const char* bb_agent_pos_key,
                                           const char* bb_obstacle_pos_key,
@@ -634,13 +915,24 @@ RogueBTNode* rogue_bt_tactical_cover_seek(const char* name, const char* bb_playe
     return n;
 }
 
-/* Decorators */
+/**
+ * @brief Decorator that enforces a cooldown between child successes.
+ *
+ * The child is executed only when the named timer reaches the configured
+ * cooldown threshold. When the child succeeds the timer is reset to 0.
+ */
 typedef struct DecorCooldown
 {
-    RogueBTNode* child;
-    const char* timer_key;
-    float cooldown;
+    RogueBTNode* child;    /**< Child node to decorate. */
+    const char* timer_key; /**< BB key for the cooldown timer. */
+    float cooldown;        /**< Cooldown threshold in seconds. */
 } DecorCooldown;
+/**
+ * @brief Tick for the cooldown decorator.
+ *
+ * Advances the timer while preventing child execution until the cooldown has
+ * elapsed. Resets the timer on child success.
+ */
 static RogueBTStatus tick_decor_cooldown(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     DecorCooldown* d = (DecorCooldown*) node->user_data;
@@ -663,6 +955,9 @@ static RogueBTStatus tick_decor_cooldown(RogueBTNode* node, RogueBlackboard* bb,
     }
     return st;
 }
+/**
+ * @brief Factory for the cooldown decorator node.
+ */
 RogueBTNode* rogue_bt_decorator_cooldown(const char* name, RogueBTNode* child,
                                          const char* bb_timer_key, float cooldown_seconds)
 {
@@ -680,12 +975,25 @@ RogueBTNode* rogue_bt_decorator_cooldown(const char* name, RogueBTNode* child,
     return n;
 }
 
+/**
+ * @brief Decorator that retries its child up to max_attempts on failure.
+ *
+ * The attempts counter is incremented on FAILURE; while attempts <
+ * max_attempts the decorator reports RUNNING to allow retry semantics. When
+ * attempts reach max_attempts the decorator returns FAILURE.
+ */
 typedef struct DecorRetry
 {
-    RogueBTNode* child;
-    int attempts;
-    int max_attempts;
+    RogueBTNode* child; /**< Child node to retry. */
+    int attempts;       /**< Current attempt counter. */
+    int max_attempts;   /**< Maximum attempts before giving up. */
 } DecorRetry;
+/**
+ * @brief Tick for retry decorator.
+ *
+ * Executes the child and increments attempts on failure. Resets attempts on
+ * non-failure statuses.
+ */
 static RogueBTStatus tick_decor_retry(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     DecorRetry* d = (DecorRetry*) node->user_data;
@@ -701,6 +1009,14 @@ static RogueBTStatus tick_decor_retry(RogueBTNode* node, RogueBlackboard* bb, fl
     d->attempts = 0;
     return st;
 }
+/**
+ * @brief Factory for the retry decorator node.
+ *
+ * @param name Node name.
+ * @param child Child node to retry on failure.
+ * @param max_attempts Maximum number of retry attempts allowed.
+ * @return RogueBTNode* Allocated decorator node or NULL on failure.
+ */
 RogueBTNode* rogue_bt_decorator_retry(const char* name, RogueBTNode* child, int max_attempts)
 {
     RogueBTNode* n = rogue_bt_node_create(name, 1, tick_decor_retry);
