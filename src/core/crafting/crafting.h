@@ -51,6 +51,20 @@ extern "C"
      * Lines starting with # ignored. Empty -> skip.
      * Returns number of recipes added or <0 on error. */
     int rogue_craft_load_file(const char* path);
+    /* JSON loader for recipes: array of objects with fields:
+        id, output (string id), output_qty, inputs (array of {id,qty}), optional upgrade {source,
+       rarity_delta}, optional time_ms, station, skill_req, exp_reward. */
+    int rogue_craft_load_json(const char* path);
+
+    /* Validation helpers (Phase 2.3.3.5-.7 and 2.3.3.6):
+        - dependency: ensure all ingredient/output item defs exist (returns count of bad refs)
+        - balance: compute total base_value(inputs) vs output base value and return number of
+       out-of-bounds recipes (>ratio_max or <ratio_min) */
+    int rogue_craft_validate_dependencies(void);
+    int rogue_craft_validate_balance(float ratio_min, float ratio_max);
+    /* Ensure skill requirement is non-decreasing across upgrade chains and within reasonable bounds
+     * (0..100); returns count fixed or violations */
+    int rogue_craft_validate_skill_requirements(void);
 
     /* Attempt to craft by recipe id: validates inventory counts using provided callbacks. */
     typedef int (*RogueInvGetFn)(int def_index);

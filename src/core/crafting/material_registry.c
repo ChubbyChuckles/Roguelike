@@ -71,6 +71,31 @@ int rogue_material_prefix_search(const char* prefix, int* out_indices, int max)
     return n;
 }
 
+int rogue_material_find_by_category_and_tier(int category, int tier)
+{
+    if (tier < 0 || category < 0)
+        return -1;
+    for (int i = 0; i < g_material_count; i++)
+    {
+        if (g_materials[i].category == category && g_materials[i].tier == tier)
+            return i;
+    }
+    return -1;
+}
+int rogue_material_next_tier_index(int material_index)
+{
+    if (material_index < 0 || material_index >= g_material_count)
+        return -1;
+    const RogueMaterialDef* m = &g_materials[material_index];
+    int target_tier = m->tier + 1;
+    for (int i = 0; i < g_material_count; i++)
+    {
+        if (g_materials[i].category == m->category && g_materials[i].tier == target_tier)
+            return i;
+    }
+    return -1;
+}
+
 static void trim(char* s)
 {
     size_t n = strlen(s);
@@ -95,6 +120,160 @@ int rogue_material_registry_load_path(const char* path)
     {
         fprintf(stderr, "material_registry: cannot open %s\n", path);
         return -1;
+    }
+    /* If JSON file, slurp and parse a compact array of objects. Expected schema:
+       [ { "id": "iron_ore_mat", "item": "iron_ore", "tier": 0, "category": "ore", "base_value": 8
+       }, ... ] */
+    if (strstr(path, ".json") != NULL)
+    {
+        fseek(f, 0, SEEK_END);
+        long sz = ftell(f);
+        if (sz < 0)
+        {
+            fclose(f);
+            return -1;
+        }
+        fseek(f, 0, SEEK_SET);
+        char* buf = (char*) malloc((size_t) sz + 1);
+        if (!buf)
+        {
+            fclose(f);
+            return -1;
+        }
+        size_t rd = fread(buf, 1, (size_t) sz, f);
+        buf[rd] = '\0';
+        fclose(f);
+        const char* s = buf;
+        while (*s && *s != '[')
+            s++;
+        if (*s != '[')
+        {
+            free(buf);
+            return -1;
+        }
+        s++;
+        int added = 0;
+        while (*s)
+        {
+            while (*s && (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t' || *s == ','))
+                s++;
+            if (*s == ']')
+                break;
+            if (*s != '{')
+                break;
+            s++;
+            char id[32] = {0};
+            char item_id[64] = {0};
+            int tier = 0, cat = -1, base_val = 0;
+            while (*s && *s != '}')
+            {
+                while (*s && (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t'))
+                    s++;
+                if (*s != '"')
+                {
+                    s++;
+                    continue;
+                }
+                s++;
+                char key[32];
+                int ki = 0;
+                while (*s && *s != '"' && ki + 1 < (int) sizeof key)
+                    key[ki++] = *s++;
+                key[ki] = '\0';
+                if (*s == '"')
+                    s++;
+                while (*s && *s != ':')
+                    s++;
+                if (*s == ':')
+                    s++;
+                while (*s && (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t'))
+                    s++;
+                if (strcmp(key, "id") == 0 || strcmp(key, "name") == 0)
+                {
+                    if (*s == '"')
+                    {
+                        s++;
+                        int i = 0;
+                        while (*s && *s != '"' && i + 1 < (int) sizeof id)
+                            id[i++] = *s++;
+                        id[i] = '\0';
+                        if (*s == '"')
+                            s++;
+                    }
+                }
+                else if (strcmp(key, "item") == 0 || strcmp(key, "item_id") == 0)
+                {
+                    if (*s == '"')
+                    {
+                        s++;
+                        int i = 0;
+                        while (*s && *s != '"' && i + 1 < (int) sizeof item_id)
+                            item_id[i++] = *s++;
+                        item_id[i] = '\0';
+                        if (*s == '"')
+                            s++;
+                    }
+                }
+                else if (strcmp(key, "tier") == 0)
+                {
+                    tier = (int) strtol(s, (char**) &s, 10);
+                }
+                else if (strcmp(key, "category") == 0)
+                {
+                    char catbuf[32] = {0};
+                    if (*s == '"')
+                    {
+                        s++;
+                        int i = 0;
+                        while (*s && *s != '"' && i + 1 < (int) sizeof catbuf)
+                            catbuf[i++] = *s++;
+                        catbuf[i] = '\0';
+                        if (*s == '"')
+                            s++;
+                    }
+                    cat = category_from_str(catbuf);
+                }
+                else if (strcmp(key, "base_value") == 0)
+                {
+                    base_val = (int) strtol(s, (char**) &s, 10);
+                }
+                while (*s && *s != ',' && *s != '}')
+                    s++;
+                if (*s == ',')
+                    s++;
+            }
+            while (*s && *s != '}')
+                s++;
+            if (*s == '}')
+                s++;
+            if (id[0] && item_id[0] && cat >= 0)
+            {
+                int item_def = rogue_item_def_index(item_id);
+                if (item_def >= 0 && !rogue_material_find(id) &&
+                    g_material_count < ROGUE_MATERIAL_REGISTRY_CAP)
+                {
+                    RogueMaterialDef* m = &g_materials[g_material_count++];
+                    memset(m, 0, sizeof *m);
+#if defined(_MSC_VER)
+                    strncpy_s(m->id, sizeof(m->id), id, _TRUNCATE);
+#else
+                    strncpy(m->id, id, sizeof(m->id) - 1);
+                    m->id[sizeof(m->id) - 1] = '\0';
+#endif
+                    m->item_def_index = item_def;
+                    m->tier = tier < 0 ? 0 : (tier > 50 ? 50 : tier);
+                    m->category = cat;
+                    m->base_value = base_val < 0 ? 0 : base_val;
+                    added++;
+                }
+            }
+            while (*s && *s != ',' && *s != ']')
+                s++;
+            if (*s == ',')
+                s++;
+        }
+        free(buf);
+        return added;
     }
     char line[256];
     int added = 0;

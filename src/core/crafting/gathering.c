@@ -103,6 +103,262 @@ int rogue_gather_defs_load_path(const char* path)
         fprintf(stderr, "gather: cannot open %s\n", path);
         return -1;
     }
+    /* JSON support: detect by extension */
+    {
+        size_t lp = strlen(path);
+        if (lp >= 5 && (strcmp(path + lp - 5, ".json") == 0))
+        {
+            fseek(f, 0, SEEK_END);
+            long sz = ftell(f);
+            if (sz < 0)
+            {
+                fclose(f);
+                return -1;
+            }
+            fseek(f, 0, SEEK_SET);
+            char* buf = (char*) malloc((size_t) sz + 1);
+            if (!buf)
+            {
+                fclose(f);
+                return -1;
+            }
+            size_t rd = fread(buf, 1, (size_t) sz, f);
+            buf[rd] = '\0';
+            fclose(f);
+            const char* s = buf;
+            while (*s && *s != '[')
+                s++;
+            if (*s != '[')
+            {
+                free(buf);
+                return -1;
+            }
+            s++;
+            int added_json = 0;
+            while (*s)
+            {
+                while (*s && (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t' || *s == ','))
+                    s++;
+                if (*s == ']')
+                    break;
+                if (*s != '{')
+                    break;
+                s++;
+                RogueGatherNodeDef def;
+                memset(&def, 0, sizeof def);
+                def.respawn_ms = 60000.0f;
+                def.rare_bonus_multiplier = 2.0f;
+                def.spawn_chance_pct = 100;
+                def.rare_proc_chance_pct = 5;
+                while (*s && *s != '}')
+                {
+                    while (*s && (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t'))
+                        s++;
+                    if (*s != '"')
+                    {
+                        s++;
+                        continue;
+                    }
+                    s++;
+                    char key[32];
+                    int ki = 0;
+                    while (*s && *s != '"' && ki + 1 < (int) sizeof key)
+                        key[ki++] = *s++;
+                    key[ki] = '\0';
+                    if (*s == '"')
+                        s++;
+                    while (*s && *s != ':')
+                        s++;
+                    if (*s == ':')
+                        s++;
+                    while (*s && (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t'))
+                        s++;
+                    if (strcmp(key, "id") == 0)
+                    {
+                        if (*s == '"')
+                        {
+                            s++;
+                            int i = 0;
+                            while (*s && *s != '"' && i + 1 < (int) sizeof def.id)
+                                def.id[i++] = *s++;
+                            def.id[i] = '\0';
+                            if (*s == '"')
+                                s++;
+                        }
+                    }
+                    else if (strcmp(key, "materials") == 0)
+                    {
+                        while (*s && *s != '[')
+                            s++;
+                        if (*s == '[')
+                            s++;
+                        int mc = 0;
+                        while (*s)
+                        {
+                            while (*s && (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t' ||
+                                          *s == ','))
+                                s++;
+                            if (*s == ']')
+                            {
+                                s++;
+                                break;
+                            }
+                            if (*s != '{')
+                                break;
+                            s++;
+                            char mid[64] = {0};
+                            int w = 1;
+                            while (*s && *s != '}')
+                            {
+                                while (*s && (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t'))
+                                    s++;
+                                if (*s != '"')
+                                {
+                                    s++;
+                                    continue;
+                                }
+                                s++;
+                                char k2[16];
+                                int kj = 0;
+                                while (*s && *s != '"' && kj + 1 < (int) sizeof k2)
+                                    k2[kj++] = *s++;
+                                k2[kj] = '\0';
+                                if (*s == '"')
+                                    s++;
+                                while (*s && *s != ':')
+                                    s++;
+                                if (*s == ':')
+                                    s++;
+                                while (*s && (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t'))
+                                    s++;
+                                if (strcmp(k2, "id") == 0)
+                                {
+                                    if (*s == '"')
+                                    {
+                                        s++;
+                                        int i = 0;
+                                        while (*s && *s != '"' && i + 1 < (int) sizeof mid)
+                                            mid[i++] = *s++;
+                                        mid[i] = '\0';
+                                        if (*s == '"')
+                                            s++;
+                                    }
+                                }
+                                else if (strcmp(k2, "weight") == 0)
+                                {
+                                    w = (int) strtol(s, (char**) &s, 10);
+                                    if (w <= 0)
+                                        w = 1;
+                                }
+                                while (*s && *s != ',' && *s != '}')
+                                    s++;
+                                if (*s == ',')
+                                    s++;
+                            }
+                            if (*s == '}')
+                                s++;
+                            if (mid[0] && mc < 8)
+                            {
+                                const RogueMaterialDef* md = rogue_material_find(mid);
+                                if (!md)
+                                {
+                                    int item_di = rogue_item_def_index(mid);
+                                    md = rogue_material_find_by_item(item_di);
+                                }
+                                if (md)
+                                {
+                                    /* compute material index by scanning registry */
+                                    int mat_index = -1;
+                                    int mcount = rogue_material_count();
+                                    for (int mi = 0; mi < mcount; mi++)
+                                    {
+                                        if (rogue_material_get(mi) == md)
+                                        {
+                                            mat_index = mi;
+                                            break;
+                                        }
+                                    }
+                                    if (mat_index >= 0)
+                                    {
+                                        def.material_defs[mc] = mat_index;
+                                        def.material_weights[mc] = w;
+                                        mc++;
+                                    }
+                                }
+                            }
+                            while (*s && *s != ',' && *s != ']')
+                                s++;
+                            if (*s == ',')
+                                s++;
+                        }
+                        def.material_count = mc;
+                    }
+                    else if (strcmp(key, "min_roll") == 0)
+                    {
+                        def.min_roll = (int) strtol(s, (char**) &s, 10);
+                    }
+                    else if (strcmp(key, "max_roll") == 0)
+                    {
+                        def.max_roll = (int) strtol(s, (char**) &s, 10);
+                    }
+                    else if (strcmp(key, "respawn_ms") == 0)
+                    {
+                        def.respawn_ms = (float) strtod(s, (char**) &s);
+                    }
+                    else if (strcmp(key, "tool_req_tier") == 0)
+                    {
+                        def.tool_req_tier = (int) strtol(s, (char**) &s, 10);
+                    }
+                    else if (strcmp(key, "biome_tags") == 0)
+                    {
+                        if (*s == '"')
+                        {
+                            s++;
+                            int i = 0;
+                            while (*s && *s != '"' && i + 1 < (int) sizeof def.biome_tags)
+                                def.biome_tags[i++] = *s++;
+                            def.biome_tags[i] = '\0';
+                            if (*s == '"')
+                                s++;
+                        }
+                    }
+                    else if (strcmp(key, "spawn_chance_pct") == 0)
+                    {
+                        def.spawn_chance_pct = (int) strtol(s, (char**) &s, 10);
+                    }
+                    else if (strcmp(key, "rare_proc_chance_pct") == 0)
+                    {
+                        def.rare_proc_chance_pct = (int) strtol(s, (char**) &s, 10);
+                    }
+                    else if (strcmp(key, "rare_bonus_multiplier") == 0)
+                    {
+                        def.rare_bonus_multiplier = (float) strtod(s, (char**) &s);
+                    }
+                    while (*s && *s != ',' && *s != '}')
+                        s++;
+                    if (*s == ',')
+                        s++;
+                }
+                while (*s && *s != '}')
+                    s++;
+                if (*s == '}')
+                    s++;
+                if (g_def_count < ROGUE_GATHER_NODE_CAP && def.id[0] && def.material_count > 0)
+                {
+                    if (def.max_roll < def.min_roll)
+                        def.max_roll = def.min_roll;
+                    g_defs[g_def_count++] = def;
+                    added_json++;
+                }
+                while (*s && *s != ',' && *s != ']')
+                    s++;
+                if (*s == ',')
+                    s++;
+            }
+            free(buf);
+            return added_json;
+        }
+    }
     char line[512];
     int added = 0;
     while (fgets(line, sizeof line, f))

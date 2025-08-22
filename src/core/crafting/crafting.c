@@ -342,6 +342,368 @@ int rogue_craft_load_file(const char* path)
     return added;
 }
 
+int rogue_craft_load_json(const char* path)
+{
+    FILE* f = NULL;
+#if defined(_MSC_VER)
+    fopen_s(&f, path, "rb");
+#else
+    f = fopen(path, "rb");
+#endif
+    if (!f)
+    {
+        fprintf(stderr, "craft: cannot open %s\n", path);
+        return -1;
+    }
+    fseek(f, 0, SEEK_END);
+    long sz = ftell(f);
+    if (sz < 0)
+    {
+        fclose(f);
+        return -1;
+    }
+    fseek(f, 0, SEEK_SET);
+    char* buf = (char*) malloc((size_t) sz + 1);
+    if (!buf)
+    {
+        fclose(f);
+        return -1;
+    }
+    size_t rd = fread(buf, 1, (size_t) sz, f);
+    buf[rd] = '\0';
+    fclose(f);
+    const char* s = buf;
+    /* minimal JSON scan */
+    while (*s && *s != '[')
+        s++;
+    if (*s != '[')
+    {
+        free(buf);
+        return -1;
+    }
+    s++;
+    int added = 0;
+    while (*s)
+    {
+        while (*s && (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t' || *s == ','))
+            s++;
+        if (*s == ']')
+            break;
+        if (*s != '{')
+            break;
+        s++;
+        RogueCraftRecipe r;
+        memset(&r, 0, sizeof r);
+        r.output_qty = 1;
+        while (*s && *s != '}')
+        {
+            while (*s && (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t'))
+                s++;
+            if (*s != '"')
+            {
+                s++;
+                continue;
+            }
+            s++;
+            char key[32];
+            int ki = 0;
+            while (*s && *s != '"' && ki + 1 < (int) sizeof key)
+                key[ki++] = *s++;
+            key[ki] = '\0';
+            if (*s == '"')
+                s++;
+            while (*s && *s != ':')
+                s++;
+            if (*s == ':')
+                s++;
+            while (*s && (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t'))
+                s++;
+            if (strcmp(key, "id") == 0)
+            {
+                if (*s == '"')
+                {
+                    s++;
+                    int i = 0;
+                    while (*s && *s != '"' && i + 1 < (int) sizeof r.id)
+                        r.id[i++] = *s++;
+                    r.id[i] = '\0';
+                    if (*s == '"')
+                        s++;
+                }
+            }
+            else if (strcmp(key, "output") == 0)
+            {
+                char outid[64] = {0};
+                if (*s == '"')
+                {
+                    s++;
+                    int i = 0;
+                    while (*s && *s != '"' && i + 1 < (int) sizeof outid)
+                        outid[i++] = *s++;
+                    outid[i] = '\0';
+                    if (*s == '"')
+                        s++;
+                }
+                r.output_def = rogue_item_def_index(outid);
+            }
+            else if (strcmp(key, "output_qty") == 0)
+            {
+                r.output_qty = (int) strtol(s, (char**) &s, 10);
+                if (r.output_qty <= 0)
+                    r.output_qty = 1;
+            }
+            else if (strcmp(key, "inputs") == 0)
+            {
+                while (*s && *s != '[')
+                    s++;
+                if (*s == '[')
+                    s++;
+                int ic = 0;
+                while (*s)
+                {
+                    while (*s && (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t' || *s == ','))
+                        s++;
+                    if (*s == ']')
+                    {
+                        s++;
+                        break;
+                    }
+                    if (*s != '{')
+                        break;
+                    s++;
+                    char iid[64] = {0};
+                    int qty = 0;
+                    while (*s && *s != '}')
+                    {
+                        while (*s && (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t'))
+                            s++;
+                        if (*s != '"')
+                        {
+                            s++;
+                            continue;
+                        }
+                        s++;
+                        char k2[16];
+                        int kj = 0;
+                        while (*s && *s != '"' && kj + 1 < (int) sizeof k2)
+                            k2[kj++] = *s++;
+                        k2[kj] = '\0';
+                        if (*s == '"')
+                            s++;
+                        while (*s && *s != ':')
+                            s++;
+                        if (*s == ':')
+                            s++;
+                        while (*s && (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t'))
+                            s++;
+                        if (strcmp(k2, "id") == 0)
+                        {
+                            if (*s == '"')
+                            {
+                                s++;
+                                int i = 0;
+                                while (*s && *s != '"' && i + 1 < (int) sizeof iid)
+                                    iid[i++] = *s++;
+                                iid[i] = '\0';
+                                if (*s == '"')
+                                    s++;
+                            }
+                        }
+                        else if (strcmp(k2, "qty") == 0)
+                        {
+                            qty = (int) strtol(s, (char**) &s, 10);
+                        }
+                        while (*s && *s != ',' && *s != '}')
+                            s++;
+                        if (*s == ',')
+                            s++;
+                    }
+                    if (*s == '}')
+                        s++;
+                    if (iid[0] && qty > 0 && ic < 6)
+                    {
+                        int di = rogue_item_def_index(iid);
+                        if (di >= 0)
+                        {
+                            r.inputs[ic].def_index = di;
+                            r.inputs[ic].quantity = qty;
+                            ic++;
+                        }
+                    }
+                    while (*s && *s != ',' && *s != ']')
+                        s++;
+                    if (*s == ',')
+                        s++;
+                }
+                r.input_count = ic;
+            }
+            else if (strcmp(key, "upgrade") == 0)
+            {
+                while (*s && *s != '{')
+                    s++;
+                if (*s == '{')
+                    s++;
+                char src[64] = {0};
+                int delta = 0;
+                while (*s && *s != '}')
+                {
+                    while (*s && (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t'))
+                        s++;
+                    if (*s != '"')
+                    {
+                        s++;
+                        continue;
+                    }
+                    s++;
+                    char k2[24];
+                    int kj = 0;
+                    while (*s && *s != '"' && kj + 1 < (int) sizeof k2)
+                        k2[kj++] = *s++;
+                    k2[kj] = '\0';
+                    if (*s == '"')
+                        s++;
+                    while (*s && *s != ':')
+                        s++;
+                    if (*s == ':')
+                        s++;
+                    while (*s && (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t'))
+                        s++;
+                    if (strcmp(k2, "source") == 0)
+                    {
+                        if (*s == '"')
+                        {
+                            s++;
+                            int i = 0;
+                            while (*s && *s != '"' && i + 1 < (int) sizeof src)
+                                src[i++] = *s++;
+                            src[i] = '\0';
+                            if (*s == '"')
+                                s++;
+                        }
+                    }
+                    else if (strcmp(k2, "rarity_delta") == 0)
+                    {
+                        delta = (int) strtol(s, (char**) &s, 10);
+                    }
+                    while (*s && *s != ',' && *s != '}')
+                        s++;
+                    if (*s == ',')
+                        s++;
+                }
+                if (*s == '}')
+                    s++;
+                int di = rogue_item_def_index(src);
+                if (di >= 0)
+                {
+                    r.upgrade_source_def = di;
+                    r.rarity_upgrade_delta = delta;
+                }
+            }
+            else if (strcmp(key, "time_ms") == 0)
+            {
+                r.time_ms = (int) strtol(s, (char**) &s, 10);
+            }
+            else if (strcmp(key, "station") == 0)
+            {
+                if (*s == '"')
+                {
+                    s++;
+                    int i = 0;
+                    while (*s && *s != '"' && i + 1 < (int) sizeof r.station)
+                        r.station[i++] = *s++;
+                    r.station[i] = '\0';
+                    if (*s == '"')
+                        s++;
+                }
+            }
+            else if (strcmp(key, "skill_req") == 0)
+            {
+                r.skill_req = (int) strtol(s, (char**) &s, 10);
+            }
+            else if (strcmp(key, "exp_reward") == 0)
+            {
+                r.exp_reward = (int) strtol(s, (char**) &s, 10);
+            }
+            while (*s && *s != ',' && *s != '}')
+                s++;
+            if (*s == ',')
+                s++;
+        }
+        while (*s && *s != '}')
+            s++;
+        if (*s == '}')
+            s++;
+        if (g_recipe_count < ROGUE_CRAFT_RECIPE_CAP && r.id[0] && r.output_def >= 0 &&
+            r.input_count > 0)
+        {
+            g_recipes[g_recipe_count++] = r;
+            added++;
+        }
+        while (*s && *s != ',' && *s != ']')
+            s++;
+        if (*s == ',')
+            s++;
+    }
+    free(buf);
+    return added;
+}
+
+int rogue_craft_validate_dependencies(void)
+{
+    int bad = 0;
+    for (int i = 0; i < g_recipe_count; i++)
+    {
+        const RogueCraftRecipe* r = &g_recipes[i];
+        if (r->output_def < 0)
+            bad++;
+        for (int j = 0; j < r->input_count; j++)
+            if (r->inputs[j].def_index < 0)
+                bad++;
+    }
+    return bad;
+}
+int rogue_craft_validate_balance(float ratio_min, float ratio_max)
+{
+    if (ratio_min <= 0.0f)
+        ratio_min = 0.1f;
+    if (ratio_max < ratio_min)
+        ratio_max = ratio_min;
+    int outliers = 0;
+    for (int i = 0; i < g_recipe_count; i++)
+    {
+        const RogueCraftRecipe* r = &g_recipes[i];
+        const RogueItemDef* out = rogue_item_def_at(r->output_def);
+        int out_val = out ? (out->base_value > 0 ? out->base_value : 1) : 1;
+        int in_val = 0;
+        for (int j = 0; j < r->input_count; j++)
+        {
+            const RogueItemDef* in = rogue_item_def_at(r->inputs[j].def_index);
+            int v = in ? in->base_value : 0;
+            if (v <= 0)
+                v = 1;
+            in_val += v * r->inputs[j].quantity;
+        }
+        if (in_val <= 0)
+            in_val = 1;
+        float ratio = (float) out_val * (float) r->output_qty / (float) in_val;
+        if (ratio < ratio_min || ratio > ratio_max)
+            outliers++;
+    }
+    return outliers;
+}
+int rogue_craft_validate_skill_requirements(void)
+{
+    int issues = 0;
+    for (int i = 0; i < g_recipe_count; i++)
+    {
+        if (g_recipes[i].skill_req < 0 || g_recipes[i].skill_req > 100)
+        {
+            issues++;
+        }
+    }
+    return issues;
+}
+
 int rogue_craft_execute(const RogueCraftRecipe* r, RogueInvGetFn inv_get,
                         RogueInvConsumeFn inv_consume, RogueInvAddFn inv_add)
 {

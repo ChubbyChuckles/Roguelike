@@ -1,6 +1,7 @@
 #include "core/damage_calc.h"
 #include "core/app_state.h"
 #include "core/progression/progression_mastery.h"
+#include "core/progression/progression_specialization.h"
 #include "core/progression/progression_synergy.h"
 #include "core/stat_cache.h"
 #include <math.h>
@@ -33,6 +34,17 @@ int rogue_damage_fireball(int fireball_skill_id)
             total = (int) (scaled + 0.5f);
         }
     }
+    /* Phase 3.6.6: apply specialization path (POWER) scalar. */
+    {
+        float ds = rogue_specialization_damage_scalar(fireball_skill_id);
+        if (ds != 1.0f)
+        {
+            float scaled = (float) total * ds;
+            if (scaled < 0.0f)
+                scaled = 0.0f;
+            total = (int) (scaled + 0.5f);
+        }
+    }
     return total;
 }
 
@@ -51,6 +63,12 @@ float rogue_cooldown_fireball_ms(int fireball_skill_id)
         if (mult < 0.10f)
             mult = 0.10f; /* never below 90% reduction via this path */
         cd *= mult;
+    }
+    /* Phase 3.6.6: specialization CONTROL reduces cooldown multiplicatively. */
+    {
+        float cms = rogue_specialization_cooldown_scalar(fireball_skill_id);
+        if (cms > 0.0f && cms != 1.0f)
+            cd *= cms;
     }
     if (cd < 100.0f)
         cd = 100.0f;

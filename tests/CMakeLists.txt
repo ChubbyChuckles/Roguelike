@@ -232,6 +232,17 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_mastery_integ
     add_test(NAME test_progression_phase3_6_mastery_integration COMMAND test_progression_phase3_6_mastery_integration)
 endif()
 
+# Phase 3.6.6: Skill specialization paths test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_specialization.c AND NOT TARGET test_progression_phase3_6_specialization)
+    add_executable(test_progression_phase3_6_specialization unit/test_progression_phase3_6_specialization.c)
+    target_link_libraries(test_progression_phase3_6_specialization PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_progression_phase3_6_specialization PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_progression_phase3_6_specialization PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_progression_phase3_6_specialization COMMAND test_progression_phase3_6_specialization)
+endif()
+
 # Integration Plumbing Phase 2.2 CFG File Analysis Test (manual run)
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_cfg_file_analysis.c)
     add_executable(test_cfg_file_analysis unit/test_cfg_file_analysis.c)

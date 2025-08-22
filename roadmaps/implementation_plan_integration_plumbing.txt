@@ -312,8 +312,10 @@ PHASE 3. Cross-System Data Flow Integration Bridges
         SUMMARY: Fireball damage now includes INT scaling (0.25x total INT) plus FIRE_POWER synergy; cooldown observes effective CDR via progression caps. Unit test `test_progression_phase3_6_effect_scaling` passes.
     3.6.5 Create skill mastery bonuses integration with passive progression (Done)
         SUMMARY: Mastery bonus scalar integrated into active skill damage path (e.g., Fireball). Scalar derived from mastery rank brackets (1.01–1.20). New test `test_progression_phase3_6_mastery_integration` validates multiplicative application alongside passives and attributes.
-    3.6.6 Add skill specialization paths based on progression choices (X)
-    3.6.7 Implement skill reset/respec integration with progression system (X)
+    3.6.6 Add skill specialization paths based on progression choices (Done)
+        SUMMARY: Implemented minimal specialization system with two paths per skill: POWER (+10% damage) and CONTROL (-10% cooldown). Stored per-skill with dynamic array; APIs expose choose/get/respec and scalars. Integrated into `rogue_damage_fireball` and `rogue_cooldown_fireball_ms`. Unit test `test_progression_phase3_6_specialization` validates damage increase, cooldown reduction, and respec token consumption.
+    3.6.7 Implement skill reset/respec integration with progression system (Done)
+        SUMMARY: Specialization respec consumes attribute progression respec tokens via `g_attr_state.respec_tokens`. Test covers respec flow. Broader skill rank respec deferred to dedicated progression phase 11 tests already present.
 
 3.7 World Generation ↔ Enemy Integration Bridge
     3.7.1 Create biome-specific encounter table loading & application (Done)

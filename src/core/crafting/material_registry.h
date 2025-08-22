@@ -60,6 +60,13 @@ extern "C"
     /* Deterministic seed mixing for material node generation (Phase 1.4 baseline). */
     unsigned int rogue_material_seed_mix(unsigned int world_seed, int material_index);
 
+    /* Phase 2.3.3.4: Tier organization & progression helpers */
+    /* Find a material by category and tier, returns material index or -1. */
+    int rogue_material_find_by_category_and_tier(int category, int tier);
+    /* Given a material index, returns the index of the next higher tier in the same category, or
+     * -1 if none. */
+    int rogue_material_next_tier_index(int material_index);
+
 #ifdef __cplusplus
 }
 #endif

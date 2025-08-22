@@ -293,6 +293,7 @@ add_library(rogue_core
     src/core/progression/progression_maze.c
     src/core/progression/progression_passives.c
     src/core/progression/progression_mastery.c
+    src/core/progression/progression_specialization.c
     src/core/progression/progression_perpetual.c
     src/core/progression/progression_synergy.c
     src/core/progression/progression_persist.c
