@@ -1,4 +1,5 @@
 #include "transaction_manager.h"
+#include "rollback_manager.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -264,6 +265,10 @@ int rogue_tx_abort(int tx_id, const char* reason)
         {
             if (g_participants[i].desc.on_abort)
                 g_participants[i].desc.on_abort(g_participants[i].desc.user, r->id);
+            // Auto-invoke rollback for any system mapped to this participant.
+            // Best-effort: ignore errors (unmapped or no snapshots) but count invocation in stats.
+            int participant_id = g_participants[i].desc.participant_id;
+            (void) rogue_rollback_auto_for_participant(participant_id);
         }
     }
     g_stats.aborted++;

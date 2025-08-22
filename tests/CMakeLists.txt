@@ -41,6 +41,17 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_worldgen_phase3_4_biome_json.c AND
     add_test(NAME test_worldgen_phase3_4_biome_json COMMAND test_worldgen_phase3_4_biome_json)
 endif()
 
+# Integration Plumbing Phase 5.4 Auto rollback on tx abort test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_sync_phase5_8_auto_rollback.c AND NOT TARGET test_sync_phase5_8_auto_rollback)
+    add_executable(test_sync_phase5_8_auto_rollback unit/test_sync_phase5_8_auto_rollback.c)
+    target_link_libraries(test_sync_phase5_8_auto_rollback PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_sync_phase5_8_auto_rollback PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_sync_phase5_8_auto_rollback PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_sync_phase5_8_auto_rollback COMMAND test_sync_phase5_8_auto_rollback)
+endif()
+
 # Integration Plumbing Phase 2.3.4 Vegetation JSON ingestion tests
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_vegetation_json.c AND NOT TARGET test_vegetation_json)
     add_executable(test_vegetation_json unit/test_vegetation_json.c)
