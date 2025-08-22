@@ -22,4 +22,10 @@ typedef struct RoguePath
  * failure (blocked / no path). */
 int rogue_nav_astar(int sx, int sy, int tx, int ty, RoguePath* out_path);
 
+/* Path smoothing/simplification (cardinal):
+ * Compresses consecutive collinear segments in a cardinal-only path, preserving start/end, and
+ * keeping steps cardinal (no diagonals introduced). Returns number of points in out, or 0 if
+ * input invalid. out_path may alias in_path. */
+int rogue_nav_path_simplify(const RoguePath* in_path, RoguePath* out_path);
+
 #endif

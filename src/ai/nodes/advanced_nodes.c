@@ -1032,3 +1032,85 @@ RogueBTNode* rogue_bt_decorator_retry(const char* name, RogueBTNode* child, int 
     n->child_count = 1;
     return n;
 }
+
+/**
+ * @brief Decorator that detects if an agent is stuck (not moving enough for a time window).
+ *
+ * Tracks the last observed position and a progress timer stored in the blackboard. If the
+ * displacement from last_pos is below min_move_threshold for at least window_seconds, returns
+ * FAILURE and resets the timer. Otherwise ticks the child and forwards its status. The window
+ * timer is advanced each tick when movement is below threshold.
+ */
+typedef struct DecorStuckDetect
+{
+    RogueBTNode* child;
+    const char* agent_pos_key;
+    const char* window_timer_key;
+    float window_seconds;
+    float min_move_threshold;
+    int has_last;
+    float last_x, last_y;
+} DecorStuckDetect;
+
+static RogueBTStatus tick_decor_stuck(RogueBTNode* node, RogueBlackboard* bb, float dt)
+{
+    DecorStuckDetect* d = (DecorStuckDetect*) node->user_data;
+    RogueBBVec2 agent;
+    if (!rogue_bb_get_vec2(bb, d->agent_pos_key, &agent))
+        return ROGUE_BT_FAILURE;
+    if (!d->has_last)
+    {
+        d->last_x = agent.x;
+        d->last_y = agent.y;
+        d->has_last = 1;
+        rogue_bb_set_timer(bb, d->window_timer_key, 0.0f);
+    }
+    float dx = agent.x - d->last_x;
+    float dy = agent.y - d->last_y;
+    float dist2 = dx * dx + dy * dy;
+    float t = 0.0f;
+    rogue_bb_get_timer(bb, d->window_timer_key, &t);
+    if (dist2 < d->min_move_threshold * d->min_move_threshold)
+    {
+        t += dt;
+        rogue_bb_set_timer(bb, d->window_timer_key, t);
+        if (t >= d->window_seconds)
+        {
+            /* Declare stuck and reset window */
+            rogue_bb_set_timer(bb, d->window_timer_key, 0.0f);
+            d->last_x = agent.x;
+            d->last_y = agent.y;
+            return ROGUE_BT_FAILURE;
+        }
+    }
+    else
+    {
+        /* Movement observed: reset window and update anchor */
+        rogue_bb_set_timer(bb, d->window_timer_key, 0.0f);
+        d->last_x = agent.x;
+        d->last_y = agent.y;
+    }
+    return d->child->vtable->tick(d->child, bb, dt);
+}
+
+RogueBTNode* rogue_bt_decorator_stuck_detect(const char* name, RogueBTNode* child,
+                                             const char* bb_agent_pos_key,
+                                             const char* bb_window_timer_key, float window_seconds,
+                                             float min_move_threshold)
+{
+    RogueBTNode* n = rogue_bt_node_create(name, 1, tick_decor_stuck);
+    if (!n)
+        return NULL;
+    DecorStuckDetect* d = (DecorStuckDetect*) calloc(1, sizeof(DecorStuckDetect));
+    d->child = child;
+    d->agent_pos_key = bb_agent_pos_key;
+    d->window_timer_key = bb_window_timer_key;
+    d->window_seconds = window_seconds;
+    d->min_move_threshold = min_move_threshold;
+    d->has_last = 0;
+    n->user_data = d;
+    n->children = (RogueBTNode**) calloc(1, sizeof(RogueBTNode*));
+    n->children[0] = child;
+    n->child_count = 1;
+    return n;
+}

@@ -49,6 +49,16 @@ feat(worldgen-json): Phase 2.3.4 biomes & vegetation JSON loaders, validations, 
 
 Refs: roadmaps/implementation_plan_integration_plumbing.txt 2.3.4
 
+feat(ai-phase5): Path smoothing API + Stuck detection decorator with tests
+
+- Navigation: Added `rogue_nav_path_simplify` to collapse collinear cardinal segments while preserving endpoints; supports in-place aliasing. Verified by unit test `test_ai_phase5_path_smoothing_and_stuck` (endpoints preserved, length monotonic, cardinal steps maintained).
+- AI Nodes: Added decorator `rogue_bt_decorator_stuck_detect` that monitors agent movement using blackboard vec2 position key and timer window; returns FAILURE when displacement below threshold over window and resets window. Comprehensive Doxygen added in advanced_nodes.c previously.
+- Tests: New focused test `test_ai_phase5_stuck_detect` validates stationary→failure windowing, movement reset, and child suppression on failure. Both AI Phase 5 tests pass in Debug with SDL2 and parallel build (-j8).
+- Roadmap: Marked AI Phase 5.4 (Path smoothing) and 5.5 (Stuck detection) as Done with brief notes.
+- README: Changelog updated to highlight new API/decorator and passing tests.
+
+Build: cmake --build build --config Debug --parallel 8; ctest -C Debug -R test_ai_phase5_stuck_detect --output-on-failure (100% passed).
+
 feat(worldgen-json): Complete Phase 2.3.4 with resource nodes + asset dependency validation
 
 - Implemented resource node JSON loader (`world_gen_resource_json.c/.h`): parses id, rarity,

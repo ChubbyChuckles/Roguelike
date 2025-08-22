@@ -242,3 +242,77 @@ int rogue_nav_astar(int sx, int sy, int tx, int ty, RoguePath* out_path)
     free(nodes);
     return 1;
 }
+
+int rogue_nav_path_simplify(const RoguePath* in_path, RoguePath* out_path)
+{
+    if (!in_path || !out_path || in_path->failed || in_path->length <= 0)
+        return 0;
+    out_path->failed = in_path->failed;
+    out_path->truncated = 0;
+    if (in_path->length == 1)
+    {
+        out_path->xs[0] = in_path->xs[0];
+        out_path->ys[0] = in_path->ys[0];
+        out_path->length = 1;
+        return 1;
+    }
+    int out_len = 0;
+    int last_dx = 0, last_dy = 0;
+    /* Always include first point */
+    out_path->xs[out_len] = in_path->xs[0];
+    out_path->ys[out_len] = in_path->ys[0];
+    out_len++;
+    for (int i = 1; i < in_path->length; ++i)
+    {
+        int px = in_path->xs[i - 1];
+        int py = in_path->ys[i - 1];
+        int cx = in_path->xs[i];
+        int cy = in_path->ys[i];
+        int dx = cx - px;
+        int dy = cy - py;
+        /* Sanity: ensure cardinal step in input; if not, treat as break */
+        int man = (dx < 0 ? -dx : dx) + (dy < 0 ? -dy : dy);
+        if (man != 1)
+        {
+            /* Force a breakpoint to preserve connectivity */
+            last_dx = 0;
+            last_dy = 0;
+        }
+        if (i == 1)
+        {
+            last_dx = dx;
+            last_dy = dy;
+        }
+        /* If direction changes, emit previous point as a corner */
+        if (dx != last_dx || dy != last_dy)
+        {
+            if (out_len < ROGUE_PATH_MAX_POINTS)
+            {
+                out_path->xs[out_len] = px;
+                out_path->ys[out_len] = py;
+                out_len++;
+            }
+            else
+            {
+                out_path->truncated = 1;
+            }
+            last_dx = dx;
+            last_dy = dy;
+        }
+    }
+    /* Always include final point */
+    int end_x = in_path->xs[in_path->length - 1];
+    int end_y = in_path->ys[in_path->length - 1];
+    if (out_len < ROGUE_PATH_MAX_POINTS)
+    {
+        out_path->xs[out_len] = end_x;
+        out_path->ys[out_len] = end_y;
+        out_len++;
+    }
+    else
+    {
+        out_path->truncated = 1;
+    }
+    out_path->length = out_len;
+    return out_len;
+}

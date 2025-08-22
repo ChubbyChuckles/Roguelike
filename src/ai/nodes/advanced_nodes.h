@@ -69,6 +69,14 @@ extern "C"
                                              const char* bb_timer_key, float cooldown_seconds);
     RogueBTNode* rogue_bt_decorator_retry(const char* name, RogueBTNode* child, int max_attempts);
 
+    /* Decorator: Stuck detection. Monitors an agent vec2 position; if position hasn't advanced
+        beyond threshold for window_seconds, returns FAILURE and resets its window timer. Otherwise
+        ticks child and passes through child's status. */
+    RogueBTNode* rogue_bt_decorator_stuck_detect(const char* name, RogueBTNode* child,
+                                                 const char* bb_agent_pos_key,
+                                                 const char* bb_window_timer_key,
+                                                 float window_seconds, float min_move_threshold);
+
 #ifdef __cplusplus
 }
 #endif

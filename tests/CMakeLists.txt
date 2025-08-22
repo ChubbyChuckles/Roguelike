@@ -3156,6 +3156,28 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_navigation.c AND NOT TARGET test
     add_test(NAME test_navigation COMMAND test_navigation)
 endif()
 
+# AI Phase 5 path smoothing and stuck detection scaffold test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase5_path_smoothing_and_stuck.c AND NOT TARGET test_ai_phase5_path_smoothing_and_stuck)
+    add_executable(test_ai_phase5_path_smoothing_and_stuck unit/test_ai_phase5_path_smoothing_and_stuck.c)
+    target_link_libraries(test_ai_phase5_path_smoothing_and_stuck PRIVATE rogue_core)
+    target_compile_definitions(test_ai_phase5_path_smoothing_and_stuck PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ai_phase5_path_smoothing_and_stuck PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase5_path_smoothing_and_stuck COMMAND test_ai_phase5_path_smoothing_and_stuck)
+endif()
+
+# AI Phase 5 stuck detection decorator focused test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase5_stuck_detect.c AND NOT TARGET test_ai_phase5_stuck_detect)
+    add_executable(test_ai_phase5_stuck_detect unit/test_ai_phase5_stuck_detect.c)
+    target_link_libraries(test_ai_phase5_stuck_detect PRIVATE rogue_core)
+    target_compile_definitions(test_ai_phase5_stuck_detect PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ai_phase5_stuck_detect PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase5_stuck_detect COMMAND test_ai_phase5_stuck_detect)
+endif()
+
 # Explicitly add combat block cancel test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_block_cancel.c AND NOT TARGET test_combat_block_cancel)
     add_executable(test_combat_block_cancel unit/test_combat_block_cancel.c)
