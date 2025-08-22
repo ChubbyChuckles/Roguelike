@@ -52,10 +52,13 @@ PHASE 5. Movement & Pathing Enhancements
 5.5 Stuck detection & recovery action (Done) [Decorator rogue_bt_decorator_stuck_detect detects low displacement over window; integrated with blackboard timer/vec2; unit test test_ai_phase5_stuck_detect]
 
 PHASE 6. Combat Behaviour Extensions
-6.1 Ranged attack archetype hooks (projectile usage) (X)
-6.2 Parry / dodge reaction windows (X)
-6.3 Opportunistic attack (when player in recovery) (X)
-6.4 Kiting logic (maintain preferred distance band) (X)
+6.1 Ranged attack archetype hooks (projectile usage) (Done) [Added BT action `rogue_bt_action_ranged_fire_projectile` integrating with projectile subsystem: reads agent/target vec2 from blackboard, computes normalized direction with small forward offset, and calls `rogue_projectiles_spawn`. Optional line-clear gate via blackboard bool; optional cooldown timer reset to 0 on fire. Unit test `test_ai_phase6_1_ranged_projectile` validates gating (FAIL when blocked), successful fire (SUCCESS + active count +1), and cooldown reset.]
+6.2 Parry / dodge reaction windows (Done) [Added reaction nodes:
+		- `rogue_bt_action_react_parry`: When incoming threat flag is set, starts/advances a parry window timer; returns SUCCESS and sets parry_active while t <= window_seconds; resets when no threat or after window elapses.
+		- `rogue_bt_action_react_dodge`: When incoming threat flag is set, computes and writes a normalized dodge vector away from threat using agent_pos/threat_pos; returns SUCCESS while t <= duration_seconds; resets timer when no threat.
+	Unit test `test_ai_phase6_2_reactions` validates parry window open/close behavior and dodge vector/duration window.]
+6.3 Opportunistic attack (when player in recovery) (Done) [Added BT action `rogue_bt_action_opportunistic_attack`: SUCCESS when `target_in_recovery` is true and, if provided, agent-target distance <= max_distance; on SUCCESS optionally resets a cooldown timer key to 0. Unit test `test_ai_phase6_3_opportunistic` covers: FAILURE when no recovery, FAILURE when out of range, SUCCESS within range, and cooldown reset.]
+6.4 Kiting logic (maintain preferred distance band) (Done) [Added action node `rogue_bt_action_kite_band` keeping agent within [min,max] distance of target by moving away when too close and toward when too far; returns SUCCESS when within band. Unit test `test_ai_phase6_4_kiting` validates approach/retreat behavior and idle when already in band.]
 6.5 Focus fire coordination (threat leader broadcast) (X)
 6.6 Execution / finisher attempt below health threshold (X)
 6.7 Difficulty scaler (reaction time, aggression) (X)

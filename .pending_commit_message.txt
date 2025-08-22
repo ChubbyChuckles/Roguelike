@@ -86,3 +86,31 @@ feat(ai-phase5): Flow field precompute (5.2) and local avoidance (5.3) with unit
 - Build: Debug with SDL2 and `--parallel 8` succeeded; focused CTest run for both tests passed (0 failures).
 - Docs: Updated `roadmaps/implementation_plan_aisystem.txt` marking 5.2 & 5.3 Done with notes; README changelog
 	now highlights the new modules and tests.
+
+feat(ai-phase6): Ranged projectile firing action node + unit test (Phase 6.1)
+
+ - Added BT action `rogue_bt_action_ranged_fire_projectile` integrating AI with projectile subsystem.
+	 - Reads agent/target positions from blackboard, computes normalized direction with slight forward offset, and spawns via `rogue_projectiles_spawn`.
+	 - Optional blackboard bool gate for line-of-fire clear; optional cooldown timer reset to 0 on successful fire.
+ - Tests: New `test_ai_phase6_1_ranged_projectile` validates gating (no fire when blocked), projectile spawn count increment, and cooldown reset. Registered in CTest.
+ - Build: Debug with SDL2 enabled and `--parallel 8`; targeted CTest run passed: 100% (1/1) for this feature.
+ - Docs: Updated `roadmaps/implementation_plan_aisystem.txt` (Phase 6.1 marked Done with notes) and README changelog entry under Section 11.
+
+feat(ai-phase6): Reaction windows (Parry/Dodge) nodes + unit test (Phase 6.2)
+
+- Added `rogue_bt_action_react_parry` (activates parry within window when incoming_threat flag set; resets timer/flag otherwise) and `rogue_bt_action_react_dodge` (computes normalized vector away from threat and remains active for duration_seconds).
+- Tests: New `test_ai_phase6_2_reactions` validates parry window open/close and dodge vector/duration behavior. Wired into CTest with SDL compile defs.
+- Build: Debug with SDL2, `cmake --build build --config Debug --parallel 8`; targeted `ctest -C Debug -j8 -R test_ai_phase6_2_reactions` passed (100%).
+- Docs: Roadmap Phase 6.2 marked Done with implementation notes; README changelog updated.
+
+feat(ai-phase6): Opportunistic attack and kiting logic (Phases 6.3–6.4) with unit tests
+
+- Added `rogue_bt_action_opportunistic_attack` returning SUCCESS when target is in recovery and
+	within optional max distance; optionally resets cooldown timer on success. Unit test
+	`test_ai_phase6_3_opportunistic` validates gating (no recovery / out-of-range) and cooldown reset.
+- Added `rogue_bt_action_kite_band` enforcing a preferred distance band [min,max] by moving away when
+	too close and toward when too far; SUCCESS when inside band. Unit test `test_ai_phase6_4_kiting`
+	validates approach/retreat behavior and idle-in-band.
+- Build: Debug with SDL2, parallel (`--parallel 8`); targeted CTest runs for both tests pass.
+- Docs: Updated `roadmaps/implementation_plan_aisystem.txt` marking 6.3 & 6.4 Done; README changelog now
+	includes entries for 6.3 and 6.4.

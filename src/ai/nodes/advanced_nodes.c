@@ -1,4 +1,5 @@
 #include "advanced_nodes.h"
+#include "core/projectiles.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -687,6 +688,82 @@ RogueBTNode* rogue_bt_action_strafe(const char* name, const char* bb_target_pos_
 }
 
 /**
+ * Phase 6.1: Ranged projectile firing action
+ * Fires a projectile from agent toward target when optional line-clear flag is true.
+ * On fire, resets optional cooldown timer to 0. Returns SUCCESS on fire, FAILURE otherwise.
+ */
+typedef struct ActionRangedFire
+{
+    const char* agent_pos_key;
+    const char* target_pos_key;
+    const char* opt_line_flag_key;  /* may be NULL -> ignore */
+    const char* opt_cool_timer_key; /* may be NULL -> ignore */
+    float speed;
+    float life_ms;
+    int damage;
+} ActionRangedFire;
+
+static RogueBTStatus tick_action_ranged_fire(RogueBTNode* node, RogueBlackboard* bb, float dt)
+{
+    (void) dt;
+    ActionRangedFire* d = (ActionRangedFire*) node->user_data;
+    if (!d)
+        return ROGUE_BT_FAILURE;
+    /* Optional gate */
+    if (d->opt_line_flag_key)
+    {
+        bool ok = false;
+        if (!rogue_bb_get_bool(bb, d->opt_line_flag_key, &ok) || !ok)
+            return ROGUE_BT_FAILURE;
+    }
+    RogueBBVec2 agent, target;
+    if (!rogue_bb_get_vec2(bb, d->agent_pos_key, &agent))
+        return ROGUE_BT_FAILURE;
+    if (!rogue_bb_get_vec2(bb, d->target_pos_key, &target))
+        return ROGUE_BT_FAILURE;
+    float dx = target.x - agent.x;
+    float dy = target.y - agent.y;
+    float len = sqrtf(dx * dx + dy * dy);
+    if (len < 0.0001f)
+    {
+        dx = 1.0f;
+        dy = 0.0f;
+        len = 1.0f;
+    }
+    dx /= len;
+    dy /= len;
+    /* Small forward offset to avoid immediate overlap */
+    float sx = agent.x + dx * 0.5f;
+    float sy = agent.y + dy * 0.5f;
+    rogue_projectiles_spawn(sx, sy, dx, dy, d->speed, d->life_ms, d->damage);
+    if (d->opt_cool_timer_key)
+        rogue_bb_set_timer(bb, d->opt_cool_timer_key, 0.0f);
+    return ROGUE_BT_SUCCESS;
+}
+
+RogueBTNode* rogue_bt_action_ranged_fire_projectile(const char* name, const char* bb_agent_pos_key,
+                                                    const char* bb_target_pos_key,
+                                                    const char* bb_optional_line_clear_flag_key,
+                                                    const char* bb_optional_cooldown_timer_key,
+                                                    float speed_tiles_per_sec, float life_ms,
+                                                    int damage)
+{
+    RogueBTNode* n = rogue_bt_node_create(name, 0, tick_action_ranged_fire);
+    if (!n)
+        return NULL;
+    ActionRangedFire* d = (ActionRangedFire*) calloc(1, sizeof(ActionRangedFire));
+    d->agent_pos_key = bb_agent_pos_key;
+    d->target_pos_key = bb_target_pos_key;
+    d->opt_line_flag_key = bb_optional_line_clear_flag_key;
+    d->opt_cool_timer_key = bb_optional_cooldown_timer_key;
+    d->speed = speed_tiles_per_sec;
+    d->life_ms = life_ms;
+    d->damage = damage;
+    n->user_data = d;
+    return n;
+}
+
+/**
  * @brief Data for a tactical flank attempt action.
  *
  * Computes a flank point perpendicular to the agent->player vector at the
@@ -745,6 +822,242 @@ RogueBTNode* rogue_bt_tactical_flank_attempt(const char* name, const char* bb_pl
     d->agent_pos_key = bb_agent_pos_key;
     d->out_flank_key = bb_out_flank_target_key;
     d->offset = offset;
+    n->user_data = d;
+    return n;
+}
+
+/* ===================== Phase 6.2: Reaction Windows (Parry / Dodge) ===================== */
+typedef struct ReactParry
+{
+    const char* incoming_flag_key; /* bool */
+    const char* parry_active_key;  /* bool out */
+    const char* timer_key;         /* timer in bb */
+    float window_seconds;
+} ReactParry;
+
+static RogueBTStatus tick_react_parry(RogueBTNode* node, RogueBlackboard* bb, float dt)
+{
+    ReactParry* d = (ReactParry*) node->user_data;
+    bool incoming = false;
+    (void) dt;
+    if (!rogue_bb_get_bool(bb, d->incoming_flag_key, &incoming) || !incoming)
+    {
+        /* No threat: reset parry */
+        rogue_bb_set_bool(bb, d->parry_active_key, false);
+        rogue_bb_set_timer(bb, d->timer_key, 0.0f);
+        return ROGUE_BT_FAILURE;
+    }
+    float t = 0.0f;
+    rogue_bb_get_timer(bb, d->timer_key, &t);
+    t += dt;
+    rogue_bb_set_timer(bb, d->timer_key, t);
+    if (t <= d->window_seconds)
+    {
+        rogue_bb_set_bool(bb, d->parry_active_key, true);
+        return ROGUE_BT_SUCCESS;
+    }
+    /* Window elapsed */
+    rogue_bb_set_bool(bb, d->parry_active_key, false);
+    return ROGUE_BT_FAILURE;
+}
+
+RogueBTNode* rogue_bt_action_react_parry(const char* name, const char* bb_incoming_threat_flag_key,
+                                         const char* bb_out_parry_active_key,
+                                         const char* bb_parry_timer_key, float window_seconds)
+{
+    RogueBTNode* n = rogue_bt_node_create(name, 0, tick_react_parry);
+    if (!n)
+        return NULL;
+    ReactParry* d = (ReactParry*) calloc(1, sizeof(ReactParry));
+    d->incoming_flag_key = bb_incoming_threat_flag_key;
+    d->parry_active_key = bb_out_parry_active_key;
+    d->timer_key = bb_parry_timer_key;
+    d->window_seconds = window_seconds;
+    n->user_data = d;
+    return n;
+}
+
+typedef struct ReactDodge
+{
+    const char* incoming_flag_key; /* bool */
+    const char* agent_pos_key;     /* vec2 */
+    const char* threat_pos_key;    /* vec2 */
+    const char* out_dodge_vec_key; /* vec2 */
+    const char* timer_key;         /* timer */
+    float duration_seconds;
+} ReactDodge;
+
+static RogueBTStatus tick_react_dodge(RogueBTNode* node, RogueBlackboard* bb, float dt)
+{
+    ReactDodge* d = (ReactDodge*) node->user_data;
+    bool incoming = false;
+    (void) dt;
+    if (!rogue_bb_get_bool(bb, d->incoming_flag_key, &incoming) || !incoming)
+    {
+        /* No threat: reset */
+        rogue_bb_set_timer(bb, d->timer_key, 0.0f);
+        return ROGUE_BT_FAILURE;
+    }
+
+    float t = 0.0f;
+    rogue_bb_get_timer(bb, d->timer_key, &t);
+    t += dt;
+    rogue_bb_set_timer(bb, d->timer_key, t);
+
+    /* Compute dodge vector away from threat on first activation or keep last */
+    RogueBBVec2 agent, threat;
+    if (!rogue_bb_get_vec2(bb, d->agent_pos_key, &agent) ||
+        !rogue_bb_get_vec2(bb, d->threat_pos_key, &threat))
+    {
+        return ROGUE_BT_FAILURE;
+    }
+    float dx = agent.x - threat.x;
+    float dy = agent.y - threat.y;
+    float len = sqrtf(dx * dx + dy * dy);
+    if (len < 0.0001f)
+    {
+        dx = 1.0f;
+        dy = 0.0f;
+        len = 1.0f;
+    }
+    dx /= len;
+    dy /= len;
+    rogue_bb_set_vec2(bb, d->out_dodge_vec_key, dx, dy);
+
+    if (t <= d->duration_seconds)
+        return ROGUE_BT_SUCCESS;
+    return ROGUE_BT_FAILURE;
+}
+
+RogueBTNode* rogue_bt_action_react_dodge(const char* name, const char* bb_incoming_threat_flag_key,
+                                         const char* bb_agent_pos_key,
+                                         const char* bb_threat_pos_key,
+                                         const char* bb_out_dodge_vec_key,
+                                         const char* bb_dodge_timer_key, float duration_seconds)
+{
+    RogueBTNode* n = rogue_bt_node_create(name, 0, tick_react_dodge);
+    if (!n)
+        return NULL;
+    ReactDodge* d = (ReactDodge*) calloc(1, sizeof(ReactDodge));
+    d->incoming_flag_key = bb_incoming_threat_flag_key;
+    d->agent_pos_key = bb_agent_pos_key;
+    d->threat_pos_key = bb_threat_pos_key;
+    d->out_dodge_vec_key = bb_out_dodge_vec_key;
+    d->timer_key = bb_dodge_timer_key;
+    d->duration_seconds = duration_seconds;
+    n->user_data = d;
+    return n;
+}
+
+/* ===================== Phase 6.3: Opportunistic Attack ===================== */
+typedef struct OpportunisticAttack
+{
+    const char* recovery_flag_key;  /* bool: target is in recovery */
+    const char* agent_pos_key;      /* vec2 */
+    const char* target_pos_key;     /* vec2 */
+    float max_distance;             /* <=0 means ignore distance */
+    const char* opt_cool_timer_key; /* timer: reset to 0 on success if provided */
+} OpportunisticAttack;
+
+static RogueBTStatus tick_action_opportunistic_attack(RogueBTNode* node, RogueBlackboard* bb,
+                                                      float dt)
+{
+    (void) dt;
+    OpportunisticAttack* d = (OpportunisticAttack*) node->user_data;
+    bool in_recovery = false;
+    if (!rogue_bb_get_bool(bb, d->recovery_flag_key, &in_recovery) || !in_recovery)
+        return ROGUE_BT_FAILURE;
+    if (d->max_distance > 0.0f)
+    {
+        RogueBBVec2 agent, target;
+        if (!rogue_bb_get_vec2(bb, d->agent_pos_key, &agent) ||
+            !rogue_bb_get_vec2(bb, d->target_pos_key, &target))
+            return ROGUE_BT_FAILURE;
+        float dx = target.x - agent.x, dy = target.y - agent.y;
+        float dist2 = dx * dx + dy * dy;
+        if (dist2 > d->max_distance * d->max_distance)
+            return ROGUE_BT_FAILURE;
+    }
+    if (d->opt_cool_timer_key)
+        rogue_bb_set_timer(bb, d->opt_cool_timer_key, 0.0f);
+    return ROGUE_BT_SUCCESS;
+}
+
+RogueBTNode* rogue_bt_action_opportunistic_attack(const char* name,
+                                                  const char* bb_target_in_recovery_flag_key,
+                                                  const char* bb_agent_pos_key,
+                                                  const char* bb_target_pos_key,
+                                                  float max_distance_allowed,
+                                                  const char* bb_optional_cooldown_timer_key)
+{
+    RogueBTNode* n = rogue_bt_node_create(name, 0, tick_action_opportunistic_attack);
+    if (!n)
+        return NULL;
+    OpportunisticAttack* d = (OpportunisticAttack*) calloc(1, sizeof(OpportunisticAttack));
+    d->recovery_flag_key = bb_target_in_recovery_flag_key;
+    d->agent_pos_key = bb_agent_pos_key;
+    d->target_pos_key = bb_target_pos_key;
+    d->max_distance = max_distance_allowed;
+    d->opt_cool_timer_key = bb_optional_cooldown_timer_key;
+    n->user_data = d;
+    return n;
+}
+
+/* ===================== Phase 6.4: Kiting Logic (Preferred Distance Band) ===================== */
+typedef struct ActionKiteBand
+{
+    const char* agent_pos_key;  /* vec2 */
+    const char* target_pos_key; /* vec2 */
+    float min_dist;             /* prefer >= min_dist */
+    float max_dist;             /* prefer <= max_dist (if <= min, treated as =min) */
+    float speed;                /* movement speed */
+} ActionKiteBand;
+
+static RogueBTStatus tick_action_kite_band(RogueBTNode* node, RogueBlackboard* bb, float dt)
+{
+    ActionKiteBand* d = (ActionKiteBand*) node->user_data;
+    RogueBBVec2 agent, target;
+    if (!rogue_bb_get_vec2(bb, d->agent_pos_key, &agent))
+        return ROGUE_BT_FAILURE;
+    if (!rogue_bb_get_vec2(bb, d->target_pos_key, &target))
+        return ROGUE_BT_FAILURE;
+    float dx = target.x - agent.x, dy = target.y - agent.y;
+    float dist2 = dx * dx + dy * dy;
+    float min_d = d->min_dist;
+    float max_d = (d->max_dist <= d->min_dist) ? d->min_dist : d->max_dist;
+    float min2 = min_d * min_d;
+    float max2 = max_d * max_d;
+    if (dist2 >= min2 && dist2 <= max2)
+        return ROGUE_BT_SUCCESS; /* already in band */
+    float len = sqrtf(dist2);
+    if (len < 0.0001f)
+    {
+        dx = 1.0f;
+        dy = 0.0f;
+        len = 1.0f;
+    }
+    /* if too close -> move away, if too far -> move toward */
+    float dirx = (dist2 < min2) ? -(dx / len) : (dx / len);
+    float diry = (dist2 < min2) ? -(dy / len) : (dy / len);
+    agent.x += dirx * d->speed * dt;
+    agent.y += diry * d->speed * dt;
+    rogue_bb_set_vec2(bb, d->agent_pos_key, agent.x, agent.y);
+    return ROGUE_BT_RUNNING;
+}
+
+RogueBTNode* rogue_bt_action_kite_band(const char* name, const char* bb_agent_pos_key,
+                                       const char* bb_target_pos_key, float preferred_min_distance,
+                                       float preferred_max_distance, float move_speed)
+{
+    RogueBTNode* n = rogue_bt_node_create(name, 0, tick_action_kite_band);
+    if (!n)
+        return NULL;
+    ActionKiteBand* d = (ActionKiteBand*) calloc(1, sizeof(ActionKiteBand));
+    d->agent_pos_key = bb_agent_pos_key;
+    d->target_pos_key = bb_target_pos_key;
+    d->min_dist = (preferred_min_distance < 0.0f) ? 0.0f : preferred_min_distance;
+    d->max_dist = preferred_max_distance;
+    d->speed = move_speed;
     n->user_data = d;
     return n;
 }
