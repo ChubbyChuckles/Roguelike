@@ -1,5 +1,6 @@
 #include "core/damage_calc.h"
 #include "core/app_state.h"
+#include "core/progression/progression_mastery.h"
 #include "core/progression/progression_synergy.h"
 #include "core/stat_cache.h"
 #include <math.h>
@@ -18,7 +19,21 @@ int rogue_damage_fireball(int fireball_skill_id)
     int_bonus = (int) (g_player_stat_cache.total_intelligence * 0.25f);
     if (int_bonus < 0)
         int_bonus = 0;
-    return base + fire_synergy + int_bonus;
+    int total = base + fire_synergy + int_bonus;
+    /* Phase 3.6.5: integrate mastery bonuses into active skill output. */
+    {
+        float ms = 1.0f;
+        /* mastery scalar is >= 1.0f; multiply and round to nearest int for stability */
+        ms = rogue_mastery_bonus_scalar(fireball_skill_id);
+        if (ms > 1.0f)
+        {
+            float scaled = (float) total * ms;
+            if (scaled < 0.0f)
+                scaled = 0.0f;
+            total = (int) (scaled + 0.5f);
+        }
+    }
+    return total;
 }
 
 float rogue_cooldown_fireball_ms(int fireball_skill_id)

@@ -58,6 +58,18 @@
 				"$msCompile"
 			],
 			"group": "build"
+		},
+		{
+			"label": "Build Debug SDL2 with parallelism",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"group": "build"
+		},
+		{
+			"label": "Rebuild after warning fix",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"group": "build"
 		}
 	]
 }

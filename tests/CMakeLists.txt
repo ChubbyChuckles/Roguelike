@@ -188,6 +188,17 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_xp_events.c A
     add_test(NAME test_progression_phase3_6_xp_events COMMAND test_progression_phase3_6_xp_events)
 endif()
 
+# Integration Plumbing Phase 3.6.2 Skill prerequisite gating + SKILL_UNLOCKED event test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_skill_unlock.c AND NOT TARGET test_progression_phase3_6_skill_unlock)
+    add_executable(test_progression_phase3_6_skill_unlock unit/test_progression_phase3_6_skill_unlock.c)
+    target_link_libraries(test_progression_phase3_6_skill_unlock PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_progression_phase3_6_skill_unlock PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_progression_phase3_6_skill_unlock PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_progression_phase3_6_skill_unlock COMMAND test_progression_phase3_6_skill_unlock)
+endif()
+
 # Phase 3.6.3 test: progression maze unlock gating
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_maze_unlocks.c AND NOT TARGET test_progression_phase3_6_maze_unlocks)
     add_executable(test_progression_phase3_6_maze_unlocks unit/test_progression_phase3_6_maze_unlocks.c)
@@ -208,6 +219,17 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_effect_scalin
         target_compile_definitions(test_progression_phase3_6_effect_scaling PRIVATE ROGUE_HAVE_SDL=1)
     endif()
     add_test(NAME test_progression_phase3_6_effect_scaling COMMAND test_progression_phase3_6_effect_scaling)
+endif()
+
+# Phase 3.6.5: Mastery integration test
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_mastery_integration.c AND NOT TARGET test_progression_phase3_6_mastery_integration)
+    add_executable(test_progression_phase3_6_mastery_integration unit/test_progression_phase3_6_mastery_integration.c)
+    target_link_libraries(test_progression_phase3_6_mastery_integration PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_progression_phase3_6_mastery_integration PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_progression_phase3_6_mastery_integration PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_progression_phase3_6_mastery_integration COMMAND test_progression_phase3_6_mastery_integration)
 endif()
 
 # Integration Plumbing Phase 2.2 CFG File Analysis Test (manual run)

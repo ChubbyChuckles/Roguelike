@@ -1,3 +1,14 @@
+Integration Plumbing 3.6.1–3.6.2: Centralized XP + LevelUp events; Skill unlock gating + SKILL_UNLOCKED event
+
+- Add progression_award.c/.h with rogue_award_xp() publishing XP_GAINED and accruing XP
+- Ensure LEVEL_UP events are published from player progression loop (old→new level payload)
+- Route enemy death XP through rogue_award_xp for consistent analytics & UI updates
+- Extend skills_registry: add minimal level gating (5*skill_strength) on first unlock and emit SKILL_UNLOCKED on 0→1 rank; payload packs skill_id via xp_gained.source_id to match UI/Persistence bridges
+- Unit tests:
+	- test_progression_phase3_6_xp_events validates XP_GAINED and LEVEL_UP sequence
+	- test_progression_phase3_6_skill_unlock validates gating failure at low level and SKILL_UNLOCKED event emission on unlock
+- Wire tests into CMake; build remains SDL2-enabled and parallelizable
+
 integration(sync v5.8): snapshot double-buffer, delta round-trip, rollback cursor; tests passing
 
 – Snapshot Manager: introduce per-system double-buffered snapshots so prior snapshot pointers remain valid across subsequent capture; adjust dump and reset; keep version/hash/timestamp monotonic; fix replay helper for new layout.
@@ -19,3 +30,9 @@ progression/skills (Phase 3.6): XP events, gating, maze thresholds, and effect s
 – 3.6.3: Passive unlocks now respect progression maze thresholds (level/STR/DEX/INT); fixed heap corruption by deferring meta allocation post-augmentation. Test now passes.
 – 3.6.4: Implemented skill effect scaling: Fireball damage = base(3+2*rank) + FIRE_POWER synergy + INT bonus (0.25*total_intelligence). Cooldown respects effective CDR using progression soft/hard caps (maps from rating via stat cache effective %). Added unit test test_progression_phase3_6_effect_scaling printing PH3_6_EFFECT_SCALING_OK.
 – Roadmap updated (3.6.1–3.6.4 -> Done); README changelog notes.
+
+progression/skills (Phase 3.6.5): Mastery bonuses integrated into active skill output
+
+– Integrate mastery scalar from Phase 6 into damage calc for actives (Fireball path): multiplicative scalar by mastery rank bracket (1.01..1.20) with stable rounding.
+– New unit test test_progression_phase3_6_mastery_integration validates multiplicative behavior with passives/attributes and rank growth; prints PH3_6_MASTERY_INTEG_OK.
+– Roadmap marks 3.6.3–3.6.5 Done (maze unlock thresholds, effect scaling, mastery integration). README changelog updated.

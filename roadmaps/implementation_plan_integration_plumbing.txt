@@ -307,10 +307,11 @@ PHASE 3. Cross-System Data Flow Integration Bridges
     3.6.2 Create skill prerequisite checking with progression level gates (Done)
         SUMMARY: First-unlock gating: require level >= 5*skill_strength; SKILL_UNLOCKED event emitted; tests validate gating & event payload.
     3.6.3 Add skill maze unlocking based on character level & attribute thresholds (Done)
-        SUMMARY: Passive unlocks gated via maze thresholds; fixed meta allocation OOB; tests pass.
+        SUMMARY: Passive maze threshold gates enforced (level/attribute checks) with heap OOB fix in meta allocation; unit test `test_progression_phase3_6_maze_unlocks` passing.
     3.6.4 Implement skill effect scaling with character progression stats (Done)
-        SUMMARY: Fireball scales with INT (0.25x total_intelligence) + FIRE_POWER synergy; cooldown observes effective CDR with soft/hard caps; new test PH3_6_EFFECT_SCALING_OK.
-    3.6.5 Create skill mastery bonuses integration with passive progression (X)
+        SUMMARY: Fireball damage now includes INT scaling (0.25x total INT) plus FIRE_POWER synergy; cooldown observes effective CDR via progression caps. Unit test `test_progression_phase3_6_effect_scaling` passes.
+    3.6.5 Create skill mastery bonuses integration with passive progression (Done)
+        SUMMARY: Mastery bonus scalar integrated into active skill damage path (e.g., Fireball). Scalar derived from mastery rank brackets (1.01–1.20). New test `test_progression_phase3_6_mastery_integration` validates multiplicative application alongside passives and attributes.
     3.6.6 Add skill specialization paths based on progression choices (X)
     3.6.7 Implement skill reset/respec integration with progression system (X)
 

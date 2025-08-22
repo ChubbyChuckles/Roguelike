@@ -525,7 +525,7 @@ int rogue_skills_load_from_cfg(const char* path)
             f = fopen(resolved, "rb");
 #endif
         }
-        else
+        if (!f)
         {
             ROGUE_LOG_ERROR("Failed to open skills cfg: %s (fallback search failed)", path);
             return 0;
