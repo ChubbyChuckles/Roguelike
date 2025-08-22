@@ -201,14 +201,15 @@ PHASE 2. JSON Configuration Standardization & Migration
         2.3.3.7 Create crafting skill requirement validation (Done)
         SUMMARY: Added JSON loaders for materials (`rogue_material_registry_load_path` supports JSON), gathering nodes (`rogue_gather_defs_load_path` JSON branch), and crafting recipes (`rogue_craft_load_json`). Implemented tier helpers (`rogue_material_find_by_category_and_tier`, `rogue_material_next_tier_index`) and three validations: dependency integrity (`rogue_craft_validate_dependencies`), balance ratio bounds (`rogue_craft_validate_balance`), and skill requirement ranges (`rogue_craft_validate_skill_requirements`). New unit tests `test_materials_and_gathering_json` and `test_crafting_json_and_validations` pass under SDL2 with -j8.
 
-    2.3.4 Biomes & World Generation (biome_assets.cfg → json/world/biomes.json) priority 2 (X)
-        2.3.4.1 Migrate biome definitions with generation parameters (X)
-        2.3.4.2 Migrate vegetation definitions (trees.cfg, plants.cfg) (X)
+    2.3.4 Biomes & World Generation (biome_assets.cfg → json/world/biomes.json) priority 2 (Partial)
+        2.3.4.1 Migrate biome definitions with generation parameters (Done)
+        2.3.4.2 Migrate vegetation definitions (trees.cfg, plants.cfg) (Done)
         2.3.4.3 Migrate resource node definitions (mining_nodes.cfg) (X)
-        2.3.4.4 Create biome transition rules & compatibility matrix (X)
-        2.3.4.5 Add biome balance validation (resource density, difficulty scaling) (X)
-        2.3.4.6 Implement biome encounter table validation (X)
+        2.3.4.4 Create biome transition rules & compatibility matrix (Done)
+        2.3.4.5 Add biome balance validation (resource density, difficulty scaling) (Done)
+        2.3.4.6 Implement biome encounter table validation (Done)
         2.3.4.7 Create biome asset dependency validation (textures, models) (X)
+        SUMMARY: Added C JSON loaders/validators for biomes and vegetation. `world_gen_biome_json.c` ingests biomes, normalizes tile weights, builds transitions, and validates encounter tables and balance ranges. `vegetation_json.c` loads plant and tree defs and registers them via a new internal helper. Integrated into build; unit tests `test_worldgen_phase3_4_biome_json` and `test_vegetation_json` pass under SDL2 with -j8.
 
 2.4 Hot-Reload System Implementation (Done)
     2.4.1 Create file system watcher for JSON configuration changes (Done)

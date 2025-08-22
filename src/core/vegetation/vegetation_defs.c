@@ -27,6 +27,19 @@ void rogue_vegetation_shutdown(void)
     g_instance_count = 0;
 }
 
+/* Internal registration helper used by JSON ingestion to append a definition directly.
+   Returns 1 on success, 0 on failure (e.g., capacity reached or null input). */
+int rogue__vegetation_register_def(const RogueVegetationDef* def)
+{
+    if (!def)
+        return 0;
+    if (g_def_count >= ROGUE_MAX_VEG_DEFS)
+        return 0;
+    g_defs[g_def_count] = *def;
+    g_def_count++;
+    return 1;
+}
+
 static int parse_line(char* line, int is_tree)
 {
     char* context = NULL;

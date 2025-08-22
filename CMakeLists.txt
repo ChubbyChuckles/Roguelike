@@ -154,6 +154,7 @@ add_library(rogue_core
     src/world/world_gen_features.c
     src/world/world_gen_config.c
     src/world/world_gen_biome_desc.c
+    src/world/world_gen_biome_json.c
     src/world/world_gen_macro.c
     src/world/world_gen_local.c
     src/world/world_gen_rivers.c
@@ -202,6 +203,7 @@ add_library(rogue_core
     src/core/player/player_assets.c
     src/util/log.c
     src/core/vegetation/vegetation_defs.c
+    src/core/vegetation/vegetation_json.c
     src/core/vegetation/vegetation_generate.c
     src/core/vegetation/vegetation_render.c
     src/core/vegetation/vegetation_collision.c

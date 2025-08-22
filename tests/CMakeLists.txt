@@ -8,6 +8,28 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_integration_manager.c)
     add_test(NAME test_integration_manager COMMAND test_integration_manager)
 endif()
 
+# Integration Plumbing Phase 2.3.4 Biomes JSON loader/validation tests
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_worldgen_phase3_4_biome_json.c AND NOT TARGET test_worldgen_phase3_4_biome_json)
+    add_executable(test_worldgen_phase3_4_biome_json unit/test_worldgen_phase3_4_biome_json.c)
+    target_link_libraries(test_worldgen_phase3_4_biome_json PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_worldgen_phase3_4_biome_json PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_worldgen_phase3_4_biome_json PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_worldgen_phase3_4_biome_json COMMAND test_worldgen_phase3_4_biome_json)
+endif()
+
+# Integration Plumbing Phase 2.3.4 Vegetation JSON ingestion tests
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_vegetation_json.c AND NOT TARGET test_vegetation_json)
+    add_executable(test_vegetation_json unit/test_vegetation_json.c)
+    target_link_libraries(test_vegetation_json PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_vegetation_json PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_vegetation_json PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_vegetation_json COMMAND test_vegetation_json)
+endif()
+
 # Integration Plumbing Phase 2.3.3 Materials & Crafting JSON tests
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_materials_and_gathering_json.c AND NOT TARGET test_materials_and_gathering_json)
     add_executable(test_materials_and_gathering_json unit/test_materials_and_gathering_json.c)

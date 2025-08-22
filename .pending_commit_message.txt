@@ -23,3 +23,17 @@ feat(integration-plumbing): JSON migration for Materials & Crafting with validat
 - Docs: Roadmap updated (2.3.3 marked Done with summary). README changelog notes new JSON loaders and validations.
 
 Refs: roadmaps/implementation_plan_integration_plumbing.txt 2.3.3
+
+feat(worldgen-json): Phase 2.3.4 biomes & vegetation JSON loaders, validations, and tests
+
+- Biomes: Added `world_gen_biome_json.c/.h` with C-only parsers to load biome defs, normalize tile weights,
+	build transition/compatibility matrix, and validate encounter tables and balance ranges.
+- Vegetation: Added `vegetation_json.c/.h` to ingest plants and trees from JSON; introduced internal
+	registration helper `rogue__vegetation_register_def` in `vegetation_defs.c` and declared in
+	`vegetation_internal.h` for safe registry appends.
+- Build: Wired new modules into `CMakeLists.txt`; SDL2 remains required; built with `--parallel 8`.
+- Tests: Added `test_worldgen_phase3_4_biome_json` and `test_vegetation_json`; both pass in Debug under SDL2 with -j8.
+- Roadmap: Updated 2.3.4 items to Done for biomes/vegetation migration, transitions, balance, and encounters;
+	left resource nodes and asset dependency validation for a follow-up.
+
+Refs: roadmaps/implementation_plan_integration_plumbing.txt 2.3.4

@@ -22,6 +22,9 @@ extern "C"
     extern unsigned int g_last_seed;
     extern unsigned int vrng_state; /* rng state */
 
+    /* Internal registration helper (used by JSON ingestion). Not part of public API. */
+    int rogue__vegetation_register_def(const RogueVegetationDef* def);
+
 #ifdef __cplusplus
 }
 #endif
