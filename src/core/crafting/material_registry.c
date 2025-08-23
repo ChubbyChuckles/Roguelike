@@ -6,11 +6,49 @@
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @file material_registry.c
+ * @brief Material registry: mapping between material ids and item defs.
+ *
+ * This module maintains a small in-memory registry of materials used by the
+ * crafting system. Each material record stores an id, an associated item
+ * definition index, tier, category and base value. Loading supports both a
+ * CSV-like legacy format and a compact JSON array format.
+ */
+
+/**
+ * @brief Storage for material definitions.
+ *
+ * The array is sized by ROGUE_MATERIAL_REGISTRY_CAP to avoid dynamic
+ * allocations; callers should use the provided helpers to query and load
+ * entries.
+ */
 static RogueMaterialDef g_materials[ROGUE_MATERIAL_REGISTRY_CAP];
+
+/** @brief Number of valid entries currently in @c g_materials. */
 static int g_material_count = 0;
 
+/**
+ * @brief Reset the material registry to an empty state.
+ *
+ * Clears the in-memory count; existing array contents are not zeroed but are
+ * considered invalid past the new count.
+ */
 void rogue_material_registry_reset(void) { g_material_count = 0; }
+
+/**
+ * @brief Return the number of loaded material definitions.
+ *
+ * @return Count of materials currently registered.
+ */
 int rogue_material_count(void) { return g_material_count; }
+
+/**
+ * @brief Get a pointer to a loaded material definition by index.
+ *
+ * @param idx Zero-based index into the registry.
+ * @return Pointer to the definition or NULL if index is out of range.
+ */
 const RogueMaterialDef* rogue_material_get(int idx)
 {
     if (idx < 0 || idx >= g_material_count)
@@ -18,6 +56,15 @@ const RogueMaterialDef* rogue_material_get(int idx)
     return &g_materials[idx];
 }
 
+/**
+ * @brief Map a category string to the internal category enum.
+ *
+ * Recognized strings: "ore", "plant", "essence", "component", "currency".
+ * The function returns -1 for unknown or NULL input.
+ *
+ * @param s Category string.
+ * @return Internal category constant or -1 on error.
+ */
 static int category_from_str(const char* s)
 {
     if (!s)
@@ -35,6 +82,12 @@ static int category_from_str(const char* s)
     return -1;
 }
 
+/**
+ * @brief Find a material definition by its string id.
+ *
+ * @param id Material id string.
+ * @return Pointer to the material definition or NULL if not found.
+ */
 const RogueMaterialDef* rogue_material_find(const char* id)
 {
     if (!id)
@@ -46,6 +99,12 @@ const RogueMaterialDef* rogue_material_find(const char* id)
     }
     return NULL;
 }
+/**
+ * @brief Find the material associated with an item definition index.
+ *
+ * @param item_def_index Item definition index as returned by the item registry.
+ * @return Pointer to the material definition or NULL if not found.
+ */
 const RogueMaterialDef* rogue_material_find_by_item(int item_def_index)
 {
     if (item_def_index < 0)
@@ -57,6 +116,16 @@ const RogueMaterialDef* rogue_material_find_by_item(int item_def_index)
     }
     return NULL;
 }
+/**
+ * @brief Search for material ids that start with the provided prefix.
+ *
+ * Writes up to max indices into out_indices and returns the number written.
+ *
+ * @param prefix Prefix string to match.
+ * @param out_indices Caller-provided array to receive matching indices.
+ * @param max Maximum number of indices to write.
+ * @return Number of matches written into out_indices.
+ */
 int rogue_material_prefix_search(const char* prefix, int* out_indices, int max)
 {
     if (!prefix || !out_indices || max <= 0)
@@ -71,6 +140,13 @@ int rogue_material_prefix_search(const char* prefix, int* out_indices, int max)
     return n;
 }
 
+/**
+ * @brief Find a material index by category and tier.
+ *
+ * @param category Material category constant.
+ * @param tier Material tier.
+ * @return Index of a matching material, or -1 if none found or invalid args.
+ */
 int rogue_material_find_by_category_and_tier(int category, int tier)
 {
     if (tier < 0 || category < 0)
@@ -82,6 +158,16 @@ int rogue_material_find_by_category_and_tier(int category, int tier)
     }
     return -1;
 }
+
+/**
+ * @brief Return the registry index of the next tier for the same category.
+ *
+ * If the input material has tier N, this finds a material with tier N+1 in
+ * the same category and returns its index, or -1 if not present.
+ *
+ * @param material_index Index of the base material.
+ * @return Index of the next-tier material or -1 on error/not found.
+ */
 int rogue_material_next_tier_index(int material_index)
 {
     if (material_index < 0 || material_index >= g_material_count)
@@ -96,6 +182,12 @@ int rogue_material_next_tier_index(int material_index)
     return -1;
 }
 
+/**
+ * @brief Trim whitespace from both ends of a C string in-place.
+ *
+ * Removes trailing CR/LF/space/tab characters and leading space/tab
+ * characters. The operation modifies the buffer in place.
+ */
 static void trim(char* s)
 {
     size_t n = strlen(s);
@@ -108,6 +200,20 @@ static void trim(char* s)
         memmove(s, p, strlen(p) + 1);
 }
 
+/**
+ * @brief Load material definitions from a file path.
+ *
+ * The loader supports two formats:
+ *  - JSON: a compact array of objects with keys {id, item, tier, category, base_value}
+ *  - CSV-like legacy: lines of comma-separated values: id,item_def_id,tier,category,base_value
+ *
+ * The function attempts to resolve item ids via the item definition registry
+ * and skips unknown or duplicate entries. On success it appends entries to
+ * the internal registry until capacity is reached.
+ *
+ * @param path Filesystem path to the materials file.
+ * @return Number of entries added, or negative on error.
+ */
 int rogue_material_registry_load_path(const char* path)
 {
     FILE* f = NULL;
@@ -387,6 +493,14 @@ int rogue_material_registry_load_path(const char* path)
     return added;
 }
 
+/**
+ * @brief Load the default materials file from the assets directory.
+ *
+ * Tries the modern path "materials/materials.cfg" and falls back to the
+ * legacy "items/materials.cfg" for compatibility.
+ *
+ * @return Number of entries added, or negative on error.
+ */
 int rogue_material_registry_load_default(void)
 {
     char path[256];

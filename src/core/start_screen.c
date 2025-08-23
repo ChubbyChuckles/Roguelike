@@ -198,6 +198,41 @@ static void render_background(void)
             SDL_RenderDrawLine(g_internal_sdl_renderer_ref, 0, y, g_app.viewport_w, y);
         }
     }
+    /* Phase 2.5: simple parallax stars/particles overlay (unaffected by reduced motion) */
+    {
+        extern SDL_Renderer* g_internal_sdl_renderer_ref;
+        /* Deterministic positions derived from a fixed seed so snapshot tests remain stable. */
+        unsigned int base_seed = 0xC0FFEEu; /* constant so first-frame state is stable */
+        /* Three layers: slow, medium, fast */
+        const int layers = 3;
+        const int counts[3] = {20, 14, 8};
+        const int alphas[3] = {70, 110, 160};
+        const float speeds[3] = {2.0f, 6.0f, 12.0f};
+        for (int L = 0; L < layers; ++L)
+        {
+            unsigned int s = base_seed ^ (unsigned int) (L * 0x9E3779B9u);
+            SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, 255, 255, 255, (Uint8) alphas[L]);
+            for (int i = 0; i < counts[L]; ++i)
+            {
+                /* xorshift for quick deterministic pseudo-randoms */
+                s ^= s << 13;
+                s ^= s >> 17;
+                s ^= s << 5;
+                int px = (int) (s % (unsigned) (g_app.viewport_w + 40)) - 20;
+                s ^= s << 13;
+                s ^= s >> 17;
+                s ^= s << 5;
+                int py = (int) (s % (unsigned) (g_app.viewport_h)) + 0;
+                /* Horizontal drift per layer speed; wrap to screen */
+                float dx = (float) fmod((double) (g_app.title_time * speeds[L]),
+                                        (double) (g_app.viewport_w + 40));
+                int x = px - (int) dx;
+                if (x < -20)
+                    x += g_app.viewport_w + 40;
+                SDL_RenderDrawPoint(g_internal_sdl_renderer_ref, x, py);
+            }
+        }
+    }
 #endif
 }
 
@@ -248,13 +283,21 @@ void rogue_start_screen_update_and_render(void)
     RogueColor white = {255, 255, 255, 255};
     int pulse =
         g_app.reduced_motion ? 220 : (int) ((sin(g_app.title_time * 2.0) * 0.5 + 0.5) * 255.0);
-    /* Title with fade alpha */
+    /* Title with fade alpha and safe-area lockup (Phase 2.7) */
     int a = (int) (255.0f * (g_app.start_state == ROGUE_START_FADE_IN
                                  ? g_app.start_state_t
                                  : (g_app.start_state == ROGUE_START_FADE_OUT ? g_app.start_state_t
                                                                               : 1.0f)));
     RogueColor title_col2 = {(unsigned char) pulse, (unsigned char) pulse, 255, (unsigned char) a};
-    rogue_font_draw_text(40, 60, "ROGUELIKE", 6, title_col2);
+    int margin = (g_app.viewport_w < g_app.viewport_h ? g_app.viewport_w : g_app.viewport_h) / 12;
+    if (margin < 8)
+        margin = 8;
+    int title_x = margin + 8;
+    int title_y = margin + 8;
+    rogue_font_draw_text(title_x, title_y, "ROGUELIKE", 6, title_col2);
+    /* Optional subtitle/tagline below the title (non-blocking, fades with title) */
+    RogueColor sub_col = {220, 220, 240, (unsigned char) a};
+    rogue_font_draw_text(title_x + 2, title_y + 28, "Press Enter to start", 2, sub_col);
     /* Phase 3.1: Expanded main menu (Continue, New, Load, Settings, Credits, Quit) */
     /* Detect if any save exists (simple heuristic: presence of slot 0 in root or build/) */
     int has_save = 0;

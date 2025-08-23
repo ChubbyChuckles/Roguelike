@@ -1,3 +1,13 @@
+/**
+ * @file gathering.c
+ * @brief Gathering node definitions, spawning, and harvesting logic.
+ *
+ * This module implements loading of gather node definitions, deterministic
+ * spawn per-chunk, simple in-world node state (respawn, cooldown) and the
+ * harvesting logic that selects materials and quantities. All existing
+ * inline comments and parsing behavior are preserved.
+ */
+
 #include "core/crafting/gathering.h"
 #include "core/crafting/material_registry.h"
 #include "core/loot/loot_item_defs.h"
@@ -6,15 +16,46 @@
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @brief Storage for gather node definitions loaded from config.
+ *
+ * Indexable by definition index returned by @{rogue_gather_def_at}.
+ */
 static RogueGatherNodeDef g_defs[ROGUE_GATHER_NODE_CAP];
+
+/** @brief Number of valid node definitions in @c g_defs. */
 static int g_def_count = 0;
+
+/** @brief Instances placed into the world (per-chunk spawns). */
 static RogueGatherNodeInstance g_nodes[ROGUE_GATHER_NODE_CAP];
+
+/** @brief Number of valid node instances in @c g_nodes. */
 static int g_node_count = 0;
+
+/** @brief Player's currently equipped tool tier used for tier checks. */
 static int g_player_tool_tier = 0;
+
+/** @brief Runtime counters for telemetry (total harvests and rare procs). */
 static unsigned long long g_total_harvests = 0, g_total_rare = 0;
 
+/**
+ * @brief Clear all loaded gather definitions.
+ */
 void rogue_gather_defs_reset(void) { g_def_count = 0; }
+
+/**
+ * @brief Get the number of loaded gather node definitions.
+ *
+ * @return Count of definitions currently loaded.
+ */
 int rogue_gather_def_count(void) { return g_def_count; }
+
+/**
+ * @brief Return pointer to a gather node definition by index.
+ *
+ * @param idx Zero-based definition index.
+ * @return Pointer to definition or NULL if out of range.
+ */
 const RogueGatherNodeDef* rogue_gather_def_at(int idx)
 {
     if (idx < 0 || idx >= g_def_count)
@@ -22,6 +63,11 @@ const RogueGatherNodeDef* rogue_gather_def_at(int idx)
     return &g_defs[idx];
 }
 
+/**
+ * @brief Safe string copy helper used by this file.
+ *
+ * Ensures null termination and avoids overrunning the destination buffer.
+ */
 static void copy_str(char* dst, size_t cap, const char* src)
 {
     if (cap == 0)
@@ -38,6 +84,17 @@ static void copy_str(char* dst, size_t cap, const char* src)
     dst[n] = '\0';
 }
 
+/**
+ * @brief Parse a semicolon-separated material table string into the def.
+ *
+ * Expected format: "mat_id:weight;mat_id2:weight2;...". The function will
+ * try to resolve material ids using material registry and a fallback to item
+ * definition names.
+ *
+ * @param s Input string containing the table.
+ * @param d Output definition to populate material arrays on success.
+ * @return Non-zero when at least one material was parsed, zero otherwise.
+ */
 static int parse_material_table(const char* s, RogueGatherNodeDef* d)
 {
     if (!s || !d)
@@ -90,6 +147,17 @@ static int parse_material_table(const char* s, RogueGatherNodeDef* d)
     return count > 0;
 }
 
+/**
+ * @brief Load gather node definitions from a file path.
+ *
+ * Supports both a simple CSV-like format and a lightweight JSON array format
+ * (detected by the .json extension). The function performs robust parsing
+ * and resolves material ids via the material registry or item definition
+ * lookup fallback.
+ *
+ * @param path Filesystem path to a gather nodes file.
+ * @return Number of definitions added on success, or negative on error.
+ */
 int rogue_gather_defs_load_path(const char* path)
 {
     FILE* f = NULL;
@@ -536,6 +604,15 @@ void rogue_gather_update(float dt_ms)
     }
 }
 
+/**
+ * @brief Pick an element from arrays with integer weights.
+ *
+ * @param defs Array of definition indices.
+ * @param weights Corresponding weights (non-negative integers).
+ * @param count Number of entries.
+ * @param rng Pointer to an RNG state value (used only to sample via modulo).
+ * @return Chosen def index, or -1 if selection failed.
+ */
 static int weighted_pick(const int* defs, const int* weights, int count, unsigned int* rng)
 {
     int total = 0;
@@ -556,6 +633,26 @@ static int weighted_pick(const int* defs, const int* weights, int count, unsigne
     return -1;
 }
 
+/**
+ * @brief Perform a harvest on a node instance.
+ *
+ * The function updates RNG state, selects a material via weighted pick,
+ * computes a quantity within configured min/max, applies rare proc logic,
+ * sets the node to cooldown (state=1) and returns the material and qty via
+ * out parameters.
+ *
+ * Error codes:
+ *  - -1 : invalid arguments
+ *  - -2 : node is currently in cooldown (state == 1)
+ *  - -3 : player tool tier insufficient for the node
+ *  - -4 : no material could be selected
+ *
+ * @param node_index Index of the node instance to harvest.
+ * @param rng_state Pointer to an RNG state; will be advanced.
+ * @param out_material_def Out: chosen material definition index.
+ * @param out_qty Out: chosen quantity to award.
+ * @return 0 on success, negative error code on failure.
+ */
 int rogue_gather_harvest(int node_index, unsigned int* rng_state, int* out_material_def,
                          int* out_qty)
 {
@@ -598,12 +695,23 @@ int rogue_gather_harvest(int node_index, unsigned int* rng_state, int* out_mater
     return 0;
 }
 
+/**
+ * @brief Set the player's current tool tier for harvesting checks.
+ *
+ * @param tier Tool tier (clamped to >= 0).
+ */
 void rogue_gather_set_player_tool_tier(int tier)
 {
     if (tier < 0)
         tier = 0;
     g_player_tool_tier = tier;
 }
+
+/** @brief Get the player's current tool tier. */
 int rogue_gather_get_player_tool_tier(void) { return g_player_tool_tier; }
+
+/** @brief Total number of harvest operations performed during runtime. */
 unsigned long long rogue_gather_total_harvests(void) { return g_total_harvests; }
+
+/** @brief Total number of rare procs encountered during runtime. */
 unsigned long long rogue_gather_total_rare_procs(void) { return g_total_rare; }

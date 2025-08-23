@@ -1,9 +1,30 @@
 #include "core/crafting/rng_streams.h"
 #include <string.h>
 
+/**
+ * @file rng_streams.c
+ * @brief Small deterministic RNG stream manager used by crafting subsystems.
+ *
+ * The module provides per-stream RNG state seeded from a session seed and
+ * helper functions to derive chunk- and player-specific seeds. The RNG
+ * algorithm uses a compact xorshift32 step and ensures non-zero states.
+ */
+
+/** @brief Session-wide seed used as the base for stream seeding. */
 static unsigned int g_session_seed = 0u;
+
+/** @brief Internal PRNG state per stream. */
 static unsigned int g_stream_state[ROGUE_RNG_STREAM_COUNT];
 
+/**
+ * @brief Initialize RNG streams from a session seed.
+ *
+ * Each stream state is mixed from the provided session_seed and the stream
+ * index using a large odd multiplier. A non-zero state is enforced to avoid
+ * degenerative xorshift results.
+ *
+ * @param session_seed Seed value shared for the session.
+ */
 void rogue_rng_streams_seed(unsigned int session_seed)
 {
     g_session_seed = session_seed;
@@ -17,6 +38,12 @@ void rogue_rng_streams_seed(unsigned int session_seed)
     }
 }
 
+/**
+ * @brief xorshift32 PRNG step used internally.
+ *
+ * Ensures returned value is non-zero by substituting a constant when the
+ * transform yields zero.
+ */
 static unsigned int xorshift32(unsigned int x)
 {
     x ^= x << 13;
@@ -25,6 +52,12 @@ static unsigned int xorshift32(unsigned int x)
     return x ? x : 0xA341316C; /* keep non-zero */
 }
 
+/**
+ * @brief Advance and return the next RNG value for a stream.
+ *
+ * @param stream Stream id (RogueRngStream enum value).
+ * @return Next 32-bit RNG value for the stream, or 0 on invalid stream id.
+ */
 unsigned int rogue_rng_next(RogueRngStream stream)
 {
     if (stream < 0 || stream >= ROGUE_RNG_STREAM_COUNT)
@@ -35,6 +68,19 @@ unsigned int rogue_rng_next(RogueRngStream stream)
     return s;
 }
 
+/**
+ * @brief Derive a seed from session, chunk coordinates and player level.
+ *
+ * The function mixes the inputs with Jenkins-like operations to produce a
+ * deterministic seed suitable for seeding per-chunk RNG streams. A
+ * non-zero fallback constant is returned if the mix results in zero.
+ *
+ * @param session_seed Session seed used as base.
+ * @param world_chunk Chunk index (or coordinate packed value) to mix in.
+ * @param player_level Player level to include in the mix.
+ * @param stream_id Stream identifier mixed into the derived seed.
+ * @return Derived non-zero 32-bit seed.
+ */
 unsigned int rogue_seed_derive(unsigned int session_seed, unsigned int world_chunk,
                                unsigned int player_level, unsigned int stream_id)
 {
