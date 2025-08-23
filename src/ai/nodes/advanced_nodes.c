@@ -241,6 +241,12 @@ void rogue_bt_advanced_cleanup(RogueBTNode* node)
    Phase 7: Group Tactics & Coordination
    ===================== */
 
+/**
+ * @brief Data for Phase 7.1 squad metadata assignment.
+ *
+ * Holds blackboard key names and literal values for writing squad_id,
+ * member_index, and member_total for the current agent.
+ */
 typedef struct SquadSetIdsData
 {
     const char* squad_id_key;
@@ -251,6 +257,16 @@ typedef struct SquadSetIdsData
     int member_total;
 } SquadSetIdsData;
 
+/**
+ * @brief Tick for squad metadata assignment.
+ *
+ * Writes configured squad_id, member_index, and member_total into the
+ * blackboard. Always returns SUCCESS.
+ *
+ * @param node Node with SquadSetIdsData.
+ * @param bb Blackboard to write values into.
+ * @param dt Unused.
+ */
 static RogueBTStatus tick_squad_set_ids(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     (void) dt;
@@ -261,6 +277,21 @@ static RogueBTStatus tick_squad_set_ids(RogueBTNode* node, RogueBlackboard* bb, 
     return ROGUE_BT_SUCCESS;
 }
 
+/**
+ * @brief Factory for the squad metadata assignment node (Phase 7.1).
+ *
+ * Creates a node that writes squad_id, member_index, and member_total to
+ * the blackboard using provided keys.
+ *
+ * @param name Optional node name.
+ * @param bb_squad_id_key Blackboard key to write squad id.
+ * @param squad_id Squad id value.
+ * @param bb_member_index_key Blackboard key to write member index.
+ * @param member_index Member index value.
+ * @param bb_member_total_key Blackboard key to write member total.
+ * @param member_total Member total value.
+ * @return RogueBTNode* Allocated node or NULL on failure.
+ */
 RogueBTNode* rogue_bt_tactical_squad_set_ids(const char* name, const char* bb_squad_id_key,
                                              int squad_id, const char* bb_member_index_key,
                                              int member_index, const char* bb_member_total_key,
@@ -280,6 +311,12 @@ RogueBTNode* rogue_bt_tactical_squad_set_ids(const char* name, const char* bb_sq
     return n;
 }
 
+/**
+ * @brief Data for Phase 7.2 role assignment.
+ *
+ * Contains key names for member index/total and optional weights for roles
+ * Bruiser/Harrier/Support, plus an output role key (int 0/1/2).
+ */
 typedef struct RoleAssignData
 {
     const char* out_role_key;
@@ -290,6 +327,12 @@ typedef struct RoleAssignData
     const char* w_support_key;
 } RoleAssignData;
 
+/**
+ * @brief Tick for role assignment (Phase 7.2).
+ *
+ * If any weight keys are present, selects the role with the largest weight.
+ * Otherwise assigns role = member_index % 3. Writes result to out_role_key.
+ */
 static RogueBTStatus tick_role_assign(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     (void) dt;
@@ -326,6 +369,11 @@ static RogueBTStatus tick_role_assign(RogueBTNode* node, RogueBlackboard* bb, fl
     return ROGUE_BT_SUCCESS;
 }
 
+/**
+ * @brief Factory for role assignment node (Phase 7.2).
+ *
+ * Optional weight keys bias role choice; absent weights fall back to idx%3.
+ */
 RogueBTNode* rogue_bt_tactical_role_assign(const char* name, const char* bb_out_role_key,
                                            const char* bb_member_index_key,
                                            const char* bb_member_total_key,
@@ -347,6 +395,12 @@ RogueBTNode* rogue_bt_tactical_role_assign(const char* name, const char* bb_out_
     return n;
 }
 
+/**
+ * @brief Data for Phase 7.3 surround/encircle slot assignment.
+ *
+ * Keys for target position and member index/total, desired circle radius,
+ * and output point key to store the computed slot.
+ */
 typedef struct SurroundAssignData
 {
     const char* target_pos_key;
@@ -356,6 +410,12 @@ typedef struct SurroundAssignData
     const char* out_point_key;
 } SurroundAssignData;
 
+/**
+ * @brief Tick for surround slot assignment (Phase 7.3).
+ *
+ * Places an evenly spaced point on a circle around the target based on
+ * member_index/member_total and writes it to out_point_key.
+ */
 static RogueBTStatus tick_surround_assign(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     (void) dt;
@@ -378,6 +438,9 @@ static RogueBTStatus tick_surround_assign(RogueBTNode* node, RogueBlackboard* bb
     return ROGUE_BT_SUCCESS;
 }
 
+/**
+ * @brief Factory for surround slot assignment node (Phase 7.3).
+ */
 RogueBTNode* rogue_bt_tactical_surround_assign_slot(const char* name, const char* bb_target_pos_key,
                                                     const char* bb_member_index_key,
                                                     const char* bb_member_total_key, float radius,
@@ -396,6 +459,11 @@ RogueBTNode* rogue_bt_tactical_surround_assign_slot(const char* name, const char
     return n;
 }
 
+/**
+ * @brief Data for Phase 7.4 retreat condition.
+ *
+ * Succeeds if HP% < min_pct or recent_deaths >= deaths_threshold.
+ */
 typedef struct CondShouldRetreatData
 {
     const char* self_hp_pct_key;
@@ -404,6 +472,9 @@ typedef struct CondShouldRetreatData
     int deaths_threshold;
 } CondShouldRetreatData;
 
+/**
+ * @brief Tick for retreat condition (Phase 7.4).
+ */
 static RogueBTStatus tick_cond_should_retreat(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     (void) dt;
@@ -419,6 +490,9 @@ static RogueBTStatus tick_cond_should_retreat(RogueBTNode* node, RogueBlackboard
     return ROGUE_BT_FAILURE;
 }
 
+/**
+ * @brief Factory for retreat condition node (Phase 7.4).
+ */
 RogueBTNode* rogue_bt_condition_should_retreat(const char* name, const char* bb_self_hp_pct_key,
                                                float min_pct, const char* bb_recent_deaths_key,
                                                int deaths_threshold)
@@ -435,6 +509,12 @@ RogueBTNode* rogue_bt_condition_should_retreat(const char* name, const char* bb_
     return n;
 }
 
+/**
+ * @brief Data for Phase 7.5 stagger-by-index decorator.
+ *
+ * Delays child execution by base_delay_seconds * member_index using a
+ * named timer.
+ */
 typedef struct DecorStaggerByIndexData
 {
     RogueBTNode* child;
@@ -443,6 +523,12 @@ typedef struct DecorStaggerByIndexData
     float base_delay_seconds;
 } DecorStaggerByIndexData;
 
+/**
+ * @brief Tick for stagger-by-index decorator (Phase 7.5).
+ *
+ * Accumulates dt into delay_timer_key and gates child until the computed
+ * delay has elapsed. Resets the timer on child SUCCESS.
+ */
 static RogueBTStatus tick_decor_stagger_by_index(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     DecorStaggerByIndexData* d = (DecorStaggerByIndexData*) node->user_data;
@@ -464,6 +550,9 @@ static RogueBTStatus tick_decor_stagger_by_index(RogueBTNode* node, RogueBlackbo
     return st;
 }
 
+/**
+ * @brief Factory for stagger-by-index decorator node (Phase 7.5).
+ */
 RogueBTNode* rogue_bt_decorator_stagger_by_index(const char* name, RogueBTNode* child,
                                                  const char* bb_member_index_key,
                                                  const char* bb_delay_timer_key,
@@ -935,7 +1024,8 @@ RogueBTNode* rogue_bt_action_strafe(const char* name, const char* bb_target_pos_
 }
 
 /**
- * Phase 6.1: Ranged projectile firing action
+ * @brief Data for Phase 6.1 ranged projectile firing action.
+ *
  * Fires a projectile from agent toward target when optional line-clear flag is true.
  * On fire, resets optional cooldown timer to 0. Returns SUCCESS on fire, FAILURE otherwise.
  */
@@ -950,6 +1040,17 @@ typedef struct ActionRangedFire
     int damage;
 } ActionRangedFire;
 
+/**
+ * @brief Tick for ranged projectile firing.
+ *
+ * Validates optional line-of-fire flag, computes direction from agent to target,
+ * spawns a projectile with a slight forward offset, and optionally resets a cooldown timer.
+ *
+ * @param node Node with ActionRangedFire in user_data.
+ * @param bb Blackboard with agent/target positions and optional flags/timer.
+ * @param dt Unused.
+ * @return RogueBTStatus SUCCESS on projectile spawn, FAILURE otherwise.
+ */
 static RogueBTStatus tick_action_ranged_fire(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     (void) dt;
@@ -988,6 +1089,19 @@ static RogueBTStatus tick_action_ranged_fire(RogueBTNode* node, RogueBlackboard*
     return ROGUE_BT_SUCCESS;
 }
 
+/**
+ * @brief Factory for ranged projectile firing action (Phase 6.1).
+ *
+ * @param name Node name.
+ * @param bb_agent_pos_key Blackboard key for agent position (vec2).
+ * @param bb_target_pos_key Blackboard key for target position (vec2).
+ * @param bb_optional_line_clear_flag_key Optional boolean gate for firing.
+ * @param bb_optional_cooldown_timer_key Optional cooldown timer key to reset on fire.
+ * @param speed_tiles_per_sec Projectile speed in tiles per second.
+ * @param life_ms Projectile lifetime in milliseconds.
+ * @param damage Damage dealt by the projectile.
+ * @return RogueBTNode* Allocated node or NULL on failure.
+ */
 RogueBTNode* rogue_bt_action_ranged_fire_projectile(const char* name, const char* bb_agent_pos_key,
                                                     const char* bb_target_pos_key,
                                                     const char* bb_optional_line_clear_flag_key,
@@ -1082,6 +1196,13 @@ typedef struct ReactParry
     float window_seconds;
 } ReactParry;
 
+/**
+ * @brief Tick for parry reaction window (Phase 6.2).
+ *
+ * When incoming threat flag is true, advances the parry timer; within the window,
+ * sets parry_active to true and returns SUCCESS. Outside the window or without threat,
+ * resets state and returns FAILURE.
+ */
 static RogueBTStatus tick_react_parry(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     ReactParry* d = (ReactParry*) node->user_data;
@@ -1108,6 +1229,9 @@ static RogueBTStatus tick_react_parry(RogueBTNode* node, RogueBlackboard* bb, fl
     return ROGUE_BT_FAILURE;
 }
 
+/**
+ * @brief Factory for parry reaction window action (Phase 6.2).
+ */
 RogueBTNode* rogue_bt_action_react_parry(const char* name, const char* bb_incoming_threat_flag_key,
                                          const char* bb_out_parry_active_key,
                                          const char* bb_parry_timer_key, float window_seconds)
@@ -1134,6 +1258,12 @@ typedef struct ReactDodge
     float duration_seconds;
 } ReactDodge;
 
+/**
+ * @brief Tick for dodge reaction window (Phase 6.2).
+ *
+ * When threat is incoming, computes and outputs a normalized dodge vector away from threat,
+ * advances a timer, and returns SUCCESS while within the duration. Otherwise returns FAILURE.
+ */
 static RogueBTStatus tick_react_dodge(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     ReactDodge* d = (ReactDodge*) node->user_data;
@@ -1176,6 +1306,9 @@ static RogueBTStatus tick_react_dodge(RogueBTNode* node, RogueBlackboard* bb, fl
     return ROGUE_BT_FAILURE;
 }
 
+/**
+ * @brief Factory for dodge reaction window action (Phase 6.2).
+ */
 RogueBTNode* rogue_bt_action_react_dodge(const char* name, const char* bb_incoming_threat_flag_key,
                                          const char* bb_agent_pos_key,
                                          const char* bb_threat_pos_key,
@@ -1206,6 +1339,12 @@ typedef struct OpportunisticAttack
     const char* opt_cool_timer_key; /* timer: reset to 0 on success if provided */
 } OpportunisticAttack;
 
+/**
+ * @brief Tick for opportunistic attack (Phase 6.3).
+ *
+ * Succeeds when the target is in recovery and (optionally) within max_distance.
+ * Resets optional cooldown timer on success.
+ */
 static RogueBTStatus tick_action_opportunistic_attack(RogueBTNode* node, RogueBlackboard* bb,
                                                       float dt)
 {
@@ -1230,6 +1369,9 @@ static RogueBTStatus tick_action_opportunistic_attack(RogueBTNode* node, RogueBl
     return ROGUE_BT_SUCCESS;
 }
 
+/**
+ * @brief Factory for opportunistic attack action (Phase 6.3).
+ */
 RogueBTNode* rogue_bt_action_opportunistic_attack(const char* name,
                                                   const char* bb_target_in_recovery_flag_key,
                                                   const char* bb_agent_pos_key,
@@ -1260,6 +1402,12 @@ typedef struct ActionKiteBand
     float speed;                /* movement speed */
 } ActionKiteBand;
 
+/**
+ * @brief Tick for kiting within a preferred distance band (Phase 6.4).
+ *
+ * Returns SUCCESS when within [min_dist, max_dist], otherwise moves agent either toward
+ * or away to reach the band and returns RUNNING.
+ */
 static RogueBTStatus tick_action_kite_band(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     ActionKiteBand* d = (ActionKiteBand*) node->user_data;
@@ -1292,6 +1440,9 @@ static RogueBTStatus tick_action_kite_band(RogueBTNode* node, RogueBlackboard* b
     return ROGUE_BT_RUNNING;
 }
 
+/**
+ * @brief Factory for kiting action within a preferred distance band (Phase 6.4).
+ */
 RogueBTNode* rogue_bt_action_kite_band(const char* name, const char* bb_agent_pos_key,
                                        const char* bb_target_pos_key, float preferred_min_distance,
                                        float preferred_max_distance, float move_speed)
@@ -1486,6 +1637,12 @@ typedef struct FocusBroadcast
     const char* group_focus_ttl_timer; /* timer */
 } FocusBroadcast;
 
+/**
+ * @brief Tick for broadcasting a group focus if leader (Phase 6.5).
+ *
+ * When the agent's threat score is >= leader_threshold, writes group focus flag and position,
+ * and resets the TTL timer. Otherwise returns FAILURE.
+ */
 static RogueBTStatus tick_focus_broadcast_if_leader(RogueBTNode* node, RogueBlackboard* bb,
                                                     float dt)
 {
@@ -1505,6 +1662,9 @@ static RogueBTStatus tick_focus_broadcast_if_leader(RogueBTNode* node, RogueBlac
     return ROGUE_BT_SUCCESS;
 }
 
+/**
+ * @brief Factory for focus broadcast if leader (Phase 6.5).
+ */
 RogueBTNode* rogue_bt_tactical_focus_broadcast_if_leader(
     const char* name, const char* bb_threat_score_key, float leader_threshold,
     const char* bb_target_pos_key, const char* bb_out_group_focus_flag_key,
@@ -1531,6 +1691,12 @@ typedef struct FocusDecay
     float ttl_seconds;     /* time to keep focus active */
 } FocusDecay;
 
+/**
+ * @brief Tick for group focus decay (Phase 6.5).
+ *
+ * Advances TTL timer when focus is active; disables flag and returns FAILURE once expired,
+ * otherwise returns SUCCESS.
+ */
 static RogueBTStatus tick_focus_decay(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     FocusDecay* d = (FocusDecay*) node->user_data;
@@ -1550,6 +1716,9 @@ static RogueBTStatus tick_focus_decay(RogueBTNode* node, RogueBlackboard* bb, fl
     return ROGUE_BT_SUCCESS;
 }
 
+/**
+ * @brief Factory for focus decay node (Phase 6.5).
+ */
 RogueBTNode* rogue_bt_tactical_focus_decay(const char* name, const char* bb_group_focus_flag_key,
                                            const char* bb_group_focus_ttl_timer_key,
                                            float ttl_seconds)
@@ -1576,6 +1745,12 @@ typedef struct ActionFinisher
     const char* opt_cool_timer_key; /* timer */
 } ActionFinisher;
 
+/**
+ * @brief Tick for finisher execute (Phase 6.6).
+ *
+ * Succeeds when target health <= threshold and (optionally) within max distance; resets
+ * optional cooldown timer on success.
+ */
 static RogueBTStatus tick_action_finisher_execute(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     (void) dt;
@@ -1601,6 +1776,9 @@ static RogueBTStatus tick_action_finisher_execute(RogueBTNode* node, RogueBlackb
     return ROGUE_BT_SUCCESS;
 }
 
+/**
+ * @brief Factory for finisher execute action (Phase 6.6).
+ */
 RogueBTNode* rogue_bt_action_finisher_execute(const char* name, const char* bb_target_health_key,
                                               float threshold, const char* bb_agent_pos_key,
                                               const char* bb_target_pos_key,
@@ -1629,6 +1807,12 @@ typedef struct DecorReactionDelay
     float reaction_seconds;
 } DecorReactionDelay;
 
+/**
+ * @brief Tick for reaction delay decorator (Phase 6.7).
+ *
+ * Delays child execution until reaction_seconds have elapsed on the named timer.
+ * Returns FAILURE while waiting; otherwise forwards child status.
+ */
 static RogueBTStatus tick_decor_reaction_delay(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     DecorReactionDelay* d = (DecorReactionDelay*) node->user_data;
@@ -1642,6 +1826,9 @@ static RogueBTStatus tick_decor_reaction_delay(RogueBTNode* node, RogueBlackboar
     return d->child->vtable->tick(d->child, bb, dt);
 }
 
+/**
+ * @brief Factory for reaction delay decorator (Phase 6.7).
+ */
 RogueBTNode* rogue_bt_decorator_reaction_delay(const char* name, RogueBTNode* child,
                                                const char* bb_reaction_timer_key,
                                                float reaction_seconds)
@@ -1666,6 +1853,11 @@ typedef struct DecorAggressionGate
     float min_required;
 } DecorAggressionGate;
 
+/**
+ * @brief Tick for aggression gate decorator (Phase 6.7).
+ *
+ * Forwards child only when aggression scalar >= min_required; otherwise returns FAILURE.
+ */
 static RogueBTStatus tick_decor_aggression_gate(RogueBTNode* node, RogueBlackboard* bb, float dt)
 {
     DecorAggressionGate* d = (DecorAggressionGate*) node->user_data;
@@ -1675,6 +1867,9 @@ static RogueBTStatus tick_decor_aggression_gate(RogueBTNode* node, RogueBlackboa
     return d->child->vtable->tick(d->child, bb, dt);
 }
 
+/**
+ * @brief Factory for aggression gate decorator (Phase 6.7).
+ */
 RogueBTNode* rogue_bt_decorator_aggression_gate(const char* name, RogueBTNode* child,
                                                 const char* bb_aggression_scalar_key,
                                                 float min_required)
