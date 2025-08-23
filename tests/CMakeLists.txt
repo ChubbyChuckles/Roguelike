@@ -131,6 +131,32 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_start_screen_phase10_2_navigatio
     add_test(NAME test_start_screen_phase10_2_navigation COMMAND test_start_screen_phase10_2_navigation)
 endif()
 
+# Start Screen Phase 10.3 Localization swap test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_start_screen_phase10_3_localization.c AND NOT TARGET test_start_screen_phase10_3_localization)
+    add_executable(test_start_screen_phase10_3_localization unit/test_start_screen_phase10_3_localization.c)
+    target_link_libraries(test_start_screen_phase10_3_localization PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_start_screen_phase10_3_localization PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_start_screen_phase10_3_localization PRIVATE ROGUE_HAVE_SDL=1 SDL_MAIN_HANDLED=1)
+    else()
+        target_compile_definitions(test_start_screen_phase10_3_localization PRIVATE SDL_MAIN_HANDLED=1)
+    endif()
+    add_test(NAME test_start_screen_phase10_3_localization COMMAND test_start_screen_phase10_3_localization)
+endif()
+
+# Start Screen Phase 10.4 Reduced motion test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_start_screen_phase10_4_reduced_motion.c AND NOT TARGET test_start_screen_phase10_4_reduced_motion)
+    add_executable(test_start_screen_phase10_4_reduced_motion unit/test_start_screen_phase10_4_reduced_motion.c)
+    target_link_libraries(test_start_screen_phase10_4_reduced_motion PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_start_screen_phase10_4_reduced_motion PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_start_screen_phase10_4_reduced_motion PRIVATE ROGUE_HAVE_SDL=1 SDL_MAIN_HANDLED=1)
+    else()
+        target_compile_definitions(test_start_screen_phase10_4_reduced_motion PRIVATE SDL_MAIN_HANDLED=1)
+    endif()
+    add_test(NAME test_start_screen_phase10_4_reduced_motion COMMAND test_start_screen_phase10_4_reduced_motion)
+endif()
+
 # Phase 7 Group tactics & coordination tests
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase7_group_tactics.c AND NOT TARGET test_ai_phase7_group_tactics)
     add_executable(test_ai_phase7_group_tactics unit/test_ai_phase7_group_tactics.c)

@@ -35,7 +35,7 @@ PHASE 2. Visual Identity & Background Image
 PHASE 3. Main Menu Structure
 3.1 Menu items: Continue (if saves), New Game, Load Game, Settings, Credits, Quit (Partial: implemented with disabled handling; Settings/Credits placeholders; Load/Continue stub to slot 0)
 3.2 Controller navigation with axis repeat; wrap-around, disabled items skipped (Done: held Up/Down repeat with initial delay and interval; wrap-around + disabled-skip)
-3.3 Tooltips: right panel shows description/hints; narration stub emits labels (X)
+3.3 Tooltips: right panel shows description/hints; narration stub emits labels (Done)
 3.4 Hotkeys: Enter/Space accept, Esc/Back cancel, first-letter accelerators (Done)
 3.5 Localization-ready labels (en-US strings table placeholder) (X)
 
@@ -77,8 +77,8 @@ PHASE 9. Transitions to/from Game
 PHASE 10. Testing & QA Automation
 10.1 Headless golden snapshot: start screen first frame hash (Done: test_start_screen_phase10_1_headless)
 10.2 Navigation traversal test: keyboard & controller (Done: test_start_screen_phase10_2_navigation)
-10.3 Localization swap test: label table (en) -> (fake-locale) (X)
-10.4 Reduced motion test: transitions skipped, hashes stable (X)
+10.3 Localization swap test: label table (en) -> (fake-locale) (Done: test_start_screen_phase10_3_localization)
+10.4 Reduced motion test: transitions skipped, hashes stable (Done: test_start_screen_phase10_4_reduced_motion)
 10.5 Performance smoke: emit >=200 widgets < threshold time (X)
 10.6 Corrupt save header test: continue disabled, load lists only healthy entries (X)
 10.7 Background image presence: renders when file exists; falls back to gradient when missing (X)

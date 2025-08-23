@@ -30,6 +30,7 @@ SOFTWARE.
 #include "core/dialogue.h" /* dialogue system */
 #include "core/equipment/equipment_stats.h"
 #include "core/game_loop.h"
+#include "core/localization.h"
 #include "core/loot/loot_instances.h"
 #include "core/loot/loot_item_defs.h"
 #include "core/loot/loot_logging.h"
@@ -92,6 +93,7 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.start_bg_loaded = 0;
     g_app.start_bg_scale = ROGUE_BG_COVER;
     g_app.start_bg_tint = 0xFFFFFFFFu;
+    g_app.reduced_motion = 0;
     /* Start screen nav repeat config (Phase 3.2) */
     g_app.start_nav_accum_ms = 0.0;
     g_app.start_nav_dir_v = 0;
@@ -129,6 +131,27 @@ bool rogue_app_init(const RogueAppConfig* cfg)
         }
     }
     rogue_persistence_load_player_stats();
+    /* Reset localization to defaults at startup. */
+    rogue_locale_reset();
+    /* Accessibility: allow reduced motion via env ROGUE_REDUCED_MOTION=1 */
+#if defined(_MSC_VER)
+    {
+        char* rm = NULL;
+        size_t rml = 0;
+        if (_dupenv_s(&rm, &rml, "ROGUE_REDUCED_MOTION") == 0 && rm)
+        {
+            if (rm[0] == '1')
+                g_app.reduced_motion = 1;
+            free(rm);
+        }
+    }
+#else
+    {
+        const char* rm = getenv("ROGUE_REDUCED_MOTION");
+        if (rm && rm[0] == '1')
+            g_app.reduced_motion = 1;
+    }
+#endif
     /* Cheat override (dev convenience): set talent points to 100 only if env var
        ROGUE_TALENT_CHEAT=1. Keeps unit tests deterministic (they expect default progression) while
        allowing manual play sessions to use the shortcut without editing code. */

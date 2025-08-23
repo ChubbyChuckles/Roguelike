@@ -204,6 +204,7 @@ add_library(rogue_core
     src/ai/pathing/flow_field.c
     src/ai/pathing/local_avoidance.c
     src/core/start_screen.c
+    src/core/localization.c
     src/core/player/player_assets.c
     src/util/log.c
     src/core/vegetation/vegetation_defs.c

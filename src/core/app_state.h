@@ -48,6 +48,7 @@ typedef struct RogueAppState
     int start_state;         /* RogueStartScreenState */
     float start_state_t;     /* 0..1 progress for fades */
     float start_state_speed; /* units per second for fades (scaled if reduced motion) */
+    int reduced_motion;      /* global accessibility toggle for animations */
     /* Start screen background (Phase 2.1..2.3) */
 #ifdef ROGUE_HAVE_SDL
     struct RogueTexture* start_bg_tex; /* owned texture handle */

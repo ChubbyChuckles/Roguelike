@@ -91,10 +91,59 @@ void rogue_app_add_hitstop(float ms)
 
 void rogue_app_step(void)
 {
+    /* Diagnostics for test 10.4: always emit a probe line at function entry (even if not running)
+     */
+    {
+        FILE* pf = NULL;
+#if defined(_MSC_VER)
+        if (fopen_s(&pf, "rm_probe.txt", "a") == 0 && pf)
+#else
+        pf = fopen("rm_probe.txt", "a");
+        if (pf)
+#endif
+        {
+            fprintf(pf, "entry running=%d show=%d rm=%d state=%d t=%.3f\n",
+                    (int) g_game_loop.running, g_app.show_start_screen, g_app.reduced_motion,
+                    g_app.start_state, (double) g_app.start_state_t);
+            fclose(pf);
+        }
+    }
     if (!g_game_loop.running)
         return;
     rogue_process_events();
     double frame_start = rogue_metrics_frame_begin();
+    /* Accessibility fast-path: if reduced motion is enabled, enforce fade skips
+       immediately at frame start so tests and non-SDL code paths see the effect
+       without relying on later UI updates. */
+    if (g_app.show_start_screen && g_app.reduced_motion)
+    {
+        if (g_app.start_state == ROGUE_START_FADE_IN)
+        {
+            g_app.start_state = ROGUE_START_MENU;
+            g_app.start_state_t = 1.0f;
+        }
+        else if (g_app.start_state == ROGUE_START_FADE_OUT)
+        {
+            g_app.start_state_t = 0.0f;
+            g_app.show_start_screen = 0;
+        }
+        ROGUE_LOG_INFO("reduced_motion guard: state=%d t=%.3f show=%d", g_app.start_state,
+                       (double) g_app.start_state_t, g_app.show_start_screen);
+        {
+            FILE* f = NULL;
+#if defined(_MSC_VER)
+            if (fopen_s(&f, "rm_guard.txt", "a") == 0 && f)
+#else
+            f = fopen("rm_guard.txt", "a");
+            if (f)
+#endif
+            {
+                fprintf(f, "state=%d t=%.3f show=%d\n", g_app.start_state,
+                        (double) g_app.start_state_t, g_app.show_start_screen);
+                fclose(f);
+            }
+        }
+    }
 #ifdef ROGUE_HAVE_SDL
     g_app.title_time += g_app.dt;
     SDL_SetRenderDrawColor(g_app.renderer, g_app.cfg.background_color.r,

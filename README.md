@@ -210,10 +210,14 @@ Immediate‑mode deterministic UI with hash diffing, virtualization, inventory &
 - Background image: default path `assets/vfx/start_bg.jpg` (also tries `../assets/vfx/start_bg.jpg` when running from `build/`). You can override via environment variable `ROGUE_START_BG` with an absolute or relative path. If the file is missing or SDL2_image isn't available, a gradient fallback renders instead. Scaling modes: cover (default) and contain; optional tinting follows theme.
 - Controls: Up/Down to navigate, Enter or Space to activate, Esc or controller B to cancel/back. First-letter accelerators jump to matching menu items. Controller DPAD/left stick supports hold-to-repeat with an initial delay and steady repeat interval.
 - UX details: Disabled items are skipped (e.g., Continue when no save). New Game supports seed entry (digits and backspace).
+ - Tooltips & localization: Contextual tooltip text appears on the right for the focused item (e.g., Settings/Credits placeholders). Text is routed through a minimal localization layer; tests can swap the active locale at runtime. Missing keys fall back to the key string for visibility.
+ - Reduced motion: Set environment `ROGUE_REDUCED_MOTION=1` to skip animated fades; title pulse is toned down in this mode.
 
 Tests
 - Headless snapshot (Phase 10.1): deterministic first-frame state hash validates rendering/state defaults.
 - Navigation traversal (Phase 10.2): keyboard/controller input, wrap-around and disabled-item skipping, accelerator and accept -> fade-out.
+ - Localization swap (Phase 10.3): verifies label changes under a fake locale table.
+ - Reduced motion (Phase 10.4): verifies fades are skipped and state stabilizes immediately.
 
 ### Persistence
 Versioned TLV sections, varints, compression, CRC32 + SHA256 integrity, signature trailer, incremental mode, autosaves, replay hash, migrations, durability & equipment slot evolution, fast partial inventory saves, robust tamper detection & recovery.

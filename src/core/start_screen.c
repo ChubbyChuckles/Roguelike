@@ -1,5 +1,6 @@
 #include "start_screen.h"
 #include "core/game_loop.h"
+#include "core/localization.h"
 #include "core/save_manager.h" /* for simple Continue/Load stubs (slot 0) */
 #include "graphics/font.h"
 #include "graphics/sprite.h"
@@ -13,6 +14,46 @@
 int rogue_start_screen_active(void) { return g_app.show_start_screen; }
 
 void rogue_start_screen_set_bg_scale(RogueStartBGScale mode) { g_app.start_bg_scale = (int) mode; }
+
+/* Local helpers for Phase 3.3 */
+static const char* menu_key_for_index(int idx)
+{
+    switch (idx)
+    {
+    case 0:
+        return "menu_continue";
+    case 1:
+        return "menu_new_game";
+    case 2:
+        return "menu_load";
+    case 3:
+        return "menu_settings";
+    case 4:
+        return "menu_credits";
+    case 5:
+        return "menu_quit";
+    case 6:
+        return "menu_seed";
+    default:
+        return "";
+    }
+}
+
+const char* rogue_start_menu_label(int index)
+{
+    return rogue_locale_get(menu_key_for_index(index));
+}
+
+static const char* tooltip_for_selection(int idx)
+{
+    if (idx == 3)
+        return rogue_locale_get("tip_settings");
+    if (idx == 4)
+        return rogue_locale_get("tip_credits");
+    return rogue_locale_get("hint_accept_cancel");
+}
+
+const char* rogue_start_tooltip_text(void) { return tooltip_for_selection(g_app.menu_index); }
 
 /* Portable file existence check used to detect presence of a save file for Continue/Load. */
 static int rogue_file_exists(const char* path)
@@ -149,6 +190,21 @@ void rogue_start_screen_update_and_render(void)
     if (!g_app.show_start_screen)
         return;
     g_app.title_time += g_app.dt;
+    /* Phase 10.4: Reduced motion skips animated fades entirely */
+    if (g_app.reduced_motion)
+    {
+        if (g_app.start_state == ROGUE_START_FADE_IN)
+        {
+            g_app.start_state = ROGUE_START_MENU;
+            g_app.start_state_t = 1.0f;
+        }
+        else if (g_app.start_state == ROGUE_START_FADE_OUT)
+        {
+            /* Skip fade-out as well under reduced motion */
+            g_app.start_state_t = 0.0f;
+            g_app.show_start_screen = 0;
+        }
+    }
     /* Phase 1.1/1.2: simple fade in/out state machine */
     if (g_app.start_state_speed <= 0.0f)
         g_app.start_state_speed = 1.0f; /* default 1x per second */
@@ -174,7 +230,8 @@ void rogue_start_screen_update_and_render(void)
     /* Background */
     render_background();
     RogueColor white = {255, 255, 255, 255};
-    int pulse = (int) ((sin(g_app.title_time * 2.0) * 0.5 + 0.5) * 255.0);
+    int pulse =
+        g_app.reduced_motion ? 220 : (int) ((sin(g_app.title_time * 2.0) * 0.5 + 0.5) * 255.0);
     /* Title with fade alpha */
     int a = (int) (255.0f * (g_app.start_state == ROGUE_START_FADE_IN
                                  ? g_app.start_state_t
@@ -196,8 +253,10 @@ void rogue_start_screen_update_and_render(void)
             }
         }
     }
-    const char* menu_items[] = {"Continue", "New Game", "Load Game", "Settings",
-                                "Credits",  "Quit",     "Seed:"};
+    const char* menu_items[] = {rogue_start_menu_label(0), rogue_start_menu_label(1),
+                                rogue_start_menu_label(2), rogue_start_menu_label(3),
+                                rogue_start_menu_label(4), rogue_start_menu_label(5),
+                                rogue_start_menu_label(6)};
     int enabled[] = {has_save, 1, has_save, 1, 1, 1, 1};
     int item_count = 7;
     int base_y = 140;
@@ -373,13 +432,15 @@ void rogue_start_screen_update_and_render(void)
             g_app.entering_seed = 0;
         else
             rogue_font_draw_text(50, base_y + item_count * 20 + 10,
-                                 "Press Enter to select, Esc to go back", 2, white);
+                                 rogue_locale_get("hint_accept_cancel"), 2, white);
     }
-    /* Simple help text for placeholder entries */
-    if (g_app.menu_index == 3)
-        rogue_font_draw_text(50, base_y + item_count * 20 + 10, "Settings coming soon", 2, white);
-    if (g_app.menu_index == 4)
-        rogue_font_draw_text(50, base_y + item_count * 20 + 10, "Credits coming soon", 2, white);
+    /* Phase 3.3 Tooltip panel: right side contextual hint */
+    {
+        const char* tip = tooltip_for_selection(g_app.menu_index);
+        int tip_x = (g_app.viewport_w > 240) ? (g_app.viewport_w - 140) : 200;
+        int tip_y = base_y;
+        rogue_font_draw_text(tip_x, tip_y, tip, 2, white);
+    }
     if (g_app.entering_seed)
     {
         for (int i = 0; i < g_app.input.text_len; i++)

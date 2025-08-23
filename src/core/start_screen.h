@@ -23,4 +23,8 @@ int rogue_start_screen_active(void);
 /* Optional: change background scaling mode at runtime (tests/tools). */
 void rogue_start_screen_set_bg_scale(RogueStartBGScale mode);
 
+/* Phase 3.3 test hooks: expose current menu label and tooltip. */
+const char* rogue_start_menu_label(int index);
+const char* rogue_start_tooltip_text(void);
+
 #endif
