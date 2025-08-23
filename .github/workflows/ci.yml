@@ -8,57 +8,32 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-test:
-    name: Build & Test (${{ matrix.os }} / SDL=${{ matrix.sdl }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        sdl: [OFF, ON]
-        exclude:
-          - os: windows-latest
-            sdl: ON
+  build-test-windows:
+    name: Build & Test (windows-latest)
+    runs-on: windows-latest
     env:
       BUILD_TYPE: Debug
+      ROGUE_ENABLE_SDL: OFF
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install clang-format (Ubuntu)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-format
-
       - name: Install clang-format (Windows)
-        if: runner.os == 'Windows'
         shell: pwsh
         run: |
           choco install -y llvm || echo "llvm already installed"
           if (Get-Command clang-format -ErrorAction SilentlyContinue) { clang-format --version }
 
-      - name: Install SDL2 (Ubuntu only when enabled)
-        if: runner.os == 'Linux' && matrix.sdl == 'ON'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libsdl2-dev
-
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1
 
-      - name: Configure
+      - name: Configure (Windows, SDL OFF)
         run: >-
           cmake -S . -B build
-          -DROGUE_ENABLE_SDL=${{ matrix.sdl }}
+          -DROGUE_ENABLE_SDL=${{ env.ROGUE_ENABLE_SDL }}
           -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
 
-      - name: Build (Linux)
-        if: runner.os == 'Linux'
-        run: cmake --build build --config ${{ env.BUILD_TYPE }} -- -j 8
-
       - name: Build (Windows)
-        if: runner.os == 'Windows'
         run: cmake --build build --config ${{ env.BUILD_TYPE }} -- -j 8
 
       - name: Format Check

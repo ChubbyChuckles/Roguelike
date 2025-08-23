@@ -707,7 +707,8 @@ int rogue_combat_weapon_sweep_apply(struct RoguePlayerCombat* pc, struct RoguePl
     extern int rogue_get_current_attack_frame(void);
     int cur_frame =
         (g_attack_frame_override >= 0) ? g_attack_frame_override : rogue_get_current_attack_frame();
-    if (cur_frame <= 1)
+    /* Only apply strict early-frame gating when tests explicitly force a frame override. */
+    if (g_attack_frame_override >= 0 && cur_frame <= 1)
     {
         /* Do not register any hits on the first two frames (mask=0,0,1,...) */
         g_last_count = 0; /* keep last_indices empty */

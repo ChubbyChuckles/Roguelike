@@ -125,6 +125,8 @@ void rogue_lockon_validate(RoguePlayer* p, RogueEnemy enemies[], int enemy_count
 {
     if (!p)
         return;
+    if (!enemies || enemy_count <= 0)
+        return;
     if (!p->lock_on_active)
         return;
     int i = p->lock_on_target_index;
@@ -223,6 +225,8 @@ int rogue_lockon_get_dir(RoguePlayer* p, RogueEnemy enemies[], int enemy_count, 
                          float* out_dy)
 {
     if (!p)
+        return 0;
+    if (!enemies || enemy_count <= 0)
         return 0;
     rogue_lockon_validate(p, enemies, enemy_count);
     if (!p->lock_on_active)

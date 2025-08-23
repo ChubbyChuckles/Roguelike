@@ -256,6 +256,14 @@ Run tests:
 ctest --test-dir build -C Debug --output-on-failure
 ```
 
+Tip: run a focused subset (faster inner loop):
+```powershell
+ctest --test-dir build -C Debug -j8 -R "(damage_event_components|hit_mask_integration)" --output-on-failure
+```
+
+### CI
+- GitHub Actions runs a Windows-only workflow by default with SDL disabled (headless logic build). Format check and full ctest run are enforced. Enable SDL locally with `-DROGUE_ENABLE_SDL=ON` when developing the SDL/UI slices.
+
 ---
 
 ## 5. Configuration & Assets

@@ -44,6 +44,8 @@ int main()
     RoguePlayer p;
     rogue_player_init(&p);
     p.facing = 2;
+    /* Ensure baseline weapon scaling consistent with gameplay: equip Training Sword (id=0). */
+    p.equipped_weapon_id = 0;
     p.strength = 50;
     p.dexterity = 10;
     p.crit_chance = 0;

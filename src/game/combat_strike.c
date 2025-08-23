@@ -493,6 +493,10 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                 final_dmg += mitig;
                 overkill_accum += local_overkill;
                 rogue_add_damage_number_ex(ex, ey - 0.25f, mitig, 1, is_crit);
+                /* Emit component event: physical */
+                rogue_damage_event_record(
+                    (unsigned short) (def ? def->id : 0), (unsigned char) ROGUE_DMG_PHYSICAL,
+                    (unsigned char) is_crit, comp_raw, mitig, local_overkill, 0);
             }
             if (part_fire > 0.01f)
             {
@@ -520,6 +524,10 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                 final_dmg += mitig;
                 overkill_accum += local_overkill;
                 rogue_add_damage_number_ex(ex, ey - 0.25f, mitig, 1, is_crit);
+                /* Emit component event: fire */
+                rogue_damage_event_record((unsigned short) (def ? def->id : 0),
+                                          (unsigned char) ROGUE_DMG_FIRE, (unsigned char) is_crit,
+                                          comp_raw, mitig, local_overkill, 0);
             }
             if (part_frost > 0.01f)
             {
@@ -547,6 +555,10 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                 final_dmg += mitig;
                 overkill_accum += local_overkill;
                 rogue_add_damage_number_ex(ex, ey - 0.25f, mitig, 1, is_crit);
+                /* Emit component event: frost */
+                rogue_damage_event_record((unsigned short) (def ? def->id : 0),
+                                          (unsigned char) ROGUE_DMG_FROST, (unsigned char) is_crit,
+                                          comp_raw, mitig, local_overkill, 0);
             }
             if (part_arc > 0.01f)
             {
@@ -574,6 +586,10 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                 final_dmg += mitig;
                 overkill_accum += local_overkill;
                 rogue_add_damage_number_ex(ex, ey - 0.25f, mitig, 1, is_crit);
+                /* Emit component event: arcane */
+                rogue_damage_event_record((unsigned short) (def ? def->id : 0),
+                                          (unsigned char) ROGUE_DMG_ARCANE, (unsigned char) is_crit,
+                                          comp_raw, mitig, local_overkill, 0);
             }
             int overkill = overkill_accum;
             int execution = 0;
