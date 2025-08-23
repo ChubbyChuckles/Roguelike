@@ -43,6 +43,7 @@ SOFTWARE.
 #include "core/skill_bar.h"
 #include "core/skill_tree.h"
 #include "core/skills.h"
+#include "core/start_screen.h"
 #include "core/stat_cache.h"
 #include "core/tile_sprite_cache.h"
 #include "core/vegetation/vegetation.h"
@@ -82,6 +83,21 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.menu_index = 0;
     g_app.entering_seed = 0;
     g_app.pending_seed = 1337u;
+    g_app.start_state = ROGUE_START_FADE_IN;
+    g_app.start_state_t = 0.0f;
+    g_app.start_state_speed = 1.0f; /* adjusted later if reduced motion desired */
+#ifdef ROGUE_HAVE_SDL
+    g_app.start_bg_tex = NULL;
+#endif
+    g_app.start_bg_loaded = 0;
+    g_app.start_bg_scale = ROGUE_BG_COVER;
+    g_app.start_bg_tint = 0xFFFFFFFFu;
+    /* Start screen nav repeat config (Phase 3.2) */
+    g_app.start_nav_accum_ms = 0.0;
+    g_app.start_nav_dir_v = 0;
+    g_app.start_nav_repeating = 0;
+    g_app.start_nav_initial_ms = 400.0; /* desktop-ish default */
+    g_app.start_nav_interval_ms = 65.0; /* ~15Hz */
     rogue_player_init(&g_app.player);
     g_app.unspent_stat_points = 0;
     if (!rogue_platform_init(cfg))

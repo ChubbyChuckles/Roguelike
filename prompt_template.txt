@@ -94,3 +94,8 @@ Read the "roadmaps\implementation_plan_integration_plumbing.txt", go to the next
 ### Fix Unit Tests
 
 Read the "roadmaps\fix_unit_tests.txt", go to the next tasks in line that need implementation and implement as many of them as possible, don't just partially finish the tasks. Prevent regression. Execute the unit tests and build the project to verify there are no errors. Never build without SDL2 and always build with multiple processes when applicable ( -j8 ). After a successful implementation update the "roadmaps\fix_unit_tests.txt", generate a descriptive commit message that you append to ".pending_commit_message.txt" and update the README.md. Iterate this process as often as you can in one request.
+
+
+### Start Screen
+
+Read the "roadmaps\implementation_plan_start_screen.txt", go to the next tasks in line that need implementation and implement as many of them as possible, don't just partially finish the tasks. Prevent regression. Execute the unit tests and build the project to verify there are no errors. Never build without SDL2 and always build with multiple processes when applicable ( -j8 ). After a successful implementation update the "roadmaps\implementation_plan_start_screen.txt", generate a descriptive commit message that you append to ".pending_commit_message.txt" and update the README.md. Iterate this process as often as you can in one request.

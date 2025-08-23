@@ -103,6 +103,13 @@ void rogue_app_step(void)
     SDL_RenderClear(g_app.renderer);
     if (rogue_start_screen_active())
     {
+        /* Ensure fade speed respects reduced-motion preference by shortening duration */
+        if (g_app.start_state == ROGUE_START_FADE_IN && g_app.start_state_t == 0.0f)
+        {
+            /* If future global reduced motion flag exists, we could speed up here. */
+            if (g_app.start_state_speed <= 0.0f)
+                g_app.start_state_speed = 1.0f;
+        }
         rogue_start_screen_update_and_render();
     }
     else

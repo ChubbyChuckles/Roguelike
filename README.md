@@ -28,10 +28,6 @@ This README has been refactored for fast navigation while preserving every byte 
 | 5. Configuration & Assets | Data formats & asset locations |
 | 6. Testing & Quality Gates | Determinism, CI gates, fuzz/stat suites |
 | 7. Development Workflow | Everyday contributor loop |
-| 8. Performance & Determinism | RNG model, perf strategies |
-| 9. Tooling & Maintainability | Audits, hot reload, schema & integrity tools |
-| 10. Roadmap Snapshot | Current milestone excerpt & where to find full plans |
-| 11. Changelog (Highlights) | Recent notable changes (curated) |
 | 12. Contributing | Contribution standards |
 | 13. License | MIT license reference |
 | 14. Media / Screenshots | Placeholder images / planned diagrams |
@@ -209,6 +205,11 @@ Build targets: `test_thread_barrier`, `test_thread_pool` (Windows/MSBuild genera
 
 ### UI & UX
 Immediate‑mode deterministic UI with hash diffing, virtualization, inventory & vendor panels, skill graph viewport with animations, accessibility (colorblind modes, reduced motion), navigation graph, headless harness for golden tests, theme hot swap, HUD systems, alerts, metrics overlay.
+
+#### Start Screen
+- Background image: place a PNG at `assets/ui/start_bg.png`. If the file is missing or SDL2_image isn't available, a gradient fallback renders instead. Scaling modes: cover (default) and contain; optional tinting follows theme.
+- Controls: Up/Down to navigate, Enter or Space to activate, Esc or controller B to cancel/back. First-letter accelerators jump to matching menu items. Controller DPAD/left stick supports hold-to-repeat with an initial delay and steady repeat interval.
+- UX details: Disabled items are skipped (e.g., Continue when no save). New Game supports seed entry (digits and backspace).
 
 ### Persistence
 Versioned TLV sections, varints, compression, CRC32 + SHA256 integrity, signature trailer, incremental mode, autosaves, replay hash, migrations, durability & equipment slot evolution, fast partial inventory saves, robust tamper detection & recovery.

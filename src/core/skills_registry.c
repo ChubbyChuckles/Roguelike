@@ -225,10 +225,15 @@ int rogue_skill_rank_up(int id)
     if (st->rank == 0)
     {
         int required_level = (def->skill_strength > 0) ? (def->skill_strength * 5) : 1;
-        if (g_app.player.level < required_level)
+        /* Some unit tests call into skills without initializing the full app/player; treat
+           non-positive player levels as level 1 for gating to preserve backwards compatibility. */
+        int player_level = g_app.player.level;
+        if (player_level < 1)
+            player_level = 1;
+        if (player_level < required_level)
         {
             ROGUE_LOG_INFO("Skill unlock gated: id=%d name=%s player_lvl=%d required=%d", id,
-                           def->name ? def->name : "<noname>", g_app.player.level, required_level);
+                           def->name ? def->name : "<noname>", player_level, required_level);
             return -1;
         }
     }

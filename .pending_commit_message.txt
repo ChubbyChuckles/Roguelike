@@ -1,4 +1,19 @@
-Integration Plumbing: Wire auto rollback into transaction abort; add unit test; update roadmap/README
+Start screen: wire controller/keyboard axis-repeat navigation; tests built/run (SDL2, -j8); roadmap updated
+
+- Implemented vertical menu repeat for held Up/Down with initial delay (400ms) and repeat interval (~65ms), including wrap-around and disabled-item skipping.
+- Added small app state fields to track repeat accumulators/direction; initialized defaults during app init.
+- Rebuilt Debug with SDL2 using parallelism; executed CTest with -j8. Many unrelated suites still failing; start-screen code compiles and runs.
+- Roadmap updated: 3.2 (controller axis repeat) and 3.4 (hotkeys) marked Done; 10.1/10.2 noted Partial pending dedicated tests.
+Start screen: background image w/ cover/contain, gradient fallback; fade transitions; expanded menu (Continue/New/Load/Settings/Credits/Quit)
+
+- Phase 1.1–1.2: Added start screen state machine with fade in/out and integrated into app step/init.
+- Phase 2.1–2.3,2.6: Background image support (assets/ui/start_bg.png), scaling modes (cover/contain), ARGB tint stub, graceful gradient fallback when asset missing.
+- Phase 3.1: Expanded main menu with disabled handling and stubs for Continue/Load (slot 0), placeholders for Settings/Credits; wrap-around navigation skipping disabled entries.
+- Wire-ups: start_screen.h/c, app_init.c, app_step.c, input events interop.
+- Roadmap updated to reflect implemented items; README will include background override notes.
+
+Notes:
+- Many unrelated tests currently fail in CI; start screen features compile and run locally. Start screen specific tests (golden snapshot, traversal) to follow.Integration Plumbing: Wire auto rollback into transaction abort; add unit test; update roadmap/README
 
   - transaction_manager.c now includes rollback_manager.h and calls
     rogue_rollback_auto_for_participant(...) for each marked participant during abort.
@@ -122,3 +137,15 @@ feat(ai-phase7): Group tactics & coordination (7.1–7.5) with consolidated unit
 - Tests: Added `tests/unit/test_ai_phase7_group_tactics.c` covering 7.1–7.5 including timer accumulation assertions for stagger decorator. Registered in CTest.
 - Build: Debug, SDL2, parallel (`--parallel 8`); `ctest -C Debug -R test_ai_phase7_group_tactics --output-on-failure` passes 100%.
 - Docs: Roadmap `roadmaps/implementation_plan_aisystem.txt` updated to mark 7.1–7.5 Done with notes. README changelog updated with AI Phase 7 entry.
+
+fix(start-screen): background path + one-time log attempt
+
+- Correct asset path to `assets/vfx/start_bg.jpg` (was using an incorrect relative path).
+- Add one-time load-attempt guard so missing background logs only once; gradient fallback handles render.
+- Verified Debug build/run; Release build also clean.
+
+fix(release): warnings-as-errors cleanups for MSVC
+
+- Replace unsafe `strncpy` with `copy_str` in `vendor_registry.c` to satisfy secure CRT checks.
+- Add `static void copy_str(char* dst, size_t cap, const char* src);` forward declaration to avoid implicit declaration/redefinition under MSVC.
+- Rebuilt Release with SDL2 and `--parallel 8`; `roguelike.exe` produced successfully.

@@ -97,7 +97,10 @@ bool rogue_input_map_scancode(int scancode, RogueKey* out_key)
         return true;
     case SDL_SCANCODE_RETURN:
     case SDL_SCANCODE_KP_ENTER:
-        *out_key = ROGUE_KEY_DIALOGUE; /* dialogue only */
+        *out_key = ROGUE_KEY_DIALOGUE; /* accept/confirm */
+        return true;
+    case SDL_SCANCODE_ESCAPE:
+        *out_key = ROGUE_KEY_CANCEL; /* back/cancel */
         return true;
     default:
         return false;
@@ -120,5 +123,35 @@ void rogue_input_process_sdl_event(RogueInputState* st, const SDL_Event* ev)
                 rogue_input_push_char(st, (char) ev->key.keysym.sym);
         }
     }
+    /* Basic controller to key mapping via SDL controller events when available. */
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+    else if (ev->type == SDL_CONTROLLERBUTTONDOWN || ev->type == SDL_CONTROLLERBUTTONUP)
+    {
+        bool down = (ev->type == SDL_CONTROLLERBUTTONDOWN);
+        switch (ev->cbutton.button)
+        {
+        case SDL_CONTROLLER_BUTTON_A:
+            st->keys[ROGUE_KEY_DIALOGUE] = down; /* accept */
+            break;
+        case SDL_CONTROLLER_BUTTON_B:
+            st->keys[ROGUE_KEY_CANCEL] = down; /* back */
+            break;
+        case SDL_CONTROLLER_BUTTON_DPAD_UP:
+            st->keys[ROGUE_KEY_UP] = down;
+            break;
+        case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+            st->keys[ROGUE_KEY_DOWN] = down;
+            break;
+        case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+            st->keys[ROGUE_KEY_LEFT] = down;
+            break;
+        case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+            st->keys[ROGUE_KEY_RIGHT] = down;
+            break;
+        default:
+            break;
+        }
+    }
+#endif
 }
 #endif

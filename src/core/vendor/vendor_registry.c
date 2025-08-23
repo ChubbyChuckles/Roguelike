@@ -252,6 +252,9 @@ static void trim_newline(char* s)
     }
 }
 
+/* forward decl for safe string copy used below */
+static void copy_str(char* dst, size_t cap, const char* src);
+
 static int load_file_generic(const char* rel, int (*handler)(char** tokens, int count))
 {
     char path[256];
@@ -270,8 +273,8 @@ static int load_file_generic(const char* rel, int (*handler)(char** tokens, int 
         if (line[0] == '#' || line[0] == '\0')
             continue;
         char temp[256];
-        strncpy(temp, line, sizeof temp);
-        temp[sizeof temp - 1] = '\0';
+        /* safe copy to avoid MSVC C4996 on strncpy */
+        copy_str(temp, sizeof temp, line);
         char* toks[16];
         int ct = split_tokens(temp, toks, 16);
         if (ct > 0)

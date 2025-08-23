@@ -44,9 +44,26 @@ typedef struct RogueAppState
     char player_sheet_path[4][4][256];
     int player_sheet_paths_loaded;
     double title_time;
+    /* Start screen state machine (Phase 1.1) */
+    int start_state;         /* RogueStartScreenState */
+    float start_state_t;     /* 0..1 progress for fades */
+    float start_state_speed; /* units per second for fades (scaled if reduced motion) */
+    /* Start screen background (Phase 2.1..2.3) */
+#ifdef ROGUE_HAVE_SDL
+    struct RogueTexture* start_bg_tex; /* owned texture handle */
+#endif
+    int start_bg_loaded;        /* 1 if texture present */
+    int start_bg_scale;         /* RogueStartBGScale */
+    unsigned int start_bg_tint; /* ARGB tint packed */
     int menu_index;
     int entering_seed;
     unsigned int pending_seed;
+    /* Start screen navigation repeat (Phase 3.2 wiring) */
+    double start_nav_accum_ms;    /* accumulated hold time for current direction */
+    int start_nav_dir_v;          /* -1 up, +1 down, 0 none */
+    int start_nav_repeating;      /* 1 when in repeat window */
+    double start_nav_initial_ms;  /* initial delay before repeat */
+    double start_nav_interval_ms; /* repeat interval */
     int frame_count;
     double dt;
     double fps;

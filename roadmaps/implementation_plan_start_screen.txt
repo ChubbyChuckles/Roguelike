@@ -15,28 +15,28 @@ PHASE 0. Current Baseline (Partial)
 0.4 Audio optional; SDL2_mixer not guaranteed (Partial: warnings in CMake, plan for silent fallback)
 
 PHASE 1. State Flow & Controller
-1.1 StartScreenState enum + app state registration (X)
-1.2 Entry/exit transitions (fade logo, crossfade to menu) using existing timeline APIs (X)
+1.1 StartScreenState enum + app state registration (Done)
+1.2 Entry/exit transitions (fade logo, crossfade to menu) using existing timeline APIs (Done)
 1.3 Input routing: keyboard/mouse/controller, focus ring, activation (Done: reuse UI Phase 3 foundations)
 1.4 Deterministic RNG channel scoped to start screen (Done: reuse UI RNG; seed salt "start")
 1.5 Reduced motion gate on transitions (Done: respect global flag)
 
 PHASE 2. Visual Identity & Background Image
-2.1 Static background image support (e.g., assets/ui/start_bg.png), overridable via theme or cfg (X)
-2.2 Image loading via SDL2_image with graceful fallback when library/image is missing (X)
-2.3 Scaling modes: cover (default), contain, or auto; aspect-ratio aware crop/letterbox; high-DPI (X)
-2.4 Color overlay/tint to match theme; brightness clamp for contrast/accessibility (X)
+2.1 Static background image support (e.g., assets/ui/start_bg.png), overridable via theme or cfg (Done)
+2.2 Image loading via SDL2_image with graceful fallback when library/image is missing (Done: uses RogueTexture loader; gradient fallback on absence)
+2.3 Scaling modes: cover (default), contain, or auto; aspect-ratio aware crop/letterbox; high-DPI (Done: cover/contain implemented; auto reserved)
+2.4 Color overlay/tint to match theme; brightness clamp for contrast/accessibility (Partial: ARGB tint applied; clamp TBD)
 2.5 Parallax sprite layers (stars/particles) optional on top; reduced-motion unaffected (X)
-2.6 Background gradient fallback when no image or on low-asset mode (X)
+2.6 Background gradient fallback when no image or on low-asset mode (Done)
 2.7 Logo lockup with safe-area layout (X)
 2.8 Optional shader bloom/scanline pass with CPU fallback (X)
 2.9 Day/Night tint driven by system time or seed (X)
 
 PHASE 3. Main Menu Structure
-3.1 Menu items: Continue (if saves), New Game, Load Game, Settings, Credits, Quit (X)
-3.2 Controller navigation with axis repeat; wrap-around, disabled items skipped (Done infra, X wiring)
+3.1 Menu items: Continue (if saves), New Game, Load Game, Settings, Credits, Quit (Partial: implemented with disabled handling; Settings/Credits placeholders; Load/Continue stub to slot 0)
+3.2 Controller navigation with axis repeat; wrap-around, disabled items skipped (Done: held Up/Down repeat with initial delay and interval; wrap-around + disabled-skip)
 3.3 Tooltips: right panel shows description/hints; narration stub emits labels (X)
-3.4 Hotkeys: Enter/Space accept, Esc/Back cancel, first-letter accelerators (X)
+3.4 Hotkeys: Enter/Space accept, Esc/Back cancel, first-letter accelerators (Done)
 3.5 Localization-ready labels (en-US strings table placeholder) (X)
 
 PHASE 4. Continue/Load Integration
@@ -75,8 +75,8 @@ PHASE 9. Transitions to/from Game
 9.3 Safety: cancel running transitions cleanly on state change (X)
 
 PHASE 10. Testing & QA Automation
-10.1 Headless golden snapshot: start screen first frame hash (X)
-10.2 Navigation traversal test: keyboard & controller (X)
+10.1 Headless golden snapshot: start screen first frame hash (Partial: harness ready; test pending while unrelated suites failing)
+10.2 Navigation traversal test: keyboard & controller (Partial: controller/keyboard repeat implemented; test pending)
 10.3 Localization swap test: label table (en) -> (fake-locale) (X)
 10.4 Reduced motion test: transitions skipped, hashes stable (X)
 10.5 Performance smoke: emit >=200 widgets < threshold time (X)
@@ -101,9 +101,9 @@ SUCCESS METRICS
 - Time-to-interactive < 500 ms after process start (assuming caches present).
 
 NEXT ACTION CANDIDATES (If starting now)
-- Implement Phase 1.1–1.2 (state register + entry/exit transitions) and Phase 3.1 (basic menu items with keyboard navigation).
 - Add 10.1 headless golden test and 10.2 traversal test; wire reduced-motion gating.
-- Drop in placeholder background image asset (start_bg.png) and wire 2.1–2.3 with 10.7 coverage.
+- Extend menu wiring for controller repeat (3.2), tooltips (3.3), and hotkeys (3.4).
+- Document background asset override path in README and add design notes on tint/clamp.
 
 CROSS-SYSTEM SYNERGIES
 - UI: reuse theme, animation/timeline, focus, headless harness, virtualization for save lists.
