@@ -209,6 +209,9 @@ Immediate‑mode deterministic UI with hash diffing, virtualization, inventory &
 #### Start Screen
 - Background image: default path `assets/vfx/start_bg.jpg` (also tries `../assets/vfx/start_bg.jpg` when running from `build/`). You can override via environment variable `ROGUE_START_BG` with an absolute or relative path. If the file is missing or SDL2_image isn't available, a gradient fallback renders instead. Scaling modes: cover (default) and contain; optional tinting follows theme.
 - Controls: Up/Down to navigate, Enter or Space to activate, Esc or controller B to cancel/back. First-letter accelerators jump to matching menu items. Controller DPAD/left stick supports hold-to-repeat with an initial delay and steady repeat interval.
+
+ Reduced motion: set environment variable ROGUE_REDUCED_MOTION=1 to skip all fade animations. This is enforced even when the game loop isn't running (useful for tests/headless).
+ Background image: by default a gradient renders. If assets/vfx/start_bg.jpg exists (or ROGUE_START_BG points to an image path), it will render with cover/contain scaling. A brightness clamp is applied to tint to preserve text contrast.
 - UX details: Disabled items are skipped (e.g., Continue when no save). New Game supports seed entry (digits and backspace).
  - Tooltips & localization: Contextual tooltip text appears on the right for the focused item (e.g., Settings/Credits placeholders). Text is routed through a minimal localization layer; tests can swap the active locale at runtime. Missing keys fall back to the key string for visibility.
  - Reduced motion: Set environment `ROGUE_REDUCED_MOTION=1` to skip animated fades; title pulse is toned down in this mode.

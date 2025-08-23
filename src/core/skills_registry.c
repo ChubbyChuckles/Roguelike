@@ -74,6 +74,11 @@ void rogue_skills_init(void)
     g_skill_states_internal = NULL;
     g_skill_capacity_internal = 0;
     g_skill_count_internal = 0;
+    /* Reset canary sentinels on each init so repeated init/shutdown cycles in a single
+        process (unit tests) don't falsely report corruption. These are set to 0 at the end of
+        shutdown to help catch use-after-free and buffer overruns; re-arm them here. */
+    g_skill_defs_canary = 0xABCD1234u;
+    g_skill_states_canary = 0xBEEF5678u;
     g_app.skill_defs = NULL;
     g_app.skill_states = NULL;
     g_app.skill_count = 0;

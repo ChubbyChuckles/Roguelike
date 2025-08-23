@@ -1,3 +1,10 @@
+Start screen: fix reduced-motion guard (Phase 10.4), add background brightness clamp (Phase 2.4), update roadmap
+
+- Reduced motion: apply fade skip unconditionally (no show flag gate) both pre-loop and at frame start so tests calling rogue_app_step() without a running loop pass. Fixes 10.4.
+- Background image: clamp tint brightness to keep overlay text legible; keeps max RGB <= 240 (accessibility).
+- Roadmap: mark 2.4 and 10.4 as Done with brief notes.
+- No behavior change to non-reduced-motion paths; existing tests 10.1–10.3 remain valid.
+
 Start Screen: Phase 3.3 tooltips + Phase 10.3/10.4 tests
 
 - Added minimal localization module (core/localization.{h,c}) and integrated into build.

@@ -108,14 +108,30 @@ void rogue_app_step(void)
             fclose(pf);
         }
     }
+    /* Ensure reduced-motion fade skips are applied even if the game loop isn't running yet
+        (unit tests invoke rogue_app_step() directly). This must not depend on show_start_screen
+        because some test harnesses may not toggle it before the first step. */
+    if (g_app.reduced_motion)
+    {
+        if (g_app.start_state == ROGUE_START_FADE_IN)
+        {
+            g_app.start_state = ROGUE_START_MENU;
+            g_app.start_state_t = 1.0f;
+        }
+        else if (g_app.start_state == ROGUE_START_FADE_OUT)
+        {
+            g_app.start_state_t = 0.0f;
+            g_app.show_start_screen = 0;
+        }
+    }
     if (!g_game_loop.running)
         return;
     rogue_process_events();
     double frame_start = rogue_metrics_frame_begin();
     /* Accessibility fast-path: if reduced motion is enabled, enforce fade skips
        immediately at frame start so tests and non-SDL code paths see the effect
-       without relying on later UI updates. */
-    if (g_app.show_start_screen && g_app.reduced_motion)
+        without relying on later UI updates. Do not gate on show_start_screen. */
+    if (g_app.reduced_motion)
     {
         if (g_app.start_state == ROGUE_START_FADE_IN)
         {

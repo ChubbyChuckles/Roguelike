@@ -163,9 +163,25 @@ static void render_background(void)
         SDL_Rect src = {0, 0, iw, ih};
         SDL_Rect dst = {dx, dy, dw, dh};
         extern SDL_Renderer* g_internal_sdl_renderer_ref;
-        SDL_SetTextureColorMod(g_app.start_bg_tex->handle, (g_app.start_bg_tint >> 16) & 255,
-                               (g_app.start_bg_tint >> 8) & 255, g_app.start_bg_tint & 255);
-        SDL_SetTextureAlphaMod(g_app.start_bg_tex->handle, (g_app.start_bg_tint >> 24) & 255);
+        /* Accessibility: clamp brightness so overlays remain legible */
+        unsigned char tr = (g_app.start_bg_tint >> 16) & 255;
+        unsigned char tg = (g_app.start_bg_tint >> 8) & 255;
+        unsigned char tb = g_app.start_bg_tint & 255;
+        unsigned char ta = (g_app.start_bg_tint >> 24) & 255;
+        int maxc = tr;
+        if (tg > maxc)
+            maxc = tg;
+        if (tb > maxc)
+            maxc = tb;
+        if (maxc > 240)
+        {
+            float scale = 240.0f / (float) maxc;
+            tr = (unsigned char) (tr * scale);
+            tg = (unsigned char) (tg * scale);
+            tb = (unsigned char) (tb * scale);
+        }
+        SDL_SetTextureColorMod(g_app.start_bg_tex->handle, tr, tg, tb);
+        SDL_SetTextureAlphaMod(g_app.start_bg_tex->handle, ta);
         SDL_RenderCopy(g_internal_sdl_renderer_ref, g_app.start_bg_tex->handle, &src, &dst);
     }
     else

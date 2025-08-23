@@ -421,6 +421,24 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.analytics_damage_dealt_total = 0ULL;
     g_app.analytics_gold_earned_total = 0ULL;
     g_app.permadeath_mode = 0;
+    /* Reduced-motion test 10.4 diagnostics: when invoked by that test, emit a one-line init dump
+       so we can verify initial flags before the first rogue_app_step(). */
+    if (cfg && cfg->window_title && strcmp(cfg->window_title, "StartScreenReducedMotion") == 0)
+    {
+        FILE* f = NULL;
+#if defined(_MSC_VER)
+        if (fopen_s(&f, "rm_init.txt", "w") == 0 && f)
+#else
+        f = fopen("rm_init.txt", "w");
+        if (f)
+#endif
+        {
+            fprintf(f, "init running=%d show=%d rm=%d state=%d t=%.3f\n", (int) g_game_loop.running,
+                    g_app.show_start_screen, g_app.reduced_motion, g_app.start_state,
+                    (double) g_app.start_state_t);
+            fclose(f);
+        }
+    }
     return true;
 }
 
