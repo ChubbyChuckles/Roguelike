@@ -76,6 +76,21 @@
 			"type": "shell",
 			"command": "cmake --build build --config Debug --parallel 8",
 			"group": "build"
+		},
+		{
+			"label": "Build Release (cmake -j8) with tests",
+			"type": "shell",
+			"command": "cmake --build build --config Release --parallel 8"
+		},
+		{
+			"label": "Rebuild Release after start screen bg path tweak",
+			"type": "shell",
+			"command": "cmake --build build --config Release --parallel 8"
+		},
+		{
+			"label": "Rebuild Release after getenv fix",
+			"type": "shell",
+			"command": "cmake --build build --config Release --parallel 8"
 		}
 	]
 }

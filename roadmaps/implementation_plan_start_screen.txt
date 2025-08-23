@@ -75,8 +75,8 @@ PHASE 9. Transitions to/from Game
 9.3 Safety: cancel running transitions cleanly on state change (X)
 
 PHASE 10. Testing & QA Automation
-10.1 Headless golden snapshot: start screen first frame hash (Partial: harness ready; test pending while unrelated suites failing)
-10.2 Navigation traversal test: keyboard & controller (Partial: controller/keyboard repeat implemented; test pending)
+10.1 Headless golden snapshot: start screen first frame hash (Done: test_start_screen_phase10_1_headless)
+10.2 Navigation traversal test: keyboard & controller (Done: test_start_screen_phase10_2_navigation)
 10.3 Localization swap test: label table (en) -> (fake-locale) (X)
 10.4 Reduced motion test: transitions skipped, hashes stable (X)
 10.5 Performance smoke: emit >=200 widgets < threshold time (X)

@@ -1,3 +1,19 @@
+Start screen background: path resolution + env override
+
+- Make start background loader robust: search order is `ROGUE_START_BG` env -> `assets/vfx/start_bg.jpg` -> `../assets/vfx/start_bg.jpg`.
+- Log a single INFO on success or WARN on fallback; keep one-time attempt to avoid per-frame spam.
+- Use secure _dupenv_s on MSVC instead of getenv; include <stdlib.h> and guard with _MSC_VER.
+- README updated to document default path and `ROGUE_START_BG` override.
+
+Start screen PHASE 10 tests: headless snapshot + navigation
+
+- Add unit tests:
+	- tests/unit/test_start_screen_phase10_1_headless.c: deterministic first-frame snapshot hash
+	- tests/unit/test_start_screen_phase10_2_navigation.c: wraps/skips disabled, accelerator + accept triggers FADE_OUT
+- Wire into tests/CMakeLists.txt with SDL_MAIN_HANDLED and optional SDL linkage
+- Roadmap: mark 10.1 and 10.2 as Done
+- README: note start-screen tests presence (headless snapshot and traversal)
+
 Start screen: wire controller/keyboard axis-repeat navigation; tests built/run (SDL2, -j8); roadmap updated
 
 - Implemented vertical menu repeat for held Up/Down with initial delay (400ms) and repeat interval (~65ms), including wrap-around and disabled-item skipping.

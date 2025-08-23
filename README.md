@@ -207,9 +207,13 @@ Build targets: `test_thread_barrier`, `test_thread_pool` (Windows/MSBuild genera
 Immediate‑mode deterministic UI with hash diffing, virtualization, inventory & vendor panels, skill graph viewport with animations, accessibility (colorblind modes, reduced motion), navigation graph, headless harness for golden tests, theme hot swap, HUD systems, alerts, metrics overlay.
 
 #### Start Screen
-- Background image: place a PNG at `assets/ui/start_bg.png`. If the file is missing or SDL2_image isn't available, a gradient fallback renders instead. Scaling modes: cover (default) and contain; optional tinting follows theme.
+- Background image: default path `assets/vfx/start_bg.jpg` (also tries `../assets/vfx/start_bg.jpg` when running from `build/`). You can override via environment variable `ROGUE_START_BG` with an absolute or relative path. If the file is missing or SDL2_image isn't available, a gradient fallback renders instead. Scaling modes: cover (default) and contain; optional tinting follows theme.
 - Controls: Up/Down to navigate, Enter or Space to activate, Esc or controller B to cancel/back. First-letter accelerators jump to matching menu items. Controller DPAD/left stick supports hold-to-repeat with an initial delay and steady repeat interval.
 - UX details: Disabled items are skipped (e.g., Continue when no save). New Game supports seed entry (digits and backspace).
+
+Tests
+- Headless snapshot (Phase 10.1): deterministic first-frame state hash validates rendering/state defaults.
+- Navigation traversal (Phase 10.2): keyboard/controller input, wrap-around and disabled-item skipping, accelerator and accept -> fade-out.
 
 ### Persistence
 Versioned TLV sections, varints, compression, CRC32 + SHA256 integrity, signature trailer, incremental mode, autosaves, replay hash, migrations, durability & equipment slot evolution, fast partial inventory saves, robust tamper detection & recovery.

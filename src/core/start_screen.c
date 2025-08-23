@@ -7,6 +7,7 @@
 #include "util/log.h"
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 int rogue_start_screen_active(void) { return g_app.show_start_screen; }
@@ -42,12 +43,51 @@ static void ensure_start_bg_loaded(void)
     if (g_app.start_bg_loaded || attempted)
         return;
     static RogueTexture tex; /* lifetime static; pointer stored in g_app */
-    const char* path = "../assets/vfx/start_bg.jpg";
-    if (rogue_texture_load(&tex, path))
+    /* Resolve path with simple search order: env override -> assets/ -> ../assets/ */
+    /* Use secure getenv variant on MSVC */
+    char env_buf[512] = {0};
+    {
+#if defined(_MSC_VER)
+        char* val = NULL;
+        size_t len = 0;
+        if (_dupenv_s(&val, &len, "ROGUE_START_BG") == 0 && val && val[0])
+        {
+            strncpy_s(env_buf, sizeof env_buf, val, _TRUNCATE);
+        }
+        if (val)
+            free(val);
+#else
+        const char* v = getenv("ROGUE_START_BG");
+        if (v && v[0])
+        {
+            strncpy(env_buf, v, sizeof env_buf - 1);
+            env_buf[sizeof env_buf - 1] = '\0';
+        }
+#endif
+    }
+    const char* candidates[] = {
+        env_buf[0] ? env_buf : NULL,
+        "assets/vfx/start_bg.jpg",
+        "../assets/vfx/start_bg.jpg",
+    };
+    const char* loaded_from = NULL;
+    for (int i = 0; i < (int) (sizeof(candidates) / sizeof(candidates[0])); ++i)
+    {
+        const char* path = candidates[i];
+        if (!path)
+            continue;
+        if (rogue_texture_load(&tex, path))
+        {
+            loaded_from = path;
+            break;
+        }
+    }
+    if (loaded_from)
     {
         g_app.start_bg_tex = &tex;
         g_app.start_bg_loaded = 1;
         g_app.start_bg_tint = 0xFFFFFFFFu;
+        ROGUE_LOG_INFO("Start background loaded: %s", loaded_from);
     }
     else
     {
