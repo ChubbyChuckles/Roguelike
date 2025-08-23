@@ -1,23 +1,31 @@
-/* enemy_difficulty.c - Phase 0 implementation (taxonomy + tier multipliers)
+/**
+ * @file enemy_difficulty.c
+ * @brief Phase 0 implementation (taxonomy + tier multipliers)
+ *
  * Roadmap Coverage: 0.1 - 0.5
+ *
+ * This module contains the static tier table used by early-phase difficulty
+ * computations, a small archetype name table, and a few helper APIs to query
+ * tiers and archetypes. Validation helpers are provided for unit tests to
+ * assert monotonicity and uniqueness of the static tables.
  */
 #include "core/enemy/enemy_difficulty.h"
 #include <string.h>
 
-/* Static archetype names */
+/**
+ * @brief Static archetype human-readable names.
+ */
 static const char* g_archetype_names[ROGUE_ENEMY_ARCHETYPE__COUNT] = {"Melee", "Ranged", "Caster",
                                                                       "EliteSupport", "Boss"};
 
-/* Phase 0 Tier Table
- * Multipliers chosen with simple monotonic escalation; future phases may adjust.
- * Rationale (initial guess):
- *  - Veteran: modest +25% HP, +15% DPS gives slight pressure without large TTK variance.
- *  - Elite: +85% HP to anchor longer presence, +60% DPS, +40% control/mobility for richer behavior.
- *  - MiniBoss: 3.2x HP (noticeable endurance), 2.2x DPS (threat), +130% control & mobility for
- * pattern variety.
- *  - Boss: 8x HP baseline, 3.2x DPS; control +180%, mobility +170% for arena dynamics.
- *  - Nemesis: Slightly above Boss (HP 8.5x) but *less* DPS than pure boss (3.0x) reserving space
- * for adaptive scaling.
+/**
+ * @brief Phase 0 Tier Table.
+ *
+ * Multipliers chosen with simple monotonic escalation; future phases may
+ * adjust. The multi-line rationale in the original source explains the
+ * initial design intent for each tier (Veteran, Elite, MiniBoss, Boss,
+ * Nemesis) and is preserved here as part of the block comment for
+ * historical context.
  */
 static const RogueEnemyTierDesc g_tiers[] = {
     {ROGUE_ENEMY_TIER_NORMAL, "Normal", {1.00f, 1.00f, 1.00f, 1.00f}, 0u},
@@ -29,8 +37,18 @@ static const RogueEnemyTierDesc g_tiers[] = {
 static const int g_tier_count = (int) (sizeof(g_tiers) / sizeof(g_tiers[0]));
 
 /* Public API */
+/**
+ * @brief Get the number of defined tiers.
+ *
+ * @return Count of static tiers available in `g_tiers`.
+ */
 int rogue_enemy_tier_count(void) { return g_tier_count; }
 
+/**
+ * @brief Retrieve a tier descriptor by array index.
+ *
+ * Returns NULL when the index is out of range.
+ */
 const RogueEnemyTierDesc* rogue_enemy_tier_get_by_index(int index)
 {
     if (index < 0 || index >= g_tier_count)
@@ -38,6 +56,12 @@ const RogueEnemyTierDesc* rogue_enemy_tier_get_by_index(int index)
     return &g_tiers[index];
 }
 
+/**
+ * @brief Find a tier descriptor by id.
+ *
+ * Iterates the static table and returns the first matching `id` or NULL if
+ * not found.
+ */
 const RogueEnemyTierDesc* rogue_enemy_tier_get(int id)
 {
     for (int i = 0; i < g_tier_count; i++)
@@ -46,6 +70,16 @@ const RogueEnemyTierDesc* rogue_enemy_tier_get(int id)
     return NULL;
 }
 
+/**
+ * @brief Compute base budgets (hp/dps/etc.) for a given tier.
+ *
+ * Phase 0 uses a direct copy from the static tier descriptor's multiplier
+ * structure.
+ *
+ * @param tier_id Tier id to query.
+ * @param out Output pointer to receive the budgets (must be non-NULL).
+ * @return 0 on success, -1 if tier not found, -2 if `out` is NULL.
+ */
 int rogue_enemy_difficulty_compute_base_budgets(int tier_id, RogueEnemyDifficultyBudgets* out)
 {
     if (!out)
@@ -57,8 +91,17 @@ int rogue_enemy_difficulty_compute_base_budgets(int tier_id, RogueEnemyDifficult
     return 0;
 }
 
+/**
+ * @brief Number of archetypes.
+ */
 int rogue_enemy_archetype_count(void) { return ROGUE_ENEMY_ARCHETYPE__COUNT; }
 
+/**
+ * @brief Human-readable archetype name lookup.
+ *
+ * @param archetype Archetype enum value.
+ * @return Pointer to a static string or NULL if out-of-range.
+ */
 const char* rogue_enemy_archetype_name(int archetype)
 {
     if (archetype < 0 || archetype >= ROGUE_ENEMY_ARCHETYPE__COUNT)
@@ -66,9 +109,21 @@ const char* rogue_enemy_archetype_name(int archetype)
     return g_archetype_names[archetype];
 }
 
+/**
+ * @brief Reset difficulty system to defaults.
+ *
+ * Phase 0 uses static tables, so this function is intentionally a no-op and
+ * exists to provide a stable API surface for later phases.
+ */
 void rogue_enemy_difficulty_reset(void) { /* Phase 0 static tables -> nothing to do */ }
 
-/* Internal validation (can be invoked by unit test for monotonicity & uniqueness) */
+/**
+ * @brief Internal test helper: ensure tier ids are unique.
+ *
+ * Intended for unit tests to catch table authoring errors.
+ *
+ * @return 0 when all ids unique, negative on duplicate.
+ */
 static int _validate_unique_ids(void)
 {
     for (int i = 0; i < g_tier_count; i++)
@@ -81,6 +136,16 @@ static int _validate_unique_ids(void)
     }
     return 0;
 }
+
+/**
+ * @brief Internal test helper: ensure monotonic escalation of tiers.
+ *
+ * Expects strictly increasing HP budgets between successive tiers. DPS is
+ * expected to mostly increase; one dip (Nemesis) is permitted as an
+ * intentional design choice to preserve adaptive headroom.
+ *
+ * @return 0 on success, negative error codes for failure modes.
+ */
 static int _validate_monotonic(void)
 {
     /* Expect non-decreasing hp & dps from one tier to the next (Nemesis slight DPS drop is

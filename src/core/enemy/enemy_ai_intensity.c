@@ -1,11 +1,27 @@
-/* enemy_ai_intensity.c - Phase 5 AI Behavior Intensity Layers implementation */
+/**
+ * @file enemy_ai_intensity.c
+ * @brief Phase 5 AI Behavior Intensity Layers implementation.
+ *
+ * This module implements a small intensity system used to escalate or
+ * de-escalate enemy behaviour based on world signals such as player health,
+ * recent pack deaths, and proximity. The system exposes a compact profile
+ * table (per-tier multipliers) and per-enemy scoring / hysteresis logic that
+ * maps a continuous score into discrete intensity tiers.
+ */
 #include "core/enemy/enemy_ai_intensity.h"
 #include "core/app_state.h"
 #include "entities/enemy.h"
 #include <math.h>
 #include <string.h>
 
-/* Static profiles (could be data-driven later) */
+/**
+ * @brief Built-in static intensity profiles.
+ *
+ * Profiles supply a small set of multipliers applied by various enemy
+ * subsystems. Kept as a static array for now (note: could be data-driven
+ * in the future). The ordering corresponds to the RogueEnemyAIIntensity
+ * enumeration (ROGUE_AI_INTENSITY__COUNT entries).
+ */
 static const RogueAIIntensityProfile g_profiles[ROGUE_AI_INTENSITY__COUNT] = {
     {0.80f, 0.90f, 1.10f}, /* Passive */
     {1.00f, 1.00f, 1.00f}, /* Standard */
@@ -13,6 +29,13 @@ static const RogueAIIntensityProfile g_profiles[ROGUE_AI_INTENSITY__COUNT] = {
     {1.55f, 1.25f, 0.70f}  /* Frenzied */
 };
 
+/**
+ * @brief Retrieve the static profile for a given intensity tier.
+ *
+ * @param tier Intensity tier to query (ROGUE_AI_INTENSITY_*).
+ * @return Pointer to the corresponding RogueAIIntensityProfile, or NULL if
+ *         the tier is out-of-range.
+ */
 const RogueAIIntensityProfile* rogue_ai_intensity_profile(RogueEnemyAIIntensity tier)
 {
     if (tier < 0 || tier >= ROGUE_AI_INTENSITY__COUNT)
@@ -20,6 +43,16 @@ const RogueAIIntensityProfile* rogue_ai_intensity_profile(RogueEnemyAIIntensity 
     return &g_profiles[tier];
 }
 
+/**
+ * @brief Force an enemy into a specific intensity tier immediately.
+ *
+ * Sets the enemy's `ai_intensity` and aligns the continuous
+ * `ai_intensity_score` with the supplied tier. This is useful for scripted
+ * events or deterministic ramps.
+ *
+ * @param e Pointer to the enemy instance to modify.
+ * @param tier Target intensity tier.
+ */
 void rogue_ai_intensity_force(struct RogueEnemy* e, RogueEnemyAIIntensity tier)
 {
     if (!e)
@@ -30,15 +63,29 @@ void rogue_ai_intensity_force(struct RogueEnemy* e, RogueEnemyAIIntensity tier)
     e->ai_intensity_score = (float) tier;
 }
 
-/* Escalation logic:
- * - Base score drifts toward 1 (Standard) when idle.
- * - Triggers increasing score: player low health (<35%), recent pack member deaths, close proximity
- * (<3 tiles), player high aggression (time since player hit small).
- * - De-escalation: player at high health (>80%), no proximity, elapsed calm time.
+/**
+ * @brief Update per-enemy intensity score and tier based on world signals.
+ *
+ * Escalation logic:
+ *  - Base score drifts toward 1 (Standard) when idle.
+ *  - Triggers increasing score: player low health (<35%), recent pack member deaths,
+ *    close proximity (<3 tiles), player aggression (short time since player hit).
+ *  - De-escalation: player at high health (>80%), no proximity, elapsed calm time.
+ *
  * Score thresholds map to tiers:
- *   <0.5 => Passive, <1.5 => Standard, <2.5 => Aggressive, else Frenzied.
- * Hysteresis: intensity_cooldown_ms prevents tier change spam (min 1200ms between changes) and
- * score clamped inside [0,3.5].
+ *    <0.5 => Passive
+ *    <1.5 => Standard
+ *    <2.5 => Aggressive
+ *    else  => Frenzied
+ *
+ * Hysteresis: `ai_intensity_cooldown_ms` prevents tier change spam (min 1200ms
+ * between changes) and the score is clamped to [0, 3.5]. This function updates
+ * both the continuous score and the discrete tier when conditions are met.
+ *
+ * @param e Pointer to the enemy instance to update.
+ * @param dt_ms Delta time in milliseconds since the last update (must be > 0).
+ * @param player_low_health Non-zero when the player is at low health.
+ * @param pack_deaths_recent Non-zero when nearby pack members have died recently.
  */
 void rogue_ai_intensity_update(struct RogueEnemy* e, float dt_ms, int player_low_health,
                                int pack_deaths_recent)

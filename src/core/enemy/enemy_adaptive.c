@@ -1,42 +1,63 @@
-/* enemy_adaptive.c - Phase 4 adaptive difficulty (bounded scalar based on recent KPIs)
+/**
+ * @file enemy_adaptive.c
+ * @brief Phase 4 adaptive difficulty: bounded scalar based on recent KPIs.
+ *
  * KPIs tracked:
  *  - avg_ttk: exponential moving average of time-to-kill (seconds)
  *  - dmg_intake_rate: EMA of player damage taken per second
  *  - potion_rate: EMA of potion uses per minute
  *  - death_rate: EMA of player deaths per hour (scaled)
- * Adjustment logic (simple first slice):
+ *
+ * Adjustment logic (first slice):
  *  - Baseline target TTK (same-level normal): 6.0s reference
- *  - If avg_ttk < 0.6 * target AND dmg_intake_rate low AND potion_rate low => increase scalar
- * toward +12%
- *  - If avg_ttk > 1.6 * target OR dmg_intake_rate high OR frequent potions/deaths => decrease
- * scalar toward -12%
+ *  - If avg_ttk < 0.6 * target AND dmg_intake_rate low AND potion_rate low => increase
+ *    scalar toward +12%
+ *  - If avg_ttk > 1.6 * target OR dmg_intake_rate high OR frequent potions/deaths =>
+ *    decrease scalar toward -12%
  *  - Otherwise decay scalar toward 1.0
+ *
  * Smoothing: EMA alpha derived from dt or event-driven for numerical stability.
  */
+
 #include "core/enemy/enemy_adaptive.h"
 #include <math.h>
 
-/* Static global initialized explicitly so that even if reset() is not called
- * (older tests / legacy init paths) we start from a neutral (scalar=1) state. */
+/**
+ * @brief Internal adaptive state tracked per-session.
+ *
+ * The struct stores recent KPIs and the current scalar applied to enemy stats.
+ * It is initialized with scalar=1.0 and enabled=1 so legacy paths that omit
+ * explicit reset still behave neutrally.
+ */
 static struct AdaptiveState
 {
-    float avg_ttk;
-    int has_ttk;
-    float dmg_intake_rate; /* per second */
-    float potion_rate;     /* per minute */
-    float death_rate;      /* per hour */
-    float scalar;          /* current applied scalar */
-    int enabled;
-    float time_since_last_kill;
-    float recent_kill_pressure; /* decays over short window to gate adjustments */
-    int kill_event;             /* set when a kill submitted since last tick */
+    float avg_ttk;              /**< EMA of time-to-kill in seconds */
+    int has_ttk;                /**< Flag: whether avg_ttk contains valid data */
+    float dmg_intake_rate;      /**< Player damage intake rate (per second) */
+    float potion_rate;          /**< Potion uses per minute */
+    float death_rate;           /**< Player deaths per hour (scaled) */
+    float scalar;               /**< Current applied difficulty scalar */
+    int enabled;                /**< Whether adaptive adjustments are active */
+    float time_since_last_kill; /**< Seconds since last kill event */
+    float recent_kill_pressure; /**< Short-window pressure metric decaying over ~5s */
+    int kill_event;             /**< Set when a kill was submitted since last tick */
 } g_adapt = {0, 0, 0, 0, 0, 1.0f, 1, 1000.0f, 0, 0};
 
+/**
+ * @brief Exponential moving average helper.
+ *
+ * If has_prev is false the sample is returned (initialization behavior).
+ */
 static float ema(float prev, float sample, float alpha, int has_prev)
 {
     return has_prev ? (prev + alpha * (sample - prev)) : sample;
 }
 
+/**
+ * @brief Reset adaptive state to neutral defaults.
+ *
+ * Sets KPI accumulators to zero and scalar to 1.0. Enabled is set to true.
+ */
 void rogue_enemy_adaptive_reset(void)
 {
     g_adapt.avg_ttk = 0;
@@ -50,14 +71,31 @@ void rogue_enemy_adaptive_reset(void)
     g_adapt.recent_kill_pressure = 0;
     g_adapt.kill_event = 0;
 }
+/**
+ * @brief Enable or disable adaptive adjustments.
+ *
+ * When disabled the scalar is immediately snapped back to 1.0.
+ *
+ * @param enabled Non-zero to enable, zero to disable.
+ */
 void rogue_enemy_adaptive_set_enabled(int enabled)
 {
     g_adapt.enabled = enabled ? 1 : 0;
     if (!g_adapt.enabled)
         g_adapt.scalar = 1.0f;
 }
+
+/** @brief Query whether adaptive adjustments are enabled. */
 int rogue_enemy_adaptive_enabled(void) { return g_adapt.enabled; }
 
+/**
+ * @brief Submit a kill event with observed time-to-kill (seconds).
+ *
+ * The value is folded into the avg_ttk EMA and contributes to short-window
+ * pressure used for adjustments.
+ *
+ * @param ttk_seconds Observed time-to-kill in seconds (must be > 0).
+ */
 void rogue_enemy_adaptive_submit_kill(float ttk_seconds)
 {
     if (ttk_seconds <= 0)
@@ -68,6 +106,12 @@ void rogue_enemy_adaptive_submit_kill(float ttk_seconds)
     g_adapt.recent_kill_pressure += 1.0f;
     g_adapt.kill_event = 1;
 }
+/**
+ * @brief Submit observed player damage over an interval to update intake rate.
+ *
+ * @param dmg Total damage taken in the interval (must be >= 0).
+ * @param interval_seconds Length of the observation interval in seconds (>0).
+ */
 void rogue_enemy_adaptive_submit_player_damage(float dmg, float interval_seconds)
 {
     if (dmg < 0 || interval_seconds <= 0)
@@ -75,11 +119,29 @@ void rogue_enemy_adaptive_submit_player_damage(float dmg, float interval_seconds
     float rate = dmg / interval_seconds;
     g_adapt.dmg_intake_rate = ema(g_adapt.dmg_intake_rate, rate, 0.10f, 1);
 }
+/**
+ * @brief Record a potion usage event.
+ *
+ * The function increments an event counter which is decayed into a per-minute
+ * rate in the regular tick function.
+ */
 void rogue_enemy_adaptive_submit_potion_used(void)
 { /* treat as 1 event; convert to per-minute rate via tick smoothing */ g_adapt.potion_rate += 1.0f;
 }
+
+/** @brief Record a player death event (increments death counter to be decayed). */
 void rogue_enemy_adaptive_submit_player_death(void) { g_adapt.death_rate += 1.0f; }
 
+/**
+ * @brief Periodic tick to decay event counters and adjust scalar.
+ *
+ * This function should be called regularly (dt_seconds > 0). It decays
+ * potion/death counters into rates, applies short-window pressure decay,
+ * derives increase/decrease pressure based on KPI thresholds, and moves the
+ * scalar toward the computed target with smoothing.
+ *
+ * @param dt_seconds Time elapsed since last tick (seconds, must be > 0).
+ */
 void rogue_enemy_adaptive_tick(float dt_seconds)
 {
     if (dt_seconds <= 0)
@@ -163,4 +225,12 @@ void rogue_enemy_adaptive_tick(float dt_seconds)
         g_adapt.scalar = ROGUE_ENEMY_ADAPTIVE_MAX_SCALAR;
 }
 
+/**
+ * @brief Get the currently applied adaptive scalar.
+ *
+ * If adaptive adjustments are disabled this function returns 1.0.
+ *
+ * @return Applied scalar (clamped between configured min/max) when enabled,
+ *         otherwise 1.0f.
+ */
 float rogue_enemy_adaptive_scalar(void) { return g_adapt.enabled ? g_adapt.scalar : 1.0f; }

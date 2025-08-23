@@ -4,9 +4,30 @@
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @file encounter_composer.c
+ * @brief Encounter template loader and composition utilities.
+ *
+ * This module provides parsing of simple encounter template files into
+ * in-memory templates and a lightweight composer that, given a template id
+ * and a seed, produces an encounter composition (list of units, elites,
+ * supports and boss presence). The parsing supports a line-oriented
+ * key=value format; blank lines separate templates.
+ */
+
+/** Storage for parsed encounter templates. */
 static RogueEncounterTemplate g_templates[ROGUE_MAX_ENCOUNTER_TEMPLATES];
+
+/** Number of templates currently loaded into @c g_templates. */
 static int g_template_count = 0;
 
+/**
+ * @brief Advance RNG state using xorshift32.
+ *
+ * This is a tiny local PRNG used for composing encounters deterministically
+ * from a provided seed. The function updates the provided state in-place
+ * and returns the produced value.
+ */
 static unsigned int rng_next(unsigned int* s)
 {
     unsigned int x = *s;
@@ -16,14 +37,28 @@ static unsigned int rng_next(unsigned int* s)
     *s = x;
     return x;
 }
+
+/**
+ * @brief Return a random integer in [0, hi) using the provided state.
+ *
+ * If hi <= 0 the function returns 0.
+ */
 static int rng_range(unsigned int* s, int hi)
 {
     if (hi <= 0)
         return 0;
     return (int) (rng_next(s) % (unsigned) hi);
 }
+
+/** @brief Return a pseudo-random float in [0.0, 1.0). */
 static float rng_float(unsigned int* s) { return (rng_next(s) & 0xFFFFFF) / (float) 0x1000000; }
 
+/**
+ * @brief Parse a textual type token into the encounter type enum.
+ *
+ * Recognized tokens: "swarm", "mixed", "champion_pack", "boss_room".
+ * Unknown tokens default to ROGUE_ENCOUNTER_SWARM.
+ */
 static int parse_type(const char* v)
 {
     if (strcmp(v, "swarm") == 0)
@@ -37,6 +72,18 @@ static int parse_type(const char* v)
     return ROGUE_ENCOUNTER_SWARM;
 }
 
+/**
+ * @brief Load encounter templates from a key=value formatted file.
+ *
+ * The loader resets the internal template list and then parses the file.
+ * Each blank line separates templates. Supported keys include id, name,
+ * type, min, max, boss, support_min, support_max, elite_spacing and
+ * elite_chance. Default values for elite spacing (3) and chance (0.15)
+ * are applied when a new template is started.
+ *
+ * @param path Path to the template file.
+ * @return Number of templates loaded, or negative on error.
+ */
 int rogue_encounters_load_file(const char* path)
 {
     FILE* f = NULL;
@@ -122,13 +169,28 @@ int rogue_encounters_load_file(const char* path)
     return g_template_count;
 }
 
+/** @brief Return number of loaded encounter templates. */
 int rogue_encounter_template_count(void) { return g_template_count; }
+
+/**
+ * @brief Get a pointer to a template by index.
+ *
+ * @param index Zero-based template index.
+ * @return Pointer to template or NULL if out of range.
+ */
 const RogueEncounterTemplate* rogue_encounter_template_at(int index)
 {
     if (index < 0 || index >= g_template_count)
         return NULL;
     return &g_templates[index];
 }
+
+/**
+ * @brief Find a template by its id field.
+ *
+ * @param id Template id to look up.
+ * @return Pointer to template or NULL if not found.
+ */
 const RogueEncounterTemplate* rogue_encounter_template_by_id(int id)
 {
     for (int i = 0; i < g_template_count; i++)
@@ -137,6 +199,28 @@ const RogueEncounterTemplate* rogue_encounter_template_by_id(int id)
     return NULL;
 }
 
+/**
+ * @brief Compose an encounter from a template id and seed.
+ *
+ * The composition fills the provided @c out structure with units determined
+ * from the template: baseline enemy placeholders, elite selection based on
+ * elite spacing and chance, and optional support adds for boss templates.
+ *
+ * Parameters player_level and biome_id are currently unused but accepted
+ * for future expansion; seed drives deterministic randomness.
+ *
+ * Error codes:
+ *  - -1 : invalid output pointer
+ *  - -2 : template id not found
+ *
+ * @param template_id Template id to use for composition.
+ * @param player_level Player level (currently unused).
+ * @param difficulty_rating Difficulty rating used as baseline unit level.
+ * @param biome_id Biome id (currently unused).
+ * @param seed Deterministic seed for RNG; if zero a small default is used.
+ * @param out Output composition buffer to populate.
+ * @return 0 on success or negative error code.
+ */
 int rogue_encounter_compose(int template_id, int player_level, int difficulty_rating, int biome_id,
                             unsigned int seed, RogueEncounterComposition* out)
 {

@@ -1,4 +1,14 @@
-/* enemy_difficulty_scaling.c - Phase 1 implementation (baseline scaling + ΔL model) */
+/**
+ * @file enemy_difficulty_scaling.c
+ * @brief Phase 1 implementation: baseline scaling & ΔL model.
+ *
+ * Implements the game's baseline enemy scaling model, a tunable parameter set
+ * (loadable from key=value files), relative multiplier computation for level
+ * differences (ΔL), final stat composition (including adaptive scalar), and
+ * a small biome-level parameter registry. Lightweight attribute curves and a
+ * simple TTK estimator are also provided as pragmatic proxies until a full
+ * rating system is introduced in later phases.
+ */
 #define _CRT_SECURE_NO_WARNINGS 1
 #include "core/enemy/enemy_difficulty_scaling.h"
 #include "core/enemy/enemy_adaptive.h"
@@ -10,20 +20,46 @@
 #define ROGUE_CLAMP(v, lo, hi) ((v) < (lo) ? (lo) : ((v) > (hi) ? (hi) : (v)))
 #endif
 
-/* Default parameter set (tunable via file). */
+/**
+ * @brief Default difficulty tuning parameters.
+ *
+ * Values are chosen as a starting point and can be overridden by
+ * `rogue_enemy_difficulty_load_params_file` or by biome-specific entries.
+ * The inline comment shows the ordering used for the initializer for quick
+ * reference.
+ */
 static RogueEnemyDifficultyParams g_params = {
     /* d_def d_dmg cap_def cap_dmg u_def u_dmg u_cap_def u_cap_dmg ramp_soft dom thr trivial thr
        reward scalar */
     0.05f, 0.04f, 0.60f, 0.55f, 0.06f, 0.05f, 2.50f, 2.20f, 0.30f, 8, 12, 0.15f};
 
+/**
+ * @brief Get a pointer to the current global difficulty parameters.
+ *
+ * @return Pointer to the live `RogueEnemyDifficultyParams` instance.
+ */
 const RogueEnemyDifficultyParams* rogue_enemy_difficulty_params_current(void) { return &g_params; }
+
+/**
+ * @brief Reset global difficulty parameters to defaults.
+ */
 void rogue_enemy_difficulty_params_reset(void)
 {
     g_params = (RogueEnemyDifficultyParams){0.05f, 0.04f, 0.60f, 0.55f, 0.06f, 0.05f,
                                             2.50f, 2.20f, 0.30f, 8,     12,    0.15f};
 }
 
-/* Simple key=value parser (whitespace trimmed, lines starting with # ignored) */
+/**
+ * @brief Load difficulty tuning parameters from a simple key=value file.
+ *
+ * The parser trims leading whitespace and ignores lines starting with `#`.
+ * Supported keys correspond to fields of `RogueEnemyDifficultyParams` and are
+ * parsed as floats; integer fields are cast from the parsed float. Returns 0
+ * on success, or -1 if the file could not be opened.
+ *
+ * @param path Path to the parameter file to load.
+ * @return 0 on success, negative error on failure.
+ */
 int rogue_enemy_difficulty_load_params_file(const char* path)
 {
     FILE* f = fopen(path, "rb");
@@ -71,20 +107,31 @@ int rogue_enemy_difficulty_load_params_file(const char* path)
     return 0;
 }
 
-/* Sublinear base curves: chosen simple forms (future phases can hot swap).
- * HP: grows ~ L^1.15; Damage: L^1.08; Defense: L^1.05 (milder) */
+/**
+ * @brief Sublinear base HP curve.
+ *
+ * Lightweight base stat curves chosen for Phase 1; these are simple
+ * power-law approximations and can be swapped for a more sophisticated
+ * curve in later phases.
+ */
 float rogue_enemy_base_hp(int enemy_level)
 {
     if (enemy_level < 1)
         enemy_level = 1;
     return 100.f * powf((float) enemy_level, 1.15f);
 }
+/**
+ * @brief Sublinear base damage curve.
+ */
 float rogue_enemy_base_damage(int enemy_level)
 {
     if (enemy_level < 1)
         enemy_level = 1;
     return 12.f * powf((float) enemy_level, 1.08f);
 }
+/**
+ * @brief Sublinear base defense curve.
+ */
 float rogue_enemy_base_defense(int enemy_level)
 {
     if (enemy_level < 1)
@@ -92,6 +139,9 @@ float rogue_enemy_base_defense(int enemy_level)
     return 8.f * powf((float) enemy_level, 1.05f);
 }
 
+/**
+ * @brief Build a `RogueEnemyBaseStats` bundle for a given level.
+ */
 RogueEnemyBaseStats rogue_enemy_base_stats(int enemy_level)
 {
     RogueEnemyBaseStats s = {rogue_enemy_base_hp(enemy_level), rogue_enemy_base_damage(enemy_level),
@@ -99,6 +149,19 @@ RogueEnemyBaseStats rogue_enemy_base_stats(int enemy_level)
     return s;
 }
 
+/**
+ * @brief Compute relative HP and Damage multipliers given player vs enemy level.
+ *
+ * Applies the ΔL model using the global params. On player over-level this
+ * produces penalties (down multipliers clamped by cap_*), and on enemy
+ * over-level produces buffs with ramping and caps. Returns 0 on success.
+ *
+ * @param player_level Player level (>=1)
+ * @param enemy_level Enemy level (>=1)
+ * @param out_hp_mult Out pointer for HP multiplier.
+ * @param out_dmg_mult Out pointer for Damage multiplier.
+ * @return 0 on success, negative error on invalid args.
+ */
 int rogue_enemy_difficulty_internal__relative_multipliers(int player_level, int enemy_level,
                                                           float* out_hp_mult, float* out_dmg_mult)
 {
@@ -149,6 +212,19 @@ int rogue_enemy_difficulty_internal__relative_multipliers(int player_level, int 
     return 0;
 }
 
+/**
+ * @brief Compose final enemy stats from level, tier and adaptive scalar.
+ *
+ * Combines base curves, tier multipliers and relative ΔL multipliers, then
+ * applies the adaptive scalar uniformly. The defense path currently follows
+ * the HP relative scaling as a simple survivability proxy.
+ *
+ * @param player_level Player level.
+ * @param enemy_level Enemy level.
+ * @param tier_id Tier descriptor id.
+ * @param out Out parameter to receive final stats.
+ * @return 0 on success, negative error codes on invalid inputs.
+ */
 int rogue_enemy_compute_final_stats(int player_level, int enemy_level, int tier_id,
                                     RogueEnemyFinalStats* out)
 {
@@ -185,6 +261,14 @@ int rogue_enemy_compute_final_stats(int player_level, int enemy_level, int tier_
     return 0;
 }
 
+/**
+ * @brief Compute a reward scalar based on ΔL and configured thresholds.
+ *
+ * The function maps player over-level (positive dL) to a reduced reward
+ * scalar, clamping at `reward_trivial_scalar` for trivially easy encounters
+ * and returning 1.0 for equal or under-leveled enemies. A linear
+ * interpolation is used between the dominance and trivial thresholds.
+ */
 float rogue_enemy_compute_reward_scalar(int player_level, int enemy_level,
                                         float modifier_complexity_score,
                                         float adaptive_state_scalar)
@@ -212,6 +296,9 @@ float rogue_enemy_compute_reward_scalar(int player_level, int enemy_level,
 }
 
 /* ---------------- Biome parameter registry (Phase 1.4 extension) ---------------- */
+/**
+ * @brief Biome -> params registry entry.
+ */
 typedef struct
 {
     int biome_id;
@@ -221,6 +308,13 @@ typedef struct
 static BiomeParamEntry g_biome_params[MAX_BIOME_PARAMS];
 static int g_biome_param_count = 0;
 
+/**
+ * @brief Register or replace biome-specific difficulty params.
+ *
+ * If an entry for `biome_id` already exists it will be replaced. Returns 0
+ * on success, negative values indicate errors (-1 full, -2 null params, -3
+ * invalid biome id).
+ */
 int rogue_enemy_difficulty_register_biome_params(int biome_id,
                                                  const RogueEnemyDifficultyParams* params)
 {
@@ -242,6 +336,9 @@ int rogue_enemy_difficulty_register_biome_params(int biome_id,
     return 0;
 }
 
+/**
+ * @brief Retrieve biome-specific difficulty params, or NULL if none registered.
+ */
 const RogueEnemyDifficultyParams* rogue_enemy_difficulty_params_for_biome(int biome_id)
 {
     for (int i = 0; i < g_biome_param_count; i++)
@@ -250,7 +347,9 @@ const RogueEnemyDifficultyParams* rogue_enemy_difficulty_params_for_biome(int bi
     return NULL;
 }
 
-/* Helper selecting params (biome override else global). */
+/**
+ * @brief Helper selecting params (biome override else global).
+ */
 static const RogueEnemyDifficultyParams* _select_params(int biome_id)
 {
     const RogueEnemyDifficultyParams* b =
@@ -258,7 +357,11 @@ static const RogueEnemyDifficultyParams* _select_params(int biome_id)
     return b ? b : &g_params;
 }
 
-/* ΔL severity classification (Phase 1.6 placeholder) */
+/**
+ * @brief ΔL severity classification (Phase 1.6 placeholder).
+ *
+ * Returns a small enumeration classifying how severe the level difference is.
+ */
 RogueEnemyDeltaLSeverity rogue_enemy_difficulty_classify_delta(int player_level, int enemy_level)
 {
     const RogueEnemyDifficultyParams* p = &g_params;
@@ -283,10 +386,13 @@ RogueEnemyDeltaLSeverity rogue_enemy_difficulty_classify_delta(int player_level,
     return ROGUE_DLVL_MINOR;
 }
 
-/* Attribute curves (Phase 1.3) – lightweight proxies until full rating system.
+/**
+ * @brief Attribute curves (Phase 1.3) – lightweight proxies until full rating system.
+ *
  * - crit_chance: starts 2%, grows log-slow with level & DPS budget
  * - phys_resist: scales with hp budget and level^0.6 (capped 60%)
- * - elem_resist: slightly below phys for baseline (capped 55%) */
+ * - elem_resist: slightly below phys for baseline (capped 55%)
+ */
 int rogue_enemy_difficulty_internal__attrib_curves(int enemy_level, float hp_budget,
                                                    float dps_budget,
                                                    RogueEnemyDerivedAttributes* out)
@@ -311,6 +417,12 @@ int rogue_enemy_difficulty_internal__attrib_curves(int enemy_level, float hp_bud
     return 0;
 }
 
+/**
+ * @brief Compute final stats with optional biome-level params.
+ *
+ * Mirrors `rogue_enemy_compute_final_stats` but allows passing a `biome_id`
+ * to pick biome-specific tuning if registered.
+ */
 int rogue_enemy_compute_final_stats_biome(int player_level, int enemy_level, int tier_id,
                                           int biome_id, RogueEnemyFinalStats* out)
 {
@@ -341,6 +453,9 @@ int rogue_enemy_compute_final_stats_biome(int player_level, int enemy_level, int
     return 0;
 }
 
+/**
+ * @brief Compute derived attributes for a given enemy (delegates to curves).
+ */
 int rogue_enemy_compute_attributes(int player_level, int enemy_level, int tier_id, int biome_id,
                                    RogueEnemyDerivedAttributes* out)
 {
@@ -353,6 +468,12 @@ int rogue_enemy_compute_attributes(int player_level, int enemy_level, int tier_i
                                                           tier->mult.dps_budget, out);
 }
 
+/**
+ * @brief Estimate time-to-kill (seconds) for a player DPS against this enemy.
+ *
+ * Uses a very simple effective-HP / player_dps model where defense provides a
+ * diminishing additive factor. Returns negative on error.
+ */
 float rogue_enemy_estimate_ttk_seconds(int player_level, int enemy_level, int tier_id, int biome_id,
                                        float player_dps)
 {

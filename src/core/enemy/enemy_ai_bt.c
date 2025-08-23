@@ -1,7 +1,11 @@
-/* Enemy AI Behavior Tree Integration (Phase: Enemy Integration Feature Flag)
-   Builds a simple behavior tree for an enemy when feature flag enabled.
-   Initial tree: MoveToPlayer action moving toward player position each tick.
-*/
+/**
+ * @file enemy_ai_bt.c
+ * @brief Enemy AI Behavior Tree Integration (feature-flag gated).
+ *
+ * Builds a simple behavior tree for an enemy when the feature flag is
+ * enabled. The initial tree contains a MoveToPlayer action that updates the
+ * agent's position each tick using values stored on a blackboard.
+ */
 #include "ai/core/ai_agent_pool.h"
 #include "ai/core/behavior_tree.h"
 #include "ai/core/blackboard.h"
@@ -12,19 +16,31 @@
 #include <math.h>
 #include <stdlib.h>
 
+/**
+ * @brief Per-enemy blackboard wrapper used by the simple BT.
+ *
+ * Stores a RogueBlackboard instance and keys used for common values such as
+ * the player position, agent position, facing vector and a move-complete
+ * flag. Keys are string literals in the current implementation.
+ */
 typedef struct EnemyAIBlackboard
 {
-    RogueBlackboard bb;
-    const char* player_pos_key;
-    const char* agent_pos_key;
-    const char* agent_facing_key;
-    const char* move_reached_flag;
+    RogueBlackboard bb;            /**< Underlying blackboard instance */
+    const char* player_pos_key;    /**< Key for player position vec2 */
+    const char* agent_pos_key;     /**< Key for agent position vec2 */
+    const char* agent_facing_key;  /**< Key for agent facing vec2 */
+    const char* move_reached_flag; /**< Key for boolean move reached flag */
 } EnemyAIBlackboard;
 
 /* Compile-time guard: ensure pool slab large enough */
 #include <assert.h>
 extern size_t rogue_ai_agent_pool_slab_size(void);
-/* Compile-time like guard executed at first enable; no unused vars to trigger warnings */
+/**
+ * @brief Runtime check that the AI agent pool slab can hold our blackboard.
+ *
+ * This function is called indirectly on enable and asserts loudly if the
+ * configured pool slab is too small. The return value is 1 on success.
+ */
 static int _enemy_ai_bt_size_guard(void)
 {
     size_t have = rogue_ai_agent_pool_slab_size();
@@ -36,6 +52,12 @@ static int _enemy_ai_bt_size_guard(void)
     return 1;
 }
 
+/**
+ * @brief Synchronize blackboard values from the world state.
+ *
+ * Copies the agent's position and the player position into the blackboard
+ * and computes a normalized facing vector stored under the facing key.
+ */
 static void enemy_ai_sync_bb(EnemyAIBlackboard* ebb, RogueEnemy* e)
 {
     rogue_bb_set_vec2(&ebb->bb, ebb->agent_pos_key, e->base.pos.x, e->base.pos.y);
@@ -55,6 +77,12 @@ static void enemy_ai_sync_bb(EnemyAIBlackboard* ebb, RogueEnemy* e)
     rogue_bb_set_vec2(&ebb->bb, ebb->agent_facing_key, dx, dy);
 }
 
+/**
+ * @brief Build the simple behavior tree for the enemy using the provided blackboard.
+ *
+ * Currently the tree is a single MoveTo action named "MoveToPlayer" which
+ * reads the player position key and writes a flag when the move is complete.
+ */
 static RogueBehaviorTree* enemy_ai_build_bt(EnemyAIBlackboard* ebb)
 {
     RogueBTNode* move = rogue_bt_action_move_to("MoveToPlayer", ebb->player_pos_key,
@@ -62,6 +90,13 @@ static RogueBehaviorTree* enemy_ai_build_bt(EnemyAIBlackboard* ebb)
     return rogue_behavior_tree_create(move);
 }
 
+/**
+ * @brief Enable behavior tree AI for an enemy.
+ *
+ * Allocates (from the AI agent pool) a per-enemy blackboard, initializes
+ * it, synchronizes world state, creates the BT and attaches it to the enemy
+ * structure. If allocation fails the function leaves the enemy disabled.
+ */
 void rogue_enemy_ai_bt_enable(RogueEnemy* e)
 {
     if (!e)
@@ -85,6 +120,12 @@ void rogue_enemy_ai_bt_enable(RogueEnemy* e)
     e->ai_bt_state = ebb;
 }
 
+/**
+ * @brief Disable and teardown behavior tree AI for an enemy.
+ *
+ * Destroys the attached behavior tree and releases the blackboard back to
+ * the AI agent pool if present.
+ */
 void rogue_enemy_ai_bt_disable(RogueEnemy* e)
 {
     if (!e || !e->ai_bt_enabled)
@@ -102,6 +143,13 @@ void rogue_enemy_ai_bt_disable(RogueEnemy* e)
     }
 }
 
+/**
+ * @brief Per-frame tick for the enemy's behavior tree.
+ *
+ * Synchronizes the blackboard with the latest world state, advances the BT
+ * by dt seconds and writes back any updated agent position from the
+ * blackboard into the enemy entity.
+ */
 void rogue_enemy_ai_bt_tick(RogueEnemy* e, float dt)
 {
     if (!e || !e->ai_bt_enabled || !e->ai_tree)
