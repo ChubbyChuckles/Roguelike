@@ -40,7 +40,7 @@ PHASE 3. VFX Subsystem Foundations
 PHASE 4. Authoring & Data Format
 4.1 Config schema (e.g. assets/fx/*.cfg) (Done)
 4.2 Hot reload & validation errors reporting (Done)
-4.3 Effect composition: chain & parallel blocks (X)
+4.3 Effect composition: chain & parallel blocks (Done)
 4.4 Parameter overrides (color shift, scale, lifetime) (X)
 4.5 Random distributions (uniform, normal) for variation (X)
 
@@ -182,3 +182,6 @@ Notes (2025-08-28, later):
 
 Notes (2025-08-28, even later):
 - Phase 4.2 (Hot reload & validation errors): Added `rogue_vfx_config_watch(path)` to monitor a VFX CSV and auto-reload via `rogue_vfx_load_cfg` on content changes using the shared hot-reload utility. Error tracking buffers surfaced through `rogue_vfx_last_cfg_error_count` and `rogue_vfx_last_cfg_error_get` for UI/tools consumption. Unit test `tests/unit/test_audio_vfx_phase4_2_hot_reload_and_validation.c` validates both live reload (layer change) and error reporting on malformed rows. Audio/VFX suite now passes 12/12 in Debug SDL2 with `ctest -j8 -R audio_vfx`.
+
+Notes (2025-08-28, later again):
+- Phase 4.3 (Effect composition): Added composite VFX support with two modes: CHAIN (child delays relative to previous spawn) and PARALLEL (delays from composite start). Registry API `rogue_vfx_registry_define_composite` stores up to 8 child ids and delays, and the update loop schedules child spawns at the composite instance's position. New unit test `tests/unit/test_audio_vfx_phase4_3_composition.c` verifies order/timing for both modes and expiry. Audio/VFX suite now passes 13/13 in Debug SDL2 with `ctest -j8 -R audio_vfx`.

@@ -110,6 +110,23 @@ void rogue_vfx_set_frozen(int frozen);
 int rogue_vfx_registry_set_emitter(const char* id, float spawn_rate_hz,
                                    uint32_t particle_lifetime_ms, int max_particles);
 
+/* ---- VFX composition (Phase 4.3) ---- */
+typedef enum RogueVfxCompMode
+{
+    ROGUE_VFX_COMP_NONE = 0,
+    ROGUE_VFX_COMP_CHAIN = 1,   /* delays are relative to previous child spawn */
+    ROGUE_VFX_COMP_PARALLEL = 2 /* delays are relative to composite start */
+} RogueVfxCompMode;
+
+/* Define a composite VFX in the registry. The composite uses its own layer/world_space/lifetime
+   like a regular VFX but does not need an emitter; instead it schedules spawning of child VFX ids
+   at the provided delays. Returns 0 on success.
+   - chain_mode: non-zero => CHAIN, zero => PARALLEL
+   - child_ids/delays_ms: arrays of length child_count; delays may be NULL (treated as 0). */
+int rogue_vfx_registry_define_composite(const char* id, RogueVfxLayer layer, uint32_t lifetime_ms,
+                                        int world_space, const char** child_ids,
+                                        const uint32_t* delays_ms, int child_count, int chain_mode);
+
 /* Debug/testing helpers */
 int rogue_vfx_active_count(void);
 int rogue_vfx_layer_active_count(RogueVfxLayer layer);

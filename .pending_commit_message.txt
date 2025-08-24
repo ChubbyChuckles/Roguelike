@@ -90,3 +90,17 @@ Audio/VFX Phase 4.2: hot reload wiring + validation error reporting + test
 - Unit test `tests/unit/test_audio_vfx_phase4_2_hot_reload_and_validation.c` validates live reload after file edit and captures validation errors on malformed rows.
 - Build: Debug with SDL2 `--parallel 8` succeeded; tests: `ctest -C Debug -j8 -R audio_vfx` → 12/12 passing.
 - Docs: Roadmap marks 4.2 Done; README changelog will reflect Phase 4.2.
+
+Audio/VFX Phase 4.3 – Effect composition (chain & parallel)
+
+- Added composite VFX support to src/audio_vfx/effects.[ch]
+  - Registry/API: rogue_vfx_registry_define_composite(id, layer, lifetime_ms, world_space, child_ids, delays_ms, child_count, chain_mode)
+  - Runtime: composite instances schedule child spawns during rogue_vfx_update; CHAIN uses delays relative to prior child, PARALLEL uses delays from t0
+  - Limits: up to 8 children per composite; children resolved by id at definition time
+- Tests: new tests/unit/test_audio_vfx_phase4_3_composition.c validates order/timing for CHAIN and PARALLEL and expiry behavior
+- Build: Debug with SDL2 using parallel -j8 succeeded; ctest -R audio_vfx now 13/13 pass
+- Docs: Updated roadmaps/implementation_plan_audiovfxsystem.txt to mark 4.3 Done and added notes; README changelog updated with 4.3 entry
+
+Follow-ups
+- 4.4 Parameter overrides per instance (lifetime/scale/color) on spawn path
+- 4.5 Random distributions for variation (delays, emit Hz, particle lifetimes)

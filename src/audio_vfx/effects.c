@@ -419,6 +419,11 @@ typedef struct VfxReg
     float emit_hz;          /* particles per second */
     uint32_t p_lifetime_ms; /* particle lifetime */
     int p_max;              /* cap per effect instance */
+    /* Composition (Phase 4.3) */
+    uint8_t comp_mode; /* RogueVfxCompMode (0=none) */
+    uint8_t comp_child_count;
+    uint16_t comp_child_indices[8]; /* up to 8 children */
+    uint32_t comp_child_delays[8];  /* delay per child (ms); semantics depend on mode */
 } VfxReg;
 
 typedef struct VfxInst
@@ -428,6 +433,9 @@ typedef struct VfxInst
     float x, y;         /* spawn position */
     uint32_t age_ms;    /* progressed time */
     float emit_accum;   /* fractional particle accumulator */
+    /* Composition runtime (Phase 4.3) */
+    uint8_t comp_next_child;     /* next child index to spawn */
+    uint32_t comp_last_spawn_ms; /* for CHAIN mode relative delay */
 } VfxInst;
 
 #define ROGUE_VFX_REG_CAP 64
@@ -590,6 +598,8 @@ int rogue_vfx_registry_register(const char* id, RogueVfxLayer layer, uint32_t li
     g_vfx_reg[idx].emit_hz = 0.0f;
     g_vfx_reg[idx].p_lifetime_ms = 0;
     g_vfx_reg[idx].p_max = 0;
+    g_vfx_reg[idx].comp_mode = 0;
+    g_vfx_reg[idx].comp_child_count = 0;
     return 0;
 }
 
@@ -635,6 +645,8 @@ static int vfx_inst_alloc(void)
             g_vfx_inst[i].active = 1;
             g_vfx_inst[i].age_ms = 0;
             g_vfx_inst[i].emit_accum = 0.0f;
+            g_vfx_inst[i].comp_next_child = 0;
+            g_vfx_inst[i].comp_last_spawn_ms = 0;
             return i;
         }
     }
@@ -654,6 +666,40 @@ void rogue_vfx_update(uint32_t dt_ms)
         VfxReg* r = &g_vfx_reg[g_vfx_inst[i].reg_index];
         if (g_vfx_inst[i].age_ms >= r->lifetime_ms)
             g_vfx_inst[i].active = 0;
+
+        /* Composition scheduling: spawn child effects based on age and delays */
+        if (r->comp_mode && g_vfx_inst[i].active)
+        {
+            while (g_vfx_inst[i].comp_next_child < r->comp_child_count)
+            {
+                uint8_t ci = g_vfx_inst[i].comp_next_child;
+                uint32_t delay = r->comp_child_delays[ci];
+                uint32_t ref_time = (r->comp_mode == 1 /*CHAIN*/)
+                                        ? g_vfx_inst[i].comp_last_spawn_ms
+                                        : 0u; /* PARALLEL relative to start */
+                if (g_vfx_inst[i].age_ms >= ref_time + delay)
+                {
+                    uint16_t child_ridx = r->comp_child_indices[ci];
+                    if (child_ridx < (uint16_t) g_vfx_reg_count)
+                    {
+                        /* Spawn child at same position */
+                        int ii2 = vfx_inst_alloc();
+                        if (ii2 >= 0)
+                        {
+                            g_vfx_inst[ii2].reg_index = child_ridx;
+                            g_vfx_inst[ii2].x = g_vfx_inst[i].x;
+                            g_vfx_inst[ii2].y = g_vfx_inst[i].y;
+                            g_vfx_inst[ii2].age_ms = 0;
+                        }
+                    }
+                    g_vfx_inst[i].comp_last_spawn_ms = g_vfx_inst[i].age_ms;
+                    g_vfx_inst[i].comp_next_child++;
+                    /* Continue loop to allow multiple children to spawn in the same tick */
+                    continue;
+                }
+                break; /* next child not due yet */
+            }
+        }
     }
 
     /* Update particles: spawn and age/expire */
@@ -767,5 +813,36 @@ int rogue_vfx_spawn_by_id(const char* id, float x, float y)
     g_vfx_inst[ii].x = x;
     g_vfx_inst[ii].y = y;
     g_vfx_inst[ii].age_ms = 0;
+    return 0;
+}
+
+int rogue_vfx_registry_define_composite(const char* id, RogueVfxLayer layer, uint32_t lifetime_ms,
+                                        int world_space, const char** child_ids,
+                                        const uint32_t* delays_ms, int child_count, int chain_mode)
+{
+    if (!id || !*id || child_count < 0)
+        return -1;
+    if (child_count > 8)
+        child_count = 8;
+    int rc = rogue_vfx_registry_register(id, layer, lifetime_ms, world_space);
+    if (rc != 0)
+        return rc;
+    int idx = vfx_reg_find(id);
+    if (idx < 0)
+        return -2;
+    VfxReg* r = &g_vfx_reg[idx];
+    r->comp_mode = chain_mode ? 1 : 2; /* CHAIN:1, PARALLEL:2 */
+    r->comp_child_count = (uint8_t) child_count;
+    for (int i = 0; i < child_count; ++i)
+    {
+        r->comp_child_delays[i] = delays_ms ? delays_ms[i] : 0u;
+        r->comp_child_indices[i] = 0xFFFFu;
+        if (child_ids && child_ids[i])
+        {
+            int cidx = vfx_reg_find(child_ids[i]);
+            if (cidx >= 0)
+                r->comp_child_indices[i] = (uint16_t) cidx;
+        }
+    }
     return 0;
 }
