@@ -1,6 +1,6 @@
 #define SDL_MAIN_HANDLED 1
-#include "core/stat_cache.h"
-#include "game/combat.h"
+#include "../../src/core/stat_cache.h"
+#include "../../src/game/combat.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

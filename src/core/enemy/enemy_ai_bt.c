@@ -6,13 +6,13 @@
  * enabled. The initial tree contains a MoveToPlayer action that updates the
  * agent's position each tick using values stored on a blackboard.
  */
-#include "ai/core/ai_agent_pool.h"
-#include "ai/core/behavior_tree.h"
-#include "ai/core/blackboard.h"
-#include "ai/nodes/advanced_nodes.h"
-#include "ai/nodes/basic_nodes.h"
-#include "core/app_state.h"
-#include "entities/enemy.h"
+#include "../../ai/core/ai_agent_pool.h"
+#include "../../ai/core/behavior_tree.h"
+#include "../../ai/core/blackboard.h"
+#include "../../ai/nodes/advanced_nodes.h"
+#include "../../ai/nodes/basic_nodes.h"
+#include "../../entities/enemy.h"
+#include "../app_state.h"
 #include <math.h>
 #include <stdlib.h>
 

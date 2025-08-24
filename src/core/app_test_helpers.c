@@ -1,7 +1,7 @@
 /* Test helper implementations extracted from former app.c monolith. */
-#include "core/app.h"
-#include "core/app_state.h"
-#include "entities/enemy.h"
+#include "../entities/enemy.h"
+#include "app.h"
+#include "app_state.h"
 
 RogueEnemy* rogue_test_spawn_hostile_enemy(float x, float y)
 {

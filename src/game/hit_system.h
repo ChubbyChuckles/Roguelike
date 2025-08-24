@@ -1,7 +1,7 @@
 /* Hit System Phase 1-2: Weapon geometry & runtime sweep capsule generation */
 #pragma once
-#include "entities/enemy.h"
-#include "entities/player.h"
+#include "../entities/enemy.h"
+#include "../entities/player.h"
 #include <stdint.h> /* for uint32_t */
 
 #ifdef __cplusplus

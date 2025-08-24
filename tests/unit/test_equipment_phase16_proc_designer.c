@@ -1,5 +1,5 @@
 /* Phase 16.3: Proc designer JSON tooling test */
-#include "core/equipment/equipment_procs.h"
+#include "../../src/core/equipment/equipment_procs.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

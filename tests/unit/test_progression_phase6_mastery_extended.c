@@ -1,4 +1,4 @@
-#include "core/progression/progression_mastery.h"
+#include "../../src/core/progression/progression_mastery.h"
 #include <stdio.h>
 
 /* Phase 6.2-6.5 extended mastery tests: ring points, bonus tiers, decay */

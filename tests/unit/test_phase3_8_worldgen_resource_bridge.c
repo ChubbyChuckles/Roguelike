@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "core/integration/worldgen_resource_bridge.h"
+#include "../../src/core/integration/worldgen_resource_bridge.h"
 
 /* Global bridge instance to avoid large stack allocations in each test (struct is several MB). */
 static RogueWorldGenResourceBridge g_bridge;

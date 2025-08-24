@@ -8,7 +8,7 @@
  */
 #ifndef ROGUE_CRAFTING_UI_H
 #define ROGUE_CRAFTING_UI_H
-#include "ui/core/ui_context.h"
+#include "core/ui_context.h"
 #ifdef __cplusplus
 extern "C"
 {

@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "core/enemy/enemy_modifiers.h"
+#include "enemy_modifiers.h"
 
 #ifndef ROGUE_ARRAY_LEN
 #define ROGUE_ARRAY_LEN(a) (int) (sizeof(a) / sizeof((a)[0]))

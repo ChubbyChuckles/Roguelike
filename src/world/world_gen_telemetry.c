@@ -1,6 +1,6 @@
 /* Phase 12: Telemetry & Analytics Implementation */
-#include "world/tilemap.h"
-#include "world/world_gen.h"
+#include "tilemap.h"
+#include "world_gen.h"
 #include <string.h>
 
 int rogue_world_metrics_collect(const RogueTileMap* map, RogueWorldGenMetrics* out_m)

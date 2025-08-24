@@ -1,8 +1,8 @@
-#include "game/hit_system.h"
-#include "core/app_state.h"
-#include "game/hit_pixel_mask.h"
-#include "game/weapon_pose.h"
-#include "util/log.h"
+#include "hit_system.h"
+#include "../core/app_state.h"
+#include "../util/log.h"
+#include "hit_pixel_mask.h"
+#include "weapon_pose.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

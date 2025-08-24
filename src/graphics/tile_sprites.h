@@ -1,8 +1,8 @@
 #ifndef ROGUE_GRAPHICS_TILE_SPRITES_H
 #define ROGUE_GRAPHICS_TILE_SPRITES_H
 
-#include "graphics/sprite.h"
-#include "world/tilemap.h"
+#include "../world/tilemap.h"
+#include "sprite.h"
 #include <stdbool.h>
 
 /* External configuration driven tile sprite registry with variant support. */

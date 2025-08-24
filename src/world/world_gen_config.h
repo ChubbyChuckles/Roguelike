@@ -3,7 +3,7 @@
 #ifndef ROGUE_WORLD_GEN_CONFIG_HELPERS_H
 #define ROGUE_WORLD_GEN_CONFIG_HELPERS_H
 
-#include "world/world_gen.h"
+#include "world_gen.h"
 
 #ifdef __cplusplus
 extern "C"

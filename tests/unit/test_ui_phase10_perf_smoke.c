@@ -1,5 +1,5 @@
-#include "ui/core/ui_context.h"
-#include "ui/core/ui_test_harness.h"
+#include "../../src/ui/core/ui_context.h"
+#include "../../src/ui/core/ui_test_harness.h"
 #include <assert.h>
 #include <stdio.h>
 

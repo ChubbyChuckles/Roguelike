@@ -1,12 +1,12 @@
 #include "player_progress.h"
-#include "core/app_state.h"
-#include "entities/player.h"
+#include "../../entities/player.h"
+#include "../app_state.h"
 #ifdef ROGUE_HAVE_SDL_MIXER
 #include <SDL_mixer.h>
 #endif
-#include "core/integration/event_bus.h"
-#include "core/persistence.h"
-#include "core/progression/progression_xp.h"
+#include "../integration/event_bus.h"
+#include "../persistence.h"
+#include "../progression/progression_xp.h"
 #include <stdio.h>
 
 void rogue_player_progress_update(double dt_seconds)

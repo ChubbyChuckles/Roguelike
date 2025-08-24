@@ -1,8 +1,8 @@
-#include "core/loot/loot_item_defs.h"
-#include "core/vendor/vendor.h"
-#include "core/vendor/vendor_inventory_templates.h"
-#include "core/vendor/vendor_pricing.h"
-#include "core/vendor/vendor_rng.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/vendor/vendor.h"
+#include "../../src/core/vendor/vendor_inventory_templates.h"
+#include "../../src/core/vendor/vendor_pricing.h"
+#include "../../src/core/vendor/vendor_rng.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

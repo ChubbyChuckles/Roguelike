@@ -1,5 +1,5 @@
 /* Tests for UI Phase 1.4 - 1.7 (RNG channel existed; now snapshot, diff, arena) */
-#include "ui/core/ui_context.h"
+#include "../../src/ui/core/ui_context.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

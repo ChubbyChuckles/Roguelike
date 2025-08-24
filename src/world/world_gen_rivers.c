@@ -1,5 +1,5 @@
 /* Phase 5: River refinement & erosion detailing */
-#include "world/world_gen.h"
+#include "world_gen.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>

@@ -4,7 +4,7 @@
    - Layout property fuzzing (10.4)
    - Performance smoke build (10.5) */
 #pragma once
-#include "ui/core/ui_context.h"
+#include "ui_context.h"
 #include <stddef.h>
 #include <stdint.h>
 

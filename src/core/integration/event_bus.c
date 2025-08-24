@@ -1,5 +1,5 @@
-#include "core/integration/event_bus.h"
-#include "core/integration/config_version.h" /* Phase 2.6 - Configuration Version Management */
+#include "event_bus.h"
+#include "config_version.h" /* Phase 2.6 - Configuration Version Management */
 
 #include <assert.h>
 #include <stdlib.h>

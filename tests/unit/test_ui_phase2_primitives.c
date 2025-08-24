@@ -1,5 +1,5 @@
 /* UI Phase 2.1 core primitives test: Image, Sprite, ProgressBar */
-#include "ui/core/ui_context.h"
+#include "../../src/ui/core/ui_context.h"
 #include <assert.h>
 #include <stdio.h>
 

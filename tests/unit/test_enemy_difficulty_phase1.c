@@ -6,7 +6,7 @@
  *  - Extreme ΔL no underflow (hp/dmg not negative, min floor)
  *  - TTK band rough monotonic changes
  */
-#include "core/enemy/enemy_difficulty_scaling.h"
+#include "../../src/core/enemy/enemy_difficulty_scaling.h"
 #include <math.h>
 #include <stdio.h>
 

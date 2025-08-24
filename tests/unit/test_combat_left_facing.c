@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED
-#include "game/combat.h"
+#include "../../src/game/combat.h"
 #include <stdio.h>
 
 /* Provide deterministic frame */

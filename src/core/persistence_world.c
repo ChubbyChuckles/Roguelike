@@ -1,6 +1,6 @@
-#include "core/app_state.h"
-#include "core/persistence.h"
-#include "core/persistence_internal.h"
+#include "app_state.h"
+#include "persistence.h"
+#include "persistence_internal.h"
 #include <stdlib.h>
 #include <string.h>
 

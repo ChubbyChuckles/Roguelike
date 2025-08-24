@@ -1,6 +1,6 @@
 #ifndef ROGUE_PROJECTILES_INTERNAL_H
 #define ROGUE_PROJECTILES_INTERNAL_H
-#include "core/projectiles.h"
+#include "projectiles.h"
 
 #define ROGUE_MAX_PROJECTILES 128
 #define ROGUE_MAX_IMPACT_BURSTS 64

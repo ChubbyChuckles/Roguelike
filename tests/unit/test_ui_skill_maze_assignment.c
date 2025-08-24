@@ -1,6 +1,6 @@
-#include "core/skill_graph_runtime_internal.h"
-#include "core/skill_maze.h"
-#include "core/skills.h"
+#include "../../src/core/skills/skill_graph_runtime_internal.h"
+#include "../../src/core/skills/skill_maze.h"
+#include "../../src/core/skills/skills.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -1,6 +1,6 @@
 /* Phase 12 V3 persistence extended test */
-#include "core/progression/progression_attributes.h"
-#include "core/progression/progression_persist.h"
+#include "../../src/core/progression/progression_attributes.h"
+#include "../../src/core/progression/progression_persist.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

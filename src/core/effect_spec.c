@@ -1,5 +1,5 @@
-#include "core/effect_spec.h"
-#include "core/buffs.h"
+#include "effect_spec.h"
+#include "buffs.h"
 #include <stdlib.h>
 #include <string.h>
 

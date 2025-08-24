@@ -1,4 +1,4 @@
-#include "world/world_gen_biome_json.h"
+#include "world_gen_biome_json.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>

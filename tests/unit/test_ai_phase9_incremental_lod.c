@@ -1,8 +1,8 @@
 #define SDL_MAIN_HANDLED 1
-#include "ai/core/ai_profiler.h"
-#include "ai/core/ai_scheduler.h"
-#include "core/app_state.h"
-#include "entities/enemy.h"
+#include "../../src/ai/core/ai_profiler.h"
+#include "../../src/ai/core/ai_scheduler.h"
+#include "../../src/core/app_state.h"
+#include "../../src/entities/enemy.h"
 #include <stdio.h>
 
 static void init_enemy(RogueEnemy* e, float x, float y)

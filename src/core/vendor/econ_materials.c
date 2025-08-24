@@ -1,4 +1,4 @@
-#include "core/vendor/econ_materials.h"
+#include "econ_materials.h"
 #include <string.h>
 
 static RogueMaterialEntry g_catalog[ROGUE_ECON_MATERIAL_CAP];

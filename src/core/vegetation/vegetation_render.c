@@ -1,7 +1,7 @@
 /* Rendering for vegetation */
-#include "core/scene_drawlist.h"
-#include "core/vegetation/vegetation_internal.h"
-#include "graphics/tile_sprites.h"
+#include "../../graphics/tile_sprites.h"
+#include "../scene_drawlist.h"
+#include "vegetation_internal.h"
 #include <string.h>
 
 #ifdef ROGUE_HAVE_SDL

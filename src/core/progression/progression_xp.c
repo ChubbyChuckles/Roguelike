@@ -1,4 +1,4 @@
-#include "core/progression/progression_xp.h"
+#include "progression_xp.h"
 #include <math.h>
 
 /* Curve rationale:

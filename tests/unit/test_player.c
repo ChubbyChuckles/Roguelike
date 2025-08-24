@@ -1,4 +1,4 @@
-#include "entities/player.h"
+#include "../../src/entities/player.h"
 #include <stdio.h>
 
 int main(void)

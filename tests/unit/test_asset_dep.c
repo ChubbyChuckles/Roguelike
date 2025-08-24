@@ -1,4 +1,4 @@
-#include "util/asset_dep.h"
+#include "../../src/util/asset_dep.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

@@ -3,11 +3,11 @@
  * declarations and code, no loop-init declarations).
  */
 
-#include "core/equipment/equipment_persist.h"
-#include "core/equipment/equipment.h"
-#include "core/equipment/equipment_uniques.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
+#include "equipment_persist.h"
+#include "../loot/loot_instances.h"
+#include "../loot/loot_item_defs.h"
+#include "equipment.h"
+#include "equipment_uniques.h"
 #include <stdio.h>
 #include <string.h>
 

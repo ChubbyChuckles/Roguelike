@@ -5,7 +5,7 @@
  *  - ΔL severity classification mapping
  *  - TTK estimation produces reasonable ordering across tiers & ΔL grid sample
  */
-#include "core/enemy/enemy_difficulty_scaling.h"
+#include "../../src/core/enemy/enemy_difficulty_scaling.h"
 #include <math.h>
 #include <stdio.h>
 

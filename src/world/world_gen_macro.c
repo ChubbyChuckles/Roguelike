@@ -3,7 +3,7 @@
  * moisture) approximation, and biome classification. Designed for determinism via
  * RogueWorldGenContext RNG channels.
  */
-#include "world/world_gen.h"
+#include "world_gen.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

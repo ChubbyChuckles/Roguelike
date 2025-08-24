@@ -1,9 +1,9 @@
 /* Phase 12: Versioned progression persistence & migration */
-#include "core/progression/progression_persist.h"
-#include "core/progression/progression_attributes.h"
-#include "core/progression/progression_passives.h"
-#include "core/progression/progression_stats.h"
-#include "core/save_manager.h"
+#include "progression_persist.h"
+#include "../save_manager.h"
+#include "progression_attributes.h"
+#include "progression_passives.h"
+#include "progression_stats.h"
 #include <string.h>
 
 #define ROGUE_PROG_SAVE_VERSION 3u

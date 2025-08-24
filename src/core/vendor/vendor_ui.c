@@ -1,14 +1,14 @@
-#include "core/vendor/vendor_ui.h"
-#include "core/app_state.h"
-#include "core/durability.h" /* durability bucket */
-#include "core/equipment/equipment.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/stat_cache.h"
-#include "core/vendor/economy.h"
-#include "core/vendor/vendor.h"
-#include "core\inventory\inventory.h"
-#include "graphics/font.h"
+#include "vendor_ui.h"
+#include "../../graphics/font.h"
+#include "../app_state.h"
+#include "../durability.h" /* durability bucket */
+#include "../equipment/equipment.h"
+#include "../inventory/inventory.h"
+#include "../loot/loot_instances.h"
+#include "../loot/loot_item_defs.h"
+#include "../stat_cache.h"
+#include "economy.h"
+#include "vendor.h"
 #include <stdio.h>
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>

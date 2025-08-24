@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED 1
-#include "core/hud/hud_bars.h"
+#include "../../src/core/hud/hud_bars.h"
 #include <stdio.h>
 
 /* UI Phase 6.2 test: layered smoothing + AP bar fractions */

@@ -1,14 +1,14 @@
 #define SDL_MAIN_HANDLED
-#include "game/combat.h"
-#include "game/lock_on.h"
+#include "../../src/game/combat.h"
+#include "../../src/game/lock_on.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 /* Include navigation (not strictly needed) and use combat override hook */
-#include "core/navigation.h"
-#include "entities/enemy.h"
-#include "entities/player.h"
-#include "game/combat_attacks.h"
+#include "../../src/core/navigation.h"
+#include "../../src/entities/enemy.h"
+#include "../../src/entities/player.h"
+#include "../../src/game/combat_attacks.h"
 static int g_obstruction_phase = 0;
 static int test_line_obstruct(float sx, float sy, float ex, float ey)
 {

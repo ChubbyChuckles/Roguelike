@@ -1,7 +1,7 @@
-#include "core/crafting/crafting.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/path_utils.h"
-#include "core\inventory\inventory.h"
+#include "../../src/core/crafting/crafting.h"
+#include "../../src/core/inventory/inventory.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/path_utils.h"
 #include <stdio.h>
 #include <string.h>
 

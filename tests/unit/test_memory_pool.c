@@ -1,4 +1,4 @@
-#include "core/integration/memory_pool.h"
+#include "../../src/core/integration/memory_pool.h"
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>

@@ -1,5 +1,5 @@
-#include "ai/pathing/flow_field.h"
-#include "core/app_state.h"
+#include "flow_field.h"
+#include "../../core/app_state.h"
 #include <math.h>
 #include <stdlib.h>
 

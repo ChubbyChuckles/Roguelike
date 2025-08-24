@@ -1,4 +1,4 @@
-#include "core/vendor/vendor_ui.h"
+#include "../../src/core/vendor/vendor_ui.h"
 #include <stdio.h>
 #include <stdlib.h>
 

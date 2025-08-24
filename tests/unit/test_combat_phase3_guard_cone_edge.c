@@ -1,6 +1,6 @@
 #define SDL_MAIN_HANDLED
-#include "entities/player.h"
-#include "game/combat.h"
+#include "../../src/entities/player.h"
+#include "../../src/game/combat.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>

@@ -1,10 +1,10 @@
-#include "core/enemy/enemy_integration.h"
-#include "core/app_state.h"
-#include "core/enemy/encounter_composer.h"
-#include "core/enemy/enemy_difficulty_scaling.h"
-#include "core/enemy/enemy_modifiers.h"
-#include "util/determinism.h"
-#include "world/world_gen.h"
+#include "enemy_integration.h"
+#include "../../util/determinism.h"
+#include "../../world/world_gen.h"
+#include "../app_state.h"
+#include "encounter_composer.h"
+#include "enemy_difficulty_scaling.h"
+#include "enemy_modifiers.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>

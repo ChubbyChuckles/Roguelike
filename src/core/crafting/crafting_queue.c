@@ -7,8 +7,8 @@
  * advance over time, and produce outputs when completed. This module
  * interacts with inventory callbacks and crafting skill/perk helpers.
  */
-#include "core/crafting/crafting_queue.h"
-#include "core/crafting/crafting_skill.h"
+#include "crafting_queue.h"
+#include "crafting_skill.h"
 #include <string.h>
 
 #ifndef ROGUE_CRAFT_JOB_CAP

@@ -1,7 +1,7 @@
 /* Phase 7 initial defensive layer tests: block chance/value basic behavior */
-#define SDL_MAIN_HANDLED 1   /* prevent SDL from redefining main */
-#include "core/stat_cache.h" /* use real stat cache definition */
-#include "game/combat.h"
+#define SDL_MAIN_HANDLED 1             /* prevent SDL from redefining main */
+#include "../../src/core/stat_cache.h" /* use real stat cache definition */
+#include "../../src/game/combat.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

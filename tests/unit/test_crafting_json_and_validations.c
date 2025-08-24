@@ -1,6 +1,6 @@
 /* Phase 2.3.3.3, .5, .6, .7: Crafting JSON loader + dependency/balance/skill validation */
-#include "core/crafting/crafting.h"
-#include "core/loot/loot_item_defs.h"
+#include "../../src/core/crafting/crafting.h"
+#include "../../src/core/loot/loot_item_defs.h"
 #include <stdio.h>
 #include <string.h>
 

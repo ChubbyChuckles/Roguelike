@@ -1,6 +1,6 @@
 /* Phase 11.5-11.6: Proc/DR oversaturation flags + A/B harness */
 #define SDL_MAIN_HANDLED 1
-#include "core/equipment/equipment_balance.h"
+#include "../../src/core/equipment/equipment_balance.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

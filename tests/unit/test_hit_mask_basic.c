@@ -1,4 +1,4 @@
-#include "game/hit_pixel_mask.h"
+#include "../../src/game/hit_pixel_mask.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

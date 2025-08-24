@@ -1,7 +1,7 @@
 /* Phase 12.1-12.4 minimal UI helpers test: panel build, layered tooltip determinism, proc preview
  * non-negative */
 #define SDL_MAIN_HANDLED 1
-#include "core/equipment/equipment_ui.h"
+#include "../../src/core/equipment/equipment_ui.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

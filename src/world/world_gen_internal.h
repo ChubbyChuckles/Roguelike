@@ -2,7 +2,7 @@
 #ifndef ROGUE_WORLD_GEN_INTERNAL_H
 #define ROGUE_WORLD_GEN_INTERNAL_H
 
-#include "world/world_gen.h"
+#include "world_gen.h"
 
 #ifdef __cplusplus
 extern "C"

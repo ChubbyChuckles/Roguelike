@@ -1,4 +1,4 @@
-#include "core/loot/loot_item_defs.h"
+#include "../../src/core/loot/loot_item_defs.h"
 #include <stdio.h>
 #include <string.h>
 

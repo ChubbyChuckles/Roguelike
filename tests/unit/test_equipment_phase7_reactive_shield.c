@@ -1,7 +1,7 @@
 #define SDL_MAIN_HANDLED 1
-#include "core/equipment/equipment_procs.h"
-#include "core/stat_cache.h"
-#include "game/combat.h"
+#include "../../src/core/equipment/equipment_procs.h"
+#include "../../src/core/stat_cache.h"
+#include "../../src/game/combat.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

@@ -1,13 +1,13 @@
-#include "core/equipment/equipment_enchant.h"
-#include "core/crafting/crafting_journal.h"
-#include "core/crafting/material_registry.h" /* for rogue_material_tier_by_item */
-#include "core/crafting/rng_streams.h"
-#include "core/loot/loot_affixes.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/stat_cache.h"
-#include "core/vendor/economy.h"
-#include "core\inventory\inventory.h"
+#include "equipment_enchant.h"
+#include "../crafting/crafting_journal.h"
+#include "../crafting/material_registry.h" /* for rogue_material_tier_by_item */
+#include "../crafting/rng_streams.h"
+#include "../inventory/inventory.h"
+#include "../loot/loot_affixes.h"
+#include "../loot/loot_instances.h"
+#include "../loot/loot_item_defs.h"
+#include "../stat_cache.h"
+#include "../vendor/economy.h"
 #include <stdlib.h>
 
 /* Material IDs looked up lazily (cached after first resolution) */

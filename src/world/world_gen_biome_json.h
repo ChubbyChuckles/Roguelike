@@ -1,7 +1,7 @@
 #ifndef ROGUE_WORLD_GEN_BIOME_JSON_H
 #define ROGUE_WORLD_GEN_BIOME_JSON_H
 
-#include "world/world_gen_biome_desc.h"
+#include "world_gen_biome_desc.h"
 #include <stddef.h>
 
 #ifdef __cplusplus

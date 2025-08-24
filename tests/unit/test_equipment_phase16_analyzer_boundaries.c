@@ -1,7 +1,7 @@
 /* Phase 16.6: Analyzer malformed / boundary tests & extended validator coverage */
-#include "core/equipment/equipment_budget_analyzer.h"
-#include "core/equipment/equipment_content.h"
-#include "core/loot/loot_instances.h"
+#include "../../src/core/equipment/equipment_budget_analyzer.h"
+#include "../../src/core/equipment/equipment_content.h"
+#include "../../src/core/loot/loot_instances.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

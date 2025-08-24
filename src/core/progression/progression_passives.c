@@ -1,6 +1,6 @@
-#include "core/progression/progression_passives.h"
-#include "core/progression/progression_maze.h"
-#include "core/progression/progression_stats.h"
+#include "progression_passives.h"
+#include "progression_maze.h"
+#include "progression_stats.h"
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>

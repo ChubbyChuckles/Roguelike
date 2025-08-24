@@ -1,4 +1,4 @@
-#include "core/vendor/vendor_rng.h"
+#include "vendor_rng.h"
 #include <string.h>
 
 uint32_t rogue_vendor_fnv1a32(const void* data, int len)

@@ -1,8 +1,8 @@
-#include "core/app_state.h"
-#include "core/damage_calc.h"
-#include "core/progression/progression_attributes.h"
-#include "core/progression/progression_specialization.h"
-#include "core/skills.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/damage_calc.h"
+#include "../../src/core/progression/progression_attributes.h"
+#include "../../src/core/progression/progression_specialization.h"
+#include "../../src/core/skills/skills.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

@@ -1,7 +1,7 @@
 #define SDL_MAIN_HANDLED
-#include "entities/enemy.h"
-#include "entities/player.h"
-#include "game/combat.h"
+#include "../../src/entities/enemy.h"
+#include "../../src/entities/player.h"
+#include "../../src/game/combat.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>

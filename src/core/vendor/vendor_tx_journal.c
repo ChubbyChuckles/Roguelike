@@ -1,4 +1,4 @@
-#include "core/vendor/vendor_tx_journal.h"
+#include "vendor_tx_journal.h"
 #include <string.h>
 
 static RogueVendorTxEntry g_entries[ROGUE_VENDOR_TX_JOURNAL_CAP];

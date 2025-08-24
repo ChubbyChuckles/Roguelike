@@ -1,5 +1,5 @@
 /* UI Phase 2.2 Interactive widgets: Button, Toggle, Slider, TextInput */
-#include "ui/core/ui_context.h"
+#include "../../src/ui/core/ui_context.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

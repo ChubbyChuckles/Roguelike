@@ -24,7 +24,7 @@ SOFTWARE.
 #ifndef ROGUE_ENTITIES_ENTITY_H
 #define ROGUE_ENTITIES_ENTITY_H
 
-#include "math/vec2.h"
+#include "../math/vec2.h"
 
 typedef struct RogueEntity
 {

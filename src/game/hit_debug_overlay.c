@@ -1,8 +1,8 @@
-#include "core/app_state.h"
-#include "game/hit_pixel_mask.h"
-#include "game/hit_system.h"
-#include "graphics/sprite.h"
-#include "util/log.h"
+#include "../core/app_state.h"
+#include "../graphics/sprite.h"
+#include "../util/log.h"
+#include "hit_pixel_mask.h"
+#include "hit_system.h"
 #include <stdio.h>
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>

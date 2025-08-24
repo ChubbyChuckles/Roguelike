@@ -1,6 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS 1
-#include "core/loot/loot_filter.h"
-#include "core/loot/loot_instances.h"
+#include "loot_filter.h"
+#include "loot_instances.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,6 +1,6 @@
-#include "core/app_state.h"
-#include "core/persistence.h"
-#include "core/skills.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/persistence.h"
+#include "../../src/core/skills/skills.h"
 #include <stdio.h>
 
 RogueAppState g_app;

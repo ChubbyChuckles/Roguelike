@@ -1,10 +1,10 @@
 #include "player_assets.h"
-#include "entities/player.h"
-#include "game/combat.h"
-#include "graphics/font.h"
-#include "graphics/sprite.h"
-#include "graphics/tile_sprites.h"
-#include "util/log.h"
+#include "../../entities/player.h"
+#include "../../game/combat.h"
+#include "../../graphics/font.h"
+#include "../../graphics/sprite.h"
+#include "../../graphics/tile_sprites.h"
+#include "../../util/log.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

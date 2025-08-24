@@ -2,7 +2,7 @@
 #ifndef ROGUE_TILE_SPRITES_INTERNAL_H
 #define ROGUE_TILE_SPRITES_INTERNAL_H
 
-#include "graphics/tile_sprites.h"
+#include "tile_sprites.h"
 #include <stddef.h>
 
 typedef struct TileVariant

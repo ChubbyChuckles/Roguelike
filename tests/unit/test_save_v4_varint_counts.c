@@ -1,5 +1,5 @@
 /* Test v4 varint encoding reduces size and loads correctly. */
-#include "core/save_manager.h"
+#include "../../src/core/save_manager.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>

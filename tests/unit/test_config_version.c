@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "core/integration/config_version.h"
+#include "../../src/core/integration/config_version.h"
 
 /* Test state tracking */
 static uint32_t g_tests_run = 0;

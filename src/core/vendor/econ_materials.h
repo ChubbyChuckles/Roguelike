@@ -1,7 +1,7 @@
 #ifndef ROGUE_ECON_MATERIALS_H
 #define ROGUE_ECON_MATERIALS_H
 
-#include "core/loot/loot_item_defs.h"
+#include "../loot/loot_item_defs.h"
 
 #ifdef __cplusplus
 extern "C"

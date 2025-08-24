@@ -1,5 +1,5 @@
-#include "world/world_gen_biome_desc.h"
-#include "world/world_gen_biome_json.h"
+#include "../../src/world/world_gen_biome_desc.h"
+#include "../../src/world/world_gen_biome_json.h"
 #include <assert.h>
 #include <stdio.h>
 

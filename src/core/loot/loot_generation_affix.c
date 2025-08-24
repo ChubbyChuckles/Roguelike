@@ -1,6 +1,6 @@
-#include "core/loot/loot_affixes.h"
-#include "core/loot/loot_generation.h"
-#include "core/loot/loot_item_defs.h"
+#include "loot_affixes.h"
+#include "loot_generation.h"
+#include "loot_item_defs.h"
 
 /* Internal helper previously static inside monolithic loot_generation.c now isolated for module
    split (Cleanup 24.4). Exposed to core translation unit via extern declaration (not in public

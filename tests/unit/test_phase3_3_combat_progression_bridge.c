@@ -1,8 +1,8 @@
-#include "core/integration/combat_progression_bridge.h"
-#include "core/integration/config_version.h"
-#include "core/integration/event_bus.h"
-#include "entities/player.h"
-#include "game/combat.h"
+#include "../../src/core/integration/combat_progression_bridge.h"
+#include "../../src/core/integration/config_version.h"
+#include "../../src/core/integration/event_bus.h"
+#include "../../src/entities/player.h"
+#include "../../src/game/combat.h"
 
 #include <assert.h>
 #include <math.h>

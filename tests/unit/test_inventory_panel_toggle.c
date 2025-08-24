@@ -1,8 +1,8 @@
 /* Test inventory panel toggle visibility logic.
  * Directly manipulates the flag because SDL events aren't dispatched in headless unit tests.
  */
-#include "core/app_state.h"
-#include "core/inventory/inventory_panel.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/inventory/inventory_panel.h"
 #include <stdio.h>
 
 int main(void)

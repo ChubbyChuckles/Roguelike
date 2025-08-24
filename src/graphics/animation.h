@@ -1,7 +1,7 @@
 #ifndef ROGUE_GRAPHICS_ANIMATION_H
 #define ROGUE_GRAPHICS_ANIMATION_H
 
-#include "graphics/sprite.h"
+#include "sprite.h"
 #include <stdbool.h>
 
 /*

@@ -1,4 +1,4 @@
-#include "world/world_gen_biome_desc.h"
+#include "../../src/world/world_gen_biome_desc.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

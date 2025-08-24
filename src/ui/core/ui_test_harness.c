@@ -1,4 +1,4 @@
-#include "ui/core/ui_test_harness.h"
+#include "ui_test_harness.h"
 #include <stdlib.h>
 #include <string.h>
 

@@ -1,8 +1,8 @@
 #ifdef ROGUE_HAVE_SDL
 #define SDL_MAIN_HANDLED 1
 #endif
-#include "core/app_state.h"
-#include "game/combat.h"
+#include "../../src/core/app_state.h"
+#include "../../src/game/combat.h"
 #include <assert.h>
 #include <stdio.h>
 

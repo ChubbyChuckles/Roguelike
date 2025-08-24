@@ -1,6 +1,6 @@
 #ifndef ROGUE_MINIMAP_H
 #define ROGUE_MINIMAP_H
-#include "core/app_state.h"
+#include "app_state.h"
 /* Update (rebuild target texture if dirty) and render minimap. */
 void rogue_minimap_update_and_render(int mm_max_size);
 /* Internal overlay hook (12.4) - draws active loot pings. */

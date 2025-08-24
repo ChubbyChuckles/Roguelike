@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED 1
-#include "core/vendor/economy.h"
+#include "../../src/core/vendor/economy.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>

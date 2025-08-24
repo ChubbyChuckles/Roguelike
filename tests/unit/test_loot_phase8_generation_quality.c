@@ -1,13 +1,13 @@
 /* Tests for generation quality scalar (8.4), gating (8.2) and duplicate avoidance (8.6) */
-#include "core/app_state.h"
-#include "core/loot/loot_affixes.h"
-#include "core/loot/loot_generation.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/loot/loot_rarity_adv.h"
-#include "core/loot/loot_tables.h"
-#include "core/path_utils.h"
-#include "entities/player.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/loot/loot_affixes.h"
+#include "../../src/core/loot/loot_generation.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/loot/loot_rarity_adv.h"
+#include "../../src/core/loot/loot_tables.h"
+#include "../../src/core/path_utils.h"
+#include "../../src/entities/player.h"
 #include <assert.h>
 #include <stdio.h>
 

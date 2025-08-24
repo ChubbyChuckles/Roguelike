@@ -13,10 +13,10 @@
 #include <string.h>
 #include <time.h>
 
-#include "core/app_state.h"
-#include "core/loot/loot_affixes.h"
-#include "core/persistence.h"
-#include "util/kv_parser.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/loot/loot_affixes.h"
+#include "../../src/core/persistence.h"
+#include "../../src/util/kv_parser.h"
 
 /* Forward declarations (implemented in existing translation units) */
 extern void rogue_persistence_load_player_stats(void);

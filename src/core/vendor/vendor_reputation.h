@@ -2,7 +2,7 @@
 #ifndef ROGUE_VENDOR_REPUTATION_H
 #define ROGUE_VENDOR_REPUTATION_H
 
-#include "core/vendor/vendor_registry.h"
+#include "vendor_registry.h"
 
 #ifdef __cplusplus
 extern "C"

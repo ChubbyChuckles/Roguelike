@@ -1,7 +1,7 @@
 /* Enemy attack DPS timing test: ensure average interval >= configured cooldown floor */
 #define SDL_MAIN_HANDLED
-#include "core/app.h"
-#include "entities/enemy.h"
+#include "../../src/core/app.h"
+#include "../../src/entities/enemy.h"
 #include <assert.h>
 #include <stdio.h>
 

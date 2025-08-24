@@ -1,4 +1,4 @@
-#include "game/combat.h"
+#include "combat.h"
 #include <math.h>
 
 /* Advanced positional & timing bonuses (backstab, parry/riposte, guard break) */

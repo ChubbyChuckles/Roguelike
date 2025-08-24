@@ -1,5 +1,5 @@
-#include "core/projectiles_config.h"
-#include "util/hot_reload.h"
+#include "../../src/core/projectiles_config.h"
+#include "../../src/util/hot_reload.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

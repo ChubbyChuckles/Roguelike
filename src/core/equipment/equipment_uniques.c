@@ -1,6 +1,6 @@
 /* Equipment Phase 4.2: Unique item registry implementation */
-#include "core/equipment/equipment_uniques.h"
-#include "core/loot/loot_item_defs.h"
+#include "equipment_uniques.h"
+#include "../loot/loot_item_defs.h"
 #include <string.h>
 
 static RogueUniqueDef g_uniques[ROGUE_UNIQUE_CAP];

@@ -1,6 +1,6 @@
-#include "core/crafting/crafting.h"
-#include "core\inventory\inventory.h"
-#include "ui/crafting_ui.h"
+#include "../../src/core/crafting/crafting.h"
+#include "../../src/core/inventory/inventory.h"
+#include "../../src/ui/crafting_ui.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

@@ -8,9 +8,9 @@
  * table (per-tier multipliers) and per-enemy scoring / hysteresis logic that
  * maps a continuous score into discrete intensity tiers.
  */
-#include "core/enemy/enemy_ai_intensity.h"
-#include "core/app_state.h"
-#include "entities/enemy.h"
+#include "enemy_ai_intensity.h"
+#include "../../entities/enemy.h"
+#include "../app_state.h"
 #include <math.h>
 #include <string.h>
 

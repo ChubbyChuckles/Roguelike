@@ -1,7 +1,7 @@
 /* Phase 7 determinism test: seed -> series of RNG draws + journal entries must reproduce
  * identically */
 #include "../../src/core/crafting/crafting_journal.h"
-#include "core/crafting/rng_streams.h"
+#include "../../src/core/crafting/rng_streams.h"
 #include <stdio.h>
 #include <string.h>
 

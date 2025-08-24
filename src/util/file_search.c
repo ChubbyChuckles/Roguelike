@@ -1,7 +1,7 @@
 /* Implementation of recursive filename search used for robust fallback when configured
    asset paths are invalid. Designed to be lightweight and avoid dynamic allocations. */
-#include "util/file_search.h"
-#include "util/log.h"
+#include "file_search.h"
+#include "log.h"
 #include <stdio.h>
 #include <string.h>
 

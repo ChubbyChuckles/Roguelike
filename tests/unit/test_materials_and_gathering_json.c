@@ -1,7 +1,7 @@
 /* Phase 2.3.3.1 & 2.3.3.2: Materials + Gathering JSON loader smoke test */
-#include "core/crafting/gathering.h"
-#include "core/crafting/material_registry.h"
-#include "core/loot/loot_item_defs.h"
+#include "../../src/core/crafting/gathering.h"
+#include "../../src/core/crafting/material_registry.h"
+#include "../../src/core/loot/loot_item_defs.h"
 #include <stdio.h>
 #include <string.h>
 

@@ -2,7 +2,7 @@
 #ifndef ROGUE_EQUIPMENT_STATS_H
 #define ROGUE_EQUIPMENT_STATS_H
 
-#include "entities/player.h"
+#include "../../entities/player.h"
 
 /* Recalculate player stats contributed by equipped items & affixes.
  * Phase 2 layering model: this function no longer mutates the player struct directly; instead it

@@ -1,11 +1,11 @@
-#include "core/app_state.h"
-#include "core/loot/loot_affixes.h"
-#include "core/loot/loot_instances.h"
-#include "core/persistence.h"
-#include "core/persistence_internal.h"
-#include "core/skills.h"
-#include "core\inventory\inventory.h"
-#include "entities/player.h"
+#include "../entities/player.h"
+#include "app_state.h"
+#include "inventory/inventory.h"
+#include "loot/loot_affixes.h"
+#include "loot/loot_instances.h"
+#include "persistence.h"
+#include "persistence_internal.h"
+#include "skills/skills.h"
 #include <stdlib.h>
 #include <string.h>
 

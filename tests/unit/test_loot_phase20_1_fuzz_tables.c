@@ -10,8 +10,8 @@
 #include <string.h>
 #include <time.h>
 
-#include "core/loot/loot_item_defs.h"
-#include "core/loot/loot_tables.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/loot/loot_tables.h"
 
 static unsigned int rng_state = 0xC0FFEE01u;
 static unsigned int r32(void)

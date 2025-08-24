@@ -1,7 +1,7 @@
-#include "core/app_state.h"
-#include "core/damage_calc.h"
-#include "core/projectiles.h"
-#include "core/skills.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/damage_calc.h"
+#include "../../src/core/projectiles.h"
+#include "../../src/core/skills/skills.h"
 #include <assert.h>
 #include <stdio.h>
 

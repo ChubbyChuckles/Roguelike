@@ -1,8 +1,8 @@
+#include "../../src/core/crafting/crafting.h"
 #include "../../src/core/crafting/crafting_automation.h"
-#include "core/crafting/crafting.h"
-#include "core/crafting/material_refine.h"
-#include "core/crafting/material_registry.h"
-#include "core\inventory\inventory.h"
+#include "../../src/core/crafting/material_refine.h"
+#include "../../src/core/crafting/material_registry.h"
+#include "../../src/core/inventory/inventory.h"
 #include <stdio.h>
 #include <string.h>
 

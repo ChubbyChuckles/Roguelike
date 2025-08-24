@@ -1,4 +1,4 @@
-#include "core/crafting/crafting_analytics.h"
+#include "../../src/core/crafting/crafting_analytics.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

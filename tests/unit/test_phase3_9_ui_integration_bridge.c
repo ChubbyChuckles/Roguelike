@@ -1,5 +1,5 @@
-#include "core/integration/event_bus.h"
-#include "core/integration/ui_integration_bridge.h"
+#include "../../src/core/integration/event_bus.h"
+#include "../../src/core/integration/ui_integration_bridge.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

@@ -1,4 +1,4 @@
-#include "core/path_utils.h"
+#include "path_utils.h"
 #include <stdio.h>
 #include <string.h>
 

@@ -1,9 +1,9 @@
-#include "game/combat.h"
-#include "game/combat_attacks.h"
-#include "game/combat_internal.h"
-#include "game/hit_system.h" /* for rogue_hit_sweep_reset */
-#include "game/infusions.h"
-#include "game/weapons.h"
+#include "combat.h"
+#include "combat_attacks.h"
+#include "combat_internal.h"
+#include "hit_system.h" /* for rogue_hit_sweep_reset */
+#include "infusions.h"
+#include "weapons.h"
 #include <math.h>
 #include <stdlib.h>
 

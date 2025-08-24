@@ -10,11 +10,11 @@
    obstruction hook dispatcher) Public API: This header intentionally keeps surface minimal; prefer
    adding new internals to combat_internal.h
 */
-#include "core/features.h" /* capability macros */
-#include "entities/enemy.h"
-#include "entities/player.h"
-#include "game/combat_attacks.h"
-#include "world/tilemap.h"
+#include "../core/features.h" /* capability macros */
+#include "../entities/enemy.h"
+#include "../entities/player.h"
+#include "../world/tilemap.h"
+#include "combat_attacks.h"
 
 typedef enum RogueAttackPhase
 {

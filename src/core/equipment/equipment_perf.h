@@ -1,7 +1,7 @@
 /* Phase 14: Performance & Memory Optimization Helpers */
 #ifndef ROGUE_EQUIPMENT_PERF_H
 #define ROGUE_EQUIPMENT_PERF_H
-#include "core/equipment/equipment.h"
+#include "equipment.h"
 #include <stddef.h>
 #ifdef __cplusplus
 extern "C"

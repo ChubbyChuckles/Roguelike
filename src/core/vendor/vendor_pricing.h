@@ -13,8 +13,8 @@
 
    All demand/scarcity tracking is global per item category (lightweight, deterministic).
 */
-#include "core/loot/loot_item_defs.h"
-#include "core/vendor/vendor_registry.h"
+#include "../loot/loot_item_defs.h"
+#include "vendor_registry.h"
 
 #ifdef __cplusplus
 extern "C"

@@ -1,5 +1,5 @@
 /* Lookup and hashing utilities for tile sprites */
-#include "graphics/tile_sprites_internal.h"
+#include "tile_sprites_internal.h"
 
 static unsigned hash_xy(unsigned x, unsigned y, unsigned mod)
 {

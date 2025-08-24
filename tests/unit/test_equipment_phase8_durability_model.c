@@ -1,9 +1,9 @@
 #define SDL_MAIN_HANDLED 1
-#include "core/app_state.h"
-#include "core/durability.h"
-#include "core/equipment/equipment.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/durability.h"
+#include "../../src/core/equipment/equipment.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

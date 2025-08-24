@@ -1,6 +1,6 @@
 /* Phase16.5 Budget Analyzer implementation */
 #include "equipment_budget_analyzer.h"
-#include "core/loot/loot_instances.h" /* for item instances & budget helpers */
+#include "../loot/loot_instances.h" /* for item instances & budget helpers */
 #include <stdio.h>
 #include <string.h>
 

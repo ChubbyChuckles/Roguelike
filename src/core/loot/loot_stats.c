@@ -1,4 +1,4 @@
-#include "core/loot/loot_stats.h"
+#include "loot_stats.h"
 #include <string.h>
 
 static int g_rarity_ring[ROGUE_LOOT_STATS_CAP];

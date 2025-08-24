@@ -6,7 +6,7 @@
 #ifndef ROGUE_ECON_VALUE_H
 #define ROGUE_ECON_VALUE_H
 
-#include "core/loot/loot_item_defs.h"
+#include "../loot/loot_item_defs.h"
 
 #ifdef __cplusplus
 extern "C"

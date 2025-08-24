@@ -1,4 +1,4 @@
-#include "world/world_gen_biome_assets_validate.h"
+#include "world_gen_biome_assets_validate.h"
 #include <stdio.h>
 #include <string.h>
 

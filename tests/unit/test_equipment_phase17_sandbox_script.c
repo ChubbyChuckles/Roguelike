@@ -1,5 +1,5 @@
 /* Phase 17.3: sandbox scripting loader/apply/hash test */
-#include "core/equipment/equipment_modding.h"
+#include "../../src/core/equipment/equipment_modding.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

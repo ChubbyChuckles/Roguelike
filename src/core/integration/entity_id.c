@@ -1,4 +1,4 @@
-#include "core/integration/entity_id.h"
+#include "entity_id.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>

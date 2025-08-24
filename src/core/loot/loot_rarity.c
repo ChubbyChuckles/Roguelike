@@ -1,4 +1,4 @@
-#include "core/loot/loot_rarity.h"
+#include "loot_rarity.h"
 RogueRarityColor rogue_rarity_color(RogueItemRarity r)
 {
     RogueRarityColor c;

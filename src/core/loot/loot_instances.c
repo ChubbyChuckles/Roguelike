@@ -1,9 +1,9 @@
-#include "core/loot/loot_instances.h"
-#include "core/app_state.h"
-#include "core/loot/loot_affixes.h"
-#include "core/loot/loot_logging.h"
-#include "core/loot/loot_rarity_adv.h"
-#include "core/loot/loot_vfx.h"
+#include "loot_instances.h"
+#include "../app_state.h"
+#include "loot_affixes.h"
+#include "loot_logging.h"
+#include "loot_rarity_adv.h"
+#include "loot_vfx.h"
 #include <string.h>
 /* Forward declaration (12.4) */
 int rogue_minimap_ping_loot(float x, float y, int rarity);

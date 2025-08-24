@@ -2,7 +2,7 @@
  * Functionality: registration + manual force trigger + automatic change
  * detection via content hash (FNV-1a 64) each tick.
  */
-#include "util/hot_reload.h"
+#include "hot_reload.h"
 #include <stdio.h>
 #include <string.h>
 

@@ -1,6 +1,6 @@
 /* Phase 17.3: Sandboxed scripting hooks + Phase 17.4 set diff */
-#include "core/equipment/equipment_modding.h"
-#include "core/equipment/equipment_content.h"
+#include "equipment_modding.h"
+#include "equipment_content.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -1,6 +1,6 @@
 #define SDL_MAIN_HANDLED 1
-#include "ui/core/ui_context.h"
-#include "ui/core/ui_theme.h"
+#include "../../src/ui/core/ui_context.h"
+#include "../../src/ui/core/ui_theme.h"
 #include <stdio.h>
 #include <string.h>
 

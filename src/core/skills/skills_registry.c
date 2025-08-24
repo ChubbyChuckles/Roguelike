@@ -1,10 +1,10 @@
 /* Skill registry & ranking management (extracted from monolithic skills.c) */
-#include "core/app_state.h"
-#include "core/buffs.h"
-#include "core/integration/event_bus.h"
-#include "core/skills_internal.h"
-#include "util/file_search.h"
-#include "util/log.h"
+#include "../../util/file_search.h"
+#include "../../util/log.h"
+#include "../app_state.h"
+#include "../buffs.h"
+#include "../integration/event_bus.h"
+#include "skills_internal.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -1,14 +1,14 @@
-#include "core/buffs.h"
-#include "core/navigation.h"
-#include "core/progression/progression_ratings.h"
-#include "game/combat.h"
-#include "game/combat_attacks.h"
-#include "game/combat_internal.h"
-#include "game/hit_feedback.h"
-#include "game/hit_system.h" /* Phase 1-2 geometry (currently unused gating placeholder) */
-#include "game/infusions.h"
-#include "game/lock_on.h"
-#include "game/weapons.h"
+#include "../core/buffs.h"
+#include "../core/navigation.h"
+#include "../core/progression/progression_ratings.h"
+#include "combat.h"
+#include "combat_attacks.h"
+#include "combat_internal.h"
+#include "hit_feedback.h"
+#include "hit_system.h" /* Phase 1-2 geometry (currently unused gating placeholder) */
+#include "infusions.h"
+#include "lock_on.h"
+#include "weapons.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

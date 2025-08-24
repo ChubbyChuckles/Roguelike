@@ -1,4 +1,4 @@
-#include "core/vendor/vendor_adaptive.h"
+#include "vendor_adaptive.h"
 #include <math.h>
 #include <string.h>
 

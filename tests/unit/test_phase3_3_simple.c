@@ -1,4 +1,4 @@
-#include "core/integration/combat_progression_bridge.h"
+#include "../../src/core/integration/combat_progression_bridge.h"
 #include <stdio.h>
 #include <stdlib.h>
 

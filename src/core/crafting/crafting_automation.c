@@ -10,16 +10,16 @@
  * All functions are pure helpers and query existing registries
  * (recipes, materials, inventory) without mutating global state.
  */
-#include "core/crafting/crafting_automation.h"
-#include "core/crafting/crafting.h"
-#include "core/crafting/crafting_queue.h"
-#include "core/crafting/gathering.h"
-#include "core/crafting/material_refine.h"
-#include "core/crafting/material_registry.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/vendor/econ_materials.h"
-#include "core/vendor/salvage.h"
-#include "core\inventory\inventory.h"
+#include "crafting_automation.h"
+#include "../inventory/inventory.h"
+#include "../loot/loot_item_defs.h"
+#include "../vendor/econ_materials.h"
+#include "../vendor/salvage.h"
+#include "crafting.h"
+#include "crafting_queue.h"
+#include "gathering.h"
+#include "material_refine.h"
+#include "material_registry.h"
 #include <stdio.h>
 #include <string.h>
 

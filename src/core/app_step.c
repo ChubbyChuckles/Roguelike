@@ -1,46 +1,46 @@
 /* Frame update & render loop extracted from app.c */
-#include "core/animation_system.h"
-#include "core/app.h"
-#include "core/app_state.h"
-#include "core/buffs.h"
-#include "core/dialogue.h"
-#include "core/enemy/enemy_render.h"
-#include "core/enemy/enemy_system.h"
-#include "core/equipment/equipment_stats.h"
-#include "core/game_loop.h"
-#include "core/hud/hud.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_pickup.h"
-#include "core/loot/loot_tables.h" /* rogue_loot_tables_count */
-#include "core/metrics.h"
-#include "core/minimap.h"
-#include "core/projectiles.h"
-#include "core/scene_drawlist.h"
-#include "core/skill_bar.h"
-#include "core/skill_tree.h"
-#include "core/skills.h"
-#include "core/start_screen.h"
-#include "core/stat_cache.h"
-#include "core/tile_sprite_cache.h"
-#include "core/vegetation/vegetation.h" /* rogue_vegetation_render */
-#include "core/vendor/vendor.h"
-#include "core/world_renderer.h"
-#include "game/damage_numbers.h"
-#include "graphics/tile_sprites.h"
-#include "input/input.h"
+#include "../game/damage_numbers.h"
+#include "../graphics/tile_sprites.h"
+#include "../input/input.h"
+#include "animation_system.h"
+#include "app.h"
+#include "app_state.h"
+#include "buffs.h"
+#include "dialogue.h"
+#include "enemy/enemy_render.h"
+#include "enemy/enemy_system.h"
+#include "equipment/equipment_stats.h"
+#include "game_loop.h"
+#include "hud/hud.h"
 #include "input_events.h" /* rogue_process_events */
+#include "loot/loot_instances.h"
+#include "loot/loot_pickup.h"
+#include "loot/loot_tables.h" /* rogue_loot_tables_count */
+#include "metrics.h"
+#include "minimap.h"
 #include "persistence/persistence_autosave.h"
 #include "player/player_assets.h"
 #include "player/player_assets.h" /* animation update */
 #include "player/player_controller.h"
 #include "player/player_progress.h"
 #include "player/player_render.h"
+#include "projectiles.h"
+#include "scene_drawlist.h"
+#include "skills/skill_bar.h"
+#include "skills/skill_tree.h"
+#include "skills/skills.h"
+#include "start_screen.h"
+#include "stat_cache.h"
+#include "tile_sprite_cache.h"
+#include "vegetation/vegetation.h" /* rogue_vegetation_render */
+#include "vendor/vendor.h"
+#include "world_renderer.h"
 #include <string.h> /* strlen used for fallback dialogue buffer registration */
 
 /* UI panels (implemented in vendor_ui.c) */
-#include "core/equipment/equipment.h" /* if equipment panel declared elsewhere include appropriate header */
-#include "core/vendor/vendor_ui.h"
-#include "util/log.h"
+#include "../util/log.h"
+#include "equipment/equipment.h" /* if equipment panel declared elsewhere include appropriate header */
+#include "vendor/vendor_ui.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif

@@ -1,4 +1,4 @@
-#include "ui/core/ui_context.h"
+#include "../../src/ui/core/ui_context.h"
 #include <stdio.h>
 
 static int expect(int cond, const char* msg)

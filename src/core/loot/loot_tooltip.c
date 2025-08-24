@@ -1,8 +1,8 @@
-#include "core/loot/loot_tooltip.h"
-#include "core/equipment/equipment.h"
-#include "core/loot/loot_affixes.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
+#include "loot_tooltip.h"
+#include "../equipment/equipment.h"
+#include "loot_affixes.h"
+#include "loot_instances.h"
+#include "loot_item_defs.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>

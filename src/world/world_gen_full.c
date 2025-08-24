@@ -2,8 +2,8 @@
  * This keeps layering order strict and uses the public phase APIs introduced during refactor.
  * If any step fails, the partially built map is freed and 0 is returned.
  */
-#include "world/tilemap.h"
-#include "world/world_gen.h"
+#include "tilemap.h"
+#include "world_gen.h"
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>

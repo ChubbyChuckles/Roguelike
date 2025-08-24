@@ -1,6 +1,6 @@
-#include "core/app_state.h"
-#include "core/persistence.h"
-#include "core\inventory\inventory.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/inventory/inventory.h"
+#include "../../src/core/persistence.h"
 #include <assert.h>
 #include <stdio.h>
 

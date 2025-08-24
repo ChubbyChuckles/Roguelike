@@ -1,7 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS 1
-#include "core/crafting/crafting.h"
-#include "core/crafting/crafting_journal.h"
-#include "core/crafting/rng_streams.h"
+#include "crafting.h"
+#include "crafting_journal.h"
+#include "rng_streams.h"
 
 /* Ensure RNG streams seeded once; simple lazy init hook */
 static int g_rng_seeded = 0;
@@ -13,7 +13,7 @@ void rogue_crafting_seed_rng(unsigned int seed)
         g_rng_seeded = 1;
     }
 }
-#include "core/loot/loot_instances.h" /* for rogue_item_instance_at */
+#include "../loot/loot_instances.h" /* for rogue_item_instance_at */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

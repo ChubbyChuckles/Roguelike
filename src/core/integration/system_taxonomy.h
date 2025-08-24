@@ -25,7 +25,7 @@ SOFTWARE.
 #ifndef ROGUE_SYSTEM_TAXONOMY_H
 #define ROGUE_SYSTEM_TAXONOMY_H
 
-#include "core/integration/integration_manager.h"
+#include "integration_manager.h"
 #include <stdbool.h>
 #include <stdint.h>
 

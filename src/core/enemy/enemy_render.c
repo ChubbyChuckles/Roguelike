@@ -1,5 +1,5 @@
-#include "core/enemy/enemy_render.h"
-#include "core/scene_drawlist.h"
+#include "enemy_render.h"
+#include "../scene_drawlist.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif

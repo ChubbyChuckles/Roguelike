@@ -1,7 +1,7 @@
-#include "core/skill_tree.h"
-#include "core/app_state.h"
-#include "core/skills.h"
-#include "graphics/font.h"
+#include "skill_tree.h"
+#include "../../graphics/font.h"
+#include "../app_state.h"
+#include "skills.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
@@ -13,8 +13,8 @@ static int g_tree_index = 0; /* selection */
 
 /* Realistic effect placeholders */
 /* PowerStrike: applies timed buff (rank*2 strength) for 5s */
-#include "core/buffs.h"
-#include "core/projectiles.h"
+#include "../buffs.h"
+#include "../projectiles.h"
 static int effect_power_strike(const RogueSkillDef* def, RogueSkillState* st,
                                const RogueSkillCtx* ctx)
 {
@@ -65,7 +65,7 @@ static int effect_dash(const RogueSkillDef* def, RogueSkillState* st, const Rogu
     return 1;
 }
 /* Fireball: spawn projectile in facing direction using damage service */
-#include "core/damage_calc.h"
+#include "../damage_calc.h"
 static int effect_fireball(const RogueSkillDef* def, RogueSkillState* st, const RogueSkillCtx* ctx)
 {
     (void) ctx;

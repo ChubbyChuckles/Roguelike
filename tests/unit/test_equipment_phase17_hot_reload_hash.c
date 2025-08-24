@@ -1,6 +1,6 @@
 /* Phase 17.5 (partial forward): Determinism hash test for set registry post hot reload */
-#include "core/equipment/equipment_content.h"
-#include "util/hot_reload.h"
+#include "../../src/core/equipment/equipment_content.h"
+#include "../../src/util/hot_reload.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

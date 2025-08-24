@@ -1,7 +1,7 @@
 /* Phase 1: Foundational Data & APIs
  * Implements chunk coordinate mapping, multi-channel deterministic RNG, and
  * a simple hashing utility for golden snapshot tests. */
-#include "world/world_gen.h"
+#include "world_gen.h"
 #include <string.h>
 
 /* ---- Chunk utilities ---- */

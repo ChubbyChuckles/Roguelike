@@ -1,9 +1,9 @@
-#include "core/app_state.h"
-#include "core/damage_calc.h"
-#include "core/projectiles.h"
-#include "core/skill_tree.h"
-#include "core/skills.h"
-#include "entities/enemy.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/damage_calc.h"
+#include "../../src/core/projectiles.h"
+#include "../../src/core/skills/skill_tree.h"
+#include "../../src/core/skills/skills.h"
+#include "../../src/entities/enemy.h"
 #include <assert.h>
 #include <stdio.h>
 

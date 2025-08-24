@@ -1,4 +1,4 @@
-#include "core/skill_maze.h"
+#include "../../src/core/skills/skill_maze.h"
 #include <assert.h>
 #include <stdio.h>
 int main(void)

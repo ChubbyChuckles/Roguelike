@@ -1,5 +1,5 @@
 /* Noise & RNG utilities for world generation */
-#include "world/world_gen_internal.h"
+#include "world_gen_internal.h"
 #include <math.h>
 
 static unsigned int rng_state = 1u;

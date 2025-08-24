@@ -1,5 +1,5 @@
 /* Phase 16.2: Set builder + live bonus preview JSON tooling test */
-#include "core/equipment/equipment_content.h"
+#include "../../src/core/equipment/equipment_content.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

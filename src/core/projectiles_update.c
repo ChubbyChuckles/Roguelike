@@ -1,8 +1,8 @@
-#include "core/app_state.h"
-#include "core/projectiles_config.h"
-#include "core/projectiles_internal.h"
-#include "entities/enemy.h"
-#include "game/damage_numbers.h"
+#include "../entities/enemy.h"
+#include "../game/damage_numbers.h"
+#include "app_state.h"
+#include "projectiles_config.h"
+#include "projectiles_internal.h"
 #include <math.h>
 #include <stdlib.h>
 

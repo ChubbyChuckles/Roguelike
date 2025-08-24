@@ -1,7 +1,7 @@
+#include "../../src/core/crafting/crafting.h"
 #include "../../src/core/crafting/crafting_skill.h"
-#include "core/crafting/crafting.h"
-#include "core/crafting/material_registry.h"
-#include "core/vendor/vendor_crafting_integration.h"
+#include "../../src/core/crafting/material_registry.h"
+#include "../../src/core/vendor/vendor_crafting_integration.h"
 #include <assert.h>
 #include <stdio.h>
 

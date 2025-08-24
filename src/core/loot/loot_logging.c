@@ -1,4 +1,4 @@
-#include "core/loot/loot_logging.h"
+#include "loot_logging.h"
 #include <stdlib.h>
 
 int g_rogue_loot_log_level = 1; /* default INFO */

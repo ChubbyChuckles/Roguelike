@@ -1,5 +1,5 @@
-#include "core/loot/loot_item_defs.h"
-#include "core/loot/loot_item_defs_sort.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/loot/loot_item_defs_sort.h"
 #include <stdio.h>
 #include <string.h>
 

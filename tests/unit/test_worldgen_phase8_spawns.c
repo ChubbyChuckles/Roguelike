@@ -1,5 +1,5 @@
 /* Phase 8 fauna & spawn ecology tests */
-#include "world/world_gen.h"
+#include "../../src/world/world_gen.h"
 #include <stdio.h>
 #include <string.h>
 

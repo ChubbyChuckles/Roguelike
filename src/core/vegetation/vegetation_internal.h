@@ -2,7 +2,7 @@
 #ifndef ROGUE_VEGETATION_INTERNAL_H
 #define ROGUE_VEGETATION_INTERNAL_H
 
-#include "core/vegetation/vegetation.h"
+#include "vegetation.h"
 
 #ifdef __cplusplus
 extern "C"

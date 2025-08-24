@@ -1,4 +1,4 @@
-#include "graphics/renderer.h"
+#include "../../src/graphics/renderer.h"
 #include <stdio.h>
 
 int main(void)

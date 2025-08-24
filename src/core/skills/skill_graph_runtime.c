@@ -1,11 +1,11 @@
 /* Runtime integration layer for experimental UI skill graph (Phase 5)
     Wiring of advanced features: persistent pan/zoom, filtering, allocation + undo,
     pulses, spend flyouts, synergy panel, tag filters. */
-#include "core/app_state.h"
-#include "core/skill_bar.h"
-#include "core/skill_maze.h"
-#include "core/skills.h"
-#include "ui/core/ui_context.h"
+#include "../../ui/core/ui_context.h"
+#include "../app_state.h"
+#include "skill_bar.h"
+#include "skill_maze.h"
+#include "skills.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

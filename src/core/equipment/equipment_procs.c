@@ -1,4 +1,4 @@
-#include "core/equipment/equipment_procs.h"
+#include "equipment_procs.h"
 #include <stdio.h>  /* FILE, fopen_s, fseek, ftell, fread, fclose, snprintf */
 #include <stdlib.h> /* malloc, free, strtol */
 #include <string.h>

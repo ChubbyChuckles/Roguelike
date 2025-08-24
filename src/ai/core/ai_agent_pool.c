@@ -33,7 +33,7 @@
  *   from the client payload address; this relies on contiguous layout and
  *   is portable in standard C when applied to the exact object returned.
  */
-#include "ai/core/ai_agent_pool.h"
+#include "ai_agent_pool.h"
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>

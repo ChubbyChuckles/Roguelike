@@ -9,7 +9,7 @@
  * deterministic replays.
  */
 
-#include "core/crafting/crafting_journal.h"
+#include "crafting_journal.h"
 #include <string.h>
 
 #ifndef ROGUE_CRAFT_JOURNAL_CAP

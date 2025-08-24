@@ -1,6 +1,6 @@
 /* Phase 17.4: sets diff tool test */
-#include "core/equipment/equipment_content.h"
-#include "core/equipment/equipment_modding.h"
+#include "../../src/core/equipment/equipment_content.h"
+#include "../../src/core/equipment/equipment_modding.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

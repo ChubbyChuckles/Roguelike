@@ -1,7 +1,7 @@
-#include "core/progression/progression_specialization.h"
-#include "core/app_state.h"
-#include "core/progression/progression_attributes.h"
-#include "core/skills.h"
+#include "progression_specialization.h"
+#include "../app_state.h"
+#include "../skills/skills.h"
+#include "progression_attributes.h"
 #include <stdlib.h>
 #include <string.h>
 

@@ -1,9 +1,9 @@
 /* Prevent SDL from redefining main to SDL_main (we link without SDL2main here) */
 #define SDL_MAIN_HANDLED 1
-#include "ai/core/behavior_tree.h"
-#include "ai/core/blackboard.h"
-#include "core/app_state.h"
-#include "entities/enemy.h"
+#include "../../src/ai/core/behavior_tree.h"
+#include "../../src/ai/core/blackboard.h"
+#include "../../src/core/app_state.h"
+#include "../../src/entities/enemy.h"
 #include <assert.h>
 #include <stdlib.h>
 

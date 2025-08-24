@@ -2,8 +2,8 @@
  * Validates material registry parsing, duplicate rejection, lookup APIs, deterministic ordering,
  * and seed mixing.
  */
-#include "core/crafting/material_registry.h"
-#include "core/loot/loot_item_defs.h"
+#include "../../src/core/crafting/material_registry.h"
+#include "../../src/core/loot/loot_item_defs.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>

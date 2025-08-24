@@ -1,6 +1,6 @@
 /* Test cast weaving restriction and early cancel scaling */
-#include "core/app_state.h"
-#include "core/skills.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/skills/skills.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

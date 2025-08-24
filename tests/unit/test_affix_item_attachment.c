@@ -1,10 +1,10 @@
 /* Test 7.5 item instantiation + affix attachment & 7.6 derived damage */
-#include "core/app_state.h"
-#include "core/loot/loot_affixes.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/path_utils.h"
-#include "entities/player.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/loot/loot_affixes.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/path_utils.h"
+#include "../../src/entities/player.h"
 #include <assert.h>
 #include <stdio.h>
 

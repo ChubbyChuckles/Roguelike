@@ -1,5 +1,5 @@
 /* Phase 6 unit tests: structures & POIs basic placement */
-#include "world/world_gen.h"
+#include "../../src/world/world_gen.h"
 #include <stdio.h>
 #include <string.h>
 

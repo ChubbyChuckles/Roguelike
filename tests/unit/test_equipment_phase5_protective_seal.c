@@ -1,9 +1,9 @@
-#include "core/equipment/equipment_enchant.h"
-#include "core/loot/loot_affixes.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/vendor/economy.h"
-#include "core\inventory\inventory.h"
+#include "../../src/core/equipment/equipment_enchant.h"
+#include "../../src/core/inventory/inventory.h"
+#include "../../src/core/loot/loot_affixes.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/vendor/economy.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

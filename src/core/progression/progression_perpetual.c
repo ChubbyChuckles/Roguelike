@@ -1,4 +1,4 @@
-#include "core/progression/progression_perpetual.h"
+#include "progression_perpetual.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>

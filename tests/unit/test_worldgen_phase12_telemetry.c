@@ -1,5 +1,5 @@
 /* Phase 12 telemetry & analytics tests */
-#include "world/world_gen.h"
+#include "../../src/world/world_gen.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

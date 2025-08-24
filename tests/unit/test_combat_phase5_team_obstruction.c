@@ -1,14 +1,14 @@
 #define SDL_MAIN_HANDLED
-#include "game/combat.h"
+#include "../../src/game/combat.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 /* Use combat override hook instead of macro to avoid macro collisions. */
-#include "core/app_state.h"
-#include "core/navigation.h"
-#include "entities/enemy.h"
-#include "entities/player.h"
-#include "game/combat_attacks.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/navigation.h"
+#include "../../src/entities/enemy.h"
+#include "../../src/entities/player.h"
+#include "../../src/game/combat_attacks.h"
 /* Provide line obstruction hook via registration */
 static int g_obstruction_phase = 0; /* 0 baseline, 1 obstruct */
 static int test_line_obstruct(float sx, float sy, float ex, float ey)

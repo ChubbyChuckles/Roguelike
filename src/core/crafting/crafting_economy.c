@@ -9,9 +9,9 @@
  * material/rarity/affix considerations.
  */
 #include "crafting_economy.h"
+#include "../inventory/inventory.h" /* assumed existing for count accessor prototypes */
+#include "../loot/loot_item_defs.h"
 #include "../vendor/econ_value.h"
-#include "core/inventory/inventory.h" /* assumed existing for count accessor prototypes */
-#include "core/loot/loot_item_defs.h"
 #include "crafting.h"
 #include <math.h>
 #include <string.h>

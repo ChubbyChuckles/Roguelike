@@ -1,6 +1,6 @@
-#include "core/crafting/material_registry.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/path_utils.h"
+#include "material_registry.h"
+#include "../loot/loot_item_defs.h"
+#include "../path_utils.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -5,8 +5,8 @@
 #ifndef ROGUE_PROGRESSION_SYNERGY_H
 #define ROGUE_PROGRESSION_SYNERGY_H
 
-#include "core/skills.h" /* for tag bits */
-#include "entities/player.h"
+#include "../../entities/player.h"
+#include "../skills/skills.h" /* for tag bits */
 
 /* Layered damage aggregation (Phase 9.1) applying documented order:
    Base -> Equipment -> Passives -> Mastery -> Perpetual (micro) */

@@ -1,4 +1,4 @@
-#include "core/enemy/encounter_composer.h"
+#include "encounter_composer.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,4 +1,4 @@
-#include "core/loot/loot_rebalance.h"
+#include "../../src/core/loot/loot_rebalance.h"
 #include <stdio.h>
 #include <string.h>
 

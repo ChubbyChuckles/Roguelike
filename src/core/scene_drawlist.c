@@ -1,4 +1,4 @@
-#include "core/scene_drawlist.h"
+#include "scene_drawlist.h"
 #include <stdlib.h>
 #include <string.h>
 #ifdef ROGUE_HAVE_SDL

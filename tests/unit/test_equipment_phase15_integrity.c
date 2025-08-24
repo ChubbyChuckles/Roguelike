@@ -1,12 +1,12 @@
 /* Phase 15: Integrity & Anti-Duplication tests (15.2 hash chain, 15.3 GUID uniqueness, 15.1
  * validation stub) */
 #define SDL_MAIN_HANDLED 1
-#include "core/app_state.h"
-#include "core/equipment/equipment.h"
-#include "core/equipment/equipment_persist.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/stat_cache.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/equipment/equipment.h"
+#include "../../src/core/equipment/equipment_persist.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/stat_cache.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

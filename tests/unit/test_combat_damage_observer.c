@@ -1,4 +1,4 @@
-#include "game/combat.h"
+#include "../../src/game/combat.h"
 #include <stdio.h>
 
 static int g_observed = 0;

@@ -1,5 +1,5 @@
 /* Phase 16.4: Runeword recipe validator test */
-#include "core/equipment/equipment_content.h"
+#include "../../src/core/equipment/equipment_content.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

@@ -1,4 +1,4 @@
-#include "core/loot/loot_rarity_adv.h"
+#include "../../src/core/loot/loot_rarity_adv.h"
 #include <assert.h>
 #include <stdio.h>
 

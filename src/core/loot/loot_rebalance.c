@@ -1,4 +1,4 @@
-#include "core/loot/loot_rebalance.h"
+#include "loot_rebalance.h"
 #include <stdio.h>
 
 int rogue_rarity_rebalance_scales(const int current[5], const int target[5], float out_scale[5])

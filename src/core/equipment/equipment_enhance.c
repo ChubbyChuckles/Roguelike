@@ -1,10 +1,10 @@
-#include "core/equipment/equipment_enhance.h"
-#include "core/loot/loot_affixes.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/stat_cache.h"
-#include "core/vendor/economy.h"
-#include "core\inventory\inventory.h"
+#include "equipment_enhance.h"
+#include "../inventory/inventory.h"
+#include "../loot/loot_affixes.h"
+#include "../loot/loot_instances.h"
+#include "../loot/loot_item_defs.h"
+#include "../stat_cache.h"
+#include "../vendor/economy.h"
 #include <stdlib.h>
 
 /* Catalyst material names (resolve lazily). These are placeholders tying into existing item defs if

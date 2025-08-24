@@ -1,4 +1,4 @@
-#include "game/hitbox_load.h"
+#include "../../src/game/hitbox_load.h"
 #include <assert.h>
 #include <stdio.h>
 #ifdef _WIN32

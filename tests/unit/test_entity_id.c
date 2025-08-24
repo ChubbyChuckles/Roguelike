@@ -1,4 +1,4 @@
-#include "core/integration/entity_id.h"
+#include "../../src/core/integration/entity_id.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

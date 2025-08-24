@@ -1,4 +1,4 @@
-#include "core/loot/loot_dynamic_weights.h"
+#include "loot_dynamic_weights.h"
 #include <string.h>
 
 static float g_factors[5];

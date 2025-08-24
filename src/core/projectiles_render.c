@@ -1,5 +1,5 @@
-#include "core/app_state.h"
-#include "core/projectiles_internal.h"
+#include "app_state.h"
+#include "projectiles_internal.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif

@@ -1,5 +1,5 @@
 /* Phase 10: Weather & Environmental Simulation Implementation */
-#include "world/world_gen.h"
+#include "world_gen.h"
 #include <string.h>
 
 #ifndef ROGUE_MAX_WEATHER_PATTERNS

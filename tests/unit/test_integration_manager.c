@@ -23,7 +23,7 @@ SOFTWARE.
 */
 
 #define SDL_MAIN_HANDLED 1
-#include "core/integration/integration_manager.h"
+#include "../../src/core/integration/integration_manager.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>

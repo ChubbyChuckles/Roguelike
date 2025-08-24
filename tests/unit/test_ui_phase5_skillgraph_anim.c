@@ -1,6 +1,6 @@
 /* Unit test: Phase 5.2/5.3 skill graph layering & animations */
 #define SDL_MAIN_HANDLED 1
-#include "ui/core/ui_context.h"
+#include "../../src/ui/core/ui_context.h"
 #include <assert.h>
 #include <stdio.h>
 

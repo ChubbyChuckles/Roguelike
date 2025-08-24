@@ -1,5 +1,5 @@
-#include "core/loot/loot_adaptive.h"
-#include "core/loot/loot_item_defs.h"
+#include "loot_adaptive.h"
+#include "loot_item_defs.h"
 #include <string.h>
 
 /* Simple adaptive model:

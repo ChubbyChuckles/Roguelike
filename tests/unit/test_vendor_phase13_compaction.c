@@ -1,4 +1,4 @@
-#include "core/vendor/vendor_tx_journal.h"
+#include "../../src/core/vendor/vendor_tx_journal.h"
 #include <assert.h>
 #include <stdio.h>
 

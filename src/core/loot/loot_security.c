@@ -1,4 +1,4 @@
-#include "core/loot/loot_security.h"
+#include "loot_security.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

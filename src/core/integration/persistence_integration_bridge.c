@@ -1,6 +1,6 @@
 #include "persistence_integration_bridge.h"
-#include "core/integration/event_bus.h"
-#include "core/save_manager.h"
+#include "../save_manager.h"
+#include "event_bus.h"
 #include <stdio.h>
 #include <string.h>
 

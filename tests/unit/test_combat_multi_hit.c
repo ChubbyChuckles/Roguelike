@@ -1,7 +1,7 @@
 #ifdef ROGUE_HAVE_SDL
 #define SDL_MAIN_HANDLED 1
 #endif
-#include "game/combat.h"
+#include "../../src/game/combat.h"
 #include <assert.h>
 #include <stdio.h>
 

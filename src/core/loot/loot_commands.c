@@ -1,6 +1,6 @@
-#include "core/loot/loot_commands.h"
-#include "core/loot/loot_dynamic_weights.h"
-#include "core/loot/loot_stats.h"
+#include "loot_commands.h"
+#include "loot_dynamic_weights.h"
+#include "loot_stats.h"
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>

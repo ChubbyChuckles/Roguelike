@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "core/integration/system_taxonomy.h"
+#include "../../src/core/integration/system_taxonomy.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

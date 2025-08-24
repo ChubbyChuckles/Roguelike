@@ -1,4 +1,4 @@
-#include "core/vendor/economy.h"
+#include "../../src/core/vendor/economy.h"
 #include <stdio.h>
 #include <stdlib.h>
 

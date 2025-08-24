@@ -11,9 +11,9 @@
  * - AI performance metrics integration with enemy analytics (3.1.7)
  */
 
-#include "core/integration/config_version.h"
-#include "core/integration/enemy_ai_bridge.h"
-#include "entities/enemy.h"
+#include "../../src/core/integration/config_version.h"
+#include "../../src/core/integration/enemy_ai_bridge.h"
+#include "../../src/entities/enemy.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

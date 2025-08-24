@@ -1,4 +1,4 @@
-#include "core/vendor/vendor_registry.h"
+#include "../../src/core/vendor/vendor_registry.h"
 #include <stdio.h>
 #include <string.h>
 

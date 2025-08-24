@@ -24,7 +24,7 @@ SOFTWARE.
 #ifndef ROGUE_ENTITIES_PLAYER_H
 #define ROGUE_ENTITIES_PLAYER_H
 
-#include "entities/entity.h"
+#include "entity.h"
 
 typedef struct RoguePlayer
 {

@@ -1,5 +1,5 @@
-#include "world/world_gen_resource_json.h"
-#include "world/world_gen.h"
+#include "world_gen_resource_json.h"
+#include "world_gen.h"
 #include <stdlib.h>
 #include <string.h>
 

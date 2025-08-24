@@ -1,7 +1,7 @@
 #ifndef ROGUE_SCENE_DRAWLIST_H
 #define ROGUE_SCENE_DRAWLIST_H
-#include "core/app_state.h"
-#include "graphics/sprite.h"
+#include "../graphics/sprite.h"
+#include "app_state.h"
 #ifdef __cplusplus
 extern "C"
 {

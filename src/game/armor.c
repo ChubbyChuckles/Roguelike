@@ -1,5 +1,5 @@
-#include "game/armor.h"
-#include "entities/player.h"
+#include "armor.h"
+#include "../entities/player.h"
 
 /* Simple static armor catalog (expand / externalize later) */
 static const RogueArmorDef g_armor_defs[] = {

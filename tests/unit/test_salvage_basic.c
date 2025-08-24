@@ -1,7 +1,7 @@
-#include "core/loot/loot_item_defs.h"
-#include "core/path_utils.h"
-#include "core/vendor/salvage.h"
-#include "core\inventory\inventory.h"
+#include "../../src/core/inventory/inventory.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/path_utils.h"
+#include "../../src/core/vendor/salvage.h"
 #include <stdio.h>
 
 int main(void)

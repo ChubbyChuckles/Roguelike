@@ -1,10 +1,10 @@
 /* Phase 6.3: Transmute (enchant/reforge) material scaling integration test */
-#include "core/crafting/material_registry.h"
-#include "core/equipment/equipment_enchant.h"
-#include "core/loot/loot_affixes.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/path_utils.h"
+#include "../../src/core/crafting/material_registry.h"
+#include "../../src/core/equipment/equipment_enchant.h"
+#include "../../src/core/loot/loot_affixes.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/path_utils.h"
 #include <stdio.h>
 
 /* For this focused cost-scaling test we don't assert material consumption, so allow bypass */

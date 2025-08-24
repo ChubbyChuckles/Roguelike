@@ -1,7 +1,7 @@
 /* Hit feedback (Phase 4): impact SFX, particles, overkill explosion, knockback magnitude */
 #pragma once
-#include "entities/enemy.h"
-#include "entities/player.h"
+#include "../entities/enemy.h"
+#include "../entities/player.h"
 
 #ifdef __cplusplus
 extern "C"

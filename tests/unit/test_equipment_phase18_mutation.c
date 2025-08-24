@@ -11,10 +11,10 @@
    and resetting equip state between attempts.
 */
 #define SDL_MAIN_HANDLED 1
-#include "core/equipment/equipment.h"
-#include "core/equipment/equipment_persist.h"
-#include "core/loot/loot_instances.h" /* for g_rogue_loot_suppress_spawn_log */
-#include "core/loot/loot_instances.h"
+#include "../../src/core/equipment/equipment.h"
+#include "../../src/core/equipment/equipment_persist.h"
+#include "../../src/core/loot/loot_instances.h" /* for g_rogue_loot_suppress_spawn_log */
+#include "../../src/core/loot/loot_instances.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

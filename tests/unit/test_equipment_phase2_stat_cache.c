@@ -1,10 +1,10 @@
 /* Phase 2.1/2.2/2.5 Stat Cache Layering & Fingerprint Tests */
-#include "core/app_state.h"
-#include "core/equipment/equipment.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/path_utils.h"
-#include "core/stat_cache.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/equipment/equipment.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/path_utils.h"
+#include "../../src/core/stat_cache.h"
 #include <assert.h>
 #include <stdio.h>
 

@@ -1,4 +1,4 @@
-#include "ai/core/blackboard.h"
+#include "../../src/ai/core/blackboard.h"
 #include <assert.h>
 #include <stdio.h>
 

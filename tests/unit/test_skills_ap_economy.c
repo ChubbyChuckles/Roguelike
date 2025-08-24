@@ -1,8 +1,8 @@
 /* Phase 1.5 Action Point economy basic test */
+#include "../../src/core/app_state.h"
 #include "../../src/core/player/player_progress.h"
-#include "core/app_state.h"
-#include "core/skills.h"
-#include "entities/player.h"
+#include "../../src/core/skills/skills.h"
+#include "../../src/entities/player.h"
 #include <assert.h>
 #include <stdio.h>
 

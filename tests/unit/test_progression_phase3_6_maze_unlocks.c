@@ -1,5 +1,5 @@
-#include "core/progression/progression_maze.h"
-#include "core/progression/progression_passives.h"
+#include "../../src/core/progression/progression_maze.h"
+#include "../../src/core/progression/progression_passives.h"
 #include <stdio.h>
 #include <string.h>
 

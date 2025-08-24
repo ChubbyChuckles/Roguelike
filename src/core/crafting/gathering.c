@@ -8,10 +8,10 @@
  * inline comments and parsing behavior are preserved.
  */
 
-#include "core/crafting/gathering.h"
-#include "core/crafting/material_registry.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/path_utils.h"
+#include "gathering.h"
+#include "../loot/loot_item_defs.h"
+#include "../path_utils.h"
+#include "material_registry.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED 1
-#include "game/hit_system.h"
+#include "../../src/game/hit_system.h"
 #include <assert.h>
 #include <stdio.h>
 

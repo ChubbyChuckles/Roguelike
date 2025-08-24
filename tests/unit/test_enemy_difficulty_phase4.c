@@ -5,8 +5,8 @@
  *  - Downward pressure lowers scalar when player struggles (slow kills, high intake, potion spam)
  *  - Bounds respected and relaxation toward 1.0 when neutral
  */
-#include "core/enemy/enemy_adaptive.h"
-#include "core/enemy/enemy_difficulty_scaling.h"
+#include "../../src/core/enemy/enemy_adaptive.h"
+#include "../../src/core/enemy/enemy_difficulty_scaling.h"
 #include <math.h>
 #include <stdio.h>
 

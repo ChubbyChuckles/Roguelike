@@ -1,5 +1,5 @@
-#include "game/combat.h"
-#include "game/combat_internal.h"
+#include "combat.h"
+#include "combat_internal.h"
 
 /* Test / injection hooks (obstruction) */
 static int (*g_obstruction_line_test)(float sx, float sy, float ex, float ey) = NULL;

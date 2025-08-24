@@ -1,4 +1,4 @@
-#include "core/progression/progression_synergy.h"
+#include "../../src/core/progression/progression_synergy.h"
 #include <stdio.h>
 #include <string.h>
 

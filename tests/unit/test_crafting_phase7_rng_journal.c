@@ -1,5 +1,5 @@
 #include "../../src/core/crafting/crafting_journal.h"
-#include "core/crafting/rng_streams.h"
+#include "../../src/core/crafting/rng_streams.h"
 #include <assert.h>
 #include <stdio.h>
 

@@ -1,6 +1,6 @@
-#include "ui/core/ui_context.h"
-#include "ui/core/ui_test_harness.h"
-#include "ui/core/ui_theme.h"
+#include "../../src/ui/core/ui_context.h"
+#include "../../src/ui/core/ui_test_harness.h"
+#include "../../src/ui/core/ui_theme.h"
 #include <assert.h>
 #include <stdio.h>
 

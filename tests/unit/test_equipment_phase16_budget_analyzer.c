@@ -1,7 +1,7 @@
-#include "core/equipment/equipment_budget_analyzer.h"
-#include "core/loot/loot_affixes.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
+#include "../../src/core/equipment/equipment_budget_analyzer.h"
+#include "../../src/core/loot/loot_affixes.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

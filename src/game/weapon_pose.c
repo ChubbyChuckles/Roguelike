@@ -1,6 +1,6 @@
-#include "game/weapon_pose.h"
-#include "core/app_state.h"
-#include "util/log.h"
+#include "weapon_pose.h"
+#include "../core/app_state.h"
+#include "../util/log.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

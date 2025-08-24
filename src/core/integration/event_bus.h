@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <time.h>
 
-#include "util/log.h"
+#include "../../util/log.h"
 
 #ifdef __cplusplus
 extern "C"

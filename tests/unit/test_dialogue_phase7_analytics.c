@@ -1,5 +1,5 @@
 /* Phase 7 analytics test */
-#include "core/dialogue.h"
+#include "../../src/core/dialogue.h"
 #include <stdio.h>
 #include <string.h>
 

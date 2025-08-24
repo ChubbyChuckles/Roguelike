@@ -1,11 +1,11 @@
 /* Enemy Integration Phase 3: Stat & Modifier Application at Spawn tests */
 #define SDL_MAIN_HANDLED
+#include "../../src/core/app_state.h"
+#include "../../src/core/enemy/encounter_composer.h"
+#include "../../src/core/enemy/enemy_integration.h"
 #include "../../src/core/enemy/enemy_modifiers.h"
-#include "core/app_state.h"
-#include "core/enemy/encounter_composer.h"
-#include "core/enemy/enemy_integration.h"
-#include "entities/enemy.h"
-#include "world/world_gen.h"
+#include "../../src/entities/enemy.h"
+#include "../../src/world/world_gen.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

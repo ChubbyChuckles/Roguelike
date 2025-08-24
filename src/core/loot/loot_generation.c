@@ -1,11 +1,11 @@
-#include "core/loot/loot_generation.h"
-#include "core/loot/loot_affixes.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/loot/loot_perf.h"
-#include "core/loot/loot_rarity_adv.h"
-#include "core/loot/loot_tables.h"
-#include "core/metrics.h"
+#include "loot_generation.h"
+#include "../metrics.h"
+#include "loot_affixes.h"
+#include "loot_instances.h"
+#include "loot_item_defs.h"
+#include "loot_perf.h"
+#include "loot_rarity_adv.h"
+#include "loot_tables.h"
 #include <string.h>
 
 static float g_quality_scalar_min = 1.0f;

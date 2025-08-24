@@ -1,6 +1,6 @@
 /* Phase 17.2: Hot reload of equipment set definitions test */
-#include "core/equipment/equipment_content.h"
-#include "util/hot_reload.h"
+#include "../../src/core/equipment/equipment_content.h"
+#include "../../src/util/hot_reload.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

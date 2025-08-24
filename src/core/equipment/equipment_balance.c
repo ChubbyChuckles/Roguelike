@@ -1,5 +1,5 @@
 /* Equipment Phase 11.5-11.6 Implementation */
-#include "core/equipment/equipment_balance.h"
+#include "equipment_balance.h"
 #include <stdio.h>
 #include <string.h>
 

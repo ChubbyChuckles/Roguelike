@@ -1,5 +1,5 @@
 /* Phase 11 runtime streaming & caching tests */
-#include "world/world_gen.h"
+#include "../../src/world/world_gen.h"
 #include <stdio.h>
 #include <string.h>
 

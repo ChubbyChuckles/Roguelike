@@ -1,5 +1,5 @@
-#include "core/loot/loot_adaptive.h"
-#include "core/loot/loot_item_defs.h"
+#include "../../src/core/loot/loot_adaptive.h"
+#include "../../src/core/loot/loot_item_defs.h"
 #include <assert.h>
 #include <stdio.h>
 

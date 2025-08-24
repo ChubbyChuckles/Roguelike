@@ -1,4 +1,4 @@
-#include "game/combat.h"
+#include "combat.h"
 #if defined(_WIN32) && defined(ROGUE_SUPPRESS_WINDOWS_ERROR_DIALOGS)
 /* Pull in the suppression TU from the static lib and install early for tests. */
 extern int rogue_win_disable_error_dialogs_anchor;

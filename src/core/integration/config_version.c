@@ -1,5 +1,5 @@
 #include "config_version.h"
-#include "util/log.h"
+#include "../../util/log.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>

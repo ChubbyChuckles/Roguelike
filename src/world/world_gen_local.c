@@ -3,7 +3,7 @@
  * lava/water pocket placement, ore vein carving, and passability map derivation.
  * Deterministic via provided RogueWorldGenContext RNG channels (micro channel for fine detail).
  */
-#include "world/world_gen.h"
+#include "world_gen.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>

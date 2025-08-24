@@ -1,10 +1,10 @@
-#include "core/app_state.h"
-#include "core/projectiles.h"
-#include "core/projectiles_internal.h"
-#include "util/log.h"
+#include "../util/log.h"
+#include "app_state.h"
+#include "projectiles.h"
+#include "projectiles_internal.h"
 #include <math.h>
 /* ensure tuning struct visible */
-#include "core/projectiles_config.h"
+#include "projectiles_config.h"
 
 RogueImpactBurst g_impacts[ROGUE_MAX_IMPACT_BURSTS];
 RogueShard g_shards[ROGUE_MAX_SHARDS];

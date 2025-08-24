@@ -1,5 +1,5 @@
 /* Collision, queries, toggles, info helpers for vegetation */
-#include "core/vegetation/vegetation_internal.h"
+#include "vegetation_internal.h"
 #include <math.h>
 
 int rogue_vegetation_count(void) { return g_instance_count; }

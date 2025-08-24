@@ -1,5 +1,5 @@
 /* Test v5 string interning section presence and roundtrip */
-#include "core/save_manager.h"
+#include "../../src/core/save_manager.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>

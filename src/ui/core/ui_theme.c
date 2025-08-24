@@ -1,4 +1,4 @@
-#include "ui/core/ui_theme.h"
+#include "ui_theme.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>

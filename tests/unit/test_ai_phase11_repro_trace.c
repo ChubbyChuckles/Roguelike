@@ -1,7 +1,7 @@
-#include "ai/core/ai_rng.h"
-#include "ai/core/ai_trace.h"
-#include "ai/core/behavior_tree.h"
-#include "ai/core/blackboard.h"
+#include "../../src/ai/core/ai_rng.h"
+#include "../../src/ai/core/ai_trace.h"
+#include "../../src/ai/core/behavior_tree.h"
+#include "../../src/ai/core/blackboard.h"
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>

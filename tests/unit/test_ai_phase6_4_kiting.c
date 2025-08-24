@@ -1,6 +1,6 @@
-#include "ai/core/behavior_tree.h"
-#include "ai/core/blackboard.h"
-#include "ai/nodes/advanced_nodes.h"
+#include "../../src/ai/core/behavior_tree.h"
+#include "../../src/ai/core/blackboard.h"
+#include "../../src/ai/nodes/advanced_nodes.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>

@@ -1,5 +1,5 @@
 /* Extended mastery implementation (Phases 6.1–6.5) */
-#include "core/progression/progression_mastery.h"
+#include "progression_mastery.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>

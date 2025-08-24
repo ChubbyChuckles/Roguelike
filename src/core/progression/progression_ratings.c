@@ -1,5 +1,5 @@
 /* Phase 3 Rating & Diminishing Returns Implementation */
-#include "core/progression/progression_ratings.h"
+#include "progression_ratings.h"
 
 static const int g_breaks[] = {0, 200, 600, 1400, 2600};
 static const int g_break_count = (int) (sizeof g_breaks / sizeof g_breaks[0]);

@@ -1,4 +1,4 @@
-#include "game/lock_on.h"
+#include "lock_on.h"
 #include <float.h>
 #include <math.h>
 #include <stdio.h>

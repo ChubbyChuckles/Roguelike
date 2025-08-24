@@ -1,5 +1,5 @@
 /* Phase 5 localization test: register lines with keys and switch locales */
-#include "core/dialogue.h"
+#include "../../src/core/dialogue.h"
 #include <stdio.h>
 #include <string.h>
 

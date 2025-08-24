@@ -1,4 +1,4 @@
-#include "game/combat_attacks.h"
+#include "combat_attacks.h"
 #include <math.h>
 #include <stddef.h>
 

@@ -1,8 +1,8 @@
 /* Enemy Integration Phase 1: Deterministic encounter seed & replay hash tests */
 #define SDL_MAIN_HANDLED
-#include "core/app_state.h"
-#include "core/enemy/encounter_composer.h"
-#include "core/enemy/enemy_integration.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/enemy/encounter_composer.h"
+#include "../../src/core/enemy/enemy_integration.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

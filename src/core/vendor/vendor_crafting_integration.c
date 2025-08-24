@@ -1,8 +1,8 @@
-#include "core/vendor/vendor_crafting_integration.h"
-#include "core/crafting/crafting.h"
-#include "core/crafting/crafting_skill.h"
-#include "core/crafting/material_refine.h"
-#include "core/crafting/material_registry.h"
+#include "vendor_crafting_integration.h"
+#include "../crafting/crafting.h"
+#include "../crafting/crafting_skill.h"
+#include "../crafting/material_refine.h"
+#include "../crafting/material_registry.h"
 #include <string.h>
 
 /* Simple deficit tracking array (per material def index) */

@@ -1,4 +1,4 @@
-#include "world/tilemap.h"
+#include "../../src/world/tilemap.h"
 #include <stdio.h>
 
 int main(void)

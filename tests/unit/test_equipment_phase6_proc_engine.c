@@ -1,4 +1,4 @@
-#include "core/equipment/equipment_procs.h"
+#include "../../src/core/equipment/equipment_procs.h"
 #include <assert.h>
 #include <stdio.h>
 

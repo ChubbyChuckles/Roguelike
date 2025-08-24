@@ -1,7 +1,7 @@
-#include "core/tile_sprite_cache.h"
-#include "core/app_state.h"
-#include "graphics/tile_sprites.h"
-#include "util/log.h"
+#include "tile_sprite_cache.h"
+#include "../graphics/tile_sprites.h"
+#include "../util/log.h"
+#include "app_state.h"
 #include <stdlib.h>
 
 void rogue_tile_sprite_cache_ensure(void)

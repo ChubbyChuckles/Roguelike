@@ -1,4 +1,4 @@
-#include "core/skill_graph_runtime_internal.h"
+#include "skill_graph_runtime_internal.h"
 #include <stdlib.h>
 
 /* Deterministic multi-pass ring-aware assignment used by tests (mirrors runtime build logic). */

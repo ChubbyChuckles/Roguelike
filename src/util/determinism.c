@@ -1,6 +1,6 @@
 /* determinism.c - Phase M4.2/M4.3 deterministic hash & replay helpers */
-#include "util/determinism.h"
-#include "game/combat.h"
+#include "determinism.h"
+#include "../game/combat.h"
 #include <stdio.h>
 #include <string.h>
 

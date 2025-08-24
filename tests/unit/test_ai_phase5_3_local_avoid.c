@@ -1,9 +1,9 @@
-#include "ai/pathing/local_avoidance.h"
-#include "core/app_state.h"
-#include "core/navigation.h"
-#include "core/vegetation/vegetation.h"
-#include "world/world_gen.h"
-#include "world/world_gen_config.h"
+#include "../../src/ai/pathing/local_avoidance.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/navigation.h"
+#include "../../src/core/vegetation/vegetation.h"
+#include "../../src/world/world_gen.h"
+#include "../../src/world/world_gen_config.h"
 #include <stdio.h>
 
 RogueAppState g_app;

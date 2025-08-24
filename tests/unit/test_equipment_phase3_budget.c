@@ -1,8 +1,8 @@
 /* Equipment Phase 3.1/3.2/3.4 item_level + budget governance tests */
-#include "core/app_state.h"
-#include "core/loot/loot_affixes.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/loot/loot_affixes.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
 #include <assert.h>
 #include <stdio.h>
 

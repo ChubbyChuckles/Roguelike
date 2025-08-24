@@ -1,6 +1,6 @@
 #define SDL_MAIN_HANDLED 1
-#include "ui/core/ui_animation.h"
-#include "ui/core/ui_context.h"
+#include "../../src/ui/core/ui_animation.h"
+#include "../../src/ui/core/ui_context.h"
 #include <stdio.h>
 
 static uint32_t id_for(const char* s) { return rogue_ui_make_id(s); }

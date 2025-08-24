@@ -8,9 +8,9 @@
  * provided helpers. This module is single-threaded and designed for
  * deterministic, frame-based updates.
  */
-#include "ai/core/ai_scheduler.h"
-#include "core/app_state.h"
-#include "entities/enemy.h"
+#include "ai_scheduler.h"
+#include "../../core/app_state.h"
+#include "../../entities/enemy.h"
 #include <math.h>
 
 /** Current scheduler frame counter (monotonic). */

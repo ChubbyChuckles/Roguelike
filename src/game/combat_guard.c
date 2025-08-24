@@ -1,7 +1,7 @@
-#include "core/equipment/equipment_procs.h" /* for reactive shield procs */
-#include "core/stat_cache.h"
-#include "game/combat.h"
-#include "game/combat_internal.h"
+#include "../core/equipment/equipment_procs.h" /* for reactive shield procs */
+#include "../core/stat_cache.h"
+#include "combat.h"
+#include "combat_internal.h"
 #include <math.h>
 #include <stdlib.h>
 

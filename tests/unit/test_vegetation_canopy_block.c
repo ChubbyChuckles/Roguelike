@@ -1,5 +1,5 @@
-#include "core/app_state.h"
-#include "core/vegetation/vegetation.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/vegetation/vegetation.h"
 #include <stdio.h>
 
 RogueAppState g_app;

@@ -1,5 +1,5 @@
 /* Phase 18.2: Fuzz equip/un-equip sequences test */
-#include "core/equipment/equipment_fuzz.h"
+#include "../../src/core/equipment/equipment_fuzz.h"
 #include <stdio.h>
 #include <stdlib.h>
 

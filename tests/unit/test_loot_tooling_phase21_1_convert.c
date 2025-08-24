@@ -1,5 +1,5 @@
-#include "core/loot/loot_item_defs.h"
-#include "core/loot/loot_item_defs_convert.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/loot/loot_item_defs_convert.h"
 #include <stdio.h>
 #include <string.h>
 

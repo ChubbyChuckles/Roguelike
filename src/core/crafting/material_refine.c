@@ -1,6 +1,6 @@
-#include "core/crafting/material_refine.h"
-#include "core/crafting/material_registry.h"
-#include "core/crafting/rng_streams.h"
+#include "material_refine.h"
+#include "material_registry.h"
+#include "rng_streams.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

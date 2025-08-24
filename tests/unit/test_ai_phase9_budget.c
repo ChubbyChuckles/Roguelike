@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED 1
-#include "ai/core/ai_profiler.h"
+#include "../../src/ai/core/ai_profiler.h"
 #include <assert.h>
 #include <stdio.h>
 

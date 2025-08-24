@@ -1,5 +1,5 @@
-#include "core/animation_system.h"
-#include "core/app_state.h"
+#include "animation_system.h"
+#include "app_state.h"
 
 void rogue_animation_update(float frame_dt_ms)
 {

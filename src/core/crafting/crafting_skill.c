@@ -7,9 +7,9 @@
  * the simple recipe discovery system used by the crafting queue.
  */
 
-#include "core/crafting/crafting_skill.h"
-#include "core/crafting/crafting.h"
-#include "core/crafting/crafting_queue.h"
+#include "crafting_skill.h"
+#include "crafting.h"
+#include "crafting_queue.h"
 #include <string.h>
 
 #ifndef ROGUE_CRAFT_DISC_XP_CAP

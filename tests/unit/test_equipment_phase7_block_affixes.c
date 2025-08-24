@@ -1,9 +1,9 @@
 #define SDL_MAIN_HANDLED 1
-#include "core/equipment/equipment_stats.h" /* for consistency (no direct calls) */
-#include "core/loot/loot_affixes.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/stat_cache.h"
+#include "../../src/core/equipment/equipment_stats.h" /* for consistency (no direct calls) */
+#include "../../src/core/loot/loot_affixes.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/stat_cache.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

@@ -1,11 +1,11 @@
 #include "start_screen.h"
-#include "core/game_loop.h"
-#include "core/localization.h"
-#include "core/save_manager.h" /* for simple Continue/Load stubs (slot 0) */
-#include "graphics/font.h"
-#include "graphics/sprite.h"
-#include "input/input.h"
-#include "util/log.h"
+#include "../graphics/font.h"
+#include "../graphics/sprite.h"
+#include "../input/input.h"
+#include "../util/log.h"
+#include "game_loop.h"
+#include "localization.h"
+#include "save_manager.h" /* for simple Continue/Load stubs (slot 0) */
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

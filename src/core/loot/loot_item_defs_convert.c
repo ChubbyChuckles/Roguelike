@@ -1,4 +1,4 @@
-#include "core/loot/loot_item_defs_convert.h"
+#include "loot_item_defs_convert.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>

@@ -1,5 +1,5 @@
-#include "core/item_sprite.h"
-#include "util/log.h"
+#include "item_sprite.h"
+#include "../util/log.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #ifdef ROGUE_HAVE_SDL_IMAGE

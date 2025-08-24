@@ -1,9 +1,9 @@
 /* Phase 6 Special Offers implementation */
-#include "core/vendor/vendor_special_offers.h"
-#include "core/crafting/material_registry.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/vendor/vendor_pricing.h"
-#include "core/vendor/vendor_rng.h"
+#include "vendor_special_offers.h"
+#include "../crafting/material_registry.h"
+#include "../loot/loot_item_defs.h"
+#include "vendor_pricing.h"
+#include "vendor_rng.h"
 #include <string.h>
 
 static RogueVendorSpecialOffer g_offers[ROGUE_VENDOR_OFFER_SLOT_CAP];

@@ -1,8 +1,8 @@
 /* Phase 5 Implementation: Buyback Ring Buffer, Depreciation, Assimilation */
-#include "core/vendor/vendor_buyback.h"
-#include "core/loot/loot_instances.h"
-#include "core/vendor/vendor_pricing.h"
-#include "core/vendor/vendor_registry.h"
+#include "vendor_buyback.h"
+#include "../loot/loot_instances.h"
+#include "vendor_pricing.h"
+#include "vendor_registry.h"
 #include <string.h>
 
 #ifndef ROGUE_VENDOR_MAX

@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED 1
-#include "core/hud/hud_layout.h"
+#include "../../src/core/hud/hud_layout.h"
 #include <stdio.h>
 #include <string.h>
 

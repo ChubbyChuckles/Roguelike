@@ -11,10 +11,10 @@
  * - Equipment upgrade notifications to combat stat cache (3.2.7)
  */
 
-#include "core/integration/combat_equip_bridge.h"
-#include "core/integration/config_version.h"
-#include "entities/player.h"
-#include "game/combat.h"
+#include "../../src/core/integration/combat_equip_bridge.h"
+#include "../../src/core/integration/config_version.h"
+#include "../../src/entities/player.h"
+#include "../../src/game/combat.h"
 
 #include <assert.h>
 #include <math.h>

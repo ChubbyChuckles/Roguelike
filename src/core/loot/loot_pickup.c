@@ -1,12 +1,12 @@
-#include "core/loot/loot_pickup.h"
-#include "core/app_state.h"
-#include "core/loot/loot_adaptive.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_multiplayer.h"
-#include "core/loot/loot_rarity_adv.h"
-#include "core/metrics.h"
-#include "core\inventory\inventory.h"
-#include "util/log.h"
+#include "loot_pickup.h"
+#include "../../util/log.h"
+#include "../app_state.h"
+#include "../inventory/inventory.h"
+#include "../metrics.h"
+#include "loot_adaptive.h"
+#include "loot_instances.h"
+#include "loot_multiplayer.h"
+#include "loot_rarity_adv.h"
 #include <math.h>
 
 void rogue_loot_pickup_update(float radius)

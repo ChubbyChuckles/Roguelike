@@ -8,7 +8,7 @@
 */
 /* Use SDL stubbed main handling for consistency */
 #define SDL_MAIN_HANDLED
-#include "game/combat.h"
+#include "../../src/game/combat.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

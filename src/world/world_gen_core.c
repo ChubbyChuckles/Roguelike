@@ -1,5 +1,5 @@
 /* Orchestrator for world generation (split refactor) */
-#include "world/world_gen_internal.h"
+#include "world_gen_internal.h"
 
 bool rogue_world_generate(RogueTileMap* out_map, const RogueWorldGenConfig* cfg)
 {

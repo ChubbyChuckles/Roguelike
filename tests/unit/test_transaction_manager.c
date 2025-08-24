@@ -1,4 +1,4 @@
-#include "core/integration/transaction_manager.h"
+#include "../../src/core/integration/transaction_manager.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

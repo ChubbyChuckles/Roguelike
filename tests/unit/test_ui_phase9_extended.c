@@ -1,5 +1,5 @@
 /* Phase 9 extended tests: glyph cache, per-phase timing, regression guard */
-#include "ui/core/ui_context.h"
+#include "../../src/ui/core/ui_context.h"
 #include <stdio.h>
 #include <string.h>
 

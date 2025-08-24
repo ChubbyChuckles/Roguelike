@@ -1,7 +1,7 @@
 #ifndef ROGUE_WORLD_GEN_H
 #define ROGUE_WORLD_GEN_H
 
-#include "world/tilemap.h"
+#include "tilemap.h"
 #include <stdbool.h>
 
 typedef struct RogueWorldGenConfig

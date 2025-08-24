@@ -1,5 +1,5 @@
-#include "core/vegetation/vegetation_internal.h"
-#include "core/vegetation/vegetation_json.h"
+#include "../../src/core/vegetation/vegetation_internal.h"
+#include "../../src/core/vegetation/vegetation_json.h"
 #include <assert.h>
 #include <stdio.h>
 

@@ -1,4 +1,4 @@
-#include "core/path_utils.h"
+#include "../../src/core/path_utils.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

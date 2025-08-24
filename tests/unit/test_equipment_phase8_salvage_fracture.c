@@ -1,9 +1,9 @@
 /* Phase 8.4 & 8.5: Salvage yield scaling with durability + fracture penalty test */
 #define SDL_MAIN_HANDLED 1
-#include "core/durability.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/vendor/salvage.h"
+#include "../../src/core/durability.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/vendor/salvage.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

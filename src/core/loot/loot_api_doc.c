@@ -2,7 +2,7 @@
  * A compact curated list of public loot APIs with one-line descriptions so
  * tooling / editors can surface quick reference or export to file for docs.
  */
-#include "core/loot/loot_api_doc.h"
+#include "loot_api_doc.h"
 #include <stdio.h>
 #include <string.h>
 

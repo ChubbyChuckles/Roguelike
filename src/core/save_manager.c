@@ -1,11 +1,11 @@
-#include "core/save_manager.h"
-#include "core/app_state.h"
-#include "core/buffs.h"
-#include "core/loot/loot_instances.h"
-#include "core/persistence.h"
-#include "core/skills.h"
-#include "core/vendor/vendor.h"
-#include "world/tilemap.h"
+#include "save_manager.h"
+#include "../world/tilemap.h"
+#include "app_state.h"
+#include "buffs.h"
+#include "loot/loot_instances.h"
+#include "persistence.h"
+#include "skills/skills.h"
+#include "vendor/vendor.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h> /* qsort, malloc */

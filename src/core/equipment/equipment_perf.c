@@ -1,8 +1,8 @@
 /* Phase 14: Performance & Memory Optimization Implementation */
-#include "core/equipment/equipment_perf.h"
-#include "core/equipment/equipment.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
+#include "equipment_perf.h"
+#include "../loot/loot_instances.h"
+#include "../loot/loot_item_defs.h"
+#include "equipment.h"
 #include <stdio.h>
 #include <string.h>
 #include <time.h>

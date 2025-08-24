@@ -1,4 +1,4 @@
-#include "core/vendor/economy.h"
+#include "economy.h"
 #include <math.h> /* sqrt for dynamic pricing curves */
 #include <string.h>
 

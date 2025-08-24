@@ -1,4 +1,4 @@
-#include "core/progression/progression_stats.h"
+#include "../../src/core/progression/progression_stats.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

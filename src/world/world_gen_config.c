@@ -1,7 +1,7 @@
 /* MIT License
  * Unified world gen config construction (replaces duplicated giant initializers). */
-#include "world/world_gen_config.h"
-#include "core/app_state.h" /* for g_app when use_app_params */
+#include "world_gen_config.h"
+#include "../core/app_state.h" /* for g_app when use_app_params */
 
 RogueWorldGenConfig rogue_world_gen_config_build(unsigned int seed, int use_app_params,
                                                  int apply_scale)

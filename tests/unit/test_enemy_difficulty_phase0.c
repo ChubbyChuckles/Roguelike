@@ -6,7 +6,7 @@
  *  - Archetype enumeration integrity
  *  - Base budget fetch matches table
  */
-#include "core/enemy/enemy_difficulty.h"
+#include "../../src/core/enemy/enemy_difficulty.h"
 #include <stdio.h>
 
 /* Forward declare internal validation helpers (not part of public API) */

@@ -1,11 +1,11 @@
-#include "core/app_state.h"
-#include "core/enemy/enemy_system.h"
-#include "core/navigation.h"
-#include "core/vegetation/vegetation.h"
-#include "entities/enemy.h"
-#include "entities/player.h"
-#include "world/world_gen.h"
-#include "world/world_gen_config.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/enemy/enemy_system.h"
+#include "../../src/core/navigation.h"
+#include "../../src/core/vegetation/vegetation.h"
+#include "../../src/entities/enemy.h"
+#include "../../src/entities/player.h"
+#include "../../src/world/world_gen.h"
+#include "../../src/world/world_gen_config.h"
 #include <stdio.h>
 #include <string.h>
 

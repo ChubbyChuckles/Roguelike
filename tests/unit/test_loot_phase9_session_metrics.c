@@ -1,5 +1,5 @@
-#include "core/app_state.h"
-#include "core/metrics.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/metrics.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

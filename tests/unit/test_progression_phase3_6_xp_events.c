@@ -2,10 +2,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "core/app_state.h"
-#include "core/integration/event_bus.h"
-#include "core/player/player_progress.h"
-#include "core/progression/progression_award.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/integration/event_bus.h"
+#include "../../src/core/player/player_progress.h"
+#include "../../src/core/progression/progression_award.h"
 
 static int g_xp_events = 0;
 static int g_level_events = 0;

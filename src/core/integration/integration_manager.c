@@ -22,8 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "core/integration/integration_manager.h"
-#include "util/log.h"
+#include "integration_manager.h"
+#include "../../util/log.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>

@@ -1,8 +1,8 @@
 /* Test 5.4 dynamic rarity weighting adjustments */
 #include "../../src/core/loot/loot_dynamic_weights.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/loot/loot_tables.h"
-#include "core/path_utils.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/loot/loot_tables.h"
+#include "../../src/core/path_utils.h"
 #include <assert.h>
 #include <stdio.h>
 

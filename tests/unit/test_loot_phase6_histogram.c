@@ -1,6 +1,6 @@
-#include "core/loot/loot_console.h"
-#include "core/loot/loot_rarity.h"
-#include "core/loot/loot_stats.h"
+#include "../../src/core/loot/loot_console.h"
+#include "../../src/core/loot/loot_rarity.h"
+#include "../../src/core/loot/loot_stats.h"
 #include <stdio.h>
 #include <string.h>
 

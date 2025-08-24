@@ -1,5 +1,5 @@
 /* Test v8 tamper flags and recovery */
-#include "core/save_manager.h"
+#include "../../src/core/save_manager.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

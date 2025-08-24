@@ -1,14 +1,14 @@
 #ifndef ROGUE_CORE_APP_STATE_H
 #define ROGUE_CORE_APP_STATE_H
-#include "core/app.h"
-#include "entities/enemy.h"
-#include "entities/player.h"
-#include "game/combat.h"
-#include "graphics/sprite.h"
-#include "graphics/tile_sprites.h"
-#include "input/input.h"
-#include "util/log.h"
-#include "world/tilemap.h"
+#include "../entities/enemy.h"
+#include "../entities/player.h"
+#include "../game/combat.h"
+#include "../graphics/sprite.h"
+#include "../graphics/tile_sprites.h"
+#include "../input/input.h"
+#include "../util/log.h"
+#include "../world/tilemap.h"
+#include "app.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif

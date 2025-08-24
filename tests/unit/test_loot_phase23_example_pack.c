@@ -1,7 +1,7 @@
-#include "core/loot/loot_affixes.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/loot/loot_tables.h"
-#include "core/path_utils.h"
+#include "../../src/core/loot/loot_affixes.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/loot/loot_tables.h"
+#include "../../src/core/path_utils.h"
 #include <assert.h>
 #include <string.h>
 

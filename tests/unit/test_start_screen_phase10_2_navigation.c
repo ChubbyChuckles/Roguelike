@@ -1,6 +1,6 @@
-#include "core/app.h"
-#include "core/app_state.h"
-#include "input/input.h"
+#include "../../src/core/app.h"
+#include "../../src/core/app_state.h"
+#include "../../src/input/input.h"
 #include <assert.h>
 
 static void press(RogueKey k)

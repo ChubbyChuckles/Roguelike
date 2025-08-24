@@ -1,7 +1,7 @@
 /* Windows-only lightweight PNG loader using WIC (avoids SDL_image dependency). */
 #ifdef _WIN32
-#include "graphics/png_wic.h"
-#include "util/log.h"
+#include "png_wic.h"
+#include "../util/log.h"
 #include <stdlib.h>
 #include <wincodec.h>
 #include <windows.h>

@@ -1,8 +1,8 @@
 /* Vendor System Phase 4.1–4.5 Tests */
-#include "core/loot/loot_item_defs.h"
-#include "core/path_utils.h"
-#include "core/vendor/vendor_registry.h"
-#include "core/vendor/vendor_reputation.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/path_utils.h"
+#include "../../src/core/vendor/vendor_registry.h"
+#include "../../src/core/vendor/vendor_reputation.h"
 #include <stdio.h>
 
 static int load_items_if_needed(void)

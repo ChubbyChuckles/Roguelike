@@ -1,4 +1,4 @@
-#include "core/progression/progression_xp.h"
+#include "../../src/core/progression/progression_xp.h"
 #include <assert.h>
 #include <stdio.h>
 

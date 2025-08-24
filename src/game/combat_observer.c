@@ -1,4 +1,4 @@
-#include "game/combat.h"
+#include "combat.h"
 
 #define ROGUE_MAX_DAMAGE_OBSERVERS 16
 typedef struct

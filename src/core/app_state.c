@@ -1,4 +1,4 @@
-#include "core/app_state.h"
+#include "app_state.h"
 RogueAppState g_app; /* zero-initialized; explicit defaults below for clarity */
 static void rogue_app_state_init_defaults(void)
 {

@@ -1,7 +1,7 @@
-#include "core/app_state.h"
-#include "core/vendor/economy.h"
-#include "core/vendor/vendor.h"
-#include "core\inventory\inventory.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/inventory/inventory.h"
+#include "../../src/core/vendor/economy.h"
+#include "../../src/core/vendor/vendor.h"
 #include <stdio.h>
 
 /* Headless test: Simulate opening vendor, selecting item, opening confirmation, insufficient funds

@@ -1,7 +1,7 @@
 #ifndef ROGUE_CORE_ENEMY_INTEGRATION_H
 #define ROGUE_CORE_ENEMY_INTEGRATION_H
+#include "../../entities/enemy.h"
 #include "enemy_difficulty_scaling.h"
-#include "entities/enemy.h"
 
 /* Forward declaration */
 struct RogueDungeonRoom;

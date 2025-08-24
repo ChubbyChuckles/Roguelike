@@ -1,4 +1,4 @@
-#include "core/loot/loot_api_doc.h"
+#include "../../src/core/loot/loot_api_doc.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "core/integration/event_bus.h"
+#include "../../src/core/integration/event_bus.h"
 
 /* Test counters and flags */
 static uint32_t g_test_callback_count = 0;

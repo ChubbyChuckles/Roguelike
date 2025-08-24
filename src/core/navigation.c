@@ -1,6 +1,6 @@
-#include "core/navigation.h"
-#include "core/app_state.h"
-#include "core/vegetation/vegetation.h"
+#include "navigation.h"
+#include "app_state.h"
+#include "vegetation/vegetation.h"
 #include <math.h>
 #include <stdlib.h>
 

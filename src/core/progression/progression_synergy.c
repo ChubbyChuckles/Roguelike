@@ -1,4 +1,4 @@
-#include "core/progression/progression_synergy.h"
+#include "progression_synergy.h"
 
 float rogue_progression_layered_damage(float base_flat, float equipment_pct, float passive_pct,
                                        float mastery_pct, float micro_pct)

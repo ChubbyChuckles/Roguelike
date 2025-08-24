@@ -1,6 +1,6 @@
-#include "core/loot/loot_multiplayer.h"
-#include "core/app_state.h"
-#include "core/loot/loot_instances.h"
+#include "loot_multiplayer.h"
+#include "../app_state.h"
+#include "loot_instances.h"
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>

@@ -1,6 +1,6 @@
-#include "core/equipment/equipment.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
+#include "../../src/core/equipment/equipment.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
 #include <assert.h>
 #include <stdio.h>
 

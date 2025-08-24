@@ -1,6 +1,6 @@
 #define SDL_MAIN_HANDLED
-#include "core/app.h"
-#include "entities/enemy.h"
+#include "../../src/core/app.h"
+#include "../../src/entities/enemy.h"
 #include <assert.h>
 #include <stdio.h>
 

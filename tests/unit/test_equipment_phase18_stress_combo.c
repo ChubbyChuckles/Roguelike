@@ -9,14 +9,14 @@
          2. Layer contributions (implicit + set + runeword + gems) meet analytical lower bound.
          3. No zero / negative regression and piece & socket counts as expected.
 */
-#include "core/equipment/equipment.h"
-#include "core/equipment/equipment_content.h"
-#include "core/equipment/equipment_gems.h"
-#include "core/equipment/equipment_stats.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/stat_cache.h"
-#include "entities/player.h"
+#include "../../src/core/equipment/equipment.h"
+#include "../../src/core/equipment/equipment_content.h"
+#include "../../src/core/equipment/equipment_gems.h"
+#include "../../src/core/equipment/equipment_stats.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/stat_cache.h"
+#include "../../src/entities/player.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

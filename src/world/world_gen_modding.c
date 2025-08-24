@@ -2,8 +2,8 @@
  * Implements descriptor pack loading & hot reload (initial subset: biome descriptors).
  * Provides schema migration registration (text-level), validation, and atomic swap semantics.
  */
-#include "world/world_gen.h"
-#include "world/world_gen_biome_desc.h"
+#include "world_gen.h"
+#include "world_gen_biome_desc.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

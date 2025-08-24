@@ -1,10 +1,10 @@
 #include "hud.h"
+#include "../../graphics/font.h"
 #include "../enemy/enemy_difficulty_scaling.h" /* ΔL severity classifier */
-#include "../hud/hud_bars.h"                   /* Phase 6.2 layered bar smoothing */
-#include "../hud/hud_buff_belt.h"              /* Phase 6.3 buff belt */
-#include "graphics/font.h"
-#include "hud_layout.h"   /* Phase 6.1 data-driven HUD layout */
-#include "hud_overlays.h" /* Phase 6.6 alerts + 6.7 metrics */
+#include "hud_bars.h"                          /* Phase 6.2 layered bar smoothing */
+#include "hud_buff_belt.h"                     /* Phase 6.3 buff belt */
+#include "hud_layout.h"                        /* Phase 6.1 data-driven HUD layout */
+#include "hud_overlays.h"                      /* Phase 6.6 alerts + 6.7 metrics */
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif

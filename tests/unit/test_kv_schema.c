@@ -1,5 +1,5 @@
 /* test_kv_schema.c - Unit test for schema validation (Phase M3.2) */
-#include "util/kv_schema.h"
+#include "../../src/util/kv_schema.h"
 #include <stdio.h>
 #include <string.h>
 

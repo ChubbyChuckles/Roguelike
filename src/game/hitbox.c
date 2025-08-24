@@ -1,4 +1,4 @@
-#include "game/hitbox.h"
+#include "hitbox.h"
 #include <math.h>
 
 /* Normalize angle to (-pi, pi] for robust arc comparisons */

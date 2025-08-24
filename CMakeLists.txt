@@ -119,11 +119,11 @@ add_library(rogue_core
     src/core/persistence/persistence_autosave.c
     src/core/save_manager.c
     # skills module split
-    src/core/skills_registry.c
-    src/core/skills_runtime.c
-    src/core/skills_effects.c
-    src/core/skill_tree.c
-    src/core/skill_bar.c
+    src/core/skills/skills_registry.c
+    src/core/skills/skills_runtime.c
+    src/core/skills/skills_effects.c
+    src/core/skills/skill_tree.c
+    src/core/skills/skill_bar.c
     src/core/effect_spec.c
     src/core/buffs.c
     # projectiles module split
@@ -287,9 +287,9 @@ add_library(rogue_core
     src/core/loadout_optimizer.c
     src/core/durability.c
     src/core/vendor/vendor_ui.c
-    src/core/skill_graph_runtime.c
-    src/core/skill_graph_assignment.c
-    src/core/skill_maze.c
+    src/core/skills/skill_graph_runtime.c
+    src/core/skills/skill_graph_assignment.c
+    src/core/skills/skill_maze.c
     src/core/stat_cache.c
     src/core/progression/progression_stats.c
     src/core/progression/progression_xp.c

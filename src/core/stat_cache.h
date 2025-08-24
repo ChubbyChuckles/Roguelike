@@ -2,7 +2,7 @@
 #ifndef ROGUE_STAT_CACHE_H
 #define ROGUE_STAT_CACHE_H
 
-#include "entities/player.h"
+#include "../entities/player.h"
 
 typedef struct RogueStatCache
 {

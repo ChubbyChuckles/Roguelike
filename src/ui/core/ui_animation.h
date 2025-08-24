@@ -1,7 +1,7 @@
 #ifndef ROGUE_UI_ANIMATION_H
 #define ROGUE_UI_ANIMATION_H
 
-#include "ui/core/ui_context.h" /* for RogueUIEaseType */
+#include "ui_context.h" /* for RogueUIEaseType */
 #include <stdint.h>
 
 #ifdef __cplusplus

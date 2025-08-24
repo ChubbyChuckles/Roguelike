@@ -1,8 +1,8 @@
 /* Phase 10.1-10.3: Upgrade stones, affix transfer orb, fusion tests */
 #define SDL_MAIN_HANDLED 1
-#include "core/loot/loot_affixes.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
+#include "../../src/core/loot/loot_affixes.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
 #include <assert.h>
 #include <stdio.h>
 

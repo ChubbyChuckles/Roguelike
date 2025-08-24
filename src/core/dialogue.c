@@ -1,11 +1,11 @@
 /* dialogue.c - Dialogue System Phase 0 implementation */
-#include "core/dialogue.h"
-#include "core/app_state.h"
-#include "core/save_manager.h"
-#include "graphics/font.h"
-#include "graphics/sprite.h"
-#include "ui/core/ui_context.h"
-#include "util/log.h"
+#include "dialogue.h"
+#include "../graphics/font.h"
+#include "../graphics/sprite.h"
+#include "../ui/core/ui_context.h"
+#include "../util/log.h"
+#include "app_state.h"
+#include "save_manager.h"
 #include <assert.h>
 #include <ctype.h>
 #include <stdio.h>

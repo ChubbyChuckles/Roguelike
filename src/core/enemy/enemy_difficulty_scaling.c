@@ -10,8 +10,8 @@
  * rating system is introduced in later phases.
  */
 #define _CRT_SECURE_NO_WARNINGS 1
-#include "core/enemy/enemy_difficulty_scaling.h"
-#include "core/enemy/enemy_adaptive.h"
+#include "enemy_difficulty_scaling.h"
+#include "enemy_adaptive.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>

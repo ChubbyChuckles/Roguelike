@@ -1,6 +1,6 @@
 /* Phase 4 unit tests: local terrain perturbation, caves, lava pockets, ore veins, passability
  * determinism */
-#include "world/world_gen.h"
+#include "../../src/world/world_gen.h"
 #include <stdio.h>
 #include <string.h>
 

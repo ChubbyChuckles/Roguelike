@@ -1,5 +1,5 @@
+#include "../../world/tilemap.h"
 #include "enemy_system_internal.h"
-#include "world/tilemap.h"
 #include <math.h>
 #include <stdlib.h>
 

@@ -2,7 +2,7 @@
 #ifndef ROGUE_LOOT_LOGGING_H
 #define ROGUE_LOOT_LOGGING_H
 
-#include "util/log.h"
+#include "../../util/log.h"
 
 /* Levels:
    0 = silent (no loot logs)

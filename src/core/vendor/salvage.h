@@ -2,7 +2,7 @@
 #ifndef ROGUE_SALVAGE_H
 #define ROGUE_SALVAGE_H
 
-#include "core/loot/loot_item_defs.h"
+#include "../loot/loot_item_defs.h"
 
 /* Returns quantity of material produced, or 0 if not salvageable. Adds material to inventory via
  * provided callback. */

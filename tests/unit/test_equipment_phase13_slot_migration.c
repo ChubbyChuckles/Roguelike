@@ -1,7 +1,7 @@
 #define SDL_MAIN_HANDLED 1
-#include "core/equipment/equipment.h"
-#include "core/equipment/equipment_persist.h"
-#include "core/loot/loot_instances.h"
+#include "../../src/core/equipment/equipment.h"
+#include "../../src/core/equipment/equipment_persist.h"
+#include "../../src/core/loot/loot_instances.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

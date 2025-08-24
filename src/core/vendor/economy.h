@@ -2,8 +2,8 @@
 #ifndef ROGUE_ECONOMY_H
 #define ROGUE_ECONOMY_H
 
-#include "core/loot/loot_item_defs.h"
-#include "core/vendor/vendor.h"
+#include "../loot/loot_item_defs.h"
+#include "vendor.h"
 
 void rogue_econ_reset(void);
 int rogue_econ_gold(void);

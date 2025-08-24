@@ -1,9 +1,9 @@
-#include "core/loot/loot_tables.h"
-#include "core/loot/loot_drop_rates.h"
-#include "core/loot/loot_dynamic_weights.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/loot/loot_rarity_adv.h"
-#include "core/loot/loot_stats.h"
+#include "loot_tables.h"
+#include "loot_drop_rates.h"
+#include "loot_dynamic_weights.h"
+#include "loot_item_defs.h"
+#include "loot_rarity_adv.h"
+#include "loot_stats.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

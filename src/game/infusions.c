@@ -1,4 +1,4 @@
-#include "game/infusions.h"
+#include "infusions.h"
 
 static const RogueInfusionDef g_infusions[] = {
     {0, "None", 1.0f, 0, 0, 0, 0, 0, 1.0f, 1.0f, 1.0f},

@@ -1,6 +1,6 @@
-#include "core/loot/loot_vfx.h"
-#include "core/app_state.h"
-#include "core/loot/loot_instances.h"
+#include "loot_vfx.h"
+#include "../app_state.h"
+#include "loot_instances.h"
 #include <string.h>
 
 /* Simple parallel array indexed by instance slot */

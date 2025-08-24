@@ -1,6 +1,6 @@
 #define SDL_MAIN_HANDLED
-#include "game/hitbox.h"
-#include "game/hitbox_load.h"
+#include "../../src/game/hitbox.h"
+#include "../../src/game/hitbox_load.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>

@@ -1,5 +1,5 @@
 /* Phase 3 Ratings & DR Tests */
-#include "core/progression/progression_ratings.h"
+#include "../../src/core/progression/progression_ratings.h"
 #include <stdio.h>
 static int test_monotonic(enum RogueRatingType t)
 {

@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED
-#include "entities/player.h"
+#include "../../src/entities/player.h"
 #include <stdio.h>
 #include <string.h>
 

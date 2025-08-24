@@ -7,7 +7,7 @@
  */
 #ifndef ROGUE_PROGRESSION_MAZE_H
 #define ROGUE_PROGRESSION_MAZE_H
-#include "core/skill_maze.h"
+#include "../skills/skill_maze.h"
 #ifdef __cplusplus
 extern "C"
 {

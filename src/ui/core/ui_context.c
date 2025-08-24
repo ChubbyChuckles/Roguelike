@@ -1,5 +1,5 @@
-#include "ui/core/ui_context.h"
-#include "ui/core/ui_animation.h"
+#include "ui_context.h"
+#include "ui_animation.h"
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>

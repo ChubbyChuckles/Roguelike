@@ -1,5 +1,5 @@
 #include "../../src/core/inventory/inventory_entries.h"
-#include "core/save_manager.h"
+#include "../../src/core/save_manager.h"
 #include <assert.h>
 #include <stdio.h>
 

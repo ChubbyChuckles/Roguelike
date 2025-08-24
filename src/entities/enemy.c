@@ -1,5 +1,5 @@
-#include "entities/enemy.h"
-#include "util/log.h"
+#include "enemy.h"
+#include "../util/log.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>

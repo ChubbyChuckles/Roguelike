@@ -1,7 +1,7 @@
 #ifndef ROGUE_VEGETATION_JSON_H
 #define ROGUE_VEGETATION_JSON_H
 
-#include "core/vegetation/vegetation.h"
+#include "vegetation.h"
 #include <stddef.h>
 
 #ifdef __cplusplus

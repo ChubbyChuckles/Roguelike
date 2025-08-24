@@ -1,6 +1,6 @@
-#include "core/progression/progression_award.h"
-#include "core/app_state.h"
-#include "core/integration/event_bus.h"
+#include "progression_award.h"
+#include "../app_state.h"
+#include "../integration/event_bus.h"
 #include <limits.h>
 #include <string.h>
 

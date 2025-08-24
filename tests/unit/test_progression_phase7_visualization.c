@@ -1,4 +1,4 @@
-#include "core/progression/progression_maze.h"
+#include "../../src/core/progression/progression_maze.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

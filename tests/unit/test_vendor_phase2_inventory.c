@@ -2,8 +2,8 @@
    - Inventory template loading (archetype -> category & rarity weights)
    - Deterministic seed composition (world_seed ^ hash(vendor_id) ^ day_cycle)
 */
-#include "core/vendor/vendor_inventory_templates.h"
-#include "core/vendor/vendor_registry.h"
+#include "../../src/core/vendor/vendor_inventory_templates.h"
+#include "../../src/core/vendor/vendor_registry.h"
 #include <stdio.h>
 #include <string.h>
 

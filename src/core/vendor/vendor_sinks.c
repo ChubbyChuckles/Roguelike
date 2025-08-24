@@ -1,7 +1,7 @@
-#include "core/vendor/vendor_sinks.h"
-#include "core/crafting/material_registry.h"
-#include "core/equipment/equipment_enchant.h" /* for affix reroll helper */
-#include "core/loot/loot_instances.h"
+#include "vendor_sinks.h"
+#include "../crafting/material_registry.h"
+#include "../equipment/equipment_enchant.h" /* for affix reroll helper */
+#include "../loot/loot_instances.h"
 #include <string.h>
 
 static int g_sink_totals[ROGUE_SINK__COUNT];

@@ -1,11 +1,11 @@
-#include "core/integration/combat_equip_bridge.h"
-#include "core/equipment/equipment.h"
-#include "core/equipment/equipment_procs.h"
-#include "core/equipment/equipment_stats.h"
-#include "core/integration/event_bus.h"
-#include "entities/player.h"
-#include "game/combat.h"
-#include "util/log.h"
+#include "combat_equip_bridge.h"
+#include "../../entities/player.h"
+#include "../../game/combat.h"
+#include "../../util/log.h"
+#include "../equipment/equipment.h"
+#include "../equipment/equipment_procs.h"
+#include "../equipment/equipment_stats.h"
+#include "event_bus.h"
 
 #include <math.h>
 #include <stdio.h>

@@ -1,7 +1,7 @@
 #ifndef ROGUE_INVENTORY_H
 #define ROGUE_INVENTORY_H
 
-#include "core/loot/loot_item_defs.h"
+#include "../loot/loot_item_defs.h"
 #include <stdio.h>
 
 void rogue_inventory_init(void);

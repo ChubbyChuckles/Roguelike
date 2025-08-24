@@ -1,8 +1,8 @@
 /* Phase 10.5: Crafting success chance scaling test */
 #define SDL_MAIN_HANDLED 1
-#include "core/crafting/crafting.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
+#include "../../src/core/crafting/crafting.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
 #include <assert.h>
 #include <stdio.h>
 

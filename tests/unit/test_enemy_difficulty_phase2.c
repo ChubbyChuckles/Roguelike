@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../../src/core/enemy/enemy_difficulty.h"
 #include "../../src/core/enemy/enemy_modifiers.h"
-#include "core/enemy/enemy_difficulty.h"
 
 /* Minimal synthetic modifier config for tests */
 static const char* kTempModFile =

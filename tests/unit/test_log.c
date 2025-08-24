@@ -1,4 +1,4 @@
-#include "util/log.h"
+#include "../../src/util/log.h"
 #include <stdio.h>
 
 int main(void)

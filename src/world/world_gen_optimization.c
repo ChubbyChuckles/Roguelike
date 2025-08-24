@@ -3,7 +3,7 @@
  * benchmark harness. Parallel pass is stubbed with single-thread execution (future extension will
  * dispatch tasks). Deterministic results preserved.
  */
-#include "world/world_gen.h"
+#include "world_gen.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,4 +1,4 @@
-#include "graphics/font.h"
+#include "font.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 extern SDL_Renderer* g_internal_sdl_renderer_ref;

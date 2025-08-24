@@ -1,6 +1,6 @@
 #ifndef ROGUE_LOOT_INSTANCES_H
 #define ROGUE_LOOT_INSTANCES_H
-#include "core/loot/loot_item_defs.h"
+#include "loot_item_defs.h"
 #include <stdint.h>
 
 #ifndef ROGUE_ITEM_INSTANCE_CAP

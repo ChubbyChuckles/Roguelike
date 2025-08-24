@@ -18,7 +18,7 @@
    Tolerance: Deterministic model should produce exact counts; we still allow a
    ±1 wiggle room to remain stable if future engine adjusts first-trigger timing.
 */
-#include "core/equipment/equipment_procs.h"
+#include "../../src/core/equipment/equipment_procs.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

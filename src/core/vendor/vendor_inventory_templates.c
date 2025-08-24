@@ -1,6 +1,6 @@
-#include "core/vendor/vendor_inventory_templates.h"
-#include "core/path_utils.h"
-#include "util/determinism.h"
+#include "vendor_inventory_templates.h"
+#include "../../util/determinism.h"
+#include "../path_utils.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>

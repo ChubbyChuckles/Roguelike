@@ -1,8 +1,8 @@
-#include "entities/enemy.h"
-#include "entities/player.h"
-#include "game/combat.h"
-#include "game/hit_pixel_mask.h"
-#include "game/hit_system.h"
+#include "../../src/entities/enemy.h"
+#include "../../src/entities/player.h"
+#include "../../src/game/combat.h"
+#include "../../src/game/hit_pixel_mask.h"
+#include "../../src/game/hit_system.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

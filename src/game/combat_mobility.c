@@ -1,4 +1,4 @@
-#include "game/combat.h"
+#include "combat.h"
 
 /* Mobility, dodge, aerial, projectile deflection */
 int rogue_player_dodge_roll(RoguePlayer* p, RoguePlayerCombat* pc, int dir)

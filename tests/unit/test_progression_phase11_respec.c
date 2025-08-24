@@ -1,9 +1,9 @@
 /* Phase 11.5: Ensure no stale cache after passive re-spec (reload + different DSL) */
-#include "core/progression/progression_maze.h"
-#include "core/progression/progression_passives.h"
-#include "core/progression/progression_stats.h"
-#include "core/stat_cache.h"
-#include "entities/player.h"
+#include "../../src/core/progression/progression_maze.h"
+#include "../../src/core/progression/progression_passives.h"
+#include "../../src/core/progression/progression_stats.h"
+#include "../../src/core/stat_cache.h"
+#include "../../src/entities/player.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

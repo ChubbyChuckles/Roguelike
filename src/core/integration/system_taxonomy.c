@@ -22,8 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "core/integration/system_taxonomy.h"
-#include "util/log.h"
+#include "system_taxonomy.h"
+#include "../../util/log.h"
 #include <stdio.h>
 #include <string.h>
 

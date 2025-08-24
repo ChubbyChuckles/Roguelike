@@ -10,7 +10,7 @@
 #ifndef ROGUE_WORLD_GEN_BIOME_DESC_H
 #define ROGUE_WORLD_GEN_BIOME_DESC_H
 
-#include "world/tilemap.h"
+#include "tilemap.h"
 #include <stddef.h>
 
 #define ROGUE_BIOME_NAME_MAX 31

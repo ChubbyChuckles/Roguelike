@@ -1,4 +1,4 @@
-#include "core/progression/progression_stats.h"
+#include "progression_stats.h"
 #include <string.h>
 
 /* Static registry ordered by ID asc. Keep contiguous for binary search potential (linear ok small

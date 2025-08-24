@@ -1,7 +1,7 @@
 /* projectiles_config.c - Phase M3.5 projectile & impact tuning */
-#include "core/projectiles_config.h"
-#include "util/hot_reload.h"
-#include "util/kv_parser.h"
+#include "projectiles_config.h"
+#include "../util/hot_reload.h"
+#include "../util/kv_parser.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

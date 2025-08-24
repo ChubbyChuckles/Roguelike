@@ -1,6 +1,6 @@
 /* Phase 11: Runtime Streaming & Caching Implementation */
-#include "world/tilemap.h"
-#include "world/world_gen.h"
+#include "tilemap.h"
+#include "world_gen.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

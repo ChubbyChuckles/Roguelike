@@ -1,5 +1,5 @@
 /* test_dialogue_phase0.c - Phase 0 Dialogue System (data model + loader + registry) */
-#include "core/dialogue.h"
+#include "../../src/core/dialogue.h"
 #include <stdio.h>
 #include <string.h>
 

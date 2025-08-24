@@ -1,4 +1,4 @@
-#include "core/vendor/vendor_perf.h"
+#include "../../src/core/vendor/vendor_perf.h"
 #include <assert.h>
 #include <stdio.h>
 

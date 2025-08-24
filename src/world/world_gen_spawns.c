@@ -1,5 +1,5 @@
 /* Phase 8: Fauna & Spawn Ecology Implementation */
-#include "world/world_gen.h"
+#include "world_gen.h"
 #include <stdlib.h>
 #include <string.h>
 

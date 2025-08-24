@@ -1,4 +1,4 @@
-#include "game/hitbox_load.h"
+#include "hitbox_load.h"
 #ifdef _WIN32
 #include <io.h>
 #else

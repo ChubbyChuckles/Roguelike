@@ -1,4 +1,4 @@
-#include "game/hit_feedback.h"
+#include "../../src/game/hit_feedback.h"
 #include <assert.h>
 #include <stdio.h>
 

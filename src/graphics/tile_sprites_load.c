@@ -1,6 +1,6 @@
 /* Loading & initialization for tile sprites */
-#include "graphics/tile_sprites_internal.h"
-#include "util/log.h"
+#include "../util/log.h"
+#include "tile_sprites_internal.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

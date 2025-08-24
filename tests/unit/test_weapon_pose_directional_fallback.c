@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED
-#include "game/weapon_pose.h"
+#include "../../src/game/weapon_pose.h"
 #include <stdio.h>
 #include <stdlib.h>
 #if defined(_MSC_VER)

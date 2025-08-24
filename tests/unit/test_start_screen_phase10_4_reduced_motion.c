@@ -1,5 +1,5 @@
-#include "core/app.h"
-#include "core/app_state.h"
+#include "../../src/core/app.h"
+#include "../../src/core/app_state.h"
 #include <assert.h>
 
 static unsigned int quant_fade(void)

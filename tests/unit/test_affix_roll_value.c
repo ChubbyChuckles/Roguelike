@@ -1,6 +1,6 @@
 /* Tests procedural stat roll for affix values (7.4) */
-#include "core/loot/loot_affixes.h"
-#include "core/path_utils.h"
+#include "../../src/core/loot/loot_affixes.h"
+#include "../../src/core/path_utils.h"
 #include <stdio.h>
 
 static int fail(const char* msg)

@@ -1,4 +1,4 @@
-#include "world/world_gen_biome_assets_validate.h"
+#include "../../src/world/world_gen_biome_assets_validate.h"
 #include <assert.h>
 
 static char ok_json[] = "{\n"

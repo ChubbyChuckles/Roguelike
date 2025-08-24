@@ -1,5 +1,5 @@
 /* asset_dep.c - Phase M3.4 asset dependency graph & hashing */
-#include "util/asset_dep.h"
+#include "asset_dep.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

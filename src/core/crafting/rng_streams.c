@@ -1,4 +1,4 @@
-#include "core/crafting/rng_streams.h"
+#include "rng_streams.h"
 #include <string.h>
 
 /**

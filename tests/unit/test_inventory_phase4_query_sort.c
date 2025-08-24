@@ -2,7 +2,7 @@
 #include "../../src/core/inventory/inventory_query.h"
 #include "../../src/core/inventory/inventory_tag_rules.h"
 #include "../../src/core/inventory/inventory_tags.h"
-#include "core/loot/loot_item_defs.h"
+#include "../../src/core/loot/loot_item_defs.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

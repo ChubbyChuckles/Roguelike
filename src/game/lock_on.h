@@ -1,8 +1,8 @@
 #ifndef ROGUE_GAME_LOCK_ON_H
 #define ROGUE_GAME_LOCK_ON_H
 /* Phase 5.6: Lock-on subsystem (optional target assist) */
-#include "entities/enemy.h"
-#include "entities/player.h"
+#include "../entities/enemy.h"
+#include "../entities/player.h"
 
 #ifdef __cplusplus
 extern "C"

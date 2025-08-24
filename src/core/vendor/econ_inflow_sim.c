@@ -1,7 +1,7 @@
-#include "core/vendor/econ_inflow_sim.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/vendor/econ_materials.h"
-#include "core/vendor/econ_value.h"
+#include "econ_inflow_sim.h"
+#include "../loot/loot_item_defs.h"
+#include "econ_materials.h"
+#include "econ_value.h"
 
 int rogue_econ_inflow_baseline(int kills_per_min, double hours, double avg_item_drops_per_kill,
                                double avg_material_drops_per_kill, RogueEconInflowResult* out)

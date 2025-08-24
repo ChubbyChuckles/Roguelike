@@ -1,4 +1,4 @@
-#include "world/world_gen.h"
+#include "../../src/world/world_gen.h"
 #include <assert.h>
 #include <stdio.h>
 

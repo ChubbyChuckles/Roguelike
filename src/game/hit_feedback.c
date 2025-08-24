@@ -1,5 +1,5 @@
-#include "game/hit_feedback.h"
-#include "core/app_state.h"
+#include "hit_feedback.h"
+#include "../core/app_state.h"
 #include <math.h>
 #ifndef M_PI
 #define M_PI 3.14159265358979323846

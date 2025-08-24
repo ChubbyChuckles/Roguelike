@@ -5,7 +5,7 @@
 #ifndef ROGUE_VENDOR_H
 #define ROGUE_VENDOR_H
 
-#include "core/loot/loot_generation.h"
+#include "../loot/loot_generation.h"
 
 #ifndef ROGUE_VENDOR_SLOT_CAP
 #define ROGUE_VENDOR_SLOT_CAP 32

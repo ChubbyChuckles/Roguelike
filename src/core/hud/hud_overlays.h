@@ -1,7 +1,7 @@
 /* Phase 6.5/6.6/6.7 HUD overlays: minimap toggle (existing minimap.c), alerts, metrics */
 #ifndef ROGUE_CORE_HUD_OVERLAYS_H
 #define ROGUE_CORE_HUD_OVERLAYS_H
-#include "core/app_state.h"
+#include "../app_state.h"
 /* Initialize alert system state */
 void rogue_alerts_reset(void);
 /* Raise specific alerts */

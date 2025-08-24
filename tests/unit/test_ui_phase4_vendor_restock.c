@@ -1,5 +1,5 @@
-#include "core/app_state.h"
-#include "core/vendor/vendor_ui.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/vendor/vendor_ui.h"
 #include <assert.h>
 
 int main(void)

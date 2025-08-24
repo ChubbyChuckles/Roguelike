@@ -3,11 +3,11 @@
    material & recipe injection)
    - Deterministic reproduction across identical seeds
 */
-#include "core/crafting/crafting.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/vendor/vendor.h"
-#include "core/vendor/vendor_inventory_templates.h"
-#include "core/vendor/vendor_registry.h"
+#include "../../src/core/crafting/crafting.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/vendor/vendor.h"
+#include "../../src/core/vendor/vendor_inventory_templates.h"
+#include "../../src/core/vendor/vendor_registry.h"
 #include <stdio.h>
 #include <string.h>
 

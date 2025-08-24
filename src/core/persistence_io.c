@@ -1,5 +1,5 @@
-#include "core/persistence.h"
-#include "core/persistence_internal.h"
+#include "persistence.h"
+#include "persistence_internal.h"
 #include <string.h>
 
 char g_player_stats_path[260] = {0};

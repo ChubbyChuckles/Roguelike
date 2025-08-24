@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED
-#include "entities/enemy.h"
+#include "../../src/entities/enemy.h"
 #include <stdio.h>
 #include <string.h>
 

@@ -2,7 +2,7 @@
 #ifndef ROGUE_SKILLS_INTERNAL_H
 #define ROGUE_SKILLS_INTERNAL_H
 
-#include "core/skills.h"
+#include "skills.h"
 
 extern struct RogueSkillDef* g_skill_defs_internal;
 extern struct RogueSkillState* g_skill_states_internal;

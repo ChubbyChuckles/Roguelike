@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED 1
-#include "ui/core/ui_context.h"
+#include "../../src/ui/core/ui_context.h"
 #include <stdio.h>
 #include <string.h>
 

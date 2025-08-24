@@ -9,7 +9,7 @@ extern "C"
 {
 #endif
 
-#include "core/enemy/enemy_difficulty.h"
+#include "enemy_difficulty.h"
 
 #define ROGUE_ENEMY_MAX_MODIFIERS 64
 #define ROGUE_ENEMY_MAX_ACTIVE_MODS 8

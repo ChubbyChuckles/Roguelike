@@ -1,5 +1,5 @@
-#include "core/vegetation/vegetation_json.h"
-#include "core/vegetation/vegetation_internal.h" /* for rogue__vegetation_register_def */
+#include "vegetation_json.h"
+#include "vegetation_internal.h" /* for rogue__vegetation_register_def */
 #include <stdlib.h>
 #include <string.h>
 

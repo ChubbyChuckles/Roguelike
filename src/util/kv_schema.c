@@ -1,5 +1,5 @@
 /* kv_schema.c - Phase M3.2 schema validation */
-#include "util/kv_schema.h"
+#include "kv_schema.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

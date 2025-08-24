@@ -19,7 +19,7 @@
  * Smoothing: EMA alpha derived from dt or event-driven for numerical stability.
  */
 
-#include "core/enemy/enemy_adaptive.h"
+#include "enemy_adaptive.h"
 #include <math.h>
 
 /**

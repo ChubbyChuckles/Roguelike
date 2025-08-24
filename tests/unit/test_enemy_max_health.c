@@ -1,7 +1,7 @@
 #ifdef ROGUE_HAVE_SDL
 #define SDL_MAIN_HANDLED
 #endif
-#include "entities/enemy.h"
+#include "../../src/entities/enemy.h"
 #include <stdio.h>
 
 int main(void)

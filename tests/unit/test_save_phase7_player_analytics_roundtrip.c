@@ -1,6 +1,6 @@
-#include "core/app_state.h"
-#include "core/save_manager.h"
-#include "entities/player.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/save_manager.h"
+#include "../../src/entities/player.h"
 #include <stdio.h>
 #include <string.h>
 

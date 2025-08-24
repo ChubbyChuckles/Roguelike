@@ -1,4 +1,4 @@
-#include "core/progression/progression_mastery.h"
+#include "../../src/core/progression/progression_mastery.h"
 #include <assert.h>
 #include <stdio.h>
 

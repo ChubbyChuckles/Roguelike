@@ -1,12 +1,12 @@
-#include "core/equipment/equipment_stats.h"
-#include "core/equipment/equipment.h"
-#include "core/equipment/equipment_content.h" /* Phase 16.2 external set/runeword registries */
-#include "core/equipment/equipment_gems.h"    /* Phase 5.2 gem aggregation */
-#include "core/equipment/equipment_uniques.h"
-#include "core/loot/loot_affixes.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/stat_cache.h"
+#include "equipment_stats.h"
+#include "../loot/loot_affixes.h"
+#include "../loot/loot_instances.h"
+#include "../loot/loot_item_defs.h"
+#include "../stat_cache.h"
+#include "equipment.h"
+#include "equipment_content.h" /* Phase 16.2 external set/runeword registries */
+#include "equipment_gems.h"    /* Phase 5.2 gem aggregation */
+#include "equipment_uniques.h"
 
 /* Placeholder: determine runeword pattern for an item instance (Phase 4.5).
     For now, reuse item id as pattern key. */

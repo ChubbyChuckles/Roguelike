@@ -1,7 +1,7 @@
 /* kv_schema.h - Phase M3.2 Schema + validation error surfacing */
 #ifndef ROGUE_UTIL_KV_SCHEMA_H
 #define ROGUE_UTIL_KV_SCHEMA_H
-#include "util/kv_parser.h"
+#include "kv_parser.h"
 
 typedef enum RogueKVType
 {

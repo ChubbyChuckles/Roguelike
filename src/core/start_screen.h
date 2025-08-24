@@ -1,6 +1,6 @@
 #ifndef ROGUE_START_SCREEN_H
 #define ROGUE_START_SCREEN_H
-#include "core/app_state.h"
+#include "app_state.h"
 
 /* Phase 1.1: Start screen states for simple transitions */
 typedef enum RogueStartScreenState

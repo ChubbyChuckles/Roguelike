@@ -1,5 +1,5 @@
 /* Phase 6: Structures & Points of Interest implementation */
-#include "world/world_gen.h"
+#include "world_gen.h"
 #include <stdlib.h>
 #include <string.h>
 

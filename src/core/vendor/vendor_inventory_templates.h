@@ -12,7 +12,7 @@ extern "C"
 {
 #endif
 
-#include "core/loot/loot_item_defs.h"
+#include "../loot/loot_item_defs.h"
 
 #define ROGUE_MAX_VENDOR_INV_TEMPLATES 32
 

@@ -1,6 +1,6 @@
 /* Sprite/texture abstraction */
-#include "graphics/sprite.h"
-#include "util/log.h"
+#include "sprite.h"
+#include "../util/log.h"
 #include <stdio.h>
 
 #ifdef ROGUE_HAVE_SDL

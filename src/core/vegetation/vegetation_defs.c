@@ -1,6 +1,6 @@
 /* Definition loading & lifecycle (init/shutdown) for vegetation system */
-#include "core/vegetation/vegetation_internal.h"
-#include "util/log.h"
+#include "../../util/log.h"
+#include "vegetation_internal.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

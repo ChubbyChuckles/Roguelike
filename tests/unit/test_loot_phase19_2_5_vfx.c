@@ -1,6 +1,6 @@
-#include "core/app_state.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_vfx.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_vfx.h"
 #include <stdio.h>
 
 static int expect(int cond, const char* msg)

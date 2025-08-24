@@ -1,4 +1,4 @@
-#include "core/vendor/vendor_adaptive.h"
+#include "../../src/core/vendor/vendor_adaptive.h"
 #include <assert.h>
 #include <stdio.h>
 

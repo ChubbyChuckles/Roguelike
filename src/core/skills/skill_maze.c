@@ -1,5 +1,5 @@
-#include "core/skill_maze.h"
-#include "util/file_search.h"
+#include "skill_maze.h"
+#include "../../util/file_search.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,5 +1,5 @@
 /* Phase 16.1: External equipment definition editor JSON roundtrip test */
-#include "core/loot/loot_item_defs.h"
+#include "../../src/core/loot/loot_item_defs.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

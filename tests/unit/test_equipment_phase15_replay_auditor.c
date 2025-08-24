@@ -1,11 +1,11 @@
 /* Phase 15.4 Proc replay auditor + 15.5 affix blacklist + 15.6 chain/dup tests */
 #define SDL_MAIN_HANDLED 1
+#include "../../src/core/equipment/equipment.h"
 #include "../../src/core/equipment/equipment_integrity.h"
-#include "core/equipment/equipment.h"
-#include "core/equipment/equipment_procs.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/stat_cache.h"
+#include "../../src/core/equipment/equipment_procs.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/stat_cache.h"
 #include <assert.h>
 #include <stdio.h>
 

@@ -1,4 +1,4 @@
-#include "world/world_gen.h"
+#include "../../src/world/world_gen.h"
 #include <stdio.h>
 
 static int count_type(const RogueTileMap* m, unsigned char t)

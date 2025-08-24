@@ -1,7 +1,7 @@
+#include "../../src/core/app_state.h"
+#include "../../src/core/loot/loot_instances.h"
 #include "../../src/core/loot/loot_pickup.h"
-#include "core/app_state.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_rarity_adv.h"
+#include "../../src/core/loot/loot_rarity_adv.h"
 #include <stdio.h>
 #include <string.h>
 

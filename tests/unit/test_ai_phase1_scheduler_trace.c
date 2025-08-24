@@ -1,9 +1,9 @@
-#include "ai/core/ai_rng.h"
-#include "ai/core/ai_trace.h"
-#include "ai/core/behavior_tree.h"
-#include "ai/core/blackboard.h"
-#include "ai/nodes/basic_nodes.h"
-#include "util/determinism.h"
+#include "../../src/ai/core/ai_rng.h"
+#include "../../src/ai/core/ai_trace.h"
+#include "../../src/ai/core/behavior_tree.h"
+#include "../../src/ai/core/blackboard.h"
+#include "../../src/ai/nodes/basic_nodes.h"
+#include "../../src/util/determinism.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

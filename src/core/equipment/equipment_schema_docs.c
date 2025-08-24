@@ -1,5 +1,5 @@
 /* Phase 17.1 implementation: schema docs exporter */
-#include "core/equipment/equipment_schema_docs.h"
+#include "equipment_schema_docs.h"
 #include <stdio.h>
 #include <string.h>
 

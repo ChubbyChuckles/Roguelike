@@ -1,4 +1,4 @@
-#include "core/localization.h"
+#include "localization.h"
 #include <string.h>
 
 static RogueLocalePair g_default_pairs[] = {

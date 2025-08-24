@@ -1,6 +1,6 @@
 #define SDL_MAIN_HANDLED
-#include "entities/player.h"
-#include "game/combat.h"
+#include "../../src/entities/player.h"
+#include "../../src/game/combat.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -26,8 +26,8 @@ static void rogue_add_damage_number_ex(float x, float y, int amount, int from_pl
 
 /* Use real app struct to avoid symbol redefinition; stub input functions via existing input API
  * expectations. */
+#include "../../src/core/app.h"
 #include "../../src/core/player/player_controller.h"
-#include "core/app.h"
 /* Override movement-affecting helpers with no-op via macros if needed */
 float rogue_vegetation_tile_move_scale(int x, int y)
 {

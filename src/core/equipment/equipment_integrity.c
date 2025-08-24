@@ -1,9 +1,9 @@
 /* Phase 15 Integrity helpers implementation */
-#include "core/equipment/equipment_integrity.h"
-#include "core/equipment/equipment.h"
-#include "core/equipment/equipment_procs.h"
-#include "core/loot/loot_affixes.h"
-#include "core/loot/loot_instances.h"
+#include "equipment_integrity.h"
+#include "../loot/loot_affixes.h"
+#include "../loot/loot_instances.h"
+#include "equipment.h"
+#include "equipment_procs.h"
 
 #include <string.h>
 

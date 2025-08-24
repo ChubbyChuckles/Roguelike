@@ -1,4 +1,4 @@
-#include "core/loot/loot_affixes.h"
+#include "loot_affixes.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -1,8 +1,8 @@
-#include "core/vendor/vendor_pricing.h"
-#include "core/vendor/econ_value.h"
-#include "core/vendor/vendor_adaptive.h"
-#include "core/vendor/vendor_econ_balance.h"
-#include "core/vendor/vendor_rng.h"
+#include "vendor_pricing.h"
+#include "econ_value.h"
+#include "vendor_adaptive.h"
+#include "vendor_econ_balance.h"
+#include "vendor_rng.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>

@@ -1,4 +1,4 @@
-#include "core/vendor/econ_value.h"
+#include "econ_value.h"
 
 static float base_slot_factor_for_category(int cat)
 {

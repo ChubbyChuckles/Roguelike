@@ -1,6 +1,6 @@
-#include "core/app_state.h"
-#include "core/persistence.h"
-#include "entities/player.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/persistence.h"
+#include "../../src/entities/player.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

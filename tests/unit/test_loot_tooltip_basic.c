@@ -1,11 +1,11 @@
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
 #include "../../src/core/loot/loot_tooltip.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/path_utils.h"
+#include "../../src/core/path_utils.h"
 #include <stdio.h>
 #include <string.h>
 
-#include "core/app_state.h"
+#include "../../src/core/app_state.h"
 RogueAppState g_app;
 RoguePlayer g_exposed_player_for_stats;
 void rogue_player_recalc_derived(RoguePlayer* p) { (void) p; }

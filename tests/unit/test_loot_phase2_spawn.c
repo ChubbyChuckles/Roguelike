@@ -1,8 +1,8 @@
-#include "core/app_state.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/loot/loot_tables.h"
-#include "core/path_utils.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/loot/loot_tables.h"
+#include "../../src/core/path_utils.h"
 #include <assert.h>
 #include <stdio.h>
 

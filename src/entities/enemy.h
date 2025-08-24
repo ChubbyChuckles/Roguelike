@@ -1,7 +1,7 @@
 #ifndef ROGUE_ENTITIES_ENEMY_H
 #define ROGUE_ENTITIES_ENEMY_H
-#include "entities/entity.h"
-#include "graphics/sprite.h"
+#include "../graphics/sprite.h"
+#include "entity.h"
 
 typedef enum RogueEnemyAIState
 {

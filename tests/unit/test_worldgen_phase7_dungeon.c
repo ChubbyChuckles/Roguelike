@@ -1,5 +1,5 @@
 /* Phase 7 dungeon generation tests: graph, carving, loops, secrets, locks */
-#include "world/world_gen.h"
+#include "../../src/world/world_gen.h"
 #include <stdio.h>
 #include <string.h>
 

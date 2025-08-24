@@ -1,5 +1,5 @@
 /* test_kv_parser.c - Unit tests for unified key/value parser (Phase M3.1) */
-#include "util/kv_parser.h"
+#include "../../src/util/kv_parser.h"
 #include <stdio.h>
 #include <string.h>
 

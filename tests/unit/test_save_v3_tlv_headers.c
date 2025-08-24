@@ -1,5 +1,5 @@
 /* Verifies v3 TLV header layout: first section uses 2-byte id + 4-byte size */
-#include "core/save_manager.h"
+#include "../../src/core/save_manager.h"
 #include <stdio.h>
 #include <string.h>
 

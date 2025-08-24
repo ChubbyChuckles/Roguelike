@@ -1,5 +1,5 @@
-#include "core/loot/loot_drop_rates.h"
-#include "core/loot/loot_item_defs.h"
+#include "loot_drop_rates.h"
+#include "loot_item_defs.h"
 
 static float g_global_scalar = 1.0f;
 static float g_category_scalar[ROGUE_ITEM__COUNT];

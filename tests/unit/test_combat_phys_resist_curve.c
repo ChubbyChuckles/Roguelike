@@ -1,6 +1,6 @@
 /* Tests diminishing returns curve for physical percent resist (Phase 2.2 finalization). */
 #define SDL_MAIN_HANDLED
-#include "game/combat.h"
+#include "../../src/game/combat.h"
 #include <assert.h>
 #include <stdio.h>
 

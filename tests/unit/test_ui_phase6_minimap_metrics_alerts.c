@@ -1,8 +1,8 @@
 #define SDL_MAIN_HANDLED 1
-#include "core/app_state.h"
-#include "core/buffs.h"
-#include "core/hud/hud_overlays.h"
-#include "core/minimap.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/buffs.h"
+#include "../../src/core/hud/hud_overlays.h"
+#include "../../src/core/minimap.h"
 #include <stdio.h>
 
 RogueAppState g_app;

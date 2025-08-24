@@ -1,4 +1,4 @@
-#include "game/weapons.h"
+#include "weapons.h"
 #include <string.h>
 
 /* Static weapon table (could be externalized later) */

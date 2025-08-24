@@ -1,7 +1,7 @@
 #ifndef ROGUE_GRAPHICS_FONT_H
 #define ROGUE_GRAPHICS_FONT_H
 
-#include "graphics/renderer.h"
+#include "renderer.h"
 #include <stddef.h>
 
 /* Very small built-in 5x7 ASCII subset font (generated). */

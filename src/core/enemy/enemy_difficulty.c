@@ -9,7 +9,7 @@
  * tiers and archetypes. Validation helpers are provided for unit tests to
  * assert monotonicity and uniqueness of the static tables.
  */
-#include "core/enemy/enemy_difficulty.h"
+#include "enemy_difficulty.h"
 #include <string.h>
 
 /**

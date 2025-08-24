@@ -8,7 +8,7 @@
 #ifndef ROGUE_CRAFTING_QUEUE_H
 #define ROGUE_CRAFTING_QUEUE_H
 
-#include "core/crafting/crafting.h"
+#include "crafting.h"
 
 #ifdef __cplusplus
 extern "C"

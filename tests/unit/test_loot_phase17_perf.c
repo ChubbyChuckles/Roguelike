@@ -1,5 +1,5 @@
 /* Phase 17 Performance & Memory Optimizations basic test */
-#include "core/loot/loot_perf.h"
+#include "../../src/core/loot/loot_perf.h"
 #include <stdio.h>
 
 static int fail = 0;

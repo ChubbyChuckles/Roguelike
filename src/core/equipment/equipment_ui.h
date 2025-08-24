@@ -4,7 +4,7 @@
    Deterministic string outputs used by unit tests (no renderer dependency). */
 #ifndef ROGUE_EQUIPMENT_UI_H
 #define ROGUE_EQUIPMENT_UI_H
-#include "core/equipment/equipment.h"
+#include "equipment.h"
 #include <stddef.h>
 
 #ifdef __cplusplus

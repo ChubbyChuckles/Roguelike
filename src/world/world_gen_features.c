@@ -1,5 +1,5 @@
 /* Feature passes: caves, rivers, erosion, smoothing, advanced post */
-#include "world/world_gen_internal.h"
+#include "world_gen_internal.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>

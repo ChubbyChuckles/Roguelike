@@ -1,4 +1,4 @@
-#include "core/loot/loot_rarity_adv.h"
+#include "loot_rarity_adv.h"
 #include <string.h>
 
 #define RARITY_COUNT 5

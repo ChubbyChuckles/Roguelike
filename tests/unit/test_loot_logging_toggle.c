@@ -1,4 +1,4 @@
-#include "core/loot/loot_logging.h"
+#include "../../src/core/loot/loot_logging.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

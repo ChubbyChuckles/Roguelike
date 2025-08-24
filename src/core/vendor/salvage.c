@@ -1,6 +1,6 @@
-#include "core/vendor/salvage.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
+#include "salvage.h"
+#include "../loot/loot_instances.h"
+#include "../loot/loot_item_defs.h"
 #include <stdio.h>
 
 /* Simple salvage rule: materials per rarity = 1,2,4,8,16 scaled by base_value bracket. Uses

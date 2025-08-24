@@ -9,7 +9,7 @@
  * This module is intentionally simple and not thread-safe. It is intended
  * for use from a single-threaded update loop or with external synchronization.
  */
-#include "ai/core/ai_profiler.h"
+#include "ai_profiler.h"
 
 /** Default per-frame AI budget in milliseconds. */
 static double g_budget_ms = 1.0; /* default 1ms */

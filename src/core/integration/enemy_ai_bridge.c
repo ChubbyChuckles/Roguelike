@@ -6,12 +6,12 @@
  * performance-aware coordination.
  */
 
-#include "core/integration/enemy_ai_bridge.h"
-#include "ai/core/ai_scheduler.h"
-#include "ai/core/behavior_tree.h"
-#include "ai/core/blackboard.h"
-#include "core/integration/config_version.h"
-#include "entities/enemy.h"
+#include "enemy_ai_bridge.h"
+#include "../../ai/core/ai_scheduler.h"
+#include "../../ai/core/behavior_tree.h"
+#include "../../ai/core/blackboard.h"
+#include "../../entities/enemy.h"
+#include "config_version.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

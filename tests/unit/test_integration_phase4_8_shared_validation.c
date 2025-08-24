@@ -8,9 +8,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "core/integration/cow.h"
-#include "core/integration/entity_id.h"
-#include "core/integration/resource_lock.h"
+#include "../../src/core/integration/cow.h"
+#include "../../src/core/integration/entity_id.h"
+#include "../../src/core/integration/resource_lock.h"
 
 #ifdef _WIN32
 #include <windows.h>

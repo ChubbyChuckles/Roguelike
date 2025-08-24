@@ -9,12 +9,12 @@
  * lightweight primitive lists for visualization overlays. Determinism
  * verification runs two trees in lockstep and compares their active paths.
  */
-#include "ai/core/ai_debug.h"
-#include "ai/core/ai_trace.h"
-#include "ai/core/behavior_tree.h"
-#include "ai/core/blackboard.h"
-#include "ai/perception/perception.h"
-#include "util/determinism.h"
+#include "ai_debug.h"
+#include "../../util/determinism.h"
+#include "../perception/perception.h"
+#include "ai_trace.h"
+#include "behavior_tree.h"
+#include "blackboard.h"
 #include <stdio.h>
 #include <string.h>
 

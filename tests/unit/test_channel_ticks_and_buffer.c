@@ -1,7 +1,7 @@
 /* Test channel multi-tick scheduler (every 250ms) and that a second activation during casting
  * waits. */
-#include "core/app_state.h"
-#include "core/skills.h"
+#include "../../src/core/app_state.h"
+#include "../../src/core/skills/skills.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

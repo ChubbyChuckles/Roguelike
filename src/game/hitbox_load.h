@@ -1,6 +1,6 @@
 #ifndef ROGUE_GAME_HITBOX_LOAD_H
 #define ROGUE_GAME_HITBOX_LOAD_H
-#include "game/hitbox.h"
+#include "hitbox.h"
 
 /* Phase 5.2: Hitbox authoring (lightweight JSON subset parser)
    Supports an array of objects each specifying one hitbox primitive. Grammar (subset):

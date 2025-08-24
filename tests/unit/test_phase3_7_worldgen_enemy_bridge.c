@@ -11,7 +11,7 @@
  * - Enemy migration patterns (3.7.7)
  */
 
-#include "core/integration/worldgen_enemy_bridge.h"
+#include "../../src/core/integration/worldgen_enemy_bridge.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

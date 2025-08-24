@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED 1
-#include "core/loot/loot_affixes.h"
+#include "../../src/core/loot/loot_affixes.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

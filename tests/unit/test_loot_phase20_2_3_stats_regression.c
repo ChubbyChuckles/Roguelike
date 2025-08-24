@@ -12,10 +12,10 @@
  */
 #include "../../src/core/loot/loot_drop_rates.h"
 #include "../../src/core/loot/loot_dynamic_weights.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/loot/loot_rarity_adv.h"
-#include "core/loot/loot_tables.h"
-#include "core/path_utils.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/loot/loot_rarity_adv.h"
+#include "../../src/core/loot/loot_tables.h"
+#include "../../src/core/path_utils.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>

@@ -9,7 +9,7 @@ extern "C"
 {
 #endif
 
-#include "core/enemy/enemy_difficulty.h"
+#include "enemy_difficulty.h"
 
     /* Parameter set loaded from data file (cfg key=value). */
     typedef struct RogueEnemyDifficultyParams

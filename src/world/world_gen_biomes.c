@@ -1,5 +1,5 @@
 /* Base terrain & biome field generation */
-#include "world/world_gen_internal.h"
+#include "world_gen_internal.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>

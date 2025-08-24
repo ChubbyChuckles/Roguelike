@@ -1,4 +1,4 @@
-#include "core/vendor/vendor_reputation.h"
+#include "vendor_reputation.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>

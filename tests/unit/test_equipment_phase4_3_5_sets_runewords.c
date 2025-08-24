@@ -6,13 +6,13 @@
    unique.
      - Precedence/order invariance: equip order permutations yield identical fingerprint.
 */
-#include "core/equipment/equipment.h"
-#include "core/equipment/equipment_stats.h"
-#include "core/equipment/equipment_uniques.h"
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/stat_cache.h"
-#include "entities/player.h"
+#include "../../src/core/equipment/equipment.h"
+#include "../../src/core/equipment/equipment_stats.h"
+#include "../../src/core/equipment/equipment_uniques.h"
+#include "../../src/core/loot/loot_instances.h"
+#include "../../src/core/loot/loot_item_defs.h"
+#include "../../src/core/stat_cache.h"
+#include "../../src/entities/player.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

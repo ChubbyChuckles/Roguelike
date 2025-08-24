@@ -1,5 +1,5 @@
 /* test_dialogue_phase2_tokens.c - Phase 2 token expansion test */
-#include "core/dialogue.h"
+#include "../../src/core/dialogue.h"
 #include <stdio.h>
 #include <string.h>
 

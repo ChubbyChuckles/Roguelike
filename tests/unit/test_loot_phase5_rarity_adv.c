@@ -1,7 +1,7 @@
 /* Tests for advanced rarity features 5.5-5.8 */
 #include "../../src/core/loot/loot_dynamic_weights.h"
-#include "core/loot/loot_rarity_adv.h"
-#include "core/loot/loot_tables.h"
+#include "../../src/core/loot/loot_rarity_adv.h"
+#include "../../src/core/loot/loot_tables.h"
 #include <stdio.h>
 
 static int fail(const char* m)

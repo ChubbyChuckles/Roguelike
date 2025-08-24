@@ -1,11 +1,11 @@
-#include "core/equipment/equipment_ui.h"
-#include "core/equipment/equipment_procs.h"
-#include "core/equipment/equipment_stats.h" /* for runeword/set already aggregated; we only read cache */
-#include "core/loot/loot_instances.h"
-#include "core/loot/loot_item_defs.h"
-#include "core/loot/loot_tooltip.h" /* reuse simple builder for base lines */
-#include "core/stat_cache.h"
-#include "entities/player.h"
+#include "equipment_ui.h"
+#include "../../entities/player.h"
+#include "../loot/loot_instances.h"
+#include "../loot/loot_item_defs.h"
+#include "../loot/loot_tooltip.h" /* reuse simple builder for base lines */
+#include "../stat_cache.h"
+#include "equipment_procs.h"
+#include "equipment_stats.h" /* for runeword/set already aggregated; we only read cache */
 #include <math.h>
 #include <stdio.h>
 #include <string.h>

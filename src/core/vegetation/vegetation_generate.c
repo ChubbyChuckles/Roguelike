@@ -1,6 +1,6 @@
 /* Procedural generation of vegetation instances */
-#include "core/app_state.h"
-#include "core/vegetation/vegetation_internal.h"
+#include "../app_state.h"
+#include "vegetation_internal.h"
 #include <math.h>
 
 static void vrng_seed(unsigned int s)

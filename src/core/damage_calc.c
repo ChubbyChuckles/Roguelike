@@ -1,9 +1,9 @@
-#include "core/damage_calc.h"
-#include "core/app_state.h"
-#include "core/progression/progression_mastery.h"
-#include "core/progression/progression_specialization.h"
-#include "core/progression/progression_synergy.h"
-#include "core/stat_cache.h"
+#include "damage_calc.h"
+#include "app_state.h"
+#include "progression/progression_mastery.h"
+#include "progression/progression_specialization.h"
+#include "progression/progression_synergy.h"
+#include "stat_cache.h"
 #include <math.h>
 
 int rogue_damage_fireball(int fireball_skill_id)

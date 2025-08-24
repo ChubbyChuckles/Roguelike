@@ -1,7 +1,7 @@
 #ifndef ROGUE_CORE_SKILL_GRAPH_RUNTIME_INTERNAL_H
 #define ROGUE_CORE_SKILL_GRAPH_RUNTIME_INTERNAL_H
-#include "core/skill_maze.h"
-#include "core/skills.h"
+#include "skill_maze.h"
+#include "skills.h"
 #ifdef __cplusplus
 extern "C"
 {
