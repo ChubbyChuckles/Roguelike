@@ -38,8 +38,8 @@ PHASE 3. VFX Subsystem Foundations
 3.6 Screen-space vs world-space coordinate support (Done: camera state + world->screen transform helper, screen-space collector; unit test)
 
 PHASE 4. Authoring & Data Format
-4.1 Config schema (e.g. assets/fx/*.cfg) (X)
-4.2 Hot reload & validation errors reporting (X)
+4.1 Config schema (e.g. assets/fx/*.cfg) (Done)
+4.2 Hot reload & validation errors reporting (Done)
 4.3 Effect composition: chain & parallel blocks (X)
 4.4 Parameter overrides (color shift, scale, lifetime) (X)
 4.5 Random distributions (uniform, normal) for variation (X)
@@ -176,3 +176,9 @@ Notes (2025-08-27, continued):
 
 Notes (2025-08-28):
 - Phase 3.6 (Screen vs World): Added camera state setter `rogue_vfx_set_camera(cam_x, cam_y, pixels_per_world)` and screen-space particle collector `rogue_vfx_particles_collect_screen(float* out_xy, uint8_t* out_layers, int max)`. World-space particles are transformed by subtracting camera and multiplying by pixels_per_world; screen-space particles bypass transform. New unit test `tests/unit/test_audio_vfx_phase3_6_screen_vs_world.c` validates MID(world) particles offset to expected pixel coords and UI(screen) particles unaffected. Audio/VFX suite now passes 10/10 under Debug SDL2 with `ctest -j8 -R audio_vfx`.
+
+Notes (2025-08-28, later):
+- Phase 4.1 (Authoring config loader): Implemented minimal CSV-based VFX config loader `rogue_vfx_load_cfg` in `src/audio_vfx/vfx_config.c/.h`. Supported columns: id, layer (0..3 or BG/MID/FG/UI), lifetime_ms, world_space (0/1 or true/false), emit_hz, particle_lifetime_ms, max_particles. Loader registers VFX and applies emitter settings via `rogue_vfx_registry_set_emitter`. Portable case-insensitive parser avoids non-standard calls; MSVC warnings-as-errors clean. Unit test `tests/unit/test_audio_vfx_phase4_1_vfx_config_loader.c` creates a temp CSV, loads it, spawns instances, steps update, and asserts particles active on expected layers. Built Debug (SDL2, -j8) and ran `ctest -j8 -R audio_vfx` 2 11/11 passing.
+
+Notes (2025-08-28, even later):
+- Phase 4.2 (Hot reload & validation errors): Added `rogue_vfx_config_watch(path)` to monitor a VFX CSV and auto-reload via `rogue_vfx_load_cfg` on content changes using the shared hot-reload utility. Error tracking buffers surfaced through `rogue_vfx_last_cfg_error_count` and `rogue_vfx_last_cfg_error_get` for UI/tools consumption. Unit test `tests/unit/test_audio_vfx_phase4_2_hot_reload_and_validation.c` validates both live reload (layer change) and error reporting on malformed rows. Audio/VFX suite now passes 12/12 in Debug SDL2 with `ctest -j8 -R audio_vfx`.

@@ -72,3 +72,21 @@ Audio/VFX Phase 3.6: screen-space vs world-space transforms + test
 - New unit test `tests/unit/test_audio_vfx_phase3_6_screen_vs_world.c` validates MID(world) vs UI(screen) behavior and preserves layer tagging; test registered in CMake.
 - Build: Debug with SDL2 `--parallel 8`; ran `ctest -j8 -R audio_vfx` → 10/10 passing.
 - Docs: Roadmap marks 3.6 Done; README changelog updated with Phase 3.6 entry.
+
+Audio/VFX Phase 4.1: VFX authoring config loader (CSV) + tests
+
+- Implemented CSV-based loader `rogue_vfx_load_cfg` in src/audio_vfx/vfx_config.c/.h.
+- Supported columns: id, layer (0..3 or BG/MID/FG/UI), lifetime_ms, world_space (0/1,true/false), emit_hz, particle_lifetime_ms, max_particles.
+- Registers VFX and applies emitter settings; parser is MSVC-portable (no non-standard strcasecmp/unsafe strncpy).
+- Added unit test `tests/unit/test_audio_vfx_phase4_1_vfx_config_loader.c` that writes a temp CSV, loads it, spawns instances, steps update, and asserts particles on expected layers.
+- CMake: wired vfx_config.c and new test; Debug build with SDL2 `--parallel 8` succeeds.
+- Tests: `ctest -C Debug -j8 -R audio_vfx` → 11/11 passing.
+- Docs: Roadmap marks 4.1 Done; README changelog updated with Phase 4.1 entry.
+
+Audio/VFX Phase 4.2: hot reload wiring + validation error reporting + test
+
+- Added hot-reload integration for VFX CSV via `rogue_vfx_config_watch(path)` using shared util/hot_reload.
+- Introduced error tracking APIs `rogue_vfx_last_cfg_error_count` and `rogue_vfx_last_cfg_error_get` to surface load/parse issues.
+- Unit test `tests/unit/test_audio_vfx_phase4_2_hot_reload_and_validation.c` validates live reload after file edit and captures validation errors on malformed rows.
+- Build: Debug with SDL2 `--parallel 8` succeeded; tests: `ctest -C Debug -j8 -R audio_vfx` → 12/12 passing.
+- Docs: Roadmap marks 4.2 Done; README changelog will reflect Phase 4.2.

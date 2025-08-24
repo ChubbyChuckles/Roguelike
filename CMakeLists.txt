@@ -345,6 +345,7 @@ add_library(rogue_core
     src/core/enemy/encounter_composer.c
     # Audio & VFX minimal pipeline
     src/audio_vfx/effects.c
+    src/audio_vfx/vfx_config.c
     # Crafting Phase 8 UI layer
     src/ui/crafting_ui.c
     src/core/crafting/crafting_automation.c
@@ -573,6 +574,14 @@ add_test(NAME test_audio_vfx_phase3_4_particle_layer_order COMMAND test_audio_vf
 add_executable(test_audio_vfx_phase3_6_screen_vs_world tests/unit/test_audio_vfx_phase3_6_screen_vs_world.c)
 target_link_libraries(test_audio_vfx_phase3_6_screen_vs_world PRIVATE rogue_core)
 add_test(NAME test_audio_vfx_phase3_6_screen_vs_world COMMAND test_audio_vfx_phase3_6_screen_vs_world)
+
+add_executable(test_audio_vfx_phase4_1_vfx_config_loader tests/unit/test_audio_vfx_phase4_1_vfx_config_loader.c)
+target_link_libraries(test_audio_vfx_phase4_1_vfx_config_loader PRIVATE rogue_core)
+add_test(NAME test_audio_vfx_phase4_1_vfx_config_loader COMMAND test_audio_vfx_phase4_1_vfx_config_loader)
+
+add_executable(test_audio_vfx_phase4_2_hot_reload_and_validation tests/unit/test_audio_vfx_phase4_2_hot_reload_and_validation.c)
+target_link_libraries(test_audio_vfx_phase4_2_hot_reload_and_validation PRIVATE rogue_core)
+add_test(NAME test_audio_vfx_phase4_2_hot_reload_and_validation COMMAND test_audio_vfx_phase4_2_hot_reload_and_validation)
 
 add_executable(roguelike src/main.c)
 target_link_libraries(roguelike PRIVATE rogue_core)
