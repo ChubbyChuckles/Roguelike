@@ -30,12 +30,12 @@ PHASE 2. Audio Subsystem Foundations
 2.7 Deterministic seed mapping for repeated events (Done: frame index + seq mixed; repeat scaling in gain)
 
 PHASE 3. VFX Subsystem Foundations
-3.1 VfxRegistry (effect id -> script: sprite sequence / particles) (X)
+3.1 VfxRegistry (effect id -> script: sprite sequence / particles) (Done: minimal id->layer/world_space/lifetime; public spawn API + dispatcher hook; unit test)
 3.2 Particle system core (emitters, spawn rate, lifetime) (X)
-3.3 Object pool for particles & sprite instances (X)
-3.4 Layer ordering (background, mid, foreground, UI) (X)
-3.5 Time scaling integration (hitstop freeze) (X)
-3.6 Screen-space vs world-space coordinate support (X)
+3.3 Object pool for particles & sprite instances (Partial: pooled active VFX instances (cap 256); particle pool TBD)
+3.4 Layer ordering (background, mid, foreground, UI) (Partial: layer enum + per-layer counts; renderer ordering TBD)
+3.5 Time scaling integration (hitstop freeze) (Done: timescale scalar + freeze toggle integrated into update/aging)
+3.6 Screen-space vs world-space coordinate support (Partial: world_space flag stored; screen-space transform path TBD)
 
 PHASE 4. Authoring & Data Format
 4.1 Config schema (e.g. assets/fx/*.cfg) (X)
@@ -154,3 +154,11 @@ Notes (2025-08-25):
 - Mixer APIs: rogue_audio_mixer_set/get_master, set/get_category, set/get_mute. Positional APIs: set listener, enable toggle, falloff radius.
 - Deterministic variation: xorshift32 seeded from (event id ^ frame_idx ^ seq); voice cap prevents over-subscription.
 - Testing: Added unit tests covering mixer gain math, mute behavior, positional attenuation, and registry clear; all pass under Debug (SDL2, -j8).
+
+Notes (2025-08-26):
+- Phase 3.1 (VFX foundations) implemented in src/audio_vfx/effects.[ch]:
+	- VFX registry (id -> {layer, world_space, lifetime_ms}) and active instance pool (cap 256).
+	- Time controls: global timescale and freeze toggle applied during rogue_vfx_update aging/expiry.
+	- Public spawn API (rogue_vfx_spawn_by_id) and dispatcher integration for ROGUE_FX_VFX_SPAWN events.
+	- Debug helpers: active counts (total/per-layer) and peek-first for tests.
+- Testing: Added tests/unit/test_audio_vfx_phase3_1_vfx_foundations.c validating spawn via event, layer counts, peek, freeze/timescale behavior, and expiry. CTest -R audio_vfx passes 7/7.

@@ -84,4 +84,35 @@ void rogue_audio_set_falloff_radius(float r);   /* >0 */
     without requiring SDL_mixer. Repeats >= 1; (x,y) is event position. */
 float rogue_audio_debug_effective_gain(const char* id, unsigned repeats, float x, float y);
 
+/* -------- VFX subsystem (Phase 3 foundations) -------- */
+
+typedef enum RogueVfxLayer
+{
+    ROGUE_VFX_LAYER_BG = 0,
+    ROGUE_VFX_LAYER_MID = 1,
+    ROGUE_VFX_LAYER_FG = 2,
+    ROGUE_VFX_LAYER_UI = 3
+} RogueVfxLayer;
+
+/* Register or update a VFX definition with layer, lifetime (ms), and space (1=world,0=screen). */
+int rogue_vfx_registry_register(const char* id, RogueVfxLayer layer, uint32_t lifetime_ms,
+                                int world_space);
+int rogue_vfx_registry_get(const char* id, RogueVfxLayer* out_layer, uint32_t* out_lifetime_ms,
+                           int* out_world_space);
+void rogue_vfx_registry_clear(void);
+
+/* Advance active VFX instances; supports time scaling and freeze. */
+void rogue_vfx_update(uint32_t dt_ms);
+void rogue_vfx_set_timescale(float s);
+void rogue_vfx_set_frozen(int frozen);
+
+/* Debug/testing helpers */
+int rogue_vfx_active_count(void);
+int rogue_vfx_layer_active_count(RogueVfxLayer layer);
+void rogue_vfx_clear_active(void);
+int rogue_vfx_debug_peek_first(const char* id, int* out_world_space, float* out_x, float* out_y);
+
+/* Spawn a VFX by id at (x,y) using the registry; returns 0 on success. */
+int rogue_vfx_spawn_by_id(const char* id, float x, float y);
+
 #endif /* ROGUE_EFFECTS_H */

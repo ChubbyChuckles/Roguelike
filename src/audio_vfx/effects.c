@@ -397,7 +397,7 @@ int rogue_fx_dispatch_process(void)
         }
         else if (e->type == ROGUE_FX_VFX_SPAWN)
         {
-            /* TODO: route to VFX subsystem when implemented */
+            (void) rogue_vfx_spawn_by_id(e->id, e->x, e->y);
         }
     }
     int processed = g_read->count;
@@ -406,3 +406,180 @@ int rogue_fx_dispatch_process(void)
 }
 
 uint32_t rogue_fx_get_frame_digest(void) { return g_frame_digest; }
+
+/* -------- VFX registry & instances (Phase 3 foundations) -------- */
+
+typedef struct VfxReg
+{
+    char id[24];
+    uint8_t layer;        /* RogueVfxLayer */
+    uint8_t world_space;  /* 1=world, 0=screen */
+    uint32_t lifetime_ms; /* default lifetime */
+} VfxReg;
+
+typedef struct VfxInst
+{
+    uint16_t reg_index; /* index into registry */
+    uint16_t active;    /* 1=active */
+    float x, y;         /* spawn position */
+    uint32_t age_ms;    /* progressed time */
+} VfxInst;
+
+#define ROGUE_VFX_REG_CAP 64
+static VfxReg g_vfx_reg[ROGUE_VFX_REG_CAP];
+static int g_vfx_reg_count = 0;
+
+#define ROGUE_VFX_INST_CAP 256
+static VfxInst g_vfx_inst[ROGUE_VFX_INST_CAP];
+
+static float g_vfx_timescale = 1.0f;
+static int g_vfx_frozen = 0;
+
+static int vfx_reg_find(const char* id)
+{
+    for (int i = 0; i < g_vfx_reg_count; ++i)
+    {
+        if (strncmp(g_vfx_reg[i].id, id, sizeof g_vfx_reg[i].id) == 0)
+            return i;
+    }
+    return -1;
+}
+
+int rogue_vfx_registry_register(const char* id, RogueVfxLayer layer, uint32_t lifetime_ms,
+                                int world_space)
+{
+    if (!id || !*id)
+        return -1;
+    int idx = vfx_reg_find(id);
+    if (idx < 0)
+    {
+        if (g_vfx_reg_count >= ROGUE_VFX_REG_CAP)
+            return -2;
+        idx = g_vfx_reg_count++;
+        memset(&g_vfx_reg[idx], 0, sizeof g_vfx_reg[idx]);
+#if defined(_MSC_VER)
+        strncpy_s(g_vfx_reg[idx].id, sizeof g_vfx_reg[idx].id, id, _TRUNCATE);
+#else
+        strncpy(g_vfx_reg[idx].id, id, sizeof g_vfx_reg[idx].id - 1);
+        g_vfx_reg[idx].id[sizeof g_vfx_reg[idx].id - 1] = '\0';
+#endif
+    }
+    g_vfx_reg[idx].layer = (uint8_t) layer;
+    g_vfx_reg[idx].lifetime_ms = lifetime_ms;
+    g_vfx_reg[idx].world_space = world_space ? 1 : 0;
+    return 0;
+}
+
+int rogue_vfx_registry_get(const char* id, RogueVfxLayer* out_layer, uint32_t* out_lifetime_ms,
+                           int* out_world_space)
+{
+    int idx = vfx_reg_find(id);
+    if (idx < 0)
+        return -1;
+    if (out_layer)
+        *out_layer = (RogueVfxLayer) g_vfx_reg[idx].layer;
+    if (out_lifetime_ms)
+        *out_lifetime_ms = g_vfx_reg[idx].lifetime_ms;
+    if (out_world_space)
+        *out_world_space = g_vfx_reg[idx].world_space;
+    return 0;
+}
+
+void rogue_vfx_registry_clear(void) { g_vfx_reg_count = 0; }
+
+static int vfx_inst_alloc(void)
+{
+    for (int i = 0; i < ROGUE_VFX_INST_CAP; ++i)
+    {
+        if (!g_vfx_inst[i].active)
+        {
+            g_vfx_inst[i].active = 1;
+            g_vfx_inst[i].age_ms = 0;
+            return i;
+        }
+    }
+    return -1;
+}
+
+void rogue_vfx_update(uint32_t dt_ms)
+{
+    if (g_vfx_frozen)
+        return;
+    float dt = (float) dt_ms * (g_vfx_timescale < 0 ? 0 : g_vfx_timescale);
+    for (int i = 0; i < ROGUE_VFX_INST_CAP; ++i)
+    {
+        if (!g_vfx_inst[i].active)
+            continue;
+        g_vfx_inst[i].age_ms += (uint32_t) dt;
+        VfxReg* r = &g_vfx_reg[g_vfx_inst[i].reg_index];
+        if (g_vfx_inst[i].age_ms >= r->lifetime_ms)
+            g_vfx_inst[i].active = 0;
+    }
+}
+
+void rogue_vfx_set_timescale(float s) { g_vfx_timescale = s; }
+void rogue_vfx_set_frozen(int frozen) { g_vfx_frozen = frozen ? 1 : 0; }
+
+int rogue_vfx_active_count(void)
+{
+    int c = 0;
+    for (int i = 0; i < ROGUE_VFX_INST_CAP; ++i)
+        if (g_vfx_inst[i].active)
+            ++c;
+    return c;
+}
+
+int rogue_vfx_layer_active_count(RogueVfxLayer layer)
+{
+    int c = 0;
+    for (int i = 0; i < ROGUE_VFX_INST_CAP; ++i)
+    {
+        if (!g_vfx_inst[i].active)
+            continue;
+        if (g_vfx_reg[g_vfx_inst[i].reg_index].layer == (uint8_t) layer)
+            ++c;
+    }
+    return c;
+}
+
+void rogue_vfx_clear_active(void)
+{
+    for (int i = 0; i < ROGUE_VFX_INST_CAP; ++i)
+        g_vfx_inst[i].active = 0;
+}
+
+int rogue_vfx_debug_peek_first(const char* id, int* out_world_space, float* out_x, float* out_y)
+{
+    int ridx = vfx_reg_find(id);
+    if (ridx < 0)
+        return -1;
+    for (int i = 0; i < ROGUE_VFX_INST_CAP; ++i)
+    {
+        if (g_vfx_inst[i].active && g_vfx_inst[i].reg_index == (uint16_t) ridx)
+        {
+            if (out_world_space)
+                *out_world_space = g_vfx_reg[ridx].world_space;
+            if (out_x)
+                *out_x = g_vfx_inst[i].x;
+            if (out_y)
+                *out_y = g_vfx_inst[i].y;
+            return 0;
+        }
+    }
+    return -2;
+}
+
+int rogue_vfx_spawn_by_id(const char* id, float x, float y)
+{
+    int ridx = vfx_reg_find(id);
+    if (ridx < 0)
+        return -1;
+    int ii = vfx_inst_alloc();
+    if (ii < 0)
+        return -2;
+    g_vfx_inst[ii].reg_index = (uint16_t) ridx;
+    g_vfx_inst[ii].x = x;
+    g_vfx_inst[ii].y = y;
+    g_vfx_inst[ii].age_ms = 0;
+    return 0;
+}

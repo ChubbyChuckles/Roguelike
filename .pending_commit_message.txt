@@ -37,3 +37,14 @@ Audio/VFX Phase 2.2–2.7: mixer, positional, variation, voice cap + tests
 - Unit tests added: test_audio_vfx_phase2_2_mixer_gain, test_audio_vfx_phase2_3_mute, test_audio_vfx_phase2_6_positional, test_audio_vfx_phase2_1_registry_clear. All pass.
 - Updated roadmap (Phase 2.2–2.7 Done) and README changelog.
 - Built Debug with SDL2 and parallelism (-j8); ran focused CTest -R audio_vfx → 6/6 pass.
+
+Audio/VFX Phase 3.1: VFX foundations (registry, pooled instances, time controls) + test
+
+- Implemented minimal VFX subsystem in src/audio_vfx/effects.[ch]:
+  - VFX registry (id -> {layer, world_space, lifetime_ms}) with clear/get helpers.
+  - Active instance pool (cap 256) with per-layer counts and debug peek-first helper.
+  - Time controls: global timescale scalar and freeze toggle applied during update aging; expired instances recycled.
+  - Public spawn API (rogue_vfx_spawn_by_id) and dispatcher integration for ROGUE_FX_VFX_SPAWN.
+- Added unit test tests/unit/test_audio_vfx_phase3_1_vfx_foundations.c exercising spawn via FX event, counts, peek helper, freeze & timescale behavior, and expiry; registered target in CMake.
+- Build: Debug with SDL2 using parallelism (-j8) succeeds; CTest filtered -R audio_vfx passes 7/7.
+- Documentation: Updated roadmap (3.1 Done; 3.3/3.4/3.6 Partial; 3.5 Done) and README changelog with Phase 3.1 entry.

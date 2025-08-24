@@ -558,6 +558,10 @@ add_executable(test_audio_vfx_phase2_1_registry_clear tests/unit/test_audio_vfx_
 target_link_libraries(test_audio_vfx_phase2_1_registry_clear PRIVATE rogue_core)
 add_test(NAME test_audio_vfx_phase2_1_registry_clear COMMAND test_audio_vfx_phase2_1_registry_clear)
 
+add_executable(test_audio_vfx_phase3_1_vfx_foundations tests/unit/test_audio_vfx_phase3_1_vfx_foundations.c)
+target_link_libraries(test_audio_vfx_phase3_1_vfx_foundations PRIVATE rogue_core)
+add_test(NAME test_audio_vfx_phase3_1_vfx_foundations COMMAND test_audio_vfx_phase3_1_vfx_foundations)
+
 add_executable(roguelike src/main.c)
 target_link_libraries(roguelike PRIVATE rogue_core)
 
