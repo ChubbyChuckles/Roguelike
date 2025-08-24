@@ -4,6 +4,7 @@
 #ifdef ROGUE_HAVE_SDL_MIXER
 #include <SDL_mixer.h>
 #endif
+#include "../audio_vfx/effects.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -54,6 +55,8 @@ void rogue_asset_load_sounds(void)
             else
             {
                 ROGUE_LOG_INFO("Loaded levelup sound: %s", path_tok);
+                /* Register to audio registry for id-based playback */
+                rogue_audio_registry_register("LEVELUP", path_tok, ROGUE_AUDIO_CAT_UI, 1.0f);
             }
         }
     }

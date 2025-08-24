@@ -1,4 +1,26 @@
-skills: talents v2 serialization (varint ranks, v1 back-compat) + deterministic hash incl. ranks; add unit test
+Audio/VFX Phase 1.5: frame compaction + tests
+
+- Implemented frame-level compaction in FX dispatcher: identical events by key (type, priority, id) are merged with a 'repeats' count.
+- Digest now mixes repeat count to keep replay hash stable while reflecting merged intensity.
+- Audio dispatch scales simple gain by repeats with soft clip; guarded for SDL_mixer presence.
+- Added tests/unit/test_audio_vfx_phase1_5_compaction.c and registered both FX tests with CTest.
+- Updated roadmap (1.5 Done) and kept docs/README in sync.
+
+Audio/VFX Phase 1-2: add minimal event bus, audio registry, and LEVELUP cue routing
+
+- Implement Phase 1 core event system:
+  - Define RogueEffectEvent (type, priority, payload id, timing fields).
+  - Double-buffered global FX queue with deterministic (priority, seq) ordering.
+  - Submission API rogue_fx_emit + per-frame begin/end hooks and stable frame digest.
+- Implement Phase 2.1 audio registry with SDL_mixer-backed Mix_Chunk loading.
+  - Register LEVELUP sound from assets/sounds.cfg and enable id-based playback.
+- Integrate bus into app_step: begin/end each frame and dispatch before present.
+- Route level-up sound through FX bus from player_progress.
+- Add unit test (test_audio_vfx_phase1_2) for ordering and digest determinism.
+- CMake: include src/audio_vfx/effects.c and new test target.
+
+Roadmap updates:
+- Mark 1.1–1.3 Done, 1.4 Partial; 2.1 Done (minimal). Add notes and next actions.skills: talents v2 serialization (varint ranks, v1 back-compat) + deterministic hash incl. ranks; add unit test
 
 Details:
 - Implemented header v2 with unlocked bitset + varint ranks; v1 load maps unlocked→rank=1.

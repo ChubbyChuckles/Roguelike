@@ -1,4 +1,5 @@
 /* Frame update & render loop extracted from app.c */
+#include "../../audio_vfx/effects.h"
 #include "../../game/buffs.h"
 #include "../../game/damage_numbers.h"
 #include "../../game/dialogue.h"
@@ -127,6 +128,8 @@ void rogue_app_step(void)
     if (!g_game_loop.running)
         return;
     rogue_process_events();
+    /* Begin FX frame and reset digest/queues using current frame_count */
+    rogue_fx_frame_begin((uint32_t) g_app.frame_count);
     double frame_start = rogue_metrics_frame_begin();
     /* Accessibility fast-path: if reduced motion is enabled, enforce fade skips
        immediately at frame start so tests and non-SDL code paths see the effect
@@ -308,6 +311,9 @@ void rogue_app_step(void)
     }
     g_exposed_player_for_stats = g_app.player;
 #endif
+    /* Dispatch FX queued during this frame before present/iterate */
+    rogue_fx_frame_end();
+    rogue_fx_dispatch_process();
     rogue_game_loop_iterate();
     g_app.game_time_ms += g_app.dt * 1000.0;
     rogue_metrics_frame_end(frame_start);

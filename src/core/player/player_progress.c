@@ -1,13 +1,12 @@
 #include "player_progress.h"
+#include "../../audio_vfx/effects.h"
 #include "../../entities/player.h"
 #include "../app/app_state.h"
-#ifdef ROGUE_HAVE_SDL_MIXER
-#include <SDL_mixer.h>
-#endif
 #include "../integration/event_bus.h"
 #include "../persistence/persistence.h"
 #include "../progression/progression_xp.h"
 #include <stdio.h>
+#include <string.h>
 
 void rogue_player_progress_update(double dt_seconds)
 {
@@ -28,12 +27,17 @@ void rogue_player_progress_update(double dt_seconds)
         g_app.player.health = g_app.player.max_health;
         g_app.player.mana = g_app.player.max_mana;
         g_app.levelup_aura_timer_ms = 2000.0f;
-#ifdef ROGUE_HAVE_SDL_MIXER
-        if (g_app.sfx_levelup)
-        {
-            Mix_PlayChannel(-1, g_app.sfx_levelup, 0);
-        }
+        /* Route through FX bus using registry id 'LEVELUP' if present */
+        RogueEffectEvent ev = {0};
+        ev.type = ROGUE_FX_AUDIO_PLAY;
+        ev.priority = ROGUE_FX_PRI_UI;
+#if defined(_MSC_VER)
+        strncpy_s(ev.id, sizeof ev.id, "LEVELUP", _TRUNCATE);
+#else
+        strncpy(ev.id, "LEVELUP", sizeof ev.id - 1);
+        ev.id[sizeof ev.id - 1] = '\0';
 #endif
+        rogue_fx_emit(&ev);
         g_app.stats_dirty = 1;
         /* Publish LEVEL_UP event */
         RogueEventPayload pl = {0};

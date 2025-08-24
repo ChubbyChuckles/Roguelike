@@ -343,6 +343,8 @@ add_library(rogue_core
     src/core/enemy/enemy_adaptive.c
     src/core/enemy/enemy_modifiers.c
     src/core/enemy/encounter_composer.c
+    # Audio & VFX minimal pipeline
+    src/audio_vfx/effects.c
     # Crafting Phase 8 UI layer
     src/ui/crafting_ui.c
     src/core/crafting/crafting_automation.c
@@ -528,6 +530,18 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_thread_barrier PRIVATE SDL2::SDL2)
 endif()
 
+add_executable(test_audio_vfx_phase1_2 tests/unit/test_audio_vfx_phase1_2.c)
+target_link_libraries(test_audio_vfx_phase1_2 PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_audio_vfx_phase1_2 PRIVATE SDL2::SDL2)
+endif()
+
+add_executable(test_audio_vfx_phase1_5_compaction tests/unit/test_audio_vfx_phase1_5_compaction.c)
+target_link_libraries(test_audio_vfx_phase1_5_compaction PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_audio_vfx_phase1_5_compaction PRIVATE SDL2::SDL2)
+endif()
+
 add_executable(roguelike src/main.c)
 target_link_libraries(roguelike PRIVATE rogue_core)
 
@@ -554,6 +568,9 @@ target_compile_definitions(rogue_core PUBLIC ROGUE_TEST_SHORT_COOLDOWNS=1)
 include(CTest)
 enable_testing()
 add_subdirectory(tests)
+
+add_test(NAME test_audio_vfx_phase1_2 COMMAND test_audio_vfx_phase1_2)
+add_test(NAME test_audio_vfx_phase1_5_compaction COMMAND test_audio_vfx_phase1_5_compaction)
 
 find_program(CLANG_FORMAT_EXE NAMES clang-format)
 file(GLOB_RECURSE ALL_C_SOURCE_FILES src/*.c src/*.h tests/*.c tests/*.h)

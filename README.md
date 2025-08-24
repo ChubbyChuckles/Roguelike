@@ -899,6 +899,12 @@ Adds a deterministic, biome-weighted weather scheduling layer providing foundati
 * 10.2 Scheduler: `rogue_weather_update` advances a `RogueActiveWeather` state machine tick-by-tick. On expiry or uninitialized state it selects the next pattern via macro RNG weighted choice restricted to biome mask. Each activation seeds a target intensity inside the descriptor range using micro RNG. Intensity eases 5% per tick toward target; fade-out triggers when duration elapses (target set to 0) producing smooth transitions.
 * 10.3 Biome Weighting: Patterns whose `biome_mask` excludes the current biome contribute zero weight and are never selected. Weighted roulette wheel across remaining patterns ensures relative proportions loosely reflect configured `base_weight` values.
 * 10.4 Environmental Hooks: Initial effects include lighting tint sampling (`rogue_weather_sample_lighting`) applying slight darkening & blue shift proportional to intensity, plus movement speed debuff factor (`rogue_weather_movement_factor`) clamped to 0.5–1.0 range. Particle & audio hooks intentionally deferred until rendering/audio subsystems integrate runtime callbacks.
+
+Audio & VFX – Phase 1–2 minimal + 1.5 compaction (new)
+- Added `src/audio_vfx/effects.[ch]` implementing a simple event bus (double-buffer) and deterministic dispatch ordering (priority,type,id,seq) with per-frame digest.
+- Frame compaction merges identical events (type+priority+id) within a frame and exposes `repeats` for intensity-aware dispatch; digest includes repeat count.
+- Minimal AudioRegistry with SDL_mixer-backed chunk loading; `LEVELUP` sound registered from `assets/sounds.cfg` and routed via the FX bus on level-up.
+- `app_step` begins/ends FX frame and dispatches before present. Unit tests `test_audio_vfx_phase1_2` and `test_audio_vfx_phase1_5_compaction` validate ordering, digest determinism, and compaction semantics.
 * 10.5 Validation Test: `test_worldgen_phase10_weather` registers three patterns (clear, rain, storm), simulates 2000 ticks, asserts multiple transitions, verifies probability weighting (rain observations >= clear due to weight 10 vs 5), and confirms determinism by re-running with identical seed & registry and comparing per-pattern observation counts.
 APIs added: registry management (`rogue_weather_register`, `rogue_weather_clear_registry`, `rogue_weather_registry_count`), scheduler init (`rogue_weather_init`), update (`rogue_weather_update`), and effect sampling helpers.
 
