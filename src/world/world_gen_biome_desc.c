@@ -123,7 +123,7 @@ int rogue_biome_descriptor_parse_cfg(const char* text, RogueBiomeDescriptor* out
             {
                 safe_copy(out_desc->name, sizeof out_desc->name, v);
             }
-            else if (strcmp(k, "music") == 0)
+            else if (strcmp(k, "music") == 0 || strcmp(k, "music_track") == 0)
             {
                 safe_copy(out_desc->music_track, sizeof out_desc->music_track, v);
             }
@@ -153,27 +153,32 @@ int rogue_biome_descriptor_parse_cfg(const char* text, RogueBiomeDescriptor* out
             {
                 out_desc->allow_weather = (unsigned char) (atoi(v) != 0);
             }
-            else if (strncmp(k, "tile_", 5) == 0)
+            else if (strncmp(k, "tile_", 5) == 0 || strncmp(k, "tile_weight_", 12) == 0)
             {
                 int t = -1; /* map tile name suffix to tile enum */
-                const char* suf = k + 5;
-                /* simple mapping */
-                for (int i = 0; i < ROGUE_TILE_MAX; i++)
-                { /* create static table names */
-                }
-                if (strcmp(suf, "grass") == 0)
+                const char* suf = (strncmp(k, "tile_weight_", 12) == 0) ? (k + 12) : (k + 5);
+                /* normalize suffix to lower-case for case-insensitive match */
+                char tmp[32];
+                size_t n = strlen(suf);
+                if (n >= sizeof(tmp))
+                    n = sizeof(tmp) - 1;
+                for (size_t i = 0; i < n; ++i)
+                    tmp[i] = (char) tolower((unsigned char) suf[i]);
+                tmp[n] = '\0';
+                const char* lsuf = tmp;
+                if (strcmp(lsuf, "grass") == 0)
                     t = ROGUE_TILE_GRASS;
-                else if (strcmp(suf, "forest") == 0)
+                else if (strcmp(lsuf, "forest") == 0)
                     t = ROGUE_TILE_FOREST;
-                else if (strcmp(suf, "water") == 0)
+                else if (strcmp(lsuf, "water") == 0)
                     t = ROGUE_TILE_WATER;
-                else if (strcmp(suf, "mountain") == 0)
+                else if (strcmp(lsuf, "mountain") == 0)
                     t = ROGUE_TILE_MOUNTAIN;
-                else if (strcmp(suf, "swamp") == 0)
+                else if (strcmp(lsuf, "swamp") == 0)
                     t = ROGUE_TILE_SWAMP;
-                else if (strcmp(suf, "snow") == 0)
+                else if (strcmp(lsuf, "snow") == 0)
                     t = ROGUE_TILE_SNOW;
-                else if (strcmp(suf, "river") == 0)
+                else if (strcmp(lsuf, "river") == 0)
                     t = ROGUE_TILE_RIVER;
                 if (t >= 0)
                 {

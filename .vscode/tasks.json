@@ -97,6 +97,36 @@
 			"type": "shell",
 			"command": "cmake --build build --config Debug --parallel 8",
 			"group": "build"
+		},
+		{
+			"label": "Build Debug (parallel 8) for modding/UI fixes",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"group": "build"
+		},
+		{
+			"label": "Rebuild after UI nav/toggle fixes",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"group": "build"
+		},
+		{
+			"label": "Rebuild after toggle release tweak",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"group": "build"
+		},
+		{
+			"label": "Rebuild after adding debug logs for UI toggle/nav",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"group": "build"
+		},
+		{
+			"label": "Rebuild after UI init index defaults fix",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"group": "build"
 		}
 	]
 }

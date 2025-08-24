@@ -536,6 +536,14 @@ int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg)
             (void*) ctx, cfg->max_nodes, cfg->seed, cfg->arena_size, sizeof *ctx);
     fflush(stderr);
     memset(ctx, 0, sizeof *ctx);
+    /* Explicitly initialize interaction indices to -1 (not active) instead of 0.
+        Leaving them zeroed after memset would treat index 0 as active/modal by default,
+        which breaks navigation and gating semantics in tests. */
+    ctx->hot_index = -1;
+    ctx->active_index = -1;
+    ctx->focus_index = -1;
+    ctx->modal_index = -1;
+    ctx->last_hover_index = -1;
     /* (Removed temporary static asserts to diagnose runtime corruption) */
     int cap = cfg->max_nodes > 0 ? cfg->max_nodes : 128;
     if (cap <= 0)
@@ -1073,18 +1081,32 @@ int rogue_ui_toggle(RogueUIContext* ctx, RogueUIRect r, const char* label, int* 
         return -1;
     if (ctx->modal_index >= 0 && ctx->modal_index != idx)
         return idx;
-    if (ctx->hot_index == idx)
+    /* Press within toggle sets active; release within toggle flips state.
+       Accept release if either this control is still active OR it's currently hovered,
+       as long as the cursor is within the same rect. This is robust to transient hot_index
+       changes across frames. */
+    if (ctx->hot_index == idx && ctx->input.mouse_pressed)
     {
-        if (ctx->input.mouse_pressed)
-        {
-            ctx->active_index = idx;
-        }
-        if (ctx->input.mouse_released && ctx->active_index == idx)
+        fprintf(stderr, "TOGGLE press idx=%d hot=%d act=%d mx=%.1f my=%.1f\n", idx, ctx->hot_index,
+                ctx->active_index, ctx->input.mouse_x, ctx->input.mouse_y);
+        ctx->active_index = idx;
+    }
+    if (ctx->input.mouse_released && (ctx->active_index == idx || ctx->hot_index == idx))
+    {
+        /* accept release only if cursor is still within the same rect */
+        float mx = ctx->input.mouse_x, my = ctx->input.mouse_y;
+        int inside = rect_contains(&n.rect, mx, my);
+        fprintf(stderr,
+                "TOGGLE release idx=%d hot=%d act=%d inside=%d state_before=%d mx=%.1f my=%.1f\n",
+                idx, ctx->hot_index, ctx->active_index, inside, *state, mx, my);
+        if (inside)
         {
             *state = !*state;
             ctx->nodes[idx].color = *state ? on_color : off_color;
-            ctx->active_index = -1;
+            fprintf(stderr, "TOGGLE flipped idx=%d new_state=%d\n", idx, *state);
         }
+        if (ctx->active_index == idx)
+            ctx->active_index = -1;
     }
     ctx->nodes[idx].value = (float) (*state);
     return idx;
@@ -1577,6 +1599,33 @@ void rogue_ui_navigation_update(RogueUIContext* ctx)
         ctx->focus_index = ctx->modal_index;
     if (ctx->focus_index < 0)
         return;
+
+    /* Tab semantics: always advance to the next focusable once per call and return */
+    if (ctx->input.key_tab && ctx->node_count > 1)
+    {
+        int prev = ctx->focus_index;
+        int start = ctx->focus_index < 0 ? 0 : ctx->focus_index;
+        int curi = start;
+        for (int tries = 0; tries < ctx->node_count; ++tries)
+        {
+            curi = (curi + 1 < ctx->node_count) ? (curi + 1) : 0;
+            int k = ctx->nodes[curi].kind;
+            if (k >= 5 && k <= 8)
+            {
+                ctx->focus_index = curi;
+                break;
+            }
+        }
+        fprintf(stderr, "NAV_TAB advance prev=%d now=%d node_count=%d\n", prev, ctx->focus_index,
+                ctx->node_count);
+        /* Chord timeout maintenance */
+        if (ctx->pending_chord &&
+            (ctx->time_ms - ctx->pending_chord_time_ms) > ctx->chord_timeout_ms)
+        {
+            ctx->pending_chord = 0;
+        }
+        return;
+    }
     if (activate)
     {
         RogueUINode* cur = &ctx->nodes[ctx->focus_index];
