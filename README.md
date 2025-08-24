@@ -970,10 +970,11 @@ Phase 11.1–11.5 (AI Testing & QA Expansion): Added comprehensive quality gates
 * Action Point (AP) economy core (Phase 1.5): player AP pool (scales with DEX), passive regeneration, per-skill `action_point_cost` gating, soft throttle (temporary slowed regen after large spend), and unit tests (`test_skills_ap_economy`, `test_ap_soft_throttle`).
 * EffectSpec (Phase 1.2 partial): minimal registry + STAT_BUFF kind applied via skill `effect_spec_id`; unit test (`test_effectspec_basic`) validates buff application.
 * Channel Tick Scheduler (Phase 1A.5 partial): basic fixed 250ms quantum ticks for channel skills with unit test (`test_channel_ticks_and_buffer`); future drift correction & dynamic interval planned.
-* Input Buffering (Phase 1A.1 partial): per-skill `input_buffer_ms` allows next cast/instant skill queued during an active cast to auto-fire immediately on completion; validated by `test_input_buffer_cast`.
+* Input Buffering (Phase 1A.1 Done): per-skill `input_buffer_ms` allows next cast/instant skill queued during an active cast to auto-fire immediately on completion; validated by `test_input_buffer_cast` and the combined `test_skills_phase1a_buffer_weave_combo`.
 * Adaptive Haste (Phase 1A.3 partial): temporary buff magnitude scales cast completion speed and channel tick frequency (prototype using existing POWER_STRIKE buff); verified by `test_haste_cast_speed`.
-* Cast Weaving (Phase 1A.2 partial): `min_weave_ms` enforces spacing between identical cast skill activations; tested in `test_cast_weave_and_cancel`.
+* Cast Weaving (Phase 1A.2 Done): `min_weave_ms` enforces spacing between identical cast skill activations; a haste-based bypass is enabled when total `POWER_STRIKE >= 10`. Covered by `test_cast_weave_and_cancel` and `test_skills_phase1a_buffer_weave_combo`.
 * Early Cancel (Phase 1A.4 partial): `rogue_skill_try_cancel` allows terminating a cast after a minimum progress threshold applying scaled effect (`partial_scalar`); covered by `test_cast_weave_and_cancel`.
+* Combo Builder/Spender (Phase 1.3/1.4 partial): per-skill flags increment/reset combo points (cap 5). Applied on instant activation, cast completion, and channel ticks. Verified by `test_skills_phase1a_buffer_weave_combo`.
 
 #### UI System (Phases 1–3 Complete)
 * Phase 1 Core: Context, deterministic RNG channel, frame begin/end, simulation snapshot pointer (read-only), text serialization + FNV-1a diff hash, per-frame arena allocator (text duplication helper).

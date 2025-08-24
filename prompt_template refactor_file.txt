@@ -1,3 +1,10 @@
 ### Add documentation
 
 Please add doxygen documentation to everything in this file without losing information provided by already existing comments.
+
+
+### Useful commands
+
+ctest -C Debug -j8 -R ".*test_(skill|skills).*" --output-on-failure # test all skills
+
+powershell -NoLogo -NoProfile -Command "cmake --build . --config Debug --parallel 8" # fast build tests

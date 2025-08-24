@@ -51,8 +51,28 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         return 0;
     if (def->min_weave_ms > 0 && def->cast_type == 1 && def->cast_time_ms > 0)
     {
-        if (st->last_cast_ms > 0 && (now - st->last_cast_ms) < (double) def->min_weave_ms)
-            return 0;
+        /* Haste override: if a temporary haste buff is active, bypass the min weave gate. */
+        int haste = rogue_buffs_get_total(ROGUE_BUFF_POWER_STRIKE);
+        int bypass_weave = (haste >= 10); /* threshold: >=10 magnitude grants weave bypass */
+        if (!bypass_weave)
+        {
+            if (st->last_cast_ms > 0 && (now - st->last_cast_ms) < (double) def->min_weave_ms)
+            {
+                fprintf(stderr,
+                        "SKILL DEBUG: block weave id=%d haste=%d now=%.2f last=%.2f delta=%.2f "
+                        "min=%u\n",
+                        id, haste, now, st->last_cast_ms, now - st->last_cast_ms,
+                        def->min_weave_ms);
+                return 0;
+            }
+        }
+        else
+        {
+            fprintf(
+                stderr,
+                "SKILL DEBUG: bypass weave id=%d haste=%d now=%.2f last=%.2f delta=%.2f min=%u\n",
+                id, haste, now, st->last_cast_ms, now - st->last_cast_ms, def->min_weave_ms);
+        }
     }
     RogueSkillCtx local_ctx = ctx ? *ctx : (RogueSkillCtx){0};
     local_ctx.rng_state = (unsigned int) (id * 2654435761u) ^ (unsigned int) st->uses * 2246822519u;
@@ -154,6 +174,17 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         {
             rogue_effect_apply(def->effect_spec_id, now);
         }
+        /* Combo flags: apply builder/spender semantics on successful activation. */
+        if (def->combo_builder)
+        {
+            g_app.player_combat.combo++;
+            if (g_app.player_combat.combo > 5)
+                g_app.player_combat.combo = 5;
+        }
+        if (def->combo_spender)
+        {
+            g_app.player_combat.combo = 0;
+        }
     }
     return consumed;
 }
@@ -239,6 +270,17 @@ void rogue_skills_update(double now_ms)
                 {
                     rogue_effect_apply(def->effect_spec_id, now_ms);
                 }
+                /* Combo flags on cast completion */
+                if (def->combo_builder)
+                {
+                    g_app.player_combat.combo++;
+                    if (g_app.player_combat.combo > 5)
+                        g_app.player_combat.combo = 5;
+                }
+                if (def->combo_spender)
+                {
+                    g_app.player_combat.combo = 0;
+                }
                 for (int qi = 0; qi < g_skill_count_internal; ++qi)
                 {
                     RogueSkillState* qst = &g_skill_states_internal[qi];
@@ -276,6 +318,17 @@ void rogue_skills_update(double now_ms)
                 if (def->effect_spec_id >= 0)
                 {
                     rogue_effect_apply(def->effect_spec_id, st->channel_next_tick_ms);
+                }
+                /* Combo flags can apply on channel ticks too (builder builds over time) */
+                if (def->combo_builder)
+                {
+                    g_app.player_combat.combo++;
+                    if (g_app.player_combat.combo > 5)
+                        g_app.player_combat.combo = 5;
+                }
+                if (def->combo_spender)
+                {
+                    g_app.player_combat.combo = 0;
                 }
                 st->channel_next_tick_ms += tick_interval;
                 if (st->channel_next_tick_ms > st->channel_end_ms)

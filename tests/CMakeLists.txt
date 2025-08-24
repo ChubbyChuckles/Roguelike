@@ -3065,6 +3065,18 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_input_buffer_cast.c AND NOT TARG
     add_test(NAME test_input_buffer_cast COMMAND test_input_buffer_cast)
 endif()
 
+# Explicitly add Phase 1A buffer + weave + combo test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1a_buffer_weave_combo.c AND NOT TARGET test_skills_phase1a_buffer_weave_combo)
+    add_executable(test_skills_phase1a_buffer_weave_combo unit/test_skills_phase1a_buffer_weave_combo.c)
+    target_link_libraries(test_skills_phase1a_buffer_weave_combo PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skills_phase1a_buffer_weave_combo PRIVATE ROGUE_HAVE_SDL=1 SDL_MAIN_HANDLED=1)
+    else()
+        target_compile_definitions(test_skills_phase1a_buffer_weave_combo PRIVATE SDL_MAIN_HANDLED=1)
+    endif()
+    add_test(NAME test_skills_phase1a_buffer_weave_combo COMMAND test_skills_phase1a_buffer_weave_combo)
+endif()
+
 # Explicitly add haste cast speed test (Phase 1A.3 partial)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_haste_cast_speed.c AND NOT TARGET test_haste_cast_speed)
     add_executable(test_haste_cast_speed unit/test_haste_cast_speed.c)
