@@ -510,7 +510,9 @@ class PreviewDialog(QDialog):
         # Summary with more detail
         move_count = len(plan.move_plan.moves)
         text_count = sum(1 for up in plan.text_updates if up.has_changes())
-        total_changes = sum(len(up.changes) for up in plan.text_updates if up.has_changes())
+        total_changes = sum(
+            len(up.changes) for up in plan.text_updates if up.has_changes()
+        )
 
         layout.addWidget(QLabel(f"Planned file moves: {move_count}"))
         layout.addWidget(QLabel(f"Files with text updates: {text_count}"))
@@ -653,7 +655,9 @@ class RefactorEngine:
                 continue
 
             old_abs = abs_path
-            new_rel = move_plan.moves.get(file_rel, file_rel)  # Where this file will be after move
+            new_rel = move_plan.moves.get(
+                file_rel, file_rel
+            )  # Where this file will be after move
 
             text = read_text(old_abs)
             lines = text.splitlines(keepends=True)
@@ -706,6 +710,83 @@ class RefactorEngine:
                     if cmake_text3 != cmake_text:
                         cmake_text = cmake_text3
                         changed = True
+
+                # For tests/CMakeLists.txt specifically, wrap bare add_executable calls with EXISTS checks
+                if file_rel == "tests/CMakeLists.txt":
+                    cmake_lines = cmake_text.splitlines()
+                    new_cmake_lines: list[str] = []
+                    i = 0
+                    while i < len(cmake_lines):
+                        line = cmake_lines[i]
+                        # Look for bare add_executable calls (not already in if blocks)
+                        if line.strip().startswith(
+                            "add_executable("
+                        ) and not line.strip().startswith("if("):
+                            # Check if there's an if(EXISTS ...) check in the previous few lines
+                            has_exists_check = False
+                            for j in range(max(0, i - 5), i):
+                                if (
+                                    "EXISTS" in cmake_lines[j]
+                                    and "CMAKE_CURRENT_SOURCE_DIR" in cmake_lines[j]
+                                ):
+                                    has_exists_check = True
+                                    break
+
+                            if not has_exists_check:
+                                # Parse the add_executable line
+                                match = re.match(
+                                    r"^(\s*)(add_executable\s*\(\s*(\w+)\s+(.+?)\s*\))",
+                                    line,
+                                )
+                                if match:
+                                    indent, full_call, target_name, file_args = (
+                                        match.groups()
+                                    )
+                                    # Find the source file
+                                    source_file = None
+                                    for arg in file_args.split():
+                                        if arg.endswith(".c") or arg.endswith(".cpp"):
+                                            source_file = arg
+                                            break
+
+                                    if source_file:
+                                        # Wrap with EXISTS check
+                                        new_cmake_lines.append(
+                                            f"{indent}if(EXISTS ${{CMAKE_CURRENT_SOURCE_DIR}}/{source_file} AND NOT TARGET {target_name})"
+                                        )
+                                        new_cmake_lines.append(
+                                            f"{indent}    {full_call}"
+                                        )
+
+                                        # Look ahead for target_link_libraries and other related lines
+                                        j = i + 1
+                                        while j < len(cmake_lines) and j < i + 10:
+                                            next_line = cmake_lines[j]
+                                            if target_name in next_line and (
+                                                "target_link_libraries" in next_line
+                                                or "target_compile_definitions"
+                                                in next_line
+                                                or "add_test" in next_line
+                                                or "set_tests_properties" in next_line
+                                            ):
+                                                new_cmake_lines.append(
+                                                    f"{indent}    {next_line.strip()}"
+                                                )
+                                                j += 1
+                                            else:
+                                                break
+
+                                        new_cmake_lines.append(f"{indent}endif()")
+                                        i = j  # Skip the lines we already processed
+                                        changed = True
+                                        continue
+
+                        new_cmake_lines.append(line)
+                        i += 1
+
+                    if changed:
+                        cmake_text = "\n".join(new_cmake_lines) + "\n"
+
                 if changed:
                     # diff lines to record changes
                     new_lines = cmake_text.splitlines(keepends=True)
@@ -909,8 +990,12 @@ class RefactorEngine:
                 return src_abs
 
         # Handle "core/" prefix by trying "src/core/"
-        if inc_norm.startswith("core/") and not os.path.exists(os.path.join(self.project_root, inc_norm)):
-            src_core_abs = os.path.normpath(os.path.join(self.project_root, "src", inc_norm))
+        if inc_norm.startswith("core/") and not os.path.exists(
+            os.path.join(self.project_root, inc_norm)
+        ):
+            src_core_abs = os.path.normpath(
+                os.path.join(self.project_root, "src", inc_norm)
+            )
             if os.path.exists(src_core_abs):
                 return src_core_abs
 
@@ -1152,10 +1237,14 @@ class MainWindow(QMainWindow):
         # Debug: Show some info in status bar
         move_count = len(plan.move_plan.moves)
         text_count = sum(1 for up in plan.text_updates if up.has_changes())
-        total_changes = sum(len(up.changes) for up in plan.text_updates if up.has_changes())
+        total_changes = sum(
+            len(up.changes) for up in plan.text_updates if up.has_changes()
+        )
 
         if move_count > 0:
-            self._status.showMessage(f"Found {move_count} moves, {text_count} files with {total_changes} total text changes")
+            self._status.showMessage(
+                f"Found {move_count} moves, {text_count} files with {total_changes} total text changes"
+            )
         else:
             self._status.showMessage("No moves detected - target matches filesystem")
         dlg = PreviewDialog(self, plan)
