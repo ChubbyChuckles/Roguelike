@@ -27,3 +27,13 @@ Details:
 - Hash now folds version marker and non-zero ranks; stable independent of unlock order.
 - Added test `test_talents_phase1b_ranks_and_hash`; all talents tests pass.
 - Built Debug with SDL2 and parallelism (-j8).
+
+Audio/VFX Phase 2.2–2.7: mixer, positional, variation, voice cap + tests
+
+- Implemented audio mixer: master gain, per-category gains, and global mute; exposed getters/setters.
+- Added positional attenuation stub: listener position, enable toggle, linear falloff radius; math validated via test helper.
+- Deterministic variation selection (xorshift32 seeded with frame index + seq) and simple voice cap guard in dispatcher.
+- Audio registry helpers (get_path, clear) and pure-function `rogue_audio_debug_effective_gain` for headless tests.
+- Unit tests added: test_audio_vfx_phase2_2_mixer_gain, test_audio_vfx_phase2_3_mute, test_audio_vfx_phase2_6_positional, test_audio_vfx_phase2_1_registry_clear. All pass.
+- Updated roadmap (Phase 2.2–2.7 Done) and README changelog.
+- Built Debug with SDL2 and parallelism (-j8); ran focused CTest -R audio_vfx → 6/6 pass.

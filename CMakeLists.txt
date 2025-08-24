@@ -542,6 +542,22 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_audio_vfx_phase1_5_compaction PRIVATE SDL2::SDL2)
 endif()
 
+add_executable(test_audio_vfx_phase2_2_mixer_gain tests/unit/test_audio_vfx_phase2_2_mixer_gain.c)
+target_link_libraries(test_audio_vfx_phase2_2_mixer_gain PRIVATE rogue_core)
+add_test(NAME test_audio_vfx_phase2_2_mixer_gain COMMAND test_audio_vfx_phase2_2_mixer_gain)
+
+add_executable(test_audio_vfx_phase2_3_mute tests/unit/test_audio_vfx_phase2_3_mute.c)
+target_link_libraries(test_audio_vfx_phase2_3_mute PRIVATE rogue_core)
+add_test(NAME test_audio_vfx_phase2_3_mute COMMAND test_audio_vfx_phase2_3_mute)
+
+add_executable(test_audio_vfx_phase2_6_positional tests/unit/test_audio_vfx_phase2_6_positional.c)
+target_link_libraries(test_audio_vfx_phase2_6_positional PRIVATE rogue_core)
+add_test(NAME test_audio_vfx_phase2_6_positional COMMAND test_audio_vfx_phase2_6_positional)
+
+add_executable(test_audio_vfx_phase2_1_registry_clear tests/unit/test_audio_vfx_phase2_1_registry_clear.c)
+target_link_libraries(test_audio_vfx_phase2_1_registry_clear PRIVATE rogue_core)
+add_test(NAME test_audio_vfx_phase2_1_registry_clear COMMAND test_audio_vfx_phase2_1_registry_clear)
+
 add_executable(roguelike src/main.c)
 target_link_libraries(roguelike PRIVATE rogue_core)
 

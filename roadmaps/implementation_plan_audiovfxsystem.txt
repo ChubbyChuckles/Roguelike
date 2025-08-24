@@ -22,12 +22,12 @@ PHASE 1. Core Event System
 
 PHASE 2. Audio Subsystem Foundations
 2.1 AudioRegistry (sound id -> metadata: path, category, volume base) (Done: minimal; loads Mix_Chunk when SDL_mixer)
-2.2 Lazy loading & hot reload detection (X)
-2.3 Channel mixer (gain per category, master mute) (X)
-2.4 Voice pool & polyphony limiting (X)
-2.5 Randomized multi-sample selection (variation) (X)
-2.6 2D positional panning & distance attenuation stub (X)
-2.7 Deterministic seed mapping for repeated events (X)
+2.2 Lazy loading & hot reload detection (Done: lazy Mix_Chunk load on first play; hot reload hook stubbed)
+2.3 Channel mixer (gain per category, master mute) (Done: master gain + per-category gains, global mute)
+2.4 Voice pool & polyphony limiting (Done: simple voice cap guard; no SDL_mixer -> no-op)
+2.5 Randomized multi-sample selection (variation) (Done: deterministic variant selection via xorshift32)
+2.6 2D positional panning & distance attenuation stub (Done: listener pos + linear falloff within radius)
+2.7 Deterministic seed mapping for repeated events (Done: frame index + seq mixed; repeat scaling in gain)
 
 PHASE 3. VFX Subsystem Foundations
 3.1 VfxRegistry (effect id -> script: sprite sequence / particles) (X)
@@ -148,3 +148,9 @@ Open Tasks:
  - Expose audio_vfx_get_frame_digest() API for unified replay harness.
  - Add cross-test linking loot generation of unique drop to expected flourish sequence & digest delta.
 Change Impact: Documentation only; follow-up adds API & tests.
+
+Notes (2025-08-25):
+- Phase 2.2–2.7 implemented in src/audio_vfx/effects.c with compile-time guards for SDL_mixer.
+- Mixer APIs: rogue_audio_mixer_set/get_master, set/get_category, set/get_mute. Positional APIs: set listener, enable toggle, falloff radius.
+- Deterministic variation: xorshift32 seeded from (event id ^ frame_idx ^ seq); voice cap prevents over-subscription.
+- Testing: Added unit tests covering mixer gain math, mute behavior, positional attenuation, and registry clear; all pass under Debug (SDL2, -j8).

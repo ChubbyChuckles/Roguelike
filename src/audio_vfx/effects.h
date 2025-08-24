@@ -63,4 +63,25 @@ int rogue_audio_registry_register(const char* id, const char* path, RogueAudioCa
 /* Internal dispatch helper (used by dispatcher). */
 void rogue_audio_play_by_id(const char* id);
 
+/* Registry helpers (tests + tooling) */
+int rogue_audio_registry_get_path(const char* id, char* out, size_t out_sz);
+void rogue_audio_registry_clear(void);
+
+/* Channel mixer (Phase 2.3) */
+void rogue_audio_mixer_set_master(float gain); /* 0..1 */
+float rogue_audio_mixer_get_master(void);
+void rogue_audio_mixer_set_category(RogueAudioCategory cat, float gain); /* 0..1 */
+float rogue_audio_mixer_get_category(RogueAudioCategory cat);
+void rogue_audio_mixer_set_mute(int mute); /* non-zero = mute */
+int rogue_audio_mixer_get_mute(void);
+
+/* Positional audio stub (Phase 2.6) */
+void rogue_audio_set_listener(float x, float y);
+void rogue_audio_enable_positional(int enable); /* non-zero = enabled */
+void rogue_audio_set_falloff_radius(float r);   /* >0 */
+
+/* Debug/testing helper to compute effective gain scalar (base*category*master*atten)
+    without requiring SDL_mixer. Repeats >= 1; (x,y) is event position. */
+float rogue_audio_debug_effective_gain(const char* id, unsigned repeats, float x, float y);
+
 #endif /* ROGUE_EFFECTS_H */
