@@ -132,6 +132,20 @@ uint64_t skill_export_active_buffs_hash(double now_ms);
     mastery and specialization contributions. Baseline 1.0f. */
 float skill_get_effective_coefficient(int skill_id);
 
+/* API: simulate a simple priority-based skill rotation for a fixed duration.
+     profile_json format (tiny parser, all keys optional unless noted):
+         {
+             "duration_ms": <number, required>,
+             "tick_ms": <number, default 16>,
+             "ap_regen_per_sec": <number, default 0>,
+             "priority": [<int skill ids>]
+         }
+     Writes a compact JSON result into out_buf on success, e.g.:
+         {"duration_ms":1000,"total_casts":12,"ap_spent":120,
+            "casts":[{"id":0,"count":7},{"id":1,"count":5}]}
+     Returns 0 on success, <0 on parse/error. Non-reentrant (uses global state). */
+int skill_simulate_rotation(const char* profile_json, char* out_buf, int out_cap);
+
 /* Data-driven loading */
 int rogue_skills_load_from_cfg(
     const char* path); /* returns number loaded; supports CSV (.cfg) or JSON (.json) */

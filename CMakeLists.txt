@@ -107,6 +107,7 @@ add_library(rogue_core
     src/core/integration/worldgen_resource_bridge.c
     src/core/integration/ui_integration_bridge.c
     src/core/integration/persistence_integration_bridge.c
+    src/core/integration/tag_registry.c
     src/util/json_parser.c
     src/util/cfg_parser.c
     src/core/integration/cfg_migration.c
@@ -610,6 +611,27 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_skills_phase2_api PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_skills_phase2_api COMMAND test_skills_phase2_api)
+
+add_executable(test_skills_rotation_sim tests/unit/test_skills_rotation_sim.c)
+target_link_libraries(test_skills_rotation_sim PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_skills_rotation_sim PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_skills_rotation_sim COMMAND test_skills_rotation_sim)
+
+add_executable(test_tag_registry_validate tests/unit/test_tag_registry_validate.c)
+target_link_libraries(test_tag_registry_validate PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_tag_registry_validate PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_tag_registry_validate COMMAND test_tag_registry_validate)
+
+add_executable(test_skills_ordering_invariance tests/unit/test_skills_ordering_invariance.c)
+target_link_libraries(test_skills_ordering_invariance PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_skills_ordering_invariance PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_skills_ordering_invariance COMMAND test_skills_ordering_invariance)
 
 add_executable(test_audio_vfx_phase1_2 tests/unit/test_audio_vfx_phase1_2.c)
 target_link_libraries(test_audio_vfx_phase1_2 PRIVATE rogue_core)

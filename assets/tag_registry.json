@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "skills": ["fire","frost","arcane","movement","defense","support","control"],
+  "equipment": ["melee","ranged","magic","utility"],
+  "dungeon": ["boss","elite","trap","puzzle"]
+}

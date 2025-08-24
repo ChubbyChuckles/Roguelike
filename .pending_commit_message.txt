@@ -1,3 +1,20 @@
+Skills: rotation simulator API + tag registry validator + invariance test
+
+- Add C API: skill_simulate_rotation(profile_json, out_buf, out_cap) implemented in skills_runtime.c
+    - Tiny JSON field scanner for duration_ms, tick_ms, ap_regen_per_sec, priority[]
+    - Priority-ordered activation attempts with AP regen/cooldowns using existing runtime
+    - Returns compact JSON summary (casts, ap_spent, time_ms)
+- Add assets/tag_registry.json and validator (src/core/integration/tag_registry.c/.h)
+    - Validates optional version, category arrays, allowed charset [A-Za-z0-9_-]
+    - Enforces intra-category uniqueness; exposes file/text entry points
+- Tests:
+    - test_skills_rotation_sim.c (sim sanity)
+    - test_tag_registry_validate.c (positive + negative; fixed build-dir asset path)
+    - test_skills_ordering_invariance.c (coefficient purity)
+- CMake: wire validator into rogue_core and register new tests with CTest
+- Fix: replace nonexistent rogue_player_recompute_stats with rogue_player_recalc_derived and remove unused var to satisfy Werror
+- Build: Debug + SDL2, -j8; targeted skills/tag tests all PASS via CTest
+
 feat(build): introduce rogue_audio_vfx module and wire layering guard
 
 - Extract audio_vfx (effects.c, vfx_config.c) from rogue_core into new STATIC lib `rogue_audio_vfx`.

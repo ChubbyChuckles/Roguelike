@@ -272,6 +272,11 @@ ctest --test-dir build -C Debug -j8 -R "(damage_event_components|hit_mask_integr
 ## 5. Configuration & Assets
 Configs live under `assets/` (items, affixes, loot tables, biomes, projectiles, skill graph prototypes). Hot reload exists for selected registries (biomes, equipment sets). See detailed schemas & examples in Appendix A and `docs/` folder (loot architecture, rarity style, ownership & boundaries).
 
+Tag Registry (cross-system): `assets/tag_registry.json` centralizes allowed tags for skills/equipment/dungeon. A lightweight validator is available:
+- C API: `int rogue_tag_registry_validate_file(const char* path, char* err, size_t cap);`
+- Usage (ctest runs from build dir): `../assets/tag_registry.json`
+- Unit test: `test_tag_registry_validate`
+
 ---
 
 ## 6. Testing & Quality Gates
@@ -281,6 +286,12 @@ Extensive per-phase unit tests, fuzzers, statistical distribution checks, mutati
 - skill_export_active_buffs_hash(now_ms): 64-bit FNV-1a hash of current active buff snapshot (type, magnitude, snapshot flag, remaining_ms). Use g_app.game_time_ms for now_ms. Intended for replay/analytics integrity and quick state diffs.
 - skill_get_effective_coefficient(skill_id): scalar multiplier combining mastery and specialization for a given skill id; baseline 1.0 when no bonuses apply.
 Reference test: test_skills_phase2_api.
+
+Rotation simulator (offline helper):
+- C API: `int skill_simulate_rotation(const char* profile_json, char* out_buf, int out_cap);`
+- Input JSON fields (minimal): `{"duration_ms":4000, "tick_ms":50, "ap_regen_per_sec":5.0, "priority":[1,2,3]}`
+- Behavior: steps time in tick_ms, regenerates AP, attempts casts in priority order respecting AP/cooldowns using existing runtime, and emits a compact JSON summary (casts, ap_spent, time_ms).
+- Unit test: `test_skills_rotation_sim`
 
 ### Recent Changes (Audio/VFX)
 - Phase 5.5: Loot drop cue emits world-space VFX at item position.

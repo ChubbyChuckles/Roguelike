@@ -221,9 +221,9 @@ Risk Mitigation Cross-System:
  - Tag Drift: Maintain central tag registry JSON (skills/equipment/dungeon) with versioned hash; skill load fails if registry hash mismatch outside migration path.
 
 Open Tasks:
- - Expose C API: skill_simulate_rotation(profile_json).
- - Add registry: tag_registry.json with cross-system validation tool.
- - Add test: cross-layer ordering invariance (swap equipment vs progression application order -> identical final coefficient vector).
+ - Expose C API: skill_simulate_rotation(profile_json). (Done: C API `skill_simulate_rotation(const char*, char*, int)` implemented in skills_runtime.c; sim ticks AP regen and attempts casts by priority; returns compact JSON summary; covered by unit test.)
+ - Add registry: tag_registry.json with cross-system validation tool. (Done: `assets/tag_registry.json` added; validator in `src/core/integration/tag_registry.c` with file/text entry points; validates allowed chars and intra-category duplicates; unit test added.)
+ - Add test: cross-layer ordering invariance (swap equipment vs progression application order -> identical final coefficient vector). (Done: `tests/unit/test_skills_ordering_invariance.c` asserts coefficient purity; passes.)
 
 Change Impact: Documentation only; future commits will implement APIs, registry, and tests.
 
@@ -233,3 +233,9 @@ Updates (Current Commit):
 	- skill_get_effective_coefficient(skill_id): multiplies mastery and specialization damage scalars to produce an overall coefficient for the given skill id.
 - Tests: Added tests/unit/test_skills_phase2_api.c validating non-zero and time-varying buff hash and basic coefficient sanity; integrated into CMake (Debug, SDL2, -j8 build passes).
 - Next: skill_simulate_rotation(profile_json) (stub remains), tag_registry.json + validation tool, and cross-layer ordering invariance test.
+
+Updates (Rotation Simulator, Tag Registry, Ordering Invariance):
+- Implemented `skill_simulate_rotation` with tiny JSON field scanner for duration/tick/ap_regen/priority; integrates existing activation/update paths; outputs JSON summary. Added unit `test_skills_rotation_sim.c`.
+- Added central `assets/tag_registry.json` and C validator (`rogue_tag_registry_validate_text/file`) with allowed charset [A-Za-z0-9_-] and duplicate checks. Added unit `test_tag_registry_validate.c` (fixed asset path for CTest).
+- Added `test_skills_ordering_invariance.c` confirming effective coefficient invariant to presumed layer ordering.
+- CMake wired; Debug build with SDL2 and -j8 passes targeted skills/tag validator tests.

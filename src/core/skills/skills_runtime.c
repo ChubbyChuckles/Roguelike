@@ -1,5 +1,6 @@
 /* Skill activation & ticking logic */
 #include "../../audio_vfx/effects.h" /* Phase 5.3: skill start/end cues */
+#include "../../entities/player.h"
 #include "../../game/buffs.h"
 #include "../../util/determinism.h"
 #include "../app/app_state.h"
@@ -56,6 +57,160 @@ float skill_get_effective_coefficient(int skill_id)
     if (sp > 0.0f)
         coeff *= sp;
     return coeff;
+}
+
+/* Tiny helpers to extract numeric fields from a flat JSON object (non-robust).
+   Accepts keys like "\"duration_ms\": 1000" and arrays for priority: "\"priority\":[0,1] */
+static int json_extract_number(const char* s, const char* key, double* out)
+{
+    if (!s || !key || !out)
+        return 0;
+    char pat[64];
+    snprintf(pat, sizeof pat, "\"%s\"", key);
+    const char* p = strstr(s, pat);
+    if (!p)
+        return 0;
+    p = strchr(p, ':');
+    if (!p)
+        return 0;
+    p++;
+    while (*p == ' ' || *p == '\t')
+        ++p;
+    char* e = NULL;
+    double v = strtod(p, &e);
+    if (e == p)
+        return 0;
+    *out = v;
+    return 1;
+}
+
+static int json_extract_int_array(const char* s, const char* key, int* out_ids, int max_ids)
+{
+    if (!s || !key || !out_ids || max_ids <= 0)
+        return 0;
+    char pat[64];
+    snprintf(pat, sizeof pat, "\"%s\"", key);
+    const char* p = strstr(s, pat);
+    if (!p)
+        return 0;
+    p = strchr(p, ':');
+    if (!p)
+        return 0;
+    p++;
+    while (*p && *p != '[')
+        ++p;
+    if (*p != '[')
+        return 0;
+    ++p;
+    int n = 0;
+    while (*p && *p != ']' && n < max_ids)
+    {
+        while (*p == ' ' || *p == '\t' || *p == ',')
+            ++p;
+        char* e = NULL;
+        long v = strtol(p, &e, 10);
+        if (e == p)
+            break;
+        out_ids[n++] = (int) v;
+        p = e;
+        while (*p == ' ' || *p == '\t')
+            ++p;
+        if (*p == ',')
+            ++p;
+    }
+    return n;
+}
+
+int skill_simulate_rotation(const char* profile_json, char* out_buf, int out_cap)
+{
+    if (!profile_json || !out_buf || out_cap <= 0)
+        return -1;
+    double duration_ms = 0.0, tick_ms = 16.0, ap_regen_per_sec = 0.0;
+    (void) json_extract_number(profile_json, "tick_ms", &tick_ms);
+    (void) json_extract_number(profile_json, "ap_regen_per_sec", &ap_regen_per_sec);
+    if (!json_extract_number(profile_json, "duration_ms", &duration_ms) || duration_ms <= 0.0)
+        return -2;
+    int prio[32];
+    int prio_count = json_extract_int_array(profile_json, "priority", prio, 32);
+    if (prio_count <= 0)
+    {
+        /* default: try all registered skills in order */
+        prio_count = g_skill_count_internal < 32 ? g_skill_count_internal : 32;
+        for (int i = 0; i < prio_count; ++i)
+            prio[i] = i;
+    }
+
+    /* counters */
+    int casts[32] = {0};
+    int total_casts = 0;
+    int ap_spent = 0;
+
+    /* Reset a minimal state for deterministic sim: AP pool full at start */
+    g_app.player.level = 1;
+    rogue_player_recalc_derived(&g_app.player);
+    g_app.player.action_points = g_app.player.max_action_points;
+    g_app.ap_throttle_timer_ms = 0.0f;
+
+    double now = g_app.game_time_ms;
+    double end_time = now + duration_ms;
+    double ap_regen_per_ms = ap_regen_per_sec / 1000.0;
+
+    while (now < end_time)
+    {
+        /* Regen AP */
+        if (ap_regen_per_ms > 0.0)
+        {
+            g_app.player.action_points += (int) (ap_regen_per_ms * tick_ms);
+            if (g_app.player.action_points > g_app.player.max_action_points)
+                g_app.player.action_points = g_app.player.max_action_points;
+        }
+        /* Try to activate in priority order */
+        int activated = 0;
+        for (int i = 0; i < prio_count && !activated; ++i)
+        {
+            int sid = prio[i];
+            if (sid < 0 || sid >= g_skill_count_internal)
+                continue;
+            RogueSkillCtx ctx = {0};
+            ctx.now_ms = now;
+            if (rogue_skill_try_activate(sid, &ctx))
+            {
+                const RogueSkillDef* def = &g_skill_defs_internal[sid];
+                casts[i]++;
+                total_casts++;
+                if (def->action_point_cost > 0)
+                    ap_spent += (int) def->action_point_cost;
+                activated = 1;
+            }
+        }
+        /* Update skills */
+        now += tick_ms;
+        g_app.game_time_ms = now;
+        rogue_skills_update(now);
+    }
+
+    /* Emit compact JSON result */
+    int w = 0;
+    int n = snprintf(out_buf, out_cap,
+                     "{\"duration_ms\":%d,\"total_casts\":%d,\"ap_spent\":%d,\"casts\":[",
+                     (int) duration_ms, total_casts, ap_spent);
+    if (n < 0 || n >= out_cap)
+        return -3;
+    w += n;
+    for (int i = 0; i < prio_count; ++i)
+    {
+        int m = snprintf(out_buf + w, out_cap - w, "%s{\"id\":%d,\"count\":%d}", (i ? "," : ""),
+                         prio[i], casts[i]);
+        if (m < 0 || w + m >= out_cap)
+            return -3;
+        w += m;
+    }
+    if (w + 2 >= out_cap)
+        return -3;
+    out_buf[w++] = ']';
+    out_buf[w++] = '}';
+    out_buf[w] = '\0';
+    return 0;
 }
 
 int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
