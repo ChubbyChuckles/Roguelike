@@ -53,6 +53,7 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QDialog,
     QDialogButtonBox,
+    QFileIconProvider,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -77,6 +78,10 @@ PROJECT_IGNORES = {
     "__pycache__",
     ".idea",
     ".vscode",
+    "cmake-build-debug",
+    ".githooks",
+    ".github",
+    "Testing",  # CMake test directory
 }
 
 C_SOURCE_EXTS = {".c", ".cpp", ".cc", ".cxx", ".h", ".hpp", ".hh", ".hxx"}
@@ -85,6 +90,9 @@ CMAKE_EXTS = {".cmake"}
 
 DEFAULT_LOG_FILE = "refactor_tool.log"
 DEFAULT_BACKUP_DIR = ".refactor_backups"
+
+# Reusable OS icon provider for folder/file icons
+ICON_PROVIDER = QFileIconProvider()
 
 # ---------------------------- Utility / Core Types ---------------------------
 
@@ -216,6 +224,7 @@ class TargetTreeModel(QStandardItemModel):
     """
 
     ROLE_IS_DIR = Qt.ItemDataRole.UserRole + 1
+    ROLE_SRC_ABS = Qt.ItemDataRole.UserRole + 2  # original absolute path (if from FS)
 
     def __init__(self, parent: Optional[QObject] = None):
         super().__init__(parent)
@@ -223,8 +232,17 @@ class TargetTreeModel(QStandardItemModel):
         self.setHorizontalHeaderLabels(["Target Structure"])  # type: ignore[arg-type]
 
     @staticmethod
-    def make_item(name: str, is_dir: bool) -> QStandardItem:
+    def make_item(
+        name: str, is_dir: bool, src_abs: Optional[str] = None
+    ) -> QStandardItem:
         item = QStandardItem(name)
+        # Add a native icon for better visuals
+        icon = (
+            ICON_PROVIDER.icon(QFileIconProvider.IconType.Folder)
+            if is_dir
+            else ICON_PROVIDER.icon(QFileIconProvider.IconType.File)
+        )
+        item.setIcon(icon)
         flags = (
             Qt.ItemFlag.ItemIsSelectable
             | Qt.ItemFlag.ItemIsEnabled
@@ -237,6 +255,8 @@ class TargetTreeModel(QStandardItemModel):
             pass
         item.setFlags(flags)
         item.setData(is_dir, TargetTreeModel.ROLE_IS_DIR)
+        if src_abs:
+            item.setData(src_abs, TargetTreeModel.ROLE_SRC_ABS)
         return item
 
     def is_dir(self, index: QModelIndex) -> bool:
@@ -282,15 +302,24 @@ class TargetTreeModel(QStandardItemModel):
                 path = url.toLocalFile()
                 if not path:
                     continue
-                self._add_path_recursive(parent_item, path)
+                # Prefer moving existing mirrored item (by original absolute path)
+                if not self._move_or_add_path(parent_item, path):
+                    # Fallback: add recursively
+                    self._add_path_recursive(parent_item, path)
+            # Emit dataChanged to notify views that the model structure changed
+            self.layoutChanged.emit()  # type: ignore[attr-defined]
             return True
         # Internal move is handled by default implementation; let base class handle
-        return super().dropMimeData(data, action, row, column, parent)
+        result = super().dropMimeData(data, action, row, column, parent)
+        if result:
+            # Emit signal to notify that the model changed
+            self.layoutChanged.emit()  # type: ignore[attr-defined]
+        return result
 
     def _add_path_recursive(self, parent_item: QStandardItem, abs_path: str) -> None:
         name = os.path.basename(abs_path)
         is_directory = os.path.isdir(abs_path)
-        new_item = TargetTreeModel.make_item(name, is_directory)
+        new_item = TargetTreeModel.make_item(name, is_directory, src_abs=abs_path)
         parent_item.appendRow(new_item)  # type: ignore[arg-type]
         if is_directory:
             try:
@@ -301,6 +330,48 @@ class TargetTreeModel(QStandardItemModel):
                     self._add_path_recursive(new_item, sub)
             except Exception:
                 pass
+
+    def _find_item_by_src_abs(
+        self, start: QStandardItem, src_abs: str
+    ) -> Optional[QStandardItem]:
+        # DFS search for an item with matching ROLE_SRC_ABS
+        for i in range(start.rowCount()):
+            child = start.child(i)
+            if child is None:
+                continue
+            val = child.data(TargetTreeModel.ROLE_SRC_ABS)
+            if isinstance(val, str) and os.path.normpath(val) == os.path.normpath(
+                src_abs
+            ):
+                return child
+            if bool(child.data(TargetTreeModel.ROLE_IS_DIR)):
+                found = self._find_item_by_src_abs(child, src_abs)
+                if found is not None:
+                    return found
+        return None
+
+    def _move_or_add_path(self, new_parent: QStandardItem, abs_path: str) -> bool:
+        # Try to find an existing item mirroring this path and move it under new_parent
+        root = self.invisibleRootItem()
+        if root is None:
+            return False
+        existing = self._find_item_by_src_abs(root, abs_path)
+        if existing is None:
+            return False
+        # Detach from old parent
+        old_parent = existing.parent() or root
+        # Find row of existing in old_parent
+        row = None
+        for i in range(old_parent.rowCount()):
+            if old_parent.child(i) is existing:
+                row = i
+                break
+        if row is None:
+            return False
+        taken = old_parent.takeRow(row)
+        # Reinsert under new parent with same item(s)
+        new_parent.appendRow(taken)  # type: ignore[arg-type]
+        return True
 
     # Export current hierarchy to map of desired rel paths for files
     def export_paths(self, project_root: str) -> Dict[str, str]:
@@ -387,6 +458,7 @@ class SourceTreeModel(QStandardItemModel):
             p = os.path.join(abs_dir, name)
             if os.path.isdir(p):
                 item = QStandardItem(name)
+                item.setIcon(ICON_PROVIDER.icon(QFileIconProvider.IconType.Folder))
                 item.setData(p, self.ROLE_ABS_PATH)
                 item.setFlags(
                     Qt.ItemFlag.ItemIsEnabled
@@ -397,6 +469,7 @@ class SourceTreeModel(QStandardItemModel):
                 self._populate_dir(item, p)
             else:
                 item = QStandardItem(name)
+                item.setIcon(ICON_PROVIDER.icon(QFileIconProvider.IconType.File))
                 item.setData(p, self.ROLE_ABS_PATH)
                 item.setFlags(
                     Qt.ItemFlag.ItemIsEnabled
@@ -495,67 +568,60 @@ class RefactorEngine:
     def plan_from_models(self, target_model: TargetTreeModel) -> MovePlan:
         """Generate a MovePlan by comparing the virtual target structure to the current FS.
 
-        Strategy: We construct a mapping by scanning the filesystem for files and
-        mapping each file's current rel path to its corresponding new rel path in the
-        target tree, preserving the leaf file name and relative directory chosen by
-        the user. We identify matches by traversing the virtual tree and finding
-        corresponding real files with the same rel path as in the target tree,
-        or by index based on names. To keep this tractable, we align by rel paths
-        created in the target tree starting from root: Any leaf in target is treated
-        as a final desired path; we then try to find the file with the same filename
-        in the current tree at the original path equal to that item path (if exists),
-        else fall back to a name-based lookup across the repository.
+        Strategy: Prefer exact mapping using the original absolute path stored on
+        target items (ROLE_SRC_ABS). For each leaf in the target tree, compute its
+        desired relative path and pair with the original file's relative path. If
+        ROLE_SRC_ABS is missing (manually created node), fall back to a filename
+        heuristic across the repository.
         """
         plan = MovePlan()
 
-        # Index all real files under root
+        # Index all real files under root for fallback mapping
         real_files: Dict[str, str] = {}
         for abs_path in self._walk_files():
             rp = relpath(abs_path, self.project_root)
             real_files[rp] = abs_path
+        filename_index: Dict[str, List[str]] = {}
+        for rp in real_files.keys():
+            filename_index.setdefault(os.path.basename(rp), []).append(rp)
 
-        # Build desired list from target tree: virtual rel paths
-        desired: List[str] = []
+        # Traverse target tree and build mapping
+        root_item = target_model.invisibleRootItem()
 
-        def build_desired(item: QStandardItem, prefix: str = "") -> None:
+        def traverse(item: QStandardItem, prefix: str) -> None:
             for i in range(item.rowCount()):
                 child = item.child(i)
                 if child is None:
                     continue
                 name = child.text()
                 is_dir = bool(child.data(TargetTreeModel.ROLE_IS_DIR))
-                new_path = name if not prefix else f"{prefix}/{name}"
+                new_rel = name if not prefix else f"{prefix}/{name}"
                 if is_dir:
-                    build_desired(child, new_path)
+                    traverse(child, new_rel)
                 else:
-                    desired.append(new_path)
+                    src_abs = child.data(TargetTreeModel.ROLE_SRC_ABS)
+                    if src_abs:
+                        old_rel = relpath(str(src_abs), self.project_root)
+                        # Normalize both paths for comparison
+                        old_rel_norm = old_rel.replace("\\", "/")
+                        new_rel_norm = new_rel.replace("\\", "/")
+                        if old_rel_norm != new_rel_norm:
+                            plan.add(old_rel_norm, new_rel_norm)
+                    else:
+                        # Fallback by filename only
+                        fname = os.path.basename(new_rel)
+                        cand = filename_index.get(fname, [])
+                        if cand:
+                            # choose closest depth match
+                            best = min(
+                                cand,
+                                key=lambda p: abs(p.count("/") - new_rel.count("/")),
+                            )
+                            if best != new_rel:
+                                plan.add(best, new_rel)
 
-        root_item = target_model.invisibleRootItem()
         if root_item is not None:
-            build_desired(root_item, "")
-
-        # For each desired rel path, if identical file exists -> no move; else
-        # map a current file by filename heuristic.
-        filename_index: Dict[str, List[str]] = {}
-        for rp in real_files.keys():
-            filename_index.setdefault(os.path.basename(rp), []).append(rp)
-
-        for new_rel in desired:
-            if new_rel in real_files:
-                # exists already
-                continue
-            fname = os.path.basename(new_rel)
-            candidates = filename_index.get(fname, [])
-            if not candidates:
-                # No candidate -> skip (might be a new added file not present)
-                continue
-            # Prefer candidate in same original directory depth
-            best = min(candidates, key=lambda p: abs(p.count("/") - new_rel.count("/")))
-            if best != new_rel:
-                plan.add(best, new_rel)
-
-        # Also detect files present in real that are not represented in desired but
-        # in a directory that moved; we leave them untouched unless explicitly moved.
+            traverse(root_item, "")
 
         # Record maps for later updates
         self.moved_map = dict(plan.moves)
@@ -566,8 +632,12 @@ class RefactorEngine:
 
     def build_update_plan(self, move_plan: MovePlan) -> List[UpdatePlan]:
         updates: List[UpdatePlan] = []
-        # Map for quick lookup
-        moved_set: Set[str] = set(move_plan.moves.keys())  # noqa: F841
+
+        # Skip text updates if no moves are planned
+        if not move_plan.moves:
+            return updates
+
+        # Map for quick lookup (kept implicit via move_plan.moves)
 
         # Build a resolver for includes
         index_all_files: Dict[str, str] = {}
@@ -582,7 +652,6 @@ class RefactorEngine:
 
             old_abs = abs_path
             new_rel = move_plan.moves.get(file_rel, file_rel)
-            new_abs = os.path.join(self.project_root, new_rel)  # noqa: F841
 
             text = read_text(old_abs)
             lines = text.splitlines(keepends=True)
@@ -897,6 +966,19 @@ class MainWindow(QMainWindow):
         self.build_chk.setChecked(False)
         controls.addWidget(self.build_chk)
         controls.addStretch(1)
+        # Right-side quick actions
+        self.refresh_btn = QPushButton("Refresh Trees")
+        self.refresh_btn.setToolTip(
+            "Re-scan filesystem tree and rebuild target from disk"
+        )
+        self.refresh_btn.clicked.connect(self._refresh_trees)  # type: ignore[arg-type]
+        controls.addWidget(self.refresh_btn)
+        self.reset_target_btn = QPushButton("Reset Target")
+        self.reset_target_btn.setToolTip(
+            "Reset the target tree to mirror the current filesystem"
+        )
+        self.reset_target_btn.clicked.connect(self._rebuild_target_tree)  # type: ignore[arg-type]
+        controls.addWidget(self.reset_target_btn)
 
         # Build command line
         build_box = QHBoxLayout()
@@ -921,6 +1003,11 @@ class MainWindow(QMainWindow):
         self.src_view.setDragDropMode(QTreeView.DragDropMode.DragOnly)
         self.src_view.setHeaderHidden(False)
         self.src_view.setColumnWidth(0, 350)
+        self.src_view.setAlternatingRowColors(True)
+        self.src_view.setStyleSheet(
+            "QTreeView { font-family: Consolas; font-size: 10pt; }"
+        )
+        self.src_view.setToolTip("Drag files/folders into the Target to plan moves")
 
         # Right: target virtual tree (draggable + droppable)
         self.tgt_model = TargetTreeModel(self)
@@ -934,18 +1021,31 @@ class MainWindow(QMainWindow):
         self.tgt_view.setDefaultDropAction(Qt.DropAction.MoveAction)
         self.tgt_view.setHeaderHidden(False)
         self.tgt_view.setColumnWidth(0, 350)
+        self.tgt_view.setAlternatingRowColors(True)
+        self.tgt_view.setStyleSheet(
+            "QTreeView { font-family: Consolas; font-size: 10pt; }"
+        )
+        self.tgt_view.setToolTip(
+            "Arrange the desired structure. Drops store original paths for accurate mapping."
+        )
 
         self.splitter.addWidget(self.src_view)
         self.splitter.addWidget(self.tgt_view)
-        self.splitter.setSizes([600, 600])  # type: ignore[arg-type]
+        self.splitter.setSizes([650, 650])  # type: ignore[arg-type]
 
         # Bottom buttons
         btns = QHBoxLayout()
         vbox.addLayout(btns)
         self.preview_btn = QPushButton("Preview Changes")
+        self.preview_btn.setToolTip(
+            "Compute planned git mv operations and text updates"
+        )
         self.preview_btn.clicked.connect(self.on_preview)  # type: ignore[arg-type]
         btns.addWidget(self.preview_btn)
         self.apply_btn = QPushButton("Apply Changes")
+        self.apply_btn.setToolTip(
+            "Execute moves and update text files; rollback on error"
+        )
         self.apply_btn.clicked.connect(self.on_apply)  # type: ignore[arg-type]
         btns.addWidget(self.apply_btn)
         btns.addStretch(1)
@@ -977,8 +1077,14 @@ class MainWindow(QMainWindow):
         self.tgt_model.setHorizontalHeaderLabels(["Target Structure"])  # type: ignore[arg-type]
         root_item = self.tgt_model.invisibleRootItem()
         if root_item is not None:
+            # Mirror filesystem into target, preserving original absolute paths
             self._populate_from_fs(root_item, self.project_root)
         self._status.showMessage("Target structure initialized from filesystem")
+
+    def _refresh_trees(self) -> None:
+        # Refresh source tree and rebuild target mirror of disk
+        self.src_model.set_root_path(self.project_root)
+        self._rebuild_target_tree()
 
     def _populate_from_fs(
         self, parent_item: Optional[QStandardItem], abs_dir: str
@@ -994,12 +1100,14 @@ class MainWindow(QMainWindow):
                 continue
             abs_path = os.path.join(abs_dir, name)
             if os.path.isdir(abs_path):
-                item = TargetTreeModel.make_item(name, True)
-                parent_item.appendRow(item)
+                # Folder: also store src_abs to allow drag-moving whole directories accurately
+                item = TargetTreeModel.make_item(name, True, src_abs=abs_path)
+                parent_item.appendRow(item)  # type: ignore[arg-type]
                 self._populate_from_fs(item, abs_path)
             else:
-                item = TargetTreeModel.make_item(name, False)
-                parent_item.appendRow(item)
+                # File: create item with original absolute path for exact mapping
+                item = TargetTreeModel.make_item(name, False, src_abs=abs_path)
+                parent_item.appendRow(item)  # type: ignore[arg-type]
 
     # -------------- Plan & Apply --------------
 
@@ -1017,6 +1125,12 @@ class MainWindow(QMainWindow):
 
     def on_preview(self) -> None:
         plan = self._compute_plan()
+        # Debug: Show some info in status bar
+        move_count = len(plan.move_plan.moves)
+        if move_count > 0:
+            self._status.showMessage(f"Found {move_count} planned moves")
+        else:
+            self._status.showMessage("No moves detected - target matches filesystem")
         dlg = PreviewDialog(self, plan)
         dlg.exec()
 
