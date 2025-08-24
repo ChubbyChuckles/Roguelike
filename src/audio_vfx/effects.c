@@ -415,6 +415,10 @@ typedef struct VfxReg
     uint8_t layer;        /* RogueVfxLayer */
     uint8_t world_space;  /* 1=world, 0=screen */
     uint32_t lifetime_ms; /* default lifetime */
+    /* Minimal particle emitter config */
+    float emit_hz;          /* particles per second */
+    uint32_t p_lifetime_ms; /* particle lifetime */
+    int p_max;              /* cap per effect instance */
 } VfxReg;
 
 typedef struct VfxInst
@@ -423,6 +427,7 @@ typedef struct VfxInst
     uint16_t active;    /* 1=active */
     float x, y;         /* spawn position */
     uint32_t age_ms;    /* progressed time */
+    float emit_accum;   /* fractional particle accumulator */
 } VfxInst;
 
 #define ROGUE_VFX_REG_CAP 64
@@ -434,6 +439,121 @@ static VfxInst g_vfx_inst[ROGUE_VFX_INST_CAP];
 
 static float g_vfx_timescale = 1.0f;
 static int g_vfx_frozen = 0;
+
+/* ---- Minimal particle pool implementation (internal) ---- */
+typedef struct VfxParticle
+{
+    uint8_t active;
+    uint8_t layer; /* RogueVfxLayer */
+    uint8_t world_space;
+    uint16_t inst_idx; /* owning instance index */
+    float x, y;
+    uint32_t age_ms;
+    uint32_t lifetime_ms;
+} VfxParticle;
+
+#define ROGUE_VFX_PART_CAP 1024
+static VfxParticle g_vfx_parts[ROGUE_VFX_PART_CAP];
+/* Simple camera state for world->screen transforms */
+static float g_cam_x = 0.0f, g_cam_y = 0.0f; /* world origin at top-left of view */
+static float g_pixels_per_world = 32.0f;     /* default: 32 px per world unit */
+
+static int vfx_part_alloc(void)
+{
+    for (int i = 0; i < ROGUE_VFX_PART_CAP; ++i)
+        if (!g_vfx_parts[i].active)
+            return i;
+    return -1;
+}
+
+static void vfx_particles_update(float dt)
+{
+    uint32_t dms = (uint32_t) dt;
+    for (int i = 0; i < ROGUE_VFX_PART_CAP; ++i)
+    {
+        if (!g_vfx_parts[i].active)
+            continue;
+        g_vfx_parts[i].age_ms += dms;
+        /* Expire strictly after lifetime (not at the exact boundary) */
+        if (g_vfx_parts[i].age_ms > g_vfx_parts[i].lifetime_ms)
+            g_vfx_parts[i].active = 0;
+    }
+}
+
+static int vfx_particles_layer_count(RogueVfxLayer layer)
+{
+    int c = 0;
+    for (int i = 0; i < ROGUE_VFX_PART_CAP; ++i)
+        if (g_vfx_parts[i].active && g_vfx_parts[i].layer == (uint8_t) layer)
+            ++c;
+    return c;
+}
+
+int rogue_vfx_particles_active_count(void)
+{
+    int c = 0;
+    for (int i = 0; i < ROGUE_VFX_PART_CAP; ++i)
+        if (g_vfx_parts[i].active)
+            ++c;
+    return c;
+}
+
+int rogue_vfx_particles_layer_count(RogueVfxLayer layer)
+{
+    return vfx_particles_layer_count(layer);
+}
+
+int rogue_vfx_particles_collect_ordered(uint8_t* out_layers, int max)
+{
+    if (!out_layers || max <= 0)
+        return 0;
+    /* Canonical order: BG, MID, FG, UI. Emit each layer once if any particle exists. */
+    int written = 0;
+    for (int lay = (int) ROGUE_VFX_LAYER_BG; lay <= (int) ROGUE_VFX_LAYER_UI; ++lay)
+    {
+        if (written >= max)
+            break;
+        if (vfx_particles_layer_count((RogueVfxLayer) lay) > 0)
+        {
+            out_layers[written++] = (uint8_t) lay;
+        }
+    }
+    return written;
+}
+
+void rogue_vfx_set_camera(float cam_x, float cam_y, float pixels_per_world)
+{
+    g_cam_x = cam_x;
+    g_cam_y = cam_y;
+    if (pixels_per_world > 0.0f)
+        g_pixels_per_world = pixels_per_world;
+}
+
+int rogue_vfx_particles_collect_screen(float* out_xy, uint8_t* out_layers, int max)
+{
+    if (!out_xy || max <= 0)
+        return 0;
+    int written = 0;
+    for (int i = 0; i < ROGUE_VFX_PART_CAP && written < max; ++i)
+    {
+        if (!g_vfx_parts[i].active)
+            continue;
+        float sx = g_vfx_parts[i].x;
+        float sy = g_vfx_parts[i].y;
+        if (g_vfx_parts[i].world_space)
+        {
+            /* world -> screen */
+            sx = (sx - g_cam_x) * g_pixels_per_world;
+            sy = (sy - g_cam_y) * g_pixels_per_world;
+        }
+        out_xy[written * 2 + 0] = sx;
+        out_xy[written * 2 + 1] = sy;
+        if (out_layers)
+            out_layers[written] = g_vfx_parts[i].layer;
+        ++written;
+    }
+    return written;
+}
 
 static int vfx_reg_find(const char* id)
 {
@@ -467,6 +587,9 @@ int rogue_vfx_registry_register(const char* id, RogueVfxLayer layer, uint32_t li
     g_vfx_reg[idx].layer = (uint8_t) layer;
     g_vfx_reg[idx].lifetime_ms = lifetime_ms;
     g_vfx_reg[idx].world_space = world_space ? 1 : 0;
+    g_vfx_reg[idx].emit_hz = 0.0f;
+    g_vfx_reg[idx].p_lifetime_ms = 0;
+    g_vfx_reg[idx].p_max = 0;
     return 0;
 }
 
@@ -487,6 +610,22 @@ int rogue_vfx_registry_get(const char* id, RogueVfxLayer* out_layer, uint32_t* o
 
 void rogue_vfx_registry_clear(void) { g_vfx_reg_count = 0; }
 
+int rogue_vfx_registry_set_emitter(const char* id, float spawn_rate_hz,
+                                   uint32_t particle_lifetime_ms, int max_particles)
+{
+    int idx = vfx_reg_find(id);
+    if (idx < 0)
+        return -1;
+    if (spawn_rate_hz < 0)
+        spawn_rate_hz = 0;
+    if (max_particles < 0)
+        max_particles = 0;
+    g_vfx_reg[idx].emit_hz = spawn_rate_hz;
+    g_vfx_reg[idx].p_lifetime_ms = particle_lifetime_ms;
+    g_vfx_reg[idx].p_max = max_particles;
+    return 0;
+}
+
 static int vfx_inst_alloc(void)
 {
     for (int i = 0; i < ROGUE_VFX_INST_CAP; ++i)
@@ -495,6 +634,7 @@ static int vfx_inst_alloc(void)
         {
             g_vfx_inst[i].active = 1;
             g_vfx_inst[i].age_ms = 0;
+            g_vfx_inst[i].emit_accum = 0.0f;
             return i;
         }
     }
@@ -514,6 +654,52 @@ void rogue_vfx_update(uint32_t dt_ms)
         VfxReg* r = &g_vfx_reg[g_vfx_inst[i].reg_index];
         if (g_vfx_inst[i].age_ms >= r->lifetime_ms)
             g_vfx_inst[i].active = 0;
+    }
+
+    /* Update particles: spawn and age/expire */
+    if (!g_vfx_frozen)
+    {
+        float dt_sec = dt * 0.001f;
+        /* Spawn new particles for each active instance based on its registry emitter */
+        for (int i = 0; i < ROGUE_VFX_INST_CAP; ++i)
+        {
+            if (!g_vfx_inst[i].active)
+                continue;
+            VfxReg* r = &g_vfx_reg[g_vfx_inst[i].reg_index];
+            if (r->emit_hz <= 0 || r->p_lifetime_ms == 0 || r->p_max <= 0)
+                continue;
+            /* accumulate fractional spawns */
+            g_vfx_inst[i].emit_accum += r->emit_hz * dt_sec;
+            int want = (int) g_vfx_inst[i].emit_accum;
+            if (want <= 0)
+                continue;
+            g_vfx_inst[i].emit_accum -= (float) want;
+            /* count current particles for this instance */
+            int cur = 0;
+            for (int p = 0; p < ROGUE_VFX_PART_CAP; ++p)
+                if (g_vfx_parts[p].active && g_vfx_parts[p].inst_idx == (uint16_t) i)
+                    ++cur;
+            int can = r->p_max - cur;
+            if (can <= 0)
+                continue;
+            int to_spawn = want < can ? want : can;
+            for (int s = 0; s < to_spawn; ++s)
+            {
+                int pi = vfx_part_alloc();
+                if (pi < 0)
+                    break; /* pool full */
+                g_vfx_parts[pi].active = 1;
+                g_vfx_parts[pi].inst_idx = (uint16_t) i;
+                g_vfx_parts[pi].layer = r->layer;
+                g_vfx_parts[pi].world_space = r->world_space;
+                g_vfx_parts[pi].x = g_vfx_inst[i].x;
+                g_vfx_parts[pi].y = g_vfx_inst[i].y;
+                g_vfx_parts[pi].age_ms = 0;
+                g_vfx_parts[pi].lifetime_ms = r->p_lifetime_ms;
+            }
+        }
+        /* Age/expire all particles */
+        vfx_particles_update(dt);
     }
 }
 

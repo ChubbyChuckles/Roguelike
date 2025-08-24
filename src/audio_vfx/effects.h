@@ -106,6 +106,10 @@ void rogue_vfx_update(uint32_t dt_ms);
 void rogue_vfx_set_timescale(float s);
 void rogue_vfx_set_frozen(int frozen);
 
+/* Particle emitter configuration for a registered VFX id. Returns 0 on success. */
+int rogue_vfx_registry_set_emitter(const char* id, float spawn_rate_hz,
+                                   uint32_t particle_lifetime_ms, int max_particles);
+
 /* Debug/testing helpers */
 int rogue_vfx_active_count(void);
 int rogue_vfx_layer_active_count(RogueVfxLayer layer);
@@ -114,5 +118,25 @@ int rogue_vfx_debug_peek_first(const char* id, int* out_world_space, float* out_
 
 /* Spawn a VFX by id at (x,y) using the registry; returns 0 on success. */
 int rogue_vfx_spawn_by_id(const char* id, float x, float y);
+
+/* Particle system debug/query helpers */
+int rogue_vfx_particles_active_count(void);
+int rogue_vfx_particles_layer_count(RogueVfxLayer layer);
+
+/* Collect active particle layers in canonical render order (BG->MID->FG->UI).
+    Writes up to 'max' entries into out_layers (values are RogueVfxLayer as uint8_t).
+    Returns the number of entries written. Intended for renderer iteration tests/tools. */
+int rogue_vfx_particles_collect_ordered(uint8_t* out_layers, int max);
+
+/* ---- Screen-space transform helpers (Phase 3.6) ---- */
+/* Set camera for transforming world-space particles to screen coordinates.
+    cam_x, cam_y are world-space camera origin; pixels_per_world is scale factor. */
+void rogue_vfx_set_camera(float cam_x, float cam_y, float pixels_per_world);
+
+/* Collect all active particles transformed into screen space.
+    - out_xy: array of size (max*2) receiving x,y pairs per particle in screen space.
+    - out_layers: optional parallel array of layers (RogueVfxLayer) per particle; may be NULL.
+    Returns number of particles written, up to max. */
+int rogue_vfx_particles_collect_screen(float* out_xy, uint8_t* out_layers, int max);
 
 #endif /* ROGUE_EFFECTS_H */

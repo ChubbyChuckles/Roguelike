@@ -48,3 +48,27 @@ Audio/VFX Phase 3.1: VFX foundations (registry, pooled instances, time controls)
 - Added unit test tests/unit/test_audio_vfx_phase3_1_vfx_foundations.c exercising spawn via FX event, counts, peek helper, freeze & timescale behavior, and expiry; registered target in CMake.
 - Build: Debug with SDL2 using parallelism (-j8) succeeds; CTest filtered -R audio_vfx passes 7/7.
 - Documentation: Updated roadmap (3.1 Done; 3.3/3.4/3.6 Partial; 3.5 Done) and README changelog with Phase 3.1 entry.
+
+Audio/VFX Phase 3.2: particle system core (emitters, pool, expiry) + tests
+
+- Added per-VFX emitter configuration API `rogue_vfx_registry_set_emitter(id, hz, p_lifetime_ms, cap)`.
+- Implemented global particle pool (1024), per-instance fractional emission accumulator, and strict expiry on age_ms > lifetime_ms.
+- Update loop spawns at instance position; enforces per-instance cap.
+- Unit test `tests/unit/test_audio_vfx_phase3_2_particles_core.c` validates emission/expiry for 50 Hz, 200 ms lifetime, cap=10 (counts 5→10→5); registered in CMake.
+- Build: Debug with SDL2 using `--parallel 8`; audio_vfx tests pass 8/8 post-boundary fix.
+- Docs: Roadmap updated (3.2 Done), README changelog entry added.
+
+Audio/VFX Phase 3.4: particle layer ordering helper + test
+
+- Introduced `rogue_vfx_particles_collect_ordered(uint8_t* out_layers, int max)` returning only layers with active particles in BG→MID→FG→UI order for renderer iteration.
+- Added unit test `tests/unit/test_audio_vfx_phase3_4_particle_layer_order.c` validating ordering with and without UI layer; registered target/test in CMake.
+- Build: Debug with SDL2 and `--parallel 8`; audio_vfx suite now 9/9 passing.
+- Docs: Roadmap updated (3.4 Partial with helper+test complete), README changelog entry added.
+
+Audio/VFX Phase 3.6: screen-space vs world-space transforms + test
+
+- Added camera state setter `rogue_vfx_set_camera(cam_x, cam_y, pixels_per_world)` and screen-space particle collector `rogue_vfx_particles_collect_screen(float* out_xy, uint8_t* out_layers, int max)`.
+- World-space particles are transformed by subtracting camera and scaling by pixels_per_world; screen-space particles bypass transform.
+- New unit test `tests/unit/test_audio_vfx_phase3_6_screen_vs_world.c` validates MID(world) vs UI(screen) behavior and preserves layer tagging; test registered in CMake.
+- Build: Debug with SDL2 `--parallel 8`; ran `ctest -j8 -R audio_vfx` → 10/10 passing.
+- Docs: Roadmap marks 3.6 Done; README changelog updated with Phase 3.6 entry.
