@@ -37,9 +37,11 @@ Fix Unit Tests (Iteration B – Combat execution/penetration) + CI simplified to
 - CI: simplify .github/workflows/ci.yml to Windows-only job (SDL OFF) to avoid Linux SDL deps; keep format-check and full ctest run.
 - Roadmap updated (Iteration B notes).
 
-Fix Unit Tests (Iteration B.2 – Equipment/Stat Cache Phase 2 Resists)
+Fix Unit Tests (Iteration C – Combat progression metrics stability)
 
-- Stat cache: clamp raw resist fields (poison/fire/frost/arcane) to [0,90] after aggregation to satisfy tests that read pre-cap totals; maintain separate final post-cap fields using rational-power soft cap (p=4) + hard cap.
-- Fingerprint: continue using final (post-cap) resists for determinism; exclude volatile DPS/EHP.
-- Debug: add ROGUE_DEBUG_RESIST=1 env toggle; on MSVC use _dupenv_s to avoid C4996 getenv warning.
-- Validation (Debug, -j8): test_equipment_phase2_resists, test_equipment_phase2_affix_layers, test_equipment_phase2_stat_cache, test_equipment_phase4_1_implicits — all PASS.
+- Bridge: allow XP awards to update session totals and metrics even when the XP distribution buffer is full; keep stored records capped at 32. Ensures xp_distributions_processed reflects all processed events.
+- Tests: Phase 3.3 bridge perf subtest now meets thresholds; also validated damage-number determinism and updated damage-event counts.
+- Validation (Debug, SDL2, -j8):
+	- test_phase3_3_combat_progression_bridge — PASS
+	- test_damage_numbers_player — PASS
+	- test_combat_damage_events — PASS

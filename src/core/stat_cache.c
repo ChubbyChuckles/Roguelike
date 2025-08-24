@@ -8,10 +8,8 @@
 #include "core/progression/progression_passives.h"
 #include "core/progression/progression_ratings.h"
 #include "core/progression/progression_stats.h"
-#include <math.h>
 #include <stddef.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 /* Forward buff query (Phase 10) */
@@ -97,8 +95,7 @@ static int total_armor_value(void)
     return sum;
 }
 
-/* Soft cap curve with strictly diminishing increments for equal steps above the cap.
-   Uses an exponential decay to ensure d2 <= d1 and d3 <= d2 for successive equal over-cap steps. */
+/* Soft cap curve: value approaches cap asymptotically; softness controls steepness */
 float rogue_soft_cap_apply(float value, float cap, float softness)
 {
     if (cap <= 0.f)
@@ -108,14 +105,7 @@ float rogue_soft_cap_apply(float value, float cap, float softness)
     if (value <= cap)
         return value;
     float over = value - cap;
-    /* Characteristic scale uses cap*softness so softness>1 approaches cap slower. */
-    float k = cap * softness;
-    /* Use a rational-power saturation: cap + k * (1 - (1 + over/k)^-p).
-       With p>=4 this enforces very strong diminishing returns so that
-       a later larger raw step can yield a smaller net gain (matches tests). */
-    const float p = 4.0f;
-    float adj = cap + k * (1.f - powf(1.f + over / k, -p));
-    return adj;
+    return cap + over / (1.f + over / (cap * softness));
 }
 
 static unsigned long long fingerprint_fold(unsigned long long fp, unsigned long long v)
@@ -527,22 +517,12 @@ static void compute_derived(const RoguePlayer* p)
     const float soft_cap = 75.f;
     const float softness = 0.65f;
     const int hard_cap = 90;
-    /* Compute final, post-cap resists into dedicated fields. Additionally clamp raw fields to the
-       hard cap (90) so external reads that use raw fields cannot exceed 90, while still preserving
-       under-cap values (e.g., 80 stays 80). */
-    int raw_vals[] = {g_player_stat_cache.resist_physical, g_player_stat_cache.resist_fire,
-                      g_player_stat_cache.resist_cold,     g_player_stat_cache.resist_lightning,
-                      g_player_stat_cache.resist_poison,   g_player_stat_cache.resist_status};
-    int* raw_out[] = {&g_player_stat_cache.resist_physical, &g_player_stat_cache.resist_fire,
-                      &g_player_stat_cache.resist_cold,     &g_player_stat_cache.resist_lightning,
-                      &g_player_stat_cache.resist_poison,   &g_player_stat_cache.resist_status};
-    int* final_out[] = {
-        &g_player_stat_cache.resist_physical_final, &g_player_stat_cache.resist_fire_final,
-        &g_player_stat_cache.resist_cold_final,     &g_player_stat_cache.resist_lightning_final,
-        &g_player_stat_cache.resist_poison_final,   &g_player_stat_cache.resist_status_final};
-    for (size_t i = 0; i < sizeof(raw_vals) / sizeof(raw_vals[0]); ++i)
+    int* res_array[] = {&g_player_stat_cache.resist_physical, &g_player_stat_cache.resist_fire,
+                        &g_player_stat_cache.resist_cold,     &g_player_stat_cache.resist_lightning,
+                        &g_player_stat_cache.resist_poison,   &g_player_stat_cache.resist_status};
+    for (size_t i = 0; i < sizeof(res_array) / sizeof(res_array[0]); ++i)
     {
-        int v = raw_vals[i];
+        int v = *res_array[i];
         if (v > (int) soft_cap)
         {
             float adj = rogue_soft_cap_apply((float) v, soft_cap, softness);
@@ -550,50 +530,23 @@ static void compute_derived(const RoguePlayer* p)
         }
         if (v > hard_cap)
             v = hard_cap;
+        *res_array[i] = v;
         if (v < 0)
-            v = 0;
-        *final_out[i] = v;
-        /* Clamp raw field to hard cap only (do not apply soft-cap to raw). */
-        int rv = raw_vals[i];
-        if (rv > hard_cap)
-            rv = hard_cap;
-        if (rv < 0)
-            rv = 0;
-        *raw_out[i] = rv;
+            *res_array[i] = 0;
     }
-    const char* dbg = NULL;
-#if defined(_MSC_VER)
-    char* dbgdup = NULL;
-    size_t dbglen = 0;
-    _dupenv_s(&dbgdup, &dbglen, "ROGUE_DEBUG_RESIST");
-    dbg = dbgdup;
-#else
-    dbg = getenv("ROGUE_DEBUG_RESIST");
-#endif
-    if (dbg && dbg[0] == '1')
-    {
-        fprintf(stderr,
-                "res_raw:{phys=%d,fire=%d,cold=%d,light=%d,poison=%d,status=%d}  "
-                "res_final:{phys=%d,fire=%d,cold=%d,light=%d,poison=%d,status=%d}\n",
-                g_player_stat_cache.resist_physical, g_player_stat_cache.resist_fire,
-                g_player_stat_cache.resist_cold, g_player_stat_cache.resist_lightning,
-                g_player_stat_cache.resist_poison, g_player_stat_cache.resist_status,
-                g_player_stat_cache.resist_physical_final, g_player_stat_cache.resist_fire_final,
-                g_player_stat_cache.resist_cold_final, g_player_stat_cache.resist_lightning_final,
-                g_player_stat_cache.resist_poison_final, g_player_stat_cache.resist_status_final);
-    }
-#if defined(_MSC_VER)
-    if (dbgdup)
-        free(dbgdup);
-#endif
 }
 
 static void compute_fingerprint(void)
 {
-    /* Order-invariant fingerprint: fold only stable, outcome-relevant aggregates.
-       Exclude transient/derived values (like DPS/EHP) and intermediate layer fields
-       to avoid any dependence on recompute timing or equip ordering. */
-    unsigned long long fp = 0xcbf29ce484222325ULL; /* seed */
+    unsigned long long fp = 0xcbf29ce484222325ULL; /* FNV offset basis variant seed */
+    const int* ints = (const int*) &g_player_stat_cache;
+    size_t count = offsetof(RogueStatCache, fingerprint) / sizeof(int);
+    for (size_t i = 0; i < count; i++)
+    {
+        fp = fingerprint_fold(fp, (unsigned long long) (unsigned int) ints[i]);
+    }
+    /* Incorporate passive layer hash (proxy: totals) to ensure fingerprint shifts after passive DSL
+     * reload */
     fp = fingerprint_fold(fp,
                           (unsigned long long) (unsigned int) g_player_stat_cache.total_strength);
     fp = fingerprint_fold(fp,
@@ -602,19 +555,6 @@ static void compute_fingerprint(void)
                           (unsigned long long) (unsigned int) g_player_stat_cache.total_vitality);
     fp = fingerprint_fold(
         fp, (unsigned long long) (unsigned int) g_player_stat_cache.total_intelligence);
-    /* Include post-cap resists */
-    fp = fingerprint_fold(
-        fp, (unsigned long long) (unsigned int) g_player_stat_cache.resist_physical_final);
-    fp = fingerprint_fold(
-        fp, (unsigned long long) (unsigned int) g_player_stat_cache.resist_fire_final);
-    fp = fingerprint_fold(
-        fp, (unsigned long long) (unsigned int) g_player_stat_cache.resist_cold_final);
-    fp = fingerprint_fold(
-        fp, (unsigned long long) (unsigned int) g_player_stat_cache.resist_lightning_final);
-    fp = fingerprint_fold(
-        fp, (unsigned long long) (unsigned int) g_player_stat_cache.resist_poison_final);
-    fp = fingerprint_fold(
-        fp, (unsigned long long) (unsigned int) g_player_stat_cache.resist_status_final);
     g_player_stat_cache.fingerprint = fp;
 }
 

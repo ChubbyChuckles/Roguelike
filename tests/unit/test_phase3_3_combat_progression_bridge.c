@@ -1,5 +1,6 @@
 #include "core/integration/combat_progression_bridge.h"
 #include "core/integration/config_version.h"
+#include "core/integration/event_bus.h"
 #include "entities/player.h"
 #include "game/combat.h"
 
@@ -51,6 +52,9 @@ extern int rogue_equip_get(int slot)
 /* Phase 3.3.1: Combat XP Distribution Tests */
 int test_combat_xp_distribution()
 {
+    /* Ensure event bus is initialized for bridge event publishing */
+    RogueEventBusConfig cfg = rogue_event_bus_create_default_config("combat_prog_test_bus");
+    rogue_event_bus_init(&cfg);
     RogueCombatProgressionBridge bridge = {0};
 
     /* Initialize bridge */
@@ -96,6 +100,8 @@ int test_combat_xp_distribution()
 /* Phase 3.3.2: Skill Usage Tracking Tests */
 int test_skill_usage_tracking()
 {
+    RogueEventBusConfig cfg = rogue_event_bus_create_default_config("combat_prog_test_bus");
+    rogue_event_bus_init(&cfg);
     RogueCombatProgressionBridge bridge = {0};
 
     rogue_combat_progression_bridge_init(&bridge);
@@ -136,6 +142,8 @@ int test_skill_usage_tracking()
 /* Phase 3.3.3: Passive Skill Effects Tests */
 int test_passive_skill_effects()
 {
+    RogueEventBusConfig cfg = rogue_event_bus_create_default_config("combat_prog_test_bus");
+    rogue_event_bus_init(&cfg);
     RogueCombatProgressionBridge bridge = {0};
 
     rogue_combat_progression_bridge_init(&bridge);
@@ -185,6 +193,8 @@ int test_passive_skill_effects()
 /* Phase 3.3.4: Achievement System Tests */
 int test_achievement_system()
 {
+    RogueEventBusConfig cfg = rogue_event_bus_create_default_config("combat_prog_test_bus");
+    rogue_event_bus_init(&cfg);
     RogueCombatProgressionBridge bridge = {0};
 
     rogue_combat_progression_bridge_init(&bridge);

@@ -269,18 +269,18 @@ bool rogue_event_type_register_safe(uint32_t event_id, const char* name, const c
         return false;
     }
 
-    /* Check for collision: allow registrations inside reserved ranges. If the
-       ID is already registered, treat this as idempotent (no-op) and succeed,
-       preserving the original registration metadata and name. */
+    /* Check for collision: if the ID is already registered, reject duplicate
+       registrations. Tests expect duplicate event IDs to fail instead of being
+       treated as idempotent re-registers. */
     for (uint32_t i = 0; i < g_event_type_count; i++)
     {
         if (g_event_type_registry[i].event_id == event_id)
         {
-            ROGUE_LOG_WARN(
-                "Event type ID %u already registered as '%s' (idempotent re-register from %s:%u)",
+            ROGUE_LOG_ERROR(
+                "Event type ID %u already registered as '%s' (attempted re-register from %s:%u)",
                 event_id, g_event_type_registry[i].name, source_file ? source_file : "unknown",
                 line_number);
-            return true;
+            return false;
         }
     }
 

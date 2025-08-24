@@ -119,7 +119,7 @@ int rogue_combat_progression_bridge_award_xp(RogueCombatProgressionBridge* bridg
                                              RogueCombatXpSource source, uint32_t damage_dealt,
                                              uint32_t enemy_difficulty, uint32_t combat_event_id)
 {
-    if (!bridge || !bridge->initialized || bridge->xp_distribution_count >= 32)
+    if (!bridge || !bridge->initialized)
     {
         return 0;
     }
@@ -130,7 +130,9 @@ int rogue_combat_progression_bridge_award_xp(RogueCombatProgressionBridge* bridg
     QueryPerformanceFrequency(&frequency);
 #endif
 
-    RogueCombatXpDistribution* xp_dist = &bridge->xp_distributions[bridge->xp_distribution_count];
+    bool has_capacity = (bridge->xp_distribution_count < 32);
+    RogueCombatXpDistribution* xp_dist =
+        has_capacity ? &bridge->xp_distributions[bridge->xp_distribution_count] : NULL;
 
     /* Calculate base XP based on damage and difficulty */
     uint32_t base_xp = (damage_dealt / 10) + (enemy_difficulty * 5);
@@ -164,17 +166,20 @@ int rogue_combat_progression_bridge_award_xp(RogueCombatProgressionBridge* bridg
 
     uint32_t total_xp = (uint32_t) ((base_xp + bonus_xp) * difficulty_multiplier);
 
-    /* Fill out the XP distribution record */
-    xp_dist->combat_event_id = combat_event_id;
-    xp_dist->xp_source = source;
-    xp_dist->damage_dealt = damage_dealt;
-    xp_dist->enemy_difficulty = enemy_difficulty;
-    xp_dist->base_xp = base_xp;
-    xp_dist->bonus_xp = bonus_xp;
-    xp_dist->total_xp_awarded = total_xp;
-    xp_dist->difficulty_multiplier = difficulty_multiplier;
+    /* Fill out the XP distribution record if capacity remains */
+    if (has_capacity)
+    {
+        xp_dist->combat_event_id = combat_event_id;
+        xp_dist->xp_source = source;
+        xp_dist->damage_dealt = damage_dealt;
+        xp_dist->enemy_difficulty = enemy_difficulty;
+        xp_dist->base_xp = base_xp;
+        xp_dist->bonus_xp = bonus_xp;
+        xp_dist->total_xp_awarded = total_xp;
+        xp_dist->difficulty_multiplier = difficulty_multiplier;
 
-    bridge->xp_distribution_count++;
+        bridge->xp_distribution_count++;
+    }
     bridge->total_xp_awarded_session += total_xp;
     bridge->metrics.xp_distributions_processed++;
 

@@ -264,8 +264,6 @@ ctest --test-dir build -C Debug -j8 -R "(damage_event_components|hit_mask_integr
 ### CI
 - GitHub Actions runs a Windows-only workflow by default with SDL disabled (headless logic build). Format check and full ctest run are enforced. Enable SDL locally with `-DROGUE_ENABLE_SDL=ON` when developing the SDL/UI slices.
 
-Tip: resist debugging — set `ROGUE_DEBUG_RESIST=1` to print raw vs final resist arrays during equipment/stat cache tests. On Windows/MSVC the implementation uses `_dupenv_s` for secure environment reads.
-
 ---
 
 ## 5. Configuration & Assets

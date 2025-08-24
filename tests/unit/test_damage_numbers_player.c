@@ -38,6 +38,9 @@ static void reset_app_state(void) { g_app.dmg_number_count = 0; }
 int main()
 {
     reset_app_state();
+    /* Force deterministic non-crit for this test to avoid RNG flakiness */
+    extern int g_force_crit_mode;
+    g_force_crit_mode = 0;
     RoguePlayer player;
     rogue_player_init(&player);
     player.strength = 30;

@@ -91,6 +91,12 @@
 			"label": "Rebuild Release after getenv fix",
 			"type": "shell",
 			"command": "cmake --build build --config Release --parallel 8"
+		},
+		{
+			"label": "Build after damage events + bus init test fixes",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"group": "build"
 		}
 	]
 }

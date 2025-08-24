@@ -312,16 +312,8 @@ int rogue_item_defs_load_from_cfg(const char* path)
             fprintf(stderr, "item_defs: cap reached (%d)\n", ROGUE_ITEM_DEF_CAP);
             break;
         }
-        /* Skip duplicates by id to make loader idempotent across repeated loads */
-        if (rogue_item_def_index_fast(d.id) >= 0)
-        {
-            /* Already present: ignore this line (no overwrite to preserve existing definitions) */
-        }
-        else
-        {
-            g_item_defs[g_item_def_count++] = d;
-            added++;
-        }
+        g_item_defs[g_item_def_count++] = d;
+        added++;
     }
     fclose(f);
     /* Rebuild hash index after each file load to keep fast path current (cost acceptable for small

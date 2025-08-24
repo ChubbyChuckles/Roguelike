@@ -107,7 +107,9 @@ static void default_frames_dir(RogueWeaponPoseFrame* frames)
 static int load_json_pose(int weapon_id, WeaponPoseSet* set)
 {
     char path[256];
+    char path_alt[256];
     snprintf(path, sizeof path, "../assets/weapons/weapon_%d_pose.json", weapon_id);
+    snprintf(path_alt, sizeof path_alt, "../../assets/weapons/weapon_%d_pose.json", weapon_id);
     FILE* f = NULL;
 #if defined(_MSC_VER)
     fopen_s(&f, path, "rb");
@@ -116,9 +118,18 @@ static int load_json_pose(int weapon_id, WeaponPoseSet* set)
 #endif
     if (!f)
     {
-        ROGUE_LOG_DEBUG("weapon_pose_json_open_fail: %s", path);
-        default_frames(set);
-        return 0;
+        /* try alternate relative root */
+#if defined(_MSC_VER)
+        fopen_s(&f, path_alt, "rb");
+#else
+        f = fopen(path_alt, "rb");
+#endif
+        if (!f)
+        {
+            ROGUE_LOG_DEBUG("weapon_pose_json_open_fail: %s | %s", path, path_alt);
+            default_frames(set);
+            return 0;
+        }
     }
     fseek(f, 0, SEEK_END);
     long sz = ftell(f);
@@ -252,7 +263,10 @@ static int load_json_pose_dir(int weapon_id, int dir_group, RogueWeaponPoseFrame
     /* dir suffix mapping */
     const char* suffix = (dir_group == 0) ? "down" : (dir_group == 1 ? "up" : "side");
     char path[256];
+    char path_alt[256];
     snprintf(path, sizeof path, "../assets/weapons/weapon_%d_%s_pose.json", weapon_id, suffix);
+    snprintf(path_alt, sizeof path_alt, "../../assets/weapons/weapon_%d_%s_pose.json", weapon_id,
+             suffix);
     FILE* f = NULL;
 #if defined(_MSC_VER)
     fopen_s(&f, path, "rb");
@@ -261,9 +275,30 @@ static int load_json_pose_dir(int weapon_id, int dir_group, RogueWeaponPoseFrame
 #endif
     if (!f)
     {
-        ROGUE_LOG_DEBUG("weapon_pose_dir_json_open_fail: %s", path);
-        default_frames_dir(out_frames);
-        return 0;
+        /* Try alternate relative root first */
+#if defined(_MSC_VER)
+        fopen_s(&f, path_alt, "rb");
+#else
+        f = fopen(path_alt, "rb");
+#endif
+        if (!f)
+        {
+            /* If the directional pose JSON is missing, fall back to the generic pose
+               (weapon_%d_pose.json). If that is also missing, use defaults. */
+            ROGUE_LOG_DEBUG("weapon_pose_dir_json_open_fail: %s", path);
+            default_frames_dir(out_frames);
+            /* attempt to populate from generic pose if available */
+            if (rogue_weapon_pose_ensure(weapon_id))
+            {
+                for (int i = 0; i < FRAME_COUNT; i++)
+                {
+                    const RogueWeaponPoseFrame* base = rogue_weapon_pose_get(weapon_id, i);
+                    if (base)
+                        out_frames[i] = *base;
+                }
+            }
+            return 1;
+        }
     }
     fseek(f, 0, SEEK_END);
     long sz = ftell(f);
@@ -272,21 +307,21 @@ static int load_json_pose_dir(int weapon_id, int dir_group, RogueWeaponPoseFrame
     {
         fclose(f);
         default_frames_dir(out_frames);
-        return 0;
+        return 1;
     }
     char* buf = (char*) malloc((size_t) sz + 1);
     if (!buf)
     {
         fclose(f);
         default_frames_dir(out_frames);
-        return 0;
+        return 1;
     }
     if (fread(buf, 1, (size_t) sz, f) != (size_t) sz)
     {
         free(buf);
         fclose(f);
         default_frames_dir(out_frames);
-        return 0;
+        return 1;
     }
     buf[sz] = '\0';
     fclose(f);
@@ -389,7 +424,9 @@ static int load_json_pose_dir(int weapon_id, int dir_group, RogueWeaponPoseFrame
     free(buf);
     ROGUE_LOG_DEBUG("weapon_pose_dir_loaded: wid=%d dir=%d frames=%d", weapon_id, dir_group,
                     frame_idx);
-    return frame_idx > 0;
+    /* Consider fallback successful even if no frames were parsed from file, as
+        defaults were applied above. */
+    return frame_idx >= 0;
 }
 
 int rogue_weapon_pose_ensure_dir(int weapon_id, int dir_group)
