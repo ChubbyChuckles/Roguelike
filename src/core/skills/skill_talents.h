@@ -50,4 +50,19 @@ unsigned long long rogue_talents_hash(void);
 /* Compute an "effective" skill definition with talent modifiers applied. Returns 1 on success. */
 int rogue_skill_get_effective_def(int id, struct RogueSkillDef* out);
 
+/* Respec API (Phase 1B.5 - partial):
+    - rogue_talents_respec_last(n): undo the last n unlocks in reverse order, refunding points.
+    - rogue_talents_full_respec(): undo all unlocks, refunding all spent points.
+    Returns number of nodes actually respecced. */
+int rogue_talents_respec_last(int n);
+int rogue_talents_full_respec(void);
+
+/* Preview (lightweight): Begin/cancel/commit a preview of unlocks without changing state until
+    commit. Unlock rules are evaluated against current state + staged preview.
+    Returns 1 on success, 0 on failure. */
+int rogue_talents_preview_begin(void);
+int rogue_talents_preview_unlock(int node_id, int level, int str, int dex, int intel, int vit);
+int rogue_talents_preview_cancel(void);
+int rogue_talents_preview_commit(unsigned int timestamp_ms);
+
 #endif /* ROGUE_CORE_SKILL_TALENTS_H */

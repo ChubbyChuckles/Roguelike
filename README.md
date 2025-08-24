@@ -307,6 +307,7 @@ See `roadmaps/` for subsystem implementation plans (inventory, crafting & gather
 ---
 
 ## 11. Changelog (Curated Recent Highlights)
+* Skills System Phase 1B (Talents – respec/preview): Preview journal now captures attribute context (level/STR/DEX/INT/VIT) and commit reuses it, ensuring gating matches preview deterministically. Added unit test `test_talents_phase1b_respec_preview` (passes along with skeleton). Built Debug with SDL2 (-j8).
 * Skills System Phase 1A (Temporal Pacing): Added haste snapshot modes for casts and channels (flags on skill defs) and drift‑corrected fixed‑quantum channel ticking (250ms base anchored to channel start). New unit test `test_skills_phase1a_haste_snapshot_and_drift` verifies snapshot determinism and dynamic haste behavior; all skills tests pass in Debug with SDL2 using parallel build/test (‑j8).
 * AI Phase 6.1 (Combat Behaviour Extensions): Added ranged projectile firing action node `rogue_bt_action_ranged_fire_projectile` wiring AI behavior trees to the projectile system. Supports optional LOS gate and cooldown timer reset. New unit test `test_ai_phase6_1_ranged_projectile` passes in Debug with SDL2 and `--parallel 8`.
 * AI Phase 6.2 (Combat Behaviour Extensions): Added reaction nodes `rogue_bt_action_react_parry` and `rogue_bt_action_react_dodge`. Parry activates within a timed window when an incoming threat flag is set; Dodge computes a normalized vector away from threat and remains active for a short duration. New unit test `test_ai_phase6_2_reactions` passes in Debug with SDL2 and `--parallel 8`.
@@ -320,6 +321,12 @@ See `roadmaps/` for subsystem implementation plans (inventory, crafting & gather
 * JSON Migration Phase 2.3.3 (Materials & Crafting): Added JSON loaders for materials, gathering nodes, and crafting recipes with validation helpers (dependency, balance ratios, skill requirement bounds). New unit tests `test_materials_and_gathering_json` and `test_crafting_json_and_validations` registered in CTest and passing (Debug, SDL2, -j8).
 * JSON Migration Phase 2.3.4 (Biomes & World Gen – complete): Added C-only JSON loaders/validators for biomes (`world_gen_biome_json.c/.h`), vegetation (`vegetation_json.c/.h`), and resource nodes (`world_gen_resource_json.c/.h`). Implemented biome asset dependency validator (`world_gen_biome_assets_validate.c/.h`) checking texture paths with relative fallbacks. Tests `test_worldgen_phase3_4_biome_json`, `test_vegetation_json`, `test_resource_json`, and `test_biome_assets_validate` pass (Debug, SDL2, -j8).
 * Integration Plumbing Phase 5.4: Transaction abort now auto-invokes rollback for mapped participants via rollback manager integration. New test `test_sync_phase5_8_auto_rollback` validates stats/events; all Phase 5.8 sync tests pass (Debug, SDL2, -j8).
+## Changelog
+
+Skills Phase 1B (partial): Talent system gains respec and preview groundwork
+  - New C APIs: rogue_talents_respec_last, rogue_talents_full_respec, preview_begin/unlock/cancel/commit
+  - Deterministic unlock journal and hash recompute; validated with existing talent skeleton test
+  - Built with SDL2 in Debug (-j8); targeted test suite passes
 * Infinite leveling + maze skill graph design integrated (progression roadmap).
 * Integration Plumbing 3.6.1–3.6.2: Centralized XP award + LevelUp events; first‑unlock skill gating (level >= 5×skill_strength) and SKILL_UNLOCKED event emission with UI/Persistence-compatible payload. Added tests validating XP/LevelUp and skill unlock flow.
 * Enemy difficulty ΔL relative scaling model adopted.

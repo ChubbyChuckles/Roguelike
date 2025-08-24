@@ -2842,6 +2842,19 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_talents_phase1b_skeleton.c AND N
     add_test(NAME test_talents_phase1b_skeleton COMMAND test_talents_phase1b_skeleton)
 endif()
 
+# Skills Phase 1.B respec + preview test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_talents_phase1b_respec_preview.c AND NOT TARGET test_talents_phase1b_respec_preview)
+    add_executable(test_talents_phase1b_respec_preview unit/test_talents_phase1b_respec_preview.c)
+    target_link_libraries(test_talents_phase1b_respec_preview PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_talents_phase1b_respec_preview PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_talents_phase1b_respec_preview PRIVATE ROGUE_HAVE_SDL=1 SDL_MAIN_HANDLED=1)
+    else()
+        target_compile_definitions(test_talents_phase1b_respec_preview PRIVATE SDL_MAIN_HANDLED=1)
+    endif()
+    add_test(NAME test_talents_phase1b_respec_preview COMMAND test_talents_phase1b_respec_preview)
+endif()
+
 # UI Phase 4.4 context menu test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_context_menu.c AND NOT TARGET test_ui_phase4_context_menu)
     add_executable(test_ui_phase4_context_menu unit/test_ui_phase4_context_menu.c)

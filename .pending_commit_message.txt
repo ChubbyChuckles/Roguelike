@@ -1,3 +1,16 @@
+Skills System Phase 1B – Talents: Respec + Preview groundwork
+
+- Add respec API: rogue_talents_respec_last(n) and rogue_talents_full_respec() with unlock journal and deterministic hash recompute.
+- Add preview flow: begin/cancel/commit with staged unlock bitset and journal; unlock rules evaluate against effective state (live + preview).
+- Preserve existing talent modifier propagation; no changes to public skill APIs.
+- Build: Debug SDL2 (-j8).
+- Tests: focused run for test_talents_phase1b_skeleton + skills Phase 1A; broader progression/maze/respec/UI subset – all passing.
+
+Talents preview/commit fix (Phase 1B.5): capture attribute context in preview journal and reuse on commit; add passing unit test
+- Fix: `rogue_talents_preview_commit` now reuses captured level/STR/DEX/INT/VIT for each staged unlock, matching preview gating.
+- Add: `test_talents_phase1b_respec_preview` focused test; both talents tests pass.
+- Build: Debug with SDL2 using parallel -j8.
+
 Start screen: fix reduced-motion guard (Phase 10.4), add background brightness clamp (Phase 2.4), update roadmap
 
 - Reduced motion: apply fade skip unconditionally (no show flag gate) both pre-loop and at frame start so tests calling rogue_app_step() without a running loop pass. Fixes 10.4.

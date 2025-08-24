@@ -4,6 +4,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Capture preview context so commit can reuse unlock attributes. */
+typedef struct PreviewUnlockEntry
+{
+    int node_id;
+    int level, str, dex, intel, vit;
+} PreviewUnlockEntry;
+
 typedef struct TalentState
 {
     const struct RogueProgressionMaze* maze;
@@ -14,6 +21,16 @@ typedef struct TalentState
     int mod_count;
     int mod_cap;
     unsigned long long hash; /* FNV-1a over unlock journal (node ids) */
+    /* Respec support: store unlock order as a simple journal (stack). */
+    int* journal;
+    int journal_len;
+    int journal_cap;
+    /* Preview (staged unlocks) */
+    unsigned char in_preview;
+    unsigned char* preview_unlocked; /* bitset overlay */
+    PreviewUnlockEntry* preview_journal;
+    int preview_journal_len;
+    int preview_journal_cap;
 } TalentState;
 
 static TalentState g_tal = {0};
@@ -28,7 +45,18 @@ int rogue_talents_init(const struct RogueProgressionMaze* maze)
     g_tal.unlocked = (unsigned char*) calloc((size_t) g_tal.node_count, 1);
     g_tal.any_threshold = 0;
     g_tal.hash = 1469598103934665603ull;
-    return g_tal.unlocked ? 0 : -1;
+    if (!g_tal.unlocked)
+        return -1;
+    g_tal.journal_cap = 64;
+    g_tal.journal = (int*) malloc(sizeof(int) * (size_t) g_tal.journal_cap);
+    if (!g_tal.journal)
+        return -1;
+    g_tal.journal_len = 0;
+    g_tal.preview_unlocked = NULL;
+    g_tal.preview_journal = NULL;
+    g_tal.preview_journal_len = 0;
+    g_tal.preview_journal_cap = 0;
+    return 0;
 }
 void rogue_talents_shutdown(void)
 {
@@ -39,6 +67,17 @@ void rogue_talents_shutdown(void)
     g_tal.mod_count = g_tal.mod_cap = 0;
     g_tal.maze = NULL;
     g_tal.node_count = 0;
+    free(g_tal.journal);
+    g_tal.journal = NULL;
+    g_tal.journal_len = g_tal.journal_cap = 0;
+    if (g_tal.preview_unlocked)
+        free(g_tal.preview_unlocked);
+    g_tal.preview_unlocked = NULL;
+    if (g_tal.preview_journal)
+        free(g_tal.preview_journal);
+    g_tal.preview_journal = NULL;
+    g_tal.preview_journal_len = g_tal.preview_journal_cap = 0;
+    g_tal.in_preview = 0;
 }
 
 void rogue_talents_set_any_threshold(int threshold) { g_tal.any_threshold = threshold; }
@@ -60,11 +99,30 @@ int rogue_talents_register_modifier(const RogueTalentModifier* mod)
     return 1;
 }
 
-int rogue_talents_is_unlocked(int node_id)
+static int is_unlocked_live(int node_id)
 {
     if (node_id < 0 || node_id >= g_tal.node_count || !g_tal.unlocked)
         return 0;
     return g_tal.unlocked[node_id] ? 1 : 0;
+}
+int rogue_talents_is_unlocked(int node_id) { return is_unlocked_live(node_id); }
+
+static int is_unlocked_effective(int node_id)
+{
+    if (node_id < 0 || node_id >= g_tal.node_count)
+        return 0;
+    if (g_tal.in_preview && g_tal.preview_unlocked)
+        return g_tal.unlocked[node_id] || g_tal.preview_unlocked[node_id];
+    return g_tal.unlocked && g_tal.unlocked[node_id];
+}
+
+static int total_unlocked_effective(void)
+{
+    int total = 0;
+    for (int i = 0; i < g_tal.node_count; ++i)
+        if (is_unlocked_effective(i))
+            total++;
+    return total;
 }
 
 int rogue_talents_can_unlock(int node_id, int level, int str, int dex, int intel, int vit)
@@ -77,10 +135,7 @@ int rogue_talents_can_unlock(int node_id, int level, int str, int dex, int intel
         return 0;
     /* Open allocation: allow if any_threshold == 0 -> must be adjacent; if >0, allow when total
      * unlocked >= threshold. */
-    int unlocked_total = 0;
-    for (int i = 0; i < g_tal.node_count; ++i)
-        if (g_tal.unlocked && g_tal.unlocked[i])
-            unlocked_total++;
+    int unlocked_total = total_unlocked_effective();
     if (g_tal.any_threshold > 0 && unlocked_total >= g_tal.any_threshold)
         return 1;
     /* adjacency check: require at least one neighbor already unlocked unless it's node 0 (root) */
@@ -90,7 +145,7 @@ int rogue_talents_can_unlock(int node_id, int level, int str, int dex, int intel
     for (int k = 0; k < meta->adj_count; ++k)
     {
         int nb = g_tal.maze->adjacency[meta->adj_start + k];
-        if (nb >= 0 && nb < g_tal.node_count && g_tal.unlocked[nb])
+        if (nb >= 0 && nb < g_tal.node_count && is_unlocked_effective(nb))
             return 1;
     }
     return 0;
@@ -110,6 +165,47 @@ static void hash_fold_u32(unsigned long long* h, unsigned int v)
     }
 }
 
+static void journal_push(int node_id)
+{
+    if (g_tal.journal_len == g_tal.journal_cap)
+    {
+        int nc = g_tal.journal_cap ? g_tal.journal_cap * 2 : 64;
+        int* np = (int*) realloc(g_tal.journal, sizeof(int) * (size_t) nc);
+        if (np)
+        {
+            g_tal.journal = np;
+            g_tal.journal_cap = nc;
+        }
+    }
+    if (g_tal.journal && g_tal.journal_len < g_tal.journal_cap)
+        g_tal.journal[g_tal.journal_len++] = node_id;
+}
+
+static void preview_journal_push(int node_id, int level, int str, int dex, int intel, int vit)
+{
+    if (g_tal.preview_journal_len == g_tal.preview_journal_cap)
+    {
+        int nc = g_tal.preview_journal_cap ? g_tal.preview_journal_cap * 2 : 64;
+        PreviewUnlockEntry* np = (PreviewUnlockEntry*) realloc(
+            g_tal.preview_journal, sizeof(PreviewUnlockEntry) * (size_t) nc);
+        if (np)
+        {
+            g_tal.preview_journal = np;
+            g_tal.preview_journal_cap = nc;
+        }
+    }
+    if (g_tal.preview_journal && g_tal.preview_journal_len < g_tal.preview_journal_cap)
+    {
+        g_tal.preview_journal[g_tal.preview_journal_len].node_id = node_id;
+        g_tal.preview_journal[g_tal.preview_journal_len].level = level;
+        g_tal.preview_journal[g_tal.preview_journal_len].str = str;
+        g_tal.preview_journal[g_tal.preview_journal_len].dex = dex;
+        g_tal.preview_journal[g_tal.preview_journal_len].intel = intel;
+        g_tal.preview_journal[g_tal.preview_journal_len].vit = vit;
+        g_tal.preview_journal_len++;
+    }
+}
+
 int rogue_talents_unlock(int node_id, unsigned int timestamp_ms, int level, int str, int dex,
                          int intel, int vit)
 {
@@ -118,13 +214,14 @@ int rogue_talents_unlock(int node_id, unsigned int timestamp_ms, int level, int 
         return 0;
     if (!rogue_talents_can_unlock(node_id, level, str, dex, intel, vit))
         return 0;
-    if (g_tal.unlocked[node_id])
+    if (is_unlocked_live(node_id))
         return 0;
     if (g_app.talent_points <= 0)
         return 0;
     g_tal.unlocked[node_id] = 1;
     g_app.talent_points -= 1;
     hash_fold_u32(&g_tal.hash, (unsigned int) node_id);
+    journal_push(node_id);
     return 1;
 }
 
@@ -157,9 +254,13 @@ int rogue_talents_deserialize(const void* buffer, size_t buf_size)
     memcpy(g_tal.unlocked, p + 4, bytes);
     /* recompute hash deterministically */
     g_tal.hash = 1469598103934665603ull;
+    g_tal.journal_len = 0;
     for (int i = 0; i < g_tal.node_count; ++i)
         if (g_tal.unlocked[i])
+        {
             hash_fold_u32(&g_tal.hash, (unsigned int) i);
+            journal_push(i);
+        }
     return (int) (bytes + 4);
 }
 
@@ -192,4 +293,119 @@ int rogue_skill_get_effective_def(int id, struct RogueSkillDef* out)
         /* proc chance reserved for future pipeline */
     }
     return 1;
+}
+
+int rogue_talents_respec_last(int n)
+{
+    if (n <= 0 || !g_tal.unlocked || !g_tal.journal)
+        return 0;
+    int undone = 0;
+    while (n-- > 0 && g_tal.journal_len > 0)
+    {
+        int node_id = g_tal.journal[--g_tal.journal_len];
+        if (node_id >= 0 && node_id < g_tal.node_count && g_tal.unlocked[node_id])
+        {
+            g_tal.unlocked[node_id] = 0;
+            g_app.talent_points += 1;
+            undone++;
+        }
+    }
+    /* Recompute hash from current unlocked set */
+    g_tal.hash = 1469598103934665603ull;
+    for (int i = 0; i < g_tal.node_count; ++i)
+        if (g_tal.unlocked[i])
+            hash_fold_u32(&g_tal.hash, (unsigned int) i);
+    return undone;
+}
+
+int rogue_talents_full_respec(void)
+{
+    if (!g_tal.unlocked)
+        return 0;
+    int refunded = 0;
+    for (int i = 0; i < g_tal.node_count; ++i)
+    {
+        if (g_tal.unlocked[i])
+        {
+            g_tal.unlocked[i] = 0;
+            refunded++;
+        }
+    }
+    g_app.talent_points += refunded;
+    g_tal.journal_len = 0;
+    g_tal.hash = 1469598103934665603ull;
+    return refunded;
+}
+
+int rogue_talents_preview_begin(void)
+{
+    if (g_tal.in_preview)
+        return 0;
+    g_tal.preview_unlocked = (unsigned char*) calloc((size_t) g_tal.node_count, 1);
+    if (!g_tal.preview_unlocked)
+        return 0;
+    g_tal.preview_journal_cap = 64;
+    g_tal.preview_journal = (PreviewUnlockEntry*) malloc(sizeof(PreviewUnlockEntry) *
+                                                         (size_t) g_tal.preview_journal_cap);
+    if (!g_tal.preview_journal)
+    {
+        free(g_tal.preview_unlocked);
+        g_tal.preview_unlocked = NULL;
+        return 0;
+    }
+    g_tal.preview_journal_len = 0;
+    g_tal.in_preview = 1;
+    return 1;
+}
+
+int rogue_talents_preview_unlock(int node_id, int level, int str, int dex, int intel, int vit)
+{
+    if (!g_tal.in_preview || !g_tal.preview_unlocked)
+        return 0;
+    if (node_id < 0 || node_id >= g_tal.node_count)
+        return 0;
+    if (is_unlocked_effective(node_id))
+        return 0;
+    /* Temporarily mark as unlocked in preview for rule evaluation of subsequent unlocks. */
+    if (!rogue_talents_can_unlock(node_id, level, str, dex, intel, vit))
+        return 0;
+    g_tal.preview_unlocked[node_id] = 1;
+    preview_journal_push(node_id, level, str, dex, intel, vit);
+    return 1;
+}
+
+int rogue_talents_preview_cancel(void)
+{
+    if (!g_tal.in_preview)
+        return 0;
+    if (g_tal.preview_unlocked)
+        free(g_tal.preview_unlocked);
+    g_tal.preview_unlocked = NULL;
+    if (g_tal.preview_journal)
+        free(g_tal.preview_journal);
+    g_tal.preview_journal = NULL;
+    g_tal.preview_journal_len = g_tal.preview_journal_cap = 0;
+    g_tal.in_preview = 0;
+    return 1;
+}
+
+int rogue_talents_preview_commit(unsigned int timestamp_ms)
+{
+    if (!g_tal.in_preview || !g_tal.preview_unlocked)
+        return 0;
+    int committed = 0;
+    for (int i = 0; i < g_tal.preview_journal_len; ++i)
+    {
+        int node_id = g_tal.preview_journal[i].node_id;
+        if (g_tal.preview_unlocked[node_id])
+        {
+            /* Re-validate and apply to live state (spend points). */
+            PreviewUnlockEntry* e = &g_tal.preview_journal[i];
+            if (rogue_talents_unlock(node_id, timestamp_ms, e->level, e->str, e->dex, e->intel,
+                                     e->vit))
+                committed++;
+        }
+    }
+    rogue_talents_preview_cancel();
+    return committed;
 }
