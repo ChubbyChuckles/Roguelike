@@ -29,12 +29,11 @@ typedef struct RogueStatCache
     int rating_crit, rating_haste, rating_avoidance; /* raw ratings */
     int rating_crit_eff_pct, rating_haste_eff_pct, rating_avoidance_eff_pct; /* effective % */
     /* Resist breakdown (Phase 2.3) expressed as integer percentages (0-100 cap). */
-    int resist_physical; /* mitigates direct physical damage */
-    int resist_fire;
-    int resist_cold;
-    int resist_lightning;
-    int resist_poison; /* generic dot */
-    int resist_status; /* generic status buildup (bleed/frost/etc.) */
+    /* Raw resist sums before caps (percentage points) */
+    int resist_physical, resist_fire, resist_cold, resist_lightning, resist_poison, resist_status;
+    /* Final, post-cap resist values (soft+hard caps applied). Mirrors raw until compute_derived */
+    int resist_physical_final, resist_fire_final, resist_cold_final, resist_lightning_final,
+        resist_poison_final, resist_status_final;
     /* Phase 7 Defensive Extensions */
     int block_chance;         /* percent 0-100 chance to block (passive) */
     int block_value;          /* flat damage reduction on successful block */

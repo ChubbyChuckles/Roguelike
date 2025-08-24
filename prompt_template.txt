@@ -1,7 +1,6 @@
 ### Skillsystem
 
-Read the implementation_plan_skillsystem.txt, go to the next features in line that need implementation and implement as many of them as possible. Use unit tests and modularize the code as much as possible to prevent regression. Never build without SDL2. After a successful implementation update the implementation_plan_skillsystem.txt, generate a descriptive commit message and update the README.md. Iterate this process as often as you can in one request.
-
+Read the "roadmaps\implementation_plan_skillsystem.txt", go to the next tasks in line that need implementation and implement as many of them as possible, don't just partially finish the tasks. Prevent regression. Execute the unit tests and build the project to verify there are no errors. Never build without SDL2 and always build with multiple processes when applicable ( -j8 ). After a successful implementation update the "roadmaps\implementation_plan_skillsystem.txt", generate a descriptive commit message that you append to ".pending_commit_message.txt" and update the README.md. Iterate this process as often as you can in one request.
 
 ### Combatsystem
 

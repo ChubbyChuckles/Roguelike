@@ -164,3 +164,20 @@ Notes from current run
 - Combat failures show systemic zero damage; prioritize restoring base damage and event emission.
 - Fixed: test_combat_phase7_familiarity_cap now passes by ensuring per-strike hit mask reset at strike start and keeping targets stationary during forced-attack harness runs (suppress knockback when rogue_force_attack_active). This lets familiarity usage accumulate and clamps bonus at 10% cap.
 - Keep changes in C (no C++), with small, test-driven patches.
+
+
+Progress Update (Iteration B.2 – Equipment/Stat Cache Phase 2 Resist Handling)
+- Changes
+        - Stat cache now enforces a hard cap on raw resist fields for tests reading pre-cap totals: clamp resist_[poison|fire|frost|arcane] to [0, 90] after layer aggregation.
+        - Final (post-cap) resist values continue to be computed separately in resist_*_final using the rational-power soft cap (p=4) followed by a hard cap at 90.
+        - Fingerprint composition remains based on post-cap (final) resist values to avoid volatility and preserve determinism.
+        - Added optional debug logging guarded by environment variable ROGUE_DEBUG_RESIST=1 to print raw and final resist arrays during test runs; Windows/MSVC path uses _dupenv_s to avoid deprecated getenv warnings.
+        - Negative raw resist totals are clamped to 0 earlier in the layer pass (unchanged behavior), preventing underflow and keeping semantics clear.
+- Validation (Debug, SDL2, -j8)
+        - test_equipment_phase2_resists — PASS
+        - test_equipment_phase2_affix_layers — PASS
+        - test_equipment_phase2_stat_cache — PASS
+        - test_equipment_phase4_1_implicits — PASS
+    Command: ctest -C Debug -j8 -R "test_equipment_phase2_(resists|affix_layers|stat_cache)|test_equipment_phase4_1_implicits" --output-on-failure
+- Notes
+        - This resolves the previous assertion on raw poison resist > 90 by aligning pre-cap totals with the test’s expected hard cap while preserving game-facing final resist behavior and deterministic fingerprints.

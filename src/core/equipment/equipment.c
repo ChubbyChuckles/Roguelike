@@ -8,9 +8,26 @@
 
 static int g_slots[ROGUE_EQUIP__COUNT];
 static int g_transmog_defs[ROGUE_EQUIP__COUNT]; /* -1 = none */
+static int g_equip_initialized = 0;
+
+/* Ensure equipment subsystem arrays start empty (-1). Some unit tests don't call reset() explicitly
+   before first use, so guard initialization on first access to avoid phantom item index 0. */
+static void ensure_equip_init(void)
+{
+    if (!g_equip_initialized)
+    {
+        for (int i = 0; i < ROGUE_EQUIP__COUNT; i++)
+        {
+            g_slots[i] = -1;
+            g_transmog_defs[i] = -1;
+        }
+        g_equip_initialized = 1;
+    }
+}
 
 void rogue_equip_reset(void)
 {
+    ensure_equip_init();
     for (int i = 0; i < ROGUE_EQUIP__COUNT; i++)
     {
         g_slots[i] = -1;
@@ -19,6 +36,7 @@ void rogue_equip_reset(void)
 }
 int rogue_equip_get(enum RogueEquipSlot slot)
 {
+    ensure_equip_init();
     if (slot < 0 || slot >= ROGUE_EQUIP__COUNT)
         return -1;
     return g_slots[slot];
@@ -72,6 +90,7 @@ static unsigned long long equip_mix64(unsigned long long h, unsigned long long v
 }
 int rogue_equip_try(enum RogueEquipSlot slot, int inst_index)
 {
+    ensure_equip_init();
     const RogueItemInstance* it = rogue_item_instance_at(inst_index);
     if (!it)
         return -1;
@@ -113,6 +132,7 @@ int rogue_equip_try(enum RogueEquipSlot slot, int inst_index)
 }
 int rogue_equip_unequip(enum RogueEquipSlot slot)
 {
+    ensure_equip_init();
     if (slot < 0 || slot >= ROGUE_EQUIP__COUNT)
         return -1;
     int prev = g_slots[slot];
