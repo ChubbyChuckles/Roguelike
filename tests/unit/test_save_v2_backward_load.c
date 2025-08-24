@@ -1,6 +1,6 @@
 /* Fabricate a v2 save (32-bit id + 32-bit size headers) and ensure v3 loader still reads sections
  * after migration chain (v2->v3 no-op). */
-#include "../../src/core/save_manager.h"
+#include "../../src/core/persistence/save_manager.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

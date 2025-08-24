@@ -5,10 +5,10 @@
 #include <stdio.h>
 #include <string.h>
 /* Include navigation (not strictly needed) and use combat override hook */
-#include "../../src/core/navigation.h"
 #include "../../src/entities/enemy.h"
 #include "../../src/entities/player.h"
 #include "../../src/game/combat_attacks.h"
+#include "../../src/game/navigation.h"
 static int g_obstruction_phase = 0;
 static int test_line_obstruct(float sx, float sy, float ex, float ey)
 {

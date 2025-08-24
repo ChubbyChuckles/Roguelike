@@ -1,13 +1,13 @@
 /* Loadout Optimization (Phase 9) */
 #include "loadout_optimizer.h"
-#include "app/app_state.h"
-#include "equipment/equipment.h"
-#include "equipment/equipment_perf.h" /* arena + profiler (Phase 14) */
-#include "equipment/equipment_stats.h"
-#include "inventory/inventory.h"
-#include "loot/loot_instances.h"
-#include "loot/loot_item_defs.h"
-#include "stat_cache.h"
+#include "../core/app/app_state.h"
+#include "../core/equipment/equipment.h"
+#include "../core/equipment/equipment_perf.h" /* arena + profiler (Phase 14) */
+#include "../core/equipment/equipment_stats.h"
+#include "../core/inventory/inventory.h"
+#include "../core/loot/loot_instances.h"
+#include "../core/loot/loot_item_defs.h"
+#include "../game/stat_cache.h"
 #include <string.h>
 #if defined(_WIN32)
 #include <windows.h>

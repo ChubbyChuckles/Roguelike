@@ -2,8 +2,8 @@
 #ifndef ROGUE_LOADOUT_OPTIMIZER_H
 #define ROGUE_LOADOUT_OPTIMIZER_H
 
-#include "equipment/equipment.h"
-#include "stat_cache.h"
+#include "../core/equipment/equipment.h"
+#include "../game/stat_cache.h"
 
 /* Snapshot of equipped slots for comparison */
 typedef struct RogueLoadoutSnapshot

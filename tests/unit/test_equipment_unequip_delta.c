@@ -3,8 +3,8 @@
 #include "../../src/core/loot/loot_affixes.h"
 #include "../../src/core/loot/loot_instances.h"
 #include "../../src/core/loot/loot_item_defs.h"
-#include "../../src/core/path_utils.h"
 #include "../../src/entities/player.h"
+#include "../../src/util/path_utils.h"
 #include <assert.h>
 #include <stdio.h>
 

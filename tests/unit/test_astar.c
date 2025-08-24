@@ -1,6 +1,6 @@
 #include "../../src/core/app/app_state.h"
-#include "../../src/core/navigation.h"
 #include "../../src/core/vegetation/vegetation.h"
+#include "../../src/game/navigation.h"
 #include "../../src/world/world_gen.h"
 #include "../../src/world/world_gen_config.h"
 #include <stdio.h>

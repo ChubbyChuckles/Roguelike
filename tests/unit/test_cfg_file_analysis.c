@@ -1,4 +1,4 @@
-#include "../../src/core/cfg_parser.h"
+#include "../../src/util/cfg_parser.h"
 #include <stdio.h>
 #include <stdlib.h>
 

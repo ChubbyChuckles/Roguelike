@@ -1,8 +1,8 @@
 #ifndef ROGUE_CFG_MIGRATION_H
 #define ROGUE_CFG_MIGRATION_H
 
-#include "../cfg_parser.h"
-#include "../json_parser.h"
+#include "../../util/cfg_parser.h"
+#include "../../util/json_parser.h"
 
 #ifdef __cplusplus
 extern "C"

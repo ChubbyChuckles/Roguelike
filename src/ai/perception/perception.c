@@ -1,5 +1,5 @@
 #include "perception.h"
-#include "../../core/navigation.h" /* rogue_nav_is_blocked */
+#include "../../game/navigation.h" /* rogue_nav_is_blocked */
 #include <math.h>
 #include <stddef.h>
 #include <string.h>

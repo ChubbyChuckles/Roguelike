@@ -4,7 +4,7 @@
 #endif
 
 #include "cfg_parser.h"
-#include "../util/log.h"
+#include "log.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>

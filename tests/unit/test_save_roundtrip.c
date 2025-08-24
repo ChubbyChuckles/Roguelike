@@ -1,12 +1,12 @@
 /* Phase 1 binary SaveManager roundtrip test */
 #include "../../src/core/app/app_state.h"
-#include "../../src/core/buffs.h"
 #include "../../src/core/loot/loot_affixes.h"
 #include "../../src/core/loot/loot_instances.h"
 #include "../../src/core/loot/loot_item_defs.h"
 #include "../../src/core/persistence/persistence.h"
-#include "../../src/core/save_manager.h"
+#include "../../src/core/persistence/save_manager.h"
 #include "../../src/core/skills/skills.h"
+#include "../../src/game/buffs.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

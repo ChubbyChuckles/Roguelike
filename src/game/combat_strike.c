@@ -1,6 +1,5 @@
-#include "../core/buffs.h"
-#include "../core/navigation.h"
 #include "../core/progression/progression_ratings.h"
+#include "buffs.h"
 #include "combat.h"
 #include "combat_attacks.h"
 #include "combat_internal.h"
@@ -8,6 +7,7 @@
 #include "hit_system.h" /* Phase 1-2 geometry (currently unused gating placeholder) */
 #include "infusions.h"
 #include "lock_on.h"
+#include "navigation.h"
 #include "weapons.h"
 #include <math.h>
 #include <stdio.h>

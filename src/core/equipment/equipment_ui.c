@@ -1,9 +1,9 @@
 #include "equipment_ui.h"
 #include "../../entities/player.h"
+#include "../../game/stat_cache.h"
 #include "../loot/loot_instances.h"
 #include "../loot/loot_item_defs.h"
 #include "../loot/loot_tooltip.h" /* reuse simple builder for base lines */
-#include "../stat_cache.h"
 #include "equipment_procs.h"
 #include "equipment_stats.h" /* for runeword/set already aggregated; we only read cache */
 #include <math.h>

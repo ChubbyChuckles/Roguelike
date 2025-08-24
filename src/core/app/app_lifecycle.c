@@ -1,8 +1,8 @@
 /* Lifecycle & misc controls extracted from app.c */
-#include "../game_loop.h" /* g_game_loop */
-#include "../metrics.h"
-#include "../platform.h"
-#include "../start_screen.h"
+#include "../../game/game_loop.h" /* g_game_loop */
+#include "../../game/platform.h"
+#include "../../game/start_screen.h"
+#include "../../util/metrics.h"
 #include "app.h"
 #include "app_state.h"
 #ifdef ROGUE_HAVE_SDL

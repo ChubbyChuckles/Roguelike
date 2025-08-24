@@ -1,5 +1,5 @@
 #include "../../src/core/app/app_state.h"
-#include "../../src/core/tile_sprite_cache.h"
+#include "../../src/world/tile_sprite_cache.h"
 #include <stdio.h>
 #include <stdlib.h>
 

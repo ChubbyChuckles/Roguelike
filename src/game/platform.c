@@ -1,8 +1,8 @@
 /* MIT License
  * Platform / SDL initialization utilities extracted from app.c */
 #include "platform.h"
+#include "../core/app/app_state.h"
 #include "../util/log.h"
-#include "app/app_state.h"
 
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>

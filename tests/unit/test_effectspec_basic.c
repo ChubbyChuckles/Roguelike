@@ -1,9 +1,9 @@
 /* Test minimal EffectSpec integration: registers a strength buff spec and links via skill */
 #include "../../src/core/app/app_state.h"
-#include "../../src/core/buffs.h"
-#include "../../src/core/effect_spec.h"
 #include "../../src/core/skills/skills.h"
 #include "../../src/entities/player.h"
+#include "../../src/game/buffs.h"
+#include "../../src/graphics/effect_spec.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

@@ -1,7 +1,7 @@
 /* Central damage & cooldown calculation utilities */
 #ifndef ROGUE_CORE_DAMAGE_CALC_H
 #define ROGUE_CORE_DAMAGE_CALC_H
-#include "skills/skills.h"
+#include "../core/skills/skills.h"
 
 /* Synergy buckets enumeration (extend as needed) */
 enum

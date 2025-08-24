@@ -1,7 +1,7 @@
 /* hud_buff_belt.h - UI Phase 6.3 Buff & Debuff icon belt */
 #ifndef ROGUE_HUD_BUFF_BELT_H
 #define ROGUE_HUD_BUFF_BELT_H
-#include "../buffs.h"
+#include "../../game/buffs.h"
 
 #define ROGUE_HUD_MAX_BUFF_ICONS 16
 

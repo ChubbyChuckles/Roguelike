@@ -1,7 +1,7 @@
 #include "collision.h"
+#include "../core/app/app_state.h"
 #include "../entities/enemy.h"
 #include "../entities/player.h"
-#include "app/app_state.h"
 #include <math.h>
 
 /* Minimum separation radius between enemy center and player center (tiles). */

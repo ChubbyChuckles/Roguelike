@@ -1,6 +1,6 @@
-#include "../../src/core/buffs.h"
-#include "../../src/core/stat_cache.h"
 #include "../../src/entities/player.h"
+#include "../../src/game/buffs.h"
+#include "../../src/game/stat_cache.h"
 #include <stdio.h>
 #include <string.h>
 

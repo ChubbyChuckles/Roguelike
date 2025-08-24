@@ -1,11 +1,11 @@
 #include "save_manager.h"
-#include "../world/tilemap.h"
-#include "app/app_state.h"
-#include "buffs.h"
-#include "loot/loot_instances.h"
-#include "persistence/persistence.h"
-#include "skills/skills.h"
-#include "vendor/vendor.h"
+#include "../../game/buffs.h"
+#include "../../world/tilemap.h"
+#include "../app/app_state.h"
+#include "../loot/loot_instances.h"
+#include "../skills/skills.h"
+#include "../vendor/vendor.h"
+#include "persistence.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h> /* qsort, malloc */
@@ -17,11 +17,11 @@
 #else
 #include <unistd.h>
 #endif
-#include "equipment/equipment.h"
-#include "inventory/inventory_entries.h"   /* Phase 1.6 inventory entries persistence */
-#include "inventory/inventory_query.h"     /* Phase 4.4 saved searches persistence */
-#include "inventory/inventory_tag_rules.h" /* Phase 3.3 auto-tag rules persistence */
-#include "inventory/inventory_tags.h"      /* Phase 3 inventory metadata */
+#include "../equipment/equipment.h"
+#include "../inventory/inventory_entries.h"   /* Phase 1.6 inventory entries persistence */
+#include "../inventory/inventory_query.h"     /* Phase 4.4 saved searches persistence */
+#include "../inventory/inventory_tag_rules.h" /* Phase 3.3 auto-tag rules persistence */
+#include "../inventory/inventory_tags.h"      /* Phase 3 inventory metadata */
 
 static RogueSaveComponent g_components[ROGUE_SAVE_MAX_COMPONENTS];
 static int g_component_count = 0;

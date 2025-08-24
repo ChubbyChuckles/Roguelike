@@ -4,8 +4,8 @@
 #endif
 
 #include "json_schema.h"
+#include "../../util/json_parser.h"
 #include "../../util/log.h"
-#include "../json_parser.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

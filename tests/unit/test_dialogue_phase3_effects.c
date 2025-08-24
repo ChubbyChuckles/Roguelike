@@ -1,5 +1,5 @@
 /* test_dialogue_phase3_effects.c - Phase 3 effects execution + idempotence */
-#include "../../src/core/dialogue.h"
+#include "../../src/game/dialogue.h"
 #include "../../src/ui/core/ui_context.h"
 #include <stdio.h>
 #include <string.h>

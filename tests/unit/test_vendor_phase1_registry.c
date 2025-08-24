@@ -1,6 +1,6 @@
 /* Vendor System Phase 1 (1.1-1.3) registry & parsing tests */
-#include "../../src/core/path_utils.h"
 #include "../../src/core/vendor/vendor_registry.h"
+#include "../../src/util/path_utils.h"
 #include <stdio.h>
 #include <string.h>
 

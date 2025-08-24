@@ -1,7 +1,7 @@
 #ifndef ROGUE_AI_FLOW_FIELD_H
 #define ROGUE_AI_FLOW_FIELD_H
 
-#include "../../core/navigation.h"
+#include "../../game/navigation.h"
 
 typedef struct RogueFlowField
 {

@@ -2,8 +2,8 @@
 #include "../../src/core/progression/progression_maze.h"
 #include "../../src/core/progression/progression_passives.h"
 #include "../../src/core/progression/progression_stats.h"
-#include "../../src/core/stat_cache.h"
 #include "../../src/entities/player.h"
+#include "../../src/game/stat_cache.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

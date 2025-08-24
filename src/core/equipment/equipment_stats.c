@@ -1,8 +1,8 @@
 #include "equipment_stats.h"
+#include "../../game/stat_cache.h"
 #include "../loot/loot_affixes.h"
 #include "../loot/loot_instances.h"
 #include "../loot/loot_item_defs.h"
-#include "../stat_cache.h"
 #include "equipment.h"
 #include "equipment_content.h" /* Phase 16.2 external set/runeword registries */
 #include "equipment_gems.h"    /* Phase 5.2 gem aggregation */

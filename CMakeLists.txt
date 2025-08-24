@@ -74,14 +74,14 @@ add_library(rogue_core
     src/core/app/app_step.c
     src/core/app/app_lifecycle.c
     src/core/app/app_test_helpers.c
-    src/core/metrics.c
+    src/util/metrics.c
     src/core/app/app_state.c
-    src/core/game_loop.c
+    src/game/game_loop.c
     src/core/minimap/minimap.c
     src/core/minimap/minimap_loot_pings.c
     src/core/loot/loot_tooltip.c
     src/core/player/player_controller.c
-    src/core/input_events.c
+    src/input/input_events.c
     src/core/player/player_render.c
     src/core/enemy/enemy_render.c
     src/core/hud/hud.c
@@ -92,8 +92,8 @@ add_library(rogue_core
     src/ui/core/ui_theme.c
     src/ui/core/ui_test_harness.c
     src/core/player/player_progress.c
-    src/core/world_renderer.c
-    src/core/animation_system.c
+    src/world/world_renderer.c
+    src/graphics/animation_system.c
     # Integration plumbing
     src/core/integration/integration_manager.c
     src/core/integration/system_taxonomy.c
@@ -107,8 +107,8 @@ add_library(rogue_core
     src/core/integration/worldgen_resource_bridge.c
     src/core/integration/ui_integration_bridge.c
     src/core/integration/persistence_integration_bridge.c
-    src/core/json_parser.c
-    src/core/cfg_parser.c
+    src/util/json_parser.c
+    src/util/cfg_parser.c
     src/core/integration/cfg_migration.c
     src/core/integration/hot_reload.c
     src/core/integration/dependency_manager.c
@@ -117,7 +117,7 @@ add_library(rogue_core
     src/core/persistence/persistence_world.c
     src/core/persistence/persistence_player.c
     src/core/persistence/persistence_autosave.c
-    src/core/save_manager.c
+    src/core/persistence/save_manager.c
     # skills module split
     src/core/skills/skills_registry.c
     src/core/skills/skills_runtime.c
@@ -125,19 +125,19 @@ add_library(rogue_core
     src/core/skills/skill_tree.c
     src/core/skills/skill_bar.c
     src/core/skills/skill_talents.c
-    src/core/effect_spec.c
-    src/core/buffs.c
+    src/graphics/effect_spec.c
+    src/game/buffs.c
     # projectiles module split
     src/core/projectiles/projectiles_spawn.c
     src/core/projectiles/projectiles_update.c
     src/core/projectiles/projectiles_render.c
     src/core/projectiles/projectiles_config.c
-    src/core/damage_calc.c
-    src/core/collision.c
-    src/core/navigation.c
-    src/core/asset_config.c
-    src/core/platform.c
-    src/core/tile_sprite_cache.c
+    src/game/damage_calc.c
+    src/game/collision.c
+    src/game/navigation.c
+    src/util/asset_config.c
+    src/game/platform.c
+    src/world/tile_sprite_cache.c
     src/platform/platform_sdl.c
     src/graphics/renderer.c
     src/graphics/sprite.c
@@ -204,8 +204,8 @@ add_library(rogue_core
     src/ai/perception/perception.c
     src/ai/pathing/flow_field.c
     src/ai/pathing/local_avoidance.c
-    src/core/start_screen.c
-    src/core/localization.c
+    src/game/start_screen.c
+    src/game/localization.c
     src/core/player/player_assets.c
     src/util/log.c
     src/core/vegetation/vegetation_defs.c
@@ -213,7 +213,7 @@ add_library(rogue_core
     src/core/vegetation/vegetation_generate.c
     src/core/vegetation/vegetation_render.c
     src/core/vegetation/vegetation_collision.c
-    src/core/scene_drawlist.c
+    src/graphics/scene_drawlist.c
     src/core/loot/loot_item_defs.c
     src/core/loot/loot_item_defs_convert.c
     src/core/loot/loot_rebalance.c
@@ -230,7 +230,7 @@ add_library(rogue_core
     src/core/loot/loot_logging.c
     src/core/loot/loot_affixes.c
     src/core/loot/loot_filter.c
-    src/core/path_utils.c
+    src/util/path_utils.c
     src/core/loot/loot_rarity.c
         src/core/loot/loot_perf.c
     src/core/loot/loot_analytics.c
@@ -285,13 +285,13 @@ add_library(rogue_core
     src/core/equipment/equipment_ui.c
     src/core/equipment/equipment_persist.c
     src/core/equipment/equipment_fuzz.c
-    src/core/loadout_optimizer.c
-    src/core/durability.c
+    src/util/loadout_optimizer.c
+    src/game/durability.c
     src/core/vendor/vendor_ui.c
     src/core/skills/skill_graph_runtime.c
     src/core/skills/skill_graph_assignment.c
     src/core/skills/skill_maze.c
-    src/core/stat_cache.c
+    src/game/stat_cache.c
     src/core/progression/progression_stats.c
     src/core/progression/progression_xp.c
     src/core/progression/progression_attributes.c
@@ -306,7 +306,7 @@ add_library(rogue_core
     src/core/progression/progression_synergy.c
     src/core/progression/progression_persist.c
     src/core/progression/progression_award.c
-    src/core/dialogue.c
+    src/game/dialogue.c
     # UI Phase 1 scaffolding
     src/ui/core/ui_context.c
     # maintainability phase M3: unified kv parser utility
@@ -376,7 +376,7 @@ add_library(rogue_core
 
 # Suppress Windows error/abort popups in tests and tools; route to stderr instead.
 if(WIN32)
-    target_sources(rogue_core PRIVATE src/core/win_suppress_error_dialogs.c)
+    target_sources(rogue_core PRIVATE src/util/win_suppress_error_dialogs.c)
     if(ROGUE_SUPPRESS_WINDOWS_ERROR_DIALOGS)
         target_compile_definitions(rogue_core PUBLIC ROGUE_SUPPRESS_WINDOWS_ERROR_DIALOGS=1)
     endif()

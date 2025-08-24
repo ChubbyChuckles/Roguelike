@@ -1,5 +1,5 @@
 #include "buffs.h"
-#include "app/app_state.h"
+#include "../core/app/app_state.h"
 #include <string.h>
 
 /* Simple fixed-size buff list */

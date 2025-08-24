@@ -1,6 +1,6 @@
 #include "durability.h"
-#include "loot/loot_instances.h"
-#include "loot/loot_item_defs.h"
+#include "../core/loot/loot_instances.h"
+#include "../core/loot/loot_item_defs.h"
 #include <math.h>
 
 /* Internal state for Phase 8.3 auto-warn bucket transitions. */

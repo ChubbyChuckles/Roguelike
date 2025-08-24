@@ -1,13 +1,13 @@
 /* Phase 2.1+ layered stat cache implementation */
 #include "stat_cache.h"
-#include "equipment/equipment.h"
-#include "equipment/equipment_stats.h"
-#include "loot/loot_affixes.h"
-#include "loot/loot_instances.h"
-#include "loot/loot_item_defs.h"
-#include "progression/progression_passives.h"
-#include "progression/progression_ratings.h"
-#include "progression/progression_stats.h"
+#include "../core/equipment/equipment.h"
+#include "../core/equipment/equipment_stats.h"
+#include "../core/loot/loot_affixes.h"
+#include "../core/loot/loot_instances.h"
+#include "../core/loot/loot_item_defs.h"
+#include "../core/progression/progression_passives.h"
+#include "../core/progression/progression_ratings.h"
+#include "../core/progression/progression_stats.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>

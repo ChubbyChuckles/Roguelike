@@ -1,8 +1,8 @@
 #include "../../src/core/app/app_state.h"
-#include "../../src/core/damage_calc.h"
 #include "../../src/core/progression/progression_synergy.h"
 #include "../../src/core/skills/skills.h"
-#include "../../src/core/stat_cache.h"
+#include "../../src/game/damage_calc.h"
+#include "../../src/game/stat_cache.h"
 #include <assert.h>
 #include <stdio.h>
 

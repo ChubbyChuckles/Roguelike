@@ -1,6 +1,6 @@
 /* Simplified metrics test: validates baseline (no migration needed) metrics remain zero and
  * non-negative timings */
-#include "../../src/core/save_manager.h"
+#include "../../src/core/persistence/save_manager.h"
 #include <stdio.h>
 
 int main(void)

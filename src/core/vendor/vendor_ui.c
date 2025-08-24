@@ -1,12 +1,12 @@
 #include "vendor_ui.h"
+#include "../../game/durability.h" /* durability bucket */
+#include "../../game/stat_cache.h"
 #include "../../graphics/font.h"
 #include "../app/app_state.h"
-#include "../durability.h" /* durability bucket */
 #include "../equipment/equipment.h"
 #include "../inventory/inventory.h"
 #include "../loot/loot_instances.h"
 #include "../loot/loot_item_defs.h"
-#include "../stat_cache.h"
 #include "economy.h"
 #include "vendor.h"
 #include <stdio.h>

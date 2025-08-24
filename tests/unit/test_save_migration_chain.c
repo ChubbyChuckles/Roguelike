@@ -1,6 +1,6 @@
 /* Validates that a legacy v1 save (header downgrade) migrates to v2 via registered chain */
 #include "../../src/core/app/app_state.h"
-#include "../../src/core/save_manager.h"
+#include "../../src/core/persistence/save_manager.h"
 #include <stdio.h>
 #include <string.h>
 

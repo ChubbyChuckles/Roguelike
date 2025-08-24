@@ -1,5 +1,5 @@
 #include "effect_spec.h"
-#include "buffs.h"
+#include "../game/buffs.h"
 #include <stdlib.h>
 #include <string.h>
 

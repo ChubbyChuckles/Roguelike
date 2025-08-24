@@ -1,5 +1,5 @@
 #include "analytics.h"
-#include "app/app_state.h"
+#include "../core/app/app_state.h"
 void rogue_analytics_add_damage(unsigned int amount)
 {
     g_app.analytics_damage_dealt_total += (unsigned long long) amount;

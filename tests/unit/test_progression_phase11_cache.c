@@ -1,5 +1,5 @@
-#include "../../src/core/stat_cache.h"
 #include "../../src/entities/player.h"
+#include "../../src/game/stat_cache.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

@@ -1,7 +1,7 @@
 #include "equipment.h"
+#include "../../game/stat_cache.h"
 #include "../loot/loot_instances.h"
 #include "../loot/loot_item_defs.h"
-#include "../stat_cache.h"
 #include "../vendor/economy.h"
 #include "equipment_stats.h" /* ensure rogue_equipment_apply_stat_bonuses prototype */
 #include <string.h>

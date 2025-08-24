@@ -1,5 +1,5 @@
 /* Phase 4 dialogue persistence test: save active mid-script, reset, restore */
-#include "../../src/core/dialogue.h"
+#include "../../src/game/dialogue.h"
 #include <stdio.h>
 #include <string.h>
 

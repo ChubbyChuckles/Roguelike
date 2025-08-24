@@ -13,7 +13,7 @@ static int g_tree_index = 0; /* selection */
 
 /* Realistic effect placeholders */
 /* PowerStrike: applies timed buff (rank*2 strength) for 5s */
-#include "../buffs.h"
+#include "../../game/buffs.h"
 #include "../projectiles/projectiles.h"
 static int effect_power_strike(const RogueSkillDef* def, RogueSkillState* st,
                                const RogueSkillCtx* ctx)
@@ -65,7 +65,7 @@ static int effect_dash(const RogueSkillDef* def, RogueSkillState* st, const Rogu
     return 1;
 }
 /* Fireball: spawn projectile in facing direction using damage service */
-#include "../damage_calc.h"
+#include "../../game/damage_calc.h"
 static int effect_fireball(const RogueSkillDef* def, RogueSkillState* st, const RogueSkillCtx* ctx)
 {
     (void) ctx;

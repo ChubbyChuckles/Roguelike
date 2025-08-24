@@ -1,8 +1,8 @@
 #include "vegetation.h"
 #include "../../graphics/font.h"
+#include "../../graphics/scene_drawlist.h"
 #include "../../graphics/tile_sprites.h"
 #include "../../util/log.h"
-#include "../scene_drawlist.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

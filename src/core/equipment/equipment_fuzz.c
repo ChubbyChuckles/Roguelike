@@ -1,9 +1,9 @@
 /* Phase 18.2: Fuzz equip/un-equip sequences to exercise state machine invariants.
    Deterministic pseudo-random generator (xorshift64*) seeded with fixed seed for reproducibility.
    Public API returns number of invariant violations (0 -> pass). */
+#include "../../game/stat_cache.h"
 #include "../loot/loot_instances.h"
 #include "../loot/loot_item_defs.h"
-#include "../stat_cache.h"
 #include "equipment.h"
 #include <stdio.h>
 

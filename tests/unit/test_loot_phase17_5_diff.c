@@ -1,7 +1,7 @@
 /* Unit test for Phase 17.5 inventory record-level diff metrics */
 #include "../../src/core/app/app_state.h"
 #include "../../src/core/loot/loot_instances.h"
-#include "../../src/core/save_manager.h"
+#include "../../src/core/persistence/save_manager.h"
 #include <assert.h>
 #include <stdio.h>
 

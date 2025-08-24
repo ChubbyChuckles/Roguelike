@@ -5,10 +5,10 @@
 #include <string.h>
 /* Use combat override hook instead of macro to avoid macro collisions. */
 #include "../../src/core/app/app_state.h"
-#include "../../src/core/navigation.h"
 #include "../../src/entities/enemy.h"
 #include "../../src/entities/player.h"
 #include "../../src/game/combat_attacks.h"
+#include "../../src/game/navigation.h"
 /* Provide line obstruction hook via registration */
 static int g_obstruction_phase = 0; /* 0 baseline, 1 obstruct */
 static int test_line_obstruct(float sx, float sy, float ex, float ey)

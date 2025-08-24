@@ -4,7 +4,7 @@
 #include "../../src/core/loot/loot_item_defs.h"
 #include "../../src/core/loot/loot_pickup.h"
 #include "../../src/core/loot/loot_tables.h"
-#include "../../src/core/path_utils.h"
+#include "../../src/util/path_utils.h"
 #include <assert.h>
 #include <stdio.h>
 

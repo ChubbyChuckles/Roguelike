@@ -2,7 +2,7 @@
 #include "../../src/core/loot/loot_instances.h"
 #include "../../src/core/loot/loot_item_defs.h"
 #include "../../src/core/minimap/minimap_loot_pings.h"
-#include "../../src/core/path_utils.h"
+#include "../../src/util/path_utils.h"
 #include <assert.h>
 #include <stdio.h>
 

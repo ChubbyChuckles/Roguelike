@@ -1,9 +1,9 @@
 #include "equipment_enhance.h"
+#include "../../game/stat_cache.h"
 #include "../inventory/inventory.h"
 #include "../loot/loot_affixes.h"
 #include "../loot/loot_instances.h"
 #include "../loot/loot_item_defs.h"
-#include "../stat_cache.h"
 #include "../vendor/economy.h"
 #include <stdlib.h>
 

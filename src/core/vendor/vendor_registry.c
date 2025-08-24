@@ -1,5 +1,5 @@
 #include "vendor_registry.h"
-#include "../path_utils.h"
+#include "../../util/path_utils.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>

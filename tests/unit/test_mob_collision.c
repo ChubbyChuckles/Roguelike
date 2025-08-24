@@ -1,9 +1,9 @@
 #include "../../src/core/app/app_state.h"
-#include "../../src/core/collision.h"
 #include "../../src/core/enemy/enemy_system.h"
 #include "../../src/core/vegetation/vegetation.h"
 #include "../../src/entities/enemy.h"
 #include "../../src/entities/player.h"
+#include "../../src/game/collision.h"
 #include "../../src/world/world_gen.h"
 #include "../../src/world/world_gen_config.h"
 #include <math.h>

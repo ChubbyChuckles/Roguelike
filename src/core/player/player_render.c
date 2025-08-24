@@ -2,8 +2,8 @@
 #include "../../game/hit_system.h"
 #include "../../game/weapon_pose.h"
 #include "../../graphics/font.h"
+#include "../../graphics/scene_drawlist.h"
 #include "../../graphics/sprite.h"
-#include "../scene_drawlist.h"
 #include <math.h>
 #include <stddef.h>
 #include <string.h>

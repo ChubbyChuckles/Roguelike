@@ -1,5 +1,5 @@
 #include "local_avoidance.h"
-#include "../../core/navigation.h"
+#include "../../game/navigation.h"
 
 int rogue_local_avoid_adjust(int x, int y, int* dx, int* dy)
 {

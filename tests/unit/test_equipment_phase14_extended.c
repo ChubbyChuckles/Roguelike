@@ -2,8 +2,8 @@
 #include "../../src/core/equipment/equipment_stats.h"
 #include "../../src/core/loot/loot_instances.h"
 #include "../../src/core/loot/loot_item_defs.h"
-#include "../../src/core/path_utils.h"
-#include "../../src/core/stat_cache.h"
+#include "../../src/game/stat_cache.h"
+#include "../../src/util/path_utils.h"
 #include <stdio.h>
 #include <string.h>
 

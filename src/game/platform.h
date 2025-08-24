@@ -2,7 +2,7 @@
 #ifndef ROGUE_CORE_PLATFORM_H
 #define ROGUE_CORE_PLATFORM_H
 
-#include "app/app.h"
+#include "../core/app/app.h"
 #include <stdbool.h>
 
 bool rogue_platform_init(const RogueAppConfig* cfg);

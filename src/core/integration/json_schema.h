@@ -1,7 +1,7 @@
 #ifndef ROGUE_JSON_SCHEMA_H
 #define ROGUE_JSON_SCHEMA_H
 
-#include "../json_parser.h"
+#include "../../util/json_parser.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>

@@ -1,6 +1,6 @@
 #include "../../src/core/integration/event_bus.h"
 #include "../../src/core/integration/persistence_integration_bridge.h"
-#include "../../src/core/save_manager.h"
+#include "../../src/core/persistence/save_manager.h"
 #include <stdio.h>
 #include <string.h>
 #include <time.h>

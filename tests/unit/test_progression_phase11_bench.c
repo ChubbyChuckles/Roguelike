@@ -1,6 +1,6 @@
 /* Phase 11.3 Micro-benchmark: measure selective vs full recompute cost (synthetic) */
-#include "../../src/core/stat_cache.h"
 #include "../../src/entities/player.h"
+#include "../../src/game/stat_cache.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

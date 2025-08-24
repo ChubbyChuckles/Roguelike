@@ -1,8 +1,8 @@
 /* Metrics implementation extracted from app.c */
 #include "metrics.h"
-#include "app/app_state.h"
-#include "game_loop.h"
-#include "loot/loot_rarity_adv.h"
+#include "../core/app/app_state.h"
+#include "../core/loot/loot_rarity_adv.h"
+#include "../game/game_loop.h"
 #include <time.h>
 
 static double now_seconds(void) { return (double) clock() / (double) CLOCKS_PER_SEC; }

@@ -1,6 +1,6 @@
 /* Rendering for vegetation */
+#include "../../graphics/scene_drawlist.h"
 #include "../../graphics/tile_sprites.h"
-#include "../scene_drawlist.h"
 #include "vegetation_internal.h"
 #include <string.h>
 

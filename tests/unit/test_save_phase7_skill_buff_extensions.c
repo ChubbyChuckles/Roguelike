@@ -5,9 +5,9 @@
    remains unaffected. */
 
 #include "../../src/core/app/app_state.h"
-#include "../../src/core/buffs.h"
-#include "../../src/core/save_manager.h"
+#include "../../src/core/persistence/save_manager.h"
 #include "../../src/core/skills/skills.h"
+#include "../../src/game/buffs.h"
 #include <stdio.h>
 #include <string.h>
 

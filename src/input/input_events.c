@@ -1,23 +1,23 @@
 #include "input_events.h"
+#include "../core/equipment/equipment.h"
+#include "../core/hud/hud_overlays.h" /* alerts & metrics toggles */
+#include "../core/inventory/inventory.h"
+#include "../core/skills/skill_bar.h"
+#include "../core/skills/skill_tree.h"
+#include "../core/skills/skills.h"
+#include "../core/vegetation/vegetation.h"
+#include "../core/vendor/economy.h"
+#include "../core/vendor/vendor.h"
 #include "../entities/player.h"
 #include "../game/damage_numbers.h"
+#include "../game/game_loop.h"
 #include "../game/hit_pixel_mask.h" // pixel hit detection toggle
 #include "../game/hit_system.h"     /* debug toggle */
-#include "../ui/core/ui_context.h"  /* skill graph toggle */
+#include "../game/start_screen.h"
+#include "../ui/core/ui_context.h" /* skill graph toggle */
 #include "../world/tilemap.h"
 #include "../world/world_gen.h"
 #include "../world/world_gen_config.h"
-#include "equipment/equipment.h"
-#include "game_loop.h"
-#include "hud/hud_overlays.h" /* alerts & metrics toggles */
-#include "inventory/inventory.h"
-#include "skills/skill_bar.h"
-#include "skills/skill_tree.h"
-#include "skills/skills.h"
-#include "start_screen.h"
-#include "vegetation/vegetation.h"
-#include "vendor/economy.h"
-#include "vendor/vendor.h"
 #include <string.h> /* memset */
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>

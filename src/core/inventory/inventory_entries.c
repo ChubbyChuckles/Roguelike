@@ -1,7 +1,7 @@
 #include "inventory_entries.h"
-#include "../save_manager.h"     /* mark component dirty for incremental saves */
-#include "inventory_query.h"     /* Phase 4.6 cache invalidation */
-#include "inventory_tag_rules.h" /* Phase 3.3 auto-tag rules */
+#include "../persistence/save_manager.h" /* mark component dirty for incremental saves */
+#include "inventory_query.h"             /* Phase 4.6 cache invalidation */
+#include "inventory_tag_rules.h"         /* Phase 3.3 auto-tag rules */
 #include <stdlib.h>
 #include <string.h>
 

@@ -1,5 +1,5 @@
 /* test_dialogue_phase1.c - Phase 1 playback + UI integration unit test (headless UI) */
-#include "../../src/core/dialogue.h"
+#include "../../src/game/dialogue.h"
 #include "../../src/ui/core/ui_context.h"
 #include <stdio.h>
 #include <string.h>

@@ -1,6 +1,6 @@
 /* Skill activation & ticking logic */
+#include "../../game/buffs.h"
 #include "../app/app_state.h"
-#include "../buffs.h"
 #include "skills_internal.h"
 #include <stdlib.h>
 #include <string.h>

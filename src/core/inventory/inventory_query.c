@@ -1,7 +1,7 @@
 #include "inventory_query.h"
 #include "../loot/loot_instances.h"
 #include "../loot/loot_item_defs.h"
-#include "../save_manager.h"
+#include "../persistence/save_manager.h"
 #include "inventory_entries.h"
 #include "inventory_tags.h"
 #include <ctype.h>

@@ -1,4 +1,4 @@
-#include "../../src/core/dialogue.h"
+#include "../../src/game/dialogue.h"
 #include <assert.h>
 #include <stdio.h>
 

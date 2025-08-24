@@ -1,7 +1,7 @@
 /* Phase 18.1: Golden master snapshot export & compare test */
 #include "../../src/core/equipment/equipment.h"
 #include "../../src/core/equipment/equipment_persist.h"
-#include "../../src/core/stat_cache.h"
+#include "../../src/game/stat_cache.h"
 #include <stdio.h>
 #include <string.h>
 

@@ -1,6 +1,6 @@
 #include "../../src/core/app/app.h"
 #include "../../src/core/app/app_state.h"
-#include "../../src/core/localization.h"
+#include "../../src/game/localization.h"
 #include <assert.h>
 
 static void set_fake_locale(void)

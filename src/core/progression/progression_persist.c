@@ -1,6 +1,6 @@
 /* Phase 12: Versioned progression persistence & migration */
 #include "progression_persist.h"
-#include "../save_manager.h"
+#include "../persistence/save_manager.h"
 #include "progression_attributes.h"
 #include "progression_passives.h"
 #include "progression_stats.h"

@@ -1,6 +1,6 @@
 #include "material_registry.h"
+#include "../../util/path_utils.h"
 #include "../loot/loot_item_defs.h"
-#include "../path_utils.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>

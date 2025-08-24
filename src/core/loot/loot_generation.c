@@ -1,5 +1,5 @@
 #include "loot_generation.h"
-#include "../metrics.h"
+#include "../../util/metrics.h"
 #include "loot_affixes.h"
 #include "loot_instances.h"
 #include "loot_item_defs.h"
