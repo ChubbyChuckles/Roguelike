@@ -314,6 +314,14 @@ Audit script (`tools/maint_audit.py`), schema docs/export, diff & budget analyze
 
 **Project Structure Management**: Complete dependency-aware file organization system (`src/core/project_restructure.*`) enabling safe reorganization of the codebase into logical subdirectories. Includes interactive tools, impact analysis, build system integration, and comprehensive validation ensuring zero regression during structural changes.
 
+### Code Audit Tooling (Phase 0) — Baseline Inventory & Metrics
+- tools/code_audit/inventory.py — Source inventory mapping files → logical modules; writes JSON/CSV + summary.
+- tools/code_audit/include_graph.py — Include/dependency graph scanner; emits JSON + DOT; reports cycles.
+- tools/code_audit/tests_overview.py — Test inventory snapshot (counts/grouping) via ctest -N.
+- tools/code_audit/build_timing.py — Configure/build/ctest timing capture (Debug, SDL2, -j8); writes CSV and output tails.
+
+Reports live under build/reports/code_audit_YYYYMMDD/. All scripts are stdlib-only and Windows‑friendly.
+
 ---
 
 ## 10. Roadmap Snapshot

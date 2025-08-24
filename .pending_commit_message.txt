@@ -7,3 +7,12 @@ feat(audio-vfx): complete Phase 5.3–5.5 gameplay→FX bindings with tests (SDL
 - Tests: audio_vfx suite now 20/20 passing in Debug (SDL2, -j8)
 
 docs(roadmap,readme): mark 5.3–5.5 Done; add Recent Changes entries and test counts
+
+tools(audit): Phase 0 baseline inventory & metrics scripts + reports
+
+- Add tools/code_audit/: inventory.py (file→module inventory), include_graph.py (include graph + cycle detection),
+  tests_overview.py (ctest -N snapshot), build_timing.py (configure/build/ctest timings; SDL2 Debug, -j8).
+- Windows-safe UTF-8 output capture to avoid decode errors; write CSV + short tails under build/reports/code_audit_YYYYMMDD/.
+- Regression check: built Debug with SDL2 and ran ctest -j8; scripts generate inventory/graph/test counts; timing CSV recorded.
+
+docs(roadmap,readme): Phase 0 updated — 0.1/0.2 Done, 0.3/0.4 Partial; README adds "Code Audit Tooling" section with usage and report paths.
