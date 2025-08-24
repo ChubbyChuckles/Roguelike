@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Standard: C11](https://img.shields.io/badge/standard-C11-blue.svg)]()
 
-![alt text](https://github.com/ChubbyChuckles/Roguelike/tree/main/assets/vfx/start_bg.jpg?raw=true)
+![alt text](https://github.com/ChubbyChuckles/Roguelike/blob/main/assets/vfx/start_bg.jpg?raw=true)
 
 
 Clean, **modular**, and **test‑driven** 2D action roguelike foundation written in portable C11.
