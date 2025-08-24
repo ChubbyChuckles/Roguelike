@@ -1,0 +1,7 @@
+skills: talents v2 serialization (varint ranks, v1 back-compat) + deterministic hash incl. ranks; add unit test
+
+Details:
+- Implemented header v2 with unlocked bitset + varint ranks; v1 load maps unlocked→rank=1.
+- Hash now folds version marker and non-zero ranks; stable independent of unlock order.
+- Added test `test_talents_phase1b_ranks_and_hash`; all talents tests pass.
+- Built Debug with SDL2 and parallelism (-j8).

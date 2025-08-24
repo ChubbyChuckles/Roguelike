@@ -53,6 +53,8 @@ int rogue_talents_unlocked_count(void);
 
 /* Query if node is currently unlocked. */
 int rogue_talents_is_unlocked(int node_id);
+/* Query node rank (0 if locked). */
+int rogue_talents_get_rank(int node_id);
 
 /* Check unlock preconditions (level/attr via maze + open allocation rule). */
 int rogue_talents_can_unlock(int node_id, int level, int str, int dex, int intel, int vit);
@@ -62,6 +64,7 @@ int rogue_talents_unlock(int node_id, unsigned int timestamp_ms, int level, int 
                          int intel, int vit);
 
 /* Serialize/deserialize unlocked bitset (versioned). Returns bytes written/read or -1. */
+/* v2 includes varint ranks per node appended after unlocked bytes. */
 int rogue_talents_serialize(void* buffer, size_t buf_size);
 int rogue_talents_deserialize(const void* buffer, size_t buf_size);
 

@@ -133,6 +133,18 @@
 			"type": "shell",
 			"command": "cmake --build build --config Debug --parallel 8",
 			"group": "build"
+		},
+		{
+			"label": "Build Debug (SDL2, -j8)",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"group": "build"
+		},
+		{
+			"label": "Rebuild after adding talents ranks test",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"group": "build"
 		}
 	]
 }

@@ -16,6 +16,7 @@ typedef struct TalentState
     const struct RogueProgressionMaze* maze;
     unsigned char* unlocked; /* bitset per node */
     int node_count;
+    int* ranks;        /* per node rank (0 = locked), Phase 1B.6 */
     int any_threshold; /* open allocation threshold (ANY) */
     RogueTalentModifier* mods;
     int mod_count;
@@ -40,6 +41,61 @@ typedef struct TalentState
 
 static TalentState g_tal = {0};
 
+/* ---- Helpers: varint (LEB128) and hash recompute ---- */
+static int varint_encode_u32(unsigned int v, unsigned char* out, int out_cap)
+{
+    int n = 0;
+    while (1)
+    {
+        if (n >= out_cap)
+            return -1;
+        unsigned char byte = (unsigned char) (v & 0x7Fu);
+        v >>= 7u;
+        if (v)
+            byte |= 0x80u;
+        out[n++] = byte;
+        if (!v)
+            break;
+    }
+    return n;
+}
+static int varint_decode_u32(const unsigned char* in, int in_len, unsigned int* out_val)
+{
+    unsigned int result = 0;
+    int shift = 0;
+    int n = 0;
+    while (n < in_len)
+    {
+        unsigned char byte = in[n++];
+        result |= ((unsigned int) (byte & 0x7Fu)) << shift;
+        if (!(byte & 0x80u))
+            break;
+        shift += 7;
+        if (shift > 28)
+            break;
+    }
+    *out_val = result;
+    return n;
+}
+
+static void hash_fold_u32(unsigned long long* h, unsigned int v);
+static void talents_recompute_hash(void)
+{
+    /* Stable hash over (version,node_id,rank) for all nodes; include version=2 marker. */
+    g_tal.hash = 1469598103934665603ull;
+    hash_fold_u32(&g_tal.hash, 2u);
+    for (int i = 0; i < g_tal.node_count; ++i)
+    {
+        unsigned int r = (g_tal.ranks ? (unsigned int) (g_tal.ranks[i] < 0 ? 0 : g_tal.ranks[i])
+                                      : (g_tal.unlocked && g_tal.unlocked[i] ? 1u : 0u));
+        if (r > 0)
+        {
+            hash_fold_u32(&g_tal.hash, (unsigned int) i);
+            hash_fold_u32(&g_tal.hash, r);
+        }
+    }
+}
+
 int rogue_talents_init(const struct RogueProgressionMaze* maze)
 {
     if (!maze)
@@ -48,13 +104,14 @@ int rogue_talents_init(const struct RogueProgressionMaze* maze)
     g_tal.maze = maze;
     g_tal.node_count = maze->base.node_count;
     g_tal.unlocked = (unsigned char*) calloc((size_t) g_tal.node_count, 1);
+    g_tal.ranks = (int*) calloc((size_t) g_tal.node_count, sizeof(int));
     g_tal.node_types = (unsigned char*) calloc((size_t) g_tal.node_count, 1);
     g_tal.skill_unlock_for_node = (int*) malloc(sizeof(int) * (size_t) g_tal.node_count);
     g_tal.prereq_counts = (int*) calloc((size_t) g_tal.node_count, sizeof(int));
     g_tal.prereqs = (int**) calloc((size_t) g_tal.node_count, sizeof(int*));
     g_tal.any_threshold = 0;
     g_tal.hash = 1469598103934665603ull;
-    if (!g_tal.unlocked || !g_tal.node_types || !g_tal.skill_unlock_for_node ||
+    if (!g_tal.unlocked || !g_tal.ranks || !g_tal.node_types || !g_tal.skill_unlock_for_node ||
         !g_tal.prereq_counts || !g_tal.prereqs)
         return -1;
     for (int i = 0; i < g_tal.node_count; ++i)
@@ -74,6 +131,9 @@ void rogue_talents_shutdown(void)
 {
     free(g_tal.unlocked);
     g_tal.unlocked = NULL;
+    if (g_tal.ranks)
+        free(g_tal.ranks);
+    g_tal.ranks = NULL;
     if (g_tal.node_types)
         free(g_tal.node_types);
     g_tal.node_types = NULL;
@@ -196,6 +256,13 @@ static int is_unlocked_live(int node_id)
     return g_tal.unlocked[node_id] ? 1 : 0;
 }
 int rogue_talents_is_unlocked(int node_id) { return is_unlocked_live(node_id); }
+
+int rogue_talents_get_rank(int node_id)
+{
+    if (node_id < 0 || node_id >= g_tal.node_count || !g_tal.ranks)
+        return 0;
+    return g_tal.ranks[node_id];
+}
 
 static int is_unlocked_effective(int node_id)
 {
@@ -326,8 +393,10 @@ int rogue_talents_unlock(int node_id, unsigned int timestamp_ms, int level, int 
     if (g_app.talent_points < cost_points)
         return 0;
     g_tal.unlocked[node_id] = 1;
+    if (g_tal.ranks && g_tal.ranks[node_id] <= 0)
+        g_tal.ranks[node_id] = 1;
     g_app.talent_points -= cost_points;
-    hash_fold_u32(&g_tal.hash, (unsigned int) node_id);
+    talents_recompute_hash();
     journal_push(node_id);
     return 1;
 }
@@ -336,16 +405,29 @@ int rogue_talents_serialize(void* buffer, size_t buf_size)
 {
     if (!g_tal.unlocked)
         return -1;
-    size_t bytes = (size_t) g_tal.node_count;
-    if (buf_size < bytes + 4)
+    size_t bytes = (size_t) g_tal.node_count; /* 1 byte per node (not bit-packed) */
+    /* Worst-case varint ranks: 5 bytes each */
+    size_t worst_ranks = (size_t) g_tal.node_count * 5u;
+    if (buf_size < bytes + 4 + worst_ranks)
         return -1;
     unsigned char* p = (unsigned char*) buffer;
-    p[0] = 1; /* version */
+    p[0] = 2; /* version 2: unlocked bytes + varint ranks */
     p[1] = (unsigned char) (g_tal.node_count & 0xFF);
     p[2] = (unsigned char) ((g_tal.node_count >> 8) & 0xFF);
     p[3] = (unsigned char) ((g_tal.node_count >> 16) & 0xFF);
     memcpy(p + 4, g_tal.unlocked, bytes);
-    return (int) (bytes + 4);
+    int offset = (int) (bytes + 4);
+    /* Append ranks as varints */
+    for (int i = 0; i < g_tal.node_count; ++i)
+    {
+        unsigned int r =
+            (unsigned int) (g_tal.ranks ? g_tal.ranks[i] : (g_tal.unlocked[i] ? 1 : 0));
+        int wrote = varint_encode_u32(r, p + offset, (int) (buf_size - (size_t) offset));
+        if (wrote < 0)
+            return -1;
+        offset += wrote;
+    }
+    return offset;
 }
 int rogue_talents_deserialize(const void* buffer, size_t buf_size)
 {
@@ -353,22 +435,42 @@ int rogue_talents_deserialize(const void* buffer, size_t buf_size)
         return -1;
     const unsigned char* p = (const unsigned char*) buffer;
     unsigned int ver = p[0];
-    (void) ver;
     int count = (int) p[1] | ((int) p[2] << 8) | ((int) p[3] << 16);
     size_t bytes = (size_t) count;
     if (count != g_tal.node_count || buf_size < bytes + 4)
         return -1;
     memcpy(g_tal.unlocked, p + 4, bytes);
-    /* recompute hash deterministically */
-    g_tal.hash = 1469598103934665603ull;
+    int offset = (int) (bytes + 4);
+    if (ver >= 2)
+    {
+        /* read varint ranks */
+        for (int i = 0; i < g_tal.node_count; ++i)
+        {
+            if (offset >= (int) buf_size)
+                return -1;
+            unsigned int r = 0;
+            int used = varint_decode_u32(p + offset, (int) (buf_size - (size_t) offset), &r);
+            if (used <= 0)
+                return -1;
+            offset += used;
+            if (g_tal.ranks)
+                g_tal.ranks[i] = (int) r;
+        }
+    }
+    else
+    {
+        /* legacy v1: derive ranks from unlocked bytes */
+        if (g_tal.ranks)
+            for (int i = 0; i < g_tal.node_count; ++i)
+                g_tal.ranks[i] = g_tal.unlocked[i] ? 1 : 0;
+    }
+    /* rebuild journal minimal and recompute deterministic hash */
     g_tal.journal_len = 0;
     for (int i = 0; i < g_tal.node_count; ++i)
         if (g_tal.unlocked[i])
-        {
-            hash_fold_u32(&g_tal.hash, (unsigned int) i);
             journal_push(i);
-        }
-    return (int) (bytes + 4);
+    talents_recompute_hash();
+    return offset;
 }
 
 unsigned long long rogue_talents_hash(void) { return g_tal.hash; }
@@ -413,15 +515,13 @@ int rogue_talents_respec_last(int n)
         if (node_id >= 0 && node_id < g_tal.node_count && g_tal.unlocked[node_id])
         {
             g_tal.unlocked[node_id] = 0;
+            if (g_tal.ranks)
+                g_tal.ranks[node_id] = 0;
             g_app.talent_points += 1;
             undone++;
         }
     }
-    /* Recompute hash from current unlocked set */
-    g_tal.hash = 1469598103934665603ull;
-    for (int i = 0; i < g_tal.node_count; ++i)
-        if (g_tal.unlocked[i])
-            hash_fold_u32(&g_tal.hash, (unsigned int) i);
+    talents_recompute_hash();
     return undone;
 }
 
@@ -435,12 +535,14 @@ int rogue_talents_full_respec(void)
         if (g_tal.unlocked[i])
         {
             g_tal.unlocked[i] = 0;
+            if (g_tal.ranks)
+                g_tal.ranks[i] = 0;
             refunded++;
         }
     }
     g_app.talent_points += refunded;
     g_tal.journal_len = 0;
-    g_tal.hash = 1469598103934665603ull;
+    talents_recompute_hash();
     return refunded;
 }
 
