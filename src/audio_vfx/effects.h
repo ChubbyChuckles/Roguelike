@@ -161,6 +161,28 @@ int rogue_vfx_particles_collect_ordered(uint8_t* out_layers, int max);
 /* Debug helpers to collect particle attributes for tests/tools. Return count written up to max. */
 int rogue_vfx_particles_collect_scales(float* out_scales, int max);
 int rogue_vfx_particles_collect_colors(uint32_t* out_rgba, int max);
+/* Phase 4.5: Collect particle lifetimes (ms). */
+int rogue_vfx_particles_collect_lifetimes(uint32_t* out_ms, int max);
+
+/* ---- Random distributions (Phase 4.5) ---- */
+typedef enum RogueVfxDist
+{
+    ROGUE_VFX_DIST_NONE = 0,
+    ROGUE_VFX_DIST_UNIFORM = 1, /* a=min, b=max (inclusive bounds for multiplier) */
+    ROGUE_VFX_DIST_NORMAL = 2   /* a=mean, b=sigma (multiplier; values <=0 clamped) */
+} RogueVfxDist;
+
+/* Configure per-VFX particle variation distributions for scale and lifetime.
+   For UNIFORM: a=min, b=max multipliers applied to base value (scale default 1.0; lifetime in ms).
+   For NORMAL: a=mean, b=sigma multipliers; values <= 0 are clamped to a small positive epsilon.
+   Pass mode=ROGUE_VFX_DIST_NONE to disable that variation channel.
+   Returns 0 on success. */
+int rogue_vfx_registry_set_variation(const char* id, RogueVfxDist scale_mode, float scale_a,
+                                     float scale_b, RogueVfxDist lifetime_mode, float life_a,
+                                     float life_b);
+
+/* Testing/debug: set deterministic FX RNG seed (affects audio variation and VFX distributions). */
+void rogue_fx_debug_set_seed(uint32_t seed);
 
 /* ---- Screen-space transform helpers (Phase 3.6) ---- */
 /* Set camera for transforming world-space particles to screen coordinates.

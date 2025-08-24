@@ -42,7 +42,7 @@ PHASE 4. Authoring & Data Format
 4.2 Hot reload & validation errors reporting (Done)
 4.3 Effect composition: chain & parallel blocks (Done)
 4.4 Parameter overrides (color shift, scale, lifetime) (Done)
-4.5 Random distributions (uniform, normal) for variation (X)
+4.5 Random distributions (uniform, normal) for variation (Done)
 
 PHASE 5. Binding Gameplay to Effects
 5.1 Mapping table: gameplay event -> effect id(s) (X)
@@ -192,3 +192,10 @@ Notes (2025-08-28, further):
 	- Runtime: instances honor lifetime override; spawned particles inherit scale (default 1.0) and color (default 0xFFFFFFFF) from the owning instance.
 	- Debug helpers: `rogue_vfx_particles_collect_scales` and `rogue_vfx_particles_collect_colors` for tests/tools.
 	- Tests: `tests/unit/test_audio_vfx_phase4_4_parameter_overrides.c` validates override lifetime behavior and presence of particles; audio_vfx suite now passes 14/14 in Debug with SDL2 (`ctest -j8 -R audio_vfx`).
+
+Notes (2025-08-29):
+- Phase 4.5 (Random distributions): Implemented per-registry variation for particle scale and lifetime.
+	- API: `enum RogueVfxDist { NONE, UNIFORM, NORMAL }` and `rogue_vfx_registry_set_variation(id, scale_mode, a, b, life_mode, a, b)`; debug seed setter `rogue_fx_debug_set_seed`.
+	- Runtime: applies uniform [a,b] or normal (mean=a, sigma=b) multipliers to particle scale and lifetime; clamps to small positive; deterministic via xorshift32.
+	- Debug helpers: `rogue_vfx_particles_collect_lifetimes` added alongside existing scale/color collectors.
+	- Tests: `tests/unit/test_audio_vfx_phase4_5_random_distributions.c` validates bounds and determinism. Audio/VFX suite now passes 15/15 in Debug SDL2 (`ctest -j8 -R audio_vfx`).

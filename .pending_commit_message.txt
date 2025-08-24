@@ -112,3 +112,15 @@ Audio/VFX Phase 4.4: VFX parameter overrides (lifetime/scale/color) + tests
 - Implemented debug collectors `rogue_vfx_particles_collect_scales` and `rogue_vfx_particles_collect_colors` for tests/tools.
 - New unit test `tests/unit/test_audio_vfx_phase4_4_parameter_overrides.c` validates override behavior; audio_vfx suite passes 14/14 in Debug with SDL2 (`ctest -j8 -R audio_vfx`).
 - Roadmap updated (4.4 Done) and README changelog updated.
+
+Audio/VFX Phase 4.5: random distributions for particle scale & lifetime + tests
+
+- Added per-registry variation controls for particle attributes.
+- API: `enum RogueVfxDist { ROGUE_VFX_DIST_NONE, ROGUE_VFX_DIST_UNIFORM, ROGUE_VFX_DIST_NORMAL }` and
+  `rogue_vfx_registry_set_variation(id, scale_mode, scale_a, scale_b, life_mode, life_a, life_b)`; debug seed setter `rogue_fx_debug_set_seed`.
+- Runtime: applies uniform [a,b] or normal (mean=a, sigma=b) multipliers to particle scale and lifetime at spawn time; clamps to small positive.
+- Deterministic RNG: xorshift32 stream with helpers `fx_rand01`/`fx_rand_normal01`, plus explicit seed setter for tests.
+- Debug: new collector `rogue_vfx_particles_collect_lifetimes` alongside existing scales/colors.
+- Tests: `tests/unit/test_audio_vfx_phase4_5_random_distributions.c` validates uniform bounds, normal positivity, and determinism via seed reset.
+- Build: Debug with SDL2 using parallel -j8; `ctest -C Debug -j8 -R audio_vfx` now 15/15 passing.
+- Docs: Roadmap marks 4.5 Done; README changelog updated with Phase 4.5 entry.

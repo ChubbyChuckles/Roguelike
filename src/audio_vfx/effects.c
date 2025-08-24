@@ -289,6 +289,29 @@ static uint32_t fx_rand_u32(void)
     return g_fx_seed;
 }
 
+/* Return float in [0,1). */
+static float fx_rand01(void)
+{
+    return (fx_rand_u32() & 0xFFFFFFu) / 16777216.0f; /* 24-bit mantissa */
+}
+
+/* Box-Muller transform for standard normal; clamp to [-4,4] to avoid extreme tails. */
+static float fx_rand_normal01(void)
+{
+    float u1 = fx_rand01();
+    float u2 = fx_rand01();
+    if (u1 < 1e-7f)
+        u1 = 1e-7f;
+    float z = (float) sqrt(-2.0f * log((double) u1)) * (float) cos(2.0 * 3.141592653589793 * u2);
+    if (z < -4.0f)
+        z = -4.0f;
+    if (z > 4.0f)
+        z = 4.0f;
+    return z;
+}
+
+void rogue_fx_debug_set_seed(uint32_t seed) { g_fx_seed = (seed ? seed : 0xA5F0C3D2u); }
+
 float rogue_audio_debug_effective_gain(const char* id, unsigned repeats, float x, float y)
 {
     int idx = audio_reg_find(id);
@@ -419,6 +442,11 @@ typedef struct VfxReg
     float emit_hz;          /* particles per second */
     uint32_t p_lifetime_ms; /* particle lifetime */
     int p_max;              /* cap per effect instance */
+    /* Phase 4.5: variation distributions (multipliers) */
+    uint8_t var_scale_mode; /* RogueVfxDist */
+    float var_scale_a, var_scale_b;
+    uint8_t var_life_mode; /* RogueVfxDist */
+    float var_life_a, var_life_b;
     /* Composition (Phase 4.3) */
     uint8_t comp_mode; /* RogueVfxCompMode (0=none) */
     uint8_t comp_child_count;
@@ -604,6 +632,12 @@ int rogue_vfx_registry_register(const char* id, RogueVfxLayer layer, uint32_t li
     g_vfx_reg[idx].emit_hz = 0.0f;
     g_vfx_reg[idx].p_lifetime_ms = 0;
     g_vfx_reg[idx].p_max = 0;
+    g_vfx_reg[idx].var_scale_mode = 0;
+    g_vfx_reg[idx].var_scale_a = 1.0f;
+    g_vfx_reg[idx].var_scale_b = 1.0f;
+    g_vfx_reg[idx].var_life_mode = 0;
+    g_vfx_reg[idx].var_life_a = 1.0f;
+    g_vfx_reg[idx].var_life_b = 1.0f;
     g_vfx_reg[idx].comp_mode = 0;
     g_vfx_reg[idx].comp_child_count = 0;
     return 0;
@@ -639,6 +673,23 @@ int rogue_vfx_registry_set_emitter(const char* id, float spawn_rate_hz,
     g_vfx_reg[idx].emit_hz = spawn_rate_hz;
     g_vfx_reg[idx].p_lifetime_ms = particle_lifetime_ms;
     g_vfx_reg[idx].p_max = max_particles;
+    return 0;
+}
+
+int rogue_vfx_registry_set_variation(const char* id, RogueVfxDist scale_mode, float scale_a,
+                                     float scale_b, RogueVfxDist lifetime_mode, float life_a,
+                                     float life_b)
+{
+    int idx = vfx_reg_find(id);
+    if (idx < 0)
+        return -1;
+    VfxReg* r = &g_vfx_reg[idx];
+    r->var_scale_mode = (uint8_t) scale_mode;
+    r->var_scale_a = scale_a;
+    r->var_scale_b = scale_b;
+    r->var_life_mode = (uint8_t) lifetime_mode;
+    r->var_life_a = life_a;
+    r->var_life_b = life_b;
     return 0;
 }
 
@@ -751,12 +802,63 @@ void rogue_vfx_update(uint32_t dt_ms)
                 g_vfx_parts[pi].world_space = r->world_space;
                 g_vfx_parts[pi].x = g_vfx_inst[i].x;
                 g_vfx_parts[pi].y = g_vfx_inst[i].y;
-                g_vfx_parts[pi].scale =
-                    (g_vfx_inst[i].ov_scale > 0.0f) ? g_vfx_inst[i].ov_scale : 1.0f;
+                /* Base scale from override or 1.0 */
+                float base_scale = (g_vfx_inst[i].ov_scale > 0.0f) ? g_vfx_inst[i].ov_scale : 1.0f;
+                float scale_mul = 1.0f;
+                if (r->var_scale_mode == ROGUE_VFX_DIST_UNIFORM)
+                {
+                    float t = fx_rand01();
+                    float mn = r->var_scale_a, mx = r->var_scale_b;
+                    if (mx < mn)
+                    {
+                        float tmp = mn;
+                        mn = mx;
+                        mx = tmp;
+                    }
+                    scale_mul = mn + (mx - mn) * t;
+                }
+                else if (r->var_scale_mode == ROGUE_VFX_DIST_NORMAL)
+                {
+                    float mean = r->var_scale_a;
+                    float sigma = r->var_scale_b;
+                    float z = fx_rand_normal01();
+                    scale_mul = mean + sigma * z;
+                    if (scale_mul <= 0.01f)
+                        scale_mul = 0.01f;
+                }
+                g_vfx_parts[pi].scale = base_scale * scale_mul;
                 g_vfx_parts[pi].color_rgba =
                     g_vfx_inst[i].ov_color_rgba ? g_vfx_inst[i].ov_color_rgba : 0xFFFFFFFFu;
                 g_vfx_parts[pi].age_ms = 0;
-                g_vfx_parts[pi].lifetime_ms = r->p_lifetime_ms;
+                /* Lifetime variation */
+                float life_ms = (float) r->p_lifetime_ms;
+                if (r->var_life_mode == ROGUE_VFX_DIST_UNIFORM)
+                {
+                    float t = fx_rand01();
+                    float mn = r->var_life_a, mx = r->var_life_b;
+                    if (mx < mn)
+                    {
+                        float tmp = mn;
+                        mn = mx;
+                        mx = tmp;
+                    }
+                    float mul = mn + (mx - mn) * t;
+                    if (mul <= 0.01f)
+                        mul = 0.01f;
+                    life_ms = life_ms * mul;
+                }
+                else if (r->var_life_mode == ROGUE_VFX_DIST_NORMAL)
+                {
+                    float mean = r->var_life_a;
+                    float sigma = r->var_life_b;
+                    float mul = mean + sigma * fx_rand_normal01();
+                    if (mul <= 0.01f)
+                        mul = 0.01f;
+                    life_ms = life_ms * mul;
+                }
+                if (life_ms < 1.0f)
+                    life_ms = 1.0f; /* minimum 1 ms */
+                g_vfx_parts[pi].lifetime_ms = (uint32_t) life_ms;
             }
         }
         /* Age/expire all particles */
@@ -907,6 +1009,20 @@ int rogue_vfx_particles_collect_colors(uint32_t* out_rgba, int max)
         if (!g_vfx_parts[i].active)
             continue;
         out_rgba[written++] = g_vfx_parts[i].color_rgba;
+    }
+    return written;
+}
+
+int rogue_vfx_particles_collect_lifetimes(uint32_t* out_ms, int max)
+{
+    if (!out_ms || max <= 0)
+        return 0;
+    int written = 0;
+    for (int i = 0; i < ROGUE_VFX_PART_CAP && written < max; ++i)
+    {
+        if (!g_vfx_parts[i].active)
+            continue;
+        out_ms[written++] = g_vfx_parts[i].lifetime_ms;
     }
     return written;
 }
