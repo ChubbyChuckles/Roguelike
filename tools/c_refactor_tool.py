@@ -507,11 +507,15 @@ class PreviewDialog(QDialog):
 
         layout = QVBoxLayout(self)
 
-        # Summary
+        # Summary with more detail
         move_count = len(plan.move_plan.moves)
         text_count = sum(1 for up in plan.text_updates if up.has_changes())
+        total_changes = sum(len(up.changes) for up in plan.text_updates if up.has_changes())
+
         layout.addWidget(QLabel(f"Planned file moves: {move_count}"))
         layout.addWidget(QLabel(f"Files with text updates: {text_count}"))
+        if total_changes > 0:
+            layout.addWidget(QLabel(f"Total line changes: {total_changes}"))
 
         # Details area
         from PyQt6.QtWidgets import QTextEdit
@@ -637,44 +641,46 @@ class RefactorEngine:
         if not move_plan.moves:
             return updates
 
-        # Map for quick lookup (kept implicit via move_plan.moves)
-
-        # Build a resolver for includes
+        # Build a resolver for includes - scan all C/C++ and CMake files
         index_all_files: Dict[str, str] = {}
         for abs_path in self._walk_files():
             rp = relpath(abs_path, self.project_root)
             index_all_files[rp] = abs_path
 
-        # For each source-like text file, compute its new location (if moved)
+        # For each source-like text file, check if it needs updates
         for file_rel, abs_path in sorted(index_all_files.items()):
             if not is_text_file_ext(abs_path):
                 continue
 
             old_abs = abs_path
-            new_rel = move_plan.moves.get(file_rel, file_rel)
+            new_rel = move_plan.moves.get(file_rel, file_rel)  # Where this file will be after move
 
             text = read_text(old_abs)
             lines = text.splitlines(keepends=True)
             file_updates = UpdatePlan(file_rel=file_rel)
 
-            # 1) Update includes
+            # 1) Update includes in this file
             include_re = re.compile(r"^\s*#\s*include\s*[<\"]([^>\"]+)[>\"]")
             for i, line in enumerate(lines, start=1):
                 m = include_re.match(line)
                 if not m:
                     continue
                 inc_path = m.group(1)
+
                 # Try to resolve include to a project file
                 resolved = self._resolve_include(file_rel, inc_path)
                 if not resolved:
                     # likely system or external include
                     continue
-                # Compute included file's future path
+
+                # Check if the included file is being moved
                 included_rel = relpath(resolved, self.project_root)
                 included_new_rel = move_plan.moves.get(included_rel, included_rel)
 
-                # Compute new include string relative to including file NEW dir
+                # Calculate what the include path should be from this file's new location
                 new_include = self._relative_include_path(new_rel, included_new_rel)
+
+                # Update if the include path needs to change
                 if new_include and new_include != inc_path:
                     new_line = line.replace(inc_path, new_include)
                     file_updates.add_change(i, line, new_line)
@@ -875,21 +881,39 @@ class RefactorEngine:
         Tries:
         - Relative to the including file directory (old location)
         - Relative to project root
+        - Common src/ patterns
+        - Handle "core/" prefix patterns
         Returns absolute path if exists else None.
         """
         inc_norm = include_str.replace("\\", "/")
-        # If looks like system header (no slash and no extension), skip
-        if "/" not in inc_norm and not os.path.splitext(inc_norm)[1]:
-            return None
 
+        # Skip obvious system headers (angle brackets usually indicate system)
+        # but still process quoted includes that might be system-looking
+
+        # Try relative to including file's directory first
         inc_abs = os.path.normpath(
             os.path.join(self.project_root, os.path.dirname(including_rel), inc_norm)
         )
         if os.path.exists(inc_abs):
             return inc_abs
+
+        # Try relative to project root
         root_abs = os.path.normpath(os.path.join(self.project_root, inc_norm))
         if os.path.exists(root_abs):
             return root_abs
+
+        # Try common patterns like src/ relative
+        if not inc_norm.startswith("src/"):
+            src_abs = os.path.normpath(os.path.join(self.project_root, "src", inc_norm))
+            if os.path.exists(src_abs):
+                return src_abs
+
+        # Handle "core/" prefix by trying "src/core/"
+        if inc_norm.startswith("core/") and not os.path.exists(os.path.join(self.project_root, inc_norm)):
+            src_core_abs = os.path.normpath(os.path.join(self.project_root, "src", inc_norm))
+            if os.path.exists(src_core_abs):
+                return src_core_abs
+
         return None
 
     def _relative_include_path(
@@ -1127,8 +1151,11 @@ class MainWindow(QMainWindow):
         plan = self._compute_plan()
         # Debug: Show some info in status bar
         move_count = len(plan.move_plan.moves)
+        text_count = sum(1 for up in plan.text_updates if up.has_changes())
+        total_changes = sum(len(up.changes) for up in plan.text_updates if up.has_changes())
+
         if move_count > 0:
-            self._status.showMessage(f"Found {move_count} planned moves")
+            self._status.showMessage(f"Found {move_count} moves, {text_count} files with {total_changes} total text changes")
         else:
             self._status.showMessage("No moves detected - target matches filesystem")
         dlg = PreviewDialog(self, plan)
