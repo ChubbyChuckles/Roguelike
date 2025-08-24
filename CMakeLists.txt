@@ -582,6 +582,53 @@ add_test(NAME test_audio_vfx_phase4_1_vfx_config_loader COMMAND test_audio_vfx_p
 add_executable(test_audio_vfx_phase4_2_hot_reload_and_validation tests/unit/test_audio_vfx_phase4_2_hot_reload_and_validation.c)
 target_link_libraries(test_audio_vfx_phase4_2_hot_reload_and_validation PRIVATE rogue_core)
 add_test(NAME test_audio_vfx_phase4_2_hot_reload_and_validation COMMAND test_audio_vfx_phase4_2_hot_reload_and_validation)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_audio_vfx_phase4_2_hot_reload_and_validation PRIVATE SDL2::SDL2)
+endif()
+
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_audio_vfx_phase4_1_vfx_config_loader PRIVATE SDL2::SDL2)
+endif()
+
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_audio_vfx_phase3_6_screen_vs_world PRIVATE SDL2::SDL2)
+endif()
+
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_audio_vfx_phase3_4_particle_layer_order PRIVATE SDL2::SDL2)
+endif()
+
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_audio_vfx_phase3_2_particles_core PRIVATE SDL2::SDL2)
+endif()
+
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_audio_vfx_phase3_1_vfx_foundations PRIVATE SDL2::SDL2)
+endif()
+
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_audio_vfx_phase2_1_registry_clear PRIVATE SDL2::SDL2)
+endif()
+
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_audio_vfx_phase2_6_positional PRIVATE SDL2::SDL2)
+endif()
+
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_audio_vfx_phase2_3_mute PRIVATE SDL2::SDL2)
+endif()
+
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_audio_vfx_phase2_2_mixer_gain PRIVATE SDL2::SDL2)
+endif()
+
+add_executable(test_audio_vfx_phase4_3_composition tests/unit/test_audio_vfx_phase4_3_composition.c)
+target_link_libraries(test_audio_vfx_phase4_3_composition PRIVATE rogue_core)
+add_test(NAME test_audio_vfx_phase4_3_composition COMMAND test_audio_vfx_phase4_3_composition)
+
+add_executable(test_audio_vfx_phase4_4_parameter_overrides tests/unit/test_audio_vfx_phase4_4_parameter_overrides.c)
+target_link_libraries(test_audio_vfx_phase4_4_parameter_overrides PRIVATE rogue_core)
+add_test(NAME test_audio_vfx_phase4_4_parameter_overrides COMMAND test_audio_vfx_phase4_4_parameter_overrides)
 
 add_executable(roguelike src/main.c)
 target_link_libraries(roguelike PRIVATE rogue_core)

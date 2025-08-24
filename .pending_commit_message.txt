@@ -104,3 +104,11 @@ Audio/VFX Phase 4.3 – Effect composition (chain & parallel)
 Follow-ups
 - 4.4 Parameter overrides per instance (lifetime/scale/color) on spawn path
 - 4.5 Random distributions for variation (delays, emit Hz, particle lifetimes)
+
+Audio/VFX Phase 4.4: VFX parameter overrides (lifetime/scale/color) + tests
+
+- Added per-instance override struct `RogueVfxOverrides { lifetime_ms, scale, color_rgba }` and spawn API `rogue_vfx_spawn_with_overrides`.
+- Instances now honor `lifetime_ms` override; particles spawned inherit `scale` (default 1.0) and `color_rgba` (default 0xFFFFFFFF) from the owning instance.
+- Implemented debug collectors `rogue_vfx_particles_collect_scales` and `rogue_vfx_particles_collect_colors` for tests/tools.
+- New unit test `tests/unit/test_audio_vfx_phase4_4_parameter_overrides.c` validates override behavior; audio_vfx suite passes 14/14 in Debug with SDL2 (`ctest -j8 -R audio_vfx`).
+- Roadmap updated (4.4 Done) and README changelog updated.

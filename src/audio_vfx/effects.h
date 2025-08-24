@@ -110,6 +110,17 @@ void rogue_vfx_set_frozen(int frozen);
 int rogue_vfx_registry_set_emitter(const char* id, float spawn_rate_hz,
                                    uint32_t particle_lifetime_ms, int max_particles);
 
+/* ---- Parameter overrides (Phase 4.4) ---- */
+typedef struct RogueVfxOverrides
+{
+    /* When >0, overrides the instance lifetime in ms (default: registry lifetime). */
+    uint32_t lifetime_ms;
+    /* When >0, scale applied to particles/sprites spawned by this instance (default 1.0). */
+    float scale;
+    /* ARGB color tint applied to particles; 0 means use default (0xFFFFFFFF). */
+    uint32_t color_rgba;
+} RogueVfxOverrides;
+
 /* ---- VFX composition (Phase 4.3) ---- */
 typedef enum RogueVfxCompMode
 {
@@ -135,6 +146,8 @@ int rogue_vfx_debug_peek_first(const char* id, int* out_world_space, float* out_
 
 /* Spawn a VFX by id at (x,y) using the registry; returns 0 on success. */
 int rogue_vfx_spawn_by_id(const char* id, float x, float y);
+/* Spawn with optional overrides (lifetime/scale/color). Pass NULL for defaults. */
+int rogue_vfx_spawn_with_overrides(const char* id, float x, float y, const RogueVfxOverrides* ov);
 
 /* Particle system debug/query helpers */
 int rogue_vfx_particles_active_count(void);
@@ -144,6 +157,10 @@ int rogue_vfx_particles_layer_count(RogueVfxLayer layer);
     Writes up to 'max' entries into out_layers (values are RogueVfxLayer as uint8_t).
     Returns the number of entries written. Intended for renderer iteration tests/tools. */
 int rogue_vfx_particles_collect_ordered(uint8_t* out_layers, int max);
+
+/* Debug helpers to collect particle attributes for tests/tools. Return count written up to max. */
+int rogue_vfx_particles_collect_scales(float* out_scales, int max);
+int rogue_vfx_particles_collect_colors(uint32_t* out_rgba, int max);
 
 /* ---- Screen-space transform helpers (Phase 3.6) ---- */
 /* Set camera for transforming world-space particles to screen coordinates.

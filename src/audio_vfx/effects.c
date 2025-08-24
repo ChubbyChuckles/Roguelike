@@ -433,6 +433,10 @@ typedef struct VfxInst
     float x, y;         /* spawn position */
     uint32_t age_ms;    /* progressed time */
     float emit_accum;   /* fractional particle accumulator */
+    /* Overrides (Phase 4.4) */
+    uint32_t ov_lifetime_ms; /* 0 means use registry lifetime */
+    float ov_scale;          /* <=0 means default 1.0 */
+    uint32_t ov_color_rgba;  /* 0 means default (0xFFFFFFFF) */
     /* Composition runtime (Phase 4.3) */
     uint8_t comp_next_child;     /* next child index to spawn */
     uint32_t comp_last_spawn_ms; /* for CHAIN mode relative delay */
@@ -456,6 +460,8 @@ typedef struct VfxParticle
     uint8_t world_space;
     uint16_t inst_idx; /* owning instance index */
     float x, y;
+    float scale;         /* Phase 4.4: per-particle scale */
+    uint32_t color_rgba; /* Phase 4.4: per-particle color */
     uint32_t age_ms;
     uint32_t lifetime_ms;
 } VfxParticle;
@@ -645,6 +651,9 @@ static int vfx_inst_alloc(void)
             g_vfx_inst[i].active = 1;
             g_vfx_inst[i].age_ms = 0;
             g_vfx_inst[i].emit_accum = 0.0f;
+            g_vfx_inst[i].ov_lifetime_ms = 0;
+            g_vfx_inst[i].ov_scale = 0.0f;
+            g_vfx_inst[i].ov_color_rgba = 0u;
             g_vfx_inst[i].comp_next_child = 0;
             g_vfx_inst[i].comp_last_spawn_ms = 0;
             return i;
@@ -664,7 +673,9 @@ void rogue_vfx_update(uint32_t dt_ms)
             continue;
         g_vfx_inst[i].age_ms += (uint32_t) dt;
         VfxReg* r = &g_vfx_reg[g_vfx_inst[i].reg_index];
-        if (g_vfx_inst[i].age_ms >= r->lifetime_ms)
+        uint32_t inst_life =
+            g_vfx_inst[i].ov_lifetime_ms ? g_vfx_inst[i].ov_lifetime_ms : r->lifetime_ms;
+        if (g_vfx_inst[i].age_ms >= inst_life)
             g_vfx_inst[i].active = 0;
 
         /* Composition scheduling: spawn child effects based on age and delays */
@@ -740,6 +751,10 @@ void rogue_vfx_update(uint32_t dt_ms)
                 g_vfx_parts[pi].world_space = r->world_space;
                 g_vfx_parts[pi].x = g_vfx_inst[i].x;
                 g_vfx_parts[pi].y = g_vfx_inst[i].y;
+                g_vfx_parts[pi].scale =
+                    (g_vfx_inst[i].ov_scale > 0.0f) ? g_vfx_inst[i].ov_scale : 1.0f;
+                g_vfx_parts[pi].color_rgba =
+                    g_vfx_inst[i].ov_color_rgba ? g_vfx_inst[i].ov_color_rgba : 0xFFFFFFFFu;
                 g_vfx_parts[pi].age_ms = 0;
                 g_vfx_parts[pi].lifetime_ms = r->p_lifetime_ms;
             }
@@ -816,6 +831,27 @@ int rogue_vfx_spawn_by_id(const char* id, float x, float y)
     return 0;
 }
 
+int rogue_vfx_spawn_with_overrides(const char* id, float x, float y, const RogueVfxOverrides* ov)
+{
+    int ridx = vfx_reg_find(id);
+    if (ridx < 0)
+        return -1;
+    int ii = vfx_inst_alloc();
+    if (ii < 0)
+        return -2;
+    g_vfx_inst[ii].reg_index = (uint16_t) ridx;
+    g_vfx_inst[ii].x = x;
+    g_vfx_inst[ii].y = y;
+    g_vfx_inst[ii].age_ms = 0;
+    if (ov)
+    {
+        g_vfx_inst[ii].ov_lifetime_ms = ov->lifetime_ms;
+        g_vfx_inst[ii].ov_scale = ov->scale;
+        g_vfx_inst[ii].ov_color_rgba = ov->color_rgba;
+    }
+    return 0;
+}
+
 int rogue_vfx_registry_define_composite(const char* id, RogueVfxLayer layer, uint32_t lifetime_ms,
                                         int world_space, const char** child_ids,
                                         const uint32_t* delays_ms, int child_count, int chain_mode)
@@ -845,4 +881,32 @@ int rogue_vfx_registry_define_composite(const char* id, RogueVfxLayer layer, uin
         }
     }
     return 0;
+}
+
+int rogue_vfx_particles_collect_scales(float* out_scales, int max)
+{
+    if (!out_scales || max <= 0)
+        return 0;
+    int written = 0;
+    for (int i = 0; i < ROGUE_VFX_PART_CAP && written < max; ++i)
+    {
+        if (!g_vfx_parts[i].active)
+            continue;
+        out_scales[written++] = g_vfx_parts[i].scale;
+    }
+    return written;
+}
+
+int rogue_vfx_particles_collect_colors(uint32_t* out_rgba, int max)
+{
+    if (!out_rgba || max <= 0)
+        return 0;
+    int written = 0;
+    for (int i = 0; i < ROGUE_VFX_PART_CAP && written < max; ++i)
+    {
+        if (!g_vfx_parts[i].active)
+            continue;
+        out_rgba[written++] = g_vfx_parts[i].color_rgba;
+    }
+    return written;
 }

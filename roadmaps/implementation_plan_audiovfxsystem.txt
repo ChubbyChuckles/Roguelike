@@ -41,7 +41,7 @@ PHASE 4. Authoring & Data Format
 4.1 Config schema (e.g. assets/fx/*.cfg) (Done)
 4.2 Hot reload & validation errors reporting (Done)
 4.3 Effect composition: chain & parallel blocks (Done)
-4.4 Parameter overrides (color shift, scale, lifetime) (X)
+4.4 Parameter overrides (color shift, scale, lifetime) (Done)
 4.5 Random distributions (uniform, normal) for variation (X)
 
 PHASE 5. Binding Gameplay to Effects
@@ -185,3 +185,10 @@ Notes (2025-08-28, even later):
 
 Notes (2025-08-28, later again):
 - Phase 4.3 (Effect composition): Added composite VFX support with two modes: CHAIN (child delays relative to previous spawn) and PARALLEL (delays from composite start). Registry API `rogue_vfx_registry_define_composite` stores up to 8 child ids and delays, and the update loop schedules child spawns at the composite instance's position. New unit test `tests/unit/test_audio_vfx_phase4_3_composition.c` verifies order/timing for both modes and expiry. Audio/VFX suite now passes 13/13 in Debug SDL2 with `ctest -j8 -R audio_vfx`.
+
+Notes (2025-08-28, further):
+- Phase 4.4 (Parameter overrides): Implemented per-instance VFX overrides and tests.
+	- API: `RogueVfxOverrides { lifetime_ms, scale, color_rgba }` and `rogue_vfx_spawn_with_overrides(id, x, y, &ov)`.
+	- Runtime: instances honor lifetime override; spawned particles inherit scale (default 1.0) and color (default 0xFFFFFFFF) from the owning instance.
+	- Debug helpers: `rogue_vfx_particles_collect_scales` and `rogue_vfx_particles_collect_colors` for tests/tools.
+	- Tests: `tests/unit/test_audio_vfx_phase4_4_parameter_overrides.c` validates override lifetime behavior and presence of particles; audio_vfx suite now passes 14/14 in Debug with SDL2 (`ctest -j8 -R audio_vfx`).
