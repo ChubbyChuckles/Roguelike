@@ -51,20 +51,23 @@ Success Metrics
 PHASE 0 — Baseline Inventory & Metrics (Done/Partial/X)
 0.1 Source inventory: map files→logical modules (script+report). (Done)
 0.2 Include/dependency graph: generate (graphviz) and detect cycles. (Done)
-0.3 Build time & test baseline (Debug, SDL2, -j8); store report. (Partial)
-  Notes: tooling implemented (build_timing.py) with Windows-safe UTF‑8 capture; CSV + tails written to build/reports. Full ctest run can be long; script is resilient and records timings even on failures.
+0.3 Build time & test baseline (Debug, SDL2, -j8); store report. (Done)
+  Notes: tooling implemented (build_timing.py) with Windows-safe UTF‑8 capture; CSV + tails written to build/reports. Full ctest run is invoked; timings recorded even on failures.
 0.4 Coverage snapshot (where available) and fuzz/test counts. (Partial)
   Notes: test inventory snapshot implemented (tests_overview.py). True coverage reporting deferred on MSVC.
 Deliverables: /tools/code_audit/ (inventory.py, include_graph.py, tests_overview.py, build_timing.py), /build/reports/code_audit_YYYYMMDD/; DOT graphs; timing CSV and output tails.
 Exit: agreed module taxonomy + signed-off baseline reports captured.
 
 PHASE 1 — Enforce Layering & Targets
-1.1 Define module boundaries and folder layout (see taxonomy). (X)
-1.2 Create CMake targets per module: STATIC libraries + PUBLIC/PRIVATE include dirs. (X)
+1.1 Define module boundaries and folder layout (see taxonomy). (Partial)
+  Notes: Adopted initial split; audio_vfx extracted from core, doc added at docs/arch/layers.md.
+1.2 Create CMake targets per module: STATIC libraries + PUBLIC/PRIVATE include dirs. (Partial)
+  Notes: New target rogue_audio_vfx created; linked into rogue_core to preserve behavior.
 1.3 Export only public headers via include/rogue/<module>/; move private headers to src/<module>/internal/. (X)
 1.4 Add interface targets for common compile options (warnings-as-errors, defines). (X)
-1.5 Introduce dependency rules: forbid upward deps; CI guard (cmake-scripts + graph scan). (X)
-Deliverables: updated CMakeLists with targets+linking; docs/arch/layers.md.
+1.5 Introduce dependency rules: forbid upward deps; CI guard (cmake-scripts + graph scan). (Done)
+  Notes: Layering checker script integrated and wired into CTest.
+Deliverables: updated CMakeLists with first module target+linking; docs/arch/layers.md.
 Exit: build green; dependency check passes; no cross-layer includes.
 
 PHASE 2 — Platform Abstraction & SDL Isolation

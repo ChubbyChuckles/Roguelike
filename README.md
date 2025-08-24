@@ -322,6 +322,14 @@ Audit script (`tools/maint_audit.py`), schema docs/export, diff & budget analyze
 
 Reports live under build/reports/code_audit_YYYYMMDD/. All scripts are stdlib-only and Windows‑friendly.
 
+Baseline timings captured under the current date directory (build_times.csv) using Debug, SDL2, and -j8.
+
+## Modularization (Phase 1)
+
+- First extracted module: `rogue_audio_vfx` (STATIC) holding the minimal audio/vfx pipeline.
+- `rogue_core` now links this module to preserve behavior across tests and tools.
+- See `docs/arch/layers.md` for layering and target status; dependency layering check is enforced via CTest (code_audit_check_layering).
+
 ---
 
 ## 10. Roadmap Snapshot

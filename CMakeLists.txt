@@ -79,7 +79,7 @@ add_library(rogue_core
     src/game/game_loop.c
     src/core/minimap/minimap.c
     src/core/minimap/minimap_loot_pings.c
-    src/core/loot/loot_tooltip.c
+    # moved to rogue_systems_loot: src/core/loot/loot_tooltip.c
     src/core/player/player_controller.c
     src/input/input_events.c
     src/core/player/player_render.c
@@ -214,36 +214,36 @@ add_library(rogue_core
     src/core/vegetation/vegetation_render.c
     src/core/vegetation/vegetation_collision.c
     src/graphics/scene_drawlist.c
-    src/core/loot/loot_item_defs.c
-    src/core/loot/loot_item_defs_convert.c
-    src/core/loot/loot_rebalance.c
-    src/core/loot/loot_item_defs_sort.c
-    src/core/loot/loot_tables.c
-    src/core/loot/loot_instances.c
+    # moved to rogue_systems_loot: src/core/loot/loot_item_defs.c
+    # moved to rogue_systems_loot: src/core/loot/loot_item_defs_convert.c
+    # moved to rogue_systems_loot: src/core/loot/loot_rebalance.c
+    # moved to rogue_systems_loot: src/core/loot/loot_item_defs_sort.c
+    # moved to rogue_systems_loot: src/core/loot/loot_tables.c
+    # moved to rogue_systems_loot: src/core/loot/loot_instances.c
     src/core/inventory/inventory.c
     src/core/inventory/inventory_entries.c
     src/core/inventory/inventory_ui.c
     src/core/inventory/inventory_tags.c
     src/core/inventory/inventory_panel.c
-    src/core/loot/loot_pickup.c
-    src/core/loot/loot_multiplayer.c
-    src/core/loot/loot_logging.c
-    src/core/loot/loot_affixes.c
-    src/core/loot/loot_filter.c
+    # moved to rogue_systems_loot: src/core/loot/loot_pickup.c
+    # moved to rogue_systems_loot: src/core/loot/loot_multiplayer.c
+    # moved to rogue_systems_loot: src/core/loot/loot_logging.c
+    # moved to rogue_systems_loot: src/core/loot/loot_affixes.c
+    # moved to rogue_systems_loot: src/core/loot/loot_filter.c
     src/util/path_utils.c
-    src/core/loot/loot_rarity.c
-        src/core/loot/loot_perf.c
-    src/core/loot/loot_analytics.c
-        src/core/loot/loot_vfx.c
-    src/core/loot/loot_stats.c
-    src/core/loot/loot_dynamic_weights.c
-    src/core/loot/loot_console.c
-    src/core/loot/loot_rarity_adv.c
-    src/core/loot/loot_generation.c
-    src/core/loot/loot_generation_affix.c
-    src/core/loot/loot_drop_rates.c
-    src/core/loot/loot_adaptive.c
-    src/core/loot/loot_commands.c
+    # moved to rogue_systems_loot: src/core/loot/loot_rarity.c
+    # moved to rogue_systems_loot: src/core/loot/loot_perf.c
+    # moved to rogue_systems_loot: src/core/loot/loot_analytics.c
+    # moved to rogue_systems_loot: src/core/loot/loot_vfx.c
+    # moved to rogue_systems_loot: src/core/loot/loot_stats.c
+    # moved to rogue_systems_loot: src/core/loot/loot_dynamic_weights.c
+    # moved to rogue_systems_loot: src/core/loot/loot_console.c
+    # moved to rogue_systems_loot: src/core/loot/loot_rarity_adv.c
+    # moved to rogue_systems_loot: src/core/loot/loot_generation.c
+    # moved to rogue_systems_loot: src/core/loot/loot_generation_affix.c
+    # moved to rogue_systems_loot: src/core/loot/loot_drop_rates.c
+    # moved to rogue_systems_loot: src/core/loot/loot_adaptive.c
+    # moved to rogue_systems_loot: src/core/loot/loot_commands.c
     src/core/vendor/vendor.c
     src/core/vendor/econ_value.c
     src/core/vendor/econ_materials.c
@@ -327,7 +327,7 @@ add_library(rogue_core
     src/game/hitbox_load.c
         src/game/lock_on.c
         src/game/infusions.c
-        src/core/loot/loot_security.c
+    # moved to rogue_systems_loot: src/core/loot/loot_security.c
     src/core/loot/loot_api_doc.c
     src/core/equipment/equipment_perf.c
     src/core/equipment/equipment_modding.c
@@ -343,9 +343,7 @@ add_library(rogue_core
     src/core/enemy/enemy_adaptive.c
     src/core/enemy/enemy_modifiers.c
     src/core/enemy/encounter_composer.c
-    # Audio & VFX minimal pipeline
-    src/audio_vfx/effects.c
-    src/audio_vfx/vfx_config.c
+    # Audio & VFX moved into separate module target (rogue_audio_vfx)
     # Crafting Phase 8 UI layer
     src/ui/crafting_ui.c
     src/core/crafting/crafting_automation.c
@@ -406,6 +404,81 @@ endif()
 target_compile_options(rogue_core PRIVATE ${rogue_warnings})
 if(ROGUE_WARNINGS_AS_ERRORS)
     target_compile_options(rogue_core PRIVATE $<$<C_COMPILER_ID:MSVC>:/WX> $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Werror>)
+endif()
+
+# Phase 1 — First modular STATIC library: audio_vfx
+add_library(rogue_audio_vfx STATIC
+    src/audio_vfx/effects.c
+    src/audio_vfx/vfx_config.c
+)
+target_include_directories(rogue_audio_vfx PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_compile_options(rogue_audio_vfx PRIVATE ${rogue_warnings})
+if(ROGUE_WARNINGS_AS_ERRORS)
+    target_compile_options(rogue_audio_vfx PRIVATE $<$<C_COMPILER_ID:MSVC>:/WX> $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Werror>)
+endif()
+if(ROGUE_ENABLE_SDL)
+    # Inherit SDL usage requirements for any optional includes in this module
+    target_link_libraries(rogue_audio_vfx PRIVATE SDL2::SDL2)
+    if(SDL2_mixer_FOUND)
+        target_link_libraries(rogue_audio_vfx PRIVATE SDL2_mixer::SDL2_mixer)
+    endif()
+endif()
+
+# Link core against the new module so existing executables and tests remain unchanged
+target_link_libraries(rogue_core PUBLIC rogue_audio_vfx)
+
+# Phase 1 — Second modular STATIC library: systems_loot
+add_library(rogue_systems_loot STATIC
+    src/core/loot/loot_tooltip.c
+    src/core/loot/loot_item_defs.c
+    src/core/loot/loot_item_defs_convert.c
+    src/core/loot/loot_rebalance.c
+    src/core/loot/loot_item_defs_sort.c
+    src/core/loot/loot_tables.c
+    src/core/loot/loot_instances.c
+    src/core/loot/loot_pickup.c
+    src/core/loot/loot_multiplayer.c
+    src/core/loot/loot_logging.c
+    src/core/loot/loot_affixes.c
+    src/core/loot/loot_filter.c
+    src/core/loot/loot_rarity.c
+    src/core/loot/loot_perf.c
+    src/core/loot/loot_analytics.c
+    src/core/loot/loot_vfx.c
+    src/core/loot/loot_stats.c
+    src/core/loot/loot_dynamic_weights.c
+    src/core/loot/loot_console.c
+    src/core/loot/loot_rarity_adv.c
+    src/core/loot/loot_generation.c
+    src/core/loot/loot_generation_affix.c
+    src/core/loot/loot_drop_rates.c
+    src/core/loot/loot_adaptive.c
+    src/core/loot/loot_commands.c
+    src/core/loot/loot_security.c
+)
+target_include_directories(rogue_systems_loot PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_compile_options(rogue_systems_loot PRIVATE ${rogue_warnings})
+if(ROGUE_WARNINGS_AS_ERRORS)
+    target_compile_options(rogue_systems_loot PRIVATE $<$<C_COMPILER_ID:MSVC>:/WX> $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Werror>)
+endif()
+if(ROGUE_ENABLE_SDL)
+    target_link_libraries(rogue_systems_loot PRIVATE SDL2::SDL2)
+endif()
+
+# Link core against loot module to preserve existing linkage surface
+target_link_libraries(rogue_core PUBLIC rogue_systems_loot)
+
+# Ensure all objects in rogue_systems_loot are retained (static registries, init tables)
+# MSVC uses /WHOLEARCHIVE; GNU/Clang use --whole-archive around the specific archive
+if(MSVC)
+    target_link_options(rogue_core PRIVATE /WHOLEARCHIVE:rogue_systems_loot)
+elseif(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+    # Use the full path to the archive between the flags
+    target_link_options(rogue_core PRIVATE -Wl,--whole-archive $<TARGET_FILE:rogue_systems_loot> -Wl,--no-whole-archive)
 endif()
 
 # Unit test: weapon pose loader
@@ -702,6 +775,20 @@ add_subdirectory(tests)
 
 add_test(NAME test_audio_vfx_phase1_2 COMMAND test_audio_vfx_phase1_2)
 add_test(NAME test_audio_vfx_phase1_5_compaction COMMAND test_audio_vfx_phase1_5_compaction)
+
+# Phase 1.5 — Dependency layering guard (Python script). Runs fast; fails on violations.
+find_package(Python3 COMPONENTS Interpreter)
+if(Python3_Interpreter_FOUND)
+    add_custom_target(check_layering
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/code_audit/check_layering.py
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Running dependency layering check"
+        VERBATIM)
+    add_test(NAME code_audit_check_layering
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/code_audit/check_layering.py)
+else()
+    message(WARNING "Python3 not found; skipping layering check target/test")
+endif()
 
 find_program(CLANG_FORMAT_EXE NAMES clang-format)
 file(GLOB_RECURSE ALL_C_SOURCE_FILES src/*.c src/*.h tests/*.c tests/*.h)
