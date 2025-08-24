@@ -277,6 +277,12 @@ Configs live under `assets/` (items, affixes, loot tables, biomes, projectiles, 
 ## 6. Testing & Quality Gates
 Extensive per-phase unit tests, fuzzers, statistical distribution checks, mutation robustness, performance guards, integrity snapshots, and labeled gating suites (e.g., Equipment Phase 18). Deterministic RNG across systems ensures reproducible failures.
 
+### Recent Changes (Audio/VFX)
+- Phase 5.2: Damage event hook wired into FX mapping.
+  - New APIs: rogue_fx_damage_hook_bind/unbind, auto-bound in app init.
+  - Key scheme: "damage/<type>/(hit|crit|execution)"; integrates with existing mapping table.
+  - Tests: audio_vfx suite now 17/17 passing in Debug (SDL2, -j8).
+
 ---
 
 ## 7. Development Workflow (Abbreviated)
@@ -307,6 +313,7 @@ See `roadmaps/` for subsystem implementation plans (inventory, crafting & gather
 ---
 
 ## 11. Changelog (Curated Recent Highlights)
+* Audio/VFX Phase 5.1 (Gameplay mapping): Added mapping table from gameplay keys to Audio/VFX effects with priority and position. New APIs: `rogue_fx_map_register`, `rogue_fx_map_clear`, `rogue_fx_trigger_event`. Unit test `test_audio_vfx_phase5_1_mapping` passes; audio_vfx suite now 16/16 in Debug with SDL2 (`ctest -j8 -R audio_vfx`).
 * Audio/VFX Phase 4.5 (Random distributions): Per-VFX configurable variation for particle scale and lifetime. New API `rogue_vfx_registry_set_variation(id, scale_mode, a, b, life_mode, a, b)` with modes `ROGUE_VFX_DIST_UNIFORM` and `ROGUE_VFX_DIST_NORMAL`; deterministic via xorshift32 and debug seed setter `rogue_fx_debug_set_seed`. Added debug collector `rogue_vfx_particles_collect_lifetimes`. Unit test `test_audio_vfx_phase4_5_random_distributions` passes; audio_vfx suite now 15/15 in Debug with SDL2 (`ctest -j8 -R audio_vfx`).
 * Audio/VFX Phase 4.4 (Parameter overrides): Added per-instance override support for VFX instances with lifetime, scale, and color. New API `rogue_vfx_spawn_with_overrides(id, x, y, &RogueVfxOverrides)`; particles spawned from an instance inherit `scale` (default 1.0) and `color_rgba` (default 0xFFFFFFFF). Added debug collectors `rogue_vfx_particles_collect_scales` and `rogue_vfx_particles_collect_colors` for tests/tools. Unit test `test_audio_vfx_phase4_4_parameter_overrides` passes; audio_vfx suite now 14/14 in Debug with SDL2 (`ctest -j8 -R audio_vfx`).
 * Audio/VFX Phase 4.3 (Effect composition): Added composite VFX with CHAIN and PARALLEL modes. New API `rogue_vfx_registry_define_composite(id, layer, lifetime_ms, world_space, child_ids, delays_ms, child_count, chain_mode)` schedules child spawns in the update loop at the composite instance's position. Unit test `test_audio_vfx_phase4_3_composition` passes; audio_vfx suite now 13/13 in Debug with SDL2 (`ctest -j8 -R audio_vfx`).

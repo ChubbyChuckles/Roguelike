@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 /* Initialization & shutdown logic extracted from former app.c */
+#include "../../audio_vfx/effects.h"
 #include "../../entities/enemy.h"
 #include "../../entities/player.h"
 #include "../../game/buffs.h"
@@ -439,6 +440,8 @@ bool rogue_app_init(const RogueAppConfig* cfg)
             fclose(f);
         }
     }
+    /* Bind Audio/VFX damage observer hook (Phase 5.2) */
+    (void) rogue_fx_damage_hook_bind();
     return true;
 }
 

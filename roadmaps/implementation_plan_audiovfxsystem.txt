@@ -45,8 +45,8 @@ PHASE 4. Authoring & Data Format
 4.5 Random distributions (uniform, normal) for variation (Done)
 
 PHASE 5. Binding Gameplay to Effects
-5.1 Mapping table: gameplay event -> effect id(s) (X)
-5.2 Damage event hook (per damage type layering) (X)
+5.1 Mapping table: gameplay event -> effect id(s) (Done)
+5.2 Damage event hook (per damage type layering) (Done)
 5.3 Skill activation start/end cues (X)
 5.4 Buff gain/expire triggers (X)
 5.5 Loot drop rarity color + sparkle effect (X)
@@ -199,3 +199,15 @@ Notes (2025-08-29):
 	- Runtime: applies uniform [a,b] or normal (mean=a, sigma=b) multipliers to particle scale and lifetime; clamps to small positive; deterministic via xorshift32.
 	- Debug helpers: `rogue_vfx_particles_collect_lifetimes` added alongside existing scale/color collectors.
 	- Tests: `tests/unit/test_audio_vfx_phase4_5_random_distributions.c` validates bounds and determinism. Audio/VFX suite now passes 15/15 in Debug SDL2 (`ctest -j8 -R audio_vfx`).
+
+Notes (2025-08-29, later):
+- Phase 5.1 (Gameplay mapping): Added lightweight registry mapping gameplay keys to Audio or VFX with priorities.
+	- API: `rogue_fx_map_register(key, type, effect_id, priority)`, `rogue_fx_map_clear()`, and `rogue_fx_trigger_event(key, x, y)`.
+	- Runtime: triggers enqueue FX events (audio play or VFX spawn) with positional data; integrates with existing dispatcher and digest.
+	- Test: `tests/unit/test_audio_vfx_phase5_1_mapping.c` registers a dual mapping (audio+vfx) for one key and validates enqueued count and spawned particles after dispatch+update. Audio/VFX suite now passes 16/16 in Debug SDL2 (`ctest -j8 -R audio_vfx`).
+
+Notes (2025-08-30):
+- Phase 5.2 (Damage event hook): Bridged combat damage events to FX via observer.
+	- API: `int rogue_fx_damage_hook_bind(void)`, `void rogue_fx_damage_hook_unbind(void)`; key scheme `damage/<type>/(hit|crit|execution)` where `<type>` ∈ {physical, bleed, fire, frost, arcane, poison, true}.
+	- Runtime: observer callback builds keys from `RogueDamageEvent` and calls `rogue_fx_trigger_event`. Hook auto-bound in app init.
+	- Test: `tests/unit/test_audio_vfx_phase5_2_damage_hook.c` records a fire crit event and asserts FX dispatch and particle spawn. Audio/VFX suite now passes 17/17 in Debug SDL2 (`ctest -j8 -R audio_vfx`).

@@ -124,3 +124,21 @@ Audio/VFX Phase 4.5: random distributions for particle scale & lifetime + tests
 - Tests: `tests/unit/test_audio_vfx_phase4_5_random_distributions.c` validates uniform bounds, normal positivity, and determinism via seed reset.
 - Build: Debug with SDL2 using parallel -j8; `ctest -C Debug -j8 -R audio_vfx` now 15/15 passing.
 - Docs: Roadmap marks 4.5 Done; README changelog updated with Phase 4.5 entry.
+
+Audio/VFX Phase 5.1: gameplay→FX mapping table + test
+
+- Added lightweight registry mapping gameplay keys (strings) to Audio or VFX effects with priority.
+- Public API: `rogue_fx_map_register(key, type, effect_id, priority)`, `rogue_fx_map_clear()`, and `rogue_fx_trigger_event(key, x, y)`.
+- Runtime: `rogue_fx_trigger_event` enqueues appropriate FX bus events (audio play or VFX spawn) with provided position; integrates with existing dispatcher and frame digest.
+- Test: `tests/unit/test_audio_vfx_phase5_1_mapping.c` registers audio+vfx for a shared key, triggers once, dispatches, steps update, and asserts instance/particles; enqueued count verified. Wired into CMake.
+- Build & Tests: Debug with SDL2 using `--parallel 8`; `ctest -C Debug -j8 -R audio_vfx` now 16/16 passing including the new mapping test.
+- Docs: Roadmap updated (5.1 Done) and README changelog augmented.
+
+Audio/VFX Phase 5.2: damage event hook → FX mapping + test
+
+- Implemented combat damage observer hook translating RogueDamageEvent into FX gameplay keys.
+- Key scheme: "damage/<type>/(hit|crit|execution)" with <type> ∈ {physical, bleed, fire, frost, arcane, poison, true}.
+- API: `rogue_fx_damage_hook_bind()` and `rogue_fx_damage_hook_unbind()`; hook auto-bound in app init.
+- Unit test `tests/unit/test_audio_vfx_phase5_2_damage_hook.c` records a fire crit and asserts FX dispatch + particle spawn.
+- Build: Debug with SDL2 using `--parallel 8` succeeds; `ctest -C Debug -j8 -R audio_vfx` now 17/17 passing.
+- Docs: Updated roadmap (5.2 Done) and README Recent Changes.

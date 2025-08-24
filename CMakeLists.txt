@@ -633,6 +633,22 @@ add_executable(test_audio_vfx_phase4_5_random_distributions tests/unit/test_audi
 target_link_libraries(test_audio_vfx_phase4_5_random_distributions PRIVATE rogue_core)
 add_test(NAME test_audio_vfx_phase4_5_random_distributions COMMAND test_audio_vfx_phase4_5_random_distributions)
 
+# Phase 5.1 mapping test
+add_executable(test_audio_vfx_phase5_1_mapping tests/unit/test_audio_vfx_phase5_1_mapping.c)
+target_link_libraries(test_audio_vfx_phase5_1_mapping PRIVATE rogue_core)
+add_test(NAME test_audio_vfx_phase5_1_mapping COMMAND test_audio_vfx_phase5_1_mapping)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_audio_vfx_phase5_1_mapping PRIVATE SDL2::SDL2)
+endif()
+
+# Phase 5.2 damage hook test
+add_executable(test_audio_vfx_phase5_2_damage_hook tests/unit/test_audio_vfx_phase5_2_damage_hook.c)
+target_link_libraries(test_audio_vfx_phase5_2_damage_hook PRIVATE rogue_core)
+add_test(NAME test_audio_vfx_phase5_2_damage_hook COMMAND test_audio_vfx_phase5_2_damage_hook)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_audio_vfx_phase5_2_damage_hook PRIVATE SDL2::SDL2)
+endif()
+
 add_executable(roguelike src/main.c)
 target_link_libraries(roguelike PRIVATE rogue_core)
 

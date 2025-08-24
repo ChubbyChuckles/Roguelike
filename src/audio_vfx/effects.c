@@ -1,4 +1,5 @@
 #include "effects.h"
+#include "../game/combat.h" /* for RogueDamageEvent & observer API */
 #include "../util/log.h"
 #include <math.h>
 #include <stdlib.h>
@@ -25,6 +26,18 @@ static uint32_t g_frame_index = 0;
 static uint32_t g_seq_counter = 0;
 static uint32_t g_frame_digest = 0;
 static uint32_t g_fx_seed = 0xA5F0C3D2u; /* deterministic tiny RNG for FX */
+/* Damage hook observer id (-1 if not bound) */
+static int g_damage_observer_id = -1;
+/* Gameplay->effects mapping (Phase 5.1) */
+typedef struct FxMapEntry
+{
+    char key[32];
+    uint8_t type; /* RogueFxMapType */
+    char effect_id[24];
+    uint8_t priority; /* RogueEffectPriority */
+} FxMapEntry;
+static FxMapEntry g_fx_map[96];
+static int g_fx_map_count = 0;
 
 static uint32_t rotl32(uint32_t x, int r) { return (x << r) | (x >> (32 - r)); }
 static void digest_mix_u32(uint32_t v)
@@ -64,6 +77,139 @@ int rogue_fx_emit(const RogueEffectEvent* ev)
     out->emit_frame = g_frame_index;
     out->seq = g_seq_counter++;
     return 0;
+}
+
+int rogue_fx_map_register(const char* gameplay_event_key, RogueFxMapType type,
+                          const char* effect_id, RogueEffectPriority priority)
+{
+    if (!gameplay_event_key || !*gameplay_event_key || !effect_id || !*effect_id)
+        return -1;
+    if (g_fx_map_count >= (int) (sizeof g_fx_map / sizeof g_fx_map[0]))
+        return -2;
+    FxMapEntry* e = &g_fx_map[g_fx_map_count++];
+    memset(e, 0, sizeof *e);
+#if defined(_MSC_VER)
+    strncpy_s(e->key, sizeof e->key, gameplay_event_key, _TRUNCATE);
+    strncpy_s(e->effect_id, sizeof e->effect_id, effect_id, _TRUNCATE);
+#else
+    strncpy(e->key, gameplay_event_key, sizeof e->key - 1);
+    e->key[sizeof e->key - 1] = '\0';
+    strncpy(e->effect_id, effect_id, sizeof e->effect_id - 1);
+    e->effect_id[sizeof e->effect_id - 1] = '\0';
+#endif
+    e->type = (uint8_t) type;
+    e->priority = (uint8_t) priority;
+    return 0;
+}
+
+void rogue_fx_map_clear(void) { g_fx_map_count = 0; }
+
+int rogue_fx_trigger_event(const char* gameplay_event_key, float x, float y)
+{
+    if (!gameplay_event_key || !*gameplay_event_key)
+        return 0;
+    int emitted = 0;
+    for (int i = 0; i < g_fx_map_count; ++i)
+    {
+        if (strncmp(g_fx_map[i].key, gameplay_event_key, sizeof g_fx_map[i].key) != 0)
+            continue;
+        RogueEffectEvent ev;
+        memset(&ev, 0, sizeof ev);
+        ev.priority = g_fx_map[i].priority;
+        ev.repeats = 1;
+#if defined(_MSC_VER)
+        strncpy_s(ev.id, sizeof ev.id, g_fx_map[i].effect_id, _TRUNCATE);
+#else
+        strncpy(ev.id, g_fx_map[i].effect_id, sizeof ev.id - 1);
+        ev.id[sizeof ev.id - 1] = '\0';
+#endif
+        ev.x = x;
+        ev.y = y;
+        if (g_fx_map[i].type == ROGUE_FX_MAP_AUDIO)
+            ev.type = ROGUE_FX_AUDIO_PLAY;
+        else if (g_fx_map[i].type == ROGUE_FX_MAP_VFX)
+            ev.type = ROGUE_FX_VFX_SPAWN;
+        else
+            continue;
+        if (rogue_fx_emit(&ev) == 0)
+            ++emitted;
+    }
+    return emitted;
+}
+
+/* ---- Phase 5.2: Damage event observer hook ---- */
+static const char* dmg_type_to_key(unsigned char t)
+{
+    switch (t)
+    {
+    case ROGUE_DMG_PHYSICAL:
+        return "physical";
+    case ROGUE_DMG_BLEED:
+        return "bleed";
+    case ROGUE_DMG_FIRE:
+        return "fire";
+    case ROGUE_DMG_FROST:
+        return "frost";
+    case ROGUE_DMG_ARCANE:
+        return "arcane";
+    case ROGUE_DMG_POISON:
+        return "poison";
+    case ROGUE_DMG_TRUE:
+        return "true";
+    default:
+        return "unknown";
+    }
+}
+
+static void fx_on_damage_event(const RogueDamageEvent* ev, void* user)
+{
+    (void) user;
+    if (!ev)
+        return;
+    char key[64];
+    const char* type_key = dmg_type_to_key(ev->damage_type);
+    /* Always emit hit */
+#if defined(_MSC_VER)
+    _snprintf_s(key, sizeof key, _TRUNCATE, "damage/%s/hit", type_key);
+#else
+    snprintf(key, sizeof key, "damage/%s/hit", type_key);
+#endif
+    rogue_fx_trigger_event(key, 0.0f, 0.0f);
+    if (ev->crit)
+    {
+#if defined(_MSC_VER)
+        _snprintf_s(key, sizeof key, _TRUNCATE, "damage/%s/crit", type_key);
+#else
+        snprintf(key, sizeof key, "damage/%s/crit", type_key);
+#endif
+        rogue_fx_trigger_event(key, 0.0f, 0.0f);
+    }
+    if (ev->execution)
+    {
+#if defined(_MSC_VER)
+        _snprintf_s(key, sizeof key, _TRUNCATE, "damage/%s/execution", type_key);
+#else
+        snprintf(key, sizeof key, "damage/%s/execution", type_key);
+#endif
+        rogue_fx_trigger_event(key, 0.0f, 0.0f);
+    }
+}
+
+int rogue_fx_damage_hook_bind(void)
+{
+    if (g_damage_observer_id >= 0)
+        return 1; /* already bound */
+    g_damage_observer_id = rogue_combat_add_damage_observer(fx_on_damage_event, NULL);
+    return (g_damage_observer_id >= 0) ? 1 : 0;
+}
+
+void rogue_fx_damage_hook_unbind(void)
+{
+    if (g_damage_observer_id >= 0)
+    {
+        rogue_combat_remove_damage_observer(g_damage_observer_id);
+        g_damage_observer_id = -1;
+    }
 }
 
 /* Simple stable sort by (priority, seq) since emit_frame is same for the frame */

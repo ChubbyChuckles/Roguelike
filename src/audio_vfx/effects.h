@@ -164,6 +164,38 @@ int rogue_vfx_particles_collect_colors(uint32_t* out_rgba, int max);
 /* Phase 4.5: Collect particle lifetimes (ms). */
 int rogue_vfx_particles_collect_lifetimes(uint32_t* out_ms, int max);
 
+/* ---- Gameplay -> Effects mapping (Phase 5.1) ---- */
+typedef enum RogueFxMapType
+{
+    ROGUE_FX_MAP_AUDIO = 1,
+    ROGUE_FX_MAP_VFX = 2
+} RogueFxMapType;
+
+/* Register a mapping from a gameplay event key to an effect id of the given map type.
+    Multiple entries may be registered for the same key and will all be emitted when triggered.
+    The provided priority is applied to the emitted FX bus event. Returns 0 on success. */
+int rogue_fx_map_register(const char* gameplay_event_key, RogueFxMapType type,
+                          const char* effect_id, RogueEffectPriority priority);
+
+/* Clear all gameplay->effects mappings. */
+void rogue_fx_map_clear(void);
+
+/* Trigger a gameplay event by key; enqueues corresponding FX events (audio/vfx) on the FX bus.
+    For VFX entries, (x,y) are used as the spawn position. For audio entries, (x,y) feed positional
+    attenuation when enabled. Returns number of FX events enqueued. */
+int rogue_fx_trigger_event(const char* gameplay_event_key, float x, float y);
+
+/* ---- Damage event hook (Phase 5.2) ---- */
+/* Bind an observer to combat damage events that translates events into gameplay keys and triggers
+     mapped FX automatically. Key scheme:
+         - "damage/<type>/hit" always fires for any applied hit of that type
+         - If ev->crit==1, also fires "damage/<type>/crit"
+         - If ev->execution==1, also fires "damage/<type>/execution"
+     Returns 1 on success (or already bound), 0 on failure. */
+int rogue_fx_damage_hook_bind(void);
+/* Unbind the damage event observer if bound. */
+void rogue_fx_damage_hook_unbind(void);
+
 /* ---- Random distributions (Phase 4.5) ---- */
 typedef enum RogueVfxDist
 {
