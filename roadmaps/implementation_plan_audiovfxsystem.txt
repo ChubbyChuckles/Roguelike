@@ -47,9 +47,9 @@ PHASE 4. Authoring & Data Format
 PHASE 5. Binding Gameplay to Effects
 5.1 Mapping table: gameplay event -> effect id(s) (Done)
 5.2 Damage event hook (per damage type layering) (Done)
-5.3 Skill activation start/end cues (X)
-5.4 Buff gain/expire triggers (X)
-5.5 Loot drop rarity color + sparkle effect (X)
+5.3 Skill activation start/end cues (Done)
+5.4 Buff gain/expire triggers (Done)
+5.5 Loot drop rarity color + sparkle effect (Done)
 5.6 Vendor restock & level-up celebration (Partial: level-up sound)
 
 PHASE 6. Advanced Audio Features
@@ -211,3 +211,8 @@ Notes (2025-08-30):
 	- API: `int rogue_fx_damage_hook_bind(void)`, `void rogue_fx_damage_hook_unbind(void)`; key scheme `damage/<type>/(hit|crit|execution)` where `<type>` ∈ {physical, bleed, fire, frost, arcane, poison, true}.
 	- Runtime: observer callback builds keys from `RogueDamageEvent` and calls `rogue_fx_trigger_event`. Hook auto-bound in app init.
 	- Test: `tests/unit/test_audio_vfx_phase5_2_damage_hook.c` records a fire crit event and asserts FX dispatch and particle spawn. Audio/VFX suite now passes 17/17 in Debug SDL2 (`ctest -j8 -R audio_vfx`).
+
+Notes (2025-08-30, later):
+- Phase 5.3 (Skill start/end cues): Implemented gameplay→FX bindings that emit `skill/<id>/start` on activation and `skill/<id>/end` on completion; instant skills emit both within the same frame. Tests: `tests/unit/test_audio_vfx_phase5_3_skill_cues.c` validates bus cadence and visible VFX output.
+- Phase 5.4 (Buff gain/expire): Added `buff/<type>/gain|expire` triggers in buff apply/expire paths. Test `tests/unit/test_audio_vfx_phase5_4_buff_triggers.c` verifies dispatch and particle visibility across a few ticks.
+- Phase 5.5 (Loot drop cue): Enemy loot spawn emits `loot/<rarity>/drop` using world position of the spawned item; mapping drives world‑space VFX at exact coordinates. Test `tests/unit/test_audio_vfx_phase5_5_loot_drop.c` peeks first instance for world_space=1 and correct (x,y). Audio/VFX suite now 20/20 passing in Debug with SDL2 and parallel `-j8`.

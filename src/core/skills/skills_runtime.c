@@ -1,4 +1,5 @@
 /* Skill activation & ticking logic */
+#include "../../audio_vfx/effects.h" /* Phase 5.3: skill start/end cues */
 #include "../../game/buffs.h"
 #include "../app/app_state.h"
 #include "skills_internal.h"
@@ -109,6 +110,13 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         st->casting_active = 1;
         st->cast_progress_ms = 0;
         st->channel_active = 0;
+        /* FX: skill start cue */
+        {
+            char key[48];
+            /* key scheme: skill/<id>/start */
+            snprintf(key, sizeof key, "skill/%d/start", id);
+            rogue_fx_trigger_event(key, g_app.player.base.pos.x, g_app.player.base.pos.y);
+        }
         /* Snapshot haste for cast if flag set */
         int haste = rogue_buffs_get_total(ROGUE_BUFF_POWER_STRIKE);
         double hf = 1.0 - (haste * 0.02);
@@ -122,6 +130,12 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         st->casting_active = 0;
         st->channel_start_ms = now;
         st->channel_end_ms = now + def->cast_time_ms;
+        /* FX: channel start cue */
+        {
+            char key[48];
+            snprintf(key, sizeof key, "skill/%d/start", id);
+            rogue_fx_trigger_event(key, g_app.player.base.pos.x, g_app.player.base.pos.y);
+        }
         /* snapshot or dynamic haste for channel */
         int haste = rogue_buffs_get_total(ROGUE_BUFF_POWER_STRIKE);
         double hf = 1.0 - (haste * 0.02);
@@ -153,6 +167,15 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         if (def->on_activate)
         {
             consumed = def->on_activate(def, st, &local_ctx);
+        }
+        /* Instant skills: fire start+end cues immediately on successful consume */
+        if (consumed)
+        {
+            char key[48];
+            snprintf(key, sizeof key, "skill/%d/start", id);
+            rogue_fx_trigger_event(key, g_app.player.base.pos.x, g_app.player.base.pos.y);
+            snprintf(key, sizeof key, "skill/%d/end", id);
+            rogue_fx_trigger_event(key, g_app.player.base.pos.x, g_app.player.base.pos.y);
         }
     }
     if (consumed)
@@ -301,6 +324,12 @@ void rogue_skills_update(double now_ms)
                 {
                     rogue_effect_apply(def->effect_spec_id, now_ms);
                 }
+                /* FX: cast end cue */
+                {
+                    char key[48];
+                    snprintf(key, sizeof key, "skill/%d/end", i);
+                    rogue_fx_trigger_event(key, g_app.player.base.pos.x, g_app.player.base.pos.y);
+                }
                 /* Combo flags on cast completion */
                 if (def->combo_builder)
                 {
@@ -382,6 +411,12 @@ void rogue_skills_update(double now_ms)
             if (now_ms >= st->channel_end_ms)
             {
                 st->channel_active = 0;
+                /* FX: channel end cue */
+                {
+                    char key[48];
+                    snprintf(key, sizeof key, "skill/%d/end", i);
+                    rogue_fx_trigger_event(key, g_app.player.base.pos.x, g_app.player.base.pos.y);
+                }
             }
         }
     }

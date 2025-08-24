@@ -1,4 +1,5 @@
 #include "buffs.h"
+#include "../audio_vfx/effects.h" /* Phase 5.4: buff gain/expire cues */
 #include "../core/app/app_state.h"
 #include <string.h>
 
@@ -14,6 +15,10 @@ void rogue_buffs_update(double now_ms)
     for (int i = 0; i < ROGUE_MAX_ACTIVE_BUFFS; i++)
         if (g_buffs[i].active && now_ms >= g_buffs[i].end_ms)
         {
+            /* FX: buff expire cue before deactivating */
+            char key[48];
+            snprintf(key, sizeof key, "buff/%d/expire", (int) g_buffs[i].type);
+            rogue_fx_trigger_event(key, g_app.player.base.pos.x, g_app.player.base.pos.y);
             g_buffs[i].active = 0;
         }
 }
@@ -76,6 +81,12 @@ int rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, dou
             g_buffs[i].snapshot = snapshot ? 1 : 0;
             g_buffs[i].stack_rule = rule;
             g_buffs[i].last_apply_ms = now_ms;
+            /* FX: buff gain cue */
+            {
+                char key[48];
+                snprintf(key, sizeof key, "buff/%d/gain", (int) type);
+                rogue_fx_trigger_event(key, g_app.player.base.pos.x, g_app.player.base.pos.y);
+            }
             return 1;
         }
     return 0;

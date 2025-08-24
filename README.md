@@ -278,10 +278,19 @@ Configs live under `assets/` (items, affixes, loot tables, biomes, projectiles, 
 Extensive per-phase unit tests, fuzzers, statistical distribution checks, mutation robustness, performance guards, integrity snapshots, and labeled gating suites (e.g., Equipment Phase 18). Deterministic RNG across systems ensures reproducible failures.
 
 ### Recent Changes (Audio/VFX)
+- Phase 5.5: Loot drop cue emits world-space VFX at item position.
+  - Key scheme: "loot/<rarity>/drop"; mapped via existing gameplay→FX table.
+  - Test: `test_audio_vfx_phase5_5_loot_drop` validates peek-first position and visible output; audio_vfx suite now 20/20 passing in Debug (SDL2, -j8).
+- Phase 5.4: Buff gain/expire triggers wired.
+  - Keys: "buff/<type>/gain" and "buff/<type>/expire".
+  - Test: `test_audio_vfx_phase5_4_buff_triggers` ensures dispatch and particles.
 - Phase 5.2: Damage event hook wired into FX mapping.
   - New APIs: rogue_fx_damage_hook_bind/unbind, auto-bound in app init.
   - Key scheme: "damage/<type>/(hit|crit|execution)"; integrates with existing mapping table.
   - Tests: audio_vfx suite now 17/17 passing in Debug (SDL2, -j8).
+ - Phase 5.3: Skill activation start/end cues.
+   - Keys: "skill/<id>/start" at activation and "skill/<id>/end" at completion.
+   - Test: `test_audio_vfx_phase5_3_skill_cues` validates FX cadence and visibility.
 
 ---
 

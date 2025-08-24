@@ -649,6 +649,30 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_audio_vfx_phase5_2_damage_hook PRIVATE SDL2::SDL2)
 endif()
 
+# Phase 5.3 skill cues test
+add_executable(test_audio_vfx_phase5_3_skill_cues tests/unit/test_audio_vfx_phase5_3_skill_cues.c)
+target_link_libraries(test_audio_vfx_phase5_3_skill_cues PRIVATE rogue_core)
+add_test(NAME test_audio_vfx_phase5_3_skill_cues COMMAND test_audio_vfx_phase5_3_skill_cues)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_audio_vfx_phase5_3_skill_cues PRIVATE SDL2::SDL2)
+endif()
+
+# Phase 5.4 buff triggers test
+add_executable(test_audio_vfx_phase5_4_buff_triggers tests/unit/test_audio_vfx_phase5_4_buff_triggers.c)
+target_link_libraries(test_audio_vfx_phase5_4_buff_triggers PRIVATE rogue_core)
+add_test(NAME test_audio_vfx_phase5_4_buff_triggers COMMAND test_audio_vfx_phase5_4_buff_triggers)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_audio_vfx_phase5_4_buff_triggers PRIVATE SDL2::SDL2)
+endif()
+
+# Phase 5.5 loot drop cue test
+add_executable(test_audio_vfx_phase5_5_loot_drop tests/unit/test_audio_vfx_phase5_5_loot_drop.c)
+target_link_libraries(test_audio_vfx_phase5_5_loot_drop PRIVATE rogue_core)
+add_test(NAME test_audio_vfx_phase5_5_loot_drop COMMAND test_audio_vfx_phase5_5_loot_drop)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_audio_vfx_phase5_5_loot_drop PRIVATE SDL2::SDL2)
+endif()
+
 add_executable(roguelike src/main.c)
 target_link_libraries(roguelike PRIVATE rogue_core)
 

@@ -1,4 +1,5 @@
 #include "../../ai/core/ai_scheduler.h"
+#include "../../audio_vfx/effects.h" /* Phase 5.5: loot rarity sparkle */
 #include "../../entities/enemy.h"
 #include "../../game/collision.h"
 #include "../../game/damage_numbers.h"
@@ -370,6 +371,14 @@ void rogue_enemy_ai_update(float dt_ms)
                                 rogue_metrics_record_drop(rar[di]);
                             else
                                 rogue_metrics_record_drop(0);
+                            /* FX: loot drop cue keyed by rarity (0..4). Mapping key scheme:
+                               "loot/<rarity>/drop". Position uses item spawn position. */
+                            {
+                                int rr = rar[di] >= 0 ? rar[di] : 0;
+                                char key[32];
+                                snprintf(key, sizeof key, "loot/%d/drop", rr);
+                                rogue_fx_trigger_event(key, jx, jy);
+                            }
                         }
                     }
                 }
