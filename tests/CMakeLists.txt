@@ -2818,6 +2818,19 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase5_skillgraph_advanced.c 
     add_test(NAME test_ui_phase5_skillgraph_advanced COMMAND test_ui_phase5_skillgraph_advanced)
 endif()
 
+# Skills Phase 1.B talent graph skeleton test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_talents_phase1b_skeleton.c AND NOT TARGET test_talents_phase1b_skeleton)
+    add_executable(test_talents_phase1b_skeleton unit/test_talents_phase1b_skeleton.c)
+    target_link_libraries(test_talents_phase1b_skeleton PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_talents_phase1b_skeleton PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_talents_phase1b_skeleton PRIVATE ROGUE_HAVE_SDL=1 SDL_MAIN_HANDLED=1)
+    else()
+        target_compile_definitions(test_talents_phase1b_skeleton PRIVATE SDL_MAIN_HANDLED=1)
+    endif()
+    add_test(NAME test_talents_phase1b_skeleton COMMAND test_talents_phase1b_skeleton)
+endif()
+
 # UI Phase 4.4 context menu test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_context_menu.c AND NOT TARGET test_ui_phase4_context_menu)
     add_executable(test_ui_phase4_context_menu unit/test_ui_phase4_context_menu.c)

@@ -124,6 +124,7 @@ add_library(rogue_core
     src/core/skills/skills_effects.c
     src/core/skills/skill_tree.c
     src/core/skills/skill_bar.c
+    src/core/skills/skill_talents.c
     src/core/effect_spec.c
     src/core/buffs.c
     # projectiles module split
