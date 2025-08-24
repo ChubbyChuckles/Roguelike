@@ -251,9 +251,34 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         if (st->charges_cur <= 0)
             return 0;
     }
-    if (def->resource_cost_mana > 0 && g_app.player.mana < def->resource_cost_mana)
+    /* Compute effective costs (Phase 2.2) */
+    int eff_ap = def->action_point_cost;
+    if (def->ap_cost_pct_max > 0)
+    {
+        eff_ap = (g_app.player.max_action_points * (int) def->ap_cost_pct_max) / 100;
+    }
+    if (st->rank > 1)
+        eff_ap += (int) def->ap_cost_per_rank * (st->rank - 1);
+    if (def->ap_cost_surcharge_threshold > 0 &&
+        g_app.player.action_points < def->ap_cost_surcharge_threshold)
+    {
+        eff_ap += def->ap_cost_surcharge_amount;
+    }
+    if (eff_ap < 0)
+        eff_ap = 0;
+    int eff_mana = def->resource_cost_mana;
+    if (def->mana_cost_pct_max > 0)
+        eff_mana = (g_app.player.max_mana * (int) def->mana_cost_pct_max) / 100;
+    if (st->rank > 1)
+        eff_mana += (int) def->mana_cost_per_rank * (st->rank - 1);
+    if (def->mana_cost_surcharge_threshold > 0 &&
+        g_app.player.mana < def->mana_cost_surcharge_threshold)
+        eff_mana += def->mana_cost_surcharge_amount;
+    if (eff_mana < 0)
+        eff_mana = 0;
+    if (eff_mana > 0 && g_app.player.mana < eff_mana)
         return 0;
-    if (def->action_point_cost > 0 && g_app.player.action_points < def->action_point_cost)
+    if (eff_ap > 0 && g_app.player.action_points < eff_ap)
         return 0;
     if (def->min_weave_ms > 0 && def->cast_type == 1 && def->cast_time_ms > 0)
     {
@@ -283,6 +308,8 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
     RogueSkillCtx local_ctx = ctx ? *ctx : (RogueSkillCtx){0};
     local_ctx.rng_state = (unsigned int) (id * 2654435761u) ^ (unsigned int) st->uses * 2246822519u;
     int consumed = 1;
+    int instant_act_flags =
+        0; /* cache outcome flags for instant skills to process refunds post-spend */
     if ((def->cast_type == 1 && def->cast_time_ms > 0) ||
         (def->cast_type == 0 && def->input_buffer_ms > 0))
     {
@@ -369,10 +396,13 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
     }
     else
     {
+        int act_flags = 0;
         if (def->on_activate)
         {
-            consumed = def->on_activate(def, st, &local_ctx);
+            act_flags = def->on_activate(def, st, &local_ctx);
         }
+        consumed = (act_flags == 1) || (act_flags & ROGUE_ACT_CONSUMED);
+        instant_act_flags = act_flags; /* cache for refund handling after spending */
         /* Instant skills: fire start+end cues immediately on successful consume */
         if (consumed)
         {
@@ -385,23 +415,49 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
     }
     if (consumed)
     {
-        if (def->resource_cost_mana > 0)
+        if (eff_mana > 0)
         {
-            g_app.player.mana -= def->resource_cost_mana;
+            g_app.player.mana -= eff_mana;
             if (g_app.player.mana < 0)
                 g_app.player.mana = 0;
         }
-        if (def->action_point_cost > 0)
+        if (eff_ap > 0)
         {
-            g_app.player.action_points -= def->action_point_cost;
+            g_app.player.action_points -= eff_ap;
             if (g_app.player.action_points < 0)
                 g_app.player.action_points = 0;
-            st->action_points_spent_session += def->action_point_cost;
-            if (def->action_point_cost >= 25)
+            st->action_points_spent_session += eff_ap;
+            if (eff_ap >= 25)
             {
-                float extend = 1500.0f + def->action_point_cost * 10.0f;
+                float extend = 1500.0f + eff_ap * 10.0f;
                 if (g_app.ap_throttle_timer_ms < extend)
                     g_app.ap_throttle_timer_ms = extend;
+            }
+        }
+        /* Apply refunds for instant skills after spending to avoid cap clipping */
+        if (def->cast_type == 0)
+        {
+            int refund_pct = 0;
+            if (instant_act_flags & ROGUE_ACT_MISSED)
+                refund_pct = def->refund_on_miss_pct;
+            else if (instant_act_flags & ROGUE_ACT_RESISTED)
+                refund_pct = def->refund_on_resist_pct;
+            if (refund_pct > 0)
+            {
+                int refund_ap = (eff_ap * refund_pct) / 100;
+                int refund_mana = (eff_mana * refund_pct) / 100;
+                if (refund_ap > 0)
+                {
+                    g_app.player.action_points += refund_ap;
+                    if (g_app.player.action_points > g_app.player.max_action_points)
+                        g_app.player.action_points = g_app.player.max_action_points;
+                }
+                if (refund_mana > 0)
+                {
+                    g_app.player.mana += refund_mana;
+                    if (g_app.player.mana > g_app.player.max_mana)
+                        g_app.player.mana = g_app.player.max_mana;
+                }
             }
         }
         if (def->max_charges > 0)
@@ -471,6 +527,58 @@ int rogue_skill_try_cancel(int id, const RogueSkillCtx* ctx)
         rogue_effect_apply(def->effect_spec_id, c2.now_ms);
     }
     st->last_cast_ms = effective_now;
+    /* Phase 2.3: refund on cancel scaled by progress */
+    if (def->refund_on_cancel_pct > 0)
+    {
+        /* Compute effective costs consistent with activation (percent-of-max, per-rank, surcharge)
+         */
+        int eff_ap = def->action_point_cost;
+        if (def->ap_cost_pct_max > 0)
+        {
+            eff_ap = (g_app.player.max_action_points * (int) def->ap_cost_pct_max) / 100;
+        }
+        if (st->rank > 1)
+            eff_ap += (int) def->ap_cost_per_rank * (st->rank - 1);
+        if (def->ap_cost_surcharge_threshold > 0 &&
+            g_app.player.action_points < def->ap_cost_surcharge_threshold)
+        {
+            eff_ap += def->ap_cost_surcharge_amount;
+        }
+        if (eff_ap < 0)
+            eff_ap = 0;
+        int eff_mana = def->resource_cost_mana;
+        if (def->mana_cost_pct_max > 0)
+            eff_mana = (g_app.player.max_mana * (int) def->mana_cost_pct_max) / 100;
+        if (st->rank > 1)
+            eff_mana += (int) def->mana_cost_per_rank * (st->rank - 1);
+        if (def->mana_cost_surcharge_threshold > 0 &&
+            g_app.player.mana < def->mana_cost_surcharge_threshold)
+            eff_mana += def->mana_cost_surcharge_amount;
+        if (eff_mana < 0)
+            eff_mana = 0;
+        int refund_ap = (int) ((eff_ap * def->refund_on_cancel_pct) / 100);
+        int refund_mana = (int) ((eff_mana * def->refund_on_cancel_pct) / 100);
+        /* Early cancel returns only the unspent portion: scale by (1 - scalar). */
+        float unspent = 1.0f - c2.partial_scalar;
+        if (unspent < 0.0f)
+            unspent = 0.0f;
+        if (unspent > 1.0f)
+            unspent = 1.0f;
+        refund_ap = (int) (refund_ap * unspent);
+        refund_mana = (int) (refund_mana * unspent);
+        if (refund_ap > 0)
+        {
+            g_app.player.action_points += refund_ap;
+            if (g_app.player.action_points > g_app.player.max_action_points)
+                g_app.player.action_points = g_app.player.max_action_points;
+        }
+        if (refund_mana > 0)
+        {
+            g_app.player.mana += refund_mana;
+            if (g_app.player.mana > g_app.player.max_mana)
+                g_app.player.mana = g_app.player.max_mana;
+        }
+    }
     return 1;
 }
 
@@ -521,13 +629,41 @@ void rogue_skills_update(double now_ms)
                 ctx.now_ms = now_ms;
                 ctx.rng_state =
                     (unsigned int) (i * 2654435761u) ^ (unsigned int) st->uses * 2246822519u;
+                int act_flags = 0;
                 if (def->on_activate)
                 {
-                    def->on_activate(def, st, &ctx);
+                    act_flags = def->on_activate(def, st, &ctx);
                 }
                 if (def->effect_spec_id >= 0)
                 {
                     rogue_effect_apply(def->effect_spec_id, now_ms);
+                }
+                /* Refund on cast-complete based on outcome flags (miss/resist). */
+                if (act_flags & (ROGUE_ACT_MISSED | ROGUE_ACT_RESISTED))
+                {
+                    int refund_pct = (act_flags & ROGUE_ACT_MISSED) ? def->refund_on_miss_pct
+                                                                    : def->refund_on_resist_pct;
+                    if (refund_pct > 0)
+                    {
+                        /* Approximate costs from def at completion time (no surcharge/percent
+                         * recompute). */
+                        int base_ap = def->action_point_cost;
+                        int base_mana = def->resource_cost_mana;
+                        int refund_ap = (base_ap * refund_pct) / 100;
+                        int refund_mana = (base_mana * refund_pct) / 100;
+                        if (refund_ap > 0)
+                        {
+                            g_app.player.action_points += refund_ap;
+                            if (g_app.player.action_points > g_app.player.max_action_points)
+                                g_app.player.action_points = g_app.player.max_action_points;
+                        }
+                        if (refund_mana > 0)
+                        {
+                            g_app.player.mana += refund_mana;
+                            if (g_app.player.mana > g_app.player.max_mana)
+                                g_app.player.mana = g_app.player.max_mana;
+                        }
+                    }
                 }
                 /* FX: cast end cue */
                 {

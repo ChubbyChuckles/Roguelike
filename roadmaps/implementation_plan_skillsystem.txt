@@ -46,9 +46,9 @@ PHASE 1.B. Skill Tree / Talent Graph (Early Skeleton - Open Allocation)
 1B.11 Integration note: design for eventual synergy-bucket hooks (Phase 1 partial synergy integration) and keep UI/analytics hooks minimal (X)
 
 PHASE 2. Resource & Cost Layer
-2.1 Player resource pools extension (stamina, energy, heat, focus, combo_points) (X)
-2.2 Cost mapping per skill (flat, percent max, scaling-with-rank, conditional surcharge) (X)
-2.3 Refund & partial refund mechanics on miss / resisted / early cancel (X)
+2.1 Player resource pools extension (stamina, energy, heat, focus, combo_points) (Done)
+2.2 Cost mapping per skill (flat, percent max, scaling-with-rank, conditional surcharge) (Done)
+2.3 Refund & partial refund mechanics on miss / resisted / early cancel (Done)
 2.4 Overdrive & Exhaustion: temporary resource ceiling raise + post-burn recovery penalty (X)
 2.5 Heat / Overheat loop (build heat -> unlock empowered variant -> vent) (X)
 2.6 Tests: insufficient resource rejection, refund tiers, overdrive decay, heat overflow clamp (X)
@@ -239,3 +239,9 @@ Updates (Rotation Simulator, Tag Registry, Ordering Invariance):
 - Added central `assets/tag_registry.json` and C validator (`rogue_tag_registry_validate_text/file`) with allowed charset [A-Za-z0-9_-] and duplicate checks. Added unit `test_tag_registry_validate.c` (fixed asset path for CTest).
 - Added `test_skills_ordering_invariance.c` confirming effective coefficient invariant to presumed layer ordering.
 - CMake wired; Debug build with SDL2 and -j8 passes targeted skills/tag validator tests.
+
+Updates (Phase 2.1–2.3: Resources, Costs, Refunds):
+- Extended `RogueSkillDef` with percent-of-max and per-rank cost fields plus surcharge thresholds for AP/Mana. Implemented effective cost computation in `rogue_skill_try_activate`.
+- Implemented refund logic: on instant skills, refunds on miss/resist applied post-spend to avoid cap clipping; on cast-complete, refunds computed and applied; on early cancel, refunds scale by unspent portion and use effective costs (percent-of-max/per-rank/surcharge) for correctness.
+- Extended `RogueSkillState` with casting/channel flags and AP session tracking used by soft throttle.
+- Tests: `test_skills_phase2_costs_refunds.c` covers insufficient resource gating, rank-scaled costs, surcharge when under threshold, refunds on miss/resist, and early-cancel refund scaling. Timing advances use `cooldown_end_ms + 1` to honor global cooldown.

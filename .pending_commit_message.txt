@@ -59,3 +59,11 @@ docs(readme): document new skills APIs and reference test
 
 - README: added concise "Skills Phase 2 APIs" section describing skill_export_active_buffs_hash(now_ms) and skill_get_effective_coefficient(skill_id) with usage notes.
 - CTest: registered test_skills_phase2_api with add_test so it appears in ctest -N/-R discovery.
+
+feat(skills-phase2): implement cost mapping + refunds (2.1–2.3) with tests; fix cancel refund to use effective costs
+
+- Extend RogueSkillDef with percent-of-max cost fields, per-rank deltas, and surcharge thresholds for AP/Mana; wire into rogue_skill_try_activate effective cost computation.
+- Refunds: apply on instant skills post-spend based on outcome flags; on cast-complete compute and apply; on early cancel, scale by unspent portion and compute from effective costs (not raw base).
+- Tests: add tests/unit/test_skills_phase2_costs_refunds.c covering insufficient resource rejection, rank-scaled costs, surcharge threshold behavior, refunds on miss/resist, and early cancel refund scaling. Advance time using cooldown_end_ms+1 between activations to satisfy global cooldown.
+- Fix: set player max_mana/max_action_points in test to avoid refund clamping; patch cancel refund path in skills_runtime.c to use effective cost mapping consistent with activation.
+- Build: Debug with SDL2, -j8; targeted tests and full solution build succeed locally.

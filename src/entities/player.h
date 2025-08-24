@@ -108,6 +108,16 @@ typedef struct RoguePlayer
     int combat_stance;      /* 0=balanced,1=aggressive,2=defensive */
     /* --- Phase 7.4 Weapon Infusions --- */
     int weapon_infusion; /* 0=none,1=fire,2=frost,3=arcane,4=bleed,5=poison */
+    /* --- Phase 2: Extended resources --- */
+    int stamina; /* melee stamina (separate from AP) */
+    int max_stamina;
+    int energy; /* rogue-like energy */
+    int max_energy;
+    int heat; /* builds with certain skills; vents over time */
+    int max_heat;
+    int focus; /* caster focus */
+    int max_focus;
+    int combo_points; /* 0..5 (mirrors player_combat.combo but persisted) */
 } RoguePlayer;
 
 void rogue_player_init(RoguePlayer* p);

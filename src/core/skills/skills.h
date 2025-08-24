@@ -20,6 +20,16 @@ typedef struct RogueSkillCtx
 typedef int (*RogueSkillEffectFn)(const struct RogueSkillDef* def, struct RogueSkillState* st,
                                   const RogueSkillCtx* ctx);
 
+/* Activation outcome flags returned by on_activate (bitmask). Use CONSUMED to indicate
+   resources should be considered spent; MISSED/RESISTED enable partial refunds. */
+enum
+{
+    ROGUE_ACT_NONE = 0,
+    ROGUE_ACT_CONSUMED = 1 << 0,
+    ROGUE_ACT_MISSED = 1 << 1,
+    ROGUE_ACT_RESISTED = 1 << 2,
+};
+
 /* Definition (immutable) */
 typedef struct RogueSkillDef
 {
@@ -53,6 +63,22 @@ typedef struct RogueSkillDef
     /* 1A.3 haste evaluation mode flags (0 = dynamic read). Bits:
         bit0: snapshot haste for casts; bit1: snapshot haste for channels. */
     unsigned char haste_mode_flags;
+    /* Phase 2.2 – Cost mapping extensions (optional; fall back to action_point_cost/mana).
+        If ap_cost_pct_max>0, AP cost = floor(max_action_points * ap_cost_pct_max/100).
+        ap_cost_per_rank adds per-rank delta (rank>=2). Surcharge triggers when current AP is
+        below ap_cost_surcharge_threshold. Same semantics for mana_* fields. */
+    unsigned char ap_cost_pct_max;       /* 0..100 percent of max AP */
+    short ap_cost_per_rank;              /* additive per-rank delta (can be negative) */
+    short ap_cost_surcharge_amount;      /* flat extra AP when threshold condition met */
+    short ap_cost_surcharge_threshold;   /* AP < threshold -> apply surcharge */
+    unsigned char mana_cost_pct_max;     /* 0..100 percent of max mana */
+    short mana_cost_per_rank;            /* additive per-rank delta */
+    short mana_cost_surcharge_amount;    /* flat extra mana when threshold condition met */
+    short mana_cost_surcharge_threshold; /* mana < threshold -> apply surcharge */
+    /* Phase 2.3 – Refund mechanics (percentages 0..100) */
+    unsigned char refund_on_miss_pct;   /* refund percent of costs if effect indicates MISS */
+    unsigned char refund_on_resist_pct; /* refund percent if effect indicates RESIST */
+    unsigned char refund_on_cancel_pct; /* refund percent when early-canceled */
 } RogueSkillDef;
 
 /* Tag bits */

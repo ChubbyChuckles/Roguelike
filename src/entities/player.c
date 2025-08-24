@@ -86,6 +86,16 @@ void rogue_player_init(RoguePlayer* p)
     p->equipped_weapon_id = -1; /* none by default; tests may set to 0 explicitly */
     p->combat_stance = 0;       /* balanced */
     p->weapon_infusion = 0;     /* none */
+    /* Phase 2 resources */
+    p->max_stamina = 100;
+    p->stamina = p->max_stamina;
+    p->max_energy = 100;
+    p->energy = p->max_energy;
+    p->max_heat = 100;
+    p->heat = 0;
+    p->max_focus = 100;
+    p->focus = p->max_focus;
+    p->combo_points = 0;
     rogue_player_recalc_derived(p);
 }
 
@@ -125,6 +135,15 @@ void rogue_player_recalc_derived(RoguePlayer* p)
         p->guard_meter = p->guard_meter_max;
     if (p->poise > p->poise_max)
         p->poise = p->poise_max;
+    /* Clamp Phase 2 resources */
+    if (p->stamina > p->max_stamina)
+        p->stamina = p->max_stamina;
+    if (p->energy > p->max_energy)
+        p->energy = p->max_energy;
+    if (p->focus > p->max_focus)
+        p->focus = p->max_focus;
+    if (p->heat > p->max_heat)
+        p->heat = p->max_heat;
     /* Recompute encumbrance tier (simple thresholds) */
     float ratio = (p->encumbrance_capacity > 0) ? (p->encumbrance / p->encumbrance_capacity) : 0.0f;
     if (ratio < 0.40f)

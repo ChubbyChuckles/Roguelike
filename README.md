@@ -293,6 +293,11 @@ Rotation simulator (offline helper):
 - Behavior: steps time in tick_ms, regenerates AP, attempts casts in priority order respecting AP/cooldowns using existing runtime, and emits a compact JSON summary (casts, ap_spent, time_ms).
 - Unit test: `test_skills_rotation_sim`
 
+Costs and refunds (Phase 2.1–2.3):
+- Effective cost mapping per skill supports flat costs, percent-of-max pools, scaling per rank, and conditional surcharge when below thresholds (AP/Mana).
+- Refunds: on instant skills, miss/resist refunds are applied after spending to prevent cap clipping; on cast-completion, refunds are computed and applied; on early cancel, refunds are proportional to unspent progress and computed from effective costs.
+- Test: `test_skills_phase2_costs_refunds` validates gating, rank-scaled costs, surcharge, refunds on miss/resist, and early-cancel scaling. Tests advance time using `cooldown_end_ms + 1` between activations to satisfy global cooldown.
+
 ### Recent Changes (Audio/VFX)
 - Phase 5.5: Loot drop cue emits world-space VFX at item position.
   - Key scheme: "loot/<rarity>/drop"; mapped via existing gameplay→FX table.
