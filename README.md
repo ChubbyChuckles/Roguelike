@@ -307,6 +307,7 @@ See `roadmaps/` for subsystem implementation plans (inventory, crafting & gather
 ---
 
 ## 11. Changelog (Curated Recent Highlights)
+* Skills System Phase 1B (Open allocation + cost model slice): Implemented ANY-threshold gating for open allocation (`rogue_talents_set_any_threshold`) and cost-aware unlocks via progression meta `cost_points` (default=1). New unit test `test_talents_phase1b_open_allocation` passes alongside talents skeleton and respec/preview. Built Debug with SDL2 (-j8).
 * Skills System Phase 1B (Talents – respec/preview): Preview journal now captures attribute context (level/STR/DEX/INT/VIT) and commit reuses it, ensuring gating matches preview deterministically. Added unit test `test_talents_phase1b_respec_preview` (passes along with skeleton). Built Debug with SDL2 (-j8).
 * Skills System Phase 1A (Temporal Pacing): Added haste snapshot modes for casts and channels (flags on skill defs) and drift‑corrected fixed‑quantum channel ticking (250ms base anchored to channel start). New unit test `test_skills_phase1a_haste_snapshot_and_drift` verifies snapshot determinism and dynamic haste behavior; all skills tests pass in Debug with SDL2 using parallel build/test (‑j8).
 * AI Phase 6.1 (Combat Behaviour Extensions): Added ranged projectile firing action node `rogue_bt_action_ranged_fire_projectile` wiring AI behavior trees to the projectile system. Supports optional LOS gate and cooldown timer reset. New unit test `test_ai_phase6_1_ranged_projectile` passes in Debug with SDL2 and `--parallel 8`.

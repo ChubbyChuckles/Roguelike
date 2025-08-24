@@ -34,9 +34,9 @@ PHASE 1A. Temporal Pacing Enhancements
 
 PHASE 1.B. Skill Tree / Talent Graph (Early Skeleton - Open Allocation)
 1B.1 Minimal DAG data model: node, directed edge, node types (stat_bonus, skill_unlock, modifier, keystone, mastery) and lightweight adjacency list for lookup (X)
-1B.2 Open-allocation rule set: no mutually-exclusive branches; unlocking requires inbound prerequisites OR meeting a cumulative predecessor-point threshold (supports AND + threshold ANY) (X)
+1B.2 Open-allocation rule set: no mutually-exclusive branches; unlocking requires inbound prerequisites OR meeting a cumulative predecessor-point threshold (supports AND + threshold ANY) (Partial: ANY-threshold gating implemented with `rogue_talents_set_any_threshold`; unit test `test_talents_phase1b_open_allocation` passes)
 1B.3 Node modifier primitives: cooldown scalar, AP cost delta, add EffectSpec reference, tag injection, charge +1, conditional proc chance (X)
-1B.4 Point economy (phase-1): single `talent_points` pool + simple rank costs and optional regional point buckets for keystones (X)
+1B.4 Point economy (phase-1): single `talent_points` pool + simple rank costs and optional regional point buckets for keystones (Partial: cost-aware unlocks implemented via progression meta `cost_points` with default=1; deducted on unlock; covered by `test_talents_phase1b_open_allocation`)
 1B.5 Respec UX & API: preview mode (no commit), commit/respec endpoints, partial refund for last N nodes, full respec cost scaling with total spent (Partial: implemented preview begin/unlock/cancel/commit and respec_last/full_respec APIs; preview journal now stores attribute context and commit uses captured values; unit tests added/passing in Debug with SDL2 -j8; UI & cost scaling deferred)
 1B.6 Serialization skeleton: versioned blob header + node_count + compact unlocked bitset + varint ranks; reserve forward-compatible bytes (X)
 1B.7 Deterministic hash: stable hash over sorted (node_id,ranks,version) for replay / diagnostic checks (X)

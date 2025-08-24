@@ -52,6 +52,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1a_haste_snapshot_an
     add_test(NAME test_skills_phase1a_haste_snapshot_and_drift COMMAND test_skills_phase1a_haste_snapshot_and_drift)
 endif()
 
+# Talents Phase 1B open allocation + cost-aware unlocks
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_talents_phase1b_open_allocation.c AND NOT TARGET test_talents_phase1b_open_allocation)
+    add_executable(test_talents_phase1b_open_allocation unit/test_talents_phase1b_open_allocation.c)
+    target_link_libraries(test_talents_phase1b_open_allocation PRIVATE rogue_core)
+    target_compile_definitions(test_talents_phase1b_open_allocation PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_talents_phase1b_open_allocation PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_talents_phase1b_open_allocation COMMAND test_talents_phase1b_open_allocation)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase6_2_reactions.c AND NOT TARGET test_ai_phase6_2_reactions)
     add_executable(test_ai_phase6_2_reactions unit/test_ai_phase6_2_reactions.c)
     target_link_libraries(test_ai_phase6_2_reactions PRIVATE rogue_core)

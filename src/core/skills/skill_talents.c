@@ -216,10 +216,15 @@ int rogue_talents_unlock(int node_id, unsigned int timestamp_ms, int level, int 
         return 0;
     if (is_unlocked_live(node_id))
         return 0;
-    if (g_app.talent_points <= 0)
+    /* Determine point cost from progression meta (default 1 if absent). */
+    int cost_points = 1;
+    if (g_tal.maze && node_id >= 0 && node_id < g_tal.node_count && g_tal.maze->meta)
+        cost_points =
+            g_tal.maze->meta[node_id].cost_points > 0 ? g_tal.maze->meta[node_id].cost_points : 1;
+    if (g_app.talent_points < cost_points)
         return 0;
     g_tal.unlocked[node_id] = 1;
-    g_app.talent_points -= 1;
+    g_app.talent_points -= cost_points;
     hash_fold_u32(&g_tal.hash, (unsigned int) node_id);
     journal_push(node_id);
     return 1;
