@@ -323,6 +323,7 @@ See `roadmaps/` for subsystem implementation plans (inventory, crafting & gather
 * JSON Migration Phase 2.3.4 (Biomes & World Gen – complete): Added C-only JSON loaders/validators for biomes (`world_gen_biome_json.c/.h`), vegetation (`vegetation_json.c/.h`), and resource nodes (`world_gen_resource_json.c/.h`). Implemented biome asset dependency validator (`world_gen_biome_assets_validate.c/.h`) checking texture paths with relative fallbacks. Tests `test_worldgen_phase3_4_biome_json`, `test_vegetation_json`, `test_resource_json`, and `test_biome_assets_validate` pass (Debug, SDL2, -j8).
 * Integration Plumbing Phase 5.4: Transaction abort now auto-invokes rollback for mapped participants via rollback manager integration. New test `test_sync_phase5_8_auto_rollback` validates stats/events; all Phase 5.8 sync tests pass (Debug, SDL2, -j8).
 ## Changelog
+- Skillsystem Phase 1B: Added minimal talent DAG model with node types, explicit AND prerequisites, and skill unlock queries. Implemented modifier propagation (CD scalar, AP delta, tags, charges +1, effect override). New unit test `test_talents_phase1b_dag_and_modifiers` added; all talents tests pass under Debug SDL2 (-j8).
 
 Skills Phase 1B (partial): Talent system gains respec and preview groundwork
   - New C APIs: rogue_talents_respec_last, rogue_talents_full_respec, preview_begin/unlock/cancel/commit

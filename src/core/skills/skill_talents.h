@@ -7,6 +7,16 @@
 struct RogueProgressionMaze;
 
 /* Minimal Phase 1.B talent graph skeleton (open allocation). */
+/* Node types for a lightweight DAG model. */
+typedef enum RogueTalentNodeType
+{
+    ROGUE_TALENT_NODE_UNKNOWN = 0,
+    ROGUE_TALENT_NODE_STAT_BONUS = 1,
+    ROGUE_TALENT_NODE_SKILL_UNLOCK = 2,
+    ROGUE_TALENT_NODE_MODIFIER = 3,
+    ROGUE_TALENT_NODE_KEYSTONE = 4,
+    ROGUE_TALENT_NODE_MASTERY = 5
+} RogueTalentNodeType;
 typedef struct RogueTalentModifier
 {
     int node_id;            /* talent node providing this modifier */
@@ -29,6 +39,17 @@ void rogue_talents_set_any_threshold(int threshold);
 
 /* Register a modifier linked to a node. Returns 1 on success. */
 int rogue_talents_register_modifier(const RogueTalentModifier* mod);
+
+/* DAG helpers (1B.1): define node types and explicit prerequisites. */
+void rogue_talents_set_node_type(int node_id, RogueTalentNodeType type);
+/* Provide an explicit AND-predecessor list for a node (overrides adjacency rule). */
+int rogue_talents_set_prerequisites(int node_id, const int* prereq_node_ids, int count);
+/* Mark that unlocking a node unlocks a skill id (simple registry). */
+int rogue_talents_set_skill_unlock(int node_id, int skill_id);
+/* Query whether a skill is unlocked via the talent graph. */
+int rogue_talents_is_skill_unlocked(int skill_id);
+/* Get total number of unlocked nodes (effective live state, excluding preview). */
+int rogue_talents_unlocked_count(void);
 
 /* Query if node is currently unlocked. */
 int rogue_talents_is_unlocked(int node_id);

@@ -21,6 +21,11 @@ typedef struct TalentState
     int mod_count;
     int mod_cap;
     unsigned long long hash; /* FNV-1a over unlock journal (node ids) */
+    /* DAG model (1B.1) */
+    unsigned char* node_types;  /* RogueTalentNodeType per node (u8) */
+    int* skill_unlock_for_node; /* per node: skill id or -1 */
+    int* prereq_counts;         /* per node count */
+    int** prereqs;              /* per node dynamic arrays of prereq node ids */
     /* Respec support: store unlock order as a simple journal (stack). */
     int* journal;
     int journal_len;
@@ -43,10 +48,17 @@ int rogue_talents_init(const struct RogueProgressionMaze* maze)
     g_tal.maze = maze;
     g_tal.node_count = maze->base.node_count;
     g_tal.unlocked = (unsigned char*) calloc((size_t) g_tal.node_count, 1);
+    g_tal.node_types = (unsigned char*) calloc((size_t) g_tal.node_count, 1);
+    g_tal.skill_unlock_for_node = (int*) malloc(sizeof(int) * (size_t) g_tal.node_count);
+    g_tal.prereq_counts = (int*) calloc((size_t) g_tal.node_count, sizeof(int));
+    g_tal.prereqs = (int**) calloc((size_t) g_tal.node_count, sizeof(int*));
     g_tal.any_threshold = 0;
     g_tal.hash = 1469598103934665603ull;
-    if (!g_tal.unlocked)
+    if (!g_tal.unlocked || !g_tal.node_types || !g_tal.skill_unlock_for_node ||
+        !g_tal.prereq_counts || !g_tal.prereqs)
         return -1;
+    for (int i = 0; i < g_tal.node_count; ++i)
+        g_tal.skill_unlock_for_node[i] = -1;
     g_tal.journal_cap = 64;
     g_tal.journal = (int*) malloc(sizeof(int) * (size_t) g_tal.journal_cap);
     if (!g_tal.journal)
@@ -62,6 +74,23 @@ void rogue_talents_shutdown(void)
 {
     free(g_tal.unlocked);
     g_tal.unlocked = NULL;
+    if (g_tal.node_types)
+        free(g_tal.node_types);
+    g_tal.node_types = NULL;
+    if (g_tal.skill_unlock_for_node)
+        free(g_tal.skill_unlock_for_node);
+    g_tal.skill_unlock_for_node = NULL;
+    if (g_tal.prereqs)
+    {
+        for (int i = 0; i < g_tal.node_count; ++i)
+            if (g_tal.prereqs[i])
+                free(g_tal.prereqs[i]);
+        free(g_tal.prereqs);
+    }
+    g_tal.prereqs = NULL;
+    if (g_tal.prereq_counts)
+        free(g_tal.prereq_counts);
+    g_tal.prereq_counts = NULL;
     free(g_tal.mods);
     g_tal.mods = NULL;
     g_tal.mod_count = g_tal.mod_cap = 0;
@@ -81,6 +110,67 @@ void rogue_talents_shutdown(void)
 }
 
 void rogue_talents_set_any_threshold(int threshold) { g_tal.any_threshold = threshold; }
+
+void rogue_talents_set_node_type(int node_id, RogueTalentNodeType type)
+{
+    if (node_id >= 0 && node_id < g_tal.node_count && g_tal.node_types)
+        g_tal.node_types[node_id] = (unsigned char) type;
+}
+
+int rogue_talents_set_prerequisites(int node_id, const int* prereq_node_ids, int count)
+{
+    if (!g_tal.prereqs || !g_tal.prereq_counts)
+        return 0;
+    if (node_id < 0 || node_id >= g_tal.node_count || count < 0)
+        return 0;
+    if (g_tal.prereqs[node_id])
+    {
+        free(g_tal.prereqs[node_id]);
+        g_tal.prereqs[node_id] = NULL;
+        g_tal.prereq_counts[node_id] = 0;
+    }
+    if (count == 0)
+        return 1;
+    int* arr = (int*) malloc(sizeof(int) * (size_t) count);
+    if (!arr)
+        return 0;
+    for (int i = 0; i < count; ++i)
+        arr[i] = prereq_node_ids[i];
+    g_tal.prereqs[node_id] = arr;
+    g_tal.prereq_counts[node_id] = count;
+    return 1;
+}
+
+int rogue_talents_set_skill_unlock(int node_id, int skill_id)
+{
+    if (!g_tal.skill_unlock_for_node)
+        return 0;
+    if (node_id < 0 || node_id >= g_tal.node_count)
+        return 0;
+    g_tal.skill_unlock_for_node[node_id] = skill_id;
+    return 1;
+}
+
+int rogue_talents_is_skill_unlocked(int skill_id)
+{
+    if (skill_id < 0 || !g_tal.skill_unlock_for_node || !g_tal.unlocked)
+        return 0;
+    for (int n = 0; n < g_tal.node_count; ++n)
+        if (g_tal.unlocked[n] && g_tal.skill_unlock_for_node[n] == skill_id)
+            return 1;
+    return 0;
+}
+
+int rogue_talents_unlocked_count(void)
+{
+    int total = 0;
+    if (!g_tal.unlocked)
+        return 0;
+    for (int i = 0; i < g_tal.node_count; ++i)
+        if (g_tal.unlocked[i])
+            total++;
+    return total;
+}
 
 int rogue_talents_register_modifier(const RogueTalentModifier* mod)
 {
@@ -133,11 +223,23 @@ int rogue_talents_can_unlock(int node_id, int level, int str, int dex, int intel
         return 0;
     if (!rogue_progression_maze_node_unlockable(g_tal.maze, node_id, level, str, dex, intel, vit))
         return 0;
-    /* Open allocation: allow if any_threshold == 0 -> must be adjacent; if >0, allow when total
-     * unlocked >= threshold. */
+    /* Open allocation: allow if any_threshold == 0 -> use prerequisites/adjacency; if >0, allow
+     * when total unlocked >= threshold regardless of graph locality. */
     int unlocked_total = total_unlocked_effective();
     if (g_tal.any_threshold > 0 && unlocked_total >= g_tal.any_threshold)
         return 1;
+    /* If explicit prerequisites were provided for this node, require ALL of them. */
+    if (g_tal.prereq_counts && g_tal.prereq_counts[node_id] > 0 && g_tal.prereqs &&
+        g_tal.prereqs[node_id])
+    {
+        for (int i = 0; i < g_tal.prereq_counts[node_id]; ++i)
+        {
+            int pre = g_tal.prereqs[node_id][i];
+            if (pre < 0 || pre >= g_tal.node_count || !is_unlocked_effective(pre))
+                return 0;
+        }
+        return 1; /* all prerequisites satisfied */
+    }
     /* adjacency check: require at least one neighbor already unlocked unless it's node 0 (root) */
     if (node_id == 0)
         return 1;
