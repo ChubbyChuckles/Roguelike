@@ -1,6 +1,6 @@
 #include "loot_pickup.h"
 #include "../../util/log.h"
-#include "../app_state.h"
+#include "../app/app_state.h"
 #include "../inventory/inventory.h"
 #include "../metrics.h"
 #include "loot_adaptive.h"

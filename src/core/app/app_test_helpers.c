@@ -1,5 +1,5 @@
 /* Test helper implementations extracted from former app.c monolith. */
-#include "../entities/enemy.h"
+#include "../../entities/enemy.h"
 #include "app.h"
 #include "app_state.h"
 

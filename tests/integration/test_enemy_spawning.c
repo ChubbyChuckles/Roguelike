@@ -1,4 +1,4 @@
-#include "../../src/core/app.h"
+#include "../../src/core/app/app.h"
 #include "../../src/core/game_loop.h"
 #include <stdio.h>
 

@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 /* Use combat override hook instead of macro to avoid macro collisions. */
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/navigation.h"
 #include "../../src/entities/enemy.h"
 #include "../../src/entities/player.h"

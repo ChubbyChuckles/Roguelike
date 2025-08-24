@@ -1,6 +1,6 @@
 #include "asset_config.h"
 #include "../util/log.h"
-#include "app_state.h"
+#include "app/app_state.h"
 #ifdef ROGUE_HAVE_SDL_MIXER
 #include <SDL_mixer.h>
 #endif

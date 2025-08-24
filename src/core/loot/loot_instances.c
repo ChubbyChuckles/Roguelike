@@ -1,5 +1,5 @@
 #include "loot_instances.h"
-#include "../app_state.h"
+#include "../app/app_state.h"
 #include "loot_affixes.h"
 #include "loot_logging.h"
 #include "loot_rarity_adv.h"

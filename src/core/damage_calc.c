@@ -1,5 +1,5 @@
 #include "damage_calc.h"
-#include "app_state.h"
+#include "app/app_state.h"
 #include "progression/progression_mastery.h"
 #include "progression/progression_specialization.h"
 #include "progression/progression_synergy.h"

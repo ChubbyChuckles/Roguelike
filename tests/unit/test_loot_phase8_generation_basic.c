@@ -1,5 +1,5 @@
 /* Tests for advanced generation API (8.1, partial 8.3, 8.5) */
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/loot/loot_affixes.h"
 #include "../../src/core/loot/loot_generation.h"
 #include "../../src/core/loot/loot_instances.h"

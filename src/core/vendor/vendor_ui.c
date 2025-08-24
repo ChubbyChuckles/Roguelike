@@ -1,6 +1,6 @@
 #include "vendor_ui.h"
 #include "../../graphics/font.h"
-#include "../app_state.h"
+#include "../app/app_state.h"
 #include "../durability.h" /* durability bucket */
 #include "../equipment/equipment.h"
 #include "../inventory/inventory.h"

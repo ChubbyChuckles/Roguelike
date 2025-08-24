@@ -1,7 +1,7 @@
 #ifndef ROGUE_VEGETATION_H
 #define ROGUE_VEGETATION_H
 
-#include "../app_state.h"
+#include "../app/app_state.h"
 
 #ifdef __cplusplus
 extern "C"

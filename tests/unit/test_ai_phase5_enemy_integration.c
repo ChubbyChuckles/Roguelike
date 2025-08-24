@@ -2,7 +2,7 @@
 #define SDL_MAIN_HANDLED 1
 #include "../../src/ai/core/behavior_tree.h"
 #include "../../src/ai/core/blackboard.h"
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/entities/enemy.h"
 #include <assert.h>
 #include <stdlib.h>

@@ -1,6 +1,6 @@
 #include "skill_tree.h"
 #include "../../graphics/font.h"
-#include "../app_state.h"
+#include "../app/app_state.h"
 #include "skills.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
@@ -14,7 +14,7 @@ static int g_tree_index = 0; /* selection */
 /* Realistic effect placeholders */
 /* PowerStrike: applies timed buff (rank*2 strength) for 5s */
 #include "../buffs.h"
-#include "../projectiles.h"
+#include "../projectiles/projectiles.h"
 static int effect_power_strike(const RogueSkillDef* def, RogueSkillState* st,
                                const RogueSkillCtx* ctx)
 {

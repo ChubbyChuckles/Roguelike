@@ -1,5 +1,5 @@
 /* Procedural generation of vegetation instances */
-#include "../app_state.h"
+#include "../app/app_state.h"
 #include "vegetation_internal.h"
 #include <math.h>
 

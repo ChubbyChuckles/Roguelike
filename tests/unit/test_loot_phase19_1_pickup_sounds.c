@@ -1,4 +1,4 @@
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/loot/loot_instances.h"
 #include "../../src/core/loot/loot_pickup.h"
 #include "../../src/core/loot/loot_rarity_adv.h"

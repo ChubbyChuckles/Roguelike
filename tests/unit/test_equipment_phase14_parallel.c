@@ -1,6 +1,6 @@
 /* Phase 14.4: Parallel (async) loadout optimization & arena integration tests */
 #define SDL_MAIN_HANDLED 1
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/equipment/equipment.h"
 #include "../../src/core/equipment/equipment_perf.h"
 #include "../../src/core/equipment/equipment_stats.h"

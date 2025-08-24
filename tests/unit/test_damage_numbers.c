@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED
-#include "../../src/core/app.h"
+#include "../../src/core/app/app.h"
 #include "../../src/entities/enemy.h"
 #include <assert.h>
 #include <stdio.h>

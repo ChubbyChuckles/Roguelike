@@ -1,5 +1,5 @@
 #include "inventory_ui.h"
-#include "../app_state.h"
+#include "../app/app_state.h"
 #include "../equipment/equipment.h"
 #include "../loot/loot_instances.h"
 #include "../loot/loot_item_defs.h"

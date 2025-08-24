@@ -1,5 +1,5 @@
 #include "hit_system.h"
-#include "../core/app_state.h"
+#include "../core/app/app_state.h"
 #include "../util/log.h"
 #include "hit_pixel_mask.h"
 #include "weapon_pose.h"

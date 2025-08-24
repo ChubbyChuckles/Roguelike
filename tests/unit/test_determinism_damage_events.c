@@ -1,5 +1,5 @@
 /* Phase M4.2 property-based determinism + M4.3 golden master replay */
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/game/combat.h"
 #include "../../src/util/determinism.h"
 #include <assert.h>

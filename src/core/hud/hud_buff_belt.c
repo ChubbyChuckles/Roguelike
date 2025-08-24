@@ -1,7 +1,7 @@
 /* hud_buff_belt.c - UI Phase 6.3 implementation */
 #include "hud_buff_belt.h"
 #include "../../graphics/font.h"
-#include "../app_state.h"
+#include "../app/app_state.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif

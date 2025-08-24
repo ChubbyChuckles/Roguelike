@@ -1,5 +1,5 @@
 /* Test adaptive haste: buff increases cast speed and channel tick frequency */
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/buffs.h"
 #include "../../src/core/skills/skills.h"
 #include <assert.h>

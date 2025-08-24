@@ -1,5 +1,5 @@
 #include "../../src/ai/pathing/local_avoidance.h"
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/navigation.h"
 #include "../../src/core/vegetation/vegetation.h"
 #include "../../src/world/world_gen.h"

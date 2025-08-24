@@ -1,5 +1,5 @@
 /* Equipment Phase 2.3 Resist breakdown + soft cap integration test */
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/equipment/equipment.h"
 #include "../../src/core/equipment/equipment_stats.h"
 #include "../../src/core/loot/loot_affixes.h"

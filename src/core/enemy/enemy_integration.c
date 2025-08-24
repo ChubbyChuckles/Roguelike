@@ -1,7 +1,7 @@
 #include "enemy_integration.h"
 #include "../../util/determinism.h"
 #include "../../world/world_gen.h"
-#include "../app_state.h"
+#include "../app/app_state.h"
 #include "encounter_composer.h"
 #include "enemy_difficulty_scaling.h"
 #include "enemy_modifiers.h"

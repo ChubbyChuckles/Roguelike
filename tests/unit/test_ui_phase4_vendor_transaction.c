@@ -1,4 +1,4 @@
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/inventory/inventory.h"
 #include "../../src/core/vendor/economy.h"
 #include "../../src/core/vendor/vendor.h"

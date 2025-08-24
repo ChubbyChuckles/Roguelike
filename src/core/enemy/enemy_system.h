@@ -11,7 +11,7 @@ extern "C"
 {
 #endif
 
-#include "../app_state.h"
+#include "../app/app_state.h"
 
     /* Update spawning (group waves + deterministic fallback) and AI for all enemies.
      * dt_ms: scaled delta milliseconds (after hitstop scaling) matching previous usage in app.c

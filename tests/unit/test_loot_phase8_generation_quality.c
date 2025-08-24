@@ -1,5 +1,5 @@
 /* Tests for generation quality scalar (8.4), gating (8.2) and duplicate avoidance (8.6) */
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/loot/loot_affixes.h"
 #include "../../src/core/loot/loot_generation.h"
 #include "../../src/core/loot/loot_instances.h"

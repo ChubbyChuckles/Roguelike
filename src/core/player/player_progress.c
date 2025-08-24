@@ -1,11 +1,11 @@
 #include "player_progress.h"
 #include "../../entities/player.h"
-#include "../app_state.h"
+#include "../app/app_state.h"
 #ifdef ROGUE_HAVE_SDL_MIXER
 #include <SDL_mixer.h>
 #endif
 #include "../integration/event_bus.h"
-#include "../persistence.h"
+#include "../persistence/persistence.h"
 #include "../progression/progression_xp.h"
 #include <stdio.h>
 

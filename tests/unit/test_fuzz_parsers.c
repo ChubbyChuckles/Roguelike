@@ -13,9 +13,9 @@
 #include <string.h>
 #include <time.h>
 
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/loot/loot_affixes.h"
-#include "../../src/core/persistence.h"
+#include "../../src/core/persistence/persistence.h"
 #include "../../src/util/kv_parser.h"
 
 /* Forward declarations (implemented in existing translation units) */

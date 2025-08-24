@@ -1,5 +1,5 @@
-#include "../../src/core/app_state.h"
-#include "../../src/core/persistence.h"
+#include "../../src/core/app/app_state.h"
+#include "../../src/core/persistence/persistence.h"
 #include "../../src/entities/player.h"
 #include <stdio.h>
 #include <stdlib.h>

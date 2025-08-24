@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED 1
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/buffs.h"
 #include "../../src/core/hud/hud_buff_belt.h"
 #include <stdio.h>

@@ -1,10 +1,10 @@
 /* Test 7.7 persistence of affixed ground items (round-trip) */
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/loot/loot_affixes.h"
 #include "../../src/core/loot/loot_instances.h"
 #include "../../src/core/loot/loot_item_defs.h"
 #include "../../src/core/path_utils.h"
-#include "../../src/core/persistence.h"
+#include "../../src/core/persistence/persistence.h"
 #include <stdio.h>
 #include <string.h>
 

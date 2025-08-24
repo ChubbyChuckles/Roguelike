@@ -1,5 +1,5 @@
 /* Phase 16.3/16.4 need/greed + trade validation tests */
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/loot/loot_instances.h"
 #include "../../src/core/loot/loot_multiplayer.h"
 #include <stdio.h>

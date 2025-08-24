@@ -1,4 +1,4 @@
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/vendor/vendor_ui.h"
 #include <assert.h>
 

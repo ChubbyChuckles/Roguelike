@@ -1,5 +1,5 @@
 /* Phase M4.1 additional tests: projectile config edge cases */
-#include "../../src/core/projectiles_config.h"
+#include "../../src/core/projectiles/projectiles_config.h"
 #include "../../src/util/hot_reload.h"
 #include <assert.h>
 #include <stdio.h>

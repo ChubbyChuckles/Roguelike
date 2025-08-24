@@ -4,7 +4,7 @@
    extended field set and ensuring non-zero values survive while legacy path (not exercised here)
    remains unaffected. */
 
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/buffs.h"
 #include "../../src/core/save_manager.h"
 #include "../../src/core/skills/skills.h"

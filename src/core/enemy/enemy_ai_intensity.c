@@ -10,7 +10,7 @@
  */
 #include "enemy_ai_intensity.h"
 #include "../../entities/enemy.h"
-#include "../app_state.h"
+#include "../app/app_state.h"
 #include <math.h>
 #include <string.h>
 

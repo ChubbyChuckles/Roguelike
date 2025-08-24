@@ -1,4 +1,4 @@
-#include "../../src/core/persistence.h"
+#include "../../src/core/persistence/persistence.h"
 #include <assert.h>
 #include <stdio.h>
 #ifdef _WIN32

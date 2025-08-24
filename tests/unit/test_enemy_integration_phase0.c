@@ -1,5 +1,5 @@
 #define SDL_MAIN_HANDLED
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/enemy/enemy_difficulty_scaling.h"
 #include "../../src/core/enemy/enemy_integration.h"
 #include "../../src/entities/enemy.h"

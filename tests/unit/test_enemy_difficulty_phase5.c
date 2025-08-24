@@ -2,7 +2,7 @@
  * Validates escalation & de-escalation thresholds and hysteresis.
  */
 #define SDL_MAIN_HANDLED 1
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/enemy/enemy_ai_intensity.h"
 #include "../../src/entities/enemy.h"
 #include <math.h>

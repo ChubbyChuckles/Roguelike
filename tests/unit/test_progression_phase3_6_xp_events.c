@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/integration/event_bus.h"
 #include "../../src/core/player/player_progress.h"
 #include "../../src/core/progression/progression_award.h"

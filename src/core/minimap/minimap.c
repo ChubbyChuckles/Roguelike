@@ -1,5 +1,5 @@
 #include "minimap.h"
-#include "../util/log.h"
+#include "../../util/log.h"
 #include "minimap_loot_pings.h" /* 12.4 loot pings overlay */
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>

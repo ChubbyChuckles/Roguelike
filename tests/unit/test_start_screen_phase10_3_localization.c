@@ -1,5 +1,5 @@
-#include "../../src/core/app.h"
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/localization.h"
 #include <assert.h>
 

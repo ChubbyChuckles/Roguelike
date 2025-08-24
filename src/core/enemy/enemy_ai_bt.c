@@ -12,7 +12,7 @@
 #include "../../ai/nodes/advanced_nodes.h"
 #include "../../ai/nodes/basic_nodes.h"
 #include "../../entities/enemy.h"
-#include "../app_state.h"
+#include "../app/app_state.h"
 #include <math.h>
 #include <stdlib.h>
 

@@ -24,7 +24,7 @@ SOFTWARE.
 #ifndef ROGUE_CORE_APP_H
 #define ROGUE_CORE_APP_H
 
-#include "../graphics/renderer.h"
+#include "../../graphics/renderer.h"
 #include <stdbool.h>
 
 typedef enum RogueWindowMode

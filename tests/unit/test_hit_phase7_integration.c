@@ -1,5 +1,5 @@
 /* Phase 7 integration test: sweep-driven strike, single hitstop application, no duplicate hits */
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/game/combat.h"
 #include "../../src/game/hit_system.h"
 #include <assert.h>

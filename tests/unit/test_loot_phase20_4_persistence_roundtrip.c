@@ -5,7 +5,7 @@
  * - Asserts 100% field equality for: def_index, quantity, rarity, prefix/suffix index+value,
  * durability_cur/max, enchant_level.
  */
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/loot/loot_affixes.h"
 #include "../../src/core/loot/loot_generation.h"
 #include "../../src/core/loot/loot_instances.h"

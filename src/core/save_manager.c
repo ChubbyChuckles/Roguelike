@@ -1,9 +1,9 @@
 #include "save_manager.h"
 #include "../world/tilemap.h"
-#include "app_state.h"
+#include "app/app_state.h"
 #include "buffs.h"
 #include "loot/loot_instances.h"
-#include "persistence.h"
+#include "persistence/persistence.h"
 #include "skills/skills.h"
 #include "vendor/vendor.h"
 #include <assert.h>

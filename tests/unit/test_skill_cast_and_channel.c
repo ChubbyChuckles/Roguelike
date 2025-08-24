@@ -1,5 +1,5 @@
 /* Test basic casting (delayed effect) and channel (immediate + duration) */
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/skills/skills.h"
 #include "../../src/entities/player.h"
 #include <assert.h>

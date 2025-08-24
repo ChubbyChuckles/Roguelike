@@ -1,6 +1,6 @@
 /* Loadout Optimization (Phase 9) */
 #include "loadout_optimizer.h"
-#include "app_state.h"
+#include "app/app_state.h"
 #include "equipment/equipment.h"
 #include "equipment/equipment_perf.h" /* arena + profiler (Phase 14) */
 #include "equipment/equipment_stats.h"

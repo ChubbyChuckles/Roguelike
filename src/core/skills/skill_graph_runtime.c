@@ -2,7 +2,7 @@
     Wiring of advanced features: persistent pan/zoom, filtering, allocation + undo,
     pulses, spend flyouts, synergy panel, tag filters. */
 #include "../../ui/core/ui_context.h"
-#include "../app_state.h"
+#include "../app/app_state.h"
 #include "skill_bar.h"
 #include "skill_maze.h"
 #include "skills.h"

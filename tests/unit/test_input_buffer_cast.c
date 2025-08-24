@@ -1,6 +1,6 @@
 /* Test input buffering: start a long cast, attempt a second cast skill shortly before completion,
  * ensure it fires immediately after. */
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/skills/skills.h"
 #include <assert.h>
 #include <stdio.h>

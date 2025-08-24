@@ -5,7 +5,7 @@
  * equipped instance indices restored. Test uses dedicated test_equipment_items.cfg with a flagged
  * two-handed weapon and a shield.
  */
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/equipment/equipment.h"
 #include "../../src/core/loot/loot_instances.h"
 #include "../../src/core/loot/loot_item_defs.h"

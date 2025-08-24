@@ -1,4 +1,4 @@
-#include "../core/app_state.h"
+#include "../core/app/app_state.h"
 #include "../graphics/sprite.h"
 #include "../util/log.h"
 #include "hit_pixel_mask.h"

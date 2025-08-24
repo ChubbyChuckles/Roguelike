@@ -1,6 +1,6 @@
 /* Phase 9: Loadout optimizer tests (comparison, hill-climb, cache pruning) */
 #define SDL_MAIN_HANDLED 1
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/equipment/equipment.h"
 #include "../../src/core/equipment/equipment_stats.h"
 #include "../../src/core/loadout_optimizer.h"

@@ -1,6 +1,6 @@
 #include "minimap_loot_pings.h"
-#include "app_state.h"
-#include "loot/loot_rarity.h"
+#include "../app/app_state.h"
+#include "../loot/loot_rarity.h"
 #include <string.h>
 
 #ifndef ROGUE_MINIMAP_PING_CAP

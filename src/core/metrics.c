@@ -1,6 +1,6 @@
 /* Metrics implementation extracted from app.c */
 #include "metrics.h"
-#include "app_state.h"
+#include "app/app_state.h"
 #include "game_loop.h"
 #include "loot/loot_rarity_adv.h"
 #include <time.h>

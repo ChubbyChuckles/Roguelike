@@ -70,15 +70,15 @@ if(ROGUE_CODE_COVERAGE)
 endif()
 
 add_library(rogue_core
-    src/core/app_init.c
-    src/core/app_step.c
-    src/core/app_lifecycle.c
-    src/core/app_test_helpers.c
+    src/core/app/app_init.c
+    src/core/app/app_step.c
+    src/core/app/app_lifecycle.c
+    src/core/app/app_test_helpers.c
     src/core/metrics.c
-    src/core/app_state.c
+    src/core/app/app_state.c
     src/core/game_loop.c
-    src/core/minimap.c
-    src/core/minimap_loot_pings.c
+    src/core/minimap/minimap.c
+    src/core/minimap/minimap_loot_pings.c
     src/core/loot/loot_tooltip.c
     src/core/player/player_controller.c
     src/core/input_events.c
@@ -113,9 +113,9 @@ add_library(rogue_core
     src/core/integration/hot_reload.c
     src/core/integration/dependency_manager.c
     # persistence module split
-    src/core/persistence_io.c
-    src/core/persistence_world.c
-    src/core/persistence_player.c
+    src/core/persistence/persistence_io.c
+    src/core/persistence/persistence_world.c
+    src/core/persistence/persistence_player.c
     src/core/persistence/persistence_autosave.c
     src/core/save_manager.c
     # skills module split
@@ -127,10 +127,10 @@ add_library(rogue_core
     src/core/effect_spec.c
     src/core/buffs.c
     # projectiles module split
-    src/core/projectiles_spawn.c
-    src/core/projectiles_update.c
-    src/core/projectiles_render.c
-    src/core/projectiles_config.c
+    src/core/projectiles/projectiles_spawn.c
+    src/core/projectiles/projectiles_update.c
+    src/core/projectiles/projectiles_render.c
+    src/core/projectiles/projectiles_config.c
     src/core/damage_calc.c
     src/core/collision.c
     src/core/navigation.c

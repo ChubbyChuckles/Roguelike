@@ -1,5 +1,5 @@
 /* Dash integration test */
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/skills/skills.h"
 static int test_dash_effect(const RogueSkillDef* def, RogueSkillState* st, const RogueSkillCtx* ctx)
 {

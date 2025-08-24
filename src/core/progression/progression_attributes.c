@@ -1,6 +1,6 @@
 #include "progression_attributes.h"
 #include "../../entities/player.h"
-#include "../app_state.h"
+#include "../app/app_state.h"
 #include <string.h>
 
 /* Simple rolling hash fold */

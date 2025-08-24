@@ -1,5 +1,5 @@
 /* Phase 3.6.2: Skill prerequisite gating with progression level gates + SKILL_UNLOCKED emission */
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/integration/event_bus.h"
 #include "../../src/core/skills/skills.h"
 #include <assert.h>

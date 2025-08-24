@@ -1,6 +1,6 @@
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/damage_calc.h"
-#include "../../src/core/projectiles.h"
+#include "../../src/core/projectiles/projectiles.h"
 #include "../../src/core/skills/skill_tree.h"
 #include "../../src/core/skills/skills.h"
 #include "../../src/entities/enemy.h"

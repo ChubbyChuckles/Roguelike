@@ -1,5 +1,5 @@
 /* Tests for global + category drop rate layer (9.1) */
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/loot/loot_drop_rates.h"
 #include "../../src/core/loot/loot_item_defs.h"
 #include "../../src/core/loot/loot_tables.h"

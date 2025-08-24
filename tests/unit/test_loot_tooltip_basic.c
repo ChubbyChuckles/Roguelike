@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 RogueAppState g_app;
 RoguePlayer g_exposed_player_for_stats;
 void rogue_player_recalc_derived(RoguePlayer* p) { (void) p; }

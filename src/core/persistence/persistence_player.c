@@ -1,11 +1,11 @@
-#include "../entities/player.h"
-#include "app_state.h"
-#include "inventory/inventory.h"
-#include "loot/loot_affixes.h"
-#include "loot/loot_instances.h"
+#include "../../entities/player.h"
+#include "../app/app_state.h"
+#include "../inventory/inventory.h"
+#include "../loot/loot_affixes.h"
+#include "../loot/loot_instances.h"
+#include "../skills/skills.h"
 #include "persistence.h"
 #include "persistence_internal.h"
-#include "skills/skills.h"
 #include <stdlib.h>
 #include <string.h>
 

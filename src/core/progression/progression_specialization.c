@@ -1,5 +1,5 @@
 #include "progression_specialization.h"
-#include "../app_state.h"
+#include "../app/app_state.h"
 #include "../skills/skills.h"
 #include "progression_attributes.h"
 #include <stdlib.h>

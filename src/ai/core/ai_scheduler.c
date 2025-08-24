@@ -9,7 +9,7 @@
  * deterministic, frame-based updates.
  */
 #include "ai_scheduler.h"
-#include "../../core/app_state.h"
+#include "../../core/app/app_state.h"
 #include "../../entities/enemy.h"
 #include <math.h>
 

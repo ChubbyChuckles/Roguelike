@@ -4,7 +4,7 @@
 #include "../graphics/sprite.h"
 #include "../ui/core/ui_context.h"
 #include "../util/log.h"
-#include "app_state.h"
+#include "app/app_state.h"
 #include "save_manager.h"
 #include <assert.h>
 #include <ctype.h>

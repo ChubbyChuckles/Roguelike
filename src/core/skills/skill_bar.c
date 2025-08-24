@@ -1,6 +1,6 @@
 #include "skill_bar.h"
 #include "../../graphics/font.h"
-#include "../app_state.h"
+#include "../app/app_state.h"
 #include "skills.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>

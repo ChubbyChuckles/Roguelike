@@ -1,5 +1,5 @@
 /* Skill activation & ticking logic */
-#include "../app_state.h"
+#include "../app/app_state.h"
 #include "../buffs.h"
 #include "skills_internal.h"
 #include <stdlib.h>

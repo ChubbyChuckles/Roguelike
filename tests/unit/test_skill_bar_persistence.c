@@ -1,5 +1,5 @@
-#include "../../src/core/app_state.h"
-#include "../../src/core/persistence.h"
+#include "../../src/core/app/app_state.h"
+#include "../../src/core/persistence/persistence.h"
 #include "../../src/core/skills/skills.h"
 #include <stdio.h>
 

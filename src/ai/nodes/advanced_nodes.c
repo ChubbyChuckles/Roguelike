@@ -1,5 +1,5 @@
 #include "advanced_nodes.h"
-#include "../../core/projectiles.h"
+#include "../../core/projectiles/projectiles.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>

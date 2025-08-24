@@ -1,5 +1,5 @@
-#include "../util/log.h"
-#include "app_state.h"
+#include "../../util/log.h"
+#include "../app/app_state.h"
 #include "projectiles.h"
 #include "projectiles_internal.h"
 #include <math.h>

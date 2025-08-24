@@ -1,5 +1,5 @@
 /* Verifies that component registration order does not affect final checksum */
-#include "../../src/core/app_state.h"
+#include "../../src/core/app/app_state.h"
 #include "../../src/core/save_manager.h"
 #include <stdio.h>
 #include <string.h>
