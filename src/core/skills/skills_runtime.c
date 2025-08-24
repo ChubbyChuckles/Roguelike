@@ -109,19 +109,44 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         st->casting_active = 1;
         st->cast_progress_ms = 0;
         st->channel_active = 0;
+        /* Snapshot haste for cast if flag set */
+        int haste = rogue_buffs_get_total(ROGUE_BUFF_POWER_STRIKE);
+        double hf = 1.0 - (haste * 0.02);
+        if (hf < 0.5)
+            hf = 0.5;
+        st->haste_factor_cast = (def->haste_mode_flags & 0x1) ? hf : 0.0;
     }
     else if (def->cast_type == 2 && def->cast_time_ms > 0)
     {
         st->channel_active = 1;
         st->casting_active = 0;
+        st->channel_start_ms = now;
         st->channel_end_ms = now + def->cast_time_ms;
-        double tick_interval = 250.0;
-        st->channel_next_tick_ms = now;
+        /* snapshot or dynamic haste for channel */
+        int haste = rogue_buffs_get_total(ROGUE_BUFF_POWER_STRIKE);
+        double hf = 1.0 - (haste * 0.02);
+        if (hf < 0.5)
+            hf = 0.5;
+        double tick_interval_base = 250.0;
+        if (def->haste_mode_flags & 0x2)
+        {
+            st->haste_factor_channel = hf;
+            st->channel_tick_interval_ms = tick_interval_base * hf;
+        }
+        else
+        {
+            st->haste_factor_channel = 0.0;
+            st->channel_tick_interval_ms = 0.0;
+        }
+        /* schedule first tick at exact grid to minimize drift */
+        double tick_interval = (st->channel_tick_interval_ms > 0.0) ? st->channel_tick_interval_ms
+                                                                    : tick_interval_base;
+        st->channel_next_tick_ms = now + tick_interval;
         if (def->on_activate)
         {
             def->on_activate(def, st, &local_ctx);
         }
-        st->channel_next_tick_ms = now + tick_interval;
+        /* keep next tick as scheduled above */
     }
     else
     {
@@ -249,10 +274,16 @@ void rogue_skills_update(double now_ms)
         }
         if (st->casting_active && def->cast_type == 1 && def->cast_time_ms > 0)
         {
-            int haste = rogue_buffs_get_total(ROGUE_BUFF_POWER_STRIKE);
-            double haste_factor = 1.0 - (haste * 0.02);
-            if (haste_factor < 0.5)
-                haste_factor = 0.5;
+            double haste_factor;
+            if (st->haste_factor_cast > 0.0)
+                haste_factor = st->haste_factor_cast;
+            else
+            {
+                int haste = rogue_buffs_get_total(ROGUE_BUFF_POWER_STRIKE);
+                haste_factor = 1.0 - (haste * 0.02);
+                if (haste_factor < 0.5)
+                    haste_factor = 0.5;
+            }
             st->cast_progress_ms += 16.0 / haste_factor;
             if (st->cast_progress_ms >= def->cast_time_ms)
             {
@@ -298,11 +329,18 @@ void rogue_skills_update(double now_ms)
         }
         if (st->channel_active && def->cast_type == 2 && def->cast_time_ms > 0)
         {
-            int haste = rogue_buffs_get_total(ROGUE_BUFF_POWER_STRIKE);
-            double haste_factor = 1.0 - (haste * 0.02);
-            if (haste_factor < 0.5)
-                haste_factor = 0.5;
-            double tick_interval = 250.0 * haste_factor;
+            /* determine tick interval (snapshot vs dynamic) */
+            double tick_interval;
+            if (st->channel_tick_interval_ms > 0.0)
+                tick_interval = st->channel_tick_interval_ms;
+            else
+            {
+                int haste = rogue_buffs_get_total(ROGUE_BUFF_POWER_STRIKE);
+                double haste_factor = 1.0 - (haste * 0.02);
+                if (haste_factor < 0.5)
+                    haste_factor = 0.5;
+                tick_interval = 250.0 * haste_factor;
+            }
             while (st->channel_active && st->channel_next_tick_ms > 0 &&
                    now_ms >= st->channel_next_tick_ms)
             {
@@ -319,7 +357,6 @@ void rogue_skills_update(double now_ms)
                 {
                     rogue_effect_apply(def->effect_spec_id, st->channel_next_tick_ms);
                 }
-                /* Combo flags can apply on channel ticks too (builder builds over time) */
                 if (def->combo_builder)
                 {
                     g_app.player_combat.combo++;
@@ -330,7 +367,13 @@ void rogue_skills_update(double now_ms)
                 {
                     g_app.player_combat.combo = 0;
                 }
-                st->channel_next_tick_ms += tick_interval;
+                /* drift-correct: compute next tick by counting intervals from channel_start */
+                if (st->channel_start_ms <= 0.0)
+                    st->channel_start_ms = now_ms;
+                double elapsed = (st->channel_next_tick_ms - st->channel_start_ms) + tick_interval;
+                int tick_index = (int) (elapsed / tick_interval + 0.5);
+                double ideal_next = st->channel_start_ms + tick_interval * (double) tick_index;
+                st->channel_next_tick_ms = ideal_next;
                 if (st->channel_next_tick_ms > st->channel_end_ms)
                 {
                     st->channel_next_tick_ms = 0;

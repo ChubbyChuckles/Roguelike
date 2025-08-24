@@ -45,3 +45,10 @@ Fix Unit Tests (Iteration C – Combat progression metrics stability)
 	- test_phase3_3_combat_progression_bridge — PASS
 	- test_damage_numbers_player — PASS
 	- test_combat_damage_events — PASS
+
+Skills System Phase 1A: Haste snapshot modes + drift-corrected channel ticks
+
+- Runtime: add `RogueSkillDef.haste_mode_flags` (bit0=CAST, bit1=CHANNEL) to control snapshot vs dynamic haste; snapshot factors stored per-activation in `RogueSkillState` and honored in cast progress and channel tick interval.
+- Channels: implement drift-corrected fixed-quantum scheduler (250ms base) anchored to `channel_start_ms` to avoid cumulative drift; initial on_activate not counted as a tick.
+- Tests: new `test_skills_phase1a_haste_snapshot_and_drift` validates cast snapshot immunity to mid-cast haste, exact 4 ticks for snapshot channel in 1000ms, and >= baseline ticks for dynamic channel under added haste. Ensured event bus init and buff isolation in test setup.
+- Build & verify (Debug, SDL2, -j8): focused and broader skills subset — ALL PASS.

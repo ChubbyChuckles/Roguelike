@@ -50,6 +50,9 @@ typedef struct RogueSkillDef
     unsigned char combo_spender;        /* flag: spends combo points */
     unsigned char reserved_u8;          /* padding future */
     int effect_spec_id;                 /* unified EffectSpec reference (1.2) */
+    /* 1A.3 haste evaluation mode flags (0 = dynamic read). Bits:
+        bit0: snapshot haste for casts; bit1: snapshot haste for channels. */
+    unsigned char haste_mode_flags;
 } RogueSkillDef;
 
 /* Tag bits */
@@ -84,6 +87,11 @@ typedef struct RogueSkillState
     int combo_points_accum;          /* combo point bank */
     unsigned char casting_active;    /* 1 if mid-cast (cast_type==1) */
     unsigned char channel_active;    /* 1 if channel running (cast_type==2) */
+    /* 1A.3 snapshot support & 1A.5 drift correction */
+    double haste_factor_cast;        /* >0 when cast haste is snapshotted */
+    double haste_factor_channel;     /* >0 when channel haste is snapshotted */
+    double channel_start_ms;         /* anchor for drift-corrected ticks */
+    double channel_tick_interval_ms; /* >0 when channel tick interval is snapshotted */
 } RogueSkillState;
 
 /* RNG helper (LCG) for deterministic local stream (1.6) */

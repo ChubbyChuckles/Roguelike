@@ -41,6 +41,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase6_1_ranged_projectile.c 
     add_test(NAME test_ai_phase6_1_ranged_projectile COMMAND test_ai_phase6_1_ranged_projectile)
 endif()
 
+# Phase 1A haste snapshot & drift correction test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1a_haste_snapshot_and_drift.c AND NOT TARGET test_skills_phase1a_haste_snapshot_and_drift)
+    add_executable(test_skills_phase1a_haste_snapshot_and_drift unit/test_skills_phase1a_haste_snapshot_and_drift.c)
+    target_link_libraries(test_skills_phase1a_haste_snapshot_and_drift PRIVATE rogue_core)
+    target_compile_definitions(test_skills_phase1a_haste_snapshot_and_drift PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skills_phase1a_haste_snapshot_and_drift PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skills_phase1a_haste_snapshot_and_drift COMMAND test_skills_phase1a_haste_snapshot_and_drift)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase6_2_reactions.c AND NOT TARGET test_ai_phase6_2_reactions)
     add_executable(test_ai_phase6_2_reactions unit/test_ai_phase6_2_reactions.c)
     target_link_libraries(test_ai_phase6_2_reactions PRIVATE rogue_core)
