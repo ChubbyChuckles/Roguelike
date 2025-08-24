@@ -103,3 +103,8 @@ Read the "roadmaps\implementation_plan_start_screen.txt", go to the next tasks i
 ### VFX
 
 Read the "roadmaps\implementation_plan_audiovfxsystem.txt", go to the next tasks in line that need implementation and implement as many of them as possible, don't just partially finish the tasks. Prevent regression. Execute the unit tests and build the project to verify there are no errors. Never build without SDL2 and always build with multiple processes when applicable ( -j8 ). After a successful implementation update the "roadmaps\implementation_plan_audiovfxsystem.txt", generate a descriptive commit message that you append to ".pending_commit_message.txt" and update the README.md. Iterate this process as often as you can in one request.
+
+
+### Codebase Optimization
+
+Read the "roadmaps\codebase_optimization.txt", go to the next tasks in line that need implementation and implement as many of them as possible, don't just partially finish the tasks. Prevent regression. Execute the unit tests and build the project to verify there are no errors. Never build without SDL2 and always build with multiple processes when applicable ( -j8 ). After a successful implementation update the "roadmaps\codebase_optimization.txt", generate a descriptive commit message that you append to ".pending_commit_message.txt" and update the README.md. Iterate this process as often as you can in one request.

@@ -1,0 +1,175 @@
+CODEBASE OPTIMIZATION & MODULARIZATION PLAN
+
+Legend:
+Done = Fully implemented & validated
+Partial = Implemented but with gaps (noted)
+X = Not started yet
+
+Goal
+Make the project easier to reason about, scale, and evolve by introducing clear module boundaries, a layered architecture, strict dependency rules, consistent APIs, and guardrails in build/tests/CI.
+
+Guiding Principles
+- Stable boundaries first: prefer small, composable modules with explicit contracts.
+- Determinism: preserve or improve deterministic behavior across refactors.
+- SDL isolation: core logic must not depend directly on SDL; use thin adapters.
+- Ownership/Allocation: clarify lifetime and ownership of data structures.
+- Progressive hardening: enforce rules with tooling (warnings-as-errors, IWYU, static analysis).
+
+Target Layering (top depends on below; never upward)
+UI → Integration Bridges → Gameplay (Combat/Skills/Buffs) → Systems (Audio/VFX, Loot, Equipment, Progression, Vendor, Crafting, Worldgen, AI) → Engine Core (EventBus, Snapshot/Tx/Rollback, Persistence, Resource, Math/Geom, Platform Abstraction)
+
+Canonical Module Taxonomy (examples; adapt as code evolves)
+- core/platform: SDL adapters, time/clock, FS, threading primitives, atomics, endian
+- core/base: logging, assert, error codes, small collections, memory pool interfaces
+- core/event: event bus (+ predicates/rate limits), message types, dispatch
+- core/snapshot_tx: snapshot manager, delta/diff, transactions, rollback
+- core/persist: save/load TLV, hashing (CRC/SHA), migrations, integrity
+- math/geom: vec2/rect, RNG governance, distributions, fixed-step time
+- audio_vfx: FX bus, audio mixer, VFX registry/particles/composition
+- gameplay/combat: damage pipeline, mitigation, poise/guard, hitbox/frames
+- gameplay/skills: skills runtime, cast/channel, tags, mastery hooks
+- gameplay/buffs: timed buffs, stacking rules, cache integration
+- systems/loot: rarity, generation, pity, persistence bridges
+- systems/equipment: slots, affixes, sets, uniques, durability, procs
+- systems/vendor: pricing, offers, buyback, negotiation, telemetry
+- systems/crafting: recipes, queues, refinement, analytics
+- systems/progression: XP, attributes, passives, mastery, caches
+- systems/ai: BT engine, perception, schedulers, LOD, pathing
+- systems/worldgen: biomes, resources, structures, streaming
+- ui: headless harness, HUD, start screen, theme, accessibility
+- integration/: cross-system bridges (UI↔Systems, Persistence, Sync)
+- tools/: analyzers, schema exporters, debug CLIs
+- tests/: unit/integration/fuzz/perf grouped by module
+
+Success Metrics
+- Build: per-module targets compile cleanly with warnings-as-errors.
+- Tests: ≥ 95% of modules have dedicated unit tests; critical integration paths covered; audio_vfx suite remains green.
+- Dependencies: no cycles across modules; include graph shrinks; IWYU delta < 5% in follow-up runs.
+- Build time: Debug full build time reduced by ≥ 20% vs baseline or stable with more modules.
+- Determinism: replay hashes for guarded systems unchanged vs baseline.
+
+PHASE 0 — Baseline Inventory & Metrics (Done/Partial/X)
+0.1 Source inventory: map files→logical modules (script+report). (X)
+0.2 Include/dependency graph: generate (graphviz) and detect cycles. (X)
+0.3 Build time & test baseline (Debug, SDL2, -j8); store report. (X)
+0.4 Coverage snapshot (where available) and fuzz/test counts. (X)
+Deliverables: /tools/code_audit/, /build/reports/code_audit_YYYYMMDD/; DOT+PNG graphs; timing CSV.
+Exit: agreed module taxonomy + signed-off baseline.
+
+PHASE 1 — Enforce Layering & Targets
+1.1 Define module boundaries and folder layout (see taxonomy). (X)
+1.2 Create CMake targets per module: STATIC libraries + PUBLIC/PRIVATE include dirs. (X)
+1.3 Export only public headers via include/rogue/<module>/; move private headers to src/<module>/internal/. (X)
+1.4 Add interface targets for common compile options (warnings-as-errors, defines). (X)
+1.5 Introduce dependency rules: forbid upward deps; CI guard (cmake-scripts + graph scan). (X)
+Deliverables: updated CMakeLists with targets+linking; docs/arch/layers.md.
+Exit: build green; dependency check passes; no cross-layer includes.
+
+PHASE 2 — Platform Abstraction & SDL Isolation
+2.1 Introduce core/platform APIs (time, FS, threads, atomics, sem/cond, sockets opt). (X)
+2.2 SDL adapters live under platform/sdl/ implementing core/platform interfaces. (X)
+2.3 Decouple audio_vfx, input, renderer from SDL headers; include only through adapters. (X)
+2.4 Build options: ROGUE_ENABLE_SDL toggles adapters; headless still builds. (X)
+Exit: core logic builds with/without SDL; audio_vfx tests green in headless math mode.
+
+PHASE 3 — Contexts Over Singletons
+3.1 Define RogueAppContext aggregating subsystem contexts/pointers. (X)
+3.2 Convert global state to explicit contexts (audio_vfx, buffs, skills, loot, etc.). (X)
+3.3 Initialization order & ownership: create/start/stop APIs for modules. (X)
+3.4 Dependency injection: pass only needed sub-contexts to call sites (narrow interfaces). (X)
+Exit: no uncontrolled globals in targeted modules; tests unaffected; leak check clean.
+
+PHASE 4 — API Contracts & Error Handling
+4.1 API style: prefix (rogue_<module>_), header guards, versioning, ABI notes. (X)
+4.2 Error model: return codes (0 success, negative errno-like), typed result structs for complex ops. (X)
+4.3 Logging: leveled logger with categories (core, gameplay, io, perf), macros ROGUE_LOG_X. (X)
+4.4 Ownership rules: annotate params (__in, __out, takes_ownership), docs in headers. (X)
+Exit: public headers reviewed; logger replaces stray fprintfs; tests compile clean with W4/extra.
+
+PHASE 5 — Dependency Cleanup & Namespacing
+5.1 Include hygiene: remove transitive includes; forward-declare where possible. (X)
+5.2 Include-What-You-Use (or equivalent) runs in CI; fix top offenders. (X)
+5.3 Namespacing audit: unify function/type prefixes; move helpers to core/base or math. (X)
+5.4 Break cycles: extract interfaces, split mega-files, introduce small adapters/facades. (X)
+Exit: IWYU delta minimal; zero reported cycles; module boundaries hold.
+
+PHASE 6 — Build System & Tooling
+6.1 Compiler flags: MSVC (/W4 /WX), GCC/Clang (-Wall -Wextra -Werror) normalized per target. (X)
+6.2 Optional unity build switch per target; precompiled header for hot modules. (X)
+6.3 Static analysis stage (clang-tidy ruleset), configurable suppressions. (X)
+6.4 Formatting & license: clang-format, SPDX headers; pre-commit hooks. (X)
+Exit: CI runs analysis/format checks; consistent warnings across compilers.
+
+PHASE 7 — Tests & Coverage
+7.1 Restructure tests by module; name with suite prefixes (e.g., test_audio_vfx_*). (Partial)
+7.2 Add missing unit tests for new adapters/contexts; expand integration tests crossing modules. (X)
+7.3 Lightweight coverage reporting; minimum bars for core and gameplay. (X)
+Exit: module tests present; audio_vfx, event bus, snapshot/tx, persistence suites remain green.
+
+PHASE 8 — Performance & Memory Budgets
+8.1 Micro-benchmark harness per hot path (particles, registry lookups, event dispatch). (X)
+8.2 Memory ownership & pooling review; leak/stress tests; pool fragmentation audit. (X)
+8.3 CI perf smoke: guard bounds for frame time in select tests (budget tokens). (X)
+Exit: perf regressions detected in CI; agreed baselines documented.
+
+PHASE 9 — Documentation & Diagrams
+9.1 Module READMEs: purpose, dependencies, public APIs, invariants, known pitfalls. (X)
+9.2 High-level diagrams (layers, data flow, lifetime) in docs/arch/. (X)
+9.3 Contribution guide updates (module rules, error model, coding style). (X)
+Exit: new contributors can navigate and extend modules safely.
+
+PHASE 10 — Migration Strategy & Risk
+10.1 PR choreography: small, incremental PRs per module; keep tests green at each step. (X)
+10.2 Feature flags & compatibility shims where needed; deprecation window policy. (X)
+10.3 Rollback plan: use snapshot/rollback for risky refactors;
+     maintain temporary adapters to avoid big-bang merges. (X)
+Exit: zero-day breakage avoided; ability to bisect regressions preserved.
+
+Instrumentation & Tooling (Cross-Cutting)
+- Scripts: include graph, cycle detector, file→module mapping generator, build timing aggregator.
+- Lints: naming prefixes, header-only public APIs sanity, dependency rule checker.
+- Dashboards: test pass/fail trend, build times, IWYU count, analysis warnings, perf smoke.
+
+Directory Layout (Target)
+- include/rogue/<module>/*.h  (public)
+- src/<module>/*.c            (private impl)
+- src/<module>/internal/*.h   (private headers)
+- platform/<backend>/*.c/.h   (adapters; SDL under platform/sdl)
+- tests/<module>/*            (unit/integration)
+
+CMake Targets (Illustrative)
+- rogue_core_platform, rogue_core_base, rogue_core_event, rogue_core_snapshot_tx, rogue_core_persist,
+  rogue_math_geom, rogue_audio_vfx, rogue_gameplay_combat, rogue_gameplay_skills, rogue_gameplay_buffs,
+  rogue_systems_loot, rogue_systems_equipment, rogue_systems_vendor, rogue_systems_crafting,
+  rogue_systems_progression, rogue_systems_ai, rogue_systems_worldgen, rogue_ui, rogue_integration
+
+API Conventions
+- Return 0 on success; negative for failures; expose helper rogue_strerror(code) for logs.
+- All public structs zero-initializable; provide *_init defaults; explicit *_destroy.
+- Threading: clearly specify thread-safety; no hidden globals; locking at boundaries only.
+- Determinism: any RNG use requires stream id and seed input; debug seed setters retain behavior.
+
+Exit Criteria (Global)
+- Build/test green across Debug/Release with SDL2 enabled; headless builds remain supported.
+- No cross-layer cycles; adapters isolate SDL; module tests present; docs updated.
+- CI codifies rules (format, analysis, IWYU, dependency checks) and enforces gates.
+
+Open Risks & Mitigations
+- Risk: Large moves create long-lived branches.
+  Mitigation: slice by module; keep PRs < 600 LOC; adapters/shims during migration.
+- Risk: Hidden dependencies (transitive includes) break after hygiene.
+  Mitigation: staged IWYU; forward declarations; early CI with dependency scans.
+- Risk: Performance regressions after indirection.
+  Mitigation: micro-benches + perf smoke tests with thresholds; optional unity builds.
+
+Timeline (Indicative)
+- Week 1: Phase 0–1 (inventory, targets, layering) — docs + initial target shells.
+- Week 2: Phase 2–3 (platform adapters, context conversions) — start with audio_vfx & event bus.
+- Week 3: Phase 4–5 (API/error/logging, IWYU/namespacing) — enforce CI gates.
+- Week 4: Phase 6–7 (tooling/tests/coverage) + perf baselines.
+- Week 5: Phase 8–10 (perf budgets, docs, migration hardening) — clean-up & polish.
+
+Notes
+- Keep audio_vfx and event bus as pilot modules for early conversion; they have strong tests.
+- Preserve deterministic seeds and hashes when moving code; tests must validate identical digests.
+- Defer renderer/UI deep refactor until core boundaries stabilize.
