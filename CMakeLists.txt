@@ -604,6 +604,13 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_thread_barrier PRIVATE SDL2::SDL2)
 endif()
 
+add_executable(test_skills_phase2_api tests/unit/test_skills_phase2_api.c)
+target_link_libraries(test_skills_phase2_api PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_skills_phase2_api PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_skills_phase2_api COMMAND test_skills_phase2_api)
+
 add_executable(test_audio_vfx_phase1_2 tests/unit/test_audio_vfx_phase1_2.c)
 target_link_libraries(test_audio_vfx_phase1_2 PRIVATE rogue_core)
 if(TARGET SDL2::SDL2)

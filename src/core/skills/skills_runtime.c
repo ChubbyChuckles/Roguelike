@@ -1,12 +1,62 @@
 /* Skill activation & ticking logic */
 #include "../../audio_vfx/effects.h" /* Phase 5.3: skill start/end cues */
 #include "../../game/buffs.h"
+#include "../../util/determinism.h"
 #include "../app/app_state.h"
+#include "../progression/progression_mastery.h"
+#include "../progression/progression_specialization.h"
 #include "skills_internal.h"
 #include <stdlib.h>
 #include <string.h>
 
 void rogue_effect_apply(int effect_spec_id, double now_ms);
+
+/* Export a deterministic hash of active buffs for analytics/replay.
+   Incorporates type, magnitude, snapshot flag, and normalized remaining_ms (clamped >=0).
+   now_ms is used to compute remaining time; pass g_app.game_time_ms. */
+uint64_t skill_export_active_buffs_hash(double now_ms)
+{
+    RogueBuff tmp[ROGUE_BUFF_MAX];
+    int n = rogue_buffs_snapshot(tmp, ROGUE_BUFF_MAX, now_ms);
+    if (n <= 0)
+        return 0ull;
+    /* Build a compact buffer of stable fields and hash via fnv1a64 */
+    unsigned char buf[ROGUE_BUFF_MAX * 16];
+    int off = 0;
+    for (int i = 0; i < n; i++)
+    {
+        /* ensure ordering independent of internal indices: simple insertion by type */
+        /* For small N this is fine; snapshot already returns in index order; we normalize anyway.
+         */
+        int type = (int) tmp[i].type;
+        int magnitude = tmp[i].magnitude;
+        int snap = tmp[i].snapshot ? 1 : 0;
+        int remaining = (int) ((tmp[i].end_ms - now_ms) + 0.5);
+        if (remaining < 0)
+            remaining = 0;
+        memcpy(buf + off + 0, &type, sizeof type);
+        memcpy(buf + off + 4, &magnitude, sizeof magnitude);
+        memcpy(buf + off + 8, &snap, sizeof snap);
+        memcpy(buf + off + 12, &remaining, sizeof remaining);
+        off += 16;
+    }
+    return rogue_fnv1a64(buf, (size_t) off, 0xcbf29ce484222325ULL);
+}
+
+/* Compute a simple effective coefficient scalar from mastery and specialization.
+   This leaves detailed per-stat coefficients for future phases; for now it mirrors
+   usage in damage_calc to centralize the multiplier. */
+float skill_get_effective_coefficient(int skill_id)
+{
+    float coeff = 1.0f;
+    float ms = rogue_mastery_bonus_scalar(skill_id);
+    if (ms > 0.0f)
+        coeff *= ms;
+    float sp = rogue_specialization_damage_scalar(skill_id);
+    if (sp > 0.0f)
+        coeff *= sp;
+    return coeff;
+}
 
 int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
 {

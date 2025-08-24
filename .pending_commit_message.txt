@@ -29,3 +29,16 @@ chore(audit): finalize Phase 0.3 baseline timings (Debug, SDL2, -j8)
 
 - Ran tools/code_audit/build_timing.py; wrote build_times.csv and output tails under build/reports/code_audit_YYYYMMDD/.
 - Windows-safe output capture; script resilient to long ctest output. Mark 0.3 as Done in roadmap; README notes baseline timings location.
+
+feat(skills): expose Phase 2 C APIs + tests — active buffs hash and effective coefficient (SDL2, -j8)
+
+- API: skill_export_active_buffs_hash(now_ms) — FNV-1a 64 hash over active buff snapshot (type, magnitude, snapshot flag, remaining_ms)
+- API: skill_get_effective_coefficient(skill_id) — combines mastery and specialization scalars
+- Tests: add tests/unit/test_skills_phase2_api.c; fix SDL main redefinition via SDL_MAIN_HANDLED
+- Build: added CMake target test_skills_phase2_api; built Debug with SDL2 in parallel (-j8)
+- Roadmap: mark these two API items as completed and note follow-ups (rotation simulator, tag registry, ordering invariance test)
+
+docs(readme): document new skills APIs and reference test
+
+- README: added concise "Skills Phase 2 APIs" section describing skill_export_active_buffs_hash(now_ms) and skill_get_effective_coefficient(skill_id) with usage notes.
+- CTest: registered test_skills_phase2_api with add_test so it appears in ctest -N/-R discovery.

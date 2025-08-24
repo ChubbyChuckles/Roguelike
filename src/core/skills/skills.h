@@ -124,6 +124,14 @@ const RogueSkillDef* rogue_skill_get_def(int id);
 const struct RogueSkillState* rogue_skill_get_state(int id);
 int rogue_skill_synergy_total(int synergy_id);
 
+/* API: export a deterministic hash of currently active buffs (type,magnitude,end_ms snapshot).
+    Used by replay/analytics. Returns FNV-1a 64-bit hash, 0 when no buffs active. */
+uint64_t skill_export_active_buffs_hash(double now_ms);
+
+/* API: return an effective damage coefficient scalar for a skill id combining
+    mastery and specialization contributions. Baseline 1.0f. */
+float skill_get_effective_coefficient(int skill_id);
+
 /* Data-driven loading */
 int rogue_skills_load_from_cfg(
     const char* path); /* returns number loaded; supports CSV (.cfg) or JSON (.json) */

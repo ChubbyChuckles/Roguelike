@@ -221,8 +221,15 @@ Risk Mitigation Cross-System:
  - Tag Drift: Maintain central tag registry JSON (skills/equipment/dungeon) with versioned hash; skill load fails if registry hash mismatch outside migration path.
 
 Open Tasks:
- - Expose C APIs: skill_export_active_buffs_hash(), skill_get_effective_coefficient(skill_id), skill_simulate_rotation(profile_json).
+ - Expose C API: skill_simulate_rotation(profile_json).
  - Add registry: tag_registry.json with cross-system validation tool.
  - Add test: cross-layer ordering invariance (swap equipment vs progression application order -> identical final coefficient vector).
 
 Change Impact: Documentation only; future commits will implement APIs, registry, and tests.
+
+Updates (Current Commit):
+- Exposed C APIs Completed:
+	- skill_export_active_buffs_hash(now_ms): returns FNV-1a 64 hash over active buffs snapshot (type, magnitude, snapshot flag, remaining_ms). Used for replay/analytics integrity.
+	- skill_get_effective_coefficient(skill_id): multiplies mastery and specialization damage scalars to produce an overall coefficient for the given skill id.
+- Tests: Added tests/unit/test_skills_phase2_api.c validating non-zero and time-varying buff hash and basic coefficient sanity; integrated into CMake (Debug, SDL2, -j8 build passes).
+- Next: skill_simulate_rotation(profile_json) (stub remains), tag_registry.json + validation tool, and cross-layer ordering invariance test.

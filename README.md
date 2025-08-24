@@ -277,6 +277,11 @@ Configs live under `assets/` (items, affixes, loot tables, biomes, projectiles, 
 ## 6. Testing & Quality Gates
 Extensive per-phase unit tests, fuzzers, statistical distribution checks, mutation robustness, performance guards, integrity snapshots, and labeled gating suites (e.g., Equipment Phase 18). Deterministic RNG across systems ensures reproducible failures.
 
+### Skills Phase 2 APIs
+- skill_export_active_buffs_hash(now_ms): 64-bit FNV-1a hash of current active buff snapshot (type, magnitude, snapshot flag, remaining_ms). Use g_app.game_time_ms for now_ms. Intended for replay/analytics integrity and quick state diffs.
+- skill_get_effective_coefficient(skill_id): scalar multiplier combining mastery and specialization for a given skill id; baseline 1.0 when no bonuses apply.
+Reference test: test_skills_phase2_api.
+
 ### Recent Changes (Audio/VFX)
 - Phase 5.5: Loot drop cue emits world-space VFX at item position.
   - Key scheme: "loot/<rarity>/drop"; mapped via existing gameplay→FX table.
