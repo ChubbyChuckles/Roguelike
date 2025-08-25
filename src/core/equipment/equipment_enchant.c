@@ -81,13 +81,20 @@ static int reforge_cost_formula(int item_level, int rarity, int slots)
 }
 
 static void reroll_affix(int* index_field, int* value_field, RogueAffixType type, int rarity,
-                         unsigned int* rng)
+                         unsigned int* rng, int avoid_index)
 {
     if (!index_field || !value_field)
         return;
     *index_field = -1;
     *value_field = 0;
-    int idx = rogue_affix_roll(type, rarity, rng);
+    /* Try a few times to avoid rerolling to the same affix index */
+    int attempts = 0;
+    int idx = -1;
+    do
+    {
+        idx = rogue_affix_roll(type, rarity, rng);
+        attempts++;
+    } while (idx == avoid_index && attempts < 8);
     if (idx >= 0)
     {
         *index_field = idx;
@@ -139,11 +146,15 @@ int rogue_item_instance_enchant(int inst_index, int reroll_prefix, int reroll_su
     RogueItemInstance* it = (RogueItemInstance*) itc;
     if (reroll_prefix && has_prefix)
     {
-        reroll_affix(&it->prefix_index, &it->prefix_value, ROGUE_AFFIX_PREFIX, it->rarity, &rng);
+        int old = it->prefix_index;
+        reroll_affix(&it->prefix_index, &it->prefix_value, ROGUE_AFFIX_PREFIX, it->rarity, &rng,
+                     old);
     }
     if (reroll_suffix && has_suffix)
     {
-        reroll_affix(&it->suffix_index, &it->suffix_value, ROGUE_AFFIX_SUFFIX, it->rarity, &rng);
+        int old = it->suffix_index;
+        reroll_affix(&it->suffix_index, &it->suffix_value, ROGUE_AFFIX_SUFFIX, it->rarity, &rng,
+                     old);
     }
     /* Budget validation */
     if (rogue_item_instance_validate_budget(inst_index) != 0)
@@ -196,18 +207,20 @@ int rogue_item_instance_reforge(int inst_index, int* out_cost)
     {
         if (rarity >= 3)
         {
-            reroll_affix(&it->prefix_index, &it->prefix_value, ROGUE_AFFIX_PREFIX, rarity, &rng);
-            reroll_affix(&it->suffix_index, &it->suffix_value, ROGUE_AFFIX_SUFFIX, rarity, &rng);
+            reroll_affix(&it->prefix_index, &it->prefix_value, ROGUE_AFFIX_PREFIX, rarity, &rng,
+                         -1);
+            reroll_affix(&it->suffix_index, &it->suffix_value, ROGUE_AFFIX_SUFFIX, rarity, &rng,
+                         -1);
         }
         else
         {
             int choose_prefix = (rng & 1) == 0;
             if (choose_prefix)
-                reroll_affix(&it->prefix_index, &it->prefix_value, ROGUE_AFFIX_PREFIX, rarity,
-                             &rng);
+                reroll_affix(&it->prefix_index, &it->prefix_value, ROGUE_AFFIX_PREFIX, rarity, &rng,
+                             -1);
             else
-                reroll_affix(&it->suffix_index, &it->suffix_value, ROGUE_AFFIX_SUFFIX, rarity,
-                             &rng);
+                reroll_affix(&it->suffix_index, &it->suffix_value, ROGUE_AFFIX_SUFFIX, rarity, &rng,
+                             -1);
         }
     }
     /* Clear existing gem sockets content (preserve count) */

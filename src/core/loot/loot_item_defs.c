@@ -1,4 +1,5 @@
 #include "loot_item_defs.h"
+#include "loot_affixes.h" /* ensure affixes present for tests that roll immediately */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -341,6 +342,28 @@ int rogue_item_defs_load_from_cfg(const char* path)
     /* Rebuild hash index after each file load to keep fast path current (cost acceptable for small
      * counts) */
     rogue_item_defs_build_index();
+    /* Tests often roll affixes right after loading item defs. If affixes aren't loaded yet,
+       opportunistically load the default affix set using the same relative fallback scheme. */
+    if (added > 0 && rogue_affix_count() == 0)
+    {
+        const char* affix_path = "assets/affixes.cfg";
+        int affix_added = rogue_affixes_load_from_cfg(affix_path);
+        if (affix_added <= 0)
+        {
+            const char* prefixes[] = {"../", "../../", "../../../"};
+            char candidate[512];
+            for (size_t i = 0; i < sizeof(prefixes) / sizeof(prefixes[0]); ++i)
+            {
+                int n = snprintf(candidate, sizeof candidate, "%s%s", prefixes[i], affix_path);
+                if (n <= 0 || n >= (int) sizeof candidate)
+                    continue;
+                affix_added = rogue_affixes_load_from_cfg(candidate);
+                if (affix_added > 0)
+                    break;
+            }
+        }
+        (void) affix_added; /* best-effort; proceed even if missing */
+    }
     return added;
 }
 

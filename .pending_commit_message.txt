@@ -26,3 +26,26 @@ Sockets: stabilize item defs loader for test CWDs; Phase 5 sockets pass
 	proper error codes, slots initialized to -1, max 6 enforced
 
 Tests: test_equipment_phase5_sockets PASS
+
+Equipment Phase 5: enchant/reforge + protective seal fixed; affix autoload in item defs loader; sockets/gems stable
+
+- Enchant/Reforge:
+  - Implemented full mechanics: cost formulas, material consumption, deterministic RNG, and reroll logic that avoids selecting the same affix index.
+  - Preserved invariants on reforge (item_level, rarity, socket_count); clears gem contents only.
+  - Validates budget; marks stat cache dirty.
+
+- Protective Seal:
+  - Added prefix/suffix lock flags; apply seal only when applicable; proper error codes.
+  - Enchant respects locks and only rerolls unlocked affixes; consumes seal.
+
+- Loader resilience:
+  - Item defs loader: relative-path fallbacks.
+  - New: Auto-load default affixes (assets/affixes.cfg) when affix tables are empty to support tests calling rogue_affix_roll directly.
+
+- Tests passing (Debug):
+  - test_equipment_phase5_sockets
+  - test_equipment_phase5_gems
+  - test_equipment_phase5_enchant_reforge
+  - test_equipment_phase5_protective_seal
+
+No regressions observed when running the entire Phase 5 equipment group. Build: Debug SDL2, -j8.

@@ -71,9 +71,9 @@ PHASE 3. EQUIPMENT SYSTEM FIXES (High Priority)
             and instance initialization already satisfied insert/remove/get semantics and min..max spawn
             ranges. Test now passes in isolation.
         - Verified socket count validation and gem insertion
-3.2 Fix enchanting and reforge systems (X)
-    - test_equipment_phase5_enchant_reforge: Fix reforge logic
-    - test_equipment_phase5_protective_seal: Fix seal preservation
+3.2 Fix enchanting and reforge systems (Done)
+    - test_equipment_phase5_enchant_reforge: Implemented full reroll and cost semantics; reroll avoids selecting the same affix; affix tables auto-loaded when missing. PASS.
+    - test_equipment_phase5_protective_seal: Implemented prefix/suffix lock application and enchant respect for locks; correct error codes; materials consumed. PASS.
 3.3 Fix stat aggregation and persistence (Partial)
     - test_equipment_phase2_stat_cache: Fix cache invalidation (Done)
     - test_equipment_phase2_affix_layers: Fix layer ordering (Done)
@@ -203,7 +203,9 @@ Recent Deltas (latest cycle):
 - Loaders: items/materials path fallbacks ensure tests run from build/tests CWD.
 - Equipment Resists Pipeline: fixed uninitialized equipment slots (default to -1), removed duplicate stat-cache recomputes in equip/unequip, and made compute_derived hard-cap clamp idempotent to prevent double soft-capping. Added raw/final resist debug logs during validation.
 - Item Def Loader: added relative path fallbacks for cfg loads to stabilize tests that run from build/tests CWD.
-- Tests now PASS: test_equipment_phase2_resists, test_equipment_phase2_stat_cache, test_equipment_phase5_sockets.
+- Affix Autoload: when item defs load and affixes are empty, auto-load default affixes from assets/affixes.cfg using the same relative fallbacks; unblocks tests that call rogue_affix_roll without explicit affix load.
+- Enchant/Reforge/Seal: implemented mechanics, reroll-avoidance, cost formulas, and lock semantics; dirties stat cache and preserves invariants.
+- Tests now PASS: test_equipment_phase2_resists, test_equipment_phase2_stat_cache, test_equipment_phase5_sockets, test_equipment_phase5_gems, test_equipment_phase5_enchant_reforge, test_equipment_phase5_protective_seal.
 
 TESTING METHODOLOGY:
 1. **Isolation Testing**: Run each fixed test in isolation to verify fix
