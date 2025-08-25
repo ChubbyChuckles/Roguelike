@@ -467,6 +467,12 @@ if(ROGUE_WARNINGS_AS_ERRORS)
     target_compile_options(rogue_systems_loot PRIVATE $<$<C_COMPILER_ID:MSVC>:/WX> $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Werror>)
 endif()
 if(ROGUE_ENABLE_SDL)
+    # Ensure the same SDL feature macros are defined so headers (like app_state.h)
+    # have identical layouts across all modules that include them.
+    target_compile_definitions(rogue_systems_loot PUBLIC ROGUE_HAVE_SDL=1)
+    if(SDL2_mixer_FOUND)
+        target_compile_definitions(rogue_systems_loot PUBLIC ROGUE_HAVE_SDL_MIXER=1)
+    endif()
     target_link_libraries(rogue_systems_loot PRIVATE SDL2::SDL2)
 endif()
 

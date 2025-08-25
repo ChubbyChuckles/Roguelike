@@ -50,7 +50,7 @@ PHASE 1. CODE ARCHITECTURE & DEPENDENCY FIXES (High Priority)
 1.6 Tests: code_audit_check_layering should pass (X)
 
 PHASE 2. AI SYSTEM FIXES (High Priority)
-2.1 Fix blackboard write/read functionality (X)
+2.1 Fix blackboard write/read functionality (Done)
     - test_ai_phase2_blackboard: Fix ROGUE_BB_WRITE_MAX logic
     - Verify key collision handling and type safety
 2.2 Fix perception system line-of-sight calculations (X)
@@ -120,7 +120,7 @@ PHASE 5. COMBAT SYSTEM FIXES (Medium Priority)
 5.5 Tests: All combat tests should pass (X)
 
 PHASE 6. SAVE SYSTEM FIXES (Medium Priority)
-6.1 Fix save system roundtrip issues (X)
+6.1 Fix save system roundtrip issues (Done)
     - test_save_phase7_inventory_durability_roundtrip: Fix durability preservation
     - Verify all game state saves and loads correctly
 6.2 Fix dependency and integration manager (X)

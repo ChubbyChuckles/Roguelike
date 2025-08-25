@@ -76,3 +76,14 @@ feat(skills-phase2): Overdrive/Exhaustion (2.4) and Heat/Overheat (2.5) fully im
 - Tests: tests/unit/test_skills_phase2_overdrive_heat.c validates cap/refund clamping, exhaustion timing, heat/overheat, and vent-to-zero. All skills tests pass.
 - CMake tests: begin modular split via tests/cmake/{AI,Skills,Talents,StartScreen}.cmake included from tests/CMakeLists.txt; fixed full-build linker failure by adding a placeholder main to tests/unit/test_effectspec_dot_stack.c.
 - Build/Tests: Debug (SDL2) with --parallel 8 builds clean; ctest -R test_skills_ is 10/10 PASS. Full ctest reveals unrelated legacy failures tracked separately.
+
+feat(save,loot): fix inventory durability roundtrip and AI blackboard write semantics
+
+- Fix AI blackboard int write policy (respect min/max, mark dirty only on change)
+- Refactor inventory persistence: enumerate via API, restore durability/enchant
+- Add rogue_items_sync_app_view() and call post-inventory-load + end-of-load
+- Align SDL feature macros across modules to unify RogueAppState layout
+- Resolve g_app pointer mismatch across rogue_core and rogue_systems_loot
+- Add diagnostics around inventory write/read and runtime init guard
+- Roadmap updated: mark AI blackboard + save v7 durability roundtrip as Done
+- README changelog: document root cause (macro mismatch) and resolution

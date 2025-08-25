@@ -239,8 +239,11 @@ bool rogue_bb_write_int(RogueBlackboard* bb, const char* key, int value, RogueBB
         e->type = ROGUE_BB_INT;
         e->v.i = 0;
     }
-    if (apply_policy_int(&e->v.i, value, policy))
+    bool changed = apply_policy_int(&e->v.i, value, policy);
+    if (changed)
         e->dirty = 1;
+    // For int writes, treat a no-op policy application as a successful call.
+    // Tests expect true even if value remains unchanged under MAX/MIN.
     return true;
 }
 /**
@@ -259,9 +262,10 @@ bool rogue_bb_write_float(RogueBlackboard* bb, const char* key, float value,
         e->type = ROGUE_BB_FLOAT;
         e->v.f = 0.0f;
     }
-    if (apply_policy_float(&e->v.f, value, policy))
+    bool changed = apply_policy_float(&e->v.f, value, policy);
+    if (changed)
         e->dirty = 1;
-    return true;
+    return changed;
 }
 
 /**

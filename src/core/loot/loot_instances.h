@@ -63,6 +63,9 @@ typedef struct RogueItemInstance
 
 void rogue_items_init_runtime(void);
 void rogue_items_shutdown_runtime(void);
+/* Ensure g_app.item_instances points at the active internal pool without clearing it.
+    Safe to call anytime; updates pointer, cap, and scans active count. */
+void rogue_items_sync_app_view(void);
 int rogue_items_spawn(int def_index, int quantity, float x, float y);
 /* Runtime suppression flag for high-volume spawn logging (e.g., fuzz tests). 0=log, 1=suppress. */
 extern int g_rogue_loot_suppress_spawn_log;

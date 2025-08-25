@@ -1,5 +1,6 @@
 /* Phase 12: Versioned progression persistence & migration */
 #include "progression_persist.h"
+#include "../app/app_state.h"
 #include "../persistence/save_manager.h"
 #include "progression_attributes.h"
 #include "progression_passives.h"
@@ -64,11 +65,6 @@ static unsigned long long fold64(unsigned long long h, unsigned long long v)
 }
 unsigned long long rogue_progression_persist_chain_hash(void) { return g_chain_hash; }
 unsigned int rogue_progression_persist_last_migration_flags(void) { return g_last_migration_flags; }
-extern struct AppState
-{
-    int level;
-    unsigned long long xp_total_accum;
-} g_app;
 extern RogueAttributeState g_attr_state;
 extern unsigned long long rogue_progression_passives_journal_hash(void);
 int rogue_attr_journal_count(void);
@@ -108,7 +104,7 @@ static int read_unlocked_passives(FILE* f, uint32_t count)
         PassiveEntryDisk e;
         if (fread(&e, sizeof e, 1, f) != 1)
             return -1;
-        rogue_progression_passive_unlock(e.node_id, e.timestamp_ms, g_app.level,
+        rogue_progression_passive_unlock(e.node_id, e.timestamp_ms, g_app.player.level,
                                          g_attr_state.strength, g_attr_state.dexterity,
                                          g_attr_state.intelligence, g_attr_state.vitality);
     }
@@ -158,8 +154,8 @@ int rogue_progression_persist_write(FILE* f)
     ProgHeaderV3 h;
     memset(&h, 0, sizeof h);
     h.version = ROGUE_PROG_SAVE_VERSION;
-    h.level = (uint32_t) g_app.level;
-    h.xp_total = g_app.xp_total_accum;
+    h.level = (uint32_t) g_app.player.level;
+    h.xp_total = g_app.player.xp_total_accum;
     h.stat_registry_fp = rogue_stat_registry_fingerprint();
     h.maze_node_count = 0;
     h.attr_str = (uint32_t) g_attr_state.strength;
@@ -208,8 +204,8 @@ int rogue_progression_persist_read(FILE* f)
         ProgHeaderV1 h;
         if (fread(&h, sizeof h, 1, f) != 1)
             return -3;
-        g_app.level = (int) h.level;
-        g_app.xp_total_accum = h.xp_total;
+        g_app.player.level = (int) h.level;
+        g_app.player.xp_total_accum = h.xp_total;
         g_attr_state.strength = (int) h.attr_str;
         g_attr_state.dexterity = (int) h.attr_dex;
         g_attr_state.vitality = (int) h.attr_vit;
@@ -232,8 +228,8 @@ int rogue_progression_persist_read(FILE* f)
         ProgHeaderV2 h;
         if (fread(&h, sizeof h, 1, f) != 1)
             return -5;
-        g_app.level = (int) h.level;
-        g_app.xp_total_accum = h.xp_total;
+        g_app.player.level = (int) h.level;
+        g_app.player.xp_total_accum = h.xp_total;
         g_attr_state.strength = (int) h.attr_str;
         g_attr_state.dexterity = (int) h.attr_dex;
         g_attr_state.vitality = (int) h.attr_vit;
@@ -257,8 +253,8 @@ int rogue_progression_persist_read(FILE* f)
         ProgHeaderV3 h;
         if (fread(&h, sizeof h, 1, f) != 1)
             return -8;
-        g_app.level = (int) h.level;
-        g_app.xp_total_accum = h.xp_total;
+        g_app.player.level = (int) h.level;
+        g_app.player.xp_total_accum = h.xp_total;
         g_attr_state.strength = (int) h.attr_str;
         g_attr_state.dexterity = (int) h.attr_dex;
         g_attr_state.vitality = (int) h.attr_vit;

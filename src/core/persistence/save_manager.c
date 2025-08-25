@@ -1994,6 +1994,8 @@ int rogue_save_manager_load_slot(int slot_index)
             fseek(f, payload_pos + size, SEEK_SET);
         }
     }
+    /* Finalize by syncing loot app view (helpful for headless/tests). */
+    rogue_items_sync_app_view();
     fclose(f);
     return 0;
 }
@@ -2385,11 +2387,28 @@ static void inv_record_snapshot_update(const InvRecordSnapshot* cur, unsigned co
 static int write_inventory_component(FILE* f)
 {
     int count = 0;
-    if (g_app.item_instances)
+    /* Enumerate active instances via public API to avoid dependence on g_app pointer/cap. */
+    for (int i = 0; i < ROGUE_ITEM_INSTANCE_CAP; i++)
     {
-        for (int i = 0; i < g_app.item_instance_cap; i++)
-            if (g_app.item_instances[i].active)
-                count++;
+        const RogueItemInstance* it = rogue_item_instance_at(i);
+        if (it)
+            count++;
+    }
+    fprintf(stderr, "DBG: write_inventory_component detected %d active instances (cap=%d)\n", count,
+            ROGUE_ITEM_INSTANCE_CAP);
+    int dbg_seen = 0;
+    for (int i = 0; i < ROGUE_ITEM_INSTANCE_CAP && dbg_seen < 8; i++)
+    {
+        const RogueItemInstance* it = rogue_item_instance_at(i);
+        if (it)
+        {
+            fprintf(
+                stderr,
+                "DBG: inv_active idx=%d def=%d qty=%d dur=%d/%d rar=%d pref=(%d,%d) suf=(%d,%d)\n",
+                i, it->def_index, it->quantity, it->durability_cur, it->durability_max, it->rarity,
+                it->prefix_index, it->prefix_value, it->suffix_index, it->suffix_value);
+            dbg_seen++;
+        }
     }
     if (g_active_write_version >= 4)
     {
@@ -2414,15 +2433,16 @@ static int write_inventory_component(FILE* f)
     if (!cur)
         return -1;
     int out = 0;
-    for (int i = 0; i < g_app.item_instance_cap; i++)
-        if (g_app.item_instances[i].active)
-        {
-            RogueItemInstance* it = &g_app.item_instances[i];
-            cur[out++] = (InvRecordSnapshot){
-                it->def_index,      it->quantity,     it->rarity,       it->prefix_index,
-                it->prefix_value,   it->suffix_index, it->suffix_value, it->durability_cur,
-                it->durability_max, it->enchant_level};
-        }
+    for (int i = 0; i < ROGUE_ITEM_INSTANCE_CAP; i++)
+    {
+        const RogueItemInstance* it = rogue_item_instance_at(i);
+        if (!it)
+            continue;
+        cur[out++] = (InvRecordSnapshot){it->def_index,    it->quantity,       it->rarity,
+                                         it->prefix_index, it->prefix_value,   it->suffix_index,
+                                         it->suffix_value, it->durability_cur, it->durability_max,
+                                         it->enchant_level};
+    }
     if (out != count)
     {
         free(cur);
@@ -2471,9 +2491,21 @@ static int write_inventory_component(FILE* f)
 }
 static int read_inventory_component(FILE* f, size_t size)
 {
+    /* Layout detection based on remaining payload bytes after the count field:
+       - legacy: 7 ints per record (no durability, no enchant)
+       - extended1: 9 ints per record (durability_cur, durability_max)
+       - extended2: 10 ints per record (adds enchant_level)
+    */
+    /* Ensure loot runtime is initialized so g_app.item_instances points to the active pool.
+       Some unit tests reinitialize or bypass app_init; if the pointer is NULL here, spawn calls
+       will still populate the internal static pool, but tests that scan g_app.item_instances will
+       see zero. Guard-init to keep both views consistent. */
+    if (!g_app.item_instances || g_app.item_instance_cap <= 0)
+    {
+        rogue_items_init_runtime();
+    }
     int count = 0;
-    size_t bytes_consumed = 0;
-    size_t start_pos = 0; /* ftell unreliable for memory temp; track manually */
+    long section_start = ftell(f);
     fprintf(stderr, "DBG: read_inventory_component size=%zu\n", size);
     if (g_active_read_version >= 4)
     {
@@ -2484,50 +2516,58 @@ static int read_inventory_component(FILE* f, size_t size)
     }
     else if (fread(&count, sizeof count, 1, f) != 1)
         return -1;
-    fprintf(stderr, "DBG: inventory count=%d version=%u\n", count, g_active_read_version);
+    if (count < 0)
+        return -1;
+    long after_count = ftell(f);
+    size_t count_bytes = (size_t) (after_count - section_start);
+    if (count == 0)
+        return 0;
+    size_t remaining = (size_t) ((size > count_bytes) ? (size - count_bytes) : 0);
+    size_t rec_ints = 0;
+    if (remaining >= (size_t) count * (sizeof(int) * 10))
+        rec_ints = 10;
+    else if (remaining >= (size_t) count * (sizeof(int) * 9))
+        rec_ints = 9;
+    else if (remaining >= (size_t) count * (sizeof(int) * 7))
+        rec_ints = 7;
+    else
+        return -1; /* malformed */
+    fprintf(stderr, "DBG: inventory count=%d rec_ints=%zu remaining=%zu\n", count, rec_ints,
+            remaining);
     for (int i = 0; i < count; i++)
     {
-        int def_index, quantity, rarity, pidx, pval, sidx, sval;
+        int def_index = 0, quantity = 0, rarity = 0, pidx = 0, pval = 0, sidx = 0, sval = 0;
         if (fread(&def_index, sizeof def_index, 1, f) != 1)
             return -1;
-        bytes_consumed += sizeof(def_index);
-        fread(&quantity, sizeof quantity, 1, f);
-        bytes_consumed += sizeof(quantity);
-        fread(&rarity, sizeof rarity, 1, f);
-        bytes_consumed += sizeof(rarity);
-        fread(&pidx, sizeof pidx, 1, f);
-        bytes_consumed += sizeof(pidx);
-        fread(&pval, sizeof pval, 1, f);
-        bytes_consumed += sizeof(pval);
-        fread(&sidx, sizeof sidx, 1, f);
-        bytes_consumed += sizeof(sidx);
-        fread(&sval, sizeof sval, 1, f);
-        bytes_consumed += sizeof(sval);
-        int durability_cur = 0, durability_max = 0;
-        /* Detect presence of durability fields by remaining size heuristic: original per-item
-         * record was 7 ints (28 bytes); new is 9 ints (36 bytes). */
-        size_t expected_ext = (size_t) count * (sizeof(int) * 9);
-        if (size >= expected_ext && bytes_consumed <= size)
+        if (fread(&quantity, sizeof quantity, 1, f) != 1)
+            return -1;
+        if (fread(&rarity, sizeof rarity, 1, f) != 1)
+            return -1;
+        if (fread(&pidx, sizeof pidx, 1, f) != 1)
+            return -1;
+        if (fread(&pval, sizeof pval, 1, f) != 1)
+            return -1;
+        if (fread(&sidx, sizeof sidx, 1, f) != 1)
+            return -1;
+        if (fread(&sval, sizeof sval, 1, f) != 1)
+            return -1;
+        int durability_cur = 0, durability_max = 0, enchant_level = 0;
+        if (rec_ints >= 9)
         {
-            /* Enough bytes for extended form: read durability */
-            fread(&durability_cur, sizeof durability_cur, 1, f);
-            bytes_consumed += sizeof(durability_cur);
-            fread(&durability_max, sizeof durability_max, 1, f);
-            bytes_consumed += sizeof(durability_max);
+            if (fread(&durability_cur, sizeof durability_cur, 1, f) != 1)
+                return -1;
+            if (fread(&durability_max, sizeof durability_max, 1, f) != 1)
+                return -1;
         }
-        int enchant_level = 0;
-        /* Phase 15.2: detect optional enchant_level (10th int) */
-        size_t expected_enchant = (size_t) count * (sizeof(int) * 10);
-        if (size >= expected_enchant && bytes_consumed <= size)
+        if (rec_ints >= 10)
         {
-            fread(&enchant_level, sizeof enchant_level, 1, f);
-            bytes_consumed += sizeof(enchant_level);
+            if (fread(&enchant_level, sizeof enchant_level, 1, f) != 1)
+                return -1;
         }
         int inst = rogue_items_spawn(def_index, quantity, 0.0f, 0.0f);
         if (inst >= 0)
         {
             rogue_item_instance_apply_affixes(inst, rarity, pidx, pval, sidx, sval);
-            /* Apply durability if present */
             if (durability_max > 0)
             {
                 RogueItemInstance* it = (RogueItemInstance*) rogue_item_instance_at(inst);
@@ -2547,7 +2587,23 @@ static int read_inventory_component(FILE* f, size_t size)
             }
         }
     }
-    (void) start_pos;
+    fprintf(stderr, "DBG: after inventory load active=%d\n", rogue_items_active_count());
+    /* Ensure global app view points at the active pool for tests that scan g_app directly. */
+    rogue_items_sync_app_view();
+    /* Cross-check against g_app pointer/cap view used by some tests */
+    int cap_dbg = g_app.item_instance_cap;
+    void* ptr_dbg = (void*) g_app.item_instances;
+    int cnt_dbg = 0;
+    if (g_app.item_instances && cap_dbg > 0)
+    {
+        for (int i = 0; i < cap_dbg; i++)
+        {
+            if (g_app.item_instances[i].active)
+                cnt_dbg++;
+        }
+    }
+    fprintf(stderr, "DBG: g_app.item_instances=%p cap=%d active_via_g_app=%d\n", ptr_dbg, cap_dbg,
+            cnt_dbg);
     return 0;
 }
 

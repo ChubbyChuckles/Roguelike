@@ -27,6 +27,22 @@ void rogue_items_shutdown_runtime(void)
     g_app.item_instance_count = 0;
 }
 
+void rogue_items_sync_app_view(void)
+{
+    /* Wire global app view to the internal static pool without mutating item state. */
+    g_app.item_instances = g_instances;
+    g_app.item_instance_cap = ROGUE_ITEM_INSTANCE_CAP;
+    int c = 0;
+    for (int i = 0; i < ROGUE_ITEM_INSTANCE_CAP; i++)
+    {
+        if (g_instances[i].active)
+            c++;
+    }
+    g_app.item_instance_count = c;
+    fprintf(stderr, "DBG: rogue_items_sync_app_view ptr=%p cap=%d active=%d\n",
+            (void*) g_app.item_instances, g_app.item_instance_cap, g_app.item_instance_count);
+}
+
 int rogue_items_spawn(int def_index, int quantity, float x, float y)
 {
     if (def_index < 0 || quantity <= 0)
