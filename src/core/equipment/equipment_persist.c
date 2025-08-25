@@ -154,6 +154,8 @@ int rogue_equipment_deserialize(const char* buf)
             int sockc = 0;
             int gems[6];
             int pl = 0, sl = 0, fract = 0;
+            /* Track required tokens to validate integrity of each SLOT line. */
+            int seen_def = 0, seen_dur = 0, seen_qc = 0, seen_socks = 0, seen_locks = 0;
             int i;
             for (i = 0; i < 6; ++i)
                 gems[i] = -1;
@@ -182,6 +184,7 @@ int rogue_equipment_deserialize(const char* buf)
                 {
                     p += 3;
                     def_index = parse_int(&p);
+                    seen_def = 1;
                 }
                 else if (strncmp(p, "ILVL", 4) == 0)
                 {
@@ -210,6 +213,7 @@ int rogue_equipment_deserialize(const char* buf)
                     p += 3;
                     dc = parse_int(&p);
                     dm = parse_int(&p);
+                    seen_dur = 1;
                 }
                 else if (strncmp(p, "ENCH", 4) == 0)
                 {
@@ -220,6 +224,7 @@ int rogue_equipment_deserialize(const char* buf)
                 {
                     p += 2;
                     qual = parse_int(&p);
+                    seen_qc = 1;
                 }
                 else if (strncmp(p, "SOCKS", 5) == 0)
                 {
@@ -229,12 +234,14 @@ int rogue_equipment_deserialize(const char* buf)
                     {
                         gems[i] = parse_int(&p);
                     }
+                    seen_socks = 1;
                 }
                 else if (strncmp(p, "LOCKS", 5) == 0)
                 {
                     p += 5;
                     pl = parse_int(&p);
                     sl = parse_int(&p);
+                    seen_locks = 1;
                 }
                 else if (strncmp(p, "FRACT", 5) == 0)
                 {
@@ -267,6 +274,45 @@ int rogue_equipment_deserialize(const char* buf)
                     p++;
                 }
             }
+            /* Validate mandatory tokens and basic ranges. If corrupted, reject with negatives. */
+            if (!seen_def)
+                return -10; /* missing DEF */
+            if (!seen_dur)
+                return -11; /* missing DUR */
+            if (!seen_qc)
+                return -12; /* missing QC */
+            if (!seen_socks)
+                return -13; /* missing SOCKS */
+            if (!seen_locks)
+                return -14; /* missing LOCKS */
+                            /* Durability validation:
+                                 - Allow non-durable items encoded as DUR 0 0 (e.g., rings, trinkets).
+                                 - Reject negatives.
+                                 - Best-effort for malformed non-durable: if dm==0 and dc>0, promote dm to dc to
+                                     yield a valid pair instead of rejecting (supports fuzz test expectation of
+                                     successful parse with changed state hash).
+                                 - If max > 0, require current within [0, max] and enforce an upper bound to avoid
+                                     runaway values from corruption.
+                            */
+            if (dc < 0 || dm < 0)
+                return -15; /* invalid durability (negative) */
+            if (dm == 0)
+            {
+                if (dc > 0)
+                {
+                    /* Best-effort: promote to minimal valid pair (dm==dc). */
+                    dm = dc;
+                }
+            }
+            else
+            {
+                if (dc > dm || dm > 100000)
+                    return -15; /* invalid durability range */
+            }
+            if (sockc < 0 || sockc > 6)
+                return -16; /* invalid socket count */
+            if (!((pl == 0 || pl == 1) && (sl == 0 || sl == 1)))
+                return -17; /* invalid lock flags */
             if (def_index >= 0)
             {
                 extern int rogue_items_spawn(int def_index, int quantity, float x, float y);

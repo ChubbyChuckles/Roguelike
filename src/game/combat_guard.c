@@ -158,6 +158,18 @@ int rogue_player_apply_incoming_melee(RoguePlayer* p, float raw_damage, float at
             }
         }
         rogue_procs_event_block(); /* trigger potential reactive shield proc */
+        /* Apply reactive shield absorb to post-guard chip damage before returning. */
+        if (chip > 0.0f)
+        {
+            int absorb_pool = rogue_procs_absorb_pool();
+            if (absorb_pool > 0)
+            {
+                int consumed = rogue_procs_consume_absorb((int) chip);
+                chip -= (float) consumed;
+                if (chip < 0.0f)
+                    chip = 0.0f;
+            }
+        }
         if (out_blocked)
             *out_blocked = 1;
         if (perfect && out_perfect)
@@ -174,6 +186,18 @@ int rogue_player_apply_incoming_melee(RoguePlayer* p, float raw_damage, float at
         if (raw_damage < 0)
             raw_damage = 0;
         rogue_procs_event_block(); /* passive block also triggers block procs */
+        /* Apply reactive shield absorb to post-block damage before returning. */
+        if (raw_damage > 0)
+        {
+            int absorb_pool = rogue_procs_absorb_pool();
+            if (absorb_pool > 0)
+            {
+                int consumed = rogue_procs_consume_absorb((int) raw_damage);
+                raw_damage -= (float) consumed;
+                if (raw_damage < 0)
+                    raw_damage = 0;
+            }
+        }
         if (out_blocked)
             *out_blocked = 1;
         return (int) raw_damage;

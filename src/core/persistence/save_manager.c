@@ -3249,13 +3249,14 @@ static RogueSaveComponent REPLAY_COMP = {ROGUE_SAVE_COMP_REPLAY, write_replay_co
 
 void rogue_register_core_save_components(void)
 {
-    rogue_save_manager_register(&PLAYER_COMP);
+    /* Register inventory-related components first so they load before player equipment indices. */
     rogue_save_manager_register(&WORLD_META_COMP);
     rogue_save_manager_register(&INVENTORY_COMP);
     rogue_save_manager_register(&INV_ENTRIES_COMP);        /* Phase 1.6 unified entries */
     rogue_save_manager_register(&INV_TAGS_COMP);           /* Phase 3 metadata */
     rogue_save_manager_register(&INV_TAG_RULES_COMP);      /* Phase 3.3/3.4 auto-tag rules */
     rogue_save_manager_register(&INV_SAVED_SEARCHES_COMP); /* Phase 4.4 saved searches */
+    rogue_save_manager_register(&PLAYER_COMP);             /* after inventory to apply equips */
     rogue_save_manager_register(&SKILLS_COMP);
     rogue_save_manager_register(&BUFFS_COMP);
     rogue_save_manager_register(&VENDOR_COMP);

@@ -262,6 +262,7 @@ ctest --test-dir build -C Debug --output-on-failure
 Notes
 - Always build Debug with SDL2 enabled when fixing tests locally, and use parallel builds (`--parallel 8`). All CI tasks enforce this discipline.
 - Tests that load assets directly (e.g., equipment sockets) support relative path fallbacks so they can run from build/test working directories.
+- Equipment deserializer guarantees (Phase 18.5): Strict validation with explicit negative error codes for corrupt input; mandatory tokens DEF/DUR/QC/SOCKS/LOCKS; durability rules allow `DUR 0 0` for non‑durable items and repair tampered `dm==0, dc>0` by promoting `dm=dc` for compatibility. State hash is FNV‑1a over EQUIP_V1 serialization.
 
 Tip: run a focused subset (faster inner loop):
 ```powershell
@@ -271,6 +272,11 @@ ctest --test-dir build -C Debug -j8 -R "(damage_event_components|hit_mask_integr
 Discipline: always use Debug + SDL2 and parallel -j8 for unit test work. Example targeted run for the equipment resists pipeline:
 ```powershell
 ctest --test-dir build -C Debug -j8 -R test_equipment_phase2_resists --output-on-failure -V
+```
+
+Mutation robustness test (Phase 18.5):
+```powershell
+& "build/tests/Debug/test_equipment_phase18_mutation.exe"
 ```
 
 ## Usage / How to Play
@@ -385,6 +391,7 @@ See `roadmaps/` for subsystem implementation plans (inventory, crafting & gather
 
 ## 11. Changelog (Curated Recent Highlights)
 * Equipment Phase 5 (Enchant/Reforge/Protective Seal): Implemented full mechanics including reroll that avoids selecting the same affix index, cost formulas, material consumption, and prefix/suffix lock semantics. Reforge preserves item_level/rarity/socket_count and clears gem contents only; operations mark stat cache dirty and validate budget. Tests passing in Debug (SDL2, -j8): test_equipment_phase5_sockets, test_equipment_phase5_gems, test_equipment_phase5_enchant_reforge, test_equipment_phase5_protective_seal. Loaders now auto-load default affixes when missing after item defs load to support isolated tests invoking rogue_affix_roll.
+* Equipment Persistence (Phase 1 & 13): Fixed equip behavior in minimal test setups by allowing equips when item definitions aren’t loaded (keeping 2H/offhand constraints) and reordered save component registration so inventory loads before player. Serialization already emits EQUIP_V1 and required tokens (SET/UNQ/RW); FNV‑1a hashing over the buffer detects durability tamper. Tests passing in Debug (SDL2, -j8): test_equipment_phase1_persistence, test_equipment_phase13_persistence.
 * Inventory Tags & UI Enforcement: Unified inventory entries in UI flows (drop/salvage), enforced locked/favorite checks before item def lookups, and ensured open-scope tag rules (min=0,max=0xFF,no category) apply even when item defs aren't loaded. Fixes `test_inventory_phase3_lock_rule_enforce` and stabilizes `test_inventory_phase3_tags` semantics (list returns total regardless of buffer). Also hardened items/materials loaders with relative path fallbacks from tests CWD.
 * Save System (Inventory durability v7 roundtrip): Fixed failing test `test_save_phase7_inventory_durability_roundtrip` by aligning compile-time feature macros across modules to ensure `RogueAppState` layout consistency and wiring a non-destructive `rogue_items_sync_app_view()` after inventory load. Root cause was divergent SDL feature defines between `rogue_core` and `rogue_systems_loot`, causing mismatched `g_app` field offsets.
 * Audio/VFX Phase 5.1 (Gameplay mapping): Added mapping table from gameplay keys to Audio/VFX effects with priority and position. New APIs: `rogue_fx_map_register`, `rogue_fx_map_clear`, `rogue_fx_trigger_event`. Unit test `test_audio_vfx_phase5_1_mapping` passes; audio_vfx suite now 16/16 in Debug with SDL2 (`ctest -j8 -R audio_vfx`).

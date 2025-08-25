@@ -49,3 +49,25 @@ Equipment Phase 5: enchant/reforge + protective seal fixed; affix autoload in it
   - test_equipment_phase5_protective_seal
 
 No regressions observed when running the entire Phase 5 equipment group. Build: Debug SDL2, -j8.
+
+Equipment persistence (Phase 1 & 13) roundtrip fixes; enable equips without defs + load order
+
+- Equip fallback: if item definition lookup is missing (minimal tests), skip strict category validation and allow equipping by instance index while preserving 2H/offhand rules. Ensures SLOT lines are serialized so Phase 13 sees required tokens (SET/UNQ/RW).
+- Save load order: register inventory-related components before player so item instances exist before applying equipped indices on load. Fixes Phase 1 equality assertions on weapon/ring1 indices after roundtrip.
+- Verified serialization already included EQUIP_V1 header and tokens; hashing remains FNV-1a over serialized buffer and flips on durability tamper as required.
+
+Tests (Debug, SDL2, -j8):
+- test_equipment_phase13_persistence PASS
+- test_equipment_phase1_persistence PASS
+
+Equipment Phase 7 & 18: reactive shield path fix + deserializer hardening for mutation robustness
+
+- Reactive shield: ensure absorb is consumed on all block paths (guard-block and passive-block) before early returns; preserves reflect ordering.
+- Deserializer hardening: enforce mandatory tokens (DEF/DUR/QC/SOCKS/LOCKS), validate ranges, and return explicit negative codes for corrupt inputs.
+- Durability compatibility: allow DUR 0 0 for non-durable items; if tampered DUR has dm==0 and dc>0, promote dm to dc to deserialize while altering state hash.
+- State hash remains FNV-1a over EQUIP_V1 serialization; detects tamper.
+
+Tests (Debug, SDL2, -j8):
+- test_equipment_phase7_reactive_shield PASS
+- test_equipment_phase18_mutation PASS
+- Persistence re-check: test_equipment_phase1_persistence PASS; test_equipment_phase13_persistence PASS
