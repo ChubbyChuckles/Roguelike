@@ -255,7 +255,9 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
     int eff_ap = def->action_point_cost;
     if (def->ap_cost_pct_max > 0)
     {
-        eff_ap = (g_app.player.max_action_points * (int) def->ap_cost_pct_max) / 100;
+        int ap_cap = g_app.player.max_action_points +
+                     (g_app.ap_overdrive_ms > 0.0f ? g_app.ap_overdrive_bonus : 0);
+        eff_ap = (ap_cap * (int) def->ap_cost_pct_max) / 100;
     }
     if (st->rank > 1)
         eff_ap += (int) def->ap_cost_per_rank * (st->rank - 1);
@@ -449,8 +451,10 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
                 if (refund_ap > 0)
                 {
                     g_app.player.action_points += refund_ap;
-                    if (g_app.player.action_points > g_app.player.max_action_points)
-                        g_app.player.action_points = g_app.player.max_action_points;
+                    int ap_max_now = g_app.player.max_action_points +
+                                     (g_app.ap_overdrive_ms > 0.0f ? g_app.ap_overdrive_bonus : 0);
+                    if (g_app.player.action_points > ap_max_now)
+                        g_app.player.action_points = ap_max_now;
                 }
                 if (refund_mana > 0)
                 {
@@ -479,6 +483,17 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         st->cooldown_end_ms = now + cd;
         st->uses++;
         st->last_cast_ms = now;
+        /* Phase 2.5: Heat gain on FIRE-tagged skills (simple baseline) */
+        if (def->tags & ROGUE_SKILL_TAG_FIRE)
+        {
+            int heat_gain = 5 + st->rank;
+            g_app.player.heat += heat_gain;
+            if (g_app.player.heat >= g_app.player.max_heat)
+            {
+                g_app.player.heat = g_app.player.max_heat;
+                g_app.overheat_active = 1;
+            }
+        }
         if (def->effect_spec_id >= 0 && !(def->cast_type == 1 && def->cast_time_ms > 0))
         {
             rogue_effect_apply(def->effect_spec_id, now);
@@ -569,8 +584,10 @@ int rogue_skill_try_cancel(int id, const RogueSkillCtx* ctx)
         if (refund_ap > 0)
         {
             g_app.player.action_points += refund_ap;
-            if (g_app.player.action_points > g_app.player.max_action_points)
-                g_app.player.action_points = g_app.player.max_action_points;
+            int ap_max_now = g_app.player.max_action_points +
+                             (g_app.ap_overdrive_ms > 0.0f ? g_app.ap_overdrive_bonus : 0);
+            if (g_app.player.action_points > ap_max_now)
+                g_app.player.action_points = ap_max_now;
         }
         if (refund_mana > 0)
         {
@@ -654,8 +671,11 @@ void rogue_skills_update(double now_ms)
                         if (refund_ap > 0)
                         {
                             g_app.player.action_points += refund_ap;
-                            if (g_app.player.action_points > g_app.player.max_action_points)
-                                g_app.player.action_points = g_app.player.max_action_points;
+                            int ap_max_now =
+                                g_app.player.max_action_points +
+                                (g_app.ap_overdrive_ms > 0.0f ? g_app.ap_overdrive_bonus : 0);
+                            if (g_app.player.action_points > ap_max_now)
+                                g_app.player.action_points = ap_max_now;
                         }
                         if (refund_mana > 0)
                         {

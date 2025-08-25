@@ -104,7 +104,28 @@ void rogue_player_progress_update(double dt_seconds)
     {
         g_app.mana_regen_accum_ms = 0.0f;
     }
-    /* Action Point regen (Phase 1.5 core + soft throttle). */
+    /* Overdrive/Exhaustion timers (Phase 2.4) */
+    if (g_app.ap_overdrive_ms > 0.0f)
+    {
+        g_app.ap_overdrive_ms -= raw_dt_ms;
+        if (g_app.ap_overdrive_ms <= 0.0f)
+        {
+            g_app.ap_overdrive_ms = 0.0f;
+            /* End of overdrive -> begin exhaustion if configured (>0) */
+            if (g_app.ap_exhaustion_ms < 500.0f)
+            {
+                /* ensure at least a brief penalty window */
+                g_app.ap_exhaustion_ms += 1500.0f;
+            }
+        }
+    }
+    if (g_app.ap_exhaustion_ms > 0.0f)
+    {
+        g_app.ap_exhaustion_ms -= raw_dt_ms;
+        if (g_app.ap_exhaustion_ms < 0.0f)
+            g_app.ap_exhaustion_ms = 0.0f;
+    }
+    /* Action Point regen (Phase 1.5 core + soft throttle + exhaustion). */
     if (g_app.player.action_points < g_app.player.max_action_points)
     {
         g_app.ap_regen_accum_ms += raw_dt_ms;
@@ -115,6 +136,11 @@ void rogue_player_progress_update(double dt_seconds)
         if (g_app.ap_throttle_timer_ms > 0.0f)
         {
             interval_ap *= 1.8f;
+        }
+        /* Exhaustion stacks with throttle for stronger slowdown */
+        if (g_app.ap_exhaustion_ms > 0.0f)
+        {
+            interval_ap *= 1.5f;
         }
         while (g_app.ap_regen_accum_ms >= interval_ap)
         {
@@ -127,6 +153,10 @@ void rogue_player_progress_update(double dt_seconds)
                 /* Throttled gain reduced */
                 if (gain > 1)
                     gain -= 1;
+            }
+            if (g_app.ap_exhaustion_ms > 0.0f && gain > 0)
+            {
+                gain -= 1; /* mild additional reduction */
             }
             g_app.player.action_points += gain;
             if (g_app.player.action_points > g_app.player.max_action_points)
@@ -143,5 +173,56 @@ void rogue_player_progress_update(double dt_seconds)
         if (g_app.ap_throttle_timer_ms < 0.0f)
             g_app.ap_throttle_timer_ms = 0.0f;
     }
+    /* Heat venting (Phase 2.5): passive vent when not overheated; when overheated, vent faster */
+    if (g_app.player.heat > 0)
+    {
+        g_app.heat_vent_accum_ms += raw_dt_ms;
+        float vent_interval = 320.0f; /* base vent tick every 320ms */
+        int vent_amount = 1;
+        if (g_app.overheat_active)
+        {
+            vent_interval = 220.0f;
+            vent_amount = 2; /* faster vent while overheated */
+        }
+        while (g_app.heat_vent_accum_ms >= vent_interval)
+        {
+            g_app.heat_vent_accum_ms -= vent_interval;
+            g_app.player.heat -= vent_amount;
+            if (g_app.player.heat <= 0)
+            {
+                g_app.player.heat = 0;
+                g_app.overheat_active = 0; /* clear overheat once cooled to 0 */
+                break;
+            }
+        }
+    }
+    else
+    {
+        g_app.heat_vent_accum_ms = 0.0f;
+    }
     /* Autosave moved to persistence_autosave module */
+}
+
+void rogue_overdrive_begin(int ap_bonus, float duration_ms, float exhaustion_ms)
+{
+    if (ap_bonus <= 0 || duration_ms <= 0.0f)
+        return;
+    g_app.ap_overdrive_bonus = ap_bonus;
+    g_app.ap_overdrive_ms = duration_ms;
+    /* exhaustion applied at end automatically; store as pending amount */
+    if (exhaustion_ms > 0.0f)
+        g_app.ap_exhaustion_ms = exhaustion_ms;
+    /* On begin, allow current AP to fill up to the new cap via regen/spend checks. */
+}
+
+void rogue_heat_add(int amount)
+{
+    if (amount <= 0)
+        return;
+    g_app.player.heat += amount;
+    if (g_app.player.heat >= g_app.player.max_heat)
+    {
+        g_app.player.heat = g_app.player.max_heat;
+        g_app.overheat_active = 1;
+    }
 }

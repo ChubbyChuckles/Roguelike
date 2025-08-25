@@ -113,6 +113,13 @@ typedef struct RogueAppState
     float ap_regen_accum_ms;
     float levelup_aura_timer_ms;
     float ap_throttle_timer_ms; /* remaining ms of AP soft throttle (reduced regen) */
+    /* Phase 2.4 Overdrive/Exhaustion runtime */
+    int ap_overdrive_bonus; /* temporary AP cap bonus while >0 */
+    float ap_overdrive_ms;  /* remaining ms of overdrive */
+    float ap_exhaustion_ms; /* remaining ms of post-burn penalty (extra throttle) */
+    /* Phase 2.5 Heat/Overheat runtime */
+    int overheat_active;      /* 1 if overheated (locks certain skills) */
+    float heat_vent_accum_ms; /* accumulates vent ticks */
 #ifdef ROGUE_HAVE_SDL_MIXER
     Mix_Chunk* sfx_levelup;
 #endif
