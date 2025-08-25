@@ -4,7 +4,9 @@
 #include "../../src/ai/nodes/advanced_nodes.h"
 #include "../../src/ai/nodes/basic_nodes.h"
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 /* Scenario: patrol waypoints -> detect player -> chase -> lose track -> resume patrol */

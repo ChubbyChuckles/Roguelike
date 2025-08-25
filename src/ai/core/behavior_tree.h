@@ -41,6 +41,13 @@ extern "C"
         uint16_t child_capacity;
         uint8_t state_u8; // small state storage for simple nodes (e.g., current child index)
         void* user_data;  // optional custom payload
+        // Optional destructor for user_data. If set, destroy will call this to release
+        // node-owned payloads. Callers that pass non-owned pointers (e.g., stack addresses)
+        // must leave this NULL.
+        void (*user_data_dtor)(void*);
+        // Tracking fields updated during ticking for active-path serialization
+        RogueBTStatus last_status; // status returned in the most recent tick when this node ran
+        uint32_t last_tick;        // tick counter value when this node last ran
     } RogueBTNode;
 
     // Behavior tree root wrapper
@@ -68,6 +75,9 @@ extern "C"
     // debug names separated by '>' Returns number of bytes written (excluding null terminator) or
     // -1 on error.
     int rogue_behavior_tree_serialize_active_path(RogueBehaviorTree* tree, char* out, int max_out);
+
+    // Helpers used by node implementations to record per-tick status
+    void rogue_bt_mark_node(struct RogueBTNode* node, RogueBTStatus st);
 
 #ifdef __cplusplus
 }

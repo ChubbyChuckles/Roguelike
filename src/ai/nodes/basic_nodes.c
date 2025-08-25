@@ -1,4 +1,5 @@
 #include "basic_nodes.h"
+#include "../core/behavior_tree.h"
 #include <stdlib.h>
 
 // Internal tick functions
@@ -10,11 +11,19 @@ static RogueBTStatus tick_selector(RogueBTNode* node, RogueBlackboard* bb, float
     {
         RogueBTNode* c = node->children[i];
         RogueBTStatus st = c->vtable->tick(c, bb, dt);
+        rogue_bt_mark_node(c, st);
         if (st == ROGUE_BT_SUCCESS)
+        {
+            rogue_bt_mark_node(node, ROGUE_BT_SUCCESS);
             return ROGUE_BT_SUCCESS;
+        }
         if (st == ROGUE_BT_RUNNING)
+        {
+            rogue_bt_mark_node(node, ROGUE_BT_RUNNING);
             return ROGUE_BT_RUNNING;
+        }
     }
+    rogue_bt_mark_node(node, ROGUE_BT_FAILURE);
     return ROGUE_BT_FAILURE;
 }
 
@@ -26,11 +35,19 @@ static RogueBTStatus tick_sequence(RogueBTNode* node, RogueBlackboard* bb, float
     {
         RogueBTNode* c = node->children[i];
         RogueBTStatus st = c->vtable->tick(c, bb, dt);
+        rogue_bt_mark_node(c, st);
         if (st == ROGUE_BT_FAILURE)
+        {
+            rogue_bt_mark_node(node, ROGUE_BT_FAILURE);
             return ROGUE_BT_FAILURE;
+        }
         if (st == ROGUE_BT_RUNNING)
+        {
+            rogue_bt_mark_node(node, ROGUE_BT_RUNNING);
             return ROGUE_BT_RUNNING;
+        }
     }
+    rogue_bt_mark_node(node, ROGUE_BT_SUCCESS);
     return ROGUE_BT_SUCCESS;
 }
 
@@ -39,6 +56,8 @@ static RogueBTStatus tick_success(RogueBTNode* node, RogueBlackboard* bb, float 
     (void) node;
     (void) bb;
     (void) dt;
+    if (node)
+        rogue_bt_mark_node(node, ROGUE_BT_SUCCESS);
     return ROGUE_BT_SUCCESS;
 }
 static RogueBTStatus tick_failure(RogueBTNode* node, RogueBlackboard* bb, float dt)
@@ -46,6 +65,8 @@ static RogueBTStatus tick_failure(RogueBTNode* node, RogueBlackboard* bb, float 
     (void) node;
     (void) bb;
     (void) dt;
+    if (node)
+        rogue_bt_mark_node(node, ROGUE_BT_FAILURE);
     return ROGUE_BT_FAILURE;
 }
 
@@ -62,8 +83,14 @@ static RogueBTStatus tick_check_bool(RogueBTNode* node, RogueBlackboard* bb, flo
     CheckBoolData* data = (CheckBoolData*) node->user_data;
     bool val = false;
     if (!rogue_bb_get_bool(bb, data->key, &val))
+    {
+        if (node)
+            rogue_bt_mark_node(node, ROGUE_BT_FAILURE);
         return ROGUE_BT_FAILURE;
-    return (val == data->expected) ? ROGUE_BT_SUCCESS : ROGUE_BT_FAILURE;
+    }
+    RogueBTStatus st = (val == data->expected) ? ROGUE_BT_SUCCESS : ROGUE_BT_FAILURE;
+    rogue_bt_mark_node(node, st);
+    return st;
 }
 
 RogueBTNode* rogue_bt_selector(const char* name)
@@ -92,5 +119,6 @@ RogueBTNode* rogue_bt_leaf_check_bool(const char* name, const char* bb_key, bool
     data->key = bb_key;
     data->expected = expected;
     n->user_data = data;
+    n->user_data_dtor = free;
     return n;
 }

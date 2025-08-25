@@ -1,5 +1,6 @@
 #include "advanced_nodes.h"
 #include "../../core/projectiles/projectiles.h"
+#include "../core/behavior_tree.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -58,12 +59,17 @@ static RogueBTStatus tick_parallel(RogueBTNode* node, RogueBlackboard* bb, float
     {
         RogueBTNode* c = node->children[i];
         RogueBTStatus st = c->vtable->tick(c, bb, dt);
+        rogue_bt_mark_node(c, st);
         if (st == ROGUE_BT_FAILURE)
+        {
+            rogue_bt_mark_node(node, ROGUE_BT_FAILURE);
             return ROGUE_BT_FAILURE;
+        }
         if (st == ROGUE_BT_RUNNING)
             any_running = 1;
     }
-    return any_running ? ROGUE_BT_RUNNING : ROGUE_BT_SUCCESS;
+    rogue_bt_mark_node(node, any_running ? ROGUE_BT_RUNNING : ROGUE_BT_SUCCESS);
+    return node->last_status;
 }
 /**
  * @brief Create a Parallel behavior-tree node.
@@ -138,7 +144,10 @@ static RogueBTStatus tick_utility_selector(RogueBTNode* node, RogueBlackboard* b
     }
     if (best_i < 0)
         return ROGUE_BT_FAILURE;
-    return node->children[best_i]->vtable->tick(node->children[best_i], bb, dt);
+    RogueBTStatus st = node->children[best_i]->vtable->tick(node->children[best_i], bb, dt);
+    rogue_bt_mark_node(node->children[best_i], st);
+    rogue_bt_mark_node(node, st);
+    return st;
 }
 /**
  * @brief Create a Utility Selector node.
@@ -158,6 +167,7 @@ RogueBTNode* rogue_bt_utility_selector(const char* name)
     {
         UtilitySelectorData* d = (UtilitySelectorData*) calloc(1, sizeof(UtilitySelectorData));
         n->user_data = d;
+        n->user_data_dtor = free; /* free UtilitySelectorData in destroy; metas freed in cleanup */
     }
     return n;
 }
@@ -227,14 +237,10 @@ void rogue_bt_advanced_cleanup(RogueBTNode* node)
         {
             if (d->metas)
                 free(d->metas);
-            free(d);
         }
-        node->user_data = NULL;
         return;
     }
-    /* Other advanced nodes: single allocation */
-    free(node->user_data);
-    node->user_data = NULL;
+    /* Other advanced nodes: main allocation is owned by user_data_dtor when set. */
 }
 
 /* =====================
@@ -1911,8 +1917,10 @@ static RogueBTStatus tick_decor_cooldown(RogueBTNode* node, RogueBlackboard* bb,
     float t = 0.0f;
     if (!rogue_bb_get_timer(bb, d->timer_key, &t))
         return ROGUE_BT_FAILURE;
-    if (t < d->cooldown)
-    { /* advance timer */
+    /* Treat t==0 as "ready now" to allow the first execution immediately. */
+    if (t < d->cooldown && t > 0.0f)
+    {
+        /* Cooldown in progress: accumulate elapsed and remain in FAILURE state. */
         rogue_bb_set_timer(bb, d->timer_key, t + dt);
         return ROGUE_BT_FAILURE;
     }

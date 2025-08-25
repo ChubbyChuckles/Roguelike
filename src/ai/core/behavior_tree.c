@@ -12,6 +12,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Global tick index used to stamp nodes marked during a tree tick
+static uint32_t g_bt_current_tick = 0;
+
 /**
  * @brief Create a new behavior tree node.
  *
@@ -40,6 +43,7 @@ RogueBTNode* rogue_bt_node_create(const char* debug_name, uint16_t initial_capac
     n->vtable = vt;
     n->debug_name = debug_name;
     n->child_capacity = initial_capacity;
+    n->user_data_dtor = NULL;
     if (initial_capacity)
     {
         n->children = (RogueBTNode**) calloc(initial_capacity, sizeof(RogueBTNode*));
@@ -82,7 +86,13 @@ void rogue_bt_node_destroy(RogueBTNode* node)
     {
         rogue_bt_node_destroy(node->children[i]);
     }
-    /* Call advanced cleanup (no-op if fallback) */
+    /* Free node-owned user_data if a destructor is provided */
+    if (node->user_data && node->user_data_dtor)
+    {
+        node->user_data_dtor(node->user_data);
+        node->user_data = NULL;
+    }
+    /* Call advanced cleanup (may be no-op if fallback) */
     rogue_bt_advanced_cleanup(node);
     free(node->children);
     free((void*) node->vtable);
@@ -172,33 +182,47 @@ RogueBTStatus rogue_behavior_tree_tick(RogueBehaviorTree* tree, struct RogueBlac
     if (!tree || !tree->root || !tree->root->vtable || !tree->root->vtable->tick)
         return ROGUE_BT_INVALID;
     tree->tick_count++;
+    g_bt_current_tick = tree->tick_count;
     return tree->root->vtable->tick(tree->root, bb, dt);
 }
 
+void rogue_bt_mark_node(RogueBTNode* node, RogueBTStatus st)
+{
+    if (!node)
+        return;
+    node->last_status = st;
+    node->last_tick = g_bt_current_tick;
+}
+
 static void serialize_path_recursive(RogueBTNode* node, char** cursor, char* end,
-                                     int* first_written)
+                                     int* first_written, uint32_t current_tick)
 {
     if (!node)
         return;
     if (*cursor >= end)
         return;
-    int remaining = (int) (end - *cursor);
-    if (!*first_written)
+    // Only include nodes that ran this tick and returned SUCCESS or RUNNING
+    if (node->last_tick == current_tick &&
+        (node->last_status == ROGUE_BT_SUCCESS || node->last_status == ROGUE_BT_RUNNING))
     {
-        int w = snprintf(*cursor, remaining, "%s", node->debug_name ? node->debug_name : "?");
-        if (w > 0)
-            *cursor += (w < remaining ? w : remaining);
-        *first_written = 1;
-    }
-    else
-    {
-        int w = snprintf(*cursor, remaining, ">%s", node->debug_name ? node->debug_name : "?");
-        if (w > 0)
-            *cursor += (w < remaining ? w : remaining);
+        int remaining = (int) (end - *cursor);
+        if (!*first_written)
+        {
+            int w = snprintf(*cursor, remaining, "%s", node->debug_name ? node->debug_name : "?");
+            if (w > 0)
+                *cursor += (w < remaining ? w : remaining);
+            *first_written = 1;
+        }
+        else
+        {
+            int w = snprintf(*cursor, remaining, ">%s", node->debug_name ? node->debug_name : "?");
+            if (w > 0)
+                *cursor += (w < remaining ? w : remaining);
+        }
     }
     for (uint16_t i = 0; i < node->child_count; i++)
     {
-        serialize_path_recursive(node->children[i], cursor, end, first_written);
+        serialize_path_recursive(node->children[i], cursor, end, first_written, current_tick);
     }
 }
 
@@ -221,7 +245,12 @@ int rogue_behavior_tree_serialize_active_path(RogueBehaviorTree* tree, char* out
     char* cursor = out;
     char* end = out + (max_out - 1);
     int first = 0;
-    serialize_path_recursive(tree->root, &cursor, end, &first);
+    // Before serializing, propagate current tick into nodes touched this frame by a pre-walk
+    // We'll update last_tick during this walk when we see RUNNING/SUCCESS states
+    // Since we don't keep a list, we mark during ticking paths below (see basic/advanced nodes)
+    // Use tree->tick_count as the current tick index
+    // Now serialize nodes that match current tick
+    serialize_path_recursive(tree->root, &cursor, end, &first, tree->tick_count);
     *cursor = '\0';
     return (int) (cursor - out);
 }

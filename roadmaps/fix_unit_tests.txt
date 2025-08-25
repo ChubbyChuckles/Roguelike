@@ -23,8 +23,8 @@ FAILURE ANALYSIS SUMMARY:
 
 PHASE 0. CRITICAL STABILITY FIXES (Critical Priority)
 0.1 Fix segmentation faults causing immediate crashes (6 tests) (X)
-    - test_ai_phase11_scenario (SEGFAULT)
-    - test_ai_phase11_repro_trace (SEGFAULT)
+    - test_ai_phase11_scenario (Done)
+    - test_ai_phase11_repro_trace (Done)
     - test_loot_phase16_personal_mode (SEGFAULT)
     - test_loot_phase16_need_greed_trade (SEGFAULT)
     - test_save_phase15_inventory_partial_backup (SEGFAULT)
@@ -206,6 +206,11 @@ Recent Deltas (latest cycle):
 - Affix Autoload: when item defs load and affixes are empty, auto-load default affixes from assets/affixes.cfg using the same relative fallbacks; unblocks tests that call rogue_affix_roll without explicit affix load.
 - Enchant/Reforge/Seal: implemented mechanics, reroll-avoidance, cost formulas, and lock semantics; dirties stat cache and preserves invariants.
 - Tests now PASS: test_equipment_phase2_resists, test_equipment_phase2_stat_cache, test_equipment_phase5_sockets, test_equipment_phase5_gems, test_equipment_phase5_enchant_reforge, test_equipment_phase5_protective_seal.
+
+AI Phase 11 stability & determinism:
+- Behavior Tree: added user_data destructor hook to avoid double-frees in advanced nodes; introduced per-node last_status/last_tick and a global tick counter. Implemented rogue_bt_mark_node and updated all basic/advanced node ticks to stamp active nodes.
+- Active-path serialization: serialize only nodes that returned SUCCESS or RUNNING this tick, in pre-order, using '>' separators. Custom RNG leaf in test marks itself.
+- Tests now PASS: test_ai_phase11_scenario, test_ai_phase11_repro_trace.
 
 Equipment Phase 10: quality scaling, success rates, orb apply & fusion fixes
 - Quality: made scaling monotonic and additive (ceil-based) so small base values still increase with quality.

@@ -83,3 +83,15 @@ Tests (Debug, SDL2, -j8):
 - test_equipment_phase10_quality PASS
 - test_equipment_phase10_crafting_success PASS
 - test_equipment_phase10_crafting PASS
+
+AI Phase 11: behavior-tree stability and deterministic repro trace
+
+- Add user_data destructor hook on BT nodes; advanced cleanup avoids freeing owned payloads twice.
+- Introduce per-node last_status/last_tick and a global tick counter; provide rogue_bt_mark_node().
+- Update all basic/advanced node tickers to call mark helper for both child and parent nodes.
+- Implement active-path serialization emitting only nodes that returned SUCCESS/RUNNING this tick in pre-order using '>' separators.
+- Fix unit test leaf to mark itself so it's included when successful.
+
+Tests (Debug, SDL2, -j8):
+- test_ai_phase11_scenario PASS
+- test_ai_phase11_repro_trace PASS

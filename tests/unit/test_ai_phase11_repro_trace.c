@@ -2,6 +2,7 @@
 #include "../../src/ai/core/ai_trace.h"
 #include "../../src/ai/core/behavior_tree.h"
 #include "../../src/ai/core/blackboard.h"
+#include "../../src/ai/nodes/basic_nodes.h"
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -13,7 +14,10 @@ static RogueBTStatus rng_branch_tick(RogueBTNode* n, RogueBlackboard* bb, float 
     (void) dt;
     RogueAIRNG* rng = (RogueAIRNG*) n->user_data;
     uint32_t v = rogue_ai_rng_next_u32(rng);
-    return (v & 1u) ? ROGUE_BT_FAILURE : ROGUE_BT_SUCCESS;
+    RogueBTStatus st = (v & 1u) ? ROGUE_BT_FAILURE : ROGUE_BT_SUCCESS;
+    /* Mark node so active-path serialization can include it when SUCCESS */
+    rogue_bt_mark_node(n, st);
+    return st;
 }
 
 static RogueBehaviorTree* build_tree(RogueAIRNG* rng)
