@@ -20,6 +20,28 @@ These directives govern all AI-generated contributions. Treat them as mandatory 
  6. Ensure pre-commit hooks pass (install via `pre-commit install`).
  7. After a feature is implemented and tests pass, Copilot must help the user commit and push the change, automatically fixing any linting or formatting errors (including pre-commit, clang-format, clang-tidy, and commit message lint) before pushing.
 
+## Test File Placement Policy (for AI / Copilot)
+
+When adding new unit tests, prefer the split per-theme CMake modules under `tests/cmake/` instead of editing `tests/CMakeLists.txt` directly. This keeps `tests/CMakeLists.txt` minimal and makes test ownership explicit.
+
+Checklist for adding tests via the split modules:
+- Pick an existing theme file in `tests/cmake/` that matches the subsystem (e.g. `AudioVfx.cmake`, `Skills.cmake`).
+- If no suitable theme exists, create `tests/cmake/<Theme>.cmake` and add an `include(${CMAKE_CURRENT_LIST_DIR}/cmake/<Theme>.cmake)` line to `tests/CMakeLists.txt` in the include section.
+- In the theme file add tests using the guarded pattern (example):
+   if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_name.c AND NOT TARGET test_name)
+         add_executable(test_name unit/test_name.c)
+         target_link_libraries(test_name PRIVATE rogue_core)
+         if(ROGUE_ENABLE_SDL)
+               target_compile_definitions(test_name PRIVATE ROGUE_HAVE_SDL=1)
+         endif()
+         add_test(NAME test_name COMMAND test_name)
+   endif()
+- Group related tests by phase with short comments inside the theme file.
+- After adding tests, run CMake configure and build a single test target (or run `ctest -N`) to detect duplicate target names early.
+- Do not duplicate `add_executable` entries; if a target with the same name already exists, add your test to that theme or rename it.
+
+This policy ensures new tests follow the project's modular test layout and avoids merge conflicts in `tests/CMakeLists.txt`.
+
 ## Coding Standards
 * C11 only; avoid non-portable extensions.
 * Headers self-contained: each must compile alone.

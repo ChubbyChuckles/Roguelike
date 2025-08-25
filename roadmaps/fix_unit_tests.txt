@@ -1,170 +1,220 @@
-Fix plan for failing unit tests (Debug, SDL2, parallel build)
+UNIT TEST FIX IMPLEMENTATION PLAN (Roadmap & Status)
 
-Summary
-- Build: Partial FAIL (a few test executables link without main); most tests built. SDL2 present; SDL2_image/mixer missing (warnings), fallback loaders used.
-- Tests executed: 453 discovered; many FAIL/SEGV across Combat, Equipment/Stats, UI, Worldgen, Weapon Pose, Persistence.
-- Representative failures (from output):
-  - SegFault: test_combat_phase7_familiarity_cap, test_combat_phase7_damage_event_components, test_hit_mask_integration, test_combat_phase5_lock_on_multitarget, test_combat_phase5_lock_on_obstruction_latency
-  - Combat logic FAIL: test_attack_cone_regression, test_combat_combo_scaling, test_combat_crit_layering, test_combat_execution, test_combat_frames, test_combat_gating, test_combat_mitigation, test_combat_penetration, test_combat_phase3_def_softcap, test_combat_phase3_encumbrance, test_combat_phase3_hyper_armor, test_combat_phase3_poise_stagger, test_combat_phase3_poise_stagger_precision, test_combat_phase4_cc, test_combat_multi_hit, test_combat_phys_resist_curve, test_combat_scaling_coeffs, test_combat_dps
-  - Equipment/Stats FAIL: test_equipment_phase1_persistence, test_equipment_phase2_affix_layers, test_equipment_phase2_resists, test_equipment_phase2_stat_cache, test_equipment_stat_bonus, test_equipment_unequip_delta, test_equipment_phase4_1_implicits
-  - UI FAIL: test_ui_phase2_interactive, test_ui_phase2_scroll_tooltip_nav
-  - Worldgen FAIL: test_worldgen_phase14_optimization, test_worldgen_phase13_modding
-  - Weapon Pose FAIL: test_weapon_pose_directional_fallback
+Legend:
+Done = Test fixed and passing consistently
+Partial = Some related fixes implemented, test still failing
+X = Not started yet
+Critical = Must fix immediately (segfaults, major failures)
+High = Important for system stability
+Medium = Affects features but not core stability
+Low = Polish/optimization issues
 
-Progress Update (Iteration A – Crashers)
-- Implemented targeted crash fixes and behavior adjustments:
-    - Lock-on: null/length/bounds guards in `rogue_lockon_validate` and `rogue_lockon_get_dir` to prevent dereferences with empty arrays or invalid indices.
-    - Damage events: per-component emission (physical, fire, frost, arcane) in `combat_strike.c` in addition to composite event.
-    - Hit system: relaxed early-frame gating to apply only when an explicit test attack-frame override is active; preserves default flow while enabling pixel-mask integration tests.
-- Validation (Debug, SDL2, -j8):
-    - test_combat_phase5_lock_on_multitarget — PASS
-    - test_combat_phase5_lock_on_obstruction_latency — PASS
-    - test_combat_phase7_familiarity_cap — PASS
-    - test_combat_phase7_damage_event_components — PASS
-    - test_hit_mask_integration — PASS
-- Command used (from build dir): `ctest -C Debug -j8 -R "(familiarity_cap|damage_event_components|hit_mask_integration|lock_on_)" --output-on-failure`
+Scope Overview:
+A systematic approach to fixing the 66 failing unit tests (13% failure rate) out of 518 total tests. Failures span multiple core systems including AI, Equipment, Loot, Combat, Save System, and Dialogue. The plan prioritizes critical stability issues (segfaults), then addresses systemic failures affecting multiple components, followed by isolated feature-specific bugs. All fixes will maintain deterministic behavior, avoid breaking existing functionality, and include regression prevention measures.
 
+FAILURE ANALYSIS SUMMARY:
+- Total Tests: 518
+- Failing: 66 (13% failure rate)
+- Passing: 452 (87% pass rate)
+- Segfaults: 6 critical crashes
+- Timeouts: 3 performance issues
+- Assertion failures: 57 logic bugs
+- Code layering violations: 146 dependency issues
 
-Prioritized remediation plan
+PHASE 0. CRITICAL STABILITY FIXES (Critical Priority)
+0.1 Fix segmentation faults causing immediate crashes (6 tests) (X)
+    - test_ai_phase11_scenario (SEGFAULT)
+    - test_ai_phase11_repro_trace (SEGFAULT)
+    - test_loot_phase16_personal_mode (SEGFAULT)
+    - test_loot_phase16_need_greed_trade (SEGFAULT)
+    - test_save_phase15_inventory_partial_backup (SEGFAULT)
+    - test_save_roundtrip (SEGFAULT)
+0.2 Fix infinite loop/timeout issues (3 tests) (X)
+    - test_ai_phase11_core_nodes (Timeout)
+    - test_boot (Timeout)
+    - test_enemy_spawning (Timeout)
+0.3 Memory safety audit for null pointer dereferences and buffer overruns (X)
+0.4 Add defensive programming checks to prevent crashes (X)
+0.5 Tests: validate crash fixes don't cause new regressions (X)
 
-0) Sanity and environment
-- Ensure tests run with consistent CWD and assets path assumptions (ctest runs in build/tests and build roots). Keep fallback path logic intact.
-- Keep SDL2 enabled. Missing SDL2_image/mixer is acceptable (tests use fallbacks), but note for audio/texture coverage.
-- Fix MSVC link-only test projects lacking main later; they don’t block most unit tests.
+PHASE 1. CODE ARCHITECTURE & DEPENDENCY FIXES (High Priority)
+1.1 Resolve dependency layering violations (146 violations) (X)
+    - Fix audio_vfx -> game layer violations (combat.h includes)
+    - Fix core/app -> higher layer violations (equipment, loot, vendor, game)
+    - Fix equipment -> stat_cache circular dependencies
+    - Fix integration bridges violating layer boundaries
+1.2 Refactor circular includes between core systems (X)
+1.3 Establish clear layer boundaries: core -> integration -> game -> ui (X)
+1.4 Add include guards and forward declarations where appropriate (X)
+1.5 Update build system to enforce layer violations as errors (X)
+1.6 Tests: code_audit_check_layering should pass (X)
 
-1) Crashers first (SegFault group)
-Targets: test_combat_phase7_familiarity_cap, test_combat_phase7_damage_event_components, test_hit_mask_integration, test_combat_phase5_lock_on_multitarget, test_combat_phase5_lock_on_obstruction_latency
-Steps
-1.1 Reproduce each test individually under Debug with symbols; capture call stacks.
-1.2 Add null/length guards around hit geometry and masks:
-    - src/game/hit_system.c: validate hit geo and mask arrays before indexing; skip with explicit error code if empty.
-    - src/game/lock_on.c (or equivalent): verify target lists and obstruction traces before dereference.
-1.3 Validate asset-backed counts prior to use:
-    - Confirm weapon hit geo count > 0 (log already shows 4 entries loaded); check any code paths assuming more entries.
-1.4 Defensive checks in damage events pipeline:
-    - src/core/combat/events: verify emitter pointers, event buffers, and listener counts.
-1.5 Add regression asserts in tests: early bailouts should not crash; they should return a failure code consumed by tests.
-Validation
-- Rebuild and run: ctest -R "(familiarity_cap|damage_event_components|hit_mask_integration|lock_on_)" --output-on-failure
+PHASE 2. AI SYSTEM FIXES (High Priority)
+2.1 Fix blackboard write/read functionality (X)
+    - test_ai_phase2_blackboard: Fix ROGUE_BB_WRITE_MAX logic
+    - Verify key collision handling and type safety
+2.2 Fix perception system line-of-sight calculations (X)
+    - test_ai_phase3_perception: Fix can_see() geometry
+    - Validate angle calculations and occlusion detection
+2.3 Fix behavior tree node execution (X)
+    - test_ai_phase4_nodes: Fix node completion detection
+    - test_ai_phase4_tactical: Fix tree tick return values
+2.4 Fix advanced AI features causing instability (X)
+    - test_ai_phase11_blackboard_fuzz: Fuzz testing robustness
+    - Stabilize scenario execution and repro tracing
+2.5 Tests: All AI tests should pass consistently (X)
 
-2) Combat pipeline returning zeros / incorrect behavior
-Symptoms from logs
-- base strike dmg=0; “no enemies damaged on hit frame”; gating/execution not triggering; mitigation/penetration/def softcap relations fail; DPS intervals off.
-Hypothesis
-- Player/base weapon damage not initialized in combat harness, or stat cache/equipment pipeline isn’t applied during combat tests.
-Steps
-2.1 Inspect test harness init used by combat tests (tests/unit/test_combat_*.c): confirm player equip defaults and base damage setup; ensure rogue_combat_init and rogue_player_init sequences set default weapon damage.
-2.2 Verify equipment-to-stats bridge during tests:
-    - Ensure equip of a default weapon populates damage ranges; if tests assume bare-hand damage, set sensible non-zero base.
-2.3 Audit damage calculation path:
-    - src/game/combat_damage.c (or equivalent): verify sequence raw -> crit -> mitigation -> final; ensure crit rate and damage coeffs sourced from stats cache.
-2.4 Ensure collision/hit frame emission path:
-    - src/game/combat_frames.c, hit sweep functions: confirm hitboxes active on designated frames and events are emitted.
-2.5 Fix relationships:
-    - Penetration should reduce effective armor (expected applied == expect).
-    - Phys resist curve monotonic (d30 < d0).
-    - Def softcap floor at ~5%.
-2.6 Add minimal internal logs guarded by a macro (e.g., COMBAT_TEST_DIAG) to print intermediate numbers in unit runs only.
-Validation
-- Focused re-run:
-  ctest -R "test_combat_(frames|gating|execution|combo_scaling|crit_layering|mitigation|penetration|def_softcap|phys_resist_curve|dps|multi_hit)" --output-on-failure
+PHASE 3. EQUIPMENT SYSTEM FIXES (High Priority)
+3.1 Fix socket system functionality (X)
+    - test_equipment_phase5_sockets: Fix socket addition logic
+    - Verify socket count validation and gem insertion
+3.2 Fix enchanting and reforge systems (X)
+    - test_equipment_phase5_enchant_reforge: Fix reforge logic
+    - test_equipment_phase5_protective_seal: Fix seal preservation
+3.3 Fix stat aggregation and persistence (X)
+    - test_equipment_phase2_stat_cache: Fix cache invalidation
+    - test_equipment_phase2_affix_layers: Fix layer ordering
+    - test_equipment_phase2_resists: Fix resistance calculations
+3.4 Fix equipment persistence roundtrip (X)
+    - test_equipment_phase1_persistence: Fix save/load consistency
+    - test_equipment_phase13_persistence: Fix advanced persistence
+3.5 Fix reactive systems and mutation (X)
+    - test_equipment_phase7_reactive_shield: Fix trigger logic
+    - test_equipment_phase18_mutation: Fix mutation algorithms
+3.6 Fix crafting integration (X)
+    - test_equipment_phase10_crafting: Fix crafting pipeline
+    - test_equipment_phase10_crafting_success: Fix success rates
+    - test_equipment_phase10_quality: Fix quality calculations
+3.7 Tests: All equipment tests should pass (X)
 
-3) Equipment and stat cache correctness
-Failures
-- Persistence section expectations mismatch; affix/resist/stat cache incorrect; stat bonus and unequip delta not updating; implicits non-zero when expected 0.
-Hypothesis
-- Stat cache invalidation/recompute not triggered on equip/unequip; layering/implicit application order drifted; persistence write/read ordering changed.
-Steps
-3.1 Stat cache lifecycle:
-    - src/core/stats/stat_cache.c: ensure rogue_stat_cache_mark_dirty is called on every equip/unequip/affix change; recompute before reads in tests.
-3.2 Layering order:
-    - Verify application order: base -> implicits -> affixes -> set bonuses -> buffs. Ensure implicits can be zeroed when none selected.
-3.3 Unequip delta:
-    - Ensure deltas subtract previously applied bonuses; add unit micro-test for equip + unequip returns to base.
-3.4 Persistence structure:
-    - Compare test_equipment_phase1_persistence write/read debug with expected; maintain deterministic component ordering and CRC.
-3.5 Tighten JSON/config defaults to match tests (e.g., base stats).
-Validation
-- ctest -R "test_equipment_phase(1|2)|test_equipment_stat_bonus|test_equipment_unequip_delta|test_equipment_phase4_1_implicits" --output-on-failure
+PHASE 4. LOOT SYSTEM FIXES (Medium Priority)
+4.1 Fix loot pickup and inventory integration (X)
+    - test_loot_phase3_pickup: Fix inventory count updates
+    - Verify coin collection and stack merging
+4.2 Fix loot merging and despawn logic (X)
+    - test_loot_phase6_merge_despawn: Fix merge conditions
+    - Validate proximity merging and timeout handling
+4.3 Fix loot persistence and roundtrip (X)
+    - test_loot_phase20_4_persistence_roundtrip: Fix save consistency
+    - Verify item state preservation across sessions
+4.4 Fix loot generation and validation (X)
+    - test_loot_phase17_5_diff: Fix differential generation
+    - test_loot_phase23_example_pack: Fix example validation
+    - test_loot_phase23_style_guide: Fix style compliance
+4.5 Tests: All loot system tests should pass (X)
 
-4) UI interactions (focus and toggles)
-Failures
-- test_ui_phase2_interactive: toggle_state==1 not observed.
-- test_ui_phase2_scroll_tooltip_nav: focus didn’t advance.
-Steps
-4.1 Inspect UI input processing loop for headless tests:
-    - Ensure synthetic key/button events are consumed in the same frame; confirm focus_index updates after navigation input.
-4.2 Verify node kinds used in tests register as focusable and clickable; check default flags.
-4.3 Fix off-by-one focus wrap or missing commit of state between UI_BEGIN and UI_END.
-Validation
-- ctest -R "test_ui_phase2_(interactive|scroll_tooltip_nav)" --output-on-failure
+PHASE 5. COMBAT SYSTEM FIXES (Medium Priority)
+5.1 Fix team obstruction and targeting (X)
+    - test_combat_phase5_team_obstruction: Fix team filtering
+    - Verify friendly fire prevention and targeting logic
+5.2 Fix hitbox system (X)
+    - test_combat_phase5_hitbox_primitives: Fix primitive detection
+    - test_combat_phase5_hitbox_authoring_broadphase: Fix broadphase
+5.3 Fix combat mechanics (X)
+    - test_combat_phase3_encumbrance: Fix encumbrance calculations
+    - test_combat_phase3_hyper_armor: Fix armor immunity
+    - test_combat_phase4_cc: Fix crowd control effects
+5.4 Fix damage and events (X)
+    - test_determinism_damage_events: Fix event determinism
+    - Ensure reproducible combat outcomes
+5.5 Tests: All combat tests should pass (X)
 
-5) World generation and modding
-Failures
-- test_worldgen_phase14_optimization: b1.scalar_ms > 0.0 assertion failed.
-- test_worldgen_phase13_modding: pack load returned error.
-Steps
-5.1 Optimization benchmark:
-    - Ensure benchmark runs at least one pass; initialize timers correctly; avoid early return if no ops.
-5.2 Modding pack load:
-    - Validate example pack paths (assets/example_pack); ensure loader accepts relative paths used by tests; provide stub data if missing.
-Validation
-- ctest -R "test_worldgen_phase1[3-4]" --output-on-failure
+PHASE 6. SAVE SYSTEM FIXES (Medium Priority)
+6.1 Fix save system roundtrip issues (X)
+    - test_save_phase7_inventory_durability_roundtrip: Fix durability preservation
+    - Verify all game state saves and loads correctly
+6.2 Fix dependency and integration manager (X)
+    - test_dependency_manager: Fix dependency resolution
+    - test_integration_manager: Fix component integration
+6.3 Tests: All save system tests should pass (X)
 
-6) Weapon pose directional fallback
-Failure
-- test_weapon_pose_directional_fallback: ensure_dir_fail; JSON open failed and directory not ensured.
-Steps
-6.1 In src/game/weapon_pose.c ensure directory creation for fallback write paths.
-6.2 If test expects load-only, alter fallback path resolution to not require directory creation (load from assets only).
-Validation
-- ctest -R "test_weapon_pose_directional_fallback"
+PHASE 7. CONFIGURATION & DATA SYSTEM FIXES (Medium Priority)
+7.1 Fix configuration validation (X)
+    - test_config_system_validation: Fix validation logic
+    - Ensure all config files are properly validated
+7.2 Fix dialogue JSON loading (X)
+    - test_dialogue_json: Fix JSON parsing errors
+    - Verify dialogue file format compliance
+7.3 Fix crafting system integration (X)
+    - test_crafting_phase2_gathering: Fix resource gathering
+    - test_crafting_phase3_refinement: Fix refinement logic
+7.4 Tests: All config and data tests should pass (X)
 
-7) Slot migration and item mutation
-Failures
-- test_equipment_phase13_slot_migration: expected empty ring1 after migration.
-- test_equipment_phase18_mutation: rogue_equip_try(WEAPON,a)==0 expected but failed.
-Steps
-7.1 Review migration rules mapping old -> new slots; ensure conflicting slots are cleared when migrating.
-7.2 Item mutation/equip gating:
-    - Confirm weapon a meets constraints in test; relax gating or adjust predicate in mutation path for tests.
-Validation
-- ctest -R "test_equipment_phase1[3,8]_"
+PHASE 8. UI & VENDOR SYSTEM FIXES (Low Priority)
+8.1 Fix start screen functionality (X)
+    - test_start_screen_phase10_1_headless: Fix headless mode
+8.2 Fix vendor special offers (X)
+    - test_vendor_phase6_special_offers: Fix offer generation
+8.3 Fix inventory tagging and rules (X)
+    - test_inventory_phase3_tags: Fix tag assignments
+    - test_inventory_phase3_lock_rule_enforce: Fix rule enforcement
+8.4 Tests: All UI and vendor tests should pass (X)
 
-8) Build hygiene for link-only test projects
-- The following projects fail to link (no main): test_phase3_1_enemy_ai_bridge, test_phase3_2_combat_equip_bridge, test_phase3_3_combat_progression_bridge.
-Steps
-8.1 Either add minimal main() test harness or exclude these from ALL_BUILD by default and run them via separate integration harness.
+PHASE 9. WORLD GENERATION & ENEMY FIXES (Low Priority)
+9.1 Fix worldgen optimization (X)
+    - test_worldgen_phase14_optimization: Fix generation performance
+9.2 Fix enemy integration (X)
+    - test_enemy_integration_phase6: Fix enemy behavior integration
+9.3 Fix integration bridges (X)
+    - test_phase3_1_enemy_ai_bridge: Fix AI bridge integration
+    - test_phase3_7_worldgen_enemy_bridge: Fix worldgen enemy bridge
+9.4 Tests: All worldgen and enemy tests should pass (X)
 
-Execution order and checkpoints
-- Iteration A: Section 1 crash fixes → run only segfault group. Commit.
- - Iteration B: Sections 2–3 combat/stat cache coupling → run focused combat + equipment tests. Commit.
+PHASE 10. PROGRESSION & AFFIX SYSTEM FIXES (Low Priority)
+10.1 Fix progression maze generation (X)
+     - test_progression_phase4_maze: Fix maze algorithm stability
+10.2 Fix affix persistence (X)
+     - test_affix_persistence_roundtrip: Fix affix save/load
+10.3 Fix repair cost calculations (X)
+     - test_repair_costs: Fix cost formula accuracy
+10.4 Tests: All progression tests should pass (X)
 
-Progress Update (Iteration B – Combat execution/penetration consistency)
-- Changes
-    - Reverted temporary Training Sword fallback scaling in core `combat_strike.c` to preserve penetration semantics.
-    - Updated `tests/unit/test_combat_execution.c` to explicitly equip Training Sword (id=0) in setup, aligning the test harness with gameplay assumptions without altering engine math.
-- Validation (Debug, SDL2, -j8)
-    - Focused: test_combat_execution — PASS; test_combat_penetration — PASS
-    - Broader subset: frames, gating, execution, combo_scaling, crit_layering, mitigation, penetration, def_softcap, phys_resist_curve, dps, multi_hit — ALL PASS (10/10)
-- Notes
-    - Keeping core strike semantics stable avoids regressions in penetration and mitigation ordering. Tests should equip baseline gear when they expect specific threshold behaviors (e.g., execution on low-health).
+PHASE 11. REGRESSION PREVENTION & VALIDATION (Medium Priority)
+11.1 Add comprehensive test suite validation (X)
+11.2 Implement test isolation to prevent cascading failures (X)
+11.3 Add performance benchmarks for timeout-prone tests (X)
+11.4 Create determinism validation for all random systems (X)
+11.5 Add memory leak detection in test harness (X)
+11.6 Implement continuous integration test monitoring (X)
+11.7 Tests: Full test suite should achieve >95% pass rate (X)
 
-- Iteration C: Sections 4–6 UI, worldgen, weapon pose. Commit.
-- Iteration D: Section 7 migration/mutation. Commit.
-- Iteration E: Section 8 build hygiene (optional).
+PHASE 12. OPTIMIZATION & MONITORING (Low Priority)
+12.1 Optimize slow-running tests for CI efficiency (X)
+12.2 Add test execution time monitoring (X)
+12.3 Implement flaky test detection and reporting (X)
+12.4 Add test coverage analysis and gap identification (X)
+12.5 Create test maintenance documentation (X)
+12.6 Tests: All tests complete within reasonable time bounds (X)
 
-Quality gates per iteration
-- Build (Debug, SDL2, /m:8): PASS
-- Unit tests: Focused target set PASS before expanding scope.
-- Lint/Static: run format-check/clang-tidy if configured.
+IMPLEMENTATION STRATEGY:
+1. **Immediate Focus**: Fix all segfaults and timeouts first to prevent crashes
+2. **Systematic Approach**: Address dependency violations before feature bugs
+3. **Risk Management**: Test each fix in isolation before moving to next
+4. **Regression Prevention**: Add new tests for each bug fixed
+5. **Performance Monitoring**: Track test execution times and memory usage
+6. **Documentation**: Update test documentation and failure troubleshooting guides
 
-Notes from current run
-- Assets fallback paths working; many PNG loads use fallback; Dialogue/style loaded via fallback; Hit geometry loaded 4 entries.
-- Combat failures show systemic zero damage; prioritize restoring base damage and event emission.
-- Fixed: test_combat_phase7_familiarity_cap now passes by ensuring per-strike hit mask reset at strike start and keeping targets stationary during forced-attack harness runs (suppress knockback when rogue_force_attack_active). This lets familiarity usage accumulate and clamps bonus at 10% cap.
-- Keep changes in C (no C++), with small, test-driven patches.
+TESTING METHODOLOGY:
+1. **Isolation Testing**: Run each fixed test in isolation to verify fix
+2. **Integration Testing**: Run related test groups to check for regressions
+3. **Full Suite Validation**: Run complete test suite after each phase
+4. **Stress Testing**: Run tests multiple times to verify stability
+5. **Performance Testing**: Monitor resource usage and execution times
+6. **Determinism Validation**: Ensure reproducible test outcomes
 
-Progress Update (Iteration C – Combat progression metrics stability)
-- Adjusted combat progression bridge to continue counting XP awards and updating session totals even when the XP distribution ring buffer is full; storage remains capped at 32 entries. This aligns metrics with high-volume test loops.
-- Tests validated (Debug, SDL2, -j8): Phase 3.3 bridge suite now fully passes; damage-number determinism and component+composite damage event counts confirmed.
+SUCCESS CRITERIA:
+- All 66 failing tests pass consistently
+- No new test failures introduced
+- Test suite execution time remains reasonable (<10 minutes)
+- Memory leaks eliminated from test harness
+- Test pass rate >95% maintained over time
+- Code layering violations completely resolved
+- All segfaults and critical crashes eliminated
+
+RISK MITIGATION:
+- **Backup Strategy**: Maintain working test baseline before each major fix
+- **Incremental Fixes**: Fix tests in small groups to isolate issues
+- **Rollback Plan**: Quick revert capability if fixes cause regressions
+- **Validation Gates**: Require full suite pass before proceeding to next phase
+- **Performance Monitoring**: Track and alert on performance degradation
+- **Expert Review**: Code review all fixes affecting core systems
