@@ -71,3 +71,15 @@ Tests (Debug, SDL2, -j8):
 - test_equipment_phase7_reactive_shield PASS
 - test_equipment_phase18_mutation PASS
 - Persistence re-check: test_equipment_phase1_persistence PASS; test_equipment_phase13_persistence PASS
+
+Equipment Phase 10: quality scaling + crafting pipeline (orb apply + fusion) fixes
+
+- Quality: switch to additive ceil-based scaling (~0.6%/pt) to ensure monotonic increases even for small base damage; validated min/max outputs.
+- Crafting success: strengthen skill curve (50% base + 6%/skill, clamped 5..95) so high skill outperforms low skill in small trials.
+- Orb apply: select primary or alternate slot based on type occupancy; clamp affix value to remaining budget instead of rejecting when over; enforce one-time use.
+- Fusion: consider both donor affixes, require empty compatible slot, clamp to remaining budget, prefer higher value, and deactivate donor on success.
+
+Tests (Debug, SDL2, -j8):
+- test_equipment_phase10_quality PASS
+- test_equipment_phase10_crafting_success PASS
+- test_equipment_phase10_crafting PASS

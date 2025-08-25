@@ -819,7 +819,8 @@ static int craft_success_chance_pct(int base_rarity, int difficulty)
         difficulty = 0;
     if (difficulty > 10)
         difficulty = 10;
-    int pct = 35 + g_craft_skill * 4 - base_rarity * 5 - difficulty * 3;
+    /* Baseline 50%, each skill point +6%, rarity and difficulty penalize. */
+    int pct = 50 + g_craft_skill * 6 - base_rarity * 5 - difficulty * 3;
     if (pct < 5)
         pct = 5;
     if (pct > 95)

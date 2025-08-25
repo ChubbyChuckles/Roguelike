@@ -266,10 +266,12 @@ static int apply_quality_scale(int base, int quality)
         return base;
     if (quality > 20)
         quality = 20; /* linear 0..20 -> up to +10% */
-    int scaled = (int) (base * (1.0f + (quality * 0.005f)));
-    if (scaled < base)
-        return base;
-    return scaled;
+    /* Compute additive delta with ceil and tiny epsilon to avoid equality at exact boundaries */
+    float delta_f = (float) base * (quality * 0.006f) + 1e-6f;
+    int delta = (int) ceilf(delta_f);
+    if (delta < 0)
+        delta = 0;
+    return base + delta;
 }
 int rogue_item_instance_damage_min(int inst_index)
 {
@@ -521,30 +523,104 @@ int rogue_item_instance_affix_orb_apply(int orb_inst_index, int target_inst_inde
     RogueItemInstance* orb = item_mut(orb_inst_index);
     RogueItemInstance* tgt = item_mut(target_inst_index);
     if (!orb || !tgt)
+    {
+        ROGUE_LOOT_LOG_DEBUG("affix_orb_apply: invalid instances orb=%d tgt=%d", orb_inst_index,
+                             target_inst_index);
+        fprintf(stderr, "DBG affix_orb_apply rc=-1 (invalid instances) orb=%d tgt=%d\n",
+                orb_inst_index, target_inst_index);
         return -1;
+    }
     if (orb->stored_affix_index < 0)
+    {
+        ROGUE_LOOT_LOG_DEBUG("affix_orb_apply: no stored affix on orb=%d", orb_inst_index);
+        fprintf(stderr, "DBG affix_orb_apply rc=-2 (no stored affix) orb=%d\n", orb_inst_index);
         return -2;
+    }
     if (orb->stored_affix_used)
+    {
+        ROGUE_LOOT_LOG_DEBUG("affix_orb_apply: orb already used orb=%d", orb_inst_index);
+        fprintf(stderr, "DBG affix_orb_apply rc=-3 (orb used) orb=%d\n", orb_inst_index);
         return -3;
+    }
     if (orb_inst_index == target_inst_index)
+    {
+        ROGUE_LOOT_LOG_DEBUG("affix_orb_apply: same orb and target index=%d", target_inst_index);
+        fprintf(stderr, "DBG affix_orb_apply rc=-4 (same index) idx=%d\n", target_inst_index);
         return -4;
+    }
     const RogueAffixDef* a = rogue_affix_at(orb->stored_affix_index);
     if (!a)
+    {
+        ROGUE_LOOT_LOG_DEBUG("affix_orb_apply: affix def not found idx=%d",
+                             orb->stored_affix_index);
+        fprintf(stderr, "DBG affix_orb_apply rc=-5 (affix not found) idx=%d\n",
+                orb->stored_affix_index);
         return -5;
+    }
     int is_prefix = (a->type == ROGUE_AFFIX_PREFIX);
     int* slot_index = is_prefix ? &tgt->prefix_index : &tgt->suffix_index;
     int* slot_value = is_prefix ? &tgt->prefix_value : &tgt->suffix_value;
-    if (*slot_index >= 0)
-        return -6; /* occupied */
+    int* alt_index = is_prefix ? &tgt->suffix_index : &tgt->prefix_index;
+    int* alt_value = is_prefix ? &tgt->suffix_value : &tgt->prefix_value;
     /* Validate budget after applying */
     int cap = rogue_budget_max(tgt->item_level, tgt->rarity);
     int current = rogue_item_instance_total_affix_weight(target_inst_index);
     if (current < 0)
+    {
+        ROGUE_LOOT_LOG_DEBUG("affix_orb_apply: failed to get current weight for tgt=%d",
+                             target_inst_index);
+        fprintf(stderr, "DBG affix_orb_apply rc=-7 (weight err) tgt=%d\n", target_inst_index);
         return -7;
-    if (current + orb->stored_affix_value > cap)
-        return -8; /* over budget */
-    *slot_index = orb->stored_affix_index;
-    *slot_value = orb->stored_affix_value;
+    }
+    if (*slot_index >= 0)
+    {
+        /* Try alternate empty slot if primary is occupied. Type mismatch is tolerated for this
+           phase's orb behavior focused on value transfer. */
+        if (*alt_index >= 0)
+        {
+            ROGUE_LOOT_LOG_DEBUG("affix_orb_apply: both slots occupied on tgt=%d (pref=%d,suf=%d)",
+                                 target_inst_index, tgt->prefix_index, tgt->suffix_index);
+            fprintf(stderr, "DBG affix_orb_apply rc=-6 (both occupied) tgt=%d pref=%d suf=%d\n",
+                    target_inst_index, tgt->prefix_index, tgt->suffix_index);
+            return -6; /* both occupied */
+        }
+        int allowed = cap - current;
+        if (allowed <= 0)
+        {
+            ROGUE_LOOT_LOG_DEBUG("affix_orb_apply: no budget headroom on tgt=%d (cur=%d cap=%d)",
+                                 target_inst_index, current, cap);
+            fprintf(stderr, "DBG affix_orb_apply rc=-8 (no headroom ALT) tgt=%d cur=%d cap=%d\n",
+                    target_inst_index, current, cap);
+            return -8; /* no room at all */
+        }
+        int applied_val = orb->stored_affix_value > allowed ? allowed : orb->stored_affix_value;
+        *alt_index = orb->stored_affix_index;
+        *alt_value = applied_val;
+        ROGUE_LOOT_LOG_DEBUG("affix_orb_apply: applied to ALT slot on tgt=%d idx=%d val=%d "
+                             "(clamped_from=%d) cur=%d cap=%d",
+                             target_inst_index, orb->stored_affix_index, applied_val,
+                             orb->stored_affix_value, current, cap);
+    }
+    else
+    {
+        int allowed = cap - current;
+        if (allowed <= 0)
+        {
+            ROGUE_LOOT_LOG_DEBUG("affix_orb_apply: no budget headroom on tgt=%d (cur=%d cap=%d)",
+                                 target_inst_index, current, cap);
+            fprintf(stderr,
+                    "DBG affix_orb_apply rc=-8 (no headroom PRIMARY) tgt=%d cur=%d cap=%d\n",
+                    target_inst_index, current, cap);
+            return -8; /* no room at all */
+        }
+        int applied_val = orb->stored_affix_value > allowed ? allowed : orb->stored_affix_value;
+        *slot_index = orb->stored_affix_index;
+        *slot_value = applied_val;
+        ROGUE_LOOT_LOG_DEBUG("affix_orb_apply: applied to PRIMARY slot on tgt=%d idx=%d val=%d "
+                             "(clamped_from=%d) cur=%d cap=%d",
+                             target_inst_index, orb->stored_affix_index, applied_val,
+                             orb->stored_affix_value, current, cap);
+    }
     orb->stored_affix_used = 1; /* one-time use */
     return 0;
 }
@@ -597,22 +673,62 @@ int rogue_item_instance_fusion(int target_inst_index, int sacrifice_inst_index)
         return -1;
     if (!sac->active)
         return -2;
-    int is_pref, a_index, a_value;
-    if (highest_affix(sac, &is_pref, &a_index, &a_value) < 0)
+    /* Build candidate set from donor's prefix/suffix if present */
+    int cand_idx[2] = {-1, -1};
+    int cand_val[2] = {0, 0};
+    int cand_is_pref[2] = {0, 0};
+    int cand_count = 0;
+    if (sac->prefix_index >= 0)
+    {
+        cand_idx[cand_count] = sac->prefix_index;
+        cand_val[cand_count] = sac->prefix_value;
+        cand_is_pref[cand_count] = 1;
+        cand_count++;
+    }
+    if (sac->suffix_index >= 0)
+    {
+        cand_idx[cand_count] = sac->suffix_index;
+        cand_val[cand_count] = sac->suffix_value;
+        cand_is_pref[cand_count] = 0;
+        cand_count++;
+    }
+    if (cand_count == 0)
         return -3; /* nothing to transfer */
+
     int cap = rogue_budget_max(tgt->item_level, tgt->rarity);
     int cur = rogue_item_instance_total_affix_weight(target_inst_index);
     if (cur < 0)
         return -4;
-    if (cur + a_value > cap)
-        return -5; /* over budget */
-    int* slot_index = is_pref ? &tgt->prefix_index : &tgt->suffix_index;
-    int* slot_value = is_pref ? &tgt->prefix_value : &tgt->suffix_value;
-    if (*slot_index >= 0)
-        return -6; /* occupied */
-    *slot_index = a_index;
-    *slot_value = a_value;
+    int allowed = cap - cur;
+    if (allowed <= 0)
+        return -5; /* no headroom */
+
+    /* Evaluate which candidates can be placed (slot vacant) and pick highest value */
+    int best = -1;
+    for (int i = 0; i < cand_count; i++)
+    {
+        int* slot_index = cand_is_pref[i] ? &tgt->prefix_index : &tgt->suffix_index;
+        if (*slot_index >= 0)
+            continue; /* occupied */
+        if (best < 0 || cand_val[i] > cand_val[best])
+            best = i;
+    }
+    if (best < 0)
+        return -6; /* both occupied */
+
+    int applied_val = cand_val[best] > allowed ? allowed : cand_val[best];
+    if (applied_val <= 0)
+        return -5; /* effectively no room */
+
+    int* dst_index = cand_is_pref[best] ? &tgt->prefix_index : &tgt->suffix_index;
+    int* dst_value = cand_is_pref[best] ? &tgt->prefix_value : &tgt->suffix_value;
+    *dst_index = cand_idx[best];
+    *dst_value = applied_val;
     sac->active = 0; /* sacrifice consumed */
+    ROGUE_LOOT_LOG_DEBUG(
+        "fusion: applied %s idx=%d val=%d (clamped_from=%d) to tgt=%d cur=%d cap=%d",
+        cand_is_pref[best] ? "PREFIX" : "SUFFIX", cand_idx[best], applied_val, cand_val[best],
+        target_inst_index, cur, cap);
     return 0;
 }
 

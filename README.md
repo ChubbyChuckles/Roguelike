@@ -274,6 +274,11 @@ Discipline: always use Debug + SDL2 and parallel -j8 for unit test work. Example
 ctest --test-dir build -C Debug -j8 -R test_equipment_phase2_resists --output-on-failure -V
 ```
 
+Phase 10 equipment crafting/quality now passing in Debug with SDL2 (-j8). Targeted runs:
+```powershell
+ctest --test-dir build -C Debug -j8 -R "test_equipment_phase10_(quality|crafting|crafting_success)" --output-on-failure
+```
+
 Mutation robustness test (Phase 18.5):
 ```powershell
 & "build/tests/Debug/test_equipment_phase18_mutation.exe"

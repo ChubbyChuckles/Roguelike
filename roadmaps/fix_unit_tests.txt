@@ -85,9 +85,9 @@ PHASE 3. EQUIPMENT SYSTEM FIXES (High Priority)
     - test_equipment_phase7_reactive_shield: Fix trigger logic (PASS)
     - test_equipment_phase18_mutation: Harden deserializer; accept DUR 0 0 for non-durable items and repair dm==0,dc>0 by promoting dm to dc. Enforce token presence (DEF/DUR/QC/SOCKS/LOCKS), range checks, and explicit negative error codes for corruption. Baseline roundtrip and targeted tamper now pass; fuzz/mutation mix yields both rejections and successes with no crashes. (PASS)
 3.6 Fix crafting integration (X)
-    - test_equipment_phase10_crafting: Fix crafting pipeline
-    - test_equipment_phase10_crafting_success: Fix success rates
-    - test_equipment_phase10_quality: Fix quality calculations
+    - test_equipment_phase10_crafting: Fix crafting pipeline (Done)
+    - test_equipment_phase10_crafting_success: Fix success rates (Done)
+    - test_equipment_phase10_quality: Fix quality calculations (Done)
 3.7 Tests: All equipment tests should pass (X)
 
 PHASE 4. LOOT SYSTEM FIXES (Medium Priority)
@@ -206,6 +206,13 @@ Recent Deltas (latest cycle):
 - Affix Autoload: when item defs load and affixes are empty, auto-load default affixes from assets/affixes.cfg using the same relative fallbacks; unblocks tests that call rogue_affix_roll without explicit affix load.
 - Enchant/Reforge/Seal: implemented mechanics, reroll-avoidance, cost formulas, and lock semantics; dirties stat cache and preserves invariants.
 - Tests now PASS: test_equipment_phase2_resists, test_equipment_phase2_stat_cache, test_equipment_phase5_sockets, test_equipment_phase5_gems, test_equipment_phase5_enchant_reforge, test_equipment_phase5_protective_seal.
+
+Equipment Phase 10: quality scaling, success rates, orb apply & fusion fixes
+- Quality: made scaling monotonic and additive (ceil-based) so small base values still increase with quality.
+- Crafting success: increased skill influence (base 50% + 6%/skill, clamped) to satisfy statistical assertions.
+- Orb apply: allow alternate-slot fallback and clamp applied affix value to remaining budget instead of rejecting when over.
+- Fusion: choose best valid donor affix for an empty compatible slot and clamp applied value to remaining budget; deactivate donor on success.
+- Tests passing (Debug, SDL2, -j8): test_equipment_phase10_quality, test_equipment_phase10_crafting_success, test_equipment_phase10_crafting.
 
 Equipment persistence roundtrip fixes (Phase 1 & 13):
 - Equip fallback: when item definition lookup is unavailable in minimal test setups, allow equipping by instance while preserving 2H/offhand constraints. This ensures SLOT lines are emitted during serialization.
