@@ -39,7 +39,7 @@ This README has been refactored for fast navigation while preserving every byte 
 
 ---
 
-## 1. High‑Level Overview
+## 1. Description
 Layered, deterministic top‑down action roguelike engine emphasizing: modular boundaries, reproducible simulation, incremental phase roadmaps, strong test coverage (unit, integration, fuzz, statistical), and data‑driven extensibility (hot reload, schema docs, JSON/CSV/CFG ingest). Systems include loot & rarity, equipment layering (implicits → uniques → sets → runewords → gems → affixes → buffs), dungeon & overworld procedural generation, AI behavior trees + perception + LOD scheduling, skill graph & action economy, persistence with integrity hashing, UI virtualization & accessibility, and emerging economy/crafting pipelines.
 
 ### Core Design Pillars
@@ -51,7 +51,7 @@ Layered, deterministic top‑down action roguelike engine emphasizing: modular b
 
 ---
 
-## 2. Feature Matrix (Implemented vs Planned)
+## 2. Features (Implemented vs Planned)
 The table is unchanged from the original content; detailed subsystem write‑ups now reside in Appendix A. This condensed matrix guides newcomers to active development fronts.
 
 | Domain | Key Implemented Features | Upcoming / Planned |
@@ -73,7 +73,7 @@ The table is unchanged from the original content; detailed subsystem write‑ups
 
 ---
 
-## 3. Systems Overview (Concise Summaries)
+## 3. Technical Details / Architecture (Concise Summaries)
 Below are brief system capsules. Full phase-by-phase narrative, metrics, and tests remain intact in Appendix A.
 
 ### Loot & Rarity
@@ -241,7 +241,7 @@ Maintenance audit script, schema export & diff, hot reload watchers, scripting s
 
 ---
 
-## 4. Build & Run (Essentials)
+## 4. Installation & Build
 The authoritative detailed commands remain unchanged (see Appendix A original Section 5). Quick examples:
 
 Windows (PowerShell):
@@ -264,24 +264,40 @@ Tip: run a focused subset (faster inner loop):
 ctest --test-dir build -C Debug -j8 -R "(damage_event_components|hit_mask_integration)" --output-on-failure
 ```
 
-### CI
-- GitHub Actions runs a Windows-only workflow by default with SDL disabled (headless logic build). Format check and full ctest run are enforced. Enable SDL locally with `-DROGUE_ENABLE_SDL=ON` when developing the SDL/UI slices.
+## Usage / How to Play
 
----
+- Start navigation and options: see [Controls › Start Screen](#start-screen).
+- UI overview and interaction model: see [UI & UX](#ui--ux).
+- Skill graph runtime preview toggle: see [Skill Graph Runtime Preview (Experimental)](#skill-graph-runtime-preview-experimental).
+- Hit debug overlay toggle: see [Hit System Phase 6 (partial-done)](#hit-system-phase-6-partial-done-added-real-time-hit-debug-overlay-toggle-f).
 
-## 5. Configuration & Assets
-Configs live under `assets/` (items, affixes, loot tables, biomes, projectiles, skill graph prototypes). Hot reload exists for selected registries (biomes, equipment sets). See detailed schemas & examples in Appendix A and `docs/` folder (loot architecture, rarity style, ownership & boundaries).
+## Screenshots
 
-Tag Registry (cross-system): `assets/tag_registry.json` centralizes allowed tags for skills/equipment/dungeon. A lightweight validator is available:
-- C API: `int rogue_tag_registry_validate_file(const char* path, char* err, size_t cap);`
-- Usage (ctest runs from build dir): `../assets/tag_registry.json`
-- Unit test: `test_tag_registry_validate`
+- Header image (start background): the README header displays `assets/vfx/start_bg.jpg`.
+- Asset reference: [assets/vfx/start_bg.jpg](assets/vfx/start_bg.jpg) (also tried as `../assets/vfx/start_bg.jpg` when running from `build/`). See [Controls › Start Screen](#start-screen) for behavior and overrides.
 
----
+## Controls
 
-## 6. Testing & Quality Gates
-Extensive per-phase unit tests, fuzzers, statistical distribution checks, mutation robustness, performance guards, integrity snapshots, and labeled gating suites (e.g., Equipment Phase 18). Deterministic RNG across systems ensures reproducible failures.
+### Start Screen
+- Background image: default path `assets/vfx/start_bg.jpg` (also tries `../assets/vfx/start_bg.jpg` when running from `build/`). You can override via environment variable `ROGUE_START_BG` with an absolute or relative path. If the file is missing or SDL2_image isn't available, a gradient fallback renders instead. Scaling modes: cover (default) and contain; optional tinting follows theme.
+- Controls: Up/Down to navigate, Enter or Space to activate, Esc or controller B to cancel/back. First-letter accelerators jump to matching menu items. Controller DPAD/left stick supports hold-to-repeat with an initial delay and steady repeat interval.
 
+ Reduced motion: set environment variable ROGUE_REDUCED_MOTION=1 to skip all fade animations. This is enforced even when the game loop isn't running (useful for tests/headless).
+ Background image: by default a gradient renders. If assets/vfx/start_bg.jpg exists (or ROGUE_START_BG points to an image path), it will render with cover/contain scaling. A brightness clamp is applied to tint to preserve text contrast.
+- UX details: Disabled items are skipped (e.g., Continue when no save). New Game supports seed entry (digits and backspace).
+ - Tooltips & localization: Contextual tooltip text appears on the right for the focused item (e.g., Settings/Credits placeholders). Text is routed through a minimal localization layer; tests can swap the active locale at runtime. Missing keys fall back to the key string for visibility.
+ - Reduced motion: Set environment `ROGUE_REDUCED_MOTION=1` to skip animated fades; title pulse is toned down in this mode.
+
+Tests
+- Headless snapshot (Phase 10.1): deterministic first-frame state hash validates rendering/state defaults.
+- Navigation traversal (Phase 10.2): keyboard/controller input, wrap-around and disabled-item skipping, accelerator and accept -> fade-out.
+ - Localization swap (Phase 10.3): verifies label changes under a fake locale table.
+ - Reduced motion (Phase 10.4): verifies fades are skipped and state stabilizes immediately.
+
+### UI & UX
+Immediate‑mode deterministic UI with hash diffing, virtualization, inventory & vendor panels, skill graph viewport with animations, accessibility (colorblind modes, reduced motion), navigation graph, headless harness for golden tests, theme hot swap, HUD systems, alerts, metrics overlay.
+
+For start screen controls and options, see the dedicated Controls section below.
 ### Skills Phase 2 APIs
 - skill_export_active_buffs_hash(now_ms): 64-bit FNV-1a hash of current active buff snapshot (type, magnitude, snapshot flag, remaining_ms). Use g_app.game_time_ms for now_ms. Intended for replay/analytics integrity and quick state diffs.
 - skill_get_effective_coefficient(skill_id): scalar multiplier combining mastery and specialization for a given skill id; baseline 1.0 when no bonuses apply.
@@ -787,7 +803,7 @@ Design goals:
 
 ---
 
-## 2. Feature Matrix (Implemented vs Planned)
+## 2. Features (Implemented vs Planned)
 
 | Domain | Key Implemented Features | Upcoming / Planned |
 |--------|--------------------------|--------------------|
