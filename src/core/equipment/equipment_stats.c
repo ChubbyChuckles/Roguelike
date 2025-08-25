@@ -7,6 +7,7 @@
 #include "equipment_content.h" /* Phase 16.2 external set/runeword registries */
 #include "equipment_gems.h"    /* Phase 5.2 gem aggregation */
 #include "equipment_uniques.h"
+#include <stdio.h>
 
 /* Placeholder: determine runeword pattern for an item instance (Phase 4.5).
     For now, reuse item id as pattern key. */
@@ -417,6 +418,11 @@ void rogue_equipment_apply_stat_bonuses(RoguePlayer* p)
                                         additive into affix_* layer) */
     gather_set_bonuses();
     gather_runeword_bonuses();
+    /* Debug: print raw aggregated resist values before derived clamping */
+    fprintf(stderr, "DBG_RESISTS raw: phys=%d fire=%d cold=%d light=%d poison=%d status=%d\n",
+            g_player_stat_cache.resist_physical, g_player_stat_cache.resist_fire,
+            g_player_stat_cache.resist_cold, g_player_stat_cache.resist_lightning,
+            g_player_stat_cache.resist_poison, g_player_stat_cache.resist_status);
     rogue_stat_cache_mark_dirty();
     if (p)
     {

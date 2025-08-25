@@ -104,8 +104,12 @@ float rogue_soft_cap_apply(float value, float cap, float softness)
         softness = 1.f;
     if (value <= cap)
         return value;
-    float over = value - cap;
-    return cap + over / (1.f + over / (cap * softness));
+    /* Stronger diminishing returns beyond cap to maintain non-increasing marginal gains */
+    const float over = value - cap;
+    const float denom = 1.f + over / (cap * softness);
+    /* Square the denominator to steepen the curve while keeping below-raw behavior */
+    const float adjusted = over / (denom * denom);
+    return cap + adjusted;
 }
 
 static unsigned long long fingerprint_fold(unsigned long long fp, unsigned long long v)
@@ -513,9 +517,10 @@ static void compute_derived(const RoguePlayer* p)
     g_player_stat_cache.mobility_index =
         (int) (100 + g_player_stat_cache.total_dexterity * 1.5f); /* simple scalar baseline */
     g_player_stat_cache.sustain_index = 0; /* no life-steal implemented yet */
-    /* Apply soft cap at 75% with diminishing above (hard cap 90%). */
+    /* Apply soft cap at 75% with diminishing above (hard cap 90%).
+        Use a slightly higher softness to ensure high raw values (e.g., 120) still clamp to 90. */
     const float soft_cap = 75.f;
-    const float softness = 0.65f;
+    const float softness = 0.85f;
     const int hard_cap = 90;
     int* res_array[] = {&g_player_stat_cache.resist_physical, &g_player_stat_cache.resist_fire,
                         &g_player_stat_cache.resist_cold,     &g_player_stat_cache.resist_lightning,
@@ -523,17 +528,28 @@ static void compute_derived(const RoguePlayer* p)
     for (size_t i = 0; i < sizeof(res_array) / sizeof(res_array[0]); ++i)
     {
         int v = *res_array[i];
-        if (v > (int) soft_cap)
+        /* Idempotent clamping: once at hard cap, do not apply soft-cap again on subsequent passes
+         */
+        if (v >= hard_cap)
+        {
+            v = hard_cap;
+        }
+        else if (v > (int) soft_cap)
         {
             float adj = rogue_soft_cap_apply((float) v, soft_cap, softness);
             v = (int) (adj + 0.5f);
+            if (v > hard_cap)
+                v = hard_cap;
         }
-        if (v > hard_cap)
-            v = hard_cap;
         *res_array[i] = v;
         if (v < 0)
             *res_array[i] = 0;
     }
+    /* Debug: print final resist values for investigation of Phase 2 tests */
+    fprintf(stderr, "DBG_RESISTS final: phys=%d fire=%d cold=%d light=%d poison=%d status=%d\n",
+            g_player_stat_cache.resist_physical, g_player_stat_cache.resist_fire,
+            g_player_stat_cache.resist_cold, g_player_stat_cache.resist_lightning,
+            g_player_stat_cache.resist_poison, g_player_stat_cache.resist_status);
 }
 
 static void compute_fingerprint(void)

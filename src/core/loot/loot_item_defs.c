@@ -664,10 +664,9 @@ const RogueItemDef* rogue_item_def_at(int index)
     return &g_item_defs[index];
 }
 
-int rogue_item_defs_load_directory(const char* dir_path)
+/* Internal helper: load item defs from a concrete directory path. Returns number added. */
+static int rogue_item_defs_load_from_dir_internal(const char* dir_path)
 {
-    if (!dir_path)
-        return -1;
     /* Static list of expected category files; user can remove or add (silently skipped if missing).
      */
     const char* files[] = {"swords.cfg", "potions.cfg",   "armor.cfg",
@@ -684,6 +683,40 @@ int rogue_item_defs_load_directory(const char* dir_path)
         if (added > 0)
             total += (g_item_def_count - before); /* ensure we count only actually added lines */
     }
+    return total;
+}
+
+int rogue_item_defs_load_directory(const char* dir_path)
+{
+    if (!dir_path)
+        return -1;
+
+    /* Try the provided directory first; if nothing loads, try common relative fallbacks.
+       This mirrors how tests invoke the loader from different working directories. */
+    const char* candidates[] = {/* as provided */ dir_path,
+                                /* fallbacks */ "../", "../../", "../../../"};
+
+    int total = 0;
+    char candidate[512];
+
+    for (size_t i = 0; i < sizeof(candidates) / sizeof(candidates[0]); ++i)
+    {
+        if (i == 0)
+        {
+            /* Use dir_path as-is */
+            total = rogue_item_defs_load_from_dir_internal(dir_path);
+        }
+        else
+        {
+            int n = snprintf(candidate, sizeof candidate, "%s%s", candidates[i], dir_path);
+            if (n <= 0 || n >= (int) sizeof candidate)
+                continue;
+            total = rogue_item_defs_load_from_dir_internal(candidate);
+        }
+        if (total > 0)
+            break; /* stop at first successful load */
+    }
+
     rogue_item_defs_build_index();
     return total;
 }

@@ -5,7 +5,8 @@
 #include "../loot/loot_item_defs.h"
 #include "../vendor/salvage.h"
 #include "inventory.h"
-#include "inventory_tags.h" /* lock/favorite enforcement */
+#include "inventory_entries.h" /* use unified entries for quantity/remove */
+#include "inventory_tags.h"    /* lock/favorite enforcement */
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
@@ -212,26 +213,36 @@ int rogue_inventory_ui_salvage_def(int def_index)
     }
     if (produced > 0)
     {
-        rogue_inventory_consume(def_index, 1);
+        /* Reflect removal in unified entries to keep persistence/tests consistent. */
+        if (rogue_inventory_register_remove(def_index, 1) != 0)
+        {
+            /* Fallback to legacy consume for older code paths (should not normally happen). */
+            rogue_inventory_consume(def_index, 1);
+        }
     }
     return produced;
 }
 
 int rogue_inventory_ui_drop_one(int def_index)
 {
-    const RogueItemDef* d = rogue_item_def_at(def_index);
-    if (!d)
-        return -1;
-    if (rogue_inventory_get_count(def_index) <= 0)
+    /* Use unified entries quantity (tests and persistence rely on this path). */
+    if ((int) rogue_inventory_quantity(def_index) <= 0)
         return -2;
     if (!rogue_inv_tags_can_salvage(def_index))
         return -3;
+    const RogueItemDef* d = rogue_item_def_at(def_index);
+    if (!d)
+        return -1;
     float x = g_app.player.base.pos.x;
     float y = g_app.player.base.pos.y;
     int inst = rogue_items_spawn(def_index, 1, x, y);
     if (inst >= 0)
     {
-        rogue_inventory_consume(def_index, 1);
+        /* Reflect removal in unified entries; legacy consume as safety fallback. */
+        if (rogue_inventory_register_remove(def_index, 1) != 0)
+        {
+            rogue_inventory_consume(def_index, 1);
+        }
     }
     return inst;
 }

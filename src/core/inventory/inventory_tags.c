@@ -85,17 +85,21 @@ int rogue_inv_tags_remove_tag(int def_index, const char* tag)
 }
 int rogue_inv_tags_list(int def_index, const char** out_tags, int cap)
 {
-    if (!valid_def(def_index) || !g_tag_table || !out_tags || cap <= 0)
+    if (!valid_def(def_index) || !g_tag_table)
         return 0;
     InvTagRec* r = &g_tag_table[def_index];
-    int n = r->tag_count;
-    if (n > cap)
-        n = cap;
-    for (int i = 0; i < n; i++)
+    int total = r->tag_count;
+    if (out_tags && cap > 0)
     {
-        out_tags[i] = r->tags[i];
+        int n = total;
+        if (n > cap)
+            n = cap;
+        for (int i = 0; i < n; i++)
+        {
+            out_tags[i] = r->tags[i];
+        }
     }
-    return r->tag_count;
+    return total;
 }
 int rogue_inv_tags_has(int def_index, const char* tag) { return find_tag(def_index, tag) >= 0; }
 int rogue_inv_tags_can_salvage(int def_index)

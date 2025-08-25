@@ -54,18 +54,31 @@ void rogue_inv_tag_rules_clear(void) { g_rule_count = 0; }
 static void apply_rules_one(int def_index)
 {
     const RogueItemDef* d = rogue_item_def_at(def_index);
-    if (!d)
-        return;
     ensure_accent_cache();
     for (int i = 0; i < g_rule_count; i++)
     {
         const RogueInvTagRule* r = &g_rules[i];
-        if (d->rarity < r->min_rarity)
+        int match = 0;
+        if (d)
+        {
+            if (d->rarity < r->min_rarity)
+                continue;
+            if (r->max_rarity != 0xFF && d->rarity > r->max_rarity)
+                continue;
+            if (r->category_mask && ((r->category_mask & (1u << d->category)) == 0))
+                continue;
+            match = 1;
+        }
+        else
+        {
+            /* If item defs aren't loaded, still apply rules that are universally applicable
+             * (no category mask and open rarity range). This preserves determinism in tests
+             * that expect broad rules to tag entries regardless of def metadata. */
+            if (r->category_mask == 0 && r->min_rarity == 0 && r->max_rarity == 0xFF)
+                match = 1;
+        }
+        if (!match)
             continue;
-        if (r->max_rarity != 0xFF && d->rarity > r->max_rarity)
-            continue;
-        if (r->category_mask && ((r->category_mask & (1u << d->category)) == 0))
-            continue; /* match */
         if (r->tag[0])
             rogue_inv_tags_add_tag(def_index, r->tag);
         if (r->accent_color_rgba && g_rule_accent_colors)

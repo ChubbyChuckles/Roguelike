@@ -264,6 +264,11 @@ Tip: run a focused subset (faster inner loop):
 ctest --test-dir build -C Debug -j8 -R "(damage_event_components|hit_mask_integration)" --output-on-failure
 ```
 
+Discipline: always use Debug + SDL2 and parallel -j8 for unit test work. Example targeted run for the equipment resists pipeline:
+```powershell
+ctest --test-dir build -C Debug -j8 -R test_equipment_phase2_resists --output-on-failure -V
+```
+
 ## Usage / How to Play
 
 - Start navigation and options: see [Controls › Start Screen](#start-screen).
@@ -375,6 +380,7 @@ See `roadmaps/` for subsystem implementation plans (inventory, crafting & gather
 ---
 
 ## 11. Changelog (Curated Recent Highlights)
+* Inventory Tags & UI Enforcement: Unified inventory entries in UI flows (drop/salvage), enforced locked/favorite checks before item def lookups, and ensured open-scope tag rules (min=0,max=0xFF,no category) apply even when item defs aren't loaded. Fixes `test_inventory_phase3_lock_rule_enforce` and stabilizes `test_inventory_phase3_tags` semantics (list returns total regardless of buffer). Also hardened items/materials loaders with relative path fallbacks from tests CWD.
 * Save System (Inventory durability v7 roundtrip): Fixed failing test `test_save_phase7_inventory_durability_roundtrip` by aligning compile-time feature macros across modules to ensure `RogueAppState` layout consistency and wiring a non-destructive `rogue_items_sync_app_view()` after inventory load. Root cause was divergent SDL feature defines between `rogue_core` and `rogue_systems_loot`, causing mismatched `g_app` field offsets.
 * Audio/VFX Phase 5.1 (Gameplay mapping): Added mapping table from gameplay keys to Audio/VFX effects with priority and position. New APIs: `rogue_fx_map_register`, `rogue_fx_map_clear`, `rogue_fx_trigger_event`. Unit test `test_audio_vfx_phase5_1_mapping` passes; audio_vfx suite now 16/16 in Debug with SDL2 (`ctest -j8 -R audio_vfx`).
 * Audio/VFX Phase 4.5 (Random distributions): Per-VFX configurable variation for particle scale and lifetime. New API `rogue_vfx_registry_set_variation(id, scale_mode, a, b, life_mode, a, b)` with modes `ROGUE_VFX_DIST_UNIFORM` and `ROGUE_VFX_DIST_NORMAL`; deterministic via xorshift32 and debug seed setter `rogue_fx_debug_set_seed`. Added debug collector `rogue_vfx_particles_collect_lifetimes`. Unit test `test_audio_vfx_phase4_5_random_distributions` passes; audio_vfx suite now 15/15 in Debug with SDL2 (`ctest -j8 -R audio_vfx`).

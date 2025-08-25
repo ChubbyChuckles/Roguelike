@@ -1,89 +1,19 @@
-Skills: rotation simulator API + tag registry validator + invariance test
+Equipment stat-cache resist pipeline fixes (idempotent clamp, init guards)
 
-- Add C API: skill_simulate_rotation(profile_json, out_buf, out_cap) implemented in skills_runtime.c
-    - Tiny JSON field scanner for duration_ms, tick_ms, ap_regen_per_sec, priority[]
-    - Priority-ordered activation attempts with AP regen/cooldowns using existing runtime
-    - Returns compact JSON summary (casts, ap_spent, time_ms)
-- Add assets/tag_registry.json and validator (src/core/integration/tag_registry.c/.h)
-    - Validates optional version, category arrays, allowed charset [A-Za-z0-9_-]
-    - Enforces intra-category uniqueness; exposes file/text entry points
-- Tests:
-    - test_skills_rotation_sim.c (sim sanity)
-    - test_tag_registry_validate.c (positive + negative; fixed build-dir asset path)
-    - test_skills_ordering_invariance.c (coefficient purity)
-- CMake: wire validator into rogue_core and register new tests with CTest
-- Fix: replace nonexistent rogue_player_recompute_stats with rogue_player_recalc_derived and remove unused var to satisfy Werror
-- Build: Debug + SDL2, -j8; targeted skills/tag tests all PASS via CTest
+- Initialize equipment slots/transmog to -1 to avoid phantom aggregates
+- Remove redundant stat-cache force updates in equip/unequip paths
+- Make compute_derived hard-cap clamp idempotent; skip soft-cap when >= hard cap
+- Keep temporary debug logs for raw/final resists during validation
 
-feat(build): introduce rogue_audio_vfx module and wire layering guard
+Tests: test_equipment_phase2_resists PASS; test_equipment_phase2_stat_cache PASS; test_equipment_phase2_affix_layers PASS
 
-- Extract audio_vfx (effects.c, vfx_config.c) from rogue_core into new STATIC lib `rogue_audio_vfx`.
-- Link `rogue_core` against `rogue_audio_vfx` to keep existing executables/tests unchanged.
-- Preserve SDL2 linkage at module level; honor warnings-as-errors.
-- Add docs/arch/layers.md with initial target list and layering notes.
-- Roadmap Phase 1 updated: 1.1/1.2 set to Partial; 1.5 marked Done (layering check active).
+Inventory tags/rules + UI enforcement fixes; loader fallbacks
 
-feat(audio-vfx): complete Phase 5.3–5.5 gameplay→FX bindings with tests (SDL2, -j8)
+- Inventory UI drop/salvage now use unified entries for qty/removal
+- Enforce locked/favorite before def lookup; drop returns -3 as expected
+- Tag rules apply for open criteria even without item defs loaded
+- rogue_inv_tags_list returns total count even if out buffer is NULL
+- Add robust relative path fallbacks for items/materials registry loaders
+- Durability roundtrip already validated; no regressions observed
 
-- 5.3 Skills: emit "skill/<id>/start" on activation and "skill/<id>/end" on completion (instant skills emit both); unit test `test_audio_vfx_phase5_3_skill_cues` covers cadence and visible output
-- 5.4 Buffs: emit "buff/<type>/gain|expire" on apply/expire; unit test `test_audio_vfx_phase5_4_buff_triggers`
-- 5.5 Loot: emit "loot/<rarity>/drop" using spawned item world position; unit test `test_audio_vfx_phase5_5_loot_drop` verifies world_space and (x,y) via peek-first plus particle visibility
-- CMake: added target and CTest registration for loot test; built Debug with SDL2 using parallel -j8
-- Tests: audio_vfx suite now 20/20 passing in Debug (SDL2, -j8)
-
-docs(roadmap,readme): mark 5.3–5.5 Done; add Recent Changes entries and test counts
-
-tools(audit): Phase 0 baseline inventory & metrics scripts + reports
-
-- Add tools/code_audit/: inventory.py (file→module inventory), include_graph.py (include graph + cycle detection),
-  tests_overview.py (ctest -N snapshot), build_timing.py (configure/build/ctest timings; SDL2 Debug, -j8).
-- Windows-safe UTF-8 output capture to avoid decode errors; write CSV + short tails under build/reports/code_audit_YYYYMMDD/.
-- Regression check: built Debug with SDL2 and ran ctest -j8; scripts generate inventory/graph/test counts; timing CSV recorded.
-
-docs(roadmap,readme): Phase 0 updated — 0.1/0.2 Done, 0.3/0.4 Partial; README adds "Code Audit Tooling" section with usage and report paths.
-
-chore(audit): finalize Phase 0.3 baseline timings (Debug, SDL2, -j8)
-
-- Ran tools/code_audit/build_timing.py; wrote build_times.csv and output tails under build/reports/code_audit_YYYYMMDD/.
-- Windows-safe output capture; script resilient to long ctest output. Mark 0.3 as Done in roadmap; README notes baseline timings location.
-
-feat(skills): expose Phase 2 C APIs + tests — active buffs hash and effective coefficient (SDL2, -j8)
-
-- API: skill_export_active_buffs_hash(now_ms) — FNV-1a 64 hash over active buff snapshot (type, magnitude, snapshot flag, remaining_ms)
-- API: skill_get_effective_coefficient(skill_id) — combines mastery and specialization scalars
-- Tests: add tests/unit/test_skills_phase2_api.c; fix SDL main redefinition via SDL_MAIN_HANDLED
-- Build: added CMake target test_skills_phase2_api; built Debug with SDL2 in parallel (-j8)
-- Roadmap: mark these two API items as completed and note follow-ups (rotation simulator, tag registry, ordering invariance test)
-
-docs(readme): document new skills APIs and reference test
-
-- README: added concise "Skills Phase 2 APIs" section describing skill_export_active_buffs_hash(now_ms) and skill_get_effective_coefficient(skill_id) with usage notes.
-- CTest: registered test_skills_phase2_api with add_test so it appears in ctest -N/-R discovery.
-
-feat(skills-phase2): implement cost mapping + refunds (2.1–2.3) with tests; fix cancel refund to use effective costs
-
-- Extend RogueSkillDef with percent-of-max cost fields, per-rank deltas, and surcharge thresholds for AP/Mana; wire into rogue_skill_try_activate effective cost computation.
-- Refunds: apply on instant skills post-spend based on outcome flags; on cast-complete compute and apply; on early cancel, scale by unspent portion and compute from effective costs (not raw base).
-- Tests: add tests/unit/test_skills_phase2_costs_refunds.c covering insufficient resource rejection, rank-scaled costs, surcharge threshold behavior, refunds on miss/resist, and early cancel refund scaling. Advance time using cooldown_end_ms+1 between activations to satisfy global cooldown.
-- Fix: set player max_mana/max_action_points in test to avoid refund clamping; patch cancel refund path in skills_runtime.c to use effective cost mapping consistent with activation.
-- Build: Debug with SDL2, -j8; targeted tests and full solution build succeed locally.
-
-feat(skills-phase2): Overdrive/Exhaustion (2.4) and Heat/Overheat (2.5) fully implemented with tests; fix empty test link error
-
-- App state/player progression: add overdrive bonus cap (ap_overdrive_bonus), timers (ap_overdrive_ms/ap_exhaustion_ms), heat and overheat with vent cadence; throttle regen in exhaustion.
-- Skills runtime: percent-of-max costs use dynamic AP cap; instant refunds clamped to cap; FIRE-tagged instants add heat and can trigger Overheat; FX cues for start/end.
-- Player init: set max_heat=100; recalc clamps.
-- Tests: tests/unit/test_skills_phase2_overdrive_heat.c validates cap/refund clamping, exhaustion timing, heat/overheat, and vent-to-zero. All skills tests pass.
-- CMake tests: begin modular split via tests/cmake/{AI,Skills,Talents,StartScreen}.cmake included from tests/CMakeLists.txt; fixed full-build linker failure by adding a placeholder main to tests/unit/test_effectspec_dot_stack.c.
-- Build/Tests: Debug (SDL2) with --parallel 8 builds clean; ctest -R test_skills_ is 10/10 PASS. Full ctest reveals unrelated legacy failures tracked separately.
-
-feat(save,loot): fix inventory durability roundtrip and AI blackboard write semantics
-
-- Fix AI blackboard int write policy (respect min/max, mark dirty only on change)
-- Refactor inventory persistence: enumerate via API, restore durability/enchant
-- Add rogue_items_sync_app_view() and call post-inventory-load + end-of-load
-- Align SDL feature macros across modules to unify RogueAppState layout
-- Resolve g_app pointer mismatch across rogue_core and rogue_systems_loot
-- Add diagnostics around inventory write/read and runtime init guard
-- Roadmap updated: mark AI blackboard + save v7 durability roundtrip as Done
-- README changelog: document root cause (macro mismatch) and resolution
+Tests: test_inventory_phase3_lock_rule_enforce PASS; tags/refinement PASS

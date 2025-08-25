@@ -217,14 +217,44 @@ static void trim(char* s)
 int rogue_material_registry_load_path(const char* path)
 {
     FILE* f = NULL;
+    char try_path[512];
+    const char* candidates[5] = {path, NULL, NULL, NULL, NULL};
+    /* Build simple relative fallbacks like ../, ../../, ../../../ similar to other loaders */
+    if (path && path[0] && (strstr(path, "..") == NULL))
+    {
+        snprintf(try_path, sizeof try_path, "../%s", path);
+        candidates[1] = _strdup(try_path);
+        snprintf(try_path, sizeof try_path, "../../%s", path);
+        candidates[2] = _strdup(try_path);
+        snprintf(try_path, sizeof try_path, "../../../%s", path);
+        candidates[3] = _strdup(try_path);
+        snprintf(try_path, sizeof try_path, "../../../../%s", path);
+        candidates[4] = _strdup(try_path);
+    }
+    for (int i = 0; i < 5; i++)
+    {
+        const char* p = candidates[i];
+        if (!p)
+            continue;
 #if defined(_MSC_VER)
-    fopen_s(&f, path, "rb");
+        fopen_s(&f, p, "rb");
 #else
-    f = fopen(path, "rb");
+        f = fopen(p, "rb");
 #endif
+        if (f)
+        {
+            if (i > 0)
+                fprintf(stderr, "material_registry: opened via fallback path: %s\n", p);
+            break;
+        }
+    }
+    /* Free strdup-ed candidates except index 0 (original pointer) */
+    for (int i = 1; i < 5; i++)
+        if (candidates[i])
+            free((void*) candidates[i]);
     if (!f)
     {
-        fprintf(stderr, "material_registry: cannot open %s\n", path);
+        fprintf(stderr, "material_registry: cannot open %s\n", path ? path : "(null)");
         return -1;
     }
     /* If JSON file, slurp and parse a compact array of objects. Expected schema:
