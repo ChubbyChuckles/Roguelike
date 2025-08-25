@@ -49,9 +49,9 @@ PHASE 2. Resource & Cost Layer
 2.1 Player resource pools extension (stamina, energy, heat, focus, combo_points) (Done)
 2.2 Cost mapping per skill (flat, percent max, scaling-with-rank, conditional surcharge) (Done)
 2.3 Refund & partial refund mechanics on miss / resisted / early cancel (Done)
-2.4 Overdrive & Exhaustion: temporary resource ceiling raise + post-burn recovery penalty (X)
-2.5 Heat / Overheat loop (build heat -> unlock empowered variant -> vent) (X)
-2.6 Tests: insufficient resource rejection, refund tiers, overdrive decay, heat overflow clamp (X)
+2.4 Overdrive & Exhaustion: temporary resource ceiling raise + post-burn recovery penalty (Done)
+2.5 Heat / Overheat loop (build heat -> unlock empowered variant -> vent) (Done)
+2.6 Tests: insufficient resource rejection, refund tiers, overdrive decay, heat overflow clamp (Done: `test_skills_phase2_overdrive_heat`)
 
 PHASE 3. Effect Processing Pipeline
 3.1 EffectSpec parser (in-memory static array first; file/data-driven later) (X)
@@ -245,3 +245,9 @@ Updates (Phase 2.1–2.3: Resources, Costs, Refunds):
 - Implemented refund logic: on instant skills, refunds on miss/resist applied post-spend to avoid cap clipping; on cast-complete, refunds computed and applied; on early cancel, refunds scale by unspent portion and use effective costs (percent-of-max/per-rank/surcharge) for correctness.
 - Extended `RogueSkillState` with casting/channel flags and AP session tracking used by soft throttle.
 - Tests: `test_skills_phase2_costs_refunds.c` covers insufficient resource gating, rank-scaled costs, surcharge when under threshold, refunds on miss/resist, and early-cancel refund scaling. Timing advances use `cooldown_end_ms + 1` to honor global cooldown.
+
+Updates (Phase 2.4–2.6: Overdrive/Exhaustion, Heat/Overheat, Tests):
+- Added app/player fields for overdrive bonus AP cap and timers, exhaustion throttle, heat and overheat state with vent cadence (faster while overheated).
+- Skills runtime now uses dynamic AP cap for percent-of-max costs; clamped instant refunds; FIRE-tagged instant skills add heat and can trigger Overheat; emits FX cues on start/end.
+- Player init sets max_heat=100; derived clamping respected in recalc.
+- Unit test `tests/unit/test_skills_phase2_overdrive_heat.c` validates overdrive cap, refund clamping, exhaustion timing, heat build/overheat, and vent-to-zero behavior. Targeted skills test suite fully passing in Debug (SDL2, -j8).

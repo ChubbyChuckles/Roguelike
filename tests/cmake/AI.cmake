@@ -1,0 +1,100 @@
+# AI-related unit tests
+
+# AI Phase 5.2 Flow Field test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase5_2_flow_field.c AND NOT TARGET test_ai_phase5_2_flow_field)
+    add_executable(test_ai_phase5_2_flow_field unit/test_ai_phase5_2_flow_field.c)
+    target_link_libraries(test_ai_phase5_2_flow_field PRIVATE rogue_core)
+    target_compile_definitions(test_ai_phase5_2_flow_field PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ai_phase5_2_flow_field PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase5_2_flow_field COMMAND test_ai_phase5_2_flow_field)
+endif()
+
+# AI Phase 5.3 Local Avoidance test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase5_3_local_avoid.c AND NOT TARGET test_ai_phase5_3_local_avoid)
+    add_executable(test_ai_phase5_3_local_avoid unit/test_ai_phase5_3_local_avoid.c)
+    target_link_libraries(test_ai_phase5_3_local_avoid PRIVATE rogue_core)
+    target_compile_definitions(test_ai_phase5_3_local_avoid PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_ai_phase5_3_local_avoid PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase5_3_local_avoid COMMAND test_ai_phase5_3_local_avoid)
+endif()
+
+# Phase 6.1 ranged projectile firing
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase6_1_ranged_projectile.c AND NOT TARGET test_ai_phase6_1_ranged_projectile)
+    add_executable(test_ai_phase6_1_ranged_projectile unit/test_ai_phase6_1_ranged_projectile.c)
+    target_link_libraries(test_ai_phase6_1_ranged_projectile PRIVATE rogue_core)
+    target_compile_definitions(test_ai_phase6_1_ranged_projectile PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_ai_phase6_1_ranged_projectile PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase6_1_ranged_projectile COMMAND test_ai_phase6_1_ranged_projectile)
+endif()
+
+# AI Phase 6.2 Reactions
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase6_2_reactions.c AND NOT TARGET test_ai_phase6_2_reactions)
+    add_executable(test_ai_phase6_2_reactions unit/test_ai_phase6_2_reactions.c)
+    target_link_libraries(test_ai_phase6_2_reactions PRIVATE rogue_core)
+    target_compile_definitions(test_ai_phase6_2_reactions PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_ai_phase6_2_reactions PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase6_2_reactions COMMAND test_ai_phase6_2_reactions)
+endif()
+
+# Phase 6.3 Opportunistic attack
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase6_3_opportunistic.c AND NOT TARGET test_ai_phase6_3_opportunistic)
+    add_executable(test_ai_phase6_3_opportunistic unit/test_ai_phase6_3_opportunistic.c)
+    target_link_libraries(test_ai_phase6_3_opportunistic PRIVATE rogue_core)
+    target_compile_definitions(test_ai_phase6_3_opportunistic PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_ai_phase6_3_opportunistic PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase6_3_opportunistic COMMAND test_ai_phase6_3_opportunistic)
+endif()
+
+# Phase 6.4 Kiting logic
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase6_4_kiting.c AND NOT TARGET test_ai_phase6_4_kiting)
+    add_executable(test_ai_phase6_4_kiting unit/test_ai_phase6_4_kiting.c)
+    target_link_libraries(test_ai_phase6_4_kiting PRIVATE rogue_core)
+    target_compile_definitions(test_ai_phase6_4_kiting PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_ai_phase6_4_kiting PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase6_4_kiting COMMAND test_ai_phase6_4_kiting)
+endif()
+
+# Phase 6.5 Focus fire
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase6_5_focus.c AND NOT TARGET test_ai_phase6_5_focus)
+    add_executable(test_ai_phase6_5_focus unit/test_ai_phase6_5_focus.c)
+    target_link_libraries(test_ai_phase6_5_focus PRIVATE rogue_core)
+    target_compile_definitions(test_ai_phase6_5_focus PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_ai_phase6_5_focus PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase6_5_focus COMMAND test_ai_phase6_5_focus)
+endif()
+
+# Phase 6.6 Finisher execute
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase6_6_finisher.c AND NOT TARGET test_ai_phase6_6_finisher)
+    add_executable(test_ai_phase6_6_finisher unit/test_ai_phase6_6_finisher.c)
+    target_link_libraries(test_ai_phase6_6_finisher PRIVATE rogue_core)
+    target_compile_definitions(test_ai_phase6_6_finisher PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_ai_phase6_6_finisher PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase6_6_finisher COMMAND test_ai_phase6_6_finisher)
+endif()
+
+# Phase 6.7 decorators
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase6_7_decorators.c AND NOT TARGET test_ai_phase6_7_decorators)
+    add_executable(test_ai_phase6_7_decorators unit/test_ai_phase6_7_decorators.c)
+    target_link_libraries(test_ai_phase6_7_decorators PRIVATE rogue_core)
+    target_compile_definitions(test_ai_phase6_7_decorators PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_ai_phase6_7_decorators PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_ai_phase6_7_decorators COMMAND test_ai_phase6_7_decorators)
+endif()

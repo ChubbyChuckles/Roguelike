@@ -67,3 +67,12 @@ feat(skills-phase2): implement cost mapping + refunds (2.1–2.3) with tests; fi
 - Tests: add tests/unit/test_skills_phase2_costs_refunds.c covering insufficient resource rejection, rank-scaled costs, surcharge threshold behavior, refunds on miss/resist, and early cancel refund scaling. Advance time using cooldown_end_ms+1 between activations to satisfy global cooldown.
 - Fix: set player max_mana/max_action_points in test to avoid refund clamping; patch cancel refund path in skills_runtime.c to use effective cost mapping consistent with activation.
 - Build: Debug with SDL2, -j8; targeted tests and full solution build succeed locally.
+
+feat(skills-phase2): Overdrive/Exhaustion (2.4) and Heat/Overheat (2.5) fully implemented with tests; fix empty test link error
+
+- App state/player progression: add overdrive bonus cap (ap_overdrive_bonus), timers (ap_overdrive_ms/ap_exhaustion_ms), heat and overheat with vent cadence; throttle regen in exhaustion.
+- Skills runtime: percent-of-max costs use dynamic AP cap; instant refunds clamped to cap; FIRE-tagged instants add heat and can trigger Overheat; FX cues for start/end.
+- Player init: set max_heat=100; recalc clamps.
+- Tests: tests/unit/test_skills_phase2_overdrive_heat.c validates cap/refund clamping, exhaustion timing, heat/overheat, and vent-to-zero. All skills tests pass.
+- CMake tests: begin modular split via tests/cmake/{AI,Skills,Talents,StartScreen}.cmake included from tests/CMakeLists.txt; fixed full-build linker failure by adding a placeholder main to tests/unit/test_effectspec_dot_stack.c.
+- Build/Tests: Debug (SDL2) with --parallel 8 builds clean; ctest -R test_skills_ is 10/10 PASS. Full ctest reveals unrelated legacy failures tracked separately.

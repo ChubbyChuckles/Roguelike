@@ -1,0 +1,26 @@
+# Start Screen related tests
+
+# Start Screen Phase 10 tests
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_start_screen_phase10_1_headless.c AND NOT TARGET test_start_screen_phase10_1_headless)
+    add_executable(test_start_screen_phase10_1_headless unit/test_start_screen_phase10_1_headless.c)
+    target_link_libraries(test_start_screen_phase10_1_headless PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_start_screen_phase10_1_headless PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_start_screen_phase10_1_headless PRIVATE ROGUE_HAVE_SDL=1 SDL_MAIN_HANDLED=1)
+    else()
+        target_compile_definitions(test_start_screen_phase10_1_headless PRIVATE SDL_MAIN_HANDLED=1)
+    endif()
+    add_test(NAME test_start_screen_phase10_1_headless COMMAND test_start_screen_phase10_1_headless)
+endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_start_screen_phase10_2_navigation.c AND NOT TARGET test_start_screen_phase10_2_navigation)
+    add_executable(test_start_screen_phase10_2_navigation unit/test_start_screen_phase10_2_navigation.c)
+    target_link_libraries(test_start_screen_phase10_2_navigation PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_start_screen_phase10_2_navigation PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_start_screen_phase10_2_navigation PRIVATE ROGUE_HAVE_SDL=1 SDL_MAIN_HANDLED=1)
+    else()
+        target_compile_definitions(test_start_screen_phase10_2_navigation PRIVATE SDL_MAIN_HANDLED=1)
+    endif()
+    add_test(NAME test_start_screen_phase10_2_navigation COMMAND test_start_screen_phase10_2_navigation)
+endif()
