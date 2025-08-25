@@ -17,3 +17,12 @@ Inventory tags/rules + UI enforcement fixes; loader fallbacks
 - Durability roundtrip already validated; no regressions observed
 
 Tests: test_inventory_phase3_lock_rule_enforce PASS; tags/refinement PASS
+
+Sockets: stabilize item defs loader for test CWDs; Phase 5 sockets pass
+
+- Add relative path fallbacks to rogue_item_defs_load_from_cfg so assets/equipment_test_sockets.cfg
+	loads when tests run from build/tests directories
+- Confirmed sockets API semantics already correct: count bounds [min..max], insert/remove/get with
+	proper error codes, slots initialized to -1, max 6 enforced
+
+Tests: test_equipment_phase5_sockets PASS

@@ -259,6 +259,10 @@ Run tests:
 ctest --test-dir build -C Debug --output-on-failure
 ```
 
+Notes
+- Always build Debug with SDL2 enabled when fixing tests locally, and use parallel builds (`--parallel 8`). All CI tasks enforce this discipline.
+- Tests that load assets directly (e.g., equipment sockets) support relative path fallbacks so they can run from build/test working directories.
+
 Tip: run a focused subset (faster inner loop):
 ```powershell
 ctest --test-dir build -C Debug -j8 -R "(damage_event_components|hit_mask_integration)" --output-on-failure

@@ -279,12 +279,34 @@ int rogue_item_defs_load_from_cfg(const char* path)
 {
     FILE* f = NULL;
 #if defined(_MSC_VER)
-    fopen_s(&f, path, "rb");
+    if (fopen_s(&f, path, "rb") != 0)
+        f = NULL;
 #else
     f = fopen(path, "rb");
 #endif
+    /* If the provided path cannot be opened, try common relative fallbacks so tests running
+       from build subfolders can still locate repo-root assets. */
     if (!f)
-        return -1;
+    {
+        const char* prefixes[] = {"../", "../../", "../../../"};
+        char candidate[512];
+        for (size_t i = 0; i < sizeof(prefixes) / sizeof(prefixes[0]); ++i)
+        {
+            int n = snprintf(candidate, sizeof candidate, "%s%s", prefixes[i], path);
+            if (n <= 0 || n >= (int) sizeof candidate)
+                continue;
+#if defined(_MSC_VER)
+            if (fopen_s(&f, candidate, "rb") == 0 && f)
+                break;
+#else
+            f = fopen(candidate, "rb");
+            if (f)
+                break;
+#endif
+        }
+        if (!f)
+            return -1;
+    }
     char line[512];
     int added = 0;
     int lineno = 0;
