@@ -1,4 +1,4 @@
-#include "ref_count.h"
+#include "../../src/core/integration/ref_count.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
