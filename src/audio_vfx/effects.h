@@ -185,6 +185,30 @@ void rogue_vfx_set_frozen(int frozen);
 int rogue_vfx_registry_set_emitter(const char* id, float spawn_rate_hz,
                                    uint32_t particle_lifetime_ms, int max_particles);
 
+/* -------- Phase 7.2: Blend modes (registration only; renderer consumes later) -------- */
+typedef enum RogueVfxBlend
+{
+    ROGUE_VFX_BLEND_ALPHA = 0,
+    ROGUE_VFX_BLEND_ADD = 1,
+    ROGUE_VFX_BLEND_MULTIPLY = 2
+} RogueVfxBlend;
+int rogue_vfx_registry_set_blend(const char* id, RogueVfxBlend blend);
+int rogue_vfx_registry_get_blend(const char* id, RogueVfxBlend* out_blend);
+
+/* -------- Phase 7.4: Screen shake manager -------- */
+int rogue_vfx_shake_add(float amplitude, float frequency_hz,
+                        uint32_t duration_ms); /* returns handle >=0 */
+void rogue_vfx_shake_clear(void);
+void rogue_vfx_shake_get_offset(float* out_x, float* out_y); /* composite camera offset */
+
+/* -------- Phase 7.6: Performance scaling (global particle emission multiplier) -------- */
+void rogue_vfx_set_perf_scale(float s); /* 0..1 */
+float rogue_vfx_get_perf_scale(void);
+
+/* -------- Phase 7.1: GPU batch stub -------- */
+void rogue_vfx_set_gpu_batch_enabled(int enable);
+int rogue_vfx_get_gpu_batch_enabled(void);
+
 /* ---- Parameter overrides (Phase 4.4) ---- */
 typedef struct RogueVfxOverrides
 {

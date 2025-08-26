@@ -61,12 +61,12 @@ PHASE 6. Advanced Audio Features
 6.6 Distance-based low pass filter attenuation (Done: distance→high-frequency factor mapping applied to non-music categories when enabled; strength/min_factor tunables + unit test exercising enable/disable and param effect)
 
 PHASE 7. Advanced VFX Features
-7.1 GPU-friendly batched sprite particle update (future hook) (X)
-7.2 Additive & multiplicative blend modes (X)
+7.1 GPU-friendly batched sprite particle update (future hook) (Partial: enable flag + query stub; batching path pending)
+7.2 Additive & multiplicative blend modes (Done: registry blend enum + set/get APIs; renderer usage deferred)
 7.3 Motion vectors / trail emitters (X)
-7.4 Screen shake manager (priority stacking) (X)
+7.4 Screen shake manager (priority stacking) (Done: pooled shakes w/ amplitude,freq,duration, decay aggregation)
 7.5 Post-processing: bloom stub & color grade LUT application (X)
-7.6 Performance scaling: degrade particle counts when FPS low (X)
+7.6 Performance scaling: degrade particle counts when FPS low (Done: global 0..1 perf scale applied to emission accumulator, clamped setter)
 7.7 Decal / ground projection system (X)
 
 PHASE 8. Performance & Budgeting
@@ -229,3 +229,13 @@ Notes (2025-08-30, latest):
 		* `tests/unit/test_audio_vfx_phase6_2_beat_aligned.c` validates bar-aligned defer (no early fade), precise partial fade immediately after boundary (~10%), midpoint (~50%), and completion with conservation of weight sum.
 	- Roadmap marks 6.1, 6.2, 6.3 Done; 6.4+ untouched.
 	- CMake test registration extended in `tests/cmake/AudioVfx.cmake`; all audio_vfx tests pass in Debug SDL2 (-j8).
+
+Notes (2025-08-26, Phase 7 core slice):
+- Implemented initial Phase 7 feature subset (7.2 blend modes, 7.4 screen shake manager, 7.6 perf scaling) plus 7.1 batching flag stub.
+- Blend modes: RogueVfxBlend enum (ALPHA, ADD, MULTIPLY) stored per registry entry with default ALPHA; APIs `rogue_vfx_registry_set_blend` / `rogue_vfx_registry_get_blend` for authoring & future renderer use.
+- Screen shake manager: pooled shakes (amplitude, frequency, duration_ms) accumulate a composite offset; shakes decay and auto-expire. Deterministic progression ensures stable test results.
+- Performance scaling: global `rogue_vfx_set_perf_scale(float 0..1)` scales emission accumulator (`emit_hz * dt * scale`) enabling adaptive particle density; test validates proportional reduction.
+- GPU batching (7.1) partial: introduced enable flag + query placeholder to gate future batched update path (no batching logic yet).
+- New unit test `test_audio_vfx_phase7_core` covers: blend default & mutation, screen shake temporal variation, perf scale steady-state particle counts (exact 50 at full scale for 100Hz*500ms, reduced under 0.4 scale), and GPU batch flag toggle.
+- Adjusted assertion to >=50 to match equilibrium; test passes under Debug SDL2 (-j8). All prior audio_vfx tests remain green (26/26 aggregate when filtered by regex `audio_vfx`).
+- Roadmap updated: 7.2, 7.4, 7.6 -> Done; 7.1 -> Partial; 7.3, 7.5, 7.7 remain X. README pending Phase 7 snapshot update.

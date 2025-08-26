@@ -1150,6 +1150,8 @@ typedef struct VfxReg
     uint8_t comp_child_count;
     uint16_t comp_child_indices[8]; /* up to 8 children */
     uint32_t comp_child_delays[8];  /* delay per child (ms); semantics depend on mode */
+    /* Phase 7.2: blend mode registration */
+    uint8_t blend; /* RogueVfxBlend */
 } VfxReg;
 
 typedef struct VfxInst
@@ -1177,6 +1179,20 @@ static VfxInst g_vfx_inst[ROGUE_VFX_INST_CAP];
 
 static float g_vfx_timescale = 1.0f;
 static int g_vfx_frozen = 0;
+/* Phase 7.4: Screen shake manager (simple fixed-size pool) */
+typedef struct Shake
+{
+    float amp;
+    float freq_hz;
+    uint32_t dur_ms;
+    uint32_t age_ms;
+    uint8_t active;
+} Shake;
+static Shake g_shakes[8];
+/* Phase 7.6: performance scaling */
+static float g_vfx_perf_scale = 1.0f; /* 0..1 emission multiplier */
+/* Phase 7.1: GPU batch stub flag */
+static int g_vfx_gpu_batch = 0;
 
 /* ---- Minimal particle pool implementation (internal) ---- */
 typedef struct VfxParticle
@@ -1338,6 +1354,7 @@ int rogue_vfx_registry_register(const char* id, RogueVfxLayer layer, uint32_t li
     g_vfx_reg[idx].var_life_b = 1.0f;
     g_vfx_reg[idx].comp_mode = 0;
     g_vfx_reg[idx].comp_child_count = 0;
+    g_vfx_reg[idx].blend = (uint8_t) ROGUE_VFX_BLEND_ALPHA;
     return 0;
 }
 
@@ -1371,6 +1388,24 @@ int rogue_vfx_registry_set_emitter(const char* id, float spawn_rate_hz,
     g_vfx_reg[idx].emit_hz = spawn_rate_hz;
     g_vfx_reg[idx].p_lifetime_ms = particle_lifetime_ms;
     g_vfx_reg[idx].p_max = max_particles;
+    return 0;
+}
+
+/* -------- Phase 7.2: Blend modes -------- */
+int rogue_vfx_registry_set_blend(const char* id, RogueVfxBlend blend)
+{
+    int idx = vfx_reg_find(id);
+    if (idx < 0)
+        return -1;
+    g_vfx_reg[idx].blend = (uint8_t) blend;
+    return 0;
+}
+int rogue_vfx_registry_get_blend(const char* id, RogueVfxBlend* out_blend)
+{
+    int idx = vfx_reg_find(id);
+    if (idx < 0 || !out_blend)
+        return -1;
+    *out_blend = (RogueVfxBlend) g_vfx_reg[idx].blend;
     return 0;
 }
 
@@ -1475,7 +1510,7 @@ void rogue_vfx_update(uint32_t dt_ms)
             if (r->emit_hz <= 0 || r->p_lifetime_ms == 0 || r->p_max <= 0)
                 continue;
             /* accumulate fractional spawns */
-            g_vfx_inst[i].emit_accum += r->emit_hz * dt_sec;
+            g_vfx_inst[i].emit_accum += r->emit_hz * dt_sec * g_vfx_perf_scale;
             int want = (int) g_vfx_inst[i].emit_accum;
             if (want <= 0)
                 continue;
@@ -1561,6 +1596,15 @@ void rogue_vfx_update(uint32_t dt_ms)
         }
         /* Age/expire all particles */
         vfx_particles_update(dt);
+    }
+    /* Update screen shakes (Phase 7.4) */
+    for (int i = 0; i < 8; ++i)
+    {
+        if (!g_shakes[i].active)
+            continue;
+        g_shakes[i].age_ms += (uint32_t) dt;
+        if (g_shakes[i].age_ms >= g_shakes[i].dur_ms)
+            g_shakes[i].active = 0;
     }
 }
 
@@ -1651,6 +1695,66 @@ int rogue_vfx_spawn_with_overrides(const char* id, float x, float y, const Rogue
     }
     return 0;
 }
+
+/* -------- Phase 7.4: Screen shake API -------- */
+int rogue_vfx_shake_add(float amplitude, float frequency_hz, uint32_t duration_ms)
+{
+    if (amplitude <= 0.0f || frequency_hz <= 0.0f || duration_ms == 0)
+        return -1;
+    for (int i = 0; i < 8; ++i)
+    {
+        if (!g_shakes[i].active)
+        {
+            g_shakes[i].active = 1;
+            g_shakes[i].amp = amplitude;
+            g_shakes[i].freq_hz = frequency_hz;
+            g_shakes[i].dur_ms = duration_ms;
+            g_shakes[i].age_ms = 0;
+            return i;
+        }
+    }
+    return -2; /* no free slot */
+}
+void rogue_vfx_shake_clear(void)
+{
+    for (int i = 0; i < 8; ++i)
+        g_shakes[i].active = 0;
+}
+void rogue_vfx_shake_get_offset(float* out_x, float* out_y)
+{
+    float ox = 0.0f, oy = 0.0f;
+    for (int i = 0; i < 8; ++i)
+    {
+        if (!g_shakes[i].active)
+            continue;
+        float t = g_shakes[i].age_ms * 0.001f;
+        float phase = t * g_shakes[i].freq_hz * 6.2831853f; /* tau */
+        float fade = 1.0f - (float) g_shakes[i].age_ms / (float) g_shakes[i].dur_ms;
+        if (fade < 0.0f)
+            fade = 0.0f;
+        ox += g_shakes[i].amp * fade * sinf(phase);
+        oy += g_shakes[i].amp * fade * cosf(phase * 0.7f);
+    }
+    if (out_x)
+        *out_x = ox;
+    if (out_y)
+        *out_y = oy;
+}
+
+/* -------- Phase 7.6: Performance scaling -------- */
+void rogue_vfx_set_perf_scale(float s)
+{
+    if (s < 0.0f)
+        s = 0.0f;
+    if (s > 1.0f)
+        s = 1.0f;
+    g_vfx_perf_scale = s;
+}
+float rogue_vfx_get_perf_scale(void) { return g_vfx_perf_scale; }
+
+/* -------- Phase 7.1: GPU batch stub -------- */
+void rogue_vfx_set_gpu_batch_enabled(int enable) { g_vfx_gpu_batch = enable ? 1 : 0; }
+int rogue_vfx_get_gpu_batch_enabled(void) { return g_vfx_gpu_batch; }
 
 int rogue_vfx_registry_define_composite(const char* id, RogueVfxLayer layer, uint32_t lifetime_ms,
                                         int world_space, const char** child_ids,

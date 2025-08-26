@@ -123,7 +123,14 @@ Recent Phase 6 additions:
 	* test_audio_vfx_phase6_1_4_music_system (cross-fade midpoint & completion + duck envelope)
 	* test_audio_vfx_phase6_2_beat_aligned (verifies bar-aligned deferred transition & fade timing)
 
-Planned next (remaining Phase 6 / early Phase 7):
-- Beat grid & bar/tempo metadata for musical (bar-aligned) transitions (implemented; see APIs above).
-- Procedural layering sweeteners (random one-shot accents blended over base loop) with spawn budgeting.
-- Screen shake manager & blend modes (Phase 7) to broaden VFX expressiveness.
+Phase 7 (initial slice implemented):
+- Blend modes (registry only): RogueVfxBlend enum (ALPHA default; ADD, MULTIPLY) with set/get APIs; renderer will map to GPU states later.
+- Screen shake manager: pooled shakes (amplitude, frequency, duration) aggregated into a composite camera offset each frame with decay, deterministic for tests.
+- Performance scaling: global 0..1 emission multiplier (rogue_vfx_set_perf_scale / get) applied to particle emission accumulator for adaptive density.
+- GPU batch flag stub: enable/disable + query hook to gate future batched sprite/particle path (no batching logic yet).
+Test coverage: test_audio_vfx_phase7_core validates blend default/mutation, shake variation, perf scaling (steady-state active particles ~ rate * lifetime), and GPU batch flag toggle. All audio_vfx tests pass (Phase 1–7 slice: 26 targets).
+
+Upcoming Phase 7 work (not started):
+- Motion vectors / trail emitters (7.3)
+- Post-processing stubs: bloom & color grade LUT (7.5)
+- Decal / ground projection system (7.7)

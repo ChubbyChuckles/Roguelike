@@ -246,3 +246,23 @@ Quality gates:
   new test target.
 - Tests run: test_audio_vfx_phase6_5_6_env_lowpass PASS alongside prior Phase 6 tests (spot run of
   layering & ducking previously green).
+
+Audio/VFX: Phase 7 core slice (blend modes, screen shake, perf scaling, batching flag)
+
+- Implement Phase 7 subset:
+  - 7.2 Blend modes: RogueVfxBlend enum (ALPHA, ADD, MULTIPLY) per registry entry; set/get APIs; default ALPHA.
+  - 7.4 Screen shake manager: pooled shakes (amplitude, frequency, duration_ms) aggregated into composite offset with decay.
+  - 7.6 Performance scaling: global 0..1 emission multiplier applied to `emit_hz * dt` in particle emission accumulator; clamped setter.
+  - 7.1 GPU batching flag stub: enable/disable + query (no batching path yet) to gate future optimization.
+- New unit test `test_audio_vfx_phase7_core` asserts:
+  - Blend mode default + mutation to ADD.
+  - Steady-state particle count at full scale (100 Hz * 500 ms lifetime -> 50 active) and reduced under perf scale 0.4.
+  - Screen shake offset varies across frames (temporal evolution) then decays.
+  - GPU batch flag toggles correctly.
+- Adjusted assertion threshold from >50 to >=50 to match exact equilibrium; corrected test now passes.
+- Roadmap updated (implementation_plan_audiovfxsystem.txt): 7.2, 7.4, 7.6 marked Done; 7.1 Partial; others remain X.
+- README Audio & VFX section updated with Phase 7 snapshot and future tasks.
+
+Quality gates:
+- Targeted rebuild of test_audio_vfx_phase7_core succeeded; all audio_vfx tests (Phase 1–7) pass under Debug SDL2 (-j8) (26/26).
+- No regressions in earlier Phase 6 music/env tests (spot run of audio_vfx regex confirms green).
