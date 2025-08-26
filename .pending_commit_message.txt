@@ -35,3 +35,14 @@ Logging: suppress console spam by default; env override
 Quality gates:
 - Rebuilt Debug with SDL2 (-j8) successfully.
 - Focused ctests passed: start screen suite (4/4), test_log, test_loot_logging_toggle.
+
+Start screen: Load overlay delete confirmation + persistence API
+
+- Phase 4.6: Add delete confirmation modal in the Load overlay with localized risk wording.
+- Wire confirm to call rogue_save_manager_delete_slot(slot) and refresh the list/selection.
+- Save manager: implement rogue_save_manager_delete_slot to remove save_slot_%d.sav and best-effort save_slot_%d.json; tolerate ENOENT.
+- Localization: add confirm_delete_* strings; integrate into modal.
+
+Quality gates:
+- Rebuilt Debug with SDL2 (-j8) successfully.
+- Focused ctests (start_screen|save_manager) all passed (5/5), including start screen suite (4/4) and test_save_manager.

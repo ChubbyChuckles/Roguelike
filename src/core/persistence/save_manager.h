@@ -95,6 +95,9 @@ int rogue_save_manager_backup_rotate(
     int slot_index, int max_backups);           /* Phase 15.5: create timestamped backup & prune */
 void rogue_register_core_save_components(void); /* registers Phase 1 core components */
 
+/* Delete a save slot file and optional sidecar JSON; returns 0 on success or if absent. */
+int rogue_save_manager_delete_slot(int slot_index);
+
 /* Migration API */
 void rogue_save_register_migration(const RogueSaveMigration* mig);
 int rogue_save_manager_set_durable(int enabled); /* enable fsync/_commit durability */

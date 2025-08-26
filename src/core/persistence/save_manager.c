@@ -305,6 +305,25 @@ int rogue_save_set_signature_provider(const RogueSaveSignatureProvider* prov)
 }
 const RogueSaveSignatureProvider* rogue_save_get_signature_provider(void) { return g_sig_provider; }
 
+#include <errno.h>
+
+int rogue_save_manager_delete_slot(int slot_index)
+{
+    if (slot_index < 0 || slot_index >= ROGUE_SAVE_SLOT_COUNT)
+        return -1;
+    char path[128];
+    snprintf(path, sizeof path, "save_slot_%d.sav", slot_index);
+    if (remove(path) != 0)
+    {
+        if (errno != ENOENT)
+            return -2;
+    }
+    char json_path[128];
+    snprintf(json_path, sizeof json_path, "save_slot_%d.json", slot_index);
+    remove(json_path);
+    return 0;
+}
+
 /* Replay hash state (v8). We capture event tuples (frame,action,value) and hash them in order. */
 typedef struct
 {

@@ -451,7 +451,51 @@ void rogue_start_screen_update_and_render(void)
                 rogue_font_draw_text(82, row_y, line, 2, c);
                 row_y += 22;
             }
-            /* Accept -> load selected; Cancel -> close list */
+            /* Delete confirmation modal (Phase 4.6) */
+            static int confirm_active = 0;
+            if (confirm_active)
+            {
+                /* Simple centered box with yes/no prompt */
+                int cx = 46, cy = base_y + 72;
+                rogue_font_draw_text(cx, cy, rogue_locale_get("confirm_delete_title"), 3,
+                                     (RogueColor){255, 120, 120, 255});
+                rogue_font_draw_text(cx, cy + 20, rogue_locale_get("confirm_delete_body"), 2,
+                                     white);
+                rogue_font_draw_text(cx, cy + 40, rogue_locale_get("confirm_delete_hint"), 2,
+                                     white);
+                if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_DIALOGUE) ||
+                    rogue_input_was_pressed(&g_app.input, ROGUE_KEY_ACTION))
+                {
+                    int slot = g_app.start_load_selection;
+                    if (slot >= 0 && slot < ROGUE_SAVE_SLOT_COUNT && present[slot])
+                    {
+                        rogue_save_manager_delete_slot(slot);
+                        /* Refresh list immediately */
+                        confirm_active = 0;
+                        /* Clear selection to next present */
+                        int next = (slot + 1) % ROGUE_SAVE_SLOT_COUNT;
+                        for (int k = 0; k < ROGUE_SAVE_SLOT_COUNT; ++k)
+                        {
+                            if (present[next])
+                            {
+                                g_app.start_load_selection = next;
+                                break;
+                            }
+                            next = (next + 1) % ROGUE_SAVE_SLOT_COUNT;
+                        }
+                    }
+                }
+                else if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_CANCEL))
+                {
+                    confirm_active = 0;
+                }
+                /* While modal is open, do not process other actions */
+                rogue_font_draw_text(48, base_y + 80, rogue_locale_get("hint_accept_cancel"), 2,
+                                     white);
+                return;
+            }
+
+            /* Accept -> load selected; Cancel -> close list; Delete -> open confirm */
             if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_DIALOGUE) ||
                 rogue_input_was_pressed(&g_app.input, ROGUE_KEY_ACTION))
             {
@@ -466,6 +510,11 @@ void rogue_start_screen_update_and_render(void)
                         g_app.start_state = ROGUE_START_FADE_OUT;
                     }
                 }
+            }
+            /* For delete, use LEFT key as a conservative stand-in (no dedicated delete key yet) */
+            if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_LEFT))
+            {
+                confirm_active = 1;
             }
             if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_CANCEL))
             {

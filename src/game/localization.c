@@ -15,6 +15,9 @@ static RogueLocalePair g_default_pairs[] = {
     {"tip_continue", "Load your latest save"},
     {"tip_load", "Choose a save slot to load"},
     {"hint_accept_cancel", "Enter: select, Esc: back"},
+    {"confirm_delete_title", "Delete Save?"},
+    {"confirm_delete_body", "This will permanently remove the selected slot."},
+    {"confirm_delete_hint", "Enter: Yes, Esc: No"},
 };
 
 static const RogueLocalePair* g_pairs = g_default_pairs;

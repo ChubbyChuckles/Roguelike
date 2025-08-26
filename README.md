@@ -71,6 +71,7 @@ Load overlay basics:
 - Opens from Load Game and lists existing slots (up to configured slot count).
 - Each entry shows a placeholder thumbnail tinted by a seeded color, plus basic header info.
 - Up/Down navigate; Enter loads the selected slot and transitions to gameplay.
+ - Delete a slot with a confirmation modal from within the list; deletion uses the save manager and is non-destructive to other slots.
 
 Environment overrides:
 - ROGUE_START_BG: absolute or relative path to a background image.
