@@ -26,6 +26,8 @@ SOFTWARE.
 
 int main(void)
 {
+    /* Honor env-based logging level as early as possible. */
+    rogue_log_set_level_from_env();
     RogueAppConfig cfg = {
         .window_title = "Roguelike", .window_width = 1920, .window_height = 1080, .target_fps = 60};
     if (!rogue_app_init(&cfg))

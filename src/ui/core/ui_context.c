@@ -1,4 +1,5 @@
 #include "ui_context.h"
+#include "../../util/log.h"
 #include "ui_animation.h"
 #include <math.h>
 #include <stdint.h>
@@ -644,18 +645,18 @@ void rogue_ui_begin(RogueUIContext* ctx, double delta_time_ms)
         return;
     if (ctx->initialized_flag != 0xC0DEFACE)
     {
-        fprintf(stderr, "UI_BEGIN_ABORT not initialized ctx=%p flag=0x%X\n", (void*) ctx,
-                ctx->initialized_flag);
+        ROGUE_LOG_WARN("UI_BEGIN_ABORT not initialized ctx=%p flag=0x%X", (void*) ctx,
+                       ctx->initialized_flag);
         return;
     }
-    fprintf(stderr, "UI_BEGIN enter ctx=%p dt=%.2f cap=%d nodes=%p arena=%p arena_size=%zu\n",
-            (void*) ctx, delta_time_ms, ctx->node_capacity, (void*) ctx->nodes, (void*) ctx->arena,
-            ctx->arena_size);
+    ROGUE_LOG_DEBUG("UI_BEGIN enter ctx=%p dt=%.2f cap=%d nodes=%p arena=%p arena_size=%zu",
+                    (void*) ctx, delta_time_ms, ctx->node_capacity, (void*) ctx->nodes,
+                    (void*) ctx->arena, ctx->arena_size);
     /* If node_capacity==0 something went wrong with init; attempt lazy alloc minimal buffer to keep
      * tests alive. */
     if (ctx->node_capacity == 0)
     {
-        fprintf(stderr, "UI_BEGIN alloc fallback nodes 64\n");
+        ROGUE_LOG_WARN("UI_BEGIN alloc fallback nodes 64");
         ctx->nodes = (RogueUINode*) calloc(64, sizeof(RogueUINode));
         if (ctx->nodes)
         {
@@ -664,12 +665,12 @@ void rogue_ui_begin(RogueUIContext* ctx, double delta_time_ms)
     }
     if (!ctx->nodes)
     {
-        fprintf(stderr, "UI_BEGIN_FATAL nodes NULL after alloc attempt\n");
+        ROGUE_LOG_ERROR("UI_BEGIN_FATAL nodes NULL after alloc attempt");
         return;
     }
     if (!ctx->arena)
     {
-        fprintf(stderr, "UI_BEGIN_WARN arena NULL (continuing)\n");
+        ROGUE_LOG_WARN("UI_BEGIN_WARN arena NULL (continuing)");
     }
     if (ctx->anim_time_scale <= 0)
         ctx->anim_time_scale = 1.0f;
@@ -710,15 +711,11 @@ void rogue_ui_begin(RogueUIContext* ctx, double delta_time_ms)
     ctx->perf_frame_start_ms = ctx->time_ms;
     ctx->perf_update_start_ms =
         ctx->time_ms; /* simplistic: update occurs inside begin for headless tests */
-    fprintf(stderr, "UI_BEGIN exit ctx=%p node_cap=%d\n", (void*) ctx, ctx->node_capacity);
+    ROGUE_LOG_DEBUG("UI_BEGIN exit ctx=%p node_cap=%d", (void*) ctx, ctx->node_capacity);
 }
 
 /* DEBUG TRACE */
-static void dbg_trace(const char* tag)
-{
-    fprintf(stderr, "TRACE %s\n", tag);
-    fflush(stderr);
-}
+static void dbg_trace(const char* tag) { ROGUE_LOG_DEBUG("TRACE %s", tag); }
 void rogue_ui_end(RogueUIContext* ctx)
 {
     if (!ctx)
@@ -731,25 +728,25 @@ static int push_node(RogueUIContext* ctx, RogueUINode n)
 {
     if (!ctx)
     {
-        fprintf(stderr, "PUSH_NODE_FAIL null ctx\n");
+        ROGUE_LOG_ERROR("PUSH_NODE_FAIL null ctx");
         return -1;
     }
     if (!ctx->nodes)
     {
-        fprintf(stderr, "PUSH_NODE_FAIL nodes NULL ctx=%p node_count=%d cap=%d\n", (void*) ctx,
-                ctx->node_count, ctx->node_capacity);
+        ROGUE_LOG_ERROR("PUSH_NODE_FAIL nodes NULL ctx=%p node_count=%d cap=%d", (void*) ctx,
+                        ctx->node_count, ctx->node_capacity);
         return -1;
     }
     if (ctx->node_capacity <= 0)
     {
-        fprintf(stderr, "PUSH_NODE_FAIL capacity<=0 ctx=%p cap=%d\n", (void*) ctx,
-                ctx->node_capacity);
+        ROGUE_LOG_ERROR("PUSH_NODE_FAIL capacity<=0 ctx=%p cap=%d", (void*) ctx,
+                        ctx->node_capacity);
         return -1;
     }
     if (ctx->node_count >= ctx->node_capacity)
     {
-        fprintf(stderr, "PUSH_NODE_FAIL overflow ctx=%p count=%d cap=%d kind=%d\n", (void*) ctx,
-                ctx->node_count, ctx->node_capacity, n.kind);
+        ROGUE_LOG_ERROR("PUSH_NODE_FAIL overflow ctx=%p count=%d cap=%d kind=%d", (void*) ctx,
+                        ctx->node_count, ctx->node_capacity, n.kind);
         return -1;
     }
     if (n.parent_index < -1)
@@ -757,10 +754,8 @@ static int push_node(RogueUIContext* ctx, RogueUINode n)
     ctx->nodes[ctx->node_count] = n;
     ctx->node_count++;
     if (ctx->node_count <= 8)
-    {
-        fprintf(stderr, "PUSH_NODE ok idx=%d kind=%d count=%d cap=%d\\n", ctx->node_count - 1,
-                n.kind, ctx->node_count, ctx->node_capacity);
-    }
+        ROGUE_LOG_DEBUG("PUSH_NODE ok idx=%d kind=%d count=%d cap=%d", ctx->node_count - 1, n.kind,
+                        ctx->node_count, ctx->node_capacity);
     ctx->stats.node_count = ctx->node_count;
     return ctx->node_count - 1;
 }
@@ -796,18 +791,18 @@ int rogue_ui_panel(RogueUIContext* ctx, RogueUIRect r, uint32_t color)
 {
     if (!ctx)
     {
-        fprintf(stderr, "PANEL_FAIL null ctx\n");
+        ROGUE_LOG_ERROR("PANEL_FAIL null ctx");
         return -1;
     }
     if (!ctx->frame_active)
     {
-        fprintf(stderr, "PANEL_FAIL frame_inactive ctx=%p\n", (void*) ctx);
+        ROGUE_LOG_ERROR("PANEL_FAIL frame_inactive ctx=%p", (void*) ctx);
         return -1;
     }
     if (!ctx->nodes)
     {
-        fprintf(stderr, "PANEL_FAIL nodes NULL before push ctx=%p cap=%d\n", (void*) ctx,
-                ctx->node_capacity);
+        ROGUE_LOG_WARN("PANEL_FAIL nodes NULL before push ctx=%p cap=%d", (void*) ctx,
+                       ctx->node_capacity);
     }
     RogueUINode n;
     memset(&n, 0, sizeof n);

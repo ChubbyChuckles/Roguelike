@@ -89,6 +89,7 @@ Verification notes (2025-08-26):
 - Built Debug with SDL2, parallel 8. Start screen test suite passed (4/4).
 - Manual smoke: Load list overlay opens, navigates across existing slots; selecting loads and transitions via fade-out.
 - Full test run: 95% passed; remaining failures in unrelated AI/combat/worldgen/equipment suites. test_boot passed on re-run; no start screen regressions observed.
+ - Logging tightened: default WARN reduces console spam; ROGUE_LOG_LEVEL env enables opt-in DEBUG/INFO for troubleshooting.
 
 PHASE 11. Telemetry & Analytics (Optional)
 11.1 Menu selection event stream with session id (X)

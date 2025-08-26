@@ -24,3 +24,14 @@ Start screen: Load overlay + seeded thumbnails; Continue/Load transitions
 Quality gates:
 - Rebuilt Debug with SDL2 (-j8). Start screen tests still 4/4 green.
 - Manual smoke validated Load overlay open/navigate/load without regressions.
+
+Logging: suppress console spam by default; env override
+
+- Introduce global log level with default WARN; add ROGUE_LOG_LEVEL env parsing (debug|info|warn|error or 0..3).
+- Replace noisy fprintf traces in UI/stat/equipment/skills with ROGUE_LOG_* macros.
+- Add Windows-safe getenv helper and use strncpy_s to satisfy MSVC deprecation warnings.
+- Initialize logging from env early in main().
+
+Quality gates:
+- Rebuilt Debug with SDL2 (-j8) successfully.
+- Focused ctests passed: start screen suite (4/4), test_log, test_loot_logging_toggle.

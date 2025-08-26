@@ -36,6 +36,12 @@ typedef enum RogueLogLevel
 
 void rogue_log(RogueLogLevel level, const char* file, int line, const char* fmt, ...);
 
+/* Configure global log level threshold (messages below are ignored). */
+void rogue_log_set_level(RogueLogLevel min_level);
+RogueLogLevel rogue_log_get_level(void);
+/* Convenience: reads ROGUE_LOG_LEVEL env var: debug|info|warn|error or 0..3 */
+void rogue_log_set_level_from_env(void);
+
 #define ROGUE_LOG_DEBUG(fmt, ...)                                                                  \
     rogue_log(ROGUE_LOG_DEBUG_LEVEL, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
 #define ROGUE_LOG_INFO(fmt, ...)                                                                   \

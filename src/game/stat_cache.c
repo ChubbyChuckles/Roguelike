@@ -8,6 +8,7 @@
 #include "../core/progression/progression_passives.h"
 #include "../core/progression/progression_ratings.h"
 #include "../core/progression/progression_stats.h"
+#include "../util/log.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -545,11 +546,11 @@ static void compute_derived(const RoguePlayer* p)
         if (v < 0)
             *res_array[i] = 0;
     }
-    /* Debug: print final resist values for investigation of Phase 2 tests */
-    fprintf(stderr, "DBG_RESISTS final: phys=%d fire=%d cold=%d light=%d poison=%d status=%d\n",
-            g_player_stat_cache.resist_physical, g_player_stat_cache.resist_fire,
-            g_player_stat_cache.resist_cold, g_player_stat_cache.resist_lightning,
-            g_player_stat_cache.resist_poison, g_player_stat_cache.resist_status);
+    /* Debug (filterable): final resist values for investigation of Phase 2 tests */
+    ROGUE_LOG_DEBUG("DBG_RESISTS final: phys=%d fire=%d cold=%d light=%d poison=%d status=%d",
+                    g_player_stat_cache.resist_physical, g_player_stat_cache.resist_fire,
+                    g_player_stat_cache.resist_cold, g_player_stat_cache.resist_lightning,
+                    g_player_stat_cache.resist_poison, g_player_stat_cache.resist_status);
 }
 
 static void compute_fingerprint(void)
@@ -668,21 +669,20 @@ static void compute_fingerprint(void)
                  g_player_stat_cache.runeword_intelligence +
                  g_player_stat_cache.affix_intelligence + g_player_stat_cache.passive_intelligence +
                  g_player_stat_cache.buff_intelligence;
-    fprintf(stderr,
-            "DBG_FP fp=%llu base[%d,%d,%d,%d] imp[%d,%d,%d,%d] affix[%d,%d,%d,%d] "
-            "res[%d,%d,%d,%d,%d,%d] armor=%d totals[%d,%d,%d,%d] nonbase[%d,%d,%d,%d]\n",
-            (unsigned long long) g_player_stat_cache.fingerprint, base_str_val, base_dex_val,
-            base_vit_val, base_int_val, g_player_stat_cache.implicit_strength,
-            g_player_stat_cache.implicit_dexterity, g_player_stat_cache.implicit_vitality,
-            g_player_stat_cache.implicit_intelligence, g_player_stat_cache.affix_strength,
-            g_player_stat_cache.affix_dexterity, g_player_stat_cache.affix_vitality,
-            g_player_stat_cache.affix_intelligence, g_player_stat_cache.resist_physical,
-            g_player_stat_cache.resist_fire, g_player_stat_cache.resist_cold,
-            g_player_stat_cache.resist_lightning, g_player_stat_cache.resist_poison,
-            g_player_stat_cache.resist_status, g_player_stat_cache.affix_armor_flat,
-            g_player_stat_cache.total_strength, g_player_stat_cache.total_dexterity,
-            g_player_stat_cache.total_vitality, g_player_stat_cache.total_intelligence, nb_str,
-            nb_dex, nb_vit, nb_int);
+    ROGUE_LOG_DEBUG("DBG_FP fp=%llu base[%d,%d,%d,%d] imp[%d,%d,%d,%d] affix[%d,%d,%d,%d] "
+                    "res[%d,%d,%d,%d,%d,%d] armor=%d totals[%d,%d,%d,%d] nonbase[%d,%d,%d,%d]",
+                    (unsigned long long) g_player_stat_cache.fingerprint, base_str_val,
+                    base_dex_val, base_vit_val, base_int_val, g_player_stat_cache.implicit_strength,
+                    g_player_stat_cache.implicit_dexterity, g_player_stat_cache.implicit_vitality,
+                    g_player_stat_cache.implicit_intelligence, g_player_stat_cache.affix_strength,
+                    g_player_stat_cache.affix_dexterity, g_player_stat_cache.affix_vitality,
+                    g_player_stat_cache.affix_intelligence, g_player_stat_cache.resist_physical,
+                    g_player_stat_cache.resist_fire, g_player_stat_cache.resist_cold,
+                    g_player_stat_cache.resist_lightning, g_player_stat_cache.resist_poison,
+                    g_player_stat_cache.resist_status, g_player_stat_cache.affix_armor_flat,
+                    g_player_stat_cache.total_strength, g_player_stat_cache.total_dexterity,
+                    g_player_stat_cache.total_vitality, g_player_stat_cache.total_intelligence,
+                    nb_str, nb_dex, nb_vit, nb_int);
 #undef F
 }
 
@@ -749,7 +749,7 @@ void rogue_stat_cache_force_update(const RoguePlayer* p)
 
 unsigned long long rogue_stat_cache_fingerprint(void)
 {
-    fprintf(stderr, "DBG_FP_READ returning fp=%llu\n",
-            (unsigned long long) g_player_stat_cache.fingerprint);
+    ROGUE_LOG_DEBUG("DBG_FP_READ returning fp=%llu",
+                    (unsigned long long) g_player_stat_cache.fingerprint);
     return g_player_stat_cache.fingerprint;
 }

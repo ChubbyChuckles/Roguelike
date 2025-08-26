@@ -1,5 +1,6 @@
 #include "equipment_stats.h"
 #include "../../game/stat_cache.h"
+#include "../../util/log.h"
 #include "../loot/loot_affixes.h"
 #include "../loot/loot_instances.h"
 #include "../loot/loot_item_defs.h"
@@ -442,11 +443,11 @@ void rogue_equipment_apply_stat_bonuses(RoguePlayer* p)
                                         additive into affix_* layer) */
     gather_set_bonuses();
     gather_runeword_bonuses();
-    /* Debug: print raw aggregated resist values before derived clamping */
-    fprintf(stderr, "DBG_RESISTS raw: phys=%d fire=%d cold=%d light=%d poison=%d status=%d\n",
-            g_player_stat_cache.resist_physical, g_player_stat_cache.resist_fire,
-            g_player_stat_cache.resist_cold, g_player_stat_cache.resist_lightning,
-            g_player_stat_cache.resist_poison, g_player_stat_cache.resist_status);
+    /* Debug (filterable): raw aggregated resist values before derived clamping */
+    ROGUE_LOG_DEBUG("DBG_RESISTS raw: phys=%d fire=%d cold=%d light=%d poison=%d status=%d",
+                    g_player_stat_cache.resist_physical, g_player_stat_cache.resist_fire,
+                    g_player_stat_cache.resist_cold, g_player_stat_cache.resist_lightning,
+                    g_player_stat_cache.resist_poison, g_player_stat_cache.resist_status);
     rogue_stat_cache_mark_dirty();
     if (p)
     {

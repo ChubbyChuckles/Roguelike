@@ -75,3 +75,11 @@ Load overlay basics:
 Environment overrides:
 - ROGUE_START_BG: absolute or relative path to a background image.
 - ROGUE_REDUCED_MOTION=1: skip fades and animations for accessibility.
+
+Logging (quieter console by default):
+- Default log level is WARN. DEBUG/INFO messages are suppressed in normal runs.
+- Override with ROGUE_LOG_LEVEL. Accepted values: debug, info, warn, error (or 0..3).
+	- PowerShell (Windows): `$env:ROGUE_LOG_LEVEL = 'debug'` then run the app.
+	- bash/cmd: `ROGUE_LOG_LEVEL=debug ./roguelike` (bash) or `set ROGUE_LOG_LEVEL=debug && roguelike.exe` (cmd).
+	- Reset in PowerShell: `Remove-Item Env:ROGUE_LOG_LEVEL`.
+	The app also auto-reads the env on first log, and main() initializes it early.

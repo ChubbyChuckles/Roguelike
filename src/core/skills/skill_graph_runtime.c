@@ -13,6 +13,7 @@
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
+#include "../../util/log.h"
 
 /* Forward declarations (not exposed in public headers) */
 void rogue_skills_recompute_synergies(void);
@@ -283,11 +284,10 @@ static void build_live_graph(RogueUIContext* ui)
         static double last_log_ms = 0.0;
         if (g_app.game_time_ms - last_log_ms > 1000.0)
         {
-            fprintf(stderr,
-                    "SKILLGRAPH DBG maze_nodes=%d skills_total=%d visible=%d filter_mask=0x%X "
-                    "view_w=%.1f view_h=%.1f zoom=%.2f\n",
-                    maze_nodes_debug, g_app.skill_count, visible, g_rt.filter_mask, view_w, view_h,
-                    g_rt.zoom);
+            ROGUE_LOG_DEBUG("SKILLGRAPH DBG maze_nodes=%d skills_total=%d visible=%d "
+                            "filter_mask=0x%X view_w=%.1f view_h=%.1f zoom=%.2f",
+                            maze_nodes_debug, g_app.skill_count, visible, g_rt.filter_mask, view_w,
+                            view_h, g_rt.zoom);
             last_log_ms = g_app.game_time_ms;
         }
         /* Debug footer removed */
@@ -320,7 +320,7 @@ static void runtime_skillgraph_handle_input(void)
                 {
                     rogue_skill_maze_free(&g_maze);
                     g_maze_built = 0;
-                    fprintf(stderr, "SKILLGRAPH reload requested (R)\n");
+                    ROGUE_LOG_INFO("SKILLGRAPH reload requested (R)");
                 }
                 reload_consumed = 1;
             }

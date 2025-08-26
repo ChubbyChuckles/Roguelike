@@ -23,6 +23,8 @@ SOFTWARE.
 */
 #include "log.h"
 #include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
 
 static const char* level_to_str(RogueLogLevel lvl)
 {
@@ -41,8 +43,76 @@ static const char* level_to_str(RogueLogLevel lvl)
     }
 }
 
+/* Internal linkage for single TU static state */
+static RogueLogLevel s_global_level = ROGUE_LOG_WARN_LEVEL;
+
+/* Platform helpers */
+static const char* rogue_getenv_safe(const char* name)
+{
+#ifdef _MSC_VER
+    static char buf[128];
+    char* tmp = NULL;
+    size_t len = 0;
+    if (_dupenv_s(&tmp, &len, name) == 0 && tmp && *tmp)
+    {
+        strncpy_s(buf, sizeof(buf), tmp, _TRUNCATE);
+        free(tmp);
+        return buf;
+    }
+    if (tmp)
+        free(tmp);
+    return NULL;
+#else
+    return getenv(name);
+#endif
+}
+
+static int rogue_stricmp(const char* a, const char* b)
+{
+#ifdef _MSC_VER
+    return _stricmp(a, b);
+#else
+    /* simple portable case-insensitive compare */
+    unsigned char ca, cb;
+    while (*a && *b)
+    {
+        ca = (unsigned char) *a;
+        cb = (unsigned char) *b;
+        if (ca >= 'A' && ca <= 'Z')
+            ca = (unsigned char) (ca - 'A' + 'a');
+        if (cb >= 'A' && cb <= 'Z')
+            cb = (unsigned char) (cb - 'A' + 'a');
+        if (ca != cb)
+            return (int) ca - (int) cb;
+        ++a;
+        ++b;
+    }
+    return (int) ((unsigned char) *a) - (int) ((unsigned char) *b);
+#endif
+}
+
 void rogue_log(RogueLogLevel level, const char* file, int line, const char* fmt, ...)
 {
+    static int s_init = 0;
+    if (!s_init)
+    {
+        /* allow env override on first use */
+        const char* e = rogue_getenv_safe("ROGUE_LOG_LEVEL");
+        if (e && *e)
+        {
+            if (!rogue_stricmp(e, "debug") || !strcmp(e, "0"))
+                s_global_level = ROGUE_LOG_DEBUG_LEVEL;
+            else if (!rogue_stricmp(e, "info") || !strcmp(e, "1"))
+                s_global_level = ROGUE_LOG_INFO_LEVEL;
+            else if (!rogue_stricmp(e, "warn") || !rogue_stricmp(e, "warning") || !strcmp(e, "2"))
+                s_global_level = ROGUE_LOG_WARN_LEVEL;
+            else if (!rogue_stricmp(e, "error") || !strcmp(e, "3"))
+                s_global_level = ROGUE_LOG_ERROR_LEVEL;
+        }
+        s_init = 1;
+    }
+    if (level < s_global_level)
+        return;
     FILE* out = (level == ROGUE_LOG_ERROR_LEVEL) ? stderr : stdout;
     fprintf(out, "[%s] %s:%d: ", level_to_str(level), file, line);
     va_list args;
@@ -50,4 +120,22 @@ void rogue_log(RogueLogLevel level, const char* file, int line, const char* fmt,
     vfprintf(out, fmt, args);
     va_end(args);
     fprintf(out, "\n");
+}
+
+void rogue_log_set_level(RogueLogLevel min_level) { s_global_level = min_level; }
+RogueLogLevel rogue_log_get_level(void) { return s_global_level; }
+
+void rogue_log_set_level_from_env(void)
+{
+    const char* e = rogue_getenv_safe("ROGUE_LOG_LEVEL");
+    if (!e || !*e)
+        return;
+    if (!rogue_stricmp(e, "debug") || !strcmp(e, "0"))
+        rogue_log_set_level(ROGUE_LOG_DEBUG_LEVEL);
+    else if (!rogue_stricmp(e, "info") || !strcmp(e, "1"))
+        rogue_log_set_level(ROGUE_LOG_INFO_LEVEL);
+    else if (!rogue_stricmp(e, "warn") || !rogue_stricmp(e, "warning") || !strcmp(e, "2"))
+        rogue_log_set_level(ROGUE_LOG_WARN_LEVEL);
+    else if (!rogue_stricmp(e, "error") || !strcmp(e, "3"))
+        rogue_log_set_level(ROGUE_LOG_ERROR_LEVEL);
 }
