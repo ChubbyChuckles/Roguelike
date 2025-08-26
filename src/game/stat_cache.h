@@ -50,6 +50,12 @@ typedef struct RogueStatCache
     unsigned int dirty_bits; /* bitmask: 1=attributes,2=passives,4=buffs,8=equipment (Phase 11.1) */
     unsigned int recompute_count;               /* total updates performed */
     unsigned int heavy_passive_recompute_count; /* times passive aggregation recomputed */
+    /* Snapshots to support order-invariant baseline recovery across calls even if cache layers are
+       externally altered between calls (e.g., tests zeroing affix_*). When the caller-provided
+       player attributes match the last applied totals, we can restore the true base from these
+        snapshots without relying on current layer fields. */
+    int last_total_strength, last_total_dexterity, last_total_vitality, last_total_intelligence;
+    int last_base_strength, last_base_dexterity, last_base_vitality, last_base_intelligence;
 } RogueStatCache;
 
 extern RogueStatCache g_player_stat_cache;

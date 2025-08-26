@@ -10,3 +10,5 @@ ctest -C Debug -j8 -R ".*test_(skill|skills).*" --output-on-failure # test all s
 powershell -NoLogo -NoProfile -Command "cmake --build . --config Debug --parallel 8" # fast build tests
 
 ctest --test-dir build -C Debug -j8 --output-on-failure --timeout 10
+
+pwsh -NoLogo -NoProfile -Command "Set-Location -LiteralPath 'c:\Users\Chuck\Desktop\CR_AI_Engineering\GameDev\Roguelike'; cmake --build build --config Debug --parallel 8"

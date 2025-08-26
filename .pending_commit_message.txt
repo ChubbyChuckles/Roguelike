@@ -122,3 +122,11 @@ Dialogue JSON + Determinism: asset-path fallback and zero-init for stable memcmp
 Tests (Debug, SDL2, -j8):
 - test_dialogue_json PASS
 - test_determinism_damage_events PASS
+
+Equipment Phase 4.1: implicit layer aggregation + fingerprint order invariance; item-def reload dedup
+
+- Stat cache fingerprint: exclude base_* and totals_* from the fingerprint and fold only stable layer inputs (implicit/affix/resists/armor/ratings); add DBG_FP traces. Resolves equip-order invariance failure where player base mutated between sequences.
+- Item defs loader (CFG/JSON): when reloading, deduplicate by id by updating existing entries in-place and only incrementing 'added' for new ids. Matches tests that append to the same cfg mid-run (added2==1).
+
+Tests (Debug, SDL2, -j8):
+- test_equipment_phase4_1_implicits PASS

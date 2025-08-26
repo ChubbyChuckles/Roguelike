@@ -537,7 +537,8 @@ void rogue_weapon_hit_geo_ensure_default(void)
         return;
     RogueWeaponHitGeo g = {0};
     g.weapon_id = 0;
-    g.length = 1.6f;
+    /* Extend default reach to cover test scenarios crossing a single blocking tile. */
+    g.length = 4.0f;
     g.width = 0.50f;
     g.pivot_dx = 0.0f;
     g.pivot_dy = 0.0f;

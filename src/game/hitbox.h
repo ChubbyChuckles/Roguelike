@@ -91,12 +91,13 @@ static inline RogueHitbox rogue_hitbox_make_arc(float ox, float oy, float radius
     h.u.arc.inner_radius = inner_r;
     return h;
 }
-static inline RogueHitbox rogue_hitbox_make_chain(float radius)
+static inline RogueHitbox rogue_hitbox_make_chain(float width)
 {
     RogueHitbox h;
     h.type = ROGUE_HITBOX_CHAIN;
     h.u.chain.count = 0;
-    h.u.chain.radius = radius;
+    /* API takes width (diameter); internal representation stores radius */
+    h.u.chain.radius = width * 0.5f;
     return h;
 }
 static inline RogueHitbox rogue_hitbox_make_projectile_spawn(int count, float ox, float oy,

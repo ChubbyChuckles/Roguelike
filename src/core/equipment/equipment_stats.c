@@ -396,6 +396,30 @@ void rogue_equipment_apply_stat_bonuses(RoguePlayer* p)
 {
     /* Maintain layered cache model but also (legacy test compatibility) reflect primary stat deltas
      * into player struct if provided. */
+    /* Baseline recovery MUST be computed against previous layer contributions (pre-aggregation),
+       otherwise we end up subtracting the new layers from the old totals, causing order coupling.
+     */
+    RoguePlayer baseline_local;
+    int have_baseline_local = 0;
+    if (p)
+    {
+        baseline_local = *p;
+        if (g_player_stat_cache.recompute_count > 0 &&
+            p->strength == g_player_stat_cache.last_total_strength &&
+            p->dexterity == g_player_stat_cache.last_total_dexterity &&
+            p->vitality == g_player_stat_cache.last_total_vitality &&
+            p->intelligence == g_player_stat_cache.last_total_intelligence)
+        {
+            /* Use snapshots captured after the last recompute to recover the true base
+               deterministically. */
+            baseline_local.strength = g_player_stat_cache.last_base_strength;
+            baseline_local.dexterity = g_player_stat_cache.last_base_dexterity;
+            baseline_local.vitality = g_player_stat_cache.last_base_vitality;
+            baseline_local.intelligence = g_player_stat_cache.last_base_intelligence;
+            have_baseline_local = 1;
+        }
+    }
+
     /* Reset dynamic aggregation fields we own before recomputing. Base & implicit fields cleared in
      * stat cache compute_layers. */
     g_player_stat_cache.affix_strength = g_player_stat_cache.affix_dexterity = 0;
@@ -426,55 +450,15 @@ void rogue_equipment_apply_stat_bonuses(RoguePlayer* p)
     rogue_stat_cache_mark_dirty();
     if (p)
     {
-        /* Idempotent application: track previously applied equipment deltas so repeated calls
-           do not compound base stats and drift the fingerprint
-           (test_equipment_phase18_stress_combo). We compute against a reconstructed baseline each
-           invocation. */
-        static int prev_applied_str = 0, prev_applied_dex = 0, prev_applied_vit = 0,
-                   prev_applied_int = 0;
-        int base_str = p->strength - prev_applied_str;
-        if (base_str < 0)
-            base_str = 0;
-        int base_dex = p->dexterity - prev_applied_dex;
-        if (base_dex < 0)
-            base_dex = 0;
-        int base_vit = p->vitality - prev_applied_vit;
-        if (base_vit < 0)
-            base_vit = 0;
-        int base_int = p->intelligence - prev_applied_int;
-        if (base_int < 0)
-            base_int = 0;
-        /* Use a temp copy so stat cache sees original base values, not mutated player fields */
-        RoguePlayer temp = *p;
-        temp.strength = base_str;
-        temp.dexterity = base_dex;
-        temp.vitality = base_vit;
-        temp.intelligence = base_int;
-        rogue_stat_cache_force_update(&temp); /* recompute layers on baseline */
-        /* Apply fresh deltas to player (visible legacy behavior) */
-        int applied_str = g_player_stat_cache.total_strength - g_player_stat_cache.base_strength;
-        if (applied_str < 0)
-            applied_str = 0;
-        int applied_dex = g_player_stat_cache.total_dexterity - g_player_stat_cache.base_dexterity;
-        if (applied_dex < 0)
-            applied_dex = 0;
-        int applied_vit = g_player_stat_cache.total_vitality - g_player_stat_cache.base_vitality;
-        if (applied_vit < 0)
-            applied_vit = 0;
-        int applied_int =
-            g_player_stat_cache.total_intelligence - g_player_stat_cache.base_intelligence;
-        if (applied_int < 0)
-            applied_int = 0;
-        p->strength = base_str + applied_str;
-        p->dexterity = base_dex + applied_dex;
-        p->vitality = base_vit + applied_vit;
-        p->intelligence = base_int + applied_int;
-        /* Persist for next invocation */
-        prev_applied_str = applied_str;
-        prev_applied_dex = applied_dex;
-        prev_applied_vit = applied_vit;
-        prev_applied_int = applied_int;
-        /* Cache already up-to-date from temp path; no further force_update needed. */
+        /* Ensure cache treats these as base-only inputs */
+        RoguePlayer* src = p;
+        RoguePlayer baseline = have_baseline_local ? baseline_local : *p;
+        (void) src;
+        rogue_stat_cache_force_update(&baseline);
+        p->strength = g_player_stat_cache.total_strength;
+        p->dexterity = g_player_stat_cache.total_dexterity;
+        p->vitality = g_player_stat_cache.total_vitality;
+        p->intelligence = g_player_stat_cache.total_intelligence;
     }
     else
     {

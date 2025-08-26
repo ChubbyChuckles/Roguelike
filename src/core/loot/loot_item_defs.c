@@ -183,8 +183,8 @@ static int parse_line(char* line, RogueItemDef* out)
     /* Implicit stat columns (Phase 4.1) start at index 16 if present:
         16: implicit_strength
         17: implicit_dexterity
-        18: implicit_vitality
-        19: implicit_intelligence
+    18: implicit_intelligence
+    19: implicit_vitality
         20: implicit_armor_flat
         21: implicit_resist_physical
         22: implicit_resist_fire
@@ -202,10 +202,11 @@ static int parse_line(char* line, RogueItemDef* out)
             d.implicit_strength = (int) strtol(fields[idx++], NULL, 10);
         if (idx < nf)
             d.implicit_dexterity = (int) strtol(fields[idx++], NULL, 10);
-        if (idx < nf)
-            d.implicit_vitality = (int) strtol(fields[idx++], NULL, 10);
+        /* Note: Historical column ordering has intelligence before vitality in tests/spec */
         if (idx < nf)
             d.implicit_intelligence = (int) strtol(fields[idx++], NULL, 10);
+        if (idx < nf)
+            d.implicit_vitality = (int) strtol(fields[idx++], NULL, 10);
         if (idx < nf)
             d.implicit_armor_flat = (int) strtol(fields[idx++], NULL, 10);
         if (idx < nf)
@@ -330,13 +331,22 @@ int rogue_item_defs_load_from_cfg(const char* path)
         }
         if (r == 0)
             continue; /* skip */
-        if (g_item_def_count >= ROGUE_ITEM_DEF_CAP)
+        /* If an item with this id already exists, update it in place instead of duplicating. */
+        int existing = rogue_item_def_index(d.id);
+        if (existing >= 0)
         {
-            fprintf(stderr, "item_defs: cap reached (%d)\n", ROGUE_ITEM_DEF_CAP);
-            break;
+            g_item_defs[existing] = d; /* update */
         }
-        g_item_defs[g_item_def_count++] = d;
-        added++;
+        else
+        {
+            if (g_item_def_count >= ROGUE_ITEM_DEF_CAP)
+            {
+                fprintf(stderr, "item_defs: cap reached (%d)\n", ROGUE_ITEM_DEF_CAP);
+                break;
+            }
+            g_item_defs[g_item_def_count++] = d;
+            added++;
+        }
     }
     fclose(f);
     /* Rebuild hash index after each file load to keep fast path current (cost acceptable for small
@@ -593,7 +603,7 @@ int rogue_item_defs_load_from_json(const char* path)
                 continue;
             }
         }
-        if (have_id && have_name && g_item_def_count < ROGUE_ITEM_DEF_CAP)
+        if (have_id && have_name)
         {
             if (d.socket_min < 0)
                 d.socket_min = 0;
@@ -601,8 +611,17 @@ int rogue_item_defs_load_from_json(const char* path)
                 d.socket_max = d.socket_min;
             if (d.socket_max > 6)
                 d.socket_max = 6;
-            g_item_defs[g_item_def_count++] = d;
-            added++;
+            /* Deduplicate by id: update existing entry, or append if new. */
+            int existing = rogue_item_def_index(d.id);
+            if (existing >= 0)
+            {
+                g_item_defs[existing] = d;
+            }
+            else if (g_item_def_count < ROGUE_ITEM_DEF_CAP)
+            {
+                g_item_defs[g_item_def_count++] = d;
+                added++;
+            }
         }
         s = skip_ws(s);
         if (*s == ',')

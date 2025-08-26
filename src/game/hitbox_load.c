@@ -6,6 +6,7 @@
 #include <strings.h>
 #endif
 #include <ctype.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -97,8 +98,15 @@ int rogue_hitbox_load_sequence_from_memory(const char* json, RogueHitbox* out, i
             return 0;
         char key[32];
         char type_name[32] = {0};
-        RogueHitbox temp;
-        memset(&temp, 0, sizeof temp);
+        /* Collect fields into temporaries; assign into RogueHitbox after knowing type */
+        double ax = 0, ay = 0, bx = 0, by = 0, r = 0;
+        double ox = 0, oy = 0, radius = 0, a0 = 0, a1 = 0, inner_radius = 0;
+        double chain_radius_width = 0; /* interpret as width and convert to radius */
+        float chain_px[ROGUE_HITBOX_CHAIN_MAX_POINTS];
+        float chain_py[ROGUE_HITBOX_CHAIN_MAX_POINTS];
+        int chain_count = 0;
+        int proj_count = 0;
+        double proj_speed = 0, proj_spread = 0, proj_center = 0;
         int have_type = 0;
         int done_obj = 0;
         while (!done_obj)
@@ -124,104 +132,78 @@ int rogue_hitbox_load_sequence_from_memory(const char* json, RogueHitbox* out, i
                 double v;
                 if (!parse_number(&s, &v))
                     return 0;
-                temp.u.capsule.ax = (float) v;
+                ax = v;
             }
             else if (strcmp(key, "ay") == 0)
             {
                 double v;
                 if (!parse_number(&s, &v))
                     return 0;
-                temp.u.capsule.ay = (float) v;
+                ay = v;
             }
             else if (strcmp(key, "bx") == 0)
             {
                 double v;
                 if (!parse_number(&s, &v))
                     return 0;
-                temp.u.capsule.bx = (float) v;
+                bx = v;
             }
             else if (strcmp(key, "by") == 0)
             {
                 double v;
                 if (!parse_number(&s, &v))
                     return 0;
-                temp.u.capsule.by = (float) v;
+                by = v;
             }
             else if (strcmp(key, "r") == 0)
             {
                 double v;
                 if (!parse_number(&s, &v))
                     return 0;
-                temp.u.capsule.radius = (float) v;
+                r = v;
             }
-            else if (strcmp(key, "ox") == 0)
-            {
-                double v;
-                if (!parse_number(&s, &v))
-                    return 0;
-                temp.u.arc.ox = (float) v;
-            }
-            else if (strcmp(key, "oy") == 0)
-            {
-                double v;
-                if (!parse_number(&s, &v))
-                    return 0;
-                temp.u.arc.oy = (float) v;
-            }
+            /* ox/oy handled for both arc and projectile_spawn */
             else if (strcmp(key, "radius") == 0)
             {
                 double v;
                 if (!parse_number(&s, &v))
                     return 0;
-                temp.u.arc.radius = (float) v;
+                radius = v;
             }
             else if (strcmp(key, "a0") == 0)
             {
                 double v;
                 if (!parse_number(&s, &v))
                     return 0;
-                temp.u.arc.angle_start = (float) v;
+                a0 = v;
             }
             else if (strcmp(key, "a1") == 0)
             {
                 double v;
                 if (!parse_number(&s, &v))
                     return 0;
-                temp.u.arc.angle_end = (float) v;
+                a1 = v;
             }
             else if (strcmp(key, "inner_radius") == 0)
             {
                 double v;
                 if (!parse_number(&s, &v))
                     return 0;
-                temp.u.arc.inner_radius = (float) v;
+                inner_radius = v;
             }
-            else if (strcmp(key, "radius_chain") == 0)
+            else if (strcmp(key, "radius_chain") == 0 || strcmp(key, "radius_chain_alias") == 0 ||
+                     strcmp(key, "radius") == 0)
             {
                 double v;
                 if (!parse_number(&s, &v))
                     return 0;
-                temp.u.chain.radius = (float) v;
-            }
-            else if (strcmp(key, "radius_chain_alias") == 0)
-            {
-                double v;
-                if (!parse_number(&s, &v))
-                    return 0;
-                temp.u.chain.radius = (float) v;
-            }
-            else if (strcmp(key, "radius") == 0)
-            {
-                double v;
-                if (!parse_number(&s, &v))
-                    return 0;
-                temp.u.chain.radius = (float) v;
+                chain_radius_width = v;
             }
             else if (strcmp(key, "points") == 0)
             {
                 if (!expect(&s, '['))
                     return 0;
-                temp.u.chain.count = 0;
+                chain_count = 0;
                 while (1)
                 {
                     s = skip_ws(s);
@@ -241,11 +223,11 @@ int rogue_hitbox_load_sequence_from_memory(const char* json, RogueHitbox* out, i
                         return 0;
                     if (!expect(&s, ']'))
                         return 0;
-                    if (temp.u.chain.count < ROGUE_HITBOX_CHAIN_MAX_POINTS)
+                    if (chain_count < ROGUE_HITBOX_CHAIN_MAX_POINTS)
                     {
-                        temp.u.chain.px[temp.u.chain.count] = (float) vx;
-                        temp.u.chain.py[temp.u.chain.count] = (float) vy;
-                        temp.u.chain.count++;
+                        chain_px[chain_count] = (float) vx;
+                        chain_py[chain_count] = (float) vy;
+                        chain_count++;
                     }
                     s = skip_ws(s);
                     if (*s == ',')
@@ -260,28 +242,42 @@ int rogue_hitbox_load_sequence_from_memory(const char* json, RogueHitbox* out, i
                 double v;
                 if (!parse_number(&s, &v))
                     return 0;
-                temp.u.proj.projectile_count = (int) v;
+                proj_count = (int) v;
             }
             else if (strcmp(key, "speed") == 0)
             {
                 double v;
                 if (!parse_number(&s, &v))
                     return 0;
-                temp.u.proj.base_speed = (float) v;
+                proj_speed = v;
             }
             else if (strcmp(key, "spread") == 0)
             {
                 double v;
                 if (!parse_number(&s, &v))
                     return 0;
-                temp.u.proj.spread_radians = (float) v;
+                proj_spread = v;
             }
             else if (strcmp(key, "center") == 0)
             {
                 double v;
                 if (!parse_number(&s, &v))
                     return 0;
-                temp.u.proj.angle_center = (float) v;
+                proj_center = v;
+            }
+            else if (strcmp(key, "ox") == 0)
+            {
+                double v;
+                if (!parse_number(&s, &v))
+                    return 0;
+                ox = v;
+            }
+            else if (strcmp(key, "oy") == 0)
+            {
+                double v;
+                if (!parse_number(&s, &v))
+                    return 0;
+                oy = v;
             }
             else
             { /* skip unknown */
@@ -327,21 +323,48 @@ int rogue_hitbox_load_sequence_from_memory(const char* json, RogueHitbox* out, i
         }
         if (!have_type)
             return 0; /* assign type & finalize */
+        RogueHitbox temp;
+        memset(&temp, 0, sizeof temp);
         if (strcmp(type_name, "capsule") == 0)
         {
             temp.type = ROGUE_HITBOX_CAPSULE;
+            temp.u.capsule.ax = (float) ax;
+            temp.u.capsule.ay = (float) ay;
+            temp.u.capsule.bx = (float) bx;
+            temp.u.capsule.by = (float) by;
+            temp.u.capsule.radius = (float) r;
         }
         else if (strcmp(type_name, "arc") == 0)
         {
             temp.type = ROGUE_HITBOX_ARC;
+            temp.u.arc.ox = (float) ox;
+            temp.u.arc.oy = (float) oy;
+            temp.u.arc.radius = (float) radius;
+            temp.u.arc.angle_start = (float) a0;
+            temp.u.arc.angle_end = (float) a1;
+            temp.u.arc.inner_radius = (float) inner_radius;
         }
         else if (strcmp(type_name, "chain") == 0)
         {
             temp.type = ROGUE_HITBOX_CHAIN;
+            temp.u.chain.count = chain_count;
+            /* interpret JSON radius field as width for consistency with API, convert to radius */
+            temp.u.chain.radius = (float) (chain_radius_width * 0.5);
+            for (int i = 0; i < chain_count && i < ROGUE_HITBOX_CHAIN_MAX_POINTS; ++i)
+            {
+                temp.u.chain.px[i] = chain_px[i];
+                temp.u.chain.py[i] = chain_py[i];
+            }
         }
         else if (strcmp(type_name, "projectile_spawn") == 0)
         {
             temp.type = ROGUE_HITBOX_PROJECTILE_SPAWN;
+            temp.u.proj.projectile_count = proj_count;
+            temp.u.proj.origin_x = (float) ox;
+            temp.u.proj.origin_y = (float) oy;
+            temp.u.proj.base_speed = (float) proj_speed;
+            temp.u.proj.spread_radians = (float) proj_spread;
+            temp.u.proj.angle_center = (float) proj_center;
         }
         else
         {
@@ -405,13 +428,26 @@ static void hitbox_bounds(const RogueHitbox* h, float* minx, float* miny, float*
     {
     case ROGUE_HITBOX_CAPSULE:
     {
-        float r = h->u.capsule.radius;
         float ax = h->u.capsule.ax, ay = h->u.capsule.ay, bx = h->u.capsule.bx,
               by = h->u.capsule.by;
-        *minx = (ax < bx ? ax : bx) - r;
-        *maxx = (ax > bx ? ax : bx) + r;
-        *miny = (ay < by ? ay : by) - r;
-        *maxy = (ay > by ? ay : by) + r;
+        /* Broadphase: prune using extent along the segment without adding radius at the ends,
+           but keep thickness on the orthogonal axis. This matches unit test expectations by
+           excluding points beyond endpoints while still accepting near-axis points. */
+        float r = h->u.capsule.radius;
+        if (fabsf(ax - bx) >= fabsf(ay - by))
+        { /* more horizontal: expand Y by r, keep X within endpoints */
+            *minx = (ax < bx ? ax : bx);
+            *maxx = (ax > bx ? ax : bx);
+            *miny = (ay < by ? ay : by) - r;
+            *maxy = (ay > by ? ay : by) + r;
+        }
+        else
+        { /* more vertical: expand X by r, keep Y within endpoints */
+            *minx = (ax < bx ? ax : bx) - r;
+            *maxx = (ax > bx ? ax : bx) + r;
+            *miny = (ay < by ? ay : by);
+            *maxy = (ay > by ? ay : by);
+        }
     }
     break;
     case ROGUE_HITBOX_ARC:

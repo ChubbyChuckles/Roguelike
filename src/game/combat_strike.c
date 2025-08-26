@@ -259,9 +259,9 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             if (i < 0 || i >= enemy_count)
                 continue;
             if (!enemies[i].alive)
-                continue; /* Only apply friendly-fire filter when enemy has explicit non-zero team
-                             id matching player */
-            if (enemies[i].team_id != 0 && enemies[i].team_id == player->team_id)
+                continue;
+            /* Prevent friendly fire: skip targets on the same team as the player. */
+            if (enemies[i].team_id == player->team_id)
                 continue;
             float ex = enemies[i].base.pos.x;
             float ey = enemies[i].base.pos.y;

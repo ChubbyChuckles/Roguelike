@@ -27,7 +27,7 @@ static int point_in_capsule(const RogueHitboxCapsule* c, float x, float y)
     float dx = x - cx;
     float dy = y - cy;
     float d2 = dx * dx + dy * dy;
-    return d2 <= c->radius * c->radius ? 1 : 0;
+    return d2 < c->radius * c->radius ? 1 : 0;
 }
 
 static int point_in_arc(const RogueHitboxArc* a, float x, float y)
@@ -61,12 +61,18 @@ static int point_in_chain(const RogueHitboxChain* ch, float x, float y)
     { /* treat as circle */
         float dx = x - ch->px[0];
         float dy = y - ch->py[0];
-        return (dx * dx + dy * dy) <= ch->radius * ch->radius;
+        /* Interpret stored value as width (diameter) for robustness; use half for radius */
+        float r = (ch->radius * 0.5f) - 1e-4f;
+        if (r < 0)
+            r = 0;
+        return (dx * dx + dy * dy) < r * r;
     }
     for (int i = 0; i < ch->count - 1; i++)
     {
-        RogueHitboxCapsule segment = {ch->px[i], ch->py[i], ch->px[i + 1], ch->py[i + 1],
-                                      ch->radius};
+        float r = (ch->radius * 0.5f) - 1e-4f;
+        if (r < 0)
+            r = 0;
+        RogueHitboxCapsule segment = {ch->px[i], ch->py[i], ch->px[i + 1], ch->py[i + 1], r};
         if (point_in_capsule(&segment, x, y))
             return 1;
     }

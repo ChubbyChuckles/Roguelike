@@ -230,6 +230,11 @@ Equipment persistence roundtrip fixes (Phase 1 & 13):
 - Serialization format already emitted EQUIP_V1 and tokens (SET/UNQ/RW); hashing via FNV-1a over buffer remains stable and detects durability tamper.
 - Tests passing (Debug, SDL2, -j8): test_equipment_phase1_persistence, test_equipment_phase13_persistence.
 
+Equipment Phase 4.1: implicits + fingerprint invariance
+- Stat Cache Fingerprint: switched to deterministic fold over explicit layer fields; excluded totals and base_* to avoid order coupling; added DBG_FP traces. Resolved equip-order invariance failure.
+- Item Def Loader (reload): deduplicate by id on subsequent loads; update existing entries and only count truly new ids as added to match tests that append to the same cfg mid-run.
+- Tests passing (Debug, SDL2, -j8): test_equipment_phase4_1_implicits.
+
 TESTING METHODOLOGY:
 1. **Isolation Testing**: Run each fixed test in isolation to verify fix
 2. **Integration Testing**: Run related test groups to check for regressions
