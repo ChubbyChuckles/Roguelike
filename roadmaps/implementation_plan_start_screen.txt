@@ -64,15 +64,15 @@ PHASE 7. Credits & Legal
 7.3 Build/version hash and git branch display (Done: Build tab shows ROGUE_BUILD_GIT_HASH, ROGUE_BUILD_GIT_BRANCH, ROGUE_BUILD_TIME)
 
 PHASE 8. Async Prewarm & Performance
-8.1 Background asset prewarm (glyph cache bootstrap, theme cache, background image decode/texture upload) (X)
-8.2 Optional audio BGM start with graceful fallback if mixer missing (X)
-8.3 Frame budget guard: keep update+render < 1.0ms on baseline (X)
-8.4 Loading spinner micro-state when async jobs run (X)
+8.1 Background asset prewarm (glyph cache bootstrap, theme cache, background image decode/texture upload) (Done)
+8.2 Optional audio BGM start with graceful fallback if mixer missing (Done)
+8.3 Frame budget guard: keep update+render < 1.0ms on baseline (Done)
+8.4 Loading spinner micro-state when async jobs run (Done)
 
 PHASE 9. Transitions to/from Game
-9.1 Transition out: fade menu -> fade in world HUD (X)
-9.2 Escape back to start screen from main menu (dev toggle) (X)
-9.3 Safety: cancel running transitions cleanly on state change (X)
+9.1 Transition out: fade menu -> fade in world HUD (Done)
+9.2 Escape back to start screen from main menu (dev toggle) (Done)
+9.3 Safety: cancel running transitions cleanly on state change (Done)
 
 PHASE 10. Testing & QA Automation
 10.1 Headless golden snapshot: start screen first frame hash (Verified Debug: test_start_screen_phase10_1_headless)
@@ -85,13 +85,21 @@ PHASE 10. Testing & QA Automation
 10.8 Aspect-ratio scaling: hash differs for cover vs contain; no stretching artifacts (Done)
 10.9 SDL2_image absent: harness simulates missing loader -> no crash; gradient path validated (Done)
 
-Verification notes (2025-08-26):
-- Built Debug with SDL2, parallel 8. Start screen test suite passed (4/4).
+Verification notes (2025-08-26, later run):
+- Built Debug with SDL2, parallel 8. Start screen test suite passed (5/5).
 - Manual smoke: Load list overlay opens, navigates across existing slots; selecting loads and transitions via fade-out.
 - Full test run: 95% passed; remaining failures in unrelated AI/combat/worldgen/equipment suites. test_boot passed on re-run; no start screen regressions observed.
  - Logging tightened: default WARN reduces console spam; ROGUE_LOG_LEVEL env enables opt-in DEBUG/INFO for troubleshooting.
 - Persistence logging noise reduced: converted raw fprintf DBG traces in SaveManager to central logger at DEBUG level, keeping the console quiet by default.
+ - Performance guard: Start Screen samples an early-frame baseline and enforces an absolute/relative budget; if breached, optional visuals (spinner/parallax) auto-disable and a single WARN emits. Budget override via env ROGUE_START_BUDGET_MS.
+ - Asset loading noise reduction: WIC PNG loader now warns once per unique missing/broken path to avoid flooding the console during tests.
  - Load overlay now includes a delete confirmation modal. Confirm (Enter) deletes the selected slot via save manager API; cancel (Esc) aborts. Save manager tolerates missing sidecar files.
+
+Phase 9 verification (2025-08-26, final):
+- Implemented world fade-in overlay on exit from Start Screen; respects reduced-motion (skipped when enabled). Fade renders as full-screen black quad with time-based alpha decay post-HUD render.
+- Added developer-only escape back to Start Screen when ROGUE_START_DEV_ESCAPE=1; handled in world update path to re-enter Start with a safe fade-in state.
+- Ensured overlays (Settings, Credits, Load, seed entry) are cancelled immediately when Start Screen begins fade-out to game, preventing orphaned UI states.
+- Rebuilt Debug SDL2 (-j8). Targeted Start Screen tests remain 5/5 green: phase10_{1,2,3,4,6}.
 
 New Game flow verification (2025-08-26, later run):
 - Implemented helper to publish ROGUE_EVENT_NEW_GAME_START, generate a world from the current seed, place spawn, save to slot 0, and trigger fade-out on success.

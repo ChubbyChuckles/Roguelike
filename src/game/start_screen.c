@@ -240,11 +240,30 @@ static void maybe_begin_prewarm(void)
     }
 }
 
+static int start_perf_over_budget(void)
+{
+    /* Returns 1 if the last measured frame exceeded budget (absolute or relative).
+       Baseline is computed over first start_perf_target_samples frames. */
+    double last_ms = g_app.frame_ms; /* from previous frame end */
+    int abs_over = (g_app.start_perf_budget_ms > 0.0 && last_ms > g_app.start_perf_budget_ms);
+    int rel_over = 0;
+    if (g_app.start_perf_baseline_ms > 0.0)
+    {
+        double allowed =
+            g_app.start_perf_baseline_ms * (1.0 + g_app.start_perf_regress_threshold_pct);
+        if (last_ms > allowed)
+            rel_over = 1;
+    }
+    return abs_over || rel_over;
+}
+
 static void render_spinner_overlay(void)
 {
 #ifdef ROGUE_HAVE_SDL
     if (!g_app.start_prewarm_active || g_app.reduced_motion)
         return;
+    if (g_app.start_perf_reduce_quality)
+        return; /* suppress spinner under budget pressure */
     /* Simple spinner at top-right: three rotating dots. */
     extern SDL_Renderer* g_internal_sdl_renderer_ref;
     int cx = g_app.viewport_w - 24;
@@ -347,7 +366,9 @@ static void render_background(void)
             SDL_RenderDrawLine(g_internal_sdl_renderer_ref, 0, y, g_app.viewport_w, y);
         }
     }
-    /* Phase 2.5: simple parallax stars/particles overlay (unaffected by reduced motion) */
+    /* Phase 2.5: simple parallax stars/particles overlay (unaffected by reduced motion).
+       Disable when start_perf_reduce_quality is set. */
+    if (!g_app.start_perf_reduce_quality)
     {
         extern SDL_Renderer* g_internal_sdl_renderer_ref;
         /* Deterministic positions derived from a fixed seed so snapshot tests remain stable. */
@@ -556,6 +577,31 @@ void rogue_start_screen_update_and_render(void)
 {
     if (!g_app.show_start_screen)
         return;
+    /* Phase 8.3: baseline sampling and budget check (uses previous frame time) */
+    if (g_app.start_perf_samples < g_app.start_perf_target_samples)
+    {
+        g_app.start_perf_accum_ms += g_app.frame_ms;
+        g_app.start_perf_samples++;
+        if (g_app.start_perf_samples == g_app.start_perf_target_samples &&
+            g_app.start_perf_baseline_ms <= 0.0)
+        {
+            g_app.start_perf_baseline_ms =
+                g_app.start_perf_accum_ms / (double) g_app.start_perf_target_samples;
+        }
+    }
+    if (start_perf_over_budget())
+    {
+        g_app.start_perf_regressed = 1;
+        g_app.start_perf_reduce_quality = 1;
+        if (!g_app.start_perf_warned)
+        {
+            ROGUE_LOG_WARN("StartScreen over budget: last=%.3fms baseline=%.3fms budget=%.3fms "
+                           "(reducing quality)",
+                           g_app.frame_ms, g_app.start_perf_baseline_ms,
+                           g_app.start_perf_budget_ms);
+            g_app.start_perf_warned = 1;
+        }
+    }
     g_app.title_time += g_app.dt;
     /* Phase 8: begin and advance prewarm (a couple of steps over first frames) */
     maybe_begin_prewarm();
@@ -589,11 +635,29 @@ void rogue_start_screen_update_and_render(void)
     }
     else if (g_app.start_state == ROGUE_START_FADE_OUT)
     {
+        /* Phase 9.3: cancel overlays immediately on exit */
+        g_app.start_show_settings = 0;
+        g_app.start_show_credits = 0;
+        g_app.start_show_load_list = 0;
+        g_app.entering_seed = 0;
         g_app.start_state_t -= (float) g_app.dt * g_app.start_state_speed;
         if (g_app.start_state_t <= 0.0f)
         {
             g_app.start_state_t = 0.0f;
             g_app.show_start_screen = 0; /* transition complete */
+            /* Phase 9.1: when leaving start, enable world fade-in overlay */
+            if (!g_app.reduced_motion)
+            {
+                g_app.world_fade_active = 1;
+                g_app.world_fade_t = 1.0f; /* start fully black, fade to 0 */
+                if (g_app.world_fade_speed <= 0.0f)
+                    g_app.world_fade_speed = 1.0f;
+            }
+            else
+            {
+                g_app.world_fade_active = 0;
+                g_app.world_fade_t = 0.0f;
+            }
         }
     }
 

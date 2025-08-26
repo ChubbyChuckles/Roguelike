@@ -112,3 +112,26 @@ Quality gates:
 - Rebuilt Debug with SDL2 using cmake --build build --config Debug --parallel 8.
 - Start Screen subset green: test_start_screen_phase10_{1,2,3,4,6} passed (5/5).
 - Broader suites unchanged with unrelated failures.
+
+Start screen: Phase 8 complete (prewarm, optional BGM, frame budget guard, spinner) + quieter WIC logs
+
+- Phase 8.1–8.4 implemented: background prewarm, optional BGM with graceful fallback, frame budget guard with adaptive quality (disable spinner/parallax), and spinner micro-state during async.
+- Env: ROGUE_START_BUDGET_MS to override the Start Screen frame-time budget.
+- PNG loader (Windows/WIC): warn-once per unique image path to reduce console flood in headless/tests.
+- Roadmap updated (Phase 8 Done); README documents budget env and noise guard.
+
+Quality gates:
+- Built Debug with SDL2 using cmake --build build --config Debug --parallel 8.
+- Start screen Phase 10 tests green (5/5).
+- Full suite has unrelated failures; start screen scope remains green.
+
+Start screen: Phase 9 transitions (world fade-in, dev ESC return, safe overlay cancel)
+
+- Phase 9.1: On exiting the Start Screen, activate a brief world fade-in overlay (full-screen black quad after HUD) for a smooth transition; skipped under reduced motion.
+- Phase 9.2: Add developer-only escape back to Start Screen when ROGUE_START_DEV_ESCAPE=1; handled in world update path to re-enter Start with a safe fade-in.
+- Phase 9.3: Cancel Settings/Credits/Load/seed overlays immediately when Start begins fade-out to prevent orphaned UI states during transition.
+- Docs: Roadmap Phase 9 marked Done; README documents the transition behavior and ROGUE_START_DEV_ESCAPE env var.
+
+Quality gates:
+- Rebuilt Debug with SDL2 (-j8). Targeted Start Screen suite green (5/5): phase10_{1,2,3,4,6}.
+- Console noise remains low by default (WARN); WIC loader warn-once keeps asset-missing spam minimal.

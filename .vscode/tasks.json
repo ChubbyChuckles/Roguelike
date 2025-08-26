@@ -181,6 +181,18 @@
 			"type": "shell",
 			"command": "cmake --build build --config Debug --parallel 8",
 			"group": "build"
+		},
+		{
+			"label": "Build Debug (SDL2, -j8) after Phase 8 + WIC warn-once",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"group": "build"
+		},
+		{
+			"label": "Rebuild Debug (SDL2, -j8) after Phase 9 transitions",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"group": "build"
 		}
 	]
 }

@@ -292,6 +292,15 @@ void rogue_app_step(void)
             rogue_dialogue_update(dt_ms);
             rogue_dialogue_render_runtime();
         }
+        /* Phase 9.2: Dev escape back to start */
+        if (g_app.dev_escape_to_start && rogue_input_was_pressed(&g_app.input, ROGUE_KEY_CANCEL))
+        {
+            g_app.show_start_screen = 1;
+            g_app.start_state = ROGUE_START_FADE_IN;
+            g_app.start_state_t = 0.0f;
+            g_app.world_fade_active = 0;
+            g_app.world_fade_t = 0.0f;
+        }
     }
     rogue_hud_render(); /* includes alerts + metrics overlay now */
     rogue_skill_bar_render();
@@ -305,6 +314,30 @@ void rogue_app_step(void)
     rogue_skillgraph_runtime_render();
     rogue_equipment_apply_stat_bonuses(&g_app.player);
     rogue_stat_cache_update(&g_app.player);
+    /* World fade overlay render after HUD to smoothly reveal world (Phase 9.1) */
+#ifdef ROGUE_HAVE_SDL
+    if (!rogue_start_screen_active() && g_app.world_fade_active)
+    {
+        float dt = (float) g_app.dt;
+        if (g_app.world_fade_speed <= 0.0f)
+            g_app.world_fade_speed = 1.0f;
+        g_app.world_fade_t -= dt * g_app.world_fade_speed;
+        if (g_app.world_fade_t <= 0.0f)
+        {
+            g_app.world_fade_t = 0.0f;
+            g_app.world_fade_active = 0;
+        }
+        unsigned char a = (unsigned char) (g_app.world_fade_t * 255.0f);
+        if (a > 0)
+        {
+            SDL_SetRenderDrawBlendMode(g_app.renderer, SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(g_app.renderer, 0, 0, 0, a);
+            SDL_Rect full = {0, 0, g_app.viewport_w, g_app.viewport_h};
+            SDL_RenderFillRect(g_app.renderer, &full);
+            SDL_SetRenderDrawBlendMode(g_app.renderer, SDL_BLENDMODE_NONE);
+        }
+    }
+#endif
     if (!g_app.headless)
     {
         SDL_RenderPresent(g_app.renderer);

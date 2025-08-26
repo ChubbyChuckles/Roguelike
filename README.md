@@ -60,21 +60,10 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 ## Start Screen
 
 The start screen includes:
-- Background image with cover/contain scaling and a gradient fallback if assets are missing.
-- Optional parallax star overlay (disabled under reduced motion).
-- Menu: Continue (auto-selects most recent save), New Game, Load Game (overlay list), Settings (placeholder), Credits (placeholder), Quit, and a Seed entry line.
-- Menu: Continue (auto-selects most recent save), New Game, Load Game (overlay list), Settings (placeholder), Credits (placeholder), Quit, and a Seed entry line.
-- New Game flow: publishes a new_game_start telemetry event, generates a world from the current seed, writes an initial save to slot 0, and transitions via fade-out. In CI/headless the confirmation modal is disabled by default for deterministic tests.
-- Controller/keyboard navigation with wrap-around and held-key repeat.
-- Localization-ready labels and tooltips; defaults are built-in en-US.
+ - Smooth transition to gameplay: Start Screen fades out and, unless reduced-motion is enabled, a brief world fade-in overlay plays to ease the cut. Overlays are cancelled safely on exit.
 - Reduced-motion compliance (skips animated fades) and day/night tinting.
 
-Settings overlay (access from the Start menu):
-- Reduced Motion toggle: globally reduces/skip animations and fades.
-- High Contrast toggle: applies a subtle darkening overlay to improve legibility.
-- Narration: placeholder (reserved for future screen-reader hooks).
-- DPI Scale: adjust UI scale in 5% steps with Left/Right (clamped 50%–300%).
-
+ - ROGUE_START_DEV_ESCAPE=1: in developer builds, pressing Esc while in gameplay returns to the Start Screen (for rapid iteration). Disabled by default.
 Load overlay basics:
 - Opens from Load Game and lists existing slots (up to configured slot count).
 - Each entry shows a placeholder thumbnail tinted by a seeded color, plus basic header info.
@@ -91,6 +80,7 @@ Environment overrides:
 - ROGUE_REDUCED_MOTION=1: skip fades and animations for accessibility.
  - ROGUE_START_LIST_ALL=1: list all save slots in the Load overlay (default behavior lists slot 0 only in headless/tests to keep snapshots deterministic).
  - ROGUE_START_CONFIRM_NEW=1: require a confirmation modal for New Game (default off; headless auto-accepts).
+ - ROGUE_START_BUDGET_MS: override the Start Screen frame-time budget in milliseconds for the early-frame baseline guard (default 1.0). If the guard detects a regression (absolute or +25% relative), optional visuals (spinner/parallax) are suppressed.
  - ROGUE_LOG_LEVEL=debug|info|warn|error: control console verbosity.
 
 Credits & Legal overlay:
@@ -106,6 +96,9 @@ Logging (quieter console by default):
 	- bash/cmd: `ROGUE_LOG_LEVEL=debug ./roguelike` (bash) or `set ROGUE_LOG_LEVEL=debug && roguelike.exe` (cmd).
 	- Reset in PowerShell: `Remove-Item Env:ROGUE_LOG_LEVEL`.
 	The app also auto-reads the env on first log, and main() initializes it early.
+
+	Additional noise guards:
+	- PNG loader (Windows/WIC) warns once per unique missing/broken asset path to avoid flooding logs during headless tests.
 
 	Persistence robustness:
 	- The save system tolerates empty/initial saves (no registered components) by computing CRC/SHA over an empty payload and still writing integrity footers. This enables the initial New Game save path to succeed in minimal test harnesses.

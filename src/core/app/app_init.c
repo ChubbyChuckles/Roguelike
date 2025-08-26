@@ -98,11 +98,26 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.start_bg_loaded = 0;
     g_app.start_bg_scale = ROGUE_BG_COVER;
     g_app.start_bg_tint = 0xFFFFFFFFu;
+    /* Phase 9 defaults: world fade overlay and dev escape toggle */
+    g_app.world_fade_active = 0;
+    g_app.world_fade_t = 0.0f;
+    g_app.world_fade_speed = 1.0f;
+    g_app.dev_escape_to_start = 0;
     /* Phase 8: prewarm/spinner state */
     g_app.start_prewarm_active = 0;
     g_app.start_prewarm_done = 0;
     g_app.start_prewarm_step = 0;
     g_app.start_spinner_angle = 0.0f;
+    /* Phase 8.3: perf budget defaults (env ROGUE_START_BUDGET_MS to override) */
+    g_app.start_perf_budget_ms = 1.0; /* default budget 1.0 ms */
+    g_app.start_perf_baseline_ms = 0.0;
+    g_app.start_perf_accum_ms = 0.0;
+    g_app.start_perf_samples = 0;
+    g_app.start_perf_target_samples = 30;          /* average first 30 frames */
+    g_app.start_perf_regress_threshold_pct = 0.25; /* 25% over baseline triggers */
+    g_app.start_perf_regressed = 0;
+    g_app.start_perf_reduce_quality = 0;
+    g_app.start_perf_warned = 0;
     g_app.reduced_motion = 0;
     /* Start screen nav repeat config (Phase 3.2) */
     g_app.start_nav_accum_ms = 0.0;
@@ -160,6 +175,49 @@ bool rogue_app_init(const RogueAppConfig* cfg)
         const char* rm = getenv("ROGUE_REDUCED_MOTION");
         if (rm && rm[0] == '1')
             g_app.reduced_motion = 1;
+    }
+#endif
+    /* Env override for start screen frame budget (milliseconds). Non-zero positive only. */
+#if defined(_MSC_VER)
+    {
+        char* pb = NULL;
+        size_t pl = 0;
+        if (_dupenv_s(&pb, &pl, "ROGUE_START_BUDGET_MS") == 0 && pb)
+        {
+            double v = atof(pb);
+            if (v > 0.0)
+                g_app.start_perf_budget_ms = v;
+            free(pb);
+        }
+    }
+#else
+    {
+        const char* pb = getenv("ROGUE_START_BUDGET_MS");
+        if (pb)
+        {
+            double v = atof(pb);
+            if (v > 0.0)
+                g_app.start_perf_budget_ms = v;
+        }
+    }
+#endif
+    /* Dev-only escape back to start (Phase 9.2): ROGUE_START_DEV_ESCAPE=1 */
+#if defined(_MSC_VER)
+    {
+        char* de = NULL;
+        size_t dl = 0;
+        if (_dupenv_s(&de, &dl, "ROGUE_START_DEV_ESCAPE") == 0 && de)
+        {
+            if (de[0] == '1')
+                g_app.dev_escape_to_start = 1;
+            free(de);
+        }
+    }
+#else
+    {
+        const char* de = getenv("ROGUE_START_DEV_ESCAPE");
+        if (de && de[0] == '1')
+            g_app.dev_escape_to_start = 1;
     }
 #endif
     /* Cheat override (dev convenience): set talent points to 100 only if env var
@@ -528,6 +586,13 @@ void rogue_app_shutdown(void)
         when they init/step/shutdown twice in a row. */
     rogue_dialogue_reset();
     rogue_platform_shutdown();
+    /* Reset perf flags to keep subsequent runs deterministic in-process */
+    g_app.start_perf_baseline_ms = 0.0;
+    g_app.start_perf_accum_ms = 0.0;
+    g_app.start_perf_samples = 0;
+    g_app.start_perf_regressed = 0;
+    g_app.start_perf_reduce_quality = 0;
+    g_app.start_perf_warned = 0;
     rogue_skills_shutdown();
     if (g_app.chunk_dirty)
     {

@@ -2,9 +2,47 @@
 #ifdef _WIN32
 #include "png_wic.h"
 #include "../util/log.h"
+#include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wincodec.h>
 #include <windows.h>
+
+// Very small, static hash set to warn-once per unique image path.
+static uint32_t rogue__wic_warn_hashes[256];
+static int rogue__wic_warn_count = 0;
+
+static uint32_t rogue__hash_path_ci(const char* s)
+{
+    // djb2 variant, case-insensitive to avoid duplicates differing only by case
+    uint32_t h = 5381u;
+    for (unsigned char c; (c = (unsigned char) *s++) != 0;)
+    {
+        if (c >= 'A' && c <= 'Z')
+            c = (unsigned char) (c + 32); // tolower ASCII
+        h = ((h << 5) + h) + c;
+    }
+    if (h == 0u)
+        h = 1u; // reserve 0 as empty sentinel
+    return h;
+}
+
+static int rogue__wic_should_log_once(const char* path)
+{
+    uint32_t h = rogue__hash_path_ci(path);
+    // linear probe in tiny table; acceptable for small N
+    for (int i = 0; i < rogue__wic_warn_count; ++i)
+    {
+        if (rogue__wic_warn_hashes[i] == h)
+            return 0; // seen already, suppress
+    }
+    if (rogue__wic_warn_count <
+        (int) (sizeof(rogue__wic_warn_hashes) / sizeof(rogue__wic_warn_hashes[0])))
+    {
+        rogue__wic_warn_hashes[rogue__wic_warn_count++] = h;
+    }
+    return 1; // first time, log it
+}
 
 bool rogue_png_load_rgba(const char* path, unsigned char** out_pixels, int* w, int* h)
 {
@@ -36,7 +74,8 @@ bool rogue_png_load_rgba(const char* path, unsigned char** out_pixels, int* w, i
     free(wpath);
     if (FAILED(hr) || !decoder)
     {
-        ROGUE_LOG_WARN("WIC decoder open failed: %s", path);
+        if (rogue__wic_should_log_once(path))
+            ROGUE_LOG_WARN("WIC decoder open failed: %s", path);
         factory->lpVtbl->Release(factory);
         return false;
     }
@@ -44,7 +83,8 @@ bool rogue_png_load_rgba(const char* path, unsigned char** out_pixels, int* w, i
     hr = decoder->lpVtbl->GetFrame(decoder, 0, &frame);
     if (FAILED(hr) || !frame)
     {
-        ROGUE_LOG_WARN("WIC get frame failed: %s", path);
+        if (rogue__wic_should_log_once(path))
+            ROGUE_LOG_WARN("WIC get frame failed: %s", path);
         decoder->lpVtbl->Release(decoder);
         factory->lpVtbl->Release(factory);
         return false;
@@ -53,7 +93,8 @@ bool rogue_png_load_rgba(const char* path, unsigned char** out_pixels, int* w, i
     hr = factory->lpVtbl->CreateFormatConverter(factory, &converter);
     if (FAILED(hr) || !converter)
     {
-        ROGUE_LOG_WARN("WIC converter create failed: %s", path);
+        if (rogue__wic_should_log_once(path))
+            ROGUE_LOG_WARN("WIC converter create failed: %s", path);
         frame->lpVtbl->Release(frame);
         decoder->lpVtbl->Release(decoder);
         factory->lpVtbl->Release(factory);
@@ -64,7 +105,8 @@ bool rogue_png_load_rgba(const char* path, unsigned char** out_pixels, int* w, i
                                        0.0, WICBitmapPaletteTypeCustom);
     if (FAILED(hr))
     {
-        ROGUE_LOG_WARN("WIC converter init failed: %s", path);
+        if (rogue__wic_should_log_once(path))
+            ROGUE_LOG_WARN("WIC converter init failed: %s", path);
         converter->lpVtbl->Release(converter);
         frame->lpVtbl->Release(frame);
         decoder->lpVtbl->Release(decoder);
@@ -100,7 +142,8 @@ bool rogue_png_load_rgba(const char* path, unsigned char** out_pixels, int* w, i
         frame->lpVtbl->Release(frame);
         decoder->lpVtbl->Release(decoder);
         factory->lpVtbl->Release(factory);
-        ROGUE_LOG_WARN("WIC copy pixels failed: %s", path);
+        if (rogue__wic_should_log_once(path))
+            ROGUE_LOG_WARN("WIC copy pixels failed: %s", path);
         return false;
     }
     *out_pixels = buf;

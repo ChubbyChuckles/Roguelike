@@ -50,6 +50,11 @@ typedef struct RogueAppState
     float start_state_speed; /* units per second for fades (scaled if reduced motion) */
     int reduced_motion;      /* global accessibility toggle for animations */
     int high_contrast;       /* global accessibility: high-contrast UI mode */
+    /* Phase 9: World/HUD fade-in after Start Screen and dev return toggle */
+    int dev_escape_to_start; /* 1 to allow ESC to return to Start (dev only) */
+    int world_fade_active;   /* 1 while world fade-in overlay is animating */
+    float world_fade_t;      /* 1->0 overlay alpha factor (1=fully black, 0=off) */
+    float world_fade_speed;  /* units per second for world fade overlay */
     /* Start screen background (Phase 2.1..2.3) */
 #ifdef ROGUE_HAVE_SDL
     struct RogueTexture* start_bg_tex; /* owned texture handle */
@@ -75,6 +80,16 @@ typedef struct RogueAppState
     int start_prewarm_done;    /* 1 after all prewarm steps finished */
     int start_prewarm_step;    /* incremental step index */
     float start_spinner_angle; /* spinner angle in radians for visual indicator */
+    /* Phase 8.3: Start screen frame budget guard */
+    double start_perf_budget_ms;             /* absolute budget threshold (env override) */
+    double start_perf_baseline_ms;           /* measured baseline average */
+    double start_perf_accum_ms;              /* accumulates first N samples */
+    int start_perf_samples;                  /* number of baseline samples recorded */
+    int start_perf_target_samples;           /* samples to collect before baseline set */
+    double start_perf_regress_threshold_pct; /* relative allowance over baseline (e.g., 0.25) */
+    int start_perf_regressed;                /* 1 once regression detected */
+    int start_perf_reduce_quality;           /* 1 to reduce optional visuals (parallax/spinner) */
+    int start_perf_warned;                   /* ensure single WARN emission */
     /* Start screen navigation repeat (Phase 3.2 wiring) */
     double start_nav_accum_ms;    /* accumulated hold time for current direction */
     int start_nav_dir_v;          /* -1 up, +1 down, 0 none */
