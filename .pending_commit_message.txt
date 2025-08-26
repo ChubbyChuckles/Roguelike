@@ -1,4 +1,14 @@
-Start screen: Phase 6 settings overlay (Reduced Motion, High Contrast, DPI adjust) + robust Continue/Load gating
+Start Screen: Phase 10.5 perf smoke test + perf guard hardening; docs/roadmap updates
+
+- Add test_start_screen_phase10_5_perf_smoke (perf smoke) and wire it via tests/cmake/StartScreen.cmake.
+- Harden start screen perf guard:
+  - Relative regression check now only runs after baseline sampling completes.
+  - Negative threshold disables relative check (useful for stable CI smoke tests).
+- Adjust perf smoke test to disable relative check and use a generous absolute budget; disable prewarm for stability.
+- Update roadmap (implementation_plan_start_screen.txt) marking 10.5 Done with notes.
+- README: document relative-check behavior and how to disable it for tests; clarify environment overrides.
+
+Build/Test: Debug SDL2 with parallelism (-j8) expected; start screen tests remain green.Start screen: Phase 6 settings overlay (Reduced Motion, High Contrast, DPI adjust) + robust Continue/Load gating
 
 - Added Start Screen settings overlay with toggles for Reduced Motion and High Contrast, plus DPI scale quick adjust via rogue_ui_theme_set_dpi_scale_x100 (50–300%).
 - Background render applies subtle dark overlay when High Contrast is enabled.

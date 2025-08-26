@@ -79,7 +79,7 @@ PHASE 10. Testing & QA Automation
 10.2 Navigation traversal test: keyboard & controller (Verified Debug: test_start_screen_phase10_2_navigation)
 10.3 Localization swap test: label table (en) -> (fake-locale) (Verified Debug: test_start_screen_phase10_3_localization)
 10.4 Reduced motion test: transitions skipped, hashes stable (Verified Debug: test_start_screen_phase10_4_reduced_motion)
-10.5 Performance smoke: emit >=200 widgets < threshold time (X)
+10.5 Performance smoke: emit >=200 widgets < threshold time (Done: test_start_screen_phase10_5_perf_smoke; relative guard disabled via negative threshold; absolute budget configurable)
 10.6 Corrupt save header test: continue disabled, load lists only healthy entries (Done: Verified Debug: test_start_screen_phase10_6_corrupt_header). Descriptor sanity checks added to gate Continue/Load (version match, non-zero sections, required components present).
 10.7 Background image presence: renders when file exists; falls back to gradient when missing (Done)
 10.8 Aspect-ratio scaling: hash differs for cover vs contain; no stretching artifacts (Done)

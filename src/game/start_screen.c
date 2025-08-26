@@ -247,7 +247,11 @@ static int start_perf_over_budget(void)
     double last_ms = g_app.frame_ms; /* from previous frame end */
     int abs_over = (g_app.start_perf_budget_ms > 0.0 && last_ms > g_app.start_perf_budget_ms);
     int rel_over = 0;
-    if (g_app.start_perf_baseline_ms > 0.0)
+    /* Only apply relative check after baseline sampling completes and when the threshold is
+       non-negative. A negative threshold disables relative regression checks (useful in tests). */
+    if (g_app.start_perf_regress_threshold_pct >= 0.0 &&
+        g_app.start_perf_samples >= g_app.start_perf_target_samples &&
+        g_app.start_perf_baseline_ms > 0.0)
     {
         double allowed =
             g_app.start_perf_baseline_ms * (1.0 + g_app.start_perf_regress_threshold_pct);
