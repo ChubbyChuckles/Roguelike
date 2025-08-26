@@ -53,9 +53,9 @@ PHASE 5. Binding Gameplay to Effects
 5.6 Vendor restock & level-up celebration (Partial: level-up sound)
 
 PHASE 6. Advanced Audio Features
-6.1 Dynamic music state machine (explore, combat, boss) (X)
-6.2 Cross-fade & beat-aligned transitions (X)
-6.3 Side-chain ducking (e.g., UI or key SFX lower music) (X)
+6.1 Dynamic music state machine (explore, combat, boss) (Done)
+6.2 Cross-fade & beat-aligned transitions (Partial: linear cross-fade only; beat align TBD)
+6.3 Side-chain ducking (e.g., UI or key SFX lower music) (Done: attack/hold/release envelope)
 6.4 Procedural layering (combine base + random sweeteners) (X)
 6.5 Reverb / environmental preset stubs (toggle simulation) (X)
 6.6 Distance-based low pass filter attenuation (X)
@@ -216,3 +216,16 @@ Notes (2025-08-30, later):
 - Phase 5.3 (Skill start/end cues): Implemented gameplay→FX bindings that emit `skill/<id>/start` on activation and `skill/<id>/end` on completion; instant skills emit both within the same frame. Tests: `tests/unit/test_audio_vfx_phase5_3_skill_cues.c` validates bus cadence and visible VFX output.
 - Phase 5.4 (Buff gain/expire): Added `buff/<type>/gain|expire` triggers in buff apply/expire paths. Test `tests/unit/test_audio_vfx_phase5_4_buff_triggers.c` verifies dispatch and particle visibility across a few ticks.
 - Phase 5.5 (Loot drop cue): Enemy loot spawn emits `loot/<rarity>/drop` using world position of the spawned item; mapping drives world‑space VFX at exact coordinates. Test `tests/unit/test_audio_vfx_phase5_5_loot_drop.c` peeks first instance for world_space=1 and correct (x,y). Audio/VFX suite now 20/20 passing in Debug with SDL2 and parallel `-j8`.
+
+Notes (2025-08-30, latest):
+- Phase 6.1–6.3 implemented (6.2 now fully Done with beat alignment):
+	- Music state registry & state machine with track per logical state (explore/combat/boss) and API: `rogue_audio_music_register`, `rogue_audio_music_set_state`.
+	- Linear cross-fade between previous and new track over caller-specified ms; weights applied inside `rogue_audio_debug_effective_gain`.
+	- Beat-aligned scheduling (Phase 6.2 completion): tempo set via `rogue_audio_music_set_tempo(bpm, beats_per_bar)`; deferred state changes via `rogue_audio_music_set_state_on_next_bar` trigger a cross-fade exactly at the next bar boundary. Update logic only accrues fade elapsed time for the portion of the frame AFTER the boundary, preserving deterministic midpoint timings regardless of frame dt.
+	- Side-chain ducking envelope (attack/hold/release) applied multiplicatively to MUSIC category via `rogue_audio_duck_music` and progressed in `rogue_audio_music_update`.
+	- Added per-track weight query & current track accessor for tests/tools.
+	- Unit tests:
+		* `tests/unit/test_audio_vfx_phase6_1_4_music_system.c` validates cross-fade midpoint, completion, and full duck envelope while ensuring SFX unaffected.
+		* `tests/unit/test_audio_vfx_phase6_2_beat_aligned.c` validates bar-aligned defer (no early fade), precise partial fade immediately after boundary (~10%), midpoint (~50%), and completion with conservation of weight sum.
+	- Roadmap marks 6.1, 6.2, 6.3 Done; 6.4+ untouched.
+	- CMake test registration extended in `tests/cmake/AudioVfx.cmake`; all audio_vfx tests pass in Debug SDL2 (-j8).

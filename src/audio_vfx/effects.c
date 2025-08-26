@@ -255,6 +255,30 @@ static float g_mixer_master = 1.0f;
 static float g_mixer_cat[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 static int g_mixer_mute = 0;
 
+/* -------- Phase 6: Music state machine forward state (declared early for gain calc) -------- */
+static char g_music_state_tracks[ROGUE_MUSIC_STATE_COUNT][24];
+static RogueMusicState g_music_current_state = ROGUE_MUSIC_STATE_EXPLORE;
+static char g_music_active_track[24];
+static char g_music_fadeout_track[24];
+static float g_music_active_weight = 0.0f;   /* weight applied to active/target track */
+static float g_music_fadeout_weight = 0.0f;  /* weight applied to fading-out previous track */
+static uint32_t g_music_fade_time_ms = 0;    /* total fade duration */
+static uint32_t g_music_fade_elapsed_ms = 0; /* elapsed time inside fade */
+static float g_music_duck_gain = 1.0f;       /* scalar applied to music category */
+static float g_music_duck_target = 1.0f;
+static uint32_t g_music_duck_attack = 0;
+static uint32_t g_music_duck_hold = 0;
+static uint32_t g_music_duck_release = 0;
+static uint32_t g_music_duck_elapsed = 0;
+static uint32_t g_music_duck_phase_attack_end = 0;
+static uint32_t g_music_duck_phase_hold_end = 0;
+/* Beat-aligned scheduling */
+static float g_music_bpm = 120.0f;          /* beats per minute */
+static int g_music_beats_per_bar = 4;       /* beats in a bar */
+static float g_music_bar_time_accum_ms = 0; /* elapsed ms within current bar */
+static RogueMusicState g_music_pending_bar_state = (RogueMusicState) -1; /* pending state switch */
+static uint32_t g_music_pending_bar_crossfade = 0;                       /* ms */
+
 /* Positional attenuation */
 static int g_positional_enabled = 0;
 static float g_listener_x = 0.0f, g_listener_y = 0.0f;
@@ -467,8 +491,24 @@ float rogue_audio_debug_effective_gain(const char* id, unsigned repeats, float x
     float base = g_audio_reg[idx].base_gain * (0.7f + 0.3f * rep);
     if (base > 1.0f)
         base = 1.0f;
-    float eff =
-        base * g_mixer_master * g_mixer_cat[g_audio_reg[idx].cat] * compute_attenuation(x, y);
+    /* Phase 6: apply music cross-fade weighting + duck envelope when category is MUSIC. */
+    float cat_gain = g_mixer_cat[g_audio_reg[idx].cat];
+    float music_weight = 1.0f;
+    if (g_audio_reg[idx].cat == (uint8_t) ROGUE_AUDIO_CAT_MUSIC)
+    {
+        /* Determine per-track cross-fade weight */
+        if (g_music_active_track[0] &&
+            strncmp(g_music_active_track, g_audio_reg[idx].id, sizeof g_audio_reg[idx].id) == 0)
+            music_weight = g_music_active_weight;
+        else if (g_music_fadeout_track[0] && strncmp(g_music_fadeout_track, g_audio_reg[idx].id,
+                                                     sizeof g_audio_reg[idx].id) == 0)
+            music_weight = g_music_fadeout_weight;
+        else
+            music_weight = 0.0f;
+        /* Apply duck envelope */
+        cat_gain *= g_music_duck_gain;
+    }
+    float eff = base * g_mixer_master * cat_gain * music_weight * compute_attenuation(x, y);
     if (g_mixer_mute)
         eff = 0.0f;
     if (eff < 0.0f)
@@ -476,6 +516,281 @@ float rogue_audio_debug_effective_gain(const char* id, unsigned repeats, float x
     if (eff > 1.0f)
         eff = 1.0f;
     return eff;
+}
+
+/* (Definitions moved earlier) */
+
+int rogue_audio_music_register(RogueMusicState state, const char* track_id)
+{
+    if ((int) state < 0 || state >= ROGUE_MUSIC_STATE_COUNT || !track_id || !*track_id)
+        return -1;
+    /* Ensure track id exists & is music category */
+    int idx = audio_reg_find(track_id);
+    if (idx < 0 || g_audio_reg[idx].cat != (uint8_t) ROGUE_AUDIO_CAT_MUSIC)
+        return -2;
+#if defined(_MSC_VER)
+    strncpy_s(g_music_state_tracks[state], sizeof g_music_state_tracks[state], track_id, _TRUNCATE);
+#else
+    strncpy(g_music_state_tracks[state], track_id, sizeof g_music_state_tracks[state] - 1);
+    g_music_state_tracks[state][sizeof g_music_state_tracks[state] - 1] = '\0';
+#endif
+    return 0;
+}
+
+static void music_begin_crossfade(const char* new_track, uint32_t crossfade_ms)
+{
+    if (!new_track || !*new_track)
+        return;
+    if (crossfade_ms == 0 || g_music_active_track[0] == '\0')
+    {
+        /* Immediate switch */
+#if defined(_MSC_VER)
+        strncpy_s(g_music_active_track, sizeof g_music_active_track, new_track, _TRUNCATE);
+#else
+        strncpy(g_music_active_track, new_track, sizeof g_music_active_track - 1);
+        g_music_active_track[sizeof g_music_active_track - 1] = '\0';
+#endif
+        g_music_fadeout_track[0] = '\0';
+        g_music_active_weight = 1.0f;
+        g_music_fadeout_weight = 0.0f;
+        g_music_fade_time_ms = g_music_fade_elapsed_ms = 0;
+        return;
+    }
+    /* Start cross-fade: previous active becomes fadeout */
+#if defined(_MSC_VER)
+    strncpy_s(g_music_fadeout_track, sizeof g_music_fadeout_track, g_music_active_track, _TRUNCATE);
+    strncpy_s(g_music_active_track, sizeof g_music_active_track, new_track, _TRUNCATE);
+#else
+    strncpy(g_music_fadeout_track, g_music_active_track, sizeof g_music_fadeout_track - 1);
+    g_music_fadeout_track[sizeof g_music_fadeout_track - 1] = '\0';
+    strncpy(g_music_active_track, new_track, sizeof g_music_active_track - 1);
+    g_music_active_track[sizeof g_music_active_track - 1] = '\0';
+#endif
+    g_music_fade_time_ms = crossfade_ms;
+    g_music_fade_elapsed_ms = 0;
+    g_music_active_weight = 0.0f;
+    g_music_fadeout_weight = 1.0f;
+}
+
+int rogue_audio_music_set_state(RogueMusicState state, uint32_t crossfade_ms)
+{
+    if ((int) state < 0 || state >= ROGUE_MUSIC_STATE_COUNT)
+        return -1;
+    g_music_current_state = state;
+    const char* track = g_music_state_tracks[state];
+    if (!track[0])
+        return -2; /* no track registered */
+    music_begin_crossfade(track, crossfade_ms);
+    return 0;
+}
+
+void rogue_audio_music_update(uint32_t dt_ms)
+{
+    /* We'll adjust cross-fade advancement if a bar-aligned transition begins mid-update. */
+    uint32_t fade_dt_ms = dt_ms; /* amount of time to apply to any active cross-fade this tick */
+    int fade_started_this_update = 0;
+    uint32_t post_boundary_elapsed_ms = 0; /* time after bar boundary inside this update */
+    /* Advance bar phase timing (independent of cross-fades) */
+    if (g_music_bpm < 20.0f)
+        g_music_bpm = 20.0f;
+    if (g_music_bpm > 300.0f)
+        g_music_bpm = 300.0f;
+    if (g_music_beats_per_bar < 1)
+        g_music_beats_per_bar = 1;
+    if (g_music_beats_per_bar > 16)
+        g_music_beats_per_bar = 16;
+    float ms_per_beat = 60000.0f / g_music_bpm;
+    float bar_ms = ms_per_beat * (float) g_music_beats_per_bar;
+    g_music_bar_time_accum_ms += (float) dt_ms;
+    if (g_music_bar_time_accum_ms >= bar_ms)
+    {
+        /* Compute how much of dt_ms landed AFTER the bar boundary so new fades only advance by that
+         * remainder. */
+        float over_total = g_music_bar_time_accum_ms - bar_ms; /* time beyond boundary */
+        g_music_bar_time_accum_ms = fmodf(g_music_bar_time_accum_ms, bar_ms);
+        if (over_total < 0.0f)
+            over_total = 0.0f;
+        post_boundary_elapsed_ms =
+            (uint32_t) (g_music_bar_time_accum_ms + 0.5f); /* remainder accrued in new bar */
+        /* Bar boundary reached: apply pending transition if any and no active fade overlapping */
+        if (g_music_pending_bar_state >= 0)
+        {
+            /* Start transition now; even if a fade is active we queue after completion by letting
+               existing fade finish first if sources differ; simplest approach: if a fade is active
+               we only arm new state if target differs from either current active or fadeout track
+               to avoid mid-fade jump. */
+            if (g_music_fade_time_ms == 0 || g_music_fade_elapsed_ms >= g_music_fade_time_ms)
+            {
+                g_music_current_state = g_music_pending_bar_state;
+                const char* track = g_music_state_tracks[g_music_current_state];
+                if (track[0])
+                {
+                    music_begin_crossfade(track, g_music_pending_bar_crossfade);
+                    fade_started_this_update = 1;
+                }
+            }
+            else
+            {
+                /* Fade still in progress; defer by keeping pending flag (will try again next bar)
+                 */
+            }
+            /* Clear pending if we attempted (to avoid infinite loop if invalid track) */
+            if (g_music_fade_time_ms == 0 || g_music_fade_elapsed_ms >= g_music_fade_time_ms)
+                g_music_pending_bar_state = (RogueMusicState) -1;
+        }
+    }
+
+    /* Cross-fade progression */
+    if (g_music_fade_time_ms > 0 && g_music_fade_elapsed_ms < g_music_fade_time_ms)
+    {
+        if (fade_started_this_update)
+        {
+            /* Only the portion AFTER the boundary counts toward the new fade this tick. */
+            fade_dt_ms = post_boundary_elapsed_ms;
+            if (fade_dt_ms > dt_ms)
+                fade_dt_ms = dt_ms; /* safety */
+        }
+        g_music_fade_elapsed_ms += fade_dt_ms;
+        if (g_music_fade_elapsed_ms >= g_music_fade_time_ms)
+        {
+            g_music_active_weight = 1.0f;
+            g_music_fadeout_weight = 0.0f;
+            g_music_fadeout_track[0] = '\0';
+            g_music_fade_time_ms = 0;
+        }
+        else
+        {
+            float t = (float) g_music_fade_elapsed_ms / (float) g_music_fade_time_ms;
+            if (t < 0.0f)
+                t = 0.0f;
+            if (t > 1.0f)
+                t = 1.0f;
+            g_music_active_weight = t;
+            g_music_fadeout_weight = 1.0f - t;
+        }
+    }
+
+    /* Duck envelope progression */
+    if (g_music_duck_attack || g_music_duck_hold || g_music_duck_release)
+    {
+        g_music_duck_elapsed += dt_ms;
+        uint32_t e = g_music_duck_elapsed;
+        if (e <= g_music_duck_phase_attack_end)
+        {
+            float t = (g_music_duck_attack ? (float) e / (float) g_music_duck_attack : 1.0f);
+            if (t < 0.0f)
+                t = 0.0f;
+            if (t > 1.0f)
+                t = 1.0f;
+            g_music_duck_gain = 1.0f + t * (g_music_duck_target - 1.0f);
+        }
+        else if (e <= g_music_duck_phase_hold_end)
+        {
+            g_music_duck_gain = g_music_duck_target;
+        }
+        else
+        {
+            uint32_t rel_elapsed = e - g_music_duck_phase_hold_end;
+            if (g_music_duck_release == 0)
+                g_music_duck_gain = 1.0f;
+            else
+            {
+                float t = (float) rel_elapsed / (float) g_music_duck_release;
+                if (t < 0.0f)
+                    t = 0.0f;
+                if (t > 1.0f)
+                    t = 1.0f;
+                g_music_duck_gain = g_music_duck_target + t * (1.0f - g_music_duck_target);
+            }
+            if (rel_elapsed >= g_music_duck_release)
+            {
+                /* Finished */
+                g_music_duck_attack = g_music_duck_hold = g_music_duck_release = 0;
+                g_music_duck_elapsed = 0;
+                g_music_duck_gain = 1.0f;
+            }
+        }
+        if (g_music_duck_gain < 0.0f)
+            g_music_duck_gain = 0.0f;
+        if (g_music_duck_gain > 1.0f)
+            g_music_duck_gain = 1.0f;
+    }
+}
+
+const char* rogue_audio_music_current(void)
+{
+    return g_music_active_track[0] ? g_music_active_track : NULL;
+}
+
+void rogue_audio_duck_music(float target_gain, uint32_t attack_ms, uint32_t hold_ms,
+                            uint32_t release_ms)
+{
+    if (target_gain < 0.0f)
+        target_gain = 0.0f;
+    if (target_gain > 1.0f)
+        target_gain = 1.0f;
+    g_music_duck_target = target_gain;
+    g_music_duck_attack = attack_ms;
+    g_music_duck_hold = hold_ms;
+    g_music_duck_release = release_ms;
+    g_music_duck_elapsed = 0;
+    g_music_duck_phase_attack_end = attack_ms;
+    g_music_duck_phase_hold_end = attack_ms + hold_ms;
+    if (attack_ms == 0)
+        g_music_duck_gain = target_gain; /* immediate */
+}
+
+float rogue_audio_music_track_weight(const char* track_id)
+{
+    if (!track_id || !*track_id)
+        return 0.0f;
+    if (g_music_active_track[0] &&
+        strncmp(track_id, g_music_active_track, sizeof g_music_active_track) == 0)
+        return g_music_active_weight;
+    if (g_music_fadeout_track[0] &&
+        strncmp(track_id, g_music_fadeout_track, sizeof g_music_fadeout_track) == 0)
+        return g_music_fadeout_weight;
+    return 0.0f;
+}
+
+void rogue_audio_music_set_tempo(float bpm, int beats_per_bar)
+{
+    if (bpm < 20.0f)
+        bpm = 20.0f;
+    else if (bpm > 300.0f)
+        bpm = 300.0f;
+    if (beats_per_bar < 1)
+        beats_per_bar = 1;
+    else if (beats_per_bar > 16)
+        beats_per_bar = 16;
+    /* Preserve fractional bar position proportionally when tempo changes: compute normalized
+       position (0..1) then rescale. */
+    float prev_ms_per_beat = 60000.0f / g_music_bpm;
+    float prev_bar_ms = prev_ms_per_beat * (float) g_music_beats_per_bar;
+    float norm = 0.0f;
+    if (prev_bar_ms > 1e-6f)
+        norm = g_music_bar_time_accum_ms / prev_bar_ms;
+    g_music_bpm = bpm;
+    g_music_beats_per_bar = beats_per_bar;
+    float new_ms_per_beat = 60000.0f / g_music_bpm;
+    float new_bar_ms = new_ms_per_beat * (float) g_music_beats_per_bar;
+    g_music_bar_time_accum_ms = norm * new_bar_ms;
+    if (g_music_bar_time_accum_ms < 0)
+        g_music_bar_time_accum_ms = 0;
+    if (g_music_bar_time_accum_ms > new_bar_ms)
+        g_music_bar_time_accum_ms = fmodf(g_music_bar_time_accum_ms, new_bar_ms);
+}
+
+int rogue_audio_music_set_state_on_next_bar(RogueMusicState state, uint32_t crossfade_ms)
+{
+    if ((int) state < 0 || state >= ROGUE_MUSIC_STATE_COUNT)
+        return -1;
+    const char* track = g_music_state_tracks[state];
+    if (!track[0])
+        return -2;
+    g_music_pending_bar_state = state;
+    g_music_pending_bar_crossfade = crossfade_ms;
+    return 0;
 }
 
 int rogue_fx_dispatch_process(void)

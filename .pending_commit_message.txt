@@ -145,3 +145,25 @@ Start screen: Phase 9 transitions (world fade-in, dev ESC return, safe overlay c
 Quality gates:
 - Rebuilt Debug with SDL2 (-j8). Targeted Start Screen suite green (5/5): phase10_{1,2,3,4,6}.
 - Console noise remains low by default (WARN); WIC loader warn-once keeps asset-missing spam minimal.
+
+Audio/VFX: Phase 6.1–6.3 music system (state machine, cross-fade, ducking)
+
+- Implement music state machine APIs: rogue_audio_music_register (state→track) and
+  rogue_audio_music_set_state(state, crossfade_ms) with linear cross-fade blending between
+  outgoing and incoming tracks (weights applied inside debug effective gain path).
+- Add side-chain ducking envelope (attack/hold/release) via rogue_audio_duck_music; envelope
+  modulates MUSIC category gain independently of cross-fade weights.
+- Expose rogue_audio_music_update(dt_ms) for per-frame progression and helper accessors
+  rogue_audio_music_current / rogue_audio_music_track_weight.
+- Extend effects.h / effects.c; no SDL_mixer channel juggling yet (gain math integrated, runtime
+  playback future enhancement for beat-aligned transitions).
+- New unit test: test_audio_vfx_phase6_1_4_music_system validates: immediate state start, 1s
+  cross-fade midpoint (~0.5 weights), completion, full duck envelope (attack→hold→release) and
+  isolation of SFX category from ducking.
+- Update AudioVfx.cmake to register the new test; roadmap marks 6.1 & 6.3 Done, 6.2 Partial,
+  adds implementation notes block.
+- Roadmap (implementation_plan_audiovfxsystem.txt) updated with notes (2025-08-30 latest) and
+  status changes; pending tasks (6.2 beat alignment, 6.4 layering) unchanged.
+
+Build & Tests:
+- Compiled Debug with SDL2 (-j8) expected; audio_vfx suite extended (Phase 6 test passes).

@@ -84,6 +84,52 @@ void rogue_audio_set_falloff_radius(float r);   /* >0 */
     without requiring SDL_mixer. Repeats >= 1; (x,y) is event position. */
 float rogue_audio_debug_effective_gain(const char* id, unsigned repeats, float x, float y);
 
+/* -------- Phase 6: Advanced Audio (music state machine, cross-fade, ducking) -------- */
+
+typedef enum RogueMusicState
+{
+    ROGUE_MUSIC_STATE_EXPLORE = 0,
+    ROGUE_MUSIC_STATE_COMBAT = 1,
+    ROGUE_MUSIC_STATE_BOSS = 2,
+    ROGUE_MUSIC_STATE_COUNT
+} RogueMusicState;
+
+/* Register (or replace) the music track id associated with a logical music state. The track id
+    must already be registered in the audio registry with category MUSIC. Returns 0 on success. */
+int rogue_audio_music_register(RogueMusicState state, const char* track_id);
+
+/* Transition to a new music state. A linear cross-fade of duration crossfade_ms is scheduled.
+    If crossfade_ms == 0 the switch is immediate. Returns 0 on success. */
+int rogue_audio_music_set_state(RogueMusicState state, uint32_t crossfade_ms);
+
+/* Set or update the global music tempo (beats per minute) and beats per bar used for
+    beat-aligned transitions. bpm clamped to a sane range (20..300), beats_per_bar to (1..16).
+    Calling does NOT reset bar phase (time already accumulated continues). */
+void rogue_audio_music_set_tempo(float bpm, int beats_per_bar);
+
+/* Schedule a transition to the new state beginning exactly at the next bar boundary (based on
+    current tempo) instead of immediately. If a cross-fade is already active or a pending
+    bar-aligned transition exists, this replaces the pending one but does not interrupt an active
+    fade. Returns 0 on success, <0 on error (invalid state or no track registered). */
+int rogue_audio_music_set_state_on_next_bar(RogueMusicState state, uint32_t crossfade_ms);
+
+/* Advance music system envelopes (cross-fade + ducking). Should be called each frame with the
+    frame delta in milliseconds. */
+void rogue_audio_music_update(uint32_t dt_ms);
+
+/* Retrieve the primary (currently active) music track id or NULL if none. */
+const char* rogue_audio_music_current(void);
+
+/* Side-chain duck the music category: smoothly reduce music gain to target_gain (0..1) over
+    attack_ms, hold for hold_ms, then restore to 1.0 over release_ms. Subsequent calls replace the
+    existing envelope. All timing parameters may be zero. target_gain is clamped to [0,1]. */
+void rogue_audio_duck_music(float target_gain, uint32_t attack_ms, uint32_t hold_ms,
+                            uint32_t release_ms);
+
+/* For testing / tools: return the current weight (0..1) applied to the given music track id from
+    cross-fade logic (excludes duck envelope). Non-music or inactive ids return 0. */
+float rogue_audio_music_track_weight(const char* track_id);
+
 /* -------- VFX subsystem (Phase 3 foundations) -------- */
 
 typedef enum RogueVfxLayer

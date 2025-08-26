@@ -104,3 +104,26 @@ Logging (quieter console by default):
 	Persistence robustness:
 	- The save system tolerates empty/initial saves (no registered components) by computing CRC/SHA over an empty payload and still writing integrity footers. This enables the initial New Game save path to succeed in minimal test harnesses.
 	- Save/Load debug spam has been routed through the central logger at DEBUG level; default WARN keeps the console quiet unless explicitly enabled.
+
+## Audio & VFX (Phases 1–6 Snapshot)
+
+Current capabilities:
+- Unified FX bus with deterministic ordering & frame compaction (merged repeat counts) feeding audio (SDL_mixer-backed) and VFX spawning.
+- Audio registry with lazy load, per-category + master mixer gains, positional attenuation stub, deterministic variant selection (id suffixed _N), and music category isolation.
+- Music system (Phase 6.1–6.3): logical state machine (explore/combat/boss) with per-state track registration, linear cross-fade (configurable ms), bar-aligned deferred transitions (tempo & beats per bar) via `rogue_audio_music_set_tempo` + `rogue_audio_music_set_state_on_next_bar`, and side-chain ducking envelope (attack/hold/release) applied multiplicatively to MUSIC category. Procedural layering (6.4) pending.
+- VFX registry & instance pool (lifetime scaling, layers BG→UI, world vs screen space, time scaling/freeze) plus particle emitter pool (variation distributions UNIFORM/NORMAL for scale & lifetime) with composite effects (CHAIN/PARALLEL) and per-instance overrides (scale, lifetime, color).
+- Gameplay mapping layer (keys → audio/vfx with priority) wired to damage, skills, buffs, loot triggers.
+- Config loader (CSV) with hot-reload watcher & validation error surfacing.
+- Deterministic RNG seed override for reproducible particle/audio variant selection.
+
+Recent Phase 6 additions:
+- APIs: rogue_audio_music_register, rogue_audio_music_set_state, rogue_audio_music_set_state_on_next_bar, rogue_audio_music_set_tempo, rogue_audio_music_update, rogue_audio_duck_music, rogue_audio_music_current, rogue_audio_music_track_weight.
+- Cross-fade weights and duck envelope integrated into rogue_audio_debug_effective_gain for testability; future SDL channel volume automation will hook into these scalars.
+- New tests:
+	* test_audio_vfx_phase6_1_4_music_system (cross-fade midpoint & completion + duck envelope)
+	* test_audio_vfx_phase6_2_beat_aligned (verifies bar-aligned deferred transition & fade timing)
+
+Planned next (remaining Phase 6 / early Phase 7):
+- Beat grid & bar/tempo metadata for musical (bar-aligned) transitions (implemented; see APIs above).
+- Procedural layering sweeteners (random one-shot accents blended over base loop) with spawn budgeting.
+- Screen shake manager & blend modes (Phase 7) to broaden VFX expressiveness.
