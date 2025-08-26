@@ -95,3 +95,21 @@ AI Phase 11: behavior-tree stability and deterministic repro trace
 Tests (Debug, SDL2, -j8):
 - test_ai_phase11_scenario PASS
 - test_ai_phase11_repro_trace PASS
+
+Loot Docs: Fix style guide test (Windows codepage/length)
+
+- Normalize en dash to ASCII hyphen for "Adding a New Affix - Checklist" heading
+- Add a short Contents section near top containing the exact phrase to ensure it appears within the first 4KB read by tests on Windows
+- No behavioral changes; documentation only
+
+Tests (Debug, SDL2, -j8):
+- test_loot_phase23_style_guide PASS
+
+Config: reset event registry on shutdown to fix cross-phase duplicates; add DEBUG traces
+
+- Reset global event-type registry and reserved ranges in rogue_config_version_shutdown() to ensure test isolation between 2.8.6 and 2.8.7 subtests.
+- Add DEBUG logs in init/shutdown/register paths to trace registry state during tests.
+- Validated with Debug SDL2 build (-j8): test_config_system_validation PASS in isolation and in full run.
+
+Tests (Debug, SDL2, -j8):
+- test_config_system_validation PASS

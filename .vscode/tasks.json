@@ -163,6 +163,12 @@
 			"type": "shell",
 			"command": "cmake --build build --config Debug --parallel 8",
 			"group": "build"
+		},
+		{
+			"label": "Build Debug (SDL2, -j8) after dialogue reset on shutdown",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"group": "build"
 		}
 	]
 }

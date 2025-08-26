@@ -116,12 +116,19 @@ bool rogue_config_version_init(const char* config_directory)
     g_config_manager.current_schema.max_event_types = 4096; /* Expanded limit */
 
     /* Initialize event type registry */
+    ROGUE_LOG_DEBUG("Init: registry_initialized=%s count=%u reserved_count=%u (pre)",
+                    g_event_type_registry_initialized ? "true" : "false", g_event_type_count,
+                    g_reserved_range_count);
     if (!g_event_type_registry_initialized)
     {
         memset(g_event_type_registry, 0, sizeof(g_event_type_registry));
         g_event_type_count = 0;
         initialize_default_reserved_ranges();
         g_event_type_registry_initialized = true;
+        ROGUE_LOG_DEBUG("Init: registry reset complete; registry_initialized=%s count=%u "
+                        "reserved_count=%u (post)",
+                        g_event_type_registry_initialized ? "true" : "false", g_event_type_count,
+                        g_reserved_range_count);
     }
 
     g_config_manager_initialized = true;
@@ -157,6 +164,26 @@ void rogue_config_version_shutdown(void)
     /* Clear state */
     memset(&g_config_manager, 0, sizeof(RogueConfigManager));
     g_config_manager_initialized = false;
+
+    /* Also reset the global event type registry and reservations so each
+       initialization starts from a clean state. This ensures tests that
+       rely on isolated runs (e.g., rapid registration in Phase 2.8.7)
+       don't collide with IDs registered by earlier tests. */
+    ROGUE_LOG_DEBUG("Shutdown: registry_initialized=%s count=%u reserved_count=%u (pre)",
+                    g_event_type_registry_initialized ? "true" : "false", g_event_type_count,
+                    g_reserved_range_count);
+    if (g_event_type_registry_initialized)
+    {
+        memset(g_event_type_registry, 0, sizeof(g_event_type_registry));
+        g_event_type_count = 0;
+        memset(g_reserved_ranges, 0, sizeof(g_reserved_ranges));
+        g_reserved_range_count = 0;
+        g_event_type_registry_initialized = false;
+        ROGUE_LOG_DEBUG("Shutdown: registry reset complete; registry_initialized=%s count=%u "
+                        "reserved_count=%u (post)",
+                        g_event_type_registry_initialized ? "true" : "false", g_event_type_count,
+                        g_reserved_range_count);
+    }
 
     ROGUE_LOG_INFO("Configuration version manager shutdown complete");
 }
@@ -243,6 +270,9 @@ bool rogue_config_needs_migration(const char* config_file_path,
 bool rogue_event_type_register_safe(uint32_t event_id, const char* name, const char* source_file,
                                     uint32_t line_number)
 {
+    ROGUE_LOG_DEBUG("RegisterSafe: entering with id=%u name='%s' registry_initialized=%s count=%u",
+                    event_id, name ? name : "(null)",
+                    g_event_type_registry_initialized ? "true" : "false", g_event_type_count);
     if (!g_event_type_registry_initialized && !rogue_config_version_init("./config"))
     {
         ROGUE_LOG_ERROR("Failed to initialize configuration manager for event type registration");

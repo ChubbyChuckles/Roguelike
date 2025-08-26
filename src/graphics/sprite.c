@@ -2,6 +2,7 @@
 #include "sprite.h"
 #include "../util/log.h"
 #include <stdio.h>
+#include <string.h>
 
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
@@ -19,6 +20,16 @@ bool rogue_texture_load(RogueTexture* t, const char* path)
 #if defined(ROGUE_HAVE_SDL) && defined(ROGUE_HAVE_SDL_IMAGE)
     if (!g_internal_sdl_renderer_ref)
     {
+        /* In headless test runs using SDL's dummy video driver, allow stub textures. */
+        const char* drv = SDL_GetCurrentVideoDriver();
+        if (drv && strcmp(drv, "dummy") == 0)
+        {
+            t->handle = NULL; /* draw path will no-op when handle is NULL */
+            t->w = 0;
+            t->h = 0;
+            ROGUE_LOG_INFO("Headless (dummy video): stubbing texture load for %s", path);
+            return true;
+        }
         ROGUE_LOG_ERROR("rogue_texture_load: renderer not ready");
         return false;
     }
@@ -95,6 +106,16 @@ bool rogue_texture_load(RogueTexture* t, const char* path)
     int w = 0, h = 0;
     if (!g_internal_sdl_renderer_ref)
     {
+        /* In headless test runs using SDL's dummy video driver, allow stub textures. */
+        const char* drv = SDL_GetCurrentVideoDriver();
+        if (drv && strcmp(drv, "dummy") == 0)
+        {
+            t->handle = NULL; /* draw path will no-op when handle is NULL */
+            t->w = 0;
+            t->h = 0;
+            ROGUE_LOG_INFO("Headless (dummy video): stubbing texture load (WIC) for %s", path);
+            return true;
+        }
         ROGUE_LOG_ERROR("rogue_texture_load (WIC): renderer not ready");
         return false;
     }

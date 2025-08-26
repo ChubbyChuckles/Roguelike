@@ -100,10 +100,10 @@ PHASE 4. LOOT SYSTEM FIXES (Medium Priority)
 4.3 Fix loot persistence and roundtrip (X)
     - test_loot_phase20_4_persistence_roundtrip: Fix save consistency
     - Verify item state preservation across sessions
-4.4 Fix loot generation and validation (X)
+4.4 Fix loot generation and validation (Partial)
     - test_loot_phase17_5_diff: Fix differential generation
     - test_loot_phase23_example_pack: Fix example validation
-    - test_loot_phase23_style_guide: Fix style compliance
+    - test_loot_phase23_style_guide: Fix style compliance (Done: normalized hyphen and added contents bullet near top to avoid Windows codepage/4KB buffer issues)
 4.5 Tests: All loot system tests should pass (X)
 
 PHASE 5. COMBAT SYSTEM FIXES (Medium Priority)
@@ -132,8 +132,8 @@ PHASE 6. SAVE SYSTEM FIXES (Medium Priority)
 6.3 Tests: All save system tests should pass (X)
 
 PHASE 7. CONFIGURATION & DATA SYSTEM FIXES (Medium Priority)
-7.1 Fix configuration validation (X)
-    - test_config_system_validation: Fix validation logic
+7.1 Fix configuration validation (Done)
+    - test_config_system_validation: Fixed duplicate event-type registrations persisting across subtests by resetting the global registry and reserved ranges in rogue_config_version_shutdown(); added DEBUG logs around init/shutdown/register. Validated in isolation and full suite.
     - Ensure all config files are properly validated
 7.2 Fix dialogue JSON loading (X)
     - test_dialogue_json: Fix JSON parsing errors
@@ -206,6 +206,10 @@ Recent Deltas (latest cycle):
 - Affix Autoload: when item defs load and affixes are empty, auto-load default affixes from assets/affixes.cfg using the same relative fallbacks; unblocks tests that call rogue_affix_roll without explicit affix load.
 - Enchant/Reforge/Seal: implemented mechanics, reroll-avoidance, cost formulas, and lock semantics; dirties stat cache and preserves invariants.
 - Tests now PASS: test_equipment_phase2_resists, test_equipment_phase2_stat_cache, test_equipment_phase5_sockets, test_equipment_phase5_gems, test_equipment_phase5_enchant_reforge, test_equipment_phase5_protective_seal.
+
+Config/Event registry isolation:
+- Reset event-type registry and reserved ranges on configuration shutdown to ensure test isolation between 2.8.6 and 2.8.7 phases; added DEBUG logs to trace state.
+- Result: test_config_system_validation now PASS (Debug, SDL2, -j8) with no observed regressions.
 
 AI Phase 11 stability & determinism:
 - Behavior Tree: added user_data destructor hook to avoid double-frees in advanced nodes; introduced per-node last_status/last_tick and a global tick counter. Implemented rogue_bt_mark_node and updated all basic/advanced node ticks to stamp active nodes.

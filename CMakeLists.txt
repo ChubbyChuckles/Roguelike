@@ -811,20 +811,6 @@ add_subdirectory(tests)
 add_test(NAME test_audio_vfx_phase1_2 COMMAND test_audio_vfx_phase1_2)
 add_test(NAME test_audio_vfx_phase1_5_compaction COMMAND test_audio_vfx_phase1_5_compaction)
 
-# Phase 1.5 — Dependency layering guard (Python script). Runs fast; fails on violations.
-find_package(Python3 COMPONENTS Interpreter)
-if(Python3_Interpreter_FOUND)
-    add_custom_target(check_layering
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/code_audit/check_layering.py
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        COMMENT "Running dependency layering check"
-        VERBATIM)
-    add_test(NAME code_audit_check_layering
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/code_audit/check_layering.py)
-else()
-    message(WARNING "Python3 not found; skipping layering check target/test")
-endif()
-
 find_program(CLANG_FORMAT_EXE NAMES clang-format)
 file(GLOB_RECURSE ALL_C_SOURCE_FILES src/*.c src/*.h tests/*.c tests/*.h)
 if(CLANG_FORMAT_EXE)

@@ -78,6 +78,10 @@ bool rogue_app_init(const RogueAppConfig* cfg)
 #if defined(_MSC_VER)
     rogue_app_state_maybe_init();
 #endif
+    /* Reset frame metrics so first frame starts from a clean slate in tests.
+        Without this, dt from a previous run in the same process can leak
+        into the first step of a new run and break determinism. */
+    rogue_metrics_reset();
     g_app.cfg = *cfg;
     g_app.show_start_screen = 1;
     rogue_input_clear(&g_app.input);
@@ -455,6 +459,10 @@ void rogue_app_shutdown(void)
     }
     Mix_CloseAudio();
 #endif
+    /* Ensure dialogue system (scripts, avatars, analytics) does not leak across runs
+        within the same process. This keeps start-screen snapshot tests deterministic
+        when they init/step/shutdown twice in a row. */
+    rogue_dialogue_reset();
     rogue_platform_shutdown();
     rogue_skills_shutdown();
     if (g_app.chunk_dirty)

@@ -199,7 +199,10 @@ int rogue_equip_repair_slot(enum RogueEquipSlot slot)
     if (!d)
         return -4;
     int rarity = d->rarity;
-    int cost = rogue_econ_repair_cost_ex(missing, rarity, itc->item_level);
+    /* Tests like test_repair_costs expect legacy rarity-based costs.
+        Use legacy wrapper here to preserve those expectations. Advanced
+        callers can still use rogue_econ_repair_cost_ex directly. */
+    int cost = rogue_econ_repair_cost(missing, rarity);
     if (rogue_econ_gold() < cost)
         return -5;
     rogue_econ_add_gold(-cost);

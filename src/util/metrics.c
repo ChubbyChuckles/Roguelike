@@ -31,10 +31,16 @@ void rogue_metrics_frame_end(double frame_start_seconds)
     g_app.frame_count++;
     double frame_end = now_seconds();
     g_app.frame_ms = (frame_end - frame_start_seconds) * 1000.0;
-    g_app.dt = (g_game_loop.target_frame_seconds > 0.0) ? g_game_loop.target_frame_seconds
-                                                        : (frame_end - frame_start_seconds);
-    if (g_app.dt < 0.0083)
-        g_app.dt = 0.0083; /* simulate ~120 FPS minimum */
+    /* Deterministic dt: when uncapped (target_fps==0), use a fixed small step to
+       avoid wall-clock variance in unit tests and headless runs. */
+    if (g_game_loop.target_frame_seconds > 0.0)
+    {
+        g_app.dt = g_game_loop.target_frame_seconds;
+    }
+    else
+    {
+        g_app.dt = 0.0083; /* ~120 FPS fixed step for uncapped mode */
+    }
     if (g_app.dt < 0.0001)
         g_app.dt = 0.0001; /* clamp absurdly low */
     g_app.fps = (g_app.dt > 0.0) ? 1.0 / g_app.dt : 0.0;

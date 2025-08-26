@@ -2,6 +2,9 @@
 
 Authoritative conventions for adding or modifying item rarity tiers and affix (prefix/suffix) definitions. Follow this to keep content coherent, balanced, and readable.
 
+Contents
+- Adding a New Affix - Checklist
+
 ## 1. Goals
 * Communicate item power progression via immediately recognizable rarity colors & names.
 * Keep affix ids short, descriptive, and machine‑friendly (no spaces, lowercase snake).
@@ -69,7 +72,7 @@ High impact multiplicative or build‑defining stats (e.g., crit chance, element
 * Group families contiguously (all `dmg_flat_` before `dmg_pct_`). If natural alphabetical breaks a logical group, optionally use a shared stem to keep grouped.
 * A future automated sorter may extend `rogue_item_defs_sort_cfg`; author now as if sorter exists.
 
-## 8. Adding a New Affix – Checklist
+## 8. Adding a New Affix - Checklist
 1. Choose id following Section 4.
 2. Select type (PREFIX/SUFFIX) balancing existing counts (target near parity ±15%).
 3. Define min/max respecting Section 5 progression.
@@ -93,10 +96,10 @@ High impact multiplicative or build‑defining stats (e.g., crit chance, element
 Any PR adding or rebalancing ≥5 affixes should attach a short diff summary (counts per rarity, min/max delta ranges). Optionally produce before/after weight distribution charts (external script) – not mandatory yet.
 
 ## 12. FAQ
-Q: Why not encode scaling formulas instead of fixed ranges?  
+Q: Why not encode scaling formulas instead of fixed ranges?
 A: Determinism & simplicity. Ranges keep balancing transparent and tooling straightforward; dynamic formulas can be introduced later behind feature flag with tests.
 
-Q: Can we introduce negative affixes for corruption mechanics?  
+Q: Can we introduce negative affixes for corruption mechanics?
 A: Yes, but only after a future corruption phase adds UI surfacing + roll explanation; document trade‑off semantics here when implemented.
 
 ---

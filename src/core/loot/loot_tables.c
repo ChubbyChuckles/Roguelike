@@ -11,6 +11,26 @@
 static RogueLootTableDef g_tables[ROGUE_MAX_LOOT_TABLES];
 static int g_table_count = 0;
 
+/* Helper: detect simple integer (optional leading +/-) */
+static int lt_is_number(const char* s)
+{
+    if (!s || !*s)
+        return 0;
+    if (*s == '+' || *s == '-')
+        s++;
+    {
+        int has_digit = 0;
+        while (*s)
+        {
+            if (*s < '0' || *s > '9')
+                return 0;
+            has_digit = 1;
+            s++;
+        }
+        return has_digit;
+    }
+}
+
 int rogue_loot_tables_reset(void)
 {
     g_table_count = 0;
@@ -53,9 +73,70 @@ static int parse_line(char* line)
         return 0;
     char* cursor = line;
     char* id_f = lt_next_field(&cursor);
-    char* rolls_min_f = lt_next_field(&cursor);
-    char* rolls_max_f = lt_next_field(&cursor);
-    if (!id_f || !rolls_min_f || !rolls_max_f)
+    char* f2 = lt_next_field(&cursor);
+    char* f3 = lt_next_field(&cursor);
+    if (!id_f || !f2)
+        return -1;
+
+    /* Legacy format support: table_id,item_id,weight,qmin,qmax,rarity_min,rarity_max */
+    if (f2 && f3 && !lt_is_number(f2))
+    {
+        const char* item_id = f2;
+        const char* w_f = f3;
+        const char* qmin_f = lt_next_field(&cursor);
+        const char* qmax_f = lt_next_field(&cursor);
+        const char* rmin_f = lt_next_field(&cursor);
+        const char* rmax_f = lt_next_field(&cursor);
+        if (!item_id || !w_f || !qmin_f || !qmax_f)
+            return -1;
+        RogueLootTableDef t;
+        memset(&t, 0, sizeof t);
+#if defined(_MSC_VER)
+        strncpy_s(t.id, sizeof t.id, id_f, _TRUNCATE);
+#else
+        strncpy(t.id, id_f, sizeof t.id - 1);
+#endif
+        t.rolls_min = 1;
+        t.rolls_max = 1;
+        RogueLootEntry* e = &t.entries[0];
+        e->item_def_index = rogue_item_def_index(item_id);
+        e->weight = (int) strtol(w_f, NULL, 10);
+        if (e->weight < 0)
+            e->weight = 0;
+        e->qmin = (int) strtol(qmin_f, NULL, 10);
+        e->qmax = (int) strtol(qmax_f, NULL, 10);
+        if (e->qmax < e->qmin)
+            e->qmax = e->qmin;
+        e->rarity_min = -1;
+        e->rarity_max = -1;
+        if (rmin_f)
+        {
+            e->rarity_min = (int) strtol(rmin_f, NULL, 10);
+            if (e->rarity_min < -1)
+                e->rarity_min = -1;
+        }
+        if (rmax_f)
+        {
+            e->rarity_max = (int) strtol(rmax_f, NULL, 10);
+            if (e->rarity_max < -1)
+                e->rarity_max = -1;
+            if (e->rarity_max < e->rarity_min)
+                e->rarity_max = e->rarity_min;
+        }
+        if (e->item_def_index >= 0 && e->weight > 0)
+            t.entry_count = 1;
+        if (t.entry_count > 0 && g_table_count < ROGUE_MAX_LOOT_TABLES)
+        {
+            g_tables[g_table_count++] = t;
+            return 1;
+        }
+        return 0;
+    }
+
+    /* Newer format: id,rolls_min,rolls_max, then ';' separated segments of item entries */
+    char* rolls_min_f = f2;
+    char* rolls_max_f = f3;
+    if (!rolls_min_f || !rolls_max_f)
         return -1;
     RogueLootTableDef t;
     memset(&t, 0, sizeof t);

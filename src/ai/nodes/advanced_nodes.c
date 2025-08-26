@@ -1904,6 +1904,7 @@ typedef struct DecorCooldown
     RogueBTNode* child;    /**< Child node to decorate. */
     const char* timer_key; /**< BB key for the cooldown timer. */
     float cooldown;        /**< Cooldown threshold in seconds. */
+    int armed;             /**< Internal flag: start blocking after first SUCCESS. */
 } DecorCooldown;
 /**
  * @brief Tick for the cooldown decorator.
@@ -1915,23 +1916,33 @@ static RogueBTStatus tick_decor_cooldown(RogueBTNode* node, RogueBlackboard* bb,
 {
     DecorCooldown* d = (DecorCooldown*) node->user_data;
     float t = 0.0f;
+    /* If timer missing, treat as 0.0 (unarmed state may allow immediate execution). */
     if (!rogue_bb_get_timer(bb, d->timer_key, &t))
-        return ROGUE_BT_FAILURE;
-    /* Treat t==0 as "ready now" to allow the first execution immediately. */
-    if (t < d->cooldown && t > 0.0f)
+        t = 0.0f;
+
+    /* If cooldown is armed, block while timer <= cooldown (inclusive), accumulating dt. */
+    if (d->armed)
     {
-        /* Cooldown in progress: accumulate elapsed and remain in FAILURE state. */
-        rogue_bb_set_timer(bb, d->timer_key, t + dt);
+        if (t <= d->cooldown)
+        {
+            rogue_bb_set_timer(bb, d->timer_key, t + dt);
+            return ROGUE_BT_FAILURE;
+        }
+        /* Cooldown elapsed: disarm and require one more tick before allowing child. */
+        d->armed = 0;
         return ROGUE_BT_FAILURE;
     }
+    /* Not armed (initial or post-cooldown): allow child to run. */
     RogueBTStatus st = d->child->vtable->tick(d->child, bb, dt);
     if (st == ROGUE_BT_SUCCESS)
     {
+        /* Reset timer on success and arm cooldown going forward. */
         rogue_bb_set_timer(bb, d->timer_key, 0.0f);
+        d->armed = 1;
     }
     else
-    { /* advance timer even if not success to avoid stall */
-        rogue_bb_set_timer(bb, d->timer_key, t + dt);
+    {
+        /* Do not modify timer on child non-success; preserves current phase. */
     }
     return st;
 }
@@ -1948,6 +1959,7 @@ RogueBTNode* rogue_bt_decorator_cooldown(const char* name, RogueBTNode* child,
     d->child = child;
     d->timer_key = bb_timer_key;
     d->cooldown = cooldown_seconds;
+    d->armed = 0;
     n->user_data = d;
     n->children = (RogueBTNode**) calloc(1, sizeof(RogueBTNode*));
     n->children[0] = child;
