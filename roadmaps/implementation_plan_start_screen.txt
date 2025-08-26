@@ -80,7 +80,7 @@ PHASE 10. Testing & QA Automation
 10.3 Localization swap test: label table (en) -> (fake-locale) (Verified Debug: test_start_screen_phase10_3_localization)
 10.4 Reduced motion test: transitions skipped, hashes stable (Verified Debug: test_start_screen_phase10_4_reduced_motion)
 10.5 Performance smoke: emit >=200 widgets < threshold time (X)
-10.6 Corrupt save header test: continue disabled, load lists only healthy entries (X)
+10.6 Corrupt save header test: continue disabled, load lists only healthy entries (Done: Verified Debug: test_start_screen_phase10_6_corrupt_header)
 10.7 Background image presence: renders when file exists; falls back to gradient when missing (Done)
 10.8 Aspect-ratio scaling: hash differs for cover vs contain; no stretching artifacts (Done)
 10.9 SDL2_image absent: harness simulates missing loader -> no crash; gradient path validated (Done)
@@ -91,6 +91,10 @@ Verification notes (2025-08-26):
 - Full test run: 95% passed; remaining failures in unrelated AI/combat/worldgen/equipment suites. test_boot passed on re-run; no start screen regressions observed.
  - Logging tightened: default WARN reduces console spam; ROGUE_LOG_LEVEL env enables opt-in DEBUG/INFO for troubleshooting.
  - Load overlay now includes a delete confirmation modal. Confirm (Enter) deletes the selected slot via save manager API; cancel (Esc) aborts. Save manager tolerates missing sidecar files.
+
+Additional verification (2025-08-26, later run):
+- Rebuilt Debug with SDL2 (-j8). Start screen Phase 10 suite passed (5/5), including 10.6 corrupt header.
+- Continue/Load paths now re-validate save headers immediately before attempting load; corrupt/incompatible headers are ignored and do not trigger fade-out.
 
 PHASE 11. Telemetry & Analytics (Optional)
 11.1 Menu selection event stream with session id (X)

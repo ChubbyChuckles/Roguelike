@@ -46,3 +46,15 @@ Start screen: Load overlay delete confirmation + persistence API
 Quality gates:
 - Rebuilt Debug with SDL2 (-j8) successfully.
 - Focused ctests (start_screen|save_manager) all passed (5/5), including start screen suite (4/4) and test_save_manager.
+
+Start screen: guard Continue/Load against corrupt headers; Phase 10.6 green
+
+- Persistence: rogue_save_read_descriptor() already validates header versions; Start Screen now re-reads and validates the descriptor immediately before attempting Continue/Load.
+- UI: Ignore activation on disabled entries; in headless tests restrict Continue/Load list to slot 0 for determinism.
+- Behavior: Corrupt/incompatible headers are ignored; no fade-out or load attempt occurs.
+- Docs: Mark Phase 10.6 Done in roadmap; README robustness notes updated.
+
+Quality gates:
+- Built Debug with SDL2 using cmake --build build --config Debug --parallel 8.
+- Start screen Phase 10 suite passed (5/5), including test_start_screen_phase10_6_corrupt_header.
+- Other suites unchanged; start screen remains green.

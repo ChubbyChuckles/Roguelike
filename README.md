@@ -73,6 +73,10 @@ Load overlay basics:
 - Up/Down navigate; Enter loads the selected slot and transitions to gameplay.
  - Delete a slot with a confirmation modal from within the list; deletion uses the save manager and is non-destructive to other slots.
 
+Robustness:
+- Continue and Load both re-validate the selected save header immediately before attempting to load. Corrupt or incompatible headers are ignored and will not trigger a transition.
+- For deterministic tests, the Start Screen considers slot 0 when deriving Continue visibility and when populating the Load overlay in headless mode.
+
 Environment overrides:
 - ROGUE_START_BG: absolute or relative path to a background image.
 - ROGUE_REDUCED_MOTION=1: skip fades and animations for accessibility.

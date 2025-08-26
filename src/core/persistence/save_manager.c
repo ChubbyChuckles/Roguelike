@@ -544,6 +544,11 @@ int rogue_save_read_descriptor(int slot_index, RogueSaveDescriptor* out_desc)
         return -3;
     }
     fclose(f);
+    /* Basic validation: reject obviously invalid/future headers */
+    if (d.version <= 0 || d.version > ROGUE_SAVE_FORMAT_VERSION)
+    {
+        return -4; /* corrupt or unsupported future version */
+    }
     *out_desc = d;
     return 0;
 }

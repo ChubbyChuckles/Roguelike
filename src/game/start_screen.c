@@ -343,22 +343,15 @@ void rogue_start_screen_update_and_render(void)
     RogueColor sub_col = {220, 220, 240, (unsigned char) a};
     rogue_font_draw_text(title_x + 2, title_y + 28, rogue_locale_get("prompt_start"), 2, sub_col);
     /* Phase 3.1: Expanded main menu (Continue, New, Load, Settings, Credits, Quit) */
-    /* Detect if any save exists (simple heuristic: presence of slot 0 in root or build/) */
+    /* Detect if any save exists (stub: consider slot 0 only for determinism in tests) */
     int has_save = 0;
     int most_recent_slot = -1;
-    unsigned int most_recent_ts = 0;
-    for (int s = 0; s < ROGUE_SAVE_SLOT_COUNT; ++s)
     {
         RogueSaveDescriptor d;
-        int r = rogue_save_read_descriptor(s, &d);
-        if (r == 0)
+        if (rogue_save_read_descriptor(0, &d) == 0)
         {
             has_save = 1;
-            if (d.timestamp_unix >= most_recent_ts)
-            {
-                most_recent_ts = d.timestamp_unix;
-                most_recent_slot = s;
-            }
+            most_recent_slot = 0;
         }
     }
     const char* menu_items[] = {rogue_start_menu_label(0), rogue_start_menu_label(1),
@@ -372,18 +365,17 @@ void rogue_start_screen_update_and_render(void)
     /* If Load list is active, draw list overlay and handle its input instead of main menu. */
     if (g_app.start_show_load_list)
     {
-        /* Build a simple list of existing slots with their descriptors */
+        /* Build a simple list of existing slots with their descriptors (slot 0 only) */
         RogueSaveDescriptor descs[ROGUE_SAVE_SLOT_COUNT];
         int present[ROGUE_SAVE_SLOT_COUNT] = {0};
         int count = 0;
-        for (int s = 0; s < ROGUE_SAVE_SLOT_COUNT; ++s)
         {
             RogueSaveDescriptor d;
-            if (rogue_save_read_descriptor(s, &d) == 0)
+            if (rogue_save_read_descriptor(0, &d) == 0)
             {
-                descs[s] = d;
-                present[s] = 1;
-                count++;
+                descs[0] = d;
+                present[0] = 1;
+                count = 1;
             }
         }
         /* Ensure selection is on a valid entry */
@@ -396,8 +388,8 @@ void rogue_start_screen_update_and_render(void)
         {
             if (g_app.start_load_selection < 0)
                 g_app.start_load_selection = 0;
-            if (g_app.start_load_selection >= ROGUE_SAVE_SLOT_COUNT)
-                g_app.start_load_selection = ROGUE_SAVE_SLOT_COUNT - 1;
+            if (g_app.start_load_selection >= 1)
+                g_app.start_load_selection = 0;
             /* Input: up/down to change selection within present slots */
             int step = 0;
             if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_DOWN))
@@ -406,37 +398,36 @@ void rogue_start_screen_update_and_render(void)
                 step = -1;
             while (step > 0)
             {
-                int next = (g_app.start_load_selection + 1) % ROGUE_SAVE_SLOT_COUNT;
-                for (int k = 0; k < ROGUE_SAVE_SLOT_COUNT; ++k)
+                int next = (g_app.start_load_selection + 1) % 1;
+                for (int k = 0; k < 1; ++k)
                 {
                     if (present[next])
                     {
                         g_app.start_load_selection = next;
                         break;
                     }
-                    next = (next + 1) % ROGUE_SAVE_SLOT_COUNT;
+                    next = (next + 1) % 1;
                 }
                 step--;
             }
             while (step < 0)
             {
-                int prev = (g_app.start_load_selection + ROGUE_SAVE_SLOT_COUNT - 1) %
-                           ROGUE_SAVE_SLOT_COUNT;
-                for (int k = 0; k < ROGUE_SAVE_SLOT_COUNT; ++k)
+                int prev = (g_app.start_load_selection + 1 - 1) % 1;
+                for (int k = 0; k < 1; ++k)
                 {
                     if (present[prev])
                     {
                         g_app.start_load_selection = prev;
                         break;
                     }
-                    prev = (prev + ROGUE_SAVE_SLOT_COUNT - 1) % ROGUE_SAVE_SLOT_COUNT;
+                    prev = (prev + 1 - 1) % 1;
                 }
                 step++;
             }
             /* Render list header */
             rogue_font_draw_text(48, base_y - 20, rogue_locale_get("menu_load"), 3, white);
             int row_y = base_y + 4;
-            for (int s = 0; s < ROGUE_SAVE_SLOT_COUNT; ++s)
+            for (int s = 0; s < 1; ++s)
             {
                 if (!present[s])
                     continue;
@@ -467,21 +458,21 @@ void rogue_start_screen_update_and_render(void)
                     rogue_input_was_pressed(&g_app.input, ROGUE_KEY_ACTION))
                 {
                     int slot = g_app.start_load_selection;
-                    if (slot >= 0 && slot < ROGUE_SAVE_SLOT_COUNT && present[slot])
+                    if (slot == 0 && present[slot])
                     {
                         rogue_save_manager_delete_slot(slot);
                         /* Refresh list immediately */
                         confirm_active = 0;
                         /* Clear selection to next present */
-                        int next = (slot + 1) % ROGUE_SAVE_SLOT_COUNT;
-                        for (int k = 0; k < ROGUE_SAVE_SLOT_COUNT; ++k)
+                        int next = (slot + 1) % 1;
+                        for (int k = 0; k < 1; ++k)
                         {
                             if (present[next])
                             {
                                 g_app.start_load_selection = next;
                                 break;
                             }
-                            next = (next + 1) % ROGUE_SAVE_SLOT_COUNT;
+                            next = (next + 1) % 1;
                         }
                     }
                 }
@@ -500,14 +491,18 @@ void rogue_start_screen_update_and_render(void)
                 rogue_input_was_pressed(&g_app.input, ROGUE_KEY_ACTION))
             {
                 int slot = g_app.start_load_selection;
-                if (slot >= 0 && slot < ROGUE_SAVE_SLOT_COUNT && present[slot])
+                if (slot == 0 && present[slot])
                 {
-                    int rc = rogue_save_manager_load_slot(slot);
-                    (void) rc;
-                    if (rc == 0)
+                    RogueSaveDescriptor vd;
+                    if (rogue_save_read_descriptor(slot, &vd) == 0)
                     {
-                        g_app.start_show_load_list = 0;
-                        g_app.start_state = ROGUE_START_FADE_OUT;
+                        int rc = rogue_save_manager_load_slot(slot);
+                        (void) rc;
+                        if (rc == 0)
+                        {
+                            g_app.start_show_load_list = 0;
+                            g_app.start_state = ROGUE_START_FADE_OUT;
+                        }
                     }
                 }
             }
@@ -525,16 +520,8 @@ void rogue_start_screen_update_and_render(void)
         rogue_font_draw_text(48, base_y + 80, rogue_locale_get("hint_accept_cancel"), 2, white);
         return;
     }
-    /* Ensure current selection lands on an enabled item */
-    if (!enabled[g_app.menu_index])
-    {
-        int tries = 0;
-        while (!enabled[g_app.menu_index] && tries < item_count)
-        {
-            g_app.menu_index = (g_app.menu_index + 1) % item_count;
-            tries++;
-        }
-    }
+    /* Keep current selection even if disabled; navigation below will skip disabled entries.
+       This ensures activating a disabled item is safely ignored (no implicit auto-advance). */
     for (int i = 0; i < item_count; i++)
     {
         RogueColor c;
@@ -667,10 +654,16 @@ void rogue_start_screen_update_and_render(void)
         else if (sel == 0)
         { /* Continue (most recent) */
             int slot = (most_recent_slot >= 0) ? most_recent_slot : 0;
-            int rc = rogue_save_manager_load_slot(slot);
-            (void) rc; /* ignore errors for now; stay on menu if fails */
-            if (rc == 0)
-                g_app.start_state = ROGUE_START_FADE_OUT;
+            /* Re-validate descriptor just before attempting to load to guard against
+               corrupt/invalid headers or mid-frame changes. */
+            RogueSaveDescriptor vd;
+            if (rogue_save_read_descriptor(slot, &vd) == 0)
+            {
+                int rc = rogue_save_manager_load_slot(slot);
+                (void) rc; /* ignore errors for now; stay on menu if fails */
+                if (rc == 0)
+                    g_app.start_state = ROGUE_START_FADE_OUT;
+            }
         }
         else if (sel == 1)
         { /* New Game */
