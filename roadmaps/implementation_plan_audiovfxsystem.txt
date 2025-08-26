@@ -57,8 +57,8 @@ PHASE 6. Advanced Audio Features
 6.2 Cross-fade & beat-aligned transitions (Done: linear cross-fade + bar-aligned deferred transitions via tempo/beats-per-bar scheduling)
 6.3 Side-chain ducking (e.g., UI or key SFX lower music) (Done: attack/hold/release envelope)
 6.4 Procedural layering (combine base + random sweeteners) (Done: per-state layer registry (max 4) with deterministic one-shot sweetener selection at state activation; sweetener gain scales with active track weight and excluded from cross-fade; unit test validates selection & gain bounds)
-6.5 Reverb / environmental preset stubs (toggle simulation) (X)
-6.6 Distance-based low pass filter attenuation (X)
+6.5 Reverb / environmental preset stubs (toggle simulation) (Done: preset enum + smooth wet mix target with simple time-constant interpolation; exposed APIs for future DSP integration + unit test validates smoothing)
+6.6 Distance-based low pass filter attenuation (Done: distance→high-frequency factor mapping applied to non-music categories when enabled; strength/min_factor tunables + unit test exercising enable/disable and param effect)
 
 PHASE 7. Advanced VFX Features
 7.1 GPU-friendly batched sprite particle update (future hook) (X)

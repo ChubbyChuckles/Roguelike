@@ -141,6 +141,24 @@ const char* rogue_audio_music_layer_current(void);
 /* Retrieve configured sweetener count for a state (tests & tools). */
 int rogue_audio_music_layer_count(RogueMusicState state);
 
+/* -------- Phase 6.5: Reverb / environmental preset stubs -------- */
+typedef enum RogueAudioReverbPreset
+{
+    ROGUE_AUDIO_REVERB_NONE = 0,
+    ROGUE_AUDIO_REVERB_CAVE = 1,
+    ROGUE_AUDIO_REVERB_HALL = 2,
+    ROGUE_AUDIO_REVERB_CHAMBER = 3
+} RogueAudioReverbPreset;
+void rogue_audio_env_set_reverb_preset(RogueAudioReverbPreset preset);
+RogueAudioReverbPreset rogue_audio_env_get_reverb_preset(void);
+float rogue_audio_env_get_reverb_wet(void); /* current wet mix [0..1] */
+
+/* -------- Phase 6.6: Distance-based low-pass attenuation -------- */
+void rogue_audio_enable_distance_lowpass(int enable); /* non-zero = enable */
+void rogue_audio_set_lowpass_params(float strength, float min_factor);
+int rogue_audio_get_distance_lowpass_enabled(void);
+void rogue_audio_get_lowpass_params(float* out_strength, float* out_min_factor);
+
 /* -------- VFX subsystem (Phase 3 foundations) -------- */
 
 typedef enum RogueVfxLayer

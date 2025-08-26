@@ -254,3 +254,14 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase6_4_music_layering.
     endif()
     add_test(NAME test_audio_vfx_phase6_4_music_layering COMMAND test_audio_vfx_phase6_4_music_layering)
 endif()
+
+# Phase 6.5/6.6 reverb + distance low-pass
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase6_5_6_env_lowpass.c)
+    add_executable(test_audio_vfx_phase6_5_6_env_lowpass unit/test_audio_vfx_phase6_5_6_env_lowpass.c)
+    target_link_libraries(test_audio_vfx_phase6_5_6_env_lowpass PRIVATE rogue_audio_vfx)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_audio_vfx_phase6_5_6_env_lowpass PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_audio_vfx_phase6_5_6_env_lowpass PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_audio_vfx_phase6_5_6_env_lowpass COMMAND test_audio_vfx_phase6_5_6_env_lowpass)
+endif()

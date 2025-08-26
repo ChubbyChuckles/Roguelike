@@ -291,6 +291,16 @@ static char g_music_active_sweetener[24]; /* chosen sweetener for current active
 static float g_music_active_sweetener_gain =
     0.0f; /* gain scalar (0..1) multiplied with main weight */
 
+/* -------- Phase 6.5: Reverb / environmental preset stubs -------- */
+static RogueAudioReverbPreset g_reverb_preset = ROGUE_AUDIO_REVERB_NONE;
+static float g_reverb_target_wet = 0.0f; /* desired wet mix based on preset */
+static float g_reverb_wet = 0.0f;        /* smoothed wet mix used for shaping (future DSP hook) */
+
+/* -------- Phase 6.6: Distance-based low-pass attenuation -------- */
+static int g_lowpass_enabled = 0;
+static float g_lowpass_strength = 0.8f;   /* 0..1: blend amount toward attenuated highs */
+static float g_lowpass_min_factor = 0.4f; /* high-frequency factor at max distance */
+
 /* Positional attenuation */
 static int g_positional_enabled = 0;
 static float g_listener_x = 0.0f, g_listener_y = 0.0f;
@@ -424,6 +434,13 @@ void rogue_audio_registry_clear(void)
     g_music_active_weight = 0.0f;
     g_music_fadeout_weight = 0.0f;
     g_music_fade_time_ms = g_music_fade_elapsed_ms = 0;
+    /* Phase 6.5/6.6 environment audio resets */
+    g_reverb_preset = ROGUE_AUDIO_REVERB_NONE;
+    g_reverb_target_wet = 0.0f;
+    g_reverb_wet = 0.0f;
+    g_lowpass_enabled = 0;
+    g_lowpass_strength = 0.8f;
+    g_lowpass_min_factor = 0.4f;
 }
 
 void rogue_audio_mixer_set_master(float gain)
@@ -556,7 +573,24 @@ float rogue_audio_debug_effective_gain(const char* id, unsigned repeats, float x
         /* Apply duck envelope */
         cat_gain *= g_music_duck_gain;
     }
-    float eff = base * g_mixer_master * cat_gain * music_weight * compute_attenuation(x, y);
+    float attenuation = compute_attenuation(x, y);
+    float lp_factor = 1.0f;
+    if (g_lowpass_enabled && g_audio_reg[idx].cat != (uint8_t) ROGUE_AUDIO_CAT_MUSIC)
+    {
+        if (g_lowpass_min_factor < 0.0f)
+            g_lowpass_min_factor = 0.0f;
+        if (g_lowpass_min_factor > 1.0f)
+            g_lowpass_min_factor = 1.0f;
+        float hf = g_lowpass_min_factor + (1.0f - g_lowpass_min_factor) * attenuation;
+        if (hf > 1.0f)
+            hf = 1.0f;
+        if (hf < g_lowpass_min_factor)
+            hf = g_lowpass_min_factor;
+        lp_factor = 1.0f - g_lowpass_strength * (1.0f - hf);
+        if (lp_factor < 0.0f)
+            lp_factor = 0.0f;
+    }
+    float eff = base * g_mixer_master * cat_gain * music_weight * attenuation * lp_factor;
     if (g_mixer_mute)
         eff = 0.0f;
     if (eff < 0.0f)
@@ -814,6 +848,70 @@ void rogue_audio_music_update(uint32_t dt_ms)
         if (g_music_duck_gain > 1.0f)
             g_music_duck_gain = 1.0f;
     }
+    /* Phase 6.5: smooth reverb wet mix toward preset target (no DSP yet, exposed for tests/tools).
+     */
+    {
+        float target = g_reverb_target_wet;
+        if (target < 0.0f)
+            target = 0.0f;
+        if (target > 1.0f)
+            target = 1.0f;
+        float diff = target - g_reverb_wet;
+        float step = (dt_ms / 250.0f); /* ~250ms time constant */
+        if (step > 1.0f)
+            step = 1.0f;
+        g_reverb_wet += diff * step;
+    }
+}
+
+/* -------- Phase 6.5: Reverb / environmental preset API -------- */
+void rogue_audio_env_set_reverb_preset(RogueAudioReverbPreset preset)
+{
+    g_reverb_preset = preset;
+    switch (preset)
+    {
+    case ROGUE_AUDIO_REVERB_NONE:
+        g_reverb_target_wet = 0.0f;
+        break;
+    case ROGUE_AUDIO_REVERB_CAVE:
+        g_reverb_target_wet = 0.55f;
+        break;
+    case ROGUE_AUDIO_REVERB_HALL:
+        g_reverb_target_wet = 0.40f;
+        break;
+    case ROGUE_AUDIO_REVERB_CHAMBER:
+        g_reverb_target_wet = 0.30f;
+        break;
+    default:
+        g_reverb_target_wet = 0.0f;
+        break;
+    }
+}
+RogueAudioReverbPreset rogue_audio_env_get_reverb_preset(void) { return g_reverb_preset; }
+float rogue_audio_env_get_reverb_wet(void) { return g_reverb_wet; }
+
+/* -------- Phase 6.6: Distance-based low-pass API -------- */
+void rogue_audio_enable_distance_lowpass(int enable) { g_lowpass_enabled = enable ? 1 : 0; }
+int rogue_audio_get_distance_lowpass_enabled(void) { return g_lowpass_enabled; }
+void rogue_audio_set_lowpass_params(float strength, float min_factor)
+{
+    if (strength < 0.0f)
+        strength = 0.0f;
+    if (strength > 1.0f)
+        strength = 1.0f;
+    if (min_factor < 0.0f)
+        min_factor = 0.0f;
+    if (min_factor > 1.0f)
+        min_factor = 1.0f;
+    g_lowpass_strength = strength;
+    g_lowpass_min_factor = min_factor;
+}
+void rogue_audio_get_lowpass_params(float* out_strength, float* out_min_factor)
+{
+    if (out_strength)
+        *out_strength = g_lowpass_strength;
+    if (out_min_factor)
+        *out_min_factor = g_lowpass_min_factor;
 }
 
 const char* rogue_audio_music_current(void)

@@ -217,3 +217,32 @@ Quality gates:
     - test_audio_vfx_phase6_4_music_layering PASS.
     - Prior Phase 6 system tests (state machine, beat-aligned) previously green (no behavior change).
   All targeted Phase 6 tests passing.
+
+Audio/VFX: Phase 6.5 reverb presets + 6.6 distance low-pass attenuation
+
+- Added environment reverb preset enum (NONE, CAVE, HALL, CHAMBER) with API:
+    - rogue_audio_env_set_reverb_preset(preset)
+    - rogue_audio_env_get_reverb_preset()
+    - rogue_audio_env_get_reverb_wet() (smoothed wet mix 0..1)
+  Internally tracks target wet mix per preset and smooths toward it over ~250ms time constant in
+  rogue_audio_music_update (placeholder for future DSP integration).
+- Implemented distance-based low-pass attenuation stub for non-music categories: enable flag plus
+  parameters (strength, min_factor). Effective gain calculation applies blended high-frequency
+  factor derived from positional attenuation; disabled path preserves previous behavior.
+  APIs:
+    - rogue_audio_enable_distance_lowpass(int)
+    - rogue_audio_get_distance_lowpass_enabled()
+    - rogue_audio_set_lowpass_params(strength, min_factor)
+    - rogue_audio_get_lowpass_params(...)
+- Integrated both features into registry_clear reset.
+- New unit test test_audio_vfx_phase6_5_6_env_lowpass validates: baseline equality with distance
+  features off, attenuation + low-pass ratio difference when enabled, reverb wet mix smoothing up
+  toward preset then down after switching to NONE.
+- Roadmap updated marking 6.5 & 6.6 Done with summaries; README expanded to Phase 6.1–6.6 feature
+  list including new APIs.
+
+Quality gates:
+- Reconfigured with ROGUE_ENABLE_SDL=ON (SDL_mixer still absent), rebuilt Debug (-j8), compiled
+  new test target.
+- Tests run: test_audio_vfx_phase6_5_6_env_lowpass PASS alongside prior Phase 6 tests (spot run of
+  layering & ducking previously green).
