@@ -62,10 +62,15 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 The start screen includes:
 - Background image with cover/contain scaling and a gradient fallback if assets are missing.
 - Optional parallax star overlay (disabled under reduced motion).
-- Menu: Continue (auto-selects most recent save), New Game, Load Game (stub), Settings (placeholder), Credits (placeholder), Quit, and a Seed entry line.
+- Menu: Continue (auto-selects most recent save), New Game, Load Game (overlay list), Settings (placeholder), Credits (placeholder), Quit, and a Seed entry line.
 - Controller/keyboard navigation with wrap-around and held-key repeat.
 - Localization-ready labels and tooltips; defaults are built-in en-US.
 - Reduced-motion compliance (skips animated fades) and day/night tinting.
+
+Load overlay basics:
+- Opens from Load Game and lists existing slots (up to configured slot count).
+- Each entry shows a placeholder thumbnail tinted by a seeded color, plus basic header info.
+- Up/Down navigate; Enter loads the selected slot and transitions to gameplay.
 
 Environment overrides:
 - ROGUE_START_BG: absolute or relative path to a background image.

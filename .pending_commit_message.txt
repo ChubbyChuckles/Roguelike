@@ -13,3 +13,14 @@ Quality gates:
 - Start screen tests passed: test_start_screen_phase10_{1..4}.
 - Full ctest run: 95% passed (27 failures in non-start-screen suites). test_boot passed when isolated; start screen shows no regressions.
 Pending: investigate unrelated failing suites separately.
+
+Start screen: Load overlay + seeded thumbnails; Continue/Load transitions
+
+- Phase 4.3: Add seeded color thumbnail placeholders with border for save slots.
+- Phase 4.4: Continue and Load now transition via fade-out after successful load.
+- Phase 4.5: Basic Load overlay listing existing slots with navigation and selection.
+- UI polish: Show tiny thumbnail next to Continue when a recent slot exists.
+
+Quality gates:
+- Rebuilt Debug with SDL2 (-j8). Start screen tests still 4/4 green.
+- Manual smoke validated Load overlay open/navigate/load without regressions.

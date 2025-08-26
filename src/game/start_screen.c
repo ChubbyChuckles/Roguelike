@@ -253,6 +253,33 @@ static void render_background(void)
 #endif
 }
 
+/* --- Phase 4.3: Simple thumbnail placeholder rendering --- */
+static void draw_slot_thumbnail(int x, int y, int w, int h, int slot_index,
+                                const RogueSaveDescriptor* desc)
+{
+#ifdef ROGUE_HAVE_SDL
+    extern SDL_Renderer* g_internal_sdl_renderer_ref;
+    /* Seed-based stable color (use slot index and timestamp for variation) */
+    unsigned int s = (unsigned int) (0xA5A5u ^ (slot_index * 2654435761u) ^ desc->timestamp_unix);
+    unsigned char r = (unsigned char) (64 + (s & 127));
+    unsigned char g = (unsigned char) (64 + ((s >> 8) & 127));
+    unsigned char b = (unsigned char) (64 + ((s >> 16) & 127));
+    SDL_Rect rect = {x, y, w, h};
+    SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, r, g, b, 255);
+    SDL_RenderFillRect(g_internal_sdl_renderer_ref, &rect);
+    /* Border */
+    SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, 220, 220, 240, 255);
+    SDL_RenderDrawRect(g_internal_sdl_renderer_ref, &rect);
+#else
+    (void) x;
+    (void) y;
+    (void) w;
+    (void) h;
+    (void) slot_index;
+    (void) desc;
+#endif
+}
+
 void rogue_start_screen_update_and_render(void)
 {
     if (!g_app.show_start_screen)
@@ -341,6 +368,114 @@ void rogue_start_screen_update_and_render(void)
     int enabled[] = {has_save, 1, has_save, 1, 1, 1, 1};
     int item_count = 7;
     int base_y = 140;
+
+    /* If Load list is active, draw list overlay and handle its input instead of main menu. */
+    if (g_app.start_show_load_list)
+    {
+        /* Build a simple list of existing slots with their descriptors */
+        RogueSaveDescriptor descs[ROGUE_SAVE_SLOT_COUNT];
+        int present[ROGUE_SAVE_SLOT_COUNT] = {0};
+        int count = 0;
+        for (int s = 0; s < ROGUE_SAVE_SLOT_COUNT; ++s)
+        {
+            RogueSaveDescriptor d;
+            if (rogue_save_read_descriptor(s, &d) == 0)
+            {
+                descs[s] = d;
+                present[s] = 1;
+                count++;
+            }
+        }
+        /* Ensure selection is on a valid entry */
+        if (count == 0)
+        {
+            /* Nothing to show -> leave list */
+            g_app.start_show_load_list = 0;
+        }
+        else
+        {
+            if (g_app.start_load_selection < 0)
+                g_app.start_load_selection = 0;
+            if (g_app.start_load_selection >= ROGUE_SAVE_SLOT_COUNT)
+                g_app.start_load_selection = ROGUE_SAVE_SLOT_COUNT - 1;
+            /* Input: up/down to change selection within present slots */
+            int step = 0;
+            if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_DOWN))
+                step = 1;
+            else if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_UP))
+                step = -1;
+            while (step > 0)
+            {
+                int next = (g_app.start_load_selection + 1) % ROGUE_SAVE_SLOT_COUNT;
+                for (int k = 0; k < ROGUE_SAVE_SLOT_COUNT; ++k)
+                {
+                    if (present[next])
+                    {
+                        g_app.start_load_selection = next;
+                        break;
+                    }
+                    next = (next + 1) % ROGUE_SAVE_SLOT_COUNT;
+                }
+                step--;
+            }
+            while (step < 0)
+            {
+                int prev = (g_app.start_load_selection + ROGUE_SAVE_SLOT_COUNT - 1) %
+                           ROGUE_SAVE_SLOT_COUNT;
+                for (int k = 0; k < ROGUE_SAVE_SLOT_COUNT; ++k)
+                {
+                    if (present[prev])
+                    {
+                        g_app.start_load_selection = prev;
+                        break;
+                    }
+                    prev = (prev + ROGUE_SAVE_SLOT_COUNT - 1) % ROGUE_SAVE_SLOT_COUNT;
+                }
+                step++;
+            }
+            /* Render list header */
+            rogue_font_draw_text(48, base_y - 20, rogue_locale_get("menu_load"), 3, white);
+            int row_y = base_y + 4;
+            for (int s = 0; s < ROGUE_SAVE_SLOT_COUNT; ++s)
+            {
+                if (!present[s])
+                    continue;
+                /* Thumbnail */
+                draw_slot_thumbnail(48, row_y - 6, 28, 18, s, &descs[s]);
+                /* Label */
+                char line[96];
+                snprintf(line, sizeof line, "Slot %d  v%u  %us", s, descs[s].version,
+                         descs[s].timestamp_unix);
+                RogueColor c =
+                    (s == g_app.start_load_selection) ? (RogueColor){255, 255, 0, 255} : white;
+                rogue_font_draw_text(82, row_y, line, 2, c);
+                row_y += 22;
+            }
+            /* Accept -> load selected; Cancel -> close list */
+            if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_DIALOGUE) ||
+                rogue_input_was_pressed(&g_app.input, ROGUE_KEY_ACTION))
+            {
+                int slot = g_app.start_load_selection;
+                if (slot >= 0 && slot < ROGUE_SAVE_SLOT_COUNT && present[slot])
+                {
+                    int rc = rogue_save_manager_load_slot(slot);
+                    (void) rc;
+                    if (rc == 0)
+                    {
+                        g_app.start_show_load_list = 0;
+                        g_app.start_state = ROGUE_START_FADE_OUT;
+                    }
+                }
+            }
+            if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_CANCEL))
+            {
+                g_app.start_show_load_list = 0;
+            }
+        }
+        /* When load list is active, skip main menu input/render beyond a subtle hint */
+        rogue_font_draw_text(48, base_y + 80, rogue_locale_get("hint_accept_cancel"), 2, white);
+        return;
+    }
     /* Ensure current selection lands on an enabled item */
     if (!enabled[g_app.menu_index])
     {
@@ -361,6 +496,16 @@ void rogue_start_screen_update_and_render(void)
         else
             c = white;
         rogue_font_draw_text(50, base_y + i * 20, menu_items[i], 2, c);
+    }
+    /* Small thumbnail next to Continue when available */
+    if (has_save && most_recent_slot >= 0)
+    {
+        RogueSaveDescriptor d;
+        if (rogue_save_read_descriptor(most_recent_slot, &d) == 0)
+        {
+            int y = base_y + 0 * 20 + 2;
+            draw_slot_thumbnail(28, y - 6, 18, 12, most_recent_slot, &d);
+        }
     }
     /* Seed entry shown on last line */
     char seed_line[64];
@@ -483,12 +628,10 @@ void rogue_start_screen_update_and_render(void)
             g_app.start_state = ROGUE_START_FADE_OUT;
         }
         else if (sel == 2)
-        { /* Load Game (slot 0 stub) */
-            int slot = (most_recent_slot >= 0) ? most_recent_slot : 0;
-            int rc = rogue_save_manager_load_slot(slot);
-            (void) rc;
-            if (rc == 0)
-                g_app.start_state = ROGUE_START_FADE_OUT;
+        { /* Load Game -> open load list UI */
+            g_app.start_show_load_list = 1;
+            /* Initialize selection to most recent if present, else first present slot */
+            g_app.start_load_selection = (most_recent_slot >= 0) ? most_recent_slot : 0;
         }
         else if (sel == 3)
         { /* Settings (placeholder text only) */

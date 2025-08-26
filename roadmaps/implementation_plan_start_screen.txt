@@ -42,9 +42,9 @@ PHASE 3. Main Menu Structure
 PHASE 4. Continue/Load Integration
 4.1 Save discovery: enumerate available slots; show most recent (Partial: enumeration wired for Continue; UI display pending)
 4.2 Save header reader: name, playtime, area, timestamp; handle corrupted files (Done: rogue_save_read_descriptor())
-4.3 Thumbnail placeholder (initials or seed-based color) (X)
-4.4 Continue action: boot most recent save -> transition to game state (X)
-4.5 Load screen: list with scroll & virtualization for many saves (X)
+4.3 Thumbnail placeholder (initials or seed-based color) (Done: seeded color block + border)
+4.4 Continue action: boot most recent save -> transition to game state (Done: loads most recent and triggers fade out)
+4.5 Load screen: list with scroll & virtualization for many saves (Partial: basic list with wrap navigation for up to ROGUE_SAVE_SLOT_COUNT; no virtualization yet)
 4.6 Delete confirmation modal with risk wording (X)
 
 PHASE 5. New Game Flow
@@ -87,6 +87,7 @@ PHASE 10. Testing & QA Automation
 
 Verification notes (2025-08-26):
 - Built Debug with SDL2, parallel 8. Start screen test suite passed (4/4).
+- Manual smoke: Load list overlay opens, navigates across existing slots; selecting loads and transitions via fade-out.
 - Full test run: 95% passed; remaining failures in unrelated AI/combat/worldgen/equipment suites. test_boot passed on re-run; no start screen regressions observed.
 
 PHASE 11. Telemetry & Analytics (Optional)

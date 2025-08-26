@@ -56,6 +56,9 @@ typedef struct RogueAppState
     int start_bg_loaded;        /* 1 if texture present */
     int start_bg_scale;         /* RogueStartBGScale */
     unsigned int start_bg_tint; /* ARGB tint packed */
+    /* Start screen sub-states (Phase 4 load list) */
+    int start_show_load_list; /* 1 when Load list UI is active */
+    int start_load_selection; /* index within current load list */
     int menu_index;
     int entering_seed;
     unsigned int pending_seed;
