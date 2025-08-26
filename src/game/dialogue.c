@@ -6,6 +6,7 @@
 #include "../graphics/sprite.h"
 #include "../ui/core/ui_context.h"
 #include "../util/log.h"
+#include "../util/path_utils.h"
 #include <assert.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -328,11 +329,49 @@ static int load_file(const char* path, char** out_buf, int* out_len)
 #if defined(_MSC_VER)
     int fopen_result = fopen_s(&f, path, "rb");
     if (fopen_result != 0 || !f)
-        return -1;
+    {
+        /* Try asset-relative fallbacks when paths start with assets/ */
+        if (path && strncmp(path, "assets/", 7) == 0)
+        {
+            char resolved[512];
+            if (rogue_find_asset_path(path + 7, resolved, (int) sizeof resolved))
+            {
+                if (fopen_s(&f, resolved, "rb") != 0 || !f)
+                    return -1;
+            }
+            else
+            {
+                return -1;
+            }
+        }
+        else
+        {
+            return -1;
+        }
+    }
 #else
     f = fopen(path, "rb");
     if (!f)
-        return -1;
+    {
+        if (path && strncmp(path, "assets/", 7) == 0)
+        {
+            char resolved[512];
+            if (rogue_find_asset_path(path + 7, resolved, (int) sizeof resolved))
+            {
+                f = fopen(resolved, "rb");
+                if (!f)
+                    return -1;
+            }
+            else
+            {
+                return -1;
+            }
+        }
+        else
+        {
+            return -1;
+        }
+    }
 #endif
     if (fseek(f, 0, SEEK_END) != 0)
     {

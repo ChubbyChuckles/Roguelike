@@ -54,5 +54,6 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 ### Testing & Quality Gates (quick)
 - Build Debug with SDL2 and run tests in parallel with a per‑test 10s timeout:
 	- Build: use CMake multi‑config generators with parallelism (e.g., -j8)
-	- Run tests: ctest -C Debug -j8 --timeout 10 --output-on-failure
-- Recent stability: configuration version manager now resets its event‑type registry on shutdown to ensure subtest isolation (fixes cross‑phase duplicate registrations in test_config_system_validation).
+	- Run tests: ctest -C Debug -j8 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
+- Loaders are resilient to working directories: asset/doc paths like `assets/...` are resolved via internal fallbacks so tests can run from build/tests subfolders.
+- Recent stability: configuration version manager now resets its event‑type registry on shutdown to ensure subtest isolation (fixes cross‑phase duplicate registrations in test_config_system_validation). Dialogue JSON loader now includes asset‑path fallback; determinism damage‑events loader zero‑initializes entries to ensure stable memcmp across compilers.

@@ -76,6 +76,8 @@ int rogue_damage_events_load_text(const char* path, struct RogueDamageEvent* out
 #endif
         if (r != 7)
             break;
+        /* Zero-init to ensure deterministic padding for memcmp across compilers/platforms */
+        memset(&out[n], 0, sizeof out[n]);
         out[n].attack_id = (unsigned short) attack_id;
         out[n].damage_type = (unsigned char) dmg_type;
         out[n].crit = (unsigned char) crit;

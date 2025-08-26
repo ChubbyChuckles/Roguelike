@@ -117,8 +117,8 @@ PHASE 5. COMBAT SYSTEM FIXES (Medium Priority)
     - test_combat_phase3_encumbrance: Fix encumbrance calculations
     - test_combat_phase3_hyper_armor: Fix armor immunity
     - test_combat_phase4_cc: Fix crowd control effects
-5.4 Fix damage and events (X)
-    - test_determinism_damage_events: Fix event determinism
+5.4 Fix damage and events (Done)
+    - test_determinism_damage_events: Fixed event determinism by zero-initializing RogueDamageEvent entries during text load to avoid struct padding differences across toolchains; hash/write/load roundtrip now stable.
     - Ensure reproducible combat outcomes
 5.5 Tests: All combat tests should pass (X)
 
@@ -135,9 +135,10 @@ PHASE 7. CONFIGURATION & DATA SYSTEM FIXES (Medium Priority)
 7.1 Fix configuration validation (Done)
     - test_config_system_validation: Fixed duplicate event-type registrations persisting across subtests by resetting the global registry and reserved ranges in rogue_config_version_shutdown(); added DEBUG logs around init/shutdown/register. Validated in isolation and full suite.
     - Ensure all config files are properly validated
-7.2 Fix dialogue JSON loading (X)
-    - test_dialogue_json: Fix JSON parsing errors
-    - Verify dialogue file format compliance
+7.2 Fix dialogue JSON loading (Done)
+    - Implemented asset-path fallback in dialogue JSON loader: when opening a path beginning with "assets/" fails from the current CWD, resolve using rogue_find_asset_path so tests/tools can pass repo-relative paths regardless of working directory.
+    - Added minimal dialogue script asset at assets/dialogue/script_intro.json (id=100, 3 lines) to satisfy unit expectations.
+    - Tests: test_dialogue_json PASS (Debug, SDL2, -j8)
 7.3 Fix crafting system integration (X)
     - test_crafting_phase2_gathering: Fix resource gathering
     - test_crafting_phase3_refinement: Fix refinement logic

@@ -113,3 +113,12 @@ Config: reset event registry on shutdown to fix cross-phase duplicates; add DEBU
 
 Tests (Debug, SDL2, -j8):
 - test_config_system_validation PASS
+
+Dialogue JSON + Determinism: asset-path fallback and zero-init for stable memcmp
+
+- Dialogue loader: when opening a JSON path starting with "assets/" fails, resolve via rogue_find_asset_path to support tests running from build/tests CWDs. Added minimal assets/dialogue/script_intro.json (id=100, 3 lines) for unit coverage.
+- Determinism loader: zero-initialize RogueDamageEvent entries before assigning parsed fields to eliminate struct padding sensitivity across toolchains for memcmp equality.
+
+Tests (Debug, SDL2, -j8):
+- test_dialogue_json PASS
+- test_determinism_damage_events PASS

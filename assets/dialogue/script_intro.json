@@ -1,0 +1,8 @@
+{
+  "id": 100,
+  "lines": [
+    { "speaker": "narrator", "text": "When the bells fell silent, the city gave itself up without a scream." },
+    { "speaker": "player",   "text": "Then I will write my own addition to the ledger." },
+    { "speaker": "narrator", "text": "The first step is a choice; the next will be a story." }
+  ]
+}
