@@ -1,3 +1,14 @@
+Start screen: Phase 6 settings & accessibility overlay
+
+- Add Settings overlay accessible from Start screen menu (keyboard/controller navigation)
+- Toggles: Reduced Motion (global), High Contrast (subtle darken overlay); Narration stub placeholder
+- DPI/UI scale quick adjust: LEFT/RIGHT in settings increments by 5% (50–300%), new ui_theme setter
+- Background render honors High Contrast overlay; default logging remains quiet (WARN)
+- Roadmap updated (Phase 6.1–6.3 Done); README to follow with brief usage notes
+
+Build & tests:
+- Built Debug with SDL2 (-j8) on Windows; start screen test subset passed (5/5)
+- No regressions observed in start screen suite; broader suite unchanged
 Start screen: most-recent Continue/Load, day/night tint, parallax stars, localized prompt; save header API
 
 - Add rogue_save_read_descriptor() to read save headers for UI without full load.

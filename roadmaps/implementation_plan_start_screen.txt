@@ -54,9 +54,9 @@ PHASE 5. New Game Flow
 5.4 Telemetry event: new_game_start with seed/difficulty (Done)
 
 PHASE 6. Settings & Accessibility Entrypoints
-6.1 Open settings screen (graphics, audio, controls) placeholder panels (X)
-6.2 Accessibility toggles: high contrast, reduced motion, narration (X; backed by existing flags)
-6.3 DPI/UI scale quick adjust (X; uses existing scaling API)
+6.1 Open settings screen (graphics, audio, controls) placeholder panels (Done: Start screen settings overlay with simple list and navigation)
+6.2 Accessibility toggles: high contrast, reduced motion, narration (Done: reduced motion + high contrast toggles applied; narration stub no-op for now)
+6.3 DPI/UI scale quick adjust (Done: LEFT/RIGHT adjusts DPI in 5% steps via new ui_theme setter; clamped 50–300%)
 
 PHASE 7. Credits & Legal
 7.1 Credits viewer with scroll inertia; Markdown->layout minimal (X)

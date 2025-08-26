@@ -182,3 +182,12 @@ int rogue_ui_scale_px(int px)
     int s = rogue_ui_dpi_scale_x100();
     return (px * s + 50) / 100;
 }
+
+void rogue_ui_theme_set_dpi_scale_x100(int value)
+{
+    if (value < 50)
+        value = 50; /* clamp to sensible minimum 0.5x */
+    if (value > 300)
+        value = 300; /* clamp to 3.0x to avoid runaway sizes */
+    g_active_theme.dpi_scale_x100 = value;
+}

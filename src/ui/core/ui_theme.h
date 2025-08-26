@@ -48,4 +48,7 @@ uint32_t rogue_ui_colorblind_transform(uint32_t rgba);
 int rogue_ui_dpi_scale_x100(void); /* returns active theme dpi_scale_x100 or 100 if none */
 int rogue_ui_scale_px(int px);     /* scales integer pixel dimension with rounding */
 
+/* Phase 6.3: allow runtime DPI scale adjustment without reloading a theme */
+void rogue_ui_theme_set_dpi_scale_x100(int value);
+
 #endif /* ROGUE_UI_THEME_H */

@@ -69,6 +69,12 @@ The start screen includes:
 - Localization-ready labels and tooltips; defaults are built-in en-US.
 - Reduced-motion compliance (skips animated fades) and day/night tinting.
 
+Settings overlay (access from the Start menu):
+- Reduced Motion toggle: globally reduces/skip animations and fades.
+- High Contrast toggle: applies a subtle darkening overlay to improve legibility.
+- Narration: placeholder (reserved for future screen-reader hooks).
+- DPI Scale: adjust UI scale in 5% steps with Left/Right (clamped 50%–300%).
+
 Load overlay basics:
 - Opens from Load Game and lists existing slots (up to configured slot count).
 - Each entry shows a placeholder thumbnail tinted by a seeded color, plus basic header info.
@@ -85,6 +91,7 @@ Environment overrides:
 - ROGUE_REDUCED_MOTION=1: skip fades and animations for accessibility.
  - ROGUE_START_LIST_ALL=1: list all save slots in the Load overlay (default behavior lists slot 0 only in headless/tests to keep snapshots deterministic).
  - ROGUE_START_CONFIRM_NEW=1: require a confirmation modal for New Game (default off; headless auto-accepts).
+ - ROGUE_LOG_LEVEL=debug|info|warn|error: control console verbosity.
 
 Logging (quieter console by default):
 - Default log level is WARN. DEBUG/INFO messages are suppressed in normal runs.

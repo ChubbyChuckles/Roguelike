@@ -4,6 +4,7 @@
 #include "../graphics/font.h"
 #include "../graphics/sprite.h"
 #include "../input/input.h"
+#include "../ui/core/ui_theme.h"
 #include "../util/log.h"
 #include "../world/world_gen.h"
 #include "../world/world_gen_config.h"
@@ -206,6 +207,14 @@ static void render_background(void)
         SDL_SetTextureColorMod(g_app.start_bg_tex->handle, tr, tg, tb);
         SDL_SetTextureAlphaMod(g_app.start_bg_tex->handle, ta);
         SDL_RenderCopy(g_internal_sdl_renderer_ref, g_app.start_bg_tex->handle, &src, &dst);
+        /* High contrast overlay (subtle darken) */
+        if (g_app.high_contrast)
+        {
+            SDL_SetRenderDrawBlendMode(g_internal_sdl_renderer_ref, SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, 0, 0, 0, 60);
+            SDL_Rect full = {0, 0, g_app.viewport_w, g_app.viewport_h};
+            SDL_RenderFillRect(g_internal_sdl_renderer_ref, &full);
+        }
     }
     else
     {
@@ -367,6 +376,76 @@ void rogue_start_screen_update_and_render(void)
     int enabled[] = {has_save, 1, has_save, 1, 1, 1, 1};
     int item_count = 7;
     int base_y = 140;
+
+    /* Settings overlay (Phase 6.1-6.3): simple toggles and DPI scaler */
+    if (g_app.start_show_settings)
+    {
+        rogue_font_draw_text(48, base_y - 20, rogue_locale_get("menu_settings"), 3, white);
+        const char* items[] = {"Reduced Motion", "High Contrast", "Narration", "DPI Scale"};
+        int count = 4;
+        /* Show current values */
+        char dpi_line[64];
+        snprintf(dpi_line, sizeof dpi_line, "DPI Scale: %d%%", rogue_ui_dpi_scale_x100());
+        for (int i = 0; i < count; ++i)
+        {
+            RogueColor c =
+                (i == g_app.start_settings_index) ? (RogueColor){255, 255, 0, 255} : white;
+            const char* label = items[i];
+            char line[64];
+            if (i == 0)
+                snprintf(line, sizeof line, "%s: %s", label, g_app.reduced_motion ? "On" : "Off");
+            else if (i == 1)
+                snprintf(line, sizeof line, "%s: %s", label, g_app.high_contrast ? "On" : "Off");
+            else if (i == 2)
+                snprintf(line, sizeof line, "%s: %s", label, "Stub");
+            else
+            {
+#if defined(_MSC_VER)
+                strncpy_s(line, sizeof line, dpi_line, _TRUNCATE);
+#else
+                strncpy(line, dpi_line, sizeof line);
+                line[sizeof line - 1] = '\0';
+#endif
+            }
+            rogue_font_draw_text(50, base_y + i * 20, line, 2, c);
+        }
+        /* Input */
+        int up = rogue_input_was_pressed(&g_app.input, ROGUE_KEY_UP);
+        int down = rogue_input_was_pressed(&g_app.input, ROGUE_KEY_DOWN);
+        if (down)
+            g_app.start_settings_index = (g_app.start_settings_index + 1) % count;
+        if (up)
+            g_app.start_settings_index = (g_app.start_settings_index + count - 1) % count;
+        /* Toggle/adjust with LEFT/RIGHT or Accept */
+        int left = rogue_input_was_pressed(&g_app.input, ROGUE_KEY_LEFT);
+        int right = rogue_input_was_pressed(&g_app.input, ROGUE_KEY_RIGHT);
+        int act = rogue_input_was_pressed(&g_app.input, ROGUE_KEY_ACTION) ||
+                  rogue_input_was_pressed(&g_app.input, ROGUE_KEY_DIALOGUE);
+        if (g_app.start_settings_index == 0 && (left || right || act))
+        {
+            g_app.reduced_motion = !g_app.reduced_motion;
+        }
+        else if (g_app.start_settings_index == 1 && (left || right || act))
+        {
+            g_app.high_contrast = !g_app.high_contrast;
+        }
+        else if (g_app.start_settings_index == 2 && (left || right || act))
+        {
+            /* Narration stub: no-op for now; would call rogue_ui_narrate on focus changes */
+        }
+        else if (g_app.start_settings_index == 3 && (left || right))
+        {
+            int step = right ? +5 : -5;
+            int cur = rogue_ui_dpi_scale_x100();
+            rogue_ui_theme_set_dpi_scale_x100(cur + step);
+        }
+        /* Exit settings on Cancel */
+        if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_CANCEL))
+        {
+            g_app.start_show_settings = 0;
+        }
+        return;
+    }
 
     /* If Load list is active, draw list overlay and handle its input instead of main menu. */
     if (g_app.start_show_load_list)
@@ -787,8 +866,9 @@ void rogue_start_screen_update_and_render(void)
             g_app.start_load_selection = (most_recent_slot >= 0) ? most_recent_slot : 0;
         }
         else if (sel == 3)
-        { /* Settings (placeholder text only) */
-            /* No-op: tooltip shown below title to indicate placeholder */
+        { /* Settings overlay */
+            g_app.start_show_settings = 1;
+            g_app.start_settings_index = 0;
         }
         else if (sel == 4)
         { /* Credits (placeholder text only) */

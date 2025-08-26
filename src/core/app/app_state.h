@@ -49,6 +49,7 @@ typedef struct RogueAppState
     float start_state_t;     /* 0..1 progress for fades */
     float start_state_speed; /* units per second for fades (scaled if reduced motion) */
     int reduced_motion;      /* global accessibility toggle for animations */
+    int high_contrast;       /* global accessibility: high-contrast UI mode */
     /* Start screen background (Phase 2.1..2.3) */
 #ifdef ROGUE_HAVE_SDL
     struct RogueTexture* start_bg_tex; /* owned texture handle */
@@ -59,6 +60,8 @@ typedef struct RogueAppState
     /* Start screen sub-states (Phase 4 load list) */
     int start_show_load_list; /* 1 when Load list UI is active */
     int start_load_selection; /* index within current load list */
+    int start_show_settings;  /* 1 when Settings overlay is active (Phase 6) */
+    int start_settings_index; /* selection index within settings */
     int menu_index;
     int entering_seed;
     unsigned int pending_seed;
