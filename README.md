@@ -63,6 +63,8 @@ The start screen includes:
 - Background image with cover/contain scaling and a gradient fallback if assets are missing.
 - Optional parallax star overlay (disabled under reduced motion).
 - Menu: Continue (auto-selects most recent save), New Game, Load Game (overlay list), Settings (placeholder), Credits (placeholder), Quit, and a Seed entry line.
+- Menu: Continue (auto-selects most recent save), New Game, Load Game (overlay list), Settings (placeholder), Credits (placeholder), Quit, and a Seed entry line.
+- New Game flow: publishes a new_game_start telemetry event, generates a world from the current seed, writes an initial save to slot 0, and transitions via fade-out. In CI/headless the confirmation modal is disabled by default for deterministic tests.
 - Controller/keyboard navigation with wrap-around and held-key repeat.
 - Localization-ready labels and tooltips; defaults are built-in en-US.
 - Reduced-motion compliance (skips animated fades) and day/night tinting.
@@ -82,6 +84,7 @@ Environment overrides:
 - ROGUE_START_BG: absolute or relative path to a background image.
 - ROGUE_REDUCED_MOTION=1: skip fades and animations for accessibility.
  - ROGUE_START_LIST_ALL=1: list all save slots in the Load overlay (default behavior lists slot 0 only in headless/tests to keep snapshots deterministic).
+ - ROGUE_START_CONFIRM_NEW=1: require a confirmation modal for New Game (default off; headless auto-accepts).
 
 Logging (quieter console by default):
 - Default log level is WARN. DEBUG/INFO messages are suppressed in normal runs.
@@ -90,3 +93,6 @@ Logging (quieter console by default):
 	- bash/cmd: `ROGUE_LOG_LEVEL=debug ./roguelike` (bash) or `set ROGUE_LOG_LEVEL=debug && roguelike.exe` (cmd).
 	- Reset in PowerShell: `Remove-Item Env:ROGUE_LOG_LEVEL`.
 	The app also auto-reads the env on first log, and main() initializes it early.
+
+	Persistence robustness:
+	- The save system tolerates empty/initial saves (no registered components) by computing CRC/SHA over an empty payload and still writing integrity footers. This enables the initial New Game save path to succeed in minimal test harnesses.

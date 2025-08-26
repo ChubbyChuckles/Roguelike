@@ -68,3 +68,15 @@ Start screen: Load list virtualization + headless determinism toggle
 Quality gates:
 - Rebuilt Debug with SDL2 (-j8).
 - Start screen suite remains green (5/5).
+
+Start screen: Phase 5 New Game flow + SaveManager empty-save hardening
+
+- Phase 5.1–5.4: Implement New Game flow with telemetry, seed display/randomize, env-gated confirmation modal, and world generation + initial save to slot 0. On success, transition via fade-out.
+- Headless behavior: Immediate transition by default (ROGUE_START_CONFIRM_NEW=1 enables confirmation modal).
+- SaveManager: internal_save_to() now tolerates zero-component saves by computing CRC/SHA over an empty payload and writing integrity footers; avoids malloc(0) edge cases so initial saves succeed in minimal harnesses.
+- Docs/Roadmap: Mark Phase 5 tasks Done; add verification notes.
+
+Quality gates:
+- Built Debug with SDL2 using cmake --build build --config Debug --parallel 8.
+- Targeted test now green: test_start_screen_phase10_2_navigation.
+- Full ctest run executed; unrelated suites show known failures. Start screen tests (Phase 10) remain green.

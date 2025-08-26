@@ -18,6 +18,9 @@ static RogueLocalePair g_default_pairs[] = {
     {"confirm_delete_title", "Delete Save?"},
     {"confirm_delete_body", "This will permanently remove the selected slot."},
     {"confirm_delete_hint", "Enter: Yes, Esc: No"},
+    {"new_game_title", "Start New Game"},
+    {"new_game_seed_label", "Seed"},
+    {"new_game_difficulty_normal", "Normal"},
 };
 
 static const RogueLocalePair* g_pairs = g_default_pairs;

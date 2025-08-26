@@ -904,28 +904,41 @@ static int internal_save_to(const char* final_path)
     long payload_end = ftell(f);
     /* Compute descriptor CRC (over payload only) */
     size_t crc_region = (size_t) (payload_end - (long) sizeof desc);
-    unsigned char* crc_buf = (unsigned char*) malloc(crc_region);
-    if (!crc_buf)
+    unsigned char* crc_buf = NULL;
+    uint32_t crc = 0;
+    if (crc_region > 0)
     {
-        fclose(f);
-        return -13;
+        crc_buf = (unsigned char*) malloc(crc_region);
+        if (!crc_buf)
+        {
+            fclose(f);
+            return -13;
+        }
+        fseek(f, sizeof desc, SEEK_SET);
+        if (fread(crc_buf, 1, crc_region, f) != crc_region)
+        {
+            free(crc_buf);
+            fclose(f);
+            return -13;
+        }
+        crc = rogue_crc32(crc_buf, crc_region);
     }
-    fseek(f, sizeof desc, SEEK_SET);
-    if (fread(crc_buf, 1, crc_region, f) != crc_region)
+    else
     {
-        free(crc_buf);
-        fclose(f);
-        return -13;
+        /* No sections written; define checksum of empty payload as 0 for stability */
+        crc = 0u;
     }
-    uint32_t crc = rogue_crc32(crc_buf, crc_region);
     desc.checksum = crc; /* rogue_crc32 returns final xor */
-    /* debug removed */
     /* SHA256 footer (v7+) over same region */
     if (desc.version >= 7)
     {
         RogueSHA256Ctx sha;
         rogue_sha256_init(&sha);
-        rogue_sha256_update(&sha, crc_buf, crc_region);
+        if (crc_region > 0 && crc_buf)
+        {
+            rogue_sha256_update(&sha, crc_buf, crc_region);
+        }
+        /* else: digest of empty payload */
         unsigned char digest[32];
         rogue_sha256_final(&sha, digest);
         memcpy(g_last_sha256, digest, 32);
@@ -940,10 +953,14 @@ static int internal_save_to(const char* final_path)
             unsigned char* sig_src = (unsigned char*) malloc(total_for_sig);
             if (!sig_src)
             {
+                if (crc_buf)
+                    free(crc_buf);
                 fclose(f);
                 return -16;
             }
-            memcpy(sig_src, crc_buf, crc_region);
+            if (crc_region > 0 && crc_buf)
+                memcpy(sig_src, crc_buf, crc_region);
+            /* Append SH32 + digest */
             memcpy(sig_src + crc_region, "SH32", 4);
             memcpy(sig_src + crc_region + 4, digest, 32);
             unsigned char sigbuf[1024];
@@ -951,6 +968,8 @@ static int internal_save_to(const char* final_path)
             if (g_sig_provider->sign(sig_src, (size_t) total_for_sig, sigbuf, &slen) != 0)
             {
                 free(sig_src);
+                if (crc_buf)
+                    free(crc_buf);
                 fclose(f);
                 return -16;
             }
@@ -963,7 +982,8 @@ static int internal_save_to(const char* final_path)
     }
     long file_end = ftell(f);
     desc.total_size = (uint64_t) file_end;
-    free(crc_buf);
+    if (crc_buf)
+        free(crc_buf);
     /* Rewrite descriptor with final fields */
     fseek(f, 0, SEEK_SET);
     fwrite(&desc, sizeof desc, 1, f);

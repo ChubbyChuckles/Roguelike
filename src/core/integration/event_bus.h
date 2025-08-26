@@ -102,6 +102,8 @@ extern "C"
 #define ROGUE_EVENT_SAVE_COMPLETED 0x0602
 #define ROGUE_EVENT_ERROR_OCCURRED 0x0603
 #define ROGUE_EVENT_PERFORMANCE_ALERT 0x0604
+/* Start Screen / Telemetry Events (Phase 5.4) */
+#define ROGUE_EVENT_NEW_GAME_START 0x0605
 
     /* Event Payload Union (Phase 1.1.3) - Type-safe payload system */
     typedef union
@@ -209,6 +211,14 @@ extern "C"
             char error_message[128];
             char function_name[64];
         } error_occurred;
+
+        /* Start Screen / Telemetry (Phase 5.4) */
+        struct
+        {
+            uint32_t seed;
+            uint8_t difficulty; /* 0=Normal (stub) */
+            uint8_t reserved[3];
+        } new_game_start;
 
         /* Raw payload for custom events */
         uint8_t raw_data[ROGUE_MAX_EVENT_PAYLOAD_SIZE];
