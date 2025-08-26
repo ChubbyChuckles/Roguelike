@@ -25,6 +25,19 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_start_screen_phase10_2_navigatio
     add_test(NAME test_start_screen_phase10_2_navigation COMMAND test_start_screen_phase10_2_navigation)
 endif()
 
+# Phase 10.5: Start Screen performance smoke test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_start_screen_phase10_5_perf_smoke.c AND NOT TARGET test_start_screen_phase10_5_perf_smoke)
+    add_executable(test_start_screen_phase10_5_perf_smoke unit/test_start_screen_phase10_5_perf_smoke.c)
+    target_link_libraries(test_start_screen_phase10_5_perf_smoke PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_start_screen_phase10_5_perf_smoke PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_start_screen_phase10_5_perf_smoke PRIVATE ROGUE_HAVE_SDL=1 SDL_MAIN_HANDLED=1)
+    else()
+        target_compile_definitions(test_start_screen_phase10_5_perf_smoke PRIVATE SDL_MAIN_HANDLED=1)
+    endif()
+    add_test(NAME test_start_screen_phase10_5_perf_smoke COMMAND test_start_screen_phase10_5_perf_smoke)
+endif()
+
 # New: Corrupt save header handling (Phase 10.6)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_start_screen_phase10_6_corrupt_header.c AND NOT TARGET test_start_screen_phase10_6_corrupt_header)
     add_executable(test_start_screen_phase10_6_corrupt_header unit/test_start_screen_phase10_6_corrupt_header.c)
