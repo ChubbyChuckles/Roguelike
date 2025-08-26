@@ -83,7 +83,7 @@ Load overlay basics:
  - Virtualized list: only visible rows render, and the selection is kept in view as you scroll. In headless/test mode the list defaults to slot 0 only for determinism.
 
 Robustness:
-- Continue and Load both re-validate the selected save header immediately before attempting to load. Corrupt or incompatible headers are ignored and will not trigger a transition.
+- Continue and Load are gated by a descriptor sanity check (version match, non-zero sections, required components present) and re-validate the selected save header immediately before attempting to load. Corrupt or incompatible headers are ignored and will not trigger a transition.
 - For deterministic tests, the Start Screen considers slot 0 when deriving Continue visibility and when populating the Load overlay in headless mode.
 
 Environment overrides:
@@ -92,6 +92,12 @@ Environment overrides:
  - ROGUE_START_LIST_ALL=1: list all save slots in the Load overlay (default behavior lists slot 0 only in headless/tests to keep snapshots deterministic).
  - ROGUE_START_CONFIRM_NEW=1: require a confirmation modal for New Game (default off; headless auto-accepts).
  - ROGUE_LOG_LEVEL=debug|info|warn|error: control console verbosity.
+
+Credits & Legal overlay:
+- Access from the Start screen menu (Credits).
+- Tabs: Credits, Licenses, Build. LEFT/RIGHT switches tabs; ESC closes.
+- Scroll with UP/DOWN; inertial scrolling with reduced-motion compliance.
+- Build tab shows git hash, branch, and build time compiled in via CMake.
 
 Logging (quieter console by default):
 - Default log level is WARN. DEBUG/INFO messages are suppressed in normal runs.
@@ -103,3 +109,4 @@ Logging (quieter console by default):
 
 	Persistence robustness:
 	- The save system tolerates empty/initial saves (no registered components) by computing CRC/SHA over an empty payload and still writing integrity footers. This enables the initial New Game save path to succeed in minimal test harnesses.
+	- Save/Load debug spam has been routed through the central logger at DEBUG level; default WARN keeps the console quiet unless explicitly enabled.

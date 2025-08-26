@@ -1,3 +1,12 @@
+Start screen: Phase 6 settings overlay (Reduced Motion, High Contrast, DPI adjust) + robust Continue/Load gating
+
+- Added Start Screen settings overlay with toggles for Reduced Motion and High Contrast, plus DPI scale quick adjust via rogue_ui_theme_set_dpi_scale_x100 (50–300%).
+- Background render applies subtle dark overlay when High Contrast is enabled.
+- Hardened Continue/Load with descriptor sanity check (version match, non-zero sections, PLAYER and WORLD_META present, non-zero total_size).
+- Re-validate descriptor immediately before load; ignore corrupt/incompatible save headers and do not transition.
+- Fixed MSVC warnings (strncpy_s, no shadowing). Default logging remains WARN with env overrides.
+
+Build & Tests: Debug SDL2 -j8; Start Screen Phase 10 subset green (incl. 10.6 corrupt header). Full suite previously at ~95% with unrelated failures.
 Start screen: Phase 6 settings & accessibility overlay
 
 - Add Settings overlay accessible from Start screen menu (keyboard/controller navigation)
@@ -91,3 +100,15 @@ Quality gates:
 - Built Debug with SDL2 using cmake --build build --config Debug --parallel 8.
 - Targeted test now green: test_start_screen_phase10_2_navigation.
 - Full ctest run executed; unrelated suites show known failures. Start screen tests (Phase 10) remain green.
+
+Start screen: Phase 7 Credits & Legal overlay + build metadata + quieter persistence logs
+
+- Implement Credits overlay with inertial scrolling and tabs (Credits | Licenses | Build); LEFT/RIGHT to switch, UP/DOWN to scroll, ESC to close. Reduced-motion compliant.
+- CMake surfaces build metadata (ROGUE_BUILD_GIT_HASH, ROGUE_BUILD_GIT_BRANCH, ROGUE_BUILD_TIME); Build tab renders these values.
+- Persistence: route noisy fprintf DBG traces in SaveManager (register/save/load/inventory paths) to central logger at DEBUG level; default WARN keeps console output minimal.
+- Docs: Roadmap Phase 7.1–7.3 marked Done with verification notes; README adds Credits & Legal overlay section and logging notes.
+
+Quality gates:
+- Rebuilt Debug with SDL2 using cmake --build build --config Debug --parallel 8.
+- Start Screen subset green: test_start_screen_phase10_{1,2,3,4,6} passed (5/5).
+- Broader suites unchanged with unrelated failures.

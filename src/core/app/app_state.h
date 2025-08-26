@@ -62,6 +62,11 @@ typedef struct RogueAppState
     int start_load_selection; /* index within current load list */
     int start_show_settings;  /* 1 when Settings overlay is active (Phase 6) */
     int start_settings_index; /* selection index within settings */
+    /* Phase 7. Credits & Legal overlay */
+    int start_show_credits;     /* 1 when Credits/Legal overlay is active */
+    int start_credits_tab;      /* 0=Credits, 1=Licenses, 2=Build */
+    float start_credits_scroll; /* scroll position in lines/pixels */
+    float start_credits_vel;    /* inertial scrolling velocity */
     int menu_index;
     int entering_seed;
     unsigned int pending_seed;

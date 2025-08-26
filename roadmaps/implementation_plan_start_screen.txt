@@ -59,9 +59,9 @@ PHASE 6. Settings & Accessibility Entrypoints
 6.3 DPI/UI scale quick adjust (Done: LEFT/RIGHT adjusts DPI in 5% steps via new ui_theme setter; clamped 50–300%)
 
 PHASE 7. Credits & Legal
-7.1 Credits viewer with scroll inertia; Markdown->layout minimal (X)
-7.2 Licenses page (SDL2, fonts, assets) (X)
-7.3 Build/version hash and git branch display (X)
+7.1 Credits viewer with scroll inertia; Markdown->layout minimal (Done: keyboard/controller Up/Down scroll with inertial velocity; reduced-motion safe)
+7.2 Licenses page (SDL2, fonts, assets) (Done: Licenses tab with bundled notices text; basic wrapped layout)
+7.3 Build/version hash and git branch display (Done: Build tab shows ROGUE_BUILD_GIT_HASH, ROGUE_BUILD_GIT_BRANCH, ROGUE_BUILD_TIME)
 
 PHASE 8. Async Prewarm & Performance
 8.1 Background asset prewarm (glyph cache bootstrap, theme cache, background image decode/texture upload) (X)
@@ -80,7 +80,7 @@ PHASE 10. Testing & QA Automation
 10.3 Localization swap test: label table (en) -> (fake-locale) (Verified Debug: test_start_screen_phase10_3_localization)
 10.4 Reduced motion test: transitions skipped, hashes stable (Verified Debug: test_start_screen_phase10_4_reduced_motion)
 10.5 Performance smoke: emit >=200 widgets < threshold time (X)
-10.6 Corrupt save header test: continue disabled, load lists only healthy entries (Done: Verified Debug: test_start_screen_phase10_6_corrupt_header)
+10.6 Corrupt save header test: continue disabled, load lists only healthy entries (Done: Verified Debug: test_start_screen_phase10_6_corrupt_header). Descriptor sanity checks added to gate Continue/Load (version match, non-zero sections, required components present).
 10.7 Background image presence: renders when file exists; falls back to gradient when missing (Done)
 10.8 Aspect-ratio scaling: hash differs for cover vs contain; no stretching artifacts (Done)
 10.9 SDL2_image absent: harness simulates missing loader -> no crash; gradient path validated (Done)
@@ -90,6 +90,7 @@ Verification notes (2025-08-26):
 - Manual smoke: Load list overlay opens, navigates across existing slots; selecting loads and transitions via fade-out.
 - Full test run: 95% passed; remaining failures in unrelated AI/combat/worldgen/equipment suites. test_boot passed on re-run; no start screen regressions observed.
  - Logging tightened: default WARN reduces console spam; ROGUE_LOG_LEVEL env enables opt-in DEBUG/INFO for troubleshooting.
+- Persistence logging noise reduced: converted raw fprintf DBG traces in SaveManager to central logger at DEBUG level, keeping the console quiet by default.
  - Load overlay now includes a delete confirmation modal. Confirm (Enter) deletes the selected slot via save manager API; cancel (Esc) aborts. Save manager tolerates missing sidecar files.
 
 New Game flow verification (2025-08-26, later run):
@@ -102,6 +103,7 @@ Additional verification (2025-08-26, later run):
 - Rebuilt Debug with SDL2 (-j8). Start screen Phase 10 suite passed (5/5), including 10.6 corrupt header.
 - Continue/Load paths now re-validate save headers immediately before attempting load; corrupt/incompatible headers are ignored and do not trigger fade-out.
  - Load overlay virtualization: selection wraps across present slots; renders a scrolling window (max ~8 rows) keeping selection in view. Default listing restricted to slot 0 for test determinism unless ROGUE_START_LIST_ALL=1.
+ - Credits & Legal overlay: tabs (Credits | Licenses | Build) navigable via LEFT/RIGHT; inertial scroll with UP/DOWN; ESC closes overlay. Build tab values sourced from CMake at configure-time.
 
 PHASE 11. Telemetry & Analytics (Optional)
 11.1 Menu selection event stream with session id (X)
@@ -122,6 +124,7 @@ NEXT ACTION CANDIDATES (If starting now)
 - Add 10.1 headless golden test and 10.2 traversal test; wire reduced-motion gating.
 - Extend menu wiring for controller repeat (3.2), tooltips (3.3), and hotkeys (3.4).
 - Document background asset override path in README and add design notes on tint/clamp.
+ - Implement Phase 7 (Credits & Legal): credits scroller (7.1), licenses view (7.2), and version/hash display (7.3).
 
 CROSS-SYSTEM SYNERGIES
 - UI: reuse theme, animation/timeline, focus, headless harness, virtualization for save lists.

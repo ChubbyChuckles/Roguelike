@@ -17,6 +17,28 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(cmake/Warnings.cmake)
 rogue_set_project_warnings(rogue_warnings)
 
+# Build metadata (git hash/branch and build time) for Credits/Legal overlay
+# Try to obtain from git; fall back to "unknown" if unavailable.
+execute_process(
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE ROGUE_GIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET)
+if(ROGUE_GIT_HASH STREQUAL "")
+    set(ROGUE_GIT_HASH "unknown")
+endif()
+execute_process(
+    COMMAND git rev-parse --abbrev-ref HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE ROGUE_GIT_BRANCH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET)
+if(ROGUE_GIT_BRANCH STREQUAL "")
+    set(ROGUE_GIT_BRANCH "unknown")
+endif()
+string(TIMESTAMP ROGUE_BUILD_TIME "%Y-%m-%d %H:%M:%S")
+
 if(ROGUE_ENABLE_SDL)
     find_package(SDL2 QUIET)
     if(ROGUE_ENABLE_SDL_IMAGE)
@@ -386,6 +408,11 @@ endif()
 
 target_include_directories(rogue_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_compile_definitions(rogue_core PUBLIC
+    ROGUE_BUILD_GIT_HASH="${ROGUE_GIT_HASH}"
+    ROGUE_BUILD_GIT_BRANCH="${ROGUE_GIT_BRANCH}"
+    ROGUE_BUILD_TIME="${ROGUE_BUILD_TIME}"
 )
 
 if(ROGUE_ENABLE_SDL)
@@ -783,6 +810,11 @@ endif()
 
 add_executable(roguelike src/main.c)
 target_link_libraries(roguelike PRIVATE rogue_core)
+target_compile_definitions(roguelike PRIVATE
+    ROGUE_BUILD_GIT_HASH="${ROGUE_GIT_HASH}"
+    ROGUE_BUILD_GIT_BRANCH="${ROGUE_GIT_BRANCH}"
+    ROGUE_BUILD_TIME="${ROGUE_BUILD_TIME}"
+)
 
 # Weapon pose GUI helper tool (standalone, lightweight)
 add_executable(weapon_pose_tool tools/weapon_pose_tool.c)

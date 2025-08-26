@@ -4,6 +4,11 @@ static void rogue_app_state_init_defaults(void)
 {
     g_app.target_enemy_active = 0;
     g_app.target_enemy_level = 1;
+    /* Start screen Phase 7 defaults */
+    g_app.start_show_credits = 0;
+    g_app.start_credits_tab = 0;
+    g_app.start_credits_scroll = 0.0f;
+    g_app.start_credits_vel = 0.0f;
 }
 #if defined(_MSC_VER)
 /* Fallback explicit init call from app_init (if integrated), for now rely on zero-init plus manual

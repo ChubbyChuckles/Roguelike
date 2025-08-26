@@ -147,6 +147,29 @@ static void ensure_start_bg_loaded(void)
 #endif
 }
 
+/* Lightweight sanity check for save descriptor to guard UI actions (Continue/Load)
+   against corrupt or incomplete headers. Keeps Start Screen deterministic. */
+static int rogue_save_descriptor_is_sane(const struct RogueSaveDescriptor* d)
+{
+    if (!d)
+        return 0;
+    /* Must match current format and have at least one section */
+    if (d->version != ROGUE_SAVE_FORMAT_VERSION)
+        return 0;
+    if (d->section_count == 0)
+        return 0;
+    /* Require critical components to be present: PLAYER and WORLD_META */
+    unsigned mask = d->component_mask;
+    unsigned need_player = (1u << ROGUE_SAVE_COMP_PLAYER);
+    unsigned need_world = (1u << ROGUE_SAVE_COMP_WORLD_META);
+    if ((mask & need_player) == 0 || (mask & need_world) == 0)
+        return 0;
+    /* total_size and checksum are best-effort; UI won't recompute here */
+    if (d->total_size == 0)
+        return 0;
+    return 1;
+}
+
 static void render_background(void)
 {
 #ifdef ROGUE_HAVE_SDL
@@ -268,6 +291,146 @@ static void render_background(void)
 #endif
 }
 
+/* --- Phase 7: Credits & Legal overlay --- */
+static void draw_text_wrapped(int x, int y, const char* text, int scale, RogueColor color,
+                              int max_w)
+{
+    /* Extremely simple mono font wrap at spaces; fallback to hard cut. Each char ~6px at scale=1,
+       our font_draw_text(scale) likely scales width ~6*scale (approx). We'll wrap by chars. */
+    int approx_char_w = 6 * scale + 1;
+    int max_chars = max_w > 0 ? (max_w / (approx_char_w > 1 ? approx_char_w : 1)) : 80;
+    const char* p = text;
+    while (*p)
+    {
+        const char* line_start = p;
+        int count = 0;
+        const char* last_space = NULL;
+        while (*p && *p != '\n' && count < max_chars)
+        {
+            if (*p == ' ')
+                last_space = p;
+            p++;
+            count++;
+        }
+        const char* line_end = p;
+        if (*p && *p != '\n' && last_space)
+        {
+            line_end = last_space;
+            p = last_space + 1;
+        }
+        char buf[256];
+        int len = (int) (line_end - line_start);
+        if (len > (int) sizeof(buf) - 1)
+            len = (int) sizeof(buf) - 1;
+        memcpy(buf, line_start, len);
+        buf[len] = '\0';
+        rogue_font_draw_text(x, y, buf, scale, color);
+        y += 12 * scale + 2;
+        if (*p == '\n')
+            p++;
+    }
+}
+
+static void start_credits_overlay_update_and_render(void)
+{
+    /* Tabs: 0=Credits, 1=Licenses, 2=Build */
+    int base_x = 46, base_y = 120;
+    RogueColor white = (RogueColor){255, 255, 255, 255};
+    RogueColor yellow = (RogueColor){255, 255, 0, 255};
+    const char* tabs[3] = {"Credits", "Licenses", "Build"};
+    for (int i = 0; i < 3; ++i)
+    {
+        RogueColor c = (i == g_app.start_credits_tab) ? yellow : white;
+        rogue_font_draw_text(base_x + i * 90, base_y - 20, tabs[i], 2, c);
+    }
+    /* Content area with inertial scroll. Mouse not handled; use keyboard only. */
+    int area_x = base_x;
+    int area_y = base_y;
+    int area_w = (g_app.viewport_w > 320 ? g_app.viewport_w - base_x - 20 : 240);
+    /* approx line height (unused here; draw_text_wrapped advances internally) */
+    /* Update inertia: Up/Down adjust velocity; apply friction. */
+    float accel = 0.0f;
+    if (rogue_input_is_down(&g_app.input, ROGUE_KEY_DOWN))
+        accel += 120.0f; /* lines per second approx */
+    if (rogue_input_is_down(&g_app.input, ROGUE_KEY_UP))
+        accel -= 120.0f;
+    g_app.start_credits_vel += accel * (float) g_app.dt;
+    /* Friction */
+    g_app.start_credits_vel *= (float) pow(0.90, g_app.dt * 60.0);
+    g_app.start_credits_scroll += g_app.start_credits_vel * (float) g_app.dt;
+    if (g_app.start_credits_scroll < 0.0f)
+    {
+        g_app.start_credits_scroll = 0.0f;
+        g_app.start_credits_vel = 0.0f;
+    }
+
+    /* Render content based on tab */
+    int y = area_y - (int) g_app.start_credits_scroll;
+    if (g_app.start_credits_tab == 0)
+    {
+        const char* credits = "Roguelike Prototype\n\n"
+                              "Programming: Chuck + Contributors\n"
+                              "Design: Chuck\n"
+                              "Art: Placeholder Pack\n"
+                              "Audio: Placeholder SFX/BGM (optional)\n\n"
+                              "Special thanks to the open-source community and SDL maintainers.";
+        draw_text_wrapped(area_x, y, credits, 2, white, area_w);
+    }
+    else if (g_app.start_credits_tab == 1)
+    {
+        const char* licenses = "Third-Party Licenses\n\n"
+                               "SDL2 (zlib)\n"
+                               "SDL2_image (zlib)\n"
+                               "SDL2_mixer (zlib)\n"
+                               "This project itself is MIT-licensed.";
+        draw_text_wrapped(area_x, y, licenses, 2, white, area_w);
+    }
+    else
+    {
+        /* Build info from CMake macros */
+#ifdef ROGUE_BUILD_GIT_HASH
+        const char* hash = ROGUE_BUILD_GIT_HASH;
+#else
+        const char* hash = "unknown";
+#endif
+#ifdef ROGUE_BUILD_GIT_BRANCH
+        const char* branch = ROGUE_BUILD_GIT_BRANCH;
+#else
+        const char* branch = "unknown";
+#endif
+#ifdef ROGUE_BUILD_TIME
+        const char* btime = ROGUE_BUILD_TIME;
+#else
+        const char* btime = "unknown";
+#endif
+        char buf[256];
+        snprintf(buf, sizeof buf, "Version: %s\nBranch: %s\nBuilt: %s", hash, branch, btime);
+        draw_text_wrapped(area_x, y, buf, 2, white, area_w);
+    }
+
+    /* Hints */
+    rogue_font_draw_text(base_x, g_app.viewport_h - 24, "Up/Down scroll  Left/Right tab  Esc back",
+                         2, white);
+
+    /* Input: Left/Right switch tab, Esc to exit overlay */
+    if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_LEFT))
+    {
+        g_app.start_credits_tab = (g_app.start_credits_tab + 2) % 3;
+        g_app.start_credits_scroll = 0.0f;
+        g_app.start_credits_vel = 0.0f;
+    }
+    if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_RIGHT))
+    {
+        g_app.start_credits_tab = (g_app.start_credits_tab + 1) % 3;
+        g_app.start_credits_scroll = 0.0f;
+        g_app.start_credits_vel = 0.0f;
+    }
+    if (rogue_input_was_pressed(&g_app.input, ROGUE_KEY_CANCEL))
+    {
+        g_app.start_show_credits = 0;
+    }
+}
+
 /* --- Phase 4.3: Simple thumbnail placeholder rendering --- */
 static void draw_slot_thumbnail(int x, int y, int w, int h, int slot_index,
                                 const RogueSaveDescriptor* desc)
@@ -363,7 +526,7 @@ void rogue_start_screen_update_and_render(void)
     int most_recent_slot = -1;
     {
         RogueSaveDescriptor d;
-        if (rogue_save_read_descriptor(0, &d) == 0)
+        if (rogue_save_read_descriptor(0, &d) == 0 && rogue_save_descriptor_is_sane(&d))
         {
             has_save = 1;
             most_recent_slot = 0;
@@ -444,6 +607,15 @@ void rogue_start_screen_update_and_render(void)
         {
             g_app.start_show_settings = 0;
         }
+        return;
+    }
+
+    /* Credits & Legal overlay (Phase 7) */
+    if (g_app.start_show_credits)
+    {
+        rogue_font_draw_text(48, base_y - 40, rogue_locale_get("menu_credits"), 3,
+                             (RogueColor){255, 255, 255, 255});
+        start_credits_overlay_update_and_render();
         return;
     }
 
@@ -623,7 +795,8 @@ void rogue_start_screen_update_and_render(void)
                 if (slot >= slot_lo && slot < slot_hi && present[slot])
                 {
                     RogueSaveDescriptor vd;
-                    if (rogue_save_read_descriptor(slot, &vd) == 0)
+                    if (rogue_save_read_descriptor(slot, &vd) == 0 &&
+                        rogue_save_descriptor_is_sane(&vd))
                     {
                         int rc = rogue_save_manager_load_slot(slot);
                         (void) rc;
@@ -818,7 +991,7 @@ void rogue_start_screen_update_and_render(void)
             /* Re-validate descriptor just before attempting to load to guard against
                corrupt/invalid headers or mid-frame changes. */
             RogueSaveDescriptor vd;
-            if (rogue_save_read_descriptor(slot, &vd) == 0)
+            if (rogue_save_read_descriptor(slot, &vd) == 0 && rogue_save_descriptor_is_sane(&vd))
             {
                 int rc = rogue_save_manager_load_slot(slot);
                 (void) rc; /* ignore errors for now; stay on menu if fails */
@@ -871,8 +1044,11 @@ void rogue_start_screen_update_and_render(void)
             g_app.start_settings_index = 0;
         }
         else if (sel == 4)
-        { /* Credits (placeholder text only) */
-            /* No-op */
+        { /* Credits & Legal overlay */
+            g_app.start_show_credits = 1;
+            g_app.start_credits_tab = 0;
+            g_app.start_credits_scroll = 0.0f;
+            g_app.start_credits_vel = 0.0f;
         }
         else if (sel == 5)
         { /* Quit */

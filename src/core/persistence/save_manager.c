@@ -22,6 +22,8 @@
 #include "../inventory/inventory_query.h"     /* Phase 4.4 saved searches persistence */
 #include "../inventory/inventory_tag_rules.h" /* Phase 3.3 auto-tag rules persistence */
 #include "../inventory/inventory_tags.h"      /* Phase 3 inventory metadata */
+/* Centralized logging (default WARN; DEBUG via ROGUE_LOG_LEVEL) */
+#include "../../util/log.h"
 
 static RogueSaveComponent g_components[ROGUE_SAVE_MAX_COMPONENTS];
 static int g_component_count = 0;
@@ -429,23 +431,23 @@ void rogue_save_manager_register(const RogueSaveComponent* comp)
 {
     if (g_component_count >= ROGUE_SAVE_MAX_COMPONENTS)
     {
-        fprintf(stderr, "DBG: register id=%d skipped (cap reached)\n", comp ? comp->id : -1);
+        ROGUE_LOG_DEBUG("register skipped (cap reached) id=%d", comp ? comp->id : -1);
         return;
     }
     if (!comp)
     {
-        fprintf(stderr, "DBG: register NULL component\n");
+        ROGUE_LOG_DEBUG("register NULL component");
         return;
     }
     if (find_component(comp->id))
     {
-        fprintf(stderr, "DBG: register id=%d skipped (already present count=%d)\n", comp->id,
-                g_component_count);
+        ROGUE_LOG_DEBUG("register skipped (already present) id=%d count=%d", comp->id,
+                        g_component_count);
         return;
     }
     g_components[g_component_count++] = *comp;
-    fprintf(stderr, "DBG: registered id=%d name=%s new_count=%d\n", comp->id,
-            comp->name ? comp->name : "?", g_component_count);
+    ROGUE_LOG_DEBUG("registered id=%d name=%s new_count=%d", comp->id,
+                    comp->name ? comp->name : "?", g_component_count);
 }
 
 static int cmp_comp(const void* a, const void* b)
@@ -614,8 +616,9 @@ static int internal_save_to(const char* final_path)
     g_last_sections_written = 0;
     for (int i = 0; i < g_component_count; i++)
     {
-        fprintf(stderr, "DBG: writing component idx=%d id=%d name=%s at_offset=%ld\n", i,
-                g_components[i].id, g_components[i].name ? g_components[i].name : "?", ftell(f));
+        ROGUE_LOG_DEBUG("writing component idx=%d id=%d name=%s at_offset=%ld", i,
+                        g_components[i].id, g_components[i].name ? g_components[i].name : "?",
+                        ftell(f));
         const RogueSaveComponent* c = &g_components[i];
         long start = ftell(f);
         if (desc.version >= 3)
@@ -888,11 +891,10 @@ static int internal_save_to(const char* final_path)
         uint32_t wrote_bytes = (uint32_t) (after - start);
         desc.section_count++;
         desc.component_mask |= (1u << c->id);
-        fprintf(stderr,
-                "DBG: finished component id=%d size_with_header=%u section_count=%u mask=0x%X "
-                "reused=%u written=%u\n",
-                c->id, wrote_bytes, desc.section_count, desc.component_mask, g_last_sections_reused,
-                g_last_sections_written);
+        ROGUE_LOG_DEBUG("finished component id=%d size_with_header=%u section_count=%u mask=0x%X "
+                        "reused=%u written=%u",
+                        c->id, wrote_bytes, desc.section_count, desc.component_mask,
+                        g_last_sections_reused, g_last_sections_written);
     } /* end for each component */
     /* After a full save in incremental mode, all components become clean (unless marked during
      * write) so subsequent save can reuse */
@@ -1887,8 +1889,8 @@ int rogue_save_manager_load_slot(int slot_index)
                 return -8;
             }
             uint32_t id = (uint32_t) id16;
-            fprintf(stderr, "DBG: load_slot section %u id=%u raw_size=0x%08X pos=%ld\n", s, id,
-                    size, ftell(f));
+            ROGUE_LOG_DEBUG("load_slot section=%u id=%u raw_size=0x%08X pos=%ld", s, id, size,
+                            ftell(f));
             int compressed = (desc.version >= 6 && (size & 0x80000000u));
             uint32_t stored_size = size & 0x7FFFFFFFu;
             const RogueSaveComponent* comp = find_component((int) id);
@@ -1973,8 +1975,8 @@ int rogue_save_manager_load_slot(int slot_index)
             {
                 if (comp && comp->read_fn)
                 {
-                    fprintf(stderr, "DBG: load_slot dispatch id=%u size=%u compressed=0\n", id,
-                            stored_size);
+                    ROGUE_LOG_DEBUG("load_slot dispatch id=%u size=%u compressed=0", id,
+                                    stored_size);
                     if (comp->read_fn(f, stored_size) != 0)
                     {
                         fclose(f);
@@ -1983,8 +1985,7 @@ int rogue_save_manager_load_slot(int slot_index)
                 }
                 else
                 {
-                    fprintf(stderr, "DBG: load_slot skip id=%u (no comp) size=%u\n", id,
-                            stored_size);
+                    ROGUE_LOG_DEBUG("load_slot skip id=%u (no comp) size=%u", id, stored_size);
                 }
                 fseek(f, payload_pos + stored_size, SEEK_SET);
             }
@@ -1999,7 +2000,7 @@ int rogue_save_manager_load_slot(int slot_index)
                     fclose(f);
                     return -10;
                 }
-                fprintf(stderr, "DBG: load_slot section id=%u crc=0x%08X\n", id, sec_crc);
+                ROGUE_LOG_DEBUG("load_slot section id=%u crc=0x%08X", id, sec_crc);
                 /* Reconstruct uncompressed bytes */
                 if (compressed)
                 { /* Skipping deep verify for compressed section (future enhancement) */
@@ -2463,18 +2464,17 @@ static int write_inventory_component(FILE* f)
         if (it)
             count++;
     }
-    fprintf(stderr, "DBG: write_inventory_component detected %d active instances (cap=%d)\n", count,
-            ROGUE_ITEM_INSTANCE_CAP);
+    ROGUE_LOG_DEBUG("write_inventory_component detected %d active instances (cap=%d)", count,
+                    ROGUE_ITEM_INSTANCE_CAP);
     int dbg_seen = 0;
     for (int i = 0; i < ROGUE_ITEM_INSTANCE_CAP && dbg_seen < 8; i++)
     {
         const RogueItemInstance* it = rogue_item_instance_at(i);
         if (it)
         {
-            fprintf(
-                stderr,
-                "DBG: inv_active idx=%d def=%d qty=%d dur=%d/%d rar=%d pref=(%d,%d) suf=(%d,%d)\n",
-                i, it->def_index, it->quantity, it->durability_cur, it->durability_max, it->rarity,
+            ROGUE_LOG_DEBUG(
+                "inv_active idx=%d def=%d qty=%d dur=%d/%d rar=%d pref=(%d,%d) suf=(%d,%d)", i,
+                it->def_index, it->quantity, it->durability_cur, it->durability_max, it->rarity,
                 it->prefix_index, it->prefix_value, it->suffix_index, it->suffix_value);
             dbg_seen++;
         }
@@ -2575,7 +2575,7 @@ static int read_inventory_component(FILE* f, size_t size)
     }
     int count = 0;
     long section_start = ftell(f);
-    fprintf(stderr, "DBG: read_inventory_component size=%zu\n", size);
+    ROGUE_LOG_DEBUG("read_inventory_component size=%zu", size);
     if (g_active_read_version >= 4)
     {
         uint32_t c = 0;
@@ -2601,8 +2601,7 @@ static int read_inventory_component(FILE* f, size_t size)
         rec_ints = 7;
     else
         return -1; /* malformed */
-    fprintf(stderr, "DBG: inventory count=%d rec_ints=%zu remaining=%zu\n", count, rec_ints,
-            remaining);
+    ROGUE_LOG_DEBUG("inventory count=%d rec_ints=%zu remaining=%zu", count, rec_ints, remaining);
     for (int i = 0; i < count; i++)
     {
         int def_index = 0, quantity = 0, rarity = 0, pidx = 0, pval = 0, sidx = 0, sval = 0;
@@ -2656,7 +2655,7 @@ static int read_inventory_component(FILE* f, size_t size)
             }
         }
     }
-    fprintf(stderr, "DBG: after inventory load active=%d\n", rogue_items_active_count());
+    ROGUE_LOG_DEBUG("after inventory load active=%d", rogue_items_active_count());
     /* Ensure global app view points at the active pool for tests that scan g_app directly. */
     rogue_items_sync_app_view();
     /* Cross-check against g_app pointer/cap view used by some tests */
@@ -2671,8 +2670,8 @@ static int read_inventory_component(FILE* f, size_t size)
                 cnt_dbg++;
         }
     }
-    fprintf(stderr, "DBG: g_app.item_instances=%p cap=%d active_via_g_app=%d\n", ptr_dbg, cap_dbg,
-            cnt_dbg);
+    ROGUE_LOG_DEBUG("g_app.item_instances=%p cap=%d active_via_g_app=%d", ptr_dbg, cap_dbg,
+                    cnt_dbg);
     return 0;
 }
 
