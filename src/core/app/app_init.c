@@ -98,6 +98,11 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.start_bg_loaded = 0;
     g_app.start_bg_scale = ROGUE_BG_COVER;
     g_app.start_bg_tint = 0xFFFFFFFFu;
+    /* Phase 8: prewarm/spinner state */
+    g_app.start_prewarm_active = 0;
+    g_app.start_prewarm_done = 0;
+    g_app.start_prewarm_step = 0;
+    g_app.start_spinner_angle = 0.0f;
     g_app.reduced_motion = 0;
     /* Start screen nav repeat config (Phase 3.2) */
     g_app.start_nav_accum_ms = 0.0;
@@ -237,6 +242,8 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     rogue_econ_add_gold(250);
 #ifdef ROGUE_HAVE_SDL_MIXER
     g_app.sfx_levelup = NULL;
+    g_app.bgm_music = NULL;
+    g_app.bgm_playing = 0;
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 512) != 0)
     {
         ROGUE_LOG_WARN("Mix_OpenAudio failed: %s", Mix_GetError());
@@ -244,6 +251,53 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     else
     {
         rogue_asset_load_sounds();
+        /* Optional: attempt to load a start screen BGM track if provided.
+           Use env ROGUE_START_BGM to override; else try common candidates. */
+        {
+            char path_buf[512] = {0};
+#if defined(_MSC_VER)
+            char* val = NULL;
+            size_t len = 0;
+            if (_dupenv_s(&val, &len, "ROGUE_START_BGM") == 0 && val && val[0])
+            {
+                strncpy_s(path_buf, sizeof path_buf, val, _TRUNCATE);
+            }
+            if (val)
+                free(val);
+#else
+            const char* v = getenv("ROGUE_START_BGM");
+            if (v && v[0])
+            {
+                strncpy(path_buf, v, sizeof path_buf - 1);
+                path_buf[sizeof path_buf - 1] = '\0';
+            }
+#endif
+            const char* candidates[] = {path_buf[0] ? path_buf : NULL, "assets/sfx/title_theme.mp3",
+                                        "../assets/sfx/title_theme.mp3",
+                                        "assets/sfx/level_up.mp3" /* fallback quiet track */};
+            for (int i = 0; i < (int) (sizeof(candidates) / sizeof(candidates[0])); ++i)
+            {
+                const char* p = candidates[i];
+                if (!p)
+                    continue;
+                g_app.bgm_music = Mix_LoadMUS(p);
+                if (g_app.bgm_music)
+                {
+                    if (Mix_PlayMusic(g_app.bgm_music, -1) == 0)
+                    {
+                        g_app.bgm_playing = 1;
+                        ROGUE_LOG_INFO("Start BGM playing: %s", p);
+                    }
+                    else
+                    {
+                        ROGUE_LOG_WARN("Start BGM play failed: %s", Mix_GetError());
+                        Mix_FreeMusic(g_app.bgm_music);
+                        g_app.bgm_music = NULL;
+                    }
+                    break;
+                }
+            }
+        }
     }
 #endif
     g_app.tileset_loaded = 0;
@@ -452,6 +506,16 @@ bool rogue_app_init(const RogueAppConfig* cfg)
 void rogue_app_shutdown(void)
 {
 #ifdef ROGUE_HAVE_SDL_MIXER
+    if (g_app.bgm_playing)
+    {
+        Mix_HaltMusic();
+        g_app.bgm_playing = 0;
+    }
+    if (g_app.bgm_music)
+    {
+        Mix_FreeMusic(g_app.bgm_music);
+        g_app.bgm_music = NULL;
+    }
     if (g_app.sfx_levelup)
     {
         Mix_FreeChunk(g_app.sfx_levelup);

@@ -6,6 +6,7 @@
 #include "../input/input.h"
 #include "../ui/core/ui_theme.h"
 #include "../util/log.h"
+#include "../world/tile_sprite_cache.h"
 #include "../world/world_gen.h"
 #include "../world/world_gen_config.h"
 #include "game_loop.h"
@@ -168,6 +169,99 @@ static int rogue_save_descriptor_is_sane(const struct RogueSaveDescriptor* d)
     if (d->total_size == 0)
         return 0;
     return 1;
+}
+
+/* Phase 8: Prewarm implementation (incremental, light-weight)
+   Steps:
+   0 -> seed glyph cache with ASCII; 1 -> ensure background decode; 2 -> ensure tile sprite cache.
+ */
+static void start_prewarm_tick(void)
+{
+    if (!g_app.start_prewarm_active || g_app.start_prewarm_done)
+        return;
+    int step = g_app.start_prewarm_step;
+    switch (step)
+    {
+    case 0:
+        /* Glyph cache bootstrap: measure a common ASCII string to populate cache deterministically.
+         */
+        rogue_font_draw_text(0, 0, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+                             1, (RogueColor){0, 0, 0, 0});
+        g_app.start_prewarm_step++;
+        break;
+    case 1:
+        ensure_start_bg_loaded();
+        g_app.start_prewarm_step++;
+        break;
+    case 2:
+        /* Build tile sprite LUT so first in-game frame has assets ready. */
+        rogue_tile_sprite_cache_ensure();
+        g_app.start_prewarm_step++;
+        g_app.start_prewarm_done = 1;
+        g_app.start_prewarm_active = 0;
+        break;
+    default:
+        g_app.start_prewarm_done = 1;
+        g_app.start_prewarm_active = 0;
+        break;
+    }
+}
+
+static void maybe_begin_prewarm(void)
+{
+    if (!g_app.start_prewarm_active && !g_app.start_prewarm_done)
+    {
+        /* Allow disabling via env ROGUE_START_PREWARM=0 (defaults to on). */
+        static int s_checked = 0;
+        static int s_enabled = 1;
+        if (!s_checked)
+        {
+#if defined(_MSC_VER)
+            char* v = NULL;
+            size_t L = 0;
+            if (_dupenv_s(&v, &L, "ROGUE_START_PREWARM") == 0 && v)
+            {
+                if (v[0] == '0')
+                    s_enabled = 0;
+                free(v);
+            }
+#else
+            const char* v = getenv("ROGUE_START_PREWARM");
+            if (v && v[0] == '0')
+                s_enabled = 0;
+#endif
+            s_checked = 1;
+        }
+        if (s_enabled)
+        {
+            g_app.start_prewarm_active = 1;
+            g_app.start_prewarm_step = 0;
+        }
+    }
+}
+
+static void render_spinner_overlay(void)
+{
+#ifdef ROGUE_HAVE_SDL
+    if (!g_app.start_prewarm_active || g_app.reduced_motion)
+        return;
+    /* Simple spinner at top-right: three rotating dots. */
+    extern SDL_Renderer* g_internal_sdl_renderer_ref;
+    int cx = g_app.viewport_w - 24;
+    int cy = 16;
+    g_app.start_spinner_angle += (float) (g_app.dt * 6.0); /* rad/s approx */
+    float a = g_app.start_spinner_angle;
+    for (int i = 0; i < 3; ++i)
+    {
+        float ang = a + (float) (i * 2.09439510239); /* 120 degrees apart */
+        int x = cx + (int) (cosf(ang) * 6.0f);
+        int y = cy + (int) (sinf(ang) * 6.0f);
+        SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, 220, 220, 240, 220);
+        SDL_RenderDrawPoint(g_internal_sdl_renderer_ref, x, y);
+        SDL_RenderDrawPoint(g_internal_sdl_renderer_ref, x + 1, y);
+        SDL_RenderDrawPoint(g_internal_sdl_renderer_ref, x, y + 1);
+    }
+#endif
 }
 
 static void render_background(void)
@@ -463,6 +557,9 @@ void rogue_start_screen_update_and_render(void)
     if (!g_app.show_start_screen)
         return;
     g_app.title_time += g_app.dt;
+    /* Phase 8: begin and advance prewarm (a couple of steps over first frames) */
+    maybe_begin_prewarm();
+    start_prewarm_tick();
     /* Phase 10.4: Reduced motion skips animated fades entirely */
     if (g_app.reduced_motion)
     {
@@ -502,6 +599,7 @@ void rogue_start_screen_update_and_render(void)
 
     /* Background */
     render_background();
+    render_spinner_overlay();
     RogueColor white = {255, 255, 255, 255};
     int pulse =
         g_app.reduced_motion ? 220 : (int) ((sin(g_app.title_time * 2.0) * 0.5 + 0.5) * 255.0);

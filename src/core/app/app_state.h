@@ -70,6 +70,11 @@ typedef struct RogueAppState
     int menu_index;
     int entering_seed;
     unsigned int pending_seed;
+    /* Phase 8: Prewarm & spinner */
+    int start_prewarm_active;  /* 1 while background prewarm tasks run */
+    int start_prewarm_done;    /* 1 after all prewarm steps finished */
+    int start_prewarm_step;    /* incremental step index */
+    float start_spinner_angle; /* spinner angle in radians for visual indicator */
     /* Start screen navigation repeat (Phase 3.2 wiring) */
     double start_nav_accum_ms;    /* accumulated hold time for current direction */
     int start_nav_dir_v;          /* -1 up, +1 down, 0 none */
@@ -133,6 +138,9 @@ typedef struct RogueAppState
     float heat_vent_accum_ms; /* accumulates vent ticks */
 #ifdef ROGUE_HAVE_SDL_MIXER
     Mix_Chunk* sfx_levelup;
+    /* Optional BGM for start screen (Phase 8.2) */
+    Mix_Music* bgm_music;
+    int bgm_playing;
 #endif
     float attack_anim_time_ms;
     struct
