@@ -72,6 +72,7 @@ Load overlay basics:
 - Each entry shows a placeholder thumbnail tinted by a seeded color, plus basic header info.
 - Up/Down navigate; Enter loads the selected slot and transitions to gameplay.
  - Delete a slot with a confirmation modal from within the list; deletion uses the save manager and is non-destructive to other slots.
+ - Virtualized list: only visible rows render, and the selection is kept in view as you scroll. In headless/test mode the list defaults to slot 0 only for determinism.
 
 Robustness:
 - Continue and Load both re-validate the selected save header immediately before attempting to load. Corrupt or incompatible headers are ignored and will not trigger a transition.
@@ -80,6 +81,7 @@ Robustness:
 Environment overrides:
 - ROGUE_START_BG: absolute or relative path to a background image.
 - ROGUE_REDUCED_MOTION=1: skip fades and animations for accessibility.
+ - ROGUE_START_LIST_ALL=1: list all save slots in the Load overlay (default behavior lists slot 0 only in headless/tests to keep snapshots deterministic).
 
 Logging (quieter console by default):
 - Default log level is WARN. DEBUG/INFO messages are suppressed in normal runs.

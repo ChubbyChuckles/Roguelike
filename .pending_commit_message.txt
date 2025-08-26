@@ -58,3 +58,13 @@ Quality gates:
 - Built Debug with SDL2 using cmake --build build --config Debug --parallel 8.
 - Start screen Phase 10 suite passed (5/5), including test_start_screen_phase10_6_corrupt_header.
 - Other suites unchanged; start screen remains green.
+
+Start screen: Load list virtualization + headless determinism toggle
+
+- Phase 4.5: Implement virtualized Load overlay with windowed rendering and selection-keep-visible scrolling.
+- Default headless/tests list only slot 0 for deterministic snapshots; enable full enumeration with ROGUE_START_LIST_ALL=1.
+- Docs: Mark 4.5 Done in roadmap; README updated with virtualization notes and env toggle.
+
+Quality gates:
+- Rebuilt Debug with SDL2 (-j8).
+- Start screen suite remains green (5/5).
