@@ -130,6 +130,17 @@ void rogue_audio_duck_music(float target_gain, uint32_t attack_ms, uint32_t hold
     cross-fade logic (excludes duck envelope). Non-music or inactive ids return 0. */
 float rogue_audio_music_track_weight(const char* track_id);
 
+/* -------- Phase 6.4: Procedural music layering (base + random sweetener) -------- */
+/* Register a sweetener (additional music track id) for a given music state with a relative gain
+    (0..1) applied multiplicatively to the base state's cross-fade weight. Up to a small fixed
+    number of sweeteners per state. Returns 0 on success, <0 on error (invalid state, no room,
+    id missing or not MUSIC category). */
+int rogue_audio_music_layer_add(RogueMusicState state, const char* sweetener_track_id, float gain);
+/* Access current active sweetener track id (chosen when a state transition begins) or NULL. */
+const char* rogue_audio_music_layer_current(void);
+/* Retrieve configured sweetener count for a state (tests & tools). */
+int rogue_audio_music_layer_count(RogueMusicState state);
+
 /* -------- VFX subsystem (Phase 3 foundations) -------- */
 
 typedef enum RogueVfxLayer

@@ -278,6 +278,18 @@ static int g_music_beats_per_bar = 4;       /* beats in a bar */
 static float g_music_bar_time_accum_ms = 0; /* elapsed ms within current bar */
 static RogueMusicState g_music_pending_bar_state = (RogueMusicState) -1; /* pending state switch */
 static uint32_t g_music_pending_bar_crossfade = 0;                       /* ms */
+/* Phase 6.4: procedural layering (one random sweetener layer per activation) */
+#define ROGUE_MUSIC_MAX_LAYERS_PER_STATE 4
+typedef struct MusicLayerReg
+{
+    char track_id[24];
+    float gain;
+} MusicLayerReg;
+static MusicLayerReg g_music_layers[ROGUE_MUSIC_STATE_COUNT][ROGUE_MUSIC_MAX_LAYERS_PER_STATE];
+static uint8_t g_music_layer_counts[ROGUE_MUSIC_STATE_COUNT];
+static char g_music_active_sweetener[24]; /* chosen sweetener for current active state */
+static float g_music_active_sweetener_gain =
+    0.0f; /* gain scalar (0..1) multiplied with main weight */
 
 /* Positional attenuation */
 static int g_positional_enabled = 0;
@@ -398,6 +410,20 @@ void rogue_audio_registry_clear(void)
     }
 #endif
     g_audio_reg_count = 0;
+    /* Reset music state machine globals (so tests starting fresh get neutral weights) */
+    for (int i = 0; i < ROGUE_MUSIC_STATE_COUNT; ++i)
+    {
+        g_music_state_tracks[i][0] = '\0';
+        g_music_layer_counts[i] = 0;
+        for (int j = 0; j < ROGUE_MUSIC_MAX_LAYERS_PER_STATE; ++j)
+            g_music_layers[i][j].track_id[0] = '\0';
+    }
+    g_music_active_track[0] = '\0';
+    g_music_fadeout_track[0] = '\0';
+    g_music_active_sweetener[0] = '\0';
+    g_music_active_weight = 0.0f;
+    g_music_fadeout_weight = 0.0f;
+    g_music_fade_time_ms = g_music_fade_elapsed_ms = 0;
 }
 
 void rogue_audio_mixer_set_master(float gain)
@@ -497,14 +523,36 @@ float rogue_audio_debug_effective_gain(const char* id, unsigned repeats, float x
     if (g_audio_reg[idx].cat == (uint8_t) ROGUE_AUDIO_CAT_MUSIC)
     {
         /* Determine per-track cross-fade weight */
-        if (g_music_active_track[0] &&
-            strncmp(g_music_active_track, g_audio_reg[idx].id, sizeof g_audio_reg[idx].id) == 0)
-            music_weight = g_music_active_weight;
-        else if (g_music_fadeout_track[0] && strncmp(g_music_fadeout_track, g_audio_reg[idx].id,
-                                                     sizeof g_audio_reg[idx].id) == 0)
-            music_weight = g_music_fadeout_weight;
+        if (g_music_active_track[0] || g_music_fadeout_track[0])
+        {
+            if (g_music_active_track[0] &&
+                strncmp(g_music_active_track, g_audio_reg[idx].id, sizeof g_audio_reg[idx].id) == 0)
+                music_weight = g_music_active_weight;
+            else if (g_music_fadeout_track[0] && strncmp(g_music_fadeout_track, g_audio_reg[idx].id,
+                                                         sizeof g_audio_reg[idx].id) == 0)
+                music_weight = g_music_fadeout_weight;
+            else
+                music_weight = 0.0f; /* unmanaged while state machine active */
+        }
         else
-            music_weight = 0.0f;
+        {
+            /* No state machine activity yet: keep legacy behaviour (full weight). */
+            music_weight = 1.0f;
+        }
+        /* Add procedural sweetener layer contribution if this id matches active sweetener. The
+           sweetener rides on top of the main active track weight (not fadeout) with its own gain
+           scalar, and does NOT participate in cross-fade (it simply appears/disappears with the
+           state). */
+        if (g_music_active_track[0] && g_music_active_sweetener[0] &&
+            strncmp(g_music_active_sweetener, g_audio_reg[idx].id, sizeof g_audio_reg[idx].id) == 0)
+        {
+            /* Sweetener only audible scaled by active weight (not fadeout). */
+            music_weight = g_music_active_weight * g_music_active_sweetener_gain;
+        }
+        /* Re-assert legacy behavior: if after all this active/fade still both empty, music_weight=1
+         */
+        if (!g_music_active_track[0] && !g_music_fadeout_track[0])
+            music_weight = 1.0f;
         /* Apply duck envelope */
         cat_gain *= g_music_duck_gain;
     }
@@ -554,6 +602,31 @@ static void music_begin_crossfade(const char* new_track, uint32_t crossfade_ms)
         g_music_active_weight = 1.0f;
         g_music_fadeout_weight = 0.0f;
         g_music_fade_time_ms = g_music_fade_elapsed_ms = 0;
+        /* Assign procedural sweetener for current state */
+        g_music_active_sweetener[0] = '\0';
+        g_music_active_sweetener_gain = 0.0f;
+        uint8_t layer_count = g_music_layer_counts[g_music_current_state];
+        if (layer_count > 0)
+        {
+            uint32_t seed_snapshot = g_frame_index ^
+                                     ((uint32_t) g_music_current_state * 0x9E3779B9u) ^
+                                     (uint32_t) layer_count * 0x85EBCA6Bu;
+            seed_snapshot = seed_snapshot * 1664525u + 1013904223u;
+            uint32_t pick = (layer_count == 1) ? 0u : (seed_snapshot % (uint32_t) layer_count);
+            MusicLayerReg* lr = &g_music_layers[g_music_current_state][pick];
+            if (lr->track_id[0])
+            {
+#if defined(_MSC_VER)
+                strncpy_s(g_music_active_sweetener, sizeof g_music_active_sweetener, lr->track_id,
+                          _TRUNCATE);
+#else
+                strncpy(g_music_active_sweetener, lr->track_id,
+                        sizeof g_music_active_sweetener - 1);
+                g_music_active_sweetener[sizeof g_music_active_sweetener - 1] = '\0';
+#endif
+                g_music_active_sweetener_gain = lr->gain;
+            }
+        }
         return;
     }
     /* Start cross-fade: previous active becomes fadeout */
@@ -570,6 +643,32 @@ static void music_begin_crossfade(const char* new_track, uint32_t crossfade_ms)
     g_music_fade_elapsed_ms = 0;
     g_music_active_weight = 0.0f;
     g_music_fadeout_weight = 1.0f;
+    /* Select procedural sweetener for new current state, deterministic based on frame + state. */
+    g_music_active_sweetener[0] = '\0';
+    g_music_active_sweetener_gain = 0.0f;
+    uint8_t layer_count = g_music_layer_counts[g_music_current_state];
+    if (layer_count > 0)
+    {
+        /* Seed influenced by state and frame for variability across activations but determinism
+           within a single activation. We don't want selection to change mid-state, so store. */
+        uint32_t seed_snapshot = g_frame_index ^ ((uint32_t) g_music_current_state * 0x9E3779B9u) ^
+                                 (uint32_t) layer_count * 0x85EBCA6Bu;
+        /* Simple LCG step */
+        seed_snapshot = seed_snapshot * 1664525u + 1013904223u;
+        uint32_t pick = (layer_count == 1) ? 0u : (seed_snapshot % (uint32_t) layer_count);
+        MusicLayerReg* lr = &g_music_layers[g_music_current_state][pick];
+        if (lr->track_id[0])
+        {
+#if defined(_MSC_VER)
+            strncpy_s(g_music_active_sweetener, sizeof g_music_active_sweetener, lr->track_id,
+                      _TRUNCATE);
+#else
+            strncpy(g_music_active_sweetener, lr->track_id, sizeof g_music_active_sweetener - 1);
+            g_music_active_sweetener[sizeof g_music_active_sweetener - 1] = '\0';
+#endif
+            g_music_active_sweetener_gain = lr->gain;
+        }
+    }
 }
 
 int rogue_audio_music_set_state(RogueMusicState state, uint32_t crossfade_ms)
@@ -751,6 +850,46 @@ float rogue_audio_music_track_weight(const char* track_id)
         strncmp(track_id, g_music_fadeout_track, sizeof g_music_fadeout_track) == 0)
         return g_music_fadeout_weight;
     return 0.0f;
+}
+
+/* -------- Phase 6.4: procedural music layering implementation -------- */
+int rogue_audio_music_layer_add(RogueMusicState state, const char* sweetener_track_id, float gain)
+{
+    if ((int) state < 0 || state >= ROGUE_MUSIC_STATE_COUNT || !sweetener_track_id ||
+        !*sweetener_track_id)
+        return -1;
+    if (gain < 0.0f)
+        gain = 0.0f;
+    if (gain > 1.0f)
+        gain = 1.0f;
+    int tidx = audio_reg_find(sweetener_track_id);
+    if (tidx < 0 || g_audio_reg[tidx].cat != (uint8_t) ROGUE_AUDIO_CAT_MUSIC)
+        return -2;
+    uint8_t* count = &g_music_layer_counts[state];
+    if (*count >= ROGUE_MUSIC_MAX_LAYERS_PER_STATE)
+        return -3;
+    MusicLayerReg* r = &g_music_layers[state][*count];
+#if defined(_MSC_VER)
+    strncpy_s(r->track_id, sizeof r->track_id, sweetener_track_id, _TRUNCATE);
+#else
+    strncpy(r->track_id, sweetener_track_id, sizeof r->track_id - 1);
+    r->track_id[sizeof r->track_id - 1] = '\0';
+#endif
+    r->gain = gain;
+    (*count)++;
+    return 0;
+}
+
+const char* rogue_audio_music_layer_current(void)
+{
+    return g_music_active_sweetener[0] ? g_music_active_sweetener : NULL;
+}
+
+int rogue_audio_music_layer_count(RogueMusicState state)
+{
+    if ((int) state < 0 || state >= ROGUE_MUSIC_STATE_COUNT)
+        return -1;
+    return (int) g_music_layer_counts[state];
 }
 
 void rogue_audio_music_set_tempo(float bpm, int beats_per_bar)

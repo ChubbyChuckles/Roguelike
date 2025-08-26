@@ -54,9 +54,9 @@ PHASE 5. Binding Gameplay to Effects
 
 PHASE 6. Advanced Audio Features
 6.1 Dynamic music state machine (explore, combat, boss) (Done)
-6.2 Cross-fade & beat-aligned transitions (Partial: linear cross-fade only; beat align TBD)
+6.2 Cross-fade & beat-aligned transitions (Done: linear cross-fade + bar-aligned deferred transitions via tempo/beats-per-bar scheduling)
 6.3 Side-chain ducking (e.g., UI or key SFX lower music) (Done: attack/hold/release envelope)
-6.4 Procedural layering (combine base + random sweeteners) (X)
+6.4 Procedural layering (combine base + random sweeteners) (Done: per-state layer registry (max 4) with deterministic one-shot sweetener selection at state activation; sweetener gain scales with active track weight and excluded from cross-fade; unit test validates selection & gain bounds)
 6.5 Reverb / environmental preset stubs (toggle simulation) (X)
 6.6 Distance-based low pass filter attenuation (X)
 

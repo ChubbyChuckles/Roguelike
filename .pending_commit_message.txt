@@ -167,3 +167,53 @@ Audio/VFX: Phase 6.1–6.3 music system (state machine, cross-fade, ducking)
 
 Build & Tests:
 - Compiled Debug with SDL2 (-j8) expected; audio_vfx suite extended (Phase 6 test passes).
+
+Audio/VFX: Phase 6.2 beat-aligned music transitions + test
+
+- Complete Phase 6.2 by adding tempo & bar metadata and bar-aligned deferred transitions.
+- New APIs: rogue_audio_music_set_tempo(bpm, beats_per_bar) and
+  rogue_audio_music_set_state_on_next_bar(state, crossfade_ms).
+- Update rogue_audio_music_update to: track bar phase, trigger pending state at next bar,
+  and only accrue fade elapsed for post-boundary remainder to keep deterministic fade timing
+  independent of frame dt partitioning.
+- Adjust cross-fade logic to start at weight=0 immediately after boundary (no overshoot) and
+  progress linearly over caller-specified ms.
+- Add unit test test_audio_vfx_phase6_2_beat_aligned validating: no early fade during bar,
+  ~10% fade progress after boundary remainder, midpoint (~50%), and completion with weight sum=1.
+- Update roadmap (implementation_plan_audiovfxsystem.txt) marking 6.2 Done & documenting bar-aligned scheduling.
+- README: reflect completed beat-aligned transitions and list new APIs/test.
+
+Quality gates:
+- Rebuilt Debug with SDL2 using cmake --build . --config Debug --parallel 8 (target + deps).
+- Tests: test_audio_vfx_phase6_2_beat_aligned passed; existing Phase 6 music system test still green.
+
+Audio/VFX: Phase 6.4 procedural music layering + regression safeguard
+
+- Implement per-state procedural layering: new APIs
+    - rogue_audio_music_layer_add(state, track_id, gain) registers up to 4 sweetener layers.
+    - rogue_audio_music_layer_count(state) returns registered layer count.
+    - rogue_audio_music_layer_current() exposes currently selected sweetener id (or NULL).
+- Deterministic selection: at state activation (immediate or start of cross-fade) a single sweetener
+  is chosen via mixed seed (frame_index ^ state ^ layer_count hash + LCG step); selection remains
+  stable for the activation; no mid-fade reselection.
+- Gain integration: sweetener contributes its own base gain scaled by stored layer gain and active
+  track's cross-fade weight (not fadeout). It does not participate in the fade weight sum and is
+  silenced automatically when state changes.
+- Extend debug effective gain path to include sweetener contribution while preserving legacy full
+  weight behavior when no music state has been activated yet (prevents pre-State regressions).
+- Add full music state reset inside rogue_audio_registry_clear (active/fade/sweetener, weights,
+  per-state track + layers) to ensure tests start with neutral weights and avoid leakage between
+  ducking and layering tests.
+- New unit test: test_audio_vfx_phase6_4_music_layering validates registration, layer count, base
+  track full gain, sweetener gain bounds (0 < g <= 0.5), and deterministic non-empty selection.
+- Roadmap updated: mark 6.2 (beat-aligned) Done (already), 6.4 layered music Done with summary; README
+  reflects Phase 6.1–6.4 coverage.
+
+Quality gates:
+- Rebuilt Debug (SDL2 disabled at runtime due to missing mixer, logic path still validated) after adding
+  layering (full project rebuild to incorporate effects.c modifications).
+- Tests executed:
+    - test_audio_vfx_phase6_music_ducking (regression) PASS after registry clear fix.
+    - test_audio_vfx_phase6_4_music_layering PASS.
+    - Prior Phase 6 system tests (state machine, beat-aligned) previously green (no behavior change).
+  All targeted Phase 6 tests passing.

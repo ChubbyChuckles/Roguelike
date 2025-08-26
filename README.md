@@ -110,7 +110,7 @@ Logging (quieter console by default):
 Current capabilities:
 - Unified FX bus with deterministic ordering & frame compaction (merged repeat counts) feeding audio (SDL_mixer-backed) and VFX spawning.
 - Audio registry with lazy load, per-category + master mixer gains, positional attenuation stub, deterministic variant selection (id suffixed _N), and music category isolation.
-- Music system (Phase 6.1–6.3): logical state machine (explore/combat/boss) with per-state track registration, linear cross-fade (configurable ms), bar-aligned deferred transitions (tempo & beats per bar) via `rogue_audio_music_set_tempo` + `rogue_audio_music_set_state_on_next_bar`, and side-chain ducking envelope (attack/hold/release) applied multiplicatively to MUSIC category. Procedural layering (6.4) pending.
+- Music system (Phase 6.1–6.4): logical state machine (explore/combat/boss) with per-state track registration, linear cross-fade (configurable ms), bar-aligned deferred transitions (tempo & beats per bar) via `rogue_audio_music_set_tempo` + `rogue_audio_music_set_state_on_next_bar`, side-chain ducking envelope (attack/hold/release), and procedural layering (one deterministic sweetener layer chosen per activation from per-state registry) integrated into effective gain.
 - VFX registry & instance pool (lifetime scaling, layers BG→UI, world vs screen space, time scaling/freeze) plus particle emitter pool (variation distributions UNIFORM/NORMAL for scale & lifetime) with composite effects (CHAIN/PARALLEL) and per-instance overrides (scale, lifetime, color).
 - Gameplay mapping layer (keys → audio/vfx with priority) wired to damage, skills, buffs, loot triggers.
 - Config loader (CSV) with hot-reload watcher & validation error surfacing.
