@@ -9,8 +9,11 @@ static RogueLocalePair g_default_pairs[] = {
     {"menu_credits", "Credits"},
     {"menu_quit", "Quit"},
     {"menu_seed", "Seed:"},
+    {"prompt_start", "Press Enter to start"},
     {"tip_settings", "Settings coming soon"},
     {"tip_credits", "Credits coming soon"},
+    {"tip_continue", "Load your latest save"},
+    {"tip_load", "Choose a save slot to load"},
     {"hint_accept_cancel", "Enter: select, Esc: back"},
 };
 

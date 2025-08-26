@@ -144,6 +144,23 @@ static void render_background(void)
 {
 #ifdef ROGUE_HAVE_SDL
     ensure_start_bg_loaded();
+    /* Phase 2.9: Day/Night tint: gently modulate tint based on local time seconds.
+       If headless or time unavailable, fall back to seed-derived pseudo-time. */
+    unsigned int tint = g_app.start_bg_tint;
+    {
+        double t = fmod(g_app.game_time_ms / 1000.0, 120.0); /* 2-minute cycle in tests */
+        /* Use sine wave to modulate brightness between 85% and 100% */
+        double m = 0.85 + 0.15 * (0.5 + 0.5 * sin(t * 3.14159 / 60.0));
+        unsigned char tr0 = (tint >> 16) & 255;
+        unsigned char tg0 = (tint >> 8) & 255;
+        unsigned char tb0 = tint & 255;
+        unsigned char ta0 = (tint >> 24) & 255;
+        unsigned char trm = (unsigned char) ((int) (tr0 * m));
+        unsigned char tgm = (unsigned char) ((int) (tg0 * m));
+        unsigned char tbm = (unsigned char) ((int) (tb0 * m));
+        tint = ((unsigned int) ta0 << 24) | ((unsigned int) trm << 16) | ((unsigned int) tgm << 8) |
+               (unsigned int) tbm;
+    }
     if (g_app.start_bg_loaded && g_app.start_bg_tex && g_app.start_bg_tex->handle)
     {
         /* Compute cover/contain scaling */
@@ -164,10 +181,10 @@ static void render_background(void)
         SDL_Rect dst = {dx, dy, dw, dh};
         extern SDL_Renderer* g_internal_sdl_renderer_ref;
         /* Accessibility: clamp brightness so overlays remain legible */
-        unsigned char tr = (g_app.start_bg_tint >> 16) & 255;
-        unsigned char tg = (g_app.start_bg_tint >> 8) & 255;
-        unsigned char tb = g_app.start_bg_tint & 255;
-        unsigned char ta = (g_app.start_bg_tint >> 24) & 255;
+        unsigned char tr = (tint >> 16) & 255;
+        unsigned char tg = (tint >> 8) & 255;
+        unsigned char tb = tint & 255;
+        unsigned char ta = (tint >> 24) & 255;
         int maxc = tr;
         if (tg > maxc)
             maxc = tg;
@@ -297,18 +314,23 @@ void rogue_start_screen_update_and_render(void)
     rogue_font_draw_text(title_x, title_y, "ROGUELIKE", 6, title_col2);
     /* Optional subtitle/tagline below the title (non-blocking, fades with title) */
     RogueColor sub_col = {220, 220, 240, (unsigned char) a};
-    rogue_font_draw_text(title_x + 2, title_y + 28, "Press Enter to start", 2, sub_col);
+    rogue_font_draw_text(title_x + 2, title_y + 28, rogue_locale_get("prompt_start"), 2, sub_col);
     /* Phase 3.1: Expanded main menu (Continue, New, Load, Settings, Credits, Quit) */
     /* Detect if any save exists (simple heuristic: presence of slot 0 in root or build/) */
     int has_save = 0;
+    int most_recent_slot = -1;
+    unsigned int most_recent_ts = 0;
+    for (int s = 0; s < ROGUE_SAVE_SLOT_COUNT; ++s)
     {
-        const char* paths[] = {"save_slot_0.sav", "build/save_slot_0.sav"};
-        for (int i = 0; i < (int) (sizeof(paths) / sizeof(paths[0])); ++i)
+        RogueSaveDescriptor d;
+        int r = rogue_save_read_descriptor(s, &d);
+        if (r == 0)
         {
-            if (rogue_file_exists(paths[i]))
+            has_save = 1;
+            if (d.timestamp_unix >= most_recent_ts)
             {
-                has_save = 1;
-                break;
+                most_recent_ts = d.timestamp_unix;
+                most_recent_slot = s;
             }
         }
     }
@@ -449,9 +471,9 @@ void rogue_start_screen_update_and_render(void)
             /* ignore activation on disabled items */
         }
         else if (sel == 0)
-        { /* Continue */
-            /* Try to load slot 0; on success transition into game */
-            int rc = rogue_save_manager_load_slot(0);
+        { /* Continue (most recent) */
+            int slot = (most_recent_slot >= 0) ? most_recent_slot : 0;
+            int rc = rogue_save_manager_load_slot(slot);
             (void) rc; /* ignore errors for now; stay on menu if fails */
             if (rc == 0)
                 g_app.start_state = ROGUE_START_FADE_OUT;
@@ -462,7 +484,8 @@ void rogue_start_screen_update_and_render(void)
         }
         else if (sel == 2)
         { /* Load Game (slot 0 stub) */
-            int rc = rogue_save_manager_load_slot(0);
+            int slot = (most_recent_slot >= 0) ? most_recent_slot : 0;
+            int rc = rogue_save_manager_load_slot(slot);
             (void) rc;
             if (rc == 0)
                 g_app.start_state = ROGUE_START_FADE_OUT;

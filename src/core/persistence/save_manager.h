@@ -86,6 +86,9 @@ int rogue_save_manager_save_slot(int slot_index); /* full save */
 int rogue_save_manager_save_slot_inventory_only(
     int slot_index); /* Phase 15.4: partial save (inventory component only) */
 int rogue_save_manager_load_slot(int slot_index);
+/* Lightweight header reader for UI/menus: reads only the descriptor from a slot file.
+    Returns 0 on success, negative on failure (e.g., -2 if file missing). */
+int rogue_save_read_descriptor(int slot_index, struct RogueSaveDescriptor* out_desc);
 int rogue_save_manager_autosave(int slot_index); /* autosave ring save */
 int rogue_save_manager_quicksave(void);          /* writes quicksave.sav */
 int rogue_save_manager_backup_rotate(

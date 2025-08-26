@@ -1,132 +1,15 @@
-Equipment stat-cache resist pipeline fixes (idempotent clamp, init guards)
+Start screen: most-recent Continue/Load, day/night tint, parallax stars, localized prompt; save header API
 
-- Initialize equipment slots/transmog to -1 to avoid phantom aggregates
-- Remove redundant stat-cache force updates in equip/unequip paths
-- Make compute_derived hard-cap clamp idempotent; skip soft-cap when >= hard cap
-- Keep temporary debug logs for raw/final resists during validation
+- Add rogue_save_read_descriptor() to read save headers for UI without full load.
+- Start screen Continue/Load now targets the most recent save slot by timestamp.
+- Implement Phase 2.9 day/night tint via gentle brightness modulation.
+- Add Phase 2.5 parallax star overlay (deterministic, reduced-motion safe).
+- Localize start prompt and add default tooltips for Continue/Load.
+- Update roadmap statuses for 2.5, 2.7, 2.9, 3.1, 10.7–10.9.
+- Document start screen features and env vars in README.
 
-Tests: test_equipment_phase2_resists PASS; test_equipment_phase2_stat_cache PASS; test_equipment_phase2_affix_layers PASS
-
-Inventory tags/rules + UI enforcement fixes; loader fallbacks
-
-- Inventory UI drop/salvage now use unified entries for qty/removal
-- Enforce locked/favorite before def lookup; drop returns -3 as expected
-- Tag rules apply for open criteria even without item defs loaded
-- rogue_inv_tags_list returns total count even if out buffer is NULL
-- Add robust relative path fallbacks for items/materials registry loaders
-- Durability roundtrip already validated; no regressions observed
-
-Tests: test_inventory_phase3_lock_rule_enforce PASS; tags/refinement PASS
-
-Sockets: stabilize item defs loader for test CWDs; Phase 5 sockets pass
-
-- Add relative path fallbacks to rogue_item_defs_load_from_cfg so assets/equipment_test_sockets.cfg
-	loads when tests run from build/tests directories
-- Confirmed sockets API semantics already correct: count bounds [min..max], insert/remove/get with
-	proper error codes, slots initialized to -1, max 6 enforced
-
-Tests: test_equipment_phase5_sockets PASS
-
-Equipment Phase 5: enchant/reforge + protective seal fixed; affix autoload in item defs loader; sockets/gems stable
-
-- Enchant/Reforge:
-  - Implemented full mechanics: cost formulas, material consumption, deterministic RNG, and reroll logic that avoids selecting the same affix index.
-  - Preserved invariants on reforge (item_level, rarity, socket_count); clears gem contents only.
-  - Validates budget; marks stat cache dirty.
-
-- Protective Seal:
-  - Added prefix/suffix lock flags; apply seal only when applicable; proper error codes.
-  - Enchant respects locks and only rerolls unlocked affixes; consumes seal.
-
-- Loader resilience:
-  - Item defs loader: relative-path fallbacks.
-  - New: Auto-load default affixes (assets/affixes.cfg) when affix tables are empty to support tests calling rogue_affix_roll directly.
-
-- Tests passing (Debug):
-  - test_equipment_phase5_sockets
-  - test_equipment_phase5_gems
-  - test_equipment_phase5_enchant_reforge
-  - test_equipment_phase5_protective_seal
-
-No regressions observed when running the entire Phase 5 equipment group. Build: Debug SDL2, -j8.
-
-Equipment persistence (Phase 1 & 13) roundtrip fixes; enable equips without defs + load order
-
-- Equip fallback: if item definition lookup is missing (minimal tests), skip strict category validation and allow equipping by instance index while preserving 2H/offhand rules. Ensures SLOT lines are serialized so Phase 13 sees required tokens (SET/UNQ/RW).
-- Save load order: register inventory-related components before player so item instances exist before applying equipped indices on load. Fixes Phase 1 equality assertions on weapon/ring1 indices after roundtrip.
-- Verified serialization already included EQUIP_V1 header and tokens; hashing remains FNV-1a over serialized buffer and flips on durability tamper as required.
-
-Tests (Debug, SDL2, -j8):
-- test_equipment_phase13_persistence PASS
-- test_equipment_phase1_persistence PASS
-
-Equipment Phase 7 & 18: reactive shield path fix + deserializer hardening for mutation robustness
-
-- Reactive shield: ensure absorb is consumed on all block paths (guard-block and passive-block) before early returns; preserves reflect ordering.
-- Deserializer hardening: enforce mandatory tokens (DEF/DUR/QC/SOCKS/LOCKS), validate ranges, and return explicit negative codes for corrupt inputs.
-- Durability compatibility: allow DUR 0 0 for non-durable items; if tampered DUR has dm==0 and dc>0, promote dm to dc to deserialize while altering state hash.
-- State hash remains FNV-1a over EQUIP_V1 serialization; detects tamper.
-
-Tests (Debug, SDL2, -j8):
-- test_equipment_phase7_reactive_shield PASS
-- test_equipment_phase18_mutation PASS
-- Persistence re-check: test_equipment_phase1_persistence PASS; test_equipment_phase13_persistence PASS
-
-Equipment Phase 10: quality scaling + crafting pipeline (orb apply + fusion) fixes
-
-- Quality: switch to additive ceil-based scaling (~0.6%/pt) to ensure monotonic increases even for small base damage; validated min/max outputs.
-- Crafting success: strengthen skill curve (50% base + 6%/skill, clamped 5..95) so high skill outperforms low skill in small trials.
-- Orb apply: select primary or alternate slot based on type occupancy; clamp affix value to remaining budget instead of rejecting when over; enforce one-time use.
-- Fusion: consider both donor affixes, require empty compatible slot, clamp to remaining budget, prefer higher value, and deactivate donor on success.
-
-Tests (Debug, SDL2, -j8):
-- test_equipment_phase10_quality PASS
-- test_equipment_phase10_crafting_success PASS
-- test_equipment_phase10_crafting PASS
-
-AI Phase 11: behavior-tree stability and deterministic repro trace
-
-- Add user_data destructor hook on BT nodes; advanced cleanup avoids freeing owned payloads twice.
-- Introduce per-node last_status/last_tick and a global tick counter; provide rogue_bt_mark_node().
-- Update all basic/advanced node tickers to call mark helper for both child and parent nodes.
-- Implement active-path serialization emitting only nodes that returned SUCCESS/RUNNING this tick in pre-order using '>' separators.
-- Fix unit test leaf to mark itself so it's included when successful.
-
-Tests (Debug, SDL2, -j8):
-- test_ai_phase11_scenario PASS
-- test_ai_phase11_repro_trace PASS
-
-Loot Docs: Fix style guide test (Windows codepage/length)
-
-- Normalize en dash to ASCII hyphen for "Adding a New Affix - Checklist" heading
-- Add a short Contents section near top containing the exact phrase to ensure it appears within the first 4KB read by tests on Windows
-- No behavioral changes; documentation only
-
-Tests (Debug, SDL2, -j8):
-- test_loot_phase23_style_guide PASS
-
-Config: reset event registry on shutdown to fix cross-phase duplicates; add DEBUG traces
-
-- Reset global event-type registry and reserved ranges in rogue_config_version_shutdown() to ensure test isolation between 2.8.6 and 2.8.7 subtests.
-- Add DEBUG logs in init/shutdown/register paths to trace registry state during tests.
-- Validated with Debug SDL2 build (-j8): test_config_system_validation PASS in isolation and in full run.
-
-Tests (Debug, SDL2, -j8):
-- test_config_system_validation PASS
-
-Dialogue JSON + Determinism: asset-path fallback and zero-init for stable memcmp
-
-- Dialogue loader: when opening a JSON path starting with "assets/" fails, resolve via rogue_find_asset_path to support tests running from build/tests CWDs. Added minimal assets/dialogue/script_intro.json (id=100, 3 lines) for unit coverage.
-- Determinism loader: zero-initialize RogueDamageEvent entries before assigning parsed fields to eliminate struct padding sensitivity across toolchains for memcmp equality.
-
-Tests (Debug, SDL2, -j8):
-- test_dialogue_json PASS
-- test_determinism_damage_events PASS
-
-Equipment Phase 4.1: implicit layer aggregation + fingerprint order invariance; item-def reload dedup
-
-- Stat cache fingerprint: exclude base_* and totals_* from the fingerprint and fold only stable layer inputs (implicit/affix/resists/armor/ratings); add DBG_FP traces. Resolves equip-order invariance failure where player base mutated between sequences.
-- Item defs loader (CFG/JSON): when reloading, deduplicate by id by updating existing entries in-place and only incrementing 'added' for new ids. Matches tests that append to the same cfg mid-run (added2==1).
-
-Tests (Debug, SDL2, -j8):
-- test_equipment_phase4_1_implicits PASS
+Quality gates:
+- Built Debug with SDL2 using cmake --build build --config Debug --parallel 8.
+- Start screen tests passed: test_start_screen_phase10_{1..4}.
+- Full ctest run: 95% passed (27 failures in non-start-screen suites). test_boot passed when isolated; start screen shows no regressions.
+Pending: investigate unrelated failing suites separately.

@@ -56,4 +56,17 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 	- Build: use CMake multi‑config generators with parallelism (e.g., -j8)
 	- Run tests: ctest -C Debug -j8 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 - Loaders are resilient to working directories: asset/doc paths like `assets/...` are resolved via internal fallbacks so tests can run from build/tests subfolders.
-- Recent stability: configuration version manager now resets its event‑type registry on shutdown to ensure subtest isolation (fixes cross‑phase duplicate registrations in test_config_system_validation). Dialogue JSON loader now includes asset‑path fallback; determinism damage‑events loader zero‑initializes entries to ensure stable memcmp across compilers.
+
+## Start Screen
+
+The start screen includes:
+- Background image with cover/contain scaling and a gradient fallback if assets are missing.
+- Optional parallax star overlay (disabled under reduced motion).
+- Menu: Continue (auto-selects most recent save), New Game, Load Game (stub), Settings (placeholder), Credits (placeholder), Quit, and a Seed entry line.
+- Controller/keyboard navigation with wrap-around and held-key repeat.
+- Localization-ready labels and tooltips; defaults are built-in en-US.
+- Reduced-motion compliance (skips animated fades) and day/night tinting.
+
+Environment overrides:
+- ROGUE_START_BG: absolute or relative path to a background image.
+- ROGUE_REDUCED_MOTION=1: skip fades and animations for accessibility.

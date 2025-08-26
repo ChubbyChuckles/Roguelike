@@ -503,6 +503,31 @@ static const char* build_slot_path(int slot)
     snprintf(slot_path, sizeof slot_path, "save_slot_%d.sav", slot);
     return slot_path;
 }
+
+int rogue_save_read_descriptor(int slot_index, RogueSaveDescriptor* out_desc)
+{
+    if (!out_desc)
+        return -1;
+    if (slot_index < 0 || slot_index >= ROGUE_SAVE_SLOT_COUNT)
+        return -1;
+    FILE* f = NULL;
+#if defined(_MSC_VER)
+    fopen_s(&f, build_slot_path(slot_index), "rb");
+#else
+    f = fopen(build_slot_path(slot_index), "rb");
+#endif
+    if (!f)
+        return -2;
+    RogueSaveDescriptor d;
+    if (fread(&d, sizeof d, 1, f) != 1)
+    {
+        fclose(f);
+        return -3;
+    }
+    fclose(f);
+    *out_desc = d;
+    return 0;
+}
 static char autosave_path[128];
 static const char* build_autosave_path(int logical)
 {
