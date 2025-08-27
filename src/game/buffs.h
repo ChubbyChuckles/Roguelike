@@ -19,7 +19,11 @@ extern "C"
         ROGUE_BUFF_STACK_UNIQUE = 0,  /* if active: reject */
         ROGUE_BUFF_STACK_REFRESH = 1, /* reset duration, keep highest magnitude */
         ROGUE_BUFF_STACK_EXTEND = 2,  /* add duration (clamped by max) */
-        ROGUE_BUFF_STACK_ADD = 3      /* additive magnitude + extend if longer */
+        ROGUE_BUFF_STACK_ADD = 3,     /* additive magnitude + extend if longer */
+        ROGUE_BUFF_STACK_MULTIPLY =
+            4, /* multiply magnitude by incoming percent (100 = no change) */
+        ROGUE_BUFF_STACK_REPLACE_IF_STRONGER =
+            5 /* replace magnitude if stronger; refresh duration if longer */
     } RogueBuffStackRule;
 
     typedef struct RogueBuff

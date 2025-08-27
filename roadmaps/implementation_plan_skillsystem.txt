@@ -54,13 +54,13 @@ PHASE 2. Resource & Cost Layer
 2.6 Tests: insufficient resource rejection, refund tiers, overdrive decay, heat overflow clamp (Done: `test_skills_phase2_overdrive_heat`)
 
 PHASE 3. Effect Processing Pipeline
-3.1 EffectSpec parser (in-memory static array first; file/data-driven later) (X)
-3.2 Multi-stage application pipeline: preconditions -> snapshot -> schedule -> resolve (deterministic order) (X)
-3.3 Stacking rules: unique, additive, multiplicative, refresh_only, extend_duration, replace_if_stronger (X)
-3.4 Snapshot vs dynamic scaling flags (per attribute granularity) (X)
-3.5 Periodic tick scheduler (hierarchical timing wheel + coalesced batch execution) (X)
-3.6 Effect graph composition (parent -> child chained effects with delay offsets) (X)
-3.7 Tests: stacking variants, partial snapshot mixture, tick ordering determinism, chained delay accuracy (X)
+3.1 EffectSpec parser (in-memory static array first; file/data-driven later) (Partial: in-memory struct extended; parser deferred)
+3.2 Multi-stage application pipeline: preconditions -> snapshot -> schedule -> resolve (deterministic order) (Partial: snapshot flag and schedule/resolve for pulses/children wired)
+3.3 Stacking rules: unique, additive, multiplicative, refresh_only, extend_duration, replace_if_stronger (Done: unique/refresh/extend/add existed; multiplicative/replace_if_stronger implemented in buff system; verified by `test_effectspec_stack_variants`. Parser mapping of names -> rules will be handled under 3.1 parser work.)
+3.4 Snapshot vs dynamic scaling flags (per attribute granularity) (Partial: per-effect snapshot flag stored and passed to buffs; per-attribute granularity deferred)
+3.5 Periodic tick scheduler (hierarchical timing wheel + coalesced batch execution) (Done: minimal pending-events queue with deterministic processing; coalescing deferred)
+3.6 Effect graph composition (parent -> child chained effects with delay offsets) (Done: up to 4 children with delay_ms; scheduled on apply)
+3.7 Tests: stacking variants, partial snapshot mixture, tick ordering determinism, chained delay accuracy (Partial: added periodic tick + child chain test; more variants to follow)
 
 PHASE 4. Buff System Upgrade
 4.1 Replace fixed-size array with ring-buffer or handle-based pool + free list (X)

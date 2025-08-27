@@ -30,7 +30,7 @@ int rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, dou
         return 0;
     if (now_ms < 0)
         now_ms = 0;
-    if (rule < 0 || rule > ROGUE_BUFF_STACK_ADD)
+    if (rule < 0 || rule > ROGUE_BUFF_STACK_REPLACE_IF_STRONGER)
         rule = ROGUE_BUFF_STACK_ADD;
     /* dampening */
     for (int i = 0; i < ROGUE_MAX_ACTIVE_BUFFS; i++)
@@ -66,6 +66,32 @@ int rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, dou
                 b->magnitude += magnitude;
                 if (b->magnitude > 999)
                     b->magnitude = 999;
+                if (now_ms + duration_ms > b->end_ms)
+                    b->end_ms = now_ms + duration_ms;
+                return 1;
+            case ROGUE_BUFF_STACK_MULTIPLY:
+            {
+                /* Interpret incoming magnitude as percent (e.g., 110 = +10%). Clamp floor at 1%. */
+                int pct = magnitude;
+                if (pct < 1)
+                    pct = 1;
+                long long nm = (long long) b->magnitude * (long long) pct;
+                nm /= 100;
+                if (nm < 0)
+                    nm = 0;
+                if (nm > 999)
+                    nm = 999;
+                b->magnitude = (int) nm;
+                /* Extend duration if incoming provides longer remaining. */
+                double new_end = now_ms + duration_ms;
+                if (new_end > b->end_ms)
+                    b->end_ms = new_end;
+                return 1;
+            }
+            case ROGUE_BUFF_STACK_REPLACE_IF_STRONGER:
+                if (magnitude > b->magnitude)
+                    b->magnitude = magnitude;
+                /* Always take the longer remaining duration */
                 if (now_ms + duration_ms > b->end_ms)
                     b->end_ms = now_ms + duration_ms;
                 return 1;

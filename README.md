@@ -145,3 +145,13 @@ Phase 9 (determinism & replay):
 - Order-insensitive digest: frame digest is XOR of per-event hashes over (type, priority, id, repeats), excluding seq; exposed via `rogue_fx_hash_accumulate_frame` and `rogue_fx_hash_get` for replay.
 - Replay & hashing: `rogue_fx_replay_begin_record/end_record/is_recording`, `rogue_fx_replay_load/enqueue_frame/clear`, `rogue_fx_events_hash` (FNV-1a 64) for test validation and divergence checks.
 - Tests: ordering invariance and replay/hash stability are covered by `test_audio_vfx_phase9_1_ordering_tuple` and `test_audio_vfx_phase9_2_replay_and_hash` (Debug SDL2, -j8).
+
+## Skills – Effect Processing Pipeline (Phase 3 slice)
+
+Initial slice of the EffectSpec pipeline is in place:
+- EffectSpec extended with stacking rule, snapshot flag, periodic pulse scheduler, and simple child chaining (up to 4 children with per-child delay).
+- Minimal pending-event queue processes pulses and child chains deterministically via `rogue_effects_update(now_ms)`; called from the rotation simulator loop and can be invoked from the main loop.
+- Buff system integration uses existing stacking behaviors (UNIQUE/REFRESH/EXTEND/ADD). Snapshot flag is forwarded to buff records.
+- Tests: `test_effectspec_tick_and_chain` validates periodic pulses at exact 100ms quanta over the duration window and a parent→child delayed apply at 50ms.
+Additional stacking rules:
+- MULTIPLY and REPLACE_IF_STRONGER were added alongside UNIQUE/REFRESH/EXTEND/ADD. Multiplicative interprets incoming magnitude as percent (150 = +50%); replace-if-stronger updates magnitude only when higher and preserves the longer remaining duration. See `tests/unit/test_effectspec_stack_variants.c`.

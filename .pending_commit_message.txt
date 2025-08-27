@@ -311,3 +311,19 @@ Quality gates:
 - Built Debug with SDL2 using cmake --build build --config Debug --parallel 8.
 - Tests: full audio_vfx subset green (27/27) with the new trails/post/decals test included.
 - No regressions in prior Phase 6/7 tests; broader suites unchanged.
+
+feat(skills/effectspec): add multiplicative and replace_if_stronger stacking rules
+
+- Extend RogueBuffStackRule with MULTIPLY and REPLACE_IF_STRONGER
+- Implement logic in rogue_buffs_apply, preserving clamps and duration policies
+- Accept new rules in EffectSpec defaulting path
+- Add unit test test_effectspec_stack_variants covering both behaviors
+- Build Debug (SDL2, -j8) and run EffectSpec tests (all passing)
+
+Notes:
+- MULTIPLY interprets incoming magnitude as percent (e.g., 150 = +50%)
+- REPLACE_IF_STRONGER keeps longer duration while updating magnitude only if stronger
+
+chore(tests): verify new EffectSpec stacking variants
+- Reconfigure CMake, rebuild Debug (SDL2, -j8)
+- Run ctest -R effectspec_stack_variants -> 100% passed (1/1)

@@ -10,6 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Phase 3.5: tick EffectSpec pending events */
+void rogue_effects_update(double now_ms);
+
 void rogue_effect_apply(int effect_spec_id, double now_ms);
 
 /* Export a deterministic hash of active buffs for analytics/replay.
@@ -187,6 +190,8 @@ int skill_simulate_rotation(const char* profile_json, char* out_buf, int out_cap
         now += tick_ms;
         g_app.game_time_ms = now;
         rogue_skills_update(now);
+        /* process effect pulses & child chains */
+        rogue_effects_update(now);
     }
 
     /* Emit compact JSON result */

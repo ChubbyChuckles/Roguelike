@@ -1,4 +1,4 @@
-/* Minimal EffectSpec system (Phase 1.2 partial) */
+/* EffectSpec system (Phase 1.2 partial -> Phase 3 pipeline additions) */
 #ifndef ROGUE_CORE_EFFECT_SPEC_H
 #define ROGUE_CORE_EFFECT_SPEC_H
 #ifdef __cplusplus
@@ -12,6 +12,16 @@ extern "C"
         ROGUE_EFFECT_STAT_BUFF = 0
     } RogueEffectKind;
 
+    /* Forward-declare buff stacking rule for specs */
+    typedef enum RogueBuffStackRule RogueBuffStackRule;
+
+    /* Child link for simple effect graph composition (Phase 3.6) */
+    typedef struct RogueEffectChild
+    {
+        int child_effect_id; /* effect id to schedule */
+        float delay_ms;      /* delay from parent apply time */
+    } RogueEffectChild;
+
     typedef struct RogueEffectSpec
     {
         int id;                   /* registry id (assigned on register) */
@@ -20,11 +30,21 @@ extern "C"
         unsigned short buff_type; /* maps to RogueBuffType when kind == STAT_BUFF */
         int magnitude;            /* buff magnitude (stacking additive with existing) */
         float duration_ms;        /* applied buff duration */
+        /* Phase 3.3 stacking rules + 3.4 snapshot flag */
+        unsigned char stack_rule; /* RogueBuffStackRule */
+        unsigned char snapshot;   /* 1 = snapshot magnitude */
+        /* Phase 3.5 periodic tick scheduler (optional) */
+        float pulse_period_ms; /* if >0, re-apply every period until duration bound */
+        /* Phase 3.6 simple effect graph (up to 4 children) */
+        unsigned char child_count;    /* number of children in array */
+        RogueEffectChild children[4]; /* child descriptors */
     } RogueEffectSpec;
 
     int rogue_effect_register(const RogueEffectSpec* spec); /* returns id or -1 */
     const RogueEffectSpec* rogue_effect_get(int id);
     void rogue_effect_apply(int id, double now_ms);
+    /* Phase 3.5: process scheduled effect events (periodic pulses and child chains). */
+    void rogue_effects_update(double now_ms);
     void rogue_effect_reset(void); /* free registry for tests */
 
 #ifdef __cplusplus
