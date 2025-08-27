@@ -14,6 +14,9 @@ extern "C"
      *   effect.<index>.duration_ms = 1000
      *   effect.<index>.stack_rule = ADD|REFRESH|EXTEND|UNIQUE|MULTIPLY|REPLACE_IF_STRONGER
      *   effect.<index>.snapshot = 0|1
+     *   effect.<index>.scale_by_buff_type = POWER_STRIKE|STAT_STRENGTH
+     *   effect.<index>.scale_pct_per_point = <int>   # percent per buff point (e.g., 10)
+     *   effect.<index>.snapshot_scale = 0|1          # 1 = snapshot scale for pulses
      *   effect.<index>.require_buff_type = POWER_STRIKE|STAT_STRENGTH
      *   effect.<index>.require_buff_min = <int>
      *   effect.<index>.pulse_period_ms = 0|100|...

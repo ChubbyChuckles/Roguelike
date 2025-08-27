@@ -340,3 +340,22 @@ Quality gates:
 - Built Debug with SDL2 using parallelism (-j8).
 - Targeted tests: EffectSpec subset 100% (6/6).
 - Full suite executed; unrelated failures exist outside skills/effectspec scope, but no regressions observed in affected areas.
+
+feat(skills/effectspec): Phase 3.4 per-attribute scaling (snapshot vs dynamic) + parser + test
+
+- Add magnitude scaling fields to EffectSpec: scale_by_buff_type, scale_pct_per_point, snapshot_scale
+- Implement scaling at apply; pulses carry override magnitude when snapshot_scale=1, else recompute live
+- Extend parser with scale_by_buff_type, scale_pct_per_point, snapshot_scale keys and defaults
+- Unit test test_effectspec_snapshot_scale verifies snapshot vs dynamic behavior under STR changes
+- Roadmap marks 3.4 Done with implementation notes
+
+Build & tests:
+- Built Debug with SDL2 using parallel jobs (-j8).
+- EffectSpec subset including new test passes locally.
+
+test(skills/effectspec): lock pulse-before-child ordering at identical timestamps
+
+- Add tests/unit/test_effectspec_pulse_child_order.c to assert pulses execute before children when scheduled for the same when_ms (e.g., 20*2 + 5 = 45, not (20+5)*2).
+- Fix duplicate main/reset in the test file; ensure CTest discovers target after reconfigure.
+- Build Debug (SDL2, -j8); targeted test passes.
+- Roadmap: mark 3.7 tests slice Done for ordering determinism; README: document rule and test name.

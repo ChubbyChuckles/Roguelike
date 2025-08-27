@@ -125,6 +125,20 @@ int rogue_effects_parse_text(const char* text, int* out_ids, int max_ids, char* 
         {
             s->pulse_period_ms = (float) atof(e.value);
         }
+        else if (strcmp(field, "scale_by_buff_type") == 0)
+        {
+            int bt = parse_buff_type(e.value);
+            if (bt >= 0)
+                s->scale_by_buff_type = (unsigned short) bt;
+        }
+        else if (strcmp(field, "scale_pct_per_point") == 0)
+        {
+            s->scale_pct_per_point = atoi(e.value);
+        }
+        else if (strcmp(field, "snapshot_scale") == 0)
+        {
+            s->snapshot_scale = (unsigned char) atoi(e.value);
+        }
         else if (strcmp(field, "require_buff_type") == 0)
         {
             int bt = parse_buff_type(e.value);
@@ -174,6 +188,8 @@ int rogue_effects_parse_text(const char* text, int* out_ids, int max_ids, char* 
             s.stack_rule = ROGUE_BUFF_STACK_ADD; /* preserve explicit UNIQUE=0 */
         if (s.require_buff_type == 0)
             s.require_buff_type = (unsigned short) 0xFFFFu; /* sentinel for none */
+        if (s.scale_by_buff_type == 0)
+            s.scale_by_buff_type = (unsigned short) 0xFFFFu; /* sentinel for none */
         int id = rogue_effect_register(&s);
         if (id >= 0 && out_ids && count < max_ids)
             out_ids[count] = id;

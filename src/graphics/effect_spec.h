@@ -33,6 +33,15 @@ extern "C"
         /* Phase 3.3 stacking rules + 3.4 snapshot flag */
         unsigned char stack_rule; /* RogueBuffStackRule */
         unsigned char snapshot;   /* 1 = snapshot magnitude */
+        /* Phase 3.4: per-attribute granularity (magnitude scaling).
+            If scale_by_buff_type != 0xFFFF, effective magnitude is:
+                magnitude * (100 + scale_pct_per_point * total(scale_by_buff_type)) / 100
+            If snapshot_scale != 0, pulses schedule with the multiplier captured at apply time;
+            otherwise pulses recompute using live totals at tick time. */
+        unsigned short scale_by_buff_type; /* RogueBuffType or 0xFFFF for none */
+        int scale_pct_per_point;      /* percent per point of referenced buff (e.g., 10 => +10% per
+                                         point) */
+        unsigned char snapshot_scale; /* 1 = snapshot the scale multiplier at apply */
         /* Phase 3.2 preconditions (simple gating before apply). Use 0xFFFF to mean "no
          * requirement". */
         unsigned short require_buff_type; /* RogueBuffType required to be active (total >= min).

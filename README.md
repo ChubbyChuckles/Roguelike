@@ -172,3 +172,11 @@ EffectSpec parser (Phase 3.1):
 Preconditions and deterministic ordering (Phase 3.2):
 - Each EffectSpec may declare preconditions `require_buff_type` and `require_buff_min` to gate application. If set, the effect only applies when the total of the specified buff type meets the minimum (default min=1). When not set, a sentinel value disables the gate.
 - The pending-effect scheduler is deterministic: events are processed ordered by (when_ms, seq), where seq is a per-event sequence assigned at schedule time to break ties for identical timestamps. Reset clears the sequence counter. See `tests/unit/test_effectspec_preconditions_and_order.c`.
+
+Scaling (Phase 3.4):
+- Per-attribute scaling lets an effect’s magnitude scale with another buff’s total: fields `scale_by_buff_type` and `scale_pct_per_point` compute `effective = magnitude * (100 + pct*total)/100`.
+- `snapshot_scale=1` captures the scaled magnitude at apply time and uses it for all scheduled pulses; `snapshot_scale=0` recomputes at each pulse based on live totals.
+- Parser keys supported: `scale_by_buff_type`, `scale_pct_per_point`, `snapshot_scale`.
+- Covered by `tests/unit/test_effectspec_snapshot_scale.c`.
+
+Same-timestamp ordering (determinism): when a periodic pulse and a child effect are scheduled for the exact same `when_ms`, the system processes the pulse before the child. Locked by unit `tests/unit/test_effectspec_pulse_child_order.c`.

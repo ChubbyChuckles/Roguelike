@@ -12,7 +12,8 @@ typedef struct RogueEffectEvent
 {
     int effect_id;
     double when_ms;
-    unsigned int seq; /* tie-breaker for deterministic ordering when when_ms equal */
+    unsigned int seq;       /* tie-breaker for deterministic ordering when when_ms equal */
+    int override_magnitude; /* >=0 to force magnitude (snapshot_scale pulses) */
 } RogueEffectEvent;
 
 #define ROGUE_EFFECT_EV_CAP 256
@@ -28,6 +29,7 @@ static void push_event(int effect_id, double when_ms)
     g_events[g_event_count].effect_id = effect_id;
     g_events[g_event_count].when_ms = when_ms;
     g_events[g_event_count].seq = g_event_seq++;
+    g_events[g_event_count].override_magnitude = -1;
     g_event_count++;
 }
 
@@ -59,6 +61,9 @@ int rogue_effect_register(const RogueEffectSpec* spec)
     /* If author didn't specify a precondition, treat as none (0xFFFF sentinel). */
     if (tmp.require_buff_type == 0)
         tmp.require_buff_type = (unsigned short) 0xFFFFu;
+    /* Default scale_by to none if unset. */
+    if (tmp.scale_by_buff_type == 0)
+        tmp.scale_by_buff_type = (unsigned short) 0xFFFFu;
     tmp.id = g_effect_spec_count;
     g_effect_specs[g_effect_spec_count] = tmp;
     return g_effect_spec_count++;
@@ -71,9 +76,48 @@ const RogueEffectSpec* rogue_effect_get(int id)
     return &g_effect_specs[id];
 }
 
+/* Compute effective magnitude with optional scaling params. */
+static int compute_scaled_magnitude(const RogueEffectSpec* s)
+{
+    int mag = s->magnitude;
+    if (s->scale_by_buff_type != (unsigned short) 0xFFFFu && s->scale_pct_per_point != 0)
+    {
+        int total = rogue_buffs_get_total((RogueBuffType) s->scale_by_buff_type);
+        long long pct = 100 + (long long) s->scale_pct_per_point * (long long) total;
+        if (pct < 0)
+            pct = 0; /* clamp */
+        long long nm = ((long long) mag * pct) / 100;
+        if (nm > 999)
+            nm = 999;
+        if (nm < 0)
+            nm = 0;
+        mag = (int) nm;
+    }
+    return mag;
+}
+
+static void apply_with_magnitude(const RogueEffectSpec* s, int eff_mag, double now_ms)
+{
+    switch (s->kind)
+    {
+    case ROGUE_EFFECT_STAT_BUFF:
+    {
+        RogueBuffStackRule rule = (RogueBuffStackRule) s->stack_rule;
+        if (rule < ROGUE_BUFF_STACK_UNIQUE || rule > ROGUE_BUFF_STACK_REPLACE_IF_STRONGER)
+            rule = ROGUE_BUFF_STACK_ADD;
+        if (s->stack_rule == 0)
+            rule = ROGUE_BUFF_STACK_ADD;
+        rogue_buffs_apply((RogueBuffType) s->buff_type, eff_mag, s->duration_ms, now_ms, rule,
+                          s->snapshot ? 1 : 0);
+    }
+    break;
+    default:
+        break;
+    }
+}
+
 void rogue_effect_apply(int id, double now_ms)
 {
-    (void) now_ms; /* now_ms kept for future time-based scaling */
     const RogueEffectSpec* s = rogue_effect_get(id);
     if (!s)
         return;
@@ -85,42 +129,28 @@ void rogue_effect_apply(int id, double now_ms)
         if (have < need)
             return; /* gate blocked */
     }
-    switch (s->kind)
+    /* Phase 3.4: compute scaled magnitude (dynamic) for initial application. */
+    int eff_mag = compute_scaled_magnitude(s);
+    apply_with_magnitude(s, eff_mag, now_ms);
+    if (s->pulse_period_ms > 0.0f && s->duration_ms > 0.0f)
     {
-    case ROGUE_EFFECT_STAT_BUFF:
-    {
-        /* Default to ADD stacking if rule not specified in spec (tests expect additive). */
-        RogueBuffStackRule rule = (RogueBuffStackRule) s->stack_rule;
-        if (rule < ROGUE_BUFF_STACK_UNIQUE || rule > ROGUE_BUFF_STACK_REPLACE_IF_STRONGER)
-            rule = ROGUE_BUFF_STACK_ADD;
-        /* If spec left rule at zero (UNIQUE), treat as default ADD for EffectSpec semantics
-           unless author explicitly set another valid rule. */
-        if (s->stack_rule == 0)
-            rule = ROGUE_BUFF_STACK_ADD;
-        rogue_buffs_apply((RogueBuffType) s->buff_type, s->magnitude, s->duration_ms, now_ms, rule,
-                          s->snapshot ? 1 : 0);
+        /* schedule subsequent pulses within duration window */
+        double t = now_ms + (double) s->pulse_period_ms;
+        double end = now_ms + (double) s->duration_ms;
+        while (t <= end && g_event_count < ROGUE_EFFECT_EV_CAP)
+        {
+            push_event(id, t);
+            if (s->snapshot_scale)
+                g_events[g_event_count - 1].override_magnitude = eff_mag;
+            t += (double) s->pulse_period_ms;
+        }
     }
-        if (s->pulse_period_ms > 0.0f && s->duration_ms > 0.0f)
-        {
-            /* schedule subsequent pulses within duration window */
-            double t = now_ms + (double) s->pulse_period_ms;
-            double end = now_ms + (double) s->duration_ms;
-            while (t <= end && g_event_count < ROGUE_EFFECT_EV_CAP)
-            {
-                push_event(id, t);
-                t += (double) s->pulse_period_ms;
-            }
-        }
-        /* schedule children */
-        for (int i = 0; i < (int) s->child_count && i < 4; ++i)
-        {
-            const RogueEffectChild* ch = &s->children[i];
-            if (ch->child_effect_id >= 0)
-                push_event(ch->child_effect_id, now_ms + (double) ch->delay_ms);
-        }
-        break;
-    default: /* future kinds */
-        break;
+    /* schedule children */
+    for (int i = 0; i < (int) s->child_count && i < 4; ++i)
+    {
+        const RogueEffectChild* ch = &s->children[i];
+        if (ch->child_effect_id >= 0)
+            push_event(ch->child_effect_id, now_ms + (double) ch->delay_ms);
     }
 }
 
@@ -154,7 +184,13 @@ void rogue_effects_update(double now_ms)
         /* remove picked by swapping with last and reducing count */
         g_events[picked] = g_events[g_event_count - 1];
         g_event_count--;
-        rogue_effect_apply(ev.effect_id, now_ms);
+        const RogueEffectSpec* s = rogue_effect_get(ev.effect_id);
+        if (s)
+        {
+            int mag =
+                (ev.override_magnitude >= 0) ? ev.override_magnitude : compute_scaled_magnitude(s);
+            apply_with_magnitude(s, mag, now_ms);
+        }
     }
     /* compact non-ready events to front (preserving relative order) */
     for (int i = 0; i < g_event_count; ++i)
