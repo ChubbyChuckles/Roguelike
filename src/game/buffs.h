@@ -5,6 +5,7 @@
 extern "C"
 {
 #endif
+#include <stdint.h>
 
     typedef enum RogueBuffType
     {
@@ -36,12 +37,29 @@ extern "C"
                          change) */
         RogueBuffStackRule stack_rule;
         double last_apply_ms; /* for dampening */
+        /* Handle pool internals (Phase 4.1): generation for ABA-safety. */
+        uint16_t _gen;
+        int _next_free;
     } RogueBuff;
+
+    /* Phase 4.1–4.2: Handle-based pool API */
+    typedef uint32_t RogueBuffHandle;
+    enum
+    {
+        ROGUE_BUFF_INVALID_HANDLE = 0
+    };
 
     void rogue_buffs_init(void);
     void rogue_buffs_update(double now_ms);
     int rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, double now_ms,
                           RogueBuffStackRule rule, int snapshot);
+    /* Handle variants (return the affected/newly-created buff handle, or INVALID on failure). */
+    RogueBuffHandle rogue_buffs_apply_h(RogueBuffType type, int magnitude, double duration_ms,
+                                        double now_ms, RogueBuffStackRule rule, int snapshot);
+    int rogue_buffs_refresh_h(RogueBuffHandle h, int magnitude, double duration_ms, double now_ms,
+                              RogueBuffStackRule rule, int snapshot);
+    int rogue_buffs_remove_h(RogueBuffHandle h, double now_ms);
+    int rogue_buffs_query_h(RogueBuffHandle h, RogueBuff* out);
     /* Combined scalar effect for strength buffs (Phase 10.1 integration). */
     int rogue_buffs_strength_bonus(void);
     /* Anti-oscillation dampening: minimum ms gap between same-type applications (Phase 10.4). */
@@ -56,6 +74,10 @@ extern "C"
     /* Phase 6.3 snapshot: copy up to max active buffs into out array, returns count. now_ms used to
      * prune expired. */
     int rogue_buffs_snapshot(RogueBuff* out, int max, double now_ms);
+
+    /* Phase 4.4: Optional expiration callback (on natural expiry or manual remove). */
+    typedef void (*RogueBuffExpireFn)(RogueBuffType type, int magnitude);
+    void rogue_buffs_set_on_expire(RogueBuffExpireFn cb);
 
 #ifdef __cplusplus
 }

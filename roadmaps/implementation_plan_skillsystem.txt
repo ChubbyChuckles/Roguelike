@@ -64,10 +64,10 @@ PHASE 3. Effect Processing Pipeline
 3.7 Tests: stacking variants, partial snapshot mixture, tick ordering determinism, chained delay accuracy (Done: added `test_effectspec_pulse_child_order` asserting pulse-before-child at identical timestamps; snapshot-vs-dynamic scaling covered; parser tests in place.)
 
 PHASE 4. Buff System Upgrade
-4.1 Replace fixed-size array with ring-buffer or handle-based pool + free list (X)
-4.2 Buff handle API (apply, refresh, remove, query) (X)
+4.1 Replace fixed-size array with ring-buffer or handle-based pool + free list (Done: handle-based pool with free list and 16-bit generations; auto-init guard; tests green)
+4.2 Buff handle API (apply, refresh, remove, query) (Done: apply_h/refresh_h/remove_h/query_h implemented; legacy API retained)
 4.3 Category fields: offensive, defensive, movement, utility (X)
-4.4 Expiration callbacks (on_expire) for triggered effects (X)
+4.4 Expiration callbacks (on_expire) for triggered effects (Done: optional callback + FX triggers on gain/expire wired)
 4.5 Diminishing returns (DR) tracker for CC categories (stun, root, slow) (X)
 4.6 Tests: DR decay, expiration triggers, handle reuse safety (X)
 

@@ -1,5 +1,6 @@
 /* Test adaptive haste: buff increases cast speed and channel tick frequency */
 #include "../../src/core/app/app_state.h"
+#include "../../src/core/integration/event_bus.h"
 #include "../../src/core/skills/skills.h"
 #include "../../src/game/buffs.h"
 #include <assert.h>
@@ -26,6 +27,10 @@ static void advance(double start, double end)
 
 int main(void)
 {
+    /* Ensure event bus exists (skill rank-up and FX cues publish events) */
+    RogueEventBusConfig cfg = rogue_event_bus_create_default_config("haste_cast_speed_bus");
+    assert(rogue_event_bus_init(&cfg) && "event bus init");
+
     rogue_skills_init();
     g_app.talent_points = 1;
     RogueSkillDef cast;
@@ -54,5 +59,6 @@ int main(void)
     assert(g_hits == 1);             /* finished faster than baseline 400ms window */
     printf("HASTE_OK hits=%d\n", g_hits);
     rogue_skills_shutdown();
+    rogue_event_bus_shutdown();
     return 0;
 }

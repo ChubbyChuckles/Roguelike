@@ -359,3 +359,18 @@ test(skills/effectspec): lock pulse-before-child ordering at identical timestamp
 - Fix duplicate main/reset in the test file; ensure CTest discovers target after reconfigure.
 - Build Debug (SDL2, -j8); targeted test passes.
 - Roadmap: mark 3.7 tests slice Done for ordering determinism; README: document rule and test name.
+
+feat(buffs): Phase 4.1–4.4 handle-based buff system, handle API, FX triggers, expiration callback
+
+- Replace legacy fixed array traversal with a handle-based pool (free list, 16-bit generations) to prevent ABA and enable safe external references.
+- Add API: rogue_buffs_apply_h/refresh_h/remove_h/query_h, preserving legacy rogue_buffs_apply for simple paths.
+- Add dampening window (min reapply interval) to mitigate oscillation; default 50ms; configurable via rogue_buffs_set_dampening.
+- Auto-init guard ensures tests that omit explicit rogue_buffs_init still operate deterministically.
+- FX events: trigger buff/<type>/gain on apply and buff/<type>/expire on natural expiry and manual remove; wire through existing effects system.
+- Optional expiration callback via rogue_buffs_set_on_expire, invoked on natural expiry and manual removal.
+- Persistence load path re-applies buffs with snapshot=1 and respects durations; verified save/load roundtrips.
+
+Quality gates:
+- Built Debug with SDL2 using cmake --build build --config Debug --parallel 8.
+- Targeted tests passed: test_event_bus (16/16), test_haste_cast_speed (HASTE_OK), test_effectspec_{snapshot_scale,pulse_child_order}, test_skills_phase1a_{haste_snapshot_and_drift,buffer_weave_combo}, test_save_roundtrip (reports buff=2) and test_save_phase7_skill_buff_roundtrip (OK).
+- Roadmap updated marking 4.1, 4.2, and 4.4 Done with implementation notes.

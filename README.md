@@ -180,3 +180,12 @@ Scaling (Phase 3.4):
 - Covered by `tests/unit/test_effectspec_snapshot_scale.c`.
 
 Same-timestamp ordering (determinism): when a periodic pulse and a child effect are scheduled for the exact same `when_ms`, the system processes the pulse before the child. Locked by unit `tests/unit/test_effectspec_pulse_child_order.c`.
+
+## Buffs – Phase 4 snapshot
+
+- Handle-based pool with free list and 16-bit generations prevents stale handle reuse; legacy API remains for simple integer totals.
+- Public handle API: apply_h, refresh_h, remove_h, query_h; expiration callback hook via `rogue_buffs_set_on_expire`.
+- FX triggers on gain/expire: keys `buff/<type>/gain` and `buff/<type>/expire` are published for the audio/VFX layer.
+- Dampening window (default 50ms) to prevent oscillation from rapid re-apply; configurable via `rogue_buffs_set_dampening(ms)`.
+- Persistence: save writes compact (type, magnitude, remaining_ms); load re-applies with snapshot=1, respecting remaining durations against current `now_ms`.
+- Tests: save/load roundtrip tests report expected active buffs; skills/effects tests for snapshot scaling and ordering pass in Debug with SDL2 (-j8).
