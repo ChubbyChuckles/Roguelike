@@ -168,3 +168,7 @@ EffectSpec parser (Phase 3.1):
 	- effect.<index>.childN.id / effect.<index>.childN.delay_ms
 - Registration preserves ascending index and defaults stack_rule to ADD if unspecified; explicit UNIQUE is respected.
 - Multiplicative effects are a no-op when no baseline buff of the same type exists (avoids creating a stack from zero). Covered in `tests/unit/test_effectspec_parser.c`.
+
+Preconditions and deterministic ordering (Phase 3.2):
+- Each EffectSpec may declare preconditions `require_buff_type` and `require_buff_min` to gate application. If set, the effect only applies when the total of the specified buff type meets the minimum (default min=1). When not set, a sentinel value disables the gate.
+- The pending-effect scheduler is deterministic: events are processed ordered by (when_ms, seq), where seq is a per-event sequence assigned at schedule time to break ties for identical timestamps. Reset clears the sequence counter. See `tests/unit/test_effectspec_preconditions_and_order.c`.

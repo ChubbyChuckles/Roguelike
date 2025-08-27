@@ -40,6 +40,8 @@ static int parse_buff_type(const char* s)
         return ROGUE_BUFF_POWER_STRIKE;
     if (strcmp(s, "STAT_STRENGTH") == 0)
         return ROGUE_BUFF_STAT_STRENGTH;
+    if (strcmp(s, "STRENGTH") == 0)
+        return ROGUE_BUFF_STAT_STRENGTH;
     return -1;
 }
 
@@ -123,6 +125,16 @@ int rogue_effects_parse_text(const char* text, int* out_ids, int max_ids, char* 
         {
             s->pulse_period_ms = (float) atof(e.value);
         }
+        else if (strcmp(field, "require_buff_type") == 0)
+        {
+            int bt = parse_buff_type(e.value);
+            if (bt >= 0)
+                s->require_buff_type = (unsigned short) bt;
+        }
+        else if (strcmp(field, "require_buff_min") == 0)
+        {
+            s->require_buff_min = atoi(e.value);
+        }
         else if (strncmp(field, "child", 5) == 0)
         {
             /* childN.id or childN.delay_ms */
@@ -160,6 +172,8 @@ int rogue_effects_parse_text(const char* text, int* out_ids, int max_ids, char* 
             s.kind = ROGUE_EFFECT_STAT_BUFF;
         if (!acc[i].has_stack_rule)
             s.stack_rule = ROGUE_BUFF_STACK_ADD; /* preserve explicit UNIQUE=0 */
+        if (s.require_buff_type == 0)
+            s.require_buff_type = (unsigned short) 0xFFFFu; /* sentinel for none */
         int id = rogue_effect_register(&s);
         if (id >= 0 && out_ids && count < max_ids)
             out_ids[count] = id;

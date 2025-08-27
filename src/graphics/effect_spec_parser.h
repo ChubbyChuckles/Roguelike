@@ -14,6 +14,8 @@ extern "C"
      *   effect.<index>.duration_ms = 1000
      *   effect.<index>.stack_rule = ADD|REFRESH|EXTEND|UNIQUE|MULTIPLY|REPLACE_IF_STRONGER
      *   effect.<index>.snapshot = 0|1
+     *   effect.<index>.require_buff_type = POWER_STRIKE|STAT_STRENGTH
+     *   effect.<index>.require_buff_min = <int>
      *   effect.<index>.pulse_period_ms = 0|100|...
      * Unknown keys are ignored for forward compatibility.
      * Returns number of effects registered, fills out_effect_ids (optional) in ascending index

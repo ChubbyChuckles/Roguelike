@@ -327,3 +327,16 @@ Notes:
 chore(tests): verify new EffectSpec stacking variants
 - Reconfigure CMake, rebuild Debug (SDL2, -j8)
 - Run ctest -R effectspec_stack_variants -> 100% passed (1/1)
+
+feat(skills/effectspec): Phase 3.2 preconditions + deterministic ordering; parser keys; unit test
+
+- EffectSpec preconditions: add `require_buff_type` and `require_buff_min` fields; enforce gate in apply path using total of required buff type (default min=1). Sentinel 0xFFFF denotes no requirement.
+- Deterministic scheduler: assign per-event sequence on schedule; process pending events ordered by (when_ms, seq). Reset clears queue and sequence for clean test runs.
+- Parser: accept `require_buff_type` and `require_buff_min` keys; default `stack_rule` to ADD only when unspecified. Preserve explicit preconditions on registration (fix defaulting bug that overwrote provided values).
+- Tests: new `test_effectspec_preconditions_and_order` validates precondition gating and deterministic ordering for same-timestamp events. Existing EffectSpec suite remains green.
+- Docs: Roadmap marks 3.2 Done with notes; README documents preconditions and ordering semantics plus parser keys.
+
+Quality gates:
+- Built Debug with SDL2 using parallelism (-j8).
+- Targeted tests: EffectSpec subset 100% (6/6).
+- Full suite executed; unrelated failures exist outside skills/effectspec scope, but no regressions observed in affected areas.

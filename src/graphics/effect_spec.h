@@ -33,6 +33,12 @@ extern "C"
         /* Phase 3.3 stacking rules + 3.4 snapshot flag */
         unsigned char stack_rule; /* RogueBuffStackRule */
         unsigned char snapshot;   /* 1 = snapshot magnitude */
+        /* Phase 3.2 preconditions (simple gating before apply). Use 0xFFFF to mean "no
+         * requirement". */
+        unsigned short require_buff_type; /* RogueBuffType required to be active (total >= min).
+                                             0xFFFF = none */
+        int require_buff_min; /* Minimum total required for require_buff_type (defaults to 1 when
+                                 type set) */
         /* Phase 3.5 periodic tick scheduler (optional) */
         float pulse_period_ms; /* if >0, re-apply every period until duration bound */
         /* Phase 3.6 simple effect graph (up to 4 children) */
