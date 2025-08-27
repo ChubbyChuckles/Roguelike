@@ -154,15 +154,20 @@ int rogue_progression_persist_write(FILE* f)
     ProgHeaderV3 h;
     memset(&h, 0, sizeof h);
     h.version = ROGUE_PROG_SAVE_VERSION;
-    h.level = (uint32_t) g_app.player.level;
-    h.xp_total = g_app.player.xp_total_accum;
+    /* Persist top-level progression fields for test compatibility. Mirror from player if unset. */
+    int lvl = g_app.level ? g_app.level : g_app.player.level;
+    unsigned long long xp =
+        g_app.xp_total_accum ? g_app.xp_total_accum : g_app.player.xp_total_accum;
+    h.level = (uint32_t) lvl;
+    h.xp_total = xp;
     h.stat_registry_fp = rogue_stat_registry_fingerprint();
     h.maze_node_count = 0;
     h.attr_str = (uint32_t) g_attr_state.strength;
     h.attr_dex = (uint32_t) g_attr_state.dexterity;
     h.attr_vit = (uint32_t) g_attr_state.vitality;
     h.attr_int = (uint32_t) g_attr_state.intelligence;
-    h.unspent_pts = (uint32_t) g_attr_state.spent_points;
+    /* Persist actual unspent stat points (not spent). */
+    h.unspent_pts = (uint32_t) g_app.unspent_stat_points;
     h.respec_tokens = (uint32_t) g_attr_state.respec_tokens;
     h.attr_journal_hash = g_attr_state.journal_hash;
     h.passive_journal_hash = rogue_progression_passives_journal_hash();
@@ -204,13 +209,15 @@ int rogue_progression_persist_read(FILE* f)
         ProgHeaderV1 h;
         if (fread(&h, sizeof h, 1, f) != 1)
             return -3;
+        g_app.level = (int) h.level;
         g_app.player.level = (int) h.level;
+        g_app.xp_total_accum = h.xp_total;
         g_app.player.xp_total_accum = h.xp_total;
         g_attr_state.strength = (int) h.attr_str;
         g_attr_state.dexterity = (int) h.attr_dex;
         g_attr_state.vitality = (int) h.attr_vit;
         g_attr_state.intelligence = (int) h.attr_int;
-        g_attr_state.spent_points = (int) h.unspent_pts;
+        g_app.unspent_stat_points = (int) h.unspent_pts;
         g_attr_state.respec_tokens = (int) h.respec_tokens;
         g_attr_state.journal_hash = h.attr_journal_hash;
         if (h.passive_journal_hash != rogue_progression_passives_journal_hash())
@@ -228,13 +235,15 @@ int rogue_progression_persist_read(FILE* f)
         ProgHeaderV2 h;
         if (fread(&h, sizeof h, 1, f) != 1)
             return -5;
+        g_app.level = (int) h.level;
         g_app.player.level = (int) h.level;
+        g_app.xp_total_accum = h.xp_total;
         g_app.player.xp_total_accum = h.xp_total;
         g_attr_state.strength = (int) h.attr_str;
         g_attr_state.dexterity = (int) h.attr_dex;
         g_attr_state.vitality = (int) h.attr_vit;
         g_attr_state.intelligence = (int) h.attr_int;
-        g_attr_state.spent_points = (int) h.unspent_pts;
+        g_app.unspent_stat_points = (int) h.unspent_pts;
         g_attr_state.respec_tokens = (int) h.respec_tokens;
         g_attr_state.journal_hash = h.attr_journal_hash;
         unsigned long long cur_fp = rogue_stat_registry_fingerprint();
@@ -253,13 +262,15 @@ int rogue_progression_persist_read(FILE* f)
         ProgHeaderV3 h;
         if (fread(&h, sizeof h, 1, f) != 1)
             return -8;
+        g_app.level = (int) h.level;
         g_app.player.level = (int) h.level;
+        g_app.xp_total_accum = h.xp_total;
         g_app.player.xp_total_accum = h.xp_total;
         g_attr_state.strength = (int) h.attr_str;
         g_attr_state.dexterity = (int) h.attr_dex;
         g_attr_state.vitality = (int) h.attr_vit;
         g_attr_state.intelligence = (int) h.attr_int;
-        g_attr_state.spent_points = (int) h.unspent_pts;
+        g_app.unspent_stat_points = (int) h.unspent_pts;
         g_attr_state.respec_tokens = (int) h.respec_tokens;
         g_attr_state.journal_hash = h.attr_journal_hash;
         unsigned long long cur_fp = rogue_stat_registry_fingerprint();

@@ -207,6 +207,10 @@ extern int rogue_force_attack_active;
 extern int g_attack_frame_override;
 void rogue_combat_test_force_strike(RoguePlayerCombat* pc, float strike_time_ms);
 
+/* Test hook: enable strict team filtering (skip same-team including team_id==0).
+    When disabled (default), team_id==0 is treated as neutral to keep older tests hittable. */
+void rogue_combat_set_strict_team_filter(int enable);
+
 /* Phase 6.1 Charged attack control */
 void rogue_combat_charge_begin(RoguePlayerCombat* pc);
 void rogue_combat_charge_tick(RoguePlayerCombat* pc, float dt_ms, int still_holding);

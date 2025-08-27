@@ -175,6 +175,12 @@ int rogue_progression_maze_build(const char* config_path, RogueProgressionMaze* 
         m->dex_req = (m->ring >= 2) ? (m->ring * 2 - 2) : 0;
         m->int_req = (m->ring >= 4) ? (m->ring * 2 - 4) : 0;
         m->vit_req = (m->ring >= 5) ? (m->ring * 2 - 6) : 0;
+        /* Root node (id 0) must be unlockable at level 1 with no attribute gating. */
+        if (i == 0)
+        {
+            m->level_req = 1;
+            m->str_req = m->dex_req = m->int_req = m->vit_req = 0;
+        }
         /* cost ramp: base 1 then +1 every two rings */
         m->cost_points = 1 + (m->ring - 1) / 2;
         m->tags = 0;

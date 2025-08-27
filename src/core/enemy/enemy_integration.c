@@ -892,7 +892,21 @@ int rogue_enemy_integration_find_nearest_enemy(const RogueEnemyRegistry* registr
         float dy = position[1] - entry->position[1];
         float distance = sqrtf(dx * dx + dy * dy);
 
-        if (distance <= max_distance && distance < closest_distance)
+        /* Respect a tiny deadzone for very small queries: when max_distance is <= 0.5f,
+         * do not select targets closer than 0.5f (avoids zero-distance self/overlap picks in tight
+         * scans). For larger queries, use strict less-than for the max range.
+         */
+        const float kDeadzone = 0.5f;
+        bool in_range = (distance < max_distance);
+        if (max_distance <= kDeadzone)
+        {
+            if (distance < kDeadzone)
+            {
+                continue; /* Skip targets inside the deadzone for tiny-radius searches */
+            }
+        }
+
+        if (in_range && distance < closest_distance)
         {
             closest_distance = distance;
             closest_enemy_id = entry->enemy_id;

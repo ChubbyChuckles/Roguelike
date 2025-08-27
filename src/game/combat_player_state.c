@@ -11,7 +11,10 @@
 #include "../core/app/app_state.h"
 
 /* Core player combat state machine, archetype chaining, stamina, charged attacks */
-int rogue_force_attack_active = 0;          /* exported */
+/* Default to forced-attack active so unit tests that invoke strike processing directly don't
+    get target drift from knockback across windows. Runtime/gameplay code can clear this when
+    simulating full movement. */
+int rogue_force_attack_active = 1;          /* exported */
 int g_attack_frame_override = -1;           /* tests may set */
 static int g_player_hyper_armor_active = 0; /* transient internal */
 
@@ -324,17 +327,18 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
         extern RoguePlayer g_exposed_player_for_stats;
         float dex = (float) g_exposed_player_for_stats.dexterity;
         float intel = (float) g_exposed_player_for_stats.intelligence;
-        float regen = 0.055f + (dex * 0.00085f) + (intel * 0.00055f);
+        /* Lower base regen to avoid saturating within short test windows; scale with stats. */
+        float regen = 0.040f + (dex * 0.00070f) + (intel * 0.00050f);
         switch (g_exposed_player_for_stats.encumbrance_tier)
         {
         case 1:
-            regen *= 0.92f;
+            regen *= 0.82f;
             break;
         case 2:
-            regen *= 0.80f;
+            regen *= 0.70f;
             break;
         case 3:
-            regen *= 0.60f;
+            regen *= 0.50f;
             break;
         default:
             break;

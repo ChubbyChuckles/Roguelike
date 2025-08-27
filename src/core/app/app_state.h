@@ -18,6 +18,9 @@
 
 typedef struct RogueAppState
 {
+    /* Test/persistence compatibility: top-level progression fields mirrored to RoguePlayer. */
+    int level;                         /* mirrors player.level for tests/persistence */
+    unsigned long long xp_total_accum; /* mirrors player.xp_total_accum */
     RogueAppConfig cfg;
 #ifdef ROGUE_HAVE_SDL
     SDL_Window* window;

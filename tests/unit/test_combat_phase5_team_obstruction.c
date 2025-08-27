@@ -71,6 +71,8 @@ int rogue_attack_chain_length(int arch)
 
 int main()
 {
+    /* Enforce strict team filter for this test: allies (including team 0) must be immune */
+    rogue_combat_set_strict_team_filter(1);
     /* Force active strike frame */
     rogue_force_attack_active = 1;
     g_attack_frame_override = 3;

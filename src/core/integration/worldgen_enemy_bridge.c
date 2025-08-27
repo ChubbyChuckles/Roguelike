@@ -564,6 +564,21 @@ bool rogue_worldgen_enemy_bridge_add_migration_route(RogueWorldGenEnemyBridge* b
         return false;
     }
 
+    /* Validate region ids and prevent degenerate routes */
+    if (source_region >= 64 || dest_region >= 64)
+    {
+        return false;
+    }
+    if (source_region == dest_region)
+    {
+        return false;
+    }
+    /* Trigger threshold should be within sensible [0,1] range */
+    if (!(trigger_threshold >= 0.0f && trigger_threshold <= 1.0f))
+    {
+        return false;
+    }
+
     EnemyMigrationRoute* route =
         &bridge->migration_system.routes[bridge->migration_system.route_count];
     route->route_id = bridge->migration_system.route_count;

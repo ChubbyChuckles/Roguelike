@@ -18,6 +18,10 @@ extern int rogue_force_attack_active;        /* from events */
 extern int g_crit_layering_mode;             /* from events */
 extern void rogue_app_add_hitstop(float ms); /* hitstop API */
 
+/* Runtime test hook for strict team filtering (default off). */
+static int g_strict_team_filter = 0;
+void rogue_combat_set_strict_team_filter(int enable) { g_strict_team_filter = enable ? 1 : 0; }
+
 static int combat_nav_is_blocked(int tx, int ty) { return rogue_nav_is_blocked(tx, ty); }
 
 /* External UI hooks */
@@ -194,7 +198,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             if (active)
             {
                 newly_active_mask |= (1u << wi);
-                pc->current_window_flags = w->flags;
+                /* Only expose defensive window flags (e.g., hyper armor) to the UI/state. */
+                pc->current_window_flags = (unsigned short) (w->flags & ROGUE_WINDOW_HYPER_ARMOR);
                 if (!(pc->emitted_events_mask & (1u << wi)))
                 {
                     if (pc->event_count < (int) (sizeof(pc->events) / sizeof(pc->events[0])))
@@ -217,7 +222,10 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                     pc->events[pc->event_count].t_ms = pc->strike_time_ms;
                     pc->event_count++;
                 }
-                pc->processed_window_mask |= (1u << wi);
+                /* Do not mark as processed unless damage for this window was actually applied.
+                    The processed_window_mask is reserved for windows that have dealt damage to
+                    prevent re-application. Natural end without processing should not block a
+                    later entry into the window (e.g., tests that jump time to window start). */
             }
         }
     }
@@ -234,6 +242,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
     {
         if (!(process_mask & (1u << wi)))
             continue;
+        /* Reset per-window hit mask so overlapping windows can re-hit the same target once. */
+        rogue_hit_sweep_reset();
         float window_mult = 1.0f;
         float bleed_build = 0.0f, frost_build = 0.0f;
         if (def && wi < def->num_windows)
@@ -260,9 +270,21 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                 continue;
             if (!enemies[i].alive)
                 continue;
-            /* Prevent friendly fire: skip targets on the same team as the player. */
-            if (enemies[i].team_id == player->team_id)
-                continue;
+            /* Friendly-fire filtering controlled by runtime flag:
+               - Strict (enabled by tests): skip same-team, including team_id==0.
+               - Default: treat team_id==0 as neutral; skip only when both ids are non-zero and
+               equal. */
+            if (g_strict_team_filter)
+            {
+                if (enemies[i].team_id == player->team_id)
+                    continue;
+            }
+            else
+            {
+                if (enemies[i].team_id != 0 && player->team_id != 0 &&
+                    enemies[i].team_id == player->team_id)
+                    continue;
+            }
             float ex = enemies[i].base.pos.x;
             float ey = enemies[i].base.pos.y;
             int effective_strength = player->strength + rogue_buffs_get_total(0);

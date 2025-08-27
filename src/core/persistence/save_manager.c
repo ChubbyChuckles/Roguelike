@@ -1941,10 +1941,10 @@ int rogue_save_manager_load_slot(int slot_index)
                 /* RLE decode */
                 size_t ci = 0;
                 size_t ui = 0;
-                while (ci < stored_size && ui < uncompressed_size)
+                while (ci < comp_bytes && ui < uncompressed_size)
                 {
                     unsigned char b = cbuf[ci++];
-                    if (ci >= stored_size)
+                    if (ci >= comp_bytes)
                     {
                         break;
                     }
@@ -1970,10 +1970,11 @@ int rogue_save_manager_load_slot(int slot_index)
                         fclose(f);
                         return -12;
                     }
-                    fwrite(ubuf, 1, uncompressed_size, mf);
+                    /* Write only the bytes we actually decoded */
+                    fwrite(ubuf, 1, ui, mf);
                     fflush(mf);
                     fseek(mf, 0, SEEK_SET);
-                    if (comp->read_fn(mf, uncompressed_size) != 0)
+                    if (comp->read_fn(mf, ui) != 0)
                     {
                         fclose(mf);
                         free(cbuf);

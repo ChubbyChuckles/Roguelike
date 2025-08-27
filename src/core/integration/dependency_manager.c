@@ -299,12 +299,9 @@ bool rogue_dependency_manager_add_dependency(RogueDependencyManager* manager,
     RogueDependencyNode* target_node = rogue_dependency_manager_find_node(manager, target_file);
     if (!target_node && type == ROGUE_DEP_TYPE_STRONG)
     {
-        // Auto-add target file for strong dependencies
-        RogueFileType file_type = rogue_dependency_manager_get_file_type_from_path(target_file);
-        if (!rogue_dependency_manager_add_file(manager, target_file, file_type, priority - 1))
-        {
-            return false;
-        }
+        // Do NOT auto-add missing strong dependencies. Let them be reported as missing during
+        // resolution so callers/tests can detect and handle missing assets correctly.
+        // Previously we auto-added the file here, which masked missing-dependency errors.
     }
 
     // Check if dependency already exists
@@ -703,15 +700,22 @@ bool rogue_dependency_manager_has_circular_dependency(RogueDependencyManager* ma
     if (!manager || !file_path)
         return false;
 
-    RogueDependencyNode* node = rogue_dependency_manager_find_node(manager, file_path);
-    if (!node)
-        return false;
-
-    for (int i = 0; i < node->dependency_count; i++)
+    // Consider a file to be "in a cycle" if any circular dependency edge either
+    // originates from it or targets it (cycles can be detected on an incoming edge).
+    for (int i = 0; i < manager->graph.node_count; i++)
     {
-        if (node->dependencies[i].status == ROGUE_DEP_STATUS_CIRCULAR)
+        RogueDependencyNode* n = &manager->graph.nodes[i];
+        for (int j = 0; j < n->dependency_count; j++)
         {
-            return true;
+            RogueDependency* dep = &n->dependencies[j];
+            if (dep->status == ROGUE_DEP_STATUS_CIRCULAR)
+            {
+                if (strcmp(dep->source_file, file_path) == 0 ||
+                    strcmp(dep->target_file, file_path) == 0)
+                {
+                    return true;
+                }
+            }
         }
     }
 
