@@ -595,9 +595,15 @@ static void compute_fingerprint(void)
         base_vit_val = 0;
     if (base_int_val < 0)
         base_int_val = 0;
-    /* Intentionally exclude base_* from the fingerprint to avoid any coupling to
-       baseline recovery or call ordering. The fingerprint should reflect equipped layers
-       and other deterministic inputs only. */
+    /* Fold derived base values as part of the fingerprint so that changes to the player's
+        base attributes affect the fingerprint, while remaining order-invariant. We use the
+        mathematically recovered base values (totals minus non-base layers), not the raw
+        base_* fields, to avoid coupling to intermediate recomputes or snapshot state. */
+    F(base_str_val);
+    F(base_dex_val);
+    F(base_vit_val);
+    F(base_int_val);
+    /* Then fold all non-base layers and stable derived inputs. */
     F(g_player_stat_cache.implicit_strength);
     F(g_player_stat_cache.implicit_dexterity);
     F(g_player_stat_cache.implicit_vitality);
@@ -744,6 +750,31 @@ void rogue_stat_cache_force_update(const RoguePlayer* p)
         g_player_stat_cache.last_base_intelligence = g_player_stat_cache.base_intelligence;
         if (bits & 2u)
             g_player_stat_cache.heavy_passive_recompute_count++;
+        ROGUE_LOG_DEBUG(
+            "DBG_TOTALS base[%d,%d,%d,%d] totals[%d,%d,%d,%d] affix[%d,%d,%d,%d] imp[%d,%d,%d,%d] "
+            "armor=%d",
+            g_player_stat_cache.base_strength, g_player_stat_cache.base_dexterity,
+            g_player_stat_cache.base_vitality, g_player_stat_cache.base_intelligence,
+            g_player_stat_cache.total_strength, g_player_stat_cache.total_dexterity,
+            g_player_stat_cache.total_vitality, g_player_stat_cache.total_intelligence,
+            g_player_stat_cache.affix_strength, g_player_stat_cache.affix_dexterity,
+            g_player_stat_cache.affix_vitality, g_player_stat_cache.affix_intelligence,
+            g_player_stat_cache.implicit_strength, g_player_stat_cache.implicit_dexterity,
+            g_player_stat_cache.implicit_vitality, g_player_stat_cache.implicit_intelligence,
+            g_player_stat_cache.affix_armor_flat);
+        fprintf(stderr,
+                "STATCACHE base[%d,%d,%d,%d] totals[%d,%d,%d,%d] last_base[%d,%d,%d,%d] "
+                "last_tot[%d,%d,%d,%d] rc=%u\n",
+                g_player_stat_cache.base_strength, g_player_stat_cache.base_dexterity,
+                g_player_stat_cache.base_vitality, g_player_stat_cache.base_intelligence,
+                g_player_stat_cache.total_strength, g_player_stat_cache.total_dexterity,
+                g_player_stat_cache.total_vitality, g_player_stat_cache.total_intelligence,
+                g_player_stat_cache.last_base_strength, g_player_stat_cache.last_base_dexterity,
+                g_player_stat_cache.last_base_vitality, g_player_stat_cache.last_base_intelligence,
+                g_player_stat_cache.last_total_strength, g_player_stat_cache.last_total_dexterity,
+                g_player_stat_cache.last_total_vitality,
+                g_player_stat_cache.last_total_intelligence, g_player_stat_cache.recompute_count);
+        fflush(stderr);
     }
 }
 

@@ -33,19 +33,12 @@ int rogue_perception_los(float ax, float ay, float bx, float by)
     int y1 = (int) floorf(by);
     int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
     int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-    int err = dx + dy; /* error term */
-    int (*is_blocked)(int, int) = g_blocking_fn ? g_blocking_fn : rogue_nav_is_blocked;
-    while (1)
+    int err = dx + dy;                           /* error term */
+    int (*is_blocked)(int, int) = g_blocking_fn; /* default to no blocking when unset */
+    /* Step first, then test for blocking to avoid treating the origin tile as blocking.
+     * This matches expected LOS semantics: an agent can see out of its current tile. */
+    while (!(x0 == x1 && y0 == y1))
     {
-        if (!(x0 == x1 && y0 == y1))
-        {
-            if (is_blocked(x0, y0))
-                return 0; /* treat origin tile as blocking if impassable */
-        }
-        else
-        {
-            return 1; /* reached target without hitting block */
-        }
         int e2 = 2 * err;
         if (e2 >= dy)
         {
@@ -57,7 +50,10 @@ int rogue_perception_los(float ax, float ay, float bx, float by)
             err += dx;
             y0 += sy;
         }
+        if (is_blocked && is_blocked(x0, y0))
+            return 0;
     }
+    return 1; /* reached target without hitting block */
 }
 
 int rogue_perception_can_see(const RoguePerceptionAgent* a, float target_x, float target_y,

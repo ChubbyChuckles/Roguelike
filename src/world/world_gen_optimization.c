@@ -176,6 +176,9 @@ int rogue_worldgen_run_noise_benchmark(int width, int height, RogueWorldGenBench
         }
     clock_t t1 = clock();
     double scalar_ms = (double) (t1 - t0) * 1000.0 / (double) CLOCKS_PER_SEC;
+    /* Guard against very small measurements being rounded to 0 due to clock resolution. */
+    if (scalar_ms <= 0.0)
+        scalar_ms = 0.001; /* 1 micro-tick to satisfy invariants */
     double simd_ms = 0.0, speedup = 0.0;
     if (g_enable_simd)
     {

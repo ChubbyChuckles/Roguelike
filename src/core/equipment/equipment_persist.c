@@ -274,6 +274,34 @@ int rogue_equipment_deserialize(const char* buf)
                     p++;
                 }
             }
+            /* For legacy v0, tolerate missing tokens by defaulting to reasonable values. */
+            if (version == 0)
+            {
+                if (!seen_dur)
+                {
+                    dc = 0;
+                    dm = 0;
+                    seen_dur = 1;
+                }
+                if (!seen_qc)
+                {
+                    qual = 0;
+                    seen_qc = 1;
+                }
+                if (!seen_socks)
+                {
+                    sockc = 0;
+                    for (i = 0; i < 6; ++i)
+                        gems[i] = -1;
+                    seen_socks = 1;
+                }
+                if (!seen_locks)
+                {
+                    pl = 0;
+                    sl = 0;
+                    seen_locks = 1;
+                }
+            }
             /* Validate mandatory tokens and basic ranges. If corrupted, reject with negatives. */
             if (!seen_def)
                 return -10; /* missing DEF */

@@ -97,6 +97,9 @@ int rogue_save_set_incremental(int enabled)
     }
     return 0;
 }
+
+/* Forward decl: inventory diff probe used by save loop to decide reuse vs rewrite (Phase 17.5) */
+static int inventory_component_probe_and_prepare_reuse(void);
 int rogue_save_mark_component_dirty(int component_id)
 {
     if (component_id <= 0 || component_id >= 32)
@@ -637,6 +640,18 @@ static int internal_save_to(const char* final_path)
             }
             long payload_start = ftell(f);
             int reused_cache = 0;
+            /* Phase 17.5: If inventory is clean but records changed, force fresh write and let
+               inventory component compute per-record diff metrics. If unchanged, update metrics
+               here so tests can observe reused==count, rewritten==0 even when reusing. */
+            if (g_incremental_enabled && c->id == ROGUE_SAVE_COMP_INVENTORY &&
+                !(g_dirty_mask & (1u << c->id)))
+            {
+                int changed = inventory_component_probe_and_prepare_reuse();
+                if (changed)
+                {
+                    g_dirty_mask |= (1u << c->id); /* force fresh write */
+                }
+            }
             if (g_incremental_enabled && !(g_dirty_mask & (1u << c->id)))
             { /* attempt reuse */
                 for (int k = 0; k < ROGUE_SAVE_MAX_COMPONENTS; k++)
@@ -2557,6 +2572,72 @@ static int write_inventory_component(FILE* f)
     inv_record_snapshot_update(cur, (unsigned) count);
     free(cur);
     return 0;
+}
+
+/* Probe helper used by save loop before deciding section reuse for inventory (Phase 17.5). Returns
+   1 if current records differ from previous snapshot (forcing a fresh write), 0 if identical. When
+   identical, updates g_inv_diff_reused_last/g_inv_diff_rewritten_last to reflect full reuse. */
+static int inventory_component_probe_and_prepare_reuse(void)
+{
+    int count = 0;
+    for (int i = 0; i < ROGUE_ITEM_INSTANCE_CAP; i++)
+    {
+        const RogueItemInstance* it = rogue_item_instance_at(i);
+        if (it)
+            count++;
+    }
+    /* Build current snapshot in the same order as writer for a fair comparison */
+    if (count == 0)
+    {
+        int changed = (g_inv_prev_count != 0);
+        if (!changed)
+        {
+            g_inv_diff_reused_last = 0;
+            g_inv_diff_rewritten_last = 0;
+        }
+        return changed;
+    }
+    InvRecordSnapshot* cur =
+        (InvRecordSnapshot*) malloc(sizeof(InvRecordSnapshot) * (size_t) count);
+    if (!cur)
+    {
+        /* On OOM, be conservative and report changed to avoid stale reuse */
+        return 1;
+    }
+    int out = 0;
+    for (int i = 0; i < ROGUE_ITEM_INSTANCE_CAP; i++)
+    {
+        const RogueItemInstance* it = rogue_item_instance_at(i);
+        if (!it)
+            continue;
+        cur[out++] = (InvRecordSnapshot){it->def_index,    it->quantity,       it->rarity,
+                                         it->prefix_index, it->prefix_value,   it->suffix_index,
+                                         it->suffix_value, it->durability_cur, it->durability_max,
+                                         it->enchant_level};
+    }
+    int changed = 0;
+    if (g_inv_prev_count != (unsigned) count)
+    {
+        changed = 1;
+    }
+    else
+    {
+        for (int i = 0; i < count; i++)
+        {
+            if (memcmp(&g_inv_prev_records[i], &cur[i], sizeof(InvRecordSnapshot)) != 0)
+            {
+                changed = 1;
+                break;
+            }
+        }
+    }
+    if (!changed)
+    {
+        g_inv_diff_reused_last = (unsigned) count;
+        g_inv_diff_rewritten_last = 0;
+    }
+    free(cur);
+    return changed;
 }
 static int read_inventory_component(FILE* f, size_t size)
 {
