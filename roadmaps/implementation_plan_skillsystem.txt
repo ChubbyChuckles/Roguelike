@@ -66,10 +66,10 @@ PHASE 3. Effect Processing Pipeline
 PHASE 4. Buff System Upgrade
 4.1 Replace fixed-size array with ring-buffer or handle-based pool + free list (Done: handle-based pool with free list and 16-bit generations; auto-init guard; tests green)
 4.2 Buff handle API (apply, refresh, remove, query) (Done: apply_h/refresh_h/remove_h/query_h implemented; legacy API retained)
-4.3 Category fields: offensive, defensive, movement, utility (X)
+4.3 Category fields: offensive, defensive, movement, utility (Done: `RogueBuffCategoryFlags` added; CC subflags `STUN`/`ROOT`/`SLOW` wired for combat)
 4.4 Expiration callbacks (on_expire) for triggered effects (Done: optional callback + FX triggers on gain/expire wired)
-4.5 Diminishing returns (DR) tracker for CC categories (stun, root, slow) (X)
-4.6 Tests: DR decay, expiration triggers, handle reuse safety (X)
+4.5 Diminishing returns (DR) tracker for CC categories (stun, root, slow) (Done: anchored window default 15000 ms; factors 1.0 → 0.5 → 0.25 → 0.0; zero-duration CC advances DR; applied pre-stacking across all apply paths)
+4.6 Tests: DR decay, expiration triggers, handle reuse safety (Done: `test_buffs_phase4_dr_and_handles` and `test_combat_phase4_cc` green; verifies natural/manual expire callbacks and stale handle invalidation)
 
 PHASE 5. Debuffs & Damage Over Time
 5.1 Separate namespace / flag for debuffs (harmful) (X)
@@ -240,6 +240,12 @@ Updates (Rotation Simulator, Tag Registry, Ordering Invariance):
 - Added central `assets/tag_registry.json` and C validator (`rogue_tag_registry_validate_text/file`) with allowed charset [A-Za-z0-9_-] and duplicate checks. Added unit `test_tag_registry_validate.c` (fixed asset path for CTest).
 - Added `test_skills_ordering_invariance.c` confirming effective coefficient invariant to presumed layer ordering.
 - CMake wired; Debug build with SDL2 and -j8 passes targeted skills/tag validator tests.
+
+Updates (Phase 4.3–4.6: Buff categories, CC DR, combat semantics):
+- Categories: Introduced `RogueBuffCategoryFlags` with OFFENSIVE/DEFENSIVE/MOVEMENT/UTILITY and CC subflags STUN/ROOT/SLOW exposed to combat state queries.
+- CC DR: Implemented anchored diminishing-returns window (default 15s) with scale factors 1.0 → 0.5 → 0.25 → 0.0; zero-duration CC increments DR without allocating a live instance; DR factor computed before stacking/dampening across all apply paths; ignoring already-expired instances during dampen/stack prevents suppressing natural on_expire callbacks.
+- Combat integration: Suppression semantics updated — STUN/DISARM block both buffering and attack start; ROOT allows buffering but blocks attack start; logic reads live app state.
+- Tests: `tests/unit/test_buffs_phase4_dr_and_handles.c` (DR progression/decay, expire callbacks, handle reuse invalidation) and `tests/unit/test_combat_phase4_cc.c` (CC behavior in combat) pass in Debug SDL2 (-j8).
 
 Updates (Phase 2.1–2.3: Resources, Costs, Refunds):
 - Extended `RogueSkillDef` with percent-of-max and per-rank cost fields plus surcharge thresholds for AP/Mana. Implemented effective cost computation in `rogue_skill_try_activate`.

@@ -189,3 +189,9 @@ Same-timestamp ordering (determinism): when a periodic pulse and a child effect 
 - Dampening window (default 50ms) to prevent oscillation from rapid re-apply; configurable via `rogue_buffs_set_dampening(ms)`.
 - Persistence: save writes compact (type, magnitude, remaining_ms); load re-applies with snapshot=1, respecting remaining durations against current `now_ms`.
 - Tests: save/load roundtrip tests report expected active buffs; skills/effects tests for snapshot scaling and ordering pass in Debug with SDL2 (-j8).
+
+Phase 4.3–4.6 additions:
+- Categories & CC flags: `RogueBuffCategoryFlags` (OFFENSIVE, DEFENSIVE, MOVEMENT, UTILITY) with CC subflags (STUN, ROOT, SLOW). Combat reads live flags for gating.
+- CC diminishing returns (DR): anchored window (default 15s) with factors 1.0 → 0.5 → 0.25 → 0.0 applied before stacking/dampening on every apply path. Zero-duration CC increments DR without allocating an instance. Expired instances are skipped during dampening/stacking so natural on_expire still fires.
+- Combat semantics: STUN/DISARM block buffering and attack start; ROOT allows buffering but blocks attack start. Unit `test_combat_phase4_cc` codifies behavior.
+- Tests: `test_buffs_phase4_dr_and_handles` validates DR progression/decay, natural vs manual expire callbacks, and handle reuse invalidation. Both tests pass in Debug with SDL2 (-j8).

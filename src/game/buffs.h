@@ -11,6 +11,10 @@ extern "C"
     {
         ROGUE_BUFF_POWER_STRIKE = 0,
         ROGUE_BUFF_STAT_STRENGTH = 1,
+        /* Phase 4.5: CC types for DR tracking */
+        ROGUE_BUFF_CC_STUN = 2,
+        ROGUE_BUFF_CC_ROOT = 3,
+        ROGUE_BUFF_CC_SLOW = 4,
         ROGUE_BUFF_MAX
     } RogueBuffType;
 
@@ -27,6 +31,19 @@ extern "C"
             5 /* replace magnitude if stronger; refresh duration if longer */
     } RogueBuffStackRule;
 
+    /* Phase 4.3: Category flags */
+    typedef enum RogueBuffCategoryFlags
+    {
+        ROGUE_BUFF_CAT_OFFENSIVE = 1 << 0,
+        ROGUE_BUFF_CAT_DEFENSIVE = 1 << 1,
+        ROGUE_BUFF_CAT_MOVEMENT = 1 << 2,
+        ROGUE_BUFF_CAT_UTILITY = 1 << 3,
+        /* CC sub-categories */
+        ROGUE_BUFF_CCFLAG_STUN = 1 << 4,
+        ROGUE_BUFF_CCFLAG_ROOT = 1 << 5,
+        ROGUE_BUFF_CCFLAG_SLOW = 1 << 6
+    } RogueBuffCategoryFlags;
+
     typedef struct RogueBuff
     {
         int active;
@@ -37,6 +54,7 @@ extern "C"
                          change) */
         RogueBuffStackRule stack_rule;
         double last_apply_ms; /* for dampening */
+        uint32_t categories;  /* Phase 4.3: category bitmask */
         /* Handle pool internals (Phase 4.1): generation for ABA-safety. */
         uint16_t _gen;
         int _next_free;
@@ -78,6 +96,13 @@ extern "C"
     /* Phase 4.4: Optional expiration callback (on natural expiry or manual remove). */
     typedef void (*RogueBuffExpireFn)(RogueBuffType type, int magnitude);
     void rogue_buffs_set_on_expire(RogueBuffExpireFn cb);
+
+    /* Phase 4.3: Category helpers */
+    uint32_t rogue_buffs_type_categories(RogueBuffType type);
+
+    /* Phase 4.5: Diminishing returns (DR) for CC categories */
+    void rogue_buffs_set_dr_window_ms(double ms);
+    void rogue_buffs_reset_dr_state(void);
 
 #ifdef __cplusplus
 }

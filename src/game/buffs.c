@@ -11,6 +11,15 @@ static double g_min_reapply_interval_ms = 50.0; /* default dampening window */
 static RogueBuffExpireFn g_on_expire = NULL;
 /* Auto-init guard to preserve legacy behavior where init wasn't explicitly called in tests */
 static int g_initialized = 0;
+/* Phase 4.5: DR tracker for CC categories (per-target global for now) */
+static double g_dr_window_ms = 15000.0; /* 15s default DR window */
+static double g_dr_stun_end_ms = 0.0;
+static double g_dr_root_end_ms = 0.0;
+static double g_dr_slow_end_ms = 0.0;
+/* active stacks within window: 0 -> 1.0, 1 -> 0.5, 2 -> 0.25, 3+ -> 0.0 */
+static int g_dr_stun_count = 0;
+static int g_dr_root_count = 0;
+static int g_dr_slow_count = 0;
 
 static inline void _ensure_init(void)
 {
@@ -27,6 +36,9 @@ static inline void _ensure_init(void)
         g_min_reapply_interval_ms = 50.0;
         g_on_expire = NULL;
         g_initialized = 1;
+        g_dr_window_ms = 15000.0;
+        g_dr_stun_end_ms = g_dr_root_end_ms = g_dr_slow_end_ms = 0.0;
+        g_dr_stun_count = g_dr_root_count = g_dr_slow_count = 0;
     }
 }
 
@@ -86,6 +98,9 @@ void rogue_buffs_init(void)
     g_min_reapply_interval_ms = 50.0;
     g_on_expire = NULL;
     g_initialized = 1;
+    g_dr_window_ms = 15000.0;
+    g_dr_stun_end_ms = g_dr_root_end_ms = g_dr_slow_end_ms = 0.0;
+    g_dr_stun_count = g_dr_root_count = g_dr_slow_count = 0;
 }
 
 void rogue_buffs_update(double now_ms)
@@ -116,14 +131,65 @@ int rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, dou
         rule = ROGUE_BUFF_STACK_ADD;
     /* dampening */
     for (int i = 0; i < ROGUE_MAX_ACTIVE_BUFFS; i++)
-        if (g_buffs[i].active && g_buffs[i].type == type)
+        if (g_buffs[i].active && g_buffs[i].type == type && now_ms < g_buffs[i].end_ms)
         {
             if (now_ms - g_buffs[i].last_apply_ms < g_min_reapply_interval_ms)
                 return 0;
             break;
         }
+    /* Phase 4.5: DR adjustment for CC durations (applies to both stack-with-existing and new) */
+    double effective_duration = duration_ms;
+    uint32_t cats = rogue_buffs_type_categories(type);
+    if (type == ROGUE_BUFF_CC_STUN || type == ROGUE_BUFF_CC_ROOT || type == ROGUE_BUFF_CC_SLOW ||
+        (cats & (ROGUE_BUFF_CCFLAG_STUN | ROGUE_BUFF_CCFLAG_ROOT | ROGUE_BUFF_CCFLAG_SLOW)))
+    {
+        if (type == ROGUE_BUFF_CC_STUN || (cats & ROGUE_BUFF_CCFLAG_STUN))
+        {
+            if (now_ms > g_dr_stun_end_ms)
+            {
+                g_dr_stun_count = 0;
+                g_dr_stun_end_ms = now_ms + g_dr_window_ms; /* anchor window at first apply */
+            }
+            double factor = (g_dr_stun_count == 0)   ? 1.0
+                            : (g_dr_stun_count == 1) ? 0.5
+                            : (g_dr_stun_count == 2) ? 0.25
+                                                     : 0.0;
+            effective_duration *= factor;
+            g_dr_stun_count++;
+        }
+        else if (type == ROGUE_BUFF_CC_ROOT || (cats & ROGUE_BUFF_CCFLAG_ROOT))
+        {
+            if (now_ms > g_dr_root_end_ms)
+            {
+                g_dr_root_count = 0;
+                g_dr_root_end_ms = now_ms + g_dr_window_ms; /* anchor window */
+            }
+            double factor = (g_dr_root_count == 0)   ? 1.0
+                            : (g_dr_root_count == 1) ? 0.5
+                            : (g_dr_root_count == 2) ? 0.25
+                                                     : 0.0;
+            effective_duration *= factor;
+            g_dr_root_count++;
+        }
+        else if (type == ROGUE_BUFF_CC_SLOW || (cats & ROGUE_BUFF_CCFLAG_SLOW))
+        {
+            if (now_ms > g_dr_slow_end_ms)
+            {
+                g_dr_slow_count = 0;
+                g_dr_slow_end_ms = now_ms + g_dr_window_ms; /* anchor window */
+            }
+            double factor = (g_dr_slow_count == 0)   ? 1.0
+                            : (g_dr_slow_count == 1) ? 0.5
+                            : (g_dr_slow_count == 2) ? 0.25
+                                                     : 0.0;
+            effective_duration *= factor;
+            g_dr_slow_count++;
+        }
+        if (effective_duration <= 0)
+            return 1; /* counted for DR but zero duration -> no buff record */
+    }
     for (int i = 0; i < ROGUE_MAX_ACTIVE_BUFFS; i++)
-        if (g_buffs[i].active && g_buffs[i].type == type)
+        if (g_buffs[i].active && g_buffs[i].type == type && now_ms < g_buffs[i].end_ms)
         {
             RogueBuff* b = &g_buffs[i];
             b->last_apply_ms = now_ms;
@@ -134,12 +200,12 @@ int rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, dou
             case ROGUE_BUFF_STACK_REFRESH:
                 if (magnitude > b->magnitude)
                     b->magnitude = magnitude;
-                b->end_ms = now_ms + duration_ms;
+                b->end_ms = now_ms + effective_duration;
                 return 1;
             case ROGUE_BUFF_STACK_EXTEND:
-                b->end_ms += duration_ms;
-                if (b->end_ms < now_ms + duration_ms)
-                    b->end_ms = now_ms + duration_ms;
+                b->end_ms += effective_duration;
+                if (b->end_ms < now_ms + effective_duration)
+                    b->end_ms = now_ms + effective_duration;
                 if (b->magnitude < magnitude)
                     b->magnitude = magnitude;
                 return 1;
@@ -148,8 +214,8 @@ int rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, dou
                 b->magnitude += magnitude;
                 if (b->magnitude > 999)
                     b->magnitude = 999;
-                if (now_ms + duration_ms > b->end_ms)
-                    b->end_ms = now_ms + duration_ms;
+                if (now_ms + effective_duration > b->end_ms)
+                    b->end_ms = now_ms + effective_duration;
                 return 1;
             case ROGUE_BUFF_STACK_MULTIPLY:
             {
@@ -165,7 +231,7 @@ int rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, dou
                     nm = 999;
                 b->magnitude = (int) nm;
                 /* Extend duration if incoming provides longer remaining. */
-                double new_end = now_ms + duration_ms;
+                double new_end = now_ms + effective_duration;
                 if (new_end > b->end_ms)
                     b->end_ms = new_end;
                 return 1;
@@ -174,8 +240,8 @@ int rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, dou
                 if (magnitude > b->magnitude)
                     b->magnitude = magnitude;
                 /* Always take the longer remaining duration */
-                if (now_ms + duration_ms > b->end_ms)
-                    b->end_ms = now_ms + duration_ms;
+                if (now_ms + effective_duration > b->end_ms)
+                    b->end_ms = now_ms + effective_duration;
                 return 1;
             }
         }
@@ -193,10 +259,11 @@ int rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, dou
         g_buffs[idx].active = 1;
         g_buffs[idx].type = type;
         g_buffs[idx].magnitude = magnitude;
-        g_buffs[idx].end_ms = now_ms + duration_ms;
+        g_buffs[idx].end_ms = now_ms + effective_duration;
         g_buffs[idx].snapshot = snapshot ? 1 : 0;
         g_buffs[idx].stack_rule = rule;
         g_buffs[idx].last_apply_ms = now_ms;
+        g_buffs[idx].categories = cats;
         /* FX: buff gain cue */
         {
             char key[48];
@@ -220,15 +287,67 @@ RogueBuffHandle rogue_buffs_apply_h(RogueBuffType type, int magnitude, double du
 
     /* dampening: see if an active same-type exists and was applied too recently */
     for (int i = 0; i < ROGUE_MAX_ACTIVE_BUFFS; i++)
-        if (g_buffs[i].active && g_buffs[i].type == type)
+        if (g_buffs[i].active && g_buffs[i].type == type && now_ms < g_buffs[i].end_ms)
         {
             if (now_ms - g_buffs[i].last_apply_ms < g_min_reapply_interval_ms)
                 return ROGUE_BUFF_INVALID_HANDLE;
             break;
         }
+    /* DR compute for CC (applies to both stack-with-existing and new). If zero, do nothing and
+     * return invalid handle. */
+    double effective_duration = duration_ms;
+    uint32_t cats = rogue_buffs_type_categories(type);
+    if (type == ROGUE_BUFF_CC_STUN || type == ROGUE_BUFF_CC_ROOT || type == ROGUE_BUFF_CC_SLOW ||
+        (cats & (ROGUE_BUFF_CCFLAG_STUN | ROGUE_BUFF_CCFLAG_ROOT | ROGUE_BUFF_CCFLAG_SLOW)))
+    {
+        if (type == ROGUE_BUFF_CC_STUN || (cats & ROGUE_BUFF_CCFLAG_STUN))
+        {
+            if (now_ms > g_dr_stun_end_ms)
+            {
+                g_dr_stun_count = 0;
+                g_dr_stun_end_ms = now_ms + g_dr_window_ms;
+            }
+            double factor = (g_dr_stun_count == 0)   ? 1.0
+                            : (g_dr_stun_count == 1) ? 0.5
+                            : (g_dr_stun_count == 2) ? 0.25
+                                                     : 0.0;
+            effective_duration *= factor;
+            g_dr_stun_count++;
+        }
+        else if (type == ROGUE_BUFF_CC_ROOT || (cats & ROGUE_BUFF_CCFLAG_ROOT))
+        {
+            if (now_ms > g_dr_root_end_ms)
+            {
+                g_dr_root_count = 0;
+                g_dr_root_end_ms = now_ms + g_dr_window_ms;
+            }
+            double factor = (g_dr_root_count == 0)   ? 1.0
+                            : (g_dr_root_count == 1) ? 0.5
+                            : (g_dr_root_count == 2) ? 0.25
+                                                     : 0.0;
+            effective_duration *= factor;
+            g_dr_root_count++;
+        }
+        else if (type == ROGUE_BUFF_CC_SLOW || (cats & ROGUE_BUFF_CCFLAG_SLOW))
+        {
+            if (now_ms > g_dr_slow_end_ms)
+            {
+                g_dr_slow_count = 0;
+                g_dr_slow_end_ms = now_ms + g_dr_window_ms;
+            }
+            double factor = (g_dr_slow_count == 0)   ? 1.0
+                            : (g_dr_slow_count == 1) ? 0.5
+                            : (g_dr_slow_count == 2) ? 0.25
+                                                     : 0.0;
+            effective_duration *= factor;
+            g_dr_slow_count++;
+        }
+        if (effective_duration <= 0)
+            return ROGUE_BUFF_INVALID_HANDLE;
+    }
     /* try stack with existing */
     for (int i = 0; i < ROGUE_MAX_ACTIVE_BUFFS; i++)
-        if (g_buffs[i].active && g_buffs[i].type == type)
+        if (g_buffs[i].active && g_buffs[i].type == type && now_ms < g_buffs[i].end_ms)
         {
             RogueBuff* b = &g_buffs[i];
             b->last_apply_ms = now_ms;
@@ -239,12 +358,12 @@ RogueBuffHandle rogue_buffs_apply_h(RogueBuffType type, int magnitude, double du
             case ROGUE_BUFF_STACK_REFRESH:
                 if (magnitude > b->magnitude)
                     b->magnitude = magnitude;
-                b->end_ms = now_ms + duration_ms;
+                b->end_ms = now_ms + effective_duration;
                 return _make_handle(i);
             case ROGUE_BUFF_STACK_EXTEND:
-                b->end_ms += duration_ms;
-                if (b->end_ms < now_ms + duration_ms)
-                    b->end_ms = now_ms + duration_ms;
+                b->end_ms += effective_duration;
+                if (b->end_ms < now_ms + effective_duration)
+                    b->end_ms = now_ms + effective_duration;
                 if (b->magnitude < magnitude)
                     b->magnitude = magnitude;
                 return _make_handle(i);
@@ -253,8 +372,8 @@ RogueBuffHandle rogue_buffs_apply_h(RogueBuffType type, int magnitude, double du
                 b->magnitude += magnitude;
                 if (b->magnitude > 999)
                     b->magnitude = 999;
-                if (now_ms + duration_ms > b->end_ms)
-                    b->end_ms = now_ms + duration_ms;
+                if (now_ms + effective_duration > b->end_ms)
+                    b->end_ms = now_ms + effective_duration;
                 return _make_handle(i);
             case ROGUE_BUFF_STACK_MULTIPLY:
             {
@@ -268,7 +387,7 @@ RogueBuffHandle rogue_buffs_apply_h(RogueBuffType type, int magnitude, double du
                 if (nm > 999)
                     nm = 999;
                 b->magnitude = (int) nm;
-                double new_end = now_ms + duration_ms;
+                double new_end = now_ms + effective_duration;
                 if (new_end > b->end_ms)
                     b->end_ms = new_end;
                 return _make_handle(i);
@@ -276,8 +395,8 @@ RogueBuffHandle rogue_buffs_apply_h(RogueBuffType type, int magnitude, double du
             case ROGUE_BUFF_STACK_REPLACE_IF_STRONGER:
                 if (magnitude > b->magnitude)
                     b->magnitude = magnitude;
-                if (now_ms + duration_ms > b->end_ms)
-                    b->end_ms = now_ms + duration_ms;
+                if (now_ms + effective_duration > b->end_ms)
+                    b->end_ms = now_ms + effective_duration;
                 return _make_handle(i);
             }
         }
@@ -293,10 +412,11 @@ RogueBuffHandle rogue_buffs_apply_h(RogueBuffType type, int magnitude, double du
     g_buffs[idx].active = 1;
     g_buffs[idx].type = type;
     g_buffs[idx].magnitude = magnitude;
-    g_buffs[idx].end_ms = now_ms + duration_ms;
+    g_buffs[idx].end_ms = now_ms + effective_duration;
     g_buffs[idx].snapshot = snapshot ? 1 : 0;
     g_buffs[idx].stack_rule = rule;
     g_buffs[idx].last_apply_ms = now_ms;
+    g_buffs[idx].categories = cats;
     {
         char key[48];
         snprintf(key, sizeof key, "buff/%d/gain", (int) type);
@@ -422,3 +542,38 @@ int rogue_buffs_snapshot(RogueBuff* out, int max, double now_ms)
 }
 
 void rogue_buffs_set_on_expire(RogueBuffExpireFn cb) { g_on_expire = cb; }
+
+/* Phase 4.3: Category helpers. Keep a simple mapping for built-in types. */
+uint32_t rogue_buffs_type_categories(RogueBuffType type)
+{
+    switch (type)
+    {
+    case ROGUE_BUFF_POWER_STRIKE:
+        return ROGUE_BUFF_CAT_OFFENSIVE;
+    case ROGUE_BUFF_STAT_STRENGTH:
+        return ROGUE_BUFF_CAT_UTILITY;
+    case ROGUE_BUFF_CC_STUN:
+        return ROGUE_BUFF_CCFLAG_STUN | ROGUE_BUFF_CAT_UTILITY;
+    case ROGUE_BUFF_CC_ROOT:
+        return ROGUE_BUFF_CCFLAG_ROOT | ROGUE_BUFF_CAT_UTILITY;
+    case ROGUE_BUFF_CC_SLOW:
+        return ROGUE_BUFF_CCFLAG_SLOW | ROGUE_BUFF_CAT_MOVEMENT;
+    default:
+        return 0;
+    }
+}
+
+/* Phase 4.5: DR API */
+void rogue_buffs_set_dr_window_ms(double ms)
+{
+    _ensure_init();
+    if (ms < 0)
+        ms = 0;
+    g_dr_window_ms = ms;
+}
+void rogue_buffs_reset_dr_state(void)
+{
+    _ensure_init();
+    g_dr_stun_end_ms = g_dr_root_end_ms = g_dr_slow_end_ms = 0.0;
+    g_dr_stun_count = g_dr_root_count = g_dr_slow_count = 0;
+}

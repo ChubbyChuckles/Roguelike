@@ -374,3 +374,16 @@ Quality gates:
 - Built Debug with SDL2 using cmake --build build --config Debug --parallel 8.
 - Targeted tests passed: test_event_bus (16/16), test_haste_cast_speed (HASTE_OK), test_effectspec_{snapshot_scale,pulse_child_order}, test_skills_phase1a_{haste_snapshot_and_drift,buffer_weave_combo}, test_save_roundtrip (reports buff=2) and test_save_phase7_skill_buff_roundtrip (OK).
 - Roadmap updated marking 4.1, 4.2, and 4.4 Done with implementation notes.
+
+feat(buffs/skills/combat): Phase 4.3–4.6 — buff categories, CC DR, expire callbacks, and combat CC semantics
+
+- Categories: Add `RogueBuffCategoryFlags` with OFFENSIVE/DEFENSIVE/MOVEMENT/UTILITY and CC subflags STUN/ROOT/SLOW; expose to combat.
+- CC DR: Anchored window (default 15s) with scale factors 1.0 → 0.5 → 0.25 → 0.0; zero-duration CC increments DR without allocation; DR factor applied pre-stacking/dampening; ignore expired instances during dampening/stacking to preserve natural on_expire.
+- Expire callbacks: Natural expiry and manual removals invoke on_expire; FX cues on gain/expire.
+- Combat: Use live app state for CC flags; semantics — STUN/DISARM block buffering and attack start; ROOT allows buffering but blocks start.
+- Tests: `test_buffs_phase4_dr_and_handles` and `test_combat_phase4_cc` pass; regression guards remain green (`test_effectspec_pulse_child_order`, `test_effectspec_snapshot_scale`).
+- Docs: Roadmap marks 4.3/4.5/4.6 Done with notes; README Buffs section documents categories, DR model, and CC semantics.
+
+Build & verify:
+- Built Debug with SDL2 using cmake --build build --config Debug --parallel 8.
+- Ran focused tests: CC and DR/handles tests OK; spot checks for EffectSpec and skills subset OK.

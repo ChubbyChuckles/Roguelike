@@ -7,6 +7,9 @@
 #include <math.h>
 #include <stdlib.h>
 
+/* Access to live app state for runtime CC flags */
+#include "../core/app/app_state.h"
+
 /* Core player combat state machine, archetype chaining, stamina, charged attacks */
 int rogue_force_attack_active = 0;          /* exported */
 int g_attack_frame_override = -1;           /* tests may set */
@@ -72,14 +75,12 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
 {
     if (!pc)
         return;
-    extern struct RoguePlayer g_exposed_player_for_stats; /* player stats */
-    int suppressed = 0;
-    if (g_exposed_player_for_stats.cc_stun_ms > 0.0f ||
-        g_exposed_player_for_stats.cc_disarm_ms > 0.0f)
-    {
-        suppressed = 1;
-    }
-    if (attack_pressed && !suppressed)
+    extern struct RoguePlayer g_exposed_player_for_stats; /* player stats (stance, etc.) */
+    /* Root should allow buffering but prevent starting; stun/disarm prevent both. */
+    int suppress_buffer =
+        (g_app.player.cc_stun_ms > 0.0f || g_app.player.cc_disarm_ms > 0.0f) ? 1 : 0;
+    int suppress_start = (suppress_buffer || g_app.player.cc_root_ms > 0.0f) ? 1 : 0;
+    if (attack_pressed && !suppress_buffer)
     {
         pc->buffered_attack = 1;
     }
@@ -106,7 +107,7 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
                 pc->recovered_recently = 0;
             }
         }
-        if (pc->buffered_attack && def && pc->stamina >= def->stamina_cost && !suppressed)
+        if (pc->buffered_attack && def && pc->stamina >= def->stamina_cost && !suppress_start)
         {
             if (pc->recovered_recently && pc->idle_since_recover_ms < 130.0f)
             {
