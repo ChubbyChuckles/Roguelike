@@ -1,4 +1,5 @@
 #include "effect_spec.h"
+#include "../core/app/app_state.h"
 #include "../game/buffs.h"
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +15,8 @@ typedef struct RogueEffectEvent
     double when_ms;
     unsigned int seq;       /* tie-breaker for deterministic ordering when when_ms equal */
     int override_magnitude; /* >=0 to force magnitude (snapshot_scale pulses) */
+    signed char
+        force_crit; /* -1 = unset (compute), 0 = no crit, 1 = crit (per-application snapshot) */
 } RogueEffectEvent;
 
 #define ROGUE_EFFECT_EV_CAP 256
@@ -30,6 +33,7 @@ static void push_event(int effect_id, double when_ms)
     g_events[g_event_count].when_ms = when_ms;
     g_events[g_event_count].seq = g_event_seq++;
     g_events[g_event_count].override_magnitude = -1;
+    g_events[g_event_count].force_crit = -1;
     g_event_count++;
 }
 
@@ -64,6 +68,11 @@ int rogue_effect_register(const RogueEffectSpec* spec)
     /* Default scale_by to none if unset. */
     if (tmp.scale_by_buff_type == 0)
         tmp.scale_by_buff_type = (unsigned short) 0xFFFFu;
+    if (tmp.kind == ROGUE_EFFECT_DOT)
+    {
+        if (!tmp.debuff)
+            tmp.debuff = 1;
+    }
     tmp.id = g_effect_spec_count;
     g_effect_specs[g_effect_spec_count] = tmp;
     return g_effect_spec_count++;
@@ -96,6 +105,20 @@ static int compute_scaled_magnitude(const RogueEffectSpec* s)
     return mag;
 }
 
+/* One-shot crit override channel for the next apply_with_magnitude() invocation.
+   Values: -2 (unset), 0 (force non-crit), 1 (force crit). */
+static int g_effects_force_next_crit = -2;
+
+/* Simple deterministic hash -> [0,99] used for RNG-less crit decisions. */
+static unsigned int hash_to_pct(unsigned int a, unsigned int b, unsigned int c)
+{
+    /* xorshift mix */
+    unsigned int x = a * 1664525u + 1013904223u;
+    x ^= (b + 0x9E3779B9u) + (x << 6) + (x >> 2);
+    x ^= (c + 0x85EBCA6Bu) + (x << 13) + (x >> 7);
+    return x % 100u;
+}
+
 static void apply_with_magnitude(const RogueEffectSpec* s, int eff_mag, double now_ms)
 {
     switch (s->kind)
@@ -109,6 +132,59 @@ static void apply_with_magnitude(const RogueEffectSpec* s, int eff_mag, double n
             rule = ROGUE_BUFF_STACK_ADD;
         rogue_buffs_apply((RogueBuffType) s->buff_type, eff_mag, s->duration_ms, now_ms, rule,
                           s->snapshot ? 1 : 0);
+    }
+    break;
+    case ROGUE_EFFECT_DOT:
+    {
+        /* Choose first alive enemy as target for deterministic unit tests */
+        RogueEnemy* target = NULL;
+        for (int i = 0; i < g_app.enemy_count; ++i)
+        {
+            if (g_app.enemies[i].alive)
+            {
+                target = &g_app.enemies[i];
+                break;
+            }
+        }
+        if (!target)
+            break;
+        int over = 0;
+        unsigned char dmg_type = s->damage_type;
+        int raw = (eff_mag > 0 ? eff_mag : 0);
+        /* Crit decision: prefer one-shot override, then global test hook, then deterministic RNG */
+        extern int g_force_crit_mode; /* declared in combat.h */
+        unsigned char crit = 0;
+        if (g_effects_force_next_crit >= 0)
+        {
+            crit = (unsigned char) (g_effects_force_next_crit ? 1 : 0);
+        }
+        else if (g_force_crit_mode >= 0)
+        {
+            crit = (unsigned char) (g_force_crit_mode ? 1 : 0);
+        }
+        else if (s->crit_chance_pct > 0)
+        {
+            /* Use a stable hash of (effect id, current sequence watermark, time bucket) */
+            unsigned int pct =
+                hash_to_pct((unsigned int) s->id, g_event_seq, (unsigned int) now_ms);
+            crit = (unsigned char) (pct < (unsigned int) s->crit_chance_pct ? 1 : 0);
+        }
+        if (crit)
+        {
+            long long nm = (long long) raw * 150LL; /* 150% crit */
+            raw = (int) (nm / 100LL);
+        }
+        int mitig = rogue_apply_mitigation_enemy(target, raw, dmg_type, &over);
+        if (mitig < 0)
+            mitig = 0;
+        if (target->health > 0)
+        {
+            int nh = target->health - mitig;
+            target->health = (nh < 0 ? 0 : nh);
+            if (target->health == 0)
+                target->alive = 0;
+        }
+        rogue_damage_event_record(0, dmg_type, crit, raw, mitig, over, 0);
     }
     break;
     default:
@@ -131,7 +207,24 @@ void rogue_effect_apply(int id, double now_ms)
     }
     /* Phase 3.4: compute scaled magnitude (dynamic) for initial application. */
     int eff_mag = compute_scaled_magnitude(s);
+    /* Phase 5.4: per-application crit snapshot option */
+    int snapshot_cd = -2;
+    if (s->kind == ROGUE_EFFECT_DOT && s->crit_mode == 1)
+    {
+        extern int g_force_crit_mode;
+        if (g_force_crit_mode >= 0)
+            snapshot_cd = (g_force_crit_mode ? 1 : 0);
+        else if (s->crit_chance_pct > 0)
+            snapshot_cd = (hash_to_pct((unsigned int) s->id, g_event_seq, (unsigned int) now_ms) <
+                           (unsigned int) s->crit_chance_pct)
+                              ? 1
+                              : 0;
+    }
+    int prev_force = g_effects_force_next_crit;
+    if (snapshot_cd >= 0)
+        g_effects_force_next_crit = snapshot_cd;
     apply_with_magnitude(s, eff_mag, now_ms);
+    g_effects_force_next_crit = prev_force;
     if (s->pulse_period_ms > 0.0f && s->duration_ms > 0.0f)
     {
         /* schedule subsequent pulses within duration window */
@@ -142,6 +235,9 @@ void rogue_effect_apply(int id, double now_ms)
             push_event(id, t);
             if (s->snapshot_scale)
                 g_events[g_event_count - 1].override_magnitude = eff_mag;
+            /* Carry per-application crit snapshot to all pulses */
+            if (snapshot_cd >= 0)
+                g_events[g_event_count - 1].force_crit = (signed char) snapshot_cd;
             t += (double) s->pulse_period_ms;
         }
     }
@@ -189,7 +285,28 @@ void rogue_effects_update(double now_ms)
         {
             int mag =
                 (ev.override_magnitude >= 0) ? ev.override_magnitude : compute_scaled_magnitude(s);
+            /* Per-tick crit decision if needed (DOT crit_mode==per-tick) */
+            int prev_force = g_effects_force_next_crit;
+            if (s->kind == ROGUE_EFFECT_DOT)
+            {
+                int cd = -2;
+                extern int g_force_crit_mode;
+                if (g_force_crit_mode >= 0)
+                    cd = (g_force_crit_mode ? 1 : 0);
+                else if (ev.force_crit >= 0)
+                    cd = ev.force_crit;
+                else if (s->crit_chance_pct > 0)
+                {
+                    /* Per-tick: use event seq and timestamp for deterministic roll */
+                    unsigned int pct =
+                        hash_to_pct((unsigned int) s->id, ev.seq, (unsigned int) ev.when_ms);
+                    cd = (pct < (unsigned int) s->crit_chance_pct) ? 1 : 0;
+                }
+                if (cd >= 0)
+                    g_effects_force_next_crit = cd;
+            }
             apply_with_magnitude(s, mag, now_ms);
+            g_effects_force_next_crit = prev_force;
         }
     }
     /* compact non-ready events to front (preserving relative order) */
@@ -200,4 +317,14 @@ void rogue_effects_update(double now_ms)
             g_events[w++] = ev;
     }
     g_event_count = w;
+}
+
+int rogue_effect_spec_is_debuff(int id)
+{
+    const RogueEffectSpec* s = rogue_effect_get(id);
+    if (!s)
+        return 0;
+    if (s->debuff)
+        return 1;
+    return (s->kind == ROGUE_EFFECT_DOT) ? 1 : 0;
 }

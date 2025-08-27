@@ -1,5 +1,6 @@
 #include "effect_spec_parser.h"
 #include "../game/buffs.h"
+#include "../game/combat_attacks.h" /* RogueDamageType enum & ROGUE_DMG_* */
 #include "../util/kv_parser.h"
 #include "effect_spec.h"
 #include <stdio.h>
@@ -30,6 +31,28 @@ static int parse_kind(const char* s)
         return -1;
     if (strcmp(s, "STAT_BUFF") == 0)
         return ROGUE_EFFECT_STAT_BUFF;
+    if (strcmp(s, "DOT") == 0)
+        return ROGUE_EFFECT_DOT;
+    return -1;
+}
+static int parse_damage_type(const char* s)
+{
+    if (!s)
+        return -1;
+    if (strcmp(s, "PHYSICAL") == 0)
+        return ROGUE_DMG_PHYSICAL;
+    if (strcmp(s, "FIRE") == 0)
+        return ROGUE_DMG_FIRE;
+    if (strcmp(s, "FROST") == 0)
+        return ROGUE_DMG_FROST;
+    if (strcmp(s, "ARCANE") == 0)
+        return ROGUE_DMG_ARCANE;
+    if (strcmp(s, "POISON") == 0)
+        return ROGUE_DMG_POISON;
+    if (strcmp(s, "BLEED") == 0)
+        return ROGUE_DMG_BLEED;
+    if (strcmp(s, "TRUE") == 0)
+        return ROGUE_DMG_TRUE;
     return -1;
 }
 static int parse_buff_type(const char* s)
@@ -94,6 +117,10 @@ int rogue_effects_parse_text(const char* text, int* out_ids, int max_ids, char* 
             if (k >= 0)
                 s->kind = (unsigned char) k;
         }
+        else if (strcmp(field, "debuff") == 0)
+        {
+            s->debuff = (unsigned char) atoi(e.value);
+        }
         else if (strcmp(field, "buff_type") == 0)
         {
             int bt = parse_buff_type(e.value);
@@ -107,6 +134,20 @@ int rogue_effects_parse_text(const char* text, int* out_ids, int max_ids, char* 
         else if (strcmp(field, "duration_ms") == 0)
         {
             s->duration_ms = (float) atof(e.value);
+        }
+        else if (strcmp(field, "damage_type") == 0)
+        {
+            int dt = parse_damage_type(e.value);
+            if (dt >= 0)
+                s->damage_type = (unsigned char) dt;
+        }
+        else if (strcmp(field, "crit_mode") == 0)
+        {
+            s->crit_mode = (unsigned char) atoi(e.value);
+        }
+        else if (strcmp(field, "crit_chance_pct") == 0)
+        {
+            s->crit_chance_pct = (unsigned char) atoi(e.value);
         }
         else if (strcmp(field, "stack_rule") == 0)
         {

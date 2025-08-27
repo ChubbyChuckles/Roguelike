@@ -9,7 +9,8 @@ extern "C"
     /* Effect kinds (expanded later) */
     typedef enum RogueEffectKind
     {
-        ROGUE_EFFECT_STAT_BUFF = 0
+        ROGUE_EFFECT_STAT_BUFF = 0,
+        ROGUE_EFFECT_DOT = 1 /* Damage over Time (harmful) */
     } RogueEffectKind;
 
     /* Forward-declare buff stacking rule for specs */
@@ -27,8 +28,9 @@ extern "C"
         int id;                   /* registry id (assigned on register) */
         unsigned char kind;       /* RogueEffectKind */
         unsigned char target;     /* reserved for target selection (self, enemy, area) */
+        unsigned char debuff;     /* 1 if harmful debuff (for UI/analytics) */
         unsigned short buff_type; /* maps to RogueBuffType when kind == STAT_BUFF */
-        int magnitude;            /* buff magnitude (stacking additive with existing) */
+        int magnitude;            /* generic magnitude: buff amount or DOT base damage */
         float duration_ms;        /* applied buff duration */
         /* Phase 3.3 stacking rules + 3.4 snapshot flag */
         unsigned char stack_rule; /* RogueBuffStackRule */
@@ -53,6 +55,10 @@ extern "C"
         /* Phase 3.6 simple effect graph (up to 4 children) */
         unsigned char child_count;    /* number of children in array */
         RogueEffectChild children[4]; /* child descriptors */
+        /* Phase 5: DOT parameters (used when kind == ROGUE_EFFECT_DOT) */
+        unsigned char damage_type;     /* RogueDamageType */
+        unsigned char crit_mode;       /* 0 = per-tick, 1 = per-application snapshot */
+        unsigned char crit_chance_pct; /* used when RNG enabled; tests may force via g_force_crit */
     } RogueEffectSpec;
 
     int rogue_effect_register(const RogueEffectSpec* spec); /* returns id or -1 */
@@ -61,6 +67,8 @@ extern "C"
     /* Phase 3.5: process scheduled effect events (periodic pulses and child chains). */
     void rogue_effects_update(double now_ms);
     void rogue_effect_reset(void); /* free registry for tests */
+    /* Query helpers */
+    int rogue_effect_spec_is_debuff(int id);
 
 #ifdef __cplusplus
 }
