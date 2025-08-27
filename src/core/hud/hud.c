@@ -9,9 +9,17 @@
 #include <SDL.h>
 #endif
 
-static RogueHUDBarsState g_hud_bars_state;    /* persistent smoothing */
+/** @brief Persistent smoothing state for HUD bars. */
+static RogueHUDBarsState g_hud_bars_state; /* persistent smoothing */
+/** @brief Buff overlay state for the HUD buff belt. */
 static RogueHUDBuffBeltState g_hud_buff_belt; /* buff overlay */
 
+/** @brief Main HUD rendering function.
+ *
+ * Renders the complete Heads-Up Display including health, mana, XP, and AP bars,
+ * level text, buff belt, alerts, metrics overlay, and enemy difficulty indicator.
+ * Uses data-driven layout and smoothing for bars. Only renders if SDL renderer is available.
+ */
 void rogue_hud_render(void)
 {
 #ifdef ROGUE_HAVE_SDL
@@ -157,6 +165,12 @@ void rogue_hud_render(void)
 #endif
 }
 
+/** @brief Renders the player statistics panel.
+ *
+ * Displays a panel showing player stats including STR, DEX, VIT, INT, CRIT%, and CRITDMG.
+ * The panel includes bars for visual representation and highlights the currently selected stat.
+ * Only renders if the stats panel is enabled and SDL renderer is available.
+ */
 void rogue_stats_panel_render(void)
 {
 #ifdef ROGUE_HAVE_SDL
