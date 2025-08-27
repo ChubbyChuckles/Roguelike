@@ -387,3 +387,15 @@ feat(buffs/skills/combat): Phase 4.3–4.6 — buff categories, CC DR, expire ca
 Build & verify:
 - Built Debug with SDL2 using cmake --build build --config Debug --parallel 8.
 - Ran focused tests: CC and DR/handles tests OK; spot checks for EffectSpec and skills subset OK.
+
+feat(skills/effectspec): Phase 5 DOTs — debuff flag, stacking semantics, crit modes, mitigation; tests green (Debug SDL2, -j8)
+
+- Debuffs: DOT EffectSpecs default to harmful (debuff=1) unless explicitly set.
+- DOT engine: schedule periodic pulses; honor 3.4 scaling (snapshot vs dynamic).
+- Stacking model: UNIQUE gate, REFRESH realigns pulses, EXTEND preserves schedule while extending duration; last_apply_ms added to skip stale pulses.
+- Crit: per-application snapshot vs per-tick deterministic hash; one-shot/global overrides supported.
+- Mitigation: DOT ticks flow through combat mitigation and record damage events/overkill.
+- Cleanup: removed temporary DOT debug prints.
+- Tests: EffectSpec suite 11/11 green (`dot_basic`, `dot_stack`, `dot_crit`, snapshot/order tests). Full suite mostly green with unrelated AI/equipment failures.
+- Build: cmake --build build --config Debug --parallel 8 (SDL2); ran ctest -C Debug -j8 -R effectspec_.
+- Docs: Roadmap Phase 5 marked Done with implementation notes.

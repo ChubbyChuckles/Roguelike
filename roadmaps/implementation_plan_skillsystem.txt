@@ -72,11 +72,11 @@ PHASE 4. Buff System Upgrade
 4.6 Tests: DR decay, expiration triggers, handle reuse safety (Done: `test_buffs_phase4_dr_and_handles` and `test_combat_phase4_cc` green; verifies natural/manual expire callbacks and stale handle invalidation)
 
 PHASE 5. Debuffs & Damage Over Time
-5.1 Separate namespace / flag for debuffs (harmful) (X)
-5.2 DOT tick engine: base_damage, scaling coefficients (stat-sourced) (X)
-5.3 Resist / mitigation pipeline hook integration (armor, resist stats) (X)
-5.4 Critical tick chance (roll per application vs per tick configurable) (X)
-5.5 Tests: DOT duration, stacking model (refresh vs extend), crit variance determinism (X)
+5.1 Separate namespace / flag for debuffs (harmful) (Done: DOT EffectSpecs default debuff=1 unless explicitly set; parser preserves explicit flags)
+5.2 DOT tick engine: base_damage, scaling coefficients (stat-sourced) (Done: DOT pulses scheduled via pending-events queue; per-effect scaling via 3.4 implemented; snapshot vs dynamic magnitude honored)
+5.3 Resist / mitigation pipeline hook integration (armor, resist stats) (Done: DOT ticks route through combat mitigation `rogue_apply_mitigation_enemy`, recording overkill and damage events)
+5.4 Critical tick chance (roll per application vs per tick configurable) (Done: per-application crit snapshot vs per-tick crit using deterministic hash; one-shot/global test overrides supported)
+5.5 Tests: DOT duration, stacking model (refresh vs extend), crit variance determinism (Done: `test_effectspec_dot_basic`, `test_effectspec_dot_stack`, `test_effectspec_dot_crit`, plus ordering/child tests remain green)
 
 PHASE 6. Auras & Area Effects
 6.1 Aura definition: radius, pulse_period_ms, entry/exit callbacks (X)

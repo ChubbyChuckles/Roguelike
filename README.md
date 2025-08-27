@@ -181,6 +181,13 @@ Scaling (Phase 3.4):
 
 Same-timestamp ordering (determinism): when a periodic pulse and a child effect are scheduled for the exact same `when_ms`, the system processes the pulse before the child. Locked by unit `tests/unit/test_effectspec_pulse_child_order.c`.
 
+DOTs (Phase 5 summary):
+- Debuff flag: DOT specs default to harmful (debuff=1) unless explicitly overridden.
+- Stacking semantics: UNIQUE blocks reapply while active; REFRESH cancels and realigns pulses from the latest apply; EXTEND keeps existing pulse schedule and extends end time. Internally tracks `last_apply_ms` and skips stale pulses for REFRESH.
+- Crit modes: per-application crit snapshot vs per-tick crit (deterministic hash); test hooks support a one-shot/global override for determinism.
+- Mitigation & logging: Each tick routes through combat mitigation and records damage events including overkill.
+- Tests: `test_effectspec_dot_basic`, `test_effectspec_dot_stack`, and `test_effectspec_dot_crit` validate duration, stacking, and crit behavior alongside existing ordering/scaling tests. All pass in Debug with SDL2 (-j8).
+
 ## Buffs – Phase 4 snapshot
 
 - Handle-based pool with free list and 16-bit generations prevents stale handle reuse; legacy API remains for simple integer totals.

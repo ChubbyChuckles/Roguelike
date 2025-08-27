@@ -25,6 +25,44 @@ static int g_event_count = 0;
 
 static unsigned int g_event_seq = 0;
 
+/* Phase 5.3/5.5: Minimal active DOT tracking per effect id to support stacking models
+   (UNIQUE, REFRESH, EXTEND). This is intentionally simple (single target assumption in tests).
+*/
+typedef struct ActiveDOTRec
+{
+    int effect_id;
+    double end_ms;        /* when this DOT instance should end */
+    double last_apply_ms; /* when the DOT was most recently (re)applied */
+} ActiveDOTRec;
+
+#define ROGUE_ACTIVE_DOT_CAP 64
+static ActiveDOTRec g_active_dots[ROGUE_ACTIVE_DOT_CAP];
+static int g_active_dot_count = 0;
+
+static int find_active_dot_index(int effect_id)
+{
+    for (int i = 0; i < g_active_dot_count; ++i)
+    {
+        if (g_active_dots[i].effect_id == effect_id)
+            return i;
+    }
+    return -1;
+}
+
+static void remove_pending_for_effect(int effect_id)
+{
+    for (int i = 0; i < g_event_count;)
+    {
+        if (g_events[i].effect_id == effect_id)
+        {
+            g_events[i] = g_events[g_event_count - 1];
+            g_event_count--;
+            continue;
+        }
+        ++i;
+    }
+}
+
 static void push_event(int effect_id, double when_ms)
 {
     if (g_event_count >= ROGUE_EFFECT_EV_CAP)
@@ -45,6 +83,7 @@ void rogue_effect_reset(void)
     g_effect_spec_cap = 0;
     g_event_count = 0;
     g_event_seq = 0;
+    g_active_dot_count = 0;
 }
 
 int rogue_effect_register(const RogueEffectSpec* spec)
@@ -72,6 +111,14 @@ int rogue_effect_register(const RogueEffectSpec* spec)
     {
         if (!tmp.debuff)
             tmp.debuff = 1;
+    }
+    /* Default stacking behavior: for STAT_BUFF effects, default to ADD when unspecified.
+       Tests construct specs with zero-initialized fields; a zero stack_rule maps to UNIQUE in
+       the enum, but the intended default for buffs is additive stacking. Config parser already
+       sets ADD explicitly when not provided; mirror that here for programmatic specs. */
+    if (tmp.kind == ROGUE_EFFECT_STAT_BUFF && tmp.stack_rule == 0)
+    {
+        tmp.stack_rule = (unsigned char) ROGUE_BUFF_STACK_ADD;
     }
     tmp.id = g_effect_spec_count;
     g_effect_specs[g_effect_spec_count] = tmp;
@@ -128,8 +175,6 @@ static void apply_with_magnitude(const RogueEffectSpec* s, int eff_mag, double n
         RogueBuffStackRule rule = (RogueBuffStackRule) s->stack_rule;
         if (rule < ROGUE_BUFF_STACK_UNIQUE || rule > ROGUE_BUFF_STACK_REPLACE_IF_STRONGER)
             rule = ROGUE_BUFF_STACK_ADD;
-        if (s->stack_rule == 0)
-            rule = ROGUE_BUFF_STACK_ADD;
         rogue_buffs_apply((RogueBuffType) s->buff_type, eff_mag, s->duration_ms, now_ms, rule,
                           s->snapshot ? 1 : 0);
     }
@@ -148,6 +193,7 @@ static void apply_with_magnitude(const RogueEffectSpec* s, int eff_mag, double n
         }
         if (!target)
             break;
+        /* (debug prints removed) */
         int over = 0;
         unsigned char dmg_type = s->damage_type;
         int raw = (eff_mag > 0 ? eff_mag : 0);
@@ -184,6 +230,7 @@ static void apply_with_magnitude(const RogueEffectSpec* s, int eff_mag, double n
             if (target->health == 0)
                 target->alive = 0;
         }
+        /* (debug prints removed) */
         rogue_damage_event_record(0, dmg_type, crit, raw, mitig, over, 0);
     }
     break;
@@ -223,13 +270,71 @@ void rogue_effect_apply(int id, double now_ms)
     int prev_force = g_effects_force_next_crit;
     if (snapshot_cd >= 0)
         g_effects_force_next_crit = snapshot_cd;
+    /* Phase 5.3: DOT stacking semantics for UNIQUE/REFRESH/EXTEND */
+    double schedule_end_ms = now_ms + (double) s->duration_ms;
+    int stacking_rule = (s->stack_rule <= ROGUE_BUFF_STACK_REPLACE_IF_STRONGER)
+                            ? s->stack_rule
+                            : ROGUE_BUFF_STACK_ADD;
+    if (s->kind == ROGUE_EFFECT_DOT && s->duration_ms > 0.0f)
+    {
+        int idx = find_active_dot_index(id);
+        int is_active = (idx >= 0 && g_active_dots[idx].end_ms > now_ms);
+        if (stacking_rule == ROGUE_BUFF_STACK_UNIQUE && is_active)
+        {
+            /* Do not apply new instance */
+            return;
+        }
+        else if ((stacking_rule == ROGUE_BUFF_STACK_REFRESH ||
+                  stacking_rule == ROGUE_BUFF_STACK_EXTEND) &&
+                 is_active)
+        {
+            /* Recompute end; for REFRESH we also remove future pulses to realign. */
+            double remaining = g_active_dots[idx].end_ms - now_ms;
+            if (remaining < 0.0)
+                remaining = 0.0;
+            double new_total = (stacking_rule == ROGUE_BUFF_STACK_EXTEND)
+                                   ? (remaining + (double) s->duration_ms)
+                                   : (double) s->duration_ms;
+            schedule_end_ms = now_ms + new_total;
+            if (stacking_rule == ROGUE_BUFF_STACK_REFRESH)
+            {
+                /* For REFRESH semantics, cancel previously scheduled pulses. */
+                remove_pending_for_effect(id);
+            }
+            g_active_dots[idx].end_ms = schedule_end_ms;
+            g_active_dots[idx].last_apply_ms = now_ms;
+        }
+        else
+        {
+            /* New active record (or additive case - track last one) */
+            if (idx < 0)
+            {
+                if (g_active_dot_count < ROGUE_ACTIVE_DOT_CAP)
+                {
+                    g_active_dots[g_active_dot_count].effect_id = id;
+                    g_active_dots[g_active_dot_count].end_ms = schedule_end_ms;
+                    g_active_dots[g_active_dot_count].last_apply_ms = now_ms;
+                    g_active_dot_count++;
+                }
+            }
+            else
+            {
+                /* Update the tracked end to the later one */
+                if (g_active_dots[idx].end_ms < schedule_end_ms)
+                    g_active_dots[idx].end_ms = schedule_end_ms;
+                /* Update last apply time to now; used for REFRESH filtering of stale pulses. */
+                g_active_dots[idx].last_apply_ms = now_ms;
+            }
+        }
+    }
+
     apply_with_magnitude(s, eff_mag, now_ms);
     g_effects_force_next_crit = prev_force;
     if (s->pulse_period_ms > 0.0f && s->duration_ms > 0.0f)
     {
-        /* schedule subsequent pulses within duration window */
+        /* schedule subsequent pulses within duration (or updated schedule_end_ms) */
         double t = now_ms + (double) s->pulse_period_ms;
-        double end = now_ms + (double) s->duration_ms;
+        double end = schedule_end_ms;
         while (t <= end && g_event_count < ROGUE_EFFECT_EV_CAP)
         {
             push_event(id, t);
@@ -283,6 +388,22 @@ void rogue_effects_update(double now_ms)
         const RogueEffectSpec* s = rogue_effect_get(ev.effect_id);
         if (s)
         {
+            /* If this is a DOT with REFRESH stacking, ignore pulses that were scheduled prior to
+               the last refresh boundary (defensive against any stale events). */
+            if (s->kind == ROGUE_EFFECT_DOT && s->stack_rule == ROGUE_BUFF_STACK_REFRESH)
+            {
+                int didx = find_active_dot_index(ev.effect_id);
+                if (didx >= 0)
+                {
+                    double boundary =
+                        g_active_dots[didx].last_apply_ms + (double) s->pulse_period_ms;
+                    if (ev.when_ms < boundary)
+                    {
+                        /* Skip this stale pulse */
+                        continue;
+                    }
+                }
+            }
             int mag =
                 (ev.override_magnitude >= 0) ? ev.override_magnitude : compute_scaled_magnitude(s);
             /* Per-tick crit decision if needed (DOT crit_mode==per-tick) */
