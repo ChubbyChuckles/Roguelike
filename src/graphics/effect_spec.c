@@ -112,6 +112,14 @@ int rogue_effect_register(const RogueEffectSpec* spec)
         if (!tmp.debuff)
             tmp.debuff = 1;
     }
+    else if (tmp.kind == ROGUE_EFFECT_AURA)
+    {
+        /* AURA defaults: debuff=1 if magnitude implies damage; radius default 1.5 tiles */
+        if (!tmp.debuff && tmp.magnitude > 0)
+            tmp.debuff = 1;
+        if (tmp.aura_radius <= 0.0f)
+            tmp.aura_radius = 1.5f;
+    }
     /* Default stacking behavior: for STAT_BUFF effects, default to ADD when unspecified.
        Tests construct specs with zero-initialized fields; a zero stack_rule maps to UNIQUE in
        the enum, but the intended default for buffs is additive stacking. Config parser already
@@ -232,6 +240,59 @@ static void apply_with_magnitude(const RogueEffectSpec* s, int eff_mag, double n
         }
         /* (debug prints removed) */
         rogue_damage_event_record(0, dmg_type, crit, raw, mitig, over, 0);
+    }
+    break;
+    case ROGUE_EFFECT_AURA:
+    {
+        /* Area effect: apply to all enemies within radius of player */
+        float px = g_app.player.base.pos.x;
+        float py = g_app.player.base.pos.y;
+        float r = (s->aura_radius > 0.0f) ? s->aura_radius : 0.0f;
+        float r2 = r * r;
+        unsigned char dmg_type = s->damage_type; /* allow damage typing for auras */
+        int base_raw = (eff_mag > 0 ? eff_mag : 0);
+        for (int i = 0; i < g_app.enemy_count; ++i)
+        {
+            RogueEnemy* e = &g_app.enemies[i];
+            if (!e->alive)
+                continue;
+            float dx = e->base.pos.x - px;
+            float dy = e->base.pos.y - py;
+            float d2 = dx * dx + dy * dy;
+            if (d2 > r2)
+                continue;
+            int over = 0;
+            int raw = base_raw;
+            /* Optional per-tick crit akin to DOT per-tick (deterministic hash) */
+            unsigned char crit = 0;
+            extern int g_force_crit_mode;
+            if (g_effects_force_next_crit >= 0)
+                crit = (unsigned char) (g_effects_force_next_crit ? 1 : 0);
+            else if (g_force_crit_mode >= 0)
+                crit = (unsigned char) (g_force_crit_mode ? 1 : 0);
+            else if (s->crit_chance_pct > 0)
+            {
+                unsigned int pct =
+                    hash_to_pct((unsigned int) s->id, (unsigned int) i, (unsigned int) now_ms);
+                crit = (unsigned char) (pct < (unsigned int) s->crit_chance_pct ? 1 : 0);
+            }
+            if (crit)
+            {
+                long long nm = (long long) raw * 150LL;
+                raw = (int) (nm / 100LL);
+            }
+            int mitig = rogue_apply_mitigation_enemy(e, raw, dmg_type, &over);
+            if (mitig < 0)
+                mitig = 0;
+            if (e->health > 0)
+            {
+                int nh = e->health - mitig;
+                e->health = (nh < 0 ? 0 : nh);
+                if (e->health == 0)
+                    e->alive = 0;
+            }
+            rogue_damage_event_record(0, dmg_type, crit, raw, mitig, over, 0);
+        }
     }
     break;
     default:

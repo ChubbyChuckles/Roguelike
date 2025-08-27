@@ -188,6 +188,14 @@ DOTs (Phase 5 summary):
 - Mitigation & logging: Each tick routes through combat mitigation and records damage events including overkill.
 - Tests: `test_effectspec_dot_basic`, `test_effectspec_dot_stack`, and `test_effectspec_dot_crit` validate duration, stacking, and crit behavior alongside existing ordering/scaling tests. All pass in Debug with SDL2 (-j8).
 
+### Auras & Area Effects (Phase 6 – slice)
+
+- New EffectSpec kind AURA with fields: `aura_radius` and `pulse_period_ms`.
+- Runtime: each pulse applies damage to enemies within radius of the player, flowing through the standard mitigation and damage-event pipeline. Debuff defaults to 1 unless specified.
+- Determinism: per-tick crits use a deterministic hash; pulse schedule uses the same pending-event queue as DOTs (tick at t=0 then every `pulse_period_ms` until duration end).
+- Defaults: unspecified `aura_radius` defaults to 1.5f for safety; harmful magnitude implies `debuff=1` if unset.
+- Test: `test_effectspec_aura_basic` validates entry/exit and pulse timing determinism. All EffectSpec tests pass in Debug with SDL2 (-j8).
+
 ## Buffs – Phase 4 snapshot
 
 - Handle-based pool with free list and 16-bit generations prevents stale handle reuse; legacy API remains for simple integer totals.

@@ -33,6 +33,8 @@ static int parse_kind(const char* s)
         return ROGUE_EFFECT_STAT_BUFF;
     if (strcmp(s, "DOT") == 0)
         return ROGUE_EFFECT_DOT;
+    if (strcmp(s, "AURA") == 0)
+        return ROGUE_EFFECT_AURA;
     return -1;
 }
 static int parse_damage_type(const char* s)
@@ -165,6 +167,14 @@ int rogue_effects_parse_text(const char* text, int* out_ids, int max_ids, char* 
         else if (strcmp(field, "pulse_period_ms") == 0)
         {
             s->pulse_period_ms = (float) atof(e.value);
+        }
+        else if (strcmp(field, "aura_radius") == 0)
+        {
+            s->aura_radius = (float) atof(e.value);
+        }
+        else if (strcmp(field, "aura_group_mask") == 0)
+        {
+            s->aura_group_mask = (unsigned int) strtoul(e.value, NULL, 10);
         }
         else if (strcmp(field, "scale_by_buff_type") == 0)
         {

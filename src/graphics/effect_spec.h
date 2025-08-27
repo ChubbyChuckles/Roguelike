@@ -10,7 +10,8 @@ extern "C"
     typedef enum RogueEffectKind
     {
         ROGUE_EFFECT_STAT_BUFF = 0,
-        ROGUE_EFFECT_DOT = 1 /* Damage over Time (harmful) */
+        ROGUE_EFFECT_DOT = 1, /* Damage over Time (harmful) */
+        ROGUE_EFFECT_AURA = 2 /* Area effect centered on player (radius) */
     } RogueEffectKind;
 
     /* Forward-declare buff stacking rule for specs */
@@ -30,7 +31,7 @@ extern "C"
         unsigned char target;     /* reserved for target selection (self, enemy, area) */
         unsigned char debuff;     /* 1 if harmful debuff (for UI/analytics) */
         unsigned short buff_type; /* maps to RogueBuffType when kind == STAT_BUFF */
-        int magnitude;            /* generic magnitude: buff amount or DOT base damage */
+        int magnitude;            /* generic magnitude: buff amount, DOT dmg, or AURA dmg */
         float duration_ms;        /* applied buff duration */
         /* Phase 3.3 stacking rules + 3.4 snapshot flag */
         unsigned char stack_rule; /* RogueBuffStackRule */
@@ -59,6 +60,9 @@ extern "C"
         unsigned char damage_type;     /* RogueDamageType */
         unsigned char crit_mode;       /* 0 = per-tick, 1 = per-application snapshot */
         unsigned char crit_chance_pct; /* used when RNG enabled; tests may force via g_force_crit */
+        /* Phase 6: AURA parameters (used when kind == ROGUE_EFFECT_AURA) */
+        float aura_radius;            /* tiles radius around player for area effects */
+        unsigned int aura_group_mask; /* exclusivity mask (0 = none); reserved */
     } RogueEffectSpec;
 
     int rogue_effect_register(const RogueEffectSpec* spec); /* returns id or -1 */
