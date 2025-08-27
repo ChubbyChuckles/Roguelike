@@ -100,6 +100,9 @@ int rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, dou
     for (int i = 0; i < ROGUE_MAX_ACTIVE_BUFFS; i++)
         if (!g_buffs[i].active)
         {
+            /* For multiplicative stacking, if there's no existing buff to multiply, do nothing. */
+            if (rule == ROGUE_BUFF_STACK_MULTIPLY)
+                return 0;
             g_buffs[i].active = 1;
             g_buffs[i].type = type;
             g_buffs[i].magnitude = magnitude;

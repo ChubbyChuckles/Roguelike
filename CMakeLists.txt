@@ -135,6 +135,7 @@ add_library(rogue_core
     src/core/integration/cfg_migration.c
     src/core/integration/hot_reload.c
     src/core/integration/dependency_manager.c
+    src/util/kv_parser.c
     # persistence module split
     src/core/persistence/persistence_io.c
     src/core/persistence/persistence_world.c
@@ -148,6 +149,8 @@ add_library(rogue_core
     src/core/skills/skill_tree.c
     src/core/skills/skill_bar.c
     src/core/skills/skill_talents.c
+    # EffectSpec parser
+    src/graphics/effect_spec_parser.c
     src/graphics/effect_spec.c
     src/game/buffs.c
     # projectiles module split

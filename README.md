@@ -155,3 +155,16 @@ Initial slice of the EffectSpec pipeline is in place:
 - Tests: `test_effectspec_tick_and_chain` validates periodic pulses at exact 100ms quanta over the duration window and a parent→child delayed apply at 50ms.
 Additional stacking rules:
 - MULTIPLY and REPLACE_IF_STRONGER were added alongside UNIQUE/REFRESH/EXTEND/ADD. Multiplicative interprets incoming magnitude as percent (150 = +50%); replace-if-stronger updates magnitude only when higher and preserves the longer remaining duration. See `tests/unit/test_effectspec_stack_variants.c`.
+
+EffectSpec parser (Phase 3.1):
+- New parser reads simple key=value text (and files) to register EffectSpecs. Fields:
+	- effect.<index>.kind = STAT_BUFF
+	- effect.<index>.buff_type = STAT_STRENGTH | POWER_STRIKE
+	- effect.<index>.magnitude = <int>
+	- effect.<index>.duration_ms = <ms>
+	- effect.<index>.stack_rule = ADD|REFRESH|EXTEND|UNIQUE|MULTIPLY|REPLACE_IF_STRONGER
+	- effect.<index>.snapshot = 0|1
+	- effect.<index>.pulse_period_ms = <ms>
+	- effect.<index>.childN.id / effect.<index>.childN.delay_ms
+- Registration preserves ascending index and defaults stack_rule to ADD if unspecified; explicit UNIQUE is respected.
+- Multiplicative effects are a no-op when no baseline buff of the same type exists (avoids creating a stack from zero). Covered in `tests/unit/test_effectspec_parser.c`.
