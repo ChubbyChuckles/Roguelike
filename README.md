@@ -194,6 +194,7 @@ DOTs (Phase 5 summary):
 - Runtime: each pulse applies damage to enemies within radius of the player, flowing through the standard mitigation and damage-event pipeline. Debuff defaults to 1 unless specified.
 - Determinism: per-tick crits use a deterministic hash; pulse schedule uses the same pending-event queue as DOTs (tick at t=0 then every `pulse_period_ms` until duration end).
 - Defaults: unspecified `aura_radius` defaults to 1.5f for safety; harmful magnitude implies `debuff=1` if unset.
+- Exclusivity: optional `aura_group_mask` enables replace-if-stronger behavior across mutually exclusive aura groups; weaker re-applies are ignored. Covered by `test_effectspec_aura_exclusive`.
 - Test: `test_effectspec_aura_basic` validates entry/exit and pulse timing determinism. All EffectSpec tests pass in Debug with SDL2 (-j8).
 
 ## Buffs – Phase 4 snapshot

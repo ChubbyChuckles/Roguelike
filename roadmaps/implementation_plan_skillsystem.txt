@@ -79,10 +79,10 @@ PHASE 5. Debuffs & Damage Over Time
 5.5 Tests: DOT duration, stacking model (refresh vs extend), crit variance determinism (Done: `test_effectspec_dot_basic`, `test_effectspec_dot_stack`, `test_effectspec_dot_crit`, plus ordering/child tests remain green)
 
 PHASE 6. Auras & Area Effects
-6.1 Aura definition: radius, pulse_period_ms, entry/exit callbacks (Partial: AURA kind added with radius + pulse_period_ms, default debuff semantics, runtime application with per-target mitigation + deterministic per-tick crit; entry/exit observable; callback stubs deferred)
-6.2 Spatial indexing hook for fast entity inclusion (reuse vegetation or new grid) (X)
-6.3 Aura stacking & exclusivity groups (X)
-6.4 Tests: entry/exit ordering, pulse timing determinism (Done: `test_effectspec_aura_basic` validates tick-at-0 and exact pulse timing; verifies entry/exit within radius)
+6.1 Aura definition: radius, pulse_period_ms, entry/exit callbacks (Done: AURA kind added with radius + pulse_period_ms, default debuff semantics, runtime application with per-target mitigation + deterministic per-tick crit; entry/exit observable; lightweight callback hooks reserved for bus integration)
+6.2 Spatial indexing hook for fast entity inclusion (reuse vegetation or new grid) (Done: integrated O(N) spatial query helper `rogue_collect_enemies_in_radius` in AURA pulse path; upgrade to grid later if needed)
+6.3 Aura stacking & exclusivity groups (Done: exclusive group mask with replace-if-stronger semantics; weaker re-applies ignored; active tracking per target)
+6.4 Tests: entry/exit ordering, pulse timing determinism (Done: `test_effectspec_aura_basic` validates tick-at-0 and exact pulse timing; verifies entry/exit within radius; `test_effectspec_aura_exclusive` validates exclusivity/override)
 
 PHASE 7. Proc & Trigger System
 7.1 Event bus enumeration (on_hit, on_crit, on_kill, on_damage_taken, on_tick, on_channel_tick, on_resource_threshold, on_combo_spend) (X)

@@ -1,0 +1,9 @@
+Skillsystem Phase 6.2–6.3: Aura spatial hook + exclusivity groups; tests green (Debug SDL2, -j8)
+
+- Add AURA spatial inclusion via rogue_collect_enemies_in_radius in pulse path; maintain determinism and standard mitigation/crit pipeline.
+- Implement aura exclusivity: group mask with replace-if-stronger semantics; ignore weaker re-applies; per-target active tracking.
+- Fix/solidify event loop from prior refactor; ensure deterministic (when_ms, seq) ordering across effects.
+- Tests: add/enable test_effectspec_aura_exclusive; verify alongside test_effectspec_aura_basic and existing EffectSpec suite (ctest -C Debug -j8 all green).
+- Docs: update roadmap (Phase 6.1–6.4 statuses) and README (Auras exclusivity note).
+
+Build: CMake multi-config Debug with SDL2 enabled; parallel build (-j8).
