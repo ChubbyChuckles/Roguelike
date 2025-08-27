@@ -1,4 +1,4 @@
-<div align="center>
+<div align="center">
 
 # Roguelike (Top‑Down Zelda‑like) – C / SDL2
 
@@ -105,7 +105,7 @@ Logging (quieter console by default):
 	- The save system tolerates empty/initial saves (no registered components) by computing CRC/SHA over an empty payload and still writing integrity footers. This enables the initial New Game save path to succeed in minimal test harnesses.
 	- Save/Load debug spam has been routed through the central logger at DEBUG level; default WARN keeps the console quiet unless explicitly enabled.
 
-## Audio & VFX (Phases 1–6 Snapshot)
+## Audio & VFX (Phases 1–7 Snapshot)
 
 Current capabilities:
 - Unified FX bus with deterministic ordering & frame compaction (merged repeat counts) feeding audio (SDL_mixer-backed) and VFX spawning.
@@ -116,21 +116,19 @@ Current capabilities:
 - Config loader (CSV) with hot-reload watcher & validation error surfacing.
 - Deterministic RNG seed override for reproducible particle/audio variant selection.
 
-Recent Phase 6 additions:
+Recent additions (Phase 6–7):
 - APIs: rogue_audio_music_register, rogue_audio_music_set_state, rogue_audio_music_set_state_on_next_bar, rogue_audio_music_set_tempo, rogue_audio_music_update, rogue_audio_duck_music, rogue_audio_music_current, rogue_audio_music_track_weight.
 - Cross-fade weights and duck envelope integrated into rogue_audio_debug_effective_gain for testability; future SDL channel volume automation will hook into these scalars.
 - New tests:
 	* test_audio_vfx_phase6_1_4_music_system (cross-fade midpoint & completion + duck envelope)
 	* test_audio_vfx_phase6_2_beat_aligned (verifies bar-aligned deferred transition & fade timing)
 
-Phase 7 (initial slice implemented):
+Phase 7 (now expanded):
 - Blend modes (registry only): RogueVfxBlend enum (ALPHA default; ADD, MULTIPLY) with set/get APIs; renderer will map to GPU states later.
 - Screen shake manager: pooled shakes (amplitude, frequency, duration) aggregated into a composite camera offset each frame with decay, deterministic for tests.
 - Performance scaling: global 0..1 emission multiplier (rogue_vfx_set_perf_scale / get) applied to particle emission accumulator for adaptive density.
 - GPU batch flag stub: enable/disable + query hook to gate future batched sprite/particle path (no batching logic yet).
-Test coverage: test_audio_vfx_phase7_core validates blend default/mutation, shake variation, perf scaling (steady-state active particles ~ rate * lifetime), and GPU batch flag toggle. All audio_vfx tests pass (Phase 1–7 slice: 26 targets).
-
-Upcoming Phase 7 work (not started):
-- Motion vectors / trail emitters (7.3)
-- Post-processing stubs: bloom & color grade LUT (7.5)
-- Decal / ground projection system (7.7)
+- Trails: per‑VFX trail emitters (trail_hz, trail_life_ms, trail_max) with per‑instance accumulators; particles flagged as trails for metrics; respects perf scaling.
+- Post‑processing stubs: global bloom enable + threshold/intensity params; color grade LUT id + strength; public getters/setters with clamping; renderer hookup pending.
+- Decals: registry + instance pool with lifetime aging; spawn with pos/angle/scale; per‑layer counts and screen‑space collection helper.
+Test coverage: Phase 6 and 7 tests validate cross‑fade/ducking/layering, emission math, trails/post/decals behaviors. All audio_vfx tests pass (27 targets) in Debug SDL2 with -j8.

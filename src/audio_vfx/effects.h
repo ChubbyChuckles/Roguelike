@@ -185,6 +185,13 @@ void rogue_vfx_set_frozen(int frozen);
 int rogue_vfx_registry_set_emitter(const char* id, float spawn_rate_hz,
                                    uint32_t particle_lifetime_ms, int max_particles);
 
+/* -------- Phase 7.3: Motion vectors / trail emitters -------- */
+/* Enable trail emission for a VFX id. Trails are lightweight particles spawned at the
+    owning instance position at the given rate with their own lifetime and cap.
+    Returns 0 on success. Trails respect the global perf scale. */
+int rogue_vfx_registry_set_trail(const char* id, float trail_hz, uint32_t trail_lifetime_ms,
+                                 int max_trail_particles);
+
 /* -------- Phase 7.2: Blend modes (registration only; renderer consumes later) -------- */
 typedef enum RogueVfxBlend
 {
@@ -263,6 +270,9 @@ int rogue_vfx_particles_collect_colors(uint32_t* out_rgba, int max);
 /* Phase 4.5: Collect particle lifetimes (ms). */
 int rogue_vfx_particles_collect_lifetimes(uint32_t* out_ms, int max);
 
+/* Trails debug helpers */
+int rogue_vfx_particles_trail_count(void);
+
 /* ---- Gameplay -> Effects mapping (Phase 5.1) ---- */
 typedef enum RogueFxMapType
 {
@@ -325,5 +335,25 @@ void rogue_vfx_set_camera(float cam_x, float cam_y, float pixels_per_world);
     - out_layers: optional parallel array of layers (RogueVfxLayer) per particle; may be NULL.
     Returns number of particles written, up to max. */
 int rogue_vfx_particles_collect_screen(float* out_xy, uint8_t* out_layers, int max);
+
+/* -------- Phase 7.5: Post-processing stubs (bloom + color LUT) -------- */
+void rogue_vfx_post_set_bloom_enabled(int enable);
+int rogue_vfx_post_get_bloom_enabled(void);
+void rogue_vfx_post_set_bloom_params(float threshold, float intensity);
+void rogue_vfx_post_get_bloom_params(float* out_threshold, float* out_intensity);
+void rogue_vfx_post_set_color_lut(const char* lut_id, float strength);
+/* Returns non-zero if a LUT is set; optionally copies id into out_id (size out_sz). */
+int rogue_vfx_post_get_color_lut(char* out_id, size_t out_sz, float* out_strength);
+
+/* -------- Phase 7.7: Decal / ground projection system -------- */
+int rogue_vfx_decal_registry_register(const char* id, RogueVfxLayer layer, uint32_t lifetime_ms,
+                                      int world_space, float size);
+int rogue_vfx_decal_registry_get(const char* id, RogueVfxLayer* out_layer,
+                                 uint32_t* out_lifetime_ms, int* out_world_space, float* out_size);
+void rogue_vfx_decal_registry_clear(void);
+int rogue_vfx_decal_spawn(const char* id, float x, float y, float angle_rad, float scale);
+int rogue_vfx_decal_active_count(void);
+int rogue_vfx_decal_layer_count(RogueVfxLayer layer);
+int rogue_vfx_decals_collect_screen(float* out_xy, uint8_t* out_layers, int max);
 
 #endif /* ROGUE_EFFECTS_H */

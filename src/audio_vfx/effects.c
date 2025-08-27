@@ -1152,6 +1152,10 @@ typedef struct VfxReg
     uint32_t comp_child_delays[8];  /* delay per child (ms); semantics depend on mode */
     /* Phase 7.2: blend mode registration */
     uint8_t blend; /* RogueVfxBlend */
+    /* Phase 7.3: trail emitter config */
+    float trail_hz;
+    uint32_t trail_life_ms;
+    int trail_max;
 } VfxReg;
 
 typedef struct VfxInst
@@ -1168,6 +1172,8 @@ typedef struct VfxInst
     /* Composition runtime (Phase 4.3) */
     uint8_t comp_next_child;     /* next child index to spawn */
     uint32_t comp_last_spawn_ms; /* for CHAIN mode relative delay */
+    /* Trail accumulator (Phase 7.3) */
+    float trail_accum;
 } VfxInst;
 
 #define ROGUE_VFX_REG_CAP 64
@@ -1206,6 +1212,8 @@ typedef struct VfxParticle
     uint32_t color_rgba; /* Phase 4.4: per-particle color */
     uint32_t age_ms;
     uint32_t lifetime_ms;
+    /* Trail flag (Phase 7.3) to help tests count trails separately */
+    uint8_t is_trail;
 } VfxParticle;
 
 #define ROGUE_VFX_PART_CAP 1024
@@ -1213,6 +1221,31 @@ static VfxParticle g_vfx_parts[ROGUE_VFX_PART_CAP];
 /* Simple camera state for world->screen transforms */
 static float g_cam_x = 0.0f, g_cam_y = 0.0f; /* world origin at top-left of view */
 static float g_pixels_per_world = 32.0f;     /* default: 32 px per world unit */
+
+/* -------- Phase 7.7: Decals (types + storage placed early for forward use) -------- */
+typedef struct DecalReg
+{
+    char id[24];
+    uint8_t layer;
+    uint8_t world_space;
+    uint32_t lifetime_ms;
+    float size;
+} DecalReg;
+typedef struct DecalInst
+{
+    uint16_t reg_index;
+    uint8_t active;
+    float x, y;
+    float angle;
+    float scale;
+    uint32_t age_ms;
+} DecalInst;
+
+#define ROGUE_VFX_DECAL_REG_CAP 64
+static DecalReg g_decal_reg[ROGUE_VFX_DECAL_REG_CAP];
+static int g_decal_reg_count = 0;
+#define ROGUE_VFX_DECAL_INST_CAP 256
+static DecalInst g_decal_inst[ROGUE_VFX_DECAL_INST_CAP];
 
 static int vfx_part_alloc(void)
 {
@@ -1250,6 +1283,15 @@ int rogue_vfx_particles_active_count(void)
     int c = 0;
     for (int i = 0; i < ROGUE_VFX_PART_CAP; ++i)
         if (g_vfx_parts[i].active)
+            ++c;
+    return c;
+}
+
+int rogue_vfx_particles_trail_count(void)
+{
+    int c = 0;
+    for (int i = 0; i < ROGUE_VFX_PART_CAP; ++i)
+        if (g_vfx_parts[i].active && g_vfx_parts[i].is_trail)
             ++c;
     return c;
 }
@@ -1355,6 +1397,9 @@ int rogue_vfx_registry_register(const char* id, RogueVfxLayer layer, uint32_t li
     g_vfx_reg[idx].comp_mode = 0;
     g_vfx_reg[idx].comp_child_count = 0;
     g_vfx_reg[idx].blend = (uint8_t) ROGUE_VFX_BLEND_ALPHA;
+    g_vfx_reg[idx].trail_hz = 0.0f;
+    g_vfx_reg[idx].trail_life_ms = 0u;
+    g_vfx_reg[idx].trail_max = 0;
     return 0;
 }
 
@@ -1388,6 +1433,22 @@ int rogue_vfx_registry_set_emitter(const char* id, float spawn_rate_hz,
     g_vfx_reg[idx].emit_hz = spawn_rate_hz;
     g_vfx_reg[idx].p_lifetime_ms = particle_lifetime_ms;
     g_vfx_reg[idx].p_max = max_particles;
+    return 0;
+}
+
+int rogue_vfx_registry_set_trail(const char* id, float trail_hz, uint32_t trail_lifetime_ms,
+                                 int max_trail_particles)
+{
+    int idx = vfx_reg_find(id);
+    if (idx < 0)
+        return -1;
+    if (trail_hz < 0)
+        trail_hz = 0;
+    if (max_trail_particles < 0)
+        max_trail_particles = 0;
+    g_vfx_reg[idx].trail_hz = trail_hz;
+    g_vfx_reg[idx].trail_life_ms = trail_lifetime_ms;
+    g_vfx_reg[idx].trail_max = max_trail_particles;
     return 0;
 }
 
@@ -1440,6 +1501,7 @@ static int vfx_inst_alloc(void)
             g_vfx_inst[i].ov_color_rgba = 0u;
             g_vfx_inst[i].comp_next_child = 0;
             g_vfx_inst[i].comp_last_spawn_ms = 0;
+            g_vfx_inst[i].trail_accum = 0.0f;
             return i;
         }
     }
@@ -1507,91 +1569,125 @@ void rogue_vfx_update(uint32_t dt_ms)
             if (!g_vfx_inst[i].active)
                 continue;
             VfxReg* r = &g_vfx_reg[g_vfx_inst[i].reg_index];
-            if (r->emit_hz <= 0 || r->p_lifetime_ms == 0 || r->p_max <= 0)
-                continue;
-            /* accumulate fractional spawns */
-            g_vfx_inst[i].emit_accum += r->emit_hz * dt_sec * g_vfx_perf_scale;
-            int want = (int) g_vfx_inst[i].emit_accum;
-            if (want <= 0)
-                continue;
-            g_vfx_inst[i].emit_accum -= (float) want;
-            /* count current particles for this instance */
-            int cur = 0;
-            for (int p = 0; p < ROGUE_VFX_PART_CAP; ++p)
-                if (g_vfx_parts[p].active && g_vfx_parts[p].inst_idx == (uint16_t) i)
-                    ++cur;
-            int can = r->p_max - cur;
-            if (can <= 0)
-                continue;
-            int to_spawn = want < can ? want : can;
-            for (int s = 0; s < to_spawn; ++s)
+            /* Core particle emitter */
+            if (r->emit_hz > 0 && r->p_lifetime_ms > 0 && r->p_max > 0)
             {
-                int pi = vfx_part_alloc();
-                if (pi < 0)
-                    break; /* pool full */
-                g_vfx_parts[pi].active = 1;
-                g_vfx_parts[pi].inst_idx = (uint16_t) i;
-                g_vfx_parts[pi].layer = r->layer;
-                g_vfx_parts[pi].world_space = r->world_space;
-                g_vfx_parts[pi].x = g_vfx_inst[i].x;
-                g_vfx_parts[pi].y = g_vfx_inst[i].y;
-                /* Base scale from override or 1.0 */
-                float base_scale = (g_vfx_inst[i].ov_scale > 0.0f) ? g_vfx_inst[i].ov_scale : 1.0f;
-                float scale_mul = 1.0f;
-                if (r->var_scale_mode == ROGUE_VFX_DIST_UNIFORM)
+                g_vfx_inst[i].emit_accum += r->emit_hz * dt_sec * g_vfx_perf_scale;
+                int want = (int) g_vfx_inst[i].emit_accum;
+                if (want > 0)
                 {
-                    float t = fx_rand01();
-                    float mn = r->var_scale_a, mx = r->var_scale_b;
-                    if (mx < mn)
+                    g_vfx_inst[i].emit_accum -= (float) want;
+                    int cur = 0;
+                    for (int p = 0; p < ROGUE_VFX_PART_CAP; ++p)
+                        if (g_vfx_parts[p].active && g_vfx_parts[p].inst_idx == (uint16_t) i &&
+                            !g_vfx_parts[p].is_trail)
+                            ++cur;
+                    int can = r->p_max - cur;
+                    int to_spawn = want < can ? want : can;
+                    for (int s = 0; s < to_spawn; ++s)
                     {
-                        float tmp = mn;
-                        mn = mx;
-                        mx = tmp;
+                        int pi = vfx_part_alloc();
+                        if (pi < 0)
+                            break;
+                        g_vfx_parts[pi].active = 1;
+                        g_vfx_parts[pi].inst_idx = (uint16_t) i;
+                        g_vfx_parts[pi].layer = r->layer;
+                        g_vfx_parts[pi].world_space = r->world_space;
+                        g_vfx_parts[pi].x = g_vfx_inst[i].x;
+                        g_vfx_parts[pi].y = g_vfx_inst[i].y;
+                        g_vfx_parts[pi].is_trail = 0;
+                        float base_scale =
+                            (g_vfx_inst[i].ov_scale > 0.0f) ? g_vfx_inst[i].ov_scale : 1.0f;
+                        float scale_mul = 1.0f;
+                        if (r->var_scale_mode == ROGUE_VFX_DIST_UNIFORM)
+                        {
+                            float t = fx_rand01();
+                            float mn = r->var_scale_a, mx = r->var_scale_b;
+                            if (mx < mn)
+                            {
+                                float tmp = mn;
+                                mn = mx;
+                                mx = tmp;
+                            }
+                            scale_mul = mn + (mx - mn) * t;
+                        }
+                        else if (r->var_scale_mode == ROGUE_VFX_DIST_NORMAL)
+                        {
+                            float mean = r->var_scale_a, sigma = r->var_scale_b;
+                            float z = fx_rand_normal01();
+                            scale_mul = mean + sigma * z;
+                            if (scale_mul <= 0.01f)
+                                scale_mul = 0.01f;
+                        }
+                        g_vfx_parts[pi].scale = base_scale * scale_mul;
+                        g_vfx_parts[pi].color_rgba =
+                            g_vfx_inst[i].ov_color_rgba ? g_vfx_inst[i].ov_color_rgba : 0xFFFFFFFFu;
+                        g_vfx_parts[pi].age_ms = 0;
+                        float life_ms = (float) r->p_lifetime_ms;
+                        if (r->var_life_mode == ROGUE_VFX_DIST_UNIFORM)
+                        {
+                            float t = fx_rand01();
+                            float mn = r->var_life_a, mx = r->var_life_b;
+                            if (mx < mn)
+                            {
+                                float tmp = mn;
+                                mn = mx;
+                                mx = tmp;
+                            }
+                            float mul = mn + (mx - mn) * t;
+                            if (mul <= 0.01f)
+                                mul = 0.01f;
+                            life_ms = life_ms * mul;
+                        }
+                        else if (r->var_life_mode == ROGUE_VFX_DIST_NORMAL)
+                        {
+                            float mean = r->var_life_a, sigma = r->var_life_b;
+                            float mul = mean + sigma * fx_rand_normal01();
+                            if (mul <= 0.01f)
+                                mul = 0.01f;
+                            life_ms = life_ms * mul;
+                        }
+                        if (life_ms < 1.0f)
+                            life_ms = 1.0f;
+                        g_vfx_parts[pi].lifetime_ms = (uint32_t) life_ms;
                     }
-                    scale_mul = mn + (mx - mn) * t;
                 }
-                else if (r->var_scale_mode == ROGUE_VFX_DIST_NORMAL)
+            }
+            /* Trail emitter (separate pool window) */
+            if (r->trail_hz > 0 && r->trail_life_ms > 0 && r->trail_max > 0)
+            {
+                g_vfx_inst[i].trail_accum += r->trail_hz * dt_sec * g_vfx_perf_scale;
+                int want = (int) g_vfx_inst[i].trail_accum;
+                if (want > 0)
                 {
-                    float mean = r->var_scale_a;
-                    float sigma = r->var_scale_b;
-                    float z = fx_rand_normal01();
-                    scale_mul = mean + sigma * z;
-                    if (scale_mul <= 0.01f)
-                        scale_mul = 0.01f;
-                }
-                g_vfx_parts[pi].scale = base_scale * scale_mul;
-                g_vfx_parts[pi].color_rgba =
-                    g_vfx_inst[i].ov_color_rgba ? g_vfx_inst[i].ov_color_rgba : 0xFFFFFFFFu;
-                g_vfx_parts[pi].age_ms = 0;
-                /* Lifetime variation */
-                float life_ms = (float) r->p_lifetime_ms;
-                if (r->var_life_mode == ROGUE_VFX_DIST_UNIFORM)
-                {
-                    float t = fx_rand01();
-                    float mn = r->var_life_a, mx = r->var_life_b;
-                    if (mx < mn)
+                    g_vfx_inst[i].trail_accum -= (float) want;
+                    int cur = 0;
+                    for (int p = 0; p < ROGUE_VFX_PART_CAP; ++p)
+                        if (g_vfx_parts[p].active && g_vfx_parts[p].inst_idx == (uint16_t) i &&
+                            g_vfx_parts[p].is_trail)
+                            ++cur;
+                    int can = r->trail_max - cur;
+                    int to_spawn = want < can ? want : can;
+                    for (int s = 0; s < to_spawn; ++s)
                     {
-                        float tmp = mn;
-                        mn = mx;
-                        mx = tmp;
+                        int pi = vfx_part_alloc();
+                        if (pi < 0)
+                            break;
+                        g_vfx_parts[pi].active = 1;
+                        g_vfx_parts[pi].inst_idx = (uint16_t) i;
+                        g_vfx_parts[pi].layer = r->layer;
+                        g_vfx_parts[pi].world_space = r->world_space;
+                        g_vfx_parts[pi].x = g_vfx_inst[i].x;
+                        g_vfx_parts[pi].y = g_vfx_inst[i].y;
+                        g_vfx_parts[pi].is_trail = 1;
+                        g_vfx_parts[pi].scale =
+                            (g_vfx_inst[i].ov_scale > 0.0f) ? g_vfx_inst[i].ov_scale : 1.0f;
+                        g_vfx_parts[pi].color_rgba =
+                            g_vfx_inst[i].ov_color_rgba ? g_vfx_inst[i].ov_color_rgba : 0xFFFFFFFFu;
+                        g_vfx_parts[pi].age_ms = 0;
+                        g_vfx_parts[pi].lifetime_ms = r->trail_life_ms;
                     }
-                    float mul = mn + (mx - mn) * t;
-                    if (mul <= 0.01f)
-                        mul = 0.01f;
-                    life_ms = life_ms * mul;
                 }
-                else if (r->var_life_mode == ROGUE_VFX_DIST_NORMAL)
-                {
-                    float mean = r->var_life_a;
-                    float sigma = r->var_life_b;
-                    float mul = mean + sigma * fx_rand_normal01();
-                    if (mul <= 0.01f)
-                        mul = 0.01f;
-                    life_ms = life_ms * mul;
-                }
-                if (life_ms < 1.0f)
-                    life_ms = 1.0f; /* minimum 1 ms */
-                g_vfx_parts[pi].lifetime_ms = (uint32_t) life_ms;
             }
         }
         /* Age/expire all particles */
@@ -1605,6 +1701,16 @@ void rogue_vfx_update(uint32_t dt_ms)
         g_shakes[i].age_ms += (uint32_t) dt;
         if (g_shakes[i].age_ms >= g_shakes[i].dur_ms)
             g_shakes[i].active = 0;
+    }
+    /* Age decals (Phase 7.7) */
+    for (int i = 0; i < ROGUE_VFX_DECAL_INST_CAP; ++i)
+    {
+        if (!g_decal_inst[i].active)
+            continue;
+        g_decal_inst[i].age_ms += (uint32_t) dt;
+        DecalReg* r = &g_decal_reg[g_decal_inst[i].reg_index];
+        if (g_decal_inst[i].age_ms > r->lifetime_ms)
+            g_decal_inst[i].active = 0;
     }
 }
 
@@ -1828,3 +1934,196 @@ int rogue_vfx_particles_collect_lifetimes(uint32_t* out_ms, int max)
     }
     return written;
 }
+
+/* -------- Phase 7.5: Post-processing stubs -------- */
+static int g_bloom_enabled = 0;
+static float g_bloom_threshold = 1.0f;
+static float g_bloom_intensity = 0.5f;
+static char g_lut_id[24];
+static float g_lut_strength = 0.0f; /* 0 = disabled */
+
+void rogue_vfx_post_set_bloom_enabled(int enable) { g_bloom_enabled = enable ? 1 : 0; }
+int rogue_vfx_post_get_bloom_enabled(void) { return g_bloom_enabled; }
+void rogue_vfx_post_set_bloom_params(float threshold, float intensity)
+{
+    if (threshold < 0.0f)
+        threshold = 0.0f;
+    if (intensity < 0.0f)
+        intensity = 0.0f;
+    g_bloom_threshold = threshold;
+    g_bloom_intensity = intensity;
+}
+void rogue_vfx_post_get_bloom_params(float* out_threshold, float* out_intensity)
+{
+    if (out_threshold)
+        *out_threshold = g_bloom_threshold;
+    if (out_intensity)
+        *out_intensity = g_bloom_intensity;
+}
+void rogue_vfx_post_set_color_lut(const char* lut_id, float strength)
+{
+    if (!lut_id || !*lut_id || strength <= 0.0f)
+    {
+        g_lut_id[0] = '\0';
+        g_lut_strength = 0.0f;
+        return;
+    }
+#if defined(_MSC_VER)
+    strncpy_s(g_lut_id, sizeof g_lut_id, lut_id, _TRUNCATE);
+#else
+    strncpy(g_lut_id, lut_id, sizeof g_lut_id - 1);
+    g_lut_id[sizeof g_lut_id - 1] = '\0';
+#endif
+    if (strength > 1.0f)
+        strength = 1.0f;
+    g_lut_strength = strength;
+}
+int rogue_vfx_post_get_color_lut(char* out_id, size_t out_sz, float* out_strength)
+{
+    if (out_strength)
+        *out_strength = g_lut_strength;
+    if (g_lut_strength <= 0.0f)
+    {
+        if (out_id && out_sz)
+        {
+            if (out_sz > 0)
+                out_id[0] = '\0';
+        }
+        return 0;
+    }
+    if (out_id && out_sz)
+    {
+#if defined(_MSC_VER)
+        strncpy_s(out_id, out_sz, g_lut_id, _TRUNCATE);
+#else
+        strncpy(out_id, g_lut_id, out_sz - 1);
+        out_id[out_sz - 1] = '\0';
+#endif
+    }
+    return 1;
+}
+
+/* -------- Phase 7.7: Decals -------- */
+
+static int decal_reg_find(const char* id)
+{
+    for (int i = 0; i < g_decal_reg_count; ++i)
+        if (strncmp(g_decal_reg[i].id, id, sizeof g_decal_reg[i].id) == 0)
+            return i;
+    return -1;
+}
+
+int rogue_vfx_decal_registry_register(const char* id, RogueVfxLayer layer, uint32_t lifetime_ms,
+                                      int world_space, float size)
+{
+    if (!id || !*id)
+        return -1;
+    int idx = decal_reg_find(id);
+    if (idx < 0)
+    {
+        if (g_decal_reg_count >= ROGUE_VFX_DECAL_REG_CAP)
+            return -2;
+        idx = g_decal_reg_count++;
+        memset(&g_decal_reg[idx], 0, sizeof g_decal_reg[idx]);
+#if defined(_MSC_VER)
+        strncpy_s(g_decal_reg[idx].id, sizeof g_decal_reg[idx].id, id, _TRUNCATE);
+#else
+        strncpy(g_decal_reg[idx].id, id, sizeof g_decal_reg[idx].id - 1);
+        g_decal_reg[idx].id[sizeof g_decal_reg[idx].id - 1] = '\0';
+#endif
+    }
+    g_decal_reg[idx].layer = (uint8_t) layer;
+    g_decal_reg[idx].lifetime_ms = lifetime_ms;
+    g_decal_reg[idx].world_space = world_space ? 1 : 0;
+    g_decal_reg[idx].size = (size <= 0.0f) ? 1.0f : size;
+    return 0;
+}
+int rogue_vfx_decal_registry_get(const char* id, RogueVfxLayer* out_layer,
+                                 uint32_t* out_lifetime_ms, int* out_world_space, float* out_size)
+{
+    int idx = decal_reg_find(id);
+    if (idx < 0)
+        return -1;
+    if (out_layer)
+        *out_layer = (RogueVfxLayer) g_decal_reg[idx].layer;
+    if (out_lifetime_ms)
+        *out_lifetime_ms = g_decal_reg[idx].lifetime_ms;
+    if (out_world_space)
+        *out_world_space = g_decal_reg[idx].world_space;
+    if (out_size)
+        *out_size = g_decal_reg[idx].size;
+    return 0;
+}
+void rogue_vfx_decal_registry_clear(void) { g_decal_reg_count = 0; }
+
+static int decal_inst_alloc(void)
+{
+    for (int i = 0; i < ROGUE_VFX_DECAL_INST_CAP; ++i)
+        if (!g_decal_inst[i].active)
+            return i;
+    return -1;
+}
+
+int rogue_vfx_decal_spawn(const char* id, float x, float y, float angle_rad, float scale)
+{
+    int ridx = decal_reg_find(id);
+    if (ridx < 0)
+        return -1;
+    int ii = decal_inst_alloc();
+    if (ii < 0)
+        return -2;
+    g_decal_inst[ii].active = 1;
+    g_decal_inst[ii].reg_index = (uint16_t) ridx;
+    g_decal_inst[ii].x = x;
+    g_decal_inst[ii].y = y;
+    g_decal_inst[ii].angle = angle_rad;
+    g_decal_inst[ii].scale = (scale <= 0.0f) ? 1.0f : scale;
+    g_decal_inst[ii].age_ms = 0;
+    return 0;
+}
+
+int rogue_vfx_decal_active_count(void)
+{
+    int c = 0;
+    for (int i = 0; i < ROGUE_VFX_DECAL_INST_CAP; ++i)
+        if (g_decal_inst[i].active)
+            ++c;
+    return c;
+}
+int rogue_vfx_decal_layer_count(RogueVfxLayer layer)
+{
+    int c = 0;
+    for (int i = 0; i < ROGUE_VFX_DECAL_INST_CAP; ++i)
+        if (g_decal_inst[i].active &&
+            g_decal_reg[g_decal_inst[i].reg_index].layer == (uint8_t) layer)
+            ++c;
+    return c;
+}
+int rogue_vfx_decals_collect_screen(float* out_xy, uint8_t* out_layers, int max)
+{
+    if (!out_xy || max <= 0)
+        return 0;
+    int written = 0;
+    for (int i = 0; i < ROGUE_VFX_DECAL_INST_CAP && written < max; ++i)
+    {
+        if (!g_decal_inst[i].active)
+            continue;
+        DecalReg* r = &g_decal_reg[g_decal_inst[i].reg_index];
+        float sx = g_decal_inst[i].x;
+        float sy = g_decal_inst[i].y;
+        if (r->world_space)
+        {
+            sx = (sx - g_cam_x) * g_pixels_per_world;
+            sy = (sy - g_cam_y) * g_pixels_per_world;
+        }
+        out_xy[written * 2 + 0] = sx;
+        out_xy[written * 2 + 1] = sy;
+        if (out_layers)
+            out_layers[written] = r->layer;
+        ++written;
+    }
+    return written;
+}
+
+/* Age decals alongside VFX instances update */
+/* Hook into rogue_vfx_update end-of-frame aging */

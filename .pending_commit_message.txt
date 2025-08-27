@@ -266,3 +266,16 @@ Audio/VFX: Phase 7 core slice (blend modes, screen shake, perf scaling, batching
 Quality gates:
 - Targeted rebuild of test_audio_vfx_phase7_core succeeded; all audio_vfx tests (Phase 1–7) pass under Debug SDL2 (-j8) (26/26).
 - No regressions in earlier Phase 6 music/env tests (spot run of audio_vfx regex confirms green).
+
+Audio/VFX: Phase 7 trails, post-processing stubs, and decals (7.3, 7.5, 7.7)
+
+- Trails: per‑VFX trail emitters (trail_hz, trail_life_ms, trail_max) with per‑instance trail_accum and particles flagged as trails; integrated into update respecting perf scale and caps.
+- Post‑processing stubs: global bloom enable + threshold/intensity params; color grade LUT id + strength; getters/setters with clamping (renderer hookup deferred).
+- Decals: decal registry + instance pool with lifetime/aging, spawn API (pos/angle/scale), per‑layer counts, and screen‑space collection.
+- Tests: new combined unit test validates trails steady‑state counts, bloom/LUT toggles, and decal lifecycle; added to CTest via AudioVfx.cmake.
+- Roadmap updated marking 7.3, 7.5, 7.7 Done with implementation notes; README snapshot bumped to Phases 1–7 and expanded with new APIs/descriptions.
+
+Quality gates:
+- Built Debug with SDL2 using cmake --build build --config Debug --parallel 8.
+- Tests: full audio_vfx subset green (27/27) with the new trails/post/decals test included.
+- No regressions in prior Phase 6/7 tests; broader suites unchanged.

@@ -63,11 +63,11 @@ PHASE 6. Advanced Audio Features
 PHASE 7. Advanced VFX Features
 7.1 GPU-friendly batched sprite particle update (future hook) (Partial: enable flag + query stub; batching path pending)
 7.2 Additive & multiplicative blend modes (Done: registry blend enum + set/get APIs; renderer usage deferred)
-7.3 Motion vectors / trail emitters (X)
+7.3 Motion vectors / trail emitters (Done: per-VFX trail_hz, trail_life_ms, trail_max; per-instance trail_accum; particles flagged is_trail for debug/metrics; honors perf scale; unit test validates steady-state counts)
 7.4 Screen shake manager (priority stacking) (Done: pooled shakes w/ amplitude,freq,duration, decay aggregation)
-7.5 Post-processing: bloom stub & color grade LUT application (X)
+7.5 Post-processing: bloom stub & color grade LUT application (Done: global bloom toggle + threshold/intensity params; color LUT id + strength; getters/setters with clamping; renderer hookup deferred; unit test exercises toggles and param round-trips)
 7.6 Performance scaling: degrade particle counts when FPS low (Done: global 0..1 perf scale applied to emission accumulator, clamped setter)
-7.7 Decal / ground projection system (X)
+7.7 Decal / ground projection system (Done: decal registry + instance pool with lifetime/aging; spawn with position/angle/scale; per-layer counts and screen-space collection helper; unit test validates spawn, counts, expiry)
 
 PHASE 8. Performance & Budgeting
 8.1 Per-frame effect cost profiler (spawn counts, active particles) (X)
@@ -239,3 +239,9 @@ Notes (2025-08-26, Phase 7 core slice):
 - New unit test `test_audio_vfx_phase7_core` covers: blend default & mutation, screen shake temporal variation, perf scale steady-state particle counts (exact 50 at full scale for 100Hz*500ms, reduced under 0.4 scale), and GPU batch flag toggle.
 - Adjusted assertion to >=50 to match equilibrium; test passes under Debug SDL2 (-j8). All prior audio_vfx tests remain green (26/26 aggregate when filtered by regex `audio_vfx`).
 - Roadmap updated: 7.2, 7.4, 7.6 -> Done; 7.1 -> Partial; 7.3, 7.5, 7.7 remain X. README pending Phase 7 snapshot update.
+
+Notes (2025-08-27, Phase 7 trails/post/decals):
+- Implemented 7.3 trail emitters: registry fields (trail_hz, trail_life_ms, trail_max), per-instance trail_accum, and trail particle flagging. Integrated into update loop respecting perf scale and per-instance caps.
+- Implemented 7.5 post-processing stubs: global bloom enable with threshold/intensity params, and color LUT id + strength. APIs expose getters/setters with clamping; rendering hookup is deferred.
+- Implemented 7.7 decals: decal registry and instance pools with lifetime aging, spawn API (pos/angle/scale), per-layer counts, and screen-space collection.
+- New combined unit test covers trails, post-processing stubs, and decals. Audio/VFX subset now passes 27/27 under Debug SDL2 with parallel -j8.
