@@ -356,4 +356,62 @@ int rogue_vfx_decal_active_count(void);
 int rogue_vfx_decal_layer_count(RogueVfxLayer layer);
 int rogue_vfx_decals_collect_screen(float* out_xy, uint8_t* out_layers, int max);
 
+/* -------- Phase 8.1/8.2/8.3/8.4: Performance profiling, budgets, pacing, pool audit -------- */
+typedef struct RogueVfxFrameStats
+{
+    int spawned_core;     /* particles spawned from core emitters this frame */
+    int spawned_trail;    /* particles spawned from trail emitters this frame */
+    int culled_soft;      /* spawns culled due to soft budget */
+    int culled_hard;      /* spawns culled due to hard budget */
+    int culled_pacing;    /* spawns culled due to pacing guard */
+    int active_particles; /* total active particles after update */
+    int active_instances; /* total active VFX instances after update */
+    int active_decals;    /* total active decals after update */
+} RogueVfxFrameStats;
+
+/* Get last frame's VFX stats snapshot. out may be NULL (no-op). */
+void rogue_vfx_profiler_get_last(RogueVfxFrameStats* out);
+
+/* Set per-frame spawn budgets (counts refer to particles spawned, not active). Pass <=0 to disable.
+    Soft budget: any spawns above this are dropped and counted in culled_soft.
+    Hard budget: absolute cap per frame; spawns beyond are dropped and counted in culled_hard. */
+void rogue_vfx_set_spawn_budgets(int soft_cap_per_frame, int hard_cap_per_frame);
+
+/* Enable/disable pacing guard. When enabled, spawns above the threshold are dropped and counted
+    in culled_pacing (applied before soft/hard budgets). threshold <=0 disables internally. */
+void rogue_vfx_set_pacing_guard(int enable, int threshold_per_frame);
+
+/* Particle/instance pool fragmentation audit helpers (counts and simple run metrics). Any
+    out pointer may be NULL. */
+void rogue_vfx_particle_pool_audit(int* out_active, int* out_free, int* out_free_runs,
+                                   int* out_max_free_run);
+void rogue_vfx_instance_pool_audit(int* out_active, int* out_free, int* out_free_runs,
+                                   int* out_max_free_run);
+
+/* -------- Phase 9: Determinism & Replay -------- */
+/* Begin capturing all FX events emitted after this call. The recording buffer is reset.
+    Recording persists across frames until stopped. */
+void rogue_fx_replay_begin_record(void);
+/* Returns non-zero if currently recording. */
+int rogue_fx_replay_is_recording(void);
+/* Stop recording and copy up to 'max' recorded events into out (may be NULL to query count).
+    Returns the total number of recorded events (>=0). If out==NULL or max==0, only returns count.
+ */
+int rogue_fx_replay_end_record(struct RogueEffectEvent* out, int max);
+
+/* Compute a deterministic 64-bit hash of an event sequence (order-sensitive). */
+unsigned long long rogue_fx_events_hash(const struct RogueEffectEvent* ev, int count);
+
+/* Playback helpers: initialize with a pre-recorded sequence and enqueue events for a frame. */
+void rogue_fx_replay_load(const struct RogueEffectEvent* ev, int count);
+/* Enqueue all recorded events matching the given frame_index. Returns number enqueued. */
+int rogue_fx_replay_enqueue_frame(uint32_t frame_index);
+/* Clear any loaded replay. */
+void rogue_fx_replay_clear(void);
+
+/* Divergence detector: accumulate per-frame digests and retrieve combined 64-bit hash. */
+void rogue_fx_hash_reset(unsigned long long seed);
+void rogue_fx_hash_accumulate_frame(void);
+unsigned long long rogue_fx_hash_get(void);
+
 #endif /* ROGUE_EFFECTS_H */

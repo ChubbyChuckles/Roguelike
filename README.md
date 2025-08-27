@@ -131,4 +131,17 @@ Phase 7 (now expanded):
 - Trails: per‑VFX trail emitters (trail_hz, trail_life_ms, trail_max) with per‑instance accumulators; particles flagged as trails for metrics; respects perf scaling.
 - Post‑processing stubs: global bloom enable + threshold/intensity params; color grade LUT id + strength; public getters/setters with clamping; renderer hookup pending.
 - Decals: registry + instance pool with lifetime aging; spawn with pos/angle/scale; per‑layer counts and screen‑space collection helper.
-Test coverage: Phase 6 and 7 tests validate cross‑fade/ducking/layering, emission math, trails/post/decals behaviors. All audio_vfx tests pass (27 targets) in Debug SDL2 with -j8.
+Test coverage: Phase 6 and 7 tests validate cross‑fade/ducking/layering, emission math, trails/post/decals behaviors.
+
+Phase 8 (performance & budgeting):
+- Per-frame VFX stats snapshot and profiler API: `rogue_vfx_profiler_get_last(RogueVfxFrameStats*)` with counters for spawned_core/trail, culled_{pacing,soft,hard}, and active pools.
+- Spawn control: `rogue_vfx_set_pacing_guard(enable, threshold_per_frame)` runs before `rogue_vfx_set_spawn_budgets(soft, hard)` each frame; culled counts are attributed to the stage that clamps.
+- Pool audits: `rogue_vfx_particle_pool_audit` and `rogue_vfx_instance_pool_audit` expose active/free and simple run metrics for fragmentation checks.
+- Stress: 100 simultaneous impacts test ensures pacing/soft/hard caps work under load without pool corruption.
+All Audio/VFX tests are green locally in Debug with SDL2 and `-j8`.
+
+Phase 9 (determinism & replay):
+- Ordering determinism: dispatcher sorts by (emit_frame, priority, id, seq). Sequence normalized post-sort, eliminating producer-order ties.
+- Order-insensitive digest: frame digest is XOR of per-event hashes over (type, priority, id, repeats), excluding seq; exposed via `rogue_fx_hash_accumulate_frame` and `rogue_fx_hash_get` for replay.
+- Replay & hashing: `rogue_fx_replay_begin_record/end_record/is_recording`, `rogue_fx_replay_load/enqueue_frame/clear`, `rogue_fx_events_hash` (FNV-1a 64) for test validation and divergence checks.
+- Tests: ordering invariance and replay/hash stability are covered by `test_audio_vfx_phase9_1_ordering_tuple` and `test_audio_vfx_phase9_2_replay_and_hash` (Debug SDL2, -j8).

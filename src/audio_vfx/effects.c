@@ -28,6 +28,17 @@ static uint32_t g_frame_digest = 0;
 static uint32_t g_fx_seed = 0xA5F0C3D2u; /* deterministic tiny RNG for FX */
 /* Damage hook observer id (-1 if not bound) */
 static int g_damage_observer_id = -1;
+
+/* -------- Phase 9: minimal forward declarations for replay recording used in emit -------- */
+typedef struct RecordedEv
+{
+    RogueEffectEvent ev;
+} RecordedEv;
+
+#define ROGUE_FX_REPLAY_CAP 2048
+static RecordedEv g_fx_record[ROGUE_FX_REPLAY_CAP];
+static int g_fx_record_count = 0;
+static int g_fx_recording = 0;
 /* Gameplay->effects mapping (Phase 5.1) */
 typedef struct FxMapEntry
 {
@@ -40,23 +51,31 @@ static FxMapEntry g_fx_map[96];
 static int g_fx_map_count = 0;
 
 static uint32_t rotl32(uint32_t x, int r) { return (x << r) | (x >> (32 - r)); }
-static void digest_mix_u32(uint32_t v)
+static uint32_t digest_event32(const RogueEffectEvent* e)
 {
-    g_frame_digest ^= rotl32(v * 0x9E3779B9u + 0x85EBCA6Bu, 13);
-    g_frame_digest *= 0xC2B2AE35u;
-}
-static void digest_mix_bytes(const void* data, size_t n)
-{
-    const unsigned char* p = (const unsigned char*) data;
-    for (size_t i = 0; i < n; ++i)
-        digest_mix_u32((uint32_t) p[i] + 0x100u * (uint32_t) (i & 0xFFu));
+    /* Lightweight per-event hash (order-insensitive aggregation via XOR at call site) */
+    uint32_t h = 0x85EBCA6Bu;
+    h ^= (uint32_t) e->type * 0x9E3779B9u;
+    h = rotl32(h, 5);
+    h ^= (uint32_t) e->priority * 0x85EBCA6Bu;
+    h = rotl32(h, 7);
+    uint32_t rep = (uint32_t) (e->repeats == 0 ? 1 : e->repeats);
+    h ^= rep * 0xC2B2AE35u;
+    h = rotl32(h, 9);
+    const unsigned char* p = (const unsigned char*) e->id;
+    for (size_t i = 0; i < sizeof e->id; ++i)
+    {
+        h ^= (uint32_t) p[i] + (uint32_t) (i * 131u);
+        h *= 0x27D4EB2Du;
+    }
+    return h;
 }
 
 void rogue_fx_frame_begin(uint32_t frame_index)
 {
     g_frame_index = frame_index;
     g_seq_counter = 0;
-    g_frame_digest = 0x1234ABCDu ^ frame_index;
+    g_frame_digest = 0xC001C0DEu ^ frame_index;
     g_write->count = 0;
 }
 
@@ -76,6 +95,11 @@ int rogue_fx_emit(const RogueEffectEvent* ev)
     *out = *ev;
     out->emit_frame = g_frame_index;
     out->seq = g_seq_counter++;
+    /* Phase 9: if recording, store a copy of the raw emitted event */
+    if (g_fx_recording && g_fx_record_count < ROGUE_FX_REPLAY_CAP)
+    {
+        g_fx_record[g_fx_record_count++].ev = *out;
+    }
     return 0;
 }
 
@@ -217,15 +241,16 @@ static int cmp_ev(const void* a, const void* b)
 {
     const RogueEffectEvent* ea = (const RogueEffectEvent*) a;
     const RogueEffectEvent* eb = (const RogueEffectEvent*) b;
+    /* Phase 9.1: explicit tuple (emit_frame, priority, seq) for determinism */
+    if (ea->emit_frame != eb->emit_frame)
+        return (ea->emit_frame < eb->emit_frame) ? -1 : 1;
     if (ea->priority != eb->priority)
         return (int) ea->priority - (int) eb->priority;
-    /* Group by type and id to place identical keys near each other */
-    if ((int) ea->type != (int) eb->type)
-        return (int) ea->type - (int) eb->type;
-    int k = strncmp(ea->id, eb->id, sizeof ea->id);
-    if (k != 0)
-        return k;
-    /* Stable by seq as tiebreaker for deterministic ordering */
+    /* Within same priority, order by id to eliminate dependence on emission order */
+    int idcmp = strncmp(ea->id, eb->id, sizeof ea->id);
+    if (idcmp != 0)
+        return idcmp;
+    /* Stable by seq as final tiebreaker */
     if (ea->seq < eb->seq)
         return -1;
     if (ea->seq > eb->seq)
@@ -1060,12 +1085,10 @@ int rogue_fx_dispatch_process(void)
     for (int i = 0; i < g_read->count; ++i)
     {
         RogueEffectEvent* e = &g_read->ev[i];
-        /* digest contribution */
-        digest_mix_u32((uint32_t) e->type);
-        digest_mix_u32((uint32_t) e->priority);
-        digest_mix_u32(e->seq);
-        digest_mix_u32((uint32_t) (e->repeats == 0 ? 1 : e->repeats));
-        digest_mix_bytes(e->id, sizeof e->id);
+        /* Normalize seq to sorted order to ensure deterministic downstream behavior */
+        e->seq = (uint32_t) i;
+        /* Order-insensitive digest aggregation */
+        g_frame_digest ^= digest_event32(e);
         if (e->type == ROGUE_FX_AUDIO_PLAY)
         {
             /* Determine variation target deterministically if variants exist (id with numbered
@@ -1127,6 +1150,102 @@ int rogue_fx_dispatch_process(void)
 }
 
 uint32_t rogue_fx_get_frame_digest(void) { return g_frame_digest; }
+
+/* -------- Phase 9: Replay & hashing -------- */
+
+void rogue_fx_replay_begin_record(void)
+{
+    g_fx_record_count = 0;
+    g_fx_recording = 1;
+}
+int rogue_fx_replay_is_recording(void) { return g_fx_recording; }
+int rogue_fx_replay_end_record(RogueEffectEvent* out, int max)
+{
+    g_fx_recording = 0;
+    int n = g_fx_record_count;
+    if (out && max > 0)
+    {
+        int w = (n < max) ? n : max;
+        for (int i = 0; i < w; ++i)
+            out[i] = g_fx_record[i].ev;
+    }
+    return n;
+}
+
+static unsigned long long fnv1a64_bytes(const void* data, size_t n)
+{
+    const unsigned char* p = (const unsigned char*) data;
+    unsigned long long h = 1469598103934665603ull; /* offset */
+    const unsigned long long prime = 1099511628211ull;
+    for (size_t i = 0; i < n; ++i)
+    {
+        h ^= (unsigned long long) p[i];
+        h *= prime;
+    }
+    return h;
+}
+unsigned long long rogue_fx_events_hash(const RogueEffectEvent* ev, int count)
+{
+    if (!ev || count <= 0)
+        return 0ull;
+    unsigned long long h = 1469598103934665603ull;
+    const unsigned long long prime = 1099511628211ull;
+    for (int i = 0; i < count; ++i)
+    {
+        h ^= fnv1a64_bytes(&ev[i], sizeof ev[i]);
+        h *= prime;
+    }
+    return h;
+}
+
+/* Replay storage for playback */
+static RecordedEv g_fx_replay_seq[ROGUE_FX_REPLAY_CAP];
+static int g_fx_replay_count = 0;
+void rogue_fx_replay_load(const RogueEffectEvent* ev, int count)
+{
+    g_fx_replay_count = 0;
+    if (!ev || count <= 0)
+        return;
+    if (count > ROGUE_FX_REPLAY_CAP)
+        count = ROGUE_FX_REPLAY_CAP;
+    for (int i = 0; i < count; ++i)
+    {
+        g_fx_replay_seq[i].ev = ev[i];
+    }
+    g_fx_replay_count = count;
+}
+int rogue_fx_replay_enqueue_frame(uint32_t frame_index)
+{
+    int enq = 0;
+    for (int i = 0; i < g_fx_replay_count; ++i)
+    {
+        if (g_fx_replay_seq[i].ev.emit_frame == frame_index)
+        {
+            /* Enqueue a copy (rogue_fx_emit will stamp current frame/seq; keep payload & priority)
+             */
+            RogueEffectEvent e = g_fx_replay_seq[i].ev;
+            /* Preserve id/type/priority, position, and repeats; emit_frame/seq recalculated */
+            if (rogue_fx_emit(&e) == 0)
+                ++enq;
+        }
+    }
+    return enq;
+}
+void rogue_fx_replay_clear(void) { g_fx_replay_count = 0; }
+
+static unsigned long long g_fx_hash_accum = 0ull;
+static unsigned long long g_fx_hash_prime = 1099511628211ull;
+void rogue_fx_hash_reset(unsigned long long seed)
+{
+    g_fx_hash_accum = seed ? seed : 1469598103934665603ull;
+}
+void rogue_fx_hash_accumulate_frame(void)
+{
+    unsigned int d = rogue_fx_get_frame_digest();
+    g_fx_hash_accum ^= (unsigned long long) d;
+    g_fx_hash_accum *= g_fx_hash_prime;
+}
+unsigned long long rogue_fx_hash_get(void) { return g_fx_hash_accum; }
 
 /* -------- VFX registry & instances (Phase 3 foundations) -------- */
 
@@ -1221,6 +1340,24 @@ static VfxParticle g_vfx_parts[ROGUE_VFX_PART_CAP];
 /* Simple camera state for world->screen transforms */
 static float g_cam_x = 0.0f, g_cam_y = 0.0f; /* world origin at top-left of view */
 static float g_pixels_per_world = 32.0f;     /* default: 32 px per world unit */
+/* -------- Phase 8: per-frame stats & budgets -------- */
+typedef struct VfxFrameStats
+{
+    int spawned_core;
+    int spawned_trail;
+    int culled_soft;
+    int culled_hard;
+    int culled_pacing;
+    int active_particles;
+    int active_instances;
+    int active_decals;
+} VfxFrameStats;
+static VfxFrameStats g_vfx_stats_last;  /* published snapshot */
+static VfxFrameStats g_vfx_stats_accum; /* being built this frame */
+static int g_budget_soft = 0;           /* <=0 means disabled */
+static int g_budget_hard = 0;           /* <=0 means disabled */
+static int g_pacing_enabled = 0;
+static int g_pacing_threshold = 0; /* <=0 means disabled */
 
 /* -------- Phase 7.7: Decals (types + storage placed early for forward use) -------- */
 typedef struct DecalReg
@@ -1512,6 +1649,8 @@ void rogue_vfx_update(uint32_t dt_ms)
 {
     if (g_vfx_frozen)
         return;
+    /* reset per-frame accumulators */
+    memset(&g_vfx_stats_accum, 0, sizeof g_vfx_stats_accum);
     float dt = (float) dt_ms * (g_vfx_timescale < 0 ? 0 : g_vfx_timescale);
     for (int i = 0; i < ROGUE_VFX_INST_CAP; ++i)
     {
@@ -1521,6 +1660,7 @@ void rogue_vfx_update(uint32_t dt_ms)
         VfxReg* r = &g_vfx_reg[g_vfx_inst[i].reg_index];
         uint32_t inst_life =
             g_vfx_inst[i].ov_lifetime_ms ? g_vfx_inst[i].ov_lifetime_ms : r->lifetime_ms;
+        /* Expire at lifetime boundary (inclusive) to match existing tests */
         if (g_vfx_inst[i].age_ms >= inst_life)
             g_vfx_inst[i].active = 0;
 
@@ -1584,6 +1724,47 @@ void rogue_vfx_update(uint32_t dt_ms)
                             ++cur;
                     int can = r->p_max - cur;
                     int to_spawn = want < can ? want : can;
+                    /* Pacing guard (applies before budgets) */
+                    if (g_pacing_enabled && g_pacing_threshold > 0)
+                    {
+                        int allowed = g_pacing_threshold - (g_vfx_stats_accum.spawned_core +
+                                                            g_vfx_stats_accum.spawned_trail);
+                        if (allowed < 0)
+                            allowed = 0;
+                        if (to_spawn > allowed)
+                        {
+                            g_vfx_stats_accum.culled_pacing += (to_spawn - allowed);
+                            to_spawn = allowed;
+                        }
+                    }
+                    /* Soft budget */
+                    if (g_budget_soft > 0)
+                    {
+                        int spawned_so_far =
+                            g_vfx_stats_accum.spawned_core + g_vfx_stats_accum.spawned_trail;
+                        int allowed = g_budget_soft - spawned_so_far;
+                        if (allowed < 0)
+                            allowed = 0;
+                        if (to_spawn > allowed)
+                        {
+                            g_vfx_stats_accum.culled_soft += (to_spawn - allowed);
+                            to_spawn = allowed;
+                        }
+                    }
+                    /* Hard budget */
+                    if (g_budget_hard > 0)
+                    {
+                        int spawned_so_far =
+                            g_vfx_stats_accum.spawned_core + g_vfx_stats_accum.spawned_trail;
+                        int allowed = g_budget_hard - spawned_so_far;
+                        if (allowed < 0)
+                            allowed = 0;
+                        if (to_spawn > allowed)
+                        {
+                            g_vfx_stats_accum.culled_hard += (to_spawn - allowed);
+                            to_spawn = allowed;
+                        }
+                    }
                     for (int s = 0; s < to_spawn; ++s)
                     {
                         int pi = vfx_part_alloc();
@@ -1650,6 +1831,7 @@ void rogue_vfx_update(uint32_t dt_ms)
                         if (life_ms < 1.0f)
                             life_ms = 1.0f;
                         g_vfx_parts[pi].lifetime_ms = (uint32_t) life_ms;
+                        g_vfx_stats_accum.spawned_core++;
                     }
                 }
             }
@@ -1668,6 +1850,47 @@ void rogue_vfx_update(uint32_t dt_ms)
                             ++cur;
                     int can = r->trail_max - cur;
                     int to_spawn = want < can ? want : can;
+                    /* Pacing guard */
+                    if (g_pacing_enabled && g_pacing_threshold > 0)
+                    {
+                        int allowed = g_pacing_threshold - (g_vfx_stats_accum.spawned_core +
+                                                            g_vfx_stats_accum.spawned_trail);
+                        if (allowed < 0)
+                            allowed = 0;
+                        if (to_spawn > allowed)
+                        {
+                            g_vfx_stats_accum.culled_pacing += (to_spawn - allowed);
+                            to_spawn = allowed;
+                        }
+                    }
+                    /* Soft budget */
+                    if (g_budget_soft > 0)
+                    {
+                        int spawned_so_far =
+                            g_vfx_stats_accum.spawned_core + g_vfx_stats_accum.spawned_trail;
+                        int allowed = g_budget_soft - spawned_so_far;
+                        if (allowed < 0)
+                            allowed = 0;
+                        if (to_spawn > allowed)
+                        {
+                            g_vfx_stats_accum.culled_soft += (to_spawn - allowed);
+                            to_spawn = allowed;
+                        }
+                    }
+                    /* Hard budget */
+                    if (g_budget_hard > 0)
+                    {
+                        int spawned_so_far =
+                            g_vfx_stats_accum.spawned_core + g_vfx_stats_accum.spawned_trail;
+                        int allowed = g_budget_hard - spawned_so_far;
+                        if (allowed < 0)
+                            allowed = 0;
+                        if (to_spawn > allowed)
+                        {
+                            g_vfx_stats_accum.culled_hard += (to_spawn - allowed);
+                            to_spawn = allowed;
+                        }
+                    }
                     for (int s = 0; s < to_spawn; ++s)
                     {
                         int pi = vfx_part_alloc();
@@ -1686,6 +1909,7 @@ void rogue_vfx_update(uint32_t dt_ms)
                             g_vfx_inst[i].ov_color_rgba ? g_vfx_inst[i].ov_color_rgba : 0xFFFFFFFFu;
                         g_vfx_parts[pi].age_ms = 0;
                         g_vfx_parts[pi].lifetime_ms = r->trail_life_ms;
+                        g_vfx_stats_accum.spawned_trail++;
                     }
                 }
             }
@@ -1712,6 +1936,15 @@ void rogue_vfx_update(uint32_t dt_ms)
         if (g_decal_inst[i].age_ms > r->lifetime_ms)
             g_decal_inst[i].active = 0;
     }
+    /* Publish stats snapshot at end of update */
+    g_vfx_stats_accum.active_particles = rogue_vfx_particles_active_count();
+    g_vfx_stats_accum.active_instances = rogue_vfx_active_count();
+    int dact = 0;
+    for (int i = 0; i < ROGUE_VFX_DECAL_INST_CAP; ++i)
+        if (g_decal_inst[i].active)
+            ++dact;
+    g_vfx_stats_accum.active_decals = dact;
+    g_vfx_stats_last = g_vfx_stats_accum;
 }
 
 void rogue_vfx_set_timescale(float s) { g_vfx_timescale = s; }
@@ -1933,6 +2166,90 @@ int rogue_vfx_particles_collect_lifetimes(uint32_t* out_ms, int max)
         out_ms[written++] = g_vfx_parts[i].lifetime_ms;
     }
     return written;
+}
+
+/* -------- Phase 8: Profiler, budgets, pacing, pool audit -------- */
+void rogue_vfx_profiler_get_last(RogueVfxFrameStats* out)
+{
+    if (!out)
+        return;
+    out->spawned_core = g_vfx_stats_last.spawned_core;
+    out->spawned_trail = g_vfx_stats_last.spawned_trail;
+    out->culled_soft = g_vfx_stats_last.culled_soft;
+    out->culled_hard = g_vfx_stats_last.culled_hard;
+    out->culled_pacing = g_vfx_stats_last.culled_pacing;
+    out->active_particles = g_vfx_stats_last.active_particles;
+    out->active_instances = g_vfx_stats_last.active_instances;
+    out->active_decals = g_vfx_stats_last.active_decals;
+}
+
+void rogue_vfx_set_spawn_budgets(int soft_cap_per_frame, int hard_cap_per_frame)
+{
+    g_budget_soft = soft_cap_per_frame;
+    g_budget_hard = hard_cap_per_frame;
+}
+
+void rogue_vfx_set_pacing_guard(int enable, int threshold_per_frame)
+{
+    g_pacing_enabled = enable ? 1 : 0;
+    g_pacing_threshold = threshold_per_frame;
+}
+
+static void audit_pool_generic(int total_slots, int (*is_active)(int), int* out_active,
+                               int* out_free, int* out_free_runs, int* out_max_free_run)
+{
+    int active = 0, freec = 0, runs = 0, maxrun = 0, run = 0;
+    for (int i = 0; i < total_slots; ++i)
+    {
+        int a = is_active(i);
+        if (a)
+        {
+            active++;
+            if (run > 0)
+            {
+                runs++;
+                if (run > maxrun)
+                    maxrun = run;
+                run = 0;
+            }
+        }
+        else
+        {
+            freec++;
+            run++;
+        }
+    }
+    if (run > 0)
+    {
+        runs++;
+        if (run > maxrun)
+            maxrun = run;
+    }
+    if (out_active)
+        *out_active = active;
+    if (out_free)
+        *out_free = freec;
+    if (out_free_runs)
+        *out_free_runs = runs;
+    if (out_max_free_run)
+        *out_max_free_run = maxrun;
+}
+
+static int particles_is_active(int idx) { return g_vfx_parts[idx].active ? 1 : 0; }
+static int instances_is_active(int idx) { return g_vfx_inst[idx].active ? 1 : 0; }
+
+void rogue_vfx_particle_pool_audit(int* out_active, int* out_free, int* out_free_runs,
+                                   int* out_max_free_run)
+{
+    audit_pool_generic(ROGUE_VFX_PART_CAP, particles_is_active, out_active, out_free, out_free_runs,
+                       out_max_free_run);
+}
+
+void rogue_vfx_instance_pool_audit(int* out_active, int* out_free, int* out_free_runs,
+                                   int* out_max_free_run)
+{
+    audit_pool_generic(ROGUE_VFX_INST_CAP, instances_is_active, out_active, out_free, out_free_runs,
+                       out_max_free_run);
 }
 
 /* -------- Phase 7.5: Post-processing stubs -------- */

@@ -1,3 +1,23 @@
+Audio/VFX Phase 9: Determinism & Replay — ordering tuple, replay, hashing, divergence (Debug SDL2, -j8, tests green)
+
+- Deterministic ordering
+  - Sort comparator updated to (emit_frame, priority, id, seq); normalize seq post-sort to remove producer-order dependence.
+  - Per-frame digest made order-insensitive: XOR of per-event 32-bit hashes over (type, priority, id, repeats), excluding seq.
+- Replay & event hashing
+  - Recording APIs: rogue_fx_replay_begin_record/is_recording/end_record; capture events at emit.
+  - Playback APIs: rogue_fx_replay_load/enqueue_frame/clear; enqueue frame-by-frame.
+  - Event hashing: rogue_fx_events_hash (FNV-1a 64) and rolling divergence accumulator via rogue_fx_hash_accumulate_frame / rogue_fx_hash_get.
+- Tests
+  - test_audio_vfx_phase9_1_ordering_tuple: digest invariance across swapped emit order (passes).
+  - test_audio_vfx_phase9_2_replay_and_hash: record/replay roundtrip and hash stability (passes).
+- Docs & roadmap
+  - README: added Phase 9 summary (determinism & replay APIs).
+  - Roadmap: mark 9.1–9.4 Done with implementation notes.
+
+Build & verify
+- Built Debug with SDL2 and parallel jobs (-j8) via CMake multi-config.
+- Ran Audio/VFX subset: 31/31 tests passed (ctest -C Debug -j8 -R audio_vfx --output-on-failure).
+
 Start Screen: Phase 10.5 perf smoke test + perf guard hardening; docs/roadmap updates
 
 - Add test_start_screen_phase10_5_perf_smoke (perf smoke) and wire it via tests/cmake/StartScreen.cmake.
@@ -188,6 +208,18 @@ Quality gates:
 - Tests: test_audio_vfx_phase6_2_beat_aligned passed; existing Phase 6 music system test still green.
 
 Audio/VFX: Phase 6.4 procedural music layering + regression safeguard
+Audio/VFX: Phase 8 (profiler, budgets, pacing, pool audits) + 100‑impact stress test
+
+- Implemented Phase 8.1–8.4 in effects.[ch]: per‑frame VFX stats (spawned_core/trail, culled_pacing/soft/hard, active pools), spawn budgets (soft/hard), pacing guard (applies before budgets), and particle/instance pool audits.
+- Fixed legacy boundary: instances now expire inclusively (age_ms >= lifetime_ms) while particles remain strict (>), satisfying old tests.
+- Added unit test: test_audio_vfx_phase8_1_2_3_4_profiler_budgets_pacing_audit validating stage order and attribution; timing adjusted to avoid lifetime boundary in hard‑only step.
+- Added Phase 8.5 stress test: test_audio_vfx_phase8_5_stress_100_impacts spawning 100 instances; verifies pacing/soft/hard caps engage under load without pool corruption. Wired in tests/cmake/AudioVfx.cmake.
+- Roadmap updated (Phase 8 marked Done) and README documents new APIs and behavior.
+
+Build & tests:
+- Built Debug with SDL2 using cmake --build build --config Debug --parallel 8.
+- Audio/VFX subset green (including new Phase 8 tests). Full ctest has unrelated failures outside Audio/VFX.
+
 
 - Implement per-state procedural layering: new APIs
     - rogue_audio_music_layer_add(state, track_id, gain) registers up to 4 sweetener layers.

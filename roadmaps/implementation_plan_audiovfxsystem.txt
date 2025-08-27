@@ -70,17 +70,17 @@ PHASE 7. Advanced VFX Features
 7.7 Decal / ground projection system (Done: decal registry + instance pool with lifetime/aging; spawn with position/angle/scale; per-layer counts and screen-space collection helper; unit test validates spawn, counts, expiry)
 
 PHASE 8. Performance & Budgeting
-8.1 Per-frame effect cost profiler (spawn counts, active particles) (X)
-8.2 Soft & hard budgets (drop or LOD effects) (X)
-8.3 Frame pacing guardrails (defer heavy spawns) (X)
-8.4 Pool fragmentation audit tool (X)
-8.5 Stress test scenario (100 simultaneous impacts) (X)
+8.1 Per-frame effect cost profiler (spawn counts, active particles) (Done)
+8.2 Soft & hard budgets (drop or LOD effects) (Done)
+8.3 Frame pacing guardrails (defer heavy spawns) (Done)
+8.4 Pool fragmentation audit tool (Done)
+8.5 Stress test scenario (100 simultaneous impacts) (Done)
 
 PHASE 9. Determinism & Replay
-9.1 Deterministic ordering: stable sort by (emit_frame, priority, seq) (X)
-9.2 Replay log serializer (effect events only) (X)
-9.3 Hashing of event stream for test validation (X)
-9.4 Divergence detector (compare live vs expected hash) (X)
+9.1 Deterministic ordering: stable sort by (emit_frame, priority, id, seq) (Done)
+9.2 Replay log serializer (effect events only) (Done)
+9.3 Hashing of event stream for test validation (Done)
+9.4 Divergence detector (compare live vs expected hash) (Done)
 
 PHASE 10. Tooling & Debugging
 10.1 In-game effect console (play <id>, list, mute) (X)
@@ -245,3 +245,15 @@ Notes (2025-08-27, Phase 7 trails/post/decals):
 - Implemented 7.5 post-processing stubs: global bloom enable with threshold/intensity params, and color LUT id + strength. APIs expose getters/setters with clamping; rendering hookup is deferred.
 - Implemented 7.7 decals: decal registry and instance pools with lifetime aging, spawn API (pos/angle/scale), per-layer counts, and screen-space collection.
 - New combined unit test covers trails, post-processing stubs, and decals. Audio/VFX subset now passes 27/27 under Debug SDL2 with parallel -j8.
+
+Notes (2025-08-31, Phase 8 complete):
+- Implemented Phase 8.18.4 in src/audio_vfx/effects.[ch]: per-frame stats snapshot, spawn budgets (soft/hard), pacing guard, and particle/instance pool audits. Lifetime semantics: particles expire when age_ms > lifetime_ms; instances expire inclusively (>=) to satisfy legacy tests.
+- Added unit test tests/unit/test_audio_vfx_phase8_1_2_3_4_profiler_budgets_pacing_audit.c covering stats, pacing-before-budgets order, soft vs hard attribution, and pool audits. Timing adjusted to avoid lifetime boundary in hard-only step.
+- Added Phase 8.5 stress test tests/unit/test_audio_vfx_phase8_5_stress_100_impacts.c spawning 100 instances and asserting pacing/soft/hard caps work under load without pool corruption. Wired via tests/cmake/AudioVfx.cmake.
+- Audio/VFX subset green in Debug SDL2 (-j8); broader suite has unrelated failures tracked elsewhere.
+
+Notes (2025-09-01, Phase 9 determinism & replay):
+- Implemented deterministic ordering by sorting the per-frame event buffer with comparator tuple (emit_frame, priority, id, seq). After dispatch, sequence numbers are normalized to the sorted order to remove producer-order influence.
+- Per-frame digest updated to be order-insensitive: XOR of per-event 32-bit hashes over (type, priority, id, repeats), excluding seq. This stabilizes the digest when emission order varies across producers with the same frame and priorities.
+- Replay: added begin/end recording and playback enqueue by frame, plus a compact event hashing function (FNV-1a 64) for validation. A divergence accumulator maintains a rolling 64-bit hash over frame digests for multi-frame comparisons.
+- Tests: added `test_audio_vfx_phase9_1_ordering_tuple` and `test_audio_vfx_phase9_2_replay_and_hash`; both pass in Debug SDL2 with parallel `-j8`. Full Audio/VFX subset passes 31/31.
