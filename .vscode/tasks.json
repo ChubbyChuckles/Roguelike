@@ -211,6 +211,30 @@
 			"type": "shell",
 			"command": "cmake --build build --config Debug --parallel 8",
 			"group": "build"
+		},
+		{
+			"label": "Build Debug (SDL2, -j12)",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 12",
+			"group": "build"
+		},
+		{
+			"label": "Build Debug (SDL2, -j8)",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"group": "build"
+		},
+		{
+			"label": "Rebuild Debug after worldgen bridge debug prints",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"group": "build"
+		},
+		{
+			"label": "Rebuild Debug after silencing worldgen bridge traces",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 8",
+			"group": "build"
 		}
 	]
 }

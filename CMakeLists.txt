@@ -116,6 +116,7 @@ add_library(rogue_core
     $<$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>:src/debug_overlay/overlay_core.c>
     $<$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>:src/debug_overlay/overlay_input.c>
     $<$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>:src/debug_overlay/overlay_widgets.c>
+    $<$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>:src/debug_overlay/overlay_panels.c>
     src/ui/core/ui_theme.c
     src/ui/core/ui_test_harness.c
     src/core/player/player_progress.c

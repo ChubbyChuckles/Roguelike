@@ -7,6 +7,7 @@
  * and migration patterns.
  */
 
+#define ROGUE_TRACE_WORLDGEN_ENEMY_BRIDGE 1 /* TEMP: enable traces for diagnosing test failures */
 #include "worldgen_enemy_bridge.h"
 #include <math.h>
 #include <stdio.h>
@@ -257,10 +258,12 @@ bool rogue_worldgen_enemy_bridge_load_biome_encounters(RogueWorldGenEnemyBridge*
         BiomeEncounterEntry* entry = &manager->encounters[manager->encounter_count];
 
         /* Parse line: enemy_id,spawn_weight,min_level,max_level,difficulty_mod,is_boss,req_rep */
+        int is_boss_int = 0; /* use a temporary to avoid writing past bool field */
         if (sscanf_s(line, "%u,%f,%u,%u,%f,%d,%u", &entry->enemy_id, &entry->spawn_weight,
                      &entry->min_level, &entry->max_level, &entry->difficulty_modifier,
-                     (int*) &entry->is_boss, &entry->required_reputation) == 7)
+                     &is_boss_int, &entry->required_reputation) == 7)
         {
+            entry->is_boss = (is_boss_int != 0);
             manager->encounter_count++;
         }
     }
@@ -337,10 +340,21 @@ bool rogue_worldgen_enemy_bridge_set_region_scaling(RogueWorldGenEnemyBridge* br
         return false;
 
     RegionLevelScaling* scaling = &bridge->level_scaling[region_id];
+    /* Store exact values as provided; derive tier using floor but clamp to range */
     scaling->difficulty_rating = difficulty_rating;
     scaling->base_enemy_level = base_level;
-    scaling->scaling_tier = (uint32_t) (difficulty_rating * ENEMY_LEVEL_SCALING_TIERS);
+    int tier = (int) floorf(difficulty_rating * (float) ENEMY_LEVEL_SCALING_TIERS);
+    if (tier < 0)
+        tier = 0;
+    scaling->scaling_tier = (uint32_t) tier;
     scaling->last_scaling_update_us = get_current_time_us();
+
+    /* Optional trace (disabled by default) */
+#ifdef ROGUE_TRACE_WORLDGEN_ENEMY_BRIDGE
+    fprintf(stderr, "[DBG] set_region_scaling: region=%u difficulty=%.3f base_level=%u tier=%u\n",
+            region_id, scaling->difficulty_rating, scaling->base_enemy_level,
+            (unsigned) scaling->scaling_tier);
+#endif
 
     bridge->metrics.level_scaling_updates++;
     return true;
@@ -401,6 +415,13 @@ bool rogue_worldgen_enemy_bridge_add_seasonal_variation(RogueWorldGenEnemyBridge
     variation->is_seasonal_exclusive = false;
 
     bridge->seasonal_system.variation_count++;
+    /* Optional trace (disabled by default) */
+#ifdef ROGUE_TRACE_WORLDGEN_ENEMY_BRIDGE
+    fprintf(stderr,
+            "[DBG] add_seasonal_variation: enemy=%u season=%d spawn=%.3f health=%.3f damage=%.3f\n",
+            enemy_id, (int) season, variation->spawn_weight_modifier, variation->health_modifier,
+            variation->damage_modifier);
+#endif
     return true;
 }
 
@@ -413,13 +434,24 @@ bool rogue_worldgen_enemy_bridge_set_region_pack_scaling(RogueWorldGenEnemyBridg
         return false;
 
     RegionPackScaling* pack_scaling = &bridge->pack_scaling[region_id];
+    /* Preserve the exact danger rating and keep derived fields monotonic but stable */
     pack_scaling->danger_rating = danger_rating;
-    pack_scaling->base_pack_size = (uint32_t) (1 + danger_rating * 3);
-    pack_scaling->max_pack_size = (uint32_t) (8 * danger_rating);
-    pack_scaling->elite_pack_chance = danger_rating * 0.1f;
-    pack_scaling->pack_coordination_level = (uint32_t) (danger_rating * 5);
+    pack_scaling->base_pack_size =
+        (danger_rating <= 1.0f) ? 1u : (uint32_t) ceilf(danger_rating * 2.0f);
+    pack_scaling->max_pack_size = (uint32_t) fmaxf(8.0f, danger_rating * 8.0f);
+    pack_scaling->elite_pack_chance = fmaxf(0.0f, fminf(1.0f, danger_rating * 0.1f));
+    pack_scaling->pack_coordination_level = (uint32_t) fmaxf(1.0f, floorf(danger_rating * 5.0f));
 
     bridge->metrics.pack_size_calculations++;
+    /* Optional trace (disabled by default) */
+#ifdef ROGUE_TRACE_WORLDGEN_ENEMY_BRIDGE
+    fprintf(stderr,
+            "[DBG] set_region_pack_scaling: region=%u danger=%.3f base=%u max=%u elite%%=%.2f "
+            "coord=%u\n",
+            region_id, pack_scaling->danger_rating, pack_scaling->base_pack_size,
+            pack_scaling->max_pack_size, pack_scaling->elite_pack_chance,
+            pack_scaling->pack_coordination_level);
+#endif
     return true;
 }
 
@@ -519,12 +551,18 @@ bool rogue_worldgen_enemy_bridge_set_spawn_density(RogueWorldGenEnemyBridge* bri
         return false;
 
     SpawnDensityControl* density = &bridge->density_controls[region_id];
-    density->base_spawn_density = base_density;
-    density->current_spawn_density = base_density;
+    density->base_spawn_density = base_density;    /* store exact */
+    density->current_spawn_density = base_density; /* initialize current = base at set time */
     density->max_concurrent_enemies = max_concurrent;
     density->last_density_update_us = get_current_time_us();
 
     bridge->metrics.spawn_density_updates++;
+    /* Optional trace (disabled by default) */
+#ifdef ROGUE_TRACE_WORLDGEN_ENEMY_BRIDGE
+    fprintf(stderr, "[DBG] set_spawn_density: region=%u base=%.3f max_concurrent=%u current=%.3f\n",
+            region_id, density->base_spawn_density, density->max_concurrent_enemies,
+            density->current_spawn_density);
+#endif
     return true;
 }
 
@@ -599,6 +637,13 @@ bool rogue_worldgen_enemy_bridge_add_migration_route(RogueWorldGenEnemyBridge* b
     route->enemy_type_count = copy_count;
 
     bridge->migration_system.route_count++;
+    /* Optional trace (disabled by default) */
+#ifdef ROGUE_TRACE_WORLDGEN_ENEMY_BRIDGE
+    fprintf(stderr,
+            "[DBG] add_migration_route: id=%u src=%u dst=%u types=%u trigger=%.3f rate=%.3f\n",
+            route->route_id, route->source_region_id, route->destination_region_id,
+            route->enemy_type_count, route->migration_trigger_threshold, route->migration_rate);
+#endif
     return true;
 }
 

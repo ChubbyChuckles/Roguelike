@@ -1022,8 +1022,39 @@ static int internal_save_to(const char* final_path)
 #endif
     fclose(f);
 #if defined(_MSC_VER)
+    /* Best-effort atomic replacement. If rename fails (e.g., anti-virus locking),
+       retry after removing destination; if still failing, fall back to copy. */
     remove(final_path);
-    rename(tmp_path, final_path);
+    if (rename(tmp_path, final_path) != 0)
+    {
+        FILE* src = NULL;
+        FILE* dst = NULL;
+        if (fopen_s(&src, tmp_path, "rb") == 0 && src && fopen_s(&dst, final_path, "wb") == 0 &&
+            dst)
+        {
+            unsigned char buf[8192];
+            size_t n;
+            while ((n = fread(buf, 1, sizeof buf, src)) > 0)
+            {
+                if (fwrite(buf, 1, n, dst) != n)
+                {
+                    /* copy failed */
+                    break;
+                }
+            }
+            fclose(src);
+            fclose(dst);
+            remove(tmp_path);
+        }
+        else
+        {
+            if (src)
+                fclose(src);
+            if (dst)
+                fclose(dst);
+            /* leave tmp file for debugging */
+        }
+    }
 #else
     rename(tmp_path, final_path);
 #endif

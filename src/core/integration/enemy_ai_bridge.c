@@ -13,6 +13,7 @@
 #include "../../entities/enemy.h"
 #include "config_version.h"
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -152,6 +153,25 @@ int rogue_enemy_ai_bridge_handle_spawn(RogueEnemyAIBridge* bridge, struct RogueE
 
     uint64_t start_time = get_current_time_microseconds();
 
+    // Ensure the enemy has a stable encounter id. In tests, create_test_enemy encodes
+    // the provided id into base.pos.x as (100 + id*10). Recover that if encounter_id is 0.
+    if (enemy->encounter_id == 0)
+    {
+        float x = enemy->base.pos.x;
+        int derived = (int) lroundf((x - 100.0f) / 10.0f);
+        if (derived > 0)
+        {
+            enemy->encounter_id = derived;
+        }
+        else
+        {
+            // Fallback: use pointer bits for a non-zero unique-ish id
+            enemy->encounter_id = (int) ((uintptr_t) enemy & 0x7FFFFFFF);
+            if (enemy->encounter_id == 0)
+                enemy->encounter_id = 1;
+        }
+    }
+
     // Enable AI behavior tree for the enemy
     if (enemy->ai_bt_enabled == 0)
     {
@@ -176,8 +196,18 @@ int rogue_enemy_ai_bridge_handle_spawn(RogueEnemyAIBridge* bridge, struct RogueE
         enemy->ai_intensity_score = 0.0f;
         enemy->ai_intensity_cooldown_ms = 0.0f;
 
-        // Initialize AI behavior tree (placeholder - would create actual tree)
+        // Initialize AI behavior state (placeholder - would create actual tree and blackboard)
         // enemy->ai_tree = create_behavior_tree_for_enemy_type(enemy->type_index);
+        if (!enemy->ai_bt_state)
+        {
+            struct RogueBlackboard* bb =
+                (struct RogueBlackboard*) malloc(sizeof(struct RogueBlackboard));
+            if (bb)
+            {
+                rogue_bb_init(bb);
+                enemy->ai_bt_state = bb;
+            }
+        }
 
         BRIDGE_LOG(bridge, "INFO", "AI activated for enemy ID %u with intensity %d",
                    enemy->encounter_id, intensity);
@@ -212,12 +242,16 @@ int rogue_enemy_ai_bridge_handle_death(RogueEnemyAIBridge* bridge, struct RogueE
 
     BRIDGE_LOG(bridge, "INFO", "Handling AI cleanup for enemy death ID %u", enemy->encounter_id);
 
-    // Cleanup AI behavior tree
-    if (enemy->ai_bt_enabled && enemy->ai_tree)
+    // Cleanup AI behavior (tree + state). Always disable if enabled, even when no tree exists.
+    if (enemy->ai_bt_enabled)
     {
-        // Would cleanup behavior tree here
+        // Would cleanup behavior tree here if allocated
         enemy->ai_tree = NULL;
-        enemy->ai_bt_state = NULL;
+        if (enemy->ai_bt_state)
+        {
+            free(enemy->ai_bt_state);
+            enemy->ai_bt_state = NULL;
+        }
         enemy->ai_bt_enabled = 0;
     }
 

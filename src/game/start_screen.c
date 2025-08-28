@@ -817,7 +817,7 @@ void rogue_start_screen_update_and_render(void)
         for (int s = slot_lo; s < slot_hi; ++s)
         {
             RogueSaveDescriptor d;
-            if (rogue_save_read_descriptor(s, &d) == 0)
+            if (rogue_save_read_descriptor(s, &d) == 0 && rogue_save_descriptor_is_sane(&d))
             {
                 descs[s] = d;
                 present[s] = 1;
@@ -1164,6 +1164,7 @@ void rogue_start_screen_update_and_render(void)
                 if (rc == 0)
                     g_app.start_state = ROGUE_START_FADE_OUT;
             }
+            /* If not sane, ignore activation entirely (remain on menu). */
         }
         else if (sel == 1)
         { /* New Game: open confirmation modal (Phase 5.3) only if explicitly enabled.

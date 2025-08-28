@@ -396,14 +396,21 @@ int rogue_procs_export_json(char* buf, int cap)
     buf[off] = '\0';
     return off;
 }
+/* Rolling accumulator for per-second rate cap window */
 static int g_time_accum_ms = 0;
+/* Monotonic total elapsed time for metrics (never reset on window rollover) */
+static long long g_time_total_ms = 0;
 static int g_rate_cap_per_sec = 1000; /* effectively uncapped default */
 static int g_triggers_this_second = 0;
 static int g_global_sequence = 0; /* deterministic ordering */
 
 static void tick_second_window(int dt_ms)
 {
+    /* Advance both total elapsed time and the rolling per-second window */
+    if (dt_ms < 0)
+        dt_ms = 0;
     g_time_accum_ms += dt_ms;
+    g_time_total_ms += (long long) dt_ms;
     if (g_time_accum_ms >= 1000)
     {
         g_time_accum_ms -= 1000;
@@ -437,6 +444,7 @@ void rogue_procs_reset(void)
     memset(g_proc_states, 0, sizeof g_proc_states);
     g_proc_count = 0;
     g_time_accum_ms = 0;
+    g_time_total_ms = 0;
     g_triggers_this_second = 0;
     g_global_sequence = 0;
 }
@@ -556,17 +564,17 @@ float rogue_proc_uptime_ratio(int id)
 {
     if (id < 0 || id >= g_proc_count)
         return 0.f;
-    if (g_time_accum_ms <= 0)
+    if (g_time_total_ms <= 0)
         return 0.f;
-    return (float) g_proc_states[id].active_time_ms / (float) ((g_time_accum_ms));
+    return (float) g_proc_states[id].active_time_ms / (float) (g_time_total_ms);
 }
 float rogue_proc_triggers_per_min(int id)
 {
     if (id < 0 || id >= g_proc_count)
         return 0.f;
-    if (g_time_accum_ms <= 0)
+    if (g_time_total_ms <= 0)
         return 0.f;
-    float minutes = (float) g_time_accum_ms / 60000.f;
+    float minutes = (float) g_time_total_ms / 60000.f;
     if (minutes <= 0.f)
         return 0.f;
     return (float) g_proc_states[id].trigger_count / minutes;

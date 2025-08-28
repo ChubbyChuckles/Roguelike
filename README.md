@@ -52,10 +52,12 @@ Layered, deterministic top‑down action roguelike engine emphasizing: modular b
 Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' instead of '–') to avoid codepage‑dependent test failures when tests read fixed‑size buffers.
 
 ### Testing & Quality Gates (quick)
-- Build Debug with SDL2 and run tests in parallel with a per‑test 10s timeout:
-	- Build: use CMake multi‑config generators with parallelism (e.g., -j8)
-	- Run tests: ctest -C Debug -j8 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
+- Always build with SDL2 enabled and run tests in parallel with a per‑test 10s timeout:
+	- Build: use CMake multi‑config generators with parallelism (e.g., -j12)
+	- Run tests: ctest -C Debug -j12 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 - Loaders are resilient to working directories: asset/doc paths like `assets/...` are resolved via internal fallbacks so tests can run from build/tests subfolders.
+Notes:
+- Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (558/558).
 
 ### Debug Overlay (early)
 - Unified in-game debug overlay behind a compile-time flag.
@@ -63,10 +65,15 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 - Toggle with F1; the overlay renders after the HUD. Input is captured while active so gameplay doesn’t receive keys/mouse.
 - APIs: `src/debug_overlay/overlay_core.h` plus widgets in `overlay_widgets.h` (Label, Button, Checkbox, SliderInt/Float, InputText). Input capture in `overlay_input.h`.
 	- Layout: simple columns via `overlay_columns_begin/overlay_next_column/overlay_columns_end` (equal or custom widths). Widgets honor column width.
-	- Focus: InputText supports basic focus and Tab traversal; clicking the field gives focus and captures input.
+	- Layout now auto-wraps rows across columns; `overlay_next_column` advances within the row, wrapping to the next row after the last column. Row spacing uses the tallest widget in the row for clean grids.
+	- Focus: Tab/Shift+Tab traversal across all interactive widgets; Enter/Space activate buttons/checkboxes; sliders respond to Left/Right. InputText supports caret navigation (Home/End/Left/Right), insertion/backspace at caret; clicking the field gives focus and captures input.
 - Headless-safe: widget drawing guards avoid SDL calls when no renderer is present (useful in unit tests).
 - Tests: `test_overlay_core` and `test_overlay_widgets` (smoke), with the latter validating headless usage and basic interactions via simulated input.
-	- Verification: Overlay tests pass headlessly in Debug (SDL2) with parallel ctest. Input capture gates gameplay when active; non-overlay failures (AI/equipment) are unrelated to overlay changes.
+	- New: `test_overlay_layout_focus` covers 2-column auto-wrap and focus traversal.
+	- Verification: Overlay tests pass headlessly in Debug (SDL2) with parallel ctest. Full suite currently all‑green in Debug with SDL2 and -j12.
+
+Overlay panels:
+- Default System panel shows FPS, frame time, draw calls, and tile quads, and includes a toggle for the metrics/overlay and overlay enable. More panels will follow.
 
 ### Data‑Driven Skill Coefficients (Phase 10.1)
 - Centralized coefficients can be loaded from JSON/CSV via `skills_coeffs_load` into the runtime registry.

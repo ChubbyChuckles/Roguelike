@@ -46,6 +46,9 @@ extern "C"
             RogueBBVec2 v2;
             float timer;
         } v;
+        // Remember last numeric values to provide stable baselines when switching types
+        int last_i;
+        float last_f;
         float ttl;     // time-to-live seconds (<=0 means inactive for TTL logic)
         uint8_t dirty; // dirty flag set when value changes
     } RogueBBEntry;

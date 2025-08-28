@@ -13,6 +13,7 @@
 
 #include "../../src/core/integration/worldgen_enemy_bridge.h"
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

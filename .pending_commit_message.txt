@@ -1,4 +1,12 @@
-Debug Overlay: test run summary (Debug, SDL2, -j12)
+debug overlay: auto-wrap row height, click-to-focus for all widgets, Tab capture; add System panel
+
+- Layout: track tallest widget per row (row_max_h) so columns auto-wrap advances by actual row height; apply in overlay_next_column/columns_end and single-column ui_next_line.
+- Widgets: add click-to-focus for Button/Checkbox/SliderInt/SliderFloat; InputText keeps caret navigation. Tab/Shift+Tab now requests input capture to gate gameplay.
+- Panels: implement and register baseline System panel (FPS, frame ms, draw calls, tile quads, overlay toggle). Registration invoked during app_init when overlay enabled.
+- Tests: overlay unit tests (core/widgets/layout_focus) pass headlessly. Full build succeeded (Debug, SDL2).
+
+Docs:
+- Roadmap updated: 5.3 and 5.4 marked Done with details; 6.1 notes expanded; 5.5 left Partial pending caret edge tests.Debug Overlay: test run summary (Debug, SDL2, -j12)
 - Ran: ctest -C Debug -j12 --output-on-failure
 - Overlay-focused tests passed: test_overlay_core, test_overlay_widgets, test_overlay_flag
 - Overall: 557 tests, 552 passed, 5 failed (AI/equipment subsystems: test_ai_phase4_nodes, test_ai_phase4_tactical, test_ai_phase11_blackboard_fuzz, test_equipment_phase15_replay_auditor, test_phase3_1_enemy_ai_bridge). These appear unrelated to overlay changes; no overlay code referenced in failures.
@@ -93,3 +101,22 @@ feat(debug-overlay): basic columns layout + tab focus for InputText; no-op stubs
 - Add lightweight focus indexing and Tab traversal; InputText edits only when focused; clicking field captures and sets focus. Initialize focus_index each panel.
 - Keep headless guards and zero-cost OFF stubs. No public API break; header already declared columns API.
 - Tests: overlay tests (core/widgets/flag) pass in Debug (SDL2) with -j12. Full run shows 7 unrelated failures (AI/equipment), overlay unaffected.
+
+feat(debug-overlay): auto-wrap across columns, generalized focus, caret nav; add System panel
+
+- Widgets now auto-advance within columns and wrap rows; Label/Button/Checkbox/Sliders/InputText updated
+- Focus: Tab/Shift+Tab traversal across all interactive widgets; Enter/Space activate Button/Checkbox; sliders support Left/Right
+- InputText: caret navigation (Home/End/Left/Right), backspace/insertion at caret; Escape clears focus
+- Input layer: richer key state and headless simulate helpers
+- New default panel: System (FPS, frame ms, draw calls, tile quads, toggle metrics/overlay)
+- Tests: new test_overlay_layout_focus covers 2-col wrap and focus traversal
+- Build: add overlay_panels.c; init/register default panels in app init
+- Roadmap: 5.3 → Done; 5.4 expanded; 6.1 → Done
+
+ci: enforce SDL2 + parallelism; all‑green run and docs/roadmap updates
+
+- Build/Test: Debug (SDL2) with -j12; full suite passed 100% (558/558).
+- Start Screen: corrupt‑header gating reconfirmed in full run; Continue/Load re‑validate descriptors just before activation.
+- Logging: default WARN keeps CI quiet; noisy subsystems remain behind DEBUG level.
+- Docs: README Testing & Quality Gates updated to require SDL2 and -j12; Debug Overlay section notes headless safety and all‑green status.
+- Roadmap: Added CI validation status to implementation_plan_debugging_overlay.txt.

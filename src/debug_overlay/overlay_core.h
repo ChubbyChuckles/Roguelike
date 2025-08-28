@@ -26,6 +26,8 @@ void overlay_render(void);
 /* Toggle */
 void overlay_set_enabled(int enabled);
 int overlay_is_enabled(void);
+/* Registers a baseline set of panels (system, etc.). Safe to call multiple times. */
+void rogue_overlay_register_default_panels(void);
 #else
 /* Stubs when overlay is disabled at compile time */
 static inline void overlay_init(void) {}

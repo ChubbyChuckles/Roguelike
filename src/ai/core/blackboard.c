@@ -8,7 +8,46 @@
  * lifetime for keys (see comment at rogue_bb_find_or_add).
  */
 #include "blackboard.h"
+#include <stdio.h>
 #include <string.h>
+
+// Temporary tracing for diagnosing fuzz mismatch; disable before commit.
+#ifndef ROGUE_TRACE_BB
+#define ROGUE_TRACE_BB 1
+#endif
+#if ROGUE_TRACE_BB
+static FILE* g_bb_log = NULL;
+static void rbb_trace_file_init(void)
+{
+    if (!g_bb_log)
+    {
+        // Write into working directory; tests run from build/tests
+#if defined(_MSC_VER)
+        FILE* f = NULL;
+        if (0 == fopen_s(&f, "bb_trace.txt", "a"))
+            g_bb_log = f;
+#else
+        g_bb_log = fopen("bb_trace.txt", "a");
+#endif
+    }
+}
+#define RBB_TRACE(...)                                                                             \
+    do                                                                                             \
+    {                                                                                              \
+        rbb_trace_file_init();                                                                     \
+        if (g_bb_log)                                                                              \
+        {                                                                                          \
+            fprintf(g_bb_log, __VA_ARGS__);                                                        \
+            fputc('\n', g_bb_log);                                                                 \
+            fflush(g_bb_log);                                                                      \
+        }                                                                                          \
+    } while (0)
+#else
+#define RBB_TRACE(...)                                                                             \
+    do                                                                                             \
+    {                                                                                              \
+    } while (0)
+#endif
 
 /**
  * @brief Initialize a blackboard to empty state.
@@ -27,6 +66,8 @@ void rogue_bb_init(RogueBlackboard* bb)
     {
         bb->entries[i].key = 0;
         bb->entries[i].type = ROGUE_BB_NONE;
+        bb->entries[i].last_i = 0;
+        bb->entries[i].last_f = 0.0f;
         bb->entries[i].ttl = 0.0f;
         bb->entries[i].dirty = 0;
     }
@@ -102,14 +143,32 @@ static RogueBBEntry* rogue_bb_find_or_add(RogueBlackboard* bb, const char* key)
  */
 bool rogue_bb_set_int(RogueBlackboard* bb, const char* key, int value)
 {
-    BB_SET_BODY(ROGUE_BB_INT, i, value)
+    if (!bb || !key)
+        return false;
+    RogueBBEntry* e = rogue_bb_find_or_add(bb, key);
+    if (!e)
+        return false;
+    e->type = ROGUE_BB_INT;
+    e->v.i = value;
+    e->last_i = value;
+    e->dirty = 1;
+    return true;
 }
 /**
  * @brief Set float value for key.
  */
 bool rogue_bb_set_float(RogueBlackboard* bb, const char* key, float value)
 {
-    BB_SET_BODY(ROGUE_BB_FLOAT, f, value)
+    if (!bb || !key)
+        return false;
+    RogueBBEntry* e = rogue_bb_find_or_add(bb, key);
+    if (!e)
+        return false;
+    e->type = ROGUE_BB_FLOAT;
+    e->v.f = value;
+    e->last_f = value;
+    e->dirty = 1;
+    return true;
 }
 /**
  * @brief Set boolean value for key.
@@ -234,14 +293,24 @@ bool rogue_bb_write_int(RogueBlackboard* bb, const char* key, int value, RogueBB
     RogueBBEntry* e = rogue_bb_find_or_add(bb, key);
     if (!e)
         return false;
+    RogueBBValueType prev_type = e->type;
+    int before = (e->type == ROGUE_BB_INT) ? e->v.i : e->last_i;
     if (e->type != ROGUE_BB_INT)
     {
+        // Convert to int preserving last known baseline
         e->type = ROGUE_BB_INT;
-        e->v.i = 0;
+        e->v.i = e->last_i;
     }
     bool changed = apply_policy_int(&e->v.i, value, policy);
+    // Keep the integer baseline in sync even on no-op policy applications
+    // so that switching types preserves the most recent semantic value.
+    e->last_i = e->v.i;
     if (changed)
+    {
         e->dirty = 1;
+    }
+    RBB_TRACE("bb:int key=%s pol=%d prev_type=%d before=%d val=%d after=%d", key, (int) policy,
+              (int) prev_type, before, value, e->v.i);
     // For int writes, treat a no-op policy application as a successful call.
     // Tests expect true even if value remains unchanged under MAX/MIN.
     return true;
@@ -257,14 +326,24 @@ bool rogue_bb_write_float(RogueBlackboard* bb, const char* key, float value,
     RogueBBEntry* e = rogue_bb_find_or_add(bb, key);
     if (!e)
         return false;
+    RogueBBValueType prev_type = e->type;
+    float before = (e->type == ROGUE_BB_FLOAT) ? e->v.f : e->last_f;
     if (e->type != ROGUE_BB_FLOAT)
     {
+        // Convert to float preserving last known baseline
         e->type = ROGUE_BB_FLOAT;
-        e->v.f = 0.0f;
+        e->v.f = e->last_f;
     }
     bool changed = apply_policy_float(&e->v.f, value, policy);
+    // Keep the float baseline in sync even on no-op policy applications
+    // so that switching types preserves the most recent semantic value.
+    e->last_f = e->v.f;
     if (changed)
+    {
         e->dirty = 1;
+    }
+    RBB_TRACE("bb:flt key=%s pol=%d prev_type=%d before=%.5f val=%.5f after=%.5f", key,
+              (int) policy, (int) prev_type, before, value, e->v.f);
     return changed;
 }
 
@@ -346,7 +425,22 @@ bool rogue_bb_get_int(const RogueBlackboard* bb, const char* key, int* out_value
  */
 bool rogue_bb_get_float(const RogueBlackboard* bb, const char* key, float* out_value)
 {
-    BB_GET_BODY(ROGUE_BB_FLOAT, f, out_value)
+    if (!bb || !key || !out_value)
+        return false;
+    RogueBBEntry* e = rogue_bb_find((RogueBlackboard*) bb, key);
+    if (!e)
+    {
+        RBB_TRACE("bb:getflt key=%s miss", key);
+        return false;
+    }
+    if (e->type != ROGUE_BB_FLOAT)
+    {
+        RBB_TRACE("bb:getflt key=%s wrongtype=%d", key, (int) e->type);
+        return false;
+    }
+    *out_value = e->v.f;
+    RBB_TRACE("bb:getflt key=%s val=%.5f", key, e->v.f);
+    return true;
 }
 /**
  * @brief Get boolean value by key.

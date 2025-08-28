@@ -19,6 +19,11 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 - cJSON library available or vendorable (Partial)
 - Build system supports conditional compilation (CMake) (Done)
 
+CI VALIDATION (current)
+- Overlay core/input/widgets/panels compile clean under Debug with SDL2.
+- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (558/558).
+- Start Screen corrupt-header gating verified via unit test and in the full run; logging defaults to WARN to keep CI output quiet.
+
 PHASE 1. Project Setup & Build Integration
 1.1 Add build flags: ROGUE_ENABLE_DEBUG_OVERLAY, ROGUE_ENABLE_JSON_CONTENT (Done – overlay flag added and propagated via CMake; JSON_CONTENT pending)
 1.2 Create project structure: src/debug_overlay/, src/content/, src/tools/ (Partial – src/debug_overlay/ in place)
@@ -32,6 +37,7 @@ PHASE 2. JSON I/O Foundation
 2.3 Add error buffer conventions: all functions accept char* err, int cap (X)
 2.4 Implement file utilities: temp paths, atomic rename, mtime tracking (X)
 2.5 Tests: JSON load/save roundtrip, error handling, atomic save safety (X)
+
 PHASE 3. Items JSON Schema & Migration
 3.1 Design items.json schema: id, name, type, stats, rarity, tags (X)
 3.2 Implement schema_items.h/.c: load/parse/validate/save functions (X)
@@ -49,12 +55,12 @@ PHASE 4. Skills JSON Schema & Migration
 PHASE 5. Overlay UI Framework Core
 5.1 Implement overlay_core.h/.c: lifecycle, F1 toggle, panel registry (Done – lifecycle/init/shutdown, enabled flag, panel registry, new_frame/render hooks; F1 wired)
 5.2 Add overlay_widgets.h/.c: Label, Button, Checkbox, SliderInt/Float, InputText (Done – basic immediate‑mode widgets implemented; headless-safe rendering guards)
-5.3 Implement basic layout: BeginPanel/EndPanel, columns/rows, automatic wrapping (Partial – Begin/End panel and vertical stacking in place; columns implemented with begin/next/end and per‑column widths; auto‑wrapping across rows pending)
-5.4 Add input handling: mouse/keyboard capture, focus management, text editing (Partial – per‑frame input module with capture flags; basic text editing; initial focus indexing + Tab traversal for InputText added)
-5.5 Tests: widget layout, input focus traversal, text input edge cases (Partial – smoke test added and registered as test_overlay_widgets; need targeted tests for columns layout and focus traversal)
+5.3 Implement basic layout: BeginPanel/EndPanel, columns/rows, automatic wrapping (Done – Begin/End panel, vertical stacking, and columns begin/next/end implemented; widgets now auto-advance across columns and wrap to the next row. Row height now tracks tallest widget in the row for correct spacing.)
+5.4 Add input handling: mouse/keyboard capture, focus management, text editing (Done – generalized Tab/Shift+Tab focus traversal across Button/Checkbox/Sliders/InputText; InputText caret navigation Home/End/Left/Right and insert/backspace at caret; Enter/Space activate buttons/checkboxes; sliders respond to Left/Right; click-to-focus added for all interactives; Tab navigation requests input capture.)
+5.5 Tests: widget layout, input focus traversal, text input edge cases (Partial – unit test test_overlay_layout_focus covers 2‑column wrap and focus/tab traversal; smoke tests retained. Future: add explicit caret edge tests.)
 
 PHASE 6. Basic Overlay Panels
-6.1 Implement System Panel: FPS, timings, memory usage, debug flags (X)
+6.1 Implement System Panel: FPS, timings, memory usage, debug flags (Done – baseline System panel added and registered; shows FPS, frame time, draw calls, tile quads, and toggles metrics/overlay. Registered in app_init.)
 6.2 Add Player Debug Panel: view/edit HP/MP/stats, god mode, noclip, teleport (X)
 6.3 Create player_debug.h/.c APIs for headless testing: get/set/teleport functions (X)
 6.4 Wire F1 toggle in input system, ensure overlay consumes input when active (Done – F1 toggles overlay; event loop integrates overlay_input and gates gameplay on capture)

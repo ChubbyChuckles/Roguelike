@@ -23,6 +23,7 @@ SOFTWARE.
 */
 /* Initialization & shutdown logic extracted from former app.c */
 #include "../../audio_vfx/effects.h"
+#include "../../debug_overlay/overlay_core.h"
 #include "../../entities/enemy.h"
 #include "../../entities/player.h"
 #include "../../game/buffs.h"
@@ -158,6 +159,11 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     rogue_persistence_load_player_stats();
     /* Reset localization to defaults at startup. */
     rogue_locale_reset();
+
+#if ROGUE_ENABLE_DEBUG_OVERLAY
+    overlay_init();
+    rogue_overlay_register_default_panels();
+#endif
     /* Accessibility: allow reduced motion via env ROGUE_REDUCED_MOTION=1 */
 #if defined(_MSC_VER)
     {

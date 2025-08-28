@@ -23,6 +23,14 @@ extern "C"
 
         int key_tab_pressed;       /* 1 if Tab pressed this frame */
         int key_backspace_pressed; /* for InputText */
+        int key_shift_down;        /* 1 if Shift held on this frame */
+        int key_enter_pressed;
+        int key_space_pressed;
+        int key_left_pressed;
+        int key_right_pressed;
+        int key_home_pressed;
+        int key_end_pressed;
+        int key_escape_pressed;
 
         int want_capture_mouse;
         int want_capture_keyboard;
@@ -48,6 +56,16 @@ extern "C"
     void overlay_input_simulate_mouse(int x, int y, int down, int clicked);
     void overlay_input_simulate_text(const char* utf8);
     void overlay_input_set_capture(int want_mouse, int want_keyboard);
+
+    /* Key simulation helpers for unit tests/headless */
+    void overlay_input_simulate_key_tab(int shift);
+    void overlay_input_simulate_key_enter(void);
+    void overlay_input_simulate_key_space(void);
+    void overlay_input_simulate_key_backspace(void);
+    void overlay_input_simulate_key_left(void);
+    void overlay_input_simulate_key_right(void);
+    void overlay_input_simulate_key_home(void);
+    void overlay_input_simulate_key_end(void);
 
 #else /* ROGUE_ENABLE_DEBUG_OVERLAY */
 
