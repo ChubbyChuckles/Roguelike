@@ -154,6 +154,7 @@ add_library(rogue_core
     src/core/skills/skill_talents.c
     # EffectSpec parser
     src/graphics/effect_spec_parser.c
+    src/graphics/effect_spec_load.c
     src/graphics/effect_spec.c
     src/game/buffs.c
     # projectiles module split
@@ -679,6 +680,14 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_skills_phase10_coeffs_loader PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_skills_phase10_coeffs_loader COMMAND test_skills_phase10_coeffs_loader)
+
+# Phase 10.2 EffectSpec JSON loader test
+add_executable(test_effectspec_json_loader tests/unit/test_effectspec_json_loader.c)
+target_link_libraries(test_effectspec_json_loader PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_effectspec_json_loader PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_effectspec_json_loader COMMAND test_effectspec_json_loader)
 
 add_executable(test_audio_vfx_phase1_2 tests/unit/test_audio_vfx_phase1_2.c)
 target_link_libraries(test_audio_vfx_phase1_2 PRIVATE rogue_core)

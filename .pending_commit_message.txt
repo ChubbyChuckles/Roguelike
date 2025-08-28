@@ -30,3 +30,12 @@ Skills Phase 9.1–9.4: Persistence for extended skill state and active buffs; v
 - Versioned TLV sections with varint counts (v4+); includes replay hash and a signature stub for tamper detection.
 - Tests green in Debug SDL2: `test_save_phase7_skill_buff_roundtrip`, `test_save_phase7_skill_buff_extensions`, `test_persistence_versions`, `test_save_v4_varint_counts`, `test_save_v8_replay_hash`, `test_save_v9_signature`.
 - Roadmap updated: mark Phase 9.1–9.4 Done; README gains “Skills Persistence (Phase 9)”.
+
+Phase 10.2: Externalized EffectSpec Config (JSON) + Loader, Tests, Docs
+
+- Add `src/graphics/effect_spec_load.{h,c}`: JSON array parser mapping text enums to internal types; mirrors legacy key=value parser semantics and defaults.
+- Register effects via `rogue_effect_register`; support fields: kind/debuff/buff_type/magnitude/duration_ms/stack_rule/snapshot, scaling and preconditions, DOT/AURA specifics.
+- New unit `tests/unit/test_effectspec_json_loader.c`: disables buff dampening for determinism; verifies additive STR stacking and multiplicative POWER_STRIKE semantics (200% of baseline 10 → 20); prints sentinel OK.
+- Wire target and add CTest entry; ensure SDL2 linked for Debug like other tests.
+- README: add “External EffectSpec Config (Phase 10.2)” section with API and field list; Roadmap: mark 10.2 Done with implementation notes.
+- Smoke: parser/stack variants/snapshot scale/DOT/AURA tests remain green in Debug (SDL2) with parallel builds.

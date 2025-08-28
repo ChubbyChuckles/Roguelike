@@ -106,7 +106,7 @@ PHASE 9. Persistence & Serialization
 
 PHASE 10. Tooling & Data-Driven Content
 10.1 External skill config (CSV/JSON) for definitions & coefficient sets (Done)
-10.2 External effect config: EffectSpec list with stacking & flags (X)
+10.2 External effect config: EffectSpec list with stacking & flags (Done)
 10.3 Validation tool: detect invalid references, cyclic procs, missing coefficients (X)
 10.4 Auto-doc generator for skill sheets (X)
 10.5 Tests: parser edge cases, invalid reference rejection (X)
@@ -287,3 +287,10 @@ Updates (Phase 10.1: Externalized Skill Coefficients Loader):
 - Added query API `rogue_skill_coeff_exists(int)` and ensured `skill_get_effective_coefficient` multiplies mastery, specialization, and central coeff scalar.
 - Authored `tests/unit/test_skills_phase10_coeffs_loader.c` initializing event bus and stat cache; validates parsing, existence, and effective coefficient ranges for two sample skills.
 - CMake wired with `add_test(NAME test_skills_phase10_coeffs_loader ...)`; Debug SDL2 build with parallelism passes this test.
+
+Updates (Phase 10.2: Externalized EffectSpec Loader):
+- Implemented `effect_spec_load.{h,c}` to parse EffectSpec definitions from a JSON array and register them via `rogue_effect_register`.
+- Supported fields mirror the key=value parser: kind, debuff, buff_type, magnitude, duration_ms, stack_rule, snapshot, scaling (`scale_by_buff_type`, `scale_pct_per_point`, `snapshot_scale`), preconditions (`require_buff_type`, `require_buff_min`), DOT/AURA specifics (pulse_period_ms, damage_type, crit fields, aura_radius, aura_group_mask).
+- Defaults match legacy behavior: unspecified stack_rule → ADD; unspecified kind → STAT_BUFF; `require_buff_type`/`scale_by_buff_type` set to sentinel (disabled). Multiplicative stacking is a no-op if no baseline exists; magnitude interpreted as percent (100 = no change).
+- New unit test `tests/unit/test_effectspec_json_loader.c` loads three sample effects and validates additive stacking (+3 STR twice → 6) and multiplicative semantics (200% on baseline 10 → 20); test disables buff dampening for determinism.
+- CMake: target `test_effectspec_json_loader` added and linked with SDL2 in Debug; registered with CTest. All EffectSpec tests (parser, stacking variants, snapshot scaling, DOT/AURA) pass locally in Debug (SDL2) with parallel builds.

@@ -66,6 +66,21 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 	- `int rogue_skill_coeff_exists(int skill_id)`
 - Test: run `ctest -C Debug -j8 -R test_skills_phase10_coeffs_loader` to validate parsing and scaling against the stat cache.
 
+### External EffectSpec Config (Phase 10.2)
+- Load EffectSpec definitions from a JSON array via `effect_spec_load` and register them in the runtime registry.
+- API:
+	- `int rogue_effects_load_from_json_text(const char* json, int* out_ids, int max_ids)`
+	- `int rogue_effects_load_from_file(const char* path, int* out_ids, int max_ids, char* err, int errcap)`
+- Supported fields mirror the legacy key=value parser:
+	- kind, debuff, buff_type, magnitude, duration_ms, stack_rule, snapshot
+	- scaling: scale_by_buff_type, scale_pct_per_point, snapshot_scale
+	- preconditions: require_buff_type, require_buff_min
+	- DOT/AURA: pulse_period_ms, damage_type, crit_mode, crit_chance_pct, aura_radius, aura_group_mask
+- Defaults & semantics:
+	- Unset kind → STAT_BUFF; unset stack_rule → ADD; disabled preconditions/scaling use sentinel values.
+	- Multiplicative stacking is a no‑op without a baseline; magnitude is percent (100 = no change).
+- Test: `test_effectspec_json_loader` covers additive and multiplicative behavior; some tests disable buff dampening (`rogue_buffs_set_dampening(0.0)`) for deterministic rapid re‑applies.
+
 ## Start Screen
 
 The start screen includes:
