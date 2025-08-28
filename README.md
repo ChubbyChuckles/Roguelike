@@ -206,6 +206,14 @@ Usage pattern (tests and gameplay):
 - API: see `src/core/skills/skills_coeffs.h` and registration via `rogue_skill_coeff_register`.
 - Test: `tests/unit/test_skills_phase8_coeffs.c` validates rank scaling and soft-cap behavior; green in Debug with SDL2 and parallel tests.
 
+### Skills Persistence (Phase 9)
+
+- Extended skill state is persisted in a versioned TLV save: rank, cooldown_end_ms, cast_progress_ms, channel_end_ms, next_charge_ready_ms, charges_cur, casting_active, channel_active.
+- Active buffs/debuffs persist as compact tuples (type, magnitude, remaining_ms relative to now). Legacy absolute end-time layouts are auto-detected and converted.
+- Versioning: section headers are version-tagged; counts use varints from v4+. Integrity helpers include a replay hash and a simple signature stub for tamper checks.
+- Implementation: `write_skills_component`/`read_skills_component` and `write_buffs_component`/`read_buffs_component` in `src/core/persistence/save_manager.c`.
+- Tests: `test_save_phase7_skill_buff_roundtrip`, `test_save_phase7_skill_buff_extensions`, `test_persistence_versions`, `test_save_v4_varint_counts`, `test_save_v8_replay_hash`, `test_save_v9_signature` — all green in Debug (SDL2) with parallel builds.
+
 ### Proc Engine (Phase 7.2)
 
 A minimal Proc system is available for skills/effects integration:

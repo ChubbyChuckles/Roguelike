@@ -99,10 +99,10 @@ PHASE 8. Scaling & Coefficients
 8.4 Tests: coefficient application, soft cap flattening, rank progression scaling (Done: `tests/unit/test_skills_phase8_coeffs.c` validates rank scaling and cap behavior; green)
 
 PHASE 9. Persistence & Serialization
-9.1 Serialize extended skill state (charges, cooldowns, ICD timers) (X)
-9.2 Serialize active buffs/debuffs (type, magnitude, remaining_ms, stacking id) (X)
-9.3 Version tagging + migration handlers for new fields (X)
-9.4 Tests: round-trip with mid-cooldown and active DOTs (X)
+9.1 Serialize extended skill state (charges, cooldowns, ICD timers) (Done: extended skill record written/read in `src/core/persistence/save_manager.c` via `write_skills_component`/`read_skills_component` including rank, cooldown_end_ms, cast_progress_ms, channel_end_ms, next_charge_ready_ms, charges_cur, casting_active, channel_active. Back-compat: detects legacy minimal record by payload size.)
+9.2 Serialize active buffs/debuffs (type, magnitude, remaining_ms, stacking id) (Done: `write_buffs_component`/`read_buffs_component` persist active buffs as (type, magnitude, remaining_ms relative to now) for determinism across reload; legacy absolute end time layout auto-detected/conversion path present.)
+9.3 Version tagging + migration handlers for new fields (Done: TLV header with versioned sections; counts varint-encoded from v4+; save signature and replay hash present; migration and back-compat codepaths validated by version tests.)
+9.4 Tests: round-trip with mid-cooldown and active DOTs (Done: `tests/unit/test_save_phase7_skill_buff_roundtrip.c` and `test_save_phase7_skill_buff_extensions.c` verify extended skill fields and active buffs round-trip; versioning and varint/count integrity covered by `test_persistence_versions.c`, `test_save_v4_varint_counts.c`, plus integrity/hash/signature in `test_save_v8_replay_hash.c` and `test_save_v9_signature.c`.)
 
 PHASE 10. Tooling & Data-Driven Content
 10.1 External skill config (CSV/JSON) for definitions & coefficient sets (X)

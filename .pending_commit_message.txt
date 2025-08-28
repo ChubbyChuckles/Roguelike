@@ -13,3 +13,11 @@ Skillsystem Phase 7.4–7.5: Anti-proc loop guard + dynamic scaling; tests and d
 - Unit test `tests/unit/test_skills_phase7_4_5_loop_and_scaling.c`: validates loop protection and scaling under bursty triggers; disables buff dampening for rapid stacking; assertions use `rogue_buffs_get_total`.
 - Roadmap updated: mark 7.4/7.5 Done with details; README gains a subsection documenting safety and scaling behavior.
 - All Phase 7 tests (7.1–7.5) pass locally in Debug with SDL2 and parallel runs (-j16).
+
+Skills Phase 9.1–9.4: Persistence for extended skill state and active buffs; versioning, varints, replay hash, and signature tests
+
+- Save manager writes/reads extended skills (rank, cooldown_end_ms, cast_progress_ms, channel_end_ms, next_charge_ready_ms, charges_cur, casting_active, channel_active) with legacy detection by payload size.
+- Buffs persist as (type, magnitude, remaining_ms relative to now); legacy absolute end-time layout auto-detected and converted.
+- Versioned TLV sections with varint counts (v4+); includes replay hash and a signature stub for tamper detection.
+- Tests green in Debug SDL2: `test_save_phase7_skill_buff_roundtrip`, `test_save_phase7_skill_buff_extensions`, `test_persistence_versions`, `test_save_v4_varint_counts`, `test_save_v8_replay_hash`, `test_save_v9_signature`.
+- Roadmap updated: mark Phase 9.1–9.4 Done; README gains “Skills Persistence (Phase 9)”.
