@@ -32,6 +32,9 @@ extern "C"
        Returns 1.0f when no entry exists. Safe to call at any time. */
     float rogue_skill_coeff_get_scalar(int skill_id);
 
+    /* Query: returns 1 if a coefficient entry exists for skill_id, 0 otherwise. */
+    int rogue_skill_coeff_exists(int skill_id);
+
 #ifdef __cplusplus
 }
 #endif

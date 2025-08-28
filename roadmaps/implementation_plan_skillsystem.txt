@@ -105,7 +105,7 @@ PHASE 9. Persistence & Serialization
 9.4 Tests: round-trip with mid-cooldown and active DOTs (Done: `tests/unit/test_save_phase7_skill_buff_roundtrip.c` and `test_save_phase7_skill_buff_extensions.c` verify extended skill fields and active buffs round-trip; versioning and varint/count integrity covered by `test_persistence_versions.c`, `test_save_v4_varint_counts.c`, plus integrity/hash/signature in `test_save_v8_replay_hash.c` and `test_save_v9_signature.c`.)
 
 PHASE 10. Tooling & Data-Driven Content
-10.1 External skill config (CSV/JSON) for definitions & coefficient sets (X)
+10.1 External skill config (CSV/JSON) for definitions & coefficient sets (Done)
 10.2 External effect config: EffectSpec list with stacking & flags (X)
 10.3 Validation tool: detect invalid references, cyclic procs, missing coefficients (X)
 10.4 Auto-doc generator for skill sheets (X)
@@ -281,3 +281,9 @@ Updates (Phase 7.4–7.5: Loop guard & dynamic proc scaling):
 - Determinism: rolls use the skills proc RNG stream mixed with event salt; analytics and timing clamps remain in place. Scaling applies deterministically based on the recorded recent slots.
 - Tests: `tests/unit/test_skills_phase7_4_5_loop_and_scaling.c` validates both loop protection and downscaling under bursty triggers. The test disables buff dampening to allow rapid stacking and uses `rogue_buffs_get_total` for stable assertions.
 - Status: Debug build with SDL2 and parallel tests (-j16) fully green for the Phase 7 suite (7.1–7.5).
+
+Updates (Phase 10.1: Externalized Skill Coefficients Loader):
+- Implemented `skills_coeffs_load.{h,c}` providing JSON/CSV parsing for `RogueSkillCoeffParams` and registration via `rogue_skill_coeff_register`.
+- Added query API `rogue_skill_coeff_exists(int)` and ensured `skill_get_effective_coefficient` multiplies mastery, specialization, and central coeff scalar.
+- Authored `tests/unit/test_skills_phase10_coeffs_loader.c` initializing event bus and stat cache; validates parsing, existence, and effective coefficient ranges for two sample skills.
+- CMake wired with `add_test(NAME test_skills_phase10_coeffs_loader ...)`; Debug SDL2 build with parallelism passes this test.

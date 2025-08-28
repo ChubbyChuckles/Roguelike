@@ -103,3 +103,13 @@ float rogue_skill_coeff_get_scalar(int skill_id)
 
     return scalar * (1.0f + add_pct);
 }
+
+int rogue_skill_coeff_exists(int skill_id)
+{
+    for (int i = 0; i < ROGUE_MAX_SKILL_COEFFS; ++i)
+    {
+        if (g_coeffs[i].in_use && g_coeffs[i].skill_id == skill_id)
+            return 1;
+    }
+    return 0;
+}

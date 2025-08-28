@@ -147,6 +147,7 @@ add_library(rogue_core
     src/core/skills/skills_runtime.c
     src/core/skills/skills_effects.c
     src/core/skills/skills_coeffs.c
+    src/core/skills/skills_coeffs_load.c
     src/core/skills/skills_procs.c
     src/core/skills/skill_tree.c
     src/core/skills/skill_bar.c
@@ -658,6 +659,7 @@ endif()
 add_test(NAME test_skills_rotation_sim COMMAND test_skills_rotation_sim)
 
 add_executable(test_tag_registry_validate tests/unit/test_tag_registry_validate.c)
+add_executable(test_skills_phase10_coeffs_loader tests/unit/test_skills_phase10_coeffs_loader.c)
 target_link_libraries(test_tag_registry_validate PRIVATE rogue_core)
 if(TARGET SDL2::SDL2)
     target_link_libraries(test_tag_registry_validate PRIVATE SDL2::SDL2)
@@ -670,6 +672,13 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_skills_ordering_invariance PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_skills_ordering_invariance COMMAND test_skills_ordering_invariance)
+
+# Phase 10.1 skills coefficients loader test
+target_link_libraries(test_skills_phase10_coeffs_loader PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_skills_phase10_coeffs_loader PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_skills_phase10_coeffs_loader COMMAND test_skills_phase10_coeffs_loader)
 
 add_executable(test_audio_vfx_phase1_2 tests/unit/test_audio_vfx_phase1_2.c)
 target_link_libraries(test_audio_vfx_phase1_2 PRIVATE rogue_core)

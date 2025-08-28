@@ -1,3 +1,12 @@
+Phase 10.1: Externalized Skill Coefficients Loader + Test
+
+- Implement skills_coeffs_load.{h,c}: parse JSON/CSV into RogueSkillCoeffParams and register via rogue_skill_coeff_register.
+- Add query API rogue_skill_coeff_exists(int) and ensure skill_get_effective_coefficient multiplies mastery, specialization, and central coeff scalar.
+- New unit test tests/unit/test_skills_phase10_coeffs_loader.c: initializes event bus and stat cache; registers sample skills; parses JSON; asserts coefficient ranges; prints sentinel message; runs via CTest.
+- CMake: wire loader into rogue_core; add add_test(NAME test_skills_phase10_coeffs_loader ...).
+- Docs: mark Phase 10.1 Done in roadmap; README: add Data-Driven Skill Coefficients section with APIs and test hint.
+
+Build/Test: Debug + SDL2, parallel (-j12); CTest target test_skills_phase10_coeffs_loader passing.
 Skills Phase 7.6 + Phase 8.1–8.4: central coefficients module, soft-cap clamp, and full proc tests
 
 - Add centralized skill coefficients registry (src/core/skills/skills_coeffs.{h,c}) with base + per-rank scalar and STR/DEX/INT contributions (percent per 10).

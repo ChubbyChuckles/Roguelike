@@ -57,6 +57,15 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 	- Run tests: ctest -C Debug -j8 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 - Loaders are resilient to working directories: asset/doc paths like `assets/...` are resolved via internal fallbacks so tests can run from build/tests subfolders.
 
+### Data‑Driven Skill Coefficients (Phase 10.1)
+- Centralized coefficients can be loaded from JSON/CSV via `skills_coeffs_load` into the runtime registry.
+- The effective scalar per skill is: mastery × specialization × central_coeff(skill_id).
+- Minimal APIs:
+	- `int rogue_skill_coeffs_parse_json_text(const char* json)`
+	- `int rogue_skill_coeffs_load_from_cfg(const char* path)`
+	- `int rogue_skill_coeff_exists(int skill_id)`
+- Test: run `ctest -C Debug -j8 -R test_skills_phase10_coeffs_loader` to validate parsing and scaling against the stat cache.
+
 ## Start Screen
 
 The start screen includes:
