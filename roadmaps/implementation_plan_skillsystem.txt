@@ -88,8 +88,8 @@ PHASE 7. Proc & Trigger System
 7.1 Event bus enumeration (on_hit, on_crit, on_kill, on_damage_taken, on_tick, on_channel_tick, on_resource_threshold, on_combo_spend) (Done: skill_channel_tick + combo_spend events enumerated with payloads and published by skills runtime; combat damage/hit events exist via combat pipeline)
 7.2 Proc definition: condition predicate + effect reference + internal cooldown (ICD) + per-target ICD (Done: minimal proc engine added in `src/core/skills/skills_procs.{h,c}`; supports optional predicate, global ICD and per-target ICD, lazy event subscriptions, and applies EffectSpec on trigger. Unit `tests/unit/test_skills_phase7_2_procs_icd.c` verifies global and per-target ICD gating; integrated into build.)
 7.3 Probability weighting with deterministic RNG sequence & variance smoothing (Done)
-7.4 Anti-proc loop guard (depth counter + cycle hash) (X)
-7.5 Dynamic proc scaling (recent activity weighted) (X)
+7.4 Anti-proc loop guard (depth counter + cycle hash) (Done)
+7.5 Dynamic proc scaling (recent activity weighted) (Done)
 7.6 Tests: ICD enforcement (global & per-target), probability distribution stability, loop guard, variance smoothing bounds (X)
 
 PHASE 8. Scaling & Coefficients
@@ -274,3 +274,10 @@ Updates (Phase 7.3: Probability weighting & smoothing):
 - Added `chance_pct` to proc defs (default coerces to 100 if unset; clamped to 0..100). When `use_smoothing=1`, accumulator guarantees eventual trigger on sustained attempts.
 - Prefixed skills proc API with `rogue_skills_` to avoid symbol collisions with equipment procs.
 - Tests: `tests/unit/test_skills_phase7_3_probability.c` validates baseline probability and smoothing behavior; Debug SDL2 build (-j16) green alongside 7.1 and 7.2.
+
+Updates (Phase 7.4–7.5: Loop guard & dynamic proc scaling):
+- Loop guard: added depth counter (max 8) and cycle-signature hash to prevent proc storms and cyclic triggers. Signature mixes event type, effect/proc ids, and timestamp bucket; duplicate signatures within the current call tree are ignored. Depth overflow short-circuits with a warning once.
+- Dynamic scaling: per-proc recent activity window reduces effective chance by ~12% per additional trigger within the recent window (capped at ~60% reduction). Base `chance_pct` remains authoritative; smoothing accumulator still guarantees eventual triggers under sustained attempts when enabled.
+- Determinism: rolls use the skills proc RNG stream mixed with event salt; analytics and timing clamps remain in place. Scaling applies deterministically based on the recorded recent slots.
+- Tests: `tests/unit/test_skills_phase7_4_5_loop_and_scaling.c` validates both loop protection and downscaling under bursty triggers. The test disables buff dampening to allow rapid stacking and uses `rogue_buffs_get_total` for stable assertions.
+- Status: Debug build with SDL2 and parallel tests (-j16) fully green for the Phase 7 suite (7.1–7.5).

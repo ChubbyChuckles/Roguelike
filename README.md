@@ -214,6 +214,15 @@ Note: Event bus statistics now clamp ultra-fast measurements to a minimum of 1µ
 - Deterministic RNG stream ensures reproducible results across runs; optional `use_smoothing` accumulates misses to bound variance so triggers converge under sustained attempts.
 - Covered by `test_skills_phase7_3_probability`.
 
+#### Loop Guard and Dynamic Scaling (Phases 7.4–7.5)
+- Loop guard prevents proc storms and cycles using:
+	- Depth cap (max = 8) on nested proc-triggered applications.
+	- Cycle signature hash combining event type, effect/proc ids, and time bucket; repeated signatures within the active call tree are suppressed.
+- Dynamic proc scaling reduces effective chance after recent repeated triggers:
+	- Per-proc recent activity window; each extra trigger reduces chance by ~12% up to ~60%.
+	- Deterministic: scaling is derived from the recorded recent slots and the dedicated RNG stream.
+- Test notes: Some tests disable buff dampening (`rogue_buffs_set_dampening(0.0)`) to allow rapid re-application when validating scaling/loop guard behavior. See `tests/unit/test_skills_phase7_4_5_loop_and_scaling.c`.
+
 ### Auras & Area Effects (Phase 6 – slice)
 
 - New EffectSpec kind AURA with fields: `aura_radius` and `pulse_period_ms`.

@@ -1,0 +1,7 @@
+Skillsystem Phase 7.4–7.5: Anti-proc loop guard + dynamic scaling; tests and docs
+
+- Implement loop guard in skills procs: depth cap (8) and cycle signature hash to prevent cyclic proc storms; deterministic suppression with single warn-once overflow.
+- Add dynamic proc scaling: per-proc recent-window chance reduction (~12% per extra recent trigger, capped at ~60%), integrated with existing deterministic RNG + optional smoothing.
+- Unit test `tests/unit/test_skills_phase7_4_5_loop_and_scaling.c`: validates loop protection and scaling under bursty triggers; disables buff dampening for rapid stacking; assertions use `rogue_buffs_get_total`.
+- Roadmap updated: mark 7.4/7.5 Done with details; README gains a subsection documenting safety and scaling behavior.
+- All Phase 7 tests (7.1–7.5) pass locally in Debug with SDL2 and parallel runs (-j16).

@@ -63,6 +63,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase7_3_probability.c AN
     add_test(NAME test_skills_phase7_3_probability COMMAND test_skills_phase7_3_probability)
 endif()
 
+# Phase 7.4/7.5: loop guard and dynamic scaling
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase7_4_5_loop_and_scaling.c AND NOT TARGET test_skills_phase7_4_5_loop_and_scaling)
+    add_executable(test_skills_phase7_4_5_loop_and_scaling unit/test_skills_phase7_4_5_loop_and_scaling.c)
+    target_link_libraries(test_skills_phase7_4_5_loop_and_scaling PRIVATE rogue_core)
+    target_compile_definitions(test_skills_phase7_4_5_loop_and_scaling PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skills_phase7_4_5_loop_and_scaling PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skills_phase7_4_5_loop_and_scaling COMMAND test_skills_phase7_4_5_loop_and_scaling)
+endif()
+
 # Explicitly add new maintainability phase M3.5 projectile config hot reload test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_projectiles_config.c AND NOT TARGET test_projectiles_config)
     add_executable(test_projectiles_config unit/test_projectiles_config.c)
