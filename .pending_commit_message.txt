@@ -1,3 +1,9 @@
+Debug Overlay: test run summary (Debug, SDL2, -j12)
+- Ran: ctest -C Debug -j12 --output-on-failure
+- Overlay-focused tests passed: test_overlay_core, test_overlay_widgets, test_overlay_flag
+- Overall: 557 tests, 552 passed, 5 failed (AI/equipment subsystems: test_ai_phase4_nodes, test_ai_phase4_tactical, test_ai_phase11_blackboard_fuzz, test_equipment_phase15_replay_auditor, test_phase3_1_enemy_ai_bridge). These appear unrelated to overlay changes; no overlay code referenced in failures.
+- Kept overlay stubs/headless guards ensuring no gameplay/input regressions; SDL2 rendering bypassed in headless tests.
+
 feat(debug-overlay): add compile-time feature flag + core wiring and tests
 
 - Introduce ROGUE_ENABLE_DEBUG_OVERLAY (ON by default); propagate via CMake
@@ -69,3 +75,14 @@ UI Phase 11.3: Aura & Channel Area Debug Overlay
 - Minor fixes: SDL color casts in hud_buff_belt.c; local var shadowing fix in skill_bar.c to satisfy warnings-as-errors.
 - Build: Debug (SDL2) with parallelism (-j12) succeeds; CMake includes the new module.
 - Tests: Full suite executed in Debug with -j12; skills/effectspec/renderer/UI subsets green. Some AI/start-screen/equipment tests are currently red under headless assets; unrelated to this change.
+
+feat(debug-overlay): add input capture + basic widgets (Label/Button/Checkbox/Sliders/InputText); register unit test
+
+- New modules: src/debug_overlay/overlay_input.{h,c} (per-frame input, SDL event feed, capture flags) and src/debug_overlay/overlay_widgets.{h,c} (immediate-mode widgets)
+- Integrate overlay input into event loop (begin frame, handle events); gate gameplay input when overlay wants capture; F1 still toggles overlay
+- CMake: include overlay_input.c and overlay_widgets.c when ROGUE_ENABLE_DEBUG_OVERLAY is ON; add test target test_overlay_widgets
+- Headless-safe guards: avoid SDL renderer calls when g_app.renderer is null; keeps unit tests from requiring a window
+- Roadmap update: Phase 5.2 → Done; 5.3/5.4/5.5 → Partial; Phase 6.4 → Done
+- README: expand Debug Overlay section with widgets and input capture; note headless safety and tests
+
+Build/Test: Debug (SDL2) with parallelism (-j12). Overlay core + widgets tests green locally; rest of suite unchanged.

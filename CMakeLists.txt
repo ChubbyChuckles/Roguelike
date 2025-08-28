@@ -114,6 +114,8 @@ add_library(rogue_core
     src/core/hud/hud_overlays.c
     # unified debug overlay core (conditionally compiled)
     $<$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>:src/debug_overlay/overlay_core.c>
+    $<$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>:src/debug_overlay/overlay_input.c>
+    $<$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>:src/debug_overlay/overlay_widgets.c>
     src/ui/core/ui_theme.c
     src/ui/core/ui_test_harness.c
     src/core/player/player_progress.c
@@ -672,6 +674,14 @@ add_executable(test_tag_registry_validate tests/unit/test_tag_registry_validate.
 add_executable(test_overlay_core tests/unit/test_overlay_core.c)
 target_link_libraries(test_overlay_core PRIVATE rogue_core)
 add_test(NAME test_overlay_core COMMAND test_overlay_core)
+
+# Debug overlay widgets unit test (headless-safe)
+add_executable(test_overlay_widgets tests/unit/test_overlay_widgets.c)
+target_link_libraries(test_overlay_widgets PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_overlay_widgets PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_overlay_widgets COMMAND test_overlay_widgets)
 add_executable(test_skills_phase10_coeffs_loader tests/unit/test_skills_phase10_coeffs_loader.c)
 target_link_libraries(test_tag_registry_validate PRIVATE rogue_core)
 if(TARGET SDL2::SDL2)

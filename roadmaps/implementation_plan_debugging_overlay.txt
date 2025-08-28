@@ -48,16 +48,16 @@ PHASE 4. Skills JSON Schema & Migration
 
 PHASE 5. Overlay UI Framework Core
 5.1 Implement overlay_core.h/.c: lifecycle, F1 toggle, panel registry (Done – lifecycle/init/shutdown, enabled flag, panel registry, new_frame/render hooks; F1 wired)
-5.2 Add overlay_widgets.h/.c: Label, Button, Checkbox, SliderInt/Float, InputText (X)
-5.3 Implement basic layout: BeginPanel/EndPanel, columns/rows, automatic wrapping (X)
-5.4 Add input handling: mouse/keyboard capture, focus management, text editing (X)
-5.5 Tests: widget layout, input focus traversal, text input edge cases (X)
+5.2 Add overlay_widgets.h/.c: Label, Button, Checkbox, SliderInt/Float, InputText (Done – basic immediate‑mode widgets implemented; headless-safe rendering guards)
+5.3 Implement basic layout: BeginPanel/EndPanel, columns/rows, automatic wrapping (Partial – Begin/End panel and vertical stacking in place; columns/wrapping TBD)
+5.4 Add input handling: mouse/keyboard capture, focus management, text editing (Partial – per‑frame input module with capture flags; basic text editing; focus/tab traversal TBD)
+5.5 Tests: widget layout, input focus traversal, text input edge cases (Partial – smoke test added and registered as test_overlay_widgets; deeper focus/layout tests TBD)
 
 PHASE 6. Basic Overlay Panels
 6.1 Implement System Panel: FPS, timings, memory usage, debug flags (X)
 6.2 Add Player Debug Panel: view/edit HP/MP/stats, god mode, noclip, teleport (X)
 6.3 Create player_debug.h/.c APIs for headless testing: get/set/teleport functions (X)
-6.4 Wire F1 toggle in input system, ensure overlay consumes input when active (Partial – F1 toggle wired; input capture TBD)
+6.4 Wire F1 toggle in input system, ensure overlay consumes input when active (Done – F1 toggles overlay; event loop integrates overlay_input and gates gameplay on capture)
 6.5 Tests: panel rendering, player debug APIs, input consumption (X)
 
 PHASE 7. Skills Manager Panel

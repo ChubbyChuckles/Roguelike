@@ -9,6 +9,7 @@
 #include "../core/vendor/economy.h"
 #include "../core/vendor/vendor.h"
 #include "../debug_overlay/overlay_core.h"
+#include "../debug_overlay/overlay_input.h"
 #include "../entities/player.h"
 #include "../game/damage_numbers.h"
 #include "../game/game_loop.h"
@@ -58,13 +59,19 @@ void rogue_process_events(void)
 {
 #ifdef ROGUE_HAVE_SDL
     SDL_Event ev;
+    /* Start overlay input frame (resets per-frame states) before event loop. */
+    overlay_input_begin_frame();
     while (SDL_PollEvent(&ev))
     {
+        /* Always feed overlay input to track mouse/text when overlay is enabled. */
+        overlay_input_handle_event(&ev);
         if (ev.type == SDL_QUIT)
         {
             rogue_game_loop_request_exit();
         }
         rogue_input_process_sdl_event(&g_app.input, &ev);
+        /* If overlay wants to capture keyboard, swallow gameplay keys (except the F1 toggle). */
+        int overlay_capture_kb = overlay_input_want_capture_keyboard();
         if (ev.type == SDL_KEYDOWN && !g_app.show_start_screen)
         {
             /* Allow vendor/equipment panel toggles even while skill tree UI is open. */
@@ -76,20 +83,20 @@ void rogue_process_events(void)
                     continue; /* consume all other keys while tree is open */
                 }
             }
-            if (ev.key.keysym.sym == SDLK_TAB)
+            if (!overlay_capture_kb && ev.key.keysym.sym == SDLK_TAB)
             {
                 g_app.show_stats_panel = !g_app.show_stats_panel;
             }
-            if (ev.key.keysym.sym == SDLK_v)
+            if (!overlay_capture_kb && ev.key.keysym.sym == SDLK_v)
             {
                 g_app.show_vendor_panel = !g_app.show_vendor_panel;
                 g_app.vendor_selection = 0;
             }
-            if (ev.key.keysym.sym == SDLK_e)
+            if (!overlay_capture_kb && ev.key.keysym.sym == SDLK_e)
             {
                 g_app.show_equipment_panel = !g_app.show_equipment_panel;
             }
-            if (ev.key.keysym.sym == SDLK_m)
+            if (!overlay_capture_kb && ev.key.keysym.sym == SDLK_m)
             {
                 g_app.show_minimap = !g_app.show_minimap;
             }
@@ -98,16 +105,18 @@ void rogue_process_events(void)
                 g_app.show_metrics_overlay = !g_app.show_metrics_overlay;
                 /* Also toggle unified debug overlay core */
                 overlay_set_enabled(g_app.show_metrics_overlay);
+                /* When opening overlay, request capturing inputs; when closing, release. */
+                overlay_input_set_capture(g_app.show_metrics_overlay, g_app.show_metrics_overlay);
             }
-            if (ev.key.keysym.sym == SDLK_F11)
+            if (!overlay_capture_kb && ev.key.keysym.sym == SDLK_F11)
             {
                 g_app.show_skill_area_overlay = !g_app.show_skill_area_overlay;
             }
-            if (g_app.show_equipment_panel && ev.key.keysym.sym == SDLK_r)
+            if (!overlay_capture_kb && g_app.show_equipment_panel && ev.key.keysym.sym == SDLK_r)
             { /* repair equipped weapon */
                 rogue_equip_repair_slot(ROGUE_EQUIP_WEAPON);
             }
-            if (g_app.show_vendor_panel)
+            if (!overlay_capture_kb && g_app.show_vendor_panel)
             {
                 if (ev.key.keysym.sym == SDLK_UP)
                 {
@@ -163,16 +172,16 @@ void rogue_process_events(void)
                     g_app.show_vendor_panel = 0;
                 }
             }
-            if (ev.key.keysym.sym == SDLK_k)
+            if (!overlay_capture_kb && ev.key.keysym.sym == SDLK_k)
             {
                 rogue_skill_tree_toggle();
             }
             /* Toggle experimental skill graph (new UI system) with G */
-            if (ev.key.keysym.sym == SDLK_g)
+            if (!overlay_capture_kb && ev.key.keysym.sym == SDLK_g)
             {
                 g_app.show_skill_graph = !g_app.show_skill_graph;
             }
-            if (g_app.show_stats_panel)
+            if (!overlay_capture_kb && g_app.show_stats_panel)
             {
                 if (ev.key.keysym.sym == SDLK_LEFT)
                 {
@@ -221,20 +230,20 @@ void rogue_process_events(void)
                     g_app.show_stats_panel = 0;
                 }
             }
-            if (ev.key.keysym.sym == SDLK_r)
+            if (!overlay_capture_kb && ev.key.keysym.sym == SDLK_r)
             {
                 g_app.player_state = (g_app.player_state == 2) ? 1 : 2;
             }
             /* Synthetic alert test triggers (for headless / manual) */
-            if (ev.key.keysym.sym == SDLK_F2)
+            if (!overlay_capture_kb && ev.key.keysym.sym == SDLK_F2)
             {
                 rogue_alert_level_up();
             }
-            if (ev.key.keysym.sym == SDLK_F3)
+            if (!overlay_capture_kb && ev.key.keysym.sym == SDLK_F3)
             {
                 rogue_alert_low_health();
             }
-            if (ev.key.keysym.sym == SDLK_F4)
+            if (!overlay_capture_kb && ev.key.keysym.sym == SDLK_F4)
             {
                 rogue_alert_vendor_restock();
             }

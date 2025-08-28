@@ -58,11 +58,13 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 - Loaders are resilient to working directories: asset/doc paths like `assets/...` are resolved via internal fallbacks so tests can run from build/tests subfolders.
 
 ### Debug Overlay (early)
-- A unified in-game debug overlay is scaffolded behind a compile-time flag.
-- Feature flag: ROGUE_ENABLE_DEBUG_OVERLAY (default ON). When OFF, header stubs compile to no-ops and carry zero runtime cost.
-- Toggle at runtime with F1. The overlay draws after the HUD; no panels are exposed yet.
-- APIs in `src/debug_overlay/overlay_core.h` (init/shutdown/register_panel/new_frame/render/set_enabled/is_enabled).
-- Tests: `test_overlay_core` (basic lifecycle) and `test_overlay_flag` (flag behavior) are included in the suite.
+- Unified in-game debug overlay behind a compile-time flag.
+- Feature flag: ROGUE_ENABLE_DEBUG_OVERLAY (default ON). When OFF, headers provide no-op stubs for zero overhead.
+- Toggle with F1; the overlay renders after the HUD. Input is captured while active so gameplay doesn’t receive keys/mouse.
+- APIs: `src/debug_overlay/overlay_core.h` plus widgets in `overlay_widgets.h` (Label, Button, Checkbox, SliderInt/Float, InputText). Input capture in `overlay_input.h`.
+- Headless-safe: widget drawing guards avoid SDL calls when no renderer is present (useful in unit tests).
+- Tests: `test_overlay_core` and `test_overlay_widgets` (smoke), with the latter validating headless usage and basic interactions via simulated input.
+	- Verification: Overlay tests pass headlessly in Debug (SDL2) with parallel ctest. Input capture gates gameplay when active; non-overlay failures (AI/equipment) are unrelated to overlay changes.
 
 ### Data‑Driven Skill Coefficients (Phase 10.1)
 - Centralized coefficients can be loaded from JSON/CSV via `skills_coeffs_load` into the runtime registry.
