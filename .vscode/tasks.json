@@ -235,6 +235,24 @@
 			"type": "shell",
 			"command": "cmake --build build --config Debug --parallel 8",
 			"group": "build"
+		},
+		{
+			"label": "Build Debug (SDL2, -j12) after player debug panel",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 12",
+			"group": "build"
+		},
+		{
+			"label": "Rebuild Debug (SDL2, -j12) after god/noclip",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 12",
+			"group": "build"
+		},
+		{
+			"label": "Rebuild Debug (SDL2, -j12) after include fix",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 12",
+			"group": "build"
 		}
 	]
 }

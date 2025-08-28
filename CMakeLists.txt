@@ -104,6 +104,7 @@ add_library(rogue_core
     src/core/minimap/minimap_loot_pings.c
     # moved to rogue_systems_loot: src/core/loot/loot_tooltip.c
     src/core/player/player_controller.c
+    src/core/player/player_debug.c
     src/input/input_events.c
     src/core/player/player_render.c
     src/core/enemy/enemy_render.c

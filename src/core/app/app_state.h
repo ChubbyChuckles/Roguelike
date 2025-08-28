@@ -237,6 +237,9 @@ typedef struct RogueAppState
     unsigned int world_seed;
     /* Enemy Difficulty Phase 5: recent death timer for intensity escalation */
     float time_since_last_enemy_death_ms;
+    /* Player debug toggles */
+    int noclip_enabled;   /* movement/collision bypass for debug */
+    int god_mode_enabled; /* ignore incoming damage */
 } RogueAppState;
 
 extern RogueAppState g_app;

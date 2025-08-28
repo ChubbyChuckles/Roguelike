@@ -73,7 +73,8 @@ Notes:
 	- Verification: Overlay tests pass headlessly in Debug (SDL2) with parallel ctest. Full suite currently all‑green in Debug with SDL2 and -j12.
 
 Overlay panels:
-- Default System panel shows FPS, frame time, draw calls, and tile quads, and includes a toggle for the metrics/overlay and overlay enable. More panels will follow.
+- System panel shows FPS, frame time, draw calls, and tile quads, and includes a toggle for the metrics/overlay and overlay enable.
+- Player panel exposes HP/MP/AP and core stats (STR/DEX/VIT/INT) with sliders, God Mode/No-clip toggles, and simple teleports (spawn/center). Player debug APIs are headless-safe and used by the panel.
 
 ### Data‑Driven Skill Coefficients (Phase 10.1)
 - Centralized coefficients can be loaded from JSON/CSV via `skills_coeffs_load` into the runtime registry.

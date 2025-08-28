@@ -1,3 +1,4 @@
+#include "../core/app/app_state.h"
 #include "../core/equipment/equipment_procs.h" /* for reactive shield procs */
 #include "combat.h"
 #include "combat_internal.h"
@@ -94,6 +95,8 @@ int rogue_player_apply_incoming_melee(RoguePlayer* p, float raw_damage, float at
                                       float attack_dir_y, int poise_damage, int* out_blocked,
                                       int* out_perfect)
 {
+    if (g_app.god_mode_enabled)
+        return 0;
     if (out_blocked)
         *out_blocked = 0;
     if (out_perfect)

@@ -120,3 +120,12 @@ ci: enforce SDL2 + parallelism; all‑green run and docs/roadmap updates
 - Logging: default WARN keeps CI quiet; noisy subsystems remain behind DEBUG level.
 - Docs: README Testing & Quality Gates updated to require SDL2 and -j12; Debug Overlay section notes headless safety and all‑green status.
 - Roadmap: Added CI validation status to implementation_plan_debugging_overlay.txt.
+
+feat(debug-overlay): add Player Debug Panel + player_debug APIs; honor god mode in melee; all‑green tests
+
+- New APIs: src/core/player/player_debug.{h,c} provide get/set for HP/MP/AP and core stats, god_mode/noclip toggles, and teleport helpers; clamped setters and derived recompute.
+- Overlay: Player panel with sliders for HP/MP/AP and STR/DEX/VIT/INT; checkboxes for God Mode/No‑clip; spawn/center teleport actions. Registered alongside System panel.
+- App state: add g_app.god_mode_enabled and g_app.noclip_enabled; initialize in app_init; melee damage path short‑circuits when god mode is enabled.
+- Build: CMake wires player_debug.c into rogue_core; headless guards preserved.
+- Tests: Full Debug run (SDL2, -j12) passed 100% (558/558). Overlay tests remain green.
+- Docs: Roadmap marks 6.2/6.3 Done and 6.5 Partial; README notes the Player panel and APIs.

@@ -144,6 +144,8 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     rogue_items_init_runtime();
     rogue_inventory_init();
     g_app.inventory_sort_mode = 0; /* default sort none */
+    g_app.noclip_enabled = 0;      /* debug off by default */
+    g_app.god_mode_enabled = 0;    /* debug off by default */
     rogue_loot_logging_init_from_env();
     /* Load hitbox tuning if present */
     RogueHitboxTuning* tune = rogue_hitbox_tuning_get();

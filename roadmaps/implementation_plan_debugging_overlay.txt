@@ -22,6 +22,7 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 CI VALIDATION (current)
 - Overlay core/input/widgets/panels compile clean under Debug with SDL2.
 - Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (558/558).
+- Player Debug Panel and headless-safe player_debug APIs integrated; god mode is honored in melee mitigation path; noclip flag plumbed in app state. Rebuild and full test run reconfirmed green.
 - Start Screen corrupt-header gating verified via unit test and in the full run; logging defaults to WARN to keep CI output quiet.
 
 PHASE 1. Project Setup & Build Integration
@@ -61,10 +62,10 @@ PHASE 5. Overlay UI Framework Core
 
 PHASE 6. Basic Overlay Panels
 6.1 Implement System Panel: FPS, timings, memory usage, debug flags (Done – baseline System panel added and registered; shows FPS, frame time, draw calls, tile quads, and toggles metrics/overlay. Registered in app_init.)
-6.2 Add Player Debug Panel: view/edit HP/MP/stats, god mode, noclip, teleport (X)
-6.3 Create player_debug.h/.c APIs for headless testing: get/set/teleport functions (X)
+6.2 Add Player Debug Panel: view/edit HP/MP/AP & core stats, god mode, noclip, teleport (Done – panel registered; sliders for HP/MP/AP and STR/DEX/VIT/INT; checkboxes for God Mode and No-clip; teleport helpers to spawn/center. Headless guards in widgets respected.)
+6.3 Create player_debug.h/.c APIs for headless testing: get/set/teleport functions (Done – clamped setters; derived stat recompute on change; app-level flags for god_mode/noclip; teleport API; compiled into rogue_core.)
 6.4 Wire F1 toggle in input system, ensure overlay consumes input when active (Done – F1 toggles overlay; event loop integrates overlay_input and gates gameplay on capture)
-6.5 Tests: panel rendering, player debug APIs, input consumption (X)
+6.5 Tests: panel rendering, player debug APIs, input consumption (Partial – existing overlay tests are green; TODO add unit tests for player_debug clamps/derived recompute and god-mode damage bypass.)
 
 PHASE 7. Skills Manager Panel
 7.1 Implement Skill Manager Panel: browse skills, edit coefficients/cooldowns (X)
