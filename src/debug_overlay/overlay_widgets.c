@@ -17,11 +17,25 @@ typedef struct UiCtx
     int line_h;
     int panel_active;
     OverlayStyle style;
+    /* Columns */
+    int columns;
+    int col_widths[4];
+    int col_x0[4];
+    int col_index;
+    int row_start_y;
+    /* Focus & widgets */
+    int focus_index;   /* -1 = none */
+    int total_widgets; /* count of interactive widgets this frame */
 } UiCtx;
 
 static UiCtx g_ui = {0};
 
-static void ui_next_line(void) { g_ui.cur_y += g_ui.line_h; }
+static void ui_next_line(void)
+{
+    /* Within a columns block, vertical advance is controlled by columns_end */
+    if (g_ui.columns <= 1)
+        g_ui.cur_y += g_ui.line_h;
+}
 
 void overlay_style_set(OverlayStyle s) { g_ui.style = s; }
 
@@ -34,6 +48,13 @@ int overlay_begin_panel(const char* title, int x, int y, int w)
     g_ui.cur_y = y + 28;
     g_ui.width = w - 16;
     g_ui.line_h = 22;
+    g_ui.columns = 1;
+    g_ui.col_index = 0;
+    g_ui.col_widths[0] = g_ui.width;
+    g_ui.col_x0[0] = g_ui.cur_x;
+    g_ui.row_start_y = g_ui.cur_y;
+    g_ui.focus_index = -1;
+    g_ui.total_widgets = 0;
 #ifdef ROGUE_HAVE_SDL
     if (g_app.renderer)
     {
@@ -49,7 +70,19 @@ int overlay_begin_panel(const char* title, int x, int y, int w)
     return 1;
 }
 
-void overlay_end_panel(void) { g_ui.panel_active = 0; }
+void overlay_end_panel(void)
+{
+    /* Handle Tab to advance focus after building list */
+    const OverlayInputState* in = overlay_input_get();
+    if (g_ui.total_widgets > 0)
+    {
+        if (g_ui.focus_index < 0 && in->key_tab_pressed)
+            g_ui.focus_index = 0;
+        else if (in->key_tab_pressed)
+            g_ui.focus_index = (g_ui.focus_index + 1) % g_ui.total_widgets;
+    }
+    g_ui.panel_active = 0;
+}
 
 static int mouse_over(int x, int y, int w, int h)
 {
@@ -72,7 +105,8 @@ int overlay_button(const char* label)
         return 0;
     int h = 20;
     int x = g_ui.cur_x, y = g_ui.cur_y;
-    int w = g_ui.width;
+    int w = (g_ui.columns > 1 ? g_ui.col_widths[g_ui.col_index] : g_ui.width);
+    g_ui.total_widgets++;
 #ifdef ROGUE_HAVE_SDL
     if (g_app.renderer)
     {
@@ -99,6 +133,7 @@ int overlay_checkbox(const char* label, int* value)
     int changed = 0;
     int sz = 16;
     int x = g_ui.cur_x, y = g_ui.cur_y + 2;
+    g_ui.total_widgets++;
 #ifdef ROGUE_HAVE_SDL
     if (g_app.renderer)
     {
@@ -130,7 +165,9 @@ int overlay_slider_int(const char* label, int* value, int minv, int maxv)
 {
     if (!g_ui.panel_active || !value)
         return 0;
-    int x = g_ui.cur_x, y = g_ui.cur_y, w = g_ui.width, h = 18;
+    int x = g_ui.cur_x, y = g_ui.cur_y,
+        w = (g_ui.columns > 1 ? g_ui.col_widths[g_ui.col_index] : g_ui.width), h = 18;
+    g_ui.total_widgets++;
 #ifdef ROGUE_HAVE_SDL
     if (g_app.renderer)
     {
@@ -170,7 +207,9 @@ int overlay_slider_float(const char* label, float* value, float minv, float maxv
 {
     if (!g_ui.panel_active || !value)
         return 0;
-    int x = g_ui.cur_x, y = g_ui.cur_y, w = g_ui.width, h = 18;
+    int x = g_ui.cur_x, y = g_ui.cur_y,
+        w = (g_ui.columns > 1 ? g_ui.col_widths[g_ui.col_index] : g_ui.width), h = 18;
+    g_ui.total_widgets++;
 #ifdef ROGUE_HAVE_SDL
     if (g_app.renderer)
     {
@@ -211,14 +250,16 @@ int overlay_input_text(const char* label, char* buf, size_t buf_size)
         return 0;
     const OverlayInputState* in = overlay_input_get();
     int changed = 0;
+    int id = g_ui.total_widgets++;
+    int has_focus = (g_ui.focus_index == id);
     /* Backspace */
-    if (in->key_backspace_pressed && strlen(buf) > 0)
+    if (has_focus && in->key_backspace_pressed && strlen(buf) > 0)
     {
         buf[strlen(buf) - 1] = '\0';
         changed = 1;
     }
     /* Append incoming text (ASCII slice) */
-    if (in->text_input[0] != '\0')
+    if (has_focus && in->text_input[0] != '\0')
     {
         size_t cur = strlen(buf);
         size_t add = strlen(in->text_input);
@@ -231,7 +272,8 @@ int overlay_input_text(const char* label, char* buf, size_t buf_size)
             changed = 1;
         }
     }
-    int x = g_ui.cur_x, y = g_ui.cur_y, w = g_ui.width, h = 18;
+    int x = g_ui.cur_x, y = g_ui.cur_y,
+        w = (g_ui.columns > 1 ? g_ui.col_widths[g_ui.col_index] : g_ui.width), h = 18;
 #ifdef ROGUE_HAVE_SDL
     if (g_app.renderer)
     {
@@ -248,9 +290,64 @@ int overlay_input_text(const char* label, char* buf, size_t buf_size)
     if (mouse_over(x, y + 2, w, h) && overlay_input_get()->mouse_clicked)
     {
         overlay_input_set_capture(1, 1);
+        g_ui.focus_index = id;
     }
     ui_next_line();
     return changed;
+}
+
+int overlay_columns_begin(int cols, const int* widths)
+{
+    if (!g_ui.panel_active)
+        return 0;
+    if (cols < 1)
+        cols = 1;
+    if (cols > 4)
+        cols = 4;
+    g_ui.columns = cols;
+    g_ui.col_index = 0;
+    g_ui.row_start_y = g_ui.cur_y;
+    int remaining = g_ui.width;
+    for (int i = 0; i < cols; ++i)
+    {
+        int w = widths ? widths[i] : (g_ui.width / cols);
+        if (i == cols - 1)
+            w = remaining;
+        g_ui.col_widths[i] = w;
+        remaining -= w;
+    }
+    g_ui.col_x0[0] = g_ui.cur_x;
+    for (int i = 1; i < cols; ++i)
+        g_ui.col_x0[i] = g_ui.col_x0[i - 1] + g_ui.col_widths[i - 1] + 8; /* gutter */
+    g_ui.cur_x = g_ui.col_x0[0];
+    g_ui.cur_y = g_ui.row_start_y;
+    return 1;
+}
+
+void overlay_next_column(void)
+{
+    if (!g_ui.panel_active || g_ui.columns <= 1)
+        return;
+    g_ui.col_index++;
+    if (g_ui.col_index >= g_ui.columns)
+    {
+        g_ui.col_index = 0;
+        g_ui.row_start_y += g_ui.line_h;
+    }
+    g_ui.cur_x = g_ui.col_x0[g_ui.col_index];
+    g_ui.cur_y = g_ui.row_start_y;
+}
+
+void overlay_columns_end(void)
+{
+    if (!g_ui.panel_active)
+        return;
+    /* move down one line after columns block */
+    g_ui.cur_x = g_ui.col_x0[0];
+    g_ui.row_start_y += g_ui.line_h;
+    g_ui.cur_y = g_ui.row_start_y;
+    g_ui.columns = 1;
+    g_ui.col_index = 0;
 }
 
 #endif /* ROGUE_ENABLE_DEBUG_OVERLAY */

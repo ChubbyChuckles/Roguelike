@@ -86,3 +86,10 @@ feat(debug-overlay): add input capture + basic widgets (Label/Button/Checkbox/Sl
 - README: expand Debug Overlay section with widgets and input capture; note headless safety and tests
 
 Build/Test: Debug (SDL2) with parallelism (-j12). Overlay core + widgets tests green locally; rest of suite unchanged.
+
+feat(debug-overlay): basic columns layout + tab focus for InputText; no-op stubs preserved
+
+- overlay_widgets.c: implement overlay_columns_begin/next/end with equal or custom widths, gutter spacing, and row advance; widgets now honor column width.
+- Add lightweight focus indexing and Tab traversal; InputText edits only when focused; clicking field captures and sets focus. Initialize focus_index each panel.
+- Keep headless guards and zero-cost OFF stubs. No public API break; header already declared columns API.
+- Tests: overlay tests (core/widgets/flag) pass in Debug (SDL2) with -j12. Full run shows 7 unrelated failures (AI/equipment), overlay unaffected.

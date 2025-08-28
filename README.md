@@ -62,6 +62,8 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 - Feature flag: ROGUE_ENABLE_DEBUG_OVERLAY (default ON). When OFF, headers provide no-op stubs for zero overhead.
 - Toggle with F1; the overlay renders after the HUD. Input is captured while active so gameplay doesn’t receive keys/mouse.
 - APIs: `src/debug_overlay/overlay_core.h` plus widgets in `overlay_widgets.h` (Label, Button, Checkbox, SliderInt/Float, InputText). Input capture in `overlay_input.h`.
+	- Layout: simple columns via `overlay_columns_begin/overlay_next_column/overlay_columns_end` (equal or custom widths). Widgets honor column width.
+	- Focus: InputText supports basic focus and Tab traversal; clicking the field gives focus and captures input.
 - Headless-safe: widget drawing guards avoid SDL calls when no renderer is present (useful in unit tests).
 - Tests: `test_overlay_core` and `test_overlay_widgets` (smoke), with the latter validating headless usage and basic interactions via simulated input.
 	- Verification: Overlay tests pass headlessly in Debug (SDL2) with parallel ctest. Input capture gates gameplay when active; non-overlay failures (AI/equipment) are unrelated to overlay changes.

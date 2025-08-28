@@ -9,8 +9,6 @@ extern "C"
 #define ROGUE_ENABLE_DEBUG_OVERLAY 0
 #endif
 
-#if ROGUE_ENABLE_DEBUG_OVERLAY
-
 #include <stddef.h>
 
     /* Simple style and context for drawing; uses existing font and SDL renderer via global app. */
@@ -20,6 +18,8 @@ extern "C"
         unsigned char fg_r, fg_g, fg_b, fg_a;
         int pad;
     } OverlayStyle;
+
+#if ROGUE_ENABLE_DEBUG_OVERLAY
 
     /* Begin an overlay window/panel at x,y with width and optional title bar. Returns 1 if visible.
      */
@@ -41,6 +41,11 @@ extern "C"
 
     /* Style adjust */
     void overlay_style_set(OverlayStyle s);
+
+    /* Layout: simple columns API */
+    int overlay_columns_begin(int cols, const int* widths /* optional, NULL = equal */);
+    void overlay_next_column(void);
+    void overlay_columns_end(void);
 
 #else
 
@@ -89,6 +94,14 @@ static inline int overlay_input_text(const char* label, char* buf, size_t buf_si
     return 0;
 }
 static inline void overlay_style_set(OverlayStyle s) { (void) s; }
+static inline int overlay_columns_begin(int cols, const int* widths)
+{
+    (void) cols;
+    (void) widths;
+    return 0;
+}
+static inline void overlay_next_column(void) {}
+static inline void overlay_columns_end(void) {}
 
 #endif /* ROGUE_ENABLE_DEBUG_OVERLAY */
 
