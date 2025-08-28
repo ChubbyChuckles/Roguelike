@@ -1,0 +1,51 @@
+Phase 10.1: Externalized Skill Coefficients Loader + Test
+
+- Implement skills_coeffs_load.{h,c}: parse JSON/CSV into RogueSkillCoeffParams and register via rogue_skill_coeff_register.
+- Add query API rogue_skill_coeff_exists(int) and ensure skill_get_effective_coefficient multiplies mastery, specialization, and central coeff scalar.
+- New unit test tests/unit/test_skills_phase10_coeffs_loader.c: initializes event bus and stat cache; registers sample skills; parses JSON; asserts coefficient ranges.
+- CMake wired; README documents Data-Driven Skill Coefficients.
+
+Skills Phase 7.6 + Phase 8.1–8.4: central coefficients module, soft-cap clamp, and full proc tests
+
+- Centralized skill coefficients registry (skills_coeffs.{h,c}) with base + per-rank scalar and STR/DEX/INT contributions (percent per 10).
+- Soft-cap via rogue_soft_cap_apply + final clamp; consumed by skill_get_effective_coefficient.
+- Unit tests: test_skills_phase8_coeffs; Phase 7 proc suite (ICD, probability smoothing, loop guard, dynamic scaling) green.
+
+Skills Phase 9.1–9.4: Persistence for extended skill state and active buffs; versioning, varints, replay hash, and signature tests
+
+- Save manager persists extended skill state and active buffs with versioned TLV; varint counts from v4+; replay hash + signature stub.
+- Tests green in Debug SDL2.
+
+Phase 10.2: Externalized EffectSpec Config (JSON) + Loader, Tests, Docs
+
+- Add effect_spec_load.{h,c}: JSON array parser mirroring legacy key=value parser semantics and defaults.
+- Unit test test_effectspec_json_loader.c verifies additive and multiplicative behavior; README updated.
+
+Skills Phase 10.3: Validator module, proc introspection, and tests
+
+- skills_validate.{h,c} with rogue_skills_validate_all; checks skill/proc refs and missing coefficients; flags duplicate proc pairs.
+- Proc introspection helpers (rogue_skills_proc_count, rogue_skills_proc_get_def) added.
+- Unit test test_skills_phase10_3_validator.c.
+
+Skills Phase 10.4: Auto‑doc generator for skill sheets + unit test
+
+- skills_api_doc.{h,c} with rogue_skills_generate_api_doc; stable, curated sections.
+- Unit test test_skills_phase10_4_api_doc.c validates content and small-buffer path.
+
+Skills Phase 10.5: Parser edge cases & invalid reference rejection + test
+
+- EffectSpec JSON loader now rejects invalid present-but-unknown enums and requires buff_type for STAT_BUFF; coeffs loader fails on missing skill_id (<0).
+- New test test_skills_phase10_5_parser_edges.c covers rejection paths and valid pass-through.
+
+UI Phase 11.1: Dual cooldown + cast/channel progress bar in skill bar
+
+- Added a thin progress bar at the bottom of each skill slot indicating cast/channel progress while the skill is active. Cooldown remains a vertical overlay showing remaining time.
+- Visual-only change in src/core/skills/skill_bar.c; no gameplay logic altered.
+- Roadmap updated (11.1 → Done). README adds a brief UI note under Skills.
+- Tests: Focused skills/effects suite remains green in Debug with SDL2 (-j12): test_skills_phase10_5_parser_edges, test_skills_phase10_4_api_doc, test_skills_phase10_3_validator, test_effectspec_json_loader.
+
+UI Phase 11.2: Buff/Debuff belt — stacks, mini-bars, source coloring
+
+- Group buffs by type in HUD belt; accumulate stack counts, prefer longest remaining and higher magnitude.
+- Add duration mini-bar and category-colored borders (CC red, offensive amber, defensive green, movement blue, utility violet).
+- Changes in core/hud/hud_buff_belt.{h,c} only; data model untouched. Roadmap and README updated.

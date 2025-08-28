@@ -123,7 +123,12 @@ PHASE 11. Visualization & UI Enhancements
 		- Added a thin cast/channel progress bar to the bottom of each skill slot in the skill bar UI.
 			Shows cast progress for cast-type skills and elapsed channel fraction for channels. Cooldown
 			overlay remains as a vertical fill from top (time remaining). No gameplay logic changes.
-11.2 Buff/debuff icon bar with stack counts, duration mini-bars, source coloring (X)
+11.2 Buff/debuff icon bar with stack counts, duration mini-bars, source coloring (Done)
+		- HUD buff belt now groups by buff type, accumulates stack counts, and shows:
+			* duration mini-bar (top, proportional),
+			* per-type stack badge (xN),
+			* border color keyed by category/source (offensive/defensive/movement/utility, CC red).
+			Uses existing `rogue_buffs_snapshot` and `rogue_buffs_type_categories`.
 11.3 Aura & channel area debug overlay with falloff gradient (X)
 11.4 Proc & combo spend floating indicators (sequenced fade) (X)
 11.5 Action Point & resource delta ticker (gain/spend pulses) (X)

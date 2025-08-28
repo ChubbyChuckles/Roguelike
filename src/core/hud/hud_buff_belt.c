@@ -13,16 +13,52 @@ void rogue_hud_buff_belt_refresh(RogueHUDBuffBeltState* st, double now_ms)
     st->count = 0;
     RogueBuff buffs[ROGUE_HUD_MAX_BUFF_ICONS];
     int n = rogue_buffs_snapshot(buffs, ROGUE_HUD_MAX_BUFF_ICONS, now_ms);
+    /* Group by type, accumulate stacks, and keep the instance with the longest remaining time. */
     for (int i = 0; i < n; i++)
     {
-        st->icons[st->count].type = buffs[i].type;
-        st->icons[st->count].magnitude = buffs[i].magnitude;
+        int t = buffs[i].type;
         float remaining = (float) (buffs[i].end_ms - now_ms);
         if (remaining < 0)
             remaining = 0;
-        st->icons[st->count].remaining_ms = remaining;
-        st->icons[st->count].total_ms = (float) (buffs[i].end_ms - (buffs[i].end_ms - remaining));
-        st->count++;
+        float total = (float) (buffs[i].end_ms - buffs[i].last_apply_ms);
+        if (total < 1.0f)
+            total = remaining > 0 ? remaining : 1.0f;
+        int found = -1;
+        for (int j = 0; j < st->count; j++)
+        {
+            if (st->icons[j].type == t)
+            {
+                found = j;
+                break;
+            }
+        }
+        if (found < 0)
+        {
+            int idx = st->count++;
+            if (idx >= ROGUE_HUD_MAX_BUFF_ICONS)
+            {
+                st->count = ROGUE_HUD_MAX_BUFF_ICONS;
+                break;
+            }
+            st->icons[idx].type = t;
+            st->icons[idx].magnitude = buffs[i].magnitude;
+            st->icons[idx].remaining_ms = remaining;
+            st->icons[idx].total_ms = total;
+            st->icons[idx].stacks = 1;
+        }
+        else
+        {
+            RogueHUDBuffIcon* ic = &st->icons[found];
+            ic->stacks += 1;
+            /* Prefer displaying the larger magnitude and the longer remaining duration. */
+            if (buffs[i].magnitude > ic->magnitude)
+                ic->magnitude = buffs[i].magnitude;
+            if (remaining > ic->remaining_ms)
+            {
+                ic->remaining_ms = remaining;
+                ic->total_ms = total;
+            }
+        }
     }
 }
 
@@ -49,13 +85,56 @@ void rogue_hud_buff_belt_render(const RogueHUDBuffBeltState* st, int screen_w)
             pct = 0;
         if (pct > 1)
             pct = 1;
+        /* Background */
         SDL_SetRenderDrawColor(g_app.renderer, 30, 30, 50, 200);
         SDL_Rect bg = {x, y, icon_w, icon_h};
         SDL_RenderFillRect(g_app.renderer, &bg);
-        SDL_SetRenderDrawColor(g_app.renderer, 90, 90, 140, 255);
+        /* Border color based on category/source */
+        uint32_t cats = rogue_buffs_type_categories((RogueBuffType) ic->type);
+        int cr = 90, cg = 90, cb = 140; /* default */
+        if (cats & (ROGUE_BUFF_CCFLAG_STUN | ROGUE_BUFF_CCFLAG_ROOT | ROGUE_BUFF_CCFLAG_SLOW))
+        { /* CC/debuffs: red */
+            cr = 200;
+            cg = 80;
+            cb = 80;
+        }
+        else if (cats & ROGUE_BUFF_CAT_OFFENSIVE)
+        {
+            cr = 220;
+            cg = 140;
+            cb = 60;
+        }
+        else if (cats & ROGUE_BUFF_CAT_DEFENSIVE)
+        {
+            cr = 100;
+            cg = 200;
+            cb = 110;
+        }
+        else if (cats & ROGUE_BUFF_CAT_MOVEMENT)
+        {
+            cr = 80;
+            cg = 160;
+            cb = 230;
+        }
+        else if (cats & ROGUE_BUFF_CAT_UTILITY)
+        {
+            cr = 170;
+            cg = 130;
+            cb = 220;
+        }
+        SDL_SetRenderDrawColor(g_app.renderer, cr, cg, cb, 255);
         SDL_Rect br = {x - 1, y - 1, icon_w + 2, icon_h + 2};
         SDL_RenderDrawRect(g_app.renderer, &br);
-        /* cooldown overlay (filled from bottom -> remaining) */
+        /* Duration mini-bar (top, proportional) */
+        int mini_h = 2;
+        int mini_w = (int) ((float) icon_w * pct);
+        if (mini_w > 0)
+        {
+            SDL_SetRenderDrawColor(g_app.renderer, 230, 230, 255, 220);
+            SDL_Rect mb = {x, y - 3, mini_w, mini_h};
+            SDL_RenderFillRect(g_app.renderer, &mb);
+        }
+        /* Cooldown/remaining overlay (filled from bottom -> remaining) */
         int overlay_h = (int) (icon_h * (1.0f - pct));
         if (overlay_h > 0)
         {
@@ -66,6 +145,13 @@ void rogue_hud_buff_belt_render(const RogueHUDBuffBeltState* st, int screen_w)
         char txt[8];
         snprintf(txt, sizeof txt, "%d", ic->magnitude);
         rogue_font_draw_text(x + 4, y + 4, txt, 1, (RogueColor){220, 220, 255, 255});
+        /* Stack badge in top-right if stacks > 1 */
+        if (ic->stacks > 1)
+        {
+            char sbuf[6];
+            snprintf(sbuf, sizeof sbuf, "x%d", ic->stacks);
+            rogue_font_draw_text(x + icon_w - 12, y - 2, sbuf, 1, (RogueColor){255, 220, 160, 255});
+        }
         x += icon_w + gap;
     }
 #endif

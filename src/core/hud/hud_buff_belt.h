@@ -11,6 +11,7 @@ typedef struct RogueHUDBuffIcon
     int magnitude;
     float remaining_ms;
     float total_ms;
+    int stacks; /* number of stacked instances for this type */
 } RogueHUDBuffIcon;
 
 typedef struct RogueHUDBuffBeltState

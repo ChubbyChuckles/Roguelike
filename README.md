@@ -244,6 +244,11 @@ Usage pattern (tests and gameplay):
 - Casts fill left→right over `cast_time_ms`; channels show elapsed fraction over the total channel duration.
 - Colors: casts use a blue‑green bar; channels tint brighter cyan for readability. Rendering only; no gameplay logic changed.
 
+### UI: Buff/Debuff Belt Enhancements (Phase 11.2)
+- HUD buff belt groups active buffs by type, displays stack counts (xN), and shows a duration mini-bar.
+- Border color reflects category/source (offensive, defensive, movement, utility; CC variants tinted red).
+- Driven by `rogue_buffs_snapshot` and `rogue_buffs_type_categories`; pure UI change.
+
 ### Skill Coefficients (Phase 8)
 
 - Centralized coefficient registry provides per-skill base scalar + per-rank increments and stat-based contributions for STR/DEX/INT (declared as percent-per-10 points).
