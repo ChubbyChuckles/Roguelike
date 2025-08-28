@@ -81,6 +81,22 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 	- Multiplicative stacking is a no‑op without a baseline; magnitude is percent (100 = no change).
 - Test: `test_effectspec_json_loader` covers additive and multiplicative behavior; some tests disable buff dampening (`rogue_buffs_set_dampening(0.0)`) for deterministic rapid re‑applies.
 
+### Skills Validator (Phase 10.3)
+- Central validation entry point: `int rogue_skills_validate_all(char* err, int err_cap)`.
+- Checks performed:
+	- Skill `effect_spec_id` references must exist when set.
+	- Proc definitions must reference valid EffectSpecs; duplicate (event_type, effect_spec_id) pairs are flagged.
+	- "Offensive" skills require a coefficient entry in the central table (`rogue_skill_coeff_exists`).
+- Proc introspection helpers: `rogue_skills_proc_count()` and `rogue_skills_proc_get_def(int idx, RogueProcDef* out)` for tools/tests.
+- Test: `test_skills_phase10_3_validator` initializes the event bus, registers procs/skills, asserts failures for bad refs/dupes/missing coeffs, then passes after fixes.
+- Run focused tests: from `build` dir, `ctest -C Debug -j12 -R "test_skills_phase10_3_validator|test_effectspec_json_loader"`.
+
+### Skills Auto‑doc (Phase 10.4)
+- Curated documentation generator for skills inputs and related configs.
+- API: `int rogue_skills_generate_api_doc(char* buf, int cap)` → writes a stable multi‑section text; returns bytes written, or -1 if `cap` is too small.
+- Sections (in order): SKILL_SHEET_COLUMNS, SKILL_FLAGS_AND_TAGS, COST_MAPPING_EXTENSIONS, COEFFS_JSON_FIELDS, EFFECTSPEC_JSON_REFERENCE, VALIDATION_TOOLING.
+- Test: `ctest -C Debug -j12 -R test_skills_phase10_4_api_doc` validates ordering and small‑buffer failure.
+
 ## Start Screen
 
 The start screen includes:

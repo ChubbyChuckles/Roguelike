@@ -362,3 +362,13 @@ int rogue_skills_proc_register(const RogueProcDef* def)
     g_proc_count++;
     return g_proc_count - 1;
 }
+
+int rogue_skills_proc_count(void) { return g_proc_count; }
+
+int rogue_skills_proc_get_def(int index, RogueProcDef* out)
+{
+    if (index < 0 || index >= g_proc_count || !out)
+        return 0;
+    *out = g_procs[index].def;
+    return 1;
+}

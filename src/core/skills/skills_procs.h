@@ -31,6 +31,11 @@ extern "C"
     /* Register returns proc id (>=0) or -1 on failure. */
     int rogue_skills_proc_register(const RogueProcDef* def);
 
+    /* Introspection helpers (Phase 10.3 validation): retrieve registered procs. */
+    int rogue_skills_proc_count(void);
+    /* Returns 1 on success filling out, 0 if index invalid. */
+    int rogue_skills_proc_get_def(int index, RogueProcDef* out);
+
 #ifdef __cplusplus
 }
 #endif

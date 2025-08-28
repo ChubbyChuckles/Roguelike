@@ -98,3 +98,14 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase7_event_bus.c AND NO
     endif()
     add_test(NAME test_skills_phase7_event_bus COMMAND test_skills_phase7_event_bus)
 endif()
+
+# Skills Phase 10.4 auto-doc generator test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase10_4_api_doc.c AND NOT TARGET test_skills_phase10_4_api_doc)
+    add_executable(test_skills_phase10_4_api_doc unit/test_skills_phase10_4_api_doc.c)
+    target_link_libraries(test_skills_phase10_4_api_doc PRIVATE rogue_core)
+    target_compile_definitions(test_skills_phase10_4_api_doc PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skills_phase10_4_api_doc PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skills_phase10_4_api_doc COMMAND test_skills_phase10_4_api_doc)
+endif()

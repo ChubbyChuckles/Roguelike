@@ -107,8 +107,12 @@ PHASE 9. Persistence & Serialization
 PHASE 10. Tooling & Data-Driven Content
 10.1 External skill config (CSV/JSON) for definitions & coefficient sets (Done)
 10.2 External effect config: EffectSpec list with stacking & flags (Done)
-10.3 Validation tool: detect invalid references, cyclic procs, missing coefficients (X)
-10.4 Auto-doc generator for skill sheets (X)
+10.3 Validation tool: detect invalid references, cyclic procs, missing coefficients (Done)
+10.4 Auto-doc generator for skill sheets (Done)
+		- Implemented `skills_api_doc.{h,c}` with `int rogue_skills_generate_api_doc(char* buf, int cap)` generating curated, stable sections:
+			SKILL_SHEET_COLUMNS, SKILL_FLAGS_AND_TAGS, COST_MAPPING_EXTENSIONS, COEFFS_JSON_FIELDS,
+			EFFECTSPEC_JSON_REFERENCE, VALIDATION_TOOLING. Small-buffer returns -1.
+		- Unit test `test_skills_phase10_4_api_doc` verifies sections/order and small-buffer path.
 10.5 Tests: parser edge cases, invalid reference rejection (X)
 
 PHASE 11. Visualization & UI Enhancements
@@ -294,3 +298,12 @@ Updates (Phase 10.2: Externalized EffectSpec Loader):
 - Defaults match legacy behavior: unspecified stack_rule → ADD; unspecified kind → STAT_BUFF; `require_buff_type`/`scale_by_buff_type` set to sentinel (disabled). Multiplicative stacking is a no-op if no baseline exists; magnitude interpreted as percent (100 = no change).
 - New unit test `tests/unit/test_effectspec_json_loader.c` loads three sample effects and validates additive stacking (+3 STR twice → 6) and multiplicative semantics (200% on baseline 10 → 20); test disables buff dampening for determinism.
 - CMake: target `test_effectspec_json_loader` added and linked with SDL2 in Debug; registered with CTest. All EffectSpec tests (parser, stacking variants, snapshot scaling, DOT/AURA) pass locally in Debug (SDL2) with parallel builds.
+
+Updates (Phase 10.3: Skills Validator):
+- Implemented `skills_validate.{h,c}` with `int rogue_skills_validate_all(char* err, int err_cap)` to verify:
+	- Skill `effect_spec_id` refers to a registered EffectSpec when set.
+	- All registered procs reference valid EffectSpecs and flags duplicate (event_type,effect_spec_id) pairs.
+	- Offensive skills must have a coefficient entry present (via `rogue_skill_coeff_exists`).
+- Added proc introspection helpers in `skills_procs.{h,c}`: `rogue_skills_proc_count()` and `rogue_skills_proc_get_def(int, RogueProcDef*)`.
+- Unit `tests/unit/test_skills_phase10_3_validator.c` covers invalid skill effect id, missing coefficients, duplicate proc pairs, and overall pass after reset. Initializes the event bus to allow proc registration.
+- Build wiring updated; targeted Debug (SDL2) tests pass with parallelism (-j12 via CTest filter).

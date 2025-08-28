@@ -148,7 +148,9 @@ add_library(rogue_core
     src/core/skills/skills_effects.c
     src/core/skills/skills_coeffs.c
     src/core/skills/skills_coeffs_load.c
+    src/core/skills/skills_api_doc.c
     src/core/skills/skills_procs.c
+    src/core/skills/skills_validate.c
     src/core/skills/skill_tree.c
     src/core/skills/skill_bar.c
     src/core/skills/skill_talents.c
@@ -688,6 +690,14 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_effectspec_json_loader PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_effectspec_json_loader COMMAND test_effectspec_json_loader)
+
+# Phase 10.3: skills validator unit test
+add_executable(test_skills_phase10_3_validator tests/unit/test_skills_phase10_3_validator.c)
+target_link_libraries(test_skills_phase10_3_validator PRIVATE rogue_core)
+if(SDL2_FOUND)
+    target_link_libraries(test_skills_phase10_3_validator PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_skills_phase10_3_validator COMMAND test_skills_phase10_3_validator)
 
 add_executable(test_audio_vfx_phase1_2 tests/unit/test_audio_vfx_phase1_2.c)
 target_link_libraries(test_audio_vfx_phase1_2 PRIVATE rogue_core)

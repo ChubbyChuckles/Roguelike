@@ -39,3 +39,28 @@ Phase 10.2: Externalized EffectSpec Config (JSON) + Loader, Tests, Docs
 - Wire target and add CTest entry; ensure SDL2 linked for Debug like other tests.
 - README: add “External EffectSpec Config (Phase 10.2)” section with API and field list; Roadmap: mark 10.2 Done with implementation notes.
 - Smoke: parser/stack variants/snapshot scale/DOT/AURA tests remain green in Debug (SDL2) with parallel builds.
+
+Skills Phase 10.3: Validator module, proc introspection, and tests; EffectSpec JSON loader test green
+
+- Implemented skills validator (skills_validate.{h,c}) with API:
+	- int rogue_skills_validate_all(char* err, int err_cap)
+	- Validates: skill.effect_spec_id existence, proc.effect_spec_id existence, duplicate (event_type,effect_spec_id) pairs, and missing coefficients for offensive skills.
+- Added proc introspection helpers to skills_procs.{h,c}:
+	- int rogue_skills_proc_count(void)
+	- int rogue_skills_proc_get_def(int index, RogueProcDef* out)
+- New unit test tests/unit/test_skills_phase10_3_validator.c:
+	- Initializes event bus + procs, asserts failure cases (invalid skill effect id, missing coefficients, duplicate proc pairs), and final pass after reset; prints "PH10.3 validator OK".
+- Fixed test runtime by initializing the event bus and procs subsystem before proc registration.
+- Verified alongside EffectSpec JSON loader:
+	- ctest -C Debug -j12 -R "test_skills_phase10_3_validator|test_effectspec_json_loader" → both pass.
+- Roadmap: mark Phase 10.3 Done; README: add Skills Validator section with API and usage.
+
+Skills Phase 10.4: Auto‑doc generator for skill sheets + unit test
+
+- Add `src/core/skills/skills_api_doc.{h,c}` with API `int rogue_skills_generate_api_doc(char* buf, int cap)`.
+- Generator emits curated sections in a stable order:
+	SKILL_SHEET_COLUMNS, SKILL_FLAGS_AND_TAGS, COST_MAPPING_EXTENSIONS, COEFFS_JSON_FIELDS,
+	EFFECTSPEC_JSON_REFERENCE, VALIDATION_TOOLING. Returns -1 on insufficient buffer.
+- Unit `tests/unit/test_skills_phase10_4_api_doc.c` asserts section presence, order, and small‑buffer error path.
+- CMake: wire source into core build and test target into Skills.cmake. Debug SDL2 build with parallel tests (-j12) passes the new test alongside validator and EffectSpec loader.
+- Roadmap: mark Phase 10.4 Done; README: add “Skills Auto‑doc (Phase 10.4)” section with API and test hint.
