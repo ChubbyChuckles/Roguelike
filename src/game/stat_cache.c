@@ -762,6 +762,8 @@ void rogue_stat_cache_force_update(const RoguePlayer* p)
             g_player_stat_cache.implicit_strength, g_player_stat_cache.implicit_dexterity,
             g_player_stat_cache.implicit_vitality, g_player_stat_cache.implicit_intelligence,
             g_player_stat_cache.affix_armor_flat);
+        /* Verbose trace (disabled by default) */
+#if defined(ROGUE_TRACE_STATCACHE)
         fprintf(stderr,
                 "STATCACHE base[%d,%d,%d,%d] totals[%d,%d,%d,%d] last_base[%d,%d,%d,%d] "
                 "last_tot[%d,%d,%d,%d] rc=%u\n",
@@ -775,6 +777,7 @@ void rogue_stat_cache_force_update(const RoguePlayer* p)
                 g_player_stat_cache.last_total_vitality,
                 g_player_stat_cache.last_total_intelligence, g_player_stat_cache.recompute_count);
         fflush(stderr);
+#endif
     }
 }
 

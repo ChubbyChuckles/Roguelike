@@ -39,8 +39,11 @@ void rogue_items_sync_app_view(void)
             c++;
     }
     g_app.item_instance_count = c;
+    /* Verbose trace (disabled by default) */
+#if defined(ROGUE_TRACE_LOOT_SYNC)
     fprintf(stderr, "DBG: rogue_items_sync_app_view ptr=%p cap=%d active=%d\n",
             (void*) g_app.item_instances, g_app.item_instance_cap, g_app.item_instance_count);
+#endif
 }
 
 int rogue_items_spawn(int def_index, int quantity, float x, float y)

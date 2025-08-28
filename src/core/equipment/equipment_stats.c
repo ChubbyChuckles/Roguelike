@@ -419,6 +419,8 @@ void rogue_equipment_apply_stat_bonuses(RoguePlayer* p)
             baseline_local.intelligence = g_player_stat_cache.last_base_intelligence;
             have_baseline_local = 1;
         }
+        /* Verbose trace (disabled by default) */
+#if defined(ROGUE_TRACE_EQUIP_APPLY)
         fprintf(stderr,
                 "EQUIP_APPLY pre have_base=%d p_base[%d,%d,%d,%d] last_base[%d,%d,%d,%d] "
                 "last_tot[%d,%d,%d,%d] rc=%u\n",
@@ -429,6 +431,7 @@ void rogue_equipment_apply_stat_bonuses(RoguePlayer* p)
                 g_player_stat_cache.last_total_strength, g_player_stat_cache.last_total_dexterity,
                 g_player_stat_cache.last_total_vitality,
                 g_player_stat_cache.last_total_intelligence, g_player_stat_cache.recompute_count);
+#endif
     }
 
     /* Reset dynamic aggregation fields we own before recomputing. Base & implicit fields cleared in
@@ -478,6 +481,8 @@ void rogue_equipment_apply_stat_bonuses(RoguePlayer* p)
         unsigned int saved_recompute = g_player_stat_cache.recompute_count;
         unsigned int saved_heavy_recompute = g_player_stat_cache.heavy_passive_recompute_count;
         rogue_stat_cache_force_update(&baseline);
+        /* Verbose trace (disabled by default) */
+#if defined(ROGUE_TRACE_EQUIP_APPLY)
         fprintf(stderr,
                 "EQUIP_APPLY post totals[%d,%d,%d,%d] base[%d,%d,%d,%d] last_base[%d,%d,%d,%d] "
                 "last_tot[%d,%d,%d,%d] rc=%u\n",
@@ -490,6 +495,7 @@ void rogue_equipment_apply_stat_bonuses(RoguePlayer* p)
                 g_player_stat_cache.last_total_strength, g_player_stat_cache.last_total_dexterity,
                 g_player_stat_cache.last_total_vitality,
                 g_player_stat_cache.last_total_intelligence, g_player_stat_cache.recompute_count);
+#endif
         if (is_ui_preview)
         {
             g_player_stat_cache.last_total_strength = saved_last_total_str;
