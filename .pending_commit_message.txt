@@ -49,3 +49,13 @@ UI Phase 11.2: Buff/Debuff belt — stacks, mini-bars, source coloring
 - Group buffs by type in HUD belt; accumulate stack counts, prefer longest remaining and higher magnitude.
 - Add duration mini-bar and category-colored borders (CC red, offensive amber, defensive green, movement blue, utility violet).
 - Changes in core/hud/hud_buff_belt.{h,c} only; data model untouched. Roadmap and README updated.
+
+UI Phase 11.3: Aura & Channel Area Debug Overlay
+
+- Implemented world-space debug overlay for active AURAs and channel areas with a radial falloff gradient.
+- New module: src/game/skill_area_debug_overlay.{h,c}; integrated into main render loop behind app toggle.
+- Toggle key: F11 → toggles g_app.show_skill_area_overlay; input bound in src/input/input_events.c.
+- EffectSpec: added active AURA introspection getters to drive the overlay without gameplay side effects.
+- Minor fixes: SDL color casts in hud_buff_belt.c; local var shadowing fix in skill_bar.c to satisfy warnings-as-errors.
+- Build: Debug (SDL2) with parallelism (-j12) succeeds; CMake includes the new module.
+- Tests: Full suite executed in Debug with -j12; skills/effectspec/renderer/UI subsets green. Some AI/start-screen/equipment tests are currently red under headless assets; unrelated to this change.

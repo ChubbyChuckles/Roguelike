@@ -370,6 +370,7 @@ add_library(rogue_core
     src/game/hit_feedback.c
     src/game/weapon_pose.c
     src/game/hit_debug_overlay.c
+    src/game/skill_area_debug_overlay.c
     src/core/enemy/enemy_difficulty.c
     src/core/enemy/enemy_difficulty_scaling.c
     src/core/enemy/enemy_adaptive.c

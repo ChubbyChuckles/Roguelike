@@ -67,6 +67,11 @@ extern "C"
 
     int rogue_effect_register(const RogueEffectSpec* spec); /* returns id or -1 */
     const RogueEffectSpec* rogue_effect_get(int id);
+
+    /* Phase 11.3: expose minimal active AURA introspection for debug overlay */
+    int rogue_effect_active_aura_count(void);
+    /* Returns 1 on success; outputs effect_id and end_ms. Index is 0..count-1. */
+    int rogue_effect_active_aura_get(int index, int* effect_id, double* end_ms);
     void rogue_effect_apply(int id, double now_ms);
     /* Phase 3.5: process scheduled effect events (periodic pulses and child chains). */
     void rogue_effects_update(double now_ms);

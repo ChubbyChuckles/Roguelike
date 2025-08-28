@@ -129,7 +129,11 @@ PHASE 11. Visualization & UI Enhancements
 			* per-type stack badge (xN),
 			* border color keyed by category/source (offensive/defensive/movement/utility, CC red).
 			Uses existing `rogue_buffs_snapshot` and `rogue_buffs_type_categories`.
-11.3 Aura & channel area debug overlay with falloff gradient (X)
+11.3 Aura & channel area debug overlay with falloff gradient (Done)
+		- Added rendering-only world-space overlay for active AURAs and current channel areas.
+		- Radial falloff gradient visualizes area strength; projected via camera offsets and tile scale.
+		- Toggle with F11 (app state: `show_skill_area_overlay`); no gameplay side effects.
+		- Minimal EffectSpec getters exposed for active AURA introspection.
 11.4 Proc & combo spend floating indicators (sequenced fade) (X)
 11.5 Action Point & resource delta ticker (gain/spend pulses) (X)
 11.6 Tests: icon ordering, expired removal, cast progress sync, AP delta batching (X)

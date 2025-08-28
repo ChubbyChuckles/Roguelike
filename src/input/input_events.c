@@ -96,6 +96,10 @@ void rogue_process_events(void)
             {
                 g_app.show_metrics_overlay = !g_app.show_metrics_overlay;
             }
+            if (ev.key.keysym.sym == SDLK_F11)
+            {
+                g_app.show_skill_area_overlay = !g_app.show_skill_area_overlay;
+            }
             if (g_app.show_equipment_panel && ev.key.keysym.sym == SDLK_r)
             { /* repair equipped weapon */
                 rogue_equip_repair_slot(ROGUE_EQUIP_WEAPON);

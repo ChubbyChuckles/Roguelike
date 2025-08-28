@@ -569,9 +569,14 @@ void rogue_app_step(void)
         rogue_projectiles_render();
         /* (TEMP) Call hit debug overlay early (may be overwritten later) */
         extern void rogue_hit_debug_render(void);
+        extern void rogue_skill_area_debug_render(void);
         if (g_app.show_hit_debug)
         {
             rogue_hit_debug_render();
+        }
+        if (g_app.show_skill_area_overlay)
+        {
+            rogue_skill_area_debug_render();
         }
 
         /* Floating damage numbers */
@@ -602,6 +607,10 @@ void rogue_app_step(void)
     if (g_app.show_hit_debug)
     {
         rogue_hit_debug_render();
+    }
+    if (g_app.show_skill_area_overlay)
+    {
+        rogue_skill_area_debug_render();
     }
     if (!g_app.headless)
     {

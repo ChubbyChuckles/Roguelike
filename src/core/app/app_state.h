@@ -228,6 +228,8 @@ typedef struct RogueAppState
     int last_alerts_rendered;
     /* Hit System Phase 6 debug toggle */
     int show_hit_debug;
+    /* Skills Phase 11.3: aura/channel area overlay toggle */
+    int show_skill_area_overlay;
     /* Enemy Difficulty Phase 1.6 UI indicator state */
     int target_enemy_active; /* 1 if a target enemy is selected/focused */
     int target_enemy_level;  /* level of targeted enemy */

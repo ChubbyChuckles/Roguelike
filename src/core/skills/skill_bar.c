@@ -143,11 +143,11 @@ void rogue_skill_bar_render(void)
                 }
                 if (prog_frac > 0.0f)
                 {
-                    int bar_h = 3;
+                    int progress_h = 3;
                     int w = (int) ((float) cell.w * prog_frac);
                     SDL_SetRenderDrawColor(g_app.renderer, is_channel ? 80 : 60,
                                            is_channel ? 180 : 200, is_channel ? 255 : 100, 220);
-                    SDL_Rect pr = {cell.x, cell.y + cell.h - bar_h, w, bar_h};
+                    SDL_Rect pr = {cell.x, cell.y + cell.h - progress_h, w, progress_h};
                     SDL_RenderFillRect(g_app.renderer, &pr);
                 }
                 char rbuf[8];

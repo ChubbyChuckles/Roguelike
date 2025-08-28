@@ -122,7 +122,7 @@ void rogue_hud_buff_belt_render(const RogueHUDBuffBeltState* st, int screen_w)
             cg = 130;
             cb = 220;
         }
-        SDL_SetRenderDrawColor(g_app.renderer, cr, cg, cb, 255);
+        SDL_SetRenderDrawColor(g_app.renderer, (Uint8) cr, (Uint8) cg, (Uint8) cb, 255);
         SDL_Rect br = {x - 1, y - 1, icon_w + 2, icon_h + 2};
         SDL_RenderDrawRect(g_app.renderer, &br);
         /* Duration mini-bar (top, proportional) */

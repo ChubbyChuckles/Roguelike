@@ -57,6 +57,19 @@ static void remove_active_aura_at(int idx)
     g_active_aura_count--;
 }
 
+/* ---- Phase 11.3: minimal getters for active aura overlay ---- */
+int rogue_effect_active_aura_count(void) { return g_active_aura_count; }
+int rogue_effect_active_aura_get(int index, int* effect_id, double* end_ms)
+{
+    if (index < 0 || index >= g_active_aura_count)
+        return 0;
+    if (effect_id)
+        *effect_id = g_active_auras[index].effect_id;
+    if (end_ms)
+        *end_ms = g_active_auras[index].end_ms;
+    return 1;
+}
+
 /* Find any active aura that conflicts with the provided group mask and is not expired. */
 static int find_conflicting_aura_index(unsigned int group_mask, double now_ms)
 {
