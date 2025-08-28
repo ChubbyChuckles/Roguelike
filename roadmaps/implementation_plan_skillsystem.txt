@@ -90,13 +90,13 @@ PHASE 7. Proc & Trigger System
 7.3 Probability weighting with deterministic RNG sequence & variance smoothing (Done)
 7.4 Anti-proc loop guard (depth counter + cycle hash) (Done)
 7.5 Dynamic proc scaling (recent activity weighted) (Done)
-7.6 Tests: ICD enforcement (global & per-target), probability distribution stability, loop guard, variance smoothing bounds (X)
+7.6 Tests: ICD enforcement (global & per-target), probability distribution stability, loop guard, variance smoothing bounds (Done: tests `test_skills_phase7_2_procs_icd`, `test_skills_phase7_3_probability`, `test_skills_phase7_4_5_loop_and_scaling`, and `test_skills_phase7_6_regression` all passing)
 
 PHASE 8. Scaling & Coefficients
-8.1 Central coefficient table keyed by skill id + rank (X)
-8.2 Stat contribution flags (strength->physical, intelligence->arcane, dexterity->crit) (X)
-8.3 Soft caps & diminishing returns curves (logistic / piecewise) (X)
-8.4 Tests: coefficient application, soft cap flattening, rank progression scaling (X)
+8.1 Central coefficient table keyed by skill id + rank (Done: `src/core/skills/skills_coeffs.{h,c}` with registry up to 256 entries)
+8.2 Stat contribution flags (strength->physical, intelligence->arcane, dexterity->crit) (Done: STR/DEX/INT contributions via `% per 10` fields in `RogueSkillCoeffParams`)
+8.3 Soft caps & diminishing returns curves (logistic / piecewise) (Done: implemented via `rogue_soft_cap_apply` and a post-soft-cap hard clamp per stat to enforce max contribution)
+8.4 Tests: coefficient application, soft cap flattening, rank progression scaling (Done: `tests/unit/test_skills_phase8_coeffs.c` validates rank scaling and cap behavior; green)
 
 PHASE 9. Persistence & Serialization
 9.1 Serialize extended skill state (charges, cooldowns, ICD timers) (X)

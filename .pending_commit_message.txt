@@ -1,3 +1,11 @@
+Skills Phase 7.6 + Phase 8.1–8.4: central coefficients module, soft-cap clamp, and full proc tests
+
+- Add centralized skill coefficients registry (src/core/skills/skills_coeffs.{h,c}) with base + per-rank scalar and STR/DEX/INT contributions (percent per 10).
+- Integrate into runtime via skill_get_effective_coefficient; include in build.
+- Enforce soft-cap using rogue_soft_cap_apply plus hard clamp to cap per stat to satisfy expected bounds under extreme stats.
+- Unit tests: add/green test_skills_phase8_coeffs; ensure Phase 7 proc suite fully green (ICD, probability smoothing, loop guard, dynamic scaling, regression).
+- Roadmap: mark Phase 7.6 and Phase 8.1–8.4 as Done.
+
 Skillsystem Phase 7.4–7.5: Anti-proc loop guard + dynamic scaling; tests and docs
 
 - Implement loop guard in skills procs: depth cap (8) and cycle signature hash to prevent cyclic proc storms; deterministic suppression with single warn-once overflow.

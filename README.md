@@ -199,6 +199,13 @@ Usage pattern (tests and gameplay):
 - Publish occurs inside skills runtime; to deliver callbacks in headless/unit tests, call `rogue_event_process_priority(now_ms)` periodically. The queue is deterministic and callbacks run in publish order by (when_ms, seq).
 - See `tests/unit/test_skills_phase7_event_bus.c` for a minimal example that subscribes, advances skills over simulated time, pumps the bus, and asserts receipt.
 
+### Skill Coefficients (Phase 8)
+
+- Centralized coefficient registry provides per-skill base scalar + per-rank increments and stat-based contributions for STR/DEX/INT (declared as percent-per-10 points).
+- Soft caps are applied through the stat cache helper with a final hard clamp to enforce configured maxima under extreme stats; coefficients are consumed by `skill_get_effective_coefficient`.
+- API: see `src/core/skills/skills_coeffs.h` and registration via `rogue_skill_coeff_register`.
+- Test: `tests/unit/test_skills_phase8_coeffs.c` validates rank scaling and soft-cap behavior; green in Debug with SDL2 and parallel tests.
+
 ### Proc Engine (Phase 7.2)
 
 A minimal Proc system is available for skills/effects integration:

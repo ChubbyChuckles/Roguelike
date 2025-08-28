@@ -7,6 +7,7 @@
 #include "../integration/event_bus.h"
 #include "../progression/progression_mastery.h"
 #include "../progression/progression_specialization.h"
+#include "skills_coeffs.h" /* Phase 8: central coefficient table */
 #include "skills_internal.h"
 #include <stdlib.h>
 #include <string.h>
@@ -60,6 +61,8 @@ float skill_get_effective_coefficient(int skill_id)
     float sp = rogue_specialization_damage_scalar(skill_id);
     if (sp > 0.0f)
         coeff *= sp;
+    /* Phase 8: multiply central coefficient scalar (rank + stats). */
+    coeff *= rogue_skill_coeff_get_scalar(skill_id);
     return coeff;
 }
 
