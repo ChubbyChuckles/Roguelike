@@ -188,6 +188,17 @@ DOTs (Phase 5 summary):
 - Mitigation & logging: Each tick routes through combat mitigation and records damage events including overkill.
 - Tests: `test_effectspec_dot_basic`, `test_effectspec_dot_stack`, and `test_effectspec_dot_crit` validate duration, stacking, and crit behavior alongside existing ordering/scaling tests. All pass in Debug with SDL2 (-j8).
 
+### Skill Events on the Event Bus (Phase 7.1)
+
+Two new skill events are emitted by the skills runtime and delivered via the central event bus:
+- ROGUE_EVENT_SKILL_CHANNEL_TICK (0x0701): fired at deterministic channel tick boundaries. Payload: skill_id (u16), tick_index (1-based, u16), when_ms (double scheduled time).
+- ROGUE_EVENT_SKILL_COMBO_SPEND (0x0702): fired when a combo spender consumes points (instant, cast-complete, or channel). Payload: skill_id (u16), amount (u8), when_ms (double).
+
+Usage pattern (tests and gameplay):
+- Subscribe with `rogue_event_subscribe(event_id, callback, user)`.
+- Publish occurs inside skills runtime; to deliver callbacks in headless/unit tests, call `rogue_event_process_priority(now_ms)` periodically. The queue is deterministic and callbacks run in publish order by (when_ms, seq).
+- See `tests/unit/test_skills_phase7_event_bus.c` for a minimal example that subscribes, advances skills over simulated time, pumps the bus, and asserts receipt.
+
 ### Auras & Area Effects (Phase 6 – slice)
 
 - New EffectSpec kind AURA with fields: `aura_radius` and `pulse_period_ms`.

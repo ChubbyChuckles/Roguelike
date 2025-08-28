@@ -85,7 +85,7 @@ PHASE 6. Auras & Area Effects
 6.4 Tests: entry/exit ordering, pulse timing determinism (Done: `test_effectspec_aura_basic` validates tick-at-0 and exact pulse timing; verifies entry/exit within radius; `test_effectspec_aura_exclusive` validates exclusivity/override)
 
 PHASE 7. Proc & Trigger System
-7.1 Event bus enumeration (on_hit, on_crit, on_kill, on_damage_taken, on_tick, on_channel_tick, on_resource_threshold, on_combo_spend) (X)
+7.1 Event bus enumeration (on_hit, on_crit, on_kill, on_damage_taken, on_tick, on_channel_tick, on_resource_threshold, on_combo_spend) (Done: skill_channel_tick + combo_spend events enumerated with payloads and published by skills runtime; combat damage/hit events exist via combat pipeline)
 7.2 Proc definition: condition predicate + effect reference + internal cooldown (ICD) + per-target ICD (X)
 7.3 Probability weighting with deterministic RNG sequence & variance smoothing (X)
 7.4 Anti-proc loop guard (depth counter + cycle hash) (X)
@@ -258,3 +258,13 @@ Updates (Phase 2.4–2.6: Overdrive/Exhaustion, Heat/Overheat, Tests):
 - Skills runtime now uses dynamic AP cap for percent-of-max costs; clamped instant refunds; FIRE-tagged instant skills add heat and can trigger Overheat; emits FX cues on start/end.
 - Player init sets max_heat=100; derived clamping respected in recalc.
 - Unit test `tests/unit/test_skills_phase2_overdrive_heat.c` validates overdrive cap, refund clamping, exhaustion timing, heat build/overheat, and vent-to-zero behavior. Targeted skills test suite fully passing in Debug (SDL2, -j8).
+
+Updates (Phase 7.1: Proc & Trigger – Skill Events on Event Bus):
+- Added skill event IDs and payloads:
+	- ROGUE_EVENT_SKILL_CHANNEL_TICK (0x0701): payload { skill_id (u16), tick_index (u16, 1-based), when_ms (double scheduled time) }.
+	- ROGUE_EVENT_SKILL_COMBO_SPEND (0x0702): payload { skill_id (u16), amount (u8), when_ms (double) }.
+- Publication points in skills runtime:
+	- Channel loop publishes CHANNEL_TICK at deterministic tick boundaries (drift-corrected, anchored to channel_start_ms).
+	- Combo spend publishes on channel spenders and on instant spender activation before zeroing combo.
+- Tests: Added `tests/unit/test_skills_phase7_event_bus.c` subscribing to both events; pumps the bus during simulation to deliver callbacks; asserts at least one tick and one spend are observed.
+- Result: Debug build with SDL2 and -j16 parallel tests green for skills/event-bus subset.

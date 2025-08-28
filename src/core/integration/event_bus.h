@@ -105,6 +105,10 @@ extern "C"
 /* Start Screen / Telemetry Events (Phase 5.4) */
 #define ROGUE_EVENT_NEW_GAME_START 0x0605
 
+/* Skill System Events (Phase 7.1) */
+#define ROGUE_EVENT_SKILL_CHANNEL_TICK 0x0701
+#define ROGUE_EVENT_SKILL_COMBO_SPEND 0x0702
+
     /* Event Payload Union (Phase 1.1.3) - Type-safe payload system */
     typedef union
     {
@@ -219,6 +223,21 @@ extern "C"
             uint8_t difficulty; /* 0=Normal (stub) */
             uint8_t reserved[3];
         } new_game_start;
+
+        /* Skill System (Phase 7.1) */
+        struct
+        {
+            uint16_t skill_id;   /* source skill id */
+            uint16_t tick_index; /* 1-based channel tick index (deterministic) */
+            double when_ms;      /* scheduled tick time */
+        } skill_channel_tick;
+        struct
+        {
+            uint16_t skill_id; /* spender skill id */
+            uint8_t amount;    /* combo points consumed */
+            uint8_t reserved;
+            double when_ms; /* event time */
+        } skill_combo_spend;
 
         /* Raw payload for custom events */
         uint8_t raw_data[ROGUE_MAX_EVENT_PAYLOAD_SIZE];

@@ -7,3 +7,15 @@ Skillsystem Phase 6.2–6.3: Aura spatial hook + exclusivity groups; tests green
 - Docs: update roadmap (Phase 6.1–6.4 statuses) and README (Auras exclusivity note).
 
 Build: CMake multi-config Debug with SDL2 enabled; parallel build (-j8).
+
+Skillsystem Phase 7.1: Event bus integration for skill_channel_tick and combo_spend; tests green (Debug SDL2, -j16)
+
+- Enumerate and document new event IDs:
+	- ROGUE_EVENT_SKILL_CHANNEL_TICK (0x0701) with payload { skill_id, tick_index (1-based), when_ms }.
+	- ROGUE_EVENT_SKILL_COMBO_SPEND (0x0702) with payload { skill_id, amount, when_ms }.
+- Publish points:
+	- Channel loop publishes CHANNEL_TICK at deterministic tick boundaries (drift-corrected to channel_start_ms).
+	- Combo spend published for channel spenders and instant spender activation before zeroing combo.
+- Unit test: add tests/unit/test_skills_phase7_event_bus.c that subscribes to both events, simulates time, pumps the event bus, and asserts receipt.
+- Roadmap/README: mark Phase 7.1 Done; add README section “Skill Events on the Event Bus (Phase 7.1)” with usage notes.
+- Verification: Debug build with SDL2 and -j16; targeted skills/event-bus tests and broader skills suite pass.

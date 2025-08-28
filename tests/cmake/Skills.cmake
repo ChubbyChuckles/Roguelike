@@ -86,3 +86,15 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skill_fireball.c AND NOT TARGET 
     endif()
     add_test(NAME test_skill_fireball COMMAND test_skill_fireball)
 endif()
+
+# Skills Phase 7.1 event bus integration test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase7_event_bus.c AND NOT TARGET test_skills_phase7_event_bus)
+    add_executable(test_skills_phase7_event_bus unit/test_skills_phase7_event_bus.c)
+    target_link_libraries(test_skills_phase7_event_bus PRIVATE rogue_core)
+    # Always define SDL main handling; enable SDL definition when available
+    target_compile_definitions(test_skills_phase7_event_bus PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skills_phase7_event_bus PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skills_phase7_event_bus COMMAND test_skills_phase7_event_bus)
+endif()

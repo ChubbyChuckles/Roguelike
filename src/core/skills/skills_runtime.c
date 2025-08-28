@@ -4,6 +4,7 @@
 #include "../../game/buffs.h"
 #include "../../util/determinism.h"
 #include "../app/app_state.h"
+#include "../integration/event_bus.h"
 #include "../progression/progression_mastery.h"
 #include "../progression/progression_specialization.h"
 #include "skills_internal.h"
@@ -512,6 +513,17 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         }
         if (def->combo_spender)
         {
+            /* Phase 7.1: publish combo spend event before zeroing for instant skills */
+            if (g_app.player_combat.combo > 0)
+            {
+                RogueEventPayload p;
+                memset(&p, 0, sizeof p);
+                p.skill_combo_spend.skill_id = (uint16_t) id;
+                p.skill_combo_spend.amount = (uint8_t) (g_app.player_combat.combo & 0xFF);
+                p.skill_combo_spend.when_ms = now;
+                rogue_event_publish(ROGUE_EVENT_SKILL_COMBO_SPEND, &p, ROGUE_EVENT_PRIORITY_NORMAL,
+                                    0x534B494C, "skills");
+            }
             g_app.player_combat.combo = 0;
         }
     }
@@ -752,6 +764,26 @@ void rogue_skills_update(double now_ms)
                 {
                     rogue_effect_apply(def->effect_spec_id, st->channel_next_tick_ms);
                 }
+                /* Phase 7.1: publish channel tick event */
+                {
+                    RogueEventPayload p;
+                    memset(&p, 0, sizeof p);
+                    p.skill_channel_tick.skill_id = (uint16_t) i;
+                    /* Derive deterministic 1-based index from elapsed */
+                    /* Use computed tick_interval from outer scope */
+                    int idx = 1;
+                    if (st->channel_start_ms > 0.0 && tick_interval > 0.0)
+                    {
+                        double elapsed = st->channel_next_tick_ms - st->channel_start_ms;
+                        idx = (int) (elapsed / tick_interval + 0.5);
+                        if (idx < 1)
+                            idx = 1;
+                    }
+                    p.skill_channel_tick.tick_index = (uint16_t) idx;
+                    p.skill_channel_tick.when_ms = st->channel_next_tick_ms;
+                    rogue_event_publish(ROGUE_EVENT_SKILL_CHANNEL_TICK, &p,
+                                        ROGUE_EVENT_PRIORITY_NORMAL, 0x534B494C, "skills");
+                }
                 if (def->combo_builder)
                 {
                     g_app.player_combat.combo++;
@@ -760,6 +792,17 @@ void rogue_skills_update(double now_ms)
                 }
                 if (def->combo_spender)
                 {
+                    /* Phase 7.1: publish combo spend before zeroing */
+                    if (g_app.player_combat.combo > 0)
+                    {
+                        RogueEventPayload p;
+                        memset(&p, 0, sizeof p);
+                        p.skill_combo_spend.skill_id = (uint16_t) i;
+                        p.skill_combo_spend.amount = (uint8_t) (g_app.player_combat.combo & 0xFF);
+                        p.skill_combo_spend.when_ms = now_ms;
+                        rogue_event_publish(ROGUE_EVENT_SKILL_COMBO_SPEND, &p,
+                                            ROGUE_EVENT_PRIORITY_NORMAL, 0x534B494C, "skills");
+                    }
                     g_app.player_combat.combo = 0;
                 }
                 /* drift-correct: compute next tick by counting intervals from channel_start */
