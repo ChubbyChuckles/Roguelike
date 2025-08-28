@@ -816,6 +816,13 @@ uint32_t rogue_event_process_priority(RogueEventPriority priority, uint32_t time
                     }
 
                     invoked_this_attempt = true;
+                    if (event->type_id == ROGUE_EVENT_DAMAGE_DEALT)
+                    {
+                        fprintf(stderr,
+                                "[event_bus] invoking sub id=%u sys=%u for DAMAGE_DEALT pri=%d\n",
+                                (unsigned) sub->subscription_id,
+                                (unsigned) sub->subscriber_system_id, (int) event->priority);
+                    }
                     if (sub->callback(event, sub->user_data))
                     {
                         event_processed = true;
@@ -1320,11 +1327,21 @@ static void update_statistics_on_publish(void)
 
 static void update_statistics_on_process(const RogueEvent* event, uint64_t processing_time_us)
 {
+    /* Guard against ultra-fast measurements rounding to 0us on some platforms */
+    if (processing_time_us == 0)
+    {
+        processing_time_us = 1;
+    }
+
     g_event_bus.stats.events_processed++;
     g_event_bus.stats.total_processing_time_us += processing_time_us;
 
     /* Update latency statistics */
     uint64_t latency = rogue_event_get_timestamp_us() - event->timestamp_us;
+    if (latency == 0)
+    {
+        latency = 1; /* Ensure non-zero to reflect at least minimal latency */
+    }
     if (latency > g_event_bus.stats.peak_latency_us)
     {
         g_event_bus.stats.peak_latency_us = (double) latency;

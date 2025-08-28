@@ -146,6 +146,7 @@ add_library(rogue_core
     src/core/skills/skills_registry.c
     src/core/skills/skills_runtime.c
     src/core/skills/skills_effects.c
+    src/core/skills/skills_procs.c
     src/core/skills/skill_tree.c
     src/core/skills/skill_bar.c
     src/core/skills/skill_talents.c

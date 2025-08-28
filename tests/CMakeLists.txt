@@ -40,6 +40,28 @@ file(GLOB UNIT_TESTS unit/test_*.c)
 
 # Filter out removed/legacy test filenames that may linger in generated projects
 list(FILTER UNIT_TESTS EXCLUDE REGEX ".*test_skills_phase1_foundation.c$")
+list(FILTER UNIT_TESTS EXCLUDE REGEX ".*test_skills_phase7_2_procs_icd.c$")
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase7_2_procs_icd.c AND NOT TARGET test_skills_phase7_2_procs_icd)
+    add_executable(test_skills_phase7_2_procs_icd unit/test_skills_phase7_2_procs_icd.c)
+    target_link_libraries(test_skills_phase7_2_procs_icd PRIVATE rogue_core)
+    target_compile_definitions(test_skills_phase7_2_procs_icd PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skills_phase7_2_procs_icd PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skills_phase7_2_procs_icd COMMAND test_skills_phase7_2_procs_icd)
+endif()
+
+# Phase 7.3 probability & smoothing test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase7_3_probability.c AND NOT TARGET test_skills_phase7_3_probability)
+    add_executable(test_skills_phase7_3_probability unit/test_skills_phase7_3_probability.c)
+    target_link_libraries(test_skills_phase7_3_probability PRIVATE rogue_core)
+    target_compile_definitions(test_skills_phase7_3_probability PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skills_phase7_3_probability PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skills_phase7_3_probability COMMAND test_skills_phase7_3_probability)
+endif()
 
 # Explicitly add new maintainability phase M3.5 projectile config hot reload test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_projectiles_config.c AND NOT TARGET test_projectiles_config)

@@ -86,8 +86,8 @@ PHASE 6. Auras & Area Effects
 
 PHASE 7. Proc & Trigger System
 7.1 Event bus enumeration (on_hit, on_crit, on_kill, on_damage_taken, on_tick, on_channel_tick, on_resource_threshold, on_combo_spend) (Done: skill_channel_tick + combo_spend events enumerated with payloads and published by skills runtime; combat damage/hit events exist via combat pipeline)
-7.2 Proc definition: condition predicate + effect reference + internal cooldown (ICD) + per-target ICD (X)
-7.3 Probability weighting with deterministic RNG sequence & variance smoothing (X)
+7.2 Proc definition: condition predicate + effect reference + internal cooldown (ICD) + per-target ICD (Done: minimal proc engine added in `src/core/skills/skills_procs.{h,c}`; supports optional predicate, global ICD and per-target ICD, lazy event subscriptions, and applies EffectSpec on trigger. Unit `tests/unit/test_skills_phase7_2_procs_icd.c` verifies global and per-target ICD gating; integrated into build.)
+7.3 Probability weighting with deterministic RNG sequence & variance smoothing (Done)
 7.4 Anti-proc loop guard (depth counter + cycle hash) (X)
 7.5 Dynamic proc scaling (recent activity weighted) (X)
 7.6 Tests: ICD enforcement (global & per-target), probability distribution stability, loop guard, variance smoothing bounds (X)
@@ -268,3 +268,9 @@ Updates (Phase 7.1: Proc & Trigger – Skill Events on Event Bus):
 	- Combo spend publishes on channel spenders and on instant spender activation before zeroing combo.
 - Tests: Added `tests/unit/test_skills_phase7_event_bus.c` subscribing to both events; pumps the bus during simulation to deliver callbacks; asserts at least one tick and one spend are observed.
 - Result: Debug build with SDL2 and -j16 parallel tests green for skills/event-bus subset.
+
+Updates (Phase 7.3: Probability weighting & smoothing):
+- Implemented deterministic RNG stream for skills procs with optional variance smoothing accumulator.
+- Added `chance_pct` to proc defs (default coerces to 100 if unset; clamped to 0..100). When `use_smoothing=1`, accumulator guarantees eventual trigger on sustained attempts.
+- Prefixed skills proc API with `rogue_skills_` to avoid symbol collisions with equipment procs.
+- Tests: `tests/unit/test_skills_phase7_3_probability.c` validates baseline probability and smoothing behavior; Debug SDL2 build (-j16) green alongside 7.1 and 7.2.

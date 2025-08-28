@@ -199,6 +199,21 @@ Usage pattern (tests and gameplay):
 - Publish occurs inside skills runtime; to deliver callbacks in headless/unit tests, call `rogue_event_process_priority(now_ms)` periodically. The queue is deterministic and callbacks run in publish order by (when_ms, seq).
 - See `tests/unit/test_skills_phase7_event_bus.c` for a minimal example that subscribes, advances skills over simulated time, pumps the bus, and asserts receipt.
 
+### Proc Engine (Phase 7.2)
+
+A minimal Proc system is available for skills/effects integration:
+- Register procs with `rogue_proc_register(const RogueProcDef*)`, specifying the triggering event type, optional predicate, EffectSpec id to apply, and internal cooldowns (global and per-target).
+- Subscriptions are created lazily per event type; the engine fans events out to matching procs and enforces ICD before applying effects.
+- Per-target ICD uses the event payload’s `target_entity_id` when present (e.g., DAMAGE_DEALT).
+- See `src/core/skills/skills_procs.h` for the API and `tests/unit/test_skills_phase7_2_procs_icd.c` for usage and expected behavior.
+
+Note: Event bus statistics now clamp ultra-fast measurements to a minimum of 1µs to avoid zero-valued metrics on very fast runs; this stabilizes stats-focused tests.
+
+#### Probability & Smoothing (Phase 7.3)
+- Proc defs include `chance_pct` (0..100). If omitted, defaults to 100 for back-compat.
+- Deterministic RNG stream ensures reproducible results across runs; optional `use_smoothing` accumulates misses to bound variance so triggers converge under sustained attempts.
+- Covered by `test_skills_phase7_3_probability`.
+
 ### Auras & Area Effects (Phase 6 – slice)
 
 - New EffectSpec kind AURA with fields: `aura_radius` and `pulse_period_ms`.
