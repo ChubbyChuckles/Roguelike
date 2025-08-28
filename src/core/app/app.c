@@ -590,6 +590,10 @@ void rogue_app_step(void)
     }
     /* HUD */
     rogue_hud_render();
+/* Unified debug overlay on top of HUD */
+#include "../../debug_overlay/overlay_core.h"
+    overlay_new_frame((float) g_app.dt, g_app.viewport_w, g_app.viewport_h);
+    overlay_render();
     rogue_skill_bar_render();
     rogue_skill_tree_render();
     /* (skill bar update already handled inside gameplay branch) */

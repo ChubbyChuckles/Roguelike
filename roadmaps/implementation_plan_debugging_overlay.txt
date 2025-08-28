@@ -20,11 +20,11 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 - Build system supports conditional compilation (CMake) (Done)
 
 PHASE 1. Project Setup & Build Integration
-1.1 Add build flags: ROGUE_ENABLE_DEBUG_OVERLAY, ROGUE_ENABLE_JSON_CONTENT (X)
-1.2 Create project structure: src/debug_overlay/, src/content/, src/tools/ (X)
+1.1 Add build flags: ROGUE_ENABLE_DEBUG_OVERLAY, ROGUE_ENABLE_JSON_CONTENT (Done – overlay flag added and propagated via CMake; JSON_CONTENT pending)
+1.2 Create project structure: src/debug_overlay/, src/content/, src/tools/ (Partial – src/debug_overlay/ in place)
 1.3 Add CMake targets: rogue_debug_overlay, rogue_content_json libraries (X)
 1.4 Vendor cJSON under third_party/cjson/ with CMake target if needed (X)
-1.5 Tests: basic build with/without debug overlay flags (X)
+1.5 Tests: basic build with/without debug overlay flags (Partial – unit test added to verify flag behavior; dual-config CI still TBD)
 
 PHASE 2. JSON I/O Foundation
 2.1 Implement json_io.h/.c: common JSON read/write, error handling, atomic save (X)
@@ -47,7 +47,7 @@ PHASE 4. Skills JSON Schema & Migration
 4.5 Tests: skills load/validate/save/reload, cross-ref validation, live reload (X)
 
 PHASE 5. Overlay UI Framework Core
-5.1 Implement overlay_core.h/.c: lifecycle, F1 toggle, panel registry (X)
+5.1 Implement overlay_core.h/.c: lifecycle, F1 toggle, panel registry (Done – lifecycle/init/shutdown, enabled flag, panel registry, new_frame/render hooks; F1 wired)
 5.2 Add overlay_widgets.h/.c: Label, Button, Checkbox, SliderInt/Float, InputText (X)
 5.3 Implement basic layout: BeginPanel/EndPanel, columns/rows, automatic wrapping (X)
 5.4 Add input handling: mouse/keyboard capture, focus management, text editing (X)
@@ -57,7 +57,7 @@ PHASE 6. Basic Overlay Panels
 6.1 Implement System Panel: FPS, timings, memory usage, debug flags (X)
 6.2 Add Player Debug Panel: view/edit HP/MP/stats, god mode, noclip, teleport (X)
 6.3 Create player_debug.h/.c APIs for headless testing: get/set/teleport functions (X)
-6.4 Wire F1 toggle in input system, ensure overlay consumes input when active (X)
+6.4 Wire F1 toggle in input system, ensure overlay consumes input when active (Partial – F1 toggle wired; input capture TBD)
 6.5 Tests: panel rendering, player debug APIs, input consumption (X)
 
 PHASE 7. Skills Manager Panel

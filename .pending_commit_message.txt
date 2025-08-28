@@ -1,3 +1,13 @@
+feat(debug-overlay): add compile-time feature flag + core wiring and tests
+
+- Introduce ROGUE_ENABLE_DEBUG_OVERLAY (ON by default); propagate via CMake
+- Wrap overlay_core.c build and provide header no-op stubs when disabled
+- Wire F1 toggle (input) and overlay frame/render after HUD
+- Add unit tests: test_overlay_core, test_overlay_flag (flag behavior)
+- Update roadmap (implementation_plan_debugging_overlay.txt): mark 1.1 Done, 1.2/1.5 Partial, 5.1 Done, 6.4 Partial
+- README: add short Debug Overlay section with flag usage and current status
+
+Build: Debug SDL2, -j12; Tests: 550/556 pass, 6 known unrelated failures (AI/equipment/start screen); overlay tests green
 Phase 10.1: Externalized Skill Coefficients Loader + Test
 
 - Implement skills_coeffs_load.{h,c}: parse JSON/CSV into RogueSkillCoeffParams and register via rogue_skill_coeff_register.

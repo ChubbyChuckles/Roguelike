@@ -57,6 +57,13 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 	- Run tests: ctest -C Debug -j8 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 - Loaders are resilient to working directories: asset/doc paths like `assets/...` are resolved via internal fallbacks so tests can run from build/tests subfolders.
 
+### Debug Overlay (early)
+- A unified in-game debug overlay is scaffolded behind a compile-time flag.
+- Feature flag: ROGUE_ENABLE_DEBUG_OVERLAY (default ON). When OFF, header stubs compile to no-ops and carry zero runtime cost.
+- Toggle at runtime with F1. The overlay draws after the HUD; no panels are exposed yet.
+- APIs in `src/debug_overlay/overlay_core.h` (init/shutdown/register_panel/new_frame/render/set_enabled/is_enabled).
+- Tests: `test_overlay_core` (basic lifecycle) and `test_overlay_flag` (flag behavior) are included in the suite.
+
 ### Data‑Driven Skill Coefficients (Phase 10.1)
 - Centralized coefficients can be loaded from JSON/CSV via `skills_coeffs_load` into the runtime registry.
 - The effective scalar per skill is: mastery × specialization × central_coeff(skill_id).

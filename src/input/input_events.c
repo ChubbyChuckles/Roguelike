@@ -8,6 +8,7 @@
 #include "../core/vegetation/vegetation.h"
 #include "../core/vendor/economy.h"
 #include "../core/vendor/vendor.h"
+#include "../debug_overlay/overlay_core.h"
 #include "../entities/player.h"
 #include "../game/damage_numbers.h"
 #include "../game/game_loop.h"
@@ -95,6 +96,8 @@ void rogue_process_events(void)
             if (ev.key.keysym.sym == SDLK_F1)
             {
                 g_app.show_metrics_overlay = !g_app.show_metrics_overlay;
+                /* Also toggle unified debug overlay core */
+                overlay_set_enabled(g_app.show_metrics_overlay);
             }
             if (ev.key.keysym.sym == SDLK_F11)
             {

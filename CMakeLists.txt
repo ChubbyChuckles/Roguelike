@@ -11,6 +11,7 @@ option(ROGUE_ENABLE_SDL_MIXER "Enable audio playback (mp3/ogg) via SDL_mixer" ON
 option(ROGUE_WARNINGS_AS_ERRORS "Treat warnings as errors" ON)
 option(ROGUE_CODE_COVERAGE "Enable code coverage instrumentation (GNU/Clang)" OFF)
 option(ROGUE_SUPPRESS_WINDOWS_ERROR_DIALOGS "Suppress Windows/MSVC error popups in tests by routing errors to stderr" ON)
+option(ROGUE_ENABLE_DEBUG_OVERLAY "Enable the unified in-game debug overlay system" ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -111,6 +112,8 @@ add_library(rogue_core
     src/core/hud/hud_bars.c
     src/core/hud/hud_buff_belt.c
     src/core/hud/hud_overlays.c
+    # unified debug overlay core (conditionally compiled)
+    $<$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>:src/debug_overlay/overlay_core.c>
     src/ui/core/ui_theme.c
     src/ui/core/ui_test_harness.c
     src/core/player/player_progress.c
@@ -423,6 +426,7 @@ target_compile_definitions(rogue_core PUBLIC
     ROGUE_BUILD_GIT_HASH="${ROGUE_GIT_HASH}"
     ROGUE_BUILD_GIT_BRANCH="${ROGUE_GIT_BRANCH}"
     ROGUE_BUILD_TIME="${ROGUE_BUILD_TIME}"
+    ROGUE_ENABLE_DEBUG_OVERLAY=$<IF:$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>,1,0>
 )
 
 if(ROGUE_ENABLE_SDL)
@@ -663,6 +667,11 @@ endif()
 add_test(NAME test_skills_rotation_sim COMMAND test_skills_rotation_sim)
 
 add_executable(test_tag_registry_validate tests/unit/test_tag_registry_validate.c)
+
+# Debug overlay core unit test
+add_executable(test_overlay_core tests/unit/test_overlay_core.c)
+target_link_libraries(test_overlay_core PRIVATE rogue_core)
+add_test(NAME test_overlay_core COMMAND test_overlay_core)
 add_executable(test_skills_phase10_coeffs_loader tests/unit/test_skills_phase10_coeffs_loader.c)
 target_link_libraries(test_tag_registry_validate PRIVATE rogue_core)
 if(TARGET SDL2::SDL2)
