@@ -117,6 +117,39 @@ void rogue_skill_bar_render(void)
                 SDL_SetRenderDrawColor(g_app.renderer, 0, 0, 0, 130);
                 SDL_Rect ov = {cell.x, cell.y, cell.w, overlay_h};
                 SDL_RenderFillRect(g_app.renderer, &ov);
+
+                /* Cast/channel progress bar (Phase 11.1): thin bar at bottom indicating progress */
+                float prog_frac = 0.0f;
+                int is_channel = 0;
+                if (st->casting_active && def->cast_type == 1 && def->cast_time_ms > 0.0f)
+                {
+                    prog_frac = (float) (st->cast_progress_ms / def->cast_time_ms);
+                    if (prog_frac < 0.0f)
+                        prog_frac = 0.0f;
+                    if (prog_frac > 1.0f)
+                        prog_frac = 1.0f;
+                }
+                else if (st->channel_active && def->cast_type == 2 && def->cast_time_ms > 0.0f)
+                {
+                    is_channel = 1;
+                    double elapsed = now - st->channel_start_ms;
+                    if (elapsed < 0)
+                        elapsed = 0;
+                    prog_frac = (float) (elapsed / def->cast_time_ms);
+                    if (prog_frac < 0.0f)
+                        prog_frac = 0.0f;
+                    if (prog_frac > 1.0f)
+                        prog_frac = 1.0f;
+                }
+                if (prog_frac > 0.0f)
+                {
+                    int bar_h = 3;
+                    int w = (int) ((float) cell.w * prog_frac);
+                    SDL_SetRenderDrawColor(g_app.renderer, is_channel ? 80 : 60,
+                                           is_channel ? 180 : 200, is_channel ? 255 : 100, 220);
+                    SDL_Rect pr = {cell.x, cell.y + cell.h - bar_h, w, bar_h};
+                    SDL_RenderFillRect(g_app.renderer, &pr);
+                }
                 char rbuf[8];
                 int ms_int = (int) (remain / 1000.0 + 0.999);
                 snprintf(rbuf, sizeof rbuf, "%d", ms_int);

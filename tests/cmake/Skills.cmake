@@ -109,3 +109,14 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase10_4_api_doc.c AND N
     endif()
     add_test(NAME test_skills_phase10_4_api_doc COMMAND test_skills_phase10_4_api_doc)
 endif()
+
+# Skills Phase 10.5 parser edge cases and invalid reference rejection
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase10_5_parser_edges.c AND NOT TARGET test_skills_phase10_5_parser_edges)
+    add_executable(test_skills_phase10_5_parser_edges unit/test_skills_phase10_5_parser_edges.c)
+    target_link_libraries(test_skills_phase10_5_parser_edges PRIVATE rogue_core)
+    target_compile_definitions(test_skills_phase10_5_parser_edges PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skills_phase10_5_parser_edges PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skills_phase10_5_parser_edges COMMAND test_skills_phase10_5_parser_edges)
+endif()

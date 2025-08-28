@@ -68,6 +68,7 @@ static int parse_json_array(const char* buf)
         RogueSkillCoeffParams p;
         memset(&p, 0, sizeof p);
         p.base_scalar = 1.0f;
+        int seen_skill_id = 0;
         int done_obj = 0;
         while (!done_obj)
         {
@@ -101,7 +102,10 @@ static int parse_json_array(const char* buf)
                     return count;
                 s = sc_skip_ws(vs);
                 if (strcmp(key, "skill_id") == 0)
+                {
                     skill_id = (int) num;
+                    seen_skill_id = 1;
+                }
                 else if (strcmp(key, "base_scalar") == 0)
                     p.base_scalar = (float) num;
                 else if (strcmp(key, "per_rank_scalar") == 0)
@@ -124,10 +128,16 @@ static int parse_json_array(const char* buf)
                 continue;
             }
         }
-        if (skill_id >= 0)
+        /* Reject entries missing skill_id or negative id. */
+        if (seen_skill_id && skill_id >= 0)
         {
             if (rogue_skill_coeff_register(skill_id, &p) == 0)
                 ++count;
+        }
+        else
+        {
+            /* Invalid object -> treat as hard error for Phase 10.5 */
+            return -1;
         }
         s = sc_skip_ws(s);
         if (*s == ',')

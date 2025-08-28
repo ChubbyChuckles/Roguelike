@@ -239,6 +239,11 @@ Usage pattern (tests and gameplay):
 - Publish occurs inside skills runtime; to deliver callbacks in headless/unit tests, call `rogue_event_process_priority(now_ms)` periodically. The queue is deterministic and callbacks run in publish order by (when_ms, seq).
 - See `tests/unit/test_skills_phase7_event_bus.c` for a minimal example that subscribes, advances skills over simulated time, pumps the bus, and asserts receipt.
 
+### UI: Dual Cooldown + Cast/Channel Progress (Phase 11.1)
+- The skill bar now shows both cooldown remaining (vertical dark overlay) and a thin bottom progress bar for an active cast/channel.
+- Casts fill left→right over `cast_time_ms`; channels show elapsed fraction over the total channel duration.
+- Colors: casts use a blue‑green bar; channels tint brighter cyan for readability. Rendering only; no gameplay logic changed.
+
 ### Skill Coefficients (Phase 8)
 
 - Centralized coefficient registry provides per-skill base scalar + per-rank increments and stat-based contributions for STR/DEX/INT (declared as percent-per-10 points).

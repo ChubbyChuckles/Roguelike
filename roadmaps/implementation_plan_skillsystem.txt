@@ -113,10 +113,16 @@ PHASE 10. Tooling & Data-Driven Content
 			SKILL_SHEET_COLUMNS, SKILL_FLAGS_AND_TAGS, COST_MAPPING_EXTENSIONS, COEFFS_JSON_FIELDS,
 			EFFECTSPEC_JSON_REFERENCE, VALIDATION_TOOLING. Small-buffer returns -1.
 		- Unit test `test_skills_phase10_4_api_doc` verifies sections/order and small-buffer path.
-10.5 Tests: parser edge cases, invalid reference rejection (X)
+10.5 Tests: parser edge cases, invalid reference rejection (Done)
+		- EffectSpec JSON loader now rejects invalid references when keys are present with unknown values (kind, stack_rule, buff_type, damage_type, scale_by/require_buff_type). STAT_BUFF requires a valid buff_type.
+		- Skill Coeffs JSON loader rejects objects missing `skill_id` and returns <0 on malformed entries.
+		- Unit test `test_skills_phase10_5_parser_edges` covers rejection paths and a valid DOT passthrough; wired into CMake.
 
 PHASE 11. Visualization & UI Enhancements
-11.1 Cooldown & cast-time dual progress (sweep + bar) (X)
+11.1 Cooldown & cast-time dual progress (sweep + bar) (Done)
+		- Added a thin cast/channel progress bar to the bottom of each skill slot in the skill bar UI.
+			Shows cast progress for cast-type skills and elapsed channel fraction for channels. Cooldown
+			overlay remains as a vertical fill from top (time remaining). No gameplay logic changes.
 11.2 Buff/debuff icon bar with stack counts, duration mini-bars, source coloring (X)
 11.3 Aura & channel area debug overlay with falloff gradient (X)
 11.4 Proc & combo spend floating indicators (sequenced fade) (X)

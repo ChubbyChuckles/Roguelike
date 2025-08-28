@@ -129,6 +129,13 @@ static int parse_effects_array(const char* buf, int* out_ids, int max_ids)
         RogueEffectSpec spec;
         memset(&spec, 0, sizeof spec);
         int has_stack_rule = 0;
+        /* Track whether certain keys were present and whether mapping failed. */
+        int present_kind = 0, invalid_kind = 0;
+        int present_buff_type = 0, invalid_buff_type = 0;
+        int present_stack_rule = 0, invalid_stack_rule = 0;
+        int present_damage_type = 0, invalid_damage_type = 0;
+        int present_scale_by = 0, invalid_scale_by = 0;
+        int present_require_buff = 0, invalid_require_buff = 0;
         while (1)
         {
             s = js_skip_ws(s);
@@ -155,42 +162,62 @@ static int parse_effects_array(const char* buf, int* out_ids, int max_ids)
                 s = js_skip_ws(vs);
                 if (strcmp(key, "kind") == 0)
                 {
+                    present_kind = 1;
                     int k = map_kind(val);
                     if (k >= 0)
                         spec.kind = (unsigned char) k;
+                    else
+                        invalid_kind = 1;
                 }
                 else if (strcmp(key, "stack_rule") == 0)
                 {
+                    present_stack_rule = 1;
                     int r = map_stack_rule(val);
                     if (r >= 0)
                     {
                         spec.stack_rule = (unsigned char) r;
                         has_stack_rule = 1;
                     }
+                    else
+                    {
+                        invalid_stack_rule = 1;
+                    }
                 }
                 else if (strcmp(key, "buff_type") == 0)
                 {
+                    present_buff_type = 1;
                     int bt = map_buff_type(val);
                     if (bt >= 0)
                         spec.buff_type = (unsigned short) bt;
+                    else
+                        invalid_buff_type = 1;
                 }
                 else if (strcmp(key, "scale_by_buff_type") == 0)
                 {
+                    present_scale_by = 1;
                     int bt = map_buff_type(val);
                     if (bt >= 0)
                         spec.scale_by_buff_type = (unsigned short) bt;
+                    else
+                        invalid_scale_by = 1;
                 }
                 else if (strcmp(key, "require_buff_type") == 0)
                 {
+                    present_require_buff = 1;
                     int bt = map_buff_type(val);
                     if (bt >= 0)
                         spec.require_buff_type = (unsigned short) bt;
+                    else
+                        invalid_require_buff = 1;
                 }
                 else if (strcmp(key, "damage_type") == 0)
                 {
+                    present_damage_type = 1;
                     int dt = map_damage_type(val);
                     if (dt >= 0)
                         spec.damage_type = (unsigned char) dt;
+                    else
+                        invalid_damage_type = 1;
                 }
             }
             else
@@ -240,12 +267,38 @@ static int parse_effects_array(const char* buf, int* out_ids, int max_ids)
             spec.require_buff_type = (unsigned short) 0xFFFFu;
         if (spec.scale_by_buff_type == 0)
             spec.scale_by_buff_type = (unsigned short) 0xFFFFu;
-        int id = rogue_effect_register(&spec);
-        if (id >= 0)
+
+        /* Invalid reference rejection (Phase 10.5):
+           - If key was present but mapping failed, reject this object.
+           - For STAT_BUFF, require a valid buff_type to be provided.
+         */
+        int reject = 0;
+        if (invalid_stack_rule || invalid_damage_type || invalid_scale_by || invalid_require_buff)
+            reject = 1;
+        /* Only treat kind invalid if key was present with unknown value. */
+        if (invalid_kind)
+            reject = 1;
+        if (spec.kind == ROGUE_EFFECT_STAT_BUFF)
         {
-            if (out_ids && count < max_ids)
-                out_ids[count] = id;
-            ++count;
+            if (!present_buff_type || invalid_buff_type)
+                reject = 1;
+        }
+        /* For DOT, require valid damage_type if provided (invalid already triggers reject). */
+        if (spec.kind == ROGUE_EFFECT_DOT)
+        {
+            /* Accept default damage_type if not present; but reject if present and invalid.
+               Already handled via invalid_damage_type flag. */
+            (void) 0;
+        }
+        if (!reject)
+        {
+            int id = rogue_effect_register(&spec);
+            if (id >= 0)
+            {
+                if (out_ids && count < max_ids)
+                    out_ids[count] = id;
+                ++count;
+            }
         }
         s = js_skip_ws(s);
         if (*s == ',')
