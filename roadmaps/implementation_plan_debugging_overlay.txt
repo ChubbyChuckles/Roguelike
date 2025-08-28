@@ -1,0 +1,145 @@
+DEBUG OVERLAY SYSTEM IMPLEMENTATION PLAN (Roadmap & Status)
+
+Legend:
+Done = Fully implemented & tests pass
+Partial = Some components implemented (details in parentheses)
+X = Not started yet
+Optional = Stretch / future wave
+
+Scope Overview:
+Design and implement a unified in-game debug overlay system that enables real-time inspection, live parameter editing, feature testing, and dynamic content authoring without restarts. Migrate asset data (skills, items, tilesets, entities, etc.) to external JSON with robust validation and round-trip save/load. Expose all debugging logic as modular C APIs that are usable by unit tests (headless) and by the overlay (interactive), promoting separation of concerns and testability. Keep runtime overhead near-zero when overlay is disabled; be efficient when enabled. Maintain SDL2 for rendering/input, cJSON for JSON. Implement the overlay UI in pure C with an immediate-mode API similar to ImGui.
+
+Non-Goals (for v1):
+- Full-blown editor for every system (aim for targeted inspectors/editors first).
+- Undo/redo and multiplayer sync (list as extensions).
+
+FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
+- SDL2 rendering/input (Done)
+- Basic text rendering capability (SDL_ttf or bitmap fonts) (Assumed)
+- cJSON library available or vendorable (Partial)
+- Build system supports conditional compilation (CMake) (Done)
+
+PHASE 1. Project Setup & Build Integration
+1.1 Add build flags: ROGUE_ENABLE_DEBUG_OVERLAY, ROGUE_ENABLE_JSON_CONTENT (X)
+1.2 Create project structure: src/debug_overlay/, src/content/, src/tools/ (X)
+1.3 Add CMake targets: rogue_debug_overlay, rogue_content_json libraries (X)
+1.4 Vendor cJSON under third_party/cjson/ with CMake target if needed (X)
+1.5 Tests: basic build with/without debug overlay flags (X)
+
+PHASE 2. JSON I/O Foundation
+2.1 Implement json_io.h/.c: common JSON read/write, error handling, atomic save (X)
+2.2 Design versioned JSON schema envelope: $schema, version, entries (X)
+2.3 Add error buffer conventions: all functions accept char* err, int cap (X)
+2.4 Implement file utilities: temp paths, atomic rename, mtime tracking (X)
+2.5 Tests: JSON load/save roundtrip, error handling, atomic save safety (X)
+PHASE 3. Items JSON Schema & Migration
+3.1 Design items.json schema: id, name, type, stats, rarity, tags (X)
+3.2 Implement schema_items.h/.c: load/parse/validate/save functions (X)
+3.3 Add item registry with stable handles/IDs for runtime lookups (X)
+3.4 Create migration tool to export existing items to JSON format (X)
+3.5 Tests: item load/validate/save/reload roundtrip, invalid cases rejection (X)
+
+PHASE 4. Skills JSON Schema & Migration
+4.1 Design skills.json schema: id, display_name, coeff, cast_time_ms, cooldown_ms, effects (X)
+4.2 Implement schema_skills.h/.c: load/parse/validate/save with cross-reference checks (X)
+4.3 Integrate with existing skills registry and coefficient system (X)
+4.4 Add live reload capability with cache invalidation and derived data rebuild (X)
+4.5 Tests: skills load/validate/save/reload, cross-ref validation, live reload (X)
+
+PHASE 5. Overlay UI Framework Core
+5.1 Implement overlay_core.h/.c: lifecycle, F1 toggle, panel registry (X)
+5.2 Add overlay_widgets.h/.c: Label, Button, Checkbox, SliderInt/Float, InputText (X)
+5.3 Implement basic layout: BeginPanel/EndPanel, columns/rows, automatic wrapping (X)
+5.4 Add input handling: mouse/keyboard capture, focus management, text editing (X)
+5.5 Tests: widget layout, input focus traversal, text input edge cases (X)
+
+PHASE 6. Basic Overlay Panels
+6.1 Implement System Panel: FPS, timings, memory usage, debug flags (X)
+6.2 Add Player Debug Panel: view/edit HP/MP/stats, god mode, noclip, teleport (X)
+6.3 Create player_debug.h/.c APIs for headless testing: get/set/teleport functions (X)
+6.4 Wire F1 toggle in input system, ensure overlay consumes input when active (X)
+6.5 Tests: panel rendering, player debug APIs, input consumption (X)
+
+PHASE 7. Skills Manager Panel
+7.1 Implement Skill Manager Panel: browse skills, edit coefficients/cooldowns (X)
+7.2 Add skill_debug.h/.c APIs: list/get/edit/simulate functions (X)
+7.3 Integrate with JSON save: live editing updates registry and writes to file (X)
+7.4 Add skill simulation: cast/channel testing with result preview (X)
+7.5 Tests: skill CRUD operations, JSON roundtrip, simulation accuracy (X)
+
+PHASE 8. Entity Inspector Panel
+8.1 Design entities.json schema: id, name, base_stats, ai, drops (X)
+8.2 Implement schema_entities.h/.c: load/parse/validate/save functions (X)
+8.3 Add Entity Inspector Panel: table view with filters, kill/spawn/teleport (X)
+8.4 Create entity_debug.h/.c APIs: list/get/kill/spawn functions (X)
+8.5 Tests: entity schema validation, inspector operations, spawn/kill effects (X)
+
+PHASE 9. Map Editor Panel
+9.1 Design tilesets.json schema: id, tile_size, atlas, tiles array (X)
+9.2 Implement schema_tilesets.h/.c: tileset loading and validation (X)
+9.3 Add Map Editor Panel: tileset picker, brush size, paint/erase, layers (X)
+9.4 Create map_debug.h/.c APIs: load/save/set_tile/brush functions (X)
+9.5 Tests: tileset loading, map editing operations, save/load roundtrip (X)
+
+PHASE 10. Items Manager Panel
+10.1 Add Items Manager Panel: browse items, edit stats/rarity/tags (X)
+10.2 Implement item_debug.h/.c APIs: CRUD operations with validation (X)
+10.3 Add live vendor inventory updates when items change (X)
+10.4 Create item creation wizard: guided form with validation (X)
+10.5 Tests: item CRUD, vendor sync, creation wizard validation (X)
+
+PHASE 11. Advanced UI Widgets
+11.1 Implement TreeNode/TreePop: hierarchical data display (X)
+11.2 Add Table widget: sortable columns, row selection, filters (X)
+11.3 Implement ColorEdit widget for visual debugging (X)
+11.4 Add Combo/Dropdown widget for enum selection (X)
+11.5 Tests: complex widget interactions, tree navigation, table sorting (X)
+
+PHASE 12. Audio/VFX Debug Panel
+12.1 Add Audio/VFX Panel: play sounds, spawn VFX at cursor, volume controls (X)
+12.2 Implement audiovfx_debug.h/.c APIs: sound/effect testing functions (X)
+12.3 Add asset reference validation for sounds and visual effects (X)
+12.4 Create audio/VFX preview system with spatial positioning (X)
+12.5 Tests: sound playback, VFX spawning, asset validation (X)
+
+PHASE 13. Cross-Reference Validation System
+13.1 Implement validation engine: check references across all JSON schemas (X)
+13.2 Add real-time validation: display errors immediately in overlay (X)
+13.3 Create dependency graph visualization for complex references (X)
+13.4 Add batch validation tool for CI/automated testing (X)
+13.5 Tests: cross-ref validation accuracy, error reporting, dependency tracking (X)
+
+PHASE 14. Dynamic Content Creation
+14.1 Add "New Entry" wizards for each content type with guided forms (X)
+14.2 Implement template system: create new entries from existing templates (X)
+14.3 Add validation pipeline: prevent saving invalid or conflicting content (X)
+14.4 Create content export/import: share content packs between projects (X)
+14.5 Tests: content creation workflows, template system, export/import (X)
+
+PHASE 15. Performance & Polish
+15.1 Optimize overlay disabled path: ensure <0.1ms overhead when inactive (X)
+15.2 Add memory management: arenas/pools, minimize per-frame allocations (X)
+15.3 Implement overlay_theme.h/.c: colors, spacing, fonts, visual polish (X)
+15.4 Add keyboard navigation: tab traversal, hotkeys, accessibility (X)
+15.5 Tests: performance benchmarks, memory leak detection, theme consistency (X)
+
+PHASE 16. Advanced Features (Optional)
+16.1 Add search/filter system: global content search across all schemas (X)
+16.2 Implement command palette: quick actions and navigation (X)
+16.3 Add macro recorder: capture and replay debug actions (X)
+16.4 Create screenshot/recording helpers for debugging sessions (X)
+16.5 Tests: search accuracy, command palette, macro playback (Optional)
+
+PHASE 17. Headless Testing Integration
+17.1 Implement overlay_invoke_action API for programmatic control (X)
+17.2 Add test fakes: in-memory filesystem, mock rendering (X)
+17.3 Create comprehensive test suite covering all debug APIs (X)
+17.4 Add CI integration: automated overlay testing in headless mode (X)
+17.5 Tests: full headless test coverage, CI pipeline validation (X)
+
+PHASE 18. Extensions & Future Work (Optional)
+18.1 Design undo/redo system: command pattern with capped history (Optional)
+18.2 Add networked debug overlay: remote control via TCP/WebSocket (Optional)
+18.3 Implement scriptable actions: Lua or custom scripting for debug tasks (Optional)
+18.4 Add profiler integration: CPU/GPU traces in overlay UI (Optional)
+18.5 Tests: extension functionality, network security, script safety (Optional)
