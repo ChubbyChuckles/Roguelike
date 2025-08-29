@@ -70,7 +70,7 @@ PHASE 6. Basic Overlay Panels
 PHASE 7. Skills Manager Panel
 7.1 Implement Skill Manager Panel: browse skills, edit coefficients/cooldowns (Done – initial panel added under Overlay Panels; select skill, edit timing and RogueSkillCoeffParams)
 7.2 Add skill_debug.h/.c APIs: list/get/edit/simulate functions (Done – headless-safe APIs implemented and compiled into core; simulate wrapper calls rotation simulator)
-7.3 Integrate with JSON save: live editing updates registry and writes to file (X)
+7.3 Integrate with JSON save: live editing updates registry and writes to file (Done – added file-based loader `rogue_skill_debug_load_overrides_file(path)`, auto-load at app startup from env `ROGUE_SKILL_OVERRIDES` or default `build/skills_overrides.json`, and overlay panel gained Save/Load buttons targeting that path; atomic writes via json_io)
 7.4 Add skill simulation: cast/channel testing with result preview (Partial – 2s single-skill simulate button in panel; prints JSON result)
 7.5 Tests: skill CRUD operations, JSON roundtrip, simulation accuracy (Partial – new unit test tests/unit/test_skill_debug_api.c validates list/get/set and simulate wrapper)
 

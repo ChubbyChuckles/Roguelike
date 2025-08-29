@@ -403,3 +403,18 @@ int rogue_skill_debug_save_overrides(const char* path)
     free(buf);
     return rc;
 }
+
+int rogue_skill_debug_load_overrides_file(const char* path)
+{
+    if (!path)
+        return -1;
+    char* data = NULL;
+    size_t len = 0;
+    char err[256];
+    if (json_io_read_file(path, &data, &len, err, (int) sizeof err) != 0)
+        return -2;
+    /* Ensure null-terminated */
+    int applied = rogue_skill_debug_load_overrides_text(data);
+    free(data);
+    return applied;
+}

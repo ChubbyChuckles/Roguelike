@@ -99,7 +99,7 @@ static void panel_skills(void* user)
     (void) user;
     if (!overlay_begin_panel("Skills", 380, 10, 420))
         return;
-    const char* overrides_path = "build/skills_overrides.json"; /* within repo/build by default */
+    const char* overrides_path = "build/skills_overrides.json"; /* default within repo/build */
     int count = rogue_skill_debug_count();
     static int sel = 0;
     if (sel < 0)
@@ -172,12 +172,19 @@ static void panel_skills(void* user)
         }
     }
 
-    /* Manual Save button */
+    /* Manual Save/Load buttons */
     if (overlay_button("Save Overrides JSON"))
     {
         int rc = rogue_skill_debug_save_overrides(overrides_path);
         char msg[128];
         snprintf(msg, sizeof msg, "Save: %s (%d)", (rc == 0 ? "OK" : "ERR"), rc);
+        overlay_label(msg);
+    }
+    if (overlay_button("Load Overrides JSON"))
+    {
+        int applied = rogue_skill_debug_load_overrides_file(overrides_path);
+        char msg[128];
+        snprintf(msg, sizeof msg, "Load: %s (%d)", (applied >= 0 ? "OK" : "ERR"), applied);
         overlay_label(msg);
     }
 

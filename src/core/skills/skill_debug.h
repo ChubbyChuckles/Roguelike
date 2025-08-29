@@ -42,6 +42,10 @@ extern "C"
     /* Save overrides to file atomically using content/json_io. Returns 0 on success. */
     int rogue_skill_debug_save_overrides(const char* path);
 
+    /* Load overrides from a file path (reads entire file then delegates to _load_overrides_text).
+        Returns number of entries applied (>=0) or <0 on read/parse error. */
+    int rogue_skill_debug_load_overrides_file(const char* path);
+
 #ifdef __cplusplus
 }
 #endif

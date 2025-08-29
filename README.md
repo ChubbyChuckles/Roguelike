@@ -57,7 +57,7 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 	- Run tests: ctest -C Debug -j12 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 - Loaders are resilient to working directories: asset/doc paths like `assets/...` are resolved via internal fallbacks so tests can run from build/tests subfolders.
 Notes:
-- Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (559/559).
+- Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (561/561).
 	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir).
 
 ### Documentation (Doxygen)
@@ -94,6 +94,9 @@ Overlay panels:
 - System panel shows FPS, frame time, draw calls, and tile quads, and includes a toggle for the metrics/overlay and overlay enable.
 - Player panel exposes HP/MP/AP and core stats (STR/DEX/VIT/INT) with sliders, God Mode/No-clip toggles, and simple teleports (spawn/center). Player debug APIs are headless-safe and used by the panel.
  - Skills panel (new) lists skills and lets you edit timing (cooldown/cast/channel) and coefficients (RogueSkillCoeffParams). Includes a quick 2s single-skill simulate action that dumps a JSON summary for inspection.
+	- JSON overrides integration: Save and Load buttons persist skill overrides to/from `build/skills_overrides.json`.
+	- Auto-load on startup: set `ROGUE_SKILL_OVERRIDES` to point at an overrides JSON file; when unset, the app attempts `build/skills_overrides.json`.
+	- Implementation uses atomic write helpers from json_io; manual edits to the file can be loaded live via the panel's Load button.
 
 Data I/O utilities (for upcoming content schemas):
 - json_io: read whole file, atomic write (temp + replace), and file mtime in ms; all return detailed errors via char* buffers.
@@ -166,6 +169,7 @@ Environment overrides:
  - ROGUE_START_BUDGET_MS: override the Start Screen frame-time budget in milliseconds for the early-frame baseline guard (default 1.0). If the guard detects a regression (absolute or +25% relative), optional visuals (spinner/parallax) are suppressed.
 	- Note: The relative regression check only applies after baseline sampling completes; setting the threshold negative disables the relative check (useful for perf smoke tests). Tests use a large absolute budget to avoid false positives on shared CI runners.
  - ROGUE_LOG_LEVEL=debug|info|warn|error: control console verbosity.
+ - ROGUE_SKILL_OVERRIDES: optional path to a JSON file with per-skill override values; used by the debug Skills panel and auto-loaded during app init.
 
 Credits & Legal overlay:
 - Access from the Start screen menu (Credits).
@@ -183,6 +187,14 @@ Logging (quieter console by default):
 
 	Additional noise guards:
 	- PNG loader (Windows/WIC) warns once per unique missing/broken asset path to avoid flooding logs during headless tests.
+
+Skills overrides quickstart:
+- To capture your current tuning edits, open the Skills panel and click "Save Overrides JSON" (writes to `build/skills_overrides.json`).
+- To apply external edits, modify the JSON on disk, then click "Load Overrides JSON" in the panel.
+- To use a custom location, set the environment variable before launch:
+	- PowerShell: `$env:ROGUE_SKILL_OVERRIDES = 'C:/path/to/overrides.json'`
+	- cmd: `set ROGUE_SKILL_OVERRIDES=C:\path\to\overrides.json`
+	- Clear in PowerShell: `Remove-Item Env:ROGUE_SKILL_OVERRIDES`
 
 	Persistence robustness:
 	- The save system tolerates empty/initial saves (no registered components) by computing CRC/SHA over an empty payload and still writing integrity footers. This enables the initial New Game save path to succeed in minimal test harnesses.

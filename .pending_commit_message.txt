@@ -5,3 +5,20 @@ tests: fix parallel flake in cfg migration simplified by isolating temp dirs; fu
 - Simplified migration unit now uses unique TEST_SOURCE_DIR/TEST_TARGET_DIR to avoid clashes with the full migration tests when running in parallel (-j12).
 - Re-ran full Debug suite with SDL2: 561/561 passing.
 - Roadmap checkpoint updated with flake note; added docs/DOXYGEN_GUIDE.md and linked it from README.
+
+feat(debug overlay/skills): Phase 7.3 – JSON overrides Save/Load integration + auto-load
+
+- Add file-based loader `rogue_skill_debug_load_overrides_file(const char* path)` delegating to existing text parser.
+- App init now auto-loads overrides from env `ROGUE_SKILL_OVERRIDES` or falls back to `build/skills_overrides.json`.
+- Skills panel gained "Save Overrides JSON" and new "Load Overrides JSON" actions targeting the same default path.
+- Implementation uses json_io atomic writes; manual edits can be loaded live via the panel.
+- Fixed MSVC warning-as-error (C4210) by removing a block-scoped extern and including the proper header in app_init.
+- Built Debug with SDL2 and parallelism (-j12).
+- Tests: ran full suite via `ctest -C Debug -j12 --output-on-failure` → 100% pass (561/561).
+
+docs: README – document skills overrides workflow and env var
+
+- Document Save/Load buttons in Skills panel, default path (`build/skills_overrides.json`), and `ROGUE_SKILL_OVERRIDES` usage with Windows examples.
+- Bump CI verification note to 561/561.
+
+roadmap: mark Phase 7.3 (Integrate with JSON save) as Done with implementation notes

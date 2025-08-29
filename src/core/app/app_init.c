@@ -54,6 +54,7 @@ SOFTWARE.
 #include "../projectiles/projectiles.h"
 #include "../projectiles/projectiles_config.h"
 #include "../skills/skill_bar.h"
+#include "../skills/skill_debug.h"
 #include "../skills/skill_tree.h"
 #include "../skills/skills.h"
 #include "../vegetation/vegetation.h"
@@ -254,6 +255,24 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     if (cheat_tmp)
         free(cheat_tmp);
 #endif
+    /* Phase 7.3: auto-load skill overrides JSON if provided (env or default path). */
+    const char* path_env = NULL;
+#if defined(_MSC_VER)
+    char* tmp = NULL;
+    size_t tl = 0;
+    if (_dupenv_s(&tmp, &tl, "ROGUE_SKILL_OVERRIDES") == 0 && tmp)
+        path_env = tmp;
+#else
+    path_env = getenv("ROGUE_SKILL_OVERRIDES");
+#endif
+    const char* overrides_path = path_env && path_env[0] ? path_env : "build/skills_overrides.json";
+    int applied = rogue_skill_debug_load_overrides_file(overrides_path);
+    (void) applied; /* Used in manual runs; tests may assert via API */
+#if defined(_MSC_VER)
+    if (tmp)
+        free(tmp);
+#endif
+
     RogueWorldGenConfig wcfg = rogue_world_gen_config_build(1337u, 1, 1);
     if (!rogue_world_generate_full(&g_app.world_map, &wcfg))
     {
