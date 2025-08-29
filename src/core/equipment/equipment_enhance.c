@@ -1,3 +1,22 @@
+/**
+ * @file equipment_enhance.c
+ * @brief Equipment enhancement system implementation.
+ *
+ * This file implements the equipment enhancement mechanics including
+ * imbuing (adding new affixes), tempering (upgrading existing affixes),
+ * and socket management (adding and rerolling sockets). The system
+ * provides players with ways to improve their equipment beyond basic
+ * enchanting and reforging.
+ *
+ * Key functionality includes:
+ * - Imbuing: Adding new affixes to empty slots with budget constraints
+ * - Tempering: Upgrading existing affix values with success/failure mechanics
+ * - Socket addition: Increasing socket count on compatible items
+ * - Socket rerolling: Randomizing socket count within item limits
+ * - Material-based catalysts: Required consumables for operations
+ * - Deterministic RNG: Reproducible results based on item GUID
+ */
+
 #include "equipment_enhance.h"
 #include "../../game/stat_cache.h"
 #include "../inventory/inventory.h"
@@ -7,13 +26,26 @@
 #include "../vendor/economy.h"
 #include <stdlib.h>
 
-/* Catalyst material names (resolve lazily). These are placeholders tying into existing item defs if
- * present. */
-static int g_catalyst_imbue_prefix = -1; /* imbue_prefix_stone */
-static int g_catalyst_imbue_suffix = -1; /* imbue_suffix_stone */
-static int g_catalyst_temper = -1;       /* temper_core */
-static int g_catalyst_socket = -1;       /* socket_chisel */
+/* ---- Catalyst Material Management ---- */
 
+/**
+ * @brief Cached material definition indices for enhancement operations.
+ *
+ * These global variables cache the item definition indices for materials
+ * used in enhancement operations, resolved lazily on first use to avoid
+ * repeated string lookups.
+ */
+static int g_catalyst_imbue_prefix = -1; /**< Cached index for imbue_prefix_stone */
+static int g_catalyst_imbue_suffix = -1; /**< Cached index for imbue_suffix_stone */
+static int g_catalyst_temper = -1;       /**< Cached index for temper_core */
+static int g_catalyst_socket = -1;       /**< Cached index for socket_chisel */
+
+/**
+ * @brief Resolve catalyst material definition indices from item names.
+ *
+ * Lazily resolves and caches the item definition indices for enhancement
+ * catalysts. Called automatically when needed during enhancement operations.
+ */
 static void resolve_catalysts(void)
 {
     if (g_catalyst_imbue_prefix < 0)
@@ -26,7 +58,19 @@ static void resolve_catalysts(void)
         g_catalyst_socket = rogue_item_def_index("socket_chisel");
 }
 
-/* Lightweight deterministic PRNG (LCG). Seed derived from item guid and operation discriminator. */
+/* ---- Deterministic RNG System ---- */
+
+/**
+ * @brief Generate operation seed from item GUID and discriminator.
+ *
+ * Creates a deterministic seed for enhancement operations based on the
+ * item's unique GUID and an operation-specific salt value. This ensures
+ * reproducible results for the same item and operation type.
+ *
+ * @param guid Item's unique identifier.
+ * @param salt Operation discriminator (different for each operation type).
+ * @return unsigned int Deterministic seed value.
+ */
 static unsigned int op_seed(unsigned long long guid, unsigned int salt)
 {
     unsigned int s = (unsigned int) (guid ^ (guid >> 32) ^ salt ^ 0xA5C3F1E5u);
@@ -34,12 +78,42 @@ static unsigned int op_seed(unsigned long long guid, unsigned int salt)
         s = 0x1234567u;
     return s;
 }
+/**
+ * @brief Linear Congruential Generator next value.
+ *
+ * Generates the next pseudorandom value in the sequence using the LCG
+ * algorithm. Uses parameters optimized for good statistical properties
+ * and period length.
+ *
+ * @param s Pointer to current seed value (modified in-place).
+ * @return unsigned int Next pseudorandom value in sequence.
+ */
 static unsigned int lcg_next(unsigned int* s)
 {
     *s = (*s * 1664525u) + 1013904223u;
     return *s;
 }
 
+/**
+ * @brief Imbue an item with a new prefix or suffix affix.
+ *
+ * Adds a new magical property to an item by attaching either a prefix or suffix
+ * affix. The affix is randomly selected based on item rarity and remaining budget
+ * capacity. Requires appropriate catalyst materials if configured.
+ *
+ * @param inst_index Index of the item instance to enhance.
+ * @param is_prefix True for prefix affix, false for suffix affix.
+ * @param out_affix_index Optional output for the selected affix index.
+ * @param out_affix_value Optional output for the rolled affix value.
+ * @return int Operation result:
+ *         - 0: Success
+ *         - -1: Invalid item instance
+ *         - -2: Slot already occupied
+ *         - -3: Insufficient budget capacity
+ *         - -4: Failed to roll valid affix
+ *         - -5: Required catalyst not available
+ *         - -6: Value too low after budget clamping
+ */
 int rogue_item_instance_imbue(int inst_index, int is_prefix, int* out_affix_index,
                               int* out_affix_value)
 {
@@ -95,6 +169,27 @@ int rogue_item_instance_imbue(int inst_index, int is_prefix, int* out_affix_inde
     return 0;
 }
 
+/**
+ * @brief Temper an existing affix to increase its power.
+ *
+ * Attempts to strengthen an existing prefix or suffix affix by increasing its
+ * value. Has an 80% success rate with failure causing durability damage.
+ * Requires temper catalyst materials if configured.
+ *
+ * @param inst_index Index of the item instance to enhance.
+ * @param is_prefix True for prefix affix, false for suffix affix.
+ * @param intensity Amount to increase the affix value by.
+ * @param out_new_value Optional output for the new affix value.
+ * @param out_failed Optional output indicating if the operation failed.
+ * @return int Operation result:
+ *         - 0: Success
+ *         - 1: No-op (already at budget capacity)
+ *         - 2: Failure (durability damage taken)
+ *         - -1: Invalid item instance
+ *         - -2: No affix in specified slot
+ *         - -3: Invalid intensity value
+ *         - -5: Required catalyst not available
+ */
 int rogue_item_instance_temper(int inst_index, int is_prefix, int intensity, int* out_new_value,
                                int* out_failed)
 {
@@ -156,6 +251,21 @@ int rogue_item_instance_temper(int inst_index, int is_prefix, int intensity, int
     return 0;
 }
 
+/**
+ * @brief Add a socket to an item.
+ *
+ * Increases the socket count of an item by one, up to the item's maximum
+ * socket capacity. Requires socket catalyst materials if configured.
+ *
+ * @param inst_index Index of the item instance to enhance.
+ * @param out_new_count Optional output for the new socket count.
+ * @return int Operation result:
+ *         - 0: Success
+ *         - 1: No-op (already at maximum sockets)
+ *         - -1: Invalid item instance or definition
+ *         - -2: Item does not support sockets
+ *         - -3: Required catalyst not available
+ */
 int rogue_item_instance_add_socket(int inst_index, int* out_new_count)
 {
     const RogueItemInstance* itc = rogue_item_instance_at(inst_index);
@@ -185,6 +295,21 @@ int rogue_item_instance_add_socket(int inst_index, int* out_new_count)
     return 0;
 }
 
+/**
+ * @brief Reroll the socket count of an item.
+ *
+ * Randomly reassigns the socket count within the item's allowed range,
+ * clearing all existing socket contents. Requires socket catalyst materials
+ * if configured.
+ *
+ * @param inst_index Index of the item instance to enhance.
+ * @param out_new_count Optional output for the new socket count.
+ * @return int Operation result:
+ *         - 0: Success
+ *         - -1: Invalid item instance or definition
+ *         - -2: Item does not support sockets or invalid socket range
+ *         - -3: Required catalyst not available
+ */
 int rogue_item_instance_reroll_sockets(int inst_index, int* out_new_count)
 {
     const RogueItemInstance* itc = rogue_item_instance_at(inst_index);

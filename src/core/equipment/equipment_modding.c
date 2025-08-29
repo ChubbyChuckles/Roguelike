@@ -1,10 +1,40 @@
-/* Phase 17.3: Sandboxed scripting hooks + Phase 17.4 set diff */
+/**
+ * @file equipment_modding.c
+ * @brief Equipment modding system with sandboxed scripting and set comparison
+ *
+ * Phase 17.3: Sandboxed scripting hooks + Phase 17.4 set diff tool.
+ * Provides a secure scripting system for custom stat modifications and
+ * tools for comparing equipment set configurations.
+ *
+ * This module contains two main subsystems:
+ * - Sandboxed Scripting (17.3): Safe execution of user-defined stat modifications
+ * - Set Diff Tool (17.4): Comparison of equipment set configurations between versions
+ *
+ * @note All scripting operations are sandboxed with strict value limits
+ * @note Set diff tool provides JSON output for external processing
+ */
+
 #include "equipment_modding.h"
 #include "equipment_content.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+/* ---- Sandboxed Scripting System (Phase 17.3) ---- */
+
+/**
+ * @brief Convert stat name to internal index
+ *
+ * Maps human-readable stat names to internal stat indices used by the
+ * sandboxed scripting system. Supports core stats and resistance types.
+ *
+ * @param name Stat name string (case-sensitive)
+ * @return int Stat index (0-10) or -1 if not found
+ *
+ * @note Supported stats: strength, dexterity, vitality, intelligence,
+ *       armor_flat, resist_fire, resist_cold, resist_light, resist_poison,
+ *       resist_status, resist_physical
+ */
 static int stat_index(const char* name)
 {
     static const char* names[] = {"strength",      "dexterity",      "vitality",
@@ -19,6 +49,30 @@ static int stat_index(const char* name)
     return -1;
 }
 
+/**
+ * @brief Load sandboxed script from file
+ *
+ * Parses a script file containing stat modification instructions and
+ * loads them into a sandboxed script structure. The script format supports
+ * 'add' and 'mul' operations with strict value limits for security.
+ *
+ * Script format:
+ * - Lines starting with # are comments
+ * - Instructions: "add stat_name value" or "mul stat_name percentage"
+ * - Maximum 16 instructions per script
+ * - Add values: -1000 to 1000
+ * - Mul percentages: -90 to 500
+ *
+ * @param path Path to the script file
+ * @param out Output structure to store the loaded script
+ * @return int Operation result:
+ *         - 0: Success
+ *         - -1: Invalid parameters, file error, or validation failure
+ *
+ * @note Script execution is sandboxed with strict limits to prevent exploits
+ * @note Invalid instructions cause immediate load failure
+ * @note File format is whitespace-tolerant but case-sensitive for stat names
+ */
 int rogue_script_load(const char* path, RogueSandboxScript* out)
 {
     if (!path || !out)
@@ -103,6 +157,19 @@ int rogue_script_load(const char* path, RogueSandboxScript* out)
     return 0;
 }
 
+/**
+ * @brief Calculate hash of sandboxed script
+ *
+ * Generates a deterministic hash of the script's instruction sequence
+ * for change detection, caching, or comparison purposes.
+ *
+ * @param s Pointer to the script to hash
+ * @return unsigned int 32-bit hash value (0 for invalid script)
+ *
+ * @note Uses FNV-1a hash algorithm for good distribution
+ * @note Hash includes all instruction data (op, stat, value)
+ * @note Used for script versioning and integrity checking
+ */
 unsigned int rogue_script_hash(const RogueSandboxScript* s)
 {
     if (!s)
@@ -121,6 +188,31 @@ unsigned int rogue_script_hash(const RogueSandboxScript* s)
     return (unsigned int) (h ^ (h >> 32));
 }
 
+/**
+ * @brief Apply sandboxed script to stat values
+ *
+ * Executes a loaded script against the provided stat values, applying
+ * all add and multiply operations in the correct order. Uses a two-pass
+ * system: first pass applies additions, second pass applies multiplications.
+ *
+ * @param s Script to execute
+ * @param strength Pointer to strength stat
+ * @param dexterity Pointer to dexterity stat
+ * @param vitality Pointer to vitality stat
+ * @param intelligence Pointer to intelligence stat
+ * @param armor_flat Pointer to flat armor stat
+ * @param r_fire Pointer to fire resistance
+ * @param r_cold Pointer to cold resistance
+ * @param r_light Pointer to light resistance
+ * @param r_poison Pointer to poison resistance
+ * @param r_status Pointer to status resistance
+ * @param r_phys Pointer to physical resistance
+ *
+ * @note Two-pass execution ensures correct order of operations
+ * @note NULL stat pointers are safely ignored
+ * @note Multiplication is percentage-based (value/100)
+ * @note Invalid stat indices are ignored during execution
+ */
 void rogue_script_apply(const RogueSandboxScript* s, int* strength, int* dexterity, int* vitality,
                         int* intelligence, int* armor_flat, int* r_fire, int* r_cold, int* r_light,
                         int* r_poison, int* r_status, int* r_phys)
@@ -150,12 +242,33 @@ void rogue_script_apply(const RogueSandboxScript* s, int* strength, int* dexteri
     }
 }
 
-/* --- Phase 17.4 sets diff tool --- */
+/* ---- Set Diff Tool (Phase 17.4) ---- */
+
+/**
+ * @brief Temporary structure for set comparison
+ */
 typedef struct TmpSet
 {
-    int id;
-    int bonus_hash;
+    int id;         /**< Set ID */
+    int bonus_hash; /**< Hash of set bonuses for change detection */
 } TmpSet;
+
+/**
+ * @brief Load sets from file into temporary array
+ *
+ * Loads equipment sets from a JSON file and creates a temporary array
+ * of set information for comparison purposes. Calculates bonus hashes
+ * for change detection.
+ *
+ * @param path Path to the JSON file containing set definitions
+ * @param arr Output array for temporary set data
+ * @param cap Maximum capacity of the output array
+ * @return int Number of sets loaded, or -1 on error
+ *
+ * @note Temporarily modifies the global set registry
+ * @note Calculates FNV-1a hash of bonus data for comparison
+ * @note Limited to first 'cap' sets if file contains more
+ */
 static int load_sets_temp(const char* path, TmpSet* arr, int cap)
 {
     int before = rogue_set_count();
@@ -185,6 +298,31 @@ static int load_sets_temp(const char* path, TmpSet* arr, int cap)
     return outc;
 }
 
+/**
+ * @brief Compare equipment sets between two configurations
+ *
+ * Performs a diff operation between two equipment set files, identifying
+ * added, removed, and modified sets. Outputs results in JSON format for
+ * external processing or display.
+ *
+ * The comparison identifies:
+ * - Added sets: Present in mod_path but not in base_path
+ * - Removed sets: Present in base_path but not in mod_path
+ * - Changed sets: Present in both but with different bonus configurations
+ *
+ * @param base_path Path to base set configuration file
+ * @param mod_path Path to modified set configuration file
+ * @param out Output buffer for JSON result
+ * @param cap Capacity of output buffer
+ * @return int Length of JSON output on success, -1 on error
+ *
+ * @note Output format: {"added":[ids],"removed":[ids],"changed":[ids]}
+ * @note Modifies global set registry temporarily (resets after comparison)
+ * @note Requires at least 32 bytes of output buffer capacity
+ * @note Uses bonus hash comparison to detect set modifications
+ *
+ * @warning Global set registry is reset after comparison for cleanliness
+ */
 int rogue_sets_diff(const char* base_path, const char* mod_path, char* out, int cap)
 {
     if (!base_path || !mod_path || !out || cap < 32)
