@@ -1,3 +1,41 @@
+/**
+ * @file combat_strike.c
+ * @brief Core player strike processing and damage application system
+ *
+ * This module implements the comprehensive strike processing system that handles:
+ * - Attack window management and timing
+ * - Multi-component damage calculation (physical, fire, frost, arcane)
+ * - Armor penetration and mitigation with override capabilities
+ * - Critical hit system with pre/post-mitigation layering modes
+ * - Obstruction checking and damage attenuation
+ * - Hit feedback, particles, and sound effects
+ * - Enemy staggering, knockback, and death processing
+ * - Damage event emission for tracking and analytics
+ * - Team filtering and friendly fire prevention
+ *
+ * Key features:
+ * - Window-based attack processing with precise timing
+ * - Complex damage formula incorporating stats, weapons, infusions, and stance
+ * - Armor penetration mechanics (flat and percentage-based)
+ * - Critical hit system with configurable layering (pre/post-mitigation)
+ * - Obstruction system with line-of-sight checking
+ * - Comprehensive hit feedback system (visual, audio, particles)
+ * - Poise damage and enemy staggering mechanics
+ * - Execution detection based on health percentage and overkill
+ *
+ * The strike system processes attacks in phases:
+ * 1. Window activation and event emission
+ * 2. Target acquisition via weapon sweep
+ * 3. Damage calculation with all modifiers
+ * 4. Mitigation application with penetration
+ * 5. Hit application and feedback
+ * 6. Enemy state updates (health, poise, stagger)
+ *
+ * @note Phase 7.1: Hit candidates sourced exclusively from sweep
+ * @note Phase 7.5: Hitstop system for first strike enemy
+ * @note Phase 4: Full feedback system with refined knockback and effects
+ */
+
 #include "../core/progression/progression_ratings.h"
 #include "buffs.h"
 #include "combat.h"
@@ -13,23 +51,64 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-extern int g_attack_frame_override;          /* from events */
-extern int rogue_force_attack_active;        /* from events */
-extern int g_crit_layering_mode;             /* from events */
-extern void rogue_app_add_hitstop(float ms); /* hitstop API */
+/* External declarations and test hooks */
+extern int
+    g_attack_frame_override; /**< @brief Test hook: override current attack frame (-1 = disabled) */
+extern int rogue_force_attack_active; /**< @brief Test hook: force attack active state */
+extern int g_crit_layering_mode;      /**< @brief Critical hit layering mode: 0=pre-mitigation,
+                                         1=post-mitigation */
+extern void rogue_app_add_hitstop(float ms); /**< @brief Hitstop API for impact feedback */
 
-/* Runtime test hook for strict team filtering (default off). */
+/** @brief Runtime test hook for strict team filtering (default off) */
 static int g_strict_team_filter = 0;
+
+/**
+ * @brief Set strict team filtering mode for testing
+ *
+ * Controls team-based friendly fire filtering behavior:
+ * - Strict mode (enabled): Skip same-team enemies, including team_id==0
+ * - Default mode (disabled): Treat team_id==0 as neutral, skip only matching non-zero team IDs
+ *
+ * @param enable 1 to enable strict filtering, 0 for default behavior
+ *
+ * @note This is primarily a test hook for controlling friendly fire behavior
+ * @note Default mode allows team_id==0 (neutral) to be hittable by any team
+ */
+/**
+ * @brief Configure team filtering behavior for friendly fire prevention
+ *
+ * Controls how team IDs are used to prevent friendly fire during combat.
+ * Two modes are supported:
+ * - Strict mode: Skip any enemy with matching team_id (including team_id==0)
+ * - Default mode: Treat team_id==0 as neutral, skip only when both IDs are non-zero and equal
+ *
+ * @param enable 1 to enable strict team filtering, 0 for default behavior
+ *
+ * @note Used primarily by unit tests to ensure deterministic behavior
+ * @note Default mode allows neutral entities (team_id==0) to be attacked by anyone
+ * @note Strict mode prevents all same-team attacks including neutral vs neutral
+ */
 void rogue_combat_set_strict_team_filter(int enable) { g_strict_team_filter = enable ? 1 : 0; }
 
+/** @brief Helper function to check if navigation tile is blocked */
 static int combat_nav_is_blocked(int tx, int ty) { return rogue_nav_is_blocked(tx, ty); }
 
 /* External UI hooks */
+/** @brief External UI hook for adding damage numbers */
 void rogue_add_damage_number(float x, float y, int amount, int from_player);
+/** @brief External UI hook for adding damage numbers with critical hit indication */
 void rogue_add_damage_number_ex(float x, float y, int amount, int from_player, int crit);
 
 /* Local helper mirrors mitigation logic but allows overriding armor value explicitly.
    This avoids side effects of temporarily mutating enemy armor when applying penetration. */
+/**
+ * @brief Local integer clamping utility
+ *
+ * @param v Value to clamp
+ * @param lo Minimum value
+ * @param hi Maximum value
+ * @return Clamped value within [lo, hi] range
+ */
 static int _clampi(int v, int lo, int hi)
 {
     if (v < lo)
@@ -38,6 +117,21 @@ static int _clampi(int v, int lo, int hi)
         return hi;
     return v;
 }
+
+/**
+ * @brief Local effective physical resistance calculation
+ *
+ * Mirrors the main mitigation system's physical resistance curve calculation
+ * with diminishing returns. Used locally to avoid side effects when applying
+ * armor penetration.
+ *
+ * @param p Raw physical resistance percentage (0-90)
+ * @return Effective resistance percentage (0-75)
+ *
+ * @note Uses same piecewise curve as main mitigation system
+ * @note Linear scaling 0-50%, diminishing returns 50-90% approaching 70%
+ * @note Maximum effective resistance capped at 75%
+ */
 static int _effective_phys_resist_local(int p)
 {
     if (p <= 0)
@@ -61,6 +155,34 @@ static int _effective_phys_resist_local(int p)
         efff = 75.0f;
     return (int) floorf(efff + 0.5f);
 }
+/**
+ * @brief Apply damage mitigation with explicit armor override
+ *
+ * Local mirror of the main mitigation logic that allows overriding the enemy's
+ * armor value explicitly. This enables armor penetration mechanics without
+ * permanently modifying the enemy's armor stat.
+ *
+ * Mirrors mitigation pipeline:
+ * 1. True damage bypasses all mitigation
+ * 2. Physical damage: armor reduction + resistance curve + softcap
+ * 3. Elemental damage: simple percentage resistance reduction
+ * 4. Minimum damage floor (1 damage minimum)
+ * 5. Overkill calculation for damage exceeding health
+ *
+ * @param e Pointer to enemy entity (must not be NULL, must be alive)
+ * @param raw Raw incoming damage value
+ * @param dmg_type Damage type (ROGUE_DMG_PHYSICAL, ROGUE_DMG_FIRE, etc.)
+ * @param override_armor Armor value to use instead of enemy's actual armor
+ * @param out_overkill Output parameter for overkill damage (can be NULL)
+ * @return Final mitigated damage value (minimum 1)
+ *
+ * @note Used for armor penetration mechanics without side effects
+ * @note Mirrors main mitigation system but with armor override capability
+ * @note True damage completely bypasses armor and resistance
+ * @note Physical damage uses concave resistance curve with diminishing returns
+ * @note Softcap prevents excessive mitigation on high-damage attacks
+ * @note Overkill is damage that exceeds remaining health
+ */
 static int _rogue_apply_mitig_with_override_armor(const RogueEnemy* e, int raw,
                                                   unsigned char dmg_type, int override_armor,
                                                   int* out_overkill)
@@ -161,11 +283,59 @@ static int _rogue_apply_mitig_with_override_armor(const RogueEnemy* e, int raw,
     return dmg;
 }
 
+/**
+ * @brief Process player strike against enemies in range
+ *
+ * Comprehensive strike processing function that handles the complete attack pipeline:
+ * window management, target acquisition, damage calculation, mitigation, and feedback.
+ * This is the core function that executes player attacks against enemy targets.
+ *
+ * Processing Pipeline:
+ * 1. Window Activation: Determine active attack windows and emit events
+ * 2. Target Acquisition: Get enemy list from weapon sweep (Phase 7.1)
+ * 3. Team Filtering: Apply friendly fire rules based on team IDs
+ * 4. Damage Calculation: Complex formula with stats, weapons, infusions, stance
+ * 5. Armor Penetration: Apply flat and percentage armor reduction
+ * 6. Obstruction Check: Line-of-sight verification with damage attenuation
+ * 7. Critical Hit: Chance calculation with layering mode support
+ * 8. Mitigation: Apply enemy defenses with penetration effects
+ * 9. Hit Application: Deal damage and update enemy state
+ * 10. Feedback: Visual effects, sound, particles, knockback
+ * 11. Event Emission: Record damage events for tracking
+ *
+ * Key Features:
+ * - Multi-component damage (physical, fire, frost, arcane)
+ * - Armor penetration mechanics (flat + percentage)
+ * - Critical hit system with pre/post-mitigation layering
+ * - Obstruction system with 55% damage attenuation
+ * - Comprehensive hit feedback (numbers, particles, sound, hitstop)
+ * - Poise damage and enemy staggering
+ * - Execution detection based on health/overkill percentages
+ * - Weapon durability and familiarity tracking
+ *
+ * @param pc Pointer to player combat state (must not be NULL)
+ * @param player Pointer to player entity (must not be NULL)
+ * @param enemies Array of enemy entities to check for hits
+ * @param enemy_count Number of enemies in the array
+ * @return Number of enemies killed by this strike
+ *
+ * @note Only processes strikes when combat state is in STRIKE phase
+ * @note Phase 7.1: Hit candidates sourced exclusively from sweep
+ * @note Phase 7.5: Hitstop applied to first enemy hit
+ * @note Phase 4: Full feedback system with refined effects
+ * @note Aerial attacks get 20% damage bonus
+ * @note Backstab, riposte, and guard break apply damage multipliers
+ * @note Obstructed hits take 55% damage penalty
+ * @note Critical hits respect layering mode (pre/post-mitigation)
+ * @note Execution triggered by low health percentage or high overkill
+ */
 int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, RogueEnemy enemies[],
                                int enemy_count)
 {
     if (pc->phase != ROGUE_ATTACK_STRIKE)
         return 0;
+
+    /* Phase 1: Initial Setup and Window State Management */
     /* Reset per-strike hit mask at the start of a strike when entering with a fresh window state.
        This mirrors the reset done during the state machine transition, but unit tests call this
        function directly and set masks to zero manually. Do this before any window activation code
@@ -181,6 +351,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
         pc->event_count = 0;
     }
     int kills = 0;
+
+    /* Phase 2: Window Activation and Event Emission */
     /* Legacy reach/arc fully removed: hit candidates sourced exclusively from sweep (Phase 7.1) */
     float px = player->base.pos.x;
     float py = player->base.pos.y;
@@ -238,6 +410,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
     unsigned int process_mask = newly_active_mask & ~pc->processed_window_mask;
     if (process_mask == 0)
         return 0;
+
+    /* Phase 3: Process Active Windows */
     for (int wi = 0; wi < 32; ++wi)
     {
         if (!(process_mask & (1u << wi)))
@@ -258,11 +432,15 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                 rogue_player_set_hyper_armor_active(1);
             }
         }
+
+        /* Phase 4: Target Acquisition from Weapon Sweep */
         /* Phase 7 integrated: sweep apply returns definitive enemy list */
         const int* sweep_indices = NULL;
         int sweep_count = rogue_combat_weapon_sweep_apply(pc, player, enemies, enemy_count);
         rogue_hit_last_indices(&sweep_indices);
         int first_strike_enemy_processed = 0; /* for hitstop (Phase 7.5) */
+
+        /* Phase 5: Process Each Hit Target */
         for (int si = 0; si < sweep_count; ++si)
         {
             int i = sweep_indices[si];
@@ -270,10 +448,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                 continue;
             if (!enemies[i].alive)
                 continue;
-            /* Friendly-fire filtering controlled by runtime flag:
-               - Strict (enabled by tests): skip same-team, including team_id==0.
-               - Default: treat team_id==0 as neutral; skip only when both ids are non-zero and
-               equal. */
+
+            /* Team filtering: prevent friendly fire based on team IDs */
             if (g_strict_team_filter)
             {
                 if (enemies[i].team_id == player->team_id)
@@ -285,8 +461,11 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                     enemies[i].team_id == player->team_id)
                     continue;
             }
+
             float ex = enemies[i].base.pos.x;
             float ey = enemies[i].base.pos.y;
+
+            /* Phase 6: Base Damage Calculation */
             int effective_strength = player->strength + rogue_buffs_get_total(0);
             int base = 1 + effective_strength / 5;
             float scaled = (float) base;
@@ -298,9 +477,13 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                 if (scaled < 1.0f)
                     scaled = 1.0f;
             }
+
+            /* Combo scaling with hard cap */
             float combo_scale = 1.0f + (pc->combo * 0.08f);
             if (combo_scale > 1.4f)
                 combo_scale = 1.4f;
+
+            /* Weapon and equipment modifiers */
             const RogueWeaponDef* wdef = rogue_weapon_get(player->equipped_weapon_id);
             RogueStanceModifiers sm = rogue_stance_get_mods(player->combat_stance);
             const RogueInfusionDef* inf = rogue_infusion_get(player->weapon_infusion);
@@ -311,6 +494,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                           (float) player->dexterity * wdef->dex_scale +
                           (float) player->intelligence * wdef->int_scale;
             }
+
+            /* Weapon familiarity and durability modifiers */
             float fam_bonus = rogue_weapon_get_familiarity_bonus(player->equipped_weapon_id);
             float durability_mult = 1.0f;
             if (wdef)
@@ -326,6 +511,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                     }
                 }
             }
+
+            /* Phase 7: Composite Damage Calculation */
             float base_composite = scaled * combo_scale * window_mult * sm.damage_mult *
                                    (1.0f + fam_bonus) * durability_mult;
             float comp_phys = base_composite;
@@ -337,6 +524,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                 comp_arc = base_composite * inf->arcane_add;
                 comp_phys = base_composite * inf->phys_scalar;
             }
+
+            /* Special attack multipliers */
             float raw = comp_phys + comp_fire + comp_frost + comp_arc;
             if (pc->aerial_attack_pending)
             {
@@ -363,6 +552,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             {
                 raw *= pc->pending_charge_damage_mult;
             }
+
+            /* Component damage partitioning */
             float t_parts = comp_phys + comp_fire + comp_frost + comp_arc;
             if (t_parts < 0.0001f)
                 t_parts = 1.0f;
@@ -370,6 +561,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             float part_fire = raw * (comp_fire / t_parts);
             float part_frost = raw * (comp_frost / t_parts);
             float part_arc = raw * (comp_arc / t_parts);
+
+            /* Combo minimum damage floor */
             int dmg = (int) floorf(raw + 0.5f);
             if (pc->combo > 0)
             {
@@ -380,6 +573,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                 if (dmg < min_noncrit)
                     dmg = min_noncrit;
             }
+
+            /* Phase 8: Obstruction Check */
             int obstructed = 0;
             int override_used = 0;
             int ov = _rogue_combat_call_obstruction_test(px, py, ex, ey);
@@ -390,6 +585,7 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             }
             if (!override_used)
             {
+                /* Line-of-sight check with tile-based obstruction */
                 float rx0 = cx;
                 float ry0 = cy;
                 float rx1 = ex;
@@ -423,6 +619,7 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             }
             if (obstructed)
             {
+                /* Apply 55% damage attenuation for obstructed hits */
                 float atten = 0.55f;
                 part_phys *= atten;
                 part_fire *= atten;
@@ -433,6 +630,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                 if (dmg < 1)
                     dmg = 1;
             }
+
+            /* Phase 9: Critical Hit Calculation */
             float raw_total = (float) dmg;
             float dex_bonus = player->dexterity * 0.0035f;
             if (dex_bonus > 0.55f)
@@ -468,9 +667,13 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                 if (crit_mult > 5.0f)
                     crit_mult = 5.0f;
             }
+
+            /* Phase 10: Damage Application and Mitigation */
             int health_before = enemies[i].health;
             int final_dmg = 0;
             int overkill_accum = 0;
+
+            /* Physical damage component with armor penetration */
             if (part_phys > 0.01f)
             {
                 int comp_raw = (int) floorf(part_phys + 0.5f);
@@ -483,6 +686,7 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                     if (comp_raw < 1)
                         comp_raw = 1;
                 }
+                /* Armor penetration calculation */
                 int eff_armor = enemies[i].armor;
                 int pen_flat = player->pen_flat;
                 if (pen_flat > 0)
@@ -520,6 +724,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                     (unsigned short) (def ? def->id : 0), (unsigned char) ROGUE_DMG_PHYSICAL,
                     (unsigned char) is_crit, comp_raw, mitig, local_overkill, 0);
             }
+
+            /* Fire damage component */
             if (part_fire > 0.01f)
             {
                 int comp_raw = (int) floorf(part_fire + 0.5f);
@@ -551,6 +757,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                                           (unsigned char) ROGUE_DMG_FIRE, (unsigned char) is_crit,
                                           comp_raw, mitig, local_overkill, 0);
             }
+
+            /* Frost damage component */
             if (part_frost > 0.01f)
             {
                 int comp_raw = (int) floorf(part_frost + 0.5f);
@@ -582,6 +790,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                                           (unsigned char) ROGUE_DMG_FROST, (unsigned char) is_crit,
                                           comp_raw, mitig, local_overkill, 0);
             }
+
+            /* Arcane damage component */
             if (part_arc > 0.01f)
             {
                 int comp_raw = (int) floorf(part_arc + 0.5f);
@@ -613,6 +823,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                                           (unsigned char) ROGUE_DMG_ARCANE, (unsigned char) is_crit,
                                           comp_raw, mitig, local_overkill, 0);
             }
+
+            /* Phase 11: Execution Detection */
             int overkill = overkill_accum;
             int execution = 0;
             if (health_before > 0)
@@ -633,15 +845,21 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                     }
                 }
             }
+
+            /* Phase 12: Event Emission and Hit Feedback */
             /* Emit a single composite damage event per hit (sum of all components). Use the
              * attack's declared damage type for now. */
             rogue_damage_event_record((unsigned short) (def ? def->id : 0),
                                       (unsigned char) (def ? def->damage_type : ROGUE_DMG_PHYSICAL),
                                       (unsigned char) is_crit, (int) floorf(raw_total + 0.5f),
                                       final_dmg, overkill, (unsigned char) execution);
+
+            /* Basic hit feedback */
             enemies[i].hurt_timer = 150.0f;
             enemies[i].flash_timer = 90.0f;
             pc->hit_confirmed = 1;
+
+            /* Phase 13: Advanced Hit Effects */
             /* Phase 4 full feedback: refined knockback, SFX (first hit), particles, overkill
              * explosion flag */
             extern int g_app_frame_audio_guard; /* optional future global */
@@ -691,6 +909,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             {
                 rogue_hit_mark_explosion();
             }
+
+            /* Phase 14: Status Effect Buildup */
             if (bleed_build > 0)
             {
                 enemies[i].bleed_buildup += bleed_build;
@@ -699,6 +919,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             {
                 enemies[i].frost_buildup += frost_build;
             }
+
+            /* Phase 15: Poise Damage and Staggering */
             if (def && def->poise_damage > 0.0f && enemies[i].poise_max > 0.0f)
             {
                 float poise_dmg = def->poise_damage;
@@ -729,6 +951,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
                     }
                 }
             }
+
+            /* Phase 16: Death Processing and Weapon Updates */
             if (enemies[i].health <= 0)
             {
                 enemies[i].alive = 0;
@@ -741,6 +965,8 @@ int rogue_combat_player_strike(RoguePlayerCombat* pc, RoguePlayer* player, Rogue
             }
         }
     }
+
+    /* Phase 17: Window Cleanup and Finalization */
     pc->processed_window_mask |= process_mask;
     if (def)
     {

@@ -1,3 +1,29 @@
+/**
+ * @file combat_player_state.c
+ * @brief Core player combat state machine and attack system
+ *
+ * This module implements the player's combat state machine, managing attack phases,
+ * stamina systems, weapon archetype chaining, and various combat mechanics including
+ * parry, riposte, backstab, and charged attacks.
+ *
+ * Key features:
+ * - Four-phase attack state machine (Idle → Windup → Strike → Recovery)
+ * - Stamina-based resource management with regeneration delays
+ * - Weapon archetype chaining with combo progression
+ * - Attack buffering and cancellation systems
+ * - Crowd control integration (stun, root, disarm)
+ * - Hyper armor state management
+ * - Charged attack mechanics with damage multipliers
+ * - Combat event queuing and consumption
+ *
+ * The combat system uses a precise timing accumulator for frame-perfect combat
+ * and integrates with stance modifiers, stat scaling, and equipment effects.
+ *
+ * @note State machine uses high-precision timing to prevent drift in combat windows
+ * @note Default attack active state prevents target drift in unit tests
+ * @note Stamina regeneration scales with dexterity and intelligence stats
+ */
+
 #include "combat.h"
 #include "combat_attacks.h"
 #include "combat_internal.h"
@@ -14,16 +40,51 @@
 /* Default to forced-attack active so unit tests that invoke strike processing directly don't
     get target drift from knockback across windows. Runtime/gameplay code can clear this when
     simulating full movement. */
-int rogue_force_attack_active = 1;          /* exported */
-int g_attack_frame_override = -1;           /* tests may set */
-static int g_player_hyper_armor_active = 0; /* transient internal */
+int rogue_force_attack_active = 1; /**< @brief Exported test hook: force attack active state */
+int g_attack_frame_override =
+    -1; /**< @brief Test hook: override current attack frame (-1 = disabled) */
+static int g_player_hyper_armor_active = 0; /**< @brief Internal hyper armor state flag */
 
+/**
+ * @brief Set the player's hyper armor active state
+ *
+ * Hyper armor prevents interruption of player actions by external forces
+ * (knockback, stuns, etc.) during critical combat moments.
+ *
+ * @param active 1 to enable hyper armor, 0 to disable
+ *
+ * @note Hyper armor is a transient state that protects against interruption
+ * @note Used during critical combat windows (charging, special attacks, etc.)
+ */
 void rogue_player_set_hyper_armor_active(int active)
 {
     g_player_hyper_armor_active = active ? 1 : 0;
 }
+
+/**
+ * @brief Check if player hyper armor is currently active (internal function)
+ *
+ * @return 1 if hyper armor is active, 0 otherwise
+ *
+ * @note This is an internal function used by the combat system
+ * @note External code should not call this function directly
+ */
 int _rogue_player_is_hyper_armor_active(void) { return g_player_hyper_armor_active; }
 
+/**
+ * @brief Initialize player combat state to default values
+ *
+ * Resets all combat state variables to their initial values, preparing the
+ * player combat system for a fresh start. This includes attack phases, stamina,
+ * weapon archetypes, timing accumulators, and all combat flags.
+ *
+ * @param pc Pointer to the player combat state structure (must not be NULL)
+ *
+ * @note Initializes to IDLE phase with full stamina and default light weapon archetype
+ * @note Clears all pending states (charging, parry, riposte, etc.)
+ * @note Resets all timing accumulators and event masks
+ * @note Sets default window timings for parry (160ms) and riposte (650ms)
+ */
 void rogue_combat_init(RoguePlayerCombat* pc)
 {
     if (!pc)
@@ -65,6 +126,20 @@ void rogue_combat_init(RoguePlayerCombat* pc)
     pc->force_crit_next_strike = 0;
 }
 
+/**
+ * @brief Test utility: Force combat state into STRIKE phase
+ *
+ * Forces the combat state machine into the STRIKE phase for testing purposes.
+ * This allows unit tests to directly test strike processing without going through
+ * the full windup phase. Sets up the strike timing and resets window processing state.
+ *
+ * @param pc Pointer to the player combat state (must not be NULL)
+ * @param strike_time_ms Initial strike time to set (for testing specific timing scenarios)
+ *
+ * @note This is a test utility function - not for use in production code
+ * @note Resets processed window mask and event emission mask
+ * @note Calls rogue_hit_sweep_reset() to clear hit detection state
+ */
 void rogue_combat_test_force_strike(RoguePlayerCombat* pc, float strike_time_ms)
 {
     if (!pc)
@@ -74,6 +149,38 @@ void rogue_combat_test_force_strike(RoguePlayerCombat* pc, float strike_time_ms)
     pc->processed_window_mask = 0;
 }
 
+/**
+ * @brief Main player combat state machine update
+ *
+ * Updates the player's combat state machine, handling attack phases, stamina regeneration,
+ * crowd control effects, weapon chaining, and various combat mechanics. This is the core
+ * function that drives all player combat behavior.
+ *
+ * State Machine Phases:
+ * - IDLE: Waiting for input, can start new attacks or chain from recovery
+ * - WINDUP: Preparing attack, cannot be interrupted easily
+ * - STRIKE: Active attack window with hit detection and cancellation options
+ * - RECOVER: Post-attack recovery, allows chaining to next attack
+ *
+ * Key Features:
+ * - Crowd control integration (stun prevents all actions, root prevents starting)
+ * - Attack buffering during non-idle states
+ * - Stamina cost calculation with stance modifiers
+ * - Weapon archetype chaining with late-chain windows
+ * - Hit/whiff/block cancellation based on attack definition flags
+ * - Precise timing with high-precision accumulator
+ * - Stamina regeneration with stat scaling and encumbrance penalties
+ *
+ * @param pc Pointer to the player combat state (must not be NULL)
+ * @param dt_ms Time delta in milliseconds since last update
+ * @param attack_pressed 1 if attack button is currently pressed, 0 otherwise
+ *
+ * @note Uses high-precision timing accumulator to prevent combat drift
+ * @note Stamina regeneration scales with dexterity (0.0007/ms) and intelligence (0.0005/ms)
+ * @note Encumbrance reduces stamina regeneration (tier 1: 82%, tier 2: 70%, tier 3: 50%)
+ * @note Parry and riposte windows are updated separately from main state machine
+ * @note Backstab cooldown is managed independently of attack phases
+ */
 void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_pressed)
 {
     if (!pc)
@@ -372,6 +479,19 @@ void rogue_combat_update_player(RoguePlayerCombat* pc, float dt_ms, int attack_p
     }
 }
 
+/**
+ * @brief Set the player's current weapon archetype
+ *
+ * Changes the player's weapon archetype and resets the attack chain to the beginning.
+ * This is typically called when switching weapons or when a branch change occurs.
+ *
+ * @param pc Pointer to the player combat state (must not be NULL)
+ * @param arch New weapon archetype to set
+ *
+ * @note Resets chain index to 0 (first attack in archetype)
+ * @note Clears any pending branch changes
+ * @note Can be called during any combat phase
+ */
 void rogue_combat_set_archetype(RoguePlayerCombat* pc, RogueWeaponArchetype arch)
 {
     if (!pc)
@@ -379,14 +499,46 @@ void rogue_combat_set_archetype(RoguePlayerCombat* pc, RogueWeaponArchetype arch
     pc->archetype = arch;
     pc->chain_index = 0;
 }
+
+/**
+ * @brief Get the player's current weapon archetype
+ *
+ * @param pc Pointer to the player combat state (can be NULL)
+ * @return Current weapon archetype, or ROGUE_WEAPON_LIGHT if pc is NULL
+ *
+ * @note Returns default light weapon if combat state is invalid
+ */
 RogueWeaponArchetype rogue_combat_current_archetype(const RoguePlayerCombat* pc)
 {
     return pc ? pc->archetype : ROGUE_WEAPON_LIGHT;
 }
+
+/**
+ * @brief Get the player's current position in the attack chain
+ *
+ * @param pc Pointer to the player combat state (can be NULL)
+ * @return Current chain index (0-based), or 0 if pc is NULL
+ *
+ * @note Chain index determines which attack in the archetype sequence is next
+ */
 int rogue_combat_current_chain_index(const RoguePlayerCombat* pc)
 {
     return pc ? pc->chain_index : 0;
 }
+
+/**
+ * @brief Queue a weapon archetype branch change for the next attack
+ *
+ * Sets up a pending archetype change that will be applied on the next attack start.
+ * This allows for smooth transitions between different weapon types during combat.
+ *
+ * @param pc Pointer to the player combat state (must not be NULL)
+ * @param branch_arch Weapon archetype to switch to on next attack
+ *
+ * @note Branch change is applied during attack start (idle → windup transition)
+ * @note Only one branch can be queued at a time
+ * @note Queued branch is cleared after application
+ */
 void rogue_combat_queue_branch(RoguePlayerCombat* pc, RogueWeaponArchetype branch_arch)
 {
     if (!pc)
@@ -394,6 +546,19 @@ void rogue_combat_queue_branch(RoguePlayerCombat* pc, RogueWeaponArchetype branc
     pc->queued_branch_archetype = branch_arch;
     pc->queued_branch_pending = 1;
 }
+
+/**
+ * @brief Notify combat system that current strike was blocked
+ *
+ * Marks the current strike as having been blocked by an enemy. This affects
+ * cancellation timing and may enable block-specific cancel windows.
+ *
+ * @param pc Pointer to the player combat state (must not be NULL)
+ *
+ * @note Only effective during STRIKE phase
+ * @note Enables block cancellation if attack definition supports it
+ * @note Affects combo continuation and recovery timing
+ */
 void rogue_combat_notify_blocked(RoguePlayerCombat* pc)
 {
     if (!pc)
@@ -404,7 +569,26 @@ void rogue_combat_notify_blocked(RoguePlayerCombat* pc)
     }
 }
 
-/* Pop (consume) queued combat events into caller-provided buffer; returns number copied. */
+/**
+ * @brief Consume queued combat events into caller-provided buffer
+ *
+ * Removes combat events from the internal queue and copies them to the caller's
+ * buffer. This allows external systems to process combat events (hits, blocks,
+ * parries, etc.) that occurred during the last update cycle.
+ *
+ * The function copies up to max_events events from the queue, then shifts any
+ * remaining events to the front of the queue. The event count is updated accordingly.
+ *
+ * @param pc Pointer to the player combat state (must not be NULL)
+ * @param out_events Buffer to copy events into (must not be NULL)
+ * @param max_events Maximum number of events to copy (must be > 0)
+ * @return Number of events actually copied (may be less than max_events)
+ *
+ * @note Events are consumed in FIFO order (oldest first)
+ * @note Remaining events are shifted to maintain queue integrity
+ * @note Event count is updated to reflect remaining events
+ * @note Safe to call with max_events larger than available events
+ */
 int rogue_combat_consume_events(RoguePlayerCombat* pc, struct RogueCombatEvent* out_events,
                                 int max_events)
 {
@@ -427,6 +611,19 @@ int rogue_combat_consume_events(RoguePlayerCombat* pc, struct RogueCombatEvent* 
 }
 
 /* Charged attacks */
+
+/**
+ * @brief Begin charging a powerful attack
+ *
+ * Initiates the charged attack state, allowing the player to build up power
+ * for a more damaging strike. Can only be started from IDLE phase.
+ *
+ * @param pc Pointer to the player combat state (must not be NULL)
+ *
+ * @note Only works if player is in IDLE phase
+ * @note Sets charging flag and resets charge timer
+ * @note Charge time will accumulate until released or max time reached
+ */
 void rogue_combat_charge_begin(RoguePlayerCombat* pc)
 {
     if (!pc)
@@ -436,6 +633,28 @@ void rogue_combat_charge_begin(RoguePlayerCombat* pc)
     pc->charging = 1;
     pc->charge_time_ms = 0.0f;
 }
+
+/**
+ * @brief Update charged attack state
+ *
+ * Updates the charging state based on time and button hold status. If the
+ * button is released, calculates the damage multiplier based on charge time
+ * and ends the charging state.
+ *
+ * Damage multiplier calculation:
+ * - Base multiplier: 1.0
+ * - Charge bonus: up to 1.5x over 800ms
+ * - Maximum multiplier: 2.5x
+ * - Formula: 1.0 + min(charge_time/800, 1.0) * 1.5
+ *
+ * @param pc Pointer to the player combat state (must not be NULL)
+ * @param dt_ms Time delta in milliseconds since last update
+ * @param still_holding 1 if charge button is still held, 0 if released
+ *
+ * @note Charge time is capped at 1600ms maximum
+ * @note Damage multiplier is stored in pending_charge_damage_mult
+ * @note Charging automatically ends when button is released
+ */
 void rogue_combat_charge_tick(RoguePlayerCombat* pc, float dt_ms, int still_holding)
 {
     if (!pc)
@@ -457,6 +676,21 @@ void rogue_combat_charge_tick(RoguePlayerCombat* pc, float dt_ms, int still_hold
     if (pc->charge_time_ms > 1600.0f)
         pc->charge_time_ms = 1600.0f;
 }
+
+/**
+ * @brief Get the current charge progress as a normalized value
+ *
+ * Returns the charging progress as a value between 0.0 and 1.0, where:
+ * - 0.0 = not charging or just started
+ * - 1.0 = fully charged (800ms charge time)
+ *
+ * @param pc Pointer to the player combat state (can be NULL)
+ * @return Charge progress (0.0 to 1.0), or 0.0 if not charging or invalid state
+ *
+ * @note Progress is clamped to [0.0, 1.0] range
+ * @note Returns 0.0 if player is not currently charging
+ * @note Full charge is reached at 800ms, but charging can continue to 1600ms
+ */
 float rogue_combat_charge_progress(const RoguePlayerCombat* pc)
 {
     if (!pc || !pc->charging)
