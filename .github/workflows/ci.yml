@@ -59,15 +59,14 @@ jobs:
         run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 12
 
       - name: Format Check
+        shell: pwsh
         run: |
-          set -e
-          cmake --build build --target format-check || (
-            echo "Format check failed. Run: cmake --build build --target format";
+          $ErrorActionPreference = 'Stop'
+          cmake --build build --target format-check
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Format check failed. Run: cmake --build build --target format"
             exit 1
-          )
-
-      - name: Run Tests (-j12)
-        run: ctest --test-dir build -C ${{ env.BUILD_TYPE }} -j12 --output-on-failure
+          }
 
   docs:
     name: Build Docs (windows-latest)
@@ -122,3 +121,53 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  coverage-linux:
+    name: Unit Tests + Coverage (ubuntu-latest)
+    runs-on: ubuntu-latest
+    env:
+      BUILD_TYPE: Debug
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install coverage tools (gcovr, lcov)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcovr lcov
+
+      - name: Configure (Linux, coverage, SDL OFF)
+        run: >-
+          cmake -S . -B build-coverage
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          -DROGUE_ENABLE_SDL=OFF
+          -DCMAKE_CXX_FLAGS="--coverage"
+          -DCMAKE_C_FLAGS="--coverage"
+
+      - name: Build (Linux, -j4)
+        run: cmake --build build-coverage --parallel 4
+
+      - name: Run tests (ctest)
+        run: ctest --test-dir build-coverage --output-on-failure -j2
+
+      - name: Generate coverage (gcovr -> Cobertura XML)
+        run: |
+          gcovr -r . --xml-pretty -o build-coverage/coverage.xml \
+            --exclude-directories build \
+            --exclude 'tests/.*'
+
+      - name: Upload coverage.xml (artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: build-coverage/coverage.xml
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: build-coverage/coverage.xml
+          flags: unittests
+          fail_ci_if_error: true
+          verbose: true

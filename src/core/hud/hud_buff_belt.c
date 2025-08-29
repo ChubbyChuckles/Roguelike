@@ -1,3 +1,22 @@
+/**
+ * @file hud_buff_belt.c
+ * @brief Buff belt UI component for displaying active buffs and debuffs.
+ *
+ * This module implements the buff belt display system (UI Phase 6.3), which shows
+ * active buffs and debuffs as a horizontal row of icons at the top of the screen.
+ * The system consolidates multiple instances of the same buff type and provides
+ * visual feedback through color coding, duration bars, and stack indicators.
+ *
+ * Key features:
+ * - Consolidates multiple buff instances by type
+ * - Color-coded borders based on buff category (CC, offensive, defensive, etc.)
+ * - Duration visualization with mini-bars and cooldown overlays
+ * - Stack count display for multiple instances
+ * - Centered horizontal layout with configurable spacing
+ *
+ * @note Requires SDL for rendering; becomes no-op when SDL is disabled
+ */
+
 /* hud_buff_belt.c - UI Phase 6.3 implementation */
 #include "hud_buff_belt.h"
 #include "../../graphics/font.h"
@@ -6,6 +25,21 @@
 #include <SDL.h>
 #endif
 
+/**
+ * @brief Refreshes the buff belt state by aggregating and consolidating active buffs.
+ *
+ * This function queries the current buff system state and consolidates multiple
+ * instances of the same buff type into single display icons. For each buff type:
+ * - Accumulates stack count
+ * - Shows the highest magnitude value
+ * - Displays the longest remaining duration
+ * - Limits display to ROGUE_HUD_MAX_BUFF_ICONS total icons
+ *
+ * @param st Pointer to the RogueHUDBuffBeltState structure to update.
+ *           If NULL, the function returns immediately without error.
+ * @param now_ms Current timestamp in milliseconds, used to calculate remaining
+ *               durations for all active buffs.
+ */
 void rogue_hud_buff_belt_refresh(RogueHUDBuffBeltState* st, double now_ms)
 {
     if (!st)
@@ -62,6 +96,25 @@ void rogue_hud_buff_belt_refresh(RogueHUDBuffBeltState* st, double now_ms)
     }
 }
 
+/**
+ * @brief Renders the buff belt icons to the screen using SDL.
+ *
+ * Draws a horizontal row of buff/debuff icons centered at the top of the screen.
+ * Each icon displays:
+ * - Colored border based on buff category (CC=red, offensive=orange, defensive=green, etc.)
+ * - Semi-transparent background
+ * - Magnitude value as text
+ * - Duration bar at the top (proportional to remaining time)
+ * - Cooldown overlay from bottom (covering expired portion)
+ * - Stack count badge (if stacks > 1)
+ *
+ * When SDL is not available, this function becomes a no-op that suppresses
+ * unused parameter warnings.
+ *
+ * @param st Pointer to the RogueHUDBuffBeltState containing the buff data to render.
+ *           If NULL or if no renderer is available, the function returns without rendering.
+ * @param screen_w The width of the screen in pixels, used for centering the icon belt.
+ */
 void rogue_hud_buff_belt_render(const RogueHUDBuffBeltState* st, int screen_w)
 {
 #ifndef ROGUE_HAVE_SDL
