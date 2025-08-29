@@ -170,6 +170,7 @@ bool rogue_bb_set_float(RogueBlackboard* bb, const char* key, float value)
     if (!e)
         return false;
     e->type = ROGUE_BB_FLOAT;
+    // Quantize only the incoming value; do not over-quantize existing state
     e->v.f = rbb_quantize4(value);
     e->last_f = e->v.f;
     e->dirty = 1;
@@ -343,11 +344,11 @@ bool rogue_bb_write_float(RogueBlackboard* bb, const char* key, float value,
         e->type = ROGUE_BB_FLOAT;
         e->v.f = e->last_f;
     }
-    bool changed = apply_policy_float(&e->v.f, value, policy);
+    // Quantize input to reduce accumulation drift; avoid re-quantizing the running value
+    float qv = rbb_quantize4(value);
+    bool changed = apply_policy_float(&e->v.f, qv, policy);
     // Keep the float baseline in sync even on no-op policy applications
     // so that switching types preserves the most recent semantic value.
-    // Quantize to reduce cumulative error across many operations
-    e->v.f = rbb_quantize4(e->v.f);
     e->last_f = e->v.f;
     if (changed)
     {

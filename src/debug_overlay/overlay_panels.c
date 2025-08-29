@@ -99,6 +99,7 @@ static void panel_skills(void* user)
     (void) user;
     if (!overlay_begin_panel("Skills", 380, 10, 420))
         return;
+    const char* overrides_path = "build/skills_overrides.json"; /* within repo/build by default */
     int count = rogue_skill_debug_count();
     static int sel = 0;
     if (sel < 0)
@@ -135,6 +136,8 @@ static void panel_skills(void* user)
             overlay_slider_float("Cast Time (ms)", &cast_ms, 0.f, 5000.f))
         {
             rogue_skill_debug_set_timing(sel, base_cd, cd_red, cast_ms);
+            /* auto-save */
+            (void) rogue_skill_debug_save_overrides(overrides_path);
         }
     }
 
@@ -151,7 +154,10 @@ static void panel_skills(void* user)
         changed |= overlay_slider_float("Stat Cap %", &cp.stat_cap_pct, 0.0f, 200.0f);
         changed |= overlay_slider_float("Stat Softness", &cp.stat_softness, 0.1f, 10.0f);
         if (changed)
+        {
             rogue_skill_debug_set_coeff(sel, &cp);
+            (void) rogue_skill_debug_save_overrides(overrides_path);
+        }
     }
 
     /* Quick simulate button with default profile over 2s using selected id only */
@@ -164,6 +170,15 @@ static void panel_skills(void* user)
         {
             overlay_label(out);
         }
+    }
+
+    /* Manual Save button */
+    if (overlay_button("Save Overrides JSON"))
+    {
+        int rc = rogue_skill_debug_save_overrides(overrides_path);
+        char msg[128];
+        snprintf(msg, sizeof msg, "Save: %s (%d)", (rc == 0 ? "OK" : "ERR"), rc);
+        overlay_label(msg);
     }
 
     overlay_end_panel();

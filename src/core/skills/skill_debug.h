@@ -31,6 +31,17 @@ extern "C"
     /* Simple wrapper to run rotation simulation and write result JSON. */
     int rogue_skill_debug_simulate(const char* profile_json, char* out_buf, int out_cap);
 
+    /* Export all skills' timing + coeff overrides to a compact JSON array into out_buf.
+        Returns number of bytes written (>=0) or <0 on overflow/error. */
+    int rogue_skill_debug_export_overrides_json(char* out_buf, int out_cap);
+
+    /* Parse overrides JSON text (same schema as export) and apply live to registry.
+        Returns number of entries applied or <0 on parse error. */
+    int rogue_skill_debug_load_overrides_text(const char* json_text);
+
+    /* Save overrides to file atomically using content/json_io. Returns 0 on success. */
+    int rogue_skill_debug_save_overrides(const char* path);
+
 #ifdef __cplusplus
 }
 #endif
