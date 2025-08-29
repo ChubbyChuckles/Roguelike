@@ -120,6 +120,8 @@ add_library(rogue_core
     $<$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>:src/debug_overlay/overlay_panels.c>
     src/ui/core/ui_theme.c
     src/ui/core/ui_test_harness.c
+    # content json foundation
+    src/content/json_io.c
     src/core/player/player_progress.c
     src/world/world_renderer.c
     src/graphics/animation_system.c
@@ -415,6 +417,9 @@ add_library(rogue_core
     src/core/integration/deadlock_manager.c
 )
 
+# Make overlay feature macro visible to all TUs so headers don't fallback to stubs
+target_compile_definitions(rogue_core PUBLIC ROGUE_ENABLE_DEBUG_OVERLAY=$<IF:$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>,1,0>)
+
 # Suppress Windows error/abort popups in tests and tools; route to stderr instead.
 if(WIN32)
     target_sources(rogue_core PRIVATE src/util/win_suppress_error_dialogs.c)
@@ -690,6 +695,11 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_tag_registry_validate PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_tag_registry_validate COMMAND test_tag_registry_validate)
+
+# JSON IO foundational tests
+add_executable(test_json_io tests/test_json_io.c)
+target_link_libraries(test_json_io PRIVATE rogue_core)
+add_test(NAME test_json_io COMMAND test_json_io)
 
 add_executable(test_skills_ordering_invariance tests/unit/test_skills_ordering_invariance.c)
 target_link_libraries(test_skills_ordering_invariance PRIVATE rogue_core)

@@ -93,6 +93,9 @@ void rogue_app_add_hitstop(float ms)
 
 void rogue_app_step(void)
 {
+    /* Global invariant: if the start screen is hidden, the start_state must be MENU. */
+    if (!g_app.show_start_screen && g_app.start_state != ROGUE_START_MENU)
+        g_app.start_state = ROGUE_START_MENU;
     /* Diagnostics for test 10.4: always emit a probe line at function entry (even if not running)
      */
     {
@@ -122,8 +125,10 @@ void rogue_app_step(void)
         }
         else if (g_app.start_state == ROGUE_START_FADE_OUT)
         {
+            /* Skip directly to finished state; ensure state is not left as FADE_OUT */
             g_app.start_state_t = 0.0f;
             g_app.show_start_screen = 0;
+            g_app.start_state = ROGUE_START_MENU;
         }
     }
     if (!g_game_loop.running)
@@ -144,8 +149,10 @@ void rogue_app_step(void)
         }
         else if (g_app.start_state == ROGUE_START_FADE_OUT)
         {
+            /* Skip directly to finished state; ensure state is not left as FADE_OUT */
             g_app.start_state_t = 0.0f;
             g_app.show_start_screen = 0;
+            g_app.start_state = ROGUE_START_MENU;
         }
         ROGUE_LOG_INFO("reduced_motion guard: state=%d t=%.3f show=%d", g_app.start_state,
                        (double) g_app.start_state_t, g_app.show_start_screen);

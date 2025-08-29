@@ -162,6 +162,9 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     /* Reset localization to defaults at startup. */
     rogue_locale_reset();
 
+    /* Decide start-screen corruption quarantine at init-time for determinism in parallel tests. */
+    rogue_start_screen_scan_corruption_at_init();
+
 #if ROGUE_ENABLE_DEBUG_OVERLAY
     overlay_init();
     rogue_overlay_register_default_panels();

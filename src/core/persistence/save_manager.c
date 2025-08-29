@@ -1021,11 +1021,17 @@ static int internal_save_to(const char* final_path)
     }
 #endif
     fclose(f);
+    /* Move tmp to final and verify success. If move/copy fails, return error. */
+    int finalize_ok = 0;
 #if defined(_MSC_VER)
     /* Best-effort atomic replacement. If rename fails (e.g., anti-virus locking),
        retry after removing destination; if still failing, fall back to copy. */
     remove(final_path);
-    if (rename(tmp_path, final_path) != 0)
+    if (rename(tmp_path, final_path) == 0)
+    {
+        finalize_ok = 1;
+    }
+    else
     {
         FILE* src = NULL;
         FILE* dst = NULL;
@@ -1034,17 +1040,29 @@ static int internal_save_to(const char* final_path)
         {
             unsigned char buf[8192];
             size_t n;
+            int copy_failed = 0;
             while ((n = fread(buf, 1, sizeof buf, src)) > 0)
             {
                 if (fwrite(buf, 1, n, dst) != n)
                 {
-                    /* copy failed */
+                    copy_failed = 1;
                     break;
                 }
             }
+            fflush(dst);
+            if (g_durable_writes)
+            {
+                int dfd = _fileno(dst);
+                if (dfd != -1)
+                    _commit(dfd);
+            }
             fclose(src);
             fclose(dst);
-            remove(tmp_path);
+            if (!copy_failed)
+            {
+                finalize_ok = 1;
+                remove(tmp_path);
+            }
         }
         else
         {
@@ -1056,10 +1074,71 @@ static int internal_save_to(const char* final_path)
         }
     }
 #else
-    rename(tmp_path, final_path);
+    if (rename(tmp_path, final_path) == 0)
+    {
+        finalize_ok = 1;
+    }
+    else
+    {
+        /* Fallback to copy if rename failed (e.g., cross-device move in unusual setups) */
+        FILE* src = fopen(tmp_path, "rb");
+        FILE* dst = fopen(final_path, "wb");
+        if (src && dst)
+        {
+            unsigned char buf[8192];
+            size_t n;
+            int copy_failed = 0;
+            while ((n = fread(buf, 1, sizeof buf, src)) > 0)
+            {
+                if (fwrite(buf, 1, n, dst) != n)
+                {
+                    copy_failed = 1;
+                    break;
+                }
+            }
+            fflush(dst);
+            if (g_durable_writes)
+            {
+                int dfd = fileno(dst);
+                if (dfd != -1)
+                    fsync(dfd);
+            }
+            fclose(src);
+            fclose(dst);
+            if (!copy_failed)
+            {
+                finalize_ok = 1;
+                remove(tmp_path);
+            }
+        }
+        else
+        {
+            if (src)
+                fclose(src);
+            if (dst)
+                fclose(dst);
+        }
+    }
 #endif
-    int rc = 0;
-    rc = 0;
+    /* Verify final file exists and is readable */
+    if (finalize_ok)
+    {
+        FILE* vf = NULL;
+#if defined(_MSC_VER)
+        fopen_s(&vf, final_path, "rb");
+#else
+        vf = fopen(final_path, "rb");
+#endif
+        if (vf)
+        {
+            fclose(vf);
+        }
+        else
+        {
+            finalize_ok = 0;
+        }
+    }
+    int rc = finalize_ok ? 0 : -21;
     g_last_save_rc = rc;
     g_last_save_bytes = (uint32_t) desc.total_size;
     g_last_save_ms = ((double) clock() - t0) * 1000.0 / (double) CLOCKS_PER_SEC;
