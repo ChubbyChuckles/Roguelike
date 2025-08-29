@@ -1,5 +1,7 @@
 #include "../core/app/app_state.h"
 #include "../core/player/player_debug.h"
+#include "../core/skills/skill_debug.h"
+#include "../core/skills/skills_coeffs.h"
 #include "overlay_core.h"
 #include "overlay_input.h"
 #include "overlay_widgets.h"
@@ -92,10 +94,86 @@ static void panel_player(void* user)
     overlay_end_panel();
 }
 
+static void panel_skills(void* user)
+{
+    (void) user;
+    if (!overlay_begin_panel("Skills", 380, 10, 420))
+        return;
+    int count = rogue_skill_debug_count();
+    static int sel = 0;
+    if (sel < 0)
+        sel = 0;
+    if (sel >= count)
+        sel = count - 1;
+    /* Selection slider */
+    if (count <= 0)
+    {
+        overlay_label("No skills registered");
+        overlay_end_panel();
+        return;
+    }
+    if (overlay_slider_int("Skill Index", &sel, 0, count - 1))
+    {
+        /* keep within bounds */
+        if (sel < 0)
+            sel = 0;
+        if (sel >= count)
+            sel = count - 1;
+    }
+    /* Name */
+    const char* name = rogue_skill_debug_name(sel);
+    char buf[256];
+    snprintf(buf, sizeof buf, "[%d] %s", sel, name ? name : "<noname>");
+    overlay_label(buf);
+
+    /* Timing fields */
+    float base_cd = 0.f, cd_red = 0.f, cast_ms = 0.f;
+    if (rogue_skill_debug_get_timing(sel, &base_cd, &cd_red, &cast_ms) == 0)
+    {
+        if (overlay_slider_float("Base Cooldown (ms)", &base_cd, 0.f, 60000.f) ||
+            overlay_slider_float("CD Reduction/rank (ms)", &cd_red, -1000.f, 1000.f) ||
+            overlay_slider_float("Cast Time (ms)", &cast_ms, 0.f, 5000.f))
+        {
+            rogue_skill_debug_set_timing(sel, base_cd, cd_red, cast_ms);
+        }
+    }
+
+    /* Coeff params */
+    RogueSkillCoeffParams cp;
+    if (rogue_skill_debug_get_coeff(sel, &cp) == 0)
+    {
+        int changed = 0;
+        changed |= overlay_slider_float("Coeff Base", &cp.base_scalar, 0.0f, 10.0f);
+        changed |= overlay_slider_float("Coeff per Rank", &cp.per_rank_scalar, -1.0f, 5.0f);
+        changed |= overlay_slider_float("STR %/10", &cp.str_pct_per10, -50.0f, 200.0f);
+        changed |= overlay_slider_float("INT %/10", &cp.int_pct_per10, -50.0f, 200.0f);
+        changed |= overlay_slider_float("DEX %/10", &cp.dex_pct_per10, -50.0f, 200.0f);
+        changed |= overlay_slider_float("Stat Cap %", &cp.stat_cap_pct, 0.0f, 200.0f);
+        changed |= overlay_slider_float("Stat Softness", &cp.stat_softness, 0.1f, 10.0f);
+        if (changed)
+            rogue_skill_debug_set_coeff(sel, &cp);
+    }
+
+    /* Quick simulate button with default profile over 2s using selected id only */
+    if (overlay_button("Simulate 2s (selected only)"))
+    {
+        char out[256];
+        char profile[128];
+        snprintf(profile, sizeof profile, "{\"duration_ms\":2000,\"priority\":[%d]}", sel);
+        if (rogue_skill_debug_simulate(profile, out, (int) sizeof out) == 0)
+        {
+            overlay_label(out);
+        }
+    }
+
+    overlay_end_panel();
+}
+
 void rogue_overlay_register_default_panels(void)
 {
     overlay_register_panel("system", "System", panel_system, NULL);
     overlay_register_panel("player", "Player", panel_player, NULL);
+    overlay_register_panel("skills", "Skills", panel_skills, NULL);
 }
 
 #else

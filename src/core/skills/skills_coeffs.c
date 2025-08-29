@@ -113,3 +113,18 @@ int rogue_skill_coeff_exists(int skill_id)
     }
     return 0;
 }
+
+int rogue_skill_coeff_get_params(int skill_id, RogueSkillCoeffParams* out)
+{
+    if (!out)
+        return -1;
+    for (int i = 0; i < ROGUE_MAX_SKILL_COEFFS; ++i)
+    {
+        if (g_coeffs[i].in_use && g_coeffs[i].skill_id == skill_id)
+        {
+            *out = g_coeffs[i].params;
+            return 0;
+        }
+    }
+    return -2;
+}

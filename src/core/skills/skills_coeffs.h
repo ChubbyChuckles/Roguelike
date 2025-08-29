@@ -35,6 +35,9 @@ extern "C"
     /* Query: returns 1 if a coefficient entry exists for skill_id, 0 otherwise. */
     int rogue_skill_coeff_exists(int skill_id);
 
+    /* New: retrieve current parameters for a skill id; returns 0 on success, <0 if not found. */
+    int rogue_skill_coeff_get_params(int skill_id, RogueSkillCoeffParams* out);
+
 #ifdef __cplusplus
 }
 #endif

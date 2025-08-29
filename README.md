@@ -88,6 +88,7 @@ Notes:
 Overlay panels:
 - System panel shows FPS, frame time, draw calls, and tile quads, and includes a toggle for the metrics/overlay and overlay enable.
 - Player panel exposes HP/MP/AP and core stats (STR/DEX/VIT/INT) with sliders, God Mode/No-clip toggles, and simple teleports (spawn/center). Player debug APIs are headless-safe and used by the panel.
+ - Skills panel (new) lists skills and lets you edit timing (cooldown/cast/channel) and coefficients (RogueSkillCoeffParams). Includes a quick 2s single-skill simulate action that dumps a JSON summary for inspection.
 
 Data I/O utilities (for upcoming content schemas):
 - json_io: read whole file, atomic write (temp + replace), and file mtime in ms; all return detailed errors via char* buffers.

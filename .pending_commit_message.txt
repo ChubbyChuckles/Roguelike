@@ -4,3 +4,11 @@ CI: enforce SDL=ON on Windows, run -j12; add docs build & HTML artifact upload
 - Add separate 'docs' job: install doxygen+graphviz, configure (SDL ON), build docs target, upload build/docs/html as artifact.
 - Roadmap: mark CI docs integration as Partial; note new CI behavior under Recent Updates.
  - README: mention CI HTML docs artifact name (`docs-html`) and where to download it in Actions.
+
+Overlay: Skills Manager Panel + skill_debug APIs; all tests green (560/560)
+
+- New panel: "Skills" lets you select a skill, edit timing (cooldown/cast/channel) and RogueSkillCoeffParams, and run a 2s simulate (single skill) with JSON output.
+- New core APIs: src/core/skills/skill_debug.{h,c} provide list/get/set for coeffs & timing and a simulate wrapper (headless-safe; used by tests and overlay).
+- Minor core addition: expose rogue_skill_coeff_get_params to fetch current coeff struct.
+- Tests: added tests/unit/test_skill_debug_api.c (covers list/get/set + simulate); full Debug SDL2 suite now passes 560/560 in parallel (-j8).
+- Roadmap: mark Phase 7.1 and 7.2 Done; 7.4/7.5 Partial.

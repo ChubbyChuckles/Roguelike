@@ -159,6 +159,7 @@ add_library(rogue_core
     src/core/skills/skills_effects.c
     src/core/skills/skills_coeffs.c
     src/core/skills/skills_coeffs_load.c
+    src/core/skills/skill_debug.c
     src/core/skills/skills_api_doc.c
     src/core/skills/skills_procs.c
     src/core/skills/skills_validate.c

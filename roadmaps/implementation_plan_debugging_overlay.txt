@@ -21,7 +21,7 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 
 CI VALIDATION (current)
 - Overlay core/input/widgets/panels compile clean under Debug with SDL2.
-- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (558/558).
+- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (560/560).
 - Player Debug Panel and headless-safe player_debug APIs integrated; god mode is honored in melee mitigation path; noclip flag plumbed in app state. Rebuild and full test run reconfirmed green.
 - Start Screen corrupt-header gating verified via unit test and in the full run; logging defaults to WARN to keep CI output quiet.
 
@@ -68,11 +68,11 @@ PHASE 6. Basic Overlay Panels
 6.5 Tests: panel rendering, player debug APIs, input consumption (Partial – existing overlay tests are green; TODO add unit tests for player_debug clamps/derived recompute and god-mode damage bypass.)
 
 PHASE 7. Skills Manager Panel
-7.1 Implement Skill Manager Panel: browse skills, edit coefficients/cooldowns (X)
-7.2 Add skill_debug.h/.c APIs: list/get/edit/simulate functions (X)
+7.1 Implement Skill Manager Panel: browse skills, edit coefficients/cooldowns (Done – initial panel added under Overlay Panels; select skill, edit timing and RogueSkillCoeffParams)
+7.2 Add skill_debug.h/.c APIs: list/get/edit/simulate functions (Done – headless-safe APIs implemented and compiled into core; simulate wrapper calls rotation simulator)
 7.3 Integrate with JSON save: live editing updates registry and writes to file (X)
-7.4 Add skill simulation: cast/channel testing with result preview (X)
-7.5 Tests: skill CRUD operations, JSON roundtrip, simulation accuracy (X)
+7.4 Add skill simulation: cast/channel testing with result preview (Partial – 2s single-skill simulate button in panel; prints JSON result)
+7.5 Tests: skill CRUD operations, JSON roundtrip, simulation accuracy (Partial – new unit test tests/unit/test_skill_debug_api.c validates list/get/set and simulate wrapper)
 
 PHASE 8. Entity Inspector Panel
 8.1 Design entities.json schema: id, name, base_stats, ai, drops (X)
