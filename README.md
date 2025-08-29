@@ -60,6 +60,10 @@ Notes:
 - Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (562/562).
 	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir).
 
+### Build flags and modules
+- ROGUE_ENABLE_DEBUG_OVERLAY (default ON): Compiles the in-game debug overlay. When OFF, overlay code is compiled out and has near-zero cost. Overlay is built as an object library (`rogue_debug_overlay`) and linked into `rogue_core` conditionally.
+- ROGUE_ENABLE_JSON_CONTENT (default ON): Compiles the content JSON foundation (I/O and schema envelope). Built as an object library (`rogue_content_json`) and linked into `rogue_core` when enabled. A vendored cJSON stub lives under `third_party/cjson` and is linked as `rogue_thirdparty_cjson` for now; replace with the full cJSON later.
+
 ### Documentation (Doxygen)
 - Outputs: HTML, LaTeX/PDF, and XML generated via a dedicated CMake target.
 - Prereqs (Windows):

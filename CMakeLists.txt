@@ -12,6 +12,7 @@ option(ROGUE_WARNINGS_AS_ERRORS "Treat warnings as errors" ON)
 option(ROGUE_CODE_COVERAGE "Enable code coverage instrumentation (GNU/Clang)" OFF)
 option(ROGUE_SUPPRESS_WINDOWS_ERROR_DIALOGS "Suppress Windows/MSVC error popups in tests by routing errors to stderr" ON)
 option(ROGUE_ENABLE_DEBUG_OVERLAY "Enable the unified in-game debug overlay system" ON)
+option(ROGUE_ENABLE_JSON_CONTENT "Enable content JSON system (schemas, IO)" ON)
 option(ROGUE_BUILD_DOCS "Enable building Doxygen documentation" ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -114,16 +115,8 @@ add_library(rogue_core
     src/core/hud/hud_bars.c
     src/core/hud/hud_buff_belt.c
     src/core/hud/hud_overlays.c
-    # unified debug overlay core (conditionally compiled)
-    $<$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>:src/debug_overlay/overlay_core.c>
-    $<$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>:src/debug_overlay/overlay_input.c>
-    $<$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>:src/debug_overlay/overlay_widgets.c>
-    $<$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>:src/debug_overlay/overlay_panels.c>
     src/ui/core/ui_theme.c
     src/ui/core/ui_test_harness.c
-    # content json foundation
-    src/content/json_io.c
-    src/content/json_envelope.c
     src/core/player/player_progress.c
     src/world/world_renderer.c
     src/graphics/animation_system.c
@@ -434,6 +427,44 @@ add_library(rogue_core
 
 # Make overlay feature macro visible to all TUs so headers don't fallback to stubs
 target_compile_definitions(rogue_core PUBLIC ROGUE_ENABLE_DEBUG_OVERLAY=$<IF:$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>,1,0>)
+target_compile_definitions(rogue_core PUBLIC ROGUE_ENABLE_JSON_CONTENT=$<IF:$<BOOL:${ROGUE_ENABLE_JSON_CONTENT}>,1,0>)
+
+# ---- Debug Overlay and Content JSON object libraries ----
+# Overlay core and widgets grouped for cleaner build graph; compiled only when enabled
+add_library(rogue_debug_overlay OBJECT
+    src/debug_overlay/overlay_core.c
+    src/debug_overlay/overlay_input.c
+    src/debug_overlay/overlay_widgets.c
+    src/debug_overlay/overlay_panels.c
+)
+target_compile_definitions(rogue_debug_overlay PUBLIC ROGUE_ENABLE_DEBUG_OVERLAY=$<IF:$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>,1,0>)
+target_include_directories(rogue_debug_overlay PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+# Content JSON helpers grouped here; always compile when JSON content is enabled
+add_library(rogue_content_json OBJECT
+    src/content/json_io.c
+    src/content/json_envelope.c
+)
+target_include_directories(rogue_content_json PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_definitions(rogue_content_json PUBLIC ROGUE_ENABLE_JSON_CONTENT=$<IF:$<BOOL:${ROGUE_ENABLE_JSON_CONTENT}>,1,0>)
+
+# Vendored cJSON stub/library (replace with real cJSON later)
+add_library(rogue_thirdparty_cjson STATIC
+    third_party/cjson/cJSON.c
+)
+target_include_directories(rogue_thirdparty_cjson PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/third_party/cjson)
+target_compile_definitions(rogue_thirdparty_cjson PUBLIC ROGUE_CJSON_STUB=1)
+
+# Link overlay objects conditionally into rogue_core
+target_sources(rogue_core PRIVATE
+    $<$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>:$<TARGET_OBJECTS:rogue_debug_overlay>>
+)
+
+# Link content JSON objects and cJSON when enabled
+target_sources(rogue_core PRIVATE
+    $<$<BOOL:${ROGUE_ENABLE_JSON_CONTENT}>:$<TARGET_OBJECTS:rogue_content_json>>
+)
+target_link_libraries(rogue_core PUBLIC $<$<BOOL:${ROGUE_ENABLE_JSON_CONTENT}>:rogue_thirdparty_cjson>)
 
 # Suppress Windows error/abort popups in tests and tools; route to stderr instead.
 if(WIN32)

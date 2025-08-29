@@ -1,3 +1,14 @@
+Build: split overlay/content JSON into object libs; vendor cJSON stub; propagate JSON flag; all tests pass
+
+- Add ROGUE_ENABLE_JSON_CONTENT flag and propagate to rogue_core and rogue_content_json
+- Create object libraries:
+	- rogue_debug_overlay (overlay_core/input/widgets/panels)
+	- rogue_content_json (json_io, json_envelope)
+- Vendor minimal cJSON under third_party/cjson and add static lib target rogue_thirdparty_cjson; link when JSON content is enabled
+- Remove direct overlay/content sources from rogue_core and consume $<TARGET_OBJECTS:...> conditionally via generator expressions
+- README: document new build flags and modules
+- Roadmap: mark Phase 1.1/1.3/1.4 Done
+- Validation: Debug build with SDL2 and full test suite (ctest -C Debug -j12) passed 100% (562/562)
 docs(ci): build Doxygen with SDL=ON and -j12, upload Pages + docs-html artifacts, auto-deploy to GitHub Pages; update roadmap status and README docs section
 
 tests: fix parallel flake in cfg migration simplified by isolating temp dirs; full suite green (561/561)

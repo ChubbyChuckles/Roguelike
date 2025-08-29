@@ -27,10 +27,10 @@ CI VALIDATION (current)
 - Audio/VFX refactor: legacy monolith (effects.c) fully split into modular fx_bus.c, fx_audio.c, fx_vfx.c, fx_rng.c and the monolithic file removed; public API in effects.h unchanged.
 
 PHASE 1. Project Setup & Build Integration
-1.1 Add build flags: ROGUE_ENABLE_DEBUG_OVERLAY, ROGUE_ENABLE_JSON_CONTENT (Done – overlay flag added and propagated via CMake; JSON_CONTENT pending)
+1.1 Add build flags: ROGUE_ENABLE_DEBUG_OVERLAY, ROGUE_ENABLE_JSON_CONTENT (Done – both flags added and propagated via CMake)
 1.2 Create project structure: src/debug_overlay/, src/content/, src/tools/ (Partial – src/debug_overlay/ in place)
-1.3 Add CMake targets: rogue_debug_overlay, rogue_content_json libraries (X)
-1.4 Vendor cJSON under third_party/cjson/ with CMake target if needed (X)
+1.3 Add CMake targets: rogue_debug_overlay, rogue_content_json libraries (Done – object libraries compiled and linked into rogue_core conditionally)
+1.4 Vendor cJSON under third_party/cjson/ with CMake target if needed (Done – vendored minimal stub cJSON and linked as rogue_thirdparty_cjson when JSON content is enabled)
 1.5 Tests: basic build with/without debug overlay flags (Partial – unit test added to verify flag behavior; dual-config CI still TBD)
 
 PHASE 2. JSON I/O Foundation
