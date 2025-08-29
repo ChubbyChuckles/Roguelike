@@ -1,0 +1,414 @@
+DOCUMENTATION SYSTEM IMPLEMENTATION PLAN (State-of-the-Art Doxygen Suite) – Comprehensive Developer Reference
+
+Legend:
+Done = Fully implemented & verified (documentation generated successfully)
+Partial = Some components implemented (details in parentheses)
+X = Not started yet
+
+Scope Overview:
+A professional, industry-standard documentation suite leveraging existing Doxygen comments across the roguelike codebase to generate comprehensive, visually appealing, and maintainable developer documentation. The system will produce multiple output formats (HTML, PDF), include advanced features like cross-referencing, call graphs, dependency diagrams, and code examples, with automated generation integrated into the build workflow. The documentation will cover all subsystems (combat, loot, equipment, world generation, UI, etc.), data structures, and their relationships, while being extensible for future subsystem additions and JSON-based asset documentation.
+
+PHASE 0. Current Baseline Assessment (Documentation Audit)
+0.1 Existing Doxygen comment inventory across codebase (X)
+0.2 Documentation coverage analysis per module (combat, loot, equipment, etc.) (X)
+0.3 Comment quality assessment (completeness, consistency, accuracy) (X)
+0.4 Identify poorly documented or undocumented subsystems (X)
+0.5 Catalog current inline examples and code snippets (X)
+0.6 Map existing API documentation patterns (api_doc.c files in loot/skills) (X)
+0.7 Assess current JSON schema documentation capabilities (X)
+0.8 Document current build system integration points (CMake structure) (X)
+
+PHASE 1. Preparation and Setup
+1.1 Doxygen installation and environment setup (X)
+    - Install latest Doxygen (1.9.8+) with Graphviz support
+    - Verify LaTeX distribution for PDF generation (MiKTeX/TeX Live)
+    - Install Graphviz for diagram generation
+    - Setup PlantUML for advanced diagrams (optional)
+1.2 Project structure adjustments for documentation (X)
+    - Create `/docs` directory structure:
+      - `/docs/doxygen/` (configuration and templates)
+      - `/docs/output/` (generated documentation)
+      - `/docs/assets/` (images, diagrams, examples)
+      - `/docs/templates/` (custom HTML/CSS templates)
+    - Ensure all headers have proper include guards and documentation
+    - Verify module organization aligns with documentation structure
+1.3 Documentation workflow integration planning (X)
+    - Identify CMake integration points
+    - Plan automated generation triggers (build vs. explicit doc target)
+    - Design documentation hosting strategy (local/GitHub Pages)
+
+PHASE 2. Doxygen Configuration (Doxyfile Setup)
+2.1 Core Doxyfile configuration (X)
+    - PROJECT_NAME = "Roguelike Game Engine"
+    - PROJECT_VERSION from CMake variables (git hash/branch)
+    - INPUT paths covering all source directories
+    - RECURSIVE = YES for full codebase traversal
+    - FILE_PATTERNS = *.c *.h *.cpp *.hpp
+2.2 Advanced documentation features (X)
+    - EXTRACT_ALL = NO (rely on explicit documentation)
+    - EXTRACT_PRIVATE = NO (focus on public APIs)
+    - EXTRACT_STATIC = YES (include static functions in modules)
+    - GENERATE_TREEVIEW = YES (navigation sidebar)
+    - FULL_PATH_NAMES = NO (cleaner file names)
+    - STRIP_FROM_PATH = src/ (relative paths)
+2.3 Cross-referencing and linking (X)
+    - REFERENCED_BY_RELATION = YES
+    - REFERENCES_RELATION = YES
+    - REFERENCES_LINK_SOURCE = YES
+    - SOURCE_BROWSER = YES (include source code)
+    - INLINE_SOURCES = NO (separate source pages)
+    - VERBATIM_HEADERS = YES (show header contents)
+2.4 Diagram and graph generation (X)
+    - HAVE_DOT = YES (enable Graphviz)
+    - DOT_IMAGE_FORMAT = svg (scalable diagrams)
+    - COLLABORATION_GRAPH = YES (class collaboration)
+    - INCLUDE_GRAPH = YES (include dependency graphs)
+    - INCLUDED_BY_GRAPH = YES (reverse dependencies)
+    - CALL_GRAPH = YES (function call graphs)
+    - CALLER_GRAPH = YES (reverse call graphs)
+    - DIRECTORY_GRAPH = YES (directory structure)
+    - DOT_MULTI_TARGETS = YES (performance optimization)
+2.5 Output format configuration (X)
+    - GENERATE_HTML = YES with custom styling
+    - GENERATE_LATEX = YES for PDF generation
+    - GENERATE_XML = YES (for post-processing)
+    - HTML_OUTPUT = html (standard directory)
+    - LATEX_OUTPUT = latex
+    - HTML_HEADER, HTML_FOOTER, HTML_STYLESHEET (custom styling)
+
+PHASE 3. Enhancing Doxygen Comments (Consistency & Quality)
+3.1 Standardized comment templates and guidelines (X)
+    - File header template with @file, @brief, @author, @date
+    - Function documentation template (@brief, @param, @return, @note, @see)
+    - Struct/enum documentation template (@brief, @details, member descriptions)
+    - Module documentation template (@defgroup, @addtogroup)
+    - Error handling and edge case documentation standards
+3.2 C-specific documentation patterns (X)
+    - Macro documentation with @def and usage examples
+    - Function pointer typedef documentation
+    - Opaque pointer/handle documentation patterns
+    - Static function documentation in internal modules
+    - Union and bitfield documentation best practices
+3.3 Cross-module documentation links (X)
+    - @see references between related functions
+    - @ref links to related data structures
+    - Module interdependency documentation
+    - API boundary documentation (public vs. internal headers)
+3.4 Code example integration (X)
+    - @code/@endcode blocks for usage examples
+    - @snippet directives for external example files
+    - Unit test integration as documentation examples
+    - Configuration file examples and JSON schema references
+3.5 Performance and implementation notes (X)
+    - @note annotations for performance considerations
+    - @warning annotations for thread safety, memory management
+    - @deprecated annotations with migration guidance
+    - Algorithm complexity documentation (O(n) notations)
+
+PHASE 4. Module-Specific Documentation Enhancement
+4.1 Combat system documentation (X)
+    - Attack state machine documentation with diagrams
+    - Damage calculation pipeline with examples
+    - Buff/debuff system with temporal mechanics
+    - Animation synchronization documentation
+    - Frame data and timing documentation
+4.2 Loot and item system documentation (X)
+    - Item generation algorithms and probability distributions
+    - Affix system with examples and rarity curves
+    - Loot table configuration and JSON schema
+    - Tooltip generation and formatting system
+    - Security and anti-cheat mechanisms documentation
+4.3 Equipment system documentation (X)
+    - Socket and gem system mechanics
+    - Set bonuses and proc system documentation
+    - Durability and degradation mechanics
+    - Stat calculation and aggregation systems
+4.4 World generation documentation (X)
+    - Biome generation algorithms with noise functions
+    - Structure placement and POI systems
+    - Resource node distribution algorithms
+    - Vegetation and environmental systems
+4.5 UI and input system documentation (X)
+    - Navigation system and state management
+    - Event handling and input buffering
+    - Layout system and responsive design
+    - Debug overlay integration and extensibility
+4.6 Skills and progression documentation (X)
+    - Skill tree architecture and data structures
+    - Effect system and modular skill components
+    - Progression calculations and scaling formulas
+    - Talent system and specialization mechanics
+
+PHASE 5. Advanced Documentation Features
+5.1 Interactive diagrams and visualization (X)
+    - System architecture diagrams (PlantUML integration)
+    - Data flow diagrams for complex pipelines
+    - State machine diagrams for combat/UI systems
+    - Memory layout diagrams for performance-critical structures
+5.2 API reference generation (X)
+    - Integrate existing api_doc.c generators into documentation
+    - Automated function signature extraction
+    - Parameter validation and error code documentation
+    - Example usage scenarios for each API endpoint
+5.3 Configuration and asset documentation (X)
+    - JSON schema documentation integration
+    - Configuration file format documentation
+    - Asset pipeline documentation (sprites, audio, data files)
+    - Mod development guidelines and extension points
+5.4 Performance profiling integration (X)
+    - Memory usage documentation per subsystem
+    - Performance benchmarks and optimization notes
+    - Cache-friendly data structure documentation
+    - SIMD optimization documentation where applicable
+
+PHASE 6. Custom Styling and Professional Presentation
+6.1 HTML theme customization (X)
+    - Custom CSS stylesheet with roguelike aesthetic
+    - Professional color scheme and typography
+    - Responsive design for mobile/tablet viewing
+    - Dark/light theme toggle functionality
+6.2 Navigation and search enhancements (X)
+    - Enhanced search functionality with filters
+    - Breadcrumb navigation improvements
+    - Module-based navigation sidebar
+    - Quick reference cards for common APIs
+6.3 Visual assets and branding (X)
+    - Project logo and branding integration
+    - Custom icons for different documentation sections
+    - Syntax highlighting theme customization
+    - Code snippet formatting improvements
+6.4 PDF generation optimization (X)
+    - Professional LaTeX template design
+    - Table of contents and index generation
+    - Cross-reference linking in PDF format
+    - Print-friendly formatting and page breaks
+
+PHASE 7. Build System Integration and Automation
+7.1 CMake integration (X)
+    - Add documentation generation target to CMakeLists.txt
+    - Configure automatic Doxyfile generation from CMake variables
+    - Integration with existing build options and feature flags
+    - Dependency tracking for documentation rebuilds
+7.2 Automated generation workflow (X)
+    - Pre-commit hooks for documentation validation
+    - CI/CD integration for documentation builds
+    - Incremental documentation updates
+    - Error reporting and validation checks
+7.3 Hosting and deployment (X)
+    - Local documentation server setup
+    - GitHub Pages integration (optional)
+    - Documentation versioning strategy
+    - Archive and historical version management
+
+PHASE 8. Testing and Validation
+8.1 Documentation completeness verification (X)
+    - Automated coverage analysis tools
+    - Missing documentation detection scripts
+    - API boundary validation (public functions documented)
+    - Cross-reference link validation
+8.2 Content quality assurance (X)
+    - Spell checking and grammar validation
+    - Technical accuracy review process
+    - Code example compilation and testing
+    - Documentation-driven development validation
+8.3 User experience testing (X)
+    - Navigation usability testing
+    - Search functionality validation
+    - Mobile/responsive design testing
+    - Accessibility compliance checking
+8.4 Maintenance and update procedures (X)
+    - Documentation review cycle establishment
+    - Update procedures for new features
+    - Deprecation documentation workflow
+    - Version migration documentation
+
+PHASE 9. Integration with Development Workflow
+9.1 Developer onboarding documentation (X)
+    - Getting started guides for new developers
+    - Architecture overview and design principles
+    - Code style and documentation standards
+    - Development environment setup guides
+9.2 Code review integration (X)
+    - Documentation requirements for new features
+    - Review checklist including documentation updates
+    - Automated documentation diff generation
+    - Documentation quality metrics integration
+9.3 Issue tracking integration (X)
+    - Link documentation issues to code changes
+    - Documentation debt tracking and resolution
+    - Feature request documentation requirements
+    - Bug fix documentation updates
+
+PHASE 10. Advanced Features and Extensions
+10.1 Interactive documentation features (X)
+    - Live code examples with execution capability
+    - Interactive API explorer
+    - Configuration validation tools
+    - Real-time documentation updates during development
+10.2 Multi-language documentation support (X)
+    - Documentation translation framework
+    - Language-specific examples and guides
+    - Cultural adaptation for different developer communities
+    - Automated translation quality assurance
+10.3 Documentation analytics and feedback (X)
+    - Usage analytics for documentation sections
+    - User feedback collection and integration
+    - Popular content identification and enhancement
+    - Documentation effectiveness metrics
+10.4 Third-party tool integration (X)
+    - IDE plugin integration (VS Code, CLion)
+    - Documentation preview in development environment
+    - Automated documentation generation from unit tests
+    - Integration with external documentation tools
+
+Example Doxygen Comment Templates:
+
+File Header Template:
+```c
+/**
+ * @file filename.h
+ * @brief Brief description of file purpose and functionality
+ *
+ * Detailed description of the module, its role in the system architecture,
+ * key algorithms implemented, and relationships to other modules.
+ *
+ * @author Development Team
+ * @date Creation/Last Major Update Date
+ * @version Current Version
+ *
+ * @defgroup ModuleName Module Display Name
+ * @{
+ */
+```
+
+Function Documentation Template:
+```c
+/**
+ * @brief Brief one-line description of function purpose
+ *
+ * Detailed description of function behavior, including algorithm details,
+ * edge cases, and relationship to other functions in the system.
+ *
+ * @param[in] param1 Description of input parameter with valid ranges
+ * @param[out] param2 Description of output parameter and expected values
+ * @param[in,out] param3 Description of input/output parameter
+ *
+ * @return Description of return value and possible error codes
+ * @retval 0 Success condition
+ * @retval -1 Specific error condition
+ *
+ * @note Performance considerations, thread safety, memory allocation notes
+ * @warning Important warnings about usage, side effects, or limitations
+ * @see RelatedFunction(), RelatedStruct
+ *
+ * @code{.c}
+ * // Example usage
+ * int result = example_function(param1, &output);
+ * if (result != 0) {
+ *     handle_error();
+ * }
+ * @endcode
+ */
+```
+
+Struct Documentation Template:
+```c
+/**
+ * @brief Brief description of data structure purpose
+ *
+ * Detailed description of the structure's role, usage patterns,
+ * memory layout considerations, and lifecycle management.
+ *
+ * @note Thread safety: [Safe/Unsafe/Conditional]
+ * @note Memory management: [Stack/Heap/Pool allocated]
+ */
+typedef struct ExampleStruct {
+    /** @brief Description of member variable with valid ranges */
+    int member1;
+
+    /** @brief Description of member with usage notes */
+    float member2;
+
+    /** @brief Array description with size constraints */
+    char buffer[MAX_SIZE];
+} ExampleStruct;
+```
+
+Module Group Template:
+```c
+/**
+ * @defgroup CombatSystem Combat System
+ * @brief Core combat mechanics and damage calculation
+ *
+ * The combat system implements a classless, deterministic combat framework
+ * with frame-perfect timing, combo systems, and status effects.
+ *
+ * Key Components:
+ * - Attack state machines and timing
+ * - Damage calculation pipelines
+ * - Status effect management
+ * - Animation synchronization
+ * - Input buffering and combo systems
+ *
+ * @{
+ */
+
+// Module content here
+
+/** @} */ // End of CombatSystem group
+```
+
+CMake Integration Example:
+```cmake
+# Documentation Generation Target
+find_package(Doxygen REQUIRED dot)
+
+# Configure Doxyfile with CMake variables
+set(DOXYGEN_PROJECT_NAME "Roguelike Game Engine")
+set(DOXYGEN_PROJECT_VERSION "${ROGUE_GIT_HASH}")
+set(DOXYGEN_INPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
+set(DOXYGEN_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/docs")
+
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/docs/doxygen/Doxyfile.in
+    ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+    @ONLY
+)
+
+# Documentation generation target
+add_custom_target(docs
+    COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Generating API documentation with Doxygen"
+    VERBATIM
+)
+
+# Optional: Add documentation to default build
+if(ROGUE_BUILD_DOCS)
+    add_dependencies(${PROJECT_NAME} docs)
+endif()
+```
+
+Quality Assurance Checklist:
+- [ ] All public APIs have comprehensive documentation
+- [ ] Code examples compile and execute correctly
+- [ ] Cross-references resolve to valid targets
+- [ ] Diagrams render correctly in all output formats
+- [ ] Search functionality covers all documented elements
+- [ ] Mobile/responsive design works across devices
+- [ ] PDF generation produces professional output
+- [ ] Documentation builds without warnings or errors
+- [ ] Performance impact of documentation generation is acceptable
+- [ ] Documentation updates integrated into development workflow
+
+Success Metrics:
+- Documentation coverage > 95% for public APIs
+- Zero broken cross-references or links
+- Build time increase < 15% when documentation enabled
+- Developer onboarding time reduced by 40%
+- Support ticket volume decreased by 30%
+- Code review documentation compliance > 90%
+- Search functionality response time < 200ms
+- Mobile usability score > 85%
+
+This implementation plan provides a comprehensive roadmap for creating state-of-the-art documentation that leverages the existing Doxygen comments while establishing a maintainable, professional documentation suite that grows with the codebase.
