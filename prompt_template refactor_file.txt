@@ -21,3 +21,24 @@ cmake -S . -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Debug
 cmake -S .. -B . -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Debug
 
 cmake --build . --config Debug --target docs --parallel 8
+
+
+### Refactor File
+
+Refactor this large C source file to enhance maintainability by modularizing it into smaller, logically cohesive files.
+
+**Refactoring Objectives:**
+- Decompose the file into distinct modules based on separation of concerns.
+- Ensure each module:
+  - Uses header files with proper include guards to prevent multiple inclusions.
+  - Includes only essential dependencies to minimize coupling.
+  - Exports public interfaces (functions, types, or shared globals) via headers, keeping implementation details static where possible.
+- Update the original file or create a new main.c to orchestrate the refactored modules, ensuring seamless integration.
+- Preserve all original functionality, avoiding any logic modifications or bug introduction.
+- Adhere to consistent naming conventions: lowercase_with_underscores for file names, function names, and variables, aligning with C best practices.
+- Manage global variables by relocating them to appropriate headers for shared access or encapsulating them within relevant modules to reduce global scope pollution.
+
+**Output Requirements:**
+1. Provide a detailed file structure overview, listing each new file with a concise description of its purpose and contents.
+2. Generate complete, syntactically correct code for each new .c and .h file, including necessary includes, guards, and function declarations/definitions.
+3. Include a comprehensive explanation of the refactoring decisions, highlighting how the new structure improves maintainability, scalability, and readability while adhering to C programming best practices.

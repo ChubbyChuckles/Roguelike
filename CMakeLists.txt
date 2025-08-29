@@ -462,7 +462,10 @@ endif()
 
 # Phase 1 — First modular STATIC library: audio_vfx
 add_library(rogue_audio_vfx STATIC
-    src/audio_vfx/effects.c
+    src/audio_vfx/fx_bus.c
+    src/audio_vfx/fx_audio.c
+    src/audio_vfx/fx_vfx.c
+    src/audio_vfx/fx_rng.c
     src/audio_vfx/vfx_config.c
 )
 target_include_directories(rogue_audio_vfx PUBLIC

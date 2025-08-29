@@ -46,6 +46,10 @@ int rogue_fx_dispatch_process(void);
 /* Stable digest for test/replay (updated when dispatch runs). */
 uint32_t rogue_fx_get_frame_digest(void);
 
+/* Internal: current fx frame index (for deterministic selections). Not part of the public API,
+   but declared here for intra-module linkage. Treat as unstable. */
+uint32_t rogue_fx_internal_current_frame(void);
+
 /* -------- Audio registry (Phase 2.1 minimal) -------- */
 
 typedef enum RogueAudioCategory

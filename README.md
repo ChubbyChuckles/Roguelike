@@ -57,7 +57,7 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 	- Run tests: ctest -C Debug -j12 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 - Loaders are resilient to working directories: asset/doc paths like `assets/...` are resolved via internal fallbacks so tests can run from build/tests subfolders.
 Notes:
-- Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (561/561).
+- Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (562/562).
 	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir).
 
 ### Documentation (Doxygen)
