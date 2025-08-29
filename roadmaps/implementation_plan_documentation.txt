@@ -195,9 +195,10 @@ PHASE 7. Build System Integration and Automation
     - Configure automatic Doxyfile generation from CMake variables
     - Integration with existing build options and feature flags
     - Dependency tracking for documentation rebuilds
-7.2 Automated generation workflow (X)
+7.2 Automated generation workflow (Partial)
     - Pre-commit hooks for documentation validation
-    - CI/CD integration for documentation builds
+        - CI/CD integration for documentation builds
+            - Status: Windows job builds docs and uploads HTML artifact via GitHub Actions. Linux/macOS and publishing TBD.
     - Incremental documentation updates
     - Error reporting and validation checks
 7.3 Hosting and deployment (X)
@@ -269,6 +270,11 @@ PHASE 10. Advanced Features and Extensions
     - Integration with external documentation tools
 
 Example Doxygen Comment Templates:
+
+Recent Updates:
+- CI now enforces SDL=ON and -j12 on Windows builds/tests.
+- A docs job builds Doxygen and uploads the HTML as an artifact.
+- README updated to mention the CI docs HTML artifact name (`docs-html`) and where to download it.
 
 File Header Template:
 ```c

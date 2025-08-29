@@ -13,7 +13,7 @@ jobs:
     runs-on: windows-latest
     env:
       BUILD_TYPE: Debug
-      ROGUE_ENABLE_SDL: OFF
+      ROGUE_ENABLE_SDL: ON
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,14 +27,12 @@ jobs:
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1
 
-      - name: Configure (Windows, SDL OFF)
+      - name: Configure (Windows, SDL ON)
         run: >-
-          cmake -S . -B build
-          -DROGUE_ENABLE_SDL=${{ env.ROGUE_ENABLE_SDL }}
-          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          cmake -S . -B build -DROGUE_ENABLE_SDL=${{ env.ROGUE_ENABLE_SDL }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
 
-      - name: Build (Windows)
-        run: cmake --build build --config ${{ env.BUILD_TYPE }} -- -j 8
+      - name: Build (Windows, -j12)
+        run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 12
 
       - name: Format Check
         run: |
@@ -44,8 +42,41 @@ jobs:
             exit 1
           )
 
-      - name: Run Tests
-        run: ctest --test-dir build -C ${{ env.BUILD_TYPE }} --output-on-failure
+      - name: Run Tests (-j12)
+        run: ctest --test-dir build -C ${{ env.BUILD_TYPE }} -j12 --output-on-failure
+
+  docs:
+    name: Build Docs (windows-latest)
+    runs-on: windows-latest
+    needs: build-test-windows
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v1
+
+      - name: Install Doxygen and Graphviz
+        shell: pwsh
+        run: |
+          choco install -y doxygen.portable graphviz || echo "doxygen/graphviz already installed"
+          doxygen -v
+
+      - name: Configure (SDL ON for parity)
+        run: >-
+          cmake -S . -B build -DROGUE_ENABLE_SDL=ON -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build core (optional, ensures headers/configs)
+        run: cmake --build build --config Debug --parallel 12
+
+      - name: Generate Doxygen docs
+        run: cmake --build build --target docs --config Debug
+
+      - name: Upload HTML docs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-html
+          path: build/docs/html
 
       - name: clang-tidy Summary (best-effort)
         if: always()

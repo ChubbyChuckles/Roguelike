@@ -1,0 +1,6 @@
+CI: enforce SDL=ON on Windows, run -j12; add docs build & HTML artifact upload
+
+- CI (Windows): Flip ROGUE_ENABLE_SDL to ON, use --parallel 12 for build and ctest -j12.
+- Add separate 'docs' job: install doxygen+graphviz, configure (SDL ON), build docs target, upload build/docs/html as artifact.
+- Roadmap: mark CI docs integration as Partial; note new CI behavior under Recent Updates.
+ - README: mention CI HTML docs artifact name (`docs-html`) and where to download it in Actions.

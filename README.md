@@ -70,6 +70,7 @@ Notes:
 	- In VS Code: run the “docs” task or invoke the CMake target.
 	- Outputs land in `build/docs/html`, `build/docs/latex`, and `build/docs/xml`; the PDF (refman.pdf) is under `build/docs/latex` if LaTeX is installed.
 	- Custom HTML theme is applied from `docs/templates/theme.css`.
+	- CI: Every push/PR builds docs on Windows and uploads the HTML as an artifact named `docs-html` (Actions → CI → Build Docs job → Artifacts).
 
 ### Debug Overlay (early)
 - Unified in-game debug overlay behind a compile-time flag.

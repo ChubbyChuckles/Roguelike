@@ -6,7 +6,7 @@ PROJECT_NUMBER         = @DOXYGEN_PROJECT_VERSION@
 OUTPUT_DIRECTORY       = @DOXYGEN_OUTPUT_DIR@
 
 # Input
-INPUT                  = @DOXYGEN_INPUT_DIR@ ../docs
+INPUT                  = @DOXYGEN_INPUT_DIR@ ../docs ../docs/overview
 FILE_PATTERNS          = *.c *.h *.cpp *.hpp
 RECURSIVE              = YES
 EXCLUDE_PATTERNS       = */build/* */tests/*/*.tmp
