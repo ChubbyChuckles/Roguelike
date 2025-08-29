@@ -1,3 +1,23 @@
+/**
+ * @file weapon_pose.c
+ * @brief Weapon pose and animation system for roguelike game.
+ *
+ * This module provides a comprehensive weapon pose system supporting both single-direction
+ * and multi-directional weapon animations. It handles loading weapon pose data from JSON
+ * configuration files and provides texture management for SDL rendering.
+ *
+ * The system supports:
+ * - Single-direction weapon poses (8 frames per weapon)
+ * - Multi-directional weapon poses (3 directions × 8 frames per weapon)
+ * - JSON-based pose configuration with transform parameters
+ * - SDL texture loading and caching
+ * - Fallback to default poses when configuration files are missing
+ *
+ * @note Pose data includes position offsets (dx, dy), rotation angle, scale, and pivot points
+ * @note Textures are loaded from BMP files in the assets/weapons directory
+ * @note System gracefully degrades when SDL is not available
+ */
+
 #include "weapon_pose.h"
 #include "../core/app/app_state.h"
 #include "../util/log.h"
@@ -8,39 +28,68 @@
 #include <SDL.h>
 #endif
 
+/** Maximum number of weapon pose sets that can be loaded simultaneously */
 #define ROGUE_WEAPON_POSE_MAX 32
+/** Number of animation frames per weapon pose (0-7) */
 #define FRAME_COUNT 8
 
+/**
+ * @brief Single-direction weapon pose set structure.
+ *
+ * Contains pose data and textures for weapons that use a single animation sequence
+ * regardless of facing direction.
+ */
 typedef struct WeaponPoseSet
 {
-    int weapon_id;
-    int loaded;
-    RogueWeaponPoseFrame frames[FRAME_COUNT];
+    int weapon_id;                            /**< Unique weapon identifier */
+    int loaded;                               /**< Flag indicating if pose data has been loaded */
+    RogueWeaponPoseFrame frames[FRAME_COUNT]; /**< Array of pose frames with transform data */
 #ifdef ROGUE_HAVE_SDL
-    SDL_Texture* textures[FRAME_COUNT];
-    int tw[FRAME_COUNT];
-    int th[FRAME_COUNT];
+    SDL_Texture* textures[FRAME_COUNT]; /**< SDL textures for each animation frame */
+    int tw[FRAME_COUNT];                /**< Texture width for each frame */
+    int th[FRAME_COUNT];                /**< Texture height for each frame */
 #endif
 } WeaponPoseSet;
 
+/** Global array of single-direction weapon pose sets */
 static WeaponPoseSet g_pose_sets[ROGUE_WEAPON_POSE_MAX];
+/** Current count of loaded single-direction pose sets */
 static int g_pose_count = 0;
 
-/* Directional pose set: 3 directions (down=0, up=1, side=2) each 8 frames */
+/**
+ * @brief Multi-directional weapon pose set structure.
+ *
+ * Supports weapons with different animations based on facing direction (down, up, side).
+ * Uses a single shared texture for all directions to optimize memory usage.
+ */
 typedef struct WeaponPoseDirSet
 {
-    int weapon_id;
-    int loaded_dir[3]; /* 0/1 per direction JSON */
-    RogueWeaponPoseFrame frames[3][FRAME_COUNT];
+    int weapon_id;     /**< Unique weapon identifier */
+    int loaded_dir[3]; /**< Load status per direction (0=down, 1=up, 2=side) */
+    RogueWeaponPoseFrame frames[3][FRAME_COUNT]; /**< Pose frames for each direction */
 #ifdef ROGUE_HAVE_SDL
-    SDL_Texture* texture_single;
-    int tex_w, tex_h; /* shared weapon image (frame 0 texture) */
+    SDL_Texture* texture_single; /**< Single shared texture for all directions */
+    int tex_w, tex_h;            /**< Shared texture dimensions */
 #endif
 } WeaponPoseDirSet;
 
+/** Global array of multi-directional weapon pose sets */
 static WeaponPoseDirSet g_dir_sets[ROGUE_WEAPON_POSE_MAX];
+/** Current count of loaded multi-directional pose sets */
 static int g_dir_count = 0;
 
+/**
+ * @brief Get or create a directional pose set for the specified weapon.
+ *
+ * Searches for an existing directional pose set for the weapon ID. If not found,
+ * creates a new one if capacity allows.
+ *
+ * @param wid Weapon ID to retrieve pose set for
+ * @return Pointer to the directional pose set, or NULL if capacity exceeded
+ *
+ * @note Initializes loaded_dir array to zeros for new pose sets
+ * @note Thread-unsafe - should only be called from main thread
+ */
 static WeaponPoseDirSet* get_dir_set(int wid)
 {
     for (int i = 0; i < g_dir_count; i++)
@@ -55,6 +104,17 @@ static WeaponPoseDirSet* get_dir_set(int wid)
     return NULL;
 }
 
+/**
+ * @brief Get or create a single-direction pose set for the specified weapon.
+ *
+ * Searches for an existing single-direction pose set for the weapon ID. If not found,
+ * creates a new one if capacity allows.
+ *
+ * @param weapon_id Weapon ID to retrieve pose set for
+ * @return Pointer to the pose set, or NULL if capacity exceeded
+ *
+ * @note Thread-unsafe - should only be called from main thread
+ */
 static WeaponPoseSet* get_set(int weapon_id)
 {
     for (int i = 0; i < g_pose_count; i++)
@@ -68,6 +128,19 @@ static WeaponPoseSet* get_set(int weapon_id)
     return NULL;
 }
 
+/**
+ * @brief Parse a float value from a string.
+ *
+ * Safely converts a string representation to a float value using strtod.
+ * Validates that the conversion was successful.
+ *
+ * @param s Input string to parse
+ * @param out Pointer to store the parsed float value
+ * @return 1 on successful parsing, 0 on failure
+ *
+ * @note Uses strtod for robust float parsing
+ * @note Validates that at least one character was consumed during parsing
+ */
 static int parse_float(const char* s, float* out)
 {
     char* e = NULL;
@@ -78,6 +151,17 @@ static int parse_float(const char* s, float* out)
     return 1;
 }
 
+/**
+ * @brief Initialize weapon pose frames with default values.
+ *
+ * Sets all pose frames to neutral/default transform values suitable for
+ * basic weapon rendering without pose data.
+ *
+ * @param set Pointer to the weapon pose set to initialize
+ *
+ * @note Default values: dx=0, dy=0, angle=0, scale=1.0, pivot=(0.5, 0.5)
+ * @note Called when JSON loading fails or for fallback poses
+ */
 static void default_frames(WeaponPoseSet* set)
 {
     for (int i = 0; i < FRAME_COUNT; i++)
@@ -91,6 +175,16 @@ static void default_frames(WeaponPoseSet* set)
     }
 }
 
+/**
+ * @brief Initialize directional weapon pose frames with default values.
+ *
+ * Sets pose frames for a specific direction to neutral/default transform values.
+ *
+ * @param frames Array of frames to initialize (FRAME_COUNT elements)
+ *
+ * @note Default values: dx=0, dy=0, angle=0, scale=1.0, pivot=(0.5, 0.5)
+ * @note Used for directional pose fallback when JSON loading fails
+ */
 static void default_frames_dir(RogueWeaponPoseFrame* frames)
 {
     for (int i = 0; i < FRAME_COUNT; i++)
@@ -104,6 +198,22 @@ static void default_frames_dir(RogueWeaponPoseFrame* frames)
     }
 }
 
+/**
+ * @brief Load weapon pose data from JSON configuration file.
+ *
+ * Parses a JSON file containing weapon pose animation data for a single-direction weapon.
+ * The JSON format contains an array of frame objects with transform parameters.
+ *
+ * @param weapon_id Weapon ID to load pose data for
+ * @param set Pointer to weapon pose set to populate
+ * @return 1 on successful loading, 0 on failure (falls back to defaults)
+ *
+ * @note JSON file format: weapon_[id]_pose.json in assets/weapons/
+ * @note Supports multiple path attempts (../assets/, ../../assets/)
+ * @note Falls back to default frames if JSON parsing fails
+ * @note File size limited to 32KB for security
+ * @note Parses frame array with dx, dy, angle, scale, pivot_x, pivot_y properties
+ */
 static int load_json_pose(int weapon_id, WeaponPoseSet* set)
 {
     char path[256];
@@ -257,7 +367,23 @@ static int load_json_pose(int weapon_id, WeaponPoseSet* set)
     return 1;
 }
 
-/* Parse a directional JSON (expects already opened file path string) */
+/**
+ * @brief Load directional weapon pose data from JSON configuration file.
+ *
+ * Parses a JSON file containing weapon pose animation data for a specific direction.
+ * Falls back to generic pose data or defaults if directional JSON is not available.
+ *
+ * @param weapon_id Weapon ID to load pose data for
+ * @param dir_group Direction group (0=down, 1=up, 2=side)
+ * @param out_frames Array to store parsed frame data (FRAME_COUNT elements)
+ * @return 1 on successful loading or fallback, 0 on complete failure
+ *
+ * @note JSON file format: weapon_[id]_[direction]_pose.json
+ * @note Direction suffixes: "down", "up", "side"
+ * @note Falls back to generic pose if directional file missing
+ * @note Falls back to defaults if both directional and generic poses missing
+ * @note Always returns success (1) as defaults are applied on any failure
+ */
 static int load_json_pose_dir(int weapon_id, int dir_group, RogueWeaponPoseFrame* out_frames)
 {
     /* dir suffix mapping */
@@ -429,6 +555,19 @@ static int load_json_pose_dir(int weapon_id, int dir_group, RogueWeaponPoseFrame
     return frame_idx >= 0;
 }
 
+/**
+ * @brief Ensure directional weapon pose data is loaded for the specified weapon and direction.
+ *
+ * Loads directional pose data if not already loaded. Creates pose set if it doesn't exist.
+ *
+ * @param weapon_id Weapon ID to ensure pose data for
+ * @param dir_group Direction group (0=down, 1=up, 2=side)
+ * @return 1 on success, 0 on failure (invalid direction or capacity exceeded)
+ *
+ * @note Creates directional pose set if it doesn't exist
+ * @note Only loads data once per weapon-direction combination
+ * @note Invalid direction groups (outside 0-2) return failure
+ */
 int rogue_weapon_pose_ensure_dir(int weapon_id, int dir_group)
 {
     WeaponPoseDirSet* ds = get_dir_set(weapon_id);
@@ -445,6 +584,19 @@ int rogue_weapon_pose_ensure_dir(int weapon_id, int dir_group)
     return ds->loaded_dir[dir_group];
 }
 
+/**
+ * @brief Get directional weapon pose frame data.
+ *
+ * Retrieves pose frame data for a specific weapon, direction, and animation frame.
+ *
+ * @param weapon_id Weapon ID to get pose data for
+ * @param dir_group Direction group (0=down, 1=up, 2=side)
+ * @param frame_index Animation frame index (0-7)
+ * @return Pointer to pose frame data, or NULL if invalid parameters or not loaded
+ *
+ * @note Returns NULL for invalid direction groups or frame indices
+ * @note Returns NULL if pose data hasn't been loaded for the weapon-direction
+ */
 const RogueWeaponPoseFrame* rogue_weapon_pose_get_dir(int weapon_id, int dir_group, int frame_index)
 {
     WeaponPoseDirSet* ds = get_dir_set(weapon_id);
@@ -454,6 +606,22 @@ const RogueWeaponPoseFrame* rogue_weapon_pose_get_dir(int weapon_id, int dir_gro
     return &ds->frames[dir_group][frame_index];
 }
 
+/**
+ * @brief Get single shared texture for directional weapon poses.
+ *
+ * Loads and returns the shared texture used for all directions of a directional weapon.
+ * The texture is loaded from weapon_[id].bmp in the assets directory.
+ *
+ * @param weapon_id Weapon ID to get texture for
+ * @param w Pointer to store texture width (can be NULL)
+ * @param h Pointer to store texture height (can be NULL)
+ * @return Pointer to SDL texture, or NULL if loading failed or SDL not available
+ *
+ * @note Texture is loaded once and cached for the weapon
+ * @note Only available when ROGUE_HAVE_SDL is defined
+ * @note Returns NULL when SDL is not available (graceful degradation)
+ * @note Texture path: ../assets/weapons/weapon_[id].bmp
+ */
 void* rogue_weapon_pose_get_texture_single(int weapon_id, int* w, int* h)
 {
 #ifdef ROGUE_HAVE_SDL
@@ -491,6 +659,21 @@ void* rogue_weapon_pose_get_texture_single(int weapon_id, int* w, int* h)
 #endif
 }
 
+/**
+ * @brief Load SDL textures for weapon animation frames.
+ *
+ * Loads individual BMP textures for each animation frame of a single-direction weapon.
+ * Textures are loaded from weapon_[id]_f[frame].bmp files.
+ *
+ * @param weapon_id Weapon ID to load textures for
+ * @param set Pointer to weapon pose set containing texture pointers
+ * @param renderer SDL renderer to create textures with
+ *
+ * @note Only available when ROGUE_HAVE_SDL is defined
+ * @note Texture path format: ../assets/weapons/weapon_[id]_f[frame].bmp
+ * @note Falls back to previous frame's texture if current frame fails to load
+ * @note Stores texture dimensions in set->tw and set->th arrays
+ */
 #ifdef ROGUE_HAVE_SDL
 static void load_textures(int weapon_id, WeaponPoseSet* set, SDL_Renderer* renderer)
 {
@@ -520,6 +703,19 @@ static void load_textures(int weapon_id, WeaponPoseSet* set, SDL_Renderer* rende
 }
 #endif
 
+/**
+ * @brief Ensure single-direction weapon pose data is loaded.
+ *
+ * Loads weapon pose data and textures if not already loaded. Creates pose set if needed.
+ *
+ * @param weapon_id Weapon ID to ensure pose data for
+ * @return 1 on success, 0 on failure (capacity exceeded)
+ *
+ * @note Creates pose set if it doesn't exist
+ * @note Loads JSON pose data and SDL textures (if available)
+ * @note Only loads data once per weapon ID
+ * @note Falls back to default frames if JSON loading fails
+ */
 int rogue_weapon_pose_ensure(int weapon_id)
 {
     WeaponPoseSet* set = get_set(weapon_id);
@@ -540,6 +736,18 @@ int rogue_weapon_pose_ensure(int weapon_id)
     return 1;
 }
 
+/**
+ * @brief Get single-direction weapon pose frame data.
+ *
+ * Retrieves pose frame data for a specific weapon and animation frame.
+ *
+ * @param weapon_id Weapon ID to get pose data for
+ * @param frame_index Animation frame index (0-7)
+ * @return Pointer to pose frame data, or NULL if invalid parameters or not loaded
+ *
+ * @note Returns NULL for invalid frame indices or unloaded weapons
+ * @note Frame index must be in range 0 to FRAME_COUNT-1
+ */
 const RogueWeaponPoseFrame* rogue_weapon_pose_get(int weapon_id, int frame_index)
 {
     WeaponPoseSet* set = get_set(weapon_id);
@@ -548,6 +756,21 @@ const RogueWeaponPoseFrame* rogue_weapon_pose_get(int weapon_id, int frame_index
     return &set->frames[frame_index];
 }
 
+/**
+ * @brief Get SDL texture for weapon animation frame.
+ *
+ * Retrieves the SDL texture for a specific weapon animation frame.
+ *
+ * @param weapon_id Weapon ID to get texture for
+ * @param frame_index Animation frame index (0-7)
+ * @param w Pointer to store texture width (can be NULL)
+ * @param h Pointer to store texture height (can be NULL)
+ * @return Pointer to SDL texture, or NULL if invalid parameters or SDL not available
+ *
+ * @note Only available when ROGUE_HAVE_SDL is defined
+ * @note Returns NULL when SDL is not available (graceful degradation)
+ * @note Returns NULL for invalid frame indices or unloaded weapons
+ */
 void* rogue_weapon_pose_get_texture(int weapon_id, int frame_index, int* w, int* h)
 {
 #ifdef ROGUE_HAVE_SDL

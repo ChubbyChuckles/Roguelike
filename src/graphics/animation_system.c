@@ -1,6 +1,49 @@
+/**
+ * @file animation_system.c
+ * @brief Core animation system for roguelike game entities.
+ *
+ * This module provides the central animation update system for all animated entities
+ * in the roguelike game, including player characters and enemies. It handles:
+ *
+ * - Player animation state management with directional spritesheets
+ * - Attack animation timing with windup/strike/recover phases
+ * - Enemy animation frame progression
+ * - Time-based frame advancement with configurable durations
+ * - State-based animation selection (idle, walking, attacking, etc.)
+ *
+ * The system supports multiple animation states and directional spritesheets,
+ * with special handling for combat animations that require precise timing control.
+ */
+
 #include "animation_system.h"
 #include "../core/app/app_state.h"
 
+/**
+ * @brief Update animation frames for all animated entities in the game.
+ *
+ * This is the main animation update function called each frame to advance
+ * animation states for the player character and all active enemies. It handles
+ * different animation types including idle, movement, and combat animations.
+ *
+ * @param frame_dt_ms Time elapsed since last frame in milliseconds
+ *
+ * @note Player animations support 4 directional spritesheets (down=0, up=1, left=2, right=3)
+ * @note Attack animations have precise timing: 120ms windup, 80ms strike, 140ms recover
+ * @note Enemy animations use simple 140ms per frame timing
+ * @note Animation frames are clamped to valid ranges to prevent array overruns
+ * @note Attack animation time accumulates across frames for smooth progression
+ *
+ * Animation States:
+ * - State 0: Idle (frame 0, no animation)
+ * - State 1: Walking/Running
+ * - State 2: Other movement states
+ * - State 3: Combat (windup/strike/recover phases)
+ *
+ * Combat Animation Phases:
+ * - ROGUE_ATTACK_WINDUP: 120ms preparation phase
+ * - ROGUE_ATTACK_STRIKE: 80ms attack execution
+ * - ROGUE_ATTACK_RECOVER: 140ms recovery/cooldown
+ */
 void rogue_animation_update(float frame_dt_ms)
 {
     /* Player animation frame progression (moved from app.c) */

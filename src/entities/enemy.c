@@ -1,3 +1,27 @@
+/**
+ * @file enemy.c
+ * @brief Implementation of enemy entity management system for the roguelike game.
+ *
+ * This module provides comprehensive enemy entity functionality including:
+ * - JSON-based enemy type definitions with configurable stats and animations
+ * - Directory-based loading of enemy configurations
+ * - Legacy text-based configuration file support
+ * - Sprite sheet loading and animation frame management
+ * - Behavior tree AI integration framework
+ * - Cross-platform file system operations
+ *
+ * The system supports multiple enemy types with varying difficulty tiers,
+ * AI behaviors, and visual representations through sprite animations.
+ *
+ * @author Rogue Game Development Team
+ * @date 2025
+ * @version 1.0
+ *
+ * @note This implementation is part of the enemy integration phase of the roguelike game
+ * development.
+ * @see enemy.h for public API declarations
+ */
+
 #include "enemy.h"
 #include "../util/log.h"
 #include <ctype.h>
@@ -6,6 +30,22 @@
 #include <string.h>
 
 /* --- JSON Directory Loader (Phase: Enemy Integration) --- */
+/**
+ * @brief Reads an entire file into memory with size limits.
+ *
+ * Loads a complete file into a dynamically allocated buffer with safety checks
+ * including file size limits and proper error handling. Supports both Windows
+ * and Unix file APIs for cross-platform compatibility.
+ *
+ * @param path Path to the file to read
+ * @param out_buf Output pointer for the allocated buffer (caller must free)
+ * @param out_len Output pointer for the file size in bytes (optional)
+ * @return 1 on success, 0 on failure
+ *
+ * @note Maximum file size is limited to 256KB for safety
+ * @note Caller is responsible for freeing the returned buffer
+ * @note Uses binary mode to preserve exact file contents
+ */
 static int read_entire_file(const char* path, char** out_buf, size_t* out_len)
 {
     FILE* f = NULL;
@@ -57,6 +97,23 @@ static int read_entire_file(const char* path, char** out_buf, size_t* out_len)
     return 1;
 }
 
+/**
+ * @brief Extracts a string value from JSON by key name.
+ *
+ * Searches for a JSON key-value pair and extracts the string value.
+ * Performs basic JSON parsing to locate the key and extract the quoted string value.
+ * Handles whitespace and validates JSON syntax minimally.
+ *
+ * @param json Pointer to the JSON string to parse
+ * @param key The key name to search for (without quotes)
+ * @param out Output buffer for the extracted string value
+ * @param out_sz Size of the output buffer
+ * @return 1 if key found and string extracted, 0 otherwise
+ *
+ * @note Simple parser - expects basic JSON format with quoted strings
+ * @note Does not handle nested objects or complex JSON structures
+ * @note Output is null-terminated and truncated if buffer too small
+ */
 static int json_find_string(const char* json, const char* key, char* out, size_t out_sz)
 {
     if (!json || !key || !out || out_sz == 0)
@@ -102,6 +159,23 @@ static int json_find_string(const char* json, const char* key, char* out, size_t
     return 0;
 }
 
+/**
+ * @brief Extracts an integer value from JSON by key name.
+ *
+ * Searches for a JSON key-value pair and extracts the integer value.
+ * Parses numeric values from JSON, handling negative numbers and basic integer formats.
+ * Validates that the value is numeric and within integer range.
+ *
+ * @param json Pointer to the JSON string to parse
+ * @param key The key name to search for (without quotes)
+ * @param out Pointer to store the extracted integer value
+ * @return 1 if key found and integer extracted, 0 otherwise
+ *
+ * @note Simple parser - expects basic JSON format with numeric values
+ * @note Does not handle floating point or scientific notation
+ * @note Validates numeric format but does not check integer overflow
+ * @note Uses manual parsing instead of strtol for better control
+ */
 static int json_find_int(const char* json, const char* key, int* out)
 {
     if (!json || !key || !out)
@@ -151,6 +225,23 @@ static int json_find_int(const char* json, const char* key, int* out)
     return 0;
 }
 
+/**
+ * @brief Extracts a floating-point value from JSON by key name.
+ *
+ * Searches for a JSON key-value pair and extracts the float value.
+ * Parses numeric values from JSON, handling negative numbers and decimal points.
+ * Validates that the value is numeric and within float range.
+ *
+ * @param json Pointer to the JSON string to parse
+ * @param key The key name to search for (without quotes)
+ * @param out Pointer to store the extracted float value
+ * @return 1 if key found and float extracted, 0 otherwise
+ *
+ * @note Simple parser - expects basic JSON format with numeric values
+ * @note Handles decimal points but not scientific notation
+ * @note Uses atof for conversion which may have precision limitations
+ * @note Validates numeric format but does not check float overflow/underflow
+ */
 static int json_find_float(const char* json, const char* key, float* out)
 {
     if (!json || !key || !out)
@@ -205,6 +296,22 @@ static int json_find_float(const char* json, const char* key, float* out)
 
 static int load_sheet(const char* path, RogueTexture* tex, RogueSprite frames[],
                       int* out_count); /* forward */
+/**
+ * @brief Loads enemy type definition from a JSON file.
+ *
+ * Parses a JSON file containing enemy configuration data and populates a RogueEnemyTypeDef
+ * structure. Extracts all enemy properties including stats, behavior parameters, and sprite sheet
+ * paths. Sets sensible defaults for missing optional fields.
+ *
+ * @param path Path to the JSON configuration file
+ * @param out Pointer to RogueEnemyTypeDef structure to populate
+ * @return 1 if file loaded and parsed successfully, 0 on failure
+ *
+ * @note Sets default values for missing fields (group_min=1, speed=30.0f, etc.)
+ * @note Derives enemy name from ID if name field is missing
+ * @note Loads associated sprite sheets for idle, run, and death animations
+ * @note Validates group_max >= group_min constraint
+ */
 static int load_enemy_json_file(const char* path, RogueEnemyTypeDef* out)
 {
     char* buf = NULL;
@@ -282,6 +389,24 @@ static int load_enemy_json_file(const char* path, RogueEnemyTypeDef* out)
 
 #ifdef _WIN32
 #include <windows.h>
+/**
+ * @brief Loads enemy type definitions from JSON files in a directory (Windows implementation).
+ *
+ * Scans a directory for JSON files and loads enemy type definitions from each one.
+ * Uses Windows API functions to enumerate files in the specified directory.
+ * Automatically derives enemy IDs from filenames if not specified in JSON.
+ *
+ * @param dir_path Path to the directory containing JSON enemy definition files
+ * @param types Array to store loaded enemy type definitions
+ * @param max_types Maximum number of enemy types that can be stored in the array
+ * @param out_count Pointer to store the number of enemy types successfully loaded
+ * @return 1 if at least one enemy type loaded successfully, 0 on failure
+ *
+ * @note Only processes files with .json extension
+ * @note Skips subdirectories and hidden files
+ * @note Derives enemy ID from filename (without .json extension) if missing in JSON
+ * @note Uses Windows FindFirstFile/FindNextFile API for directory enumeration
+ */
 int rogue_enemy_types_load_directory_json(const char* dir_path, RogueEnemyTypeDef types[],
                                           int max_types, int* out_count)
 {
@@ -332,6 +457,24 @@ int rogue_enemy_types_load_directory_json(const char* dir_path, RogueEnemyTypeDe
 }
 #else
 #include <dirent.h>
+/**
+ * @brief Loads enemy type definitions from JSON files in a directory (Unix implementation).
+ *
+ * Scans a directory for JSON files and loads enemy type definitions from each one.
+ * Uses POSIX dirent API functions to enumerate files in the specified directory.
+ * Automatically derives enemy IDs from filenames if not specified in JSON.
+ *
+ * @param dir_path Path to the directory containing JSON enemy definition files
+ * @param types Array to store loaded enemy type definitions
+ * @param max_types Maximum number of enemy types that can be stored in the array
+ * @param out_count Pointer to store the number of enemy types successfully loaded
+ * @return 1 if at least one enemy type loaded successfully, 0 on failure
+ *
+ * @note Only processes files with .json extension
+ * @note Skips hidden files (starting with .)
+ * @note Derives enemy ID from filename (without .json extension) if missing in JSON
+ * @note Uses POSIX opendir/readdir/closedir API for directory enumeration
+ */
 int rogue_enemy_types_load_directory_json(const char* dir_path, RogueEnemyTypeDef types[],
                                           int max_types, int* out_count)
 {
@@ -382,6 +525,24 @@ int rogue_enemy_types_load_directory_json(const char* dir_path, RogueEnemyTypeDe
 }
 #endif
 
+/**
+ * @brief Loads a sprite sheet and extracts individual animation frames.
+ *
+ * Loads a texture from file and automatically divides it into animation frames.
+ * Assumes the sprite sheet is a horizontal strip of square frames.
+ * Supports fallback path resolution for different directory structures.
+ *
+ * @param path Path to the sprite sheet image file
+ * @param tex Pointer to RogueTexture structure to load the image into
+ * @param frames Array to store individual frame definitions
+ * @param out_count Pointer to store the number of frames extracted
+ * @return 1 if sprite sheet loaded and frames extracted successfully, 0 on failure
+ *
+ * @note Assumes square frames (height = frame width)
+ * @note Limits maximum frames to 8 to prevent excessive memory usage
+ * @note Automatically tries "../" prefix if initial load fails
+ * @note Frames are stored as sub-rectangles of the main texture
+ */
 static int load_sheet(const char* path, RogueTexture* tex, RogueSprite frames[], int* out_count)
 {
     if (!rogue_texture_load(tex, path))
@@ -415,6 +576,25 @@ static int load_sheet(const char* path, RogueTexture* tex, RogueSprite frames[],
     return 1;
 }
 
+/**
+ * @brief Loads enemy type definitions from a configuration file.
+ *
+ * Parses a CSV-formatted configuration file containing enemy definitions.
+ * Each line defines an enemy type with stats, behavior parameters, and sprite sheet paths.
+ * Supports fallback path resolution for different directory structures.
+ *
+ * @param path Path to the enemy configuration file
+ * @param types Array to store loaded enemy type definitions
+ * @param inout_type_count Pointer to maximum capacity (input) and loaded count (output)
+ * @return 1 if at least one enemy type loaded successfully, 0 on failure
+ *
+ * @note Expected CSV format:
+ * ENEMY,name,group_min,group_max,patrol_radius,aggro_radius,speed,pop_target,xp_reward,loot_chance,idle.png,run.png,death.png
+ * @note Lines starting with # are treated as comments
+ * @note Automatically tries fallback paths (../, ../../, ../../../) if file not found
+ * @note Validates and clamps loot_chance to [0,1] range
+ * @note Sets sensible defaults for missing or invalid values
+ */
 int rogue_enemy_load_config(const char* path, RogueEnemyTypeDef types[], int* inout_type_count)
 {
     FILE* f = NULL;

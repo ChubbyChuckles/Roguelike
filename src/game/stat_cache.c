@@ -1,3 +1,30 @@
+/**
+ * @file stat_cache.c
+ * @brief Layered stat cache implementation for player statistics and equipment analytics.
+ *
+ * This module implements a sophisticated layered stat caching system that aggregates
+ * player statistics from multiple sources including base attributes, equipment affixes,
+ * passive skills, buffs, and derived calculations. The system uses dirty bit tracking
+ * for efficient incremental updates and provides comprehensive analytics for equipment
+ * performance and usage patterns.
+ *
+ * Key Features:
+ * - Multi-layered stat aggregation (base, implicit, unique, set, runeword, affix, passive, buff)
+ * - Dirty bit tracking for selective recomputation
+ * - Equipment analytics and histogram tracking
+ * - DPS/EHP estimation with outlier detection
+ * - Deterministic fingerprinting for state validation
+ * - Soft cap curves for diminishing returns
+ * - JSON export capabilities for debugging/analytics
+ *
+ * The cache supports 8 distinct stat layers that combine additively to produce final
+ * totals, with each layer representing a different source of stat bonuses. The system
+ * includes comprehensive debugging and logging for stat computation validation.
+ *
+ * @author Game Development Team
+ * @date 2025
+ */
+
 /* Phase 2.1+ layered stat cache implementation */
 #include "stat_cache.h"
 #include "../core/equipment/equipment.h"
@@ -18,37 +45,108 @@ int rogue_buffs_strength_bonus(void);
 
 RogueStatCache g_player_stat_cache = {0};
 
+/**
+ * @brief Marks the entire stat cache as dirty, forcing full recomputation on next update.
+ *
+ * Sets the dirty flag and marks all dirty bits to ensure complete stat recalculation
+ * during the next cache update. This is used when major changes occur that affect
+ * multiple stat layers simultaneously.
+ */
 void rogue_stat_cache_mark_dirty(void)
 {
     g_player_stat_cache.dirty = 1;
     g_player_stat_cache.dirty_bits = 0xFFFFFFFFu;
 }
+
+/**
+ * @brief Marks only the attribute layer as dirty.
+ *
+ * Sets the dirty flag and marks the attribute dirty bit (bit 0) to trigger
+ * recomputation of base player attributes during the next cache update.
+ * Used when player base stats change.
+ */
 void rogue_stat_cache_mark_attr_dirty(void)
 {
     g_player_stat_cache.dirty = 1;
     g_player_stat_cache.dirty_bits |= 1u;
 }
+
+/**
+ * @brief Marks only the passive layer as dirty.
+ *
+ * Sets the dirty flag and marks the passive dirty bit (bit 1) to trigger
+ * recomputation of passive skill bonuses during the next cache update.
+ * Used when passive skills or progression changes occur.
+ */
 void rogue_stat_cache_mark_passive_dirty(void)
 {
     g_player_stat_cache.dirty = 1;
     g_player_stat_cache.dirty_bits |= 2u;
 }
+
+/**
+ * @brief Marks only the buff layer as dirty.
+ *
+ * Sets the dirty flag and marks the buff dirty bit (bit 2) to trigger
+ * recomputation of temporary buff effects during the next cache update.
+ * Used when buffs are applied, removed, or expire.
+ */
 void rogue_stat_cache_mark_buff_dirty(void)
 {
     g_player_stat_cache.dirty = 1;
     g_player_stat_cache.dirty_bits |= 4u;
 }
+
+/**
+ * @brief Marks only the equipment layer as dirty.
+ *
+ * Sets the dirty flag and marks the equipment dirty bit (bit 3) to trigger
+ * recomputation of equipment-based bonuses during the next cache update.
+ * Used when items are equipped, unequipped, or modified.
+ */
 void rogue_stat_cache_mark_equipment_dirty(void)
 {
     g_player_stat_cache.dirty = 1;
     g_player_stat_cache.dirty_bits |= 8u;
 }
+
+/**
+ * @brief Returns the count of heavy passive recomputations performed.
+ *
+ * Provides access to the heavy passive recompute counter for performance
+ * monitoring and debugging. Heavy recomputations occur when passive skills
+ * need to be recalculated, which can be expensive.
+ *
+ * @return Number of heavy passive recomputations since cache initialization
+ */
 unsigned int rogue_stat_cache_heavy_passive_recompute_count(void)
 {
     return g_player_stat_cache.heavy_passive_recompute_count;
 }
+
+/**
+ * @brief Returns the size of the RogueStatCache structure in bytes.
+ *
+ * Provides the memory footprint of the stat cache for debugging and
+ * memory usage analysis. Useful for optimization and profiling.
+ *
+ * @return Size of RogueStatCache structure in bytes
+ */
 size_t rogue_stat_cache_sizeof(void) { return sizeof(RogueStatCache); }
 
+/**
+ * @brief Estimates base weapon damage from equipped weapon and its affixes.
+ *
+ * Calculates the base damage value for the currently equipped weapon by combining
+ * the weapon's rarity-based damage with any flat damage bonuses from prefixes
+ * and suffixes. Returns a fallback value if no weapon is equipped.
+ *
+ * @return Estimated base weapon damage value
+ *
+ * @note Base damage = 5 + (rarity × 4) + prefix_damage + suffix_damage
+ * @note Returns 3 as fallback if no weapon equipped or weapon not found
+ * @note Only considers ROGUE_AFFIX_STAT_DAMAGE_FLAT affixes
+ */
 static int weapon_base_damage_estimate(void)
 {
     int inst = rogue_equip_get(ROGUE_EQUIP_WEAPON);
@@ -74,7 +172,19 @@ static int weapon_base_damage_estimate(void)
     return base;
 }
 
-/* Aggregate defensive stat (simple armor sum) and secondary affix bonuses for derived estimates */
+/**
+ * @brief Calculates total armor value from all equipped armor pieces.
+ *
+ * Sums the base armor values from all equipped armor slots (head, chest, legs, etc.)
+ * while excluding jewelry slots (rings, amulet, charms) that don't contribute to
+ * base armor. Used for EHP calculations and defensive stat estimation.
+ *
+ * @return Total armor value from equipped armor pieces
+ *
+ * @note Excludes jewelry slots: rings, amulet, charms
+ * @note Only considers armor-like equipment slots
+ * @note Uses base_armor from item definitions
+ */
 static int total_armor_value(void)
 {
     int sum = 0;
@@ -96,7 +206,23 @@ static int total_armor_value(void)
     return sum;
 }
 
-/* Soft cap curve: value approaches cap asymptotically; softness controls steepness */
+/**
+ * @brief Applies a soft cap curve with diminishing returns to a value.
+ *
+ * Implements a soft cap function that approaches the cap value asymptotically,
+ * providing diminishing returns for values exceeding the cap. The softness
+ * parameter controls the steepness of the diminishing returns curve.
+ *
+ * @param value The input value to cap
+ * @param cap The soft cap threshold
+ * @param softness Controls curve steepness (higher = gentler curve)
+ * @return Value with soft cap applied
+ *
+ * @note Returns input value unchanged if cap <= 0
+ * @note Uses asymptotic approach: cap + (over * over) / (denom * denom)
+ * @note Squared denominator creates steeper diminishing returns
+ * @note Softness defaults to 1.0 if <= 0
+ */
 float rogue_soft_cap_apply(float value, float cap, float softness)
 {
     if (cap <= 0.f)
@@ -113,12 +239,45 @@ float rogue_soft_cap_apply(float value, float cap, float softness)
     return cap + adjusted;
 }
 
+/**
+ * @brief Folds a value into a running hash/fingerprint using a mixing function.
+ *
+ * Performs a deterministic hash fold operation to incorporate a new value
+ * into an existing fingerprint. Uses a combination of XOR, multiplication,
+ * and bit shifting for good avalanche properties and collision resistance.
+ *
+ * @param fp Current fingerprint value
+ * @param v Value to fold into the fingerprint
+ * @return Updated fingerprint value
+ *
+ * @note Uses FNV-style mixing with additional constants
+ * @note Designed for deterministic, order-dependent hashing
+ * @note Provides good distribution for fingerprinting applications
+ */
 static unsigned long long fingerprint_fold(unsigned long long fp, unsigned long long v)
 {
     fp ^= v + 0x9e3779b97f4a7c15ULL + (fp << 6) + (fp >> 2);
     return fp;
 }
 
+/**
+ * @brief Computes all stat layers based on dirty bits and player state.
+ *
+ * Updates the stat cache layers selectively based on which dirty bits are set.
+ * Handles base attributes, passive skills, buffs, and equipment contributions.
+ * Only recomputes layers that have been marked as dirty for efficiency.
+ *
+ * @param p Pointer to player state
+ * @param dirty_bits Bitmask indicating which layers need recomputation
+ *
+ * @note Bit 0: Attributes (base stats)
+ * @note Bit 1: Passive skills
+ * @note Bit 2: Buffs
+ * @note Bit 3: Equipment (handled externally)
+ * @note Preserves existing affix values for external population
+ * @note Computes final totals by summing all layers
+ * @note Applies rating conversions for crit, haste, avoidance
+ */
 static void compute_layers(const RoguePlayer* p, unsigned int dirty_bits)
 {
     /* For Phase 2 we only have base layer (player stats) + affix contributions (weapon damage
@@ -260,6 +419,21 @@ static int
 static int g_unique_counts[ROGUE_ANALYTICS_UNIQUE_CAP];
 static int g_unique_used = 0;
 
+/**
+ * @brief Exports current player stats to JSON format for analytics/debugging.
+ *
+ * Serializes key player statistics including DPS, EHP, mobility, and primary stats
+ * into a compact JSON format suitable for logging, debugging, or external analysis.
+ *
+ * @param buf Output buffer for JSON string
+ * @param cap Maximum capacity of output buffer
+ * @return Number of characters written, or -1 on error
+ *
+ * @note Includes DPS estimate, EHP estimate, mobility index, and all primary stats
+ * @note Returns -1 if buffer is too small or invalid
+ * @note JSON format:
+ * {"dps":X,"ehp":X,"mobility":X,"strength":X,"dexterity":X,"vitality":X,"intelligence":X}
+ */
 int rogue_equipment_stats_export_json(char* buf, int cap)
 {
     if (!buf || cap <= 0)
@@ -281,6 +455,18 @@ int rogue_equip_get(enum RogueEquipSlot slot);
 const RogueItemInstance* rogue_item_instance_at(int index);
 const RogueItemDef* rogue_item_def_at(int index);
 
+/**
+ * @brief Records equipment statistics for histogram analysis.
+ *
+ * Updates the equipment histogram data with current DPS and EHP values for each
+ * equipped item. Maintains rolling averages and sample data for performance analysis.
+ * Special handling for weapon DPS outlier detection.
+ *
+ * @note Updates histogram bins by rarity and equipment slot
+ * @note Maintains rolling DPS samples for weapon outlier detection
+ * @note Accumulates DPS and EHP sums for average calculations
+ * @note Only processes valid equipped items
+ */
 void rogue_equipment_histogram_record(void)
 {
     for (int slot = 0; slot < ROGUE_EQUIP_SLOT_COUNT; ++slot)
@@ -314,6 +500,21 @@ void rogue_equipment_histogram_record(void)
     }
 }
 
+/**
+ * @brief Exports equipment histogram data to JSON format.
+ *
+ * Serializes the collected equipment histogram data including counts, average DPS,
+ * and average EHP for each rarity/slot combination into JSON format.
+ *
+ * @param buf Output buffer for JSON string
+ * @param cap Maximum capacity of output buffer
+ * @return Number of characters written, or -1 on error
+ *
+ * @note JSON format: {"rX_sY":{"count":C,"avg_dps":D,"avg_ehp":E},...}
+ * @note Only includes bins with count > 0
+ * @note Returns -1 if buffer is too small or invalid
+ * @note Rarity ranges from 0-4, slots from 0 to ROGUE_EQUIP_SLOT_COUNT-1
+ */
 int rogue_equipment_histograms_export_json(char* buf, int cap)
 {
     if (!buf || cap <= 2)
@@ -347,6 +548,20 @@ int rogue_equipment_histograms_export_json(char* buf, int cap)
     return off;
 }
 
+/**
+ * @brief Detects DPS outliers using median absolute deviation (MAD).
+ *
+ * Analyzes the rolling DPS samples to detect significant outliers from the median.
+ * Uses MAD-based outlier detection which is robust to non-normal distributions.
+ * Returns true if current DPS deviates more than 5 MADs from the median.
+ *
+ * @return 1 if current DPS is an outlier, 0 otherwise
+ *
+ * @note Requires at least 8 samples for reliable detection
+ * @note Uses median absolute deviation for robust outlier detection
+ * @note Threshold is 5 * MAD from median
+ * @note Returns 0 if insufficient data or MAD calculation fails
+ */
 int rogue_equipment_dps_outlier_flag(void)
 {
     if (g_dps_sample_count < 8)
@@ -402,6 +617,18 @@ int rogue_equipment_dps_outlier_flag(void)
 const RogueItemDef* rogue_item_def_at(int index);
 int rogue_unique_find_by_base_def(int def_index);
 
+/**
+ * @brief Records equipment usage statistics for analytics.
+ *
+ * Tracks set item collections and unique item usage patterns by scanning
+ * currently equipped items and accumulating counts for sets and unique items.
+ * Maintains fixed-size accumulators to prevent memory bloat.
+ *
+ * @note Tracks set IDs and their usage counts
+ * @note Tracks unique item base definitions and counts
+ * @note Limited to ROGUE_ANALYTICS_SET_CAP and ROGUE_ANALYTICS_UNIQUE_CAP
+ * @note Only processes valid equipped items with valid definitions
+ */
 void rogue_equipment_usage_record(void)
 {
     /* Iterate equipped items; accumulate set id counts and unique base occurrences. */
@@ -470,6 +697,21 @@ void rogue_equipment_usage_record(void)
     }
 }
 
+/**
+ * @brief Exports equipment usage statistics to JSON format.
+ *
+ * Serializes the collected equipment usage data including set item collections
+ * and unique item usage patterns into JSON format for analysis.
+ *
+ * @param buf Output buffer for JSON string
+ * @param cap Maximum capacity of output buffer
+ * @return Number of characters written, or -1 on error
+ *
+ * @note JSON format: {"set_X":count,"unique_Y":count,...}
+ * @note Includes both set collections and unique item usage
+ * @note Returns -1 if buffer is too small or invalid
+ * @note Only includes tracked items with non-zero counts
+ */
 int rogue_equipment_usage_export_json(char* buf, int cap)
 {
     if (!buf || cap < 2)
@@ -502,6 +744,21 @@ int rogue_equipment_usage_export_json(char* buf, int cap)
     return off;
 }
 
+/**
+ * @brief Computes derived statistics from base stats and equipment.
+ *
+ * Calculates secondary statistics like DPS, EHP, mobility, and toughness from
+ * primary stats and equipment contributions. Applies soft caps to resistances
+ * and performs final stat validation.
+ *
+ * @param p Pointer to player state for crit/haste calculations
+ *
+ * @note DPS = base_weapon_damage × dexterity_scalar × crit_multiplier
+ * @note EHP = max_health + armor × 2 × vitality_scalar
+ * @note Applies soft cap (75%) with diminishing returns to resistances
+ * @note Hard caps resistances at 90% maximum
+ * @note Logs final resistance values for debugging
+ */
 static void compute_derived(const RoguePlayer* p)
 {
     int base_weapon = weapon_base_damage_estimate();
@@ -553,6 +810,19 @@ static void compute_derived(const RoguePlayer* p)
                     g_player_stat_cache.resist_poison, g_player_stat_cache.resist_status);
 }
 
+/**
+ * @brief Computes a deterministic fingerprint of the current stat cache state.
+ *
+ * Generates a 64-bit hash/fingerprint of all relevant stat cache fields for
+ * state validation and debugging. Uses order-invariant hashing to ensure
+ * consistent fingerprints regardless of computation order.
+ *
+ * @note Uses FNV-style mixing with deterministic field ordering
+ * @note Includes base stats, all layer contributions, and derived values
+ * @note Excludes redundant totals (computed from layers)
+ * @note Provides debugging output of key contributors
+ * @note Mathematically recovers base values from totals minus non-base layers
+ */
 static void compute_fingerprint(void)
 {
     /* Deterministic fold across explicit fields only (avoid raw-struct scan to prevent
@@ -692,6 +962,18 @@ static void compute_fingerprint(void)
 #undef F
 }
 
+/**
+ * @brief Updates the stat cache if marked as dirty.
+ *
+ * Conditionally updates the stat cache by calling force_update if the dirty flag is set.
+ * This provides a safe public interface that avoids unnecessary recomputation.
+ *
+ * @param p Pointer to player state
+ *
+ * @note Only updates if cache is marked as dirty
+ * @note Calls rogue_stat_cache_force_update internally
+ * @note Safe to call frequently without performance penalty
+ */
 void rogue_stat_cache_update(const RoguePlayer* p)
 {
     if (!p)
@@ -701,6 +983,21 @@ void rogue_stat_cache_update(const RoguePlayer* p)
     rogue_stat_cache_force_update(p);
 }
 
+/**
+ * @brief Forces a complete stat cache update regardless of dirty state.
+ *
+ * Performs a full stat cache recomputation including layer computation, derived stats,
+ * and fingerprint generation. Handles baseline recovery for robust updates and maintains
+ * snapshots for future incremental updates.
+ *
+ * @param p Pointer to player state
+ *
+ * @note Always performs full recomputation
+ * @note Handles UI vs non-UI updates differently for baseline recovery
+ * @note Updates recompute count and heavy passive count
+ * @note Generates new fingerprint for state validation
+ * @note Persists snapshots for incremental update optimization
+ */
 void rogue_stat_cache_force_update(const RoguePlayer* p)
 {
     if (!p)
@@ -781,6 +1078,19 @@ void rogue_stat_cache_force_update(const RoguePlayer* p)
     }
 }
 
+/**
+ * @brief Returns the current stat cache fingerprint for state validation.
+ *
+ * Provides access to the computed fingerprint value for debugging and state
+ * validation purposes. The fingerprint represents a deterministic hash of
+ * all relevant stat cache fields.
+ *
+ * @return Current 64-bit fingerprint value
+ *
+ * @note Fingerprint is updated during each cache recomputation
+ * @note Used for detecting stat computation inconsistencies
+ * @note Includes debug logging of fingerprint value
+ */
 unsigned long long rogue_stat_cache_fingerprint(void)
 {
     ROGUE_LOG_DEBUG("DBG_FP_READ returning fp=%llu",

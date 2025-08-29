@@ -1,3 +1,25 @@
+/**
+ * @file platform.c
+ * @brief Platform abstraction layer for SDL initialization and window management.
+ *
+ * This module provides platform-specific initialization and management functions
+ * for the roguelike game, primarily handling SDL setup, window creation, and
+ * renderer configuration. It abstracts platform differences and provides a
+ * unified interface for graphics and input initialization.
+ *
+ * Key Features:
+ * - SDL initialization with configurable subsystems (video, audio, events)
+ * - Window creation with customizable size, title, and display modes
+ * - Renderer setup with hardware acceleration and vsync support
+ * - Logical rendering size and integer scaling support
+ * - Fullscreen/windowed mode switching
+ * - Graceful fallback to headless mode if rendering fails
+ * - Proper resource cleanup and shutdown
+ *
+ * @author Game Development Team
+ * @date 2025
+ */
+
 /* MIT License
  * Platform / SDL initialization utilities extracted from app.c */
 #include "platform.h"
@@ -8,6 +30,24 @@
 #include <SDL.h>
 #endif
 
+/**
+ * @brief Initializes the platform layer and SDL subsystems.
+ *
+ * Sets up the core platform components including SDL initialization, window creation,
+ * and renderer setup. Configures SDL subsystems based on available features and
+ * user preferences. Handles graceful fallback to headless mode if rendering fails.
+ *
+ * @param cfg Pointer to application configuration structure
+ * @return true if initialization successful, false on failure
+ *
+ * @note Initializes SDL with VIDEO and EVENTS subsystems by default
+ * @note Adds AUDIO subsystem if SDL_mixer is available
+ * @note Creates window with configurable size, title, and resizable flag
+ * @note Sets up hardware-accelerated renderer with optional vsync
+ * @note Falls back to headless mode if renderer creation fails
+ * @note Configures logical rendering size and integer scaling if specified
+ * @note Applies initial window mode settings
+ */
 bool rogue_platform_init(const RogueAppConfig* cfg)
 {
 #ifdef ROGUE_HAVE_SDL
@@ -55,6 +95,19 @@ bool rogue_platform_init(const RogueAppConfig* cfg)
     return true;
 }
 
+/**
+ * @brief Applies the current window mode setting to the SDL window.
+ *
+ * Updates the window display mode based on the configured window mode setting.
+ * Supports fullscreen, borderless fullscreen, and windowed modes. Handles
+ * SDL fullscreen API calls and provides error logging for failures.
+ *
+ * @note Only operates if SDL window exists
+ * @note Uses SDL_WINDOW_FULLSCREEN for exclusive fullscreen
+ * @note Uses SDL_WINDOW_FULLSCREEN_DESKTOP for borderless fullscreen
+ * @note Logs warnings if fullscreen mode changes fail
+ * @note Safe to call multiple times to reapply current mode
+ */
 void rogue_platform_apply_window_mode(void)
 {
 #ifdef ROGUE_HAVE_SDL
@@ -81,6 +134,19 @@ void rogue_platform_apply_window_mode(void)
 #endif
 }
 
+/**
+ * @brief Shuts down the platform layer and cleans up SDL resources.
+ *
+ * Performs proper cleanup of all SDL resources in reverse order of creation.
+ * Destroys textures, renderer, and window, then shuts down SDL subsystems.
+ * Ensures memory is freed and system resources are properly released.
+ *
+ * @note Destroys minimap texture if it exists
+ * @note Destroys renderer before window to prevent invalid references
+ * @note Calls SDL_Quit() to shut down all SDL subsystems
+ * @note Safe to call even if some resources are NULL
+ * @note Should be called during application shutdown
+ */
 void rogue_platform_shutdown(void)
 {
 #ifdef ROGUE_HAVE_SDL
