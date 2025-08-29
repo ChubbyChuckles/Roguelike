@@ -52,6 +52,8 @@ HTML_OUTPUT            = html
 HTML_EXTRA_STYLESHEET  = @CMAKE_CURRENT_SOURCE_DIR@/docs/templates/theme.css
 SEARCHENGINE           = YES
 GENERATE_TREEVIEW      = YES
+ALPHABETICAL_INDEX     = YES
+USE_MDFILE_AS_MAINPAGE = ../docs/overview/index.md
 
 # LaTeX/PDF output
 GENERATE_LATEX         = YES

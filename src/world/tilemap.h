@@ -34,7 +34,10 @@ typedef struct RogueTileMap
     unsigned char* tiles;
 } RogueTileMap;
 
-/* Basic tile type classifications for procedural generation */
+/**
+ * @brief Basic tile type classifications for procedural generation.
+ * @ingroup WorldGen
+ */
 typedef enum RogueTileType
 {
     ROGUE_TILE_EMPTY = 0,
@@ -68,9 +71,37 @@ typedef enum RogueTileType
     ROGUE_TILE_MAX
 } RogueTileType;
 
+/** @name Tilemap API */
+/**@{*/
+/**
+ * @brief Initializes a tilemap with width/height; tiles are zeroed.
+ * @param[out] map Tilemap to initialize.
+ * @param[in] w Width (>0).
+ * @param[in] h Height (>0).
+ * @return true on success; false if dims invalid or OOM.
+ */
 bool rogue_tilemap_init(RogueTileMap* map, int w, int h);
+/**
+ * @brief Frees tile storage and resets the map.
+ * @param[in,out] map Tilemap to free (safe with NULL).
+ */
 void rogue_tilemap_free(RogueTileMap* map);
+/**
+ * @brief Gets tile at (x,y) or returns 0 if out of bounds.
+ * @param[in] map Tilemap to read.
+ * @param[in] x X coordinate.
+ * @param[in] y Y coordinate.
+ * @return Tile value or 0 when out of bounds.
+ */
 unsigned char rogue_tilemap_get(const RogueTileMap* map, int x, int y);
+/**
+ * @brief Sets tile at (x,y); ignored if out of bounds.
+ * @param[in,out] map Tilemap to write.
+ * @param[in] x X coordinate.
+ * @param[in] y Y coordinate.
+ * @param[in] v Tile value to set.
+ */
 void rogue_tilemap_set(RogueTileMap* map, int x, int y, unsigned char v);
+/**@}*/
 
 #endif

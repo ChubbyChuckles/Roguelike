@@ -51,8 +51,11 @@ static void rbb_trace_file_init(void)
     } while (0)
 #endif
 
-// Quantize floats to 1e-4 to keep deterministic parity under heavy fuzzing
-static inline float rbb_quantize4(float x) { return roundf(x * 10000.0f) * 0.0001f; }
+// Historically we quantized floats to 1e-4 to reduce drift under fuzzing.
+// However, tests compare against an unquantized reference model that applies
+// exact same operations; quantization can accumulate divergence over many ops.
+// Keep helper around (unused) for potential future diagnostics.
+static inline float rbb_quantize4(float x) { return x; }
 
 /**
  * @brief Initialize a blackboard to empty state.
@@ -170,9 +173,9 @@ bool rogue_bb_set_float(RogueBlackboard* bb, const char* key, float value)
     if (!e)
         return false;
     e->type = ROGUE_BB_FLOAT;
-    // Quantize only the incoming value; do not over-quantize existing state
-    e->v.f = rbb_quantize4(value);
-    e->last_f = e->v.f;
+    // Store raw value to match reference model operations precisely
+    e->v.f = value;
+    e->last_f = value;
     e->dirty = 1;
     return true;
 }
@@ -344,9 +347,8 @@ bool rogue_bb_write_float(RogueBlackboard* bb, const char* key, float value,
         e->type = ROGUE_BB_FLOAT;
         e->v.f = e->last_f;
     }
-    // Quantize input to reduce accumulation drift; avoid re-quantizing the running value
-    float qv = rbb_quantize4(value);
-    bool changed = apply_policy_float(&e->v.f, qv, policy);
+    // Apply policy using raw value to keep parity with the reference model
+    bool changed = apply_policy_float(&e->v.f, value, policy);
     // Keep the float baseline in sync even on no-op policy applications
     // so that switching types preserves the most recent semantic value.
     e->last_f = e->v.f;
