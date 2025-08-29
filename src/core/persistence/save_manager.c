@@ -6,6 +6,11 @@
 #include "../skills/skills.h"
 #include "../vendor/vendor.h"
 #include "persistence.h"
+#include "save_intern.h"
+#include "save_internal.h"
+#include "save_paths.h"
+#include "save_replay.h"
+#include "save_utils.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h> /* qsort, malloc */
@@ -25,12 +30,57 @@
 /* Centralized logging (default WARN; DEBUG via ROGUE_LOG_LEVEL) */
 #include "../../util/log.h"
 
+/* Compatibility shims to new modular internals to minimize invasive edits */
+#define g_components g_save_components
+#define g_component_count g_save_component_count
+#define g_initialized g_save_initialized
+#define g_migrations_registered g_save_migrations_registered
+#define g_migrations g_save_migrations
+#define g_migration_count g_save_migration_count
+#define g_last_migration_steps g_save_last_migration_steps
+#define g_last_migration_failed g_save_last_migration_failed
+#define g_last_migration_ms g_save_last_migration_ms
+#define g_debug_json_dump g_save_debug_json_dump
+#define g_last_tamper_flags g_save_last_tamper_flags
+#define g_last_recovery_used g_save_last_recovery_used
+#define g_sig_provider g_save_sig_provider
+#define g_incremental_enabled g_save_incremental_enabled
+#define g_dirty_mask g_save_dirty_mask
+#define g_cached_sections g_save_cached_sections
+#define g_last_sections_reused g_save_last_sections_reused
+#define g_last_sections_written g_save_last_sections_written
+#define g_last_sha256 g_save_last_sha256
+#define g_durable_writes g_save_durable_writes
+#define g_last_save_rc g_save_last_rc
+#define g_last_save_bytes g_save_last_bytes
+#define g_last_save_ms g_save_last_ms
+#define g_autosave_interval_ms g_save_autosave_interval_ms
+#define g_autosave_throttle_ms g_save_autosave_throttle_ms
+#define g_autosave_count g_save_autosave_count
+#define build_slot_path rogue_build_slot_path
+#define build_autosave_path rogue_build_autosave_path
+#define build_backup_path rogue_build_backup_path
+/* compression toggles now live in incremental module */
+#define g_compress_enabled (rogue__compress_enabled())
+#define g_compress_min_bytes (rogue__compress_min_bytes())
+/* varuint helper */
+#define read_varuint rogue_read_varuint
+#define write_varuint rogue_write_varuint
+
+/* local reentrancy guard */
+static int g_in_save = 0;
+
+/* Moved to save_globals.c */
+#if 0
 static RogueSaveComponent g_components[ROGUE_SAVE_MAX_COMPONENTS];
 static int g_component_count = 0;
 static int g_initialized = 0;
 static int g_migrations_registered = 0; /* ensure migrations registered once */
+#endif
 
 /* Migration registry (linear chain for now) */
+/* Moved to save_globals.c */
+#if 0
 static RogueSaveMigration g_migrations[16];
 static int g_migration_count = 0;
 static int g_durable_writes = 0;       /* fsync/_commit toggle */
@@ -47,109 +97,16 @@ static int g_last_recovery_used = 0;                            /* Phase 4.4 */
 static const RogueSaveSignatureProvider* g_sig_provider = NULL; /* v9 */
 /* Incremental save state (Phase 5.* runtime only; does not change on-disk version) */
 static int g_incremental_enabled = 0;
+#endif
 /* Phase 17.5 record-level diff deferred (no additional state) */
-typedef struct
-{
-    int id;
-    unsigned char* data;
-    uint32_t size;
-    uint32_t crc32;
-    int valid;
-} RogueCachedSection;
-static RogueCachedSection g_cached_sections[ROGUE_SAVE_MAX_COMPONENTS];
-static uint32_t g_dirty_mask = 0xFFFFFFFFu; /* start dirty */
-static unsigned g_last_sections_reused = 0,
-                g_last_sections_written = 0; /* Phase 3.10 incremental metrics */
-void rogue_save_last_section_reuse(unsigned* reused, unsigned* written)
-{
-    if (reused)
-        *reused = g_last_sections_reused;
-    if (written)
-        *written = g_last_sections_written;
-}
-int rogue_save_component_is_dirty(int component_id)
-{
-    if (component_id <= 0 || component_id >= 32)
-        return -1;
-    return (g_dirty_mask & (1u << component_id)) ? 1 : 0;
-}
+/* Provided by save_globals.c & save_incremental.c */
 /* Autosave scheduling (Phase 6) */
-static int g_autosave_interval_ms = 0; /* disabled by default */
-static uint32_t g_last_autosave_time = 0;
-static uint32_t g_autosave_count = 0;
-static int g_last_save_rc = 0;
-static uint32_t g_last_save_bytes = 0;
-static double g_last_save_ms = 0.0;
-static int g_in_save = 0;
-static int g_autosave_throttle_ms = 0; /* gap after any save */
-int rogue_save_set_incremental(int enabled)
-{
-    g_incremental_enabled = enabled ? 1 : 0;
-    if (!g_incremental_enabled)
-    {
-        for (int i = 0; i < ROGUE_SAVE_MAX_COMPONENTS; i++)
-        {
-            free(g_cached_sections[i].data);
-            g_cached_sections[i].data = NULL;
-            g_cached_sections[i].valid = 0;
-        }
-        g_dirty_mask = 0xFFFFFFFFu;
-    }
-    return 0;
-}
+/* Autosave and incremental moved */
 
 /* Forward decl: inventory diff probe used by save loop to decide reuse vs rewrite (Phase 17.5) */
-static int inventory_component_probe_and_prepare_reuse(void);
-int rogue_save_mark_component_dirty(int component_id)
-{
-    if (component_id <= 0 || component_id >= 32)
-        return -1;
-    g_dirty_mask |= (1u << component_id);
-    return 0;
-}
-int rogue_save_mark_all_dirty(void)
-{
-    g_dirty_mask = 0xFFFFFFFFu;
-    return 0;
-}
-int rogue_save_set_autosave_interval_ms(int ms)
-{
-    g_autosave_interval_ms = ms;
-    return 0;
-}
-uint32_t rogue_save_autosave_count(void) { return g_autosave_count; }
-int rogue_save_last_save_rc(void) { return g_last_save_rc; }
-uint32_t rogue_save_last_save_bytes(void) { return g_last_save_bytes; }
-double rogue_save_last_save_ms(void) { return g_last_save_ms; }
-int rogue_save_set_autosave_throttle_ms(int ms)
-{
-    g_autosave_throttle_ms = ms;
-    return 0;
-}
-int rogue_save_status_string(char* buf, size_t cap)
-{
-    if (!buf || cap == 0)
-        return -1;
-    int n = snprintf(buf, cap, "save rc=%d bytes=%u ms=%.2f autosaves=%u interval=%d throttle=%d",
-                     g_last_save_rc, g_last_save_bytes, g_last_save_ms, g_autosave_count,
-                     g_autosave_interval_ms, g_autosave_throttle_ms);
-    if (n < 0 || (size_t) n >= cap)
-        return -1;
-    return 0;
-}
-uint32_t rogue_save_last_tamper_flags(void) { return g_last_tamper_flags; }
-int rogue_save_last_recovery_used(void) { return g_last_recovery_used; }
-int rogue_save_set_compression(int enabled, int min_bytes)
-{
-    g_compress_enabled = enabled ? 1 : 0;
-    if (min_bytes > 0)
-        g_compress_min_bytes = min_bytes;
-    return 0;
-}
-/* String interning table (Phase 3.5) */
-#define ROGUE_SAVE_MAX_STRINGS 256
-static char* g_intern_strings[ROGUE_SAVE_MAX_STRINGS];
-static int g_intern_count = 0;
+int inventory_component_probe_and_prepare_reuse(void);
+/* Autosave/status/compression moved */
+/* String intern moved to save_intern.c */
 
 /* Numeric width compile-time assertions (Phase 3.3) */
 #if defined(_MSC_VER)
@@ -163,152 +120,21 @@ _Static_assert(sizeof(uint64_t) == 8, "uint64_t must be 8 bytes");
 #endif
 
 /* Unsigned LEB128 style varint (7 bits per byte) for counts & small ids (Phase 3.4) */
-static int write_varuint(FILE* f, uint32_t v)
-{
-    while (v >= 0x80)
-    {
-        unsigned char b = (unsigned char) ((v & 0x7Fu) | 0x80u);
-        if (fwrite(&b, 1, 1, f) != 1)
-            return -1;
-        v >>= 7;
-    }
-    unsigned char b = (unsigned char) (v & 0x7Fu);
-    if (fwrite(&b, 1, 1, f) != 1)
-        return -1;
-    return 0;
-}
+/* varuint moved to save_utils.c */
 
-/* Minimal SHA256 (public domain style) for overall save footer (Phase 4.1) */
-typedef struct
-{
-    uint32_t h[8];
-    uint64_t len;
-    unsigned char buf[64];
-    size_t buf_len;
-} RogueSHA256Ctx;
-static uint32_t rs_rotr(uint32_t x, uint32_t n) { return (x >> n) | (x << (32 - n)); }
-static void rogue_sha256_init(RogueSHA256Ctx* c)
-{
-    static const uint32_t iv[8] = {0x6a09e667u, 0xbb67ae85u, 0x3c6ef372u, 0xa54ff53au,
-                                   0x510e527fu, 0x9b05688cu, 0x1f83d9abu, 0x5be0cd19u};
-    memcpy(c->h, iv, sizeof iv);
-    c->len = 0;
-    c->buf_len = 0;
-}
-static void rogue_sha256_block(RogueSHA256Ctx* c, const unsigned char* p)
-{
-    static const uint32_t K[64] = {
-        0x428a2f98u, 0x71374491u, 0xb5c0fbcfu, 0xe9b5dba5u, 0x3956c25bu, 0x59f111f1u, 0x923f82a4u,
-        0xab1c5ed5u, 0xd807aa98u, 0x12835b01u, 0x243185beu, 0x550c7dc3u, 0x72be5d74u, 0x80deb1feu,
-        0x9bdc06a7u, 0xc19bf174u, 0xe49b69c1u, 0xefbe4786u, 0x0fc19dc6u, 0x240ca1ccu, 0x2de92c6fu,
-        0x4a7484aau, 0x5cb0a9dcu, 0x76f988dau, 0x983e5152u, 0xa831c66du, 0xb00327c8u, 0xbf597fc7u,
-        0xc6e00bf3u, 0xd5a79147u, 0x06ca6351u, 0x14292967u, 0x27b70a85u, 0x2e1b2138u, 0x4d2c6dfcu,
-        0x53380d13u, 0x650a7354u, 0x766a0abbu, 0x81c2c92eu, 0x92722c85u, 0xa2bfe8a1u, 0xa81a664bu,
-        0xc24b8b70u, 0xc76c51a3u, 0xd192e819u, 0xd6990624u, 0xf40e3585u, 0x106aa070u, 0x19a4c116u,
-        0x1e376c08u, 0x2748774cu, 0x34b0bcb5u, 0x391c0cb3u, 0x4ed8aa4au, 0x5b9cca4fu, 0x682e6ff3u,
-        0x748f82eeu, 0x78a5636fu, 0x84c87814u, 0x8cc70208u, 0x90befffau, 0xa4506cebu, 0xbef9a3f7u,
-        0xc67178f2u};
-    uint32_t w[64];
-    for (int i = 0; i < 16; i++)
-    {
-        w[i] = (uint32_t) p[4 * i] << 24 | (uint32_t) p[4 * i + 1] << 16 |
-               (uint32_t) p[4 * i + 2] << 8 | (uint32_t) p[4 * i + 3];
-    }
-    for (int i = 16; i < 64; i++)
-    {
-        uint32_t s0 = rs_rotr(w[i - 15], 7) ^ rs_rotr(w[i - 15], 18) ^ (w[i - 15] >> 3);
-        uint32_t s1 = rs_rotr(w[i - 2], 17) ^ rs_rotr(w[i - 2], 19) ^ (w[i - 2] >> 10);
-        w[i] = w[i - 16] + s0 + w[i - 7] + s1;
-    }
-    uint32_t a = c->h[0], b = c->h[1], d = c->h[3], e = c->h[4], f = c->h[5], g = c->h[6],
-             h = c->h[7], cc = c->h[2];
-    for (int i = 0; i < 64; i++)
-    {
-        uint32_t S1 = rs_rotr(e, 6) ^ rs_rotr(e, 11) ^ rs_rotr(e, 25);
-        uint32_t ch = (e & f) ^ (~e & g);
-        uint32_t temp1 = h + S1 + ch + K[i] + w[i];
-        uint32_t S0 = rs_rotr(a, 2) ^ rs_rotr(a, 13) ^ rs_rotr(a, 22);
-        uint32_t maj = (a & b) ^ (a & cc) ^ (b & cc);
-        uint32_t temp2 = S0 + maj;
-        h = g;
-        g = f;
-        f = e;
-        e = d + temp1;
-        d = cc;
-        cc = b;
-        b = a;
-        a = temp1 + temp2;
-    }
-    c->h[0] += a;
-    c->h[1] += b;
-    c->h[2] += cc;
-    c->h[3] += d;
-    c->h[4] += e;
-    c->h[5] += f;
-    c->h[6] += g;
-    c->h[7] += h;
-}
-static void rogue_sha256_update(RogueSHA256Ctx* c, const void* data, size_t len)
-{
-    const unsigned char* p = data;
-    c->len += len;
-    while (len > 0)
-    {
-        size_t space = 64 - c->buf_len;
-        size_t take = len < space ? len : space;
-        memcpy(c->buf + c->buf_len, p, take);
-        c->buf_len += take;
-        p += take;
-        len -= take;
-        if (c->buf_len == 64)
-        {
-            rogue_sha256_block(c, c->buf);
-            c->buf_len = 0;
-        }
-    }
-}
-static void rogue_sha256_final(RogueSHA256Ctx* c, unsigned char out[32])
-{
-    uint64_t bit_len = c->len * 8;
-    unsigned char pad = 0x80;
-    rogue_sha256_update(c, &pad, 1);
-    unsigned char z = 0;
-    while (c->buf_len != 56)
-    {
-        rogue_sha256_update(c, &z, 1);
-    }
-    unsigned char len_be[8];
-    for (int i = 0; i < 8; i++)
-    {
-        len_be[7 - i] = (unsigned char) (bit_len >> (i * 8));
-    }
-    rogue_sha256_update(c, len_be, 8);
-    for (int i = 0; i < 8; i++)
-    {
-        out[4 * i] = (unsigned char) (c->h[i] >> 24);
-        out[4 * i + 1] = (unsigned char) (c->h[i] >> 16);
-        out[4 * i + 2] = (unsigned char) (c->h[i] >> 8);
-        out[4 * i + 3] = (unsigned char) (c->h[i]);
-    }
-}
-static unsigned char g_last_sha256[32];
-const unsigned char* rogue_save_last_sha256(void) { return g_last_sha256; }
+/* SHA256 and signature provider moved to save_utils.c and save_security.c */
+/* expose hex helper using g_save_last_sha256 */
+const unsigned char* rogue_save_last_sha256(void) { return g_save_last_sha256; }
 void rogue_save_last_sha256_hex(char out[65])
 {
     static const char* hx = "0123456789abcdef";
     for (int i = 0; i < 32; i++)
     {
-        out[2 * i] = hx[g_last_sha256[i] >> 4];
-        out[2 * i + 1] = hx[g_last_sha256[i] & 0xF];
+        out[2 * i] = hx[g_save_last_sha256[i] >> 4];
+        out[2 * i + 1] = hx[g_save_last_sha256[i] & 0xF];
     }
     out[64] = '\0';
 }
-int rogue_save_set_signature_provider(const RogueSaveSignatureProvider* prov)
-{
-    g_sig_provider = prov;
-    return 0;
-}
-const RogueSaveSignatureProvider* rogue_save_get_signature_provider(void) { return g_sig_provider; }
 
 #include <errno.h>
 
@@ -329,129 +155,18 @@ int rogue_save_manager_delete_slot(int slot_index)
     return 0;
 }
 
-/* Replay hash state (v8). We capture event tuples (frame,action,value) and hash them in order. */
-typedef struct
-{
-    uint32_t frame;
-    uint32_t action;
-    int32_t value;
-} RogueReplayEvent;
-#define ROGUE_REPLAY_MAX_EVENTS 4096
-static RogueReplayEvent g_replay_events[ROGUE_REPLAY_MAX_EVENTS];
-static uint32_t g_replay_event_count = 0;
-static unsigned char g_last_replay_hash[32];
-void rogue_save_replay_reset(void)
-{
-    g_replay_event_count = 0;
-    memset(g_last_replay_hash, 0, 32);
-}
-int rogue_save_replay_record_input(uint32_t frame, uint32_t action_code, int32_t value)
-{
-    if (g_replay_event_count >= ROGUE_REPLAY_MAX_EVENTS)
-        return -1;
-    g_replay_events[g_replay_event_count].frame = frame;
-    g_replay_events[g_replay_event_count].action = action_code;
-    g_replay_events[g_replay_event_count].value = value;
-    g_replay_event_count++;
-    return 0;
-}
-static void rogue_replay_compute_hash(void)
-{
-    RogueSHA256Ctx sha;
-    rogue_sha256_init(&sha);
-    rogue_sha256_update(&sha, g_replay_events, g_replay_event_count * sizeof(RogueReplayEvent));
-    rogue_sha256_final(&sha, g_last_replay_hash);
-}
-const unsigned char* rogue_save_last_replay_hash(void) { return g_last_replay_hash; }
-void rogue_save_last_replay_hash_hex(char out[65])
-{
-    static const char* hx = "0123456789abcdef";
-    for (int i = 0; i < 32; i++)
-    {
-        out[2 * i] = hx[g_last_replay_hash[i] >> 4];
-        out[2 * i + 1] = hx[g_last_replay_hash[i] & 0xF];
-    }
-    out[64] = '\0';
-}
-uint32_t rogue_save_last_replay_event_count(void) { return g_replay_event_count; }
-static int read_varuint(FILE* f, uint32_t* out)
-{
-    uint32_t result = 0;
-    int shift = 0;
-    for (int i = 0; i < 5; i++)
-    {
-        int c = fgetc(f);
-        if (c == EOF)
-            return -1;
-        unsigned char b = (unsigned char) c;
-        result |= (uint32_t) (b & 0x7F) << shift;
-        if (!(b & 0x80))
-        {
-            *out = result;
-            return 0;
-        }
-        shift += 7;
-    }
-    return -1;
-}
+/* Replay moved to save_replay.c */
+/* Varuint helper provided by save_utils.c */
 
-int rogue_save_last_migration_steps(void) { return g_last_migration_steps; }
-int rogue_save_last_migration_failed(void) { return g_last_migration_failed; }
-double rogue_save_last_migration_ms(void) { return g_last_migration_ms; }
+int rogue_save_last_migration_steps(void) { return g_save_last_migration_steps; }
+int rogue_save_last_migration_failed(void) { return g_save_last_migration_failed; }
+double rogue_save_last_migration_ms(void) { return g_save_last_migration_ms; }
 
-/* Simple CRC32 (polynomial 0xEDB88320) */
-uint32_t rogue_crc32(const void* data, size_t len)
-{
-    static uint32_t table[256];
-    static int have = 0;
-    if (!have)
-    {
-        for (uint32_t i = 0; i < 256; i++)
-        {
-            uint32_t c = i;
-            for (int k = 0; k < 8; k++)
-                c = (c & 1) ? 0xEDB88320u ^ (c >> 1) : (c >> 1);
-            table[i] = c;
-        }
-        have = 1;
-    }
-    uint32_t crc = 0xFFFFFFFFu;
-    const unsigned char* p = (const unsigned char*) data;
-    for (size_t i = 0; i < len; i++)
-        crc = table[(crc ^ p[i]) & 0xFF] ^ (crc >> 8);
-    return crc ^ 0xFFFFFFFFu;
-}
+/* CRC32 provided by save_utils.c */
 
-static const RogueSaveComponent* find_component(int id)
-{
-    for (int i = 0; i < g_component_count; i++)
-        if (g_components[i].id == id)
-            return &g_components[i];
-    return NULL;
-}
+/* use shared helper */
 
-void rogue_save_manager_register(const RogueSaveComponent* comp)
-{
-    if (g_component_count >= ROGUE_SAVE_MAX_COMPONENTS)
-    {
-        ROGUE_LOG_DEBUG("register skipped (cap reached) id=%d", comp ? comp->id : -1);
-        return;
-    }
-    if (!comp)
-    {
-        ROGUE_LOG_DEBUG("register NULL component");
-        return;
-    }
-    if (find_component(comp->id))
-    {
-        ROGUE_LOG_DEBUG("register skipped (already present) id=%d count=%d", comp->id,
-                        g_component_count);
-        return;
-    }
-    g_components[g_component_count++] = *comp;
-    ROGUE_LOG_DEBUG("registered id=%d name=%s new_count=%d", comp->id,
-                    comp->name ? comp->name : "?", g_component_count);
-}
+/* registration moved to save_manager_core.c */
 
 static int cmp_comp(const void* a, const void* b)
 {
@@ -461,72 +176,28 @@ static int cmp_comp(const void* a, const void* b)
 }
 
 /* Core migration registration (defined later) */
-static void rogue_register_core_migrations(void);
-void rogue_save_manager_init(void)
-{
-    if (!g_initialized)
-    {
-        g_initialized = 1; /* ensure deterministic order */
-    }
-    if (!g_migrations_registered)
-    {
-        rogue_register_core_migrations();
-        g_migrations_registered = 1;
-    }
-}
+/* init moved to save_manager_core.c */
 
-void rogue_save_register_migration(const RogueSaveMigration* mig)
-{
-    if (g_migration_count < (int) (sizeof g_migrations / sizeof g_migrations[0]))
-        g_migrations[g_migration_count++] = *mig;
-}
+/* migration registration moved */
 
 void rogue_save_manager_reset_for_tests(void)
 {
-    g_component_count = 0;
-    g_initialized = 0;
-    g_migration_count = 0;
-    g_migrations_registered = 0;
-    g_last_migration_steps = 0;
-    g_last_migration_failed = 0;
-    g_last_migration_ms = 0.0;
+    g_save_component_count = 0;
+    g_save_initialized = 0;
+    g_save_migration_count = 0;
+    g_save_migrations_registered = 0;
+    g_save_last_migration_steps = 0;
+    g_save_last_migration_failed = 0;
+    g_save_last_migration_ms = 0.0;
 }
 int rogue_save_set_debug_json(int enabled)
 {
-    g_debug_json_dump = enabled ? 1 : 0;
+    g_save_debug_json_dump = enabled ? 1 : 0;
     return 0;
 }
-int rogue_save_intern_string(const char* s)
-{
-    if (!s)
-        return -1;
-    for (int i = 0; i < g_intern_count; i++)
-        if (strcmp(g_intern_strings[i], s) == 0)
-            return i;
-    if (g_intern_count >= ROGUE_SAVE_MAX_STRINGS)
-        return -1;
-    size_t len = strlen(s);
-    char* dup = (char*) malloc(len + 1);
-    if (!dup)
-        return -1;
-    memcpy(dup, s, len + 1);
-    g_intern_strings[g_intern_count] = dup;
-    return g_intern_count++;
-}
-const char* rogue_save_intern_get(int index)
-{
-    if (index < 0 || index >= g_intern_count)
-        return NULL;
-    return g_intern_strings[index];
-}
-int rogue_save_intern_count(void) { return g_intern_count; }
+/* String interning implemented in save_intern.c */
 
-static char slot_path[128];
-static const char* build_slot_path(int slot)
-{
-    snprintf(slot_path, sizeof slot_path, "save_slot_%d.sav", slot);
-    return slot_path;
-}
+/* path builders moved to save_paths.c */
 
 int rogue_save_read_descriptor(int slot_index, RogueSaveDescriptor* out_desc)
 {
@@ -557,26 +228,9 @@ int rogue_save_read_descriptor(int slot_index, RogueSaveDescriptor* out_desc)
     *out_desc = d;
     return 0;
 }
-static char autosave_path[128];
-static const char* build_autosave_path(int logical)
-{
-    int ring = logical % ROGUE_AUTOSAVE_RING;
-    snprintf(autosave_path, sizeof autosave_path, "autosave_%d.sav", ring);
-    return autosave_path;
-}
-static char backup_path_buf[160];
-static const char* build_backup_path(int slot, uint32_t ts)
-{
-    snprintf(backup_path_buf, sizeof backup_path_buf, "save_slot_%d_%u.bak", slot, ts);
-    return backup_path_buf;
-}
+/* Path helpers in save_paths.c */
 
-int rogue_save_format_endianness_is_le(void)
-{
-    uint32_t x = 0x01020304u;
-    unsigned char* p = (unsigned char*) &x;
-    return p[0] == 0x04;
-}
+/* Endianness helper provided by save_utils.c */
 
 static int internal_save_to(const char* final_path)
 {
@@ -1282,35 +936,7 @@ int rogue_save_manager_set_durable(int enabled)
     g_durable_writes = enabled ? 1 : 0;
     return 0;
 }
-int rogue_save_manager_update(uint32_t now_ms, int in_combat)
-{
-    if (g_autosave_interval_ms <= 0)
-        return 0;
-    if (in_combat)
-        return 0; /* only when idle */
-    if (g_last_autosave_time == 0)
-        g_last_autosave_time = now_ms; /* init */
-    if (now_ms - g_last_autosave_time >= (uint32_t) g_autosave_interval_ms)
-    {
-        /* throttle: ensure a minimum gap since last save event */
-        static uint32_t g_last_any_save_time =
-            0; /* local static to track last save timestamp in ms domain */
-        if (g_last_any_save_time != 0 && g_autosave_throttle_ms > 0 &&
-            now_ms - g_last_any_save_time < (uint32_t) g_autosave_throttle_ms)
-        {
-            return 0;
-        }
-        int rc = rogue_save_manager_autosave(g_autosave_count); /* rotate ring */
-        if (rc == 0)
-        {
-            g_autosave_count++;
-        }
-        g_last_autosave_time = now_ms;
-        g_last_any_save_time = now_ms;
-        return rc;
-    }
-    return 0;
-}
+/* Autosave scheduler lives in save_autosave.c */
 
 /* Internal helper: validate & load entire save file (returns malloc buffer after header) */
 static int load_and_validate(const char* path, RogueSaveDescriptor* out_desc,
@@ -1603,7 +1229,7 @@ int rogue_save_reload_component_from_slot(int slot_index, int component_id)
 {
     if (slot_index < 0 || slot_index >= ROGUE_SAVE_SLOT_COUNT)
         return -1;
-    const RogueSaveComponent* comp = find_component(component_id);
+    const RogueSaveComponent* comp = rogue_find_component(component_id);
     if (!comp || !comp->read_fn)
         return -2;
     RogueSaveDescriptor d;
@@ -2018,7 +1644,7 @@ int rogue_save_manager_load_slot(int slot_index)
                             ftell(f));
             int compressed = (desc.version >= 6 && (size & 0x80000000u));
             uint32_t stored_size = size & 0x7FFFFFFFu;
-            const RogueSaveComponent* comp = find_component((int) id);
+            const RogueSaveComponent* comp = rogue_find_component((int) id);
             long payload_pos = ftell(f);
             if (compressed)
             {
@@ -2177,7 +1803,7 @@ int rogue_save_manager_load_slot(int slot_index)
                 fclose(f);
                 return -8;
             }
-            const RogueSaveComponent* comp = find_component((int) id);
+            const RogueSaveComponent* comp = rogue_find_component((int) id);
             long payload_pos = ftell(f);
             if (comp && comp->read_fn)
             {
@@ -2279,7 +1905,7 @@ int rogue_save_manager_load_slot_with_recovery(int slot_index)
                 free(buf);
                 return rc;
             }
-            const RogueSaveComponent* comp = find_component((int) id16);
+            const RogueSaveComponent* comp = rogue_find_component((int) id16);
             if (comp && comp->read_fn)
             { /* feed via temp */
                 FILE* tf = NULL;
@@ -2322,1273 +1948,4 @@ int rogue_save_manager_load_slot_with_recovery(int slot_index)
     return 1; /* recovered */
 }
 
-/* Basic player + world meta adapters bridging existing ad-hoc text save for Phase1 demonstration */
-static int write_player_component(FILE* f)
-{
-    /* Serialize subset of player progression (minimal Phase 1 binary form) */
-    fwrite(&g_app.player.level, sizeof g_app.player.level, 1, f);
-    fwrite(&g_app.player.xp, sizeof g_app.player.xp, 1, f);
-    fwrite(&g_app.player.xp_to_next, sizeof g_app.player.xp_to_next, 1, f);
-    fwrite(&g_app.player.xp_total_accum, sizeof g_app.player.xp_total_accum, 1, f);
-    fwrite(&g_app.player.health, sizeof g_app.player.health, 1, f);
-    fwrite(&g_app.player.mana, sizeof g_app.player.mana, 1, f);
-    fwrite(&g_app.player.action_points, sizeof g_app.player.action_points, 1, f);
-    fwrite(&g_app.player.strength, sizeof g_app.player.strength, 1, f);
-    fwrite(&g_app.player.dexterity, sizeof g_app.player.dexterity, 1, f);
-    fwrite(&g_app.player.vitality, sizeof g_app.player.vitality, 1, f);
-    fwrite(&g_app.player.intelligence, sizeof g_app.player.intelligence, 1, f);
-    fwrite(&g_app.talent_points, sizeof g_app.talent_points, 1, f);
-    /* Analytics counters & run metadata */
-    fwrite(&g_app.analytics_damage_dealt_total, sizeof g_app.analytics_damage_dealt_total, 1, f);
-    fwrite(&g_app.analytics_gold_earned_total, sizeof g_app.analytics_gold_earned_total, 1, f);
-    fwrite(&g_app.permadeath_mode, sizeof g_app.permadeath_mode, 1, f);
-    /* Phase 7.4 equipment slots + weapon infusion */
-    fwrite(&g_app.player.equipped_weapon_id, sizeof g_app.player.equipped_weapon_id, 1, f);
-    fwrite(&g_app.player.weapon_infusion, sizeof g_app.player.weapon_infusion, 1, f);
-    /* Phase 7.8 start timestamp (seconds since process epoch) */
-    fwrite(&g_app.session_start_seconds, sizeof g_app.session_start_seconds, 1, f);
-    /* 13.5 inventory UI sort mode */
-    fwrite(&g_app.inventory_sort_mode, sizeof g_app.inventory_sort_mode, 1, f);
-    /* Equipment System Phase 1.6: persist expanded equipment slots (count + each) */
-    int equip_count = ROGUE_EQUIP__COUNT;
-    fwrite(&equip_count, sizeof equip_count, 1, f);
-    for (int i = 0; i < equip_count; i++)
-    {
-        int inst = rogue_equip_get((enum RogueEquipSlot) i);
-        fwrite(&inst, sizeof inst, 1, f);
-    }
-    return 0;
-}
-static int read_player_component(FILE* f, size_t size)
-{
-    /* Support legacy minimal layout (level,xp,health,talent_points) and extended Phase 7.1/7.7/7.8
-     * layout. */
-    if (size < sizeof(int) * 4)
-        return -1;
-    long start = ftell(f);
-    int remain = (int) size; /* naive */
-    fread(&g_app.player.level, sizeof g_app.player.level, 1, f);
-    fread(&g_app.player.xp, sizeof g_app.player.xp, 1, f);
-    remain -= sizeof(int) * 2;
-    /* Try reading xp_to_next; if insufficient bytes fallback */
-    if (remain >= (int) sizeof(int))
-    {
-        fread(&g_app.player.xp_to_next, sizeof g_app.player.xp_to_next, 1, f);
-        remain -= sizeof(int);
-    }
-    else
-    {
-        g_app.player.xp_to_next = 0;
-    }
-    if (remain >= (int) sizeof(unsigned long long))
-    {
-        fread(&g_app.player.xp_total_accum, sizeof g_app.player.xp_total_accum, 1, f);
-        remain -= (int) sizeof(unsigned long long);
-    }
-    else
-    {
-        g_app.player.xp_total_accum = 0ULL;
-    }
-    if (remain >= (int) sizeof(int))
-    {
-        fread(&g_app.player.health, sizeof g_app.player.health, 1, f);
-        remain -= sizeof(int);
-    }
-    else
-    {
-        g_app.player.health = 0;
-    }
-    if (remain >= (int) sizeof(int))
-    {
-        fread(&g_app.player.mana, sizeof g_app.player.mana, 1, f);
-        remain -= sizeof(int);
-    }
-    else
-    {
-        g_app.player.mana = 0;
-    }
-    if (remain >= (int) sizeof(int))
-    {
-        fread(&g_app.player.action_points, sizeof g_app.player.action_points, 1, f);
-        remain -= sizeof(int);
-    }
-    else
-    {
-        g_app.player.action_points = 0;
-    }
-    if (remain >= (int) sizeof(int))
-    {
-        fread(&g_app.player.strength, sizeof g_app.player.strength, 1, f);
-        remain -= sizeof(int);
-    }
-    else
-    {
-        g_app.player.strength = 5;
-    }
-    if (remain >= (int) sizeof(int))
-    {
-        fread(&g_app.player.dexterity, sizeof g_app.player.dexterity, 1, f);
-        remain -= sizeof(int);
-    }
-    else
-    {
-        g_app.player.dexterity = 5;
-    }
-    if (remain >= (int) sizeof(int))
-    {
-        fread(&g_app.player.vitality, sizeof g_app.player.vitality, 1, f);
-        remain -= sizeof(int);
-    }
-    else
-    {
-        g_app.player.vitality = 15;
-    }
-    if (remain >= (int) sizeof(int))
-    {
-        fread(&g_app.player.intelligence, sizeof g_app.player.intelligence, 1, f);
-        remain -= sizeof(int);
-    }
-    else
-    {
-        g_app.player.intelligence = 5;
-    }
-    if (remain >= (int) sizeof(int))
-    {
-        fread(&g_app.talent_points, sizeof g_app.talent_points, 1, f);
-        remain -= sizeof(int);
-    }
-    else
-    {
-        g_app.talent_points = 0;
-    }
-    if (remain >= (int) sizeof(unsigned long long))
-    {
-        fread(&g_app.analytics_damage_dealt_total, sizeof g_app.analytics_damage_dealt_total, 1, f);
-        remain -= sizeof(unsigned long long);
-    }
-    else
-    {
-        g_app.analytics_damage_dealt_total = 0ULL;
-    }
-    if (remain >= (int) sizeof(unsigned long long))
-    {
-        fread(&g_app.analytics_gold_earned_total, sizeof g_app.analytics_gold_earned_total, 1, f);
-        remain -= sizeof(unsigned long long);
-    }
-    else
-    {
-        g_app.analytics_gold_earned_total = 0ULL;
-    }
-    if (remain >= (int) sizeof(int))
-    {
-        fread(&g_app.permadeath_mode, sizeof g_app.permadeath_mode, 1, f);
-        remain -= sizeof(int);
-    }
-    else
-    {
-        g_app.permadeath_mode = 0;
-    }
-    if (remain >= (int) sizeof(int))
-    {
-        fread(&g_app.player.equipped_weapon_id, sizeof g_app.player.equipped_weapon_id, 1, f);
-        remain -= sizeof(int);
-    }
-    else
-    {
-        g_app.player.equipped_weapon_id = -1;
-    }
-    if (remain >= (int) sizeof(int))
-    {
-        fread(&g_app.player.weapon_infusion, sizeof g_app.player.weapon_infusion, 1, f);
-        remain -= sizeof(int);
-    }
-    else
-    {
-        g_app.player.weapon_infusion = 0;
-    }
-    if (remain >= (int) sizeof(double))
-    {
-        fread(&g_app.session_start_seconds, sizeof g_app.session_start_seconds, 1, f);
-        remain -= sizeof(double);
-    }
-    else
-    {
-        g_app.session_start_seconds = 0.0;
-    }
-    if (remain >= (int) sizeof(int))
-    {
-        fread(&g_app.inventory_sort_mode, sizeof g_app.inventory_sort_mode, 1, f);
-        remain -= sizeof(int);
-    }
-    else
-    {
-        g_app.inventory_sort_mode = 0;
-    }
-    /* Equipment slots (Phase 1.6) backward-compatible: read and attempt immediate apply (inventory
-     * component precedes player in registration order). */
-    if (remain >= (int) sizeof(int))
-    {
-        int equip_count = 0;
-        fread(&equip_count, sizeof equip_count, 1, f);
-        remain -= sizeof(int);
-        if (equip_count > 0 && equip_count <= ROGUE_EQUIP__COUNT)
-        {
-            for (int i = 0; i < equip_count && remain >= (int) sizeof(int); i++)
-            {
-                int inst = -1;
-                fread(&inst, sizeof inst, 1, f);
-                remain -= sizeof(int);
-                if (inst >= 0)
-                    rogue_equip_try((enum RogueEquipSlot) i, inst);
-            }
-        }
-    }
-    (void) start;
-    return 0;
-}
-
-/* ---------------- Additional Phase 1 Components ---------------- */
-
-/* INVENTORY: serialize active item instances (count + each record) */
-/* ---- Phase 17.5: Record-level diff inside inventory component ---- */
-typedef struct InvRecordSnapshot
-{
-    int def_index, quantity, rarity, prefix_index, prefix_value, suffix_index, suffix_value,
-        durability_cur, durability_max, enchant_level;
-} InvRecordSnapshot;
-static InvRecordSnapshot* g_inv_prev_records = NULL; /* previous serialized snapshot */
-static unsigned g_inv_prev_count = 0;
-static unsigned g_inv_diff_reused_last = 0; /* metrics for last save */
-static unsigned g_inv_diff_rewritten_last = 0;
-void rogue_save_inventory_diff_metrics(unsigned* reused, unsigned* rewritten)
-{
-    if (reused)
-        *reused = g_inv_diff_reused_last;
-    if (rewritten)
-        *rewritten = g_inv_diff_rewritten_last;
-}
-static void inv_record_snapshot_update(const InvRecordSnapshot* cur, unsigned count)
-{
-    InvRecordSnapshot* nr = (InvRecordSnapshot*) realloc(
-        g_inv_prev_records, sizeof(InvRecordSnapshot) * (size_t) count);
-    if (!nr && count > 0)
-        return; /* keep old snapshot on alloc failure */
-    if (nr)
-    {
-        g_inv_prev_records = nr;
-        memcpy(g_inv_prev_records, cur, sizeof(InvRecordSnapshot) * (size_t) count);
-        g_inv_prev_count = count;
-    }
-}
-static int write_inventory_component(FILE* f)
-{
-    int count = 0;
-    /* Enumerate active instances via public API to avoid dependence on g_app pointer/cap. */
-    for (int i = 0; i < ROGUE_ITEM_INSTANCE_CAP; i++)
-    {
-        const RogueItemInstance* it = rogue_item_instance_at(i);
-        if (it)
-            count++;
-    }
-    ROGUE_LOG_DEBUG("write_inventory_component detected %d active instances (cap=%d)", count,
-                    ROGUE_ITEM_INSTANCE_CAP);
-    int dbg_seen = 0;
-    for (int i = 0; i < ROGUE_ITEM_INSTANCE_CAP && dbg_seen < 8; i++)
-    {
-        const RogueItemInstance* it = rogue_item_instance_at(i);
-        if (it)
-        {
-            ROGUE_LOG_DEBUG(
-                "inv_active idx=%d def=%d qty=%d dur=%d/%d rar=%d pref=(%d,%d) suf=(%d,%d)", i,
-                it->def_index, it->quantity, it->durability_cur, it->durability_max, it->rarity,
-                it->prefix_index, it->prefix_value, it->suffix_index, it->suffix_value);
-            dbg_seen++;
-        }
-    }
-    if (g_active_write_version >= 4)
-    {
-        if (write_varuint(f, (uint32_t) count) != 0)
-            return -1;
-    }
-    else
-    {
-        if (fwrite(&count, sizeof count, 1, f) != 1)
-            return -1;
-    }
-    if (count == 0)
-    {
-        g_inv_prev_count = 0;
-        g_inv_diff_reused_last = 0;
-        g_inv_diff_rewritten_last = 0;
-        return 0;
-    }
-    /* Build current snapshot */
-    InvRecordSnapshot* cur =
-        (InvRecordSnapshot*) malloc(sizeof(InvRecordSnapshot) * (size_t) count);
-    if (!cur)
-        return -1;
-    int out = 0;
-    for (int i = 0; i < ROGUE_ITEM_INSTANCE_CAP; i++)
-    {
-        const RogueItemInstance* it = rogue_item_instance_at(i);
-        if (!it)
-            continue;
-        cur[out++] = (InvRecordSnapshot){it->def_index,    it->quantity,       it->rarity,
-                                         it->prefix_index, it->prefix_value,   it->suffix_index,
-                                         it->suffix_value, it->durability_cur, it->durability_max,
-                                         it->enchant_level};
-    }
-    if (out != count)
-    {
-        free(cur);
-        return -1;
-    }
-    g_inv_diff_reused_last = 0;
-    g_inv_diff_rewritten_last = 0;
-    if (g_incremental_enabled && g_inv_prev_count == (unsigned) count)
-    {
-        for (int i = 0; i < count; i++)
-        {
-            if (memcmp(&g_inv_prev_records[i], &cur[i], sizeof(InvRecordSnapshot)) == 0)
-            {
-                g_inv_diff_reused_last++;
-            }
-            else
-            {
-                g_inv_diff_rewritten_last++;
-            }
-        }
-    }
-    else
-    {
-        /* All treated as rewritten (size change or incremental disabled) */
-        g_inv_diff_rewritten_last = (unsigned) count;
-    }
-    /* Serialize (currently always writes full records; potential future optimization to copy reused
-     * raw bytes) */
-    for (int i = 0; i < count; i++)
-    {
-        InvRecordSnapshot* r = &cur[i];
-        fwrite(&r->def_index, sizeof(r->def_index), 1, f);
-        fwrite(&r->quantity, sizeof(r->quantity), 1, f);
-        fwrite(&r->rarity, sizeof(r->rarity), 1, f);
-        fwrite(&r->prefix_index, sizeof(r->prefix_index), 1, f);
-        fwrite(&r->prefix_value, sizeof(r->prefix_value), 1, f);
-        fwrite(&r->suffix_index, sizeof(r->suffix_index), 1, f);
-        fwrite(&r->suffix_value, sizeof(r->suffix_value), 1, f);
-        fwrite(&r->durability_cur, sizeof(r->durability_cur), 1, f);
-        fwrite(&r->durability_max, sizeof(r->durability_max), 1, f);
-        fwrite(&r->enchant_level, sizeof(r->enchant_level), 1, f);
-    }
-    inv_record_snapshot_update(cur, (unsigned) count);
-    free(cur);
-    return 0;
-}
-
-/* Probe helper used by save loop before deciding section reuse for inventory (Phase 17.5). Returns
-   1 if current records differ from previous snapshot (forcing a fresh write), 0 if identical. When
-   identical, updates g_inv_diff_reused_last/g_inv_diff_rewritten_last to reflect full reuse. */
-static int inventory_component_probe_and_prepare_reuse(void)
-{
-    int count = 0;
-    for (int i = 0; i < ROGUE_ITEM_INSTANCE_CAP; i++)
-    {
-        const RogueItemInstance* it = rogue_item_instance_at(i);
-        if (it)
-            count++;
-    }
-    /* Build current snapshot in the same order as writer for a fair comparison */
-    if (count == 0)
-    {
-        int changed = (g_inv_prev_count != 0);
-        if (!changed)
-        {
-            g_inv_diff_reused_last = 0;
-            g_inv_diff_rewritten_last = 0;
-        }
-        return changed;
-    }
-    InvRecordSnapshot* cur =
-        (InvRecordSnapshot*) malloc(sizeof(InvRecordSnapshot) * (size_t) count);
-    if (!cur)
-    {
-        /* On OOM, be conservative and report changed to avoid stale reuse */
-        return 1;
-    }
-    int out = 0;
-    for (int i = 0; i < ROGUE_ITEM_INSTANCE_CAP; i++)
-    {
-        const RogueItemInstance* it = rogue_item_instance_at(i);
-        if (!it)
-            continue;
-        cur[out++] = (InvRecordSnapshot){it->def_index,    it->quantity,       it->rarity,
-                                         it->prefix_index, it->prefix_value,   it->suffix_index,
-                                         it->suffix_value, it->durability_cur, it->durability_max,
-                                         it->enchant_level};
-    }
-    int changed = 0;
-    if (g_inv_prev_count != (unsigned) count)
-    {
-        changed = 1;
-    }
-    else
-    {
-        for (int i = 0; i < count; i++)
-        {
-            if (memcmp(&g_inv_prev_records[i], &cur[i], sizeof(InvRecordSnapshot)) != 0)
-            {
-                changed = 1;
-                break;
-            }
-        }
-    }
-    if (!changed)
-    {
-        g_inv_diff_reused_last = (unsigned) count;
-        g_inv_diff_rewritten_last = 0;
-    }
-    free(cur);
-    return changed;
-}
-static int read_inventory_component(FILE* f, size_t size)
-{
-    /* Layout detection based on remaining payload bytes after the count field:
-       - legacy: 7 ints per record (no durability, no enchant)
-       - extended1: 9 ints per record (durability_cur, durability_max)
-       - extended2: 10 ints per record (adds enchant_level)
-    */
-    /* Ensure loot runtime is initialized so g_app.item_instances points to the active pool.
-       Some unit tests reinitialize or bypass app_init; if the pointer is NULL here, spawn calls
-       will still populate the internal static pool, but tests that scan g_app.item_instances will
-       see zero. Guard-init to keep both views consistent. */
-    if (!g_app.item_instances || g_app.item_instance_cap <= 0)
-    {
-        rogue_items_init_runtime();
-    }
-    int count = 0;
-    long section_start = ftell(f);
-    ROGUE_LOG_DEBUG("read_inventory_component size=%zu", size);
-    if (g_active_read_version >= 4)
-    {
-        uint32_t c = 0;
-        if (read_varuint(f, &c) != 0)
-            return -1;
-        count = (int) c;
-    }
-    else if (fread(&count, sizeof count, 1, f) != 1)
-        return -1;
-    if (count < 0)
-        return -1;
-    long after_count = ftell(f);
-    size_t count_bytes = (size_t) (after_count - section_start);
-    if (count == 0)
-        return 0;
-    size_t remaining = (size_t) ((size > count_bytes) ? (size - count_bytes) : 0);
-    size_t rec_ints = 0;
-    if (remaining >= (size_t) count * (sizeof(int) * 10))
-        rec_ints = 10;
-    else if (remaining >= (size_t) count * (sizeof(int) * 9))
-        rec_ints = 9;
-    else if (remaining >= (size_t) count * (sizeof(int) * 7))
-        rec_ints = 7;
-    else
-        return -1; /* malformed */
-    ROGUE_LOG_DEBUG("inventory count=%d rec_ints=%zu remaining=%zu", count, rec_ints, remaining);
-    for (int i = 0; i < count; i++)
-    {
-        int def_index = 0, quantity = 0, rarity = 0, pidx = 0, pval = 0, sidx = 0, sval = 0;
-        if (fread(&def_index, sizeof def_index, 1, f) != 1)
-            return -1;
-        if (fread(&quantity, sizeof quantity, 1, f) != 1)
-            return -1;
-        if (fread(&rarity, sizeof rarity, 1, f) != 1)
-            return -1;
-        if (fread(&pidx, sizeof pidx, 1, f) != 1)
-            return -1;
-        if (fread(&pval, sizeof pval, 1, f) != 1)
-            return -1;
-        if (fread(&sidx, sizeof sidx, 1, f) != 1)
-            return -1;
-        if (fread(&sval, sizeof sval, 1, f) != 1)
-            return -1;
-        int durability_cur = 0, durability_max = 0, enchant_level = 0;
-        if (rec_ints >= 9)
-        {
-            if (fread(&durability_cur, sizeof durability_cur, 1, f) != 1)
-                return -1;
-            if (fread(&durability_max, sizeof durability_max, 1, f) != 1)
-                return -1;
-        }
-        if (rec_ints >= 10)
-        {
-            if (fread(&enchant_level, sizeof enchant_level, 1, f) != 1)
-                return -1;
-        }
-        int inst = rogue_items_spawn(def_index, quantity, 0.0f, 0.0f);
-        if (inst >= 0)
-        {
-            rogue_item_instance_apply_affixes(inst, rarity, pidx, pval, sidx, sval);
-            if (durability_max > 0)
-            {
-                RogueItemInstance* it = (RogueItemInstance*) rogue_item_instance_at(inst);
-                if (it)
-                {
-                    it->durability_max = durability_max;
-                    it->durability_cur = durability_cur;
-                }
-            }
-            if (enchant_level > 0)
-            {
-                RogueItemInstance* it = (RogueItemInstance*) rogue_item_instance_at(inst);
-                if (it)
-                {
-                    it->enchant_level = enchant_level;
-                }
-            }
-        }
-    }
-    ROGUE_LOG_DEBUG("after inventory load active=%d", rogue_items_active_count());
-    /* Ensure global app view points at the active pool for tests that scan g_app directly. */
-    rogue_items_sync_app_view();
-    /* Cross-check against g_app pointer/cap view used by some tests */
-    int cap_dbg = g_app.item_instance_cap;
-    void* ptr_dbg = (void*) g_app.item_instances;
-    int cnt_dbg = 0;
-    if (g_app.item_instances && cap_dbg > 0)
-    {
-        for (int i = 0; i < cap_dbg; i++)
-        {
-            if (g_app.item_instances[i].active)
-                cnt_dbg++;
-        }
-    }
-    ROGUE_LOG_DEBUG("g_app.item_instances=%p cap=%d active_via_g_app=%d", ptr_dbg, cap_dbg,
-                    cnt_dbg);
-    return 0;
-}
-
-/* SKILLS: ranks + cooldown state (id ordered) */
-/* PHASE 7.2: Extended skill state (backward-compatible). We always write the extended record, but
- * reader detects legacy minimal form by payload size. */
-static int write_skills_component(FILE* f)
-{
-    if (g_active_write_version >= 4)
-    {
-        if (write_varuint(f, (uint32_t) g_app.skill_count) != 0)
-            return -1;
-    }
-    else
-        fwrite(&g_app.skill_count, sizeof g_app.skill_count, 1, f);
-    for (int i = 0; i < g_app.skill_count; i++)
-    {
-        const RogueSkillState* st = rogue_skill_get_state(i);
-        int rank = st ? st->rank : 0;
-        double cd = st ? st->cooldown_end_ms : 0.0;
-        fwrite(&rank, sizeof rank, 1, f);
-        fwrite(&cd, sizeof cd, 1, f);
-        /* Extended fields (Phase 7.2) */
-        double cast_progress = st ? st->cast_progress_ms : 0.0;
-        double channel_end = st ? st->channel_end_ms : 0.0;
-        double next_charge_ready = st ? st->next_charge_ready_ms : 0.0;
-        int charges_cur = st ? st->charges_cur : 0;
-        unsigned char casting_active = st ? st->casting_active : 0;
-        unsigned char channel_active = st ? st->channel_active : 0;
-        fwrite(&cast_progress, sizeof cast_progress, 1, f);
-        fwrite(&channel_end, sizeof channel_end, 1, f);
-        fwrite(&next_charge_ready, sizeof next_charge_ready, 1, f);
-        fwrite(&charges_cur, sizeof charges_cur, 1, f);
-        fwrite(&casting_active, sizeof casting_active, 1, f);
-        fwrite(&channel_active, sizeof channel_active, 1, f);
-    }
-    return 0;
-}
-static int read_skills_component(FILE* f, size_t size)
-{
-    long section_start = ftell(f);
-    int count = 0;
-    size_t count_bytes = 0;
-    if (g_active_read_version >= 4)
-    {
-        uint32_t c = 0;
-        if (read_varuint(f, &c) != 0)
-            return -1;
-        count = (int) c;
-    }
-    else
-    {
-        if (fread(&count, sizeof count, 1, f) != 1)
-            return -1;
-    }
-    count_bytes = (size_t) (ftell(f) - section_start);
-    if (count < 0 || count > 4096)
-        return -1; /* sanity */
-    size_t remaining = (size_t) size - count_bytes;
-    size_t minimal_rec = sizeof(int) + sizeof(double); /* legacy */
-    size_t extended_extra =
-        sizeof(double) * 3 + sizeof(int) + 2 * sizeof(unsigned char); /* new appended fields */
-    int has_extended = 0;
-    if (count > 0)
-    {
-        if (remaining >= (size_t) count * (minimal_rec + extended_extra))
-            has_extended = 1;
-    }
-    int limit = (count < g_app.skill_count) ? count : g_app.skill_count;
-    for (int i = 0; i < count; i++)
-    {
-        int rank = 0;
-        double cd = 0.0;
-        if (fread(&rank, sizeof rank, 1, f) != 1)
-            return -1;
-        if (fread(&cd, sizeof cd, 1, f) != 1)
-            return -1;
-        double cast_progress = 0.0, channel_end = 0.0, next_charge_ready = 0.0;
-        int charges_cur = 0;
-        unsigned char casting_active = 0, channel_active = 0;
-        if (has_extended)
-        {
-            if (fread(&cast_progress, sizeof cast_progress, 1, f) != 1)
-                return -1;
-            if (fread(&channel_end, sizeof channel_end, 1, f) != 1)
-                return -1;
-            if (fread(&next_charge_ready, sizeof next_charge_ready, 1, f) != 1)
-                return -1;
-            if (fread(&charges_cur, sizeof charges_cur, 1, f) != 1)
-                return -1;
-            if (fread(&casting_active, sizeof casting_active, 1, f) != 1)
-                return -1;
-            if (fread(&channel_active, sizeof channel_active, 1, f) != 1)
-                return -1;
-        }
-        if (i < limit)
-        {
-            const RogueSkillDef* d = rogue_skill_get_def(i);
-            struct RogueSkillState* st = (struct RogueSkillState*) rogue_skill_get_state(i);
-            if (d && st)
-            {
-                if (rank > d->max_rank)
-                    rank = d->max_rank;
-                st->rank = rank;
-                st->cooldown_end_ms = cd;
-                if (has_extended)
-                {
-                    st->cast_progress_ms = cast_progress;
-                    st->channel_end_ms = channel_end;
-                    st->next_charge_ready_ms = next_charge_ready;
-                    st->charges_cur = charges_cur;
-                    st->casting_active = casting_active;
-                    st->channel_active = channel_active;
-                }
-            }
-        }
-        else
-        { /* skip unneeded extended already consumed */
-        }
-    }
-    /* If legacy (no extended) and there are extra bytes (unexpected), skip them */
-    return 0;
-}
-
-/* BUFFS: active buffs list */
-/* PHASE 7.3: Buff serialization stores remaining duration (relative) instead of raw struct with
-   absolute end time. Backward compatible: detect legacy record size and convert. */
-static int write_buffs_component(FILE* f)
-{
-    int active_count = rogue_buffs_active_count();
-    if (g_active_write_version >= 4)
-    {
-        if (write_varuint(f, (uint32_t) active_count) != 0)
-            return -1;
-    }
-    else
-        fwrite(&active_count, sizeof active_count, 1, f);
-    for (int i = 0; i < active_count; i++)
-    {
-        RogueBuff tmp;
-        if (!rogue_buffs_get_active(i, &tmp))
-            break;
-        double now = g_app.game_time_ms;
-        double remaining_ms = (tmp.end_ms > now) ? (tmp.end_ms - now) : 0.0;
-        int type = tmp.type;
-        int magnitude = tmp.magnitude;
-        fwrite(&type, sizeof type, 1, f);
-        fwrite(&magnitude, sizeof magnitude, 1, f);
-        fwrite(&remaining_ms, sizeof remaining_ms, 1, f);
-    }
-    return 0;
-}
-static int read_buffs_component(FILE* f, size_t size)
-{
-    long start = ftell(f);
-    int count = 0;
-    if (g_active_read_version >= 4)
-    {
-        uint32_t c = 0;
-        if (read_varuint(f, &c) != 0)
-            return -1;
-        count = (int) c;
-    }
-    else if (fread(&count, sizeof count, 1, f) != 1)
-        return -1;
-    if (count < 0 || count > 512)
-        return -1;
-    size_t count_bytes = (size_t) (ftell(f) - start);
-    size_t remaining = size - count_bytes;
-    if (count == 0)
-        return 0;
-    size_t rec_size = remaining / (size_t) count; /* approximate */
-    for (int i = 0; i < count; i++)
-    {
-        if (rec_size >= sizeof(int) * 3 + sizeof(double))
-        { /* legacy struct layout (active,int type,double end_ms,int magnitude) -> we read full
-             struct */
-            struct LegacyBuff
-            {
-                int active;
-                int type;
-                double end_ms;
-                int magnitude;
-            } lb;
-            if (fread(&lb, sizeof lb, 1, f) != 1)
-                return -1;
-            double now = g_app.game_time_ms;
-            double remaining_ms = (lb.end_ms > now) ? (lb.end_ms - now) : 0.0;
-            rogue_buffs_apply((RogueBuffType) lb.type, lb.magnitude, remaining_ms, now,
-                              ROGUE_BUFF_STACK_ADD, 1);
-        }
-        else
-        { /* new compact form: type,int magnitude,double remaining */
-            int type = 0;
-            int magnitude = 0;
-            double remaining_ms = 0.0;
-            if (fread(&type, sizeof type, 1, f) != 1)
-                return -1;
-            if (fread(&magnitude, sizeof magnitude, 1, f) != 1)
-                return -1;
-            if (fread(&remaining_ms, sizeof remaining_ms, 1, f) != 1)
-                return -1;
-            double now = g_app.game_time_ms;
-            rogue_buffs_apply((RogueBuffType) type, magnitude, remaining_ms, now,
-                              ROGUE_BUFF_STACK_ADD, 1);
-        }
-    }
-    return 0;
-}
-
-/* VENDOR: seed + restock timers */
-static int write_vendor_component(FILE* f)
-{
-    fwrite(&g_app.vendor_seed, sizeof g_app.vendor_seed, 1, f);
-    fwrite(&g_app.vendor_time_accum_ms, sizeof g_app.vendor_time_accum_ms, 1, f);
-    fwrite(&g_app.vendor_restock_interval_ms, sizeof g_app.vendor_restock_interval_ms, 1, f);
-    /* Phase 7.5: serialize current vendor inventory (def_index, rarity, price) */
-    int count = rogue_vendor_item_count();
-    if (count < 0)
-        count = 0;
-    if (count > ROGUE_VENDOR_SLOT_CAP)
-        count = ROGUE_VENDOR_SLOT_CAP;
-    fwrite(&count, sizeof count, 1, f);
-    for (int i = 0; i < count; i++)
-    {
-        const RogueVendorItem* it = rogue_vendor_get(i);
-        if (!it)
-        {
-            int zero = 0;
-            fwrite(&zero, sizeof zero, 1, f);
-            fwrite(&zero, sizeof zero, 1, f);
-            fwrite(&zero, sizeof zero, 1, f);
-        }
-        else
-        {
-            fwrite(&it->def_index, sizeof it->def_index, 1, f);
-            fwrite(&it->rarity, sizeof it->rarity, 1, f);
-            fwrite(&it->price, sizeof it->price, 1, f);
-        }
-    }
-    return 0;
-}
-static int read_vendor_component(FILE* f, size_t size)
-{
-    (void) size;
-    fread(&g_app.vendor_seed, sizeof g_app.vendor_seed, 1, f);
-    fread(&g_app.vendor_time_accum_ms, sizeof g_app.vendor_time_accum_ms, 1, f);
-    fread(&g_app.vendor_restock_interval_ms, sizeof g_app.vendor_restock_interval_ms, 1, f);
-    int count = 0;
-    if (fread(&count, sizeof count, 1, f) != 1)
-        return 0;
-    if (count < 0 || count > ROGUE_VENDOR_SLOT_CAP)
-        count = 0;
-    rogue_vendor_reset();
-    for (int i = 0; i < count; i++)
-    {
-        int def = 0, rar = 0, price = 0;
-        if (fread(&def, sizeof def, 1, f) != 1)
-            return -1;
-        if (fread(&rar, sizeof rar, 1, f) != 1)
-            return -1;
-        if (fread(&price, sizeof price, 1, f) != 1)
-            return -1;
-        if (def >= 0)
-        {
-            int recomputed = rogue_vendor_price_formula(def, rar);
-            rogue_vendor_append(def, rar, recomputed);
-        }
-    }
-    return 0;
-}
-
-/* STRING INTERN TABLE (component id 7) */
-static int write_strings_component(FILE* f)
-{
-    int count = g_intern_count;
-    if (g_active_write_version >= 4)
-    {
-        if (write_varuint(f, (uint32_t) count) != 0)
-            return -1;
-    }
-    else
-        fwrite(&count, sizeof count, 1, f);
-    for (int i = 0; i < count; i++)
-    {
-        const char* s = g_intern_strings[i];
-        uint32_t len = (uint32_t) strlen(s);
-        if (g_active_write_version >= 4)
-        {
-            if (write_varuint(f, len) != 0)
-                return -1;
-        }
-        else
-            fwrite(&len, sizeof len, 1, f);
-        if (fwrite(s, 1, len, f) != len)
-            return -1;
-    }
-    return 0;
-}
-static int read_strings_component(FILE* f, size_t size)
-{
-    (void) size;
-    int count = 0;
-    if (g_active_read_version >= 4)
-    {
-        uint32_t c = 0;
-        if (read_varuint(f, &c) != 0)
-            return -1;
-        count = (int) c;
-    }
-    else if (fread(&count, sizeof count, 1, f) != 1)
-        return -1;
-    if (count > ROGUE_SAVE_MAX_STRINGS)
-        return -1;
-    for (int i = 0; i < count; i++)
-    {
-        uint32_t len = 0;
-        if (g_active_read_version >= 4)
-        {
-            if (read_varuint(f, &len) != 0)
-                return -1;
-        }
-        else if (fread(&len, sizeof len, 1, f) != 1)
-            return -1;
-        if (len > 4096)
-            return -1;
-        char* buf = (char*) malloc(len + 1);
-        if (!buf)
-            return -1;
-        if (fread(buf, 1, len, f) != len)
-        {
-            free(buf);
-            return -1;
-        }
-        buf[len] = '\0';
-        g_intern_strings[i] = buf;
-    }
-    g_intern_count = count;
-    return 0;
-}
-
-/* WORLD META: world seed + generation params subset */
-static int write_world_meta_component(FILE* f)
-{
-    fwrite(&g_app.pending_seed, sizeof g_app.pending_seed, 1, f);
-    fwrite(&g_app.gen_water_level, sizeof g_app.gen_water_level, 1, f);
-    fwrite(&g_app.gen_cave_thresh, sizeof g_app.gen_cave_thresh, 1, f);
-    /* Phase 7.6 extended world gen params */
-    fwrite(&g_app.gen_noise_octaves, sizeof g_app.gen_noise_octaves, 1, f);
-    fwrite(&g_app.gen_noise_gain, sizeof g_app.gen_noise_gain, 1, f);
-    fwrite(&g_app.gen_noise_lacunarity, sizeof g_app.gen_noise_lacunarity, 1, f);
-    fwrite(&g_app.gen_river_sources, sizeof g_app.gen_river_sources, 1, f);
-    fwrite(&g_app.gen_river_max_length, sizeof g_app.gen_river_max_length, 1, f);
-    return 0;
-}
-static int read_world_meta_component(FILE* f, size_t size)
-{
-    /* Backward compatible: legacy record had 3 fields; new has 8. Use size to gate reads. */
-    size_t remain = size;
-    if (remain < sizeof(unsigned int) + sizeof(double) * 2)
-        return -1; /* must have at least first three */
-    fread(&g_app.pending_seed, sizeof g_app.pending_seed, 1, f);
-    remain -= sizeof g_app.pending_seed;
-    fread(&g_app.gen_water_level, sizeof g_app.gen_water_level, 1, f);
-    remain -= sizeof g_app.gen_water_level;
-    fread(&g_app.gen_cave_thresh, sizeof g_app.gen_cave_thresh, 1, f);
-    remain -= sizeof g_app.gen_cave_thresh;
-    if (remain >= sizeof g_app.gen_noise_octaves)
-    {
-        fread(&g_app.gen_noise_octaves, sizeof g_app.gen_noise_octaves, 1, f);
-        remain -= sizeof g_app.gen_noise_octaves;
-    }
-    if (remain >= sizeof g_app.gen_noise_gain)
-    {
-        fread(&g_app.gen_noise_gain, sizeof g_app.gen_noise_gain, 1, f);
-        remain -= sizeof g_app.gen_noise_gain;
-    }
-    if (remain >= sizeof g_app.gen_noise_lacunarity)
-    {
-        fread(&g_app.gen_noise_lacunarity, sizeof g_app.gen_noise_lacunarity, 1, f);
-        remain -= sizeof g_app.gen_noise_lacunarity;
-    }
-    if (remain >= sizeof g_app.gen_river_sources)
-    {
-        fread(&g_app.gen_river_sources, sizeof g_app.gen_river_sources, 1, f);
-        remain -= sizeof g_app.gen_river_sources;
-    }
-    if (remain >= sizeof g_app.gen_river_max_length)
-    {
-        fread(&g_app.gen_river_max_length, sizeof g_app.gen_river_max_length, 1, f);
-        remain -= sizeof g_app.gen_river_max_length;
-    }
-    return 0;
-}
-
-/* (Removed duplicate PLAYER_COMP and deferred equipment declarations; single definition earlier) */
-static RogueSaveComponent PLAYER_COMP = {ROGUE_SAVE_COMP_PLAYER, write_player_component,
-                                         read_player_component, "player"};
-static RogueSaveComponent INVENTORY_COMP = {ROGUE_SAVE_COMP_INVENTORY, write_inventory_component,
-                                            read_inventory_component, "inventory"};
-/* Inventory entries (unified def->quantity model) persistence (Phase 1.6). We currently write a
-   full snapshot each save. Record layout (per entry): int def_index, uint64_t quantity, unsigned
-   labels. Section payload: varuint entry_count, then that many records. */
-static int write_inv_entries_component(FILE* f)
-{
-    /* Enumerate all entries by iterating over the public API: there is no direct iterator yet; use
-     * a dirty enumeration hack by forcing all as dirty. */
-    /* Simpler: since module lacks iterator, we snapshot via brute force def_index scan (bounded by
-     * ROGUE_INV_MAX_ENTRIES logical ids not exposed). For Phase 1 we assume item def indices are
-     * within 0..4095 similar to ROGUE_ITEM_DEF_CAP. */
-    /* We will scan a reasonable range (0..4095). Future optimization: expose iterator. */
-    uint32_t count = 0;
-    for (int i = 0; i < 4096; i++)
-    {
-        if (rogue_inventory_quantity(i) > 0)
-            count++;
-    }
-    if (write_varuint(f, count) != 0)
-        return -1;
-    for (int i = 0; i < 4096; i++)
-    {
-        uint64_t q = rogue_inventory_quantity(i);
-        if (q > 0)
-        {
-            unsigned lbl = rogue_inventory_entry_labels(i);
-            int def = i;
-            fwrite(&def, sizeof(def), 1, f);
-            fwrite(&q, sizeof(q), 1, f);
-            fwrite(&lbl, sizeof(lbl), 1, f);
-        }
-    }
-    /* Reset dirty baseline after full snapshot */
-    rogue_inventory_entries_dirty_pairs(NULL, NULL, 0);
-    return 0;
-}
-static int read_inv_entries_component(FILE* f, size_t size)
-{
-    /* Robust read: need at least varuint present */
-    uint32_t count = 0;
-    if (read_varuint(f, &count) != 0)
-        return -1; /* minimal: remaining bytes must fit */
-    /* Each record min size = sizeof(int)+sizeof(uint64_t)+sizeof(unsigned) */
-    size_t need = (size_t) count * (sizeof(int) + sizeof(uint64_t) + sizeof(unsigned));
-    if (size < need)
-        return -1; /* malformed */
-    rogue_inventory_entries_init();
-    for (uint32_t k = 0; k < count; k++)
-    {
-        int def = 0;
-        uint64_t qty = 0;
-        unsigned lbl = 0;
-        if (fread(&def, sizeof(def), 1, f) != 1)
-            return -1;
-        if (fread(&qty, sizeof(qty), 1, f) != 1)
-            return -1;
-        if (fread(&lbl, sizeof(lbl), 1, f) != 1)
-            return -1;
-        if (def >= 0)
-        {
-            rogue_inventory_register_pickup(def, qty);
-            if (lbl)
-                rogue_inventory_entry_set_labels(def, lbl);
-        }
-    }
-    /* Baseline clean */
-    rogue_inventory_entries_dirty_pairs(NULL, NULL, 0);
-    return 0;
-}
-static RogueSaveComponent INV_ENTRIES_COMP = {ROGUE_SAVE_COMP_INV_ENTRIES,
-                                              write_inv_entries_component,
-                                              read_inv_entries_component, "inv_entries"};
-/* Inventory tags component (Phase 3.1 favorites/locks + short tags)
-   Layout: varuint record_count; for each: int def_index, uint32 flags, uint8 tag_count, for each
-   tag: uint8 len, bytes (len)
-*/
-static int write_inv_tags_component(FILE* f)
-{
-    uint32_t count = 0;
-    for (int i = 0; i < ROGUE_INV_TAG_MAX_DEFS; i++)
-    {
-        if (rogue_inv_tags_get_flags(i) || rogue_inv_tags_list(i, NULL, 0) > 0)
-            count++;
-    }
-    if (write_varuint(f, count) != 0)
-        return -1;
-    if (count == 0)
-        return 0;
-    for (int i = 0; i < ROGUE_INV_TAG_MAX_DEFS; i++)
-    {
-        unsigned fl = rogue_inv_tags_get_flags(i);
-        int tc = rogue_inv_tags_list(i, NULL, 0);
-        if (fl == 0 && tc <= 0)
-            continue;
-        if (tc < 0)
-            tc = 0;
-        if (tc > ROGUE_INV_TAG_MAX_TAGS_PER_DEF)
-            tc = ROGUE_INV_TAG_MAX_TAGS_PER_DEF;
-        fwrite(&i, sizeof(int), 1, f);
-        fwrite(&fl, sizeof(fl), 1, f);
-        unsigned char tcc = (unsigned char) tc;
-        fwrite(&tcc, 1, 1, f);
-        if (tc > 0)
-        {
-            const char* tmp[ROGUE_INV_TAG_MAX_TAGS_PER_DEF];
-            rogue_inv_tags_list(i, tmp, ROGUE_INV_TAG_MAX_TAGS_PER_DEF);
-            for (int k = 0; k < tc; k++)
-            {
-                size_t len = strlen(tmp[k]);
-                if (len > 255)
-                    len = 255;
-                unsigned char l = (unsigned char) len;
-                fwrite(&l, 1, 1, f);
-                fwrite(tmp[k], 1, len, f);
-            }
-        }
-    }
-    return 0;
-}
-static int read_inv_tags_component(FILE* f, size_t size)
-{
-    uint32_t count = 0;
-    if (read_varuint(f, &count) != 0)
-        return -1;
-    size_t consumed = 0;
-    rogue_inv_tags_init();
-    for (uint32_t r = 0; r < count; r++)
-    {
-        int def = 0;
-        unsigned flags = 0;
-        unsigned char tcc = 0;
-        if (fread(&def, sizeof(def), 1, f) != 1)
-            return -1;
-        if (fread(&flags, sizeof(flags), 1, f) != 1)
-            return -1;
-        if (fread(&tcc, 1, 1, f) != 1)
-            return -1;
-        consumed += sizeof(def) + sizeof(flags) + 1;
-        rogue_inv_tags_set_flags(def, flags);
-        for (unsigned char k = 0; k < tcc; k++)
-        {
-            unsigned char l = 0;
-            if (fread(&l, 1, 1, f) != 1)
-                return -1;
-            consumed += 1;
-            if (l > 0)
-            {
-                char buf[256];
-                if (l >= sizeof(buf))
-                    l = (unsigned char) (sizeof(buf) - 1);
-                if (fread(buf, 1, l, f) != l)
-                    return -1;
-                buf[l] = '\0';
-                rogue_inv_tags_add_tag(def, buf);
-                consumed += l;
-            }
-            if (consumed > size)
-                return -1;
-        }
-    }
-    return 0;
-}
-static RogueSaveComponent INV_TAGS_COMP = {ROGUE_SAVE_COMP_INV_TAGS, write_inv_tags_component,
-                                           read_inv_tags_component, "inv_tags"};
-/* Inventory auto-tag rules component (Phase 3.3/3.4) */
-static int write_inv_tag_rules_component(FILE* f) { return rogue_inv_tag_rules_write(f); }
-static int read_inv_tag_rules_component(FILE* f, size_t size)
-{
-    return rogue_inv_tag_rules_read(f, size);
-}
-static RogueSaveComponent INV_TAG_RULES_COMP = {ROGUE_SAVE_COMP_INV_TAG_RULES,
-                                                write_inv_tag_rules_component,
-                                                read_inv_tag_rules_component, "inv_tag_rules"};
-/* Inventory saved searches (Phase 4.4) */
-static int write_inv_saved_searches_component(FILE* f)
-{
-    return rogue_inventory_saved_searches_write(f);
-}
-static int read_inv_saved_searches_component(FILE* f, size_t size)
-{
-    return rogue_inventory_saved_searches_read(f, size);
-}
-static RogueSaveComponent INV_SAVED_SEARCHES_COMP = {
-    ROGUE_SAVE_COMP_INV_SAVED_SEARCHES, write_inv_saved_searches_component,
-    read_inv_saved_searches_component, "inv_saved_searches"};
-static RogueSaveComponent SKILLS_COMP = {ROGUE_SAVE_COMP_SKILLS, write_skills_component,
-                                         read_skills_component, "skills"};
-static RogueSaveComponent BUFFS_COMP = {ROGUE_SAVE_COMP_BUFFS, write_buffs_component,
-                                        read_buffs_component, "buffs"};
-static RogueSaveComponent VENDOR_COMP = {ROGUE_SAVE_COMP_VENDOR, write_vendor_component,
-                                         read_vendor_component, "vendor"};
-static RogueSaveComponent STRINGS_COMP = {ROGUE_SAVE_COMP_STRINGS, write_strings_component,
-                                          read_strings_component, "strings"};
-static RogueSaveComponent WORLD_META_COMP = {ROGUE_SAVE_COMP_WORLD_META, write_world_meta_component,
-                                             read_world_meta_component, "world_meta"};
-/* Replay component (v8) serializes event count + raw events + precomputed SHA256 of events (for
- * forward compatibility). */
-static int write_replay_component(FILE* f)
-{
-    /* Compute and serialize replay hash (events may be empty). */
-    rogue_replay_compute_hash();
-    uint32_t count = g_replay_event_count;
-    fwrite(&count, sizeof count, 1, f);
-    if (count)
-    {
-        fwrite(g_replay_events, sizeof(RogueReplayEvent), count, f);
-    }
-    fwrite(g_last_replay_hash, 1, 32, f);
-    return 0;
-}
-static int read_replay_component(FILE* f, size_t size)
-{
-    if (size < sizeof(uint32_t) + 32)
-        return -1;
-    uint32_t count = 0;
-    fread(&count, sizeof count, 1, f);
-    size_t need = (size_t) count * sizeof(RogueReplayEvent) + 32;
-    if (size < sizeof(uint32_t) + need)
-        return -1;
-    if (count > ROGUE_REPLAY_MAX_EVENTS)
-        return -1;
-    if (count)
-    {
-        fread(g_replay_events, sizeof(RogueReplayEvent), count, f);
-    }
-    else
-    { /* no events */
-    }
-    fread(g_last_replay_hash, 1, 32, f);
-    g_replay_event_count = count; /* Recompute to verify (optional) */
-    RogueSHA256Ctx sha;
-    rogue_sha256_init(&sha);
-    rogue_sha256_update(&sha, g_replay_events, count * sizeof(RogueReplayEvent));
-    unsigned char chk[32];
-    rogue_sha256_final(&sha, chk);
-    if (memcmp(chk, g_last_replay_hash, 32) != 0)
-    {
-        return -1;
-    }
-    return 0;
-}
-static RogueSaveComponent REPLAY_COMP = {ROGUE_SAVE_COMP_REPLAY, write_replay_component,
-                                         read_replay_component, "replay"};
-
-void rogue_register_core_save_components(void)
-{
-    /* Register inventory-related components first so they load before player equipment indices. */
-    rogue_save_manager_register(&WORLD_META_COMP);
-    rogue_save_manager_register(&INVENTORY_COMP);
-    rogue_save_manager_register(&INV_ENTRIES_COMP);        /* Phase 1.6 unified entries */
-    rogue_save_manager_register(&INV_TAGS_COMP);           /* Phase 3 metadata */
-    rogue_save_manager_register(&INV_TAG_RULES_COMP);      /* Phase 3.3/3.4 auto-tag rules */
-    rogue_save_manager_register(&INV_SAVED_SEARCHES_COMP); /* Phase 4.4 saved searches */
-    rogue_save_manager_register(&PLAYER_COMP);             /* after inventory to apply equips */
-    rogue_save_manager_register(&SKILLS_COMP);
-    rogue_save_manager_register(&BUFFS_COMP);
-    rogue_save_manager_register(&VENDOR_COMP);
-    rogue_save_manager_register(&STRINGS_COMP);
-    /* v8+ replay component always registered when available */
-#if ROGUE_SAVE_FORMAT_VERSION >= 8
-    rogue_save_manager_register(&REPLAY_COMP);
-#endif
-}
-
-/* (Deferred post-apply system removed for simplicity in Phase 1.6) */
-
-/* Migration definitions */
-static int migrate_v2_to_v3(unsigned char* data, size_t size)
-{
-    (void) data;
-    (void) size;
-    return 0;
-}
-static int migrate_v3_to_v4(unsigned char* data, size_t size)
-{
-    (void) data;
-    (void) size;
-    return 0;
-}
-static int migrate_v4_to_v5(unsigned char* data, size_t size)
-{
-    (void) data;
-    (void) size;
-    return 0;
-}
-static int migrate_v5_to_v6(unsigned char* data, size_t size)
-{
-    (void) data;
-    (void) size;
-    return 0;
-}
-static int migrate_v6_to_v7(unsigned char* data, size_t size)
-{
-    (void) data;
-    (void) size;
-    return 0;
-}
-static int migrate_v7_to_v8(unsigned char* data, size_t size)
-{
-    (void) data;
-    (void) size;
-    return 0;
-}
-static int migrate_v8_to_v9(unsigned char* data, size_t size)
-{
-    (void) data;
-    (void) size;
-    return 0;
-}
-static RogueSaveMigration MIG_V2_TO_V3 = {2u, 3u, migrate_v2_to_v3, "v2_to_v3_tlv_header"};
-static RogueSaveMigration MIG_V3_TO_V4 = {3u, 4u, migrate_v3_to_v4, "v3_to_v4_varint_counts"};
-static RogueSaveMigration MIG_V4_TO_V5 = {4u, 5u, migrate_v4_to_v5, "v4_to_v5_string_intern"};
-static RogueSaveMigration MIG_V5_TO_V6 = {5u, 6u, migrate_v5_to_v6, "v5_to_v6_section_compress"};
-static RogueSaveMigration MIG_V6_TO_V7 = {6u, 7u, migrate_v6_to_v7, "v6_to_v7_integrity"};
-static RogueSaveMigration MIG_V7_TO_V8 = {7u, 8u, migrate_v7_to_v8, "v7_to_v8_replay_hash"};
-static RogueSaveMigration MIG_V8_TO_V9 = {8u, 9u, migrate_v8_to_v9, "v8_to_v9_signature_opt"};
-static void rogue_register_core_migrations(void)
-{
-    if (!g_migrations_registered)
-    {
-        rogue_save_register_migration(&MIG_V2_TO_V3);
-        rogue_save_register_migration(&MIG_V3_TO_V4);
-        rogue_save_register_migration(&MIG_V4_TO_V5);
-        rogue_save_register_migration(&MIG_V5_TO_V6);
-        rogue_save_register_migration(&MIG_V6_TO_V7);
-        rogue_save_register_migration(&MIG_V7_TO_V8);
-        rogue_save_register_migration(&MIG_V8_TO_V9);
-    }
-}
+/* Component implementations live in save_components.c; migrations live in save_migrations.c. */

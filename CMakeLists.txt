@@ -153,6 +153,18 @@ add_library(rogue_core
     src/core/persistence/persistence_player.c
     src/core/persistence/persistence_autosave.c
     src/core/persistence/save_manager.c
+    # new modularized save system files
+    src/core/persistence/save_utils.c
+    src/core/persistence/save_globals.c
+    src/core/persistence/save_paths.c
+    src/core/persistence/save_intern.c
+    src/core/persistence/save_manager_core.c
+    src/core/persistence/save_autosave.c
+    src/core/persistence/save_security.c
+    src/core/persistence/save_incremental.c
+    src/core/persistence/save_replay.c
+    src/core/persistence/save_migrations.c
+    src/core/persistence/save_components.c
     # skills module split
     src/core/skills/skills_registry.c
     src/core/skills/skills_runtime.c
