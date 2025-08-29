@@ -1,3 +1,25 @@
+/**
+ * @file buffs.c
+ * @brief Implementation of the timed buff system with handle-based pool management.
+ *
+ * This module provides a comprehensive buff system supporting various buff types,
+ * stacking rules, diminishing returns for crowd control effects, and audio-visual
+ * feedback. It uses a fixed-capacity handle-based pool for efficient memory management
+ * and ABA-safe handle validation.
+ *
+ * Key features:
+ * - Handle-based API for safe buff references
+ * - Multiple stacking behaviors (unique, refresh, extend, add, multiply, replace-if-stronger)
+ * - Diminishing returns for crowd control effects (stun, root, slow)
+ * - Anti-oscillation dampening to prevent buff spam
+ * - Audio-visual feedback on buff gain/expire
+ * - Category-based buff classification
+ *
+ * @note Phase 4.5: Added diminishing returns for CC categories
+ * @note Phase 10.3: Enhanced stacking rules
+ * @note Phase 10.4: Anti-oscillation dampening
+ */
+
 #include "buffs.h"
 #include "../audio_vfx/effects.h" /* Phase 5.4: buff gain/expire cues */
 #include "../core/app/app_state.h"
@@ -21,6 +43,13 @@ static int g_dr_stun_count = 0;
 static int g_dr_root_count = 0;
 static int g_dr_slow_count = 0;
 
+/**
+ * @brief Ensures the buff system is initialized.
+ *
+ * This function provides lazy initialization of the buff pool and global state.
+ * It preserves legacy behavior where initialization wasn't explicitly called in tests.
+ * Safe to call multiple times.
+ */
 static inline void _ensure_init(void)
 {
     if (!g_initialized)
@@ -42,14 +71,45 @@ static inline void _ensure_init(void)
     }
 }
 
+/**
+ * @brief Creates a buff handle from an internal pool index.
+ *
+ * Packs the generation counter (high 16 bits) and index (low 16 bits) into a 32-bit handle
+ * for ABA-safe validation.
+ *
+ * @param idx The internal pool index (0 to ROGUE_MAX_ACTIVE_BUFFS-1)
+ * @return A valid RogueBuffHandle
+ */
 static inline RogueBuffHandle _make_handle(int idx)
 {
     /* pack gen (hi16) | index (lo16) */
     uint16_t gen = g_buffs[idx]._gen ? g_buffs[idx]._gen : 1;
     return ((uint32_t) gen << 16) | (uint32_t) (idx & 0xFFFF);
 }
+/**
+ * @brief Extracts the pool index from a buff handle.
+ *
+ * @param h The buff handle
+ * @return The internal pool index (0 to ROGUE_MAX_ACTIVE_BUFFS-1)
+ */
 static inline int _handle_index(RogueBuffHandle h) { return (int) (h & 0xFFFF); }
+
+/**
+ * @brief Extracts the generation counter from a buff handle.
+ *
+ * @param h The buff handle
+ * @return The generation counter (high 16 bits)
+ */
 static inline uint16_t _handle_gen(RogueBuffHandle h) { return (uint16_t) (h >> 16); }
+/**
+ * @brief Validates a buff handle and returns the corresponding pool index.
+ *
+ * Performs bounds checking, active status verification, and generation counter validation
+ * to ensure the handle is still valid and hasn't been recycled.
+ *
+ * @param h The buff handle to validate
+ * @return The pool index if valid, -1 if invalid
+ */
 static int _validate_handle(RogueBuffHandle h)
 {
     if (h == ROGUE_BUFF_INVALID_HANDLE)
@@ -64,6 +124,13 @@ static int _validate_handle(RogueBuffHandle h)
         return -1;
     return idx;
 }
+/**
+ * @brief Allocates a free slot from the buff pool.
+ *
+ * Uses a free-list to efficiently find and allocate available buff slots.
+ *
+ * @return The allocated pool index, or -1 if pool is full
+ */
 static int _alloc_slot(void)
 {
     if (g_free_head < 0)
@@ -73,6 +140,14 @@ static int _alloc_slot(void)
     g_buffs[idx]._next_free = -1;
     return idx;
 }
+/**
+ * @brief Returns a buff slot to the free pool.
+ *
+ * Deactivates the buff, increments the generation counter for ABA safety,
+ * and adds the slot back to the free-list.
+ *
+ * @param idx The pool index to free (must be valid)
+ */
 static void _free_slot(int idx)
 {
     if (idx < 0 || idx >= ROGUE_MAX_ACTIVE_BUFFS)
@@ -86,6 +161,12 @@ static void _free_slot(int idx)
     g_free_head = idx;
 }
 
+/**
+ * @brief Initializes the buff system.
+ *
+ * Sets up the free-list, zeros all buff slots, and initializes global state.
+ * Safe to call multiple times - subsequent calls are no-ops.
+ */
 void rogue_buffs_init(void)
 {
     memset(g_buffs, 0, sizeof g_buffs);
@@ -103,6 +184,15 @@ void rogue_buffs_init(void)
     g_dr_stun_count = g_dr_root_count = g_dr_slow_count = 0;
 }
 
+/**
+ * @brief Updates the buff system, expiring buffs that have reached their end time.
+ *
+ * Iterates through all active buffs and expires those whose end_ms is less than
+ * or equal to the current time. Triggers audio-visual feedback and expiration
+ * callbacks for expired buffs.
+ *
+ * @param now_ms Current time in milliseconds
+ */
 void rogue_buffs_update(double now_ms)
 {
     _ensure_init();
@@ -119,6 +209,21 @@ void rogue_buffs_update(double now_ms)
         }
 }
 
+/**
+ * @brief Applies a buff with the specified parameters.
+ *
+ * Attempts to apply a buff of the given type, magnitude, and duration. Handles stacking
+ * rules, diminishing returns for crowd control effects, anti-oscillation dampening,
+ * and audio-visual feedback.
+ *
+ * @param type The type of buff to apply
+ * @param magnitude The strength/intensity of the buff
+ * @param duration_ms How long the buff should last in milliseconds
+ * @param now_ms Current time in milliseconds
+ * @param rule How to handle stacking with existing buffs of the same type
+ * @param snapshot Whether the buff magnitude should be snapshotted (immutable)
+ * @return 1 if the buff was successfully applied, 0 otherwise
+ */
 int rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, double now_ms,
                       RogueBuffStackRule rule, int snapshot)
 {
@@ -274,6 +379,20 @@ int rogue_buffs_apply(RogueBuffType type, int magnitude, double duration_ms, dou
     }
 }
 
+/**
+ * @brief Applies a buff and returns a handle to it.
+ *
+ * Handle-returning variant of rogue_buffs_apply. Returns a RogueBuffHandle that can be
+ * used for subsequent operations on the buff, or ROGUE_BUFF_INVALID_HANDLE on failure.
+ *
+ * @param type The type of buff to apply
+ * @param magnitude The strength/intensity of the buff
+ * @param duration_ms How long the buff should last in milliseconds
+ * @param now_ms Current time in milliseconds
+ * @param rule How to handle stacking with existing buffs of the same type
+ * @param snapshot Whether the buff magnitude should be snapshotted (immutable)
+ * @return A valid handle to the buff, or ROGUE_BUFF_INVALID_HANDLE on failure
+ */
 RogueBuffHandle rogue_buffs_apply_h(RogueBuffType type, int magnitude, double duration_ms,
                                     double now_ms, RogueBuffStackRule rule, int snapshot)
 {
@@ -425,6 +544,20 @@ RogueBuffHandle rogue_buffs_apply_h(RogueBuffType type, int magnitude, double du
     return _make_handle(idx);
 }
 
+/**
+ * @brief Refreshes an existing buff via its handle.
+ *
+ * Applies new parameters to an existing buff identified by handle, following the
+ * specified stacking rule. The snapshot flag is ignored (immutable post-creation).
+ *
+ * @param h Handle to the buff to refresh
+ * @param magnitude New magnitude value
+ * @param duration_ms New duration in milliseconds
+ * @param now_ms Current time in milliseconds
+ * @param rule Stacking rule to apply
+ * @param snapshot Ignored (snapshot status cannot be changed)
+ * @return 1 if refresh succeeded, 0 if handle invalid
+ */
 int rogue_buffs_refresh_h(RogueBuffHandle h, int magnitude, double duration_ms, double now_ms,
                           RogueBuffStackRule rule, int snapshot)
 {
@@ -437,6 +570,16 @@ int rogue_buffs_refresh_h(RogueBuffHandle h, int magnitude, double duration_ms, 
                              g_buffs[idx].snapshot);
 }
 
+/**
+ * @brief Removes a buff via its handle.
+ *
+ * Immediately expires a buff identified by handle, triggering audio-visual feedback
+ * and expiration callbacks as if it had expired naturally.
+ *
+ * @param h Handle to the buff to remove
+ * @param now_ms Current time (reserved for future use)
+ * @return 1 if removal succeeded, 0 if handle invalid
+ */
 int rogue_buffs_remove_h(RogueBuffHandle h, double now_ms)
 {
     _ensure_init();
@@ -454,6 +597,15 @@ int rogue_buffs_remove_h(RogueBuffHandle h, double now_ms)
     return 1;
 }
 
+/**
+ * @brief Queries buff data via its handle.
+ *
+ * Retrieves the current state of a buff identified by handle.
+ *
+ * @param h Handle to the buff to query
+ * @param out Pointer to RogueBuff struct to fill with buff data
+ * @return 1 if query succeeded, 0 if handle invalid or out is NULL
+ */
 int rogue_buffs_query_h(RogueBuffHandle h, RogueBuff* out)
 {
     _ensure_init();
@@ -464,6 +616,14 @@ int rogue_buffs_query_h(RogueBuffHandle h, RogueBuff* out)
     return 1;
 }
 
+/**
+ * @brief Gets the total strength bonus from all active strength buffs.
+ *
+ * Sums the magnitudes of all active ROGUE_BUFF_STAT_STRENGTH buffs.
+ * Used for stat calculation integration.
+ *
+ * @return Total strength bonus value
+ */
 int rogue_buffs_strength_bonus(void)
 {
     _ensure_init();
@@ -473,6 +633,14 @@ int rogue_buffs_strength_bonus(void)
             total += g_buffs[i].magnitude;
     return total;
 }
+/**
+ * @brief Sets the minimum interval between same-type buff applications.
+ *
+ * Configures anti-oscillation dampening to prevent buff spam. Buffs of the same
+ * type applied within this interval will be rejected.
+ *
+ * @param min_interval_ms Minimum milliseconds between applications (clamped to >= 0)
+ */
 void rogue_buffs_set_dampening(double min_interval_ms)
 {
     _ensure_init();
@@ -481,6 +649,14 @@ void rogue_buffs_set_dampening(double min_interval_ms)
     g_min_reapply_interval_ms = min_interval_ms;
 }
 
+/**
+ * @brief Gets the total magnitude of all active buffs of a specific type.
+ *
+ * Sums the magnitudes of all active buffs matching the specified type.
+ *
+ * @param type The buff type to query
+ * @return Total magnitude of all matching active buffs
+ */
 int rogue_buffs_get_total(RogueBuffType type)
 {
     _ensure_init();
@@ -491,6 +667,11 @@ int rogue_buffs_get_total(RogueBuffType type)
     return total;
 }
 
+/**
+ * @brief Gets the number of currently active buffs.
+ *
+ * @return The count of active buff slots
+ */
 int rogue_buffs_active_count(void)
 {
     _ensure_init();
@@ -500,6 +681,16 @@ int rogue_buffs_active_count(void)
             c++;
     return c;
 }
+/**
+ * @brief Gets the Nth active buff by index.
+ *
+ * Retrieves buff data for the Nth active buff (0-based indexing).
+ * Useful for iterating through all active buffs.
+ *
+ * @param index The index of the active buff to retrieve (0 to active_count-1)
+ * @param out Pointer to RogueBuff struct to fill with buff data
+ * @return 1 if retrieval succeeded, 0 if index out of range or out is NULL
+ */
 int rogue_buffs_get_active(int index, RogueBuff* out)
 {
     _ensure_init();
@@ -518,6 +709,17 @@ int rogue_buffs_get_active(int index, RogueBuff* out)
         }
     return 0;
 }
+/**
+ * @brief Creates a snapshot of all active buffs.
+ *
+ * Copies up to 'max' active buffs into the provided array, pruning any expired buffs
+ * in the process. Useful for persistence and UI display.
+ *
+ * @param out Array to store buff snapshots
+ * @param max Maximum number of buffs to copy
+ * @param now_ms Current time for expiration checking
+ * @return Number of buffs copied to the array
+ */
 int rogue_buffs_snapshot(RogueBuff* out, int max, double now_ms)
 {
     _ensure_init();
@@ -541,9 +743,26 @@ int rogue_buffs_snapshot(RogueBuff* out, int max, double now_ms)
     return c;
 }
 
+/**
+ * @brief Sets the callback function for buff expiration events.
+ *
+ * Registers a callback that will be invoked whenever a buff expires naturally
+ * or is manually removed. The callback receives the buff type and final magnitude.
+ *
+ * @param cb Function pointer to the expiration callback, or NULL to disable
+ */
 void rogue_buffs_set_on_expire(RogueBuffExpireFn cb) { g_on_expire = cb; }
 
 /* Phase 4.3: Category helpers. Keep a simple mapping for built-in types. */
+/**
+ * @brief Gets the category flags for a buff type.
+ *
+ * Returns a bitmask of category flags (offensive, defensive, movement, utility)
+ * and crowd control sub-flags (stun, root, slow) for the given buff type.
+ *
+ * @param type The buff type to query
+ * @return Bitmask of RogueBuffCategoryFlags
+ */
 uint32_t rogue_buffs_type_categories(RogueBuffType type)
 {
     switch (type)
@@ -564,6 +783,14 @@ uint32_t rogue_buffs_type_categories(RogueBuffType type)
 }
 
 /* Phase 4.5: DR API */
+/**
+ * @brief Sets the diminishing returns window duration.
+ *
+ * Configures how long the DR window lasts for crowd control effects.
+ * Within this window, repeated CC applications of the same type have reduced effectiveness.
+ *
+ * @param ms Window duration in milliseconds (clamped to >= 0)
+ */
 void rogue_buffs_set_dr_window_ms(double ms)
 {
     _ensure_init();
@@ -571,6 +798,12 @@ void rogue_buffs_set_dr_window_ms(double ms)
         ms = 0;
     g_dr_window_ms = ms;
 }
+/**
+ * @brief Resets the diminishing returns state.
+ *
+ * Clears all DR counters and windows, effectively resetting CC effectiveness
+ * to 100% for all categories.
+ */
 void rogue_buffs_reset_dr_state(void)
 {
     _ensure_init();

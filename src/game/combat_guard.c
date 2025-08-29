@@ -1,3 +1,35 @@
+/**
+ * @file combat_guard.c
+ * @brief Player guard and poise system implementation
+ *
+ * This module implements the player's defensive combat mechanics including:
+ * - Guard meter management with drain/recovery mechanics
+ * - Perfect guard timing windows and bonuses
+ * - Passive blocking system with stat-based chances
+ * - Poise damage and reaction system
+ * - Damage conversion from physical to elemental types
+ * - Reactive shield absorption mechanics
+ * - Thorns reflection system
+ *
+ * The guard system provides active defense through directional blocking, while poise
+ * manages the player's ability to maintain composure under attack. Both systems
+ * integrate with the stat cache for dynamic scaling based on equipment and abilities.
+ *
+ * Key features:
+ * - Directional guard cone with dot product calculations
+ * - Perfect guard windows with meter refunds and poise bonuses
+ * - Passive block chance independent of active guarding
+ * - Poise-based reaction triggers (stagger, knockdown, heavy hit)
+ * - Physical-to-elemental damage conversion
+ * - Reactive shield absorption before damage application
+ * - Thorns damage reflection with configurable caps
+ *
+ * @note Phase 7.1: Passive block chance system
+ * @note Phase 7.2: Physical to elemental damage conversion
+ * @note Phase 7.4: Reactive shield absorption
+ * @note Phase 7.5: Thorns reflection system
+ */
+
 #include "../core/app/app_state.h"
 #include "../core/equipment/equipment_procs.h" /* for reactive shield procs */
 #include "combat.h"
@@ -6,7 +38,19 @@
 #include <math.h>
 #include <stdlib.h>
 
-/* Guard & Poise / Incoming Melee */
+/**
+ * @brief Set the player's facing direction for guard mechanics
+ *
+ * Updates the player's facing direction to the specified cardinal direction.
+ * This is used by the guard system to determine the direction the player
+ * is actively defending against incoming attacks.
+ *
+ * @param p Pointer to the player entity (must not be NULL)
+ * @param dir Facing direction (0=north, 1=west, 2=east, 3=south)
+ *
+ * @note Direction values outside 0-3 are ignored
+ * @note This is an internal helper function for guard mechanics
+ */
 static void rogue_player_face(RoguePlayer* p, int dir)
 {
     if (!p)
@@ -15,6 +59,20 @@ static void rogue_player_face(RoguePlayer* p, int dir)
         return;
     p->facing = dir;
 }
+
+/**
+ * @brief Convert player's facing direction to a normalized direction vector
+ *
+ * Converts the player's cardinal facing direction into a normalized 2D vector
+ * for use in guard cone calculations and directional blocking mechanics.
+ *
+ * @param p Pointer to the player entity (must not be NULL)
+ * @param dx Output parameter for X component of facing direction (-1=left, 0=neutral, 1=right)
+ * @param dy Output parameter for Y component of facing direction (-1=down, 0=neutral, 1=up)
+ *
+ * @note Vectors are normalized (length = 1.0)
+ * @note Default direction is north (0, 1) for invalid facing values
+ */
 static void rogue_player_facing_dir(const RoguePlayer* p, float* dx, float* dy)
 {
     switch (p->facing)
@@ -42,6 +100,21 @@ static void rogue_player_facing_dir(const RoguePlayer* p, float* dx, float* dy)
     }
 }
 
+/**
+ * @brief Initiate active guarding in the specified direction
+ *
+ * Attempts to start the player guarding in the given direction. Guarding requires
+ * available guard meter and will automatically set the player's facing direction.
+ * The guard state enables directional blocking against incoming melee attacks.
+ *
+ * @param p Pointer to the player entity (must not be NULL)
+ * @param guard_dir Direction to guard (0=north, 1=west, 2=east, 3=south)
+ * @return 1 if guarding was successfully initiated, 0 if failed (no guard meter)
+ *
+ * @note Guarding consumes guard meter over time while active
+ * @note Player facing direction is automatically updated to match guard direction
+ * @note Guard meter must be > 0 to initiate guarding
+ */
 int rogue_player_begin_guard(RoguePlayer* p, int guard_dir)
 {
     if (!p)
@@ -56,6 +129,24 @@ int rogue_player_begin_guard(RoguePlayer* p, int guard_dir)
     rogue_player_face(p, guard_dir);
     return 1;
 }
+/**
+ * @brief Update guard state and meter based on current activity
+ *
+ * Updates the player's guard meter based on whether they are actively guarding or recovering.
+ * When guarding, the meter drains over time with recovery modifiers affecting drain rate.
+ * When not guarding, the meter regenerates with recovery modifiers boosting regen rate.
+ * Also handles poise regeneration during this update cycle.
+ *
+ * @param p Pointer to the player entity (must not be NULL)
+ * @param dt_ms Time delta in milliseconds since last update
+ * @return 1 if guard meter was depleted during this update (chip damage occurred), 0 otherwise
+ *
+ * @note Recovery modifiers from stat cache affect both drain rate and regen rate
+ * @note Drain rate is inversely affected by recovery (better recovery = less drain)
+ * @note Regen rate is directly boosted by recovery modifiers
+ * @note Poise regeneration is also handled during this update
+ * @note Guard meter is clamped between 0 and maximum values
+ */
 int rogue_player_update_guard(RoguePlayer* p, float dt_ms)
 {
     if (!p)
@@ -91,6 +182,41 @@ int rogue_player_update_guard(RoguePlayer* p, float dt_ms)
     return chip;
 }
 
+/**
+ * @brief Process incoming melee damage through the guard and poise system
+ *
+ * Comprehensive damage processing function that handles the complete defensive pipeline:
+ * 1. God mode bypass
+ * 2. I-frame immunity check
+ * 3. Passive block chance (Phase 7.1)
+ * 4. Active guard blocking with perfect guard mechanics
+ * 5. Poise damage and reaction triggers
+ * 6. Physical to elemental damage conversion (Phase 7.2)
+ * 7. Reactive shield absorption (Phase 7.4)
+ * 8. Thorns reflection (Phase 7.5)
+ *
+ * The function evaluates attack direction against guard cone, applies appropriate
+ * damage mitigation, and triggers defensive reactions and procs.
+ *
+ * @param p Pointer to the player entity (must not be NULL)
+ * @param raw_damage Raw incoming damage value (physical assumed)
+ * @param attack_dir_x X component of attack direction vector
+ * @param attack_dir_y Y component of attack direction vector
+ * @param poise_damage Amount of poise damage to apply
+ * @param out_blocked Output flag set to 1 if attack was blocked (can be NULL)
+ * @param out_perfect Output flag set to 1 if attack was perfect blocked (can be NULL)
+ * @return Final damage value after all mitigation and absorption effects
+ *
+ * @note God mode completely bypasses all defensive mechanics
+ * @note I-frames provide temporary immunity to all damage
+ * @note Guard blocking requires active guarding, sufficient meter, and attack within guard cone
+ * @note Perfect guard timing provides meter refund and poise bonus
+ * @note Passive blocking provides flat damage reduction independent of guarding
+ * @note Poise damage can trigger reactions (stagger, knockdown, heavy hit)
+ * @note Damage conversion transforms physical damage to elemental types
+ * @note Reactive shields absorb damage before it reaches the player
+ * @note Thorns reflect a percentage of final damage back to attacker
+ */
 int rogue_player_apply_incoming_melee(RoguePlayer* p, float raw_damage, float attack_dir_x,
                                       float attack_dir_y, int poise_damage, int* out_blocked,
                                       int* out_perfect)
@@ -290,6 +416,21 @@ int rogue_player_apply_incoming_melee(RoguePlayer* p, float raw_damage, float at
     return (int) raw_damage;
 }
 
+/**
+ * @brief Handle poise regeneration over time
+ *
+ * Manages the player's poise recovery system with delay mechanics and non-linear
+ * regeneration rates. Poise regeneration is delayed after taking damage and
+ * accelerates as poise gets lower (missing poise ratio squared scaling).
+ *
+ * @param p Pointer to the player entity (must not be NULL)
+ * @param dt_ms Time delta in milliseconds since last update
+ *
+ * @note Poise regeneration is delayed after taking damage (ROGUE_POISE_REGEN_DELAY_AFTER_HIT)
+ * @note Regeneration rate increases quadratically as poise gets lower
+ * @note Base regeneration is ROGUE_POISE_REGEN_BASE_PER_MS
+ * @note Poise is clamped between 0 and maximum values
+ */
 void rogue_player_poise_regen_tick(RoguePlayer* p, float dt_ms)
 {
     if (!p)
