@@ -33,11 +33,11 @@ PHASE 1. Project Setup & Build Integration
 1.5 Tests: basic build with/without debug overlay flags (Partial – unit test added to verify flag behavior; dual-config CI still TBD)
 
 PHASE 2. JSON I/O Foundation
-2.1 Implement json_io.h/.c: common JSON read/write, error handling, atomic save (X)
-2.2 Design versioned JSON schema envelope: $schema, version, entries (X)
-2.3 Add error buffer conventions: all functions accept char* err, int cap (X)
-2.4 Implement file utilities: temp paths, atomic rename, mtime tracking (X)
-2.5 Tests: JSON load/save roundtrip, error handling, atomic save safety (X)
+2.1 Implement json_io.h/.c: common JSON read/write, error handling, atomic save (Done – read_file, write_atomic, get_mtime_ms with char* err, int cap)
+2.2 Design versioned JSON schema envelope: $schema, version, entries (Done – json_envelope.{h,c} create/parse; entries captured verbatim JSON)
+2.3 Add error buffer conventions: all functions accept char* err, int cap (Done – applied to json_io and json_envelope)
+2.4 Implement file utilities: temp paths, atomic rename, mtime tracking (Done – write_atomic uses sidecar temp + MoveFileExW/rename; mtime via Win32/POSIX)
+2.5 Tests: JSON load/save roundtrip, error handling, atomic save safety (Done – test_json_io); envelope parse/create and errors (Done – test_json_envelope)
 
 PHASE 3. Items JSON Schema & Migration
 3.1 Design items.json schema: id, name, type, stats, rarity, tags (X)

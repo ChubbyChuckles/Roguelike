@@ -11,12 +11,13 @@
 #include <stdio.h>
 #include <string.h>
 
-// Temporary tracing for diagnosing fuzz mismatch; disable before commit.
+// Optional tracing for diagnosing fuzz; disabled by default. Define ROGUE_TRACE_BB=1 to enable.
 #ifndef ROGUE_TRACE_BB
-#define ROGUE_TRACE_BB 1
+#define ROGUE_TRACE_BB 0
 #endif
 #if ROGUE_TRACE_BB
 static FILE* g_bb_log = NULL;
+static unsigned long g_bb_op = 0; // monotonic counter for ops to aid fuzz repro
 static void rbb_trace_file_init(void)
 {
     if (!g_bb_log)
@@ -293,8 +294,10 @@ bool rogue_bb_write_int(RogueBlackboard* bb, const char* key, int value, RogueBB
     RogueBBEntry* e = rogue_bb_find_or_add(bb, key);
     if (!e)
         return false;
+#if ROGUE_TRACE_BB
     RogueBBValueType prev_type = e->type;
     int before = (e->type == ROGUE_BB_INT) ? e->v.i : e->last_i;
+#endif
     if (e->type != ROGUE_BB_INT)
     {
         // Convert to int preserving last known baseline
@@ -309,8 +312,8 @@ bool rogue_bb_write_int(RogueBlackboard* bb, const char* key, int value, RogueBB
     {
         e->dirty = 1;
     }
-    RBB_TRACE("bb:int key=%s pol=%d prev_type=%d before=%d val=%d after=%d", key, (int) policy,
-              (int) prev_type, before, value, e->v.i);
+    RBB_TRACE("bb:%lu int key=%s pol=%d prev_type=%d before=%d val=%d after=%d", ++g_bb_op, key,
+              (int) policy, (int) prev_type, before, value, e->v.i);
     // For int writes, treat a no-op policy application as a successful call.
     // Tests expect true even if value remains unchanged under MAX/MIN.
     return true;
@@ -326,8 +329,10 @@ bool rogue_bb_write_float(RogueBlackboard* bb, const char* key, float value,
     RogueBBEntry* e = rogue_bb_find_or_add(bb, key);
     if (!e)
         return false;
+#if ROGUE_TRACE_BB
     RogueBBValueType prev_type = e->type;
     float before = (e->type == ROGUE_BB_FLOAT) ? e->v.f : e->last_f;
+#endif
     if (e->type != ROGUE_BB_FLOAT)
     {
         // Convert to float preserving last known baseline
@@ -342,8 +347,8 @@ bool rogue_bb_write_float(RogueBlackboard* bb, const char* key, float value,
     {
         e->dirty = 1;
     }
-    RBB_TRACE("bb:flt key=%s pol=%d prev_type=%d before=%.5f val=%.5f after=%.5f", key,
-              (int) policy, (int) prev_type, before, value, e->v.f);
+    RBB_TRACE("bb:%lu flt key=%s pol=%d prev_type=%d before=%.5f val=%.5f after=%.5f", ++g_bb_op,
+              key, (int) policy, (int) prev_type, before, value, e->v.f);
     return changed;
 }
 
@@ -430,16 +435,16 @@ bool rogue_bb_get_float(const RogueBlackboard* bb, const char* key, float* out_v
     RogueBBEntry* e = rogue_bb_find((RogueBlackboard*) bb, key);
     if (!e)
     {
-        RBB_TRACE("bb:getflt key=%s miss", key);
+        RBB_TRACE("bb:%lu getflt key=%s miss", ++g_bb_op, key);
         return false;
     }
     if (e->type != ROGUE_BB_FLOAT)
     {
-        RBB_TRACE("bb:getflt key=%s wrongtype=%d", key, (int) e->type);
+        RBB_TRACE("bb:%lu getflt key=%s wrongtype=%d", ++g_bb_op, key, (int) e->type);
         return false;
     }
     *out_value = e->v.f;
-    RBB_TRACE("bb:getflt key=%s val=%.5f", key, e->v.f);
+    RBB_TRACE("bb:%lu getflt key=%s val=%.5f", ++g_bb_op, key, e->v.f);
     return true;
 }
 /**

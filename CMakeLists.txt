@@ -122,6 +122,7 @@ add_library(rogue_core
     src/ui/core/ui_test_harness.c
     # content json foundation
     src/content/json_io.c
+    src/content/json_envelope.c
     src/core/player/player_progress.c
     src/world/world_renderer.c
     src/graphics/animation_system.c
@@ -700,6 +701,11 @@ add_test(NAME test_tag_registry_validate COMMAND test_tag_registry_validate)
 add_executable(test_json_io tests/test_json_io.c)
 target_link_libraries(test_json_io PRIVATE rogue_core)
 add_test(NAME test_json_io COMMAND test_json_io)
+
+# JSON envelope tests
+add_executable(test_json_envelope tests/test_json_envelope.c)
+target_link_libraries(test_json_envelope PRIVATE rogue_core)
+add_test(NAME test_json_envelope COMMAND test_json_envelope)
 
 add_executable(test_skills_ordering_invariance tests/unit/test_skills_ordering_invariance.c)
 target_link_libraries(test_skills_ordering_invariance PRIVATE rogue_core)

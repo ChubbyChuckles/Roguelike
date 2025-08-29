@@ -129,3 +129,12 @@ feat(debug-overlay): add Player Debug Panel + player_debug APIs; honor god mode 
 - Build: CMake wires player_debug.c into rogue_core; headless guards preserved.
 - Tests: Full Debug run (SDL2, -j12) passed 100% (558/558). Overlay tests remain green.
 - Docs: Roadmap marks 6.2/6.3 Done and 6.5 Partial; README notes the Player panel and APIs.
+
+feat(content-json): JSON envelope ($schema, version, entries) + IO foundation finalized
+
+- Implement json_envelope.{h,c}: create and parse a minimal versioned JSON envelope capturing entries as raw JSON text; returns allocated fields with error-buffer conventions.
+- Extend json_io with consistent error buffer usage; atomic write uses sidecar temp + MoveFileExW/rename; mtime getter on Win32/POSIX.
+- Tests: add test_json_envelope (create/parse basic and error cases); existing test_json_io validates read/write/mtime.
+- Build: wire src/content/json_envelope.c into rogue_core; add new test target to CMake; run in Debug (SDL2) with parallelism.
+- Roadmap: Phase 2.1–2.5 marked Done in implementation_plan_debugging_overlay.txt with brief notes.
+- README: Debug Overlay/Data section will reference JSON IO/envelope utilities for upcoming content schemas.
