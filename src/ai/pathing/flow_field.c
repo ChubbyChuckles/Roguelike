@@ -1,16 +1,68 @@
+/**
+ * @file flow_field.c
+ * @brief Flow field pathfinding implementation using Dijkstra's algorithm.
+ *
+ * This module provides flow field pathfinding capabilities for AI agents. Flow fields
+ * precompute optimal movement directions from any point on the map toward a target
+ * location, enabling efficient crowd movement and coordinated AI behavior.
+ *
+ * The implementation uses Dijkstra's algorithm to compute shortest paths from the
+ * target to all reachable cells, storing both distance information and directional
+ * vectors for each cell. This allows agents to make optimal movement decisions
+ * without needing to recalculate paths individually.
+ *
+ * Key features:
+ * - Dijkstra-based pathfinding with tile movement costs
+ * - Precomputed directional vectors for efficient agent movement
+ * - Memory-efficient storage using distance arrays and direction vectors
+ * - Integration with navigation system for blocking and cost calculations
+ */
+
 #include "flow_field.h"
 #include "../../core/app/app_state.h"
 #include <math.h>
 #include <stdlib.h>
 
+/**
+ * @brief Internal node structure for Dijkstra's algorithm priority queue.
+ *
+ * Used in the Dijkstra implementation to store nodes in the priority queue,
+ * containing position coordinates and distance from the target.
+ */
 typedef struct FFNode
 {
-    int x, y;
-    float dist;
+    int x, y;     /**< World coordinates of this node */
+    float dist;   /**< Distance from target (used for priority queue ordering) */
 } FFNode;
 
+/**
+ * @brief Converts 2D coordinates to 1D array index.
+ *
+ * @param x X coordinate
+ * @param y Y coordinate
+ * @param w Width of the 2D array
+ * @return Linear array index
+ */
 static inline int idx(int x, int y, int w) { return y * w + x; }
 
+/**
+ * @brief Builds a flow field pointing toward a target location using Dijkstra's algorithm.
+ *
+ * This function computes a complete flow field from all reachable cells on the map
+ * toward the specified target coordinates. The algorithm:
+ * 1. Initializes distance arrays and direction vectors
+ * 2. Uses Dijkstra's algorithm with a priority queue to compute shortest paths
+ * 3. Stores directional vectors pointing toward the target for each reachable cell
+ * 4. Handles tile movement costs and blocking terrain
+ *
+ * The resulting flow field can be queried to get optimal movement directions
+ * from any point on the map toward the target.
+ *
+ * @param tx Target X coordinate
+ * @param ty Target Y coordinate
+ * @param out_ff Pointer to flow field structure to populate
+ * @return 1 on success, 0 on failure (invalid parameters, out of bounds, or memory allocation failure)
+ */
 int rogue_flow_field_build(int tx, int ty, RogueFlowField* out_ff)
 {
     if (!out_ff)
@@ -102,6 +154,15 @@ int rogue_flow_field_build(int tx, int ty, RogueFlowField* out_ff)
     return 1;
 }
 
+/**
+ * @brief Frees all heap memory associated with a flow field.
+ *
+ * Deallocates the distance and direction arrays owned by the flow field
+ * and resets all fields to safe default values. After calling this function,
+ * the flow field structure should not be used until rebuilt.
+ *
+ * @param ff Pointer to the flow field to free
+ */
 void rogue_flow_field_free(RogueFlowField* ff)
 {
     if (!ff)
@@ -116,6 +177,21 @@ void rogue_flow_field_free(RogueFlowField* ff)
     ff->target_x = ff->target_y = 0;
 }
 
+/**
+ * @brief Gets the recommended movement direction from a position toward the target.
+ *
+ * Queries the flow field to determine the optimal cardinal movement direction
+ * from the specified position toward the target. The direction is computed
+ * during flow field construction and represents the first step along the
+ * shortest path to the target.
+ *
+ * @param ff Pointer to the flow field to query
+ * @param x Current X position
+ * @param y Current Y position
+ * @param out_dx Pointer to store the X movement delta (-1, 0, or 1)
+ * @param out_dy Pointer to store the Y movement delta (-1, 0, or 1)
+ * @return 0 on success, -1 on invalid parameters, -2 on out-of-bounds position, 1 if unreachable (stays put)
+ */
 int rogue_flow_field_step(const RogueFlowField* ff, int x, int y, int* out_dx, int* out_dy)
 {
     if (!ff || !out_dx || !out_dy)

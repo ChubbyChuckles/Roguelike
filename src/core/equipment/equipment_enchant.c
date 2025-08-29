@@ -1,3 +1,21 @@
+/**
+ * @file equipment_enchant.c
+ * @brief Equipment enchantment and reforge system implementation.
+ *
+ * This file implements the equipment enhancement system including enchanting,
+ * reforge mechanics, and protective seals. The system allows players to
+ * reroll item affixes, completely reforge items, and protect valuable
+ * affixes from being changed during future operations.
+ *
+ * Key functionality includes:
+ * - Enchanting: Rerolling individual or both affixes on items
+ * - Reforging: Complete item reconstruction with new affixes
+ * - Protective seals: Locking affixes to prevent accidental changes
+ * - Material-based scaling: Cost adjustments based on catalyst quality
+ * - Budget validation: Ensuring enhanced items stay within budget constraints
+ * - Crafting journal integration: Tracking enhancement outcomes
+ */
+
 #include "equipment_enchant.h"
 #include "../../game/stat_cache.h"
 #include "../crafting/crafting_journal.h"
@@ -10,10 +28,24 @@
 #include "../vendor/economy.h"
 #include <stdlib.h>
 
-/* Material IDs looked up lazily (cached after first resolution) */
-static int g_enchant_mat_def = -1; /* enchant_orb */
-static int g_reforge_mat_def = -1; /* reforge_hammer */
+/* ---- Material ID Caching ---- */
 
+/**
+ * @brief Cached material definition indices for enchantment operations.
+ *
+ * These global variables cache the item definition indices for materials
+ * used in enchantment operations, resolved lazily on first use to avoid
+ * repeated string lookups.
+ */
+static int g_enchant_mat_def = -1; /**< Cached index for enchant_orb material */
+static int g_reforge_mat_def = -1; /**< Cached index for reforge_hammer material */
+
+/**
+ * @brief Resolve material definition indices from item names.
+ *
+ * Lazily resolves and caches the item definition indices for enchantment
+ * materials. Called automatically when needed during enchantment operations.
+ */
 static void resolve_material_ids(void)
 {
     if (g_enchant_mat_def < 0)
@@ -22,23 +54,41 @@ static void resolve_material_ids(void)
         g_reforge_mat_def = rogue_item_def_index("reforge_hammer");
 }
 
-/* Phase 6.3: Integrate material scaling
-   Scaling model:
-     - Base cost formula as before.
-     - Apply a multiplier based on average catalyst tier (if defined) else fallback to rarity
-   modulation.
-     - Apply diminishing inflation based on historical enchant count (stubbed via econ hook
-   placeholder returning 0 for now) so future integration can reduce runaway costs.
-*/
-static int g_cached_prefix_tier = -1; /* lazily resolve from material registry via associated
-                                         catalyst item (imbue_prefix_stone) if available */
-static int g_cached_suffix_tier = -1; /* not strictly needed here but reserved */
+/* ---- Phase 6.3: Material Scaling System ---- */
+
+/**
+ * @brief Cached material tiers for enchantment scaling.
+ *
+ * These variables cache the material tiers used for cost scaling calculations,
+ * resolved lazily from the material registry.
+ */
+static int g_cached_prefix_tier = -1; /**< Cached tier for imbue_prefix_stone */
+static int g_cached_suffix_tier = -1; /**< Reserved for future suffix scaling */
+
+/**
+ * @brief Resolve material tier for a given item.
+ *
+ * Looks up the material tier associated with an item from the material registry.
+ * Used for scaling enchantment costs based on catalyst quality.
+ *
+ * @param item_id Item identifier string.
+ * @return int Material tier, or -1 if not found.
+ */
 static int resolve_material_tier_for_item(const char* item_id)
 {
     if (!item_id)
         return -1;
     return rogue_material_tier_by_item(item_id);
 }
+/**
+ * @brief Calculate catalyst tier multiplier for cost scaling.
+ *
+ * Computes a cost multiplier based on the catalyst material tier.
+ * Higher tier catalysts increase costs linearly up to a maximum of 1.25x.
+ * Tier 0 = 1.00x, Tier 5 = 1.10x, Tier 10 = 1.20x, etc.
+ *
+ * @return float Cost multiplier between 1.0 and 1.25.
+ */
 static float catalyst_tier_multiplier(void)
 {
     if (g_cached_prefix_tier < 0)
@@ -55,6 +105,18 @@ static float catalyst_tier_multiplier(void)
         mult = 1.25f;
     return mult;
 }
+/**
+ * @brief Calculate enchantment cost based on item properties.
+ *
+ * Computes the gold cost for enchanting an item based on its level, rarity,
+ * and socket count. The base cost includes level scaling, rarity quadratic
+ * scaling, and socket penalties, then applies material tier multipliers.
+ *
+ * @param item_level Item level (clamped to minimum 1).
+ * @param rarity Item rarity (0-4, clamped to valid range).
+ * @param slots Number of socket slots (minimum 0).
+ * @return int Enchantment cost in gold.
+ */
 static int enchant_cost_formula(int item_level, int rarity, int slots)
 {
     if (item_level < 1)
@@ -72,6 +134,18 @@ static int enchant_cost_formula(int item_level, int rarity, int slots)
         cost = base;
     return cost;
 }
+/**
+ * @brief Calculate reforge cost based on item properties.
+ *
+ * Computes the gold cost for reforging an item, which is typically more
+ * expensive than enchanting. Uses the enchantment cost as a base and
+ * applies a 2x multiplier for the heavier operation.
+ *
+ * @param item_level Item level.
+ * @param rarity Item rarity.
+ * @param slots Number of socket slots.
+ * @return int Reforge cost in gold (2x enchantment cost).
+ */
 static int reforge_cost_formula(int item_level, int rarity, int slots)
 {
     int base = enchant_cost_formula(item_level, rarity, slots);
@@ -80,6 +154,20 @@ static int reforge_cost_formula(int item_level, int rarity, int slots)
     return cost;
 }
 
+/**
+ * @brief Reroll an affix with collision avoidance.
+ *
+ * Generates a new affix of the specified type and rarity, attempting to
+ * avoid rerolling to the same index as the previous affix. Makes up to
+ * 8 attempts to find a different affix before giving up.
+ *
+ * @param index_field Pointer to affix index field to update.
+ * @param value_field Pointer to affix value field to update.
+ * @param type Affix type (prefix or suffix).
+ * @param rarity Item rarity for affix selection.
+ * @param rng Pointer to RNG state for deterministic results.
+ * @param avoid_index Affix index to avoid (-1 to disable avoidance).
+ */
 static void reroll_affix(int* index_field, int* value_field, RogueAffixType type, int rarity,
                          unsigned int* rng, int avoid_index)
 {
@@ -102,6 +190,24 @@ static void reroll_affix(int* index_field, int* value_field, RogueAffixType type
     }
 }
 
+/**
+ * @brief Enchant an item by rerolling its affixes.
+ *
+ * Performs enchantment on an item instance, allowing rerolling of prefix,
+ * suffix, or both affixes. The operation consumes gold and optionally
+ * an enchant orb material. Respects protective locks on affixes.
+ *
+ * @param inst_index Item instance index.
+ * @param reroll_prefix 1 to reroll prefix affix, 0 to leave unchanged.
+ * @param reroll_suffix 1 to reroll suffix affix, 0 to leave unchanged.
+ * @param out_cost Optional output parameter for actual cost incurred.
+ * @return int 0 on success, negative error code on failure:
+ *         -1: Invalid item instance
+ *         -2: No valid affixes to reroll or operation invalid
+ *         -3: Insufficient gold
+ *         -4: Missing required enchant orb material
+ *         -5: Budget validation failed after reroll
+ */
 int rogue_item_instance_enchant(int inst_index, int reroll_prefix, int reroll_suffix, int* out_cost)
 {
     const RogueItemInstance* itc = rogue_item_instance_at(inst_index);
@@ -170,6 +276,21 @@ int rogue_item_instance_enchant(int inst_index, int reroll_prefix, int reroll_su
     return 0;
 }
 
+/**
+ * @brief Completely reforge an item with new affixes.
+ *
+ * Performs a complete reforge operation on an item, wiping all existing
+ * affixes and generating new ones based on the item's rarity. This is
+ * a more expensive operation than enchanting and requires a reforge hammer.
+ *
+ * @param inst_index Item instance index.
+ * @param out_cost Optional output parameter for actual cost incurred.
+ * @return int 0 on success, negative error code on failure:
+ *         -1: Invalid item instance
+ *         -3: Insufficient gold
+ *         -5: Budget validation failed after reforge
+ *         -6: Missing required reforge hammer material
+ */
 int rogue_item_instance_reforge(int inst_index, int* out_cost)
 {
     const RogueItemInstance* itc = rogue_item_instance_at(inst_index);
@@ -241,8 +362,28 @@ int rogue_item_instance_reforge(int inst_index, int* out_cost)
     return 0;
 }
 
-/* Protective seal implementation */
-static int g_seal_mat_def = -1; /* protective_seal */
+/* ---- Protective Seal Implementation ---- */
+
+/**
+ * @brief Cached material definition index for protective seals.
+ */
+static int g_seal_mat_def = -1; /**< Cached index for protective_seal material */
+
+/**
+ * @brief Apply protective seals to lock item affixes.
+ *
+ * Applies protective seals to prevent specified affixes from being changed
+ * during future enchantment operations. Consumes protective seal materials
+ * from inventory.
+ *
+ * @param inst_index Item instance index.
+ * @param lock_prefix 1 to lock prefix affix, 0 to leave unlocked.
+ * @param lock_suffix 1 to lock suffix affix, 0 to leave unlocked.
+ * @return int 0 on success, negative error code on failure:
+ *         -1: Invalid item instance
+ *         -2: No valid affixes to lock
+ *         -3: Missing protective seal material
+ */
 int rogue_item_instance_apply_protective_seal(int inst_index, int lock_prefix, int lock_suffix)
 {
     RogueItemInstance* it = (RogueItemInstance*) rogue_item_instance_at(inst_index);
@@ -265,11 +406,23 @@ int rogue_item_instance_apply_protective_seal(int inst_index, int lock_prefix, i
         it->suffix_locked = 1;
     return 0;
 }
+/**
+ * @brief Check if an item's prefix affix is locked.
+ *
+ * @param inst_index Item instance index.
+ * @return int 1 if prefix is locked, 0 otherwise (including invalid instances).
+ */
 int rogue_item_instance_is_prefix_locked(int inst_index)
 {
     const RogueItemInstance* it = rogue_item_instance_at(inst_index);
     return it ? it->prefix_locked : 0;
 }
+/**
+ * @brief Check if an item's suffix affix is locked.
+ *
+ * @param inst_index Item instance index.
+ * @return int 1 if suffix is locked, 0 otherwise (including invalid instances).
+ */
 int rogue_item_instance_is_suffix_locked(int inst_index)
 {
     const RogueItemInstance* it = rogue_item_instance_at(inst_index);

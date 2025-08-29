@@ -1,6 +1,35 @@
+/**
+ * @file local_avoidance.c
+ * @brief Simple local obstacle avoidance for AI pathfinding.
+ *
+ * This module provides basic obstacle avoidance functionality for AI agents.
+ * When an agent's desired movement is blocked, it attempts to find alternative
+ * paths by trying perpendicular detours (left/right relative to the desired direction).
+ * As a last resort, it allows the agent to stay in place to prevent getting stuck.
+ */
+
 #include "local_avoidance.h"
 #include "../../game/navigation.h"
 
+/**
+ * @brief Adjusts movement direction to avoid obstacles using perpendicular detours.
+ *
+ * This function implements a simple local obstacle avoidance algorithm. When the
+ * desired movement direction is blocked, it attempts to find an alternative path
+ * by trying perpendicular detours (left/right relative to the desired direction).
+ * As a last resort, it allows the agent to stay in place to prevent getting stuck.
+ *
+ * The algorithm works by:
+ * 1. Checking if the original movement direction is clear
+ * 2. If blocked, trying perpendicular alternatives (left/right)
+ * 3. If no alternatives work, staying put (no movement)
+ *
+ * @param x Current X position of the agent.
+ * @param y Current Y position of the agent.
+ * @param dx Pointer to desired X movement delta (input/output).
+ * @param dy Pointer to desired Y movement delta (input/output).
+ * @return 0 if original direction is clear, 1 if detour found, -1 if blocked (staying put).
+ */
 int rogue_local_avoid_adjust(int x, int y, int* dx, int* dy)
 {
     if (!dx || !dy)

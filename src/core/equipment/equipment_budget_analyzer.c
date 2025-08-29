@@ -1,18 +1,62 @@
-/* Phase16.5 Budget Analyzer implementation */
+/**
+ * @file equipment_budget_analyzer.c
+ * @brief Equipment budget utilization analysis system (Phase 16.5).
+ *
+ * This file implements the budget analyzer for equipment items, providing
+ * comprehensive analysis of how effectively items utilize their allocated
+ * budget across different utilization ranges. The system tracks item
+ * budget utilization, identifies over-budget items, and provides statistical
+ * analysis for game balance tuning.
+ *
+ * Key functionality includes:
+ * - Budget utilization analysis across all active items
+ * - Statistical reporting (average, maximum utilization)
+ * - Bucket-based distribution analysis
+ * - JSON export for external analysis tools
+ * - Over-budget item detection
+ */
+
 #include "equipment_budget_analyzer.h"
 #include "../loot/loot_instances.h" /* for item instances & budget helpers */
 #include <stdio.h>
 #include <string.h>
 
-static RogueBudgetReport g_last_report;
-static int g_has_report = 0;
+/**
+ * @brief Global state for budget analysis reports.
+ *
+ * Stores the most recent budget analysis report and tracks whether
+ * a valid report has been generated.
+ */
+static RogueBudgetReport g_last_report; /**< Most recent budget analysis report */
+static int g_has_report = 0;            /**< Flag indicating if a report is available */
 
+/**
+ * @brief Reset the budget analyzer state.
+ *
+ * Clears the last report and resets the analyzer to its initial state.
+ * Should be called before running a new analysis or when clearing cached data.
+ */
 void rogue_budget_analyzer_reset(void)
 {
     memset(&g_last_report, 0, sizeof(g_last_report));
     g_has_report = 0;
 }
 
+/**
+ * @brief Determine the utilization bucket index for a given ratio.
+ *
+ * Categorizes budget utilization ratios into predefined buckets for
+ * statistical analysis. The buckets represent different utilization ranges:
+ * - 0: < 25% utilization
+ * - 1: 25-49% utilization
+ * - 2: 50-74% utilization
+ * - 3: 75-89% utilization
+ * - 4: 90-100% utilization
+ * - 5: > 100% utilization (over budget)
+ *
+ * @param ratio Budget utilization ratio (weight / max_budget).
+ * @return int Bucket index (0-5), or 5 for ratios > 1.0.
+ */
 static int bucket_index(float ratio)
 {
     if (ratio < 0.25f)
@@ -28,6 +72,21 @@ static int bucket_index(float ratio)
     return 5;
 }
 
+/**
+ * @brief Run budget utilization analysis on all active items.
+ *
+ * Performs a comprehensive analysis of all active item instances, calculating
+ * budget utilization ratios, identifying over-budget items, and generating
+ * statistical summaries. The analysis includes:
+ * - Average and maximum utilization ratios
+ * - Count of items exceeding budget
+ * - Distribution across utilization buckets
+ * - Identification of the most over-utilized item
+ *
+ * Results are stored globally and optionally copied to the output parameter.
+ *
+ * @param out Optional output parameter to receive the analysis report.
+ */
 void rogue_budget_analyzer_run(RogueBudgetReport* out)
 {
     RogueBudgetReport r;
@@ -66,11 +125,47 @@ void rogue_budget_analyzer_run(RogueBudgetReport* out)
         *out = r;
 }
 
+/**
+ * @brief Get the most recent budget analysis report.
+ *
+ * Returns a pointer to the last generated budget report, or NULL if
+ * no analysis has been run yet.
+ *
+ * @return const RogueBudgetReport* Pointer to last report, or NULL if none available.
+ */
 const RogueBudgetReport* rogue_budget_analyzer_last(void)
 {
     return g_has_report ? &g_last_report : 0;
 }
 
+/**
+ * @brief Export the last budget analysis report as JSON.
+ *
+ * Formats the most recent budget analysis report into a JSON object
+ * with the following structure:
+ * ```json
+ * {
+ *   "item_count": <number>,
+ *   "over_budget_count": <number>,
+ *   "avg_utilization": <float>,
+ *   "max_utilization": <float>,
+ *   "max_item_index": <number>,
+ *   "buckets": {
+ *     "lt25": <number>,
+ *     "lt50": <number>,
+ *     "lt75": <number>,
+ *     "lt90": <number>,
+ *     "le100": <number>,
+ *     "gt100": <number>
+ *   }
+ * }
+ * ```
+ *
+ * @param buf Output buffer for JSON string.
+ * @param cap Capacity of output buffer in bytes.
+ * @return int Number of characters written (excluding null terminator) on success,
+ *         -1 on buffer error, 0 if no report available.
+ */
 int rogue_budget_analyzer_export_json(char* buf, int cap)
 {
     if (!buf || cap <= 0)
