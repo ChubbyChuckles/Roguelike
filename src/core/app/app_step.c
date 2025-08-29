@@ -1,5 +1,6 @@
 /* Frame update & render loop extracted from app.c */
 #include "../../audio_vfx/effects.h"
+#include "../../debug_overlay/overlay_core.h"
 #include "../../game/buffs.h"
 #include "../../game/damage_numbers.h"
 #include "../../game/dialogue.h"
@@ -338,6 +339,9 @@ void rogue_app_step(void)
         }
     }
 #endif
+    /* Draw unified debug overlay on top of everything (if enabled) */
+    overlay_new_frame((float) g_app.dt, g_app.viewport_w, g_app.viewport_h);
+    overlay_render();
     if (!g_app.headless)
     {
         SDL_RenderPresent(g_app.renderer);
