@@ -99,6 +99,12 @@ static void panel_skills(void* user)
     (void) user;
     if (!overlay_begin_panel("Skills", 380, 10, 420))
         return;
+    /* Simulation profile controls (persist across frames) */
+    static float sim_duration_ms = 2000.0f;
+    static float sim_tick_ms = 16.0f;
+    static float sim_ap_regen_per_sec = 0.0f;
+    static char prio_buf[128] = ""; /* comma-separated ids, empty = selected only */
+    static char sim_result[256] = "";
     const char* overrides_path = "build/skills_overrides.json"; /* default within repo/build */
     int count = rogue_skill_debug_count();
     static int sel = 0;
@@ -160,16 +166,59 @@ static void panel_skills(void* user)
         }
     }
 
-    /* Quick simulate button with default profile over 2s using selected id only */
-    if (overlay_button("Simulate 2s (selected only)"))
+    /* Simulation profile UI */
+    overlay_label("Simulation Profile");
+    (void) overlay_slider_float("Duration (ms)", &sim_duration_ms, 50.0f, 60000.0f);
+    (void) overlay_slider_float("Tick (ms)", &sim_tick_ms, 1.0f, 100.0f);
+    (void) overlay_slider_float("AP regen (/sec)", &sim_ap_regen_per_sec, 0.0f, 200.0f);
+    (void) overlay_input_text("Priority IDs (comma)", prio_buf, sizeof prio_buf);
+
+    /* Simulate with current profile */
+    if (overlay_button("Simulate"))
     {
-        char out[256];
-        char profile[128];
-        snprintf(profile, sizeof profile, "{\"duration_ms\":2000,\"priority\":[%d]}", sel);
-        if (rogue_skill_debug_simulate(profile, out, (int) sizeof out) == 0)
+        char profile[256];
+        /* Build priority array */
+        char prio_json[128] = {0};
+        int pj = 0;
+        prio_json[pj++] = '[';
+        if (prio_buf[0] == '\0')
         {
-            overlay_label(out);
+            pj += snprintf(prio_json + pj, (int) sizeof prio_json - pj, "%d", sel);
         }
+        else
+        {
+            /* Copy digits and commas only to be tolerant */
+            for (const char* p = prio_buf; *p && pj + 1 < (int) sizeof prio_json; ++p)
+            {
+                char c = *p;
+                if ((c >= '0' && c <= '9') || c == ',' || c == '-')
+                {
+                    prio_json[pj++] = c;
+                }
+            }
+        }
+        if (pj + 2 < (int) sizeof prio_json)
+        {
+            prio_json[pj++] = ']';
+            prio_json[pj] = '\0';
+        }
+        else
+        {
+            prio_json[0] = '[';
+            prio_json[1] = ']';
+            prio_json[2] = '\0';
+        }
+        snprintf(profile, sizeof profile,
+                 "{\"duration_ms\":%d,\"tick_ms\":%.1f,\"ap_regen_per_sec\":%.1f,\"priority\":%s}",
+                 (int) sim_duration_ms, sim_tick_ms, sim_ap_regen_per_sec, prio_json);
+        if (rogue_skill_debug_simulate(profile, sim_result, (int) sizeof sim_result) != 0)
+        {
+            snprintf(sim_result, sizeof sim_result, "Simulation failed");
+        }
+    }
+    if (sim_result[0])
+    {
+        overlay_label(sim_result);
     }
 
     /* Manual Save/Load buttons */
