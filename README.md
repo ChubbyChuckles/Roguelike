@@ -70,7 +70,12 @@ Notes:
 	- In VS Code: run the “docs” task or invoke the CMake target.
 	- Outputs land in `build/docs/html`, `build/docs/latex`, and `build/docs/xml`; the PDF (refman.pdf) is under `build/docs/latex` if LaTeX is installed.
 	- Custom HTML theme is applied from `docs/templates/theme.css`.
-	- CI: Every push/PR builds docs on Windows and uploads the HTML as an artifact named `docs-html` (Actions → CI → Build Docs job → Artifacts).
+	- CI: Every push/PR builds docs on Windows with SDL enabled and uploads the HTML as an artifact named `docs-html` and as a Pages artifact; GitHub Pages deploys automatically from CI.
+		- Pages URL: enable GitHub Pages for this repo to serve the latest docs. See Actions → Deploy Pages job for the live link after a successful run.
+
+	Contributor notes:
+	- See docs/DOXYGEN_GUIDE.md for short templates and style rules when adding comments.
+	- Prefer documenting headers (APIs) and hard-to-understand internal modules. Keep examples minimal and link related symbols via @ref/@see.
 
 ### Debug Overlay (early)
 - Unified in-game debug overlay behind a compile-time flag.

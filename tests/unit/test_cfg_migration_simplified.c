@@ -6,18 +6,27 @@
 
 #include "../../src/core/integration/cfg_migration.h"
 
-// Test configuration
-static const char* TEST_SOURCE_DIR = "test_assets";
-static const char* TEST_TARGET_DIR = "test_output";
+// Test configuration (use unique dirs to avoid clashes with other migration tests)
+static const char* TEST_SOURCE_DIR = "test_assets_simplified";
+static const char* TEST_TARGET_DIR = "test_output_simplified";
 
 // Test file cleanup
 static void cleanup_test_files(void)
 {
 #ifdef _WIN32
-    system("rmdir /s /q test_assets 2>nul");
-    system("rmdir /s /q test_output 2>nul");
+    {
+        char cmd[256];
+        snprintf(cmd, sizeof(cmd), "rmdir /s /q %s 2>nul", TEST_SOURCE_DIR);
+        system(cmd);
+        snprintf(cmd, sizeof(cmd), "rmdir /s /q %s 2>nul", TEST_TARGET_DIR);
+        system(cmd);
+    }
 #else
-    system("rm -rf test_assets test_output");
+    {
+        char cmd[512];
+        snprintf(cmd, sizeof(cmd), "rm -rf %s %s", TEST_SOURCE_DIR, TEST_TARGET_DIR);
+        system(cmd);
+    }
 #endif
 }
 
@@ -25,17 +34,19 @@ static void cleanup_test_files(void)
 static void create_test_directories(void)
 {
 #ifdef _WIN32
-    _mkdir("test_assets");
-    _mkdir("test_output");
+    _mkdir(TEST_SOURCE_DIR);
+    _mkdir(TEST_TARGET_DIR);
 #else
-    mkdir("test_assets", 0755);
-    mkdir("test_output", 0755);
+    mkdir(TEST_SOURCE_DIR, 0755);
+    mkdir(TEST_TARGET_DIR, 0755);
 #endif
 }
 
 static void create_test_items_cfg(void)
 {
-    FILE* f = fopen("test_assets/test_items.cfg", "w");
+    char path[256];
+    snprintf(path, sizeof(path), "%s/test_items.cfg", TEST_SOURCE_DIR);
+    FILE* f = fopen(path, "w");
     assert(f != NULL);
 
     fprintf(f, "# "
@@ -52,7 +63,9 @@ static void create_test_items_cfg(void)
 
 static void create_test_affixes_cfg(void)
 {
-    FILE* f = fopen("test_assets/affixes.cfg", "w");
+    char path[256];
+    snprintf(path, sizeof(path), "%s/affixes.cfg", TEST_SOURCE_DIR);
+    FILE* f = fopen(path, "w");
     assert(f != NULL);
 
     fprintf(f, "# type,id,stat,min,max,w_common,w_uncommon,w_rare,w_epic,w_legendary\n");
@@ -127,7 +140,9 @@ void test_file_migration_items(void)
 
     // Verify output file exists
     struct stat st;
-    assert(stat("test_output/items/items.json", &st) == 0);
+    char out_path[256];
+    snprintf(out_path, sizeof(out_path), "%s/items/items.json", TEST_TARGET_DIR);
+    assert(stat(out_path, &st) == 0);
 
     printf("Items migration result: %d records processed, %d migrated\n", result.records_processed,
            result.records_migrated);
@@ -161,7 +176,9 @@ void test_file_migration_affixes(void)
 
     // Verify output file exists
     struct stat st;
-    assert(stat("test_output/items/affixes.json", &st) == 0);
+    char out_path[256];
+    snprintf(out_path, sizeof(out_path), "%s/items/affixes.json", TEST_TARGET_DIR);
+    assert(stat(out_path, &st) == 0);
 
     printf("Affixes migration result: %d records processed, %d migrated\n",
            result.records_processed, result.records_migrated);

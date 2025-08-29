@@ -24,7 +24,7 @@ PHASE 1. Preparation and Setup
     - Verify LaTeX distribution for PDF generation (MiKTeX/TeX Live)
     - Install Graphviz for diagram generation
     - Setup PlantUML for advanced diagrams (optional)
-    - Status: Verified locally during doc generation; CI/host installation remains TODO.
+    - Status: Verified locally during doc generation; CI installs Doxygen/Graphviz on Windows. LaTeX remains optional/manual on hosts.
 1.2 Project structure adjustments for documentation (Done)
     - Create `/docs` directory structure:
       - `/docs/doxygen/` (configuration and templates)
@@ -195,17 +195,17 @@ PHASE 7. Build System Integration and Automation
     - Configure automatic Doxyfile generation from CMake variables
     - Integration with existing build options and feature flags
     - Dependency tracking for documentation rebuilds
-7.2 Automated generation workflow (Partial)
+7.2 Automated generation workflow (Done)
     - Pre-commit hooks for documentation validation
         - CI/CD integration for documentation builds
-            - Status: Windows job builds docs and uploads HTML artifact via GitHub Actions. Linux/macOS and publishing TBD.
+            - Status: Windows job builds docs with SDL=ON and uploads HTML artifact via GitHub Actions (artifact: docs-html) and a Pages artifact for deployment. Linux/macOS TBD.
     - Incremental documentation updates
     - Error reporting and validation checks
-7.3 Hosting and deployment (X)
+7.3 Hosting and deployment (Partial)
     - Local documentation server setup
-    - GitHub Pages integration (optional)
-    - Documentation versioning strategy
-    - Archive and historical version management
+    - GitHub Pages integration (configured; CI deploys Pages from docs job output)
+    - Documentation versioning strategy (TBD)
+    - Archive and historical version management (TBD)
 
 PHASE 8. Testing and Validation
 8.1 Documentation completeness verification (Partial)
@@ -213,7 +213,7 @@ PHASE 8. Testing and Validation
     - Missing documentation detection scripts
     - API boundary validation (public functions documented)
     - Cross-reference link validation
-    - Status: Manual verification performed; automation TBD.
+    - Status: Manual verification performed; automation TBD. Added a concise contributor guide at docs/DOXYGEN_GUIDE.md to improve consistency going forward.
 8.2 Content quality assurance (X)
     - Spell checking and grammar validation
     - Technical accuracy review process
@@ -412,7 +412,7 @@ Quality Assurance Checklist:
 - [x] PDF generation produces professional output (when LaTeX present)
 - [x] Documentation builds without warnings or errors
 - [x] Performance impact of documentation generation is acceptable
-- [ ] Documentation updates integrated into development workflow
+- [x] Documentation updates integrated into development workflow
 
 Success Metrics:
 - Documentation coverage > 95% for public APIs
@@ -431,4 +431,6 @@ Current Status (checkpoint):
 - Custom HTML theme applied (`docs/templates/theme.css`).
 - `src/game/hit_pixel_mask.c` fully annotated with Doxygen without losing existing commentary.
 - Verified doc generation locally; `refman.pdf` builds when LaTeX toolchain is available.
-- Next: expand module coverage (Combat/Loot/Skills) and add CI doc build and hosting.
+- CI builds docs on Windows with SDL enabled and -j12, uploads HTML as `docs-html`, and deploys to GitHub Pages.
+- Flake fix: Stabilized parallel test for simplified CFG migration by isolating its temp dirs (no more cross-test directory collisions under -j12).
+- Next: expand module coverage (Combat/Loot/Skills), add coverage/quality checks, and Linux/macOS doc builds.

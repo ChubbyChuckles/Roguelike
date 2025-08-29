@@ -82,18 +82,30 @@ jobs:
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1
 
+      - name: Install SDL via vcpkg (x64-windows)
+        shell: pwsh
+        run: |
+          $vcpkgExe = "C:\\vcpkg\\vcpkg.exe"
+          if (-Not (Test-Path $vcpkgExe)) {
+            Write-Host "vcpkg not found at C:\\vcpkg; installing via git clone..."
+            git clone https://github.com/microsoft/vcpkg C:\\vcpkg
+            & C:\\vcpkg\\bootstrap-vcpkg.bat
+          }
+          & $vcpkgExe version
+          & $vcpkgExe install sdl2 sdl2-image sdl2-mixer --triplet x64-windows
+
       - name: Install Doxygen and Graphviz
         shell: pwsh
         run: |
           choco install -y doxygen.portable graphviz || echo "doxygen/graphviz already installed"
           doxygen -v
 
-      - name: Configure (SDL OFF for docs)
+      - name: Configure (SDL ON for docs)
         run: >-
-          cmake -S . -B build -DROGUE_ENABLE_SDL=OFF -DCMAKE_BUILD_TYPE=Debug
+          cmake -S . -B build -DROGUE_ENABLE_SDL=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
 
       - name: Generate Doxygen docs
-        run: cmake --build build --target docs --config Debug
+        run: cmake --build build --target docs --config Debug --parallel 12
         continue-on-error: true
 
       - name: Upload Pages artifact (docs html)
