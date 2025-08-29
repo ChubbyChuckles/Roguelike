@@ -1,3 +1,29 @@
+/**
+ * @file config_version.c
+ * @brief Configuration version management and event type registry system
+ *
+ * This module provides comprehensive configuration version management and event type
+ * registration services for the Roguelike game engine. It handles:
+ *
+ * - Configuration schema versioning and migration support
+ * - Event type ID registration and collision detection
+ * - Reserved ID range management for different subsystems
+ * - Configuration file validation and integrity checking
+ * - Cross-platform directory and file operations
+ *
+ * The system supports automatic migration detection, backup creation, and strict
+ * validation of configuration files. Event type IDs are managed through a registry
+ * system that prevents collisions and supports reserved ranges for different game
+ * subsystems.
+ *
+ * @note This implementation supports expanded event type limits (4096 vs 512) and
+ *       includes comprehensive logging for debugging and monitoring.
+ *
+ * @author Configuration Management Team
+ * @version 1.0.0
+ * @date 2024
+ */
+
 #include "config_version.h"
 #include "../../util/log.h"
 #include <errno.h>
@@ -47,6 +73,26 @@ static void initialize_default_reserved_ranges(void);
 
 /* ===== Configuration Version Management Implementation ===== */
 
+/**
+ * @brief Initializes the configuration version management system
+ *
+ * This function sets up the configuration manager with the specified directory
+ * for storing configuration files and backups. It initializes the current schema
+ * version, creates necessary directories, and prepares the event type registry
+ * for operation.
+ *
+ * @param config_directory Path to the directory where configuration files will be stored
+ *
+ * @return bool Returns true on successful initialization, false on failure
+ *
+ * @note This function is idempotent - calling it multiple times will only
+ *       initialize once and return true on subsequent calls.
+ *
+ * @warning The function will create the config directory and a backups subdirectory
+ *          if they don't exist. Ensure the process has appropriate permissions.
+ *
+ * @see rogue_config_version_shutdown() for cleanup
+ */
 bool rogue_config_version_init(const char* config_directory)
 {
     if (g_config_manager_initialized)
@@ -140,6 +186,18 @@ bool rogue_config_version_init(const char* config_directory)
     return true;
 }
 
+/**
+ * @brief Shuts down the configuration version management system
+ *
+ * This function performs cleanup of all allocated resources, frees memory,
+ * and resets the configuration manager to its initial state. It also cleans
+ * up the event type registry to ensure clean state for subsequent initializations.
+ *
+ * @note This function is safe to call even if the system is not initialized.
+ *       It will simply return without performing any operations.
+ *
+ * @see rogue_config_version_init() for initialization
+ */
 void rogue_config_version_shutdown(void)
 {
     if (!g_config_manager_initialized)
@@ -188,6 +246,20 @@ void rogue_config_version_shutdown(void)
     ROGUE_LOG_INFO("Configuration version manager shutdown complete");
 }
 
+/**
+ * @brief Retrieves the current configuration schema version
+ *
+ * This function returns a pointer to the current configuration version information,
+ * including major, minor, and patch version numbers, schema name, and creation timestamp.
+ *
+ * @return const RogueConfigVersion* Pointer to the current version structure, or NULL if not
+ * initialized
+ *
+ * @note The returned pointer points to internal data and should not be modified.
+ *       The data remains valid until rogue_config_version_shutdown() is called.
+ *
+ * @see rogue_config_version_compare() for version comparison utilities
+ */
 const RogueConfigVersion* rogue_config_get_current_version(void)
 {
     if (!g_config_manager_initialized)
@@ -198,6 +270,26 @@ const RogueConfigVersion* rogue_config_get_current_version(void)
     return &g_config_manager.current_schema.version;
 }
 
+/**
+ * @brief Compares two configuration versions for ordering
+ *
+ * This function performs a lexicographic comparison of two version structures,
+ * comparing major, minor, and patch versions in order. It follows semantic
+ * versioning rules where higher version numbers indicate newer versions.
+ *
+ * @param a Pointer to the first version structure to compare
+ * @param b Pointer to the second version structure to compare
+ *
+ * @return int Returns:
+ *         - 1 if version 'a' is greater than version 'b'
+ *         - -1 if version 'a' is less than version 'b'
+ *         - 0 if versions are equal
+ *
+ * @note NULL pointers will result in a return value of 0 (equal).
+ *       Comparison follows semantic versioning: major.minor.patch
+ *
+ * @see rogue_config_get_current_version() for obtaining version structures
+ */
 int rogue_config_version_compare(const RogueConfigVersion* a, const RogueConfigVersion* b)
 {
     if (!a || !b)
@@ -223,6 +315,26 @@ int rogue_config_version_compare(const RogueConfigVersion* a, const RogueConfigV
     return 0; /* Versions are equal */
 }
 
+/**
+ * @brief Determines if a configuration file needs migration
+ *
+ * This function analyzes a configuration file to detect if it requires migration
+ * to the current schema version. It checks the file's version against the current
+ * system version and determines if migration is necessary.
+ *
+ * @param config_file_path Path to the configuration file to check
+ * @param detected_version Pointer to structure that will receive the detected file version
+ *
+ * @return bool Returns true if migration is needed, false otherwise
+ *
+ * @note This is currently a stub implementation that assumes legacy version 0.9.0
+ *       for all files. A full implementation would parse the file to detect its
+ *       actual version.
+ *
+ * @warning The detected_version structure must be provided and will be overwritten.
+ *
+ * @see rogue_config_version_compare() for version comparison
+ */
 bool rogue_config_needs_migration(const char* config_file_path,
                                   RogueConfigVersion* detected_version)
 {
@@ -267,6 +379,29 @@ bool rogue_config_needs_migration(const char* config_file_path,
 
 /* ===== Event Type ID Management Implementation ===== */
 
+/**
+ * @brief Safely registers a new event type with collision detection
+ *
+ * This function registers a new event type ID with the global registry, performing
+ * comprehensive validation and collision detection. It ensures that event IDs
+ * are unique and properly tracked for debugging and monitoring purposes.
+ *
+ * @param event_id The unique identifier for the event type (must be > 0)
+ * @param name Human-readable name for the event type (alphanumeric and underscore only)
+ * @param source_file Source file where the registration is occurring (for debugging)
+ * @param line_number Line number where the registration is occurring (for debugging)
+ *
+ * @return bool Returns true on successful registration, false on failure
+ *
+ * @note Event type names must be 1-63 characters long, start with a letter or
+ *       underscore, and contain only alphanumeric characters and underscores.
+ *
+ * @warning Duplicate event ID registrations will fail. Use rogue_event_type_check_collision()
+ *          to check for conflicts before registration.
+ *
+ * @see rogue_event_type_check_collision() for collision detection
+ * @see rogue_event_type_validate_id() for ID validation
+ */
 bool rogue_event_type_register_safe(uint32_t event_id, const char* name, const char* source_file,
                                     uint32_t line_number)
 {
@@ -353,6 +488,24 @@ bool rogue_event_type_register_safe(uint32_t event_id, const char* name, const c
     return true;
 }
 
+/**
+ * @brief Checks for event type ID collisions
+ *
+ * This function checks if a given event ID conflicts with existing registrations
+ * or reserved ranges. It provides detailed collision information for debugging
+ * and error reporting purposes.
+ *
+ * @param event_id The event ID to check for collisions
+ * @param collision_info Buffer to receive collision details (if any)
+ * @param info_size Size of the collision_info buffer
+ *
+ * @return bool Returns true if a collision is detected, false if the ID is available
+ *
+ * @note The collision_info buffer will contain a descriptive message about the
+ *       collision if one is found. The buffer is null-terminated.
+ *
+ * @see rogue_event_type_register_safe() for registration with collision detection
+ */
 bool rogue_event_type_check_collision(uint32_t event_id, char* collision_info, size_t info_size)
 {
     if (!collision_info || info_size == 0)
@@ -389,6 +542,26 @@ bool rogue_event_type_check_collision(uint32_t event_id, char* collision_info, s
     return false; /* No collision detected */
 }
 
+/**
+ * @brief Finds the next available event type ID in a specified range
+ *
+ * This function searches for an unused event ID within the specified range,
+ * checking for collisions with existing registrations and reserved ranges.
+ * It returns the first available ID that passes validation.
+ *
+ * @param start_range Starting ID of the search range (inclusive)
+ * @param end_range Ending ID of the search range (inclusive)
+ *
+ * @return uint32_t Returns the next available ID, or 0 if no ID is available in the range
+ *
+ * @note The search is performed sequentially from start_range to end_range.
+ *       IDs are validated using rogue_event_type_validate_id().
+ *
+ * @warning A return value of 0 indicates no available ID was found, not that
+ *          ID 0 is available (ID 0 is always invalid).
+ *
+ * @see rogue_event_type_validate_id() for ID validation rules
+ */
 uint32_t rogue_event_type_get_next_available_id(uint32_t start_range, uint32_t end_range)
 {
     if (start_range >= end_range)
@@ -415,6 +588,27 @@ uint32_t rogue_event_type_get_next_available_id(uint32_t start_range, uint32_t e
     return 0; /* No available ID found */
 }
 
+/**
+ * @brief Reserves a range of event type IDs for a specific system
+ *
+ * This function reserves a contiguous range of event IDs for exclusive use by
+ * a particular system or subsystem. Reserved ranges prevent accidental collisions
+ * and provide organized ID allocation for different parts of the game engine.
+ *
+ * @param start_id Starting ID of the range to reserve (inclusive)
+ * @param end_id Ending ID of the range to reserve (inclusive)
+ * @param system_name Human-readable name identifying the reserving system
+ *
+ * @return bool Returns true on successful reservation, false on failure
+ *
+ * @note Reserved ranges cannot overlap with existing reservations.
+ *       The system name is used for logging and debugging purposes.
+ *
+ * @warning Attempting to register an event ID within a reserved range that
+ *          doesn't belong to the reserving system may cause validation failures.
+ *
+ * @see rogue_event_type_register_safe() for registration within reserved ranges
+ */
 bool rogue_event_type_reserve_range(uint32_t start_id, uint32_t end_id, const char* system_name)
 {
     if (start_id >= end_id)
@@ -471,6 +665,29 @@ bool rogue_event_type_reserve_range(uint32_t start_id, uint32_t end_id, const ch
     return true;
 }
 
+/**
+ * @brief Validates an event type ID for correctness and availability
+ *
+ * This function performs comprehensive validation of an event type ID, checking
+ * for reserved values, range limits, and special cases. It provides detailed
+ * error messages for validation failures.
+ *
+ * @param event_id The event ID to validate
+ * @param error_msg Buffer to receive error message if validation fails
+ * @param error_msg_size Size of the error message buffer
+ *
+ * @return bool Returns true if the ID is valid, false if validation fails
+ *
+ * @note Validation checks include:
+ *       - ID cannot be 0 (reserved for invalid/uninitialized)
+ *       - ID cannot exceed maximum event types limit (unless in reserved range)
+ *       - ID cannot be special reserved values (0xFFFFFFFF, 0xDEADBEEF, etc.)
+ *
+ * @warning The error_msg buffer must be provided and will be null-terminated.
+ *          IDs within reserved ranges are allowed even if they exceed normal limits.
+ *
+ * @see rogue_event_type_reserve_range() for reserving ID ranges
+ */
 bool rogue_event_type_validate_id(uint32_t event_id, char* error_msg, size_t error_msg_size)
 {
     if (!error_msg || error_msg_size == 0)
@@ -528,6 +745,27 @@ bool rogue_event_type_validate_id(uint32_t event_id, char* error_msg, size_t err
 
 /* ===== Configuration Validation Implementation ===== */
 
+/**
+ * @brief Validates a configuration file for correctness and integrity
+ *
+ * This function performs basic validation of a configuration file, checking
+ * for existence, accessibility, file size limits, and basic structure. It
+ * provides detailed error information for validation failures.
+ *
+ * @param config_file_path Path to the configuration file to validate
+ * @param error_details Buffer to receive detailed error information
+ * @param error_details_size Size of the error details buffer
+ *
+ * @return RogueConfigValidationResult Validation result indicating success or specific failure type
+ *
+ * @note Current implementation performs basic file checks. Full JSON/CFG format
+ *       validation is planned for future implementation (marked with TODO).
+ *
+ * @warning The error_details buffer must be provided and will be null-terminated.
+ *          Files larger than 1MB are rejected as potentially corrupted.
+ *
+ * @see rogue_config_get_validation_result_description() for result descriptions
+ */
 RogueConfigValidationResult rogue_config_validate_file(const char* config_file_path,
                                                        char* error_details,
                                                        size_t error_details_size)
@@ -595,6 +833,22 @@ RogueConfigValidationResult rogue_config_validate_file(const char* config_file_p
 
 /* ===== Utility Function Implementations ===== */
 
+/**
+ * @brief Creates a directory if it doesn't already exist
+ *
+ * This internal utility function checks if a directory exists and creates it
+ * if it doesn't. It handles cross-platform differences between Windows and Unix
+ * directory creation APIs.
+ *
+ * @param path Path to the directory to create
+ *
+ * @return bool Returns true on success (directory exists or was created), false on failure
+ *
+ * @note On Unix systems, the directory is created with permissions 0755.
+ *       On Windows, default permissions are used.
+ *
+ * @internal This is an internal utility function not exposed in the public API.
+ */
 static bool create_directory_if_not_exists(const char* path)
 {
     if (access(path, 0) == 0)
@@ -609,8 +863,36 @@ static bool create_directory_if_not_exists(const char* path)
 #endif
 }
 
+/**
+ * @brief Checks if a file or directory exists
+ *
+ * This internal utility function checks whether a given path exists in the
+ * filesystem using the access() system call.
+ *
+ * @param path Path to check for existence
+ *
+ * @return bool Returns true if the path exists, false otherwise
+ *
+ * @internal This is an internal utility function not exposed in the public API.
+ */
 static bool file_exists(const char* path) { return access(path, 0) == 0; }
 
+/**
+ * @brief Calculates a simple hash value for a string
+ *
+ * This internal utility function implements the djb2 hash algorithm to generate
+ * a 32-bit hash value from a null-terminated string. It's used for various
+ * internal purposes like schema hashing.
+ *
+ * @param str Null-terminated string to hash
+ *
+ * @return uint32_t 32-bit hash value, or 0 if input string is NULL
+ *
+ * @note This implements the djb2 algorithm: hash = ((hash << 5) + hash) + c
+ *       with initial value 5381.
+ *
+ * @internal This is an internal utility function not exposed in the public API.
+ */
 static uint32_t calculate_string_hash(const char* str)
 {
     if (!str)
@@ -627,6 +909,22 @@ static uint32_t calculate_string_hash(const char* str)
     return hash;
 }
 
+/**
+ * @brief Validates an event type name for correctness
+ *
+ * This internal utility function validates event type names according to the
+ * following rules:
+ * - Must not be NULL or empty
+ * - Must be less than 64 characters long
+ * - Must contain only alphanumeric characters and underscores
+ * - Must not start with a digit
+ *
+ * @param name Event type name to validate
+ *
+ * @return bool Returns true if the name is valid, false otherwise
+ *
+ * @internal This is an internal utility function not exposed in the public API.
+ */
 static bool validate_event_type_name(const char* name)
 {
     if (!name || strlen(name) == 0)
@@ -660,6 +958,26 @@ static bool validate_event_type_name(const char* name)
     return true;
 }
 
+/**
+ * @brief Initializes the default reserved event type ID ranges
+ *
+ * This internal utility function sets up the standard reserved ranges for
+ * different subsystems of the game engine. It reserves ranges for core systems,
+ * future expansion, testing, and debugging purposes.
+ *
+ * @note Reserved ranges include:
+ *       - 0x0001-0x00FF: Core Entity Events
+ *       - 0x0100-0x01FF: Player Action Events
+ *       - 0x0200-0x02FF: Combat Events
+ *       - 0x0300-0x03FF: Progression Events
+ *       - 0x0400-0x04FF: Economy Events
+ *       - 0x0500-0x05FF: World Events
+ *       - 0x0600-0x06FF: System Events
+ *       - 0x9000-0x9FFF: Test Events
+ *       - 0xF000-0xFFFF: Debug Events
+ *
+ * @internal This is an internal utility function not exposed in the public API.
+ */
 static void initialize_default_reserved_ranges(void)
 {
     /* Reserve core system ranges */
@@ -684,6 +1002,22 @@ static void initialize_default_reserved_ranges(void)
     rogue_event_type_reserve_range(0xF000, 0xFFFF, "Debug Events");
 }
 
+/**
+ * @brief Gets a human-readable description of a validation result
+ *
+ * This function converts a RogueConfigValidationResult enum value into a
+ * human-readable string description suitable for logging and user interfaces.
+ *
+ * @param result The validation result to describe
+ *
+ * @return const char* Human-readable description of the validation result
+ *
+ * @note The returned string is a static constant and should not be modified.
+ *       Unknown result values return "Unknown validation result".
+ *
+ * @see RogueConfigValidationResult for the complete list of validation results
+ * @see rogue_config_validate_file() for validation function
+ */
 const char* rogue_config_get_validation_result_description(RogueConfigValidationResult result)
 {
     switch (result)

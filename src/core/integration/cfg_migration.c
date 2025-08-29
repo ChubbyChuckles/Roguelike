@@ -1,3 +1,23 @@
+/**
+ * @file cfg_migration.c
+ * @brief Configuration migration system for converting CFG files to JSON format.
+ *
+ * This module provides functionality to migrate legacy CFG (configuration) files
+ * to modern JSON format for the roguelike game. It handles items, affixes,
+ * and other game configuration data with validation and error handling.
+ *
+ * The migration system supports:
+ * - CSV format parsing from CFG files
+ * - JSON schema validation (stub implementation)
+ * - Batch processing with statistics tracking
+ * - Directory structure creation
+ * - Comprehensive error reporting and logging
+ *
+ * @note This is part of Phase 2.3 of the configuration migration project.
+ * @author Configuration Migration Team
+ * @date 2025
+ */
+
 #include "cfg_migration.h"
 #include <errno.h>
 #include <stdio.h>
@@ -25,6 +45,19 @@
 // Helper Functions
 // =============================================================================
 
+/**
+ * @brief Creates a directory recursively, creating parent directories as needed.
+ *
+ * This function handles both Unix-style forward slashes and Windows backslashes,
+ * normalizing path separators during processing. It creates all intermediate
+ * directories required to ensure the full path exists.
+ *
+ * @param path The directory path to create
+ * @return true if directory creation succeeded or already exists, false on error
+ *
+ * @note Maximum path length is limited to 512 characters
+ * @note Uses 0755 permissions on Unix systems (ignored on Windows)
+ */
 static bool create_directory_recursive(const char* path)
 {
     char tmp[512];
@@ -50,6 +83,15 @@ static bool create_directory_recursive(const char* path)
     return mkdir(tmp, 0755) == 0 || errno == EEXIST;
 }
 
+/**
+ * @brief Checks if a file exists at the specified path.
+ *
+ * Uses the stat() system call to determine if a file or directory exists
+ * at the given path location.
+ *
+ * @param path The file path to check
+ * @return true if the file exists, false otherwise
+ */
 static bool file_exists(const char* path)
 {
     struct stat st;
@@ -60,6 +102,18 @@ static bool file_exists(const char* path)
 // Migration Configuration (Simplified)
 // =============================================================================
 
+/**
+ * @brief Initializes a migration configuration with default values.
+ *
+ * Sets up a RogueMigrationConfig structure with sensible defaults for
+ * the migration process. This includes default source and target directories,
+ * validation settings, and backup preferences.
+ *
+ * @param config Pointer to the configuration structure to initialize
+ *
+ * @note Safe to call with NULL pointer (no-op in that case)
+ * @note Default source directory is "assets", target is "assets/json"
+ */
 void rogue_migration_config_init(RogueMigrationConfig* config)
 {
     if (!config)
@@ -73,6 +127,17 @@ void rogue_migration_config_init(RogueMigrationConfig* config)
     config->overwrite_existing = false;
 }
 
+/**
+ * @brief Creates JSON schemas for migration validation.
+ *
+ * Initializes schema objects for validating migrated data. Currently
+ * implemented as stubs that return NULL pointers.
+ *
+ * @param config Pointer to the migration configuration
+ * @return true if schema creation succeeded, false otherwise
+ *
+ * @note This is a stub implementation - actual schema creation not yet implemented
+ */
 bool rogue_migration_create_schemas(RogueMigrationConfig* config)
 {
     if (!config)
@@ -84,6 +149,16 @@ bool rogue_migration_create_schemas(RogueMigrationConfig* config)
     return true;
 }
 
+/**
+ * @brief Cleans up migration configuration resources.
+ *
+ * Frees any resources allocated during schema creation. Currently
+ * a no-op since schemas are NULL stubs.
+ *
+ * @param config Pointer to the configuration to cleanup
+ *
+ * @note Safe to call with NULL pointer (no-op in that case)
+ */
 void rogue_migration_config_cleanup(RogueMigrationConfig* config)
 {
     if (!config)
@@ -98,12 +173,34 @@ void rogue_migration_config_cleanup(RogueMigrationConfig* config)
 // Schema Definitions (Stubs for now)
 // =============================================================================
 
+/**
+ * @brief Creates a JSON schema for validating item data.
+ *
+ * Generates a schema object that can be used to validate migrated item
+ * data structures. Currently implemented as a stub.
+ *
+ * @return Pointer to the created schema, or NULL if creation failed
+ *
+ * @note This is a stub implementation - actual schema creation not yet implemented
+ * @note Caller is responsible for freeing the returned schema
+ */
 RogueJsonSchema* rogue_create_item_schema(void)
 {
     // Stub implementation - return NULL for now
     return NULL;
 }
 
+/**
+ * @brief Creates a JSON schema for validating affix data.
+ *
+ * Generates a schema object that can be used to validate migrated affix
+ * data structures. Currently implemented as a stub.
+ *
+ * @return Pointer to the created schema, or NULL if creation failed
+ *
+ * @note This is a stub implementation - actual schema creation not yet implemented
+ * @note Caller is responsible for freeing the returned schema
+ */
 RogueJsonSchema* rogue_create_affix_schema(void)
 {
     // Stub implementation - return NULL for now
@@ -114,6 +211,23 @@ RogueJsonSchema* rogue_create_affix_schema(void)
 // Items Migration (Phase 2.3.1) - Simplified
 // =============================================================================
 
+/**
+ * @brief Converts a single CFG record to JSON item format.
+ *
+ * Parses a CSV record from CFG data and converts it to a JSON object
+ * representing an item with all its properties (id, name, stats, sprites, etc.).
+ *
+ * Expected CSV format:
+ * id,name,category,level_req,stack_max,base_value,dmg_min,dmg_max,armor,sheet,tx,ty,tw,th,rarity
+ *
+ * @param cfg_data Pointer to parsed CFG data containing the records
+ * @param record_index Index of the record to convert (0-based)
+ * @return Pointer to JSON object representing the item, or NULL on error
+ *
+ * @note Only supports CSV format currently
+ * @note Caller is responsible for freeing the returned JSON object
+ * @note Returns NULL if record_index is out of bounds or format is unsupported
+ */
 RogueJsonValue* rogue_cfg_item_to_json(const RogueCfgParseResult* cfg_data, int record_index)
 {
     if (!cfg_data || !cfg_data->parse_success)
@@ -160,6 +274,23 @@ RogueJsonValue* rogue_cfg_item_to_json(const RogueCfgParseResult* cfg_data, int 
     return item;
 }
 
+/**
+ * @brief Validates a migrated item JSON object.
+ *
+ * Performs business rule validation on a migrated item to ensure data
+ * integrity and game balance. Checks item structure, damage ranges,
+ * and category-specific requirements.
+ *
+ * @param item Pointer to the JSON item object to validate
+ * @param schema Pointer to validation schema (currently unused stub)
+ * @param error_msg Buffer to store error message if validation fails
+ * @param error_size Size of the error message buffer
+ * @return true if item is valid, false otherwise
+ *
+ * @note Schema parameter is currently ignored (stub implementation)
+ * @note Validates weapon damage requirements and value ranges
+ * @note Error messages are truncated if buffer is too small
+ */
 bool rogue_validate_migrated_item(const RogueJsonValue* item, const RogueJsonSchema* schema,
                                   char* error_msg, size_t error_size)
 {
@@ -208,7 +339,21 @@ bool rogue_validate_migrated_item(const RogueJsonValue* item, const RogueJsonSch
     return true;
 }
 
-// Helper function to write JSON value to file with formatting
+/**
+ * @brief Writes a JSON value to file with proper formatting and indentation.
+ *
+ * Recursively formats and writes JSON data to a file with consistent
+ * indentation and structure. Handles all JSON value types including
+ * objects, arrays, primitives, and null values.
+ *
+ * @param f File pointer to write to (must be opened for writing)
+ * @param value Pointer to the JSON value to write
+ * @param indent Current indentation level (number of spaces)
+ *
+ * @note Safe to call with NULL file or value pointers (no-op in that case)
+ * @note Uses 2-space indentation for nested structures
+ * @note Does not add trailing newline - caller should add if needed
+ */
 static void write_json_value_formatted(FILE* f, const RogueJsonValue* value, int indent)
 {
     if (!f || !value)
@@ -271,6 +416,26 @@ static void write_json_value_formatted(FILE* f, const RogueJsonValue* value, int
     }
 }
 
+/**
+ * @brief Migrates a single item configuration file from CFG to JSON format.
+ *
+ * Performs a complete migration of an item CFG file to JSON format, including:
+ * - Parsing the source CFG file
+ * - Converting each record to JSON format
+ * - Validating migrated data (if schema provided)
+ * - Creating target directory structure
+ * - Writing formatted JSON output
+ *
+ * @param source_path Path to the source CFG file
+ * @param target_path Path to the target JSON file
+ * @param schema Optional JSON schema for validation (can be NULL)
+ * @return MigrationResult structure containing success/failure status and statistics
+ *
+ * @note Creates parent directories for target_path if they don't exist
+ * @note Returns detailed error information in the result structure
+ * @note Source file must exist and be readable
+ * @note Target file will be overwritten if it exists
+ */
 RogueMigrationResult rogue_migrate_item_file(const char* source_path, const char* target_path,
                                              const RogueJsonSchema* schema)
 {
@@ -360,6 +525,21 @@ RogueMigrationResult rogue_migrate_item_file(const char* source_path, const char
     return result;
 }
 
+/**
+ * @brief Migrates the main items configuration file.
+ *
+ * High-level function that migrates the standard items configuration file
+ * (test_items.cfg) to JSON format using the provided configuration settings.
+ * This is a convenience function that handles the standard migration path.
+ *
+ * @param config Pointer to migration configuration containing source/target paths
+ * @return MigrationResult structure with detailed success/failure information
+ *
+ * @note Expects source file at "{config->source_dir}/test_items.cfg"
+ * @note Creates target file at "{config->target_dir}/items/items.json"
+ * @note Uses the item schema from config if validation is enabled
+ * @note Returns FILE_ERROR status if source file doesn't exist
+ */
 RogueMigrationResult rogue_migrate_items(const RogueMigrationConfig* config)
 {
     RogueMigrationResult result = {0};
@@ -386,6 +566,22 @@ RogueMigrationResult rogue_migrate_items(const RogueMigrationConfig* config)
 // Affixes Migration (Phase 2.3.2) - Simplified
 // =============================================================================
 
+/**
+ * @brief Converts a single CFG record to JSON affix format.
+ *
+ * Parses a CSV record from CFG data and converts it to a JSON object
+ * representing an affix with all its properties (type, id, stat, values, weights).
+ *
+ * Expected CSV format: type,id,stat,min,max,w_common,w_uncommon,w_rare,w_epic,w_legendary
+ *
+ * @param cfg_data Pointer to parsed CFG data containing the records
+ * @param record_index Index of the record to convert (0-based)
+ * @return Pointer to JSON object representing the affix, or NULL on error
+ *
+ * @note Only supports CSV format currently
+ * @note Caller is responsible for freeing the returned JSON object
+ * @note Returns NULL if record_index is out of bounds or format is unsupported
+ */
 RogueJsonValue* rogue_cfg_affix_to_json(const RogueCfgParseResult* cfg_data, int record_index)
 {
     if (!cfg_data || !cfg_data->parse_success)
@@ -424,6 +620,24 @@ RogueJsonValue* rogue_cfg_affix_to_json(const RogueCfgParseResult* cfg_data, int
     return affix;
 }
 
+/**
+ * @brief Validates a migrated affix JSON object.
+ *
+ * Performs business rule validation on a migrated affix to ensure data
+ * integrity and game balance. Checks affix structure, type validity,
+ * and value range constraints.
+ *
+ * @param affix Pointer to the JSON affix object to validate
+ * @param schema Pointer to validation schema (currently unused stub)
+ * @param error_msg Buffer to store error message if validation fails
+ * @param error_size Size of the error message buffer
+ * @return true if affix is valid, false otherwise
+ *
+ * @note Schema parameter is currently ignored (stub implementation)
+ * @note Validates affix type (must be PREFIX or SUFFIX)
+ * @note Ensures min_value <= max_value
+ * @note Error messages are truncated if buffer is too small
+ */
 bool rogue_validate_migrated_affix(const RogueJsonValue* affix, const RogueJsonSchema* schema,
                                    char* error_msg, size_t error_size)
 {
@@ -472,6 +686,21 @@ bool rogue_validate_migrated_affix(const RogueJsonValue* affix, const RogueJsonS
     return true;
 }
 
+/**
+ * @brief Migrates the affixes configuration file from CFG to JSON format.
+ *
+ * Performs a complete migration of the affixes CFG file to JSON format,
+ * including parsing, conversion, validation, and file output. This handles
+ * all affix data including prefixes and suffixes with their stat modifiers.
+ *
+ * @param config Pointer to migration configuration containing paths and settings
+ * @return MigrationResult structure with detailed success/failure information
+ *
+ * @note Expects source file at "{config->source_dir}/affixes.cfg"
+ * @note Creates target file at "{config->target_dir}/items/affixes.json"
+ * @note Uses the affix schema from config if validation is enabled
+ * @note Creates parent directories automatically if they don't exist
+ */
 RogueMigrationResult rogue_migrate_affixes(const RogueMigrationConfig* config)
 {
     RogueMigrationResult result = {0};
@@ -581,6 +810,21 @@ RogueMigrationResult rogue_migrate_affixes(const RogueMigrationConfig* config)
 // Cross-Reference Validation (Stubs)
 // =============================================================================
 
+/**
+ * @brief Validates uniqueness of item IDs across all item files.
+ *
+ * Stub implementation for validating that all item IDs are unique across
+ * all JSON files in the items directory. This would scan all item files
+ * and check for duplicate IDs.
+ *
+ * @param items_dir Path to the directory containing item JSON files
+ * @param error_msg Buffer to store error message if validation fails
+ * @param error_size Size of the error message buffer
+ * @return true if validation passes, false otherwise
+ *
+ * @note This is currently a stub implementation that always returns true
+ * @note Future implementation would scan all JSON files for duplicate IDs
+ */
 bool rogue_validate_item_id_uniqueness(const char* items_dir, char* error_msg, size_t error_size)
 {
     // Implementation stub - would scan all JSON files for duplicate IDs
@@ -590,6 +834,20 @@ bool rogue_validate_item_id_uniqueness(const char* items_dir, char* error_msg, s
     return true;
 }
 
+/**
+ * @brief Validates item balance and stat ranges.
+ *
+ * Stub implementation for validating item balance by checking stat ranges,
+ * power budgets, and game balance constraints.
+ *
+ * @param item Pointer to the JSON item object to validate
+ * @param error_msg Buffer to store error message if validation fails
+ * @param error_size Size of the error message buffer
+ * @return true if item is balanced, false otherwise
+ *
+ * @note This is currently a stub implementation that always returns true
+ * @note Future implementation would check stat power levels and balance
+ */
 bool rogue_validate_item_balance(const RogueJsonValue* item, char* error_msg, size_t error_size)
 {
     // Implementation stub - would check stat ranges and power budget
@@ -599,6 +857,20 @@ bool rogue_validate_item_balance(const RogueJsonValue* item, char* error_msg, si
     return true;
 }
 
+/**
+ * @brief Validates affix power budget and balance.
+ *
+ * Stub implementation for validating affix balance by checking power levels
+ * and ensuring affixes don't break game balance.
+ *
+ * @param affix Pointer to the JSON affix object to validate
+ * @param error_msg Buffer to store error message if validation fails
+ * @param error_size Size of the error message buffer
+ * @return true if affix is balanced, false otherwise
+ *
+ * @note This is currently a stub implementation that always returns true
+ * @note Future implementation would check affix power levels and balance
+ */
 bool rogue_validate_affix_budget(const RogueJsonValue* affix, char* error_msg, size_t error_size)
 {
     // Implementation stub - would check affix power levels
@@ -612,6 +884,20 @@ bool rogue_validate_affix_budget(const RogueJsonValue* affix, char* error_msg, s
 // Batch Processing (Phase 2.3)
 // =============================================================================
 
+/**
+ * @brief Executes Phase 2.3.1: Items & Equipment Migration.
+ *
+ * Runs the complete items migration process as part of Phase 2.3.1,
+ * migrating item configuration files and collecting comprehensive statistics.
+ * This includes parsing, validation, conversion, and file output.
+ *
+ * @param config Pointer to migration configuration with source/target paths
+ * @return MigrationStats structure containing detailed migration statistics
+ *
+ * @note Logs progress and results to the configured logging system
+ * @note Updates statistics for successful/failed files and records
+ * @note Part of the larger Phase 2.3 migration workflow
+ */
 RogueMigrationStats rogue_migrate_phase_2_3_1(const RogueMigrationConfig* config)
 {
     RogueMigrationStats stats = {0};
@@ -639,6 +925,20 @@ RogueMigrationStats rogue_migrate_phase_2_3_1(const RogueMigrationConfig* config
     return stats;
 }
 
+/**
+ * @brief Executes Phase 2.3.2: Affixes & Modifiers Migration.
+ *
+ * Runs the complete affixes migration process as part of Phase 2.3.2,
+ * migrating affix configuration files and collecting comprehensive statistics.
+ * This includes parsing, validation, conversion, and file output.
+ *
+ * @param config Pointer to migration configuration with source/target paths
+ * @return MigrationStats structure containing detailed migration statistics
+ *
+ * @note Logs progress and results to the configured logging system
+ * @note Updates statistics for successful/failed files and records
+ * @note Part of the larger Phase 2.3 migration workflow
+ */
 RogueMigrationStats rogue_migrate_phase_2_3_2(const RogueMigrationConfig* config)
 {
     RogueMigrationStats stats = {0};
@@ -670,6 +970,19 @@ RogueMigrationStats rogue_migrate_phase_2_3_2(const RogueMigrationConfig* config
 // Utility Functions
 // =============================================================================
 
+/**
+ * @brief Prints comprehensive migration statistics to the log.
+ *
+ * Outputs a formatted summary of migration statistics including file counts,
+ * record counts, and error statistics. Useful for monitoring migration progress
+ * and diagnosing issues.
+ *
+ * @param stats Pointer to the migration statistics structure to print
+ *
+ * @note Safe to call with NULL pointer (no-op in that case)
+ * @note Uses the configured logging system for output
+ * @note Output format is consistent with other logging in the system
+ */
 void rogue_migration_print_stats(const RogueMigrationStats* stats)
 {
     if (!stats)
@@ -684,6 +997,20 @@ void rogue_migration_print_stats(const RogueMigrationStats* stats)
     ROGUE_LOG_INFO("Schema errors: %d", stats->schema_errors);
 }
 
+/**
+ * @brief Prints detailed migration result information to the log.
+ *
+ * Outputs comprehensive information about a specific migration result,
+ * including status, file paths, record counts, and error details.
+ * Useful for debugging individual migration operations.
+ *
+ * @param result Pointer to the migration result structure to print
+ *
+ * @note Safe to call with NULL pointer (no-op in that case)
+ * @note Uses the configured logging system for output
+ * @note Includes status code translation to human-readable strings
+ * @note Shows validation error counts when applicable
+ */
 void rogue_migration_print_result(const RogueMigrationResult* result)
 {
     if (!result)

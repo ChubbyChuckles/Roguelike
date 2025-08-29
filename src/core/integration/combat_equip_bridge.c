@@ -41,7 +41,27 @@ static double get_time_microseconds()
         }                                                                                          \
     } while (0)
 
-/* Phase 3.2.1: Real-time equipment stat application to combat calculations */
+/**
+ * @file combat_equip_bridge.c
+ * @brief Real-time bridge between equipment system and combat calculations.
+ *
+ * This module provides a comprehensive integration layer between the equipment
+ * system and combat calculations, enabling real-time stat application, durability
+ * management, proc effects, set bonuses, enchantments, and weight impacts.
+ *
+ * The bridge system supports:
+ * - Real-time equipment stat caching and application to combat
+ * - Equipment durability reduction based on combat damage
+ * - Proc effect triggering and management during combat
+ * - Equipment set bonus activation/deactivation tracking
+ * - Enchantment effect integration in combat formulas
+ * - Equipment weight impact on combat timing and movement
+ * - Performance monitoring and debug logging
+ *
+ * @note This is part of Phase 3.2 of the combat-equipment integration project.
+ * @author Combat-Equipment Integration Team
+ * @date 2025
+ */
 
 int rogue_combat_equip_bridge_init(RogueCombatEquipBridge* bridge)
 {
@@ -84,6 +104,22 @@ void rogue_combat_equip_bridge_shutdown(RogueCombatEquipBridge* bridge)
     bridge->initialized = false;
 }
 
+/**
+ * @brief Updates cached equipment stats for combat calculations.
+ *
+ * Recalculates equipment bonuses from all equipped items and caches them
+ * for efficient access during combat. Only recalculates when stats are marked
+ * as dirty to optimize performance.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @param player Pointer to the player whose equipment to analyze
+ * @return 1 on success, 0 on failure
+ *
+ * @note Returns early if stats are not dirty (already current)
+ * @note Updates performance metrics including calculation time
+ * @note Currently uses placeholder stat bonuses - integrates with actual equipment system
+ * @note Logs detailed stat changes when debug logging is enabled
+ */
 int rogue_combat_equip_bridge_update_stats(RogueCombatEquipBridge* bridge,
                                            struct RoguePlayer* player)
 {
@@ -156,6 +192,19 @@ int rogue_combat_equip_bridge_update_stats(RogueCombatEquipBridge* bridge,
     return 1;
 }
 
+/**
+ * @brief Retrieves cached combat equipment stats.
+ *
+ * Returns the current cached equipment stats for use in combat calculations.
+ * This provides efficient access to pre-calculated equipment bonuses.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @param out_stats Pointer to output structure to receive the stats
+ * @return 1 on success, 0 on failure
+ *
+ * @note Updates cache hit counter for performance monitoring
+ * @note Safe to call frequently as it only copies cached data
+ */
 int rogue_combat_equip_bridge_get_combat_stats(RogueCombatEquipBridge* bridge,
                                                RogueCombatEquipmentStats* out_stats)
 {
@@ -169,6 +218,19 @@ int rogue_combat_equip_bridge_get_combat_stats(RogueCombatEquipBridge* bridge,
     return 1;
 }
 
+/**
+ * @brief Applies cached equipment stats to combat calculations.
+ *
+ * Integrates the cached equipment bonuses into the active combat system,
+ * modifying damage multipliers, attack speed, and other combat parameters.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @param combat Pointer to the combat system to modify
+ * @return 1 on success, 0 on failure
+ *
+ * @note Currently logs application but doesn't modify actual combat system
+ * @note TODO: Integrate with actual combat calculation system
+ */
 int rogue_combat_equip_bridge_apply_stats_to_combat(RogueCombatEquipBridge* bridge,
                                                     struct RoguePlayerCombat* combat)
 {
@@ -187,8 +249,27 @@ int rogue_combat_equip_bridge_apply_stats_to_combat(RogueCombatEquipBridge* brid
     return 1;
 }
 
-/* Phase 3.2.2: Equipment durability reduction hooks in combat damage events */
+// =============================================================================
+// Phase 3.2.2: Equipment durability reduction hooks in combat damage events
+// =============================================================================
 
+/**
+ * @brief Handles equipment durability reduction when player takes damage.
+ *
+ * Processes incoming damage and calculates durability loss for equipped armor pieces.
+ * Creates durability events for each affected armor slot and tracks potential breakage.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @param player Pointer to the player taking damage
+ * @param damage_amount Amount of damage taken
+ * @param damage_type Type of damage (currently unused)
+ * @return 1 on success, 0 on failure or event limit reached
+ *
+ * @note Damage type parameter is currently suppressed (unused)
+ * @note Durability damage = (damage_amount / 20) + 1
+ * @note Limited to max_durability_events_per_frame to prevent spam
+ * @note Logs detailed durability changes when debug logging enabled
+ */
 int rogue_combat_equip_bridge_on_damage_taken(RogueCombatEquipBridge* bridge,
                                               struct RoguePlayer* player, uint32_t damage_amount,
                                               uint8_t damage_type)
@@ -248,6 +329,21 @@ int rogue_combat_equip_bridge_on_damage_taken(RogueCombatEquipBridge* bridge,
     return 1;
 }
 
+/**
+ * @brief Handles weapon durability reduction when player makes an attack.
+ *
+ * Processes weapon durability loss based on attack success. Successful hits
+ * cause more durability damage than misses. Creates durability events for tracking.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @param player Pointer to the attacking player
+ * @param hit_target true if attack hit the target, false if it missed
+ * @return 1 on success, 0 on failure
+ *
+ * @note Weapon durability damage: 2 points for hits, 1 point for misses
+ * @note Only processes if weapon is equipped
+ * @note TODO: Integrate with actual equipment durability system
+ */
 int rogue_combat_equip_bridge_on_attack_made(RogueCombatEquipBridge* bridge,
                                              struct RoguePlayer* player, bool hit_target)
 {
@@ -282,6 +378,20 @@ int rogue_combat_equip_bridge_on_attack_made(RogueCombatEquipBridge* bridge,
     return 1;
 }
 
+/**
+ * @brief Processes all pending durability events.
+ *
+ * Iterates through accumulated durability events and applies the damage
+ * to the actual equipment system. Clears the event queue after processing.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @return Number of events processed
+ *
+ * @note TODO: Integrate with actual equipment durability system
+ * @note Clears event queue after processing
+ * @note Updates durability_events_processed counter
+ * @note Logs processing summary when events were processed
+ */
 int rogue_combat_equip_bridge_process_durability_events(RogueCombatEquipBridge* bridge)
 {
     if (!bridge || !bridge->initialized)
@@ -316,8 +426,27 @@ int rogue_combat_equip_bridge_process_durability_events(RogueCombatEquipBridge* 
     return processed_events;
 }
 
-/* Phase 3.2.3: Equipment proc effect triggers during combat actions */
+// =============================================================================
+// Phase 3.2.3: Equipment proc effect triggers during combat actions
+// =============================================================================
 
+/**
+ * @brief Triggers equipment proc effects based on combat events.
+ *
+ * Scans equipped items for proc effects that match the trigger type and
+ * activates them with appropriate magnitude and duration. Limited by
+ * max_proc_activations_per_frame to prevent spam.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @param trigger_type Type of trigger (on-hit, on-crit, on-damage, etc.)
+ * @param context_data Additional context data for the trigger
+ * @return 1 on success, 0 on failure or proc limit reached
+ *
+ * @note Currently simulates proc activation with 15% chance per item
+ * @note TODO: Integrate with actual equipment proc system
+ * @note Limited to max_proc_activations_per_frame to prevent performance issues
+ * @note Updates procs_triggered_total counter
+ */
 int rogue_combat_equip_bridge_trigger_procs(RogueCombatEquipBridge* bridge, uint8_t trigger_type,
                                             uint32_t context_data)
 {
@@ -368,6 +497,20 @@ int rogue_combat_equip_bridge_trigger_procs(RogueCombatEquipBridge* bridge, uint
     return 1;
 }
 
+/**
+ * @brief Updates active proc effects and removes expired ones.
+ *
+ * Processes all active proc effects, reducing their remaining duration
+ * and removing any that have expired. Compacts the proc array for efficiency.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @param dt_ms Time delta in milliseconds since last update
+ * @return Number of currently active procs after update
+ *
+ * @note Compacts proc array to remove gaps from expired procs
+ * @note Logs expiration of individual procs when debug logging enabled
+ * @note Safe to call every frame for real-time proc management
+ */
 int rogue_combat_equip_bridge_update_active_procs(RogueCombatEquipBridge* bridge, float dt_ms)
 {
     if (!bridge || !bridge->initialized)
@@ -402,6 +545,21 @@ int rogue_combat_equip_bridge_update_active_procs(RogueCombatEquipBridge* bridge
     return active_count;
 }
 
+/**
+ * @brief Retrieves list of currently active proc effects.
+ *
+ * Copies active proc effects into the provided buffer, up to the specified
+ * maximum count. Returns the actual number of procs copied.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @param out_procs Buffer to receive the active proc list
+ * @param max_procs Maximum number of procs to copy
+ * @return Number of procs actually copied (may be less than max_procs)
+ *
+ * @note Safe to call with max_procs larger than active proc count
+ * @note Buffer must be large enough for max_procs entries
+ * @note Returns 0 on error or if no procs are active
+ */
 int rogue_combat_equip_bridge_get_active_procs(RogueCombatEquipBridge* bridge,
                                                RogueEquipmentProcActivation* out_procs,
                                                uint8_t max_procs)
@@ -421,8 +579,25 @@ int rogue_combat_equip_bridge_get_active_procs(RogueCombatEquipBridge* bridge,
     return copy_count;
 }
 
-/* Phase 3.2.4: Equipment set bonus activation/deactivation on equip/unequip */
+// =============================================================================
+// Phase 3.2.4: Equipment set bonus activation/deactivation on equip/unequip
+// =============================================================================
 
+/**
+ * @brief Updates equipment set bonus states based on equipped items.
+ *
+ * Scans all equipped items to detect set completions and updates bonus states.
+ * Tracks activation/deactivation events for proper bonus application.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @param player Pointer to the player whose equipment to analyze
+ * @return Number of active set bonuses
+ *
+ * @note Currently simulates "Warrior Set" detection
+ * @note TODO: Integrate with actual equipment set system
+ * @note Tracks just_activated/just_deactivated flags for event handling
+ * @note Updates set_bonus_state_changes counter on state changes
+ */
 int rogue_combat_equip_bridge_update_set_bonuses(RogueCombatEquipBridge* bridge,
                                                  struct RoguePlayer* player)
 {
@@ -493,6 +668,21 @@ int rogue_combat_equip_bridge_update_set_bonuses(RogueCombatEquipBridge* bridge,
     return bridge->set_bonus_count;
 }
 
+/**
+ * @brief Retrieves list of active equipment set bonuses.
+ *
+ * Copies active set bonus states into the provided buffer, up to the specified
+ * maximum count. Returns the actual number of bonuses copied.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @param out_bonuses Buffer to receive the set bonus list
+ * @param max_bonuses Maximum number of bonuses to copy
+ * @return Number of bonuses actually copied (may be less than max_bonuses)
+ *
+ * @note Safe to call with max_bonuses larger than active bonus count
+ * @note Buffer must be large enough for max_bonuses entries
+ * @note Returns 0 on error or if no bonuses are active
+ */
 int rogue_combat_equip_bridge_get_set_bonuses(RogueCombatEquipBridge* bridge,
                                               RogueEquipmentSetBonusState* out_bonuses,
                                               uint8_t max_bonuses)
@@ -512,6 +702,20 @@ int rogue_combat_equip_bridge_get_set_bonuses(RogueCombatEquipBridge* bridge,
     return copy_count;
 }
 
+/**
+ * @brief Applies active set bonuses to combat calculations.
+ *
+ * Integrates active equipment set bonuses into the combat system,
+ * modifying stats and abilities based on set completion levels.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @param combat Pointer to the combat system to modify
+ * @return 1 on success, 0 on failure
+ *
+ * @note Currently logs application but doesn't modify actual combat system
+ * @note TODO: Integrate with actual combat calculation system
+ * @note Only applies bonuses with tier > 0
+ */
 int rogue_combat_equip_bridge_apply_set_bonuses_to_combat(RogueCombatEquipBridge* bridge,
                                                           struct RoguePlayerCombat* combat)
 {
@@ -537,8 +741,28 @@ int rogue_combat_equip_bridge_apply_set_bonuses_to_combat(RogueCombatEquipBridge
     return 1;
 }
 
-/* Phase 3.2.5: Equipment enchantment effects integration in combat formulas */
+// =============================================================================
+// Phase 3.2.5: Equipment enchantment effects integration in combat formulas
+// =============================================================================
 
+/**
+ * @brief Applies equipment enchantment effects to combat calculations.
+ *
+ * Scans equipped items for active enchantments and applies their effects
+ * to damage multipliers and elemental damage types in combat formulas.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @param player Pointer to the player whose equipment to analyze
+ * @param damage_multiplier Pointer to damage multiplier to modify
+ * @param elemental_damage Pointer to elemental damage flags to modify
+ * @return 1 on success, 0 on failure
+ *
+ * @note Currently simulates enchantment effects with placeholder values
+ * @note TODO: Integrate with actual equipment enchantment system
+ * @note Updates enchantment_applications counter
+ * @note Weapon slot: +12% damage, fire elemental
+ * @note Ring slots: lightning elemental
+ */
 int rogue_combat_equip_bridge_apply_enchantments(RogueCombatEquipBridge* bridge,
                                                  struct RoguePlayer* player,
                                                  float* damage_multiplier,
@@ -578,6 +802,21 @@ int rogue_combat_equip_bridge_apply_enchantments(RogueCombatEquipBridge* bridge,
     return 1;
 }
 
+/**
+ * @brief Triggers enchantment effects based on combat events.
+ *
+ * Processes enchantment triggers (on-hit, on-crit, on-damage, etc.) and
+ * activates corresponding enchantment effects with appropriate context.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @param enchant_trigger Type of enchantment trigger to process
+ * @param context_data Additional context data for the trigger
+ * @return 1 on success, 0 on failure
+ *
+ * @note TODO: Implement actual enchantment effect triggering
+ * @note Currently only logs the trigger event
+ * @note Would integrate with enchantment system for on-hit, on-crit effects
+ */
 int rogue_combat_equip_bridge_trigger_enchantment_effects(RogueCombatEquipBridge* bridge,
                                                           uint8_t enchant_trigger,
                                                           uint32_t context_data)
@@ -596,8 +835,28 @@ int rogue_combat_equip_bridge_trigger_enchantment_effects(RogueCombatEquipBridge
     return 1;
 }
 
-/* Phase 3.2.6: Equipment weight impact on combat timing & movement */
+// =============================================================================
+// Phase 3.2.6: Equipment weight impact on combat timing & movement
+// =============================================================================
 
+/**
+ * @brief Updates equipment weight impact calculations.
+ *
+ * Calculates total equipped weight and determines encumbrance effects
+ * on combat timing, movement speed, and stamina drain. Only recalculates
+ * when weight data is marked as dirty.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @param player Pointer to the player whose equipment to analyze
+ * @return 1 on success, 0 on failure
+ *
+ * @note Returns early if weight is not dirty (already current)
+ * @note Weight limit is 25.0 units, over-limit causes penalties
+ * @note Attack speed penalty: -30% when encumbered
+ * @note Dodge speed penalty: -50% when encumbered
+ * @note Stamina drain multiplier: +80% when encumbered
+ * @note Updates weight_calculations_per_second counter
+ */
 int rogue_combat_equip_bridge_update_weight_impact(RogueCombatEquipBridge* bridge,
                                                    struct RoguePlayer* player)
 {
@@ -670,6 +929,19 @@ int rogue_combat_equip_bridge_update_weight_impact(RogueCombatEquipBridge* bridg
     return 1;
 }
 
+/**
+ * @brief Retrieves current equipment weight impact data.
+ *
+ * Returns the current weight impact calculations including total weight,
+ * encumbrance status, and movement/combat penalties.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @param out_impact Pointer to output structure to receive weight impact data
+ * @return 1 on success, 0 on failure
+ *
+ * @note Provides real-time access to weight calculations
+ * @note Safe to call frequently as it only copies cached data
+ */
 int rogue_combat_equip_bridge_get_weight_impact(RogueCombatEquipBridge* bridge,
                                                 RogueEquipmentWeightImpact* out_impact)
 {
@@ -682,6 +954,20 @@ int rogue_combat_equip_bridge_get_weight_impact(RogueCombatEquipBridge* bridge,
     return 1;
 }
 
+/**
+ * @brief Applies equipment weight impact to combat calculations.
+ *
+ * Integrates weight-based penalties into the combat system, affecting
+ * attack speed, dodge speed, and stamina drain based on equipment load.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @param combat Pointer to the combat system to modify
+ * @return 1 on success, 0 on failure
+ *
+ * @note Currently logs application but doesn't modify actual combat system
+ * @note TODO: Integrate with actual combat system for timing and movement
+ * @note Weight penalties are applied multiplicatively to base stats
+ */
 int rogue_combat_equip_bridge_apply_weight_to_combat(RogueCombatEquipBridge* bridge,
                                                      struct RoguePlayerCombat* combat)
 {
@@ -702,8 +988,27 @@ int rogue_combat_equip_bridge_apply_weight_to_combat(RogueCombatEquipBridge* bri
     return 1;
 }
 
-/* Phase 3.2.7: Equipment upgrade notifications to combat stat cache */
+// =============================================================================
+// Phase 3.2.7: Equipment upgrade notifications to combat stat cache
+// =============================================================================
 
+/**
+ * @brief Handles equipment upgrade notifications.
+ *
+ * Processes equipment upgrade events by invalidating relevant caches
+ * and publishing change notifications for stat recalculation.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @param slot Equipment slot that was upgraded
+ * @param old_item_id Previous item ID
+ * @param new_item_id New item ID after upgrade
+ * @return 1 on success, 0 on failure
+ *
+ * @note Marks both stats and weight caches as dirty
+ * @note Updates equipment change timestamp
+ * @note Publishes ROGUE_COMBAT_EQUIP_EVENT_UPGRADE_NOTIFICATION event
+ * @note Logs detailed upgrade information when debug logging enabled
+ */
 int rogue_combat_equip_bridge_on_equipment_upgraded(RogueCombatEquipBridge* bridge, uint8_t slot,
                                                     uint32_t old_item_id, uint32_t new_item_id)
 {
@@ -730,6 +1035,22 @@ int rogue_combat_equip_bridge_on_equipment_upgraded(RogueCombatEquipBridge* brid
     return 1;
 }
 
+/**
+ * @brief Handles equipment enchantment notifications.
+ *
+ * Processes equipment enchantment events by invalidating stat caches
+ * and publishing enchantment application notifications.
+ *
+ * @param bridge Pointer to the bridge instance
+ * @param slot Equipment slot that was enchanted
+ * @param enchant_id ID of the applied enchantment
+ * @return 1 on success, 0 on failure
+ *
+ * @note Marks stats cache as dirty (weight unaffected by enchantments)
+ * @note Updates equipment change timestamp
+ * @note Publishes ROGUE_COMBAT_EQUIP_EVENT_ENCHANT_APPLIED event
+ * @note Logs enchantment details when debug logging enabled
+ */
 int rogue_combat_equip_bridge_on_equipment_enchanted(RogueCombatEquipBridge* bridge, uint8_t slot,
                                                      uint32_t enchant_id)
 {
@@ -753,6 +1074,27 @@ int rogue_combat_equip_bridge_on_equipment_enchanted(RogueCombatEquipBridge* bri
     return 1;
 }
 
+/**
+ * @brief Handles equipment socketing notifications from the equipment system
+ *
+ * This function is called when a gem is socketed into equipment in a specific slot.
+ * It invalidates the combat stat cache to ensure that the next combat calculation
+ * includes the new gem's effects. The function maintains performance tracking
+ * and logs the socketing event for debugging purposes.
+ *
+ * @param bridge Pointer to the combat-equipment bridge instance
+ * @param slot The equipment slot where the gem was socketed (0-255 range)
+ * @param gem_id The unique identifier of the gem that was socketed
+ *
+ * @return int Returns 1 on success, 0 on failure (invalid bridge or not initialized)
+ *
+ * @note This function marks the bridge stats as dirty, triggering a full stat
+ *       recalculation on the next combat update cycle. The timestamp of the
+ *       equipment change is recorded for performance monitoring.
+ *
+ * @see rogue_combat_equip_bridge_update_combat_stats() for stat recalculation
+ * @see rogue_combat_equip_bridge_on_equipment_enchanted() for related equipment changes
+ */
 int rogue_combat_equip_bridge_on_equipment_socketed(RogueCombatEquipBridge* bridge, uint8_t slot,
                                                     uint32_t gem_id)
 {
@@ -773,6 +1115,26 @@ int rogue_combat_equip_bridge_on_equipment_socketed(RogueCombatEquipBridge* brid
 
 /* Performance & Debug Functions */
 
+/**
+ * @brief Retrieves current performance metrics from the combat-equipment bridge
+ *
+ * This function provides access to the bridge's internal performance monitoring
+ * data, including timing statistics, cache hit rates, and system integration
+ * metrics. The metrics are copied to the provided output structure for external
+ * analysis and monitoring.
+ *
+ * @param bridge Pointer to the combat-equipment bridge instance
+ * @param out_metrics Pointer to output structure to receive the metrics data
+ *
+ * @return int Returns 1 on success, 0 on failure (invalid parameters or uninitialized bridge)
+ *
+ * @note The metrics structure contains timing data for various bridge operations,
+ *       cache performance statistics, and integration event counts. This data
+ *       is useful for performance monitoring and optimization.
+ *
+ * @see RogueCombatEquipBridgeMetrics for the complete metrics structure definition
+ * @see rogue_combat_equip_bridge_reset_metrics() to clear accumulated metrics
+ */
 int rogue_combat_equip_bridge_get_metrics(RogueCombatEquipBridge* bridge,
                                           RogueCombatEquipBridgeMetrics* out_metrics)
 {
@@ -785,6 +1147,22 @@ int rogue_combat_equip_bridge_get_metrics(RogueCombatEquipBridge* bridge,
     return 1;
 }
 
+/**
+ * @brief Resets all performance metrics to zero
+ *
+ * This function clears all accumulated performance metrics in the bridge,
+ * resetting timing counters, cache statistics, and event counts to their
+ * initial state. A timestamp is recorded to track when the reset occurred.
+ *
+ * @param bridge Pointer to the combat-equipment bridge instance
+ *
+ * @note This function is typically called during testing, benchmarking, or
+ *       when starting a new performance monitoring session. The reset operation
+ *       is logged for debugging purposes.
+ *
+ * @see rogue_combat_equip_bridge_get_metrics() to retrieve current metrics
+ * @see RogueCombatEquipBridgeMetrics for the metrics that are reset
+ */
 void rogue_combat_equip_bridge_reset_metrics(RogueCombatEquipBridge* bridge)
 {
     if (!bridge || !bridge->initialized)
@@ -798,6 +1176,25 @@ void rogue_combat_equip_bridge_reset_metrics(RogueCombatEquipBridge* bridge)
     BRIDGE_LOG(bridge, "INFO", "Performance metrics reset");
 }
 
+/**
+ * @brief Checks performance metrics against predefined thresholds
+ *
+ * This function evaluates the current performance metrics against configurable
+ * thresholds to detect potential performance issues. It checks for excessive
+ * stat calculation times and high cache miss rates, logging warnings when
+ * thresholds are exceeded.
+ *
+ * @param bridge Pointer to the combat-equipment bridge instance
+ *
+ * @return int Number of performance warnings detected (0 = all metrics within thresholds)
+ *
+ * @note Current thresholds:
+ *       - Stat calculation time: 1000 microseconds (1ms)
+ *       - Cache miss rate: 20% of total cache accesses
+ *
+ * @see rogue_combat_equip_bridge_get_metrics() to retrieve current metrics
+ * @see RogueCombatEquipBridgeMetrics for the metrics being checked
+ */
 int rogue_combat_equip_bridge_check_performance_thresholds(RogueCombatEquipBridge* bridge)
 {
     if (!bridge || !bridge->initialized)
@@ -825,6 +1222,22 @@ int rogue_combat_equip_bridge_check_performance_thresholds(RogueCombatEquipBridg
     return warnings;
 }
 
+/**
+ * @brief Enables or disables debug logging for the combat-equipment bridge
+ *
+ * This function controls the verbosity of logging output from the bridge.
+ * When debug logging is enabled, additional diagnostic information is logged
+ * during bridge operations, which is useful for troubleshooting and development.
+ *
+ * @param bridge Pointer to the combat-equipment bridge instance
+ * @param enabled Boolean flag to enable (true) or disable (false) debug logging
+ *
+ * @note Debug logging affects the verbosity of BRIDGE_LOG calls throughout
+ *       the bridge implementation. This setting persists until explicitly changed.
+ *
+ * @see rogue_combat_equip_bridge_get_debug_status() to check current debug state
+ * @see BRIDGE_LOG macro for the logging implementation
+ */
 void rogue_combat_equip_bridge_set_debug_logging(RogueCombatEquipBridge* bridge, bool enabled)
 {
     if (!bridge)
@@ -833,6 +1246,22 @@ void rogue_combat_equip_bridge_set_debug_logging(RogueCombatEquipBridge* bridge,
     BRIDGE_LOG(bridge, "INFO", "Debug logging %s", enabled ? "ENABLED" : "DISABLED");
 }
 
+/**
+ * @brief Retrieves the current debug logging status
+ *
+ * This function returns the current state of debug logging for the bridge,
+ * allowing external systems to check whether verbose diagnostic output is enabled.
+ *
+ * @param bridge Pointer to the combat-equipment bridge instance
+ *
+ * @return int Returns 1 if debug logging is enabled, 0 if disabled, -1 on error
+ *
+ * @note This function is useful for conditional logging in external systems
+ *       that integrate with the bridge, allowing them to match the bridge's
+ *       logging verbosity.
+ *
+ * @see rogue_combat_equip_bridge_set_debug_logging() to change debug logging state
+ */
 int rogue_combat_equip_bridge_get_debug_status(RogueCombatEquipBridge* bridge)
 {
     if (!bridge || !bridge->initialized)
@@ -842,6 +1271,28 @@ int rogue_combat_equip_bridge_get_debug_status(RogueCombatEquipBridge* bridge)
     return bridge->debug_logging ? 1 : 0;
 }
 
+/**
+ * @brief Validates the internal state of the combat-equipment bridge
+ *
+ * This function performs comprehensive validation of the bridge's internal state,
+ * checking for consistency in counters, initialization status, and data integrity.
+ * It's primarily used for debugging and testing to ensure the bridge is in a
+ * valid operational state.
+ *
+ * @param bridge Pointer to the combat-equipment bridge instance
+ *
+ * @return int Returns 1 if validation passes, 0 if validation fails
+ *
+ * @note Validation checks include:
+ *       - Bridge pointer validity
+ *       - Initialization status
+ *       - Durability event count (max 64)
+ *       - Active proc count (max 32)
+ *       - Set bonus count (max 16)
+ *
+ * @warning This function outputs validation results to stdout, making it suitable
+ *          for testing and debugging but not for production logging.
+ */
 int rogue_combat_equip_bridge_validate(RogueCombatEquipBridge* bridge)
 {
     if (!bridge)
