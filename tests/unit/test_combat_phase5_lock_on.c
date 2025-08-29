@@ -41,19 +41,19 @@ int rogue_attack_chain_length(int a)
     (void) a;
     return 1;
 }
-int rogue_buffs_get_total(int t)
+static int rogue_buffs_get_total(int t)
 {
     (void) t;
     return 0;
 }
-void rogue_add_damage_number(float x, float y, int amount, int from_player)
+static void rogue_add_damage_number(float x, float y, int amount, int from_player)
 {
     (void) x;
     (void) y;
     (void) amount;
     (void) from_player;
 }
-void rogue_add_damage_number_ex(float x, float y, int amount, int from_player, int crit)
+static void rogue_add_damage_number_ex(float x, float y, int amount, int from_player, int crit)
 {
     (void) x;
     (void) y;
@@ -63,7 +63,7 @@ void rogue_add_damage_number_ex(float x, float y, int amount, int from_player, i
 }
 extern int rogue_force_attack_active;
 extern int g_attack_frame_override;
-int rogue_get_current_attack_frame(void) { return 3; }
+static int rogue_get_current_attack_frame(void) { return 3; }
 
 int main()
 {

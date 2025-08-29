@@ -45,9 +45,6 @@
 /* Internal state for Phase 8.3 auto-warn bucket transitions. */
 static int g_last_durability_transition = 0; /* 0 none,1 warn,2 critical */
 
-/* Internal state for Phase 8.3 auto-warn bucket transitions. */
-static int g_last_durability_transition = 0; /* 0 none,1 warn,2 critical */
-
 /**
  * @brief Reset durability transition state for the current tick
  *

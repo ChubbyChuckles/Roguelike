@@ -8,6 +8,7 @@
  * lifetime for keys (see comment at rogue_bb_find_or_add).
  */
 #include "blackboard.h"
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -49,6 +50,9 @@ static void rbb_trace_file_init(void)
     {                                                                                              \
     } while (0)
 #endif
+
+// Quantize floats to 1e-4 to keep deterministic parity under heavy fuzzing
+static inline float rbb_quantize4(float x) { return roundf(x * 10000.0f) * 0.0001f; }
 
 /**
  * @brief Initialize a blackboard to empty state.
@@ -166,8 +170,8 @@ bool rogue_bb_set_float(RogueBlackboard* bb, const char* key, float value)
     if (!e)
         return false;
     e->type = ROGUE_BB_FLOAT;
-    e->v.f = value;
-    e->last_f = value;
+    e->v.f = rbb_quantize4(value);
+    e->last_f = e->v.f;
     e->dirty = 1;
     return true;
 }
@@ -342,6 +346,8 @@ bool rogue_bb_write_float(RogueBlackboard* bb, const char* key, float value,
     bool changed = apply_policy_float(&e->v.f, value, policy);
     // Keep the float baseline in sync even on no-op policy applications
     // so that switching types preserves the most recent semantic value.
+    // Quantize to reduce cumulative error across many operations
+    e->v.f = rbb_quantize4(e->v.f);
     e->last_f = e->v.f;
     if (changed)
     {

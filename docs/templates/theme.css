@@ -1,0 +1,20 @@
+/* Minimal professional theme overrides for Doxygen */
+:root {
+  --bg: #0f1115;
+  --fg: #e6edf3;
+  --muted: #a1a7b3;
+  --accent: #5cc8ff;
+  --accent2: #8aff80;
+  --link: #79c0ff;
+}
+body, html { background: var(--bg); color: var(--fg); }
+a { color: var(--link); }
+#projectname { color: var(--accent); font-weight: 700; }
+#nav-path, .navpath { background: #0b0d11; border-color: #1b2130; }
+.memberdecls, .memdoc { background: #0b0d11; border-color: #1b2130; }
+.fragment { background: #0b0d11; border-color: #1b2130; }
+.directory { background: #0b0d11; }
+.summary { color: var(--muted); }
+.hljs-keyword { color: #d2a8ff; }
+.hljs-string { color: #a5d6ff; }
+.hljs-number { color: #c0ffa5; }

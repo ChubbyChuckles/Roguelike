@@ -12,3 +12,12 @@ powershell -NoLogo -NoProfile -Command "cmake --build . --config Debug --paralle
 ctest --test-dir build -C Debug -j8 --output-on-failure --timeout 10
 
 pwsh -NoLogo -NoProfile -Command "Set-Location -LiteralPath 'c:\Users\Chuck\Desktop\CR_AI_Engineering\GameDev\Roguelike'; cmake --build build --config Debug --parallel 8"
+
+
+### Compile Documentation
+
+cmake -S . -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Debug
+
+cmake -S .. -B . -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Debug
+
+cmake --build . --config Debug --target docs --parallel 8

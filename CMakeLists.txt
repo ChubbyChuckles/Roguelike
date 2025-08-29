@@ -12,6 +12,7 @@ option(ROGUE_WARNINGS_AS_ERRORS "Treat warnings as errors" ON)
 option(ROGUE_CODE_COVERAGE "Enable code coverage instrumentation (GNU/Clang)" OFF)
 option(ROGUE_SUPPRESS_WINDOWS_ERROR_DIALOGS "Suppress Windows/MSVC error popups in tests by routing errors to stderr" ON)
 option(ROGUE_ENABLE_DEBUG_OVERLAY "Enable the unified in-game debug overlay system" ON)
+option(ROGUE_BUILD_DOCS "Enable building Doxygen documentation" ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -992,4 +993,24 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tools/analyze_structure.c)
     add_executable(analyze_structure tools/analyze_structure.c)
     target_link_libraries(analyze_structure PRIVATE rogue_core)
     target_include_directories(analyze_structure PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+endif()
+
+# Documentation (Doxygen)
+find_package(Doxygen QUIET OPTIONAL_COMPONENTS dot)
+if(ROGUE_BUILD_DOCS AND DOXYGEN_FOUND)
+  set(DOXYGEN_PROJECT_NAME "Roguelike Game Engine")
+  set(DOXYGEN_PROJECT_VERSION "${ROGUE_GIT_HASH} (${ROGUE_GIT_BRANCH})")
+  set(DOXYGEN_INPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  set(DOXYGEN_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/docs")
+  configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/docs/doxygen/Doxyfile.in
+    ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+    @ONLY
+  )
+  add_custom_target(docs
+    COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Generating API documentation with Doxygen"
+    VERBATIM
+  )
 endif()

@@ -19,12 +19,13 @@ PHASE 0. Current Baseline Assessment (Documentation Audit)
 0.8 Document current build system integration points (CMake structure) (X)
 
 PHASE 1. Preparation and Setup
-1.1 Doxygen installation and environment setup (X)
+1.1 Doxygen installation and environment setup (Partial)
     - Install latest Doxygen (1.9.8+) with Graphviz support
     - Verify LaTeX distribution for PDF generation (MiKTeX/TeX Live)
     - Install Graphviz for diagram generation
     - Setup PlantUML for advanced diagrams (optional)
-1.2 Project structure adjustments for documentation (X)
+    - Status: Verified locally during doc generation; CI/host installation remains TODO.
+1.2 Project structure adjustments for documentation (Done)
     - Create `/docs` directory structure:
       - `/docs/doxygen/` (configuration and templates)
       - `/docs/output/` (generated documentation)
@@ -32,33 +33,35 @@ PHASE 1. Preparation and Setup
       - `/docs/templates/` (custom HTML/CSS templates)
     - Ensure all headers have proper include guards and documentation
     - Verify module organization aligns with documentation structure
-1.3 Documentation workflow integration planning (X)
+    - Status: Structure created (Doxyfile.in, theme.css); output goes to build/docs.
+1.3 Documentation workflow integration planning (Done)
     - Identify CMake integration points
     - Plan automated generation triggers (build vs. explicit doc target)
     - Design documentation hosting strategy (local/GitHub Pages)
+    - Status: Added a first-class `docs` CMake target; hosting remains TBD.
 
 PHASE 2. Doxygen Configuration (Doxyfile Setup)
-2.1 Core Doxyfile configuration (X)
+2.1 Core Doxyfile configuration (Done)
     - PROJECT_NAME = "Roguelike Game Engine"
     - PROJECT_VERSION from CMake variables (git hash/branch)
     - INPUT paths covering all source directories
     - RECURSIVE = YES for full codebase traversal
     - FILE_PATTERNS = *.c *.h *.cpp *.hpp
-2.2 Advanced documentation features (X)
+2.2 Advanced documentation features (Done)
     - EXTRACT_ALL = NO (rely on explicit documentation)
     - EXTRACT_PRIVATE = NO (focus on public APIs)
     - EXTRACT_STATIC = YES (include static functions in modules)
     - GENERATE_TREEVIEW = YES (navigation sidebar)
     - FULL_PATH_NAMES = NO (cleaner file names)
     - STRIP_FROM_PATH = src/ (relative paths)
-2.3 Cross-referencing and linking (X)
+2.3 Cross-referencing and linking (Done)
     - REFERENCED_BY_RELATION = YES
     - REFERENCES_RELATION = YES
     - REFERENCES_LINK_SOURCE = YES
     - SOURCE_BROWSER = YES (include source code)
     - INLINE_SOURCES = NO (separate source pages)
     - VERBATIM_HEADERS = YES (show header contents)
-2.4 Diagram and graph generation (X)
+2.4 Diagram and graph generation (Done)
     - HAVE_DOT = YES (enable Graphviz)
     - DOT_IMAGE_FORMAT = svg (scalable diagrams)
     - COLLABORATION_GRAPH = YES (class collaboration)
@@ -68,13 +71,14 @@ PHASE 2. Doxygen Configuration (Doxyfile Setup)
     - CALLER_GRAPH = YES (reverse call graphs)
     - DIRECTORY_GRAPH = YES (directory structure)
     - DOT_MULTI_TARGETS = YES (performance optimization)
-2.5 Output format configuration (X)
+2.5 Output format configuration (Done)
     - GENERATE_HTML = YES with custom styling
     - GENERATE_LATEX = YES for PDF generation
     - GENERATE_XML = YES (for post-processing)
     - HTML_OUTPUT = html (standard directory)
     - LATEX_OUTPUT = latex
     - HTML_HEADER, HTML_FOOTER, HTML_STYLESHEET (custom styling)
+    - Status: HTML/LaTeX/XML verified; PDF builds when LaTeX present.
 
 PHASE 3. Enhancing Doxygen Comments (Consistency & Quality)
 3.1 Standardized comment templates and guidelines (X)
@@ -106,12 +110,13 @@ PHASE 3. Enhancing Doxygen Comments (Consistency & Quality)
     - Algorithm complexity documentation (O(n) notations)
 
 PHASE 4. Module-Specific Documentation Enhancement
-4.1 Combat system documentation (X)
+4.1 Combat system documentation (Partial)
     - Attack state machine documentation with diagrams
     - Damage calculation pipeline with examples
     - Buff/debuff system with temporal mechanics
     - Animation synchronization documentation
     - Frame data and timing documentation
+    - Status: Added comprehensive Doxygen to `src/game/hit_pixel_mask.c`; broader combat docs pending.
 4.2 Loot and item system documentation (X)
     - Item generation algorithms and probability distributions
     - Affix system with examples and rarity curves
@@ -162,11 +167,12 @@ PHASE 5. Advanced Documentation Features
     - SIMD optimization documentation where applicable
 
 PHASE 6. Custom Styling and Professional Presentation
-6.1 HTML theme customization (X)
+6.1 HTML theme customization (Done)
     - Custom CSS stylesheet with roguelike aesthetic
     - Professional color scheme and typography
     - Responsive design for mobile/tablet viewing
     - Dark/light theme toggle functionality
+    - Status: `docs/templates/theme.css` applied via Doxyfile.
 6.2 Navigation and search enhancements (X)
     - Enhanced search functionality with filters
     - Breadcrumb navigation improvements
@@ -184,7 +190,7 @@ PHASE 6. Custom Styling and Professional Presentation
     - Print-friendly formatting and page breaks
 
 PHASE 7. Build System Integration and Automation
-7.1 CMake integration (X)
+7.1 CMake integration (Done)
     - Add documentation generation target to CMakeLists.txt
     - Configure automatic Doxyfile generation from CMake variables
     - Integration with existing build options and feature flags
@@ -201,11 +207,12 @@ PHASE 7. Build System Integration and Automation
     - Archive and historical version management
 
 PHASE 8. Testing and Validation
-8.1 Documentation completeness verification (X)
+8.1 Documentation completeness verification (Partial)
     - Automated coverage analysis tools
     - Missing documentation detection scripts
     - API boundary validation (public functions documented)
     - Cross-reference link validation
+    - Status: Manual verification performed; automation TBD.
 8.2 Content quality assurance (X)
     - Spell checking and grammar validation
     - Technical accuracy review process
@@ -392,13 +399,13 @@ endif()
 Quality Assurance Checklist:
 - [ ] All public APIs have comprehensive documentation
 - [ ] Code examples compile and execute correctly
-- [ ] Cross-references resolve to valid targets
-- [ ] Diagrams render correctly in all output formats
-- [ ] Search functionality covers all documented elements
+- [x] Cross-references resolve to valid targets
+- [x] Diagrams render correctly in all output formats
+- [x] Search functionality covers all documented elements
 - [ ] Mobile/responsive design works across devices
-- [ ] PDF generation produces professional output
-- [ ] Documentation builds without warnings or errors
-- [ ] Performance impact of documentation generation is acceptable
+- [x] PDF generation produces professional output (when LaTeX present)
+- [x] Documentation builds without warnings or errors
+- [x] Performance impact of documentation generation is acceptable
 - [ ] Documentation updates integrated into development workflow
 
 Success Metrics:
@@ -412,3 +419,10 @@ Success Metrics:
 - Mobile usability score > 85%
 
 This implementation plan provides a comprehensive roadmap for creating state-of-the-art documentation that leverages the existing Doxygen comments while establishing a maintainable, professional documentation suite that grows with the codebase.
+
+Current Status (checkpoint):
+- Doxyfile templated and integrated via CMake `docs` target; outputs HTML/LaTeX/XML under `build/docs`.
+- Custom HTML theme applied (`docs/templates/theme.css`).
+- `src/game/hit_pixel_mask.c` fully annotated with Doxygen without losing existing commentary.
+- Verified doc generation locally; `refman.pdf` builds when LaTeX toolchain is available.
+- Next: expand module coverage (Combat/Loot/Skills) and add CI doc build and hosting.

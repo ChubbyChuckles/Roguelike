@@ -57,10 +57,6 @@ static RogueHitParticle g_particles[ROGUE_HIT_PARTICLE_MAX];
 static int g_particle_count = 0;
 static int g_last_explosion_frame = -1000;
 
-static RogueHitParticle g_particles[ROGUE_HIT_PARTICLE_MAX];
-static int g_particle_count = 0;
-static int g_last_explosion_frame = -1000;
-
 /**
  * @brief Reset the particle system to initial state
  *

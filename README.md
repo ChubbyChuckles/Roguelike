@@ -60,6 +60,17 @@ Notes:
 - Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (559/559).
 	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir).
 
+### Documentation (Doxygen)
+- Outputs: HTML, LaTeX/PDF, and XML generated via a dedicated CMake target.
+- Prereqs (Windows):
+	- Doxygen 1.9.8+ and Graphviz (dot) for diagrams
+	- LaTeX distribution (MiKTeX/TeX Live) for PDF (optional)
+- Build docs:
+	- Generate your build first (CMake multi-config), then run the docs target.
+	- In VS Code: run the “docs” task or invoke the CMake target.
+	- Outputs land in `build/docs/html`, `build/docs/latex`, and `build/docs/xml`; the PDF (refman.pdf) is under `build/docs/latex` if LaTeX is installed.
+	- Custom HTML theme is applied from `docs/templates/theme.css`.
+
 ### Debug Overlay (early)
 - Unified in-game debug overlay behind a compile-time flag.
 - Feature flag: ROGUE_ENABLE_DEBUG_OVERLAY (default ON). When OFF, headers provide no-op stubs for zero overhead.
