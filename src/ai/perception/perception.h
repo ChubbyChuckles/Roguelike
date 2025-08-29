@@ -50,7 +50,6 @@ extern "C"
         uint8_t alerted;                /* whether broadcast already triggered */
     } RoguePerceptionAgent;
 
-    /* Initialize global event buffer */
     void rogue_perception_events_reset(void);
     /* Emit a sound event */
     void rogue_perception_emit_sound(RoguePerceptionSoundType type, float x, float y,
