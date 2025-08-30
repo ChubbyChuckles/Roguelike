@@ -10,6 +10,7 @@
 #include "overlay_widgets.h"
 /* Needed for RogueVfxFrameStats definition used in the Audio/VFX panel */
 #include "../audio_vfx/effects.h"
+#include "../core/loot/item_debug.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
 
@@ -553,6 +554,135 @@ static void panel_audiovfx(void* user)
     overlay_end_panel();
 }
 
+static void panel_items(void* user)
+{
+    (void) user;
+#if ROGUE_ENABLE_DEBUG_OVERLAY
+    if (!overlay_begin_panel("Items", 1550, 10, 360))
+        return;
+
+    /* Table of items */
+    static int sel = 0;
+    static int sort_col = 0, sort_dir = 1;
+    const char* headers[] = {"ID", "Name", "Cat", "Lvl"};
+    int count = rogue_item_debug_count();
+    if (count < 0)
+        count = 0;
+    if (sel < 0)
+        sel = 0;
+    if (sel >= count)
+        sel = count - 1;
+    if (overlay_table_begin("items", headers, 4, &sort_col, &sort_dir, NULL))
+    {
+        /* No sorting implemented yet; render in registry order */
+        for (int i = 0; i < count; ++i)
+        {
+            const RogueItemDef* d = rogue_item_debug_get(i);
+            if (!d)
+                continue;
+            char id[64];
+            char nm[80];
+            char cat[16];
+            char lvl[16];
+            snprintf(id, sizeof id, "%s", d->id);
+            snprintf(nm, sizeof nm, "%s", d->name);
+            snprintf(cat, sizeof cat, "%d", (int) d->category);
+            snprintf(lvl, sizeof lvl, "%d", d->level_req);
+            const char* cells[] = {id, nm, cat, lvl};
+            (void) overlay_table_row(cells, 4, i, &sel);
+        }
+        overlay_table_end();
+    }
+
+    /* Selected item editor */
+    if (sel >= 0 && sel < count)
+    {
+        const RogueItemDef* d = rogue_item_debug_get(sel);
+        if (d)
+        {
+            static int last_sel = -1;
+            static char name_buf[ROGUE_MAX_ITEM_NAME_LEN];
+            if (last_sel != sel)
+            {
+                /* refresh buffer on selection change */
+#if defined(_MSC_VER)
+                strncpy_s(name_buf, sizeof name_buf, d->name, _TRUNCATE);
+#else
+                strncpy(name_buf, d->name, sizeof name_buf - 1);
+                name_buf[sizeof name_buf - 1] = '\0';
+#endif
+                last_sel = sel;
+            }
+            overlay_label("Edit Selected:");
+            if (overlay_input_text("Name", name_buf, (int) sizeof name_buf))
+            {
+                (void) rogue_item_debug_set_name(sel, name_buf);
+            }
+            int v;
+            v = d->level_req;
+            if (overlay_slider_int("Level Req", &v, 1, 100))
+                (void) rogue_item_debug_set_int(sel, "level_req", v);
+            v = d->stack_max;
+            if (overlay_slider_int("Stack Max", &v, 1, 999))
+                (void) rogue_item_debug_set_int(sel, "stack_max", v);
+            if (overlay_columns_begin(2, NULL))
+            {
+                v = d->base_damage_min;
+                if (overlay_slider_int("Dmg Min", &v, 0, 999))
+                    (void) rogue_item_debug_set_int(sel, "base_damage_min", v);
+                overlay_next_column();
+                v = d->base_damage_max;
+                if (overlay_slider_int("Dmg Max", &v, 0, 999))
+                    (void) rogue_item_debug_set_int(sel, "base_damage_max", v);
+                overlay_columns_end();
+            }
+            v = d->base_armor;
+            if (overlay_slider_int("Armor", &v, 0, 999))
+                (void) rogue_item_debug_set_int(sel, "base_armor", v);
+            v = d->rarity;
+            if (overlay_slider_int("Rarity", &v, 0, 5))
+                (void) rogue_item_debug_set_int(sel, "rarity", v);
+            if (overlay_columns_begin(2, NULL))
+            {
+                v = d->socket_min;
+                if (overlay_slider_int("Sock Min", &v, 0, 6))
+                    (void) rogue_item_debug_set_int(sel, "socket_min", v);
+                overlay_next_column();
+                v = d->socket_max;
+                if (overlay_slider_int("Sock Max", &v, 0, 6))
+                    (void) rogue_item_debug_set_int(sel, "socket_max", v);
+                overlay_columns_end();
+            }
+        }
+    }
+
+    /* Save/Load overrides JSON */
+    static char path_buf[128] = "build/items_overrides.json";
+    overlay_input_text("Items JSON Path", path_buf, (int) sizeof path_buf);
+    if (overlay_columns_begin(2, NULL))
+    {
+        if (overlay_button("Save JSON"))
+        {
+            int rc = rogue_item_debug_save_json(path_buf);
+            char msg[64];
+            snprintf(msg, sizeof msg, "save rc=%d", rc);
+            overlay_label(msg);
+        }
+        overlay_next_column();
+        if (overlay_button("Load JSON"))
+        {
+            int added = rogue_item_debug_load_json(path_buf);
+            char msg[64];
+            snprintf(msg, sizeof msg, "load added=%d", added);
+            overlay_label(msg);
+        }
+        overlay_columns_end();
+    }
+
+    overlay_end_panel();
+#endif
+}
+
 void rogue_overlay_register_default_panels(void)
 {
     overlay_register_panel("system", "System", panel_system, NULL);
@@ -561,6 +691,7 @@ void rogue_overlay_register_default_panels(void)
     overlay_register_panel("entities", "Entities", panel_entities, NULL);
     overlay_register_panel("map", "Map Editor", panel_map_editor, NULL);
     overlay_register_panel("audiovfx", "Audio / VFX", panel_audiovfx, NULL);
+    overlay_register_panel("items", "Items", panel_items, NULL);
 }
 
 #else

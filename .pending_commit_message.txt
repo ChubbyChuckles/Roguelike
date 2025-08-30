@@ -119,3 +119,12 @@ feat(overlay/audio-vfx): Phase 12 – Audio / VFX debug panel + headless-safe AP
 - Start Screen perf smoke: avoid CI variance by disabling the absolute budget guard in the unit (set `g_app.start_perf_budget_ms = 0.0`); relative check remains opt-in via negative threshold.
 - Validation: Rebuilt in Debug with SDL2 and -j12; targeted new units pass; full ctest run: 100% pass (571/571).
 - Roadmap: mark Phase 12.1–12.5 Done with details; CI validation section updated. README updated to document the new panel and bump CI verification count to 571/571.
+
+feat(debug overlay/items): Phase 10 – Items Manager panel + headless-safe item_debug APIs and unit test; full suite green (572/572)
+
+- Overlay: add and register "Items" panel with a table, selection, and editors for core fields, plus Save/Load JSON path controls.
+- Core: implement `src/core/loot/item_debug.{h,c}` with `rogue_item_debug_count/get/set_int/set_name/save_json/load_json`. Save grows buffer until `rogue_item_defs_export_json` succeeds, then writes atomically.
+- Tests: new `tests/unit/test_item_debug_api.c` verifies setters and JSON save/load round‑trip; use local CWD file path for stability.
+- Fix: include <stdlib.h>/<string.h> for MSVC; resolve prior small‑buffer failure by dynamic sizing.
+- Validation: Debug build with SDL2 and ctest -C Debug -j12 → 100% pass (572/572).
+- Docs: README adds Items panel section; Roadmap marks Phase 10.1/10.2 Done and 10.5 Partial; CI validation count bumped to 572/572.

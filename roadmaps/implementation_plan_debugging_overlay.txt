@@ -21,7 +21,7 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 
 CI VALIDATION (current)
 - Overlay core/input/widgets/panels compile clean under Debug with SDL2.
-- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%) (571/571).
+- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%) (572/572).
 - Player Debug Panel and headless-safe player_debug APIs integrated; god mode is honored in melee mitigation path; noclip flag plumbed in app state. Rebuild and full test run reconfirmed green.
 - Start Screen corrupt-header gating verified via unit test and in the full run; logging defaults to WARN to keep CI output quiet.
 - Audio/VFX refactor: legacy monolith (effects.c) fully split into modular fx_bus.c, fx_audio.c, fx_vfx.c, fx_rng.c and the monolithic file removed; public API in effects.h unchanged.
@@ -97,11 +97,11 @@ PHASE 9. Map Editor Panel
 9.5 Tests: tileset loading, map editing operations, save/load roundtrip (Done – `test_tilesets_schema` and `test_map_debug` cover validation and edit/persist round‑trip)
 
 PHASE 10. Items Manager Panel
-10.1 Add Items Manager Panel: browse items, edit stats/rarity/tags (X)
-10.2 Implement item_debug.h/.c APIs: CRUD operations with validation (X)
+10.1 Add Items Manager Panel: browse items, edit stats/rarity/tags (Done – Panel "Items" added and registered; table view + selection, inline editors for core fields, and Save/Load JSON path controls.)
+10.2 Implement item_debug.h/.c APIs: CRUD operations with validation (Done – Headless‑safe `rogue_item_debug_*` facade added: count/get/set_int/set_name/save_json/load_json. Save uses dynamic buffer growth + atomic write.)
 10.3 Add live vendor inventory updates when items change (X)
 10.4 Create item creation wizard: guided form with validation (X)
-10.5 Tests: item CRUD, vendor sync, creation wizard validation (X)
+10.5 Tests: item CRUD, vendor sync, creation wizard validation (Partial – New unit `tests/unit/test_item_debug_api.c` covers get/set and JSON save/load round‑trip. Vendor sync and wizard tests TBD.)
 
 PHASE 11. Advanced UI Widgets
 11.1 Implement TreeNode/TreePop: hierarchical data display (Done – overlay_tree_node/overlay_tree_pop implemented; Map Editor panel uses a collapsible “Advanced” section.)

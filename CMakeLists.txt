@@ -548,6 +548,7 @@ add_library(rogue_systems_loot STATIC
     src/core/loot/loot_item_defs_convert.c
     src/core/loot/loot_rebalance.c
     src/core/loot/loot_item_defs_sort.c
+    src/core/loot/item_debug.c
     src/core/loot/loot_tables.c
     src/core/loot/loot_instances.c
     src/core/loot/loot_pickup.c
@@ -932,6 +933,14 @@ add_test(NAME test_audio_vfx_phase4_4_parameter_overrides COMMAND test_audio_vfx
 add_executable(test_audio_vfx_phase4_5_random_distributions tests/unit/test_audio_vfx_phase4_5_random_distributions.c)
 target_link_libraries(test_audio_vfx_phase4_5_random_distributions PRIVATE rogue_core)
 add_test(NAME test_audio_vfx_phase4_5_random_distributions COMMAND test_audio_vfx_phase4_5_random_distributions)
+
+# Items debug API unit test
+add_executable(test_item_debug_api tests/unit/test_item_debug_api.c)
+target_link_libraries(test_item_debug_api PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_item_debug_api PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_item_debug_api COMMAND test_item_debug_api)
 
 # Phase 5.1 mapping test
 add_executable(test_audio_vfx_phase5_1_mapping tests/unit/test_audio_vfx_phase5_1_mapping.c)

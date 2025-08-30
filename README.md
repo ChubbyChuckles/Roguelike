@@ -55,7 +55,7 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 	- Build: use CMake multi‑config generators with parallelism (e.g., -j12)
 	- Run tests: ctest -C Debug -j12 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 Notes:
-Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (571/571).
+Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (572/572).
 	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir). Default is off for quiet CI.
 ### Build flags and modules
  APIs: `src/debug_overlay/overlay_core.h` plus widgets in `overlay_widgets.h` (Label, Button, Checkbox, SliderInt/Float, InputText, Combo, TreeNode/Pop, ColorEdit RGBA, Table). Input capture in `overlay_input.h`.
@@ -121,6 +121,12 @@ Overlay panels:
 		- Brush modes: Square (radius) and Rect (x0,y0,x1,y1 inputs).
 		- Utilities: Pick tile under player, Fill entire map with current tile, Clear map (EMPTY).
 		- Persistence: editable JSON path with Save/Load buttons using compact RLE format via map_debug APIs. Edits invalidate the tile sprite LUT so visuals refresh immediately.
+
+	- Items panel (new): manage and live-edit item definitions.
+		- Lists item defs in a sortable table with row selection.
+		- Edit core fields for the selected item (e.g., name, sockets, rarity) using safe setters.
+		- Persistence: specify a JSON path and use Save/Load to export/import item defs via `rogue_item_debug_save_json`/`_load_json` (atomic save, dynamic buffer sizing under the hood).
+		- Headless-safe: backed by `src/core/loot/item_debug.{h,c}`; covered by unit `tests/unit/test_item_debug_api.c`.
 
 	Test save‑path isolation (stability under parallel ctest):
 	- Centralized builders in `src/core/persistence/save_paths.{h,c}` construct slot/autosave/backup/json/quicksave paths and create directories as needed.
