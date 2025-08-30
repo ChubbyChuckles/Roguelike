@@ -52,19 +52,14 @@ Layered, deterministic top‑down action roguelike engine emphasizing: modular b
 Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' instead of '–') to avoid codepage‑dependent test failures when tests read fixed‑size buffers.
 
 ### Testing & Quality Gates (quick)
-- Always build with SDL2 enabled and run tests in parallel with a per‑test 10s timeout:
 	- Build: use CMake multi‑config generators with parallelism (e.g., -j12)
 	- Run tests: ctest -C Debug -j12 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
-- Loaders are resilient to working directories: asset/doc paths like `assets/...` are resolved via internal fallbacks so tests can run from build/tests subfolders.
 Notes:
-- Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (568/568).
+Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (571/571).
 	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir). Default is off for quiet CI.
-
 ### Build flags and modules
-- ROGUE_ENABLE_DEBUG_OVERLAY (default ON): Compiles the in-game debug overlay. When OFF, overlay code is compiled out and has near-zero cost. Overlay is built as an object library (`rogue_debug_overlay`) and linked into `rogue_core` conditionally.
+ APIs: `src/debug_overlay/overlay_core.h` plus widgets in `overlay_widgets.h` (Label, Button, Checkbox, SliderInt/Float, InputText, Combo, TreeNode/Pop, ColorEdit RGBA, Table). Input capture in `overlay_input.h`.
 - ROGUE_ENABLE_JSON_CONTENT (default ON): Compiles the content JSON foundation (I/O and schema envelope). Built as an object library (`rogue_content_json`) and linked into `rogue_core` when enabled. A vendored cJSON stub lives under `third_party/cjson` and is linked as `rogue_thirdparty_cjson` for now; replace with the full cJSON later.
-
-### Documentation (Doxygen)
 - Outputs: HTML, LaTeX/PDF, and XML generated via a dedicated CMake target.
 - Prereqs (Windows):
 	- Doxygen 1.9.8+ and Graphviz (dot) for diagrams
@@ -92,6 +87,7 @@ Notes:
 - Headless-safe: widget drawing guards avoid SDL calls when no renderer is present (useful in unit tests).
 - Tests: `test_overlay_core` and `test_overlay_widgets` (smoke), with the latter validating headless usage and basic interactions via simulated input.
 	- New: `test_overlay_layout_focus` covers 2-column auto-wrap and focus traversal.
+	- New: `test_overlay_table_widget` validates Table header sorting toggles and row selection using simulated input.
 	- New: `test_overlay_inputtext_caret` exercises caret navigation (Home/End/Left/Right), insertion, and backspace sequencing under focus changes.
 	- Player debug APIs covered in `test_player_debug_api`: clamps, derived stat recompute on stat changes, god-mode damage bypass, noclip flag roundtrip, and teleport.
 	- Verification: Overlay tests pass headlessly in Debug (SDL2) with parallel ctest. Full suite currently all‑green in Debug with SDL2 and -j12.
@@ -200,7 +196,7 @@ Environment overrides:
  - ROGUE_START_LIST_ALL=1: list all save slots in the Load overlay (default behavior lists slot 0 only in headless/tests to keep snapshots deterministic).
  - ROGUE_START_CONFIRM_NEW=1: require a confirmation modal for New Game (default off; headless auto-accepts).
  - ROGUE_START_BUDGET_MS: override the Start Screen frame-time budget in milliseconds for the early-frame baseline guard (default 1.0). If the guard detects a regression (absolute or +25% relative), optional visuals (spinner/parallax) are suppressed.
-	- Note: The relative regression check only applies after baseline sampling completes; setting the threshold negative disables the relative check (useful for perf smoke tests). Tests use a large absolute budget to avoid false positives on shared CI runners.
+	- Note: The relative regression check only applies after baseline sampling completes; setting the threshold negative disables the relative check (useful for perf smoke tests). For the Start Screen perf smoke unit, the absolute check is disabled by setting `start_perf_budget_ms = 0.0` to avoid CI variance while still exercising the path.
  - ROGUE_LOG_LEVEL=debug|info|warn|error: control console verbosity.
  - ROGUE_SKILL_OVERRIDES: optional path to a JSON file with per-skill override values; used by the debug Skills panel and auto-loaded during app init.
 
@@ -267,6 +263,14 @@ Phase 8 (performance & budgeting):
 - Pool audits: `rogue_vfx_particle_pool_audit` and `rogue_vfx_instance_pool_audit` expose active/free and simple run metrics for fragmentation checks.
 - Stress: 100 simultaneous impacts test ensures pacing/soft/hard caps work under load without pool corruption.
 All Audio/VFX tests are green locally in Debug with SDL2 and `-j8`.
+
+### Debug Overlay: Audio / VFX Panel (Phase 12)
+- New overlay panel "Audio / VFX" enables rapid iteration on audio and visuals without leaving the game:
+	- Play sounds by id/key and spawn VFX at a world position or at the cursor (screen→world conversion uses camera and tile scale).
+	- Mixer controls: master and per‑category gains, mute toggle, and positional attenuation toggle.
+	- Performance controls: global perf scale, pacing guard enable/threshold, and soft/hard spawn budgets.
+	- Live stats readout via `RogueVfxFrameStats` (spawned core/trail, culled pacing/soft/hard, active pools).
+- A thin headless‑safe API (`src/core/audio_vfx/audiovfx_debug.{h,c}`) decouples the overlay from core FX modules and is exercised by a unit test `tests/unit/test_audio_vfx_overlay_debug_panel.c`.
 
 Phase 9 (determinism & replay):
 - Ordering determinism: dispatcher sorts by (emit_frame, priority, id, seq). Sequence normalized post-sort, eliminating producer-order ties.

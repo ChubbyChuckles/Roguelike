@@ -39,6 +39,29 @@ extern "C"
     int overlay_slider_float(const char* label, float* value, float minv, float maxv);
     int overlay_input_text(const char* label, char* buf, size_t buf_size);
 
+    /* Advanced widgets */
+    /* Combo/Dropdown: cycles or arrow-adjusts through items; returns 1 if selection changed */
+    int overlay_combo(const char* label, int* current_index, const char* const* items, int count);
+    /* Tree node: caller owns persistent open state; returns 1 when currently open */
+    int overlay_tree_node(const char* label, int* open);
+    void overlay_tree_pop(void);
+    /* Color editor (RGBA 0..255); returns 1 if changed */
+    int overlay_color_edit_rgba(const char* label, unsigned char rgba[4]);
+
+    /* Table widget (minimal v1):
+     * - overlay_table_begin draws a header row with clickable columns and updates sort state.
+     *   sort_dir: +1 ascending, -1 descending (toggled when clicking the same column)
+     *   filter_text (optional, may be NULL) currently unused (reserved for future filtering)
+     * - overlay_table_row draws a row of text cells; clicking the row selects it and returns 1 if
+     * selection changed.
+     * - overlay_table_end closes the table block and advances layout.
+     */
+    int overlay_table_begin(const char* id, const char* const* headers, int col_count,
+                            int* sort_col, int* sort_dir, const char* filter_text /* optional */);
+    int overlay_table_row(const char* const* cells, int col_count, int row_index,
+                          int* selected_row);
+    void overlay_table_end(void);
+
     /* Style adjust */
     void overlay_style_set(OverlayStyle s);
 
@@ -93,6 +116,49 @@ static inline int overlay_input_text(const char* label, char* buf, size_t buf_si
     (void) buf_size;
     return 0;
 }
+static inline int overlay_combo(const char* label, int* current_index, const char* const* items,
+                                int count)
+{
+    (void) label;
+    (void) current_index;
+    (void) items;
+    (void) count;
+    return 0;
+}
+static inline int overlay_tree_node(const char* label, int* open)
+{
+    (void) label;
+    (void) open;
+    return 0;
+}
+static inline void overlay_tree_pop(void) {}
+static inline int overlay_color_edit_rgba(const char* label, unsigned char rgba[4])
+{
+    (void) label;
+    (void) rgba;
+    return 0;
+}
+static inline int overlay_table_begin(const char* id, const char* const* headers, int col_count,
+                                      int* sort_col, int* sort_dir, const char* filter_text)
+{
+    (void) id;
+    (void) headers;
+    (void) col_count;
+    (void) sort_col;
+    (void) sort_dir;
+    (void) filter_text;
+    return 0;
+}
+static inline int overlay_table_row(const char* const* cells, int col_count, int row_index,
+                                    int* selected_row)
+{
+    (void) cells;
+    (void) col_count;
+    (void) row_index;
+    (void) selected_row;
+    return 0;
+}
+static inline void overlay_table_end(void) {}
 static inline void overlay_style_set(OverlayStyle s) { (void) s; }
 static inline int overlay_columns_begin(int cols, const int* widths)
 {

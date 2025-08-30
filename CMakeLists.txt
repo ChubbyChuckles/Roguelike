@@ -391,6 +391,7 @@ add_library(rogue_core
     src/game/weapon_pose.c
     src/game/hit_debug_overlay.c
     src/game/skill_area_debug_overlay.c
+    src/core/audio_vfx/audiovfx_debug.c
     src/core/enemy/enemy_difficulty.c
     src/core/enemy/enemy_difficulty_scaling.c
     src/core/enemy/enemy_adaptive.c
@@ -749,6 +750,14 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_overlay_widgets PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_overlay_widgets COMMAND test_overlay_widgets)
+add_executable(test_overlay_widgets_advanced tests/unit/test_overlay_widgets_advanced.c)
+add_test(NAME test_overlay_widgets_advanced COMMAND test_overlay_widgets_advanced)
+add_executable(test_overlay_table_widget tests/unit/test_overlay_table_widget.c)
+target_link_libraries(test_overlay_table_widget PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_overlay_table_widget PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_overlay_table_widget COMMAND test_overlay_table_widget)
 add_executable(test_skills_phase10_coeffs_loader tests/unit/test_skills_phase10_coeffs_loader.c)
 target_link_libraries(test_tag_registry_validate PRIVATE rogue_core)
 if(TARGET SDL2::SDL2)

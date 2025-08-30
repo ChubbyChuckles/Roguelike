@@ -1,4 +1,5 @@
 #include "../core/app/app_state.h"
+#include "../core/audio_vfx/audiovfx_debug.h"
 #include "../core/entities/entity_debug.h"
 #include "../core/player/player_debug.h"
 #include "../core/skills/skill_debug.h"
@@ -7,6 +8,8 @@
 #include "overlay_core.h"
 #include "overlay_input.h"
 #include "overlay_widgets.h"
+/* Needed for RogueVfxFrameStats definition used in the Audio/VFX panel */
+#include "../audio_vfx/effects.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
 
@@ -364,8 +367,11 @@ static void panel_map_editor(void* user)
     /* Erase toggle (paints EMPTY regardless of tile selection) */
     overlay_checkbox("Erase (paint EMPTY)", &erase_mode);
 
-    /* Brush mode */
-    overlay_slider_int("Brush Mode (0=Square,1=Rect)", &brush_mode, 0, 1);
+    /* Brush mode via combo */
+    {
+        const char* modes[] = {"Square", "Rect"};
+        (void) overlay_combo("Brush Mode", &brush_mode, modes, 2);
+    }
     if (brush_mode == 0)
     {
         overlay_slider_int("Square Radius", &brush_radius, 0, 32);
@@ -437,10 +443,18 @@ static void panel_map_editor(void* user)
         overlay_columns_end();
     }
 
-    if (overlay_button("Clear (EMPTY)"))
+    /* Advanced block in a collapsible tree */
     {
-        (void) rogue_map_debug_brush_rect(0, 0, g_app.world_map.width - 1,
-                                          g_app.world_map.height - 1, 0);
+        static int adv_open = 0;
+        if (overlay_tree_node("Advanced", &adv_open))
+        {
+            if (overlay_button("Clear (EMPTY)"))
+            {
+                (void) rogue_map_debug_brush_rect(0, 0, g_app.world_map.width - 1,
+                                                  g_app.world_map.height - 1, 0);
+            }
+            overlay_tree_pop();
+        }
     }
 
     /* Save/Load path controls */
@@ -468,6 +482,77 @@ static void panel_map_editor(void* user)
     overlay_end_panel();
 }
 
+static void panel_audiovfx(void* user)
+{
+    (void) user;
+    if (!overlay_begin_panel("Audio / VFX", 10, 590, 380))
+        return;
+    /* Simple inputs: audio id, vfx id, and spawn at cursor */
+    static char audio_id[32] = "click";
+    static char vfx_id[32] = "SPARKLE";
+    overlay_input_text("Audio ID", audio_id, sizeof audio_id);
+    overlay_input_text("VFX ID", vfx_id, sizeof vfx_id);
+    if (overlay_columns_begin(2, NULL))
+    {
+        if (overlay_button("Play Sound"))
+            (void) rogue_audiovfx_debug_play(audio_id);
+        overlay_next_column();
+        if (overlay_button("Spawn VFX @ Cursor"))
+        {
+            const OverlayInputState* in = overlay_input_get();
+            (void) rogue_audiovfx_debug_spawn_at_cursor(vfx_id, in->mouse_x, in->mouse_y);
+        }
+        overlay_columns_end();
+    }
+
+    /* Mixer controls */
+    static float master = 1.0f;
+    static float cat_sfx = 1.0f;
+    static float cat_ui = 1.0f;
+    static int mute = 0;
+    if (overlay_slider_float("Master", &master, 0.0f, 1.0f))
+        rogue_audiovfx_debug_set_master(master);
+    if (overlay_columns_begin(2, NULL))
+    {
+        if (overlay_slider_float("SFX", &cat_sfx, 0.0f, 1.0f))
+            rogue_audiovfx_debug_set_category(0, cat_sfx);
+        overlay_next_column();
+        if (overlay_slider_float("UI", &cat_ui, 0.0f, 1.0f))
+            rogue_audiovfx_debug_set_category(1, cat_ui);
+        overlay_columns_end();
+    }
+    if (overlay_checkbox("Mute", &mute))
+        rogue_audiovfx_debug_set_mute(mute);
+
+    /* VFX perf controls */
+    static float perf = 1.0f;
+    static int soft_cap = 0;
+    static int hard_cap = 0;
+    if (overlay_slider_float("VFX Perf Scale", &perf, 0.1f, 1.0f))
+        rogue_audiovfx_debug_set_perf(perf);
+    if (overlay_columns_begin(2, NULL))
+    {
+        if (overlay_slider_int("Soft Budget", &soft_cap, 0, 2000))
+            rogue_audiovfx_debug_set_budgets(soft_cap, hard_cap);
+        overlay_next_column();
+        if (overlay_slider_int("Hard Budget", &hard_cap, 0, 4000))
+            rogue_audiovfx_debug_set_budgets(soft_cap, hard_cap);
+        overlay_columns_end();
+    }
+
+    /* Stats readout */
+    struct RogueVfxFrameStats st = {0};
+    rogue_audiovfx_debug_get_last_stats(&st);
+    char buf[160];
+    snprintf(buf, sizeof buf,
+             "parts: %d  inst: %d  spawned(core:%d trail:%d) culled(s:%d h:%d p:%d)",
+             st.active_particles, st.active_instances, st.spawned_core, st.spawned_trail,
+             st.culled_soft, st.culled_hard, st.culled_pacing);
+    overlay_label(buf);
+
+    overlay_end_panel();
+}
+
 void rogue_overlay_register_default_panels(void)
 {
     overlay_register_panel("system", "System", panel_system, NULL);
@@ -475,6 +560,7 @@ void rogue_overlay_register_default_panels(void)
     overlay_register_panel("skills", "Skills", panel_skills, NULL);
     overlay_register_panel("entities", "Entities", panel_entities, NULL);
     overlay_register_panel("map", "Map Editor", panel_map_editor, NULL);
+    overlay_register_panel("audiovfx", "Audio / VFX", panel_audiovfx, NULL);
 }
 
 #else

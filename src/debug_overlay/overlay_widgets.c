@@ -9,6 +9,7 @@
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
+#include <stdio.h>
 #include <string.h>
 
 typedef struct UiCtx
@@ -31,6 +32,10 @@ typedef struct UiCtx
     int last_focus;    /* last focusable index this frame */
     /* InputText caret position for focused field (single shared for simplicity) */
     int caret_pos;
+    /* Table (transient, per-table block) */
+    int table_active;
+    int table_cols;
+    int table_row_h;
 } UiCtx;
 
 static UiCtx g_ui = {.focus_index = -1};
@@ -64,6 +69,9 @@ int overlay_begin_panel(const char* title, int x, int y, int w)
     g_ui.row_start_y = g_ui.cur_y;
     g_ui.row_max_h = g_ui.line_h;
     g_ui.total_widgets = 0;
+    g_ui.table_active = 0;
+    g_ui.table_cols = 0;
+    g_ui.table_row_h = 18;
 #ifdef ROGUE_HAVE_SDL
     if (g_app.renderer)
     {
@@ -537,6 +545,266 @@ void overlay_columns_end(void)
     g_ui.columns = 1;
     g_ui.col_index = 0;
     g_ui.row_max_h = g_ui.line_h;
+}
+
+int overlay_combo(const char* label, int* current_index, const char* const* items, int count)
+{
+    if (!g_ui.panel_active || !current_index || !items || count <= 0)
+        return 0;
+    int x = g_ui.cur_x, y = g_ui.cur_y,
+        w = (g_ui.columns > 1 ? g_ui.col_widths[g_ui.col_index] : g_ui.width), h = 18;
+    int id = g_ui.total_widgets++;
+    if (g_ui.row_max_h < h + 2)
+        g_ui.row_max_h = h + 2;
+    const OverlayInputState* in = overlay_input_get();
+#ifdef ROGUE_HAVE_SDL
+    if (g_app.renderer)
+    {
+        SDL_Rect r = {x, y + 2, w, h};
+        SDL_SetRenderDrawColor(g_app.renderer, 25, 25, 25, 200);
+        SDL_RenderFillRect(g_app.renderer, &r);
+        SDL_SetRenderDrawColor(g_app.renderer, 220, 220, 220, 220);
+        SDL_RenderDrawRect(g_app.renderer, &r);
+    }
+#endif
+    int changed = 0;
+    if (mouse_over(x, y + 2, w, h) && in->mouse_clicked)
+    {
+        g_ui.focus_index = id;
+        overlay_input_set_capture(1, 1);
+        /* Click cycles to next item */
+        *current_index = (*current_index + 1) % count;
+        changed = 1;
+    }
+    if (g_ui.focus_index == id && (in->key_left_pressed || in->key_right_pressed))
+    {
+        int nv = *current_index + (in->key_right_pressed ? 1 : -1);
+        if (nv < 0)
+            nv = count - 1;
+        if (nv >= count)
+            nv = 0;
+        if (nv != *current_index)
+        {
+            *current_index = nv;
+            changed = 1;
+        }
+        overlay_input_set_capture(1, 1);
+    }
+    const char* cur = items[*current_index >= 0 && *current_index < count ? *current_index : 0];
+    char line[256];
+    snprintf(line, sizeof line, "%s: %s", label ? label : "", cur ? cur : "<none>");
+    rogue_font_draw_text(x + 6, y + 2, line, 1, (RogueColor){255, 255, 255, 255});
+    if (g_ui.columns > 1)
+    {
+        overlay_next_column();
+        if (g_ui.col_index == 0)
+            ui_next_line();
+    }
+    else
+    {
+        ui_next_line();
+    }
+    return changed;
+}
+
+int overlay_tree_node(const char* label, int* open)
+{
+    if (!g_ui.panel_active || !open)
+        return 0;
+    int x = g_ui.cur_x, y = g_ui.cur_y,
+        w = (g_ui.columns > 1 ? g_ui.col_widths[g_ui.col_index] : g_ui.width), h = 18;
+    int id = g_ui.total_widgets++;
+    if (g_ui.row_max_h < h + 2)
+        g_ui.row_max_h = h + 2;
+#ifdef ROGUE_HAVE_SDL
+    if (g_app.renderer)
+    {
+        SDL_Rect r = {x, y + 2, w, h};
+        SDL_SetRenderDrawColor(g_app.renderer, 18, 18, 18, 200);
+        SDL_RenderFillRect(g_app.renderer, &r);
+        SDL_SetRenderDrawColor(g_app.renderer, 220, 220, 220, 220);
+        SDL_RenderDrawRect(g_app.renderer, &r);
+    }
+#endif
+    /* Arrow marker */
+    const char* arrow = (*open ? "▾" : "▸");
+    char line[256];
+    snprintf(line, sizeof line, "%s %s", arrow, label ? label : "");
+    rogue_font_draw_text(x + 6, y + 2, line, 1, (RogueColor){220, 255, 220, 255});
+    const OverlayInputState* in = overlay_input_get();
+    if (mouse_over(x, y + 2, w, h) && in->mouse_clicked)
+    {
+        g_ui.focus_index = id;
+        *open = !*open;
+        overlay_input_set_capture(1, 1);
+    }
+    if (g_ui.focus_index == id && (in->key_enter_pressed || in->key_space_pressed))
+    {
+        *open = !*open;
+        overlay_input_set_capture(1, 1);
+    }
+    /* advance one line; caller will place children next */
+    if (g_ui.columns > 1)
+    {
+        overlay_next_column();
+        if (g_ui.col_index == 0)
+            ui_next_line();
+    }
+    else
+    {
+        ui_next_line();
+    }
+    return *open ? 1 : 0;
+}
+
+void overlay_tree_pop(void)
+{
+    /* No state stack used; placeholder for symmetry and future indent support */
+}
+
+int overlay_color_edit_rgba(const char* label, unsigned char rgba[4])
+{
+    if (!g_ui.panel_active || !rgba)
+        return 0;
+    int changed = 0;
+    /* Render a small color swatch and four byte sliders inline via columns */
+    int widths[5] = {40, 0, 0, 0, 0};
+    int remaining = (g_ui.columns > 1 ? g_ui.col_widths[g_ui.col_index] : g_ui.width) - widths[0];
+    for (int i = 1; i < 5; ++i)
+        widths[i] = remaining / 4;
+    if (overlay_columns_begin(5, widths))
+    {
+#ifdef ROGUE_HAVE_SDL
+        if (g_app.renderer)
+        {
+            SDL_Rect sw = {g_ui.cur_x, g_ui.cur_y + 2, widths[0] - 6, 16};
+            SDL_SetRenderDrawColor(g_app.renderer, rgba[0], rgba[1], rgba[2], rgba[3]);
+            SDL_RenderFillRect(g_app.renderer, &sw);
+            SDL_SetRenderDrawColor(g_app.renderer, 220, 220, 220, 220);
+            SDL_RenderDrawRect(g_app.renderer, &sw);
+        }
+#endif
+        overlay_next_column();
+        int r = rgba[0], g = rgba[1], b = rgba[2], a = rgba[3];
+        changed |= overlay_slider_int("R", &r, 0, 255);
+        overlay_next_column();
+        changed |= overlay_slider_int("G", &g, 0, 255);
+        overlay_next_column();
+        changed |= overlay_slider_int("B", &b, 0, 255);
+        overlay_next_column();
+        changed |= overlay_slider_int("A", &a, 0, 255);
+        overlay_columns_end();
+        if (changed)
+        {
+            rgba[0] = (unsigned char) r;
+            rgba[1] = (unsigned char) g;
+            rgba[2] = (unsigned char) b;
+            rgba[3] = (unsigned char) a;
+        }
+    }
+    char cap[64];
+    snprintf(cap, sizeof cap, "%s: #%02X%02X%02X %u", label ? label : "Color", rgba[0], rgba[1],
+             rgba[2], (unsigned) rgba[3]);
+    overlay_label(cap);
+    return changed;
+}
+
+int overlay_table_begin(const char* id, const char* const* headers, int col_count, int* sort_col,
+                        int* sort_dir, const char* filter_text)
+{
+    (void) id;
+    (void) filter_text;
+    if (!g_ui.panel_active || !headers || col_count <= 0)
+        return 0;
+    /* Setup a columns block to lay out headers evenly if not already in one */
+    int widths[4] = {0, 0, 0, 0};
+    if (col_count > 4)
+        col_count = 4;
+    for (int i = 0; i < col_count; ++i)
+        widths[i] = (g_ui.width / col_count) - 2;
+    overlay_columns_begin(col_count, widths);
+    g_ui.table_active = 1;
+    g_ui.table_cols = col_count;
+    g_ui.table_row_h = 18;
+    /* Render header buttons; clicking updates sort state */
+    for (int c = 0; c < col_count; ++c)
+    {
+        int clicked = overlay_button(headers[c] ? headers[c] : "");
+        if (clicked && sort_col && sort_dir)
+        {
+            if (*sort_col == c)
+                *sort_dir = (*sort_dir >= 0) ? -1 : 1;
+            else
+            {
+                *sort_col = c;
+                *sort_dir = 1;
+            }
+        }
+    }
+    overlay_columns_end();
+    return 1;
+}
+
+int overlay_table_row(const char* const* cells, int col_count, int row_index, int* selected_row)
+{
+    if (!g_ui.panel_active || !g_ui.table_active || !cells || col_count <= 0)
+        return 0;
+    if (col_count > g_ui.table_cols)
+        col_count = g_ui.table_cols;
+    int changed = 0;
+    /* Draw a background row rect and place cells in columns */
+    int widths[4] = {0, 0, 0, 0};
+    for (int i = 0; i < col_count; ++i)
+        widths[i] = (g_ui.width / col_count) - 2;
+    /* Capture row rect before columns advance so hit-testing aligns with visuals */
+    int row_x = g_ui.cur_x - 8;
+    int row_y = g_ui.cur_y + 2;
+    int row_w = g_ui.width;
+    int row_h = g_ui.table_row_h;
+    if (overlay_columns_begin(col_count, widths))
+    {
+#ifdef ROGUE_HAVE_SDL
+        if (g_app.renderer)
+        {
+            SDL_Rect rr = {row_x, row_y, row_w, row_h};
+            /* Highlight if selected */
+            int sel = (selected_row && *selected_row == row_index);
+            SDL_SetRenderDrawColor(g_app.renderer, sel ? 60 : 20, sel ? 80 : 20, sel ? 120 : 20,
+                                   180);
+            SDL_RenderFillRect(g_app.renderer, &rr);
+            SDL_SetRenderDrawColor(g_app.renderer, 220, 220, 220, 220);
+            SDL_RenderDrawRect(g_app.renderer, &rr);
+        }
+#endif
+        for (int c = 0; c < col_count; ++c)
+        {
+            overlay_label(cells[c] ? cells[c] : "");
+        }
+        overlay_columns_end();
+    }
+    /* Row click selects */
+    const OverlayInputState* in = overlay_input_get();
+    int hover = mouse_over(row_x, row_y, row_w, row_h);
+    if (hover && in->mouse_clicked && selected_row)
+    {
+        if (*selected_row != row_index)
+        {
+            *selected_row = row_index;
+            changed = 1;
+        }
+        overlay_input_set_capture(1, 1);
+    }
+    return changed;
+}
+
+void overlay_table_end(void)
+{
+    if (!g_ui.panel_active || !g_ui.table_active)
+        return;
+    /* Advance one line for spacing */
+    ui_next_line();
+    g_ui.table_active = 0;
+    g_ui.table_cols = 0;
 }
 
 #endif /* ROGUE_ENABLE_DEBUG_OVERLAY */
