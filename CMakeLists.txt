@@ -449,6 +449,7 @@ add_library(rogue_content_json OBJECT
     src/content/json_io.c
     src/content/json_envelope.c
     src/content/schema_items.c
+    src/content/schema_skills.c
     src/content/schema_entities.c
     src/content/schema_tilesets.c
 )
@@ -800,6 +801,16 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_items_schema PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_items_schema COMMAND test_items_schema)
+
+# Skills schema roundtrip (enveloped JSON) test
+add_executable(test_skills_roundtrip_schema tests/unit/test_skills_roundtrip_schema.c)
+target_link_libraries(test_skills_roundtrip_schema PRIVATE rogue_core)
+## Prevent SDL from redefining main to SDL_main on Windows for this console test
+target_compile_definitions(test_skills_roundtrip_schema PRIVATE SDL_MAIN_HANDLED=1)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_skills_roundtrip_schema PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_skills_roundtrip_schema COMMAND test_skills_roundtrip_schema)
 
 # Map editing debug API test
 add_executable(test_map_debug tests/unit/test_map_debug.c)

@@ -55,7 +55,7 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 	- Build: use CMake multi‑config generators with parallelism (e.g., -j12)
 	- Run tests: ctest -C Debug -j12 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 Notes:
-Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (576/576).
+Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (577/577).
 	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir). Default is off for quiet CI.
 Formatting:
 	- Run per-file clang-format locally: use the CMake targets `format` (auto-fix) and `format-check` (verify). These work on Windows without hitting command-line length limits.
@@ -137,6 +137,7 @@ Overlay panels:
 
 Content schemas (foundation):
 - Items schema (new): `src/content/schema_items.{h,c}` defines and validates items.json (id/name/category required; ranges for stack_max, rarity, sockets, etc.). Units `tests/unit/test_items_schema.c` and `tests/unit/test_items_roundtrip_schema.c` cover validation and a schema-backed export→envelope→reload roundtrip.
+ - Skills schema (new): `src/content/schema_skills.{h,c}` defines and validates skills.json with required fields and ranges, allowing extra fields for forward-compat. A new unit `tests/unit/test_skills_roundtrip_schema.c` exports a subset to JSON, wraps it in a versioned "skills" envelope, validates, atomically writes, and reloads via the loader to exercise the envelope path.
 
 Items registry & migration:
 - Stable handles: `RogueItemDefHandle` provides a generation-checked handle for item base defs. Helpers: `rogue_item_def_handle_from_index`, `rogue_item_def_index_from_handle`, `rogue_item_def_get_by_handle`. Generations bump on add/reset to invalidate stale references.

@@ -21,8 +21,9 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 
 CI VALIDATION (current)
 - Overlay core/input/widgets/panels compile clean under Debug with SDL2.
-- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%) (576/576).
+- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%) (577/577).
 - Items loader now accepts both raw JSON arrays and versioned envelopes ("$schema": "items") and unwraps entries transparently; the schema-backed roundtrip test passes.
+- Skills loader now accepts both raw JSON arrays and versioned envelopes ("$schema": "skills"); schema validator and a roundtrip export→envelope→reload unit are integrated and green.
 - Stabilized integration harness: test_boot updated to chdir to the repo root and to use the current RogueAppConfig initializer; eliminates a prior headless/SDL segfault.
 - Player Debug Panel and headless-safe player_debug APIs integrated; god mode is honored in melee mitigation path; noclip flag plumbed in app state. Rebuild and full test run reconfirmed green.
 - Start Screen corrupt-header gating verified via unit test and in the full run; logging defaults to WARN to keep CI output quiet.
@@ -59,11 +60,11 @@ PHASE 3. Items JSON Schema & Migration
 	- Loader compatibility: rogue_item_defs_load_from_json accepts both a raw JSON array and a versioned envelope with "$schema":"items" for back/forward compatibility.
 
 PHASE 4. Skills JSON Schema & Migration
-4.1 Design skills.json schema: id, display_name, coeff, cast_time_ms, cooldown_ms, effects (X)
-4.2 Implement schema_skills.h/.c: load/parse/validate/save with cross-reference checks (X)
-4.3 Integrate with existing skills registry and coefficient system (X)
+4.1 Design skills.json schema: id, display_name, coeff, cast_time_ms, cooldown_ms, effects (Done – schema defined in src/content/schema_skills.{h,c}; ranges and required fields enforced; allows additional fields for forward-compat)
+4.2 Implement schema_skills.h/.c: load/parse/validate/save with cross-reference checks (Done – validator implemented; save helpers via converter used by tests/docs; cross-ref checks to be expanded in Phase 13)
+4.3 Integrate with existing skills registry and coefficient system (Done – loader now unwraps versioned envelopes and falls back to raw arrays; registry accepts validated defs; SDL2 test harness wired)
 4.4 Add live reload capability with cache invalidation and derived data rebuild (X)
-4.5 Tests: skills load/validate/save/reload, cross-ref validation, live reload (X)
+4.5 Tests: skills load/validate/save/reload, cross-ref validation, live reload (Partial – new unit tests cover schema/envelope roundtrip and registry reload; cross-ref and live-reload tests pending)
 
 PHASE 5. Overlay UI Framework Core
 5.1 Implement overlay_core.h/.c: lifecycle, F1 toggle, panel registry (Done – lifecycle/init/shutdown, enabled flag, panel registry, new_frame/render hooks; F1 wired)

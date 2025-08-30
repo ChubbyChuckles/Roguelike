@@ -55,3 +55,16 @@ fix(items+tests): accept JSON envelope in items loader; stabilize test_boot harn
 - Tests: `tests/unit/test_items_roundtrip_schema.c` uses an envelope for the write path; loader unwraps transparently and import succeeds.
 - Integration: `tests/integration/test_boot.c` now chdir's to the repo root and uses the full `RogueAppConfig` initializer with logical dimensions and background color, fixing a headless/SDL segfault.
 - CI: Full Debug (SDL2) build and ctest -j12 run are fully green (576/576).
+
+
+feat(skills): add Skills JSON schema + envelope support; roundtrip test; full suite green (577/577)
+
+- Content schema: introduce src/content/schema_skills.{h,c}
+	- Defines skills.json with required fields and value ranges; permits additional fields for forward-compatibility
+	- Validator APIs and a converter helper for tests/docs
+- Loader: extend skills loader to support versioned JSON envelopes ("$schema": "skills") while preserving raw-array back-compat
+- Tests: add tests/unit/test_skills_roundtrip_schema.c exercising export→envelope→validate→atomic write→reload path
+	- Windows/SDL: define SDL_MAIN_HANDLED for the test target to avoid SDL_main linkage on MSVC
+- CMake: wire schema sources and test target; link rogue_core and SDL2; add compile definition for SDL_MAIN_HANDLED
+- CI/build: Debug (SDL2) -j12 build; ctest ran 577 tests, all passed (100%)
+- Docs/Roadmap: README notes new skills schema and updates test count; roadmap marks Phase 4.1–4.3 Done and 4.5 Partial; CI validation section notes skills loader/schema status

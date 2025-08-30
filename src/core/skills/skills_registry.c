@@ -1,4 +1,5 @@
 /* Skill registry & ranking management (extracted from monolithic skills.c) */
+#include "../../content/json_envelope.h"
 #include "../../game/buffs.h"
 #include "../../util/file_search.h"
 #include "../../util/log.h"
@@ -541,7 +542,7 @@ int rogue_skills_load_from_cfg(const char* path)
             return 0;
         }
     }
-    /* If JSON extension, load whole file then parse JSON */
+    /* If JSON extension, load whole file then parse JSON (raw array or versioned envelope) */
     if (strstr(path, ".json") != NULL)
     {
         fseek(f, 0, SEEK_END);
@@ -561,7 +562,30 @@ int rogue_skills_load_from_cfg(const char* path)
         size_t rd = fread(buf, 1, (size_t) sz, f);
         buf[rd] = '\0';
         fclose(f);
-        int loaded_json = rogue__json_load(buf);
+        /* Try to parse as envelope first */
+        int loaded_json = 0;
+        {
+            RogueJsonEnvelope env = {0};
+            char err[256];
+            if (json_envelope_parse(buf, &env, err, (int) sizeof err) == 0 && env.entries &&
+                env.entries[0])
+            {
+                /* entries may be an array or object; our loader expects an array */
+                const char* s = env.entries;
+                while (*s && (unsigned char) *s <= 32)
+                    ++s;
+                if (*s == '[')
+                {
+                    loaded_json = rogue__json_load(env.entries);
+                }
+                json_envelope_free(&env);
+            }
+            else
+            {
+                /* Not an envelope; treat as raw array */
+                loaded_json = rogue__json_load(buf);
+            }
+        }
         free(buf);
         return loaded_json;
     }
