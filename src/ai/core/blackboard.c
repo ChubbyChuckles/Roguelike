@@ -12,7 +12,8 @@
 #include <stdio.h>
 #include <string.h>
 
-// Optional tracing for diagnosing fuzz; disabled by default. Define ROGUE_TRACE_BB=1 to enable.
+// Optional tracing for diagnosing fuzz; temporarily enabled to investigate test failure.
+// Define ROGUE_TRACE_BB=1 to enable.
 #ifndef ROGUE_TRACE_BB
 #define ROGUE_TRACE_BB 0
 #endif

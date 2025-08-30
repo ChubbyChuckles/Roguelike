@@ -33,7 +33,7 @@ typedef struct UiCtx
     int caret_pos;
 } UiCtx;
 
-static UiCtx g_ui = {0};
+static UiCtx g_ui = {.focus_index = -1};
 
 static void ui_next_line(void)
 {
@@ -63,7 +63,6 @@ int overlay_begin_panel(const char* title, int x, int y, int w)
     g_ui.col_x0[0] = g_ui.cur_x;
     g_ui.row_start_y = g_ui.cur_y;
     g_ui.row_max_h = g_ui.line_h;
-    g_ui.focus_index = -1;
     g_ui.total_widgets = 0;
 #ifdef ROGUE_HAVE_SDL
     if (g_app.renderer)
@@ -376,10 +375,36 @@ int overlay_input_text(const char* label, char* buf, size_t buf_size)
     const OverlayInputState* in = overlay_input_get();
     int changed = 0;
     int id = g_ui.total_widgets++;
-    int has_focus = (g_ui.focus_index == id);
     int h = 18;
     if (g_ui.row_max_h < h + 2)
         g_ui.row_max_h = h + 2;
+    /* Compute geometry early so we can resolve focus before handling input */
+    int x = g_ui.cur_x, y = g_ui.cur_y,
+        w = (g_ui.columns > 1 ? g_ui.col_widths[g_ui.col_index] : g_ui.width), h2 = h;
+    int will_focus = mouse_over(x, y + 2, w, h2) && in->mouse_clicked;
+    if (will_focus)
+    {
+        /* Acquire focus immediately so text/backspace this frame apply after click */
+        overlay_input_set_capture(1, 1);
+        g_ui.focus_index = id;
+        g_ui.caret_pos = (int) strlen(buf);
+    }
+    int has_focus = (g_ui.focus_index == id);
+    /* Pre-caret navigation that should affect where edits land this frame */
+    if (has_focus)
+    {
+        size_t len = strlen(buf);
+        if (in->key_home_pressed)
+        {
+            g_ui.caret_pos = 0;
+        }
+        if (in->key_end_pressed)
+            g_ui.caret_pos = (int) len;
+        if (g_ui.caret_pos < 0)
+            g_ui.caret_pos = 0;
+        if (g_ui.caret_pos > (int) len)
+            g_ui.caret_pos = (int) len;
+    }
     /* Backspace */
     if (has_focus && in->key_backspace_pressed && strlen(buf) > 0)
     {
@@ -414,8 +439,6 @@ int overlay_input_text(const char* label, char* buf, size_t buf_size)
             changed = 1;
         }
     }
-    int x = g_ui.cur_x, y = g_ui.cur_y,
-        w = (g_ui.columns > 1 ? g_ui.col_widths[g_ui.col_index] : g_ui.width), h2 = h;
 #ifdef ROGUE_HAVE_SDL
     if (g_app.renderer)
     {
@@ -431,6 +454,7 @@ int overlay_input_text(const char* label, char* buf, size_t buf_size)
     rogue_font_draw_text(x + 6, y + 2, line, 1, (RogueColor){255, 255, 255, 255});
     if (mouse_over(x, y + 2, w, h2) && overlay_input_get()->mouse_clicked)
     {
+        /* already handled above; keep for idempotence */
         overlay_input_set_capture(1, 1);
         g_ui.focus_index = id;
         g_ui.caret_pos = (int) strlen(buf);
@@ -442,10 +466,6 @@ int overlay_input_text(const char* label, char* buf, size_t buf_size)
             g_ui.caret_pos--;
         if (in->key_right_pressed && g_ui.caret_pos < (int) strlen(buf))
             g_ui.caret_pos++;
-        if (in->key_home_pressed)
-            g_ui.caret_pos = 0;
-        if (in->key_end_pressed)
-            g_ui.caret_pos = (int) strlen(buf);
         if (in->key_escape_pressed)
             g_ui.focus_index = -1;
     }

@@ -57,8 +57,8 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 	- Run tests: ctest -C Debug -j12 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 - Loaders are resilient to working directories: asset/doc paths like `assets/...` are resolved via internal fallbacks so tests can run from build/tests subfolders.
 Notes:
-- Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (562/562).
-	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir).
+- Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (564/564).
+	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir). Default is off for quiet CI.
 
 ### Build flags and modules
 - ROGUE_ENABLE_DEBUG_OVERLAY (default ON): Compiles the in-game debug overlay. When OFF, overlay code is compiled out and has near-zero cost. Overlay is built as an object library (`rogue_debug_overlay`) and linked into `rogue_core` conditionally.
@@ -92,6 +92,7 @@ Notes:
 - Headless-safe: widget drawing guards avoid SDL calls when no renderer is present (useful in unit tests).
 - Tests: `test_overlay_core` and `test_overlay_widgets` (smoke), with the latter validating headless usage and basic interactions via simulated input.
 	- New: `test_overlay_layout_focus` covers 2-column auto-wrap and focus traversal.
+	- New: `test_overlay_inputtext_caret` exercises caret navigation (Home/End/Left/Right), insertion, and backspace sequencing under focus changes.
 	- Verification: Overlay tests pass headlessly in Debug (SDL2) with parallel ctest. Full suite currently all‑green in Debug with SDL2 and -j12.
 
 Overlay panels:

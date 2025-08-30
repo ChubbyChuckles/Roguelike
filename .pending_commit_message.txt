@@ -50,3 +50,10 @@ ci: re-run full Debug suite after monolith removal; bump README CI count
 
 - Executed `ctest -C Debug -j12 --output-on-failure` → 100% pass (562/562).
 - Updated README CI verification note from 561/561 to 562/562.
+
+tests(ai/overlay): fix AI blackboard fuzz header + add caret edge tests; full suite green (564/564)
+
+- test_ai_phase11_blackboard_fuzz: include <math.h> to ensure fabsf prototype; removes misleading mismatch print. Re-run single test: pass.
+- Disable noisy tracing by default (ROGUE_TRACE_BB=0) in blackboard.c to keep CI/logs quiet; tracing can be enabled ad hoc for triage.
+- Add explicit caret navigation/backspace/home/end coverage in `test_overlay_inputtext_caret`; verify sequencing and focus semantics.
+- Full Debug build (SDL2) and ctest parallel run (-j12) now pass 100%: 564/564.

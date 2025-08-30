@@ -1,5 +1,6 @@
 #include "../../src/ai/core/blackboard.h"
 #include <assert.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -159,11 +160,25 @@ int main(void)
             float got;
             if (rogue_bb_get_float(&bb, k, &got))
             {
-                assert(fabsf(got - me->f) < 0.0001f);
+                if (!(fabsf(got - me->f) < 0.0001f))
+                {
+                    fprintf(stderr,
+                            "FLOAT MISMATCH iter=%d key=%s pol=%d before=%.6f fval=%.6f "
+                            "after_model=%.6f got=%.6f\n",
+                            iter, k, (int) pol, before, fval, me->f, got);
+                    return 1;
+                }
             }
             else
             {
-                assert(!changed);
+                if (changed)
+                {
+                    fprintf(stderr,
+                            "FLOAT GET MISSING iter=%d key=%s pol=%d before=%.6f fval=%.6f "
+                            "expected_present\n",
+                            iter, k, (int) pol, before, fval);
+                    return 1;
+                }
             }
         }
         break;

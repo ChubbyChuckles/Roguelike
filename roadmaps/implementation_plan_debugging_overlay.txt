@@ -21,7 +21,7 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 
 CI VALIDATION (current)
 - Overlay core/input/widgets/panels compile clean under Debug with SDL2.
-- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%).
+- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%) (564/564).
 - Player Debug Panel and headless-safe player_debug APIs integrated; god mode is honored in melee mitigation path; noclip flag plumbed in app state. Rebuild and full test run reconfirmed green.
 - Start Screen corrupt-header gating verified via unit test and in the full run; logging defaults to WARN to keep CI output quiet.
 - Audio/VFX refactor: legacy monolith (effects.c) fully split into modular fx_bus.c, fx_audio.c, fx_vfx.c, fx_rng.c and the monolithic file removed; public API in effects.h unchanged.
@@ -59,7 +59,7 @@ PHASE 5. Overlay UI Framework Core
 5.2 Add overlay_widgets.h/.c: Label, Button, Checkbox, SliderInt/Float, InputText (Done – basic immediate‑mode widgets implemented; headless-safe rendering guards)
 5.3 Implement basic layout: BeginPanel/EndPanel, columns/rows, automatic wrapping (Done – Begin/End panel, vertical stacking, and columns begin/next/end implemented; widgets now auto-advance across columns and wrap to the next row. Row height now tracks tallest widget in the row for correct spacing.)
 5.4 Add input handling: mouse/keyboard capture, focus management, text editing (Done – generalized Tab/Shift+Tab focus traversal across Button/Checkbox/Sliders/InputText; InputText caret navigation Home/End/Left/Right and insert/backspace at caret; Enter/Space activate buttons/checkboxes; sliders respond to Left/Right; click-to-focus added for all interactives; Tab navigation requests input capture.)
-5.5 Tests: widget layout, input focus traversal, text input edge cases (Partial – unit test test_overlay_layout_focus covers 2‑column wrap and focus/tab traversal; smoke tests retained. Future: add explicit caret edge tests.)
+5.5 Tests: widget layout, input focus traversal, text input edge cases (Done – unit tests cover 2‑column wrap, focus/tab traversal, and caret edge cases. Tests: test_overlay_layout_focus, test_overlay_widgets, test_overlay_inputtext_caret.)
 
 PHASE 6. Basic Overlay Panels
 6.1 Implement System Panel: FPS, timings, memory usage, debug flags (Done – baseline System panel added and registered; shows FPS, frame time, draw calls, tile quads, and toggles metrics/overlay. Registered in app_init.)
