@@ -58,6 +58,10 @@ typedef struct RogueItemDef
 /* Item definition flags */
 #define ROGUE_ITEM_FLAG_TWO_HANDED 0x01
 
+/* Stable handle for item base definitions (index + generation). 0 = invalid */
+typedef uint32_t RogueItemDefHandle;
+#define ROGUE_ITEM_DEF_INVALID_HANDLE ((RogueItemDefHandle) 0u)
+
 /* Runtime registry */
 int rogue_item_defs_load_from_cfg(const char* path); /* returns count added or <0 on error */
 /* Phase 16.1 (Tooling): JSON import path (array of objects). Path must end with .json. */
@@ -76,6 +80,10 @@ int rogue_item_defs_count(void);
 void rogue_item_defs_reset(void);
 /* Internal convenience: get pointer by index (returns NULL if OOB) */
 const RogueItemDef* rogue_item_def_at(int index);
+/* Handle helpers: create/query by stable handle (generation-checked). */
+RogueItemDefHandle rogue_item_def_handle_from_index(int index);
+int rogue_item_def_index_from_handle(RogueItemDefHandle h); /* -1 if invalid/stale */
+const RogueItemDef* rogue_item_def_get_by_handle(RogueItemDefHandle h);
 /* Phase 17.4: Cache-friendly fast index lookups via open-addressed hash built post-load */
 int rogue_item_defs_build_index(
     void); /* rebuilds hash index (call after bulk load); returns 0 on success */

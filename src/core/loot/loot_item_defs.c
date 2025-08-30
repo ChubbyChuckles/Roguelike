@@ -1,4 +1,5 @@
 #include "loot_item_defs.h"
+#include "../../content/json_envelope.h" /* allow loading from versioned envelopes */
 #include "loot_affixes.h" /* ensure affixes present for tests that roll immediately */
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +11,8 @@
 
 static RogueItemDef g_item_defs[ROGUE_ITEM_DEF_CAP];
 static int g_item_def_count = 0;
+/* Handle generation per slot for stable handles */
+static uint16_t g_item_generations[ROGUE_ITEM_DEF_CAP] = {0};
 /* Phase 17.4: open-address hash index (power-of-two sized) for cache-friendly id->index lookup */
 static int g_hash_cap = 0;       /* number of slots */
 static int* g_hash_slots = NULL; /* -1 empty, -2 tombstone (unused) or index into g_item_defs */
@@ -93,7 +96,12 @@ int rogue_item_def_index_fast(const char* id)
     return -1;
 }
 
-void rogue_item_defs_reset(void) { g_item_def_count = 0; }
+void rogue_item_defs_reset(void)
+{
+    g_item_def_count = 0;
+    for (int i = 0; i < ROGUE_ITEM_DEF_CAP; ++i)
+        g_item_generations[i] = 0;
+}
 int rogue_item_defs_count(void) { return g_item_def_count; }
 
 static char* next_field(char** cur)
@@ -445,11 +453,44 @@ int rogue_item_defs_load_from_json(const char* path)
     size_t rd = fread(buf, 1, (size_t) sz, f);
     buf[rd] = '\0';
     fclose(f);
+
+    /* Support both raw array files and versioned envelopes. */
     const char* s = skip_ws(buf);
+    RogueJsonEnvelope env = {0};
+    int using_env = 0;
     if (*s != '[')
     {
-        free(buf);
-        return -1;
+        if (*s == '{')
+        {
+            char err[256];
+            if (json_envelope_parse(buf, &env, err, (int) sizeof err) == 0 && env.entries &&
+                env.entries[0])
+            {
+                /* Optional: enforce schema name for items */
+                if (env.schema && strcmp(env.schema, "items") == 0)
+                {
+                    s = skip_ws(env.entries);
+                    using_env = 1;
+                }
+                else
+                {
+                    /* Unknown schema */
+                    json_envelope_free(&env);
+                    free(buf);
+                    return -1;
+                }
+            }
+            else
+            {
+                free(buf);
+                return -1;
+            }
+        }
+        else
+        {
+            free(buf);
+            return -1;
+        }
     }
     ++s;
     int added = 0;
@@ -630,6 +671,8 @@ int rogue_item_defs_load_from_json(const char* path)
             continue;
         }
     }
+    if (using_env)
+        json_envelope_free(&env);
     free(buf);
     rogue_item_defs_build_index();
     return added;
@@ -728,6 +771,49 @@ const RogueItemDef* rogue_item_def_at(int index)
     return &g_item_defs[index];
 }
 
+/* ===== Handle helpers ===== */
+static inline RogueItemDefHandle _make_item_handle(int idx)
+{
+    if (idx < 0 || idx >= ROGUE_ITEM_DEF_CAP)
+        return ROGUE_ITEM_DEF_INVALID_HANDLE;
+    uint16_t gen = g_item_generations[idx];
+    return (RogueItemDefHandle) ((((uint32_t) gen) << 16) | (uint32_t) (idx & 0xFFFF));
+}
+
+static inline int _handle_index_item(RogueItemDefHandle h) { return (int) (h & 0xFFFFu); }
+static inline uint16_t _handle_gen_item(RogueItemDefHandle h)
+{
+    return (uint16_t) ((h >> 16) & 0xFFFFu);
+}
+
+RogueItemDefHandle rogue_item_def_handle_from_index(int index)
+{
+    if (index < 0 || index >= g_item_def_count)
+        return ROGUE_ITEM_DEF_INVALID_HANDLE;
+    return _make_item_handle(index);
+}
+
+int rogue_item_def_index_from_handle(RogueItemDefHandle h)
+{
+    if (h == ROGUE_ITEM_DEF_INVALID_HANDLE)
+        return -1;
+    int idx = _handle_index_item(h);
+    uint16_t gen = _handle_gen_item(h);
+    if (idx < 0 || idx >= g_item_def_count)
+        return -1;
+    if (g_item_generations[idx] != gen)
+        return -1; /* stale */
+    return idx;
+}
+
+const RogueItemDef* rogue_item_def_get_by_handle(RogueItemDefHandle h)
+{
+    int idx = rogue_item_def_index_from_handle(h);
+    if (idx < 0)
+        return NULL;
+    return &g_item_defs[idx];
+}
+
 int rogue_item_defs_add(const RogueItemDef* in)
 {
     if (!in)
@@ -751,6 +837,8 @@ int rogue_item_defs_add(const RogueItemDef* in)
         d.socket_max = 6;
     g_item_defs[g_item_def_count] = d;
     int idx = g_item_def_count++;
+    /* bump generation to invalidate any stale handles to this slot (if reused) */
+    g_item_generations[idx]++;
     rogue_item_defs_build_index();
     return idx;
 }

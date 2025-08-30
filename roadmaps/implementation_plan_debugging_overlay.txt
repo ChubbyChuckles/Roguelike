@@ -21,7 +21,9 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 
 CI VALIDATION (current)
 - Overlay core/input/widgets/panels compile clean under Debug with SDL2.
-- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%) (572/572).
+- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%) (576/576).
+- Items loader now accepts both raw JSON arrays and versioned envelopes ("$schema": "items") and unwraps entries transparently; the schema-backed roundtrip test passes.
+- Stabilized integration harness: test_boot updated to chdir to the repo root and to use the current RogueAppConfig initializer; eliminates a prior headless/SDL segfault.
 - Player Debug Panel and headless-safe player_debug APIs integrated; god mode is honored in melee mitigation path; noclip flag plumbed in app state. Rebuild and full test run reconfirmed green.
 - Start Screen corrupt-header gating verified via unit test and in the full run; logging defaults to WARN to keep CI output quiet.
 - Audio/VFX refactor: legacy monolith (effects.c) fully split into modular fx_bus.c, fx_audio.c, fx_vfx.c, fx_rng.c and the monolithic file removed; public API in effects.h unchanged.
@@ -51,9 +53,10 @@ PHASE 2. JSON I/O Foundation
 PHASE 3. Items JSON Schema & Migration
 3.1 Design items.json schema: id, name, type, stats, rarity, tags (Done – schema defined in src/content/schema_items.{h,c}; required: id/name/category; ranges: category [0..ROGUE_ITEM__COUNT-1], stack_max>=1, sprite_tw/th>=1, rarity [0..10], sockets [0..6]; allows extra fields for forward-compat)
 3.2 Implement schema_items.h/.c: load/parse/validate/save functions (Done – validator + schema builder implemented; helper converter from RogueItemDef to JSON added for docs/tests; unit test tests/unit/test_items_schema.c covers valid/invalid cases)
-3.3 Add item registry with stable handles/IDs for runtime lookups (X)
-3.4 Create migration tool to export existing items to JSON format (X)
-3.5 Tests: item load/validate/save/reload roundtrip, invalid cases rejection (Partial – invalid cases covered; roundtrip via registry JSON export/import exists in item_debug tests; add schema-backed roundtrip in a follow-up)
+3.3 Add item registry with stable handles/IDs for runtime lookups (Done – added RogueItemDefHandle with per-slot generations; handle helpers: make/query/get; generations bump on add/reset)
+3.4 Create migration tool to export existing items to JSON format (Done – new CLI tools/items_migrate.c exports registry to versioned envelope using json_envelope + json_io; tries assets/items or assets/test_items.cfg when empty)
+3.5 Tests: item load/validate/save/reload roundtrip, invalid cases rejection (Done – new unit tests/unit/test_items_roundtrip_schema.c exports registry, wraps in envelope, validates via schema_items, writes to disk, parses envelope back, and reloads via JSON loader)
+	- Loader compatibility: rogue_item_defs_load_from_json accepts both a raw JSON array and a versioned envelope with "$schema":"items" for back/forward compatibility.
 
 PHASE 4. Skills JSON Schema & Migration
 4.1 Design skills.json schema: id, display_name, coeff, cast_time_ms, cooldown_ms, effects (X)

@@ -41,3 +41,17 @@ chore(ci/windows): switch to Ninja generator to prevent MSBuild stalls
 - Use MSVC developer environment with Ninja (`ilammy/msvc-dev-cmd@v1` + `choco install ninja`).
 - Configure with `-G Ninja` and build with `cmake --build build --parallel 12` to improve throughput and avoid intermittent stalls when compiling hundreds of tiny unit test targets.
 - README: document Ninja usage in Windows CI.
+
+feat(items): add stable item definition handles and migration/export tool
+
+- Add RogueItemDefHandle (index+generation) with helpers to make/query/get; bump generations on add/reset to invalidate stale handles.
+- New CLI tool tools/items_migrate to export current registry as versioned JSON envelope (schema "items") via json_envelope and atomic write.
+- New unit test test_items_roundtrip_schema validates export→envelope→schema→reload roundtrip.
+- Roadmap Phase 3.3–3.5 marked Done; README to mention migration tool and handles.
+
+fix(items+tests): accept JSON envelope in items loader; stabilize test_boot harness; all tests green (576/576)
+
+- Loader: `rogue_item_defs_load_from_json(path)` now supports both raw JSON arrays and versioned envelopes with `$schema: "items"` and `entries`.
+- Tests: `tests/unit/test_items_roundtrip_schema.c` uses an envelope for the write path; loader unwraps transparently and import succeeds.
+- Integration: `tests/integration/test_boot.c` now chdir's to the repo root and uses the full `RogueAppConfig` initializer with logical dimensions and background color, fixing a headless/SDL segfault.
+- CI: Full Debug (SDL2) build and ctest -j12 run are fully green (576/576).

@@ -55,7 +55,7 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 	- Build: use CMake multi‑config generators with parallelism (e.g., -j12)
 	- Run tests: ctest -C Debug -j12 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 Notes:
-Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (575/575).
+Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (576/576).
 	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir). Default is off for quiet CI.
 Formatting:
 	- Run per-file clang-format locally: use the CMake targets `format` (auto-fix) and `format-check` (verify). These work on Windows without hitting command-line length limits.
@@ -136,7 +136,15 @@ Overlay panels:
 		- Headless-safe: backed by `src/core/loot/item_debug.{h,c}`; covered by unit `tests/unit/test_item_debug_api.c`.
 
 Content schemas (foundation):
-- Items schema (new): `src/content/schema_items.{h,c}` defines and validates items.json (id/name/category required; ranges for stack_max, rarity, sockets, etc.). Unit `tests/unit/test_items_schema.c` exercises valid and invalid cases. This complements existing entity and tileset schemas.
+- Items schema (new): `src/content/schema_items.{h,c}` defines and validates items.json (id/name/category required; ranges for stack_max, rarity, sockets, etc.). Units `tests/unit/test_items_schema.c` and `tests/unit/test_items_roundtrip_schema.c` cover validation and a schema-backed export→envelope→reload roundtrip.
+
+Items registry & migration:
+- Stable handles: `RogueItemDefHandle` provides a generation-checked handle for item base defs. Helpers: `rogue_item_def_handle_from_index`, `rogue_item_def_index_from_handle`, `rogue_item_def_get_by_handle`. Generations bump on add/reset to invalidate stale references.
+- Migration/export tool: `items_migrate` (built by CMake) exports the current registry to a versioned JSON envelope using `json_envelope` + `json_io`. Usage: `items_migrate <out.json>`. It attempts to load `assets/items` or falls back to `assets/test_items.cfg` if the registry is empty.
+ - Loader compatibility: `rogue_item_defs_load_from_json(path)` accepts both a raw JSON array of item defs and a versioned envelope with `$schema: "items"` (reads from `entries`). The schema-backed roundtrip test covers both paths.
+
+Integration harness stabilization:
+- `tests/integration/test_boot.c` now aligns its working directory with the repo root (like other integration tests) and uses the full `RogueAppConfig` initializer (logical dimensions and background color). This resolved a previous headless/SDL segfault in CI.
 
 	Test save‑path isolation (stability under parallel ctest):
 	- Centralized builders in `src/core/persistence/save_paths.{h,c}` construct slot/autosave/backup/json/quicksave paths and create directories as needed.

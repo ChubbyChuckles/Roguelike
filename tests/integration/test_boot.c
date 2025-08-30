@@ -4,7 +4,23 @@
 
 int main(void)
 {
-    RogueAppConfig cfg = {"TestBoot", 160, 90, 0};
+#if defined(_WIN32)
+    _chdir("..\\..\\");
+#else
+    chdir("../..");
+#endif
+    /* Use full config matching current RogueAppConfig layout for stability */
+    RogueAppConfig cfg = {"TestBoot",
+                          320,
+                          180,
+                          320,
+                          180,
+                          0,
+                          0,
+                          0,
+                          1,
+                          ROGUE_WINDOW_WINDOWED,
+                          (RogueColor){0, 0, 0, 255}};
     if (!rogue_app_init(&cfg))
     {
         printf("init fail\n");
@@ -17,6 +33,8 @@ int main(void)
     if (after - before < 5)
     {
         printf("frame count fail\n");
+        rogue_game_loop_request_exit();
+        rogue_app_shutdown();
         return 1;
     }
     rogue_game_loop_request_exit();

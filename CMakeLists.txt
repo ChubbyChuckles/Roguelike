@@ -1012,6 +1012,13 @@ if(WIN32)
     target_link_libraries(weapon_pose_tool PRIVATE ole32 windowscodecs)
 endif()
 
+# Items migration/export tool (schema envelope JSON)
+add_executable(items_migrate tools/items_migrate.c)
+target_link_libraries(items_migrate PRIVATE rogue_core)
+if(ROGUE_ENABLE_SDL)
+    target_compile_definitions(items_migrate PRIVATE ROGUE_HAVE_SDL=1)
+endif()
+
 if(WIN32)
     target_link_libraries(rogue_core PUBLIC ole32 windowscodecs)
 endif()
