@@ -448,6 +448,7 @@ target_include_directories(rogue_debug_overlay PUBLIC ${CMAKE_CURRENT_SOURCE_DIR
 add_library(rogue_content_json OBJECT
     src/content/json_io.c
     src/content/json_envelope.c
+    src/content/schema_items.c
     src/content/schema_entities.c
     src/content/schema_tilesets.c
 )
@@ -791,6 +792,14 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_tilesets_schema PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_tilesets_schema COMMAND test_tilesets_schema)
+
+# Items schema validation test
+add_executable(test_items_schema tests/unit/test_items_schema.c)
+target_link_libraries(test_items_schema PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_items_schema PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_items_schema COMMAND test_items_schema)
 
 # Map editing debug API test
 add_executable(test_map_debug tests/unit/test_map_debug.c)

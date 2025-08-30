@@ -679,6 +679,71 @@ static void panel_items(void* user)
         overlay_columns_end();
     }
 
+    /* Item Creation Wizard (Phase 10.4) */
+    static int wizard_open = 1;
+    if (overlay_tree_node("Create New Item", &wizard_open))
+    {
+        static char new_id[ROGUE_MAX_ITEM_ID_LEN] = "";
+        static char new_name[ROGUE_MAX_ITEM_NAME_LEN] = "";
+        static int cat_idx = (int) ROGUE_ITEM_MISC;
+        static int lvl = 1, stack_max = 1, value = 1;
+        static int dmg_min = 0, dmg_max = 0, armor = 0, rarity = 0;
+        static int sock_min = 0, sock_max = 0;
+
+        overlay_input_text("ID", new_id, (int) sizeof new_id);
+        overlay_input_text("Name", new_name, (int) sizeof new_name);
+        const char* cat_items[] = {"MISC", "CONSUMABLE", "WEAPON", "ARMOR", "GEM", "MATERIAL"};
+        overlay_combo("Category", &cat_idx, cat_items, 6);
+        overlay_slider_int("Level Req", &lvl, 1, 100);
+        overlay_slider_int("Stack Max", &stack_max, 1, 999);
+        overlay_slider_int("Base Value", &value, 0, 100000);
+        if (overlay_columns_begin(2, NULL))
+        {
+            overlay_slider_int("Dmg Min", &dmg_min, 0, 9999);
+            overlay_next_column();
+            overlay_slider_int("Dmg Max", &dmg_max, 0, 9999);
+            overlay_columns_end();
+        }
+        overlay_slider_int("Base Armor", &armor, 0, 9999);
+        overlay_slider_int("Rarity", &rarity, 0, 5);
+        if (overlay_columns_begin(2, NULL))
+        {
+            overlay_slider_int("Sock Min", &sock_min, 0, 6);
+            overlay_next_column();
+            overlay_slider_int("Sock Max", &sock_max, 0, 6);
+            overlay_columns_end();
+        }
+        if (overlay_button("Create"))
+        {
+            if (new_id[0] && new_name[0])
+            {
+                int idx = rogue_item_debug_create(new_id, new_name, (RogueItemCategory) cat_idx,
+                                                  lvl, stack_max, value, dmg_min, dmg_max, armor,
+                                                  rarity, sock_min, sock_max);
+                char msg[96];
+                snprintf(msg, sizeof msg, "create idx=%d", idx);
+                overlay_label(msg);
+                if (idx >= 0)
+                {
+                    /* select the new item and clear form */
+                    sel = idx;
+                    new_id[0] = '\0';
+                    new_name[0] = '\0';
+                    dmg_min = dmg_max = armor = rarity = sock_min = sock_max = 0;
+                    stack_max = 1;
+                    value = 1;
+                    lvl = 1;
+                    cat_idx = (int) ROGUE_ITEM_MISC;
+                }
+            }
+            else
+            {
+                overlay_label("Error: ID and Name are required.");
+            }
+        }
+        overlay_tree_pop();
+    }
+
     overlay_end_panel();
 #endif
 }

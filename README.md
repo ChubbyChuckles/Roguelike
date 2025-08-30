@@ -55,7 +55,7 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 	- Build: use CMake multi‑config generators with parallelism (e.g., -j12)
 	- Run tests: ctest -C Debug -j12 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 Notes:
-Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (572/572).
+Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (575/575).
 	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir). Default is off for quiet CI.
 ### Build flags and modules
  APIs: `src/debug_overlay/overlay_core.h` plus widgets in `overlay_widgets.h` (Label, Button, Checkbox, SliderInt/Float, InputText, Combo, TreeNode/Pop, ColorEdit RGBA, Table). Input capture in `overlay_input.h`.
@@ -126,7 +126,12 @@ Overlay panels:
 		- Lists item defs in a sortable table with row selection.
 		- Edit core fields for the selected item (e.g., name, sockets, rarity) using safe setters.
 		- Persistence: specify a JSON path and use Save/Load to export/import item defs via `rogue_item_debug_save_json`/`_load_json` (atomic save, dynamic buffer sizing under the hood).
+		- Live vendor repricing: editing item defs updates vendor slot prices in-place via `rogue_vendor_on_item_def_changed`; bulk JSON loads trigger `rogue_vendor_reprice_all`.
+		- Creation Wizard: a guided form to add new base items (ID/Name/Category and core stats). Backed by `rogue_item_debug_create` which validates input, ensures unique IDs, sanitizes fields, and appends via `rogue_item_defs_add`.
 		- Headless-safe: backed by `src/core/loot/item_debug.{h,c}`; covered by unit `tests/unit/test_item_debug_api.c`.
+
+Content schemas (foundation):
+- Items schema (new): `src/content/schema_items.{h,c}` defines and validates items.json (id/name/category required; ranges for stack_max, rarity, sockets, etc.). Unit `tests/unit/test_items_schema.c` exercises valid and invalid cases. This complements existing entity and tileset schemas.
 
 	Test save‑path isolation (stability under parallel ctest):
 	- Centralized builders in `src/core/persistence/save_paths.{h,c}` construct slot/autosave/backup/json/quicksave paths and create directories as needed.

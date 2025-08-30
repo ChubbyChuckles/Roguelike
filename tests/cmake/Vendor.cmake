@@ -206,3 +206,13 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_restock.c AND NOT TARGET 
     endif()
     add_test(NAME test_vendor_restock COMMAND test_vendor_restock)
 endif()
+
+# Vendor live repricing test (10.3)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_live_reprice.c AND NOT TARGET test_vendor_live_reprice)
+    add_executable(test_vendor_live_reprice unit/test_vendor_live_reprice.c)
+    target_link_libraries(test_vendor_live_reprice PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_vendor_live_reprice PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_vendor_live_reprice COMMAND test_vendor_live_reprice)
+endif()

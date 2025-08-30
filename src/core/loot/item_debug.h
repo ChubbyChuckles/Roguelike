@@ -29,6 +29,14 @@ extern "C"
      * count or <0 on error. */
     int rogue_item_debug_load_json(const char* path);
 
+    /* Create a new item definition with the provided fields. On success, returns the new index.
+        Required: non-empty unique id and name. Category must be within RogueItemCategory range.
+        Numeric fields are sanitized (stack_max>=1, sockets clamped 0..6, max>=min). */
+    int rogue_item_debug_create(const char* id, const char* name, RogueItemCategory category,
+                                int level_req, int stack_max, int base_value, int base_dmg_min,
+                                int base_dmg_max, int base_armor, int rarity, int socket_min,
+                                int socket_max);
+
 #ifdef __cplusplus
 }
 #endif

@@ -61,4 +61,12 @@ int rogue_vendor_update_and_maybe_restock(RogueVendorRotation* rot, float dt_ms,
                                           int slots);
 int rogue_vendor_current_table(const RogueVendorRotation* rot);
 
+/* Phase 10.3: Live repricing hooks
+ * Recompute prices for current vendor inventory after item definition edits.
+ * - rogue_vendor_reprice_all: recompute prices for all slots
+ * - rogue_vendor_on_item_def_changed: recompute prices for slots matching def_index
+ */
+void rogue_vendor_reprice_all(void);
+int rogue_vendor_on_item_def_changed(int def_index);
+
 #endif /* ROGUE_VENDOR_H */

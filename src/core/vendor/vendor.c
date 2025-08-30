@@ -452,3 +452,40 @@ int rogue_vendor_update_and_maybe_restock(RogueVendorRotation* rot, float dt_ms,
     int produced = rogue_vendor_generate_inventory(table, slots, ctx, seed);
     return produced > 0 ? 1 : 0;
 }
+
+void rogue_vendor_reprice_all(void)
+{
+    /* Recompute prices for all current vendor items using the current item defs & pricing formula
+     */
+    for (int i = 0; i < g_vendor_count; ++i)
+    {
+        RogueVendorItem* it = &g_vendor_items[i];
+        int def = it->def_index;
+        int rarity = it->rarity;
+        if (def >= 0)
+        {
+            it->price = rogue_vendor_price_formula(def, rarity);
+            if (it->price < 1)
+                it->price = 1;
+        }
+    }
+}
+
+int rogue_vendor_on_item_def_changed(int def_index)
+{
+    if (def_index < 0)
+        return 0;
+    int touched = 0;
+    for (int i = 0; i < g_vendor_count; ++i)
+    {
+        RogueVendorItem* it = &g_vendor_items[i];
+        if (it->def_index == def_index)
+        {
+            it->price = rogue_vendor_price_formula(def_index, it->rarity);
+            if (it->price < 1)
+                it->price = 1;
+            touched++;
+        }
+    }
+    return touched;
+}

@@ -1,5 +1,6 @@
 #include "item_debug.h"
 #include "../../content/json_io.h"
+#include "../vendor/vendor.h"
 #include "loot_item_defs.h"
 #include <stdlib.h>
 #include <string.h>
@@ -70,7 +71,13 @@ int rogue_item_debug_set_int(int index, const char* field, int value)
     if (!c)
         return -1;
     RogueItemDef* mut = (RogueItemDef*) c; /* internal registry is mutable */
-    return set_int_field(mut, field, value);
+    int rc = set_int_field(mut, field, value);
+    if (rc == 0)
+    {
+        /* Notify vendor system to reprice affected items */
+        (void) rogue_vendor_on_item_def_changed(index);
+    }
+    return rc;
 }
 
 int rogue_item_debug_set_name(int index, const char* name)
@@ -85,6 +92,8 @@ int rogue_item_debug_set_name(int index, const char* name)
     strncpy(mut->name, name, sizeof mut->name - 1);
     mut->name[sizeof mut->name - 1] = '\0';
 #endif
+    /* Name doesn't affect price, but keep behavior consistent and notify in case UIs show names */
+    (void) rogue_vendor_on_item_def_changed(index);
     return 0;
 }
 
@@ -124,5 +133,58 @@ int rogue_item_debug_load_json(const char* path)
 {
     if (!path)
         return -1;
-    return rogue_item_defs_load_from_json(path);
+    int added_or_err = rogue_item_defs_load_from_json(path);
+    /* After load/merge, safe to reprice all vendor items since multiple defs could change */
+    if (added_or_err >= 0)
+        rogue_vendor_reprice_all();
+    return added_or_err;
+}
+
+int rogue_item_debug_create(const char* id, const char* name, RogueItemCategory category,
+                            int level_req, int stack_max, int base_value, int base_dmg_min,
+                            int base_dmg_max, int base_armor, int rarity, int socket_min,
+                            int socket_max)
+{
+    if (!id || !name)
+        return -1;
+    if (!id[0] || !name[0])
+        return -1;
+    if (category < 0 || category >= ROGUE_ITEM__COUNT)
+        return -1;
+    if (rogue_item_def_index_fast(id) >= 0)
+        return -2; /* duplicate id */
+    RogueItemDef d;
+    memset(&d, 0, sizeof d);
+#if defined(_MSC_VER)
+    strncpy_s(d.id, sizeof d.id, id, _TRUNCATE);
+    strncpy_s(d.name, sizeof d.name, name, _TRUNCATE);
+#else
+    strncpy(d.id, id, sizeof d.id - 1);
+    strncpy(d.name, name, sizeof d.name - 1);
+#endif
+    d.category = category;
+    d.level_req = level_req;
+    d.stack_max = stack_max > 0 ? stack_max : 1;
+    d.base_value = base_value;
+    d.base_damage_min = base_dmg_min;
+    d.base_damage_max = base_dmg_max < base_dmg_min ? base_dmg_min : base_dmg_max;
+    d.base_armor = base_armor;
+    d.rarity = rarity < 0 ? 0 : rarity;
+    d.socket_min = socket_min < 0 ? 0 : socket_min;
+    d.socket_max = socket_max < d.socket_min ? d.socket_min : socket_max;
+    if (d.socket_max > 6)
+        d.socket_max = 6;
+    /* minimum sprite tile defaults to 1x1 to avoid zero */
+    d.sprite_tw = d.sprite_tw <= 0 ? 1 : d.sprite_tw;
+    d.sprite_th = d.sprite_th <= 0 ? 1 : d.sprite_th;
+    int idx = rogue_item_defs_add(&d);
+    if (idx >= 0)
+    {
+        /* Prices for existing vendor inventory using this id don't exist yet, but repricing all is
+         * cheap and keeps behaviors consistent in case the registry index matches a current slot
+         * after a reload/merge.
+         */
+        rogue_vendor_reprice_all();
+    }
+    return idx; /* may be -1 or -2 */
 }

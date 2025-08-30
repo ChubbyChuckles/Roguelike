@@ -728,6 +728,33 @@ const RogueItemDef* rogue_item_def_at(int index)
     return &g_item_defs[index];
 }
 
+int rogue_item_defs_add(const RogueItemDef* in)
+{
+    if (!in)
+        return -1;
+    if (g_item_def_count >= ROGUE_ITEM_DEF_CAP)
+        return -1;
+    /* must have non-empty id and name */
+    if (!in->id[0] || !in->name[0])
+        return -1;
+    /* ensure unique id */
+    if (rogue_item_def_index(in->id) >= 0)
+        return -2;
+    RogueItemDef d = *in; /* make a local copy to sanitize */
+    if (d.stack_max <= 0)
+        d.stack_max = 1;
+    if (d.socket_min < 0)
+        d.socket_min = 0;
+    if (d.socket_max < d.socket_min)
+        d.socket_max = d.socket_min;
+    if (d.socket_max > 6)
+        d.socket_max = 6;
+    g_item_defs[g_item_def_count] = d;
+    int idx = g_item_def_count++;
+    rogue_item_defs_build_index();
+    return idx;
+}
+
 /* Internal helper: load item defs from a concrete directory path. Returns number added. */
 static int rogue_item_defs_load_from_dir_internal(const char* dir_path)
 {

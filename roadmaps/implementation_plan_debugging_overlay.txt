@@ -48,11 +48,11 @@ PHASE 2. JSON I/O Foundation
 2.5 Tests: JSON load/save roundtrip, error handling, atomic save safety (Done – test_json_io); envelope parse/create and errors (Done – test_json_envelope)
 
 PHASE 3. Items JSON Schema & Migration
-3.1 Design items.json schema: id, name, type, stats, rarity, tags (X)
-3.2 Implement schema_items.h/.c: load/parse/validate/save functions (X)
+3.1 Design items.json schema: id, name, type, stats, rarity, tags (Done – schema defined in src/content/schema_items.{h,c}; required: id/name/category; ranges: category [0..ROGUE_ITEM__COUNT-1], stack_max>=1, sprite_tw/th>=1, rarity [0..10], sockets [0..6]; allows extra fields for forward-compat)
+3.2 Implement schema_items.h/.c: load/parse/validate/save functions (Done – validator + schema builder implemented; helper converter from RogueItemDef to JSON added for docs/tests; unit test tests/unit/test_items_schema.c covers valid/invalid cases)
 3.3 Add item registry with stable handles/IDs for runtime lookups (X)
 3.4 Create migration tool to export existing items to JSON format (X)
-3.5 Tests: item load/validate/save/reload roundtrip, invalid cases rejection (X)
+3.5 Tests: item load/validate/save/reload roundtrip, invalid cases rejection (Partial – invalid cases covered; roundtrip via registry JSON export/import exists in item_debug tests; add schema-backed roundtrip in a follow-up)
 
 PHASE 4. Skills JSON Schema & Migration
 4.1 Design skills.json schema: id, display_name, coeff, cast_time_ms, cooldown_ms, effects (X)
@@ -99,9 +99,9 @@ PHASE 9. Map Editor Panel
 PHASE 10. Items Manager Panel
 10.1 Add Items Manager Panel: browse items, edit stats/rarity/tags (Done – Panel "Items" added and registered; table view + selection, inline editors for core fields, and Save/Load JSON path controls.)
 10.2 Implement item_debug.h/.c APIs: CRUD operations with validation (Done – Headless‑safe `rogue_item_debug_*` facade added: count/get/set_int/set_name/save_json/load_json. Save uses dynamic buffer growth + atomic write.)
-10.3 Add live vendor inventory updates when items change (X)
-10.4 Create item creation wizard: guided form with validation (X)
-10.5 Tests: item CRUD, vendor sync, creation wizard validation (Partial – New unit `tests/unit/test_item_debug_api.c` covers get/set and JSON save/load round‑trip. Vendor sync and wizard tests TBD.)
+10.3 Add live vendor inventory updates when items change (Done – Vendor repricing hooks wired: `rogue_vendor_on_item_def_changed` and `rogue_vendor_reprice_all`; item_debug setters and JSON loader call into them. Unit `test_vendor_live_reprice` validates immediate price updates without restock.)
+10.4 Create item creation wizard: guided form with validation (Done – Overlay “Create New Item” wizard added to Items panel with ID/Name/Category and core stat fields; headless API `rogue_item_debug_create` performs validation and appends via `rogue_item_defs_add`. Selects the new item on success.)
+10.5 Tests: item CRUD, vendor sync, creation wizard validation (Done – Units: `tests/unit/test_item_debug_api.c` (CRUD + JSON), `tests/unit/test_vendor_live_reprice.c` (vendor sync), and `tests/unit/test_item_creation_wizard.c` (creation validation).)
 
 PHASE 11. Advanced UI Widgets
 11.1 Implement TreeNode/TreePop: hierarchical data display (Done – overlay_tree_node/overlay_tree_pop implemented; Map Editor panel uses a collapsible “Advanced” section.)

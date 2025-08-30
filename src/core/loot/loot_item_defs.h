@@ -87,4 +87,9 @@ int rogue_item_def_index_fast(
    into 'out_lines' (cap entries). Returns number of malformed lines (clamped to cap). */
 int rogue_item_defs_validate_file(const char* path, int* out_lines, int cap);
 
+/* Debug/Tooling: Append a new item definition into the runtime registry.
+    - Returns new index (>=0) on success, -1 on error (cap/full/invalid), -2 if id already exists.
+    - Performs basic sanitation (socket bounds, stack_min>=1) and rebuilds the fast hash index. */
+int rogue_item_defs_add(const RogueItemDef* d);
+
 #endif
