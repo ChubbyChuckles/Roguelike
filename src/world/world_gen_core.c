@@ -1,6 +1,22 @@
+/**
+ * @file world_gen_core.c
+ * @brief Core orchestrator for world generation pipeline.
+ * @details This module coordinates the entire world generation process, managing the sequence
+ * of terrain generation, feature placement, and post-processing passes.
+ */
+
 /* Orchestrator for world generation (split refactor) */
 #include "world_gen_internal.h"
 
+/**
+ * @brief Generates a complete world map.
+ * @param out_map Pointer to the output tile map to populate.
+ * @param cfg Pointer to the world generation configuration.
+ * @return true on success, false on failure.
+ * @details Orchestrates the world generation pipeline including base terrain, biome assignment,
+ * cave carving, river placement, erosion, and smoothing passes. Supports both legacy and
+ * advanced terrain generation modes.
+ */
 bool rogue_world_generate(RogueTileMap* out_map, const RogueWorldGenConfig* cfg)
 {
     if (!out_map || !cfg)

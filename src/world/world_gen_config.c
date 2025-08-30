@@ -1,8 +1,25 @@
+/**
+ * @file world_gen_config.c
+ * @brief Unified world generation configuration construction.
+ * @details This module provides a centralized function to build world generation configurations,
+ * replacing duplicated initializers and handling scaling and app parameter integration.
+ */
+
 /* MIT License
  * Unified world gen config construction (replaces duplicated giant initializers). */
 #include "world_gen_config.h"
 #include "../core/app/app_state.h" /* for g_app when use_app_params */
 
+/**
+ * @brief Builds a world generation configuration.
+ * @param seed Random seed for world generation.
+ * @param use_app_params Whether to use application parameters for configuration.
+ * @param apply_scale Whether to apply scaling to dimensions and biome regions.
+ * @return A fully initialized RogueWorldGenConfig structure.
+ * @details Constructs a configuration with default values, optionally overriding with app
+ * parameters and applying scaling for larger worlds. Handles both advanced terrain and legacy
+ * settings.
+ */
 RogueWorldGenConfig rogue_world_gen_config_build(unsigned int seed, int use_app_params,
                                                  int apply_scale)
 {

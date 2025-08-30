@@ -1,9 +1,22 @@
+/**
+ * @file world_gen_biome_json.c
+ * @brief JSON parsing and validation for biome registries.
+ * @details This module provides functionality to load biome descriptors from JSON text,
+ * validate biome balance, build transition matrices, and validate encounter tables.
+ */
+
 #include "world_gen_biome_json.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @brief Sets an error message in the provided buffer.
+ * @param err Error buffer.
+ * @param cap Capacity of the error buffer.
+ * @param msg Error message to set.
+ */
 static void set_err(char* err, size_t cap, const char* msg)
 {
     if (err && cap)
@@ -17,6 +30,10 @@ static void set_err(char* err, size_t cap, const char* msg)
     }
 }
 
+/**
+ * @brief Skips whitespace characters in the JSON string.
+ * @param ps Pointer to the current position in the string.
+ */
 static void skip_ws(const char** ps)
 {
     const char* s = *ps;
@@ -25,6 +42,13 @@ static void skip_ws(const char** ps)
     *ps = s;
 }
 
+/**
+ * @brief Parses a JSON string value.
+ * @param ps Pointer to the current position in the string.
+ * @param out Output buffer for the parsed string.
+ * @param cap Capacity of the output buffer.
+ * @return 1 on success, 0 on failure.
+ */
 static int parse_string(const char** ps, char* out, size_t cap)
 {
     const char* s = *ps;
@@ -46,6 +70,12 @@ static int parse_string(const char** ps, char* out, size_t cap)
     return 1;
 }
 
+/**
+ * @brief Parses a JSON number value.
+ * @param ps Pointer to the current position in the string.
+ * @param out Pointer to store the parsed double value.
+ * @return 1 on success, 0 on failure.
+ */
 static int parse_number(const char** ps, double* out)
 {
     char* e = NULL;
@@ -57,6 +87,14 @@ static int parse_number(const char** ps, double* out)
     return 1;
 }
 
+/**
+ * @brief Loads biome descriptors from JSON text into the registry.
+ * @param reg Pointer to the biome registry.
+ * @param json_text JSON text containing biome descriptors.
+ * @param err Error buffer.
+ * @param err_cap Capacity of the error buffer.
+ * @return Number of biomes added on success, -1 on failure.
+ */
 int rogue_biome_registry_load_json_text(RogueBiomeRegistry* reg, const char* json_text, char* err,
                                         size_t err_cap)
 {
@@ -310,6 +348,17 @@ int rogue_biome_registry_load_json_text(RogueBiomeRegistry* reg, const char* jso
     return added;
 }
 
+/**
+ * @brief Validates the balance of biomes in the registry.
+ * @param reg Pointer to the biome registry.
+ * @param veg_min Minimum vegetation density.
+ * @param veg_max Maximum vegetation density.
+ * @param deco_min Minimum decoration density.
+ * @param deco_max Maximum decoration density.
+ * @param err Error buffer.
+ * @param err_cap Capacity of the error buffer.
+ * @return 1 if valid, 0 otherwise.
+ */
 int rogue_biome_registry_validate_balance(const RogueBiomeRegistry* reg, float veg_min,
                                           float veg_max, float deco_min, float deco_max, char* err,
                                           size_t err_cap)
@@ -343,6 +392,12 @@ int rogue_biome_registry_validate_balance(const RogueBiomeRegistry* reg, float v
     return 1;
 }
 
+/**
+ * @brief Finds the index of a biome by name.
+ * @param reg Pointer to the biome registry.
+ * @param name Name of the biome.
+ * @return Index of the biome, or -1 if not found.
+ */
 static int find_biome_index(const RogueBiomeRegistry* reg, const char* name)
 {
     for (int i = 0; i < reg->count; i++)
@@ -351,6 +406,16 @@ static int find_biome_index(const RogueBiomeRegistry* reg, const char* name)
     return -1;
 }
 
+/**
+ * @brief Builds a transition matrix from JSON text.
+ * @param reg Pointer to the biome registry.
+ * @param json_text JSON text defining transitions.
+ * @param out_matrix Output matrix buffer.
+ * @param out_cap Capacity of the output matrix.
+ * @param err Error buffer.
+ * @param err_cap Capacity of the error buffer.
+ * @return 1 on success, 0 on failure.
+ */
 int rogue_biome_build_transition_matrix(const RogueBiomeRegistry* reg, const char* json_text,
                                         unsigned char* out_matrix, int out_cap, char* err,
                                         size_t err_cap)
@@ -433,6 +498,14 @@ int rogue_biome_build_transition_matrix(const RogueBiomeRegistry* reg, const cha
     return 1;
 }
 
+/**
+ * @brief Validates encounter tables from JSON text.
+ * @param reg Pointer to the biome registry.
+ * @param json_text JSON text containing encounter tables.
+ * @param err Error buffer.
+ * @param err_cap Capacity of the error buffer.
+ * @return 1 if valid, 0 otherwise.
+ */
 int rogue_biome_validate_encounter_tables(const RogueBiomeRegistry* reg, const char* json_text,
                                           char* err, size_t err_cap)
 {

@@ -1,15 +1,31 @@
+/**
+ * @file world_gen_biomes.c
+ * @brief Base terrain and biome field generation for world maps.
+ * @details This module handles the generation of base terrain tiles using either advanced
+ * noise-based methods or legacy seed-based biome regions, including elevation and moisture
+ * calculations.
+ */
+
 /* Base terrain & biome field generation */
 #include "world_gen_internal.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @struct BiomeSeed
+ * @brief Represents a biome seed point with position and base tile type.
+ */
 typedef struct
 {
-    int x, y;
-    RogueTileType base;
+    int x, y;           /**< Position coordinates of the seed. */
+    RogueTileType base; /**< Base tile type for the biome region. */
 } BiomeSeed;
 
+/**
+ * @brief Randomly picks a biome tile type.
+ * @return A randomly selected RogueTileType for biome generation.
+ */
 static RogueTileType pick_biome(void)
 {
     double r = rng_norm();
@@ -24,6 +40,11 @@ static RogueTileType pick_biome(void)
     return ROGUE_TILE_GRASS;
 }
 
+/**
+ * @brief Converts elevation value to appropriate tile type.
+ * @param elev Elevation value between 0.0 and 1.0.
+ * @return Corresponding RogueTileType based on elevation.
+ */
 static RogueTileType elevation_to_tile(double elev)
 {
     if (elev < 0.30)
@@ -37,6 +58,13 @@ static RogueTileType elevation_to_tile(double elev)
     return ROGUE_TILE_MOUNTAIN;
 }
 
+/**
+ * @brief Generates the base terrain for the world map.
+ * @param map Pointer to the tile map to populate.
+ * @param cfg Pointer to the world generation configuration.
+ * @details Uses either advanced noise-based terrain generation or legacy seed-based biome regions
+ * depending on the configuration. Handles elevation, moisture, and tile assignment.
+ */
 void wg_generate_base(RogueTileMap* map, const RogueWorldGenConfig* cfg)
 {
     if (cfg->advanced_terrain)

@@ -1,8 +1,22 @@
+/**
+ * @file world_gen_dungeon.c
+ * @brief Dungeon generation system for procedural level creation.
+ * @details This module implements a graph-based dungeon generator that creates room-and-corridor
+ * layouts with thematic tagging, key/lock mechanics, traps, and secret areas.
+ */
+
 /* Phase 7: Dungeon Generator Implementation */
 #include "world_gen.h"
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @brief Generates a random integer in a range using the provided RNG channel.
+ * @param ch Pointer to the RNG channel.
+ * @param lo Lower bound (inclusive).
+ * @param hi Upper bound (inclusive).
+ * @return Random integer in the range [lo, hi].
+ */
 static int rng_range(RogueRngChannel* ch, int lo, int hi)
 {
     if (hi <= lo)
@@ -11,6 +25,16 @@ static int rng_range(RogueRngChannel* ch, int lo, int hi)
     return lo + (int) (r % (unsigned int) (hi - lo + 1));
 }
 
+/**
+ * @brief Generates a dungeon graph with rooms and connections.
+ * @param ctx Pointer to the world generation context.
+ * @param target_rooms Target number of rooms to generate.
+ * @param loop_percent Percentage of extra loops to add (0-100).
+ * @param out_graph Pointer to the output dungeon graph.
+ * @return true on success, false on failure.
+ * @details Creates a graph of interconnected rooms using a minimum spanning tree approach
+ * with additional loops for variety. Rooms are placed without overlap and tagged thematically.
+ */
 bool rogue_dungeon_generate_graph(RogueWorldGenContext* ctx, int target_rooms, int loop_percent,
                                   RogueDungeonGraph* out_graph)
 {
@@ -197,6 +221,10 @@ bool rogue_dungeon_generate_graph(RogueWorldGenContext* ctx, int target_rooms, i
     return true;
 }
 
+/**
+ * @brief Frees the memory allocated for a dungeon graph.
+ * @param g Pointer to the dungeon graph to free.
+ */
 void rogue_dungeon_free_graph(RogueDungeonGraph* g)
 {
     if (!g)
@@ -208,7 +236,18 @@ void rogue_dungeon_free_graph(RogueDungeonGraph* g)
     g->room_count = g->edge_count = 0;
 }
 
-/* Carve rooms then connect centers with corridors (L-shaped) */
+/**
+ * @brief Carves the dungeon graph into a tile map.
+ * @param ctx Pointer to the world generation context.
+ * @param io_map Pointer to the tile map to modify.
+ * @param graph Pointer to the dungeon graph.
+ * @param ox Origin X offset.
+ * @param oy Origin Y offset.
+ * @param w Width of the carving area.
+ * @param h Height of the carving area.
+ * @return Number of floor tiles carved.
+ * @details Carves rooms and L-shaped corridors into the map, placing walls and floors.
+ */
 int rogue_dungeon_carve_into_map(RogueWorldGenContext* ctx, RogueTileMap* io_map,
                                  const RogueDungeonGraph* graph, int ox, int oy, int w, int h)
 {
@@ -266,6 +305,14 @@ int rogue_dungeon_carve_into_map(RogueWorldGenContext* ctx, RogueTileMap* io_map
     return carved;
 }
 
+/**
+ * @brief Places keys and locked doors in the dungeon.
+ * @param ctx Pointer to the world generation context.
+ * @param io_map Pointer to the tile map to modify.
+ * @param graph Pointer to the dungeon graph.
+ * @return Number of locks placed.
+ * @details Randomly locks some room entrances and places corresponding keys in earlier rooms.
+ */
 int rogue_dungeon_place_keys_and_locks(RogueWorldGenContext* ctx, RogueTileMap* io_map,
                                        const RogueDungeonGraph* graph)
 {
@@ -294,6 +341,16 @@ int rogue_dungeon_place_keys_and_locks(RogueWorldGenContext* ctx, RogueTileMap* 
     return locked;
 }
 
+/**
+ * @brief Places traps and secret doors in the dungeon.
+ * @param ctx Pointer to the world generation context.
+ * @param io_map Pointer to the tile map to modify.
+ * @param graph Pointer to the dungeon graph.
+ * @param target_traps Target number of traps to place.
+ * @param secret_room_chance Chance (0.0-1.0) to make a room secret.
+ * @return Number of traps placed.
+ * @details Adds traps to rooms and converts some walls to secret doors for hidden areas.
+ */
 int rogue_dungeon_place_traps_and_secrets(RogueWorldGenContext* ctx, RogueTileMap* io_map,
                                           const RogueDungeonGraph* graph, int target_traps,
                                           double secret_room_chance)
@@ -330,6 +387,12 @@ int rogue_dungeon_place_traps_and_secrets(RogueWorldGenContext* ctx, RogueTileMa
     return traps;
 }
 
+/**
+ * @brief Validates that all rooms in the dungeon are reachable.
+ * @param graph Pointer to the dungeon graph.
+ * @return Number of reachable rooms, or 0 on error.
+ * @details Performs a graph traversal to ensure connectivity from the starting room.
+ */
 int rogue_dungeon_validate_reachability(const RogueDungeonGraph* graph)
 {
     if (!graph || graph->room_count == 0)
@@ -376,6 +439,11 @@ int rogue_dungeon_validate_reachability(const RogueDungeonGraph* graph)
     return reachable;
 }
 
+/**
+ * @brief Calculates the loop ratio in the dungeon graph.
+ * @param graph Pointer to the dungeon graph.
+ * @return Ratio of loop edges to total edges (0.0-1.0).
+ */
 double rogue_dungeon_loop_ratio(const RogueDungeonGraph* graph)
 {
     if (!graph || graph->edge_count == 0)
@@ -387,6 +455,11 @@ double rogue_dungeon_loop_ratio(const RogueDungeonGraph* graph)
     return (double) loops / (double) graph->edge_count;
 }
 
+/**
+ * @brief Counts the number of secret rooms in the dungeon.
+ * @param graph Pointer to the dungeon graph.
+ * @return Number of secret rooms.
+ */
 int rogue_dungeon_secret_room_count(const RogueDungeonGraph* graph)
 {
     if (!graph)

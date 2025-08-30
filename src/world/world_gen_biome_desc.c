@@ -1,3 +1,10 @@
+/**
+ * @file world_gen_biome_desc.c
+ * @brief Handles biome descriptor parsing, registry management, and blending.
+ * @details This module provides functionality for parsing biome configuration files,
+ * managing biome registries, loading biomes from directories, and blending biome palettes.
+ */
+
 #include "world_gen_biome_desc.h"
 #include <ctype.h>
 #include <stdio.h>
@@ -11,6 +18,12 @@
 #include <dirent.h>
 #endif
 
+/**
+ * @brief Ensures the registry has sufficient capacity.
+ * @param reg Pointer to the biome registry.
+ * @param need Required capacity.
+ * @return 1 on success, 0 on failure.
+ */
 static int ensure_capacity(RogueBiomeRegistry* reg, int need)
 {
     if (reg->capacity >= need)
@@ -27,12 +40,21 @@ static int ensure_capacity(RogueBiomeRegistry* reg, int need)
     return 1;
 }
 
+/**
+ * @brief Initializes a biome registry.
+ * @param reg Pointer to the registry to initialize.
+ */
 void rogue_biome_registry_init(RogueBiomeRegistry* reg)
 {
     if (!reg)
         return;
     memset(reg, 0, sizeof *reg);
 }
+
+/**
+ * @brief Frees a biome registry.
+ * @param reg Pointer to the registry to free.
+ */
 void rogue_biome_registry_free(RogueBiomeRegistry* reg)
 {
     if (!reg)
@@ -42,6 +64,12 @@ void rogue_biome_registry_free(RogueBiomeRegistry* reg)
     reg->count = reg->capacity = 0;
 }
 
+/**
+ * @brief Safely copies a string to a destination buffer.
+ * @param dst Destination buffer.
+ * @param cap Capacity of the destination buffer.
+ * @param src Source string.
+ */
 static void safe_copy(char* dst, size_t cap, const char* src)
 {
     if (!dst || !cap)
@@ -58,6 +86,11 @@ static void safe_copy(char* dst, size_t cap, const char* src)
     dst[cap - 1] = '\0';
 #endif
 }
+
+/**
+ * @brief Sets default values for a biome descriptor.
+ * @param d Pointer to the biome descriptor.
+ */
 static void desc_defaults(RogueBiomeDescriptor* d)
 {
     memset(d, 0, sizeof *d);
@@ -71,6 +104,13 @@ static void desc_defaults(RogueBiomeDescriptor* d)
     d->allow_weather = 1;
 }
 
+/**
+ * @brief Parses a key-value pair from a line.
+ * @param line The line to parse.
+ * @param k Pointer to the key.
+ * @param v Pointer to the value.
+ * @return 1 on success, 0 on failure.
+ */
 static int parse_kv(char* line, char** k, char** v)
 {
     char* p = line;
@@ -99,6 +139,14 @@ static int parse_kv(char* line, char** k, char** v)
     return 1;
 }
 
+/**
+ * @brief Parses a biome descriptor from configuration text.
+ * @param text The configuration text.
+ * @param out_desc Pointer to the output descriptor.
+ * @param err Error buffer.
+ * @param err_sz Size of the error buffer.
+ * @return 1 on success, 0 on failure.
+ */
 int rogue_biome_descriptor_parse_cfg(const char* text, RogueBiomeDescriptor* out_desc, char* err,
                                      size_t err_sz)
 {
@@ -226,6 +274,12 @@ int rogue_biome_descriptor_parse_cfg(const char* text, RogueBiomeDescriptor* out
     return 1;
 }
 
+/**
+ * @brief Adds a biome descriptor to the registry.
+ * @param reg Pointer to the registry.
+ * @param desc Pointer to the descriptor to add.
+ * @return The index of the added descriptor, or -1 on failure.
+ */
 int rogue_biome_registry_add(RogueBiomeRegistry* reg, const RogueBiomeDescriptor* desc)
 {
     if (!reg || !desc)
@@ -237,20 +291,31 @@ int rogue_biome_registry_add(RogueBiomeRegistry* reg, const RogueBiomeDescriptor
     return reg->count++;
 }
 
-#ifdef _WIN32
+/**
+ * @brief Checks if a string ends with a suffix (case-insensitive).
+ * @param s The string.
+ * @param suf The suffix.
+ * @return 1 if it ends with the suffix, 0 otherwise.
+ */
 static int ends_with(const char* s, const char* suf)
 {
+#ifdef _WIN32
     size_t ls = strlen(s), lsu = strlen(suf);
     return ls >= lsu && _stricmp(s + ls - lsu, suf) == 0;
-}
 #else
-static int ends_with(const char* s, const char* suf)
-{
     size_t ls = strlen(s), lsu = strlen(suf);
     return ls >= lsu && strcasecmp(s + ls - lsu, suf) == 0;
-}
 #endif
+}
 
+/**
+ * @brief Loads biome descriptors from a directory.
+ * @param reg Pointer to the registry.
+ * @param dir_path Path to the directory.
+ * @param err Error buffer.
+ * @param err_sz Size of the error buffer.
+ * @return Number of biomes loaded, or -1 on failure.
+ */
 int rogue_biome_registry_load_dir(RogueBiomeRegistry* reg, const char* dir_path, char* err,
                                   size_t err_sz)
 {
@@ -355,6 +420,13 @@ int rogue_biome_registry_load_dir(RogueBiomeRegistry* reg, const char* dir_path,
     return loaded;
 }
 
+/**
+ * @brief Blends two biome palettes.
+ * @param a Pointer to the first biome descriptor.
+ * @param b Pointer to the second biome descriptor.
+ * @param t Interpolation factor.
+ * @param out_weights Output array for blended weights.
+ */
 void rogue_biome_blend_palettes(const RogueBiomeDescriptor* a, const RogueBiomeDescriptor* b,
                                 float t, float* out_weights)
 {
