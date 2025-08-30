@@ -66,7 +66,7 @@ PHASE 6. Basic Overlay Panels
 6.2 Add Player Debug Panel: view/edit HP/MP/AP & core stats, god mode, noclip, teleport (Done – panel registered; sliders for HP/MP/AP and STR/DEX/VIT/INT; checkboxes for God Mode and No-clip; teleport helpers to spawn/center. Headless guards in widgets respected.)
 6.3 Create player_debug.h/.c APIs for headless testing: get/set/teleport functions (Done – clamped setters; derived stat recompute on change; app-level flags for god_mode/noclip; teleport API; compiled into rogue_core.)
 6.4 Wire F1 toggle in input system, ensure overlay consumes input when active (Done – F1 toggles overlay; event loop integrates overlay_input and gates gameplay on capture)
-6.5 Tests: panel rendering, player debug APIs, input consumption (Partial – existing overlay tests are green; TODO add unit tests for player_debug clamps/derived recompute and god-mode damage bypass.)
+6.5 Tests: panel rendering, player debug APIs, input consumption (Done – overlay tests are green; `tests/unit/test_player_debug_api.c` covers clamps/derived recompute and god-mode damage bypass. Input capture/flag wiring validated in overlay tests.)
 
 PHASE 7. Skills Manager Panel
 7.1 Implement Skill Manager Panel: browse skills, edit coefficients/cooldowns (Done – initial panel added under Overlay Panels; select skill, edit timing and RogueSkillCoeffParams)
