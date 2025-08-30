@@ -79,3 +79,12 @@ feat(content/entities): Phase 8.1/8.2 – entity schema and headless validator; 
 - Build system: ensure SDL compile definitions/headers propagate to the content schema objects to avoid cross‑TU layout mismatches in `RogueEnemyTypeDef`.
 - Run full Debug suite with SDL2 and parallelism (-j12): 100% pass (566/566). The prior intermittent save-manager test passes consistently; no serialization needed.
 - Roadmap: mark Phase 8.1/8.2 Done and 8.5 Tests Done (entity schema + inspector operations). README updated with validator note and CI count 566/566.
+
+feat(content/tilesets): Phase 9.1/9.2 – tilesets schema + legacy adapter and unit test
+
+- Implement `src/content/schema_tilesets.{h,c}` defining tilesets.json schema: `id`, `tile_size`, `atlas`, and `tiles[]` with `{name, col, row}` entries (ranges clamped, required fields enforced).
+- Add legacy CFG→JSON adapter to parse `assets/tiles.cfg` and synthesize a minimal JSON object for schema validation; default atlas and tile_size fallbacks applied.
+- New unit `tests/unit/test_tilesets_schema.c` runs headlessly to validate default assets via the schema and reports tile count.
+- Build system: include tilesets schema in `rogue_content_json` object lib; add test target and register with ctest.
+- Rebuild Debug with SDL2 and run full suite in parallel (-j12): 100% pass (567/567), including the new tilesets test.
+- Roadmap: Phase 9.1/9.2 marked Done; 9.5 marked Partial (tileset validation in place; map editing + save/load roundtrip TBD). README updated with tilesets notes and CI count 567/567.

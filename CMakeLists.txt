@@ -447,6 +447,7 @@ add_library(rogue_content_json OBJECT
     src/content/json_io.c
     src/content/json_envelope.c
     src/content/schema_entities.c
+    src/content/schema_tilesets.c
 )
 target_include_directories(rogue_content_json PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_definitions(rogue_content_json PUBLIC ROGUE_ENABLE_JSON_CONTENT=$<IF:$<BOOL:${ROGUE_ENABLE_JSON_CONTENT}>,1,0>)
@@ -771,6 +772,14 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_entity_schema PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_entity_schema COMMAND test_entity_schema)
+
+# Tilesets schema validation test
+add_executable(test_tilesets_schema tests/unit/test_tilesets_schema.c)
+target_link_libraries(test_tilesets_schema PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_tilesets_schema PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_tilesets_schema COMMAND test_tilesets_schema)
 
 add_executable(test_skills_ordering_invariance tests/unit/test_skills_ordering_invariance.c)
 target_link_libraries(test_skills_ordering_invariance PRIVATE rogue_core)

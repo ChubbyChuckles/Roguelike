@@ -21,12 +21,13 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 
 CI VALIDATION (current)
 - Overlay core/input/widgets/panels compile clean under Debug with SDL2.
-- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%) (566/566).
+- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%) (567/567).
 - Player Debug Panel and headless-safe player_debug APIs integrated; god mode is honored in melee mitigation path; noclip flag plumbed in app state. Rebuild and full test run reconfirmed green.
 - Start Screen corrupt-header gating verified via unit test and in the full run; logging defaults to WARN to keep CI output quiet.
 - Audio/VFX refactor: legacy monolith (effects.c) fully split into modular fx_bus.c, fx_audio.c, fx_vfx.c, fx_rng.c and the monolithic file removed; public API in effects.h unchanged.
 - Entities Inspector and headless-safe entity_debug APIs compile and are covered by a new unit test; overlay wiring verified by build, and test validates spawn/list/get/teleport/kill operations.
  - Entities content schema validator added (`schema_entities.{h,c}`) with a headless unit (`test_entity_schema`) validating enemy type definitions from assets; green in full suite.
+ - Tilesets content schema validator added (`schema_tilesets.{h,c}`) with a headless unit (`test_tilesets_schema`) that parses legacy `assets/tiles.cfg` to JSON and validates fields (id, tile_size, atlas, tiles[name/col/row]); integrated into build and green in full suite.
 
 PHASE 1. Project Setup & Build Integration
 1.1 Add build flags: ROGUE_ENABLE_DEBUG_OVERLAY, ROGUE_ENABLE_JSON_CONTENT (Done – both flags added and propagated via CMake)
@@ -85,11 +86,11 @@ PHASE 8. Entity Inspector Panel
 8.5 Tests: entity schema validation, inspector operations, spawn/kill effects (Done – headless units `tests/unit/test_entity_debug_api.c` and `tests/unit/test_entity_schema.c`; both green in Debug SDL2, -j12)
 
 PHASE 9. Map Editor Panel
-9.1 Design tilesets.json schema: id, tile_size, atlas, tiles array (X)
-9.2 Implement schema_tilesets.h/.c: tileset loading and validation (X)
+9.1 Design tilesets.json schema: id, tile_size, atlas, tiles array (Done – schema defined and documented in code; allows required fields and clamps ranges)
+9.2 Implement schema_tilesets.h/.c: tileset loading and validation (Done – validator implemented with legacy CFG→JSON adapter and default assets check)
 9.3 Add Map Editor Panel: tileset picker, brush size, paint/erase, layers (X)
 9.4 Create map_debug.h/.c APIs: load/save/set_tile/brush functions (X)
-9.5 Tests: tileset loading, map editing operations, save/load roundtrip (X)
+9.5 Tests: tileset loading, map editing operations, save/load roundtrip (Partial – tileset validation unit `test_tilesets_schema` added; map editing ops + save/load roundtrip TBD)
 
 PHASE 10. Items Manager Panel
 10.1 Add Items Manager Panel: browse items, edit stats/rarity/tags (X)
