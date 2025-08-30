@@ -1,9 +1,23 @@
+/**
+ * @file kv_schema.c
+ * @brief Key-value file schema validation system.
+ * @details This module provides validation for key-value configuration files against
+ * predefined schemas, supporting type checking, required fields, and error reporting.
+ */
+
 /* kv_schema.c - Phase M3.2 schema validation */
 #include "kv_schema.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @brief Finds a field definition by key in the schema.
+ * @param s Pointer to the schema to search.
+ * @param key The key to find.
+ * @return Pointer to the field definition, or NULL if not found.
+ * @details Performs linear search through the schema's field definitions.
+ */
 static const RogueKVFieldDef* find_field(const RogueKVSchema* s, const char* key)
 {
     for (int i = 0; i < s->field_count; i++)
@@ -12,6 +26,18 @@ static const RogueKVFieldDef* find_field(const RogueKVSchema* s, const char* key
     return NULL;
 }
 
+/**
+ * @brief Validates a key-value file against a schema.
+ * @param file Pointer to the parsed key-value file.
+ * @param schema Pointer to the schema to validate against.
+ * @param out_values Array to store parsed field values.
+ * @param max_values Maximum number of values that can be stored in out_values.
+ * @param err_buf Buffer to store error messages (can be NULL).
+ * @param err_buf_sz Size of the error buffer.
+ * @return Number of validation errors encountered.
+ * @details Parses and validates each entry in the file, checking types, required fields,
+ * and collecting values. Errors are accumulated in err_buf if provided.
+ */
 int rogue_kv_validate(const RogueKVFile* file, const RogueKVSchema* schema,
                       RogueKVFieldValue* out_values, int max_values, char* err_buf, int err_buf_sz)
 {

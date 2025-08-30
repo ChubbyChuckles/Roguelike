@@ -1,9 +1,21 @@
-/* determinism.c - Phase M4.2/M4.3 deterministic hash & replay helpers */
+/**
+ * @file determinism.c
+ * @brief Phase M4.2/M4.3 deterministic hash & replay helpers for ensuring consistent game state.
+ */
+
 #include "determinism.h"
 #include "../game/combat.h"
 #include <stdio.h>
 #include <string.h>
 
+/**
+ * @brief Computes FNV-1a 64-bit hash of arbitrary data.
+ *
+ * @param data Pointer to the data to hash.
+ * @param len Length of the data in bytes.
+ * @param seed Initial hash value (use 0 for default FNV offset basis).
+ * @return The computed 64-bit hash value.
+ */
 uint64_t rogue_fnv1a64(const void* data, size_t len, uint64_t seed)
 {
     const unsigned char* p = (const unsigned char*) data;
@@ -16,6 +28,13 @@ uint64_t rogue_fnv1a64(const void* data, size_t len, uint64_t seed)
     return h;
 }
 
+/**
+ * @brief Computes a hash of an array of damage events for determinism verification.
+ *
+ * @param ev Pointer to the array of RogueDamageEvent structures.
+ * @param count Number of events in the array.
+ * @return The computed hash value, or 0 if invalid parameters.
+ */
 uint64_t rogue_damage_events_hash(const struct RogueDamageEvent* ev, int count)
 {
     if (!ev || count <= 0)
@@ -28,6 +47,14 @@ uint64_t rogue_damage_events_hash(const struct RogueDamageEvent* ev, int count)
     return h;
 }
 
+/**
+ * @brief Writes an array of damage events to a text file for replay/debugging purposes.
+ *
+ * @param path File path to write the events to.
+ * @param ev Pointer to the array of RogueDamageEvent structures.
+ * @param count Number of events to write.
+ * @return 0 on success, -1 on failure.
+ */
 int rogue_damage_events_write_text(const char* path, const struct RogueDamageEvent* ev, int count)
 {
     if (!path || !ev || count < 0)
@@ -50,6 +77,14 @@ int rogue_damage_events_write_text(const char* path, const struct RogueDamageEve
     return 0;
 }
 
+/**
+ * @brief Loads damage events from a text file into an array.
+ *
+ * @param path File path to read the events from.
+ * @param out Pointer to the output array of RogueDamageEvent structures.
+ * @param max_out Maximum number of events that can be stored in the output array.
+ * @return Number of events loaded on success, -1 on failure.
+ */
 int rogue_damage_events_load_text(const char* path, struct RogueDamageEvent* out, int max_out)
 {
     if (!path || !out || max_out <= 0)

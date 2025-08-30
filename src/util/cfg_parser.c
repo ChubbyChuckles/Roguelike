@@ -1,3 +1,9 @@
+/**
+ * @file cfg_parser.c
+ * @brief CFG file parser implementation with Windows compatibility support.
+ *        Provides comprehensive parsing, analysis, and migration utilities for configuration files.
+ */
+
 /* Windows compatibility */
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
@@ -26,6 +32,12 @@
 
 /* ===== Static Helper Functions ===== */
 
+/**
+ * @brief Detects the data type of a configuration value based on its content.
+ *
+ * @param value The string value to analyze.
+ * @return The detected RogueCfgDataType.
+ */
 static RogueCfgDataType detect_data_type(const char* value)
 {
     if (!value || *value == '\0')
@@ -81,6 +93,11 @@ static RogueCfgDataType detect_data_type(const char* value)
     return ROGUE_CFG_DATA_TYPE_STRING;
 }
 
+/**
+ * @brief Trims leading and trailing whitespace from a string in-place.
+ *
+ * @param str The string to trim (modified in-place).
+ */
 static void trim_whitespace(char* str)
 {
     if (!str)
@@ -107,6 +124,12 @@ static void trim_whitespace(char* str)
     }
 }
 
+/**
+ * @brief Checks if a filename has a .cfg extension.
+ *
+ * @param filename The filename to check.
+ * @return true if the file has a .cfg extension, false otherwise.
+ */
 static bool is_cfg_file(const char* filename)
 {
     const char* ext = strrchr(filename, '.');
@@ -115,6 +138,12 @@ static bool is_cfg_file(const char* filename)
 
 /* ===== File Analysis Implementation ===== */
 
+/**
+ * @brief Classifies a CFG file into a category based on its filename patterns.
+ *
+ * @param filename The name of the CFG file to classify.
+ * @return The detected RogueCfgCategory.
+ */
 RogueCfgCategory rogue_cfg_classify_file(const char* filename)
 {
     if (!filename)
@@ -198,6 +227,12 @@ RogueCfgCategory rogue_cfg_classify_file(const char* filename)
     return ROGUE_CFG_CATEGORY_MISC;
 }
 
+/**
+ * @brief Detects the format of a CFG file by analyzing its content.
+ *
+ * @param filename The path to the CFG file to analyze.
+ * @return The detected RogueCfgFormat.
+ */
 RogueCfgFormat rogue_cfg_detect_format(const char* filename)
 {
     if (!filename)
@@ -262,6 +297,14 @@ RogueCfgFormat rogue_cfg_detect_format(const char* filename)
     return detected_format;
 }
 
+/**
+ * @brief Performs comprehensive analysis of a CFG file including format detection,
+ *        category classification, and structural analysis.
+ *
+ * @param filename The path to the CFG file to analyze.
+ * @return A pointer to RogueCfgFileAnalysis structure, or NULL on error.
+ *         The caller is responsible for freeing the returned structure.
+ */
 RogueCfgFileAnalysis* rogue_cfg_analyze_file(const char* filename)
 {
     if (!filename || !is_cfg_file(filename))
@@ -393,6 +436,12 @@ RogueCfgFileAnalysis* rogue_cfg_analyze_file(const char* filename)
 
 /* ===== CFG Parser Implementation ===== */
 
+/**
+ * @brief Checks if a line is a comment line (starts with #).
+ *
+ * @param line The line to check.
+ * @return true if the line is a comment, false otherwise.
+ */
 bool rogue_cfg_is_comment_line(const char* line)
 {
     if (!line)
@@ -404,6 +453,12 @@ bool rogue_cfg_is_comment_line(const char* line)
     return is_comment;
 }
 
+/**
+ * @brief Checks if a line is empty or contains only whitespace.
+ *
+ * @param line The line to check.
+ * @return true if the line is empty, false otherwise.
+ */
 bool rogue_cfg_is_empty_line(const char* line)
 {
     if (!line)
@@ -415,6 +470,13 @@ bool rogue_cfg_is_empty_line(const char* line)
     return is_empty;
 }
 
+/**
+ * @brief Parses a CSV line into a RogueCfgRecord structure.
+ *
+ * @param line The CSV line to parse.
+ * @param record Pointer to the record structure to fill.
+ * @return true if parsing succeeded, false otherwise.
+ */
 bool rogue_cfg_parse_csv_line(const char* line, RogueCfgRecord* record)
 {
     if (!line || !record)
@@ -437,6 +499,13 @@ bool rogue_cfg_parse_csv_line(const char* line, RogueCfgRecord* record)
     return record->count > 0;
 }
 
+/**
+ * @brief Parses a key-value line into a RogueCfgKeyValuePair structure.
+ *
+ * @param line The key-value line to parse (format: key=value).
+ * @param pair Pointer to the pair structure to fill.
+ * @return true if parsing succeeded, false otherwise.
+ */
 bool rogue_cfg_parse_key_value_line(const char* line, RogueCfgKeyValuePair* pair)
 {
     if (!line || !pair)
@@ -462,6 +531,13 @@ bool rogue_cfg_parse_key_value_line(const char* line, RogueCfgKeyValuePair* pair
     return strlen(pair->key) > 0;
 }
 
+/**
+ * @brief Parses an entire CFG file and returns structured data.
+ *
+ * @param filename The path to the CFG file to parse.
+ * @return A pointer to RogueCfgParseResult structure, or NULL on error.
+ *         The caller is responsible for freeing the returned structure.
+ */
 RogueCfgParseResult* rogue_cfg_parse_file(const char* filename)
 {
     if (!filename)
@@ -549,6 +625,12 @@ RogueCfgParseResult* rogue_cfg_parse_file(const char* filename)
 
 /* ===== Utility Functions ===== */
 
+/**
+ * @brief Converts a RogueCfgDataType enum value to its string representation.
+ *
+ * @param type The data type to convert.
+ * @return String representation of the data type.
+ */
 const char* rogue_cfg_data_type_to_string(RogueCfgDataType type)
 {
     switch (type)
@@ -572,6 +654,12 @@ const char* rogue_cfg_data_type_to_string(RogueCfgDataType type)
     }
 }
 
+/**
+ * @brief Converts a RogueCfgFormat enum value to its string representation.
+ *
+ * @param format The format to convert.
+ * @return String representation of the format.
+ */
 const char* rogue_cfg_format_to_string(RogueCfgFormat format)
 {
     switch (format)
@@ -593,6 +681,12 @@ const char* rogue_cfg_format_to_string(RogueCfgFormat format)
     }
 }
 
+/**
+ * @brief Converts a RogueCfgCategory enum value to its string representation.
+ *
+ * @param category The category to convert.
+ * @return String representation of the category.
+ */
 const char* rogue_cfg_category_to_string(RogueCfgCategory category)
 {
     switch (category)
@@ -632,6 +726,11 @@ const char* rogue_cfg_category_to_string(RogueCfgCategory category)
     }
 }
 
+/**
+ * @brief Frees memory allocated for a RogueCfgAnalysisReport structure.
+ *
+ * @param report Pointer to the report structure to free.
+ */
 void rogue_cfg_free_analysis_report(RogueCfgAnalysisReport* report)
 {
     if (report)
@@ -640,6 +739,11 @@ void rogue_cfg_free_analysis_report(RogueCfgAnalysisReport* report)
     }
 }
 
+/**
+ * @brief Frees memory allocated for a RogueCfgParseResult structure and its contents.
+ *
+ * @param result Pointer to the parse result structure to free.
+ */
 void rogue_cfg_free_parse_result(RogueCfgParseResult* result)
 {
     if (!result)
@@ -657,6 +761,11 @@ void rogue_cfg_free_parse_result(RogueCfgParseResult* result)
     free(result);
 }
 
+/**
+ * @brief Frees memory allocated for a RogueCfgMigrationResult structure.
+ *
+ * @param result Pointer to the migration result structure to free.
+ */
 void rogue_cfg_free_migration_result(RogueCfgMigrationResult* result)
 {
     if (result)
@@ -667,6 +776,12 @@ void rogue_cfg_free_migration_result(RogueCfgMigrationResult* result)
 
 /* ===== Stub Functions (Phase 2.2+ Implementation) ===== */
 
+/**
+ * @brief Analyzes all CFG files in a directory (stub implementation for Phase 2.2+).
+ *
+ * @param directory_path The path to the directory to analyze.
+ * @return NULL (not yet implemented).
+ */
 RogueCfgAnalysisReport* rogue_cfg_analyze_directory(const char* directory_path)
 {
     ROGUE_LOG_WARN("rogue_cfg_analyze_directory not yet implemented");
@@ -674,6 +789,12 @@ RogueCfgAnalysisReport* rogue_cfg_analyze_directory(const char* directory_path)
     return NULL;
 }
 
+/**
+ * @brief Validates a CFG file against its expected schema (stub implementation for Phase 2.2+).
+ *
+ * @param analysis Pointer to the file analysis structure.
+ * @return false (not yet implemented).
+ */
 bool rogue_cfg_validate_file(const RogueCfgFileAnalysis* analysis)
 {
     ROGUE_LOG_WARN("rogue_cfg_validate_file not yet implemented");
@@ -681,6 +802,13 @@ bool rogue_cfg_validate_file(const RogueCfgFileAnalysis* analysis)
     return false;
 }
 
+/**
+ * @brief Migrates a CFG file to JSON format (stub implementation for Phase 2.2+).
+ *
+ * @param cfg_filename The source CFG file path.
+ * @param json_filename The target JSON file path.
+ * @return NULL (not yet implemented).
+ */
 RogueCfgMigrationResult* rogue_cfg_migrate_to_json(const char* cfg_filename,
                                                    const char* json_filename)
 {
@@ -690,6 +818,14 @@ RogueCfgMigrationResult* rogue_cfg_migrate_to_json(const char* cfg_filename,
     return NULL;
 }
 
+/**
+ * @brief Converts a CFG record to JSON format (stub implementation for Phase 2.2+).
+ *
+ * @param record Pointer to the CFG record to convert.
+ * @param fields Array of field information.
+ * @param field_count Number of fields in the array.
+ * @return NULL (not yet implemented).
+ */
 RogueJsonValue* rogue_cfg_convert_record_to_json(const RogueCfgRecord* record,
                                                  const RogueCfgFieldInfo* fields, int field_count)
 {
@@ -700,6 +836,13 @@ RogueJsonValue* rogue_cfg_convert_record_to_json(const RogueCfgRecord* record,
     return NULL;
 }
 
+/**
+ * @brief Creates a JSON schema for a specific CFG category (stub implementation for Phase 2.2+).
+ *
+ * @param category The CFG category for which to create the schema.
+ * @param schema_filename The filename for the generated schema.
+ * @return false (not yet implemented).
+ */
 bool rogue_cfg_create_target_schema(RogueCfgCategory category, const char* schema_filename)
 {
     ROGUE_LOG_WARN("rogue_cfg_create_target_schema not yet implemented");
@@ -708,6 +851,13 @@ bool rogue_cfg_create_target_schema(RogueCfgCategory category, const char* schem
     return false;
 }
 
+/**
+ * @brief Validates converted JSON against a schema (stub implementation for Phase 2.2+).
+ *
+ * @param json_filename The JSON file to validate.
+ * @param schema_filename The schema file to validate against.
+ * @return false (not yet implemented).
+ */
 bool rogue_cfg_validate_converted_json(const char* json_filename, const char* schema_filename)
 {
     ROGUE_LOG_WARN("rogue_cfg_validate_converted_json not yet implemented");
@@ -716,6 +866,15 @@ bool rogue_cfg_validate_converted_json(const char* json_filename, const char* sc
     return false;
 }
 
+/**
+ * @brief Migrates all CFG files of a specific category in batch (stub implementation for
+ * Phase 2.2+).
+ *
+ * @param category The CFG category to migrate.
+ * @param source_dir The source directory containing CFG files.
+ * @param target_dir The target directory for JSON files.
+ * @return false (not yet implemented).
+ */
 bool rogue_cfg_migrate_category_batch(RogueCfgCategory category, const char* source_dir,
                                       const char* target_dir)
 {
@@ -726,6 +885,14 @@ bool rogue_cfg_migrate_category_batch(RogueCfgCategory category, const char* sou
     return false;
 }
 
+/**
+ * @brief Creates a migration report from results (stub implementation for Phase 2.2+).
+ *
+ * @param results Array of migration results.
+ * @param result_count Number of results in the array.
+ * @param report_filename The filename for the generated report.
+ * @return false (not yet implemented).
+ */
 bool rogue_cfg_create_migration_report(const RogueCfgMigrationResult* results, int result_count,
                                        const char* report_filename)
 {

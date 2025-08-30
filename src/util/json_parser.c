@@ -1,3 +1,10 @@
+/**
+ * @file json_parser.c
+ * @brief JSON data structure manipulation library.
+ * @details This module provides functions for creating, manipulating, and managing
+ * JSON data structures including objects, arrays, and primitive values.
+ */
+
 #include "json_parser.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +17,11 @@
 
 /* ===== JSON Value Creation Functions ===== */
 
+/**
+ * @brief Creates a JSON null value.
+ * @return Pointer to the new JSON value, or NULL on allocation failure.
+ * @details Allocates and initializes a new JSON value of type null.
+ */
 RogueJsonValue* json_create_null(void)
 {
     RogueJsonValue* json = calloc(1, sizeof(RogueJsonValue));
@@ -20,6 +32,12 @@ RogueJsonValue* json_create_null(void)
     return json;
 }
 
+/**
+ * @brief Creates a JSON boolean value.
+ * @param value The boolean value to store.
+ * @return Pointer to the new JSON value, or NULL on allocation failure.
+ * @details Allocates and initializes a new JSON value with the specified boolean value.
+ */
 RogueJsonValue* json_create_boolean(bool value)
 {
     RogueJsonValue* json = calloc(1, sizeof(RogueJsonValue));
@@ -31,6 +49,12 @@ RogueJsonValue* json_create_boolean(bool value)
     return json;
 }
 
+/**
+ * @brief Creates a JSON integer value.
+ * @param value The integer value to store.
+ * @return Pointer to the new JSON value, or NULL on allocation failure.
+ * @details Allocates and initializes a new JSON value with the specified 64-bit integer value.
+ */
 RogueJsonValue* json_create_integer(int64_t value)
 {
     RogueJsonValue* json = calloc(1, sizeof(RogueJsonValue));
@@ -42,6 +66,12 @@ RogueJsonValue* json_create_integer(int64_t value)
     return json;
 }
 
+/**
+ * @brief Creates a JSON number (floating point) value.
+ * @param value The number value to store.
+ * @return Pointer to the new JSON value, or NULL on allocation failure.
+ * @details Allocates and initializes a new JSON value with the specified double-precision value.
+ */
 RogueJsonValue* json_create_number(double value)
 {
     RogueJsonValue* json = calloc(1, sizeof(RogueJsonValue));
@@ -53,6 +83,12 @@ RogueJsonValue* json_create_number(double value)
     return json;
 }
 
+/**
+ * @brief Creates a JSON string value.
+ * @param value The string value to store (will be duplicated).
+ * @return Pointer to the new JSON value, or NULL on allocation failure.
+ * @details Allocates and initializes a new JSON value with a copy of the specified string.
+ */
 RogueJsonValue* json_create_string(const char* value)
 {
     if (!value)
@@ -73,6 +109,11 @@ RogueJsonValue* json_create_string(const char* value)
     return json;
 }
 
+/**
+ * @brief Creates an empty JSON array.
+ * @return Pointer to the new JSON array, or NULL on allocation failure.
+ * @details Allocates and initializes a new empty JSON array value.
+ */
 RogueJsonValue* json_create_array(void)
 {
     RogueJsonValue* json = calloc(1, sizeof(RogueJsonValue));
@@ -85,6 +126,11 @@ RogueJsonValue* json_create_array(void)
     return json;
 }
 
+/**
+ * @brief Creates an empty JSON object.
+ * @return Pointer to the new JSON object, or NULL on allocation failure.
+ * @details Allocates and initializes a new empty JSON object value.
+ */
 RogueJsonValue* json_create_object(void)
 {
     RogueJsonValue* json = calloc(1, sizeof(RogueJsonValue));
@@ -100,6 +146,13 @@ RogueJsonValue* json_create_object(void)
 
 /* ===== JSON Manipulation Functions ===== */
 
+/**
+ * @brief Adds an item to a JSON array.
+ * @param array Pointer to the JSON array value.
+ * @param item Pointer to the JSON value to add.
+ * @return true on success, false on failure.
+ * @details Appends the item to the end of the array. The array takes ownership of the item.
+ */
 bool json_array_add(RogueJsonValue* array, RogueJsonValue* item)
 {
     if (!array || array->type != JSON_ARRAY || !item)
@@ -122,6 +175,15 @@ bool json_array_add(RogueJsonValue* array, RogueJsonValue* item)
     return true;
 }
 
+/**
+ * @brief Sets a key-value pair in a JSON object.
+ * @param object Pointer to the JSON object value.
+ * @param key The key string (will be duplicated).
+ * @param value Pointer to the JSON value to set.
+ * @return true on success, false on failure.
+ * @details If the key already exists, replaces the value. Otherwise adds a new key-value pair.
+ * The object takes ownership of both the key and value.
+ */
 bool json_object_set(RogueJsonValue* object, const char* key, RogueJsonValue* value)
 {
     if (!object || object->type != JSON_OBJECT || !key || !value)
@@ -173,6 +235,13 @@ bool json_object_set(RogueJsonValue* object, const char* key, RogueJsonValue* va
     return true;
 }
 
+/**
+ * @brief Gets a value from a JSON object by key.
+ * @param object Pointer to the JSON object value.
+ * @param key The key to look up.
+ * @return Pointer to the JSON value, or NULL if not found.
+ * @details Returns the value associated with the key, or NULL if the key doesn't exist.
+ */
 RogueJsonValue* json_object_get(const RogueJsonValue* object, const char* key)
 {
     if (!object || object->type != JSON_OBJECT || !key)
@@ -191,6 +260,13 @@ RogueJsonValue* json_object_get(const RogueJsonValue* object, const char* key)
     return NULL;
 }
 
+/**
+ * @brief Checks if a JSON object contains a specific key.
+ * @param object Pointer to the JSON object value.
+ * @param key The key to check for.
+ * @return true if the key exists, false otherwise.
+ * @details Convenience function that checks for key existence without retrieving the value.
+ */
 bool json_object_has_key(const RogueJsonValue* object, const char* key)
 {
     return json_object_get(object, key) != NULL;
@@ -198,6 +274,12 @@ bool json_object_has_key(const RogueJsonValue* object, const char* key)
 
 /* ===== Memory Management ===== */
 
+/**
+ * @brief Frees a JSON value and all its associated memory.
+ * @param json Pointer to the JSON value to free.
+ * @details Recursively frees all nested JSON values, strings, and arrays/objects.
+ * Safe to call with NULL.
+ */
 void json_free(RogueJsonValue* json)
 {
     if (!json)
@@ -237,6 +319,12 @@ void json_free(RogueJsonValue* json)
 
 /* ===== Utility Functions ===== */
 
+/**
+ * @brief Converts a JSON type enum to its string representation.
+ * @param type The JSON type to convert.
+ * @return String representation of the type.
+ * @details Returns human-readable names for each JSON type.
+ */
 const char* json_type_to_string(JsonType type)
 {
     switch (type)

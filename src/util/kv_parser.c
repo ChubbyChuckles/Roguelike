@@ -1,9 +1,24 @@
+/**
+ * @file kv_parser.c
+ * @brief Unified key-value file parser implementation.
+ * @details This module provides parsing functionality for simple key=value configuration
+ * files, supporting comments, whitespace trimming, and error reporting.
+ */
+
 /* kv_parser.c - Phase M3.1 unified key/value parser implementation */
 #include "kv_parser.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @brief Loads and parses a key-value file from disk.
+ * @param path Path to the file to load.
+ * @param kv Pointer to the KV file structure to populate.
+ * @return 1 on success, 0 on failure.
+ * @details Reads the entire file into memory and prepares it for parsing.
+ * Uses platform-specific file operations for MSVC vs POSIX compatibility.
+ */
 int rogue_kv_load_file(const char* path, RogueKVFile* kv)
 {
     if (!path || !kv)
@@ -39,6 +54,12 @@ int rogue_kv_load_file(const char* path, RogueKVFile* kv)
     kv->length = (int) rd;
     return 1;
 }
+
+/**
+ * @brief Frees resources associated with a key-value file.
+ * @param kv Pointer to the KV file structure to free.
+ * @details Releases the memory allocated for the file data.
+ */
 void rogue_kv_free(RogueKVFile* kv)
 {
     if (kv && kv->data)
@@ -49,8 +70,24 @@ void rogue_kv_free(RogueKVFile* kv)
     }
 }
 
+/**
+ * @brief Checks if a character is whitespace.
+ * @param c Character to check.
+ * @return 1 if whitespace, 0 otherwise.
+ * @details Considers space, tab, carriage return, and newline as whitespace.
+ */
 static int is_space(int c) { return c == ' ' || c == '\t' || c == '\r' || c == '\n'; }
 
+/**
+ * @brief Parses the next key-value entry from the file.
+ * @param kv Pointer to the loaded KV file.
+ * @param cursor Pointer to the current parsing position (updated on return).
+ * @param out_entry Pointer to store the parsed entry (can be NULL).
+ * @param out_error Pointer to store error information (can be NULL).
+ * @return 1 if an entry was parsed, 0 if end of file or error.
+ * @details Parses one key=value line at a time, handling comments, whitespace,
+ * and inline comments. Updates cursor position for subsequent calls.
+ */
 int rogue_kv_next(const RogueKVFile* kv, int* cursor, RogueKVEntry* out_entry,
                   RogueKVError* out_error)
 {

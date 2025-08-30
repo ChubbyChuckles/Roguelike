@@ -1,4 +1,9 @@
-/* asset_dep.c - Phase M3.4 asset dependency graph & hashing */
+/**
+ * @file asset_dep.c
+ * @brief Phase M3.4 asset dependency graph & hashing implementation for tracking
+ *        asset relationships and computing content-based hashes.
+ */
+
 #include "asset_dep.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,21 +16,33 @@
 #define ROGUE_ASSET_DEP_MAX_DEPS 16
 #endif
 
+/**
+ * @brief Represents a node in the asset dependency graph.
+ */
 typedef struct RogueAssetDepNode
 {
-    char id[64];
-    char path[256];
-    int dep_indices[ROGUE_ASSET_DEP_MAX_DEPS];
-    int dep_count;
-    unsigned long long cached_hash; /* 0 = unknown */
-    unsigned char visiting;         /* DFS cycle detection */
+    char id[64];                               /**< Asset identifier */
+    char path[256];                            /**< File system path to the asset */
+    int dep_indices[ROGUE_ASSET_DEP_MAX_DEPS]; /**< Indices of dependency nodes */
+    int dep_count;                             /**< Number of dependencies */
+    unsigned long long cached_hash;            /**< Cached computed hash (0 = unknown) */
+    unsigned char visiting;                    /**< DFS cycle detection state */
 } RogueAssetDepNode;
 
 static RogueAssetDepNode g_nodes[ROGUE_ASSET_DEP_CAP];
 static int g_node_count = 0;
 
+/**
+ * @brief Resets the asset dependency graph, clearing all registered assets.
+ */
 void rogue_asset_dep_reset(void) { g_node_count = 0; }
 
+/**
+ * @brief Finds the index of a node by its ID.
+ *
+ * @param id The asset identifier to search for.
+ * @return The node index, or -1 if not found.
+ */
 static int find_node(const char* id)
 {
     if (!id)
@@ -38,6 +55,12 @@ static int find_node(const char* id)
     return -1;
 }
 
+/**
+ * @brief Computes a hash of a file's contents using FNV-1a.
+ *
+ * @param path The file path to hash.
+ * @return The computed hash value.
+ */
 static unsigned long long hash_file(const char* path)
 {
     if (!path || !*path)
@@ -65,6 +88,13 @@ static unsigned long long hash_file(const char* path)
     return h;
 }
 
+/**
+ * @brief Combines two hash values using FNV-1a multiplication.
+ *
+ * @param cur The current hash value.
+ * @param child The child hash value to combine.
+ * @return The combined hash value.
+ */
 static unsigned long long combine_hash(unsigned long long cur, unsigned long long child)
 {
     cur ^= child;
@@ -72,6 +102,12 @@ static unsigned long long combine_hash(unsigned long long cur, unsigned long lon
     return cur;
 }
 
+/**
+ * @brief Performs DFS cycle detection on the dependency graph.
+ *
+ * @param idx The node index to check.
+ * @return 0 if no cycle, -1 if cycle detected.
+ */
 static int dfs_cycle_check(int idx)
 {
     RogueAssetDepNode* n = &g_nodes[idx];
@@ -89,6 +125,13 @@ static int dfs_cycle_check(int idx)
     return 0;
 }
 
+/**
+ * @brief Checks for path conflicts in the dependency tree.
+ *
+ * @param idx The node index to check from.
+ * @param path The path to check for conflicts.
+ * @return 1 if conflict found, 0 otherwise.
+ */
 static int path_conflict_in_deps(int idx, const char* path)
 {
     RogueAssetDepNode* n = &g_nodes[idx];
@@ -103,6 +146,18 @@ static int path_conflict_in_deps(int idx, const char* path)
     return 0;
 }
 
+/**
+ * @brief Registers a new asset in the dependency graph.
+ *
+ * @param id The unique identifier for the asset.
+ * @param path The file system path to the asset (can be NULL).
+ * @param deps Array of dependency IDs.
+ * @param dep_count Number of dependencies.
+ * @return 0 on success, negative values indicate errors:
+ *         -1: Asset ID already exists
+ *         -2: Cycle or path conflict detected
+ *         -3: Invalid parameters or capacity exceeded
+ */
 int rogue_asset_dep_register(const char* id, const char* path, const char** deps, int dep_count)
 {
     if (!id || !*id || dep_count < 0)
@@ -176,6 +231,12 @@ int rogue_asset_dep_register(const char* id, const char* path, const char** deps
     return 0;
 }
 
+/**
+ * @brief Invalidates cached hashes for an asset and all its dependents.
+ *
+ * @param id The asset identifier to invalidate.
+ * @return 0 on success, -1 if asset not found.
+ */
 int rogue_asset_dep_invalidate(const char* id)
 {
     int idx = find_node(id);
@@ -191,6 +252,12 @@ int rogue_asset_dep_invalidate(const char* id)
     return 0;
 }
 
+/**
+ * @brief Computes the hash for a node, including all its dependencies.
+ *
+ * @param idx The node index to compute hash for.
+ * @return The computed hash value.
+ */
 static unsigned long long compute_hash(int idx)
 {
     RogueAssetDepNode* n = &g_nodes[idx];
@@ -205,6 +272,13 @@ static unsigned long long compute_hash(int idx)
     return h;
 }
 
+/**
+ * @brief Retrieves the computed hash for an asset, including all dependencies.
+ *
+ * @param id The asset identifier.
+ * @param out_hash Pointer to store the computed hash.
+ * @return 0 on success, -1 if asset not found or invalid parameters.
+ */
 int rogue_asset_dep_hash(const char* id, unsigned long long* out_hash)
 {
     int idx = find_node(id);

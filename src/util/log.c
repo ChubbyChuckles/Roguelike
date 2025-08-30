@@ -21,11 +21,25 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+
+/**
+ * @file log.c
+ * @brief Cross-platform logging utility with configurable levels and environment override.
+ * @details This module provides a simple logging system with different severity levels,
+ * platform-specific implementations for MSVC vs POSIX, and environment variable configuration.
+ */
+
 #include "log.h"
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @brief Converts a log level enum to its string representation.
+ * @param lvl The log level to convert.
+ * @return String representation of the log level.
+ * @details Used internally for formatting log messages.
+ */
 static const char* level_to_str(RogueLogLevel lvl)
 {
     switch (lvl)
@@ -47,6 +61,13 @@ static const char* level_to_str(RogueLogLevel lvl)
 static RogueLogLevel s_global_level = ROGUE_LOG_WARN_LEVEL;
 
 /* Platform helpers */
+
+/**
+ * @brief Safely retrieves an environment variable value.
+ * @param name The name of the environment variable.
+ * @return The value of the environment variable, or NULL if not found.
+ * @details Uses platform-specific functions for safe environment variable access.
+ */
 static const char* rogue_getenv_safe(const char* name)
 {
 #ifdef _MSC_VER
@@ -67,6 +88,13 @@ static const char* rogue_getenv_safe(const char* name)
 #endif
 }
 
+/**
+ * @brief Performs case-insensitive string comparison.
+ * @param a First string to compare.
+ * @param b Second string to compare.
+ * @return Negative if a < b, 0 if equal, positive if a > b (case-insensitive).
+ * @details Provides portable case-insensitive comparison for MSVC and POSIX.
+ */
 static int rogue_stricmp(const char* a, const char* b)
 {
 #ifdef _MSC_VER
@@ -91,6 +119,17 @@ static int rogue_stricmp(const char* a, const char* b)
 #endif
 }
 
+/**
+ * @brief Logs a message with the specified level, file, and line information.
+ * @param level The severity level of the log message.
+ * @param file The source file name where the log call originated.
+ * @param line The line number where the log call originated.
+ * @param fmt Format string (printf-style).
+ * @param ... Variable arguments for the format string.
+ * @details Checks the global log level and only outputs if the message level meets the threshold.
+ * Outputs to stderr for errors, stdout for other levels. Supports environment variable override on
+ * first use.
+ */
 void rogue_log(RogueLogLevel level, const char* file, int line, const char* fmt, ...)
 {
     static int s_init = 0;
@@ -122,9 +161,25 @@ void rogue_log(RogueLogLevel level, const char* file, int line, const char* fmt,
     fprintf(out, "\n");
 }
 
+/**
+ * @brief Sets the minimum log level for message output.
+ * @param min_level The minimum severity level to output.
+ * @details Messages below this level will be suppressed.
+ */
 void rogue_log_set_level(RogueLogLevel min_level) { s_global_level = min_level; }
+
+/**
+ * @brief Gets the current minimum log level.
+ * @return The current minimum log level.
+ * @details Returns the threshold level for log message output.
+ */
 RogueLogLevel rogue_log_get_level(void) { return s_global_level; }
 
+/**
+ * @brief Sets the log level from the ROGUE_LOG_LEVEL environment variable.
+ * @details Reads and parses the ROGUE_LOG_LEVEL environment variable to set the log level.
+ * Supports both string names (debug, info, warn, error) and numeric values (0-3).
+ */
 void rogue_log_set_level_from_env(void)
 {
     const char* e = rogue_getenv_safe("ROGUE_LOG_LEVEL");

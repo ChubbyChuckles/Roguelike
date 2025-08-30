@@ -1,3 +1,10 @@
+/**
+ * @file hot_reload.c
+ * @brief Hot reload infrastructure for automatic file change detection and reloading.
+ * @details This module provides functionality for registering files to monitor for changes,
+ * with automatic reloading via content hashing using FNV-1a 64-bit algorithm.
+ */
+
 /* hot_reload.c - Phase M3.3 hot reload infrastructure (Complete)
  * Functionality: registration + manual force trigger + automatic change
  * detection via content hash (FNV-1a 64) each tick.
@@ -10,20 +17,35 @@
 #define ROGUE_HOT_RELOAD_CAP 64
 #endif
 
+/**
+ * @brief Entry structure for hot reload monitoring.
+ */
 typedef struct RogueHotReloadEntry
 {
-    char id[64];
-    char path[256];
-    RogueHotReloadFn fn;
-    void* user_data;
-    unsigned long long last_hash; /* 0 means unknown/not yet hashed */
+    char id[64];                  /**< Unique identifier for this entry */
+    char path[256];               /**< File path to monitor */
+    RogueHotReloadFn fn;          /**< Callback function to call on change */
+    void* user_data;              /**< User data passed to callback */
+    unsigned long long last_hash; /**< Last computed hash (0 means unknown/not yet hashed) */
 } RogueHotReloadEntry;
 
+/** @brief Array of hot reload entries */
 static RogueHotReloadEntry g_entries[ROGUE_HOT_RELOAD_CAP];
+/** @brief Current number of registered entries */
 static int g_entry_count = 0;
 
+/**
+ * @brief Resets the hot reload system, clearing all registrations.
+ * @details Removes all registered entries and resets the system to initial state.
+ */
 void rogue_hot_reload_reset(void) { g_entry_count = 0; }
 
+/**
+ * @brief Finds the index of a registered entry by ID.
+ * @param id The unique identifier to search for.
+ * @return Index of the entry, or -1 if not found.
+ * @details Performs linear search through registered entries.
+ */
 static int find_index(const char* id)
 {
     if (!id)
@@ -36,6 +58,12 @@ static int find_index(const char* id)
     return -1;
 }
 
+/**
+ * @brief Computes FNV-1a 64-bit hash of a file's contents.
+ * @param path Path to the file to hash.
+ * @return 64-bit hash value, or 0 on error.
+ * @details Reads the entire file and computes its hash for change detection.
+ */
 static unsigned long long hash_file(const char* path)
 {
     FILE* f = NULL;
@@ -61,6 +89,16 @@ static unsigned long long hash_file(const char* path)
     return h;
 }
 
+/**
+ * @brief Registers a file for hot reload monitoring.
+ * @param id Unique identifier for this registration.
+ * @param path File path to monitor for changes.
+ * @param fn Callback function to call when file changes.
+ * @param user_data User data to pass to the callback function.
+ * @return 0 on success, -1 on failure.
+ * @details Registers a file to be monitored. Duplicate IDs are not allowed.
+ * Computes initial hash for change detection.
+ */
 int rogue_hot_reload_register(const char* id, const char* path, RogueHotReloadFn fn,
                               void* user_data)
 {
@@ -86,6 +124,13 @@ int rogue_hot_reload_register(const char* id, const char* path, RogueHotReloadFn
     return 0;
 }
 
+/**
+ * @brief Manually triggers a reload for a registered file.
+ * @param id Unique identifier of the file to reload.
+ * @return 0 on success, -1 on failure.
+ * @details Forces the callback to be called for the specified file,
+ * regardless of whether it has actually changed.
+ */
 int rogue_hot_reload_force(const char* id)
 {
     int idx = find_index(id);
@@ -96,6 +141,12 @@ int rogue_hot_reload_force(const char* id)
     return 0;
 }
 
+/**
+ * @brief Checks all registered files for changes and triggers reloads.
+ * @return Number of files that were reloaded.
+ * @details Called periodically to check for file changes using content hashing.
+ * Triggers callbacks for any files that have been modified since last check.
+ */
 int rogue_hot_reload_tick(void)
 {
     int fired = 0;

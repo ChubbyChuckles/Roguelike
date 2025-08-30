@@ -1,3 +1,9 @@
+/**
+ * @file asset_config.c
+ * @brief Asset configuration loading utilities for the roguelike game.
+ *        Handles loading of sound effects and other assets from configuration files.
+ */
+
 #include "asset_config.h"
 #include "../core/app/app_state.h"
 #include "log.h"
@@ -8,6 +14,19 @@
 #include <stdio.h>
 #include <string.h>
 
+/**
+ * @brief Loads sound effects from the assets/sounds.cfg configuration file.
+ *
+ * This function reads a simple CSV-like format where each line contains a sound ID
+ * followed by a file path. Currently supports LEVELUP sound effects. The function
+ * uses SDL_mixer to load WAV files and registers them with the audio system.
+ *
+ * Format expected in sounds.cfg:
+ * LEVELUP,/path/to/levelup.wav
+ *
+ * Lines starting with # are treated as comments and ignored.
+ * Empty lines and whitespace are also ignored.
+ */
 void rogue_asset_load_sounds(void)
 {
 #ifdef ROGUE_HAVE_SDL_MIXER

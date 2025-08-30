@@ -1,5 +1,9 @@
-/* Implementation of recursive filename search used for robust fallback when configured
-   asset paths are invalid. Designed to be lightweight and avoid dynamic allocations. */
+/**
+ * @file file_search.c
+ * @brief Implementation of recursive filename search used for robust fallback when configured
+ *        asset paths are invalid. Designed to be lightweight and avoid dynamic allocations.
+ */
+
 #include "file_search.h"
 #include "log.h"
 #include <stdio.h>
@@ -14,6 +18,13 @@
 #define ROGUE_PATH_SEP '/'
 #endif
 
+/**
+ * @brief Performs case-insensitive string comparison on Windows, case-sensitive on POSIX.
+ *
+ * @param a First string to compare.
+ * @param b Second string to compare.
+ * @return 1 if strings match, 0 otherwise.
+ */
 static int rogue__name_match(const char* a, const char* b)
 {
 #ifdef _WIN32
@@ -23,6 +34,17 @@ static int rogue__name_match(const char* a, const char* b)
 #endif
 }
 
+/**
+ * @brief Recursively searches a directory for a target filename up to a maximum depth.
+ *
+ * @param dir The directory path to start searching from.
+ * @param target The target filename to search for.
+ * @param out Output buffer to store the full path if found.
+ * @param out_sz Size of the output buffer.
+ * @param depth Current recursion depth.
+ * @param max_depth Maximum allowed recursion depth to prevent runaway recursion.
+ * @return 1 if the target file is found, 0 otherwise.
+ */
 static int rogue__search_dir(const char* dir, const char* target, char* out, int out_sz, int depth,
                              int max_depth)
 {
@@ -97,6 +119,18 @@ static int rogue__search_dir(const char* dir, const char* target, char* out, int
     return 0;
 }
 
+/**
+ * @brief Searches for a file by name starting from common project root directories.
+ *
+ * This function performs a recursive search for the specified target filename starting
+ * from several common project root directories (., .., ../.., ../../..) up to a maximum
+ * depth of 18 to prevent runaway recursion.
+ *
+ * @param target_name The name of the file to search for.
+ * @param out Output buffer to store the full path if found.
+ * @param out_sz Size of the output buffer.
+ * @return 1 if the file is found and the path is written to 'out', 0 otherwise.
+ */
 int rogue_file_search_project(const char* target_name, char* out, int out_sz)
 {
     if (!target_name || !*target_name || !out || out_sz <= 0)
