@@ -1,3 +1,10 @@
+/**
+ * @file input_events.c
+ * @brief Input event processing system for the roguelike game, handling SDL events,
+ *        keyboard input, UI toggles, skill activation, debug controls, and world generation
+ * parameters.
+ */
+
 #include "input_events.h"
 #include "../core/equipment/equipment.h"
 #include "../core/hud/hud_overlays.h" /* alerts & metrics toggles */
@@ -28,16 +35,32 @@
 /* Simple ring buffer for deferred skill activations so that skills (e.g., projectile spawns) use
  * the post-movement player position. */
 #define ROGUE_PENDING_SKILLS_MAX 32
+
+/**
+ * @brief Structure representing a pending skill activation in the deferred queue.
+ */
 typedef struct PendingSkillAct
 {
-    int skill_id;
-    int bar_slot;
-    double now_ms;
+    int skill_id;  /**< The ID of the skill to activate */
+    int bar_slot;  /**< The skill bar slot that triggered this activation */
+    double now_ms; /**< Timestamp when the activation was queued */
 } PendingSkillAct;
+
+/** @brief Ring buffer for pending skill activations */
 static PendingSkillAct g_pending_skill_acts[ROGUE_PENDING_SKILLS_MAX];
-static int g_pending_skill_head = 0; /* next write */
+/** @brief Next write position in the pending skills ring buffer */
+static int g_pending_skill_head = 0;
+/** @brief Number of pending skill activations in the queue */
 static int g_pending_skill_count = 0;
 
+/**
+ * @brief Queues a skill activation for deferred processing.
+ *
+ * Skills are queued to ensure they use the player's position after movement has been processed.
+ *
+ * @param sid The skill ID to activate.
+ * @param slot The skill bar slot that triggered this activation.
+ */
 static void queue_skill_activation(int sid, int slot)
 {
     if (sid < 0)
@@ -55,6 +78,20 @@ static void queue_skill_activation(int sid, int slot)
     g_pending_skill_count++;
 }
 
+/**
+ * @brief Processes SDL input events and handles game input logic.
+ *
+ * This function polls SDL events and handles various input scenarios including:
+ * - UI panel toggles (stats, vendor, equipment, minimap)
+ * - Skill activation (keys 1-0)
+ * - Debug overlay controls
+ * - World generation parameter adjustments
+ * - Hitbox tuning controls
+ * - Vegetation density adjustments
+ * - Start screen seed entry
+ *
+ * The function also manages overlay input capture and skill tree interactions.
+ */
 void rogue_process_events(void)
 {
 #ifdef ROGUE_HAVE_SDL
@@ -631,6 +668,13 @@ void rogue_process_events(void)
 #endif
 }
 
+/**
+ * @brief Processes all pending skill activations that were queued during input processing.
+ *
+ * This function consumes the queued skill activations in FIFO order, attempting to activate
+ * each skill and flashing the corresponding skill bar slot on success. Skills are processed
+ * after movement to ensure they use the correct player position.
+ */
 void rogue_process_pending_skill_activations(void)
 {
     /* Consume queued activations in FIFO order */

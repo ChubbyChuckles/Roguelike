@@ -1,3 +1,9 @@
+/**
+ * @file effect_spec_parser.h
+ * @brief Key-value based effect specification parser for game effects,
+ *        buffs, and damage-over-time mechanics with child effect support.
+ */
+
 #include "effect_spec_parser.h"
 #include "../game/buffs.h"
 #include "../game/combat_attacks.h" /* RogueDamageType enum & ROGUE_DMG_* */
@@ -7,6 +13,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @brief Parses a string to a buff stack rule enum value.
+ *
+ * @param s The string to parse.
+ * @return The corresponding ROGUE_BUFF_STACK_* value, or -1 if not found.
+ */
 static int parse_stack_rule(const char* s)
 {
     if (!s)
@@ -25,6 +37,13 @@ static int parse_stack_rule(const char* s)
         return ROGUE_BUFF_STACK_REPLACE_IF_STRONGER;
     return -1;
 }
+
+/**
+ * @brief Parses a string to an effect kind enum value.
+ *
+ * @param s The string to parse.
+ * @return The corresponding ROGUE_EFFECT_* value, or -1 if not found.
+ */
 static int parse_kind(const char* s)
 {
     if (!s)
@@ -37,6 +56,13 @@ static int parse_kind(const char* s)
         return ROGUE_EFFECT_AURA;
     return -1;
 }
+
+/**
+ * @brief Parses a string to a damage type enum value.
+ *
+ * @param s The string to parse.
+ * @return The corresponding ROGUE_DMG_* value, or -1 if not found.
+ */
 static int parse_damage_type(const char* s)
 {
     if (!s)
@@ -57,6 +83,13 @@ static int parse_damage_type(const char* s)
         return ROGUE_DMG_TRUE;
     return -1;
 }
+
+/**
+ * @brief Parses a string to a buff type enum value.
+ *
+ * @param s The string to parse.
+ * @return The corresponding ROGUE_BUFF_* value, or -1 if not found.
+ */
 static int parse_buff_type(const char* s)
 {
     if (!s)
@@ -70,13 +103,30 @@ static int parse_buff_type(const char* s)
     return -1;
 }
 
+/**
+ * @brief Accumulator structure for tracking effect specification parsing state.
+ */
 typedef struct Accum
 {
-    int present;
-    RogueEffectSpec spec;
-    int has_stack_rule;
+    int present;          /**< Whether this effect index has been encountered */
+    RogueEffectSpec spec; /**< The effect specification being built */
+    int has_stack_rule;   /**< Whether a stack rule has been explicitly set */
 } Accum;
 
+/**
+ * @brief Parses effect specifications from key-value text format.
+ *
+ * Processes text in key-value format where keys follow the pattern "effect.X.field"
+ * where X is the effect index and field is the property name. Supports child effects
+ * with delays and various effect properties.
+ *
+ * @param text The key-value text to parse.
+ * @param out_ids Array to store registered effect IDs (can be NULL).
+ * @param max_ids Maximum number of effect IDs to store.
+ * @param err Buffer to store error messages (can be NULL).
+ * @param errcap Capacity of the error buffer.
+ * @return Number of effects successfully parsed and registered, or -1 on error.
+ */
 int rogue_effects_parse_text(const char* text, int* out_ids, int max_ids, char* err, int errcap)
 {
     if (errcap > 0 && err)
@@ -250,6 +300,19 @@ int rogue_effects_parse_text(const char* text, int* out_ids, int max_ids, char* 
     return count;
 }
 
+/**
+ * @brief Parses effect specifications from a key-value file.
+ *
+ * Loads and parses a file containing effect specifications in key-value format,
+ * then registers the effects with the effect system.
+ *
+ * @param path Path to the key-value file to parse.
+ * @param out_ids Array to store registered effect IDs (can be NULL).
+ * @param max_ids Maximum number of effect IDs to store.
+ * @param err Buffer to store error messages (can be NULL).
+ * @param errcap Capacity of the error buffer.
+ * @return Number of effects successfully parsed and registered, or -1 on error.
+ */
 int rogue_effects_parse_file(const char* path, int* out_ids, int max_ids, char* err, int errcap)
 {
     if (errcap > 0 && err)

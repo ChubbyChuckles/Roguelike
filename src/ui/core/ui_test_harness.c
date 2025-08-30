@@ -1,7 +1,21 @@
+/**
+ * @file ui_test_harness.c
+ * @brief UI testing harness providing golden master testing, fuzz testing,
+ *        and performance benchmarking for the roguelike UI system.
+ */
+
 #include "ui_test_harness.h"
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @brief Captures UI draw samples from a UI context for testing purposes.
+ *
+ * @param ctx The UI context to capture from.
+ * @param out Array to store the captured draw samples.
+ * @param max Maximum number of samples to capture.
+ * @return Number of samples actually captured.
+ */
 size_t rogue_ui_draw_capture(const RogueUIContext* ctx, RogueUIDrawSample* out, size_t max)
 {
     if (!ctx || !out || max == 0)
@@ -20,6 +34,16 @@ size_t rogue_ui_draw_capture(const RogueUIContext* ctx, RogueUIDrawSample* out, 
     }
     return n;
 }
+
+/**
+ * @brief Compares current UI state against a golden master baseline.
+ *
+ * @param ctx The current UI context to compare.
+ * @param baseline Array of baseline draw samples.
+ * @param baseline_count Number of samples in the baseline.
+ * @param out_changed Optional output parameter for number of changed samples.
+ * @return Number of differences found, or -1 on error.
+ */
 int rogue_ui_golden_diff(const RogueUIContext* ctx, const RogueUIDrawSample* baseline,
                          size_t baseline_count, int* out_changed)
 {
@@ -47,6 +71,17 @@ int rogue_ui_golden_diff(const RogueUIContext* ctx, const RogueUIDrawSample* bas
         *out_changed = changed;
     return changed;
 }
+
+/**
+ * @brief Checks if UI state is within tolerance of a golden master baseline.
+ *
+ * @param ctx The current UI context to check.
+ * @param baseline Array of baseline draw samples.
+ * @param baseline_count Number of samples in the baseline.
+ * @param tolerance Maximum allowed number of differences.
+ * @param out_changed Optional output parameter for actual number of changes.
+ * @return 1 if within tolerance, 0 otherwise.
+ */
 int rogue_ui_golden_within_tolerance(const RogueUIContext* ctx, const RogueUIDrawSample* baseline,
                                      size_t baseline_count, int tolerance, int* out_changed)
 {
@@ -54,6 +89,11 @@ int rogue_ui_golden_within_tolerance(const RogueUIContext* ctx, const RogueUIDra
     return diff <= tolerance;
 }
 
+/**
+ * @brief Simple PRNG for generating test data in fuzz testing.
+ *
+ * @return Next random unsigned integer.
+ */
 static unsigned int harness_prng_state = 0xA5F15327u;
 static unsigned int prng_next()
 {
@@ -64,6 +104,16 @@ static unsigned int prng_next()
     harness_prng_state = x;
     return x;
 }
+
+/**
+ * @brief Performs fuzz testing on UI grid layout to detect layout violations.
+ *
+ * This function generates random grid layouts and checks that all cells remain
+ * within their parent container bounds.
+ *
+ * @param iterations Number of fuzz test iterations to run.
+ * @return Number of layout violations detected, or -1 on initialization error.
+ */
 int rogue_ui_layout_fuzz(int iterations)
 {
     RogueUIContext ctx;
@@ -103,6 +153,13 @@ int rogue_ui_layout_fuzz(int iterations)
     return violations;
 }
 
+/**
+ * @brief Performance test that builds many UI panels to measure rendering throughput.
+ *
+ * @param ctx The UI context to build panels in.
+ * @param count Number of panels to attempt to build.
+ * @return Number of panels actually emitted before hitting capacity limits.
+ */
 int rogue_ui_perf_build_many(RogueUIContext* ctx, int count)
 {
     if (!ctx || count <= 0)

@@ -1,3 +1,9 @@
+/**
+ * @file animation.c
+ * @brief Animation system for loading and playing sprite animations, supporting
+ *        Aseprite JSON metadata and fallback grid-based frame splitting.
+ */
+
 #include "animation.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -5,8 +11,27 @@
 
 /* Minimal JSON parsing for Aseprite frame list: we look for substrings
  * "frame":{..."x":N,"y":M,"w":W,"h":H} and "duration":D */
+
+/**
+ * @brief Finds the next occurrence of a key string in the given string.
+ *
+ * @param s The string to search in.
+ * @param key The key string to find.
+ * @return Pointer to the found key, or NULL if not found.
+ */
 static const char* find_next(const char* s, const char* key) { return strstr(s, key); }
 
+/**
+ * @brief Parses an integer value after a specified key in a JSON-like string.
+ *
+ * Looks for the key followed by optional whitespace, quotes, and colons,
+ * then parses the following integer value.
+ *
+ * @param start The string to parse.
+ * @param key The key to search for.
+ * @param out Pointer to store the parsed integer value.
+ * @return 1 if parsing was successful, 0 otherwise.
+ */
 static int parse_int_after(const char* start, const char* key, int* out)
 {
     const char* p = strstr(start, key);
@@ -19,6 +44,20 @@ static int parse_int_after(const char* start, const char* key, int* out)
     return 1;
 }
 
+/**
+ * @brief Loads an animation from PNG and optional JSON metadata files.
+ *
+ * Supports loading animations with Aseprite JSON frame data or falls back to
+ * grid-based frame splitting if no JSON is provided. The animation can contain
+ * up to 32 frames with individual durations.
+ *
+ * @param anim The animation structure to populate.
+ * @param png_path Path to the PNG texture file.
+ * @param json_path Path to the JSON metadata file (can be NULL for grid fallback).
+ * @param fw Frame width for grid fallback (ignored if JSON is provided).
+ * @param fh Frame height for grid fallback (ignored if JSON is provided).
+ * @return true if the animation was loaded successfully, false otherwise.
+ */
 bool rogue_animation_load(RogueAnimation* anim, const char* png_path, const char* json_path, int fw,
                           int fh)
 {
@@ -101,12 +140,29 @@ bool rogue_animation_load(RogueAnimation* anim, const char* png_path, const char
     return anim->frame_count > 0;
 }
 
+/**
+ * @brief Unloads an animation and frees associated resources.
+ *
+ * Destroys the texture and clears the animation structure.
+ *
+ * @param anim The animation to unload.
+ */
 void rogue_animation_unload(RogueAnimation* anim)
 {
     rogue_texture_destroy(&anim->texture);
     memset(anim, 0, sizeof *anim);
 }
 
+/**
+ * @brief Samples the animation to get the current frame based on elapsed time.
+ *
+ * Calculates which frame should be displayed at the given elapsed time by
+ * accumulating frame durations. The animation loops continuously.
+ *
+ * @param anim The animation to sample.
+ * @param elapsed_ms The elapsed time in milliseconds since animation start.
+ * @return Pointer to the current animation frame, or NULL if animation has no frames.
+ */
 const RogueAnimFrame* rogue_animation_sample(const RogueAnimation* anim, int elapsed_ms)
 {
     if (!anim->frame_count)

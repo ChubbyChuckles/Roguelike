@@ -1,3 +1,9 @@
+/**
+ * @file effect_spec_load.c
+ * @brief JSON-based effect specification loading system for game effects,
+ *        buffs, and damage-over-time mechanics with validation and error handling.
+ */
+
 #include "effect_spec_load.h"
 #include "../game/buffs.h"
 #include "../game/combat_attacks.h"
@@ -9,12 +15,28 @@
 #include <string.h>
 
 /* Tiny JSON helpers (array of flat objects) */
+
+/**
+ * @brief Skips whitespace characters in a JSON string.
+ *
+ * @param s The string to process.
+ * @return Pointer to the first non-whitespace character.
+ */
 static const char* js_skip_ws(const char* s)
 {
     while (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t')
         ++s;
     return s;
 }
+
+/**
+ * @brief Parses a quoted string from JSON.
+ *
+ * @param s The string to parse.
+ * @param out Buffer to store the parsed string.
+ * @param cap Maximum capacity of the output buffer.
+ * @return Pointer to the character after the closing quote, or NULL on error.
+ */
 static const char* js_parse_string(const char* s, char* out, int cap)
 {
     s = js_skip_ws(s);
@@ -35,6 +57,14 @@ static const char* js_parse_string(const char* s, char* out, int cap)
     out[i] = '\0';
     return s + 1;
 }
+
+/**
+ * @brief Parses a number from JSON.
+ *
+ * @param s The string to parse.
+ * @param out Pointer to store the parsed double value.
+ * @return Pointer to the character after the number, or NULL on error.
+ */
 static const char* js_parse_number(const char* s, double* out)
 {
     s = js_skip_ws(s);
@@ -47,6 +77,13 @@ static const char* js_parse_number(const char* s, double* out)
 }
 
 /* String enums mapping copied from effect_spec_parser.c */
+
+/**
+ * @brief Maps a string to a buff stack rule enum value.
+ *
+ * @param s The string to map.
+ * @return The corresponding ROGUE_BUFF_STACK_* value, or -1 if not found.
+ */
 static int map_stack_rule(const char* s)
 {
     if (!s)
@@ -65,6 +102,13 @@ static int map_stack_rule(const char* s)
         return ROGUE_BUFF_STACK_REPLACE_IF_STRONGER;
     return -1;
 }
+
+/**
+ * @brief Maps a string to an effect kind enum value.
+ *
+ * @param s The string to map.
+ * @return The corresponding ROGUE_EFFECT_* value, or -1 if not found.
+ */
 static int map_kind(const char* s)
 {
     if (!s)
@@ -77,6 +121,13 @@ static int map_kind(const char* s)
         return ROGUE_EFFECT_AURA;
     return -1;
 }
+
+/**
+ * @brief Maps a string to a damage type enum value.
+ *
+ * @param s The string to map.
+ * @return The corresponding ROGUE_DMG_* value, or -1 if not found.
+ */
 static int map_damage_type(const char* s)
 {
     if (!s)
@@ -97,6 +148,13 @@ static int map_damage_type(const char* s)
         return ROGUE_DMG_TRUE;
     return -1;
 }
+
+/**
+ * @brief Maps a string to a buff type enum value.
+ *
+ * @param s The string to map.
+ * @return The corresponding ROGUE_BUFF_* value, or -1 if not found.
+ */
 static int map_buff_type(const char* s)
 {
     if (!s)
@@ -108,6 +166,18 @@ static int map_buff_type(const char* s)
     return -1;
 }
 
+/**
+ * @brief Parses an array of effect specifications from JSON text.
+ *
+ * Processes a JSON array of effect objects, validates them, and registers
+ * valid effects with the effect system. Invalid effects are rejected with
+ * detailed validation rules.
+ *
+ * @param buf The JSON text to parse.
+ * @param out_ids Array to store registered effect IDs (can be NULL).
+ * @param max_ids Maximum number of effect IDs to store.
+ * @return Number of effects successfully parsed and registered, or -1 on error.
+ */
 static int parse_effects_array(const char* buf, int* out_ids, int max_ids)
 {
     const char* s = js_skip_ws(buf);
@@ -310,6 +380,16 @@ static int parse_effects_array(const char* buf, int* out_ids, int max_ids)
     return count;
 }
 
+/**
+ * @brief Loads effect specifications from JSON text.
+ *
+ * Parses and registers effects from a JSON string containing an array of effect objects.
+ *
+ * @param json_text The JSON text to parse.
+ * @param out_effect_ids Array to store registered effect IDs (can be NULL).
+ * @param max_ids Maximum number of effect IDs to store.
+ * @return Number of effects successfully loaded, or -1 on error.
+ */
 int rogue_effects_load_from_json_text(const char* json_text, int* out_effect_ids, int max_ids)
 {
     if (!json_text)
@@ -317,6 +397,18 @@ int rogue_effects_load_from_json_text(const char* json_text, int* out_effect_ids
     return parse_effects_array(json_text, out_effect_ids, max_ids);
 }
 
+/**
+ * @brief Loads effect specifications from a JSON file.
+ *
+ * Reads a JSON file and parses effect specifications from it, with error reporting.
+ *
+ * @param path Path to the JSON file to load.
+ * @param out_effect_ids Array to store registered effect IDs (can be NULL).
+ * @param max_ids Maximum number of effect IDs to store.
+ * @param err Buffer to store error messages (can be NULL).
+ * @param errcap Capacity of the error buffer.
+ * @return Number of effects successfully loaded, or -1 on error.
+ */
 int rogue_effects_load_from_file(const char* path, int* out_effect_ids, int max_ids, char* err,
                                  int errcap)
 {

@@ -1,3 +1,19 @@
+/**
+ * @file effect_spec.c
+ * @brief Implementation of effect specification system for managing game effects like buffs, DOTs,
+ * and auras.
+ *
+ * This module handles the registration, application, and management of various game effects
+ * including:
+ * - STAT_BUFF effects for temporary stat modifications
+ * - DOT (Damage Over Time) effects for periodic damage
+ * - AURA effects for area-of-effect abilities
+ * - Child effect chaining with delays
+ * - AURA exclusivity groups
+ * - Dynamic magnitude scaling based on buff types
+ * - Precondition gates based on buff requirements
+ */
+
 #include "effect_spec.h"
 #include "../core/app/app_state.h"
 #include "../game/buffs.h"
@@ -39,6 +55,11 @@ typedef struct ActiveAuraRec
 static ActiveAuraRec g_active_auras[ROGUE_ACTIVE_AURA_CAP];
 static int g_active_aura_count = 0;
 
+/**
+ * @brief Finds the index of an active aura by effect ID.
+ * @param effect_id The effect ID to search for.
+ * @return The index of the active aura, or -1 if not found.
+ */
 static int find_active_aura_index(int effect_id)
 {
     for (int i = 0; i < g_active_aura_count; ++i)
@@ -49,6 +70,10 @@ static int find_active_aura_index(int effect_id)
     return -1;
 }
 
+/**
+ * @brief Removes an active aura at the specified index.
+ * @param idx The index of the active aura to remove.
+ */
 static void remove_active_aura_at(int idx)
 {
     if (idx < 0 || idx >= g_active_aura_count)
@@ -58,7 +83,19 @@ static void remove_active_aura_at(int idx)
 }
 
 /* ---- Phase 11.3: minimal getters for active aura overlay ---- */
+/**
+ * @brief Gets the count of currently active auras.
+ * @return The number of active auras.
+ */
 int rogue_effect_active_aura_count(void) { return g_active_aura_count; }
+
+/**
+ * @brief Gets information about an active aura at the specified index.
+ * @param index The index of the active aura to query.
+ * @param effect_id Pointer to store the effect ID (can be NULL).
+ * @param end_ms Pointer to store the end time in milliseconds (can be NULL).
+ * @return 1 if the index is valid and data was retrieved, 0 otherwise.
+ */
 int rogue_effect_active_aura_get(int index, int* effect_id, double* end_ms)
 {
     if (index < 0 || index >= g_active_aura_count)
@@ -70,7 +107,12 @@ int rogue_effect_active_aura_get(int index, int* effect_id, double* end_ms)
     return 1;
 }
 
-/* Find any active aura that conflicts with the provided group mask and is not expired. */
+/**
+ * @brief Finds any active aura that conflicts with the provided group mask and is not expired.
+ * @param group_mask The group mask to check for conflicts.
+ * @param now_ms The current time in milliseconds.
+ * @return The index of the conflicting aura, or -1 if no conflict found.
+ */
 static int find_conflicting_aura_index(unsigned int group_mask, double now_ms)
 {
     if (!group_mask)
@@ -84,6 +126,15 @@ static int find_conflicting_aura_index(unsigned int group_mask, double now_ms)
 }
 
 /* ---- Phase 6.2: Spatial query hook (fallback O(N)) ---- */
+/**
+ * @brief Collects enemy indices within a specified radius of a center point.
+ * @param cx The x-coordinate of the center point.
+ * @param cy The y-coordinate of the center point.
+ * @param radius The radius to search within.
+ * @param out_indices Array to store the collected enemy indices.
+ * @param cap The maximum number of indices to collect.
+ * @return The number of enemies found within the radius.
+ */
 static int rogue_collect_enemies_in_radius(float cx, float cy, float radius, int* out_indices,
                                            int cap)
 {
@@ -119,6 +170,11 @@ typedef struct ActiveDOTRec
 static ActiveDOTRec g_active_dots[ROGUE_ACTIVE_DOT_CAP];
 static int g_active_dot_count = 0;
 
+/**
+ * @brief Finds the index of an active DOT by effect ID.
+ * @param effect_id The effect ID to search for.
+ * @return The index of the active DOT, or -1 if not found.
+ */
 static int find_active_dot_index(int effect_id)
 {
     for (int i = 0; i < g_active_dot_count; ++i)
@@ -129,6 +185,10 @@ static int find_active_dot_index(int effect_id)
     return -1;
 }
 
+/**
+ * @brief Removes all pending events for a specific effect ID.
+ * @param effect_id The effect ID to remove pending events for.
+ */
 static void remove_pending_for_effect(int effect_id)
 {
     for (int i = 0; i < g_event_count;)
@@ -143,6 +203,11 @@ static void remove_pending_for_effect(int effect_id)
     }
 }
 
+/**
+ * @brief Pushes a new effect event to the event queue.
+ * @param effect_id The effect ID for the event.
+ * @param when_ms The time in milliseconds when the event should occur.
+ */
 static void push_event(int effect_id, double when_ms)
 {
     if (g_event_count >= ROGUE_EFFECT_EV_CAP)
@@ -155,6 +220,9 @@ static void push_event(int effect_id, double when_ms)
     g_event_count++;
 }
 
+/**
+ * @brief Resets the effect system, clearing all registered effects and active states.
+ */
 void rogue_effect_reset(void)
 {
     free(g_effect_specs);
@@ -167,6 +235,11 @@ void rogue_effect_reset(void)
     g_active_aura_count = 0;
 }
 
+/**
+ * @brief Registers a new effect specification.
+ * @param spec The effect specification to register.
+ * @return The ID of the registered effect, or -1 on failure.
+ */
 int rogue_effect_register(const RogueEffectSpec* spec)
 {
     if (!spec)
@@ -214,6 +287,11 @@ int rogue_effect_register(const RogueEffectSpec* spec)
     return g_effect_spec_count++;
 }
 
+/**
+ * @brief Gets the effect specification for a given effect ID.
+ * @param id The effect ID to retrieve.
+ * @return Pointer to the effect specification, or NULL if not found.
+ */
 const RogueEffectSpec* rogue_effect_get(int id)
 {
     if (id < 0 || id >= g_effect_spec_count)
@@ -221,7 +299,11 @@ const RogueEffectSpec* rogue_effect_get(int id)
     return &g_effect_specs[id];
 }
 
-/* Compute effective magnitude with optional scaling params. */
+/**
+ * @brief Computes the effective magnitude of an effect with optional scaling.
+ * @param s The effect specification.
+ * @return The computed effective magnitude.
+ */
 static int compute_scaled_magnitude(const RogueEffectSpec* s)
 {
     int mag = s->magnitude;
@@ -376,6 +458,20 @@ static void apply_with_magnitude(const RogueEffectSpec* s, int eff_mag, double n
     }
 }
 
+/**
+ * @brief Applies an effect by ID at the specified time.
+ *
+ * This function handles the complete application of an effect including:
+ * - Precondition checking based on required buffs
+ * - Magnitude scaling based on buff types
+ * - AURA exclusivity group management
+ * - DOT stacking semantics (UNIQUE, REFRESH, EXTEND)
+ * - Event scheduling for periodic effects
+ * - Child effect chaining with delays
+ *
+ * @param id The effect ID to apply.
+ * @param now_ms The current time in milliseconds.
+ */
 void rogue_effect_apply(int id, double now_ms)
 {
     const RogueEffectSpec* s = rogue_effect_get(id);
@@ -535,6 +631,18 @@ void rogue_effect_apply(int id, double now_ms)
     }
 }
 
+/**
+ * @brief Updates the effect system, processing all ready events.
+ *
+ * This function processes pending effect events in chronological order, handling:
+ * - Periodic DOT pulses with proper timing
+ * - Child effect activation with delays
+ * - Stale event filtering for REFRESH stacking
+ * - Magnitude scaling and crit overrides for scheduled events
+ * - Deterministic event ordering using sequence numbers
+ *
+ * @param now_ms The current time in milliseconds.
+ */
 void rogue_effects_update(double now_ms)
 {
     /* Process ready events in stable order (when_ms asc, then seq asc). */
@@ -591,6 +699,16 @@ void rogue_effects_update(double now_ms)
     }
 }
 
+/**
+ * @brief Checks if an effect is considered a debuff.
+ *
+ * An effect is considered a debuff if:
+ * - The debuff flag is explicitly set in the spec
+ * - The effect is a DOT (Damage Over Time) type
+ *
+ * @param id The effect ID to check.
+ * @return 1 if the effect is a debuff, 0 otherwise.
+ */
 int rogue_effect_spec_is_debuff(int id)
 {
     const RogueEffectSpec* s = rogue_effect_get(id);

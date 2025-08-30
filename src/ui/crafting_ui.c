@@ -1,3 +1,9 @@
+/**
+ * @file crafting_ui.c
+ * @brief UI components for the roguelike crafting system including recipe display,
+ *        queue management, gathering overlays, and material tracking.
+ */
+
 #include "crafting_ui.h"
 #include "../core/crafting/crafting.h"
 #include "../core/crafting/crafting_queue.h"
@@ -15,6 +21,11 @@ static char g_search[32];
 static int g_text_only = 0;
 static int g_batch_qty = 1; /* user-selected batch quantity (1..99) */
 
+/**
+ * @brief Sets the search filter for crafting recipes.
+ *
+ * @param s The search string to filter recipes by (NULL clears the filter).
+ */
 void rogue_crafting_ui_set_search(const char* s)
 {
     if (!s)
@@ -28,10 +39,34 @@ void rogue_crafting_ui_set_search(const char* s)
     memcpy(g_search, s, n);
     g_search[n] = '\0';
 }
+
+/**
+ * @brief Gets the current search filter string.
+ *
+ * @return The current search filter string.
+ */
 const char* rogue_crafting_ui_last_search(void) { return g_search; }
+
+/**
+ * @brief Sets the text-only rendering mode.
+ *
+ * @param e Non-zero to enable text-only mode, zero to disable.
+ */
 void rogue_crafting_ui_set_text_only(int e) { g_text_only = e ? 1 : 0; }
+
+/**
+ * @brief Gets the current text-only rendering mode.
+ *
+ * @return Non-zero if text-only mode is enabled, zero otherwise.
+ */
 int rogue_crafting_ui_text_only(void) { return g_text_only; }
 
+/**
+ * @brief Checks if a recipe should be visible based on the current search filter.
+ *
+ * @param r The recipe to check.
+ * @return 1 if the recipe should be visible, 0 otherwise.
+ */
 static int recipe_visible(const RogueCraftRecipe* r)
 {
     if (!g_search[0])
@@ -46,8 +81,15 @@ static int recipe_visible(const RogueCraftRecipe* r)
     return 0;
 }
 
-/* Simple heuristic: recipe upgrades currently equipped weapon/armor if output rarity > existing
- * slot rarity. */
+/**
+ * @brief Checks if a recipe represents an upgrade to currently equipped gear.
+ *
+ * Simple heuristic: recipe upgrades currently equipped weapon/armor if output rarity > existing
+ * slot rarity.
+ *
+ * @param r The recipe to check.
+ * @return 1 if the recipe is considered an upgrade, 0 otherwise.
+ */
 static int recipe_is_upgrade(const RogueCraftRecipe* r)
 { /* Heuristic: treat higher rarity weapon recipe as upgrade if any equipped weapon of lower rarity
      exists. */
@@ -71,6 +113,16 @@ static int recipe_is_upgrade(const RogueCraftRecipe* r)
     return out_def->rarity > cur_def->rarity;
 }
 
+/**
+ * @brief Renders the crafting recipe panel with available recipes and their status.
+ *
+ * @param ctx The UI context to render into.
+ * @param x The x-coordinate of the panel.
+ * @param y The y-coordinate of the panel.
+ * @param w The width of the panel.
+ * @param h The height of the panel.
+ * @return The number of recipes rendered.
+ */
 int rogue_crafting_ui_render_panel(RogueUIContext* ctx, float x, float y, float w, float h)
 {
     if (!ctx)
@@ -125,6 +177,11 @@ int rogue_crafting_ui_render_panel(RogueUIContext* ctx, float x, float y, float 
     return rendered;
 }
 
+/**
+ * @brief Sets the batch crafting quantity.
+ *
+ * @param qty The desired batch quantity (clamped to 1-99 range).
+ */
 void rogue_crafting_ui_set_batch(int qty)
 {
     if (qty < 1)
@@ -133,8 +190,24 @@ void rogue_crafting_ui_set_batch(int qty)
         qty = 99;
     g_batch_qty = qty;
 }
+
+/**
+ * @brief Gets the current batch crafting quantity.
+ *
+ * @return The current batch quantity.
+ */
 int rogue_crafting_ui_get_batch(void) { return g_batch_qty; }
 
+/**
+ * @brief Renders the crafting queue with active jobs and their progress.
+ *
+ * @param ctx The UI context to render into.
+ * @param x The x-coordinate of the queue display.
+ * @param y The y-coordinate of the queue display.
+ * @param w The width of the queue display.
+ * @param h The height of the queue display.
+ * @return The number of queue items rendered.
+ */
 int rogue_crafting_ui_render_queue(RogueUIContext* ctx, float x, float y, float w, float h)
 {
     if (!ctx)
@@ -178,6 +251,16 @@ int rogue_crafting_ui_render_queue(RogueUIContext* ctx, float x, float y, float 
     return bars;
 }
 
+/**
+ * @brief Renders an overlay showing gathering node status.
+ *
+ * @param ctx The UI context to render into.
+ * @param x The x-coordinate of the overlay.
+ * @param y The y-coordinate of the overlay.
+ * @param w The width of the overlay.
+ * @param h The height of the overlay.
+ * @return The number of gathering nodes rendered.
+ */
 int rogue_crafting_ui_render_gather_overlay(RogueUIContext* ctx, float x, float y, float w, float h)
 {
     if (!ctx)
@@ -213,6 +296,14 @@ int rogue_crafting_ui_render_gather_overlay(RogueUIContext* ctx, float x, float 
     return shown;
 }
 
+/**
+ * @brief Calculates expected fracture damage from enhancement operations.
+ *
+ * Success 80%, failure 20%; failure durability damage = 5+intensity.
+ *
+ * @param intensity The enhancement intensity level.
+ * @return The expected fracture damage.
+ */
 float rogue_crafting_ui_expected_fracture_damage(int intensity)
 { /* success 80%, failure 20%; failure durability damage = 5+intensity */
     float fail_p = 0.20f;
@@ -220,6 +311,15 @@ float rogue_crafting_ui_expected_fracture_damage(int intensity)
     return fail_p * dmg;
 }
 
+/**
+ * @brief Renders the enhancement risk display for tempering operations.
+ *
+ * @param ctx The UI context to render into.
+ * @param x The x-coordinate of the risk display.
+ * @param y The y-coordinate of the risk display.
+ * @param intensity The enhancement intensity level.
+ * @return 0 on success, -1 on error.
+ */
 int rogue_crafting_ui_render_enhancement_risk(RogueUIContext* ctx, float x, float y, int intensity)
 {
     if (!ctx)
@@ -236,6 +336,16 @@ int rogue_crafting_ui_render_enhancement_risk(RogueUIContext* ctx, float x, floa
     return 0;
 }
 
+/**
+ * @brief Renders the material ledger showing inventory and quality statistics.
+ *
+ * @param ctx The UI context to render into.
+ * @param x The x-coordinate of the ledger.
+ * @param y The y-coordinate of the ledger.
+ * @param w The width of the ledger.
+ * @param h The height of the ledger.
+ * @return The number of materials rendered.
+ */
 int rogue_crafting_ui_render_material_ledger(RogueUIContext* ctx, float x, float y, float w,
                                              float h)
 {
