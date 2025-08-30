@@ -57,6 +57,11 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 Notes:
 Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (575/575).
 	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir). Default is off for quiet CI.
+Formatting:
+	- Run per-file clang-format locally: use the CMake targets `format` (auto-fix) and `format-check` (verify). These work on Windows without hitting command-line length limits.
+	- CI installs clang-format and runs `cmake --build build --target format-check`; failures will show which files need formatting.
+Windows CI notes:
+	- The workflow uses the Ninja generator under an MSVC dev environment to avoid intermittent MSBuild stalls when compiling many small unit test targets in parallel.
 ### Build flags and modules
  APIs: `src/debug_overlay/overlay_core.h` plus widgets in `overlay_widgets.h` (Label, Button, Checkbox, SliderInt/Float, InputText, Combo, TreeNode/Pop, ColorEdit RGBA, Table). Input capture in `overlay_input.h`.
 - ROGUE_ENABLE_JSON_CONTENT (default ON): Compiles the content JSON foundation (I/O and schema envelope). Built as an object library (`rogue_content_json`) and linked into `rogue_core` when enabled. A vendored cJSON stub lives under `third_party/cjson` and is linked as `rogue_thirdparty_cjson` for now; replace with the full cJSON later.

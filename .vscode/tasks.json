@@ -301,6 +301,11 @@
 			"label": "Build Debug (SDL2, -j12) quick check",
 			"type": "shell",
 			"command": "cmake --build build --config Debug --parallel 12"
+		},
+		{
+			"label": "Reconfigure CMake after format runner change",
+			"type": "shell",
+			"command": "cmake -S . -B build -DROGUE_ENABLE_SDL=ON -DCMAKE_BUILD_TYPE=Debug"
 		}
 	]
 }

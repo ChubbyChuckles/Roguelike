@@ -31,6 +31,7 @@ CI VALIDATION (current)
  - Map debug JSON loader fixes landed (literal detection and pointer advance) and a new unit `test_map_debug` validates edit operations and JSON round‑trip.
  - Persistence tests stabilized under parallel runs via centralized save path builders and per‑test isolation (env ROGUE_TEST_SAVE_DIR or per‑PID dir). All persistence/integrity units updated; full suite green.
  - Audio/VFX Debug Panel integrated with a thin headless-safe API (`audiovfx_debug`); unit `test_audio_vfx_overlay_debug_panel` validates registry probing, play/spawn, mixer/perf/budgets controls, and stats snapshot. Overlay panel registered as "Audio / VFX".
+- Windows CI formatting gate stabilized: replaced single-command clang-format invocation with a per-file runner script (`cmake/RunClangFormat.cmake`) and wired `format`/`format-check` CMake targets to use it. This avoids Windows command-line length limits; the CI "Format Check" step now runs reliably.
  - Start Screen perf smoke test stabilized under CI-like variance by disabling the absolute budget guard in the test (sets `g_app.start_perf_budget_ms = 0.0`); relative check remains opt-in. Full suite reconfirmed green.
 
 PHASE 1. Project Setup & Build Integration

@@ -32,6 +32,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup MSVC Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install Ninja (Windows)
+        shell: pwsh
+        run: choco install -y ninja || echo "ninja already installed"
+
       - name: Install clang-format (Windows)
         shell: pwsh
         run: |
@@ -53,18 +60,18 @@ jobs:
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1
 
-      - name: Configure (Windows, SDL ON)
+      - name: Configure (Windows, SDL ON, Ninja)
         run: >-
-          cmake -S . -B build -DROGUE_ENABLE_SDL=${{ env.ROGUE_ENABLE_SDL }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}\scripts\buildsystems\vcpkg.cmake
+          cmake -G Ninja -S . -B build -DROGUE_ENABLE_SDL=${{ env.ROGUE_ENABLE_SDL }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}\scripts\buildsystems\vcpkg.cmake
 
-      - name: Build (Windows, -j12)
-        run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 12
+      - name: Build (Windows, Ninja -j12)
+        run: cmake --build build --parallel 12
 
       - name: Format Check
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          cmake --build build --target format-check
+          cmake --build build --config ${{ env.BUILD_TYPE }} --target format-check
           if ($LASTEXITCODE -ne 0) {
             Write-Host "Format check failed. Run: cmake --build build --target format"
             exit 1

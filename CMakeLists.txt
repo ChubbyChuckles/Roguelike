@@ -1027,16 +1027,15 @@ add_test(NAME test_audio_vfx_phase1_2 COMMAND test_audio_vfx_phase1_2)
 add_test(NAME test_audio_vfx_phase1_5_compaction COMMAND test_audio_vfx_phase1_5_compaction)
 
 find_program(CLANG_FORMAT_EXE NAMES clang-format)
-file(GLOB_RECURSE ALL_C_SOURCE_FILES src/*.c src/*.h tests/*.c tests/*.h)
 if(CLANG_FORMAT_EXE)
     add_custom_target(format
-        COMMAND ${CLANG_FORMAT_EXE} -i ${ALL_C_SOURCE_FILES}
+        COMMAND ${CMAKE_COMMAND} -DCLANG_FORMAT_EXE=${CLANG_FORMAT_EXE} -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DMODE=format -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/RunClangFormat.cmake
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        COMMENT "Running clang-format" VERBATIM)
+        COMMENT "Running clang-format (per-file)" VERBATIM)
     add_custom_target(format-check
-        COMMAND ${CLANG_FORMAT_EXE} -n -Werror ${ALL_C_SOURCE_FILES}
+        COMMAND ${CMAKE_COMMAND} -DCLANG_FORMAT_EXE=${CLANG_FORMAT_EXE} -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DMODE=check -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/RunClangFormat.cmake
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        COMMENT "Checking clang-format compliance" VERBATIM)
+        COMMENT "Checking clang-format compliance (per-file)" VERBATIM)
 else()
     # Provide no-op targets so CI doesn't fail when clang-format missing
     add_custom_target(format

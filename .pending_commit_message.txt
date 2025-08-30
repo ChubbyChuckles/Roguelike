@@ -26,3 +26,18 @@ feat(content): add Items JSON schema module and tests; wire into build
 - Full Debug (SDL2) build + ctest -j12 all green (575/575)
 - Roadmap: mark Phase 3.1–3.2 Done; note follow-up for schema-backed roundtrip
 - README: update test count and add brief Items schema note
+
+
+feat(ci): stabilize Windows format-check via per-file clang-format runner
+
+- Add cmake/RunClangFormat.cmake to run clang-format per file (MODE=check/-n -Werror and MODE=format/-i) across src/ and tests/.
+- Update CMakeLists.txt to wire `format` and `format-check` targets to the new runner when clang-format is found; provide no-op targets when missing (local dev convenience).
+- CI: Windows job already installs clang-format; the new per-file runner avoids command-line length limits on Windows. "Build step" failures caused by format checks should now be resolved.
+- Docs: README mentions how to run `format`/`format-check`; roadmap notes the CI formatting gate stabilization.
+
+
+chore(ci/windows): switch to Ninja generator to prevent MSBuild stalls
+
+- Use MSVC developer environment with Ninja (`ilammy/msvc-dev-cmd@v1` + `choco install ninja`).
+- Configure with `-G Ninja` and build with `cmake --build build --parallel 12` to improve throughput and avoid intermittent stalls when compiling hundreds of tiny unit test targets.
+- README: document Ninja usage in Windows CI.
