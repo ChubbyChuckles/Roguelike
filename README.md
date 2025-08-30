@@ -120,7 +120,11 @@ Overlay panels:
 		- `rogue_map_debug_set_tile(x, y, id)`, `rogue_map_debug_brush_square(x, y, radius, id)`, `rogue_map_debug_brush_rect(x, y, w, h, id)`
 		- `rogue_map_debug_save_json(path, err, cap)` and `rogue_map_debug_load_json(path, err, cap)` with compact RLE tiles inside `{ "w": W, "h": H, "tiles": "..." }`.
 	- Loader fixes prevent malformed literal detection and off‑by‑one pointer advance; validated by unit `tests/unit/test_map_debug.c`.
-	- A scaffolded Map Editor panel is registered in the overlay; it will surface tileset pickers, brush controls, and layer toggles in the next iterations.
+	- Map Editor panel (now usable):
+		- Labeled tile selection using RogueTileType names; Erase toggle.
+		- Brush modes: Square (radius) and Rect (x0,y0,x1,y1 inputs).
+		- Utilities: Pick tile under player, Fill entire map with current tile, Clear map (EMPTY).
+		- Persistence: editable JSON path with Save/Load buttons using compact RLE format via map_debug APIs. Edits invalidate the tile sprite LUT so visuals refresh immediately.
 
 	Test save‑path isolation (stability under parallel ctest):
 	- Centralized builders in `src/core/persistence/save_paths.{h,c}` construct slot/autosave/backup/json/quicksave paths and create directories as needed.

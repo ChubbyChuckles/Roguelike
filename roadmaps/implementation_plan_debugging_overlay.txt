@@ -90,7 +90,7 @@ PHASE 8. Entity Inspector Panel
 PHASE 9. Map Editor Panel
 9.1 Design tilesets.json schema: id, tile_size, atlas, tiles array (Done – schema defined and documented in code; allows required fields and clamps ranges)
 9.2 Implement schema_tilesets.h/.c: tileset loading and validation (Done – validator implemented with legacy CFG→JSON adapter and default assets check)
-9.3 Add Map Editor Panel: tileset picker, brush size, paint/erase, layers (Partial – scaffolded panel registered; UI wiring skeleton and basic controls stubbed)
+9.3 Add Map Editor Panel: tileset picker, brush size, paint/erase, layers (Done – overlay panel now includes labeled RogueTileType selection, erase toggle, square/rect brush modes, radius and rect inputs, "pick under player", Fill/Clear helpers, and editable JSON Save/Load path; wired to headless-safe map_debug APIs with tile sprite LUT invalidation on edits. Built in Debug (SDL2) and validated by full test suite.)
 9.4 Create map_debug.h/.c APIs: load/save/set_tile/brush functions (Done – set_tile, brush_square, brush_rect, save_json, load_json with compact RLE)
 9.5 Tests: tileset loading, map editing operations, save/load roundtrip (Done – `test_tilesets_schema` and `test_map_debug` cover validation and edit/persist round‑trip)
 
