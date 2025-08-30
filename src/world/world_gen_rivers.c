@@ -1,3 +1,12 @@
+/**
+ * @file world_gen_rivers.c
+ * @brief Handles river refinement, erosion simulation, and bridge hint marking for world
+ * generation.
+ * @details This module implements Phase 5: River refinement & erosion detailing, including widening
+ * rivers, applying thermal and hydraulic erosion, computing steepness metrics, and identifying
+ * bridge locations.
+ */
+
 /* Phase 5: River refinement & erosion detailing */
 #include "world_gen.h"
 #include <math.h>
@@ -6,7 +15,20 @@
 
 double fbm(double x, double y, int octaves, double lacunarity, double gain);
 
+/**
+ * @brief Generates a normalized random double from the RNG channel.
+ * @param ch Pointer to the RNG channel.
+ * @return A random double between 0 and 1.
+ */
 static double prand(RogueRngChannel* ch) { return rogue_worldgen_rand_norm(ch); }
+
+/**
+ * @brief Generates a random integer within a specified range.
+ * @param ch Pointer to the RNG channel.
+ * @param lo Lower bound (inclusive).
+ * @param hi Upper bound (inclusive).
+ * @return A random integer in [lo, hi].
+ */
 static int prand_range(RogueRngChannel* ch, int lo, int hi)
 {
     if (hi <= lo)
@@ -18,6 +40,13 @@ static int prand_range(RogueRngChannel* ch, int lo, int hi)
     return v;
 }
 
+/**
+ * @brief Refines rivers by widening tiles based on noise and converting deltas.
+ * @param cfg Pointer to the world generation config.
+ * @param ctx Pointer to the world generation context.
+ * @param io_map Pointer to the tile map to modify.
+ * @return True if successful, false otherwise.
+ */
 bool rogue_world_refine_rivers(const RogueWorldGenConfig* cfg, RogueWorldGenContext* ctx,
                                RogueTileMap* io_map)
 {
@@ -75,6 +104,15 @@ bool rogue_world_refine_rivers(const RogueWorldGenConfig* cfg, RogueWorldGenCont
     return true;
 }
 
+/**
+ * @brief Applies thermal and hydraulic erosion to the tile map.
+ * @param cfg Pointer to the world generation config.
+ * @param ctx Pointer to the world generation context.
+ * @param io_map Pointer to the tile map to modify.
+ * @param thermal_passes Number of thermal erosion passes.
+ * @param hydraulic_passes Number of hydraulic erosion passes.
+ * @return True if successful, false otherwise.
+ */
 bool rogue_world_apply_erosion(const RogueWorldGenConfig* cfg, RogueWorldGenContext* ctx,
                                RogueTileMap* io_map, int thermal_passes, int hydraulic_passes)
 {
@@ -180,6 +218,12 @@ bool rogue_world_apply_erosion(const RogueWorldGenConfig* cfg, RogueWorldGenCont
     return true;
 }
 
+/**
+ * @brief Computes the average steepness metric between two tile maps.
+ * @param before Pointer to the before tile map.
+ * @param after Pointer to the after tile map.
+ * @return The average steepness metric, or 0.0 if invalid.
+ */
 double rogue_world_compute_steepness_metric(const RogueTileMap* before, const RogueTileMap* after)
 {
     if (!before || !after || before->width != after->width || before->height != after->height)
@@ -204,6 +248,14 @@ double rogue_world_compute_steepness_metric(const RogueTileMap* before, const Ro
     return samples ? (sum / samples) : 0.0;
 }
 
+/**
+ * @brief Marks potential bridge hints by counting suitable water gaps.
+ * @param cfg Pointer to the world generation config.
+ * @param map Pointer to the tile map.
+ * @param min_gap Minimum gap size for a bridge.
+ * @param max_gap Maximum gap size for a bridge.
+ * @return The number of potential bridge locations found.
+ */
 int rogue_world_mark_bridge_hints(const RogueWorldGenConfig* cfg, const RogueTileMap* map,
                                   int min_gap, int max_gap)
 {

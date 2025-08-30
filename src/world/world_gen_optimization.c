@@ -1,3 +1,13 @@
+/**
+ * @file world_gen_optimization.c
+ * @brief Handles optimization features like arena allocation, SIMD acceleration, and benchmarking
+ * for world generation.
+ * @details This module implements Phase 14: Optimization & Memory implementation, providing a
+ * transient arena allocator, optional SIMD acceleration for noise functions, and a benchmark
+ * harness. Parallel pass is stubbed with single-thread execution. Deterministic results are
+ * preserved.
+ */
+
 /* Phase 14: Optimization & Memory implementation
  * Provides transient arena allocator, optional SIMD acceleration for value noise/fbm, and a
  * benchmark harness. Parallel pass is stubbed with single-thread execution (future extension will
@@ -15,12 +25,23 @@ double value_noise(double x, double y);
 double fbm(double x, double y, int octaves, double lacunarity, double gain);
 
 /* -------- Arena -------- */
+
+/**
+ * @struct RogueWorldGenArena
+ * @brief A simple arena allocator for transient memory management.
+ */
 struct RogueWorldGenArena
 {
-    unsigned char* base;
-    size_t cap;
-    size_t off;
+    unsigned char* base; /**< Base pointer to the allocated memory block. */
+    size_t cap;          /**< Capacity of the arena in bytes. */
+    size_t off;          /**< Current offset in the arena. */
 };
+
+/**
+ * @brief Creates a new arena allocator.
+ * @param capacity_bytes The capacity of the arena in bytes.
+ * @return Pointer to the created arena, or NULL on failure.
+ */
 RogueWorldGenArena* rogue_worldgen_arena_create(size_t capacity_bytes)
 {
     if (capacity_bytes == 0)
@@ -38,6 +59,11 @@ RogueWorldGenArena* rogue_worldgen_arena_create(size_t capacity_bytes)
     a->off = 0;
     return a;
 }
+
+/**
+ * @brief Destroys an arena allocator and frees its memory.
+ * @param a Pointer to the arena to destroy.
+ */
 void rogue_worldgen_arena_destroy(RogueWorldGenArena* a)
 {
     if (!a)
@@ -46,6 +72,14 @@ void rogue_worldgen_arena_destroy(RogueWorldGenArena* a)
         free(a->base);
     free(a);
 }
+
+/**
+ * @brief Allocates memory from the arena with alignment.
+ * @param a Pointer to the arena.
+ * @param sz Size of the allocation in bytes.
+ * @param align Alignment requirement.
+ * @return Pointer to the allocated memory, or NULL on failure.
+ */
 void* rogue_worldgen_arena_alloc(RogueWorldGenArena* a, size_t sz, size_t align)
 {
     if (!a || !a->base)
@@ -60,27 +94,72 @@ void* rogue_worldgen_arena_alloc(RogueWorldGenArena* a, size_t sz, size_t align)
     a->off = new_off;
     return (void*) aligned;
 }
+
+/**
+ * @brief Resets the arena to allow reuse.
+ * @param a Pointer to the arena.
+ */
 void rogue_worldgen_arena_reset(RogueWorldGenArena* a)
 {
     if (a)
         a->off = 0;
 }
+
+/**
+ * @brief Gets the amount of memory used in the arena.
+ * @param a Pointer to the arena.
+ * @return The used memory in bytes.
+ */
 size_t rogue_worldgen_arena_used(const RogueWorldGenArena* a) { return a ? a->off : 0; }
+
+/**
+ * @brief Gets the capacity of the arena.
+ * @param a Pointer to the arena.
+ * @return The capacity in bytes.
+ */
 size_t rogue_worldgen_arena_capacity(const RogueWorldGenArena* a) { return a ? a->cap : 0; }
 
 /* Global optimization toggles */
+/// @brief Flag to enable SIMD optimizations.
 static int g_enable_simd = 0;
+/// @brief Flag to enable parallel processing.
 static int g_enable_parallel = 0;
+/// @brief Global arena for world generation.
 static RogueWorldGenArena* g_global_arena = NULL;
-/* Internal accessor used by other world gen units to query arena without exposing symbol */
+
+/**
+ * @brief Internal accessor for the global arena.
+ * @return Pointer to the global arena.
+ */
 RogueWorldGenArena* rogue_worldgen_internal_get_global_arena(void) { return g_global_arena; }
+
+/**
+ * @brief Checks if SIMD is enabled.
+ * @return 1 if enabled, 0 otherwise.
+ */
 int rogue_worldgen_internal_simd_enabled(void) { return g_enable_simd; }
+
+/**
+ * @brief Checks if parallel processing is enabled.
+ * @return 1 if enabled, 0 otherwise.
+ */
 int rogue_worldgen_internal_parallel_enabled(void) { return g_enable_parallel; }
+
+/**
+ * @brief Enables or disables optimizations.
+ * @param enable_simd Whether to enable SIMD.
+ * @param enable_parallel Whether to enable parallel processing.
+ */
 void rogue_worldgen_enable_optimizations(int enable_simd, int enable_parallel)
 {
     g_enable_simd = enable_simd ? 1 : 0;
     g_enable_parallel = enable_parallel ? 1 : 0;
 }
+
+/**
+ * @brief Sets the global arena.
+ * @param arena Pointer to the arena to set.
+ */
 void rogue_worldgen_set_arena(RogueWorldGenArena* arena) { g_global_arena = arena; }
 
 /* -------- SIMD (portable fallback if not available) -------- */
@@ -88,6 +167,13 @@ void rogue_worldgen_set_arena(RogueWorldGenArena* arena) { g_global_arena = aren
 #include <emmintrin.h>
 /* Vectorized value noise (deterministic): we still hash per-lane but batch arithmetic &
  * smoothstep/lerp. */
+
+/**
+ * @brief Computes value noise for 4 points using SIMD if available.
+ * @param xs Array of x coordinates.
+ * @param ys Array of y coordinates.
+ * @param out Array to store the output values.
+ */
 static void value_noise4(const double* xs, const double* ys, double* out)
 {
     __m128d x0 = _mm_loadu_pd(xs);
@@ -105,6 +191,12 @@ static void value_noise4(const double* xs, const double* ys, double* out)
     out[3] = vs[3];
 }
 #else
+/**
+ * @brief Computes value noise for 4 points (fallback scalar version).
+ * @param xs Array of x coordinates.
+ * @param ys Array of y coordinates.
+ * @param out Array to store the output values.
+ */
 static void value_noise4(const double* xs, const double* ys, double* out)
 {
     for (int i = 0; i < 4; i++)
@@ -113,6 +205,16 @@ static void value_noise4(const double* xs, const double* ys, double* out)
 #endif
 
 /* SIMD accelerated (batched) fbm sampling for benchmark; returns average to avoid optimizing away.
+ */
+
+/**
+ * @brief Computes FBM over a grid using SIMD acceleration.
+ * @param w Width of the grid.
+ * @param h Height of the grid.
+ * @param oct Number of octaves.
+ * @param lac Lacunarity.
+ * @param gain Gain.
+ * @return The average FBM value.
  */
 static double fbm_simd_grid(int w, int h, int oct, double lac, double gain)
 {
@@ -160,6 +262,13 @@ static double fbm_simd_grid(int w, int h, int oct, double lac, double gain)
     return sum / (double) (w * h);
 }
 
+/**
+ * @brief Runs a noise benchmark comparing scalar and SIMD performance.
+ * @param width Width of the benchmark grid.
+ * @param height Height of the benchmark grid.
+ * @param out_bench Pointer to store the benchmark results.
+ * @return 1 on success, 0 on failure.
+ */
 int rogue_worldgen_run_noise_benchmark(int width, int height, RogueWorldGenBenchmark* out_bench)
 {
     if (!out_bench || width <= 0 || height <= 0)

@@ -1,14 +1,36 @@
+/**
+ * @file world_gen_spawns.c
+ * @brief Handles spawn table registration, density map building, and sampling for world generation.
+ * @details This module implements Phase 8: Fauna & Spawn Ecology, managing spawn tables for
+ * different biomes, building density maps based on tile types, and sampling spawns with rarity
+ * considerations.
+ */
+
 /* Phase 8: Fauna & Spawn Ecology Implementation */
 #include "world_gen.h"
 #include <stdlib.h>
 #include <string.h>
 
+/** @def MAX_SPAWN_TABLES
+ * @brief Maximum number of spawn tables that can be registered.
+ */
 #define MAX_SPAWN_TABLES 32
+
+/// @brief Global array of registered spawn tables.
 static RogueSpawnTable g_spawn_tables[MAX_SPAWN_TABLES];
+/// @brief Current count of registered spawn tables.
 static int g_spawn_table_count = 0;
 
+/**
+ * @brief Clears all registered spawn tables.
+ */
 void rogue_spawn_clear_tables(void) { g_spawn_table_count = 0; }
 
+/**
+ * @brief Registers a new spawn table.
+ * @param table Pointer to the spawn table to register.
+ * @return The index of the registered table, or -1 on failure.
+ */
 int rogue_spawn_register_table(const RogueSpawnTable* table)
 {
     if (!table || table->entry_count <= 0 || table->entry_count > 16)
@@ -19,6 +41,11 @@ int rogue_spawn_register_table(const RogueSpawnTable* table)
     return g_spawn_table_count++;
 }
 
+/**
+ * @brief Retrieves the spawn table for a given tile type.
+ * @param tile_type The tile type to look up.
+ * @return Pointer to the spawn table, or NULL if not found.
+ */
 const RogueSpawnTable* rogue_spawn_get_table_for_tile(int tile_type)
 {
     for (int i = 0; i < g_spawn_table_count; i++)
@@ -29,6 +56,12 @@ const RogueSpawnTable* rogue_spawn_get_table_for_tile(int tile_type)
     return NULL;
 }
 
+/**
+ * @brief Builds a spawn density map based on the tile map.
+ * @param map Pointer to the tile map.
+ * @param out_dm Pointer to the output density map.
+ * @return True if successful, false otherwise.
+ */
 bool rogue_spawn_build_density(const RogueTileMap* map, RogueSpawnDensityMap* out_dm)
 {
     if (!map || !out_dm)
@@ -94,6 +127,10 @@ bool rogue_spawn_build_density(const RogueTileMap* map, RogueSpawnDensityMap* ou
     return true;
 }
 
+/**
+ * @brief Frees the memory allocated for the spawn density map.
+ * @param dm Pointer to the density map to free.
+ */
 void rogue_spawn_free_density(RogueSpawnDensityMap* dm)
 {
     if (!dm)
@@ -102,6 +139,13 @@ void rogue_spawn_free_density(RogueSpawnDensityMap* dm)
     dm->density = NULL;
 }
 
+/**
+ * @brief Applies hub suppression to the spawn density map.
+ * @param dm Pointer to the density map.
+ * @param hub_x X-coordinate of the hub.
+ * @param hub_y Y-coordinate of the hub.
+ * @param radius Suppression radius.
+ */
 void rogue_spawn_apply_hub_suppression(RogueSpawnDensityMap* dm, int hub_x, int hub_y, int radius)
 {
     if (!dm || !dm->density || radius <= 0)
@@ -130,6 +174,14 @@ void rogue_spawn_apply_hub_suppression(RogueSpawnDensityMap* dm, int hub_x, int 
         }
 }
 
+/**
+ * @brief Chooses a weighted random entry from the spawn entries.
+ * @param ch Pointer to the RNG channel.
+ * @param entries Array of spawn entries.
+ * @param count Number of entries.
+ * @param rare Whether to use rare weights.
+ * @return Index of the chosen entry, or -1 if none.
+ */
 static int choose_weighted(RogueRngChannel* ch, const RogueSpawnEntry* entries, int count, int rare)
 {
     int total = 0;
@@ -151,6 +203,18 @@ static int choose_weighted(RogueRngChannel* ch, const RogueSpawnEntry* entries, 
     return -1;
 }
 
+/**
+ * @brief Samples a spawn at the given position.
+ * @param ctx Pointer to the world generation context.
+ * @param dm Pointer to the density map.
+ * @param map Pointer to the tile map.
+ * @param x X-coordinate.
+ * @param y Y-coordinate.
+ * @param out_id Buffer to store the spawn ID.
+ * @param id_cap Capacity of the out_id buffer.
+ * @param out_is_rare Pointer to store whether the spawn is rare.
+ * @return 1 if a spawn was sampled, 0 otherwise.
+ */
 int rogue_spawn_sample(RogueWorldGenContext* ctx, const RogueSpawnDensityMap* dm,
                        const RogueTileMap* map, int x, int y, char* out_id, size_t id_cap,
                        int* out_is_rare)

@@ -1,12 +1,30 @@
+/**
+ * @file world_gen_resources.c
+ * @brief Handles resource node registration, generation, and placement for world generation.
+ * @details This module implements Phase 9: Resource Nodes Implementation, managing resource
+ * descriptors, generating clusters of resource nodes based on biomes, and handling upgrades.
+ */
+
 /* Phase 9: Resource Nodes Implementation */
 #include "world_gen.h"
 #include <stdlib.h>
 #include <string.h>
 
+/** @def MAX_RESOURCE_DESCS
+ * @brief Maximum number of resource descriptors that can be registered.
+ */
 #define MAX_RESOURCE_DESCS 64
+
+/// @brief Global array of registered resource node descriptors.
 static RogueResourceNodeDesc g_resource_descs[MAX_RESOURCE_DESCS];
+/// @brief Current count of registered resource node descriptors.
 static int g_resource_desc_count = 0;
 
+/**
+ * @brief Registers a new resource node descriptor.
+ * @param d Pointer to the descriptor to register.
+ * @return The index of the registered descriptor, or -1 on failure.
+ */
 int rogue_resource_register(const RogueResourceNodeDesc* d)
 {
     if (!d || d->yield_min < 0 || d->yield_max < d->yield_min ||
@@ -15,8 +33,23 @@ int rogue_resource_register(const RogueResourceNodeDesc* d)
     g_resource_descs[g_resource_desc_count] = *d;
     return g_resource_desc_count++;
 }
+
+/**
+ * @brief Clears the resource descriptor registry.
+ */
 void rogue_resource_clear_registry(void) { g_resource_desc_count = 0; }
+
+/**
+ * @brief Gets the count of registered resource descriptors.
+ * @return The number of registered descriptors.
+ */
 int rogue_resource_registry_count(void) { return g_resource_desc_count; }
+
+/**
+ * @brief Retrieves a resource descriptor by index.
+ * @param idx The index of the descriptor.
+ * @return Pointer to the descriptor, or NULL if invalid.
+ */
 static const RogueResourceNodeDesc* rogue_resource_get(int idx)
 {
     if (idx < 0 || idx >= g_resource_desc_count)
@@ -24,6 +57,11 @@ static const RogueResourceNodeDesc* rogue_resource_get(int idx)
     return &g_resource_descs[idx];
 }
 
+/**
+ * @brief Gets the biome bitmask for a given tile type.
+ * @param t The tile type.
+ * @return The biome bitmask.
+ */
 static int biome_bit_for_tile(int t)
 {
     switch (t)
@@ -43,8 +81,25 @@ static int biome_bit_for_tile(int t)
     }
 }
 
+/**
+ * @brief Generates a random unsigned 32-bit integer from the RNG channel.
+ * @param ch Pointer to the RNG channel.
+ * @return A random unsigned 32-bit integer.
+ */
 static unsigned int rand_u32(RogueRngChannel* ch) { return rogue_worldgen_rand_u32(ch); }
 
+/**
+ * @brief Generates resource node placements in clusters.
+ * @param cfg Pointer to the world generation config.
+ * @param ctx Pointer to the world generation context.
+ * @param map Pointer to the tile map.
+ * @param out_array Array to store the placements.
+ * @param max_out Maximum number of placements to generate.
+ * @param cluster_attempts Number of attempts to find a seed tile.
+ * @param cluster_radius Radius of each cluster.
+ * @param base_clusters Number of base clusters to generate.
+ * @return The number of placements generated.
+ */
 int rogue_resource_generate(const RogueWorldGenConfig* cfg, RogueWorldGenContext* ctx,
                             const RogueTileMap* map, RogueResourceNodePlacement* out_array,
                             int max_out, int cluster_attempts, int cluster_radius,
@@ -127,6 +182,12 @@ int rogue_resource_generate(const RogueWorldGenConfig* cfg, RogueWorldGenContext
     return placed;
 }
 
+/**
+ * @brief Counts the number of upgraded resource nodes in an array.
+ * @param nodes Pointer to the array of placements.
+ * @param count Number of placements in the array.
+ * @return The number of upgraded nodes.
+ */
 int rogue_resource_upgrade_count(const RogueResourceNodePlacement* nodes, int count)
 {
     int c = 0;

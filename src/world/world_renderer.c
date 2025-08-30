@@ -1,3 +1,12 @@
+/**
+ * @file world_renderer.c
+ * @brief Handles rendering of the game world, including tiles and items.
+ *
+ * This module provides functions to render the world map tiles and item instances
+ * on the screen, taking into account camera position, viewport, and rendering
+ * optimizations like sprite batching.
+ */
+
 #include "world_renderer.h"
 #include "../core/app/app_state.h"
 #include "../core/loot/loot_instances.h"
@@ -8,6 +17,15 @@
 #include <SDL.h>
 #endif
 
+/**
+ * @brief Renders the world map tiles within the current viewport.
+ *
+ * This function calculates the visible tile range based on camera position and viewport size,
+ * then renders tiles using either the sprite lookup table or fallback color rendering.
+ * It optimizes rendering by batching identical sprites in horizontal runs.
+ *
+ * @note Requires SDL if ROGUE_HAVE_SDL is defined; otherwise, uses headless sprite drawing.
+ */
 void rogue_world_render_tiles(void)
 {
 #ifdef ROGUE_HAVE_SDL
@@ -106,6 +124,15 @@ void rogue_world_render_tiles(void)
     }
 }
 
+/**
+ * @brief Renders active item instances on the world map.
+ *
+ * This function iterates through item instances and renders them as colored rectangles
+ * based on their rarity, with an optional outline for visual enhancement.
+ * Hidden or filtered items are skipped.
+ *
+ * @note Requires SDL if ROGUE_HAVE_SDL is defined; otherwise, no rendering occurs.
+ */
 void rogue_world_render_items(void)
 {
 #ifdef ROGUE_HAVE_SDL

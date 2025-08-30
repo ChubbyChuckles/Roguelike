@@ -1,19 +1,41 @@
-/* Phase 10: Weather & Environmental Simulation Implementation */
+/**
+ * @file world_gen_weather.c
+ * @brief Implements weather pattern simulation for world generation.
+ *
+ * This module handles registration, selection, and simulation of weather patterns
+ * based on biome masks and weights. It provides functions for initializing,
+ * updating, and sampling weather effects like lighting and movement penalties.
+ * Phase 10: Weather & Environmental Simulation Implementation
+ */
+
 #include "world_gen.h"
 #include <string.h>
 
 #ifndef ROGUE_MAX_WEATHER_PATTERNS
+/**
+ * @brief Maximum number of weather patterns that can be registered.
+ */
 #define ROGUE_MAX_WEATHER_PATTERNS 32
 #endif
 
+/**
+ * @brief Internal registry entry for a weather pattern.
+ */
 typedef struct RogueWeatherRegistryEntry
 {
-    RogueWeatherPatternDesc desc;
+    RogueWeatherPatternDesc desc; /**< Description of the weather pattern. */
 } RogueWeatherRegistryEntry;
 
 static RogueWeatherRegistryEntry g_weather_registry[ROGUE_MAX_WEATHER_PATTERNS];
 static int g_weather_registry_count = 0;
 
+/**
+ * @brief Safely copies a string into a buffer with size limit.
+ *
+ * @param dst Destination buffer.
+ * @param cap Capacity of the destination buffer.
+ * @param src Source string.
+ */
 static void safe_copy(char* dst, size_t cap, const char* src)
 {
     if (cap == 0)
@@ -24,6 +46,12 @@ static void safe_copy(char* dst, size_t cap, const char* src)
     dst[i] = '\0';
 }
 
+/**
+ * @brief Registers a new weather pattern in the global registry.
+ *
+ * @param d Pointer to the weather pattern description.
+ * @return Index of the registered pattern, or -1 on failure.
+ */
 int rogue_weather_register(const RogueWeatherPatternDesc* d)
 {
     if (!d || g_weather_registry_count >= ROGUE_MAX_WEATHER_PATTERNS)
@@ -34,13 +62,28 @@ int rogue_weather_register(const RogueWeatherPatternDesc* d)
     return g_weather_registry_count++;
 }
 
+/**
+ * @brief Clears the weather pattern registry.
+ */
 void rogue_weather_clear_registry(void) { g_weather_registry_count = 0; }
+
+/**
+ * @brief Returns the number of registered weather patterns.
+ *
+ * @return Number of patterns in the registry.
+ */
 int rogue_weather_registry_count(void) { return g_weather_registry_count; }
 
 static unsigned int rng_u32(RogueRngChannel* ch) { return rogue_worldgen_rand_u32(ch); }
 static float rng_norm(RogueRngChannel* ch) { return (float) rogue_worldgen_rand_norm(ch); }
 
-/* Select a weather pattern weighted by (base_weight * biome_mask inclusion) */
+/**
+ * @brief Selects a weather pattern weighted by base weight and biome inclusion.
+ *
+ * @param ctx World generation context.
+ * @param biome_id ID of the current biome.
+ * @return Index of the selected pattern, or -1 if none available.
+ */
 static int select_pattern(RogueWorldGenContext* ctx, int biome_id)
 {
     if (g_weather_registry_count == 0)
@@ -79,6 +122,13 @@ static int select_pattern(RogueWorldGenContext* ctx, int biome_id)
     return g_weather_registry_count - 1;
 }
 
+/**
+ * @brief Initializes the active weather state.
+ *
+ * @param ctx World generation context.
+ * @param state Pointer to the active weather state to initialize.
+ * @return 1 on success, 0 on failure.
+ */
 int rogue_weather_init(RogueWorldGenContext* ctx, RogueActiveWeather* state)
 {
     if (!ctx || !state)
@@ -90,6 +140,15 @@ int rogue_weather_init(RogueWorldGenContext* ctx, RogueActiveWeather* state)
     return 1;
 }
 
+/**
+ * @brief Updates the weather state over a number of ticks.
+ *
+ * @param ctx World generation context.
+ * @param state Pointer to the active weather state.
+ * @param ticks Number of ticks to advance.
+ * @param biome_id ID of the current biome.
+ * @return Index of the new pattern if changed, -1 otherwise.
+ */
 int rogue_weather_update(RogueWorldGenContext* ctx, RogueActiveWeather* state, int ticks,
                          int biome_id)
 {
@@ -145,6 +204,14 @@ int rogue_weather_update(RogueWorldGenContext* ctx, RogueActiveWeather* state, i
     return changed;
 }
 
+/**
+ * @brief Samples the lighting color based on current weather intensity.
+ *
+ * @param state Pointer to the active weather state.
+ * @param r Pointer to red component.
+ * @param g Pointer to green component.
+ * @param b Pointer to blue component.
+ */
 void rogue_weather_sample_lighting(const RogueActiveWeather* state, unsigned char* r,
                                    unsigned char* g, unsigned char* b)
 {
@@ -162,6 +229,12 @@ void rogue_weather_sample_lighting(const RogueActiveWeather* state, unsigned cha
     *b = (unsigned char) (val + (unsigned char) (20 * state->intensity));
 }
 
+/**
+ * @brief Computes the movement speed factor based on weather intensity.
+ *
+ * @param state Pointer to the active weather state.
+ * @return Movement factor (1.0 = normal, lower = slower).
+ */
 float rogue_weather_movement_factor(const RogueActiveWeather* state)
 {
     if (!state)

@@ -1,8 +1,22 @@
-/* Phase 12: Telemetry & Analytics Implementation */
+/**
+ * @file world_gen_telemetry.c
+ * @brief Handles telemetry and metrics collection for world generation.
+ *
+ * This module provides functions to collect metrics from generated tile maps,
+ * detect anomalies, and export data for analysis. Phase 12: Telemetry & Analytics Implementation
+ */
+
 #include "tilemap.h"
 #include "world_gen.h"
 #include <string.h>
 
+/**
+ * @brief Collects metrics from a tile map and detects anomalies.
+ *
+ * @param map Pointer to the tile map to analyze.
+ * @param out_m Pointer to the output metrics structure.
+ * @return 1 on success, 0 on failure.
+ */
 int rogue_world_metrics_collect(const RogueTileMap* map, RogueWorldGenMetrics* out_m)
 {
     if (!map || !out_m)
@@ -41,6 +55,15 @@ int rogue_world_metrics_collect(const RogueTileMap* map, RogueWorldGenMetrics* o
     return 1;
 }
 
+/**
+ * @brief Helper function to copy a token into a buffer with comma separation.
+ *
+ * @param dst Destination buffer.
+ * @param cap Capacity of the buffer.
+ * @param pos Current position in the buffer.
+ * @param first Flag indicating if this is the first token.
+ * @param token Token to copy.
+ */
 static void copy_token(char* dst, size_t cap, size_t* pos, int* first, const char* token)
 {
     if (!dst || !token)
@@ -65,6 +88,14 @@ static void copy_token(char* dst, size_t cap, size_t* pos, int* first, const cha
     }
     *first = 0;
 }
+
+/**
+ * @brief Generates a comma-separated list of anomaly names from metrics.
+ *
+ * @param m Pointer to the metrics structure.
+ * @param buf Output buffer for the list.
+ * @param cap Capacity of the output buffer.
+ */
 void rogue_world_metrics_anomaly_list(const RogueWorldGenMetrics* m, char* buf, size_t cap)
 {
     if (!buf || cap == 0)
@@ -86,6 +117,14 @@ void rogue_world_metrics_anomaly_list(const RogueWorldGenMetrics* m, char* buf, 
     }
 }
 
+/**
+ * @brief Exports the biome heatmap from a tile map.
+ *
+ * @param map Pointer to the tile map.
+ * @param out Output buffer for the heatmap data.
+ * @param cap Capacity of the output buffer.
+ * @return 1 on success, 0 on failure.
+ */
 int rogue_world_export_biome_heatmap(const RogueTileMap* map, unsigned char* out, size_t cap)
 {
     if (!map || !out)
