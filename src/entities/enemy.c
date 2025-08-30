@@ -29,6 +29,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Global flag to allow tests/headless validation to skip texture/sprite loading */
+int g_enemy_loader_skip_textures = 0;
+
 /* --- JSON Directory Loader (Phase: Enemy Integration) --- */
 /**
  * @brief Reads an entire file into memory with size limits.
@@ -371,17 +374,21 @@ static int load_enemy_json_file(const char* path, RogueEnemyTypeDef* out)
     json_find_int(buf, "\"tier_id\"", &out->tier_id);
     json_find_int(buf, "\"archetype_id\"", &out->archetype_id);
     char idlep[128] = "", runp[128] = "", deathp[128] = "";
+    extern int g_enemy_loader_skip_textures; /* use file-scope flag */
     if (json_find_string(buf, "\"idle_sheet\"", idlep, sizeof idlep))
     {
-        load_sheet(idlep, &out->idle_tex, out->idle_frames, &out->idle_count);
+        if (!g_enemy_loader_skip_textures)
+            load_sheet(idlep, &out->idle_tex, out->idle_frames, &out->idle_count);
     }
     if (json_find_string(buf, "\"run_sheet\"", runp, sizeof runp))
     {
-        load_sheet(runp, &out->run_tex, out->run_frames, &out->run_count);
+        if (!g_enemy_loader_skip_textures)
+            load_sheet(runp, &out->run_tex, out->run_frames, &out->run_count);
     }
     if (json_find_string(buf, "\"death_sheet\"", deathp, sizeof deathp))
     {
-        load_sheet(deathp, &out->death_tex, out->death_frames, &out->death_count);
+        if (!g_enemy_loader_skip_textures)
+            load_sheet(deathp, &out->death_tex, out->death_frames, &out->death_count);
     }
     free(buf);
     return 1;
@@ -702,4 +709,11 @@ int rogue_enemy_load_config(const char* path, RogueEnemyTypeDef types[], int* in
     }
     *inout_type_count = loaded;
     return loaded > 0;
+}
+
+/* Expose a simple setter to skip texture loads in headless/schema validation runs */
+void rogue_enemy_loader_set_skip_textures(int skip)
+{
+    extern int g_enemy_loader_skip_textures;
+    g_enemy_loader_skip_textures = (skip ? 1 : 0);
 }

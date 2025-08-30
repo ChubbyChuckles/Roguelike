@@ -253,6 +253,8 @@ add_library(rogue_core
     src/ai/perception/perception.c
     src/ai/pathing/flow_field.c
     src/ai/pathing/local_avoidance.c
+    # debug entity APIs for overlay/tests
+    src/core/entities/entity_debug.c
     src/game/start_screen.c
     src/game/localization.c
     src/core/player/player_assets.c
@@ -444,9 +446,16 @@ target_include_directories(rogue_debug_overlay PUBLIC ${CMAKE_CURRENT_SOURCE_DIR
 add_library(rogue_content_json OBJECT
     src/content/json_io.c
     src/content/json_envelope.c
+    src/content/schema_entities.c
 )
 target_include_directories(rogue_content_json PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_definitions(rogue_content_json PUBLIC ROGUE_ENABLE_JSON_CONTENT=$<IF:$<BOOL:${ROGUE_ENABLE_JSON_CONTENT}>,1,0>)
+if(ROGUE_ENABLE_SDL)
+    # Ensure consistent struct layouts across TUs that include SDL-conditional types (e.g., RogueTexture)
+    target_compile_definitions(rogue_content_json PUBLIC ROGUE_HAVE_SDL=1)
+    # Propagate SDL include dirs/defines so SDL.h is available to this OBJECT lib during compilation
+    target_link_libraries(rogue_content_json PUBLIC SDL2::SDL2)
+endif()
 
 # Vendored cJSON stub/library (replace with real cJSON later)
 add_library(rogue_thirdparty_cjson STATIC
@@ -754,6 +763,14 @@ add_test(NAME test_json_io COMMAND test_json_io)
 add_executable(test_json_envelope tests/test_json_envelope.c)
 target_link_libraries(test_json_envelope PRIVATE rogue_core)
 add_test(NAME test_json_envelope COMMAND test_json_envelope)
+
+# Entities schema validation test
+add_executable(test_entity_schema tests/unit/test_entity_schema.c)
+target_link_libraries(test_entity_schema PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_entity_schema PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_entity_schema COMMAND test_entity_schema)
 
 add_executable(test_skills_ordering_invariance tests/unit/test_skills_ordering_invariance.c)
 target_link_libraries(test_skills_ordering_invariance PRIVATE rogue_core)

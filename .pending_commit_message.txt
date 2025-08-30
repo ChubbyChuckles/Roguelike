@@ -63,3 +63,19 @@ roadmap(overlay): mark caret/input tests Done; record full-suite count
 - Phase 5.5 updated to Done with explicit caret edge-case coverage and test names.
 - Phase 6.5 updated to Done referencing `test_player_debug_api.c` (clamps/derived recompute + god-mode bypass) and input capture validation.
 - CI validation section updated to note 564/564 passing in Debug (SDL2, -j12).
+
+feat(debug overlay/entities): Entity Inspector panel + headless-safe APIs and tests
+
+- Add Entities panel to the debug overlay with selection and actions: Kill, Teleport to Player, Spawn at Player.
+- Implement src/core/entities/entity_debug.{h,c} providing list/get/teleport/kill/spawn APIs over g_app.enemies.
+- New unit tests/unit/test_entity_debug_api.c verifies spawn/list/get/teleport/kill; ensures g_app.enemy_type_count precondition is set for spawns.
+- Rebuilt Debug with SDL2 and -j12; ran full test suite via ctest -C Debug -j12 --output-on-failure -> 100% pass (565/565).
+- Roadmap updated: Phase 8.3/8.4 Done; 8.5 Partial with schema tests deferred. README documents the Entities panel.
+
+feat(content/entities): Phase 8.1/8.2 – entity schema and headless validator; stabilize full suite
+
+- Implement `src/content/schema_entities.{h,c}` defining a strict schema for enemy type defs (id, name, group bounds, patrol/aggro radii, speed, pop_target, xp_reward, loot_chance, base_level_offset, tier_id, archetype_id; optional texture paths).
+- Add headless unit `tests/unit/test_entity_schema.c` that skips texture loads, loads enemy types from assets, and validates each entry against the schema with detailed diagnostics on failure.
+- Build system: ensure SDL compile definitions/headers propagate to the content schema objects to avoid cross‑TU layout mismatches in `RogueEnemyTypeDef`.
+- Run full Debug suite with SDL2 and parallelism (-j12): 100% pass (566/566). The prior intermittent save-manager test passes consistently; no serialization needed.
+- Roadmap: mark Phase 8.1/8.2 Done and 8.5 Tests Done (entity schema + inspector operations). README updated with validator note and CI count 566/566.

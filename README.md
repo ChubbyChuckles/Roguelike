@@ -57,7 +57,7 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 	- Run tests: ctest -C Debug -j12 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 - Loaders are resilient to working directories: asset/doc paths like `assets/...` are resolved via internal fallbacks so tests can run from build/tests subfolders.
 Notes:
-- Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (564/564).
+- Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (566/566).
 	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir). Default is off for quiet CI.
 
 ### Build flags and modules
@@ -103,6 +103,12 @@ Overlay panels:
 	- JSON overrides integration: Save and Load buttons persist skill overrides to/from `build/skills_overrides.json`.
 	- Auto-load on startup: set `ROGUE_SKILL_OVERRIDES` to point at an overrides JSON file; when unset, the app attempts `build/skills_overrides.json`.
 	- Implementation uses atomic write helpers from json_io; manual edits to the file can be loaded live via the panel's Load button.
+
+- Entities panel (new): quick inspector for runtime enemies.
+	- Lists current enemies with id, alive flag, and position; select a row to target.
+	- Actions: Kill, Teleport to Player, and Spawn at Player. Useful for triaging combat/AI.
+	- Backed by headless-safe APIs in `src/core/entities/entity_debug.{h,c}` and covered by unit test `tests/unit/test_entity_debug_api.c`.
+	- Content validation: a headless schema validator lives in `src/content/schema_entities.{h,c}` with a unit `tests/unit/test_entity_schema.c` that loads enemy type defs from assets and validates fields like group bounds, radii, speed, XP, and loot chance.
 
 Data I/O utilities (for upcoming content schemas):
 - json_io: read whole file, atomic write (temp + replace), and file mtime in ms; all return detailed errors via char* buffers.

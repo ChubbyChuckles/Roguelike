@@ -111,6 +111,9 @@ int rogue_enemy_load_config(const char* path, RogueEnemyTypeDef types[], int* in
 int rogue_enemy_types_load_directory_json(const char* dir_path, RogueEnemyTypeDef types[],
                                           int max_types, int* out_count);
 
+/* Loader configuration: allow tests/headless runs to skip texture loading */
+void rogue_enemy_loader_set_skip_textures(int skip);
+
 /* AI Behavior Tree integration API */
 void rogue_enemy_ai_bt_enable(struct RogueEnemy* e);
 void rogue_enemy_ai_bt_disable(struct RogueEnemy* e);

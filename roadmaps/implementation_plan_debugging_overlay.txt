@@ -21,10 +21,12 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 
 CI VALIDATION (current)
 - Overlay core/input/widgets/panels compile clean under Debug with SDL2.
-- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%) (564/564).
+- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%) (566/566).
 - Player Debug Panel and headless-safe player_debug APIs integrated; god mode is honored in melee mitigation path; noclip flag plumbed in app state. Rebuild and full test run reconfirmed green.
 - Start Screen corrupt-header gating verified via unit test and in the full run; logging defaults to WARN to keep CI output quiet.
 - Audio/VFX refactor: legacy monolith (effects.c) fully split into modular fx_bus.c, fx_audio.c, fx_vfx.c, fx_rng.c and the monolithic file removed; public API in effects.h unchanged.
+- Entities Inspector and headless-safe entity_debug APIs compile and are covered by a new unit test; overlay wiring verified by build, and test validates spawn/list/get/teleport/kill operations.
+ - Entities content schema validator added (`schema_entities.{h,c}`) with a headless unit (`test_entity_schema`) validating enemy type definitions from assets; green in full suite.
 
 PHASE 1. Project Setup & Build Integration
 1.1 Add build flags: ROGUE_ENABLE_DEBUG_OVERLAY, ROGUE_ENABLE_JSON_CONTENT (Done – both flags added and propagated via CMake)
@@ -76,11 +78,11 @@ PHASE 7. Skills Manager Panel
 7.5 Tests: skill CRUD operations, JSON roundtrip, simulation accuracy (Partial – new unit test tests/unit/test_skill_debug_api.c validates list/get/set and simulate wrapper)
 
 PHASE 8. Entity Inspector Panel
-8.1 Design entities.json schema: id, name, base_stats, ai, drops (X)
-8.2 Implement schema_entities.h/.c: load/parse/validate/save functions (X)
-8.3 Add Entity Inspector Panel: table view with filters, kill/spawn/teleport (X)
-8.4 Create entity_debug.h/.c APIs: list/get/kill/spawn functions (X)
-8.5 Tests: entity schema validation, inspector operations, spawn/kill effects (X)
+8.1 Design entities.json schema: id, name, group_min, group_max, patrol_radius, aggro_radius, speed, pop_target, xp_reward, loot_chance, base_level_offset, tier_id, archetype_id, optional texture path strings (Done – allow additional fields for now)
+8.2 Implement schema_entities.h/.c: build schema and validate enemy type definitions (Done – save helpers TBD)
+8.3 Add Entity Inspector Panel: table view with filters, kill/spawn/teleport (Done – initial panel wired; lists enemies, selection, Kill, Teleport to Player, and Spawn at Player actions. Headless guards respected.)
+8.4 Create entity_debug.h/.c APIs: list/get/kill/spawn functions (Done – `rogue_entity_debug_count`, `rogue_entity_debug_list`, `rogue_entity_debug_get_info`, `rogue_entity_debug_teleport`, `rogue_entity_debug_kill`, `rogue_entity_debug_spawn_at_player` implemented against `g_app.enemies`.)
+8.5 Tests: entity schema validation, inspector operations, spawn/kill effects (Done – headless units `tests/unit/test_entity_debug_api.c` and `tests/unit/test_entity_schema.c`; both green in Debug SDL2, -j12)
 
 PHASE 9. Map Editor Panel
 9.1 Design tilesets.json schema: id, tile_size, atlas, tiles array (X)
