@@ -1,6 +1,7 @@
 /* Verifies that component registration order does not affect final checksum */
 #include "../../src/core/app/app_state.h"
 #include "../../src/core/persistence/save_manager.h"
+#include "../../src/core/persistence/save_paths.h"
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -43,7 +44,7 @@ int main(void)
         printf("ORDER_FAIL save0\n");
         return 1;
     }
-    unsigned c0 = read_checksum("save_slot_0.sav");
+    unsigned c0 = read_checksum(rogue_build_slot_path(0));
 
     /* scrambled order scenario: reset and re-register (internal qsort ensures determinism) */
     rogue_save_manager_reset_for_tests();
@@ -54,7 +55,7 @@ int main(void)
         printf("ORDER_FAIL save1\n");
         return 1;
     }
-    unsigned c1 = read_checksum("save_slot_1.sav");
+    unsigned c1 = read_checksum(rogue_build_slot_path(1));
 
     if (c0 == 0 || c1 == 0)
     {

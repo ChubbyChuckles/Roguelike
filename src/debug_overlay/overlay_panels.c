@@ -3,6 +3,7 @@
 #include "../core/player/player_debug.h"
 #include "../core/skills/skill_debug.h"
 #include "../core/skills/skills_coeffs.h"
+#include "../core/world/map_debug.h"
 #include "overlay_core.h"
 #include "overlay_input.h"
 #include "overlay_widgets.h"
@@ -321,12 +322,48 @@ static void panel_entities(void* user)
     overlay_end_panel();
 }
 
+static void panel_map_editor(void* user)
+{
+    (void) user;
+    if (!overlay_begin_panel("Map Editor", 1190, 10, 360))
+        return;
+    /* Minimal scaffold: brush radius and tile value input */
+    static int brush_radius = 1;
+    static int tile_val = 1; /* default GRASS */
+    if (brush_radius < 0)
+        brush_radius = 0;
+    overlay_slider_int("Brush Radius", &brush_radius, 0, 16);
+    overlay_slider_int("Tile Value", &tile_val, 0, 255);
+    if (overlay_button("Paint 9x9 at Center"))
+    {
+        int cx = g_app.world_map.width / 2;
+        int cy = g_app.world_map.height / 2;
+        (void) rogue_map_debug_brush_square(cx, cy, brush_radius, (unsigned char) tile_val);
+    }
+    if (overlay_button("Save JSON -> build/map.json"))
+    {
+        int rc = rogue_map_debug_save_json("build/map.json");
+        char msg[64];
+        snprintf(msg, sizeof msg, "save rc=%d", rc);
+        overlay_label(msg);
+    }
+    if (overlay_button("Load JSON <- build/map.json"))
+    {
+        int rc = rogue_map_debug_load_json("build/map.json");
+        char msg[64];
+        snprintf(msg, sizeof msg, "load rc=%d", rc);
+        overlay_label(msg);
+    }
+    overlay_end_panel();
+}
+
 void rogue_overlay_register_default_panels(void)
 {
     overlay_register_panel("system", "System", panel_system, NULL);
     overlay_register_panel("player", "Player", panel_player, NULL);
     overlay_register_panel("skills", "Skills", panel_skills, NULL);
     overlay_register_panel("entities", "Entities", panel_entities, NULL);
+    overlay_register_panel("map", "Map Editor", panel_map_editor, NULL);
 }
 
 #else

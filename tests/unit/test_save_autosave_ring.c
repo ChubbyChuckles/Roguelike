@@ -1,5 +1,6 @@
 #include "../../src/core/app/app_state.h"
 #include "../../src/core/persistence/save_manager.h"
+#include "../../src/core/persistence/save_paths.h"
 #include "../../src/game/buffs.h"
 #include <assert.h>
 #include <stdio.h>
@@ -27,8 +28,7 @@ int main(void)
     int present = 0;
     for (int r = 0; r < ROGUE_AUTOSAVE_RING; r++)
     {
-        char path[64];
-        snprintf(path, sizeof path, "autosave_%d.sav", r);
+        const char* path = rogue_build_autosave_path(r);
         FILE* f = fopen(path, "rb");
         if (f)
         {

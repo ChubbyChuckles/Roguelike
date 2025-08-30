@@ -57,7 +57,7 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 	- Run tests: ctest -C Debug -j12 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 - Loaders are resilient to working directories: asset/doc paths like `assets/...` are resolved via internal fallbacks so tests can run from build/tests subfolders.
 Notes:
-- Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (567/567).
+- Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (568/568).
 	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir). Default is off for quiet CI.
 
 ### Build flags and modules
@@ -114,6 +114,18 @@ Overlay panels:
 	- Headless schema module `src/content/schema_tilesets.{h,c}` defines tilesets.json with fields: `id` (string), `tile_size` (int), `atlas` (string), and `tiles[]` array of objects `{ name, col, row }`.
 	- Legacy adapter synthesizes JSON from `assets/tiles.cfg` so existing content validates without format migration.
 	- Unit `tests/unit/test_tilesets_schema.c` validates the default assets/tiles.cfg via the schema; runs headlessly in the suite.
+
+	Map Debug and Editor foundations (Phase 9):
+	- Core APIs in `src/core/world/map_debug.{h,c}` provide simple editing and JSON persistence:
+		- `rogue_map_debug_set_tile(x, y, id)`, `rogue_map_debug_brush_square(x, y, radius, id)`, `rogue_map_debug_brush_rect(x, y, w, h, id)`
+		- `rogue_map_debug_save_json(path, err, cap)` and `rogue_map_debug_load_json(path, err, cap)` with compact RLE tiles inside `{ "w": W, "h": H, "tiles": "..." }`.
+	- Loader fixes prevent malformed literal detection and off‑by‑one pointer advance; validated by unit `tests/unit/test_map_debug.c`.
+	- A scaffolded Map Editor panel is registered in the overlay; it will surface tileset pickers, brush controls, and layer toggles in the next iterations.
+
+	Test save‑path isolation (stability under parallel ctest):
+	- Centralized builders in `src/core/persistence/save_paths.{h,c}` construct slot/autosave/backup/json/quicksave paths and create directories as needed.
+	- Tests run in isolated prefixes via `rogue_save_paths_set_prefix_tests()` which uses `ROGUE_TEST_SAVE_DIR` when set, else a per‑PID temp prefix. Persistence tests were updated to use `rogue_build_*` helpers instead of hardcoded filenames.
+	- Result: previously flaky save/analytics tests are stable under `ctest -j12`.
 
 Data I/O utilities (for upcoming content schemas):
 - json_io: read whole file, atomic write (temp + replace), and file mtime in ms; all return detailed errors via char* buffers.

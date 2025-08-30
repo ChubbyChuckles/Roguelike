@@ -150,7 +150,7 @@ int rogue_save_manager_delete_slot(int slot_index)
             return -2;
     }
     char json_path[128];
-    snprintf(json_path, sizeof json_path, "save_slot_%d.json", slot_index);
+    snprintf(json_path, sizeof json_path, "%s", rogue_build_json_path(slot_index));
     remove(json_path);
     return 0;
 }
@@ -189,6 +189,8 @@ void rogue_save_manager_reset_for_tests(void)
     g_save_last_migration_steps = 0;
     g_save_last_migration_failed = 0;
     g_save_last_migration_ms = 0.0;
+    /* Ensure test isolation for save paths */
+    rogue_save_paths_set_prefix_tests();
 }
 int rogue_save_set_debug_json(int enabled)
 {
@@ -807,16 +809,14 @@ int rogue_save_manager_save_slot(int slot_index)
     int rc = internal_save_to(build_slot_path(slot_index));
     if (rc == 0 && g_debug_json_dump)
     {
-        char json_path[128];
-        snprintf(json_path, sizeof json_path, "save_slot_%d.json", slot_index);
         char buf[2048];
         if (rogue_save_export_json(slot_index, buf, sizeof buf) == 0)
         {
             FILE* jf = NULL;
 #if defined(_MSC_VER)
-            fopen_s(&jf, json_path, "wb");
+            fopen_s(&jf, rogue_build_json_path(slot_index), "wb");
 #else
-            jf = fopen(json_path, "wb");
+            jf = fopen(rogue_build_json_path(slot_index), "wb");
 #endif
             if (jf)
             {
@@ -930,7 +930,7 @@ int rogue_save_manager_autosave(int slot_index)
         slot_index = 0;
     return internal_save_to(build_autosave_path(slot_index));
 }
-int rogue_save_manager_quicksave(void) { return internal_save_to("quicksave.sav"); }
+int rogue_save_manager_quicksave(void) { return internal_save_to(rogue_build_quicksave_path()); }
 int rogue_save_manager_set_durable(int enabled)
 {
     g_durable_writes = enabled ? 1 : 0;

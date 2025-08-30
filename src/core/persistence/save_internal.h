@@ -58,6 +58,11 @@ extern unsigned g_save_last_sections_written;
 const char* rogue_build_slot_path(int slot);
 const char* rogue_build_autosave_path(int logical);
 const char* rogue_build_backup_path(int slot, uint32_t ts);
+const char* rogue_build_json_path(int slot);
+const char* rogue_build_quicksave_path(void);
+/* Optional global prefix for save-file paths (for tests/sandboxes). */
+void rogue_save_paths_set_prefix(const char* prefix);
+void rogue_save_paths_set_prefix_tests(void);
 
 /* Internal helpers shared across compilation units */
 const RogueSaveComponent* rogue_find_component(int id);

@@ -1,5 +1,6 @@
 /* Test v9 optional signature provider (dummy) */
 #include "../../src/core/persistence/save_manager.h"
+#include "../../src/core/persistence/save_paths.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -56,9 +57,9 @@ int main(void)
     /* Now corrupt signature byte and expect tamper flag signature + error */
 #if defined(_MSC_VER)
     FILE* f = NULL;
-    fopen_s(&f, "save_slot_0.sav", "r+b");
+    fopen_s(&f, rogue_build_slot_path(0), "r+b");
 #else
-    FILE* f = fopen("save_slot_0.sav", "r+b");
+    FILE* f = fopen(rogue_build_slot_path(0), "r+b");
 #endif
     if (f)
     {

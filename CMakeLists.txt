@@ -187,6 +187,7 @@ add_library(rogue_core
     src/util/asset_config.c
     src/game/platform.c
     src/world/tile_sprite_cache.c
+    src/core/world/map_debug.c
     src/platform/platform_sdl.c
     src/graphics/renderer.c
     src/graphics/sprite.c
@@ -780,6 +781,16 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_tilesets_schema PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_tilesets_schema COMMAND test_tilesets_schema)
+
+# Map editing debug API test
+add_executable(test_map_debug tests/unit/test_map_debug.c)
+target_link_libraries(test_map_debug PRIVATE rogue_core)
+# Prevent SDL from redefining main to SDL_main for this unit test
+target_compile_definitions(test_map_debug PRIVATE SDL_MAIN_HANDLED=1)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_map_debug PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_map_debug COMMAND test_map_debug)
 
 add_executable(test_skills_ordering_invariance tests/unit/test_skills_ordering_invariance.c)
 target_link_libraries(test_skills_ordering_invariance PRIVATE rogue_core)

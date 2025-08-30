@@ -21,13 +21,15 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 
 CI VALIDATION (current)
 - Overlay core/input/widgets/panels compile clean under Debug with SDL2.
-- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%) (567/567).
+- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%) (568/568).
 - Player Debug Panel and headless-safe player_debug APIs integrated; god mode is honored in melee mitigation path; noclip flag plumbed in app state. Rebuild and full test run reconfirmed green.
 - Start Screen corrupt-header gating verified via unit test and in the full run; logging defaults to WARN to keep CI output quiet.
 - Audio/VFX refactor: legacy monolith (effects.c) fully split into modular fx_bus.c, fx_audio.c, fx_vfx.c, fx_rng.c and the monolithic file removed; public API in effects.h unchanged.
 - Entities Inspector and headless-safe entity_debug APIs compile and are covered by a new unit test; overlay wiring verified by build, and test validates spawn/list/get/teleport/kill operations.
  - Entities content schema validator added (`schema_entities.{h,c}`) with a headless unit (`test_entity_schema`) validating enemy type definitions from assets; green in full suite.
  - Tilesets content schema validator added (`schema_tilesets.{h,c}`) with a headless unit (`test_tilesets_schema`) that parses legacy `assets/tiles.cfg` to JSON and validates fields (id, tile_size, atlas, tiles[name/col/row]); integrated into build and green in full suite.
+ - Map debug JSON loader fixes landed (literal detection and pointer advance) and a new unit `test_map_debug` validates edit operations and JSON round‑trip.
+ - Persistence tests stabilized under parallel runs via centralized save path builders and per‑test isolation (env ROGUE_TEST_SAVE_DIR or per‑PID dir). All persistence/integrity units updated; full suite green.
 
 PHASE 1. Project Setup & Build Integration
 1.1 Add build flags: ROGUE_ENABLE_DEBUG_OVERLAY, ROGUE_ENABLE_JSON_CONTENT (Done – both flags added and propagated via CMake)
@@ -88,9 +90,9 @@ PHASE 8. Entity Inspector Panel
 PHASE 9. Map Editor Panel
 9.1 Design tilesets.json schema: id, tile_size, atlas, tiles array (Done – schema defined and documented in code; allows required fields and clamps ranges)
 9.2 Implement schema_tilesets.h/.c: tileset loading and validation (Done – validator implemented with legacy CFG→JSON adapter and default assets check)
-9.3 Add Map Editor Panel: tileset picker, brush size, paint/erase, layers (X)
-9.4 Create map_debug.h/.c APIs: load/save/set_tile/brush functions (X)
-9.5 Tests: tileset loading, map editing operations, save/load roundtrip (Partial – tileset validation unit `test_tilesets_schema` added; map editing ops + save/load roundtrip TBD)
+9.3 Add Map Editor Panel: tileset picker, brush size, paint/erase, layers (Partial – scaffolded panel registered; UI wiring skeleton and basic controls stubbed)
+9.4 Create map_debug.h/.c APIs: load/save/set_tile/brush functions (Done – set_tile, brush_square, brush_rect, save_json, load_json with compact RLE)
+9.5 Tests: tileset loading, map editing operations, save/load roundtrip (Done – `test_tilesets_schema` and `test_map_debug` cover validation and edit/persist round‑trip)
 
 PHASE 10. Items Manager Panel
 10.1 Add Items Manager Panel: browse items, edit stats/rarity/tags (X)

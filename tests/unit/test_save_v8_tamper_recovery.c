@@ -1,5 +1,6 @@
 /* Test v8 tamper flags and recovery */
 #include "../../src/core/persistence/save_manager.h"
+#include "../../src/core/persistence/save_paths.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,7 +56,7 @@ int main(void)
         return 1;
     }
     /* corrupt primary */
-    corrupt_file("save_slot_0.sav");
+    corrupt_file(rogue_build_slot_path(0));
     int rc = rogue_save_manager_load_slot_with_recovery(0);
     if (rc < 0)
     {

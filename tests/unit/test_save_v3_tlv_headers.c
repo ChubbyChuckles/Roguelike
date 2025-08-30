@@ -1,5 +1,6 @@
 /* Verifies v3 TLV header layout: first section uses 2-byte id + 4-byte size */
 #include "../../src/core/persistence/save_manager.h"
+#include "../../src/core/persistence/save_paths.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -23,9 +24,9 @@ int main(void)
     }
     FILE* f = NULL;
 #if defined(_MSC_VER)
-    fopen_s(&f, "save_slot_0.sav", "rb");
+    fopen_s(&f, rogue_build_slot_path(0), "rb");
 #else
-    f = fopen("save_slot_0.sav", "rb");
+    f = fopen(rogue_build_slot_path(0), "rb");
 #endif
     if (!f)
     {
