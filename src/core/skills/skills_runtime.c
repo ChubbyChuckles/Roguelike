@@ -16,6 +16,7 @@
 void rogue_effects_update(double now_ms);
 
 void rogue_effect_apply(int effect_spec_id, double now_ms);
+void rogue_effect_schedule_apply(int id, double when_ms);
 
 /* Export a deterministic hash of active buffs for analytics/replay.
    Incorporates type, magnitude, snapshot flag, and normalized remaining_ms (clamped >=0).
@@ -506,6 +507,38 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         if (def->effect_spec_id >= 0 && !(def->cast_type == 1 && def->cast_time_ms > 0))
         {
             rogue_effect_apply(def->effect_spec_id, now);
+            /* Phase 1.2: apply additional effect composition nodes at activation */
+            for (int ni = 0; ni < (int) def->effect_node_count; ++ni)
+            {
+                const int eid = def->effect_nodes[ni].effect_spec_id;
+                if (eid < 0)
+                    continue;
+                unsigned char hp_gate = def->effect_nodes[ni].require_player_health_below_pct;
+                if (hp_gate > 0)
+                {
+                    int maxhp = g_app.player.max_health > 0 ? g_app.player.max_health : 1;
+                    int cur = g_app.player.health;
+                    int pct = (int) ((cur * 100LL) / maxhp);
+                    if (pct >= (int) hp_gate)
+                        continue;
+                }
+                double t0 = now + def->effect_nodes[ni].delay_ms;
+                if (def->effect_nodes[ni].delay_ms <= 0.0f)
+                    rogue_effect_apply(eid, now);
+                else
+                    rogue_effect_schedule_apply(eid, t0);
+                int rc = def->effect_nodes[ni].repeat_count;
+                double ri = def->effect_nodes[ni].repeat_interval_ms;
+                if (rc > 0 && ri > 0.0)
+                {
+                    double t = t0 + ri;
+                    for (int r = 0; r < rc; ++r)
+                    {
+                        rogue_effect_schedule_apply(eid, t);
+                        t += ri;
+                    }
+                }
+            }
         }
         /* Combo flags: apply builder/spender semantics on successful activation. */
         if (def->combo_builder)
@@ -674,6 +707,39 @@ void rogue_skills_update(double now_ms)
                 if (def->effect_spec_id >= 0)
                 {
                     rogue_effect_apply(def->effect_spec_id, now_ms);
+                    /* Phase 1.2: also schedule additional effect nodes on cast completion */
+                    for (int ni = 0; ni < (int) def->effect_node_count; ++ni)
+                    {
+                        const int eid = def->effect_nodes[ni].effect_spec_id;
+                        if (eid < 0)
+                            continue;
+                        unsigned char hp_gate =
+                            def->effect_nodes[ni].require_player_health_below_pct;
+                        if (hp_gate > 0)
+                        {
+                            int maxhp = g_app.player.max_health > 0 ? g_app.player.max_health : 1;
+                            int cur = g_app.player.health;
+                            int pct = (int) ((cur * 100LL) / maxhp);
+                            if (pct >= (int) hp_gate)
+                                continue;
+                        }
+                        double t0 = now_ms + def->effect_nodes[ni].delay_ms;
+                        if (def->effect_nodes[ni].delay_ms <= 0.0f)
+                            rogue_effect_apply(eid, now_ms);
+                        else
+                            rogue_effect_schedule_apply(eid, t0);
+                        int rc = def->effect_nodes[ni].repeat_count;
+                        double ri = def->effect_nodes[ni].repeat_interval_ms;
+                        if (rc > 0 && ri > 0.0)
+                        {
+                            double t = t0 + ri;
+                            for (int r = 0; r < rc; ++r)
+                            {
+                                rogue_effect_schedule_apply(eid, t);
+                                t += ri;
+                            }
+                        }
+                    }
                 }
                 /* Refund on cast-complete based on outcome flags (miss/resist). */
                 if (act_flags & (ROGUE_ACT_MISSED | ROGUE_ACT_RESISTED))
@@ -766,6 +832,39 @@ void rogue_skills_update(double now_ms)
                 if (def->effect_spec_id >= 0)
                 {
                     rogue_effect_apply(def->effect_spec_id, st->channel_next_tick_ms);
+                    /* Phase 1.2: schedule additional effect nodes on channel ticks */
+                    for (int ni = 0; ni < (int) def->effect_node_count; ++ni)
+                    {
+                        const int eid = def->effect_nodes[ni].effect_spec_id;
+                        if (eid < 0)
+                            continue;
+                        unsigned char hp_gate =
+                            def->effect_nodes[ni].require_player_health_below_pct;
+                        if (hp_gate > 0)
+                        {
+                            int maxhp = g_app.player.max_health > 0 ? g_app.player.max_health : 1;
+                            int cur = g_app.player.health;
+                            int pct = (int) ((cur * 100LL) / maxhp);
+                            if (pct >= (int) hp_gate)
+                                continue;
+                        }
+                        double t0 = st->channel_next_tick_ms + def->effect_nodes[ni].delay_ms;
+                        if (def->effect_nodes[ni].delay_ms <= 0.0f)
+                            rogue_effect_apply(eid, st->channel_next_tick_ms);
+                        else
+                            rogue_effect_schedule_apply(eid, t0);
+                        int rc = def->effect_nodes[ni].repeat_count;
+                        double ri = def->effect_nodes[ni].repeat_interval_ms;
+                        if (rc > 0 && ri > 0.0)
+                        {
+                            double t = t0 + ri;
+                            for (int r = 0; r < rc; ++r)
+                            {
+                                rogue_effect_schedule_apply(eid, t);
+                                t += ri;
+                            }
+                        }
+                    }
                 }
                 /* Phase 7.1: publish channel tick event */
                 {

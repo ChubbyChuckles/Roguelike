@@ -155,6 +155,14 @@ static void push_event(int effect_id, double when_ms)
     g_event_count++;
 }
 
+void rogue_effect_schedule_apply(int id, double when_ms)
+{
+    /* Validate id early; keep behavior consistent with rogue_effect_apply. */
+    if (!rogue_effect_get(id))
+        return;
+    push_event(id, when_ms);
+}
+
 void rogue_effect_reset(void)
 {
     free(g_effect_specs);

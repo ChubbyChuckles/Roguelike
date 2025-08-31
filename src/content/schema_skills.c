@@ -36,6 +36,64 @@ static RogueJsonValue* skilldef_to_json(const RogueSkillDef* d)
     json_object_set(obj, "combo_builder", json_create_integer(d->combo_builder));
     json_object_set(obj, "combo_spender", json_create_integer(d->combo_spender));
     json_object_set(obj, "effect_spec_id", json_create_integer(d->effect_spec_id));
+    /* Phase 1.2 – Effect composition nodes (optional) */
+    if (d->effect_node_count > 0)
+    {
+        if (d->effect_nodes[0].effect_spec_id >= 0)
+            json_object_set(obj, "effect2_spec_id",
+                            json_create_integer(d->effect_nodes[0].effect_spec_id));
+        if (d->effect_nodes[0].delay_ms != 0.0f)
+            json_object_set(obj, "effect2_delay_ms",
+                            json_create_number(d->effect_nodes[0].delay_ms));
+        if (d->effect_nodes[0].repeat_count)
+            json_object_set(obj, "effect2_repeat_count",
+                            json_create_integer(d->effect_nodes[0].repeat_count));
+        if (d->effect_nodes[0].repeat_interval_ms != 0.0f)
+            json_object_set(obj, "effect2_repeat_interval_ms",
+                            json_create_number(d->effect_nodes[0].repeat_interval_ms));
+        if (d->effect_nodes[0].require_player_health_below_pct)
+            json_object_set(
+                obj, "effect2_require_player_health_below_pct",
+                json_create_integer(d->effect_nodes[0].require_player_health_below_pct));
+    }
+    if (d->effect_node_count > 1)
+    {
+        if (d->effect_nodes[1].effect_spec_id >= 0)
+            json_object_set(obj, "effect3_spec_id",
+                            json_create_integer(d->effect_nodes[1].effect_spec_id));
+        if (d->effect_nodes[1].delay_ms != 0.0f)
+            json_object_set(obj, "effect3_delay_ms",
+                            json_create_number(d->effect_nodes[1].delay_ms));
+        if (d->effect_nodes[1].repeat_count)
+            json_object_set(obj, "effect3_repeat_count",
+                            json_create_integer(d->effect_nodes[1].repeat_count));
+        if (d->effect_nodes[1].repeat_interval_ms != 0.0f)
+            json_object_set(obj, "effect3_repeat_interval_ms",
+                            json_create_number(d->effect_nodes[1].repeat_interval_ms));
+        if (d->effect_nodes[1].require_player_health_below_pct)
+            json_object_set(
+                obj, "effect3_require_player_health_below_pct",
+                json_create_integer(d->effect_nodes[1].require_player_health_below_pct));
+    }
+    if (d->effect_node_count > 2)
+    {
+        if (d->effect_nodes[2].effect_spec_id >= 0)
+            json_object_set(obj, "effect4_spec_id",
+                            json_create_integer(d->effect_nodes[2].effect_spec_id));
+        if (d->effect_nodes[2].delay_ms != 0.0f)
+            json_object_set(obj, "effect4_delay_ms",
+                            json_create_number(d->effect_nodes[2].delay_ms));
+        if (d->effect_nodes[2].repeat_count)
+            json_object_set(obj, "effect4_repeat_count",
+                            json_create_integer(d->effect_nodes[2].repeat_count));
+        if (d->effect_nodes[2].repeat_interval_ms != 0.0f)
+            json_object_set(obj, "effect4_repeat_interval_ms",
+                            json_create_number(d->effect_nodes[2].repeat_interval_ms));
+        if (d->effect_nodes[2].require_player_health_below_pct)
+            json_object_set(
+                obj, "effect4_require_player_health_below_pct",
+                json_create_integer(d->effect_nodes[2].require_player_health_below_pct));
+    }
     /* Optional extended fields (included when non-empty/non-zero) */
     if (d->cast_sprite_sheet && d->cast_sprite_sheet[0])
         json_object_set(obj, "cast_sprite_sheet", json_create_string(d->cast_sprite_sheet));
@@ -218,6 +276,29 @@ bool rogue_skills_build_schema(RogueSchema* out_schema)
     (void) f_aoe_radius;
     (void) f_aoe_angle;
     (void) f_home;
+
+    /* Phase 1.2 – Effect composition nodes (effect2/effect3/effect4) */
+    rogue_schema_add_field(out_schema, "effect2_spec_id", ROGUE_SCHEMA_TYPE_INTEGER);
+    rogue_schema_add_field(out_schema, "effect2_delay_ms", ROGUE_SCHEMA_TYPE_NUMBER);
+    rogue_schema_add_field(out_schema, "effect2_repeat_count", ROGUE_SCHEMA_TYPE_INTEGER);
+    rogue_schema_add_field(out_schema, "effect2_repeat_interval_ms", ROGUE_SCHEMA_TYPE_NUMBER);
+    RogueSchemaField* f_e2hp = rogue_schema_add_field(
+        out_schema, "effect2_require_player_health_below_pct", ROGUE_SCHEMA_TYPE_INTEGER);
+    rogue_schema_field_set_range(f_e2hp, 0, 100);
+    rogue_schema_add_field(out_schema, "effect3_spec_id", ROGUE_SCHEMA_TYPE_INTEGER);
+    rogue_schema_add_field(out_schema, "effect3_delay_ms", ROGUE_SCHEMA_TYPE_NUMBER);
+    rogue_schema_add_field(out_schema, "effect3_repeat_count", ROGUE_SCHEMA_TYPE_INTEGER);
+    rogue_schema_add_field(out_schema, "effect3_repeat_interval_ms", ROGUE_SCHEMA_TYPE_NUMBER);
+    RogueSchemaField* f_e3hp = rogue_schema_add_field(
+        out_schema, "effect3_require_player_health_below_pct", ROGUE_SCHEMA_TYPE_INTEGER);
+    rogue_schema_field_set_range(f_e3hp, 0, 100);
+    rogue_schema_add_field(out_schema, "effect4_spec_id", ROGUE_SCHEMA_TYPE_INTEGER);
+    rogue_schema_add_field(out_schema, "effect4_delay_ms", ROGUE_SCHEMA_TYPE_NUMBER);
+    rogue_schema_add_field(out_schema, "effect4_repeat_count", ROGUE_SCHEMA_TYPE_INTEGER);
+    rogue_schema_add_field(out_schema, "effect4_repeat_interval_ms", ROGUE_SCHEMA_TYPE_NUMBER);
+    RogueSchemaField* f_e4hp = rogue_schema_add_field(
+        out_schema, "effect4_require_player_health_below_pct", ROGUE_SCHEMA_TYPE_INTEGER);
+    rogue_schema_field_set_range(f_e4hp, 0, 100);
 
     return true;
 }

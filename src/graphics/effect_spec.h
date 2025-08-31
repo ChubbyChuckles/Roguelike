@@ -73,6 +73,9 @@ extern "C"
     /* Returns 1 on success; outputs effect_id and end_ms. Index is 0..count-1. */
     int rogue_effect_active_aura_get(int index, int* effect_id, double* end_ms);
     void rogue_effect_apply(int id, double now_ms);
+    /* Schedule a future effect application at the given absolute time (ms). Processed by
+        rogue_effects_update(now_ms). No-op if id invalid or queue full. */
+    void rogue_effect_schedule_apply(int id, double when_ms);
     /* Phase 3.5: process scheduled effect events (periodic pulses and child chains). */
     void rogue_effects_update(double now_ms);
     void rogue_effect_reset(void); /* free registry for tests */

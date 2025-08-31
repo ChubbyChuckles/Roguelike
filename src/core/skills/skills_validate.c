@@ -123,6 +123,41 @@ int rogue_skills_validate_all(char* err, int err_cap)
     for (int i = 0; i < g_skill_count_internal; ++i)
     {
         const RogueSkillDef* d = &g_skill_defs_internal[i];
+        /* Effect composition node validation */
+        if (d->effect_node_count > 3)
+        {
+            set_err(err, err_cap, "effect_node_count out of range");
+            return -1;
+        }
+        for (int ni = 0; ni < (int) d->effect_node_count; ++ni)
+        {
+            const int eid = d->effect_nodes[ni].effect_spec_id;
+            if (eid >= 0 && !rogue_effect_get(eid))
+            {
+                char buf2[256];
+                snprintf(buf2, sizeof buf2, "skill %d '%s' effect%d_spec_id invalid: %d", i,
+                         d->name ? d->name : "<noname>", ni + 2, eid);
+                set_err(err, err_cap, buf2);
+                return -1;
+            }
+            if (d->effect_nodes[ni].repeat_count < 0 || d->effect_nodes[ni].repeat_count > 32)
+            {
+                char buf3[256];
+                snprintf(buf3, sizeof buf3, "skill %d '%s' effect%d_repeat_count out of range", i,
+                         d->name ? d->name : "<noname>", ni + 2);
+                set_err(err, err_cap, buf3);
+                return -1;
+            }
+            if (d->effect_nodes[ni].require_player_health_below_pct > 100)
+            {
+                char buf4[256];
+                snprintf(buf4, sizeof buf4,
+                         "skill %d '%s' effect%d_require_player_health_below_pct > 100", i,
+                         d->name ? d->name : "<noname>", ni + 2);
+                set_err(err, err_cap, buf4);
+                return -1;
+            }
+        }
         /* Clamp and consistency: if skill_type is out of range, treat as UNKNOWN; if PASSIVE type
          * but not flagged passive, warn-fail for now. */
         if (d->skill_type > ROGUE_SKTYPE_ULTIMATE)

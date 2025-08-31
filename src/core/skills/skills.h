@@ -74,7 +74,20 @@ typedef struct RogueSkillDef
     unsigned char combo_builder;        /* flag: grants combo point (1.3 placeholder) */
     unsigned char combo_spender;        /* flag: spends combo points */
     unsigned char reserved_u8;          /* padding future */
-    int effect_spec_id;                 /* unified EffectSpec reference (1.2) */
+    int effect_spec_id;                 /* primary EffectSpec reference (1.2) */
+    /* Phase 1.2 – Effect Composition: optional additional effect nodes triggered on activation
+       alongside the primary effect. Each node can be delayed and optionally repeated.
+       Conditions are intentionally minimal in v1 to avoid target plumbing; only a
+       require_player_health_below_pct gate is provided. */
+    unsigned char effect_node_count; /* number of additional nodes in array (0..3) */
+    struct RogueSkillEffectNode
+    {
+        int effect_spec_id;                            /* EffectSpec to apply */
+        float delay_ms;                                /* delay from trigger time */
+        int repeat_count;                              /* times after first schedule (0 = none) */
+        float repeat_interval_ms;                      /* interval between repeats */
+        unsigned char require_player_health_below_pct; /* 0=ignore; else 1..100 */
+    } effect_nodes[3];
     /* 1A.3 haste evaluation mode flags (0 = dynamic read). Bits:
         bit0: snapshot haste for casts; bit1: snapshot haste for channels. */
     unsigned char haste_mode_flags;

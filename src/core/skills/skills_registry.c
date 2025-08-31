@@ -550,6 +550,15 @@ static int rogue__json_load(const char* buf)
         def.skill_strength = 0;
         def.skill_type = ROGUE_SKTYPE_UNKNOWN;
         def.sound_volume = 0;
+        def.effect_node_count = 0;
+        for (int ni = 0; ni < 3; ++ni)
+        {
+            def.effect_nodes[ni].effect_spec_id = -1;
+            def.effect_nodes[ni].delay_ms = 0.0f;
+            def.effect_nodes[ni].repeat_count = 0;
+            def.effect_nodes[ni].repeat_interval_ms = 0.0f;
+            def.effect_nodes[ni].require_player_health_below_pct = 0;
+        }
         int done_obj = 0;
         while (!done_obj)
         {
@@ -659,6 +668,50 @@ static int rogue__json_load(const char* buf)
                     def.combo_spender = (unsigned char) num;
                 else if (strcmp(key, "effect_spec_id") == 0)
                     def.effect_spec_id = (int) num;
+                /* --- Effect Composition (nodes 1..3 map to fields effect2_*,effect3_*,effect4_*)
+                 * --- */
+                else if (strcmp(key, "effect2_spec_id") == 0)
+                {
+                    def.effect_nodes[0].effect_spec_id = (int) num;
+                    if (def.effect_node_count < 1)
+                        def.effect_node_count = 1;
+                }
+                else if (strcmp(key, "effect2_delay_ms") == 0)
+                    def.effect_nodes[0].delay_ms = (float) num;
+                else if (strcmp(key, "effect2_repeat_count") == 0)
+                    def.effect_nodes[0].repeat_count = (int) num;
+                else if (strcmp(key, "effect2_repeat_interval_ms") == 0)
+                    def.effect_nodes[0].repeat_interval_ms = (float) num;
+                else if (strcmp(key, "effect2_require_player_health_below_pct") == 0)
+                    def.effect_nodes[0].require_player_health_below_pct = (unsigned char) num;
+                else if (strcmp(key, "effect3_spec_id") == 0)
+                {
+                    def.effect_nodes[1].effect_spec_id = (int) num;
+                    if (def.effect_node_count < 2)
+                        def.effect_node_count = 2;
+                }
+                else if (strcmp(key, "effect3_delay_ms") == 0)
+                    def.effect_nodes[1].delay_ms = (float) num;
+                else if (strcmp(key, "effect3_repeat_count") == 0)
+                    def.effect_nodes[1].repeat_count = (int) num;
+                else if (strcmp(key, "effect3_repeat_interval_ms") == 0)
+                    def.effect_nodes[1].repeat_interval_ms = (float) num;
+                else if (strcmp(key, "effect3_require_player_health_below_pct") == 0)
+                    def.effect_nodes[1].require_player_health_below_pct = (unsigned char) num;
+                else if (strcmp(key, "effect4_spec_id") == 0)
+                {
+                    def.effect_nodes[2].effect_spec_id = (int) num;
+                    if (def.effect_node_count < 3)
+                        def.effect_node_count = 3;
+                }
+                else if (strcmp(key, "effect4_delay_ms") == 0)
+                    def.effect_nodes[2].delay_ms = (float) num;
+                else if (strcmp(key, "effect4_repeat_count") == 0)
+                    def.effect_nodes[2].repeat_count = (int) num;
+                else if (strcmp(key, "effect4_repeat_interval_ms") == 0)
+                    def.effect_nodes[2].repeat_interval_ms = (float) num;
+                else if (strcmp(key, "effect4_require_player_health_below_pct") == 0)
+                    def.effect_nodes[2].require_player_health_below_pct = (unsigned char) num;
                 else if (strcmp(key, "frame_count") == 0)
                     def.frame_count = (int) num;
                 else if (strcmp(key, "frame_duration_ms") == 0)
