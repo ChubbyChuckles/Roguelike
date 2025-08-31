@@ -555,6 +555,7 @@ static int rogue__json_load(const char* buf)
         {
             def.effect_nodes[ni].effect_spec_id = -1;
             def.effect_nodes[ni].delay_ms = 0.0f;
+            def.effect_nodes[ni].duration_ms = 0.0f;
             def.effect_nodes[ni].repeat_count = 0;
             def.effect_nodes[ni].repeat_interval_ms = 0.0f;
             def.effect_nodes[ni].require_player_health_below_pct = 0;
@@ -678,6 +679,8 @@ static int rogue__json_load(const char* buf)
                 }
                 else if (strcmp(key, "effect2_delay_ms") == 0)
                     def.effect_nodes[0].delay_ms = (float) num;
+                else if (strcmp(key, "effect2_duration_ms") == 0)
+                    def.effect_nodes[0].duration_ms = (float) num;
                 else if (strcmp(key, "effect2_repeat_count") == 0)
                     def.effect_nodes[0].repeat_count = (int) num;
                 else if (strcmp(key, "effect2_repeat_interval_ms") == 0)
@@ -692,6 +695,8 @@ static int rogue__json_load(const char* buf)
                 }
                 else if (strcmp(key, "effect3_delay_ms") == 0)
                     def.effect_nodes[1].delay_ms = (float) num;
+                else if (strcmp(key, "effect3_duration_ms") == 0)
+                    def.effect_nodes[1].duration_ms = (float) num;
                 else if (strcmp(key, "effect3_repeat_count") == 0)
                     def.effect_nodes[1].repeat_count = (int) num;
                 else if (strcmp(key, "effect3_repeat_interval_ms") == 0)
@@ -706,6 +711,8 @@ static int rogue__json_load(const char* buf)
                 }
                 else if (strcmp(key, "effect4_delay_ms") == 0)
                     def.effect_nodes[2].delay_ms = (float) num;
+                else if (strcmp(key, "effect4_duration_ms") == 0)
+                    def.effect_nodes[2].duration_ms = (float) num;
                 else if (strcmp(key, "effect4_repeat_count") == 0)
                     def.effect_nodes[2].repeat_count = (int) num;
                 else if (strcmp(key, "effect4_repeat_interval_ms") == 0)

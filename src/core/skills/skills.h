@@ -82,8 +82,13 @@ typedef struct RogueSkillDef
     unsigned char effect_node_count; /* number of additional nodes in array (0..3) */
     struct RogueSkillEffectNode
     {
-        int effect_spec_id;                            /* EffectSpec to apply */
-        float delay_ms;                                /* delay from trigger time */
+        int effect_spec_id; /* EffectSpec to apply */
+        float delay_ms;     /* delay from trigger time */
+        /* If repeat_count > 0, schedule exactly that many repeats after the first at
+            repeat_interval_ms. Otherwise, when duration_ms > 0 and repeat_interval_ms > 0,
+            schedule repeats at t0 + k*repeat_interval_ms for all k>=1 such that
+            k*repeat_interval_ms <= duration_ms. */
+        float duration_ms;                             /* window length for implicit repeats */
         int repeat_count;                              /* times after first schedule (0 = none) */
         float repeat_interval_ms;                      /* interval between repeats */
         unsigned char require_player_health_below_pct; /* 0=ignore; else 1..100 */

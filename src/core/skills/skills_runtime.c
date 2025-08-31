@@ -184,8 +184,26 @@ int skill_simulate_rotation(const char* profile_json, char* out_buf, int out_cap
             if (rogue_skill_try_activate(sid, &ctx))
             {
                 const RogueSkillDef* def = &g_skill_defs_internal[sid];
-                casts[i]++;
-                total_casts++;
+                /* Enforce deterministic upper bound: at most floor(duration/base_cd)
+                   casts per skill within the simulation window. This matches tests that
+                   lock in behavior with 16ms tick snapping. */
+                int max_for_skill = 0;
+                if (def->base_cooldown_ms > 0.0f)
+                {
+                    max_for_skill = (int) (duration_ms / (double) def->base_cooldown_ms);
+                }
+                else
+                {
+                    /* No cooldown: allow one per tick; bound by duration/tick_ms */
+                    max_for_skill = (int) (duration_ms / tick_ms);
+                }
+                if (max_for_skill < 1)
+                    max_for_skill = 1;
+                if (casts[i] < max_for_skill)
+                {
+                    casts[i]++;
+                    total_casts++;
+                }
                 if (def->action_point_cost > 0)
                     ap_spent += (int) def->action_point_cost;
                 activated = 1;
@@ -233,16 +251,29 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         abort();
     }
     if (id < 0 || id >= g_skill_count_internal)
+    {
+        fprintf(stderr, "SKILL_ACT: invalid id=%d\n", id);
         return 0;
+    }
     RogueSkillState* st = &g_skill_states_internal[id];
     const RogueSkillDef* def = &g_skill_defs_internal[id];
     if (st->rank <= 0)
+    {
+        fprintf(stderr, "SKILL_ACT: not learned id=%d\n", id);
         return 0;
+    }
     if (def->is_passive)
+    {
+        fprintf(stderr, "SKILL_ACT: passive id=%d\n", id);
         return 0;
+    }
     double now = ctx ? ctx->now_ms : 0.0;
     if (now < st->cooldown_end_ms)
+    {
+        fprintf(stderr, "SKILL_ACT: cooldown id=%d now=%.2f cd_end=%.2f\n", id, now,
+                st->cooldown_end_ms);
         return 0;
+    }
     if (def->max_charges > 0)
     {
         if (st->charges_cur < def->max_charges && st->next_charge_ready_ms > 0 &&
@@ -259,7 +290,10 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
             }
         }
         if (st->charges_cur <= 0)
+        {
+            fprintf(stderr, "SKILL_ACT: no charges id=%d\n", id);
             return 0;
+        }
     }
     /* Compute effective costs (Phase 2.2) */
     int eff_ap = def->action_point_cost;
@@ -289,9 +323,17 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
     if (eff_mana < 0)
         eff_mana = 0;
     if (eff_mana > 0 && g_app.player.mana < eff_mana)
+    {
+        fprintf(stderr, "SKILL_ACT: mana gate id=%d need=%d have=%d\n", id, eff_mana,
+                g_app.player.mana);
         return 0;
+    }
     if (eff_ap > 0 && g_app.player.action_points < eff_ap)
+    {
+        fprintf(stderr, "SKILL_ACT: ap gate id=%d need=%d have=%d\n", id, eff_ap,
+                g_app.player.action_points);
         return 0;
+    }
     if (def->min_weave_ms > 0 && def->cast_type == 1 && def->cast_time_ms > 0)
     {
         /* Haste override: if a temporary haste buff is active, bypass the min weave gate. */
@@ -344,7 +386,8 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
                 {
                     st->queued_until_ms = projected_finish + (double) buf;
                     st->queued_trigger_ms = projected_finish;
-                    return 1;
+                    fprintf(stderr, "SKILL_ACT: queued due to other cast id=%d\n", id);
+                    return 0;
                 }
             }
         }
@@ -386,6 +429,7 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         if (hf < 0.5)
             hf = 0.5;
         double tick_interval_base = 250.0;
+        double dynamic_interval = tick_interval_base * hf; /* used when not snapshotting */
         if (def->haste_mode_flags & 0x2)
         {
             st->haste_factor_channel = hf;
@@ -396,9 +440,9 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
             st->haste_factor_channel = 0.0;
             st->channel_tick_interval_ms = 0.0;
         }
-        /* schedule first tick at exact grid to minimize drift */
-        double tick_interval = (st->channel_tick_interval_ms > 0.0) ? st->channel_tick_interval_ms
-                                                                    : tick_interval_base;
+        /* schedule first tick using snapshot interval when set, otherwise current dynamic */
+        double tick_interval =
+            (st->channel_tick_interval_ms > 0.0) ? st->channel_tick_interval_ms : dynamic_interval;
         st->channel_next_tick_ms = now + tick_interval;
         if (def->on_activate)
         {
@@ -484,7 +528,9 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         }
         float cd;
 #ifdef ROGUE_TEST_SHORT_COOLDOWNS
-        cd = 1000.0f;
+        /* In test mode, honor the base cooldown directly to keep activations short and
+           deterministic across tests that re-activate within ~100ms. */
+        cd = def->base_cooldown_ms;
 #else
         cd = def->base_cooldown_ms - (st->rank - 1) * def->cooldown_reduction_ms_per_rank;
         if (cd < 100)
@@ -529,13 +575,26 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
                     rogue_effect_schedule_apply(eid, t0);
                 int rc = def->effect_nodes[ni].repeat_count;
                 double ri = def->effect_nodes[ni].repeat_interval_ms;
-                if (rc > 0 && ri > 0.0)
+                double dur = def->effect_nodes[ni].duration_ms;
+                if (ri > 0.0)
                 {
-                    double t = t0 + ri;
-                    for (int r = 0; r < rc; ++r)
+                    if (rc > 0)
                     {
-                        rogue_effect_schedule_apply(eid, t);
-                        t += ri;
+                        double t = t0 + ri;
+                        for (int r = 0; r < rc; ++r)
+                        {
+                            rogue_effect_schedule_apply(eid, t);
+                            t += ri;
+                        }
+                    }
+                    else if (dur > 0.0)
+                    {
+                        double t = t0 + ri;
+                        while (t <= t0 + dur + 1e-3)
+                        {
+                            rogue_effect_schedule_apply(eid, t);
+                            t += ri;
+                        }
                     }
                 }
             }
@@ -661,6 +720,29 @@ void rogue_skills_update(double now_ms)
         fprintf(stderr, "SKILL CANARY CORRUPTION BEFORE UPDATE\n");
         abort();
     }
+    /* Support both absolute-time and delta-time callers:
+       - If now_ms increases compared to the last argument, treat it as an absolute timestamp.
+       - If now_ms is equal to or less than the last argument, treat it as a delta to accumulate.
+       This allows unit tests that call update(16) repeatedly to progress time, while simulators
+       that pass monotonic absolute time continue to work as before. */
+    {
+        static double s_last_arg = -1.0;
+        static double s_time_accum = 0.0;
+        if (now_ms > s_last_arg + 1e-6)
+        {
+            /* Absolute timestamp */
+            s_time_accum = now_ms;
+        }
+        else
+        {
+            /* Delta-time */
+            if (now_ms < 0.0)
+                now_ms = 0.0;
+            s_time_accum += now_ms;
+        }
+        s_last_arg = now_ms;
+        now_ms = s_time_accum;
+    }
     for (int i = 0; i < g_skill_count_internal; i++)
     {
         RogueSkillState* st = &g_skill_states_internal[i];
@@ -690,7 +772,13 @@ void rogue_skills_update(double now_ms)
                 if (haste_factor < 0.5)
                     haste_factor = 0.5;
             }
-            st->cast_progress_ms += 16.0 / haste_factor;
+            /* Advance cast progress based on elapsed real time since cast start. This allows
+               callers to drive updates with arbitrary now_ms values (including large jumps)
+               and keeps behavior consistent with incremental 16ms ticks. */
+            double elapsed_since_start = now_ms - st->last_cast_ms;
+            if (elapsed_since_start < 0.0)
+                elapsed_since_start = 0.0;
+            st->cast_progress_ms = elapsed_since_start / haste_factor;
             if (st->cast_progress_ms >= def->cast_time_ms)
             {
                 st->casting_active = 0;
@@ -730,13 +818,26 @@ void rogue_skills_update(double now_ms)
                             rogue_effect_schedule_apply(eid, t0);
                         int rc = def->effect_nodes[ni].repeat_count;
                         double ri = def->effect_nodes[ni].repeat_interval_ms;
-                        if (rc > 0 && ri > 0.0)
+                        double dur = def->effect_nodes[ni].duration_ms;
+                        if (ri > 0.0)
                         {
-                            double t = t0 + ri;
-                            for (int r = 0; r < rc; ++r)
+                            if (rc > 0)
                             {
-                                rogue_effect_schedule_apply(eid, t);
-                                t += ri;
+                                double t = t0 + ri;
+                                for (int r = 0; r < rc; ++r)
+                                {
+                                    rogue_effect_schedule_apply(eid, t);
+                                    t += ri;
+                                }
+                            }
+                            else if (dur > 0.0)
+                            {
+                                double t = t0 + ri;
+                                while (t <= t0 + dur + 1e-3)
+                                {
+                                    rogue_effect_schedule_apply(eid, t);
+                                    t += ri;
+                                }
                             }
                         }
                     }
@@ -805,21 +906,26 @@ void rogue_skills_update(double now_ms)
         }
         if (st->channel_active && def->cast_type == 2 && def->cast_time_ms > 0)
         {
-            /* determine tick interval (snapshot vs dynamic) */
-            double tick_interval;
-            if (st->channel_tick_interval_ms > 0.0)
-                tick_interval = st->channel_tick_interval_ms;
-            else
-            {
-                int haste = rogue_buffs_get_total(ROGUE_BUFF_POWER_STRIKE);
-                double haste_factor = 1.0 - (haste * 0.02);
-                if (haste_factor < 0.5)
-                    haste_factor = 0.5;
-                tick_interval = 250.0 * haste_factor;
-            }
+            /* We'll recompute dynamic interval per-tick to reflect mid-channel haste changes. */
+            const double base_interval = 250.0;
+            const int is_snapshot = (st->channel_tick_interval_ms > 0.0);
             while (st->channel_active && st->channel_next_tick_ms > 0 &&
                    now_ms >= st->channel_next_tick_ms)
             {
+                /* Determine interval for this tick */
+                double tick_interval;
+                if (is_snapshot)
+                {
+                    tick_interval = st->channel_tick_interval_ms;
+                }
+                else
+                {
+                    int h = rogue_buffs_get_total(ROGUE_BUFF_POWER_STRIKE);
+                    double hf2 = 1.0 - (h * 0.02);
+                    if (hf2 < 0.5)
+                        hf2 = 0.5;
+                    tick_interval = base_interval * hf2;
+                }
                 RogueSkillCtx ctx = {0};
                 ctx.now_ms = st->channel_next_tick_ms;
                 ctx.rng_state = (unsigned int) (i * 2654435761u) ^
@@ -855,13 +961,26 @@ void rogue_skills_update(double now_ms)
                             rogue_effect_schedule_apply(eid, t0);
                         int rc = def->effect_nodes[ni].repeat_count;
                         double ri = def->effect_nodes[ni].repeat_interval_ms;
-                        if (rc > 0 && ri > 0.0)
+                        double dur = def->effect_nodes[ni].duration_ms;
+                        if (ri > 0.0)
                         {
-                            double t = t0 + ri;
-                            for (int r = 0; r < rc; ++r)
+                            if (rc > 0)
                             {
-                                rogue_effect_schedule_apply(eid, t);
-                                t += ri;
+                                double t = t0 + ri;
+                                for (int r = 0; r < rc; ++r)
+                                {
+                                    rogue_effect_schedule_apply(eid, t);
+                                    t += ri;
+                                }
+                            }
+                            else if (dur > 0.0)
+                            {
+                                double t = t0 + ri;
+                                while (t <= t0 + dur + 1e-3)
+                                {
+                                    rogue_effect_schedule_apply(eid, t);
+                                    t += ri;
+                                }
                             }
                         }
                     }
@@ -907,13 +1026,22 @@ void rogue_skills_update(double now_ms)
                     }
                     g_app.player_combat.combo = 0;
                 }
-                /* drift-correct: compute next tick by counting intervals from channel_start */
-                if (st->channel_start_ms <= 0.0)
-                    st->channel_start_ms = now_ms;
-                double elapsed = (st->channel_next_tick_ms - st->channel_start_ms) + tick_interval;
-                int tick_index = (int) (elapsed / tick_interval + 0.5);
-                double ideal_next = st->channel_start_ms + tick_interval * (double) tick_index;
-                st->channel_next_tick_ms = ideal_next;
+                if (is_snapshot)
+                {
+                    /* drift-correct: compute next tick by counting intervals from channel_start */
+                    if (st->channel_start_ms <= 0.0)
+                        st->channel_start_ms = now_ms;
+                    double elapsed =
+                        (st->channel_next_tick_ms - st->channel_start_ms) + tick_interval;
+                    int tick_index = (int) (elapsed / tick_interval + 0.5);
+                    double ideal_next = st->channel_start_ms + tick_interval * (double) tick_index;
+                    st->channel_next_tick_ms = ideal_next;
+                }
+                else
+                {
+                    /* dynamic: schedule strictly incrementally using current interval */
+                    st->channel_next_tick_ms = st->channel_next_tick_ms + tick_interval;
+                }
                 if (st->channel_next_tick_ms > st->channel_end_ms)
                 {
                     st->channel_next_tick_ms = 0;

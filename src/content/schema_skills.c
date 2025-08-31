@@ -51,6 +51,9 @@ static RogueJsonValue* skilldef_to_json(const RogueSkillDef* d)
         if (d->effect_nodes[0].repeat_interval_ms != 0.0f)
             json_object_set(obj, "effect2_repeat_interval_ms",
                             json_create_number(d->effect_nodes[0].repeat_interval_ms));
+        if (d->effect_nodes[0].duration_ms != 0.0f)
+            json_object_set(obj, "effect2_duration_ms",
+                            json_create_number(d->effect_nodes[0].duration_ms));
         if (d->effect_nodes[0].require_player_health_below_pct)
             json_object_set(
                 obj, "effect2_require_player_health_below_pct",
@@ -70,6 +73,9 @@ static RogueJsonValue* skilldef_to_json(const RogueSkillDef* d)
         if (d->effect_nodes[1].repeat_interval_ms != 0.0f)
             json_object_set(obj, "effect3_repeat_interval_ms",
                             json_create_number(d->effect_nodes[1].repeat_interval_ms));
+        if (d->effect_nodes[1].duration_ms != 0.0f)
+            json_object_set(obj, "effect3_duration_ms",
+                            json_create_number(d->effect_nodes[1].duration_ms));
         if (d->effect_nodes[1].require_player_health_below_pct)
             json_object_set(
                 obj, "effect3_require_player_health_below_pct",
@@ -89,6 +95,9 @@ static RogueJsonValue* skilldef_to_json(const RogueSkillDef* d)
         if (d->effect_nodes[2].repeat_interval_ms != 0.0f)
             json_object_set(obj, "effect4_repeat_interval_ms",
                             json_create_number(d->effect_nodes[2].repeat_interval_ms));
+        if (d->effect_nodes[2].duration_ms != 0.0f)
+            json_object_set(obj, "effect4_duration_ms",
+                            json_create_number(d->effect_nodes[2].duration_ms));
         if (d->effect_nodes[2].require_player_health_below_pct)
             json_object_set(
                 obj, "effect4_require_player_health_below_pct",
@@ -282,6 +291,7 @@ bool rogue_skills_build_schema(RogueSchema* out_schema)
     rogue_schema_add_field(out_schema, "effect2_delay_ms", ROGUE_SCHEMA_TYPE_NUMBER);
     rogue_schema_add_field(out_schema, "effect2_repeat_count", ROGUE_SCHEMA_TYPE_INTEGER);
     rogue_schema_add_field(out_schema, "effect2_repeat_interval_ms", ROGUE_SCHEMA_TYPE_NUMBER);
+    rogue_schema_add_field(out_schema, "effect2_duration_ms", ROGUE_SCHEMA_TYPE_NUMBER);
     RogueSchemaField* f_e2hp = rogue_schema_add_field(
         out_schema, "effect2_require_player_health_below_pct", ROGUE_SCHEMA_TYPE_INTEGER);
     rogue_schema_field_set_range(f_e2hp, 0, 100);
@@ -289,6 +299,7 @@ bool rogue_skills_build_schema(RogueSchema* out_schema)
     rogue_schema_add_field(out_schema, "effect3_delay_ms", ROGUE_SCHEMA_TYPE_NUMBER);
     rogue_schema_add_field(out_schema, "effect3_repeat_count", ROGUE_SCHEMA_TYPE_INTEGER);
     rogue_schema_add_field(out_schema, "effect3_repeat_interval_ms", ROGUE_SCHEMA_TYPE_NUMBER);
+    rogue_schema_add_field(out_schema, "effect3_duration_ms", ROGUE_SCHEMA_TYPE_NUMBER);
     RogueSchemaField* f_e3hp = rogue_schema_add_field(
         out_schema, "effect3_require_player_health_below_pct", ROGUE_SCHEMA_TYPE_INTEGER);
     rogue_schema_field_set_range(f_e3hp, 0, 100);
@@ -296,6 +307,7 @@ bool rogue_skills_build_schema(RogueSchema* out_schema)
     rogue_schema_add_field(out_schema, "effect4_delay_ms", ROGUE_SCHEMA_TYPE_NUMBER);
     rogue_schema_add_field(out_schema, "effect4_repeat_count", ROGUE_SCHEMA_TYPE_INTEGER);
     rogue_schema_add_field(out_schema, "effect4_repeat_interval_ms", ROGUE_SCHEMA_TYPE_NUMBER);
+    rogue_schema_add_field(out_schema, "effect4_duration_ms", ROGUE_SCHEMA_TYPE_NUMBER);
     RogueSchemaField* f_e4hp = rogue_schema_add_field(
         out_schema, "effect4_require_player_health_below_pct", ROGUE_SCHEMA_TYPE_INTEGER);
     rogue_schema_field_set_range(f_e4hp, 0, 100);

@@ -45,7 +45,8 @@ int rogue_skills_validate_all(char* err, int err_cap)
     for (int i = 0; i < g_skill_count_internal; ++i)
     {
         const RogueSkillDef* d = &g_skill_defs_internal[i];
-        if (d->effect_spec_id >= 0)
+        /* Treat effect_spec_id==0 as "unset" for backward compat with CSV defaults. */
+        if (d->effect_spec_id > 0)
         {
             if (rogue_effect_get(d->effect_spec_id) == NULL)
             {
@@ -132,12 +133,20 @@ int rogue_skills_validate_all(char* err, int err_cap)
         for (int ni = 0; ni < (int) d->effect_node_count; ++ni)
         {
             const int eid = d->effect_nodes[ni].effect_spec_id;
-            if (eid >= 0 && !rogue_effect_get(eid))
+            if (eid > 0 && !rogue_effect_get(eid))
             {
                 char buf2[256];
                 snprintf(buf2, sizeof buf2, "skill %d '%s' effect%d_spec_id invalid: %d", i,
                          d->name ? d->name : "<noname>", ni + 2, eid);
                 set_err(err, err_cap, buf2);
+                return -1;
+            }
+            if (d->effect_nodes[ni].duration_ms < 0.0f)
+            {
+                char buf3a[256];
+                snprintf(buf3a, sizeof buf3a, "skill %d '%s' effect%d_duration_ms must be >= 0", i,
+                         d->name ? d->name : "<noname>", ni + 2);
+                set_err(err, err_cap, buf3a);
                 return -1;
             }
             if (d->effect_nodes[ni].repeat_count < 0 || d->effect_nodes[ni].repeat_count > 32)
@@ -146,6 +155,16 @@ int rogue_skills_validate_all(char* err, int err_cap)
                 snprintf(buf3, sizeof buf3, "skill %d '%s' effect%d_repeat_count out of range", i,
                          d->name ? d->name : "<noname>", ni + 2);
                 set_err(err, err_cap, buf3);
+                return -1;
+            }
+            if (d->effect_nodes[ni].repeat_count == 0 && d->effect_nodes[ni].duration_ms > 0.0f &&
+                d->effect_nodes[ni].repeat_interval_ms <= 0.0f)
+            {
+                char buf3b[256];
+                snprintf(buf3b, sizeof buf3b,
+                         "skill %d '%s' effect%d_duration_ms provided but repeat_interval_ms <= 0",
+                         i, d->name ? d->name : "<noname>", ni + 2);
+                set_err(err, err_cap, buf3b);
                 return -1;
             }
             if (d->effect_nodes[ni].require_player_health_below_pct > 100)
