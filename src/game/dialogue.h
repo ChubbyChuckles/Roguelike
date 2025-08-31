@@ -104,6 +104,8 @@ extern "C"
                                        const char* value); /* returns 0 on success */
     int rogue_dialogue_locale_set(const char* locale);     /* returns 0 on success */
     const char* rogue_dialogue_locale_active(void);        /* returns current locale code */
+    /* Reset localization registry and active locale to defaults (en). */
+    void rogue_dialogue_locale_reset(void);
 
     /* Load a plaintext script from file path. Format per line: speaker_id|text
      * Empty lines or lines beginning with '#' are ignored. Whitespace around speaker_id is trimmed.
@@ -195,6 +197,9 @@ extern "C"
     /* JSON helpers */
     int rogue_dialogue_style_load_from_json(const char* path);       /* returns 0 on success */
     int rogue_dialogue_load_script_from_json_file(const char* path); /* returns 0 on success */
+
+    /* Internal: parchment texture used by runtime renderer (NULL if not loaded/enabled). */
+    struct RogueTexture* rogue_dialogue__parchment_texture(void);
 
 #ifdef __cplusplus
 }

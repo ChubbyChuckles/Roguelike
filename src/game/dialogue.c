@@ -7,6 +7,7 @@
 #include "../ui/core/ui_context.h"
 #include "../util/log.h"
 #include "../util/path_utils.h"
+#include "dialogue_util.h"
 #include <assert.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -51,441 +52,7 @@ typedef struct RogueDialogueAvatar
     RogueTexture tex;
     int loaded;
 } RogueDialogueAvatar;
-static RogueDialogueAvatar g_avatars[ROGUE_DIALOGUE_MAX_AVATARS];
-static int g_avatar_count = 0;
 /* Dialogue style (theme) */
-static RogueDialogueStyle g_style = {
-    0xFF222228u, 0xFF1A1A1Fu, 0xFF5F5F8Cu, 0xFFFFDC8Cu, 0xFFFFFFFFu, 0x80000000u, 1, 1, 1, 1,
-    0,           0xFFAA8844u, 2,           0,           0x40C8A050u, 0x30FFD080u, 2, 1, 1};
-static RogueTexture g_parchment_tex;
-static int g_parchment_loaded = 0; /* optional parchment paper */
-
-int rogue_dialogue_avatar_register(const char* speaker_id, const char* image_path)
-{
-#if defined(ROGUE_HAVE_SDL)
-    if (!speaker_id || !*speaker_id || !image_path || !*image_path)
-        return -1;
-    for (int i = 0; i < g_avatar_count; i++)
-        if (strcmp(g_avatars[i].speaker, speaker_id) == 0)
-        {
-            if (g_avatars[i].loaded)
-            {
-                rogue_texture_destroy(&g_avatars[i].tex);
-                g_avatars[i].loaded = 0;
-            }
-            if (rogue_texture_load(&g_avatars[i].tex, image_path))
-                g_avatars[i].loaded = 1;
-            return g_avatars[i].loaded ? 0 : -2;
-        }
-    if (g_avatar_count >= ROGUE_DIALOGUE_MAX_AVATARS)
-        return -3;
-    RogueDialogueAvatar* av = &g_avatars[g_avatar_count++];
-    memset(av, 0, sizeof *av);
-    {
-        size_t sl = strlen(speaker_id);
-        if (sl > sizeof(av->speaker) - 1)
-            sl = sizeof(av->speaker) - 1;
-        memcpy(av->speaker, speaker_id, sl);
-        av->speaker[sl] = '\0';
-    }
-    if (rogue_texture_load(&av->tex, image_path))
-    {
-        av->loaded = 1;
-        return 0;
-    }
-    else
-    {
-        g_avatar_count--;
-        return -4;
-    }
-#else
-    (void) speaker_id;
-    (void) image_path;
-    return -10;
-#endif
-}
-void rogue_dialogue_avatar_reset(void)
-{
-#if defined(ROGUE_HAVE_SDL)
-    for (int i = 0; i < g_avatar_count; i++)
-    {
-        if (g_avatars[i].loaded)
-        {
-            rogue_texture_destroy(&g_avatars[i].tex);
-            g_avatars[i].loaded = 0;
-        }
-    }
-#endif
-    g_avatar_count = 0;
-}
-RogueTexture* rogue_dialogue_avatar_get(const char* speaker_id)
-{
-#if defined(ROGUE_HAVE_SDL)
-    if (!speaker_id)
-        return NULL;
-    for (int i = 0; i < g_avatar_count; i++)
-        if (strcmp(g_avatars[i].speaker, speaker_id) == 0 && g_avatars[i].loaded)
-            return &g_avatars[i].tex;
-    return NULL;
-#else
-    (void) speaker_id;
-    return NULL;
-#endif
-}
-
-int rogue_dialogue_load_avatars_from_file(const char* path)
-{
-    if (!path)
-        return -1;
-    FILE* f = NULL;
-    int line_no = 0;
-    int loaded = 0;
-#if defined(_MSC_VER)
-    if (fopen_s(&f, path, "rb") != 0 || !f)
-        return -2;
-#else
-    f = fopen(path, "rb");
-    if (!f)
-        return -2;
-#endif
-    char line[512];
-    while (1)
-    {
-        char* got = fgets(line, sizeof line, f);
-        if (!got)
-            break;
-        line_no++;
-        char* p = line;
-        while (*p == ' ' || *p == '\t')
-            p++;
-        if (*p == '#' || *p == '\n' || !*p)
-            continue;
-        char* eq = strchr(p, '=');
-        if (!eq)
-            continue;
-        *eq = '\0';
-        char* speaker = p;
-        char* img = eq + 1; /* trim trail */
-        char* nl = strchr(img, '\n');
-        if (nl)
-            *nl = '\0';
-        char* cr = strchr(img, '\r');
-        if (cr)
-            *cr = '\0';
-        /* trim spaces end */ int sl = (int) strlen(speaker);
-        while (sl > 0 && (speaker[sl - 1] == ' ' || speaker[sl - 1] == '\t'))
-            speaker[--sl] = '\0';
-        while (*img == ' ' || *img == '\t')
-            img++;
-        int il = (int) strlen(img);
-        while (il > 0 && (img[il - 1] == ' ' || img[il - 1] == '\t'))
-            img[--il] = '\0';
-        if (*speaker && *img)
-        {
-            if (rogue_dialogue_avatar_register(speaker, img) == 0)
-                loaded++;
-        }
-    }
-    fclose(f);
-    return loaded; /* number of avatars loaded */
-}
-
-int rogue_dialogue_style_set(const RogueDialogueStyle* style)
-{
-    if (!style)
-        return -1;
-    g_style = *style;
-    return 0;
-}
-const RogueDialogueStyle* rogue_dialogue_style_get(void) { return &g_style; }
-
-/* --- Minimal JSON helpers (non-recursive, tolerant) --- */
-static const char* jd_skip_ws(const char* s)
-{
-    while (*s == ' ' || *s == '\n' || *s == '\r' || *s == '\t')
-        ++s;
-    return s;
-}
-static unsigned int jd_hex_nibble(char c)
-{
-    if (c >= '0' && c <= '9')
-        return (unsigned int) (c - '0');
-    if (c >= 'a' && c <= 'f')
-        return 10u + (unsigned int) (c - 'a');
-    if (c >= 'A' && c <= 'F')
-        return 10u + (unsigned int) (c - 'A');
-    return 0u;
-}
-static int jd_parse_color(const char* s, unsigned int* out)
-{
-    if (!s || !out)
-        return -1;
-    if (s[0] == '#')
-    {
-        size_t len = strlen(s);
-        if (len == 7)
-        {
-            unsigned int v = 0;
-            for (int i = 1; i < 7; i++)
-            {
-                v = (v << 4) | jd_hex_nibble(s[i]);
-            }
-            *out = 0xFF000000u | v;
-            return 0;
-        }
-    }
-    else if (s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
-    {
-        unsigned int v = 0;
-        for (int i = 2; s[i] && i < 10; ++i)
-        {
-            char c = s[i];
-            if (!isxdigit((unsigned char) c))
-                break;
-            v = (v << 4) | jd_hex_nibble(c);
-        }
-        *out = v;
-        return 0;
-    }
-    else
-    { /* decimal */
-        unsigned int v = 0;
-        for (int i = 0; s[i]; ++i)
-        {
-            if (s[i] < '0' || s[i] > '9')
-                break;
-            v = v * 10u + (unsigned int) (s[i] - '0');
-        }
-        *out = v;
-        return 0;
-    }
-    return -1;
-}
-static int jd_extract_string(const char* json, const char* key, char* out, size_t cap)
-{
-    const char* search = json;
-    size_t key_len = strlen(key);
-    while (1)
-    {
-        const char* found = strstr(search, key);
-        if (!found)
-            return -1;
-        search = found + key_len; /* advance for next search if fails */
-        const char* colon = strchr(found, ':');
-        if (!colon)
-            continue;
-        const char* v = jd_skip_ws(colon + 1);
-        if (*v != '"')
-            continue;
-        v++;
-        const char* end = strchr(v, '"');
-        if (!end)
-            return -1;
-        size_t len = (size_t) (end - v);
-        if (len > cap - 1)
-            len = cap - 1;
-        memcpy(out, v, len);
-        out[len] = '\0';
-        return 0;
-    }
-}
-static int jd_extract_int(const char* json, const char* key, int* out)
-{
-    const char* search = json;
-    size_t key_len = strlen(key);
-    while (1)
-    {
-        const char* found = strstr(search, key);
-        if (!found)
-            return -1;
-        search = found + key_len;
-        const char* colon = strchr(found, ':');
-        if (!colon)
-            continue;
-        const char* v = jd_skip_ws(colon + 1);
-        int sign = 1;
-        if (*v == '-')
-        {
-            sign = -1;
-            v++;
-        }
-        if (!isdigit((unsigned char) *v))
-            continue;
-        int val = 0;
-        while (isdigit((unsigned char) *v))
-        {
-            val = val * 10 + (*v - '0');
-            v++;
-        }
-        *out = val * sign;
-        return 0;
-    }
-}
-
-/* Simple file slurp (binary) placed here so JSON loaders can use it */
-static int load_file(const char* path, char** out_buf, int* out_len)
-{
-    FILE* f = NULL;
-#if defined(_MSC_VER)
-    int fopen_result = fopen_s(&f, path, "rb");
-    if (fopen_result != 0 || !f)
-    {
-        /* Try asset-relative fallbacks when paths start with assets/ */
-        if (path && strncmp(path, "assets/", 7) == 0)
-        {
-            char resolved[512];
-            if (rogue_find_asset_path(path + 7, resolved, (int) sizeof resolved))
-            {
-                if (fopen_s(&f, resolved, "rb") != 0 || !f)
-                    return -1;
-            }
-            else
-            {
-                return -1;
-            }
-        }
-        else
-        {
-            return -1;
-        }
-    }
-#else
-    f = fopen(path, "rb");
-    if (!f)
-    {
-        if (path && strncmp(path, "assets/", 7) == 0)
-        {
-            char resolved[512];
-            if (rogue_find_asset_path(path + 7, resolved, (int) sizeof resolved))
-            {
-                f = fopen(resolved, "rb");
-                if (!f)
-                    return -1;
-            }
-            else
-            {
-                return -1;
-            }
-        }
-        else
-        {
-            return -1;
-        }
-    }
-#endif
-    if (fseek(f, 0, SEEK_END) != 0)
-    {
-        fclose(f);
-        return -2;
-    }
-    long sz = ftell(f);
-    if (sz < 0)
-    {
-        fclose(f);
-        return -3;
-    }
-    rewind(f);
-    char* buf = (char*) malloc((size_t) sz + 1);
-    if (!buf)
-    {
-        fclose(f);
-        return -4;
-    }
-    size_t rd = fread(buf, 1, (size_t) sz, f);
-    fclose(f);
-    buf[rd] = '\0';
-    *out_buf = buf;
-    *out_len = (int) rd;
-    return 0;
-}
-
-int rogue_dialogue_style_load_from_json(const char* path)
-{
-    if (!path)
-        return -1;
-    char* buf = NULL;
-    int len = 0;
-    if (load_file(path, &buf, &len) != 0)
-        return -2;
-    buf[len] = '\0';
-    RogueDialogueStyle st = g_style;
-    char tmp[128];
-    unsigned int col;
-    int iv;
-    if (jd_extract_string(buf, "panel_color_top", tmp, sizeof tmp) == 0)
-    {
-        if (jd_parse_color(tmp, &col) == 0)
-            st.panel_color_top = col;
-    }
-    if (jd_extract_string(buf, "panel_color_bottom", tmp, sizeof tmp) == 0)
-    {
-        if (jd_parse_color(tmp, &col) == 0)
-            st.panel_color_bottom = col;
-    }
-    if (jd_extract_string(buf, "border_color", tmp, sizeof tmp) == 0)
-    {
-        if (jd_parse_color(tmp, &col) == 0)
-            st.border_color = col;
-    }
-    if (jd_extract_string(buf, "speaker_color", tmp, sizeof tmp) == 0)
-    {
-        if (jd_parse_color(tmp, &col) == 0)
-            st.speaker_color = col;
-    }
-    if (jd_extract_string(buf, "text_color", tmp, sizeof tmp) == 0)
-    {
-        if (jd_parse_color(tmp, &col) == 0)
-            st.text_color = col;
-    }
-    if (jd_extract_string(buf, "text_shadow_color", tmp, sizeof tmp) == 0)
-    {
-        if (jd_parse_color(tmp, &col) == 0)
-            st.text_shadow_color = col;
-    }
-    if (jd_extract_string(buf, "accent_color", tmp, sizeof tmp) == 0)
-    {
-        if (jd_parse_color(tmp, &col) == 0)
-            st.accent_color = col;
-    }
-    if (jd_extract_string(buf, "parchment_texture", tmp, sizeof tmp) == 0)
-    {
-        if (rogue_texture_load(&g_parchment_tex, tmp))
-            g_parchment_loaded = 1;
-    }
-    if (jd_extract_int(buf, "enable_gradient", &iv) == 0)
-        st.enable_gradient = iv;
-    if (jd_extract_int(buf, "enable_text_shadow", &iv) == 0)
-        st.enable_text_shadow = iv;
-    if (jd_extract_int(buf, "show_blink_prompt", &iv) == 0)
-        st.show_blink_prompt = iv;
-    if (jd_extract_int(buf, "show_caret", &iv) == 0)
-        st.show_caret = iv;
-    if (jd_extract_int(buf, "panel_height", &iv) == 0)
-        st.panel_height = iv;
-    if (jd_extract_int(buf, "border_thickness", &iv) == 0)
-        st.border_thickness = iv;
-    if (jd_extract_int(buf, "use_parchment", &iv) == 0)
-        st.use_parchment = iv;
-    if (jd_extract_string(buf, "glow_color", tmp, sizeof tmp) == 0)
-    {
-        if (jd_parse_color(tmp, &col) == 0)
-            st.glow_color = col;
-    }
-    if (jd_extract_string(buf, "rune_strip_color", tmp, sizeof tmp) == 0)
-    {
-        if (jd_parse_color(tmp, &col) == 0)
-            st.rune_strip_color = col;
-    }
-    if (jd_extract_int(buf, "glow_strength", &iv) == 0)
-        st.glow_strength = iv;
-    if (jd_extract_int(buf, "corner_ornaments", &iv) == 0)
-        st.corner_ornaments = iv;
-    if (jd_extract_int(buf, "vignette", &iv) == 0)
-        st.vignette = iv;
-    g_style = st;
-    free(buf);
-    return 0;
-}
 
 /* Mood -> tint color helper (portable case-insensitive compare) */
 static int rd_strcasecmp(const char* a, const char* b)
@@ -562,7 +129,7 @@ int rogue_dialogue_load_script_from_json_file(const char* path)
         return -1;
     char* buf = NULL;
     int len = 0;
-    int lf = load_file(path, &buf, &len);
+    int lf = rogue_dialogue__read_all(path, &buf, &len);
     if (lf != 0)
     {
         ROGUE_LOG_WARN("Dialogue JSON open failed (%d): %s", lf, path);
@@ -650,7 +217,7 @@ int rogue_dialogue_load_script_from_json_file(const char* path)
             memcpy(scopy, sobj, slen);
             scopy[slen] = '\0';
             int sid = -1;
-            jd_extract_int(scopy, "id", &sid);
+            rogue_dialogue__json_extract_int(scopy, "id", &sid);
             if (sid >= 0)
             {
                 char* lines_sec = strstr(scopy, "\"lines\"");
@@ -700,13 +267,20 @@ int rogue_dialogue_load_script_from_json_file(const char* path)
                                 char speaker[64] = "", textv[512] = "";
                                 char race[64] = "", name[64] = "", mood[64] = "";
                                 char side[16] = "", mirror[16] = "";
-                                jd_extract_string(lcopy, "speaker", speaker, sizeof speaker);
-                                jd_extract_string(lcopy, "text", textv, sizeof textv);
-                                jd_extract_string(lcopy, "race", race, sizeof race);
-                                jd_extract_string(lcopy, "name", name, sizeof name);
-                                jd_extract_string(lcopy, "mood", mood, sizeof mood);
-                                jd_extract_string(lcopy, "side", side, sizeof side);
-                                jd_extract_string(lcopy, "mirror", mirror, sizeof mirror);
+                                rogue_dialogue__json_extract_string(lcopy, "speaker", speaker,
+                                                                    sizeof speaker);
+                                rogue_dialogue__json_extract_string(lcopy, "text", textv,
+                                                                    sizeof textv);
+                                rogue_dialogue__json_extract_string(lcopy, "race", race,
+                                                                    sizeof race);
+                                rogue_dialogue__json_extract_string(lcopy, "name", name,
+                                                                    sizeof name);
+                                rogue_dialogue__json_extract_string(lcopy, "mood", mood,
+                                                                    sizeof mood);
+                                rogue_dialogue__json_extract_string(lcopy, "side", side,
+                                                                    sizeof side);
+                                rogue_dialogue__json_extract_string(lcopy, "mirror", mirror,
+                                                                    sizeof mirror);
                                 if (mood[0])
                                     rd_validate_mood(mood);
                                 lines_total++;
@@ -793,7 +367,7 @@ int rogue_dialogue_load_script_from_json_file(const char* path)
     /* single */
     single = 1;
     int script_id = -1;
-    jd_extract_int(buf, "id", &script_id);
+    rogue_dialogue__json_extract_int(buf, "id", &script_id);
     if (script_id < 0)
     {
         if (rd_debug_enabled())
@@ -840,13 +414,13 @@ int rogue_dialogue_load_script_from_json_file(const char* path)
         char speaker[64] = "", textv[512] = "";
         char race[64] = "", name[64] = "", mood[64] = "";
         char side[16] = "", mirror[16] = "";
-        jd_extract_string(oc, "speaker", speaker, sizeof speaker);
-        jd_extract_string(oc, "text", textv, sizeof textv);
-        jd_extract_string(oc, "race", race, sizeof race);
-        jd_extract_string(oc, "name", name, sizeof name);
-        jd_extract_string(oc, "mood", mood, sizeof mood);
-        jd_extract_string(oc, "side", side, sizeof side);
-        jd_extract_string(oc, "mirror", mirror, sizeof mirror);
+        rogue_dialogue__json_extract_string(oc, "speaker", speaker, sizeof speaker);
+        rogue_dialogue__json_extract_string(oc, "text", textv, sizeof textv);
+        rogue_dialogue__json_extract_string(oc, "race", race, sizeof race);
+        rogue_dialogue__json_extract_string(oc, "name", name, sizeof name);
+        rogue_dialogue__json_extract_string(oc, "mood", mood, sizeof mood);
+        rogue_dialogue__json_extract_string(oc, "side", side, sizeof side);
+        rogue_dialogue__json_extract_string(oc, "mirror", mirror, sizeof mirror);
         if (mood[0])
             rd_validate_mood(mood);
         lines_total++;
@@ -901,92 +475,9 @@ int rogue_dialogue_load_script_from_json_file(const char* path)
     return r;
 }
 
-/* Phase 5 Localization Storage */
-typedef struct RogueLocEntry
-{
-    char locale[8];
-    char key[64];
-    char value[256];
-} RogueLocEntry;
-#ifndef ROGUE_DIALOGUE_MAX_LOC_ENTRIES
-#define ROGUE_DIALOGUE_MAX_LOC_ENTRIES 256
-#endif
-static RogueLocEntry g_loc_entries[ROGUE_DIALOGUE_MAX_LOC_ENTRIES];
-static int g_loc_entry_count = 0;
-static char g_active_locale[8] = "en"; /* default */
-
-int rogue_dialogue_locale_register(const char* locale, const char* key, const char* value)
-{
-    if (!locale || !*locale || !key || !*key || !value)
-        return -1;
-    for (int i = 0; i < g_loc_entry_count; i++)
-    {
-        if (strcmp(g_loc_entries[i].locale, locale) == 0 && strcmp(g_loc_entries[i].key, key) == 0)
-        {
-            size_t vl = strlen(value);
-            if (vl > sizeof(g_loc_entries[i].value) - 1)
-                vl = sizeof(g_loc_entries[i].value) - 1;
-            memcpy(g_loc_entries[i].value, value, vl);
-            g_loc_entries[i].value[vl] = '\0';
-            return 0;
-        }
-    }
-    if (g_loc_entry_count >= ROGUE_DIALOGUE_MAX_LOC_ENTRIES)
-        return -2;
-    RogueLocEntry* e = &g_loc_entries[g_loc_entry_count++];
-    size_t ll = strlen(locale);
-    if (ll > sizeof(e->locale) - 1)
-        ll = sizeof(e->locale) - 1;
-    memcpy(e->locale, locale, ll);
-    e->locale[ll] = '\0';
-    size_t kl = strlen(key);
-    if (kl > sizeof(e->key) - 1)
-        kl = sizeof(e->key) - 1;
-    memcpy(e->key, key, kl);
-    e->key[kl] = '\0';
-    size_t vl = strlen(value);
-    if (vl > sizeof(e->value) - 1)
-        vl = sizeof(e->value) - 1;
-    memcpy(e->value, value, vl);
-    e->value[vl] = '\0';
-    return 0;
-}
-int rogue_dialogue_locale_set(const char* locale)
-{
-    if (!locale || !*locale)
-        return -1;
-    size_t ll = strlen(locale);
-    if (ll > sizeof(g_active_locale) - 1)
-        ll = sizeof(g_active_locale) - 1;
-    memcpy(g_active_locale, locale, ll);
-    g_active_locale[ll] = '\0';
-    return 0;
-}
-const char* rogue_dialogue_locale_active(void) { return g_active_locale; }
-static const char* loc_lookup(const char* key)
-{
-    for (int i = 0; i < g_loc_entry_count; i++)
-    {
-        if (strcmp(g_loc_entries[i].locale, g_active_locale) == 0 &&
-            strcmp(g_loc_entries[i].key, key) == 0)
-            return g_loc_entries[i].value;
-    }
-    return NULL;
-}
-/* For IS_KEY lines we store key\0fallback_text\0 in text field region */
-static const char* localized_fallback(const RogueDialogueLine* ln)
-{
-    if (!ln)
-        return NULL;
-    if (!(ln->token_flags & ROGUE_DIALOGUE_LINE_IS_KEY))
-        return NULL;
-    const char* key = ln->text;
-    size_t klen = strlen(key);
-    const char* fb = key + klen + 1;
-    if (!*fb)
-        return NULL;
-    return fb;
-}
+/* Internal localization helpers moved to dialogue_locale.c */
+extern const char* rogue_dialogue__loc_lookup(const char* key);
+extern const char* rogue_dialogue__localized_fallback(const RogueDialogueLine* ln);
 
 void rogue_dialogue_set_player_name(const char* name)
 {
@@ -1064,9 +555,9 @@ int rogue_dialogue_current_text(char* buffer, size_t cap)
     const char* text = ln->text;
     if (ln->token_flags & ROGUE_DIALOGUE_LINE_IS_KEY)
     {
-        const char* loc = loc_lookup(ln->text);
+        const char* loc = rogue_dialogue__loc_lookup(ln->text);
         if (!loc)
-            loc = localized_fallback(ln);
+            loc = rogue_dialogue__localized_fallback(ln);
         if (loc)
             text = loc;
     }
@@ -1433,7 +924,7 @@ int rogue_dialogue_load_script_from_file(int id, const char* path)
         return -1;
     char* buf = NULL;
     int len = 0;
-    int r = load_file(path, &buf, &len);
+    int r = rogue_dialogue__read_all(path, &buf, &len);
     if (r != 0)
         return -2;
     int pr = parse_and_register(id, buf, len);
@@ -1465,10 +956,8 @@ void rogue_dialogue_reset(void)
     g_playback = (RogueDialoguePlayback){0};
     g_flag_count = 0;
     g_item_count = 0;
-    g_loc_entry_count = 0;
-    g_active_locale[0] = 'e';
-    g_active_locale[1] = 'n';
-    g_active_locale[2] = '\0';
+    /* Reset localization store to defaults */
+    rogue_dialogue_locale_reset();
     for (int i = 0; i < ROGUE_DIALOGUE_MAX_SCRIPTS; i++)
     {
         g_lines_viewed[i] = 0;
@@ -1564,9 +1053,9 @@ void rogue_dialogue_log_current_line(void)
     const char* text = ln->text;
     if (ln->token_flags & ROGUE_DIALOGUE_LINE_IS_KEY)
     {
-        const char* loc = loc_lookup(ln->text);
+        const char* loc = rogue_dialogue__loc_lookup(ln->text);
         if (!loc)
-            loc = localized_fallback(ln);
+            loc = rogue_dialogue__localized_fallback(ln);
         if (loc)
             text = loc;
     }
@@ -1618,9 +1107,9 @@ int rogue_dialogue_advance(void)
         const char* text = ln->text;
         if (ln->token_flags & ROGUE_DIALOGUE_LINE_IS_KEY)
         {
-            const char* loc = loc_lookup(ln->text);
+            const char* loc = rogue_dialogue__loc_lookup(ln->text);
             if (!loc)
-                loc = localized_fallback(ln);
+                loc = rogue_dialogue__localized_fallback(ln);
             if (loc)
                 text = loc;
         }
@@ -1713,9 +1202,9 @@ int rogue_dialogue_render_ui(struct RogueUIContext* ui)
     const char* text = ln->text;
     if (ln->token_flags & ROGUE_DIALOGUE_LINE_IS_KEY)
     {
-        const char* loc = loc_lookup(ln->text);
+        const char* loc = rogue_dialogue__loc_lookup(ln->text);
         if (!loc)
-            loc = localized_fallback(ln);
+            loc = rogue_dialogue__localized_fallback(ln);
         if (loc)
             text = loc;
     }
@@ -1765,9 +1254,9 @@ void rogue_dialogue_render_runtime(void)
     const char* full_text = ln->text;
     if (ln->token_flags & ROGUE_DIALOGUE_LINE_IS_KEY)
     {
-        const char* loc = loc_lookup(ln->text);
+        const char* loc = rogue_dialogue__loc_lookup(ln->text);
         if (!loc)
-            loc = localized_fallback(ln);
+            loc = rogue_dialogue__localized_fallback(ln);
         if (loc)
             full_text = loc;
     }
@@ -1793,13 +1282,14 @@ void rogue_dialogue_render_runtime(void)
     int vw = g_app.viewport_w > 0 ? g_app.viewport_w : 1280;
     int vh = g_app.viewport_h > 0 ? g_app.viewport_h : 720;
     /* --- Dynamic panel sizing to accommodate large avatars (up to 154x320) --- */
+    const RogueDialogueStyle* st = rogue_dialogue_style_get();
     enum
     {
         ROGUE_AVATAR_MAX_W = 154,
         ROGUE_AVATAR_MAX_H = 320
     }; /* logical display caps */
     int panel_w = (vw < 700) ? vw - 20 : 680;
-    int panel_h = g_style.panel_height > 0 ? g_style.panel_height : 180;
+    int panel_h = st->panel_height > 0 ? st->panel_height : 180;
     /* Peek avatar now to allow panel enlargement before drawing background */
     RogueTexture* av_peek = rogue_dialogue_avatar_get(ln->speaker_id);
     int avatar_display_h = 0;
@@ -1824,26 +1314,27 @@ void rogue_dialogue_render_runtime(void)
     int x = (vw - panel_w) / 2;
     int y = vh - panel_h - 30;
     /* Gradient background */
-    if (g_style.use_parchment && g_parchment_loaded && g_parchment_tex.handle)
+    RogueTexture* parchment = rogue_dialogue__parchment_texture();
+    if (st->use_parchment && parchment && parchment->handle)
     { /* draw parchment texture tiled */
-        int tiles_x = panel_w / g_parchment_tex.w + 1;
-        int tiles_y = panel_h / g_parchment_tex.h + 1;
+        int tiles_x = panel_w / parchment->w + 1;
+        int tiles_y = panel_h / parchment->h + 1;
         SDL_Rect dst;
         for (int ty = 0; ty < tiles_y; ++ty)
         {
             for (int tx = 0; tx < tiles_x; ++tx)
             {
-                dst.x = x + tx * g_parchment_tex.w;
-                dst.y = y + ty * g_parchment_tex.h;
-                dst.w = g_parchment_tex.w;
-                dst.h = g_parchment_tex.h;
-                SDL_RenderCopy(g_internal_sdl_renderer_ref, g_parchment_tex.handle, NULL, &dst);
+                dst.x = x + tx * parchment->w;
+                dst.y = y + ty * parchment->h;
+                dst.w = parchment->w;
+                dst.h = parchment->h;
+                SDL_RenderCopy(g_internal_sdl_renderer_ref, parchment->handle, NULL, &dst);
             }
         }
     }
-    else if (g_style.enable_gradient)
+    else if (st->enable_gradient)
     {
-        unsigned int c0 = g_style.panel_color_top, c1 = g_style.panel_color_bottom;
+        unsigned int c0 = st->panel_color_top, c1 = st->panel_color_bottom;
         unsigned char r0 = (unsigned char) ((c0 >> 16) & 0xFF),
                       g0 = (unsigned char) ((c0 >> 8) & 0xFF), b0 = (unsigned char) (c0 & 0xFF),
                       a0 = (unsigned char) ((c0 >> 24) & 0xFF);
@@ -1880,32 +1371,32 @@ void rogue_dialogue_render_runtime(void)
     }
     else
     {
-        unsigned int c = g_style.panel_color_top;
+        unsigned int c = st->panel_color_top;
         SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, (c >> 16) & 255, (c >> 8) & 255,
                                c & 255, (c >> 24) & 255);
         SDL_Rect bg = {x, y, panel_w, panel_h};
         SDL_RenderFillRect(g_internal_sdl_renderer_ref, &bg);
     }
     /* Border */
-    unsigned int bc = g_style.border_color;
+    unsigned int bc = st->border_color;
     SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, (bc >> 16) & 255, (bc >> 8) & 255, bc & 255,
                            (bc >> 24) & 255);
     SDL_Rect br = {x, y, panel_w, panel_h};
-    int bt = g_style.border_thickness < 1 ? 1 : g_style.border_thickness;
+    int bt = st->border_thickness < 1 ? 1 : st->border_thickness;
     for (int i = 0; i < bt; i++)
     {
         SDL_Rect r2 = {br.x + i, br.y + i, br.w - 2 * i, br.h - 2 * i};
         SDL_RenderDrawRect(g_internal_sdl_renderer_ref, &r2);
     }
-    unsigned int acc = g_style.accent_color;
+    unsigned int acc = st->accent_color;
     SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, (acc >> 16) & 255, (acc >> 8) & 255,
                            acc & 255, (acc >> 24) & 255);
     SDL_RenderDrawLine(g_internal_sdl_renderer_ref, x + 8, y + 28, x + panel_w - 8, y + 28);
     /* Glow (simple expanding translucent border) */
-    if (g_style.glow_strength > 0)
+    if (st->glow_strength > 0)
     {
-        unsigned int gc = g_style.glow_color;
-        int layers = g_style.glow_strength;
+        unsigned int gc = st->glow_color;
+        int layers = st->glow_strength;
         for (int i = 1; i <= layers; i++)
         {
             Uint8 a = (Uint8) (((gc >> 24) & 255) / (i + 1));
@@ -1916,18 +1407,18 @@ void rogue_dialogue_render_runtime(void)
         }
     }
     /* Rune strip overlay across top */
-    if (g_style.rune_strip_color >> 24)
+    if (st->rune_strip_color >> 24)
     {
-        unsigned int rc = g_style.rune_strip_color;
+        unsigned int rc = st->rune_strip_color;
         SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, (rc >> 16) & 255, (rc >> 8) & 255,
                                rc & 255, (rc >> 24) & 255);
         SDL_Rect rr = {x + 10, y + 4, panel_w - 20, 16};
         SDL_RenderDrawRect(g_internal_sdl_renderer_ref, &rr);
     }
     /* Corner ornaments placeholder (simple small filled squares for now) */
-    if (g_style.corner_ornaments)
+    if (st->corner_ornaments)
     {
-        unsigned int oc = g_style.accent_color;
+        unsigned int oc = st->accent_color;
         SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, (oc >> 16) & 255, (oc >> 8) & 255,
                                oc & 255, (oc >> 24) & 255);
         SDL_Rect o1 = {x + 4, y + 4, 8, 8};
@@ -1940,7 +1431,7 @@ void rogue_dialogue_render_runtime(void)
         SDL_RenderFillRect(g_internal_sdl_renderer_ref, &o4);
     }
     /* Vignette darkening inside edges */
-    if (g_style.vignette)
+    if (st->vignette)
     {
         for (int i = 0; i < 12 && i < panel_w / 2 && i < panel_h / 2; i++)
         {
@@ -2063,7 +1554,7 @@ void rogue_dialogue_render_runtime(void)
         SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, 0, 0, 0, 255);
         SDL_RenderDrawRect(g_internal_sdl_renderer_ref, &dst);
     }
-    unsigned int sc_col = g_style.speaker_color;
+    unsigned int sc_col = st->speaker_color;
     rogue_font_draw_text(text_left, y + 10, ln->speaker_id ? ln->speaker_id : "?", 1,
                          (RogueColor){(sc_col >> 16) & 255, (sc_col >> 8) & 255, sc_col & 255,
                                       (sc_col >> 24) & 255});
@@ -2143,9 +1634,9 @@ void rogue_dialogue_render_runtime(void)
     int base_y = y + (panel_h - total_text_height) / 2 + 4;
     if (base_y < y + 34)
         base_y = y + 34;
-    unsigned int text_col = g_style.text_color;
-    unsigned int sh_col = g_style.text_shadow_color;
-    int draw_shadow = g_style.enable_text_shadow && (sh_col >> 24) != 0;
+    unsigned int text_col = st->text_color;
+    unsigned int sh_col = st->text_shadow_color;
+    int draw_shadow = st->enable_text_shadow && (sh_col >> 24) != 0;
     while (*p && line_idx < max_lines)
     {
         while (*p == ' ')
@@ -2229,7 +1720,7 @@ void rogue_dialogue_render_runtime(void)
     {
         size_t full_len = strlen(full_text);
         float shown_chars = g_playback.reveal_ms * g_chars_per_ms;
-        if (shown_chars < (float) full_len && g_style.show_caret)
+        if (shown_chars < (float) full_len && st->show_caret)
         {
             int caret_phase = ((int) g_playback.reveal_ms / 150) % 2;
             if (caret_phase == 0)
@@ -2243,7 +1734,7 @@ void rogue_dialogue_render_runtime(void)
         }
     }
     /* Advance prompt blinking */
-    if (g_style.show_blink_prompt)
+    if (st->show_blink_prompt)
     {
         extern struct RogueAppState g_app;
         int phase = ((int) g_app.game_time_ms / 400) % 2;

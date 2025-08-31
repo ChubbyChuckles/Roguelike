@@ -106,6 +106,19 @@ typedef struct UtilitySelectorData
 {
     UtilityChildMeta* metas; /**< Array of per-child scorer metadata. */
 } UtilitySelectorData;
+
+/**
+ * @brief Destructor for UtilitySelectorData that frees nested allocations.
+ */
+static void util_selector_dtor(void* p)
+{
+    UtilitySelectorData* d = (UtilitySelectorData*) p;
+    if (!d)
+        return;
+    if (d->metas)
+        free(d->metas);
+    free(d);
+}
 /**
  * @brief Tick function for the Utility Selector node.
  *
@@ -167,7 +180,8 @@ RogueBTNode* rogue_bt_utility_selector(const char* name)
     {
         UtilitySelectorData* d = (UtilitySelectorData*) calloc(1, sizeof(UtilitySelectorData));
         n->user_data = d;
-        n->user_data_dtor = free; /* free UtilitySelectorData in destroy; metas freed in cleanup */
+        /* Ensure nested metadata (metas) is freed via a proper destructor. */
+        n->user_data_dtor = util_selector_dtor;
     }
     return n;
 }

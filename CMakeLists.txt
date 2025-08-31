@@ -359,8 +359,13 @@ add_library(rogue_core
     src/core/progression/progression_persist.c
     src/core/progression/progression_award.c
     src/game/dialogue.c
+    src/game/dialogue_style.c
+    src/game/dialogue_avatars.c
+    src/game/dialogue_locale.c
+    src/game/dialogue_util.c
     # UI Phase 1 scaffolding
     src/ui/core/ui_context.c
+    src/ui/core/ui_skillgraph.c
     # maintainability phase M3: unified kv parser utility
     src/util/kv_parser.c
     src/ai/core/ai_trace.c

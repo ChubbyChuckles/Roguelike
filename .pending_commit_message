@@ -41,6 +41,13 @@ Phase 13.3 — Debug Overlay: Content Graph panel + test runtime trims
   • test_start_screen_phase10_2_navigation: reduced wrap-around taps; ~3.3s via direct run, ~10.7s under full parallel ctest due to queueing.
 - Discipline: Built Debug with SDL2 using -j12; full ctest suite all green (582/582).
 
+AI nodes: utility selector destructor
+
+- Improved memory cleanup for `rogue_bt_utility_selector`: set a custom `user_data_dtor` that frees the internal `metas` array and the data struct, reducing reliance on the global advanced cleanup hook and easing future file splits.
+- Discipline: Rebuilt Debug (SDL2) with -j12 and ran full test suite — all green (582/582).
+
+Gate confirm: After integrating the destructor change, rebuilt Debug (SDL2) with -j12 and ran ctest — 582/582 passing, durations consistent with previous baseline.
+
 Follow-ups
 - Validate overlay runtime UX across Items, Validation, Content Graph panels in interactive sessions.
 - Consider virtualized tables for large lists; wire Command Palette stub.
