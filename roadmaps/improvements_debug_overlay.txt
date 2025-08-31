@@ -1,0 +1,161 @@
+DEBUG OVERLAY UI/UX IMPROVEMENTS PLAN (Authoring-first, Modern UX)
+
+Context and constraints
+- Runtime: SDL2 renderer/input, immediate-mode UI in C, headless-safe APIs, MSVC toolchain (no VLAs; compile-time constants only).
+- Existing: Panels for System, Skills, Items, Entities, Map, Audio/VFX; Content Graph visualization with exports; validation manager; JSON schemas and round-trips; live reload.
+- Primary goal: Make adding/editing all asset types fast, safe, and pleasant while keeping overlay performance high and headless tests stable.
+
+Guiding principles
+- Authoring-first: Minimize clicks and modality. Offer smart defaults, templates, and fix-it actions.
+- Always in context: Inline validation, previews, and references near the editor controls.
+- Keyboard-first: Every action has a shortcut; full focus traversal with clear affordances.
+- Non-blocking: Background I/O with progress; errors surface as toasts, not modal stops.
+- Style consistency: Single theme system controls spacing, colors, typography, and DPI.
+
+Milestone 0 — Foundations refresh (pre-work)
+0.1 Overlay theme (overlay_theme.{h,c})
+  - Centralize colors, spacing, radii, typography scale, and icon palette.
+  - Provide 3 presets: Dark (default), Light, High-Contrast; runtime switch + persisted choice.
+  - DPI scaling factor and font size ladder. Acceptance: All widgets render with theme constants; no hard-coded colors left in panels.
+0.2 Layout primitives
+  - Resizable columns/splitter, collapsible sections, and tab bar. Persist per-panel layout.
+  - Acceptance: Items/Skills/Map panels adopt split layouts; sizes persist across restarts.
+0.3 Notification/toast system
+  - Non-modal info/warn/error toasts with auto-dismiss and “Details…” link.
+  - Acceptance: Save/Load, Auto-reload, and Validation surface through toasts.
+
+Milestone 1 — Navigation and discoverability
+1.1 Global search (Ctrl+K) and fuzzy finder
+  - Search assets across all registries by id/name/tags; jump-to panel + selection.
+  - Recent assets and Favorites (star/pin) sections. Acceptance: <200ms results on 10k items via prefix index or substring scan with time budget + pagination.
+1.2 Command Palette (Ctrl+Shift+P)
+  - Fuzzy action picker for overlay commands (e.g., “Create Item”, “Export Subgraph JSON”, “Run Validation”).
+  - Acceptance: Extensible registry; actions callable headless via overlay_invoke_action (stub OK this milestone).
+1.3 Breadcrumbs and history
+  - Breadcrumb trail per panel (e.g., Items > Swords > iron_sabre). Back/Forward history with Alt+Left/Right.
+
+Milestone 2 — Authoring accelerators (all asset types)
+2.1 Creation wizards (guided forms)
+  - Items, Skills, Entities, Tilesets/Maps, Audio/VFX, Dialogue, Vendors, Loot Tables.
+  - Smart defaults from templates; required-field gating; inline validation badges.
+  - Acceptance: “New …” flow completes without touching JSON; invalid fields show error text; Save disabled until valid.
+2.2 Templates and presets
+  - Per-type template store (JSON fragments) + “Save as Template”.
+  - Quick-pick presets from recent and curated sets. Acceptance: Duplicate from template in one step.
+2.3 Duplicate-as-template
+  - One-click “Duplicate” opens wizard with fields pre-filled and a new id suggestion.
+2.4 Multi-asset batch creator
+  - CSV/TSV import or pattern-based expansion (e.g., name_{1..5}). Acceptance: Preview table before commit; validates all rows.
+
+Milestone 3 — Inline editing and validation
+3.1 Schema-aware editors
+  - Enum dropdowns, range sliders with min/max from schema, tag pickers with autocomplete, file pickers with existence check.
+  - Acceptance: No raw numbers for enums/ranges in the main editor; helpers fall back to InputText when schema absent.
+3.2 Side-by-side JSON and Form view
+  - Two-way binding; dirty markers per-field; diff viewer before save.
+  - Acceptance: Changing JSON updates form within one frame; form edits serialize to JSON preview.
+3.3 Cross-reference validation and fix-its
+  - Show missing/invalid refs inline; offer quick “Create missing asset” or “Replace with closest match”.
+  - Acceptance: Clicking fix-it resolves the validation and marks doc dirty.
+3.4 Auto-save drafts and recovery
+  - Per-asset draft file with debounce (e.g., 1.5s after last edit). “Restore draft?” toast on reopen. Acceptance: No lost edits on crash.
+
+Milestone 4 — Live previews and inspectors
+4.1 Items preview
+  - Icon/sprite swatch; rarity color; sockets UI; vendor price impact; equip simulation snapshot.
+4.2 Skills preview
+  - Timeline (cast/channel/cooldown), damage tick graph, effect spec list; quick “Simulate” with deterministic seed.
+4.3 Audio/VFX preview
+  - Spatial audition at cursor; gizmo toggles; quick attenuation curve view.
+4.4 Map/editor preview upgrades
+  - Brush ghost, colliders overlay, pathfinding heatmap, tile autotiling hints. Undo/redo for map edits (local ring buffer).
+4.5 Dialogue preview
+  - Branch graph mini-view and rich text renderer with styles; test conversation runner.
+Acceptance: Previews update in real time when fields change; 60 FPS budget maintained; heavy calcs done off-thread with snapshot handoff.
+
+Milestone 5 — Content Graph and diagnostics polish
+5.1 Pan/zoom and focus tools
+  - Mouse wheel zoom, right-drag pan, fit-to-selection, isolate subgraph, pin nodes.
+5.2 Layout and highlighting
+  - Layered/force-directed hybrid; emphasize cycles and long dependency chains; group halos; path “explain why” breadcrumbs.
+5.3 Finders
+  - Orphans (no inbound), missing providers (dangling), large hubs, and path conflicts. Batch action: open editors or export reports.
+5.4 Exports and diffing
+  - Compare snapshots; color edges added/removed; export focused diffs. Acceptance: JSON diff includes node degree deltas and cycle list.
+
+Milestone 6 — Style, accessibility, and micro-interactions
+6.1 Visual language
+  - Consistent spacing, hover/pressed/focus states, checkbox/radio sizes, accessible contrast. Tooltip system with rich content.
+6.2 Icons
+  - Bitmap icon atlas or icon font subset; use on tabs, headers, and buttons. Acceptance: No text-only controls for frequent actions.
+6.3 Keyboard coverage and cheat sheet
+  - F1 toggles overlay; ? opens “Shortcuts” panel; Alt+number to switch tabs; Ctrl+S save; Ctrl+Z/Y undo/redo; Esc clears focus.
+6.4 Colorblind-safe palette
+  - Optional mode remaps accent colors; ensure graph and heatmaps are distinguishable.
+
+Milestone 7 — Persistence, safety, and collaboration
+7.1 Undo/redo (local session)
+  - Command stack per panel with memory cap. Acceptance: 50 steps typical; integrates with map edits and JSON form changes.
+7.2 Save pipeline safeguards
+  - Pre-save validation gate; atomic write; preflight conflicts (id/path) with fix-it prompts.
+7.3 Content pack import/export
+  - Bundle selected assets as a pack; import with conflict resolution: keep, rename, or replace. Acceptance: Dry-run preview, counts per type.
+7.4 VCS helpers (optional)
+  - “Reveal in Explorer” and “Copy path”; optional post-save hook to run formatter or git add.
+
+Milestone 8 — Performance and robustness
+8.1 Virtualized lists/tables
+  - Only render visible rows; smooth scroll. Acceptance: 100k-row table stays >60 FPS.
+8.2 Background job system
+  - Worker pool for validation, hash compute, heavy exports; progress HUD with cancel.
+8.3 Memory discipline
+  - Arena/pool allocators for UI; hot paths avoid heap churn; capture zero when overlay disabled.
+8.4 Instrumentation
+  - Overlay perf panel: widget timings, draw calls, input latency; redlines when budgets exceeded.
+
+Milestone 9 — Extensibility and testing
+9.1 Action API
+  - overlay_invoke_action(name, args) to trigger commands programmatically (headless-safe). Acceptance: Used by tests to open panels, select assets, and save.
+9.2 Test fakes and snapshots
+  - In-memory FS and renderer shims; snapshot tests for panel states; keyboard navigation simulation.
+9.3 Stability guard
+  - Flake-resistant timers; deterministic seeds; timeouts with retries for file mtime on Windows.
+
+Implementation notes and constraints
+- MSVC: use compile-time caps (e.g., OVERLAY_*_MAX_*) for buffers; avoid VLAs.
+- Input: prefer “clicked” over “pressed” for discrete actions; capture input on focus.
+- Headless: keep logic separated from rendering; all commands callable without SDL.
+- Filesystem: atomic writes; centralize save paths; per-test isolation for units.
+- Style: no hard-coded literals in panels—only through overlay_theme.
+
+Suggested sequencing and effort
+- 0. Foundations (3–5 days)
+- 1. Navigation (3–4 days)
+- 2. Authoring (7–10 days)
+- 3. Inline/validation (5–7 days)
+- 4. Previews (7–12 days)
+- 5. Graph polish (4–6 days)
+- 6. Style/accessibility (3–5 days)
+- 7. Persistence/collab (5–8 days)
+- 8. Performance (3–5 days, ongoing)
+- 9. Extensibility/tests (4–6 days)
+
+Acceptance criteria summary
+- All major asset types can be created/edited/saved without touching raw JSON.
+- Global search/command palette navigate anywhere within 1–2 keystrokes on average.
+- Validation is always visible and fixable in-place; no modal dead-ends.
+- Overlay remains responsive (>60 FPS) on large content sets; heavy work off-thread.
+- Theming and shortcuts are consistent; settings persist; headless tests cover core flows.
+
+Risk and mitigations
+- Large content sets: use virtualized lists and incremental search; paginate when needed.
+- Windows mtime quirks: keep existing robust mtime helpers; add backoff on save/reload.
+- Visual complexity: ship with sensible defaults and progressive disclosure (collapsibles).
+- Tech debt: codify UI constants early (overlay_theme); avoid ad-hoc styles.
+
+Near-term next steps (actionable)
+1) Implement overlay_theme and migrate System + Items panels to use it.
+2) Add splitters to Items/Skills; persist sizes; introduce toasts for Save/Load.
+3) Build the Command Palette with a small set of actions; wire overlay_invoke_action stub.
+4) Ship Items “Create New” wizard powered by schema; add Duplicate-as-template.
+5) Add virtualized table for Items list; measure FPS on 20k entries.
