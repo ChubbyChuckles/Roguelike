@@ -1,0 +1,26 @@
+feat(overlay/skills): add "Create New Skill" wizard + headless API and tests
+
+- New API: rogue_skill_debug_create(name, max_rank, base_cd_ms, cd_red_ms_per_rank, cast_ms, is_passive)
+  - Appends a new RogueSkillDef to the registry with sensible defaults
+  - Validates inputs; rejects duplicates by name (-2)
+- Skills panel: new "Create New Skill" section (name, max rank, base CD, CD/rank, cast ms, passive)
+  - On success, selects the new skill and shows a status line
+- Unit: tests/unit/test_skill_creation_wizard.c verifies active/passive creation and duplicate guard
+- Docs: README debug overlay tips mention the skills creation wizard
+- Roadmap: Phase 14.1 and 14.5 marked Partial for Skills wizard and tests
+
+feat(overlay/skills): template-based creation (prefill + optional coeff copy) + tests
+
+- Skills panel: creation wizard gains a template workflow
+  - "Template Skill Id" slider + "Apply Template" prefill name (suffix _Copy), max_rank, passive, and timing from the selected template
+  - "Copy Coeffs" option applies template RogueSkillCoeffParams to the preview selection and to the newly created skill on success
+- API: new `rogue_skill_debug_get_meta(id, &max_rank, &is_passive)` to support template prefill
+- Tests: add `tests/unit/test_skill_template_creation.c` covering active/passive templates and coeffs copy on/off
+- Docs: README overlay tips mention the template workflow; test counts updated
+- Roadmap: Phase 14.2 marked Partial with details of the template UI/API and test coverage
+
+feat(overlay/skills): searchable template selector in creation wizard
+
+- Skills panel: add a "Template Filter" input and a filterable table (ID, Name) of skills; clicking a row selects its id for the template apply flow
+- UX: substring filter for quick narrowing; integrates with existing "Apply Template" and optional "Copy Coeffs"
+- Docs: README updated to mention the searchable template picker; roadmap CI counts bumped to 584/584 and Phase 14.2 notes the new selector

@@ -21,7 +21,7 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 
 CI VALIDATION (current)
 - Overlay core/input/widgets/panels compile clean under Debug with SDL2. MSVC VLA-like array errors in overlay_panels.c (Content Graph SDL preview) were resolved by replacing const-sized locals with compile-time caps (OVERLAY_CG_MAX_NODES/OVERLAY_CG_MAX_EDGES) to satisfy C89 constant-expression rules.
-- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%) (582/582).
+- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%) (584/584).
 - Worldgen noise benchmark stabilized: adaptive repetition ensures scalar path runs >=0.5 ms (cap 64x) and applies the same repeat to SIMD; flakiness in test_worldgen_phase14_optimization resolved.
 - Items loader now accepts both raw JSON arrays and versioned envelopes ("$schema": "items") and unwraps entries transparently; the schema-backed roundtrip test passes.
 - Skills loader now accepts both raw JSON arrays and versioned envelopes ("$schema": "skills"); schema validator and a roundtrip export→envelope→reload unit are integrated and green.
@@ -149,11 +149,11 @@ PHASE 13. Cross-Reference Validation System
 13.5 Tests: cross-ref validation accuracy, error reporting, dependency tracking (Partial – `tests/unit/test_state_validation_manager.c` covers manager behavior; new smoke `tests/unit/test_validation_cli_smoke.c` runs wiring end-to-end headlessly and asserts at least one run completes. Further graph/accuracy tests TBD.)
 
 PHASE 14. Dynamic Content Creation
-14.1 Add "New Entry" wizards for each content type with guided forms (X)
-14.2 Implement template system: create new entries from existing templates (X)
+14.1 Add "New Entry" wizards for each content type with guided forms (Partial – Skills wizard implemented: new headless API rogue_skill_debug_create and overlay form in Skills panel. Items wizard already exists; other content types TBD.)
+14.2 Implement template system: create new entries from existing templates (Partial – Skills panel wizard now supports selecting a template skill id to prefill name, max_rank, passive flag, and timing via new debug API `rogue_skill_debug_get_meta` plus existing timing getters. Optional "Copy Coeffs" applies the template's RogueSkillCoeffParams either to the preview (current selection) or after creation to the new skill. Unit `tests/unit/test_skill_template_creation.c` validates template-based creation for active/passive sources and coeffs copy on/off. New: a searchable template selector (filter text + clickable table) improves discoverability and speed when choosing a template.)
 14.3 Add validation pipeline: prevent saving invalid or conflicting content (X)
 14.4 Create content export/import: share content packs between projects (X)
-14.5 Tests: content creation workflows, template system, export/import (X)
+14.5 Tests: content creation workflows, template system, export/import (Partial – new unit `tests/unit/test_skill_creation_wizard.c` validates creation, duplicates, and passive/active flags; new unit `tests/unit/test_skill_template_creation.c` covers template flows and coeff copy behaviors.)
 
 PHASE 15. Performance & Polish
 15.1 Optimize overlay disabled path: ensure <0.1ms overhead when inactive (X)

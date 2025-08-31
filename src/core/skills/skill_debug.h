@@ -53,10 +53,21 @@ extern "C"
         per invocation. */
     int rogue_skill_debug_autoreload_tick(const char* path);
 
+    /* Create a new skill at runtime for prototyping. Returns new skill index (>=0),
+        -1 on invalid params, -2 on duplicate name, <-10 on internal errors. The
+        skill is appended to the registry with sensible defaults. Pass is_passive!=0
+        to create a passive (no activation/cooldown). For actives, cast_time_ms<=0
+        creates an instant skill; >0 creates a cast skill. */
+    int rogue_skill_debug_create(const char* name, int max_rank, float base_cooldown_ms,
+                                 float cd_red_ms_per_rank, float cast_time_ms, int is_passive);
+
     /* Auto-reload the base skills definition file (JSON) when its mtime changes. If path is NULL,
         defaults to "assets/skills_uhf87f.json". Returns number loaded on change, 0 when unchanged,
         and <0 on error. This performs a full registry rebuild via rogue_skills_reload_from_cfg. */
     int rogue_skills_base_autoreload_tick(const char* path);
+
+    /* Fetch meta properties for a skill definition. Returns 0 on success. */
+    int rogue_skill_debug_get_meta(int id, int* out_max_rank, int* out_is_passive);
 
 #ifdef __cplusplus
 }

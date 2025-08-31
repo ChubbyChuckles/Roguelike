@@ -37,6 +37,130 @@ static void panel_skills(void* user)
     snprintf(buf, sizeof buf, "[%d] %s", sel, name ? name : "<noname>");
     overlay_label(buf);
 
+    /* Creation wizard */
+    overlay_label("Create New Skill");
+    static char new_name[64] = "";
+    static int new_max_rank = 5;
+    static float new_base_cd = 1000.0f;
+    static float new_cd_red = 0.0f;
+    static float new_cast_ms = 0.0f;
+    static int new_is_passive = 0;
+    static int tmpl_id = -1;
+    static int copy_coeffs = 1;
+    /* Template from existing skill */
+    overlay_slider_int("Template Skill Id", &tmpl_id, -1, count - 1);
+    overlay_checkbox("Copy Coeffs", &copy_coeffs);
+    /* Searchable template picker */
+    static char tmpl_filter[64] = "";
+    overlay_input_text("Template Filter", tmpl_filter, sizeof tmpl_filter);
+    {
+        const char* headers[] = {"ID", "Name"};
+        int sort_col = 0;
+        int sort_dir = 0;
+        int selected = (tmpl_id >= 0 && tmpl_id < count) ? tmpl_id : -1;
+        if (overlay_table_begin("skills_tmpl", headers, 2, &sort_col, &sort_dir, NULL))
+        {
+            for (int i = 0; i < count; ++i)
+            {
+                const char* sname = rogue_skill_debug_name(i);
+                if (!sname)
+                    continue;
+                /* Simple substring filter (case-sensitive) */
+                if (tmpl_filter[0] != '\0')
+                {
+                    const char* p = sname;
+                    const char* f = tmpl_filter;
+                    const char* hit = NULL;
+                    /* naive strstr to avoid including string.h here */
+                    for (; *p && !hit; ++p)
+                    {
+                        const char* p2 = p;
+                        const char* f2 = f;
+                        while (*p2 && *f2 && *p2 == *f2)
+                        {
+                            ++p2;
+                            ++f2;
+                        }
+                        if (*f2 == '\0')
+                            hit = p; /* matched */
+                    }
+                    if (!hit)
+                        continue;
+                }
+                char id_s[16];
+                snprintf(id_s, sizeof id_s, "%d", i);
+                const char* cells[] = {id_s, sname};
+                (void) overlay_table_row(cells, 2, i, &selected);
+            }
+            overlay_table_end();
+        }
+        tmpl_id = selected;
+    }
+    if (overlay_button("Apply Template") && tmpl_id >= 0 && tmpl_id < count)
+    {
+        /* Prefill fields from template */
+        const char* tname = rogue_skill_debug_name(tmpl_id);
+        if (tname)
+        {
+            snprintf(new_name, sizeof new_name, "%s_Copy", tname);
+        }
+        int mr = 1, pass = 0;
+        if (rogue_skill_debug_get_meta(tmpl_id, &mr, &pass) == 0)
+        {
+            new_max_rank = mr;
+            new_is_passive = pass;
+        }
+        float bcd = 0.f, red = 0.f, cst = 0.f;
+        if (rogue_skill_debug_get_timing(tmpl_id, &bcd, &red, &cst) == 0)
+        {
+            new_base_cd = bcd;
+            new_cd_red = red;
+            new_cast_ms = cst;
+        }
+        if (copy_coeffs)
+        {
+            RogueSkillCoeffParams tcp;
+            if (rogue_skill_debug_get_coeff(tmpl_id, &tcp) == 0)
+            {
+                /* Apply coeffs to current selection for preview; creation will only set timing. */
+                rogue_skill_debug_set_coeff(sel, &tcp);
+            }
+        }
+    }
+    overlay_input_text("Name", new_name, sizeof new_name);
+    overlay_slider_int("Max Rank", &new_max_rank, 1, 20);
+    overlay_slider_float("Base Cooldown (ms)", &new_base_cd, 0.f, 60000.f);
+    overlay_slider_float("CD Reduction/rank (ms)", &new_cd_red, -1000.f, 1000.f);
+    overlay_slider_float("Cast Time (ms)", &new_cast_ms, 0.f, 5000.f);
+    overlay_checkbox("Passive", &new_is_passive);
+    if (overlay_button("Create"))
+    {
+        int idx = rogue_skill_debug_create(new_name, new_max_rank, new_base_cd, new_cd_red,
+                                           new_cast_ms, new_is_passive);
+        char msg[128];
+        if (idx >= 0)
+        {
+            snprintf(msg, sizeof msg, "Created skill '%s' at id %d", new_name, idx);
+            sel = idx;
+            /* Reset name for next */
+            new_name[0] = '\0';
+            /* If template coeffs were requested and available, copy them into the new id */
+            if (copy_coeffs && tmpl_id >= 0 && tmpl_id < count)
+            {
+                RogueSkillCoeffParams tcp;
+                if (rogue_skill_debug_get_coeff(tmpl_id, &tcp) == 0)
+                {
+                    rogue_skill_debug_set_coeff(idx, &tcp);
+                }
+            }
+        }
+        else
+        {
+            snprintf(msg, sizeof msg, "Create failed (%d)", idx);
+        }
+        overlay_label(msg);
+    }
+
     float base_cd = 0.f, cd_red = 0.f, cast_ms = 0.f;
     if (rogue_skill_debug_get_timing(sel, &base_cd, &cd_red, &cast_ms) == 0)
     {

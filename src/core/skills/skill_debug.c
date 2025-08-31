@@ -385,6 +385,63 @@ int rogue_skill_debug_load_overrides_text(const char* json_text)
     return applied;
 }
 
+int rogue_skill_debug_create(const char* name, int max_rank, float base_cooldown_ms,
+                             float cd_red_ms_per_rank, float cast_time_ms, int is_passive)
+{
+    if (!name || !name[0])
+        return -1;
+    if (max_rank <= 0)
+        max_rank = 1;
+    if (base_cooldown_ms < 0)
+        base_cooldown_ms = 0;
+    if (cd_red_ms_per_rank < -60000.0f)
+        cd_red_ms_per_rank = -60000.0f;
+    if (cast_time_ms < 0)
+        cast_time_ms = 0;
+    /* Check duplicate by name (linear scan; debug-only use) */
+    for (int i = 0; i < g_app.skill_count; ++i)
+    {
+        const RogueSkillDef* d = rogue_skill_get_def(i);
+        if (d && d->name && strcmp(d->name, name) == 0)
+            return -2;
+    }
+    RogueSkillDef def;
+    memset(&def, 0, sizeof def);
+    def.name = name;
+    def.icon = NULL;
+    def.max_rank = max_rank;
+    def.base_cooldown_ms = base_cooldown_ms;
+    def.cooldown_reduction_ms_per_rank = cd_red_ms_per_rank;
+    def.cast_time_ms = cast_time_ms;
+    def.is_passive = is_passive ? 1 : 0;
+    def.action_point_cost = 0;
+    def.resource_cost_mana = 0;
+    def.max_charges = 0;
+    def.charge_recharge_ms = 0;
+    def.input_buffer_ms = 0;
+    def.min_weave_ms = 0;
+    def.early_cancel_min_pct = 0;
+    def.cast_type = (cast_time_ms > 0.0f) ? 1 : 0; /* 0 instant, 1 cast */
+    def.combo_builder = 0;
+    def.combo_spender = 0;
+    def.effect_spec_id = -1;
+    def.haste_mode_flags = 0;
+    /* Costs/refunds default 0 */
+    def.ap_cost_pct_max = 0;
+    def.ap_cost_per_rank = 0;
+    def.ap_cost_surcharge_amount = 0;
+    def.ap_cost_surcharge_threshold = 0;
+    def.mana_cost_pct_max = 0;
+    def.mana_cost_per_rank = 0;
+    def.mana_cost_surcharge_amount = 0;
+    def.mana_cost_surcharge_threshold = 0;
+    def.refund_on_miss_pct = 0;
+    def.refund_on_resist_pct = 0;
+    def.refund_on_cancel_pct = 0;
+    int idx = rogue_skill_register(&def);
+    return idx;
+}
+
 int rogue_skill_debug_save_overrides(const char* path)
 {
     if (!path)
@@ -454,4 +511,16 @@ int rogue_skills_base_autoreload_tick(const char* path)
     /* Full registry reload */
     int loaded = rogue_skills_reload_from_cfg(use_path);
     return loaded;
+}
+
+int rogue_skill_debug_get_meta(int id, int* out_max_rank, int* out_is_passive)
+{
+    const RogueSkillDef* d = rogue_skill_get_def(id);
+    if (!d)
+        return -1;
+    if (out_max_rank)
+        *out_max_rank = d->max_rank > 0 ? d->max_rank : 1;
+    if (out_is_passive)
+        *out_is_passive = d->is_passive ? 1 : 0;
+    return 0;
 }
