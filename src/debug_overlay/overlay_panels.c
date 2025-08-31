@@ -963,6 +963,9 @@ static void panel_content_graph(void* user)
     static int draw_edges = 1;    /* simple on-panel edge preview for selected node */
     static int preview_depth = 2; /* multi-hop preview depth (>=1) */
     static int group_only = 0; /* when on, filter list is constrained to selected group's prefix */
+    /* Navigation breadcrumbs for click-to-drill within the SDL preview */
+    static const char* crumbs[32];
+    static int crumb_len = 0;
     overlay_input_text("Filter (substring)", filter, sizeof filter);
     /* Quick action: compute & cache all node hashes to surface issues early */
     if (overlay_button("Compute All Hashes"))
@@ -1016,6 +1019,56 @@ static void panel_content_graph(void* user)
             fputs("}\n", f);
             fclose(f);
             overlay_label("DOT exported.");
+        }
+        else
+        {
+            overlay_label("Failed to open output file.");
+        }
+    }
+    /* Export a simple JSON to build/content_graph.json for offline analysis */
+    if (overlay_button("Export JSON (build/content_graph.json)"))
+    {
+        FILE* f = NULL;
+#if defined(_MSC_VER)
+        fopen_s(&f, "build/content_graph.json", "wb");
+#else
+        f = fopen("build/content_graph.json", "wb");
+#endif
+        if (f)
+        {
+            /* Shape: {"nodes":[{"id":"...","hash":"0x...","deps":["..."]}, ...]} */
+            fputs("{\n  \"nodes\": [\n", f);
+            int nall = rogue_asset_dep_count();
+            int wrote = 0;
+            for (int i = 0; i < nall; ++i)
+            {
+                const char *nid = NULL, *pp = NULL;
+                if (rogue_asset_dep_get(i, &nid, &pp) != 0 || !nid)
+                    continue;
+                if (wrote)
+                    fputs(",\n", f);
+                unsigned long long hv = 0ULL;
+                (void) rogue_asset_dep_hash(nid, &hv);
+                fprintf(f, "    {\"id\":\"%s\",\"hash\":\"0x%016llx\",\"deps\":[", nid, hv);
+                const char* deps[64];
+                int dc = rogue_asset_dep_get_deps(nid, deps, (int) (sizeof deps / sizeof deps[0]));
+                int wrote_dep = 0;
+                for (int j = 0; j < dc; ++j)
+                {
+                    const char* did = deps[j];
+                    if (!did || !did[0])
+                        continue;
+                    if (wrote_dep)
+                        fputs(",", f);
+                    fprintf(f, "\"%s\"", did);
+                    wrote_dep = 1;
+                }
+                fputs("]}", f);
+                wrote = 1;
+            }
+            fputs("\n  ]\n}\n", f);
+            fclose(f);
+            overlay_label("JSON exported.");
         }
         else
         {
@@ -1358,6 +1411,20 @@ static void panel_content_graph(void* user)
             int ncount = content_graph_collect_forward(id, preview_depth, nids, ndeps, MAX_NODES,
                                                        edges, MAX_EDGES, &ecount);
 
+            /* Build a simple parent map from edges (first parent wins -> BFS tree) */
+            int parent[MAX_NODES];
+            for (int i = 0; i < MAX_NODES; ++i)
+                parent[i] = -1;
+            for (int i = 0; i < ecount; ++i)
+            {
+                int s = edges[i][0], t = edges[i][1];
+                if (s >= 0 && s < ncount && t >= 0 && t < ncount)
+                {
+                    if (parent[t] < 0 && t != 0) /* don't assign parent for root */
+                        parent[t] = s;
+                }
+            }
+
             /* Compute per-depth counts */
             int depth_counts[8] = {0};
             int depth_first_idx[8] = {0};
@@ -1441,11 +1508,150 @@ static void panel_content_graph(void* user)
                 rogue_font_draw_text(r.x + 4, r.y + 4, label, 1,
                                      (RogueColor){i == 0 ? 255 : 220, 255, 220, 255});
             }
+            /* Click-to-drill: if user clicks a node rect, switch selection to that node
+               (updates the root next frame) and build breadcrumbs from root to clicked. */
+            const OverlayInputState* in = overlay_input_get();
+            if (in && in->mouse_pressed)
+            {
+                int mx = (int) in->mouse_x, my = (int) in->mouse_y;
+                if (mx >= area.x && mx <= area.x + area.w && my >= area.y && my <= area.y + area.h)
+                {
+                    for (int i = 0; i < ncount; ++i)
+                    {
+                        SDL_Rect rr = rects[i];
+                        if (mx >= rr.x && mx <= rr.x + rr.w && my >= rr.y && my <= rr.y + rr.h)
+                        {
+                            const char* clicked = nids[i];
+                            if (clicked)
+                            {
+                                /* Build breadcrumbs using parent map */
+                                const char* tmp[32];
+                                int tlen = 0;
+                                int cur = i;
+                                while (cur >= 0 && tlen < (int) (sizeof tmp / sizeof tmp[0]))
+                                {
+                                    tmp[tlen++] = nids[cur];
+                                    if (cur == 0)
+                                        break;
+                                    cur = parent[cur];
+                                }
+                                /* reverse into persistent crumbs */
+                                crumb_len = 0;
+                                for (int k = tlen - 1;
+                                     k >= 0 && crumb_len < (int) (sizeof crumbs / sizeof crumbs[0]);
+                                     --k)
+                                    crumbs[crumb_len++] = tmp[k];
+
+                                /* Try to move selection to clicked within current filtered list */
+                                int nall = rogue_asset_dep_count();
+                                int glob = -1;
+                                for (int gi = 0; gi < nall; ++gi)
+                                {
+                                    const char *gid2 = NULL, *gpp2 = NULL;
+                                    if (rogue_asset_dep_get(gi, &gid2, &gpp2) == 0 && gid2 &&
+                                        strcmp(gid2, clicked) == 0)
+                                    {
+                                        glob = gi;
+                                        break;
+                                    }
+                                }
+                                if (glob >= 0)
+                                {
+                                    /* Does this global index exist in idxs? If not, force filter to
+                                     * id:clicked */
+                                    int found = -1;
+                                    for (int p = 0; p < idx_count; ++p)
+                                    {
+                                        if (idxs[p] == glob)
+                                        {
+                                            found = p;
+                                            break;
+                                        }
+                                    }
+                                    if (found >= 0)
+                                    {
+                                        sel = found;
+                                    }
+                                    else
+                                    {
+                                        /* Override filter to bring the node into view */
+                                        snprintf(filter, sizeof filter, "id:%s", clicked);
+                                        group_only = 0;
+                                        sel = 0;
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
             /* DAG note */
             rogue_font_draw_text(cx + 6, cy + ch - 14, "Graph is DAG (cycles rejected)", 1,
                                  (RogueColor){160, 200, 255, 255});
         }
 #endif
+    }
+    /* Navigation breadcrumbs UI */
+    if (crumb_len > 0)
+    {
+        char pathline[320];
+        int off = snprintf(pathline, sizeof pathline, "Path: ");
+        for (int i = 0; i < crumb_len; ++i)
+        {
+            const char* s = crumbs[i] ? crumbs[i] : "?";
+            int left = (int) sizeof(pathline) - off;
+            if (left <= 4)
+                break;
+            off += snprintf(pathline + off, (size_t) left, "%s%s", s,
+                            (i + 1 < crumb_len) ? " -> " : "");
+        }
+        overlay_label(pathline);
+        if (crumb_len > 1)
+        {
+            if (overlay_button("Back"))
+            {
+                /* Select the previous node in the breadcrumb chain */
+                const char* target = crumbs[crumb_len - 2];
+                if (target)
+                {
+                    int nall = rogue_asset_dep_count();
+                    int glob = -1;
+                    for (int gi = 0; gi < nall; ++gi)
+                    {
+                        const char *gid2 = NULL, *gpp2 = NULL;
+                        if (rogue_asset_dep_get(gi, &gid2, &gpp2) == 0 && gid2 &&
+                            strcmp(gid2, target) == 0)
+                        {
+                            glob = gi;
+                            break;
+                        }
+                    }
+                    if (glob >= 0)
+                    {
+                        /* find in current filtered list */
+                        int found = -1;
+                        /* reuse last built idxs (still valid in this frame) */
+                        for (int p = 0; p < idx_count; ++p)
+                            if (idxs[p] == glob)
+                            {
+                                found = p;
+                                break;
+                            }
+                        if (found >= 0)
+                            sel = found;
+                        else
+                        {
+                            snprintf(filter, sizeof filter, "id:%s", target);
+                            group_only = 0;
+                            sel = 0;
+                        }
+                    }
+                }
+                if (crumb_len > 0)
+                    crumb_len--; /* pop current */
+            }
+        }
     }
     overlay_end_panel();
 }

@@ -145,7 +145,7 @@ Status: Complete.
 	- Filters: substring and advanced prefixes `id:`, `path:`, `group:`, `hash:`, `dep:X`, `rev:X`.
 	- For the selected node: direct dependencies, reverse dependencies (who depends on me), and the node’s file hash (hex).
 	- Group size summaries and path collision markers.
-	- Actions: “Compute All Hashes” and “Export DOT” (writes `build/content_graph.dot`).
+	- Actions: “Compute All Hashes”, “Export DOT” (writes `build/content_graph.dot`), and “Export JSON” (writes `build/content_graph.json`).
 	- Layered SDL preview for the selected node and its multi‑hop dependencies (BFS), with a max‑depth slider; toggleable on‑panel.
 	- Visuals: nodes tinted by group; diagnostics line shows last dependency registration rejection (cycle or path conflict) when present.
 - Broadened registrations at app init cover core content domains (examples):

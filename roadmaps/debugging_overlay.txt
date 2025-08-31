@@ -8,7 +8,7 @@ Deliverables:
 	- Node details: direct deps, reverse deps, cached file hash (hex)
 	- Group summaries and path-collision markers
 	- Actions: Compute All Hashes, Export DOT → build/content_graph.dot
-	- Layered SDL preview of multi-hop dependencies (BFS) with depth slider; nodes tinted by group for readability
+	- Layered SDL preview of multi-hop dependencies (BFS) with depth slider; nodes tinted by group for readability; click-to-drill with breadcrumbs and Back navigation
 	- Diagnostics line shows last dependency registration rejection (cycle or path_conflict) via asset_dep tooling
 
 APIs & Modules:
@@ -27,6 +27,5 @@ Related Quality Improvements:
 - New test helper: rogue_skills_set_skip_icon_loads(int) to bypass icon texture loads in skills-related units; used to shrink two >60s tests to milliseconds.
 
 Next Ideas (deferred):
-- Click-to-drill within the SDL preview, with Breadcrumbs
 - Save/Load a focused subgraph as JSON for offline triage
 - Optional Graphviz preview render in-app if dot is available (CI-only)
