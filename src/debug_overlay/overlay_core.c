@@ -1,6 +1,12 @@
 #include "overlay_core.h"
 #if ROGUE_ENABLE_DEBUG_OVERLAY
 
+/* Ensure we can toggle SDL blend mode while rendering overlay backdrops */
+#include "../core/app/app_state.h"
+#ifdef ROGUE_HAVE_SDL
+#include <SDL.h>
+#endif
+
 #define OVERLAY_MAX_PANELS 32
 static OverlayPanel g_panels[OVERLAY_MAX_PANELS];
 static int g_panel_count = 0;
@@ -47,12 +53,28 @@ void overlay_render(void)
 {
     if (!g_enabled)
         return;
-    /* For now just invoke panel callbacks; panels may draw using existing primitives */
+        /* Enable alpha blending so translucent panel backgrounds are visible */
+#ifdef ROGUE_HAVE_SDL
+    SDL_BlendMode prev_mode = SDL_BLENDMODE_NONE;
+    int restore_blend = 0;
+    if (!g_app.headless && g_app.renderer)
+    {
+        if (SDL_GetRenderDrawBlendMode(g_app.renderer, &prev_mode) == 0)
+            restore_blend = 1;
+        SDL_SetRenderDrawBlendMode(g_app.renderer, SDL_BLENDMODE_BLEND);
+    }
+#endif
+    /* Invoke panel callbacks; panels draw using SDL primitives and fonts */
     for (int i = 0; i < g_panel_count; ++i)
     {
         if (g_panels[i].fn)
             g_panels[i].fn(g_panels[i].user);
     }
+    /* Restore previous blend mode to avoid side effects on game renderer */
+#ifdef ROGUE_HAVE_SDL
+    if (restore_blend && g_app.renderer)
+        SDL_SetRenderDrawBlendMode(g_app.renderer, prev_mode);
+#endif
     (void) g_last_dt;
     (void) g_last_w;
     (void) g_last_h;
@@ -61,5 +83,7 @@ void overlay_render(void)
 void overlay_set_enabled(int enabled) { g_enabled = enabled ? 1 : 0; }
 
 int overlay_is_enabled(void) { return g_enabled; }
+
+float overlay_last_dt(void) { return g_last_dt; }
 
 #endif /* ROGUE_ENABLE_DEBUG_OVERLAY */

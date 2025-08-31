@@ -445,6 +445,11 @@ add_library(rogue_debug_overlay OBJECT
 )
 target_compile_definitions(rogue_debug_overlay PUBLIC ROGUE_ENABLE_DEBUG_OVERLAY=$<IF:$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>,1,0>)
 target_include_directories(rogue_debug_overlay PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+if(ROGUE_ENABLE_SDL)
+    # Ensure overlay compiles with SDL types/APIs available and same struct layout guards
+    target_link_libraries(rogue_debug_overlay PUBLIC SDL2::SDL2)
+    target_compile_definitions(rogue_debug_overlay PUBLIC ROGUE_HAVE_SDL=1)
+endif()
 
 # Content JSON helpers grouped here; always compile when JSON content is enabled
 add_library(rogue_content_json OBJECT
@@ -803,6 +808,14 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_items_schema PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_items_schema COMMAND test_items_schema)
+add_executable(test_asset_dep_rejects tests/unit/test_asset_dep_rejects.c)
+target_link_libraries(test_asset_dep_rejects PRIVATE rogue_core)
+## Prevent SDL from redefining main to SDL_main on Windows for this console test
+target_compile_definitions(test_asset_dep_rejects PRIVATE SDL_MAIN_HANDLED=1)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_asset_dep_rejects PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_asset_dep_rejects COMMAND test_asset_dep_rejects)
 
 # Skills schema roundtrip (enveloped JSON) test
 add_executable(test_skills_roundtrip_schema tests/unit/test_skills_roundtrip_schema.c)

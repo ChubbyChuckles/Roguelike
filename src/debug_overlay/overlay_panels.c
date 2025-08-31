@@ -20,13 +20,31 @@
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
 
+/* MSVC C89 compatibility: use compile-time macros for fixed array sizes (no VLAs) */
+#define OVERLAY_CG_MAX_NODES 48
+#define OVERLAY_CG_MAX_EDGES 96
+
 static void panel_system(void* user)
 {
     (void) user;
     if (!overlay_begin_panel("System", 10, 10, 320))
         return;
     char buf[128];
-    snprintf(buf, sizeof(buf), "FPS: %.1f  (%.3f ms)", g_app.fps, g_app.frame_ms);
+    /* Prefer metrics API if linked to avoid stale zeros; fallback to overlay dt */
+    double fps = 0.0, fms = 0.0, avg = 0.0;
+#ifdef __has_include
+#if __has_include("../util/metrics.h")
+#include "../util/metrics.h"
+    rogue_metrics_get(&fps, &fms, &avg);
+#endif
+#endif
+    if (fps <= 0.0)
+    {
+        float dt = overlay_last_dt();
+        fps = (dt > 0.0f) ? (1.0f / dt) : 0.0f;
+        fms = g_app.frame_ms;
+    }
+    snprintf(buf, sizeof(buf), "FPS: %.1f  (%.3f ms)", fps, fms);
     overlay_label(buf);
     snprintf(buf, sizeof(buf), "Draw calls: %d", g_app.frame_draw_calls);
     overlay_label(buf);
@@ -1499,19 +1517,18 @@ static void panel_content_graph(void* user)
             SDL_RenderFillRect(g_app.renderer, &area);
             SDL_SetRenderDrawColor(g_app.renderer, 100, 100, 140, 220);
             SDL_RenderDrawRect(g_app.renderer, &area);
-            /* Collect nodes for preview */
-            const int MAX_NODES = 48;
-            const int MAX_EDGES = 96;
-            const char* nids[MAX_NODES];
-            int ndeps[MAX_NODES];
-            int edges[MAX_EDGES][2];
+            /* Collect nodes for preview (fixed caps: no VLAs for MSVC) */
+            const char* nids[OVERLAY_CG_MAX_NODES];
+            int ndeps[OVERLAY_CG_MAX_NODES];
+            int edges[OVERLAY_CG_MAX_EDGES][2];
             int ecount = 0;
-            int ncount = content_graph_collect_forward(id, preview_depth, nids, ndeps, MAX_NODES,
-                                                       edges, MAX_EDGES, &ecount);
+            int ncount =
+                content_graph_collect_forward(id, preview_depth, nids, ndeps, OVERLAY_CG_MAX_NODES,
+                                              edges, OVERLAY_CG_MAX_EDGES, &ecount);
 
             /* Build a simple parent map from edges (first parent wins -> BFS tree) */
-            int parent[MAX_NODES];
-            for (int i = 0; i < MAX_NODES; ++i)
+            int parent[OVERLAY_CG_MAX_NODES];
+            for (int i = 0; i < OVERLAY_CG_MAX_NODES; ++i)
                 parent[i] = -1;
             for (int i = 0; i < ecount; ++i)
             {
@@ -1538,7 +1555,7 @@ static void panel_content_graph(void* user)
             }
             /* X placement per depth column */
             int col_w = (max_d + 1) > 0 ? cw / (max_d + 1) : cw;
-            SDL_Rect rects[MAX_NODES];
+            SDL_Rect rects[OVERLAY_CG_MAX_NODES];
             /* Track how many placed per depth to space vertically */
             int placed_at_depth[8] = {0};
             for (int i = 0; i < ncount; ++i)
@@ -1638,7 +1655,7 @@ static void panel_content_graph(void* user)
             /* Click-to-drill: if user clicks a node rect, switch selection to that node
                (updates the root next frame) and build breadcrumbs from root to clicked. */
             const OverlayInputState* in = overlay_input_get();
-            if (in && in->mouse_pressed)
+            if (in && in->mouse_clicked)
             {
                 int mx = (int) in->mouse_x, my = (int) in->mouse_y;
                 if (mx >= area.x && mx <= area.x + area.w && my >= area.y && my <= area.y + area.h)

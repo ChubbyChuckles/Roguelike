@@ -21,3 +21,12 @@ Content Graph: focused subgraph exports + cycle-edge indicator
 - SDL preview: cycle visualization — when the last registration reject was a cycle and both endpoints are visible in the preview, draw the connecting edge in red for immediate diagnostics.
 - Docs: Updated README and roadmap to document subgraph exports and the red cycle-edge.
 - Gates: Rebuilt Debug (SDL2) with -j12 and ran full test suite — all green (581/581).
+
+Asset deps: add `tests/unit/test_asset_dep_rejects.c` covering explicit cycle vs path_conflict rejections and last-reject diagnostics; fixed CMake wiring and expectations (use self-loop for cycle). Rebuilt Debug (SDL2) with -j12; full suite now 582/582 green.
+
+Overlay MSVC fix + FPS fallback:
+
+- Fixed MSVC C2057/C2466 errors in Content Graph SDL preview by replacing VLA-like arrays with compile-time caps (OVERLAY_CG_MAX_NODES/EDGES) and refactoring parent/rect buffers accordingly; satisfies MSVC C89 “constant expression” rules.
+- Restored click handling in the SDL preview to use mouse_clicked (not mouse_pressed) so nodes are clickable again; ensured overlay input capture gates gameplay.
+- System panel now shows FPS even without metrics by using overlay_last_dt() as a fallback.
+- Discipline: Rebuilt Debug (SDL2) with -j12 and ran full ctest — 100% green (582/582).

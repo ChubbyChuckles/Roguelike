@@ -20,8 +20,8 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 - Build system supports conditional compilation (CMake) (Done)
 
 CI VALIDATION (current)
-- Overlay core/input/widgets/panels compile clean under Debug with SDL2 (MSVC warnings in overlay_panels.c resolved by adding missing standard headers for string/IO prototypes).
-- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%) (581/581).
+- Overlay core/input/widgets/panels compile clean under Debug with SDL2. MSVC VLA-like array errors in overlay_panels.c (Content Graph SDL preview) were resolved by replacing const-sized locals with compile-time caps (OVERLAY_CG_MAX_NODES/OVERLAY_CG_MAX_EDGES) to satisfy C89 constant-expression rules.
+- Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%) (582/582).
 - Worldgen noise benchmark stabilized: adaptive repetition ensures scalar path runs >=0.5 ms (cap 64x) and applies the same repeat to SIMD; flakiness in test_worldgen_phase14_optimization resolved.
 - Items loader now accepts both raw JSON arrays and versioned envelopes ("$schema": "items") and unwraps entries transparently; the schema-backed roundtrip test passes.
 - Skills loader now accepts both raw JSON arrays and versioned envelopes ("$schema": "skills"); schema validator and a roundtrip export→envelope→reload unit are integrated and green.
@@ -142,6 +142,8 @@ PHASE 13. Cross-Reference Validation System
 	Update: Added “Export JSON” action writing build/content_graph.json; full Debug (SDL2) build and entire test suite re-run with -j12 — all green (581/581).
 	Update: Added focused subgraph exports — “Export Subgraph DOT” → build/content_subgraph.dot and “Export Subgraph JSON” → build/content_subgraph.json (limited to current root and preview depth via BFS).
 	Update: SDL preview highlights cycle edges in red when the last reject was a cycle and both endpoints are visible.
+	Update: Added headless unit `tests/unit/test_asset_dep_rejects.c` to assert correct rejection kinds and diagnostics for cycles vs path conflicts; wired into CMake/CTest. Fixed initial expectation by using a definitive self‑cycle for the "cycle" case. Debug (SDL2) full suite now at 582/582 green with -j12.
+	Update: Fixed SDL preview click handler to use mouse_clicked so nodes are clickable again; System panel shows FPS using overlay_last_dt() when metrics are unavailable. Resolved MSVC C2057/C2466 in overlay_panels.c by introducing OVERLAY_CG_MAX_NODES/EDGES caps and refactoring buffers away from VLA-like locals.
 13.4 Add batch validation tool for CI/automated testing (Done – CLI `validate_content` initializes the app, registers default checks, runs validations, prints a summary, and returns exit codes 0=OK, 1=Warnings (with --fail-on-warn), 2=Corruption.)
 13.5 Tests: cross-ref validation accuracy, error reporting, dependency tracking (Partial – `tests/unit/test_state_validation_manager.c` covers manager behavior; new smoke `tests/unit/test_validation_cli_smoke.c` runs wiring end-to-end headlessly and asserts at least one run completes. Further graph/accuracy tests TBD.)
 
