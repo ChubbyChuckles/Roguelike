@@ -14,17 +14,25 @@ Deliverables:
 APIs & Modules:
 - src/util/asset_dep.{h,c}: dependency registry, hashing, reverse dep queries
 - src/debug_overlay/overlay_panels.c: panel_content_graph and helpers
+- src/debug_overlay/panels_content_graph.c: SDL preview, exports, filters
+- src/debug_overlay/overlay_widgets_*.c: split widget modules; thin aggregator in overlay_widgets.c
 
 Diagnostics API:
 - rogue_asset_dep_get_last_reject(kind_buf, kind_cap, id_buf, id_cap, dep_buf, dep_cap) returns the most recent registration rejection reason/id/dep
 - rogue_asset_dep_clear_last_reject() resets the diagnostic buffers after they’re shown in tooling
 
 Tests & CI Gate:
-- Unit coverage lives in tests/unit/test_asset_dep.c (cycle detection, hashing)
-- Full Debug build with SDL2; ctest -j12 is the gate (all green)
+- Unit coverage in tests/unit/test_asset_dep.c and related Content Graph panel units
+- Full Debug build with SDL2; ctest -j12 is the gate (all green, 582/582)
+- Long-test trims:
+  * test_combat_dps now ~3.3s (down from ~8s) when run alone; ~12s reported under full ctest due to scheduling.
+  * test_start_screen_phase10_2_navigation now ~3.3s standalone; ~10.7s within full ctest.
 
 Related Quality Improvements:
-- New test helper: rogue_skills_set_skip_icon_loads(int) to bypass icon texture loads in skills-related units; used to shrink two >60s tests to milliseconds.
+- Added overlay_last_dt() FPS fallback in System panel
+- Restored alpha blending and click interactivity post-refactor
+- MSVC-friendly compile-time caps to replace VLA-like patterns
+- Refactor: overlay widgets and panels split into modular sources; aggregators wired in CMake
 
 Next Ideas (deferred):
 - Save/Load a focused subgraph as JSON for offline triage

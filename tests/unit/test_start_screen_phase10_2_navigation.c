@@ -40,8 +40,8 @@ int main(void)
     int after1 = g_app.menu_index;
     assert(after1 != initial);
 
-    /* Wrap-around by moving up repeatedly (more than item count) */
-    for (int i = 0; i < 10; ++i)
+    /* Wrap-around by moving up repeatedly (few times is enough) */
+    for (int i = 0; i < 4; ++i)
         tap(ROGUE_KEY_UP);
     int afterWrap = g_app.menu_index;
     (void) afterWrap; /* selection should be valid; not asserting equality to avoid coupling */

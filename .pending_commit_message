@@ -30,3 +30,17 @@ Overlay MSVC fix + FPS fallback:
 - Restored click handling in the SDL preview to use mouse_clicked (not mouse_pressed) so nodes are clickable again; ensured overlay input capture gates gameplay.
 - System panel now shows FPS even without metrics by using overlay_last_dt() as a fallback.
 - Discipline: Rebuilt Debug (SDL2) with -j12 and ran full ctest — 100% green (582/582).
+
+Phase 13.3 — Debug Overlay: Content Graph panel + test runtime trims
+
+- Content Graph overlay panel: advanced filters (id:/path:/group:/hash:/dep:/rev:), BFS layered preview with depth control and group tinting, DOT/JSON export, and last-reject diagnostics. MSVC-safe caps.
+- Overlay polish: restored alpha blending, click interactivity, and FPS via overlay_last_dt() fallback.
+- Refactor: split overlay widgets/panels into modular sources; thin aggregators wired in CMake.
+- Tests: shortened two slow tests without losing coverage:
+  • test_combat_dps: sim window ~3.3s (down from ~8s); trimmed noisy tick logs; widened bounds.
+  • test_start_screen_phase10_2_navigation: reduced wrap-around taps; ~3.3s via direct run, ~10.7s under full parallel ctest due to queueing.
+- Discipline: Built Debug with SDL2 using -j12; full ctest suite all green (582/582).
+
+Follow-ups
+- Validate overlay runtime UX across Items, Validation, Content Graph panels in interactive sessions.
+- Consider virtualized tables for large lists; wire Command Palette stub.

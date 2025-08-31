@@ -441,7 +441,21 @@ add_library(rogue_debug_overlay OBJECT
     src/debug_overlay/overlay_core.c
     src/debug_overlay/overlay_input.c
     src/debug_overlay/overlay_widgets.c
+    # Split widget implementation units
+    src/debug_overlay/overlay_widgets_core.c
+    src/debug_overlay/overlay_widgets_controls.c
+    src/debug_overlay/overlay_widgets_table.c
+    # Aggregated panel registrar and per-panel implementations
     src/debug_overlay/overlay_panels.c
+    src/debug_overlay/panels_system.c
+    src/debug_overlay/panels_player.c
+    src/debug_overlay/panels_skills.c
+    src/debug_overlay/panels_entities.c
+    src/debug_overlay/panels_map.c
+    src/debug_overlay/panels_audiovfx.c
+    src/debug_overlay/panels_items.c
+    src/debug_overlay/panels_validation.c
+    src/debug_overlay/panels_content_graph.c
 )
 target_compile_definitions(rogue_debug_overlay PUBLIC ROGUE_ENABLE_DEBUG_OVERLAY=$<IF:$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>,1,0>)
 target_include_directories(rogue_debug_overlay PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
