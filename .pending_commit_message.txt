@@ -1,4 +1,13 @@
-Extend skills with Visuals/Advanced fields end-to-end and surface in overlay
+Skills: Meta Skill Type selector UI + debug API; overrides roundtrip; roadmap/README updates
+
+Summary:
+- Added a Skill Type selector to the Skills overlay (Meta section) with labels for MELEE/RANGED/AOE_SPELL/BUFF/DEBUFF/HEAL/SUMMON/PASSIVE/ULTIMATE.
+- Implemented headless-safe debug APIs: rogue_skill_debug_get_type / _set_type and wired them into overrides export/import JSON.
+- Rebuilt (Debug, SDL2, -j12) and ran full test suite: 586/586 PASS.
+- Updated roadmap (STATUS DELTA and Phase 2.1 marking selector as Partial with presets pending) and README (new note about the Skill Type selector).
+
+Notes:
+- Selector persists via overrides JSON and refreshes validation banner after changes.Extend skills with Visuals/Advanced fields end-to-end and surface in overlay
 
  - Add optional visuals/audio/animation/AoE/projectile fields to RogueSkillDef and JSON loader (deep-copy/free, schema export)
  - Implement headless-safe debug APIs to get/set visual params with clamps and frees

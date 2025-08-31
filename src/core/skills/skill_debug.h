@@ -109,6 +109,10 @@ extern "C"
     int rogue_skill_debug_get_visuals(int id, RogueSkillVisualParams* out);
     int rogue_skill_debug_set_visuals(int id, const RogueSkillVisualParams* in);
 
+    /* Skill type (RogueSkillType enum) accessors. Returns 0 on success. */
+    int rogue_skill_debug_get_type(int id, int* out_skill_type);
+    int rogue_skill_debug_set_type(int id, int skill_type);
+
 #ifdef __cplusplus
 }
 #endif

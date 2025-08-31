@@ -195,6 +195,29 @@ int rogue_skill_debug_set_visuals(int id, const RogueSkillVisualParams* in)
     return 0;
 }
 
+int rogue_skill_debug_get_type(int id, int* out_skill_type)
+{
+    if (!out_skill_type)
+        return -1;
+    const RogueSkillDef* d = rogue_skill_get_def(id);
+    if (!d)
+        return -1;
+    *out_skill_type = (int) d->skill_type;
+    return 0;
+}
+
+int rogue_skill_debug_set_type(int id, int skill_type)
+{
+    if (id < 0 || id >= g_app.skill_count)
+        return -1;
+    if (skill_type < 0)
+        skill_type = 0;
+    if (skill_type > 9)
+        skill_type = 9;
+    g_app.skill_defs[id].skill_type = (unsigned char) skill_type;
+    return 0;
+}
+
 /* --- Overrides JSON export/import ---------------------------------------------------------- */
 
 int rogue_skill_debug_export_overrides_json(char* out_buf, int out_cap)
@@ -233,9 +256,9 @@ int rogue_skill_debug_export_overrides_json(char* out_buf, int out_cap)
         name_sanitized[ni] = '\0';
         n = snprintf(out_buf + w, out_cap - w,
                      "%s{\"skill_id\":%d,\"name\":\"%s\",\"base_cooldown_ms\":%.3f,"
-                     "\"cd_red_ms_per_rank\":%.3f,\"cast_time_ms\":%.3f",
+                     "\"cd_red_ms_per_rank\":%.3f,\"cast_time_ms\":%.3f,\"skill_type\":%u",
                      (w > 1 ? "," : ""), i, name_sanitized, d->base_cooldown_ms,
-                     d->cooldown_reduction_ms_per_rank, d->cast_time_ms);
+                     d->cooldown_reduction_ms_per_rank, d->cast_time_ms, (unsigned) d->skill_type);
         if (n < 0 || w + n >= out_cap)
             return -1;
         w += n;
@@ -339,6 +362,8 @@ int rogue_skill_debug_load_overrides_text(const char* json_text)
         int skill_id = -1;
         float base_cd = 0.f, cd_red = 0.f, cast_ms = 0.f;
         int have_base = 0, have_red = 0, have_cast = 0, have_id = 0;
+        int skill_type = 0;
+        int have_type = 0;
         RogueSkillCoeffParams cp;
         int have_cp = 0;
         memset(&cp, 0, sizeof cp);
@@ -403,6 +428,17 @@ int rogue_skill_debug_load_overrides_text(const char* json_text)
                 cast_ms = (float) v;
                 have_cast = 1;
                 printf("skill_overrides: cast=%.3f\n", cast_ms);
+            }
+            else if (strcmp(key, "skill_type") == 0)
+            {
+                double v;
+                const char* vs = sd_num(s, &v);
+                if (!vs)
+                    return applied;
+                s = sd_ws(vs);
+                skill_type = (int) v;
+                have_type = 1;
+                printf("skill_overrides: type=%d\n", skill_type);
             }
             else if (strcmp(key, "coeff") == 0)
             {
@@ -502,10 +538,12 @@ int rogue_skill_debug_load_overrides_text(const char* json_text)
                     have_cast ? cast_ms : g_app.skill_defs[skill_id].cast_time_ms);
             if (have_cp)
                 (void) rogue_skill_debug_set_coeff(skill_id, &cp);
+            if (have_type)
+                (void) rogue_skill_debug_set_type(skill_id, skill_type);
             ++applied;
             // Debug trace for unit tests
-            printf("skill_overrides: applied id=%d base=%.3f red=%.3f cast=%.3f coeff=%d\n",
-                   skill_id, base_cd, cd_red, cast_ms, have_cp);
+            printf("skill_overrides: applied id=%d base=%.3f red=%.3f cast=%.3f coeff=%d type=%d\n",
+                   skill_id, base_cd, cd_red, cast_ms, have_cp, have_type ? skill_type : -1);
         }
         s = sd_ws(s);
         if (*s == ',')

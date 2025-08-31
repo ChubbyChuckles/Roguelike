@@ -9,6 +9,7 @@ Press F1 in-game to open the debug overlay.
 - Skills validation: Saving Overrides JSON now runs validation first and blocks the save on errors (a message explains what to fix). Creating a new skill will run validation and show a warning if the definition is invalid (creation still proceeds so you can iterate). A headless-safe API `rogue_skill_debug_validate(err, cap)` is available for tools/tests. New: a sticky "Validation Status" banner at the top of the Skills panel shows OK or "ERROR: <reason>" and refreshes live on edits (timing/coeffs/visuals) and on Create/Save/Load.
  - Skills Visuals / Advanced: Edit optional fields live (sprites: cast/projectile/impact/aoe; animation: frame_count/frame_duration_ms/loops/grid; audio: cast/impact/loop + volume/pitch variance; AoE: shape/radius/angle; projectile: velocity/trajectory/pierce/homing). Changes apply via headless-safe setters and persist to overrides JSON. Validation checks asset existence and parameter bounds and surfaces issues on save/create.
  - Optional: `skill_type` enum can be set on skills (MELEE, RANGED, AOE_SPELL, BUFF, DEBUFF, HEAL, SUMMON, PASSIVE, ULTIMATE). If omitted, it defaults to UNKNOWN for back-compat.
+ - New: Skills Meta section includes a Skill Type selector with human-readable labels. Changes apply immediately through headless-safe setters and persist via overrides export/import.
 
 Notes
 - Panel visibility isn’t persisted between runs yet. If you’d like that, we can store the visibility bitmask in your config/save.

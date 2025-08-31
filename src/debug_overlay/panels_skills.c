@@ -194,6 +194,37 @@ static void panel_skills(void* user)
         overlay_label(msg);
     }
 
+    /* Meta */
+    overlay_label("Meta");
+    int stype = 0;
+    if (rogue_skill_debug_get_type(sel, &stype) == 0)
+    {
+        int changed = 0;
+        /* Simple slider for enum 0..9, with a helper label */
+        changed |= overlay_slider_int("Skill Type (0..9)", &stype, 0, 9);
+        static const char* type_names[10] = {"UNKNOWN", "MELEE", "RANGED", "AOE_SPELL", "BUFF",
+                                             "DEBUFF",  "HEAL",  "SUMMON", "PASSIVE",   "ULTIMATE"};
+        if (stype >= 0 && stype <= 9)
+        {
+            char tn[64];
+            snprintf(tn, sizeof tn, "Type: %s", type_names[stype]);
+            overlay_label(tn);
+        }
+        if (changed)
+        {
+            rogue_skill_debug_set_type(sel, stype);
+            (void) rogue_skill_debug_save_overrides(overrides_path);
+            /* Refresh validation status */
+            char emsg[192] = {0};
+            int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
+            last_valid_ok = ok;
+            if (!ok)
+                snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
+            else
+                snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
+        }
+    }
+
     float base_cd = 0.f, cd_red = 0.f, cast_ms = 0.f;
     if (rogue_skill_debug_get_timing(sel, &base_cd, &cd_red, &cast_ms) == 0)
     {
