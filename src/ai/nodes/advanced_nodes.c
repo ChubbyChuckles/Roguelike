@@ -52,25 +52,7 @@ static int ensure_child_array(RogueBTNode* n)
  * @param dt Delta time since last tick (seconds).
  * @return RogueBTStatus The resulting status (SUCCESS, RUNNING, or FAILURE).
  */
-static RogueBTStatus tick_parallel(RogueBTNode* node, RogueBlackboard* bb, float dt)
-{
-    int any_running = 0;
-    for (uint16_t i = 0; i < node->child_count; i++)
-    {
-        RogueBTNode* c = node->children[i];
-        RogueBTStatus st = c->vtable->tick(c, bb, dt);
-        rogue_bt_mark_node(c, st);
-        if (st == ROGUE_BT_FAILURE)
-        {
-            rogue_bt_mark_node(node, ROGUE_BT_FAILURE);
-            return ROGUE_BT_FAILURE;
-        }
-        if (st == ROGUE_BT_RUNNING)
-            any_running = 1;
-    }
-    rogue_bt_mark_node(node, any_running ? ROGUE_BT_RUNNING : ROGUE_BT_SUCCESS);
-    return node->last_status;
-}
+/* moved to advanced_nodes_control.c */
 /**
  * @brief Create a Parallel behavior-tree node.
  *
@@ -80,10 +62,7 @@ static RogueBTStatus tick_parallel(RogueBTNode* node, RogueBlackboard* bb, float
  * @param name Human-readable name for the node (may be NULL).
  * @return RogueBTNode* Allocated node on success, or NULL on allocation failure.
  */
-RogueBTNode* rogue_bt_parallel(const char* name)
-{
-    return rogue_bt_node_create(name, 2, tick_parallel);
-}
+/* moved to advanced_nodes_control.c */
 
 /**
  * @brief Per-child metadata for utility selector nodes.
@@ -91,10 +70,7 @@ RogueBTNode* rogue_bt_parallel(const char* name)
  * Stores the scorer callback and its user data for a single child of a utility
  * selector node.
  */
-typedef struct UtilityChildMeta
-{
-    RogueUtilityScorer scorer; /**< Scorer used to evaluate this child. */
-} UtilityChildMeta;
+/* moved to advanced_nodes_control.c */
 
 /**
  * @brief Runtime data for a utility selector node.
@@ -102,23 +78,12 @@ typedef struct UtilityChildMeta
  * Holds an array of UtilityChildMeta entries, allocated to match the
  * node->child_capacity. The array is resized when children are added.
  */
-typedef struct UtilitySelectorData
-{
-    UtilityChildMeta* metas; /**< Array of per-child scorer metadata. */
-} UtilitySelectorData;
+/* moved to advanced_nodes_control.c */
 
 /**
  * @brief Destructor for UtilitySelectorData that frees nested allocations.
  */
-static void util_selector_dtor(void* p)
-{
-    UtilitySelectorData* d = (UtilitySelectorData*) p;
-    if (!d)
-        return;
-    if (d->metas)
-        free(d->metas);
-    free(d);
-}
+/* moved to advanced_nodes_control.c */
 /**
  * @brief Tick function for the Utility Selector node.
  *
@@ -133,35 +98,7 @@ static void util_selector_dtor(void* p)
  * @param dt Delta time (unused by scorers but passed through to children).
  * @return RogueBTStatus Result of the chosen child's tick or FAILURE on error.
  */
-static RogueBTStatus tick_utility_selector(RogueBTNode* node, RogueBlackboard* bb, float dt)
-{
-    if (!node)
-        return ROGUE_BT_FAILURE;
-    UtilitySelectorData* d = (UtilitySelectorData*) node->user_data;
-    if (!d)
-        return ROGUE_BT_FAILURE;
-    if (node->child_count == 0)
-        return ROGUE_BT_FAILURE;
-    float best = -1e30f;
-    int best_i = -1;
-    for (uint16_t i = 0; i < node->child_count; i++)
-    {
-        float s = 0.0f;
-        if (d->metas && d->metas[i].scorer.fn)
-            s = d->metas[i].scorer.fn(bb, d->metas[i].scorer.user_data);
-        if (s > best)
-        {
-            best = s;
-            best_i = i;
-        }
-    }
-    if (best_i < 0)
-        return ROGUE_BT_FAILURE;
-    RogueBTStatus st = node->children[best_i]->vtable->tick(node->children[best_i], bb, dt);
-    rogue_bt_mark_node(node->children[best_i], st);
-    rogue_bt_mark_node(node, st);
-    return st;
-}
+/* moved to advanced_nodes_control.c */
 /**
  * @brief Create a Utility Selector node.
  *
@@ -173,18 +110,7 @@ static RogueBTStatus tick_utility_selector(RogueBTNode* node, RogueBlackboard* b
  * @return RogueBTNode* Newly allocated utility selector node, or NULL on
  *                      allocation failure.
  */
-RogueBTNode* rogue_bt_utility_selector(const char* name)
-{
-    RogueBTNode* n = rogue_bt_node_create(name, 2, tick_utility_selector);
-    if (n)
-    {
-        UtilitySelectorData* d = (UtilitySelectorData*) calloc(1, sizeof(UtilitySelectorData));
-        n->user_data = d;
-        /* Ensure nested metadata (metas) is freed via a proper destructor. */
-        n->user_data_dtor = util_selector_dtor;
-    }
-    return n;
-}
+/* moved to advanced_nodes_control.c */
 /**
  * @brief Add a child to a utility selector and assign a scorer.
  *
@@ -200,32 +126,7 @@ RogueBTNode* rogue_bt_utility_selector(const char* name)
  * @return int 1 on success, 0 on failure (invalid args, wrong node type,
  *             allocation failure).
  */
-int rogue_bt_utility_set_child_scorer(RogueBTNode* utility_node, RogueBTNode* child,
-                                      RogueUtilityScorer scorer)
-{
-    if (!utility_node || !child)
-        return 0;
-    if (utility_node->vtable->tick != tick_utility_selector)
-        return 0;
-    UtilitySelectorData* d = (UtilitySelectorData*) utility_node->user_data;
-    if (!d)
-        return 0;
-    if (!rogue_bt_node_add_child(utility_node, child))
-        return 0;
-    /* Resize metas to match child_capacity */
-    if (!d->metas)
-    {
-        d->metas =
-            (UtilityChildMeta*) calloc(utility_node->child_capacity, sizeof(UtilityChildMeta));
-    }
-    else if (utility_node->child_capacity > 0)
-    {
-        d->metas = (UtilityChildMeta*) realloc(d->metas, utility_node->child_capacity *
-                                                             sizeof(UtilityChildMeta));
-    }
-    d->metas[utility_node->child_count - 1].scorer = scorer;
-    return 1;
-}
+/* moved to advanced_nodes_control.c */
 
 /**
  * @brief Custom cleanup hook for advanced nodes' user_data.
@@ -238,24 +139,7 @@ int rogue_bt_utility_set_child_scorer(RogueBTNode* utility_node, RogueBTNode* ch
  * @param node Node whose user_data should be freed. No-op if node or
  *             node->user_data is NULL.
  */
-void rogue_bt_advanced_cleanup(RogueBTNode* node)
-{
-    if (!node)
-        return;
-    if (!node->user_data)
-        return;
-    if (node->vtable && node->vtable->tick == tick_utility_selector)
-    {
-        UtilitySelectorData* d = (UtilitySelectorData*) node->user_data;
-        if (d)
-        {
-            if (d->metas)
-                free(d->metas);
-        }
-        return;
-    }
-    /* Other advanced nodes: main allocation is owned by user_data_dtor when set. */
-}
+/* moved to advanced_nodes_control.c */
 
 /* =====================
    Phase 7: Group Tactics & Coordination
@@ -535,13 +419,7 @@ RogueBTNode* rogue_bt_condition_should_retreat(const char* name, const char* bb_
  * Delays child execution by base_delay_seconds * member_index using a
  * named timer.
  */
-typedef struct DecorStaggerByIndexData
-{
-    RogueBTNode* child;
-    const char* member_index_key;
-    const char* delay_timer_key;
-    float base_delay_seconds;
-} DecorStaggerByIndexData;
+/* moved to advanced_nodes_decorators.c */
 
 /**
  * @brief Tick for stagger-by-index decorator (Phase 7.5).
@@ -549,49 +427,12 @@ typedef struct DecorStaggerByIndexData
  * Accumulates dt into delay_timer_key and gates child until the computed
  * delay has elapsed. Resets the timer on child SUCCESS.
  */
-static RogueBTStatus tick_decor_stagger_by_index(RogueBTNode* node, RogueBlackboard* bb, float dt)
-{
-    DecorStaggerByIndexData* d = (DecorStaggerByIndexData*) node->user_data;
-    int idx = 0;
-    rogue_bb_get_int(bb, d->member_index_key, &idx);
-    float t = 0.0f;
-    rogue_bb_get_timer(bb, d->delay_timer_key, &t);
-    t += dt;
-    rogue_bb_set_timer(bb, d->delay_timer_key, t);
-    float needed = d->base_delay_seconds * (float) (idx < 0 ? 0 : idx);
-    if (t < needed)
-        return ROGUE_BT_RUNNING;
-    RogueBTStatus st = d->child->vtable->tick(d->child, bb, dt);
-    if (st == ROGUE_BT_SUCCESS)
-    {
-        /* reset for next chain round */
-        rogue_bb_set_timer(bb, d->delay_timer_key, 0.0f);
-    }
-    return st;
-}
+/* moved to advanced_nodes_decorators.c */
 
 /**
  * @brief Factory for stagger-by-index decorator node (Phase 7.5).
  */
-RogueBTNode* rogue_bt_decorator_stagger_by_index(const char* name, RogueBTNode* child,
-                                                 const char* bb_member_index_key,
-                                                 const char* bb_delay_timer_key,
-                                                 float base_delay_seconds)
-{
-    RogueBTNode* n = rogue_bt_node_create(name, 1, tick_decor_stagger_by_index);
-    if (!n)
-        return NULL;
-    DecorStaggerByIndexData* d =
-        (DecorStaggerByIndexData*) calloc(1, sizeof(DecorStaggerByIndexData));
-    d->child = child;
-    d->member_index_key = bb_member_index_key;
-    d->delay_timer_key = bb_delay_timer_key;
-    d->base_delay_seconds = base_delay_seconds;
-    n->user_data = d;
-    ensure_child_array(n);
-    rogue_bt_node_add_child(n, child);
-    return n;
-}
+/* moved to advanced_nodes_decorators.c */
 
 /**
  * @brief Condition data for checking if the player is visible to an agent.
@@ -1859,12 +1700,7 @@ RogueBTNode* rogue_bt_action_finisher_execute(const char* name, const char* bb_t
 }
 
 /* ===================== Phase 6.7: Difficulty Scaler Helpers ===================== */
-typedef struct DecorReactionDelay
-{
-    RogueBTNode* child;
-    const char* timer_key; /* timer */
-    float reaction_seconds;
-} DecorReactionDelay;
+/* moved to advanced_nodes_decorators.c */
 
 /**
  * @brief Tick for reaction delay decorator (Phase 6.7).
@@ -1872,79 +1708,26 @@ typedef struct DecorReactionDelay
  * Delays child execution until reaction_seconds have elapsed on the named timer.
  * Returns FAILURE while waiting; otherwise forwards child status.
  */
-static RogueBTStatus tick_decor_reaction_delay(RogueBTNode* node, RogueBlackboard* bb, float dt)
-{
-    DecorReactionDelay* d = (DecorReactionDelay*) node->user_data;
-    float t = 0.0f;
-    rogue_bb_get_timer(bb, d->timer_key, &t);
-    if (t < d->reaction_seconds)
-    {
-        rogue_bb_set_timer(bb, d->timer_key, t + dt);
-        return ROGUE_BT_FAILURE;
-    }
-    return d->child->vtable->tick(d->child, bb, dt);
-}
+/* moved to advanced_nodes_decorators.c */
 
 /**
  * @brief Factory for reaction delay decorator (Phase 6.7).
  */
-RogueBTNode* rogue_bt_decorator_reaction_delay(const char* name, RogueBTNode* child,
-                                               const char* bb_reaction_timer_key,
-                                               float reaction_seconds)
-{
-    RogueBTNode* n = rogue_bt_node_create(name, 1, tick_decor_reaction_delay);
-    if (!n)
-        return NULL;
-    DecorReactionDelay* d = (DecorReactionDelay*) calloc(1, sizeof(DecorReactionDelay));
-    d->child = child;
-    d->timer_key = bb_reaction_timer_key;
-    d->reaction_seconds = reaction_seconds;
-    n->user_data = d;
-    ensure_child_array(n);
-    rogue_bt_node_add_child(n, child);
-    return n;
-}
+/* moved to advanced_nodes_decorators.c */
 
-typedef struct DecorAggressionGate
-{
-    RogueBTNode* child;
-    const char* scalar_key; /* float */
-    float min_required;
-} DecorAggressionGate;
+/* moved to advanced_nodes_decorators.c */
 
 /**
  * @brief Tick for aggression gate decorator (Phase 6.7).
  *
  * Forwards child only when aggression scalar >= min_required; otherwise returns FAILURE.
  */
-static RogueBTStatus tick_decor_aggression_gate(RogueBTNode* node, RogueBlackboard* bb, float dt)
-{
-    DecorAggressionGate* d = (DecorAggressionGate*) node->user_data;
-    float s = 0.0f;
-    if (!rogue_bb_get_float(bb, d->scalar_key, &s) || s < d->min_required)
-        return ROGUE_BT_FAILURE;
-    return d->child->vtable->tick(d->child, bb, dt);
-}
+/* moved to advanced_nodes_decorators.c */
 
 /**
  * @brief Factory for aggression gate decorator (Phase 6.7).
  */
-RogueBTNode* rogue_bt_decorator_aggression_gate(const char* name, RogueBTNode* child,
-                                                const char* bb_aggression_scalar_key,
-                                                float min_required)
-{
-    RogueBTNode* n = rogue_bt_node_create(name, 1, tick_decor_aggression_gate);
-    if (!n)
-        return NULL;
-    DecorAggressionGate* d = (DecorAggressionGate*) calloc(1, sizeof(DecorAggressionGate));
-    d->child = child;
-    d->scalar_key = bb_aggression_scalar_key;
-    d->min_required = min_required;
-    n->user_data = d;
-    ensure_child_array(n);
-    rogue_bt_node_add_child(n, child);
-    return n;
-}
+/* moved to advanced_nodes_decorators.c */
 
 /**
  * @brief Decorator that enforces a cooldown between child successes.
@@ -1952,82 +1735,18 @@ RogueBTNode* rogue_bt_decorator_aggression_gate(const char* name, RogueBTNode* c
  * The child is executed only when the named timer reaches the configured
  * cooldown threshold. When the child succeeds the timer is reset to 0.
  */
-typedef struct DecorCooldown
-{
-    RogueBTNode* child;    /**< Child node to decorate. */
-    const char* timer_key; /**< BB key for the cooldown timer. */
-    float cooldown;        /**< Cooldown threshold in seconds. */
-    int armed;             /**< Internal flag: start blocking after first SUCCESS. */
-} DecorCooldown;
+/* moved to advanced_nodes_decorators.c */
 /**
  * @brief Tick for the cooldown decorator.
  *
  * Advances the timer while preventing child execution until the cooldown has
  * elapsed. Resets the timer on child success.
  */
-static RogueBTStatus tick_decor_cooldown(RogueBTNode* node, RogueBlackboard* bb, float dt)
-{
-    DecorCooldown* d = (DecorCooldown*) node->user_data;
-    float t = 0.0f;
-    /* If timer missing, treat as 0.0 (unarmed state may allow immediate execution). */
-    if (!rogue_bb_get_timer(bb, d->timer_key, &t))
-        t = 0.0f;
-
-    /* If cooldown is armed, block while timer <= cooldown (inclusive), accumulating dt. */
-    if (d->armed)
-    {
-        /* Always accumulate time while armed */
-        float new_t = t + dt;
-        rogue_bb_set_timer(bb, d->timer_key, new_t);
-        if (new_t < d->cooldown)
-        {
-            return ROGUE_BT_FAILURE;
-        }
-        /* Cooldown elapsed: avoid releasing immediately during long advance ticks.
-         * Require a small probe tick (e.g., frame-sized dt) to release on the next call. */
-        const float kReleaseProbeDt = 0.02f; /* ~20ms */
-        if (dt >= kReleaseProbeDt)
-        {
-            return ROGUE_BT_FAILURE;
-        }
-        /* Small probe tick after cooldown -> disarm and allow child this tick. */
-        d->armed = 0;
-        /* fallthrough to execute child below */
-    }
-    /* Not armed (initial or post-cooldown): allow child to run. */
-    RogueBTStatus st = d->child->vtable->tick(d->child, bb, dt);
-    if (st == ROGUE_BT_SUCCESS)
-    {
-        /* Reset timer on success and arm cooldown going forward. */
-        rogue_bb_set_timer(bb, d->timer_key, 0.0f);
-        d->armed = 1;
-    }
-    else
-    {
-        /* Do not modify timer on child non-success; preserves current phase. */
-    }
-    return st;
-}
+/* moved to advanced_nodes_decorators.c */
 /**
  * @brief Factory for the cooldown decorator node.
  */
-RogueBTNode* rogue_bt_decorator_cooldown(const char* name, RogueBTNode* child,
-                                         const char* bb_timer_key, float cooldown_seconds)
-{
-    RogueBTNode* n = rogue_bt_node_create(name, 1, tick_decor_cooldown);
-    if (!n)
-        return NULL;
-    DecorCooldown* d = (DecorCooldown*) calloc(1, sizeof(DecorCooldown));
-    d->child = child;
-    d->timer_key = bb_timer_key;
-    d->cooldown = cooldown_seconds;
-    d->armed = 0;
-    n->user_data = d;
-    n->children = (RogueBTNode**) calloc(1, sizeof(RogueBTNode*));
-    n->children[0] = child;
-    n->child_count = 1;
-    return n;
-}
+/* moved to advanced_nodes_decorators.c */
 
 /**
  * @brief Decorator that retries its child up to max_attempts on failure.
@@ -2036,33 +1755,14 @@ RogueBTNode* rogue_bt_decorator_cooldown(const char* name, RogueBTNode* child,
  * max_attempts the decorator reports RUNNING to allow retry semantics. When
  * attempts reach max_attempts the decorator returns FAILURE.
  */
-typedef struct DecorRetry
-{
-    RogueBTNode* child; /**< Child node to retry. */
-    int attempts;       /**< Current attempt counter. */
-    int max_attempts;   /**< Maximum attempts before giving up. */
-} DecorRetry;
+/* moved to advanced_nodes_decorators.c */
 /**
  * @brief Tick for retry decorator.
  *
  * Executes the child and increments attempts on failure. Resets attempts on
  * non-failure statuses.
  */
-static RogueBTStatus tick_decor_retry(RogueBTNode* node, RogueBlackboard* bb, float dt)
-{
-    DecorRetry* d = (DecorRetry*) node->user_data;
-    RogueBTStatus st = d->child->vtable->tick(d->child, bb, dt);
-    if (st == ROGUE_BT_FAILURE)
-    {
-        d->attempts++;
-        if (d->attempts < d->max_attempts)
-            return ROGUE_BT_RUNNING;
-        else
-            return ROGUE_BT_FAILURE;
-    }
-    d->attempts = 0;
-    return st;
-}
+/* moved to advanced_nodes_decorators.c */
 /**
  * @brief Factory for the retry decorator node.
  *
@@ -2071,21 +1771,7 @@ static RogueBTStatus tick_decor_retry(RogueBTNode* node, RogueBlackboard* bb, fl
  * @param max_attempts Maximum number of retry attempts allowed.
  * @return RogueBTNode* Allocated decorator node or NULL on failure.
  */
-RogueBTNode* rogue_bt_decorator_retry(const char* name, RogueBTNode* child, int max_attempts)
-{
-    RogueBTNode* n = rogue_bt_node_create(name, 1, tick_decor_retry);
-    if (!n)
-        return NULL;
-    DecorRetry* d = (DecorRetry*) calloc(1, sizeof(DecorRetry));
-    d->child = child;
-    d->attempts = 0;
-    d->max_attempts = max_attempts;
-    n->user_data = d;
-    n->children = (RogueBTNode**) calloc(1, sizeof(RogueBTNode*));
-    n->children[0] = child;
-    n->child_count = 1;
-    return n;
-}
+/* moved to advanced_nodes_decorators.c */
 
 /**
  * @brief Decorator that detects if an agent is stuck (not moving enough for a time window).
@@ -2095,76 +1781,8 @@ RogueBTNode* rogue_bt_decorator_retry(const char* name, RogueBTNode* child, int 
  * FAILURE and resets the timer. Otherwise ticks the child and forwards its status. The window
  * timer is advanced each tick when movement is below threshold.
  */
-typedef struct DecorStuckDetect
-{
-    RogueBTNode* child;
-    const char* agent_pos_key;
-    const char* window_timer_key;
-    float window_seconds;
-    float min_move_threshold;
-    int has_last;
-    float last_x, last_y;
-} DecorStuckDetect;
+/* moved to advanced_nodes_decorators.c */
 
-static RogueBTStatus tick_decor_stuck(RogueBTNode* node, RogueBlackboard* bb, float dt)
-{
-    DecorStuckDetect* d = (DecorStuckDetect*) node->user_data;
-    RogueBBVec2 agent;
-    if (!rogue_bb_get_vec2(bb, d->agent_pos_key, &agent))
-        return ROGUE_BT_FAILURE;
-    if (!d->has_last)
-    {
-        d->last_x = agent.x;
-        d->last_y = agent.y;
-        d->has_last = 1;
-        rogue_bb_set_timer(bb, d->window_timer_key, 0.0f);
-    }
-    float dx = agent.x - d->last_x;
-    float dy = agent.y - d->last_y;
-    float dist2 = dx * dx + dy * dy;
-    float t = 0.0f;
-    rogue_bb_get_timer(bb, d->window_timer_key, &t);
-    if (dist2 < d->min_move_threshold * d->min_move_threshold)
-    {
-        t += dt;
-        rogue_bb_set_timer(bb, d->window_timer_key, t);
-        if (t >= d->window_seconds)
-        {
-            /* Declare stuck and reset window */
-            rogue_bb_set_timer(bb, d->window_timer_key, 0.0f);
-            d->last_x = agent.x;
-            d->last_y = agent.y;
-            return ROGUE_BT_FAILURE;
-        }
-    }
-    else
-    {
-        /* Movement observed: reset window and update anchor */
-        rogue_bb_set_timer(bb, d->window_timer_key, 0.0f);
-        d->last_x = agent.x;
-        d->last_y = agent.y;
-    }
-    return d->child->vtable->tick(d->child, bb, dt);
-}
+/* moved to advanced_nodes_decorators.c */
 
-RogueBTNode* rogue_bt_decorator_stuck_detect(const char* name, RogueBTNode* child,
-                                             const char* bb_agent_pos_key,
-                                             const char* bb_window_timer_key, float window_seconds,
-                                             float min_move_threshold)
-{
-    RogueBTNode* n = rogue_bt_node_create(name, 1, tick_decor_stuck);
-    if (!n)
-        return NULL;
-    DecorStuckDetect* d = (DecorStuckDetect*) calloc(1, sizeof(DecorStuckDetect));
-    d->child = child;
-    d->agent_pos_key = bb_agent_pos_key;
-    d->window_timer_key = bb_window_timer_key;
-    d->window_seconds = window_seconds;
-    d->min_move_threshold = min_move_threshold;
-    d->has_last = 0;
-    n->user_data = d;
-    n->children = (RogueBTNode**) calloc(1, sizeof(RogueBTNode*));
-    n->children[0] = child;
-    n->child_count = 1;
-    return n;
-}
+/* moved to advanced_nodes_decorators.c */

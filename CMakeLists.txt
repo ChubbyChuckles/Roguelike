@@ -250,6 +250,8 @@ add_library(rogue_core
     src/ai/core/behavior_tree.c
     src/ai/core/blackboard.c
     src/ai/nodes/basic_nodes.c
+    src/ai/nodes/advanced_nodes_control.c
+    src/ai/nodes/advanced_nodes_decorators.c
     src/ai/nodes/advanced_nodes.c
     src/ai/perception/perception.c
     src/ai/pathing/flow_field.c
