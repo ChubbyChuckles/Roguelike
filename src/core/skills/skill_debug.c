@@ -64,6 +64,137 @@ int rogue_skill_debug_simulate(const char* profile_json, char* out_buf, int out_
     return skill_simulate_rotation(profile_json, out_buf, out_cap);
 }
 
+int rogue_skill_debug_get_visuals(int id, RogueSkillVisualParams* out)
+{
+    if (!out)
+        return -1;
+    const RogueSkillDef* d = rogue_skill_get_def(id);
+    if (!d)
+        return -1;
+    /* Paths */
+    out->cast_sprite_sheet[0] = '\0';
+    out->projectile_sprite[0] = '\0';
+    out->impact_sprite[0] = '\0';
+    out->aoe_sprite[0] = '\0';
+#if defined(_MSC_VER)
+    if (d->cast_sprite_sheet)
+        strncpy_s(out->cast_sprite_sheet, sizeof out->cast_sprite_sheet, d->cast_sprite_sheet,
+                  _TRUNCATE);
+    if (d->projectile_sprite)
+        strncpy_s(out->projectile_sprite, sizeof out->projectile_sprite, d->projectile_sprite,
+                  _TRUNCATE);
+    if (d->impact_sprite)
+        strncpy_s(out->impact_sprite, sizeof out->impact_sprite, d->impact_sprite, _TRUNCATE);
+    if (d->aoe_sprite)
+        strncpy_s(out->aoe_sprite, sizeof out->aoe_sprite, d->aoe_sprite, _TRUNCATE);
+#else
+    if (d->cast_sprite_sheet)
+        strncpy(out->cast_sprite_sheet, d->cast_sprite_sheet, sizeof out->cast_sprite_sheet - 1);
+    if (d->projectile_sprite)
+        strncpy(out->projectile_sprite, d->projectile_sprite, sizeof out->projectile_sprite - 1);
+    if (d->impact_sprite)
+        strncpy(out->impact_sprite, d->impact_sprite, sizeof out->impact_sprite - 1);
+    if (d->aoe_sprite)
+        strncpy(out->aoe_sprite, d->aoe_sprite, sizeof out->aoe_sprite - 1);
+    out->cast_sprite_sheet[sizeof out->cast_sprite_sheet - 1] = '\0';
+    out->projectile_sprite[sizeof out->projectile_sprite - 1] = '\0';
+    out->impact_sprite[sizeof out->impact_sprite - 1] = '\0';
+    out->aoe_sprite[sizeof out->aoe_sprite - 1] = '\0';
+#endif
+    /* Animation */
+    out->frame_count = d->frame_count;
+    out->frame_duration_ms = d->frame_duration_ms;
+    out->animation_loops = d->animation_loops;
+    out->grid_width = d->grid_width;
+    out->grid_height = d->grid_height;
+    /* Audio */
+    out->cast_sound_id[0] = '\0';
+    out->impact_sound_id[0] = '\0';
+    out->loop_sound_id[0] = '\0';
+#if defined(_MSC_VER)
+    if (d->cast_sound_id)
+        strncpy_s(out->cast_sound_id, sizeof out->cast_sound_id, d->cast_sound_id, _TRUNCATE);
+    if (d->impact_sound_id)
+        strncpy_s(out->impact_sound_id, sizeof out->impact_sound_id, d->impact_sound_id, _TRUNCATE);
+    if (d->loop_sound_id)
+        strncpy_s(out->loop_sound_id, sizeof out->loop_sound_id, d->loop_sound_id, _TRUNCATE);
+#else
+    if (d->cast_sound_id)
+        strncpy(out->cast_sound_id, d->cast_sound_id, sizeof out->cast_sound_id - 1);
+    if (d->impact_sound_id)
+        strncpy(out->impact_sound_id, d->impact_sound_id, sizeof out->impact_sound_id - 1);
+    if (d->loop_sound_id)
+        strncpy(out->loop_sound_id, d->loop_sound_id, sizeof out->loop_sound_id - 1);
+    out->cast_sound_id[sizeof out->cast_sound_id - 1] = '\0';
+    out->impact_sound_id[sizeof out->impact_sound_id - 1] = '\0';
+    out->loop_sound_id[sizeof out->loop_sound_id - 1] = '\0';
+#endif
+    out->sound_volume = d->sound_volume;
+    out->sound_pitch_variance = d->sound_pitch_variance;
+    /* AoE */
+    out->aoe_shape = d->aoe_shape;
+    out->aoe_radius = d->aoe_radius;
+    out->aoe_angle = d->aoe_angle;
+    /* Projectile */
+    out->projectile_velocity = d->projectile_velocity;
+    out->trajectory_type = d->trajectory_type;
+    out->pierce_count = d->pierce_count;
+    out->homing_strength = d->homing_strength;
+    return 0;
+}
+
+int rogue_skill_debug_set_visuals(int id, const RogueSkillVisualParams* in)
+{
+    if (!in)
+        return -1;
+    if (id < 0 || id >= g_app.skill_count)
+        return -1;
+    RogueSkillDef* d = &g_app.skill_defs[id];
+    /* Replace strings: free existing then duplicate new when non-empty */
+    const char* fields_str_src[7] = {
+        in->cast_sprite_sheet, in->projectile_sprite, in->impact_sprite, in->aoe_sprite,
+        in->cast_sound_id,     in->impact_sound_id,   in->loop_sound_id};
+    const char** fields_dst[7] = {&d->cast_sprite_sheet, &d->projectile_sprite, &d->impact_sprite,
+                                  &d->aoe_sprite,        &d->cast_sound_id,     &d->impact_sound_id,
+                                  &d->loop_sound_id};
+    for (int i = 0; i < 7; ++i)
+    {
+        if (*fields_dst[i])
+        {
+            free((char*) *fields_dst[i]);
+            *fields_dst[i] = NULL;
+        }
+        const char* src = fields_str_src[i];
+        if (src && src[0])
+        {
+            size_t len = strlen(src);
+            char* dup = (char*) malloc(len + 1);
+            if (!dup)
+                return -2;
+            memcpy(dup, src, len + 1);
+            *fields_dst[i] = dup;
+        }
+    }
+    /* Scalars */
+    d->frame_count = in->frame_count;
+    d->frame_duration_ms = in->frame_duration_ms;
+    d->animation_loops = (unsigned char) (in->animation_loops ? 1 : 0);
+    d->grid_width = (unsigned short) (in->grid_width > 0 ? in->grid_width : 0);
+    d->grid_height = (unsigned short) (in->grid_height > 0 ? in->grid_height : 0);
+    d->sound_volume = (unsigned char) ((in->sound_volume < 0)
+                                           ? 0
+                                           : (in->sound_volume > 100 ? 100 : in->sound_volume));
+    d->sound_pitch_variance = in->sound_pitch_variance;
+    d->aoe_shape = (unsigned char) ((in->aoe_shape < 0) ? 0 : in->aoe_shape);
+    d->aoe_radius = in->aoe_radius;
+    d->aoe_angle = in->aoe_angle;
+    d->projectile_velocity = in->projectile_velocity;
+    d->trajectory_type = (unsigned char) ((in->trajectory_type < 0) ? 0 : in->trajectory_type);
+    d->pierce_count = (unsigned char) ((in->pierce_count < 0) ? 0 : in->pierce_count);
+    d->homing_strength = in->homing_strength;
+    return 0;
+}
+
 /* --- Overrides JSON export/import ---------------------------------------------------------- */
 
 int rogue_skill_debug_export_overrides_json(char* out_buf, int out_cap)

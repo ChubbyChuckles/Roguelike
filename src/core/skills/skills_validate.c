@@ -4,6 +4,7 @@
 
 #include "skills_validate.h"
 #include "../../graphics/effect_spec.h"
+#include "../../util/path_utils.h"
 #include "skills_coeffs.h"
 #include "skills_internal.h"
 #include "skills_procs.h"
@@ -113,6 +114,92 @@ int rogue_skills_validate_all(char* err, int err_cap)
             snprintf(buf, sizeof buf,
                      "skill %d '%s' appears offensive but has no coefficient entry", i,
                      d->name ? d->name : "<noname>");
+            set_err(err, err_cap, buf);
+            return -1;
+        }
+    }
+
+    /* 5) Basic visuals/audio/AoE/projectile sanity checks (non-fatal but fail validation). */
+    for (int i = 0; i < g_skill_count_internal; ++i)
+    {
+        const RogueSkillDef* d = &g_skill_defs_internal[i];
+        char apath[512];
+        if (d->cast_sprite_sheet && d->cast_sprite_sheet[0])
+        {
+            if (!rogue_find_asset_path(d->cast_sprite_sheet, apath, (int) sizeof apath))
+            {
+                char buf[256];
+                snprintf(buf, sizeof buf, "skill %d '%s' cast_sprite_sheet missing: %s", i,
+                         d->name ? d->name : "<noname>", d->cast_sprite_sheet);
+                set_err(err, err_cap, buf);
+                return -1;
+            }
+        }
+        if (d->projectile_sprite && d->projectile_sprite[0])
+        {
+            if (!rogue_find_asset_path(d->projectile_sprite, apath, (int) sizeof apath))
+            {
+                char buf[256];
+                snprintf(buf, sizeof buf, "skill %d '%s' projectile_sprite missing: %s", i,
+                         d->name ? d->name : "<noname>", d->projectile_sprite);
+                set_err(err, err_cap, buf);
+                return -1;
+            }
+        }
+        if (d->impact_sprite && d->impact_sprite[0])
+        {
+            if (!rogue_find_asset_path(d->impact_sprite, apath, (int) sizeof apath))
+            {
+                char buf[256];
+                snprintf(buf, sizeof buf, "skill %d '%s' impact_sprite missing: %s", i,
+                         d->name ? d->name : "<noname>", d->impact_sprite);
+                set_err(err, err_cap, buf);
+                return -1;
+            }
+        }
+        if (d->aoe_sprite && d->aoe_sprite[0])
+        {
+            if (!rogue_find_asset_path(d->aoe_sprite, apath, (int) sizeof apath))
+            {
+                char buf[256];
+                snprintf(buf, sizeof buf, "skill %d '%s' aoe_sprite missing: %s", i,
+                         d->name ? d->name : "<noname>", d->aoe_sprite);
+                set_err(err, err_cap, buf);
+                return -1;
+            }
+        }
+        if (d->frame_count < 0 || d->frame_duration_ms < 0.0f)
+        {
+            char buf[256];
+            snprintf(buf, sizeof buf, "skill %d '%s' invalid animation params (frames=%d, dt=%.2f)",
+                     i, d->name ? d->name : "<noname>", d->frame_count, d->frame_duration_ms);
+            set_err(err, err_cap, buf);
+            return -1;
+        }
+        if (d->sound_volume > 100)
+        {
+            char buf[256];
+            snprintf(buf, sizeof buf, "skill %d '%s' sound_volume out of range: %u", i,
+                     d->name ? d->name : "<noname>", (unsigned) d->sound_volume);
+            set_err(err, err_cap, buf);
+            return -1;
+        }
+        if (d->aoe_shape > 0)
+        {
+            if (d->aoe_radius < 0.0f)
+            {
+                char buf[256];
+                snprintf(buf, sizeof buf, "skill %d '%s' invalid aoe_radius: %.2f", i,
+                         d->name ? d->name : "<noname>", d->aoe_radius);
+                set_err(err, err_cap, buf);
+                return -1;
+            }
+        }
+        if (d->projectile_velocity < 0.0f)
+        {
+            char buf[256];
+            snprintf(buf, sizeof buf, "skill %d '%s' invalid projectile_velocity: %.2f", i,
+                     d->name ? d->name : "<noname>", d->projectile_velocity);
             set_err(err, err_cap, buf);
             return -1;
         }

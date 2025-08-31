@@ -127,6 +127,42 @@ void rogue_skills_shutdown(void)
                 free((char*) g_skill_defs_internal[i].icon);
                 g_skill_defs_internal[i].icon = NULL;
             }
+            /* Free optional duplicated strings */
+            if (g_skill_defs_internal[i].cast_sprite_sheet)
+            {
+                free((char*) g_skill_defs_internal[i].cast_sprite_sheet);
+                g_skill_defs_internal[i].cast_sprite_sheet = NULL;
+            }
+            if (g_skill_defs_internal[i].projectile_sprite)
+            {
+                free((char*) g_skill_defs_internal[i].projectile_sprite);
+                g_skill_defs_internal[i].projectile_sprite = NULL;
+            }
+            if (g_skill_defs_internal[i].impact_sprite)
+            {
+                free((char*) g_skill_defs_internal[i].impact_sprite);
+                g_skill_defs_internal[i].impact_sprite = NULL;
+            }
+            if (g_skill_defs_internal[i].aoe_sprite)
+            {
+                free((char*) g_skill_defs_internal[i].aoe_sprite);
+                g_skill_defs_internal[i].aoe_sprite = NULL;
+            }
+            if (g_skill_defs_internal[i].cast_sound_id)
+            {
+                free((char*) g_skill_defs_internal[i].cast_sound_id);
+                g_skill_defs_internal[i].cast_sound_id = NULL;
+            }
+            if (g_skill_defs_internal[i].impact_sound_id)
+            {
+                free((char*) g_skill_defs_internal[i].impact_sound_id);
+                g_skill_defs_internal[i].impact_sound_id = NULL;
+            }
+            if (g_skill_defs_internal[i].loop_sound_id)
+            {
+                free((char*) g_skill_defs_internal[i].loop_sound_id);
+                g_skill_defs_internal[i].loop_sound_id = NULL;
+            }
         }
     }
     if (g_skill_defs_internal)
@@ -180,6 +216,42 @@ static void rogue_skills_clear_registry_only(void)
                 free((char*) g_skill_defs_internal[i].icon);
                 g_skill_defs_internal[i].icon = NULL;
             }
+            /* Free optional duplicated strings */
+            if (g_skill_defs_internal[i].cast_sprite_sheet)
+            {
+                free((char*) g_skill_defs_internal[i].cast_sprite_sheet);
+                g_skill_defs_internal[i].cast_sprite_sheet = NULL;
+            }
+            if (g_skill_defs_internal[i].projectile_sprite)
+            {
+                free((char*) g_skill_defs_internal[i].projectile_sprite);
+                g_skill_defs_internal[i].projectile_sprite = NULL;
+            }
+            if (g_skill_defs_internal[i].impact_sprite)
+            {
+                free((char*) g_skill_defs_internal[i].impact_sprite);
+                g_skill_defs_internal[i].impact_sprite = NULL;
+            }
+            if (g_skill_defs_internal[i].aoe_sprite)
+            {
+                free((char*) g_skill_defs_internal[i].aoe_sprite);
+                g_skill_defs_internal[i].aoe_sprite = NULL;
+            }
+            if (g_skill_defs_internal[i].cast_sound_id)
+            {
+                free((char*) g_skill_defs_internal[i].cast_sound_id);
+                g_skill_defs_internal[i].cast_sound_id = NULL;
+            }
+            if (g_skill_defs_internal[i].impact_sound_id)
+            {
+                free((char*) g_skill_defs_internal[i].impact_sound_id);
+                g_skill_defs_internal[i].impact_sound_id = NULL;
+            }
+            if (g_skill_defs_internal[i].loop_sound_id)
+            {
+                free((char*) g_skill_defs_internal[i].loop_sound_id);
+                g_skill_defs_internal[i].loop_sound_id = NULL;
+            }
         }
     }
     if (g_skill_defs_internal)
@@ -231,6 +303,54 @@ int rogue_skill_register(const RogueSkillDef* def)
 #endif
         if (dup2)
             d->icon = dup2;
+    }
+    /* Duplicate optional string fields */
+#if defined(_MSC_VER)
+#define ROGUE_DUPSTR _strdup
+#else
+#define ROGUE_DUPSTR strdup
+#endif
+    if (def->cast_sprite_sheet)
+    {
+        char* t = ROGUE_DUPSTR(def->cast_sprite_sheet);
+        if (t)
+            d->cast_sprite_sheet = t;
+    }
+    if (def->projectile_sprite)
+    {
+        char* t = ROGUE_DUPSTR(def->projectile_sprite);
+        if (t)
+            d->projectile_sprite = t;
+    }
+    if (def->impact_sprite)
+    {
+        char* t = ROGUE_DUPSTR(def->impact_sprite);
+        if (t)
+            d->impact_sprite = t;
+    }
+    if (def->aoe_sprite)
+    {
+        char* t = ROGUE_DUPSTR(def->aoe_sprite);
+        if (t)
+            d->aoe_sprite = t;
+    }
+    if (def->cast_sound_id)
+    {
+        char* t = ROGUE_DUPSTR(def->cast_sound_id);
+        if (t)
+            d->cast_sound_id = t;
+    }
+    if (def->impact_sound_id)
+    {
+        char* t = ROGUE_DUPSTR(def->impact_sound_id);
+        if (t)
+            d->impact_sound_id = t;
+    }
+    if (def->loop_sound_id)
+    {
+        char* t = ROGUE_DUPSTR(def->loop_sound_id);
+        if (t)
+            d->loop_sound_id = t;
     }
     RogueSkillState* st = &g_skill_states_internal[g_skill_count_internal];
     memset(st, 0, sizeof *st);
@@ -428,6 +548,7 @@ static int rogue__json_load(const char* buf)
         def.max_rank = 1;
         def.synergy_id = -1;
         def.skill_strength = 0;
+        def.sound_volume = 0;
         int done_obj = 0;
         while (!done_obj)
         {
@@ -458,6 +579,34 @@ static int rogue__json_load(const char* buf)
                 else if (strcmp(key, "icon") == 0)
                 {
                     def.icon = ROGUE_STRDUP(sval);
+                }
+                else if (strcmp(key, "cast_sprite_sheet") == 0)
+                {
+                    def.cast_sprite_sheet = ROGUE_STRDUP(sval);
+                }
+                else if (strcmp(key, "projectile_sprite") == 0)
+                {
+                    def.projectile_sprite = ROGUE_STRDUP(sval);
+                }
+                else if (strcmp(key, "impact_sprite") == 0)
+                {
+                    def.impact_sprite = ROGUE_STRDUP(sval);
+                }
+                else if (strcmp(key, "aoe_sprite") == 0)
+                {
+                    def.aoe_sprite = ROGUE_STRDUP(sval);
+                }
+                else if (strcmp(key, "cast_sound_id") == 0)
+                {
+                    def.cast_sound_id = ROGUE_STRDUP(sval);
+                }
+                else if (strcmp(key, "impact_sound_id") == 0)
+                {
+                    def.impact_sound_id = ROGUE_STRDUP(sval);
+                }
+                else if (strcmp(key, "loop_sound_id") == 0)
+                {
+                    def.loop_sound_id = ROGUE_STRDUP(sval);
                 }
             }
             else if ((*s >= '0' && *s <= '9') || *s == '-')
@@ -507,6 +656,34 @@ static int rogue__json_load(const char* buf)
                     def.combo_spender = (unsigned char) num;
                 else if (strcmp(key, "effect_spec_id") == 0)
                     def.effect_spec_id = (int) num;
+                else if (strcmp(key, "frame_count") == 0)
+                    def.frame_count = (int) num;
+                else if (strcmp(key, "frame_duration_ms") == 0)
+                    def.frame_duration_ms = (float) num;
+                else if (strcmp(key, "animation_loops") == 0)
+                    def.animation_loops = (unsigned char) num;
+                else if (strcmp(key, "grid_width") == 0)
+                    def.grid_width = (unsigned short) num;
+                else if (strcmp(key, "grid_height") == 0)
+                    def.grid_height = (unsigned short) num;
+                else if (strcmp(key, "sound_volume") == 0)
+                    def.sound_volume = (unsigned char) num;
+                else if (strcmp(key, "sound_pitch_variance") == 0)
+                    def.sound_pitch_variance = (float) num;
+                else if (strcmp(key, "aoe_shape") == 0)
+                    def.aoe_shape = (unsigned char) num;
+                else if (strcmp(key, "aoe_radius") == 0)
+                    def.aoe_radius = (float) num;
+                else if (strcmp(key, "aoe_angle") == 0)
+                    def.aoe_angle = (float) num;
+                else if (strcmp(key, "projectile_velocity") == 0)
+                    def.projectile_velocity = (float) num;
+                else if (strcmp(key, "trajectory_type") == 0)
+                    def.trajectory_type = (unsigned char) num;
+                else if (strcmp(key, "pierce_count") == 0)
+                    def.pierce_count = (unsigned char) num;
+                else if (strcmp(key, "homing_strength") == 0)
+                    def.homing_strength = (float) num;
             }
             s = rogue__skip_ws(s);
             if (*s == ',')
@@ -553,6 +730,20 @@ static int rogue__json_load(const char* buf)
             free((char*) def.name);
         if (def.icon)
             free((char*) def.icon);
+        if (def.cast_sprite_sheet)
+            free((char*) def.cast_sprite_sheet);
+        if (def.projectile_sprite)
+            free((char*) def.projectile_sprite);
+        if (def.impact_sprite)
+            free((char*) def.impact_sprite);
+        if (def.aoe_sprite)
+            free((char*) def.aoe_sprite);
+        if (def.cast_sound_id)
+            free((char*) def.cast_sound_id);
+        if (def.impact_sound_id)
+            free((char*) def.impact_sound_id);
+        if (def.loop_sound_id)
+            free((char*) def.loop_sound_id);
         s = rogue__skip_ws(s);
         if (*s == ',')
         {

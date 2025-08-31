@@ -74,6 +74,41 @@ extern "C"
         when provided. Headless-safe for unit tests. */
     int rogue_skill_debug_validate(char* err, int err_cap);
 
+    /* Visuals/Audio/AoE/Projectile/Animation debug struct and accessors (Phase groundwork) */
+    typedef struct RogueSkillVisualParams
+    {
+        /* Paths (relative to assets/ allowed) */
+        char cast_sprite_sheet[256];
+        char projectile_sprite[256];
+        char impact_sprite[256];
+        char aoe_sprite[256];
+        /* Animation */
+        int frame_count;
+        float frame_duration_ms;
+        int animation_loops; /* 0/1 */
+        int grid_width;
+        int grid_height;
+        /* Audio */
+        char cast_sound_id[128];
+        char impact_sound_id[128];
+        char loop_sound_id[128];
+        int sound_volume; /* 0..100 */
+        float sound_pitch_variance;
+        /* AoE */
+        int aoe_shape; /* 0 none,1 circle,2 cone,3 line */
+        float aoe_radius;
+        float aoe_angle;
+        /* Projectile */
+        float projectile_velocity;
+        int trajectory_type; /* 0 linear,1 arc,2 homing,3 scatter */
+        int pierce_count;
+        float homing_strength;
+    } RogueSkillVisualParams;
+
+    /* Returns 0 on success */
+    int rogue_skill_debug_get_visuals(int id, RogueSkillVisualParams* out);
+    int rogue_skill_debug_set_visuals(int id, const RogueSkillVisualParams* in);
+
 #ifdef __cplusplus
 }
 #endif

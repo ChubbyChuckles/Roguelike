@@ -1,5 +1,6 @@
 #include "../core/skills/skill_debug.h"
 #include "../core/skills/skills_coeffs.h"
+#include "../core/skills/skills_validate.h"
 #include "overlay_core.h"
 #include "overlay_widgets.h"
 
@@ -36,6 +37,20 @@ static void panel_skills(void* user)
     char buf[256];
     snprintf(buf, sizeof buf, "[%d] %s", sel, name ? name : "<noname>");
     overlay_label(buf);
+    /*
+     * Validation Status (prominent)
+     * - Sticky status updated on edits to surface problems early.
+     */
+    static int last_valid_ok = 1;
+    static char last_valid_msg[196] = "OK";
+    {
+        char line[256];
+        if (last_valid_ok)
+            snprintf(line, sizeof line, "[Validation] OK");
+        else
+            snprintf(line, sizeof line, "[Validation] ERROR: %s", last_valid_msg);
+        overlay_label(line);
+    }
 
     /* Creation wizard */
     overlay_label("Create New Skill");
@@ -143,6 +158,16 @@ static void panel_skills(void* user)
             snprintf(warn, sizeof warn, "Validation failed: %s", vmsg[0] ? vmsg : "(no details)");
             overlay_label(warn);
         }
+        /* Also run cross-rule validation to update sticky status */
+        {
+            char emsg[192] = {0};
+            int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
+            last_valid_ok = ok;
+            if (!ok)
+                snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
+            else
+                snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
+        }
         int idx = rogue_skill_debug_create(new_name, new_max_rank, new_base_cd, new_cd_red,
                                            new_cast_ms, new_is_passive);
         char msg[128];
@@ -178,6 +203,14 @@ static void panel_skills(void* user)
         {
             rogue_skill_debug_set_timing(sel, base_cd, cd_red, cast_ms);
             (void) rogue_skill_debug_save_overrides(overrides_path);
+            /* Refresh validation status after edit */
+            char emsg[192] = {0};
+            int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
+            last_valid_ok = ok;
+            if (!ok)
+                snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
+            else
+                snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
         }
     }
 
@@ -196,6 +229,66 @@ static void panel_skills(void* user)
         {
             rogue_skill_debug_set_coeff(sel, &cp);
             (void) rogue_skill_debug_save_overrides(overrides_path);
+            /* Refresh validation status after edit */
+            char emsg[192] = {0};
+            int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
+            last_valid_ok = ok;
+            if (!ok)
+                snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
+            else
+                snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
+        }
+    }
+
+    /* Visuals / Advanced */
+    overlay_label("Visuals / Advanced");
+    static RogueSkillVisualParams vis;
+    if (rogue_skill_debug_get_visuals(sel, &vis) == 0)
+    {
+        int vchanged = 0;
+        vchanged |= overlay_input_text("Cast Sprite Sheet", vis.cast_sprite_sheet,
+                                       (int) sizeof vis.cast_sprite_sheet);
+        vchanged |= overlay_input_text("Projectile Sprite", vis.projectile_sprite,
+                                       (int) sizeof vis.projectile_sprite);
+        vchanged |=
+            overlay_input_text("Impact Sprite", vis.impact_sprite, (int) sizeof vis.impact_sprite);
+        vchanged |= overlay_input_text("AoE Sprite", vis.aoe_sprite, (int) sizeof vis.aoe_sprite);
+        vchanged |= overlay_slider_int("Frame Count", &vis.frame_count, 0, 512);
+        vchanged |=
+            overlay_slider_float("Frame Duration (ms)", &vis.frame_duration_ms, 0.0f, 2000.0f);
+        vchanged |= overlay_checkbox("Animation Loops", &vis.animation_loops);
+        vchanged |= overlay_slider_int("Grid Width", &vis.grid_width, 0, 128);
+        vchanged |= overlay_slider_int("Grid Height", &vis.grid_height, 0, 128);
+        vchanged |=
+            overlay_input_text("Cast Sound Id", vis.cast_sound_id, (int) sizeof vis.cast_sound_id);
+        vchanged |= overlay_input_text("Impact Sound Id", vis.impact_sound_id,
+                                       (int) sizeof vis.impact_sound_id);
+        vchanged |=
+            overlay_input_text("Loop Sound Id", vis.loop_sound_id, (int) sizeof vis.loop_sound_id);
+        vchanged |= overlay_slider_int("Sound Volume", &vis.sound_volume, 0, 100);
+        vchanged |= overlay_slider_float("Sound Pitch Var", &vis.sound_pitch_variance, 0.0f, 12.0f);
+        vchanged |=
+            overlay_slider_int("AoE Shape (0 none,1 circle,2 cone,3 line)", &vis.aoe_shape, 0, 3);
+        vchanged |= overlay_slider_float("AoE Radius", &vis.aoe_radius, 0.0f, 1000.0f);
+        vchanged |= overlay_slider_float("AoE Angle", &vis.aoe_angle, 0.0f, 360.0f);
+        vchanged |=
+            overlay_slider_float("Projectile Velocity", &vis.projectile_velocity, 0.0f, 5000.0f);
+        vchanged |= overlay_slider_int("Trajectory Type (0 lin,1 arc,2 homing,3 scatter)",
+                                       &vis.trajectory_type, 0, 3);
+        vchanged |= overlay_slider_int("Pierce Count", &vis.pierce_count, 0, 50);
+        vchanged |= overlay_slider_float("Homing Strength", &vis.homing_strength, 0.0f, 100.0f);
+        if (vchanged)
+        {
+            (void) rogue_skill_debug_set_visuals(sel, &vis);
+            (void) rogue_skill_debug_save_overrides(overrides_path);
+            /* Refresh validation status after edit */
+            char emsg[192] = {0};
+            int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
+            last_valid_ok = ok;
+            if (!ok)
+                snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
+            else
+                snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
         }
     }
 
@@ -256,6 +349,14 @@ static void panel_skills(void* user)
         char msg[128];
         snprintf(msg, sizeof msg, "Save: %s (%d)", (rc == 0 ? "OK" : "ERR"), rc);
         overlay_label(msg);
+        /* Update sticky status based on cross-rule validation */
+        char emsg[192] = {0};
+        int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
+        last_valid_ok = ok;
+        if (!ok)
+            snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
+        else
+            snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
     }
     if (overlay_button("Load Overrides JSON"))
     {
@@ -263,6 +364,14 @@ static void panel_skills(void* user)
         char msg[128];
         snprintf(msg, sizeof msg, "Load: %s (%d)", (applied >= 0 ? "OK" : "ERR"), applied);
         overlay_label(msg);
+        /* Update sticky status after load */
+        char emsg[192] = {0};
+        int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
+        last_valid_ok = ok;
+        if (!ok)
+            snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
+        else
+            snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
     }
 
     if (overlay_checkbox("Auto-Reload Overrides", &auto_reload))

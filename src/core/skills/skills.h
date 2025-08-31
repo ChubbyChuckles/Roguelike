@@ -79,6 +79,38 @@ typedef struct RogueSkillDef
     unsigned char refund_on_miss_pct;   /* refund percent of costs if effect indicates MISS */
     unsigned char refund_on_resist_pct; /* refund percent if effect indicates RESIST */
     unsigned char refund_on_cancel_pct; /* refund percent when early-canceled */
+
+    /* Optional visual/audio/animation/AoE/projectile metadata (Phase 1 groundwork). */
+    /* Visual sprite assets (paths; may be relative to assets/) */
+    const char* cast_sprite_sheet; /* sprite sheet used during cast */
+    const char* projectile_sprite; /* projectile sprite or sheet */
+    const char* impact_sprite;     /* impact sprite */
+    const char* aoe_sprite;        /* ground AoE decal sprite */
+
+    /* Animation parameters (sprite-sheet based) */
+    int frame_count;               /* total frames in sheet/animation */
+    float frame_duration_ms;       /* per-frame duration */
+    unsigned char animation_loops; /* 0 no, 1 yes */
+    unsigned short grid_width;     /* sheet grid width (cells), 0 if N/A */
+    unsigned short grid_height;    /* sheet grid height (cells), 0 if N/A */
+
+    /* Audio hooks */
+    const char* cast_sound_id;   /* sound label/id for cast */
+    const char* impact_sound_id; /* sound label/id for impact */
+    const char* loop_sound_id;   /* sound label/id for loop while channeling */
+    unsigned char sound_volume;  /* 0..100 percent */
+    float sound_pitch_variance;  /* +/- semitones variance */
+
+    /* AoE parameters */
+    unsigned char aoe_shape; /* 0 none,1 circle,2 cone,3 line,4 poly(reserved) */
+    float aoe_radius;        /* radius (or line half-width) */
+    float aoe_angle;         /* cone angle (deg) or line length if paired with shape */
+
+    /* Projectile parameters */
+    float projectile_velocity;     /* units per second */
+    unsigned char trajectory_type; /* 0 linear,1 arc,2 homing,3 scatter */
+    unsigned char pierce_count;    /* number of targets it can pierce */
+    float homing_strength;         /* homing factor */
 } RogueSkillDef;
 
 /* Tag bits */

@@ -6,6 +6,12 @@ Partial = Some components implemented (details in parentheses)
 X = Not started yet
 Optional = Stretch / future wave
 
+STATUS DELTA (current)
+- Extended optional fields for skills are integrated end-to-end: visuals (cast/projectile/impact/aoe sprites), animation params, audio hooks, AoE, and projectile params. Covered across schema -> runtime loader -> headless-safe debug get/set APIs -> validation -> overlay UI.
+- Overlay Skills panel now includes a "Visuals / Advanced" section to edit these fields live. Values persist via overrides JSON and respect validation.
+- Validation checks asset existence and parameter bounds (e.g., frame counts, volumes, AoE radius, projectile velocity). Overlay surfaces errors during save and creation flows.
+- Overlay Skills panel now shows a sticky "Validation Status" banner that updates live on edits (timing/coeffs/visuals) and after Create/Save/Load, keeping issues visible without opening the Validation panel.
+
 Scope Overview:
 Transform the current Skills debug panel into a comprehensive skill creation, editing, testing, and debugging suite for a 2D RPG. Support all standard skill types (melee attacks, ranged projectiles, AoE spells, buffs/debuffs, healing, summoning, passives, ultimates) with real-time visual feedback, sandboxed testing environments, and deep integration with existing game systems (sprites, animations, particles, sound, combat, projectiles). Maintain C performance with modular architecture and extensibility for future skill types.
 
@@ -41,6 +47,7 @@ PHASE 1. Architecture & Core Data Model Enhancement
     - Add area-of-effect properties: aoe_shape (circle/cone/line), aoe_radius, aoe_angle
     - Add projectile properties: velocity, trajectory_type, pierce_count, homing_strength
     - Update schema_skills.{h,c} with new validation rules for each skill type and asset dependencies
+    Status: Partial (visuals/audio/animation/AoE/projectile fields implemented schema->runtime->debug APIs->validation->overlay; effect composition and skill_type enum pending)
 1.2 Effect Composition System
     - Design EffectNode tree structure for complex skill behaviors
     - Implement effect types: DAMAGE, HEAL, BUFF_APPLY, DEBUFF_APPLY, SPAWN_PROJECTILE, SPAWN_ENTITY, TELEPORT, AOE_BLAST

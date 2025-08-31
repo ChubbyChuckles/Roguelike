@@ -34,6 +34,49 @@ static RogueJsonValue* skilldef_to_json(const RogueSkillDef* d)
     json_object_set(obj, "combo_builder", json_create_integer(d->combo_builder));
     json_object_set(obj, "combo_spender", json_create_integer(d->combo_spender));
     json_object_set(obj, "effect_spec_id", json_create_integer(d->effect_spec_id));
+    /* Optional extended fields (included when non-empty/non-zero) */
+    if (d->cast_sprite_sheet && d->cast_sprite_sheet[0])
+        json_object_set(obj, "cast_sprite_sheet", json_create_string(d->cast_sprite_sheet));
+    if (d->projectile_sprite && d->projectile_sprite[0])
+        json_object_set(obj, "projectile_sprite", json_create_string(d->projectile_sprite));
+    if (d->impact_sprite && d->impact_sprite[0])
+        json_object_set(obj, "impact_sprite", json_create_string(d->impact_sprite));
+    if (d->aoe_sprite && d->aoe_sprite[0])
+        json_object_set(obj, "aoe_sprite", json_create_string(d->aoe_sprite));
+    if (d->frame_count)
+        json_object_set(obj, "frame_count", json_create_integer(d->frame_count));
+    if (d->frame_duration_ms != 0.0f)
+        json_object_set(obj, "frame_duration_ms", json_create_number(d->frame_duration_ms));
+    if (d->animation_loops)
+        json_object_set(obj, "animation_loops", json_create_integer(d->animation_loops));
+    if (d->grid_width)
+        json_object_set(obj, "grid_width", json_create_integer(d->grid_width));
+    if (d->grid_height)
+        json_object_set(obj, "grid_height", json_create_integer(d->grid_height));
+    if (d->cast_sound_id && d->cast_sound_id[0])
+        json_object_set(obj, "cast_sound_id", json_create_string(d->cast_sound_id));
+    if (d->impact_sound_id && d->impact_sound_id[0])
+        json_object_set(obj, "impact_sound_id", json_create_string(d->impact_sound_id));
+    if (d->loop_sound_id && d->loop_sound_id[0])
+        json_object_set(obj, "loop_sound_id", json_create_string(d->loop_sound_id));
+    if (d->sound_volume)
+        json_object_set(obj, "sound_volume", json_create_integer(d->sound_volume));
+    if (d->sound_pitch_variance != 0.0f)
+        json_object_set(obj, "sound_pitch_variance", json_create_number(d->sound_pitch_variance));
+    if (d->aoe_shape)
+        json_object_set(obj, "aoe_shape", json_create_integer(d->aoe_shape));
+    if (d->aoe_radius != 0.0f)
+        json_object_set(obj, "aoe_radius", json_create_number(d->aoe_radius));
+    if (d->aoe_angle != 0.0f)
+        json_object_set(obj, "aoe_angle", json_create_number(d->aoe_angle));
+    if (d->projectile_velocity != 0.0f)
+        json_object_set(obj, "projectile_velocity", json_create_number(d->projectile_velocity));
+    if (d->trajectory_type)
+        json_object_set(obj, "trajectory_type", json_create_integer(d->trajectory_type));
+    if (d->pierce_count)
+        json_object_set(obj, "pierce_count", json_create_integer(d->pierce_count));
+    if (d->homing_strength != 0.0f)
+        json_object_set(obj, "homing_strength", json_create_number(d->homing_strength));
     return obj;
 }
 
@@ -111,6 +154,63 @@ bool rogue_skills_build_schema(RogueSchema* out_schema)
     rogue_schema_field_set_range(f_cs, 0, 1);
 
     rogue_schema_add_field(out_schema, "effect_spec_id", ROGUE_SCHEMA_TYPE_INTEGER);
+
+    /* Phase 1.1 – Extended, optional fields to support visual/audio/animation and mechanics. */
+    /* Visual sprite assets (paths relative to project root or assets/) */
+    rogue_schema_add_field(out_schema, "cast_sprite_sheet", ROGUE_SCHEMA_TYPE_STRING);
+    rogue_schema_add_field(out_schema, "projectile_sprite", ROGUE_SCHEMA_TYPE_STRING);
+    rogue_schema_add_field(out_schema, "impact_sprite", ROGUE_SCHEMA_TYPE_STRING);
+    rogue_schema_add_field(out_schema, "aoe_sprite", ROGUE_SCHEMA_TYPE_STRING);
+
+    /* Animation parameters (sprite-sheet based); all optional */
+    RogueSchemaField* f_frames =
+        rogue_schema_add_field(out_schema, "frame_count", ROGUE_SCHEMA_TYPE_INTEGER);
+    rogue_schema_field_set_range(f_frames, 0, 1024);
+    rogue_schema_add_field(out_schema, "frame_duration_ms", ROGUE_SCHEMA_TYPE_NUMBER);
+    RogueSchemaField* f_anim_loops =
+        rogue_schema_add_field(out_schema, "animation_loops", ROGUE_SCHEMA_TYPE_INTEGER);
+    rogue_schema_field_set_range(f_anim_loops, 0, 1);
+    RogueSchemaField* f_grid_w =
+        rogue_schema_add_field(out_schema, "grid_width", ROGUE_SCHEMA_TYPE_INTEGER);
+    rogue_schema_field_set_range(f_grid_w, 0, 1024);
+    RogueSchemaField* f_grid_h =
+        rogue_schema_add_field(out_schema, "grid_height", ROGUE_SCHEMA_TYPE_INTEGER);
+    rogue_schema_field_set_range(f_grid_h, 0, 1024);
+
+    /* Audio hooks (IDs refer to sounds registry/labels); volume 0..100 (%), pitch variance in
+     * semitones */
+    rogue_schema_add_field(out_schema, "cast_sound_id", ROGUE_SCHEMA_TYPE_STRING);
+    rogue_schema_add_field(out_schema, "impact_sound_id", ROGUE_SCHEMA_TYPE_STRING);
+    rogue_schema_add_field(out_schema, "loop_sound_id", ROGUE_SCHEMA_TYPE_STRING);
+    RogueSchemaField* f_svol =
+        rogue_schema_add_field(out_schema, "sound_volume", ROGUE_SCHEMA_TYPE_INTEGER);
+    rogue_schema_field_set_range(f_svol, 0, 100);
+    rogue_schema_add_field(out_schema, "sound_pitch_variance", ROGUE_SCHEMA_TYPE_NUMBER);
+
+    /* AoE parameters */
+    RogueSchemaField* f_aoe_shape =
+        rogue_schema_add_field(out_schema, "aoe_shape", ROGUE_SCHEMA_TYPE_INTEGER);
+    /* 0=none,1=circle,2=cone,3=line,4=poly (reserved) */
+    rogue_schema_field_set_range(f_aoe_shape, 0, 4);
+    RogueSchemaField* f_aoe_radius =
+        rogue_schema_add_field(out_schema, "aoe_radius", ROGUE_SCHEMA_TYPE_NUMBER);
+    RogueSchemaField* f_aoe_angle =
+        rogue_schema_add_field(out_schema, "aoe_angle", ROGUE_SCHEMA_TYPE_NUMBER);
+
+    /* Projectile parameters */
+    rogue_schema_add_field(out_schema, "projectile_velocity", ROGUE_SCHEMA_TYPE_NUMBER);
+    RogueSchemaField* f_traj =
+        rogue_schema_add_field(out_schema, "trajectory_type", ROGUE_SCHEMA_TYPE_INTEGER);
+    /* 0=linear,1=arc,2=homing,3=scatter */
+    rogue_schema_field_set_range(f_traj, 0, 3);
+    RogueSchemaField* f_pierce =
+        rogue_schema_add_field(out_schema, "pierce_count", ROGUE_SCHEMA_TYPE_INTEGER);
+    rogue_schema_field_set_range(f_pierce, 0, 32);
+    RogueSchemaField* f_home =
+        rogue_schema_add_field(out_schema, "homing_strength", ROGUE_SCHEMA_TYPE_NUMBER);
+    (void) f_aoe_radius;
+    (void) f_aoe_angle;
+    (void) f_home;
 
     return true;
 }

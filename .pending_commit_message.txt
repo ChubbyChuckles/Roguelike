@@ -1,3 +1,11 @@
+Extend skills with Visuals/Advanced fields end-to-end and surface in overlay
+
+ - Add optional visuals/audio/animation/AoE/projectile fields to RogueSkillDef and JSON loader (deep-copy/free, schema export)
+ - Implement headless-safe debug APIs to get/set visual params with clamps and frees
+ - Validate asset existence and parameter bounds in skills validator; wire overlay save/create to show errors
+ - Expose a Visuals / Advanced section in the Skills panel; persist via overrides JSON and support auto-reload
+ - README: document Visuals/Advanced usage; Roadmap: mark Phase 1.1 partial completion
+ - Build/tests: Debug SDL2 full suite remains 100% green (584/584)
 feat(overlay/skills): add "Create New Skill" wizard + headless API and tests
 
 - New API: rogue_skill_debug_create(name, max_rank, base_cd_ms, cd_red_ms_per_rank, cast_ms, is_passive)
@@ -32,3 +40,11 @@ feat(overlay/skills): validation pipeline integration (API + UI gating) + unit t
 - Tests: new `tests/unit/test_skills_validation_pipeline.c` covers invalid→fix→valid for offensive skills missing coefficients.
 - Docs: README “Debug overlay tips” adds validation behavior and mentions the new API; Validation System section documents panel integration.
 - Roadmap: Phase 14.3 marked Done with details; full Debug (SDL2) build and suite are green (584/584, -j12).
+
+feat(overlay/skills): live sticky Validation Status banner in Skills panel
+
+- UI: Add a prominent, sticky "Validation Status" banner at the top of the Skills panel that shows either OK or ERROR with the first failure reason.
+- Live refresh: The banner updates immediately when editing Timing, Coefficients, or Visuals/Advanced fields, and after Create/Save/Load actions.
+- Validation: Uses the shared skills validator; no new rules added, just surfaced inline for fast iteration.
+- Docs: README “Debug overlay tips” notes the banner; roadmap status delta mentions the new overlay feedback.
+- Build/tests: Debug SDL2 build succeeds and the full CTest suite remains 100% green (584/584, -j12).
