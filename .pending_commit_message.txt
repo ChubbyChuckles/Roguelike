@@ -24,3 +24,11 @@ feat(overlay/skills): searchable template selector in creation wizard
 - Skills panel: add a "Template Filter" input and a filterable table (ID, Name) of skills; clicking a row selects its id for the template apply flow
 - UX: substring filter for quick narrowing; integrates with existing "Apply Template" and optional "Copy Coeffs"
 - Docs: README updated to mention the searchable template picker; roadmap CI counts bumped to 584/584 and Phase 14.2 notes the new selector
+
+feat(overlay/skills): validation pipeline integration (API + UI gating) + unit test
+
+- API: add `rogue_skill_debug_validate(char* err, int err_cap)` delegating to the core validator for headless-safe checks.
+- UI: Skills panel Save Overrides JSON runs validation first and blocks save on failure with an error message; Create runs validation and shows a warning on failure (warn-only to allow iteration).
+- Tests: new `tests/unit/test_skills_validation_pipeline.c` covers invalid→fix→valid for offensive skills missing coefficients.
+- Docs: README “Debug overlay tips” adds validation behavior and mentions the new API; Validation System section documents panel integration.
+- Roadmap: Phase 14.3 marked Done with details; full Debug (SDL2) build and suite are green (584/584, -j12).

@@ -4,6 +4,7 @@
 #include "skills.h"
 #include "skills_coeffs.h"
 #include "skills_internal.h"
+#include "skills_validate.h"
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -523,4 +524,9 @@ int rogue_skill_debug_get_meta(int id, int* out_max_rank, int* out_is_passive)
     if (out_is_passive)
         *out_is_passive = d->is_passive ? 1 : 0;
     return 0;
+}
+
+int rogue_skill_debug_validate(char* err, int err_cap)
+{
+    return rogue_skills_validate_all(err, err_cap);
 }

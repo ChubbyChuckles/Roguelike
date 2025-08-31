@@ -69,6 +69,11 @@ extern "C"
     /* Fetch meta properties for a skill definition. Returns 0 on success. */
     int rogue_skill_debug_get_meta(int id, int* out_max_rank, int* out_is_passive);
 
+    /* Validate the entire skills/procs/effects registry. Returns 0 on success (valid),
+        -1 on validation failure and writes a short human-readable message into `err`
+        when provided. Headless-safe for unit tests. */
+    int rogue_skill_debug_validate(char* err, int err_cap);
+
 #ifdef __cplusplus
 }
 #endif

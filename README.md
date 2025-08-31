@@ -6,6 +6,7 @@ Press F1 in-game to open the debug overlay.
 - Entity inspect: In the Entities panel, hold Shift and LeftClick on a unit in the world to select and inspect it. This uses the camera and tile mapping to pick the nearest enemy under the cursor.
 - Skills: The Skills panel includes a "Create New Skill" wizard with a template workflow. Select a template skill id and click "Apply Template" to prefill name/max-rank/passive/timing; optionally enable "Copy Coeffs" to duplicate coefficient params to the preview and to the created skill.
 - Skills: The Skills panel includes a "Create New Skill" wizard with a template workflow. Select a template skill id and click "Apply Template" to prefill name/max-rank/passive/timing; optionally enable "Copy Coeffs" to duplicate coefficient params to the preview and to the created skill. New: a searchable template picker (filter + table) lets you quickly find a template by substring and select it by clicking the row.
+- Skills validation: Saving Overrides JSON now runs validation first and blocks the save on errors (a message explains what to fix). Creating a new skill will run validation and show a warning if the definition is invalid (creation still proceeds so you can iterate). A headless-safe API `rogue_skill_debug_validate(err, cap)` is available for tools/tests.
 
 Notes
 - Panel visibility isn’t persisted between runs yet. If you’d like that, we can store the visibility bitmask in your config/save.
@@ -68,7 +69,7 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 	- Build: use CMake multi‑config generators with parallelism (e.g., -j12)
 	- Run tests: ctest -C Debug -j12 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 Notes:
-Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (584/584). Worldgen optimization benchmark stabilized via adaptive repetition to avoid timer granularity flakiness in CI. Persistence tests use centralized save path builders; a recent fix updated `test_save_incremental_basic` to honor per-test directories via `rogue_build_slot_path(0)` for stability under parallel runs. On Windows/MSVC, the Content Graph SDL preview avoids VLA-like locals by using compile-time caps (OVERLAY_CG_MAX_NODES/EDGES); the System panel shows FPS via overlay_last_dt() when metrics aren’t initialized. Recent local run: all tests green (584/584) on Debug SDL2 with -j12.
+Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (584/584). Worldgen optimization benchmark stabilized via adaptive repetition to avoid timer granularity flakiness in CI. Persistence tests use centralized save path builders; a recent fix updated `test_save_incremental_basic` to honor per-test directories via `rogue_build_slot_path(0)` for stability under parallel runs. On Windows/MSVC, the Content Graph SDL preview avoids VLA-like locals by using compile-time caps (OVERLAY_CG_MAX_NODES/EDGES); the System panel shows FPS via overlay_last_dt() when metrics aren’t initialized. Recent local run: all tests green (584/584) on Debug SDL2 with -j12. New validation path: `tests/unit/test_skills_validation_pipeline.c` confirms that an offensive-looking skill without coefficients fails validation until a coeff entry is added, after which validation passes.
 	- Re-verified after AI Utility Selector destructor wiring (advanced_nodes): Debug SDL2 full suite remains 100% green (582/582) under -j12.
 	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir). Default is off for quiet CI.
 	- Test helper for speed: in unit tests that load skills content, call `rogue_skills_set_skip_icon_loads(1)` to bypass icon texture I/O. Used by `test_skills_roundtrip_schema` and `test_skills_base_autoreload` to cut runtime to milliseconds while preserving semantics.
@@ -142,6 +143,10 @@ The runtime includes a state/content validation system to catch schema issues an
 - Wiring: `src/core/integration/validation_wiring.{h,c}` registers default checks at startup: items, entities, tilesets, tag registry, and a cross-rule for skills.
 - Overlay: A “Validation” panel lets you Run Now, Force All (bypass snapshot hash incremental skip), and adjust the interval. It shows stats and recent events.
 - Headless/CI: A CLI tool `validate_content` runs these checks headlessly and returns a CI-friendly exit code.
+
+Skills panel validation integration:
+- Save Overrides JSON: runs `rogue_skill_debug_validate` first; blocks the save when invalid and surfaces the error text in-panel.
+- Create flow: runs validation and shows a warning when invalid. This is warn-only to keep prototyping fast; you can tighten to hard-block later if desired.
 
 CLI usage (optional):
 

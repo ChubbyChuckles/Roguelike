@@ -135,6 +135,14 @@ static void panel_skills(void* user)
     overlay_checkbox("Passive", &new_is_passive);
     if (overlay_button("Create"))
     {
+        /* Validate current registry before allowing a new create to be committed */
+        char vmsg[192] = {0};
+        if (rogue_skill_debug_validate(vmsg, (int) sizeof vmsg) != 0)
+        {
+            char warn[256];
+            snprintf(warn, sizeof warn, "Validation failed: %s", vmsg[0] ? vmsg : "(no details)");
+            overlay_label(warn);
+        }
         int idx = rogue_skill_debug_create(new_name, new_max_rank, new_base_cd, new_cd_red,
                                            new_cast_ms, new_is_passive);
         char msg[128];
@@ -236,7 +244,15 @@ static void panel_skills(void* user)
 
     if (overlay_button("Save Overrides JSON"))
     {
-        int rc = rogue_skill_debug_save_overrides(overrides_path);
+        char vmsg[192] = {0};
+        int v = rogue_skill_debug_validate(vmsg, (int) sizeof vmsg);
+        if (v != 0)
+        {
+            char warn[256];
+            snprintf(warn, sizeof warn, "Validation failed: %s", vmsg[0] ? vmsg : "(no details)");
+            overlay_label(warn);
+        }
+        int rc = (v == 0) ? rogue_skill_debug_save_overrides(overrides_path) : -3;
         char msg[128];
         snprintf(msg, sizeof msg, "Save: %s (%d)", (rc == 0 ? "OK" : "ERR"), rc);
         overlay_label(msg);
