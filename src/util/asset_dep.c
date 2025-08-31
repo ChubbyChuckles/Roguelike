@@ -24,6 +24,46 @@ typedef struct RogueAssetDepNode
 static RogueAssetDepNode g_nodes[ROGUE_ASSET_DEP_CAP];
 static int g_node_count = 0;
 
+/* Last rejection info for diagnostics in overlay/tests */
+static char g_last_reject_kind[32];
+static char g_last_reject_id[64];
+static char g_last_reject_dep[64];
+
+void rogue_asset_dep_clear_last_reject(void)
+{
+#if defined(_MSC_VER)
+    g_last_reject_kind[0] = '\0';
+    g_last_reject_id[0] = '\0';
+    g_last_reject_dep[0] = '\0';
+#else
+    g_last_reject_kind[0] = '\0';
+    g_last_reject_id[0] = '\0';
+    g_last_reject_dep[0] = '\0';
+#endif
+}
+
+int rogue_asset_dep_get_last_reject(char* kind, int kind_cap, char* nid, int nid_cap, char* dep,
+                                    int dep_cap)
+{
+    if (!kind || kind_cap <= 0 || !nid || nid_cap <= 0 || !dep || dep_cap <= 0)
+        return 0;
+    if (!g_last_reject_kind[0])
+        return 0;
+#if defined(_MSC_VER)
+    strncpy_s(kind, (size_t) kind_cap, g_last_reject_kind, _TRUNCATE);
+    strncpy_s(nid, (size_t) nid_cap, g_last_reject_id, _TRUNCATE);
+    strncpy_s(dep, (size_t) dep_cap, g_last_reject_dep, _TRUNCATE);
+#else
+    strncpy(kind, g_last_reject_kind, (size_t) kind_cap - 1);
+    kind[kind_cap - 1] = '\0';
+    strncpy(nid, g_last_reject_id, (size_t) nid_cap - 1);
+    nid[nid_cap - 1] = '\0';
+    strncpy(dep, g_last_reject_dep, (size_t) dep_cap - 1);
+    dep[dep_cap - 1] = '\0';
+#endif
+    return 1;
+}
+
 void rogue_asset_dep_reset(void) { g_node_count = 0; }
 
 static int find_node(const char* id)
@@ -157,6 +197,18 @@ int rogue_asset_dep_register(const char* id, const char* path, const char** deps
     {
         if (dfs_cycle_check(i) < 0)
         {
+            /* record diagnostics */
+#if defined(_MSC_VER)
+            strncpy_s(g_last_reject_kind, sizeof g_last_reject_kind, "cycle", _TRUNCATE);
+            strncpy_s(g_last_reject_id, sizeof g_last_reject_id, id, _TRUNCATE);
+            g_last_reject_dep[0] = '\0';
+#else
+            strncpy(g_last_reject_kind, "cycle", sizeof g_last_reject_kind - 1);
+            g_last_reject_kind[sizeof g_last_reject_kind - 1] = '\0';
+            strncpy(g_last_reject_id, id, sizeof g_last_reject_id - 1);
+            g_last_reject_id[sizeof g_last_reject_id - 1] = '\0';
+            g_last_reject_dep[0] = '\0';
+#endif
             g_nodes[g_node_count - 1].id[0] = '\0';
             g_node_count--;
             return -2;
@@ -168,6 +220,30 @@ int rogue_asset_dep_register(const char* id, const char* path, const char** deps
     {
         if (path_conflict_in_deps(n->dep_indices[i], n->path))
         {
+            /* record diagnostics */
+#if defined(_MSC_VER)
+            strncpy_s(g_last_reject_kind, sizeof g_last_reject_kind, "path_conflict", _TRUNCATE);
+            strncpy_s(g_last_reject_id, sizeof g_last_reject_id, id, _TRUNCATE);
+            /* best effort: provide direct dep id if available */
+            int di = n->dep_indices[i];
+            if (di >= 0 && di < g_node_count)
+                strncpy_s(g_last_reject_dep, sizeof g_last_reject_dep, g_nodes[di].id, _TRUNCATE);
+            else
+                g_last_reject_dep[0] = '\0';
+#else
+            strncpy(g_last_reject_kind, "path_conflict", sizeof g_last_reject_kind - 1);
+            g_last_reject_kind[sizeof g_last_reject_kind - 1] = '\0';
+            strncpy(g_last_reject_id, id, sizeof g_last_reject_id - 1);
+            g_last_reject_id[sizeof g_last_reject_id - 1] = '\0';
+            int di = n->dep_indices[i];
+            if (di >= 0 && di < g_node_count)
+            {
+                strncpy(g_last_reject_dep, g_nodes[di].id, sizeof g_last_reject_dep - 1);
+                g_last_reject_dep[sizeof g_last_reject_dep - 1] = '\0';
+            }
+            else
+                g_last_reject_dep[0] = '\0';
+#endif
             g_nodes[g_node_count - 1].id[0] = '\0';
             g_node_count--;
             return -2;

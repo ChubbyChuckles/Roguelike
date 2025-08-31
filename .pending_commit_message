@@ -1,0 +1,5 @@
+Overlay: Content Graph polish — group-based tinting in SDL preview; surfaced last registration rejection diagnostics (cycle/path_conflict) via new asset_dep APIs (rogue_asset_dep_get_last_reject/clear). Docs/roadmap updated.
+
+Persistence tests: fix test_save_incremental_basic to honor per-test save directory by using rogue_build_slot_path(0) from save_paths; resolves size_mismatch flake under parallel ctest -j12.
+
+Gates: Rebuilt Debug (SDL2) with -j12 and re-ran full suite — all green (581/581).Phase 13.3 – Content Graph overlay complete: advanced filters (id:/path:/group:/hash:/dep:/rev:), reverse deps, group summaries, path-collision markers, DOT export, and layered SDL multi-hop preview with depth slider. Added rogue_skills_set_skip_icon_loads() and refactored two slow tests to millisecond runtime. Gate enforced: Debug build with SDL2 and ctest -j12 all green (581/581).

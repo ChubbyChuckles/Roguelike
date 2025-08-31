@@ -55,7 +55,7 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 	- Build: use CMake multi‑config generators with parallelism (e.g., -j12)
 	- Run tests: ctest -C Debug -j12 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 Notes:
-Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (581/581). Worldgen optimization benchmark stabilized via adaptive repetition to avoid timer granularity flakiness in CI.
+Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (581/581). Worldgen optimization benchmark stabilized via adaptive repetition to avoid timer granularity flakiness in CI. Persistence tests use centralized save path builders; a recent fix updated `test_save_incremental_basic` to honor per-test directories via `rogue_build_slot_path(0)` for stability under parallel runs.
 	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir). Default is off for quiet CI.
 	- Test helper for speed: in unit tests that load skills content, call `rogue_skills_set_skip_icon_loads(1)` to bypass icon texture I/O. Used by `test_skills_roundtrip_schema` and `test_skills_base_autoreload` to cut runtime to milliseconds while preserving semantics.
 Formatting:
@@ -147,6 +147,7 @@ Status: Complete.
 	- Group size summaries and path collision markers.
 	- Actions: “Compute All Hashes” and “Export DOT” (writes `build/content_graph.dot`).
 	- Layered SDL preview for the selected node and its multi‑hop dependencies (BFS), with a max‑depth slider; toggleable on‑panel.
+	- Visuals: nodes tinted by group; diagnostics line shows last dependency registration rejection (cycle or path conflict) when present.
 - Broadened registrations at app init cover core content domains (examples):
 	- skills/base → assets/skills_uhf87f.json; skills → depends on skills/base
 	- tiles (assets/tiles.cfg), sounds (assets/sounds.cfg), enemies/types (assets/enemies.json)

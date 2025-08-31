@@ -22,6 +22,16 @@ extern "C"
         or <0 on error. out_dep_ids entries are valid until reset. */
     int rogue_asset_dep_get_deps(const char* id, const char** out_dep_ids, int max_out);
 
+    /* Retrieve details of the last failed registration (cycle or path_conflict).
+        Returns 1 when available, 0 when none recorded. kind is a short string:
+        "cycle" or "path_conflict". nid is the id being registered; dep is the
+        related node id involved in the rejection when known. */
+    int rogue_asset_dep_get_last_reject(char* kind, int kind_cap, char* nid, int nid_cap, char* dep,
+                                        int dep_cap);
+
+    /* Clear the last recorded rejection info. */
+    void rogue_asset_dep_clear_last_reject(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -1192,6 +1192,18 @@ static void panel_content_graph(void* user)
                 overlay_label(line);
             }
         }
+        /* Show last dependency registration rejection, if any */
+        {
+            char k[32], nid[64], dep[64];
+            if (rogue_asset_dep_get_last_reject(k, (int) sizeof k, nid, (int) sizeof nid, dep,
+                                                (int) sizeof dep))
+            {
+                char msg[256];
+                snprintf(msg, sizeof msg, "Last register reject: kind=%s id=%s dep=%s", k, nid,
+                         dep[0] ? dep : "<n/a>");
+                overlay_label(msg);
+            }
+        }
         overlay_label("Deps:");
         const char* deps[16];
         int dc = rogue_asset_dep_get_deps(id, deps, (int) (sizeof deps / sizeof deps[0]));
@@ -1398,11 +1410,30 @@ static void panel_content_graph(void* user)
             for (int i = 0; i < ncount; ++i)
             {
                 SDL_Rect r = rects[i];
-                /* root highlighted */
+                /* root highlighted; group-based color tint for readability */
                 if (i == 0)
+                {
                     SDL_SetRenderDrawColor(g_app.renderer, 40, 70, 110, 220);
+                }
                 else
-                    SDL_SetRenderDrawColor(g_app.renderer, 70, 70, 70, 220);
+                {
+                    /* derive a stable tint from group prefix */
+                    unsigned ghash = 2166136261u;
+                    const char* gid = nids[i];
+                    const char* slash2 = gid ? strchr(gid, '/') : NULL;
+                    int gl = 0;
+                    if (gid && slash2)
+                        gl = (int) (slash2 - gid);
+                    for (int c = 0; c < gl; ++c)
+                    {
+                        ghash ^= (unsigned) gid[c];
+                        ghash *= 16777619u;
+                    }
+                    unsigned r8 = 60u + (ghash & 95u);
+                    unsigned g8 = 60u + ((ghash >> 8) & 95u);
+                    unsigned b8 = 60u + ((ghash >> 16) & 95u);
+                    SDL_SetRenderDrawColor(g_app.renderer, (Uint8) r8, (Uint8) g8, (Uint8) b8, 220);
+                }
                 SDL_RenderFillRect(g_app.renderer, &r);
                 SDL_SetRenderDrawColor(g_app.renderer, 220, 220, 220, 220);
                 SDL_RenderDrawRect(g_app.renderer, &r);

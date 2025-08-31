@@ -1,4 +1,5 @@
 #include "../../src/core/persistence/save_manager.h"
+#include "../../src/core/persistence/save_paths.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,7 +51,8 @@ int main(void)
         printf("INCR_FAIL initial save\n");
         return 1;
     }
-    FILE* f1 = fopen("save_slot_0.sav", "rb");
+    const char* path = rogue_build_slot_path(0);
+    FILE* f1 = fopen(path, "rb");
     if (!f1)
     {
         printf("INCR_FAIL open1\n");
@@ -64,7 +66,7 @@ int main(void)
         printf("INCR_FAIL second save\n");
         return 1;
     }
-    FILE* f2 = fopen("save_slot_0.sav", "rb");
+    FILE* f2 = fopen(path, "rb");
     if (!f2)
     {
         printf("INCR_FAIL open2\n");

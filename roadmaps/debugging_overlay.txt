@@ -8,11 +8,16 @@ Deliverables:
 	- Node details: direct deps, reverse deps, cached file hash (hex)
 	- Group summaries and path-collision markers
 	- Actions: Compute All Hashes, Export DOT → build/content_graph.dot
-	- Layered SDL preview of multi-hop dependencies (BFS) with depth slider
+	- Layered SDL preview of multi-hop dependencies (BFS) with depth slider; nodes tinted by group for readability
+	- Diagnostics line shows last dependency registration rejection (cycle or path_conflict) via asset_dep tooling
 
 APIs & Modules:
 - src/util/asset_dep.{h,c}: dependency registry, hashing, reverse dep queries
 - src/debug_overlay/overlay_panels.c: panel_content_graph and helpers
+
+Diagnostics API:
+- rogue_asset_dep_get_last_reject(kind_buf, kind_cap, id_buf, id_cap, dep_buf, dep_cap) returns the most recent registration rejection reason/id/dep
+- rogue_asset_dep_clear_last_reject() resets the diagnostic buffers after they’re shown in tooling
 
 Tests & CI Gate:
 - Unit coverage lives in tests/unit/test_asset_dep.c (cycle detection, hashing)
