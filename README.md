@@ -140,19 +140,15 @@ Exit codes: 0 OK, 1 warnings (only with --fail-on-warn), 2 corruption. Use `--qu
 
 ### Content Graph (Phase 13.3 – expanded)
 Status: Complete.
-- Asset dependency graph API `src/util/asset_dep.{h,c}` exposes enumeration and hashing helpers:
 	- `rogue_asset_dep_count()`, `rogue_asset_dep_get(index, &id, &path)`, `rogue_asset_dep_get_deps(id, out, max)`, and `rogue_asset_dep_hash(id, &out_hash)` (cached; invalidated on edits).
-- Overlay panel “Content Graph” now provides:
 	- Filters: substring and advanced prefixes `id:`, `path:`, `group:`, `hash:`, `dep:X`, `rev:X`.
 	- For the selected node: direct dependencies, reverse dependencies (who depends on me), and the node’s file hash (hex).
 	- Group size summaries and path collision markers.
 	- Actions: “Compute All Hashes”, “Export DOT” (writes `build/content_graph.dot`), and “Export JSON” (writes `build/content_graph.json`).
-	- New: Focused subgraph exports — “Export Subgraph DOT” and “Export Subgraph JSON” limited to the current selected root and the SDL preview depth (BFS). Outputs:
 		• DOT → `build/content_subgraph.dot`
 		• JSON → `build/content_subgraph.json` with shape `{ "root": string, "depth": int, "nodes": [{ "id", "hash" }], "edges": [{ "from", "to" }] }`.
 	- Layered SDL preview for the selected node and its multi‑hop dependencies (BFS), with a max‑depth slider; toggleable on‑panel.
 	- Visuals: nodes tinted by group; diagnostics line shows last dependency registration rejection (cycle or path conflict) when present; if the last rejection was a cycle and both endpoints are visible in the preview, the connecting edge is highlighted in red.
-- Broadened registrations at app init cover core content domains (examples):
 	- skills/base → assets/skills_uhf87f.json; skills → depends on skills/base
 	- tiles (assets/tiles.cfg), sounds (assets/sounds.cfg), enemies/types (assets/enemies.json)
 	- dialogue/style (assets/dialogue/style_default.json), dialogue/scripts (assets/dialogue/dialogues.json), dialogue (aggregates both)
@@ -160,9 +156,8 @@ Status: Complete.
 	- player/anim (assets/player_anim.cfg), player/sheets (assets/player_sheets.cfg)
 	- projectiles (assets/projectiles.cfg), tag_registry (assets/tag_registry.json)
 	- world/biomes, world/trees, world/plants, world/resource_nodes, world/mining_nodes (assets/*.cfg)
-- Backed by hashing/invalidation/cycle detection; see `tests/unit/test_asset_dep.c`.
 
-	Map Debug and Editor foundations (Phase 9):
+• Content Graph panel: filter by id/path/group/hash, export DOT/JSON, SDL preview with BFS, and quick finders for Orphans and Hubs (top 10 by out‑degree).
 	- Core APIs in `src/core/world/map_debug.{h,c}` provide simple editing and JSON persistence:
 		- `rogue_map_debug_set_tile(x, y, id)`, `rogue_map_debug_brush_square(x, y, radius, id)`, `rogue_map_debug_brush_rect(x, y, w, h, id)`
 		- `rogue_map_debug_save_json(path, err, cap)` and `rogue_map_debug_load_json(path, err, cap)` with compact RLE tiles inside `{ "w": W, "h": H, "tiles": "..." }`.

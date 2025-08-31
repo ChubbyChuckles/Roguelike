@@ -15,6 +15,9 @@ typedef struct RogueAssetDepNode
 {
     char id[64];
     char path[256];
+    /* Keep original dependency ids to allow resolution even when nodes are
+        registered out of order (A depends on B before B exists). */
+    char dep_ids[ROGUE_ASSET_DEP_MAX_DEPS][64];
     int dep_indices[ROGUE_ASSET_DEP_MAX_DEPS];
     int dep_count;
     unsigned long long cached_hash; /* 0 = unknown */
@@ -112,6 +115,35 @@ static unsigned long long combine_hash(unsigned long long cur, unsigned long lon
     return cur;
 }
 
+/* Attempt to resolve all dep_ids to indices after any registration, enabling
+   order-agnostic linking (i.e., A can reference B before B is registered). */
+static void resolve_all_deps(void)
+{
+    for (int i = 0; i < g_node_count; ++i)
+    {
+        RogueAssetDepNode* n = &g_nodes[i];
+        for (int d = 0; d < n->dep_count && d < ROGUE_ASSET_DEP_MAX_DEPS; ++d)
+        {
+            if (n->dep_indices[d] >= 0)
+                continue;
+            const char* dep_id = n->dep_ids[d];
+            if (dep_id[0] == '\0')
+                continue;
+            int di = -1;
+            for (int k = 0; k < g_node_count; ++k)
+            {
+                if (strcmp(g_nodes[k].id, dep_id) == 0)
+                {
+                    di = k;
+                    break;
+                }
+            }
+            if (di >= 0)
+                n->dep_indices[d] = di;
+        }
+    }
+}
+
 static int dfs_cycle_check(int idx)
 {
     RogueAssetDepNode* n = &g_nodes[idx];
@@ -177,17 +209,32 @@ int rogue_asset_dep_register(const char* id, const char* path, const char** deps
     for (int i = 0; i < dep_count; i++)
     {
         n->dep_indices[i] = -1;
+        /* capture dep id even if not yet resolvable */
+#if defined(_MSC_VER)
+        if (deps && deps[i])
+            strncpy_s(n->dep_ids[i], sizeof n->dep_ids[i], deps[i], _TRUNCATE);
+        else
+            n->dep_ids[i][0] = '\0';
+#else
+        if (deps && deps[i])
+        {
+            strncpy(n->dep_ids[i], deps[i], sizeof n->dep_ids[i] - 1);
+            n->dep_ids[i][sizeof n->dep_ids[i] - 1] = '\0';
+        }
+        else
+            n->dep_ids[i][0] = '\0';
+#endif
+    }
+    /* zero any unused dep slots */
+    for (int i = dep_count; i < ROGUE_ASSET_DEP_MAX_DEPS; ++i)
+    {
+        n->dep_indices[i] = -1;
+        n->dep_ids[i][0] = '\0';
     }
     g_node_count++;
-    /* Resolve dependencies to indices */
-    for (int i = 0; i < dep_count; i++)
-    {
-        int di = find_node(deps[i]);
-        if (di >= 0)
-        {
-            n->dep_indices[n->dep_count++] = di;
-        }
-    }
+    /* Record declared dep count and resolve what we can now, rest later. */
+    n->dep_count = dep_count;
+    resolve_all_deps();
     /* Cycle detection including this new node */
     for (int i = 0; i < g_node_count; i++)
     {

@@ -1,3 +1,13 @@
+Debug Overlay: Content Graph finders (orphans, hubs) + tests green
+
+- Add "List Orphans" and "List Hubs (top 10)" to Content Graph panel.
+  - Orphans = nodes with no inbound edges (scanned via deps enumeration).
+  - Hubs = highest out‑degree by dependency count (top 10) with labels.
+- Fixed out‑degree calc to avoid zero‑cap call; use temporary deps buffer.
+- Preserved MSVC safety: fixed caps, no VLAs; headless‑safe overlay widgets.
+- Build: Debug (SDL2) with -j12. Tests: 582/582 passed.
+- Roadmap updated (Phase 13.3 notes). Next: quick‑jump from finder rows.
+
 Overlay: Content Graph polish — group-based tinting in SDL preview; surfaced last registration rejection diagnostics (cycle/path_conflict) via new asset_dep APIs (rogue_asset_dep_get_last_reject/clear). Docs/roadmap updated.
 
 Persistence tests: fix test_save_incremental_basic to honor per-test save directory by using rogue_build_slot_path(0) from save_paths; resolves size_mismatch flake under parallel ctest -j12.

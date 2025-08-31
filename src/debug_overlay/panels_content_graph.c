@@ -348,6 +348,114 @@ static void panel_content_graph(void* user)
         preview_depth = 1;
     overlay_slider_int("Preview depth", &preview_depth, 1, 3);
     overlay_slider_int("Node", &sel, 0, idx_count - 1);
+    /* Finders: Orphans (no inbound deps) and Hubs (high out-degree) */
+    if (overlay_columns_begin(2, NULL))
+    {
+        if (overlay_button("List Orphans"))
+        {
+            int total = rogue_asset_dep_count();
+            int inbound[512];
+            int cap = (int) (sizeof inbound / sizeof inbound[0]);
+            if (total > cap)
+                total = cap;
+            for (int i = 0; i < total; ++i)
+                inbound[i] = 0;
+            for (int i = 0; i < total; ++i)
+            {
+                const char *oid = NULL, *opp = NULL;
+                if (rogue_asset_dep_get(i, &oid, &opp) != 0 || !oid)
+                    continue;
+                const char* deps2[16];
+                int dc2 =
+                    rogue_asset_dep_get_deps(oid, deps2, (int) (sizeof deps2 / sizeof deps2[0]));
+                for (int j = 0; j < dc2; ++j)
+                {
+                    const char* dj = deps2[j];
+                    if (!dj)
+                        continue;
+                    for (int k = 0; k < total; ++k)
+                    {
+                        const char *tid = NULL, *tpp = NULL;
+                        if (rogue_asset_dep_get(k, &tid, &tpp) == 0 && tid && strcmp(tid, dj) == 0)
+                        {
+                            inbound[k]++;
+                            break;
+                        }
+                    }
+                }
+            }
+            int found = 0;
+            for (int i = 0; i < total; ++i)
+            {
+                if (inbound[i] == 0)
+                {
+                    const char *tid = NULL, *tpp = NULL;
+                    if (rogue_asset_dep_get(i, &tid, &tpp) == 0 && tid)
+                    {
+                        overlay_label(tid);
+                        found++;
+                    }
+                }
+            }
+            if (!found)
+                overlay_label("<no orphans>");
+        }
+        overlay_next_column();
+        if (overlay_button("List Hubs (top 10)"))
+        {
+            int total = rogue_asset_dep_count();
+            int outdeg[512];
+            int ord[512];
+            int cap = (int) (sizeof outdeg / sizeof outdeg[0]);
+            if (total > cap)
+                total = cap;
+            for (int i = 0; i < total; ++i)
+            {
+                const char *oid = NULL, *opp = NULL;
+                if (rogue_asset_dep_get(i, &oid, &opp) == 0 && oid)
+                {
+                    const char* deps_tmp[256];
+                    int dc = rogue_asset_dep_get_deps(oid, deps_tmp,
+                                                      (int) (sizeof deps_tmp / sizeof deps_tmp[0]));
+                    outdeg[i] = dc >= 0 ? dc : 0;
+                }
+                else
+                {
+                    outdeg[i] = 0;
+                }
+                ord[i] = i;
+            }
+            /* partial selection sort for top 10 */
+            int top = total < 10 ? total : 10;
+            for (int i = 0; i < top; ++i)
+            {
+                int best = i;
+                for (int j = i + 1; j < total; ++j)
+                    if (outdeg[j] > outdeg[best])
+                        best = j;
+                if (best != i)
+                {
+                    int t = outdeg[i];
+                    outdeg[i] = outdeg[best];
+                    outdeg[best] = t;
+                    int oi = ord[i];
+                    ord[i] = ord[best];
+                    ord[best] = oi;
+                }
+            }
+            for (int i = 0; i < top; ++i)
+            {
+                const char *hid = NULL, *hpp = NULL;
+                if (rogue_asset_dep_get(ord[i], &hid, &hpp) == 0 && hid)
+                {
+                    char row[256];
+                    snprintf(row, sizeof row, "%s (out=%d)", hid, outdeg[i]);
+                    overlay_label(row);
+                }
+            }
+        }
+        overlay_columns_end();
+    }
     int node_index = idxs[sel];
     const char *id = NULL, *path = NULL;
     if (rogue_asset_dep_get(node_index, &id, &path) == 0)
