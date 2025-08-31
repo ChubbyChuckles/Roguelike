@@ -1,6 +1,7 @@
 #include "../core/app/app_state.h"
 #include "../core/entities/entity_debug.h"
 #include "overlay_core.h"
+#include "overlay_input.h"
 #include "overlay_widgets.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
@@ -39,6 +40,41 @@ static void panel_entities(void* user)
     if (selected_slot < 0 || selected_slot >= ROGUE_MAX_ENEMIES)
         selected_slot = idxs[sel_i];
     RogueEntityDebugInfo info;
+    /* Mouse pick: Shift+LeftClick selects entity under cursor (screen->world hit test) */
+    {
+        const OverlayInputState* in = overlay_input_get();
+        if (in && in->mouse_clicked && in->key_shift_down)
+        {
+            int pick = -1;
+            /* Convert screen mouse coords to world tile coords */
+            const int ts = g_app.tile_size > 0 ? g_app.tile_size : 16;
+            float world_x = (float) (in->mouse_x + (int) g_app.cam_x) / (float) ts;
+            float world_y = (float) (in->mouse_y + (int) g_app.cam_y) / (float) ts;
+            float best_d2 = 1e9f;
+            for (int i = 0; i < n; ++i)
+            {
+                RogueEntityDebugInfo inf;
+                if (rogue_entity_debug_get_info(idxs[i], &inf) == 0 && inf.alive)
+                {
+                    /* simple AABB around tile with small padding */
+                    float px = inf.x + 0.5f, py = inf.y + 0.5f;
+                    float dx = world_x - px, dy = world_y - py;
+                    float d2 = dx * dx + dy * dy;
+                    if (d2 < best_d2 && d2 < 2.0f) /* within ~sqrt(2) tiles */
+                    {
+                        best_d2 = d2;
+                        pick = idxs[i];
+                    }
+                }
+            }
+            if (pick >= 0)
+            {
+                selected_slot = pick;
+                sel_i = 0;
+            }
+        }
+    }
+
     if (rogue_entity_debug_get_info(selected_slot, &info) == 0 && info.alive)
     {
         char line[128];
@@ -70,6 +106,8 @@ static void panel_entities(void* user)
             sel_i = 0;
         }
     }
+
+    overlay_label("Hint: Shift+LeftClick a unit to inspect");
 
     overlay_end_panel();
 }

@@ -463,6 +463,7 @@ add_library(rogue_debug_overlay OBJECT
     src/debug_overlay/panels_items.c
     src/debug_overlay/panels_validation.c
     src/debug_overlay/panels_content_graph.c
+    src/debug_overlay/panels_selector.c
 )
 target_compile_definitions(rogue_debug_overlay PUBLIC ROGUE_ENABLE_DEBUG_OVERLAY=$<IF:$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>,1,0>)
 target_include_directories(rogue_debug_overlay PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)

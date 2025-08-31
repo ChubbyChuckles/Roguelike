@@ -10,6 +10,7 @@
 #define OVERLAY_MAX_PANELS 32
 static OverlayPanel g_panels[OVERLAY_MAX_PANELS];
 static int g_panel_count = 0;
+static unsigned int g_panel_visible_mask = 0u; /* bit i = 1 -> panel i visible */
 static int g_enabled = 0;
 static float g_last_dt = 0.0f;
 static int g_last_w = 0;
@@ -19,6 +20,7 @@ void overlay_init(void)
 {
     g_panel_count = 0;
     g_enabled = 0;
+    g_panel_visible_mask = 0u;
 }
 
 void overlay_shutdown(void)
@@ -36,6 +38,8 @@ int overlay_register_panel(const char* id, const char* name, void (*fn)(void*), 
     g_panels[g_panel_count].fn = fn;
     g_panels[g_panel_count].user = user;
     g_panel_count++;
+    /* Default newly-registered panels to visible */
+    g_panel_visible_mask |= (1u << (g_panel_count - 1));
     return g_panel_count - 1;
 }
 
@@ -67,7 +71,7 @@ void overlay_render(void)
     /* Invoke panel callbacks; panels draw using SDL primitives and fonts */
     for (int i = 0; i < g_panel_count; ++i)
     {
-        if (g_panels[i].fn)
+        if (g_panels[i].fn && (g_panel_visible_mask & (1u << i)))
             g_panels[i].fn(g_panels[i].user);
     }
     /* Restore previous blend mode to avoid side effects on game renderer */
@@ -85,5 +89,64 @@ void overlay_set_enabled(int enabled) { g_enabled = enabled ? 1 : 0; }
 int overlay_is_enabled(void) { return g_enabled; }
 
 float overlay_last_dt(void) { return g_last_dt; }
+
+int overlay_get_panel_count(void) { return g_panel_count; }
+
+int overlay_get_panel_info(int index, const char** out_id, const char** out_name, int* out_visible)
+{
+    if (index < 0 || index >= g_panel_count)
+        return -1;
+    if (out_id)
+        *out_id = g_panels[index].id;
+    if (out_name)
+        *out_name = g_panels[index].name;
+    if (out_visible)
+        *out_visible = (g_panel_visible_mask & (1u << index)) ? 1 : 0;
+    return 0;
+}
+
+int overlay_set_panel_visible_by_index(int index, int visible)
+{
+    if (index < 0 || index >= g_panel_count)
+        return -1;
+    if (visible)
+        g_panel_visible_mask |= (1u << index);
+    else
+        g_panel_visible_mask &= ~(1u << index);
+    return 0;
+}
+
+int overlay_get_panel_visible_by_index(int index)
+{
+    if (index < 0 || index >= g_panel_count)
+        return 0;
+    return (g_panel_visible_mask & (1u << index)) ? 1 : 0;
+}
+
+static int overlay_find_panel_index(const char* id)
+{
+    if (!id)
+        return -1;
+    for (int i = 0; i < g_panel_count; ++i)
+        if (g_panels[i].id && strcmp(g_panels[i].id, id) == 0)
+            return i;
+    return -1;
+}
+
+int overlay_set_panel_visible(const char* id, int visible)
+{
+    int i = overlay_find_panel_index(id);
+    if (i < 0)
+        return -1;
+    return overlay_set_panel_visible_by_index(i, visible);
+}
+
+int overlay_get_panel_visible(const char* id)
+{
+    int i = overlay_find_panel_index(id);
+    if (i < 0)
+        return 0;
+    return overlay_get_panel_visible_by_index(i);
+}
 
 #endif /* ROGUE_ENABLE_DEBUG_OVERLAY */

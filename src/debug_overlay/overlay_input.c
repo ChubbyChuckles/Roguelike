@@ -54,6 +54,9 @@ void overlay_input_handle_event(const void* evptr)
         g_inp.mouse_y = ev->motion.y;
         break;
     case SDL_MOUSEBUTTONDOWN:
+        /* Update position as well so clicks are registered even without prior motion */
+        g_inp.mouse_x = ev->button.x;
+        g_inp.mouse_y = ev->button.y;
         if (ev->button.button == SDL_BUTTON_LEFT)
         {
             g_inp.mouse_down = 1;
@@ -61,6 +64,9 @@ void overlay_input_handle_event(const void* evptr)
         }
         break;
     case SDL_MOUSEBUTTONUP:
+        /* Keep position in sync on mouse up */
+        g_inp.mouse_x = ev->button.x;
+        g_inp.mouse_y = ev->button.y;
         if (ev->button.button == SDL_BUTTON_LEFT)
         {
             g_inp.mouse_down = 0;

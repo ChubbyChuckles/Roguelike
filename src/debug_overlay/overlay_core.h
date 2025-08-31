@@ -18,6 +18,16 @@ void overlay_shutdown(void);
 
 /* Panels */
 int overlay_register_panel(const char* id, const char* name, void (*fn)(void*), void* user);
+/* Visibility & enumeration */
+int overlay_get_panel_count(void);
+/* Returns 0 on success; outputs id/name pointers and visible flag when non-NULL */
+int overlay_get_panel_info(int index, const char** out_id, const char** out_name, int* out_visible);
+/* Set or query visibility by index (0 on success). */
+int overlay_set_panel_visible_by_index(int index, int visible);
+int overlay_get_panel_visible_by_index(int index);
+/* Helper by id (returns 0 on success, -1 if not found). */
+int overlay_set_panel_visible(const char* id, int visible);
+int overlay_get_panel_visible(const char* id);
 
 /* Per-frame */
 void overlay_new_frame(float dt, int screen_w, int screen_h);
@@ -52,6 +62,38 @@ static inline void overlay_new_frame(float dt, int screen_w, int screen_h)
 static inline void overlay_render(void) {}
 static inline void overlay_set_enabled(int enabled) { (void) enabled; }
 static inline int overlay_is_enabled(void) { return 0; }
+static inline int overlay_get_panel_count(void) { return 0; }
+static inline int overlay_get_panel_info(int index, const char** out_id, const char** out_name,
+                                         int* out_visible)
+{
+    (void) index;
+    (void) out_id;
+    (void) out_name;
+    (void) out_visible;
+    return -1;
+}
+static inline int overlay_set_panel_visible_by_index(int index, int visible)
+{
+    (void) index;
+    (void) visible;
+    return -1;
+}
+static inline int overlay_get_panel_visible_by_index(int index)
+{
+    (void) index;
+    return 0;
+}
+static inline int overlay_set_panel_visible(const char* id, int visible)
+{
+    (void) id;
+    (void) visible;
+    return -1;
+}
+static inline int overlay_get_panel_visible(const char* id)
+{
+    (void) id;
+    return 0;
+}
 #endif
 
 #endif /* ROGUE_DEBUG_OVERLAY_CORE_H */

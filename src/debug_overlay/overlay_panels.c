@@ -13,6 +13,7 @@ void rogue_overlay_register_panel_audiovfx(void);
 void rogue_overlay_register_panel_items(void);
 void rogue_overlay_register_panel_validation(void);
 void rogue_overlay_register_panel_content_graph(void);
+void rogue_overlay_register_panel_panelselector(void);
 
 void rogue_overlay_register_default_panels(void)
 {
@@ -25,6 +26,7 @@ void rogue_overlay_register_default_panels(void)
     rogue_overlay_register_panel_items();
     rogue_overlay_register_panel_validation();
     rogue_overlay_register_panel_content_graph();
+    rogue_overlay_register_panel_panelselector();
 }
 
 #else

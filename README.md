@@ -1,3 +1,14 @@
+## Debug overlay tips
+
+Press F1 in-game to open the debug overlay.
+
+- Panels selector: A small "Panels" window appears in the top-right. Use its checkboxes to toggle which panels are visible. The selector itself can’t be hidden to avoid lock-out.
+- Entity inspect: In the Entities panel, hold Shift and LeftClick on a unit in the world to select and inspect it. This uses the camera and tile mapping to pick the nearest enemy under the cursor.
+
+Notes
+- Panel visibility isn’t persisted between runs yet. If you’d like that, we can store the visibility bitmask in your config/save.
+- If a click doesn’t select, make sure the cursor is over the world (not another UI), and keep Shift held while clicking.
+
 <div align="center">
 
 # Roguelike (Top‑Down Zelda‑like) – C / SDL2
