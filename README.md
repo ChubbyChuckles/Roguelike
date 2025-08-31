@@ -55,7 +55,7 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 	- Build: use CMake multi‑config generators with parallelism (e.g., -j12)
 	- Run tests: ctest -C Debug -j12 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 Notes:
-Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (577/577).
+Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (581/581).
 	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir). Default is off for quiet CI.
 Formatting:
 	- Run per-file clang-format locally: use the CMake targets `format` (auto-fix) and `format-check` (verify). These work on Windows without hitting command-line length limits.
@@ -104,6 +104,9 @@ Overlay panels:
 	- JSON overrides integration: Save and Load buttons persist skill overrides to/from `build/skills_overrides.json`.
 	- Auto-load on startup: set `ROGUE_SKILL_OVERRIDES` to point at an overrides JSON file; when unset, the app attempts `build/skills_overrides.json`.
 	- Implementation uses atomic write helpers from json_io; manual edits to the file can be loaded live via the panel's Load button.
+	- New: Auto‑Reload Overrides toggle polls the overrides file mtime each frame and applies changes automatically without clicking Load.
+	- New: Auto‑Reload Base Skills JSON toggle watches the base skills JSON and performs a full registry reload when the file changes; exposed as a separate checkbox in the Skills panel.
+	- Validator coverage extended: added cross‑reference tests for proc.effect_spec_id and coeff requirements across offensive vs passive skills.
 
 - Entities panel (new): quick inspector for runtime enemies.
 	- Lists current enemies with id, alive flag, and position; select a row to target.
@@ -115,6 +118,23 @@ Overlay panels:
 	- Headless schema module `src/content/schema_tilesets.{h,c}` defines tilesets.json with fields: `id` (string), `tile_size` (int), `atlas` (string), and `tiles[]` array of objects `{ name, col, row }`.
 	- Legacy adapter synthesizes JSON from `assets/tiles.cfg` so existing content validates without format migration.
 	- Unit `tests/unit/test_tilesets_schema.c` validates the default assets/tiles.cfg via the schema; runs headlessly in the suite.
+
+### Validation System
+
+The runtime includes a state/content validation system to catch schema issues and cross-reference errors:
+
+- Manager: `src/core/integration/state_validation_manager.{h,c}` registers per-system validators and cross-rule checks, schedules runs on an interval, logs events to a ring buffer, and exposes telemetry (runs, warnings, corruptions, time).
+- Wiring: `src/core/integration/validation_wiring.{h,c}` registers default checks at startup: items, entities, tilesets, tag registry, and a cross-rule for skills.
+- Overlay: A “Validation” panel lets you Run Now, Force All (bypass snapshot hash incremental skip), and adjust the interval. It shows stats and recent events.
+- Headless/CI: A CLI tool `validate_content` runs these checks headlessly and returns a CI-friendly exit code.
+
+CLI usage (optional):
+
+```
+validate_content --force-all --fail-on-warn
+```
+
+Exit codes: 0 OK, 1 warnings (only with --fail-on-warn), 2 corruption. Use `--quiet` to suppress per-event prints.
 
 	Map Debug and Editor foundations (Phase 9):
 	- Core APIs in `src/core/world/map_debug.{h,c}` provide simple editing and JSON persistence:

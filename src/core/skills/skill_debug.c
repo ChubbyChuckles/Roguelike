@@ -418,3 +418,40 @@ int rogue_skill_debug_load_overrides_file(const char* path)
     free(data);
     return applied;
 }
+
+/* --- Auto-reload support --------------------------------------------------------------- */
+
+int rogue_skill_debug_autoreload_tick(const char* path)
+{
+    const char* use_path = path ? path : "build/skills_overrides.json";
+    static unsigned long long s_last_mtime = 0ULL;
+    unsigned long long cur = 0ULL;
+    char err[128];
+    if (json_io_get_mtime_ms(use_path, &cur, err, (int) sizeof err) != 0)
+    {
+        return 0; /* treat missing file as no-op */
+    }
+    if (cur == 0ULL || cur == s_last_mtime)
+        return 0; /* unchanged */
+    s_last_mtime = cur;
+    int applied = rogue_skill_debug_load_overrides_file(use_path);
+    return applied;
+}
+
+int rogue_skills_base_autoreload_tick(const char* path)
+{
+    const char* use_path = path ? path : "assets/skills_uhf87f.json";
+    static unsigned long long s_last_mtime = 0ULL;
+    unsigned long long cur = 0ULL;
+    char err[128];
+    if (json_io_get_mtime_ms(use_path, &cur, err, (int) sizeof err) != 0)
+    {
+        return 0; /* missing/unreadable: no-op */
+    }
+    if (cur == 0ULL || cur == s_last_mtime)
+        return 0; /* unchanged */
+    s_last_mtime = cur;
+    /* Full registry reload */
+    int loaded = rogue_skills_reload_from_cfg(use_path);
+    return loaded;
+}

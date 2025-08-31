@@ -1,6 +1,7 @@
 /* Fabricate a v2 save (32-bit id + 32-bit size headers) and ensure v3 loader still reads sections
  * after migration chain (v2->v3 no-op). */
 #include "../../src/core/persistence/save_manager.h"
+#include "../../src/core/persistence/save_paths.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,10 +34,11 @@ int main(void)
         return 1;
     }
     FILE* f = NULL;
+    const char* slot_path = rogue_build_slot_path(0);
 #if defined(_MSC_VER)
-    fopen_s(&f, "save_slot_0.sav", "r+b");
+    fopen_s(&f, slot_path, "r+b");
 #else
-    f = fopen("save_slot_0.sav", "r+b");
+    f = fopen(slot_path, "r+b");
 #endif
     if (!f)
     {
@@ -81,10 +83,23 @@ int main(void)
     fclose(f);
     /* Reconstruct a v2 style file: reuse same sections but reinterpret prefixes as 32-bit id+size
      * (expand id16 to id32) */
+    /* Build a v2 temp path alongside the actual slot path */
+    char v2_path[256];
+    snprintf(v2_path, sizeof v2_path, "%s", slot_path);
+    size_t slen = strlen(v2_path);
+    if (slen >= 4 && strcmp(v2_path + slen - 4, ".sav") == 0)
+    {
+        v2_path[slen - 4] = '\0';
+        strncat(v2_path, "_v2.sav", sizeof(v2_path) - strlen(v2_path) - 1);
+    }
+    else
+    {
+        strncat(v2_path, "_v2.sav", sizeof(v2_path) - strlen(v2_path) - 1);
+    }
 #if defined(_MSC_VER)
-    fopen_s(&f, "save_slot_0_v2.sav", "wb");
+    fopen_s(&f, v2_path, "wb");
 #else
-    f = fopen("save_slot_0_v2.sav", "wb");
+    f = fopen(v2_path, "wb");
 #endif
     if (!f)
     {
@@ -166,12 +181,9 @@ int main(void)
     free(payload);
     free(rebuilt);
     /* Now attempt to load that v2 file by renaming over slot path */
-#if defined(_MSC_VER)
-    remove("save_slot_0.sav");
-    rename("save_slot_0_v2.sav", "save_slot_0.sav");
-#else
-    rename("save_slot_0_v2.sav", "save_slot_0.sav");
-#endif
+    /* Replace the real slot file with the fabricated v2 file */
+    remove(slot_path);
+    rename(v2_path, slot_path);
     /* Register migration and load */
     rogue_save_register_migration(&MIG);
     int rc = rogue_save_manager_load_slot(0);

@@ -176,4 +176,8 @@ int skill_simulate_rotation(const char* profile_json, char* out_buf, int out_cap
 int rogue_skills_load_from_cfg(
     const char* path); /* returns number loaded; supports CSV (.cfg) or JSON (.json) */
 
+/* Reload skills from file while preserving player-facing state (skill bar, talent points, etc).
+    Frees and rebuilds the registry (defs/states/icon textures). Returns count loaded. */
+int rogue_skills_reload_from_cfg(const char* path);
+
 #endif

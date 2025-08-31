@@ -10,6 +10,7 @@
 #include "overlay_widgets.h"
 /* Needed for RogueVfxFrameStats definition used in the Audio/VFX panel */
 #include "../audio_vfx/effects.h"
+#include "../core/integration/state_validation_manager.h"
 #include "../core/loot/item_debug.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
@@ -112,6 +113,9 @@ static void panel_skills(void* user)
     static char prio_buf[128] = ""; /* comma-separated ids, empty = selected only */
     static char sim_result[256] = "";
     const char* overrides_path = "build/skills_overrides.json"; /* default within repo/build */
+    const char* base_skills_path = "assets/skills_uhf87f.json";
+    static int auto_reload = 1;
+    static int auto_reload_base = 0;
     int count = rogue_skill_debug_count();
     static int sel = 0;
     if (sel < 0)
@@ -241,6 +245,36 @@ static void panel_skills(void* user)
         char msg[128];
         snprintf(msg, sizeof msg, "Load: %s (%d)", (applied >= 0 ? "OK" : "ERR"), applied);
         overlay_label(msg);
+    }
+
+    /* Auto-Reload toggles and ticks */
+    if (overlay_checkbox("Auto-Reload Overrides", &auto_reload))
+    {
+        /* no-op: state persisted in static */
+    }
+    if (auto_reload)
+    {
+        int applied = rogue_skill_debug_autoreload_tick(overrides_path);
+        if (applied > 0)
+        {
+            char msg[96];
+            snprintf(msg, sizeof msg, "Auto-Reload applied: %d entries", applied);
+            overlay_label(msg);
+        }
+    }
+    if (overlay_checkbox("Auto-Reload Base Skills JSON", &auto_reload_base))
+    {
+        /* no-op */
+    }
+    if (auto_reload_base)
+    {
+        int loaded = rogue_skills_base_autoreload_tick(base_skills_path);
+        if (loaded > 0)
+        {
+            char msg[96];
+            snprintf(msg, sizeof msg, "Base reload: %d skills loaded", loaded);
+            overlay_label(msg);
+        }
     }
 
     overlay_end_panel();
@@ -748,6 +782,73 @@ static void panel_items(void* user)
 #endif
 }
 
+static void panel_validation(void* user)
+{
+    (void) user;
+    if (!overlay_begin_panel("Validation", 1550, 390, 360))
+        return;
+    // Controls
+    static int force_all = 0;
+    overlay_checkbox("Force All (ignore snapshot skip)", &force_all);
+    if (overlay_columns_begin(2, NULL))
+    {
+        if (overlay_button("Run Now"))
+        {
+            (void) rogue_validation_run_now(force_all ? 1 : 0);
+        }
+        overlay_next_column();
+        static int interval = 120;
+        if (overlay_slider_int("Interval (ticks)", &interval, 0, 600))
+        {
+            rogue_validation_set_interval((uint32_t) interval);
+        }
+        overlay_columns_end();
+    }
+
+    // Stats
+    RogueValidationStats st = {0};
+    rogue_validation_get_stats(&st);
+    char line[160];
+    snprintf(line, sizeof line,
+             "runs: %llu done: %llu sys: %llu skipped: %llu cross: %llu warn: %llu corrupt: %llu",
+             (unsigned long long) st.runs_initiated, (unsigned long long) st.runs_completed,
+             (unsigned long long) st.system_validations_run,
+             (unsigned long long) st.system_validations_skipped_unchanged,
+             (unsigned long long) st.cross_rule_runs, (unsigned long long) st.warnings,
+             (unsigned long long) st.corruptions_detected);
+    overlay_label(line);
+
+    // Events
+    const RogueValidationEvent* evs = NULL;
+    size_t count = 0;
+    if (rogue_validation_events_get(&evs, &count) == 0 && count > 0 && evs)
+    {
+        size_t max_show = count < 16 ? count : 16; // show up to last 16
+        for (size_t i = 0; i < max_show; ++i)
+        {
+            const RogueValidationEvent* e = &evs[i];
+            char msg[192];
+            const char* sev = (e->severity == ROGUE_VALID_OK)     ? "OK"
+                              : (e->severity == ROGUE_VALID_WARN) ? "WARN"
+                                                                  : "CORRUPT";
+            snprintf(msg, sizeof msg, "#%llu t=%llu sys=%d %s code=%u %s%s msg=%s",
+                     (unsigned long long) e->seq, (unsigned long long) e->tick, e->system_id, sev,
+                     e->code, e->repair_attempted ? "repaired:" : "",
+                     (e->repair_attempted && e->repair_success)
+                         ? "ok"
+                         : (e->repair_attempted ? "fail" : ""),
+                     e->message);
+            overlay_label(msg);
+        }
+    }
+    else
+    {
+        overlay_label("No events yet.");
+    }
+
+    overlay_end_panel();
+}
+
 void rogue_overlay_register_default_panels(void)
 {
     overlay_register_panel("system", "System", panel_system, NULL);
@@ -757,6 +858,7 @@ void rogue_overlay_register_default_panels(void)
     overlay_register_panel("map", "Map Editor", panel_map_editor, NULL);
     overlay_register_panel("audiovfx", "Audio / VFX", panel_audiovfx, NULL);
     overlay_register_panel("items", "Items", panel_items, NULL);
+    overlay_register_panel("validation", "Validation", panel_validation, NULL);
 }
 
 #else

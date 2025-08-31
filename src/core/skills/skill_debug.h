@@ -46,6 +46,18 @@ extern "C"
         Returns number of entries applied (>=0) or <0 on read/parse error. */
     int rogue_skill_debug_load_overrides_file(const char* path);
 
+    /* Auto-reload helper: if the overrides file at `path` has a newer mtime than the last
+        successful check, load it and apply changes. Returns number of entries applied (>0 on
+        updates, 0 when no changes), or <0 on error. Passing NULL uses the default
+        "build/skills_overrides.json" path. Overhead is a single stat/GetFileAttributes call
+        per invocation. */
+    int rogue_skill_debug_autoreload_tick(const char* path);
+
+    /* Auto-reload the base skills definition file (JSON) when its mtime changes. If path is NULL,
+        defaults to "assets/skills_uhf87f.json". Returns number loaded on change, 0 when unchanged,
+        and <0 on error. This performs a full registry rebuild via rogue_skills_reload_from_cfg. */
+    int rogue_skills_base_autoreload_tick(const char* path);
+
 #ifdef __cplusplus
 }
 #endif

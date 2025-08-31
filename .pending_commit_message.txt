@@ -68,3 +68,42 @@ feat(skills): add Skills JSON schema + envelope support; roundtrip test; full su
 - CMake: wire schema sources and test target; link rogue_core and SDL2; add compile definition for SDL_MAIN_HANDLED
 - CI/build: Debug (SDL2) -j12 build; ctest ran 577 tests, all passed (100%)
 - Docs/Roadmap: README notes new skills schema and updates test count; roadmap marks Phase 4.1–4.3 Done and 4.5 Partial; CI validation section notes skills loader/schema status
+
+feat(skills/overlay): mtime‑based auto‑reload for skills overrides; overlay toggle; new unit; full suite green (578/578)
+
+- Skill debug API: add `rogue_skill_debug_autoreload_tick(const char* path)` that polls file mtime and applies overrides on change; default path `build/skills_overrides.json` when NULL. Returns applied count on change, 0 otherwise.
+- Overlay: Skills panel gains “Auto‑Reload Overrides” checkbox; when enabled, calls the tick each frame and displays a brief status when changes are applied.
+- Tests: new unit `tests/unit/test_skills_live_reload.c` writes a small overrides JSON, ticks once (expect change), then ticks again (expect no‑op on unchanged mtime).
+- CMake: register test target and ensure Windows/SDL console linkage via SDL_MAIN_HANDLED.
+- CI/build: Debug (SDL2) -j12 build; ctest ran 578 tests, all passed (100%).
+- Docs/Roadmap: README notes the Auto‑Reload toggle; Roadmap marks Phase 4.4 Partial (overrides auto‑reload) and updates CI counts.
+
+feat(skills): base skills JSON auto‑reload + overlay toggle; registry reload path; tests; full suite green (579/579)
+
+- Core: introduce `rogue_skills_reload_from_cfg(path)` to clear and rebuild the skills registry from a JSON/envelope path. Add `rogue_skills_base_autoreload_tick(path)` that polls mtime and triggers a full reload when the base skills JSON changes.
+- Overlay: Skills panel gained a separate “Auto‑Reload Base Skills JSON” checkbox and displays reload counts for both base and overrides paths.
+- Tests: new unit `tests/unit/test_skills_base_autoreload.c` writes a temp JSON, enforces an mtime delta on Windows, asserts first‑change detection and no‑op on unchanged mtime, and cleans up. Existing overrides live‑reload test remains green.
+- Build/CI: Rebuilt Debug (SDL2) with parallelism; CTest full suite passed 100% (579/579).
+- Docs/Roadmap: Roadmap marks Phase 4.4 Done and updates CI validation notes. README mentions the new “Auto‑Reload Base Skills JSON” toggle and updates test counts.
+
+
+feat(skills/tests): extend cross‑reference validation; docs updated; full suite green (580/580)
+
+	• detects invalid proc.effect_spec_id references
+	• allows passive (non‑offensive) skills without coeffs
+	• verifies offensive skills with coeffs pass
+
+ feat(validation): add cross-reference validation manager, overlay panel, CLI; fix save path test and go all-green (580/580)
+
+ - Engine: add state validation manager (`src/core/integration/state_validation_manager.{h,c}`) with system registration, cross-rules, incremental skip via snapshot hashes, telemetry, and event ring buffer.
+ - Wiring: `src/core/integration/validation_wiring.{h,c}` registers default validators (items/entities/tilesets/tag_registry) and cross-rule (skills); invoked from app_init; default interval=120 ticks.
+ - Overlay: new “Validation” panel shows stats and recent events; Run Now, Force All, and interval slider controls; registered at overlay startup.
+ - CLI: new `tools/validate_content.c` runs validations headlessly; returns 0 OK, 1 warnings (with --fail-on-warn), 2 corruption; supports --force-all and --quiet. Wired in CMake as `validate_content`.
+ - Tests: add `tests/unit/test_validation_cli_smoke.c` and keep `test_state_validation_manager` to cover manager telemetry/repair paths.
+ - Fix: persistence `test_save_v2_backward_load` now uses canonical save paths via `save_paths.h` to avoid cwd issues. Full Debug (SDL2) build + `ctest -C Debug -j12` are now 100% green (580/580).
+
+chore(validation/tests): confirm validate_content wiring; bump suite to 581/581
+
+- Add smoke test `tests/unit/test_validation_cli_smoke.c` to exercise the validation manager and default wiring via the headless API; ensures at least one run completes.
+- Build: Debug (SDL2) with parallelism (-j12); ctest full suite now runs 581 tests, all passing (100%).
+- Docs: README and roadmap updated to reflect the new test count (581/581).

@@ -149,6 +149,57 @@ void rogue_skills_shutdown(void)
     g_skill_states_canary = 0;
 }
 
+/* Internal: clear only registry arrays/textures; keep high-level app fields intact. */
+static void rogue_skills_clear_registry_only(void)
+{
+#ifdef ROGUE_HAVE_SDL
+    if (g_app.skill_icon_textures)
+    {
+        for (int i = 0; i < g_skill_count_internal; i++)
+        {
+            rogue_texture_destroy(&g_app.skill_icon_textures[i]);
+        }
+        free(g_app.skill_icon_textures);
+        g_app.skill_icon_textures = NULL;
+    }
+#endif
+    for (int i = 0; i < g_skill_count_internal; i++)
+    {
+        if (g_skill_defs_internal)
+        {
+            if (g_skill_defs_internal[i].name)
+            {
+                free((char*) g_skill_defs_internal[i].name);
+                g_skill_defs_internal[i].name = NULL;
+            }
+            if (g_skill_defs_internal[i].icon)
+            {
+                free((char*) g_skill_defs_internal[i].icon);
+                g_skill_defs_internal[i].icon = NULL;
+            }
+        }
+    }
+    if (g_skill_defs_internal)
+    {
+        memset(g_skill_defs_internal, 0,
+               sizeof(RogueSkillDef) * (size_t) g_skill_capacity_internal);
+        free(g_skill_defs_internal);
+        g_skill_defs_internal = NULL;
+    }
+    if (g_skill_states_internal)
+    {
+        memset(g_skill_states_internal, 0,
+               sizeof(RogueSkillState) * (size_t) g_skill_capacity_internal);
+        free(g_skill_states_internal);
+        g_skill_states_internal = NULL;
+    }
+    g_skill_capacity_internal = 0;
+    g_skill_count_internal = 0;
+    g_app.skill_defs = NULL;
+    g_app.skill_states = NULL;
+    g_app.skill_count = 0;
+}
+
 int rogue_skill_register(const RogueSkillDef* def)
 {
     if (!def)
@@ -728,4 +779,13 @@ int rogue_skills_load_from_cfg(const char* path)
     }
     fclose(f);
     return loaded;
+}
+
+int rogue_skills_reload_from_cfg(const char* path)
+{
+    if (!path)
+        return 0;
+    /* Rebuild registry from scratch and repoint app arrays. Keep player meta like bars/talents. */
+    rogue_skills_clear_registry_only();
+    return rogue_skills_load_from_cfg(path);
 }

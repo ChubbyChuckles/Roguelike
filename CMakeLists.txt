@@ -425,6 +425,8 @@ add_library(rogue_core
     src/core/integration/rollback_manager.c
     # Phase 5.5 state validation & integrity checking
     src/core/integration/state_validation_manager.c
+    # Phase 13.1 validation wiring (default checks registration)
+    src/core/integration/validation_wiring.c
     # Phase 5.6 deadlock detection & prevention
     src/core/integration/deadlock_manager.c
 )
@@ -812,6 +814,15 @@ if(TARGET SDL2::SDL2)
 endif()
 add_test(NAME test_skills_roundtrip_schema COMMAND test_skills_roundtrip_schema)
 
+# Skills live-reload (auto-reload) unit test
+add_executable(test_skills_live_reload tests/unit/test_skills_live_reload.c)
+target_link_libraries(test_skills_live_reload PRIVATE rogue_core)
+target_compile_definitions(test_skills_live_reload PRIVATE SDL_MAIN_HANDLED=1)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_skills_live_reload PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_skills_live_reload COMMAND test_skills_live_reload)
+
 # Map editing debug API test
 add_executable(test_map_debug tests/unit/test_map_debug.c)
 target_link_libraries(test_map_debug PRIVATE rogue_core)
@@ -851,6 +862,14 @@ if(SDL2_FOUND)
     target_link_libraries(test_skills_phase10_3_validator PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_skills_phase10_3_validator COMMAND test_skills_phase10_3_validator)
+
+## Extended cross-reference validation coverage for skills (Phase 4.5 tests)
+add_executable(test_skills_crossref_validation_ext tests/unit/test_skills_crossref_validation_ext.c)
+target_link_libraries(test_skills_crossref_validation_ext PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_skills_crossref_validation_ext PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_skills_crossref_validation_ext COMMAND test_skills_crossref_validation_ext)
 
 add_executable(test_audio_vfx_phase1_2 tests/unit/test_audio_vfx_phase1_2.c)
 target_link_libraries(test_audio_vfx_phase1_2 PRIVATE rogue_core)
@@ -1028,6 +1047,13 @@ add_executable(items_migrate tools/items_migrate.c)
 target_link_libraries(items_migrate PRIVATE rogue_core)
 if(ROGUE_ENABLE_SDL)
     target_compile_definitions(items_migrate PRIVATE ROGUE_HAVE_SDL=1)
+endif()
+
+# Batch content validator (headless-friendly)
+add_executable(validate_content tools/validate_content.c)
+target_link_libraries(validate_content PRIVATE rogue_core)
+if(ROGUE_ENABLE_SDL)
+    target_compile_definitions(validate_content PRIVATE ROGUE_HAVE_SDL=1)
 endif()
 
 if(WIN32)

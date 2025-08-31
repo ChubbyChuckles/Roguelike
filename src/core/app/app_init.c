@@ -43,6 +43,7 @@ SOFTWARE.
 #include "../../world/world_gen.h"
 #include "../../world/world_gen_config.h"
 #include "../equipment/equipment_stats.h"
+#include "../integration/validation_wiring.h"
 #include "../inventory/inventory.h"
 #include "../loot/loot_instances.h"
 #include "../loot/loot_item_defs.h"
@@ -170,6 +171,8 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     overlay_init();
     rogue_overlay_register_default_panels();
 #endif
+    /* Phase 13.1: register validation checks (systems + cross rules). */
+    rogue_validation_register_default_checks();
     /* Accessibility: allow reduced motion via env ROGUE_REDUCED_MOTION=1 */
 #if defined(_MSC_VER)
     {
