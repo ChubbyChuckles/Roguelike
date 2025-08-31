@@ -23,6 +23,8 @@ unsigned int g_skill_defs_canary = 0xABCD1234u;
 unsigned int g_skill_states_canary = 0xBEEF5678u;
 int g_skill_capacity_internal = 0;
 int g_skill_count_internal = 0;
+/* When non-zero, skip loading skill icon textures during registry load (used by tests). */
+static int g_skip_icon_loads = 0;
 
 #define ROGUE_MAX_SYNERGIES 16
 static int g_synergy_totals[ROGUE_MAX_SYNERGIES];
@@ -86,6 +88,7 @@ void rogue_skills_init(void)
 #ifdef ROGUE_HAVE_SDL
     g_app.skill_icon_textures = NULL;
 #endif
+    g_skip_icon_loads = 0;
     for (int i = 0; i < 10; i++)
         g_app.skill_bar[i] = -1;
     g_app.talent_points = 0;
@@ -260,6 +263,8 @@ int rogue_skill_register(const RogueSkillDef* def)
 #endif
     return d->id;
 }
+
+void rogue_skills_set_skip_icon_loads(int enable) { g_skip_icon_loads = enable ? 1 : 0; }
 
 int rogue_skill_rank_up(int id)
 {
@@ -517,7 +522,8 @@ static int rogue__json_load(const char* buf)
             /* Only load if texture slot definitely allocated (implicit: slot handle NULL). */
             extern void*
                 rogue__skill_icon_slot_guard; /* no symbol; silence unused warnings if none */
-            if (def.icon && g_app.skill_icon_textures && new_id < g_skill_count_internal)
+            if (!g_skip_icon_loads && def.icon && g_app.skill_icon_textures &&
+                new_id < g_skill_count_internal)
             {
                 char attempt[512];
                 if (strncmp(def.icon, "assets/", 7) == 0 ||
@@ -727,47 +733,50 @@ int rogue_skills_load_from_cfg(const char* path)
         {
 #ifdef ROGUE_HAVE_SDL
             if (def.icon && g_app.skill_icon_textures)
-            {
-                char attempt[512];
-                if (strncmp(def.icon, "assets/", 7) == 0 ||
-                    strncmp(def.icon, "../assets/", 10) == 0)
-                    snprintf(attempt, sizeof attempt, "%s", def.icon);
-                else
-                    snprintf(attempt, sizeof attempt, "assets/%s", def.icon);
-                if (rogue_texture_load(&g_app.skill_icon_textures[new_id], attempt))
+                if (!g_skip_icon_loads && def.icon && g_app.skill_icon_textures)
                 {
-                    ROGUE_LOG_INFO("Skill icon loaded id=%d name=%s path=%s", new_id, def.name,
-                                   attempt);
-                }
-                else
-                {
-                    const char* s1 = strrchr(attempt, '/');
-                    const char* s2 = strrchr(attempt, '\\');
-                    const char* last = s2 ? ((s1 && s1 > s2) ? s1 : s2) : (s1 ? s1 : NULL);
-                    const char* fname = last ? last + 1 : attempt;
-                    char icon_res[640];
-                    if (rogue_file_search_project(fname, icon_res, sizeof icon_res))
+                    char attempt[512];
+                    if (strncmp(def.icon, "assets/", 7) == 0 ||
+                        strncmp(def.icon, "../assets/", 10) == 0)
+                        snprintf(attempt, sizeof attempt, "%s", def.icon);
+                    else
+                        snprintf(attempt, sizeof attempt, "assets/%s", def.icon);
+                    if (rogue_texture_load(&g_app.skill_icon_textures[new_id], attempt))
                     {
-                        ROGUE_LOG_WARN("Icon fallback: '%s' -> '%s'", attempt, icon_res);
-                        if (rogue_texture_load(&g_app.skill_icon_textures[new_id], icon_res))
-                        {
-                            ROGUE_LOG_INFO("Skill icon loaded via fallback id=%d name=%s path=%s",
-                                           new_id, def.name, icon_res);
-                        }
-                        else
-                        {
-                            ROGUE_LOG_WARN("Skill icon failed after fallback id=%d name=%s path=%s",
-                                           new_id, def.name, icon_res);
-                        }
+                        ROGUE_LOG_INFO("Skill icon loaded id=%d name=%s path=%s", new_id, def.name,
+                                       attempt);
                     }
                     else
                     {
-                        ROGUE_LOG_WARN(
-                            "Skill icon missing (no fallback match) id=%d name=%s original=%s",
-                            new_id, def.name, attempt);
+                        const char* s1 = strrchr(attempt, '/');
+                        const char* s2 = strrchr(attempt, '\\');
+                        const char* last = s2 ? ((s1 && s1 > s2) ? s1 : s2) : (s1 ? s1 : NULL);
+                        const char* fname = last ? last + 1 : attempt;
+                        char icon_res[640];
+                        if (rogue_file_search_project(fname, icon_res, sizeof icon_res))
+                        {
+                            ROGUE_LOG_WARN("Icon fallback: '%s' -> '%s'", attempt, icon_res);
+                            if (rogue_texture_load(&g_app.skill_icon_textures[new_id], icon_res))
+                            {
+                                ROGUE_LOG_INFO(
+                                    "Skill icon loaded via fallback id=%d name=%s path=%s", new_id,
+                                    def.name, icon_res);
+                            }
+                            else
+                            {
+                                ROGUE_LOG_WARN(
+                                    "Skill icon failed after fallback id=%d name=%s path=%s",
+                                    new_id, def.name, icon_res);
+                            }
+                        }
+                        else
+                        {
+                            ROGUE_LOG_WARN(
+                                "Skill icon missing (no fallback match) id=%d name=%s original=%s",
+                                new_id, def.name, attempt);
+                        }
                     }
                 }
-            }
 #endif
             loaded++;
         }

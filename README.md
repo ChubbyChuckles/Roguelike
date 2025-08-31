@@ -57,6 +57,7 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 Notes:
 Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (581/581). Worldgen optimization benchmark stabilized via adaptive repetition to avoid timer granularity flakiness in CI.
 	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir). Default is off for quiet CI.
+	- Test helper for speed: in unit tests that load skills content, call `rogue_skills_set_skip_icon_loads(1)` to bypass icon texture I/O. Used by `test_skills_roundtrip_schema` and `test_skills_base_autoreload` to cut runtime to milliseconds while preserving semantics.
 Formatting:
 	- Run per-file clang-format locally: use the CMake targets `format` (auto-fix) and `format-check` (verify). These work on Windows without hitting command-line length limits.
 	- CI installs clang-format and runs `cmake --build build --target format-check`; failures will show which files need formatting.
@@ -137,6 +138,7 @@ validate_content --force-all --fail-on-warn
 Exit codes: 0 OK, 1 warnings (only with --fail-on-warn), 2 corruption. Use `--quiet` to suppress per-event prints.
 
 ### Content Graph (Phase 13.3 – expanded)
+Status: Complete.
 - Asset dependency graph API `src/util/asset_dep.{h,c}` exposes enumeration and hashing helpers:
 	- `rogue_asset_dep_count()`, `rogue_asset_dep_get(index, &id, &path)`, `rogue_asset_dep_get_deps(id, out, max)`, and `rogue_asset_dep_hash(id, &out_hash)` (cached; invalidated on edits).
 - Overlay panel “Content Graph” now provides:

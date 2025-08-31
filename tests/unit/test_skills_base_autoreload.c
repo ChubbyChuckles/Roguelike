@@ -75,20 +75,25 @@ int main(int argc, char** argv)
     (void) argv;
     /* Ensure a predictable starting state */
     rogue_skills_init();
-    const char* src = find_src_json();
-    if (!src)
-    {
-        fprintf(stderr, "could not locate assets/skills_uhf87f.json from test cwd\n");
-        return 1;
-    }
-    /* Write temp file in current working directory (CTest's working dir),
-        not under a non-existent 'build/' subfolder. */
+    /* Use a tiny seed JSON to keep reloads cheap and skip icon textures. */
+    rogue_skills_set_skip_icon_loads(1);
     const char* dst = "tmp_skills.json";
-    if (copy_file(src, dst) != 0)
+    const char* seed_json =
+        "[ {\"name\":\"T_Fast\",\"icon\":\"../assets/skills/01_Fireball.png\",\"max_"
+        "rank\":1,\"skill_strength\":1,\"base_cooldown_ms\":0.0,\"cooldown_reduction_ms_"
+        "per_rank\":0.0,\"is_passive\":0,\"tags\":0,\"synergy_id\":-1,\"synergy_value_"
+        "per_rank\":0,\"resource_cost_mana\":0,\"action_point_cost\":0,\"max_charges\":0,"
+        "\"charge_recharge_ms\":0.0,\"cast_time_ms\":0.0,\"input_buffer_ms\":0,\"min_"
+        "weave_ms\":0,\"early_cancel_min_pct\":0,\"cast_type\":0,\"combo_builder\":0,\""
+        "combo_spender\":0,\"effect_spec_id\":1 } ]\n";
+    FILE* f = fopen(dst, "wb");
+    if (!f)
     {
-        fprintf(stderr, "copy failed\n");
+        fprintf(stderr, "seed open failed\n");
         return 2;
     }
+    fwrite(seed_json, 1, strlen(seed_json), f);
+    fclose(f);
     /* First tick: depending on implementation, may "prime" (0) or fully reload (>0).
        Accept either non-negative result. */
     int r0 = rogue_skills_base_autoreload_tick(dst);
@@ -98,16 +103,20 @@ int main(int argc, char** argv)
         return 3;
     }
     /* Touch file by rewriting it */
+    /* Ensure mtime changes: rewrite file with same contents and wait minimal time slice. */
 #ifdef _WIN32
-    Sleep(10);
+    Sleep(2);
 #else
-    usleep(10 * 1000);
+    usleep(2 * 1000);
 #endif
-    if (copy_file(src, dst) != 0)
+    f = fopen(dst, "wb");
+    if (!f)
     {
-        fprintf(stderr, "touch failed\n");
+        fprintf(stderr, "touch open failed\n");
         return 4;
     }
+    fwrite(seed_json, 1, strlen(seed_json), f);
+    fclose(f);
     int r1 = rogue_skills_base_autoreload_tick(dst);
     if (r1 <= 0)
     {

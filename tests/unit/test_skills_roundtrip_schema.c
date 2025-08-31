@@ -56,22 +56,51 @@ static int export_first_n_skills_json(char* out, int cap, int n)
 
 int main(void)
 {
-    /* Ensure we have skills loaded (use assets JSON if present) */
-    int loaded = rogue_skills_load_from_cfg("assets/skills_uhf87f.json");
-    if (loaded <= 0)
+    /* Keep test fast: skip icon textures and seed registry with a tiny JSON set. */
+    rogue_skills_set_skip_icon_loads(1);
+    const char* seed_path = "skills_rt_seed.json";
+    const char* seed_json =
+        "[\n"
+        "  {\"name\":\"T_Fire\",\"icon\":\"../assets/skills/01_Fireball.png\",\"max_"
+        "rank\":2,\"skill_strength\":1,\"base_cooldown_ms\":100.0,\"cooldown_reduction_ms_"
+        "per_rank\":5.0,\"is_passive\":0,\"tags\":0,\"synergy_id\":-1,\"synergy_value_"
+        "per_rank\":0,\"resource_cost_mana\":10,\"action_point_cost\":1,\"max_charges\":0,"
+        "\"charge_recharge_ms\":0.0,\"cast_time_ms\":50.0,\"input_buffer_ms\":10,\"min_"
+        "weave_ms\":10,\"early_cancel_min_pct\":0,\"cast_type\":0,\"combo_builder\":0,\""
+        "combo_spender\":0,\"effect_spec_id\":1},\n"
+        "  {\"name\":\"T_Ice\",\"icon\":\"../assets/skills/03_IceShard.png\",\"max_"
+        "rank\":1,\"skill_strength\":2,\"base_cooldown_ms\":0.0,\"cooldown_reduction_ms_"
+        "per_rank\":0.0,\"is_passive\":1,\"tags\":0,\"synergy_id\":-1,\"synergy_value_"
+        "per_rank\":0,\"resource_cost_mana\":0,\"action_point_cost\":0,\"max_charges\":0,"
+        "\"charge_recharge_ms\":0.0,\"cast_time_ms\":0.0,\"input_buffer_ms\":0,\"min_"
+        "weave_ms\":0,\"early_cancel_min_pct\":0,\"cast_type\":0,\"combo_builder\":0,\""
+        "combo_spender\":0,\"effect_spec_id\":2},\n"
+        "  {\"name\":\"T_Blink\",\"icon\":\"../assets/skills/07_Blink.png\",\"max_"
+        "rank\":3,\"skill_strength\":1,\"base_cooldown_ms\":250.0,\"cooldown_reduction_"
+        "ms_per_rank\":10.0,\"is_passive\":0,\"tags\":0,\"synergy_id\":-1,\"synergy_"
+        "value_per_rank\":0,\"resource_cost_mana\":5,\"action_point_cost\":1,\"max_"
+        "charges\":1,\"charge_recharge_ms\":5000.0,\"cast_time_ms\":0.0,\"input_buffer_"
+        "ms\":5,\"min_weave_ms\":0,\"early_cancel_min_pct\":0,\"cast_type\":0,\"combo_"
+        "builder\":0,\"combo_spender\":0,\"effect_spec_id\":3}\n"
+        "]\n";
+    FILE* sf = fopen(seed_path, "wb");
+    if (!sf)
     {
-        /* Try cfg fallback */
-        loaded = rogue_skills_load_from_cfg("assets/skills_uhf87f.cfg");
+        fprintf(stderr, "failed to create seed json\n");
+        return 1;
     }
+    fwrite(seed_json, 1, strlen(seed_json), sf);
+    fclose(sf);
+    int loaded = rogue_skills_load_from_cfg(seed_path);
     if (loaded <= 0)
     {
-        fprintf(stderr, "No skills available to export for test\n");
+        fprintf(stderr, "Failed to seed skills registry\n");
         return 1;
     }
 
     /* Export a small subset to keep test fast */
     char entries[16384];
-    int wn = export_first_n_skills_json(entries, (int) sizeof entries, 8);
+    int wn = export_first_n_skills_json(entries, (int) sizeof entries, 3);
     if (wn < 0)
     {
         fprintf(stderr, "Export failed\n");

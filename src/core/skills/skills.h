@@ -180,4 +180,8 @@ int rogue_skills_load_from_cfg(
     Frees and rebuilds the registry (defs/states/icon textures). Returns count loaded. */
 int rogue_skills_reload_from_cfg(const char* path);
 
+/* Test helper: when enabled (non-zero), skills loading will skip icon texture loading entirely.
+    This reduces I/O and SDL work in headless/unit test contexts. Default is 0 (icons load). */
+void rogue_skills_set_skip_icon_loads(int enable);
+
 #endif
