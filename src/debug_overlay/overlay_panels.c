@@ -1333,6 +1333,104 @@ static void panel_content_graph(void* user)
             if (dup_count == 0)
                 overlay_label("Path unique within graph.");
         }
+
+        /* Focused subgraph export: DOT and JSON limited to the current root and preview_depth */
+        if (overlay_columns_begin(2, NULL))
+        {
+            if (overlay_button("Export Subgraph DOT"))
+            {
+                /* Use literal constants for MSVC C89 compatibility (no VLAs, const int not
+                 * constexpr) */
+                const char* nids[128];
+                int ndeps[128];
+                int edges[256][2];
+                int ecount = 0;
+                int ncount = content_graph_collect_forward(id, preview_depth, nids, ndeps, 128,
+                                                           edges, 256, &ecount);
+                FILE* f = NULL;
+#if defined(_MSC_VER)
+                fopen_s(&f, "build/content_subgraph.dot", "wb");
+#else
+                f = fopen("build/content_subgraph.dot", "wb");
+#endif
+                if (f)
+                {
+                    fputs("digraph ContentSubgraph {\n  rankdir=LR;\n  node "
+                          "[shape=box,fontname=Helvetica];\n",
+                          f);
+                    for (int i = 0; i < ncount; ++i)
+                    {
+                        const char* nid = nids[i];
+                        if (!nid)
+                            continue;
+                        fprintf(f, "  \"%s\";\n", nid);
+                    }
+                    for (int i = 0; i < ecount; ++i)
+                    {
+                        int s = edges[i][0], t = edges[i][1];
+                        if (s >= 0 && s < ncount && t >= 0 && t < ncount)
+                            fprintf(f, "  \"%s\" -> \"%s\";\n", nids[s], nids[t]);
+                    }
+                    fputs("}\n", f);
+                    fclose(f);
+                    overlay_label("Subgraph DOT exported (build/content_subgraph.dot).");
+                }
+                else
+                {
+                    overlay_label("Failed to open subgraph DOT output.");
+                }
+            }
+            overlay_next_column();
+            if (overlay_button("Export Subgraph JSON"))
+            {
+                /* Use literal constants for MSVC C89 compatibility (no VLAs, const int not
+                 * constexpr) */
+                const char* nids[128];
+                int ndeps[128];
+                int edges[256][2];
+                int ecount = 0;
+                int ncount = content_graph_collect_forward(id, preview_depth, nids, ndeps, 128,
+                                                           edges, 256, &ecount);
+                FILE* f = NULL;
+#if defined(_MSC_VER)
+                fopen_s(&f, "build/content_subgraph.json", "wb");
+#else
+                f = fopen("build/content_subgraph.json", "wb");
+#endif
+                if (f)
+                {
+                    /* Shape: {"root":"id","depth":N,"nodes":[...],"edges":[{"from":"","to":""},...]
+                     * } */
+                    fprintf(f, "{\n  \"root\":\"%s\",\n  \"depth\":%d,\n  \"nodes\": [\n",
+                            id ? id : "", preview_depth);
+                    for (int i = 0; i < ncount; ++i)
+                    {
+                        unsigned long long hv = 0ULL;
+                        (void) rogue_asset_dep_hash(nids[i] ? nids[i] : "", &hv);
+                        fprintf(f, "    {\"id\":\"%s\",\"hash\":\"0x%016llx\"}%s\n",
+                                nids[i] ? nids[i] : "", hv, (i + 1 < ncount) ? "," : "");
+                    }
+                    fputs("  ],\n  \"edges\": [\n", f);
+                    for (int i = 0; i < ecount; ++i)
+                    {
+                        int s = edges[i][0], t = edges[i][1];
+                        if (s >= 0 && s < ncount && t >= 0 && t < ncount)
+                        {
+                            fprintf(f, "    {\"from\":\"%s\",\"to\":\"%s\"}%s\n", nids[s], nids[t],
+                                    (i + 1 < ecount) ? "," : "");
+                        }
+                    }
+                    fputs("  ]\n}\n", f);
+                    fclose(f);
+                    overlay_label("Subgraph JSON exported (build/content_subgraph.json).");
+                }
+                else
+                {
+                    overlay_label("Failed to open subgraph JSON output.");
+                }
+            }
+            overlay_columns_end();
+        }
         /* Textual edges view for current group: id -> dep1, dep2 ... */
         if (slash)
         {
@@ -1471,6 +1569,35 @@ static void panel_content_graph(void* user)
                     int x1 = rects[t].x;
                     int y1 = rects[t].y + rects[t].h / 2;
                     SDL_RenderDrawLine(g_app.renderer, x0, y0, x1, y1);
+                }
+            }
+            /* If the last registration was rejected due to a cycle, visualize the attempted edge
+               in red if both endpoints are present in this subgraph. */
+            {
+                char kind[32] = {0}, nid2[64] = {0}, dep2[64] = {0};
+                if (rogue_asset_dep_get_last_reject(kind, (int) sizeof kind, nid2,
+                                                    (int) sizeof nid2, dep2, (int) sizeof dep2))
+                {
+                    if (strcmp(kind, "cycle") == 0 && nid2[0] && dep2[0])
+                    {
+                        int a = -1, b = -1;
+                        for (int i = 0; i < ncount; ++i)
+                        {
+                            if (nids[i] && strcmp(nids[i], nid2) == 0)
+                                a = i;
+                            if (nids[i] && strcmp(nids[i], dep2) == 0)
+                                b = i;
+                        }
+                        if (a >= 0 && b >= 0)
+                        {
+                            SDL_SetRenderDrawColor(g_app.renderer, 220, 60, 60, 240);
+                            int x0 = rects[a].x + rects[a].w;
+                            int y0 = rects[a].y + rects[a].h / 2;
+                            int x1 = rects[b].x;
+                            int y1 = rects[b].y + rects[b].h / 2;
+                            SDL_RenderDrawLine(g_app.renderer, x0, y0, x1, y1);
+                        }
+                    }
                 }
             }
             /* Draw nodes */

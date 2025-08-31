@@ -14,3 +14,10 @@ Phase 13.3: Content Graph click-to-drill + breadcrumbs
 - Discipline: Rebuild Debug (SDL2) with -j12 and run full tests.
 
 Content Graph: add Export JSON action (writes build/content_graph.json) alongside DOT export; rebuilt Debug (SDL2) -j12 and ran full test suite — 100% green (581/581).
+
+Content Graph: focused subgraph exports + cycle-edge indicator
+
+- Overlay: Added “Export Subgraph DOT” (build/content_subgraph.dot) and “Export Subgraph JSON” (build/content_subgraph.json) limited to the currently selected root and the SDL preview depth via BFS.
+- SDL preview: cycle visualization — when the last registration reject was a cycle and both endpoints are visible in the preview, draw the connecting edge in red for immediate diagnostics.
+- Docs: Updated README and roadmap to document subgraph exports and the red cycle-edge.
+- Gates: Rebuilt Debug (SDL2) with -j12 and ran full test suite — all green (581/581).

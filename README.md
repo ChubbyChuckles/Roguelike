@@ -146,8 +146,11 @@ Status: Complete.
 	- For the selected node: direct dependencies, reverse dependencies (who depends on me), and the node’s file hash (hex).
 	- Group size summaries and path collision markers.
 	- Actions: “Compute All Hashes”, “Export DOT” (writes `build/content_graph.dot`), and “Export JSON” (writes `build/content_graph.json`).
+	- New: Focused subgraph exports — “Export Subgraph DOT” and “Export Subgraph JSON” limited to the current selected root and the SDL preview depth (BFS). Outputs:
+		• DOT → `build/content_subgraph.dot`
+		• JSON → `build/content_subgraph.json` with shape `{ "root": string, "depth": int, "nodes": [{ "id", "hash" }], "edges": [{ "from", "to" }] }`.
 	- Layered SDL preview for the selected node and its multi‑hop dependencies (BFS), with a max‑depth slider; toggleable on‑panel.
-	- Visuals: nodes tinted by group; diagnostics line shows last dependency registration rejection (cycle or path conflict) when present.
+	- Visuals: nodes tinted by group; diagnostics line shows last dependency registration rejection (cycle or path conflict) when present; if the last rejection was a cycle and both endpoints are visible in the preview, the connecting edge is highlighted in red.
 - Broadened registrations at app init cover core content domains (examples):
 	- skills/base → assets/skills_uhf87f.json; skills → depends on skills/base
 	- tiles (assets/tiles.cfg), sounds (assets/sounds.cfg), enemies/types (assets/enemies.json)
