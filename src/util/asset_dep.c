@@ -213,3 +213,34 @@ int rogue_asset_dep_hash(const char* id, unsigned long long* out_hash)
     *out_hash = compute_hash(idx);
     return 0;
 }
+
+int rogue_asset_dep_count(void) { return g_node_count; }
+
+int rogue_asset_dep_get(int index, const char** out_id, const char** out_path)
+{
+    if (index < 0 || index >= g_node_count || !out_id || !out_path)
+        return -1;
+    *out_id = g_nodes[index].id;
+    *out_path = g_nodes[index].path;
+    return 0;
+}
+
+int rogue_asset_dep_get_deps(const char* id, const char** out_dep_ids, int max_out)
+{
+    if (!id || !out_dep_ids || max_out <= 0)
+        return -1;
+    int idx = find_node(id);
+    if (idx < 0)
+        return -1;
+    RogueAssetDepNode* n = &g_nodes[idx];
+    int wrote = 0;
+    for (int i = 0; i < n->dep_count && wrote < max_out; i++)
+    {
+        int di = n->dep_indices[i];
+        if (di >= 0 && di < g_node_count)
+        {
+            out_dep_ids[wrote++] = g_nodes[di].id;
+        }
+    }
+    return wrote;
+}

@@ -276,24 +276,44 @@ int rogue_worldgen_run_noise_benchmark(int width, int height, RogueWorldGenBench
     const int oct = 4;
     const double lac = 2.0, gain = 0.5;
     int total = width * height;
-    clock_t t0 = clock();
-    double accum_scalar = 0.0;
-    for (int y = 0; y < height; y++)
-        for (int x = 0; x < width; x++)
+    /*
+     * Use adaptive repetition to avoid timer granularity skew.
+     * Repeat both scalar and SIMD passes equally so ratios remain representative,
+     * while keeping the reported sample count (= width*height) unchanged for tests.
+     */
+    int repeat = 1;
+    double scalar_ms = 0.0;
+    for (;;)
+    {
+        clock_t t0 = clock();
+        double accum_scalar = 0.0;
+        for (int r = 0; r < repeat; ++r)
         {
-            accum_scalar += fbm((double) x * 0.01, (double) y * 0.01, oct, lac, gain);
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                {
+                    accum_scalar += fbm((double) x * 0.01, (double) y * 0.01, oct, lac, gain);
+                }
         }
-    clock_t t1 = clock();
-    double scalar_ms = (double) (t1 - t0) * 1000.0 / (double) CLOCKS_PER_SEC;
+        clock_t t1 = clock();
+        scalar_ms = (double) (t1 - t0) * 1000.0 / (double) CLOCKS_PER_SEC;
+        if (scalar_ms >= 0.5 || repeat >= 64)
+            break;
+        repeat *= 2;
+    }
     /* Guard against very small measurements being rounded to 0 due to clock resolution. */
     if (scalar_ms <= 0.0)
         scalar_ms = 0.001; /* 1 micro-tick to satisfy invariants */
+
     double simd_ms = 0.0, speedup = 0.0;
     if (g_enable_simd)
     {
         clock_t s0 = clock();
-        double simd_res = fbm_simd_grid(width, height, oct, lac, gain);
-        (void) simd_res;
+        for (int r = 0; r < repeat; ++r)
+        {
+            double simd_res = fbm_simd_grid(width, height, oct, lac, gain);
+            (void) simd_res;
+        }
         clock_t s1 = clock();
         simd_ms = (double) (s1 - s0) * 1000.0 / (double) CLOCKS_PER_SEC;
         if (simd_ms > 0)

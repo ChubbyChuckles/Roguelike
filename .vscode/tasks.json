@@ -326,6 +326,27 @@
 			"label": "Build Debug (SDL2, -j12) quick check",
 			"type": "shell",
 			"command": "cmake --build build --config Debug --parallel 12"
+		},
+		{
+			"label": "Build Debug (SDL2, -j12) quick check",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 12"
+		},
+		{
+			"label": "Build Debug (SDL2, -j12) quick check",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 12"
+		},
+		{
+			"label": "Build Debug (SDL2, -j12) quick check",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 12"
+		},
+		{
+			"label": "Rebuild Debug (SDL2, -j12) after fixing overlay_panels helpers",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 12",
+			"group": "build"
 		}
 	]
 }

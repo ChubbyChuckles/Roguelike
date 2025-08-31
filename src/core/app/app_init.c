@@ -37,6 +37,7 @@ SOFTWARE.
 #include "../../game/stat_cache.h"
 #include "../../graphics/animation_system.h"
 #include "../../util/asset_config.h"
+#include "../../util/asset_dep.h"
 #include "../../util/log.h"
 #include "../../util/metrics.h"
 #include "../../world/tile_sprite_cache.h"
@@ -81,6 +82,9 @@ bool rogue_app_init(const RogueAppConfig* cfg)
 #if defined(_MSC_VER)
     rogue_app_state_maybe_init();
 #endif
+    /* Reset content dependency graph at process-level init so repeated runs in-process
+        (as in unit tests) don't leak nodes across sessions. */
+    rogue_asset_dep_reset();
     /* Reset frame metrics so first frame starts from a clean slate in tests.
         Without this, dt from a previous run in the same process can leak
         into the first step of a new run and break determinism. */
@@ -317,6 +321,78 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     if (items_loaded <= 0)
     {
         items_loaded = rogue_item_defs_load_from_cfg("assets/test_items.cfg");
+    }
+    /* Register content graph nodes for Items (Phase 13.3 wiring). We register individual
+       category files as leaves and a logical "items" parent that depends on them. */
+    {
+        const char* item_files[] = {"assets/items/swords.cfg",    "assets/items/potions.cfg",
+                                    "assets/items/armor.cfg",     "assets/items/gems.cfg",
+                                    "assets/items/materials.cfg", "assets/items/misc.cfg"};
+        const char* leaves[sizeof(item_files) / sizeof(item_files[0])];
+        int leaf_count = 0;
+        for (size_t i = 0; i < sizeof(item_files) / sizeof(item_files[0]); ++i)
+        {
+            char id[96];
+            /* ids use a readable prefix for grouping in the overlay */
+            snprintf(id, sizeof id, "items/%s",
+                     strrchr(item_files[i], '/') ? (strrchr(item_files[i], '/') + 1)
+                                                 : item_files[i]);
+            (void) rogue_asset_dep_register(id, item_files[i], NULL, 0);
+            /* store pointers to ids we just constructed is unsafe; build stable ids again */
+            /* Instead, recompute id strings into a small static table for dependency wiring. */
+        }
+        /* Recompute stable id strings for dependency array */
+        static char dep_ids[6][96];
+        for (size_t i = 0; i < sizeof(item_files) / sizeof(item_files[0]); ++i)
+        {
+            snprintf(dep_ids[i], sizeof dep_ids[i], "items/%s",
+                     strrchr(item_files[i], '/') ? (strrchr(item_files[i], '/') + 1)
+                                                 : item_files[i]);
+            leaves[leaf_count++] = dep_ids[i];
+        }
+        (void) rogue_asset_dep_register("items", "", leaves, leaf_count);
+        /* Affixes and loot tables commonly used alongside items */
+        (void) rogue_asset_dep_register("affixes", "assets/affixes.cfg", NULL, 0);
+        (void) rogue_asset_dep_register("loot_tables", "assets/test_loot_tables.cfg", NULL, 0);
+        /* Model that loot tables often refer to item ids */
+        const char* loot_deps[] = {"items"};
+        (void) rogue_asset_dep_register("loot_runtime", "", loot_deps, 1);
+
+        /* Phase 13.3 expansion: broaden dependency registrations for major content domains. */
+        /* Skills (base JSON). Provide a logical parent for future layering (overrides, coeffs). */
+        (void) rogue_asset_dep_register("skills/base", "assets/skills_uhf87f.json", NULL, 0);
+        const char* skills_deps[] = {"skills/base"};
+        (void) rogue_asset_dep_register("skills", "", skills_deps, 1);
+        /* Tiles/tilesets legacy cfg (validated via schema_tilesets). */
+        (void) rogue_asset_dep_register("tiles", "assets/tiles.cfg", NULL, 0);
+        /* Sounds registry */
+        (void) rogue_asset_dep_register("sounds", "assets/sounds.cfg", NULL, 0);
+        /* Enemies types JSON (tools/tests often read assets/enemies.json). */
+        (void) rogue_asset_dep_register("enemies/types", "assets/enemies.json", NULL, 0);
+        /* Dialogue style and scripts, plus a logical parent. */
+        (void) rogue_asset_dep_register("dialogue/style", "assets/dialogue/style_default.json",
+                                        NULL, 0);
+        (void) rogue_asset_dep_register("dialogue/scripts", "assets/dialogue/dialogues.json", NULL,
+                                        0);
+        const char* dlg_deps[] = {"dialogue/style", "dialogue/scripts"};
+        (void) rogue_asset_dep_register("dialogue", "", dlg_deps, 2);
+        /* UI + HUD configs */
+        (void) rogue_asset_dep_register("ui/hud_layout", "assets/hud_layout.cfg", NULL, 0);
+        (void) rogue_asset_dep_register("ui/theme", "assets/ui_theme_default.cfg", NULL, 0);
+        /* Player config */
+        (void) rogue_asset_dep_register("player/anim", "assets/player_anim.cfg", NULL, 0);
+        (void) rogue_asset_dep_register("player/sheets", "assets/player_sheets.cfg", NULL, 0);
+        /* Projectiles config */
+        (void) rogue_asset_dep_register("projectiles", "assets/projectiles.cfg", NULL, 0);
+        /* Tag registry (cross-ref target for many systems) */
+        (void) rogue_asset_dep_register("tag_registry", "assets/tag_registry.json", NULL, 0);
+        /* World/biome resources */
+        (void) rogue_asset_dep_register("world/biomes", "assets/biome_assets.cfg", NULL, 0);
+        (void) rogue_asset_dep_register("world/trees", "assets/trees.cfg", NULL, 0);
+        (void) rogue_asset_dep_register("world/plants", "assets/plants.cfg", NULL, 0);
+        (void) rogue_asset_dep_register("world/resource_nodes", "assets/resource_nodes.cfg", NULL,
+                                        0);
+        (void) rogue_asset_dep_register("world/mining_nodes", "assets/mining_nodes.cfg", NULL, 0);
     }
     int tables_loaded = rogue_loot_tables_load_from_cfg("assets/test_loot_tables.cfg");
     if (tables_loaded > 0)

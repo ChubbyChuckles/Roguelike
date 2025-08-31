@@ -55,7 +55,7 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 	- Build: use CMake multi‑config generators with parallelism (e.g., -j12)
 	- Run tests: ctest -C Debug -j12 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 Notes:
-Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (581/581).
+Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (581/581). Worldgen optimization benchmark stabilized via adaptive repetition to avoid timer granularity flakiness in CI.
 	- Optional: enable AI blackboard write/get tracing during fuzz triage by defining ROGUE_TRACE_BB=1 at build time (writes bb_trace.txt in the test working dir). Default is off for quiet CI.
 Formatting:
 	- Run per-file clang-format locally: use the CMake targets `format` (auto-fix) and `format-check` (verify). These work on Windows without hitting command-line length limits.
@@ -135,6 +135,25 @@ validate_content --force-all --fail-on-warn
 ```
 
 Exit codes: 0 OK, 1 warnings (only with --fail-on-warn), 2 corruption. Use `--quiet` to suppress per-event prints.
+
+### Content Graph (Phase 13.3 – expanded)
+- Asset dependency graph API `src/util/asset_dep.{h,c}` exposes enumeration and hashing helpers:
+	- `rogue_asset_dep_count()`, `rogue_asset_dep_get(index, &id, &path)`, `rogue_asset_dep_get_deps(id, out, max)`, and `rogue_asset_dep_hash(id, &out_hash)` (cached; invalidated on edits).
+- Overlay panel “Content Graph” now provides:
+	- Filters: substring and advanced prefixes `id:`, `path:`, `group:`, `hash:`, `dep:X`, `rev:X`.
+	- For the selected node: direct dependencies, reverse dependencies (who depends on me), and the node’s file hash (hex).
+	- Group size summaries and path collision markers.
+	- Actions: “Compute All Hashes” and “Export DOT” (writes `build/content_graph.dot`).
+	- Layered SDL preview for the selected node and its multi‑hop dependencies (BFS), with a max‑depth slider; toggleable on‑panel.
+- Broadened registrations at app init cover core content domains (examples):
+	- skills/base → assets/skills_uhf87f.json; skills → depends on skills/base
+	- tiles (assets/tiles.cfg), sounds (assets/sounds.cfg), enemies/types (assets/enemies.json)
+	- dialogue/style (assets/dialogue/style_default.json), dialogue/scripts (assets/dialogue/dialogues.json), dialogue (aggregates both)
+	- ui/hud_layout (assets/hud_layout.cfg), ui/theme (assets/ui_theme_default.cfg)
+	- player/anim (assets/player_anim.cfg), player/sheets (assets/player_sheets.cfg)
+	- projectiles (assets/projectiles.cfg), tag_registry (assets/tag_registry.json)
+	- world/biomes, world/trees, world/plants, world/resource_nodes, world/mining_nodes (assets/*.cfg)
+- Backed by hashing/invalidation/cycle detection; see `tests/unit/test_asset_dep.c`.
 
 	Map Debug and Editor foundations (Phase 9):
 	- Core APIs in `src/core/world/map_debug.{h,c}` provide simple editing and JSON persistence:

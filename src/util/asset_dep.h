@@ -13,6 +13,15 @@ extern "C"
     int rogue_asset_dep_invalidate(const char* id);
     void rogue_asset_dep_reset(void);
 
+    /* Enumeration API for visualization/debugging */
+    int rogue_asset_dep_count(void);
+    /* Returns 0 on success; out_id/out_path are pointers to internal storage (valid until reset).
+     */
+    int rogue_asset_dep_get(int index, const char** out_id, const char** out_path);
+    /* Fills out_dep_ids with pointers to dependency ids (direct edges) and returns count (>=0),
+        or <0 on error. out_dep_ids entries are valid until reset. */
+    int rogue_asset_dep_get_deps(const char* id, const char** out_dep_ids, int max_out);
+
 #ifdef __cplusplus
 }
 #endif

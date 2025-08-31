@@ -1,3 +1,16 @@
+Debug overlay + validation Roadmap Phase 13.3/Worldgen benchmark stability
+
+- Content Graph panel (Phase 13.3): substring filter + top-level id prefix grouping; seeded core nodes (items leaves/parent, affixes, loot, loot_runtime).
+- Fix MSVC pointer-type warning in overlay_panels.c (explicit const char* ternary cast for slash grouping).
+- Stabilize worldgen optimization benchmark: adaptively repeat scalar workload until >=0.5 ms (cap 64x) and mirror repeats on SIMD path to keep ratios stable.
+- Result: full ctest in Debug (SDL2) with -j12 is all green (581/581).
+feat(overlay/content): initial Content Graph panel + asset_dep enumeration APIs; docs/roadmap
+
+- Implemented simple "Content Graph" overlay panel to browse content dependency nodes and view direct deps (Phase 13.3 prototype).
+- Extended asset_dep with enumeration helpers: rogue_asset_dep_count/get/get_deps; kept existing hashing/invalidate/cycle detection.
+- Updated README with Content Graph section; bumped latest CI verification count.
+- Roadmap: mark 13.3 Partial with concrete status; CI tally now 581/581.
+
 Debug Overlay – Items Phase 10.3–10.4: live vendor repricing, creation wizard, tests
 
 - Vendor repricing hooks (10.3):
@@ -107,3 +120,31 @@ chore(validation/tests): confirm validate_content wiring; bump suite to 581/581
 - Add smoke test `tests/unit/test_validation_cli_smoke.c` to exercise the validation manager and default wiring via the headless API; ensures at least one run completes.
 - Build: Debug (SDL2) with parallelism (-j12); ctest full suite now runs 581 tests, all passing (100%).
 - Docs: README and roadmap updated to reflect the new test count (581/581).
+
+build: Debug (SDL2) -j12 succeeded; ctest reports 581/581 passing after Content Graph panel additions.
+
+chore(overlay/content): wire initial asset_dep registrations and add Content Graph filter/group
+
+- App init resets asset_dep each run and registers core content nodes: items (per-category leaves + logical parent), affixes, loot tables, and a runtime loot node depending on items.
+- Content Graph panel gains substring filter and top-level id prefix grouping for quick narrowing.
+- Roadmap updated to reflect 13.3 wiring and filtering; README unchanged (no behavior change to documented counts).
+
+feat(overlay/content): broaden Content Graph coverage + panel features; tests remain green (581/581)
+
+- Registrations: seed additional domains at app init — skills/base→skills, tiles, sounds, enemies/types, dialogue/style+scripts→dialogue, ui/hud_layout, ui/theme, player/anim, player/sheets, projectiles, tag_registry, and world/{biomes,trees,plants,resource_nodes,mining_nodes}.
+- Panel: show per-node file hash (hex), reverse dependencies, and per‑group size summaries; add “Compute All Hashes” to warm caches; retain substring filter and id‑prefix grouping.
+- Build/CI: Debug (SDL2) with -j12; full ctest 581/581 passing.
+- Docs: README Content Graph section expanded; roadmap marks 13.3 as Partial with new details.
+
+feat(overlay/content): advanced filters + DOT export + on-panel edge preview
+
+- Content Graph panel: add prefix filters id:/path:/group:/hash:/dep:X/rev:X alongside substring.
+- Export Graphviz DOT to build/content_graph.dot; add textual group edge view and path collision markers.
+- Minimal SDL edge preview inside the panel for the selected node with a toggle.
+- Roadmap updated to reflect 13.3 progress; README gets a concise usage blurb.
+
+feat(overlay/content): layered multi-hop SDL preview (BFS) with depth control; MSVC warnings resolved; gate green (581/581)
+
+- Added multi-hop exploration via BFS and a layered SDL preview with a max-depth slider in the Content Graph panel.
+- Fixed MSVC pointer/int mismatch warnings in overlay_panels.c by including missing standard headers (<string.h>, <stdio.h>) ensuring correct prototypes for string/IO functions.
+- Rebuilt Debug (SDL2) with -j12 and re-ran the full test suite: 100% pass (581/581).

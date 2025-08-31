@@ -20,8 +20,9 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 - Build system supports conditional compilation (CMake) (Done)
 
 CI VALIDATION (current)
-- Overlay core/input/widgets/panels compile clean under Debug with SDL2.
+- Overlay core/input/widgets/panels compile clean under Debug with SDL2 (MSVC warnings in overlay_panels.c resolved by adding missing standard headers for string/IO prototypes).
 - Full test suite re-run in Debug (SDL2) with parallelism (-j12): all tests passed (100%) (581/581).
+- Worldgen noise benchmark stabilized: adaptive repetition ensures scalar path runs >=0.5 ms (cap 64x) and applies the same repeat to SIMD; flakiness in test_worldgen_phase14_optimization resolved.
 - Items loader now accepts both raw JSON arrays and versioned envelopes ("$schema": "items") and unwraps entries transparently; the schema-backed roundtrip test passes.
 - Skills loader now accepts both raw JSON arrays and versioned envelopes ("$schema": "skills"); schema validator and a roundtrip export→envelope→reload unit are integrated and green.
 - Stabilized integration harness: test_boot updated to chdir to the repo root and to use the current RogueAppConfig initializer; eliminates a prior headless/SDL segfault.
@@ -34,7 +35,7 @@ CI VALIDATION (current)
  - Map debug JSON loader fixes landed (literal detection and pointer advance) and a new unit `test_map_debug` validates edit operations and JSON round‑trip.
  - Persistence tests stabilized under parallel runs via centralized save path builders and per‑test isolation (env ROGUE_TEST_SAVE_DIR or per‑PID dir). All persistence/integrity units updated; full suite green.
  - Audio/VFX Debug Panel integrated with a thin headless-safe API (`audiovfx_debug`); unit `test_audio_vfx_overlay_debug_panel` validates registry probing, play/spawn, mixer/perf/budgets controls, and stats snapshot. Overlay panel registered as "Audio / VFX".
-- Skills overrides auto‑reload: mtime‑based polling helper added to the skill debug API and wired into the Skills overlay panel via an “Auto‑Reload Overrides” toggle. New unit `test_skills_live_reload` validates one‑shot apply on change and no‑op on unchanged mtime.
+ - Skills overrides auto‑reload: mtime‑based polling helper added to the skill debug API and wired into the Skills overlay panel via an “Auto‑Reload Overrides” toggle. New unit `test_skills_live_reload` validates one‑shot apply on change and no‑op on unchanged mtime.
 - Base skills JSON auto‑reload: added `rogue_skills_base_autoreload_tick(path)` that tracks mtime of the base definitions JSON and triggers a full registry reload via `rogue_skills_reload_from_cfg`. The Skills overlay now includes a separate “Auto‑Reload Base Skills JSON” checkbox and displays reload counts. Unit `test_skills_base_autoreload` validates change detection, first‑tick behavior, and no‑op on unchanged mtime with robust Windows mtime handling.
 - Windows CI formatting gate stabilized: replaced single-command clang-format invocation with a per-file runner script (`cmake/RunClangFormat.cmake`) and wired `format`/`format-check` CMake targets to use it. This avoids Windows command-line length limits; the CI "Format Check" step now runs reliably.
  - Start Screen perf smoke test stabilized under CI-like variance by disabling the absolute budget guard in the test (sets `g_app.start_perf_budget_ms = 0.0`); relative check remains opt-in. Full suite reconfirmed green.
@@ -136,7 +137,7 @@ PHASE 12. Audio/VFX Debug Panel
 PHASE 13. Cross-Reference Validation System
 13.1 Implement validation engine: check references across all JSON schemas (Done – `src/core/integration/state_validation_manager.{h,c}` orchestrates system validators and cross-rules with incremental skip via snapshot hash, telemetry stats, and event ring buffer. `src/core/integration/validation_wiring.{h,c}` registers default validators: items, entities, tilesets, tag registry, and cross-rule skills.)
 13.2 Add real-time validation: display errors immediately in overlay (Done – New “Validation” overlay panel wired to the manager: shows stats, recent events, Run Now, Force All, and interval slider. Panel registered at overlay startup.)
-13.3 Create dependency graph visualization for complex references (X)
+13.3 Create dependency graph visualization for complex references (Partial – "Content Graph" overlay panel now lists nodes grouped by id prefix with per‑group size, supports substring and advanced filters (id:, path:, group:, hash:, dep:X, rev:X), shows per‑node file hash (hex) and reverse dependencies, and includes a "Compute All Hashes" action to warm caches. Added Graphviz DOT export to build/content_graph.dot, textual group edge view, path collision markers, and a layered SDL edge preview with multi‑hop BFS exploration and a max‑depth slider. App init seeds a broad set of domains: skills/base→skills, tiles, sounds, enemies/types, dialogue/style+scripts→dialogue, ui/hud_layout, ui/theme, player/anim, player/sheets, projectiles, tag_registry, world/{biomes,trees,plants,resource_nodes,mining_nodes}. Future work: richer in‑overlay graph layout and explicit cycle indicators.)
 13.4 Add batch validation tool for CI/automated testing (Done – CLI `validate_content` initializes the app, registers default checks, runs validations, prints a summary, and returns exit codes 0=OK, 1=Warnings (with --fail-on-warn), 2=Corruption.)
 13.5 Tests: cross-ref validation accuracy, error reporting, dependency tracking (Partial – `tests/unit/test_state_validation_manager.c` covers manager behavior; new smoke `tests/unit/test_validation_cli_smoke.c` runs wiring end-to-end headlessly and asserts at least one run completes. Further graph/accuracy tests TBD.)
 
@@ -171,6 +172,5 @@ PHASE 17. Headless Testing Integration
 PHASE 18. Extensions & Future Work (Optional)
 18.1 Design undo/redo system: command pattern with capped history (Optional)
 18.2 Add networked debug overlay: remote control via TCP/WebSocket (Optional)
-18.3 Implement scriptable actions: Lua or custom scripting for debug tasks (Optional)
-18.4 Add profiler integration: CPU/GPU traces in overlay UI (Optional)
-18.5 Tests: extension functionality, network security, script safety (Optional)
+18.3 Add profiler integration: CPU/GPU traces in overlay UI (Optional)
+18.4 Tests: extension functionality, network security, script safety (Optional)
