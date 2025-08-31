@@ -548,6 +548,7 @@ static int rogue__json_load(const char* buf)
         def.max_rank = 1;
         def.synergy_id = -1;
         def.skill_strength = 0;
+        def.skill_type = ROGUE_SKTYPE_UNKNOWN;
         def.sound_volume = 0;
         int done_obj = 0;
         while (!done_obj)
@@ -620,6 +621,8 @@ static int rogue__json_load(const char* buf)
                     def.max_rank = (int) num;
                 else if (strcmp(key, "skill_strength") == 0)
                     def.skill_strength = (int) num;
+                else if (strcmp(key, "skill_type") == 0)
+                    def.skill_type = (unsigned char) num;
                 else if (strcmp(key, "base_cooldown_ms") == 0)
                     def.base_cooldown_ms = (float) num;
                 else if (strcmp(key, "cooldown_reduction_ms_per_rank") == 0)
@@ -901,6 +904,8 @@ int rogue_skills_load_from_cfg(const char* path)
 #endif
         int idx = 2;
         def.max_rank = (idx < pc) ? atoi(parts[idx++]) : 1;
+        /* Optional CSV column for skill_type at the end of the legacy block (back-compat if
+         * missing). */
         def.base_cooldown_ms = (float) ((idx < pc) ? atof(parts[idx++]) : 0.0);
         def.cooldown_reduction_ms_per_rank = (float) ((idx < pc) ? atof(parts[idx++]) : 0.0);
         def.is_passive = (idx < pc) ? atoi(parts[idx++]) : 0;
@@ -919,6 +924,7 @@ int rogue_skills_load_from_cfg(const char* path)
         def.combo_builder = (unsigned char) ((idx < pc) ? atoi(parts[idx++]) : 0);
         def.combo_spender = (unsigned char) ((idx < pc) ? atoi(parts[idx++]) : 0);
         def.effect_spec_id = (idx < pc) ? atoi(parts[idx++]) : 0;
+        def.skill_type = ROGUE_SKTYPE_UNKNOWN; /* default */
         int new_id = rogue_skill_register(&def);
         if (new_id >= 0)
         {

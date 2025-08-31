@@ -48,3 +48,10 @@ feat(overlay/skills): live sticky Validation Status banner in Skills panel
 - Validation: Uses the shared skills validator; no new rules added, just surfaced inline for fast iteration.
 - Docs: README “Debug overlay tips” notes the banner; roadmap status delta mentions the new overlay feedback.
 - Build/tests: Debug SDL2 build succeeds and the full CTest suite remains 100% green (584/584, -j12).
+
+feat(skills): introduce optional skill_type enum (schema+runtime+validator)
+
+- Data model: Add RogueSkillType enum and `skill_type` field to `RogueSkillDef`; defaults to UNKNOWN for back-compat.
+- Loader/Schema: JSON/CSV loaders accept `skill_type`; schema exports/validates with range 0..9.
+- Validator: flag mismatches when `skill_type=PASSIVE` but `is_passive=0`; reject out-of-range values.
+- Docs: README Debug overlay tips mention the optional `skill_type` and defaulting behavior.

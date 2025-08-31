@@ -15,6 +15,8 @@ static RogueJsonValue* skilldef_to_json(const RogueSkillDef* d)
     json_object_set(obj, "icon", json_create_string(d->icon ? d->icon : ""));
     json_object_set(obj, "max_rank", json_create_integer(d->max_rank));
     json_object_set(obj, "skill_strength", json_create_integer(d->skill_strength));
+    if (d->skill_type)
+        json_object_set(obj, "skill_type", json_create_integer(d->skill_type));
     json_object_set(obj, "base_cooldown_ms", json_create_number(d->base_cooldown_ms));
     json_object_set(obj, "cooldown_reduction_ms_per_rank",
                     json_create_number(d->cooldown_reduction_ms_per_rank));
@@ -107,6 +109,11 @@ bool rogue_skills_build_schema(RogueSchema* out_schema)
     RogueSchemaField* f_strength =
         rogue_schema_add_field(out_schema, "skill_strength", ROGUE_SCHEMA_TYPE_INTEGER);
     rogue_schema_field_set_range(f_strength, 0, 10);
+
+    /* Optional skill_type enum; 0=UNKNOWN (auto), 1..9 mapped to RogueSkillType */
+    RogueSchemaField* f_type =
+        rogue_schema_add_field(out_schema, "skill_type", ROGUE_SCHEMA_TYPE_INTEGER);
+    rogue_schema_field_set_range(f_type, 0, 9);
 
     rogue_schema_add_field(out_schema, "base_cooldown_ms", ROGUE_SCHEMA_TYPE_NUMBER);
     rogue_schema_add_field(out_schema, "cooldown_reduction_ms_per_rank", ROGUE_SCHEMA_TYPE_NUMBER);

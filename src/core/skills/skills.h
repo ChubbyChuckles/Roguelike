@@ -31,6 +31,20 @@ enum
 };
 
 /* Definition (immutable) */
+/* Skill type enum (Phase 1.1). 0 = UNKNOWN/AUTO for backward compatibility. */
+typedef enum RogueSkillType
+{
+    ROGUE_SKTYPE_UNKNOWN = 0,
+    ROGUE_SKTYPE_MELEE = 1,
+    ROGUE_SKTYPE_RANGED = 2,
+    ROGUE_SKTYPE_AOE_SPELL = 3,
+    ROGUE_SKTYPE_BUFF = 4,
+    ROGUE_SKTYPE_DEBUFF = 5,
+    ROGUE_SKTYPE_HEAL = 6,
+    ROGUE_SKTYPE_SUMMON = 7,
+    ROGUE_SKTYPE_PASSIVE = 8,
+    ROGUE_SKTYPE_ULTIMATE = 9
+} RogueSkillType;
 typedef struct RogueSkillDef
 {
     int id;             /* index into registry */
@@ -39,6 +53,7 @@ typedef struct RogueSkillDef
     int max_rank;       /* maximum rank */
     int skill_strength; /* ring constraint for maze layout (0 = any ring; N = must be placed on ring
                            N where outermost ring == total rings) */
+    unsigned char skill_type;             /* RogueSkillType; 0 = UNKNOWN (auto/infer) */
     float base_cooldown_ms;               /* base cooldown at rank 1 */
     float cooldown_reduction_ms_per_rank; /* linear reduction */
     RogueSkillEffectFn on_activate;

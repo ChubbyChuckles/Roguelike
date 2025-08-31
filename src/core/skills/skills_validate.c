@@ -123,6 +123,24 @@ int rogue_skills_validate_all(char* err, int err_cap)
     for (int i = 0; i < g_skill_count_internal; ++i)
     {
         const RogueSkillDef* d = &g_skill_defs_internal[i];
+        /* Clamp and consistency: if skill_type is out of range, treat as UNKNOWN; if PASSIVE type
+         * but not flagged passive, warn-fail for now. */
+        if (d->skill_type > ROGUE_SKTYPE_ULTIMATE)
+        {
+            char buf[256];
+            snprintf(buf, sizeof buf, "skill %d '%s' invalid skill_type: %u", i,
+                     d->name ? d->name : "<noname>", (unsigned) d->skill_type);
+            set_err(err, err_cap, buf);
+            return -1;
+        }
+        if (d->skill_type == ROGUE_SKTYPE_PASSIVE && !d->is_passive)
+        {
+            char buf[256];
+            snprintf(buf, sizeof buf, "skill %d '%s' type=PASSIVE but is_passive=0 (mismatch)", i,
+                     d->name ? d->name : "<noname>");
+            set_err(err, err_cap, buf);
+            return -1;
+        }
         char apath[512];
         if (d->cast_sprite_sheet && d->cast_sprite_sheet[0])
         {

@@ -47,7 +47,7 @@ PHASE 1. Architecture & Core Data Model Enhancement
     - Add area-of-effect properties: aoe_shape (circle/cone/line), aoe_radius, aoe_angle
     - Add projectile properties: velocity, trajectory_type, pierce_count, homing_strength
     - Update schema_skills.{h,c} with new validation rules for each skill type and asset dependencies
-    Status: Partial (visuals/audio/animation/AoE/projectile fields implemented schema->runtime->debug APIs->validation->overlay; effect composition and skill_type enum pending)
+    Status: Partial (visuals/audio/animation/AoE/projectile fields implemented schema->runtime->debug APIs->validation->overlay; skill_type enum implemented across schema/runtime/validator; effect composition pending)
 1.2 Effect Composition System
     - Design EffectNode tree structure for complex skill behaviors
     - Implement effect types: DAMAGE, HEAL, BUFF_APPLY, DEBUFF_APPLY, SPAWN_PROJECTILE, SPAWN_ENTITY, TELEPORT, AOE_BLAST
