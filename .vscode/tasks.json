@@ -4,7 +4,7 @@
 		{
 			"label": "Build thread tests (MSBuild /m)",
 			"type": "shell",
-			"command": "cmake --build build --config Debug --target test_thread_pool test_thread_barrier -- /m:8",
+			"command": "cmake --build build --config Debug --target test_thread_pool test_thread_barrier -- /m:8 /p:VcpkgEnableManifest=true",
 			"problemMatcher": [
 				"$msCompile"
 			],
@@ -13,7 +13,7 @@
 		{
 			"label": "Build sync tests (MSBuild /m)",
 			"type": "shell",
-			"command": "cmake --build build --config Debug --target test_sync_phase5_8_snapshot test_sync_phase5_8_delta test_sync_phase5_8_tx test_sync_phase5_8_rollback test_sync_phase5_8_integration -- /m:8",
+			"command": "cmake --build build --config Debug --target test_sync_phase5_8_snapshot test_sync_phase5_8_delta test_sync_phase5_8_tx test_sync_phase5_8_rollback test_sync_phase5_8_integration -- /m:8 /p:VcpkgEnableManifest=true",
 			"problemMatcher": [
 				"$msCompile"
 			],
@@ -28,26 +28,6 @@
 			"label": "Run ctests (SDL, -j12) verify no regression",
 			"type": "shell",
 			"command": "ctest --test-dir . -C Debug -j 12 --output-on-failure"
-		},
-		{
-			"label": "Build Debug (SDL2, -j12) quick check",
-			"type": "shell",
-			"command": "cmake --build build --config Debug --parallel 12"
-		},
-		{
-			"label": "Build Debug (SDL2, -j12) quick check",
-			"type": "shell",
-			"command": "cmake --build build --config Debug --parallel 12"
-		},
-		{
-			"label": "Build Debug (SDL2, -j12) quick check",
-			"type": "shell",
-			"command": "cmake --build build --config Debug --parallel 12"
-		},
-		{
-			"label": "Build Debug (SDL2, -j12) quick check",
-			"type": "shell",
-			"command": "cmake --build build --config Debug --parallel 12"
 		},
 		{
 			"label": "Build Debug (SDL2, -j12) quick check",

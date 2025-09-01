@@ -32,3 +32,9 @@ Debug Overlay: Items panel authoring + virtualization; compile fix; docs/roadmap
 - API: overlay_command_register, overlay_invoke_action, overlay_register_default_commands.
 - Init: seed defaults on overlay_init; headless-safe command invocations.
 - Docs: README tip added; roadmap 1.2 marked stub Met.
+
+Build: Fix vcpkg manifest error in MSBuild tasks
+
+- Tasks: Add /p:VcpkgEnableManifest=true to MSBuild commands in tasks.json for thread tests and sync tests.
+- Build: Verified Debug SDL2 build with -j12 completes successfully.
+- Tests: Full ctest suite passes (593/593) with no regressions.
