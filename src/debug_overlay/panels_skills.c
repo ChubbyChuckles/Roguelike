@@ -1,10 +1,52 @@
+#include "../core/app/app_state.h"
 #include "../core/skills/skill_debug.h"
 #include "../core/skills/skills_coeffs.h"
 #include "../core/skills/skills_validate.h"
+#include "../graphics/sprite.h"
 #include "overlay_core.h"
 #include "overlay_widgets.h"
+#include <string.h>
+#ifdef ROGUE_HAVE_SDL
+#include <SDL.h>
+#endif
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
+
+/* Lightweight preview texture cache helpers (file-scope) */
+typedef struct PreviewTex
+{
+    char path[256];
+    RogueTexture tex;
+    int ready;
+} PreviewTex;
+
+static void preview_ensure_tex(PreviewTex* t, const char* path)
+{
+    if (!t)
+        return;
+    if (!path)
+        path = "";
+    if (strcmp(t->path, path) != 0)
+    {
+        /* destroy old */
+        if (t->ready)
+        {
+            rogue_texture_destroy(&t->tex);
+            t->ready = 0;
+        }
+        t->path[0] = '\0';
+        if (path[0])
+        {
+            /* try load */
+            if (rogue_texture_load(&t->tex, path))
+            {
+                strncpy(t->path, path, sizeof t->path - 1);
+                t->path[sizeof t->path - 1] = '\0';
+                t->ready = 1;
+            }
+        }
+    }
+}
 
 static void panel_skills(void* user)
 {
@@ -560,19 +602,116 @@ static void panel_skills(void* user)
         if (sim_result[0])
             overlay_label(sim_result);
 
-        /* Lightweight textual preview */
+        /* Real-time preview window (sprite-based) */
         {
-            int stype = 0;
-            (void) rogue_skill_debug_get_type(sel, &stype);
-            static RogueSkillVisualParams vis;
-            if (rogue_skill_debug_get_visuals(sel, &vis) == 0)
+            static int preview_enabled = 1;
+            static int preview_autoplay = 1;
+            static int preview_zoom = 2; /* 1..8 */
+            overlay_checkbox("Enable Real-time Preview", &preview_enabled);
+            overlay_checkbox("Auto-animate", &preview_autoplay);
+            overlay_slider_int("Zoom", &preview_zoom, 1, 8);
+
+            /* Preview area (fixed rectangle inside this panel) */
+            const int panel_x = 380; /* must match overlay_begin_panel call */
+            const int panel_y = 10;
+            const int pv_x = panel_x + 12;
+            const int pv_y = panel_y + 260; /* placed beneath controls */
+            const int pv_w = 396;
+            const int pv_h = 140;
+
+#ifdef ROGUE_HAVE_SDL
+            if (!g_app.headless && g_app.renderer)
             {
-                char prev[256];
-                snprintf(prev, sizeof prev,
-                         "Preview: type=%d cast_ms=%.0f cd=%.0f proj=%s aoe_shape=%d", stype,
-                         (double) 0.0, (double) 0.0, vis.projectile_sprite[0] ? "Y" : "N",
-                         vis.aoe_shape);
-                overlay_label(prev);
+                SDL_Rect r = {pv_x, pv_y, pv_w, pv_h};
+                SDL_SetRenderDrawColor(g_app.renderer, 12, 12, 18, 220);
+                SDL_RenderFillRect(g_app.renderer, &r);
+                SDL_SetRenderDrawColor(g_app.renderer, 70, 90, 130, 230);
+                SDL_RenderDrawRect(g_app.renderer, &r);
+            }
+#endif
+
+            if (preview_enabled)
+            {
+                static PreviewTex t_cast = {"", {0}};
+                static PreviewTex t_proj = {"", {0}};
+                static PreviewTex t_impact = {"", {0}};
+                static PreviewTex t_aoe = {"", {0}};
+
+                int stype = 0;
+                (void) rogue_skill_debug_get_type(sel, &stype);
+                RogueSkillVisualParams vis;
+                if (rogue_skill_debug_get_visuals(sel, &vis) == 0)
+                {
+                    preview_ensure_tex(&t_cast, vis.cast_sprite_sheet);
+                    preview_ensure_tex(&t_proj, vis.projectile_sprite);
+                    preview_ensure_tex(&t_impact, vis.impact_sprite);
+                    preview_ensure_tex(&t_aoe, vis.aoe_sprite);
+
+                    static float anim_t = 0.0f;
+                    if (preview_autoplay)
+                        anim_t += overlay_last_dt();
+
+                    /* Choose what to show by type; fallbacks if missing */
+                    const PreviewTex* show = NULL;
+                    int is_sheet = 0;
+                    if (stype == 2 && t_proj.ready)
+                        show = &t_proj; /* RANGED */
+                    else if (stype == 3 && t_aoe.ready)
+                        show = &t_aoe; /* AOE */
+                    else if (t_cast.ready)
+                    {
+                        show = &t_cast; /* general cast animation */
+                        is_sheet = 1;
+                    }
+                    else if (t_impact.ready)
+                        show = &t_impact;
+
+                    if (show && show->ready)
+                    {
+                        /* Compute sprite frame */
+                        RogueSprite spr = {0};
+                        spr.tex = (RogueTexture*) &show->tex;
+                        int cell_w = show->tex.w;
+                        int cell_h = show->tex.h;
+                        int grid_w = vis.grid_width > 0 ? vis.grid_width : 1;
+                        int grid_h = vis.grid_height > 0 ? vis.grid_height : 1;
+                        int frames = vis.frame_count > 0 ? vis.frame_count : (grid_w * grid_h);
+                        if (is_sheet && grid_w > 0 && grid_h > 0)
+                        {
+                            cell_w = (grid_w > 0 ? show->tex.w / grid_w : show->tex.w);
+                            cell_h = (grid_h > 0 ? show->tex.h / grid_h : show->tex.h);
+                            float fd = (vis.frame_duration_ms > 0 ? vis.frame_duration_ms : 100.0f);
+                            int f = (int) (anim_t * 1000.0f / fd);
+                            if (!vis.animation_loops && f >= frames)
+                                f = frames - 1;
+                            if (frames > 0)
+                                f = f % frames;
+                            int fx = (frames > 0 ? (f % grid_w) : 0);
+                            int fy = (frames > 0 ? (f / grid_w) : 0);
+                            spr.sx = fx * cell_w;
+                            spr.sy = fy * cell_h;
+                            spr.sw = cell_w;
+                            spr.sh = cell_h;
+                        }
+                        else
+                        {
+                            spr.sx = 0;
+                            spr.sy = 0;
+                            spr.sw = cell_w;
+                            spr.sh = cell_h;
+                        }
+
+                        /* Center in preview rect */
+                        int scale = (preview_zoom < 1 ? 1 : preview_zoom);
+                        int dx = pv_x + (pv_w - spr.sw * scale) / 2;
+                        int dy = pv_y + (pv_h - spr.sh * scale) / 2;
+                        rogue_sprite_draw(&spr, dx, dy, scale);
+                    }
+                    else
+                    {
+                        overlay_label("Preview: (no sprite configured)");
+                    }
+                }
             }
         }
     }

@@ -9,6 +9,7 @@ Press F1 in-game to open the debug overlay.
  - Skills Visuals / Advanced: Edit optional fields live (sprites: cast/projectile/impact/aoe; animation: frame_count/frame_duration_ms/loops/grid; audio: cast/impact/loop + volume/pitch variance; AoE: shape/radius/angle; projectile: velocity/trajectory/pierce/homing). Changes apply via headless-safe setters and persist to overrides JSON. Validation checks asset existence and parameter bounds and surfaces issues on save/create.
  - Optional: `skill_type` enum can be set on skills (MELEE, RANGED, AOE_SPELL, BUFF, DEBUFF, HEAL, SUMMON, PASSIVE, ULTIMATE). If omitted, it defaults to UNKNOWN for back-compat.
  - New: Skills Meta section includes a Skill Type selector with human-readable labels and "Type Presets" buttons that apply safe baseline timing/coeff defaults per type. The property panels are context-sensitive (e.g., AoE-only fields for AOE_SPELL, projectile-only fields for RANGED). Simulation controls moved to the Testing tab.
+ - Real-time preview (Testing tab): Toggle "Enable Real-time Preview" to see the selected skill’s visuals rendered with sprite-sheet animation; use "Auto-animate" and "Zoom" to control playback and scale. The preview selects cast/projectile/impact/AoE sprites based on `skill_type`, caches textures, and is headless-safe (no SDL calls when no renderer is present).
 
 Notes
 - Panel visibility isn’t persisted between runs yet. If you’d like that, we can store the visibility bitmask in your config/save.
