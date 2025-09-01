@@ -14,6 +14,13 @@ typedef struct RogueSkillCtx
     int talent_points;      /* remaining */
     unsigned int rng_state; /* deterministic per-activation RNG (Phase 1.6) */
     float partial_scalar;   /* early cancel scaling factor (1A.4) */
+    /* Phase 1.3: activation context (positions and affected entities) */
+    float cast_pos_x; /* world position where cast originates (defaults to player) */
+    float cast_pos_y;
+    float target_pos_x; /* explicit target aim/ground position if applicable */
+    float target_pos_y;
+    int affected_entity_ids[8]; /* small fixed buffer for simple effects */
+    unsigned char affected_entity_count;
 } RogueSkillCtx;
 
 /* Effect callback (optional). Return 1 if activation consumed resources. */
@@ -188,6 +195,9 @@ typedef struct RogueSkillState
     double profile_last_act_end_ms;
     double profile_last_cast_begin_ms;
     double profile_last_cast_end_ms;
+    /* Phase 1.3: interruption marker */
+    unsigned char interrupted_active; /* 1 if last action was interrupted */
+    double last_interrupt_ms;         /* timestamp of last interrupt (ms) */
 } RogueSkillState;
 
 /* Phase 1.3: Minimal execution state reporting enum and accessor */
@@ -196,7 +206,8 @@ typedef enum RogueSkillExecState
     ROGUE_SKEXEC_IDLE = 0,
     ROGUE_SKEXEC_CASTING = 1,
     ROGUE_SKEXEC_CHANNELING = 2,
-    ROGUE_SKEXEC_COOLDOWN = 3
+    ROGUE_SKEXEC_COOLDOWN = 3,
+    ROGUE_SKEXEC_INTERRUPTED = 4
 } RogueSkillExecState;
 
 /* Return current execution state derived from timers/flags. */
@@ -214,6 +225,8 @@ static inline RogueSkillExecState rogue_skill_get_exec_state(int id)
         return ROGUE_SKEXEC_CASTING;
     if (st->channel_active && def->cast_type == 2)
         return ROGUE_SKEXEC_CHANNELING;
+    if (st->interrupted_active)
+        return ROGUE_SKEXEC_INTERRUPTED;
     if (st->cooldown_end_ms > now)
         return ROGUE_SKEXEC_COOLDOWN;
     return ROGUE_SKEXEC_IDLE;
@@ -238,6 +251,11 @@ int rogue_skill_rank_up(int id); /* returns new rank or -1 */
 
 /* Activation */
 int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx); /* 1 success, 0 fail */
+
+/* Phase 1.3: Interrupt an in-progress cast or channel. Applies optional refunds based on
+    def.refund_on_cancel_pct and clears casting/channel flags. Returns 1 if something was
+    interrupted, 0 otherwise. */
+int rogue_skill_interrupt(int id, const RogueSkillCtx* ctx);
 int rogue_skill_try_cancel(int id,
                            const RogueSkillCtx* ctx); /* early cancel attempt for cast; 1 success */
 

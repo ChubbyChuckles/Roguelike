@@ -1,3 +1,12 @@
+Skills Phase 1.3: interrupt state + context defaults
+
+- Add INTERRUPTED to RogueSkillExecState; report via rogue_skill_get_exec_state when an activation is canceled.
+- Extend RogueSkillCtx with cast_pos/target_pos and affected_entity_ids/count; default cast_pos to player pos when unset and target_pos to cast_pos; clamp affected count to 8.
+- Clear interrupted flag on any new activation (cast/channel/instant) to ensure forward progress.
+- Implement rogue_skill_interrupt(id, ctx): cancel active cast/channel, set interrupted flag + timestamp, emit end FX (skill/<id>/end), and apply refunds according to refund_on_cancel_pct using effective AP/Mana cost math.
+- Build: Debug (SDL2) with -j12 succeeded.
+- Tests: full ctest run 100% green (591/591).
+
 feat(overlay/skills): EffectSpec palette category filters (Offensive/Defensive/Movement/Utility)
 
 - Added category toggles to the Effects tab palette; combines with substring, Kind, and Debuff-only filters. Assign-To flow and persistence unchanged.

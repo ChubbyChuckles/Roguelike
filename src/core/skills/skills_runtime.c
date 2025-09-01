@@ -360,6 +360,20 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         }
     }
     RogueSkillCtx local_ctx = ctx ? *ctx : (RogueSkillCtx){0};
+    /* Phase 1.3: default activation context fields when unspecified */
+    if (local_ctx.cast_pos_x == 0.0f && local_ctx.cast_pos_y == 0.0f)
+    {
+        local_ctx.cast_pos_x = g_app.player.base.pos.x;
+        local_ctx.cast_pos_y = g_app.player.base.pos.y;
+    }
+    if (local_ctx.target_pos_x == 0.0f && local_ctx.target_pos_y == 0.0f)
+    {
+        /* Default target to cast origin when not provided */
+        local_ctx.target_pos_x = local_ctx.cast_pos_x;
+        local_ctx.target_pos_y = local_ctx.cast_pos_y;
+    }
+    if (local_ctx.affected_entity_count > 8)
+        local_ctx.affected_entity_count = 8;
     local_ctx.rng_state = (unsigned int) (id * 2654435761u) ^ (unsigned int) st->uses * 2246822519u;
     int consumed = 1;
     int instant_act_flags =
@@ -394,6 +408,8 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
     }
     if (def->cast_type == 1 && def->cast_time_ms > 0)
     {
+        /* Clear interrupted state on new cast begin */
+        st->interrupted_active = 0;
         st->casting_active = 1;
         st->cast_progress_ms = 0;
         st->channel_active = 0;
@@ -414,6 +430,8 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
     }
     else if (def->cast_type == 2 && def->cast_time_ms > 0)
     {
+        /* Clear interrupted state on new channel begin */
+        st->interrupted_active = 0;
         st->channel_active = 1;
         st->casting_active = 0;
         st->channel_start_ms = now;
@@ -465,6 +483,8 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         /* Instant skills: fire start+end cues immediately on successful consume */
         if (consumed)
         {
+            /* Clear interrupted state on successful instant activation */
+            st->interrupted_active = 0;
             char key[48];
             snprintf(key, sizeof key, "skill/%d/start", id);
             rogue_fx_trigger_event(key, g_app.player.base.pos.x, g_app.player.base.pos.y);
@@ -697,6 +717,92 @@ int rogue_skill_try_cancel(int id, const RogueSkillCtx* ctx)
             unspent = 1.0f;
         refund_ap = (int) (refund_ap * unspent);
         refund_mana = (int) (refund_mana * unspent);
+        if (refund_ap > 0)
+        {
+            g_app.player.action_points += refund_ap;
+            int ap_max_now = g_app.player.max_action_points +
+                             (g_app.ap_overdrive_ms > 0.0f ? g_app.ap_overdrive_bonus : 0);
+            if (g_app.player.action_points > ap_max_now)
+                g_app.player.action_points = ap_max_now;
+        }
+        if (refund_mana > 0)
+        {
+            g_app.player.mana += refund_mana;
+            if (g_app.player.mana > g_app.player.max_mana)
+                g_app.player.mana = g_app.player.max_mana;
+        }
+    }
+    return 1;
+}
+
+/* Phase 1.3: Interrupt API implementation */
+int rogue_skill_interrupt(int id, const RogueSkillCtx* ctx)
+{
+    if (id < 0 || id >= g_skill_count_internal)
+        return 0;
+    RogueSkillState* st = &g_skill_states_internal[id];
+    const RogueSkillDef* def = &g_skill_defs_internal[id];
+    double now = ctx ? ctx->now_ms : g_app.game_time_ms;
+    int did_interrupt = 0;
+    if (st->casting_active && def->cast_type == 1 && def->cast_time_ms > 0)
+    {
+        st->casting_active = 0;
+        st->cast_progress_ms = 0;
+        did_interrupt = 1;
+    }
+    if (st->channel_active && def->cast_type == 2 && def->cast_time_ms > 0)
+    {
+        st->channel_active = 0;
+        st->channel_next_tick_ms = 0;
+        did_interrupt = 1;
+    }
+    if (!did_interrupt)
+        return 0;
+
+    st->interrupted_active = 1;
+    st->last_interrupt_ms = now;
+
+    /* FX: force end cue to mirror a normal completion */
+    {
+        char key[48];
+        snprintf(key, sizeof key, "skill/%d/end", id);
+        rogue_fx_trigger_event(key, g_app.player.base.pos.x, g_app.player.base.pos.y);
+        g_skill_states_internal[id].profile_last_cast_end_ms = now;
+        g_skill_states_internal[id].profile_last_act_end_ms = now;
+    }
+
+    /* Phase 2.3: refund on cancel for interrupts (treat as 100% unspent) */
+    if (def->refund_on_cancel_pct > 0)
+    {
+        /* Recompute effective costs using same logic as activation */
+        int eff_ap = def->action_point_cost;
+        if (def->ap_cost_pct_max > 0)
+        {
+            int ap_cap = g_app.player.max_action_points +
+                         (g_app.ap_overdrive_ms > 0.0f ? g_app.ap_overdrive_bonus : 0);
+            eff_ap = (ap_cap * (int) def->ap_cost_pct_max) / 100;
+        }
+        if (st->rank > 1)
+            eff_ap += (int) def->ap_cost_per_rank * (st->rank - 1);
+        if (def->ap_cost_surcharge_threshold > 0 &&
+            g_app.player.action_points < def->ap_cost_surcharge_threshold)
+        {
+            eff_ap += def->ap_cost_surcharge_amount;
+        }
+        if (eff_ap < 0)
+            eff_ap = 0;
+        int eff_mana = def->resource_cost_mana;
+        if (def->mana_cost_pct_max > 0)
+            eff_mana = (g_app.player.max_mana * (int) def->mana_cost_pct_max) / 100;
+        if (st->rank > 1)
+            eff_mana += (int) def->mana_cost_per_rank * (st->rank - 1);
+        if (def->mana_cost_surcharge_threshold > 0 &&
+            g_app.player.mana < def->mana_cost_surcharge_threshold)
+            eff_mana += def->mana_cost_surcharge_amount;
+        if (eff_mana < 0)
+            eff_mana = 0;
+        int refund_ap = (eff_ap * def->refund_on_cancel_pct) / 100;
+        int refund_mana = (eff_mana * def->refund_on_cancel_pct) / 100;
         if (refund_ap > 0)
         {
             g_app.player.action_points += refund_ap;
