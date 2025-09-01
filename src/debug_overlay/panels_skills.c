@@ -726,7 +726,7 @@ static void panel_skills(void* user)
                 }
             }
         }
-        /* Node Graph Editor (drag-and-drop + simple chaining via delays) */
+        /* Node Graph Editor (drag-and-drop + connections + chaining via delays) */
         {
             static int graph_enabled = 1;
             overlay_checkbox("Enable Node Graph Editor", &graph_enabled);
@@ -762,6 +762,11 @@ static void panel_skills(void* user)
                 static int ui_inited = 0;
                 static int dragging = 0; /* index: -1 primary, 0..2 nodes, 99 none */
                 static int drag_dx = 0, drag_dy = 0;
+                /* Connection map: parent_of[i] = -1 (primary), 0..2 (another node), -2 (unlinked)
+                 */
+                static int parent_of[3] = {-2, -2, -2};
+                static int linking = 0;      /* 0 idle, 1 waiting for target */
+                static int link_source = -2; /* -1 primary, 0..2 node */
                 if (last_skill != sel)
                 {
                     ui_inited = 0;
@@ -776,8 +781,11 @@ static void panel_skills(void* user)
                         ui_nodes[i].id = i;
                         ui_nodes[i].x = cv_x + 140 + i * 80;
                         ui_nodes[i].y = cv_y + 24 + (i % 2) * 56;
+                        parent_of[i] = -2; /* start unlinked; we’ll auto-link when assigned below */
                     }
                     dragging = 99;
+                    linking = 0;
+                    link_source = -2;
                     ui_inited = 1;
                 }
 
@@ -837,21 +845,32 @@ static void panel_skills(void* user)
                 }
                 was_down = mdown;
 
-                /* Draw connections from primary to nodes with valid effects */
+                /* Draw connections based on parent mapping (primary or other node) */
 #ifdef ROGUE_HAVE_SDL
                 if (!g_app.headless && g_app.renderer)
                 {
                     SDL_SetRenderDrawColor(g_app.renderer, 60, 160, 200, 255);
                     for (int i = 0; i < node_count && i < 3; ++i)
                     {
-                        if (nodes[i].effect_spec_id > 0)
+                        if (nodes[i].effect_spec_id <= 0)
+                            continue;
+                        int p = parent_of[i];
+                        if (p == -2)
+                            continue; /* unlinked */
+                        int x1 = 0, y1 = 0;
+                        if (p == -1)
                         {
-                            int x1 = ui_primary.x + bw;
-                            int y1 = ui_primary.y + bh / 2;
-                            int x2 = ui_nodes[i].x;
-                            int y2 = ui_nodes[i].y + bh / 2;
-                            SDL_RenderDrawLine(g_app.renderer, x1, y1, x2, y2);
+                            x1 = ui_primary.x + bw;
+                            y1 = ui_primary.y + bh / 2;
                         }
+                        else if (p >= 0 && p < 3)
+                        {
+                            x1 = ui_nodes[p].x + bw;
+                            y1 = ui_nodes[p].y + bh / 2;
+                        }
+                        int x2 = ui_nodes[i].x;
+                        int y2 = ui_nodes[i].y + bh / 2;
+                        SDL_RenderDrawLine(g_app.renderer, x1, y1, x2, y2);
                     }
                     /* Draw boxes */
                     SDL_Rect r;
@@ -872,10 +891,27 @@ static void panel_skills(void* user)
                         r.w = bw;
                         r.h = bh;
                         int valid = (nodes[i].effect_spec_id > 0);
+                        /* Per-node validation coloring: green OK, orange timing issue, red invalid
+                         * id */
+                        int has_timing_issue = 0;
                         if (valid)
-                            SDL_SetRenderDrawColor(g_app.renderer, 120, 180, 120, 230);
+                        {
+                            if (nodes[i].duration_ms < 0.0f)
+                                has_timing_issue = 1;
+                            if (nodes[i].repeat_count < 0 || nodes[i].repeat_count > 32)
+                                has_timing_issue = 1;
+                            if (nodes[i].repeat_count == 0 && nodes[i].duration_ms > 0.0f &&
+                                nodes[i].repeat_interval_ms <= 0.0f)
+                                has_timing_issue = 1;
+                            if (nodes[i].require_player_health_below_pct > 100)
+                                has_timing_issue = 1;
+                        }
+                        if (!valid)
+                            SDL_SetRenderDrawColor(g_app.renderer, 160, 80, 80, 230); /* red-ish */
+                        else if (has_timing_issue)
+                            SDL_SetRenderDrawColor(g_app.renderer, 200, 150, 80, 230); /* orange */
                         else
-                            SDL_SetRenderDrawColor(g_app.renderer, 160, 100, 100, 230);
+                            SDL_SetRenderDrawColor(g_app.renderer, 120, 180, 120, 230); /* green */
                         SDL_RenderFillRect(g_app.renderer, &r);
                         SDL_SetRenderDrawColor(g_app.renderer, 20, 20, 40, 255);
                         SDL_RenderDrawRect(g_app.renderer, &r);
@@ -904,6 +940,84 @@ static void panel_skills(void* user)
                     char lab[64];
                     snprintf(lab, sizeof lab, "Selected: Node %d", sel_node + 1);
                     overlay_label(lab);
+                }
+                /* Auto-link nodes that have an effect but are unlinked (default to primary) */
+                for (int i = 0; i < node_count && i < 3; ++i)
+                {
+                    if (nodes[i].effect_spec_id > 0 && parent_of[i] == -2)
+                        parent_of[i] = -1;
+                }
+                /* Linking UI */
+                if (overlay_button("Start Link from Selected"))
+                {
+                    linking = 1;
+                    link_source = sel_node; /* -1 or 0..2 */
+                }
+                if (linking)
+                {
+                    overlay_label("Link mode: click a target node to connect, or Cancel.");
+                    if (overlay_button("Cancel Link"))
+                    {
+                        linking = 0;
+                        link_source = -2;
+                    }
+                    /* Complete link by clicking a node box (handled above via hover), so add
+                     * explicit buttons to be headless-safe */
+                    for (int i = 0; i < node_count && i < 3; ++i)
+                    {
+                        char btxt[64];
+                        snprintf(btxt, sizeof btxt, "Connect -> Node %d", i + 1);
+                        if (overlay_button(btxt))
+                        {
+                            int src = link_source;
+                            int tgt = i;
+                            int cycle = 0;
+                            if (src == tgt)
+                                cycle = 1;
+                            /* Walk parents from src up to root to detect cycle */
+                            if (!cycle && src >= 0)
+                            {
+                                int v = src;
+                                for (int it = 0; it < 4; ++it)
+                                {
+                                    if (v == -1)
+                                        break;
+                                    if (v == tgt)
+                                    {
+                                        cycle = 1;
+                                        break;
+                                    }
+                                    int pv = parent_of[v];
+                                    if (pv == -2)
+                                        break;
+                                    v = pv;
+                                }
+                            }
+                            if (!cycle)
+                            {
+                                parent_of[tgt] = src; /* -1 or 0..2 */
+                            }
+                            linking = 0;
+                            link_source = -2;
+                        }
+                    }
+                }
+                /* Unlink/clear helpers */
+                if (sel_node >= 0 && sel_node < node_count)
+                {
+                    if (overlay_button("Unlink Selected"))
+                        parent_of[sel_node] = -2;
+                    if (overlay_button("Clear Selected Node"))
+                    {
+                        nodes[sel_node].effect_spec_id = -1;
+                        nodes[sel_node].delay_ms = 0.0f;
+                        nodes[sel_node].duration_ms = 0.0f;
+                        nodes[sel_node].repeat_count = 0;
+                        nodes[sel_node].repeat_interval_ms = 0.0f;
+                        nodes[sel_node].require_player_health_below_pct = 0;
+                        parent_of[sel_node] = -2;
+                        changed = 1;
+                    }
                 }
                 /* Parameter edit for selected */
                 if (sel_node == -1)
@@ -959,6 +1073,38 @@ static void panel_skills(void* user)
                             add = nodes[idx].repeat_count * nodes[idx].repeat_interval_ms;
                         }
                         t_ms += add;
+                    }
+                    changed = 1;
+                }
+
+                /* Apply connections: compute delays by walking parent chains from primary */
+                if (overlay_button("Apply Connections to Delays"))
+                {
+                    for (int i = 0; i < node_count && i < 3; ++i)
+                    {
+                        if (nodes[i].effect_spec_id <= 0)
+                            continue;
+                        if (parent_of[i] == -2)
+                            continue; /* unlinked */
+                        /* accumulate time from root to this node (exclude this node's own time) */
+                        float t_ms = 0.0f;
+                        int v = i;
+                        int guard = 0;
+                        while (parent_of[v] != -2 && guard++ < 8)
+                        {
+                            int p = parent_of[v];
+                            if (p == -1)
+                                break; /* primary root */
+                            if (p < 0 || p >= 3)
+                                break;
+                            /* add parent span */
+                            float add = nodes[p].duration_ms;
+                            if (nodes[p].repeat_count > 0 && nodes[p].repeat_interval_ms > 0.0f)
+                                add = nodes[p].repeat_count * nodes[p].repeat_interval_ms;
+                            t_ms += add;
+                            v = p;
+                        }
+                        nodes[i].delay_ms = t_ms;
                     }
                     changed = 1;
                 }

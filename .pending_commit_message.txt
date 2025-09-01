@@ -1,3 +1,12 @@
+Skills panel: Effect Node Graph connections, validation coloring, and derived delays
+
+- Implemented explicit connection system in Effects tab Node Graph: link/unlink flow with cycle prevention, parent mapping, and edge rendering.
+- Added per-node validation-based tinting (red invalid id, orange timing issues, green OK) and actions: Unlink Selected, Clear Selected Node.
+- "Apply Connections to Delays" computes delay_ms from graph topology by accumulating parent spans (duration or repeats × interval). Kept "Chain Nodes" for X-order quick sequencing.
+- Preserved headless-safe guards; no schema/runtime changes required.
+- Updated roadmap (STATUS DELTA + Phase 2.2 status) and README with linking workflow and colors.
+- Built Debug (SDL2) with parallelism (-j12) and ran full test suite: 100% pass (586/586).
+
 Skills: Meta Skill Type selector UI + debug API; overrides roundtrip; roadmap/README updates
 
 Summary:

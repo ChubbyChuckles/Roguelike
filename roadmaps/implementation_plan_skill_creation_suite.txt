@@ -7,6 +7,7 @@ X = Not started yet
 Optional = Stretch / future wave
 
 STATUS DELTA (current)
+- Effects tab Node Graph upgraded with explicit connections: parent mapping with link/unlink flow, cycle prevention, connection line rendering, per-node validation-based coloring (red/orange/green), and an "Apply Connections to Delays" action that derives delay_ms from parent spans. Retains simple X-order "Chain Nodes" as a quick tool. Headless-safe guards preserved.
 - Effects tab now includes a basic Node Graph editor: draggable nodes with selection and a compact parameter panel (EffectSpec ID, delay/duration/repeats/interval, HP gate). A simple "Chain Nodes" action orders by X position and generates sequential delays based on node durations/repeats. Rendering is headless‑safe and guarded when no SDL renderer is present.
 - Inline quick‑fix buttons added to Effects tab validation: clear invalid IDs (primary/node), set duration to 0, clamp repeat_count to 0..32, set repeat_interval to 1000ms when repeats > 0 and interval is 0, and clamp HP gate to 0..100%. Keeps authors unblocked without leaving the tab.
 - Extended optional fields for skills are integrated end-to-end: visuals (cast/projectile/impact/aoe sprites), animation params, audio hooks, AoE, and projectile params. Covered across schema -> runtime loader -> headless-safe debug get/set APIs -> validation -> overlay UI.
@@ -25,6 +26,7 @@ STATUS DELTA (current)
 
 CHANGELOG
 
+- 2025-09-01: Skills panel Node Graph: implemented explicit connections (link/unlink with cycle prevention), rendered edges, per-node validation coloring, and "Apply Connections to Delays". Debug build (SDL2) with -j12 and full ctest passed 100% (586/586).
 - 2025-09-01: Fixed channel haste timing for dynamic mode; per-tick interval recomputation and drift correction implemented.
  - 2025-09-01: Skills panel Testing tab gains a real-time preview (sprite-based) with auto-animate and zoom; compile fix in panels_skills.c (file-scope helper + string.h).
  - 2025-09-01: Skill overrides import supports primary effect and nodes order-independently and applies atomically via debug API; Effects tab editor roundtrip confirmed. Tests green (586/586, Debug, SDL2, -j12).
@@ -104,7 +106,7 @@ PHASE 2. Advanced UI Framework for Skill Creation
     - Connection system for effect dependencies and timing chains (X)
     - Parameter panels for each selected effect node (X)
     - Effect validation with error highlighting and suggestions (X)
-    Status: Partial (implemented a minimal EffectSpec palette with id filter and assignment to Primary/Node slots; added a basic Node Graph editor with drag/move + selection + simple chaining and inline quick‑fix buttons; advanced connections/validation highlighting remain pending)
+    Status: Partial (EffectSpec palette with filter + Assign-To; Node Graph with drag/move/selection; connections implemented with link/unlink, cycle prevention, edge rendering, and "Apply Connections to Delays"; inline quick‑fixes and per-node validation coloring done. Remaining: categorized effect node palette, richer suggestions/help, and broader node types.)
 2.3 Enhanced UI Widgets for Skill Editing
     - Vector2D input widget for positions and directions (X)
     - Curve editor for damage scaling, cooldown reduction, and other progressions (X)
