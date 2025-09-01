@@ -1,6 +1,22 @@
 ### Add documentation
 
-Please add doxygen documentation to everything in this file without losing information provided by already existing comments.
+I have a C file open in my editor. Please generate comprehensive Doxygen documentation for all functions, structs, enums, macros, and global variables in the file. Follow these guidelines:
+
+1. Use Doxygen comment style (e.g., `/** ... */` for multi-line or `///` for single-line comments) and ensure compatibility with Doxygen's default settings.
+2. Include the following for each element:
+   - For **functions**: A detailed description of the function's purpose, parameters (`@param`), return value (`@return`), and any side effects or notes.
+   - For **structs**: A description of the struct's purpose and a brief explanation of each member (`@param` or `@var`).
+   - For **enums**: A description of the enum's purpose and a brief explanation of each enumerator.
+   - For **macros**: A description of the macro's purpose, its parameters (if any, using `@param`), and usage notes.
+   - For **global variables**: A description of their purpose and usage.
+3. Preserve and integrate any existing comments in the file, ensuring they are incorporated into the Doxygen comments without losing information. If an existing comment already provides useful details, adapt it into the Doxygen format rather than replacing it.
+4. Add `@brief` for a concise summary and a detailed description where applicable.
+5. Include `@file` documentation at the top of the file, describing the file's overall purpose and including `@author` (use a placeholder like `[Your Name]`), `@date` (use current date: September 2025), and `@version` (use 1.0 unless specified otherwise).
+6. Ensure proper formatting for readability, with clear separation between sections and consistent use of Doxygen tags.
+7. Do not modify the actual C code (e.g., function implementations, struct definitions, etc.)—only add or update comments.
+8. If any part of the code lacks sufficient context for documentation, infer reasonable details based on variable/function names and code structure, but note any assumptions with `@note`.
+
+Please generate the Doxygen comments and insert them appropriately throughout the file.
 
 
 ### Useful commands

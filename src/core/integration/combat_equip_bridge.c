@@ -1,3 +1,25 @@
+/**
+ * @file combat_equip_bridge.c
+ * @brief Real-time bridge between equipment system and combat calculations.
+ *
+ * This module provides a comprehensive integration layer between the equipment
+ * system and combat calculations, enabling real-time stat application, durability
+ * management, proc effects, set bonuses, enchantments, and weight impacts.
+ *
+ * The bridge system supports:
+ * - Real-time equipment stat caching and application to combat
+ * - Equipment durability reduction based on combat damage
+ * - Proc effect triggering and management during combat
+ * - Equipment set bonus activation/deactivation tracking
+ * - Enchantment effect integration in combat formulas
+ * - Equipment weight impact on combat timing and movement
+ * - Performance monitoring and debug logging
+ *
+ * @note This is part of Phase 3.2 of the combat-equipment integration project.
+ * @author Combat-Equipment Integration Team
+ * @date 2025
+ */
+
 #include "combat_equip_bridge.h"
 #include "../../entities/player.h"
 #include "../../game/combat.h"
@@ -40,28 +62,6 @@ static double get_time_microseconds()
             printf("[Combat-Equipment Bridge %s] " fmt "\n", level, ##__VA_ARGS__);                \
         }                                                                                          \
     } while (0)
-
-/**
- * @file combat_equip_bridge.c
- * @brief Real-time bridge between equipment system and combat calculations.
- *
- * This module provides a comprehensive integration layer between the equipment
- * system and combat calculations, enabling real-time stat application, durability
- * management, proc effects, set bonuses, enchantments, and weight impacts.
- *
- * The bridge system supports:
- * - Real-time equipment stat caching and application to combat
- * - Equipment durability reduction based on combat damage
- * - Proc effect triggering and management during combat
- * - Equipment set bonus activation/deactivation tracking
- * - Enchantment effect integration in combat formulas
- * - Equipment weight impact on combat timing and movement
- * - Performance monitoring and debug logging
- *
- * @note This is part of Phase 3.2 of the combat-equipment integration project.
- * @author Combat-Equipment Integration Team
- * @date 2025
- */
 
 int rogue_combat_equip_bridge_init(RogueCombatEquipBridge* bridge)
 {
