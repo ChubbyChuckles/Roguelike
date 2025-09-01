@@ -2,6 +2,7 @@
 #include "../core/skills/skill_debug.h"
 #include "../core/skills/skills_coeffs.h"
 #include "../core/skills/skills_validate.h"
+#include "../game/buffs.h" /* for rogue_buffs_type_categories to derive palette categories */
 #include "../graphics/effect_spec.h"
 #include "../graphics/sprite.h"
 #include "overlay_core.h"
@@ -26,6 +27,26 @@ typedef struct PreviewTex
 static int overlay_box_hit(int mx, int my, int bx, int by, int bw, int bh)
 {
     return (mx >= bx && mx < bx + bw && my >= by && my < by + bh) ? 1 : 0;
+}
+
+/* Palette helper: map an EffectSpec to overlay categories based on kind/debuff/buff_type. */
+static int palette_effect_categories(const RogueEffectSpec* es)
+{
+    if (!es)
+        return 0;
+    int cats = 0;
+    if (es->debuff)
+        cats |= ROGUE_BUFF_CAT_OFFENSIVE;
+    if (es->kind == ROGUE_EFFECT_STAT_BUFF)
+    {
+        if (es->buff_type >= 0 && es->buff_type < ROGUE_BUFF_MAX)
+            cats |= (int) rogue_buffs_type_categories((RogueBuffType) es->buff_type);
+        else
+            cats |= ROGUE_BUFF_CAT_UTILITY;
+    }
+    if (es->kind == ROGUE_EFFECT_AURA)
+        cats |= ROGUE_BUFF_CAT_OFFENSIVE;
+    return cats;
 }
 
 static void preview_ensure_tex(PreviewTex* t, const char* path)
@@ -632,7 +653,7 @@ static void panel_skills(void* user)
             if (local_errors == 0)
                 overlay_label("Local check: OK");
         }
-        /* Minimal EffectSpec palette with filter and selectable target (primary or node index) */
+        /* EffectSpec palette with filters (id substring, kind, debuff-only, category) */
         {
             static int palette_open = 1;
             static char eff_filter[64] = "";
@@ -640,6 +661,7 @@ static void panel_skills(void* user)
             static int eff_selected = -1;  /* last selected effect id */
             static int kind_filter = -1;   /* -1=Any, 0=BUFF,1=DOT,2=AURA */
             static int debuff_only = 0;
+            static int cat_filter = 0; /* 0 = Any; bitmask of RogueBuffCategoryFlags otherwise */
             overlay_checkbox("Show EffectSpec Palette", &palette_open);
             if (palette_open)
             {
@@ -648,6 +670,32 @@ static void panel_skills(void* user)
                 overlay_slider_int("Kind Filter (-1 any, 0 buff, 1 dot, 2 aura)", &kind_filter, -1,
                                    2);
                 overlay_checkbox("Debuff only", &debuff_only);
+                /* Category filter: 0 Any, else mask. Quick toggles for common cats. */
+                overlay_label("Category Filter (toggle to OR):");
+                int widths[4] = {120, 120, 120, 120};
+                overlay_columns_begin(4, widths);
+                int t_off = (cat_filter & ROGUE_BUFF_CAT_OFFENSIVE) != 0;
+                int t_def = (cat_filter & ROGUE_BUFF_CAT_DEFENSIVE) != 0;
+                int t_mov = (cat_filter & ROGUE_BUFF_CAT_MOVEMENT) != 0;
+                int t_utl = (cat_filter & ROGUE_BUFF_CAT_UTILITY) != 0;
+                (void) overlay_checkbox("Offensive", &t_off);
+                overlay_next_column();
+                (void) overlay_checkbox("Defensive", &t_def);
+                overlay_next_column();
+                (void) overlay_checkbox("Movement", &t_mov);
+                overlay_next_column();
+                (void) overlay_checkbox("Utility", &t_utl);
+                overlay_columns_end();
+                /* rebuild mask */
+                cat_filter = 0;
+                if (t_off)
+                    cat_filter |= ROGUE_BUFF_CAT_OFFENSIVE;
+                if (t_def)
+                    cat_filter |= ROGUE_BUFF_CAT_DEFENSIVE;
+                if (t_mov)
+                    cat_filter |= ROGUE_BUFF_CAT_MOVEMENT;
+                if (t_utl)
+                    cat_filter |= ROGUE_BUFF_CAT_UTILITY;
                 int ec = rogue_effect_count();
                 const char* headers[] = {"ID", "Kind", "Debuff", "Dur"};
                 int sort_col = 0, sort_dir = 0;
@@ -686,6 +734,12 @@ static void panel_skills(void* user)
                             continue;
                         if (debuff_only && es->debuff == 0)
                             continue;
+                        if (cat_filter != 0)
+                        {
+                            int cats = palette_effect_categories(es);
+                            if ((cats & cat_filter) == 0)
+                                continue;
+                        }
                         snprintf(kind_s, sizeof kind_s, "%u", (unsigned) es->kind);
                         snprintf(deb_s, sizeof deb_s, "%u", (unsigned) es->debuff);
                         snprintf(dur_s, sizeof dur_s, "%.0f", es->duration_ms);

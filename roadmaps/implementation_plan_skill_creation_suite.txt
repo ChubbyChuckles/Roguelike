@@ -7,6 +7,7 @@ X = Not started yet
 Optional = Stretch / future wave
 
 STATUS DELTA (current)
+- EffectSpec palette now supports category filters (Offensive, Defensive, Movement, Utility) combined with Kind/Debuff/ID filters; Assign-To flow and persistence unchanged. Headless-safe guards preserved.
 - Effects tab Node Graph upgraded with explicit connections: parent mapping with link/unlink flow, cycle prevention, connection line rendering, per-node validation-based coloring (red/orange/green), and an "Apply Connections to Delays" action that derives delay_ms from parent spans. Retains simple X-order "Chain Nodes" as a quick tool. Headless-safe guards preserved.
 - Effects tab now includes a basic Node Graph editor: draggable nodes with selection and a compact parameter panel (EffectSpec ID, delay/duration/repeats/interval, HP gate). A simple "Chain Nodes" action orders by X position and generates sequential delays based on node durations/repeats. Rendering is headless‑safe and guarded when no SDL renderer is present.
 - Inline quick‑fix buttons added to Effects tab validation: clear invalid IDs (primary/node), set duration to 0, clamp repeat_count to 0..32, set repeat_interval to 1000ms when repeats > 0 and interval is 0, and clamp HP gate to 0..100%. Keeps authors unblocked without leaving the tab.
@@ -25,6 +26,8 @@ STATUS DELTA (current)
  - Overlay usability: Panels are now movable and persist their layout (x, y, width) and visibility across runs. Implemented via `overlay_begin_panel_auto`, with configuration saved under `build/overlay_layout.json`. Panel height is clamped to the viewport and long tables cap rows to avoid overflow. Converted System, Player, Validation, Audio/VFX, Entities, Items, Map Editor, Content Graph, and Skills panels to the new helper. (Done)
 
 CHANGELOG
+
+- 2025-09-01: EffectSpec palette gains category toggles (Offensive/Defensive/Movement/Utility) integrated with Kind/Debuff/ID filters; Assign-To preserved. Debug build (SDL2) with -j12 and full ctest passed 100% (586/586).
 
 - 2025-09-01: Skills panel Node Graph: implemented explicit connections (link/unlink with cycle prevention), rendered edges, per-node validation coloring, and "Apply Connections to Delays". Debug build (SDL2) with -j12 and full ctest passed 100% (586/586).
 - 2025-09-01: Fixed channel haste timing for dynamic mode; per-tick interval recomputation and drift correction implemented.
@@ -102,11 +105,11 @@ PHASE 2. Advanced UI Framework for Skill Creation
     - Real-time preview window showing skill visualization (Done)
 2.2 Effect Composition Visual Editor
     - Node-based effect graph editor with drag-and-drop (X)
-    - Effect node palette with categories: Damage, Utility, Movement, Status (X)
+    - Effect node palette with categories: Damage, Utility, Movement, Status (Done)
     - Connection system for effect dependencies and timing chains (X)
     - Parameter panels for each selected effect node (X)
     - Effect validation with error highlighting and suggestions (X)
-    Status: Partial (EffectSpec palette with filter + Assign-To; Node Graph with drag/move/selection; connections implemented with link/unlink, cycle prevention, edge rendering, and "Apply Connections to Delays"; inline quick‑fixes and per-node validation coloring done. Remaining: categorized effect node palette, richer suggestions/help, and broader node types.)
+    Status: Partial (EffectSpec palette with substring/Kind/Debuff filters, category toggles, and Assign-To; Node Graph with drag/move/selection; connections implemented with link/unlink, cycle prevention, edge rendering, and "Apply Connections to Delays"; inline quick‑fixes and per-node validation coloring done. Remaining: richer suggestions/help, and broader node types.)
 2.3 Enhanced UI Widgets for Skill Editing
     - Vector2D input widget for positions and directions (X)
     - Curve editor for damage scaling, cooldown reduction, and other progressions (X)

@@ -1,3 +1,10 @@
+feat(overlay/skills): EffectSpec palette category filters (Offensive/Defensive/Movement/Utility)
+
+- Added category toggles to the Effects tab palette; combines with substring, Kind, and Debuff-only filters. Assign-To flow and persistence unchanged.
+- Headless-safe guards preserved; no schema/runtime changes required.
+- Roadmap updated (Phase 2.2 categories Done + STATUS DELTA/CHANGELOG), README tips mention category toggles.
+- Build & tests: Debug (SDL2) with -j12; full ctest suite passed 100% (586/586).
+
 Skills panel: Effect Node Graph connections, validation coloring, and derived delays
 
 - Implemented explicit connection system in Effects tab Node Graph: link/unlink flow with cycle prevention, parent mapping, and edge rendering.
