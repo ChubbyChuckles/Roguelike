@@ -112,7 +112,12 @@ Milestone 7 — Persistence, safety, and collaboration
 Milestone 8 — Performance and robustness
 8.1 Virtualized lists/tables
   - Only render visible rows; smooth scroll. Acceptance: 100k-row table stays >60 FPS.
-  - Status: Prototype in Items panel using a row-offset slider and fixed visible_rows for stability in headless mode. Smooth scrolling and scrollbar integration are next; FPS metrics pending on large sets.
+  - Status: Items panel now supports virtualized rows with multiple inputs:
+    • Mouse wheel over table (hover-aware consumption)
+    • Keyboard Up/Down and Home/End
+    • Shift to accelerate scroll step
+    • Row-offset slider (kept for headless determinism)
+    Scrollbar rendering/drag is pending; FPS metrics on 20k–100k sets still pending.
 8.2 Background job system
   - Worker pool for validation, hash compute, heavy exports; progress HUD with cancel.
 8.3 Memory discipline
@@ -164,6 +169,8 @@ Near-term next steps (actionable)
 1) Implement overlay_theme and migrate System + Items panels to use it.
 2) Splitters done: Items/Skills/Map now split with persisted sizes; toasts are already available and used in Items stub.
 3) DONE: Items “Create New” wizard powered by schema; Duplicate-as-template integrated.
-4) DONE (prototype): Virtualized table in Items list via row-offset slider; next: mouse wheel/scrollbar integration and smooth scroll. Measure FPS on 20k entries and tune row height/theme spacing.
-5) Add Items list filtering and sort toggles (id/name/category/rarity); expose “Create Item” via Command Palette args to open the wizard focused.
+4) DONE: Virtualized table in Items list with row-offset slider and smooth navigation via mouse wheel (hover-aware), Up/Down, Home/End, and Shift-accelerated steps. Next: add a visual scrollbar (drag to scroll) and consider pixel-level smoothing. Measure FPS on 20k entries and tune row height/theme spacing.
+5) DONE: Items list filtering and sort toggles (id/name/category/rarity); expose “Create Item” via Command Palette args to open the wizard focused.
+  - Case-insensitive substring filter on id/name; header clicks toggle ascending/descending sort.
+  - Keyboard Up/Down scroll the virtualized list; selection stays in view. Command: “Items: Create New”.
 6) Begin overlay_theme extraction and migrate System + Items to theme constants (colors/spacing/typography). Document quick preset switch and persistence.

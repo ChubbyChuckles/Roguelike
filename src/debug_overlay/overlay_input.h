@@ -20,6 +20,7 @@ extern "C"
         int mouse_y;
         int mouse_down;    /* 1 while pressed */
         int mouse_clicked; /* 1 exactly on the frame a press began */
+        int mouse_wheel_y; /* +N scrolled up, -N scrolled down (per frame, resets each frame) */
 
         int key_tab_pressed;       /* 1 if Tab pressed this frame */
         int key_backspace_pressed; /* for InputText */

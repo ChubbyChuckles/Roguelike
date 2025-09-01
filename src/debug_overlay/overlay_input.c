@@ -53,6 +53,10 @@ void overlay_input_handle_event(const void* evptr)
         g_inp.mouse_x = ev->motion.x;
         g_inp.mouse_y = ev->motion.y;
         break;
+    case SDL_MOUSEWHEEL:
+        /* SDL wheel: positive y = scroll up, negative y = scroll down */
+        g_inp.mouse_wheel_y += ev->wheel.y;
+        break;
     case SDL_MOUSEBUTTONDOWN:
         /* Update position as well so clicks are registered even without prior motion */
         g_inp.mouse_x = ev->button.x;

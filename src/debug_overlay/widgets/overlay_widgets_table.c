@@ -24,6 +24,7 @@ int overlay_table_begin(const char* id, const char* const* headers, int col_coun
     g_ui.table_active = 1;
     g_ui.table_cols = col_count;
     g_ui.table_row_h = 18;
+    g_ui.table_hovered = 0;
     for (int c = 0; c < col_count; ++c)
     {
         int clicked = overlay_button(headers[c] ? headers[c] : "");
@@ -39,6 +40,15 @@ int overlay_table_begin(const char* id, const char* const* headers, int col_coun
         }
     }
     overlay_columns_end();
+    /* Consider header area hovered if mouse in the last header row bounds */
+    {
+        int row_x = g_ui.cur_x - 8;
+        int row_y = g_ui.cur_y - g_ui.line_h + 2;
+        int row_w = g_ui.width;
+        int row_h = g_ui.table_row_h;
+        if (overlay_mouse_over(row_x, row_y, row_w, row_h))
+            g_ui.table_hovered = 1;
+    }
     return 1;
 }
 
@@ -82,6 +92,8 @@ int overlay_table_row(const char* const* cells, int col_count, int row_index, in
     }
     const OverlayInputState* in = overlay_input_get();
     int hover = overlay_mouse_over(row_x, row_y, row_w, row_h);
+    if (hover)
+        g_ui.table_hovered = 1;
     if (hover && in->mouse_clicked && selected_row)
     {
         if (*selected_row != row_index)
@@ -101,6 +113,17 @@ void overlay_table_end(void)
     ui_next_line();
     g_ui.table_active = 0;
     g_ui.table_cols = 0;
+}
+
+/* Helper to query table hover and wheel delta for scrolling lists */
+int overlay_table_hover_wheel(int* out_wheel_y)
+{
+    if (!g_ui.panel_active)
+        return 0;
+    const OverlayInputState* in = overlay_input_get();
+    if (out_wheel_y)
+        *out_wheel_y = in ? in->mouse_wheel_y : 0;
+    return g_ui.table_hovered;
 }
 
 #endif /* ROGUE_ENABLE_DEBUG_OVERLAY */

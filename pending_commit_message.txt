@@ -25,6 +25,14 @@ Debug Overlay: Items panel authoring + virtualization; compile fix; docs/roadmap
 - Docs: README adds Items tips (duplicate-as-template + virtualization); roadmap marks Milestone 2.1 (Items wizard) and 8.1 (virtualization prototype) as progressed; near-term next steps updated.
 - Tests: Debug SDL2 build and full ctest suite all green (593/593).
 
+Debug Overlay: Items list search + header sort toggles; command action; MSVC fix; tests green
+
+- Items panel: add case-insensitive search on id/name and header-based sorting (asc/desc) for id/name/category/rarity; keyboard Up/Down scroll keeps selection in view; works with the virtualized list window.
+- Commands: register “Items: Create New” in the Command Palette to open the wizard focused.
+- MSVC portability: remove a nested static function from panels_items.c (not supported by MSVC) by lifting it to file scope and wiring through registration.
+- Roadmap: mark near-term step 5 DONE; README tips updated.
+- Build/Tests: Debug SDL2 build (-j12) and full ctest run pass cleanly (593/593).
+
 
 - Commands: minimal palette UI with substring filter and keyboard navigation; toggle with Ctrl+Shift+P.
 	• Registered defaults: Validation (Run Now, Show Panel), Skills (Save/Load Overrides),
@@ -38,3 +46,12 @@ Build: Fix vcpkg manifest error in MSBuild tasks
 - Tasks: Add /p:VcpkgEnableManifest=true to MSBuild commands in tasks.json for thread tests and sync tests.
 - Build: Verified Debug SDL2 build with -j12 completes successfully.
 - Tests: Full ctest suite passes (593/593) with no regressions.
+
+Debug Overlay: Items table smooth scrolling (wheel + Home/End + Shift), hover-aware; docs/roadmap; tests green
+
+- Input: Add per-frame mouse wheel capture to overlay input (SDL_MOUSEWHEEL → OverlayInputState.mouse_wheel_y). Resets each frame.
+- Widgets/Table: Track table hover (headers/rows) and expose overlay_table_hover_wheel(&dy) to consumers.
+- Items panel: When the table is hovered, wheel scrolling adjusts the virtualized row offset; added Home/End jumps and Shift-accelerated step for Up/Down. Offset clamped to bounds; slider retained for headless determinism.
+- Readme: Updated Items tips to mention wheel/Home/End/Shift controls.
+- Roadmap: Mark virtualization + wheel/keyboard smooth navigation as DONE; note scrollbar rendering/drag as next.
+- Build/Tests: Debug SDL2 build (-j12) succeeded; ctest full suite all green (593/593).

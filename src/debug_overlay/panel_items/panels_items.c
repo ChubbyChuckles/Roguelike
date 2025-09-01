@@ -3,11 +3,99 @@
 #include "../../core/inventory/inventory.h"
 #include "../../core/loot/item_debug.h"
 #include "../../core/loot/loot_item_defs.h"
+#include "../overlay_commands.h"
 #include "../overlay_core.h"
+#include "../overlay_input.h"
 #include "../overlay_toast.h"
 #include "../widgets/overlay_widgets.h"
+#include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
+
+/* File-scope state used by qsort comparator */
+static int s_items_sort_col = 0; /* 0 Name, 1 Id, 2 Rarity, 3 Category, 4 Qty */
+static int s_items_sort_dir = 1; /* +1 asc, -1 desc */
+
+static int ci_cmp(const char* a, const char* b)
+{
+    if (!a)
+        a = "";
+    if (!b)
+        b = "";
+    while (*a && *b)
+    {
+        int ca = tolower((unsigned char) *a);
+        int cb = tolower((unsigned char) *b);
+        if (ca != cb)
+            return (ca < cb) ? -1 : 1;
+        ++a;
+        ++b;
+    }
+    if (*a == *b)
+        return 0;
+    return (*a) ? 1 : -1;
+}
+
+static int contains_ci(const char* hay, const char* needle)
+{
+    if (!needle || !*needle)
+        return 1;
+    if (!hay)
+        return 0;
+    size_t nlen = strlen(needle);
+    for (const char* p = hay; *p; ++p)
+    {
+        size_t i = 0;
+        while (i < nlen && p[i] &&
+               tolower((unsigned char) p[i]) == tolower((unsigned char) needle[i]))
+            ++i;
+        if (i == nlen)
+            return 1;
+    }
+    return 0;
+}
+
+static int items_idx_cmp(const void* ap, const void* bp)
+{
+    int ia = *(const int*) ap;
+    int ib = *(const int*) bp;
+    const RogueItemDef* da = rogue_item_def_at(ia);
+    const RogueItemDef* db = rogue_item_def_at(ib);
+    if (!da || !db)
+        return 0;
+    int v = 0;
+    switch (s_items_sort_col)
+    {
+    default:
+    case 0:
+        v = ci_cmp(da->name, db->name);
+        break;
+    case 1:
+        v = ci_cmp(da->id, db->id);
+        break;
+    case 2:
+        v = (da->rarity - db->rarity);
+        break;
+    case 3:
+        v = ((int) da->category - (int) db->category);
+        break;
+    case 4:
+        v = (rogue_inventory_get_count(ia) - rogue_inventory_get_count(ib));
+        break;
+    }
+    if (s_items_sort_dir < 0)
+        v = -v;
+    return (v < 0) ? -1 : (v > 0 ? 1 : 0);
+}
+
+/* Command callback: open the Items panel */
+static void items_cmd_open(void* user)
+{
+    (void) user;
+    overlay_set_panel_visible("items", 1);
+}
 
 static void panel_items(void* user)
 {
@@ -54,58 +142,98 @@ static void panel_items(void* user)
     if (overlay_splitter_begin("items.split", &left_w, 180, 600))
     {
         overlay_label("Inventory Snapshot:");
-        const char* headers[] = {"Name", "Qty", "Power"};
+        /* Headers include fields we can sort by; clicking a header toggles direction. */
+        const char* headers[] = {"Name", "Id", "Rarity", "Category", "Qty"};
         static int s_selected = -1;  /* persist selection across frames */
         static int s_row_offset = 0; /* virtualized row offset (rows, not pixels) */
-        int sort_col = 0, sort_dir = 1;
-        /* Pre-scan to count visible rows (qty>0) */
+        static int s_sort_col = 0;
+        static int s_sort_dir = 1; /* +1 asc, -1 desc */
+        /* Build filtered list of item indices based on qty>0 and UI filters */
         int total_defs = rogue_item_defs_count();
-        int total_rows = 0;
+        int* idx = (int*) malloc(sizeof(int) * (total_defs > 0 ? total_defs : 1));
+        int nidx = 0;
         for (int i = 0; i < total_defs; ++i)
-            if (rogue_inventory_get_count(i) > 0)
-                total_rows++;
-        /* Simple virtualization: assume a fixed number of visible rows for now. */
-        int visible_rows = 20; /* reasonable default without querying internal UI metrics */
+        {
+            int qty = rogue_inventory_get_count(i);
+            if (qty <= 0)
+                continue;
+            const RogueItemDef* d = rogue_item_def_at(i);
+            if (!d)
+                continue;
+            if (filter_rarity >= 0 && d->rarity != filter_rarity)
+                continue;
+            if (d->level_req < level_min || d->level_req > level_max)
+                continue;
+            if (search[0] != '\0')
+            {
+                int match = contains_ci(d->name, search) || contains_ci(d->id, search);
+                if (!match)
+                    continue;
+            }
+            idx[nidx++] = i;
+        }
+        /* Sorting comparator according to selected column */
+        if (nidx > 1)
+        {
+            s_items_sort_col = s_sort_col;
+            s_items_sort_dir = s_sort_dir;
+            qsort(idx, (size_t) nidx, sizeof(int), items_idx_cmp);
+        }
+        /* Virtualization sizing */
+        int total_rows = nidx;
+        int visible_rows = 20;
         if (visible_rows > total_rows)
             visible_rows = total_rows;
         int max_first_row = (total_rows > visible_rows) ? (total_rows - visible_rows) : 0;
         if (s_row_offset > max_first_row)
             s_row_offset = max_first_row;
-
-        if (overlay_table_begin("items_inv", headers, 3, &sort_col, &sort_dir, NULL))
+        /* Keyboard & mouse scroll: adjust row offset */
         {
-            /* Virtualized emit: only draw rows in [first, first+count) among qty>0 entries */
+            const OverlayInputState* in = overlay_input_get();
+            int step = (in && in->key_shift_down) ? 5 : 1;
+            if (in && in->key_down_pressed)
+                s_row_offset += step;
+            if (in && in->key_up_pressed)
+                s_row_offset -= step;
+            if (in && in->key_home_pressed)
+                s_row_offset = 0;
+            if (in && in->key_end_pressed)
+                s_row_offset = max_first_row;
+            /* Mouse wheel over the table */
+            int wheel = 0;
+            if (overlay_table_hover_wheel(&wheel) && wheel != 0)
+            {
+                /* SDL: positive wheel = up => decrease offset */
+                s_row_offset -= wheel;
+            }
+            if (s_row_offset < 0)
+                s_row_offset = 0;
+            if (s_row_offset > max_first_row)
+                s_row_offset = max_first_row;
+        }
+        if (overlay_table_begin("items_inv", headers, 5, &s_sort_col, &s_sort_dir, search))
+        {
             int first = s_row_offset;
             int visible = visible_rows > 0 ? visible_rows : 1;
-            int drawn = 0;
-            int kth = 0; /* counts over qty>0 entries */
-            for (int i = 0; i < total_defs; ++i)
+            for (int k = 0; k < visible && (first + k) < nidx; ++k)
             {
+                int i = idx[first + k];
                 int qty = rogue_inventory_get_count(i);
-                if (qty <= 0)
-                    continue;
-                if (kth < first)
-                {
-                    kth++;
-                    continue;
-                }
-                if (drawn >= visible)
-                    break;
                 const RogueItemDef* d = rogue_item_def_at(i);
                 char qty_s[16];
-                char pow_s[16];
                 snprintf(qty_s, sizeof qty_s, "%d", qty);
-                /* Placeholder power column: base_value for now */
-                snprintf(pow_s, sizeof pow_s, "%d", d ? d->base_value : 0);
-                const char* cells[] = {d ? d->name : "?", qty_s, pow_s};
-                (void) overlay_table_row(cells, 3, i, &s_selected);
-                drawn++;
-                kth++;
+                char rar_s[16];
+                snprintf(rar_s, sizeof rar_s, "%d", d ? d->rarity : 0);
+                char cat_s[16];
+                snprintf(cat_s, sizeof cat_s, "%d", d ? (int) d->category : 0);
+                const char* cells[] = {d ? d->name : "?", d ? d->id : "?", rar_s, cat_s, qty_s};
+                (void) overlay_table_row(cells, 5, i, &s_selected);
             }
             overlay_table_end();
         }
-        /* Simple scroll control for virtualization (row offset) */
         overlay_slider_int("Scroll", &s_row_offset, 0, max_first_row);
+        if (idx)
+            free(idx);
         overlay_next_column();
         overlay_label("Create New Item");
         static char new_id[64] = "";
@@ -208,6 +336,8 @@ static void panel_items(void* user)
 void rogue_overlay_register_panel_items(void)
 {
     overlay_register_panel("items", "Items", panel_items, NULL);
+    /* Expose command to open Create Item wizard */
+    overlay_command_register("Items: Create New", items_cmd_open, NULL);
 }
 
 #endif

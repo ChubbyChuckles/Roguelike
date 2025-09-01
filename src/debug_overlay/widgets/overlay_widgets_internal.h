@@ -30,6 +30,7 @@ typedef struct UiCtx
     int table_active;
     int table_cols;
     int table_row_h;
+    int table_hovered; /* 1 if mouse is over table header or any row this frame */
 } UiCtx;
 
 /* Global UI context owned by overlay widgets implementation */

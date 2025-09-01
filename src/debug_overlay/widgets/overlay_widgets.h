@@ -61,6 +61,9 @@ extern "C"
     int overlay_table_row(const char* const* cells, int col_count, int row_index,
                           int* selected_row);
     void overlay_table_end(void);
+    /* Returns 1 if the current table (headers or rows) was hovered this frame, and outputs
+        the mouse wheel delta Y for scrolling (positive = up). */
+    int overlay_table_hover_wheel(int* out_wheel_y);
 
     /* Style adjust */
     void overlay_style_set(OverlayStyle s);
