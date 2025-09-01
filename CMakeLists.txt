@@ -447,6 +447,9 @@ target_compile_definitions(rogue_core PUBLIC ROGUE_ENABLE_JSON_CONTENT=$<IF:$<BO
 add_library(rogue_debug_overlay OBJECT
     src/debug_overlay/overlay_core.c
     src/debug_overlay/overlay_input.c
+    src/debug_overlay/overlay_theme.c
+    src/debug_overlay/overlay_toast.c
+    src/debug_overlay/overlay_commands.c
     src/debug_overlay/widgets/overlay_widgets.c
     # Split widget implementation units
     src/debug_overlay/widgets/overlay_widgets_core.c

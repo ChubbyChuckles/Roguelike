@@ -28,9 +28,13 @@ extern "C"
         int key_space_pressed;
         int key_left_pressed;
         int key_right_pressed;
+        int key_up_pressed;
+        int key_down_pressed;
         int key_home_pressed;
         int key_end_pressed;
         int key_escape_pressed;
+        int key_ctrl_down;
+        int key_p_pressed;
 
         int want_capture_mouse;
         int want_capture_keyboard;

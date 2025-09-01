@@ -3,6 +3,7 @@
 #if ROGUE_ENABLE_DEBUG_OVERLAY
 
 #include "../../core/app/app_state.h"
+#include "../overlay_theme.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
@@ -60,17 +61,23 @@ int overlay_table_row(const char* const* cells, int col_count, int row_index, in
 #ifdef ROGUE_HAVE_SDL
         if (g_app.renderer)
         {
+            const OverlayTheme* th = overlay_theme_get();
             SDL_Rect rr = {row_x, row_y, row_w, row_h};
             int sel = (selected_row && *selected_row == row_index);
-            SDL_SetRenderDrawColor(g_app.renderer, sel ? 60 : 20, sel ? 80 : 20, sel ? 120 : 20,
-                                   180);
+            OverlayColor bg = sel ? th->table_row_bg_sel : th->table_row_bg;
+            SDL_SetRenderDrawColor(g_app.renderer, bg.r, bg.g, bg.b, bg.a);
             SDL_RenderFillRect(g_app.renderer, &rr);
-            SDL_SetRenderDrawColor(g_app.renderer, 220, 220, 220, 220);
+            SDL_SetRenderDrawColor(g_app.renderer, th->table_border.r, th->table_border.g,
+                                   th->table_border.b, th->table_border.a);
             SDL_RenderDrawRect(g_app.renderer, &rr);
         }
 #endif
         for (int c = 0; c < col_count; ++c)
-            overlay_label(cells[c] ? cells[c] : "");
+        {
+            const char* t = cells[c] ? cells[c] : "";
+            /* overlay_label already uses theme text color */
+            overlay_label(t);
+        }
         overlay_columns_end();
     }
     const OverlayInputState* in = overlay_input_get();

@@ -1,7 +1,10 @@
 #include "overlay_core.h"
 #if ROGUE_ENABLE_DEBUG_OVERLAY
 #include "../content/json_io.h"
+#include "overlay_commands.h"
 #include "overlay_input.h"
+#include "overlay_theme.h"
+#include "overlay_toast.h"
 #include "widgets/overlay_widgets_internal.h"
 #include <stdio.h>
 #include <string.h>
@@ -150,6 +153,8 @@ void overlay_init(void)
     g_panel_visible_mask = 0u;
     g_layout_count = 0;
     overlay_layout_load();
+    /* Initialize theme after layout so future theme UI can use persisted data */
+    overlay_theme_init();
 }
 
 void overlay_shutdown(void)
@@ -206,12 +211,24 @@ void overlay_render(void)
         SDL_SetRenderDrawBlendMode(g_app.renderer, SDL_BLENDMODE_BLEND);
     }
 #endif
+    /* Global shortcuts */
+    {
+        const OverlayInputState* in = overlay_input_get();
+        if (in && in->key_p_pressed && in->key_ctrl_down && in->key_shift_down)
+        {
+            /* toggle command palette */
+            overlay_commands_toggle(1);
+        }
+    }
     /* Invoke panel callbacks; panels draw using SDL primitives and fonts */
     for (int i = 0; i < g_panel_count; ++i)
     {
         if (g_panels[i].fn && (g_panel_visible_mask & (1u << i)))
             g_panels[i].fn(g_panels[i].user);
     }
+    /* Non-modal systems */
+    overlay_toast_render();
+    overlay_commands_render();
     /* Restore previous blend mode to avoid side effects on game renderer */
 #ifdef ROGUE_HAVE_SDL
     if (restore_blend && g_app.renderer)
@@ -342,13 +359,18 @@ int overlay_begin_panel_auto(const char* id, const char* title, int default_x, i
 #ifdef ROGUE_HAVE_SDL
     if (g_app.renderer)
     {
+        const OverlayTheme* th = overlay_theme_get();
         SDL_Rect panel = {x, y, w, panel_h};
-        SDL_SetRenderDrawColor(g_app.renderer, 10, 10, 10, 160);
+        SDL_SetRenderDrawColor(g_app.renderer, th->panel_bg.r, th->panel_bg.g, th->panel_bg.b,
+                               th->panel_bg.a);
         SDL_RenderFillRect(g_app.renderer, &panel);
-        SDL_SetRenderDrawColor(g_app.renderer, 220, 220, 220, 200);
+        SDL_SetRenderDrawColor(g_app.renderer, th->panel_border.r, th->panel_border.g,
+                               th->panel_border.b, th->panel_border.a);
         SDL_RenderDrawRect(g_app.renderer, &panel);
         if (title)
-            rogue_font_draw_text(x + 6, y + 6, title, 1, (RogueColor){255, 255, 210, 255});
+            rogue_font_draw_text(x + 6, y + 6, title, 1,
+                                 (RogueColor){th->title_text.r, th->title_text.g, th->title_text.b,
+                                              th->title_text.a});
     }
 #endif
     /* Initialize UI cursor inside the panel, similar to overlay_begin_panel */

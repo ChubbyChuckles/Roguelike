@@ -4,6 +4,7 @@
 
 #include "../../core/app/app_state.h"
 #include "../../graphics/font.h"
+#include "../overlay_theme.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
@@ -14,8 +15,9 @@ void overlay_label(const char* text)
 {
     if (!g_ui.panel_active)
         return;
+    const OverlayTheme* th = overlay_theme_get();
     rogue_font_draw_text(g_ui.cur_x, g_ui.cur_y + 4, text ? text : "", 1,
-                         (RogueColor){220, 220, 255, 255});
+                         (RogueColor){th->text.r, th->text.g, th->text.b, th->text.a});
     if (g_ui.row_max_h < 20)
         g_ui.row_max_h = 20;
     if (g_ui.columns > 1)
@@ -43,15 +45,23 @@ int overlay_button(const char* label)
 #ifdef ROGUE_HAVE_SDL
     if (g_app.renderer)
     {
+        const OverlayTheme* th = overlay_theme_get();
         SDL_Rect r = {x, y, w, h};
         int hot = overlay_mouse_over(x, y, w, h);
-        SDL_SetRenderDrawColor(g_app.renderer, hot ? 60 : 40, 60, 90, 200);
+        OverlayColor bg = hot ? th->button_bg_hot : th->button_bg;
+        SDL_SetRenderDrawColor(g_app.renderer, bg.r, bg.g, bg.b, bg.a);
         SDL_RenderFillRect(g_app.renderer, &r);
-        SDL_SetRenderDrawColor(g_app.renderer, 200, 200, 220, 220);
+        SDL_SetRenderDrawColor(g_app.renderer, th->button_border.r, th->button_border.g,
+                               th->button_border.b, th->button_border.a);
         SDL_RenderDrawRect(g_app.renderer, &r);
     }
 #endif
-    rogue_font_draw_text(x + 6, y + 3, label ? label : "", 1, (RogueColor){255, 255, 255, 255});
+    {
+        const OverlayTheme* th = overlay_theme_get();
+        rogue_font_draw_text(x + 6, y + 3, label ? label : "", 1,
+                             (RogueColor){th->button_text.r, th->button_text.g, th->button_text.b,
+                                          th->button_text.a});
+    }
     const OverlayInputState* in = overlay_input_get();
     if (overlay_mouse_over(x, y, w, h) && in->mouse_clicked)
     {
@@ -88,20 +98,29 @@ int overlay_checkbox(const char* label, int* value)
 #ifdef ROGUE_HAVE_SDL
     if (g_app.renderer)
     {
+        const OverlayTheme* th = overlay_theme_get();
         SDL_Rect box = {x, y, sz, sz};
-        SDL_SetRenderDrawColor(g_app.renderer, 30, 30, 30, 200);
+        SDL_SetRenderDrawColor(g_app.renderer, th->checkbox_bg.r, th->checkbox_bg.g,
+                               th->checkbox_bg.b, th->checkbox_bg.a);
         SDL_RenderFillRect(g_app.renderer, &box);
-        SDL_SetRenderDrawColor(g_app.renderer, 220, 220, 220, 220);
+        SDL_SetRenderDrawColor(g_app.renderer, th->checkbox_border.r, th->checkbox_border.g,
+                               th->checkbox_border.b, th->checkbox_border.a);
         SDL_RenderDrawRect(g_app.renderer, &box);
         if (value && *value)
         {
             SDL_Rect inner = {x + 3, y + 3, sz - 6, sz - 6};
+            SDL_SetRenderDrawColor(g_app.renderer, th->checkbox_tick.r, th->checkbox_tick.g,
+                                   th->checkbox_tick.b, th->checkbox_tick.a);
             SDL_RenderFillRect(g_app.renderer, &inner);
         }
     }
 #endif
-    rogue_font_draw_text(x + sz + 6, g_ui.cur_y + 2, label ? label : "", 1,
-                         (RogueColor){220, 255, 220, 255});
+    {
+        const OverlayTheme* th = overlay_theme_get();
+        rogue_font_draw_text(x + sz + 6, g_ui.cur_y + 2, label ? label : "", 1,
+                             (RogueColor){th->checkbox_label.r, th->checkbox_label.g,
+                                          th->checkbox_label.b, th->checkbox_label.a});
+    }
     const OverlayInputState* in = overlay_input_get();
     if (overlay_mouse_over(x, y, sz, sz) && in->mouse_clicked)
     {
@@ -141,10 +160,13 @@ int overlay_slider_int(const char* label, int* value, int minv, int maxv)
 #ifdef ROGUE_HAVE_SDL
     if (g_app.renderer)
     {
+        const OverlayTheme* th = overlay_theme_get();
         SDL_Rect bar = {x, y + 2, w, h};
-        SDL_SetRenderDrawColor(g_app.renderer, 30, 30, 30, 200);
+        SDL_SetRenderDrawColor(g_app.renderer, th->input_bg.r, th->input_bg.g, th->input_bg.b,
+                               th->input_bg.a);
         SDL_RenderFillRect(g_app.renderer, &bar);
-        SDL_SetRenderDrawColor(g_app.renderer, 220, 220, 220, 220);
+        SDL_SetRenderDrawColor(g_app.renderer, th->input_border.r, th->input_border.g,
+                               th->input_border.b, th->input_border.a);
         SDL_RenderDrawRect(g_app.renderer, &bar);
     }
 #endif
@@ -183,7 +205,11 @@ int overlay_slider_int(const char* label, int* value, int minv, int maxv)
     }
     char buf[128];
     snprintf(buf, sizeof(buf), "%s: %d", label ? label : "", value ? *value : 0);
-    rogue_font_draw_text(x + 6, y + 2, buf, 1, (RogueColor){255, 255, 255, 255});
+    {
+        const OverlayTheme* th = overlay_theme_get();
+        rogue_font_draw_text(x + 6, y + 2, buf, 1,
+                             (RogueColor){th->text.r, th->text.g, th->text.b, th->text.a});
+    }
     if (g_ui.columns > 1)
     {
         overlay_next_column();
@@ -209,10 +235,13 @@ int overlay_slider_float(const char* label, float* value, float minv, float maxv
 #ifdef ROGUE_HAVE_SDL
     if (g_app.renderer)
     {
+        const OverlayTheme* th = overlay_theme_get();
         SDL_Rect bar = {x, y + 2, w, h};
-        SDL_SetRenderDrawColor(g_app.renderer, 30, 30, 30, 200);
+        SDL_SetRenderDrawColor(g_app.renderer, th->input_bg.r, th->input_bg.g, th->input_bg.b,
+                               th->input_bg.a);
         SDL_RenderFillRect(g_app.renderer, &bar);
-        SDL_SetRenderDrawColor(g_app.renderer, 220, 220, 220, 220);
+        SDL_SetRenderDrawColor(g_app.renderer, th->input_border.r, th->input_border.g,
+                               th->input_border.b, th->input_border.a);
         SDL_RenderDrawRect(g_app.renderer, &bar);
     }
 #endif
@@ -250,7 +279,11 @@ int overlay_slider_float(const char* label, float* value, float minv, float maxv
     }
     char buf[128];
     snprintf(buf, sizeof buf, "%s: %.3f", label ? label : "", value ? *value : 0.0f);
-    rogue_font_draw_text(x + 6, y + 2, buf, 1, (RogueColor){255, 255, 255, 255});
+    {
+        const OverlayTheme* th = overlay_theme_get();
+        rogue_font_draw_text(x + 6, y + 2, buf, 1,
+                             (RogueColor){th->text.r, th->text.g, th->text.b, th->text.a});
+    }
     if (g_ui.columns > 1)
     {
         overlay_next_column();
@@ -331,16 +364,24 @@ int overlay_input_text(const char* label, char* buf, size_t buf_size)
 #ifdef ROGUE_HAVE_SDL
     if (g_app.renderer)
     {
+        const OverlayTheme* th = overlay_theme_get();
         SDL_Rect r = {x, y + 2, w, h2};
-        SDL_SetRenderDrawColor(g_app.renderer, 20, 20, 20, 200);
+        SDL_SetRenderDrawColor(g_app.renderer, th->input_bg.r, th->input_bg.g, th->input_bg.b,
+                               th->input_bg.a);
         SDL_RenderFillRect(g_app.renderer, &r);
-        SDL_SetRenderDrawColor(g_app.renderer, 220, 220, 220, 220);
+        SDL_SetRenderDrawColor(g_app.renderer, th->input_border.r, th->input_border.g,
+                               th->input_border.b, th->input_border.a);
         SDL_RenderDrawRect(g_app.renderer, &r);
     }
 #endif
     char line[256];
     snprintf(line, sizeof(line), "%s: %s", label ? label : "", buf);
-    rogue_font_draw_text(x + 6, y + 2, line, 1, (RogueColor){255, 255, 255, 255});
+    {
+        const OverlayTheme* th = overlay_theme_get();
+        rogue_font_draw_text(
+            x + 6, y + 2, line, 1,
+            (RogueColor){th->input_text.r, th->input_text.g, th->input_text.b, th->input_text.a});
+    }
     if (overlay_mouse_over(x, y + 2, w, h2) && overlay_input_get()->mouse_clicked)
     {
         overlay_input_set_capture(1, 1);
@@ -382,10 +423,13 @@ int overlay_combo(const char* label, int* current_index, const char* const* item
 #ifdef ROGUE_HAVE_SDL
     if (g_app.renderer)
     {
+        const OverlayTheme* th = overlay_theme_get();
         SDL_Rect r = {x, y + 2, w, h};
-        SDL_SetRenderDrawColor(g_app.renderer, 25, 25, 25, 200);
+        SDL_SetRenderDrawColor(g_app.renderer, th->input_bg.r, th->input_bg.g, th->input_bg.b,
+                               th->input_bg.a);
         SDL_RenderFillRect(g_app.renderer, &r);
-        SDL_SetRenderDrawColor(g_app.renderer, 220, 220, 220, 220);
+        SDL_SetRenderDrawColor(g_app.renderer, th->input_border.r, th->input_border.g,
+                               th->input_border.b, th->input_border.a);
         SDL_RenderDrawRect(g_app.renderer, &r);
     }
 #endif

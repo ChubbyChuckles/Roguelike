@@ -81,10 +81,16 @@ void overlay_input_handle_event(const void* evptr)
             g_inp.key_enter_pressed = 1;
         else if (ev->key.keysym.sym == SDLK_SPACE)
             g_inp.key_space_pressed = 1;
+        else if (ev->key.keysym.sym == SDLK_p)
+            g_inp.key_p_pressed = 1;
         else if (ev->key.keysym.sym == SDLK_LEFT)
             g_inp.key_left_pressed = 1;
         else if (ev->key.keysym.sym == SDLK_RIGHT)
             g_inp.key_right_pressed = 1;
+        else if (ev->key.keysym.sym == SDLK_UP)
+            g_inp.key_up_pressed = 1;
+        else if (ev->key.keysym.sym == SDLK_DOWN)
+            g_inp.key_down_pressed = 1;
         else if (ev->key.keysym.sym == SDLK_HOME)
             g_inp.key_home_pressed = 1;
         else if (ev->key.keysym.sym == SDLK_END)
@@ -92,6 +98,7 @@ void overlay_input_handle_event(const void* evptr)
         else if (ev->key.keysym.sym == SDLK_ESCAPE)
             g_inp.key_escape_pressed = 1;
         g_inp.key_shift_down = ((ev->key.keysym.mod & KMOD_SHIFT) != 0);
+        g_inp.key_ctrl_down = ((ev->key.keysym.mod & KMOD_CTRL) != 0);
         break;
     case SDL_TEXTINPUT:
         /* copy small chunk of text */
