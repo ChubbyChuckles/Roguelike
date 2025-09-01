@@ -7,6 +7,8 @@ X = Not started yet
 Optional = Stretch / future wave
 
 STATUS DELTA (current)
+- Effects tab now includes a basic Node Graph editor: draggable nodes with selection and a compact parameter panel (EffectSpec ID, delay/duration/repeats/interval, HP gate). A simple "Chain Nodes" action orders by X position and generates sequential delays based on node durations/repeats. Rendering is headless‑safe and guarded when no SDL renderer is present.
+- Inline quick‑fix buttons added to Effects tab validation: clear invalid IDs (primary/node), set duration to 0, clamp repeat_count to 0..32, set repeat_interval to 1000ms when repeats > 0 and interval is 0, and clamp HP gate to 0..100%. Keeps authors unblocked without leaving the tab.
 - Extended optional fields for skills are integrated end-to-end: visuals (cast/projectile/impact/aoe sprites), animation params, audio hooks, AoE, and projectile params. Covered across schema -> runtime loader -> headless-safe debug get/set APIs -> validation -> overlay UI.
 - Overlay Skills panel now includes a "Visuals / Advanced" section to edit these fields live. Values persist via overrides JSON and respect validation.
 - Validation checks asset existence and parameter bounds (e.g., frame counts, volumes, AoE radius, projectile velocity). Overlay surfaces errors during save and creation flows.
@@ -29,6 +31,7 @@ CHANGELOG
  - 2025-09-01: Effects tab adds an EffectSpec palette (filterable list + Assign-To Primary/Node) powered by a new `rogue_effect_count()` enumeration helper. Tests remain 100% green (586/586, Debug, SDL2, -j12).
  - 2025-09-01: Debug overlay panels made movable with persisted layout and visibility (`build/overlay_layout.json`); converted major panels to `overlay_begin_panel_auto`. Fixed compile regressions in `panels_audiovfx.c` (missing `overlay_input.h`) and `panels_skills.c` (restored state, balanced braces). Full Debug (SDL2) suite passes (586/586, -j12).
  - 2025-09-01: Skills panel UX polish: added sticky Validation Status banner (top of panel), inline validation in Effects tab (IDs, timing, HP gates), EffectSpec palette Kind filter + Debuff-only toggle, and Clear Nodes action. Rebuilt Debug (SDL2, -j12) and re-ran full test suite: 586/586 PASS.
+- 2025-09-01: Effects tab adds a basic Node Graph editor (drag/move nodes, selection + parameter panel, simple chain via X‑order). Added inline quick‑fix buttons for common validation issues (IDs/timing/HP gate). Rebuilt in Debug (SDL2, -j12); full ctest suite remains 100% green (586/586).
 
 Scope Overview:
 Transform the current Skills debug panel into a comprehensive skill creation, editing, testing, and debugging suite for a 2D RPG. Support all standard skill types (melee attacks, ranged projectiles, AoE spells, buffs/debuffs, healing, summoning, passives, ultimates) with real-time visual feedback, sandboxed testing environments, and deep integration with existing game systems (sprites, animations, particles, sound, combat, projectiles). Maintain C performance with modular architecture and extensibility for future skill types.
@@ -101,7 +104,7 @@ PHASE 2. Advanced UI Framework for Skill Creation
     - Connection system for effect dependencies and timing chains (X)
     - Parameter panels for each selected effect node (X)
     - Effect validation with error highlighting and suggestions (X)
-    Status: Partial (implemented a minimal EffectSpec palette with id filter and assignment to Primary/Node slots; full node-graph editor and inline validation pending)
+    Status: Partial (implemented a minimal EffectSpec palette with id filter and assignment to Primary/Node slots; added a basic Node Graph editor with drag/move + selection + simple chaining and inline quick‑fix buttons; advanced connections/validation highlighting remain pending)
 2.3 Enhanced UI Widgets for Skill Editing
     - Vector2D input widget for positions and directions (X)
     - Curve editor for damage scaling, cooldown reduction, and other progressions (X)

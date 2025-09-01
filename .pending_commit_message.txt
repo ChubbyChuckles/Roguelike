@@ -103,3 +103,14 @@ Skill Creation Suite: Effects authoring UX polish (banner + inline validation + 
 - Effects tab: inline validation for primary/node EffectSpec IDs, timing (duration, repeat_count/interval coupling), and HP gate limits; messages render in-row as you type.
 - EffectSpec palette: added Kind filter and Debuff-only toggle; kept substring filter; added "Clear Nodes" action. Assignments persist via overrides.
 - Rebuilt Debug (SDL2, -j12) and ran full test suite: 586/586 PASS.
+
+Add basic Skills Node Graph editor with inline quick-fixes; keep tests green
+
+- Skills panel (Effects tab):
+  - Introduce a basic Node Graph editor (drag/move nodes, click select) with a compact parameter panel (EffectSpec ID, delay_ms, duration_ms, repeat_count, repeat_interval_ms, HP gate).
+  - Add "Chain Nodes" action: orders nodes by X position and auto-derives sequential delays from node durations/repeats.
+  - Inline quick‑fix buttons next to common validation errors: clear invalid IDs (primary/node), set duration 0, clamp repeat_count 0..32, set repeat_interval to 1000ms when repeats > 0 and interval is 0, clamp HP gate to 0..100%.
+  - Rendering is headless‑safe (no SDL calls when no renderer is present).
+- Palette: keep the EffectSpec palette (filters + Assign-To) and Clear Nodes; composition persists via overrides import/export.
+- Build & tests: Debug build (SDL2, -j12) succeeded; full ctest suite passes 100% (586/586).
+- Docs: update roadmap (STATUS DELTA + CHANGELOG) and README with Node Graph usage notes.
