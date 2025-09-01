@@ -2,7 +2,7 @@
 #if ROGUE_ENABLE_DEBUG_OVERLAY
 #include "../content/json_io.h"
 #include "overlay_input.h"
-#include "overlay_widgets_internal.h"
+#include "widgets/overlay_widgets_internal.h"
 #include <stdio.h>
 #include <string.h>
 

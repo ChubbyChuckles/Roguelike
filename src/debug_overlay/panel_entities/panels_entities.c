@@ -1,8 +1,8 @@
-#include "../core/app/app_state.h"
-#include "../core/entities/entity_debug.h"
-#include "overlay_core.h"
-#include "overlay_input.h"
-#include "overlay_widgets.h"
+#include "../../core/app/app_state.h"
+#include "../../core/entities/entity_debug.h"
+#include "../overlay_core.h"
+#include "../overlay_input.h"
+#include "../widgets/overlay_widgets.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
 

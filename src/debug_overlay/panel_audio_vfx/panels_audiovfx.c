@@ -1,8 +1,8 @@
-#include "../audio_vfx/effects.h"
-#include "../core/audio_vfx/audiovfx_debug.h"
-#include "overlay_core.h"
-#include "overlay_input.h"
-#include "overlay_widgets.h"
+#include "../../audio_vfx/effects.h"
+#include "../../core/audio_vfx/audiovfx_debug.h"
+#include "../overlay_core.h"
+#include "../overlay_input.h"
+#include "../widgets/overlay_widgets.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
 

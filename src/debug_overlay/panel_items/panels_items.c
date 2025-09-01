@@ -1,8 +1,8 @@
 /* Items panel - aligned with current loot/inventory APIs. */
-#include "../core/inventory/inventory.h"
-#include "../core/loot/item_debug.h"
-#include "overlay_core.h"
-#include "overlay_widgets.h"
+#include "../../core/inventory/inventory.h"
+#include "../../core/loot/item_debug.h"
+#include "../overlay_core.h"
+#include "../widgets/overlay_widgets.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
 

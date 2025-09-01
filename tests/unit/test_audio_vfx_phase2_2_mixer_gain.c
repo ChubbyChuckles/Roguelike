@@ -1,4 +1,4 @@
-#include "audio_vfx/effects.h"
+#include "../../src/audio_vfx/effects.h"
 #include <assert.h>
 #include <stdio.h>
 

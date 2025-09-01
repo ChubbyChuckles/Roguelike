@@ -447,22 +447,22 @@ target_compile_definitions(rogue_core PUBLIC ROGUE_ENABLE_JSON_CONTENT=$<IF:$<BO
 add_library(rogue_debug_overlay OBJECT
     src/debug_overlay/overlay_core.c
     src/debug_overlay/overlay_input.c
-    src/debug_overlay/overlay_widgets.c
+    src/debug_overlay/widgets/overlay_widgets.c
     # Split widget implementation units
-    src/debug_overlay/overlay_widgets_core.c
-    src/debug_overlay/overlay_widgets_controls.c
-    src/debug_overlay/overlay_widgets_table.c
+    src/debug_overlay/widgets/overlay_widgets_core.c
+    src/debug_overlay/widgets/overlay_widgets_controls.c
+    src/debug_overlay/widgets/overlay_widgets_table.c
     # Aggregated panel registrar and per-panel implementations
     src/debug_overlay/overlay_panels.c
-    src/debug_overlay/panels_system.c
-    src/debug_overlay/panels_player.c
-    src/debug_overlay/panels_skills.c
-    src/debug_overlay/panels_entities.c
-    src/debug_overlay/panels_map.c
-    src/debug_overlay/panels_audiovfx.c
-    src/debug_overlay/panels_items.c
-    src/debug_overlay/panels_validation.c
-    src/debug_overlay/panels_content_graph.c
+    src/debug_overlay/panel_system/panels_system.c
+    src/debug_overlay/panel_player/panels_player.c
+    src/debug_overlay/panel_skills/panels_skills.c
+    src/debug_overlay/panel_entities/panels_entities.c
+    src/debug_overlay/panel_map/panels_map.c
+    src/debug_overlay/panel_audio_vfx/panels_audiovfx.c
+    src/debug_overlay/panel_items/panels_items.c
+    src/debug_overlay/panel_validation/panels_validation.c
+    src/debug_overlay/panel_content_graph/panels_content_graph.c
     src/debug_overlay/panels_selector.c
 )
 target_compile_definitions(rogue_debug_overlay PUBLIC ROGUE_ENABLE_DEBUG_OVERLAY=$<IF:$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>,1,0>)

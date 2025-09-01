@@ -1,7 +1,7 @@
-#include "../core/app/app_state.h"
-#include "../core/player/player_debug.h"
-#include "overlay_core.h"
-#include "overlay_widgets.h"
+#include "../../core/app/app_state.h"
+#include "../../core/player/player_debug.h"
+#include "../overlay_core.h"
+#include "../widgets/overlay_widgets.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
 

@@ -2,8 +2,8 @@
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
 
-#include "../core/app/app_state.h"
-#include "../graphics/font.h"
+#include "../../core/app/app_state.h"
+#include "../../graphics/font.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif

@@ -1,6 +1,6 @@
-#include "../core/app/app_state.h"
-#include "overlay_core.h"
-#include "overlay_widgets.h"
+#include "../../core/app/app_state.h"
+#include "../overlay_core.h"
+#include "../widgets/overlay_widgets.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
 
@@ -13,7 +13,7 @@ static void panel_system(void* user)
     double fps = 0.0, fms = 0.0, avg = 0.0;
 #ifdef __has_include
 #if __has_include("../util/metrics.h")
-#include "../util/metrics.h"
+#include "../../util/metrics.h"
     rogue_metrics_get(&fps, &fms, &avg);
 #endif
 #endif

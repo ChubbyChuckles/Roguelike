@@ -1,8 +1,8 @@
-#include "../core/app/app_state.h"
-#include "../util/asset_dep.h"
-#include "overlay_core.h"
-#include "overlay_input.h"
-#include "overlay_widgets.h"
+#include "../../core/app/app_state.h"
+#include "../../util/asset_dep.h"
+#include "../overlay_core.h"
+#include "../overlay_input.h"
+#include "../widgets/overlay_widgets.h"
 
 #include <stdio.h>
 #include <string.h>

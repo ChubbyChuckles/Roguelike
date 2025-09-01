@@ -1,7 +1,7 @@
 #pragma once
 
-#include "overlay_core.h"
-#include "overlay_input.h"
+#include "../overlay_core.h"
+#include "../overlay_input.h"
 #include "overlay_widgets.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY

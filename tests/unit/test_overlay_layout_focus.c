@@ -1,6 +1,6 @@
 #include "../../src/debug_overlay/overlay_core.h"
 #include "../../src/debug_overlay/overlay_input.h"
-#include "../../src/debug_overlay/overlay_widgets.h"
+#include "../../src/debug_overlay/widgets/overlay_widgets.h"
 #include <assert.h>
 #include <string.h>
 

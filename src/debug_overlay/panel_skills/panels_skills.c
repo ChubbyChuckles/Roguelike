@@ -1,13 +1,13 @@
-#include "../core/app/app_state.h"
-#include "../core/skills/skill_debug.h"
-#include "../core/skills/skills_coeffs.h"
-#include "../core/skills/skills_validate.h"
-#include "../game/buffs.h" /* for rogue_buffs_type_categories to derive palette categories */
-#include "../graphics/effect_spec.h"
-#include "../graphics/sprite.h"
-#include "overlay_core.h"
-#include "overlay_input.h"
-#include "overlay_widgets.h"
+#include "../../core/app/app_state.h"
+#include "../../core/skills/skill_debug.h"
+#include "../../core/skills/skills_coeffs.h"
+#include "../../core/skills/skills_validate.h"
+#include "../../game/buffs.h" /* for rogue_buffs_type_categories to derive palette categories */
+#include "../../graphics/effect_spec.h"
+#include "../../graphics/sprite.h"
+#include "../overlay_core.h"
+#include "../overlay_input.h"
+#include "../widgets/overlay_widgets.h"
 #include <string.h>
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
