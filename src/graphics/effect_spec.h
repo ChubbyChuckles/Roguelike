@@ -15,7 +15,8 @@ extern "C"
         ROGUE_EFFECT_HEAL = 3,             /* Healing applied to the player */
         ROGUE_EFFECT_SPAWN_PROJECTILE = 4, /* Spawn a simple projectile from player */
         ROGUE_EFFECT_DAMAGE = 5,           /* Instant single-target damage (enemy) */
-        ROGUE_EFFECT_AOE_BLAST = 6         /* One-shot AoE damage around player */
+        ROGUE_EFFECT_AOE_BLAST = 6,        /* One-shot AoE damage around player */
+        ROGUE_EFFECT_TELEPORT = 7          /* Instantly move player along facing by magnitude */
     } RogueEffectKind;
 
     /* Target selector for simple conditional gating (Phase 1.2 conditionals) */

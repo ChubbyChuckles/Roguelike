@@ -157,3 +157,11 @@ feat(overlay/skills): Effects tab presets & batch helpers (Instant/Window/Counte
 - Added HP gate quick buttons (0%, 25%, 50%) and Batch Helpers: Fill empty nodes with Primary, Normalize window durations to whole pulses, Clear all HP gates.
 - UI-only; headless-safe. Roadmap STATUS DELTA/Phase 2.2 marked Done; README notes new presets/helpers.
 - Build & tests: Debug (SDL2) with -j12; full ctest suite 100% green (587/587).
+
+feat(effectspec/runtime): Phase 1.2 targeting/timing/conditionals + TELEPORT + AURA exclusivity; tests green (591/591)
+
+- Runtime: Implemented targeting (DEFAULT/SELF/ENEMY/AREA), timing (delay_ms, repeat_count, repeat_interval_ms), and conditionals (caster_health_le_pct, max_distance). Centralized gates ensure consistent ordering and snapshot semantics; non-DOT pulses scheduled deterministically with initial vs pulse context.
+- New kinds: DAMAGE and AOE_BLAST (deterministic damage events) and TELEPORT (moves player along facing; clamps to map bounds). Defaults wired and debuff flags audited.
+- AURA: exclusivity group (replace-if-stronger) semantics refined to replace weaker on apply, skip immediate tick on replacement, align next pulse, and cancel weaker's pending events.
+- Tests: added tests/unit/test_effectspec_aura_exclusive.c and tests/unit/test_effectspec_teleport.c; both pass. Full Debug build (SDL2) with -j12: ctest 100% green (591/591).
+- Docs: Roadmap STATUS DELTA updated with Phase 1.2 runtime slice; README CI counts bumped.

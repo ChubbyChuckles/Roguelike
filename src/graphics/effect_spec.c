@@ -287,6 +287,12 @@ int rogue_effect_register(const RogueEffectSpec* spec)
         if (tmp.damage_type == 0)
             tmp.damage_type = ROGUE_DMG_TRUE;
         break;
+    case ROGUE_EFFECT_TELEPORT:
+        /* Movement utility; non-debuff. Magnitude interpreted as tiles to move. */
+        tmp.debuff = 0;
+        if (tmp.magnitude < 0)
+            tmp.magnitude = 0;
+        break;
     default:
         break;
     }
@@ -595,6 +601,43 @@ static void apply_with_magnitude(const RogueEffectSpec* s, int eff_mag, double n
         (void) now_ms;
     }
     break;
+    case ROGUE_EFFECT_TELEPORT:
+    {
+        /* Move player along facing by eff_mag tiles, clamped to map bounds. */
+        float dist = (eff_mag > 0 ? (float) eff_mag : 0.0f);
+        float nx = g_app.player.base.pos.x;
+        float ny = g_app.player.base.pos.y;
+        switch (g_app.player.facing)
+        {
+        case 0:
+            ny += dist;
+            break;
+        case 1:
+            nx -= dist;
+            break;
+        case 2:
+            nx += dist;
+            break;
+        case 3:
+            ny -= dist;
+            break;
+        default:
+            ny += dist;
+            break;
+        }
+        if (nx < 0)
+            nx = 0;
+        if (ny < 0)
+            ny = 0;
+        if (g_app.world_map.width > 0 && nx > g_app.world_map.width - 1)
+            nx = (float) (g_app.world_map.width - 1);
+        if (g_app.world_map.height > 0 && ny > g_app.world_map.height - 1)
+            ny = (float) (g_app.world_map.height - 1);
+        g_app.player.base.pos.x = nx;
+        g_app.player.base.pos.y = ny;
+        (void) now_ms;
+    }
+    break;
     default:
         break;
     }
@@ -736,6 +779,8 @@ static void process_effect_application(const RogueEffectSpec* s, int id, double 
                 t = ROGUE_TARGET_SELF;
             else if (s->kind == ROGUE_EFFECT_AURA || s->kind == ROGUE_EFFECT_AOE_BLAST)
                 t = ROGUE_TARGET_AREA;
+            else if (s->kind == ROGUE_EFFECT_TELEPORT || s->kind == ROGUE_EFFECT_HEAL)
+                t = ROGUE_TARGET_SELF;
             else
                 t = ROGUE_TARGET_ENEMY;
         }
