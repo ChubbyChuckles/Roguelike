@@ -3,6 +3,7 @@
 Press F1 in-game to open the debug overlay.
 
 - Panels selector: A small "Panels" window appears in the top-right. Use its checkboxes to toggle which panels are visible. The selector itself can’t be hidden to avoid lock-out.
+- Command Palette: Press Ctrl+Shift+P to open a palette of overlay commands. Type to filter; Enter to run. Defaults include Validation (Run Now/Show Panel), Skills (Save/Load Overrides), Content Graph (Export DOT), and quick “Open Items/Skills/Map”. You can register your own commands at startup.
 - Entity inspect: In the Entities panel, hold Shift and LeftClick on a unit in the world to select and inspect it. This uses the camera and tile mapping to pick the nearest enemy under the cursor.
 - Skills: The Skills panel now uses top-level tabs: Overview, Effects, Visuals, Audio, and Testing. The Overview tab includes the Create New Skill wizard with a template workflow. Select a template skill id and click "Apply Template" to prefill name/max-rank/passive/timing; optionally enable "Copy Coeffs" to duplicate coefficient params to the preview and to the created skill. New: a searchable template picker (filter + table) lets you quickly find a template by substring and select it by clicking the row.
 - Skills validation: Saving Overrides JSON now runs validation first and blocks the save on errors (a message explains what to fix). Creating a new skill will run validation and show a warning if the definition is invalid (creation still proceeds so you can iterate). A headless-safe API `rogue_skill_debug_validate(err, cap)` is available for tools/tests. New: a sticky "Validation Status" banner at the top of the Skills panel shows OK or "ERROR: <reason>" and refreshes live on edits (timing/coeffs/visuals) and on Create/Save/Load. Also new: inline validation messages inside the Effects tab for primary/node EffectSpec IDs and timing/HP gate fields; errors display next to the inputs as you type.
@@ -122,6 +123,7 @@ Windows CI notes:
 	- Layout: simple columns via `overlay_columns_begin/overlay_next_column/overlay_columns_end` (equal or custom widths). Widgets honor column width.
 	- Layout now auto-wraps rows across columns; `overlay_next_column` advances within the row, wrapping to the next row after the last column. Row spacing uses the tallest widget in the row for clean grids.
 	- Focus: Tab/Shift+Tab traversal across all interactive widgets; Enter/Space activate buttons/checkboxes; sliders respond to Left/Right. InputText supports caret navigation (Home/End/Left/Right), insertion/backspace at caret; clicking the field gives focus and captures input.
+	- Split views and preferences: A resizable splitter (`overlay_splitter_begin/end`) enables two-pane layouts with persisted widths per panel via a small preferences store. Current adopters: Items (list + details), Skills (tabs/selection + content), and Map (controls + preview placeholder). Preferences persist to `build/overlay_prefs.json`; delete that file to reset.
 - Headless-safe: widget drawing guards avoid SDL calls when no renderer is present (useful in unit tests).
 - Tests: `test_overlay_core` and `test_overlay_widgets` (smoke), with the latter validating headless usage and basic interactions via simulated input.
 	- New: `test_overlay_layout_focus` covers 2-column auto-wrap and focus traversal.
@@ -210,6 +212,8 @@ Status: Complete.
 		- Persistence: specify a JSON path and use Save/Load to export/import item defs via `rogue_item_debug_save_json`/`_load_json` (atomic save, dynamic buffer sizing under the hood).
 		- Live vendor repricing: editing item defs updates vendor slot prices in-place via `rogue_vendor_on_item_def_changed`; bulk JSON loads trigger `rogue_vendor_reprice_all`.
 		- Creation Wizard: a guided form to add new base items (ID/Name/Category and core stats). Backed by `rogue_item_debug_create` which validates input, ensures unique IDs, sanitizes fields, and appends via `rogue_item_defs_add`.
+		- Duplicate-as-template: "Duplicate From Selected" opens the Create wizard prefilled from the selected row and suggests a unique id automatically.
+		- Virtualized list (prototype): large registries use a simple row-offset slider to render only visible rows (20 by default) for headless stability; mouse wheel/scrollbar integration planned.
 		- Headless-safe: backed by `src/core/loot/item_debug.{h,c}`; covered by unit `tests/unit/test_item_debug_api.c`.
 
 Content schemas (foundation):

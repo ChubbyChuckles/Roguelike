@@ -28,8 +28,6 @@
  * integrated). */
 /** @brief Global sort mode for inventory UI. */
 static RogueInventorySortMode g_sort_mode = ROGUE_INV_SORT_NONE;
-
-RogueInventorySortMode rogue_inventory_ui_sort_mode(void) { return g_sort_mode; }
 /**
  * @brief Retrieves the current inventory sort mode.
  *

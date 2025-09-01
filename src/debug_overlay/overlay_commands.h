@@ -15,6 +15,9 @@ extern "C"
     void overlay_commands_render(void);
     /* Toggle palette open/close. */
     void overlay_commands_toggle(int open);
+    /* Register a small default set of commands (Validation, Content Graph exports,
+        Skills save/load, open common panels). Safe to call multiple times. */
+    void overlay_register_default_commands(void);
 
 #ifdef __cplusplus
 }

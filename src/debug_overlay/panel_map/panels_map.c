@@ -10,6 +10,9 @@ static void panel_map_editor(void* user)
     (void) user;
     if (!overlay_begin_panel_auto("map", "Map Editor", 1190, 10, 360))
         return;
+    /* Split view: left controls, right preview/inspector (placeholder) */
+    int left_w = 360;
+    overlay_splitter_begin("map.split", &left_w, 260, 720);
     static int brush_radius = 1;
     static int brush_mode = 0;                     /* 0 = square, 1 = rect */
     static int erase_mode = 0;                     /* when set, paint EMPTY */
@@ -144,6 +147,12 @@ static void panel_map_editor(void* user)
         }
         overlay_columns_end();
     }
+    /* Right pane placeholder for future tile preview / mini-map */
+    overlay_next_column();
+    overlay_label("Preview (coming soon):");
+    overlay_label("- Mini-map with brush ghost");
+    overlay_label("- Tile palette and recent tiles");
+    overlay_splitter_end();
     overlay_end_panel();
 }
 

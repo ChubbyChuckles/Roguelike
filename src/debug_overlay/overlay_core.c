@@ -3,6 +3,7 @@
 #include "../content/json_io.h"
 #include "overlay_commands.h"
 #include "overlay_input.h"
+#include "overlay_prefs.h"
 #include "overlay_theme.h"
 #include "overlay_toast.h"
 #include "widgets/overlay_widgets_internal.h"
@@ -155,6 +156,9 @@ void overlay_init(void)
     overlay_layout_load();
     /* Initialize theme after layout so future theme UI can use persisted data */
     overlay_theme_init();
+    overlay_prefs_init();
+    /* Seed default commands for the Command Palette */
+    overlay_register_default_commands();
 }
 
 void overlay_shutdown(void)

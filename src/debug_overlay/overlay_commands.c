@@ -151,4 +151,103 @@ void overlay_commands_render(void)
         overlay_commands_toggle(0);
 }
 
+/* --- Default commands registry ----------------------------------------- */
+static void cmd_validation_run(void* user)
+{
+    (void) user;
+    /* Headless-safe run-now; shows results in Validation panel */
+    extern int rogue_validation_run_now(int force_all);
+    (void) rogue_validation_run_now(1);
+}
+static void cmd_validation_toggle_panel(void* user)
+{
+    (void) user;
+    (void) overlay_set_panel_visible("validation", 1);
+}
+static void cmd_skills_save_overrides(void* user)
+{
+    (void) user;
+    extern int rogue_skill_debug_save_overrides(const char* path);
+    (void) rogue_skill_debug_save_overrides("build/skills_overrides.json");
+}
+static void cmd_skills_load_overrides(void* user)
+{
+    (void) user;
+    extern int rogue_skill_debug_load_overrides_file(const char* path);
+    (void) rogue_skill_debug_load_overrides_file("build/skills_overrides.json");
+}
+static void cmd_content_graph_export_dot(void* user)
+{
+    (void) user;
+    /* Reuse the panel helper by invoking the button-less export path directly here. */
+    FILE* f = NULL;
+#if defined(_MSC_VER)
+    fopen_s(&f, "build/content_graph.dot", "wb");
+#else
+    f = fopen("build/content_graph.dot", "wb");
+#endif
+    if (!f)
+        return;
+    fputs("digraph ContentGraph {\n  rankdir=LR;\n  node [shape=box,fontname=Helvetica];\n", f);
+    extern int rogue_asset_dep_count(void);
+    extern int rogue_asset_dep_get(int index, const char** out_id, const char** out_path);
+    extern int rogue_asset_dep_get_deps(const char* id, const char** out_dep_ids, int max_out);
+    int nall = rogue_asset_dep_count();
+    for (int i = 0; i < nall; ++i)
+    {
+        const char *nid = NULL, *pp = NULL;
+        if (rogue_asset_dep_get(i, &nid, &pp) != 0 || !nid)
+            continue;
+        char lbl[512];
+        snprintf(lbl, sizeof lbl, "%s\\n%s", nid, (pp && *pp) ? pp : "<none>");
+        for (char* p = lbl; *p; ++p)
+            if (*p == '"')
+                *p = '\'';
+        fprintf(f, "  \"%s\" [label=\"%s\"];\n", nid, lbl);
+        const char* deps[16];
+        int dc = rogue_asset_dep_get_deps(nid, deps, (int) (sizeof deps / sizeof deps[0]));
+        for (int j = 0; j < dc; ++j)
+        {
+            if (deps[j])
+                fprintf(f, "  \"%s\" -> \"%s\";\n", nid, deps[j]);
+        }
+    }
+    fputs("}\n", f);
+    fclose(f);
+}
+static void cmd_open_panel_items(void* user)
+{
+    (void) user;
+    (void) overlay_set_panel_visible("items", 1);
+}
+static void cmd_open_panel_skills(void* user)
+{
+    (void) user;
+    (void) overlay_set_panel_visible("skills", 1);
+}
+static void cmd_open_panel_map(void* user)
+{
+    (void) user;
+    (void) overlay_set_panel_visible("map", 1);
+}
+
+void overlay_register_default_commands(void)
+{
+    /* Idempotent: cheap linear scan to avoid duplicates */
+    int need_register = 1;
+    for (int i = 0; i < g_cmd_count; ++i)
+        if (strcmp(g_cmds[i].name, "Validation: Run Now") == 0)
+            need_register = 0;
+    if (!need_register)
+        return;
+    overlay_command_register("Validation: Run Now", cmd_validation_run, NULL);
+    overlay_command_register("Validation: Show Panel", cmd_validation_toggle_panel, NULL);
+    overlay_command_register("Skills: Save Overrides JSON", cmd_skills_save_overrides, NULL);
+    overlay_command_register("Skills: Load Overrides JSON", cmd_skills_load_overrides, NULL);
+    overlay_command_register("Content Graph: Export DOT", cmd_content_graph_export_dot, NULL);
+    overlay_command_register("Panels: Open Items", cmd_open_panel_items, NULL);
+    overlay_command_register("Panels: Open Skills", cmd_open_panel_skills, NULL);
+    overlay_command_register("Panels: Open Map", cmd_open_panel_map, NULL);
+}
+
 #endif /* ROGUE_ENABLE_DEBUG_OVERLAY */

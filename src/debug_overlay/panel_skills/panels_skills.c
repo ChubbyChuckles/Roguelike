@@ -88,11 +88,6 @@ static void panel_skills(void* user)
     // Use movable, persisted panel begin with a wider default to fit content.
     if (!overlay_begin_panel_auto("skills", "Skills", 360, 10, 480))
         return;
-    /* Simple tabs (combo-based): Overview, Effects, Visuals, Audio, Testing */
-    static int tab = 0;
-    static const char* tab_names[] = {"Overview", "Effects", "Visuals", "Audio", "Testing"};
-    overlay_combo("Tab", &tab, tab_names, 5);
-
     /* Persistent UI state */
     static float sim_duration_ms = 2000.0f;
     static float sim_tick_ms = 16.0f;
@@ -101,13 +96,6 @@ static void panel_skills(void* user)
     static char sim_result[256] = "";
     static int last_valid_ok = 1;
     static char last_valid_msg[128] = "OK";
-    /* Sticky Validation Status banner (visible at top of panel) */
-    {
-        char vline[192];
-        snprintf(vline, sizeof vline, "Validation: %s%s%s", last_valid_ok ? "OK" : "ERROR",
-                 last_valid_ok ? "" : ": ", last_valid_ok ? "" : last_valid_msg);
-        overlay_label(vline);
-    }
     /* Template/new-skill helpers (Overview tab) */
     static int tmpl_id = -1;
     static char tmpl_filter[64] = "";
@@ -136,7 +124,23 @@ static void panel_skills(void* user)
         overlay_end_panel();
         return;
     }
+    /* Split layout: left = navigation (tab + selection), right = content */
+    int left_w = 240;
+    overlay_splitter_begin("skills.split", &left_w, 180, 520);
+    /* Left pane: tabs and selection */
+    static int tab = 0;
+    static const char* tab_names[] = {"Overview", "Effects", "Visuals", "Audio", "Testing"};
+    overlay_combo("Tab", &tab, tab_names, 5);
     overlay_slider_int("Skill Index", &sel, 0, count - 1);
+    overlay_next_column();
+
+    /* Right pane: banner + tab content */
+    {
+        char vline[192];
+        snprintf(vline, sizeof vline, "Validation: %s%s%s", last_valid_ok ? "OK" : "ERROR",
+                 last_valid_ok ? "" : ": ", last_valid_ok ? "" : last_valid_msg);
+        overlay_label(vline);
+    }
     const char* name = rogue_skill_debug_name(sel);
 
     /* Overview -------------------------------------------------------------- */
@@ -237,6 +241,7 @@ static void panel_skills(void* user)
         }
     }
 
+    overlay_splitter_end();
     overlay_end_panel();
 }
 

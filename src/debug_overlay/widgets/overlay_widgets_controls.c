@@ -1,3 +1,4 @@
+#include "../overlay_prefs.h"
 #include "overlay_widgets_internal.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
@@ -623,5 +624,63 @@ void overlay_columns_end(void)
     g_ui.col_index = 0;
     g_ui.row_max_h = g_ui.line_h;
 }
+
+int overlay_splitter_begin(const char* id, int* out_left_w, int min_left_w, int max_left_w)
+{
+    if (!g_ui.panel_active || !id || !out_left_w)
+        return 0;
+    int pref = overlay_prefs_get_int(id, *out_left_w > 0 ? *out_left_w : g_ui.width / 2);
+    if (pref < min_left_w)
+        pref = min_left_w;
+    if (pref > max_left_w)
+        pref = max_left_w;
+    int left_w = pref;
+    int handle_x = g_ui.cur_x + left_w;
+    int handle_w = 6;
+    int row_y = g_ui.cur_y;
+    int row_h = g_ui.line_h * 20; /* generous block; caller content should fit */
+#ifdef ROGUE_HAVE_SDL
+    if (g_app.renderer)
+    {
+        SDL_Rect bar = {handle_x - handle_w / 2, row_y, handle_w, row_h};
+        SDL_SetRenderDrawColor(g_app.renderer, 180, 180, 200, 160);
+        SDL_RenderFillRect(g_app.renderer, &bar);
+    }
+#endif
+    const OverlayInputState* in = overlay_input_get();
+    static int dragging = 0;
+    static int drag_dx = 0;
+    if (in)
+    {
+        int mx = in->mouse_x, my = in->mouse_y;
+        int over = (mx >= handle_x - handle_w / 2 && mx < handle_x + handle_w / 2 && my >= row_y &&
+                    my < row_y + row_h);
+        if (!dragging && over && in->mouse_clicked)
+        {
+            dragging = 1;
+            drag_dx = mx - handle_x;
+        }
+        else if (dragging && in->mouse_down)
+        {
+            handle_x = mx - drag_dx;
+            left_w = handle_x - g_ui.cur_x;
+            if (left_w < min_left_w)
+                left_w = min_left_w;
+            if (left_w > max_left_w)
+                left_w = max_left_w;
+        }
+        else if (dragging && !in->mouse_down)
+        {
+            dragging = 0;
+            overlay_prefs_set_int(id, left_w);
+        }
+    }
+    /* Set up columns using computed left_w and remaining as right */
+    int widths[2] = {left_w, g_ui.width - left_w - 8};
+    *out_left_w = left_w;
+    return overlay_columns_begin(2, widths);
+}
+
+void overlay_splitter_end(void) { overlay_columns_end(); }
 
 #endif /* ROGUE_ENABLE_DEBUG_OVERLAY */

@@ -70,6 +70,10 @@ extern "C"
     void overlay_next_column(void);
     void overlay_columns_end(void);
 
+    /* Splitter: two resizable panes within current panel row. Width of left pane persists. */
+    int overlay_splitter_begin(const char* id, int* out_left_w, int min_left_w, int max_left_w);
+    void overlay_splitter_end(void);
+
 #else
 
 static inline int overlay_begin_panel(const char* title, int x, int y, int w)

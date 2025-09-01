@@ -1,1 +1,34 @@
+Debug Overlay: add persistent split views to Skills and Map; doc updates
+
+- Widgets: Adopt the new splitter (overlay_splitter_begin/end) in Skills and Map panels.
+	• Skills: left pane for Tab + Skill selection; right pane hosts the content with a sticky
+		validation banner. Width persists via overlay_prefs (key: skills.split).
+	• Map: left pane retains editing controls; right pane is a preview/inspector placeholder
+		for upcoming mini-map/tile palette. Width persists (key: map.split).
+- Roadmap: mark Milestone 0.2 Layout primitives as Met; update near-term notes to reflect
+	splitter adoption and persistence.
+- README: add a short note on split views and overlay preferences persistence
+	(overlay_prefs.json) and list current adopting panels.
+- Build/tests: no code path changes beyond UI layout; prior full suite run was green (593/593).
+
 Add HEAL EffectSpec kind (enum/parser/loader/runtime), introduce RogueSkillExecState + getter, add per-skill profiling timestamps; Debug SDL2 build -j12; ctest 587/587 PASS
+
+Debug Overlay: Command Palette (Ctrl+Shift+P) with default commands; docs/roadmap
+Debug Overlay: Items panel authoring + virtualization; compile fix; docs/roadmap
+
+- Items: add schema-backed "Create New Item" wizard (ID/Name/Category/Level/Rarity/Stack Max/Base Value/Dmg/Armor/Sockets).
+	• Validates and sanitizes inputs; suggests unique id; calls rogue_item_debug_create.
+- Duplicate-as-template: one-click prefill from selected row into the wizard with a new id suggestion.
+- List virtualization (prototype): introduce a row-offset slider and fixed visible_rows=20 for stable headless rendering of large registries; selection persists; clamped bounds.
+- Compile fix: remove references to internal UI globals from panels_items.c; rely on public overlay/widget APIs.
+- Persistence: splitter widths per panel via overlay_prefs (keys: items.split, skills.split, map.split).
+- Docs: README adds Items tips (duplicate-as-template + virtualization); roadmap marks Milestone 2.1 (Items wizard) and 8.1 (virtualization prototype) as progressed; near-term next steps updated.
+- Tests: Debug SDL2 build and full ctest suite all green (593/593).
+
+
+- Commands: minimal palette UI with substring filter and keyboard navigation; toggle with Ctrl+Shift+P.
+	• Registered defaults: Validation (Run Now, Show Panel), Skills (Save/Load Overrides),
+		Content Graph (Export DOT), Panels (Open Items/Skills/Map).
+- API: overlay_command_register, overlay_invoke_action, overlay_register_default_commands.
+- Init: seed defaults on overlay_init; headless-safe command invocations.
+- Docs: README tip added; roadmap 1.2 marked stub Met.
