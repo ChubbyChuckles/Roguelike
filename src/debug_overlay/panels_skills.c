@@ -68,6 +68,13 @@ static void panel_skills(void* user)
     static char sim_result[256] = "";
     static int last_valid_ok = 1;
     static char last_valid_msg[128] = "OK";
+    /* Sticky Validation Status banner (visible at top of panel) */
+    {
+        char vline[192];
+        snprintf(vline, sizeof vline, "Validation: %s%s%s", last_valid_ok ? "OK" : "ERROR",
+                 last_valid_ok ? "" : ": ", last_valid_ok ? "" : last_valid_msg);
+        overlay_label(vline);
+    }
     /* Template/new-skill helpers (Overview tab) */
     static int tmpl_id = -1;
     static char tmpl_filter[64] = "";
@@ -531,17 +538,76 @@ static void panel_skills(void* user)
             node_count = 0;
             primary_id = -1;
         }
+        /* Local inline validation for quick feedback (mirrors core rules) */
+        {
+            int local_errors = 0;
+            char line[192];
+            /* Primary id validity (treat 0 as unset like core validator) */
+            if (primary_id > 0 && rogue_effect_get(primary_id) == NULL)
+            {
+                snprintf(line, sizeof line, "ERROR: primary effect_spec_id=%d is invalid",
+                         primary_id);
+                overlay_label(line);
+                ++local_errors;
+            }
+            for (int ni = 0; ni < node_count; ++ni)
+            {
+                const int eid = nodes[ni].effect_spec_id;
+                if (eid > 0 && rogue_effect_get(eid) == NULL)
+                {
+                    snprintf(line, sizeof line, "ERROR: node %d effect_spec_id=%d invalid", ni + 1,
+                             eid);
+                    overlay_label(line);
+                    ++local_errors;
+                }
+                if (nodes[ni].duration_ms < 0.0f)
+                {
+                    snprintf(line, sizeof line, "ERROR: node %d duration_ms < 0", ni + 1);
+                    overlay_label(line);
+                    ++local_errors;
+                }
+                if (nodes[ni].repeat_count < 0 || nodes[ni].repeat_count > 32)
+                {
+                    snprintf(line, sizeof line, "ERROR: node %d repeat_count out of range (0..32)",
+                             ni + 1);
+                    overlay_label(line);
+                    ++local_errors;
+                }
+                if (nodes[ni].repeat_count == 0 && nodes[ni].duration_ms > 0.0f &&
+                    nodes[ni].repeat_interval_ms <= 0.0f)
+                {
+                    snprintf(line, sizeof line,
+                             "ERROR: node %d duration set but repeat_interval_ms <= 0", ni + 1);
+                    overlay_label(line);
+                    ++local_errors;
+                }
+                if (nodes[ni].require_player_health_below_pct > 100)
+                {
+                    snprintf(line, sizeof line, "ERROR: node %d HP gate > 100%% (value=%u)", ni + 1,
+                             (unsigned) nodes[ni].require_player_health_below_pct);
+                    overlay_label(line);
+                    ++local_errors;
+                }
+            }
+            if (local_errors == 0)
+                overlay_label("Local check: OK");
+        }
         /* Minimal EffectSpec palette with filter and selectable target (primary or node index) */
         {
             static int palette_open = 1;
             static char eff_filter[64] = "";
             static int assign_target = -1; /* -1 = primary, >=0 assigns to node index */
             static int eff_selected = -1;  /* last selected effect id */
+            static int kind_filter = -1;   /* -1=Any, 0=BUFF,1=DOT,2=AURA */
+            static int debuff_only = 0;
             overlay_checkbox("Show EffectSpec Palette", &palette_open);
             if (palette_open)
             {
                 overlay_input_text("Filter (id substring)", eff_filter, sizeof eff_filter);
                 overlay_slider_int("Assign To: -1=Primary, 0..2 Node", &assign_target, -1, 2);
+                overlay_slider_int("Kind Filter (-1 any, 0 buff, 1 dot, 2 aura)", &kind_filter, -1,
+                                   2);
+                overlay_checkbox("Debuff only", &debuff_only);
                 int ec = rogue_effect_count();
                 const char* headers[] = {"ID", "Kind", "Debuff", "Dur"};
                 int sort_col = 0, sort_dir = 0;
@@ -576,6 +642,10 @@ static void panel_skills(void* user)
                             if (!hit)
                                 continue;
                         }
+                        if (kind_filter >= 0 && (int) es->kind != kind_filter)
+                            continue;
+                        if (debuff_only && es->debuff == 0)
+                            continue;
                         snprintf(kind_s, sizeof kind_s, "%u", (unsigned) es->kind);
                         snprintf(deb_s, sizeof deb_s, "%u", (unsigned) es->debuff);
                         snprintf(dur_s, sizeof dur_s, "%.0f", es->duration_ms);
@@ -600,6 +670,19 @@ static void panel_skills(void* user)
                             changed = 1;
                         }
                     }
+                }
+                if (overlay_button("Clear Nodes"))
+                {
+                    for (int i = 0; i < node_count; ++i)
+                    {
+                        nodes[i].effect_spec_id = -1;
+                        nodes[i].delay_ms = 0.0f;
+                        nodes[i].duration_ms = 0.0f;
+                        nodes[i].repeat_count = 0;
+                        nodes[i].repeat_interval_ms = 0.0f;
+                        nodes[i].require_player_health_below_pct = 0;
+                    }
+                    changed = 1;
                 }
             }
         }

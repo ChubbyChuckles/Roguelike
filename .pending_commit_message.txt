@@ -96,3 +96,10 @@ feat(overlay/skills): add EffectSpec palette + registry enumeration helper
 - Core: new public `rogue_effect_count()` exposes registry size to drive the palette safely; used alongside existing `rogue_effect_get`.
 - Docs: README adds palette usage; Roadmap STATUS DELTA and CHANGELOG updated; Phase 2.2 marked Partial for the minimal palette with notes on pending graph editor/validation.
 - Build/Tests: Debug (SDL2) full suite passes (586/586) with -j12.
+
+Skill Creation Suite: Effects authoring UX polish (banner + inline validation + filters)
+
+- Skills panel: added a sticky Validation Status banner at the top (live updates on edits & Create/Save/Load).
+- Effects tab: inline validation for primary/node EffectSpec IDs, timing (duration, repeat_count/interval coupling), and HP gate limits; messages render in-row as you type.
+- EffectSpec palette: added Kind filter and Debuff-only toggle; kept substring filter; added "Clear Nodes" action. Assignments persist via overrides.
+- Rebuilt Debug (SDL2, -j12) and ran full test suite: 586/586 PASS.
