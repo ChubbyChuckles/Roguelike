@@ -231,6 +231,24 @@ int rogue_effect_register(const RogueEffectSpec* spec)
         if (tmp.damage_type == 0)
             tmp.damage_type = ROGUE_DMG_TRUE;
     }
+    else if (tmp.kind == ROGUE_EFFECT_DAMAGE)
+    {
+        /* One-shot direct damage to a single enemy. Default to TRUE type; mark debuff if dmg>0 */
+        if (!tmp.debuff && tmp.magnitude > 0)
+            tmp.debuff = 1;
+        if (tmp.damage_type == 0)
+            tmp.damage_type = ROGUE_DMG_TRUE;
+    }
+    else if (tmp.kind == ROGUE_EFFECT_AOE_BLAST)
+    {
+        /* One-shot AoE damage around player using aura_radius. Default radius sensibly. */
+        if (!tmp.debuff && tmp.magnitude > 0)
+            tmp.debuff = 1;
+        if (tmp.aura_radius <= 0.0f)
+            tmp.aura_radius = 1.5f;
+        if (tmp.damage_type == 0)
+            tmp.damage_type = ROGUE_DMG_TRUE;
+    }
     /* Default stacking behavior: for STAT_BUFF effects, default to ADD when unspecified.
        Tests construct specs with zero-initialized fields; a zero stack_rule maps to UNIQUE in
        the enum, but the intended default for buffs is additive stacking. Config parser already
@@ -389,6 +407,68 @@ static void apply_with_magnitude(const RogueEffectSpec* s, int eff_mag, double n
                 long long nm = (long long) raw * 150LL;
                 raw = (int) (nm / 100LL);
             }
+            int mitig = rogue_apply_mitigation_enemy(e, raw, dmg_type, &over);
+            if (mitig < 0)
+                mitig = 0;
+            if (e->health > 0)
+            {
+                int nh = e->health - mitig;
+                e->health = (nh < 0 ? 0 : nh);
+                if (e->health == 0)
+                    e->alive = 0;
+            }
+            rogue_damage_event_record(0, dmg_type, crit, raw, mitig, over, 0);
+        }
+    }
+    break;
+    case ROGUE_EFFECT_DAMAGE:
+    {
+        /* Choose first alive enemy as target for deterministic unit tests */
+        RogueEnemy* target = NULL;
+        for (int i = 0; i < g_app.enemy_count; ++i)
+        {
+            if (g_app.enemies[i].alive)
+            {
+                target = &g_app.enemies[i];
+                break;
+            }
+        }
+        if (!target)
+            break;
+        int over = 0;
+        unsigned char dmg_type = s->damage_type;
+        int raw = (eff_mag > 0 ? eff_mag : 0);
+        unsigned char crit = 0; /* no crits for simple DAMAGE in v1 */
+        int mitig = rogue_apply_mitigation_enemy(target, raw, dmg_type, &over);
+        if (mitig < 0)
+            mitig = 0;
+        if (target->health > 0)
+        {
+            int nh = target->health - mitig;
+            target->health = (nh < 0 ? 0 : nh);
+            if (target->health == 0)
+                target->alive = 0;
+        }
+        rogue_damage_event_record(0, dmg_type, crit, raw, mitig, over, 0);
+    }
+    break;
+    case ROGUE_EFFECT_AOE_BLAST:
+    {
+        /* One-shot AoE: apply once to all enemies in radius around player */
+        float px = g_app.player.base.pos.x;
+        float py = g_app.player.base.pos.y;
+        float r = (s->aura_radius > 0.0f) ? s->aura_radius : 0.0f;
+        unsigned char dmg_type = s->damage_type;
+        int base_raw = (eff_mag > 0 ? eff_mag : 0);
+        int idxs[128];
+        int nidx =
+            rogue_collect_enemies_in_radius(px, py, r, idxs, (int) (sizeof idxs / sizeof idxs[0]));
+        for (int ii = 0; ii < nidx; ++ii)
+        {
+            RogueEnemy* e = &g_app.enemies[idxs[ii]];
+            int over = 0;
+            int raw = base_raw;
+            unsigned char crit = 0; /* no crits for v1 */
             int mitig = rogue_apply_mitigation_enemy(e, raw, dmg_type, &over);
             if (mitig < 0)
                 mitig = 0;

@@ -10,10 +10,12 @@ extern "C"
     typedef enum RogueEffectKind
     {
         ROGUE_EFFECT_STAT_BUFF = 0,
-        ROGUE_EFFECT_DOT = 1,             /* Damage over Time (harmful) */
-        ROGUE_EFFECT_AURA = 2,            /* Area effect centered on player (radius) */
-        ROGUE_EFFECT_HEAL = 3,            /* Healing applied to the player */
-        ROGUE_EFFECT_SPAWN_PROJECTILE = 4 /* Spawn a simple projectile from player */
+        ROGUE_EFFECT_DOT = 1,              /* Damage over Time (harmful) */
+        ROGUE_EFFECT_AURA = 2,             /* Area effect centered on player (radius) */
+        ROGUE_EFFECT_HEAL = 3,             /* Healing applied to the player */
+        ROGUE_EFFECT_SPAWN_PROJECTILE = 4, /* Spawn a simple projectile from player */
+        ROGUE_EFFECT_DAMAGE = 5,           /* Instant single-target damage (enemy) */
+        ROGUE_EFFECT_AOE_BLAST = 6         /* One-shot AoE damage around player */
     } RogueEffectKind;
 
     /* Forward-declare buff stacking rule for specs */

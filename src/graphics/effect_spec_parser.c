@@ -39,6 +39,10 @@ static int parse_kind(const char* s)
         return ROGUE_EFFECT_HEAL;
     if (strcmp(s, "SPAWN_PROJECTILE") == 0)
         return ROGUE_EFFECT_SPAWN_PROJECTILE;
+    if (strcmp(s, "DAMAGE") == 0)
+        return ROGUE_EFFECT_DAMAGE;
+    if (strcmp(s, "AOE_BLAST") == 0)
+        return ROGUE_EFFECT_AOE_BLAST;
     return -1;
 }
 static int parse_damage_type(const char* s)
