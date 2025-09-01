@@ -17,6 +17,7 @@ Press F1 in-game to open the debug overlay.
 	 - Unlink/Clear: "Unlink Selected" removes the parent link; "Clear Selected Node" resets its EffectSpec and timings.
 	 - Apply timing: "Apply Connections to Delays" derives each node's delay_ms by summing parent spans (duration or repeat_count*repeat_interval_ms). "Chain Nodes" remains as a quick X‑order auto‑sequence.
 	 - Visuals: edges render between connected nodes; nodes tint by validation status (red = invalid id, orange = timing/param issues, green = OK). Rendering is headless‑safe.
+ - Effects tab – Authoring help: A small "Repeat Mode" helper (0 none / 1 count / 2 window) maps inputs to repeat_count, repeat_interval_ms, and duration_ms safely. Contextual suggestions appear when the selected EffectSpec defines timing: "Apply spec duration (ms)" and "Use spec pulse period (ms)" (optionally deriving repeat_count). Extra one‑click fixes address common interval/duration inconsistencies.
 
 Notes
 - Panels are movable and their layout (x, y, width, visibility) persists across runs. The layout file is `build/overlay_layout.json`. To reset, delete that file. Tip: drag any panel by its title bar; height clamps to the viewport. Long tables auto-cap visible rows to avoid overflow.

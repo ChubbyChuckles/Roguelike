@@ -554,6 +554,107 @@ void panel_skills_draw_effects(int sel)
                     nodes[sel_node].require_player_health_below_pct = (unsigned char) hp_gate2;
                     changed = 1;
                 }
+                /* Repeat mode helper: 0 none, 1 count-based, 2 window-based */
+                int repeat_mode = 0;
+                if (nodes[sel_node].repeat_count > 0)
+                    repeat_mode = 1;
+                else if (nodes[sel_node].duration_ms > 0.0f &&
+                         nodes[sel_node].repeat_interval_ms > 0.0f)
+                    repeat_mode = 2;
+                if (overlay_slider_int("Repeat Mode (0 none,1 count,2 window)", &repeat_mode, 0, 2))
+                {
+                    if (repeat_mode == 0)
+                    {
+                        nodes[sel_node].repeat_count = 0;
+                        nodes[sel_node].repeat_interval_ms = 0.0f;
+                        /* keep duration as-is */
+                    }
+                    else if (repeat_mode == 1)
+                    {
+                        if (nodes[sel_node].repeat_count == 0)
+                            nodes[sel_node].repeat_count = 1;
+                        if (nodes[sel_node].repeat_interval_ms <= 0.0f)
+                            nodes[sel_node].repeat_interval_ms = 1000.0f;
+                        nodes[sel_node].duration_ms = 0.0f;
+                    }
+                    else if (repeat_mode == 2)
+                    {
+                        if (nodes[sel_node].duration_ms <= 0.0f)
+                            nodes[sel_node].duration_ms = nodes[sel_node].repeat_interval_ms > 0.0f
+                                                              ? nodes[sel_node].repeat_interval_ms
+                                                              : 1000.0f;
+                        if (nodes[sel_node].repeat_interval_ms <= 0.0f)
+                            nodes[sel_node].repeat_interval_ms = 1000.0f;
+                        nodes[sel_node].repeat_count = 0;
+                    }
+                    changed = 1;
+                }
+                /* Contextual suggestions from EffectSpec */
+                if (nodes[sel_node].effect_spec_id > 0)
+                {
+                    const RogueEffectSpec* es = rogue_effect_get(nodes[sel_node].effect_spec_id);
+                    if (es)
+                    {
+                        overlay_label("Suggestions:");
+                        /* Suggest using spec duration when set */
+                        if (es->duration_ms > 0.0f &&
+                            nodes[sel_node].duration_ms != es->duration_ms)
+                        {
+                            char s1[96];
+                            snprintf(s1, sizeof s1, "Apply spec duration (%.0f ms)",
+                                     es->duration_ms);
+                            if (overlay_button(s1))
+                            {
+                                nodes[sel_node].duration_ms = es->duration_ms;
+                                changed = 1;
+                            }
+                        }
+                        /* Suggest pulse period for DOT/AURA when available */
+                        if (es->pulse_period_ms > 0.0f &&
+                            nodes[sel_node].repeat_interval_ms != es->pulse_period_ms)
+                        {
+                            char s2[96];
+                            snprintf(s2, sizeof s2, "Use spec pulse period (%.0f ms)",
+                                     es->pulse_period_ms);
+                            if (overlay_button(s2))
+                            {
+                                nodes[sel_node].repeat_interval_ms = es->pulse_period_ms;
+                                /* If using window mode, optionally derive an integer repeat_count
+                                 * suggestion */
+                                if (nodes[sel_node].repeat_count > 0 &&
+                                    nodes[sel_node].duration_ms > 0.0f)
+                                {
+                                    int rc =
+                                        (int) (nodes[sel_node].duration_ms / es->pulse_period_ms);
+                                    if (rc < 0)
+                                        rc = 0;
+                                    nodes[sel_node].repeat_count = rc;
+                                }
+                                changed = 1;
+                            }
+                        }
+                        /* Helpful one-click fixes for common invalid combos */
+                        if (nodes[sel_node].repeat_count > 0 &&
+                            nodes[sel_node].repeat_interval_ms <= 0.0f)
+                        {
+                            if (overlay_button("Fix: Set interval 1000ms (repeat_count > 0)"))
+                            {
+                                nodes[sel_node].repeat_interval_ms = 1000.0f;
+                                changed = 1;
+                            }
+                        }
+                        if (nodes[sel_node].repeat_count == 0 &&
+                            nodes[sel_node].duration_ms > 0.0f &&
+                            nodes[sel_node].repeat_interval_ms <= 0.0f)
+                        {
+                            if (overlay_button("Fix: Window mode — set interval 1000ms"))
+                            {
+                                nodes[sel_node].repeat_interval_ms = 1000.0f;
+                                changed = 1;
+                            }
+                        }
+                    }
+                }
             }
             if (overlay_button("Chain Nodes (set delays from order)"))
             {

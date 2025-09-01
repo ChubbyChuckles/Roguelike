@@ -138,3 +138,10 @@ refactor(overlay/skills): modularize Skills panel into per-tab modules + orchest
 - Visuals/Audio/Testing logic migrated with unchanged behavior; Effects/Overview wired to shared helpers; persistence via overrides JSON verified.
 - Build & tests: Debug (SDL2) with -j12; full suite passed 100% (587/587).
 - Docs: roadmap STATUS DELTA/CHANGELOG updated; README notes modularization and bumps latest run to 587/587.
+
+feat(overlay/skills): Effects tab authoring helpers (Repeat Mode + EffectSpec-based suggestions)
+
+- Added a lightweight Repeat Mode helper (0 none / 1 count / 2 window) that maps cleanly to repeat_count, repeat_interval_ms, and duration_ms without guesswork.
+- Contextual suggestions sourced from EffectSpec timing: one-click "Apply spec duration" and "Use spec pulse period" (optionally deriving repeat_count), plus extra fixes for interval/duration inconsistencies.
+- UI-only changes; headless-safe. Roadmap STATUS DELTA/CHANGELOG and README updated.
+- Build & tests: Debug (SDL2) with -j12; full ctest passed 100% (587/587).
