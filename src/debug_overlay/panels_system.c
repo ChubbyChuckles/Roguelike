@@ -7,7 +7,7 @@
 static void panel_system(void* user)
 {
     (void) user;
-    if (!overlay_begin_panel("System", 10, 10, 320))
+    if (!overlay_begin_panel_auto("system", "System", 10, 10, 320))
         return;
     char buf[128];
     double fps = 0.0, fms = 0.0, avg = 0.0;

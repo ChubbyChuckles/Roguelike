@@ -9,7 +9,7 @@
 static void panel_items(void* user)
 {
     (void) user;
-    if (!overlay_begin_panel("Items", 820, 10, 360))
+    if (!overlay_begin_panel_auto("items", "Items", 820, 10, 360))
         return;
 
     static int filter_rarity = -1; // -1 all

@@ -61,3 +61,11 @@ Gate confirm: After integrating the destructor change, rebuilt Debug (SDL2) with
 Follow-ups
 - Validate overlay runtime UX across Items, Validation, Content Graph panels in interactive sessions.
 - Consider virtualized tables for large lists; wire Command Palette stub.
+
+feat(overlay): movable panels with persisted layout + compile fixes
+
+- Implemented overlay_begin_panel_auto for drag, visibility toggles, and persisted layout/visibility to build/overlay_layout.json.
+- Converted major panels (skills, audio/vfx, system, player, validation, entities, items, map, content_graph) to use the new helper.
+- Fixed compile errors: added overlay_input.h in panels_audiovfx.c; restored state/structure in panels_skills.c.
+- Rebuilt Debug (SDL2, -j12); full test suite 586/586 PASS.
+- Updated roadmap STATUS DELTA/CHANGELOG and README for persisted/movable panels.

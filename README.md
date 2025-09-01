@@ -14,7 +14,7 @@ Press F1 in-game to open the debug overlay.
  - Effects tab – EffectSpec palette: Toggle a mini palette to browse all registered EffectSpecs with a substring filter. Select an entry and choose Assign-To (Primary or Node 0..2), then click Assign Selected to update the composition. Changes mark the composition dirty and persist via overrides. Powered by a new safe enumeration helper (`rogue_effect_count`).
 
 Notes
-- Panel visibility isn’t persisted between runs yet. If you’d like that, we can store the visibility bitmask in your config/save.
+- Panels are movable and their layout (x, y, width, visibility) persists across runs. The layout file is `build/overlay_layout.json`. To reset, delete that file. Tip: drag any panel by its title bar; height clamps to the viewport. Long tables auto-cap visible rows to avoid overflow.
 - If a click doesn’t select, make sure the cursor is over the world (not another UI), and keep Shift held while clicking.
 
 <div align="center">

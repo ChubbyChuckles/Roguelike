@@ -8,7 +8,7 @@
 static void panel_validation(void* user)
 {
     (void) user;
-    if (!overlay_begin_panel("Validation", 820, 380, 360))
+    if (!overlay_begin_panel_auto("validation", "Validation", 820, 380, 360))
         return;
 
     overlay_label("Run content validators:");

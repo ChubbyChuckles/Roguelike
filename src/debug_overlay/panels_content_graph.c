@@ -109,7 +109,7 @@ static int content_graph_collect_forward(const char* root_id, int max_depth, con
 static void panel_content_graph(void* user)
 {
     (void) user;
-    if (!overlay_begin_panel("Content Graph", 1920 - 380, 10, 360))
+    if (!overlay_begin_panel_auto("content_graph", "Content Graph", 1540, 10, 360))
         return;
     /* Filter + selection + dependency list; group nodes by top-level prefix before '/' */
     static int sel = 0;

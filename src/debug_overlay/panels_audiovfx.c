@@ -9,7 +9,7 @@
 static void panel_audiovfx(void* user)
 {
     (void) user;
-    if (!overlay_begin_panel("Audio / VFX", 10, 590, 380))
+    if (!overlay_begin_panel_auto("audiovfx", "Audio / VFX", 10, 590, 380))
         return;
     /* Simple inputs: audio id, vfx id, and spawn at cursor */
     static char audio_id[32] = "click";

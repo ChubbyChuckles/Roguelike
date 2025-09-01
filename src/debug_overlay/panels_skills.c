@@ -52,21 +52,38 @@ static void preview_ensure_tex(PreviewTex* t, const char* path)
 static void panel_skills(void* user)
 {
     (void) user;
-    if (!overlay_begin_panel("Skills", 380, 10, 420))
+    // Use movable, persisted panel begin with a wider default to fit content.
+    if (!overlay_begin_panel_auto("skills", "Skills", 360, 10, 480))
         return;
     /* Simple tabs (combo-based): Overview, Effects, Visuals, Audio, Testing */
     static int tab = 0;
     static const char* tab_names[] = {"Overview", "Effects", "Visuals", "Audio", "Testing"};
     overlay_combo("Tab", &tab, tab_names, 5);
+
+    /* Persistent UI state */
     static float sim_duration_ms = 2000.0f;
     static float sim_tick_ms = 16.0f;
     static float sim_ap_regen_per_sec = 0.0f;
     static char prio_buf[128] = "";
     static char sim_result[256] = "";
+    static int last_valid_ok = 1;
+    static char last_valid_msg[128] = "OK";
+    /* Template/new-skill helpers (Overview tab) */
+    static int tmpl_id = -1;
+    static char tmpl_filter[64] = "";
+    static char new_name[64] = "";
+    static int new_max_rank = 5;
+    static float new_base_cd = 1000.f;
+    static float new_cd_red = 0.f;
+    static float new_cast_ms = 0.f;
+    static int new_is_passive = 0;
+    static int copy_coeffs = 1;
+
     const char* overrides_path = "build/skills_overrides.json";
     const char* base_skills_path = "assets/skills_uhf87f.json";
     static int auto_reload = 1;
     static int auto_reload_base = 0;
+
     int count = rogue_skill_debug_count();
     static int sel = 0;
     if (sel < 0)
@@ -81,94 +98,64 @@ static void panel_skills(void* user)
     }
     overlay_slider_int("Skill Index", &sel, 0, count - 1);
     const char* name = rogue_skill_debug_name(sel);
-    char buf[256];
-    snprintf(buf, sizeof buf, "[%d] %s", sel, name ? name : "<noname>");
-    overlay_label(buf);
-    /*
-     * Validation Status (prominent)
-     * - Sticky status updated on edits to surface problems early.
-     */
-    static int last_valid_ok = 1;
-    static char last_valid_msg[196] = "OK";
-    {
-        char line[256];
-        if (last_valid_ok)
-            snprintf(line, sizeof line, "[Validation] OK");
-        else
-            snprintf(line, sizeof line, "[Validation] ERROR: %s", last_valid_msg);
-        overlay_label(line);
-    }
 
-    /* Overview tab content ----------------------------------------------------- */
+    /* Overview -------------------------------------------------------------- */
     if (tab == 0)
     {
-        /* Creation wizard */
-        overlay_label("Create New Skill");
-        static char new_name[64] = "";
-        static int new_max_rank = 5;
-        static float new_base_cd = 1000.0f;
-        static float new_cd_red = 0.0f;
-        static float new_cast_ms = 0.0f;
-        static int new_is_passive = 0;
-        static int tmpl_id = -1;
-        static int copy_coeffs = 1;
-        /* Template from existing skill */
-        overlay_slider_int("Template Skill Id", &tmpl_id, -1, count - 1);
-        overlay_checkbox("Copy Coeffs", &copy_coeffs);
-        /* Searchable template picker */
-        static char tmpl_filter[64] = "";
-        overlay_input_text("Template Filter", tmpl_filter, sizeof tmpl_filter);
+        overlay_label("Templates");
+        overlay_input_text("Filter", tmpl_filter, sizeof tmpl_filter);
+        const char* headers[] = {"ID", "Name"};
+        int sort_col = 0, sort_dir = 0;
+        int selected = (tmpl_id >= 0 && tmpl_id < count) ? tmpl_id : -1;
+        if (overlay_table_begin("skills_tmpl", headers, 2, &sort_col, &sort_dir, NULL))
         {
-            const char* headers[] = {"ID", "Name"};
-            int sort_col = 0;
-            int sort_dir = 0;
-            int selected = (tmpl_id >= 0 && tmpl_id < count) ? tmpl_id : -1;
-            if (overlay_table_begin("skills_tmpl", headers, 2, &sort_col, &sort_dir, NULL))
+            /* Clamp how many rows we draw per frame to fit the panel height; approx rows */
+            int max_rows = (g_app.viewport_h - 220) / 20;
+            if (max_rows < 8)
+                max_rows = 8;
+            int drawn = 0;
+            for (int i = 0; i < count; ++i)
             {
-                for (int i = 0; i < count; ++i)
+                if (drawn >= max_rows)
+                    break;
+                const char* sname = rogue_skill_debug_name(i);
+                if (!sname)
+                    continue;
+                if (tmpl_filter[0] != '\0')
                 {
-                    const char* sname = rogue_skill_debug_name(i);
-                    if (!sname)
-                        continue;
-                    /* Simple substring filter (case-sensitive) */
-                    if (tmpl_filter[0] != '\0')
+                    const char* p = sname;
+                    const char* f = tmpl_filter;
+                    const char* hit = NULL;
+                    for (; *p && !hit; ++p)
                     {
-                        const char* p = sname;
-                        const char* f = tmpl_filter;
-                        const char* hit = NULL;
-                        /* naive strstr to avoid including string.h here */
-                        for (; *p && !hit; ++p)
+                        const char* p2 = p;
+                        const char* f2 = f;
+                        while (*p2 && *f2 && *p2 == *f2)
                         {
-                            const char* p2 = p;
-                            const char* f2 = f;
-                            while (*p2 && *f2 && *p2 == *f2)
-                            {
-                                ++p2;
-                                ++f2;
-                            }
-                            if (*f2 == '\0')
-                                hit = p; /* matched */
+                            ++p2;
+                            ++f2;
                         }
-                        if (!hit)
-                            continue;
+                        if (*f2 == '\0')
+                            hit = p;
                     }
-                    char id_s[16];
-                    snprintf(id_s, sizeof id_s, "%d", i);
-                    const char* cells[] = {id_s, sname};
-                    (void) overlay_table_row(cells, 2, i, &selected);
+                    if (!hit)
+                        continue;
                 }
-                overlay_table_end();
+                char id_s[16];
+                snprintf(id_s, sizeof id_s, "%d", i);
+                const char* cells[] = {id_s, sname};
+                (void) overlay_table_row(cells, 2, i, &selected);
+                ++drawn;
             }
-            tmpl_id = selected;
+            overlay_table_end();
         }
+        tmpl_id = selected;
+        overlay_checkbox("Copy coeffs on create", &copy_coeffs);
         if (overlay_button("Apply Template") && tmpl_id >= 0 && tmpl_id < count)
         {
-            /* Prefill fields from template */
             const char* tname = rogue_skill_debug_name(tmpl_id);
             if (tname)
-            {
                 snprintf(new_name, sizeof new_name, "%s_Copy", tname);
-            }
             int mr = 1, pass = 0;
             if (rogue_skill_debug_get_meta(tmpl_id, &mr, &pass) == 0)
             {
@@ -186,11 +173,7 @@ static void panel_skills(void* user)
             {
                 RogueSkillCoeffParams tcp;
                 if (rogue_skill_debug_get_coeff(tmpl_id, &tcp) == 0)
-                {
-                    /* Apply coeffs to current selection for preview; creation will only set timing.
-                     */
                     rogue_skill_debug_set_coeff(sel, &tcp);
-                }
             }
         }
         overlay_input_text("Name", new_name, sizeof new_name);
@@ -201,7 +184,6 @@ static void panel_skills(void* user)
         overlay_checkbox("Passive", &new_is_passive);
         if (overlay_button("Create"))
         {
-            /* Validate current registry before allowing a new create to be committed */
             char vmsg[192] = {0};
             if (rogue_skill_debug_validate(vmsg, (int) sizeof vmsg) != 0)
             {
@@ -210,7 +192,7 @@ static void panel_skills(void* user)
                          vmsg[0] ? vmsg : "(no details)");
                 overlay_label(warn);
             }
-            /* Also run cross-rule validation to update sticky status */
+            /* Update cross-rule sticky status */
             {
                 char emsg[192] = {0};
                 int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
@@ -227,16 +209,12 @@ static void panel_skills(void* user)
             {
                 snprintf(msg, sizeof msg, "Created skill '%s' at id %d", new_name, idx);
                 sel = idx;
-                /* Reset name for next */
                 new_name[0] = '\0';
-                /* If template coeffs were requested and available, copy them into the new id */
                 if (copy_coeffs && tmpl_id >= 0 && tmpl_id < count)
                 {
                     RogueSkillCoeffParams tcp;
                     if (rogue_skill_debug_get_coeff(tmpl_id, &tcp) == 0)
-                    {
                         rogue_skill_debug_set_coeff(idx, &tcp);
-                    }
                 }
             }
             else
@@ -246,13 +224,11 @@ static void panel_skills(void* user)
             overlay_label(msg);
         }
 
-        /* Meta */
         overlay_label("Meta");
         int stype = 0;
         if (rogue_skill_debug_get_type(sel, &stype) == 0)
         {
             int changed = 0;
-            /* Simple slider for enum 0..9, with a helper label */
             changed |= overlay_slider_int("Skill Type (0..9)", &stype, 0, 9);
             static const char* type_names[10] = {"UNKNOWN", "MELEE",   "RANGED", "AOE_SPELL",
                                                  "BUFF",    "DEBUFF",  "HEAL",   "SUMMON",
@@ -267,7 +243,6 @@ static void panel_skills(void* user)
             {
                 rogue_skill_debug_set_type(sel, stype);
                 (void) rogue_skill_debug_save_overrides(overrides_path);
-                /* Refresh validation status */
                 char emsg[192] = {0};
                 int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
                 last_valid_ok = ok;
@@ -277,16 +252,9 @@ static void panel_skills(void* user)
                     snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
             }
 
-            /* Type Presets: apply recommended timing/coeff/params by type (asset paths left blank)
-             */
             overlay_label("Type Presets");
-            static int preset_idx = 0;
-            /* One preset per type for now */
-            preset_idx = stype; /* default to current type */
-            int apply = overlay_button("Apply Preset for Type");
-            if (apply)
+            if (overlay_button("Apply Preset for Type"))
             {
-                /* Timing defaults */
                 float p_base_cd = 1000.f, p_cd_red = 0.f, p_cast = 0.f;
                 RogueSkillCoeffParams pcp;
                 memset(&pcp, 0, sizeof pcp);
@@ -294,52 +262,52 @@ static void panel_skills(void* user)
                 pcp.per_rank_scalar = 0.1f;
                 switch (stype)
                 {
-                case 1: /* MELEE */
+                case 1:
                     p_base_cd = 800.f;
                     p_cast = 200.f;
                     pcp.base_scalar = 1.00f;
                     break;
-                case 2: /* RANGED */
+                case 2:
                     p_base_cd = 900.f;
                     p_cast = 250.f;
                     pcp.base_scalar = 0.95f;
                     break;
-                case 3: /* AOE_SPELL */
+                case 3:
                     p_base_cd = 1200.f;
                     p_cast = 400.f;
                     pcp.base_scalar = 0.85f;
                     break;
-                case 4: /* BUFF */
+                case 4:
                     p_base_cd = 15000.f;
                     p_cast = 300.f;
-                    pcp.base_scalar = 0.0f; /* non-damage by default */
+                    pcp.base_scalar = 0.0f;
                     break;
-                case 5: /* DEBUFF */
+                case 5:
                     p_base_cd = 12000.f;
                     p_cast = 300.f;
                     pcp.base_scalar = 0.2f;
                     break;
-                case 6: /* HEAL */
+                case 6:
                     p_base_cd = 5000.f;
                     p_cast = 350.f;
                     pcp.base_scalar = 0.0f;
                     break;
-                case 7: /* SUMMON */
+                case 7:
                     p_base_cd = 20000.f;
                     p_cast = 500.f;
                     pcp.base_scalar = 0.0f;
                     break;
-                case 8: /* PASSIVE */
+                case 8:
                     p_base_cd = 0.f;
                     p_cast = 0.f;
                     pcp.base_scalar = 0.0f;
                     break;
-                case 9: /* ULTIMATE */
+                case 9:
                     p_base_cd = 60000.f;
                     p_cast = 800.f;
                     pcp.base_scalar = 1.5f;
                     break;
-                default: /* UNKNOWN */
+                default:
                     p_base_cd = 1000.f;
                     p_cast = 0.f;
                     pcp.base_scalar = 0.5f;
@@ -348,7 +316,6 @@ static void panel_skills(void* user)
                 rogue_skill_debug_set_timing(sel, p_base_cd, p_cd_red, p_cast);
                 rogue_skill_debug_set_coeff(sel, &pcp);
                 (void) rogue_skill_debug_save_overrides(overrides_path);
-                /* Refresh validation status */
                 char emsg2[192] = {0};
                 int ok2 = (rogue_skills_validate_all(emsg2, (int) sizeof emsg2) == 0);
                 last_valid_ok = ok2;
@@ -369,7 +336,6 @@ static void panel_skills(void* user)
             {
                 rogue_skill_debug_set_timing(sel, base_cd, cd_red, cast_ms);
                 (void) rogue_skill_debug_save_overrides(overrides_path);
-                /* Refresh validation status after edit */
                 char emsg[192] = {0};
                 int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
                 last_valid_ok = ok;
@@ -395,7 +361,6 @@ static void panel_skills(void* user)
             {
                 rogue_skill_debug_set_coeff(sel, &cp);
                 (void) rogue_skill_debug_save_overrides(overrides_path);
-                /* Refresh validation status after edit */
                 char emsg[192] = {0};
                 int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
                 last_valid_ok = ok;

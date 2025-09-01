@@ -9,7 +9,7 @@
 static void panel_entities(void* user)
 {
     (void) user;
-    if (!overlay_begin_panel("Entities", 820, 10, 360))
+    if (!overlay_begin_panel_auto("entities", "Entities", 820, 10, 360))
         return;
     static int selected_slot = -1;
     int total = rogue_entity_debug_count();

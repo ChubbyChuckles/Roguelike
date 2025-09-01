@@ -8,7 +8,7 @@
 static void panel_player(void* user)
 {
     (void) user;
-    if (!overlay_begin_panel("Player", 10, 220, 360))
+    if (!overlay_begin_panel_auto("player", "Player", 10, 220, 360))
         return;
     int hp = rogue_player_debug_get_health();
     int hp_max = rogue_player_debug_get_max_health();

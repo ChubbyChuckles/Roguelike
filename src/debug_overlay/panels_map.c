@@ -8,7 +8,7 @@
 static void panel_map_editor(void* user)
 {
     (void) user;
-    if (!overlay_begin_panel("Map Editor", 1190, 10, 360))
+    if (!overlay_begin_panel_auto("map", "Map Editor", 1190, 10, 360))
         return;
     static int brush_radius = 1;
     static int brush_mode = 0;                     /* 0 = square, 1 = rect */
