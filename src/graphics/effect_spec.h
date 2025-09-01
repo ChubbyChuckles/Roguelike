@@ -10,9 +10,10 @@ extern "C"
     typedef enum RogueEffectKind
     {
         ROGUE_EFFECT_STAT_BUFF = 0,
-        ROGUE_EFFECT_DOT = 1,  /* Damage over Time (harmful) */
-        ROGUE_EFFECT_AURA = 2, /* Area effect centered on player (radius) */
-        ROGUE_EFFECT_HEAL = 3  /* Healing applied to the player */
+        ROGUE_EFFECT_DOT = 1,             /* Damage over Time (harmful) */
+        ROGUE_EFFECT_AURA = 2,            /* Area effect centered on player (radius) */
+        ROGUE_EFFECT_HEAL = 3,            /* Healing applied to the player */
+        ROGUE_EFFECT_SPAWN_PROJECTILE = 4 /* Spawn a simple projectile from player */
     } RogueEffectKind;
 
     /* Forward-declare buff stacking rule for specs */
@@ -64,6 +65,10 @@ extern "C"
         /* Phase 6: AURA parameters (used when kind == ROGUE_EFFECT_AURA) */
         float aura_radius;            /* tiles radius around player for area effects */
         unsigned int aura_group_mask; /* exclusivity mask (0 = none); reserved */
+        /* Phase 6b: SPAWN_PROJECTILE parameters */
+        float proj_speed;         /* tiles per second */
+        float proj_life_ms;       /* lifetime in ms */
+        unsigned char proj_count; /* number of projectiles to spawn (fan not yet supported) */
     } RogueEffectSpec;
 
     int rogue_effect_register(const RogueEffectSpec* spec); /* returns id or -1 */

@@ -131,6 +131,11 @@ Add basic Skills Node Graph editor with inline quick-fixes; keep tests green
 - Build & tests: Debug build (SDL2, -j12) succeeded; full ctest suite passes 100% (586/586).
 - Docs: update roadmap (STATUS DELTA + CHANGELOG) and README with Node Graph usage notes.
 
+docs(effectspec): document SPAWN_PROJECTILE JSON fields & behavior; tests 100% green
+
+- README External EffectSpec Config now lists SPAWN_PROJECTILE fields: proj_speed, proj_life_ms, proj_count, and explains damage-from-magnitude and facing-based direction. Notes multi-count emission.
+- Tests: referenced new unit `tests/unit/test_effectspec_spawn_projectile.c`; re-verified full Debug (SDL2) suite 100% green (588/588, -j12).
+
 refactor(overlay/skills): modularize Skills panel into per-tab modules + orchestrator; unify validation/save helpers
 
 - Split legacy monolith into modules: panel_skills_overview.{h,c}, panel_skills_effects.{h,c}, panel_skills_visuals.{h,c}, panel_skills_audio.{h,c}, panel_skills_testing.{h,c}; added panel_skills_shared.{h,c} for validation cache, paths, and save+refresh.

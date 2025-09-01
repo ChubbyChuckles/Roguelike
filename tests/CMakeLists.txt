@@ -36,7 +36,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_minimap_loot_pings.c AND NOT TAR
     endif()
     add_test(NAME test_minimap_loot_pings COMMAND test_minimap_loot_pings)
 endif()
-file(GLOB UNIT_TESTS unit/test_*.c)
+# Automatically reconfigure when new unit tests are added
+file(GLOB UNIT_TESTS CONFIGURE_DEPENDS unit/test_*.c)
 
 # Filter out removed/legacy test filenames that may linger in generated projects
 list(FILTER UNIT_TESTS EXCLUDE REGEX ".*test_skills_phase1_foundation.c$")
@@ -130,7 +131,8 @@ foreach(ut ${UNIT_TESTS})
     add_test(NAME ${name} COMMAND ${name})
 endforeach()
 
-file(GLOB INTEGRATION_TESTS integration/test_*.c)
+# Automatically reconfigure when new integration tests are added
+file(GLOB INTEGRATION_TESTS CONFIGURE_DEPENDS integration/test_*.c)
 foreach(it ${INTEGRATION_TESTS})
     get_filename_component(name ${it} NAME_WE)
     add_executable(${name} ${it})
@@ -143,5 +145,18 @@ foreach(it ${INTEGRATION_TESTS})
         set_tests_properties(${name} PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy")
     else()
         add_test(NAME ${name} COMMAND ${name})
+    endif()
+endforeach()
+
+# Backfill critical compile definitions for tests that may have been generated before
+# SDL_MAIN_HANDLED and TEST_COMBAT_PERMISSIVE were added in this file.
+foreach(tgt IN LISTS UNIT_TESTS)
+    get_filename_component(_tname ${tgt} NAME_WE)
+    if(TARGET ${_tname})
+        # Prevent SDL from hijacking main() and enable permissive combat checks in tests
+        target_compile_definitions(${_tname} PRIVATE SDL_MAIN_HANDLED=1 TEST_COMBAT_PERMISSIVE=1)
+        if(ROGUE_ENABLE_SDL)
+            target_compile_definitions(${_tname} PRIVATE ROGUE_HAVE_SDL=1)
+        endif()
     endif()
 endforeach()

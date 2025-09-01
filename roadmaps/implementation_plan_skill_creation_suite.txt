@@ -8,6 +8,7 @@ Optional = Stretch / future wave
 
 STATUS DELTA (current)
 - Phase 1.2 slice: HEAL EffectSpec kind implemented end-to-end (enum/parser/loader/runtime); Phase 1.3 slice: minimal skill execution state enum + getter, lightweight per-skill profiling timestamps. Debug build (SDL2) -j12 full ctest 100% green (587/587).
+- Phase 1.2 SPAWN_PROJECTILE EffectSpec implemented end-to-end (enum/struct defaults, parser, JSON loader, runtime spawn using player facing; damage from magnitude; params: proj_speed, proj_life_ms, proj_count). Added unit test tests/unit/test_effectspec_spawn_projectile.c and fixed CMake so new tests always build and run. Full Debug (SDL2) ctest is now 100% green (588/588, -j12).
 - Effects tab presets and batch helpers added: Node Presets (Instant one-shot, Periodic Window using EffectSpec pulse if any, Counted Pulses deriving interval/count from spec duration/pulse), HP gate quick-set buttons (0%, 25%, 50%), and Batch Helpers (Fill empty nodes with Primary EffectSpec, Normalize window durations to whole pulses, Clear all HP gates). UI-only, headless-safe; Debug (SDL2) -j12 full ctest 100% green (587/587).
 - Effects tab authoring help added: a Repeat Mode helper (0 none / 1 count / 2 window) maps cleanly onto repeat_count, repeat_interval_ms, and duration_ms, plus contextual one-click suggestions sourced from EffectSpec ("Apply spec duration" and "Use spec pulse period" which can also derive repeat_count). Additional quick fixes address common interval/duration inconsistencies. UI-only, headless-safe; Debug (SDL2) -j12 full ctest passed 100% (587/587).
 - Skills panel architecture modularized: split the legacy monolith into per‑tab modules (overview/effects/visuals/audio/testing) with headers/guards and a thin orchestrator; shared helpers centralize validation and overrides save/refresh. Headless‑safe preview preserved. Full Debug (SDL2) build and entire test suite are green (587/587, -j12).
@@ -48,6 +49,8 @@ CHANGELOG
  - 2025-09-01: Skills panel UX polish: added sticky Validation Status banner (top of panel), inline validation in Effects tab (IDs, timing, HP gates), EffectSpec palette Kind filter + Debuff-only toggle, and Clear Nodes action. Rebuilt Debug (SDL2, -j12) and re-ran full test suite: 586/586 PASS.
 - 2025-09-01: Effects tab adds a basic Node Graph editor (drag/move nodes, selection + parameter panel, simple chain via X‑order). Added inline quick‑fix buttons for common validation issues (IDs/timing/HP gate). Rebuilt in Debug (SDL2, -j12); full ctest suite remains 100% green (586/586).
 
+- 2025-09-01: Phase 1.2 SPAWN_PROJECTILE EffectSpec added with proj_speed/proj_life_ms/proj_count fields; parser/JSON loader/runtime integrated. New unit test test_effectspec_spawn_projectile passes. CMake tests/CMakeLists updated to auto-reconfigure with CONFIGURE_DEPENDS and backfill SDL_MAIN_HANDLED/TEST_COMBAT_PERMISSIVE for existing targets to fix a missing main linkage on MSVC. Full Debug (SDL2) run: 588/588 PASS (-j12).
+
 Scope Overview:
 Transform the current Skills debug panel into a comprehensive skill creation, editing, testing, and debugging suite for a 2D RPG. Support all standard skill types (melee attacks, ranged projectiles, AoE spells, buffs/debuffs, healing, summoning, passives, ultimates) with real-time visual feedback, sandboxed testing environments, and deep integration with existing game systems (sprites, animations, particles, sound, combat, projectiles). Maintain C performance with modular architecture and extensibility for future skill types.
 
@@ -86,7 +89,7 @@ PHASE 1. Architecture & Core Data Model Enhancement
     Status: Partial (visuals/audio/animation/AoE/projectile fields implemented schema->runtime->debug APIs->validation->overlay; skill_type enum implemented across schema/runtime/validator; effect composition pending)
 1.2 Effect Composition System
     - Design EffectNode tree structure for complex skill behaviors (X)
-    - Implement effect types: DAMAGE, HEAL, BUFF_APPLY, DEBUFF_APPLY, SPAWN_PROJECTILE, SPAWN_ENTITY, TELEPORT, AOE_BLAST (Partial - HEAL implemented end-to-end)
+    - Implement effect types: DAMAGE, HEAL, BUFF_APPLY, DEBUFF_APPLY, SPAWN_PROJECTILE, SPAWN_ENTITY, TELEPORT, AOE_BLAST (Partial - HEAL and SPAWN_PROJECTILE implemented end-to-end)
     - Add conditional execution: target_type, health_threshold, distance_check (X)
     - Add timing controls: delay_ms, duration_ms, repeat_count, repeat_interval_ms (X)
     - Create effect validation and dependency resolution (X)

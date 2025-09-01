@@ -37,6 +37,8 @@ static int parse_kind(const char* s)
         return ROGUE_EFFECT_AURA;
     if (strcmp(s, "HEAL") == 0)
         return ROGUE_EFFECT_HEAL;
+    if (strcmp(s, "SPAWN_PROJECTILE") == 0)
+        return ROGUE_EFFECT_SPAWN_PROJECTILE;
     return -1;
 }
 static int parse_damage_type(const char* s)
@@ -177,6 +179,23 @@ int rogue_effects_parse_text(const char* text, int* out_ids, int max_ids, char* 
         else if (strcmp(field, "aura_group_mask") == 0)
         {
             s->aura_group_mask = (unsigned int) strtoul(e.value, NULL, 10);
+        }
+        else if (strcmp(field, "proj_speed") == 0)
+        {
+            s->proj_speed = (float) atof(e.value);
+        }
+        else if (strcmp(field, "proj_life_ms") == 0)
+        {
+            s->proj_life_ms = (float) atof(e.value);
+        }
+        else if (strcmp(field, "proj_count") == 0)
+        {
+            int c = atoi(e.value);
+            if (c < 0)
+                c = 0;
+            if (c > 255)
+                c = 255;
+            s->proj_count = (unsigned char) c;
         }
         else if (strcmp(field, "scale_by_buff_type") == 0)
         {

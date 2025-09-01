@@ -1,5 +1,6 @@
 #include "effect_spec.h"
 #include "../core/app/app_state.h"
+#include "../core/projectiles/projectiles.h"
 #include "../game/buffs.h"
 #include <stdlib.h>
 #include <string.h>
@@ -216,6 +217,20 @@ int rogue_effect_register(const RogueEffectSpec* spec)
         if (tmp.magnitude < 0)
             tmp.magnitude = 0;
     }
+    else if (tmp.kind == ROGUE_EFFECT_SPAWN_PROJECTILE)
+    {
+        /* Projectiles are offensive by default when magnitude>0 (used as damage). */
+        if (!tmp.debuff && tmp.magnitude > 0)
+            tmp.debuff = 1;
+        if (tmp.proj_speed <= 0.0f)
+            tmp.proj_speed = 6.0f;
+        if (tmp.proj_life_ms <= 0.0f)
+            tmp.proj_life_ms = 2000.0f;
+        if (tmp.proj_count == 0)
+            tmp.proj_count = 1;
+        if (tmp.damage_type == 0)
+            tmp.damage_type = ROGUE_DMG_TRUE;
+    }
     /* Default stacking behavior: for STAT_BUFF effects, default to ADD when unspecified.
        Tests construct specs with zero-initialized fields; a zero stack_rule maps to UNIQUE in
        the enum, but the intended default for buffs is additive stacking. Config parser already
@@ -409,6 +424,47 @@ static void apply_with_magnitude(const RogueEffectSpec* s, int eff_mag, double n
             /* Use TRUE damage type to indicate non-elemental; observers can treat negative as heal
              */
             rogue_damage_event_record(0, ROGUE_DMG_TRUE, 0, -heal, -heal, 0, 0);
+        }
+        (void) now_ms;
+    }
+    break;
+    case ROGUE_EFFECT_SPAWN_PROJECTILE:
+    {
+        /* Spawn one or more simple projectiles from player center in facing direction.
+           Damage per projectile is eff_mag. */
+        float dx = 0.0f, dy = 0.0f;
+        switch (g_app.player.facing)
+        {
+        case 0:
+            dy = 1.0f;
+            break;
+        case 1:
+            dx = -1.0f;
+            break;
+        case 2:
+            dx = 1.0f;
+            break;
+        case 3:
+            dy = -1.0f;
+            break;
+        default:
+            dy = 1.0f;
+            break;
+        }
+        float frame_tiles = (g_app.tile_size > 0)
+                                ? ((float) g_app.player_frame_size / (float) g_app.tile_size)
+                                : 1.0f;
+        float cx = g_app.player.base.pos.x + frame_tiles * 0.5f;
+        float cy = g_app.player.base.pos.y + frame_tiles * 0.5f;
+        float sx = cx + dx * 0.60f;
+        float sy = cy + dy * 0.60f;
+        int count = (s->proj_count > 0 ? (int) s->proj_count : 1);
+        for (int i = 0; i < count; ++i)
+        {
+            /* For now, all fire in the same direction; spread patterns are future work. */
+            rogue_projectiles_spawn(sx, sy, dx, dy, (s->proj_speed > 0.0f ? s->proj_speed : 6.0f),
+                                    (s->proj_life_ms > 0.0f ? s->proj_life_ms : 2000.0f),
+                                    (eff_mag > 0 ? eff_mag : 0));
         }
         (void) now_ms;
     }

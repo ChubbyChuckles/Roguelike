@@ -77,6 +77,8 @@ static int map_kind(const char* s)
         return ROGUE_EFFECT_AURA;
     if (strcmp(s, "HEAL") == 0)
         return ROGUE_EFFECT_HEAL;
+    if (strcmp(s, "SPAWN_PROJECTILE") == 0)
+        return ROGUE_EFFECT_SPAWN_PROJECTILE;
     return -1;
 }
 static int map_damage_type(const char* s)
@@ -253,6 +255,12 @@ static int parse_effects_array(const char* buf, int* out_ids, int max_ids)
                     spec.aura_radius = (float) num;
                 else if (strcmp(key, "aura_group_mask") == 0)
                     spec.aura_group_mask = (unsigned int) num;
+                else if (strcmp(key, "proj_speed") == 0)
+                    spec.proj_speed = (float) num;
+                else if (strcmp(key, "proj_life_ms") == 0)
+                    spec.proj_life_ms = (float) num;
+                else if (strcmp(key, "proj_count") == 0)
+                    spec.proj_count = (unsigned char) ((int) num);
             }
             s = js_skip_ws(s);
             if (*s == ',')

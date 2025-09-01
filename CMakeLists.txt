@@ -897,6 +897,14 @@ if(TARGET SDL2::SDL2)
 endif()
 add_test(NAME test_effectspec_json_loader COMMAND test_effectspec_json_loader)
 
+# Phase 1.2: EffectSpec SPAWN_PROJECTILE unit test
+add_executable(test_effectspec_spawn_projectile tests/unit/test_effectspec_spawn_projectile.c)
+target_link_libraries(test_effectspec_spawn_projectile PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_effectspec_spawn_projectile PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_effectspec_spawn_projectile COMMAND test_effectspec_spawn_projectile)
+
 # Phase 10.3: skills validator unit test
 add_executable(test_skills_phase10_3_validator tests/unit/test_skills_phase10_3_validator.c)
 target_link_libraries(test_skills_phase10_3_validator PRIVATE rogue_core)

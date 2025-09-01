@@ -248,10 +248,13 @@ Data I/O utilities (for upcoming content schemas):
 	- scaling: scale_by_buff_type, scale_pct_per_point, snapshot_scale
 	- preconditions: require_buff_type, require_buff_min
 	- DOT/AURA: pulse_period_ms, damage_type, crit_mode, crit_chance_pct, aura_radius, aura_group_mask
+	- SPAWN_PROJECTILE: proj_speed (float, units/sec), proj_life_ms (float, ms), proj_count (int, 1..n)
 - Defaults & semantics:
 	- Unset kind → STAT_BUFF; unset stack_rule → ADD; disabled preconditions/scaling use sentinel values.
 	- Multiplicative stacking is a no‑op without a baseline; magnitude is percent (100 = no change).
+	- For SPAWN_PROJECTILE: damage inherits from EffectSpec.magnitude; projectiles spawn from player and use facing to set initial direction. When proj_count > 1, multiple identical projectiles are emitted in the same frame.
 - Test: `test_effectspec_json_loader` covers additive and multiplicative behavior; some tests disable buff dampening (`rogue_buffs_set_dampening(0.0)`) for deterministic rapid re‑applies.
+	- Additional test: `tests/unit/test_effectspec_spawn_projectile.c` validates projectile count and damage mapping; full suite is green in Debug (SDL2) under `-j12` (588/588).
 
 ### Skills Validator (Phase 10.3)
 - Central validation entry point: `int rogue_skills_validate_all(char* err, int err_cap)`.
