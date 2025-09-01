@@ -397,6 +397,7 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         st->casting_active = 1;
         st->cast_progress_ms = 0;
         st->channel_active = 0;
+        st->profile_last_cast_begin_ms = now;
         /* FX: skill start cue */
         {
             char key[48];
@@ -417,6 +418,7 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         st->casting_active = 0;
         st->channel_start_ms = now;
         st->channel_end_ms = now + def->cast_time_ms;
+        st->profile_last_cast_begin_ms = now;
         /* FX: channel start cue */
         {
             char key[48];
@@ -457,6 +459,7 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         {
             act_flags = def->on_activate(def, st, &local_ctx);
         }
+        st->profile_last_act_start_ms = now;
         consumed = (act_flags == 1) || (act_flags & ROGUE_ACT_CONSUMED);
         instant_act_flags = act_flags; /* cache for refund handling after spending */
         /* Instant skills: fire start+end cues immediately on successful consume */
@@ -467,6 +470,7 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
             rogue_fx_trigger_event(key, g_app.player.base.pos.x, g_app.player.base.pos.y);
             snprintf(key, sizeof key, "skill/%d/end", id);
             rogue_fx_trigger_event(key, g_app.player.base.pos.x, g_app.player.base.pos.y);
+            st->profile_last_act_end_ms = now;
         }
     }
     if (consumed)
@@ -783,6 +787,7 @@ void rogue_skills_update(double now_ms)
             {
                 st->casting_active = 0;
                 st->cast_progress_ms = def->cast_time_ms;
+                st->profile_last_cast_end_ms = now_ms;
                 RogueSkillCtx ctx = {0};
                 ctx.now_ms = now_ms;
                 ctx.rng_state =
@@ -877,6 +882,7 @@ void rogue_skills_update(double now_ms)
                     char key[48];
                     snprintf(key, sizeof key, "skill/%d/end", i);
                     rogue_fx_trigger_event(key, g_app.player.base.pos.x, g_app.player.base.pos.y);
+                    g_skill_states_internal[i].profile_last_act_end_ms = now_ms;
                 }
                 /* Combo flags on cast completion */
                 if (def->combo_builder)
@@ -1055,6 +1061,8 @@ void rogue_skills_update(double now_ms)
                     char key[48];
                     snprintf(key, sizeof key, "skill/%d/end", i);
                     rogue_fx_trigger_event(key, g_app.player.base.pos.x, g_app.player.base.pos.y);
+                    g_skill_states_internal[i].profile_last_cast_end_ms = now_ms;
+                    g_skill_states_internal[i].profile_last_act_end_ms = now_ms;
                 }
             }
         }

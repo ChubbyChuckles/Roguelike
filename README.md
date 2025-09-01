@@ -18,6 +18,7 @@ Press F1 in-game to open the debug overlay.
 	 - Apply timing: "Apply Connections to Delays" derives each node's delay_ms by summing parent spans (duration or repeat_count*repeat_interval_ms). "Chain Nodes" remains as a quick X‑order auto‑sequence.
 	 - Visuals: edges render between connected nodes; nodes tint by validation status (red = invalid id, orange = timing/param issues, green = OK). Rendering is headless‑safe.
  - Effects tab – Authoring help: A small "Repeat Mode" helper (0 none / 1 count / 2 window) maps inputs to repeat_count, repeat_interval_ms, and duration_ms safely. Contextual suggestions appear when the selected EffectSpec defines timing: "Apply spec duration (ms)" and "Use spec pulse period (ms)" (optionally deriving repeat_count). Extra one‑click fixes address common interval/duration inconsistencies.
+ - Effects tab – Presets & Batch helpers: Quick Node Presets (Instant, Periodic Window, Counted Pulses), HP gate quick-set buttons (0/25/50%), and Batch Helpers (Fill empty nodes with Primary, Normalize window durations to whole pulses, Clear all HP gates) to speed up common authoring flows; UI-only and headless-safe.
 
 Notes
 - Panels are movable and their layout (x, y, width, visibility) persists across runs. The layout file is `build/overlay_layout.json`. To reset, delete that file. Tip: drag any panel by its title bar; height clamps to the viewport. Long tables auto-cap visible rows to avoid overflow.
@@ -415,6 +416,17 @@ DOTs (Phase 5 summary):
 - Crit modes: per-application crit snapshot vs per-tick crit (deterministic hash); test hooks support a one-shot/global override for determinism.
 - Mitigation & logging: Each tick routes through combat mitigation and records damage events including overkill.
 - Tests: `test_effectspec_dot_basic`, `test_effectspec_dot_stack`, and `test_effectspec_dot_crit` validate duration, stacking, and crit behavior alongside existing ordering/scaling tests. All pass in Debug with SDL2 (-j8).
+
+HEAL EffectSpec (Phase 1.2 slice):
+- New effect kind ROGUE_EFFECT_HEAL restores player health up to max, clamped to prevent overheal.
+- Classification: defaults to non-debuff (beneficial); supports negative magnitudes for damage if needed.
+- Integration: applies via combat event stream for logging; supports periodic pulses and child chaining like other effects.
+- Parser/Loader: recognizes "HEAL" in KV and JSON formats; runtime apply path handles health restoration deterministically.
+
+Skill Execution State and Profiling (Phase 1.3 slice):
+- Minimal execution state enum: RogueSkillExecState { IDLE, CASTING, CHANNELING, COOLDOWN } with inline getter `rogue_skill_get_exec_state`.
+- Lightweight profiling: per-skill timestamps for last_act_start_ms, last_act_end_ms, last_cast_begin_ms, last_cast_end_ms; populated at runtime transitions for performance monitoring.
+- Headless-safe: getters work without SDL; profiling aids in debugging execution timing without full state machine overhead.
 
 ### Skill Events on the Event Bus (Phase 7.1)
 

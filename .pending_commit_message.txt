@@ -145,3 +145,10 @@ feat(overlay/skills): Effects tab authoring helpers (Repeat Mode + EffectSpec-ba
 - Contextual suggestions sourced from EffectSpec timing: one-click "Apply spec duration" and "Use spec pulse period" (optionally deriving repeat_count), plus extra fixes for interval/duration inconsistencies.
 - UI-only changes; headless-safe. Roadmap STATUS DELTA/CHANGELOG and README updated.
 - Build & tests: Debug (SDL2) with -j12; full ctest passed 100% (587/587).
+
+feat(overlay/skills): Effects tab presets & batch helpers (Instant/Window/Counted + HP gates + normalize/fill/clear)
+
+- Added Node Presets: Instant (one-shot), Periodic Window (uses EffectSpec pulse if present; defaults safe), and Counted Pulses (derives interval/count from spec duration/pulse with clamping).
+- Added HP gate quick buttons (0%, 25%, 50%) and Batch Helpers: Fill empty nodes with Primary, Normalize window durations to whole pulses, Clear all HP gates.
+- UI-only; headless-safe. Roadmap STATUS DELTA/Phase 2.2 marked Done; README notes new presets/helpers.
+- Build & tests: Debug (SDL2) with -j12; full ctest suite 100% green (587/587).

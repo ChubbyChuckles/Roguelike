@@ -183,7 +183,41 @@ typedef struct RogueSkillState
     double haste_factor_channel;     /* >0 when channel haste is snapshotted */
     double channel_start_ms;         /* anchor for drift-corrected ticks */
     double channel_tick_interval_ms; /* >0 when channel tick interval is snapshotted */
+    /* Phase 1.3: lightweight profiling timestamps (last activation lifecycle marks) */
+    double profile_last_act_start_ms;
+    double profile_last_act_end_ms;
+    double profile_last_cast_begin_ms;
+    double profile_last_cast_end_ms;
 } RogueSkillState;
+
+/* Phase 1.3: Minimal execution state reporting enum and accessor */
+typedef enum RogueSkillExecState
+{
+    ROGUE_SKEXEC_IDLE = 0,
+    ROGUE_SKEXEC_CASTING = 1,
+    ROGUE_SKEXEC_CHANNELING = 2,
+    ROGUE_SKEXEC_COOLDOWN = 3
+} RogueSkillExecState;
+
+/* Return current execution state derived from timers/flags. */
+static inline RogueSkillExecState rogue_skill_get_exec_state(int id)
+{
+    extern int g_skill_count_internal;
+    extern struct RogueSkillState* g_skill_states_internal;
+    extern struct RogueSkillDef* g_skill_defs_internal;
+    if (id < 0 || id >= g_skill_count_internal)
+        return ROGUE_SKEXEC_IDLE;
+    const RogueSkillState* st = &g_skill_states_internal[id];
+    const RogueSkillDef* def = &g_skill_defs_internal[id];
+    double now = 0.0; /* conservative; callers that need precise should compare cooldown_end_ms */
+    if (st->casting_active && def->cast_type == 1)
+        return ROGUE_SKEXEC_CASTING;
+    if (st->channel_active && def->cast_type == 2)
+        return ROGUE_SKEXEC_CHANNELING;
+    if (st->cooldown_end_ms > now)
+        return ROGUE_SKEXEC_COOLDOWN;
+    return ROGUE_SKEXEC_IDLE;
+}
 
 /* RNG helper (LCG) for deterministic local stream (1.6) */
 static inline unsigned int rogue_skill_rng_next(RogueSkillCtx* ctx)

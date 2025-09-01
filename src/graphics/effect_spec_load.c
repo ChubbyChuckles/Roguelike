@@ -75,6 +75,8 @@ static int map_kind(const char* s)
         return ROGUE_EFFECT_DOT;
     if (strcmp(s, "AURA") == 0)
         return ROGUE_EFFECT_AURA;
+    if (strcmp(s, "HEAL") == 0)
+        return ROGUE_EFFECT_HEAL;
     return -1;
 }
 static int map_damage_type(const char* s)

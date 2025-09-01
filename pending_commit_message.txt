@@ -1,0 +1,1 @@
+Add HEAL EffectSpec kind (enum/parser/loader/runtime), introduce RogueSkillExecState + getter, add per-skill profiling timestamps; Debug SDL2 build -j12; ctest 587/587 PASS

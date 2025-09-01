@@ -209,6 +209,13 @@ int rogue_effect_register(const RogueEffectSpec* spec)
         if (tmp.aura_radius <= 0.0f)
             tmp.aura_radius = 1.5f;
     }
+    else if (tmp.kind == ROGUE_EFFECT_HEAL)
+    {
+        /* Healing is not a debuff */
+        tmp.debuff = 0;
+        if (tmp.magnitude < 0)
+            tmp.magnitude = 0;
+    }
     /* Default stacking behavior: for STAT_BUFF effects, default to ADD when unspecified.
        Tests construct specs with zero-initialized fields; a zero stack_rule maps to UNIQUE in
        the enum, but the intended default for buffs is additive stacking. Config parser already
@@ -379,6 +386,31 @@ static void apply_with_magnitude(const RogueEffectSpec* s, int eff_mag, double n
             }
             rogue_damage_event_record(0, dmg_type, crit, raw, mitig, over, 0);
         }
+    }
+    break;
+    case ROGUE_EFFECT_HEAL:
+    {
+        /* Apply healing to the player; clamp to max health. eff_mag is raw heal amount */
+        int heal = (eff_mag > 0 ? eff_mag : 0);
+        int before = g_app.player.health;
+        int maxh = g_app.player.max_health > 0 ? g_app.player.max_health : 1;
+        int nh = before + heal;
+        if (nh > maxh)
+            nh = maxh;
+        if (nh < 0)
+            nh = 0;
+        g_app.player.health = nh;
+        /* Recompute any derived state that depends on current health if necessary */
+        /* Emit a healing record through damage event channel using negative mitig to tag heal */
+        /* Fields: source=0 player, damage_type=TRUE (neutral), crit=0, raw=-heal, mitig=-heal,
+         * over=0 */
+        if (heal > 0)
+        {
+            /* Use TRUE damage type to indicate non-elemental; observers can treat negative as heal
+             */
+            rogue_damage_event_record(0, ROGUE_DMG_TRUE, 0, -heal, -heal, 0, 0);
+        }
+        (void) now_ms;
     }
     break;
     default:
@@ -608,5 +640,7 @@ int rogue_effect_spec_is_debuff(int id)
         return 0;
     if (s->debuff)
         return 1;
-    return (s->kind == ROGUE_EFFECT_DOT) ? 1 : 0;
+    if (s->kind == ROGUE_EFFECT_DOT)
+        return 1;
+    return 0;
 }

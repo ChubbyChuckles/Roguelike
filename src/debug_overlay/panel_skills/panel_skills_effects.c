@@ -554,6 +554,79 @@ void panel_skills_draw_effects(int sel)
                     nodes[sel_node].require_player_health_below_pct = (unsigned char) hp_gate2;
                     changed = 1;
                 }
+                /* Quick Presets for broader node types */
+                overlay_label("Presets:");
+                if (overlay_button("Instant (one-shot)"))
+                {
+                    nodes[sel_node].duration_ms = 0.0f;
+                    nodes[sel_node].repeat_count = 1;
+                    nodes[sel_node].repeat_interval_ms = 0.0f;
+                    changed = 1;
+                }
+                if (overlay_button("Periodic Window (use spec pulse if any)"))
+                {
+                    float pulse = 1000.0f;
+                    if (nodes[sel_node].effect_spec_id > 0)
+                    {
+                        const RogueEffectSpec* es =
+                            rogue_effect_get(nodes[sel_node].effect_spec_id);
+                        if (es && es->pulse_period_ms > 0.0f)
+                            pulse = (float) es->pulse_period_ms;
+                    }
+                    nodes[sel_node].repeat_count = 0;
+                    nodes[sel_node].repeat_interval_ms = pulse;
+                    if (nodes[sel_node].duration_ms <= 0.0f)
+                        nodes[sel_node].duration_ms = pulse * 3.0f; /* default 3 ticks */
+                    changed = 1;
+                }
+                if (overlay_button("Counted Pulses (derive count from spec if possible)"))
+                {
+                    float pulse = 1000.0f;
+                    int count = 3;
+                    float dur_hint = 0.0f;
+                    if (nodes[sel_node].effect_spec_id > 0)
+                    {
+                        const RogueEffectSpec* es =
+                            rogue_effect_get(nodes[sel_node].effect_spec_id);
+                        if (es)
+                        {
+                            if (es->pulse_period_ms > 0.0f)
+                                pulse = (float) es->pulse_period_ms;
+                            if (es->duration_ms > 0.0f)
+                                dur_hint = (float) es->duration_ms;
+                        }
+                    }
+                    if (dur_hint > 0.0f)
+                    {
+                        int rc = (int) (dur_hint / pulse);
+                        if (rc < 1)
+                            rc = 1;
+                        if (rc > 32)
+                            rc = 32;
+                        count = rc;
+                    }
+                    nodes[sel_node].repeat_count = count;
+                    nodes[sel_node].repeat_interval_ms = pulse;
+                    nodes[sel_node].duration_ms = 0.0f;
+                    changed = 1;
+                }
+                /* Quick HP gate shortcuts */
+                overlay_label("HP Gate:");
+                if (overlay_button("0%"))
+                {
+                    nodes[sel_node].require_player_health_below_pct = 0;
+                    changed = 1;
+                }
+                if (overlay_button("25%"))
+                {
+                    nodes[sel_node].require_player_health_below_pct = 25;
+                    changed = 1;
+                }
+                if (overlay_button("50%"))
+                {
+                    nodes[sel_node].require_player_health_below_pct = 50;
+                    changed = 1;
+                }
                 /* Repeat mode helper: 0 none, 1 count-based, 2 window-based */
                 int repeat_mode = 0;
                 if (nodes[sel_node].repeat_count > 0)
@@ -655,6 +728,40 @@ void panel_skills_draw_effects(int sel)
                         }
                     }
                 }
+            }
+            /* Batch helpers for nodes */
+            overlay_label("Batch Helpers:");
+            if (overlay_button("Fill empty nodes with Primary EffectSpec"))
+            {
+                for (int i = 0; i < node_count && i < 3; ++i)
+                {
+                    if (nodes[i].effect_spec_id <= 0 && primary_id > 0)
+                    {
+                        nodes[i].effect_spec_id = primary_id;
+                    }
+                }
+                changed = 1;
+            }
+            if (overlay_button("Normalize window durations to whole pulses"))
+            {
+                for (int i = 0; i < node_count && i < 3; ++i)
+                {
+                    if (nodes[i].repeat_count == 0 && nodes[i].repeat_interval_ms > 0.0f &&
+                        nodes[i].duration_ms > 0.0f)
+                    {
+                        int pulses = (int) (nodes[i].duration_ms / nodes[i].repeat_interval_ms);
+                        if (pulses < 1)
+                            pulses = 1;
+                        nodes[i].duration_ms = pulses * nodes[i].repeat_interval_ms;
+                    }
+                }
+                changed = 1;
+            }
+            if (overlay_button("Clear all HP gates"))
+            {
+                for (int i = 0; i < node_count && i < 3; ++i)
+                    nodes[i].require_player_health_below_pct = 0;
+                changed = 1;
             }
             if (overlay_button("Chain Nodes (set delays from order)"))
             {
