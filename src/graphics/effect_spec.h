@@ -67,6 +67,8 @@ extern "C"
 
     int rogue_effect_register(const RogueEffectSpec* spec); /* returns id or -1 */
     const RogueEffectSpec* rogue_effect_get(int id);
+    /* Public enumeration helper: number of registered EffectSpecs. */
+    int rogue_effect_count(void);
 
     /* Phase 11.3: expose minimal active AURA introspection for debug overlay */
     int rogue_effect_active_aura_count(void);

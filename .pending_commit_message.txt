@@ -89,3 +89,10 @@ fix(skills overrides): atomic import of primary effect + nodes; order-independen
 - Loader now parses `effect_spec_id` and `effect_nodes[]` in any order and applies them together via `rogue_skill_debug_set_effects` once the skill id is known.
 - Prevents intermediate partial state from earlier immediate-apply behavior; matches Effects tab export.
 - Rebuilt Debug (SDL2, -j12); full ctest suite passed 100% (586/586).
+
+feat(overlay/skills): add EffectSpec palette + registry enumeration helper
+
+- Effects tab: toggleable palette lists all EffectSpecs with a substring filter, selection, and Assign-To (Primary or Node 0..2). Clicking Assign Selected updates the composition and marks it dirty for overrides save.
+- Core: new public `rogue_effect_count()` exposes registry size to drive the palette safely; used alongside existing `rogue_effect_get`.
+- Docs: README adds palette usage; Roadmap STATUS DELTA and CHANGELOG updated; Phase 2.2 marked Partial for the minimal palette with notes on pending graph editor/validation.
+- Build/Tests: Debug (SDL2) full suite passes (586/586) with -j12.

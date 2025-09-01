@@ -16,12 +16,14 @@ STATUS DELTA (current)
  - Phase 2.1 UI slice: Introduced top-level tabs (Overview, Effects, Visuals, Audio, Testing), added Type Presets per skill type, and made property panels context-sensitive to the selected skill_type. Simulation controls moved to the Testing tab. Validation banner and overrides flows preserved. (Done)
  - Phase 2.1 Testing: Implemented a headless-safe real-time preview window that renders cast/projectile/impact/AoE sprites with sprite-sheet animation, texture caching, and zoom/auto-animate controls. Fixed a compile issue by moving a nested helper to file scope and adding <string.h>. (Done)
  - Skill overrides import finalized: now parses and applies both primary `effect_spec_id` and `effect_nodes[]` together, order-independently. Application is deferred until the skill id is known, preventing partial state. Effects tab editor persists these fields; export/import roundtrip verified. Full Debug (SDL2) test suite passed (586/586, -j12).
+ - Effects tab gains a minimal EffectSpec palette: toggleable list with id filter, selection, and Assign-To (Primary or Node 0..2). Assignments update the composition and persist via overrides. Backed by a safe registry enumeration helper `rogue_effect_count()`. Full Debug (SDL2) test suite remains green (586/586, -j12).
 
 CHANGELOG
 
 - 2025-09-01: Fixed channel haste timing for dynamic mode; per-tick interval recomputation and drift correction implemented.
  - 2025-09-01: Skills panel Testing tab gains a real-time preview (sprite-based) with auto-animate and zoom; compile fix in panels_skills.c (file-scope helper + string.h).
  - 2025-09-01: Skill overrides import supports primary effect and nodes order-independently and applies atomically via debug API; Effects tab editor roundtrip confirmed. Tests green (586/586, Debug, SDL2, -j12).
+ - 2025-09-01: Effects tab adds an EffectSpec palette (filterable list + Assign-To Primary/Node) powered by a new `rogue_effect_count()` enumeration helper. Tests remain 100% green (586/586, Debug, SDL2, -j12).
 
 Scope Overview:
 Transform the current Skills debug panel into a comprehensive skill creation, editing, testing, and debugging suite for a 2D RPG. Support all standard skill types (melee attacks, ranged projectiles, AoE spells, buffs/debuffs, healing, summoning, passives, ultimates) with real-time visual feedback, sandboxed testing environments, and deep integration with existing game systems (sprites, animations, particles, sound, combat, projectiles). Maintain C performance with modular architecture and extensibility for future skill types.
@@ -94,6 +96,7 @@ PHASE 2. Advanced UI Framework for Skill Creation
     - Connection system for effect dependencies and timing chains (X)
     - Parameter panels for each selected effect node (X)
     - Effect validation with error highlighting and suggestions (X)
+    Status: Partial (implemented a minimal EffectSpec palette with id filter and assignment to Primary/Node slots; full node-graph editor and inline validation pending)
 2.3 Enhanced UI Widgets for Skill Editing
     - Vector2D input widget for positions and directions (X)
     - Curve editor for damage scaling, cooldown reduction, and other progressions (X)

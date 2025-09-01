@@ -229,6 +229,8 @@ const RogueEffectSpec* rogue_effect_get(int id)
     return &g_effect_specs[id];
 }
 
+int rogue_effect_count(void) { return g_effect_spec_count; }
+
 /* Compute effective magnitude with optional scaling params. */
 static int compute_scaled_magnitude(const RogueEffectSpec* s)
 {

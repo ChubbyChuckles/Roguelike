@@ -553,6 +553,7 @@ static void panel_skills(void* user)
     if (tab == 1)
     {
         overlay_label("Effects");
+        int changed = 0;
         int primary_id = -1;
         struct RogueSkillEffectNode nodes[3];
         int node_count = 3;
@@ -565,7 +566,79 @@ static void panel_skills(void* user)
             node_count = 0;
             primary_id = -1;
         }
-        int changed = 0;
+        /* Minimal EffectSpec palette with filter and selectable target (primary or node index) */
+        {
+            static int palette_open = 1;
+            static char eff_filter[64] = "";
+            static int assign_target = -1; /* -1 = primary, >=0 assigns to node index */
+            static int eff_selected = -1;  /* last selected effect id */
+            overlay_checkbox("Show EffectSpec Palette", &palette_open);
+            if (palette_open)
+            {
+                overlay_input_text("Filter (id substring)", eff_filter, sizeof eff_filter);
+                overlay_slider_int("Assign To: -1=Primary, 0..2 Node", &assign_target, -1, 2);
+                int ec = rogue_effect_count();
+                const char* headers[] = {"ID", "Kind", "Debuff", "Dur"};
+                int sort_col = 0, sort_dir = 0;
+                int tmp_sel = eff_selected;
+                if (overlay_table_begin("effect_palette", headers, 4, &sort_col, &sort_dir, NULL))
+                {
+                    char id_s[16], kind_s[8], deb_s[8], dur_s[16];
+                    for (int i = 0; i < ec; ++i)
+                    {
+                        const RogueEffectSpec* es = rogue_effect_get(i);
+                        if (!es)
+                            continue;
+                        /* simple filter: match id substring text */
+                        snprintf(id_s, sizeof id_s, "%d", i);
+                        if (eff_filter[0] != '\0')
+                        {
+                            const char* p = id_s;
+                            const char* f = eff_filter;
+                            const char* hit = NULL;
+                            for (; *p && !hit; ++p)
+                            {
+                                const char* p2 = p;
+                                const char* f2 = f;
+                                while (*p2 && *f2 && *p2 == *f2)
+                                {
+                                    ++p2;
+                                    ++f2;
+                                }
+                                if (*f2 == '\0')
+                                    hit = p;
+                            }
+                            if (!hit)
+                                continue;
+                        }
+                        snprintf(kind_s, sizeof kind_s, "%u", (unsigned) es->kind);
+                        snprintf(deb_s, sizeof deb_s, "%u", (unsigned) es->debuff);
+                        snprintf(dur_s, sizeof dur_s, "%.0f", es->duration_ms);
+                        const char* cells[] = {id_s, kind_s, deb_s, dur_s};
+                        (void) overlay_table_row(cells, 4, i, &tmp_sel);
+                    }
+                    overlay_table_end();
+                }
+                eff_selected = tmp_sel;
+                if (overlay_button("Assign Selected"))
+                {
+                    if (eff_selected >= 0)
+                    {
+                        if (assign_target < 0)
+                        {
+                            primary_id = eff_selected;
+                            changed = 1;
+                        }
+                        else if (assign_target < node_count)
+                        {
+                            nodes[assign_target].effect_spec_id = eff_selected;
+                            changed = 1;
+                        }
+                    }
+                }
+            }
+        }
+        /* Continue with direct ID editing controls */
         changed |= overlay_slider_int("Primary EffectSpec ID", &primary_id, -1, 4096);
         if (primary_id > 0)
         {
