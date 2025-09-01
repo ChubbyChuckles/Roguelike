@@ -11,6 +11,10 @@ static void panel_skills(void* user)
     (void) user;
     if (!overlay_begin_panel("Skills", 380, 10, 420))
         return;
+    /* Simple tabs (combo-based): Overview, Effects, Visuals, Audio, Testing */
+    static int tab = 0;
+    static const char* tab_names[] = {"Overview", "Effects", "Visuals", "Audio", "Testing"};
+    overlay_combo("Tab", &tab, tab_names, 5);
     static float sim_duration_ms = 2000.0f;
     static float sim_tick_ms = 16.0f;
     static float sim_ap_regen_per_sec = 0.0f;
@@ -52,176 +56,311 @@ static void panel_skills(void* user)
         overlay_label(line);
     }
 
-    /* Creation wizard */
-    overlay_label("Create New Skill");
-    static char new_name[64] = "";
-    static int new_max_rank = 5;
-    static float new_base_cd = 1000.0f;
-    static float new_cd_red = 0.0f;
-    static float new_cast_ms = 0.0f;
-    static int new_is_passive = 0;
-    static int tmpl_id = -1;
-    static int copy_coeffs = 1;
-    /* Template from existing skill */
-    overlay_slider_int("Template Skill Id", &tmpl_id, -1, count - 1);
-    overlay_checkbox("Copy Coeffs", &copy_coeffs);
-    /* Searchable template picker */
-    static char tmpl_filter[64] = "";
-    overlay_input_text("Template Filter", tmpl_filter, sizeof tmpl_filter);
+    /* Overview tab content ----------------------------------------------------- */
+    if (tab == 0)
     {
-        const char* headers[] = {"ID", "Name"};
-        int sort_col = 0;
-        int sort_dir = 0;
-        int selected = (tmpl_id >= 0 && tmpl_id < count) ? tmpl_id : -1;
-        if (overlay_table_begin("skills_tmpl", headers, 2, &sort_col, &sort_dir, NULL))
+        /* Creation wizard */
+        overlay_label("Create New Skill");
+        static char new_name[64] = "";
+        static int new_max_rank = 5;
+        static float new_base_cd = 1000.0f;
+        static float new_cd_red = 0.0f;
+        static float new_cast_ms = 0.0f;
+        static int new_is_passive = 0;
+        static int tmpl_id = -1;
+        static int copy_coeffs = 1;
+        /* Template from existing skill */
+        overlay_slider_int("Template Skill Id", &tmpl_id, -1, count - 1);
+        overlay_checkbox("Copy Coeffs", &copy_coeffs);
+        /* Searchable template picker */
+        static char tmpl_filter[64] = "";
+        overlay_input_text("Template Filter", tmpl_filter, sizeof tmpl_filter);
         {
-            for (int i = 0; i < count; ++i)
+            const char* headers[] = {"ID", "Name"};
+            int sort_col = 0;
+            int sort_dir = 0;
+            int selected = (tmpl_id >= 0 && tmpl_id < count) ? tmpl_id : -1;
+            if (overlay_table_begin("skills_tmpl", headers, 2, &sort_col, &sort_dir, NULL))
             {
-                const char* sname = rogue_skill_debug_name(i);
-                if (!sname)
-                    continue;
-                /* Simple substring filter (case-sensitive) */
-                if (tmpl_filter[0] != '\0')
+                for (int i = 0; i < count; ++i)
                 {
-                    const char* p = sname;
-                    const char* f = tmpl_filter;
-                    const char* hit = NULL;
-                    /* naive strstr to avoid including string.h here */
-                    for (; *p && !hit; ++p)
-                    {
-                        const char* p2 = p;
-                        const char* f2 = f;
-                        while (*p2 && *f2 && *p2 == *f2)
-                        {
-                            ++p2;
-                            ++f2;
-                        }
-                        if (*f2 == '\0')
-                            hit = p; /* matched */
-                    }
-                    if (!hit)
+                    const char* sname = rogue_skill_debug_name(i);
+                    if (!sname)
                         continue;
+                    /* Simple substring filter (case-sensitive) */
+                    if (tmpl_filter[0] != '\0')
+                    {
+                        const char* p = sname;
+                        const char* f = tmpl_filter;
+                        const char* hit = NULL;
+                        /* naive strstr to avoid including string.h here */
+                        for (; *p && !hit; ++p)
+                        {
+                            const char* p2 = p;
+                            const char* f2 = f;
+                            while (*p2 && *f2 && *p2 == *f2)
+                            {
+                                ++p2;
+                                ++f2;
+                            }
+                            if (*f2 == '\0')
+                                hit = p; /* matched */
+                        }
+                        if (!hit)
+                            continue;
+                    }
+                    char id_s[16];
+                    snprintf(id_s, sizeof id_s, "%d", i);
+                    const char* cells[] = {id_s, sname};
+                    (void) overlay_table_row(cells, 2, i, &selected);
                 }
-                char id_s[16];
-                snprintf(id_s, sizeof id_s, "%d", i);
-                const char* cells[] = {id_s, sname};
-                (void) overlay_table_row(cells, 2, i, &selected);
+                overlay_table_end();
             }
-            overlay_table_end();
+            tmpl_id = selected;
         }
-        tmpl_id = selected;
-    }
-    if (overlay_button("Apply Template") && tmpl_id >= 0 && tmpl_id < count)
-    {
-        /* Prefill fields from template */
-        const char* tname = rogue_skill_debug_name(tmpl_id);
-        if (tname)
+        if (overlay_button("Apply Template") && tmpl_id >= 0 && tmpl_id < count)
         {
-            snprintf(new_name, sizeof new_name, "%s_Copy", tname);
-        }
-        int mr = 1, pass = 0;
-        if (rogue_skill_debug_get_meta(tmpl_id, &mr, &pass) == 0)
-        {
-            new_max_rank = mr;
-            new_is_passive = pass;
-        }
-        float bcd = 0.f, red = 0.f, cst = 0.f;
-        if (rogue_skill_debug_get_timing(tmpl_id, &bcd, &red, &cst) == 0)
-        {
-            new_base_cd = bcd;
-            new_cd_red = red;
-            new_cast_ms = cst;
-        }
-        if (copy_coeffs)
-        {
-            RogueSkillCoeffParams tcp;
-            if (rogue_skill_debug_get_coeff(tmpl_id, &tcp) == 0)
+            /* Prefill fields from template */
+            const char* tname = rogue_skill_debug_name(tmpl_id);
+            if (tname)
             {
-                /* Apply coeffs to current selection for preview; creation will only set timing. */
-                rogue_skill_debug_set_coeff(sel, &tcp);
+                snprintf(new_name, sizeof new_name, "%s_Copy", tname);
             }
-        }
-    }
-    overlay_input_text("Name", new_name, sizeof new_name);
-    overlay_slider_int("Max Rank", &new_max_rank, 1, 20);
-    overlay_slider_float("Base Cooldown (ms)", &new_base_cd, 0.f, 60000.f);
-    overlay_slider_float("CD Reduction/rank (ms)", &new_cd_red, -1000.f, 1000.f);
-    overlay_slider_float("Cast Time (ms)", &new_cast_ms, 0.f, 5000.f);
-    overlay_checkbox("Passive", &new_is_passive);
-    if (overlay_button("Create"))
-    {
-        /* Validate current registry before allowing a new create to be committed */
-        char vmsg[192] = {0};
-        if (rogue_skill_debug_validate(vmsg, (int) sizeof vmsg) != 0)
-        {
-            char warn[256];
-            snprintf(warn, sizeof warn, "Validation failed: %s", vmsg[0] ? vmsg : "(no details)");
-            overlay_label(warn);
-        }
-        /* Also run cross-rule validation to update sticky status */
-        {
-            char emsg[192] = {0};
-            int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
-            last_valid_ok = ok;
-            if (!ok)
-                snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
-            else
-                snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
-        }
-        int idx = rogue_skill_debug_create(new_name, new_max_rank, new_base_cd, new_cd_red,
-                                           new_cast_ms, new_is_passive);
-        char msg[128];
-        if (idx >= 0)
-        {
-            snprintf(msg, sizeof msg, "Created skill '%s' at id %d", new_name, idx);
-            sel = idx;
-            /* Reset name for next */
-            new_name[0] = '\0';
-            /* If template coeffs were requested and available, copy them into the new id */
-            if (copy_coeffs && tmpl_id >= 0 && tmpl_id < count)
+            int mr = 1, pass = 0;
+            if (rogue_skill_debug_get_meta(tmpl_id, &mr, &pass) == 0)
+            {
+                new_max_rank = mr;
+                new_is_passive = pass;
+            }
+            float bcd = 0.f, red = 0.f, cst = 0.f;
+            if (rogue_skill_debug_get_timing(tmpl_id, &bcd, &red, &cst) == 0)
+            {
+                new_base_cd = bcd;
+                new_cd_red = red;
+                new_cast_ms = cst;
+            }
+            if (copy_coeffs)
             {
                 RogueSkillCoeffParams tcp;
                 if (rogue_skill_debug_get_coeff(tmpl_id, &tcp) == 0)
                 {
-                    rogue_skill_debug_set_coeff(idx, &tcp);
+                    /* Apply coeffs to current selection for preview; creation will only set timing.
+                     */
+                    rogue_skill_debug_set_coeff(sel, &tcp);
                 }
             }
         }
-        else
+        overlay_input_text("Name", new_name, sizeof new_name);
+        overlay_slider_int("Max Rank", &new_max_rank, 1, 20);
+        overlay_slider_float("Base Cooldown (ms)", &new_base_cd, 0.f, 60000.f);
+        overlay_slider_float("CD Reduction/rank (ms)", &new_cd_red, -1000.f, 1000.f);
+        overlay_slider_float("Cast Time (ms)", &new_cast_ms, 0.f, 5000.f);
+        overlay_checkbox("Passive", &new_is_passive);
+        if (overlay_button("Create"))
         {
-            snprintf(msg, sizeof msg, "Create failed (%d)", idx);
-        }
-        overlay_label(msg);
-    }
-
-    /* Meta */
-    overlay_label("Meta");
-    int stype = 0;
-    if (rogue_skill_debug_get_type(sel, &stype) == 0)
-    {
-        int changed = 0;
-        /* Simple slider for enum 0..9, with a helper label */
-        changed |= overlay_slider_int("Skill Type (0..9)", &stype, 0, 9);
-        static const char* type_names[10] = {"UNKNOWN", "MELEE", "RANGED", "AOE_SPELL", "BUFF",
-                                             "DEBUFF",  "HEAL",  "SUMMON", "PASSIVE",   "ULTIMATE"};
-        if (stype >= 0 && stype <= 9)
-        {
-            char tn[64];
-            snprintf(tn, sizeof tn, "Type: %s", type_names[stype]);
-            overlay_label(tn);
-        }
-        if (changed)
-        {
-            rogue_skill_debug_set_type(sel, stype);
-            (void) rogue_skill_debug_save_overrides(overrides_path);
-            /* Refresh validation status */
-            char emsg[192] = {0};
-            int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
-            last_valid_ok = ok;
-            if (!ok)
-                snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
+            /* Validate current registry before allowing a new create to be committed */
+            char vmsg[192] = {0};
+            if (rogue_skill_debug_validate(vmsg, (int) sizeof vmsg) != 0)
+            {
+                char warn[256];
+                snprintf(warn, sizeof warn, "Validation failed: %s",
+                         vmsg[0] ? vmsg : "(no details)");
+                overlay_label(warn);
+            }
+            /* Also run cross-rule validation to update sticky status */
+            {
+                char emsg[192] = {0};
+                int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
+                last_valid_ok = ok;
+                if (!ok)
+                    snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
+                else
+                    snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
+            }
+            int idx = rogue_skill_debug_create(new_name, new_max_rank, new_base_cd, new_cd_red,
+                                               new_cast_ms, new_is_passive);
+            char msg[128];
+            if (idx >= 0)
+            {
+                snprintf(msg, sizeof msg, "Created skill '%s' at id %d", new_name, idx);
+                sel = idx;
+                /* Reset name for next */
+                new_name[0] = '\0';
+                /* If template coeffs were requested and available, copy them into the new id */
+                if (copy_coeffs && tmpl_id >= 0 && tmpl_id < count)
+                {
+                    RogueSkillCoeffParams tcp;
+                    if (rogue_skill_debug_get_coeff(tmpl_id, &tcp) == 0)
+                    {
+                        rogue_skill_debug_set_coeff(idx, &tcp);
+                    }
+                }
+            }
             else
-                snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
+            {
+                snprintf(msg, sizeof msg, "Create failed (%d)", idx);
+            }
+            overlay_label(msg);
+        }
+
+        /* Meta */
+        overlay_label("Meta");
+        int stype = 0;
+        if (rogue_skill_debug_get_type(sel, &stype) == 0)
+        {
+            int changed = 0;
+            /* Simple slider for enum 0..9, with a helper label */
+            changed |= overlay_slider_int("Skill Type (0..9)", &stype, 0, 9);
+            static const char* type_names[10] = {"UNKNOWN", "MELEE",   "RANGED", "AOE_SPELL",
+                                                 "BUFF",    "DEBUFF",  "HEAL",   "SUMMON",
+                                                 "PASSIVE", "ULTIMATE"};
+            if (stype >= 0 && stype <= 9)
+            {
+                char tn[64];
+                snprintf(tn, sizeof tn, "Type: %s", type_names[stype]);
+                overlay_label(tn);
+            }
+            if (changed)
+            {
+                rogue_skill_debug_set_type(sel, stype);
+                (void) rogue_skill_debug_save_overrides(overrides_path);
+                /* Refresh validation status */
+                char emsg[192] = {0};
+                int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
+                last_valid_ok = ok;
+                if (!ok)
+                    snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
+                else
+                    snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
+            }
+
+            /* Type Presets: apply recommended timing/coeff/params by type (asset paths left blank)
+             */
+            overlay_label("Type Presets");
+            static int preset_idx = 0;
+            /* One preset per type for now */
+            preset_idx = stype; /* default to current type */
+            int apply = overlay_button("Apply Preset for Type");
+            if (apply)
+            {
+                /* Timing defaults */
+                float p_base_cd = 1000.f, p_cd_red = 0.f, p_cast = 0.f;
+                RogueSkillCoeffParams pcp;
+                memset(&pcp, 0, sizeof pcp);
+                pcp.base_scalar = 1.0f;
+                pcp.per_rank_scalar = 0.1f;
+                switch (stype)
+                {
+                case 1: /* MELEE */
+                    p_base_cd = 800.f;
+                    p_cast = 200.f;
+                    pcp.base_scalar = 1.00f;
+                    break;
+                case 2: /* RANGED */
+                    p_base_cd = 900.f;
+                    p_cast = 250.f;
+                    pcp.base_scalar = 0.95f;
+                    break;
+                case 3: /* AOE_SPELL */
+                    p_base_cd = 1200.f;
+                    p_cast = 400.f;
+                    pcp.base_scalar = 0.85f;
+                    break;
+                case 4: /* BUFF */
+                    p_base_cd = 15000.f;
+                    p_cast = 300.f;
+                    pcp.base_scalar = 0.0f; /* non-damage by default */
+                    break;
+                case 5: /* DEBUFF */
+                    p_base_cd = 12000.f;
+                    p_cast = 300.f;
+                    pcp.base_scalar = 0.2f;
+                    break;
+                case 6: /* HEAL */
+                    p_base_cd = 5000.f;
+                    p_cast = 350.f;
+                    pcp.base_scalar = 0.0f;
+                    break;
+                case 7: /* SUMMON */
+                    p_base_cd = 20000.f;
+                    p_cast = 500.f;
+                    pcp.base_scalar = 0.0f;
+                    break;
+                case 8: /* PASSIVE */
+                    p_base_cd = 0.f;
+                    p_cast = 0.f;
+                    pcp.base_scalar = 0.0f;
+                    break;
+                case 9: /* ULTIMATE */
+                    p_base_cd = 60000.f;
+                    p_cast = 800.f;
+                    pcp.base_scalar = 1.5f;
+                    break;
+                default: /* UNKNOWN */
+                    p_base_cd = 1000.f;
+                    p_cast = 0.f;
+                    pcp.base_scalar = 0.5f;
+                    break;
+                }
+                rogue_skill_debug_set_timing(sel, p_base_cd, p_cd_red, p_cast);
+                rogue_skill_debug_set_coeff(sel, &pcp);
+                (void) rogue_skill_debug_save_overrides(overrides_path);
+                /* Refresh validation status */
+                char emsg2[192] = {0};
+                int ok2 = (rogue_skills_validate_all(emsg2, (int) sizeof emsg2) == 0);
+                last_valid_ok = ok2;
+                if (!ok2)
+                    snprintf(last_valid_msg, sizeof last_valid_msg, "%s",
+                             emsg2[0] ? emsg2 : "error");
+                else
+                    snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
+            }
+        }
+
+        float base_cd = 0.f, cd_red = 0.f, cast_ms = 0.f;
+        if (rogue_skill_debug_get_timing(sel, &base_cd, &cd_red, &cast_ms) == 0)
+        {
+            if (overlay_slider_float("Base Cooldown (ms)", &base_cd, 0.f, 60000.f) ||
+                overlay_slider_float("CD Reduction/rank (ms)", &cd_red, -1000.f, 1000.f) ||
+                overlay_slider_float("Cast Time (ms)", &cast_ms, 0.f, 5000.f))
+            {
+                rogue_skill_debug_set_timing(sel, base_cd, cd_red, cast_ms);
+                (void) rogue_skill_debug_save_overrides(overrides_path);
+                /* Refresh validation status after edit */
+                char emsg[192] = {0};
+                int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
+                last_valid_ok = ok;
+                if (!ok)
+                    snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
+                else
+                    snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
+            }
+        }
+
+        RogueSkillCoeffParams cp;
+        if (rogue_skill_debug_get_coeff(sel, &cp) == 0)
+        {
+            int changed = 0;
+            changed |= overlay_slider_float("Coeff Base", &cp.base_scalar, 0.0f, 10.0f);
+            changed |= overlay_slider_float("Coeff per Rank", &cp.per_rank_scalar, -1.0f, 5.0f);
+            changed |= overlay_slider_float("STR %/10", &cp.str_pct_per10, -50.0f, 200.0f);
+            changed |= overlay_slider_float("INT %/10", &cp.int_pct_per10, -50.0f, 200.0f);
+            changed |= overlay_slider_float("DEX %/10", &cp.dex_pct_per10, -50.0f, 200.0f);
+            changed |= overlay_slider_float("Stat Cap %", &cp.stat_cap_pct, 0.0f, 200.0f);
+            changed |= overlay_slider_float("Stat Softness", &cp.stat_softness, 0.1f, 10.0f);
+            if (changed)
+            {
+                rogue_skill_debug_set_coeff(sel, &cp);
+                (void) rogue_skill_debug_save_overrides(overrides_path);
+                /* Refresh validation status after edit */
+                char emsg[192] = {0};
+                int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
+                last_valid_ok = ok;
+                if (!ok)
+                    snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
+                else
+                    snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
+            }
         }
     }
 
@@ -271,100 +410,172 @@ static void panel_skills(void* user)
         }
     }
 
-    /* Visuals / Advanced */
-    overlay_label("Visuals / Advanced");
-    static RogueSkillVisualParams vis;
-    if (rogue_skill_debug_get_visuals(sel, &vis) == 0)
+    /* Visuals tab -------------------------------------------------------------- */
+    if (tab == 2)
     {
-        int vchanged = 0;
-        vchanged |= overlay_input_text("Cast Sprite Sheet", vis.cast_sprite_sheet,
-                                       (int) sizeof vis.cast_sprite_sheet);
-        vchanged |= overlay_input_text("Projectile Sprite", vis.projectile_sprite,
-                                       (int) sizeof vis.projectile_sprite);
-        vchanged |=
-            overlay_input_text("Impact Sprite", vis.impact_sprite, (int) sizeof vis.impact_sprite);
-        vchanged |= overlay_input_text("AoE Sprite", vis.aoe_sprite, (int) sizeof vis.aoe_sprite);
-        vchanged |= overlay_slider_int("Frame Count", &vis.frame_count, 0, 512);
-        vchanged |=
-            overlay_slider_float("Frame Duration (ms)", &vis.frame_duration_ms, 0.0f, 2000.0f);
-        vchanged |= overlay_checkbox("Animation Loops", &vis.animation_loops);
-        vchanged |= overlay_slider_int("Grid Width", &vis.grid_width, 0, 128);
-        vchanged |= overlay_slider_int("Grid Height", &vis.grid_height, 0, 128);
-        vchanged |=
-            overlay_input_text("Cast Sound Id", vis.cast_sound_id, (int) sizeof vis.cast_sound_id);
-        vchanged |= overlay_input_text("Impact Sound Id", vis.impact_sound_id,
-                                       (int) sizeof vis.impact_sound_id);
-        vchanged |=
-            overlay_input_text("Loop Sound Id", vis.loop_sound_id, (int) sizeof vis.loop_sound_id);
-        vchanged |= overlay_slider_int("Sound Volume", &vis.sound_volume, 0, 100);
-        vchanged |= overlay_slider_float("Sound Pitch Var", &vis.sound_pitch_variance, 0.0f, 12.0f);
-        vchanged |=
-            overlay_slider_int("AoE Shape (0 none,1 circle,2 cone,3 line)", &vis.aoe_shape, 0, 3);
-        vchanged |= overlay_slider_float("AoE Radius", &vis.aoe_radius, 0.0f, 1000.0f);
-        vchanged |= overlay_slider_float("AoE Angle", &vis.aoe_angle, 0.0f, 360.0f);
-        vchanged |=
-            overlay_slider_float("Projectile Velocity", &vis.projectile_velocity, 0.0f, 5000.0f);
-        vchanged |= overlay_slider_int("Trajectory Type (0 lin,1 arc,2 homing,3 scatter)",
-                                       &vis.trajectory_type, 0, 3);
-        vchanged |= overlay_slider_int("Pierce Count", &vis.pierce_count, 0, 50);
-        vchanged |= overlay_slider_float("Homing Strength", &vis.homing_strength, 0.0f, 100.0f);
-        if (vchanged)
+        overlay_label("Visuals");
+        static RogueSkillVisualParams vis;
+        if (rogue_skill_debug_get_visuals(sel, &vis) == 0)
         {
-            (void) rogue_skill_debug_set_visuals(sel, &vis);
-            (void) rogue_skill_debug_save_overrides(overrides_path);
-            /* Refresh validation status after edit */
-            char emsg[192] = {0};
-            int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
-            last_valid_ok = ok;
-            if (!ok)
-                snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
-            else
-                snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
-        }
-    }
-
-    overlay_label("Simulation Profile");
-    overlay_slider_float("Duration (ms)", &sim_duration_ms, 50.0f, 60000.0f);
-    overlay_slider_float("Tick (ms)", &sim_tick_ms, 1.0f, 100.0f);
-    overlay_slider_float("AP regen (/sec)", &sim_ap_regen_per_sec, 0.0f, 200.0f);
-    overlay_input_text("Priority IDs (comma)", prio_buf, sizeof prio_buf);
-
-    if (overlay_button("Simulate"))
-    {
-        char profile[256];
-        char prio_json[128] = {0};
-        int pj = 0;
-        prio_json[pj++] = '[';
-        if (prio_buf[0] == '\0')
-            pj += snprintf(prio_json + pj, (int) sizeof prio_json - pj, "%d", sel);
-        else
-        {
-            for (const char* p = prio_buf; *p && pj + 1 < (int) sizeof prio_json; ++p)
+            int stype = 0;
+            (void) rogue_skill_debug_get_type(sel, &stype);
+            int vchanged = 0;
+            /* Core animation/sprite-sheet (non-passive) */
+            if (stype != 8 /* PASSIVE */)
             {
-                char c = *p;
-                if ((c >= '0' && c <= '9') || c == ',' || c == '-')
-                    prio_json[pj++] = c;
+                vchanged |= overlay_input_text("Cast Sprite Sheet", vis.cast_sprite_sheet,
+                                               (int) sizeof vis.cast_sprite_sheet);
+                vchanged |= overlay_slider_int("Frame Count", &vis.frame_count, 0, 512);
+                vchanged |= overlay_slider_float("Frame Duration (ms)", &vis.frame_duration_ms,
+                                                 0.0f, 2000.0f);
+                vchanged |= overlay_checkbox("Animation Loops", &vis.animation_loops);
+                vchanged |= overlay_slider_int("Grid Width", &vis.grid_width, 0, 128);
+                vchanged |= overlay_slider_int("Grid Height", &vis.grid_height, 0, 128);
+            }
+            /* Impact sprite is common */
+            vchanged |= overlay_input_text("Impact Sprite", vis.impact_sprite,
+                                           (int) sizeof vis.impact_sprite);
+            /* AoE fields for AoE spells */
+            if (stype == 3 /* AOE_SPELL */)
+            {
+                vchanged |=
+                    overlay_input_text("AoE Sprite", vis.aoe_sprite, (int) sizeof vis.aoe_sprite);
+                vchanged |= overlay_slider_int("AoE Shape (0 none,1 circle,2 cone,3 line)",
+                                               &vis.aoe_shape, 0, 3);
+                vchanged |= overlay_slider_float("AoE Radius", &vis.aoe_radius, 0.0f, 1000.0f);
+                vchanged |= overlay_slider_float("AoE Angle", &vis.aoe_angle, 0.0f, 360.0f);
+            }
+            /* Projectile fields for ranged */
+            if (stype == 2 /* RANGED */)
+            {
+                vchanged |= overlay_input_text("Projectile Sprite", vis.projectile_sprite,
+                                               (int) sizeof vis.projectile_sprite);
+                vchanged |= overlay_slider_float("Projectile Velocity", &vis.projectile_velocity,
+                                                 0.0f, 5000.0f);
+                vchanged |= overlay_slider_int("Trajectory Type (0 lin,1 arc,2 homing,3 scatter)",
+                                               &vis.trajectory_type, 0, 3);
+                vchanged |= overlay_slider_int("Pierce Count", &vis.pierce_count, 0, 50);
+                vchanged |=
+                    overlay_slider_float("Homing Strength", &vis.homing_strength, 0.0f, 100.0f);
+            }
+            if (vchanged)
+            {
+                (void) rogue_skill_debug_set_visuals(sel, &vis);
+                (void) rogue_skill_debug_save_overrides(overrides_path);
+                /* Refresh validation status after edit */
+                char emsg[192] = {0};
+                int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
+                last_valid_ok = ok;
+                if (!ok)
+                    snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
+                else
+                    snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
             }
         }
-        if (pj + 2 < (int) sizeof prio_json)
-        {
-            prio_json[pj++] = ']';
-            prio_json[pj] = '\0';
-        }
-        else
-        {
-            prio_json[0] = '[';
-            prio_json[1] = ']';
-            prio_json[2] = '\0';
-        }
-        snprintf(profile, sizeof profile,
-                 "{\"duration_ms\":%d,\"tick_ms\":%.1f,\"ap_regen_per_sec\":%.1f,\"priority\":%s}",
-                 (int) sim_duration_ms, sim_tick_ms, sim_ap_regen_per_sec, prio_json);
-        if (rogue_skill_debug_simulate(profile, sim_result, (int) sizeof sim_result) != 0)
-            snprintf(sim_result, sizeof sim_result, "Simulation failed");
     }
-    if (sim_result[0])
-        overlay_label(sim_result);
+
+    /* Audio tab --------------------------------------------------------------- */
+    if (tab == 3)
+    {
+        overlay_label("Audio");
+        static RogueSkillVisualParams vis;
+        if (rogue_skill_debug_get_visuals(sel, &vis) == 0)
+        {
+            int vchanged = 0;
+            vchanged |= overlay_input_text("Cast Sound Id", vis.cast_sound_id,
+                                           (int) sizeof vis.cast_sound_id);
+            vchanged |= overlay_input_text("Impact Sound Id", vis.impact_sound_id,
+                                           (int) sizeof vis.impact_sound_id);
+            vchanged |= overlay_input_text("Loop Sound Id", vis.loop_sound_id,
+                                           (int) sizeof vis.loop_sound_id);
+            vchanged |= overlay_slider_int("Sound Volume", &vis.sound_volume, 0, 100);
+            vchanged |=
+                overlay_slider_float("Sound Pitch Var", &vis.sound_pitch_variance, 0.0f, 12.0f);
+            if (vchanged)
+            {
+                (void) rogue_skill_debug_set_visuals(sel, &vis);
+                (void) rogue_skill_debug_save_overrides(overrides_path);
+                char emsg[192] = {0};
+                int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
+                last_valid_ok = ok;
+                if (!ok)
+                    snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
+                else
+                    snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
+            }
+        }
+    }
+
+    /* Effects tab (placeholder for future node editor) ----------------------- */
+    if (tab == 1)
+    {
+        overlay_label("Effects (visual editor planned in 2.2)");
+        overlay_label("Use presets and coefficients in Overview for now.");
+    }
+
+    /* Testing tab: move simulation here and add a lightweight preview -------- */
+    if (tab == 4)
+    {
+        overlay_label("Simulation Profile");
+        overlay_slider_float("Duration (ms)", &sim_duration_ms, 50.0f, 60000.0f);
+        overlay_slider_float("Tick (ms)", &sim_tick_ms, 1.0f, 100.0f);
+        overlay_slider_float("AP regen (/sec)", &sim_ap_regen_per_sec, 0.0f, 200.0f);
+        overlay_input_text("Priority IDs (comma)", prio_buf, sizeof prio_buf);
+
+        if (overlay_button("Simulate"))
+        {
+            char profile[256];
+            char prio_json[128] = {0};
+            int pj = 0;
+            prio_json[pj++] = '[';
+            if (prio_buf[0] == '\0')
+                pj += snprintf(prio_json + pj, (int) sizeof prio_json - pj, "%d", sel);
+            else
+            {
+                for (const char* p = prio_buf; *p && pj + 1 < (int) sizeof prio_json; ++p)
+                {
+                    char c = *p;
+                    if ((c >= '0' && c <= '9') || c == ',' || c == '-')
+                        prio_json[pj++] = c;
+                }
+            }
+            if (pj + 2 < (int) sizeof prio_json)
+            {
+                prio_json[pj++] = ']';
+                prio_json[pj] = '\0';
+            }
+            else
+            {
+                prio_json[0] = '[';
+                prio_json[1] = ']';
+                prio_json[2] = '\0';
+            }
+            snprintf(
+                profile, sizeof profile,
+                "{\"duration_ms\":%d,\"tick_ms\":%.1f,\"ap_regen_per_sec\":%.1f,\"priority\":%s}",
+                (int) sim_duration_ms, sim_tick_ms, sim_ap_regen_per_sec, prio_json);
+            if (rogue_skill_debug_simulate(profile, sim_result, (int) sizeof sim_result) != 0)
+                snprintf(sim_result, sizeof sim_result, "Simulation failed");
+        }
+        if (sim_result[0])
+            overlay_label(sim_result);
+
+        /* Lightweight textual preview */
+        {
+            int stype = 0;
+            (void) rogue_skill_debug_get_type(sel, &stype);
+            static RogueSkillVisualParams vis;
+            if (rogue_skill_debug_get_visuals(sel, &vis) == 0)
+            {
+                char prev[256];
+                snprintf(prev, sizeof prev,
+                         "Preview: type=%d cast_ms=%.0f cd=%.0f proj=%s aoe_shape=%d", stype,
+                         (double) 0.0, (double) 0.0, vis.projectile_sprite[0] ? "Y" : "N",
+                         vis.aoe_shape);
+                overlay_label(prev);
+            }
+        }
+    }
 
     if (overlay_button("Save Overrides JSON"))
     {

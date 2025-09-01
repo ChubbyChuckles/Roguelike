@@ -64,3 +64,14 @@ feat(skills): introduce optional skill_type enum (schema+runtime+validator)
 - Loader/Schema: JSON/CSV loaders accept `skill_type`; schema exports/validates with range 0..9.
 - Validator: flag mismatches when `skill_type=PASSIVE` but `is_passive=0`; reject out-of-range values.
 - Docs: README Debug overlay tips mention the optional `skill_type` and defaulting behavior.
+
+ feat(skills overlay ui): Phase 2.1 tabs + type presets + context-sensitive panels; move simulation to Testing tab
+
+ - Introduce top-level tabs in Skills panel: Overview, Effects, Visuals, Audio, Testing. Keeps authoring organized and uncluttered.
+ - Add "Type Presets" per RogueSkillType (MELEE/RANGED/AOE_SPELL/BUFF/DEBUFF/HEAL/SUMMON/PASSIVE/ULTIMATE) applying safe baseline timing/coeff defaults.
+ - Make property panels context-sensitive to selected skill_type (e.g., AoE fields only for AOE_SPELL; projectile fields only for RANGED; hide animation for PASSIVE).
+ - Consolidate simulation controls into the Testing tab; Overview focuses on metadata and creation.
+ - Preserve sticky Validation Status banner behavior and overrides Save/Load + Auto-Reload flows.
+ - Build: Debug SDL2 with parallelism; Tests: full ctest suite all green (586/586).
+ - Docs: README debug overlay tips updated for tabs, presets, context-sensitive panels, and Testing tab move.
+ - Roadmap: STATUS DELTA updated; Phase 2.1 items (tabs, presets, context-sensitive panels) marked Done; preview window remains pending.

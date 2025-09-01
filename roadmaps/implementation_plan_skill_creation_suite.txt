@@ -13,6 +13,7 @@ STATUS DELTA (current)
 - Overlay Skills panel now shows a sticky "Validation Status" banner that updates live on edits (timing/coeffs/visuals) and after Create/Save/Load, keeping issues visible without opening the Validation panel.
 - Channel haste timing fix: Implemented per-tick dynamic interval recomputation for channel ticks, with drift correction for snapshot mode; resolved test_skills_phase1a_haste_snapshot_and_drift (Done)
  - Skills overlay: Added a Meta section with a Skill Type selector (MELEE/RANGED/AOE_SPELL/BUFF/DEBUFF/HEAL/SUMMON/PASSIVE/ULTIMATE). Backed by headless-safe debug get/set APIs and persisted via overrides export/import. (Done)
+ - Phase 2.1 UI slice: Introduced top-level tabs (Overview, Effects, Visuals, Audio, Testing), added Type Presets per skill type, and made property panels context-sensitive to the selected skill_type. Simulation controls moved to the Testing tab. Validation banner and overrides flows preserved. (Done)
 
 CHANGELOG
 
@@ -79,9 +80,9 @@ PHASE 1. Architecture & Core Data Model Enhancement
 
 PHASE 2. Advanced UI Framework for Skill Creation
 2.1 Skill Type Designer Interface
-    - Multi-tab panel: Overview, Effects, Visuals, Audio, Testing (X)
-    - Skill type selector with template presets for each standard RPG type (Partial: basic selector implemented in Meta section; presets TBD)
-    - Property panels that adapt to selected skill type (context-sensitive fields) (X)
+    - Multi-tab panel: Overview, Effects, Visuals, Audio, Testing (Done)
+    - Skill type selector with template presets for each standard RPG type (Done)
+    - Property panels that adapt to selected skill type (context-sensitive fields) (Done)
     - Real-time preview window showing skill visualization (X)
 2.2 Effect Composition Visual Editor
     - Node-based effect graph editor with drag-and-drop (X)
