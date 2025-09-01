@@ -218,6 +218,57 @@ int rogue_skill_debug_set_type(int id, int skill_type)
     return 0;
 }
 
+int rogue_skill_debug_get_effects(int id, int* out_primary_effect_id,
+                                  struct RogueSkillEffectNode* nodes, int* inout_node_count)
+{
+    const RogueSkillDef* d = rogue_skill_get_def(id);
+    if (!d)
+        return -1;
+    if (out_primary_effect_id)
+        *out_primary_effect_id = d->effect_spec_id;
+    if (nodes && inout_node_count && *inout_node_count > 0)
+    {
+        int n = d->effect_node_count;
+        if (n > 3)
+            n = 3;
+        int cap = *inout_node_count;
+        if (n > cap)
+            n = cap;
+        for (int i = 0; i < n; ++i)
+            nodes[i] = d->effect_nodes[i];
+        *inout_node_count = n;
+    }
+    return 0;
+}
+
+int rogue_skill_debug_set_effects(int id, int primary_effect_id,
+                                  const struct RogueSkillEffectNode* nodes, int node_count)
+{
+    if (id < 0 || id >= g_app.skill_count)
+        return -1;
+    RogueSkillDef* d = &g_app.skill_defs[id];
+    d->effect_spec_id = primary_effect_id;
+    if (node_count < 0)
+        node_count = 0;
+    if (node_count > 3)
+        node_count = 3;
+    d->effect_node_count = (unsigned char) node_count;
+    for (int i = 0; i < node_count; ++i)
+    {
+        d->effect_nodes[i] = nodes[i];
+    }
+    for (int i = node_count; i < 3; ++i)
+    {
+        d->effect_nodes[i].effect_spec_id = -1;
+        d->effect_nodes[i].delay_ms = 0.0f;
+        d->effect_nodes[i].duration_ms = 0.0f;
+        d->effect_nodes[i].repeat_count = 0;
+        d->effect_nodes[i].repeat_interval_ms = 0.0f;
+        d->effect_nodes[i].require_player_health_below_pct = 0;
+    }
+    return 0;
+}
+
 /* --- Overrides JSON export/import ---------------------------------------------------------- */
 
 int rogue_skill_debug_export_overrides_json(char* out_buf, int out_cap)
@@ -262,6 +313,37 @@ int rogue_skill_debug_export_overrides_json(char* out_buf, int out_cap)
         if (n < 0 || w + n >= out_cap)
             return -1;
         w += n;
+        /* Append primary effect + nodes if present for ease of editing */
+        if (d->effect_spec_id >= 0)
+        {
+            n = snprintf(out_buf + w, out_cap - w, ",\"effect_spec_id\":%d", d->effect_spec_id);
+            if (n < 0 || w + n >= out_cap)
+                return -1;
+            w += n;
+        }
+        if (d->effect_node_count > 0)
+        {
+            n = snprintf(out_buf + w, out_cap - w, ",\"effect_nodes\":[");
+            if (n < 0 || w + n >= out_cap)
+                return -1;
+            w += n;
+            for (int ei = 0; ei < d->effect_node_count; ++ei)
+            {
+                const struct RogueSkillEffectNode* en = &d->effect_nodes[ei];
+                n = snprintf(out_buf + w, out_cap - w,
+                             "%s{\"effect_spec_id\":%d,\"delay_ms\":%.3f,\"duration_ms\":%.3f,"
+                             "\"repeat_count\":%d,\"repeat_interval_ms\":%.3f,\"hp_below_pct\":%u}",
+                             (ei ? "," : ""), en->effect_spec_id, en->delay_ms, en->duration_ms,
+                             en->repeat_count, en->repeat_interval_ms,
+                             (unsigned) en->require_player_health_below_pct);
+                if (n < 0 || w + n >= out_cap)
+                    return -1;
+                w += n;
+            }
+            if (w + 1 >= out_cap)
+                return -1;
+            out_buf[w++] = ']';
+        }
         if (has_coeff)
         {
             n = snprintf(out_buf + w, out_cap - w,
@@ -364,6 +446,12 @@ int rogue_skill_debug_load_overrides_text(const char* json_text)
         int have_base = 0, have_red = 0, have_cast = 0, have_id = 0;
         int skill_type = 0;
         int have_type = 0;
+        /* Effect composition locals: parse order-independent */
+        int primary_effect_id = -1;
+        int have_primary = 0;
+        struct RogueSkillEffectNode parsed_nodes[3];
+        int parsed_node_count = 0;
+        int have_nodes = 0;
         RogueSkillCoeffParams cp;
         int have_cp = 0;
         memset(&cp, 0, sizeof cp);
@@ -439,6 +527,90 @@ int rogue_skill_debug_load_overrides_text(const char* json_text)
                 skill_type = (int) v;
                 have_type = 1;
                 printf("skill_overrides: type=%d\n", skill_type);
+            }
+            else if (strcmp(key, "effect_spec_id") == 0)
+            {
+                double v;
+                const char* vs = sd_num(s, &v);
+                if (!vs)
+                    return applied;
+                s = sd_ws(vs);
+                primary_effect_id = (int) v;
+                have_primary = 1;
+                printf("skill_overrides: primary_effect=%d\n", primary_effect_id);
+            }
+            else if (strcmp(key, "effect_nodes") == 0)
+            {
+                s = sd_ws(s);
+                if (*s != '[')
+                    return applied;
+                ++s;
+                /* Parse up to 3 nodes */
+                parsed_node_count = 0;
+                while (1)
+                {
+                    s = sd_ws(s);
+                    if (*s == ']')
+                    {
+                        ++s;
+                        break;
+                    }
+                    if (*s != '{')
+                        return applied;
+                    ++s;
+                    struct RogueSkillEffectNode en;
+                    memset(&en, 0, sizeof en);
+                    en.effect_spec_id = -1;
+                    while (1)
+                    {
+                        s = sd_ws(s);
+                        if (*s == '}')
+                        {
+                            ++s;
+                            break;
+                        }
+                        char k2[32];
+                        const char* ns2 = sd_str(s, k2, (int) sizeof k2);
+                        if (!ns2)
+                            return applied;
+                        s = sd_ws(ns2);
+                        if (*s != ':')
+                            return applied;
+                        ++s;
+                        double num;
+                        const char* vs2 = sd_num(s, &num);
+                        if (!vs2)
+                            return applied;
+                        s = sd_ws(vs2);
+                        if (strcmp(k2, "effect_spec_id") == 0)
+                            en.effect_spec_id = (int) num;
+                        else if (strcmp(k2, "delay_ms") == 0)
+                            en.delay_ms = (float) num;
+                        else if (strcmp(k2, "duration_ms") == 0)
+                            en.duration_ms = (float) num;
+                        else if (strcmp(k2, "repeat_count") == 0)
+                            en.repeat_count = (int) num;
+                        else if (strcmp(k2, "repeat_interval_ms") == 0)
+                            en.repeat_interval_ms = (float) num;
+                        else if (strcmp(k2, "hp_below_pct") == 0)
+                            en.require_player_health_below_pct = (unsigned char) num;
+                        s = sd_ws(s);
+                        if (*s == ',')
+                        {
+                            ++s;
+                            continue;
+                        }
+                    }
+                    if (parsed_node_count < 3)
+                        parsed_nodes[parsed_node_count++] = en;
+                    s = sd_ws(s);
+                    if (*s == ',')
+                    {
+                        ++s;
+                        continue;
+                    }
+                }
+                have_nodes = 1;
             }
             else if (strcmp(key, "coeff") == 0)
             {
@@ -540,10 +712,30 @@ int rogue_skill_debug_load_overrides_text(const char* json_text)
                 (void) rogue_skill_debug_set_coeff(skill_id, &cp);
             if (have_type)
                 (void) rogue_skill_debug_set_type(skill_id, skill_type);
+            if (have_primary || have_nodes)
+            {
+                int prim =
+                    have_primary ? primary_effect_id : g_app.skill_defs[skill_id].effect_spec_id;
+                const struct RogueSkillEffectNode* n_ptr = NULL;
+                int n_cnt = 0;
+                if (have_nodes)
+                {
+                    n_ptr = parsed_nodes;
+                    n_cnt = parsed_node_count;
+                }
+                else
+                {
+                    n_ptr = g_app.skill_defs[skill_id].effect_nodes;
+                    n_cnt = g_app.skill_defs[skill_id].effect_node_count;
+                }
+                (void) rogue_skill_debug_set_effects(skill_id, prim, n_ptr, n_cnt);
+            }
             ++applied;
             // Debug trace for unit tests
-            printf("skill_overrides: applied id=%d base=%.3f red=%.3f cast=%.3f coeff=%d type=%d\n",
-                   skill_id, base_cd, cd_red, cast_ms, have_cp, have_type ? skill_type : -1);
+            printf("skill_overrides: applied id=%d base=%.3f red=%.3f cast=%.3f coeff=%d type=%d "
+                   "prim=%d nodes=%d\n",
+                   skill_id, base_cd, cd_red, cast_ms, have_cp, have_type ? skill_type : -1,
+                   have_primary ? primary_effect_id : -1, have_nodes ? parsed_node_count : -1);
         }
         s = sd_ws(s);
         if (*s == ',')

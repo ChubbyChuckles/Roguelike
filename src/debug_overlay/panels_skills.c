@@ -2,6 +2,7 @@
 #include "../core/skills/skill_debug.h"
 #include "../core/skills/skills_coeffs.h"
 #include "../core/skills/skills_validate.h"
+#include "../graphics/effect_spec.h"
 #include "../graphics/sprite.h"
 #include "overlay_core.h"
 #include "overlay_widgets.h"
@@ -548,11 +549,92 @@ static void panel_skills(void* user)
         }
     }
 
-    /* Effects tab (placeholder for future node editor) ----------------------- */
+    /* Effects tab: effect composition editor (primary + up to 3 nodes) -------- */
     if (tab == 1)
     {
-        overlay_label("Effects (visual editor planned in 2.2)");
-        overlay_label("Use presets and coefficients in Overview for now.");
+        overlay_label("Effects");
+        int primary_id = -1;
+        struct RogueSkillEffectNode nodes[3];
+        int node_count = 3;
+        memset(nodes, 0, sizeof nodes);
+        for (int i = 0; i < 3; ++i)
+            nodes[i].effect_spec_id = -1;
+        if (rogue_skill_debug_get_effects(sel, &primary_id, nodes, &node_count) != 0)
+        {
+            overlay_label("Failed to fetch effects for skill.");
+            node_count = 0;
+            primary_id = -1;
+        }
+        int changed = 0;
+        changed |= overlay_slider_int("Primary EffectSpec ID", &primary_id, -1, 4096);
+        if (primary_id > 0)
+        {
+            const RogueEffectSpec* s = rogue_effect_get(primary_id);
+            overlay_label(s ? "Primary: OK" : "Primary: INVALID id");
+        }
+        else
+        {
+            overlay_label("Primary: (unset)");
+        }
+        int display_count = node_count;
+        if (overlay_slider_int("Additional Nodes (0..3)", &display_count, 0, 3))
+        {
+            if (display_count < 0)
+                display_count = 0;
+            if (display_count > 3)
+                display_count = 3;
+            if (display_count > node_count)
+            {
+                for (int i = node_count; i < display_count; ++i)
+                {
+                    nodes[i].effect_spec_id = -1;
+                    nodes[i].delay_ms = 0.0f;
+                    nodes[i].duration_ms = 0.0f;
+                    nodes[i].repeat_count = 0;
+                    nodes[i].repeat_interval_ms = 0.0f;
+                    nodes[i].require_player_health_below_pct = 0;
+                }
+            }
+            node_count = display_count;
+            changed = 1;
+        }
+        for (int i = 0; i < node_count; ++i)
+        {
+            char hdr[64];
+            snprintf(hdr, sizeof hdr, "Node %d", i + 1);
+            overlay_label(hdr);
+            changed |= overlay_slider_int("  EffectSpec ID", &nodes[i].effect_spec_id, -1, 4096);
+            if (nodes[i].effect_spec_id > 0)
+            {
+                const RogueEffectSpec* s = rogue_effect_get(nodes[i].effect_spec_id);
+                overlay_label(s ? "  Effect: OK" : "  Effect: INVALID id");
+            }
+            else
+            {
+                overlay_label("  Effect: (unset)");
+            }
+            changed |= overlay_slider_float("  Delay (ms)", &nodes[i].delay_ms, 0.0f, 10000.0f);
+            changed |=
+                overlay_slider_float("  Duration (ms)", &nodes[i].duration_ms, 0.0f, 60000.0f);
+            changed |= overlay_slider_int("  Repeat Count", &nodes[i].repeat_count, 0, 100);
+            changed |= overlay_slider_float("  Repeat Interval (ms)", &nodes[i].repeat_interval_ms,
+                                            0.0f, 10000.0f);
+            int hp_gate = nodes[i].require_player_health_below_pct;
+            changed |= overlay_slider_int("  HP Below % (gate)", &hp_gate, 0, 100);
+            nodes[i].require_player_health_below_pct = (unsigned char) hp_gate;
+        }
+        if (changed)
+        {
+            (void) rogue_skill_debug_set_effects(sel, primary_id, nodes, node_count);
+            (void) rogue_skill_debug_save_overrides("build/skills_overrides.json");
+            char emsg[192] = {0};
+            int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
+            last_valid_ok = ok;
+            if (!ok)
+                snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
+            else
+                snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
+        }
     }
 
     /* Testing tab: move simulation here and add a lightweight preview -------- */

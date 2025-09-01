@@ -10,6 +10,7 @@ Press F1 in-game to open the debug overlay.
  - Optional: `skill_type` enum can be set on skills (MELEE, RANGED, AOE_SPELL, BUFF, DEBUFF, HEAL, SUMMON, PASSIVE, ULTIMATE). If omitted, it defaults to UNKNOWN for back-compat.
  - New: Skills Meta section includes a Skill Type selector with human-readable labels and "Type Presets" buttons that apply safe baseline timing/coeff defaults per type. The property panels are context-sensitive (e.g., AoE-only fields for AOE_SPELL, projectile-only fields for RANGED). Simulation controls moved to the Testing tab.
  - Real-time preview (Testing tab): Toggle "Enable Real-time Preview" to see the selected skill’s visuals rendered with sprite-sheet animation; use "Auto-animate" and "Zoom" to control playback and scale. The preview selects cast/projectile/impact/AoE sprites based on `skill_type`, caches textures, and is headless-safe (no SDL calls when no renderer is present).
+ - Effects overrides import: The Skills overrides loader now applies the primary `effect_spec_id` and any `effect_nodes[]` atomically after parsing, regardless of JSON key order. This prevents partial application and matches the Effects tab editor’s export format.
 
 Notes
 - Panel visibility isn’t persisted between runs yet. If you’d like that, we can store the visibility bitmask in your config/save.

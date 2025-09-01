@@ -83,3 +83,9 @@ feat(overlay/skills): real-time preview in Testing tab (sprite-based, headless-s
 - Headless-safe guards prevent SDL calls when no renderer is present.
 - Fix compile issues by moving a nested helper to file scope and adding <string.h> in panels_skills.c.
 - Build: Debug SDL2 with -j12 succeeded; Tests: full suite passed (586/586).
+
+fix(skills overrides): atomic import of primary effect + nodes; order-independent
+
+- Loader now parses `effect_spec_id` and `effect_nodes[]` in any order and applies them together via `rogue_skill_debug_set_effects` once the skill id is known.
+- Prevents intermediate partial state from earlier immediate-apply behavior; matches Effects tab export.
+- Rebuilt Debug (SDL2, -j12); full ctest suite passed 100% (586/586).

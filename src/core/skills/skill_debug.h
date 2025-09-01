@@ -1,6 +1,7 @@
 #ifndef ROGUE_CORE_SKILL_DEBUG_H
 #define ROGUE_CORE_SKILL_DEBUG_H
 
+#include "skills.h"
 #include "skills_coeffs.h"
 
 #ifdef __cplusplus
@@ -112,6 +113,14 @@ extern "C"
     /* Skill type (RogueSkillType enum) accessors. Returns 0 on success. */
     int rogue_skill_debug_get_type(int id, int* out_skill_type);
     int rogue_skill_debug_set_type(int id, int skill_type);
+
+    /* Effect composition (primary EffectSpec id and up to 3 additional nodes).
+        Returns 0 on success. `nodes` may be NULL when only reading/writing the primary id.
+        Node count is clamped to [0,3]. */
+    int rogue_skill_debug_get_effects(int id, int* out_primary_effect_id,
+                                      struct RogueSkillEffectNode* nodes, int* inout_node_count);
+    int rogue_skill_debug_set_effects(int id, int primary_effect_id,
+                                      const struct RogueSkillEffectNode* nodes, int node_count);
 
 #ifdef __cplusplus
 }
