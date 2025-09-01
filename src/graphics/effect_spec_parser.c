@@ -45,6 +45,20 @@ static int parse_kind(const char* s)
         return ROGUE_EFFECT_AOE_BLAST;
     return -1;
 }
+static int parse_target_type(const char* s)
+{
+    if (!s)
+        return -1;
+    if (strcmp(s, "DEFAULT") == 0)
+        return ROGUE_TARGET_DEFAULT;
+    if (strcmp(s, "SELF") == 0)
+        return ROGUE_TARGET_SELF;
+    if (strcmp(s, "ENEMY") == 0)
+        return ROGUE_TARGET_ENEMY;
+    if (strcmp(s, "AREA") == 0)
+        return ROGUE_TARGET_AREA;
+    return -1;
+}
 static int parse_damage_type(const char* s)
 {
     if (!s)
@@ -141,6 +155,12 @@ int rogue_effects_parse_text(const char* text, int* out_ids, int max_ids, char* 
         {
             s->magnitude = atoi(e.value);
         }
+        else if (strcmp(field, "target") == 0)
+        {
+            int t = parse_target_type(e.value);
+            if (t >= 0)
+                s->target = (unsigned char) t;
+        }
         else if (strcmp(field, "duration_ms") == 0)
         {
             s->duration_ms = (float) atof(e.value);
@@ -200,6 +220,36 @@ int rogue_effects_parse_text(const char* text, int* out_ids, int max_ids, char* 
             if (c > 255)
                 c = 255;
             s->proj_count = (unsigned char) c;
+        }
+        else if (strcmp(field, "delay_ms") == 0)
+        {
+            s->delay_ms = (float) atof(e.value);
+        }
+        else if (strcmp(field, "repeat_count") == 0)
+        {
+            int rc = atoi(e.value);
+            if (rc < 0)
+                rc = 0;
+            if (rc > 255)
+                rc = 255;
+            s->repeat_count = (unsigned char) rc;
+        }
+        else if (strcmp(field, "repeat_interval_ms") == 0)
+        {
+            s->repeat_interval_ms = (float) atof(e.value);
+        }
+        else if (strcmp(field, "caster_health_le_pct") == 0)
+        {
+            int pct = atoi(e.value);
+            if (pct < 0)
+                pct = 0;
+            if (pct > 100)
+                pct = 100;
+            s->caster_health_le_pct = (unsigned char) pct;
+        }
+        else if (strcmp(field, "max_distance") == 0)
+        {
+            s->max_distance = (float) atof(e.value);
         }
         else if (strcmp(field, "scale_by_buff_type") == 0)
         {

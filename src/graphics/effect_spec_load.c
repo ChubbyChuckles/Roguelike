@@ -85,6 +85,20 @@ static int map_kind(const char* s)
         return ROGUE_EFFECT_AOE_BLAST;
     return -1;
 }
+static int map_target(const char* s)
+{
+    if (!s)
+        return -1;
+    if (strcmp(s, "DEFAULT") == 0)
+        return ROGUE_TARGET_DEFAULT;
+    if (strcmp(s, "SELF") == 0)
+        return ROGUE_TARGET_SELF;
+    if (strcmp(s, "ENEMY") == 0)
+        return ROGUE_TARGET_ENEMY;
+    if (strcmp(s, "AREA") == 0)
+        return ROGUE_TARGET_AREA;
+    return -1;
+}
 static int map_damage_type(const char* s)
 {
     if (!s)
@@ -177,6 +191,12 @@ static int parse_effects_array(const char* buf, int* out_ids, int max_ids)
                     else
                         invalid_kind = 1;
                 }
+                else if (strcmp(key, "target") == 0)
+                {
+                    int t = map_target(val);
+                    if (t >= 0)
+                        spec.target = (unsigned char) t;
+                }
                 else if (strcmp(key, "stack_rule") == 0)
                 {
                     present_stack_rule = 1;
@@ -265,6 +285,23 @@ static int parse_effects_array(const char* buf, int* out_ids, int max_ids)
                     spec.proj_life_ms = (float) num;
                 else if (strcmp(key, "proj_count") == 0)
                     spec.proj_count = (unsigned char) ((int) num);
+                else if (strcmp(key, "delay_ms") == 0)
+                    spec.delay_ms = (float) num;
+                else if (strcmp(key, "repeat_count") == 0)
+                    spec.repeat_count = (unsigned char) ((int) num);
+                else if (strcmp(key, "repeat_interval_ms") == 0)
+                    spec.repeat_interval_ms = (float) num;
+                else if (strcmp(key, "caster_health_le_pct") == 0)
+                {
+                    int pct = (int) num;
+                    if (pct < 0)
+                        pct = 0;
+                    if (pct > 100)
+                        pct = 100;
+                    spec.caster_health_le_pct = (unsigned char) pct;
+                }
+                else if (strcmp(key, "max_distance") == 0)
+                    spec.max_distance = (float) num;
             }
             s = js_skip_ws(s);
             if (*s == ',')

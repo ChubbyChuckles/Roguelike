@@ -18,6 +18,15 @@ extern "C"
         ROGUE_EFFECT_AOE_BLAST = 6         /* One-shot AoE damage around player */
     } RogueEffectKind;
 
+    /* Target selector for simple conditional gating (Phase 1.2 conditionals) */
+    typedef enum RogueEffectTargetType
+    {
+        ROGUE_TARGET_DEFAULT = 0, /* infer from kind */
+        ROGUE_TARGET_SELF = 1,
+        ROGUE_TARGET_ENEMY = 2,
+        ROGUE_TARGET_AREA = 3
+    } RogueEffectTargetType;
+
     /* Forward-declare buff stacking rule for specs */
     typedef enum RogueBuffStackRule RogueBuffStackRule;
 
@@ -32,7 +41,7 @@ extern "C"
     {
         int id;                   /* registry id (assigned on register) */
         unsigned char kind;       /* RogueEffectKind */
-        unsigned char target;     /* reserved for target selection (self, enemy, area) */
+        unsigned char target;     /* RogueEffectTargetType */
         unsigned char debuff;     /* 1 if harmful debuff (for UI/analytics) */
         unsigned short buff_type; /* maps to RogueBuffType when kind == STAT_BUFF */
         int magnitude;            /* generic magnitude: buff amount, DOT dmg, or AURA dmg */
@@ -71,6 +80,15 @@ extern "C"
         float proj_speed;         /* tiles per second */
         float proj_life_ms;       /* lifetime in ms */
         unsigned char proj_count; /* number of projectiles to spawn (fan not yet supported) */
+
+        /* Phase 1.2 timing controls (node-like per-spec) */
+        float delay_ms;             /* if >0, initial application is delayed */
+        unsigned char repeat_count; /* number of times to apply, 0/1 = once */
+        float repeat_interval_ms;   /* spacing between repeated applications */
+
+        /* Phase 1.2 conditional execution */
+        unsigned char caster_health_le_pct; /* if >0, require player health% <= this */
+        float max_distance;                 /* if >0 and enemy-targeted, require <= this distance */
     } RogueEffectSpec;
 
     int rogue_effect_register(const RogueEffectSpec* spec); /* returns id or -1 */

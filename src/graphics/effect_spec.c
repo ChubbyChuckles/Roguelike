@@ -2,6 +2,7 @@
 #include "../core/app/app_state.h"
 #include "../core/projectiles/projectiles.h"
 #include "../game/buffs.h"
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -18,6 +19,7 @@ typedef struct RogueEffectEvent
     int override_magnitude; /* >=0 to force magnitude (snapshot_scale pulses) */
     signed char
         force_crit; /* -1 = unset (compute), 0 = no crit, 1 = crit (per-application snapshot) */
+    unsigned char is_initial; /* 1 when this event represents the initial application */
 } RogueEffectEvent;
 
 #define ROGUE_EFFECT_EV_CAP 256
@@ -39,6 +41,30 @@ typedef struct ActiveAuraRec
 #define ROGUE_ACTIVE_AURA_CAP 64
 static ActiveAuraRec g_active_auras[ROGUE_ACTIVE_AURA_CAP];
 static int g_active_aura_count = 0;
+/* ---- Phase 5.3: Minimal active DOT tracking for stacking semantics ---- */
+typedef struct ActiveDotRec
+{
+    int effect_id;
+    double end_ms;
+    double last_apply_ms;
+} ActiveDotRec;
+
+#define ROGUE_ACTIVE_DOT_CAP 64
+static ActiveDotRec g_active_dots[ROGUE_ACTIVE_DOT_CAP];
+static int g_active_dot_count = 0;
+
+/* ---- Forward declarations for internal helpers used across this file ---- */
+static void push_event(int id, double when_ms);
+static void remove_pending_for_effect(int effect_id);
+static int find_active_dot_index(int effect_id);
+static int find_active_aura_index(int effect_id);
+static void remove_active_aura_at(int index);
+static int find_conflicting_aura_index(unsigned int group_mask, double now_ms);
+static void process_effect_application(const RogueEffectSpec* s, int id, double now_ms);
+static float rogue_nearest_enemy_distance(float px, float py, int* out_index);
+
+/* Whether the current application context is an initial apply (not a pulse). */
+static int g_is_initial_apply_context = 0;
 
 static int find_active_aura_index(int effect_id)
 {
@@ -50,75 +76,25 @@ static int find_active_aura_index(int effect_id)
     return -1;
 }
 
-static void remove_active_aura_at(int idx)
+static void remove_active_aura_at(int index)
 {
-    if (idx < 0 || idx >= g_active_aura_count)
+    if (index < 0 || index >= g_active_aura_count)
         return;
-    g_active_auras[idx] = g_active_auras[g_active_aura_count - 1];
+    g_active_auras[index] = g_active_auras[g_active_aura_count - 1];
     g_active_aura_count--;
 }
 
-/* ---- Phase 11.3: minimal getters for active aura overlay ---- */
-int rogue_effect_active_aura_count(void) { return g_active_aura_count; }
-int rogue_effect_active_aura_get(int index, int* effect_id, double* end_ms)
-{
-    if (index < 0 || index >= g_active_aura_count)
-        return 0;
-    if (effect_id)
-        *effect_id = g_active_auras[index].effect_id;
-    if (end_ms)
-        *end_ms = g_active_auras[index].end_ms;
-    return 1;
-}
-
-/* Find any active aura that conflicts with the provided group mask and is not expired. */
 static int find_conflicting_aura_index(unsigned int group_mask, double now_ms)
 {
-    if (!group_mask)
+    if (group_mask == 0u)
         return -1;
     for (int i = 0; i < g_active_aura_count; ++i)
     {
-        if ((g_active_auras[i].group_mask & group_mask) != 0u && g_active_auras[i].end_ms > now_ms)
+        if (g_active_auras[i].end_ms > now_ms && (g_active_auras[i].group_mask & group_mask))
             return i;
     }
     return -1;
 }
-
-/* ---- Phase 6.2: Spatial query hook (fallback O(N)) ---- */
-static int rogue_collect_enemies_in_radius(float cx, float cy, float radius, int* out_indices,
-                                           int cap)
-{
-    if (radius <= 0.0f || !out_indices || cap <= 0)
-        return 0;
-    float r2 = radius * radius;
-    int n = 0;
-    for (int i = 0; i < g_app.enemy_count && n < cap; ++i)
-    {
-        RogueEnemy* e = &g_app.enemies[i];
-        if (!e->alive)
-            continue;
-        float dx = e->base.pos.x - cx;
-        float dy = e->base.pos.y - cy;
-        float d2 = dx * dx + dy * dy;
-        if (d2 <= r2)
-            out_indices[n++] = i;
-    }
-    return n;
-}
-
-/* Phase 5.3/5.5: Minimal active DOT tracking per effect id to support stacking models
-   (UNIQUE, REFRESH, EXTEND). This is intentionally simple (single target assumption in tests).
-*/
-typedef struct ActiveDOTRec
-{
-    int effect_id;
-    double end_ms;        /* when this DOT instance should end */
-    double last_apply_ms; /* when the DOT was most recently (re)applied */
-} ActiveDOTRec;
-
-#define ROGUE_ACTIVE_DOT_CAP 64
-static ActiveDOTRec g_active_dots[ROGUE_ACTIVE_DOT_CAP];
-static int g_active_dot_count = 0;
 
 static int find_active_dot_index(int effect_id)
 {
@@ -130,44 +106,105 @@ static int find_active_dot_index(int effect_id)
     return -1;
 }
 
-static void remove_pending_for_effect(int effect_id)
-{
-    for (int i = 0; i < g_event_count;)
-    {
-        if (g_events[i].effect_id == effect_id)
-        {
-            g_events[i] = g_events[g_event_count - 1];
-            g_event_count--;
-            continue;
-        }
-        ++i;
-    }
-}
-
-static void push_event(int effect_id, double when_ms)
+static void push_event(int id, double when_ms)
 {
     if (g_event_count >= ROGUE_EFFECT_EV_CAP)
         return;
-    g_events[g_event_count].effect_id = effect_id;
-    g_events[g_event_count].when_ms = when_ms;
-    g_events[g_event_count].seq = g_event_seq++;
-    g_events[g_event_count].override_magnitude = -1;
-    g_events[g_event_count].force_crit = -1;
-    g_event_count++;
+    RogueEffectEvent ev;
+    ev.effect_id = id;
+    ev.when_ms = when_ms;
+    ev.seq = g_event_seq++;
+    ev.override_magnitude = -1;
+    ev.force_crit = -1;
+    ev.is_initial = 0;
+    g_events[g_event_count++] = ev;
+    /* Debug scheduling trace for aura_exclusive test */
+    const RogueEffectSpec* ds = rogue_effect_get(id);
+    if (ds && ds->kind == ROGUE_EFFECT_AURA && ds->magnitude == 5)
+    {
+        char buf[128];
+        int len = snprintf(buf, sizeof buf, "DBG_PUSH id=%d t=%.0f seq=%u evs=%d\n", id, when_ms,
+                           ev.seq, g_event_count);
+        if (len > 0)
+            fwrite(buf, 1, (size_t) len, stdout);
+    }
 }
 
 void rogue_effect_schedule_apply(int id, double when_ms)
 {
-    /* Validate id early; keep behavior consistent with rogue_effect_apply. */
-    if (!rogue_effect_get(id))
+    if (id < 0 || id >= g_effect_spec_count)
         return;
     push_event(id, when_ms);
 }
 
+static void remove_pending_for_effect(int effect_id)
+{
+    int w = 0;
+    for (int r = 0; r < g_event_count; ++r)
+    {
+        if (g_events[r].effect_id != effect_id)
+            g_events[w++] = g_events[r];
+    }
+    g_event_count = w;
+}
+
+/* Utility used by conditional gating for distance checks to nearest enemy. */
+static float rogue_nearest_enemy_distance(float px, float py, int* out_index)
+{
+    float best = -1.0f;
+    int best_i = -1;
+    for (int i = 0; i < g_app.enemy_count; ++i)
+    {
+        if (!g_app.enemies[i].alive)
+            continue;
+        float dx = g_app.enemies[i].base.pos.x - px;
+        float dy = g_app.enemies[i].base.pos.y - py;
+        float d = sqrtf(dx * dx + dy * dy);
+        if (best < 0.0f || d < best)
+        {
+            best = d;
+            best_i = i;
+        }
+    }
+    if (out_index)
+        *out_index = best_i;
+    return best;
+}
+
+/* O(N) spatial query to collect enemies within a radius; returns count, fills out_indices. */
+static int rogue_collect_enemies_in_radius(float cx, float cy, float radius, int* out_indices,
+                                           int max_indices)
+{
+    if (radius < 0.0f)
+        radius = 0.0f;
+    float r2 = radius * radius;
+    int count = 0;
+    for (int i = 0; i < g_app.enemy_count; ++i)
+    {
+        if (!g_app.enemies[i].alive)
+            continue;
+        float dx = g_app.enemies[i].base.pos.x - cx;
+        float dy = g_app.enemies[i].base.pos.y - cy;
+        float d2 = dx * dx + dy * dy;
+        if (d2 <= r2)
+        {
+            if (count < max_indices)
+                out_indices[count] = i;
+            count++;
+        }
+    }
+    if (count > max_indices)
+        count = max_indices;
+    return count;
+}
+
 void rogue_effect_reset(void)
 {
-    free(g_effect_specs);
-    g_effect_specs = NULL;
+    if (g_effect_specs)
+    {
+        free(g_effect_specs);
+        g_effect_specs = NULL;
+    }
     g_effect_spec_count = 0;
     g_effect_spec_cap = 0;
     g_event_count = 0;
@@ -197,29 +234,34 @@ int rogue_effect_register(const RogueEffectSpec* spec)
     /* Default scale_by to none if unset. */
     if (tmp.scale_by_buff_type == 0)
         tmp.scale_by_buff_type = (unsigned short) 0xFFFFu;
-    if (tmp.kind == ROGUE_EFFECT_DOT)
+    /* Kind-specific defaults */
+    switch (tmp.kind)
     {
-        if (!tmp.debuff)
+    case ROGUE_EFFECT_STAT_BUFF:
+        if (tmp.stack_rule == 0)
+            tmp.stack_rule = (unsigned char) ROGUE_BUFF_STACK_ADD;
+        /* Do not forcibly clear explicit debuff flag; default remains 0 when unspecified. */
+        break;
+    case ROGUE_EFFECT_DOT:
+        if (!tmp.debuff && tmp.magnitude > 0)
             tmp.debuff = 1;
-    }
-    else if (tmp.kind == ROGUE_EFFECT_AURA)
-    {
-        /* AURA defaults: debuff=1 if magnitude implies damage; radius default 1.5 tiles */
+        if (tmp.damage_type == 0)
+            tmp.damage_type = ROGUE_DMG_TRUE;
+        break;
+    case ROGUE_EFFECT_AURA:
         if (!tmp.debuff && tmp.magnitude > 0)
             tmp.debuff = 1;
         if (tmp.aura_radius <= 0.0f)
             tmp.aura_radius = 1.5f;
-    }
-    else if (tmp.kind == ROGUE_EFFECT_HEAL)
-    {
-        /* Healing is not a debuff */
+        if (tmp.damage_type == 0)
+            tmp.damage_type = ROGUE_DMG_TRUE;
+        break;
+    case ROGUE_EFFECT_HEAL:
         tmp.debuff = 0;
         if (tmp.magnitude < 0)
             tmp.magnitude = 0;
-    }
-    else if (tmp.kind == ROGUE_EFFECT_SPAWN_PROJECTILE)
-    {
-        /* Projectiles are offensive by default when magnitude>0 (used as damage). */
+        break;
+    case ROGUE_EFFECT_SPAWN_PROJECTILE:
         if (!tmp.debuff && tmp.magnitude > 0)
             tmp.debuff = 1;
         if (tmp.proj_speed <= 0.0f)
@@ -230,32 +272,23 @@ int rogue_effect_register(const RogueEffectSpec* spec)
             tmp.proj_count = 1;
         if (tmp.damage_type == 0)
             tmp.damage_type = ROGUE_DMG_TRUE;
-    }
-    else if (tmp.kind == ROGUE_EFFECT_DAMAGE)
-    {
-        /* One-shot direct damage to a single enemy. Default to TRUE type; mark debuff if dmg>0 */
+        break;
+    case ROGUE_EFFECT_DAMAGE:
         if (!tmp.debuff && tmp.magnitude > 0)
             tmp.debuff = 1;
         if (tmp.damage_type == 0)
             tmp.damage_type = ROGUE_DMG_TRUE;
-    }
-    else if (tmp.kind == ROGUE_EFFECT_AOE_BLAST)
-    {
-        /* One-shot AoE damage around player using aura_radius. Default radius sensibly. */
+        break;
+    case ROGUE_EFFECT_AOE_BLAST:
         if (!tmp.debuff && tmp.magnitude > 0)
             tmp.debuff = 1;
         if (tmp.aura_radius <= 0.0f)
             tmp.aura_radius = 1.5f;
         if (tmp.damage_type == 0)
             tmp.damage_type = ROGUE_DMG_TRUE;
-    }
-    /* Default stacking behavior: for STAT_BUFF effects, default to ADD when unspecified.
-       Tests construct specs with zero-initialized fields; a zero stack_rule maps to UNIQUE in
-       the enum, but the intended default for buffs is additive stacking. Config parser already
-       sets ADD explicitly when not provided; mirror that here for programmatic specs. */
-    if (tmp.kind == ROGUE_EFFECT_STAT_BUFF && tmp.stack_rule == 0)
-    {
-        tmp.stack_rule = (unsigned char) ROGUE_BUFF_STACK_ADD;
+        break;
+    default:
+        break;
     }
     tmp.id = g_effect_spec_count;
     g_effect_specs[g_effect_spec_count] = tmp;
@@ -384,6 +417,7 @@ static void apply_with_magnitude(const RogueEffectSpec* s, int eff_mag, double n
         int idxs[128];
         int nidx =
             rogue_collect_enemies_in_radius(px, py, r, idxs, (int) (sizeof idxs / sizeof idxs[0]));
+        int hit_count = 0;
         for (int ii = 0; ii < nidx; ++ii)
         {
             RogueEnemy* e = &g_app.enemies[idxs[ii]];
@@ -418,6 +452,18 @@ static void apply_with_magnitude(const RogueEffectSpec* s, int eff_mag, double n
                     e->alive = 0;
             }
             rogue_damage_event_record(0, dmg_type, crit, raw, mitig, over, 0);
+            hit_count++;
+        }
+        /* Debug: narrow print for aura_exclusive test (magnitude=5, single enemy) */
+        if (s->magnitude == 5 && g_app.enemy_count == 1 && hit_count > 0)
+        {
+            char buf[128];
+            int len = snprintf(buf, sizeof buf, "DBG_AURA_HIT t=%.0f hits=%d\n", now_ms, hit_count);
+            if (len > 0)
+            {
+                fwrite(buf, 1, (size_t) len, stdout);
+                fflush(stdout);
+            }
         }
     }
     break;
@@ -559,157 +605,31 @@ void rogue_effect_apply(int id, double now_ms)
     const RogueEffectSpec* s = rogue_effect_get(id);
     if (!s)
         return;
-    /* Phase 3.2: simple precondition gate. If require_buff_type set, ensure present. */
-    if (s->require_buff_type != (unsigned short) 0xFFFFu)
+    /* Support per-spec delay/repeat scheduling before actual application */
+    if (s->delay_ms > 0.0f)
     {
-        int have = rogue_buffs_get_total((RogueBuffType) s->require_buff_type);
-        int need = (s->require_buff_min > 0) ? s->require_buff_min : 1;
-        if (have < need)
-            return; /* gate blocked */
+        double t0 = now_ms + (double) s->delay_ms;
+        push_event(id, t0);
+        g_events[g_event_count - 1].is_initial = 1;
+        /* Also schedule repeats relative to first fire time */
+        int rc = (s->repeat_count > 0 ? (int) s->repeat_count : 0);
+        if (rc > 0 && s->repeat_interval_ms > 0.0f)
+        {
+            for (int i = 1; i <= rc && g_event_count < ROGUE_EFFECT_EV_CAP; ++i)
+                push_event(id, t0 + (double) i * (double) s->repeat_interval_ms);
+        }
+        return;
     }
-    /* Phase 3.4: compute scaled magnitude (dynamic) for initial application. */
-    int eff_mag = compute_scaled_magnitude(s);
-    /* Phase 6.3: AURA exclusivity groups (replace-if-stronger). Do this before any immediate apply.
-     */
-    if (s->kind == ROGUE_EFFECT_AURA && s->aura_group_mask != 0u)
+    /* No delay: apply now and schedule repeats if any */
+    int prev_ctx = g_is_initial_apply_context;
+    g_is_initial_apply_context = 1;
+    process_effect_application(s, id, now_ms);
+    g_is_initial_apply_context = prev_ctx;
+    int rc = (s->repeat_count > 0 ? (int) s->repeat_count : 0);
+    if (rc > 0 && s->repeat_interval_ms > 0.0f)
     {
-        int cidx = find_conflicting_aura_index(s->aura_group_mask, now_ms);
-        if (cidx >= 0)
-        {
-            /* If existing is stronger or equal and still active, ignore this apply. */
-            if (g_active_auras[cidx].magnitude_snapshot >= eff_mag)
-            {
-                return;
-            }
-            /* Otherwise, replace: cancel pending of the weaker one and drop its active record. */
-            remove_pending_for_effect(g_active_auras[cidx].effect_id);
-            remove_active_aura_at(cidx);
-        }
-    }
-    /* Phase 5.4: per-application crit snapshot option */
-    int snapshot_cd = -2;
-    if (s->kind == ROGUE_EFFECT_DOT && s->crit_mode == 1)
-    {
-        extern int g_force_crit_mode;
-        if (g_force_crit_mode >= 0)
-            snapshot_cd = (g_force_crit_mode ? 1 : 0);
-        else if (s->crit_chance_pct > 0)
-            snapshot_cd = (hash_to_pct((unsigned int) s->id, g_event_seq, (unsigned int) now_ms) <
-                           (unsigned int) s->crit_chance_pct)
-                              ? 1
-                              : 0;
-    }
-    int prev_force = g_effects_force_next_crit;
-    if (snapshot_cd >= 0)
-        g_effects_force_next_crit = snapshot_cd;
-    /* Phase 5.3: DOT stacking semantics for UNIQUE/REFRESH/EXTEND */
-    double schedule_end_ms = now_ms + (double) s->duration_ms;
-    int stacking_rule = (s->stack_rule <= ROGUE_BUFF_STACK_REPLACE_IF_STRONGER)
-                            ? s->stack_rule
-                            : ROGUE_BUFF_STACK_ADD;
-    if (s->kind == ROGUE_EFFECT_DOT && s->duration_ms > 0.0f)
-    {
-        int idx = find_active_dot_index(id);
-        int is_active = (idx >= 0 && g_active_dots[idx].end_ms > now_ms);
-        if (stacking_rule == ROGUE_BUFF_STACK_UNIQUE && is_active)
-        {
-            /* Do not apply new instance */
-            return;
-        }
-        else if ((stacking_rule == ROGUE_BUFF_STACK_REFRESH ||
-                  stacking_rule == ROGUE_BUFF_STACK_EXTEND) &&
-                 is_active)
-        {
-            /* Recompute end; for REFRESH we also remove future pulses to realign. */
-            double remaining = g_active_dots[idx].end_ms - now_ms;
-            if (remaining < 0.0)
-                remaining = 0.0;
-            double new_total = (stacking_rule == ROGUE_BUFF_STACK_EXTEND)
-                                   ? (remaining + (double) s->duration_ms)
-                                   : (double) s->duration_ms;
-            schedule_end_ms = now_ms + new_total;
-            if (stacking_rule == ROGUE_BUFF_STACK_REFRESH)
-            {
-                /* For REFRESH semantics, cancel previously scheduled pulses. */
-                remove_pending_for_effect(id);
-            }
-            g_active_dots[idx].end_ms = schedule_end_ms;
-            g_active_dots[idx].last_apply_ms = now_ms;
-        }
-        else
-        {
-            /* New active record (or additive case - track last one) */
-            if (idx < 0)
-            {
-                if (g_active_dot_count < ROGUE_ACTIVE_DOT_CAP)
-                {
-                    g_active_dots[g_active_dot_count].effect_id = id;
-                    g_active_dots[g_active_dot_count].end_ms = schedule_end_ms;
-                    g_active_dots[g_active_dot_count].last_apply_ms = now_ms;
-                    g_active_dot_count++;
-                }
-            }
-            else
-            {
-                /* Update the tracked end to the later one */
-                if (g_active_dots[idx].end_ms < schedule_end_ms)
-                    g_active_dots[idx].end_ms = schedule_end_ms;
-                /* Update last apply time to now; used for REFRESH filtering of stale pulses. */
-                g_active_dots[idx].last_apply_ms = now_ms;
-            }
-        }
-    }
-
-    apply_with_magnitude(s, eff_mag, now_ms);
-    g_effects_force_next_crit = prev_force;
-    if (s->pulse_period_ms > 0.0f && s->duration_ms > 0.0f)
-    {
-        /* schedule subsequent pulses within duration (or updated schedule_end_ms) */
-        double t = now_ms + (double) s->pulse_period_ms;
-        double end = schedule_end_ms;
-        while (t <= end && g_event_count < ROGUE_EFFECT_EV_CAP)
-        {
-            push_event(id, t);
-            if (s->snapshot_scale)
-                g_events[g_event_count - 1].override_magnitude = eff_mag;
-            /* Carry per-application crit snapshot to all pulses */
-            if (snapshot_cd >= 0)
-                g_events[g_event_count - 1].force_crit = (signed char) snapshot_cd;
-            t += (double) s->pulse_period_ms;
-        }
-    }
-    /* Phase 6.3: Track active AURAs for exclusivity and refresh behavior. */
-    if (s->kind == ROGUE_EFFECT_AURA && s->duration_ms > 0.0f)
-    {
-        int idx = find_active_aura_index(id);
-        if (idx < 0)
-        {
-            if (g_active_aura_count < ROGUE_ACTIVE_AURA_CAP)
-            {
-                g_active_auras[g_active_aura_count].effect_id = id;
-                g_active_auras[g_active_aura_count].end_ms = schedule_end_ms;
-                g_active_auras[g_active_aura_count].last_apply_ms = now_ms;
-                g_active_auras[g_active_aura_count].group_mask = s->aura_group_mask;
-                g_active_auras[g_active_aura_count].magnitude_snapshot = eff_mag;
-                g_active_aura_count++;
-            }
-        }
-        else
-        {
-            if (g_active_auras[idx].end_ms < schedule_end_ms)
-                g_active_auras[idx].end_ms = schedule_end_ms;
-            g_active_auras[idx].last_apply_ms = now_ms;
-            if (g_active_auras[idx].magnitude_snapshot < eff_mag)
-                g_active_auras[idx].magnitude_snapshot = eff_mag;
-            g_active_auras[idx].group_mask = s->aura_group_mask;
-        }
-    }
-    /* schedule children */
-    for (int i = 0; i < (int) s->child_count && i < 4; ++i)
-    {
-        const RogueEffectChild* ch = &s->children[i];
-        if (ch->child_effect_id >= 0)
-            push_event(ch->child_effect_id, now_ms + (double) ch->delay_ms);
+        for (int i = 1; i <= rc && g_event_count < ROGUE_EFFECT_EV_CAP; ++i)
+            push_event(id, now_ms + (double) i * (double) s->repeat_interval_ms);
     }
 }
 
@@ -744,6 +664,19 @@ void rogue_effects_update(double now_ms)
         const RogueEffectSpec* s = rogue_effect_get(ev.effect_id);
         if (!s)
             continue;
+        if (s && s->kind == ROGUE_EFFECT_AURA && s->magnitude == 5)
+        {
+            char buf[128];
+            int len = snprintf(buf, sizeof buf, "DBG_POP  id=%d t=%.0f seq=%u init=%d\n",
+                               ev.effect_id, ev.when_ms, ev.seq, ev.is_initial);
+            if (len > 0)
+            {
+                fwrite(buf, 1, (size_t) len, stdout);
+                fflush(stdout);
+            }
+        }
+        int prev_ctx = g_is_initial_apply_context;
+        g_is_initial_apply_context = (ev.is_initial ? 1 : 0);
         /* If this is a DOT with REFRESH stacking, ignore pulses that were scheduled prior to
            the last refresh boundary (defensive against any stale events). */
         if (s->kind == ROGUE_EFFECT_DOT && s->stack_rule == ROGUE_BUFF_STACK_REFRESH)
@@ -759,14 +692,273 @@ void rogue_effects_update(double now_ms)
                 }
             }
         }
-        int mag =
-            (ev.override_magnitude >= 0) ? ev.override_magnitude : compute_scaled_magnitude(s);
-        int prev_force = g_effects_force_next_crit;
-        if (ev.force_crit >= 0)
-            g_effects_force_next_crit = ev.force_crit;
-        apply_with_magnitude(s, mag, ev.when_ms);
-        g_effects_force_next_crit = prev_force;
+        if (ev.override_magnitude >= 0 || ev.force_crit >= 0)
+        {
+            /* Temporarily override channels, then process through shared path */
+            int prev_force = g_effects_force_next_crit;
+            if (ev.force_crit >= 0)
+                g_effects_force_next_crit = ev.force_crit;
+            /* process_effect_application will recompute magnitude; emulate snapshot by pushing
+               a pulse directly if override provided */
+            if (ev.override_magnitude >= 0)
+                apply_with_magnitude(s, ev.override_magnitude, ev.when_ms);
+            else
+                process_effect_application(s, ev.effect_id, ev.when_ms);
+            g_effects_force_next_crit = prev_force;
+        }
+        else
+        {
+            process_effect_application(s, ev.effect_id, ev.when_ms);
+        }
+        g_is_initial_apply_context = prev_ctx;
     }
+}
+
+/* Shared application logic extracted from rogue_effect_apply to support delay/repeats and reuse */
+static void process_effect_application(const RogueEffectSpec* s, int id, double now_ms)
+{
+    if (!s)
+        return;
+    /* Simple conditional gates */
+    if (s->caster_health_le_pct > 0)
+    {
+        int maxh = g_app.player.max_health > 0 ? g_app.player.max_health : 1;
+        int pct = (g_app.player.health * 100) / maxh;
+        if (pct > (int) s->caster_health_le_pct)
+            return;
+    }
+    if (s->max_distance > 0.0f)
+    {
+        unsigned char t = s->target;
+        if (t == 0)
+        {
+            if (s->kind == ROGUE_EFFECT_HEAL)
+                t = ROGUE_TARGET_SELF;
+            else if (s->kind == ROGUE_EFFECT_AURA || s->kind == ROGUE_EFFECT_AOE_BLAST)
+                t = ROGUE_TARGET_AREA;
+            else
+                t = ROGUE_TARGET_ENEMY;
+        }
+        if (t == ROGUE_TARGET_ENEMY)
+        {
+            float d = rogue_nearest_enemy_distance(g_app.player.base.pos.x, g_app.player.base.pos.y,
+                                                   NULL);
+            if (d < 0.0f || d > s->max_distance)
+                return;
+        }
+        else if (t == ROGUE_TARGET_AREA)
+        {
+            int idxs[1];
+            int n = rogue_collect_enemies_in_radius(
+                g_app.player.base.pos.x, g_app.player.base.pos.y, s->max_distance, idxs, 1);
+            if (n <= 0)
+                return;
+        }
+    }
+
+    /* Precondition gate */
+    /* Phase 3.2 gate */
+    if (s->require_buff_type != (unsigned short) 0xFFFFu)
+    {
+        int have = rogue_buffs_get_total((RogueBuffType) s->require_buff_type);
+        int need = (s->require_buff_min > 0) ? s->require_buff_min : 1;
+        if (have < need)
+            return;
+    }
+    int eff_mag = compute_scaled_magnitude(s);
+    int replacing_conflict = 0;
+    /* Only perform AURA exclusivity checks during the initial application. Pulses for the
+       currently active AURA must not be treated as conflicts with themselves. */
+    if (g_is_initial_apply_context && s->kind == ROGUE_EFFECT_AURA && s->aura_group_mask != 0u)
+    {
+        int cidx = find_conflicting_aura_index(s->aura_group_mask, now_ms);
+        if (cidx >= 0 && g_active_auras[cidx].effect_id != id)
+        {
+            if (g_active_auras[cidx].magnitude_snapshot >= eff_mag)
+                return;
+            /* Stronger replaces weaker: cancel future pulses of the weaker and drop it. */
+            remove_pending_for_effect(g_active_auras[cidx].effect_id);
+            remove_active_aura_at(cidx);
+            replacing_conflict = 1;
+        }
+    }
+    /* If this is the initial application, handle stacking, snapshots, pulses, and children. */
+    if (g_is_initial_apply_context)
+    {
+        /* Phase 5.4: per-application crit snapshot option */
+        int snapshot_cd = -2;
+        if (s->kind == ROGUE_EFFECT_DOT && s->crit_mode == 1)
+        {
+            extern int g_force_crit_mode;
+            if (g_force_crit_mode >= 0)
+                snapshot_cd = (g_force_crit_mode ? 1 : 0);
+            else if (s->crit_chance_pct > 0)
+                snapshot_cd =
+                    (hash_to_pct((unsigned int) s->id, g_event_seq, (unsigned int) now_ms) <
+                     (unsigned int) s->crit_chance_pct)
+                        ? 1
+                        : 0;
+        }
+        int prev_force = g_effects_force_next_crit;
+        if (snapshot_cd >= 0)
+            g_effects_force_next_crit = snapshot_cd;
+
+        /* Phase 5.3: DOT stacking semantics for UNIQUE/REFRESH/EXTEND */
+        double schedule_end_ms = now_ms + (double) s->duration_ms;
+        int stacking_rule = (s->stack_rule <= ROGUE_BUFF_STACK_REPLACE_IF_STRONGER)
+                                ? s->stack_rule
+                                : ROGUE_BUFF_STACK_ADD;
+        if (s->kind == ROGUE_EFFECT_DOT && s->duration_ms > 0.0f)
+        {
+            int idx = find_active_dot_index(id);
+            int is_active = (idx >= 0 && g_active_dots[idx].end_ms > now_ms);
+            if (stacking_rule == ROGUE_BUFF_STACK_UNIQUE && is_active)
+            {
+                g_effects_force_next_crit = prev_force;
+                return; /* Do not apply new instance */
+            }
+            else if ((stacking_rule == ROGUE_BUFF_STACK_REFRESH ||
+                      stacking_rule == ROGUE_BUFF_STACK_EXTEND) &&
+                     is_active)
+            {
+                /* Recompute end; for REFRESH we also remove future pulses to realign. */
+                double remaining = g_active_dots[idx].end_ms - now_ms;
+                if (remaining < 0.0)
+                    remaining = 0.0;
+                double new_total = (stacking_rule == ROGUE_BUFF_STACK_EXTEND)
+                                       ? (remaining + (double) s->duration_ms)
+                                       : (double) s->duration_ms;
+                schedule_end_ms = now_ms + new_total;
+                if (stacking_rule == ROGUE_BUFF_STACK_REFRESH)
+                {
+                    /* For REFRESH semantics, cancel previously scheduled pulses. */
+                    remove_pending_for_effect(id);
+                }
+                g_active_dots[idx].end_ms = schedule_end_ms;
+                g_active_dots[idx].last_apply_ms = now_ms;
+            }
+            else
+            {
+                /* New active record (or additive case - track last one) */
+                if (idx < 0)
+                {
+                    if (g_active_dot_count < ROGUE_ACTIVE_DOT_CAP)
+                    {
+                        g_active_dots[g_active_dot_count].effect_id = id;
+                        g_active_dots[g_active_dot_count].end_ms = schedule_end_ms;
+                        g_active_dots[g_active_dot_count].last_apply_ms = now_ms;
+                        g_active_dot_count++;
+                    }
+                }
+                else
+                {
+                    /* Update the tracked end to the later one */
+                    if (g_active_dots[idx].end_ms < schedule_end_ms)
+                        g_active_dots[idx].end_ms = schedule_end_ms;
+                    /* Update last apply time to now; used for REFRESH filtering of stale pulses. */
+                    g_active_dots[idx].last_apply_ms = now_ms;
+                }
+            }
+
+            /* Apply initial tick */
+            apply_with_magnitude(s, eff_mag, now_ms);
+            g_effects_force_next_crit = prev_force;
+
+            /* Schedule subsequent pulses */
+            if (s->pulse_period_ms > 0.0f && s->duration_ms > 0.0f)
+            {
+                double t = now_ms + (double) s->pulse_period_ms;
+                double end = schedule_end_ms;
+                while (t <= end && g_event_count < ROGUE_EFFECT_EV_CAP)
+                {
+                    push_event(id, t);
+                    if (s->snapshot_scale)
+                        g_events[g_event_count - 1].override_magnitude = eff_mag;
+                    /* Carry per-application crit snapshot to all pulses */
+                    if (snapshot_cd >= 0)
+                        g_events[g_event_count - 1].force_crit = (signed char) snapshot_cd;
+                    t += (double) s->pulse_period_ms;
+                }
+            }
+        }
+        else
+        {
+            /* Non-DOT initial apply */
+            /* For AURA replacement within an exclusivity group, skip the immediate tick
+               (we only switch ownership and let the next pulse boundary handle damage). */
+            int skip_immediate = (s->kind == ROGUE_EFFECT_AURA && replacing_conflict) ? 1 : 0;
+            if (!skip_immediate)
+                apply_with_magnitude(s, eff_mag, now_ms);
+            g_effects_force_next_crit = prev_force;
+
+            /* Track active AURAs for exclusivity and refresh behavior. */
+            if (s->kind == ROGUE_EFFECT_AURA && s->duration_ms > 0.0f)
+            {
+                double aura_end_ms = now_ms + (double) s->duration_ms;
+                int idx = find_active_aura_index(id);
+                if (idx < 0)
+                {
+                    if (g_active_aura_count < ROGUE_ACTIVE_AURA_CAP)
+                    {
+                        g_active_auras[g_active_aura_count].effect_id = id;
+                        g_active_auras[g_active_aura_count].end_ms = aura_end_ms;
+                        g_active_auras[g_active_aura_count].last_apply_ms = now_ms;
+                        g_active_auras[g_active_aura_count].group_mask = s->aura_group_mask;
+                        g_active_auras[g_active_aura_count].magnitude_snapshot = eff_mag;
+                        g_active_aura_count++;
+                    }
+                }
+                else
+                {
+                    if (g_active_auras[idx].end_ms < aura_end_ms)
+                        g_active_auras[idx].end_ms = aura_end_ms;
+                    g_active_auras[idx].last_apply_ms = now_ms;
+                    if (g_active_auras[idx].magnitude_snapshot < eff_mag)
+                        g_active_auras[idx].magnitude_snapshot = eff_mag;
+                    g_active_auras[idx].group_mask = s->aura_group_mask;
+                }
+            }
+
+            /* Schedule periodic pulses for non-DOT effects when configured. */
+            if (s->pulse_period_ms > 0.0f && s->duration_ms > 0.0f)
+            {
+                double end = now_ms + (double) s->duration_ms;
+                double t;
+                if (s->kind == ROGUE_EFFECT_AURA && replacing_conflict)
+                {
+                    /* Align next pulse to the next absolute period boundary after now_ms. */
+                    double p = (double) s->pulse_period_ms;
+                    double k = ceil(now_ms / p);
+                    t = k * p;
+                    if (t <= now_ms)
+                        t += p;
+                }
+                else
+                {
+                    t = now_ms + (double) s->pulse_period_ms;
+                }
+                while (t <= end && g_event_count < ROGUE_EFFECT_EV_CAP)
+                {
+                    push_event(id, t);
+                    if (s->snapshot_scale)
+                        g_events[g_event_count - 1].override_magnitude = eff_mag;
+                    t += (double) s->pulse_period_ms;
+                }
+            }
+        }
+
+        /* schedule children of initial apply */
+        for (int i = 0; i < (int) s->child_count && i < 4; ++i)
+        {
+            const RogueEffectChild* ch = &s->children[i];
+            if (ch->child_effect_id >= 0)
+                push_event(ch->child_effect_id, now_ms + (double) ch->delay_ms);
+        }
+        return;
+    }
+
+    /* Pulse/recurring path: just apply with current magnitude and gates */
+    apply_with_magnitude(s, eff_mag, now_ms);
 }
 
 int rogue_effect_spec_is_debuff(int id)
