@@ -130,3 +130,11 @@ Add basic Skills Node Graph editor with inline quick-fixes; keep tests green
 - Palette: keep the EffectSpec palette (filters + Assign-To) and Clear Nodes; composition persists via overrides import/export.
 - Build & tests: Debug build (SDL2, -j12) succeeded; full ctest suite passes 100% (586/586).
 - Docs: update roadmap (STATUS DELTA + CHANGELOG) and README with Node Graph usage notes.
+
+refactor(overlay/skills): modularize Skills panel into per-tab modules + orchestrator; unify validation/save helpers
+
+- Split legacy monolith into modules: panel_skills_overview.{h,c}, panel_skills_effects.{h,c}, panel_skills_visuals.{h,c}, panel_skills_audio.{h,c}, panel_skills_testing.{h,c}; added panel_skills_shared.{h,c} for validation cache, paths, and save+refresh.
+- Orchestrator (panels_skills.c) delegates to tabs and renders the sticky Validation Status banner; headless-safe preview and guards preserved.
+- Visuals/Audio/Testing logic migrated with unchanged behavior; Effects/Overview wired to shared helpers; persistence via overrides JSON verified.
+- Build & tests: Debug (SDL2) with -j12; full suite passed 100% (587/587).
+- Docs: roadmap STATUS DELTA/CHANGELOG updated; README notes modularization and bumps latest run to 587/587.

@@ -7,6 +7,7 @@ X = Not started yet
 Optional = Stretch / future wave
 
 STATUS DELTA (current)
+- Skills panel architecture modularized: split the legacy monolith into per‑tab modules (overview/effects/visuals/audio/testing) with headers/guards and a thin orchestrator; shared helpers centralize validation and overrides save/refresh. Headless‑safe preview preserved. Full Debug (SDL2) build and entire test suite are green (587/587, -j12).
 - EffectSpec palette now supports category filters (Offensive, Defensive, Movement, Utility) combined with Kind/Debuff/ID filters; Assign-To flow and persistence unchanged. Headless-safe guards preserved.
 - Effects tab Node Graph upgraded with explicit connections: parent mapping with link/unlink flow, cycle prevention, connection line rendering, per-node validation-based coloring (red/orange/green), and an "Apply Connections to Delays" action that derives delay_ms from parent spans. Retains simple X-order "Chain Nodes" as a quick tool. Headless-safe guards preserved.
 - Effects tab now includes a basic Node Graph editor: draggable nodes with selection and a compact parameter panel (EffectSpec ID, delay/duration/repeats/interval, HP gate). A simple "Chain Nodes" action orders by X position and generates sequential delays based on node durations/repeats. Rendering is headless‑safe and guarded when no SDL renderer is present.
@@ -26,6 +27,8 @@ STATUS DELTA (current)
  - Overlay usability: Panels are now movable and persist their layout (x, y, width) and visibility across runs. Implemented via `overlay_begin_panel_auto`, with configuration saved under `build/overlay_layout.json`. Panel height is clamped to the viewport and long tables cap rows to avoid overflow. Converted System, Player, Validation, Audio/VFX, Entities, Items, Map Editor, Content Graph, and Skills panels to the new helper. (Done)
 
 CHANGELOG
+
+- 2025-09-01: Refactor – Skills panel modularized into per‑tab modules + orchestrator with shared helpers; maintained behavior parity and headless‑safety. Debug build (SDL2) with -j12 and full ctest passed 100% (587/587).
 
 - 2025-09-01: EffectSpec palette gains category toggles (Offensive/Defensive/Movement/Utility) integrated with Kind/Debuff/ID filters; Assign-To preserved. Debug build (SDL2) with -j12 and full ctest passed 100% (586/586).
 
