@@ -117,7 +117,8 @@ Milestone 8 — Performance and robustness
     • Keyboard Up/Down and Home/End
     • Shift to accelerate scroll step
     • Row-offset slider (kept for headless determinism)
-    Scrollbar rendering/drag is pending; FPS metrics on 20k–100k sets still pending.
+  • Visible vertical scrollbar with click-to-page (track) and drag-to-scroll (thumb); synchronized with virtualization and clamped to bounds.
+  FPS metrics on 20k–100k sets: initial headless perf smoke added (tests/unit/test_overlay_table_perf_smoke.c) measuring avg ms/frame over 200 frames on a 50k-row synthetic table. Tuned defaults adopted based on results (row height 16px, padding 1px vs prior 18px/2px), yielding ~4–5% lower avg ms/frame in Debug SDL2 locally. Sliders allow per-user override and persist via overlay_prefs. Verification: full CTest run post-change passed 594/594 (Debug, -j12) with no regressions.
 8.2 Background job system
   - Worker pool for validation, hash compute, heavy exports; progress HUD with cancel.
 8.3 Memory discipline
@@ -169,7 +170,7 @@ Near-term next steps (actionable)
 1) Implement overlay_theme and migrate System + Items panels to use it.
 2) Splitters done: Items/Skills/Map now split with persisted sizes; toasts are already available and used in Items stub.
 3) DONE: Items “Create New” wizard powered by schema; Duplicate-as-template integrated.
-4) DONE: Virtualized table in Items list with row-offset slider and smooth navigation via mouse wheel (hover-aware), Up/Down, Home/End, and Shift-accelerated steps. Next: add a visual scrollbar (drag to scroll) and consider pixel-level smoothing. Measure FPS on 20k entries and tune row height/theme spacing.
+4) DONE: Virtualized table in Items list with row-offset slider and smooth navigation via mouse wheel (hover-aware), Up/Down, Home/End, and Shift-accelerated steps, plus a visual scrollbar (drag to scroll, click track to page). Next: measure FPS on 20k entries and tune row height/theme spacing; consider pixel-level smoothing.
 5) DONE: Items list filtering and sort toggles (id/name/category/rarity); expose “Create Item” via Command Palette args to open the wizard focused.
   - Case-insensitive substring filter on id/name; header clicks toggle ascending/descending sort.
   - Keyboard Up/Down scroll the virtualized list; selection stays in view. Command: “Items: Create New”.

@@ -70,3 +70,48 @@ int main(void)
     return 0;
 #endif
 }
+
+/* Optional micro-benchmark (guarded by macro) to sanity-check row style and virtualization
+   performance in headless mode. Enabled when ROGUE_OVERLAY_TABLE_BENCH is defined. */
+#if defined(ROGUE_ENABLE_DEBUG_OVERLAY) && defined(ROGUE_OVERLAY_TABLE_BENCH)
+int bench_overlay_table(void)
+{
+    overlay_set_enabled(1);
+    const int cols = 3;
+    const char* headers[] = {"A", "B", "C"};
+    int sort_col = 0, sort_dir = 1, selected = -1;
+    const int total_rows = 20000;
+    /* Simulate N frames and accumulate dt via overlay_last_dt(); overlay core may supply ~16ms */
+    double acc_ms = 0.0;
+    const int frames = 60;
+    for (int f = 0; f < frames; ++f)
+    {
+        overlay_input_begin_frame();
+        if (overlay_begin_panel("Bench", 10, 10, 640))
+        {
+            (void) overlay_table_begin("bench", headers, cols, &sort_col, &sort_dir, NULL);
+            overlay_table_set_row_style(18, 2);
+            int vis = 30;
+            for (int i = 0; i < vis; ++i)
+            {
+                char a[16], b[16], c[16];
+                snprintf(a, sizeof a, "a%d", i);
+                snprintf(b, sizeof b, "b%d", i);
+                snprintf(c, sizeof c, "c%d", i);
+                const char* row[] = {a, b, c};
+                (void) overlay_table_row(row, cols, i, &selected);
+            }
+            (void) overlay_table_scrollbar(total_rows, vis, &selected);
+            overlay_table_end();
+            overlay_end_panel();
+        }
+        /* Simulate a frame duration; in headless this may remain zero, so skip accumulation */
+        float dt = overlay_last_dt();
+        if (dt > 0.0f)
+            acc_ms += (double) dt * 1000.0;
+    }
+    /* We don't assert timing; this is a smoke benchmark path */
+    (void) acc_ms;
+    return 0;
+}
+#endif

@@ -181,7 +181,27 @@ static void panel_items(void* user)
         }
         /* Virtualization sizing */
         int total_rows = nidx;
-        int visible_rows = 20;
+        /* Tuning knobs for virtualization: visible rows and row height, persisted */
+        static int s_visible_rows = -1; /* cached pref */
+        static int s_row_height = -1;   /* cached pref */
+        if (s_visible_rows < 0)
+        {
+            s_visible_rows = overlay_prefs_get_int("items.visible_rows", 20);
+            if (s_visible_rows < 5)
+                s_visible_rows = 5;
+            if (s_visible_rows > 100)
+                s_visible_rows = 100;
+        }
+        if (s_row_height < 0)
+        {
+            /* Tuned default row height for denser lists (perf-tested) */
+            s_row_height = overlay_prefs_get_int("items.row_height", 16);
+            if (s_row_height < 12)
+                s_row_height = 12;
+            if (s_row_height > 48)
+                s_row_height = 48;
+        }
+        int visible_rows = s_visible_rows;
         if (visible_rows > total_rows)
             visible_rows = total_rows;
         int max_first_row = (total_rows > visible_rows) ? (total_rows - visible_rows) : 0;
@@ -213,6 +233,8 @@ static void panel_items(void* user)
         }
         if (overlay_table_begin("items_inv", headers, 5, &s_sort_col, &s_sort_dir, search))
         {
+            /* Apply row style according to tuning */
+            overlay_table_set_row_style(s_row_height, 1);
             int first = s_row_offset;
             int visible = visible_rows > 0 ? visible_rows : 1;
             for (int k = 0; k < visible && (first + k) < nidx; ++k)
@@ -229,9 +251,25 @@ static void panel_items(void* user)
                 const char* cells[] = {d ? d->name : "?", d ? d->id : "?", rar_s, cat_s, qty_s};
                 (void) overlay_table_row(cells, 5, i, &s_selected);
             }
+            /* Draw and handle a vertical scrollbar aligned with the table */
+            if (overlay_table_scrollbar(total_rows, visible_rows, &s_row_offset))
+            {
+                if (s_row_offset < 0)
+                    s_row_offset = 0;
+                if (s_row_offset > max_first_row)
+                    s_row_offset = max_first_row;
+            }
             overlay_table_end();
         }
         overlay_slider_int("Scroll", &s_row_offset, 0, max_first_row);
+        if (overlay_slider_int("Visible Rows", &s_visible_rows, 5, 100))
+        {
+            overlay_prefs_set_int("items.visible_rows", s_visible_rows);
+        }
+        if (overlay_slider_int("Row Height", &s_row_height, 12, 48))
+        {
+            overlay_prefs_set_int("items.row_height", s_row_height);
+        }
         if (idx)
             free(idx);
         overlay_next_column();

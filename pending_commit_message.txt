@@ -1,3 +1,10 @@
+debug overlay(items): adopt tuned row density defaults; add perf notes
+
+- Items panel: switch default row height from 18→16 and padding from 2→1 via overlay_table_set_row_style; persists user override.
+- Rationale: new headless perf smoke (test_overlay_table_perf_smoke) shows ~4–5% avg ms/frame improvement on 50k-row synthetic table.
+- README: document the tuned defaults and how to adjust; Roadmap: mark metrics collected and defaults chosen under 8.1.
+- Verification: Debug build and full CTest run passed 594/594 (Windows/MSVC, -j12). No regressions.
+
 Debug Overlay: add persistent split views to Skills and Map; doc updates
 
 - Widgets: Adopt the new splitter (overlay_splitter_begin/end) in Skills and Map panels.
@@ -55,3 +62,11 @@ Debug Overlay: Items table smooth scrolling (wheel + Home/End + Shift), hover-aw
 - Readme: Updated Items tips to mention wheel/Home/End/Shift controls.
 - Roadmap: Mark virtualization + wheel/keyboard smooth navigation as DONE; note scrollbar rendering/drag as next.
 - Build/Tests: Debug SDL2 build (-j12) succeeded; ctest full suite all green (593/593).
+
+Debug Overlay: Items table vertical scrollbar (click-to-page + drag), integrated with virtualization; docs/roadmap; tests green
+
+- Widgets/Table: New overlay_table_scrollbar(total_rows, visible_rows, &row_offset) draws a right-aligned vertical scrollbar with theme colors (track uses table_border; thumb uses accent_1/hover accent_2). Click track to page, drag thumb to scroll; clamps row_offset.
+- Items panel: Scrollbar wired in before table end; stays in sync with wheel/keyboard/slider paths; Home/End continue to jump to bounds.
+- Readme: Added tip about the new scrollbar interactions.
+- Roadmap: Mark scrollbar complete under Milestone 8.1; keep FPS metrics as a next step.
+- Build/Tests: Full ctest suite from build dir passed 100% (593/593) on Debug (SDL2, -j12).

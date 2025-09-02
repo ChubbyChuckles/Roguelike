@@ -24,6 +24,7 @@ int overlay_table_begin(const char* id, const char* const* headers, int col_coun
     g_ui.table_active = 1;
     g_ui.table_cols = col_count;
     g_ui.table_row_h = 18;
+    g_ui.table_row_pad = 2;
     g_ui.table_hovered = 0;
     for (int c = 0; c < col_count; ++c)
     {
@@ -63,7 +64,7 @@ int overlay_table_row(const char* const* cells, int col_count, int row_index, in
     for (int i = 0; i < col_count; ++i)
         widths[i] = (g_ui.width / col_count) - 2;
     int row_x = g_ui.cur_x - 8;
-    int row_y = g_ui.cur_y + 2;
+    int row_y = g_ui.cur_y + (g_ui.table_row_pad > 0 ? g_ui.table_row_pad : 0);
     int row_w = g_ui.width;
     int row_h = g_ui.table_row_h;
     if (overlay_columns_begin(col_count, widths))
@@ -115,6 +116,17 @@ void overlay_table_end(void)
     g_ui.table_cols = 0;
 }
 
+/* Adjust row height and padding for current table */
+void overlay_table_set_row_style(int row_height_px, int row_padding_px)
+{
+    if (!g_ui.panel_active || !g_ui.table_active)
+        return;
+    if (row_height_px > 8 && row_height_px < 128)
+        g_ui.table_row_h = row_height_px;
+    if (row_padding_px >= 0 && row_padding_px < 32)
+        g_ui.table_row_pad = row_padding_px;
+}
+
 /* Helper to query table hover and wheel delta for scrolling lists */
 int overlay_table_hover_wheel(int* out_wheel_y)
 {
@@ -124,6 +136,121 @@ int overlay_table_hover_wheel(int* out_wheel_y)
     if (out_wheel_y)
         *out_wheel_y = in ? in->mouse_wheel_y : 0;
     return g_ui.table_hovered;
+}
+
+/* Vertical scrollbar for current table (drawn to the right of the table area). */
+int overlay_table_scrollbar(int total_rows, int visible_rows, int* row_offset)
+{
+    if (!g_ui.panel_active || !g_ui.table_active || !row_offset)
+        return 0;
+    if (visible_rows <= 0)
+        visible_rows = 1;
+    if (total_rows < 0)
+        total_rows = 0;
+    int changed = 0;
+    int max_first = (total_rows > visible_rows) ? (total_rows - visible_rows) : 0;
+    if (*row_offset < 0)
+    {
+        *row_offset = 0;
+        changed = 1;
+    }
+    if (*row_offset > max_first)
+    {
+        *row_offset = max_first;
+        changed = 1;
+    }
+
+#ifdef ROGUE_HAVE_SDL
+    if (g_app.renderer)
+    {
+        const OverlayTheme* th = overlay_theme_get();
+        /* Place scrollbar on the far right of the current row; 8px wide */
+        int sb_w = 8;
+        int sb_x = g_ui.cur_x + g_ui.width - sb_w - 2;
+        /* Compute table area height covered by rows drawn so far. For simplicity, use
+           visible_rows * row_h as the track height. */
+        int track_h = visible_rows * (g_ui.table_row_h + g_ui.table_row_pad);
+        int track_x = sb_x;
+        int track_y = g_ui.cur_y - (visible_rows * (g_ui.table_row_h + g_ui.table_row_pad)) +
+                      (g_ui.table_row_pad > 0 ? g_ui.table_row_pad : 0);
+        if (track_y < 0)
+            track_y = 0;
+        SDL_Rect track = {track_x, track_y, sb_w, track_h};
+        /* Use table_border as track color */
+        SDL_SetRenderDrawColor(g_app.renderer, th->table_border.r, th->table_border.g,
+                               th->table_border.b, th->table_border.a);
+        SDL_RenderFillRect(g_app.renderer, &track);
+
+        /* Thumb size proportional to visible/total; min height 12px */
+        int thumb_h = (total_rows > 0) ? (track_h * visible_rows / (total_rows)) : track_h;
+        if (thumb_h < 12)
+            thumb_h = 12;
+        if (thumb_h > track_h)
+            thumb_h = track_h;
+        int range = (track_h - thumb_h);
+        int thumb_y = track_y;
+        if (max_first > 0 && range > 0)
+            thumb_y = track_y + (range * (*row_offset)) / max_first;
+        SDL_Rect thumb = {track_x, thumb_y, sb_w, thumb_h};
+        int hover = overlay_mouse_over(track_x, track_y, sb_w, track_h);
+        /* Use accent colors for thumb */
+        OverlayColor tcol = hover ? th->accent_2 : th->accent_1;
+        SDL_SetRenderDrawColor(g_app.renderer, tcol.r, tcol.g, tcol.b, tcol.a);
+        SDL_RenderFillRect(g_app.renderer, &thumb);
+
+        /* Interaction: click on track to page, drag thumb to scroll. */
+        const OverlayInputState* in = overlay_input_get();
+        static int s_dragging = 0;
+        static int s_drag_offset = 0; /* pixel offset inside thumb at drag start */
+        if (in->mouse_clicked && hover)
+        {
+            if (in->mouse_y < thumb_y)
+            {
+                /* Page up */
+                *row_offset -= visible_rows;
+                if (*row_offset < 0)
+                    *row_offset = 0;
+                changed = 1;
+            }
+            else if (in->mouse_y > (thumb_y + thumb_h))
+            {
+                /* Page down */
+                *row_offset += visible_rows;
+                if (*row_offset > max_first)
+                    *row_offset = max_first;
+                changed = 1;
+            }
+            else
+            {
+                /* Begin drag */
+                s_dragging = 1;
+                s_drag_offset = in->mouse_y - thumb_y;
+                overlay_input_set_capture(1, 1);
+            }
+        }
+        if (s_dragging && in->mouse_down)
+        {
+            int new_thumb_y = in->mouse_y - s_drag_offset;
+            if (new_thumb_y < track_y)
+                new_thumb_y = track_y;
+            if (new_thumb_y > track_y + range)
+                new_thumb_y = track_y + range;
+            int new_offset = 0;
+            if (range > 0 && max_first > 0)
+                new_offset = (int) (((long long) (new_thumb_y - track_y) * max_first) / range);
+            if (new_offset != *row_offset)
+            {
+                *row_offset = new_offset;
+                changed = 1;
+            }
+        }
+        if (s_dragging && !in->mouse_down)
+        {
+            s_dragging = 0;
+        }
+    }
+#endif
+    return changed;
 }
 
 #endif /* ROGUE_ENABLE_DEBUG_OVERLAY */

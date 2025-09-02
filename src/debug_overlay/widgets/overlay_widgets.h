@@ -61,9 +61,17 @@ extern "C"
     int overlay_table_row(const char* const* cells, int col_count, int row_index,
                           int* selected_row);
     void overlay_table_end(void);
+    /* Optional tuning knobs: adjust row height and vertical padding (in pixels)
+        applied to the current table block. Call after table_begin and before drawing rows. */
+    void overlay_table_set_row_style(int row_height_px, int row_padding_px);
     /* Returns 1 if the current table (headers or rows) was hovered this frame, and outputs
         the mouse wheel delta Y for scrolling (positive = up). */
     int overlay_table_hover_wheel(int* out_wheel_y);
+    /* Draw a vertical scrollbar aligned to the current table. total_rows and visible_rows
+        determine the thumb size; row_offset is updated via click/drag/page interactions.
+        Call this after drawing table rows and before overlay_table_end. Returns 1 if offset
+       changed. */
+    int overlay_table_scrollbar(int total_rows, int visible_rows, int* row_offset);
 
     /* Style adjust */
     void overlay_style_set(OverlayStyle s);
@@ -166,6 +174,11 @@ static inline int overlay_table_row(const char* const* cells, int col_count, int
     return 0;
 }
 static inline void overlay_table_end(void) {}
+static inline void overlay_table_set_row_style(int row_height_px, int row_padding_px)
+{
+    (void) row_height_px;
+    (void) row_padding_px;
+}
 static inline void overlay_style_set(OverlayStyle s) { (void) s; }
 static inline int overlay_columns_begin(int cols, const int* widths)
 {
