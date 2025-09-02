@@ -459,7 +459,11 @@ int overlay_combo(const char* label, int* current_index, const char* const* item
     const char* cur = items[*current_index >= 0 && *current_index < count ? *current_index : 0];
     char line[256];
     snprintf(line, sizeof line, "%s: %s", label ? label : "", cur ? cur : "<none>");
-    rogue_font_draw_text(x + 6, y + 2, line, 1, (RogueColor){255, 255, 255, 255});
+    {
+        const OverlayTheme* th = overlay_theme_get();
+        rogue_font_draw_text(x + 6, y + 2, line, 1,
+                             (RogueColor){th->text.r, th->text.g, th->text.b, th->text.a});
+    }
     if (g_ui.columns > 1)
     {
         overlay_next_column();
@@ -486,16 +490,24 @@ int overlay_tree_node(const char* label, int* open)
     if (g_app.renderer)
     {
         SDL_Rect r = {x, y + 2, w, h};
-        SDL_SetRenderDrawColor(g_app.renderer, 18, 18, 18, 200);
+        const OverlayTheme* th = overlay_theme_get();
+        SDL_SetRenderDrawColor(g_app.renderer, th->panel_bg.r, th->panel_bg.g, th->panel_bg.b,
+                               th->panel_bg.a);
         SDL_RenderFillRect(g_app.renderer, &r);
-        SDL_SetRenderDrawColor(g_app.renderer, 220, 220, 220, 220);
+        SDL_SetRenderDrawColor(g_app.renderer, th->panel_border.r, th->panel_border.g,
+                               th->panel_border.b, th->panel_border.a);
         SDL_RenderDrawRect(g_app.renderer, &r);
     }
 #endif
     const char* arrow = (*open ? "▾" : "▸");
     char line[256];
     snprintf(line, sizeof line, "%s %s", arrow, label ? label : "");
-    rogue_font_draw_text(x + 6, y + 2, line, 1, (RogueColor){220, 255, 220, 255});
+    {
+        const OverlayTheme* th = overlay_theme_get();
+        rogue_font_draw_text(x + 6, y + 2, line, 1,
+                             (RogueColor){th->text_accent.r, th->text_accent.g, th->text_accent.b,
+                                          th->text_accent.a});
+    }
     const OverlayInputState* in = overlay_input_get();
     if (overlay_mouse_over(x, y + 2, w, h) && in->mouse_clicked)
     {
@@ -540,7 +552,9 @@ int overlay_color_edit_rgba(const char* label, unsigned char rgba[4])
             SDL_Rect sw = {g_ui.cur_x, g_ui.cur_y + 2, widths[0] - 6, 16};
             SDL_SetRenderDrawColor(g_app.renderer, rgba[0], rgba[1], rgba[2], rgba[3]);
             SDL_RenderFillRect(g_app.renderer, &sw);
-            SDL_SetRenderDrawColor(g_app.renderer, 220, 220, 220, 220);
+            const OverlayTheme* th = overlay_theme_get();
+            SDL_SetRenderDrawColor(g_app.renderer, th->panel_border.r, th->panel_border.g,
+                                   th->panel_border.b, th->panel_border.a);
             SDL_RenderDrawRect(g_app.renderer, &sw);
         }
 #endif

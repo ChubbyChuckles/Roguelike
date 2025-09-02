@@ -1,5 +1,6 @@
 #include "../../core/app/app_state.h"
 #include "../overlay_core.h"
+#include "../overlay_theme.h"
 #include "../widgets/overlay_widgets.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
@@ -34,6 +35,26 @@ static void panel_system(void* user)
     {
         g_app.show_metrics_overlay = flags;
         overlay_set_enabled(flags);
+    }
+
+    /* Theme controls */
+    overlay_label("Theme");
+    const char* theme_items[] = {"Dark", "Light", "High Contrast"};
+    int preset = (int) overlay_theme_get_preset();
+    if (overlay_combo("Preset", &preset, theme_items, 3))
+    {
+        overlay_theme_set_preset((enum OverlayThemePreset) preset);
+    }
+    float dpi = overlay_theme_get_dpi();
+    if (overlay_slider_float("DPI Scale", &dpi, 0.5f, 3.0f))
+    {
+        overlay_theme_set_dpi(dpi);
+    }
+    const OverlayTheme* th = overlay_theme_get();
+    int fsz = th->font_size;
+    if (overlay_slider_int("Font Size", &fsz, 10, 28))
+    {
+        overlay_theme_set_font_size(fsz);
     }
     overlay_end_panel();
 }

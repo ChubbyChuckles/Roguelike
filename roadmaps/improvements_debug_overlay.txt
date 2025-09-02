@@ -17,6 +17,7 @@ Milestone 0 — Foundations refresh (pre-work)
   - Centralize colors, spacing, radii, typography scale, and icon palette.
   - Provide 3 presets: Dark (default), Light, High-Contrast; runtime switch + persisted choice.
   - DPI scaling factor and font size ladder. Acceptance: All widgets render with theme constants; no hard-coded colors left in panels.
+  - Status: Runtime setters for preset/DPI/font size implemented and exposed in System panel (persisted in overlay_theme.json). Core widgets migrated: Combo label text, Tree node (bg/border/text accent), and Color swatch border; Items/System panels use theme colors. Remaining panels to migrate in follow-ups.
 0.2 Layout primitives
   - Resizable columns/splitter, collapsible sections, and tab bar. Persist per-panel layout.
   - Status: Splitter implemented in widgets and wired to overlay_prefs persistence. Items panel refactored earlier; Skills and Map panels now adopt persistent split layouts (left navigation/controls, right content/preview placeholder). Sizes persist across restarts.
@@ -170,8 +171,13 @@ Near-term next steps (actionable)
 1) Implement overlay_theme and migrate System + Items panels to use it.
 2) Splitters done: Items/Skills/Map now split with persisted sizes; toasts are already available and used in Items stub.
 3) DONE: Items “Create New” wizard powered by schema; Duplicate-as-template integrated.
-4) DONE: Virtualized table in Items list with row-offset slider and smooth navigation via mouse wheel (hover-aware), Up/Down, Home/End, and Shift-accelerated steps, plus a visual scrollbar (drag to scroll, click track to page). Next: measure FPS on 20k entries and tune row height/theme spacing; consider pixel-level smoothing.
+4) DONE: Virtualized table in Items list with row-offset slider and smooth navigation via mouse wheel (hover-aware), Up/Down, Home/End, and Shift-accelerated steps, plus a visual scrollbar (drag to scroll, click track to page). Next: remaining theming migration across panels; consider pixel-level smoothing.
 5) DONE: Items list filtering and sort toggles (id/name/category/rarity); expose “Create Item” via Command Palette args to open the wizard focused.
   - Case-insensitive substring filter on id/name; header clicks toggle ascending/descending sort.
   - Keyboard Up/Down scroll the virtualized list; selection stays in view. Command: “Items: Create New”.
 6) Begin overlay_theme extraction and migrate System + Items to theme constants (colors/spacing/typography). Document quick preset switch and persistence.
+  - Progress: System panel adds Theme Preset, DPI, and Font Size controls using overlay_theme setters; selections persist. Core widget colors migrated; more panels queued.
+
+Verification
+- Build: Debug (SDL2), parallel -j12.
+- Tests: Full CTest run passed 100% (594/594) on Windows/MSVC after theme control additions; no regressions observed.

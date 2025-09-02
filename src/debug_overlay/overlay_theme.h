@@ -71,6 +71,8 @@ extern "C"
     /* DPI helpers (clamp to sane ranges). */
     void overlay_theme_set_dpi(float scale);
     float overlay_theme_get_dpi(void);
+    /* Font size setter (persists). */
+    void overlay_theme_set_font_size(int size);
 
 #ifdef __cplusplus
 }

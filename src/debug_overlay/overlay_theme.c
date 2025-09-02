@@ -174,4 +174,14 @@ void overlay_theme_set_dpi(float scale)
 
 float overlay_theme_get_dpi(void) { return g_theme.dpi_scale; }
 
+void overlay_theme_set_font_size(int size)
+{
+    if (size < 10)
+        size = 10;
+    if (size > 28)
+        size = 28;
+    g_theme.font_size = size;
+    overlay_theme_save();
+}
+
 #endif /* ROGUE_ENABLE_DEBUG_OVERLAY */

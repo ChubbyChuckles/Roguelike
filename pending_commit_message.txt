@@ -1,3 +1,12 @@
+Debug Overlay: Theme controls (preset/DPI/font size) + widget theming migration; docs/roadmap; tests green
+
+- Theme API: add `overlay_theme_set_font_size(int)` with clamping and persistence; existing preset/DPI setters wired to the System panel.
+- System panel: new Theme controls for Preset (Dark/Light/High Contrast), DPI scale, and Font Size; selections persist to overlay_theme.json.
+- Widget theming: migrate common controls to overlay_theme colors (combo label text, tree node bg/border/text accent, color swatch border). Items/System panels now consistently themed.
+- README: add a Theme & Accessibility tip under Debug Overlay (how to switch presets, DPI, font size; persistence path).
+- Roadmap: mark progress under Milestone 0.1 (overlay_theme) and note remaining panel migrations.
+- Verification: Debug SDL2 build and full CTest run passed 100% (594/594) with -j12 on Windows/MSVC.
+
 debug overlay(items): adopt tuned row density defaults; add perf notes
 
 - Items panel: switch default row height from 18→16 and padding from 2→1 via overlay_table_set_row_style; persists user override.
