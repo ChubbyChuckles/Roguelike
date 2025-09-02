@@ -93,6 +93,23 @@ static void panel_entities(void* user)
                                                    g_app.player.base.pos.y);
             overlay_columns_end();
         }
+
+        /* Duplicate-as-template: clone selected enemy with small offset */
+        if (overlay_columns_begin(3, NULL))
+        {
+            static float dup_dx = 1.5f, dup_dy = 0.0f;
+            overlay_slider_float("Dup dx", &dup_dx, -5.0f, 5.0f);
+            overlay_next_column();
+            overlay_slider_float("Dup dy", &dup_dy, -5.0f, 5.0f);
+            overlay_next_column();
+            if (overlay_button("Duplicate Enemy"))
+            {
+                int ni = rogue_entity_debug_duplicate(info.slot_index, dup_dx, dup_dy);
+                if (ni >= 0)
+                    selected_slot = ni;
+            }
+            overlay_columns_end();
+        }
     }
     else
         overlay_label("Selection not alive");
@@ -108,6 +125,29 @@ static void panel_entities(void* user)
     }
 
     overlay_label("Hint: Shift+LeftClick a unit to inspect");
+
+    /* M2.4 Batch Creator (lightweight): Pattern-based multi-spawn preview + apply */
+    overlay_label("Batch Creator (spawn copies)");
+    static int batch_count = 3;
+    static float ring_radius = 2.0f;
+    overlay_slider_int("Count", &batch_count, 1, 16);
+    overlay_slider_float("Ring Radius", &ring_radius, 0.0f, 10.0f);
+    if (overlay_button("Spawn Ring Around Player"))
+    {
+        /* Evenly distribute spawns on a circle; use player pos + polar offsets */
+        for (int i = 0; i < batch_count; ++i)
+        {
+            /* simple integer-friendly approx to avoid needing math.h cos/sin: use 4-point cross
+             * then intermediates */
+            /* For better distribution, use a small lookup of 8 directions and repeat. */
+            static const float dx8[8] = {1, 0.7071f, 0, -0.7071f, -1, -0.7071f, 0, 0.7071f};
+            static const float dy8[8] = {0, 0.7071f, 1, 0.7071f, 0, -0.7071f, -1, -0.7071f};
+            int di = i % 8;
+            float dx = dx8[di] * ring_radius;
+            float dy = dy8[di] * ring_radius;
+            (void) rogue_entity_debug_spawn_at_player(dx, dy);
+        }
+    }
 
     overlay_end_panel();
 }

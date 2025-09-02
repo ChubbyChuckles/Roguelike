@@ -77,3 +77,48 @@ int rogue_entity_debug_spawn_at_player(float dx, float dy)
     int idx = (int) (ne - g_app.enemies);
     return idx;
 }
+
+int rogue_entity_debug_duplicate(int src_slot_index, float dx, float dy)
+{
+    if (src_slot_index < 0 || src_slot_index >= ROGUE_MAX_ENEMIES)
+        return -1;
+    RogueEnemy* src = &g_app.enemies[src_slot_index];
+    if (!src->alive)
+        return -1;
+    /* Find a free slot */
+    int dst_idx = -1;
+    for (int i = 0; i < ROGUE_MAX_ENEMIES; ++i)
+    {
+        if (!g_app.enemies[i].alive)
+        {
+            dst_idx = i;
+            break;
+        }
+    }
+    if (dst_idx < 0)
+        return -1;
+    RogueEnemy* dst = &g_app.enemies[dst_idx];
+    /* Copy key fields */
+    *dst = *src; /* start from a shallow copy */
+    /* Adjust position and reset some runtime/transient fields for determinism */
+    float nx = src->base.pos.x + dx;
+    float ny = src->base.pos.y + dy;
+    dst->base.pos.x = nx;
+    dst->base.pos.y = ny;
+    dst->anchor_x = nx;
+    dst->anchor_y = ny;
+    dst->patrol_target_x = nx;
+    dst->patrol_target_y = ny;
+    dst->hurt_timer = 0;
+    dst->anim_time = 0;
+    dst->anim_frame = 0;
+    dst->death_fade = 1.0f;
+    dst->tint_phase = 0;
+    dst->flash_timer = 0;
+    /* Keep current health/max, type_index, facing, AI state as copied */
+    dst->alive = 1;
+    g_app.enemy_count++;
+    if (dst->type_index >= 0 && dst->type_index < ROGUE_MAX_ENEMY_TYPES)
+        g_app.per_type_counts[dst->type_index]++;
+    return dst_idx;
+}

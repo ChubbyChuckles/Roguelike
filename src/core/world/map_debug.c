@@ -6,6 +6,162 @@
 
 extern struct RogueAppState g_app; /* defined in app_state.c */
 
+/* ---- Local undo/redo stack (ring buffer of small ops) ---- */
+typedef struct MapEditOp
+{
+    int x0, y0, x1, y1;    /* affected inclusive rectangle in tile coords */
+    unsigned char* before; /* snapshot of tiles before edit (row-major) */
+    unsigned char* after;  /* snapshot of tiles after edit (row-major) */
+    int w, h;              /* width/height of the rect */
+} MapEditOp;
+
+#define MAP_UNDO_MAX 64
+static MapEditOp g_undo_ring[MAP_UNDO_MAX];
+static int g_undo_head = 0; /* next write index */
+static int g_undo_count = 0;
+static int g_redo_count = 0; /* available redo ops from the head going backwards */
+
+static void map_edit_op_free(MapEditOp* op)
+{
+    if (!op)
+        return;
+    if (op->before)
+        free(op->before);
+    if (op->after)
+        free(op->after);
+    op->before = op->after = NULL;
+}
+
+void rogue_map_debug_undo_clear(void)
+{
+    for (int i = 0; i < MAP_UNDO_MAX; ++i)
+        map_edit_op_free(&g_undo_ring[i]);
+    g_undo_head = 0;
+    g_undo_count = 0;
+    g_redo_count = 0;
+}
+
+static void map_debug_push_op(int x0, int y0, int x1, int y1, unsigned char tile)
+{
+    if (!g_app.world_map.tiles)
+        return;
+    if (x0 > x1)
+    {
+        int t = x0;
+        x0 = x1;
+        x1 = t;
+    }
+    if (y0 > y1)
+    {
+        int t = y0;
+        y0 = y1;
+        y1 = t;
+    }
+    if (x0 < 0)
+        x0 = 0;
+    if (y0 < 0)
+        y0 = 0;
+    if (x1 >= g_app.world_map.width)
+        x1 = g_app.world_map.width - 1;
+    if (y1 >= g_app.world_map.height)
+        y1 = g_app.world_map.height - 1;
+    int w = (x1 - x0 + 1);
+    int h = (y1 - y0 + 1);
+    size_t sz = (size_t) w * (size_t) h;
+    if (w <= 0 || h <= 0 || sz == 0)
+        return;
+    /* Allocate op */
+    MapEditOp* op = &g_undo_ring[g_undo_head];
+    map_edit_op_free(op); /* free prior storage at this slot */
+    op->x0 = x0;
+    op->y0 = y0;
+    op->x1 = x1;
+    op->y1 = y1;
+    op->w = w;
+    op->h = h;
+    op->before = (unsigned char*) malloc(sz);
+    op->after = (unsigned char*) malloc(sz);
+    if (!op->before || !op->after)
+    {
+        map_edit_op_free(op);
+        return;
+    }
+    /* Snapshot BEFORE */
+    for (int ry = 0; ry < h; ++ry)
+    {
+        unsigned char* dst = &op->before[ry * w];
+        unsigned char* src = &g_app.world_map.tiles[(y0 + ry) * g_app.world_map.width + x0];
+        memcpy(dst, src, (size_t) w);
+    }
+    /* Apply edit into map (filled rect with tile) */
+    for (int yy = y0; yy <= y1; ++yy)
+    {
+        unsigned char* row = &g_app.world_map.tiles[yy * g_app.world_map.width];
+        for (int xx = x0; xx <= x1; ++xx)
+            row[xx] = tile;
+    }
+    /* Snapshot AFTER */
+    for (int ry = 0; ry < h; ++ry)
+    {
+        unsigned char* dst = &op->after[ry * w];
+        unsigned char* src = &g_app.world_map.tiles[(y0 + ry) * g_app.world_map.width + x0];
+        memcpy(dst, src, (size_t) w);
+    }
+    g_app.tile_sprite_lut_ready = 0;
+    /* Advance head; trim if overflow; clear redo */
+    g_undo_head = (g_undo_head + 1) % MAP_UNDO_MAX;
+    if (g_undo_count < MAP_UNDO_MAX)
+        g_undo_count++;
+    g_redo_count = 0; /* new branch; redo history invalid */
+}
+
+int rogue_map_debug_undo(void)
+{
+    if (g_undo_count <= 0)
+        return -1;
+    /* Move head back to last committed op */
+    int idx = (g_undo_head - 1 + MAP_UNDO_MAX) % MAP_UNDO_MAX;
+    MapEditOp* op = &g_undo_ring[idx];
+    if (!op->before)
+        return -1;
+    /* Restore BEFORE snapshot into map */
+    for (int ry = 0; ry < op->h; ++ry)
+    {
+        unsigned char* src = &op->before[ry * op->w];
+        unsigned char* dst = &g_app.world_map.tiles[(op->y0 + ry) * g_app.world_map.width + op->x0];
+        memcpy(dst, src, (size_t) op->w);
+    }
+    g_app.tile_sprite_lut_ready = 0;
+    /* Update indices: head now at idx; one redo available */
+    g_undo_head = idx;
+    g_undo_count--;
+    g_redo_count++;
+    return 0;
+}
+
+int rogue_map_debug_redo(void)
+{
+    if (g_redo_count <= 0)
+        return -1;
+    /* Current head points to redo target */
+    MapEditOp* op = &g_undo_ring[g_undo_head];
+    if (!op->after)
+        return -1;
+    for (int ry = 0; ry < op->h; ++ry)
+    {
+        unsigned char* src = &op->after[ry * op->w];
+        unsigned char* dst = &g_app.world_map.tiles[(op->y0 + ry) * g_app.world_map.width + op->x0];
+        memcpy(dst, src, (size_t) op->w);
+    }
+    g_app.tile_sprite_lut_ready = 0;
+    g_undo_head = (g_undo_head + 1) % MAP_UNDO_MAX;
+    g_undo_count++;
+    g_redo_count--;
+    if (g_undo_count > MAP_UNDO_MAX)
+        g_undo_count = MAP_UNDO_MAX;
+    return 0;
+}
+
 static int clampi(int v, int lo, int hi)
 {
     if (v < lo)
@@ -36,13 +192,7 @@ int rogue_map_debug_brush_square(int cx, int cy, int radius, unsigned char tile)
     int y0 = clampi(cy - radius, 0, g_app.world_map.height - 1);
     int x1 = clampi(cx + radius, 0, g_app.world_map.width - 1);
     int y1 = clampi(cy + radius, 0, g_app.world_map.height - 1);
-    for (int y = y0; y <= y1; ++y)
-    {
-        unsigned char* row = &g_app.world_map.tiles[y * g_app.world_map.width];
-        for (int x = x0; x <= x1; ++x)
-            row[x] = tile;
-    }
-    g_app.tile_sprite_lut_ready = 0;
+    map_debug_push_op(x0, y0, x1, y1, tile);
     return 0;
 }
 
@@ -50,29 +200,7 @@ int rogue_map_debug_brush_rect(int x0, int y0, int x1, int y1, unsigned char til
 {
     if (!g_app.world_map.tiles)
         return -2;
-    if (x0 > x1)
-    {
-        int t = x0;
-        x0 = x1;
-        x1 = t;
-    }
-    if (y0 > y1)
-    {
-        int t = y0;
-        y0 = y1;
-        y1 = t;
-    }
-    x0 = clampi(x0, 0, g_app.world_map.width - 1);
-    x1 = clampi(x1, 0, g_app.world_map.width - 1);
-    y0 = clampi(y0, 0, g_app.world_map.height - 1);
-    y1 = clampi(y1, 0, g_app.world_map.height - 1);
-    for (int y = y0; y <= y1; ++y)
-    {
-        unsigned char* row = &g_app.world_map.tiles[y * g_app.world_map.width];
-        for (int x = x0; x <= x1; ++x)
-            row[x] = tile;
-    }
-    g_app.tile_sprite_lut_ready = 0;
+    map_debug_push_op(x0, y0, x1, y1, tile);
     return 0;
 }
 

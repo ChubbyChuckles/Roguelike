@@ -114,13 +114,27 @@ static void panel_content_graph(void* user)
         return;
     /* Filter + selection + dependency list; group nodes by top-level prefix before '/' */
     static int sel = 0;
+    static int sel_global = -1; /* persist selected global index across frames */
     static char filter[64] = "";
     static int draw_edges = 1;    /* simple on-panel edge preview for selected node */
     static int preview_depth = 2; /* multi-hop preview depth (>=1) */
     static int group_only = 0; /* when on, filter list is constrained to selected group's prefix */
+    static int isolate_subgraph = 0; /* limit list to nodes reachable from selection */
     /* Navigation breadcrumbs for click-to-drill within the SDL preview */
     static const char* crumbs[32];
     static int crumb_len = 0;
+    /* Pan/zoom + pin (SDL preview) */
+    static float view_zoom = 1.0f;               /* 0.5x..2.0x */
+    static int view_off_x = 0, view_off_y = 0;   /* pixels */
+    static int drag_last_x = 0, drag_last_y = 0; /* for panning/dragging */
+    static int drag_mode = 0;                    /* 0 none, 1 pan (RMB), 2 drag-pin (Shift+LMB) */
+    static int drag_node = -1; /* which node index in current view is being dragged */
+    static float drag_grab_dx = 0.0f,
+                 drag_grab_dy = 0.0f; /* base-space grab offset while dragging */
+    static const char* pinned_ids[OVERLAY_CG_MAX_NODES];
+    static float pinned_bx[OVERLAY_CG_MAX_NODES]; /* base-space top-left x (pre-zoom, pre-offset) */
+    static float pinned_by[OVERLAY_CG_MAX_NODES]; /* base-space top-left y */
+    static int pinned_count = 0;
     overlay_input_text("Filter (substring)", filter, sizeof filter);
     /* Quick action: compute & cache all node hashes to surface issues early */
     if (overlay_button("Compute All Hashes"))
@@ -265,11 +279,52 @@ static void panel_content_graph(void* user)
             farg = colon + 1;
         }
     }
+    /* Optional reachability mask when isolate_subgraph is enabled */
+    int reachable_mask_valid = 0;
+    int reachable[1024];
+    if (isolate_subgraph && sel_global >= 0 && sel_global < n)
+    {
+        for (int i = 0; i < (int) (sizeof reachable / sizeof reachable[0]); ++i)
+            reachable[i] = 0;
+        /* build set of reachable nodes from selected root id */
+        const char *rid = NULL, *rpp = NULL;
+        if (rogue_asset_dep_get(sel_global, &rid, &rpp) == 0 && rid)
+        {
+            const char* nids_tmp[OVERLAY_CG_MAX_NODES];
+            int ndeps_tmp[OVERLAY_CG_MAX_NODES];
+            int edges_tmp[OVERLAY_CG_MAX_EDGES][2];
+            int ecount_tmp = 0;
+            int ncount_tmp = content_graph_collect_forward(rid, preview_depth, nids_tmp, ndeps_tmp,
+                                                           OVERLAY_CG_MAX_NODES, edges_tmp,
+                                                           OVERLAY_CG_MAX_EDGES, &ecount_tmp);
+            for (int i2 = 0; i2 < ncount_tmp; ++i2)
+            {
+                const char* nid2 = nids_tmp[i2];
+                if (!nid2)
+                    continue;
+                for (int gi = 0; gi < n && gi < (int) (sizeof reachable / sizeof reachable[0]);
+                     ++gi)
+                {
+                    const char *gid = NULL, *gpp = NULL;
+                    if (rogue_asset_dep_get(gi, &gid, &gpp) == 0 && gid && strcmp(gid, nid2) == 0)
+                    {
+                        reachable[gi] = 1;
+                        break;
+                    }
+                }
+            }
+            reachable_mask_valid = 1;
+        }
+    }
+
     for (int i = 0; i < n && idx_count < (int) (sizeof idxs / sizeof idxs[0]); ++i)
     {
         const char *nid = NULL, *pp = NULL;
         if (rogue_asset_dep_get(i, &nid, &pp) == 0)
         {
+            if (reachable_mask_valid && (i < (int) (sizeof reachable / sizeof reachable[0])) &&
+                !reachable[i])
+                continue;
             int passes_text = 1;
             if (f && *f)
             {
@@ -349,6 +404,17 @@ static void panel_content_graph(void* user)
         preview_depth = 1;
     overlay_slider_int("Preview depth", &preview_depth, 1, 3);
     overlay_slider_int("Node", &sel, 0, idx_count - 1);
+    overlay_checkbox("Isolate subgraph (limit list)", &isolate_subgraph);
+    if (overlay_button("Fit to Selection (F)"))
+    {
+        view_zoom = 1.0f;
+        view_off_x = 0;
+        view_off_y = 0;
+    }
+    if (overlay_button("Clear Pins"))
+    {
+        pinned_count = 0;
+    }
     /* Finders: Orphans (no inbound deps) and Hubs (high out-degree) */
     if (overlay_columns_begin(2, NULL))
     {
@@ -458,6 +524,7 @@ static void panel_content_graph(void* user)
         overlay_columns_end();
     }
     int node_index = idxs[sel];
+    sel_global = node_index;
     const char *id = NULL, *path = NULL;
     if (rogue_asset_dep_get(node_index, &id, &path) == 0)
     {
@@ -743,6 +810,8 @@ static void panel_content_graph(void* user)
             }
             int col_w = (max_d + 1) > 0 ? cw / (max_d + 1) : cw;
             SDL_Rect rects[OVERLAY_CG_MAX_NODES];
+            float base_pos_x[OVERLAY_CG_MAX_NODES];
+            float base_pos_y[OVERLAY_CG_MAX_NODES];
             int placed_at_depth[8] = {0};
             for (int i = 0; i < ncount; ++i)
             {
@@ -753,16 +822,77 @@ static void panel_content_graph(void* user)
                     d = max_d;
                 int per = depth_counts[d] > 0 ? depth_counts[d] : 1;
                 int idx = placed_at_depth[d]++;
-                int x = cx + d * col_w + 6;
-                int y = cy + 8 + (per == 1 ? (ch / 2 - 10) : (idx * (ch - 24) / (per - 1)));
+                float base_x = (float) (d * col_w + 6);
+                float base_y =
+                    (float) (8 + (per == 1 ? (ch / 2 - 10) : (idx * (ch - 24) / (per - 1))));
+                /* Apply pinned overrides (base-space) if present */
+                for (int pi = 0; pi < pinned_count; ++pi)
+                {
+                    if (pinned_ids[pi] && nids[i] && strcmp(pinned_ids[pi], nids[i]) == 0)
+                    {
+                        base_x = pinned_bx[pi];
+                        base_y = pinned_by[pi];
+                        break;
+                    }
+                }
+                base_pos_x[i] = base_x;
+                base_pos_y[i] = base_y;
+                int w0 = (col_w > 140 ? 120 : (col_w - 20 > 60 ? col_w - 20 : 60));
+                int h0 = 20;
+                int x = cx + (int) (view_off_x + base_x * view_zoom);
+                int y = cy + (int) (view_off_y + base_y * view_zoom);
                 rects[i].x = x;
                 rects[i].y = y;
-                rects[i].w = (col_w > 140 ? 120 : (col_w - 20 > 60 ? col_w - 20 : 60));
-                rects[i].h = 20;
+                rects[i].w = (int) (w0 * view_zoom);
+                rects[i].h = (int) (h0 * view_zoom);
+            }
+            /* Handle input and track mouse state for subsequent rendering */
+            const OverlayInputState* in = overlay_input_get();
+            int mx = 0, my = 0;
+            int inside = 0;
+            if (in)
+            {
+                mx = in->mouse_x;
+                my = in->mouse_y;
+                inside = (mx >= area.x && mx <= area.x + area.w && my >= area.y &&
+                          my <= area.y + area.h);
+                if (inside)
+                {
+                    if (in->mouse_right_clicked)
+                    {
+                        drag_mode = 1;
+                        drag_last_x = mx;
+                        drag_last_y = my;
+                    }
+                    if (drag_mode == 1 && in->mouse_right_down)
+                    {
+                        int dx = mx - drag_last_x, dy = my - drag_last_y;
+                        view_off_x += dx;
+                        view_off_y += dy;
+                        drag_last_x = mx;
+                        drag_last_y = my;
+                    }
+                    if (in->mouse_wheel_y != 0)
+                    {
+                        float old_zoom = view_zoom;
+                        float step = (in->mouse_wheel_y > 0) ? 1.1f : 0.9f;
+                        view_zoom *= step;
+                        if (view_zoom < 0.5f)
+                            view_zoom = 0.5f;
+                        if (view_zoom > 2.0f)
+                            view_zoom = 2.0f;
+                        float zx = (float) (mx - cx);
+                        float zy = (float) (my - cy);
+                        view_off_x = (int) (zx - (zx - view_off_x) * (view_zoom / old_zoom));
+                        view_off_y = (int) (zy - (zy - view_off_y) * (view_zoom / old_zoom));
+                    }
+                }
+                if (!in->mouse_right_down && drag_mode == 1)
+                    drag_mode = 0;
             }
             SDL_SetRenderDrawColor(g_app.renderer, th->accent_2.r, th->accent_2.g, th->accent_2.b,
                                    th->accent_2.a);
-            for (int i = 0; i < ecount; ++i)
+            for (int i = 0; i < ncount; ++i)
             {
                 int s = edges[i][0], t = edges[i][1];
                 if (s >= 0 && s < ncount && t >= 0 && t < ncount)
@@ -803,10 +933,67 @@ static void panel_content_graph(void* user)
                     }
                 }
             }
+            /* Shift+LMB begins pin-drag for a node under cursor */
+            if (in && inside && in->mouse_clicked && in->key_shift_down)
+            {
+                for (int i = 0; i < ncount; ++i)
+                {
+                    SDL_Rect rr = rects[i];
+                    if (mx >= rr.x && mx <= rr.x + rr.w && my >= rr.y && my <= rr.y + rr.h)
+                    {
+                        drag_mode = 2;
+                        drag_node = i;
+                        /* compute base-space mouse position and grab offset */
+                        float mbx = (float) (mx - cx - view_off_x) /
+                                    (view_zoom > 0.0001f ? view_zoom : 1.0f);
+                        float mby = (float) (my - cy - view_off_y) /
+                                    (view_zoom > 0.0001f ? view_zoom : 1.0f);
+                        drag_grab_dx = mbx - base_pos_x[i];
+                        drag_grab_dy = mby - base_pos_y[i];
+                        /* ensure there's a pin entry for this node */
+                        int found = -1;
+                        for (int pi = 0; pi < pinned_count; ++pi)
+                            if (pinned_ids[pi] && nids[i] && strcmp(pinned_ids[pi], nids[i]) == 0)
+                            {
+                                found = pi;
+                                break;
+                            }
+                        if (found < 0 && pinned_count < OVERLAY_CG_MAX_NODES)
+                        {
+                            pinned_ids[pinned_count] = nids[i];
+                            pinned_bx[pinned_count] = base_pos_x[i];
+                            pinned_by[pinned_count] = base_pos_y[i];
+                            pinned_count++;
+                        }
+                        break;
+                    }
+                }
+            }
+            /* While dragging a pin, update its base-space position */
+            if (in && drag_mode == 2 && in->mouse_down && drag_node >= 0 && drag_node < ncount)
+            {
+                float mbx =
+                    (float) (mx - cx - view_off_x) / (view_zoom > 0.0001f ? view_zoom : 1.0f);
+                float mby =
+                    (float) (my - cy - view_off_y) / (view_zoom > 0.0001f ? view_zoom : 1.0f);
+                float nbx = mbx - drag_grab_dx;
+                float nby = mby - drag_grab_dy;
+                /* update pin position for the dragged node */
+                for (int pi = 0; pi < pinned_count; ++pi)
+                {
+                    if (pinned_ids[pi] && nids[drag_node] &&
+                        strcmp(pinned_ids[pi], nids[drag_node]) == 0)
+                    {
+                        pinned_bx[pi] = nbx;
+                        pinned_by[pi] = nby;
+                        break;
+                    }
+                }
+            }
             for (int i = 0; i < ncount; ++i)
             {
                 SDL_Rect r = rects[i];
-                if (i == 0)
+                if (inside)
                 {
                     SDL_SetRenderDrawColor(g_app.renderer, th->button_bg_hot.r, th->button_bg_hot.g,
                                            th->button_bg_hot.b, th->button_bg_hot.a);
@@ -826,8 +1013,18 @@ static void panel_content_graph(void* user)
                 rogue_font_draw_text(r.x + 4, r.y + 4, label, 1,
                                      (RogueColor){lt.r, lt.g, lt.b, lt.a});
             }
-            const OverlayInputState* in = overlay_input_get();
-            if (in && in->mouse_clicked)
+            if (in)
+            {
+                if (!in->mouse_right_down && drag_mode == 1)
+                    drag_mode = 0;
+                if (!in->mouse_down && drag_mode == 2)
+                {
+                    drag_mode = 0;
+                    drag_node = -1;
+                }
+            }
+            /* separate click handling for selecting nodes (LMB without Shift) */
+            if (in && in->mouse_clicked && !in->key_shift_down)
             {
                 int mx = (int) in->mouse_x, my = (int) in->mouse_y;
                 if (mx >= area.x && mx <= area.x + area.w && my >= area.y && my <= area.y + area.h)
@@ -882,12 +1079,14 @@ static void panel_content_graph(void* user)
                                     if (found >= 0)
                                     {
                                         sel = found;
+                                        sel_global = glob;
                                     }
                                     else
                                     {
                                         snprintf(filter, sizeof filter, "id:%s", clicked);
                                         group_only = 0;
                                         sel = 0;
+                                        sel_global = idxs[0];
                                     }
                                 }
                             }
@@ -896,6 +1095,17 @@ static void panel_content_graph(void* user)
                     }
                 }
             }
+            /* Keyboard quick action: F => fit to selection */
+            if (in && in->key_f_pressed)
+            {
+                view_zoom = 1.0f;
+                view_off_x = 0;
+                view_off_y = 0;
+            }
+
+            rogue_font_draw_text(cx + 6, cy + ch - 28,
+                                 "RMB drag=pan, Wheel=zoom, Shift+LMB drag=pin/move, F=fit", 1,
+                                 (RogueColor){160, 200, 255, 255});
             rogue_font_draw_text(cx + 6, cy + ch - 14, "Graph is DAG (cycles rejected)", 1,
                                  (RogueColor){160, 200, 255, 255});
         }

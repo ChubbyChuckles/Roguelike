@@ -24,6 +24,13 @@ extern "C"
     /* Load a world map from JSON produced by save_json. Returns 0 on success. */
     int rogue_map_debug_load_json(const char* path);
 
+    /* --- Local session undo/redo for map edits ---
+        Maintains a small ring buffer of recent brush operations. Headless-safe.
+        Returns 0 on success, -1 if no op available. */
+    int rogue_map_debug_undo(void);
+    int rogue_map_debug_redo(void);
+    void rogue_map_debug_undo_clear(void);
+
 #ifdef __cplusplus
 }
 #endif

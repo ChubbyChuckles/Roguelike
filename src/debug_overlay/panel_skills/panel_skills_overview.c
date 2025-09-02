@@ -92,6 +92,28 @@ void panel_skills_draw_overview(int* sel)
     }
     tmpl_id = selected;
     overlay_checkbox("Copy coeffs on create", &copy_coeffs);
+    /* Duplicate-as-template: prefill from current selection into the Create wizard */
+    if (overlay_button("Duplicate From Selected") && *sel >= 0 && *sel < count)
+    {
+        const char* sname = rogue_skill_debug_name(*sel);
+        if (sname)
+            snprintf(new_name, sizeof new_name, "%s_Copy", sname);
+        int mr = 1, pass = 0;
+        if (rogue_skill_debug_get_meta(*sel, &mr, &pass) == 0)
+        {
+            new_max_rank = mr;
+            new_is_passive = pass;
+        }
+        float bcd = 0.f, red = 0.f, cst = 0.f;
+        if (rogue_skill_debug_get_timing(*sel, &bcd, &red, &cst) == 0)
+        {
+            new_base_cd = bcd;
+            new_cd_red = red;
+            new_cast_ms = cst;
+        }
+        /* Default to copying coeffs on create for duplicates */
+        copy_coeffs = 1;
+    }
     if (overlay_button("Apply Template") && tmpl_id >= 0 && tmpl_id < count)
     {
         const char* tname = rogue_skill_debug_name(tmpl_id);
@@ -269,6 +291,97 @@ void panel_skills_draw_overview(int* sel)
             rogue_skill_debug_set_coeff(*sel, &cp);
             panel_skills_save_overrides_and_refresh();
         }
+    }
+
+    /* M2.4: Batch creator for Skills (name pattern + preview) */
+    overlay_label("Batch Create Skills (pattern)");
+    static char s_name_fmt[64] = "Skill_%02d";
+    static int s_start = 1;
+    static int s_count = 3;
+    static int s_is_passive = 0;
+    static int s_max_rank = 5;
+    static float s_base_cd = 1000.f, s_cd_red = 0.f, s_cast_ms = 0.f;
+    overlay_input_text("Name Format (printf)", s_name_fmt, sizeof s_name_fmt);
+    overlay_slider_int("Start", &s_start, -999, 999);
+    overlay_slider_int("Count", &s_count, 1, 32);
+    overlay_checkbox("Passive", &s_is_passive);
+    overlay_slider_int("Max Rank", &s_max_rank, 1, 20);
+    overlay_slider_float("Base Cooldown (ms)", &s_base_cd, 0.f, 60000.f);
+    overlay_slider_float("CD Reduction/rank (ms)", &s_cd_red, -1000.f, 1000.f);
+    overlay_slider_float("Cast Time (ms)", &s_cast_ms, 0.f, 5000.f);
+    /* Build preview table with duplicate detection */
+    const char* s_hdrs[] = {"Name", "Status"};
+    int sc = 0, sd = 0;
+    if (overlay_table_begin("skills_batch_preview", s_hdrs, 2, &sc, &sd, NULL))
+    {
+        int exist_count = rogue_skill_debug_count();
+        int shown = 0;
+        for (int i = 0; i < s_count; ++i)
+        {
+            int n = s_start + i;
+            char nm[64];
+            if (snprintf(nm, sizeof nm, s_name_fmt, n) <= 0)
+                nm[0] = '\0';
+            const char* status = "OK";
+            if (nm[0] == '\0')
+                status = "Invalid";
+            else
+            {
+                for (int k = 0; k < exist_count; ++k)
+                {
+                    const char* en = rogue_skill_debug_name(k);
+                    if (en && strcmp(en, nm) == 0)
+                    {
+                        status = "Duplicate";
+                        break;
+                    }
+                }
+            }
+            const char* cells[] = {nm[0] ? nm : "<err>", status};
+            (void) overlay_table_row(cells, 2, i, NULL);
+            if (++shown >= 16)
+                break;
+        }
+        overlay_table_end();
+    }
+    if (overlay_button("Apply Skills Batch"))
+    {
+        int ok = 0, fail = 0;
+        int exist_count = rogue_skill_debug_count();
+        for (int i = 0; i < s_count; ++i)
+        {
+            int n = s_start + i;
+            char nm[64];
+            if (snprintf(nm, sizeof nm, s_name_fmt, n) <= 0)
+                nm[0] = '\0';
+            int dup = 0;
+            if (nm[0])
+            {
+                for (int k = 0; k < exist_count; ++k)
+                {
+                    const char* en = rogue_skill_debug_name(k);
+                    if (en && strcmp(en, nm) == 0)
+                    {
+                        dup = 1;
+                        break;
+                    }
+                }
+            }
+            if (!nm[0] || dup)
+            {
+                ++fail;
+                continue;
+            }
+            int idx = rogue_skill_debug_create(nm, s_max_rank, s_base_cd, s_cd_red, s_cast_ms,
+                                               s_is_passive);
+            if (idx >= 0)
+                ++ok;
+            else
+                ++fail;
+        }
+        char msg[128];
+        snprintf(msg, sizeof msg, "Skills batch: %d ok, %d failed", ok, fail);
+        overlay_label(msg);
     }
 }
 

@@ -58,11 +58,17 @@ Milestone 2 — Authoring accelerators (all asset types)
 2.2 Templates and presets
   - Per-type template store (JSON fragments) + “Save as Template”.
   - Quick-pick presets from recent and curated sets. Acceptance: Duplicate from template in one step.
+  - Status: Implemented for Items panel. Curated presets exposed in-panel plus file-backed templates with Save/Load/Apply. Templates are stored under `build/templates/items/*.json`; filenames are sanitized. Persistence uses json_io atomic writes and a cross‑platform ensure-dir helper. UI surfaces success/failure via headless‑safe toasts.
+  - Verification: Debug (SDL2) build and full CTest run from the build dir passed 100% (594/594) with `-j12`.
 2.3 Duplicate-as-template
   - One-click “Duplicate” opens wizard with fields pre-filled and a new id suggestion.
-  - Status: Implemented for Items panel (prefill + unique-id suggestion); remaining asset types pending.
+  - Status: Implemented for Items panel (prefill + unique-id suggestion), Skills panel (prefill from current selection; name gets a _Copy suffix; max-rank/passive/timing carried over; optional “Copy Coeffs” to duplicate coefficients), and Entities panel (duplicate selected enemy with configurable dx/dy offset via a headless‑safe API `rogue_entity_debug_duplicate`).
+  - Verification: Debug (SDL2) build and full CTest run from the build dir passed 100% (594/594) with -j12 after Entities duplicate wiring.
 2.4 Multi-asset batch creator
   - CSV/TSV import or pattern-based expansion (e.g., name_{1..5}). Acceptance: Preview table before commit; validates all rows.
+  - Status: Pattern-based batch creators implemented for Items and Skills with a live preview table and per‑row validation (invalid format, bounds, and duplicate checks). Items: ID/Name printf‑style formats with Start/Count; Skills: Name printf‑style format with Start/Count plus Passive/Max‑Rank/timing fields. Entities ring‑spawn slice remains for spawn testing. All paths are headless‑safe and surface results via toasts/summary.
+  - Verification: Debug (SDL2) build with -j12 and full CTest run passed 100% (594/594) on Windows/MSVC after these changes.
+  - Next: Add CSV/TSV import pipeline and a generic cross‑type preview/validation framework; extend Duplicate‑as‑Template to VFX.
 
 Milestone 3 — Inline editing and validation
 3.1 Schema-aware editors
@@ -90,6 +96,33 @@ Milestone 4 — Live previews and inspectors
   - Branch graph mini-view and rich text renderer with styles; test conversation runner.
 Acceptance: Previews update in real time when fields change; 60 FPS budget maintained; heavy calcs done off-thread with snapshot handoff.
 
+Status (M4 progress)
+- 4.1 Items preview: Implemented headless-safe textual preview in Items Create wizard. Renders Category, Rarity, Level, Base Stats (Damage dmin–dmax or Armor), Sockets (min..max), and an informational Est. Value heuristic. Placed after socket sliders, before Duplicate/Create. Verification: Debug (SDL2) build and full CTest passed 100% (594/594) with -j12.
+- 4.2 Skills preview: Added headless-safe textual “Skills Live Preview” to the Testing tab. Shows Skill name/type, Timeline (Cast, Cooldown), Coeff summary, Primary Effect kind/magnitude, Effect Nodes with delays/repeats, and a rough estimated total tick count derived from repeats/periods. This complements the existing real-time sprite preview controls. Verification: Debug (SDL2) build and full CTest suite remains all‑green (594/594) with -j12.
+- 4.3 Audio/VFX preview: Implemented headless‑safe textual and lightweight visual previews in the Audio/VFX panel.
+  • Controls: “Enable Positional Audio,” “Listener follows player,” and “Falloff Radius (tiles).”
+  • Action: “Play Sound @ Cursor” auditions via the FX bus (rogue_fx_emit) at the cursor’s world position using screen→world mapping (camera/tile size).
+  • Textual: ASCII “Attenuation Preview” samples rogue_audio_debug_effective_gain at 0/25/50/75/100% of the falloff radius.
+  • Visual: Optional falloff ring gizmo near the listener/player; SDL‑guarded to keep headless tests stable.
+  Verification: Debug (SDL2) build and full CTest run passed 100% (594/594) with -j12. No regressions.
+
+- 4.4 Map/editor preview upgrades: Implemented brush ghost, colliders overlay, pathfinding heatmap, tile autotiling hints, and a local undo/redo ring buffer for map edits.
+  • Brush Ghost: shows the current brush footprint under the cursor (square/rect), SDL‑guarded.
+  • Colliders Overlay: togglable overlay rendering solid tiles/collision bounds for quick triage.
+  • Pathfinding Heatmap: samples nav costs/blocked tiles and visualizes them as a heatmap (headless‑safe textual fallbacks when SDL not present).
+  • Autotiling Hints: lightweight hints highlight tiles affected by autotile rules for the current placement.
+  • Undo/Redo: 64‑entry ring buffer with Clear; edits invalidate the tile sprite LUT for immediate refresh. Bound to Ctrl+Z / Ctrl+Y in the panel with buttons as well.
+  Verification: Built Debug (SDL2) with -j12 and ran full CTest from the build dir: 100% PASS (594/594). No regressions.
+
+- 4.5 Dialogue preview: Added a new headless‑safe Dialogue panel with a textual branch mini‑graph, a simple conversation runner, and a style inspector.
+  • Panel: registered as "dialogue" and wired into the overlay panels aggregator and CMake overlay target.
+  • Conversation runner: Start/Advance/Reset controls drive `rogue_dialogue_start/advance`; the current line text displays live via `rogue_dialogue_current_text`.
+  • Branch mini‑graph: lists lines with an ASCII chain (e.g., "0 -> 1 -> 2") and highlights the current line; updates on each change.
+  • Style inspector: optional editor surfaces key style properties via `rogue_dialogue_style_get/set` (text/color/size knobs kept lightweight for MSVC C mode) and applies immediately.
+  • Sample script: panel auto‑registers a built‑in sample (id 101) via `rogue_dialogue_register_from_buffer` when no dialogue exists so the preview works out‑of‑the‑box.
+  Headless safety: all visuals are textual with SDL guards; no renderer calls from tests.
+  Verification: Debug SDL2 build with -j12 succeeded; full CTest suite passed 100% (594/594) from the build directory with `--output-on-failure`.
+
 Milestone 5 — Content Graph and diagnostics polish
 5.1 Pan/zoom and focus tools
   - Mouse wheel zoom, right-drag pan, fit-to-selection, isolate subgraph, pin nodes.
@@ -99,6 +132,14 @@ Milestone 5 — Content Graph and diagnostics polish
   - Orphans (no inbound), missing providers (dangling), large hubs, and path conflicts. Batch action: open editors or export reports.
 5.4 Exports and diffing
   - Compare snapshots; color edges added/removed; export focused diffs. Acceptance: JSON diff includes node degree deltas and cycle list.
+
+Status (M5 progress)
+- 5.1 Pan/zoom and focus tools: Implemented core interactions in the Content Graph SDL mini‑view and list.
+  • Interactions: Right‑mouse drag to pan, mouse wheel zoom centered on cursor (clamped 0.5×–2.0×), and Fit‑to‑Selection via button or F key.
+  • Isolate subgraph: Optional filter limits the list to nodes reachable from the current selection (BFS up to the current Preview Depth). Selection persists across frames and clicking nodes in the mini‑view drills selection and updates a breadcrumb trail.
+  • Hints: On‑screen hint text renders inside the mini‑view (RMB drag=pan, Wheel=zoom, F=fit). Drawing paths are SDL‑guarded for headless tests.
+  • Pending: Node pinning/manual repositioning and persistence are still TODO for this milestone.
+  Verification: Debug build (SDL2) with parallelism (-j12) and full CTest run passed 100% (594/594) from the build directory.
 
 Milestone 6 — Style, accessibility, and micro-interactions
 6.1 Visual language

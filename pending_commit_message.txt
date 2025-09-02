@@ -106,3 +106,62 @@ debug overlay: non-modal toast notifications wired across core flows; tests gree
 - Input/state untouched for gameplay; notifications are non-blocking with TTL
 - Docs: README tips updated; roadmap M0.3 marked implemented
 - Build/Test: Debug (SDL2) -j12; full CTest 100% (594/594)
+
+Debug Overlay (Items): Templates & Presets (M2.2) with JSON-backed storage; docs/roadmap; tests green
+
+- Items panel: add curated Presets and user Templates to the Create wizard. Save/Load/Apply templates stored under `build/templates/items/*.json`; filenames sanitized.
+- Persistence: uses json_io atomic writes and an ensure-dir helper for cross-platform safety; errors surface via overlay toasts. Headless-safe throughout.
+- README: add a tip explaining Templates & Presets usage and the storage path.
+- Roadmap: mark Milestone 2.2 Templates & Presets as implemented with verification notes.
+- Verification: Debug SDL2 build and full ctest run from build dir passed 100% (594/594) with -j12.
+
+Debug Overlay (Skills): "Duplicate From Selected" prefill in Overview (M2.3 partial); docs/roadmap; tests green
+
+- Skills panel: add "Duplicate From Selected" button that opens the Create wizard prefilled from the current selection.
+	• New name uses a _Copy suffix; carries over max rank, passive flag, and timing fields (cast/cooldown/channel).
+	• "Copy Coeffs" default enabled for duplicates; Create flow clones coefficient params when checked.
+- README: add a tip under Skills describing the duplicate flow and optional coeff cloning.
+- Roadmap: update Milestone 2.3 status to note Skills coverage and verification.
+- Verification: Debug build (SDL2) and full CTest run from build dir passed 100% (594/594) with -j12.
+
+Debug Overlay (Entities): Duplicate-as-template + initial Batch Creator (M2.3/M2.4); docs/roadmap; tests green
+Debug Overlay (M2.4): Batch Creator for Items & Skills with pattern preview/validation; docs/roadmap; tests green
+
+- Items: Added "Batch Create (Items)" with printf-style Id/Name formats, Start/Count, and a live preview table that validates format errors, id length, and duplicate ids via registry lookup. Applies using current Create-wizard fields; toasts summarize results.
+- Skills: Added "Batch Create (Skills)" with Name format + Start/Count and optional Passive/Max Rank/timing fields. Preview lists generated names and flags duplicates against the registry; summary printed after apply.
+- Roadmap/README updated to document usage and mark Milestone 2.4 progress.
+- Verification: Debug (SDL2) build with -j12 succeeded; full CTest passed 100% (594/594) on Windows/MSVC.
+
+
+- Entities panel: add "Duplicate Enemy" with dx/dy offset using new headless-safe API `rogue_entity_debug_duplicate`.
+- Batch Creator (Entities): add a lightweight "Spawn Ring Around Player" that places N duplicates at a chosen radius using an 8-directional pattern (repeating as needed).
+- Roadmap: update Milestone 2.3 to include Entities duplicate; start Milestone 2.4 with Entities batch creator slice and next steps.
+- README: add Entities tips for Duplicate and Batch Creator usage.
+- Verification: Debug (SDL2) build with -j12 and full CTest run from build dir passed 100% (594/594). No regressions.
+
+Debug Overlay (M4): Items Preview (textual) and Skills Live Preview (textual); docs/roadmap; tests green
+
+- Debug Overlay (M4.3): Audio/VFX previews
+	- Audio/VFX panel: positional audition toggles (Enable Positional, Listener follows player), Falloff Radius control, and "Play Sound @ Cursor" via FX bus at cursor world pos.
+	- Textual ASCII attenuation preview sampling effective gain at 0/25/50/75/100% of falloff; optional falloff ring gizmo (SDL‑guarded).
+	- Docs: README tips updated; Roadmap M4.3 section populated.
+	- Verification: Debug build (SDL2) with -j12 succeeded; full ctest suite passed 100% (594/594). No regressions.
+
+- Items (M4.1): Add headless-safe Preview section in the Create wizard showing Category, Rarity, Level, Base Stats (Damage dmin–dmax or Armor), Sockets, and an informational Est. Value heuristic. Renders as a small two-column table and updates live.
+- Skills (M4.2): Add a headless-safe textual "Skills Live Preview" on the Testing tab summarizing Skill name/type, Cast/Cooldown timing, Coeffs, Primary Effect and Effect Nodes (with delays/repeats), and an estimated total tick count derived from repeats/periods. Complements the existing sprite preview.
+- README: Document both previews in Debug overlay tips.
+- Roadmap: Mark 4.1 implemented and 4.2 textual preview added with verification notes.
+- Verification: Debug build (SDL2) -j12; full CTest suite remains 100% green (594/594).
+
+Debug Overlay (M4.4): Map/editor preview upgrades + Undo/Redo; docs/roadmap; tests green
+
+- Map panel: brush ghost, colliders overlay, pathfinding heatmap, autotiling hints (SDL‑guarded; headless‑safe fallbacks). Local 64‑entry Undo/Redo ring with Clear; Ctrl+Z / Ctrl+Y bindings. Edits invalidate tile sprite LUT for instant refresh.
+- Roadmap/README updated to reflect M4.4 completion.
+- Verification: Built Debug (SDL2) with -j12 and ran full ctest from build dir: 100% PASS (594/594).
+
+Debug Overlay (M5.1): Content Graph pan/zoom + fit + isolate subgraph; docs/roadmap; tests green
+
+- Content Graph mini‑view: Right‑mouse drag pan, mouse wheel zoom centered on cursor (clamped 0.5×–2.0×), and Fit‑to‑Selection via button or F key. Selection persists; clicking nodes drills selection and updates a breadcrumb path.
+- Isolate subgraph: Optional filter limits the list to nodes reachable from the current selection up to the current Preview depth (BFS). On‑view hint text: "RMB drag=pan, Wheel=zoom, F=fit". SDL‑guarded drawing keeps headless tests stable.
+- README and roadmap updated to document M5.1 and note pinning/manual node placement as pending.
+- Verification: Debug (SDL2) build with -j12 succeeded; full CTest run from build dir 100% green (594/594).

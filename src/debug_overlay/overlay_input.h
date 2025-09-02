@@ -18,9 +18,11 @@ extern "C"
     {
         int mouse_x;
         int mouse_y;
-        int mouse_down;    /* 1 while pressed */
-        int mouse_clicked; /* 1 exactly on the frame a press began */
-        int mouse_wheel_y; /* +N scrolled up, -N scrolled down (per frame, resets each frame) */
+        int mouse_down;       /* 1 while pressed */
+        int mouse_clicked;    /* 1 exactly on the frame a press began */
+        int mouse_wheel_y;    /* +N scrolled up, -N scrolled down (per frame, resets each frame) */
+        int mouse_right_down; /* Right button 1 while pressed */
+        int mouse_right_clicked; /* Right button: 1 exactly on the frame a press began */
 
         int key_tab_pressed;       /* 1 if Tab pressed this frame */
         int key_backspace_pressed; /* for InputText */
@@ -38,13 +40,14 @@ extern "C"
         int key_alt_down;
         int key_p_pressed;
         int key_k_pressed;
+        int key_f_pressed; /* Fit-to-selection (Content Graph) */
 
         int want_capture_mouse;
         int want_capture_keyboard;
 
         /* Text input buffered this frame (UTF-8 truncated to ASCII for simplicity). */
         char text_input[64];
-    } OverlayInputState;
+    } OverlayInputState; /* exposes both typedef and struct tag name */
 
     /* Called once per frame before event polling. Resets per-frame bits. */
     void overlay_input_begin_frame(void);
@@ -57,7 +60,7 @@ extern "C"
     int overlay_input_want_capture_keyboard(void);
 
     /* Expose readonly snapshot for widgets. */
-    const OverlayInputState* overlay_input_get(void);
+    const struct OverlayInputState* overlay_input_get(void);
 
     /* Testing helpers (also useful for headless environments). */
     void overlay_input_simulate_mouse(int x, int y, int down, int clicked);
@@ -80,7 +83,8 @@ static inline void overlay_input_begin_frame(void) {}
 static inline void overlay_input_handle_event(const void* sdl_event) { (void) sdl_event; }
 static inline int overlay_input_want_capture_mouse(void) { return 0; }
 static inline int overlay_input_want_capture_keyboard(void) { return 0; }
-static inline const void* overlay_input_get(void) { return 0; }
+/* Return type uses struct tag to allow forward-declare in panels without full header */
+static inline const struct OverlayInputState* overlay_input_get(void) { return 0; }
 static inline void overlay_input_simulate_mouse(int x, int y, int down, int clicked)
 {
     (void) x;

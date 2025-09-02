@@ -66,6 +66,11 @@ void overlay_input_handle_event(const void* evptr)
             g_inp.mouse_down = 1;
             g_inp.mouse_clicked = 1;
         }
+        else if (ev->button.button == SDL_BUTTON_RIGHT)
+        {
+            g_inp.mouse_right_down = 1;
+            g_inp.mouse_right_clicked = 1;
+        }
         break;
     case SDL_MOUSEBUTTONUP:
         /* Keep position in sync on mouse up */
@@ -74,6 +79,10 @@ void overlay_input_handle_event(const void* evptr)
         if (ev->button.button == SDL_BUTTON_LEFT)
         {
             g_inp.mouse_down = 0;
+        }
+        else if (ev->button.button == SDL_BUTTON_RIGHT)
+        {
+            g_inp.mouse_right_down = 0;
         }
         break;
     case SDL_KEYDOWN:
@@ -89,6 +98,8 @@ void overlay_input_handle_event(const void* evptr)
             g_inp.key_p_pressed = 1;
         else if (ev->key.keysym.sym == SDLK_k)
             g_inp.key_k_pressed = 1;
+        else if (ev->key.keysym.sym == SDLK_f)
+            g_inp.key_f_pressed = 1;
         else if (ev->key.keysym.sym == SDLK_LEFT)
             g_inp.key_left_pressed = 1;
         else if (ev->key.keysym.sym == SDLK_RIGHT)

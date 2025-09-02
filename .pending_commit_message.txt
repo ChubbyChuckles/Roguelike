@@ -192,3 +192,17 @@ feat(overlay/navigation): Breadcrumbs + Back/Forward history (Alt+Left/Right); i
 - Build: Debug (SDL2) with -j12 succeeded.
 - Tests: Full ctest run passed 100% (594/594).
 - Docs: Roadmap Milestone 1.3 marked Implemented with details; README “Debug overlay tips” documents Alt+Left/Right history and breadcrumbs.
+
+feat(overlay/dialogue): Dialogue preview panel (textual mini-graph, style inspector, sample runner)
+
+- Add a headless-safe Dialogue overlay panel registered in the overlay aggregator and build; includes a textual branch mini-graph, a simple conversation runner (Start/Advance/Reset), and a style inspector driven by `rogue_dialogue_style_get/set`.
+- Auto-register a built-in sample dialogue (id 101) via `rogue_dialogue_register_from_buffer` when no dialogues exist so preview works out of the box; visuals remain textual with SDL guards.
+- Build: Debug (SDL2) with parallelism (-j12) succeeded.
+- Tests: Full CTest from the build directory passed 100% (594/594) with `--output-on-failure`.
+
+feat(overlay/content_graph M5.1): pan/zoom + fit + isolate-subgraph; docs/roadmap; tests green
+
+- Mini‑view interactions: RMB drag to pan, mouse wheel to zoom (cursor‑centered; clamp 0.5×–2.0×), and F to Fit‑to‑Selection. Selection persists across frames; clicking nodes drills and updates crumbs.
+- Isolate subgraph: Filter list to nodes reachable from the current selection up to Preview depth via BFS. In‑view hint renders controls; all SDL paths are guarded for headless safety.
+- Docs: README and roadmap updated accordingly; node pinning/manual placement remains TODO in 5.1.
+- Build/Tests: Debug SDL2 with -j12; ctest from build dir 100% PASS (594/594).

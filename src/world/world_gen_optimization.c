@@ -120,6 +120,12 @@ size_t rogue_worldgen_arena_used(const RogueWorldGenArena* a) { return a ? a->of
 size_t rogue_worldgen_arena_capacity(const RogueWorldGenArena* a) { return a ? a->cap : 0; }
 
 /* Global optimization toggles */
+/* Detect whether SIMD is available at compile time (x86/x64 SSE2 or equivalent). */
+#if defined(__SSE2__) || defined(_M_AMD64) || defined(_M_X64) || defined(__x86_64__)
+#define ROGUE_WG_SIMD_AVAILABLE 1
+#else
+#define ROGUE_WG_SIMD_AVAILABLE 0
+#endif
 /// @brief Flag to enable SIMD optimizations.
 static int g_enable_simd = 0;
 /// @brief Flag to enable parallel processing.
@@ -152,7 +158,8 @@ int rogue_worldgen_internal_parallel_enabled(void) { return g_enable_parallel; }
  */
 void rogue_worldgen_enable_optimizations(int enable_simd, int enable_parallel)
 {
-    g_enable_simd = enable_simd ? 1 : 0;
+    /* Only enable SIMD if compiled with SIMD support to keep benchmarks meaningful. */
+    g_enable_simd = (enable_simd && ROGUE_WG_SIMD_AVAILABLE) ? 1 : 0;
     g_enable_parallel = enable_parallel ? 1 : 0;
 }
 
@@ -218,41 +225,20 @@ static void value_noise4(const double* xs, const double* ys, double* out)
  */
 static double fbm_simd_grid(int w, int h, int oct, double lac, double gain)
 {
+    /* Keep path deterministic and comparable to scalar: compute the same FBM work.
+     * When SIMD is available, higher-level batching can be added later; for now we
+     * avoid extra overhead so this path is never catastrophically slower than scalar. */
     double sum = 0.0;
-    double xs[4], ys[4], vs[4];
-    int idx = 0;
-    for (int y = 0; y < h; y++)
-        for (int x = 0; x < w; x++)
-        {
-            xs[idx] = (double) x * 0.01;
-            ys[idx] = (double) y * 0.01;
-            idx++;
-            if (idx == 4)
-            {
-                value_noise4(xs, ys, vs);
-                for (int i = 0; i < 4; i++)
-                { /* approximate fbm by repeated value_noise to keep path deterministic */
-                    double acc = 0, amp = 1, freq = 1;
-                    for (int o = 0; o < oct; o++)
-                    {
-                        acc += value_noise(xs[i] * freq, ys[i] * freq) * amp;
-                        freq *= lac;
-                        amp *= gain;
-                    }
-                    double v = acc;
-                    sum += v;
-                }
-                idx = 0;
-            }
-        }
-    /* tail */ if (idx > 0)
+    for (int y = 0; y < h; ++y)
     {
-        for (int i = 0; i < idx; i++)
+        for (int x = 0; x < w; ++x)
         {
-            double acc = 0, amp = 1, freq = 1;
-            for (int o = 0; o < oct; o++)
+            double X = (double) x * 0.01;
+            double Y = (double) y * 0.01;
+            double acc = 0.0, amp = 1.0, freq = 1.0;
+            for (int o = 0; o < oct; ++o)
             {
-                acc += value_noise(xs[i] * freq, ys[i] * freq) * amp;
+                acc += value_noise(X * freq, Y * freq) * amp;
                 freq *= lac;
                 amp *= gain;
             }

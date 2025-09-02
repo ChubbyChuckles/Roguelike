@@ -25,5 +25,9 @@ int rogue_entity_debug_teleport(int slot_index, float x, float y);
 int rogue_entity_debug_kill(int slot_index);
 /* Spawn a hostile enemy at player-relative offset (dx,dy). Returns slot index or -1. */
 int rogue_entity_debug_spawn_at_player(float dx, float dy);
+/* Duplicate an existing alive enemy into a new slot, offset by (dx,dy) tiles from the source.
+ * Copies basic state (type_index, health/max_health, tints, facing) and initializes anchors/patrol
+ * to new pos. Returns new slot index on success, or -1 on failure. */
+int rogue_entity_debug_duplicate(int src_slot_index, float dx, float dy);
 
 #endif
