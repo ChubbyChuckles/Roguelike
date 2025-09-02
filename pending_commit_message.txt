@@ -87,3 +87,12 @@ Debug Overlay: Theme migration sweep (Skills Effects Node Graph + Content Graph)
 - Roadmap: Updated 0.1 status to list migrated panels; added MSVC note under Implementation constraints; near-term next steps reflect additional theme consumers.
 - README: Added notes about themed visuals for Skills Effects and Content Graph plus the MSVC compatibility reminder.
 - Verification: Debug SDL2 full rebuild and full CTest run green (594/594) with -j12 on Windows/MSVC.
+
+Debug Overlay: Global Search (Ctrl+K) with jump-to Items/Skills; selection setters; docs/roadmap; tests green
+
+- Feature: Add Global Search overlay (Ctrl+K) with a themed popup and substring matching over Items and Skills. Up/Down navigate; Enter jumps to the target panel and selects the entry.
+- Navigation: Implement panel-level deferred selection setters (rogue_overlay_items_set_selected_index / _skills_) that apply on the next frame and scroll the view to keep the row visible in the virtualized table.
+- Core wiring: overlay_core toggles and renders search; overlay_nav helpers open panels and call selection setters.
+- Build: Include overlay_search.c in the overlay target so the module compiles/links on Windows/MSVC.
+- Docs: README adds a Global Search tip; roadmap Milestone 1.1 updated with scope/status and verification.
+- Verification: Debug (SDL2) full suite passed 100% (594/594) with -j12; manual smoke confirms jump-to selects and scrolls correctly. No regressions.

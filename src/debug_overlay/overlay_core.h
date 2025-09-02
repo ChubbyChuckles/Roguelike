@@ -33,6 +33,10 @@ int overlay_get_panel_visible(const char* id);
 void overlay_new_frame(float dt, int screen_w, int screen_h);
 void overlay_render(void);
 
+/* Optional navigation helpers for panels that support selection APIs. */
+void overlay_nav_open_items_and_select(int item_index);
+void overlay_nav_open_skills_and_select(int skill_index);
+
 /* Toggle */
 void overlay_set_enabled(int enabled);
 int overlay_is_enabled(void);

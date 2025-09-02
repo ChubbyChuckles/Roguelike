@@ -4,6 +4,7 @@ Press F1 in-game to open the debug overlay.
 
 - Panels selector: A small "Panels" window appears in the top-right. Use its checkboxes to toggle which panels are visible. The selector itself can’t be hidden to avoid lock-out.
 - Command Palette: Press Ctrl+Shift+P to open a palette of overlay commands. Type to filter; Enter to run. Defaults include Validation (Run Now/Show Panel), Skills (Save/Load Overrides), Content Graph (Export DOT), and quick “Open Items/Skills/Map”. You can register your own commands at startup.
+- Global Search: Press Ctrl+K to search across Items and Skills by id or name (case-insensitive substring). Up/Down navigate results; Enter jumps to the right panel, opens it, selects the entry, and scrolls it into view. Initial scope covers Items/Skills; more registries and fuzzy ranking are planned.
 - Theme & Accessibility: In the System panel, adjust Theme Preset (Dark, Light, High Contrast), DPI scale, and Font Size. Your choices persist to `build/overlay_theme.json`. Core widgets have been migrated to use theme colors for consistent visuals and better contrast.
 - Items panel: Type in the search box to filter by id or name (case-insensitive). Click table headers to sort (toggles asc/desc). The list is virtualized for large registries; scroll with the mouse wheel while hovering the table or use Up/Down keys. Home/End jump to top/bottom. Hold Shift to accelerate step.
 	Now includes a right-side vertical scrollbar: click the track to page and drag the thumb to scroll; it stays in sync with the virtualized row window.

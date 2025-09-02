@@ -87,6 +87,8 @@ void overlay_input_handle_event(const void* evptr)
             g_inp.key_space_pressed = 1;
         else if (ev->key.keysym.sym == SDLK_p)
             g_inp.key_p_pressed = 1;
+        else if (ev->key.keysym.sym == SDLK_k)
+            g_inp.key_k_pressed = 1;
         else if (ev->key.keysym.sym == SDLK_LEFT)
             g_inp.key_left_pressed = 1;
         else if (ev->key.keysym.sym == SDLK_RIGHT)

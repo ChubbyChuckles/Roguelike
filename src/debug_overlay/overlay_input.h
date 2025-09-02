@@ -36,6 +36,7 @@ extern "C"
         int key_escape_pressed;
         int key_ctrl_down;
         int key_p_pressed;
+        int key_k_pressed;
 
         int want_capture_mouse;
         int want_capture_keyboard;

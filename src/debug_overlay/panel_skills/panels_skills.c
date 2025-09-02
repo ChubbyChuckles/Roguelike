@@ -34,6 +34,9 @@ static int overlay_box_hit(int mx, int my, int bx, int by, int bw, int bh)
     return (mx >= bx && mx < bx + bw && my >= by && my < by + bh) ? 1 : 0;
 }
 
+/* External navigation hook: pending selection request */
+static int s_skills_select_request = -1;
+
 /* Palette helper: map an EffectSpec to overlay categories based on kind/debuff/buff_type. */
 static int palette_effect_categories(const RogueEffectSpec* es)
 {
@@ -118,6 +121,15 @@ static void panel_skills(void* user)
         sel = 0;
     if (sel >= count)
         sel = count - 1;
+    if (s_skills_select_request >= 0)
+    {
+        sel = s_skills_select_request;
+        if (sel < 0)
+            sel = 0;
+        if (sel >= count)
+            sel = count - 1;
+        s_skills_select_request = -1;
+    }
     if (count <= 0)
     {
         overlay_label("No skills registered");
@@ -243,6 +255,13 @@ static void panel_skills(void* user)
 
     overlay_splitter_end();
     overlay_end_panel();
+}
+
+/* Optional external navigation hook: select skill by index */
+void rogue_overlay_skills_set_selected_index(int index)
+{
+    /* Defer to next frame; panel will clamp */
+    s_skills_select_request = index;
 }
 
 void rogue_overlay_register_panel_skills(void)

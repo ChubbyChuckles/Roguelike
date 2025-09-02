@@ -4,6 +4,7 @@
 #include "overlay_commands.h"
 #include "overlay_input.h"
 #include "overlay_prefs.h"
+#include "overlay_search.h"
 #include "overlay_theme.h"
 #include "overlay_toast.h"
 #include "widgets/overlay_widgets_internal.h"
@@ -223,6 +224,10 @@ void overlay_render(void)
             /* toggle command palette */
             overlay_commands_toggle(1);
         }
+        if (in && in->key_k_pressed && in->key_ctrl_down)
+        {
+            overlay_search_toggle(1);
+        }
     }
     /* Invoke panel callbacks; panels draw using SDL primitives and fonts */
     for (int i = 0; i < g_panel_count; ++i)
@@ -233,6 +238,7 @@ void overlay_render(void)
     /* Non-modal systems */
     overlay_toast_render();
     overlay_commands_render();
+    overlay_search_render();
     /* Restore previous blend mode to avoid side effects on game renderer */
 #ifdef ROGUE_HAVE_SDL
     if (restore_blend && g_app.renderer)
@@ -310,6 +316,24 @@ int overlay_get_panel_visible(const char* id)
     if (i < 0)
         return 0;
     return overlay_get_panel_visible_by_index(i);
+}
+
+/* Navigation helpers ------------------------------------------------------- */
+/* Weak hooks exported by panels (optional). Declared here to avoid headers coupling. */
+void rogue_overlay_items_set_selected_index(int index);
+void rogue_overlay_skills_set_selected_index(int index);
+
+void overlay_nav_open_items_and_select(int item_index)
+{
+    (void) overlay_set_panel_visible("items", 1);
+    /* If panel provides a setter, use it. Otherwise no-op. */
+    rogue_overlay_items_set_selected_index(item_index);
+}
+
+void overlay_nav_open_skills_and_select(int skill_index)
+{
+    (void) overlay_set_panel_visible("skills", 1);
+    rogue_overlay_skills_set_selected_index(skill_index);
 }
 
 /* Movable + persisted panel begin helper */

@@ -17,6 +17,8 @@
 /* File-scope state used by qsort comparator */
 static int s_items_sort_col = 0; /* 0 Name, 1 Id, 2 Rarity, 3 Category, 4 Qty */
 static int s_items_sort_dir = 1; /* +1 asc, -1 desc */
+/* External navigation hook: pending selection request (item index in defs) */
+static int s_items_select_request = -1;
 
 static int ci_cmp(const char* a, const char* b)
 {
@@ -178,6 +180,37 @@ static void panel_items(void* user)
             s_items_sort_col = s_sort_col;
             s_items_sort_dir = s_sort_dir;
             qsort(idx, (size_t) nidx, sizeof(int), items_idx_cmp);
+        }
+        /* Handle external selection request: set selection and scroll into view */
+        if (s_items_select_request >= 0)
+        {
+            s_selected = s_items_select_request;
+            /* Find its row position in the current filtered+sorted index list */
+            int pos = -1;
+            for (int k = 0; k < nidx; ++k)
+            {
+                if (idx[k] == s_items_select_request)
+                {
+                    pos = k;
+                    break;
+                }
+            }
+            if (pos >= 0)
+            {
+                /* Ensure pos is visible; center it if possible */
+                int target_first = pos - 2;
+                if (target_first < 0)
+                    target_first = 0;
+                /* visible_rows computed below; guard against zero */
+                int vis_rows_guess = overlay_prefs_get_int("items.visible_rows", 20);
+                if (vis_rows_guess < 1)
+                    vis_rows_guess = 1;
+                int max_first_guess = (nidx > vis_rows_guess) ? (nidx - vis_rows_guess) : 0;
+                if (target_first > max_first_guess)
+                    target_first = max_first_guess;
+                s_row_offset = target_first;
+            }
+            s_items_select_request = -1;
         }
         /* Virtualization sizing */
         int total_rows = nidx;
@@ -369,6 +402,13 @@ static void panel_items(void* user)
         overlay_splitter_end();
     }
     overlay_end_panel();
+}
+
+/* Optional: allow external navigation to select a row (used by global search). */
+void rogue_overlay_items_set_selected_index(int index)
+{
+    /* Defer actual UI selection to next panel frame to avoid reentrancy */
+    s_items_select_request = index;
 }
 
 void rogue_overlay_register_panel_items(void)

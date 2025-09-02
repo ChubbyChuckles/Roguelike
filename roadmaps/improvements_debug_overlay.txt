@@ -30,6 +30,7 @@ Milestone 1 — Navigation and discoverability
 1.1 Global search (Ctrl+K) and fuzzy finder
   - Search assets across all registries by id/name/tags; jump-to panel + selection.
   - Recent assets and Favorites (star/pin) sections. Acceptance: <200ms results on 10k items via prefix index or substring scan with time budget + pagination.
+  - Status: Initial Global Search implemented. Ctrl+K toggles a themed popup with an input field and a results list covering Items and Skills (case-insensitive substring). Keyboard Up/Down move selection; Enter triggers jump-to via overlay_nav helpers which open the target panel and programmatically select the entry. Items/Skills panels now expose deferred selection setters that scroll the virtualized table to bring the row into view. Build integration added (overlay_search.c compiled into overlay). Verification: Debug SDL2 full suite passed 100% (594/594) with -j12; manual smoke validated jump-to behavior.
 1.2 Command Palette (Ctrl+Shift+P)
   - Fuzzy action picker for overlay commands (e.g., “Create Item”, “Export Subgraph JSON”, “Run Validation”).
   - Status: Implemented minimal Command Palette with default commands and a simple substring filter.
