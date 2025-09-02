@@ -138,7 +138,7 @@ Status (M5 progress)
   • Interactions: Right‑mouse drag to pan, mouse wheel zoom centered on cursor (clamped 0.5×–2.0×), and Fit‑to‑Selection via button or F key.
   • Isolate subgraph: Optional filter limits the list to nodes reachable from the current selection (BFS up to the current Preview Depth). Selection persists across frames and clicking nodes in the mini‑view drills selection and updates a breadcrumb trail.
   • Hints: On‑screen hint text renders inside the mini‑view (RMB drag=pan, Wheel=zoom, F=fit). Drawing paths are SDL‑guarded for headless tests.
-  • Pending: Node pinning/manual repositioning and persistence are still TODO for this milestone.
+  • Node pinning/manual repositioning: Implemented with Shift+LMB drag to pin/move nodes and “Clear Pins” command to reset. Persistence is session-only.
   Verification: Debug build (SDL2) with parallelism (-j12) and full CTest run passed 100% (594/594) from the build directory.
 
 Milestone 6 — Style, accessibility, and micro-interactions

@@ -165,3 +165,6 @@ Debug Overlay (M5.1): Content Graph pan/zoom + fit + isolate subgraph; docs/road
 - Isolate subgraph: Optional filter limits the list to nodes reachable from the current selection up to the current Preview depth (BFS). On‑view hint text: "RMB drag=pan, Wheel=zoom, F=fit". SDL‑guarded drawing keeps headless tests stable.
 - README and roadmap updated to document M5.1 and note pinning/manual node placement as pending.
 - Verification: Debug (SDL2) build with -j12 succeeded; full CTest run from build dir 100% green (594/594).
+
+Overlay: Content Graph pinning/manual repositioning + Clear Pins.
+Worldgen: SIMD availability gating + simplified path; tests green.
