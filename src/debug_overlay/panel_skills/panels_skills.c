@@ -7,6 +7,7 @@
 #include "../../graphics/sprite.h"
 #include "../overlay_core.h"
 #include "../overlay_input.h"
+#include "../overlay_toast.h"
 #include "../widgets/overlay_widgets.h"
 #include "panel_skills_audio.h"
 #include "panel_skills_effects.h"
@@ -91,6 +92,15 @@ static void panel_skills(void* user)
     // Use movable, persisted panel begin with a wider default to fit content.
     if (!overlay_begin_panel_auto("skills", "Skills", 360, 10, 480))
         return;
+    /* Breadcrumb header */
+    {
+        static OverlayNavState s_bc; /* persistent buffers */
+        s_bc.panel_id = "skills";
+        s_bc.crumb_a[0] = '\0';
+        s_bc.crumb_b[0] = '\0';
+        s_bc.crumb_c[0] = '\0';
+        overlay_nav_render_breadcrumb(&s_bc);
+    }
     /* Persistent UI state */
     static float sim_duration_ms = 2000.0f;
     static float sim_tick_ms = 16.0f;
@@ -143,7 +153,26 @@ static void panel_skills(void* user)
     static int tab = 0;
     static const char* tab_names[] = {"Overview", "Effects", "Visuals", "Audio", "Testing"};
     overlay_combo("Tab", &tab, tab_names, 5);
+    int sel_prev = sel;
     overlay_slider_int("Skill Index", &sel, 0, count - 1);
+    if (sel != sel_prev)
+    {
+        OverlayNavState st;
+        st.panel_id = "skills";
+        st.sel_index = sel;
+        st.crumb_a[0] = '\0';
+        st.crumb_b[0] = '\0';
+        st.crumb_c[0] = '\0';
+        const char* nm = rogue_skill_debug_name(sel);
+        if (nm)
+        {
+            strncpy(st.crumb_a, "Skills", sizeof st.crumb_a - 1);
+            strncpy(st.crumb_b, nm, sizeof st.crumb_b - 1);
+            st.crumb_a[sizeof st.crumb_a - 1] = '\0';
+            st.crumb_b[sizeof st.crumb_b - 1] = '\0';
+        }
+        overlay_nav_set_current(&st);
+    }
     overlay_next_column();
 
     /* Right pane: banner + tab content */
@@ -200,7 +229,7 @@ static void panel_skills(void* user)
         int rc = (v == 0) ? rogue_skill_debug_save_overrides(overrides_path) : -3;
         char msg[128];
         snprintf(msg, sizeof msg, "Save: %s (%d)", (rc == 0 ? "OK" : "ERR"), rc);
-        overlay_label(msg);
+        overlay_toast_push((rc == 0) ? OVERLAY_TOAST_INFO : OVERLAY_TOAST_ERROR, msg, 2200);
         /* Update sticky status based on cross-rule validation */
         char emsg[192] = {0};
         int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
@@ -209,13 +238,22 @@ static void panel_skills(void* user)
             snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
         else
             snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
+        /* Surface validation result via toast as well */
+        if (ok)
+            overlay_toast_push(OVERLAY_TOAST_INFO, "Validation: OK", 2000);
+        else
+        {
+            char vtoast[224];
+            snprintf(vtoast, sizeof vtoast, "Validation errors: %s", emsg[0] ? emsg : "see panel");
+            overlay_toast_push(OVERLAY_TOAST_WARN, vtoast, 2600);
+        }
     }
     if (overlay_button("Load Overrides JSON"))
     {
         int applied = rogue_skill_debug_load_overrides_file(overrides_path);
         char msg[128];
         snprintf(msg, sizeof msg, "Load: %s (%d)", (applied >= 0 ? "OK" : "ERR"), applied);
-        overlay_label(msg);
+        overlay_toast_push((applied >= 0) ? OVERLAY_TOAST_INFO : OVERLAY_TOAST_ERROR, msg, 2200);
         /* Update sticky status after load */
         char emsg[192] = {0};
         int ok = (rogue_skills_validate_all(emsg, (int) sizeof emsg) == 0);
@@ -224,6 +262,15 @@ static void panel_skills(void* user)
             snprintf(last_valid_msg, sizeof last_valid_msg, "%s", emsg[0] ? emsg : "error");
         else
             snprintf(last_valid_msg, sizeof last_valid_msg, "%s", "OK");
+        /* Toast validation status */
+        if (ok)
+            overlay_toast_push(OVERLAY_TOAST_INFO, "Validation: OK", 2000);
+        else
+        {
+            char vtoast[224];
+            snprintf(vtoast, sizeof vtoast, "Validation errors: %s", emsg[0] ? emsg : "see panel");
+            overlay_toast_push(OVERLAY_TOAST_WARN, vtoast, 2600);
+        }
     }
 
     if (overlay_checkbox("Auto-Reload Overrides", &auto_reload))
@@ -236,7 +283,7 @@ static void panel_skills(void* user)
         {
             char msg[96];
             snprintf(msg, sizeof msg, "Auto-Reload applied: %d entries", applied);
-            overlay_label(msg);
+            overlay_toast_push(OVERLAY_TOAST_INFO, msg, 2000);
         }
     }
     if (overlay_checkbox("Auto-Reload Base Skills JSON", &auto_reload_base))
@@ -249,7 +296,7 @@ static void panel_skills(void* user)
         {
             char msg[96];
             snprintf(msg, sizeof msg, "Base reload: %d skills loaded", loaded);
-            overlay_label(msg);
+            overlay_toast_push(OVERLAY_TOAST_INFO, msg, 2000);
         }
     }
 

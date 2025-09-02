@@ -105,6 +105,7 @@ void overlay_input_handle_event(const void* evptr)
             g_inp.key_escape_pressed = 1;
         g_inp.key_shift_down = ((ev->key.keysym.mod & KMOD_SHIFT) != 0);
         g_inp.key_ctrl_down = ((ev->key.keysym.mod & KMOD_CTRL) != 0);
+        g_inp.key_alt_down = ((ev->key.keysym.mod & KMOD_ALT) != 0);
         break;
     case SDL_TEXTINPUT:
         /* copy small chunk of text */

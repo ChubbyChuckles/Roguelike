@@ -26,6 +26,13 @@ static float g_last_dt = 0.0f;
 static int g_last_w = 0;
 static int g_last_h = 0;
 
+/* Navigation history (lightweight ring) */
+#define OVERLAY_NAV_HISTORY_MAX 64
+static OverlayNavState g_nav_hist[OVERLAY_NAV_HISTORY_MAX];
+static int g_nav_hist_count = 0;      /* valid entries */
+static int g_nav_hist_cursor = -1;    /* index into g_nav_hist of current entry */
+static int g_nav_suppress_record = 0; /* set to 1 when applying history to avoid re-record */
+
 typedef struct PanelLayout
 {
     char id[64];
@@ -228,6 +235,15 @@ void overlay_render(void)
         {
             overlay_search_toggle(1);
         }
+        /* History navigation: Alt+Left = Back, Alt+Right = Forward */
+        if (in && in->key_alt_down && in->key_left_pressed)
+        {
+            (void) overlay_nav_back();
+        }
+        if (in && in->key_alt_down && in->key_right_pressed)
+        {
+            (void) overlay_nav_forward();
+        }
     }
     /* Invoke panel callbacks; panels draw using SDL primitives and fonts */
     for (int i = 0; i < g_panel_count; ++i)
@@ -328,12 +344,149 @@ void overlay_nav_open_items_and_select(int item_index)
     (void) overlay_set_panel_visible("items", 1);
     /* If panel provides a setter, use it. Otherwise no-op. */
     rogue_overlay_items_set_selected_index(item_index);
+    /* Record into history */
+    OverlayNavState st;
+    st.panel_id = "items";
+    st.sel_index = item_index;
+    st.crumb_a[0] = '\0';
+    st.crumb_b[0] = '\0';
+    st.crumb_c[0] = '\0';
+    overlay_nav_push(&st);
 }
 
 void overlay_nav_open_skills_and_select(int skill_index)
 {
     (void) overlay_set_panel_visible("skills", 1);
     rogue_overlay_skills_set_selected_index(skill_index);
+    OverlayNavState st;
+    st.panel_id = "skills";
+    st.sel_index = skill_index;
+    st.crumb_a[0] = '\0';
+    st.crumb_b[0] = '\0';
+    st.crumb_c[0] = '\0';
+    overlay_nav_push(&st);
+}
+
+/* Internal: load a nav state (show panel + set selection) */
+static void overlay_nav_apply(const OverlayNavState* st)
+{
+    if (!st || !st->panel_id)
+        return;
+    g_nav_suppress_record = 1;
+    if (strcmp(st->panel_id, "items") == 0)
+    {
+        overlay_set_panel_visible("items", 1);
+        rogue_overlay_items_set_selected_index(st->sel_index);
+    }
+    else if (strcmp(st->panel_id, "skills") == 0)
+    {
+        overlay_set_panel_visible("skills", 1);
+        rogue_overlay_skills_set_selected_index(st->sel_index);
+    }
+    g_nav_suppress_record = 0;
+}
+
+/* Public API: record current state (panels call on selection changes) */
+void overlay_nav_set_current(const OverlayNavState* st)
+{
+    if (!st || !st->panel_id)
+        return;
+    if (g_nav_suppress_record)
+        return;
+    /* Append or coalesce if same panel and selection */
+    if (g_nav_hist_count > 0 && g_nav_hist_cursor >= 0)
+    {
+        OverlayNavState* cur = &g_nav_hist[g_nav_hist_cursor];
+        if (cur->panel_id && strcmp(cur->panel_id, st->panel_id) == 0 &&
+            cur->sel_index == st->sel_index)
+        {
+            /* Update crumbs only */
+            strncpy(cur->crumb_a, st->crumb_a, sizeof cur->crumb_a - 1);
+            strncpy(cur->crumb_b, st->crumb_b, sizeof cur->crumb_b - 1);
+            strncpy(cur->crumb_c, st->crumb_c, sizeof cur->crumb_c - 1);
+            cur->crumb_a[sizeof cur->crumb_a - 1] = '\0';
+            cur->crumb_b[sizeof cur->crumb_b - 1] = '\0';
+            cur->crumb_c[sizeof cur->crumb_c - 1] = '\0';
+            return;
+        }
+    }
+    overlay_nav_push(st);
+}
+
+void overlay_nav_push(const OverlayNavState* st)
+{
+    if (!st || !st->panel_id)
+        return;
+    /* If we're not at the tip, drop forward history */
+    if (g_nav_hist_cursor + 1 < g_nav_hist_count)
+    {
+        g_nav_hist_count = g_nav_hist_cursor + 1;
+    }
+    /* Append new state (bounded) */
+    if (g_nav_hist_count < OVERLAY_NAV_HISTORY_MAX)
+    {
+        g_nav_hist[g_nav_hist_count] = *st;
+        g_nav_hist_cursor = g_nav_hist_count;
+        g_nav_hist_count++;
+    }
+    else
+    {
+        /* Shift left to free the last slot */
+        for (int i = 1; i < OVERLAY_NAV_HISTORY_MAX; ++i)
+            g_nav_hist[i - 1] = g_nav_hist[i];
+        g_nav_hist[OVERLAY_NAV_HISTORY_MAX - 1] = *st;
+        g_nav_hist_cursor = OVERLAY_NAV_HISTORY_MAX - 1;
+        g_nav_hist_count = OVERLAY_NAV_HISTORY_MAX;
+    }
+}
+
+int overlay_nav_back(void)
+{
+    if (g_nav_hist_cursor > 0)
+    {
+        g_nav_hist_cursor--;
+        overlay_nav_apply(&g_nav_hist[g_nav_hist_cursor]);
+        return 1;
+    }
+    return 0;
+}
+int overlay_nav_forward(void)
+{
+    if (g_nav_hist_cursor + 1 < g_nav_hist_count)
+    {
+        g_nav_hist_cursor++;
+        overlay_nav_apply(&g_nav_hist[g_nav_hist_cursor]);
+        return 1;
+    }
+    return 0;
+}
+
+void overlay_nav_render_breadcrumb(const OverlayNavState* st)
+{
+    if (!st)
+        return;
+    char line[256];
+    line[0] = '\0';
+    const char* pfx = "";
+    if (st->crumb_a[0])
+    {
+        strncat(line, pfx, sizeof line - strlen(line) - 1);
+        strncat(line, st->crumb_a, sizeof line - strlen(line) - 1);
+        pfx = " > ";
+    }
+    if (st->crumb_b[0])
+    {
+        strncat(line, pfx, sizeof line - strlen(line) - 1);
+        strncat(line, st->crumb_b, sizeof line - strlen(line) - 1);
+        pfx = " > ";
+    }
+    if (st->crumb_c[0])
+    {
+        strncat(line, pfx, sizeof line - strlen(line) - 1);
+        strncat(line, st->crumb_c, sizeof line - strlen(line) - 1);
+    }
+    if (line[0])
+        overlay_label(line);
 }
 
 /* Movable + persisted panel begin helper */

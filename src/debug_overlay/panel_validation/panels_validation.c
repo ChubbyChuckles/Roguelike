@@ -1,6 +1,7 @@
 /* Validation panel wired to state_validation_manager APIs. */
 #include "../../core/integration/state_validation_manager.h"
 #include "../overlay_core.h"
+#include "../overlay_toast.h"
 #include "../widgets/overlay_widgets.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
@@ -16,6 +17,7 @@ static void panel_validation(void* user)
     {
         /* Trigger a full validation run now */
         (void) rogue_validation_run_now(1);
+        overlay_toast_push(OVERLAY_TOAST_INFO, "Validation started…", 1500);
     }
 
     RogueValidationStats st = {0};
@@ -29,6 +31,20 @@ static void panel_validation(void* user)
              (unsigned long long) st.corruptions_detected,
              (unsigned long long) st.repairs_succeeded, (unsigned long long) st.repairs_attempted);
     overlay_label(summary);
+    /* Briefly surface a toast when new runs complete (cheap heuristic) */
+    static unsigned long long s_last_runs = 0;
+    if (st.runs_completed > s_last_runs)
+    {
+        s_last_runs = st.runs_completed;
+        char t[160];
+        snprintf(
+            t, sizeof t, "Validation complete: sys=%llu warn=%llu corrupt=%llu repairs=%llu/%llu",
+            (unsigned long long) st.system_validations_run, (unsigned long long) st.warnings,
+            (unsigned long long) st.corruptions_detected, (unsigned long long) st.repairs_succeeded,
+            (unsigned long long) st.repairs_attempted);
+        overlay_toast_push(st.corruptions_detected ? OVERLAY_TOAST_WARN : OVERLAY_TOAST_INFO, t,
+                           2600);
+    }
 
     const RogueValidationEvent* evs = NULL;
     size_t ev_count = 0;

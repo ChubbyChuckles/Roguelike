@@ -105,6 +105,16 @@ static void panel_items(void* user)
     if (!overlay_begin_panel_auto("items", "Items", 820, 10, 360))
         return;
 
+    /* Render breadcrumb for current selection if any */
+    {
+        static OverlayNavState s_bc; /* keep buffers stable */
+        s_bc.panel_id = "items";
+        s_bc.crumb_a[0] = '\0';
+        s_bc.crumb_b[0] = '\0';
+        s_bc.crumb_c[0] = '\0';
+        overlay_nav_render_breadcrumb(&s_bc);
+    }
+
     static int filter_rarity = -1; // -1 all
     static int level_min = 1, level_max = 50;
     static int give_count = 1;
@@ -282,7 +292,24 @@ static void panel_items(void* user)
                 char cat_s[16];
                 snprintf(cat_s, sizeof cat_s, "%d", d ? (int) d->category : 0);
                 const char* cells[] = {d ? d->name : "?", d ? d->id : "?", rar_s, cat_s, qty_s};
-                (void) overlay_table_row(cells, 5, i, &s_selected);
+                if (overlay_table_row(cells, 5, i, &s_selected))
+                {
+                    /* Update breadcrumb + history on selection change */
+                    OverlayNavState st;
+                    st.panel_id = "items";
+                    st.sel_index = s_selected;
+                    st.crumb_a[0] = '\0';
+                    st.crumb_b[0] = '\0';
+                    st.crumb_c[0] = '\0';
+                    if (d)
+                    {
+                        strncpy(st.crumb_a, "Items", sizeof st.crumb_a - 1);
+                        strncpy(st.crumb_b, d->name ? d->name : d->id, sizeof st.crumb_b - 1);
+                        st.crumb_a[sizeof st.crumb_a - 1] = '\0';
+                        st.crumb_b[sizeof st.crumb_b - 1] = '\0';
+                    }
+                    overlay_nav_set_current(&st);
+                }
             }
             /* Draw and handle a vertical scrollbar aligned with the table */
             if (overlay_table_scrollbar(total_rows, visible_rows, &s_row_offset))

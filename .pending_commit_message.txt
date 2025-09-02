@@ -183,3 +183,12 @@ tests(skills Phase 1.3): add interrupt + context default/clamp units; all tests 
 - Build: Debug (SDL2) -j12.
 - Tests: full ctest run 100% PASS (593/593). Flaky start screen test reproduced then passed on re-run; subsequent full run fully green.
 - Docs: Roadmap STATUS DELTA updated with Phase 1.3 tests entry; README CI counts bumped to 593/593 and mentions the two new units.
+
+feat(overlay/navigation): Breadcrumbs + Back/Forward history (Alt+Left/Right); integrate with Global Search
+
+- Core: Introduce OverlayNavState and a bounded history ring (64 entries) with cursor; add Back/Forward handling via Alt+Left/Right in overlay input. Render a breadcrumb header via overlay_nav_render_breadcrumb.
+- Panels: Items and Skills call overlay_nav_set_current on selection changes to update the current crumb (e.g., Items > <category?> > <item name/id> and Skills > <name>); support deferred selection and auto-scroll in virtualized lists.
+- Search integration: overlay_nav_open_items_and_select / _open_skills_and_select now push to history after opening the panel and selecting the target, so Enter from Global Search records a proper history entry.
+- Build: Debug (SDL2) with -j12 succeeded.
+- Tests: Full ctest run passed 100% (594/594).
+- Docs: Roadmap Milestone 1.3 marked Implemented with details; README “Debug overlay tips” documents Alt+Left/Right history and breadcrumbs.

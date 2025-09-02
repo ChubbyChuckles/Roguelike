@@ -96,3 +96,13 @@ Debug Overlay: Global Search (Ctrl+K) with jump-to Items/Skills; selection sette
 - Build: Include overlay_search.c in the overlay target so the module compiles/links on Windows/MSVC.
 - Docs: README adds a Global Search tip; roadmap Milestone 1.1 updated with scope/status and verification.
 - Verification: Debug (SDL2) full suite passed 100% (594/594) with -j12; manual smoke confirms jump-to selects and scrolls correctly. No regressions.
+
+debug overlay: non-modal toast notifications wired across core flows; tests green
+
+- Add overlay_toast lane rendering in overlay core; headless-safe guards
+- Skills panel: toasts on Save/Load overrides and Auto-Reload activity
+- Validation panel: start/complete toasts with summarized results & severity
+- Command Palette: toasts for Validation: Run Now and Skills save/load actions
+- Input/state untouched for gameplay; notifications are non-blocking with TTL
+- Docs: README tips updated; roadmap M0.3 marked implemented
+- Build/Test: Debug (SDL2) -j12; full CTest 100% (594/594)

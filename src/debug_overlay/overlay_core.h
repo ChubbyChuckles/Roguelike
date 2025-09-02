@@ -37,6 +37,27 @@ void overlay_render(void);
 void overlay_nav_open_items_and_select(int item_index);
 void overlay_nav_open_skills_and_select(int skill_index);
 
+/* Navigation history + breadcrumbs */
+typedef struct OverlayNavState
+{
+    const char* panel_id; /* e.g., "items", "skills" */
+    int sel_index;        /* primary selection index for the panel */
+    char crumb_a[64];     /* optional short breadcrumb segments */
+    char crumb_b[64];
+    char crumb_c[64];
+} OverlayNavState;
+
+/* Panels call this whenever their primary selection changes to record history and
+   update the breadcrumb trail. Passing NULL panel_id disables recording for that tick. */
+void overlay_nav_set_current(const OverlayNavState* st);
+/* Programmatically push a history entry (used by search jump-to helpers). */
+void overlay_nav_push(const OverlayNavState* st);
+/* Attempt to go back/forward in history; return 1 if navigation occurred. */
+int overlay_nav_back(void);
+int overlay_nav_forward(void);
+/* Render a simple breadcrumb line at the current panel cursor. */
+void overlay_nav_render_breadcrumb(const OverlayNavState* st);
+
 /* Toggle */
 void overlay_set_enabled(int enabled);
 int overlay_is_enabled(void);

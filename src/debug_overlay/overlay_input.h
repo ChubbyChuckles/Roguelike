@@ -35,6 +35,7 @@ extern "C"
         int key_end_pressed;
         int key_escape_pressed;
         int key_ctrl_down;
+        int key_alt_down;
         int key_p_pressed;
         int key_k_pressed;
 

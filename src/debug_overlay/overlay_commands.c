@@ -5,6 +5,7 @@
 #include "overlay_core.h"
 #include "overlay_input.h"
 #include "overlay_theme.h"
+#include "overlay_toast.h"
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
@@ -158,6 +159,7 @@ static void cmd_validation_run(void* user)
     /* Headless-safe run-now; shows results in Validation panel */
     extern int rogue_validation_run_now(int force_all);
     (void) rogue_validation_run_now(1);
+    overlay_toast_push(OVERLAY_TOAST_INFO, "Validation started…", 1500);
 }
 static void cmd_validation_toggle_panel(void* user)
 {
@@ -168,13 +170,17 @@ static void cmd_skills_save_overrides(void* user)
 {
     (void) user;
     extern int rogue_skill_debug_save_overrides(const char* path);
-    (void) rogue_skill_debug_save_overrides("build/skills_overrides.json");
+    int rc = rogue_skill_debug_save_overrides("build/skills_overrides.json");
+    overlay_toast_push((rc == 0) ? OVERLAY_TOAST_INFO : OVERLAY_TOAST_ERROR,
+                       (rc == 0) ? "Skills overrides saved" : "Save overrides failed", 2000);
 }
 static void cmd_skills_load_overrides(void* user)
 {
     (void) user;
     extern int rogue_skill_debug_load_overrides_file(const char* path);
-    (void) rogue_skill_debug_load_overrides_file("build/skills_overrides.json");
+    int rc = rogue_skill_debug_load_overrides_file("build/skills_overrides.json");
+    overlay_toast_push((rc >= 0) ? OVERLAY_TOAST_INFO : OVERLAY_TOAST_ERROR,
+                       (rc >= 0) ? "Skills overrides loaded" : "Load overrides failed", 2000);
 }
 static void cmd_content_graph_export_dot(void* user)
 {

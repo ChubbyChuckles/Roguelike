@@ -25,6 +25,12 @@ Milestone 0 — Foundations refresh (pre-work)
 0.3 Notification/toast system
   - Non-modal info/warn/error toasts with auto-dismiss and “Details…” link.
   - Acceptance: Save/Load, Auto-reload, and Validation surface through toasts.
+  - Status: Implemented. Overlay now renders a non-blocking toast lane with info/warn/error kinds and per-toast TTL. Wired across:
+    • Skills panel (Save/Load Overrides, Auto-Reload toggles and activity summaries)
+    • Validation panel (run start/completion with summarized results, severity-based color)
+    • Command Palette actions (Validation: Run Now, Skills: Save/Load)
+    • Core render loop calls overlay_toast_render() and is headless-safe (no SDL calls when no renderer present)
+    Verification: Debug SDL2 build with -j12; full CTest suite all green (594/594).
 
 Milestone 1 — Navigation and discoverability
 1.1 Global search (Ctrl+K) and fuzzy finder
@@ -39,6 +45,9 @@ Milestone 1 — Navigation and discoverability
   - Acceptance: Extensible registry; actions callable headless via overlay_invoke_action (Met for stub milestone).
 1.3 Breadcrumbs and history
   - Breadcrumb trail per panel (e.g., Items > Swords > iron_sabre). Back/Forward history with Alt+Left/Right.
+  - Status: Implemented. Overlay now maintains a bounded navigation history (ring buffer, 64 entries) with Back/Forward via Alt+Left/Right. A breadcrumb header renders at the top of supporting panels. Items and Skills panels record selection changes using a lightweight `OverlayNavState` (panel id, selected index, and up to three crumb segments) via `overlay_nav_set_current`. Programmatic navigation (e.g., Global Search Enter) uses `overlay_nav_open_items_and_select` / `overlay_nav_open_skills_and_select`, which push history after opening + selecting. Deferred selection is honored and rows auto-scroll into view in virtualized tables. Input capture gained an Alt modifier flag in the per-frame input snapshot.
+  - Acceptance: History accurately replays panel + selection across Back/Forward; breadcrumb updates live; Global Search jump-to entries appear in history. Met.
+  - Verification: Built Debug (SDL2) with parallelism (-j12) and ran the full CTest suite: 100% PASS (594/594). Manual smoke validated Back/Forward and breadcrumb updates in Items/Skills.
 
 Milestone 2 — Authoring accelerators (all asset types)
 2.1 Creation wizards (guided forms)
