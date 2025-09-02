@@ -657,7 +657,9 @@ int overlay_splitter_begin(const char* id, int* out_left_w, int min_left_w, int 
     if (g_app.renderer)
     {
         SDL_Rect bar = {handle_x - handle_w / 2, row_y, handle_w, row_h};
-        SDL_SetRenderDrawColor(g_app.renderer, 180, 180, 200, 160);
+        const OverlayTheme* th = overlay_theme_get();
+        SDL_SetRenderDrawColor(g_app.renderer, th->panel_border.r, th->panel_border.g,
+                               th->panel_border.b, th->panel_border.a);
         SDL_RenderFillRect(g_app.renderer, &bar);
     }
 #endif

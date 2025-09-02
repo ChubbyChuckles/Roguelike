@@ -4,6 +4,7 @@
 #include "../../game/buffs.h"
 #include "../../graphics/effect_spec.h"
 #include "../overlay_core.h"
+#include "../overlay_theme.h"
 #include "../widgets/overlay_widgets.h"
 #include "panel_skills_shared.h"
 #include <string.h>
@@ -270,22 +271,7 @@ void panel_skills_draw_effects(int sel)
         overlay_checkbox("Enable Node Graph Editor", &graph_enabled);
         if (graph_enabled)
         {
-            const int panel_x = 380;
-            const int panel_y = 10;
-            const int cv_x = panel_x + 12;
-            const int cv_y = panel_y + 410;
-            const int cv_w = 396;
-            const int cv_h = 160;
-#ifdef ROGUE_HAVE_SDL
-            if (!g_app.headless && g_app.renderer)
-            {
-                SDL_Rect r = {cv_x, cv_y, cv_w, cv_h};
-                SDL_SetRenderDrawColor(g_app.renderer, 14, 14, 20, 220);
-                SDL_RenderFillRect(g_app.renderer, &r);
-                SDL_SetRenderDrawColor(g_app.renderer, 80, 90, 140, 230);
-                SDL_RenderDrawRect(g_app.renderer, &r);
-            }
-#endif
+            /* Declarations for Node Graph UI (placed at top of block to satisfy older C rules) */
             typedef struct NodeUI
             {
                 int id;
@@ -300,6 +286,26 @@ void panel_skills_draw_effects(int sel)
             static int parent_of[3] = {-2, -2, -2};
             static int linking = 0;
             static int link_source = -2;
+
+            const int panel_x = 380;
+            const int panel_y = 10;
+            const int cv_x = panel_x + 12;
+            const int cv_y = panel_y + 410;
+            const int cv_w = 396;
+            const int cv_h = 160;
+#ifdef ROGUE_HAVE_SDL
+            if (!g_app.headless && g_app.renderer)
+            {
+                const OverlayTheme* th = overlay_theme_get();
+                SDL_Rect r = {cv_x, cv_y, cv_w, cv_h};
+                SDL_SetRenderDrawColor(g_app.renderer, th->panel_bg.r, th->panel_bg.g,
+                                       th->panel_bg.b, th->panel_bg.a);
+                SDL_RenderFillRect(g_app.renderer, &r);
+                SDL_SetRenderDrawColor(g_app.renderer, th->panel_border.r, th->panel_border.g,
+                                       th->panel_border.b, th->panel_border.a);
+                SDL_RenderDrawRect(g_app.renderer, &r);
+            }
+#endif
             if (last_skill != sel)
             {
                 ui_inited = 0;
@@ -376,7 +382,9 @@ void panel_skills_draw_effects(int sel)
 #ifdef ROGUE_HAVE_SDL
             if (!g_app.headless && g_app.renderer)
             {
-                SDL_SetRenderDrawColor(g_app.renderer, 60, 160, 200, 255);
+                const OverlayTheme* th = overlay_theme_get();
+                SDL_SetRenderDrawColor(g_app.renderer, th->accent_1.r, th->accent_1.g,
+                                       th->accent_1.b, th->accent_1.a);
                 for (int i = 0; i < node_count && i < 3; ++i)
                 {
                     if (nodes[i].effect_spec_id <= 0)
@@ -404,9 +412,11 @@ void panel_skills_draw_effects(int sel)
                 r.y = ui_primary.y;
                 r.w = bw;
                 r.h = bh;
-                SDL_SetRenderDrawColor(g_app.renderer, 90, 110, 220, 230);
+                SDL_SetRenderDrawColor(g_app.renderer, th->button_bg_hot.r, th->button_bg_hot.g,
+                                       th->button_bg_hot.b, th->button_bg_hot.a);
                 SDL_RenderFillRect(g_app.renderer, &r);
-                SDL_SetRenderDrawColor(g_app.renderer, 20, 20, 40, 255);
+                SDL_SetRenderDrawColor(g_app.renderer, th->panel_border.r, th->panel_border.g,
+                                       th->panel_border.b, th->panel_border.a);
                 SDL_RenderDrawRect(g_app.renderer, &r);
                 for (int i = 0; i < node_count && i < 3; ++i)
                 {
@@ -429,13 +439,20 @@ void panel_skills_draw_effects(int sel)
                             has_timing_issue = 1;
                     }
                     if (!valid)
-                        SDL_SetRenderDrawColor(g_app.renderer, 160, 80, 80, 230);
+                        SDL_SetRenderDrawColor(g_app.renderer, th->toast_error_bg.r,
+                                               th->toast_error_bg.g, th->toast_error_bg.b,
+                                               th->toast_error_bg.a);
                     else if (has_timing_issue)
-                        SDL_SetRenderDrawColor(g_app.renderer, 200, 150, 80, 230);
+                        SDL_SetRenderDrawColor(g_app.renderer, th->toast_warn_bg.r,
+                                               th->toast_warn_bg.g, th->toast_warn_bg.b,
+                                               th->toast_warn_bg.a);
                     else
-                        SDL_SetRenderDrawColor(g_app.renderer, 120, 180, 120, 230);
+                        SDL_SetRenderDrawColor(g_app.renderer, th->toast_info_bg.r,
+                                               th->toast_info_bg.g, th->toast_info_bg.b,
+                                               th->toast_info_bg.a);
                     SDL_RenderFillRect(g_app.renderer, &r);
-                    SDL_SetRenderDrawColor(g_app.renderer, 20, 20, 40, 255);
+                    SDL_SetRenderDrawColor(g_app.renderer, th->panel_border.r, th->panel_border.g,
+                                           th->panel_border.b, th->panel_border.a);
                     SDL_RenderDrawRect(g_app.renderer, &r);
                 }
             }

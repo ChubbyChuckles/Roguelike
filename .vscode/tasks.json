@@ -53,6 +53,16 @@
 			"label": "Run ctests (SDL, -j12) verify no regression",
 			"type": "shell",
 			"command": "ctest --test-dir . -C Debug -j 12 --output-on-failure"
+		},
+		{
+			"label": "Build Debug (SDL2) after theming patches",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 12"
+		},
+		{
+			"label": "Rebuild Debug after theme include",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 12"
 		}
 	]
 }

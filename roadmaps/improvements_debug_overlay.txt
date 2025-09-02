@@ -17,7 +17,7 @@ Milestone 0 — Foundations refresh (pre-work)
   - Centralize colors, spacing, radii, typography scale, and icon palette.
   - Provide 3 presets: Dark (default), Light, High-Contrast; runtime switch + persisted choice.
   - DPI scaling factor and font size ladder. Acceptance: All widgets render with theme constants; no hard-coded colors left in panels.
-  - Status: Runtime setters for preset/DPI/font size implemented and exposed in System panel (persisted in overlay_theme.json). Core widgets migrated: Combo label text, Tree node (bg/border/text accent), and Color swatch border; Items/System panels use theme colors. Remaining panels to migrate in follow-ups.
+  - Status: Runtime setters for preset/DPI/font size implemented and exposed in System panel (persisted in overlay_theme.json). Core widgets migrated: Combo label text, Tree node (bg/border/text accent), and Color swatch border. Panels migrated to theme colors: System, Items, Skills (Testing + Effects Node Graph canvas/nodes/edges/labels), and Content Graph previews. Remaining panels queued for migration in follow-ups.
 0.2 Layout primitives
   - Resizable columns/splitter, collapsible sections, and tab bar. Persist per-panel layout.
   - Status: Splitter implemented in widgets and wired to overlay_prefs persistence. Items panel refactored earlier; Skills and Map panels now adopt persistent split layouts (left navigation/controls, right content/preview placeholder). Sizes persist across restarts.
@@ -136,7 +136,7 @@ Milestone 9 — Extensibility and testing
   - Flake-resistant timers; deterministic seeds; timeouts with retries for file mtime on Windows.
 
 Implementation notes and constraints
-- MSVC: use compile-time caps (e.g., OVERLAY_*_MAX_*) for buffers; avoid VLAs.
+- MSVC: use compile-time caps (e.g., OVERLAY_*_MAX_*) for buffers; avoid VLAs. Ensure declaration-before-statement compliance in C sources; panel_skills_effects.c adjusted by moving typedefs/static state to the top of the relevant block.
 - Input: prefer “clicked” over “pressed” for discrete actions; capture input on focus.
 - Headless: keep logic separated from rendering; all commands callable without SDL.
 - Filesystem: atomic writes; centralize save paths; per-test isolation for units.
@@ -176,7 +176,7 @@ Near-term next steps (actionable)
   - Case-insensitive substring filter on id/name; header clicks toggle ascending/descending sort.
   - Keyboard Up/Down scroll the virtualized list; selection stays in view. Command: “Items: Create New”.
 6) Begin overlay_theme extraction and migrate System + Items to theme constants (colors/spacing/typography). Document quick preset switch and persistence.
-  - Progress: System panel adds Theme Preset, DPI, and Font Size controls using overlay_theme setters; selections persist. Core widget colors migrated; more panels queued.
+  - Progress: System panel adds Theme Preset, DPI, and Font Size controls using overlay_theme setters; selections persist. Core widget colors migrated; additional panels now consume theme colors (Skills Testing, Skills Effects Node Graph, and Content Graph). Remaining panels queued.
 
 Verification
 - Build: Debug (SDL2), parallel -j12.

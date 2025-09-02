@@ -2,6 +2,7 @@
 #include "../../util/asset_dep.h"
 #include "../overlay_core.h"
 #include "../overlay_input.h"
+#include "../overlay_theme.h"
 #include "../widgets/overlay_widgets.h"
 
 #include <stdio.h>
@@ -695,6 +696,7 @@ static void panel_content_graph(void* user)
 #ifdef ROGUE_HAVE_SDL
         if (draw_edges && g_app.renderer)
         {
+            const OverlayTheme* th = overlay_theme_get();
             const int panel_x = 1920 - 380;
             const int panel_y = 10;
             const int panel_w = 360;
@@ -703,9 +705,11 @@ static void panel_content_graph(void* user)
             const int cw = panel_w - 24;
             const int ch = 180;
             SDL_Rect area = {cx, cy, cw, ch};
-            SDL_SetRenderDrawColor(g_app.renderer, 12, 12, 12, 180);
+            SDL_SetRenderDrawColor(g_app.renderer, th->panel_bg.r, th->panel_bg.g, th->panel_bg.b,
+                                   th->panel_bg.a);
             SDL_RenderFillRect(g_app.renderer, &area);
-            SDL_SetRenderDrawColor(g_app.renderer, 100, 100, 140, 220);
+            SDL_SetRenderDrawColor(g_app.renderer, th->panel_border.r, th->panel_border.g,
+                                   th->panel_border.b, th->panel_border.a);
             SDL_RenderDrawRect(g_app.renderer, &area);
             const char* nids[OVERLAY_CG_MAX_NODES];
             int ndeps[OVERLAY_CG_MAX_NODES];
@@ -756,7 +760,8 @@ static void panel_content_graph(void* user)
                 rects[i].w = (col_w > 140 ? 120 : (col_w - 20 > 60 ? col_w - 20 : 60));
                 rects[i].h = 20;
             }
-            SDL_SetRenderDrawColor(g_app.renderer, 180, 180, 220, 220);
+            SDL_SetRenderDrawColor(g_app.renderer, th->accent_2.r, th->accent_2.g, th->accent_2.b,
+                                   th->accent_2.a);
             for (int i = 0; i < ecount; ++i)
             {
                 int s = edges[i][0], t = edges[i][1];
@@ -786,7 +791,9 @@ static void panel_content_graph(void* user)
                         }
                         if (a >= 0 && b >= 0)
                         {
-                            SDL_SetRenderDrawColor(g_app.renderer, 220, 60, 60, 240);
+                            SDL_SetRenderDrawColor(g_app.renderer, th->toast_error_bg.r,
+                                                   th->toast_error_bg.g, th->toast_error_bg.b,
+                                                   th->toast_error_bg.a);
                             int x0 = rects[a].x + rects[a].w;
                             int y0 = rects[a].y + rects[a].h / 2;
                             int x1 = rects[b].x;
@@ -801,32 +808,23 @@ static void panel_content_graph(void* user)
                 SDL_Rect r = rects[i];
                 if (i == 0)
                 {
-                    SDL_SetRenderDrawColor(g_app.renderer, 40, 70, 110, 220);
+                    SDL_SetRenderDrawColor(g_app.renderer, th->button_bg_hot.r, th->button_bg_hot.g,
+                                           th->button_bg_hot.b, th->button_bg_hot.a);
                 }
                 else
                 {
-                    unsigned ghash = 2166136261u;
-                    const char* gid = nids[i];
-                    const char* slash2 = gid ? strchr(gid, '/') : NULL;
-                    int gl = 0;
-                    if (gid && slash2)
-                        gl = (int) (slash2 - gid);
-                    for (int c = 0; c < gl; ++c)
-                    {
-                        ghash ^= (unsigned) gid[c];
-                        ghash *= 16777619u;
-                    }
-                    unsigned r8 = 60u + (ghash & 95u);
-                    unsigned g8 = 60u + ((ghash >> 8) & 95u);
-                    unsigned b8 = 60u + ((ghash >> 16) & 95u);
-                    SDL_SetRenderDrawColor(g_app.renderer, (Uint8) r8, (Uint8) g8, (Uint8) b8, 220);
+                    /* Non-root nodes use standard button background to respect theme */
+                    SDL_SetRenderDrawColor(g_app.renderer, th->button_bg.r, th->button_bg.g,
+                                           th->button_bg.b, th->button_bg.a);
                 }
                 SDL_RenderFillRect(g_app.renderer, &r);
-                SDL_SetRenderDrawColor(g_app.renderer, 220, 220, 220, 220);
+                SDL_SetRenderDrawColor(g_app.renderer, th->panel_border.r, th->panel_border.g,
+                                       th->panel_border.b, th->panel_border.a);
                 SDL_RenderDrawRect(g_app.renderer, &r);
                 const char* label = nids[i] ? nids[i] : "?";
+                const OverlayColor lt = (i == 0) ? th->text_accent : th->text;
                 rogue_font_draw_text(r.x + 4, r.y + 4, label, 1,
-                                     (RogueColor){i == 0 ? 255 : 220, 255, 220, 255});
+                                     (RogueColor){lt.r, lt.g, lt.b, lt.a});
             }
             const OverlayInputState* in = overlay_input_get();
             if (in && in->mouse_clicked)

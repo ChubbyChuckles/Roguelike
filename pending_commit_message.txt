@@ -79,3 +79,11 @@ Debug Overlay: Items table vertical scrollbar (click-to-page + drag), integrated
 - Readme: Added tip about the new scrollbar interactions.
 - Roadmap: Mark scrollbar complete under Milestone 8.1; keep FPS metrics as a next step.
 - Build/Tests: Full ctest suite from build dir passed 100% (593/593) on Debug (SDL2, -j12).
+
+Debug Overlay: Theme migration sweep (Skills Effects Node Graph + Content Graph), MSVC decl-order fix; docs/roadmap; tests green
+
+- Theming: Skills Effects Node Graph visuals (canvas/nodes/edges/labels) and Content Graph SDL preview/diagnostics now consume overlay_theme colors and accents for consistent contrast across presets.
+- MSVC: Fixed declaration-before-statement issues in Skills Effects by moving typedefs/static state to the top of the block (C mode under MSVC).
+- Roadmap: Updated 0.1 status to list migrated panels; added MSVC note under Implementation constraints; near-term next steps reflect additional theme consumers.
+- README: Added notes about themed visuals for Skills Effects and Content Graph plus the MSVC compatibility reminder.
+- Verification: Debug SDL2 full rebuild and full CTest run green (594/594) with -j12 on Windows/MSVC.

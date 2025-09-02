@@ -3,6 +3,7 @@
 #include "../../core/skills/skill_debug.h"
 #include "../../graphics/sprite.h"
 #include "../overlay_core.h"
+#include "../overlay_theme.h"
 #include "../widgets/overlay_widgets.h"
 #include "panel_skills_shared.h"
 #include <string.h>
@@ -114,10 +115,13 @@ void panel_skills_draw_testing(int sel)
 #ifdef ROGUE_HAVE_SDL
     if (!g_app.headless && g_app.renderer)
     {
+        const OverlayTheme* th = overlay_theme_get();
         SDL_Rect r = {pv_x, pv_y, pv_w, pv_h};
-        SDL_SetRenderDrawColor(g_app.renderer, 12, 12, 18, 220);
+        SDL_SetRenderDrawColor(g_app.renderer, th->panel_bg.r, th->panel_bg.g, th->panel_bg.b,
+                               th->panel_bg.a);
         SDL_RenderFillRect(g_app.renderer, &r);
-        SDL_SetRenderDrawColor(g_app.renderer, 70, 90, 130, 230);
+        SDL_SetRenderDrawColor(g_app.renderer, th->panel_border.r, th->panel_border.g,
+                               th->panel_border.b, th->panel_border.a);
         SDL_RenderDrawRect(g_app.renderer, &r);
     }
 #endif
