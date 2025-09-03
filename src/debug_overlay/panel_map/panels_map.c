@@ -1,6 +1,7 @@
 #include "../../core/app/app_state.h"
 #include "../../core/world/map_debug.h"
 #include "../overlay_core.h"
+#include "../overlay_icon.h"
 #include "../overlay_input.h"
 #include "../overlay_theme.h"
 #include "../widgets/overlay_widgets.h"
@@ -103,11 +104,11 @@ static void panel_map_editor(void* user)
     /* Undo/Redo row */
     if (overlay_columns_begin(3, NULL))
     {
-        if (overlay_button("Undo"))
-            (void) rogue_map_debug_undo();
+        if (overlay_icon_button("Undo", OVERLAY_ICON_UNDO))
+            rogue_map_debug_undo();
         overlay_next_column();
-        if (overlay_button("Redo"))
-            (void) rogue_map_debug_redo();
+        if (overlay_icon_button("Redo", OVERLAY_ICON_REDO))
+            rogue_map_debug_redo();
         overlay_next_column();
         if (overlay_button("Clear History"))
             rogue_map_debug_undo_clear();
@@ -124,12 +125,7 @@ static void panel_map_editor(void* user)
                 tile_val = (int) g_app.world_map.tiles[py * g_app.world_map.width + px];
         }
         overlay_next_column();
-        if (overlay_button("Fill Entire Map"))
-        {
-            unsigned char v = (unsigned char) (erase_mode ? 0 : tile_val);
-            (void) rogue_map_debug_brush_rect(0, 0, g_app.world_map.width - 1,
-                                              g_app.world_map.height - 1, v);
-        }
+        /* reserved for future quick actions */
         overlay_columns_end();
     }
 
@@ -152,7 +148,7 @@ static void panel_map_editor(void* user)
     overlay_input_text("Map JSON Path", path_buf, sizeof path_buf);
     if (overlay_columns_begin(2, NULL))
     {
-        if (overlay_button("Save JSON"))
+        if (overlay_icon_button("Save JSON", OVERLAY_ICON_SAVE))
         {
             int rc = rogue_map_debug_save_json(path_buf);
             char msg[64];
@@ -160,7 +156,7 @@ static void panel_map_editor(void* user)
             overlay_label(msg);
         }
         overlay_next_column();
-        if (overlay_button("Load JSON"))
+        if (overlay_icon_button("Load JSON", OVERLAY_ICON_PLAY))
         {
             int rc = rogue_map_debug_load_json(path_buf);
             char msg[64];

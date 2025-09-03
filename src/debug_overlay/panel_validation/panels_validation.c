@@ -1,6 +1,7 @@
 /* Validation panel wired to state_validation_manager APIs. */
 #include "../../core/integration/state_validation_manager.h"
 #include "../overlay_core.h"
+#include "../overlay_icon.h"
 #include "../overlay_toast.h"
 #include "../widgets/overlay_widgets.h"
 
@@ -13,7 +14,7 @@ static void panel_validation(void* user)
         return;
 
     overlay_label("Run content validators:");
-    if (overlay_button("Validate All"))
+    if (overlay_icon_button("Validate All", OVERLAY_ICON_SEARCH))
     {
         /* Trigger a full validation run now */
         (void) rogue_validation_run_now(1);

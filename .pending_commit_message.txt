@@ -193,11 +193,18 @@ feat(overlay/navigation): Breadcrumbs + Back/Forward history (Alt+Left/Right); i
 - Tests: Full ctest run passed 100% (594/594).
 - Docs: Roadmap Milestone 1.3 marked Implemented with details; README “Debug overlay tips” documents Alt+Left/Right history and breadcrumbs.
 
-feat(overlay/dialogue): Dialogue preview panel (textual mini-graph, style inspector, sample runner)
+ feat(overlay/dialogue): Dialogue preview panel (textual mini-graph, style inspector, sample runner)
 
 - Add a headless-safe Dialogue overlay panel registered in the overlay aggregator and build; includes a textual branch mini-graph, a simple conversation runner (Start/Advance/Reset), and a style inspector driven by `rogue_dialogue_style_get/set`.
 - Auto-register a built-in sample dialogue (id 101) via `rogue_dialogue_register_from_buffer` when no dialogues exist so preview works out of the box; visuals remain textual with SDL guards.
 - Build: Debug (SDL2) with parallelism (-j12) succeeded.
+
+feat(overlay/accessibility): Colorblind-safe palette toggle + persistence; docs/roadmap updated
+
+- Theme: add colorblind_mode with setters/getters; remap accent/toast colors when enabled; persist `colorblind` in build/overlay_theme.json and re-apply preset on load.
+- UI: System panel adds "Colorblind-safe palette" checkbox bound to theme state; toggling updates visuals immediately.
+- Docs: README "Theme & Accessibility" mentions the toggle and persistence; roadmap Milestone 6.4 marked complete with details.
+- Build/Tests: Debug (SDL2) -j12; full ctest suite 100% green (594/594).
 - Tests: Full CTest from the build directory passed 100% (594/594) with `--output-on-failure`.
 
 feat(overlay/content_graph M5.1): pan/zoom + fit + isolate-subgraph; docs/roadmap; tests green
@@ -206,3 +213,12 @@ feat(overlay/content_graph M5.1): pan/zoom + fit + isolate-subgraph; docs/roadma
 - Isolate subgraph: Filter list to nodes reachable from the current selection up to Preview depth via BFS. In‑view hint renders controls; all SDL paths are guarded for headless safety.
 - Docs: README and roadmap updated accordingly; node pinning/manual placement remains TODO in 5.1.
 - Build/Tests: Debug SDL2 with -j12; ctest from build dir 100% PASS (594/594).
+
+feat(overlay/icons M6.2): themed icon set + icon buttons; Map adoption; docs/roadmap; tests green
+
+- Module: add `src/debug_overlay/overlay_icon.{h,c}` with a compact OverlayIcon enum (SAVE/UNDO/REDO/PLAY/SEARCH/…) and `overlay_icon_draw()`. Icons are 12×12 monochrome bitmaps tinted via the overlay theme accent; all SDL calls are guarded for headless runs.
+- Widget: introduce `overlay_icon_button(label, icon)` rendering a labeled button with a left‑aligned icon, consistent paddings, micro‑interaction states (hover/pressed/focus), and built‑in tooltip consumption.
+- Integration: Map panel action rows now use icon buttons for Undo/Redo and Save/Load; behaviors and labels preserved. Fixed missing include and C89 brace order issues in `panels_map.c` during adoption.
+- Build: include `overlay_icon.c` in the overlay target so the module compiles across builds.
+- Docs: README “Debug overlay tips” adds an Icons (M6.2) usage note; roadmap Milestone 6 status updated accordingly.
+- Verification: Built Debug (SDL2) with parallelism (-j12) and ran full CTest from the build directory with `--output-on-failure`: 100% PASS (594/594). No regressions observed.

@@ -6,6 +6,7 @@
 #include "../../game/dialogue.h"
 #include "../../util/log.h"
 #include "../overlay_core.h"
+#include "../overlay_icon.h"
 #include "../widgets/overlay_widgets.h"
 #include <stdio.h>
 #include <string.h>
@@ -162,17 +163,17 @@ static void dp_render_controls(void)
     (void) overlay_combo(combo_label, &g_dp.selected_script_idx, items, shown);
 
     /* Playback controls */
-    if (overlay_button("Start"))
+    if (overlay_icon_button("Start", OVERLAY_ICON_PLAY))
     {
         const RogueDialogueScript* s = dp_script_by_index(g_dp.selected_script_idx);
         if (s)
             rogue_dialogue_start(s->id);
     }
-    if (overlay_button("Advance"))
+    if (overlay_icon_button("Advance", OVERLAY_ICON_PLAY))
     {
         (void) rogue_dialogue_advance();
     }
-    if (overlay_button("Reset"))
+    if (overlay_icon_button("Reset", OVERLAY_ICON_UNDO))
     {
         RogueDialoguePersistState st;
         st.active = 0;

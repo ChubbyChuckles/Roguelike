@@ -1,3 +1,4 @@
+#include "../overlay_tooltip.h"
 #include "overlay_widgets_internal.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
@@ -18,10 +19,13 @@ int overlay_mouse_over(int x, int y, int w, int h)
 
 void overlay_style_set(OverlayStyle s) { g_ui.style = s; }
 
+void overlay_set_next_tooltip(const char* text) { g_ui.next_tooltip = text; }
+
 int overlay_begin_panel(const char* title, int x, int y, int w)
 {
     if (!overlay_is_enabled())
         return 0;
+    overlay_tooltip_new_frame();
     g_ui.panel_active = 1;
     g_ui.cur_x = x + 8;
     g_ui.cur_y = y + 28;
@@ -37,6 +41,7 @@ int overlay_begin_panel(const char* title, int x, int y, int w)
     g_ui.table_active = 0;
     g_ui.table_cols = 0;
     g_ui.table_row_h = 18;
+    g_ui.next_tooltip = NULL;
 #ifdef ROGUE_HAVE_SDL
     if (g_app.renderer)
     {

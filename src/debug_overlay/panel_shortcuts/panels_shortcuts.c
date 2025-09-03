@@ -19,6 +19,9 @@ static void panel_shortcuts(void* user)
     overlay_label("  ?: Open this Shortcuts panel");
     overlay_label("  Alt+1..9: Show common panels (1 System, 2 Items, 3 Skills, 4 Map, 5 "
                   "Audio/VFX, 6 Entities, 7 Content Graph, 8 Validation, 9 Dialogue)");
+    overlay_label("  Esc: Clear focus");
+    overlay_label("  Ctrl+S: Save (contextual: Skills overrides, Map JSON)");
+    overlay_label("  Ctrl+Z / Ctrl+Y: Undo/Redo (Map editor)");
     overlay_end_panel();
 }
 

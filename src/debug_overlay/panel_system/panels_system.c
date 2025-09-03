@@ -45,6 +45,11 @@ static void panel_system(void* user)
     {
         overlay_theme_set_preset((enum OverlayThemePreset) preset);
     }
+    int cb = overlay_theme_get_colorblind();
+    if (overlay_checkbox("Colorblind-safe palette", &cb))
+    {
+        overlay_theme_set_colorblind(cb);
+    }
     float dpi = overlay_theme_get_dpi();
     if (overlay_slider_float("DPI Scale", &dpi, 0.5f, 3.0f))
     {

@@ -42,6 +42,9 @@ extern "C"
         int key_k_pressed;
         int key_f_pressed;        /* Fit-to-selection (Content Graph) */
         int key_question_pressed; /* '?' toggled via Shift + '/' */
+        int key_s_pressed;        /* For Ctrl+S save */
+        int key_z_pressed;        /* For Ctrl+Z undo */
+        int key_y_pressed;        /* For Ctrl+Y redo */
         int key_1_pressed;        /* Alt+1..9 panel switching */
         int key_2_pressed;
         int key_3_pressed;

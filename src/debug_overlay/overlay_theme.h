@@ -53,6 +53,8 @@ extern "C"
         /* Metrics */
         float dpi_scale; /* 1.0 = default */
         int font_size;   /* base font size ladder */
+        /* Accessibility */
+        int colorblind_mode; /* 0 = off, 1 = on */
     } OverlayTheme;
 
     enum OverlayThemePreset
@@ -73,6 +75,10 @@ extern "C"
     float overlay_theme_get_dpi(void);
     /* Font size setter (persists). */
     void overlay_theme_set_font_size(int size);
+
+    /* Accessibility: colorblind-safe palette toggle (persists). */
+    void overlay_theme_set_colorblind(int enabled);
+    int overlay_theme_get_colorblind(void);
 
 #ifdef __cplusplus
 }

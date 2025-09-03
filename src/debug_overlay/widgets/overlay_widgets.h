@@ -34,10 +34,14 @@ extern "C"
      */
     void overlay_label(const char* text);
     int overlay_button(const char* label);
+    /* Icon+text button: draws a small icon left of the label. Returns 1 if clicked. */
+    int overlay_icon_button(const char* label, int icon);
     int overlay_checkbox(const char* label, int* value);
     int overlay_slider_int(const char* label, int* value, int minv, int maxv);
     int overlay_slider_float(const char* label, float* value, float minv, float maxv);
     int overlay_input_text(const char* label, char* buf, size_t buf_size);
+    /* Set a tooltip for the next widget call in this panel. Clears after consumption. */
+    void overlay_set_next_tooltip(const char* text);
 
     /* Advanced widgets */
     /* Combo/Dropdown: cycles or arrow-adjusts through items; returns 1 if selection changed */
@@ -102,6 +106,12 @@ static inline int overlay_button(const char* label)
     (void) label;
     return 0;
 }
+static inline int overlay_icon_button(const char* label, int icon)
+{
+    (void) label;
+    (void) icon;
+    return 0;
+}
 static inline int overlay_checkbox(const char* label, int* value)
 {
     (void) label;
@@ -131,6 +141,7 @@ static inline int overlay_input_text(const char* label, char* buf, size_t buf_si
     (void) buf_size;
     return 0;
 }
+static inline void overlay_set_next_tooltip(const char* text) { (void) text; }
 static inline int overlay_combo(const char* label, int* current_index, const char* const* items,
                                 int count)
 {

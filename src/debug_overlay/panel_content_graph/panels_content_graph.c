@@ -1,6 +1,7 @@
 #include "../../core/app/app_state.h"
 #include "../../util/asset_dep.h"
 #include "../overlay_core.h"
+#include "../overlay_icon.h"
 #include "../overlay_input.h"
 #include "../overlay_theme.h"
 #include "../widgets/overlay_widgets.h"
@@ -137,7 +138,7 @@ static void panel_content_graph(void* user)
     static int pinned_count = 0;
     overlay_input_text("Filter (substring)", filter, sizeof filter);
     /* Quick action: compute & cache all node hashes to surface issues early */
-    if (overlay_button("Compute All Hashes"))
+    if (overlay_icon_button("Compute All Hashes", OVERLAY_ICON_SEARCH))
     {
         int total = rogue_asset_dep_count();
         for (int i = 0; i < total; ++i)
@@ -151,7 +152,7 @@ static void panel_content_graph(void* user)
         }
     }
     /* Export a simple Graphviz DOT */
-    if (overlay_button("Export DOT (build/content_graph.dot)"))
+    if (overlay_icon_button("Export DOT (build/content_graph.dot)", OVERLAY_ICON_SAVE))
     {
         FILE* f = NULL;
 #if defined(_MSC_VER)
@@ -193,7 +194,7 @@ static void panel_content_graph(void* user)
         }
     }
     /* Export JSON */
-    if (overlay_button("Export JSON (build/content_graph.json)"))
+    if (overlay_icon_button("Export JSON (build/content_graph.json)", OVERLAY_ICON_SAVE))
     {
         FILE* f = NULL;
 #if defined(_MSC_VER)

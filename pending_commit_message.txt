@@ -1,3 +1,24 @@
+feat(overlay): Esc clears focus; Ctrl+S save; Ctrl+Z/Y undo/redo; Shortcuts updated (M6.3)
+
+- Input: capture S/Z/Y to support Ctrl+S and Ctrl+Z/Y. Kept headless-safe; resets per frame.
+- Esc now clears widget focus globally (g_ui.focus_index = -1) for fast keyboard exit.
+- Ctrl+S contextual save:
+	• Skills panel: Save Overrides JSON and refresh (toast confirms).
+	• Map panel: Save to build/map.json via debug API (toast confirms).
+- Ctrl+Z / Ctrl+Y: route to Map editor undo/redo when the Map panel is visible.
+- Shortcuts panel: cheat sheet includes Esc, Ctrl+S, and Ctrl+Z/Y.
+- Roadmap (improvements_debug_overlay.txt): Milestone 6.3 updated with the above; next steps noted (generalize save and undo stacks across panels).
+
+Verification
+- Build: Debug (SDL2) with parallelism (-j12) succeeded.
+- Tests: Full CTest suite from build dir passed 100% (594/594) with --output-on-failure.
+
+Touched
+- src/debug_overlay/overlay_input.{h,c} (new key flags for S/Z/Y)
+- src/debug_overlay/overlay_core.c (global Esc/Ctrl+S/Z/Y handlers)
+- src/debug_overlay/panel_shortcuts/panels_shortcuts.c (updated tips)
+- roadmaps/improvements_debug_overlay.txt (status update)
+
 debug(overlay): centralize panel gizmo colors via OverlayTheme in Map & Audio/VFX; build/tests green
 
 - Map panel: replaced hard-coded SDL colors with theme accents for brush ghost (fill/border),
@@ -205,3 +226,38 @@ Debug Overlay (M6.3): Shortcuts panel ('?') + Alt+1..9 quick panel switching; do
 - Verification: Built Debug (SDL2) with -j12 and ran full CTest from build dir: 100% PASS (594/594). No regressions.
 - Touched: src/debug_overlay/overlay_input.{h,c}, src/debug_overlay/overlay_core.c, src/debug_overlay/overlay_panels.c,
 		   src/debug_overlay/panel_shortcuts/panels_shortcuts.c, CMakeLists.txt, README.md, roadmaps/improvements_debug_overlay.txt
+
+Debug Overlay (M6.1): Micro-interactions for core widgets + Tree Node implementation; docs/roadmap; tests green
+
+- Widgets: add accessible hover/pressed/focus states to Button, Checkbox, SliderInt/Float, InputText, and Combo. Focus rings use overlay theme accents (accent_1/accent_2) and respect the Colorblind-safe palette. Added a small shade helper to lighten/darken fills consistently.
+- Tree Node: implement a collapsible header row with arrow indicator (▸/▾), keyboard toggle (Enter/Space), mouse click handling, and a focus ring. Panels (Map, Validation, Content Graph) now link against this implementation.
+- Roadmap: update Milestone 6.1 status with details and verification; README gains short tips on micro-interactions and the Tree Node control.
+- Headless-safe: SDL draw calls are guarded; logic remains testable without a renderer.
+
+Verification
+- Build: Debug (SDL2) with parallelism (-j12) succeeded.
+- Tests: Full CTest suite from the build directory passed 100% (594/594) with --output-on-failure; no regressions.
+
+Touched
+- src/debug_overlay/widgets/overlay_widgets_controls.c (micro-interactions; overlay_tree_node)
+- roadmaps/improvements_debug_overlay.txt (M6.1 status)
+- README.md (tips)
+
+Debug Overlay (M6.1): Tooltip system (hover-delay) + widget integration; docs; tests green
+
+- API: overlay_set_next_tooltip(const char*) lets panels attach a tooltip to the next widget call.
+- Engine: new overlay_tooltip.{h,c} tracks hover rectangles per widget id and, after ~400ms, renders a themed tooltip near the cursor; headless-safe (SDL-guarded).
+- Widgets: Button, Checkbox, SliderInt/Float, InputText, Combo, and Tree Node consume the next tooltip and register their hover rects automatically.
+- Docs: README usage note; roadmap updated under 6.1.
+
+Verification
+- Build: Debug (SDL2) with -j12 succeeded.
+- Tests: Full CTest suite from build/ passed 100% (594/594) with --output-on-failure.
+
+Touched
+- src/debug_overlay/overlay_tooltip.{h,c}
+- src/debug_overlay/overlay_core.c (render hook)
+- src/debug_overlay/widgets/overlay_widgets_core.c (API)
+- src/debug_overlay/widgets/overlay_widgets_controls.c (integration)
+- CMakeLists.txt (compile unit)
+- README.md, roadmaps/improvements_debug_overlay.txt

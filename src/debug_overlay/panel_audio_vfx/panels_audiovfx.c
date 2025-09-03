@@ -2,6 +2,7 @@
 #include "../../core/app/app_state.h"
 #include "../../core/audio_vfx/audiovfx_debug.h"
 #include "../overlay_core.h"
+#include "../overlay_icon.h"
 #include "../overlay_input.h"
 #include "../overlay_theme.h"
 #include "../widgets/overlay_widgets.h"
@@ -20,10 +21,10 @@ static void panel_audiovfx(void* user)
     overlay_input_text("VFX ID", vfx_id, sizeof vfx_id);
     if (overlay_columns_begin(2, NULL))
     {
-        if (overlay_button("Play Sound"))
+        if (overlay_icon_button("Play Sound", OVERLAY_ICON_PLAY))
             (void) rogue_audiovfx_debug_play(audio_id);
         overlay_next_column();
-        if (overlay_button("Spawn VFX @ Cursor"))
+        if (overlay_icon_button("Spawn VFX @ Cursor", OVERLAY_ICON_PLAY))
         {
             const OverlayInputState* in = overlay_input_get();
             (void) rogue_audiovfx_debug_spawn_at_cursor(vfx_id, in->mouse_x, in->mouse_y);
@@ -59,7 +60,7 @@ static void panel_audiovfx(void* user)
     }
 
     /* Play @ Cursor (with world coords so attenuation applies) */
-    if (overlay_button("Play Sound @ Cursor"))
+    if (overlay_icon_button("Play Sound @ Cursor", OVERLAY_ICON_PLAY))
     {
         const OverlayInputState* in = overlay_input_get();
         /* Convert cursor (screen px) to world tiles */

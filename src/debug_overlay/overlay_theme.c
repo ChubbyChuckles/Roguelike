@@ -5,6 +5,7 @@
 
 static OverlayTheme g_theme;
 static enum OverlayThemePreset g_preset = OVERLAY_THEME_DARK;
+static int g_colorblind_mode = 0;
 
 static const char* overlay_theme_cfg_path(void) { return "build/overlay_theme.json"; }
 
@@ -18,6 +19,7 @@ static void overlay_theme_apply_preset(enum OverlayThemePreset p)
 {
     g_theme.dpi_scale = 1.0f;
     g_theme.font_size = 14;
+    g_theme.colorblind_mode = g_colorblind_mode;
     switch (p)
     {
     default:
@@ -109,13 +111,29 @@ static void overlay_theme_apply_preset(enum OverlayThemePreset p)
         g_theme.accent_2 = C(255, 0, 255, 255);
         break;
     }
+    /* If colorblind mode is enabled, remap accent colors to a palette that is differentiable
+       under common deficiencies (deuteranopia/protanopia). Keep contrast high. */
+    if (g_theme.colorblind_mode)
+    {
+        /* Use blue/orange pair as accents; avoid red/green ambiguity. */
+        g_theme.accent_1 = C(0, 114, 178, 230); /* blue */
+        g_theme.accent_2 = C(213, 94, 0, 255);  /* orange */
+        /* Improve toast warn/error distinction by shifting warn towards amber */
+        if (p == OVERLAY_THEME_DARK)
+        {
+            g_theme.toast_warn_bg = C(160, 120, 20, 230);
+            g_theme.toast_error_bg = C(180, 60, 40, 230);
+        }
+    }
 }
 
 static void overlay_theme_save(void)
 {
     char buf[256];
-    int n = snprintf(buf, sizeof buf, "{\n  \"preset\": %d,\n  \"dpi\": %.3f,\n  \"font\": %d\n}\n",
-                     (int) g_preset, g_theme.dpi_scale, g_theme.font_size);
+    int n = snprintf(
+        buf, sizeof buf,
+        "{\n  \"preset\": %d,\n  \"dpi\": %.3f,\n  \"font\": %d,\n  \"colorblind\": %d\n}\n",
+        (int) g_preset, g_theme.dpi_scale, g_theme.font_size, g_colorblind_mode);
     char err[128];
     (void) json_io_write_atomic(overlay_theme_cfg_path(), buf, (size_t) n, err, (int) sizeof err);
 }
@@ -131,13 +149,18 @@ static void overlay_theme_load(void)
     int preset = (int) g_preset;
     float dpi = g_theme.dpi_scale;
     int font = g_theme.font_size;
+    int cb = g_colorblind_mode;
     /* naive sscanf parse */
-    sscanf(data, "%*[^p]preset%*[^0-9]%d%*[^d]dpi%*[^0-9.]%f%*[^f]font%*[^0-9]%d", &preset, &dpi,
-           &font);
+    sscanf(data,
+           "%*[^p]preset%*[^0-9]%d%*[^d]dpi%*[^0-9.]%f%*[^f]font%*[^0-9]%d%*[^c]colorblind%*[^0-9]"
+           "%d",
+           &preset, &dpi, &font, &cb);
     if (preset < 0 || preset > 2)
         preset = 0;
     overlay_theme_apply_preset((enum OverlayThemePreset) preset);
     g_preset = (enum OverlayThemePreset) preset;
+    g_colorblind_mode = (cb != 0);
+    g_theme.colorblind_mode = g_colorblind_mode;
     if (dpi >= 0.5f && dpi <= 3.0f)
         g_theme.dpi_scale = dpi;
     if (font >= 10 && font <= 28)
@@ -183,5 +206,15 @@ void overlay_theme_set_font_size(int size)
     g_theme.font_size = size;
     overlay_theme_save();
 }
+
+void overlay_theme_set_colorblind(int enabled)
+{
+    g_colorblind_mode = enabled ? 1 : 0;
+    g_theme.colorblind_mode = g_colorblind_mode;
+    overlay_theme_apply_preset(g_preset); /* re-apply accents based on mode */
+    overlay_theme_save();
+}
+
+int overlay_theme_get_colorblind(void) { return g_colorblind_mode; }
 
 #endif /* ROGUE_ENABLE_DEBUG_OVERLAY */

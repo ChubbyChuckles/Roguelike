@@ -1,4 +1,6 @@
+#include "../overlay_icon.h"
 #include "../overlay_prefs.h"
+#include "../overlay_tooltip.h"
 #include "overlay_widgets_internal.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
@@ -11,6 +13,28 @@
 #endif
 #include <stdio.h>
 #include <string.h>
+
+/* Lightweight color shade helper (clamps to 0..255). Positive delta lightens, negative darkens. */
+static OverlayColor shade_color(OverlayColor c, int delta)
+{
+    int r = (int) c.r + delta;
+    int g = (int) c.g + delta;
+    int b = (int) c.b + delta;
+    if (r < 0)
+        r = 0;
+    if (r > 255)
+        r = 255;
+    if (g < 0)
+        g = 0;
+    if (g > 255)
+        g = 255;
+    if (b < 0)
+        b = 0;
+    if (b > 255)
+        b = 255;
+    OverlayColor out = {(unsigned char) r, (unsigned char) g, (unsigned char) b, c.a};
+    return out;
+}
 
 void overlay_label(const char* text)
 {
@@ -41,6 +65,8 @@ int overlay_button(const char* label)
     int x = g_ui.cur_x, y = g_ui.cur_y;
     int w = (g_ui.columns > 1 ? g_ui.col_widths[g_ui.col_index] : g_ui.width);
     int id = g_ui.total_widgets++;
+    const char* tip = g_ui.next_tooltip;
+    g_ui.next_tooltip = NULL;
     if (g_ui.row_max_h < h)
         g_ui.row_max_h = h;
 #ifdef ROGUE_HAVE_SDL
@@ -49,17 +75,103 @@ int overlay_button(const char* label)
         const OverlayTheme* th = overlay_theme_get();
         SDL_Rect r = {x, y, w, h};
         int hot = overlay_mouse_over(x, y, w, h);
+        const OverlayInputState* in = overlay_input_get();
+        int pressed = hot && in && in->mouse_down;
+        int focused = (g_ui.focus_index == id);
         OverlayColor bg = hot ? th->button_bg_hot : th->button_bg;
+        if (pressed)
+            bg = shade_color(bg, -20);
         SDL_SetRenderDrawColor(g_app.renderer, bg.r, bg.g, bg.b, bg.a);
         SDL_RenderFillRect(g_app.renderer, &r);
         SDL_SetRenderDrawColor(g_app.renderer, th->button_border.r, th->button_border.g,
                                th->button_border.b, th->button_border.a);
         SDL_RenderDrawRect(g_app.renderer, &r);
+        /* Focus ring (subtle accent outline inside the button bounds) */
+        if (focused)
+        {
+            SDL_Rect fr = {x + 1, y + 1, w - 2, h - 2};
+            SDL_SetRenderDrawColor(g_app.renderer, th->accent_1.r, th->accent_1.g, th->accent_1.b,
+                                   th->accent_1.a);
+            SDL_RenderDrawRect(g_app.renderer, &fr);
+        }
     }
 #endif
+    if (tip)
+        overlay_tooltip_track(id, x, y, w, h, tip);
     {
         const OverlayTheme* th = overlay_theme_get();
         rogue_font_draw_text(x + 6, y + 3, label ? label : "", 1,
+                             (RogueColor){th->button_text.r, th->button_text.g, th->button_text.b,
+                                          th->button_text.a});
+    }
+    const OverlayInputState* in = overlay_input_get();
+    if (overlay_mouse_over(x, y, w, h) && in->mouse_clicked)
+    {
+        g_ui.focus_index = id;
+        overlay_input_set_capture(1, 1);
+    }
+    int clicked = (overlay_mouse_over(x, y, w, h) && in->mouse_clicked) ||
+                  (g_ui.focus_index == id && (in->key_enter_pressed || in->key_space_pressed));
+    if (clicked)
+        overlay_input_set_capture(1, 1);
+    if (g_ui.columns > 1)
+    {
+        overlay_next_column();
+        if (g_ui.col_index == 0)
+            ui_next_line();
+    }
+    else
+    {
+        ui_next_line();
+    }
+    return clicked;
+}
+
+int overlay_icon_button(const char* label, int icon)
+{
+    if (!g_ui.panel_active)
+        return 0;
+    int h = 20;
+    int x = g_ui.cur_x, y = g_ui.cur_y;
+    int w = (g_ui.columns > 1 ? g_ui.col_widths[g_ui.col_index] : g_ui.width);
+    int id = g_ui.total_widgets++;
+    const char* tip = g_ui.next_tooltip;
+    g_ui.next_tooltip = NULL;
+    if (g_ui.row_max_h < h)
+        g_ui.row_max_h = h;
+#ifdef ROGUE_HAVE_SDL
+    if (g_app.renderer)
+    {
+        const OverlayTheme* th = overlay_theme_get();
+        SDL_Rect r = {x, y, w, h};
+        int hot = overlay_mouse_over(x, y, w, h);
+        const OverlayInputState* in = overlay_input_get();
+        int pressed = hot && in && in->mouse_down;
+        int focused = (g_ui.focus_index == id);
+        OverlayColor bg = hot ? th->button_bg_hot : th->button_bg;
+        if (pressed)
+            bg = shade_color(bg, -20);
+        SDL_SetRenderDrawColor(g_app.renderer, bg.r, bg.g, bg.b, bg.a);
+        SDL_RenderFillRect(g_app.renderer, &r);
+        SDL_SetRenderDrawColor(g_app.renderer, th->button_border.r, th->button_border.g,
+                               th->button_border.b, th->button_border.a);
+        SDL_RenderDrawRect(g_app.renderer, &r);
+        if (focused)
+        {
+            SDL_Rect fr = {x + 1, y + 1, w - 2, h - 2};
+            SDL_SetRenderDrawColor(g_app.renderer, th->accent_1.r, th->accent_1.g, th->accent_1.b,
+                                   th->accent_1.a);
+            SDL_RenderDrawRect(g_app.renderer, &fr);
+        }
+    }
+#endif
+    if (tip)
+        overlay_tooltip_track(id, x, y, w, h, tip);
+    /* Icon (left), then label */
+    overlay_icon_draw((OverlayIcon) icon, x + 4, y + 3, 1);
+    {
+        const OverlayTheme* th = overlay_theme_get();
+        rogue_font_draw_text(x + 4 + 12 + 4, y + 3, label ? label : "", 1,
                              (RogueColor){th->button_text.r, th->button_text.g, th->button_text.b,
                                           th->button_text.a});
     }
@@ -94,6 +206,8 @@ int overlay_checkbox(const char* label, int* value)
     int sz = 16;
     int x = g_ui.cur_x, y = g_ui.cur_y + 2;
     int id = g_ui.total_widgets++;
+    const char* tip = g_ui.next_tooltip;
+    g_ui.next_tooltip = NULL;
     if (g_ui.row_max_h < sz + 4)
         g_ui.row_max_h = sz + 4;
 #ifdef ROGUE_HAVE_SDL
@@ -101,8 +215,11 @@ int overlay_checkbox(const char* label, int* value)
     {
         const OverlayTheme* th = overlay_theme_get();
         SDL_Rect box = {x, y, sz, sz};
-        SDL_SetRenderDrawColor(g_app.renderer, th->checkbox_bg.r, th->checkbox_bg.g,
-                               th->checkbox_bg.b, th->checkbox_bg.a);
+        int hover = overlay_mouse_over(x, y, sz, sz);
+        OverlayColor cbg = th->checkbox_bg;
+        if (hover)
+            cbg = shade_color(cbg, +10);
+        SDL_SetRenderDrawColor(g_app.renderer, cbg.r, cbg.g, cbg.b, cbg.a);
         SDL_RenderFillRect(g_app.renderer, &box);
         SDL_SetRenderDrawColor(g_app.renderer, th->checkbox_border.r, th->checkbox_border.g,
                                th->checkbox_border.b, th->checkbox_border.a);
@@ -114,8 +231,18 @@ int overlay_checkbox(const char* label, int* value)
                                    th->checkbox_tick.b, th->checkbox_tick.a);
             SDL_RenderFillRect(g_app.renderer, &inner);
         }
+        /* Subtle focus tick outline */
+        if (g_ui.focus_index == id)
+        {
+            SDL_Rect fr = {x + 1, y + 1, sz - 2, sz - 2};
+            SDL_SetRenderDrawColor(g_app.renderer, th->accent_1.r, th->accent_1.g, th->accent_1.b,
+                                   th->accent_1.a);
+            SDL_RenderDrawRect(g_app.renderer, &fr);
+        }
     }
 #endif
+    if (tip)
+        overlay_tooltip_track(id, x, y, sz, sz, tip);
     {
         const OverlayTheme* th = overlay_theme_get();
         rogue_font_draw_text(x + sz + 6, g_ui.cur_y + 2, label ? label : "", 1,
@@ -156,6 +283,8 @@ int overlay_slider_int(const char* label, int* value, int minv, int maxv)
     int x = g_ui.cur_x, y = g_ui.cur_y,
         w = (g_ui.columns > 1 ? g_ui.col_widths[g_ui.col_index] : g_ui.width), h = 18;
     int id = g_ui.total_widgets++;
+    const char* tip = g_ui.next_tooltip;
+    g_ui.next_tooltip = NULL;
     if (g_ui.row_max_h < h + 2)
         g_ui.row_max_h = h + 2;
 #ifdef ROGUE_HAVE_SDL
@@ -163,14 +292,27 @@ int overlay_slider_int(const char* label, int* value, int minv, int maxv)
     {
         const OverlayTheme* th = overlay_theme_get();
         SDL_Rect bar = {x, y + 2, w, h};
-        SDL_SetRenderDrawColor(g_app.renderer, th->input_bg.r, th->input_bg.g, th->input_bg.b,
-                               th->input_bg.a);
+        /* Hover/focus styling */
+        int hover = overlay_mouse_over(x, y + 2, w, h);
+        OverlayColor bg = th->input_bg;
+        if (hover)
+            bg = shade_color(bg, +6);
+        SDL_SetRenderDrawColor(g_app.renderer, bg.r, bg.g, bg.b, bg.a);
         SDL_RenderFillRect(g_app.renderer, &bar);
         SDL_SetRenderDrawColor(g_app.renderer, th->input_border.r, th->input_border.g,
                                th->input_border.b, th->input_border.a);
         SDL_RenderDrawRect(g_app.renderer, &bar);
+        if (g_ui.focus_index == id)
+        {
+            SDL_Rect fr = {x + 1, y + 3, w - 2, h - 2};
+            SDL_SetRenderDrawColor(g_app.renderer, th->accent_2.r, th->accent_2.g, th->accent_2.b,
+                                   th->accent_2.a);
+            SDL_RenderDrawRect(g_app.renderer, &fr);
+        }
     }
 #endif
+    if (tip)
+        overlay_tooltip_track(id, x, y + 2, w, h, tip);
     const OverlayInputState* in = overlay_input_get();
     int changed = 0;
     if (overlay_mouse_over(x, y + 2, w, h) && in->mouse_clicked)
@@ -231,6 +373,8 @@ int overlay_slider_float(const char* label, float* value, float minv, float maxv
     int x = g_ui.cur_x, y = g_ui.cur_y,
         w = (g_ui.columns > 1 ? g_ui.col_widths[g_ui.col_index] : g_ui.width), h = 18;
     int id = g_ui.total_widgets++;
+    const char* tip = g_ui.next_tooltip;
+    g_ui.next_tooltip = NULL;
     if (g_ui.row_max_h < h + 2)
         g_ui.row_max_h = h + 2;
 #ifdef ROGUE_HAVE_SDL
@@ -238,14 +382,26 @@ int overlay_slider_float(const char* label, float* value, float minv, float maxv
     {
         const OverlayTheme* th = overlay_theme_get();
         SDL_Rect bar = {x, y + 2, w, h};
-        SDL_SetRenderDrawColor(g_app.renderer, th->input_bg.r, th->input_bg.g, th->input_bg.b,
-                               th->input_bg.a);
+        int hover = overlay_mouse_over(x, y + 2, w, h);
+        OverlayColor bg = th->input_bg;
+        if (hover)
+            bg = shade_color(bg, +6);
+        SDL_SetRenderDrawColor(g_app.renderer, bg.r, bg.g, bg.b, bg.a);
         SDL_RenderFillRect(g_app.renderer, &bar);
         SDL_SetRenderDrawColor(g_app.renderer, th->input_border.r, th->input_border.g,
                                th->input_border.b, th->input_border.a);
         SDL_RenderDrawRect(g_app.renderer, &bar);
+        if (g_ui.focus_index == id)
+        {
+            SDL_Rect fr = {x + 1, y + 3, w - 2, h - 2};
+            SDL_SetRenderDrawColor(g_app.renderer, th->accent_2.r, th->accent_2.g, th->accent_2.b,
+                                   th->accent_2.a);
+            SDL_RenderDrawRect(g_app.renderer, &fr);
+        }
     }
 #endif
+    if (tip)
+        overlay_tooltip_track(id, x, y + 2, w, h, tip);
     const OverlayInputState* in = overlay_input_get();
     int changed = 0;
     if (overlay_mouse_over(x, y + 2, w, h) && in->mouse_clicked)
@@ -305,6 +461,8 @@ int overlay_input_text(const char* label, char* buf, size_t buf_size)
     const OverlayInputState* in = overlay_input_get();
     int changed = 0;
     int id = g_ui.total_widgets++;
+    const char* tip = g_ui.next_tooltip;
+    g_ui.next_tooltip = NULL;
     int h = 18;
     if (g_ui.row_max_h < h + 2)
         g_ui.row_max_h = h + 2;
@@ -375,6 +533,8 @@ int overlay_input_text(const char* label, char* buf, size_t buf_size)
         SDL_RenderDrawRect(g_app.renderer, &r);
     }
 #endif
+    if (tip)
+        overlay_tooltip_track(id, x, y + 2, w, h2, tip);
     char line[256];
     snprintf(line, sizeof(line), "%s: %s", label ? label : "", buf);
     {
@@ -418,6 +578,8 @@ int overlay_combo(const char* label, int* current_index, const char* const* item
     int x = g_ui.cur_x, y = g_ui.cur_y,
         w = (g_ui.columns > 1 ? g_ui.col_widths[g_ui.col_index] : g_ui.width), h = 18;
     int id = g_ui.total_widgets++;
+    const char* tip = g_ui.next_tooltip;
+    g_ui.next_tooltip = NULL;
     if (g_ui.row_max_h < h + 2)
         g_ui.row_max_h = h + 2;
     const OverlayInputState* in = overlay_input_get();
@@ -426,14 +588,26 @@ int overlay_combo(const char* label, int* current_index, const char* const* item
     {
         const OverlayTheme* th = overlay_theme_get();
         SDL_Rect r = {x, y + 2, w, h};
-        SDL_SetRenderDrawColor(g_app.renderer, th->input_bg.r, th->input_bg.g, th->input_bg.b,
-                               th->input_bg.a);
+        int hover = overlay_mouse_over(x, y + 2, w, h);
+        OverlayColor bg = th->input_bg;
+        if (hover)
+            bg = shade_color(bg, +6);
+        SDL_SetRenderDrawColor(g_app.renderer, bg.r, bg.g, bg.b, bg.a);
         SDL_RenderFillRect(g_app.renderer, &r);
         SDL_SetRenderDrawColor(g_app.renderer, th->input_border.r, th->input_border.g,
                                th->input_border.b, th->input_border.a);
         SDL_RenderDrawRect(g_app.renderer, &r);
+        if (g_ui.focus_index == id)
+        {
+            SDL_Rect fr = {x + 1, y + 3, w - 2, h - 2};
+            SDL_SetRenderDrawColor(g_app.renderer, th->accent_2.r, th->accent_2.g, th->accent_2.b,
+                                   th->accent_2.a);
+            SDL_RenderDrawRect(g_app.renderer, &fr);
+        }
     }
 #endif
+    if (tip)
+        overlay_tooltip_track(id, x, y + 2, w, h, tip);
     int changed = 0;
     if (overlay_mouse_over(x, y + 2, w, h) && in->mouse_clicked)
     {
@@ -479,29 +653,40 @@ int overlay_combo(const char* label, int* current_index, const char* const* item
 
 int overlay_tree_node(const char* label, int* open)
 {
-    if (!g_ui.panel_active || !open)
+    if (!g_ui.panel_active || !label || !open)
         return 0;
     int x = g_ui.cur_x, y = g_ui.cur_y,
         w = (g_ui.columns > 1 ? g_ui.col_widths[g_ui.col_index] : g_ui.width), h = 18;
     int id = g_ui.total_widgets++;
+    const char* tip = g_ui.next_tooltip;
+    g_ui.next_tooltip = NULL;
     if (g_ui.row_max_h < h + 2)
         g_ui.row_max_h = h + 2;
 #ifdef ROGUE_HAVE_SDL
     if (g_app.renderer)
     {
-        SDL_Rect r = {x, y + 2, w, h};
         const OverlayTheme* th = overlay_theme_get();
+        SDL_Rect r = {x, y + 2, w, h};
         SDL_SetRenderDrawColor(g_app.renderer, th->panel_bg.r, th->panel_bg.g, th->panel_bg.b,
                                th->panel_bg.a);
         SDL_RenderFillRect(g_app.renderer, &r);
         SDL_SetRenderDrawColor(g_app.renderer, th->panel_border.r, th->panel_border.g,
                                th->panel_border.b, th->panel_border.a);
         SDL_RenderDrawRect(g_app.renderer, &r);
+        if (g_ui.focus_index == id)
+        {
+            SDL_Rect fr = {x + 1, y + 3, w - 2, h - 2};
+            SDL_SetRenderDrawColor(g_app.renderer, th->accent_1.r, th->accent_1.g, th->accent_1.b,
+                                   th->accent_1.a);
+            SDL_RenderDrawRect(g_app.renderer, &fr);
+        }
     }
 #endif
+    if (tip)
+        overlay_tooltip_track(id, x, y + 2, w, h, tip);
     const char* arrow = (*open ? "▾" : "▸");
     char line[256];
-    snprintf(line, sizeof line, "%s %s", arrow, label ? label : "");
+    snprintf(line, sizeof line, "%s %s", arrow, label);
     {
         const OverlayTheme* th = overlay_theme_get();
         rogue_font_draw_text(x + 6, y + 2, line, 1,

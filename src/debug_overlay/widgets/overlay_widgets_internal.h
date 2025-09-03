@@ -32,6 +32,8 @@ typedef struct UiCtx
     int table_row_h;
     int table_row_pad;
     int table_hovered; /* 1 if mouse is over table header or any row this frame */
+    /* Tooltip: string applied to the next widget only */
+    const char* next_tooltip;
 } UiCtx;
 
 /* Global UI context owned by overlay widgets implementation */

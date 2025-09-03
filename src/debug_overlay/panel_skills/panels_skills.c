@@ -6,6 +6,7 @@
 #include "../../graphics/effect_spec.h"
 #include "../../graphics/sprite.h"
 #include "../overlay_core.h"
+#include "../overlay_icon.h"
 #include "../overlay_input.h"
 #include "../overlay_toast.h"
 #include "../widgets/overlay_widgets.h"
@@ -216,7 +217,7 @@ static void panel_skills(void* user)
         panel_skills_draw_testing(sel);
     }
 
-    if (overlay_button("Save Overrides JSON"))
+    if (overlay_icon_button("Save Overrides JSON", OVERLAY_ICON_SAVE))
     {
         char vmsg[192] = {0};
         int v = rogue_skill_debug_validate(vmsg, (int) sizeof vmsg);
@@ -248,7 +249,7 @@ static void panel_skills(void* user)
             overlay_toast_push(OVERLAY_TOAST_WARN, vtoast, 2600);
         }
     }
-    if (overlay_button("Load Overrides JSON"))
+    if (overlay_icon_button("Load Overrides JSON", OVERLAY_ICON_PLAY))
     {
         int applied = rogue_skill_debug_load_overrides_file(overrides_path);
         char msg[128];

@@ -152,13 +152,38 @@ Milestone 6 — Style, accessibility, and micro-interactions
   - Optional mode remaps accent colors; ensure graph and heatmaps are distinguishable.
 
 Status (M6 progress)
-- 6.3 Keyboard coverage and cheat sheet: Implemented a discoverability slice and quick panel switching.
-  • Input: per-frame input snapshot extended to capture '?' via SDL_TEXTINPUT and number keys 1..9 for use with Alt.
-  • Shortcuts panel: new panel "shortcuts" renders a concise cheat sheet of overlay key bindings; opened via '?' anywhere in the overlay.
-  • Global shortcuts: Alt+1..9 open common panels in order: 1 System, 2 Items, 3 Skills, 4 Map, 5 Audio/VFX, 6 Entities, 7 Content Graph, 8 Validation, 9 Dialogue. Mappings are headless-safe.
+- 6.1 Visual language: Implemented micro-interactions across core widgets with accessible focus states.
+  • Widgets updated: Button, Checkbox, SliderInt/Float, InputText, Combo, and Tree Node.
+  • Visuals: subtle hover shading, darker pressed state, and clear focus rings using theme accents (accent_1/accent_2). Uses a small shade helper to adjust brightness without altering the theme state; respects the Colorblind-safe palette.
+  • Tree Node: provided a concrete implementation used by Map, Validation, and Content Graph panels. Renders a collapsible header row with an arrow indicator (▸/▾), accepts mouse clicks and Enter/Space, and shows a focus ring when navigated via keyboard.
+  • Headless safety: all draw paths are SDL-guarded; logic remains testable in headless runs.
+  • Tooltips: Added a minimal, headless-safe tooltip system. Panels can attach text to the next widget via overlay_set_next_tooltip(); on ~400ms hover the tooltip appears near the cursor with theme styling. Core widgets (Button, Checkbox, Sliders, InputText, Combo, Tree Node) ingest the next-tooltip automatically and register their hover rects each frame.
+  Verification: Debug (SDL2) build with -j12 and full CTest from the build directory passed 100% (594/594).
+ - 6.2 Icons: Introduced a small, themed icon system and adopted icon buttons for common actions.
+  • Module: src/debug_overlay/overlay_icon.{h,c} defines an OverlayIcon enum (SAVE, UNDO, REDO, PLAY, SEARCH, …) and overlay_icon_draw(). Icons are 12×12 monochrome bitmaps tinted with the theme accent; all SDL calls are guarded for headless tests.
+  • Widget: overlay_icon_button(label, icon) renders a standard button with a left-aligned icon, consistent paddings, hover/pressed/focus states, and built‑in tooltip consumption.
+  • Integration: Map panel action rows now use icon buttons for Undo/Redo and Save/Load; behavior is unchanged and labels remain for clarity.
+  • Build: overlay_icon.c added to the overlay target so the module is compiled in all builds.
+  Verification: Built Debug (SDL2) with -j12 and ran the full CTest suite from the build directory: 100% PASS (594/594). No regressions.
+- 6.3 Keyboard coverage and cheat sheet: Expanded coverage to include Esc clear focus, Ctrl+S save, and Ctrl+Z/Y in Map.
+  • Input: per-frame input snapshot extended to capture '?', number keys 1..9 (with Alt), and S/Z/Y for Ctrl+S/Z/Y.
+  • Shortcuts panel: updated cheat sheet now documents Esc, Ctrl+S (contextual), and Ctrl+Z/Y (Map editor).
+  • Global shortcuts:
+    - '?' opens the Shortcuts panel anywhere in the overlay.
+    - Alt+1..9 open common panels in order: 1 System, 2 Items, 3 Skills, 4 Map, 5 Audio/VFX, 6 Entities, 7 Content Graph, 8 Validation, 9 Dialogue.
+    - Esc clears widget focus across panels (resets g_ui.focus_index).
+    - Ctrl+S triggers contextual saves: Skills panel saves overrides (and refreshes), Map panel saves to build/map.json.
+    - Ctrl+Z / Ctrl+Y route to Map editor undo/redo when the Map panel is visible.
   • Registration/Build: panel registered in overlay_panels and compiled into the overlay target.
-  • Pending follow-ups: Esc to clear focus across widgets/panels; Ctrl+S generic save hook where applicable; ensure Ctrl+Z/Y in Map panel surface in cheat sheet and expand to other editors as they gain undo stacks.
+  • Next: generalize Ctrl+S plumbing for Items/Dialogue editors as save paths are added; extend Ctrl+Z/Y to other editors as they gain undo stacks.
   Verification: Debug (SDL2) build with -j12 succeeded; full CTest suite passed 100% (594/594) from the build directory. No regressions observed.
+
+- 6.4 Colorblind-safe palette: Implemented an accessibility toggle that remaps accent colors and raises toast contrast for better distinguishability.
+  • Theme state: added a persisted boolean (overlay_theme.colorblind_mode) with getters/setters `overlay_theme_set_colorblind(int)` and `overlay_theme_get_colorblind(void)`.
+  • Persistence: `build/overlay_theme.json` now includes a `"colorblind"` field; on load we re-apply the current preset to ensure remapped accents/toast colors take effect immediately.
+  • System panel UI: new checkbox "Colorblind-safe palette" reflects and updates the theme setting at runtime.
+  • Visuals: when enabled, accents shift to a blue/orange pairing and warn/error toasts use higher-contrast tones in dark mode; SDL paths remain guarded for headless tests.
+  Verification: Built Debug (SDL2) with -j12 and ran full CTest from the build dir: 100% PASS (594/594). No regressions.
 
 Milestone 7 — Persistence, safety, and collaboration
 7.1 Undo/redo (local session)

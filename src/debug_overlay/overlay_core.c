@@ -7,6 +7,7 @@
 #include "overlay_search.h"
 #include "overlay_theme.h"
 #include "overlay_toast.h"
+#include "overlay_tooltip.h"
 #include "widgets/overlay_widgets_internal.h"
 #include <stdio.h>
 #include <string.h>
@@ -226,6 +227,12 @@ void overlay_render(void)
     /* Global shortcuts */
     {
         const OverlayInputState* in = overlay_input_get();
+        /* Esc clears widget focus in the active overlay */
+        if (in && in->key_escape_pressed)
+        {
+            extern UiCtx g_ui; /* from overlay_widgets_internal.h */
+            g_ui.focus_index = -1;
+        }
         if (in && in->key_p_pressed && in->key_ctrl_down && in->key_shift_down)
         {
             /* toggle command palette */
@@ -271,6 +278,37 @@ void overlay_render(void)
             if (in->key_9_pressed)
                 (void) overlay_set_panel_visible("dialogue", 1);
         }
+        /* Ctrl+S: contextual save in current panels that support it */
+        if (in && in->key_ctrl_down && in->key_s_pressed)
+        {
+            /* Skills: save overrides if panel code exposes helper */
+            extern void panel_skills_save_overrides_and_refresh(void);
+            if (overlay_get_panel_visible("skills"))
+            {
+                panel_skills_save_overrides_and_refresh();
+                overlay_toast_push(OVERLAY_TOAST_INFO, "Skills overrides saved (Ctrl+S)", 1500);
+            }
+            /* Map: save to currently set path if available via a weak symbol */
+            extern int rogue_map_debug_save_json(const char* path);
+            if (overlay_get_panel_visible("map"))
+            {
+                /* Default to build/map.json matching the panel default */
+                int rc = rogue_map_debug_save_json("build/map.json");
+                (void) rc;
+                overlay_toast_push(OVERLAY_TOAST_INFO, "Map saved (Ctrl+S)", 1500);
+            }
+        }
+        /* Ctrl+Z / Ctrl+Y pass-through for Map (other panels can hook later) */
+        if (in && in->key_ctrl_down && in->key_z_pressed && overlay_get_panel_visible("map"))
+        {
+            extern int rogue_map_debug_undo(void);
+            (void) rogue_map_debug_undo();
+        }
+        if (in && in->key_ctrl_down && in->key_y_pressed && overlay_get_panel_visible("map"))
+        {
+            extern int rogue_map_debug_redo(void);
+            (void) rogue_map_debug_redo();
+        }
     }
     /* Invoke panel callbacks; panels draw using SDL primitives and fonts */
     for (int i = 0; i < g_panel_count; ++i)
@@ -278,6 +316,8 @@ void overlay_render(void)
         if (g_panels[i].fn && (g_panel_visible_mask & (1u << i)))
             g_panels[i].fn(g_panels[i].user);
     }
+    /* Tooltip on top of panels */
+    overlay_tooltip_render();
     /* Non-modal systems */
     overlay_toast_render();
     overlay_commands_render();
