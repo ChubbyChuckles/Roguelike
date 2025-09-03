@@ -28,7 +28,7 @@ Press F1 in-game to open the debug overlay.
   - Group halos: Nodes that share the selected root’s top-level group (prefix before the first '/') are softly tinted in the SDL mini‑view for quick visual context.
   - Explain Path: Enter a target id to compute and highlight a path from the current root to that target within the current Preview Depth. On success, a breadcrumb shows the chain and nodes/edges along the path are highlighted using accent colors. The last requested target is remembered so you can continue exploring with the highlight active.
   - Depth cues: The outermost preview layer has a subtle border emphasis to convey depth at a glance.
-  Snapshots & Diff (M5.4):
+    Snapshots & Diff (M5.4):
   - Capture: Use “Capture A” and “Capture B” to snapshot the focused subgraph (root + BFS up to the Preview Depth).
   - Diff: Click “Compute Diff A→B” to compute Added/Removed edge sets and per‑node degree deltas; enable “Show Diff Overlay” to render diffs in the mini‑view (Added = accent_1, Removed = error red). Explain Path highlights remain in text_accent.
   - Export: “Export Diff JSON” writes `build/content_subgraph_diff.json` with nodes, added/removed edges, degree deltas, and a cycles list for the focused subgraph.
@@ -129,6 +129,8 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 
 Notes:
 Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (594/594). Worldgen optimization benchmark stabilized via adaptive repetition to avoid timer granularity flakiness in CI. Persistence tests use centralized save path builders; a recent fix updated `test_save_incremental_basic` to honor per-test directories via `rogue_build_slot_path(0)` for stability under parallel runs. On Windows/MSVC, the Content Graph SDL preview avoids VLA-like locals by using compile-time caps (OVERLAY_CG_MAX_NODES/EDGES); the System panel shows FPS via overlay_last_dt() when metrics aren’t initialized. Recent local run: all tests green (594/594) on Debug SDL2 with -j12. New validation path: `tests/unit/test_skills_validation_pipeline.c` confirms that an offensive-looking skill without coefficients fails validation until a coeff entry is added, after which validation passes. Phase 1.3 adds two units: `test_skills_phase1_3_interrupt` and `test_skills_phase1_3_context_defaults`.
+
+Developer note (Content Graph overlay): Internals were modularized into `overlay_cg_helpers.{h,c}` (predicates/BFS) and `overlay_cg_snapshot_diff.{h,c}` (snapshots/diff/export/toggle). `panels_content_graph.c` received Doxygen comments (comments-only). Verified Debug (SDL2) build and full CTest run from `build` with `-C Debug -j12`: 100% green (594/594).
 
 MSVC compatibility note:
 

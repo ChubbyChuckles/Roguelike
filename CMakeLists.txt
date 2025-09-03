@@ -479,6 +479,8 @@ add_library(rogue_debug_overlay OBJECT
     src/debug_overlay/panel_items/panels_items.c
     src/debug_overlay/panel_validation/panels_validation.c
     src/debug_overlay/panel_content_graph/panels_content_graph.c
+    src/debug_overlay/panel_content_graph/overlay_cg_helpers.c
+    src/debug_overlay/panel_content_graph/overlay_cg_snapshot_diff.c
     src/debug_overlay/panels_selector.c
 )
 target_compile_definitions(rogue_debug_overlay PUBLIC ROGUE_ENABLE_DEBUG_OVERLAY=$<IF:$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>,1,0>)

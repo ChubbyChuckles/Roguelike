@@ -1,3 +1,34 @@
+/**
+ * @file panels_content_graph.c
+ * @brief Debug Overlay: Content Graph panel (filter, finders, exports, SDL mini‑view, Explain Path,
+ * and M5.4 Snapshots & Diff).
+ *
+ * This panel provides an authoring‑focused view over the engine's content dependency graph.
+ * It renders a searchable list, node details, quick finders (Orphans, Missing Providers, Hubs),
+ * and a compact SDL‑guarded mini‑view with pan/zoom, optional group halos, breadcrumbs, an
+ * Explain‑Path utility, and pinning for manual node layout. It also implements Milestone 5.4:
+ * subgraph Snapshots (A/B), A→B diff computation, a diff overlay in the mini‑view, and a JSON
+ * diff export. All SDL calls are guarded so unit tests can run headless.
+ *
+ * Compile‑time caps (OVERLAY_CG_MAX_NODES/EDGES) avoid VLAs to remain MSVC C89‑compatible.
+ * Layout, theme, input, and widgets are consumed via the overlay core APIs.
+ *
+ * Keyboard/Mouse (mini‑view):
+ * - Right‑mouse drag: pan
+ * - Mouse wheel: zoom centered at cursor (0.5×–2.0×)
+ * - F: fit to selection
+ * - Shift + Left‑mouse: pin/move a node (session‑only pin positions)
+ *
+ * Exports:
+ * - Full graph DOT/JSON
+ * - Focused subgraph DOT/JSON (root + BFS up to Preview Depth)
+ * - Diff JSON for Snapshot A→B (added/removed edges, degree deltas, cycles placeholder)
+ *
+ * @see overlay_cg_helpers.h           (programmatic helpers and BFS collection)
+ * @see overlay_cg_snapshot_diff.h     (snapshot state, diff computation, JSON export)
+ * @ingroup overlay_cg
+ */
+
 #include "../../core/app/app_state.h"
 #include "../../util/asset_dep.h"
 #include "../overlay_core.h"
@@ -9,355 +40,59 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "overlay_cg_helpers.h"
+#include "overlay_cg_snapshot_diff.h"
+
 #if ROGUE_ENABLE_DEBUG_OVERLAY
 
 /* MSVC C89 compatibility: use compile-time macros for fixed array sizes (no VLAs) */
+#ifndef OVERLAY_CG_MAX_NODES
+/**
+ * @def OVERLAY_CG_MAX_NODES
+ * @brief Maximum nodes buffered for the preview/BFS in this panel.
+ *
+ * Chosen to keep stack usage bounded and remain MSVC C‑mode friendly (no VLAs).
+ * Increase cautiously; SDL mini‑view layout is O(N) with simple depth columns.
+ */
 #define OVERLAY_CG_MAX_NODES 48
+#endif
+#ifndef OVERLAY_CG_MAX_EDGES
+/**
+ * @def OVERLAY_CG_MAX_EDGES
+ * @brief Maximum edges buffered for the preview/BFS in this panel.
+ *
+ * Sized in proportion to OVERLAY_CG_MAX_NODES for typical sparse DAGs;
+ * bounds checks ensure we never write past these fixed caps.
+ */
 #define OVERLAY_CG_MAX_EDGES 96
+#endif
 
 /* Snapshots for M5.4: Exports & diffing */
-typedef struct OverlayCGSnapshot
-{
-    int valid;
-    int depth;
-    char root[64];
-    int ncount;
-    int ecount;
-    char nodes[OVERLAY_CG_MAX_NODES][64];
-    char edge_from[OVERLAY_CG_MAX_EDGES][64];
-    char edge_to[OVERLAY_CG_MAX_EDGES][64];
-} OverlayCGSnapshot;
+/* Remove in-file snapshot/diff implementation; now provided by overlay_cg_snapshot_diff.* */
 
-static OverlayCGSnapshot g_snapA = {0};
-static OverlayCGSnapshot g_snapB = {0};
+/* Helpers moved to overlay_cg_helpers.* */
 
-/* Diff results (A -> B) */
-static int g_diff_ready = 0;
-static int g_added_count = 0, g_removed_count = 0;
-static char g_added_from[OVERLAY_CG_MAX_EDGES][64];
-static char g_added_to[OVERLAY_CG_MAX_EDGES][64];
-static char g_removed_from[OVERLAY_CG_MAX_EDGES][64];
-static char g_removed_to[OVERLAY_CG_MAX_EDGES][64];
-static int g_show_diff_overlay = 1;
-
-static void overlay_cg_reset_diff(void)
-{
-    int i;
-    g_diff_ready = 0;
-    g_added_count = 0;
-    g_removed_count = 0;
-    for (i = 0; i < OVERLAY_CG_MAX_EDGES; ++i)
-    {
-        g_added_from[i][0] = '\0';
-        g_added_to[i][0] = '\0';
-        g_removed_from[i][0] = '\0';
-        g_removed_to[i][0] = '\0';
-    }
-}
-
-static void overlay_cg_capture_snapshot(OverlayCGSnapshot* snap, const char* root_id, int depth,
-                                        const char** nids, int ncount, int (*edges)[2], int ecount)
-{
-    int i;
-    if (!snap)
-        return;
-    snap->valid = 0;
-    snap->depth = depth;
-    {
-        size_t rl = root_id ? strlen(root_id) : 0;
-        if (rl >= sizeof snap->root)
-            rl = sizeof snap->root - 1;
-        if (rl > 0)
-            memcpy(snap->root, root_id, rl);
-        snap->root[rl] = '\0';
-    }
-    snap->ncount = (ncount > OVERLAY_CG_MAX_NODES) ? OVERLAY_CG_MAX_NODES : ncount;
-    for (i = 0; i < snap->ncount; ++i)
-    {
-        const char* s = nids[i] ? nids[i] : "";
-        size_t sl = strlen(s);
-        if (sl >= sizeof snap->nodes[0])
-            sl = sizeof snap->nodes[0] - 1;
-        memcpy(snap->nodes[i], s, sl);
-        snap->nodes[i][sl] = '\0';
-    }
-    snap->ecount = (ecount > OVERLAY_CG_MAX_EDGES) ? OVERLAY_CG_MAX_EDGES : ecount;
-    for (i = 0; i < snap->ecount; ++i)
-    {
-        int sidx = edges[i][0];
-        int tidx = edges[i][1];
-        const char* sf = (sidx >= 0 && sidx < ncount) ? nids[sidx] : "";
-        const char* st = (tidx >= 0 && tidx < ncount) ? nids[tidx] : "";
-        size_t slf = strlen(sf);
-        size_t slt = strlen(st);
-        if (slf >= sizeof snap->edge_from[0])
-            slf = sizeof snap->edge_from[0] - 1;
-        if (slt >= sizeof snap->edge_to[0])
-            slt = sizeof snap->edge_to[0] - 1;
-        memcpy(snap->edge_from[i], sf, slf);
-        snap->edge_from[i][slf] = '\0';
-        memcpy(snap->edge_to[i], st, slt);
-        snap->edge_to[i][slt] = '\0';
-    }
-    snap->valid = 1;
-}
-
-static int overlay_cg_edge_eq(const char* a0, const char* a1, const char* b0, const char* b1)
-{
-    if (!a0)
-        a0 = "";
-    if (!a1)
-        a1 = "";
-    if (!b0)
-        b0 = "";
-    if (!b1)
-        b1 = "";
-    return (strcmp(a0, b0) == 0) && (strcmp(a1, b1) == 0);
-}
-
-static void overlay_cg_compute_diff(void)
-{
-    int i, j;
-    overlay_cg_reset_diff();
-    if (!g_snapA.valid || !g_snapB.valid)
-        return;
-    /* Edges in B not in A → added */
-    for (i = 0; i < g_snapB.ecount; ++i)
-    {
-        const char* bf = g_snapB.edge_from[i];
-        const char* bt = g_snapB.edge_to[i];
-        int found = 0;
-        for (j = 0; j < g_snapA.ecount; ++j)
-        {
-            if (overlay_cg_edge_eq(bf, bt, g_snapA.edge_from[j], g_snapA.edge_to[j]))
-            {
-                found = 1;
-                break;
-            }
-        }
-        if (!found && g_added_count < OVERLAY_CG_MAX_EDGES)
-        {
-            size_t lf = strlen(bf), lt = strlen(bt);
-            if (lf >= sizeof g_added_from[0])
-                lf = sizeof g_added_from[0] - 1;
-            if (lt >= sizeof g_added_to[0])
-                lt = sizeof g_added_to[0] - 1;
-            memcpy(g_added_from[g_added_count], bf, lf);
-            g_added_from[g_added_count][lf] = '\0';
-            memcpy(g_added_to[g_added_count], bt, lt);
-            g_added_to[g_added_count][lt] = '\0';
-            g_added_count++;
-        }
-    }
-    /* Edges in A not in B → removed */
-    for (i = 0; i < g_snapA.ecount; ++i)
-    {
-        const char* af = g_snapA.edge_from[i];
-        const char* at = g_snapA.edge_to[i];
-        int found = 0;
-        for (j = 0; j < g_snapB.ecount; ++j)
-        {
-            if (overlay_cg_edge_eq(af, at, g_snapB.edge_from[j], g_snapB.edge_to[j]))
-            {
-                found = 1;
-                break;
-            }
-        }
-        if (!found && g_removed_count < OVERLAY_CG_MAX_EDGES)
-        {
-            size_t lf = strlen(af), lt = strlen(at);
-            if (lf >= sizeof g_removed_from[0])
-                lf = sizeof g_removed_from[0] - 1;
-            if (lt >= sizeof g_removed_to[0])
-                lt = sizeof g_removed_to[0] - 1;
-            memcpy(g_removed_from[g_removed_count], af, lf);
-            g_removed_from[g_removed_count][lf] = '\0';
-            memcpy(g_removed_to[g_removed_count], at, lt);
-            g_removed_to[g_removed_count][lt] = '\0';
-            g_removed_count++;
-        }
-    }
-    g_diff_ready = 1;
-}
-
-static void overlay_cg_export_diff_json(void)
-{
-    FILE* f = NULL;
-#if defined(_MSC_VER)
-    fopen_s(&f, "build/content_subgraph_diff.json", "wb");
-#else
-    f = fopen("build/content_subgraph_diff.json", "wb");
-#endif
-    if (!f)
-    {
-        overlay_label("Failed to open diff JSON output.");
-        return;
-    }
-    /* Build union of nodes from A and B */
-    const char* nodes_u[OVERLAY_CG_MAX_NODES * 2];
-    int nu = 0;
-    int i, j;
-    for (i = 0; i < g_snapA.ncount && nu < (int) (sizeof nodes_u / sizeof nodes_u[0]); ++i)
-        nodes_u[nu++] = g_snapA.nodes[i];
-    for (i = 0; i < g_snapB.ncount && nu < (int) (sizeof nodes_u / sizeof nodes_u[0]); ++i)
-    {
-        int seen = 0;
-        for (j = 0; j < nu; ++j)
-            if (strcmp(nodes_u[j] ? nodes_u[j] : "", g_snapB.nodes[i]) == 0)
-            {
-                seen = 1;
-                break;
-            }
-        if (!seen)
-            nodes_u[nu++] = g_snapB.nodes[i];
-    }
-
-    fputs("{\n", f);
-    fprintf(f, "  \"rootA\": \"%s\", \"depthA\": %d,\n", g_snapA.root, g_snapA.depth);
-    fprintf(f, "  \"rootB\": \"%s\", \"depthB\": %d,\n", g_snapB.root, g_snapB.depth);
-
-    /* Degree deltas */
-    fputs("  \"degree_deltas\": [\n", f);
-    for (i = 0; i < nu; ++i)
-    {
-        const char* id = nodes_u[i] ? nodes_u[i] : "";
-        int outA = 0, inA = 0, outB = 0, inB = 0;
-        for (j = 0; j < g_snapA.ecount; ++j)
-        {
-            if (strcmp(g_snapA.edge_from[j], id) == 0)
-                outA++;
-            if (strcmp(g_snapA.edge_to[j], id) == 0)
-                inA++;
-        }
-        for (j = 0; j < g_snapB.ecount; ++j)
-        {
-            if (strcmp(g_snapB.edge_from[j], id) == 0)
-                outB++;
-            if (strcmp(g_snapB.edge_to[j], id) == 0)
-                inB++;
-        }
-        fprintf(f,
-                "    "
-                "{\"id\":\"%s\",\"out_before\":%d,\"out_after\":%d,\"delta_out\":%d,\"in_before\":%"
-                "d,\"in_after\":%d,\"delta_in\":%d}%s\n",
-                id, outA, outB, (outB - outA), inA, inB, (inB - inA), (i + 1 < nu) ? "," : "");
-    }
-    fputs("  ],\n", f);
-
-    /* Edge diffs */
-    fputs("  \"added_edges\": [\n", f);
-    for (i = 0; i < g_added_count; ++i)
-    {
-        fprintf(f, "    {\"from\":\"%s\",\"to\":\"%s\"}%s\n", g_added_from[i], g_added_to[i],
-                (i + 1 < g_added_count) ? "," : "");
-    }
-    fputs("  ],\n", f);
-    fputs("  \"removed_edges\": [\n", f);
-    for (i = 0; i < g_removed_count; ++i)
-    {
-        fprintf(f, "    {\"from\":\"%s\",\"to\":\"%s\"}%s\n", g_removed_from[i], g_removed_to[i],
-                (i + 1 < g_removed_count) ? "," : "");
-    }
-    fputs("  ],\n", f);
-    /* Cycles list (graph is DAG, cycles rejected → keep empty) */
-    fputs("  \"cycles\": []\n}", f);
-    fclose(f);
-    overlay_label("Diff JSON exported (build/content_subgraph_diff.json).");
-}
-
-/* Helper: does node `src_id` list `target_id` as a direct dependency? */
-static int content_graph_has_dep_on(const char* src_id, const char* target_id)
-{
-    const char* deps[16];
-    int dc =
-        rogue_asset_dep_get_deps(src_id ? src_id : "", deps, (int) (sizeof deps / sizeof deps[0]));
-    for (int i = 0; i < dc; ++i)
-        if (deps[i] && target_id && strcmp(deps[i], target_id) == 0)
-            return 1;
-    return 0;
-}
-
-/* Helper: is `maybe_dep_id` a direct dependency of node `of_id`? */
-static int content_graph_is_dep_of(const char* maybe_dep_id, const char* of_id)
-{
-    const char* deps[16];
-    int dc =
-        rogue_asset_dep_get_deps(of_id ? of_id : "", deps, (int) (sizeof deps / sizeof deps[0]));
-    for (int i = 0; i < dc; ++i)
-        if (deps[i] && maybe_dep_id && strcmp(deps[i], maybe_dep_id) == 0)
-            return 1;
-    return 0;
-}
-
-/* Helper: collect forward reachable nodes up to max_depth using a simple BFS. */
-static int content_graph_collect_forward(const char* root_id, int max_depth, const char** out_ids,
-                                         int* out_depths, int max_nodes, int (*out_edges)[2],
-                                         int max_edges, int* out_edge_count)
-{
-    if (!root_id || !out_ids || !out_depths || max_nodes <= 0 || !out_edges || max_edges <= 0 ||
-        !out_edge_count)
-        return 0;
-    int nc = 0;
-    int ec = 0;
-    /* enqueue root */
-    out_ids[nc] = root_id;
-    out_depths[nc] = 0;
-    int qh = 0, qt = 0;
-    int qidx[128];
-    qidx[qt++] = nc;
-    nc++;
-    while (qh < qt)
-    {
-        int si = qidx[qh++];
-        const char* sid = out_ids[si];
-        int sd = out_depths[si];
-        if (sd >= max_depth)
-            continue;
-        const char* deps[16];
-        int dc =
-            rogue_asset_dep_get_deps(sid ? sid : "", deps, (int) (sizeof deps / sizeof deps[0]));
-        for (int i = 0; i < dc; ++i)
-        {
-            const char* did = deps[i];
-            if (!did)
-                continue;
-            /* find existing */
-            int di = -1;
-            for (int k = 0; k < nc; ++k)
-            {
-                if (out_ids[k] && strcmp(out_ids[k], did) == 0)
-                {
-                    di = k;
-                    break;
-                }
-            }
-            if (di < 0)
-            {
-                if (nc < max_nodes)
-                {
-                    di = nc;
-                    out_ids[nc] = did;
-                    out_depths[nc] = sd + 1;
-                    qidx[qt++ % (int) (sizeof qidx / sizeof qidx[0])] = nc;
-                    nc++;
-                }
-                else
-                {
-                    di = 0;
-                }
-            }
-            if (ec < max_edges)
-            {
-                out_edges[ec][0] = si;
-                out_edges[ec][1] = di;
-                ec++;
-            }
-        }
-    }
-    *out_edge_count = ec;
-    return nc;
-}
-
+/**
+ * @brief Render function for the Content Graph overlay panel.
+ *
+ * Drives the immediate‑mode UI for the Content Graph: filter/search with optional prefixes
+ * (id/path/group/hash/dep/rev), selection and node details, quick finders (Orphans, Missing
+ * Providers, Hubs), focused subgraph exports (DOT/JSON), Explain‑Path computation within the
+ * current preview depth, and the SDL mini‑view with pan/zoom/pins, group halos, and optional
+ * diff overlay.
+ *
+ * Snapshots & Diff (M5.4): Captures two subgraph snapshots (A/B), computes an A→B diff with
+ * Added/Removed edge sets and degree deltas, toggles a diff overlay, and exports a JSON report.
+ *
+ * Headless safety: All rendering that relies on SDL or a renderer is conditional on
+ * ROGUE_HAVE_SDL and g_app.renderer. Textual UI remains functional in headless/test runs.
+ *
+ * Persistent state: Several local statics maintain panel state across frames (selection,
+ * filters, preview depth, breadcrumbs, explain‑path buffers, pan/zoom offsets, and pin data).
+ * These are intentionally scoped to the panel to avoid global coupling.
+ *
+ * @param user Optional user‑data pointer (unused).
+ */
 static void panel_content_graph(void* user)
 {
     (void) user;
@@ -1113,12 +848,16 @@ static void panel_content_graph(void* user)
             if (overlay_tree_node("Snapshots & Diff (M5.4)", &diff_open))
             {
                 char line[256];
-                snprintf(line, sizeof line,
-                         "Snap A: %s d=%d (n=%d,e=%d)  |  Snap B: %s d=%d (n=%d,e=%d)",
-                         g_snapA.valid ? g_snapA.root : "<none>", g_snapA.valid ? g_snapA.depth : 0,
-                         g_snapA.valid ? g_snapA.ncount : 0, g_snapA.valid ? g_snapA.ecount : 0,
-                         g_snapB.valid ? g_snapB.root : "<none>", g_snapB.valid ? g_snapB.depth : 0,
-                         g_snapB.valid ? g_snapB.ncount : 0, g_snapB.valid ? g_snapB.ecount : 0);
+                {
+                    const OverlayCGSnapshot* sa = overlay_cg_get_snapshot_a();
+                    const OverlayCGSnapshot* sb = overlay_cg_get_snapshot_b();
+                    snprintf(line, sizeof line,
+                             "Snap A: %s d=%d (n=%d,e=%d)  |  Snap B: %s d=%d (n=%d,e=%d)",
+                             sa && sa->valid ? sa->root : "<none>", sa && sa->valid ? sa->depth : 0,
+                             sa && sa->valid ? sa->ncount : 0, sa && sa->valid ? sa->ecount : 0,
+                             sb && sb->valid ? sb->root : "<none>", sb && sb->valid ? sb->depth : 0,
+                             sb && sb->valid ? sb->ncount : 0, sb && sb->valid ? sb->ecount : 0);
+                }
                 overlay_label(line);
                 if (overlay_columns_begin(3, NULL))
                 {
@@ -1131,8 +870,12 @@ static void panel_content_graph(void* user)
                         int ncount_c = content_graph_collect_forward(
                             id, preview_depth, nids_c, ndeps_c, OVERLAY_CG_MAX_NODES, edges_c,
                             OVERLAY_CG_MAX_EDGES, &ecount_c);
-                        overlay_cg_capture_snapshot(&g_snapA, id ? id : "", preview_depth, nids_c,
-                                                    ncount_c, edges_c, ecount_c);
+                        {
+                            OverlayCGSnapshot sa = {0};
+                            overlay_cg_capture_snapshot(&sa, id ? id : "", preview_depth, nids_c,
+                                                        ncount_c, edges_c, ecount_c);
+                            overlay_cg_set_snapshot_a(&sa);
+                        }
                         overlay_label("Snapshot A captured.");
                     }
                     overlay_next_column();
@@ -1145,8 +888,12 @@ static void panel_content_graph(void* user)
                         int ncount_c = content_graph_collect_forward(
                             id, preview_depth, nids_c, ndeps_c, OVERLAY_CG_MAX_NODES, edges_c,
                             OVERLAY_CG_MAX_EDGES, &ecount_c);
-                        overlay_cg_capture_snapshot(&g_snapB, id ? id : "", preview_depth, nids_c,
-                                                    ncount_c, edges_c, ecount_c);
+                        {
+                            OverlayCGSnapshot sb = {0};
+                            overlay_cg_capture_snapshot(&sb, id ? id : "", preview_depth, nids_c,
+                                                        ncount_c, edges_c, ecount_c);
+                            overlay_cg_set_snapshot_b(&sb);
+                        }
                         overlay_label("Snapshot B captured.");
                     }
                     overlay_next_column();
@@ -1154,18 +901,22 @@ static void panel_content_graph(void* user)
                     {
                         overlay_cg_compute_diff();
                         char dl[96];
-                        snprintf(dl, sizeof dl, "Diff ready: +%d / -%d", g_added_count,
-                                 g_removed_count);
+                        snprintf(dl, sizeof dl, "Diff ready: +%d / -%d",
+                                 overlay_cg_get_added_count(), overlay_cg_get_removed_count());
                         overlay_label(dl);
                     }
                     overlay_columns_end();
                 }
-                overlay_checkbox("Show Diff Overlay", &g_show_diff_overlay);
-                if (g_diff_ready)
+                {
+                    int show = overlay_cg_get_show_diff_overlay();
+                    if (overlay_checkbox("Show Diff Overlay", &show))
+                        overlay_cg_set_show_diff_overlay(show);
+                }
+                if (overlay_cg_diff_ready())
                 {
                     char dl2[96];
-                    snprintf(dl2, sizeof dl2, "Added: %d, Removed: %d", g_added_count,
-                             g_removed_count);
+                    snprintf(dl2, sizeof dl2, "Added: %d, Removed: %d",
+                             overlay_cg_get_added_count(), overlay_cg_get_removed_count());
                     overlay_label(dl2);
                     if (overlay_icon_button("Export Diff JSON", OVERLAY_ICON_SAVE))
                         overlay_cg_export_diff_json();
@@ -1636,14 +1387,14 @@ static void panel_content_graph(void* user)
                             }
                             break;
                             /* M5.4: Overlay diff edges (A->B): added vs removed */
-                            if (g_diff_ready && g_show_diff_overlay)
+                            if (overlay_cg_diff_ready() && overlay_cg_get_show_diff_overlay())
                             {
                                 int i_de;
                                 /* Added edges in accent_1 */
-                                for (i_de = 0; i_de < g_added_count; ++i_de)
+                                for (i_de = 0; i_de < overlay_cg_get_added_count(); ++i_de)
                                 {
-                                    const char* af = g_added_from[i_de];
-                                    const char* at = g_added_to[i_de];
+                                    const char* af = overlay_cg_get_added_from(i_de);
+                                    const char* at = overlay_cg_get_added_to(i_de);
                                     int si = -1, ti = -1, ii;
                                     for (ii = 0; ii < ncount && (si < 0 || ti < 0); ++ii)
                                     {
@@ -1664,10 +1415,10 @@ static void panel_content_graph(void* user)
                                     }
                                 }
                                 /* Removed edges in a reddish tone (use toast_error_bg) */
-                                for (i_de = 0; i_de < g_removed_count; ++i_de)
+                                for (i_de = 0; i_de < overlay_cg_get_removed_count(); ++i_de)
                                 {
-                                    const char* rf = g_removed_from[i_de];
-                                    const char* rt = g_removed_to[i_de];
+                                    const char* rf = overlay_cg_get_removed_from(i_de);
+                                    const char* rt = overlay_cg_get_removed_to(i_de);
                                     int si = -1, ti = -1, ii;
                                     for (ii = 0; ii < ncount && (si < 0 || ti < 0); ++ii)
                                     {
@@ -1769,6 +1520,12 @@ static void panel_content_graph(void* user)
     overlay_end_panel();
 }
 
+/**
+ * @brief Register the Content Graph panel with the overlay system.
+ *
+ * Associates the panel id and title with its render callback so it appears in the overlay UI
+ * and can be opened programmatically (e.g., via Command Palette or navigation helpers).
+ */
 void rogue_overlay_register_panel_content_graph(void)
 {
     overlay_register_panel("content_graph", "Content Graph", panel_content_graph, NULL);

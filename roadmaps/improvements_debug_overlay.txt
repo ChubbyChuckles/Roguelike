@@ -160,6 +160,7 @@ Status (M5 progress)
   • Export: Writes `build/content_subgraph_diff.json` with shape `{ root, depth, nodes: [...], added_edges: [{from,to}], removed_edges: [{from,to}], degree: [{id,in_delta,out_delta}], cycles: [[id,...]] }`.
   • Compliance: MSVC C mode friendly (no VLAs; declarations before statements); compile‑time buffer caps and bounds checks prevent overflow.
   Verification: Built Debug (SDL2) with -j12 and ran full CTest from the build directory: 100% PASS (594/594).
+  Internals: Modularized Content Graph helpers into `overlay_cg_helpers.{h,c}` (predicates/BFS) and `overlay_cg_snapshot_diff.{h,c}` (snapshots/diff/export/toggle); resolved duplicate symbol/link issues post‑split. Added comprehensive Doxygen comments (comments‑only) to `panels_content_graph.c`. Rebuilt Debug (SDL2) and re‑ran full CTest: still all‑green (594/594).
 
 Milestone 6 — Style, accessibility, and micro-interactions
 6.1 Visual language
