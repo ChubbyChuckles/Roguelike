@@ -240,6 +240,18 @@ feat(overlay/skills testing): animation playback controls (play/pause, loop, ste
 
 feat(overlay/skills overview): convert Skill Type control to labeled enum combo; docs/roadmap updated
 
+feat(dungeon/phase1): kernel helpers (degree stats, critical path, deterministic hash) + unit test; docs/roadmap bump; tests green (596/596)
+
+- Core: add `world_gen_dungeon_kernel.{h,c}` with helpers:
+  - `rogue_dungeon_graph_degree_stats(g, &max_degree, &avg_degree)`
+  - `rogue_dungeon_graph_critical_path_length(g)` using two-pass BFS diameter
+  - `rogue_dungeon_graph_hash(g)` (FNV-1a over normalized sorted edges + counts)
+- Fixes: include <stdlib.h> and correct BFS helper to return farthest node and diameter distance; wire module into `rogue_core` in CMake.
+- Tests: new `tests/unit/test_dungeon_phase1_kernel.c` checks degree stats non-negativity, critical path >= 0, and hash determinism across repeated gens with fixed seed.
+- Build: Debug (SDL2) with -j12.
+- Suite: full `ctest -C Debug -j12 --output-on-failure` 100% PASS (596/596).
+- Docs: roadmap Phase 1 updated (1.6 Done, 1.4/1.5 Partial); README test counts bumped to 596/596.
+
 - Overview tab Skill Type is now a labeled enum combo replacing the raw numeric control. Lists: UNKNOWN, MELEE, RANGED, AOE_SPELL, BUFF, DEBUFF, HEAL, SUMMON, PASSIVE, ULTIMATE. Bound to debug get/set and persists via overrides; validation banner refreshes on change.
 - Roadmap: Phase 2.4 Enum Dropdowns section updated to include the Overview Skill Type conversion.
 - README: Skills Meta notes the labeled enum combo for Skill Type.

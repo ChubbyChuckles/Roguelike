@@ -366,3 +366,19 @@ Touched
 - src/debug_overlay/panel_content_graph/panels_content_graph.c (UI/state + diff/export paths)
 - README.md (Content Graph: Snapshots & Diff)
 - roadmaps/improvements_debug_overlay.txt (M5.4 status)
+
+feat(dungeon/phase0): taxonomy foundation (archetypes, id ranges, depth→ΔL, biome→theme tags) + unit test; docs updated; gates green
+
+- New module: world_gen_dungeon_taxonomy.{h,c}
+	• RogueDungeonArchetype enum + name accessor
+	• Reserved id ranges + validators (templates/events/objectives)
+	• Depth→target level delta mapping (monotonic, saturating)
+	• Biome→theme tag utility for early theming hooks
+- Tests: tests/unit/test_dungeon_phase0_taxonomy.c validates invariants
+- Build: wired taxonomy module into rogue_core
+- Roadmap: Phase 0 updated (0.2/0.3/0.4/0.5 Done; 0.1 Partial)
+- README: notes updated; latest suite now 595/595
+
+Quality gates
+- Build: Debug (SDL2) with -j12 OK
+- Tests: ctest -C Debug -j12 → 100% passed (595/595)

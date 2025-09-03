@@ -19,18 +19,19 @@ FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 - Basic world generation (Partial)
 
 PHASE 0. Audit & Core Taxonomy
-0.1 Catalog existing biome assets & tiles; map to dungeon theme tags (X)
-0.2 Define dungeon archetypes: Linear, Branching, Looping, Hub, Gauntlet, Puzzle, Arena (X)
-0.3 Establish difficulty tier matrix (depth vs target player level delta) (X)
-0.4 Reserve ID ranges for room templates, event types, objective types (X)
-0.5 Tests: taxonomy uniqueness, template id collisions (X)
+0.1 Catalog existing biome assets & tiles; map to dungeon theme tags (Partial) (biome→theme tag utility in code; full asset catalog pending)
+0.2 Define dungeon archetypes: Linear, Branching, Looping, Hub, Gauntlet, Puzzle, Arena (Done)
+0.3 Establish difficulty tier matrix (depth vs target player level delta) (Done) (initial monotonic depth→ΔL mapping; tunable)
+0.4 Reserve ID ranges for room templates, event types, objective types (Done)
+0.5 Tests: taxonomy uniqueness, template id collisions (Done) (unit: test_dungeon_phase0_taxonomy)
 
 PHASE 1. Layout Generation Kernel
 1.1 Graph grammar DSL (room_node, connector, constraint tags) (X)
 1.2 Layout generator (seed -> abstract graph) with pluggable archetype heuristics (X)
 1.3 Constraint solver: enforce min/max branch factor, loop quota, dead-end limit (X)
-1.4 Critical path length target (objective pacing) (X)
-1.5 Tests: deterministic reproduction, constraint satisfaction, path length distribution (X)
+1.4 Critical path length target (objective pacing) (Partial) (kernel metrics implemented; target wiring pending)
+1.5 Tests: deterministic reproduction, constraint satisfaction, path length distribution (Partial) (deterministic reproduction + kernel smoke test present; constraints/distribution pending)
+1.6 Kernel helpers: degree stats, critical path computation, deterministic graph hash (Done) (unit: test_dungeon_phase1_kernel)
 
 PHASE 2. Room Template & Tile Assembly
 2.1 Room template file (template_id, size_class, biome_tags, encounter_slots, hazard_slots, puzzle_slot, exit_points) (X)
