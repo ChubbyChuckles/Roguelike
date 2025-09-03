@@ -78,9 +78,9 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
 - [ ] **Curve Editor** - Damage scaling, cooldown reduction progressions
 - [ ] **Color Gradient Picker** - Particle effects and visual themes
 - [ ] **Animation Timeline Editor** - Multi-phase skill execution
-- [ ] **Sprite Sheet Browser** - Thumbnail preview and frame selection
+- [x] **Sprite Sheet Browser** - Filterable list of image files under assets/ with Assign-To (Cast/Projectile/Impact/AoE); click to assign and persist via debug API. Note: Windows-only enumerator for now; cross-platform follow-up planned.
 - [ ] **Asset File Picker** - Filtering by type (PNG, sprite sheets, audio files)
-- [ ] **Sprite Sheet Grid Configurator** - Columns, rows, frame dimensions
+- [x] **Sprite Sheet Grid Configurator** - Shows derived grid cells (grid_width × grid_height) and provides a one-click "Set Frame Count = Grid Cells" action (no change unless explicitly applied).
 - [ ] **Animation Preview Window** - Playback controls (play, pause, step, loop)
 - [ ] **Asset Import Wizard** - Drag-and-drop sprite/audio integration
 

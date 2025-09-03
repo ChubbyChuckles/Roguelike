@@ -222,3 +222,10 @@ feat(overlay/icons M6.2): themed icon set + icon buttons; Map adoption; docs/roa
 - Build: include `overlay_icon.c` in the overlay target so the module compiles across builds.
 - Docs: README “Debug overlay tips” adds an Icons (M6.2) usage note; roadmap Milestone 6 status updated accordingly.
 - Verification: Built Debug (SDL2) with parallelism (-j12) and ran full CTest from the build directory with `--output-on-failure`: 100% PASS (594/594). No regressions observed.
+
+feat(overlay/skills visuals): Sprite Sheet Browser + Grid Configurator helper; docs/roadmap updated
+
+- Visuals tab gains a Sprite Sheet Browser: traverses assets/ (Windows enumerator), filterable, and Assign-To selector to apply to Cast/Projectile/Impact/AoE; persists via debug API.
+- Grid Configurator helper shows derived grid cells (grid_width × grid_height) and adds a one-click "Set Frame Count = Grid Cells" action (explicit, no implicit changes).
+- README: added Visuals helpers usage; Roadmap: Phase 2.3 marks Browser + Grid Configurator as Done (browser noted Windows-only for now).
+- Build: Debug (SDL2) with -j12; Tests: full ctest suite 100% green (594/594).
