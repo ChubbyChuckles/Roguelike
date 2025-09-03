@@ -235,6 +235,11 @@ void overlay_render(void)
         {
             overlay_search_toggle(1);
         }
+        /* '?' opens the Shortcuts panel for cheat sheet */
+        if (in && in->key_question_pressed)
+        {
+            (void) overlay_set_panel_visible("shortcuts", 1);
+        }
         /* History navigation: Alt+Left = Back, Alt+Right = Forward */
         if (in && in->key_alt_down && in->key_left_pressed)
         {
@@ -243,6 +248,28 @@ void overlay_render(void)
         if (in && in->key_alt_down && in->key_right_pressed)
         {
             (void) overlay_nav_forward();
+        }
+        /* Alt+1..9 quick panel visibility toggles for common panels */
+        if (in && in->key_alt_down)
+        {
+            if (in->key_1_pressed)
+                (void) overlay_set_panel_visible("system", 1);
+            if (in->key_2_pressed)
+                (void) overlay_set_panel_visible("items", 1);
+            if (in->key_3_pressed)
+                (void) overlay_set_panel_visible("skills", 1);
+            if (in->key_4_pressed)
+                (void) overlay_set_panel_visible("map", 1);
+            if (in->key_5_pressed)
+                (void) overlay_set_panel_visible("audiovfx", 1);
+            if (in->key_6_pressed)
+                (void) overlay_set_panel_visible("entities", 1);
+            if (in->key_7_pressed)
+                (void) overlay_set_panel_visible("content_graph", 1);
+            if (in->key_8_pressed)
+                (void) overlay_set_panel_visible("validation", 1);
+            if (in->key_9_pressed)
+                (void) overlay_set_panel_visible("dialogue", 1);
         }
     }
     /* Invoke panel callbacks; panels draw using SDL primitives and fonts */

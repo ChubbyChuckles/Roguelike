@@ -473,6 +473,7 @@ add_library(rogue_debug_overlay OBJECT
     src/debug_overlay/panel_map/panels_map.c
     src/debug_overlay/panel_audio_vfx/panels_audiovfx.c
     src/debug_overlay/panel_dialogue/panels_dialogue.c
+    src/debug_overlay/panel_shortcuts/panels_shortcuts.c
     src/debug_overlay/panel_items/panels_items.c
     src/debug_overlay/panel_validation/panels_validation.c
     src/debug_overlay/panel_content_graph/panels_content_graph.c

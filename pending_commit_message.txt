@@ -194,3 +194,14 @@ debug overlay(entities): add themed world-space selection gizmo; tests green (59
 - Docs: README tips updated to mention the Entities selection gizmo; Roadmap (M0.1) updated to include Entities under themed gizmos and verification notes.
 - Verification: Debug build (SDL2) with -j12 succeeded; full CTest run from build directory passed 100% (594/594).
 - Touched: src/debug_overlay/panel_entities/panels_entities.c, README.md, roadmaps/improvements_debug_overlay.txt
+
+Debug Overlay (M6.3): Shortcuts panel ('?') + Alt+1..9 quick panel switching; docs/roadmap; tests green
+
+- Input: extend OverlayInputState to capture '?' (via SDL_TEXTINPUT) and numeric keys 1..9 for Alt chord handling.
+- Global shortcuts: Alt+1..9 open common panels: 1 System, 2 Items, 3 Skills, 4 Map, 5 Audio/VFX, 6 Entities, 7 Content Graph, 8 Validation, 9 Dialogue.
+- Shortcuts panel: new "Shortcuts" panel listing core key bindings; toggle by pressing '?' anywhere in the overlay.
+- Wiring: register the panel in overlay_panels; include new source in CMake overlay target.
+- Docs: README adds a tip for '?' and Alt+1..9; Roadmap marks 6.3 slice implemented and notes remaining work (Esc clears focus, Ctrl+S, broader Ctrl+Z/Y coverage).
+- Verification: Built Debug (SDL2) with -j12 and ran full CTest from build dir: 100% PASS (594/594). No regressions.
+- Touched: src/debug_overlay/overlay_input.{h,c}, src/debug_overlay/overlay_core.c, src/debug_overlay/overlay_panels.c,
+		   src/debug_overlay/panel_shortcuts/panels_shortcuts.c, CMakeLists.txt, README.md, roadmaps/improvements_debug_overlay.txt

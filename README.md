@@ -3,6 +3,7 @@
 Press F1 in-game to open the debug overlay.
 
 - Panels selector: A small "Panels" window appears in the top-right. Use its checkboxes to toggle which panels are visible. The selector itself can’t be hidden to avoid lock-out.
+- Shortcuts panel & quick switching: Press '?' to open a concise "Shortcuts" panel listing core key bindings at a glance. Hold Alt and press 1..9 to open common panels quickly: 1 System, 2 Items, 3 Skills, 4 Map, 5 Audio/VFX, 6 Entities, 7 Content Graph, 8 Validation, 9 Dialogue.
 - Command Palette: Press Ctrl+Shift+P to open a palette of overlay commands. Type to filter; Enter to run. Defaults include Validation (Run Now/Show Panel), Skills (Save/Load Overrides), Content Graph (Export DOT), and quick “Open Items/Skills/Map”. You can register your own commands at startup.
 - Global Search: Press Ctrl+K to search across Items and Skills by id or name (case-insensitive substring). Up/Down navigate results; Enter jumps to the right panel, opens it, selects the entry, and scrolls it into view. Initial scope covers Items/Skills; more registries and fuzzy ranking are planned.
 - Navigation history & breadcrumbs: Use Alt+Left/Right to move Back/Forward through your overlay navigation history (panel + selection). Supporting panels render a breadcrumb header (e.g., Items > Weapons > iron_sabre) that updates as you change selection. Global Search jumps are tracked in history.

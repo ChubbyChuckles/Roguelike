@@ -40,7 +40,17 @@ extern "C"
         int key_alt_down;
         int key_p_pressed;
         int key_k_pressed;
-        int key_f_pressed; /* Fit-to-selection (Content Graph) */
+        int key_f_pressed;        /* Fit-to-selection (Content Graph) */
+        int key_question_pressed; /* '?' toggled via Shift + '/' */
+        int key_1_pressed;        /* Alt+1..9 panel switching */
+        int key_2_pressed;
+        int key_3_pressed;
+        int key_4_pressed;
+        int key_5_pressed;
+        int key_6_pressed;
+        int key_7_pressed;
+        int key_8_pressed;
+        int key_9_pressed;
 
         int want_capture_mouse;
         int want_capture_keyboard;

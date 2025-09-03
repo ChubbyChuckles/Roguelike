@@ -114,6 +114,24 @@ void overlay_input_handle_event(const void* evptr)
             g_inp.key_end_pressed = 1;
         else if (ev->key.keysym.sym == SDLK_ESCAPE)
             g_inp.key_escape_pressed = 1;
+        else if (ev->key.keysym.sym == SDLK_1)
+            g_inp.key_1_pressed = 1;
+        else if (ev->key.keysym.sym == SDLK_2)
+            g_inp.key_2_pressed = 1;
+        else if (ev->key.keysym.sym == SDLK_3)
+            g_inp.key_3_pressed = 1;
+        else if (ev->key.keysym.sym == SDLK_4)
+            g_inp.key_4_pressed = 1;
+        else if (ev->key.keysym.sym == SDLK_5)
+            g_inp.key_5_pressed = 1;
+        else if (ev->key.keysym.sym == SDLK_6)
+            g_inp.key_6_pressed = 1;
+        else if (ev->key.keysym.sym == SDLK_7)
+            g_inp.key_7_pressed = 1;
+        else if (ev->key.keysym.sym == SDLK_8)
+            g_inp.key_8_pressed = 1;
+        else if (ev->key.keysym.sym == SDLK_9)
+            g_inp.key_9_pressed = 1;
         g_inp.key_shift_down = ((ev->key.keysym.mod & KMOD_SHIFT) != 0);
         g_inp.key_ctrl_down = ((ev->key.keysym.mod & KMOD_CTRL) != 0);
         g_inp.key_alt_down = ((ev->key.keysym.mod & KMOD_ALT) != 0);
@@ -121,6 +139,8 @@ void overlay_input_handle_event(const void* evptr)
     case SDL_TEXTINPUT:
         /* copy small chunk of text */
         overlay_str_append_clamped(g_inp.text_input, sizeof(g_inp.text_input), ev->text.text);
+        if (ev->text.text && ev->text.text[0] == '?')
+            g_inp.key_question_pressed = 1;
         break;
     default:
         break;
