@@ -6,10 +6,10 @@ PROJECT_NUMBER         = @DOXYGEN_PROJECT_VERSION@
 OUTPUT_DIRECTORY       = @DOXYGEN_OUTPUT_DIR@
 
 # Input
-INPUT                  = @DOXYGEN_INPUT_DIR@ ../docs ../docs/overview
-FILE_PATTERNS          = *.c *.h *.cpp *.hpp
+INPUT                  = @DOXYGEN_INPUT_DIR@ ../docs ../docs/overview ../docs/getting_started ../docs/players ../docs/developers ../docs/api ../docs/features ../docs/modding ../docs/community ../docs/support ../docs/templates
+FILE_PATTERNS          = *.c *.h *.cpp *.hpp *.md
 RECURSIVE              = YES
-EXCLUDE_PATTERNS       = */build/* */tests/*/*.tmp
+EXCLUDE_PATTERNS       = */build/* */tests/*/*.tmp */.git/* */node_modules/*
 
 # Build
 QUIET                  = NO
