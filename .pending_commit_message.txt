@@ -237,3 +237,11 @@ feat(overlay/skills testing): animation playback controls (play/pause, loop, ste
 - Headless-safe guards maintained; UI-only changes in panels_skills_testing.c.
 - README updated with a short controls section under Real-time preview; Roadmap marks Phase 2.3 "Animation Preview Window – Playback controls" as Done.
 - Build: Debug (SDL2) with -j12; Tests: full ctest suite 100% green (594/594).
+
+feat(overlay/skills overview): convert Skill Type control to labeled enum combo; docs/roadmap updated
+
+- Overview tab Skill Type is now a labeled enum combo replacing the raw numeric control. Lists: UNKNOWN, MELEE, RANGED, AOE_SPELL, BUFF, DEBUFF, HEAL, SUMMON, PASSIVE, ULTIMATE. Bound to debug get/set and persists via overrides; validation banner refreshes on change.
+- Roadmap: Phase 2.4 Enum Dropdowns section updated to include the Overview Skill Type conversion.
+- README: Skills Meta notes the labeled enum combo for Skill Type.
+- Build: Debug (SDL2) with -j12 succeeded.
+- Tests: full ctest run from build dir 100% PASS (594/594).

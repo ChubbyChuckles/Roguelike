@@ -182,15 +182,10 @@ void panel_skills_draw_overview(int* sel)
     if (rogue_skill_debug_get_type(*sel, &stype) == 0)
     {
         int changed = 0;
-        changed |= overlay_slider_int("Skill Type (0..9)", &stype, 0, 9);
         static const char* type_names[10] = {"UNKNOWN", "MELEE", "RANGED", "AOE_SPELL", "BUFF",
                                              "DEBUFF",  "HEAL",  "SUMMON", "PASSIVE",   "ULTIMATE"};
-        if (stype >= 0 && stype <= 9)
-        {
-            char tn[64];
-            snprintf(tn, sizeof tn, "Type: %s", type_names[stype]);
-            overlay_label(tn);
-        }
+        /* Enum dropdown for Skill Type */
+        changed |= overlay_combo("Skill Type", &stype, type_names, 10);
         if (changed)
         {
             rogue_skill_debug_set_type(*sel, stype);

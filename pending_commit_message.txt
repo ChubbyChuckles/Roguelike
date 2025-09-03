@@ -1,3 +1,35 @@
+feat(skills/audio): Add Sound ID Browser to Skills → Audio tab
+
+Adds a filterable Sound ID Browser sourced from assets/sounds.cfg with an Assign-To selector (Cast/Impact/Loop). Clicking a row assigns the sound id to the selected target and saves via overrides. Headless-safe and non-SDL dependent.
+
+Docs: Updated roadmap (2.3 Enhanced UI Widgets) and README (Skills → Audio helpers).
+
+Quality gates:
+- Build: Debug (SDL2) with -j12 OK
+- Tests: ctest -C Debug -j12 → 100% passed (594/594)
+
+Touched:
+- src/debug_overlay/panel_skills/panel_skills_audio.c
+- roadmaps/implementation_plan_skill_creation_suite.txt
+- README.md
+feat(skills/visuals UX): convert AoE Shape and Trajectory Type to enum dropdowns; docs/roadmap; gates green
+
+- Visuals tab: replace discrete integer sliders with labeled combos
+	• AoE Shape: None | Circle | Cone | Line
+	• Trajectory Type: Linear | Arc | Homing | Scatter
+- Rationale: clearer authoring and fewer mistakes when editing discrete params.
+- Roadmap: mark Enum Dropdowns started and list current conversions under 2.4.
+- README: add note under Skills Visuals about the new enum dropdowns.
+
+Verification
+- Build: Debug (SDL2) with -j12 completed.
+- Tests: ctest from build dir with -C Debug -j12 --output-on-failure → 100% PASS (594/594).
+
+Touched
+- src/debug_overlay/panel_skills/panel_skills_visuals.c (combos)
+- roadmaps/implementation_plan_skill_creation_suite.txt
+- README.md
+
 feat(skills/testing): Vector2 input widget + cast/target position support; runtime sim JSON accepts cast_pos/target_pos; tests green
 
 - Widgets: add overlay_input_vec2 (X/Y) with themed visuals, proper focus/hover behavior.
