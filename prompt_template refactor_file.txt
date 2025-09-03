@@ -58,3 +58,8 @@ Refactor this large C source file to enhance maintainability by modularizing it 
 1. Provide a detailed file structure overview, listing each new file with a concise description of its purpose and contents.
 2. Generate complete, syntactically correct code for each new .c and .h file, including necessary includes, guards, and function declarations/definitions.
 3. Include a comprehensive explanation of the refactoring decisions, highlighting how the new structure improves maintainability, scalability, and readability while adhering to C programming best practices.
+
+
+### Add Documentation
+
+Read the implementation plan at "roadmaps/custom_documentation.txt". Get the next not implemented feature from the top and implement it. After implementing it go back to "roadmaps/custom_documentation.txt" and mark the feature as done by changing the [ ] in front of it into a [x]. Repeat this process until all features are implemented.
