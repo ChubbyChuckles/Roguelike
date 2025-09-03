@@ -1,0 +1,638 @@
+# SKILL CREATION SUITE IMPLEMENTATION PLAN - COMPREHENSIVE STATUS UPDATE
+
+## Executive Summary
+This is a comprehensive, step-by-step implementation plan for the Skill Creation Suite, incorporating all completed work from both the original implementation roadmap and the debug overlay improvements. This plan transforms the current debug panel into a sophisticated skill authoring, testing, and debugging environment with modern UX patterns and professional workflows.
+
+---
+
+## PHASE 1: ARCHITECTURE & CORE DATA MODEL ENHANCEMENT
+
+### 1.1 Extended Skill Definition Schema
+- [x] **Skill Type Enum** - Add skill_type enum: MELEE, RANGED, AOE_SPELL, BUFF, DEBUFF, HEAL, SUMMON, PASSIVE, ULTIMATE
+- [x] **Visual Asset Properties** - cast_sprite_sheet, projectile_sprite, impact_sprite, aoe_sprite, icon_sprite
+- [x] **Animation Properties** - frame_count, frame_duration_ms, animation_loops, sprite_sheet_layout (grid_width, grid_height)
+- [x] **Audio Properties** - cast_sound_id, impact_sound_id, loop_sound_id, sound_volume, sound_pitch_variance
+- [x] **Area-of-Effect Properties** - aoe_shape (circle/cone/line), aoe_radius, aoe_angle
+- [x] **Projectile Properties** - velocity, trajectory_type, pierce_count, homing_strength
+- [x] **Schema Validation** - Update schema_skills.{h,c} with new validation rules for each skill type and asset dependencies
+
+### 1.2 Effect Composition System
+- [x] **Core Effect Types** - DAMAGE, HEAL, STAT_BUFF, AOE_BLAST, SPAWN_PROJECTILE, TELEPORT (all implemented end-to-end)
+- [x] **Conditional Execution** - target_type, health_threshold (caster_health_le_pct), distance_check (max_distance)
+- [x] **Timing Controls** - delay_ms, duration_ms, repeat_count, repeat_interval_ms (deterministic pulse scheduling)
+- [x] **Effect Stacking** - AURA exclusivity replaces weaker auras and aligns next pulse without double-ticking
+- [ ] **EffectNode Tree Structure** - Design complex skill behavior trees beyond current linear effects
+- [ ] **SPAWN_ENTITY Effect Type** - Add entity spawning capabilities for summoning
+- [ ] **Advanced Effect Validation** - Broader authoring-time validation beyond runtime gating
+
+### 1.3 Skill Execution Engine Enhancement
+- [x] **Context Tracking** - cast_position, target_position, affected_entities (clamped to 8)
+- [x] **State Machine Core** - IDLE, CASTING, CHANNELING, COOLDOWN, INTERRUPTED states
+- [x] **Interrupt System** - rogue_skill_interrupt(id, ctx) with refund mechanics and end FX
+- [x] **Performance Profiling** - Lightweight per-skill profiling timestamps
+- [ ] **Advanced State Machine** - Full skill state machine with queuing system
+- [ ] **Skill Queuing System** - Combo and sequence support
+- [ ] **Enhanced Execution Pathways** - Extend skill_tree.c with new pathways
+
+### 1.4 Sprite Asset Management System
+- [ ] **Asset Directory Structure** - assets/skills/<skill_name>/{sprites,sounds,particles}/
+- [ ] **Sprite Sheet Loader** - Grid-based and packed layout support
+- [ ] **PNG Sequence Loader** - Frame-based animations (skill_cast_001.png, etc.)
+- [ ] **Asset Validation System** - File existence, format compatibility, dimensions checking
+- [ ] **Sprite Atlas Generation** - Performance optimization
+- [ ] **Asset Hot-Reload** - Real-time editing feedback
+- [ ] **Asset Dependency Tracking** - Missing file fallback systems
+
+### 1.5 Tests
+- [x] **Phase 1.3 Tests** - Interrupt semantics and context defaults/clamps
+- [x] **Effect Spec Tests** - SPAWN_PROJECTILE, TELEPORT, AURA exclusive, HEAL end-to-end
+- [x] **Validation Pipeline Tests** - Skill validation and coefficient gating
+- [ ] **Enhanced Data Model Tests** - Comprehensive validation for new schema elements
+- [ ] **Sprite Loading Tests** - Asset management system validation
+
+---
+
+## PHASE 2: ADVANCED UI FRAMEWORK FOR SKILL CREATION
+
+### 2.1 Skill Type Designer Interface ✅ COMPLETED
+- [x] **Multi-tab Panel** - Overview, Effects, Visuals, Audio, Testing tabs
+- [x] **Skill Type Selector** - Template presets for each RPG type
+- [x] **Context-Sensitive Properties** - Property panels adapt to selected skill type
+- [x] **Real-time Preview** - Skill visualization window with sprite-sheet animation
+
+### 2.2 Effect Composition Visual Editor ✅ MOSTLY COMPLETED
+- [x] **Effect Node Palette** - Categories (Offensive/Defensive/Movement/Utility), Kind/Debuff filters
+- [x] **Node-based Editor** - Drag/move nodes, selection, parameter panels
+- [x] **Connection System** - Link/unlink with cycle prevention, edge rendering
+- [x] **Validation Feedback** - Per-node validation coloring (red/orange/green)
+- [x] **Authoring Helpers** - Node Presets, HP gate buttons, Batch Helpers
+- [x] **Apply Connections to Delays** - Derive delay_ms from parent node spans
+- [ ] **Advanced Node Graph** - Full drag-and-drop visual editor beyond current implementation
+- [ ] **Complex Effect Dependencies** - Advanced timing chains and conditional execution
+
+### 2.3 Enhanced UI Widgets for Skill Editing
+- [ ] **Vector2D Input Widget** - Positions and directions
+- [ ] **Curve Editor** - Damage scaling, cooldown reduction progressions
+- [ ] **Color Gradient Picker** - Particle effects and visual themes
+- [ ] **Animation Timeline Editor** - Multi-phase skill execution
+- [ ] **Sprite Sheet Browser** - Thumbnail preview and frame selection
+- [ ] **Asset File Picker** - Filtering by type (PNG, sprite sheets, audio files)
+- [ ] **Sprite Sheet Grid Configurator** - Columns, rows, frame dimensions
+- [ ] **Animation Preview Window** - Playback controls (play, pause, step, loop)
+- [ ] **Asset Import Wizard** - Drag-and-drop sprite/audio integration
+
+### 2.4 Advanced Parameter Controls
+- [ ] **Range Sliders** - Min/max values for damage, cooldowns, ranges
+- [ ] **Enum Dropdowns** - Damage types, target filters, animation states
+- [ ] **Multi-select Checkboxes** - Status effect combinations
+- [ ] **Dynamic Lists** - Effect sequences and combo chains
+- [ ] **Formula Editors** - Complex damage calculations with syntax highlighting
+
+### 2.5 Sprite Asset Integration UI
+- [ ] **Visual Sprite Sheet Editor** - Grid overlay and frame selection
+- [ ] **Real-time Animation Preview** - Timing adjustment
+- [ ] **Sprite Sheet Import Wizard** - Common formats (PNG, TGA, BMP)
+- [ ] **Asset Dependency Viewer** - All sprites/sounds used by a skill
+- [ ] **Batch Asset Operations** - Resize, convert, optimize, rename
+- [ ] **Asset Validation Feedback** - Thumbnails of missing/corrupted files
+- [ ] **Sprite Sheet Packing** - Performance and memory optimization
+
+### 2.6 Tests
+- [ ] **UI Widget Functionality** - Parameter validation, visual editor operations
+- [ ] **Sprite Loading/Preview Tests** - Asset management and preview accuracy
+
+---
+
+## PHASE 2A: ASSET MANAGEMENT & SPRITE SYSTEM INTEGRATION
+
+### 2A.1 Sprite Sheet Processing System
+- [ ] **Multi-format Loader** - PNG, TGA, BMP with automatic format detection
+- [ ] **Grid-based Parsing** - Configurable cell dimensions
+- [ ] **Packed Sprite Support** - JSON metadata (TexturePacker, Shoebox formats)
+- [ ] **PNG Sequence Loading** - Automatic frame detection and numbering
+- [ ] **Sprite Sheet Optimization** - Power-of-2 resizing, atlas generation, compression
+
+### 2A.2 Asset Organization & Management
+- [ ] **Structured Directory Conventions** - assets/skills/<skill_id>/{cast,projectile,impact,aoe,icon}/
+- [ ] **Asset Registry System** - Fast lookup by skill ID and effect type
+- [ ] **Asset Dependency Tracking** - Reference counting
+- [ ] **Asset Hot-reload System** - Real-time editing workflow
+- [ ] **Asset Validation Pipeline** - Dimensions, formats, naming conventions
+
+### 2A.3 Animation System for Skills
+- [ ] **Skill Animation Controller** - Separate from player/enemy animation systems
+- [ ] **Frame-based Animation** - Configurable timing and looping
+- [ ] **Animation State Machine** - idle, casting, projectile_travel, impact, cooldown
+- [ ] **Sprite Layer Composition** - Complex effects (base + overlay + particles)
+- [ ] **Animation Synchronization** - With skill execution timing
+
+### 2A.4 Visual Effects Integration
+- [ ] **Particle System Integration** - Sprite-based particles
+- [ ] **Sprite-based Particle Effects** - Animation and physics
+- [ ] **Visual Effect Templates** - Common skill types
+- [ ] **Effect Layering System** - Background, main effect, foreground, UI overlays
+- [ ] **Screen-space Effects** - Camera shake, color grading, distortion
+
+### 2A.5 Tests
+- [ ] **Sprite Sheet Loading Accuracy**
+- [ ] **Animation Timing Precision**
+- [ ] **Asset Management Reliability**
+- [ ] **Visual Effect Synchronization**
+
+---
+
+## PHASE 3: SKILL TYPE IMPLEMENTATIONS - MELEE & RANGED
+
+### 3.1 Melee Attack Skills
+- [ ] **Hitbox Shape Definitions** - Rectangle, arc, cone with configurable dimensions
+- [ ] **Multi-hit Combos** - Frame-perfect timing windows
+- [ ] **Weapon-specific Animations** - Pose integration
+- [ ] **Directional Attacks** - Facing-based damage modifiers
+- [ ] **Special Mechanics** - Backstab multipliers, critical zones, parry windows
+
+### 3.2 Ranged Attack Skills
+- [ ] **Projectile Spawn Integration** - With existing projectiles.c
+- [ ] **Trajectory Types** - Linear, arc, homing, scatter, seeking
+- [ ] **Multi-projectile Skills** - Fan patterns, shotgun spreads, sequential volleys
+- [ ] **Projectile Behaviors** - Pierce, ricochet, split-on-impact, delayed explosion
+- [ ] **Range/Accuracy Modifiers** - Distance and player stats based
+
+### 3.3 Attack Chain System
+- [ ] **Combo Sequence Definitions** - Input timing windows
+- [ ] **Chain Progression Conditions** - Hit confirmation, timing requirements
+- [ ] **Branch Points** - Different combo paths based on input/conditions
+- [ ] **Attack Canceling** - Counter-attack opportunities
+- [ ] **Damage Scaling** - Across combo sequences
+
+### 3.4 Visual Integration for Attacks
+- [ ] **Weapon Pose Synchronization** - Attack frames using existing weapon_pose system
+- [ ] **Skill-specific Sprite Overlays** - During casting and execution phases
+- [ ] **Hit Particle Effects** - Spawned at impact points
+- [ ] **Screen Shake Effects** - Camera effects for heavy attacks
+- [ ] **Damage Number Display** - Type-specific colors and animations
+- [ ] **Attack Trail Effects** - Sprite sequences and weapon glow
+- [ ] **Casting Animation Integration** - Windup sprites, channel loops, completion effects
+
+### 3.5 Tests
+- [ ] **Melee Hitbox Accuracy**
+- [ ] **Ranged Projectile Behavior**
+- [ ] **Combo System Timing**
+- [ ] **Visual Synchronization**
+
+---
+
+## PHASE 4: SKILL TYPE IMPLEMENTATIONS - MAGIC & AOE
+
+### 4.1 Area-of-Effect Spell System
+- [ ] **AoE Shape Definitions** - Circle, cone, line, custom polygon
+- [ ] **Ground-targeted vs Self/Entity-targeted** - AoE targeting modes
+- [ ] **Damage Falloff Patterns** - Uniform, linear, quadratic, ring-shaped
+- [ ] **Multi-phase AoE** - Telegraph, buildup, execution, lingering effects
+- [ ] **Obstacle Interaction** - Line-of-sight blocking, wall penetration
+
+### 4.2 Magical Projectile Spells
+- [ ] **Enhanced Projectile System** - Magical effects
+- [ ] **Seeking/Homing Behaviors** - Target prioritization
+- [ ] **Chain Lightning** - Bouncing projectile mechanics
+- [ ] **Projectile Transformation** - Split, multiply, size changes
+- [ ] **Magical Damage Types** - Resistances and interactions
+
+### 4.3 Elemental Effects System
+- [ ] **Fire Effects** - DOT, spread mechanics, ignition chains
+- [ ] **Ice Effects** - Slow effects, freeze duration, shatter combinations
+- [ ] **Lightning Effects** - Chain targets, stun chances, conduction
+- [ ] **Arcane Effects** - Shield piercing, mana burns, dispel mechanics
+- [ ] **Physical Effects** - Knockback, armor penetration, bleeding
+
+### 4.4 Spell Visualization System
+- [ ] **Pre-cast Telegraphs** - Timing indicators with sprite-based warnings
+- [ ] **Casting Animations** - Particle buildup and sprite sheet sequences
+- [ ] **AoE Indicators** - Range and danger zone highlighting
+- [ ] **Magical Projectile Trails** - Element-specific animations and color tinting
+- [ ] **Impact Effects** - Screen distortion and lighting changes
+- [ ] **Spell Charging Feedback** - Intensity-based sprite scaling and opacity
+- [ ] **Element-specific Themes** - Consistent sprite palettes and particle colors
+
+### 4.5 Tests
+- [ ] **AoE Shape Accuracy**
+- [ ] **Damage Falloff Calculations**
+- [ ] **Elemental Interaction Rules**
+- [ ] **Visual Timing Synchronization**
+
+---
+
+## PHASE 5: SKILL TYPE IMPLEMENTATIONS - SUPPORT & STATUS EFFECTS
+
+### 5.1 Healing Skills System
+- [ ] **Single-target vs AoE Healing** - Different efficiency curves
+- [ ] **Healing Over Time** - Tick rates and total amounts
+- [ ] **Conditional Healing** - Low health bonuses, damage type specific
+- [ ] **Resource Costs** - Mana, cooldowns, charges, health sacrifice
+- [ ] **Healing Visualization** - Sprite-based particles, health bar animations
+- [ ] **Casting Animations** - Distinct visual themes (divine light, nature magic)
+- [ ] **Visual Feedback** - Healing amount with floating numbers and screen effects
+
+### 5.2 Buff System Enhancement
+- [ ] **Stat Modifications** - Temporary increases to damage, speed, defense
+- [ ] **Special Abilities** - Flight, invisibility, damage immunity, spell immunity
+- [ ] **Buff Stacking Rules** - Additive, multiplicative, replacement, maximum caps
+- [ ] **Duration Management** - Permanent, timed, conditional, refresh mechanics
+- [ ] **Visual Buff Indicators** - Character auras, animated status icons, particles
+- [ ] **Buff Application Animations** - Distinct visual signatures per buff type
+- [ ] **Persistent Visual Effects** - Sprite overlays and color tinting during buff duration
+
+### 5.3 Debuff System Implementation
+- [ ] **Movement Impairments** - Slow, root, knockdown, displacement
+- [ ] **Combat Debuffs** - Damage reduction, accuracy penalties, cooldown increases
+- [ ] **Status Ailments** - Poison, bleeding, burning, frozen, stunned
+- [ ] **Debuff Resistance/Immunity** - Systems
+- [ ] **Debuff Visual Feedback** - Character tinting, animation changes, status overlays
+- [ ] **Debuff Application Animations** - Negative visual themes
+- [ ] **Persistent Debuff Indicators** - Animated sprite warnings and screen edge indicators
+
+### 5.4 Status Effect Interaction Matrix
+- [ ] **Compatibility Rules** - Different buff/debuff combinations
+- [ ] **Synergy Effects** - Enhanced damage when multiple debuffs active
+- [ ] **Immunity and Resistance** - Interactions
+- [ ] **Cleanse and Dispel** - Mechanics for removing effects
+- [ ] **Priority Systems** - Conflicting effects
+
+### 5.5 Tests
+- [ ] **Buff/Debuff Application Accuracy**
+- [ ] **Duration Tracking**
+- [ ] **Interaction Rules**
+- [ ] **Visual Feedback**
+
+---
+
+## PHASE 6: ADVANCED SKILL TYPES - SUMMONING & ULTIMATES
+
+### 6.1 Summoning System
+- [ ] **Summon Entity Definitions** - Health, AI behaviors, lifespans
+- [ ] **Summoning Locations** - At caster, at target, around caster in formation
+- [ ] **Summon AI Integration** - With existing enemy AI system
+- [ ] **Resource Management** - Summon limits, mana costs, maintenance costs
+- [ ] **Summon Visualization** - Spawn effects, entity rendering, despawn animations
+- [ ] **Summoning Circle Animations** - Portal animations with particles and sprites
+- [ ] **Summoned Entity Differentiation** - Sprite variants and ally indicators
+
+### 6.2 Passive Skill System Enhancement
+- [ ] **Always-active Bonuses** - Stat increases, resistance bonuses, regeneration
+- [ ] **Conditional Passives** - Triggered by events, health thresholds, enemy proximity
+- [ ] **Passive Skill Trees** - Prerequisites
+- [ ] **Passive Effect Stacking** - Interaction rules
+- [ ] **Hidden Passive Indicators** - Tooltip information
+
+### 6.3 Ultimate/Charged Skill System
+- [ ] **Charge Accumulation** - Damage dealt, time-based, special actions
+- [ ] **Ultimate Resource Management** - Separate from mana/cooldowns
+- [ ] **Multi-phase Execution** - Windup, main effect, aftermath
+- [ ] **Ultimate Visual/Audio** - Full-screen overlays, dramatic pauses, screen distortion
+- [ ] **Balance Considerations** - Long cooldowns, high costs, powerful effects
+- [ ] **Ultimate Charging Feedback** - Progressive sprite intensity and screen border effects
+- [ ] **Unique Activation Sequences** - Custom sprite animations and sound design
+
+### 6.4 Advanced Skill Mechanics
+- [ ] **Skill Synergies** - Bonuses when multiple skills of same element/type used
+- [ ] **Environmental Interactions** - Skills affected by terrain, weather, lighting
+- [ ] **Dynamic Skill Modification** - Upgrades based on usage, player progression
+- [ ] **Contextual Skills** - Different effects based on target type, player state
+- [ ] **Meta-skills** - Skills that modify or enhance other skills
+
+### 6.5 Tests
+- [ ] **Summon Entity Behavior**
+- [ ] **Passive Effect Persistence**
+- [ ] **Ultimate Charge Mechanics**
+- [ ] **Skill Synergy Calculations**
+
+---
+
+## PHASE 7: SANDBOXED TESTING ENVIRONMENT
+
+### 7.1 Test Arena Creation
+- [ ] **Isolated Test Maps** - Configurable terrain, obstacles, enemy spawns
+- [ ] **Controllable Enemy Types** - Adjustable stats, AI behavior, resistances
+- [ ] **Environmental Hazards** - Interactive elements for testing
+- [ ] **Save/Load Test Scenarios** - Regression testing and skill balancing
+- [ ] **Performance Profiling** - Within test environment
+
+### 7.2 Real-time Skill Testing Interface
+- [ ] **Instant Skill Execution** - Buttons with parameter overrides
+- [ ] **Live Stat Monitoring** - Damage dealt, healing done, status effects applied
+- [ ] **Frame-by-frame Analysis** - Pause/resume controls
+- [ ] **Visual Debugging Overlays** - Hitboxes, trajectories, AoE ranges, timing windows
+- [ ] **Automated Test Sequences** - Consistent skill evaluation
+
+### 7.3 Combat Simulation System
+- [ ] **Configurable Combat Scenarios** - Multiple enemies and objectives
+- [ ] **DPS Calculation Tools** - Sustained and burst damage analysis
+- [ ] **Survivability Testing** - Against different enemy compositions
+- [ ] **Skill Rotation Optimization** - Statistical analysis
+- [ ] **Balance Verification Tools** - Comparing skills against design targets
+
+### 7.4 Performance Profiling Tools
+- [ ] **Skill Execution Time** - Measurement with breakdown by effect type
+- [ ] **Memory Allocation Tracking** - Skill-related operations
+- [ ] **Frame Rate Impact Analysis** - Complex skill combinations
+- [ ] **Optimization Suggestions** - Based on profiling data
+- [ ] **Comparative Analysis** - Between different skill implementations
+
+### 7.5 Tests
+- [ ] **Test Arena Functionality**
+- [ ] **Simulation Accuracy**
+- [ ] **Profiling Tool Reliability**
+
+---
+
+## PHASE 8: INTEGRATION WITH GAME SYSTEMS
+
+### 8.1 Enhanced Animation System Integration
+- [ ] **Skill-specific Animation Triggers** - Synchronized with effect timing
+- [ ] **Player Animation State Management** - During skill execution
+- [ ] **Weapon Animation Integration** - With skill casting and effects
+- [ ] **Enemy Reaction Animations** - To different skill types and effects
+- [ ] **Animation Blending** - Smooth skill transitions and combos
+
+### 8.2 Advanced Audio System Integration
+- [ ] **Layered Audio** - Cast sounds, impact sounds, ambient effects
+- [ ] **3D Positional Audio** - Projectiles and AoE effects
+- [ ] **Audio Cue Synchronization** - With visual effects
+- [ ] **Dynamic Audio Mixing** - Based on skill intensity and overlapping effects
+- [ ] **Environmental Audio** - Modifications based on skill effects
+
+### 8.3 Particle System Enhancement
+- [ ] **Skill-specific Particle Templates** - Customizable parameters
+- [ ] **Performance Optimization** - Multiple simultaneous effects
+- [ ] **Weather/Environmental Interaction** - With particle effects
+- [ ] **Particle Effect Chaining** - Sequencing for complex skills
+- [ ] **LOD System** - Based on distance and performance requirements
+
+### 8.4 Combat System Deep Integration
+- [ ] **Enhanced Damage Calculation** - Supporting all skill types
+- [ ] **Advanced Resistance/Immunity** - Mechanics
+- [ ] **Skill Interrupt/Counter-attack** - Systems
+- [ ] **Combat State Management** - Skill execution timing
+- [ ] **Hit Confirmation/Feedback** - System improvements
+
+### 8.5 Tests
+- [ ] **Animation Synchronization Accuracy**
+- [ ] **Audio Timing Precision**
+- [ ] **Particle Performance**
+- [ ] **Combat Integration Reliability**
+
+---
+
+## PHASE 9: ADVANCED DEBUGGING & VISUALIZATION TOOLS
+
+### 9.1 Skill Execution Debugger
+- [ ] **Step-through Execution** - Breakpoints at effect application points
+- [ ] **Variable Inspection** - Skill parameters, targets, intermediate calculations
+- [ ] **Call Stack Visualization** - Effect execution order and dependencies
+- [ ] **Performance Bottleneck ID** - Timing breakdowns
+- [ ] **Error Handling/Recovery** - Detailed logging
+
+### 9.2 Visual Debugging Overlays
+- [ ] **Real-time Hitbox Visualization** - Collision boundary visualization
+- [ ] **Projectile Trajectory Prediction** - Path visualization
+- [ ] **AoE Range Indicators** - Damage falloff zone indicators
+- [ ] **Status Effect Timers** - Duration timers and intensity indicators
+- [ ] **AI Decision Visualization** - For summoned entities
+
+### 9.3 Skill Analytics and Metrics
+- [ ] **Usage Statistics** - Cast frequency, success rates, average damage
+- [ ] **Player Behavior Analysis** - Preferred skills, combo patterns, timing preferences
+- [ ] **Balance Metrics** - Time-to-kill, damage-per-second, resource efficiency
+- [ ] **Error Rate Tracking** - Failed casts, interrupted skills, timing misses
+- [ ] **A/B Testing Framework** - Skill balance modifications
+
+### 9.4 Error Handling and Validation
+- [ ] **Comprehensive Validation** - Detailed error messages
+- [ ] **Runtime Error Recovery** - Malformed or corrupted skill data
+- [ ] **Asset Dependency Checking** - Missing sprites, sounds, animations
+- [ ] **Performance Threshold Validation** - Prevent frame rate issues
+- [ ] **User-friendly Error Reporting** - Suggested fixes
+
+### 9.5 Tests
+- [ ] **Debugger Functionality**
+- [ ] **Visual Overlay Accuracy**
+- [ ] **Analytics Data Integrity**
+- [ ] **Error Handling Robustness**
+
+---
+
+## PHASE 10: EXPORT/IMPORT & CONTENT PACK SYSTEM
+
+### 10.1 Skill Package Export System
+- [ ] **Bundle Definitions with Dependencies** - Sprites, sounds, animations, particle effects
+- [ ] **Sprite Sheet Optimization** - Compression for package distribution
+- [ ] **Versioning/Compatibility Checking** - Including asset format versions
+- [ ] **Compression and Optimization** - Sprite atlas generation
+- [ ] **Metadata Inclusion** - Author info, version history, balance notes, asset credits
+- [ ] **Selective Export** - Individual skills, categories, complete skill sets with filtering
+- [ ] **Asset Verification** - All referenced sprites, sounds, animations included
+
+### 10.2 Content Pack Import System
+- [ ] **Safe Import with Validation** - Sandbox validation before integration
+- [ ] **Asset Dependency Resolution** - Automatic format conversion
+- [ ] **Missing Asset Handling** - Placeholder sprites and warning notifications
+- [ ] **Conflict Resolution** - Duplicate skill names, IDs, asset file names
+- [ ] **Import Preview** - Visual and functional verification with sprite thumbnails
+- [ ] **Rollback Capability** - Problematic imports with asset cleanup
+- [ ] **Asset Format Validation** - Conversion for unsupported sprite formats
+
+### 10.3 Community Content Integration
+- [ ] **Skill Rating/Review System** - Community contributions
+- [ ] **Automatic Balance Checking** - Against established benchmarks
+- [ ] **Moderation Tools** - Inappropriate or broken content
+- [ ] **Version Control Integration** - Collaborative development
+- [ ] **Distribution Platform Integration** - Easy sharing
+
+### 10.4 Migration and Compatibility Tools
+- [ ] **Automatic Migration** - Skills from older format versions
+- [ ] **Compatibility Shim** - Deprecated skill mechanics
+- [ ] **Conversion Tools** - Skills created in external editors
+- [ ] **Backup and Restore** - Skill databases
+- [ ] **Cross-platform Compatibility** - Verification
+
+### 10.5 Tests
+- [ ] **Export/Import Functionality**
+- [ ] **Dependency Resolution**
+- [ ] **Compatibility Checking**
+- [ ] **Migration Accuracy**
+
+---
+
+## PHASE 11: PERFORMANCE OPTIMIZATION & POLISH
+
+### 11.1 Memory Management Optimization
+- [ ] **Object Pooling** - Frequently created/destroyed skill effects
+- [ ] **Memory Arena Allocators** - Temporary skill execution data
+- [ ] **Garbage Collection Optimization** - Skill-related objects
+- [ ] **Memory Leak Detection** - Prevention in skill execution paths
+- [ ] **Efficient Data Structures** - Skill lookup and execution
+
+### 11.2 Rendering Performance Optimization
+- [ ] **Batching and Instancing** - Similar particle effects
+- [ ] **Level-of-detail Systems** - Complex visual effects
+- [ ] **Culling Optimizations** - Off-screen skill effects
+- [ ] **Texture Atlas Optimization** - Skill-related sprites
+- [ ] **Shader Optimizations** - Common skill visual effects
+
+### 11.3 CPU Performance Optimization
+- [ ] **Multi-threading Support** - Independent skill calculations
+- [ ] **SIMD Optimizations** - Mathematical operations in damage calculations
+- [ ] **Caching Strategies** - Frequently accessed skill data
+- [ ] **Algorithm Optimizations** - Pathfinding for projectiles and AoE calculations
+- [ ] **Profiling Integration** - Continuous performance monitoring
+
+### 11.4 User Experience Polish
+- [ ] **Smooth Animations/Transitions** - Throughout skill creation interface
+- [ ] **Responsive Design** - Different screen resolutions and aspect ratios
+- [ ] **Accessibility Features** - Keyboard navigation, screen reader support, colorblind-friendly palettes
+- [ ] **Comprehensive Tooltips** - Help system for complex features
+- [ ] **Contextual Tutorials** - Guided skill creation workflows
+
+### 11.5 Tests
+- [ ] **Performance Benchmarks**
+- [ ] **Memory Usage Validation**
+- [ ] **Rendering Efficiency**
+- [ ] **User Experience Testing**
+
+---
+
+## PHASE 12: ADVANCED FEATURES & EXTENSIONS (OPTIONAL)
+
+### 12.1 Scripting System Integration
+- [ ] **Lua Scripting Support** - Complex skill behaviors beyond JSON definitions
+- [ ] **Script Debugging/Profiling** - Integrated into skill debugger
+- [ ] **Security Sandboxing** - User-generated scripts
+- [ ] **Standard Library** - Common skill functions and utilities
+- [ ] **Hot Reloading** - Scripts during development
+
+### 12.2 Networked Skill System
+- [ ] **Client-server Execution** - Authoritative validation
+- [ ] **Lag Compensation** - Real-time skill casting
+- [ ] **Skill State Synchronization** - Multiple clients
+- [ ] **Anti-cheat Integration** - Skill usage and cooldown enforcement
+- [ ] **Network Performance Optimization** - Skill-heavy gameplay
+
+### 12.3 Advanced AI Integration
+- [ ] **AI-driven Skill Balancing** - Machine learning
+- [ ] **Procedural Skill Generation** - Endless content variety
+- [ ] **Player Behavior Prediction** - Dynamic difficulty adjustment
+- [ ] **AI Opponents** - Learn and adapt to player skill usage patterns
+- [ ] **Automated Testing** - AI players for comprehensive skill validation
+
+### 12.4 Extended Skill Types
+- [ ] **Environmental Manipulation** - Terrain modification, weather control
+- [ ] **Time Manipulation** - Slow-mo, time stop, rewind mechanics
+- [ ] **Reality Manipulation** - Portal creation, dimension shifting
+- [ ] **Meta-game Skills** - Experience bonuses, loot finding, crafting enhancements
+- [ ] **Social Skills** - NPC interaction bonuses, trade improvements, reputation effects
+
+### 12.5 Tests
+- [ ] **Scripting System Reliability**
+- [ ] **Network Synchronization Accuracy**
+- [ ] **AI Integration Effectiveness**
+
+---
+
+## COMPLETED FEATURES FROM DEBUG OVERLAY IMPROVEMENTS
+
+### Foundation Systems ✅ COMPLETED
+- [x] **Overlay Theme System** - Centralized colors, spacing, typography with Dark/Light/High-Contrast presets
+- [x] **DPI Scaling and Font Size** - Runtime adjustable with persistence
+- [x] **Layout Primitives** - Resizable columns/splitter, collapsible sections, persistent layouts
+- [x] **Toast Notification System** - Non-modal info/warn/error with auto-dismiss
+- [x] **Panel Layout Persistence** - Movable panels with layout saved to overlay_layout.json
+
+### Navigation and Discoverability ✅ COMPLETED
+- [x] **Global Search (Ctrl+K)** - Fuzzy finder across Items and Skills with jump-to functionality
+- [x] **Command Palette (Ctrl+Shift+P)** - Action picker for overlay commands
+- [x] **Breadcrumbs and History** - Navigation trail with Alt+Left/Right Back/Forward
+- [x] **Keyboard Shortcuts** - Alt+1-9 panel switching, Esc focus clear, Ctrl+S contextual save
+- [x] **Colorblind-safe Palette** - Accessibility toggle with remapped accent colors
+
+### Authoring Accelerators ✅ COMPLETED
+- [x] **Creation Wizards** - Schema-backed "Create New Item" with validation
+- [x] **Templates and Presets** - Curated presets and file-backed templates with Save/Load
+- [x] **Duplicate-as-template** - One-click duplication with pre-filled fields and unique ID suggestions
+- [x] **Multi-asset Batch Creator** - Pattern-based expansion for Items and Skills
+- [x] **Virtualized Tables** - High-performance rendering for large datasets (50k+ items)
+
+### Live Previews and Inspectors ✅ COMPLETED
+- [x] **Items Preview** - Icon/sprite swatch, rarity color, sockets UI, vendor price impact
+- [x] **Skills Preview** - Timeline, damage tick graph, effect spec list, real-time sprite preview
+- [x] **Audio/VFX Preview** - Spatial audition, gizmo toggles, attenuation curve view
+- [x] **Map Editor Enhancements** - Brush ghost, colliders overlay, pathfinding heatmap, undo/redo
+- [x] **Dialogue Preview** - Branch graph mini-view, conversation runner, style inspector
+
+### Content Graph Polish ✅ COMPLETED
+- [x] **Pan/Zoom and Focus Tools** - Mouse wheel zoom, right-drag pan, fit-to-selection
+- [x] **Layout and Highlighting** - Group halos, "Explain Path" tool, deepest layer emphasis
+- [x] **Finders** - List Missing Providers, Orphans, Hubs with batch actions
+- [x] **Exports and Diffing** - Snapshot A→B diff overlay, JSON diff export with degree deltas
+
+### Style and Accessibility ✅ COMPLETED
+- [x] **Visual Language** - Consistent hover/pressed/focus states, accessible contrast
+- [x] **Icons** - Bitmap icon system with themed icon buttons for common actions
+- [x] **Comprehensive Keyboard Coverage** - Full navigation with cheat sheet panel
+- [x] **Tooltips** - Rich content system with 400ms hover delay
+
+---
+
+## IMPLEMENTATION PRIORITIES
+
+### **HIGH PRIORITY** (Essential for MVP)
+- **Phase 1.4-1.5**: Complete asset management and sprite system foundation
+- **Phase 2.3-2.6**: Enhanced UI widgets and sprite asset integration
+- **Phase 3**: Melee and ranged skill implementations
+- **Phase 7.1-7.2**: Basic sandboxed testing environment
+
+### **MEDIUM PRIORITY** (Core Feature Completion)
+- **Phase 4-5**: Magic/AoE and support/status effect implementations
+- **Phase 6.1-6.2**: Summoning and passive systems
+- **Phase 7.3-7.5**: Advanced testing and profiling tools
+- **Phase 8**: Deep game system integration
+
+### **LOW PRIORITY** (Polish and Optimization)
+- **Phase 9**: Advanced debugging and visualization tools
+- **Phase 10**: Export/import and content pack system
+- **Phase 11**: Performance optimization and UX polish
+
+### **OPTIONAL** (Future Extensions)
+- **Phase 6.3-6.4**: Ultimate skills and advanced mechanics
+- **Phase 12**: Scripting, networking, AI integration, extended skill types
+
+---
+
+## PERFORMANCE TARGETS
+
+- **Skill Execution Overhead**: <0.5ms per skill activation
+- **Memory Usage**: <100MB additional for entire skill creation suite
+- **UI Responsiveness**: <16ms frame time during intensive skill editing
+- **Asset Loading**: <1s for typical skill package import
+- **Compilation Time**: <5s for full skill validation and optimization
+
+---
+
+## SUCCESS METRICS
+
+1. **Developer Productivity**: Reduce skill creation time from hours to minutes
+2. **Content Quality**: Eliminate JSON editing for 90% of skill creation workflows
+3. **Testing Efficiency**: Comprehensive skill testing without game restarts
+4. **Performance**: Maintain 60+ FPS during skill authoring with large datasets
+5. **Accessibility**: Full keyboard navigation and screen reader compatibility
+6. **Professional Presentation**: Polished UI suitable for external demonstration
+
+---
+
+## NEXT IMMEDIATE ACTIONS
+
+1. **Complete Asset Management System** (Phase 1.4) - Priority foundation for all visual features
+2. **Implement Enhanced UI Widgets** (Phase 2.3) - Essential for professional authoring experience
+3. **Build Melee Attack System** (Phase 3.1) - First concrete skill type implementation
+4. **Create Basic Test Arena** (Phase 7.1) - Enable rapid skill testing and iteration
+5. **Add Sprite Sheet Processing** (Phase 2A.1) - Support for complex visual assets
+
+This comprehensive plan transforms the current skill debug panel into a professional-grade skill creation suite while building upon the extensive UI/UX improvements already implemented in the debug overlay system.
