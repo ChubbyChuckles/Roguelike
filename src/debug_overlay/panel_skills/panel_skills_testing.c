@@ -263,10 +263,12 @@ void panel_skills_draw_testing(int sel)
     static PreviewTex t_aoe = {"", {0}};
 
     static int preview_enabled = 1;
-    static int preview_autoplay = 1;
-    static int preview_zoom = 2; /* 1..8 */
+    static int preview_autoplay = 1; /* Play/Pause */
+    static int preview_loop = 1;     /* Loop override for preview */
+    static int preview_zoom = 2;     /* 1..8 */
     overlay_checkbox("Enable Real-time Preview", &preview_enabled);
-    overlay_checkbox("Auto-animate", &preview_autoplay);
+    overlay_checkbox("Auto-animate (Play)", &preview_autoplay);
+    overlay_checkbox("Loop (Preview)", &preview_loop);
     overlay_slider_int("Zoom", &preview_zoom, 1, 8);
 
     const int panel_x = 380, panel_y = 10; /* match orchestrator */
@@ -299,8 +301,31 @@ void panel_skills_draw_testing(int sel)
             preview_ensure_tex_local(&t_aoe, vis.aoe_sprite);
 
             static float anim_t = 0.0f;
+            /* Determine current frame count based on grid settings */
+            int grid_w = vis.grid_width > 0 ? vis.grid_width : 1;
+            int grid_h = vis.grid_height > 0 ? vis.grid_height : 1;
+            int frames_conf = vis.frame_count > 0 ? vis.frame_count : (grid_w * grid_h);
+
+            /* Per-frame controls when paused */
+            int step_clicked = 0;
+            if (!preview_autoplay)
+            {
+                /* Offer Step and Reset when paused */
+                if (overlay_button("Step Frame"))
+                    step_clicked = 1;
+                if (overlay_button("Reset Animation"))
+                    anim_t = 0.0f;
+            }
+            /* Advance time if playing or stepped */
             if (preview_autoplay)
+            {
                 anim_t += overlay_last_dt();
+            }
+            else if (step_clicked)
+            {
+                float fd_ms = (vis.frame_duration_ms > 0 ? vis.frame_duration_ms : 100.0f);
+                anim_t += fd_ms / 1000.0f;
+            }
             const PreviewTex* show = NULL;
             int is_sheet = 0;
             if (stype == 2 && t_proj.ready)
@@ -320,19 +345,43 @@ void panel_skills_draw_testing(int sel)
                 RogueSprite spr = {0};
                 spr.tex = (RogueTexture*) &show->tex;
                 int cell_w = show->tex.w, cell_h = show->tex.h;
-                int grid_w = vis.grid_width > 0 ? vis.grid_width : 1;
-                int grid_h = vis.grid_height > 0 ? vis.grid_height : 1;
-                int frames = vis.frame_count > 0 ? vis.frame_count : (grid_w * grid_h);
+                int frames = frames_conf;
                 if (is_sheet && grid_w > 0 && grid_h > 0)
                 {
                     cell_w = (grid_w > 0 ? show->tex.w / grid_w : show->tex.w);
                     cell_h = (grid_h > 0 ? show->tex.h / grid_h : show->tex.h);
                     float fd = (vis.frame_duration_ms > 0 ? vis.frame_duration_ms : 100.0f);
-                    int f = (int) (anim_t * 1000.0f / fd);
-                    if (!vis.animation_loops && f >= frames)
-                        f = frames - 1;
-                    if (frames > 0)
-                        f = f % frames;
+                    int f = 0;
+                    int loop_eff = (vis.animation_loops || preview_loop) ? 1 : 0;
+                    if (preview_autoplay)
+                    {
+                        f = (int) (anim_t * 1000.0f / fd);
+                        if (!loop_eff && frames > 0 && f >= frames)
+                            f = frames - 1;
+                        if (loop_eff && frames > 0)
+                            f = f % frames;
+                    }
+                    else
+                    {
+                        /* When paused, expose a frame slider to scrub */
+                        static int preview_frame = 0;
+                        if (frames <= 0)
+                            preview_frame = 0;
+                        else if (preview_frame >= frames)
+                            preview_frame = frames - 1;
+                        /* Slider visible only when paused */
+                        if (frames > 0)
+                        {
+                            int changed =
+                                overlay_slider_int("Frame (paused)", &preview_frame, 0, frames - 1);
+                            if (changed)
+                            {
+                                /* Keep anim_t aligned to the chosen frame for consistency */
+                                anim_t = (float) preview_frame * (fd / 1000.0f);
+                            }
+                        }
+                        f = (frames > 0 ? preview_frame : 0);
+                    }
                     int fx = (frames > 0 ? (f % grid_w) : 0);
                     int fy = (frames > 0 ? (f / grid_w) : 0);
                     spr.sx = fx * cell_w;

@@ -47,6 +47,13 @@ Press F1 in-game to open the debug overlay.
 - Optional: `skill_type` enum can be set on skills (MELEE, RANGED, AOE_SPELL, BUFF, DEBUFF, HEAL, SUMMON, PASSIVE, ULTIMATE). If omitted, it defaults to UNKNOWN for back-compat.
 - New: Skills Meta section includes a Skill Type selector with human-readable labels and "Type Presets" buttons that apply safe baseline timing/coeff defaults per type. The property panels are context-sensitive (e.g., AoE-only fields for AOE_SPELL, projectile-only fields for RANGED). Simulation controls moved to the Testing tab.
 - Real-time preview (Testing tab): Toggle "Enable Real-time Preview" to see the selected skill’s visuals rendered with sprite-sheet animation; use "Auto-animate" and "Zoom" to control playback and scale. The preview selects cast/projectile/impact/AoE sprites based on `skill_type`, caches textures, and is headless-safe (no SDL calls when no renderer is present).
+  Playback controls:
+  - Play/Pause: toggles animation (mapped to Auto-animate).
+  - Loop: preview-only override of the definition’s loop flag.
+  - Step: advances exactly one frame when paused.
+  - Reset: returns animation time/frame to 0.
+  - Frame slider: visible when paused for direct frame scrubbing.
+  Timing respects `frame_duration_ms` and total frames from `frame_count` or grid_width × grid_height; preview controls do not modify runtime data.
   Skills Live Preview (M4.2, textual): Above the simulation controls, a headless-safe table summarizes the selected skill: name/type, Cast and Cooldown timing, Coeffs (base/per-rank), Primary Effect kind/magnitude and Effect Nodes (with delays/repeats), plus a rough estimated total tick count computed from repeats/periods. Complements the sprite preview; updates as you edit.
   Audio/VFX (M4.3): In the Audio/VFX panel, audition sounds and inspect attenuation deterministically.
   - Toggles: Enable Positional Audio, Listener follows player; adjust Falloff Radius (tiles).

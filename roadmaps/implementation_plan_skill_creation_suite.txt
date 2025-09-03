@@ -81,7 +81,11 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
 - [x] **Sprite Sheet Browser** - Filterable list of image files under assets/ with Assign-To (Cast/Projectile/Impact/AoE); click to assign and persist via debug API. Note: Windows-only enumerator for now; cross-platform follow-up planned.
 - [ ] **Asset File Picker** - Filtering by type (PNG, sprite sheets, audio files)
 - [x] **Sprite Sheet Grid Configurator** - Shows derived grid cells (grid_width × grid_height) and provides a one-click "Set Frame Count = Grid Cells" action (no change unless explicitly applied).
-- [ ] **Animation Preview Window** - Playback controls (play, pause, step, loop)
+- [x] **Animation Preview Window** - Playback controls (play, pause, step, loop)
+	- Implemented in the Skills → Testing preview: Play/Pause (Auto-animate toggle), Loop override, Step Frame, and Reset Animation.
+	- When paused, a Frame slider appears to scrub the current frame.
+	- Animation time/frame respects `frame_duration_ms` and total frames from either explicit `frame_count` or derived grid (grid_width × grid_height).
+	- Headless-safe: all rendering/input paths are guarded when no renderer is present.
 - [ ] **Asset Import Wizard** - Drag-and-drop sprite/audio integration
 
 ### 2.4 Advanced Parameter Controls

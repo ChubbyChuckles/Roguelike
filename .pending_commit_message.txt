@@ -229,3 +229,11 @@ feat(overlay/skills visuals): Sprite Sheet Browser + Grid Configurator helper; d
 - Grid Configurator helper shows derived grid cells (grid_width × grid_height) and adds a one-click "Set Frame Count = Grid Cells" action (explicit, no implicit changes).
 - README: added Visuals helpers usage; Roadmap: Phase 2.3 marks Browser + Grid Configurator as Done (browser noted Windows-only for now).
 - Build: Debug (SDL2) with -j12; Tests: full ctest suite 100% green (594/594).
+
+feat(overlay/skills testing): animation playback controls (play/pause, loop, step, reset) + frame scrubber; docs/roadmap updated
+
+- Testing tab preview adds playback controls: Play/Pause (mapped to Auto-animate), Loop override, Step Frame, Reset Animation; when paused, a Frame slider appears for scrubbing.
+- Timing honors frame_duration_ms and total frames from frame_count or derived grid (grid_width × grid_height); preview-only, no runtime changes.
+- Headless-safe guards maintained; UI-only changes in panels_skills_testing.c.
+- README updated with a short controls section under Real-time preview; Roadmap marks Phase 2.3 "Animation Preview Window – Playback controls" as Done.
+- Build: Debug (SDL2) with -j12; Tests: full ctest suite 100% green (594/594).
