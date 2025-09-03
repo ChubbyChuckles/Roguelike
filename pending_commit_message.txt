@@ -1,3 +1,22 @@
+feat(skills/testing): Vector2 input widget + cast/target position support; runtime sim JSON accepts cast_pos/target_pos; tests green
+
+- Widgets: add overlay_input_vec2 (X/Y) with themed visuals, proper focus/hover behavior.
+- Skills panel (Testing): new "Cast Pos" and "Target Pos" controls wired via overlay_input_vec2.
+- Runtime: skill_simulate_rotation now parses optional cast_pos/target_pos from profile JSON and seeds RogueSkillCtx accordingly (back‑compatible when omitted).
+- Roadmap: mark Vector2D Input Widget DONE; note Testing tab wiring and JSON keys.
+- README: document Testing positions and simulation JSON keys.
+
+Verification
+- Build: Debug (SDL2) with -j12 succeeds.
+- Tests: ctest from build dir with -C Debug -j12 → 100% PASS (594/594).
+
+Touched
+- src/debug_overlay/widgets/overlay_widgets.h/.c (overlay_input_vec2)
+- src/debug_overlay/panel_skills/panel_skills_testing.c (controls + JSON)
+- src/core/skills/skills_runtime.c (vec2 parse + ctx)
+- roadmaps/implementation_plan_skill_creation_suite.txt
+- README.md
+
 feat(overlay): Esc clears focus; Ctrl+S save; Ctrl+Z/Y undo/redo; Shortcuts updated (M6.3)
 
 - Input: capture S/Z/Y to support Ctrl+S and Ctrl+Z/Y. Kept headless-safe; resets per frame.

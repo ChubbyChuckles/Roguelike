@@ -651,6 +651,158 @@ int overlay_combo(const char* label, int* current_index, const char* const* item
     return changed;
 }
 
+int overlay_input_vec2(const char* label, float* x, float* y, float minv, float maxv)
+{
+    if (!g_ui.panel_active || !x || !y)
+        return 0;
+    int changed = 0;
+    /* Label */
+    overlay_label(label ? label : "");
+    /* Two columns for X/Y sliders */
+    int widths[2] = {(g_ui.width - 8) / 2, (g_ui.width - 8) / 2};
+    if (overlay_columns_begin(2, widths))
+    {
+        char lx[32];
+        snprintf(lx, sizeof lx, "X: %.2f", *x);
+        /* Reuse float slider visuals by drawing bar and capturing input the same way. */
+        int cx = g_ui.cur_x, cy = g_ui.cur_y, w = g_ui.col_widths[g_ui.col_index], h = 18;
+        int id_x = g_ui.total_widgets++;
+        const OverlayInputState* in = overlay_input_get();
+#ifdef ROGUE_HAVE_SDL
+        if (g_app.renderer)
+        {
+            const OverlayTheme* th = overlay_theme_get();
+            SDL_Rect bar = {cx, cy + 2, w, h};
+            int hover = overlay_mouse_over(cx, cy + 2, w, h);
+            OverlayColor bg = th->input_bg;
+            if (hover)
+                bg = shade_color(bg, +6);
+            SDL_SetRenderDrawColor(g_app.renderer, bg.r, bg.g, bg.b, bg.a);
+            SDL_RenderFillRect(g_app.renderer, &bar);
+            SDL_SetRenderDrawColor(g_app.renderer, th->input_border.r, th->input_border.g,
+                                   th->input_border.b, th->input_border.a);
+            SDL_RenderDrawRect(g_app.renderer, &bar);
+            if (g_ui.focus_index == id_x)
+            {
+                SDL_Rect fr = {cx + 1, cy + 3, w - 2, h - 2};
+                SDL_SetRenderDrawColor(g_app.renderer, th->accent_2.r, th->accent_2.g,
+                                       th->accent_2.b, th->accent_2.a);
+                SDL_RenderDrawRect(g_app.renderer, &fr);
+            }
+        }
+#endif
+        if (overlay_mouse_over(cx, cy + 2, w, h) && in->mouse_clicked)
+        {
+            g_ui.focus_index = id_x;
+            overlay_input_set_capture(1, 1);
+        }
+        if ((overlay_mouse_over(cx, cy + 2, w, h) && in->mouse_clicked) ||
+            (g_ui.focus_index == id_x && (in->key_left_pressed || in->key_right_pressed)))
+        {
+            float t;
+            if (g_ui.focus_index == id_x && (in->key_left_pressed || in->key_right_pressed))
+            {
+                float rang = (maxv - minv);
+                if (rang <= 0.0f)
+                    rang = 1.0f;
+                t = (*x - minv) / rang;
+                t += (in->key_right_pressed ? (1.0f / rang) : -(1.0f / rang));
+            }
+            else
+            {
+                t = (float) (in->mouse_x - cx) / (float) w;
+            }
+            if (t < 0.f)
+                t = 0.f;
+            if (t > 1.f)
+                t = 1.f;
+            float nv = minv + t * (maxv - minv);
+            if (nv != *x)
+            {
+                *x = nv;
+                changed = 1;
+            }
+            overlay_input_set_capture(1, 1);
+        }
+        {
+            const OverlayTheme* th = overlay_theme_get();
+            rogue_font_draw_text(cx + 6, cy + 2, lx, 1,
+                                 (RogueColor){th->text.r, th->text.g, th->text.b, th->text.a});
+        }
+        overlay_next_column();
+
+        char ly[32];
+        snprintf(ly, sizeof ly, "Y: %.2f", *y);
+        int cx2 = g_ui.cur_x, cy2 = g_ui.cur_y, w2 = g_ui.col_widths[g_ui.col_index];
+        int id_y = g_ui.total_widgets++;
+#ifdef ROGUE_HAVE_SDL
+        if (g_app.renderer)
+        {
+            const OverlayTheme* th = overlay_theme_get();
+            SDL_Rect bar = {cx2, cy2 + 2, w2, h};
+            int hover = overlay_mouse_over(cx2, cy2 + 2, w2, h);
+            OverlayColor bg = th->input_bg;
+            if (hover)
+                bg = shade_color(bg, +6);
+            SDL_SetRenderDrawColor(g_app.renderer, bg.r, bg.g, bg.b, bg.a);
+            SDL_RenderFillRect(g_app.renderer, &bar);
+            SDL_SetRenderDrawColor(g_app.renderer, th->input_border.r, th->input_border.g,
+                                   th->input_border.b, th->input_border.a);
+            SDL_RenderDrawRect(g_app.renderer, &bar);
+            if (g_ui.focus_index == id_y)
+            {
+                SDL_Rect fr = {cx2 + 1, cy2 + 3, w2 - 2, h - 2};
+                SDL_SetRenderDrawColor(g_app.renderer, th->accent_2.r, th->accent_2.g,
+                                       th->accent_2.b, th->accent_2.a);
+                SDL_RenderDrawRect(g_app.renderer, &fr);
+            }
+        }
+#endif
+        if (overlay_mouse_over(cx2, cy2 + 2, w2, h) && overlay_input_get()->mouse_clicked)
+        {
+            g_ui.focus_index = id_y;
+            overlay_input_set_capture(1, 1);
+        }
+        const OverlayInputState* in2 = overlay_input_get();
+        if ((overlay_mouse_over(cx2, cy2 + 2, w2, h) && in2->mouse_clicked) ||
+            (g_ui.focus_index == id_y && (in2->key_left_pressed || in2->key_right_pressed)))
+        {
+            float t;
+            if (g_ui.focus_index == id_y && (in2->key_left_pressed || in2->key_right_pressed))
+            {
+                float rang = (maxv - minv);
+                if (rang <= 0.0f)
+                    rang = 1.0f;
+                t = (*y - minv) / rang;
+                t += (in2->key_right_pressed ? (1.0f / rang) : -(1.0f / rang));
+            }
+            else
+            {
+                t = (float) (in2->mouse_x - cx2) / (float) w2;
+            }
+            if (t < 0.f)
+                t = 0.f;
+            if (t > 1.f)
+                t = 1.f;
+            float nv = minv + t * (maxv - minv);
+            if (nv != *y)
+            {
+                *y = nv;
+                changed = 1;
+            }
+            overlay_input_set_capture(1, 1);
+        }
+        {
+            const OverlayTheme* th = overlay_theme_get();
+            rogue_font_draw_text(cx2 + 6, cy2 + 2, ly, 1,
+                                 (RogueColor){th->text.r, th->text.g, th->text.b, th->text.a});
+        }
+        overlay_columns_end();
+        ui_next_line();
+    }
+    return changed;
+}
+
 int overlay_tree_node(const char* label, int* open)
 {
     if (!g_ui.panel_active || !label || !open)

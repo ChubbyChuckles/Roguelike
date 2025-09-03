@@ -77,6 +77,8 @@ void panel_skills_draw_testing(int sel)
     static float sim_duration_ms = 2000.0f;
     static float sim_tick_ms = 16.0f;
     static float sim_ap_regen_per_sec = 0.0f;
+    static float cast_pos_x = 0.0f, cast_pos_y = 0.0f;
+    static float target_pos_x = 0.0f, target_pos_y = 0.0f;
     static char prio_buf[128] = "";
     static char sim_result[256] = "";
 
@@ -211,6 +213,8 @@ void panel_skills_draw_testing(int sel)
     overlay_slider_float("Duration (ms)", &sim_duration_ms, 50.0f, 60000.0f);
     overlay_slider_float("Tick (ms)", &sim_tick_ms, 1.0f, 100.0f);
     overlay_slider_float("AP regen (/sec)", &sim_ap_regen_per_sec, 0.0f, 200.0f);
+    overlay_input_vec2("Cast Pos", &cast_pos_x, &cast_pos_y, -2048.0f, 2048.0f);
+    overlay_input_vec2("Target Pos", &target_pos_x, &target_pos_y, -2048.0f, 2048.0f);
     overlay_input_text("Priority IDs (comma)", prio_buf, sizeof prio_buf);
 
     if (overlay_button("Simulate"))
@@ -242,8 +246,10 @@ void panel_skills_draw_testing(int sel)
             prio_json[2] = '\0';
         }
         snprintf(profile, sizeof profile,
-                 "{\"duration_ms\":%d,\"tick_ms\":%.1f,\"ap_regen_per_sec\":%.1f,\"priority\":%s}",
-                 (int) sim_duration_ms, sim_tick_ms, sim_ap_regen_per_sec, prio_json);
+                 "{\"duration_ms\":%d,\"tick_ms\":%.1f,\"ap_regen_per_sec\":%.1f,\"cast_pos\":[%."
+                 "2f,%.2f],\"target_pos\":[%.2f,%.2f],\"priority\":%s}",
+                 (int) sim_duration_ms, sim_tick_ms, sim_ap_regen_per_sec, cast_pos_x, cast_pos_y,
+                 target_pos_x, target_pos_y, prio_json);
         if (rogue_skill_debug_simulate(profile, sim_result, (int) sizeof sim_result) != 0)
             snprintf(sim_result, sizeof sim_result, "Simulation failed");
     }

@@ -129,6 +129,39 @@ static int json_extract_int_array(const char* s, const char* key, int* out_ids, 
     return n;
 }
 
+static int json_extract_vec2(const char* s, const char* key, float* out_x, float* out_y)
+{
+    if (!s || !key || !out_x || !out_y)
+        return 0;
+    char pat[64];
+    snprintf(pat, sizeof pat, "\"%s\"", key);
+    const char* p = strstr(s, pat);
+    if (!p)
+        return 0;
+    p = strchr(p, ':');
+    if (!p)
+        return 0;
+    p++;
+    while (*p && *p != '[')
+        ++p;
+    if (*p != '[')
+        return 0;
+    ++p;
+    char* e = NULL;
+    double a = strtod(p, &e);
+    if (e == p)
+        return 0;
+    p = e;
+    while (*p == ' ' || *p == '\t' || *p == ',')
+        ++p;
+    double b = strtod(p, &e);
+    if (e == p)
+        return 0;
+    *out_x = (float) a;
+    *out_y = (float) b;
+    return 1;
+}
+
 int skill_simulate_rotation(const char* profile_json, char* out_buf, int out_cap)
 {
     if (!profile_json || !out_buf || out_cap <= 0)
@@ -163,6 +196,10 @@ int skill_simulate_rotation(const char* profile_json, char* out_buf, int out_cap
     double end_time = now + duration_ms;
     double ap_regen_per_ms = ap_regen_per_sec / 1000.0;
 
+    float sim_cast_x = 0.0f, sim_cast_y = 0.0f, sim_target_x = 0.0f, sim_target_y = 0.0f;
+    (void) json_extract_vec2(profile_json, "cast_pos", &sim_cast_x, &sim_cast_y);
+    (void) json_extract_vec2(profile_json, "target_pos", &sim_target_x, &sim_target_y);
+
     while (now < end_time)
     {
         /* Regen AP */
@@ -181,6 +218,10 @@ int skill_simulate_rotation(const char* profile_json, char* out_buf, int out_cap
                 continue;
             RogueSkillCtx ctx = {0};
             ctx.now_ms = now;
+            ctx.cast_pos_x = sim_cast_x;
+            ctx.cast_pos_y = sim_cast_y;
+            ctx.target_pos_x = sim_target_x;
+            ctx.target_pos_y = sim_target_y;
             if (rogue_skill_try_activate(sid, &ctx))
             {
                 const RogueSkillDef* def = &g_skill_defs_internal[sid];

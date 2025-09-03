@@ -40,6 +40,8 @@ extern "C"
     int overlay_slider_int(const char* label, int* value, int minv, int maxv);
     int overlay_slider_float(const char* label, float* value, float minv, float maxv);
     int overlay_input_text(const char* label, char* buf, size_t buf_size);
+    /* Compound widget: edit a 2D vector via two float sliders. Returns 1 if either changed. */
+    int overlay_input_vec2(const char* label, float* x, float* y, float minv, float maxv);
     /* Set a tooltip for the next widget call in this panel. Clears after consumption. */
     void overlay_set_next_tooltip(const char* text);
 
@@ -139,6 +141,15 @@ static inline int overlay_input_text(const char* label, char* buf, size_t buf_si
     (void) label;
     (void) buf;
     (void) buf_size;
+    return 0;
+}
+static inline int overlay_input_vec2(const char* label, float* x, float* y, float minv, float maxv)
+{
+    (void) label;
+    (void) x;
+    (void) y;
+    (void) minv;
+    (void) maxv;
     return 0;
 }
 static inline void overlay_set_next_tooltip(const char* text) { (void) text; }
