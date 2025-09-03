@@ -134,18 +134,32 @@ Milestone 5 — Content Graph and diagnostics polish
   - Compare snapshots; color edges added/removed; export focused diffs. Acceptance: JSON diff includes node degree deltas and cycle list.
 
 Status (M5 progress)
-- 5.1 Pan/zoom and focus tools: Implemented core interactions in the Content Graph SDL mini‑view and list.
   • Interactions: Right‑mouse drag to pan, mouse wheel zoom centered on cursor (clamped 0.5×–2.0×), and Fit‑to‑Selection via button or F key.
   • Isolate subgraph: Optional filter limits the list to nodes reachable from the current selection (BFS up to the current Preview Depth). Selection persists across frames and clicking nodes in the mini‑view drills selection and updates a breadcrumb trail.
   • Hints: On‑screen hint text renders inside the mini‑view (RMB drag=pan, Wheel=zoom, F=fit). Drawing paths are SDL‑guarded for headless tests.
   • Node pinning/manual repositioning: Implemented with Shift+LMB drag to pin/move nodes and “Clear Pins” command to reset. Persistence is session-only.
-  Verification: Debug build (SDL2) with parallelism (-j12) and full CTest run passed 100% (594/594) from the build directory.
+
+- 5.2 Layout and highlighting: Added group halos and an “Explain Path” tool to clarify relationships.
+  • Group halos: Nodes sharing the selected root’s top-level group (prefix before the first ‘/’) are softly tinted in the SDL mini-view to provide at-a-glance context.
+  • Explain Path: Enter a target id to compute a path from the current root to that target within the current Preview Depth (BFS with a parent map). On success, a breadcrumb is shown and the nodes/edges along the path are highlighted using accent colors. The last requested target is persisted for ongoing highlight while browsing.
+  • Deepest layer emphasis: The outermost preview layer receives a subtle border emphasis to communicate depth.
+  • Compliance: MSVC C mode friendly (declarations before statements, no VLAs); SDL rendering remains fully guarded for headless safety.
+  Verification: Debug (SDL2) build with -j12 and a full CTest run from the build directory passed 100% (594/594).
 
 - 5.3 Finders: Added “List Missing Providers” finder alongside Orphans and Hubs.
   • Behavior: Scans all declared dependencies for each node and emits any dangling reference as: `missing <dep> (referenced by <id>)`.
   • UI: Exposed as an icon+label button in the Content Graph panel next to “List Orphans” and “List Hubs (top 10)”; headless-safe.
   • Compliance: Kept MSVC C mode constraints (declarations before statements; no VLAs).
   Verification: Debug (SDL2) build with -j12 and full CTest from the build dir passed 100% (594/594).
+
+- 5.4 Exports and diffing: Added subgraph snapshots, A→B diff overlay, and JSON diff export.
+  • Snapshots: Capture snapshot A and B of the currently focused subgraph (root + BFS up to Preview Depth). Each snapshot stores nodes and edges using fixed compile‑time caps.
+  • Diff compute: Produces Added and Removed edge sets (A→B), plus per‑node degree deltas (in/out) and a simple cycles list detected within the focused subgraph.
+  • UI: “Capture A”, “Capture B”, “Compute Diff A→B”, “Export Diff JSON”, and a “Show Diff Overlay” checkbox with concise status labels.
+  • Overlay: In the SDL mini‑view, Added edges render in accent_1 and Removed in a high‑contrast error tone; Explain Path highlights remain in text_accent. All drawing is SDL‑guarded for headless tests.
+  • Export: Writes `build/content_subgraph_diff.json` with shape `{ root, depth, nodes: [...], added_edges: [{from,to}], removed_edges: [{from,to}], degree: [{id,in_delta,out_delta}], cycles: [[id,...]] }`.
+  • Compliance: MSVC C mode friendly (no VLAs; declarations before statements); compile‑time buffer caps and bounds checks prevent overflow.
+  Verification: Built Debug (SDL2) with -j12 and ran full CTest from the build directory: 100% PASS (594/594).
 
 Milestone 6 — Style, accessibility, and micro-interactions
 6.1 Visual language

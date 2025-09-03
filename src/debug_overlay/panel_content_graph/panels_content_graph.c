@@ -15,6 +15,256 @@
 #define OVERLAY_CG_MAX_NODES 48
 #define OVERLAY_CG_MAX_EDGES 96
 
+/* Snapshots for M5.4: Exports & diffing */
+typedef struct OverlayCGSnapshot
+{
+    int valid;
+    int depth;
+    char root[64];
+    int ncount;
+    int ecount;
+    char nodes[OVERLAY_CG_MAX_NODES][64];
+    char edge_from[OVERLAY_CG_MAX_EDGES][64];
+    char edge_to[OVERLAY_CG_MAX_EDGES][64];
+} OverlayCGSnapshot;
+
+static OverlayCGSnapshot g_snapA = {0};
+static OverlayCGSnapshot g_snapB = {0};
+
+/* Diff results (A -> B) */
+static int g_diff_ready = 0;
+static int g_added_count = 0, g_removed_count = 0;
+static char g_added_from[OVERLAY_CG_MAX_EDGES][64];
+static char g_added_to[OVERLAY_CG_MAX_EDGES][64];
+static char g_removed_from[OVERLAY_CG_MAX_EDGES][64];
+static char g_removed_to[OVERLAY_CG_MAX_EDGES][64];
+static int g_show_diff_overlay = 1;
+
+static void overlay_cg_reset_diff(void)
+{
+    int i;
+    g_diff_ready = 0;
+    g_added_count = 0;
+    g_removed_count = 0;
+    for (i = 0; i < OVERLAY_CG_MAX_EDGES; ++i)
+    {
+        g_added_from[i][0] = '\0';
+        g_added_to[i][0] = '\0';
+        g_removed_from[i][0] = '\0';
+        g_removed_to[i][0] = '\0';
+    }
+}
+
+static void overlay_cg_capture_snapshot(OverlayCGSnapshot* snap, const char* root_id, int depth,
+                                        const char** nids, int ncount, int (*edges)[2], int ecount)
+{
+    int i;
+    if (!snap)
+        return;
+    snap->valid = 0;
+    snap->depth = depth;
+    {
+        size_t rl = root_id ? strlen(root_id) : 0;
+        if (rl >= sizeof snap->root)
+            rl = sizeof snap->root - 1;
+        if (rl > 0)
+            memcpy(snap->root, root_id, rl);
+        snap->root[rl] = '\0';
+    }
+    snap->ncount = (ncount > OVERLAY_CG_MAX_NODES) ? OVERLAY_CG_MAX_NODES : ncount;
+    for (i = 0; i < snap->ncount; ++i)
+    {
+        const char* s = nids[i] ? nids[i] : "";
+        size_t sl = strlen(s);
+        if (sl >= sizeof snap->nodes[0])
+            sl = sizeof snap->nodes[0] - 1;
+        memcpy(snap->nodes[i], s, sl);
+        snap->nodes[i][sl] = '\0';
+    }
+    snap->ecount = (ecount > OVERLAY_CG_MAX_EDGES) ? OVERLAY_CG_MAX_EDGES : ecount;
+    for (i = 0; i < snap->ecount; ++i)
+    {
+        int sidx = edges[i][0];
+        int tidx = edges[i][1];
+        const char* sf = (sidx >= 0 && sidx < ncount) ? nids[sidx] : "";
+        const char* st = (tidx >= 0 && tidx < ncount) ? nids[tidx] : "";
+        size_t slf = strlen(sf);
+        size_t slt = strlen(st);
+        if (slf >= sizeof snap->edge_from[0])
+            slf = sizeof snap->edge_from[0] - 1;
+        if (slt >= sizeof snap->edge_to[0])
+            slt = sizeof snap->edge_to[0] - 1;
+        memcpy(snap->edge_from[i], sf, slf);
+        snap->edge_from[i][slf] = '\0';
+        memcpy(snap->edge_to[i], st, slt);
+        snap->edge_to[i][slt] = '\0';
+    }
+    snap->valid = 1;
+}
+
+static int overlay_cg_edge_eq(const char* a0, const char* a1, const char* b0, const char* b1)
+{
+    if (!a0)
+        a0 = "";
+    if (!a1)
+        a1 = "";
+    if (!b0)
+        b0 = "";
+    if (!b1)
+        b1 = "";
+    return (strcmp(a0, b0) == 0) && (strcmp(a1, b1) == 0);
+}
+
+static void overlay_cg_compute_diff(void)
+{
+    int i, j;
+    overlay_cg_reset_diff();
+    if (!g_snapA.valid || !g_snapB.valid)
+        return;
+    /* Edges in B not in A → added */
+    for (i = 0; i < g_snapB.ecount; ++i)
+    {
+        const char* bf = g_snapB.edge_from[i];
+        const char* bt = g_snapB.edge_to[i];
+        int found = 0;
+        for (j = 0; j < g_snapA.ecount; ++j)
+        {
+            if (overlay_cg_edge_eq(bf, bt, g_snapA.edge_from[j], g_snapA.edge_to[j]))
+            {
+                found = 1;
+                break;
+            }
+        }
+        if (!found && g_added_count < OVERLAY_CG_MAX_EDGES)
+        {
+            size_t lf = strlen(bf), lt = strlen(bt);
+            if (lf >= sizeof g_added_from[0])
+                lf = sizeof g_added_from[0] - 1;
+            if (lt >= sizeof g_added_to[0])
+                lt = sizeof g_added_to[0] - 1;
+            memcpy(g_added_from[g_added_count], bf, lf);
+            g_added_from[g_added_count][lf] = '\0';
+            memcpy(g_added_to[g_added_count], bt, lt);
+            g_added_to[g_added_count][lt] = '\0';
+            g_added_count++;
+        }
+    }
+    /* Edges in A not in B → removed */
+    for (i = 0; i < g_snapA.ecount; ++i)
+    {
+        const char* af = g_snapA.edge_from[i];
+        const char* at = g_snapA.edge_to[i];
+        int found = 0;
+        for (j = 0; j < g_snapB.ecount; ++j)
+        {
+            if (overlay_cg_edge_eq(af, at, g_snapB.edge_from[j], g_snapB.edge_to[j]))
+            {
+                found = 1;
+                break;
+            }
+        }
+        if (!found && g_removed_count < OVERLAY_CG_MAX_EDGES)
+        {
+            size_t lf = strlen(af), lt = strlen(at);
+            if (lf >= sizeof g_removed_from[0])
+                lf = sizeof g_removed_from[0] - 1;
+            if (lt >= sizeof g_removed_to[0])
+                lt = sizeof g_removed_to[0] - 1;
+            memcpy(g_removed_from[g_removed_count], af, lf);
+            g_removed_from[g_removed_count][lf] = '\0';
+            memcpy(g_removed_to[g_removed_count], at, lt);
+            g_removed_to[g_removed_count][lt] = '\0';
+            g_removed_count++;
+        }
+    }
+    g_diff_ready = 1;
+}
+
+static void overlay_cg_export_diff_json(void)
+{
+    FILE* f = NULL;
+#if defined(_MSC_VER)
+    fopen_s(&f, "build/content_subgraph_diff.json", "wb");
+#else
+    f = fopen("build/content_subgraph_diff.json", "wb");
+#endif
+    if (!f)
+    {
+        overlay_label("Failed to open diff JSON output.");
+        return;
+    }
+    /* Build union of nodes from A and B */
+    const char* nodes_u[OVERLAY_CG_MAX_NODES * 2];
+    int nu = 0;
+    int i, j;
+    for (i = 0; i < g_snapA.ncount && nu < (int) (sizeof nodes_u / sizeof nodes_u[0]); ++i)
+        nodes_u[nu++] = g_snapA.nodes[i];
+    for (i = 0; i < g_snapB.ncount && nu < (int) (sizeof nodes_u / sizeof nodes_u[0]); ++i)
+    {
+        int seen = 0;
+        for (j = 0; j < nu; ++j)
+            if (strcmp(nodes_u[j] ? nodes_u[j] : "", g_snapB.nodes[i]) == 0)
+            {
+                seen = 1;
+                break;
+            }
+        if (!seen)
+            nodes_u[nu++] = g_snapB.nodes[i];
+    }
+
+    fputs("{\n", f);
+    fprintf(f, "  \"rootA\": \"%s\", \"depthA\": %d,\n", g_snapA.root, g_snapA.depth);
+    fprintf(f, "  \"rootB\": \"%s\", \"depthB\": %d,\n", g_snapB.root, g_snapB.depth);
+
+    /* Degree deltas */
+    fputs("  \"degree_deltas\": [\n", f);
+    for (i = 0; i < nu; ++i)
+    {
+        const char* id = nodes_u[i] ? nodes_u[i] : "";
+        int outA = 0, inA = 0, outB = 0, inB = 0;
+        for (j = 0; j < g_snapA.ecount; ++j)
+        {
+            if (strcmp(g_snapA.edge_from[j], id) == 0)
+                outA++;
+            if (strcmp(g_snapA.edge_to[j], id) == 0)
+                inA++;
+        }
+        for (j = 0; j < g_snapB.ecount; ++j)
+        {
+            if (strcmp(g_snapB.edge_from[j], id) == 0)
+                outB++;
+            if (strcmp(g_snapB.edge_to[j], id) == 0)
+                inB++;
+        }
+        fprintf(f,
+                "    "
+                "{\"id\":\"%s\",\"out_before\":%d,\"out_after\":%d,\"delta_out\":%d,\"in_before\":%"
+                "d,\"in_after\":%d,\"delta_in\":%d}%s\n",
+                id, outA, outB, (outB - outA), inA, inB, (inB - inA), (i + 1 < nu) ? "," : "");
+    }
+    fputs("  ],\n", f);
+
+    /* Edge diffs */
+    fputs("  \"added_edges\": [\n", f);
+    for (i = 0; i < g_added_count; ++i)
+    {
+        fprintf(f, "    {\"from\":\"%s\",\"to\":\"%s\"}%s\n", g_added_from[i], g_added_to[i],
+                (i + 1 < g_added_count) ? "," : "");
+    }
+    fputs("  ],\n", f);
+    fputs("  \"removed_edges\": [\n", f);
+    for (i = 0; i < g_removed_count; ++i)
+    {
+        fprintf(f, "    {\"from\":\"%s\",\"to\":\"%s\"}%s\n", g_removed_from[i], g_removed_to[i],
+                (i + 1 < g_removed_count) ? "," : "");
+    }
+    fputs("  ],\n", f);
+    /* Cycles list (graph is DAG, cycles rejected → keep empty) */
+    fputs("  \"cycles\": []\n}", f);
+    fclose(f);
+    overlay_label("Diff JSON exported (build/content_subgraph_diff.json).");
+}
+
 /* Helper: does node `src_id` list `target_id` as a direct dependency? */
 static int content_graph_has_dep_on(const char* src_id, const char* target_id)
 {
@@ -121,6 +371,11 @@ static void panel_content_graph(void* user)
     static int preview_depth = 2; /* multi-hop preview depth (>=1) */
     static int group_only = 0; /* when on, filter list is constrained to selected group's prefix */
     static int isolate_subgraph = 0; /* limit list to nodes reachable from selection */
+    /* M5.2: Explain-Path tooling */
+    static char explain_to[64] = "";     /* target id for path explanation */
+    static char explain_target[64] = ""; /* last explained target to sync highlights */
+    static int explain_path_count = 0;   /* last computed path length (nodes) */
+    static char explain_path_buf[OVERLAY_CG_MAX_NODES][64]; /* last computed path ids */
     /* Navigation breadcrumbs for click-to-drill within the SDL preview */
     static const char* crumbs[32];
     static int crumb_len = 0;
@@ -406,6 +661,99 @@ static void panel_content_graph(void* user)
     overlay_slider_int("Preview depth", &preview_depth, 1, 3);
     overlay_slider_int("Node", &sel, 0, idx_count - 1);
     overlay_checkbox("Isolate subgraph (limit list)", &isolate_subgraph);
+    /* M5.2: Explain Path controls */
+    overlay_input_text("Explain path to (id)", explain_to, sizeof explain_to);
+    if (overlay_icon_button("Explain Path", OVERLAY_ICON_SEARCH))
+    {
+        explain_path_count = 0;
+        /* Build a small forward subgraph to compute a path */
+        const char* nids_ep[OVERLAY_CG_MAX_NODES];
+        int ndeps_ep[OVERLAY_CG_MAX_NODES];
+        int edges_ep[OVERLAY_CG_MAX_EDGES][2];
+        int ecount_ep = 0;
+        const char *rid_ep = NULL, *rpp_ep = NULL;
+        if (sel_global >= 0 && rogue_asset_dep_get(sel_global, &rid_ep, &rpp_ep) == 0 && rid_ep)
+        {
+            int ncount_ep = content_graph_collect_forward(rid_ep, preview_depth, nids_ep, ndeps_ep,
+                                                          OVERLAY_CG_MAX_NODES, edges_ep,
+                                                          OVERLAY_CG_MAX_EDGES, &ecount_ep);
+            int parent_ep[OVERLAY_CG_MAX_NODES];
+            int i_ep;
+            for (i_ep = 0; i_ep < OVERLAY_CG_MAX_NODES; ++i_ep)
+                parent_ep[i_ep] = -1;
+            for (i_ep = 0; i_ep < ecount_ep; ++i_ep)
+            {
+                int s = edges_ep[i_ep][0], t = edges_ep[i_ep][1];
+                if (s >= 0 && s < ncount_ep && t >= 0 && t < ncount_ep)
+                {
+                    if (parent_ep[t] < 0 && t != 0)
+                        parent_ep[t] = s;
+                }
+            }
+            int ti = -1;
+            for (i_ep = 0; i_ep < ncount_ep; ++i_ep)
+            {
+                if (nids_ep[i_ep] && explain_to[0] && strcmp(nids_ep[i_ep], explain_to) == 0)
+                {
+                    ti = i_ep;
+                    break;
+                }
+            }
+            if (ti >= 0)
+            {
+                /* follow parents back to root (0) */
+                const char* tmp_ids[OVERLAY_CG_MAX_NODES];
+                int tlen = 0;
+                int cur = ti;
+                while (cur >= 0 && tlen < OVERLAY_CG_MAX_NODES)
+                {
+                    tmp_ids[tlen++] = nids_ep[cur];
+                    if (cur == 0)
+                        break;
+                    cur = parent_ep[cur];
+                }
+                /* reverse into persistent buffer */
+                int out_i = 0;
+                for (i_ep = tlen - 1; i_ep >= 0 && out_i < OVERLAY_CG_MAX_NODES; --i_ep)
+                {
+                    const char* s = tmp_ids[i_ep] ? tmp_ids[i_ep] : "";
+                    size_t sl = strlen(s);
+                    if (sl >= sizeof explain_path_buf[0])
+                        sl = sizeof explain_path_buf[0] - 1;
+                    memcpy(explain_path_buf[out_i], s, sl);
+                    explain_path_buf[out_i][sl] = '\0';
+                    out_i++;
+                }
+                explain_path_count = out_i;
+                /* persist target for draw highlights */
+                size_t tl = strlen(explain_to);
+                if (tl >= sizeof explain_target)
+                    tl = sizeof explain_target - 1;
+                memcpy(explain_target, explain_to, tl);
+                explain_target[tl] = '\0';
+            }
+        }
+        if (explain_path_count > 0)
+        {
+            char line[320];
+            int off = snprintf(line, sizeof line, "Why: ");
+            int pi;
+            for (pi = 0; pi < explain_path_count; ++pi)
+            {
+                const char* s = explain_path_buf[pi];
+                int left = (int) sizeof(line) - off;
+                if (left <= 4)
+                    break;
+                off += snprintf(line + off, (size_t) left, "%s%s", s,
+                                (pi + 1 < explain_path_count) ? " -> " : "");
+            }
+            overlay_label(line);
+        }
+        else
+        {
+            overlay_label("No path found or invalid target.");
+        }
+    }
     if (overlay_icon_button("Fit to Selection (F)", OVERLAY_ICON_SEARCH))
     {
         view_zoom = 1.0f;
@@ -759,6 +1107,71 @@ static void panel_content_graph(void* user)
             }
             overlay_columns_end();
         }
+        /* M5.4: Snapshots & Diff */
+        {
+            static int diff_open = 1;
+            if (overlay_tree_node("Snapshots & Diff (M5.4)", &diff_open))
+            {
+                char line[256];
+                snprintf(line, sizeof line,
+                         "Snap A: %s d=%d (n=%d,e=%d)  |  Snap B: %s d=%d (n=%d,e=%d)",
+                         g_snapA.valid ? g_snapA.root : "<none>", g_snapA.valid ? g_snapA.depth : 0,
+                         g_snapA.valid ? g_snapA.ncount : 0, g_snapA.valid ? g_snapA.ecount : 0,
+                         g_snapB.valid ? g_snapB.root : "<none>", g_snapB.valid ? g_snapB.depth : 0,
+                         g_snapB.valid ? g_snapB.ncount : 0, g_snapB.valid ? g_snapB.ecount : 0);
+                overlay_label(line);
+                if (overlay_columns_begin(3, NULL))
+                {
+                    if (overlay_icon_button("Capture A", OVERLAY_ICON_SAVE))
+                    {
+                        const char* nids_c[OVERLAY_CG_MAX_NODES];
+                        int ndeps_c[OVERLAY_CG_MAX_NODES];
+                        int edges_c[OVERLAY_CG_MAX_EDGES][2];
+                        int ecount_c = 0;
+                        int ncount_c = content_graph_collect_forward(
+                            id, preview_depth, nids_c, ndeps_c, OVERLAY_CG_MAX_NODES, edges_c,
+                            OVERLAY_CG_MAX_EDGES, &ecount_c);
+                        overlay_cg_capture_snapshot(&g_snapA, id ? id : "", preview_depth, nids_c,
+                                                    ncount_c, edges_c, ecount_c);
+                        overlay_label("Snapshot A captured.");
+                    }
+                    overlay_next_column();
+                    if (overlay_icon_button("Capture B", OVERLAY_ICON_SAVE))
+                    {
+                        const char* nids_c[OVERLAY_CG_MAX_NODES];
+                        int ndeps_c[OVERLAY_CG_MAX_NODES];
+                        int edges_c[OVERLAY_CG_MAX_EDGES][2];
+                        int ecount_c = 0;
+                        int ncount_c = content_graph_collect_forward(
+                            id, preview_depth, nids_c, ndeps_c, OVERLAY_CG_MAX_NODES, edges_c,
+                            OVERLAY_CG_MAX_EDGES, &ecount_c);
+                        overlay_cg_capture_snapshot(&g_snapB, id ? id : "", preview_depth, nids_c,
+                                                    ncount_c, edges_c, ecount_c);
+                        overlay_label("Snapshot B captured.");
+                    }
+                    overlay_next_column();
+                    if (overlay_icon_button("Compute Diff A→B", OVERLAY_ICON_SEARCH))
+                    {
+                        overlay_cg_compute_diff();
+                        char dl[96];
+                        snprintf(dl, sizeof dl, "Diff ready: +%d / -%d", g_added_count,
+                                 g_removed_count);
+                        overlay_label(dl);
+                    }
+                    overlay_columns_end();
+                }
+                overlay_checkbox("Show Diff Overlay", &g_show_diff_overlay);
+                if (g_diff_ready)
+                {
+                    char dl2[96];
+                    snprintf(dl2, sizeof dl2, "Added: %d, Removed: %d", g_added_count,
+                             g_removed_count);
+                    overlay_label(dl2);
+                    if (overlay_icon_button("Export Diff JSON", OVERLAY_ICON_SAVE))
+                        overlay_cg_export_diff_json();
+                }
+            }
+        }
         if (slash)
         {
             static int edges_open = 1;
@@ -861,6 +1274,18 @@ static void panel_content_graph(void* user)
             float base_pos_x[OVERLAY_CG_MAX_NODES];
             float base_pos_y[OVERLAY_CG_MAX_NODES];
             int placed_at_depth[8] = {0};
+            /* Determine root group prefix for halos */
+            const char* root_group = NULL;
+            int root_group_len = 0;
+            if (id)
+            {
+                const char* s_sl = strchr(id, '/');
+                if (s_sl)
+                {
+                    root_group = id;
+                    root_group_len = (int) (s_sl - id);
+                }
+            }
             for (int i = 0; i < ncount; ++i)
             {
                 int d = ndeps[i];
@@ -893,6 +1318,23 @@ static void panel_content_graph(void* user)
                 rects[i].y = y;
                 rects[i].w = (int) (w0 * view_zoom);
                 rects[i].h = (int) (h0 * view_zoom);
+            }
+            /* Optional group halos: tint nodes that share the root group */
+            if (root_group && root_group_len > 0)
+            {
+                int i_gh;
+                for (i_gh = 0; i_gh < ncount; ++i_gh)
+                {
+                    const char* gid = nids[i_gh];
+                    const char* s2 = gid ? strchr(gid, '/') : NULL;
+                    if (gid && s2 && (int) (s2 - gid) == root_group_len &&
+                        strncmp(gid, root_group, (size_t) root_group_len) == 0)
+                    {
+                        SDL_SetRenderDrawColor(g_app.renderer, th->accent_1.r, th->accent_1.g,
+                                               th->accent_1.b, 48 /* soft halo */);
+                        SDL_RenderFillRect(g_app.renderer, &rects[i_gh]);
+                    }
+                }
             }
             /* Handle input and track mouse state for subsequent rendering */
             const OverlayInputState* in = overlay_input_get();
@@ -940,6 +1382,38 @@ static void panel_content_graph(void* user)
             }
             SDL_SetRenderDrawColor(g_app.renderer, th->accent_2.r, th->accent_2.g, th->accent_2.b,
                                    th->accent_2.a);
+            /* Build explain-path highlight set for current view if a target is active */
+            int path_mark[OVERLAY_CG_MAX_NODES];
+            int have_explain = 0;
+            {
+                int ii;
+                for (ii = 0; ii < OVERLAY_CG_MAX_NODES; ++ii)
+                    path_mark[ii] = 0;
+                if (explain_target[0])
+                {
+                    int ti = -1;
+                    for (ii = 0; ii < ncount; ++ii)
+                    {
+                        if (nids[ii] && strcmp(nids[ii], explain_target) == 0)
+                        {
+                            ti = ii;
+                            break;
+                        }
+                    }
+                    if (ti >= 0)
+                    {
+                        int cur = ti;
+                        while (cur >= 0)
+                        {
+                            path_mark[cur] = 1;
+                            if (cur == 0)
+                                break;
+                            cur = parent[cur];
+                        }
+                        have_explain = 1;
+                    }
+                }
+            }
             for (int i = 0; i < ncount; ++i)
             {
                 int s = edges[i][0], t = edges[i][1];
@@ -949,6 +1423,14 @@ static void panel_content_graph(void* user)
                     int y0 = rects[s].y + rects[s].h / 2;
                     int x1 = rects[t].x;
                     int y1 = rects[t].y + rects[t].h / 2;
+                    if (have_explain && path_mark[s] && path_mark[t] && parent[t] == s)
+                    {
+                        SDL_SetRenderDrawColor(g_app.renderer, th->text_accent.r, th->text_accent.g,
+                                               th->text_accent.b, th->text_accent.a);
+                        SDL_RenderDrawLine(g_app.renderer, x0, y0, x1, y1);
+                        SDL_SetRenderDrawColor(g_app.renderer, th->accent_2.r, th->accent_2.g,
+                                               th->accent_2.b, th->accent_2.a);
+                    }
                     SDL_RenderDrawLine(g_app.renderer, x0, y0, x1, y1);
                 }
             }
@@ -1053,8 +1535,22 @@ static void panel_content_graph(void* user)
                                            th->button_bg.b, th->button_bg.a);
                 }
                 SDL_RenderFillRect(g_app.renderer, &r);
-                SDL_SetRenderDrawColor(g_app.renderer, th->panel_border.r, th->panel_border.g,
-                                       th->panel_border.b, th->panel_border.a);
+                /* Border highlight: deepest layer and explain-path */
+                if (have_explain && path_mark[i])
+                {
+                    SDL_SetRenderDrawColor(g_app.renderer, th->text_accent.r, th->text_accent.g,
+                                           th->text_accent.b, th->text_accent.a);
+                }
+                else if (ndeps[i] == max_d)
+                {
+                    SDL_SetRenderDrawColor(g_app.renderer, th->accent_2.r, th->accent_2.g,
+                                           th->accent_2.b, th->accent_2.a);
+                }
+                else
+                {
+                    SDL_SetRenderDrawColor(g_app.renderer, th->panel_border.r, th->panel_border.g,
+                                           th->panel_border.b, th->panel_border.a);
+                }
                 SDL_RenderDrawRect(g_app.renderer, &r);
                 const char* label = nids[i] ? nids[i] : "?";
                 const OverlayColor lt = (i == 0) ? th->text_accent : th->text;
@@ -1139,6 +1635,60 @@ static void panel_content_graph(void* user)
                                 }
                             }
                             break;
+                            /* M5.4: Overlay diff edges (A->B): added vs removed */
+                            if (g_diff_ready && g_show_diff_overlay)
+                            {
+                                int i_de;
+                                /* Added edges in accent_1 */
+                                for (i_de = 0; i_de < g_added_count; ++i_de)
+                                {
+                                    const char* af = g_added_from[i_de];
+                                    const char* at = g_added_to[i_de];
+                                    int si = -1, ti = -1, ii;
+                                    for (ii = 0; ii < ncount && (si < 0 || ti < 0); ++ii)
+                                    {
+                                        if (si < 0 && nids[ii] && strcmp(nids[ii], af) == 0)
+                                            si = ii;
+                                        if (ti < 0 && nids[ii] && strcmp(nids[ii], at) == 0)
+                                            ti = ii;
+                                    }
+                                    if (si >= 0 && ti >= 0)
+                                    {
+                                        int x0 = rects[si].x + rects[si].w;
+                                        int y0 = rects[si].y + rects[si].h / 2;
+                                        int x1 = rects[ti].x;
+                                        int y1 = rects[ti].y + rects[ti].h / 2;
+                                        SDL_SetRenderDrawColor(g_app.renderer, th->accent_1.r,
+                                                               th->accent_1.g, th->accent_1.b, 255);
+                                        SDL_RenderDrawLine(g_app.renderer, x0, y0, x1, y1);
+                                    }
+                                }
+                                /* Removed edges in a reddish tone (use toast_error_bg) */
+                                for (i_de = 0; i_de < g_removed_count; ++i_de)
+                                {
+                                    const char* rf = g_removed_from[i_de];
+                                    const char* rt = g_removed_to[i_de];
+                                    int si = -1, ti = -1, ii;
+                                    for (ii = 0; ii < ncount && (si < 0 || ti < 0); ++ii)
+                                    {
+                                        if (si < 0 && nids[ii] && strcmp(nids[ii], rf) == 0)
+                                            si = ii;
+                                        if (ti < 0 && nids[ii] && strcmp(nids[ii], rt) == 0)
+                                            ti = ii;
+                                    }
+                                    if (si >= 0 && ti >= 0)
+                                    {
+                                        int x0 = rects[si].x + rects[si].w;
+                                        int y0 = rects[si].y + rects[si].h / 2;
+                                        int x1 = rects[ti].x;
+                                        int y1 = rects[ti].y + rects[ti].h / 2;
+                                        SDL_SetRenderDrawColor(g_app.renderer, th->toast_error_bg.r,
+                                                               th->toast_error_bg.g,
+                                                               th->toast_error_bg.b, 230);
+                                        SDL_RenderDrawLine(g_app.renderer, x0, y0, x1, y1);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1152,7 +1702,7 @@ static void panel_content_graph(void* user)
             }
 
             rogue_font_draw_text(cx + 6, cy + ch - 28,
-                                 "RMB drag=pan, Wheel=zoom, Shift+LMB drag=pin/move, F=fit", 1,
+                                 "RMB drag=pan, Wheel=zoom, Shift+LMB=pin/move, F=fit", 1,
                                  (RogueColor){160, 200, 255, 255});
             rogue_font_draw_text(cx + 6, cy + ch - 14, "Graph is DAG (cycles rejected)", 1,
                                  (RogueColor){160, 200, 255, 255});

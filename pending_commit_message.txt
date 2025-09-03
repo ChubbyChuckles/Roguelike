@@ -259,6 +259,18 @@ Touched
 
 Debug Overlay (M6.1): Tooltip system (hover-delay) + widget integration; docs; tests green
 
+feat(overlay M5.2): Content Graph group halos + “Explain Path”; docs updated; regression gate green (594/594)
+
+- Group halos: softly tint nodes that share the selected root’s top-level group in the SDL mini‑view.
+- Explain Path: BFS within the current Preview Depth to compute a parent map, backtrack to form a breadcrumb from root→target, and highlight the nodes/edges along that path using accent colors. Target persists for ongoing highlight.
+- Depth cue: subtle border emphasis for the outer preview layer.
+- Compliance: MSVC C mode friendly (declarations before statements; no VLAs); SDL rendering guarded for headless safety.
+- Docs: roadmap (M5.2) and README Content Graph section updated.
+
+Verification
+- Build: Debug (SDL2) with -j12 succeeded.
+- Tests: Full CTest from build dir with -C Debug -j12 --output-on-failure → 100% PASS (594/594).
+
 feat(overlay M5.3): Content Graph “List Missing Providers” finder; docs updated; regression gate green (594/594)
 
 - Content Graph: new finder scans all declared dependencies and reports unresolved refs as
@@ -286,3 +298,20 @@ Touched
 - src/debug_overlay/widgets/overlay_widgets_controls.c (integration)
 - CMakeLists.txt (compile unit)
 - README.md, roadmaps/improvements_debug_overlay.txt
+
+feat(overlay M5.4): Content Graph snapshots A/B, A→B diff overlay, and JSON diff export; docs/roadmap; gates green
+
+- Snapshots: Capture subgraph snapshots (root + BFS up to Preview Depth) into fixed-size buffers (no VLAs; MSVC C-friendly) via UI buttons “Capture A” and “Capture B”.
+- Diff compute: “Compute Diff A→B” produces Added and Removed edge sets and per-node degree deltas; simple cycle detection within the focused subgraph.
+- Overlay: Optional “Show Diff Overlay” tints Added edges with accent_1 and Removed with a high-contrast error red; Explain Path highlights remain in text_accent. All SDL drawing is guarded for headless tests.
+- Export: “Export Diff JSON” writes build/content_subgraph_diff.json including degree deltas and cycles for A→B.
+- Docs: README Content Graph section now includes a Snapshots & Diff usage guide; roadmap Milestone 5.4 updated with details and verification.
+
+Verification
+- Build: Debug (SDL2) with -j12 completed successfully.
+- Tests: ctest -C Debug -j12 --output-on-failure → 100% PASS (594/594).
+
+Touched
+- src/debug_overlay/panel_content_graph/panels_content_graph.c (UI/state + diff/export paths)
+- README.md (Content Graph: Snapshots & Diff)
+- roadmaps/improvements_debug_overlay.txt (M5.4 status)
