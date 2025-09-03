@@ -1,0 +1,267 @@
+# Custom Documentation Plan - Professional Game Documentation
+
+## Executive Summary
+This plan outlines the creation of professional documentation pages to transform the current developer-focused technical documentation into a comprehensive resource for both developers and players. The goal is to create a polished, accessible documentation experience that showcases the full scope of the roguelike engine's capabilities.
+
+## Phase 1: Foundation & Landing Pages
+
+### Core Landing & Navigation
+- [ ] Create professional main landing page (docs/index.md)
+  - [ ] Hero section with game overview and key features
+  - [ ] Visual navigation tiles for different documentation sections
+  - [ ] Quick-start links for developers vs. players
+  - [ ] Screenshots/GIFs showcasing the game in action
+- [ ] Create dedicated "Getting Started" hub (docs/getting_started/index.md)
+  - [ ] Installation instructions for end users
+  - [ ] Basic gameplay tutorial
+  - [ ] Controls and UI overview
+  - [ ] First-time player walkthrough
+
+### Professional Presentation
+- [ ] Create comprehensive "About the Project" page (docs/about.md)
+  - [ ] Project vision and goals
+  - [ ] Technical achievements and innovations
+  - [ ] Development philosophy and approach
+  - [ ] Credits and acknowledgments
+- [ ] Create visual assets for documentation
+  - [ ] Professional logo/banner for header
+  - [ ] Feature showcase screenshots
+  - [ ] System architecture diagrams
+  - [ ] Gameplay flow charts
+
+## Phase 2: Player-Focused Documentation
+
+### Player Guide Hub
+- [ ] Create "Player's Guide" section (docs/players/index.md)
+  - [ ] Game mechanics explained in accessible language
+  - [ ] Character progression overview
+  - [ ] Combat system guide for players
+  - [ ] Crafting and equipment guide
+- [ ] Create gameplay mechanics pages:
+  - [ ] "Character Progression Guide" (docs/players/character_progression.md)
+    - [ ] Attribute system explanation
+    - [ ] Skill maze navigation
+    - [ ] Mastery system overview
+    - [ ] Build planning strategies
+  - [ ] "Combat Guide" (docs/players/combat.md)
+    - [ ] Combat basics and timing
+    - [ ] Defensive mechanics (guard/parry/dodge)
+    - [ ] Weapon types and strategies
+    - [ ] Enemy behavior patterns
+  - [ ] "World Exploration Guide" (docs/players/exploration.md)
+    - [ ] Dungeon layouts and navigation
+    - [ ] Resource gathering and mining
+    - [ ] Environmental interactions
+    - [ ] Secret areas and progression gates
+
+### Advanced Player Content
+- [ ] Create "Advanced Strategies" section (docs/players/advanced/index.md)
+  - [ ] "Equipment Optimization" (docs/players/advanced/equipment.md)
+    - [ ] Affix system explanation
+    - [ ] Socket gem strategies
+    - [ ] Durability management
+    - [ ] Min-maxing techniques
+  - [ ] "Skill Synergies Guide" (docs/players/advanced/skills.md)
+    - [ ] Skill combination strategies
+    - [ ] Effect stacking mechanics
+    - [ ] Build archetypes and templates
+    - [ ] Progression optimization
+  - [ ] "Economy and Trading" (docs/players/advanced/economy.md)
+    - [ ] Vendor system overview
+    - [ ] Item valuation guide
+    - [ ] Resource management strategies
+    - [ ] Inventory optimization
+
+## Phase 3: Developer Onboarding & Professional API Documentation
+
+### Developer Onboarding
+- [ ] Create "Developer Hub" (docs/developers/index.md)
+  - [ ] Project structure overview
+  - [ ] Development environment setup
+  - [ ] Build system guide (CMake, dependencies)
+  - [ ] Testing and debugging workflows
+- [ ] Create "Contributing Guide" (docs/developers/contributing.md)
+  - [ ] Code style guidelines
+  - [ ] Pull request process
+  - [ ] Issue reporting guidelines
+  - [ ] Community guidelines
+- [ ] Create "Architecture Overview" (docs/developers/architecture.md)
+  - [ ] High-level system design
+  - [ ] Module interdependencies
+  - [ ] Data flow diagrams
+  - [ ] Performance considerations
+
+### Enhanced API Documentation
+- [ ] Create professional API reference landing page (docs/api/index.md)
+  - [ ] Organized by functional area
+  - [ ] Quick reference cards
+  - [ ] Common usage patterns
+  - [ ] Integration examples
+- [ ] Create system-specific API guides:
+  - [ ] "Core Engine API" (docs/api/core.md)
+  - [ ] "Combat System API" (docs/api/combat.md)
+  - [ ] "Skills System API" (docs/api/skills.md)
+  - [ ] "World Generation API" (docs/api/worldgen.md)
+  - [ ] "Audio/VFX API" (docs/api/audio_vfx.md)
+  - [ ] "Debug Overlay API" (docs/api/debug.md)
+
+## Phase 4: Feature Showcases & Visual Documentation
+
+### Feature Showcase Pages
+- [ ] Create "Features Overview" (docs/features/index.md)
+  - [ ] Interactive feature matrix with current implementation status
+  - [ ] Visual feature comparisons
+  - [ ] Roadmap integration
+  - [ ] Performance benchmarks
+- [ ] Create individual feature showcases:
+  - [ ] "AI & Behavior System Showcase" (docs/features/ai_system.md)
+    - [ ] Behavior tree visualizations
+    - [ ] Enemy AI demonstration videos
+    - [ ] Decision-making flowcharts
+  - [ ] "Procedural Generation Showcase" (docs/features/worldgen.md)
+    - [ ] Algorithm explanations with visuals
+    - [ ] Generation parameter effects
+    - [ ] Example dungeon layouts
+  - [ ] "Dynamic Audio System Showcase" (docs/features/audio.md)
+    - [ ] Audio pipeline demonstration
+    - [ ] Effect layering examples
+    - [ ] Performance impact analysis
+
+### Visual Documentation Assets
+- [ ] Create system diagrams and flowcharts:
+  - [ ] Combat state machine diagrams
+  - [ ] Skill effect pipeline flowcharts
+  - [ ] World generation algorithm visuals
+  - [ ] Data flow architecture diagrams
+- [ ] Create interactive documentation elements:
+  - [ ] Searchable feature database
+  - [ ] Interactive system browsers
+  - [ ] Code example playground
+  - [ ] Configuration generators
+
+## Phase 5: Specialized Documentation
+
+### Modding & Customization
+- [ ] Create "Modding Guide" section (docs/modding/index.md)
+  - [ ] Configuration file formats
+  - [ ] Asset creation guidelines
+  - [ ] Scripting capabilities
+  - [ ] Hot-reload system usage
+- [ ] Create modding tutorials:
+  - [ ] "Creating Custom Enemies" (docs/modding/custom_enemies.md)
+  - [ ] "Designing Skills and Effects" (docs/modding/custom_skills.md)
+  - [ ] "World Generation Mods" (docs/modding/worldgen_mods.md)
+  - [ ] "Audio and VFX Modding" (docs/modding/audio_vfx_mods.md)
+
+### Performance & Optimization
+- [ ] Create "Performance Guide" (docs/performance/index.md)
+  - [ ] System requirements
+  - [ ] Performance tuning options
+  - [ ] Profiling and debugging tools
+  - [ ] Optimization best practices
+- [ ] Create performance-specific documentation:
+  - [ ] "Rendering Performance" (docs/performance/rendering.md)
+  - [ ] "Memory Usage Optimization" (docs/performance/memory.md)
+  - [ ] "Audio Performance" (docs/performance/audio.md)
+  - [ ] "Debug Mode Impact" (docs/performance/debug_impact.md)
+
+## Phase 6: Community & Support Documentation
+
+### Community Resources
+- [ ] Create "Community Hub" (docs/community/index.md)
+  - [ ] Discord/forum links
+  - [ ] Community guidelines
+  - [ ] Showcase of community creations
+  - [ ] Developer blog/updates feed
+- [ ] Create support documentation:
+  - [ ] "Troubleshooting Guide" (docs/support/troubleshooting.md)
+    - [ ] Common issues and solutions
+    - [ ] Platform-specific problems
+    - [ ] Debug information collection
+  - [ ] "FAQ" (docs/support/faq.md)
+    - [ ] Gameplay questions
+    - [ ] Technical questions
+    - [ ] Development questions
+  - [ ] "Bug Reporting Guide" (docs/support/bug_reports.md)
+    - [ ] Bug report template
+    - [ ] Information to include
+    - [ ] Reproduction steps guide
+
+### Documentation Maintenance
+- [ ] Create "Documentation Standards" (docs/meta/standards.md)
+  - [ ] Writing style guide
+  - [ ] Documentation templates
+  - [ ] Review process
+  - [ ] Update procedures
+- [ ] Create automated documentation tools:
+  - [ ] Documentation link checker
+  - [ ] Screenshot update automation
+  - [ ] API documentation sync tools
+  - [ ] Content freshness monitoring
+
+## Phase 7: Final Polish & Integration
+
+### Website Integration
+- [ ] Design responsive documentation website
+  - [ ] Mobile-friendly navigation
+  - [ ] Search functionality
+  - [ ] Cross-reference linking
+  - [ ] Dark/light theme support
+- [ ] Create landing page redirects and navigation
+  - [ ] SEO optimization
+  - [ ] Social media preview cards
+  - [ ] Analytics integration
+  - [ ] Accessibility compliance
+
+### Quality Assurance
+- [ ] Documentation review and editing
+  - [ ] Technical accuracy verification
+  - [ ] Grammar and style consistency
+  - [ ] User experience testing
+  - [ ] Cross-platform compatibility
+- [ ] Create documentation maintenance procedures
+  - [ ] Regular update schedule
+  - [ ] Version synchronization
+  - [ ] Automated testing integration
+  - [ ] Community contribution workflow
+
+## Current Status Assessment
+
+### Already Completed (High Quality)
+- [x] Comprehensive developer tutorials (docs/tutorials/)
+- [x] Detailed system architecture documentation (docs/arch/)
+- [x] Extensive API reference via Doxygen
+- [x] Implementation roadmaps for all major systems
+- [x] Debug overlay documentation (README.md)
+- [x] Build and CI documentation
+- [x] Testing framework documentation
+
+### Partially Complete (Needs Enhancement)
+- [x] Basic project overview (README.md) - needs player-focused rewrite
+- [x] Feature listings in tutorials - needs visual showcase enhancement
+- [x] Module documentation - needs better organization and presentation
+
+### Priority Implementation Order
+1. **Phase 1** (Foundation) - Essential for professional presentation
+2. **Phase 2** (Player Docs) - Critical gap in current documentation
+3. **Phase 3** (Developer Hub) - Enhances existing strong technical content
+4. **Phase 4** (Visual Showcase) - Professional polish for features
+5. **Phase 5-7** (Advanced/Community) - Long-term maintenance and growth
+
+## Success Metrics
+- Reduced time-to-productivity for new developers
+- Increased player engagement and understanding
+- Professional presentation suitable for showcasing
+- Comprehensive coverage of all game systems
+- Maintainable documentation structure
+- Positive community feedback and adoption
+
+## Implementation Timeline
+- **Week 1-2**: Phase 1 (Foundation & Landing)
+- **Week 3-4**: Phase 2 (Player Documentation)
+- **Week 5-6**: Phase 3 (Developer Enhancement)
+- **Week 7-8**: Phase 4 (Visual Showcases)
+- **Week 9-10**: Phase 5 (Specialized Content)
+- **Week 11-12**: Phase 6-7 (Community & Polish)
+
+This plan transforms the current excellent technical documentation into a comprehensive, professional resource that serves both the developer community and end users while showcasing the sophisticated capabilities of the roguelike engine.
