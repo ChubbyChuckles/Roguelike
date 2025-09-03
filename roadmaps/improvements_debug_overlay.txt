@@ -141,6 +141,12 @@ Status (M5 progress)
   • Node pinning/manual repositioning: Implemented with Shift+LMB drag to pin/move nodes and “Clear Pins” command to reset. Persistence is session-only.
   Verification: Debug build (SDL2) with parallelism (-j12) and full CTest run passed 100% (594/594) from the build directory.
 
+- 5.3 Finders: Added “List Missing Providers” finder alongside Orphans and Hubs.
+  • Behavior: Scans all declared dependencies for each node and emits any dangling reference as: `missing <dep> (referenced by <id>)`.
+  • UI: Exposed as an icon+label button in the Content Graph panel next to “List Orphans” and “List Hubs (top 10)”; headless-safe.
+  • Compliance: Kept MSVC C mode constraints (declarations before statements; no VLAs).
+  Verification: Debug (SDL2) build with -j12 and full CTest from the build dir passed 100% (594/594).
+
 Milestone 6 — Style, accessibility, and micro-interactions
 6.1 Visual language
   - Consistent spacing, hover/pressed/focus states, checkbox/radio sizes, accessible contrast. Tooltip system with rich content.
@@ -162,7 +168,14 @@ Status (M6 progress)
  - 6.2 Icons: Introduced a small, themed icon system and adopted icon buttons for common actions.
   • Module: src/debug_overlay/overlay_icon.{h,c} defines an OverlayIcon enum (SAVE, UNDO, REDO, PLAY, SEARCH, …) and overlay_icon_draw(). Icons are 12×12 monochrome bitmaps tinted with the theme accent; all SDL calls are guarded for headless tests.
   • Widget: overlay_icon_button(label, icon) renders a standard button with a left-aligned icon, consistent paddings, hover/pressed/focus states, and built‑in tooltip consumption.
-  • Integration: Map panel action rows now use icon buttons for Undo/Redo and Save/Load; behavior is unchanged and labels remain for clarity.
+  • Integration: Adopted icon+label buttons across frequently used actions:
+    – Map: Undo/Redo; Save/Load JSON
+    – Skills: Save/Load Overrides JSON
+    – Audio/VFX: Play Sound / Spawn VFX @ Cursor
+    – Dialogue: Start / Advance; Reset
+    – Validation: Validate All
+    – Content Graph: Compute All Hashes; Export DOT/JSON; Fit to Selection (F); Clear Pins; List Orphans; List Hubs (top 10); Export Subgraph DOT/JSON; Back
+    Behavior is unchanged and labels remain for clarity.
   • Build: overlay_icon.c added to the overlay target so the module is compiled in all builds.
   Verification: Built Debug (SDL2) with -j12 and ran the full CTest suite from the build directory: 100% PASS (594/594). No regressions.
 - 6.3 Keyboard coverage and cheat sheet: Expanded coverage to include Esc clear focus, Ctrl+S save, and Ctrl+Z/Y in Map.

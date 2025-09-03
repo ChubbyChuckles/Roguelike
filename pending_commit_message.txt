@@ -199,6 +199,20 @@ Debug Overlay (M4.4): Map/editor preview upgrades + Undo/Redo; docs/roadmap; tes
 - Roadmap/README updated to reflect M4.4 completion.
 - Verification: Built Debug (SDL2) with -j12 and ran full ctest from build dir: 100% PASS (594/594).
 
+feat(overlay M6.2): expand icon+label adoption across panels; Content Graph controls converted; docs updated; gates green
+
+- Icon system: continue adoption of overlay_icon_button across frequent actions with consistent padding, hover/pressed states, focus ring, and tooltip ingestion.
+- Panels updated:
+	• Map: Undo/Redo; Save/Load JSON
+	• Skills: Save/Load Overrides JSON
+	• Audio/VFX: Play Sound / Spawn VFX @ Cursor
+	• Dialogue: Start / Advance; Reset
+	• Validation: Validate All
+	• Content Graph: Compute All Hashes; Export DOT/JSON; Fit to Selection (F); Clear Pins; List Orphans; List Hubs (top 10); Export Subgraph DOT/JSON; Back
+- Docs: README Debug Overlay tips updated to reflect broader icon adoption; Roadmap M6.2 Integration section lists the covered controls.
+- Verification: Built Debug (SDL2) with parallelism (-j12) and ran full CTest from the build directory with -C Debug -j12 --output-on-failure → 100% PASS (594/594). No regressions.
+- Notes: All draw paths remain SDL‑guarded for headless stability; MSVC C compliance maintained (declarations before statements; no VLAs).
+
 Debug Overlay (M5.1): Content Graph pan/zoom + fit + isolate subgraph; docs/roadmap; tests green
 
 - Content Graph mini‑view: Right‑mouse drag pan, mouse wheel zoom centered on cursor (clamped 0.5×–2.0×), and Fit‑to‑Selection via button or F key. Selection persists; clicking nodes drills selection and updates a breadcrumb path.
@@ -244,6 +258,17 @@ Touched
 - README.md (tips)
 
 Debug Overlay (M6.1): Tooltip system (hover-delay) + widget integration; docs; tests green
+
+feat(overlay M5.3): Content Graph “List Missing Providers” finder; docs updated; regression gate green (594/594)
+
+- Content Graph: new finder scans all declared dependencies and reports unresolved refs as
+	`missing <dep> (referenced by <id>)`. Exposed as an icon+label button beside Orphans/Hubs.
+- MSVC C compliance maintained (declarations before statements; no VLAs). Headless-safe path used for CI.
+- Roadmap (M5.3) and README updated to document the finder and its usage.
+
+Verification
+- Build: Debug (SDL2) with -j12 succeeded.
+- Tests: Full CTest from build dir with -C Debug -j12 passed 100% (594/594).
 
 - API: overlay_set_next_tooltip(const char*) lets panels attach a tooltip to the next widget call.
 - Engine: new overlay_tooltip.{h,c} tracks hover rectangles per widget id and, after ~400ms, renders a themed tooltip near the cursor; headless-safe (SDL-guarded).

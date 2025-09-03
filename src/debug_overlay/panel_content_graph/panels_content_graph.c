@@ -406,20 +406,20 @@ static void panel_content_graph(void* user)
     overlay_slider_int("Preview depth", &preview_depth, 1, 3);
     overlay_slider_int("Node", &sel, 0, idx_count - 1);
     overlay_checkbox("Isolate subgraph (limit list)", &isolate_subgraph);
-    if (overlay_button("Fit to Selection (F)"))
+    if (overlay_icon_button("Fit to Selection (F)", OVERLAY_ICON_SEARCH))
     {
         view_zoom = 1.0f;
         view_off_x = 0;
         view_off_y = 0;
     }
-    if (overlay_button("Clear Pins"))
+    if (overlay_icon_button("Clear Pins", OVERLAY_ICON_UNDO))
     {
         pinned_count = 0;
     }
     /* Finders: Orphans (no inbound deps) and Hubs (high out-degree) */
     if (overlay_columns_begin(2, NULL))
     {
-        if (overlay_button("List Orphans"))
+        if (overlay_icon_button("List Orphans", OVERLAY_ICON_SEARCH))
         {
             int total = rogue_asset_dep_count();
             int inbound[512];
@@ -468,8 +468,55 @@ static void panel_content_graph(void* user)
             if (!found)
                 overlay_label("<no orphans>");
         }
+        /* New: Missing Providers (dangling deps) */
+        if (overlay_icon_button("List Missing Providers", OVERLAY_ICON_SEARCH))
+        {
+            int total_mp = rogue_asset_dep_count();
+            int cap_mp = 512;
+            int found_mp = 0;
+            if (total_mp > cap_mp)
+                total_mp = cap_mp;
+            for (int i = 0; i < total_mp; ++i)
+            {
+                const char *sid_mp = NULL, *spp_mp = NULL;
+                if (rogue_asset_dep_get(i, &sid_mp, &spp_mp) != 0 || !sid_mp)
+                    continue;
+                {
+                    const char* deps_mp[16];
+                    int dc_mp = rogue_asset_dep_get_deps(
+                        sid_mp, deps_mp, (int) (sizeof deps_mp / sizeof deps_mp[0]));
+                    for (int j = 0; j < dc_mp; ++j)
+                    {
+                        const char* dj_mp = deps_mp[j];
+                        int exists_mp = 0;
+                        if (!dj_mp)
+                            continue;
+                        for (int k = 0; k < total_mp; ++k)
+                        {
+                            const char *tid_mp = NULL, *tpp_mp = NULL;
+                            if (rogue_asset_dep_get(k, &tid_mp, &tpp_mp) == 0 && tid_mp &&
+                                strcmp(tid_mp, dj_mp) == 0)
+                            {
+                                exists_mp = 1;
+                                break;
+                            }
+                        }
+                        if (!exists_mp)
+                        {
+                            char row_mp[256];
+                            snprintf(row_mp, sizeof row_mp, "missing %s (referenced by %s)", dj_mp,
+                                     sid_mp);
+                            overlay_label(row_mp);
+                            found_mp++;
+                        }
+                    }
+                }
+            }
+            if (!found_mp)
+                overlay_label("<no missing providers>");
+        }
         overlay_next_column();
-        if (overlay_button("List Hubs (top 10)"))
+        if (overlay_icon_button("List Hubs (top 10)", OVERLAY_ICON_SEARCH))
         {
             int total = rogue_asset_dep_count();
             int outdeg[512];
@@ -624,7 +671,7 @@ static void panel_content_graph(void* user)
         }
         if (overlay_columns_begin(2, NULL))
         {
-            if (overlay_button("Export Subgraph DOT"))
+            if (overlay_icon_button("Export Subgraph DOT", OVERLAY_ICON_SAVE))
             {
                 const char* nids[128];
                 int ndeps[128];
@@ -666,7 +713,7 @@ static void panel_content_graph(void* user)
                 }
             }
             overlay_next_column();
-            if (overlay_button("Export Subgraph JSON"))
+            if (overlay_icon_button("Export Subgraph JSON", OVERLAY_ICON_SAVE))
             {
                 const char* nids[128];
                 int ndeps[128];
@@ -1128,7 +1175,7 @@ static void panel_content_graph(void* user)
         overlay_label(pathline);
         if (crumb_len > 1)
         {
-            if (overlay_button("Back"))
+            if (overlay_icon_button("Back", OVERLAY_ICON_UNDO))
             {
                 const char* target = crumbs[crumb_len - 2];
                 if (target)
