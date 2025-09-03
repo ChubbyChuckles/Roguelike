@@ -53,9 +53,9 @@ Press F1 in-game to open the debug overlay.
   - Step: advances exactly one frame when paused.
   - Reset: returns animation time/frame to 0.
   - Frame slider: visible when paused for direct frame scrubbing.
-  Timing respects `frame_duration_ms` and total frames from `frame_count` or grid_width × grid_height; preview controls do not modify runtime data.
-  Skills Live Preview (M4.2, textual): Above the simulation controls, a headless-safe table summarizes the selected skill: name/type, Cast and Cooldown timing, Coeffs (base/per-rank), Primary Effect kind/magnitude and Effect Nodes (with delays/repeats), plus a rough estimated total tick count computed from repeats/periods. Complements the sprite preview; updates as you edit.
-  Audio/VFX (M4.3): In the Audio/VFX panel, audition sounds and inspect attenuation deterministically.
+    Timing respects `frame_duration_ms` and total frames from `frame_count` or grid_width × grid_height; preview controls do not modify runtime data.
+    Skills Live Preview (M4.2, textual): Above the simulation controls, a headless-safe table summarizes the selected skill: name/type, Cast and Cooldown timing, Coeffs (base/per-rank), Primary Effect kind/magnitude and Effect Nodes (with delays/repeats), plus a rough estimated total tick count computed from repeats/periods. Complements the sprite preview; updates as you edit.
+    Audio/VFX (M4.3): In the Audio/VFX panel, audition sounds and inspect attenuation deterministically.
   - Toggles: Enable Positional Audio, Listener follows player; adjust Falloff Radius (tiles).
   - Play Sound @ Cursor: Emits through the FX bus at the cursor’s world position using camera/tile mapping.
   - Attenuation Preview: Headless‑safe ASCII bar samples effective gain at key radius fractions (0/25/50/75/100%).
