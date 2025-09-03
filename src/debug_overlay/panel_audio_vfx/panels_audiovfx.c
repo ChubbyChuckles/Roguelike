@@ -3,6 +3,7 @@
 #include "../../core/audio_vfx/audiovfx_debug.h"
 #include "../overlay_core.h"
 #include "../overlay_input.h"
+#include "../overlay_theme.h"
 #include "../widgets/overlay_widgets.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
@@ -166,12 +167,17 @@ static void panel_audiovfx(void* user)
 #ifdef ROGUE_HAVE_SDL
     if (show_falloff_ring && g_app.renderer && falloff_radius > 0.0f)
     {
+        const OverlayTheme* th = overlay_theme_get();
         int ts = g_app.tile_size ? g_app.tile_size : 32;
         float px = g_app.player.base.pos.x * (float) ts - g_app.cam_x;
         float py = g_app.player.base.pos.y * (float) ts - g_app.cam_y;
         float r_px = falloff_radius * (float) ts;
-        /* Mid-gray ring */
-        SDL_SetRenderDrawColor(g_app.renderer, 180, 180, 180, 160);
+        /* Use theme accent color for ring */
+        if (th)
+            SDL_SetRenderDrawColor(g_app.renderer, th->accent_2.r, th->accent_2.g, th->accent_2.b,
+                                   160);
+        else
+            SDL_SetRenderDrawColor(g_app.renderer, 180, 180, 180, 160);
         /* Midpoint circle approximation */
         int segments = 64;
         float prev_x = px + r_px;

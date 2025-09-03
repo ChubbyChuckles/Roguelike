@@ -1,3 +1,22 @@
+debug(overlay): centralize panel gizmo colors via OverlayTheme in Map & Audio/VFX; build/tests green
+
+- Map panel: replaced hard-coded SDL colors with theme accents for brush ghost (fill/border),
+  collider outlines, pathfinding heatmap, and autotiling hints. Uses overlay_theme_get() and
+  accent_1/accent_2 with tuned alpha.
+- Audio/VFX panel: themed falloff ring gizmo (accent_2) with safe fallback when theme unavailable.
+- Roadmap: mark theming migration complete for these panels; note verification.
+- README: document theme controls and recent overlay theming adoption across panels.
+
+Verification:
+- Built Debug (SDL2) with parallelism (-j12) successfully.
+- Ran full CTest from build dir: 100% PASS (594/594), no regressions.
+
+Touched files:
+- src/debug_overlay/panel_map/panels_map.c
+- src/debug_overlay/panel_audio_vfx/panels_audiovfx.c
+- roadmaps/improvements_debug_overlay.txt
+- README.md (docs)
+
 Debug Overlay: Theme controls (preset/DPI/font size) + widget theming migration; docs/roadmap; tests green
 
 - Theme API: add `overlay_theme_set_font_size(int)` with clamping and persistence; existing preset/DPI setters wired to the System panel.
@@ -168,3 +187,10 @@ Debug Overlay (M5.1): Content Graph pan/zoom + fit + isolate subgraph; docs/road
 
 Overlay: Content Graph pinning/manual repositioning + Clear Pins.
 Worldgen: SIMD availability gating + simplified path; tests green.
+
+debug overlay(entities): add themed world-space selection gizmo; tests green (594/594)
+
+- Entities panel: draw a lightweight selection gizmo around the selected entity (rectangle + small crosshair) using OverlayTheme accent_1 with tuned alpha; SDL-guarded with a safe fallback color when theme or renderer is unavailable. Added a toggle to show/hide the gizmo in panel options.
+- Docs: README tips updated to mention the Entities selection gizmo; Roadmap (M0.1) updated to include Entities under themed gizmos and verification notes.
+- Verification: Debug build (SDL2) with -j12 succeeded; full CTest run from build directory passed 100% (594/594).
+- Touched: src/debug_overlay/panel_entities/panels_entities.c, README.md, roadmaps/improvements_debug_overlay.txt

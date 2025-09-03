@@ -17,7 +17,7 @@ Milestone 0 — Foundations refresh (pre-work)
   - Centralize colors, spacing, radii, typography scale, and icon palette.
   - Provide 3 presets: Dark (default), Light, High-Contrast; runtime switch + persisted choice.
   - DPI scaling factor and font size ladder. Acceptance: All widgets render with theme constants; no hard-coded colors left in panels.
-  - Status: Runtime setters for preset/DPI/font size implemented and exposed in System panel (persisted in overlay_theme.json). Core widgets migrated: Combo label text, Tree node (bg/border/text accent), and Color swatch border. Panels migrated to theme colors: System, Items, Skills (Testing + Effects Node Graph canvas/nodes/edges/labels), and Content Graph previews. Remaining panels queued for migration in follow-ups.
+  - Status: Runtime setters for preset/DPI/font size implemented and exposed in System panel (persisted in overlay_theme.json). Core widgets migrated: Combo label text, Tree node (bg/border/text accent), and Color swatch border. Panels migrated to theme colors: System, Items, Skills (Testing + Effects Node Graph canvas/nodes/edges/labels), Content Graph previews, Map (brush ghost, collider outlines, pathfinding heatmap, autotiling hints), Audio/VFX (falloff ring gizmo), and Entities (world‑space selection gizmo ring/rect+crosshair around the selected entity). Remaining minor widgets/gizmos will be audited as we touch them.
 0.2 Layout primitives
   - Resizable columns/splitter, collapsible sections, and tab bar. Persist per-panel layout.
   - Status: Splitter implemented in widgets and wired to overlay_prefs persistence. Items panel refactored earlier; Skills and Map panels now adopt persistent split layouts (left navigation/controls, right content/preview placeholder). Sizes persist across restarts.
@@ -30,7 +30,7 @@ Milestone 0 — Foundations refresh (pre-work)
     • Validation panel (run start/completion with summarized results, severity-based color)
     • Command Palette actions (Validation: Run Now, Skills: Save/Load)
     • Core render loop calls overlay_toast_render() and is headless-safe (no SDL calls when no renderer present)
-    Verification: Debug SDL2 build with -j12; full CTest suite all green (594/594).
+  Verification: Debug SDL2 build with -j12; full CTest suite all green (594/594). Latest pass after Map + Audio/VFX + Entities selection gizmo theming also 100% green.
 
 Milestone 1 — Navigation and discoverability
 1.1 Global search (Ctrl+K) and fuzzy finder

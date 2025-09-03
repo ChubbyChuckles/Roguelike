@@ -2,6 +2,7 @@
 #include "../../core/entities/entity_debug.h"
 #include "../overlay_core.h"
 #include "../overlay_input.h"
+#include "../overlay_theme.h"
 #include "../widgets/overlay_widgets.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
@@ -83,6 +84,42 @@ static void panel_entities(void* user)
         overlay_label(line);
         snprintf(line, sizeof line, "Pos: %.2f, %.2f", info.x, info.y);
         overlay_label(line);
+        /* Optional: draw a themed world-space gizmo around the selected entity */
+        static int show_gizmo = 1;
+        overlay_checkbox("Show selection gizmo", &show_gizmo);
+#ifdef ROGUE_HAVE_SDL
+        if (show_gizmo && g_app.renderer)
+        {
+            const OverlayTheme* th = overlay_theme_get();
+            const int ts = g_app.tile_size > 0 ? g_app.tile_size : 16;
+            /* Convert entity world tile coords to screen px relative to camera */
+            float cx = info.x * (float) ts - g_app.cam_x;
+            float cy = info.y * (float) ts - g_app.cam_y;
+            /* Draw a 1-tile rectangle outline centered on the entity tile and a small crosshair */
+            Uint8 r = 200, g = 230, b = 255, a = 200; /* fallback */
+            if (th)
+            {
+                r = th->accent_1.r;
+                g = th->accent_1.g;
+                b = th->accent_1.b;
+                a = 200;
+            }
+            SDL_SetRenderDrawColor(g_app.renderer, r, g, b, a);
+            int sx = (int) (cx);
+            int sy = (int) (cy);
+            SDL_Rect rect;
+            rect.x = sx - ts / 2;
+            rect.y = sy - ts / 2;
+            rect.w = ts;
+            rect.h = ts;
+            SDL_RenderDrawRect(g_app.renderer, &rect);
+            /* Crosshair */
+            int hx = sx;
+            int hy = sy;
+            SDL_RenderDrawLine(g_app.renderer, hx - ts / 4, hy, hx + ts / 4, hy);
+            SDL_RenderDrawLine(g_app.renderer, hx, hy - ts / 4, hx, hy + ts / 4);
+        }
+#endif
         if (overlay_columns_begin(2, NULL))
         {
             if (overlay_button("Kill"))

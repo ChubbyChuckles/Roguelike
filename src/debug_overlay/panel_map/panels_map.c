@@ -2,6 +2,7 @@
 #include "../../core/world/map_debug.h"
 #include "../overlay_core.h"
 #include "../overlay_input.h"
+#include "../overlay_theme.h"
 #include "../widgets/overlay_widgets.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
@@ -203,6 +204,10 @@ static void panel_map_editor(void* user)
         /* Visual gizmos (guarded) */
         if (g_app.renderer)
         {
+            const OverlayTheme* th = overlay_theme_get();
+            /* Fallback colors if theme not initialized for some reason */
+            const OverlayColor accent1 = th ? th->accent_1 : (OverlayColor){255, 64, 64, 160};
+            const OverlayColor accent2 = th ? th->accent_2 : (OverlayColor){200, 200, 200, 160};
             /* Brush ghost rectangle */
             int tx = -1, ty = -1;
             if (in)
@@ -217,9 +222,9 @@ static void panel_map_editor(void* user)
                 int w = (2 * brush_radius + 1) * ts;
                 int h = w;
                 SDL_Rect r = {x0, y0, w, h};
-                SDL_SetRenderDrawColor(g_app.renderer, 255, 255, 255, 64);
+                SDL_SetRenderDrawColor(g_app.renderer, accent2.r, accent2.g, accent2.b, 64);
                 SDL_RenderFillRect(g_app.renderer, &r);
-                SDL_SetRenderDrawColor(g_app.renderer, 255, 255, 255, 160);
+                SDL_SetRenderDrawColor(g_app.renderer, accent2.r, accent2.g, accent2.b, 160);
                 SDL_RenderDrawRect(g_app.renderer, &r);
             }
             else if (brush_mode == 1)
@@ -229,9 +234,9 @@ static void panel_map_editor(void* user)
                 int x1 = (int) ((rx1 + 1) * ts - g_app.cam_x);
                 int y1 = (int) ((ry1 + 1) * ts - g_app.cam_y);
                 SDL_Rect r = {x0, y0, x1 - x0, y1 - y0};
-                SDL_SetRenderDrawColor(g_app.renderer, 255, 255, 255, 64);
+                SDL_SetRenderDrawColor(g_app.renderer, accent2.r, accent2.g, accent2.b, 64);
                 SDL_RenderFillRect(g_app.renderer, &r);
-                SDL_SetRenderDrawColor(g_app.renderer, 255, 255, 255, 160);
+                SDL_SetRenderDrawColor(g_app.renderer, accent2.r, accent2.g, accent2.b, 160);
                 SDL_RenderDrawRect(g_app.renderer, &r);
             }
             /* Colliders overlay: draw red outlines on blocked tiles in view */
@@ -247,7 +252,7 @@ static void panel_map_editor(void* user)
                     last_tx = g_app.world_map.width;
                 if (last_ty > g_app.world_map.height)
                     last_ty = g_app.world_map.height;
-                SDL_SetRenderDrawColor(g_app.renderer, 255, 64, 64, 160);
+                SDL_SetRenderDrawColor(g_app.renderer, accent1.r, accent1.g, accent1.b, 160);
                 for (int y = first_ty; y < last_ty; ++y)
                 {
                     for (int x = first_tx; x < last_tx; ++x)
@@ -291,7 +296,8 @@ static void panel_map_editor(void* user)
                             a = 50;
                         if (a > 230)
                             a = 230;
-                        SDL_SetRenderDrawColor(g_app.renderer, 255, 200, 0, a);
+                        /* Use accent_2 hue with varying alpha for readability */
+                        SDL_SetRenderDrawColor(g_app.renderer, accent2.r, accent2.g, accent2.b, a);
                         SDL_Rect r = {(int) (x * ts - g_app.cam_x), (int) (y * ts - g_app.cam_y),
                                       ts, ts};
                         SDL_RenderFillRect(g_app.renderer, &r);
@@ -311,7 +317,7 @@ static void panel_map_editor(void* user)
                     last_tx = g_app.world_map.width;
                 if (last_ty > g_app.world_map.height)
                     last_ty = g_app.world_map.height;
-                SDL_SetRenderDrawColor(g_app.renderer, 128, 255, 128, 200);
+                SDL_SetRenderDrawColor(g_app.renderer, accent2.r, accent2.g, accent2.b, 200);
                 for (int y = first_ty; y < last_ty; ++y)
                 {
                     for (int x = first_tx; x < last_tx; ++x)
