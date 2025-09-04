@@ -30,12 +30,12 @@ STATUS DELTA (Latest):
 	- Hazard palette computed with depth scaling and tag adjustments (movement penalties, DoT, trap weighting) (3.3 Done).
 	- Rare biome substitution with depth-scaled probability envelope (3.4 Done).
 	- Tests added (3.5 Done): determinism, value ranges, and depth-scaling behavior covered in test_dungeon_phase3_theme; added distribution envelope and rare-biome probability bounds tests in test_dungeon_phase3_5_biome_distribution.
-	- Build & Tests: Debug (SDL2) and full suite pass 100% (604/604) with -j12.
+	- Build & Tests: Debug (SDL2) and full suite pass 100% (605/605) with -j12.
 
-- Phase 4 encounter planning (initial slice):
-	- Implemented per-room encounter planner with BFS room depths, difficulty budget scaling, elite/miniboss spacing constraints, and rare nemesis injection under deterministic micro-RNG.
-	- Unit tests validate plan counts, budget sanity, type distribution, and nemesis frequency (test_dungeon_phase4_encounters).
-	- Notes: ΔL mapping is wired to the depth difficulty profile; extended budget allocation and modifier smoothing remain to be expanded.
+- Phase 4 encounter planning (expanded):
+	- Implemented per-room encounter planner with BFS room depths, ΔL- and critical-path-weighted difficulty budgets, elite/miniboss spacing constraints, modifier smoothing for affix/mod clusters, and rare nemesis injection under deterministic micro-RNG.
+	- Unit tests validate plan counts, budget sanity, type distribution, nemesis frequency, and ΔL mapping precision (test_dungeon_phase4_encounters, test_dungeon_phase4_delta_mapping).
+	- Stability: persistence integration bridge previously flaky in one full run re-validated; full suite now consistently green.
 
 FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 - Tile / biome configuration files (assets/tiles.cfg, assets/biomes/*) (Partial)
@@ -78,11 +78,11 @@ PHASE 3. Biome & Theme Layering
 
 PHASE 4. Encounter Seeding & Enemy Composition
 4.1 Encounter slot definition (slot_type: combat, elite_pack, mini_boss, puzzle_guard) (Done)
-4.2 Difficulty budget allocation along critical path vs optional branches (Partial) (initial budget scaling by depth/room depth; critical-path weighting to extend)
-4.3 Relative level delta mapping per depth (tie to enemy scaling phase model) (Partial) (wired to depth_difficulty_profile; extended calibration pending)
-4.4 Elite & modifier distribution smoothing (no clustering beyond thresholds) (Partial) (spacing constraints for elites/miniboss implemented; modifier smoothing next)
+4.2 Difficulty budget allocation along critical path vs optional branches (Done) (ΔL- and critical-path-weighted budgets; depth/room depth scaling retained)
+4.3 Relative level delta mapping per depth (tie to enemy scaling phase model) (Partial) (monotonic mapping implemented; precision tests added; further calibration pending)
+4.4 Elite & modifier distribution smoothing (no clustering beyond thresholds) (Done) (spacing constraints + modifier smoothing)
 4.5 Nemesis injection hook (chance / triggered conditions) (Done)
-4.6 Tests: budget conservation, modifier spacing invariants, ΔL mapping correctness (Partial) (counts/budgets/type distribution/nemesis frequency covered; ΔL mapping precision tests to add)
+4.6 Tests: budget conservation, modifier spacing invariants, ΔL mapping correctness (Done) (counts/budgets/type distribution/nemesis frequency, plus ΔL precision in test_dungeon_phase4_delta_mapping)
 
 PHASE 5. Objectives & Progression Gates
 5.1 Objective taxonomy: Clear, Collect, Activate, Escort, Survive, PuzzleComplete, Boss (X)

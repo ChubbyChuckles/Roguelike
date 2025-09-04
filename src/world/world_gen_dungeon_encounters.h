@@ -25,6 +25,14 @@ extern "C"
         int nemesis;                    /* 1 if nemesis injected for the room */
     } RogueDungeonEncounterPlanEntry;
 
+    /* Simple encounter modifier bits (Phase 4 smoothing prototype). */
+    enum
+    {
+        ROGUE_ENC_MOD_RANGED_FOCUS = 0x00000001,
+        ROGUE_ENC_MOD_ARCANE_CURSE = 0x00000002,
+        ROGUE_ENC_MOD_SWARMING = 0x00000004
+    };
+
     /* Plans one encounter per room. Returns number of entries written (<=max_entries). */
     int rogue_dungeon_plan_encounters(RogueWorldGenContext* ctx, const RogueDungeonGraph* graph,
                                       int depth, RogueDungeonEncounterPlanEntry* out,

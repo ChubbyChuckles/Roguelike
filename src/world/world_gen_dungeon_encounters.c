@@ -61,6 +61,7 @@ int rogue_dungeon_plan_encounters(RogueWorldGenContext* ctx, const RogueDungeonG
 
     /* Determine target relative level delta and base budget per room */
     int dL = rogue_dungeon_target_level_delta(depth);
+    /* Calibrate ΔL into budget scale: base grows gently; ΔL adds more weight along CPL */
     int base_budget = 8 + dL * 2; /* grows with depth: 8,10,10,12,... */
 
     /* Compute room depths to approximate critical path by greatest depth */
@@ -77,10 +78,19 @@ int rogue_dungeon_plan_encounters(RogueWorldGenContext* ctx, const RogueDungeonG
         if (rdepths[i] > maxd)
             maxd = rdepths[i];
 
+    /* Critical path estimate for weighting: rooms near max depth gain extra budget. */
+    int cpl = rogue_dungeon_graph_critical_path_length(graph);
+    if (cpl < 0)
+        cpl = maxd;
+
     /* Spacing: avoid clustering elites/miniboss within window K */
     const int windowK = 2;
     int last_elite_depth = -100;
     int last_miniboss_depth = -100;
+
+    /* Modifier smoothing: track the last depth-band's modifier mask to avoid repeats. */
+    int last_band = -999;
+    int last_band_mod = 0;
 
     for (int i = 0; i < n; ++i)
     {
@@ -92,9 +102,14 @@ int rogue_dungeon_plan_encounters(RogueWorldGenContext* ctx, const RogueDungeonG
         pe->nemesis = 0;
 
         int rd = rdepths[i];
-        /* Critical path approximation: deeper depth -> more budget */
+        /* Critical path approximation: deeper depth -> more budget (scaled by ΔL and CPL) */
         if (maxd > 0)
-            pe->budget += (rd * 3) / (maxd > 0 ? maxd : 1);
+        {
+            int depth_weight = (rd * 100) / (maxd > 0 ? maxd : 1); /* 0..100 */
+            pe->budget += (depth_weight * (2 + dL)) / 100;         /* +2..+(2+dL) */
+        }
+        if (cpl > 0 && rd >= (maxd - 1))
+            pe->budget += 1; /* small push near terminal rooms */
 
         /* Tag influences: treasure rooms lean puzzle guard, elites get boosted */
         int tag = graph->rooms[i].tag;
@@ -126,6 +141,29 @@ int rogue_dungeon_plan_encounters(RogueWorldGenContext* ctx, const RogueDungeonG
         if (nem_bp > 300)
             nem_bp = 300;
         pe->nemesis = ((int) (rv % 10000) < nem_bp) ? 1 : 0;
+
+        /* Assign simple modifiers with smoothing across depth bands (band = rd/2). */
+        int band = rd / 2;
+        int desired_mod = 0;
+        if ((rv & 3) == 0)
+            desired_mod |= ROGUE_ENC_MOD_SWARMING;
+        if ((rv & 5) == 5)
+            desired_mod |= ROGUE_ENC_MOD_RANGED_FOCUS;
+        if ((rv & 9) == 9)
+            desired_mod |= ROGUE_ENC_MOD_ARCANE_CURSE;
+        /* Avoid repeating exact same mask in adjacent bands; if equal, drop the weakest bit. */
+        if (band == last_band && desired_mod == last_band_mod)
+        {
+            if (desired_mod & ROGUE_ENC_MOD_ARCANE_CURSE)
+                desired_mod &= ~ROGUE_ENC_MOD_ARCANE_CURSE;
+            else if (desired_mod & ROGUE_ENC_MOD_RANGED_FOCUS)
+                desired_mod &= ~ROGUE_ENC_MOD_RANGED_FOCUS;
+            else if (desired_mod & ROGUE_ENC_MOD_SWARMING)
+                desired_mod &= ~ROGUE_ENC_MOD_SWARMING;
+        }
+        pe->modifiers_mask = desired_mod;
+        last_band = band;
+        last_band_mod = desired_mod;
     }
 
     free(rdepths);
