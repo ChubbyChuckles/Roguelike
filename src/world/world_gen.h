@@ -285,6 +285,31 @@ int rogue_spawn_sample(RogueWorldGenContext* ctx, const RogueSpawnDensityMap* dm
                        const RogueTileMap* map, int x, int y, char* out_id, size_t id_cap,
                        int* out_is_rare);
 
+/* ---- Phase 8: Loot & Reward Orchestration (Chests & Materials) ---- */
+typedef struct RogueDungeonChestPlacement
+{
+    int x;
+    int y;
+    int tier;       /* 0=common,1=uncommon,2=rare,3=epic */
+    int is_upgrade; /* 1 if reserved/guaranteed upgrade chest */
+} RogueDungeonChestPlacement;
+
+/* Place dungeon chests with depth-weighted reward tiers. Reserves chests for dead-ends and
+ * milestone rooms (treasure/elite/puzzle). Writes overlay deco codes into the map for visibility
+ * in tests (codes 10..13 map to tier 0..3; code 14 used to mark an upgrade-guarantee chest).
+ * Returns number of chests placed and optionally fills out_array with placements (up to max_out).
+ * If out_upgrade_count is provided, sets it to the number of upgrade-guarantee chests (0 or 1).
+ */
+int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
+                               const RogueDungeonGraph* graph, int target_chests,
+                               RogueDungeonChestPlacement* out_array, int max_out,
+                               int* out_upgrade_count);
+
+/* Seed a few crafting material nodes inside dungeons (rare nodes clustered near treasure/secret
+ * rooms). Uses overlay deco code 50 to mark a material node for tests. Returns number placed. */
+int rogue_dungeon_seed_material_nodes(RogueWorldGenContext* ctx, RogueTileMap* io_map,
+                                      const RogueDungeonGraph* graph, int max_nodes);
+
 /* ---- Phase 9: Lootable & Resource Nodes ---- */
 typedef struct RogueResourceNodeDesc
 {

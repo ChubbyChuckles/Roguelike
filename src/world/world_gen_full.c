@@ -74,7 +74,16 @@ int rogue_world_generate_full(RogueTileMap* out_map, const RogueWorldGenConfig* 
                 oy = 0;
             rogue_dungeon_carve_into_map(&ctx, out_map, &graph, ox, oy, 220, 220);
             rogue_dungeon_place_keys_and_locks(&ctx, out_map, &graph);
-            rogue_dungeon_place_traps_and_secrets(&ctx, out_map, &graph, 12, 0.12);
+            int traps = rogue_dungeon_place_traps_and_secrets(&ctx, out_map, &graph, 12, 0.12);
+            (void) traps;
+            /* Phase 8: place chests and seed material nodes inside dungeon */
+            RogueDungeonChestPlacement chest_buf[64];
+            int upgrade_marked = 0;
+            int chest_count = rogue_dungeon_place_chests(&ctx, out_map, &graph, 6, chest_buf, 64,
+                                                         &upgrade_marked);
+            int mat_nodes = rogue_dungeon_seed_material_nodes(&ctx, out_map, &graph, 4);
+            (void) chest_count;
+            (void) mat_nodes;
             rogue_dungeon_free_graph(&graph);
         }
     }

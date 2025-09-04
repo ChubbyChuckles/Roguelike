@@ -57,6 +57,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_minimap_loot_pings.c AND NOT TAR
     endif()
     add_test(NAME test_minimap_loot_pings COMMAND test_minimap_loot_pings)
 endif()
+
+# Phase 8: Dungeon loot & materials
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dungeon_phase8_loot_and_materials.c AND NOT TARGET test_dungeon_phase8_loot_and_materials)
+    add_executable(test_dungeon_phase8_loot_and_materials unit/test_dungeon_phase8_loot_and_materials.c)
+    target_link_libraries(test_dungeon_phase8_loot_and_materials PRIVATE rogue_core)
+    target_compile_definitions(test_dungeon_phase8_loot_and_materials PRIVATE SDL_MAIN_HANDLED=1 TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_dungeon_phase8_loot_and_materials PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_dungeon_phase8_loot_and_materials COMMAND test_dungeon_phase8_loot_and_materials)
+endif()
 # Automatically reconfigure when new unit tests are added
 file(GLOB UNIT_TESTS CONFIGURE_DEPENDS unit/test_*.c)
 

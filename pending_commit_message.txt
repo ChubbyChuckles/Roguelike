@@ -482,3 +482,15 @@ feat(dungeon/phase5 scaffolding): deterministic objectives chain builder + unit 
 Quality gates:
 - Build: Debug (SDL2) with -j12 OK.
 - Tests: ctest from build dir with -C Debug -j12 --output-on-failure → 100% PASS (606/606).
+
+feat(dungeon/phase8): chest distribution (tiered) + adjacent upgrade markers; material node seeding; tests + orchestration; suite green (611/611)
+
+- Implement chest placement with BFS-derived depth tiers; write tier overlays (10–13) and place upgrade hook marker (14) on an adjacent safe tile to preserve tier indicators; overlay writes guarded by overlay_magic.
+- Seed rare material/crafting nodes inside dungeons with treasure/secret bias (overlay 50).
+- Wire Phase 8 calls in the worldgen orchestrator after traps/secrets.
+- Add unit `tests/unit/test_dungeon_phase8_loot_and_materials.c` validating chest counts, tier overlays ≥ placements, and upgrade marker adjacency.
+- Fix earlier overlay clobber by moving upgrade marker off the chest tile via a C helper.
+
+Quality gates:
+- Build: Debug (SDL2) with -j12 OK.
+- Tests: ctest from build dir with -C Debug -j12 --output-on-failure → 100% PASS (611/611). A prior intermittent `test_combat_dps` segfault did not reproduce; rerun and full suite stable.

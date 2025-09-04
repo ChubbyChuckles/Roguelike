@@ -221,6 +221,7 @@ add_library(rogue_core
     src/world/world_gen_dungeon_puzzle.c
     # Phase 7: hazards & traps subsystem (initial helpers)
     src/world/world_gen_dungeon_traps.c
+    src/world/world_gen_dungeon_loot.c
     src/world/world_gen_dungeon.c
     src/world/world_gen_spawns.c
     src/world/world_gen_resources.c

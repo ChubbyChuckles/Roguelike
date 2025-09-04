@@ -10,11 +10,16 @@ Scope Overview:
 Deliver a data‑driven, procedural dungeon framework integrating layout generation, biome & thematic layering, enemy difficulty (relative level differential), objective orchestration, environmental hazards, puzzle & traversal mechanics, dynamic events, loot & crafting hooks, infinite player progression pacing, analytics, and deterministic replay. Constraints: single character, infinite leveling (no classes; universal skill access), infinite inventory stack, existing systems (loot, affixes, enemy difficulty, crafting, vendor, skill maze). Goals: High encounter variety, readable progression of challenge, systemic synergy (materials, recipes, vendors, mastery), minimal content authoring overhead, robust anti-exploit & performance guarantees.
 
 STATUS DELTA (Latest):
+- Phase 8 loot & reward orchestration (slice) landed:
+	- Chest distribution implemented with BFS-derived depth tiering. Tier markers use overlay codes 10–13 and an upgrade hook marker (14) is placed on an adjacent safe tile to avoid clobbering the tier indicator. All overlay writes are gated by overlay_magic.
+	- Material/crafting node seeding inside dungeons with treasure/secret bias; uses overlay code 50. Integrated after traps/secrets in the worldgen orchestrator.
+	- Unit `test_dungeon_phase8_loot_and_materials` validates chest counts, tier overlay presence vs placements, and adjacency of upgrade markers.
+	- Build & Tests: Debug (SDL2) all‑green (611/611) with -j12. The previously observed intermittent DPS test segfault did not reproduce on rerun and the full suite is stable.
 - Phase 7 hazards & traps landed and validation stabilized:
 	- Hazard & Trap subsystem implemented: JSON trap defs (trigger_type, telegraph_ms, damage profile, cooldown), damage scales with depth ΔL and avoidance stats; overlap resolver caps simultaneous high-DPS hazards; disarm interaction with skill-based success probability and deterministic micro-RNG; unit `test_dungeon_phase7_traps` covers telegraph compliance, scaling monotonicity, overlap cap, and disarm odds.
 	- Puzzle/traversal: soft-lock watchdog integrated into worldgen flow; minor scaffolding tightened.
 	- Validation manager instrumentation: begin/done traces for all validators and cross-rules added; Entities validator now enforces skip-texture mode during headless validation to avoid renderer I/O and divide-by-zero in sheet slicing; restored previous flag on exit.
-	- Build & Tests: Debug (SDL2) full suite all-green (610/610) with -j12.
+	- Build & Tests: Debug (SDL2) full suite all-green (611/611) with -j12.
 - Phase 2 groundwork landed alongside Phase 1 kernel:
 	- Phase 1 kernel slice: 1.1–1.4 implemented end‑to‑end.
 		• Mini‑DSL parser: L(n) linear, H(k) hub, B(n,b) branching; deterministic manual parser.
@@ -118,11 +123,11 @@ PHASE 7. Hazard & Trap System
 7.5 Tests: telegraph compliance, damage scaling monotonicity, disarm probability accuracy (Done)
 
 PHASE 8. Loot & Reward Orchestration
-8.1 Chest distribution algorithm (reserve for dead-end & milestone rooms) (X)
-8.2 Reward tier weighting by depth, optional branch completion, challenge objectives (X)
+8.1 Chest distribution algorithm (reserve for dead-end & milestone rooms) (Done)
+8.2 Reward tier weighting by depth, optional branch completion, challenge objectives (Partial) (depth tiering implemented; optional-branch/challenge weighting pending)
 8.3 Smart drop injection (ensure at least one upgrade opportunity per run unless top-tier equipped) (X)
-8.4 Material & crafting recipe seeding (rare nodes inside dungeons) (X)
-8.5 Tests: EV consistency vs difficulty, upgrade guarantee logic, chest placement constraints (X)
+8.4 Material & crafting recipe seeding (rare nodes inside dungeons) (Done)
+8.5 Tests: EV consistency vs difficulty, upgrade guarantee logic, chest placement constraints (Partial) (placement and marker adjacency covered; EV/guarantee tests pending)
 
 PHASE 9. Run Modifiers & Mutators
 9.1 Mutator definition file (id, weight, effect DSL, reward_multiplier) (X)
