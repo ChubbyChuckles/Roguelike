@@ -1,3 +1,14 @@
+feat(dungeon/phase5.2-5.5): objective scripting + gates/keystone flags + dynamic substitution; gates green (608/608)
+
+- Objective scripting: add `rogue_dungeon_set_objective_script(const char*)` and a lightweight parser for tokens ACTIVATE, CLEAR, PUZZLE, ?PUZZLE (optional), BOSS, and GATE(KEYSTONE). Integrated with the deterministic chain builder.
+- Gates & Keystone: expand GATE(KEYSTONE) into COLLECT(KEYSTONE) + ACTIVATE(GATE), attaching RogueDungeonObjectiveParamFlags (GATE/KEYSTONE) to the respective steps; preserves shallow/mid/far room selection deterministically and avoids room reuse.
+- Dynamic substitution: when a required PUZZLE is infeasible, substitute a CLEAR step deterministically; optional ?PUZZLE is dropped without substitution.
+- Tests: add `tests/unit/test_dungeon_phase5_objective_script_and_gates.c` and `tests/unit/test_dungeon_phase5_dynamic_substitution.c`; baseline determinism and terminal BOSS test retained.
+
+Quality gates:
+- Build: Debug (SDL2) with -j12 OK.
+- Tests: ctest from build dir with -C Debug -j12 --output-on-failure → 100% PASS (608/608).
+
 chore(worldgen/dungeon phase4): expand budgets (ΔL + critical-path), modifier smoothing; add ΔL precision tests; suite green (605/605)
 
 - Phase 4: Extend encounter planner with ΔL- and critical-path-weighted budgets and modifier smoothing to reduce affix/mod clustering. Keep deterministic micro-RNG streams.

@@ -43,6 +43,106 @@ static int compute_room_depths_obj(const RogueDungeonGraph* g, int* out_depths)
     return 1;
 }
 
+/* --- Phase 5.2: objective script management --- */
+static char g_obj_script[128] = {0};
+
+void rogue_dungeon_set_objective_script(const char* spec)
+{
+    if (!spec || !*spec)
+    {
+        g_obj_script[0] = '\0';
+        return;
+    }
+    size_t n = strlen(spec);
+    if (n >= sizeof(g_obj_script))
+        n = sizeof(g_obj_script) - 1;
+    memcpy(g_obj_script, spec, n);
+    g_obj_script[n] = '\0';
+}
+
+typedef enum ObjTokenKind
+{
+    TOK_NONE = 0,
+    TOK_ACTIVATE,
+    TOK_CLEAR,
+    TOK_PUZZLE,
+    TOK_PUZZLE_OPTIONAL,
+    TOK_BOSS,
+    TOK_GATE
+} ObjTokenKind;
+
+/* ASCII-only case-insensitive equality on the first n chars */
+static int ci_eq_ascii(const char* a, const char* b, size_t n)
+{
+    for (size_t i = 0; i < n; ++i)
+    {
+        char ca = a[i];
+        char cb = b[i];
+        if (ca >= 'A' && ca <= 'Z')
+            ca = (char) (ca - 'A' + 'a');
+        if (cb >= 'A' && cb <= 'Z')
+            cb = (char) (cb - 'A' + 'a');
+        if (ca != cb)
+            return 0;
+    }
+    return 1;
+}
+
+static int parse_script_tokens(const char* s, ObjTokenKind* out, int cap)
+{
+    if (!s || !*s)
+        return 0;
+    int count = 0;
+    const char* p = s;
+    while (*p && count < cap)
+    {
+        while (*p == ' ' || *p == '\t' || *p == ',')
+            ++p;
+        if (!*p)
+            break;
+        int optional = 0;
+        if (*p == '?')
+        {
+            optional = 1;
+            ++p;
+        }
+        const char* start = p;
+        while (*p && *p != ',' && *p != '(' && *p != ')')
+            ++p;
+        size_t len = (size_t) (p - start);
+        ObjTokenKind kind = TOK_NONE;
+        /* Case-insensitive compare for token name */
+#define CMP(tok) (len == strlen(tok) && ci_eq_ascii(start, tok, len))
+        if (CMP("ACTIVATE"))
+            kind = TOK_ACTIVATE;
+        else if (CMP("CLEAR"))
+            kind = TOK_CLEAR;
+        else if (CMP("PUZZLE"))
+            kind = optional ? TOK_PUZZLE_OPTIONAL : TOK_PUZZLE;
+        else if (CMP("BOSS"))
+            kind = TOK_BOSS;
+        else if (CMP("GATE"))
+            kind = TOK_GATE; /* expect (KEYSTONE) optional */
+#undef CMP
+        /* Skip optional (...) for GATE */
+        while (*p && *p != ',')
+            ++p;
+        if (kind != TOK_NONE)
+            out[count++] = kind;
+        if (*p == ',')
+            ++p;
+    }
+    return count;
+}
+
+static int id_in_used(const int* used, int used_n, int id)
+{
+    for (int i = 0; i < used_n; ++i)
+        if (used[i] == id)
+            return 1;
+    return 0;
+}
+
 int rogue_dungeon_build_objectives(RogueWorldGenContext* ctx, const RogueDungeonGraph* graph,
                                    int depth, RogueDungeonObjectiveStep* out, int max_steps)
 {
@@ -96,52 +196,174 @@ int rogue_dungeon_build_objectives(RogueWorldGenContext* ctx, const RogueDungeon
     }
 
     int steps = 0;
-    if (steps < max_steps)
+
+/* Helper to append a step */
+#define APPEND_STEP(kind, rid, p0)                                                                 \
+    do                                                                                             \
+    {                                                                                              \
+        if (steps < max_steps)                                                                     \
+        {                                                                                          \
+            out[steps].step_index = steps;                                                         \
+            out[steps].type = (kind);                                                              \
+            out[steps].room_id = (rid);                                                            \
+            out[steps].param0 = (p0);                                                              \
+            steps++;                                                                               \
+        }                                                                                          \
+    } while (0)
+
+    /* Choose mid-depth representative deterministically */
+    int target_depth = (far_d > 1) ? (far_d / 2) : 1;
+    int mid_idx = shallow_idx;
+    int best_dist = 9999;
+    for (int i = 0; i < n; ++i)
     {
-        out[steps].step_index = steps;
-        out[steps].type = ROGUE_OBJ_ACTIVATE;
-        out[steps].room_id = graph->rooms[shallow_idx].id;
-        out[steps].param0 = 0;
-        steps++;
-    }
-    if (puzzle_idx >= 0 && steps < max_steps)
-    {
-        out[steps].step_index = steps;
-        out[steps].type = ROGUE_OBJ_PUZZLE_COMPLETE;
-        out[steps].room_id = graph->rooms[puzzle_idx].id;
-        out[steps].param0 = 0;
-        steps++;
-    }
-    /* Mid CLEAR: pick a median-depth room */
-    if (steps < max_steps)
-    {
-        int target_depth = (far_d > 1) ? (far_d / 2) : 1;
-        int mid_idx = shallow_idx;
-        int best_dist = 9999;
-        for (int i = 0; i < n; ++i)
+        int dist =
+            rdepths[i] > target_depth ? (rdepths[i] - target_depth) : (target_depth - rdepths[i]);
+        if (dist < best_dist)
         {
-            int dist = rdepths[i] > target_depth ? (rdepths[i] - target_depth)
-                                                 : (target_depth - rdepths[i]);
-            if (dist < best_dist)
-            {
-                best_dist = dist;
-                mid_idx = i;
-            }
+            best_dist = dist;
+            mid_idx = i;
         }
-        out[steps].step_index = steps;
-        out[steps].type = ROGUE_OBJ_CLEAR;
-        out[steps].room_id = graph->rooms[mid_idx].id;
-        out[steps].param0 = 0;
-        steps++;
     }
-    if (steps < max_steps)
+
+    /* Dynamic substitution (Phase 5.4): if puzzle absent but PUZZLE requested, substitute CLEAR
+     * at the mid node to preserve pacing. If CLEAR already used there, choose nearest distinct. */
+    int subst_clear_idx = mid_idx;
+    if (puzzle_idx < 0)
     {
-        out[steps].step_index = steps;
-        out[steps].type = ROGUE_OBJ_BOSS;
-        out[steps].room_id = graph->rooms[far_idx].id;
-        out[steps].param0 = 0;
-        steps++;
+        /* keep subst_clear_idx as mid_idx; selection logic below avoids duplicates */
     }
+
+    /* Scripted sequence if provided, else default */
+    ObjTokenKind seq[8];
+    int tcount = 0;
+    if (g_obj_script[0])
+        tcount = parse_script_tokens(g_obj_script, seq, 8);
+    if (tcount <= 0)
+    {
+        seq[0] = TOK_ACTIVATE;
+        seq[1] = (puzzle_idx >= 0) ? TOK_PUZZLE : TOK_PUZZLE_OPTIONAL; /* treated as optional */
+        seq[2] = TOK_CLEAR;
+        seq[3] = TOK_BOSS;
+        tcount = 4;
+    }
+
+    int used_room_ids[4] = {-1, -1, -1, -1};
+
+    for (int ti = 0; ti < tcount; ++ti)
+    {
+        ObjTokenKind tk = seq[ti];
+        switch (tk)
+        {
+        case TOK_ACTIVATE:
+        {
+            int id = graph->rooms[shallow_idx].id;
+            if (id_in_used(used_room_ids, 4, id))
+                id = -1;
+            if (id < 0)
+                id = graph->rooms[0].id; /* safe fallback */
+            APPEND_STEP(ROGUE_OBJ_ACTIVATE, id, 0);
+            used_room_ids[0] = id;
+        }
+        break;
+        case TOK_PUZZLE:
+            if (puzzle_idx >= 0)
+            {
+                int id = graph->rooms[puzzle_idx].id;
+                if (id_in_used(used_room_ids, 4, id))
+                    id = -1;
+                if (id < 0)
+                    break; /* already used, skip duplicate */
+                APPEND_STEP(ROGUE_OBJ_PUZZLE_COMPLETE, id, 0);
+                used_room_ids[1] = id;
+            }
+            else
+            {
+                /* No puzzle exists: substitute CLEAR at mid depth */
+                int id = graph->rooms[subst_clear_idx].id;
+                if (id_in_used(used_room_ids, 4, id))
+                    id = -1;
+                if (id >= 0)
+                {
+                    APPEND_STEP(ROGUE_OBJ_CLEAR, id, 0);
+                    used_room_ids[1] = id;
+                }
+            }
+            break;
+        case TOK_PUZZLE_OPTIONAL:
+            if (puzzle_idx >= 0)
+            {
+                int id = graph->rooms[puzzle_idx].id;
+                if (id_in_used(used_room_ids, 4, id))
+                    id = -1;
+                if (id >= 0)
+                {
+                    APPEND_STEP(ROGUE_OBJ_PUZZLE_COMPLETE, id, 0);
+                    used_room_ids[1] = id;
+                }
+            }
+            /* else omit */
+            break;
+        case TOK_CLEAR:
+        {
+            int id = graph->rooms[mid_idx].id;
+            if (id_in_used(used_room_ids, 4, id))
+                id = -1;
+            if (id < 0)
+            {
+                /* find nearest distinct room by depth */
+                int best = -1, bestd = 9999;
+                for (int i = 0; i < n; ++i)
+                {
+                    int cand = graph->rooms[i].id;
+                    int dup = id_in_used(used_room_ids, 4, cand);
+                    if (dup)
+                        continue;
+                    int d = rdepths[i] > target_depth ? (rdepths[i] - target_depth)
+                                                      : (target_depth - rdepths[i]);
+                    if (d < bestd)
+                    {
+                        bestd = d;
+                        best = cand;
+                    }
+                }
+                id = (best >= 0) ? best : graph->rooms[0].id;
+            }
+            APPEND_STEP(ROGUE_OBJ_CLEAR, id, 0);
+            used_room_ids[2] = id;
+        }
+        break;
+        case TOK_GATE:
+        {
+            /* Expand GATE(KEYSTONE) to COLLECT(KEYSTONE) then ACTIVATE(GATE). Use shallow for gate
+             * and place keystone earlier (id from start or shallow distinct). */
+            int gate_room = graph->rooms[shallow_idx].id;
+            if (id_in_used(used_room_ids, 4, gate_room))
+                gate_room = -1;
+            if (gate_room < 0)
+                gate_room = graph->rooms[0].id;
+            int key_room = graph->rooms[0].id;
+            if (key_room == gate_room && n > 1)
+                key_room = graph->rooms[(shallow_idx + 1) % n].id;
+            APPEND_STEP(ROGUE_OBJ_COLLECT, key_room, ROGUE_OBJ_PARAM_KEYSTONE);
+            APPEND_STEP(ROGUE_OBJ_ACTIVATE, gate_room, ROGUE_OBJ_PARAM_GATE);
+            used_room_ids[0] = gate_room; /* mark gate loc as used */
+        }
+        break;
+        case TOK_BOSS:
+        {
+            int id = graph->rooms[far_idx].id;
+            APPEND_STEP(ROGUE_OBJ_BOSS, id, 0);
+        }
+        break;
+        default:
+            break;
+        }
+        if (steps >= max_steps)
+            break;
+    }
+
+#undef APPEND_STEP
 
     free(rdepths);
     return steps;

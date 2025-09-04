@@ -35,12 +35,35 @@ extern "C"
         int param0;                     /* reserved for future data (e.g., count) */
     } RogueDungeonObjectiveStep;
 
+    /* Optional semantic flags encoded in param0 for certain steps when scripted
+     * Gate mechanics (Phase 5.3):
+     *  - COLLECT step with ROGUE_OBJ_PARAM_KEYSTONE indicates a keystone pickup
+     *  - ACTIVATE step with ROGUE_OBJ_PARAM_GATE indicates an unlock interaction
+     */
+    enum RogueDungeonObjectiveParamFlags
+    {
+        ROGUE_OBJ_PARAM_NONE = 0,
+        ROGUE_OBJ_PARAM_GATE = 1 << 0,
+        ROGUE_OBJ_PARAM_KEYSTONE = 1 << 1
+    };
+
     /* Build a simple objective chain based on room depths and tags.
      * Strategy: shallow ACTIVATE (or CLEAR), optional PUZZLE_COMPLETE if a puzzle room exists,
      * mid-depth CLEAR, and terminal BOSS in the farthest room by BFS depth.
      */
     int rogue_dungeon_build_objectives(RogueWorldGenContext* ctx, const RogueDungeonGraph* graph,
                                        int depth, RogueDungeonObjectiveStep* out, int max_steps);
+
+    /* Phase 5.2: Provide a tiny scripting facility to control the objective chain shape.
+     * Supported tokens (comma-separated, case-insensitive):
+     *   ACTIVATE, CLEAR, PUZZLE, ?PUZZLE, BOSS, GATE(KEYSTONE)
+     * Optional prefix '?': include only if a suitable room exists (e.g., puzzle-tagged)
+     * GATE(KEYSTONE): expands to COLLECT(keystone) then ACTIVATE(gate) with param0 flags set
+     *
+     * Example: "ACTIVATE,?PUZZLE,GATE(KEYSTONE),CLEAR,BOSS"
+     * If not set, the default is "ACTIVATE,?PUZZLE,CLEAR,BOSS".
+     */
+    void rogue_dungeon_set_objective_script(const char* spec);
 
 #ifdef __cplusplus
 }
