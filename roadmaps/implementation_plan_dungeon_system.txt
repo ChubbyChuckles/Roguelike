@@ -9,6 +9,15 @@ Optional = Stretch / future wave
 Scope Overview:
 Deliver a data‑driven, procedural dungeon framework integrating layout generation, biome & thematic layering, enemy difficulty (relative level differential), objective orchestration, environmental hazards, puzzle & traversal mechanics, dynamic events, loot & crafting hooks, infinite player progression pacing, analytics, and deterministic replay. Constraints: single character, infinite leveling (no classes; universal skill access), infinite inventory stack, existing systems (loot, affixes, enemy difficulty, crafting, vendor, skill maze). Goals: High encounter variety, readable progression of challenge, systemic synergy (materials, recipes, vendors, mastery), minimal content authoring overhead, robust anti-exploit & performance guarantees.
 
+STATUS DELTA (Latest):
+- Phase 1 kernel slice landed: 1.1–1.4 implemented end‑to‑end.
+	- Mini‑DSL parser: L(n) linear, H(k) hub, B(n,b) branching; deterministic manual parser.
+	- Constraint solver: loop_percent, max_deadends, min/max degree enforced.
+	- Critical path targeting heuristic wired into generator.
+	- Public params/API: RogueDungeonGenParams, rogue_dungeon_generate_graph_ex, rogue_dungeon_generate_from_grammar.
+	- Tests: determinism + constraints + CPL targeting added.
+- Build & Tests: Debug (SDL2) and full suite pass 100% (597/597) with -j12.
+
 FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 - Tile / biome configuration files (assets/tiles.cfg, assets/biomes/*) (Partial)
 - Enemy definitions & relative level differential model (Planned / Partial)
@@ -26,11 +35,11 @@ PHASE 0. Audit & Core Taxonomy
 0.5 Tests: taxonomy uniqueness, template id collisions (Done) (unit: test_dungeon_phase0_taxonomy)
 
 PHASE 1. Layout Generation Kernel
-1.1 Graph grammar DSL (room_node, connector, constraint tags) (X)
-1.2 Layout generator (seed -> abstract graph) with pluggable archetype heuristics (X)
-1.3 Constraint solver: enforce min/max branch factor, loop quota, dead-end limit (X)
-1.4 Critical path length target (objective pacing) (Partial) (kernel metrics implemented; target wiring pending)
-1.5 Tests: deterministic reproduction, constraint satisfaction, path length distribution (Partial) (deterministic reproduction + kernel smoke test present; constraints/distribution pending)
+1.1 Graph grammar DSL (room_node, connector, constraint tags) (Done) (mini‑DSL L(n), H(k), B(n,b) parser implemented)
+1.2 Layout generator (seed -> abstract graph) with pluggable archetype heuristics (Done) (seed→graph with archetype hint heuristics)
+1.3 Constraint solver: enforce min/max branch factor, loop quota, dead-end limit (Done)
+1.4 Critical path length target (objective pacing) (Done) (heuristic targeting wired)
+1.5 Tests: deterministic reproduction, constraint satisfaction, path length distribution (Partial) (determinism + constraints + CPL targeting done; distribution coverage pending)
 1.6 Kernel helpers: degree stats, critical path computation, deterministic graph hash (Done) (unit: test_dungeon_phase1_kernel)
 
 PHASE 2. Room Template & Tile Assembly

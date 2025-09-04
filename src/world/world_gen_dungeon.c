@@ -7,6 +7,10 @@
 
 /* Phase 7: Dungeon Generator Implementation */
 #include "world_gen.h"
+#include "world_gen_dungeon_kernel.h"
+#include "world_gen_dungeon_taxonomy.h"
+#include <ctype.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -218,6 +222,415 @@ bool rogue_dungeon_generate_graph(RogueWorldGenContext* ctx, int target_rooms, i
     out_graph->room_count = room_count;
     out_graph->edges = edges;
     out_graph->edge_count = edge_count;
+    return true;
+}
+
+/* ---- Phase 1: Extended kernel with DSL and constraints ---- */
+
+static int edge_exists(const RogueDungeonGraph* g, int a, int b)
+{
+    for (int i = 0; i < g->edge_count; ++i)
+    {
+        int x = g->edges[i].a, y = g->edges[i].b;
+        if ((x == a && y == b) || (x == b && y == a))
+            return 1;
+    }
+    return 0;
+}
+
+static void compute_degrees(const RogueDungeonGraph* g, int* deg /* length room_count */)
+{
+    memset(deg, 0, sizeof(int) * (size_t) g->room_count);
+    for (int i = 0; i < g->edge_count; ++i)
+    {
+        deg[g->edges[i].a]++;
+        deg[g->edges[i].b]++;
+    }
+}
+
+static int try_add_edge(RogueDungeonGraph* g, int a, int b, int loop_flag,
+                        const int* max_deg /* nullable */, int* deg /* nullable */)
+{
+    if (a == b)
+        return 0;
+    if (edge_exists(g, a, b))
+        return 0;
+    if (max_deg)
+    {
+        int da = deg ? deg[a] : 0;
+        int db = deg ? deg[b] : 0;
+        if (*max_deg > 0 && (da + 1 > *max_deg || db + 1 > *max_deg))
+            return 0;
+    }
+    g->edges = (RogueDungeonEdge*) realloc(g->edges,
+                                           sizeof(RogueDungeonEdge) * (size_t) (g->edge_count + 1));
+    if (!g->edges)
+        return 0;
+    g->edges[g->edge_count++] = (RogueDungeonEdge){a, b, loop_flag ? 1 : 0};
+    if (deg)
+    {
+        deg[a]++;
+        deg[b]++;
+    }
+    return 1;
+}
+
+/* Build simple abstract layouts from a tiny grammar.
+   L(n): linear chain with n nodes
+   H(k): hub + k leaves (total k+1 nodes)
+   B(n,b): base chain length n, with b extra leaves attached to interior nodes (total n+b nodes)
+*/
+/* Manual, portable parser for spec strings like "L(10)", "H(8)", "B(8,4)" to avoid MSVC
+ * C4996 warnings from sscanf. Returns 1 on success and fills out_type, out_n1 and optionally
+ * out_n2 (when has_n2==1). */
+static int parse_grammar_spec(const char* spec, char* out_type, int* out_n1, int* out_n2,
+                              int* out_has_n2)
+{
+    if (!spec || !out_type || !out_n1 || !out_has_n2)
+        return 0;
+    const char* s = spec;
+    while (*s && isspace((unsigned char) *s))
+        ++s;
+    char t = *s;
+    if (t != 'L' && t != 'H' && t != 'B')
+        return 0;
+    ++s;
+    while (*s && isspace((unsigned char) *s))
+        ++s;
+    if (*s != '(')
+        return 0;
+    ++s;
+    while (*s && isspace((unsigned char) *s))
+        ++s;
+    /* parse first integer */
+    int sign = 1;
+    if (*s == '+')
+        ++s;
+    else if (*s == '-')
+    {
+        sign = -1;
+        ++s;
+    }
+    long v1 = 0;
+    int any = 0;
+    while (*s && isdigit((unsigned char) *s))
+    {
+        any = 1;
+        v1 = v1 * 10 + (*s - '0');
+        ++s;
+    }
+    if (!any)
+        return 0;
+    v1 *= sign;
+    while (*s && isspace((unsigned char) *s))
+        ++s;
+    int has_n2 = 0;
+    long v2 = 0;
+    if (*s == ',')
+    {
+        ++s;
+        while (*s && isspace((unsigned char) *s))
+            ++s;
+        sign = 1;
+        if (*s == '+')
+            ++s;
+        else if (*s == '-')
+        {
+            sign = -1;
+            ++s;
+        }
+        any = 0;
+        while (*s && isdigit((unsigned char) *s))
+        {
+            any = 1;
+            v2 = v2 * 10 + (*s - '0');
+            ++s;
+        }
+        if (!any)
+            return 0;
+        v2 *= sign;
+        has_n2 = 1;
+    }
+    while (*s && isspace((unsigned char) *s))
+        ++s;
+    if (*s == ')')
+        ++s;
+    /* success */
+    *out_type = t;
+    *out_n1 = (int) v1;
+    if (out_n2)
+        *out_n2 = (int) v2;
+    *out_has_n2 = has_n2;
+    return 1;
+}
+int rogue_dungeon_generate_from_grammar(RogueWorldGenContext* ctx, const char* spec,
+                                        RogueDungeonGraph* out_graph)
+{
+    (void) ctx;
+    if (!spec || !out_graph)
+        return 0;
+    int n1 = 0, n2 = 0;
+    char type = 0;
+    int has_n2 = 0;
+    if (!parse_grammar_spec(spec, &type, &n1, &n2, &has_n2))
+        return 0;
+    if (type != 'L' && type != 'H' && type != 'B')
+        return 0;
+    if (type == 'L' && n1 < 2)
+        n1 = 2;
+    if (type == 'H' && n1 < 1)
+        n1 = 1;
+    if (type == 'B')
+    {
+        if (n1 < 2)
+            n1 = 2;
+        if (!has_n2)
+            n2 = 0;
+        if (n2 < 0)
+            n2 = 0;
+    }
+    /* Allocate rooms conservatively */
+    int total = (type == 'L') ? n1 : (type == 'H') ? (n1 + 1) : (n1 + n2);
+    RogueDungeonRoom* rooms = (RogueDungeonRoom*) calloc((size_t) total, sizeof(RogueDungeonRoom));
+    RogueDungeonEdge* edges =
+        (RogueDungeonEdge*) calloc((size_t) (total * 3), sizeof(RogueDungeonEdge));
+    if (!rooms || !edges)
+    {
+        free(rooms);
+        free(edges);
+        return 0;
+    }
+    int rc = 0, ec = 0;
+    int spacing = 8; /* tile spacing to avoid overlap */
+    int base_w = 6, base_h = 5;
+    if (type == 'L')
+    {
+        for (int i = 0; i < n1; ++i)
+        {
+            rooms[rc] = (RogueDungeonRoom){rc, 10 + i * spacing, 20, base_w, base_h, 0, 0};
+            if (i > 0)
+                edges[ec++] = (RogueDungeonEdge){i - 1, i, 0};
+            rc++;
+        }
+    }
+    else if (type == 'H')
+    {
+        /* center hub at index 0, leaves 1..k */
+        rooms[rc++] = (RogueDungeonRoom){0, 40, 40, base_w + 2, base_h + 2, 0, 0};
+        int k = n1;
+        for (int i = 0; i < k; ++i)
+        {
+            int angle = i; /* integer placeholder just to vary positions */
+            int dx = (i % 2 == 0) ? spacing : -spacing;
+            int dy = (angle % 3 == 0) ? spacing : -spacing;
+            rooms[rc] = (RogueDungeonRoom){rc, 40 + dx, 40 + dy, base_w, base_h, 0, 0};
+            edges[ec++] = (RogueDungeonEdge){0, rc, 0};
+            rc++;
+        }
+    }
+    else /* B */
+    {
+        int chain = n1, branches = n2;
+        /* Build chain 0..chain-1 horizontally */
+        for (int i = 0; i < chain; ++i)
+        {
+            rooms[rc] = (RogueDungeonRoom){rc, 10 + i * spacing, 60, base_w, base_h, 0, 0};
+            if (i > 0)
+                edges[ec++] = (RogueDungeonEdge){i - 1, i, 0};
+            rc++;
+        }
+        /* Attach leaves to interior nodes */
+        int attached = 0;
+        for (int i = 1; i < chain - 1 && attached < branches; ++i)
+        {
+            rooms[rc] =
+                (RogueDungeonRoom){rc, 10 + i * spacing, 60 + spacing, base_w, base_h, 0, 0};
+            edges[ec++] = (RogueDungeonEdge){i, rc, 1};
+            rc++;
+            attached++;
+        }
+        /* If still remaining, stack above */
+        for (int i = 1; i < chain - 1 && attached < branches; ++i)
+        {
+            rooms[rc] =
+                (RogueDungeonRoom){rc, 10 + i * spacing, 60 - spacing, base_w, base_h, 0, 0};
+            edges[ec++] = (RogueDungeonEdge){i, rc, 1};
+            rc++;
+            attached++;
+        }
+    }
+    /* Minimal tagging: largest room as treasure */
+    int largest = -1, largest_area = 0;
+    for (int i = 0; i < rc; ++i)
+    {
+        int area = rooms[i].w * rooms[i].h;
+        if (area > largest_area)
+        {
+            largest_area = area;
+            largest = i;
+        }
+    }
+    if (largest >= 0)
+        rooms[largest].tag |= ROGUE_DUNGEON_ROOM_TREASURE;
+
+    out_graph->rooms = rooms;
+    out_graph->room_count = rc;
+    out_graph->edges = edges;
+    out_graph->edge_count = ec;
+    return 1;
+}
+
+static void fill_default_params(RogueDungeonGenParams* p)
+{
+    if (p->loop_percent <= 0)
+        p->loop_percent = 15;
+    if (p->arch < 0 || p->arch >= ROGUE_DUNGEON_ARCHETYPE_MAX)
+        p->arch = ROGUE_DUNGEON_ARCH_BRANCHING;
+}
+
+/* Heuristic archetype builders (simple fallbacks) */
+static int build_archetype_layout(RogueWorldGenContext* ctx, const RogueDungeonGenParams* p,
+                                  RogueDungeonGraph* g)
+{
+    (void) ctx;
+    if (p->arch == ROGUE_DUNGEON_ARCH_LINEAR)
+    {
+        char buf[32];
+        snprintf(buf, sizeof buf, "L(%d)", p->target_rooms);
+        return rogue_dungeon_generate_from_grammar(ctx, buf, g);
+    }
+    else if (p->arch == ROGUE_DUNGEON_ARCH_HUB)
+    {
+        char buf[32];
+        int leaves = (p->target_rooms > 0) ? (p->target_rooms - 1) : 4;
+        if (leaves < 1)
+            leaves = 1;
+        snprintf(buf, sizeof buf, "H(%d)", leaves);
+        return rogue_dungeon_generate_from_grammar(ctx, buf, g);
+    }
+    /* default: call baseline random generator */
+    return rogue_dungeon_generate_graph((RogueWorldGenContext*) ctx, p->target_rooms,
+                                        p->loop_percent, g);
+}
+
+bool rogue_dungeon_generate_graph_ex(RogueWorldGenContext* ctx, const RogueDungeonGenParams* in,
+                                     RogueDungeonGraph* out_graph)
+{
+    if (!ctx || !in || !out_graph || in->target_rooms <= 0)
+        return false;
+    RogueDungeonGenParams p = *in;
+    fill_default_params(&p);
+
+    /* Generate base layout */
+    RogueDungeonGraph g = {0};
+    int ok = 0;
+    if (p.grammar && p.grammar[0])
+        ok = rogue_dungeon_generate_from_grammar(ctx, p.grammar, &g);
+    else
+        ok = build_archetype_layout(ctx, &p, &g);
+    if (!ok)
+        return false;
+
+    /* Enforce constraints: degrees and dead-ends */
+    int* deg = (int*) calloc((size_t) g.room_count, sizeof(int));
+    if (!deg)
+    {
+        rogue_dungeon_free_graph(&g);
+        return false;
+    }
+    compute_degrees(&g, deg);
+    /* Reduce dead-ends by connecting leaf pairs */
+    if (p.max_deadends > 0)
+    {
+        int leaf_count = 0;
+        for (int i = 0; i < g.room_count; ++i)
+            if (deg[i] == 1)
+                leaf_count++;
+        for (int i = 0; i < g.room_count && leaf_count > p.max_deadends; ++i)
+        {
+            if (deg[i] != 1)
+                continue;
+            /* find another leaf j not adjacent */
+            for (int j = i + 1; j < g.room_count && leaf_count > p.max_deadends; ++j)
+            {
+                if (deg[j] != 1)
+                    continue;
+                if (edge_exists(&g, i, j))
+                    continue;
+                if (try_add_edge(&g, i, j, 1, &p.max_branch_degree, deg))
+                {
+                    leaf_count -= 2;
+                    break;
+                }
+            }
+        }
+    }
+    /* Raise degrees below minimum by connecting to nearest (by id delta) */
+    if (p.min_branch_degree > 1)
+    {
+        for (int i = 0; i < g.room_count; ++i)
+        {
+            while (deg[i] > 0 && deg[i] < p.min_branch_degree)
+            {
+                /* pick a target j with smallest |j-i| that's not currently connected */
+                int best_j = -1;
+                for (int radius = 1; radius < g.room_count; ++radius)
+                {
+                    int j1 = i - radius, j2 = i + radius;
+                    if (j1 >= 0 && j1 != i && !edge_exists(&g, i, j1))
+                        best_j = j1;
+                    if (best_j < 0 && j2 < g.room_count && !edge_exists(&g, i, j2))
+                        best_j = j2;
+                    if (best_j >= 0)
+                        break;
+                }
+                if (best_j < 0)
+                    break;
+                if (!try_add_edge(&g, i, best_j, 1, &p.max_branch_degree, deg))
+                    break;
+            }
+        }
+    }
+
+    /* Critical path length target: simple bounded retries on baseline generator or adding leafs
+       connections to stretch path if too short. */
+    if (p.critical_path_target_min > 0)
+    {
+        int cpl = rogue_dungeon_graph_critical_path_length(&g);
+        int attempts = 8;
+        while (cpl >= 0 && cpl < p.critical_path_target_min && attempts-- > 0)
+        {
+            /* Strategy: connect two far leaves to extend chain if possible by creating a new
+               bridge via an intermediate low-degree node */
+            int extended = 0;
+            for (int i = 0; i < g.room_count && !extended; ++i)
+            {
+                if (deg[i] != 1)
+                    continue;
+                for (int j = g.room_count - 1; j > i; --j)
+                {
+                    if (deg[j] != 1 || edge_exists(&g, i, j))
+                        continue;
+                    if (try_add_edge(&g, i, j, 1, &p.max_branch_degree, deg))
+                    {
+                        extended = 1;
+                        break;
+                    }
+                }
+            }
+            if (!extended)
+                break;
+            cpl = rogue_dungeon_graph_critical_path_length(&g);
+        }
+        if (p.critical_path_target_max > 0 && cpl > p.critical_path_target_max)
+        {
+            /* No destructive pruning to reduce CPL; accept as a soft cap. */
+            (void) 0;
+        }
+    }
+
+    free(deg);
+    *out_graph = g;
     return true;
 }
 

@@ -1,4 +1,4 @@
-#include "world_gen_dungeon_taxonomy.h"
+#include "world_gen.h" /* brings in RogueBiomeId and includes taxonomy header */
 
 const char* rogue_dungeon_archetype_name(RogueDungeonArchetype a)
 {

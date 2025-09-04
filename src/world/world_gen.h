@@ -2,6 +2,7 @@
 #define ROGUE_WORLD_GEN_H
 
 #include "tilemap.h"
+#include "world_gen_dungeon_taxonomy.h" /* expose RogueDungeonArchetype to public API */
 #include <stdbool.h>
 
 typedef struct RogueWorldGenConfig
@@ -218,6 +219,35 @@ int rogue_dungeon_place_traps_and_secrets(RogueWorldGenContext* ctx, RogueTileMa
 int rogue_dungeon_validate_reachability(const RogueDungeonGraph* graph);
 double rogue_dungeon_loop_ratio(const RogueDungeonGraph* graph);
 int rogue_dungeon_secret_room_count(const RogueDungeonGraph* graph);
+
+/* ---- Phase 1 extensions: DSL + constraint params (non-breaking new API) ---- */
+
+/* Optional archetype hint for generator heuristics (reuses taxonomy enum) */
+/* RogueDungeonArchetype is defined in world_gen_dungeon_taxonomy.h */
+
+/* Extended generator parameters. All fields are optional; zero means "use defaults". */
+typedef struct RogueDungeonGenParams
+{
+    int target_rooms;             /* required (>0) */
+    int loop_percent;             /* 0..100; default 15 */
+    int max_deadends;             /* cap leaf nodes (degree==1). 0=ignore */
+    int min_branch_degree;        /* ensure degree >= this for most nodes; 0=ignore */
+    int max_branch_degree;        /* ensure degree <= this; 0=ignore */
+    int critical_path_target_min; /* try to achieve at least this graph-diameter; 0=ignore */
+    int critical_path_target_max; /* optional soft ceiling; 0=ignore */
+    RogueDungeonArchetype arch;   /* heuristic pattern; default BRANCHING */
+    const char* grammar;          /* optional tiny DSL, e.g., "L(10)", "H(8)", "B(8,4)" */
+} RogueDungeonGenParams;
+
+/* Extended generator using params and optional grammar/archetype. Returns true on success. */
+bool rogue_dungeon_generate_graph_ex(RogueWorldGenContext* ctx, const RogueDungeonGenParams* p,
+                                     RogueDungeonGraph* out_graph);
+
+/* Tiny grammar builder for abstract graphs (coordinates auto-arranged). */
+/* Supported forms: L(n) linear chain; H(k) hub with k leaves; B(n,b) chain length n with b extra
+ * branches attached to interior nodes. Returns 1 on success. */
+int rogue_dungeon_generate_from_grammar(RogueWorldGenContext* ctx, const char* spec,
+                                        RogueDungeonGraph* out_graph);
 
 /* ---- Phase 8: Fauna & Spawn Ecology Layer ---- */
 typedef struct RogueSpawnEntry

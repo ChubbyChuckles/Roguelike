@@ -1,7 +1,8 @@
 #ifndef ROGUE_WORLD_GEN_DUNGEON_TAXONOMY_H
 #define ROGUE_WORLD_GEN_DUNGEON_TAXONOMY_H
 
-#include "world_gen.h"
+/* Forward decls to avoid header cycles; consumers may include world_gen.h separately. */
+enum RogueBiomeId; /* defined in world_gen.h */
 
 /* Phase 0: Core Dungeon Taxonomy & ID Ranges */
 

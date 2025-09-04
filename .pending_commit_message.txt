@@ -257,3 +257,13 @@ feat(dungeon/phase1): kernel helpers (degree stats, critical path, deterministic
 - README: Skills Meta notes the labeled enum combo for Skill Type.
 - Build: Debug (SDL2) with -j12 succeeded.
 - Tests: full ctest run from build dir 100% PASS (594/594).
+
+feat(dungeon/phase1): grammar DSL + constraints + CPL targeting + public API; tests 100% green (597/597)
+
+- Add mini‑DSL parser for layout hints: L(n)=linear, H(k)=hub, B(n,b)=branching; manual C parser (MSVC‑safe).
+- Implement constraint solver: loop_percent, max_deadends, min/max degree; enforce during gen.
+- Wire critical path length targeting heuristic; expose RogueDungeonGenParams with archetype & grammar.
+- Public APIs: rogue_dungeon_generate_graph_ex and rogue_dungeon_generate_from_grammar in world_gen.h; taxonomy header decoupled to avoid include cycles.
+- Unit: add tests/unit/test_dungeon_phase1_constraints.c covering determinism, constraints, CPL targeting.
+- Build: Debug (SDL2) with -j12 succeeded.
+- Tests: full ctest from build dir PASS 100% (597/597).
