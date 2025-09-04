@@ -97,6 +97,39 @@ void rogue_world_render_tiles(void)
 #endif
                 x += run;
             }
+#ifdef ROGUE_HAVE_SDL
+            /* Pass 2: very simple overlay for deco markers (debug style rectangles). */
+            for (int x2 = first_tx; x2 < last_tx; ++x2)
+            {
+                unsigned char deco = rogue_tilemap_get_deco(&g_app.world_map, x2, y);
+                if (!deco)
+                    continue;
+                SDL_Rect dst = {(int) (x2 * tsz - g_app.cam_x), (int) (y * tsz - g_app.cam_y),
+                                tsz * scale, tsz * scale};
+                /* Color by code: 1=pillar (gray), 2=banner (red), 3=brazier (orange), else blue */
+                unsigned char r = 40, g = 40, b = 40, a = 255;
+                if (deco == 2)
+                {
+                    r = 200;
+                    g = 40;
+                    b = 40;
+                }
+                else if (deco == 3)
+                {
+                    r = 200;
+                    g = 120;
+                    b = 20;
+                }
+                else if (deco >= 4)
+                {
+                    r = 40;
+                    g = 80;
+                    b = 200;
+                }
+                SDL_SetRenderDrawColor(g_app.renderer, r, g, b, a);
+                SDL_RenderDrawRect(g_app.renderer, &dst);
+            }
+#endif
         }
     }
     else

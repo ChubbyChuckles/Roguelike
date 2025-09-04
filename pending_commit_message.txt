@@ -1,3 +1,23 @@
+feat(dungeon/phase3): biome & theme layering module with deterministic selection, theme profile, and hazard palette; tests green (602/602)
+
+- Implement biome selection per depth band with RNG governance and rare biome substitution.
+- Add theme profile (fog density, ambient color, ambient SFX) derived from biome tags.
+- Compute hazard palette with depth scaling and tag adjustments (movement penalties, DoT, trap weights).
+- Wire into build; add unit test `test_dungeon_phase3_theme` validating determinism, ranges, and depth scaling.
+- CI: Debug (SDL2) full suite passed 100% with -j12 (602/602).
+
+feat(dungeon/phase2.4): add environmental deco overlay layer + safety invariant; tests green (601/601)
+
+- Implement overlay_deco buffer with transform-aware stamping and kind→code mapping (pillar blocks nav; banner/brazier decorative)
+- Gate overlay usage through RogueTileMap.overlay_magic (0xDEC00EAU) to prevent uninitialized overlay access in tests/runtime
+- JSON room template loader: key-order independent; explicit exits/doors/deco arrays override ASCII markers; fuzz test included
+- Stamp path respects overlay-aware navigation blocking; base tile stamping unchanged
+- Hardened getters/setters for overlay get/set with invariant; free/init set/clear the magic
+- All tests pass under Debug (SDL2) with ctest -C Debug -j12 (601/601)
+
+Docs:
+- Roadmap: mark Phase 2.4 Environmental deco layering as Done; note overlay_magic guard and updated test count
+- README: bump test count to 601/601; add Dungeon Phase 2 note on deco overlay + safety invariant
 feat(skills/audio): Add Sound ID Browser to Skills → Audio tab
 
 Adds a filterable Sound ID Browser sourced from assets/sounds.cfg with an Assign-To selector (Cast/Impact/Loop). Clicking a row assigns the sound id to the selected target and saves via overrides. Headless-safe and non-SDL dependent.

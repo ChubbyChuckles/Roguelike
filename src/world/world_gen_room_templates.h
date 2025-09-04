@@ -100,6 +100,10 @@ extern "C"
     int rogue_room_template_compute_doors(const RogueRoomTemplate* t, int rot_deg, int reflect_x,
                                           RogueRoomDoor* out_doors, int max);
 
+    /* Compute deco marker positions after transform; returns count. kind strings copied. */
+    int rogue_room_template_compute_deco(const RogueRoomTemplate* t, int rot_deg, int reflect_x,
+                                         RogueDecoMarker* out_deco, int max);
+
     /* JSON loader (Phase 2.1): parse a single room template definition from JSON text. Returns 1 on
         success, 0 on error and writes a brief message to err if provided. */
     int rogue_room_template_load_json_text(const char* json_text, RogueRoomTemplate* out, char* err,

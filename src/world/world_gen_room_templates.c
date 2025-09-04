@@ -187,6 +187,43 @@ int rogue_room_template_compute_doors(const RogueRoomTemplate* t, int rot_deg, i
     return count;
 }
 
+static unsigned char deco_kind_to_code(const char* kind)
+{
+    if (!kind || !*kind)
+        return 0;
+    /* Stable tiny mapping: pillar=1 (blocking), banner=2, brazier=3 */
+    if (strcmp(kind, "pillar") == 0)
+        return 1;
+    if (strcmp(kind, "banner") == 0)
+        return 2;
+    if (strcmp(kind, "brazier") == 0)
+        return 3;
+    return 4; /* generic deco code */
+}
+
+int rogue_room_template_compute_deco(const RogueRoomTemplate* t, int rot_deg, int reflect_x,
+                                     RogueDecoMarker* out_deco, int max)
+{
+    if (!t || !out_deco || max <= 0)
+        return 0;
+    int count = 0;
+    for (int i = 0; i < t->deco_count && count < max; ++i)
+    {
+        int rx, ry;
+        xform_point(t->deco[i].x, t->deco[i].y, t->width, t->height, rot_deg, reflect_x, &rx, &ry);
+#ifdef _MSC_VER
+        strncpy_s(out_deco[count].kind, sizeof out_deco[count].kind, t->deco[i].kind, _TRUNCATE);
+#else
+        strncpy(out_deco[count].kind, t->deco[i].kind, sizeof out_deco[count].kind - 1);
+        out_deco[count].kind[sizeof out_deco[count].kind - 1] = '\0';
+#endif
+        out_deco[count].x = rx;
+        out_deco[count].y = ry;
+        count++;
+    }
+    return count;
+}
+
 int rogue_dungeon_stamp_template(RogueTileMap* io_map, int ox, int oy, const RogueRoomTemplate* t,
                                  int rot_deg, int reflect_x)
 {
@@ -215,6 +252,25 @@ int rogue_dungeon_stamp_template(RogueTileMap* io_map, int ox, int oy, const Rog
     }
     (void) tw;
     (void) th;
+    /* Stamp overlay deco after base tiles to avoid interference.
+       Note: overlay buffer may be absent when maps are manually constructed in tests.
+       In that case, skip overlay stamping silently. */
+    if (io_map->overlay_deco && io_map->overlay_magic == 0xDEC00EAU)
+    {
+        for (int i = 0; i < t->deco_count; ++i)
+        {
+            int rx, ry;
+            xform_point(t->deco[i].x, t->deco[i].y, t->width, t->height, rot_deg, reflect_x, &rx,
+                        &ry);
+            int gx = ox + rx;
+            int gy = oy + ry;
+            if (gx < 0 || gy < 0 || gx >= io_map->width || gy >= io_map->height)
+                continue;
+            unsigned char code = deco_kind_to_code(t->deco[i].kind);
+            if (code)
+                rogue_tilemap_set_deco(io_map, gx, gy, code);
+        }
+    }
     return written;
 }
 
@@ -382,6 +438,7 @@ int rogue_room_template_load_json_text(const char* json_text, RogueRoomTemplate*
             strncpy_s(out->biome_tags, sizeof out->biome_tags, tmp, _TRUNCATE);
 #else
             strncpy(out->biome_tags, tmp, sizeof out->biome_tags - 1);
+            out->biome_tags[sizeof out->biome_tags - 1] = '\0';
 #endif
         }
         else if (strcmp(key, "encounter_slots") == 0)
@@ -435,6 +492,20 @@ int rogue_room_template_load_json_text(const char* json_text, RogueRoomTemplate*
             }
             /* Preserve any fields parsed prior to grid (key order independence) */
             char saved_biome[sizeof out->biome_tags];
+            /* Preserve explicit doors/exits/deco if they were parsed before grid so they can
+             * override ASCII */
+            RogueRoomDoor saved_doors[32];
+            int saved_door_count = out->door_count;
+            for (int i = 0; i < saved_door_count; ++i)
+                saved_doors[i] = out->doors[i];
+            RogueRoomExit saved_exits[16];
+            int saved_exit_count = out->exit_count;
+            for (int i = 0; i < saved_exit_count; ++i)
+                saved_exits[i] = out->exits[i];
+            RogueDecoMarker saved_deco[32];
+            int saved_deco_count = out->deco_count;
+            for (int i = 0; i < saved_deco_count; ++i)
+                saved_deco[i] = out->deco[i];
 #ifdef _MSC_VER
             strncpy_s(saved_biome, sizeof saved_biome, out->biome_tags, _TRUNCATE);
 #else
@@ -454,10 +525,42 @@ int rogue_room_template_load_json_text(const char* json_text, RogueRoomTemplate*
             strncpy_s(out->biome_tags, sizeof out->biome_tags, saved_biome, _TRUNCATE);
 #else
             strncpy(out->biome_tags, saved_biome, sizeof out->biome_tags - 1);
+            out->biome_tags[sizeof out->biome_tags - 1] = '\0';
 #endif
             out->encounter_slots = saved_encounter;
             out->hazard_slots = saved_hazard;
             out->puzzle_slot = saved_puzzle;
+            /* If explicit doors/exits/deco were parsed earlier, they override ASCII-detected ones.
+             */
+            if (saved_door_count > 0)
+            {
+                out->door_count = saved_door_count;
+                for (int i = 0; i < saved_door_count; ++i)
+                    out->doors[i] = saved_doors[i];
+            }
+            if (saved_exit_count > 0)
+            {
+                out->exit_count = saved_exit_count;
+                for (int i = 0; i < saved_exit_count; ++i)
+                    out->exits[i] = saved_exits[i];
+            }
+            if (saved_deco_count > 0)
+            {
+                out->deco_count = saved_deco_count;
+                for (int i = 0; i < saved_deco_count; ++i)
+                {
+                    /* ensure kind is null-terminated */
+#ifdef _MSC_VER
+                    strncpy_s(out->deco[i].kind, sizeof out->deco[i].kind, saved_deco[i].kind,
+                              _TRUNCATE);
+#else
+                    strncpy(out->deco[i].kind, saved_deco[i].kind, sizeof out->deco[i].kind - 1);
+                    out->deco[i].kind[sizeof out->deco[i].kind - 1] = '\0';
+#endif
+                    out->deco[i].x = saved_deco[i].x;
+                    out->deco[i].y = saved_deco[i].y;
+                }
+            }
         }
         else if (strcmp(key, "exits") == 0)
         {
@@ -629,6 +732,7 @@ int rogue_room_template_load_json_text(const char* json_text, RogueRoomTemplate*
                     strncpy_s(m->kind, sizeof m->kind, kind, _TRUNCATE);
 #else
                     strncpy(m->kind, kind, sizeof m->kind - 1);
+                    m->kind[sizeof m->kind - 1] = '\0';
 #endif
                 }
                 skip_ws(&s);

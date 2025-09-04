@@ -142,9 +142,10 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
     - Run tests: ctest -C Debug -j12 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 
 Notes:
-Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (599/599). Worldgen optimization benchmark stabilized via adaptive repetition to avoid timer granularity flakiness in CI. Persistence tests use centralized save path builders; a recent fix updated `test_save_incremental_basic` to honor per-test directories via `rogue_build_slot_path(0)` for stability under parallel runs. On Windows/MSVC, the Content Graph SDL preview avoids VLA-like locals by using compile-time caps (OVERLAY_CG_MAX_NODES/EDGES); the System panel shows FPS via overlay_last_dt() when metrics aren’t initialized. Recent local run: all tests green (599/599) on Debug SDL2 with -j12. New validation path: `tests/unit/test_skills_validation_pipeline.c` confirms that an offensive-looking skill without coefficients fails validation until a coeff entry is added, after which validation passes. Phase 1.3 adds two units: `test_skills_phase1_3_interrupt` and `test_skills_phase1_3_context_defaults`.
+Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (602/602). Worldgen optimization benchmark stabilized via adaptive repetition to avoid timer granularity flakiness in CI. Persistence tests use centralized save path builders; a recent fix updated `test_save_incremental_basic` to honor per-test directories via `rogue_build_slot_path(0)` for stability under parallel runs. On Windows/MSVC, the Content Graph SDL preview avoids VLA-like locals by using compile-time caps (OVERLAY_CG_MAX_NODES/EDGES); the System panel shows FPS via overlay_last_dt() when metrics aren’t initialized. Recent local run: all tests green (602/602) on Debug SDL2 with -j12. New validation path: `tests/unit/test_skills_validation_pipeline.c` confirms that an offensive-looking skill without coefficients fails validation until a coeff entry is added, after which validation passes. Phase 1.3 adds two units: `test_skills_phase1_3_interrupt` and `test_skills_phase1_3_context_defaults`.
 
 Dungeon generator (Phase 1 update):
+
 - A compact grammar DSL is available for shaping abstract layouts: L(n)=linear, H(k)=hub, B(n,b)=branching. Use via `rogue_dungeon_generate_from_grammar(ctx, "B(18,3)", &graph)` or the extended params API.
 - Constraints (loop_percent, max_deadends, min/max degree) and a critical-path length target are enforced in `rogue_dungeon_generate_graph_ex(ctx, &RogueDungeonGenParams{...}, &graph)` with deterministic results and unit coverage.
 
@@ -202,7 +203,8 @@ APIs: `src/debug_overlay/overlay_core.h` plus widgets in `overlay_widgets.h` (La
   - New: `test_overlay_inputtext_caret` exercises caret navigation (Home/End/Left/Right), insertion, and backspace sequencing under focus changes.
   - Player debug APIs covered in `test_player_debug_api`: clamps, derived stat recompute on stat changes, god-mode damage bypass, noclip flag roundtrip, and teleport.
   - Verification: Overlay tests pass headlessly in Debug (SDL2) with parallel ctest. Full suite currently all‑green in Debug with SDL2 and -j12.
-  - Dungeon Phase 2: Room templates scaffolding and tests landed; see `tests/unit/test_dungeon_phase2_room_templates.c` and the JSON loader coverage in `tests/unit/test_dungeon_phase2_room_templates_json.c`.
+  - Dungeon Phase 2: Room templates scaffolding, JSON loader (key-order independent), and an environmental deco overlay layer with transform-aware stamping and overlay-aware navigation blocking. Safety is enforced via a `RogueTileMap.overlay_magic` invariant to guard overlay access. See `tests/unit/test_dungeon_phase2_room_templates.c` and `tests/unit/test_dungeon_phase2_room_templates_json.c` (includes deco layering and key-order fuzz).
+  - Dungeon Phase 3: Biome & Theme Layering module implements deterministic biome selection per depth, theme profile (fog density, ambient color, ambient SFX), hazard palette with depth scaling, and rare biome substitution. Covered by `tests/unit/test_dungeon_phase3_theme.c`.
 
 Overlay panels:
 

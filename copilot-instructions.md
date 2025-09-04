@@ -3,6 +3,7 @@
 These directives govern all AI-generated contributions. Treat them as mandatory acceptance criteria.
 
 ## Core Principles
+
 1. Correctness first: produce compiling, warning-free C11 code (warnings treated as errors).
 2. 100% Line Coverage: all lines in `src/` (excluding the trivial entry file `src/main.c`) must be executed by tests. Defensive/error branches must be testable; refactor to inject fakes if needed. CI fails below 100%.
 3. Modularity: one responsibility per file; prefer small focused functions (< ~60 LOC).
@@ -10,6 +11,7 @@ These directives govern all AI-generated contributions. Treat them as mandatory 
 5. Refactoring: if adding feature to an overgrown file, first extract cohesive modules before implementing feature logic.
 
 ## Mandatory Workflow for Any Change
+
 1. Identify scope & list affected modules.
 2. If a file grows beyond ~300 LOC or a function beyond ~60 LOC, refactor BEFORE adding new logic.
 3. Add/Update tests (maintain 100% src/ coverage):
@@ -17,25 +19,26 @@ These directives govern all AI-generated contributions. Treat them as mandatory 
    - Integration tests in `tests/integration/` (may use `rogue_app_step`) cover lifecycle & platform abstractions.
 4. Run (or simulate) `format-check`, `clang-tidy`, and `ctest` steps; ensure green.
 5. Update documentation (README or inline comments) when introducing new public APIs.
- 6. Ensure pre-commit hooks pass (install via `pre-commit install`).
- 7. After a feature is implemented and tests pass, Copilot must help the user commit and push the change, automatically fixing any linting or formatting errors (including pre-commit, clang-format, clang-tidy, and commit message lint) before pushing.
+6. Ensure pre-commit hooks pass (install via `pre-commit install`).
+7. After a feature is implemented and tests pass, Copilot must help the user commit and push the change, automatically fixing any linting or formatting errors (including pre-commit, clang-format, clang-tidy, and commit message lint) before pushing.
 
 ## Test File Placement Policy (for AI / Copilot)
 
 When adding new unit tests, prefer the split per-theme CMake modules under `tests/cmake/` instead of editing `tests/CMakeLists.txt` directly. This keeps `tests/CMakeLists.txt` minimal and makes test ownership explicit.
 
 Checklist for adding tests via the split modules:
+
 - Pick an existing theme file in `tests/cmake/` that matches the subsystem (e.g. `AudioVfx.cmake`, `Skills.cmake`).
 - If no suitable theme exists, create `tests/cmake/<Theme>.cmake` and add an `include(${CMAKE_CURRENT_LIST_DIR}/cmake/<Theme>.cmake)` line to `tests/CMakeLists.txt` in the include section.
 - In the theme file add tests using the guarded pattern (example):
-   if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_name.c AND NOT TARGET test_name)
-         add_executable(test_name unit/test_name.c)
-         target_link_libraries(test_name PRIVATE rogue_core)
-         if(ROGUE_ENABLE_SDL)
-               target_compile_definitions(test_name PRIVATE ROGUE_HAVE_SDL=1)
-         endif()
-         add_test(NAME test_name COMMAND test_name)
-   endif()
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_name.c AND NOT TARGET test_name)
+  add_executable(test_name unit/test_name.c)
+  target_link_libraries(test_name PRIVATE rogue_core)
+  if(ROGUE_ENABLE_SDL)
+  target_compile_definitions(test_name PRIVATE ROGUE_HAVE_SDL=1)
+  endif()
+  add_test(NAME test_name COMMAND test_name)
+  endif()
 - Group related tests by phase with short comments inside the theme file.
 - After adding tests, run CMake configure and build a single test target (or run `ctest -N`) to detect duplicate target names early.
 - Do not duplicate `add_executable` entries; if a target with the same name already exists, add your test to that theme or rename it.
@@ -43,33 +46,40 @@ Checklist for adding tests via the split modules:
 This policy ensures new tests follow the project's modular test layout and avoids merge conflicts in `tests/CMakeLists.txt`.
 
 ## Coding Standards
-* C11 only; avoid non-portable extensions.
-* Headers self-contained: each must compile alone.
-* No unchecked dynamic allocations—verify return value and handle failure path.
-* No magic numbers: use `#define` or `enum` constants for clarity.
-* Keep interfaces narrow: pass explicit context structs instead of global state.
+
+- C11 only; avoid non-portable extensions.
+- Headers self-contained: each must compile alone.
+- No unchecked dynamic allocations—verify return value and handle failure path.
+- No magic numbers: use `#define` or `enum` constants for clarity.
+- Keep interfaces narrow: pass explicit context structs instead of global state.
 
 ## Logging & Errors
-* Use `ROGUE_LOG_ERROR/WARN/INFO/DEBUG`; never printf directly in engine code.
-* Functions returning bool: true = success, false = failure (always log on failure path).
+
+- Use `ROGUE_LOG_ERROR/WARN/INFO/DEBUG`; never printf directly in engine code.
+- Functions returning bool: true = success, false = failure (always log on failure path).
 
 ## Performance & Memory
-* Favor stack allocation for small, short-lived objects.
-* Zero-initialize or explicitly set all struct fields.
-* Document any micro-optimizations with justification.
+
+- Favor stack allocation for small, short-lived objects.
+- Zero-initialize or explicitly set all struct fields.
+- Document any micro-optimizations with justification.
 
 ## Renderer & Platform Layer
-* Keep SDL-specific code isolated; grow abstraction in `graphics/`.
-* Provide accessors instead of exposing raw SDL pointers once stable.
+
+- Keep SDL-specific code isolated; grow abstraction in `graphics/`.
+- Provide accessors instead of exposing raw SDL pointers once stable.
 
 ## Input System
-* New input logic must route through internal enums (no stray SDL scancodes elsewhere).
+
+- New input logic must route through internal enums (no stray SDL scancodes elsewhere).
 
 ## Tile/World/Entities
-* Pure functions for coordinate/data transformations (improves testability).
-* Separate update and draw passes (no rendering in update functions).
+
+- Pure functions for coordinate/data transformations (improves testability).
+- Separate update and draw passes (no rendering in update functions).
 
 ## Adding a New Feature (Checklist)
+
 [] Describe feature & affected modules in commit/PR description.
 [] Create/update interface header(s) with concise comments.
 [] Implement logic in new or well-scoped existing module.
@@ -85,19 +95,23 @@ This policy ensures new tests follow the project's modular test layout and avoid
 [] All TODOs use TODO(#123): pattern.
 
 ## Prohibited Patterns
-* Monolithic files mixing unrelated concerns.
-* Silent failures (always log with context).
-* Unbounded busy-wait loops lacking TODO(#123) about timing.
-* Hidden state mutations via implicit singletons.
+
+- Monolithic files mixing unrelated concerns.
+- Silent failures (always log with context).
+- Unbounded busy-wait loops lacking TODO(#123) about timing.
+- Hidden state mutations via implicit singletons.
 
 ## Refactoring Guidance
-* Preserve observable behavior (tests guide changes).
-* Commit extraction separately from new features when feasible.
-* Introduce small adapter layers to stage larger subsystem rewrites.
+
+- Preserve observable behavior (tests guide changes).
+- Commit extraction separately from new features when feasible.
+- Introduce small adapter layers to stage larger subsystem rewrites.
 
 ## Commit & PR Messaging
-* Imperative mood: "Add player movement system".
-* Reference tests added/updated: e.g. "Adds test_player_movement.c (unit) and test_player_boot_move.c (integration)."
+
+- Imperative mood: "Add player movement system".
+- Reference tests added/updated: e.g. "Adds test_player_movement.c (unit) and test_player_boot_move.c (integration)."
 
 ---
+
 Following these instructions is required for AI-assisted contributions. Deviations need justification plus added tests.

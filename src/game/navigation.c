@@ -27,6 +27,8 @@ int rogue_nav_is_blocked(int tx, int ty)
     unsigned char t = g_app.world_map.tiles[ty * g_app.world_map.width + tx];
     if (tile_block(t))
         return 1;
+    if (rogue_tilemap_overlay_blocks(&g_app.world_map, tx, ty))
+        return 1;
     if (rogue_vegetation_tile_blocking(tx, ty))
         return 1;
     return 0;

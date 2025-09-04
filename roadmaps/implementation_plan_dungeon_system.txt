@@ -21,10 +21,16 @@ STATUS DELTA (Latest):
 		• Tile stamping engine scaffolding (2.2 Partial): ASCII → transforms (rot/reflection) → exits → stamp into RogueTileMap with bounds checks.
 		• Room template JSON loader (2.1 Done): minimal, dependency‑free parser supporting id/cls/biome_tags/encounter_slots/hazard_slots/puzzle_slot/grid/exits/doors (type+key_id)/deco; key‑order independent.
 		• Door placement & locking metadata (2.3 Done): door types normal/locked/secret with key_id preserved across transforms and stamping.
-		• Environmental deco markers (2.4 Partial): model + JSON loader + transforms; rendering/collision layering deferred.
+		• Environmental deco overlay (2.4 Done): overlay_deco buffer and kind→code mapping, transform-aware stamping, renderer overlay pass, and navigation blocking semantics. Safety hardened via RogueTileMap.overlay_magic invariant to guard overlay usage in tests and runtime. Unit tests for deco layering and JSON key-order fuzz pass.
 		• Unit tests (2.5 Done): bounds correctness, exit alignment, rotation determinism, and JSON loader coverage incl. doors/deco/transform alignment (test_dungeon_phase2_room_templates, test_dungeon_phase2_room_templates_json).
 		• Integration: module compiled into rogue_core; deterministic behavior verified.
-- Build & Tests: Debug (SDL2) and full suite pass 100% (599/599) with -j12.
+- Phase 3 biome & theme layering landed:
+	- Deterministic biome selection per depth bands with seed governance (3.1 Done).
+	- Theme profile injection (fog density, ambient color, ambient SFX id) derived from biome tags (3.2 Done).
+	- Hazard palette computed with depth scaling and tag adjustments (movement penalties, DoT, trap weighting) (3.3 Done).
+	- Rare biome substitution with depth-scaled probability envelope (3.4 Done).
+	- Tests added (3.5 Partial): determinism, value ranges, and depth-scaling behavior covered in test_dungeon_phase3_theme; additional distribution envelope and probability bounds tests planned.
+- Build & Tests: Debug (SDL2) and full suite pass 100% (602/602) with -j12.
 
 FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 - Tile / biome configuration files (assets/tiles.cfg, assets/biomes/*) (Partial)
@@ -55,15 +61,15 @@ PHASE 2. Room Template & Tile Assembly
 	(JSON loader implemented with key‑order independence; supports explicit doors (type/key_id) and deco markers; unit test added.)
 2.2 Tile stamping engine (assemble template -> tile grid; handle rotations/reflections) (Partial) (ASCII parse, rotations/reflections, exit extraction, stamp to RogueTileMap with bounds checks)
 2.3 Portal / door placement & locking metadata (Done) (door types normal/locked/secret; key_id; transform-safe; stamped tile kinds validated)
-2.4 Environmental deco layering (aesthetic & minor collision) (Partial) (deco markers modeled/parsed and transformed; render/collision layering TBD)
+2.4 Environmental deco layering (aesthetic & minor collision) (Done) (overlay_deco buffer + transform-aware stamping, renderer overlay pass, navigation blocking; safety via overlay_magic guard; tests added and green)
 2.5 Tests: template bounds correctness, exit alignment, rotation determinism (Done) (unit: test_dungeon_phase2_room_templates)
 
 PHASE 3. Biome & Theme Layering
-3.1 Biome selection policy per floor/segment (weighted by desired difficulty & scarcity analytics) (X)
-3.2 Thematic modifier injection (fog density, lighting color, ambient SFX) (X)
-3.3 Biome hazard palette (trap types, environmental DoT, movement penalty tiles) (X)
-3.4 Rare biome event substitution (chance to swap standard segment with rare theme) (X)
-3.5 Tests: biome distribution bounds, hazard palette completeness, rare event probability (X)
+3.1 Biome selection policy per floor/segment (weighted by desired difficulty & scarcity analytics) (Done)
+3.2 Thematic modifier injection (fog density, lighting color, ambient SFX) (Done)
+3.3 Biome hazard palette (trap types, environmental DoT, movement penalty tiles) (Done)
+3.4 Rare biome event substitution (chance to swap standard segment with rare theme) (Done)
+3.5 Tests: biome distribution bounds, hazard palette completeness, rare event probability (Partial) (determinism/range/depth-scaling covered; distribution/probability envelope pending)
 
 PHASE 4. Encounter Seeding & Enemy Composition
 4.1 Encounter slot definition (slot_type: combat, elite_pack, mini_boss, puzzle_guard) (X)

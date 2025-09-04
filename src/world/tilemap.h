@@ -26,12 +26,17 @@ SOFTWARE.
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 typedef struct RogueTileMap
 {
     int width;
     int height;
     unsigned char* tiles;
+    /* Optional per-cell overlay for light-weight markers (e.g., deco). 0 = none. */
+    unsigned char* overlay_deco;
+    /* Internal: guard value set by init to validate overlay_deco before use. */
+    uint32_t overlay_magic;
 } RogueTileMap;
 
 /**
@@ -102,6 +107,21 @@ unsigned char rogue_tilemap_get(const RogueTileMap* map, int x, int y);
  * @param[in] v Tile value to set.
  */
 void rogue_tilemap_set(RogueTileMap* map, int x, int y, unsigned char v);
+
+/** Overlay (deco) helpers */
+/**
+ * @brief Gets the overlay deco code at (x,y); returns 0 if none or out of bounds.
+ */
+unsigned char rogue_tilemap_get_deco(const RogueTileMap* map, int x, int y);
+/**
+ * @brief Sets the overlay deco code at (x,y); ignored if out of bounds. 0 clears.
+ */
+void rogue_tilemap_set_deco(RogueTileMap* map, int x, int y, unsigned char code);
+/**
+ * @brief Returns 1 if the overlay deco code at (x,y) is considered blocking for movement.
+ * Codes: 1=pillar (blocking), 2=banner (non-blocking), 3=brazier (non-blocking), >=128 reserved.
+ */
+int rogue_tilemap_overlay_blocks(const RogueTileMap* map, int x, int y);
 /**@}*/
 
 #endif

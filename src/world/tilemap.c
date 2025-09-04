@@ -42,8 +42,11 @@ bool rogue_tilemap_init(RogueTileMap* map, int w, int h)
         return false;
     map->width = w;
     map->height = h;
-    map->tiles = (unsigned char*) calloc((size_t) w * (size_t) h, sizeof(unsigned char));
-    return map->tiles != NULL;
+    size_t n = (size_t) w * (size_t) h;
+    map->tiles = (unsigned char*) calloc(n, sizeof(unsigned char));
+    map->overlay_deco = (unsigned char*) calloc(n, sizeof(unsigned char));
+    map->overlay_magic = 0xDEC00EAU; /* magic to signal overlay is valid */
+    return map->tiles != NULL && map->overlay_deco != NULL;
 }
 
 /**
@@ -60,7 +63,10 @@ void rogue_tilemap_free(RogueTileMap* map)
         return;
     free(map->tiles);
     map->tiles = NULL;
+    free(map->overlay_deco);
+    map->overlay_deco = NULL;
     map->width = map->height = 0;
+    map->overlay_magic = 0U;
 }
 
 /**
@@ -106,4 +112,25 @@ void rogue_tilemap_set(RogueTileMap* map, int x, int y, unsigned char v)
     if (!in_bounds(map, x, y))
         return;
     map->tiles[y * map->width + x] = v;
+}
+
+unsigned char rogue_tilemap_get_deco(const RogueTileMap* map, int x, int y)
+{
+    if (!in_bounds(map, x, y) || !map->overlay_deco || map->overlay_magic != 0xDEC00EAU)
+        return 0;
+    return map->overlay_deco[y * map->width + x];
+}
+
+void rogue_tilemap_set_deco(RogueTileMap* map, int x, int y, unsigned char code)
+{
+    if (!in_bounds(map, x, y) || !map->overlay_deco || map->overlay_magic != 0xDEC00EAU)
+        return;
+    map->overlay_deco[y * map->width + x] = code;
+}
+
+int rogue_tilemap_overlay_blocks(const RogueTileMap* map, int x, int y)
+{
+    unsigned char c = rogue_tilemap_get_deco(map, x, y);
+    /* Minimal policy: code 1 (pillar) blocks; others do not. */
+    return c == 1 ? 1 : 0;
 }
