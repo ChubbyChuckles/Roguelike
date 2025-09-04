@@ -1,3 +1,15 @@
+Phase 6 (Dungeon): Add puzzle/traversal scaffolding + tests; SDL2 test env hardening retained
+
+- Implement minimal Phase 6 module:
+	- world_gen_dungeon_puzzle.[ch]:
+		- Puzzle template JSON loader (logic_type/param0/min_skill_req)
+		- Traversal marker placement (puzzle -> jump glyph, treasure -> timed door) via overlay codes
+		- Soft-lock watchdog: BFS connectivity check
+	- Wire into build (CMakeLists.txt)
+- Add unit test test_dungeon_phase6_puzzle_traversal.c covering JSON loader, marker placement, and watchdog
+- Update roadmap (implementation_plan_dungeon_system.txt) to reflect Phase 6 partial progress
+- Context: Prior commits resolved SDL2.dll test popup by PATH injection + side-by-side copy; tests run headless (SDL_VIDEODRIVER=dummy)
+
 feat(dungeon/phase5.2-5.5): objective scripting + gates/keystone flags + dynamic substitution; gates green (608/608)
 
 - Objective scripting: add `rogue_dungeon_set_objective_script(const char*)` and a lightweight parser for tokens ACTIVATE, CLEAR, PUZZLE, ?PUZZLE (optional), BOSS, and GATE(KEYSTONE). Integrated with the deterministic chain builder.

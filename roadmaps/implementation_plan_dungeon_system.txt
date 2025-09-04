@@ -99,11 +99,11 @@ PHASE 5. Objectives & Progression Gates
 5.5 Tests: chain determinism, gate unlock integrity, substitution constraints (Done)
 
 PHASE 6. Puzzle & Traversal Subsystem
-6.1 Puzzle template file (logic_type, param set, min_skill_requirements) (X)
-6.2 Traversal mechanics (moving platforms, timed doors, jump glyphs, secret passages) (X)
-6.3 Assist mode toggles (longer timers, highlight interactables) (Optional) (X)
-6.4 Fail reset & soft-lock prevention watchdog (X)
-6.5 Tests: solvability, time limit variance, soft-lock detection (X)
+6.1 Puzzle template file (logic_type, param set, min_skill_requirements) (Partial) (minimal JSON loader added; logic_type/param0/min_skill_req parsed)
+6.2 Traversal mechanics (moving platforms, timed doors, jump glyphs, secret passages) (Partial) (marker placement scaffold: jump glyph in puzzle rooms, timed door in treasure rooms; stamped as overlay codes for tests)
+6.3 Assist mode toggles (longer timers, highlight interactables) (Optional) (Partial) (toggles struct defined; no runtime effects yet)
+6.4 Fail reset & soft-lock prevention watchdog (Done) (connectivity watchdog implemented over graph)
+6.5 Tests: solvability, time limit variance, soft-lock detection (Partial) (unit test covers JSON load, marker placement, and watchdog)
 
 PHASE 7. Hazard & Trap System
 7.1 Trap definition file (trigger_type, telegraph_duration, damage_profile, cooldown) (X)
