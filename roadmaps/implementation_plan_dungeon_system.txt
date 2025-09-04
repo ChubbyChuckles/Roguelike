@@ -30,12 +30,18 @@ STATUS DELTA (Latest):
 	- Hazard palette computed with depth scaling and tag adjustments (movement penalties, DoT, trap weighting) (3.3 Done).
 	- Rare biome substitution with depth-scaled probability envelope (3.4 Done).
 	- Tests added (3.5 Done): determinism, value ranges, and depth-scaling behavior covered in test_dungeon_phase3_theme; added distribution envelope and rare-biome probability bounds tests in test_dungeon_phase3_5_biome_distribution.
-	- Build & Tests: Debug (SDL2) and full suite pass 100% (605/605) with -j12.
+	- Build & Tests: Debug (SDL2) and full suite pass 100% (606/606) with -j12.
 
 - Phase 4 encounter planning (expanded):
 	- Implemented per-room encounter planner with BFS room depths, ΔL- and critical-path-weighted difficulty budgets, elite/miniboss spacing constraints, modifier smoothing for affix/mod clusters, and rare nemesis injection under deterministic micro-RNG.
 	- Unit tests validate plan counts, budget sanity, type distribution, nemesis frequency, and ΔL mapping precision (test_dungeon_phase4_encounters, test_dungeon_phase4_delta_mapping).
 	- Stability: persistence integration bridge previously flaky in one full run re-validated; full suite now consistently green.
+
+- Phase 5 objectives (scaffolding, Partial):
+	- Implement deterministic objective chain builder selecting shallow/mid/farthest rooms with an optional puzzle step based on tags; terminal BOSS step.
+	- Deterministic across seeds via dedicated RNG channel and sorted room ids.
+	- Unit test validates chain determinism, terminal BOSS, length bounds, and room id validity (tests/unit/test_dungeon_phase5_objectives.c).
+	- Build & Tests: Full suite green (606/606) under Debug (SDL2) with -j12.
 
 FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 - Tile / biome configuration files (assets/tiles.cfg, assets/biomes/*) (Partial)
@@ -85,11 +91,11 @@ PHASE 4. Encounter Seeding & Enemy Composition
 4.6 Tests: budget conservation, modifier spacing invariants, ΔL mapping correctness (Done) (counts/budgets/type distribution/nemesis frequency, plus ΔL precision in test_dungeon_phase4_delta_mapping)
 
 PHASE 5. Objectives & Progression Gates
-5.1 Objective taxonomy: Clear, Collect, Activate, Escort, Survive, PuzzleComplete, Boss (X)
+5.1 Objective taxonomy: Clear, Collect, Activate, Escort, Survive, PuzzleComplete, Boss (Partial) (core chain builder implemented with terminal BOSS; taxonomy struct defined)
 5.2 Objective chain scripting file (sequence, optional branches, fail conditions) (X)
 5.3 Gate mechanics (sealed door, barrier rune, keystone item) (X)
 5.4 Dynamic objective substitution (adaptive if player overpowered: insert optional challenge) (X)
-5.5 Tests: chain determinism, gate unlock integrity, substitution constraints (X)
+5.5 Tests: chain determinism, gate unlock integrity, substitution constraints (Partial) (determinism + terminal BOSS + bounds + id validity)
 
 PHASE 6. Puzzle & Traversal Subsystem
 6.1 Puzzle template file (logic_type, param set, min_skill_requirements) (X)

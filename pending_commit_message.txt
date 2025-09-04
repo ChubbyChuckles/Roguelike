@@ -449,3 +449,13 @@ feat(dungeon/phase2): JSON room template loader + door metadata + deco markers; 
 Quality gates
 - Build: Debug (SDL2) with -j12 OK
 - Tests: ctest --test-dir build -C Debug -j12 --output-on-failure → 100% PASS (599/599)
+
+feat(dungeon/phase5 scaffolding): deterministic objectives chain builder + unit test; gate green (606/606)
+
+- Implement deterministic objective chain builder selecting shallow/mid/farthest rooms with optional puzzle step based on tags; terminal BOSS step; dedicated RNG stream and sorted room ids ensure determinism.
+- Add unit `tests/unit/test_dungeon_phase5_objectives.c` validating chain determinism, terminal BOSS, length bounds, and room id validity.
+- Roadmap: mark Phase 5.1 taxonomy Partial and 5.5 tests Partial; add Phase 5 status delta; README “Latest CI verification” updated to 606/606 and notes Phase 5 scaffolding.
+
+Quality gates:
+- Build: Debug (SDL2) with -j12 OK.
+- Tests: ctest from build dir with -C Debug -j12 --output-on-failure → 100% PASS (606/606).
