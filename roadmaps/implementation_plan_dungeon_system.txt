@@ -24,13 +24,18 @@ STATUS DELTA (Latest):
 		• Environmental deco overlay (2.4 Done): overlay_deco buffer and kind→code mapping, transform-aware stamping, renderer overlay pass, and navigation blocking semantics. Safety hardened via RogueTileMap.overlay_magic invariant to guard overlay usage in tests and runtime. Unit tests for deco layering and JSON key-order fuzz pass.
 		• Unit tests (2.5 Done): bounds correctness, exit alignment, rotation determinism, and JSON loader coverage incl. doors/deco/transform alignment (test_dungeon_phase2_room_templates, test_dungeon_phase2_room_templates_json).
 		• Integration: module compiled into rogue_core; deterministic behavior verified.
-- Phase 3 biome & theme layering landed:
+ - Phase 3 biome & theme layering landed:
 	- Deterministic biome selection per depth bands with seed governance (3.1 Done).
 	- Theme profile injection (fog density, ambient color, ambient SFX id) derived from biome tags (3.2 Done).
 	- Hazard palette computed with depth scaling and tag adjustments (movement penalties, DoT, trap weighting) (3.3 Done).
 	- Rare biome substitution with depth-scaled probability envelope (3.4 Done).
-	- Tests added (3.5 Partial): determinism, value ranges, and depth-scaling behavior covered in test_dungeon_phase3_theme; additional distribution envelope and probability bounds tests planned.
-- Build & Tests: Debug (SDL2) and full suite pass 100% (602/602) with -j12.
+	- Tests added (3.5 Done): determinism, value ranges, and depth-scaling behavior covered in test_dungeon_phase3_theme; added distribution envelope and rare-biome probability bounds tests in test_dungeon_phase3_5_biome_distribution.
+	- Build & Tests: Debug (SDL2) and full suite pass 100% (604/604) with -j12.
+
+- Phase 4 encounter planning (initial slice):
+	- Implemented per-room encounter planner with BFS room depths, difficulty budget scaling, elite/miniboss spacing constraints, and rare nemesis injection under deterministic micro-RNG.
+	- Unit tests validate plan counts, budget sanity, type distribution, and nemesis frequency (test_dungeon_phase4_encounters).
+	- Notes: ΔL mapping is wired to the depth difficulty profile; extended budget allocation and modifier smoothing remain to be expanded.
 
 FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 - Tile / biome configuration files (assets/tiles.cfg, assets/biomes/*) (Partial)
@@ -69,15 +74,15 @@ PHASE 3. Biome & Theme Layering
 3.2 Thematic modifier injection (fog density, lighting color, ambient SFX) (Done)
 3.3 Biome hazard palette (trap types, environmental DoT, movement penalty tiles) (Done)
 3.4 Rare biome event substitution (chance to swap standard segment with rare theme) (Done)
-3.5 Tests: biome distribution bounds, hazard palette completeness, rare event probability (Partial) (determinism/range/depth-scaling covered; distribution/probability envelope pending)
+3.5 Tests: biome distribution bounds, hazard palette completeness, rare event probability (Done) (added distribution envelope + rare-biome probability bounds; determinism/range/depth-scaling covered)
 
 PHASE 4. Encounter Seeding & Enemy Composition
-4.1 Encounter slot definition (slot_type: combat, elite_pack, mini_boss, puzzle_guard) (X)
-4.2 Difficulty budget allocation along critical path vs optional branches (X)
-4.3 Relative level delta mapping per depth (tie to enemy scaling phase model) (X)
-4.4 Elite & modifier distribution smoothing (no clustering beyond thresholds) (X)
-4.5 Nemesis injection hook (chance / triggered conditions) (X)
-4.6 Tests: budget conservation, modifier spacing invariants, ΔL mapping correctness (X)
+4.1 Encounter slot definition (slot_type: combat, elite_pack, mini_boss, puzzle_guard) (Done)
+4.2 Difficulty budget allocation along critical path vs optional branches (Partial) (initial budget scaling by depth/room depth; critical-path weighting to extend)
+4.3 Relative level delta mapping per depth (tie to enemy scaling phase model) (Partial) (wired to depth_difficulty_profile; extended calibration pending)
+4.4 Elite & modifier distribution smoothing (no clustering beyond thresholds) (Partial) (spacing constraints for elites/miniboss implemented; modifier smoothing next)
+4.5 Nemesis injection hook (chance / triggered conditions) (Done)
+4.6 Tests: budget conservation, modifier spacing invariants, ΔL mapping correctness (Partial) (counts/budgets/type distribution/nemesis frequency covered; ΔL mapping precision tests to add)
 
 PHASE 5. Objectives & Progression Gates
 5.1 Objective taxonomy: Clear, Collect, Activate, Escort, Survive, PuzzleComplete, Boss (X)

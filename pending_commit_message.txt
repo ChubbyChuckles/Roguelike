@@ -1,3 +1,14 @@
+feat(dungeon/phase3.5,4): statistical tests for biome envelopes + Phase 4 encounter planner slice; stabilize rare-variant probability; gates green (604/604)
+
+- Phase 3.5: Add biome distribution envelope and rare-biome probability bound tests (`tests/unit/test_dungeon_phase3_5_biome_distribution.c`).
+- Stabilize rare biome substitution by switching to a dedicated micro-RNG stream and basis-point thresholding with a clamped depth-scaled probability.
+- Phase 4: Introduce an encounter planner with BFS room depths, depth-scaled budgets, elite/miniboss spacing constraints, and rare nemesis injection. Unit `tests/unit/test_dungeon_phase4_encounters.c` validates counts, budgets, type distribution, and nemesis frequency.
+- Docs: Roadmap marks 3.5 Done and records Phase 4 slice progress; README notes new tests and planner slice; Latest CI verification updated to 604/604.
+
+Quality gates:
+- Build: Debug (SDL2) with parallelism (-j12) completed.
+- Tests: ctest from build dir with -C Debug -j12 --output-on-failure → 100% PASS (604/604).
+
 feat(dungeon/phase3): biome & theme layering module with deterministic selection, theme profile, and hazard palette; tests green (602/602)
 
 - Implement biome selection per depth band with RNG governance and rare biome substitution.

@@ -81,7 +81,14 @@ void rogue_dungeon_build_theme_profile(RogueWorldGenContext* ctx, int depth,
     double rare_p = 0.02 + 0.01 * (depth / 3);
     if (rare_p > 0.15)
         rare_p = 0.15;
-    out->rare_variant = (rogue_worldgen_rand_norm(&ctx->biome_rng) < rare_p) ? 1 : 0;
+    /* Use micro RNG channel and basis-points comparison for stability */
+    int rare_bp = (int) (rare_p * 10000.0 + 0.5); /* round to nearest bp */
+    if (rare_bp < 0)
+        rare_bp = 0;
+    if (rare_bp > 1500)
+        rare_bp = 1500;
+    unsigned int ruv = rogue_worldgen_rand_u32(&ctx->micro_rng) % 10000u;
+    out->rare_variant = (ruv < (unsigned int) rare_bp) ? 1 : 0;
     if (out->rare_variant)
     {
         /* Inject a complementary tag based on base biome */

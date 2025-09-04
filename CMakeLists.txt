@@ -215,6 +215,7 @@ add_library(rogue_core
     src/world/world_gen_dungeon_kernel.c
     src/world/world_gen_dungeon_taxonomy.c
     src/world/world_gen_dungeon_theme.c
+    src/world/world_gen_dungeon_encounters.c
     src/world/world_gen_dungeon.c
     src/world/world_gen_spawns.c
     src/world/world_gen_resources.c
