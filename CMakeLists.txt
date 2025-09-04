@@ -1152,6 +1152,53 @@ add_subdirectory(tests)
 add_test(NAME test_audio_vfx_phase1_2 COMMAND test_audio_vfx_phase1_2)
 add_test(NAME test_audio_vfx_phase1_5_compaction COMMAND test_audio_vfx_phase1_5_compaction)
 
+# --- Ensure SDL2.dll is found when running tests on Windows ---
+# Many tests are console/headless and depend on SDL2. When launched via CTest, the
+# system PATH may not include the SDL2 runtime directory, leading to a popup error
+# "SDL2.dll not found". Detect a plausible SDL2.dll directory and append it to PATH
+# for all tests. Also set SDL_VIDEODRIVER=dummy to avoid creating windows in CI.
+if(WIN32 AND ROGUE_ENABLE_SDL)
+    # Allow manual override
+    set(ROGUE_SDL2_DLL_DIR "${ROGUE_SDL2_DLL_DIR}" CACHE PATH "Directory containing SDL2.dll for test runtime")
+    if(NOT ROGUE_SDL2_DLL_DIR)
+        # Try common locations based on ROGUE_SDL2_ROOT or a conventional install path
+        set(_SDL2_DLL_HINTS
+            "$ENV{ROGUE_SDL2_ROOT}/bin"
+            "$ENV{ROGUE_SDL2_ROOT}/lib/x64"
+            "${ROGUE_SDL2_ROOT}/bin"
+            "${ROGUE_SDL2_ROOT}/lib/x64"
+            "C:/libs/SDL2/bin"
+            "C:/libs/SDL2/lib/x64"
+        )
+        find_file(_SDL2_DLL_FILE NAMES SDL2.dll HINTS ${_SDL2_DLL_HINTS} NO_CACHE)
+        if(_SDL2_DLL_FILE)
+            get_filename_component(ROGUE_SDL2_DLL_DIR "${_SDL2_DLL_FILE}" DIRECTORY)
+        endif()
+    endif()
+
+    if(ROGUE_SDL2_DLL_DIR)
+        message(STATUS "Tests will add SDL2.dll directory to PATH: ${ROGUE_SDL2_DLL_DIR}")
+        # Collect tests defined at root and in tests/ subdirectory
+        get_property(_root_tests DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY TESTS)
+        get_property(_subdir_tests DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests PROPERTY TESTS)
+        set(_all_tests ${_root_tests} ${_subdir_tests})
+        list(REMOVE_DUPLICATES _all_tests)
+        if(_all_tests)
+            foreach(_t IN LISTS _all_tests)
+                if(TEST ${_t})
+                    # Append so we don't override any per-test environment set elsewhere
+                    set_property(TEST ${_t} APPEND PROPERTY ENVIRONMENT "SDL_VIDEODRIVER=dummy")
+                    set_property(TEST ${_t} APPEND PROPERTY ENVIRONMENT "PATH=${ROGUE_SDL2_DLL_DIR};$ENV{PATH}")
+                endif()
+            endforeach()
+        endif()
+
+    # Copying is handled in tests/CMakeLists.txt where test targets are created.
+    else()
+        message(WARNING "SDL2.dll directory not found automatically; tests may fail to start. Set -DROGUE_SDL2_DLL_DIR=path to the folder containing SDL2.dll.")
+    endif()
+endif()
+
 find_program(CLANG_FORMAT_EXE NAMES clang-format)
 if(CLANG_FORMAT_EXE)
     add_custom_target(format

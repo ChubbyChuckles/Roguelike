@@ -73,6 +73,31 @@
 			"label": "Build Debug (SDL2, -j12) quick check",
 			"type": "shell",
 			"command": "cmake --build build --config Debug --parallel 12"
+		},
+		{
+			"label": "Reconfigure CMake (Debug) and run ctests to verify SDL2.dll PATH fix",
+			"type": "shell",
+			"command": "cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && ctest --test-dir build -C Debug -j8 --output-on-failure --timeout 60"
+		},
+		{
+			"label": "Reconfigure CMake (Debug) and run ctests again",
+			"type": "shell",
+			"command": "cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && ctest --test-dir build -C Debug -j8 --output-on-failure --timeout 60"
+		},
+		{
+			"label": "Reconfigure CMake (Debug) and run ctests after property API fix",
+			"type": "shell",
+			"command": "cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && ctest --test-dir build -C Debug -j8 --output-on-failure --timeout 60"
+		},
+		{
+			"label": "Reconfigure (Debug), build tests, and run ctests after adding SDL2.dll copy",
+			"type": "shell",
+			"command": "cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build --config Debug --parallel 8 && ctest --test-dir build -C Debug -j8 --output-on-failure --timeout 60"
+		},
+		{
+			"label": "Reconfigure (Debug), build tests, and run ctests after adding copy in tests/",
+			"type": "shell",
+			"command": "cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build --config Debug --parallel 8 && ctest --test-dir build -C Debug -j8 --output-on-failure --timeout 60"
 		}
 	]
 }
