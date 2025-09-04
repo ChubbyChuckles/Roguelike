@@ -183,6 +183,11 @@ bool rogue_entities_validate_assets_default(RogueSchemaValidationResult* result,
     const char* paths[] = {"../assets/enemies", "../../assets/enemies", "../../../assets/enemies",
                            "../../../../assets/enemies"};
     int ok = 0;
+    /* Ensure headless/schema validation does not attempt to load textures to avoid
+        divide-by-zero in sprite sheet slicing when textures are stubbed (w/h=0). */
+    extern int g_enemy_loader_skip_textures;
+    int prev_skip = g_enemy_loader_skip_textures;
+    rogue_enemy_loader_set_skip_textures(1);
     for (size_t pi = 0; pi < sizeof(paths) / sizeof(paths[0]); ++pi)
     {
         count = 0;
@@ -194,6 +199,8 @@ bool rogue_entities_validate_assets_default(RogueSchemaValidationResult* result,
             break;
         }
     }
+    /* Restore previous loader state */
+    rogue_enemy_loader_set_skip_textures(prev_skip);
     if (!ok)
         return false;
     bool valid = rogue_entities_validate_types(types, count, result);

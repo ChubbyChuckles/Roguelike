@@ -267,3 +267,19 @@ feat(dungeon/phase1): grammar DSL + constraints + CPL targeting + public API; te
 - Unit: add tests/unit/test_dungeon_phase1_constraints.c covering determinism, constraints, CPL targeting.
 - Build: Debug (SDL2) with -j12 succeeded.
 - Tests: full ctest from build dir PASS 100% (597/597).
+
+Dungeon Phase 7: Hazards & Traps + validation hardening; full suite green (610/610)
+
+- Implemented dungeon Hazards & Traps subsystem
+  - JSON trap defs: trigger_type, telegraph_ms, damage_profile, cooldown
+  - Damage scaling with depth ΔL and avoidance stats
+  - Overlap resolver caps simultaneous high-DPS hazards
+  - Disarm interaction with deterministic skill-based success chance
+  - Unit tests: test_dungeon_phase7_traps (telegraph, scaling, overlap, disarm)
+- Puzzle/traversal: integrated soft-lock watchdog into worldgen flow
+- Validation manager: begin/done traces for all validators and cross-rules
+- Entities validator: enforce skip-texture mode during headless validation; restore prior flag
+- Worldgen full: phase logs instrumentation; missing include fixed
+- Build & Tests: Debug (SDL2) full suite 100% green (610/610) with -j12; rebuilt missing tests and re-ran
+
+Co-authored-by: GitHub Copilot

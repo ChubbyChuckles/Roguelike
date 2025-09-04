@@ -4,6 +4,7 @@
  */
 #include "tilemap.h"
 #include "world_gen.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -20,30 +21,37 @@ int rogue_world_generate_full(RogueTileMap* out_map, const RogueWorldGenConfig* 
 {
     if (!out_map || !cfg)
         return 0;
+    fprintf(stderr, "wgen_full: begin w=%d h=%d\n", cfg->width, cfg->height);
     if (!rogue_tilemap_init(out_map, cfg->width, cfg->height))
         return 0;
     RogueWorldGenContext ctx;
     rogue_worldgen_context_init(&ctx, cfg);
 
     /* Phase 2: Macro layout + biomes */
+    fprintf(stderr, "wgen_full: macro\n");
     if (!rogue_world_generate_macro_layout(cfg, &ctx, out_map, NULL, NULL))
         return fail(out_map);
 
     /* Phase 4: Local terrain & caves & detailing */
+    fprintf(stderr, "wgen_full: local\n");
     if (!rogue_world_generate_local_terrain(cfg, &ctx, out_map))
         return fail(out_map);
+    fprintf(stderr, "wgen_full: caves\n");
     if (!rogue_world_generate_caves_layer(cfg, &ctx, out_map))
         return fail(out_map);
     /* Lava pockets + ore veins (targets chosen heuristically) */
+    fprintf(stderr, "wgen_full: lava+ore\n");
     rogue_world_place_lava_and_liquids(cfg, &ctx, out_map, 8);
     rogue_world_place_ore_veins(cfg, &ctx, out_map, 24, 18);
 
     /* Phase 5: River refinement & erosion */
+    fprintf(stderr, "wgen_full: rivers+erosion\n");
     rogue_world_refine_rivers(cfg, &ctx, out_map);
     rogue_world_apply_erosion(cfg, &ctx, out_map, 1, 1);
     rogue_world_mark_bridge_hints(cfg, out_map, 2, 5);
 
     /* Phase 6: Structures & POIs */
+    fprintf(stderr, "wgen_full: structures\n");
     RogueStructurePlacement structures[128];
     int structure_count = rogue_world_place_structures(cfg, &ctx, out_map, structures, 128, 3);
     rogue_world_place_dungeon_entrances(cfg, &ctx, out_map, structures, structure_count,
@@ -52,6 +60,7 @@ int rogue_world_generate_full(RogueTileMap* out_map, const RogueWorldGenConfig* 
     /* Phase 7: Single dungeon carve (example) under a reserved region if map big enough */
     if (cfg->width >= 220 && cfg->height >= 220)
     {
+        fprintf(stderr, "wgen_full: dungeon\n");
         RogueDungeonGraph graph;
         memset(&graph, 0, sizeof graph);
         if (rogue_dungeon_generate_graph(&ctx, 28, 25, &graph))
@@ -71,6 +80,7 @@ int rogue_world_generate_full(RogueTileMap* out_map, const RogueWorldGenConfig* 
     }
 
     /* Phase 8: Spawn tables (register a small baseline set) */
+    fprintf(stderr, "wgen_full: spawns\n");
     rogue_spawn_clear_tables();
     {
         RogueSpawnTable plains = {
@@ -104,6 +114,7 @@ int rogue_world_generate_full(RogueTileMap* out_map, const RogueWorldGenConfig* 
     rogue_spawn_free_density(&dm);
 
     /* Phase 9: Resource nodes baseline */
+    fprintf(stderr, "wgen_full: resources\n");
     rogue_resource_clear_registry();
     RogueResourceNodeDesc ore = {"iron_ore", 0, 0, 2, 5, (1u << ROGUE_BIOME_MOUNTAIN_BIOME)};
     rogue_resource_register(&ore);
@@ -118,6 +129,7 @@ int rogue_world_generate_full(RogueTileMap* out_map, const RogueWorldGenConfig* 
      */
 
     /* Phase 10: Weather patterns baseline (a few simple) */
+    fprintf(stderr, "wgen_full: weather\n");
     rogue_weather_clear_registry();
     {
         RogueWeatherPatternDesc clear = {"clear", 600, 900, 0.0f, 0.1f, 0xFFFFFFFFu, 3.0f};
@@ -144,6 +156,7 @@ int rogue_world_generate_full(RogueTileMap* out_map, const RogueWorldGenConfig* 
     /* NOTE: runtime will initialize & update weather state via rogue_weather_init/update */
 
     rogue_worldgen_context_shutdown(&ctx);
+    fprintf(stderr, "wgen_full: done\n");
     return 1;
 }
 

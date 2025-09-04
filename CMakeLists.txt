@@ -219,6 +219,8 @@ add_library(rogue_core
     src/world/world_gen_dungeon_objectives.c
     # Phase 6: puzzle & traversal subsystem (minimal scaffolding)
     src/world/world_gen_dungeon_puzzle.c
+    # Phase 7: hazards & traps subsystem (initial helpers)
+    src/world/world_gen_dungeon_traps.c
     src/world/world_gen_dungeon.c
     src/world/world_gen_spawns.c
     src/world/world_gen_resources.c
@@ -545,6 +547,7 @@ endif()
 
 target_include_directories(rogue_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/world
 )
 target_compile_definitions(rogue_core PUBLIC
     ROGUE_BUILD_GIT_HASH="${ROGUE_GIT_HASH}"

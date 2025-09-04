@@ -151,6 +151,8 @@ static int run_internal(int force_all)
                 continue;
             if (sr->fn)
             {
+                /* Debug trace to help isolate failing validator in CI */
+                fprintf(stderr, "[valid] system %d begin\n", sr->system_id);
                 RogueValidationResult r = sr->fn(sr->user);
                 g_stats.system_validations_run++;
                 if (r.severity == ROGUE_VALID_WARN)
@@ -169,6 +171,8 @@ static int run_internal(int force_all)
                     }
                 }
                 log_event(tick, sr->system_id, r, repaired, success);
+                fprintf(stderr, "[valid] system %d done sev=%d code=%u\n", sr->system_id,
+                        (int) r.severity, (unsigned) r.code);
             }
         }
     // cross rules
@@ -178,6 +182,7 @@ static int run_internal(int force_all)
             CrossReg* cr = &g_cross[i];
             if (cr->fn)
             {
+                fprintf(stderr, "[valid] cross '%s' begin\n", cr->name[0] ? cr->name : "<noname>");
                 RogueValidationResult r = cr->fn(cr->user);
                 g_stats.cross_rule_runs++;
                 if (r.severity == ROGUE_VALID_WARN)
@@ -185,6 +190,8 @@ static int run_internal(int force_all)
                 else if (r.severity == ROGUE_VALID_CORRUPT)
                     g_stats.corruptions_detected++;
                 log_event(tick, -1, r, 0, 0);
+                fprintf(stderr, "[valid] cross '%s' done sev=%d code=%u\n",
+                        cr->name[0] ? cr->name : "<noname>", (int) r.severity, (unsigned) r.code);
             }
         }
     g_stats.runs_completed++;

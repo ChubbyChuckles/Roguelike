@@ -1,4 +1,5 @@
 #include "world_gen_dungeon_puzzle.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -26,48 +27,70 @@ int rogue_puzzle_template_load_json_text(const char* json_text, RoguePuzzleTempl
         return 0;
     }
     memset(out, 0, sizeof *out);
+    /* debug */
+    fprintf(stderr, "puzzle_json: start\n");
     const char* s = json_text;
-    const char* lt = strstr(s, "logic_type");
+    const char* lt = strstr(s, "\"logic_type\"");
     if (!lt)
     {
         set_err(err, err_cap, "missing logic_type");
         return 0;
     }
-    const char* q = strchr(lt, '"');
-    if (!q)
+    /* Find ':' then skip whitespace and parse quoted string value */
+    const char* colon = strchr(lt, ':');
+    if (!colon)
     {
         set_err(err, err_cap, "parse error");
         return 0;
     }
-    q = strchr(q + 1, '"');
-    if (!q)
+    const char* cur = colon + 1;
+    while (*cur == ' ' || *cur == '\t' || *cur == '\n' || *cur == '\r')
+        ++cur;
+    if (*cur != '"')
     {
         set_err(err, err_cap, "parse error");
         return 0;
     }
-    const char* q2 = strchr(q + 1, '"');
-    if (!q2)
+    const char* start = cur + 1;
+    const char* end = strchr(start, '"');
+    if (!end)
     {
         set_err(err, err_cap, "parse error");
         return 0;
     }
-    size_t n = (size_t) (q2 - (q + 1));
+    size_t n = (size_t) (end - start);
     if (n >= sizeof out->logic_type)
         n = sizeof out->logic_type - 1;
-    memcpy(out->logic_type, q + 1, n);
+    memcpy(out->logic_type, start, n);
     out->logic_type[n] = '\0';
+    /* debug */
+    fprintf(stderr, "puzzle_json: logic_type=%s\n", out->logic_type);
 
     /* param0 (optional) */
-    const char* p0 = strstr(s, "param0");
+    const char* p0 = strstr(s, "\"param0\"");
     if (p0)
-        out->param0 = (int) strtol(p0 + 6, NULL, 10);
+    {
+        const char* c = strchr(p0, ':');
+        if (c)
+            out->param0 = (int) strtol(c + 1, NULL, 10);
+        else
+            out->param0 = 0;
+    }
     else
         out->param0 = 0;
-    const char* ms = strstr(s, "min_skill_req");
+    const char* ms = strstr(s, "\"min_skill_req\"");
     if (ms)
-        out->min_skill_req = (int) strtol(ms + 13, NULL, 10);
+    {
+        const char* c = strchr(ms, ':');
+        if (c)
+            out->min_skill_req = (int) strtol(c + 1, NULL, 10);
+        else
+            out->min_skill_req = 0;
+    }
     else
         out->min_skill_req = 0;
+    /* debug */
+    fprintf(stderr, "puzzle_json: ok param0=%d min=%d\n", out->param0, out->min_skill_req);
     return 1;
 }
 
@@ -104,14 +127,30 @@ int rogue_dungeon_place_traversal(RogueWorldGenContext* ctx, RogueTileMap* io_ma
 {
     (void) ctx;
     (void) assist;
-    if (!io_map || !graph || graph->room_count <= 0)
+    if (!io_map)
         return -1;
+    if (!graph)
+        return -1;
+    if (graph->room_count <= 0)
+        return -1;
+    if (!graph->rooms)
+        return -1;
+    if (io_map->width <= 0 || io_map->height <= 0) /* invalid map */
+        return -1;
+    /* debug */
+    fprintf(stderr, "traversal: enter rooms=%d width=%d height=%d\n", graph->room_count,
+            io_map->width, io_map->height);
     int placed = 0;
     for (int i = 0; i < graph->room_count; ++i)
     {
         const RogueDungeonRoom* r = &graph->rooms[i];
+        if (!r)
+            continue;
         int cx = r->x + r->w / 2;
         int cy = r->y + r->h / 2;
+        /* debug */
+        fprintf(stderr, "traversal: room[%d] tag=%d c=(%d,%d) rect=(%d,%d %dx%d)\n", i, r->tag, cx,
+                cy, r->x, r->y, r->w, r->h);
         if (r->tag & ROGUE_DUNGEON_ROOM_PUZZLE)
         {
             stamp_marker(io_map, cx, cy, ROGUE_TRAVERSAL_JUMP_GLYPH);
@@ -123,12 +162,19 @@ int rogue_dungeon_place_traversal(RogueWorldGenContext* ctx, RogueTileMap* io_ma
             placed++;
         }
     }
+    /* debug */
+    fprintf(stderr, "traversal: placed=%d rooms=%d edges=%d\n", placed, graph->room_count,
+            graph->edge_count);
     return placed;
 }
 
 int rogue_dungeon_softlock_watchdog(const RogueDungeonGraph* graph)
 {
-    if (!graph || graph->room_count <= 0)
+    if (!graph)
+        return 0;
+    if (graph->room_count <= 0)
+        return 0;
+    if (!graph->rooms || (!graph->edges && graph->edge_count > 0))
         return 0;
     /* Simplified: ensure graph connectivity with a BFS from room 0 covers all rooms. */
     int n = graph->room_count;
@@ -141,6 +187,8 @@ int rogue_dungeon_softlock_watchdog(const RogueDungeonGraph* graph)
         free(vis);
         return 0;
     }
+    /* debug */
+    fprintf(stderr, "watchdog: n=%d e=%d\n", n, graph->edge_count);
     int qs = 0, qe = 0;
     q[qe++] = 0;
     vis[0] = 1;
@@ -150,11 +198,14 @@ int rogue_dungeon_softlock_watchdog(const RogueDungeonGraph* graph)
         for (int e = 0; e < graph->edge_count; ++e)
         {
             int a = graph->edges[e].a, b = graph->edges[e].b;
+            if (a < 0 || a >= n || b < 0 || b >= n)
+                continue;
             int nxt = (a == cur) ? b : (b == cur) ? a : -1;
             if (nxt >= 0 && nxt < n && !vis[nxt])
             {
                 vis[nxt] = 1;
-                q[qe++] = nxt;
+                if (qe < n)
+                    q[qe++] = nxt;
             }
         }
     }

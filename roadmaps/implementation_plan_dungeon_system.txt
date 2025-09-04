@@ -10,6 +10,11 @@ Scope Overview:
 Deliver a data‑driven, procedural dungeon framework integrating layout generation, biome & thematic layering, enemy difficulty (relative level differential), objective orchestration, environmental hazards, puzzle & traversal mechanics, dynamic events, loot & crafting hooks, infinite player progression pacing, analytics, and deterministic replay. Constraints: single character, infinite leveling (no classes; universal skill access), infinite inventory stack, existing systems (loot, affixes, enemy difficulty, crafting, vendor, skill maze). Goals: High encounter variety, readable progression of challenge, systemic synergy (materials, recipes, vendors, mastery), minimal content authoring overhead, robust anti-exploit & performance guarantees.
 
 STATUS DELTA (Latest):
+- Phase 7 hazards & traps landed and validation stabilized:
+	- Hazard & Trap subsystem implemented: JSON trap defs (trigger_type, telegraph_ms, damage profile, cooldown), damage scales with depth ΔL and avoidance stats; overlap resolver caps simultaneous high-DPS hazards; disarm interaction with skill-based success probability and deterministic micro-RNG; unit `test_dungeon_phase7_traps` covers telegraph compliance, scaling monotonicity, overlap cap, and disarm odds.
+	- Puzzle/traversal: soft-lock watchdog integrated into worldgen flow; minor scaffolding tightened.
+	- Validation manager instrumentation: begin/done traces for all validators and cross-rules added; Entities validator now enforces skip-texture mode during headless validation to avoid renderer I/O and divide-by-zero in sheet slicing; restored previous flag on exit.
+	- Build & Tests: Debug (SDL2) full suite all-green (610/610) with -j12.
 - Phase 2 groundwork landed alongside Phase 1 kernel:
 	- Phase 1 kernel slice: 1.1–1.4 implemented end‑to‑end.
 		• Mini‑DSL parser: L(n) linear, H(k) hub, B(n,b) branching; deterministic manual parser.
@@ -106,11 +111,11 @@ PHASE 6. Puzzle & Traversal Subsystem
 6.5 Tests: solvability, time limit variance, soft-lock detection (Partial) (unit test covers JSON load, marker placement, and watchdog)
 
 PHASE 7. Hazard & Trap System
-7.1 Trap definition file (trigger_type, telegraph_duration, damage_profile, cooldown) (X)
-7.2 Scaling trap damage with relative level differential & player avoidance stats (X)
-7.3 Overlap resolver (cap active simultaneous high-damage hazards) (X)
-7.4 Disarm interaction & skill-based success probability (X)
-7.5 Tests: telegraph compliance, damage scaling monotonicity, disarm probability accuracy (X)
+7.1 Trap definition file (trigger_type, telegraph_duration, damage_profile, cooldown) (Done)
+7.2 Scaling trap damage with relative level differential & player avoidance stats (Done)
+7.3 Overlap resolver (cap active simultaneous high-damage hazards) (Done)
+7.4 Disarm interaction & skill-based success probability (Done)
+7.5 Tests: telegraph compliance, damage scaling monotonicity, disarm probability accuracy (Done)
 
 PHASE 8. Loot & Reward Orchestration
 8.1 Chest distribution algorithm (reserve for dead-end & milestone rooms) (X)
