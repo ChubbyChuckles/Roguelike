@@ -10,13 +10,21 @@ Scope Overview:
 Deliver a data‑driven, procedural dungeon framework integrating layout generation, biome & thematic layering, enemy difficulty (relative level differential), objective orchestration, environmental hazards, puzzle & traversal mechanics, dynamic events, loot & crafting hooks, infinite player progression pacing, analytics, and deterministic replay. Constraints: single character, infinite leveling (no classes; universal skill access), infinite inventory stack, existing systems (loot, affixes, enemy difficulty, crafting, vendor, skill maze). Goals: High encounter variety, readable progression of challenge, systemic synergy (materials, recipes, vendors, mastery), minimal content authoring overhead, robust anti-exploit & performance guarantees.
 
 STATUS DELTA (Latest):
-- Phase 1 kernel slice landed: 1.1–1.4 implemented end‑to‑end.
-	- Mini‑DSL parser: L(n) linear, H(k) hub, B(n,b) branching; deterministic manual parser.
-	- Constraint solver: loop_percent, max_deadends, min/max degree enforced.
-	- Critical path targeting heuristic wired into generator.
-	- Public params/API: RogueDungeonGenParams, rogue_dungeon_generate_graph_ex, rogue_dungeon_generate_from_grammar.
-	- Tests: determinism + constraints + CPL targeting added.
-- Build & Tests: Debug (SDL2) and full suite pass 100% (597/597) with -j12.
+- Phase 2 groundwork landed alongside Phase 1 kernel:
+	- Phase 1 kernel slice: 1.1–1.4 implemented end‑to‑end.
+		• Mini‑DSL parser: L(n) linear, H(k) hub, B(n,b) branching; deterministic manual parser.
+		• Constraint solver: loop_percent, max_deadends, min/max degree enforced.
+		• Critical path targeting heuristic wired into generator.
+		• Public params/API: RogueDungeonGenParams, rogue_dungeon_generate_graph_ex, rogue_dungeon_generate_from_grammar.
+		• Tests: determinism + constraints + CPL targeting added.
+	- Phase 2 progress:
+		• Tile stamping engine scaffolding (2.2 Partial): ASCII → transforms (rot/reflection) → exits → stamp into RogueTileMap with bounds checks.
+		• Room template JSON loader (2.1 Done): minimal, dependency‑free parser supporting id/cls/biome_tags/encounter_slots/hazard_slots/puzzle_slot/grid/exits/doors (type+key_id)/deco; key‑order independent.
+		• Door placement & locking metadata (2.3 Done): door types normal/locked/secret with key_id preserved across transforms and stamping.
+		• Environmental deco markers (2.4 Partial): model + JSON loader + transforms; rendering/collision layering deferred.
+		• Unit tests (2.5 Done): bounds correctness, exit alignment, rotation determinism, and JSON loader coverage incl. doors/deco/transform alignment (test_dungeon_phase2_room_templates, test_dungeon_phase2_room_templates_json).
+		• Integration: module compiled into rogue_core; deterministic behavior verified.
+- Build & Tests: Debug (SDL2) and full suite pass 100% (599/599) with -j12.
 
 FOUNDATIONAL ASSUMPTIONS / CURRENT STATE
 - Tile / biome configuration files (assets/tiles.cfg, assets/biomes/*) (Partial)
@@ -43,11 +51,12 @@ PHASE 1. Layout Generation Kernel
 1.6 Kernel helpers: degree stats, critical path computation, deterministic graph hash (Done) (unit: test_dungeon_phase1_kernel)
 
 PHASE 2. Room Template & Tile Assembly
-2.1 Room template file (template_id, size_class, biome_tags, encounter_slots, hazard_slots, puzzle_slot, exit_points) (X)
-2.2 Tile stamping engine (assemble template -> tile grid; handle rotations/reflections) (X)
-2.3 Portal / door placement & locking metadata (X)
-2.4 Environmental deco layering (aesthetic & minor collision) (X)
-2.5 Tests: template bounds correctness, exit alignment, rotation determinism (X)
+2.1 Room template file (template_id, size_class, biome_tags, encounter_slots, hazard_slots, puzzle_slot, exit_points) (Done)
+	(JSON loader implemented with key‑order independence; supports explicit doors (type/key_id) and deco markers; unit test added.)
+2.2 Tile stamping engine (assemble template -> tile grid; handle rotations/reflections) (Partial) (ASCII parse, rotations/reflections, exit extraction, stamp to RogueTileMap with bounds checks)
+2.3 Portal / door placement & locking metadata (Done) (door types normal/locked/secret; key_id; transform-safe; stamped tile kinds validated)
+2.4 Environmental deco layering (aesthetic & minor collision) (Partial) (deco markers modeled/parsed and transformed; render/collision layering TBD)
+2.5 Tests: template bounds correctness, exit alignment, rotation determinism (Done) (unit: test_dungeon_phase2_room_templates)
 
 PHASE 3. Biome & Theme Layering
 3.1 Biome selection policy per floor/segment (weighted by desired difficulty & scarcity analytics) (X)

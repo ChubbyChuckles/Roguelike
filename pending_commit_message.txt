@@ -382,3 +382,29 @@ feat(dungeon/phase0): taxonomy foundation (archetypes, id ranges, depth→ΔL, b
 Quality gates
 - Build: Debug (SDL2) with -j12 OK
 - Tests: ctest -C Debug -j12 → 100% passed (595/595)
+
+feat(dungeon/phase2): room templates scaffolding (ASCII→stamp), rotations/reflections, exits; unit test; docs updated; gates green
+
+- Module: add room templates engine (ASCII parse → transforms (rotate/reflect) → exit extraction → stamp into RogueTileMap with bounds checks). Wired into rogue_core.
+- Tests: new `tests/unit/test_dungeon_phase2_room_templates.c` validates bounds, exit mapping/alignment, and rotation determinism.
+- Roadmap: mark 2.2 Partial and 2.5 Done; Status Delta updated with Phase 2 progress and latest test count.
+- README: reflect latest full-suite count (598/598) and note the new dungeon test.
+
+Verification
+- Build: Debug (SDL2) with -j12 OK
+- Tests: ctest --test-dir build -C Debug -j12 --output-on-failure → 100% PASS (598/598)
+
+feat(dungeon/phase2): JSON room template loader + door metadata + deco markers; tests and docs; gates green
+
+- Loader: minimal, dependency-free JSON parser for a single room template object with fields:
+	id, cls, biome_tags, encounter_slots, hazard_slots, puzzle_slot, grid[], exits[], doors[] (type/key_id), deco[].
+	Key-order independent; preserves previously parsed fields when parsing the ASCII grid.
+- Door metadata: normal/locked/secret types with optional key_id; transforms and stamping preserve semantics.
+- Deco markers: parsed and transformed; rendering/collision layering deferred.
+- Tests: new unit `tests/unit/test_dungeon_phase2_room_templates_json.c` validates fields, doors/exits/deco, and transform alignment vs stamped tiles.
+- Roadmap: mark 2.1 Done, 2.3 Done, 2.4 Partial; Status Delta updated.
+- README: note the new JSON loader test and latest suite count.
+
+Quality gates
+- Build: Debug (SDL2) with -j12 OK
+- Tests: ctest --test-dir build -C Debug -j12 --output-on-failure → 100% PASS (599/599)
