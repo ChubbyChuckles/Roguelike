@@ -62,6 +62,7 @@ Press F1 in-game to open the debug overlay.
   - Step: advances exactly one frame when paused.
   - Reset: returns animation time/frame to 0.
   - Frame slider: visible when paused for direct frame scrubbing.
+  - Preview target: a dropdown lets you preview Cast, Projectile, Impact, or AoE sprites on demand (independent of `skill_type`). Cast preview uses grid-sliced frames; other targets display the full texture unless grid metadata is provided.
     Timing respects `frame_duration_ms` and total frames from `frame_count` or grid_width × grid_height; preview controls do not modify runtime data.
     Skills Live Preview (M4.2, textual): Above the simulation controls, a headless-safe table summarizes the selected skill: name/type, Cast and Cooldown timing, Coeffs (base/per-rank), Primary Effect kind/magnitude and Effect Nodes (with delays/repeats), plus a rough estimated total tick count computed from repeats/periods. Complements the sprite preview; updates as you edit.
     Audio/VFX (M4.3): In the Audio/VFX panel, audition sounds and inspect attenuation deterministically.

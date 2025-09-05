@@ -1,6 +1,7 @@
 #include "../../src/core/integration/event_bus.h"
 #include "../../src/core/integration/persistence_integration_bridge.h"
 #include "../../src/core/persistence/save_manager.h"
+#include "../../src/core/persistence/save_paths.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -47,6 +48,8 @@ static void publish_simple_events()
 int main(void)
 {
     printf("Phase 3.10 Persistence Integration Bridge Tests\n===============================\n");
+    /* Isolate save files for this test process to avoid parallel ctest collisions */
+    rogue_save_paths_set_prefix_tests();
     ensure_bus();
     rogue_save_manager_init();
     rogue_register_core_save_components();

@@ -35,10 +35,10 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
 - [ ] **Enhanced Execution Pathways** - Extend skill_tree.c with new pathways
 
 ### 1.4 Sprite Asset Management System
-- [ ] **Asset Directory Structure** - assets/skills/<skill_name>/{sprites,sounds,particles}/
+- [x] **Asset Directory Structure** - assets/skills/<skill_name>/{cast,projectile,impact,aoe,icon}/
 - [ ] **Sprite Sheet Loader** - Grid-based and packed layout support
 - [ ] **PNG Sequence Loader** - Frame-based animations (skill_cast_001.png, etc.)
-- [ ] **Asset Validation System** - File existence, format compatibility, dimensions checking
+- [x] **Asset Validation System** - File existence checks and path resolution helpers (skills/<id>/...)
 - [ ] **Sprite Atlas Generation** - Performance optimization
 - [ ] **Asset Hot-Reload** - Real-time editing feedback
 - [ ] **Asset Dependency Tracking** - Missing file fallback systems
@@ -48,7 +48,7 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
 - [x] **Effect Spec Tests** - SPAWN_PROJECTILE, TELEPORT, AURA exclusive, HEAL end-to-end
 - [x] **Validation Pipeline Tests** - Skill validation and coefficient gating
 - [ ] **Enhanced Data Model Tests** - Comprehensive validation for new schema elements
-- [ ] **Sprite Loading Tests** - Asset management system validation
+- [x] **Sprite Loading Tests** - Asset directory and PNG sequence detection (foundation)
 
 ---
 
@@ -87,6 +87,7 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
 	- When paused, a Frame slider appears to scrub the current frame.
 	- Animation time/frame respects `frame_duration_ms` and total frames from either explicit `frame_count` or derived grid (grid_width × grid_height).
 	- Headless-safe: all rendering/input paths are guarded when no renderer is present.
+	- New: a Preview Target selector lets you switch the live preview between Cast, Projectile, Impact, and AoE sprites regardless of the skill_type inference. Cast previews use grid-sliced frames; other targets default to full-texture single-frame unless grid metadata is present.
 - [ ] **Asset Import Wizard** - Drag-and-drop sprite/audio integration
 
 ### 2.4 Advanced Parameter Controls

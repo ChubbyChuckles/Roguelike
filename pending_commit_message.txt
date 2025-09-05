@@ -33,3 +33,9 @@ ci: improve diagnostics, parallelism, and reuse Release build dir across jobs
 - Deduplicate repeated steps in CI and add inline comments for clarity.
 - Share the Release build directory from build-and-test to package-release to avoid redundant rebuilds; fallback build remains when reuse isn’t available.
 - Upload additional diagnostics in logs-* artifacts.
+
+Skills Visuals: multi-target preview and playback controls
+
+- Add Preview Target selector (Cast/Projectile/Impact/AoE) to the Skills → Testing live preview; caches textures and switches sources dynamically.
+- Playback refinements: when paused, a frame scrubber appears; Step advances exactly one frame; Reset returns to t=0. Loop toggle overrides the definition for preview only.
+- Cast previews use grid-sliced frames via `rogue_skill_build_grid_frames`; other targets default to full-texture single frame unless grid metadata exists.

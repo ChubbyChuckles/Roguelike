@@ -1,7 +1,9 @@
 #include "panel_skills_visuals.h"
 #include "../../core/skills/skill_debug.h"
+#include "../../core/skills/skill_sprite_loader.h"
 #include "../overlay_core.h"
 #include "../widgets/overlay_widgets.h"
+#include "../widgets/overlay_widgets_internal.h" /* g_ui for positioning */
 #include "panel_skills_shared.h"
 #include <ctype.h>
 #include <string.h>
@@ -16,6 +18,22 @@ void panel_skills_draw_visuals(int sel)
 {
     overlay_label("Visuals");
     static RogueSkillVisualParams vis;
+    /* Live preview cache/state */
+    static RogueTexture s_prev_tex; /* cached texture for preview target */
+    static int s_prev_loaded = 0;
+    static char s_prev_path[256] = {0};
+    static int s_anim_elapsed_ms = 0; /* accumulative for preview */
+    static int s_preview_play = 1;    /* play/pause */
+    static int s_preview_loop = -1;   /* -1 = follow vis.animation_loops, 0/1 = override */
+    static int s_manual_frame = 0;    /* scrub value when paused */
+    enum
+    {
+        PREV_CAST = 0,
+        PREV_PROJECTILE = 1,
+        PREV_IMPACT = 2,
+        PREV_AOE = 3
+    };
+    static int s_preview_target = PREV_CAST;
     if (rogue_skill_debug_get_visuals(sel, &vis) == 0)
     {
         int stype = 0;
@@ -225,6 +243,167 @@ void panel_skills_draw_visuals(int sel)
         {
             (void) rogue_skill_debug_set_visuals(sel, &vis);
             panel_skills_save_overrides_and_refresh();
+        }
+
+        /* --- Live Preview -------------------------------------------------- */
+        overlay_label("Preview");
+        /* Choose preview target and resolve path */
+        (void) overlay_combo("Preview Target", &s_preview_target,
+                             (const char*[]){"Cast Sheet", "Projectile", "Impact", "AoE"}, 4);
+        const char* path = NULL;
+        if (s_preview_target == PREV_CAST)
+            path = vis.cast_sprite_sheet;
+        else if (s_preview_target == PREV_PROJECTILE)
+            path = vis.projectile_sprite;
+        else if (s_preview_target == PREV_IMPACT)
+            path = vis.impact_sprite;
+        else if (s_preview_target == PREV_AOE)
+            path = vis.aoe_sprite;
+
+        /* Reload texture if the path changed */
+        if (strncmp(s_prev_path, path ? path : "", sizeof s_prev_path) != 0)
+        {
+            if (s_prev_loaded)
+            {
+                rogue_texture_destroy(&s_prev_tex);
+                s_prev_loaded = 0;
+            }
+            s_prev_path[0] = '\0';
+            if (path && *path)
+            {
+                if (rogue_texture_load(&s_prev_tex, path))
+                {
+                    s_prev_loaded = 1;
+                    strncpy(s_prev_path, path, sizeof s_prev_path - 1);
+                    s_prev_path[sizeof s_prev_path - 1] = '\0';
+                    s_anim_elapsed_ms = 0; /* restart anim on new source */
+                    s_manual_frame = 0;
+                }
+            }
+        }
+
+        /* Compute frames for current target */
+        RogueSprite frames[512];
+        int effective = 0;
+        int fdur = (int) (vis.frame_duration_ms > 0.0f ? vis.frame_duration_ms : 100.0f);
+        int anim_loops =
+            (s_preview_loop < 0) ? (vis.animation_loops ? 1 : 0) : (s_preview_loop ? 1 : 0);
+        int can_animate = 0;
+        if (s_prev_loaded && s_prev_tex.w > 0 && s_prev_tex.h > 0)
+        {
+            if (s_preview_target == PREV_CAST && vis.grid_width > 0 && vis.grid_height > 0)
+            {
+                int max_possible = vis.grid_width * vis.grid_height;
+                if (max_possible > (int) (sizeof frames / sizeof frames[0]))
+                    max_possible = (int) (sizeof frames / sizeof frames[0]);
+                int built = rogue_skill_build_grid_frames(&s_prev_tex, vis.grid_width,
+                                                          vis.grid_height, frames, max_possible);
+                effective = built;
+                if (vis.frame_count > 0 && vis.frame_count < effective)
+                    effective = vis.frame_count;
+                can_animate = effective > 1;
+            }
+            else
+            {
+                /* Single-frame preview (full texture) */
+                memset(&frames[0], 0, sizeof(frames[0]));
+                frames[0].tex = &s_prev_tex;
+                frames[0].sx = 0;
+                frames[0].sy = 0;
+                frames[0].sw = s_prev_tex.w;
+                frames[0].sh = s_prev_tex.h;
+                effective = 1;
+                can_animate = 0;
+            }
+        }
+
+        /* Playback controls */
+        if (effective > 0)
+        {
+            /* Play/Pause, Step, Reset */
+            if (overlay_button(s_preview_play ? "Pause" : "Play"))
+                s_preview_play = !s_preview_play;
+            overlay_same_line();
+            if (overlay_button("Step Frame"))
+            {
+                s_preview_play = 0;
+                s_manual_frame = (s_manual_frame + 1) % (effective > 0 ? effective : 1);
+                s_anim_elapsed_ms = s_manual_frame * (fdur > 1 ? fdur : 100);
+            }
+            overlay_same_line();
+            if (overlay_button("Reset"))
+            {
+                s_anim_elapsed_ms = 0;
+                s_manual_frame = 0;
+            }
+            /* Loop override checkbox (preview only) */
+            int loop_override =
+                (s_preview_loop >= 0) ? s_preview_loop : (vis.animation_loops ? 1 : 0);
+            if (overlay_checkbox("Loop (Preview)", &loop_override))
+            {
+                s_preview_loop = loop_override; /* start overriding */
+            }
+            /* Advance animation time using overlay dt when playing and animatable */
+            if (s_preview_play && can_animate)
+            {
+                int dt_ms = (int) (overlay_last_dt() * 1000.0f);
+                if (dt_ms < 0)
+                    dt_ms = 0;
+                s_anim_elapsed_ms += dt_ms;
+                if (!anim_loops)
+                {
+                    /* Clamp at end */
+                    int max_ms = (effective - 1) * (fdur > 1 ? fdur : 100);
+                    if (s_anim_elapsed_ms > max_ms)
+                        s_anim_elapsed_ms = max_ms;
+                }
+            }
+        }
+
+        if (effective > 0)
+        {
+            int idx = 0;
+            if (can_animate)
+            {
+                idx = rogue_skill_anim_sample_index(effective, (fdur > 1 ? fdur : 100),
+                                                    s_anim_elapsed_ms, anim_loops);
+                if (idx < 0)
+                    idx = 0;
+                if (idx >= effective)
+                    idx = effective - 1;
+                if (!s_preview_play)
+                {
+                    /* When paused, allow scrubbing */
+                    s_manual_frame = idx;
+                    if (overlay_slider_int("Frame", &s_manual_frame, 0, effective - 1))
+                    {
+                        if (s_manual_frame < 0)
+                            s_manual_frame = 0;
+                        if (s_manual_frame >= effective)
+                            s_manual_frame = effective - 1;
+                        s_anim_elapsed_ms = s_manual_frame * (fdur > 1 ? fdur : 100);
+                        idx = s_manual_frame;
+                    }
+                }
+            }
+            /* Compute draw position within current panel area */
+            int px = g_ui.cur_x;
+            int py = g_ui.cur_y + 6;
+            int avail_w = g_ui.width;
+            int fw = frames[idx].sw > 0 ? frames[idx].sw : 1;
+            int fh = frames[idx].sh > 0 ? frames[idx].sh : 1;
+            int scale = avail_w / fw;
+            if (scale < 1)
+                scale = 1;
+            if (scale > 6)
+                scale = 6;
+            rogue_sprite_draw(&frames[idx], px, py, scale);
+            /* Reserve some vertical space under the preview to avoid overlap */
+            g_ui.cur_y = py + fh * scale + 12;
+        }
+        else
+        {
+            overlay_label("(Set a sprite path; for Cast, also set Grid WxH to animate)");
         }
     }
 }

@@ -262,6 +262,8 @@ add_library(rogue_core
     src/core/skills/skill_tree.c
     src/core/skills/skill_bar.c
     src/core/skills/skill_talents.c
+    src/core/skills/skill_assets.c
+    src/core/skills/skill_sprite_loader.c
     # EffectSpec parser
     src/graphics/effect_spec_parser.c
     src/graphics/effect_spec_load.c
