@@ -127,6 +127,42 @@ if(ROGUE_ENABLE_SDL AND NOT TARGET SDL2::SDL2)
     message(FATAL_ERROR "SDL2 not found. Provide -DROGUE_SDL2_ROOT=path (containing include/SDL.h and lib/SDL2.lib) or disable with -DROGUE_ENABLE_SDL=OFF")
 endif()
 
+# Optional SDL2_image and SDL2_mixer fallbacks via pkg-config on Unix
+if(UNIX AND ROGUE_ENABLE_SDL)
+    find_package(PkgConfig QUIET)
+    if(PKG_CONFIG_FOUND)
+        # SDL2_image
+        if(ROGUE_ENABLE_SDL_IMAGE AND NOT TARGET SDL2_image::SDL2_image)
+            # Try both modern and legacy pkg-config names
+            pkg_check_modules(PC_SDL2_IMAGE QUIET SDL2_image sdl2_image)
+            if(PC_SDL2_IMAGE_FOUND)
+                add_library(SDL2_image::SDL2_image INTERFACE IMPORTED)
+                set_target_properties(SDL2_image::SDL2_image PROPERTIES
+                    INTERFACE_INCLUDE_DIRECTORIES "${PC_SDL2_IMAGE_INCLUDE_DIRS}"
+                    INTERFACE_LINK_LIBRARIES "${PC_SDL2_IMAGE_LIBRARIES}"
+                )
+                # Ensure downstream conditionals see this as found
+                set(SDL2_image_FOUND TRUE CACHE INTERNAL "SDL2_image provided via pkg-config fallback")
+                message(STATUS "Using SDL2_image via pkg-config: includes=${PC_SDL2_IMAGE_INCLUDE_DIRS}")
+            endif()
+        endif()
+
+        # SDL2_mixer
+        if(ROGUE_ENABLE_SDL_MIXER AND NOT TARGET SDL2_mixer::SDL2_mixer)
+            pkg_check_modules(PC_SDL2_MIXER QUIET SDL2_mixer sdl2_mixer)
+            if(PC_SDL2_MIXER_FOUND)
+                add_library(SDL2_mixer::SDL2_mixer INTERFACE IMPORTED)
+                set_target_properties(SDL2_mixer::SDL2_mixer PROPERTIES
+                    INTERFACE_INCLUDE_DIRECTORIES "${PC_SDL2_MIXER_INCLUDE_DIRS}"
+                    INTERFACE_LINK_LIBRARIES "${PC_SDL2_MIXER_LIBRARIES}"
+                )
+                set(SDL2_mixer_FOUND TRUE CACHE INTERNAL "SDL2_mixer provided via pkg-config fallback")
+                message(STATUS "Using SDL2_mixer via pkg-config: includes=${PC_SDL2_MIXER_INCLUDE_DIRS}")
+            endif()
+        endif()
+    endif()
+endif()
+
 if(ROGUE_CODE_COVERAGE)
     if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
         message(STATUS "Code coverage enabled")

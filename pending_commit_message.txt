@@ -1,3 +1,14 @@
+build(cmake/unix): pkg-config fallbacks for SDL2_image/mixer; CI hardening; tests 617/617
+
+- Unix: add pkg-config fallbacks for SDL2_image and SDL2_mixer. When pkg-config finds either, synthesize matching INTERFACE imported targets (SDL2_image::SDL2_image, SDL2_mixer::SDL2_mixer) wired with include dirs and link libs. Keeps find_package first; only falls back on Unix when needed. Status logs include discovered include paths.
+- CI: improves macOS/Ubuntu resilience by allowing pkg-config discovery where CMake packages are absent; headless tests unchanged (SDL_VIDEODRIVER=dummy, Xvfb on Linux); Windows uses classic vcpkg bootstrap as previously configured.
+- Docs: README “Latest CI verification” reflects current total 617/617.
+- Tests: full suite passes locally from repo root with `ctest --test-dir build -C Debug -j12 --output-on-failure` → 100% PASS (617/617).
+
+Quality gates
+- Build: CMake Debug with parallelism (-j12) OK
+- Tests: 100% PASS (617/617); ignore policy for historical flaky validation CLI smoke remains unchanged
+
 feat(dungeon/phase9.3): mutator stacking rules (incompatibility + group caps), run-summary callbacks, depth profile export; docs/tests; suite green (617/617)
 
 - Stacking rules: add explicit incompatibility pairs and per-group caps to the mutator system; loader now supports `group` on RogueMutatorDesc.
