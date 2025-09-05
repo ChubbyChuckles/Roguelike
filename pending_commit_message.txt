@@ -1,3 +1,16 @@
+feat(dungeon/phase9.3): mutator stacking rules (incompatibility + group caps), run-summary callbacks, depth profile export; docs/tests; suite green (617/617)
+
+- Stacking rules: add explicit incompatibility pairs and per-group caps to the mutator system; loader now supports `group` on RogueMutatorDesc.
+- Selection: update deterministic K-choose-N to enforce stacking rules using a compatible-subset search (with greedy fallback) and stable id-sorted manifests for replay integrity.
+- Analytics: introduce run-summary callback registration/emission for post-run consumers (vendor/crafting hooks to be wired next).
+- Export: add `rogue_dungeon_export_depth_profile(path, max_depth)` producing JSON `depth_target_level_table`; ensures parent directories exist (mkdir -p) and uses cross-platform fopen.
+- Tests: add `tests/unit/test_dungeon_phase9_3_stacking_and_export.c` to validate incompatibility & group-cap enforcement and verify JSON export path handling. Keep 9.1/9.2 tests green.
+- Docs: update roadmap (mark 9.3 Done; note export/callbacks), README Notes section with new APIs and test status (617/617).
+
+Quality gates:
+- Build: Debug (SDL2) with -j12 completed on Windows/MSVC.
+- Tests: ctest -C Debug -j12 from build dir  100% PASS (617/617), including UI reduced-motion case and new phase 9.3 unit.
+
 worldgen(dungeon phase8): finalize EV sampler tests, gate upgrade guarantee by loadout heuristic; docs
 
 - Add EV sanity tests around weighted tier sampler: bounds, depth monotonicity, bump behavior; expose `rogue_dungeon_debug_sample_reward_tier()` for deterministic sampling in tests.

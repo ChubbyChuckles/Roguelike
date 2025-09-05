@@ -340,6 +340,7 @@ typedef struct RogueMutatorDesc
     float weight;            /* selection weight (>0) */
     float reward_multiplier; /* e.g., 1.0 = baseline, >1 scales rewards */
     char effect_dsl[128];    /* tiny DSL for global effect; placeholder for now */
+    char group[24];          /* optional stacking group/category (Phase 9.3) */
 } RogueMutatorDesc;
 
 /* Registry management */
@@ -362,6 +363,32 @@ int rogue_mutator_roll_k_choose_n(RogueWorldGenContext* ctx, int k, int n, int* 
 /* Manifest utility: given indices, produce a sorted comma-separated id list. Returns 1 on success.
  */
 int rogue_mutator_manifest_csv(const int* indices, int count, char* out_csv, size_t cap);
+
+/* Phase 9.3: Stacking rules & incompatibility matrix */
+/* Clear all stacking rules and incompatibility pairs (use in tests). */
+void rogue_mutator_clear_rules(void);
+/* Define that two mutators (by id) are incompatible together. Returns 1 on success. */
+int rogue_mutator_define_incompatible(const char* id_a, const char* id_b);
+/* Define a group stacking cap. Mutators may specify desc.group; at most max_count from that group
+ * can be active together. Returns 1 on success. */
+int rogue_mutator_define_group_cap(const char* group, int max_count);
+/* Validate a set of indices against rules; returns 1 if compatible, 0 if violates. */
+int rogue_mutator_is_compatible_set(const int* indices, int count);
+
+/* Phase 9.x: Run summary callback registration (vendor/crafting telemetry hooks). */
+typedef void (*RogueRunSummaryCallback)(const char* mutator_manifest_csv,
+                                        float reward_multiplier_accum, void* user_data);
+/* Register a callback; duplicates ignored. */
+int rogue_dungeon_register_run_summary_callback(RogueRunSummaryCallback cb, void* user_data);
+/* Clear all registered callbacks. */
+void rogue_dungeon_clear_run_summary_callbacks(void);
+/* Emit a run summary event given the selected mutators and their combined reward multiplier. */
+void rogue_dungeon_emit_run_summary(const int* mutator_indices, int count,
+                                    float reward_multiplier_accum);
+
+/* Open Task: export depth profile for analytics/balancing. Writes JSON to path.
+ * Returns 1 on success, 0 on failure. */
+int rogue_dungeon_export_depth_profile(const char* path, int max_depth);
 
 /* ---- Phase 9: Lootable & Resource Nodes ---- */
 typedef struct RogueResourceNodeDesc

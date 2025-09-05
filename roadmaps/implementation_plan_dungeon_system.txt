@@ -13,8 +13,9 @@ STATUS DELTA (Latest):
 - Phase 9 mutators (new scaffolding):
 	- Implemented mutator registry and JSON loader (9.1 Done): RogueMutatorDesc{id, weight, reward_multiplier, effect_dsl}, registry add/find/get, and loaders from JSON text/file. Deterministic, minimal parser; caps and duplicate-id guards in place.
 	- Deterministic selection helper (9.2 Partial): headless roll K choose N using worldgen micro-RNG with weighted picks (no UI yet). Stable manifest CSV utility and sorting for replay determinism.
-	- Tests added: `test_dungeon_phase9_1_mutator_loader` and `test_dungeon_phase9_2_selection`.
-	- Build & Tests: Debug (SDL2) all‑green (616/616) with -j12.
+	- Phase 9.3 Done: Stacking rules and incompatibility matrix with per-group caps; loader supports `group`, selection enforces `incompatible` pairs and `group_cap` via a backtracking compatible-subset search (greedy fallback retained). Run-summary callback registration/emission added for post-run analytics; depth profile export writes a JSON `depth_target_level_table` and ensures parent directories exist.
+	- Tests added: `test_dungeon_phase9_1_mutator_loader`, `test_dungeon_phase9_2_selection`, and `test_dungeon_phase9_3_stacking_and_export` (verifies incompatibility/group-cap enforcement and JSON export exists).
+	- Build & Tests: Debug (SDL2) all‑green (617/617) with -j12.
 - Phase 8 loot & reward orchestration updates (current):
 	- Chest distribution (overlay 10–13) and adjacent upgrade marker (14) remain in place; overlay writes guarded by overlay_magic.
 	- EV‑normalized tier sampler finalized with a debug sampling API for tests; bounds, depth monotonicity, and bump behavior validated.
@@ -144,9 +145,9 @@ PHASE 8. Loot & Reward Orchestration
 PHASE 9. Run Modifiers & Mutators
 9.1 Mutator definition file (id, weight, effect DSL, reward_multiplier) (Done)
 9.2 Pre-run mutator selection UI (roll K choose N) (Partial) (deterministic headless selection helper implemented; UI pending)
-9.3 Stacking rules & incompatibility matrix (X)
+9.3 Stacking rules & incompatibility matrix (Done)
 9.4 Dynamic mid-run mutator event (optional challenge offer) (X)
-9.5 Tests: reward scaling correctness, incompatibility enforcement, deterministic selection (X)
+9.5 Tests: reward scaling correctness, incompatibility enforcement, deterministic selection (Partial) (incompatibility/group-cap enforcement covered; reward scaling checks pending)
 
 PHASE 10. Scaling & Adaptive Difficulty Integration
 10.1 Map dungeon depth -> target enemy relative ΔL band (X)
@@ -288,8 +289,8 @@ Risk Mitigation Cross-System:
  - Prevent exploit of mutator reward stacking with vendor special offers: vendor hooks only triggered once per unique mutator_id per run.
 
 Open Tasks:
- - Expose API dungeon_export_depth_profile();
  - Add gating manifest listing all puzzle/skill tags used in current seed for fast audit.
- - Provide callback registration for vendor & crafting modules to listen to run_summary events.
+ - Add gating manifest listing all puzzle/skill tags used in current seed for fast audit.
+ - Provide additional consumers for run_summary callbacks in vendor/crafting modules (registration API exists; wire listeners).
 
 Change Impact: Documentation only; follow-up commits should implement exports, invariance tests, and callback interfaces referenced here.

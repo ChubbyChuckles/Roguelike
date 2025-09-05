@@ -63,3 +63,23 @@ Refactor this large C source file to enhance maintainability by modularizing it 
 ### Add Documentation
 
 Read the implementation plan at "roadmaps/custom_documentation.txt". Get the next not implemented feature from the top and implement it. After implementing it go back to "roadmaps/custom_documentation.txt" and mark the feature as done by changing the [ ] in front of it into a [x]. Repeat this process until all features are implemented.
+
+
+### Multi-Platform support
+
+The code currently runs on Windows but needs to be compatible with Linux and macOS without modifying the codebase on my local PC. Create a sophisticated, step-by-step implementation plan for a GitHub Actions CI workflow that achieves multi-platform compatibility (Windows, Linux, macOS) by performing any necessary refactoring within the CI pipeline itself. Read the current CMake files to know how the build process on the local PC works because the current CI workflow in ".github\workflows\ci.yml" doesnt work and fails to build on Windows while trying to setup SDL2.
+
+The plan must:
+
+1. Ensure the codebase remains unchanged on my local PC, with all refactoring (e.g., handling platform-specific differences like file paths or SDL2 configurations) done in the CI workflow.
+2. Support building and testing on `windows-latest`, `ubuntu-latest`, and `macos-latest` runners.
+3. Use CMake as the build system and install SDL2 (version 2.32.4) consistently across platforms.
+4. Include automated static analysis to detect non-portable code and apply fixes (e.g., using `Clang-Tidy` or `sed` for file path conversions) within the CI pipeline.
+5. Run unit and integration tests to verify functionality on all platforms, assuming a test executable exists (e.g., `game_engine_test`).
+6. Set up versioned releases (e.g., using semantic versioning like `v1.0.0`) with release artifacts for each platform uploaded to GitHub Releases.
+7. Handle platform-specific SDL2 configurations (e.g., include paths, libraries) using CMake and conditional compilation where needed.
+8. Provide detailed steps for each phase, including dependency installation, refactoring, building, testing, and release creation.
+9. Ensure the workflow is efficient, reusable, and maintainable, with clear error handling and logging.
+10. Include comments in the workflow YAML to explain each step.
+
+The plan should result in a complete GitHub Actions workflow file (`.github/workflows/build-and-release.yml`). Avoid assumptions about specific code details beyond SDL2 usage, and focus on generic solutions for portability issues (e.g., file paths, compiler differences). Format the plan as a TODO-List with tasks that warent done yet marked with "[ ]" and tasks that are done as "[x]" and write it ro "roadmaps/implementation_multi_platform.txt"
