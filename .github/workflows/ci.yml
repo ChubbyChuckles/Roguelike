@@ -19,15 +19,43 @@ concurrency:
 
 jobs:
   build-and-test:
-    name: Build & Test (${{ matrix.os }})
+    name: Build & Test (${{ matrix.os }} | ${{ matrix.build_type }} | ${{ matrix.compiler }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
-        build_type: [Debug]
+        include:
+          # Windows (MSVC)
+          - os: windows-latest
+            build_type: Debug
+            compiler: msvc
+          - os: windows-latest
+            build_type: Release
+            compiler: msvc
+          # Ubuntu (GCC)
+          - os: ubuntu-latest
+            build_type: Debug
+            compiler: gcc
+          - os: ubuntu-latest
+            build_type: Release
+            compiler: gcc
+          # Ubuntu (Clang)
+          - os: ubuntu-latest
+            build_type: Debug
+            compiler: clang
+          - os: ubuntu-latest
+            build_type: Release
+            compiler: clang
+          # macOS (Clang)
+          - os: macos-latest
+            build_type: Debug
+            compiler: clang
+          - os: macos-latest
+            build_type: Release
+            compiler: clang
     env:
       BUILD_TYPE: ${{ matrix.build_type }}
+      COMPILER: ${{ matrix.compiler }}
       ROGUE_ENABLE_SDL: ON
       VCPKG_ROOT: C:\vcpkg
       VCPKG_DEFAULT_TRIPLET: x64-windows
@@ -38,14 +66,14 @@ jobs:
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1
 
-      - name: Cache CMake build (per-OS)
+      - name: Cache CMake build (per-OS/Compiler/Config)
         uses: actions/cache@v4
         with:
           path: |
             build
-          key: ${{ runner.os }}-cmake-${{ env.BUILD_TYPE }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'src/**', 'tests/**') }}
+          key: ${{ runner.os }}-cmake-${{ env.BUILD_TYPE }}-${{ env.COMPILER }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'src/**', 'tests/**') }}
           restore-keys: |
-            ${{ runner.os }}-cmake-${{ env.BUILD_TYPE }}-
+            ${{ runner.os }}-cmake-${{ env.BUILD_TYPE }}-${{ env.COMPILER }}-
 
       # Windows-specific setup
       - name: Setup MSVC Developer Command Prompt
@@ -95,7 +123,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build build-essential pkg-config ccache clang-tidy \
+          sudo apt-get install -y cmake ninja-build build-essential pkg-config ccache clang clang-tidy \
             libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
             xvfb
 
@@ -145,6 +173,12 @@ jobs:
               -DROGUE_WARNINGS_AS_ERRORS=OFF \
               -DCMAKE_PREFIX_PATH="$BREW_PREFIX"
           else
+            # Select compiler on Linux based on matrix.compiler
+            if [ "${COMPILER}" = "clang" ]; then
+              export CC=clang
+            else
+              export CC=gcc
+            fi
             cmake -G Ninja -S . -B build \
               -DROGUE_ENABLE_SDL=${ROGUE_ENABLE_SDL} \
               -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
@@ -185,24 +219,25 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ctest-logs-${{ matrix.os }}
+          name: ctest-logs-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}
           path: |
             build/Testing/Temporary
             build/ctest_*.log
 
-      - name: Run clang-tidy (Linux only, non-blocking)
+      - name: Run clang-tidy (Linux, broadened via compile_commands.json; non-blocking)
         if: runner.os == 'Linux'
         continue-on-error: true
         run: |
-          echo "Running clang-tidy on a subset of files for quick signal..."
-          find src -type f -name "*.c" | head -n 50 | xargs -I{} bash -c 'clang-tidy -p build {} || true'
+          echo "Running clang-tidy on a broader subset using compile_commands.json context..."
+          # Limit to 200 files for time; still advisory
+          find src -type f -name "*.c" | head -n 200 | xargs -I{} bash -c 'clang-tidy -p build "{}" || true'
 
-      - name: Run clang-tidy (macOS, non-blocking)
+      - name: Run clang-tidy (macOS, broadened via compile_commands.json; non-blocking)
         if: runner.os == 'macOS'
         continue-on-error: true
         run: |
-          echo "Running clang-tidy on a subset of files for quick signal..."
-          find src -type f -name "*.c" | head -n 50 | xargs -I{} bash -c 'clang-tidy -p build {} || true'
+          echo "Running clang-tidy on a broader subset using compile_commands.json context..."
+          find src -type f -name "*.c" | head -n 200 | xargs -I{} bash -c 'clang-tidy -p build "{}" || true'
 
       - name: Format Check (Windows only)
         if: runner.os == 'Windows'
@@ -215,13 +250,13 @@ jobs:
             exit 1
           }
 
-      - name: Run clang-tidy (Windows, non-blocking)
+      - name: Run clang-tidy (Windows, broadened via compile_commands.json; non-blocking)
         if: runner.os == 'Windows'
         continue-on-error: true
         shell: pwsh
         run: |
-          Write-Host "Running clang-tidy on a subset of files for quick signal..."
-          Get-ChildItem -Recurse src -Filter *.c | Select-Object -First 50 | ForEach-Object { clang-tidy -p build $_.FullName 2>$null }
+          Write-Host "Running clang-tidy on a broader subset using compile_commands.json context..."
+          Get-ChildItem -Recurse src -Filter *.c | Select-Object -First 200 | ForEach-Object { clang-tidy -p build $_.FullName 2>$null }
 
   docs:
     name: Build Docs (windows-latest)

@@ -591,3 +591,9 @@ ci: speed up multi-OS matrix (cache + ccache), add SDL2 version reporting, clang
 - CI stability: keep SDL headless setup; Linux uses xvfb-run. Windows PATH includes vcpkg SDL2 runtime.
 - Roadmap: mark matrix/testing/docs/Pages/caching/runtime handling as done; note clang-tidy sample and ignore of test_validation_cli_smoke.
 - README: add a short CI matrix/testing/docs section so contributors know what runs.
+
+ci(matrix/analysis): add Release + compiler variants; broaden clang-tidy (compile_commands)
+
+- Matrix: expand to include Debug/Release and compiler axis: Windows(MSVC), Ubuntu(GCC/Clang), macOS(Clang). Cache keys incorporate compiler and config; artifacts include os-compiler-config suffix.
+- Analysis: increase clang-tidy coverage to first 200 C sources per job using -p build (compile_commands.json). Steps remain non-blocking.
+- Roadmap: mark Phase 5 (artifact isolation, build types, compiler variations) and Phase 4 (clang-tidy configured across OSes) as done.
