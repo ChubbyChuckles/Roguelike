@@ -292,6 +292,7 @@ typedef struct RogueDungeonChestPlacement
     int y;
     int tier;       /* 0=common,1=uncommon,2=rare,3=epic */
     int is_upgrade; /* 1 if reserved/guaranteed upgrade chest */
+    int room_index; /* room index in graph for tests/analysis (optional; -1 when unknown) */
 } RogueDungeonChestPlacement;
 
 /* Place dungeon chests with depth-weighted reward tiers. Reserves chests for dead-ends and
@@ -309,6 +310,22 @@ int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
  * rooms). Uses overlay deco code 50 to mark a material node for tests. Returns number placed. */
 int rogue_dungeon_seed_material_nodes(RogueWorldGenContext* ctx, RogueTileMap* io_map,
                                       const RogueDungeonGraph* graph, int max_nodes);
+
+/* Phase 8.5 (tests): Debug helper to sample the reward tier sampler distribution.
+ * Samples the internal weighted tier sampler at a fixed depth and bump_count for `reps` trials.
+ * Writes counts for tiers 0..3 into out_counts[4]. Returns 0 on success, negative on error. */
+int rogue_dungeon_debug_sample_reward_tier(int depth, int bump_count, int reps, int out_counts[4]);
+
+/* Phase 8.3: Smart drop coupling – upgrade guarantee heuristic.
+ * Returns 1 if the current player loadout appears to have meaningful upgrade potential,
+ * 0 if the player is already effectively top-tier (no guarantee should be injected),
+ * negative on error/unavailable state. Implemented conservatively using equipment snapshot.
+ * This is a lightweight query used only by worldgen to decide whether to stamp the upgrade
+ * guarantee marker (overlay 14). Contents are influenced later by loot systems. */
+int rogue_dungeon_upgrade_possible(void);
+/* Test hook to force/disable the upgrade-possible heuristic:
+ *  -1 = clear override (use heuristic); 0 = force not possible; 1 = force possible. */
+void rogue_dungeon_set_upgrade_possible_override(int value);
 
 /* ---- Phase 9: Lootable & Resource Nodes ---- */
 typedef struct RogueResourceNodeDesc

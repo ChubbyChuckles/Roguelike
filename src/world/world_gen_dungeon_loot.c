@@ -3,7 +3,11 @@
  * @brief Phase 8: Loot & Reward orchestration for dungeon generation (chests + materials).
  */
 
+#include "../util/loadout_optimizer.h"
 #include "world_gen.h"
+/* Loot systems: item instances & base definitions used by upgrade heuristic */
+#include "../core/loot/loot_instances.h"
+#include "../core/loot/loot_item_defs.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -44,18 +48,52 @@ static int pick_room_interior_xy(RogueWorldGenContext* ctx, const RogueTileMap* 
     return 0;
 }
 
-/* Tier distribution by depth: simple ramp 0..3 capped, biased toward mid tiers */
-static int sample_reward_tier(RogueWorldGenContext* ctx, int depth)
+/* Tier distribution by depth with EV-normalized weighting.
+ * base tier = clamp(depth/3, 0..3).
+ * We sample around base with probabilities skewed by bump_count (0..2):
+ *   start p_low=0.30 (base-1), p_mid=0.60 (base), p_high=0.10 (base+1)
+ *   for each bump, shift 0.15 from low to high (bounded), keeping mid as remainder.
+ * This yields modest EV increases for optional/challenge rooms without exceeding caps. */
+static int sample_reward_tier_weighted(RogueWorldGenContext* ctx, int depth, int bump_count)
 {
+    if (bump_count < 0)
+        bump_count = 0;
+    if (bump_count > 2)
+        bump_count = 2;
+
     int base = depth / 3; /* every 3 depth -> +1 tier */
+    if (base < 0)
+        base = 0;
     if (base > 3)
         base = 3;
-    /* jitter: 60% base, 30% base-1, 10% base+1 within bounds */
-    unsigned int r = rogue_worldgen_rand_u32(&ctx->micro_rng) % 100u;
-    if (r < 60)
-        return base;
-    if (r < 90)
+
+    /* use basis points (0..1000) to avoid float */
+    int p_low = 300;  /* base-1 */
+    int p_high = 100; /* base+1 */
+    for (int i = 0; i < bump_count; ++i)
+    {
+        int delta = 150;    /* 0.15 */
+        int min_low = 50;   /* keep at least 0.05 */
+        int max_high = 500; /* cap at 0.50 */
+        if (p_low - delta < min_low)
+            delta = p_low - min_low;
+        if (p_high + delta > max_high)
+            delta = max_high - p_high;
+        if (delta > 0)
+        {
+            p_low -= delta;
+            p_high += delta;
+        }
+    }
+    int p_mid = 1000 - (p_low + p_high);
+    if (p_mid < 0)
+        p_mid = 0; /* should not happen but clamp */
+
+    unsigned int r = rogue_worldgen_rand_u32(&ctx->micro_rng) % 1000u;
+    if (r < (unsigned) p_low)
         return (base > 0) ? base - 1 : 0;
+    if (r < (unsigned) (p_low + p_mid))
+        return base;
     return (base < 3) ? base + 1 : 3;
 }
 
@@ -81,6 +119,88 @@ static int try_place_upgrade_adjacent(RogueTileMap* io_map, int cx, int cy)
     return 0;
 }
 
+/* ---- Phase 8.3: Smart drop coupling – upgrade heuristic & test override ---- */
+static int g_upgrade_possible_override = -1; /* -1 none, 0 force no, 1 force yes */
+void rogue_dungeon_set_upgrade_possible_override(int value) { g_upgrade_possible_override = value; }
+
+int rogue_dungeon_upgrade_possible(void)
+{
+    if (g_upgrade_possible_override == 0)
+        return 0;
+    if (g_upgrade_possible_override == 1)
+        return 1;
+    /* Heuristic: if any equipped slot has an instance with rarity below EPIC (3) and
+       there exists at least one active item definition of the same broad category with
+       strictly higher base stat proxy (base_damage_max for weapons, base_armor for armor),
+       then an upgrade is possible. Keep light and side-effect free. */
+    RogueLoadoutSnapshot snap;
+    if (rogue_loadout_snapshot(&snap) != 0)
+        return -1;
+
+    /* Scan equipped items to see if any slot is maxed at high rarity. If all equipped are EPIC
+       or empty, still allow upgrades if empty slots exist. */
+    int any_empty_slot = 0;
+    int any_below_epic = 0;
+    for (int s = 0; s < ROGUE_EQUIP_SLOT_COUNT; ++s)
+    {
+        int inst = snap.inst_indices[s];
+        if (inst < 0)
+        {
+            any_empty_slot = 1;
+            continue;
+        }
+        const RogueItemInstance* it = rogue_item_instance_at(inst);
+        if (!it)
+            continue;
+        const RogueItemDef* def_cur = rogue_item_def_at(it->def_index);
+        if (!def_cur)
+            continue;
+        if (def_cur->rarity < 3)
+            any_below_epic = 1;
+    }
+
+    /* If fully kitted with EPIC everywhere, treat as top-tier -> no guarantee. */
+    if (!any_below_epic && !any_empty_slot)
+        return 0;
+
+    /* Look for strictly better candidate by category for any equipped piece below EPIC. */
+    for (int s = 0; s < ROGUE_EQUIP_SLOT_COUNT; ++s)
+    {
+        int inst = snap.inst_indices[s];
+        const RogueItemInstance* it = rogue_item_instance_at(inst);
+        const RogueItemDef* def_cur = (it ? rogue_item_def_at(it->def_index) : NULL);
+        int cur_cat = def_cur ? def_cur->category : -1;
+        int cur_damage = def_cur ? def_cur->base_damage_max : 0;
+        int cur_armor = def_cur ? def_cur->base_armor : 0;
+
+        /* Iterate item defs registry for a strictly better item in same broad category */
+        int total_defs = rogue_item_defs_count();
+        for (int di = 0; di < total_defs; ++di)
+        {
+            const RogueItemDef* d = rogue_item_def_at(di);
+            if (!d)
+                continue;
+            if (cur_cat == -1)
+            {
+                /* Empty slot can accept a category item -> treat as upgrade potential */
+                if (d->category == ROGUE_ITEM_WEAPON || d->category == ROGUE_ITEM_ARMOR)
+                    return 1;
+                continue;
+            }
+            if (d->category != cur_cat)
+                continue;
+            if (d->rarity > (def_cur ? def_cur->rarity : -1))
+                return 1;
+            /* Also allow stat increase at same rarity as upgrade */
+            if (cur_cat == ROGUE_ITEM_WEAPON && d->base_damage_max > cur_damage)
+                return 1;
+            if (cur_cat == ROGUE_ITEM_ARMOR && d->base_armor > cur_armor)
+                return 1;
+        }
+    }
+    return 0;
+}
+
 int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
                                const RogueDungeonGraph* graph, int target_chests,
                                RogueDungeonChestPlacement* out_array, int max_out,
@@ -96,20 +216,27 @@ int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
         return 0;
     compute_degrees(graph, deg);
 
-    /* Precompute BFS distance from room 0 to all rooms as a proxy for depth */
+    /* Precompute BFS distance from room 0 to all rooms as a proxy for depth. Track parents to
+     * approximate a main path (0 -> deepest) for optional-branch weighting. */
     int* dist = (int*) malloc(sizeof(int) * (size_t) graph->room_count);
+    int* parent = (int*) malloc(sizeof(int) * (size_t) graph->room_count);
     int* q = (int*) malloc(sizeof(int) * (size_t) graph->room_count);
-    if (!dist || !q)
+    if (!dist || !parent || !q)
     {
         free(deg);
         if (dist)
             free(dist);
+        if (parent)
+            free(parent);
         if (q)
             free(q);
         return 0;
     }
     for (int i = 0; i < graph->room_count; ++i)
+    {
         dist[i] = -1;
+        parent[i] = -1;
+    }
     int qs = 0, qe = 0;
     dist[0] = 0;
     q[qe++] = 0;
@@ -127,8 +254,31 @@ int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
             if (v >= 0 && dist[v] < 0)
             {
                 dist[v] = dist[u] + 1;
+                parent[v] = u;
                 q[qe++] = v;
             }
+        }
+    }
+
+    /* Compute an approximate critical path from start (0) to deepest room to identify
+     * optional branches. */
+    int deepest = 0, deepest_d = -1;
+    for (int i = 0; i < graph->room_count; ++i)
+        if (dist[i] > deepest_d)
+        {
+            deepest_d = dist[i];
+            deepest = i;
+        }
+    int* on_path = (int*) calloc((size_t) graph->room_count, sizeof(int));
+    if (on_path)
+    {
+        int cur = deepest;
+        while (cur >= 0)
+        {
+            on_path[cur] = 1;
+            if (cur == 0)
+                break;
+            cur = parent[cur];
         }
     }
 
@@ -147,12 +297,18 @@ int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
                 int x = 0, y = 0;
                 if (!pick_room_interior_xy(ctx, io_map, r, &x, &y))
                     continue;
-                int tier = sample_reward_tier(ctx, (dist[i] >= 0 ? dist[i] : 0));
+                int bump_count = 0;
+                if (on_path && !on_path[i])
+                    bump_count++;
+                if ((r->tag & (ROGUE_DUNGEON_ROOM_ELITE | ROGUE_DUNGEON_ROOM_PUZZLE)) != 0)
+                    bump_count++;
+                int tier =
+                    sample_reward_tier_weighted(ctx, (dist[i] >= 0 ? dist[i] : 0), bump_count);
                 /* Write overlay deco code: 10..13 represent tiers 0..3 */
                 if (io_map->overlay_deco && io_map->overlay_magic == 0xDEC00EAU)
                     rogue_tilemap_set_deco(io_map, x, y, (unsigned char) (10 + tier));
                 if (out_array && placed < max_out)
-                    out_array[placed] = (RogueDungeonChestPlacement){x, y, tier, 0};
+                    out_array[placed] = (RogueDungeonChestPlacement){x, y, tier, 0, i};
                 placed++;
             }
         }
@@ -163,16 +319,17 @@ int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
      * We try to place code 14 on an adjacent empty overlay tile that is also a dungeon floor. */
     if (placed > 0)
     {
-        int best = 0, bestd = -1;
-        for (int i = 0; i < graph->room_count; ++i)
-            if (dist[i] > bestd)
-            {
-                bestd = dist[i];
-                best = i;
-            }
+        int best = deepest;
         int marked = 0;
         if (io_map->overlay_deco && io_map->overlay_magic == 0xDEC00EAU)
         {
+            /* Check upgrade-possible heuristic; if not possible, skip guarantee marker */
+            int can_upgrade = rogue_dungeon_upgrade_possible();
+            if (can_upgrade <= 0)
+            {
+                /* Leave out_upgrade_count as previously set (likely 0) and skip marker. */
+                goto SKIP_UPGRADE_MARKER;
+            }
             /* Pass A: deepest room – find any chest tile and place 14 adjacent */
             for (int y = graph->rooms[best].y + 1;
                  y < graph->rooms[best].y + graph->rooms[best].h - 1 && !marked; ++y)
@@ -186,6 +343,18 @@ int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
                         {
                             if (out_upgrade_count)
                                 *out_upgrade_count = 1;
+                            /* Mark is_upgrade for the matching chest in out_array if provided */
+                            if (out_array)
+                            {
+                                for (int k = 0; k < placed; ++k)
+                                {
+                                    if (out_array[k].x == x && out_array[k].y == y)
+                                    {
+                                        out_array[k].is_upgrade = 1;
+                                        break;
+                                    }
+                                }
+                            }
                             marked = 1;
                         }
                     }
@@ -203,17 +372,32 @@ int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
                             {
                                 if (out_upgrade_count)
                                     *out_upgrade_count = 1;
+                                if (out_array)
+                                {
+                                    for (int k = 0; k < placed; ++k)
+                                    {
+                                        if (out_array[k].x == x && out_array[k].y == y)
+                                        {
+                                            out_array[k].is_upgrade = 1;
+                                            break;
+                                        }
+                                    }
+                                }
                                 marked = 1;
                             }
                         }
                     }
             }
         }
+    SKIP_UPGRADE_MARKER:;
     }
 
     free(q);
+    free(parent);
     free(dist);
     free(deg);
+    if (on_path)
+        free(on_path);
     return placed;
 }
 
@@ -242,4 +426,33 @@ int rogue_dungeon_seed_material_nodes(RogueWorldGenContext* ctx, RogueTileMap* i
         placed++;
     }
     return placed;
+}
+
+int rogue_dungeon_debug_sample_reward_tier(int depth, int bump_count, int reps, int out_counts[4])
+{
+    if (!out_counts || reps <= 0)
+        return -1;
+    out_counts[0] = out_counts[1] = out_counts[2] = out_counts[3] = 0;
+
+    /* Build a minimal worldgen context with a deterministic seed; use micro_rng channel. */
+    RogueWorldGenConfig cfg;
+    memset(&cfg, 0, sizeof cfg);
+    cfg.seed = 424242; /* fixed seed for deterministic test sampling */
+    cfg.width = 16;
+    cfg.height = 16;
+    RogueWorldGenContext ctx;
+    rogue_worldgen_context_init(&ctx, &cfg);
+
+    for (int i = 0; i < reps; ++i)
+    {
+        int t = sample_reward_tier_weighted(&ctx, depth, bump_count);
+        if (t < 0)
+            t = 0;
+        if (t > 3)
+            t = 3;
+        out_counts[t]++;
+    }
+
+    rogue_worldgen_context_shutdown(&ctx);
+    return 0;
 }

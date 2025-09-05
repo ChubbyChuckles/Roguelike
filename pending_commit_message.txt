@@ -1,3 +1,14 @@
+worldgen(dungeon phase8): finalize EV sampler tests, gate upgrade guarantee by loadout heuristic; docs
+
+- Add EV sanity tests around weighted tier sampler: bounds, depth monotonicity, bump behavior; expose `rogue_dungeon_debug_sample_reward_tier()` for deterministic sampling in tests.
+- Integrate smart-drop upgrade gating via `rogue_dungeon_upgrade_possible()` with a conservative equipment snapshot; add `rogue_dungeon_set_upgrade_possible_override()` for tests.
+- Place upgrade marker (overlay 14) only when upgrade-possible; preserve tier overlays (10–13); retain overlay_magic guard.
+- Fix includes for loot/equipment APIs in world_gen_dungeon_loot.c.
+- Tests: add `test_dungeon_phase8_5_ev_sanity` and `test_dungeon_phase8_3_upgrade_guarantee`; keep `test_dungeon_phase8_loot_and_materials` green.
+- Roadmap: mark 8.5 Tests = Done; update 8.3 to reflect heuristic + override integration.
+- README: document new APIs and latest test status.
+
+Build & Tests: Debug (SDL2) full suite 100% green (613/613) with -j12.
 Phase 6 (Dungeon): Add puzzle/traversal scaffolding + tests; SDL2 test env hardening retained
 
 - Implement minimal Phase 6 module:
@@ -489,8 +500,27 @@ feat(dungeon/phase8): chest distribution (tiered) + adjacent upgrade markers; ma
 - Seed rare material/crafting nodes inside dungeons with treasure/secret bias (overlay 50).
 - Wire Phase 8 calls in the worldgen orchestrator after traps/secrets.
 - Add unit `tests/unit/test_dungeon_phase8_loot_and_materials.c` validating chest counts, tier overlays ≥ placements, and upgrade marker adjacency.
+Dungeon Phase 8.2: EV‑normalized reward tier weighting, docs update, tests re‑run
+
+- Implement EV‑normalized, depth‑aware reward tier sampler for chest placement:
+	• Introduce deterministic basis‑point weighting around clamped base tier; bump_count (off‑main‑path + ELITE/PUZZLE) shifts mass low→high with clamps. Tiers remain within [0..3].
+	• Replace crude post‑sample tier bumps with weighted sampling in `rogue_dungeon_place_chests`.
+	• Preserve overlay semantics: tier overlays 10–13 on chest tile; upgrade hook marker 14 on a safe adjacent tile; all overlay writes gated by overlay_magic.
+- Update roadmap (Phase 8.2 set to Done) and README to describe the new sampler.
+- Verification: Debug (SDL2) build succeeded; full ctest `-C Debug -j12 --output-on-failure` 100% green (611/611) after the change.
 - Fix earlier overlay clobber by moving upgrade marker off the chest tile via a C helper.
 
 Quality gates:
 - Build: Debug (SDL2) with -j12 OK.
 - Tests: ctest from build dir with -C Debug -j12 --output-on-failure → 100% PASS (611/611). A prior intermittent `test_combat_dps` segfault did not reproduce; rerun and full suite stable.
+
+feat(dungeon/phase8.2-8.3): optional/challenge tier bumps + surfaced upgrade markers; docs/tests; gates green (611/611)
+
+- 8.2: Apply tier bumps for optional-branch and challenge rooms (ELITE/PUZZLE), capped at tier 3; deterministic via BFS main-path inference.
+- 8.3: Keep upgrade marker on an adjacent tile (overlay 14) to avoid clobbering tier overlays and expose `is_upgrade` in placements for instrumentation; smart-drop coupling deferred.
+- Tests: Phase 8 unit asserts overlay non-clobber and upgrade adjacency; placement counts vs. tier overlays remain consistent.
+- Docs: README updated to note 8.2/8.3 behavior; roadmap STATUS DELTA records partial 8.2/8.3 completion.
+
+Quality gates:
+- Build: Debug (SDL2) with -j12 OK.
+- Tests: ctest from build dir with -C Debug -j12 --output-on-failure → 100% PASS (611/611).

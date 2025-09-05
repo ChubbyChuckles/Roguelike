@@ -10,11 +10,16 @@ Scope Overview:
 Deliver a data‑driven, procedural dungeon framework integrating layout generation, biome & thematic layering, enemy difficulty (relative level differential), objective orchestration, environmental hazards, puzzle & traversal mechanics, dynamic events, loot & crafting hooks, infinite player progression pacing, analytics, and deterministic replay. Constraints: single character, infinite leveling (no classes; universal skill access), infinite inventory stack, existing systems (loot, affixes, enemy difficulty, crafting, vendor, skill maze). Goals: High encounter variety, readable progression of challenge, systemic synergy (materials, recipes, vendors, mastery), minimal content authoring overhead, robust anti-exploit & performance guarantees.
 
 STATUS DELTA (Latest):
-- Phase 8 loot & reward orchestration (slice) landed:
-	- Chest distribution implemented with BFS-derived depth tiering. Tier markers use overlay codes 10–13 and an upgrade hook marker (14) is placed on an adjacent safe tile to avoid clobbering the tier indicator. All overlay writes are gated by overlay_magic.
-	- Material/crafting node seeding inside dungeons with treasure/secret bias; uses overlay code 50. Integrated after traps/secrets in the worldgen orchestrator.
-	- Unit `test_dungeon_phase8_loot_and_materials` validates chest counts, tier overlay presence vs placements, and adjacency of upgrade markers.
-	- Build & Tests: Debug (SDL2) all‑green (611/611) with -j12. The previously observed intermittent DPS test segfault did not reproduce on rerun and the full suite is stable.
+- Phase 8 loot & reward orchestration updates (current):
+	- Chest distribution (overlay 10–13) and adjacent upgrade marker (14) remain in place; overlay writes guarded by overlay_magic.
+	- EV‑normalized tier sampler finalized with a debug sampling API for tests; bounds, depth monotonicity, and bump behavior validated.
+	- Upgrade‑possible heuristic integrated: worldgen now gates the upgrade guarantee on a conservative equipment snapshot; includes a test override API.
+	- New tests: `test_dungeon_phase8_5_ev_sanity` and `test_dungeon_phase8_3_upgrade_guarantee` in addition to `test_dungeon_phase8_loot_and_materials`.
+	- Build & Tests: Debug (SDL2) all‑green (613/613) with -j12.
+- Phase 8.2 weighting and 8.3 upgrade hook progress:
+	- EV‑normalized, depth‑aware reward tier weighting uses a deterministic basis‑point sampler around the clamped base tier. `bump_count` (off‑main‑path + ELITE/PUZZLE flags) shifts probability mass low→high per bump with clamps; tiers remain bounded [0..3].
+	- Upgrade hook marks the selected placement in out_array (is_upgrade=1) and places an adjacent overlay 14 marker without clobbering the tier overlays. Now gated by `rogue_dungeon_upgrade_possible()`; tests exercise forced yes/no via override.
+	- Build & Tests re‑run after integration: all‑green (613/613) in Debug (SDL2) with -j12.
 - Phase 7 hazards & traps landed and validation stabilized:
 	- Hazard & Trap subsystem implemented: JSON trap defs (trigger_type, telegraph_ms, damage profile, cooldown), damage scales with depth ΔL and avoidance stats; overlap resolver caps simultaneous high-DPS hazards; disarm interaction with skill-based success probability and deterministic micro-RNG; unit `test_dungeon_phase7_traps` covers telegraph compliance, scaling monotonicity, overlap cap, and disarm odds.
 	- Puzzle/traversal: soft-lock watchdog integrated into worldgen flow; minor scaffolding tightened.
@@ -124,10 +129,10 @@ PHASE 7. Hazard & Trap System
 
 PHASE 8. Loot & Reward Orchestration
 8.1 Chest distribution algorithm (reserve for dead-end & milestone rooms) (Done)
-8.2 Reward tier weighting by depth, optional branch completion, challenge objectives (Partial) (depth tiering implemented; optional-branch/challenge weighting pending)
-8.3 Smart drop injection (ensure at least one upgrade opportunity per run unless top-tier equipped) (X)
+8.2 Reward tier weighting by depth, optional branch completion, challenge objectives (Done) (EV‑normalized, depth‑aware weighted sampler using integer basis points; bump_count (off‑main‑path + ELITE/PUZZLE) shifts probability mass low→high with clamps; deterministic micro‑RNG; tiers capped at 3)
+8.3 Smart drop injection (ensure at least one upgrade opportunity per run unless top-tier equipped) (Partial) (adjacent upgrade marker + is_upgrade output hook in place; upgrade‑possible heuristic + test override integrated; smart‑drop loot content coupling pending)
 8.4 Material & crafting recipe seeding (rare nodes inside dungeons) (Done)
-8.5 Tests: EV consistency vs difficulty, upgrade guarantee logic, chest placement constraints (Partial) (placement and marker adjacency covered; EV/guarantee tests pending)
+8.5 Tests: EV consistency vs difficulty, upgrade guarantee logic, chest placement constraints (Done) (added `test_dungeon_phase8_5_ev_sanity` and `test_dungeon_phase8_3_upgrade_guarantee`; placement and marker adjacency covered in `test_dungeon_phase8_loot_and_materials`)
 
 PHASE 9. Run Modifiers & Mutators
 9.1 Mutator definition file (id, weight, effect DSL, reward_multiplier) (X)
