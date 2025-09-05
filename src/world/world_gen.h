@@ -293,6 +293,12 @@ typedef struct RogueDungeonChestPlacement
     int tier;       /* 0=common,1=uncommon,2=rare,3=epic */
     int is_upgrade; /* 1 if reserved/guaranteed upgrade chest */
     int room_index; /* room index in graph for tests/analysis (optional; -1 when unknown) */
+    /* Phase 8.3 (smart-drop): If is_upgrade==1, these fields may be populated to plan
+     * an upgrade candidate for contents coupling. planned_def_index >= 0 indicates a
+     * concrete item definition chosen relative to the current equipment snapshot.
+     * planned_rarity >= 0 suggests the rarity to roll for the instance when spawned. */
+    int planned_def_index; /* -1 if unspecified */
+    int planned_rarity;    /* -1 if unspecified */
 } RogueDungeonChestPlacement;
 
 /* Place dungeon chests with depth-weighted reward tiers. Reserves chests for dead-ends and

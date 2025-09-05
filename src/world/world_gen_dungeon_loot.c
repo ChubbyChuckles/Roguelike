@@ -201,6 +201,153 @@ int rogue_dungeon_upgrade_possible(void)
     return 0;
 }
 
+/* Plan smart-drop contents for a chosen upgrade chest placement (index k in out_array).
+ * Populates planned_def_index and planned_rarity conservatively using the current equipment
+ * snapshot. No-op if out_array is NULL or k out of bounds. */
+static void rogue__plan_upgrade_for_chest(RogueDungeonChestPlacement* out_array, int k)
+{
+    if (!out_array || k < 0)
+        return;
+    RogueDungeonChestPlacement* cp = &out_array[k];
+    /* Only plan once */
+    if (cp->planned_def_index >= 0 && cp->planned_rarity >= 0)
+        return;
+    RogueLoadoutSnapshot snap;
+    if (rogue_loadout_snapshot(&snap) != 0)
+        return;
+
+    const RogueItemDef* cur_def = NULL;
+    int cur_rarity = 0;
+    int focus_slot = -1;
+    /* Prefer weapon if equipped, else an armor below EPIC */
+    for (int s = 0; s < ROGUE_EQUIP_SLOT_COUNT; ++s)
+    {
+        int inst = snap.inst_indices[s];
+        if (inst < 0)
+            continue;
+        const RogueItemInstance* it = rogue_item_instance_at(inst);
+        if (!it)
+            continue;
+        const RogueItemDef* curd = rogue_item_def_at(it->def_index);
+        if (!curd)
+            continue;
+        if (curd->category == ROGUE_ITEM_WEAPON)
+        {
+            focus_slot = s;
+            cur_def = curd;
+            cur_rarity = curd->rarity;
+            break;
+        }
+    }
+    if (focus_slot < 0)
+    {
+        for (int s = 0; s < ROGUE_EQUIP_SLOT_COUNT; ++s)
+        {
+            int inst = snap.inst_indices[s];
+            const RogueItemInstance* it = rogue_item_instance_at(inst);
+            const RogueItemDef* slot_def = (it ? rogue_item_def_at(it->def_index) : NULL);
+            if (slot_def && slot_def->category == ROGUE_ITEM_ARMOR && slot_def->rarity < 3)
+            {
+                focus_slot = s;
+                cur_def = slot_def;
+                cur_rarity = slot_def->rarity;
+                break;
+            }
+        }
+    }
+
+    int want_cat = -1;
+    int stat_floor = 0;
+    if (focus_slot >= 0 && cur_def)
+    {
+        want_cat = cur_def->category;
+        stat_floor =
+            (want_cat == ROGUE_ITEM_WEAPON) ? cur_def->base_damage_max : cur_def->base_armor;
+    }
+    if (want_cat < 0)
+    {
+        /* Fallback: prefer weapons if available, else armor; chest tier nudges rarity only */
+        int total_defs0 = rogue_item_defs_count();
+        int any_weapon = 0, any_armor = 0;
+        for (int di = 0; di < total_defs0; ++di)
+        {
+            const RogueItemDef* d = rogue_item_def_at(di);
+            if (!d)
+                continue;
+            if (d->category == ROGUE_ITEM_WEAPON)
+                any_weapon = 1;
+            else if (d->category == ROGUE_ITEM_ARMOR)
+                any_armor = 1;
+        }
+        if (cp->tier >= 2)
+            want_cat = any_weapon ? ROGUE_ITEM_WEAPON : (any_armor ? ROGUE_ITEM_ARMOR : -1);
+        else
+            want_cat = any_armor ? ROGUE_ITEM_ARMOR : (any_weapon ? ROGUE_ITEM_WEAPON : -1);
+        stat_floor = 0;
+        cur_rarity = 1;
+    }
+
+    int best_def = -1;
+    int best_score = -1;
+    int total_defs = rogue_item_defs_count();
+    for (int di = 0; di < total_defs; ++di)
+    {
+        const RogueItemDef* cand = rogue_item_def_at(di);
+        if (!cand || cand->category != want_cat)
+            continue;
+        int stat = (want_cat == ROGUE_ITEM_WEAPON) ? cand->base_damage_max : cand->base_armor;
+        if (stat <= stat_floor)
+            continue;
+        int rar = cand->rarity;
+        if (rar > 3)
+            rar = 3;
+        int score = rar * 1000 + (stat - stat_floor);
+        if (score > best_score)
+        {
+            best_score = score;
+            best_def = di;
+        }
+    }
+    /* Retry in alternate category if none found */
+    if (best_def < 0)
+    {
+        int alt_cat = (want_cat == ROGUE_ITEM_WEAPON) ? ROGUE_ITEM_ARMOR : ROGUE_ITEM_WEAPON;
+        for (int di = 0; di < total_defs; ++di)
+        {
+            const RogueItemDef* cand = rogue_item_def_at(di);
+            if (!cand || cand->category != alt_cat)
+                continue;
+            int stat = (alt_cat == ROGUE_ITEM_WEAPON) ? cand->base_damage_max : cand->base_armor;
+            if (stat <= 0)
+                continue;
+            int rar = cand->rarity;
+            if (rar > 3)
+                rar = 3;
+            int score = rar * 1000 + stat;
+            if (score > best_score)
+            {
+                best_score = score;
+                best_def = di;
+                want_cat = alt_cat;
+                stat_floor = 0;
+            }
+        }
+    }
+    if (best_def >= 0)
+    {
+        cp->planned_def_index = best_def;
+        int pr = cur_rarity;
+        if (pr < 1)
+            pr = 1;
+        if (pr > 3)
+            pr = 3;
+        pr += (cp->tier >= 2) ? 1 : 0;
+        if (pr > 3)
+            pr = 3;
+        cp->planned_rarity = pr;
+    }
+}
+
 int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
                                const RogueDungeonGraph* graph, int target_chests,
                                RogueDungeonChestPlacement* out_array, int max_out,
@@ -215,9 +362,7 @@ int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
     if (!deg)
         return 0;
     compute_degrees(graph, deg);
-
-    /* Precompute BFS distance from room 0 to all rooms as a proxy for depth. Track parents to
-     * approximate a main path (0 -> deepest) for optional-branch weighting. */
+    /* Build BFS arrays to approximate a main path (0 -> deepest) for optional-branch weighting. */
     int* dist = (int*) malloc(sizeof(int) * (size_t) graph->room_count);
     int* parent = (int*) malloc(sizeof(int) * (size_t) graph->room_count);
     int* q = (int*) malloc(sizeof(int) * (size_t) graph->room_count);
@@ -308,7 +453,9 @@ int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
                 if (io_map->overlay_deco && io_map->overlay_magic == 0xDEC00EAU)
                     rogue_tilemap_set_deco(io_map, x, y, (unsigned char) (10 + tier));
                 if (out_array && placed < max_out)
-                    out_array[placed] = (RogueDungeonChestPlacement){x, y, tier, 0, i};
+                {
+                    out_array[placed] = (RogueDungeonChestPlacement){x, y, tier, 0, i, -1, -1};
+                }
                 placed++;
             }
         }
@@ -351,6 +498,8 @@ int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
                                     if (out_array[k].x == x && out_array[k].y == y)
                                     {
                                         out_array[k].is_upgrade = 1;
+                                        /* Smart-drop planning */
+                                        rogue__plan_upgrade_for_chest(out_array, k);
                                         break;
                                     }
                                 }
@@ -379,6 +528,8 @@ int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
                                         if (out_array[k].x == x && out_array[k].y == y)
                                         {
                                             out_array[k].is_upgrade = 1;
+                                            /* Ensure planned contents are set in fallback too */
+                                            rogue__plan_upgrade_for_chest(out_array, k);
                                             break;
                                         }
                                     }

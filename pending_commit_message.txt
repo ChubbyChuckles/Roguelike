@@ -524,3 +524,15 @@ feat(dungeon/phase8.2-8.3): optional/challenge tier bumps + surfaced upgrade mar
 Quality gates:
 - Build: Debug (SDL2) with -j12 OK.
 - Tests: ctest from build dir with -C Debug -j12 --output-on-failure → 100% PASS (611/611).
+
+feat(dungeon/phase8.3): couple guaranteed upgrade chest to snapshot-planned contents; docs/tests; suite green (614/614)
+
+- Add planned_def_index/planned_rarity to RogueDungeonChestPlacement; populate when is_upgrade=1 via a planning helper tied to the inventory snapshot.
+- Planning picks a strictly-better same-category item; clamps rarity to [1..3], nudges by chest tier; robust fallback prefers weapons when unfocused and flips category if a pool is empty.
+- Ensure both upgrade-marking paths invoke planning (deepest-room and adjacency fallback); preserve overlay semantics (tiers 10–13 on chest, upgrade marker 14 adjacent) with overlay_magic guard.
+- Tests: add `tests/unit/test_dungeon_phase8_3_upgrade_coupling_integration.c` (E2E) alongside existing EV and guarantee tests; all pass.
+- Docs: Roadmap marks 8.3 Done and notes planned_* metadata; README updated with metadata details and test count.
+
+Quality gates:
+- Build: Debug (SDL2) with -j12 OK.
+- Tests: ctest from build dir with -C Debug -j12 --output-on-failure → 100% PASS (614/614).
