@@ -101,7 +101,11 @@ jobs:
       - name: Show SDL2 version (Ubuntu)
         if: runner.os == 'Linux'
         run: |
+          echo "pkg-config versions:"
           pkg-config --modversion sdl2 || true
+          pkg-config --modversion sdl2_image || true
+          pkg-config --modversion sdl2_mixer || true
+          echo "sdl2-config (if present):"
           sdl2-config --version || true
 
       # macOS-specific setup
@@ -114,7 +118,11 @@ jobs:
       - name: Show SDL2 version (macOS)
         if: runner.os == 'macOS'
         run: |
+          echo "pkg-config versions:"
           pkg-config --modversion sdl2 || true
+          pkg-config --modversion sdl2_image || true
+          pkg-config --modversion sdl2_mixer || true
+          echo "brew info (sdl2):"
           brew info sdl2 | sed -n '1,3p' || true
 
       - name: Configure (CMake, Ninja)
@@ -127,7 +135,8 @@ jobs:
               -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
           elif [ "$RUNNER_OS" = "macOS" ]; then
             BREW_PREFIX=$(brew --prefix)
-            export PKG_CONFIG_PATH="$BREW_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
+            # Include keg-only pkg-config dirs for SDL2 and companions
+            export PKG_CONFIG_PATH="$BREW_PREFIX/lib/pkgconfig:$BREW_PREFIX/opt/sdl2/lib/pkgconfig:$BREW_PREFIX/opt/sdl2_image/lib/pkgconfig:$BREW_PREFIX/opt/sdl2_mixer/lib/pkgconfig:$PKG_CONFIG_PATH"
             cmake -G Ninja -S . -B build \
               -DROGUE_ENABLE_SDL=${ROGUE_ENABLE_SDL} \
               -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
