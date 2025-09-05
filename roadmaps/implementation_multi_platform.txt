@@ -49,11 +49,11 @@ Notes: Caching added for CMake build dir; ccache wired on Linux/macOS. Configure
 Notes: SDL_VIDEODRIVER=dummy set; Linux uses xvfb-run; CTest logs uploaded as artifacts. Stabilized test_validation_cli_smoke by making validation default registration idempotent; no ignores needed.
 
 ## Phase 7: Release Automation
-- [ ] Implement semantic versioning detection
+- [x] Implement semantic versioning detection
 - [x] Create platform-specific binary packaging
-- [ ] Configure GitHub Releases integration
+- [x] Configure GitHub Releases integration
 - [ ] Add artifact naming conventions
-- [ ] Implement release notes generation
+- [x] Implement release notes generation
 
 Notes: Added PathUtils.cmake with rogue_normalize_path and wired it for SDL2 manual root. Introduced a .clang-tidy config enabling portability-* checks (advisory in CI). Packaging automated via CPack (ZIP/TGZ) with a CI job that installs, runs cpack, and uploads artifacts per OS.
 
@@ -68,17 +68,17 @@ Notes: Added PathUtils.cmake with rogue_normalize_path and wired it for SDL2 man
 
 ## Phase 9: Error Handling and Logging
 - [ ] Add comprehensive error reporting for each build step
-- [ ] Implement build failure categorization
+- [x] Implement build failure categorization
 - [ ] Create detailed logging for dependency installation
-- [ ] Add build artifact preservation on failure
-- [ ] Configure notification systems for build status
+- [x] Add build artifact preservation on failure
+- [x] Configure notification systems for build status (PR comment with failure summary)
 
 ## Phase 10: Performance Optimization
 - [x] Implement dependency caching strategies
 - [ ] Add build parallelization optimization
 - [ ] Configure incremental build support
 - [ ] Implement artifact sharing between jobs
-- [ ] Add build time monitoring and reporting
+- [x] Add build time monitoring and reporting
 Notes: Actions cache for build/ added; ccache enabled on Linux/macOS; Ninja parallelism already at -j12.
 
 ## Phase 11: Documentation and Maintenance
@@ -94,6 +94,11 @@ Changelog (this iteration):
 - [ ] Implement workflow health monitoring
 - [ ] Add automated workflow testing
 - Validation wiring fix: made `rogue_validation_register_default_checks()` idempotent to prevent duplicate registrations across app/tests/CLI; removed historical ignore for the validation CLI smoke test. Full Debug suite now 100% green (617/617).
+
+New (this iteration):
+- CI scripts: compute-version (semantic), collect-metrics (ctest/build/ccache), categorize-failures (log parsing + summary).
+- Workflows: release.yml (manual releases using computed notes), publish-release on tag pushes, health.yml (scheduled smoke).
+- CI: always collect metrics; on failure, categorize and upload; PRs receive a comment with failure summary. Artifact bundle now includes metrics and failure_report.
 
 ## Detailed Implementation Steps
 

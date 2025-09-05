@@ -405,6 +405,12 @@ validation: make default registration idempotent; stabilize CLI smoke; suite gre
 - Tests: `test_validation_cli_smoke` no longer flakes; full Debug run 100% PASS (617/617) with -j12.
 - Roadmap/Docs: update multi-platform roadmap Phase 6 notes to reflect stabilization (no ignores needed).
 
+ci(releases/health/metrics): add semantic versioning script, failure categorization, metrics, release & health workflows
+
+- Scripts: `scripts/ci/compute-version.ps1`, `scripts/ci/categorize-failures.ps1`, `scripts/ci/collect-metrics.ps1`.
+- CI: fetch tags, always collect metrics, categorize failures on error, upload reports; add `release.yml` for GitHub Releases; add `health.yml` for periodic smoke.
+- Artifacts: include metrics and failure_report dirs in logs artifact.
+
 ci(portability/matrix): add advisory portability scans, ccache, and macOS-13; docs and tools
 
 - CI: extend matrix with macOS-13 (Intel); enable ccache on Linux/macOS; keep Ninja + -j12 builds; SDL2 headless tests unchanged.

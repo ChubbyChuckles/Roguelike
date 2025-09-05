@@ -70,6 +70,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1
@@ -248,6 +250,16 @@ jobs:
             ctest --test-dir build -C ${BUILD_TYPE} -j 12 --output-on-failure --timeout 300
           fi
 
+      - name: Collect Metrics
+        if: always()
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci/collect-metrics.ps1 -BuildDir build -OutDir build/metrics -WriteGithubSummary
+
+      - name: Categorize Failures
+        if: failure()
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci/categorize-failures.ps1 -BuildDir build -OutDir build/failure_report -WriteGithubSummary
+
       - name: Portability scan (path separators)
         if: always()
         shell: pwsh
@@ -275,6 +287,28 @@ jobs:
             build/Testing/Temporary
             build/ctest_*.log
             build/*.log
+            build/metrics
+            build/failure_report
+
+      - name: Comment failure summary on PR
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let body = 'CI failure categorization (auto):\n\n';
+            const p = 'build/failure_report/summary.txt';
+            if (fs.existsSync(p)) {
+              body += '````\n' + fs.readFileSync(p, 'utf8') + '\n````';
+            } else {
+              body += '_No failure summary available (logs not found)._';
+            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
 
       - name: Run clang-tidy (Linux, broadened via compile_commands.json; non-blocking)
         if: runner.os == 'Linux'
@@ -434,4 +468,39 @@ jobs:
           path: |
             build/*.zip
             build/*.tgz
+            build/*.log
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [package-release]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout (with tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute version and notes
+        id: ver
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci/compute-version.ps1 -OutDir build -WriteGithubOutputs
+
+      - name: Download packaged artifacts (all OS)
+        uses: actions/download-artifact@v4
+        with:
+          path: build/artifacts
+          pattern: packages-*
+          merge-multiple: true
+
+      - name: Create/Update Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Roguelike ${{ github.ref_name }}
+          body_path: build/release_notes.md
+          files: |
+            build/artifacts/**/*
             build/*.log

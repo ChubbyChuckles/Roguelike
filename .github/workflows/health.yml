@@ -1,0 +1,21 @@
+name: CI Health
+
+on:
+  schedule:
+    - cron: "0 */12 * * *" # every 12 hours
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Quick configure and list tests
+        run: |
+          sudo apt-get update && sudo apt-get install -y cmake ninja-build libsdl2-dev
+          cmake -G Ninja -S . -B build -DROGUE_ENABLE_SDL=ON -DCMAKE_BUILD_TYPE=Debug
+          ctest --test-dir build -C Debug -N
+      - name: Basic self-test
+        run: |
+          cmake --build build --parallel 4
+          ctest --test-dir build -C Debug -R test_validation_cli_smoke --output-on-failure --timeout 120

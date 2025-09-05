@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g., v1.2.3). Leave empty to auto-compute."
+        required: false
+      prerelease:
+        description: "Mark as prerelease"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout with tags
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute version
+        id: ver
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci/compute-version.ps1 -OutDir build -WriteGithubOutputs
+
+      - name: Determine tag/prerelease
+        id: decide
+        run: |
+          echo "tag=${{ inputs.tag != '' && inputs.tag || format('v{0}', steps.ver.outputs.version) }}" >> $GITHUB_OUTPUT
+          echo "is_prerelease=${{ inputs.prerelease || steps.ver.outputs.is_prerelease == 'true' }}" >> $GITHUB_OUTPUT
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: build/artifacts
+          pattern: packages-*
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.decide.outputs.tag }}
+          name: Roguelike ${{ steps.decide.outputs.tag }}
+          body_path: build/release_notes.md
+          prerelease: ${{ steps.decide.outputs.is_prerelease }}
+          files: |
+            build/artifacts/**/*
+            build/*.log
