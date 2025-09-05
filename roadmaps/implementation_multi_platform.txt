@@ -50,21 +50,30 @@
 - [ ] Add artifact naming conventions
 - [ ] Implement release notes generation
 
-## Phase 8: Error Handling and Logging
+## Phase 8: Documentation Building and GitHub Pages
+- [ ] Install Doxygen and Graphviz on all platforms
+- [ ] Configure cross-platform documentation generation
+- [ ] Implement platform-specific Doxygen builds (Windows primary)
+- [ ] Add documentation artifact collection and upload
+- [ ] Configure GitHub Pages deployment from documentation artifacts
+- [ ] Implement documentation generation validation
+- [ ] Add documentation dependency management
+
+## Phase 9: Error Handling and Logging
 - [ ] Add comprehensive error reporting for each build step
 - [ ] Implement build failure categorization
 - [ ] Create detailed logging for dependency installation
 - [ ] Add build artifact preservation on failure
 - [ ] Configure notification systems for build status
 
-## Phase 9: Performance Optimization
+## Phase 10: Performance Optimization
 - [ ] Implement dependency caching strategies
 - [ ] Add build parallelization optimization
 - [ ] Configure incremental build support
 - [ ] Implement artifact sharing between jobs
 - [ ] Add build time monitoring and reporting
 
-## Phase 10: Documentation and Maintenance
+## Phase 11: Documentation and Maintenance
 - [ ] Create comprehensive workflow documentation
 - [ ] Add inline comments explaining each step
 - [ ] Create troubleshooting guides for common issues
@@ -201,7 +210,113 @@
   shell: bash
 ```
 
-### Step 5: Release Packaging
+### Step 5: Documentation Building and GitHub Pages
+```yaml
+# Documentation generation job (Windows-focused for consistency with current CI)
+docs:
+  name: Build Documentation
+  runs-on: windows-latest
+  needs: [build-and-test]  # Depends on build completing successfully
+  if: always()  # Run even if some tests fail
+
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup CMake
+      uses: jwlawson/actions-setup-cmake@v1
+
+    # Reuse SDL2 installation from main build
+    - name: Install SDL via vcpkg (Windows)
+      shell: pwsh
+      run: |
+        $vcpkgExe = "C:\\vcpkg\\vcpkg.exe"
+        if (-Not (Test-Path $vcpkgExe)) {
+          Write-Host "vcpkg not found at C:\\vcpkg; installing via git clone..."
+          git clone https://github.com/microsoft/vcpkg C:\\vcpkg
+          & C:\\vcpkg\\bootstrap-vcpkg.bat
+        }
+        & $vcpkgExe version
+        & $vcpkgExe install sdl2 sdl2-image sdl2-mixer --triplet x64-windows
+
+    - name: Install Documentation Tools
+      shell: pwsh
+      run: |
+        # Install Doxygen and Graphviz for documentation generation
+        choco install -y doxygen.portable graphviz --timeout 600 || echo "doxygen/graphviz already installed"
+
+        # Verify installation
+        doxygen -v
+        dot -V
+
+    - name: Configure CMake for Documentation
+      run: >-
+        cmake -S . -B build
+        -DROGUE_ENABLE_SDL=ON
+        -DCMAKE_BUILD_TYPE=Debug
+        -DCMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
+
+    - name: Generate Documentation
+      run: |
+        # Build documentation target
+        cmake --build build --target docs --config Debug --parallel 12
+
+        # Verify documentation was generated
+        if (!(Test-Path "build/docs/html/index.html")) {
+          Write-Host "Documentation generation failed - index.html not found"
+          exit 1
+        }
+
+        # List generated files for debugging
+        Get-ChildItem -Recurse build/docs/html | Select-Object Name, Length
+      shell: pwsh
+      continue-on-error: false
+
+    - name: Upload Documentation for GitHub Pages
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: build/docs/html
+        name: github-pages
+
+    - name: Upload Documentation Artifact (Debug)
+      uses: actions/upload-artifact@v4
+      with:
+        name: documentation-html
+        path: build/docs/html
+        retention-days: 30
+
+# GitHub Pages deployment job
+deploy-docs:
+  name: Deploy Documentation to GitHub Pages
+  needs: [docs]
+  runs-on: ubuntu-latest
+  if: github.ref == 'refs/heads/main'  # Only deploy from main branch
+
+  # Required permissions for GitHub Pages
+  permissions:
+    contents: read
+    pages: write
+    id-token: write
+
+  # Concurrency control for Pages deployment
+  concurrency:
+    group: "pages"
+    cancel-in-progress: true
+
+  environment:
+    name: github-pages
+    url: ${{ steps.deployment.outputs.page_url }}
+
+  steps:
+    - name: Configure GitHub Pages
+      uses: actions/configure-pages@v4
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+```
+
+### Step 6: Release Packaging
 ```yaml
 - name: Package Release Artifacts
   run: |
@@ -242,14 +357,17 @@ The final workflow will be organized into these main jobs:
 
 1. **setup-matrix**: Dynamic matrix generation based on supported platforms
 2. **build-and-test**: Multi-platform build, test, and static analysis
-3. **create-release**: Version detection and release preparation
-4. **upload-artifacts**: Platform-specific artifact upload to GitHub Releases
+3. **docs**: Documentation generation using Doxygen (Windows-based for consistency)
+4. **deploy-docs**: GitHub Pages deployment from documentation artifacts
+5. **create-release**: Version detection and release preparation
+6. **upload-artifacts**: Platform-specific artifact upload to GitHub Releases
 
 ## Key Features
 
 - **Zero Local Modifications**: All platform adaptations happen in CI
 - **Consistent SDL2 Version**: Enforced 2.32.4 across all platforms
 - **Comprehensive Testing**: Full test suite on all platforms with proper headless support
+- **Automated Documentation**: Doxygen-based documentation with GitHub Pages deployment
 - **Static Analysis**: Automated detection and fixing of portability issues
 - **Semantic Versioning**: Automatic version detection and release creation
 - **Robust Error Handling**: Detailed logging and failure diagnosis
