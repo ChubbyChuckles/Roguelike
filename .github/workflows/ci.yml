@@ -37,6 +37,15 @@ jobs:
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1
 
+      - name: Cache CMake build (per-OS)
+        uses: actions/cache@v4
+        with:
+          path: |
+            build
+          key: ${{ runner.os }}-cmake-${{ env.BUILD_TYPE }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'src/**', 'tests/**') }}
+          restore-keys: |
+            ${{ runner.os }}-cmake-${{ env.BUILD_TYPE }}-
+
       # Windows-specific setup
       - name: Setup MSVC Developer Command Prompt
         if: runner.os == 'Windows'
@@ -67,21 +76,41 @@ jobs:
           & $vcpkgExe version
           & $vcpkgExe install sdl2 sdl2-image sdl2-mixer --triplet $env:VCPKG_DEFAULT_TRIPLET
 
+      - name: Show SDL2 version (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $vcpkgExe = Join-Path $env:VCPKG_ROOT 'vcpkg.exe'
+          & $vcpkgExe list sdl2
+          Get-ChildItem "$env:VCPKG_ROOT\installed\x64-windows\bin" -Filter SDL2.dll -ErrorAction SilentlyContinue | Select-Object FullName, Length
+
       # Ubuntu-specific setup
       - name: Install Dependencies (Ubuntu)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build build-essential pkg-config \
+          sudo apt-get install -y cmake ninja-build build-essential pkg-config ccache clang-tidy \
             libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
             xvfb
+
+      - name: Show SDL2 version (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          pkg-config --modversion sdl2 || true
+          sdl2-config --version || true
 
       # macOS-specific setup
       - name: Install Dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
           brew update
-          brew install cmake ninja sdl2 sdl2_image sdl2_mixer
+          brew install cmake ninja sdl2 sdl2_image sdl2_mixer ccache llvm || true
+
+      - name: Show SDL2 version (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          pkg-config --modversion sdl2 || true
+          brew info sdl2 | sed -n '1,3p' || true
 
       - name: Configure (CMake, Ninja)
         shell: bash
@@ -94,7 +123,8 @@ jobs:
           else
             cmake -G Ninja -S . -B build \
               -DROGUE_ENABLE_SDL=${ROGUE_ENABLE_SDL} \
-              -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+              -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache
           fi
 
       - name: Build (-j12)
@@ -115,6 +145,22 @@ jobs:
           else
             ctest --test-dir build -C ${BUILD_TYPE} -j 12 --output-on-failure --timeout 300
           fi
+
+      - name: Upload CTest logs (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctest-logs-${{ matrix.os }}
+          path: |
+            build/Testing/Temporary
+            build/ctest_*.log
+
+      - name: Run clang-tidy (Linux only, non-blocking)
+        if: runner.os == 'Linux'
+        continue-on-error: true
+        run: |
+          echo "Running clang-tidy on a subset of files for quick signal..."
+          find src -type f -name "*.c" | head -n 50 | xargs -I{} bash -c 'clang-tidy -p build {} || true'
 
       - name: Format Check (Windows only)
         if: runner.os == 'Windows'

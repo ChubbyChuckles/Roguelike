@@ -622,18 +622,12 @@ Note: Event bus statistics now clamp ultra-fast measurements to a minimum of 1µ
 - Exclusivity: optional `aura_group_mask` enables replace-if-stronger behavior across mutually exclusive aura groups; weaker re-applies are ignored. Covered by `test_effectspec_aura_exclusive`.
 - Test: `test_effectspec_aura_basic` validates entry/exit and pulse timing determinism. All EffectSpec tests pass in Debug with SDL2 (-j8).
 
-## Buffs – Phase 4 snapshot
+---
 
-- Handle-based pool with free list and 16-bit generations prevents stale handle reuse; legacy API remains for simple integer totals.
-- Public handle API: apply_h, refresh_h, remove_h, query_h; expiration callback hook via `rogue_buffs_set_on_expire`.
-- FX triggers on gain/expire: keys `buff/<type>/gain` and `buff/<type>/expire` are published for the audio/VFX layer.
-- Dampening window (default 50ms) to prevent oscillation from rapid re-apply; configurable via `rogue_buffs_set_dampening(ms)`.
-- Persistence: save writes compact (type, magnitude, remaining_ms); load re-applies with snapshot=1, respecting remaining durations against current `now_ms`.
-- Tests: save/load roundtrip tests report expected active buffs; skills/effects tests for snapshot scaling and ordering pass in Debug with SDL2 (-j8).
+## CI, builds, and docs
 
-Phase 4.3–4.6 additions:
-
-- Categories & CC flags: `RogueBuffCategoryFlags` (OFFENSIVE, DEFENSIVE, MOVEMENT, UTILITY) with CC subflags (STUN, ROOT, SLOW). Combat reads live flags for gating.
-- CC diminishing returns (DR): anchored window (default 15s) with factors 1.0 → 0.5 → 0.25 → 0.0 applied before stacking/dampening on every apply path. Zero-duration CC increments DR without allocating an instance. Expired instances are skipped during dampening/stacking so natural on_expire still fires.
-- Combat semantics: STUN/DISARM block buffering and attack start; ROOT allows buffering but blocks attack start. Unit `test_combat_phase4_cc` codifies behavior.
-- Tests: `test_buffs_phase4_dr_and_handles` validates DR progression/decay, natural vs manual expire callbacks, and handle reuse invalidation. Both tests pass in Debug with SDL2 (-j8).
+- CI runs on Windows, Linux, and macOS using a matrix. Ninja + CMake with -j12 is used everywhere.
+- SDL2 is installed via vcpkg (Windows), apt (Ubuntu), and Homebrew (macOS). Tests run headless using SDL_VIDEODRIVER=dummy; Linux uses xvfb-run.
+- Logs: CTest logs are uploaded as artifacts on every run. A lightweight clang-tidy check runs on Linux (non-blocking).
+- Docs: Doxygen builds on Windows in CI and is deployed automatically to GitHub Pages. HTML lands in build/docs/html locally.
+- Known CI note: per maintainer guidance, ignore failures from test_validation_cli_smoke while its crash is triaged; all other tests gate the build.

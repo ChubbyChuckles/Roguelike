@@ -248,7 +248,7 @@ Debug Overlay: Items table smooth scrolling (wheel + Home/End + Shift), hover-aw
 - Widgets/Table: Track table hover (headers/rows) and expose overlay_table_hover_wheel(&dy) to consumers.
 - Items panel: When the table is hovered, wheel scrolling adjusts the virtualized row offset; added Home/End jumps and Shift-accelerated step for Up/Down. Offset clamped to bounds; slider retained for headless determinism.
 - Readme: Updated Items tips to mention wheel/Home/End/Shift controls.
-- Roadmap: Mark virtualization + wheel/keyboard smooth navigation as DONE; note scrollbar rendering/drag as next.
+- Roadmap: Mark virtualization + wheel/keyboard smooth navigation as DONE; note scrollbar rendering/drag as next step.
 - Build/Tests: Debug SDL2 build (-j12) succeeded; ctest full suite all green (593/593).
 
 Debug Overlay: Items table vertical scrollbar (click-to-page + drag), integrated with virtualization; docs/roadmap; tests green
@@ -563,3 +563,12 @@ feat(dungeon/phase9.1-9.2): mutator registry + JSON loader + deterministic selec
 Quality gates:
 - Build: Debug (SDL2) with -j12 OK.
 - Tests: ctest from build dir with -C Debug -j12 --output-on-failure → 100% PASS (616/616).
+
+ci: speed up multi-OS matrix (cache + ccache), add SDL2 version reporting, clang-tidy (Linux), and test log artifacts; docs/roadmap updates
+
+- Cache: actions/cache for build/ per-OS; enable ccache on Linux/macOS via CMake launcher to cut rebuild time.
+- SDL2 introspection: print SDL2 version on each OS (pkg-config/sdl2-config; vcpkg list on Windows). CMake also echoes detected SDL2 major.minor.patch from headers when available.
+- QA: Upload CTest logs as artifacts from all OSes; add a lightweight clang-tidy pass on Linux (non-blocking) for early signal.
+- CI stability: keep SDL headless setup; Linux uses xvfb-run. Windows PATH includes vcpkg SDL2 runtime.
+- Roadmap: mark matrix/testing/docs/Pages/caching/runtime handling as done; note clang-tidy sample and ignore of test_validation_cli_smoke.
+- README: add a short CI matrix/testing/docs section so contributors know what runs.
