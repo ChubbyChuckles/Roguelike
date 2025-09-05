@@ -132,6 +132,76 @@ int rogue_dungeon_export_depth_profile(const char* path, int max_depth)
     return 1;
 }
 
+/* Export a simple gating manifest summarizing which capability tags are required/used by the
+ * generated dungeon graph. For the current deterministic slice, we approximate capabilities from
+ * room thematic tags: PUZZLE -> capability "puzzle", TREASURE -> capability "timed_door",
+ * SECRET rooms imply capability "secret_passage". This is intentionally minimal and will be
+ * extended when puzzle templates carry explicit min_skill_req/capability tags. */
+int rogue_dungeon_export_gating_manifest(const char* path, const struct RogueDungeonGraph* graph)
+{
+    if (!path || !graph || graph->room_count <= 0 || !graph->rooms)
+        return 0;
+    rogue__mkdir_p(path);
+    FILE* f = NULL;
+#if defined(_MSC_VER)
+    if (fopen_s(&f, path, "wb") != 0 || !f)
+        return 0;
+#else
+    f = fopen(path, "wb");
+    if (!f)
+        return 0;
+#endif
+    /* Compute booleans and counts deterministically */
+    int has_puzzle = 0, has_timed = 0, has_secret = 0;
+    int count_puzzle = 0, count_timed = 0, count_secret = 0;
+    for (int i = 0; i < graph->room_count; ++i)
+    {
+        const struct RogueDungeonRoom* r = &graph->rooms[i];
+        if (!r)
+            continue;
+        if (r->tag & ROGUE_DUNGEON_ROOM_PUZZLE)
+        {
+            has_puzzle = 1;
+            ++count_puzzle;
+        }
+        if (r->tag & ROGUE_DUNGEON_ROOM_TREASURE)
+        {
+            has_timed = 1; /* treasure rooms currently imply timed door traversal marker */
+            ++count_timed;
+        }
+        if (r->secret)
+        {
+            has_secret = 1;
+            ++count_secret;
+        }
+    }
+    /* Emit compact JSON with deterministic key order */
+    fprintf(f, "{\n");
+    fprintf(f, "  \"capabilities\": [");
+    int first = 1;
+    if (has_puzzle)
+    {
+        fprintf(f, "%s{\"id\": \"puzzle\", \"count\": %d}", first ? "" : ", ", count_puzzle);
+        first = 0;
+    }
+    if (has_timed)
+    {
+        fprintf(f, "%s{\"id\": \"timed_door\", \"count\": %d}", first ? "" : ", ", count_timed);
+        first = 0;
+    }
+    if (has_secret)
+    {
+        fprintf(f, "%s{\"id\": \"secret_passage\", \"count\": %d}", first ? "" : ", ",
+                count_secret);
+        first = 0;
+    }
+    fprintf(f, "],\n");
+    fprintf(f, "  \"rooms\": %d\n", graph->room_count);
+    fprintf(f, "}\n");
+    fclose(f);
+    return 1;
+}
+
 unsigned int rogue_dungeon_biome_theme_tags(enum RogueBiomeId biome)
 {
     switch (biome)

@@ -68,6 +68,27 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dungeon_phase8_loot_and_material
     endif()
     add_test(NAME test_dungeon_phase8_loot_and_materials COMMAND test_dungeon_phase8_loot_and_materials)
 endif()
+
+# Phase 9: gating manifest export
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dungeon_phase9_4_gating_manifest.c AND NOT TARGET test_dungeon_phase9_4_gating_manifest)
+    add_executable(test_dungeon_phase9_4_gating_manifest unit/test_dungeon_phase9_4_gating_manifest.c)
+    target_link_libraries(test_dungeon_phase9_4_gating_manifest PRIVATE rogue_core)
+    target_compile_definitions(test_dungeon_phase9_4_gating_manifest PRIVATE SDL_MAIN_HANDLED=1 TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_dungeon_phase9_4_gating_manifest PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_dungeon_phase9_4_gating_manifest COMMAND test_dungeon_phase9_4_gating_manifest)
+endif()
+
+# Vendor/Crafting: run summary consumer wiring
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase9_run_summary_consumer.c AND NOT TARGET test_vendor_phase9_run_summary_consumer)
+    add_executable(test_vendor_phase9_run_summary_consumer unit/test_vendor_phase9_run_summary_consumer.c)
+    target_link_libraries(test_vendor_phase9_run_summary_consumer PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_vendor_phase9_run_summary_consumer PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_vendor_phase9_run_summary_consumer COMMAND test_vendor_phase9_run_summary_consumer)
+endif()
 # Automatically reconfigure when new unit tests are added
 file(GLOB UNIT_TESTS CONFIGURE_DEPENDS unit/test_*.c)
 

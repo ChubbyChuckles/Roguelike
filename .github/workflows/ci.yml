@@ -376,7 +376,7 @@ jobs:
   docs:
     name: Build Docs (windows-latest)
     runs-on: windows-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
     needs: [build-and-test]
     if: always()
     steps:
@@ -437,7 +437,7 @@ jobs:
     needs: [docs]
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 3
     steps:
       - name: Configure Pages
         uses: actions/configure-pages@v4
@@ -449,7 +449,7 @@ jobs:
     name: Package Release Artifacts (${{ matrix.os }})
     needs: [build-and-test]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -527,7 +527,7 @@ jobs:
     needs: [package-release]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     permissions:
       contents: write
     steps:

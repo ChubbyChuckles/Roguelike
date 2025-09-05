@@ -1,3 +1,25 @@
+Overlay: first-open defaults, persistence, and drag UX; Dungeon: gating manifest export + vendor run_summary consumer; tests & docs
+
+- Debug overlay
+	- Default first-open shows only the “Panels” selector (non-closable).
+	- Persist panel visibility/geometry across runs; save final position on mouse release.
+	- Title-bar dragging with capture/release, viewport clamping.
+	- Unit: test_overlay_persistence_and_drag.
+
+- Dungeon (Phase 9.4)
+	- Add rogue_dungeon_export_gating_manifest(path, graph) emitting compact JSON of capability ids and rooms count; ensure parent dirs exist.
+	- Add minimal vendor run_summary consumer; registers listener and safely reacts to reward multipliers.
+	- Units: test_dungeon_phase9_4_gating_manifest, test_vendor_phase9_run_summary_consumer.
+
+- Fixes
+	- Reduced motion path corrected; test_start_screen_phase10_4_reduced_motion green.
+	- Vendor module: correct material count API usage to fix compile on MSVC.
+
+- Docs
+	- Roadmap: mark gating manifest export and vendor consumer Done; clean up Open Tasks.
+	- README: add Phase 9.4 notes under Testing & Quality Gates.
+
+Build/Test: Debug (SDL2), -j12; targeted/unit runs green locally.
 packaging(cmake): robust JSON key parsing for SemVer/ShortSha and fix whitespace in regex; verify CPack filenames
 
 - CMake: update packaging regex to accept both PascalCase and lowercase keys (SemVer/Version, ShortSha/short_sha) and use explicit whitespace classes.

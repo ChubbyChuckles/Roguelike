@@ -10,6 +10,10 @@ Scope Overview:
 Deliver a data‑driven, procedural dungeon framework integrating layout generation, biome & thematic layering, enemy difficulty (relative level differential), objective orchestration, environmental hazards, puzzle & traversal mechanics, dynamic events, loot & crafting hooks, infinite player progression pacing, analytics, and deterministic replay. Constraints: single character, infinite leveling (no classes; universal skill access), infinite inventory stack, existing systems (loot, affixes, enemy difficulty, crafting, vendor, skill maze). Goals: High encounter variety, readable progression of challenge, systemic synergy (materials, recipes, vendors, mastery), minimal content authoring overhead, robust anti-exploit & performance guarantees.
 
 STATUS DELTA (Latest):
+// Phase 9.4 additions (analytics + vendor integration)
+- Gating manifest export (Done): Added `rogue_dungeon_export_gating_manifest(path, graph)` to emit a compact JSON manifest summarizing inferred traversal/puzzle capabilities and room counts for the current layout. Ensures parent directories are created. Unit `test_dungeon_phase9_4_gating_manifest` builds a tiny graph, writes to `build/analytics/gating_manifest_test.json`, and asserts capability ids; passes locally.
+- Vendor run_summary consumer (Done): Minimal vendor listener wired to the run_summary callback registry. Safely reacts to reward multipliers and logs; includes unit `test_vendor_phase9_run_summary_consumer`.
+- Build & Tests: Debug (SDL2) all‑green locally with -j12 after these additions.
 - Phase 9 mutators (new scaffolding):
 	- Implemented mutator registry and JSON loader (9.1 Done): RogueMutatorDesc{id, weight, reward_multiplier, effect_dsl}, registry add/find/get, and loaders from JSON text/file. Deterministic, minimal parser; caps and duplicate-id guards in place.
 	- Deterministic selection helper (9.2 Partial): headless roll K choose N using worldgen micro-RNG with weighted picks (no UI yet). Stable manifest CSV utility and sorting for replay determinism.
@@ -289,8 +293,6 @@ Risk Mitigation Cross-System:
  - Prevent exploit of mutator reward stacking with vendor special offers: vendor hooks only triggered once per unique mutator_id per run.
 
 Open Tasks:
- - Add gating manifest listing all puzzle/skill tags used in current seed for fast audit.
- - Add gating manifest listing all puzzle/skill tags used in current seed for fast audit.
- - Provide additional consumers for run_summary callbacks in vendor/crafting modules (registration API exists; wire listeners).
+ - Provide additional consumers for run_summary callbacks in crafting modules (registration API exists; vendor listener Done; crafting pending).
 
 Change Impact: Documentation only; follow-up commits should implement exports, invariance tests, and callback interfaces referenced here.

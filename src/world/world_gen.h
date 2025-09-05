@@ -390,6 +390,11 @@ void rogue_dungeon_emit_run_summary(const int* mutator_indices, int count,
  * Returns 1 on success, 0 on failure. */
 int rogue_dungeon_export_depth_profile(const char* path, int max_depth);
 
+/* Export a gating manifest listing traversal/puzzle capability tags used by the current
+ * dungeon layout (derived from room tags and secret flags). Writes a JSON file to `path` and
+ * ensures parent directories exist. Returns 1 on success, 0 on failure or invalid args. */
+int rogue_dungeon_export_gating_manifest(const char* path, const struct RogueDungeonGraph* graph);
+
 /* ---- Phase 9: Lootable & Resource Nodes ---- */
 typedef struct RogueResourceNodeDesc
 {

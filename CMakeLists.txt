@@ -418,6 +418,7 @@ add_library(rogue_core
     src/core/vendor/vendor_rng.c
     src/core/vendor/vendor_sinks.c
     src/core/vendor/vendor_crafting_integration.c
+    src/core/vendor/vendor_run_summary_consumer.c
     src/core/vendor/economy.c
     src/core/vendor/salvage.c
     src/core/crafting/material_registry.c
