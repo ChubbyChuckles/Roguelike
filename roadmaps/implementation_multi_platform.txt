@@ -11,7 +11,7 @@
   - [x] Windows: Use vcpkg with consistent package management
   - [x] Ubuntu: Use apt-get with specific version pinning
   - [x] macOS: Use Homebrew with version constraints
-- [ ] Implement SDL2 version validation (2.32.4) across platforms
+  - [x] Implement SDL2 version validation (warn-only; configurable) across platforms
 - [ ] Create fallback detection for manual SDL2 installations
 - [x] Add platform-specific SDL2 runtime library handling
 
@@ -28,7 +28,7 @@
 - [ ] Implement automated file path conversion (backslash to forward slash)
 - [ ] Add compiler-specific warning management
 - [ ] Create platform-specific code pattern detection
-Notes: A lightweight clang-tidy step now runs on Linux in CI (non-blocking, sample of sources). Extend to full compile-commands coverage later.
+Notes: A lightweight clang-tidy step now runs on Linux in CI (non-blocking, sample of sources). Extended to macOS/Windows (non-blocking subset). Expand to full compile-commands coverage later.
 
 ## Phase 5: Build Matrix Configuration
 - [x] Configure build matrix for windows-latest, ubuntu-latest, macos-latest
@@ -36,7 +36,7 @@ Notes: A lightweight clang-tidy step now runs on Linux in CI (non-blocking, samp
 - [ ] Add build type variations (Debug, Release)
 - [ ] Configure compiler variations (MSVC, GCC, Clang)
 - [ ] Add architecture-specific builds (x64, potentially arm64)
-Notes: Caching added for CMake build dir; ccache wired on Linux/macOS.
+Notes: Caching added for CMake build dir; ccache wired on Linux/macOS. Configure logs uploaded on failure; matrix now includes build_type key (Debug initially) for future expansion.
 
 ## Phase 6: Testing Infrastructure
 - [x] Configure test execution environment for each platform

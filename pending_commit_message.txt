@@ -1,3 +1,11 @@
+ci/cmake: SDL2 version validation + pkg-config discovery hardening and CI diagnostics
+
+- CMake: Parse SDL_version.h to compute ROGUE_SDL2_VERSION and optionally validate against ROGUE_MIN_SDL2_VERSION (warn-only). Prints detected version during configure.
+- CI (macOS): Add Homebrew opt pkg-config paths for sdl2, sdl2_image, sdl2_mixer to improve discovery; print pkg-config versions for SDL2 family on macOS/Linux.
+- CI: Upload CMake configure logs (CMakeCache.txt, CMakeOutput.log, CMakeError.log) on failure for easier debugging.
+- CI: Add advisory clang-tidy steps to macOS and Windows (subset of files; non-blocking) in addition to Linux.
+- Roadmap: Mark SDL2 version validation complete; note expanded clang-tidy coverage and configure-log artifacts; keep further expansions tracked.
+
 build(cmake/unix): pkg-config fallbacks for SDL2_image/mixer; CI hardening; tests 617/617
 
 - Unix: add pkg-config fallbacks for SDL2_image and SDL2_mixer. When pkg-config finds either, synthesize matching INTERFACE imported targets (SDL2_image::SDL2_image, SDL2_mixer::SDL2_mixer) wired with include dirs and link libs. Keeps find_package first; only falls back on Unix when needed. Status logs include discovered include paths.

@@ -25,8 +25,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
+        build_type: [Debug]
     env:
-      BUILD_TYPE: Debug
+      BUILD_TYPE: ${{ matrix.build_type }}
       ROGUE_ENABLE_SDL: ON
       VCPKG_ROOT: C:\vcpkg
       VCPKG_DEFAULT_TRIPLET: x64-windows
@@ -151,6 +152,16 @@ jobs:
               -DROGUE_WARNINGS_AS_ERRORS=OFF
           fi
 
+      - name: Upload CMake configure logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmake-configure-logs-${{ matrix.os }}
+          path: |
+            build/CMakeCache.txt
+            build/CMakeFiles/CMakeOutput.log
+            build/CMakeFiles/CMakeError.log
+
       - name: Build (-j12)
         run: cmake --build build --parallel 12
 
@@ -186,6 +197,13 @@ jobs:
           echo "Running clang-tidy on a subset of files for quick signal..."
           find src -type f -name "*.c" | head -n 50 | xargs -I{} bash -c 'clang-tidy -p build {} || true'
 
+      - name: Run clang-tidy (macOS, non-blocking)
+        if: runner.os == 'macOS'
+        continue-on-error: true
+        run: |
+          echo "Running clang-tidy on a subset of files for quick signal..."
+          find src -type f -name "*.c" | head -n 50 | xargs -I{} bash -c 'clang-tidy -p build {} || true'
+
       - name: Format Check (Windows only)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -196,6 +214,14 @@ jobs:
             Write-Host "Format check failed. Run: cmake --build build --target format"
             exit 1
           }
+
+      - name: Run clang-tidy (Windows, non-blocking)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          Write-Host "Running clang-tidy on a subset of files for quick signal..."
+          Get-ChildItem -Recurse src -Filter *.c | Select-Object -First 50 | ForEach-Object { clang-tidy -p build $_.FullName 2>$null }
 
   docs:
     name: Build Docs (windows-latest)
