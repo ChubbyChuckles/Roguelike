@@ -53,6 +53,13 @@ jobs:
           - os: macos-latest
             build_type: Release
             compiler: clang
+          # macOS (Intel) for broader coverage when available
+          - os: macos-13
+            build_type: Debug
+            compiler: clang
+          - os: macos-13
+            build_type: Release
+            compiler: clang
     env:
       BUILD_TYPE: ${{ matrix.build_type }}
       COMPILER: ${{ matrix.compiler }}
@@ -75,6 +82,24 @@ jobs:
           key: ${{ runner.os }}-cmake-${{ env.BUILD_TYPE }}-${{ env.COMPILER }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'src/**', 'tests/**') }}
           restore-keys: |
             ${{ runner.os }}-cmake-${{ env.BUILD_TYPE }}-${{ env.COMPILER }}-
+
+      - name: Cache ccache (Linux/macOS)
+        if: runner.os != 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-${{ env.COMPILER }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'src/**', 'tests/**') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-${{ env.COMPILER }}-
+
+      - name: Cache ccache (Linux/macOS)
+        if: runner.os != 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-${{ env.COMPILER }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'src/**', 'tests/**') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-${{ env.COMPILER }}-
 
       # Windows-specific setup
       - name: Setup MSVC Developer Command Prompt
@@ -222,6 +247,24 @@ jobs:
           else
             ctest --test-dir build -C ${BUILD_TYPE} -j 12 --output-on-failure --timeout 300
           fi
+
+      - name: Portability scan (path separators)
+        if: always()
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -ExecutionPolicy Bypass -File tools/normalize_paths.ps1 -Root . -CheckOnly || echo "Portability scan found issues (advisory)."
+
+      - name: Portability pattern scan (advisory)
+        if: always()
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -ExecutionPolicy Bypass -File tools/portability_scan.ps1 -Root . || echo "Pattern scan completed."
+
+      - name: Portability pattern scan (advisory)
+        if: always()
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -ExecutionPolicy Bypass -File tools/portability_scan.ps1 -Root . || echo "Pattern scan completed."
 
       - name: Upload logs (always)
         if: always()

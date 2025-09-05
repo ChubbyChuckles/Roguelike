@@ -634,6 +634,19 @@ Note: Event bus statistics now clamp ultra-fast measurements to a minimum of 1µ
 - Docs: Doxygen builds on Windows in CI and is deployed automatically to GitHub Pages. HTML lands in build/docs/html locally.
 - Known CI note: per maintainer guidance, ignore failures from test_validation_cli_smoke while its crash is triaged; all other tests gate the build.
 
+### Multi-platform CI & portability updates
+
+- Matrix coverage includes Windows, Ubuntu, macOS (including an Intel macOS-13 runner for broader architecture coverage).
+- Caching: build cache plus ccache enabled on Linux/macOS to speed up subsequent runs.
+- Advisory portability checks run in CI after tests:
+  - tools/normalize_paths.ps1 — detects (and optionally fixes) backslash path separators across tracked files.
+  - tools/portability_scan.ps1 — flags common platform-specific patterns (e.g., fopen_s, Sleep, POSIX-only calls) for follow-up.
+- Troubleshooting: see docs/ci_troubleshooting.md for SDL2 setup, headless testing, clang-tidy tips, caching, and Pages deployment.
+- Local helpers (optional):
+  - scripts/ci/status.ps1 — show recent CI runs and summarize the latest failure.
+  - scripts/ci/fetch-logs.ps1 — download the newest CI logs/artifacts to build/ci_logs.
+  - scripts/ci/cancel-run.ps1 and scripts/ci/poll-run-status.ps1 — manage/cancel stuck Actions runs by run-id.
+
 ### Checking CI status and retrieving logs locally
 
 - VS Code tasks:

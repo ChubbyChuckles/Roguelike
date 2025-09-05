@@ -15,6 +15,10 @@
 #include <stdio.h>
 #include <string.h>
 
+// Ensure we only register validators once per process to avoid duplicates when
+// both the app boot and tests/tools call this helper.
+static int s_validation_registered_once = 0;
+
 // Small helpers to convert schema validation result to RogueValidationResult
 static RogueValidationResult ok(void)
 {
@@ -148,6 +152,9 @@ static int no_repair(void* user, uint32_t code)
 
 void rogue_validation_register_default_checks(void)
 {
+    if (s_validation_registered_once)
+        return;
+    s_validation_registered_once = 1;
     // Register content systems with stable IDs from taxonomy
     // 6 = Loot & Item System, 5 = Skill System, 4 = Character Progression, etc.
     // We attach validators where we have schemas available.

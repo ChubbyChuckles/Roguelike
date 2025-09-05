@@ -399,6 +399,24 @@ debug overlay(entities): add themed world-space selection gizmo; tests green (59
 - Verification: Debug build (SDL2) with -j12 succeeded; full CTest run from build directory passed 100% (594/594).
 - Touched: src/debug_overlay/panel_entities/panels_entities.c, README.md, roadmaps/improvements_debug_overlay.txt
 
+validation: make default registration idempotent; stabilize CLI smoke; suite green (617/617)
+
+- Integration: add a once-only guard in `rogue_validation_register_default_checks()` so repeated calls from app init, tests, and the CLI tool don't duplicate validator registrations.
+- Tests: `test_validation_cli_smoke` no longer flakes; full Debug run 100% PASS (617/617) with -j12.
+- Roadmap/Docs: update multi-platform roadmap Phase 6 notes to reflect stabilization (no ignores needed).
+
+ci(portability/matrix): add advisory portability scans, ccache, and macOS-13; docs and tools
+
+- CI: extend matrix with macOS-13 (Intel); enable ccache on Linux/macOS; keep Ninja + -j12 builds; SDL2 headless tests unchanged.
+- Advisory checks: run tools/normalize_paths.ps1 (path separators) and tools/portability_scan.ps1 (common platform-specific APIs) post-tests (non-blocking).
+- Docs: add docs/ci_troubleshooting.md (SDL2 setup, headless tests, clang-tidy, caching, Pages). README gains a Multi-platform CI & portability section.
+- Tools: add tools/normalize_paths.ps1 and tools/portability_scan.ps1 with PowerShell lint-safe function names/params.
+- Roadmap: update roadmaps/implementation_multi_platform.txt to mark completed items and record this iteration’s changelog.
+
+Quality gates
+- Build: Debug (SDL2) with -j12 OK
+- Tests: full suite passes locally 617/617; CI remains unchanged functionally (advisory checks only)
+
 Debug Overlay (M6.3): Shortcuts panel ('?') + Alt+1..9 quick panel switching; docs/roadmap; tests green
 
 - Input: extend OverlayInputState to capture '?' (via SDL_TEXTINPUT) and numeric keys 1..9 for Alt chord handling.
