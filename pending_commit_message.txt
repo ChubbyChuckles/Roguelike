@@ -536,3 +536,17 @@ feat(dungeon/phase8.3): couple guaranteed upgrade chest to snapshot-planned cont
 Quality gates:
 - Build: Debug (SDL2) with -j12 OK.
 - Tests: ctest from build dir with -C Debug -j12 --output-on-failure → 100% PASS (614/614).
+
+feat(dungeon/phase9.1-9.2): mutator registry + JSON loader + deterministic selection helper; docs/tests; gates green (616/616)
+
+- Add RogueMutatorDesc{id, weight, reward_multiplier, effect_dsl} and a lightweight registry: clear/register/count/get/find with duplicate-id and capacity guards.
+- Implement JSON loader that accepts an array of objects (id/weight/reward_multiplier/effect) from text or file via json_io; minimal, dependency-free parser with sensible defaults.
+- Deterministic weighted selection helper (roll K choose N) using worldgen micro-RNG; without-replacement via iterative picks; sort chosen ids for stable manifests.
+- Utility: manifest CSV formatter for selected mutators; stable order by id.
+- Build: wire new module `src/world/world_gen_mutators.c` into rogue_core.
+- Tests: add `tests/unit/test_dungeon_phase9_1_mutator_loader.c` and `tests/unit/test_dungeon_phase9_2_selection.c` covering loader, registry ops, selection uniqueness/order, and CSV formatting.
+- Docs: update roadmap (Phase 9.1 Done, 9.2 Partial [headless helper]) and README (Latest CI 616/616; mutators scaffolding note).
+
+Quality gates:
+- Build: Debug (SDL2) with -j12 OK.
+- Tests: ctest from build dir with -C Debug -j12 --output-on-failure → 100% PASS (616/616).

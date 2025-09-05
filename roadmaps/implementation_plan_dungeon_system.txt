@@ -10,6 +10,11 @@ Scope Overview:
 Deliver a data‑driven, procedural dungeon framework integrating layout generation, biome & thematic layering, enemy difficulty (relative level differential), objective orchestration, environmental hazards, puzzle & traversal mechanics, dynamic events, loot & crafting hooks, infinite player progression pacing, analytics, and deterministic replay. Constraints: single character, infinite leveling (no classes; universal skill access), infinite inventory stack, existing systems (loot, affixes, enemy difficulty, crafting, vendor, skill maze). Goals: High encounter variety, readable progression of challenge, systemic synergy (materials, recipes, vendors, mastery), minimal content authoring overhead, robust anti-exploit & performance guarantees.
 
 STATUS DELTA (Latest):
+- Phase 9 mutators (new scaffolding):
+	- Implemented mutator registry and JSON loader (9.1 Done): RogueMutatorDesc{id, weight, reward_multiplier, effect_dsl}, registry add/find/get, and loaders from JSON text/file. Deterministic, minimal parser; caps and duplicate-id guards in place.
+	- Deterministic selection helper (9.2 Partial): headless roll K choose N using worldgen micro-RNG with weighted picks (no UI yet). Stable manifest CSV utility and sorting for replay determinism.
+	- Tests added: `test_dungeon_phase9_1_mutator_loader` and `test_dungeon_phase9_2_selection`.
+	- Build & Tests: Debug (SDL2) all‑green (616/616) with -j12.
 - Phase 8 loot & reward orchestration updates (current):
 	- Chest distribution (overlay 10–13) and adjacent upgrade marker (14) remain in place; overlay writes guarded by overlay_magic.
 	- EV‑normalized tier sampler finalized with a debug sampling API for tests; bounds, depth monotonicity, and bump behavior validated.
@@ -137,8 +142,8 @@ PHASE 8. Loot & Reward Orchestration
 8.5 Tests: EV consistency vs difficulty, upgrade guarantee logic, chest placement constraints (Done) (added `test_dungeon_phase8_5_ev_sanity`, `test_dungeon_phase8_3_upgrade_guarantee`, and `test_dungeon_phase8_3_upgrade_coupling_integration`; placement and marker adjacency covered in `test_dungeon_phase8_loot_and_materials`)
 
 PHASE 9. Run Modifiers & Mutators
-9.1 Mutator definition file (id, weight, effect DSL, reward_multiplier) (X)
-9.2 Pre-run mutator selection UI (roll K choose N) (X)
+9.1 Mutator definition file (id, weight, effect DSL, reward_multiplier) (Done)
+9.2 Pre-run mutator selection UI (roll K choose N) (Partial) (deterministic headless selection helper implemented; UI pending)
 9.3 Stacking rules & incompatibility matrix (X)
 9.4 Dynamic mid-run mutator event (optional challenge offer) (X)
 9.5 Tests: reward scaling correctness, incompatibility enforcement, deterministic selection (X)

@@ -333,6 +333,36 @@ int rogue_dungeon_upgrade_possible(void);
  *  -1 = clear override (use heuristic); 0 = force not possible; 1 = force possible. */
 void rogue_dungeon_set_upgrade_possible_override(int value);
 
+/* ---- Phase 9: Run Modifiers & Mutators ---- */
+typedef struct RogueMutatorDesc
+{
+    char id[32];             /* unique identifier */
+    float weight;            /* selection weight (>0) */
+    float reward_multiplier; /* e.g., 1.0 = baseline, >1 scales rewards */
+    char effect_dsl[128];    /* tiny DSL for global effect; placeholder for now */
+} RogueMutatorDesc;
+
+/* Registry management */
+void rogue_mutator_clear_registry(void);
+int rogue_mutator_register(const RogueMutatorDesc* d); /* returns index or -1 */
+int rogue_mutator_registry_count(void);
+const RogueMutatorDesc* rogue_mutator_get_desc(int index);
+int rogue_mutator_registry_find(const char* id); /* returns index or -1 */
+
+/* Loader from JSON text/file; returns number added or negative on error. */
+int rogue_mutator_registry_load_json_text(const char* json_text, char* err, size_t err_cap);
+int rogue_mutator_registry_load_json_file(const char* path, char* err, size_t err_cap);
+
+/* Deterministic selection: roll up to k unique candidates, choose n without replacement.
+ * Writes indices (sorted ascending by id for manifest stability) into out_indices (cap provided).
+ * Returns count written or negative on error. */
+int rogue_mutator_roll_k_choose_n(RogueWorldGenContext* ctx, int k, int n, int* out_indices,
+                                  int cap);
+
+/* Manifest utility: given indices, produce a sorted comma-separated id list. Returns 1 on success.
+ */
+int rogue_mutator_manifest_csv(const int* indices, int count, char* out_csv, size_t cap);
+
 /* ---- Phase 9: Lootable & Resource Nodes ---- */
 typedef struct RogueResourceNodeDesc
 {
