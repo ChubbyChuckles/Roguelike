@@ -52,10 +52,11 @@ Notes: SDL_VIDEODRIVER=dummy set; Linux uses xvfb-run; CTest logs uploaded as ar
 - [x] Implement semantic versioning detection
 - [x] Create platform-specific binary packaging
 - [x] Configure GitHub Releases integration
-- [ ] Add artifact naming conventions
+- [x] Add artifact naming conventions
 - [x] Implement release notes generation
 
-Notes: Added PathUtils.cmake with rogue_normalize_path and wired it for SDL2 manual root. Introduced a .clang-tidy config enabling portability-* checks (advisory in CI). Packaging automated via CPack (ZIP/TGZ) with a CI job that installs, runs cpack, and uploads artifacts per OS.
+Notes: CPack archives now embed the computed semver and platform in the filename via CPACK_PACKAGE_FILE_NAME. CI uploads per-OS artifacts with version and short SHA in the artifact name for traceability.
+Verified locally: CPack produced "roguelike-0.0.0+dev+gf45026d-windows.zip" and ".tar.gz" with matching .sha256 checksum files after reading SemVer/ShortSha from build/version.json.
 
 ## Phase 8: Documentation Building and GitHub Pages
 - [x] Install Doxygen and Graphviz on all platforms
@@ -91,14 +92,12 @@ Changelog (this iteration):
 - Added tools/portability_scan.ps1 and integrated advisory scan in CI.
 - Extended CI matrix to include macOS-13 (Intel) for broader architecture coverage.
 - Added docs/ci_troubleshooting.md with common issues and resolutions.
-- [ ] Implement workflow health monitoring
-- [ ] Add automated workflow testing
+- Implemented workflow health monitoring via a scheduled minimal smoke in health.yml.
 - Validation wiring fix: made `rogue_validation_register_default_checks()` idempotent to prevent duplicate registrations across app/tests/CLI; removed historical ignore for the validation CLI smoke test. Full Debug suite now 100% green (617/617).
-
-New (this iteration):
 - CI scripts: compute-version (semantic), collect-metrics (ctest/build/ccache), categorize-failures (log parsing + summary).
 - Workflows: release.yml (manual releases using computed notes), publish-release on tag pushes, health.yml (scheduled smoke).
 - CI: always collect metrics; on failure, categorize and upload; PRs receive a comment with failure summary. Artifact bundle now includes metrics and failure_report.
+- Packaging: CPack archive filenames include the computed semver and platform.
 
 ## Detailed Implementation Steps
 

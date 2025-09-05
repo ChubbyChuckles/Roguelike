@@ -1399,6 +1399,41 @@ endif()
 # -----------------------------
 # Packaging (CPack)
 # -----------------------------
+# Try to pick up a computed semantic version from CI (scripts/ci/compute-version.ps1)
+# The script writes build/version.json with keys: version, semver, short_sha, is_prerelease
+set(ROGUE_SEMVER "0.1.0")
+set(ROGUE_SHORT_SHA "unknown")
+if(EXISTS "${CMAKE_BINARY_DIR}/version.json")
+    file(READ "${CMAKE_BINARY_DIR}/version.json" _rogue_ver_json)
+    if(_rogue_ver_json)
+        # Prefer SemVer if present; support both lowercase and PascalCase keys.
+        unset(CMAKE_MATCH_1)
+        string(REGEX MATCH "\"[Ss]em[Vv]er\"[ \t\r\n]*:[ \t\r\n]*\"([^\"]+)\"" _m_semver "${_rogue_ver_json}")
+        if(_m_semver)
+            set(ROGUE_SEMVER "${CMAKE_MATCH_1}")
+        else()
+            unset(CMAKE_MATCH_1)
+            string(REGEX MATCH "\"[Vv]ersion\"[ \t\r\n]*:[ \t\r\n]*\"([^\"]+)\"" _m_ver "${_rogue_ver_json}")
+            if(_m_ver)
+                set(ROGUE_SEMVER "${CMAKE_MATCH_1}")
+            endif()
+        endif()
+
+        # Extract short SHA from either short_sha or ShortSha.
+        unset(CMAKE_MATCH_1)
+        string(REGEX MATCH "\"short_sha\"[ \t\r\n]*:[ \t\r\n]*\"([^\"]+)\"" _m_sha1 "${_rogue_ver_json}")
+        if(_m_sha1)
+            set(ROGUE_SHORT_SHA "${CMAKE_MATCH_1}")
+        else()
+            unset(CMAKE_MATCH_1)
+            string(REGEX MATCH "\"ShortSha\"[ \t\r\n]*:[ \t\r\n]*\"([^\"]+)\"" _m_sha2 "${_rogue_ver_json}")
+            if(_m_sha2)
+                set(ROGUE_SHORT_SHA "${CMAKE_MATCH_1}")
+            endif()
+        endif()
+    endif()
+endif()
+
 set(CPACK_PACKAGE_NAME "roguelike")
 set(CPACK_PACKAGE_VENDOR "Roguelike Team")
 set(CPACK_PACKAGE_CONTACT "support@example.com")
@@ -1406,6 +1441,15 @@ set(CPACK_PACKAGE_VERSION_MAJOR 0)
 set(CPACK_PACKAGE_VERSION_MINOR 1)
 set(CPACK_PACKAGE_VERSION_PATCH 0)
 set(CPACK_GENERATOR "ZIP;TGZ")
+
+# Name archives with semver (may include pre-release/build metadata) and platform for clarity.
+# Example: roguelike-1.2.3-4+gabcd123-Windows.zip
+string(TOLOWER "${CMAKE_SYSTEM_NAME}" _rogue_sysname)
+if(NOT _rogue_sysname)
+    set(_rogue_sysname "unknown")
+endif()
+set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${ROGUE_SEMVER}-${_rogue_sysname}")
+set(CPACK_PACKAGE_CHECKSUM "SHA256")
 
 # Install layout: executable + assets
 install(TARGETS roguelike RUNTIME DESTINATION bin)

@@ -73,6 +73,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Compute version
+        id: ver
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci/compute-version.ps1 -OutDir build -WriteGithubOutputs
+
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1
 
@@ -282,7 +287,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: logs-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}
+          name: logs-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.short_sha }}
           path: |
             build/Testing/Temporary
             build/ctest_*.log
@@ -352,6 +357,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute version
+        id: ver
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci/compute-version.ps1 -OutDir build -WriteGithubOutputs
 
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1
@@ -418,6 +430,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute version
+        id: ver
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci/compute-version.ps1 -OutDir build -WriteGithubOutputs
 
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1
@@ -464,7 +483,7 @@ jobs:
       - name: Upload packages and logs
         uses: actions/upload-artifact@v4
         with:
-          name: packages-${{ matrix.os }}
+          name: packages-${{ matrix.os }}-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.short_sha }}
           path: |
             build/*.zip
             build/*.tgz
