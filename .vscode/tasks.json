@@ -125,5 +125,19 @@
 			"command": "cmake --build build --config Debug --parallel 12 && ctest --test-dir build -C Debug -j 12 --output-on-failure --timeout 90",
 			"group": "build"
 		}
+		,
+		{
+			"label": "CI: Show recent runs (gh)",
+			"type": "shell",
+			"command": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci/status.ps1",
+			"problemMatcher": []
+		},
+		{
+			"label": "CI: Fetch latest run logs (gh)",
+			"type": "shell",
+			"command": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci/fetch-logs.ps1",
+			"problemMatcher": [],
+			"detail": "Downloads logs and artifacts of the newest CI run into build/ci_logs"
+		}
 	]
 }

@@ -1,4 +1,9 @@
 tooling(clang-tidy): fix malformed .clang-tidy (duplicate keys). Keep advisory config enabling portability and core analyzer checks for C11.
+ci(devex): add gh-powered CI status/log scripts + upload build logs from Actions
+
+- Scripts: scripts/ci/status.ps1 (list recent CI runs, print latest failure) and scripts/ci/fetch-logs.ps1 (download logs/artifacts for latest run).
+- VS Code: tasks "CI: Show recent runs (gh)" and "CI: Fetch latest run logs (gh)" for one-click access.
+- Actions: stream build/install/cpack output to build/*.log and upload alongside ctest logs as artifacts for all matrix entries. Optional CI_DEBUG toggle for verbose build.
 cmake(warnings): opt-in warnings-as-errors toggle; roadmap updates
 
 - Warnings.cmake: add ROGUE_WARNINGS_AS_ERRORS support to map to /WX (MSVC) and -Werror (GNU/Clang); consolidate common warnings via rogue_set_project_warnings.

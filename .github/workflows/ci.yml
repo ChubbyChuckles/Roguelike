@@ -59,6 +59,7 @@ jobs:
       ROGUE_ENABLE_SDL: ON
       VCPKG_ROOT: C:\vcpkg
       VCPKG_DEFAULT_TRIPLET: x64-windows
+      CI_DEBUG: "0"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -197,7 +198,14 @@ jobs:
             build/CMakeFiles/CMakeError.log
 
       - name: Build (-j12)
-        run: cmake --build build --parallel 12
+        run: |
+          set -e
+          if [ -n "$CI_DEBUG" ] && [ "$CI_DEBUG" = "1" ]; then
+            cmake --build build --parallel 12 -- -v | tee build/build_${{ matrix.os }}_${{ matrix.compiler }}_${{ matrix.build_type }}.log
+          else
+            cmake --build build --parallel 12 | tee build/build_${{ matrix.os }}_${{ matrix.compiler }}_${{ matrix.build_type }}.log
+          fi
+        shell: bash
 
       - name: Run Tests (ctest -j12)
         shell: bash
@@ -215,14 +223,15 @@ jobs:
             ctest --test-dir build -C ${BUILD_TYPE} -j 12 --output-on-failure --timeout 300
           fi
 
-      - name: Upload CTest logs (always)
+      - name: Upload logs (always)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ctest-logs-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}
+          name: logs-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}
           path: |
             build/Testing/Temporary
             build/ctest_*.log
+            build/*.log
 
       - name: Run clang-tidy (Linux, broadened via compile_commands.json; non-blocking)
         if: runner.os == 'Linux'
@@ -364,17 +373,22 @@ jobs:
           fi
 
       - name: Build (Release)
-        run: cmake --build build --parallel 12
+        run: |
+          set -e
+          cmake --build build --parallel 12 | tee build/build_release_${{ matrix.os }}.log
+        shell: bash
 
       - name: Package with CPack
         run: |
-          cmake --install build --config Release --prefix build/_staging
-          (cd build && cpack -C Release)
+          set -e
+          cmake --install build --config Release --prefix build/_staging | tee build/install_${{ matrix.os }}.log
+          (cd build && cpack -C Release | tee cpack_${{ matrix.os }}.log)
 
-      - name: Upload packages
+      - name: Upload packages and logs
         uses: actions/upload-artifact@v4
         with:
           name: packages-${{ matrix.os }}
           path: |
             build/*.zip
             build/*.tgz
+            build/*.log

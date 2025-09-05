@@ -630,6 +630,18 @@ Note: Event bus statistics now clamp ultra-fast measurements to a minimum of 1µ
 
 - CI runs on Windows, Linux, and macOS using a matrix. Ninja + CMake with -j12 is used everywhere.
 - SDL2 is installed via vcpkg (Windows), apt (Ubuntu), and Homebrew (macOS). Tests run headless using SDL_VIDEODRIVER=dummy; Linux uses xvfb-run.
-- Logs: CTest logs are uploaded as artifacts on every run. A lightweight clang-tidy check runs on Linux (non-blocking).
+- Logs: Build and CTest logs are uploaded as artifacts on every run. A lightweight clang-tidy check runs on Linux/macOS/Windows (non-blocking subset).
 - Docs: Doxygen builds on Windows in CI and is deployed automatically to GitHub Pages. HTML lands in build/docs/html locally.
 - Known CI note: per maintainer guidance, ignore failures from test_validation_cli_smoke while its crash is triaged; all other tests gate the build.
+
+### Checking CI status and retrieving logs locally
+
+- VS Code tasks:
+  - CI: Show recent runs (gh) — lists recent CI runs and prints details for the latest failure.
+  - CI: Fetch latest run logs (gh) — downloads logs and artifacts for the newest run into `build/ci_logs/`.
+- PowerShell (manual):
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci/status.ps1 -Limit 20`
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci/fetch-logs.ps1` (use `-RunId <id>` to target a specific run)
+- Prerequisite: GitHub CLI must be installed and authenticated (`gh auth login`).
+- CI artifacts include: `build/*.log`, `build/ctest_*.log`, and `build/Testing/Temporary/`.
+- Verbose CI: maintainers can set a repo secret `CI_DEBUG=1` to increase build verbosity in Actions logs.
