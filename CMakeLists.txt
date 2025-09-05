@@ -105,6 +105,20 @@ if(ROGUE_ENABLE_SDL AND NOT TARGET SDL2::SDL2)
         else()
             message(FATAL_ERROR "ROGUE_SDL2_ROOT provided (${ROGUE_SDL2_ROOT}) but SDL2 not found (looked for SDL.h and SDL2.lib)")
         endif()
+    elseif(UNIX)
+        # pkg-config fallback commonly available on Linux/macOS
+        find_package(PkgConfig QUIET)
+        if(PKG_CONFIG_FOUND)
+            pkg_check_modules(PC_SDL2 QUIET sdl2)
+            if(PC_SDL2_FOUND)
+                add_library(SDL2::SDL2 INTERFACE IMPORTED)
+                set_target_properties(SDL2::SDL2 PROPERTIES
+                    INTERFACE_INCLUDE_DIRECTORIES "${PC_SDL2_INCLUDE_DIRS}"
+                    INTERFACE_LINK_LIBRARIES "${PC_SDL2_LIBRARIES}"
+                )
+                message(STATUS "Using SDL2 via pkg-config: includes=${PC_SDL2_INCLUDE_DIRS}")
+            endif()
+        endif()
     endif()
 endif()
 

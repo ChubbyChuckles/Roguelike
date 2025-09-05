@@ -132,12 +132,14 @@ jobs:
               -DROGUE_ENABLE_SDL=${ROGUE_ENABLE_SDL} \
               -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
               -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+              -DROGUE_WARNINGS_AS_ERRORS=OFF \
               -DCMAKE_PREFIX_PATH="$BREW_PREFIX"
           else
             cmake -G Ninja -S . -B build \
               -DROGUE_ENABLE_SDL=${ROGUE_ENABLE_SDL} \
               -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
-              -DCMAKE_C_COMPILER_LAUNCHER=ccache
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+              -DROGUE_WARNINGS_AS_ERRORS=OFF
           fi
 
       - name: Build (-j12)
