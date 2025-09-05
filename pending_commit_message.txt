@@ -1,3 +1,8 @@
+cmake(warnings): opt-in warnings-as-errors toggle; roadmap updates
+
+- Warnings.cmake: add ROGUE_WARNINGS_AS_ERRORS support to map to /WX (MSVC) and -Werror (GNU/Clang); consolidate common warnings via rogue_set_project_warnings.
+- Roadmap: mark manual SDL2 fallback detection complete; mark compiler flag management done; note CI keeps -DROGUE_WARNINGS_AS_ERRORS=OFF.
+
 ci/cmake: SDL2 version validation + pkg-config discovery hardening and CI diagnostics
 
 - CMake: Parse SDL_version.h to compute ROGUE_SDL2_VERSION and optionally validate against ROGUE_MIN_SDL2_VERSION (warn-only). Prints detected version during configure.

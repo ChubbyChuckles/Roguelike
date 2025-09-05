@@ -189,6 +189,10 @@ APIs: `src/debug_overlay/overlay_core.h` plus widgets in `overlay_widgets.h` (La
   - Custom HTML theme is applied from `docs/templates/theme.css`.
   - CI: Every push/PR builds docs on Windows with SDL enabled and uploads the HTML as an artifact named `docs-html` and as a Pages artifact; GitHub Pages deploys automatically from CI.
     - Pages URL: enable GitHub Pages for this repo to serve the latest docs. See Actions → Deploy Pages job for the live link after a successful run.
+Build hygiene:
+
+- Warnings: The build uses strong warnings by default. You can opt-in to treat warnings as errors by configuring CMake with -DROGUE_WARNINGS_AS_ERRORS=ON. On MSVC this maps to /WX; on GCC/Clang it maps to -Werror. CI keeps this OFF to avoid spurious red builds across compilers.
+
 
   Contributor notes:
 

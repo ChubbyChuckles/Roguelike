@@ -12,15 +12,17 @@
   - [x] Ubuntu: Use apt-get with specific version pinning
   - [x] macOS: Use Homebrew with version constraints
   - [x] Implement SDL2 version validation (warn-only; configurable) across platforms
-- [ ] Create fallback detection for manual SDL2 installations
+- [x] Create fallback detection for manual SDL2 installations
 - [x] Add platform-specific SDL2 runtime library handling
 
 ## Phase 3: CMake Multi-Platform Enhancements
 - [x] Add platform detection and conditional compilation flags
 - [ ] Implement cross-platform file path handling in CMake
-- [ ] Create platform-specific compiler flag management
+- [x] Create platform-specific compiler flag management
 - [x] Add conditional SDL2 library linking based on platform
 - [x] Implement proper shared library path configuration
+
+Notes: Compiler warnings are consolidated via rogue_set_project_warnings with an opt-in ROGUE_WARNINGS_AS_ERRORS switch mapping to /WX on MSVC and -Werror on GCC/Clang. CI keeps -DROGUE_WARNINGS_AS_ERRORS=OFF.
 
 ## Phase 4: Static Analysis Integration
 - [x] Install and configure Clang-Tidy across all platforms
