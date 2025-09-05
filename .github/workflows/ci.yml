@@ -21,6 +21,7 @@ jobs:
   build-and-test:
     name: Build & Test (${{ matrix.os }} | ${{ matrix.build_type }} | ${{ matrix.compiler }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -152,8 +153,10 @@ jobs:
         run: |
           set -Eeuo pipefail
           mkdir -p build
-          sudo apt-get update 2>&1 | tee build/deps_linux.txt
-          sudo apt-get install -y cmake ninja-build build-essential pkg-config ccache clang clang-tidy \
+          export DEBIAN_FRONTEND=noninteractive
+          # Apply retries and network timeouts to avoid indefinite stalls
+          timeout 10m sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update 2>&1 | tee build/deps_linux.txt
+          timeout 20m sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y cmake ninja-build build-essential pkg-config ccache clang clang-tidy \
             libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
             xvfb 2>&1 | tee -a build/deps_linux.txt
           echo "-- Versions --" | tee -a build/deps_linux.txt
@@ -180,6 +183,10 @@ jobs:
         run: |
           set -Eeuo pipefail
           mkdir -p build
+          # Reduce flakiness and long updates during CI
+          export HOMEBREW_NO_AUTO_UPDATE=1
+          export HOMEBREW_NO_INSTALL_CLEANUP=1
+          export HOMEBREW_NO_ENV_HINTS=1
           brew update 2>&1 | tee build/deps_macos.txt
           brew install cmake ninja sdl2 sdl2_image sdl2_mixer ccache llvm pkg-config 2>&1 | tee -a build/deps_macos.txt || true
           echo "-- Versions --" | tee -a build/deps_macos.txt
@@ -297,12 +304,12 @@ jobs:
         with:
           name: logs-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.short_sha }}
           path: |
-            build/Testing/Temporary
             build/ctest_*.log
             build/*.log
             build/deps_*.txt
             build/metrics
             build/failure_report
+        timeout-minutes: 10
 
       # Share Release build directory for packaging job to avoid redundant rebuilds
       - name: Upload Release build directory (for packaging reuse)
@@ -369,6 +376,7 @@ jobs:
   docs:
     name: Build Docs (windows-latest)
     runs-on: windows-latest
+    timeout-minutes: 25
     needs: [build-and-test]
     if: always()
     steps:
@@ -429,6 +437,7 @@ jobs:
     needs: [docs]
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Configure Pages
         uses: actions/configure-pages@v4
@@ -440,6 +449,7 @@ jobs:
     name: Package Release Artifacts (${{ matrix.os }})
     needs: [build-and-test]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -470,6 +480,7 @@ jobs:
       - name: Fallback Configure+Build (Release)
         if: always()
         shell: bash
+        timeout-minutes: 25
         run: |
           set -Eeuo pipefail
           if [ -f build/CPackConfig.cmake ]; then
@@ -484,15 +495,19 @@ jobs:
             fi
             cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DROGUE_ENABLE_SDL=ON -DCMAKE_TOOLCHAIN_FILE="$VCPKG_TEMP/scripts/buildsystems/vcpkg.cmake"
           elif [ "$RUNNER_OS" = "Linux" ]; then
-            sudo apt-get update && sudo apt-get install -y cmake ninja-build
+          timeout 10m sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          timeout 10m sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y cmake ninja-build
             cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DROGUE_ENABLE_SDL=ON
           else
-            brew update && brew install cmake ninja || true
+          export HOMEBREW_NO_AUTO_UPDATE=1
+          export HOMEBREW_NO_INSTALL_CLEANUP=1
+          brew update && brew install cmake ninja || true
             cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DROGUE_ENABLE_SDL=ON
           fi
           cmake --build build --parallel 12 | tee build/build_release_${{ matrix.os }}.log
 
       - name: Package with CPack
+        timeout-minutes: 20
         run: |
           set -Eeuo pipefail
           cmake --install build --config Release --prefix build/_staging | tee build/install_${{ matrix.os }}.log
@@ -512,6 +527,7 @@ jobs:
     needs: [package-release]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
     steps:
