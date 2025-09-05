@@ -64,6 +64,7 @@ jobs:
       BUILD_TYPE: ${{ matrix.build_type }}
       COMPILER: ${{ matrix.compiler }}
       ROGUE_ENABLE_SDL: ON
+      CMAKE_BUILD_PARALLEL_LEVEL: "12" # Ensure full parallelism for CMake builds across all runners
       VCPKG_ROOT: C:\vcpkg
       VCPKG_DEFAULT_TRIPLET: x64-windows
       CI_DEBUG: "0"
@@ -99,15 +100,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-${{ env.COMPILER }}-
 
-      - name: Cache ccache (Linux/macOS)
-        if: runner.os != 'Windows'
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ccache
-          key: ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-${{ env.COMPILER }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'src/**', 'tests/**') }}
-          restore-keys: |
-            ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-${{ env.COMPILER }}-
-
       # Windows-specific setup
       - name: Setup MSVC Developer Command Prompt
         if: runner.os == 'Windows'
@@ -129,6 +121,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          # Log dependency setup to build/deps_windows.txt for troubleshooting
+          if (-not (Test-Path build)) { New-Item -ItemType Directory -Path build | Out-Null }
           # Always use a local classic vcpkg instance to avoid manifest-mode-only runner instances
           $vcpkgRoot = Join-Path $env:RUNNER_TEMP 'vcpkg'
           if (-Not (Test-Path $vcpkgRoot)) {
@@ -140,29 +134,39 @@ jobs:
           # Persist VCPKG_ROOT for subsequent steps
           "VCPKG_ROOT=$env:VCPKG_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "VCPKG_DEFAULT_TRIPLET=$env:VCPKG_DEFAULT_TRIPLET" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          & $vcpkgExe version
-          & $vcpkgExe install sdl2 sdl2-image sdl2-mixer --triplet $env:VCPKG_DEFAULT_TRIPLET
+          & $vcpkgExe version 2>&1 | Tee-Object -FilePath build/deps_windows.txt -Append | Out-Null
+          & $vcpkgExe install sdl2 sdl2-image sdl2-mixer --triplet $env:VCPKG_DEFAULT_TRIPLET 2>&1 | Tee-Object -FilePath build/deps_windows.txt -Append | Out-Null
+          choco --version 2>&1 | Tee-Object -FilePath build/deps_windows.txt -Append | Out-Null
 
       - name: Show SDL2 version (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $vcpkgExe = Join-Path $env:VCPKG_ROOT 'vcpkg.exe'
-          & $vcpkgExe list sdl2
-          Get-ChildItem "$env:VCPKG_ROOT\installed\x64-windows\bin" -Filter SDL2.dll -ErrorAction SilentlyContinue | Select-Object FullName, Length
+          & $vcpkgExe list sdl2 2>&1 | Tee-Object -FilePath build/deps_windows.txt -Append | Out-Null
+          Get-ChildItem "$env:VCPKG_ROOT\installed\x64-windows\bin" -Filter SDL2.dll -ErrorAction SilentlyContinue | Select-Object FullName, Length | Out-String | Tee-Object -FilePath build/deps_windows.txt -Append | Out-Null
 
       # Ubuntu-specific setup
       - name: Install Dependencies (Ubuntu)
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
+          set -Eeuo pipefail
+          mkdir -p build
+          sudo apt-get update 2>&1 | tee build/deps_linux.txt
           sudo apt-get install -y cmake ninja-build build-essential pkg-config ccache clang clang-tidy \
             libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
-            xvfb
+            xvfb 2>&1 | tee -a build/deps_linux.txt
+          echo "-- Versions --" | tee -a build/deps_linux.txt
+          cmake --version | tee -a build/deps_linux.txt
+          ninja --version | tee -a build/deps_linux.txt
+          gcc --version | head -n1 | tee -a build/deps_linux.txt || true
+          clang --version | head -n1 | tee -a build/deps_linux.txt || true
+          pkg-config --modversion sdl2 sdl2_image sdl2_mixer 2>/dev/null | paste -sd "," - | sed 's/^/pkg-config: /' | tee -a build/deps_linux.txt
 
       - name: Show SDL2 version (Ubuntu)
         if: runner.os == 'Linux'
         run: |
+          set -Eeuo pipefail
           echo "pkg-config versions:"
           pkg-config --modversion sdl2 || true
           pkg-config --modversion sdl2_image || true
@@ -174,12 +178,20 @@ jobs:
       - name: Install Dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew update
-          brew install cmake ninja sdl2 sdl2_image sdl2_mixer ccache llvm pkg-config || true
+          set -Eeuo pipefail
+          mkdir -p build
+          brew update 2>&1 | tee build/deps_macos.txt
+          brew install cmake ninja sdl2 sdl2_image sdl2_mixer ccache llvm pkg-config 2>&1 | tee -a build/deps_macos.txt || true
+          echo "-- Versions --" | tee -a build/deps_macos.txt
+          cmake --version | tee -a build/deps_macos.txt
+          ninja --version | tee -a build/deps_macos.txt
+          clang --version | head -n1 | tee -a build/deps_macos.txt || true
+          pkg-config --modversion sdl2 sdl2_image sdl2_mixer 2>/dev/null | paste -sd "," - | sed 's/^/pkg-config: /' | tee -a build/deps_macos.txt
 
       - name: Show SDL2 version (macOS)
         if: runner.os == 'macOS'
         run: |
+          set -Eeuo pipefail
           echo "pkg-config versions:"
           pkg-config --modversion sdl2 || true
           pkg-config --modversion sdl2_image || true
@@ -190,11 +202,13 @@ jobs:
       - name: Configure (CMake, Ninja)
         shell: bash
         run: |
+          set -Eeuo pipefail
+          CONF_LOG="build/configure_${{ matrix.os }}_${{ matrix.compiler }}_${{ matrix.build_type }}.log"
           if [ "$RUNNER_OS" = "Windows" ]; then
             cmake -G Ninja -S . -B build \
               -DROGUE_ENABLE_SDL=${ROGUE_ENABLE_SDL} \
               -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
-              -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
+              -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" | tee "$CONF_LOG"
           elif [ "$RUNNER_OS" = "macOS" ]; then
             BREW_PREFIX=$(brew --prefix)
             # Include keg-only pkg-config dirs for SDL2 and companions
@@ -204,7 +218,7 @@ jobs:
               -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
               -DCMAKE_C_COMPILER_LAUNCHER=ccache \
               -DROGUE_WARNINGS_AS_ERRORS=OFF \
-              -DCMAKE_PREFIX_PATH="$BREW_PREFIX"
+              -DCMAKE_PREFIX_PATH="$BREW_PREFIX" | tee "$CONF_LOG"
           else
             # Select compiler on Linux based on matrix.compiler
             if [ "${COMPILER}" = "clang" ]; then
@@ -216,7 +230,7 @@ jobs:
               -DROGUE_ENABLE_SDL=${ROGUE_ENABLE_SDL} \
               -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
               -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-              -DROGUE_WARNINGS_AS_ERRORS=OFF
+              -DROGUE_WARNINGS_AS_ERRORS=OFF | tee "$CONF_LOG"
           fi
 
       - name: Upload CMake configure logs on failure
@@ -231,7 +245,7 @@ jobs:
 
       - name: Build (-j12)
         run: |
-          set -e
+          set -Eeuo pipefail
           if [ -n "$CI_DEBUG" ] && [ "$CI_DEBUG" = "1" ]; then
             cmake --build build --parallel 12 -- -v | tee build/build_${{ matrix.os }}_${{ matrix.compiler }}_${{ matrix.build_type }}.log
           else
@@ -277,12 +291,6 @@ jobs:
         run: |
           pwsh -NoProfile -ExecutionPolicy Bypass -File tools/portability_scan.ps1 -Root . || echo "Pattern scan completed."
 
-      - name: Portability pattern scan (advisory)
-        if: always()
-        shell: pwsh
-        run: |
-          pwsh -NoProfile -ExecutionPolicy Bypass -File tools/portability_scan.ps1 -Root . || echo "Pattern scan completed."
-
       - name: Upload logs (always)
         if: always()
         uses: actions/upload-artifact@v4
@@ -292,8 +300,17 @@ jobs:
             build/Testing/Temporary
             build/ctest_*.log
             build/*.log
+            build/deps_*.txt
             build/metrics
             build/failure_report
+
+      # Share Release build directory for packaging job to avoid redundant rebuilds
+      - name: Upload Release build directory (for packaging reuse)
+        if: ${{ matrix.build_type == 'Release' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: builddir-${{ matrix.os }}-release-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.short_sha }}
+          path: build/**
 
       - name: Comment failure summary on PR
         if: failure() && github.event_name == 'pull_request'
@@ -441,42 +458,43 @@ jobs:
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1
 
-      - name: Platform deps
-        run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            choco install -y ninja || echo "ninja already installed"
-            if (-not (Test-Path "$env:VCPKG_ROOT")) { echo "VCPKG_ROOT not preset" }
-          elif [ "$RUNNER_OS" = "Linux" ]; then
-            sudo apt-get update && sudo apt-get install -y cmake ninja-build
-          else
-            brew update && brew install cmake ninja || true
-          fi
-        shell: bash
+      # Try to reuse the Release build directory produced in the build-and-test job
+      - name: Download Release build directory artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: builddir-${{ matrix.os }}-release-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.short_sha }}
+          path: build
+        continue-on-error: true
 
-      - name: Configure (Release)
+      # Fallback: if artifact not found (e.g., matrix mismatch), perform a fresh Release configure+build
+      - name: Fallback Configure+Build (Release)
+        if: always()
         shell: bash
         run: |
+          set -Eeuo pipefail
+          if [ -f build/CPackConfig.cmake ]; then
+            echo "Found existing build/CPackConfig.cmake; skipping fallback configure+build."
+            exit 0
+          fi
           if [ "$RUNNER_OS" = "Windows" ]; then
-            # Reuse vcpkg if present from previous job context is not guaranteed; bootstrap lightweight if needed
             VCPKG_TEMP="$RUNNER_TEMP/vcpkg"
             if [ ! -d "$VCPKG_TEMP" ]; then
               git clone https://github.com/microsoft/vcpkg "$VCPKG_TEMP"
               "$VCPKG_TEMP/bootstrap-vcpkg.bat"
             fi
             cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DROGUE_ENABLE_SDL=ON -DCMAKE_TOOLCHAIN_FILE="$VCPKG_TEMP/scripts/buildsystems/vcpkg.cmake"
+          elif [ "$RUNNER_OS" = "Linux" ]; then
+            sudo apt-get update && sudo apt-get install -y cmake ninja-build
+            cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DROGUE_ENABLE_SDL=ON
           else
+            brew update && brew install cmake ninja || true
             cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DROGUE_ENABLE_SDL=ON
           fi
-
-      - name: Build (Release)
-        run: |
-          set -e
           cmake --build build --parallel 12 | tee build/build_release_${{ matrix.os }}.log
-        shell: bash
 
       - name: Package with CPack
         run: |
-          set -e
+          set -Eeuo pipefail
           cmake --install build --config Release --prefix build/_staging | tee build/install_${{ matrix.os }}.log
           (cd build && cpack -C Release | tee cpack_${{ matrix.os }}.log)
 

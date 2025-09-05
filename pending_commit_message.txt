@@ -3,3 +3,11 @@ packaging(cmake): robust JSON key parsing for SemVer/ShortSha and fix whitespace
 - CMake: update packaging regex to accept both PascalCase and lowercase keys (SemVer/Version, ShortSha/short_sha) and use explicit whitespace classes.
 - Result: CPack now emits versioned archives with platform suffix, e.g., roguelike-0.0.0+dev+gf45026d-windows.{zip,tar.gz} plus .sha256.
 - Verified by reconfiguring CMake (Debug) and running CPack locally.
+
+ci: improve diagnostics, parallelism, and reuse Release build dir across jobs
+
+- Add CMAKE_BUILD_PARALLEL_LEVEL=12 to enforce parallelism across runners; keep SDL2 enabled everywhere.
+- Capture dependency install logs per-OS (build/deps_*.txt) and tee CMake configure output to build/configure_*.log.
+- Deduplicate repeated steps in CI and add inline comments for clarity.
+- Share the Release build directory from build-and-test to package-release to avoid redundant rebuilds; fallback build remains when reuse isn’t available.
+- Upload additional diagnostics in logs-* artifacts.

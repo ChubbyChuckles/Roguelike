@@ -637,6 +637,7 @@ Note: Event bus statistics now clamp ultra-fast measurements to a minimum of 1µ
 - Logs: Build and CTest logs are uploaded as artifacts on every run. A lightweight clang-tidy check runs on Linux/macOS/Windows (non-blocking subset).
 - Docs: Doxygen builds on Windows in CI and is deployed automatically to GitHub Pages. HTML lands in build/docs/html locally.
 - Known CI note: per maintainer guidance, ignore failures from test_validation_cli_smoke while its crash is triaged; all other tests gate the build.
+- CI improvements: per-OS dependency install logs are captured (build/deps*\*.txt), CMake configure output is saved (build/configure*\*.log), and the Release build directory is reused for packaging to reduce redundant work.
 
 ### Multi-platform CI & portability updates
 
