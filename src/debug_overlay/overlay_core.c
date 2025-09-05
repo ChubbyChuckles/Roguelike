@@ -185,13 +185,23 @@ int overlay_register_panel(const char* id, const char* name, void (*fn)(void*), 
     g_panels[g_panel_count].fn = fn;
     g_panels[g_panel_count].user = user;
     g_panel_count++;
-    /* Default newly-registered panels to visible */
-    g_panel_visible_mask |= (1u << (g_panel_count - 1));
-    /* Merge persisted visibility if present */
+    /* Visibility:
+     * - If persisted visibility exists, honor it.
+     * - Otherwise, default to HIDDEN to avoid stacking every panel on first open.
+     *   Exception: keep the lightweight "Panels" selector visible by default.
+     */
     int vis = 0;
     if (overlay_layout_get(id, NULL, NULL, NULL, &vis) == 0)
     {
         if (vis)
+            g_panel_visible_mask |= (1u << (g_panel_count - 1));
+        else
+            g_panel_visible_mask &= ~(1u << (g_panel_count - 1));
+    }
+    else
+    {
+        /* No persisted state: only auto-show the panel selector */
+        if (id && strcmp(id, "panels") == 0)
             g_panel_visible_mask |= (1u << (g_panel_count - 1));
         else
             g_panel_visible_mask &= ~(1u << (g_panel_count - 1));
@@ -363,7 +373,13 @@ int overlay_set_panel_visible_by_index(int index, int visible)
         g_panel_visible_mask &= ~(1u << index);
     /* Persist change */
     if (index >= 0 && index < g_panel_count)
-        overlay_layout_set(g_panels[index].id, 10, 10, 360, visible);
+    {
+        /* Preserve existing layout (x,y,w) if present; only update visibility */
+        int x = 10, y = 10, w = 360, vis_old = 1;
+        (void) vis_old;
+        (void) overlay_layout_get(g_panels[index].id, &x, &y, &w, &vis_old);
+        overlay_layout_set(g_panels[index].id, x, y, w, visible);
+    }
     overlay_layout_save();
     return 0;
 }
@@ -568,39 +584,62 @@ int overlay_begin_panel_auto(const char* id, const char* title, int default_x, i
     /* Drag handling on title bar */
     const OverlayInputState* in = overlay_input_get();
     int drag_h = 24;
-    int panel_h = g_app.viewport_h - 20; /* clamp height to screen for overflow prevention */
+    /* Panel visual height: keep reasonable but don't constrain drag by full height.
+       We'll only enforce the title bar stays in-bounds for better UX. */
+    int panel_h = g_app.viewport_h - y - 20;
     if (panel_h < 120)
         panel_h = 120;
     /* Title bar hit test & drag */
     static int dragging = 0;
     static int drag_dx = 0, drag_dy = 0;
+    static int drag_last_x = 0, drag_last_y = 0; /* track latest computed pos while dragging */
+    static char drag_id[64] = {0};
     if (in)
     {
-        if (!dragging && in->mouse_clicked && in->mouse_y >= y && in->mouse_y < y + drag_h &&
-            in->mouse_x >= x && in->mouse_x < x + w)
+        int over_title = (in->mouse_y >= y && in->mouse_y < y + drag_h && in->mouse_x >= x &&
+                          in->mouse_x < x + w);
+        if (!dragging && in->mouse_clicked && over_title)
         {
             dragging = 1;
             drag_dx = in->mouse_x - x;
             drag_dy = in->mouse_y - y;
+            /* Track which panel is being dragged */
+            strncpy(drag_id, id ? id : "", sizeof(drag_id) - 1);
+            drag_id[sizeof(drag_id) - 1] = '\0';
+            /* Seed last known position at drag start */
+            drag_last_x = x;
+            drag_last_y = y;
+            /* Capture mouse while dragging to avoid leaking clicks to game */
+            overlay_input_set_capture(1, overlay_input_want_capture_keyboard());
         }
-        else if (dragging && in->mouse_down)
+        else if (dragging && in->mouse_down && drag_id[0] && id && strcmp(drag_id, id) == 0)
         {
             x = in->mouse_x - drag_dx;
             y = in->mouse_y - drag_dy;
+            /* Keep title bar on-screen with a small margin */
             if (x < 10)
                 x = 10;
             if (y < 10)
                 y = 10;
-            if (x + w > g_app.viewport_w - 10)
-                x = g_app.viewport_w - 10 - w;
-            if (y + panel_h > g_app.viewport_h - 10)
-                y = g_app.viewport_h - 10 - panel_h;
+            int max_x = g_app.viewport_w - 80; /* leave room for close button */
+            int max_y = g_app.viewport_h - drag_h - 10;
+            if (x > max_x)
+                x = max_x;
+            if (y > max_y)
+                y = max_y;
+            /* Remember latest computed position during drag so we can persist it on release */
+            drag_last_x = x;
+            drag_last_y = y;
         }
         else if (dragging && !in->mouse_down)
         {
             dragging = 0;
-            overlay_layout_set(id, x, y, w, vis);
+            drag_id[0] = '\0';
+            /* Persist the last drag position instead of the pre-drag default */
+            overlay_layout_set(id, drag_last_x, drag_last_y, w, vis);
             overlay_layout_save();
+            /* Release mouse capture after drag ends */
+            overlay_input_set_capture(0, overlay_input_want_capture_keyboard());
         }
     }
     /* Draw panel at computed position; override default height with clamped one */
@@ -619,6 +658,34 @@ int overlay_begin_panel_auto(const char* id, const char* title, int default_x, i
             rogue_font_draw_text(x + 6, y + 6, title, 1,
                                  (RogueColor){th->title_text.r, th->title_text.g, th->title_text.b,
                                               th->title_text.a});
+        /* Close (X) button on title bar (hidden for selector panel) */
+        int close_sz = 16;
+        int hide_close = (id && strcmp(id, "panels") == 0);
+        if (!hide_close)
+        {
+            int close_x = x + w - close_sz - 6;
+            int close_y = y + 4;
+            SDL_Rect close_r = {close_x, close_y, close_sz, close_sz};
+            int close_hot = overlay_mouse_over(close_x, close_y, close_sz, close_sz);
+            OverlayColor cbg = close_hot ? th->button_bg_hot : th->button_bg;
+            SDL_SetRenderDrawColor(g_app.renderer, cbg.r, cbg.g, cbg.b, cbg.a);
+            SDL_RenderFillRect(g_app.renderer, &close_r);
+            SDL_SetRenderDrawColor(g_app.renderer, th->button_border.r, th->button_border.g,
+                                   th->button_border.b, th->button_border.a);
+            SDL_RenderDrawRect(g_app.renderer, &close_r);
+            rogue_font_draw_text(close_x + 4, close_y + 1, "x", 1,
+                                 (RogueColor){th->button_text.r, th->button_text.g,
+                                              th->button_text.b, th->button_text.a});
+            /* Handle click to close */
+            if (in && close_hot && in->mouse_clicked)
+            {
+                overlay_set_panel_visible(id, 0);
+                overlay_layout_set(id, x, y, w, 0);
+                overlay_layout_save();
+                /* Swallow content rendering this frame */
+                return 0;
+            }
+        }
     }
 #endif
     /* Initialize UI cursor inside the panel, similar to overlay_begin_panel */
