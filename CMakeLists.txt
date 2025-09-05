@@ -19,6 +19,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(cmake/Warnings.cmake)
 rogue_set_project_warnings(rogue_warnings)
+include(cmake/PathUtils.cmake)
 
 # Build metadata (git hash/branch and build time) for Credits/Legal overlay
 # Try to obtain from git; fall back to "unknown" if unavailable.
@@ -99,9 +100,11 @@ endif()
 # Fallback/manual SDL2 discovery: allow specifying a root like C:/libs/SDL2 when CMake package config files are absent.
 if(ROGUE_ENABLE_SDL AND NOT TARGET SDL2::SDL2)
     if(ROGUE_SDL2_ROOT)
-        set(_SDL2_INC_HINT "${ROGUE_SDL2_ROOT}/include")
-        set(_SDL2_LIB_HINT1 "${ROGUE_SDL2_ROOT}/lib")
-        set(_SDL2_LIB_HINT2 "${ROGUE_SDL2_ROOT}/lib/x64")
+    # Normalize manual paths for cross-platform safety
+    rogue_normalize_path(_SDL2_ROOT_NORM "${ROGUE_SDL2_ROOT}")
+    set(_SDL2_INC_HINT "${_SDL2_ROOT_NORM}/include")
+    set(_SDL2_LIB_HINT1 "${_SDL2_ROOT_NORM}/lib")
+    set(_SDL2_LIB_HINT2 "${_SDL2_ROOT_NORM}/lib/x64")
         find_path(SDL2_INCLUDE_DIR SDL.h HINTS ${_SDL2_INC_HINT})
         find_library(SDL2_LIBRARY NAMES SDL2 SDL2-static HINTS ${_SDL2_LIB_HINT1} ${_SDL2_LIB_HINT2})
         if(SDL2_INCLUDE_DIR AND SDL2_LIBRARY)
@@ -1392,3 +1395,30 @@ if(ROGUE_BUILD_DOCS AND DOXYGEN_FOUND)
     VERBATIM
   )
 endif()
+
+# -----------------------------
+# Packaging (CPack)
+# -----------------------------
+set(CPACK_PACKAGE_NAME "roguelike")
+set(CPACK_PACKAGE_VENDOR "Roguelike Team")
+set(CPACK_PACKAGE_CONTACT "support@example.com")
+set(CPACK_PACKAGE_VERSION_MAJOR 0)
+set(CPACK_PACKAGE_VERSION_MINOR 1)
+set(CPACK_PACKAGE_VERSION_PATCH 0)
+set(CPACK_GENERATOR "ZIP;TGZ")
+
+# Install layout: executable + assets
+install(TARGETS roguelike RUNTIME DESTINATION bin)
+install(DIRECTORY assets/ DESTINATION assets)
+
+if(WIN32 AND ROGUE_ENABLE_SDL)
+    # Attempt to include SDL2 runtime DLL if discoverable from VCPKG_ROOT
+    if(DEFINED ENV{VCPKG_ROOT})
+        set(_SDL_DLL "$ENV{VCPKG_ROOT}/installed/x64-windows/bin/SDL2.dll")
+        if(EXISTS "${_SDL_DLL}")
+            install(FILES "${_SDL_DLL}" DESTINATION bin)
+        endif()
+    endif()
+endif()
+
+include(CPack)

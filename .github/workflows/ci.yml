@@ -320,3 +320,61 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
         id: deployment
+
+  package-release:
+    name: Package Release Artifacts (${{ matrix.os }})
+    needs: [build-and-test]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v1
+
+      - name: Platform deps
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            choco install -y ninja || echo "ninja already installed"
+            if (-not (Test-Path "$env:VCPKG_ROOT")) { echo "VCPKG_ROOT not preset" }
+          elif [ "$RUNNER_OS" = "Linux" ]; then
+            sudo apt-get update && sudo apt-get install -y cmake ninja-build
+          else
+            brew update && brew install cmake ninja || true
+          fi
+        shell: bash
+
+      - name: Configure (Release)
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            # Reuse vcpkg if present from previous job context is not guaranteed; bootstrap lightweight if needed
+            VCPKG_TEMP="$RUNNER_TEMP/vcpkg"
+            if [ ! -d "$VCPKG_TEMP" ]; then
+              git clone https://github.com/microsoft/vcpkg "$VCPKG_TEMP"
+              "$VCPKG_TEMP/bootstrap-vcpkg.bat"
+            fi
+            cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DROGUE_ENABLE_SDL=ON -DCMAKE_TOOLCHAIN_FILE="$VCPKG_TEMP/scripts/buildsystems/vcpkg.cmake"
+          else
+            cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DROGUE_ENABLE_SDL=ON
+          fi
+
+      - name: Build (Release)
+        run: cmake --build build --parallel 12
+
+      - name: Package with CPack
+        run: |
+          cmake --install build --config Release --prefix build/_staging
+          (cd build && cpack -C Release)
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages-${{ matrix.os }}
+          path: |
+            build/*.zip
+            build/*.tgz

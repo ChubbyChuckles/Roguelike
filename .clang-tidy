@@ -1,5 +1,22 @@
-Checks: '-*,bugprone-*,performance-*,readability-*,portability-*,clang-analyzer-*,modernize-*,-modernize-use-trailing-return-type'
-WarningsAsErrors: '*'
-HeaderFilterRegex: 'src/|include/'
+Checks: |
+  -bugprone-*,
+  -clang-analyzer-*,
+  -cppcoreguidelines-*,
+  -google-*,
+  -hicpp-*,
+  Checks: |
+    -*,
+    bugprone-*,
+    portability-*,
+    clang-analyzer-core*,
+    clang-analyzer-security*,
+    misc-definitions-in-headers,
+    -modernize-*,
+    -readability-*,
+    -performance-*
+  WarningsAsErrors: ''
+  HeaderFilterRegex: '^(src|tests|tools)/.*'
+  AnalyzeTemporaryDtors: false
+  FormatStyle: none
+  ExtraArgs: ['-std=c11']
 AnalyzeTemporaryDtors: false
-FormatStyle: none

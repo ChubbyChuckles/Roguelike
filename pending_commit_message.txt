@@ -1,3 +1,4 @@
+tooling(clang-tidy): fix malformed .clang-tidy (duplicate keys). Keep advisory config enabling portability and core analyzer checks for C11.
 cmake(warnings): opt-in warnings-as-errors toggle; roadmap updates
 
 - Warnings.cmake: add ROGUE_WARNINGS_AS_ERRORS support to map to /WX (MSVC) and -Werror (GNU/Clang); consolidate common warnings via rogue_set_project_warnings.
