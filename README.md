@@ -66,6 +66,10 @@ Press F1 in-game to open the debug overlay.
     Timing respects `frame_duration_ms` and total frames from `frame_count` or grid_width × grid_height; preview controls do not modify runtime data.
     Skills Live Preview (M4.2, textual): Above the simulation controls, a headless-safe table summarizes the selected skill: name/type, Cast and Cooldown timing, Coeffs (base/per-rank), Primary Effect kind/magnitude and Effect Nodes (with delays/repeats), plus a rough estimated total tick count computed from repeats/periods. Complements the sprite preview; updates as you edit.
     Audio/VFX (M4.3): In the Audio/VFX panel, audition sounds and inspect attenuation deterministically.
+  - Packed atlas sprite support (new): In addition to grid slicing, the preview (and any future tooling) can build frames from a small packed-atlas JSON using a purpose-built lightweight scanner (no external full JSON dependency). Two shapes are accepted and silently ignore malformed entries:
+    1. Array form: `{ "frames": [ { "x":0, "y":0, "w":32, "h":32 }, { "x":32, "y":0, "w":32, "h":32 } ] }`
+    2. Object form (TexturePacker-style subset): `{ "frames": { "idle_0": { "frame": { "x":0,"y":0,"w":32,"h":32 } }, "idle_1": { "frame": { "x":32,"y":0,"w":32,"h":32 } } } }`
+       Only `x,y,w,h` are read; rotation/trim/pivot metadata (if present) is ignored. The loader assigns the shared texture pointer to each `RogueSprite` and caps at the caller-provided buffer size. Invalid or out-of-bounds rectangles are skipped. Unit test: `test_skills_phase1_7_packed_sprite_loader` covers both JSON shapes. This keeps sprite authoring flexible (tight packing) without forcing a full JSON DOM layer.
   - Toggles: Enable Positional Audio, Listener follows player; adjust Falloff Radius (tiles).
   - Play Sound @ Cursor: Emits through the FX bus at the cursor’s world position using camera/tile mapping.
   - Attenuation Preview: Headless‑safe ASCII bar samples effective gain at key radius fractions (0/25/50/75/100%).

@@ -27,6 +27,21 @@ extern "C"
     int rogue_skill_anim_sample_index(int frame_count, int frame_duration_ms, int elapsed_ms,
                                       int loop);
 
+    /* Build frames from a simple packed-atlas JSON description.
+     * Supported JSON shapes:
+     * 1) { "frames": [ { "x":int, "y":int, "w":int, "h":int }, ... ] }
+     * 2) { "frames": { "name": { "frame": {"x":int,"y":int,"w":int,"h":int} }, ... } }
+     * Returns count of frames written (up to max_out). Ignores invalid entries.
+     * The texture pointer is assigned to each RogueSprite; ownership remains with caller.
+     */
+    int rogue_skill_build_packed_frames_from_json_text(const RogueTexture* tex,
+                                                       const char* json_text,
+                                                       RogueSprite* out_frames, int max_out);
+
+    /* Convenience: load JSON from file path and parse like the text variant. */
+    int rogue_skill_build_packed_frames_from_file(const RogueTexture* tex, const char* json_path,
+                                                  RogueSprite* out_frames, int max_out);
+
 #ifdef __cplusplus
 }
 #endif

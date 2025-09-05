@@ -320,21 +320,25 @@ void panel_skills_draw_visuals(int sel)
         /* Playback controls */
         if (effective > 0)
         {
-            /* Play/Pause, Step, Reset */
-            if (overlay_button(s_preview_play ? "Pause" : "Play"))
-                s_preview_play = !s_preview_play;
-            overlay_same_line();
-            if (overlay_button("Step Frame"))
+            /* Play/Pause, Step, Reset on one row via 3 columns */
+            if (overlay_columns_begin(3, NULL))
             {
-                s_preview_play = 0;
-                s_manual_frame = (s_manual_frame + 1) % (effective > 0 ? effective : 1);
-                s_anim_elapsed_ms = s_manual_frame * (fdur > 1 ? fdur : 100);
-            }
-            overlay_same_line();
-            if (overlay_button("Reset"))
-            {
-                s_anim_elapsed_ms = 0;
-                s_manual_frame = 0;
+                if (overlay_button(s_preview_play ? "Pause" : "Play"))
+                    s_preview_play = !s_preview_play;
+                overlay_next_column();
+                if (overlay_button("Step Frame"))
+                {
+                    s_preview_play = 0;
+                    s_manual_frame = (s_manual_frame + 1) % (effective > 0 ? effective : 1);
+                    s_anim_elapsed_ms = s_manual_frame * (fdur > 1 ? fdur : 100);
+                }
+                overlay_next_column();
+                if (overlay_button("Reset"))
+                {
+                    s_anim_elapsed_ms = 0;
+                    s_manual_frame = 0;
+                }
+                overlay_columns_end();
             }
             /* Loop override checkbox (preview only) */
             int loop_override =

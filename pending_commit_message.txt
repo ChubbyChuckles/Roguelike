@@ -39,3 +39,12 @@ Skills Visuals: multi-target preview and playback controls
 - Add Preview Target selector (Cast/Projectile/Impact/AoE) to the Skills → Testing live preview; caches textures and switches sources dynamically.
 - Playback refinements: when paused, a frame scrubber appears; Step advances exactly one frame; Reset returns to t=0. Loop toggle overrides the definition for preview only.
 - Cast previews use grid-sliced frames via `rogue_skill_build_grid_frames`; other targets default to full-texture single frame unless grid metadata exists.
+
+Skills Visuals: packed atlas frame loader + layout fix
+
+- Add `rogue_skill_build_packed_frames_from_json_text/file` supporting two JSON shapes:
+	1) frames array: { "frames": [ {"x":..,"y":..,"w":..,"h":..}, ... ] }
+	2) frames object with nested frame blocks: { "frames": { "name": { "frame": {"x":..,"y":..,"w":..,"h":..} } } }
+- Lightweight custom scanner (skip whitespace, find blocks) avoids expanding minimal cJSON stub; ignores rotation/trim fields.
+- Unit: test_skills_phase1_7_packed_sprite_loader validates both shapes and malformed entry skip.
+- Overlay Skills Visuals panel: replace unsupported overlay_same_line usage with columns API to resolve linker undefined symbol.

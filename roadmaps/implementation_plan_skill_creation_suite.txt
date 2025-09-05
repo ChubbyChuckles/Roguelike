@@ -36,7 +36,7 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
 
 ### 1.4 Sprite Asset Management System
 - [x] **Asset Directory Structure** - assets/skills/<skill_name>/{cast,projectile,impact,aoe,icon}/
-- [ ] **Sprite Sheet Loader** - Grid-based and packed layout support
+- [x] **Sprite Sheet Loader** - Grid-based and packed layout support
 - [ ] **PNG Sequence Loader** - Frame-based animations (skill_cast_001.png, etc.)
 - [x] **Asset Validation System** - File existence checks and path resolution helpers (skills/<id>/...)
 - [ ] **Sprite Atlas Generation** - Performance optimization
@@ -123,7 +123,7 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
 ### 2A.1 Sprite Sheet Processing System
 - [ ] **Multi-format Loader** - PNG, TGA, BMP with automatic format detection
 - [ ] **Grid-based Parsing** - Configurable cell dimensions
-- [ ] **Packed Sprite Support** - JSON metadata (TexturePacker, Shoebox formats)
+- [x] **Packed Sprite Support** - JSON metadata (TexturePacker, Shoebox formats)
 - [ ] **PNG Sequence Loading** - Automatic frame detection and numbering
 - [ ] **Sprite Sheet Optimization** - Power-of-2 resizing, atlas generation, compression
 
