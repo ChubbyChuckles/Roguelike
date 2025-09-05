@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 # Required for GitHub Pages deployment
@@ -17,12 +17,14 @@ concurrency:
   group: "pages"
   cancel-in-progress: true
 
-
-
 jobs:
-  build-test-windows:
-    name: Build & Test (windows-latest)
-    runs-on: windows-latest
+  build-and-test:
+    name: Build & Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
     env:
       BUILD_TYPE: Debug
       ROGUE_ENABLE_SDL: ON
@@ -32,20 +34,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v1
+
+      # Windows-specific setup
       - name: Setup MSVC Developer Command Prompt
+        if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
         shell: pwsh
         run: choco install -y ninja || echo "ninja already installed"
 
       - name: Install clang-format (Windows)
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
           choco install -y llvm || echo "llvm already installed"
           if (Get-Command clang-format -ErrorAction SilentlyContinue) { clang-format --version }
 
       - name: Install SDL via vcpkg (x64-windows)
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $vcpkgExe = Join-Path $env:VCPKG_ROOT 'vcpkg.exe'
@@ -57,17 +67,57 @@ jobs:
           & $vcpkgExe version
           & $vcpkgExe install sdl2 sdl2-image sdl2-mixer --triplet $env:VCPKG_DEFAULT_TRIPLET
 
-      - name: Setup CMake
-        uses: jwlawson/actions-setup-cmake@v1
+      # Ubuntu-specific setup
+      - name: Install Dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build build-essential pkg-config \
+            libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev \
+            xvfb
 
-      - name: Configure (Windows, SDL ON, Ninja)
-        run: >-
-          cmake -G Ninja -S . -B build -DROGUE_ENABLE_SDL=${{ env.ROGUE_ENABLE_SDL }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}\scripts\buildsystems\vcpkg.cmake
+      # macOS-specific setup
+      - name: Install Dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install cmake ninja sdl2 sdl2_image sdl2_mixer
 
-      - name: Build (Windows, Ninja -j12)
+      - name: Configure (CMake, Ninja)
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cmake -G Ninja -S . -B build \
+              -DROGUE_ENABLE_SDL=${ROGUE_ENABLE_SDL} \
+              -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+              -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
+          else
+            cmake -G Ninja -S . -B build \
+              -DROGUE_ENABLE_SDL=${ROGUE_ENABLE_SDL} \
+              -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+          fi
+
+      - name: Build (-j12)
         run: cmake --build build --parallel 12
 
-      - name: Format Check
+      - name: Run Tests (ctest -j12)
+        shell: bash
+        env:
+          SDL_VIDEODRIVER: dummy
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            echo "Adding SDL2 runtime to PATH via GITHUB_PATH"
+            echo "$VCPKG_ROOT/installed/x64-windows/bin" >> "$GITHUB_PATH"
+            ctest --test-dir build -C ${BUILD_TYPE} -j 12 --output-on-failure --timeout 300
+          elif [ "$RUNNER_OS" = "Linux" ]; then
+            # Use Xvfb for headless display, if any tests require it
+            xvfb-run -a ctest --test-dir build -C ${BUILD_TYPE} -j 12 --output-on-failure --timeout 300
+          else
+            ctest --test-dir build -C ${BUILD_TYPE} -j 12 --output-on-failure --timeout 300
+          fi
+
+      - name: Format Check (Windows only)
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -80,7 +130,7 @@ jobs:
   docs:
     name: Build Docs (windows-latest)
     runs-on: windows-latest
-    needs: [build-test-windows]
+    needs: [build-and-test]
     if: always()
     steps:
       - name: Checkout
