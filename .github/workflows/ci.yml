@@ -67,12 +67,17 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $vcpkgExe = Join-Path $env:VCPKG_ROOT 'vcpkg.exe'
-          if (-Not (Test-Path $vcpkgExe)) {
-            Write-Host "vcpkg not found at $env:VCPKG_ROOT; attempting default path C:\\vcpkg"
-            $env:VCPKG_ROOT = 'C:\\vcpkg'
-            $vcpkgExe = 'C:\\vcpkg\\vcpkg.exe'
+          # Always use a local classic vcpkg instance to avoid manifest-mode-only runner instances
+          $vcpkgRoot = Join-Path $env:RUNNER_TEMP 'vcpkg'
+          if (-Not (Test-Path $vcpkgRoot)) {
+            git clone https://github.com/microsoft/vcpkg $vcpkgRoot
+            & "$vcpkgRoot\bootstrap-vcpkg.bat"
           }
+          $env:VCPKG_ROOT = $vcpkgRoot
+          $vcpkgExe = Join-Path $env:VCPKG_ROOT 'vcpkg.exe'
+          # Persist VCPKG_ROOT for subsequent steps
+          "VCPKG_ROOT=$env:VCPKG_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "VCPKG_DEFAULT_TRIPLET=$env:VCPKG_DEFAULT_TRIPLET" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           & $vcpkgExe version
           & $vcpkgExe install sdl2 sdl2-image sdl2-mixer --triplet $env:VCPKG_DEFAULT_TRIPLET
 
@@ -104,7 +109,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew update
-          brew install cmake ninja sdl2 sdl2_image sdl2_mixer ccache llvm || true
+          brew install cmake ninja sdl2 sdl2_image sdl2_mixer ccache llvm pkg-config || true
 
       - name: Show SDL2 version (macOS)
         if: runner.os == 'macOS'
@@ -120,6 +125,14 @@ jobs:
               -DROGUE_ENABLE_SDL=${ROGUE_ENABLE_SDL} \
               -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
               -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
+          elif [ "$RUNNER_OS" = "macOS" ]; then
+            BREW_PREFIX=$(brew --prefix)
+            export PKG_CONFIG_PATH="$BREW_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
+            cmake -G Ninja -S . -B build \
+              -DROGUE_ENABLE_SDL=${ROGUE_ENABLE_SDL} \
+              -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+              -DCMAKE_PREFIX_PATH="$BREW_PREFIX"
           else
             cmake -G Ninja -S . -B build \
               -DROGUE_ENABLE_SDL=${ROGUE_ENABLE_SDL} \

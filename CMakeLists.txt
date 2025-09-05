@@ -45,9 +45,21 @@ string(TIMESTAMP ROGUE_BUILD_TIME "%Y-%m-%d %H:%M:%S")
 if(ROGUE_ENABLE_SDL)
     find_package(SDL2 QUIET)
     if(SDL2_FOUND)
-        # Attempt to print SDL2 version if headers are discoverable
+        # Attempt to print SDL2 version if headers are discoverable. SDL2_INCLUDE_DIRS may be a list.
         if(DEFINED SDL2_INCLUDE_DIRS)
-            file(READ "${SDL2_INCLUDE_DIRS}/SDL2/SDL_version.h" _sdlver_hdr LIMIT 4096 ERROR_QUIET)
+            list(GET SDL2_INCLUDE_DIRS 0 _SDL2_INC_DIR)
+            set(_SDL2_HDR_CANDIDATES
+                "${_SDL2_INC_DIR}/SDL2/SDL_version.h"
+                "${_SDL2_INC_DIR}/SDL_version.h")
+            set(_sdlver_hdr "")
+            foreach(_cand IN LISTS _SDL2_HDR_CANDIDATES)
+                if(EXISTS "${_cand}")
+                    file(READ "${_cand}" _sdlver_hdr LIMIT 4096 ERROR_QUIET)
+                    if(_sdlver_hdr)
+                        break()
+                    endif()
+                endif()
+            endforeach()
             if(_sdlver_hdr)
                 string(REGEX MATCH "#define SDL_MAJOR_VERSION ([0-9]+)" _m "${_sdlver_hdr}")
                 string(REGEX REPLACE ".* ([0-9]+)" "\\1" _maj "${_m}")
