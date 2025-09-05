@@ -67,3 +67,4 @@ compile_commands.json
 dist/
 sprite_picker.spec
 .venv/
+scripts/ci/

@@ -436,14 +436,13 @@ int rogue_sets_load_from_json(const char* path)
 }
 
 /* Phase 17.2: Hot reload integration for external equipment content */
-static int on_sets_hot_reload(const char* id, void* user)
+static void on_sets_hot_reload(const char* id, void* user)
 {
     (void) id;
     const char* path =
         (const char*) user; /* reload file and atomically swap registry (we simply clear + load) */
     rogue_sets_reset();
-    int added = rogue_sets_load_from_json(path);
-    return (added >= 0) ? 0 : -1;
+    (void) rogue_sets_load_from_json(path);
 }
 
 int rogue_equipment_sets_register_hot_reload(const char* id, const char* path)

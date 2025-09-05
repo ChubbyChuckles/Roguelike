@@ -1,22 +1,14 @@
 Checks: |
-  -bugprone-*,
-  -clang-analyzer-*,
-  -cppcoreguidelines-*,
-  -google-*,
-  -hicpp-*,
-  Checks: |
-    -*,
-    bugprone-*,
-    portability-*,
-    clang-analyzer-core*,
-    clang-analyzer-security*,
-    misc-definitions-in-headers,
-    -modernize-*,
-    -readability-*,
-    -performance-*
-  WarningsAsErrors: ''
-  HeaderFilterRegex: '^(src|tests|tools)/.*'
-  AnalyzeTemporaryDtors: false
-  FormatStyle: none
-  ExtraArgs: ['-std=c11']
-AnalyzeTemporaryDtors: false
+  -*,
+  bugprone-*,
+  portability-*,
+  clang-analyzer-core*,
+  clang-analyzer-security*,
+  misc-definitions-in-headers,
+  -modernize-*,
+  -readability-*,
+  -performance-*
+HeaderFilterRegex: "^(src|tests|tools)/.*"
+WarningsAsErrors: ""
+FormatStyle: none
+ExtraArgs: ["-std=c11"]
