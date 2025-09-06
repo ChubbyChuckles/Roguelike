@@ -51,6 +51,24 @@ extern "C"
     int rogue_skill_load_png_sequence(const char* directory, const char* prefix,
                                       RogueSprite* out_frames, int max_out);
 
+    /* Phase 1.4: Sprite Atlas Generation (horizontal pack)
+       Take an array of frames that currently each own an independent texture (e.g. output of
+       rogue_skill_load_png_sequence) and pack them into a single horizontal atlas texture to
+       reduce draw calls. On success:
+         - out_atlas is populated (caller owns & must destroy via rogue_texture_destroy)
+         - The input frames are rewritten in-place so each references out_atlas with updated
+           sx/sy/sw/sh describing its region.
+         - All per-frame textures previously owned are destroyed & freed.
+       Returns number of frames repacked (== frame_count) or 0 on failure / unsupported backend.
+       Safe no-op if frame_count <= 0. Headless (no renderer) builds return 0 without error. */
+    int rogue_skill_pack_frames_horizontal(RogueSprite* frames, int frame_count,
+                                           RogueTexture* out_atlas);
+
+    /* Free a PNG sequence frame array produced by rogue_skill_load_png_sequence WITHOUT packing.
+       Destroys & frees each owning texture pointer. Frames are zeroed. Safe to call with NULL or
+       frame_count <= 0. */
+    void rogue_skill_free_sequence_frames(RogueSprite* frames, int frame_count);
+
 #ifdef __cplusplus
 }
 #endif

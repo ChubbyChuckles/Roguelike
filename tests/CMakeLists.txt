@@ -157,6 +157,28 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_projectiles_config_edge.c AND NO
     add_test(NAME test_projectiles_config_edge COMMAND test_projectiles_config_edge)
 endif()
 
+# Phase 1.4: PNG sequence loader negative-path smoke test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_4_png_sequence_loader.c AND NOT TARGET test_skills_phase1_4_png_sequence_loader)
+    add_executable(test_skills_phase1_4_png_sequence_loader unit/test_skills_phase1_4_png_sequence_loader.c)
+    target_link_libraries(test_skills_phase1_4_png_sequence_loader PRIVATE rogue_core)
+    target_compile_definitions(test_skills_phase1_4_png_sequence_loader PRIVATE SDL_MAIN_HANDLED=1 TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skills_phase1_4_png_sequence_loader PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skills_phase1_4_png_sequence_loader COMMAND test_skills_phase1_4_png_sequence_loader)
+endif()
+
+# Phase 1.4: Sprite atlas packing negative-path test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_4_sprite_atlas_pack.c AND NOT TARGET test_skills_phase1_4_sprite_atlas_pack)
+    add_executable(test_skills_phase1_4_sprite_atlas_pack unit/test_skills_phase1_4_sprite_atlas_pack.c)
+    target_link_libraries(test_skills_phase1_4_sprite_atlas_pack PRIVATE rogue_core)
+    target_compile_definitions(test_skills_phase1_4_sprite_atlas_pack PRIVATE SDL_MAIN_HANDLED=1 TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skills_phase1_4_sprite_atlas_pack PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skills_phase1_4_sprite_atlas_pack COMMAND test_skills_phase1_4_sprite_atlas_pack)
+endif()
+
 # Phase M4.1: persistence edge cases
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_persistence_edge_cases.c AND NOT TARGET test_persistence_edge_cases)
     add_executable(test_persistence_edge_cases unit/test_persistence_edge_cases.c)

@@ -1,6 +1,6 @@
 #include "skill_sprite_loader.h"
 #include "../../content/json_io.h"
-#include "../../platform/path_utils.h"
+#include "../../util/path_utils.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,6 +8,12 @@
 
 /* Forward declare texture load (already in sprite.h but include path minimal). */
 extern bool rogue_texture_load(RogueTexture* t, const char* path);
+extern void rogue_texture_destroy(RogueTexture* t);
+
+#ifdef ROGUE_HAVE_SDL
+#include <SDL.h>
+extern SDL_Renderer* g_internal_sdl_renderer_ref;
+#endif
 
 int rogue_skill_load_png_sequence(const char* directory, const char* prefix,
                                   RogueSprite* out_frames, int max_out)
@@ -25,8 +31,13 @@ int rogue_skill_load_png_sequence(const char* directory, const char* prefix,
                 snprintf(path_buf, sizeof path_buf, "%s/%s_%03d.png", directory, prefix, i);
             else
                 snprintf(path_buf, sizeof path_buf, "%s/%s_%d.png", directory, prefix, i);
-            /* Quick existence check via fopen (platform abstraction could replace later). */
+                /* Quick existence check via fopen (platform abstraction could replace later). */
+#if defined(_MSC_VER)
+            FILE* f = NULL;
+            fopen_s(&f, path_buf, "rb");
+#else
             FILE* f = fopen(path_buf, "rb");
+#endif
             if (!f)
             {
                 /* Stop at first gap in the chosen numbering scheme. */
@@ -52,6 +63,96 @@ int rogue_skill_load_png_sequence(const char* directory, const char* prefix,
         }
     }
     return count;
+}
+
+void rogue_skill_free_sequence_frames(RogueSprite* frames, int frame_count)
+{
+    if (!frames || frame_count <= 0)
+        return;
+    for (int i = 0; i < frame_count; ++i)
+    {
+        RogueSprite* sp = &frames[i];
+        if (sp->tex)
+        {
+            rogue_texture_destroy(sp->tex);
+            free(sp->tex);
+            sp->tex = NULL;
+        }
+        memset(sp, 0, sizeof *sp);
+    }
+}
+
+int rogue_skill_pack_frames_horizontal(RogueSprite* frames, int frame_count,
+                                       RogueTexture* out_atlas)
+{
+    if (!frames || frame_count <= 0 || !out_atlas)
+        return 0;
+#if !(defined(ROGUE_HAVE_SDL))
+    (void) frames;
+    (void) frame_count;
+    (void) out_atlas;
+    return 0; /* unsupported without SDL */
+#else
+    if (!g_internal_sdl_renderer_ref)
+        return 0; /* headless stub environment */
+    /* Compute atlas dimensions (horizontal strip) */
+    int total_w = 0;
+    int max_h = 0;
+    for (int i = 0; i < frame_count; ++i)
+    {
+        if (!frames[i].tex)
+            return 0; /* require owning textures */
+        total_w += frames[i].sw;
+        if (frames[i].sh > max_h)
+            max_h = frames[i].sh;
+    }
+    if (total_w <= 0 || max_h <= 0)
+        return 0;
+    SDL_Texture* atlas = SDL_CreateTexture(g_internal_sdl_renderer_ref, SDL_PIXELFORMAT_RGBA32,
+                                           SDL_TEXTUREACCESS_TARGET, total_w, max_h);
+    if (!atlas)
+        return 0;
+    SDL_SetTextureBlendMode(atlas, SDL_BLENDMODE_BLEND);
+    /* Render copy each frame texture into atlas */
+    SDL_Texture* prev = SDL_GetRenderTarget(g_internal_sdl_renderer_ref);
+    SDL_SetRenderTarget(g_internal_sdl_renderer_ref, atlas);
+    SDL_SetRenderDrawBlendMode(g_internal_sdl_renderer_ref, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, 0, 0, 0, 0);
+    SDL_RenderClear(g_internal_sdl_renderer_ref);
+    int x_cursor = 0;
+    for (int i = 0; i < frame_count; ++i)
+    {
+        RogueSprite* sp = &frames[i];
+        SDL_Rect src = {sp->sx, sp->sy, sp->sw, sp->sh};
+        SDL_Rect dst = {x_cursor, 0, sp->sw, sp->sh};
+        if (sp->tex && sp->tex->handle)
+            SDL_RenderCopy(g_internal_sdl_renderer_ref, sp->tex->handle, &src, &dst);
+        x_cursor += sp->sw;
+    }
+    SDL_SetRenderTarget(g_internal_sdl_renderer_ref, prev);
+    /* Populate out_atlas texture wrapper */
+    memset(out_atlas, 0, sizeof *out_atlas);
+    out_atlas->handle = atlas;
+    out_atlas->w = total_w;
+    out_atlas->h = max_h;
+    /* Rewrite frames to reference atlas & free old textures */
+    x_cursor = 0;
+    for (int i = 0; i < frame_count; ++i)
+    {
+        RogueSprite* sp = &frames[i];
+        RogueTexture* old = sp->tex;
+        sp->tex = out_atlas; /* non-owning now */
+        sp->sx = x_cursor;
+        sp->sy = 0;
+        x_cursor += sp->sw;
+        if (old)
+        {
+            rogue_texture_destroy(old);
+            free(old);
+        }
+    }
+    return frame_count;
+#endif
 }
 
 int rogue_skill_build_grid_frames(const RogueTexture* tex, int cols, int rows,

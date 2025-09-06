@@ -41,6 +41,7 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
  - [x] **PNG Sequence Loader** - Added `rogue_skill_load_png_sequence` supporting zero-padded and unpadded numeric suffix scanning; current implementation loads independent textures per frame (no atlas yet) and basic negative-path test.
 - [x] **Asset Validation System** - File existence checks and path resolution helpers (skills/<id>/...)
 - [ ] **Sprite Atlas Generation** - Performance optimization
+- [x] **Sprite Atlas Generation** - Added horizontal packing API `rogue_skill_pack_frames_horizontal` with texture consolidation & in-place frame remap; negative-path test (no assets) plus explicit free helper `rogue_skill_free_sequence_frames`.
 - [ ] **Asset Hot-Reload** - Real-time editing feedback
 - [ ] **Asset Dependency Tracking** - Missing file fallback systems
 

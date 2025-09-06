@@ -128,3 +128,16 @@ Follow-ups:
 	- Add positive path test with curated sample sequence assets.
 	- Integrate sequence playback into Skills → Visuals preview (frame stepping via existing anim sampler).
 	- Atlas generation & dedup of identical frame dimensions.
+
+Phase 1.4: Sprite Atlas Generation & Sequence Frame Free Helper
+----------------------------------------------------------------
+* Added `rogue_skill_pack_frames_horizontal(frames, count, out_atlas)` to consolidate PNG sequence frame textures into a single horizontal atlas (reduces future draw calls & texture binds).
+* Rewrites frame `sx/sy` offsets in-place and frees/destroys the per-frame textures on success.
+* Added `rogue_skill_free_sequence_frames(frames, count)` to explicitly release un-packed sequence textures (prevents accumulating leaks when author iterates without packing).
+* Negative-path unit `test_skills_phase1_4_sprite_atlas_pack` validates deterministic no-op (0 frames, 0 repacked) in absence of assets / headless renderer.
+* Roadmap: Marked Sprite Atlas Generation complete (Phase 1.4 slice) with implementation notes; README bullet added under Recent Skills/Effects.
+Follow-ups:
+	- Add positive-path asset-backed packing test (provide 2–3 tiny PNGs under a test skill directory).
+	- Introduce vertical & area-based bin packing (heuristic: sort by height desc, skyline or shelf algorithm) + fragmentation metrics.
+	- Provide optional padding and power-of-two rounding for GPU-friendly atlases.
+	- Integrate atlas reuse/dedup across multiple skills sharing identical sequences.
