@@ -117,6 +117,117 @@ static int effect_fireball(const RogueSkillDef* def, RogueSkillState* st, const 
     return 1;
 }
 
+/* --- Phase 1.3: Enhanced Execution Pathways --------------------------------------------
+   We introduce a tiny indirection layer allowing certain showcase skills to expose
+   alternate execution "pathways" selected at runtime (debug authoring / future talent hooks).
+   Design goals:
+     * Zero impact on existing activation semantics & tests when pathway = 0 (default).
+     * O(1) lookup, no allocation, bounded memory (fixed small arrays).
+     * Headless safe: no SDL usage here.
+     * Deterministic: pathway only influences activation effect body, not timing metadata.
+   Implementation notes:
+     * We wrap Fireball's activation in a dispatch function that branches on pathway id.
+     * Pathway 0 -> original effect_fireball.
+     * Pathway 1 (EMPOWERED): calls base then applies a short PowerStrike-style buff.
+     * Pathway 2 (UTILITY): skips projectile spawn; instead performs a mini dash forward (25% dash).
+   This keeps logic intentionally tiny; future phases can generalize into data-driven tables. */
+
+#define ROGUE_SKILL_PATHWAY_MAX 3
+static signed char g_skill_pathway_sel[128];  /* per-skill pathway selection (0..2) */
+static signed char g_skill_pathway_last[128]; /* last executed pathway (-1 none) */
+static int g_skill_pathway_cap = 128;         /* soft guard */
+
+static int pathway_fireball_dispatch(const RogueSkillDef* def, RogueSkillState* st,
+                                     const RogueSkillCtx* ctx)
+{
+    if (!def || !st)
+        return 0;
+    int sid = def->id;
+    int pathway = 0;
+    if (sid >= 0 && sid < g_skill_pathway_cap)
+        pathway = g_skill_pathway_sel[sid];
+    if (pathway < 0 || pathway >= ROGUE_SKILL_PATHWAY_MAX)
+        pathway = 0;
+    int consumed = 0;
+    switch (pathway)
+    {
+    case 0: /* default */
+        consumed = effect_fireball(def, st, ctx);
+        break;
+    case 1: /* Empowered: base + small buff (rank scaled) */
+        consumed = effect_fireball(def, st, ctx);
+        if (consumed)
+        {
+            int mag = (st->rank > 0) ? st->rank : 1;
+            rogue_buffs_apply(ROGUE_BUFF_POWER_STRIKE, mag, 2000.0, ctx ? ctx->now_ms : 0.0,
+                              ROGUE_BUFF_STACK_REFRESH, 0);
+            g_app.stats_dirty = 1;
+        }
+        break;
+    case 2:           /* Utility: replace projectile with a mini dash (25% of dash distance) */
+        consumed = 1; /* treat as consumed even if dash fails boundary clamp */
+        {
+            float dist = 25.0f + st->rank * 10.0f;
+            dist *= 0.25f; /* quarter distance */
+            float nx = g_app.player.base.pos.x;
+            float ny = g_app.player.base.pos.y;
+            switch (g_app.player.facing)
+            {
+            case 0:
+                ny += dist;
+                break;
+            case 1:
+                nx -= dist;
+                break;
+            case 2:
+                nx += dist;
+                break;
+            case 3:
+                ny -= dist;
+                break;
+            }
+            if (nx < 0)
+                nx = 0;
+            if (ny < 0)
+                ny = 0;
+            if (nx > g_app.world_map.width - 1)
+                nx = (float) (g_app.world_map.width - 1);
+            if (ny > g_app.world_map.height - 1)
+                ny = (float) (g_app.world_map.height - 1);
+            g_app.player.base.pos.x = nx;
+            g_app.player.base.pos.y = ny;
+        }
+        break;
+    }
+    if (sid >= 0 && sid < g_skill_pathway_cap)
+        g_skill_pathway_last[sid] = (signed char) pathway;
+    return consumed;
+}
+
+void rogue_skill_pathway_set(int skill_id, int pathway)
+{
+    if (skill_id < 0 || skill_id >= g_skill_pathway_cap)
+        return;
+    if (pathway < 0)
+        pathway = 0;
+    if (pathway >= ROGUE_SKILL_PATHWAY_MAX)
+        pathway = ROGUE_SKILL_PATHWAY_MAX - 1;
+    g_skill_pathway_sel[skill_id] = (signed char) pathway;
+}
+int rogue_skill_pathway_get(int skill_id)
+{
+    if (skill_id < 0 || skill_id >= g_skill_pathway_cap)
+        return 0;
+    int p = g_skill_pathway_sel[skill_id];
+    return (p < 0 || p >= ROGUE_SKILL_PATHWAY_MAX) ? 0 : p;
+}
+int rogue_skill_pathway_last_exec(int skill_id)
+{
+    if (skill_id < 0 || skill_id >= g_skill_pathway_cap)
+        return -1;
+    return g_skill_pathway_last[skill_id];
+}
+
 void rogue_skill_tree_register_baseline(void)
 {
     /* Load from assets/skills.cfg */
@@ -136,7 +247,10 @@ void rogue_skill_tree_register_baseline(void)
         else if (strcmp(def->name, "Dash") == 0)
             def->on_activate = effect_dash;
         else if (strcmp(def->name, "Fireball") == 0)
-            def->on_activate = effect_fireball;
+        {
+            /* Wrap with pathway dispatch (Enhanced Execution Pathways) */
+            def->on_activate = pathway_fireball_dispatch;
+        }
     }
     /* default bar assignment first 3 skills */
     for (int i = 0; i < 10; i++)

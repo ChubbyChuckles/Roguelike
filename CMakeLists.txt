@@ -887,6 +887,14 @@ if(TARGET SDL2::SDL2)
 endif()
 add_test(NAME test_skills_phase2_api COMMAND test_skills_phase2_api)
 
+# Phase 1.3 Enhanced Execution Pathways test
+add_executable(test_skills_phase1_3_execution_pathways tests/unit/test_skills_phase1_3_execution_pathways.c)
+target_link_libraries(test_skills_phase1_3_execution_pathways PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_skills_phase1_3_execution_pathways PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_skills_phase1_3_execution_pathways COMMAND test_skills_phase1_3_execution_pathways)
+
 add_executable(test_skills_rotation_sim tests/unit/test_skills_rotation_sim.c)
 target_link_libraries(test_skills_rotation_sim PRIVATE rogue_core)
 if(TARGET SDL2::SDL2)

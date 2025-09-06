@@ -1040,16 +1040,17 @@ void rogue_skills_update(double now_ms)
             s_last_abs = now_ms;
             s_time_accum = now_ms;
         }
-        else if (now_ms + 1e-6 < s_last_abs)
+        else if (now_ms <= s_last_abs + 1e-6)
         {
-            /* Treat as delta (legacy tests that call update(16) repeatedly) */
+            /* Treat as delta (legacy tests that call update(16) repeatedly with a constant value).
+             */
             if (now_ms < 0.0)
                 now_ms = 0.0;
             s_time_accum += now_ms;
         }
         else
         {
-            /* Monotonic absolute time */
+            /* Monotonic absolute time advanced beyond previous by > epsilon. */
             s_time_accum = now_ms;
             s_last_abs = now_ms;
         }

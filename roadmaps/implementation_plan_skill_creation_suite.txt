@@ -32,7 +32,7 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
 - [x] **Performance Profiling** - Lightweight per-skill profiling timestamps
 - [x] **Advanced State Machine** - Full skill state machine with queuing system (basic queued activation + global lockout scaffold)
 - [x] **Skill Queuing System** - Input buffer based queued re-activation (auto-fires post cast/cooldown)
-- [ ] **Enhanced Execution Pathways** - Extend skill_tree.c with new pathways
+ - [x] **Enhanced Execution Pathways** - Added lightweight runtime-selectable pathways (default/empowered/utility) for showcase skill (Fireball) via dispatch wrapper in skill_tree.c; exposes set/get/last APIs with deterministic side-effects (buff augment or mini dash) and zero impact when pathway=0.
 
 ### 1.4 Sprite Asset Management System
 - [x] **Asset Directory Structure** - assets/skills/<skill_name>/{cast,projectile,impact,aoe,icon}/
@@ -42,8 +42,8 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
 - [x] **Asset Validation System** - File existence checks and path resolution helpers (skills/<id>/...)
 - [ ] **Sprite Atlas Generation** - Performance optimization
 - [x] **Sprite Atlas Generation** - Added horizontal packing API `rogue_skill_pack_frames_horizontal` with texture consolidation & in-place frame remap; negative-path test (no assets) plus explicit free helper `rogue_skill_free_sequence_frames`.
-- [ ] **Asset Hot-Reload** - Real-time editing feedback
-- [ ] **Asset Dependency Tracking** - Missing file fallback systems
+- [x] **Asset Hot-Reload** - Foundation: polling-based change detection via dependency registry (mtime stat). API `rogue_skill_asset_dep_poll_changes(cb,user)` reports modified assets; higher-level texture reload deferred.
+- [x] **Asset Dependency Tracking** - Fixed-cap registry (256) with ref counting + mtime snapshotting. APIs: track/untrack/reset/count/data/poll_changes. Unit test `test_skills_phase1_4_asset_dep_tracking` validates lifecycle & change notification.
 
 ### 1.5 Tests
 - [x] **Phase 1.3 Tests** - Interrupt semantics and context defaults/clamps

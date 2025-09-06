@@ -1,7 +1,15 @@
 #include "skill_assets.h"
 #include "../../util/path_utils.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+#if defined(_WIN32)
+#include <sys/stat.h>
+#include <sys/types.h>
+#else
+#include <sys/stat.h>
+#endif
 
 #ifdef _WIN32
 #include <direct.h>
@@ -185,4 +193,116 @@ int rogue_skill_assets_count_png_sequence(const char* skill_name, const char* sl
     closedir(d);
 #endif
     return count;
+}
+
+/* ---------------- Dependency Tracking & Hot-Reload Poll (Phase 1.4 slice) --------------- */
+
+static RogueSkillAssetDependency g_skill_asset_deps[ROGUE_SKILL_ASSET_DEP_MAX];
+static int g_skill_asset_dep_count = 0;
+
+void rogue_skill_asset_dep_reset(void)
+{
+    g_skill_asset_dep_count = 0;
+    memset(g_skill_asset_deps, 0, sizeof g_skill_asset_deps);
+}
+
+static unsigned long long skill_asset_mtime(const char* path)
+{
+    if (!path || !*path)
+        return 0ULL;
+    struct _stat stw;
+#if defined(_WIN32)
+    if (_stat(path, &stw) == 0)
+        return (unsigned long long) stw.st_mtime;
+#else
+    struct stat stp_local;
+    if (stat(path, &stp_local) == 0)
+        return (unsigned long long) stp_local.st_mtime;
+#endif
+    return 0ULL; /* 0 both for missing and epoch; change detection tolerant */
+}
+
+static int find_dep(const char* path)
+{
+    for (int i = 0; i < g_skill_asset_dep_count; ++i)
+    {
+        if (strcmp(g_skill_asset_deps[i].path, path) == 0)
+            return i;
+    }
+    return -1;
+}
+
+int rogue_skill_asset_dep_track(const char* path)
+{
+    if (!path || !*path)
+        return -1;
+    int idx = find_dep(path);
+    if (idx >= 0)
+    {
+        if (g_skill_asset_deps[idx].ref_count < 0)
+            g_skill_asset_deps[idx].ref_count = 0; /* sanitize */
+        g_skill_asset_deps[idx].ref_count++;
+        return idx;
+    }
+    if (g_skill_asset_dep_count >= ROGUE_SKILL_ASSET_DEP_MAX)
+        return -1; /* capacity full */
+    idx = g_skill_asset_dep_count++;
+    RogueSkillAssetDependency* d = &g_skill_asset_deps[idx];
+    memset(d, 0, sizeof *d);
+#if defined(_MSC_VER)
+    strncpy_s(d->path, sizeof d->path, path, _TRUNCATE);
+#else
+    strncpy(d->path, path, sizeof d->path - 1);
+    d->path[sizeof d->path - 1] = '\0';
+#endif
+    d->ref_count = 1;
+    d->mtime = skill_asset_mtime(path);
+    return idx;
+}
+
+int rogue_skill_asset_dep_untrack(const char* path)
+{
+    int idx = find_dep(path);
+    if (idx < 0)
+        return -1;
+    RogueSkillAssetDependency* d = &g_skill_asset_deps[idx];
+    if (d->ref_count > 0)
+        d->ref_count--;
+    if (d->ref_count <= 0)
+    {
+        /* compact by swapping last */
+        int last = g_skill_asset_dep_count - 1;
+        if (idx != last)
+            g_skill_asset_deps[idx] = g_skill_asset_deps[last];
+        g_skill_asset_dep_count--;
+    }
+    return (idx < g_skill_asset_dep_count) ? g_skill_asset_deps[idx].ref_count : 0;
+}
+
+int rogue_skill_asset_dep_count(void) { return g_skill_asset_dep_count; }
+
+const RogueSkillAssetDependency* rogue_skill_asset_dep_data(void)
+{
+    return g_skill_asset_deps; /* caller uses count accessor */
+}
+
+int rogue_skill_asset_dep_poll_changes(int (*on_change)(const char* path, void* user), void* user)
+{
+    int changed = 0;
+    for (int i = 0; i < g_skill_asset_dep_count; ++i)
+    {
+        RogueSkillAssetDependency* d = &g_skill_asset_deps[i];
+        unsigned long long now_m = skill_asset_mtime(d->path);
+        if (now_m != d->mtime)
+        {
+            d->mtime = now_m;
+            changed++;
+            if (on_change)
+            {
+                int r = on_change(d->path, user);
+                (void) r; /* ignore callback return for now */
+            }
+        }
+    }
+    return changed;
 }

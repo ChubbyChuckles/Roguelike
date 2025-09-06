@@ -141,3 +141,33 @@ Follow-ups:
 	- Introduce vertical & area-based bin packing (heuristic: sort by height desc, skyline or shelf algorithm) + fragmentation metrics.
 	- Provide optional padding and power-of-two rounding for GPU-friendly atlases.
 	- Integrate atlas reuse/dedup across multiple skills sharing identical sequences.
+
+Phase 1.4: Asset Dependency Tracking & Hot-Reload (Foundation)
+-------------------------------------------------------------
+* Added fixed-cap (256) dependency registry for skill visual assets (PNG / packed JSON) with ref counting and modification timestamp snapshotting.
+* New APIs (skill_assets.h):
+	- rogue_skill_asset_dep_reset()
+	- rogue_skill_asset_dep_track(path)
+	- rogue_skill_asset_dep_untrack(path)
+	- rogue_skill_asset_dep_count()
+	- rogue_skill_asset_dep_data() (read-only pointer)
+	- rogue_skill_asset_dep_poll_changes(cb,user) (mtime-based change detection)
+* Polling strategy: explicit stat() of tracked unique paths; on mtime delta callback invoked for higher-level texture/preview reload (deferred for next slice).
+* Deterministic & test-friendly: no dynamic allocation beyond fixed array; silent ignore when capacity exceeded.
+* Unit: test_skills_phase1_4_asset_dep_tracking creates temp file, tracks, modifies, polls, and validates lifecycle (track → poll → modify → poll change → untrack).
+* Roadmap: Marks Asset Hot-Reload (foundation) and Asset Dependency Tracking complete with implementation notes and API list.
+* README: Adds bullet summarizing new APIs and polling workflow.
+Follow-ups:
+	- Integrate automatic texture reload & atlas repack triggers on change events.
+	- Add fallback placeholder injection for missing assets (currently TODO in roadmap later slice).
+	- Expand registry to support hashing content for deep validation (checksum diff) and to collapse identical assets across skills.
+
+Phase 1.3: Enhanced Execution Pathways
+--------------------------------------
+* Added optional runtime-selectable execution pathways for showcase skill (Fireball) implemented as a tiny dispatch wrapper in `skill_tree.c` (pathway_fireball_dispatch).
+* Three pathways: 0 Default (original projectile), 1 Empowered (projectile + short rank‑scaled PowerStrike buff), 2 Utility (mini dash forward, replaces projectile).
+* New APIs in `skill_tree.h`: `rogue_skill_pathway_set/get/last_exec` (clamped, fixed-cap arrays, zero alloc). Non‑wrapped skills ignore pathway changes (no regression risk).
+* Deterministic: pathway only alters effect body; timing / cooldown / state machine untouched. All existing tests remain green.
+* Unit: `test_skills_phase1_3_execution_pathways` verifies pathway selection, player displacement in Utility, and recorded last pathway id sequence.
+* Roadmap: Marks "Enhanced Execution Pathways" complete with implementation note; README updated under Recent Skills/Effects.
+Follow-ups (deferred): generalize into data-driven mapping; expose pathway selector in debug overlay; authoring-time validation for pathway compatibility with passive/channel skills.

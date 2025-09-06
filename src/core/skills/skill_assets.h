@@ -44,6 +44,57 @@ extern "C"
     int rogue_skill_assets_count_png_sequence(const char* skill_name, const char* slot,
                                               const char* stem);
 
+/* --------------------------------------------------------------------- */
+/* Phase 1.4: Asset Dependency Tracking & Hot-Reload (foundation)
+   Lightweight in-memory registry that tracks skill visual asset file paths, their
+   reference counts, and last modification timestamps. This enables editor tooling and
+   runtime systems to poll for changed source assets (e.g., updated PNGs) and trigger
+   texture reloads or preview refreshes without a full restart.
+
+   Design goals (initial slice):
+     - Zero dynamic allocations (fixed-cap array) for deterministic behavior in tests.
+     - Cheap polling (stat only registered unique paths).
+     - Cross-platform (Windows/MSVC + POSIX) using _stat/stat for mtime.
+     - Safe no-op when a path is missing or becomes unavailable.
+
+   Limitations (future slices can extend):
+     - No automatic texture reload; higher-level code must react via callback.
+     - No directory watching (OS file events); relies on explicit polling cadence.
+     - Capacity is modest (ROGUE_SKILL_ASSET_DEP_MAX). Exceeding silently ignores new paths.
+*/
+
+/* Maximum unique tracked dependencies (tweakable). */
+#define ROGUE_SKILL_ASSET_DEP_MAX 256
+
+    typedef struct RogueSkillAssetDependency
+    {
+        char path[256];           /* Normalized path as tracked (as provided) */
+        int ref_count;            /* Number of skills referencing the asset */
+        unsigned long long mtime; /* Last observed modification timestamp (seconds resolution) */
+    } RogueSkillAssetDependency;
+
+    /* Reset internal dependency registry (drops all tracking). */
+    void rogue_skill_asset_dep_reset(void);
+
+    /* Track (or increment) a dependency on path. Returns index (>=0) or -1 on failure. */
+    int rogue_skill_asset_dep_track(const char* path);
+
+    /* Decrement dependency ref count; when it reaches 0 the entry is removed. Returns new ref
+       count or -1 if path not found. */
+    int rogue_skill_asset_dep_untrack(const char* path);
+
+    /* Return current number of unique tracked dependencies. */
+    int rogue_skill_asset_dep_count(void);
+
+    /* Accessor for read-only snapshot; returns pointer to internal array (count given by above). */
+    const RogueSkillAssetDependency* rogue_skill_asset_dep_data(void);
+
+    /* Poll all tracked dependencies; for each whose file modification timestamp changes since
+       last poll, invoke on_change(path,user). Updates stored mtime. Returns number of changed
+       paths reported. Safe to call with NULL callback (counts only). */
+    int rogue_skill_asset_dep_poll_changes(int (*on_change)(const char* path, void* user),
+                                           void* user);
+
 #ifdef __cplusplus
 }
 #endif

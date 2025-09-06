@@ -179,6 +179,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_4_sprite_atlas_pac
     add_test(NAME test_skills_phase1_4_sprite_atlas_pack COMMAND test_skills_phase1_4_sprite_atlas_pack)
 endif()
 
+# Phase 1.4: Asset dependency tracking + hot-reload poll foundation test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_4_asset_dep_tracking.c AND NOT TARGET test_skills_phase1_4_asset_dep_tracking)
+    add_executable(test_skills_phase1_4_asset_dep_tracking unit/test_skills_phase1_4_asset_dep_tracking.c)
+    target_link_libraries(test_skills_phase1_4_asset_dep_tracking PRIVATE rogue_core)
+    target_compile_definitions(test_skills_phase1_4_asset_dep_tracking PRIVATE SDL_MAIN_HANDLED=1 TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skills_phase1_4_asset_dep_tracking PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skills_phase1_4_asset_dep_tracking COMMAND test_skills_phase1_4_asset_dep_tracking)
+endif()
+
 # Phase M4.1: persistence edge cases
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_persistence_edge_cases.c AND NOT TARGET test_persistence_edge_cases)
     add_executable(test_persistence_edge_cases unit/test_persistence_edge_cases.c)
