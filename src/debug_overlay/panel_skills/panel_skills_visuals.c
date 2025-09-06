@@ -78,6 +78,47 @@ void panel_skills_draw_visuals(int sel)
                 vchanged = 1;
             }
         }
+        /* Asset Import Wizard (Phase 2.3) */
+        if (overlay_button("Asset Import Wizard"))
+        {
+            static int s_show_import = 0;
+            s_show_import = 1;
+        }
+        static int s_show_import = 0;
+        if (s_show_import)
+        {
+            /* Temporary fixed position (x=420,y=60,width=360) until layout prefs integrated */
+            overlay_begin_panel("Asset Import Wizard", 420, 60, 360);
+            overlay_label("Drag & Drop sprite/audio files here or use 'Add Files' (prototype)");
+            /* Placeholder: list staged files (non-persistent). Real drag-and-drop not yet
+             * integrated. */
+            static char s_staged[8][128];
+            static int s_staged_count = 0;
+            if (overlay_button("Add Files (scan assets/skills)") && s_staged_count < 8)
+            {
+                /* Placeholder: fabricate demo entries */
+                int remaining = 8 - s_staged_count;
+                while (remaining-- > 0)
+                {
+                    snprintf(s_staged[s_staged_count], sizeof s_staged[s_staged_count],
+                             "demo_asset_%d.png", s_staged_count);
+                    ++s_staged_count;
+                }
+            }
+            for (int i = 0; i < s_staged_count; ++i)
+            {
+                overlay_label(s_staged[i]);
+            }
+            if (s_staged_count > 0 && overlay_button("Import (noop prototype)"))
+            {
+                /* Future: copy into structured skill asset dirs and register overrides */
+                /* Clear staged list */
+                s_staged_count = 0;
+            }
+            if (overlay_button("Close"))
+                s_show_import = 0;
+            overlay_end_panel();
+        }
 
         /* Core animation/sprite-sheet (non-passive) */
         if (stype != 8 /* PASSIVE */)

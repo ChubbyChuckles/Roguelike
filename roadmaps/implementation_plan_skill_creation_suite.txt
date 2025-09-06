@@ -90,7 +90,7 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
 	- Animation time/frame respects `frame_duration_ms` and total frames from either explicit `frame_count` or derived grid (grid_width × grid_height).
 	- Headless-safe: all rendering/input paths are guarded when no renderer is present.
 	- New: a Preview Target selector lets you switch the live preview between Cast, Projectile, Impact, and AoE sprites regardless of the skill_type inference. Cast previews use grid-sliced frames; other targets default to full-texture single-frame unless grid metadata is present.
-- [ ] **Asset Import Wizard** - Drag-and-drop sprite/audio integration
+- [x] **Asset Import Wizard** - Prototype panel stub (no real drag-and-drop yet); future: drag/drop events, validation, assignment workflow
 
 ### 2.4 Advanced Parameter Controls
 - [x] **Range Sliders** - Min/max values for damage, cooldowns, ranges (implemented overlay_range_slider_int/float with ordered min/max; initial adoption in Skills → Overview as design-only Cooldown Target Band & Rank Window examples; future persistence wiring TBD)

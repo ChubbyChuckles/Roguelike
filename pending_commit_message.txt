@@ -1,3 +1,19 @@
+feat(overlay/skills): Asset Import Wizard prototype panel stub
+
+Adds a minimal "Asset Import Wizard" panel in Skills → Visuals. Current functionality:
+ - Opens modal panel via button.
+ - Placeholder staging list (up to 8 entries) with "Add Files" invoking a future enumerator hook (overlay_fs_enumerate_skill_assets) if present.
+ - Import button currently a no-op that clears staged entries.
+ - Close button hides the panel.
+
+Roadmap update: marks Phase 2.3 "Asset Import Wizard" as prototype started (no drag-and-drop yet). README updated under Phase 2.3 widgets section.
+
+Follow-ups planned:
+ - SDL_DROPFILE integration in input_events.
+ - File type validation (image/audio) and target assignment UI.
+ - Copy/move into assets/skills/<skill_id>/ structured dirs with collision handling.
+ - Dependency tracking registration + hot-reload triggers.
+
 Skill Creation Suite - Effect Tree Authoring & Validation Enhancements
 ---------------------------------------------------------------------
 Summary:
