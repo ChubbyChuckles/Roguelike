@@ -1,3 +1,11 @@
+feat(skill-suite/ui): add multi-select bitmask & dynamic list editor widgets (Phase 2.4)
+
+Implemented overlay_multiselect_bits (bitmask-based multi-select) and overlay_list_editor (add/reorder/delete string list) widgets.
+Integrated prototypes in Skills → Visuals tab: Status Tags (bitmask) and Combo Chain editor (dynamic list).
+Added unit test test_overlay_multiselect_list exercising bit toggling and list mutation in headless overlay mode.
+Updated roadmap (Phase 2.4) marking Multi-select Checkboxes & Dynamic Lists as completed (prototype status) with notes; README update pending future persistence wiring.
+No persistence yet – widgets are UI scaffolds; future tasks: bind status tag mask to skill metadata & formal combo chain schema.
+
 feat(overlay/skills): Asset Import Wizard prototype panel stub
 
 Adds a minimal "Asset Import Wizard" panel in Skills → Visuals. Current functionality:

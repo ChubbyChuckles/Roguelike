@@ -37,6 +37,13 @@ extern "C"
     /* Icon+text button: draws a small icon left of the label. Returns 1 if clicked. */
     int overlay_icon_button(const char* label, int icon);
     int overlay_checkbox(const char* label, int* value);
+    /* Multi-select bitmask checkbox group.
+        items: array of labels
+        count: number of labels (max 32)
+        mask: in/out bitfield; bit i corresponds to items[i]
+        Returns 1 if any bit changed this frame. */
+    int overlay_multiselect_bits(const char* label_prefix, const char* const* items, int count,
+                                 unsigned int* mask);
     int overlay_slider_int(const char* label, int* value, int minv, int maxv);
     int overlay_slider_float(const char* label, float* value, float minv, float maxv);
     /* Range sliders: edit a min/max pair (clamped & ordered). Return 1 if either endpoint changed
@@ -61,6 +68,14 @@ extern "C"
     int overlay_timeline_editor(const char* label, float* starts_ms, float* durations_ms,
                                 int* types, int* count, int max_blocks, float total_duration_ms);
     int overlay_input_text(const char* label, char* buf, size_t buf_size);
+    /* Dynamic list editor for small fixed-cap string arrays (e.g., combo chains).
+        entries: 2D char buffer [capacity][elem_size]
+        count: in/out number of active entries
+        capacity: max rows
+        elem_size: size of each string buffer
+        Returns 1 if list mutated (add/remove/edit or reorder). */
+    int overlay_list_editor(const char* label, char entries[][64], int* count, int capacity,
+                            int elem_size);
     /* Compound widget: edit a 2D vector via two float sliders. Returns 1 if either changed. */
     int overlay_input_vec2(const char* label, float* x, float* y, float minv, float maxv);
     /* Set a tooltip for the next widget call in this panel. Clears after consumption. */

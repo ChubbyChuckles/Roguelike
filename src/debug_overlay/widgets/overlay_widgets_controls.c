@@ -276,6 +276,94 @@ int overlay_checkbox(const char* label, int* value)
     return changed;
 }
 
+int overlay_multiselect_bits(const char* label_prefix, const char* const* items, int count,
+                             unsigned int* mask)
+{
+    if (!g_ui.panel_active || !items || !mask || count <= 0)
+        return 0;
+    if (count > 32)
+        count = 32; /* bitmask limit */
+    int changed = 0;
+    /* Optional group label */
+    if (label_prefix && *label_prefix)
+        overlay_label(label_prefix);
+    for (int i = 0; i < count; ++i)
+    {
+        int bit_on = ((*mask) >> i) & 1u;
+        char buf[96];
+        snprintf(buf, sizeof buf, "%s%s", bit_on ? "[x] " : "[ ] ", items[i] ? items[i] : "");
+        /* Reuse button styling for larger click target */
+        if (overlay_button(buf))
+        {
+            *mask ^= (1u << i);
+            changed = 1;
+        }
+    }
+    return changed;
+}
+
+int overlay_list_editor(const char* label, char entries[][64], int* count, int capacity,
+                        int elem_size)
+{
+    if (!g_ui.panel_active || !entries || !count || capacity <= 0)
+        return 0;
+    if (elem_size <= 0 || elem_size > 64)
+        elem_size = 64;
+    if (*count < 0)
+        *count = 0;
+    if (*count > capacity)
+        *count = capacity;
+    int changed = 0;
+    if (label && *label)
+        overlay_label(label);
+    /* Add new entry */
+    if (*count < capacity && overlay_button("+ Add"))
+    {
+        entries[*count][0] = '\0';
+        (*count)++;
+        changed = 1;
+    }
+    for (int i = 0; i < *count; ++i)
+    {
+        char idbuf[32];
+        snprintf(idbuf, sizeof idbuf, "Entry %d", i + 1);
+        overlay_input_text(idbuf, entries[i], (size_t) elem_size);
+        /* Row actions */
+        if (overlay_columns_begin(3, NULL))
+        {
+            if (overlay_button("Up") && i > 0)
+            {
+                char tmp[64];
+                memcpy(tmp, entries[i - 1], elem_size);
+                memcpy(entries[i - 1], entries[i], elem_size);
+                memcpy(entries[i], tmp, elem_size);
+                changed = 1;
+            }
+            overlay_next_column();
+            if (overlay_button("Down") && i + 1 < *count)
+            {
+                char tmp[64];
+                memcpy(tmp, entries[i + 1], elem_size);
+                memcpy(entries[i + 1], entries[i], elem_size);
+                memcpy(entries[i], tmp, elem_size);
+                changed = 1;
+            }
+            overlay_next_column();
+            if (overlay_button("Del"))
+            {
+                for (int j = i + 1; j < *count; ++j)
+                    memcpy(entries[j - 1], entries[j], elem_size);
+                (*count)--;
+                changed = 1;
+                overlay_columns_end();
+                break; /* restart loop next frame */
+            }
+            overlay_columns_end();
+        }
+    }
+    return changed;
+}
+
 int overlay_slider_int(const char* label, int* value, int minv, int maxv)
 {
     if (!g_ui.panel_active || !value)

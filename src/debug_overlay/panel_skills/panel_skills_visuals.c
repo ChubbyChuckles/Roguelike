@@ -162,6 +162,24 @@ void panel_skills_draw_visuals(int sel)
             vchanged |= overlay_slider_float("Homing Strength", &vis.homing_strength, 0.0f, 100.0f);
         }
 
+        /* Prototype: Multi-select status tags (bitfield placeholder, non-persistent) */
+        static unsigned int s_status_mask = 0; /* bits map to status effects planned */
+        const char* status_items[] = {"Burn", "Freeze", "Shock", "Bleed", "Poison", "Slow"};
+        if (overlay_multiselect_bits("Status Tags", status_items,
+                                     (int) (sizeof status_items / sizeof status_items[0]),
+                                     &s_status_mask))
+        {
+            /* Future: persist into skill metadata */
+        }
+
+        /* Prototype: Dynamic Combo Chain editor (non-persistent example) */
+        static int s_combo_count = 0;
+        static char s_combo_entries[8][64];
+        if (overlay_list_editor("Combo Chain (prototype)", s_combo_entries, &s_combo_count, 8, 64))
+        {
+            /* Future: authoring integration for melee combo sequences */
+        }
+
         /* Inline sprite browser: shallow recursive scan under assets/ and filter */
         if (s_browser_open)
         {
