@@ -8,7 +8,12 @@
  * The functions are intentionally simple and return text representations or
  * lightweight primitive lists for visualization overlays. Determinism
  * verification runs two trees in lockstep and compares their active paths.
+ *
+ * @author Christian "ChubbyChuckles" Rickert
+ * @date 06/09/2025
+ * @version 1.0
  */
+
 #include "ai_debug.h"
 #include "../../util/determinism.h"
 #include "../perception/perception.h"
@@ -32,6 +37,8 @@
  * @param written Pointer to current write offset into out; updated by this call.
  * @note This helper is internal (static) and does not validate all inputs
  *       beyond simple early-exit checks.
+ * @details Pre-order traversal: prints node debug_name with indentation (depth * 2 spaces), then
+ * recurses on children.
  */
 static void viz_rec(RogueBTNode* node, char* out, int cap, int depth, int* written)
 {
@@ -61,6 +68,7 @@ static void viz_rec(RogueBTNode* node, char* out, int cap, int depth, int* writt
  * @param out Output buffer to receive the visualization text.
  * @param cap Size of the output buffer in bytes; must be > 0.
  * @return int Number of bytes written (excluding NUL) or -1 on invalid args.
+ * @details Calls viz_rec on tree->root with depth 0, clamps write length, ensures NUL termination.
  */
 int rogue_ai_bt_visualize(struct RogueBehaviorTree* tree, char* out, int cap)
 {
@@ -87,6 +95,8 @@ int rogue_ai_bt_visualize(struct RogueBehaviorTree* tree, char* out, int cap)
  * @param out Output buffer to receive the dump.
  * @param cap Capacity of the output buffer in bytes; must be > 0.
  * @return int Number of bytes written (excluding NUL) or -1 on invalid args.
+ * @details Loops over bb->entries[0..bb->count-1], formats based on e->type with snprintf, appends
+ * to out until cap.
  */
 int rogue_ai_blackboard_dump(struct RogueBlackboard* bb, char* out, int cap)
 {
@@ -152,6 +162,12 @@ int rogue_ai_blackboard_dump(struct RogueBlackboard* bb, char* out, int cap)
  * @param fov_deg Field-of-view in degrees (currently unused / reserved).
  * @param vision_dist Distance to project the facing vector for the cone line.
  * @return int Number of primitives written into out (0..max).
+ * @details
+ * - Emits FOV cone as line from (a->x, a->y) to (a->x + facing_x * vision_dist, a->y + facing_y *
+ * vision_dist).
+ * - Emits LOS ray from agent to (player_x, player_y).
+ * - Unused params (fov_deg, player_x/y in simplified version) cast to void.
+ * @note Simplified implementation; future expansion may use fov_deg for cone.
  */
 int rogue_ai_perception_collect_debug(const RoguePerceptionAgent* a, float player_x, float player_y,
                                       RogueAIDebugPrimitive* out, int max, float fov_deg,
@@ -198,6 +214,13 @@ int rogue_ai_perception_collect_debug(const RoguePerceptionAgent* a, float playe
  * @param out Output buffer for JSON text.
  * @param cap Capacity of the output buffer in bytes; must be > 0.
  * @return int Number of bytes written (excluding NUL) or -1 on invalid args.
+ * @details
+ * - Starts with '['.
+ * - Loops over tb->entries using circular buffer index calculation: idx = ((tb->cursor - tb->count
+ * + i) % ROGUE_AI_TRACE_CAP).
+ * - Formats {"tick":%u,"hash":%u} with comma separator.
+ * - Ends with ']'.
+ * - Clamps write and NUL-terminates.
  */
 int rogue_ai_trace_export_json(const struct RogueAITraceBuffer* tb, char* out, int cap)
 {
@@ -241,6 +264,10 @@ int rogue_ai_trace_export_json(const struct RogueAITraceBuffer* tb, char* out, i
  *
  * @param t Behavior tree to sample.
  * @return uint32_t FNV-1a32 of the serialized active path, or 0 on failure.
+ * @details
+ * - Serializes to local buf[256].
+ * - If n < 0, returns 0.
+ * - Initializes h = 2166136261u, folds each byte with XOR and multiply by 16777619u.
  */
 static uint32_t path_hash(RogueBehaviorTree* t)
 {
@@ -270,6 +297,15 @@ static uint32_t path_hash(RogueBehaviorTree* t)
  * @param ticks Number of tick iterations to run (>0).
  * @param out_hash Optional out parameter to receive the accumulated hash; may be NULL.
  * @return int 1 if deterministic across all ticks, 0 otherwise.
+ * @details
+ * - Creates two trees with factory().
+ * - For each tick: calls rogue_behavior_tree_tick with NULL blackboard and 0.016f dt.
+ * - Computes path_hash for both, accumulates with rogue_fnv1a64 starting from
+ * 0xcbf29ce484222325ULL.
+ * - If ha != hb at any tick, destroys trees, sets out_hash=0 if provided, returns 0.
+ * - On success, sets out_hash = accumA, destroys trees, returns 1.
+ * @note Uses fixed dt=0.016f (60 FPS) for consistency.
+ * @warning Assumes factory() is deterministic and produces identical trees.
  */
 int rogue_ai_determinism_verify(RogueAIBTFactory factory, int ticks, uint64_t* out_hash)
 {

@@ -7,7 +7,12 @@
  * maintenance work. Tests may override bucket count and radius via the
  * provided helpers. This module is single-threaded and designed for
  * deterministic, frame-based updates.
+ *
+ * @author Christian "ChubbyChuckles" Rickert
+ * @date 06/09/2025
+ * @version 1.0
  */
+
 #include "ai_scheduler.h"
 #include "../../core/app/app_state.h"
 #include "../../entities/enemy.h"
@@ -29,6 +34,8 @@ static float g_lod_radius_sq = 18.0f * 18.0f;
  * behavior tree work by only processing a subset of enemies each frame.
  *
  * @param buckets Number of buckets (clamped to >= 1).
+ * @details Sets g_buckets = buckets after clamping.
+ * @note Default is 4 buckets.
  */
 void rogue_ai_scheduler_set_buckets(int buckets)
 {
@@ -50,6 +57,8 @@ int rogue_ai_scheduler_get_buckets(void) { return g_buckets; }
  * for efficient distance tests.
  *
  * @param radius Radius in tiles (non-negative).
+ * @details Clamps radius >=0, sets g_lod_radius = radius, g_lod_radius_sq = radius*radius.
+ * @note Default is 18.0 tiles.
  */
 void rogue_ai_lod_set_radius(float radius)
 {
@@ -76,6 +85,8 @@ unsigned int rogue_ai_scheduler_frame(void) { return g_frame; }
  *
  * Resets frame counter, bucket count, and LOD radius to defaults to provide
  * deterministic test isolation.
+ * @details Sets g_frame=0, g_buckets=4, calls rogue_ai_lod_set_radius(18.0f).
+ * @note Only for tests.
  */
 void rogue_ai_scheduler_reset_for_tests(void)
 {
@@ -93,6 +104,8 @@ void rogue_ai_scheduler_reset_for_tests(void)
  *
  * @param e Enemy to update.
  * @param dt Delta seconds for the maintenance tick.
+ * @details Casts e and dt to void; future: threat decay, status timers.
+ * @note Placeholder; no-op implementation.
  */
 static void maintenance_tick(RogueEnemy* e, float dt)
 {
@@ -118,6 +131,17 @@ static void maintenance_tick(RogueEnemy* e, float dt)
  * @param enemies Pointer to a contiguous array of RogueEnemy objects.
  * @param count Number of enemies in the array.
  * @param dt_seconds Delta time in seconds for this tick.
+ * @details
+ * - If enemies NULL or count <=0, increments g_frame and returns.
+ * - Computes bucket = g_frame % g_buckets.
+ * - For each enemy: skip if !alive or !ai_bt_enabled.
+ * - Computes dist2 from e->base.pos to g_app.player.base.pos; if > g_lod_radius_sq, calls
+ * maintenance_tick.
+ * - If g_buckets >1 and (i % g_buckets) != bucket, calls maintenance_tick.
+ * - Else, calls rogue_enemy_ai_bt_tick(e, dt_seconds).
+ * - Increments g_frame at end.
+ * @note Uses g_app.player for LOD center; assumes global app state.
+ * @warning Single-threaded; not thread-safe.
  */
 void rogue_ai_scheduler_tick(RogueEnemy* enemies, int count, float dt_seconds)
 {

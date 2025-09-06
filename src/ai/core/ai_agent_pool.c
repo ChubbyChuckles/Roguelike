@@ -32,7 +32,12 @@
  * - release() uses offsetof(PoolNode, payload) to recover the node pointer
  *   from the client payload address; this relies on contiguous layout and
  *   is portable in standard C when applied to the exact object returned.
+ *
+ * @author Christian "ChubbyChuckles" Rickert
+ * @date 06/09/2025
+ * @version 1.0
  */
+
 #include "ai_agent_pool.h"
 #include <stddef.h>
 #include <stdlib.h>
@@ -71,6 +76,12 @@ static int g_total_created = 0;
  * @return struct EnemyAIBlackboard* Pointer to a zero-initialized slab on success,
  *         or NULL if memory allocation fails when growing the pool.
  * @note Not thread-safe. Callers must synchronize externally in concurrent contexts.
+ * @details
+ * - Pops from g_free_list if available.
+ * - Allocates new PoolNode with malloc if not; increments g_total_created and updates
+ * g_peak_created.
+ * - Increments g_in_use.
+ * - Zeros payload with memset.
  */
 struct EnemyAIBlackboard* rogue_ai_agent_acquire(void)
 {
@@ -102,6 +113,11 @@ struct EnemyAIBlackboard* rogue_ai_agent_acquire(void)
  *
  * @param blk Pointer previously returned by rogue_ai_agent_acquire(); NULL is ignored.
  * @note Safe to pass NULL (no-op). Not thread-safe.
+ * @details
+ * - Computes node pointer using (unsigned char*) blk - offsetof(PoolNode, payload).
+ * - Pushes node onto g_free_list.
+ * - Decrements g_in_use if >0.
+ * @warning Assumes blk is a valid previous acquire; invalid pointers lead to undefined behavior.
  */
 void rogue_ai_agent_release(struct EnemyAIBlackboard* blk)
 {
@@ -126,6 +142,7 @@ int rogue_ai_agent_pool_in_use(void) { return g_in_use; }
  * This incurs an O(N) traversal of the free list to compute the count.
  *
  * @return int Count of free nodes available for reuse.
+ * @details Traverses g_free_list, incrementing count for each node until NULL.
  */
 int rogue_ai_agent_pool_free(void)
 {
@@ -143,6 +160,8 @@ int rogue_ai_agent_pool_peak(void) { return g_peak_created; }
 /**
  * @brief Size in bytes of each slab payload returned by acquire().
  * @return size_t Payload size (currently 2048 bytes).
+ * @details Returns sizeof(((PoolNode*) 0)->payload), fixed at 2048 bytes for EnemyAIBlackboard with
+ * headroom.
  */
 size_t rogue_ai_agent_pool_slab_size(void) { return sizeof(((PoolNode*) 0)->payload); }
 
@@ -151,6 +170,11 @@ size_t rogue_ai_agent_pool_slab_size(void) { return sizeof(((PoolNode*) 0)->payl
  *
  * Empties the free list by freeing its nodes, and resets in-use and
  * statistics counters to zero. Intended exclusively for test isolation.
+ * @details
+ * - Traverses and frees all nodes in g_free_list.
+ * - Sets g_free_list = NULL.
+ * - Resets g_in_use, g_peak_created, g_total_created to 0.
+ * @note Only for tests; not intended for runtime use.
  */
 void rogue_ai_agent_pool_reset_for_tests(void)
 {

@@ -8,7 +8,12 @@
  *
  * This module is intentionally simple and not thread-safe. It is intended
  * for use from a single-threaded update loop or with external synchronization.
+ *
+ * @author Christian "ChubbyChuckles" Rickert
+ * @date 06/09/2025
+ * @version 1.0
  */
+
 #include "ai_profiler.h"
 
 /** Default per-frame AI budget in milliseconds. */
@@ -29,6 +34,8 @@ static int g_budget_exceeded = 0;
  * divide-by-zero or zero-budget semantics.
  *
  * @param ms Budget in milliseconds (positive). Non-positive values are clamped.
+ * @details Clamps ms to 0.0001 if <=0, sets g_budget_ms = ms.
+ * @note Default is 1.0 ms.
  */
 void rogue_ai_profiler_set_budget_ms(double ms)
 {
@@ -48,6 +55,7 @@ double rogue_ai_profiler_get_budget_ms(void) { return g_budget_ms; }
  *
  * Resets accumulated counters and flags. Call at the start of the AI update
  * frame before recording per-agent timings.
+ * @details Resets g_accum_ms=0.0, g_max_agent_ms=0.0, g_agent_count=0, g_budget_exceeded=0.
  */
 void rogue_ai_profiler_begin_frame(void)
 {
@@ -65,6 +73,8 @@ void rogue_ai_profiler_begin_frame(void)
  * total surpasses the configured budget.
  *
  * @param ms Elapsed milliseconds for the agent (will be clamped to >= 0).
+ * @details Adds ms to g_accum_ms, updates g_max_agent_ms if larger, increments g_agent_count, sets
+ * g_budget_exceeded=1 if g_accum_ms > g_budget_ms.
  */
 void rogue_ai_profiler_record_agent(double ms)
 {
@@ -83,6 +93,8 @@ void rogue_ai_profiler_record_agent(double ms)
  *
  * Present for API symmetry; future instrumentation or rollover logic may be
  * placed here.
+ * @details Currently a no-op; inline comment notes potential future use.
+ * @note For API symmetry with begin_frame.
  */
 void rogue_ai_profiler_end_frame(void) {}
 
@@ -94,6 +106,8 @@ void rogue_ai_profiler_end_frame(void) {}
  * a NULL check for the output pointer.
  *
  * @param out Pointer to a RogueAIProfileSnapshot structure to receive values.
+ * @details Copies g_accum_ms to frame_total_ms, g_max_agent_ms to frame_max_agent_ms,
+ * g_agent_count, g_budget_exceeded, g_budget_ms.
  */
 void rogue_ai_profiler_snapshot(RogueAIProfileSnapshot* out)
 {
@@ -111,6 +125,8 @@ void rogue_ai_profiler_snapshot(RogueAIProfileSnapshot* out)
  *
  * Restores the default budget (1.0 ms) and clears frame counters. Intended
  * solely for test isolation.
+ * @details Calls rogue_ai_profiler_set_budget_ms(1.0), then rogue_ai_profiler_begin_frame().
+ * @note Only for tests.
  */
 void rogue_ai_profiler_reset_for_tests(void)
 {

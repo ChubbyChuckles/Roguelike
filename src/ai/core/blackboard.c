@@ -6,7 +6,12 @@
  * compact fixed-capacity array suitable for early-phase deterministic tests.
  * Keys are stored as const char* and the implementation assumes static
  * lifetime for keys (see comment at rogue_bb_find_or_add).
+ *
+ * @author Christian "ChubbyChuckles" Rickert
+ * @date 06/09/2025
+ * @version 1.0
  */
+
 #include "blackboard.h"
 #include <math.h>
 #include <stdio.h>
@@ -65,6 +70,8 @@ static inline float rbb_quantize4(float x) { return x; }
  * pointer is ignored.
  *
  * @param bb Blackboard to initialize.
+ * @details Loops over ROGUE_BB_MAX_ENTRIES, sets key=0, type=ROGUE_BB_NONE, last_i=0, last_f=0.0f,
+ * ttl=0.0f, dirty=0.
  */
 void rogue_bb_init(RogueBlackboard* bb)
 {
@@ -91,6 +98,8 @@ void rogue_bb_init(RogueBlackboard* bb)
  * @param bb Blackboard to search.
  * @param key Key string to look up.
  * @return RogueBBEntry* Pointer to found entry or NULL.
+ * @details Loops over bb->entries[0..bb->count-1], compares key with strcmp, returns
+ * &bb->entries[i] if match.
  */
 static RogueBBEntry* rogue_bb_find(RogueBlackboard* bb, const char* key)
 {
@@ -114,6 +123,9 @@ static RogueBBEntry* rogue_bb_find(RogueBlackboard* bb, const char* key)
  * @param bb Blackboard to modify.
  * @param key Key string (stored by pointer, not copied).
  * @return RogueBBEntry* Pointer to existing or newly-added entry, or NULL.
+ * @details Calls rogue_bb_find; if not found and bb->count < ROGUE_BB_MAX_ENTRIES, sets e =
+ * &bb->entries[bb->count++], e->key = key.
+ * @note Assumes static key lifetime for early phase.
  */
 static RogueBBEntry* rogue_bb_find_or_add(RogueBlackboard* bb, const char* key)
 {
@@ -149,6 +161,7 @@ static RogueBBEntry* rogue_bb_find_or_add(RogueBlackboard* bb, const char* key)
  * @param key Key name (assumed static string lifetime).
  * @param value Integer value to set.
  * @return bool True on success, false on error (OOM or invalid args).
+ * @details Calls rogue_bb_find_or_add, sets type=ROGUE_BB_INT, v.i=value, last_i=value, dirty=1.
  */
 bool rogue_bb_set_int(RogueBlackboard* bb, const char* key, int value)
 {
