@@ -126,6 +126,17 @@ feat(overlay/skills): add EffectSpec palette + registry enumeration helper
 - Build/Tests: Debug (SDL2) full suite passes (586/586) with -j12.
 
 Skill Creation Suite: Effects authoring UX polish (banner + inline validation + filters)
+feat(overlay/skills visuals): unified Asset File Picker (Images/Audio/All) + roadmap/readme
+
+Adds an Asset File Picker to the Skills Visuals tab:
+ - Category combo: Images / Audio / All (recursive scan under assets/, depth<=4)
+ - Substring filter + table view (headless-safe; Windows enumerator implementation)
+ - Selecting an image auto-assigns to the active Assign-To target (Cast Sheet / Projectile / Impact / AoE) using existing persistence flow; audio rows are listed for future assignment actions.
+ - Rebuilds list on each open (simple & deterministic, avoids caching invalidations).
+Roadmap: marks Phase 2.3 "Asset File Picker" task complete with implementation note.
+README: adds brief description under Visuals helpers.
+No core runtime impact; overlay-only. Existing tests unaffected; full suite to be re-run for regression guard.
+
 
 - Skills panel: added a sticky Validation Status banner at the top (live updates on edits & Create/Save/Load).
 - Effects tab: inline validation for primary/node EffectSpec IDs, timing (duration, repeat_count/interval coupling), and HP gate limits; messages render in-row as you type.

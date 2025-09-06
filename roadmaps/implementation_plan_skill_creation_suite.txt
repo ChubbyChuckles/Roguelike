@@ -77,12 +77,12 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
 	- Implemented as overlay_input_vec2 (two-field X/Y with theming, focus, and validation).
 	- Wired into Skills → Testing tab as "Cast Pos" and "Target Pos" controls.
 	- Simulation JSON now accepts optional cast_pos/target_pos arrays; omitted keys remain fully back‑compatible.
-- [ ] **Curve Editor** - Damage scaling, cooldown reduction progressions
-- [ ] **Color Gradient Picker** - Particle effects and visual themes
-- [ ] **Animation Timeline Editor** - Multi-phase skill execution
+- [x] **Curve Editor** - Damage scaling, cooldown reduction progressions (v1 overlay_curve_editor: polyline editor with point add/drag/remove, rank→scalar example in Skills → Overview; non-persistent prototype for future persisted progression schemas)
+- [x] **Color Gradient Picker** - Prototype overlay_gradient_editor: add/select/drag/remove stops (positions 0..1 ascending) with RGBA editor, default black→white endpoints locked, example "Trail Color Gradient" in Skills → Overview (non-persistent; planned integration with particle system & persisted theme ramps)
+- [x] **Animation Timeline Editor** - Multi-phase skill execution (prototype overlay_timeline_editor: add/move/resize/remove blocks; non-persistent design helper in Skills → Overview; future: persistence, overlap constraints, type editing UI)
 - [x] **Sprite Sheet Browser** - Filterable list of image files under assets/ with Assign-To (Cast/Projectile/Impact/AoE); click to assign and persist via debug API. Note: Windows-only enumerator for now; cross-platform follow-up planned.
 - [x] **Sound ID Browser** - In Skills → Audio tab, a filterable table sourced from assets/sounds.cfg with Assign-To (Cast/Impact/Loop). Click a row to assign the sound id to the selected target and persist via overrides. Headless-safe and non-SDL dependent.
-- [ ] **Asset File Picker** - Filtering by type (PNG, sprite sheets, audio files)
+- [x] **Asset File Picker** - Filtering by type (PNG, sprite sheets, audio files) (Visuals tab unified Asset File Picker: Images/Audio/All categories, substring filter, recursive assets/ scan, assigns selected image to active Assign-To target; Windows enumerator; headless-safe)
 - [x] **Sprite Sheet Grid Configurator** - Shows derived grid cells (grid_width × grid_height) and provides a one-click "Set Frame Count = Grid Cells" action (no change unless explicitly applied).
 - [x] **Animation Preview Window** - Playback controls (play, pause, step, loop)
 	- Implemented in the Skills → Testing preview: Play/Pause (Auto-animate toggle), Loop override, Step Frame, and Reset Animation.
@@ -93,7 +93,7 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
 - [ ] **Asset Import Wizard** - Drag-and-drop sprite/audio integration
 
 ### 2.4 Advanced Parameter Controls
-- [ ] **Range Sliders** - Min/max values for damage, cooldowns, ranges
+- [x] **Range Sliders** - Min/max values for damage, cooldowns, ranges (implemented overlay_range_slider_int/float with ordered min/max; initial adoption in Skills → Overview as design-only Cooldown Target Band & Rank Window examples; future persistence wiring TBD)
 - [x] **Enum Dropdowns** - Damage types, target filters, animation states
 	- Initial adoption in Skills → Visuals tab:
 		- AoE Shape: None, Circle, Cone, Line (replaces numeric slider with labeled combo)

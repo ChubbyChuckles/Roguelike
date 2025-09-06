@@ -171,3 +171,20 @@ Phase 1.3: Enhanced Execution Pathways
 * Unit: `test_skills_phase1_3_execution_pathways` verifies pathway selection, player displacement in Utility, and recorded last pathway id sequence.
 * Roadmap: Marks "Enhanced Execution Pathways" complete with implementation note; README updated under Recent Skills/Effects.
 Follow-ups (deferred): generalize into data-driven mapping; expose pathway selector in debug overlay; authoring-time validation for pathway compatibility with passive/channel skills.
+
+Range Sliders (Phase 2.4)
+-------------------------
+* Added overlay_range_slider_int / overlay_range_slider_float widgets composing two ordered standard sliders (min then max) that enforce non-decreasing bounds (swaps/clamps when crossed).
+* Integrated sample usage in Skills → Overview panel: "Cooldown Target Band" (float ms range) and "Design Rank Window" (int rank span) as authoring aides (non-persistent for now).
+* Roadmap: Marked Range Sliders complete (Phase 2.4) with implementation note; establishes primitive for future persisted stat bands (e.g., damage_min/max, projectile range windows).
+* README: Added bullet under overlay feature list documenting API and current usage; notes future persistence + possible dual-handle single-draw variant.
+Follow-ups (deferred): unify with eventual histogram/range visualization, add persistence + JSON schema fields for common min/max authoring domains.
+
+Curve Editor (Phase 2.3)
+------------------------
+* Implemented overlay_curve_editor: SDL polyline widget (click add point, drag to move, Add Mid, Remove) maintaining ascending X ordering; headless-safe (no-op when renderer absent).
+* Added overlay_gradient_editor prototype widget: gradient bar with stop add/select/drag/remove (endpoints 0 and 1 locked). Each stop has RGBA edited via existing color picker. Stops kept in ascending order; new stop clones nearest color. Example integrated in Skills → Overview as "Trail Color Gradient" (non-persistent design helper). Roadmap Color Gradient Picker item marked complete; README updated. Future: persistence schema (e.g., particle color ramps, UI theme gradients), export to JSON, interpolation modes (linear vs. ease), alpha preview checkerboard.
+* Integrated example in Skills → Overview beneath coefficient section: "Damage Scalar Curve" (rank 1..20 vs scalar 0..3) as design-only helper (non-persistent prototype).
+* Roadmap: Marked Curve Editor complete with implementation note (v1 prototype, future persistence & schema integration planned for progression curves: damage, cooldown, efficiency ramps).
+* README: Documented new widget purpose and current limitations; sets stage for persisted progression authoring and evaluation utilities.
+Follow-ups (deferred): persistence format (JSON array or sampled knots), evaluation helper (linear / spline), optional tangent handles, multi-curve overlay, test coverage (point ordering, bounds constraints).

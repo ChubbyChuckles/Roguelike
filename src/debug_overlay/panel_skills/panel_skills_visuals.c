@@ -56,6 +56,12 @@ void panel_skills_draw_visuals(int sel)
 
         if (overlay_button("Browse Sprites (assets/*)"))
             s_browser_open = 1;
+        /* Unified Asset File Picker (images/audio/json) */
+        static int s_asset_picker_open = 0;
+        static int s_asset_picker_category = 0; /* 0 Images, 1 Audio, 2 All */
+        static char s_asset_filter[64] = {0};
+        if (overlay_button("Asset File Picker"))
+            s_asset_picker_open = 1;
 
         /* Grid Configurator quick helpers (doesn't mutate silently) */
         int derived_total =
@@ -237,6 +243,152 @@ void panel_skills_draw_visuals(int sel)
             }
             if (overlay_button("Close Browser"))
                 s_browser_open = 0;
+        }
+
+        /* Asset File Picker implementation */
+        if (s_asset_picker_open)
+        {
+            overlay_label("Asset File Picker");
+            const char* cat_items[] = {"Images", "Audio", "All"};
+            overlay_combo("Category", &s_asset_picker_category, cat_items, 3);
+            overlay_input_text("Filter (substring)", s_asset_filter, (int) sizeof s_asset_filter);
+            /* Build list each open for simplicity */
+            static char apaths[4096][260];
+            int acount = 0;
+#if defined(_WIN32)
+            typedef struct
+            {
+                char path[260];
+                int depth;
+            } APNode;
+            APNode stack[512];
+            int sp2 = 0;
+            strncpy(stack[sp2].path, "assets", sizeof stack[sp2].path - 1);
+            stack[sp2].path[sizeof stack[sp2].path - 1] = '\0';
+            stack[sp2].depth = 0;
+            sp2++;
+            while (sp2 > 0)
+            {
+                APNode cur = stack[--sp2];
+                char pattern[300];
+                snprintf(pattern, sizeof pattern, "%s\\*", cur.path);
+                WIN32_FIND_DATAA fd;
+                HANDLE h = FindFirstFileA(pattern, &fd);
+                if (h == INVALID_HANDLE_VALUE)
+                    continue;
+                do
+                {
+                    if (strcmp(fd.cFileName, ".") == 0 || strcmp(fd.cFileName, "..") == 0)
+                        continue;
+                    int is_dir = (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+                    char child[300];
+                    snprintf(child, sizeof child, "%s\\%s", cur.path, fd.cFileName);
+                    if (is_dir && cur.depth < 4)
+                    {
+                        if (sp2 < (int) (sizeof stack / sizeof stack[0]))
+                        {
+                            strncpy(stack[sp2].path, child, sizeof stack[sp2].path - 1);
+                            stack[sp2].path[sizeof stack[sp2].path - 1] = '\0';
+                            stack[sp2].depth = cur.depth + 1;
+                            sp2++;
+                        }
+                    }
+                    else if (!is_dir)
+                    {
+                        const char* ext = strrchr(child, '.');
+                        int keep = 0;
+                        if (ext)
+                        {
+                            char low[8] = {0};
+                            for (int i = 0; ext[i] && i < 7; ++i)
+                                low[i] = (char) tolower((unsigned char) ext[i]);
+                            int is_img = (strcmp(low, ".png") == 0 || strcmp(low, ".bmp") == 0 ||
+                                          strcmp(low, ".jpg") == 0 || strcmp(low, ".jpeg") == 0);
+                            int is_audio = (strcmp(low, ".wav") == 0 || strcmp(low, ".ogg") == 0 ||
+                                            strcmp(low, ".mp3") == 0);
+                            if (s_asset_picker_category == 0)
+                                keep = is_img;
+                            else if (s_asset_picker_category == 1)
+                                keep = is_audio;
+                            else
+                                keep = (is_img || is_audio);
+                        }
+                        if (keep && acount < (int) (sizeof apaths / sizeof apaths[0]))
+                        {
+                            char norm[260];
+                            snprintf(norm, sizeof norm, "%s", child);
+                            for (char* p = norm; *p; ++p)
+                                if (*p == '\\')
+                                    *p = '/';
+                            strncpy(apaths[acount], norm, sizeof apaths[acount] - 1);
+                            apaths[acount][sizeof apaths[acount] - 1] = '\0';
+                            acount++;
+                        }
+                    }
+                } while (FindNextFileA(h, &fd));
+                FindClose(h);
+            }
+#endif
+            const char* headers_ap[] = {"Path"};
+            int sca = 0, sda = 0;
+            if (overlay_table_begin("asset_file_picker", headers_ap, 1, &sca, &sda, s_asset_filter))
+            {
+                int selrow = -1;
+                for (int i = 0; i < acount; ++i)
+                {
+                    const char* row[1] = {apaths[i]};
+                    if (overlay_table_row(row, 1, i, &selrow))
+                    {
+                        /* Assign only if an image and target relevant */
+                        const char* chosen = apaths[i];
+                        const char* ext = strrchr(chosen, '.');
+                        int is_img = 0;
+                        if (ext)
+                        {
+                            char lo[8] = {0};
+                            for (int k = 0; ext[k] && k < 7; ++k)
+                                lo[k] = (char) tolower((unsigned char) ext[k]);
+                            is_img = (strcmp(lo, ".png") == 0 || strcmp(lo, ".bmp") == 0 ||
+                                      strcmp(lo, ".jpg") == 0 || strcmp(lo, ".jpeg") == 0);
+                        }
+                        if (is_img)
+                        {
+                            if (s_browser_target == TARGET_CAST)
+                            {
+                                strncpy(vis.cast_sprite_sheet, chosen,
+                                        sizeof vis.cast_sprite_sheet - 1);
+                                vis.cast_sprite_sheet[sizeof vis.cast_sprite_sheet - 1] = '\0';
+                            }
+                            else if (s_browser_target == TARGET_PROJECTILE)
+                            {
+                                strncpy(vis.projectile_sprite, chosen,
+                                        sizeof vis.projectile_sprite - 1);
+                                vis.projectile_sprite[sizeof vis.projectile_sprite - 1] = '\0';
+                            }
+                            else if (s_browser_target == TARGET_IMPACT)
+                            {
+                                strncpy(vis.impact_sprite, chosen, sizeof vis.impact_sprite - 1);
+                                vis.impact_sprite[sizeof vis.impact_sprite - 1] = '\0';
+                            }
+                            else if (s_browser_target == TARGET_AOE)
+                            {
+                                strncpy(vis.aoe_sprite, chosen, sizeof vis.aoe_sprite - 1);
+                                vis.aoe_sprite[sizeof vis.aoe_sprite - 1] = '\0';
+                            }
+                            vchanged = 1;
+                            s_asset_picker_open = 0;
+                        }
+                        else
+                        {
+                            overlay_label("(Selected file not an image – no assignment)");
+                        }
+                        break;
+                    }
+                }
+                overlay_table_end();
+            }
+            if (overlay_button("Close Asset Picker"))
+                s_asset_picker_open = 0;
         }
 
         if (vchanged)

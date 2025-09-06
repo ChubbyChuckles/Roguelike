@@ -268,6 +268,9 @@ void panel_skills_draw_overview(int* sel)
             rogue_skill_debug_set_timing(*sel, base_cd, cd_red, cast_ms);
             panel_skills_save_overrides_and_refresh();
         }
+        /* Demonstration Range Slider: author desired cooldown band (non-persistent hint) */
+        static float s_cd_min = 500.f, s_cd_max = 5000.f;
+        overlay_range_slider_float("Cooldown Target Band", &s_cd_min, &s_cd_max, 0.f, 60000.f);
     }
 
     RogueSkillCoeffParams cp;
@@ -286,6 +289,24 @@ void panel_skills_draw_overview(int* sel)
             rogue_skill_debug_set_coeff(*sel, &cp);
             panel_skills_save_overrides_and_refresh();
         }
+        /* Example integer range slider (for prospective damage rank scaling window) */
+        static int s_rank_min = 1, s_rank_max = 5;
+        overlay_range_slider_int("Design Rank Window", &s_rank_min, &s_rank_max, 1, 20);
+
+        /* Curve Editor Example: damage scaling curve (X = rank, Y = scalar)
+            Non-persistent illustrative helper (rank 1..20, scalar 0..3). */
+        static float s_curve_x[32] = {1.f, 20.f};
+        static float s_curve_y[32] = {1.f, 2.f};
+        static int s_curve_count = 2;
+        overlay_curve_editor("Damage Scalar Curve", s_curve_x, s_curve_y, &s_curve_count, 32, 1.f,
+                             20.f, 0.f, 3.f);
+        /* Color Gradient Picker prototype (non-persistent): example gradient for projectile trail
+         */
+        static float s_grad_stops[16];
+        static unsigned char s_grad_colors[16 * 4];
+        static int s_grad_count = 0;
+        (void) overlay_gradient_editor("Trail Color Gradient", s_grad_stops, s_grad_colors,
+                                       &s_grad_count, 16);
     }
 
     /* M2.4: Batch creator for Skills (name pattern + preview) */
@@ -378,6 +399,28 @@ void panel_skills_draw_overview(int* sel)
         snprintf(msg, sizeof msg, "Skills batch: %d ok, %d failed", ok, fail);
         overlay_label(msg);
     }
+
+    overlay_label("--- Design Helpers ---");
+    /* Curve Editor Example: damage scaling curve (X = rank, Y = scalar)
+       Non-persistent illustrative helper (rank 1..20, scalar 0..5). */
+    static float s_curve_x[16] = {1.f, 20.f};
+    static float s_curve_y[16] = {1.f, 2.f};
+    static int s_curve_n = 2;
+    overlay_curve_editor("Damage Scalar Curve", s_curve_x, s_curve_y, &s_curve_n, 16, 0.f, 1.f, 0.f,
+                         5.f);
+    /* Color Gradient Picker prototype (non-persistent): example gradient for projectile trail */
+    static float s_grad_stops[16];
+    static unsigned char s_grad_colors[16 * 4];
+    static int s_grad_count = 0;
+    (void) overlay_gradient_editor("Trail Color Gradient", s_grad_stops, s_grad_colors,
+                                   &s_grad_count, 16);
+    /* Timeline Editor prototype (non-persistent): skill phase timeline (start, duration, type) */
+    static float s_tl_starts[16];
+    static float s_tl_durations[16];
+    static int s_tl_types[16];
+    static int s_tl_count = 0;
+    (void) overlay_timeline_editor("Skill Phase Timeline", s_tl_starts, s_tl_durations, s_tl_types,
+                                   &s_tl_count, 16, 3000.f);
 }
 
 #endif /* ROGUE_ENABLE_DEBUG_OVERLAY */

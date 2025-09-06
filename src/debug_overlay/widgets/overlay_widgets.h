@@ -39,6 +39,27 @@ extern "C"
     int overlay_checkbox(const char* label, int* value);
     int overlay_slider_int(const char* label, int* value, int minv, int maxv);
     int overlay_slider_float(const char* label, float* value, float minv, float maxv);
+    /* Range sliders: edit a min/max pair (clamped & ordered). Return 1 if either endpoint changed
+     */
+    int overlay_range_slider_int(const char* label, int* min_value, int* max_value, int abs_min,
+                                 int abs_max);
+    int overlay_range_slider_float(const char* label, float* min_value, float* max_value,
+                                   float abs_min, float abs_max);
+    /* Curve editor (design helper v1). Returns 1 if any point changed (add/move/remove). */
+    int overlay_curve_editor(const char* label, float* xs, float* ys, int* count, int max_points,
+                             float x_min, float x_max, float y_min, float y_max);
+    /* Gradient editor (design helper v1). Stops: positions in [0,1] (ascending) with RGBA colors.
+        colors array is count*4 bytes (r,g,b,a per stop). Ensures at least 2 stops (0 and 1).
+        Returns 1 if any stop position/color added/removed/changed. Non-persistent prototype. */
+    int overlay_gradient_editor(const char* label, float* stops, unsigned char* colors, int* count,
+                                int max_stops);
+    /* Timeline editor (design helper v1). Edits parallel arrays of block starts/durations (ms) and
+        types (int enum) within a fixed total_duration_ms span. Blocks auto-sorted by start each
+        frame. Supports selecting, moving (drag inside), and edge resizing (drag near left/right).
+        Click empty space to add a block (if capacity). Non-persistent prototype. Returns 1 if any
+        structural or value change (add/remove/move/resize/type). */
+    int overlay_timeline_editor(const char* label, float* starts_ms, float* durations_ms,
+                                int* types, int* count, int max_blocks, float total_duration_ms);
     int overlay_input_text(const char* label, char* buf, size_t buf_size);
     /* Compound widget: edit a 2D vector via two float sliders. Returns 1 if either changed. */
     int overlay_input_vec2(const char* label, float* x, float* y, float minv, float maxv);
@@ -134,6 +155,64 @@ static inline int overlay_slider_float(const char* label, float* value, float mi
     (void) value;
     (void) minv;
     (void) maxv;
+    return 0;
+}
+static inline int overlay_range_slider_int(const char* label, int* min_value, int* max_value,
+                                           int abs_min, int abs_max)
+{
+    (void) label;
+    (void) min_value;
+    (void) max_value;
+    (void) abs_min;
+    (void) abs_max;
+    return 0;
+}
+static inline int overlay_range_slider_float(const char* label, float* min_value, float* max_value,
+                                             float abs_min, float abs_max)
+{
+    (void) label;
+    (void) min_value;
+    (void) max_value;
+    (void) abs_min;
+    (void) abs_max;
+    return 0;
+}
+static inline int overlay_curve_editor(const char* label, float* xs, float* ys, int* count,
+                                       int max_points, float x_min, float x_max, float y_min,
+                                       float y_max)
+{
+    (void) label;
+    (void) xs;
+    (void) ys;
+    (void) count;
+    (void) max_points;
+    (void) x_min;
+    (void) x_max;
+    (void) y_min;
+    (void) y_max;
+    return 0;
+}
+static inline int overlay_gradient_editor(const char* label, float* stops, unsigned char* colors,
+                                          int* count, int max_stops)
+{
+    (void) label;
+    (void) stops;
+    (void) colors;
+    (void) count;
+    (void) max_stops;
+    return 0;
+}
+static inline int overlay_timeline_editor(const char* label, float* starts_ms, float* durations_ms,
+                                          int* types, int* count, int max_blocks,
+                                          float total_duration_ms)
+{
+    (void) label;
+    (void) starts_ms;
+    (void) durations_ms;
+    (void) types;
+    (void) count;
+    (void) max_blocks;
+    (void) total_duration_ms;
     return 0;
 }
 static inline int overlay_input_text(const char* label, char* buf, size_t buf_size)
