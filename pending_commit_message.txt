@@ -90,3 +90,14 @@ Skills: EffectNode Tree Structure (experimental Phase 1.2 extension)
 	 * test_skills_phase1_2_effect_tree_parent_index_invalid covers out-of-range parent_index and self-parent (cycle) rejection paths.
  - Overlay: added lightweight graphical tree visualization (experimental) rendering parent-child links and basic validity coloring to aid authoring.
  - Follow-ups Resolved: previously deferred round-trip serialization test and parent_index negative cases now implemented; remaining open: richer graphical layout (drag/drop for tree) and additional malformed graph heuristics.
+
+Advanced Effect Validation (Phase 1.2 completion)
+-----------------------------------------------
+* Added advanced heuristics to rogue_skills_validate_all:
+	- Non-negative delay_ms for flat and tree nodes.
+	- repeat_interval_ms > 0 required when repeat_count > 0.
+	- duration_ms must cover repeat_count * repeat_interval_ms when both provided.
+	- Global effect tree scheduled span cap (<= 60000ms) computed from chained delays + window/repeat span; rejects runaway authoring.
+* New unit: test_skills_phase1_2_effect_tree_advanced_validation (fails insufficient window, fails span overflow, passes valid composition).
+* Roadmap: Marked "Advanced Effect Validation" complete with heuristic list.
+* README: Updated Recent Skills/Effects section to list new validation rules.

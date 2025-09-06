@@ -30,7 +30,8 @@ static int is_skill_offensive(const RogueSkillDef* d)
 {
     if (!d)
         return 0;
-    if (d->effect_spec_id >= 0)
+    /* Treat effect_spec_id==0 as unset (CSV default), only >0 considered authored. */
+    if (d->effect_spec_id > 0)
         return 1;
     if (d->action_point_cost > 0 || d->resource_cost_mana > 0)
         return 1;
@@ -176,6 +177,39 @@ int rogue_skills_validate_all(char* err, int err_cap)
                 set_err(err, err_cap, buf4);
                 return -1;
             }
+            /* Advanced validation heuristics (Phase 1.2 "Advanced Effect Validation"): */
+            if (d->effect_nodes[ni].delay_ms < 0.0f)
+            {
+                char bufDelay[256];
+                snprintf(bufDelay, sizeof bufDelay, "skill %d '%s' effect%d_delay_ms must be >= 0",
+                         i, d->name ? d->name : "<noname>", ni + 2);
+                set_err(err, err_cap, bufDelay);
+                return -1;
+            }
+            if (d->effect_nodes[ni].repeat_count > 0 &&
+                d->effect_nodes[ni].repeat_interval_ms <= 0.0f)
+            {
+                char bufRCInt[256];
+                snprintf(bufRCInt, sizeof bufRCInt,
+                         "skill %d '%s' effect%d_repeat_interval_ms must be >0 when repeat_count>0",
+                         i, d->name ? d->name : "<noname>", ni + 2);
+                set_err(err, err_cap, bufRCInt);
+                return -1;
+            }
+            if (d->effect_nodes[ni].repeat_count > 0 && d->effect_nodes[ni].duration_ms > 0.0f)
+            {
+                float window_needed = (float) d->effect_nodes[ni].repeat_count *
+                                      d->effect_nodes[ni].repeat_interval_ms;
+                if (d->effect_nodes[ni].duration_ms + 1e-3f < window_needed)
+                {
+                    char bufSpan[256];
+                    snprintf(bufSpan, sizeof bufSpan,
+                             "skill %d '%s' effect%d_duration_ms < repeat_count*repeat_interval_ms",
+                             i, d->name ? d->name : "<noname>", ni + 2);
+                    set_err(err, err_cap, bufSpan);
+                    return -1;
+                }
+            }
         }
         /* Effect tree (if present) supersedes flat effect_nodes at runtime; validate separately */
         if (d->effect_tree_node_count > 0)
@@ -225,6 +259,15 @@ int rogue_skills_validate_all(char* err, int err_cap)
                         }
                     }
                 }
+                if (d->effect_tree_nodes[ti].delay_ms < 0.0f)
+                {
+                    char bufTD0[256];
+                    snprintf(bufTD0, sizeof bufTD0,
+                             "skill %d '%s' tree.node[%d] delay_ms must be >=0", i,
+                             d->name ? d->name : "<noname>", ti);
+                    set_err(err, err_cap, bufTD0);
+                    return -1;
+                }
                 if (d->effect_tree_nodes[ti].duration_ms < 0.0f)
                 {
                     char bufT2[256];
@@ -254,6 +297,33 @@ int rogue_skills_validate_all(char* err, int err_cap)
                              i, d->name ? d->name : "<noname>", ti);
                     set_err(err, err_cap, bufT4);
                     return -1;
+                }
+                if (d->effect_tree_nodes[ti].repeat_count > 0 &&
+                    d->effect_tree_nodes[ti].repeat_interval_ms <= 0.0f)
+                {
+                    char bufTD6[256];
+                    snprintf(bufTD6, sizeof bufTD6,
+                             "skill %d '%s' tree.node[%d] repeat_interval_ms must be >0 when "
+                             "repeat_count>0",
+                             i, d->name ? d->name : "<noname>", ti);
+                    set_err(err, err_cap, bufTD6);
+                    return -1;
+                }
+                if (d->effect_tree_nodes[ti].repeat_count > 0 &&
+                    d->effect_tree_nodes[ti].duration_ms > 0.0f)
+                {
+                    float need = (float) d->effect_tree_nodes[ti].repeat_count *
+                                 d->effect_tree_nodes[ti].repeat_interval_ms;
+                    if (d->effect_tree_nodes[ti].duration_ms + 1e-3f < need)
+                    {
+                        char bufTD7[256];
+                        snprintf(bufTD7, sizeof bufTD7,
+                                 "skill %d '%s' tree.node[%d] duration_ms < "
+                                 "repeat_count*repeat_interval_ms",
+                                 i, d->name ? d->name : "<noname>", ti);
+                        set_err(err, err_cap, bufTD7);
+                        return -1;
+                    }
                 }
                 if (d->effect_tree_nodes[ti].require_player_health_below_pct > 100)
                 {
@@ -307,6 +377,48 @@ int rogue_skills_validate_all(char* err, int err_cap)
                 {
                     color[v] = 2;
                     v = d->effect_tree_nodes[v].parent_index;
+                }
+            }
+            /* Span heuristic: limit total scheduled span to 60s to catch runaway authoring.
+               Single-fire nodes (no repeats, zero duration) are treated as instantaneous events
+               with a minimal intrinsic span of 1ms so that long delay chains still compute a
+               non-zero end time. */
+            const float MAX_TREE_SPAN_MS = 60000.0f;
+            const float MIN_INSTANT_SPAN_MS = 1.0f;
+            for (int ti = 0; ti < (int) d->effect_tree_node_count; ++ti)
+            {
+                /* compute start time by summing delays up chain */
+                float start = 0.0f;
+                int cur = ti;
+                int guard = 0;
+                while (cur >= 0 && cur < (int) d->effect_tree_node_count && guard++ < 16)
+                {
+                    start += d->effect_tree_nodes[cur].delay_ms;
+                    cur = d->effect_tree_nodes[cur].parent_index;
+                }
+                float span = 0.0f;
+                if (d->effect_tree_nodes[ti].repeat_count > 0)
+                {
+                    span = (float) d->effect_tree_nodes[ti].repeat_count *
+                           d->effect_tree_nodes[ti].repeat_interval_ms;
+                }
+                else if (d->effect_tree_nodes[ti].duration_ms > 0.0f)
+                {
+                    span = d->effect_tree_nodes[ti].duration_ms;
+                }
+                else
+                {
+                    span = MIN_INSTANT_SPAN_MS; /* instantaneous event */
+                }
+                float end = start + span;
+                if (end > MAX_TREE_SPAN_MS)
+                {
+                    char bufSpan[256];
+                    snprintf(bufSpan, sizeof bufSpan,
+                             "skill %d '%s' effect tree scheduled span exceeds %.0fms", i,
+                             d->name ? d->name : "<noname>", MAX_TREE_SPAN_MS);
+                    set_err(err, err_cap, bufSpan);
+                    return -1;
                 }
             }
         }

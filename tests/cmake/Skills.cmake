@@ -33,6 +33,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_2_effect_tree_pare
     add_test(NAME test_skills_phase1_2_effect_tree_parent_index_invalid COMMAND test_skills_phase1_2_effect_tree_parent_index_invalid)
 endif()
 
+# Skills Phase 1.2 advanced effect tree validation (window + span heuristics)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_2_effect_tree_advanced_validation.c AND NOT TARGET test_skills_phase1_2_effect_tree_advanced_validation)
+    add_executable(test_skills_phase1_2_effect_tree_advanced_validation unit/test_skills_phase1_2_effect_tree_advanced_validation.c)
+    target_link_libraries(test_skills_phase1_2_effect_tree_advanced_validation PRIVATE rogue_core)
+    target_compile_definitions(test_skills_phase1_2_effect_tree_advanced_validation PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skills_phase1_2_effect_tree_advanced_validation PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skills_phase1_2_effect_tree_advanced_validation COMMAND test_skills_phase1_2_effect_tree_advanced_validation)
+endif()
+
 # Skills Phase 1.2 effect_tree scheduling test (hierarchical delays & periodic window)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_2_effect_tree_schedule.c AND NOT TARGET test_skills_phase1_2_effect_tree_schedule)
     add_executable(test_skills_phase1_2_effect_tree_schedule unit/test_skills_phase1_2_effect_tree_schedule.c)

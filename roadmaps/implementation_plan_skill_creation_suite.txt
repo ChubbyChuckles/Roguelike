@@ -23,7 +23,7 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
 - [x] **Effect Stacking** - AURA exclusivity replaces weaker auras and aligns next pulse without double-ticking
 - [x] **EffectNode Tree Structure (experimental v1)** - Optional tree (`effect_tree_nodes[8]`) with parent indices enabling hierarchical scheduling. Runtime prefers tree when present; legacy flat nodes retained for backward compatibility. Debug API: get/set tree; validation: bounds + cycle detect. UI/editor serialization pending.
 - [x] **SPAWN_ENTITY Effect Type** - Implemented: new enum kind (ROGUE_EFFECT_SPAWN_ENTITY) with fields `spawn_entity_count` (clamped 1..8, default 1) and `spawn_entity_life_ms` (default 5000ms). Backed by a lightweight transient pool (64 cap) in `spawn_entities.c`; entities auto-expire after lifetime. Unit test `test_effectspec_spawn_entity` covers spawn count & expiry. Placeholder foundation for future Summoning system (Phase 6.1).
-- [ ] **Advanced Effect Validation** - Broader authoring-time validation beyond runtime gating (next: spawn_entity pre-validation; tree window heuristics)
+- [x] **Advanced Effect Validation** - Added authoring-time heuristics: SPAWN_ENTITY field pre-validation (count/life) across primary/flat/tree nodes, non-negative delay_ms, repeat_interval_ms required when repeat_count>0, duration window must cover repeat_count*repeat_interval_ms, and a global effect tree span cap (<=60s) computed via delay chain + window/repeat span to catch runaway authoring.
 
 ### 1.3 Skill Execution Engine Enhancement
 - [x] **Context Tracking** - cast_position, target_position, affected_entities (clamped to 8)

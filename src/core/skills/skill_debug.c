@@ -478,17 +478,19 @@ int rogue_skill_debug_export_overrides_json(char* out_buf, int out_cap)
             w += n;
             for (int ti = 0; ti < d->effect_tree_node_count; ++ti)
             {
-                /* Use the declared RogueSkillEffectTreeNode type directly (avoid anonymous struct
-                 * cast). */
-                const struct RogueSkillEffectTreeNode* tn = &d->effect_tree_nodes[ti];
+                /* Access fields inline to avoid any potential MSVC warning on temporary struct
+                 * copies */
                 n = snprintf(out_buf + w, out_cap - w,
                              "%s{\"effect_spec_id\":%d,\"delay_ms\":%.3f,\"duration_ms\":%.3f,"
                              "\"repeat_count\":%d,\"repeat_interval_ms\":%.3f,\"hp_below_pct\":%u,"
                              "\"parent_index\":%d}",
-                             (ti ? "," : ""), tn->effect_spec_id, tn->delay_ms, tn->duration_ms,
-                             tn->repeat_count, tn->repeat_interval_ms,
-                             (unsigned) tn->require_player_health_below_pct,
-                             (int) tn->parent_index);
+                             (ti ? "," : ""), d->effect_tree_nodes[ti].effect_spec_id,
+                             d->effect_tree_nodes[ti].delay_ms,
+                             d->effect_tree_nodes[ti].duration_ms,
+                             d->effect_tree_nodes[ti].repeat_count,
+                             d->effect_tree_nodes[ti].repeat_interval_ms,
+                             (unsigned) d->effect_tree_nodes[ti].require_player_health_below_pct,
+                             (int) d->effect_tree_nodes[ti].parent_index);
                 if (n < 0 || w + n >= out_cap)
                     return -1;
                 w += n;
