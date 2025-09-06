@@ -2,6 +2,7 @@
 #include "../../core/app/app_state.h"
 #include "../../core/skills/skill_debug.h"
 #include "../../core/skills/skills_validate.h"
+#include "../../util/formula_eval.h" /* prototype formula evaluator */
 #include "../overlay_core.h"
 #include "../widgets/overlay_widgets.h"
 #include "panel_skills_shared.h"
@@ -307,6 +308,41 @@ void panel_skills_draw_overview(int* sel)
         static int s_grad_count = 0;
         (void) overlay_gradient_editor("Trail Color Gradient", s_grad_stops, s_grad_colors,
                                        &s_grad_count, 16);
+
+        /* Formula Editor Prototype (Phase 2.4) --------------------------------------- */
+        overlay_label("Formula Preview (prototype)");
+        static char s_formula[128] = "base + per * (rank-1) + str*0.01"; /* editable */
+        overlay_input_text("Formula", s_formula, sizeof s_formula);
+        static int s_preview_rank = 1;
+        overlay_slider_int("Preview Rank", &s_preview_rank, 1, 20);
+        static float s_preview_str = 50.f, s_preview_dex = 30.f, s_preview_int = 10.f;
+        overlay_slider_float("STR", &s_preview_str, 0.f, 500.f);
+        overlay_slider_float("DEX", &s_preview_dex, 0.f, 500.f);
+        overlay_slider_float("INT", &s_preview_int, 0.f, 500.f);
+        {
+            RogueFormulaContext ctx;
+            ctx.base_scalar = cp.base_scalar;
+            ctx.per_rank_scalar = cp.per_rank_scalar;
+            ctx.rank = (float) s_preview_rank;
+            ctx.stat_str = s_preview_str;
+            ctx.stat_dex = s_preview_dex;
+            ctx.stat_int = s_preview_int;
+            ctx.stat_cap_pct = cp.stat_cap_pct;
+            float outv = 0.f;
+            char ferr[64];
+            if (rogue_formula_eval(s_formula, &ctx, &outv, ferr, (int) sizeof ferr) == 0)
+            {
+                char line[128];
+                snprintf(line, sizeof line, "Value = %.3f", outv);
+                overlay_label(line);
+            }
+            else
+            {
+                char line[160];
+                snprintf(line, sizeof line, "Error: %s", ferr);
+                overlay_label(line);
+            }
+        }
     }
 
     /* M2.4: Batch creator for Skills (name pattern + preview) */

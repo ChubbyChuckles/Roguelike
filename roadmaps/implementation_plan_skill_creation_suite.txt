@@ -93,19 +93,14 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
 - [x] **Asset Import Wizard** - Prototype panel stub (no real drag-and-drop yet); future: drag/drop events, validation, assignment workflow
 
 ### 2.4 Advanced Parameter Controls
-- [x] **Range Sliders** - Min/max values for damage, cooldowns, ranges (implemented overlay_range_slider_int/float with ordered min/max; initial adoption in Skills → Overview as design-only Cooldown Target Band & Rank Window examples; future persistence wiring TBD)
-- [x] **Enum Dropdowns** - Damage types, target filters, animation states
 	- Initial adoption in Skills → Visuals tab:
 		- AoE Shape: None, Circle, Cone, Line (replaces numeric slider with labeled combo)
 		- Trajectory Type: Linear, Arc, Homing, Scatter (replaces numeric slider with labeled combo)
 	- Overview tab:
 		- Skill Type: UNKNOWN, MELEE, RANGED, AOE_SPELL, BUFF, DEBUFF, HEAL, SUMMON, PASSIVE, ULTIMATE (replaces numeric input with labeled combo)
 	- Remaining candidates: damage types, target filters, animation states, projectile behaviors.
-- [x] **Multi-select Checkboxes** - Status effect combinations (overlay_multiselect_bits prototype added; sample Status Tags in Visuals tab; future persistence planned)
-- [x] **Dynamic Lists** - Effect sequences and combo chains (overlay_list_editor prototype added; sample Combo Chain editor in Visuals tab; future schema + persistence)
-- [ ] **Formula Editors** - Complex damage calculations with syntax highlighting
+ - [x] **Formula Editors** - Prototype lightweight expression evaluator ( + - * / parentheses, identifiers: base, per, rank, str, dex, int, cap ) with live preview in Skills → Overview (Formula Preview). No persistence or syntax highlighting yet; future work: token colorization in text input, error underline, variable injection from broader context (resistances, crit, etc.), and saved formula bindings per skill/effect.
 
-### 2.5 Sprite Asset Integration UI
 - [ ] **Visual Sprite Sheet Editor** - Grid overlay and frame selection
 - [ ] **Real-time Animation Preview** - Timing adjustment
 - [ ] **Sprite Sheet Import Wizard** - Common formats (PNG, TGA, BMP)

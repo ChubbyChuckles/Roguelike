@@ -228,6 +228,7 @@ add_library(rogue_core
     src/util/json_parser.c
     src/util/cfg_parser.c
     src/core/integration/cfg_migration.c
+    src/util/formula_eval.c
     src/core/integration/hot_reload.c
     src/core/integration/dependency_manager.c
     src/util/kv_parser.c
