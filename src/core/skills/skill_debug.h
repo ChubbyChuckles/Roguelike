@@ -122,6 +122,25 @@ extern "C"
     int rogue_skill_debug_set_effects(int id, int primary_effect_id,
                                       const struct RogueSkillEffectNode* nodes, int node_count);
 
+    /* Experimental EffectNode tree debugging (Phase 1.2 extension). When a tree is defined for
+       a skill (node_count>0), the legacy flat effect_nodes[] array is ignored at runtime. */
+    struct RogueSkillEffectTreeNodeDebug
+    {
+        int effect_spec_id;
+        float delay_ms;
+        float duration_ms;
+        int repeat_count;
+        float repeat_interval_ms;
+        unsigned char require_player_health_below_pct;
+        signed char parent_index; /* -1 root */
+    };
+    /* Get tree nodes: writes up to *inout_node_count entries into nodes; returns 0 success. */
+    int rogue_skill_debug_get_effect_tree(int id, struct RogueSkillEffectTreeNodeDebug* nodes,
+                                          int* inout_node_count);
+    /* Set/replace entire tree (node_count 0..8). Returns 0 on success. */
+    int rogue_skill_debug_set_effect_tree(int id, const struct RogueSkillEffectTreeNodeDebug* nodes,
+                                          int node_count);
+
 #ifdef __cplusplus
 }
 #endif

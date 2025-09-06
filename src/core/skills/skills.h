@@ -151,6 +151,28 @@ typedef struct RogueSkillDef
     unsigned char trajectory_type; /* 0 linear,1 arc,2 homing,3 scatter */
     unsigned char pierce_count;    /* number of targets it can pierce */
     float homing_strength;         /* homing factor */
+
+    /* --- Phase 1.2 Extension: Experimental EffectNode Tree Structure -----------------------
+       Legacy composition used a flat array `effect_nodes[3]` with ad-hoc delay_ms values that
+       authors derived from a temporary connection UI. To enable richer sequencing while
+       preserving backward compatibility, we introduce an optional small tree (DAG) of effect
+       nodes. When `effect_tree_node_count > 0`, the legacy `effect_nodes` array is ignored
+       at runtime. Each tree node references an EffectSpec plus timing/gating parameters and
+       a parent index. Parent index of -1 denotes a root-level node (scheduled relative to
+       skill activation). Delay semantics (v1): node.start_time = parent_start_time + delay_ms
+       (roots use activation time). Future phases may add span-based anchoring modes.
+       Soft cap: 8 nodes per skill to keep scheduling O(N). */
+    struct RogueSkillEffectTreeNode
+    {
+        int effect_spec_id;       /* EffectSpec to apply */
+        float delay_ms;           /* delay from parent start (or activation if root) */
+        float duration_ms;        /* repeat window length (same semantics as legacy nodes) */
+        int repeat_count;         /* explicit repeat count (times after first) */
+        float repeat_interval_ms; /* interval between repeats */
+        unsigned char require_player_health_below_pct; /* HP gate (0 ignore) */
+        signed char parent_index; /* -1 root, otherwise [0, effect_tree_node_count) */
+    } effect_tree_nodes[8];
+    unsigned char effect_tree_node_count; /* 0 => unused; else number of tree nodes (1..8) */
 } RogueSkillDef;
 
 /* Tag bits */

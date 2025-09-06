@@ -177,6 +177,112 @@ int rogue_skills_validate_all(char* err, int err_cap)
                 return -1;
             }
         }
+        /* Effect tree (if present) supersedes flat effect_nodes at runtime; validate separately */
+        if (d->effect_tree_node_count > 0)
+        {
+            if (d->effect_tree_node_count > 8)
+            {
+                set_err(err, err_cap, "effect_tree_node_count out of range");
+                return -1;
+            }
+            /* Basic field checks */
+            for (int ti = 0; ti < (int) d->effect_tree_node_count; ++ti)
+            {
+                const int eid = d->effect_tree_nodes[ti].effect_spec_id;
+                if (eid > 0 && !rogue_effect_get(eid))
+                {
+                    char bufT[256];
+                    snprintf(bufT, sizeof bufT,
+                             "skill %d '%s' tree.node[%d] invalid effect_spec_id=%d", i,
+                             d->name ? d->name : "<noname>", ti, eid);
+                    set_err(err, err_cap, bufT);
+                    return -1;
+                }
+                if (d->effect_tree_nodes[ti].duration_ms < 0.0f)
+                {
+                    char bufT2[256];
+                    snprintf(bufT2, sizeof bufT2,
+                             "skill %d '%s' tree.node[%d] duration_ms must be >=0", i,
+                             d->name ? d->name : "<noname>", ti);
+                    set_err(err, err_cap, bufT2);
+                    return -1;
+                }
+                if (d->effect_tree_nodes[ti].repeat_count < 0 ||
+                    d->effect_tree_nodes[ti].repeat_count > 32)
+                {
+                    char bufT3[256];
+                    snprintf(bufT3, sizeof bufT3,
+                             "skill %d '%s' tree.node[%d] repeat_count out of range", i,
+                             d->name ? d->name : "<noname>", ti);
+                    set_err(err, err_cap, bufT3);
+                    return -1;
+                }
+                if (d->effect_tree_nodes[ti].repeat_count == 0 &&
+                    d->effect_tree_nodes[ti].duration_ms > 0.0f &&
+                    d->effect_tree_nodes[ti].repeat_interval_ms <= 0.0f)
+                {
+                    char bufT4[256];
+                    snprintf(bufT4, sizeof bufT4,
+                             "skill %d '%s' tree.node[%d] duration_ms>0 but repeat_interval_ms<=0",
+                             i, d->name ? d->name : "<noname>", ti);
+                    set_err(err, err_cap, bufT4);
+                    return -1;
+                }
+                if (d->effect_tree_nodes[ti].require_player_health_below_pct > 100)
+                {
+                    char bufT5[256];
+                    snprintf(bufT5, sizeof bufT5, "skill %d '%s' tree.node[%d] hp_gate > 100", i,
+                             d->name ? d->name : "<noname>", ti);
+                    set_err(err, err_cap, bufT5);
+                    return -1;
+                }
+                int pid = d->effect_tree_nodes[ti].parent_index;
+                if (pid >= (int) d->effect_tree_node_count)
+                {
+                    char bufT6[256];
+                    snprintf(bufT6, sizeof bufT6,
+                             "skill %d '%s' tree.node[%d] parent_index out of range", i,
+                             d->name ? d->name : "<noname>", ti);
+                    set_err(err, err_cap, bufT6);
+                    return -1;
+                }
+            }
+            /* Cycle detection: depth-first with color marking */
+            unsigned char color[8];
+            for (int k = 0; k < (int) d->effect_tree_node_count; ++k)
+                color[k] = 0; /* 0 unvisited,1 in-stack,2 done */
+            for (int k = 0; k < (int) d->effect_tree_node_count; ++k)
+            {
+                int v = k;
+                int guard = 0;
+                while (v >= 0 && v < (int) d->effect_tree_node_count)
+                {
+                    if (color[v] == 1)
+                    {
+                        char bufC[256];
+                        snprintf(bufC, sizeof bufC, "skill %d '%s' effect tree cycle detected", i,
+                                 d->name ? d->name : "<noname>");
+                        set_err(err, err_cap, bufC);
+                        return -1;
+                    }
+                    if (color[v] == 2)
+                        break;
+                    color[v] = 1; /* in stack */
+                    v = d->effect_tree_nodes[v].parent_index;
+                    if (++guard > 16)
+                        break; /* safety */
+                }
+                /* backtrack mark */
+                v = k;
+                guard = 0;
+                while (v >= 0 && v < (int) d->effect_tree_node_count && color[v] == 1 &&
+                       guard++ < 16)
+                {
+                    color[v] = 2;
+                    v = d->effect_tree_nodes[v].parent_index;
+                }
+            }
+        }
         /* Clamp and consistency: if skill_type is out of range, treat as UNKNOWN; if PASSIVE type
          * but not flagged passive, warn-fail for now. */
         if (d->skill_type > ROGUE_SKTYPE_ULTIMATE)

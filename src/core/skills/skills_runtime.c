@@ -618,47 +618,138 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         if (def->effect_spec_id >= 0 && !(def->cast_type == 1 && def->cast_time_ms > 0))
         {
             rogue_effect_apply(def->effect_spec_id, now);
-            /* Phase 1.2: apply additional effect composition nodes at activation */
-            for (int ni = 0; ni < (int) def->effect_node_count; ++ni)
+            /* Phase 1.2: legacy flat nodes (only when tree absent) */
+            if (def->effect_tree_node_count == 0)
             {
-                const int eid = def->effect_nodes[ni].effect_spec_id;
-                if (eid < 0)
-                    continue;
-                unsigned char hp_gate = def->effect_nodes[ni].require_player_health_below_pct;
-                if (hp_gate > 0)
+                for (int ni = 0; ni < (int) def->effect_node_count; ++ni)
                 {
-                    int maxhp = g_app.player.max_health > 0 ? g_app.player.max_health : 1;
-                    int cur = g_app.player.health;
-                    int pct = (int) ((cur * 100LL) / maxhp);
-                    if (pct >= (int) hp_gate)
+                    const int eid = def->effect_nodes[ni].effect_spec_id;
+                    if (eid < 0)
                         continue;
-                }
-                double t0 = now + def->effect_nodes[ni].delay_ms;
-                if (def->effect_nodes[ni].delay_ms <= 0.0f)
-                    rogue_effect_apply(eid, now);
-                else
-                    rogue_effect_schedule_apply(eid, t0);
-                int rc = def->effect_nodes[ni].repeat_count;
-                double ri = def->effect_nodes[ni].repeat_interval_ms;
-                double dur = def->effect_nodes[ni].duration_ms;
-                if (ri > 0.0)
-                {
-                    if (rc > 0)
+                    unsigned char hp_gate = def->effect_nodes[ni].require_player_health_below_pct;
+                    if (hp_gate > 0)
                     {
-                        double t = t0 + ri;
-                        for (int r = 0; r < rc; ++r)
+                        int maxhp = g_app.player.max_health > 0 ? g_app.player.max_health : 1;
+                        int cur = g_app.player.health;
+                        int pct = (int) ((cur * 100LL) / maxhp);
+                        if (pct >= (int) hp_gate)
+                            continue;
+                    }
+                    double t0 = now + def->effect_nodes[ni].delay_ms;
+                    if (def->effect_nodes[ni].delay_ms <= 0.0f)
+                        rogue_effect_apply(eid, now);
+                    else
+                        rogue_effect_schedule_apply(eid, t0);
+                    int rc = def->effect_nodes[ni].repeat_count;
+                    double ri = def->effect_nodes[ni].repeat_interval_ms;
+                    double dur = def->effect_nodes[ni].duration_ms;
+                    if (ri > 0.0)
+                    {
+                        if (rc > 0)
                         {
-                            rogue_effect_schedule_apply(eid, t);
-                            t += ri;
+                            double t = t0 + ri;
+                            for (int r = 0; r < rc; ++r)
+                            {
+                                rogue_effect_schedule_apply(eid, t);
+                                t += ri;
+                            }
+                        }
+                        else if (dur > 0.0)
+                        {
+                            double t = t0 + ri;
+                            while (t <= t0 + dur + 1e-3)
+                            {
+                                rogue_effect_schedule_apply(eid, t);
+                                t += ri;
+                            }
                         }
                     }
-                    else if (dur > 0.0)
+                }
+            }
+            else /* Tree-based scheduling */
+            {
+                /* Precompute absolute start times by walking parents (simple O(N^2) worst-case
+                   acceptable for N<=8). Guard against cycles by depth counter. */
+                double start_times[8];
+                for (int i = 0; i < (int) def->effect_tree_node_count; ++i)
+                    start_times[i] = -1.0;
+                for (int iter = 0; iter < (int) def->effect_tree_node_count; ++iter)
+                {
+                    int progressed = 0;
+                    for (int i = 0; i < (int) def->effect_tree_node_count; ++i)
                     {
-                        double t = t0 + ri;
-                        while (t <= t0 + dur + 1e-3)
+                        if (start_times[i] >= 0.0)
+                            continue; /* already resolved */
+                        int pid = def->effect_tree_nodes[i].parent_index;
+                        if (pid >= 0)
                         {
-                            rogue_effect_schedule_apply(eid, t);
-                            t += ri;
+                            if (pid >= (int) def->effect_tree_node_count)
+                            {
+                                start_times[i] =
+                                    now + def->effect_tree_nodes[i]
+                                              .delay_ms; /* invalid parent => treat as root */
+                                progressed = 1;
+                                continue;
+                            }
+                            if (start_times[pid] < 0.0)
+                                continue; /* parent not yet resolved */
+                            start_times[i] = start_times[pid] + def->effect_tree_nodes[i].delay_ms;
+                            progressed = 1;
+                        }
+                        else
+                        {
+                            start_times[i] = now + def->effect_tree_nodes[i].delay_ms;
+                            progressed = 1;
+                        }
+                    }
+                    if (!progressed)
+                        break; /* possible cycle; remaining stay unresolved */
+                }
+                for (int i = 0; i < (int) def->effect_tree_node_count; ++i)
+                {
+                    const int eid = def->effect_tree_nodes[i].effect_spec_id;
+                    if (eid < 0)
+                        continue;
+                    unsigned char hp_gate =
+                        def->effect_tree_nodes[i].require_player_health_below_pct;
+                    if (hp_gate > 0)
+                    {
+                        int maxhp = g_app.player.max_health > 0 ? g_app.player.max_health : 1;
+                        int cur = g_app.player.health;
+                        int pct = (int) ((cur * 100LL) / maxhp);
+                        if (pct >= (int) hp_gate)
+                            continue;
+                    }
+                    double t0 = start_times[i];
+                    if (t0 < 0.0)
+                        t0 = now + def->effect_tree_nodes[i].delay_ms; /* fallback */
+                    if (def->effect_tree_nodes[i].delay_ms <= 0.0f &&
+                        def->effect_tree_nodes[i].parent_index < 0)
+                        rogue_effect_apply(eid, now);
+                    else
+                        rogue_effect_schedule_apply(eid, t0);
+                    int rc = def->effect_tree_nodes[i].repeat_count;
+                    double ri = def->effect_tree_nodes[i].repeat_interval_ms;
+                    double dur = def->effect_tree_nodes[i].duration_ms;
+                    if (ri > 0.0)
+                    {
+                        if (rc > 0)
+                        {
+                            double t = t0 + ri;
+                            for (int r = 0; r < rc; ++r)
+                            {
+                                rogue_effect_schedule_apply(eid, t);
+                                t += ri;
+                            }
+                        }
+                        else if (dur > 0.0)
+                        {
+                            double t = t0 + ri;
+                            while (t <= t0 + dur + 1e-3)
+                            {
+                                rogue_effect_schedule_apply(eid, t);
+                                t += ri;
+                            }
                         }
                     }
                 }

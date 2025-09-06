@@ -57,3 +57,13 @@ EffectSpecs: SPAWN_ENTITY effect (Phase 1.2 slice)
 - Sanitization during apply ensures safe defaults even if authoring omitted or out-of-range values.
 - Unit: test_effectspec_spawn_entity (ensures counts increment and return to 0 after advancing time beyond lifetime).
 - Roadmap (skill creation suite) updated: mark SPAWN_ENTITY done with implementation blurb; README EffectSpec JSON reference documents new fields and semantics.
+
+Skills: EffectNode Tree Structure (experimental Phase 1.2 extension)
+
+- Data model: added `effect_tree_nodes[8]` and `effect_tree_node_count` to `RogueSkillDef` enabling optional hierarchical effect scheduling. Each node includes parent_index (-1 root) plus legacy timing/repeat + HP gate fields.
+- Runtime: activation path now prefers tree when present; computes absolute start times via iterative parent resolution (N<=8) with cycle guard; falls back to legacy flat `effect_nodes[3]` when tree absent.
+- Validation: extended `rogue_skills_validate_all` to enforce bounds, repeat/duration consistency, parent index validity, and detect cycles via parent chain coloring.
+- Debug API: new `rogue_skill_debug_get_effect_tree` / `rogue_skill_debug_set_effect_tree` functions for live inspection and authoring; legacy APIs unchanged for backward compatibility.
+- Roadmap: marks EffectNode Tree Structure implemented (experimental v1) and outlines next Advanced Effect Validation tasks (spawn_entity field pre-validation & tree window heuristics).
+- Tests: full suite passes with no regressions (aside from pre-existing BAD_COMMAND skips unrelated to skills system); existing skill composition tests continue to exercise legacy path ensuring compatibility.
+ - README: added Phase 1.2 recent additions section documenting SPAWN_ENTITY and experimental EffectNode tree feature.

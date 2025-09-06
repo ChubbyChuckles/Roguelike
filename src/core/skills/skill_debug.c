@@ -269,6 +269,70 @@ int rogue_skill_debug_set_effects(int id, int primary_effect_id,
     return 0;
 }
 
+/* --- EffectNode Tree Debug Accessors (experimental) --------------------------------------- */
+int rogue_skill_debug_get_effect_tree(int id, struct RogueSkillEffectTreeNodeDebug* nodes,
+                                      int* inout_node_count)
+{
+    if (id < 0 || id >= g_app.skill_count)
+        return -1;
+    if (!nodes || !inout_node_count || *inout_node_count <= 0)
+        return -1;
+    RogueSkillDef* d = &g_app.skill_defs[id];
+    int n = d->effect_tree_node_count;
+    if (n > 8)
+        n = 8;
+    if (n > *inout_node_count)
+        n = *inout_node_count;
+    for (int i = 0; i < n; ++i)
+    {
+        nodes[i].effect_spec_id = d->effect_tree_nodes[i].effect_spec_id;
+        nodes[i].delay_ms = d->effect_tree_nodes[i].delay_ms;
+        nodes[i].duration_ms = d->effect_tree_nodes[i].duration_ms;
+        nodes[i].repeat_count = d->effect_tree_nodes[i].repeat_count;
+        nodes[i].repeat_interval_ms = d->effect_tree_nodes[i].repeat_interval_ms;
+        nodes[i].require_player_health_below_pct =
+            d->effect_tree_nodes[i].require_player_health_below_pct;
+        nodes[i].parent_index = d->effect_tree_nodes[i].parent_index;
+    }
+    *inout_node_count = n;
+    return 0;
+}
+
+int rogue_skill_debug_set_effect_tree(int id, const struct RogueSkillEffectTreeNodeDebug* nodes,
+                                      int node_count)
+{
+    if (id < 0 || id >= g_app.skill_count)
+        return -1;
+    RogueSkillDef* d = &g_app.skill_defs[id];
+    if (node_count < 0)
+        node_count = 0;
+    if (node_count > 8)
+        node_count = 8;
+    d->effect_tree_node_count = (unsigned char) node_count;
+    for (int i = 0; i < node_count; ++i)
+    {
+        d->effect_tree_nodes[i].effect_spec_id = nodes[i].effect_spec_id;
+        d->effect_tree_nodes[i].delay_ms = nodes[i].delay_ms;
+        d->effect_tree_nodes[i].duration_ms = nodes[i].duration_ms;
+        d->effect_tree_nodes[i].repeat_count = nodes[i].repeat_count;
+        d->effect_tree_nodes[i].repeat_interval_ms = nodes[i].repeat_interval_ms;
+        d->effect_tree_nodes[i].require_player_health_below_pct =
+            nodes[i].require_player_health_below_pct;
+        d->effect_tree_nodes[i].parent_index = nodes[i].parent_index;
+    }
+    for (int i = node_count; i < 8; ++i)
+    {
+        d->effect_tree_nodes[i].effect_spec_id = -1;
+        d->effect_tree_nodes[i].delay_ms = 0.0f;
+        d->effect_tree_nodes[i].duration_ms = 0.0f;
+        d->effect_tree_nodes[i].repeat_count = 0;
+        d->effect_tree_nodes[i].repeat_interval_ms = 0.0f;
+        d->effect_tree_nodes[i].require_player_health_below_pct = 0;
+        d->effect_tree_nodes[i].parent_index = -1;
+    }
+    return 0;
+}
+
 /* --- Overrides JSON export/import ---------------------------------------------------------- */
 
 int rogue_skill_debug_export_overrides_json(char* out_buf, int out_cap)
