@@ -1,3 +1,17 @@
+/**
+ * @file loot_affixes.c
+ * @author Christian "ChubbyChuckles" Rickert
+ * @date 06/09/2025
+ * @version 1.0
+ *
+ * This file defines the affix system for item generation in the rogue-like game.
+ * It manages a registry of RogueAffixDef structures, loaded from CSV-like config files (supports
+ * default and "ExamplePack" formats). Provides functions to reset, query, load affixes with robust
+ * path fallbacks (relative prefixes, upward directory search, executable dir), roll affix indices
+ * by type/rarity using weights, roll values uniformly or scaled by quality (with distribution
+ * skew), and export the registry to JSON.
+ */
+
 #include "loot_affixes.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,18 +23,44 @@
 static RogueAffixDef g_affixes[ROGUE_MAX_AFFIXES];
 static int g_affix_count = 0;
 
+/**
+ * @brief Resets the affix registry to empty state.
+ *
+ * Clears all loaded affixes by setting count to 0.
+ *
+ * @return Always 0 (success).
+ */
 int rogue_affixes_reset(void)
 {
     g_affix_count = 0;
     return 0;
 }
+/**
+ * @brief Returns the number of loaded affixes in the registry.
+ *
+ * @return The current count of affixes.
+ */
 int rogue_affix_count(void) { return g_affix_count; }
+/**
+ * @brief Retrieves the affix definition at the specified index.
+ *
+ * @param index The index in the registry (0 to count-1).
+ * @return Pointer to the RogueAffixDef, or NULL if index invalid.
+ */
 const RogueAffixDef* rogue_affix_at(int index)
 {
     if (index < 0 || index >= g_affix_count)
         return NULL;
     return &g_affixes[index];
 }
+/**
+ * @brief Finds the index of an affix by its unique ID string.
+ *
+ * Linear search through the registry.
+ *
+ * @param id Null-terminated string identifier of the affix.
+ * @return The index if found, -1 if not found or null ID.
+ */
 int rogue_affix_index(const char* id)
 {
     if (!id)
@@ -107,6 +147,17 @@ static RogueAffixStat parse_stat(const char* s)
     return ROGUE_AFFIX_STAT_NONE;
 }
 
+/**
+ * @brief Parses a single line from the affix config into a RogueAffixDef.
+ *
+ * Supports two formats: Default (type,id,stat,min,max,w0-w4) and ExamplePack
+ * (id,type_num,stat,min,max,w0-w4). Skips comments (#) and empty lines. Parses type
+ * (PREFIX/SUFFIX), stat enum, min/max values (clamps max>=min), and weights per rarity. Bounds
+ * check against ROGUE_MAX_AFFIXES.
+ *
+ * @param line Null-terminated string line to parse (modified in place).
+ * @return 1 on successful parse/add, 0 on skip (comment/empty), -1 on parse error or bounds exceed.
+ */
 static int parse_line(char* line)
 {
     for (char* p = line; *p; ++p)
@@ -284,6 +335,17 @@ static FILE* try_open_upwards(const char* base_dir, const char* rel, int max_lev
     return NULL;
 }
 
+/**
+ * @brief Loads affix definitions from a CFG file, with robust path fallback strategies.
+ *
+ * Attempts to open the given path directly, then tries relative prefixes ("../" etc.) for relative
+ * paths or canonical "assets/affixes.cfg". If fails, scans upward from CWD (up to 8 levels) or
+ * executable directory for the canonical file. Parses each line via parse_line, counting successful
+ * adds. Logs failure to stderr if all strategies exhaust. Supports Windows/POSIX path handling.
+ *
+ * @param path Path to the CFG file (may be relative or absolute; null/empty defaults to canonical).
+ * @return Number of affixes added on success, -1 if file not opened after all fallbacks.
+ */
 int rogue_affixes_load_from_cfg(const char* path)
 {
     FILE* f = NULL;
@@ -431,6 +493,17 @@ int rogue_affixes_load_from_cfg(const char* path)
     return added;
 }
 
+/**
+ * @brief Rolls a random affix index of the specified type and rarity using weighted RNG.
+ *
+ * Sums weights for matching type affixes at rarity, advances RNG state (LCG), picks uniformly
+ * from total weight, accumulates to select index. Uses simple LCG for determinism.
+ *
+ * @param type The affix type (PREFIX or SUFFIX).
+ * @param rarity The rarity level (0-4).
+ * @param rng_state Pointer to unsigned int RNG state (updated in place).
+ * @return Selected affix index, or -1 if invalid params, no weighted affixes, or total weight <=0.
+ */
 int rogue_affix_roll(RogueAffixType type, int rarity, unsigned int* rng_state)
 {
     if (rarity < 0 || rarity > 4)
@@ -467,6 +540,15 @@ int rogue_affix_roll(RogueAffixType type, int rarity, unsigned int* rng_state)
     return -1;
 }
 
+/**
+ * @brief Rolls a uniform random value within the affix's min/max range.
+ *
+ * Advances RNG state (LCG), computes span, picks modulo span if >0, else returns min.
+ *
+ * @param affix_index The index of the affix to roll for.
+ * @param rng_state Pointer to unsigned int RNG state (updated).
+ * @return Rolled value in [min, max], or -1 if invalid index or null state.
+ */
 int rogue_affix_roll_value(int affix_index, unsigned int* rng_state)
 {
     if (!rng_state)
@@ -482,6 +564,18 @@ int rogue_affix_roll_value(int affix_index, unsigned int* rng_state)
     return d->min_value + (int) r;
 }
 
+/**
+ * @brief Rolls a scaled random value within the affix's min/max, biased by quality scalar.
+ *
+ * Clamps quality_scalar >=0. Computes exp = 1/quality if >1 (compresses low end for higher avg).
+ * Advances RNG, extracts [0,1) u, approximates u^exp with polynomial for exp in [0.25,1] (pushes
+ * higher for quality>1), falls back to uniform. Maps to integer offset in span.
+ *
+ * @param affix_index The index of the affix.
+ * @param rng_state Pointer to RNG state (updated).
+ * @param quality_scalar Scalar for value bias (1.0 uniform, >1 higher values).
+ * @return Rolled scaled value, or -1 if invalid.
+ */
 int rogue_affix_roll_value_scaled(int affix_index, unsigned int* rng_state, float quality_scalar)
 {
     if (!rng_state)
@@ -532,6 +626,16 @@ int rogue_affix_roll_value_scaled(int affix_index, unsigned int* rng_state, floa
     return d->min_value + offset;
 }
 
+/**
+ * @brief Exports the affix registry to a JSON array string.
+ *
+ * Serializes each affix as {"id":str,"type":int,"stat":int,"min":int,"max":int,"w":[5 ints]} in an
+ * array. Truncates if buffer overflows, null-terminates.
+ *
+ * @param buf Buffer to write JSON into.
+ * @param cap Maximum bytes in buffer.
+ * @return Bytes written on success, -1 if invalid buf/cap.
+ */
 int rogue_affixes_export_json(char* buf, int cap)
 {
     if (!buf || cap <= 0)

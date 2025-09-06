@@ -1,3 +1,17 @@
+/**
+ * @file loot_generation.c
+ * @author Christian "ChubbyChuckles" Rickert
+ * @date 06/09/2025
+ * @version 1.0
+ *
+ * This file implements the core loot item generation logic for the rogue-like game.
+ * Generates items from loot tables using mixed RNG seed (base + context: level, biome, archetype,
+ * luck). Applies rarity floors from enemy level/context/global min, spawns instances with quantity,
+ * position, sockets (random min-max using local LCG), durability for weapons/armor, affixes based
+ * on rarity (prefix/suffix rolls via external gated helper, scaled by luck-influenced quality
+ * scalar), VFX, minimap ping, metrics recording. Supports quality scalars for affix value biasing.
+ */
+
 #include "loot_generation.h"
 #include "../../util/metrics.h"
 #include "loot_affixes.h"
@@ -11,6 +25,14 @@
 static float g_quality_scalar_min = 1.0f;
 static float g_quality_scalar_max = 1.0f;
 
+/**
+ * @brief Sets the min/max quality scalars for affix value rolling.
+ *
+ * Clamps qs_min >=0.1, ensures qs_max >= qs_min.
+ *
+ * @param qs_min Minimum quality scalar.
+ * @param qs_max Maximum quality scalar.
+ */
 void rogue_generation_set_quality_scalar(float qs_min, float qs_max)
 {
     if (qs_min < 0.1f)
@@ -21,6 +43,17 @@ void rogue_generation_set_quality_scalar(float qs_min, float qs_max)
     g_quality_scalar_max = qs_max;
 }
 
+/**
+ * @brief Mixes a base seed with generation context fields using hash-like operations for
+ * determinism.
+ *
+ * Uses simple hash (multiply/add/XOR with constants) incorporating enemy_level, biome_id,
+ * enemy_archetype, player_luck if ctx provided.
+ *
+ * @param ctx Optional generation context for mixing.
+ * @param base_seed Initial seed value.
+ * @return Mixed unsigned int seed.
+ */
 unsigned int rogue_generation_mix_seed(const RogueGenerationContext* ctx, unsigned int base_seed)
 {
     unsigned int h = base_seed * 636413622u + 1442695043u;
@@ -41,6 +74,21 @@ int rogue_generation_gated_affix_roll(RogueAffixType type, int rarity, unsigned 
                                       const RogueItemDef* base_def, int existing_prefix,
                                       int existing_suffix);
 
+/**
+ * @brief Generates a single item from a loot table using context and RNG, filling output struct.
+ *
+ * Mixes local seed from base and ctx, rolls table for def/qty/rar (up to 4, takes first), applies
+ * rarity floor from ctx enemy_level ( /10 up to 2) and global min, spawns instance at (0,0), rolls
+ * affixes based on rarity ( >=2: prefix or suffix 50/50, >=3 both; uses gated roll avoiding dups,
+ * luck-scaled qscalar for value roll), sets instance affixes/rarity, records VFX/minimap/metrics.
+ * Propagates mixed seed back to rng_state.
+ *
+ * @param loot_table_index Index of loot table to roll from.
+ * @param ctx Optional generation context for seed mixing, floors, luck.
+ * @param rng_state Pointer to RNG state (mixed and updated).
+ * @param out Pointer to RogueGeneratedItem to fill (def_index, rarity, inst_index).
+ * @return 0 on success, -1 on invalid params or no drops.
+ */
 int rogue_generate_item(int loot_table_index, const RogueGenerationContext* ctx,
                         unsigned int* rng_state, RogueGeneratedItem* out)
 {

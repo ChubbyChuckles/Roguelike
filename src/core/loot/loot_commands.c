@@ -1,3 +1,17 @@
+/**
+ * @file loot_commands.c
+ * @author Christian "ChubbyChuckles" Rickert
+ * @date 06/09/2025
+ * @version 1.0
+ *
+ * This file implements a simple console command parser for loot system debugging and control.
+ * Supports commands like 'weight <rarity> <factor>' to set dynamic factors,
+ * 'reset_dyn'/'reset_stats' to clear state, 'stats' to snapshot rarity counts, 'get <rarity>' to
+ * query factors. Parses input line, trims whitespace, lowercases cmd, handles args with sscanf
+ * (platform-safe), outputs status/ errors to buffer. Returns 0 success, 1 empty/null, 2
+ * usage/unknown.
+ */
+
 #include "loot_commands.h"
 #include "loot_dynamic_weights.h"
 #include "loot_stats.h"
@@ -6,6 +20,16 @@
 #include <stdio.h>
 #include <string.h>
 
+/**
+ * @brief Internal formatted write to output buffer using varargs.
+ *
+ * Wrapper for vsnprintf with null-check and size guard.
+ *
+ * @param out Output buffer.
+ * @param out_sz Size of output buffer.
+ * @param fmt Format string.
+ * @param ... Varargs for format.
+ */
 static void wr(char* out, int out_sz, const char* fmt, ...)
 {
     if (!out || out_sz <= 0)
@@ -16,6 +40,23 @@ static void wr(char* out, int out_sz, const char* fmt, ...)
     va_end(ap);
 }
 
+/**
+ * @brief Executes a loot command from input line, outputs result/error to buffer.
+ *
+ * Trims leading whitespace, parses first token as lowercase cmd, advances to args. Handles:
+ * - weight <rarity 0-4> <factor>: sets dynamic factor, confirms with current value.
+ * - reset_dyn: resets dynamic weights to 1.0.
+ * - reset_stats: resets loot stats.
+ * - stats: snapshots and formats rarity counts (C/U/R/E/L).
+ * - get <rarity 0-4>: queries current dynamic factor.
+ * Uses platform-safe sscanf (sscanf_s on MSVC). Returns 0 success, 1 null/empty, 2
+ * usage/unknown/invalid.
+ *
+ * @param line Null-terminated input command line.
+ * @param out Output buffer for status/error messages.
+ * @param out_sz Size of output buffer.
+ * @return Execution status: 0 OK, 1 empty input, 2 error (usage/range/unknown).
+ */
 int rogue_loot_run_command(const char* line, char* out, int out_sz)
 {
     if (!line)

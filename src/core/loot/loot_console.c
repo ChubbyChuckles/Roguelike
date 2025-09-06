@@ -1,3 +1,15 @@
+/**
+ * @file loot_console.c
+ * @author Christian "ChubbyChuckles" Rickert
+ * @date 06/09/2025
+ * @version 1.0
+ *
+ * This file provides console-friendly output and telemetry export for loot statistics.
+ * Includes formatted histogram of rarity counts (COMMON:count\n ... TOTAL:sum\n) and JSON export
+ * of session data (timestamp, rarity_counts array, dynamic_factors array, window_size).
+ * Relies on rarity_names array for labels (COMMON,UNCOMMON,RARE,EPIC,LEGENDARY).
+ */
+
 #include "loot_console.h"
 #include "loot_dynamic_weights.h"
 #include "loot_rarity.h"
@@ -10,6 +22,16 @@
 static const char* rarity_names[ROGUE_RARITY_MAX] = {"COMMON", "UNCOMMON", "RARE", "EPIC",
                                                      "LEGENDARY"};
 
+/**
+ * @brief Formats a histogram of rarity counts into a string buffer.
+ *
+ * Appends "NAME:count\n" for each rarity using rarity_names, followed by "TOTAL:sum\n".
+ * Truncates/null-terminates if buffer overflows.
+ *
+ * @param out Output buffer.
+ * @param out_sz Size of output buffer.
+ * @return Bytes written, or -1 if invalid out/sz.
+ */
 int rogue_loot_histogram_format(char* out, int out_sz)
 {
     if (!out || out_sz <= 0)
@@ -39,6 +61,16 @@ int rogue_loot_histogram_format(char* out, int out_sz)
     return written;
 }
 
+/**
+ * @brief Exports loot telemetry (counts, factors, timestamp, window) to JSON file.
+ *
+ * Writes to path in wb mode (MSVC fopen_s), JSON format with timestamp (time(NULL)), rarity_counts
+ * array, dynamic_factors array (%.3f), window_size constant. Returns 0 success, -1 null path, -2
+ * open fail.
+ *
+ * @param path Path to output JSON file.
+ * @return 0 on success, -1 if null path, -2 if file open failed.
+ */
 int rogue_loot_export_telemetry(const char* path)
 {
     if (!path)

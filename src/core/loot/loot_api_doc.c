@@ -1,11 +1,25 @@
-/* loot_api_doc.c - Itemsystem Phase 23.5 (API doc generation)
+/**
+ * @file loot_api_doc.c
+ * @author Christian "ChubbyChuckles" Rickert
+ * @date 06/09/2025
+ * @version 1.0
+ *
+ * loot_api_doc.c - Itemsystem Phase 23.5 (API doc generation)
  * A compact curated list of public loot APIs with one-line descriptions so
  * tooling / editors can surface quick reference or export to file for docs.
+ * Provides a static array of ApiEntry structs (name, desc) in alphabetical order,
+ * and a function to generate formatted text output for documentation purposes.
  */
+
 #include "loot_api_doc.h"
 #include <stdio.h>
 #include <string.h>
 
+/**
+ * @brief Structure for a single API entry in the curated loot documentation list.
+ *
+ * Holds the function name and its one-line description.
+ */
 typedef struct ApiEntry
 {
     const char* name;
@@ -35,6 +49,16 @@ static const ApiEntry k_entries[] = {
      "Perform weighted loot table roll producing item indices + quantities."},
 };
 
+/**
+ * @brief Generates a formatted text documentation string from the curated API list.
+ *
+ * Outputs "LOOT API REFERENCE (curated)\n" followed by "name: desc\n" for each entry.
+ * Ensures at least 128 cap, truncates/null-terminates on overflow.
+ *
+ * @param buf Output buffer for the doc text.
+ * @param cap Maximum bytes in buffer.
+ * @return Bytes written, or -1 if invalid buf/cap or cap<128.
+ */
 int rogue_loot_generate_api_doc(char* buf, int cap)
 {
     if (!buf || cap <= 0)
