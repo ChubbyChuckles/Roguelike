@@ -30,14 +30,15 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
 - [x] **State Machine Core** - IDLE, CASTING, CHANNELING, COOLDOWN, INTERRUPTED states
 - [x] **Interrupt System** - rogue_skill_interrupt(id, ctx) with refund mechanics and end FX
 - [x] **Performance Profiling** - Lightweight per-skill profiling timestamps
-- [ ] **Advanced State Machine** - Full skill state machine with queuing system
-- [ ] **Skill Queuing System** - Combo and sequence support
+- [x] **Advanced State Machine** - Full skill state machine with queuing system (basic queued activation + global lockout scaffold)
+- [x] **Skill Queuing System** - Input buffer based queued re-activation (auto-fires post cast/cooldown)
 - [ ] **Enhanced Execution Pathways** - Extend skill_tree.c with new pathways
 
 ### 1.4 Sprite Asset Management System
 - [x] **Asset Directory Structure** - assets/skills/<skill_name>/{cast,projectile,impact,aoe,icon}/
 - [x] **Sprite Sheet Loader** - Grid-based and packed layout support
 - [ ] **PNG Sequence Loader** - Frame-based animations (skill_cast_001.png, etc.)
+ - [x] **PNG Sequence Loader** - Added `rogue_skill_load_png_sequence` supporting zero-padded and unpadded numeric suffix scanning; current implementation loads independent textures per frame (no atlas yet) and basic negative-path test.
 - [x] **Asset Validation System** - File existence checks and path resolution helpers (skills/<id>/...)
 - [ ] **Sprite Atlas Generation** - Performance optimization
 - [ ] **Asset Hot-Reload** - Real-time editing feedback

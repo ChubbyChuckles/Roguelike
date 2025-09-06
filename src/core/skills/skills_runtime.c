@@ -12,6 +12,71 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Advanced State Machine (Phase 1.3 extension):
+   Global lockout support + queued activation request API. */
+double g_skill_global_lockout_until_ms_internal = 0.0; /* when > now => lockout active */
+static int skill_global_locked(double now_ms)
+{
+    return (g_skill_global_lockout_until_ms_internal > 0.0 &&
+            now_ms < g_skill_global_lockout_until_ms_internal);
+}
+
+int rogue_skill_request(int id, const RogueSkillCtx* ctx)
+{
+    if (id < 0 || id >= g_skill_count_internal)
+        return 0;
+    RogueSkillState* st = &g_skill_states_internal[id];
+    const RogueSkillDef* def = &g_skill_defs_internal[id];
+    double now = ctx ? ctx->now_ms : g_app.game_time_ms;
+    if (def->is_passive || st->rank <= 0)
+        return 0;
+    if (skill_global_locked(now))
+        return 0; /* cannot even queue during lockout */
+
+    /* First attempt immediate activation */
+    if (rogue_skill_try_activate(id, ctx))
+        return 1;
+
+    /* Evaluate whether we can queue: either currently casting another skill and we have
+       input buffering OR waiting on cooldown with a defined buffer. */
+    if (st->queued_active)
+        return 0; /* already queued */
+
+    if (def->input_buffer_ms == 0 && def->cast_type != 1)
+        return 0; /* no buffer semantics for instant non-cast skills */
+
+    st->queued_active = 1;
+    if (st->queued_trigger_ms <= 0)
+    {
+        /* Mid-cast of the SAME skill: schedule at (estimated) cast end rather than cooldown end
+           so the queue is evaluated immediately after the cast finishes (even if cooldown blocks
+           re-activation, the queued flag will clear and buffer window expires). We estimate cast
+           end from activation-time cooldown bookkeeping: cooldown_end = activate_now + base_cd.
+           Thus cast_end_est = cooldown_end - base_cd + cast_time. */
+        if (st->casting_active)
+        {
+            double cast_end_est =
+                st->cooldown_end_ms - (double) def->base_cooldown_ms + (double) def->cast_time_ms;
+            if (cast_end_est < now + 1.0)
+                cast_end_est = now + 1.0; /* safety */
+            st->queued_trigger_ms = cast_end_est;
+            st->queued_until_ms = st->queued_trigger_ms + (double) def->input_buffer_ms;
+        }
+        else if (st->cooldown_end_ms > now)
+        {
+            /* Not casting: standard behavior queues for cooldown end */
+            st->queued_trigger_ms = st->cooldown_end_ms;
+            st->queued_until_ms = st->queued_trigger_ms + (double) def->input_buffer_ms;
+        }
+        else
+        {
+            st->queued_trigger_ms = now + 1.0; /* fire next frame */
+            st->queued_until_ms = st->queued_trigger_ms + (double) def->input_buffer_ms;
+        }
+    }
+    return 1; /* queued */
+}
+
 /* Phase 3.5: tick EffectSpec pending events */
 void rogue_effects_update(double now_ms);
 
@@ -968,21 +1033,26 @@ void rogue_skills_update(double now_ms)
        This allows unit tests that call update(16) repeatedly to progress time, while simulators
        that pass monotonic absolute time continue to work as before. */
     {
-        static double s_last_arg = -1.0;
-        static double s_time_accum = 0.0;
-        if (now_ms > s_last_arg + 1e-6)
+        static double s_last_abs = -1.0;  /* last absolute timestamp passed */
+        static double s_time_accum = 0.0; /* simulated current time */
+        if (s_last_abs < 0.0)
         {
-            /* Absolute timestamp */
+            s_last_abs = now_ms;
             s_time_accum = now_ms;
         }
-        else
+        else if (now_ms + 1e-6 < s_last_abs)
         {
-            /* Delta-time */
+            /* Treat as delta (legacy tests that call update(16) repeatedly) */
             if (now_ms < 0.0)
                 now_ms = 0.0;
             s_time_accum += now_ms;
         }
-        s_last_arg = now_ms;
+        else
+        {
+            /* Monotonic absolute time */
+            s_time_accum = now_ms;
+            s_last_abs = now_ms;
+        }
         now_ms = s_time_accum;
     }
     for (int i = 0; i < g_skill_count_internal; i++)
@@ -1026,6 +1096,14 @@ void rogue_skills_update(double now_ms)
                 st->casting_active = 0;
                 st->cast_progress_ms = def->cast_time_ms;
                 st->profile_last_cast_end_ms = now_ms;
+                /* Phase 1.3: if this skill itself was queued (self-spam buffer), consume queue now.
+                 */
+                if (st->queued_active)
+                {
+                    st->queued_active = 0;
+                    st->queued_trigger_ms = 0;
+                    st->queued_until_ms = 0;
+                }
                 RogueSkillCtx ctx = {0};
                 ctx.now_ms = now_ms;
                 ctx.rng_state =
@@ -1136,14 +1214,24 @@ void rogue_skills_update(double now_ms)
                 for (int qi = 0; qi < g_skill_count_internal; ++qi)
                 {
                     RogueSkillState* qst = &g_skill_states_internal[qi];
-                    if (qst->queued_trigger_ms > 0 && now_ms >= qst->queued_trigger_ms &&
-                        now_ms <= qst->queued_until_ms)
+                    if (!qst->queued_active && qst->queued_trigger_ms <= 0)
+                        continue;
+                    double trig = qst->queued_trigger_ms;
+                    if (trig > 0 && now_ms + 1.0 >= trig && now_ms <= qst->queued_until_ms)
                     {
                         qst->queued_trigger_ms = 0;
                         qst->queued_until_ms = 0;
+                        qst->queued_active = 0; /* consume queue */
                         RogueSkillCtx qctx = {0};
                         qctx.now_ms = now_ms;
-                        rogue_skill_try_activate(qi, &qctx);
+                        rogue_skill_try_activate(qi, &qctx); /* ignore failure */
+                    }
+                    else if (trig > 0 && now_ms > qst->queued_until_ms)
+                    {
+                        /* Buffer window expired: clear without activation */
+                        qst->queued_trigger_ms = 0;
+                        qst->queued_until_ms = 0;
+                        qst->queued_active = 0;
                     }
                 }
             }

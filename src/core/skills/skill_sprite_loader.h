@@ -42,6 +42,15 @@ extern "C"
     int rogue_skill_build_packed_frames_from_file(const RogueTexture* tex, const char* json_path,
                                                   RogueSprite* out_frames, int max_out);
 
+    /* Phase 1.4: PNG Sequence Loader
+         Scan a directory for files matching prefix + zero-padded/incremented numeric suffix
+       pattern: <prefix>_001.png, <prefix>_002.png, ... or <prefix>1.png, <prefix>2.png ... Loads
+       each frame into a texture then builds a sprite referencing an atlas frame list. For now we
+       load each PNG as an independent texture-backed sprite (no atlas packing yet). Returns number
+       of frames loaded (up to max_out). Missing gaps terminate the scan. */
+    int rogue_skill_load_png_sequence(const char* directory, const char* prefix,
+                                      RogueSprite* out_frames, int max_out);
+
 #ifdef __cplusplus
 }
 #endif

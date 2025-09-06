@@ -101,3 +101,30 @@ Advanced Effect Validation (Phase 1.2 completion)
 * New unit: test_skills_phase1_2_effect_tree_advanced_validation (fails insufficient window, fails span overflow, passes valid composition).
 * Roadmap: Marked "Advanced Effect Validation" complete with heuristic list.
 * README: Updated Recent Skills/Effects section to list new validation rules.
+
+Advanced State Machine & Skill Queuing (Phase 1.3 slice)
+-------------------------------------------------------
+* Added queued skill execution state (ROGUE_SKEXEC_QUEUED) and global lockout scaffold (ROGUE_SKEXEC_GLOBAL_LOCKOUT future use) in skills.h.
+* Introduced rogue_skill_request API enabling buffered activation attempts; falls back to immediate activation and, on failure (cooldown/casting conflict), schedules using existing queued_trigger_ms/queued_until_ms with input_buffer_ms window.
+* Extended RogueSkillState with queued_active flag; activation state accessor now reports queued state.
+* Runtime processes queued activations immediately after a casting skill completes (reusing existing loop) and clears queued state.
+* Added unit test test_skills_phase1_3_advanced_state_machine validating mid-cast queue then automatic post-cast firing and queue clearing.
+* Roadmap: Marked Advanced State Machine & Skill Queuing System tasks complete with implementation notes.
+* README: Added brief bullet in Skills Execution section describing queued activation support and new API.
+* Non-invasive: Does not alter existing activation semantics for instant skills lacking input_buffer_ms (no regression risk).
+Follow-ups:
+	- Implement combo/sequence queue ordering priority.
+	- Add global lockout triggers (e.g., after ultimate usage) and tests.
+	- Overlay visualization of queued skills in skill bar.
+
+Phase 1.4: PNG Sequence Loader
+------------------------------
+* Added API `rogue_skill_load_png_sequence(directory, prefix, out_frames, max_out)` scanning for prefix_001.png..prefix_999.png (zero-padded) with fallback to prefix_1.png style.
+* Loads each PNG into its own RogueTexture and builds a full-image RogueSprite (no atlas packing yet).
+* Roadmap: Marked PNG Sequence Loader complete with implementation note; follow-ups listed for texture lifetime mgmt & atlas generation.
+* Unit: Added smoke test `test_skills_phase1_4_png_sequence_loader` asserting absence of frames when sample sequence not present (deterministic until assets added).
+Follow-ups:
+	- Centralize texture ownership & add unload routine.
+	- Add positive path test with curated sample sequence assets.
+	- Integrate sequence playback into Skills → Visuals preview (frame stepping via existing anim sampler).
+	- Atlas generation & dedup of identical frame dimensions.

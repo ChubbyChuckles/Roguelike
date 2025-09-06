@@ -1,8 +1,58 @@
 #include "skill_sprite_loader.h"
 #include "../../content/json_io.h"
+#include "../../platform/path_utils.h"
 #include <ctype.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* Forward declare texture load (already in sprite.h but include path minimal). */
+extern bool rogue_texture_load(RogueTexture* t, const char* path);
+
+int rogue_skill_load_png_sequence(const char* directory, const char* prefix,
+                                  RogueSprite* out_frames, int max_out)
+{
+    if (!directory || !prefix || !out_frames || max_out <= 0)
+        return 0;
+    int count = 0;
+    /* Strategy: attempt 3-digit zero-padded first (001..999) then fallback to unpadded. */
+    char path_buf[512];
+    for (int mode = 0; mode < 2 && count == 0; ++mode)
+    {
+        for (int i = 1; i < 1000 && count < max_out; ++i)
+        {
+            if (mode == 0)
+                snprintf(path_buf, sizeof path_buf, "%s/%s_%03d.png", directory, prefix, i);
+            else
+                snprintf(path_buf, sizeof path_buf, "%s/%s_%d.png", directory, prefix, i);
+            /* Quick existence check via fopen (platform abstraction could replace later). */
+            FILE* f = fopen(path_buf, "rb");
+            if (!f)
+            {
+                /* Stop at first gap in the chosen numbering scheme. */
+                break;
+            }
+            fclose(f);
+            RogueTexture* tex = (RogueTexture*) malloc(sizeof *tex);
+            if (!tex)
+                break;
+            memset(tex, 0, sizeof *tex);
+            if (!rogue_texture_load(tex, path_buf))
+            {
+                free(tex);
+                break; /* stop on load failure */
+            }
+            RogueSprite* sp = &out_frames[count++];
+            memset(sp, 0, sizeof *sp);
+            sp->tex = tex; /* owning for now; caller must free textures when done (follow-up) */
+            sp->sx = 0;
+            sp->sy = 0;
+            sp->sw = tex->w;
+            sp->sh = tex->h;
+        }
+    }
+    return count;
+}
 
 int rogue_skill_build_grid_frames(const RogueTexture* tex, int cols, int rows,
                                   RogueSprite* out_frames, int max_out)
