@@ -11,6 +11,50 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1a_haste_snapshot_an
     add_test(NAME test_skills_phase1a_haste_snapshot_and_drift COMMAND test_skills_phase1a_haste_snapshot_and_drift)
 endif()
 
+# Skills Phase 1.2 effect_tree overrides round-trip serialization test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_2_effect_tree_overrides_roundtrip.c AND NOT TARGET test_skills_phase1_2_effect_tree_overrides_roundtrip)
+    add_executable(test_skills_phase1_2_effect_tree_overrides_roundtrip unit/test_skills_phase1_2_effect_tree_overrides_roundtrip.c)
+    target_link_libraries(test_skills_phase1_2_effect_tree_overrides_roundtrip PRIVATE rogue_core)
+    target_compile_definitions(test_skills_phase1_2_effect_tree_overrides_roundtrip PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skills_phase1_2_effect_tree_overrides_roundtrip PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skills_phase1_2_effect_tree_overrides_roundtrip COMMAND test_skills_phase1_2_effect_tree_overrides_roundtrip)
+endif()
+
+# Skills Phase 1.2 effect_tree parent_index invalid / cycle rejection tests
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_2_effect_tree_parent_index_invalid.c AND NOT TARGET test_skills_phase1_2_effect_tree_parent_index_invalid)
+    add_executable(test_skills_phase1_2_effect_tree_parent_index_invalid unit/test_skills_phase1_2_effect_tree_parent_index_invalid.c)
+    target_link_libraries(test_skills_phase1_2_effect_tree_parent_index_invalid PRIVATE rogue_core)
+    target_compile_definitions(test_skills_phase1_2_effect_tree_parent_index_invalid PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skills_phase1_2_effect_tree_parent_index_invalid PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skills_phase1_2_effect_tree_parent_index_invalid COMMAND test_skills_phase1_2_effect_tree_parent_index_invalid)
+endif()
+
+# Skills Phase 1.2 effect_tree scheduling test (hierarchical delays & periodic window)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_2_effect_tree_schedule.c AND NOT TARGET test_skills_phase1_2_effect_tree_schedule)
+    add_executable(test_skills_phase1_2_effect_tree_schedule unit/test_skills_phase1_2_effect_tree_schedule.c)
+    target_link_libraries(test_skills_phase1_2_effect_tree_schedule PRIVATE rogue_core)
+    target_compile_definitions(test_skills_phase1_2_effect_tree_schedule PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skills_phase1_2_effect_tree_schedule PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skills_phase1_2_effect_tree_schedule COMMAND test_skills_phase1_2_effect_tree_schedule)
+endif()
+
+# Skills Phase 1.2 effect_tree layout persistence (orientation + coordinates) test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_2_effect_tree_layout_persistence.c AND NOT TARGET test_skills_phase1_2_effect_tree_layout_persistence)
+    add_executable(test_skills_phase1_2_effect_tree_layout_persistence unit/test_skills_phase1_2_effect_tree_layout_persistence.c)
+    target_link_libraries(test_skills_phase1_2_effect_tree_layout_persistence PRIVATE rogue_core)
+    target_compile_definitions(test_skills_phase1_2_effect_tree_layout_persistence PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skills_phase1_2_effect_tree_layout_persistence PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skills_phase1_2_effect_tree_layout_persistence COMMAND test_skills_phase1_2_effect_tree_layout_persistence)
+endif()
+
 # Skills Phase 1.6: sprite loader grid + sampler smoke test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_6_sprite_loader.c AND NOT TARGET test_skills_phase1_6_sprite_loader)
     add_executable(test_skills_phase1_6_sprite_loader unit/test_skills_phase1_6_sprite_loader.c)

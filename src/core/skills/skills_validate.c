@@ -198,6 +198,33 @@ int rogue_skills_validate_all(char* err, int err_cap)
                     set_err(err, err_cap, bufT);
                     return -1;
                 }
+                /* Authoring-time SPAWN_ENTITY validation (pre-runtime clamp) */
+                if (eid > 0)
+                {
+                    const RogueEffectSpec* es_spawn = rogue_effect_get(eid);
+                    if (es_spawn && es_spawn->kind == ROGUE_EFFECT_SPAWN_ENTITY)
+                    {
+                        if (es_spawn->spawn_entity_count <= 0 || es_spawn->spawn_entity_count > 8)
+                        {
+                            char bufSE[256];
+                            snprintf(bufSE, sizeof bufSE,
+                                     "skill %d '%s' tree.node[%d] spawn_entity_count out of range "
+                                     "(1..8)",
+                                     i, d->name ? d->name : "<noname>", ti);
+                            set_err(err, err_cap, bufSE);
+                            return -1;
+                        }
+                        if (es_spawn->spawn_entity_life_ms <= 0.0f)
+                        {
+                            char bufSE2[256];
+                            snprintf(bufSE2, sizeof bufSE2,
+                                     "skill %d '%s' tree.node[%d] spawn_entity_life_ms must be > 0",
+                                     i, d->name ? d->name : "<noname>", ti);
+                            set_err(err, err_cap, bufSE2);
+                            return -1;
+                        }
+                    }
+                }
                 if (d->effect_tree_nodes[ti].duration_ms < 0.0f)
                 {
                     char bufT2[256];
@@ -280,6 +307,62 @@ int rogue_skills_validate_all(char* err, int err_cap)
                 {
                     color[v] = 2;
                     v = d->effect_tree_nodes[v].parent_index;
+                }
+            }
+        }
+        /* Authoring-time SPAWN_ENTITY validation for primary + flat nodes (after tree to reuse
+         * pattern) */
+        if (d->effect_spec_id > 0)
+        {
+            const RogueEffectSpec* es_se = rogue_effect_get(d->effect_spec_id);
+            if (es_se && es_se->kind == ROGUE_EFFECT_SPAWN_ENTITY)
+            {
+                if (es_se->spawn_entity_count <= 0 || es_se->spawn_entity_count > 8)
+                {
+                    char bufSE3[256];
+                    snprintf(bufSE3, sizeof bufSE3,
+                             "skill %d '%s' primary spawn_entity_count out of range (1..8)", i,
+                             d->name ? d->name : "<noname>");
+                    set_err(err, err_cap, bufSE3);
+                    return -1;
+                }
+                if (es_se->spawn_entity_life_ms <= 0.0f)
+                {
+                    char bufSE4[256];
+                    snprintf(bufSE4, sizeof bufSE4,
+                             "skill %d '%s' primary spawn_entity_life_ms must be > 0", i,
+                             d->name ? d->name : "<noname>");
+                    set_err(err, err_cap, bufSE4);
+                    return -1;
+                }
+            }
+        }
+        for (int ni = 0; ni < (int) d->effect_node_count; ++ni)
+        {
+            int eid2 = d->effect_nodes[ni].effect_spec_id;
+            if (eid2 > 0)
+            {
+                const RogueEffectSpec* es_se2 = rogue_effect_get(eid2);
+                if (es_se2 && es_se2->kind == ROGUE_EFFECT_SPAWN_ENTITY)
+                {
+                    if (es_se2->spawn_entity_count <= 0 || es_se2->spawn_entity_count > 8)
+                    {
+                        char bufSE5[256];
+                        snprintf(bufSE5, sizeof bufSE5,
+                                 "skill %d '%s' effect%d spawn_entity_count out of range (1..8)", i,
+                                 d->name ? d->name : "<noname>", ni + 2);
+                        set_err(err, err_cap, bufSE5);
+                        return -1;
+                    }
+                    if (es_se2->spawn_entity_life_ms <= 0.0f)
+                    {
+                        char bufSE6[256];
+                        snprintf(bufSE6, sizeof bufSE6,
+                                 "skill %d '%s' effect%d spawn_entity_life_ms must be > 0", i,
+                                 d->name ? d->name : "<noname>", ni + 2);
+                        set_err(err, err_cap, bufSE6);
+                        return -1;
+                    }
                 }
             }
         }

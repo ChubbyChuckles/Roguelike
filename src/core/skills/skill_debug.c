@@ -333,6 +333,67 @@ int rogue_skill_debug_set_effect_tree(int id, const struct RogueSkillEffectTreeN
     return 0;
 }
 
+/* Persisted layout (debug only) ---------------------------------------------------------------- */
+static int g_skill_effect_tree_layout_orientation[4096]; /* grows with registry; default 0 */
+static int g_skill_effect_tree_layout_x[4096][8];
+static int g_skill_effect_tree_layout_y[4096][8];
+static unsigned char
+    g_skill_effect_tree_layout_valid[4096]; /* bit0 = orientation valid, bit1 = positions valid */
+
+int rogue_skill_debug_set_effect_tree_layout(int id, int orientation, const int* xs, const int* ys,
+                                             int count)
+{
+    if (id < 0 || id >= g_app.skill_count)
+        return -1;
+    if (orientation < 0 || orientation > 1)
+        orientation = 0;
+    if (count < 0)
+        count = 0;
+    if (count > 8)
+        count = 8;
+    g_skill_effect_tree_layout_orientation[id] = orientation;
+    for (int i = 0; i < count; ++i)
+    {
+        g_skill_effect_tree_layout_x[id][i] = xs ? xs[i] : 0;
+        g_skill_effect_tree_layout_y[id][i] = ys ? ys[i] : 0;
+    }
+    for (int i = count; i < 8; ++i)
+    {
+        g_skill_effect_tree_layout_x[id][i] = 0;
+        g_skill_effect_tree_layout_y[id][i] = 0;
+    }
+    g_skill_effect_tree_layout_valid[id] = 0x3; /* orientation + positions */
+    return 0;
+}
+
+int rogue_skill_debug_get_effect_tree_layout(int id, int* out_orientation, int* xs, int* ys,
+                                             int max)
+{
+    if (id < 0 || id >= g_app.skill_count)
+        return -1;
+    if (max < 0)
+        max = 0;
+    if (max > 8)
+        max = 8;
+    if (out_orientation)
+        *out_orientation = (g_skill_effect_tree_layout_valid[id] & 0x1)
+                               ? g_skill_effect_tree_layout_orientation[id]
+                               : 0;
+    if (xs && ys)
+    {
+        for (int i = 0; i < max; ++i)
+        {
+            xs[i] = (g_skill_effect_tree_layout_valid[id] & 0x2)
+                        ? g_skill_effect_tree_layout_x[id][i]
+                        : 0;
+            ys[i] = (g_skill_effect_tree_layout_valid[id] & 0x2)
+                        ? g_skill_effect_tree_layout_y[id][i]
+                        : 0;
+        }
+    }
+    return 0;
+}
+
 /* --- Overrides JSON export/import ---------------------------------------------------------- */
 
 int rogue_skill_debug_export_overrides_json(char* out_buf, int out_cap)
@@ -377,7 +438,8 @@ int rogue_skill_debug_export_overrides_json(char* out_buf, int out_cap)
         if (n < 0 || w + n >= out_cap)
             return -1;
         w += n;
-        /* Append primary effect + nodes if present for ease of editing */
+        /* Append primary effect + legacy nodes + experimental tree if present for ease of editing
+         */
         if (d->effect_spec_id >= 0)
         {
             n = snprintf(out_buf + w, out_cap - w, ",\"effect_spec_id\":%d", d->effect_spec_id);
@@ -407,6 +469,58 @@ int rogue_skill_debug_export_overrides_json(char* out_buf, int out_cap)
             if (w + 1 >= out_cap)
                 return -1;
             out_buf[w++] = ']';
+        }
+        if (d->effect_tree_node_count > 0)
+        {
+            n = snprintf(out_buf + w, out_cap - w, ",\"effect_tree\":[");
+            if (n < 0 || w + n >= out_cap)
+                return -1;
+            w += n;
+            for (int ti = 0; ti < d->effect_tree_node_count; ++ti)
+            {
+                /* Use the declared RogueSkillEffectTreeNode type directly (avoid anonymous struct
+                 * cast). */
+                const struct RogueSkillEffectTreeNode* tn = &d->effect_tree_nodes[ti];
+                n = snprintf(out_buf + w, out_cap - w,
+                             "%s{\"effect_spec_id\":%d,\"delay_ms\":%.3f,\"duration_ms\":%.3f,"
+                             "\"repeat_count\":%d,\"repeat_interval_ms\":%.3f,\"hp_below_pct\":%u,"
+                             "\"parent_index\":%d}",
+                             (ti ? "," : ""), tn->effect_spec_id, tn->delay_ms, tn->duration_ms,
+                             tn->repeat_count, tn->repeat_interval_ms,
+                             (unsigned) tn->require_player_health_below_pct,
+                             (int) tn->parent_index);
+                if (n < 0 || w + n >= out_cap)
+                    return -1;
+                w += n;
+            }
+            if (w + 1 >= out_cap)
+                return -1;
+            out_buf[w++] = ']';
+            /* Serialize layout if available for this skill */
+            if (g_skill_effect_tree_layout_valid[i] & 0x2)
+            {
+                int orient = (g_skill_effect_tree_layout_valid[i] & 0x1)
+                                 ? g_skill_effect_tree_layout_orientation[i]
+                                 : 0;
+                n = snprintf(out_buf + w, out_cap - w,
+                             ",\"effect_tree_layout\":{\"orientation\":%d,\"pos\":[", orient);
+                if (n < 0 || w + n >= out_cap)
+                    return -1;
+                w += n;
+                for (int ti = 0; ti < d->effect_tree_node_count; ++ti)
+                {
+                    n = snprintf(out_buf + w, out_cap - w, "%s[%d,%d]", (ti ? "," : ""),
+                                 g_skill_effect_tree_layout_x[i][ti],
+                                 g_skill_effect_tree_layout_y[i][ti]);
+                    if (n < 0 || w + n >= out_cap)
+                        return -1;
+                    w += n;
+                }
+                if (w + 2 >= out_cap)
+                    return -1;
+                out_buf[w++] = ']';
+                out_buf[w++] = '}';
+            }
         }
         if (has_coeff)
         {
@@ -516,8 +630,21 @@ int rogue_skill_debug_load_overrides_text(const char* json_text)
         struct RogueSkillEffectNode parsed_nodes[3];
         int parsed_node_count = 0;
         int have_nodes = 0;
+        struct RogueSkillEffectTreeNodeDebug parsed_tree[8];
+        int parsed_tree_count = 0;
+        int have_tree = 0;
         RogueSkillCoeffParams cp;
         int have_cp = 0;
+        /* Tree layout parsing temps */
+        int parsed_layout_orientation = 0;
+        int parsed_layout_have = 0;
+        int parsed_layout_x[8];
+        int parsed_layout_y[8];
+        for (int ii = 0; ii < 8; ++ii)
+        {
+            parsed_layout_x[ii] = 0;
+            parsed_layout_y[ii] = 0;
+        }
         memset(&cp, 0, sizeof cp);
         cp.base_scalar = 1.0f;
         int done_obj = 0;
@@ -676,6 +803,168 @@ int rogue_skill_debug_load_overrides_text(const char* json_text)
                 }
                 have_nodes = 1;
             }
+            else if (strcmp(key, "effect_tree") == 0)
+            {
+                s = sd_ws(s);
+                if (*s != '[')
+                    return applied;
+                ++s;
+                parsed_tree_count = 0;
+                while (1)
+                {
+                    s = sd_ws(s);
+                    if (*s == ']')
+                    {
+                        ++s;
+                        break;
+                    }
+                    if (*s != '{')
+                        return applied;
+                    ++s;
+                    struct RogueSkillEffectTreeNodeDebug tn;
+                    memset(&tn, 0, sizeof tn);
+                    tn.effect_spec_id = -1;
+                    tn.parent_index = -1;
+                    while (1)
+                    {
+                        s = sd_ws(s);
+                        if (*s == '}')
+                        {
+                            ++s;
+                            break;
+                        }
+                        char k2[32];
+                        const char* ns2 = sd_str(s, k2, (int) sizeof k2);
+                        if (!ns2)
+                            return applied;
+                        s = sd_ws(ns2);
+                        if (*s != ':')
+                            return applied;
+                        ++s;
+                        double num;
+                        const char* vs2 = sd_num(s, &num);
+                        if (!vs2)
+                            return applied;
+                        s = sd_ws(vs2);
+                        if (strcmp(k2, "effect_spec_id") == 0)
+                            tn.effect_spec_id = (int) num;
+                        else if (strcmp(k2, "delay_ms") == 0)
+                            tn.delay_ms = (float) num;
+                        else if (strcmp(k2, "duration_ms") == 0)
+                            tn.duration_ms = (float) num;
+                        else if (strcmp(k2, "repeat_count") == 0)
+                            tn.repeat_count = (int) num;
+                        else if (strcmp(k2, "repeat_interval_ms") == 0)
+                            tn.repeat_interval_ms = (float) num;
+                        else if (strcmp(k2, "hp_below_pct") == 0)
+                            tn.require_player_health_below_pct = (unsigned char) num;
+                        else if (strcmp(k2, "parent_index") == 0)
+                            tn.parent_index = (signed char) num;
+                        s = sd_ws(s);
+                        if (*s == ',')
+                        {
+                            ++s;
+                            continue;
+                        }
+                    }
+                    if (parsed_tree_count < 8)
+                        parsed_tree[parsed_tree_count++] = tn;
+                    s = sd_ws(s);
+                    if (*s == ',')
+                    {
+                        ++s;
+                        continue;
+                    }
+                }
+                have_tree = 1;
+            }
+            else if (strcmp(key, "effect_tree_layout") == 0)
+            {
+                s = sd_ws(s);
+                if (*s != '{')
+                    return applied;
+                ++s;
+                while (1)
+                {
+                    s = sd_ws(s);
+                    if (*s == '}')
+                    {
+                        ++s;
+                        break;
+                    }
+                    char lk[32];
+                    const char* lk_ns = sd_str(s, lk, (int) sizeof lk);
+                    if (!lk_ns)
+                        return applied;
+                    s = sd_ws(lk_ns);
+                    if (*s != ':')
+                        return applied;
+                    ++s;
+                    s = sd_ws(s);
+                    if (strcmp(lk, "orientation") == 0)
+                    {
+                        double nv;
+                        const char* vs2 = sd_num(s, &nv);
+                        if (!vs2)
+                            return applied;
+                        s = sd_ws(vs2);
+                        parsed_layout_orientation = (int) nv;
+                    }
+                    else if (strcmp(lk, "pos") == 0)
+                    {
+                        if (*s != '[')
+                            return applied;
+                        ++s;
+                        int lcount = 0;
+                        while (1)
+                        {
+                            s = sd_ws(s);
+                            if (*s == ']')
+                            {
+                                ++s;
+                                break;
+                            }
+                            if (*s != '[')
+                                return applied;
+                            ++s; /* into pair */
+                            double nx, ny;
+                            const char* vsx = sd_num(s, &nx);
+                            if (!vsx)
+                                return applied;
+                            s = sd_ws(vsx);
+                            if (*s != ',')
+                                return applied;
+                            ++s;
+                            const char* vsy = sd_num(s, &ny);
+                            if (!vsy)
+                                return applied;
+                            s = sd_ws(vsy);
+                            if (*s != ']')
+                                return applied;
+                            ++s; /* past pair */
+                            if (lcount < 8)
+                            {
+                                parsed_layout_x[lcount] = (int) nx;
+                                parsed_layout_y[lcount] = (int) ny;
+                                ++lcount;
+                            }
+                            s = sd_ws(s);
+                            if (*s == ',')
+                            {
+                                ++s;
+                                continue;
+                            }
+                        }
+                        parsed_layout_have = 1;
+                    }
+                    s = sd_ws(s);
+                    if (*s == ',')
+                    {
+                        ++s;
+                        continue;
+                    }
+                }
+            }
             else if (strcmp(key, "coeff") == 0)
             {
                 s = sd_ws(s);
@@ -683,8 +972,7 @@ int rogue_skill_debug_load_overrides_text(const char* json_text)
                     return applied;
                 ++s;
                 char k2[32];
-                int done_c = 0;
-                while (!done_c)
+                while (1)
                 {
                     s = sd_ws(s);
                     if (*s == '}')
@@ -718,7 +1006,6 @@ int rogue_skill_debug_load_overrides_text(const char* json_text)
                         cp.stat_cap_pct = (float) num;
                     else if (strcmp(k2, "soft") == 0)
                         cp.stat_softness = (float) num;
-                    // consume comma between coeff fields, if present
                     s = sd_ws(s);
                     if (*s == ',')
                     {
@@ -776,12 +1063,14 @@ int rogue_skill_debug_load_overrides_text(const char* json_text)
                 (void) rogue_skill_debug_set_coeff(skill_id, &cp);
             if (have_type)
                 (void) rogue_skill_debug_set_type(skill_id, skill_type);
-            if (have_primary || have_nodes)
+            if (have_primary || have_nodes || have_tree)
             {
                 int prim =
                     have_primary ? primary_effect_id : g_app.skill_defs[skill_id].effect_spec_id;
                 const struct RogueSkillEffectNode* n_ptr = NULL;
                 int n_cnt = 0;
+                const struct RogueSkillEffectTreeNodeDebug* t_ptr = NULL;
+                int t_cnt = 0;
                 if (have_nodes)
                 {
                     n_ptr = parsed_nodes;
@@ -793,13 +1082,26 @@ int rogue_skill_debug_load_overrides_text(const char* json_text)
                     n_cnt = g_app.skill_defs[skill_id].effect_node_count;
                 }
                 (void) rogue_skill_debug_set_effects(skill_id, prim, n_ptr, n_cnt);
+                if (have_tree)
+                {
+                    t_ptr = parsed_tree;
+                    t_cnt = parsed_tree_count;
+                    (void) rogue_skill_debug_set_effect_tree(skill_id, t_ptr, t_cnt);
+                    if (parsed_layout_have && parsed_tree_count == t_cnt)
+                    {
+                        (void) rogue_skill_debug_set_effect_tree_layout(
+                            skill_id, parsed_layout_orientation, parsed_layout_x, parsed_layout_y,
+                            t_cnt);
+                    }
+                }
             }
             ++applied;
             // Debug trace for unit tests
             printf("skill_overrides: applied id=%d base=%.3f red=%.3f cast=%.3f coeff=%d type=%d "
-                   "prim=%d nodes=%d\n",
+                   "prim=%d nodes=%d tree=%d\n",
                    skill_id, base_cd, cd_red, cast_ms, have_cp, have_type ? skill_type : -1,
-                   have_primary ? primary_effect_id : -1, have_nodes ? parsed_node_count : -1);
+                   have_primary ? primary_effect_id : -1, have_nodes ? parsed_node_count : -1,
+                   have_tree ? parsed_tree_count : -1);
         }
         s = sd_ws(s);
         if (*s == ',')

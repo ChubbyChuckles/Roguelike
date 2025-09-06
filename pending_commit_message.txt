@@ -1,3 +1,21 @@
+Skill Creation Suite - Effect Tree Authoring & Validation Enhancements
+---------------------------------------------------------------------
+Summary:
+Adds authoring-time validation for SPAWN_ENTITY parameters, overlay UI editing for experimental effect tree nodes, JSON debug override round-trip support, and two focused unit tests (hierarchical scheduling + cycle rejection) to harden the new feature.
+
+Details:
+* Validation: Enforce SPAWN_ENTITY count [1..8] and life_ms > 0 across primary effect, legacy flat effect nodes, and effect_tree nodes in skills_validate.
+* Serialization: Debug overrides exporter/importer now persist an `effect_tree` array (skipped when empty) enabling round‑trip editing without losing hierarchical data.
+* Overlay UI: Panel exposes a "Use Effect Tree" toggle; when enabled, allows editing node count and per-node fields (effect_spec_id, delay_ms, duration_ms, repeat_count, repeat_interval_ms, HP gate, parent_index) with bounds guardrails.
+* Tests: Added test_skills_phase1_2_effect_tree_schedule (verifies parent-relative delays + periodic window + chained grandchild) and test_skills_phase1_2_effect_tree_cycle (ensures cycle detection rejects invalid parent graphs).
+* Build Fix: Resolved pointer type warning (treated as error) in skill_debug.c effect_tree serialization loop by using RogueSkillEffectTreeNode*.
+* README: Updated effect tree bullet to reflect completed UI + export/import integration and strengthened validation (including SPAWN_ENTITY constraints).
+
+Follow-ups (deferred):
+* Add round-trip serialization unit test for effect_tree overrides.
+* Add invalid parent_index (>node_count or self-reference) negative tests beyond cycle case.
+* Consider graphical tree visualization in overlay for complex hierarchies.
+
 Overlay: first-open defaults, persistence, and drag UX; Dungeon: gating manifest export + vendor run_summary consumer; tests & docs
 
 - Debug overlay
@@ -67,3 +85,8 @@ Skills: EffectNode Tree Structure (experimental Phase 1.2 extension)
 - Roadmap: marks EffectNode Tree Structure implemented (experimental v1) and outlines next Advanced Effect Validation tasks (spawn_entity field pre-validation & tree window heuristics).
 - Tests: full suite passes with no regressions (aside from pre-existing BAD_COMMAND skips unrelated to skills system); existing skill composition tests continue to exercise legacy path ensuring compatibility.
  - README: added Phase 1.2 recent additions section documenting SPAWN_ENTITY and experimental EffectNode tree feature.
+ - New Tests (follow-up additions):
+	 * test_skills_phase1_2_effect_tree_overrides_roundtrip validates JSON overrides export/import preserves effect_tree nodes (round-trip integrity).
+	 * test_skills_phase1_2_effect_tree_parent_index_invalid covers out-of-range parent_index and self-parent (cycle) rejection paths.
+ - Overlay: added lightweight graphical tree visualization (experimental) rendering parent-child links and basic validity coloring to aid authoring.
+ - Follow-ups Resolved: previously deferred round-trip serialization test and parent_index negative cases now implemented; remaining open: richer graphical layout (drag/drop for tree) and additional malformed graph heuristics.

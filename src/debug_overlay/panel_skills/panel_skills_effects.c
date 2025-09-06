@@ -45,17 +45,449 @@ void panel_skills_draw_effects(int sel)
     const char* overrides_path = panel_skills_overrides_path();
     overlay_label("Effects");
     int changed = 0;
+    /* Experimental tree editing: fetch tree first (independent from legacy flat nodes) */
+    struct RogueSkillEffectTreeNodeDebug tree_nodes[8];
+    int tree_count = 0;
+    int tree_supported = (rogue_skill_debug_get_effect_tree(sel, tree_nodes, &tree_count) == 0);
+    static int tree_mode = 0; /* 0 = legacy nodes, 1 = tree */
+    if (tree_supported)
+    {
+        overlay_checkbox("Use Effect Tree (experimental)", &tree_mode);
+        if (tree_mode && tree_count == 0)
+        {
+            /* Initialize with one root referencing primary if available */
+            tree_count = 1;
+            tree_nodes[0].effect_spec_id = -1;
+            tree_nodes[0].delay_ms = 0.0f;
+            tree_nodes[0].duration_ms = 0.0f;
+            tree_nodes[0].repeat_count = 1;
+            tree_nodes[0].repeat_interval_ms = 0.0f;
+            tree_nodes[0].require_player_health_below_pct = 0;
+            tree_nodes[0].parent_index = -1;
+        }
+    }
     int primary_id = -1;
     struct RogueSkillEffectNode nodes[3];
     int node_count = 3;
     memset(nodes, 0, sizeof nodes);
     for (int i = 0; i < 3; ++i)
         nodes[i].effect_spec_id = -1;
-    if (rogue_skill_debug_get_effects(sel, &primary_id, nodes, &node_count) != 0)
+    if (!tree_mode && rogue_skill_debug_get_effects(sel, &primary_id, nodes, &node_count) != 0)
     {
         overlay_label("Failed to fetch effects for skill.");
         node_count = 0;
         primary_id = -1;
+    }
+    if (tree_mode && tree_supported)
+    {
+        overlay_label("Tree Editor");
+        int add_remove = tree_count;
+        if (overlay_slider_int("Tree Node Count (1..8)", &add_remove, 0, 8))
+        {
+            if (add_remove < 0)
+                add_remove = 0;
+            if (add_remove > 8)
+                add_remove = 8;
+            if (add_remove > tree_count)
+            {
+                for (int i = tree_count; i < add_remove; ++i)
+                {
+                    tree_nodes[i].effect_spec_id = -1;
+                    tree_nodes[i].delay_ms = 0.0f;
+                    tree_nodes[i].duration_ms = 0.0f;
+                    tree_nodes[i].repeat_count = 1;
+                    tree_nodes[i].repeat_interval_ms = 0.0f;
+                    tree_nodes[i].require_player_health_below_pct = 0;
+                    tree_nodes[i].parent_index = -1;
+                }
+            }
+            tree_count = add_remove;
+            changed = 1;
+        }
+        for (int ti = 0; ti < tree_count; ++ti)
+        {
+            char hdr[64];
+            snprintf(hdr, sizeof hdr, "Tree Node %d", ti);
+            overlay_label(hdr);
+            changed |=
+                overlay_slider_int("  EffectSpec ID", &tree_nodes[ti].effect_spec_id, -1, 4096);
+            changed |=
+                overlay_slider_float("  Delay (ms)", &tree_nodes[ti].delay_ms, 0.0f, 10000.0f);
+            changed |= overlay_slider_float("  Duration (ms)", &tree_nodes[ti].duration_ms, 0.0f,
+                                            60000.0f);
+            changed |= overlay_slider_int("  Repeat Count", &tree_nodes[ti].repeat_count, 0, 100);
+            changed |= overlay_slider_float("  Repeat Interval (ms)",
+                                            &tree_nodes[ti].repeat_interval_ms, 0.0f, 10000.0f);
+            int hp_gate_t = tree_nodes[ti].require_player_health_below_pct;
+            if (overlay_slider_int("  HP Below % (gate)", &hp_gate_t, 0, 100))
+            {
+                tree_nodes[ti].require_player_health_below_pct = (unsigned char) hp_gate_t;
+                changed = 1;
+            }
+            int parent_idx = (int) tree_nodes[ti].parent_index;
+            if (overlay_slider_int("  Parent Index (-1 root)", &parent_idx, -1, tree_count - 1))
+            {
+                tree_nodes[ti].parent_index = (signed char) parent_idx;
+                changed = 1;
+            }
+        }
+        /* Rich draggable tree visualization (experimental v2) */
+        overlay_label("Tree Visualization (draggable, experimental)");
+        static int tree_orientation = 0; /* 0 = left->right, 1 = right->left */
+        static int tree_layout_loaded = 0;
+        /* UI position storage must be declared before first use (layout load below) */
+        typedef struct TreeNodeUIPos
+        {
+            int x, y;
+        } TreeNodeUIPos;
+        static TreeNodeUIPos tree_ui_pos[8];
+        if (!tree_layout_loaded)
+        {
+            /* Attempt to fetch persisted layout for this skill */
+            int lo = 0;
+            int xs[8], ys[8];
+            if (rogue_skill_debug_get_effect_tree_layout(sel, &lo, xs, ys, 8) == 0)
+            {
+                if (tree_count > 0)
+                {
+                    tree_orientation = lo;
+                    for (int i = 0; i < tree_count && i < 8; ++i)
+                    {
+                        if (xs[i] != 0 || ys[i] != 0)
+                        {
+                            /* Accept stored position inside expected canvas bounds */
+                            tree_ui_pos[i].x = xs[i];
+                            tree_ui_pos[i].y = ys[i];
+                        }
+                    }
+                }
+            }
+            tree_layout_loaded = 1;
+        }
+        (void) overlay_slider_int("Orientation (0 L->R,1 R->L)", &tree_orientation, 0, 1);
+        int auto_arrange_request = 0;
+        if (overlay_button("Auto Arrange Tree"))
+            auto_arrange_request = 1;
+        int persist_layout_request = 0;
+        if (overlay_button("Save Layout"))
+            persist_layout_request = 1;
+        /* Persistent UI state for tree nodes (positions, selection, linking) */
+        static int tree_last_skill = -1;
+        static int tree_last_count = 0;
+        static int tree_dragging = -1; /* -1 none, >=0 node index */
+        static int tree_drag_dx = 0, tree_drag_dy = 0;
+        static int tree_selected = -1;    /* currently selected node */
+        static int tree_linking = 0;      /* 1 when waiting for target */
+        static int tree_link_source = -1; /* source node for link */
+        /* Canvas geometry */
+        const int cv_x = 360;
+        const int cv_y = 420;
+        const int cv_w = 420;
+        const int cv_h = 160; /* slightly taller than previous */
+        const int node_w = 72;
+        const int node_h = 26;
+        /* Reinitialize layout when skill changes, node count changes, or auto-arrange requested */
+        if (tree_last_skill != sel || tree_last_count != tree_count || auto_arrange_request)
+        {
+            tree_last_skill = sel;
+            tree_last_count = tree_count;
+            /* Simple depth-based initial placement (same algorithm as prior static layout) */
+            int depth[8];
+            for (int i = 0; i < tree_count; ++i)
+            {
+                int d = 0, v = i, guard = 0;
+                while (v >= 0 && v < tree_count && guard++ < 8)
+                {
+                    int p = tree_nodes[v].parent_index;
+                    if (p < 0)
+                        break;
+                    ++d;
+                    v = p;
+                }
+                depth[i] = d;
+            }
+            int col_w = 96;
+            int level_counts[8] = {0};
+            for (int i = 0; i < tree_count; ++i)
+            {
+                int d = depth[i];
+                if (d < 0)
+                    d = 0;
+                if (d > 7)
+                    d = 7;
+                int row = level_counts[d]++;
+                if (tree_orientation == 0)
+                    tree_ui_pos[i].x = cv_x + 10 + d * col_w;
+                else
+                {
+                    /* Mirror horizontally inside canvas */
+                    tree_ui_pos[i].x = cv_x + cv_w - 10 - node_w - d * col_w;
+                }
+                tree_ui_pos[i].y = cv_y + 10 + row * 34;
+            }
+            tree_dragging = -1;
+            tree_selected = -1;
+            tree_linking = 0;
+            tree_link_source = -1;
+        }
+        int mx = 0, my = 0;
+        int mdown = 0;
+        static int tree_was_down = 0;
+#ifdef ROGUE_HAVE_SDL
+        if (!g_app.headless)
+        {
+            Uint32 mask = SDL_GetMouseState(&mx, &my);
+            mdown = (mask & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
+        }
+#endif
+        /* Drag begin */
+        if (mdown && !tree_was_down)
+        {
+            for (int i = tree_count - 1; i >= 0; --i) /* top-most wins */
+            {
+                if (overlay_box_hit_local(mx, my, tree_ui_pos[i].x, tree_ui_pos[i].y, node_w,
+                                          node_h))
+                {
+                    tree_dragging = i;
+                    tree_drag_dx = mx - tree_ui_pos[i].x;
+                    tree_drag_dy = my - tree_ui_pos[i].y;
+                    break;
+                }
+            }
+        }
+        /* Drag move */
+        if (mdown && tree_dragging >= 0)
+        {
+            tree_ui_pos[tree_dragging].x = mx - tree_drag_dx;
+            tree_ui_pos[tree_dragging].y = my - tree_drag_dy;
+            /* Clamp to canvas */
+            if (tree_ui_pos[tree_dragging].x < cv_x)
+                tree_ui_pos[tree_dragging].x = cv_x;
+            if (tree_ui_pos[tree_dragging].y < cv_y)
+                tree_ui_pos[tree_dragging].y = cv_y;
+            if (tree_ui_pos[tree_dragging].x > cv_x + cv_w - node_w)
+                tree_ui_pos[tree_dragging].x = cv_x + cv_w - node_w;
+            if (tree_ui_pos[tree_dragging].y > cv_y + cv_h - node_h)
+                tree_ui_pos[tree_dragging].y = cv_y + cv_h - node_h;
+        }
+        /* Mouse release: selection / link target / root drop */
+        if (!mdown && tree_was_down)
+        {
+            if (tree_dragging >= 0)
+            {
+                int released_idx = tree_dragging;
+                /* Root drop heuristic: if released in left gutter (first 40px) set parent = -1 */
+                if (tree_ui_pos[released_idx].x < cv_x + 40 &&
+                    tree_nodes[released_idx].parent_index != -1)
+                {
+                    tree_nodes[released_idx].parent_index = -1;
+                    changed = 1;
+                }
+                /* If we were linking and released over a node, set parent */
+                if (tree_linking)
+                {
+                    for (int i = 0; i < tree_count; ++i)
+                    {
+                        if (i == tree_link_source)
+                            continue;
+                        if (overlay_box_hit_local(mx, my, tree_ui_pos[i].x, tree_ui_pos[i].y,
+                                                  node_w, node_h))
+                        {
+                            /* Validate cycle */
+                            int cycle = 0;
+                            int v = tree_link_source;
+                            int guard = 0;
+                            while (v >= 0 && v < tree_count && guard++ < 16)
+                            {
+                                if (v == i)
+                                {
+                                    cycle = 1;
+                                    break;
+                                }
+                                int p = tree_nodes[v].parent_index;
+                                if (p < 0)
+                                    break;
+                                v = p;
+                            }
+                            if (!cycle)
+                            {
+                                tree_nodes[i].parent_index = (signed char) tree_link_source;
+                                changed = 1;
+                            }
+                            break;
+                        }
+                    }
+                    tree_linking = 0;
+                    tree_link_source = -1;
+                }
+                else
+                {
+                    /* Selection (click without linking) */
+                    tree_selected = released_idx;
+                }
+            }
+            else if (tree_linking)
+            {
+                /* Clicked blank area while linking cancels */
+                tree_linking = 0;
+                tree_link_source = -1;
+            }
+            tree_dragging = -1;
+        }
+        tree_was_down = mdown;
+#ifdef ROGUE_HAVE_SDL
+        if (!g_app.headless && g_app.renderer)
+        {
+            const OverlayTheme* th = overlay_theme_get();
+            /* Canvas */
+            SDL_Rect r = {cv_x, cv_y, cv_w, cv_h};
+            SDL_SetRenderDrawColor(g_app.renderer, th->panel_bg.r, th->panel_bg.g, th->panel_bg.b,
+                                   th->panel_bg.a);
+            SDL_RenderFillRect(g_app.renderer, &r);
+            SDL_SetRenderDrawColor(g_app.renderer, th->panel_border.r, th->panel_border.g,
+                                   th->panel_border.b, th->panel_border.a);
+            SDL_RenderDrawRect(g_app.renderer, &r);
+            /* Draw existing parent links first */
+            for (int i = 0; i < tree_count; ++i)
+            {
+                int p = tree_nodes[i].parent_index;
+                if (p >= 0 && p < tree_count)
+                {
+                    SDL_SetRenderDrawColor(g_app.renderer, th->accent_1.r, th->accent_1.g,
+                                           th->accent_1.b, th->accent_1.a);
+                    int x1 = tree_orientation == 0 ? (tree_ui_pos[p].x + node_w) : tree_ui_pos[p].x;
+                    int x2 = tree_orientation == 0 ? tree_ui_pos[i].x : (tree_ui_pos[i].x + node_w);
+                    SDL_RenderDrawLine(g_app.renderer, x1, tree_ui_pos[p].y + node_h / 2, x2,
+                                       tree_ui_pos[i].y + node_h / 2);
+                }
+            }
+            /* If linking, draw a live temp line from source to mouse */
+            if (tree_linking && tree_link_source >= 0 && tree_link_source < tree_count)
+            {
+                SDL_SetRenderDrawColor(g_app.renderer, th->accent_2.r, th->accent_2.g,
+                                       th->accent_2.b, th->accent_2.a);
+                int lx = tree_orientation == 0 ? (tree_ui_pos[tree_link_source].x + node_w)
+                                               : tree_ui_pos[tree_link_source].x;
+                SDL_RenderDrawLine(g_app.renderer, lx, tree_ui_pos[tree_link_source].y + node_h / 2,
+                                   mx, my);
+            }
+            /* Draw nodes */
+            for (int i = 0; i < tree_count; ++i)
+            {
+                SDL_Rect nr = {tree_ui_pos[i].x, tree_ui_pos[i].y, node_w, node_h};
+                int invalid = 0;
+                if (tree_nodes[i].effect_spec_id > 0 &&
+                    !rogue_effect_get(tree_nodes[i].effect_spec_id))
+                    invalid = 1;
+                int is_selected = (i == tree_selected);
+                SDL_Color fill;
+                if (invalid)
+                {
+                    fill.r = th->toast_error_bg.r;
+                    fill.g = th->toast_error_bg.g;
+                    fill.b = th->toast_error_bg.b;
+                    fill.a = th->toast_error_bg.a;
+                }
+                else
+                {
+                    fill.r = th->toast_info_bg.r;
+                    fill.g = th->toast_info_bg.g;
+                    fill.b = th->toast_info_bg.b;
+                    fill.a = th->toast_info_bg.a;
+                }
+                if (is_selected)
+                {
+                    /* Slightly brighten selection */
+                    if (fill.r + 30 < 255)
+                        fill.r = (Uint8) (fill.r + 30);
+                    if (fill.g + 30 < 255)
+                        fill.g = (Uint8) (fill.g + 30);
+                    if (fill.b + 30 < 255)
+                        fill.b = (Uint8) (fill.b + 30);
+                }
+                SDL_SetRenderDrawColor(g_app.renderer, fill.r, fill.g, fill.b, fill.a);
+                SDL_RenderFillRect(g_app.renderer, &nr);
+                SDL_SetRenderDrawColor(g_app.renderer, th->panel_border.r, th->panel_border.g,
+                                       th->panel_border.b, th->panel_border.a);
+                SDL_RenderDrawRect(g_app.renderer, &nr);
+            }
+        }
+#endif
+        /* Auxiliary controls for selection & linking */
+        if (tree_selected >= 0 && tree_selected < tree_count)
+        {
+            char lab[64];
+            snprintf(lab, sizeof lab, "Selected Tree Node %d", tree_selected);
+            overlay_label(lab);
+            if (overlay_button("Make Selected Root"))
+            {
+                if (tree_nodes[tree_selected].parent_index != -1)
+                {
+                    tree_nodes[tree_selected].parent_index = -1;
+                    changed = 1;
+                }
+            }
+            /* Link reversal: if selected has a parent, allow swapping so that selected becomes
+             * parent */
+            if (tree_nodes[tree_selected].parent_index >= 0 &&
+                tree_nodes[tree_selected].parent_index < tree_count)
+            {
+                int parent_idx = tree_nodes[tree_selected].parent_index;
+                if (overlay_button("Reverse Link (Selected <-> Parent)"))
+                {
+                    /* Prevent creating cycles: parent must not already be child of selected (other
+                     * than direct) */
+                    int cycle = 0; /* since we're only swapping immediate relation in a tree (no
+                                      multiple parents), cycle can't form if we detach parent */
+                    if (!cycle)
+                    {
+                        /* Find selected among parent's children to ensure tree consistency
+                         * (optional) */
+                        /* Re-rooting: selected becomes parent of its current parent; adopt the old
+                         * parent's parent index */
+                        int grand_parent = tree_nodes[parent_idx].parent_index;
+                        tree_nodes[parent_idx].parent_index = (signed char) tree_selected;
+                        tree_nodes[tree_selected].parent_index = (signed char) grand_parent;
+                        changed = 1;
+                    }
+                }
+            }
+            if (!tree_linking)
+            {
+                if (overlay_button("Start Parent Link From Selected"))
+                {
+                    tree_linking = 1;
+                    tree_link_source = tree_selected; /* choose target on next click */
+                }
+            }
+            else if (tree_linking && tree_link_source == tree_selected)
+            {
+                overlay_label("Link mode: click another node to set it as CHILD (target's parent "
+                              "becomes selected)");
+                if (overlay_button("Cancel Link"))
+                {
+                    tree_linking = 0;
+                    tree_link_source = -1;
+                }
+            }
+        }
+        else
+        {
+            overlay_label("No Tree Node Selected");
+        }
+        /* Persist layout if requested */
+        if (persist_layout_request && tree_count > 0)
+        {
+            int xs[8], ys[8];
+            for (int i = 0; i < tree_count; ++i)
+            {
+                xs[i] = tree_ui_pos[i].x;
+                ys[i] = tree_ui_pos[i].y;
+            }
+            (void) rogue_skill_debug_set_effect_tree_layout(sel, tree_orientation, xs, ys,
+                                                            tree_count);
+            (void) rogue_skill_debug_save_overrides(overrides_path);
+        }
     }
     /* Local inline validation for quick feedback */
     {
@@ -896,7 +1328,10 @@ void panel_skills_draw_effects(int sel)
     }
     if (changed)
     {
-        (void) rogue_skill_debug_set_effects(sel, primary_id, nodes, node_count);
+        if (!tree_mode)
+            (void) rogue_skill_debug_set_effects(sel, primary_id, nodes, node_count);
+        if (tree_mode && tree_supported)
+            (void) rogue_skill_debug_set_effect_tree(sel, tree_nodes, tree_count);
         (void) rogue_skill_debug_save_overrides(overrides_path);
         panel_skills_refresh_validation();
     }

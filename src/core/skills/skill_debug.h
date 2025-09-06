@@ -141,6 +141,15 @@ extern "C"
     int rogue_skill_debug_set_effect_tree(int id, const struct RogueSkillEffectTreeNodeDebug* nodes,
                                           int node_count);
 
+    /* Optional persisted UI layout for effect_tree (debug authoring aid). Not part of runtime
+        scheduling; purely for overlay/editor convenience. Orientation: 0 L->R, 1 R->L. Positions
+       are stored as integer pixels inside the overlay canvas. Count must match current tree node
+       count when applied; otherwise it is ignored. */
+    int rogue_skill_debug_set_effect_tree_layout(int id, int orientation, const int* xs,
+                                                 const int* ys, int count);
+    int rogue_skill_debug_get_effect_tree_layout(int id, int* out_orientation, int* xs, int* ys,
+                                                 int max);
+
 #ifdef __cplusplus
 }
 #endif
