@@ -83,3 +83,13 @@ The plan must:
 10. Include comments in the workflow YAML to explain each step.
 
 The plan should result in a complete GitHub Actions workflow file (`.github/workflows/build-and-release.yml`). Avoid assumptions about specific code details beyond SDL2 usage, and focus on generic solutions for portability issues (e.g., file paths, compiler differences). Format the plan as a TODO-List with tasks that warent done yet marked with "[ ]" and tasks that are done as "[x]" and write it ro "roadmaps/implementation_multi_platform.txt"
+
+
+### Kil Codebase
+
+Go through all the .c-files in the "src" directory and add extensive doxygen documentation. Make sure the file header is at the top of the file. Use information provided in existing comments in the documentation.
+The informations for the file-header are:
+
+@author [Chrisian "ChubbyChuckles" Rickert]
+@date [06/09/2025]
+@version 1.0
