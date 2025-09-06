@@ -87,7 +87,7 @@ The plan should result in a complete GitHub Actions workflow file (`.github/work
 
 ### Kil Codebase
 
-Go through all the .c-files in the "src" directory and add extensive doxygen documentation. Make sure the file header is at the top of the file. Use information provided in existing comments in the documentation.
+Go through all the .c-files in the "src\content" directory and add extensive doxygen documentation. Make sure the file header is at the top of the file and if there is already an existing file healer, move it to the top of the file and enhance it. Use information provided in existing comments in the documentation.
 The informations for the file-header are:
 
 @author [Chrisian "ChubbyChuckles" Rickert]

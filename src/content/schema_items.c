@@ -1,3 +1,19 @@
+/**
+ * @file schema_items.c
+ * @brief Schema Validation for Item Definitions.
+ *
+ * This module provides schema building and validation for RogueItemDef structures used to define
+ * item properties like categories, stats, sprites, rarities, implicit modifiers, and sockets in the
+ * Rogue game. It converts item definitions to JSON for validation against a built schema with
+ * constraints on fields like category range, stack max, sprite dimensions, rarity, and socket
+ * counts. Supports validation of individual JSON objects or arrays of defs. Allows additional
+ * fields for forward compatibility.
+ *
+ * @author Christian "ChubbyChuckles" Rickert
+ * @date 06/09/2025
+ * @version 1.0
+ */
+
 #include "schema_items.h"
 #include "../core/integration/json_schema.h"
 #include "../util/json_parser.h"
@@ -5,6 +21,17 @@
 #include "json_io.h"
 #include <string.h>
 
+/**
+ * @brief Converts a RogueItemDef to a JSON object for schema validation.
+ *
+ * Maps all fields from the item definition to JSON values, including id, name, category, level_req,
+ * stack_max, base stats (value, damage min/max, armor), sprite details (sheet path, tx/ty/tw/th),
+ * rarity, flags, implicit modifiers (strength, dexterity, vitality, intelligence, armor flat,
+ * resists for physical/fire/cold/lightning/poison/status), set_id, and socket min/max.
+ *
+ * @param d Pointer to the item definition (may be NULL, returns NULL).
+ * @return Allocated JSON object on success, NULL on failure (e.g., allocation error).
+ */
 static RogueJsonValue* itemdef_to_json(const RogueItemDef* d)
 {
     if (!d)
@@ -48,6 +75,20 @@ static RogueJsonValue* itemdef_to_json(const RogueItemDef* d)
     return obj;
 }
 
+/**
+ * @brief Builds the schema for validating item base definitions.
+ *
+ * Initializes a RogueSchema with required fields id (string 1-ROGUE_MAX_ITEM_ID_LEN-1), name
+ * (1-ROGUE_MAX_ITEM_NAME_LEN-1), category (0 to ROGUE_ITEM__COUNT-1 integer), optional level_req,
+ * stack_max (1-999999), base_value/damage_min/max/armor (integers), sprite_sheet (string 0-127),
+ * sprite_tx/ty (integers), sprite_tw/th (1-4096), rarity (0-10), flags, implicit modifiers
+ * (strength/dexterity/vitality/intelligence/armor_flat/resists), set_id, socket_min/max (0-6).
+ * Strict mode true, allows additional fields for forward-compat. Version current. Description:
+ * Schema for item base definitions.
+ *
+ * @param[out] out_schema Pointer to receive the built schema (required).
+ * @return true on success (schema built), false on invalid out_schema.
+ */
 bool rogue_items_build_schema(RogueSchema* out_schema)
 {
     if (!out_schema)
@@ -126,6 +167,16 @@ bool rogue_items_build_schema(RogueSchema* out_schema)
     return true;
 }
 
+/**
+ * @brief Validates a single item JSON object against the items schema.
+ *
+ * Builds the schema internally, zeros the result, performs validation. Sets result->is_valid true
+ * on success.
+ *
+ * @param json JSON object representing an item (required).
+ * @param[out] result Pointer to receive validation results and errors (required).
+ * @return true if schema built and validation succeeds, false otherwise.
+ */
 bool rogue_items_validate_item_json(const RogueJsonValue* json, RogueSchemaValidationResult* result)
 {
     if (!json || !result)
@@ -140,6 +191,17 @@ bool rogue_items_validate_item_json(const RogueJsonValue* json, RogueSchemaValid
     return ok;
 }
 
+/**
+ * @brief Validates an array of RogueItemDef against the items schema.
+ *
+ * Builds the schema internally, converts each def to JSON, validates individually. Stops on first
+ * failure, copies local result to output. Sets result->is_valid true only if all pass.
+ *
+ * @param defs Array of item definitions to validate (required, count > 0).
+ * @param count Number of items in the array.
+ * @param[out] result Pointer to receive validation results and errors (required).
+ * @return true if all defs validate successfully, false otherwise.
+ */
 bool rogue_items_validate_defs(const RogueItemDef* defs, int count,
                                RogueSchemaValidationResult* result)
 {

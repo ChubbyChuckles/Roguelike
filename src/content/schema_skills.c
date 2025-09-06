@@ -1,9 +1,42 @@
+/**
+ * @file schema_skills.c
+ * @brief Schema Validation for Skill Definitions.
+ *
+ * This module provides schema building and validation for RogueSkillDef structures used to define
+ * skills in the Rogue game, including names, icons, ranks, cooldowns, costs, cast times, effects,
+ * animations, audio, and advanced mechanics like combo building/spending, AoE shapes, projectiles,
+ * and multi-effect nodes (up to 4 effects with delays, repeats, durations, conditions). Converts
+ * defs to JSON for validation with constraints on ranges like max_rank (1-10), cooldowns, socket
+ * counts, etc. Supports validation of individual JSON or arrays of defs. Allows additional fields
+ * for forward compatibility. Includes Phase 1.1/1.2 notes for extended fields and effect
+ * composition.
+ *
+ * @author Christian "ChubbyChuckles" Rickert
+ * @date 06/09/2025
+ * @version 1.0
+ */
+
 #include "schema_skills.h"
 #include "../util/json_parser.h"
 #include "json_envelope.h"
 #include "json_io.h"
 #include <string.h>
 
+/**
+ * @brief Converts a RogueSkillDef to a JSON object for schema validation.
+ *
+ * Maps core fields like name, icon, max_rank, skill_strength, skill_type (if set), cooldowns,
+ * is_passive, tags, synergy details, costs (mana, action points), charges, cast_time, buffers,
+ * cast_type, combo flags, effect_spec_id. For Phase 1.2 effect composition nodes (optional, up to 3
+ * additional effects): maps effect2/3/4_spec_id, delay/repeat_count/interval/duration_ms, health
+ * condition. Optional extended fields (Phase 1.1) for visuals (cast/projectile/impact/aoe sprites,
+ * frame_count/duration/loops, grid w/h), audio (sound IDs, volume 0-100, pitch variance), AoE
+ * (shape 0-4, radius, angle), projectile (velocity, trajectory 0-3, pierce 0-32, homing strength).
+ * Only includes non-empty/non-zero fields.
+ *
+ * @param d Pointer to the skill definition (may be NULL, returns NULL).
+ * @return Allocated JSON object on success, NULL on failure (e.g., allocation error).
+ */
 static RogueJsonValue* skilldef_to_json(const RogueSkillDef* d)
 {
     if (!d)
@@ -149,6 +182,24 @@ static RogueJsonValue* skilldef_to_json(const RogueSkillDef* d)
     return obj;
 }
 
+/**
+ * @brief Builds the schema for validating skill definitions.
+ *
+ * Initializes a RogueSchema with required name (string 1-127), max_rank (1-10 integer), optional
+ * icon (0-255 string), skill_strength (0-10), skill_type (0-9), cooldowns (numbers), is_passive
+ * (0-1), tags, synergy_id (-1-31), synergy_value_per_rank, costs (integers), max_charges (0-10),
+ * charge_recharge_ms (number), cast_time_ms (number), input_buffer/min_weave_ms (0-10000),
+ * early_cancel_pct (0-100), cast_type (0-2), combo_builder/spender (0-1), effect_spec_id (integer).
+ * Phase 1.1 extended optional fields for visuals (sprite sheets, frame_count 0-1024, duration/loops
+ * 0-1, grid 0-1024), audio (sound IDs, volume 0-100, pitch variance number), AoE (shape 0-4,
+ * radius/angle number), projectile (velocity number, trajectory 0-3, pierce 0-32, homing number).
+ * Phase 1.2 for effect2/3/4 (spec_id, delay/repeat_count/interval/duration_ms number/integer,
+ * health_below_pct 0-100). Strict mode true, allows additional fields for forward-compat. Version
+ * current. Description: Schema for skill definitions.
+ *
+ * @param[out] out_schema Pointer to receive the built schema (required).
+ * @return true on success (schema built), false on invalid out_schema.
+ */
 bool rogue_skills_build_schema(RogueSchema* out_schema)
 {
     if (!out_schema)
@@ -315,6 +366,16 @@ bool rogue_skills_build_schema(RogueSchema* out_schema)
     return true;
 }
 
+/**
+ * @brief Validates a single skill JSON object against the skills schema.
+ *
+ * Builds the schema internally, zeros the result, performs validation. Sets result->is_valid true
+ * on success.
+ *
+ * @param json JSON object representing a skill (required).
+ * @param[out] result Pointer to receive validation results and errors (required).
+ * @return true if schema built and validation succeeds, false otherwise.
+ */
 bool rogue_skills_validate_skill_json(const RogueJsonValue* json,
                                       RogueSchemaValidationResult* result)
 {
@@ -330,6 +391,17 @@ bool rogue_skills_validate_skill_json(const RogueJsonValue* json,
     return ok;
 }
 
+/**
+ * @brief Validates an array of RogueSkillDef against the skills schema.
+ *
+ * Builds the schema internally, converts each def to JSON, validates individually. Stops on first
+ * failure, copies local result to output. Sets result->is_valid true only if all pass.
+ *
+ * @param defs Array of skill definitions to validate (required, count > 0).
+ * @param count Number of skills in the array.
+ * @param[out] result Pointer to receive validation results and errors (required).
+ * @return true if all defs validate successfully, false otherwise.
+ */
 bool rogue_skills_validate_defs(const struct RogueSkillDef* defs, int count,
                                 RogueSchemaValidationResult* result)
 {

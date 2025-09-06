@@ -1,3 +1,19 @@
+/**
+ * @file schema_entities.c
+ * @brief Schema Validation for Enemy/Entity Types.
+ *
+ * This module provides schema building and validation for RogueEnemyTypeDef structures used to
+ * define enemy behaviors, stats, and spawning parameters in the game. It converts type definitions
+ * to JSON for validation against a built schema, supports range constraints on fields like group
+ * sizes, radii, speeds, rewards, and optional texture paths. Includes validation for loaded assets
+ * from directories, skipping texture loading in headless mode to avoid errors. Uses logging for
+ * debugging validation failures.
+ *
+ * @author Christian "ChubbyChuckles" Rickert
+ * @date 06/09/2025
+ * @version 1.0
+ */
+
 #include "schema_entities.h"
 #include "../util/json_parser.h"
 #include "../util/log.h"
@@ -5,7 +21,17 @@
 #include "json_io.h"
 #include <string.h>
 
-/* Helper to create a JSON object representing one RogueEnemyTypeDef for schema validation */
+/**
+ * @brief Converts a RogueEnemyTypeDef to a JSON object for schema validation.
+ *
+ * Helper to create a JSON object representing one RogueEnemyTypeDef for schema validation. Maps
+ * fields like id, name, group sizes, radii, speed, population target, XP reward, loot chance,
+ * offsets, IDs to JSON values. Texture paths are optional in headless tests, represented as strings
+ * if present. We don't include sprite arrays in schema; paths suffice.
+ *
+ * @param t Pointer to the enemy type definition (may be NULL, returns NULL).
+ * @return Allocated JSON object on success, NULL on failure (e.g., allocation error).
+ */
 static RogueJsonValue* enemy_typedef_to_json(const RogueEnemyTypeDef* t)
 {
     RogueJsonValue* obj = json_create_object();
@@ -30,6 +56,18 @@ static RogueJsonValue* enemy_typedef_to_json(const RogueEnemyTypeDef* t)
     return obj;
 }
 
+/**
+ * @brief Builds the schema for validating enemy/entity type definitions.
+ *
+ * Initializes a RogueSchema with fields for id, name (required strings), group_min/max (1-100),
+ * patrol/aggro_radius (0-1000), speed (number), pop_target/xp_reward (0-100000), loot_chance
+ * (number), base_level_offset, tier_id, archetype_id (integers), and optional texture paths like
+ * idle_sheet. Sets strict mode true, allows additional fields. Version set to current. Description:
+ * Schema for enemy/entity type definitions.
+ *
+ * @param[out] out_schema Pointer to receive the built schema (required).
+ * @return true on success (schema built), false on invalid out_schema.
+ */
 bool rogue_entities_build_schema(RogueSchema* out_schema)
 {
     if (!out_schema)
@@ -98,6 +136,19 @@ bool rogue_entities_build_schema(RogueSchema* out_schema)
     return true;
 }
 
+/**
+ * @brief Validates an array of RogueEnemyTypeDef against the entities schema.
+ *
+ * Builds the schema internally, converts each type to JSON, validates it. Stops on first failure,
+ * logs warnings for debugging with snapshots of key fields to detect mutations, JSON values, and
+ * current state. Accumulates errors but returns false on any failure, annotating with entity index
+ * and name. Sets result->is_valid true only if all pass.
+ *
+ * @param types Array of enemy type definitions to validate (required, count > 0).
+ * @param count Number of types in the array.
+ * @param[out] result Pointer to receive validation results and errors (required).
+ * @return true if all types validate successfully, false otherwise.
+ */
 bool rogue_entities_validate_types(const RogueEnemyTypeDef* types, int count,
                                    RogueSchemaValidationResult* result)
 {
@@ -174,6 +225,18 @@ bool rogue_entities_validate_types(const RogueEnemyTypeDef* types, int count,
     return true;
 }
 
+/**
+ * @brief Validates default enemy assets from directory against the entities schema.
+ *
+ * Loads enemy types from JSON files in possible asset paths, skipping texture loading to avoid
+ * errors in headless mode (e.g., divide-by-zero in sprite slicing with stubbed textures w/h=0).
+ * Temporarily sets g_enemy_loader_skip_textures to 1, restores after. Validates loaded types,
+ * returns count if provided. Tries multiple relative paths until success.
+ *
+ * @param[out] result Pointer to receive validation results (required).
+ * @param[out] out_count Pointer to receive number of loaded types (optional).
+ * @return true if assets loaded and validated successfully, false otherwise.
+ */
 bool rogue_entities_validate_assets_default(RogueSchemaValidationResult* result, int* out_count)
 {
     if (!result)
