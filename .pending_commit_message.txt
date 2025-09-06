@@ -1,3 +1,6 @@
+feat(skills): add Phase 1.5 enhanced data model schema tests and prune legacy ui_context
+
+Implemented `test_skills_phase1_5_enhanced_schema` covering extended skill schema fields (visual sprites, animation params, audio hooks, AoE + projectile params, effect composition timing) and multiple negative validation cases (max_rank overflow, frame_count >1024, pierce_count >32, invalid aoe_shape, repeat_count without interval). Marked roadmap item 1.5 Tests -> Enhanced Data Model Tests complete, updated README with summary. Also finalized ui refactor by pruning duplicated logic from `ui_context.c`, retaining only higher-level utilities now that core/interact/layout/navigation/animation/perf/id modules own their implementations.
 Skills Phase 1.3: interrupt state + context defaults
 
 - Add INTERRUPTED to RogueSkillExecState; report via rogue_skill_get_exec_state when an activation is canceled.

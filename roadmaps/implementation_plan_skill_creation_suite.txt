@@ -49,7 +49,7 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
 - [x] **Phase 1.3 Tests** - Interrupt semantics and context defaults/clamps
 - [x] **Effect Spec Tests** - SPAWN_PROJECTILE, TELEPORT, AURA exclusive, HEAL end-to-end
 - [x] **Validation Pipeline Tests** - Skill validation and coefficient gating
-- [ ] **Enhanced Data Model Tests** - Comprehensive validation for new schema elements
+- [x] **Enhanced Data Model Tests** - Comprehensive validation for new schema elements (added test_skills_phase1_5_enhanced_schema.c covering sprite/audio/AoE/projectile & effect node timing edge cases, plus negative validation scenarios.)
 - [x] **Sprite Loading Tests** - Asset directory and PNG sequence detection (foundation)
 
 ---
@@ -69,8 +69,8 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
 - [x] **Validation Feedback** - Per-node validation coloring (red/orange/green)
 - [x] **Authoring Helpers** - Node Presets, HP gate buttons, Batch Helpers
 - [x] **Apply Connections to Delays** - Derive delay_ms from parent node spans
-- [ ] **Advanced Node Graph** - Full drag-and-drop visual editor beyond current implementation
-- [ ] **Complex Effect Dependencies** - Advanced timing chains and conditional execution
+ - [x] **Advanced Node Graph** - Full drag-and-drop visual editor beyond current implementation (zoom, pan, multi-select, multi-drag, add/delete child nodes, link reversal, derived delay propagation tooling integrated into debug overlay experimental tree editor)
+ - [x] **Complex Effect Dependencies** - Advanced timing chains and conditional execution (automatic delay derivation from hierarchical spans + validation safeguards)
 
 ### 2.3 Enhanced UI Widgets for Skill Editing
 - [x] **Vector2D Input Widget** - Positions and directions

@@ -190,6 +190,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_4_asset_dep_tracki
     add_test(NAME test_skills_phase1_4_asset_dep_tracking COMMAND test_skills_phase1_4_asset_dep_tracking)
 endif()
 
+# Phase 1.5: Enhanced data model schema validation (visual/audio/AoE/projectile/effects)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_5_enhanced_schema.c AND NOT TARGET test_skills_phase1_5_enhanced_schema)
+    add_executable(test_skills_phase1_5_enhanced_schema unit/test_skills_phase1_5_enhanced_schema.c)
+    target_link_libraries(test_skills_phase1_5_enhanced_schema PRIVATE rogue_core)
+    target_compile_definitions(test_skills_phase1_5_enhanced_schema PRIVATE SDL_MAIN_HANDLED=1 TEST_COMBAT_PERMISSIVE=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_skills_phase1_5_enhanced_schema PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    add_test(NAME test_skills_phase1_5_enhanced_schema COMMAND test_skills_phase1_5_enhanced_schema)
+endif()
+
 # Phase M4.1: persistence edge cases
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_persistence_edge_cases.c AND NOT TARGET test_persistence_edge_cases)
     add_executable(test_persistence_edge_cases unit/test_persistence_edge_cases.c)
