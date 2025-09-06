@@ -48,3 +48,12 @@ Skills Visuals: packed atlas frame loader + layout fix
 - Lightweight custom scanner (skip whitespace, find blocks) avoids expanding minimal cJSON stub; ignores rotation/trim fields.
 - Unit: test_skills_phase1_7_packed_sprite_loader validates both shapes and malformed entry skip.
 - Overlay Skills Visuals panel: replace unsupported overlay_same_line usage with columns API to resolve linker undefined symbol.
+
+EffectSpecs: SPAWN_ENTITY effect (Phase 1.2 slice)
+
+- Add ROGUE_EFFECT_SPAWN_ENTITY enum value with two fields: spawn_entity_count (u8, clamped 1..8, default 1) and spawn_entity_life_ms (float ms, default 5000 if <=0).
+- Parser & JSON loader accept `spawn_entity_count` and `spawn_entity_life_ms` keys (ignored for other kinds).
+- Runtime apply: spawns N transient entities at caster position using lightweight fixed-cap (64) pool in spawn_entities.c; each entry stores x,y, expiry_ms and auto-expires on update.
+- Sanitization during apply ensures safe defaults even if authoring omitted or out-of-range values.
+- Unit: test_effectspec_spawn_entity (ensures counts increment and return to 0 after advancing time beyond lifetime).
+- Roadmap (skill creation suite) updated: mark SPAWN_ENTITY done with implementation blurb; README EffectSpec JSON reference documents new fields and semantics.

@@ -284,6 +284,7 @@ add_library(rogue_core
     src/platform/platform_sdl.c
     src/graphics/renderer.c
     src/graphics/sprite.c
+    src/entities/spawn_entities.c
     # tile sprites module split
     src/graphics/tile_sprites_load.c
     src/graphics/tile_sprites_lookup.c

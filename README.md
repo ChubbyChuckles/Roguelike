@@ -347,14 +347,17 @@ Data I/O utilities (for upcoming content schemas):
   - preconditions: require_buff_type, require_buff_min
   - DOT/AURA: pulse_period_ms, damage_type, crit_mode, crit_chance_pct, aura_radius, aura_group_mask
   - SPAWN_PROJECTILE: proj_speed (float, units/sec), proj_life_ms (float, ms), proj_count (int, 1..n)
+  - SPAWN_ENTITY: spawn_entity_count (int, 1..8, default 1 if omitted/0 → clamped), spawn_entity_life_ms (float ms, >0, default 5000). Spawns that many lightweight transient entities at the caster position immediately; they auto-expire after the lifetime. (Foundation for future full Summoning system — no AI/behaviors yet.)
 - Defaults & semantics:
   - Unset kind → STAT_BUFF; unset stack_rule → ADD; disabled preconditions/scaling use sentinel values.
   - Multiplicative stacking is a no‑op without a baseline; magnitude is percent (100 = no change).
   - For SPAWN_PROJECTILE: damage inherits from EffectSpec.magnitude; projectiles spawn from player and use facing to set initial direction. When proj_count > 1, multiple identical projectiles are emitted in the same frame.
+  - For SPAWN_ENTITY: entities are positional placeholders only (Phase 1.2). Lifetime <0 or 0 is sanitized to 5000ms; count outside 1..8 is clamped. Future phases will attach behaviors/ally flags.
   - New kinds: DAMAGE (direct damage), AOE_BLAST (instant area damage), TELEPORT (moves the player along facing by magnitude units; clamped to map bounds). All are available via the loader and runtime.
   - Target inference defaults: if target is omitted, HEAL and TELEPORT default to SELF; AURA and AOE_BLAST default to AREA.
 - Test: `test_effectspec_json_loader` covers additive and multiplicative behavior; some tests disable buff dampening (`rogue_buffs_set_dampening(0.0)`) for deterministic rapid re‑applies.
   - Additional test: `tests/unit/test_effectspec_spawn_projectile.c` validates projectile count and damage mapping; full suite is green in Debug (SDL2) under `-j12` (588/588).
+  - Additional test: `tests/unit/test_effectspec_spawn_entity.c` validates spawn count clamping (default=1, upper bound 8) and expiry after lifetime.
 
 ### Skills Validator (Phase 10.3)
 

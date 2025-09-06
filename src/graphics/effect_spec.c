@@ -1,5 +1,10 @@
 #include "effect_spec.h"
 #include "../core/app/app_state.h"
+#include "../entities/entity.h"
+
+/* Forward for lightweight spawn entity placeholder (implemented in spawn_entities.c) */
+void rogue_spawn_entity(float x, float y, double expiry_ms);
+int rogue_spawn_entity_active_count(void);
 #include "../core/projectiles/projectiles.h"
 #include "../game/buffs.h"
 #include <math.h>
@@ -293,6 +298,18 @@ int rogue_effect_register(const RogueEffectSpec* spec)
         if (tmp.magnitude < 0)
             tmp.magnitude = 0;
         break;
+    case ROGUE_EFFECT_SPAWN_ENTITY:
+        /* Authoring placeholder: spawning entities is treated as harmful if magnitude>0 (e.g., on
+           impact) for analytics symmetry. Entities themselves currently have no combat loop. */
+        if (!tmp.debuff && tmp.magnitude > 0)
+            tmp.debuff = 1;
+        if (tmp.spawn_entity_count == 0)
+            tmp.spawn_entity_count = 1;
+        if (tmp.spawn_entity_count > 8)
+            tmp.spawn_entity_count = 8; /* hard clamp */
+        if (tmp.spawn_entity_life_ms <= 0.0f)
+            tmp.spawn_entity_life_ms = 5000.0f;
+        break;
     default:
         break;
     }
@@ -558,6 +575,24 @@ static void apply_with_magnitude(const RogueEffectSpec* s, int eff_mag, double n
             rogue_damage_event_record(0, ROGUE_DMG_TRUE, 0, -heal, -heal, 0, 0);
         }
         (void) now_ms;
+    }
+    break;
+    case ROGUE_EFFECT_SPAWN_ENTITY:
+    {
+        /* Minimal placeholder: spawn N entities at player center recorded in a lightweight
+           registry with an expiry. Future phases will extend with AI/combat. */
+        float frame_tiles = (g_app.tile_size > 0)
+                                ? ((float) g_app.player_frame_size / (float) g_app.tile_size)
+                                : 1.0f;
+        float cx = g_app.player.base.pos.x + frame_tiles * 0.5f;
+        float cy = g_app.player.base.pos.y + frame_tiles * 0.5f;
+        int count = (s->spawn_entity_count > 0 ? (int) s->spawn_entity_count : 1);
+        for (int i = 0; i < count; ++i)
+        {
+            rogue_spawn_entity(
+                cx, cy,
+                now_ms + (s->spawn_entity_life_ms > 0.0f ? s->spawn_entity_life_ms : 5000.0f));
+        }
     }
     break;
     case ROGUE_EFFECT_SPAWN_PROJECTILE:

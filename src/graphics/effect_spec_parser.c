@@ -39,6 +39,8 @@ static int parse_kind(const char* s)
         return ROGUE_EFFECT_HEAL;
     if (strcmp(s, "SPAWN_PROJECTILE") == 0)
         return ROGUE_EFFECT_SPAWN_PROJECTILE;
+    if (strcmp(s, "SPAWN_ENTITY") == 0)
+        return ROGUE_EFFECT_SPAWN_ENTITY;
     if (strcmp(s, "DAMAGE") == 0)
         return ROGUE_EFFECT_DAMAGE;
     if (strcmp(s, "AOE_BLAST") == 0)
@@ -220,6 +222,19 @@ int rogue_effects_parse_text(const char* text, int* out_ids, int max_ids, char* 
             if (c > 255)
                 c = 255;
             s->proj_count = (unsigned char) c;
+        }
+        else if (strcmp(field, "spawn_entity_count") == 0)
+        {
+            int c = atoi(e.value);
+            if (c < 0)
+                c = 0;
+            if (c > 255)
+                c = 255;
+            s->spawn_entity_count = (unsigned char) c;
+        }
+        else if (strcmp(field, "spawn_entity_life_ms") == 0)
+        {
+            s->spawn_entity_life_ms = (float) atof(e.value);
         }
         else if (strcmp(field, "delay_ms") == 0)
         {

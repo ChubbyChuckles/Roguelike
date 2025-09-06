@@ -79,6 +79,8 @@ static int map_kind(const char* s)
         return ROGUE_EFFECT_HEAL;
     if (strcmp(s, "SPAWN_PROJECTILE") == 0)
         return ROGUE_EFFECT_SPAWN_PROJECTILE;
+    if (strcmp(s, "SPAWN_ENTITY") == 0)
+        return ROGUE_EFFECT_SPAWN_ENTITY;
     if (strcmp(s, "DAMAGE") == 0)
         return ROGUE_EFFECT_DAMAGE;
     if (strcmp(s, "AOE_BLAST") == 0)

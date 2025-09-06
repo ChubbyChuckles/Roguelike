@@ -16,7 +16,8 @@ extern "C"
         ROGUE_EFFECT_SPAWN_PROJECTILE = 4, /* Spawn a simple projectile from player */
         ROGUE_EFFECT_DAMAGE = 5,           /* Instant single-target damage (enemy) */
         ROGUE_EFFECT_AOE_BLAST = 6,        /* One-shot AoE damage around player */
-        ROGUE_EFFECT_TELEPORT = 7          /* Instantly move player along facing by magnitude */
+        ROGUE_EFFECT_TELEPORT = 7,         /* Instantly move player along facing by magnitude */
+        ROGUE_EFFECT_SPAWN_ENTITY = 8 /* Spawn one or more simple entities (summons placeholder) */
     } RogueEffectKind;
 
     /* Target selector for simple conditional gating (Phase 1.2 conditionals) */
@@ -90,6 +91,12 @@ extern "C"
         /* Phase 1.2 conditional execution */
         unsigned char caster_health_le_pct; /* if >0, require player health% <= this */
         float max_distance;                 /* if >0 and enemy-targeted, require <= this distance */
+        /* Phase 1.2 extension: SPAWN_ENTITY parameters (lightweight placeholder for future
+            summoning system). spawn_entity_count spawns that many transient entities (1..8) at the
+            player's position with a simple lifetime. Entities have position only and no combat
+            behavior yet; used for validating authoring pipeline ahead of full summon system. */
+        unsigned char spawn_entity_count; /* number of entities to spawn */
+        float spawn_entity_life_ms;       /* lifetime each entity persists before auto-despawn */
     } RogueEffectSpec;
 
     int rogue_effect_register(const RogueEffectSpec* spec); /* returns id or -1 */
