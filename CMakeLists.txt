@@ -1056,6 +1056,16 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_asset_manager_basic PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_asset_manager_basic COMMAND test_asset_manager_basic)
+set_tests_properties(test_asset_manager_basic PROPERTIES LABELS "asset")
+
+# Hot-reload polling smoke test
+add_executable(test_asset_manager_reload tests/unit/test_asset_manager_reload.c)
+target_link_libraries(test_asset_manager_reload PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_asset_manager_reload PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_asset_manager_reload COMMAND test_asset_manager_reload)
+set_tests_properties(test_asset_manager_reload PROPERTIES LABELS "asset")
 
 # Placeholder asset enforcement test
 add_executable(test_asset_placeholder_enforcement tests/unit/test_asset_placeholder_enforcement.c)

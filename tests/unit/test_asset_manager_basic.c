@@ -1,4 +1,5 @@
-/* test_asset_manager_basic.c - validates initial Phase 3 asset manager scaffold */
+/* test_asset_manager_basic.c - validates initial Phase 3 asset manager scaffold + SDL_image/audio
+ * extensions */
 #include "../../src/asset/asset_manager.h"
 #include "../../src/asset/path_utils.h"
 #include <stdio.h>
@@ -41,6 +42,14 @@ int main(void)
     /* entry should be removed */
     tex = rogue_asset_manager_get(idx);
     if (!assert_true(!tex, "entry removed after final release"))
+        return 1;
+
+    /* Audio acquire (will negative-cache fail if file missing) */
+    int aud_missing = rogue_asset_manager_acquire_audio("assets/missing_does_not_exist.wav");
+    if (!assert_true(aud_missing >= 0, "audio slot allocated even if missing"))
+        return 1;
+    const RogueAssetAudio* au = rogue_asset_manager_get_audio(aud_missing);
+    if (!assert_true(au != NULL, "audio entry present"))
         return 1;
 
     char norm[128];
