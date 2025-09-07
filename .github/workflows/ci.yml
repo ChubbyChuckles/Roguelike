@@ -74,10 +74,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: List CI scripts (debug)
+        shell: pwsh
+        run: Get-ChildItem -Recurse scripts/ci | ForEach-Object { Write-Host $_.FullName }
+
       - name: Compute version
         id: ver
         shell: pwsh
-        run: pwsh -NoProfile -ExecutionPolicy Bypass -File ${{ github.workspace }}/scripts/ci/compute-version.ps1 -OutDir build -WriteGithubOutputs
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/ci/compute-version.ps1 -OutDir build -WriteGithubOutputs
 
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1
@@ -398,10 +402,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: List CI scripts (debug)
+        shell: pwsh
+        run: Get-ChildItem -Recurse scripts/ci | ForEach-Object { Write-Host $_.FullName }
+
       - name: Compute version
         id: ver
         shell: pwsh
-        run: pwsh -NoProfile -ExecutionPolicy Bypass -File ${{ github.workspace }}/scripts/ci/compute-version.ps1 -OutDir build -WriteGithubOutputs
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/ci/compute-version.ps1 -OutDir build -WriteGithubOutputs
 
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1
@@ -484,10 +492,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: List CI scripts (debug)
+        shell: pwsh
+        run: Get-ChildItem -Recurse scripts/ci | ForEach-Object { Write-Host $_.FullName }
+
       - name: Compute version
         id: ver
         shell: pwsh
-        run: pwsh -NoProfile -ExecutionPolicy Bypass -File ${{ github.workspace }}/scripts/ci/compute-version.ps1 -OutDir build -WriteGithubOutputs
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/ci/compute-version.ps1 -OutDir build -WriteGithubOutputs
 
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1
@@ -560,10 +572,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: List CI scripts (debug)
+        shell: pwsh
+        run: Get-ChildItem -Recurse scripts/ci | ForEach-Object { Write-Host $_.FullName }
+
       - name: Compute version and notes
         id: ver
         shell: pwsh
-        run: pwsh -NoProfile -ExecutionPolicy Bypass -File ${{ github.workspace }}/scripts/ci/compute-version.ps1 -OutDir build -WriteGithubOutputs
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/ci/compute-version.ps1 -OutDir build -WriteGithubOutputs
 
       - name: Download packaged artifacts (all OS)
         uses: actions/download-artifact@v4
