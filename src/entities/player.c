@@ -22,9 +22,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 #include "player.h"
+#include <string.h> /* for memset */
 
 void rogue_player_init(RoguePlayer* p)
 {
+    /* Defensive full zero-init: Some unit tests allocate RoguePlayer on the stack and rely on
+        rogue_player_init() to clear ALL state. Previously only a subset of fields were explicitly
+        initialized which left reaction / i-frame related fields (iframes_ms, reaction_type, etc.)
+        uninitialized. Those garbage values caused early exits in rogue_player_apply_incoming_melee
+        (e.g. iframes_ms > 0) resulting in multiple combat tests failing (guard / reaction suite).
+        Zeroing first prevents similar issues when new fields are added. */
+    memset(p, 0, sizeof(*p));
     p->base.pos.x = 0.0f;
     p->base.pos.y = 0.0f;
     p->base.vel.x = 0.0f;
@@ -75,6 +83,7 @@ void rogue_player_init(RoguePlayer* p)
     p->guard_active_time_ms = 0.0f;
     p->perfect_guard_window_ms = 140.0f; /* first 140ms counts as perfect */
     p->poise_regen_delay_ms = 0.0f;
+    /* Reaction / iframe related fields already zero from memset */
     /* Lock-on defaults */
     p->lock_on_active = 0;
     p->lock_on_target_index = -1;

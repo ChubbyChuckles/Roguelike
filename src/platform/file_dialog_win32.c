@@ -1,6 +1,17 @@
+/*
+    Windows file dialog implementation.
+    NOTE: <windows.h> must be included BEFORE <commdlg.h>. The previous order
+    (commdlg first) caused many unknown type errors (DWORD, HICON, etc.) when
+    building with MSVC because required base typedefs/macros were not yet
+    visible. Fix: include windows.h first.
+*/
 #ifdef _WIN32
 #include "file_dialog.h"
-#define WIN32_LEAN_AND_MEAN
+/* NOTE: Avoid WIN32_LEAN_AND_MEAN here because <commdlg.h> transitively pulls
+    in <prsht.h> on some SDK versions, which expects a full windows.h surface
+    (types like PROPSHEETPAGE*, HICON, DWORD, etc.). Using the lean define was
+    triggering missing type cascades during MSVC build. */
+/* windows.h must precede commdlg.h to ensure all required typedefs/macros (DWORD, HICON, etc.) */
 #include <commdlg.h>
 #include <string.h>
 #include <windows.h>

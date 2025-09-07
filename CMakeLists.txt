@@ -105,7 +105,8 @@ if(ROGUE_ENABLE_SDL AND NOT TARGET SDL2::SDL2)
     set(_SDL2_INC_HINT "${_SDL2_ROOT_NORM}/include")
     set(_SDL2_LIB_HINT1 "${_SDL2_ROOT_NORM}/lib")
     set(_SDL2_LIB_HINT2 "${_SDL2_ROOT_NORM}/lib/x64")
-        find_path(SDL2_INCLUDE_DIR SDL.h HINTS ${_SDL2_INC_HINT})
+    # Support both traditional layout (include/SDL.h) and vcpkg layout (include/SDL2/SDL.h)
+    find_path(SDL2_INCLUDE_DIR SDL.h HINTS ${_SDL2_INC_HINT} PATH_SUFFIXES SDL2)
         find_library(SDL2_LIBRARY NAMES SDL2 SDL2-static HINTS ${_SDL2_LIB_HINT1} ${_SDL2_LIB_HINT2})
         if(SDL2_INCLUDE_DIR AND SDL2_LIBRARY)
             add_library(SDL2::SDL2 UNKNOWN IMPORTED)
@@ -574,6 +575,9 @@ add_executable(asset_tool
     src/asset/asset_tool_cli.c)
 target_link_libraries(asset_tool PRIVATE rogue_core)
 target_include_directories(asset_tool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(asset_tool PRIVATE SDL2::SDL2)
+endif()
 
 add_custom_target(asset_manifest ALL
     COMMAND asset_validate --manifest ${CMAKE_BINARY_DIR}/asset_manifest.txt --optimize
@@ -1126,6 +1130,21 @@ add_executable(test_asset_phase7_usage_stats tests/unit/test_asset_phase7_usage_
 target_link_libraries(test_asset_phase7_usage_stats PRIVATE rogue_core)
 add_test(NAME test_asset_phase7_usage_stats COMMAND test_asset_phase7_usage_stats)
 set_tests_properties(test_asset_phase7_usage_stats PROPERTIES LABELS "asset")
+
+# Phase 7: asset tool CLI smoke test (invokes asset_tool_main stats)
+add_executable(test_asset_phase7_tool_cli
+    tests/unit/test_asset_phase7_tool_cli.c
+    src/asset/asset_tool_cli.c
+)
+target_link_libraries(test_asset_phase7_tool_cli PRIVATE rogue_core)
+# Suppress standalone main() inside asset_tool_cli.c when this test links that TU directly
+# (Future-proof: if asset_tool_main implementation is refactored into a shared object)
+target_compile_definitions(test_asset_phase7_tool_cli PRIVATE ASSET_TOOL_NO_STANDALONE)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_asset_phase7_tool_cli PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_asset_phase7_tool_cli COMMAND test_asset_phase7_tool_cli)
+set_tests_properties(test_asset_phase7_tool_cli PROPERTIES LABELS "asset")
 
 # Hot-reload polling smoke test
 add_executable(test_asset_manager_reload tests/unit/test_asset_manager_reload.c)

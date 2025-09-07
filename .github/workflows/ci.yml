@@ -109,10 +109,14 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Install Ninja (Windows)
+      # (Windows) Switch to Visual Studio generator (MSBuild); Ninja no longer required.
+      # Removed Ninja installation to reduce setup time. clang-tidy still works via
+      # CMAKE_EXPORT_COMPILE_COMMANDS=ON (added in configure step below).
+      - name: Show MSVC Version (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: choco install -y ninja || echo "ninja already installed"
+        run: |
+          cl /?
 
       - name: Install clang-format (Windows)
         if: runner.os == 'Windows'
@@ -209,15 +213,17 @@ jobs:
           echo "brew info (sdl2):"
           brew info sdl2 | sed -n '1,3p' || true
 
-      - name: Configure (CMake, Ninja)
+      - name: Configure (CMake)
         shell: bash
         run: |
           set -Eeuo pipefail
           CONF_LOG="build/configure_${{ matrix.os }}_${{ matrix.compiler }}_${{ matrix.build_type }}.log"
           if [ "$RUNNER_OS" = "Windows" ]; then
-            cmake -G Ninja -S . -B build \
+            cmake -S . -B build \
+              -G "Visual Studio 17 2022" -A x64 \
               -DROGUE_ENABLE_SDL=${ROGUE_ENABLE_SDL} \
               -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+              -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
               -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" | tee "$CONF_LOG"
           elif [ "$RUNNER_OS" = "macOS" ]; then
             BREW_PREFIX=$(brew --prefix)
@@ -254,14 +260,23 @@ jobs:
             build/CMakeFiles/CMakeError.log
 
       - name: Build (-j12)
+        shell: bash
         run: |
           set -Eeuo pipefail
-          if [ -n "$CI_DEBUG" ] && [ "$CI_DEBUG" = "1" ]; then
-            cmake --build build --parallel 12 -- -v | tee build/build_${{ matrix.os }}_${{ matrix.compiler }}_${{ matrix.build_type }}.log
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            # Use multi-config build; specify configuration explicitly.
+            if [ -n "$CI_DEBUG" ] && [ "$CI_DEBUG" = "1" ]; then
+              cmake --build build --config ${BUILD_TYPE} --parallel 12 -- -v | tee build/build_${{ matrix.os }}_${{ matrix.compiler }}_${{ matrix.build_type }}.log
+            else
+              cmake --build build --config ${BUILD_TYPE} --parallel 12 | tee build/build_${{ matrix.os }}_${{ matrix.compiler }}_${{ matrix.build_type }}.log
+            fi
           else
-            cmake --build build --parallel 12 | tee build/build_${{ matrix.os }}_${{ matrix.compiler }}_${{ matrix.build_type }}.log
+            if [ -n "$CI_DEBUG" ] && [ "$CI_DEBUG" = "1" ]; then
+              cmake --build build --parallel 12 -- -v | tee build/build_${{ matrix.os }}_${{ matrix.compiler }}_${{ matrix.build_type }}.log
+            else
+              cmake --build build --parallel 12 | tee build/build_${{ matrix.os }}_${{ matrix.compiler }}_${{ matrix.build_type }}.log
+            fi
           fi
-        shell: bash
 
       - name: Run Tests (ctest -j12)
         shell: bash
@@ -529,18 +544,22 @@ jobs:
               git clone https://github.com/microsoft/vcpkg "$VCPKG_TEMP"
               "$VCPKG_TEMP/bootstrap-vcpkg.bat"
             fi
-            cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DROGUE_ENABLE_SDL=ON -DCMAKE_TOOLCHAIN_FILE="$VCPKG_TEMP/scripts/buildsystems/vcpkg.cmake"
+            cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DROGUE_ENABLE_SDL=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_TOOLCHAIN_FILE="$VCPKG_TEMP/scripts/buildsystems/vcpkg.cmake"
           elif [ "$RUNNER_OS" = "Linux" ]; then
-          timeout 10m sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          timeout 10m sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y cmake ninja-build
+            timeout 10m sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+            timeout 10m sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y cmake ninja-build
             cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DROGUE_ENABLE_SDL=ON
           else
-          export HOMEBREW_NO_AUTO_UPDATE=1
-          export HOMEBREW_NO_INSTALL_CLEANUP=1
-          brew update && brew install cmake ninja || true
+            export HOMEBREW_NO_AUTO_UPDATE=1
+            export HOMEBREW_NO_INSTALL_CLEANUP=1
+            brew update && brew install cmake ninja || true
             cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DROGUE_ENABLE_SDL=ON
           fi
-          cmake --build build --parallel 12 | tee build/build_release_${{ matrix.os }}.log
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cmake --build build --config Release --parallel 12 | tee build/build_release_${{ matrix.os }}.log
+          else
+            cmake --build build --parallel 12 | tee build/build_release_${{ matrix.os }}.log
+          fi
 
       - name: Package with CPack
         timeout-minutes: 20

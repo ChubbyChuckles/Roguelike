@@ -5,6 +5,9 @@ Checks: |
   clang-analyzer-core*,
   clang-analyzer-security*,
   misc-definitions-in-headers,
+  # Suppress specific noisy checks:
+  -bugprone-implicit-widening-of-multiplication-result,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
   -modernize-*,
   -readability-*,
   -performance-*

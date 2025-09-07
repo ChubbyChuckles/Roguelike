@@ -550,4 +550,11 @@ int asset_tool_main(int argc, char** argv)
     return 0;
 }
 
+/*
+ * Standalone entry point. Some unit tests (e.g. test_asset_phase7_tool_cli) want to
+ * link against asset_tool_main() directly without pulling in an additional "main".
+ * Allow those targets to compile this TU by defining ASSET_TOOL_NO_STANDALONE.
+ */
+#ifndef ASSET_TOOL_NO_STANDALONE
 int main(int argc, char** argv) { return asset_tool_main(argc, argv); }
+#endif
