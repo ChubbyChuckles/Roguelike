@@ -1,20 +1,21 @@
 /*
-    Windows file dialog implementation.
-    NOTE: <windows.h> must be included BEFORE <commdlg.h>. The previous order
-    (commdlg first) caused many unknown type errors (DWORD, HICON, etc.) when
-    building with MSVC because required base typedefs/macros were not yet
-    visible. Fix: include windows.h first.
+    Windows native (blocking) file dialog implementation (legacy).
+    We now prefer the portable async overlay picker (file_dialog_portable.c).
+    To re-enable the native dialog for comparison or performance tests,
+    build with -DROGUE_USE_WIN32_NATIVE_DIALOG=1.
+    (Kept minimal and isolated to avoid Windows header pollution.)
 */
-#ifdef _WIN32
-/* NOTE: Avoid WIN32_LEAN_AND_MEAN here because <commdlg.h> transitively pulls
-    in <prsht.h> on some SDK versions, which expects a full windows.h surface
-    (types like PROPSHEETPAGE*, HICON, DWORD, etc.). Using the lean define was
-    triggering missing type cascades during MSVC build. */
-/* windows.h must precede commdlg.h to ensure all required typedefs/macros (DWORD, HICON, etc.) */
+#ifndef ROGUE_USE_WIN32_NATIVE_DIALOG
+#define ROGUE_USE_WIN32_NATIVE_DIALOG 0
+#endif
+
+#if defined(_WIN32) && ROGUE_USE_WIN32_NATIVE_DIALOG
+/* Intentionally do NOT define WIN32_LEAN_AND_MEAN here; <commdlg.h> may rely on
+   broader Windows SDK declarations (e.g., via <prsht.h>). */
 #include "file_dialog.h"
 #include <commdlg.h>
 #include <string.h>
-#include <windows.h>
+#include <windows.h> /* MUST come before <commdlg.h> */
 
 /* Compile-time guard: if someone reorders includes in build chain so commdlg.h
     appears before windows.h, detect it early. _WINDOWS_ is defined by windows.h,
@@ -53,4 +54,4 @@ int rogue_platform_open_file_dialog(const char* filter, char* out_path, size_t o
     }
     return 0;
 }
-#endif /* _WIN32 */
+#endif /* defined(_WIN32) && ROGUE_USE_WIN32_NATIVE_DIALOG */

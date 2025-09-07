@@ -290,8 +290,8 @@ add_library(rogue_core
     src/world/tile_sprite_cache.c
     src/core/world/map_debug.c
     src/platform/platform_sdl.c
-    # Platform helpers (file dialog for asset overlay Phase 2)
-    src/platform/file_dialog_win32.c
+    # Platform helpers (portable file picker replacing Win32 common dialog)
+    src/platform/file_dialog_portable.c
     src/graphics/renderer.c
     src/graphics/sprite.c
     src/entities/spawn_entities.c
@@ -579,22 +579,26 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(asset_tool PRIVATE SDL2::SDL2)
 endif()
 
-if (WIN32)
-    # Ensure dependent runtime DLLs (e.g. SDL2[d].dll, SDL2_mixer[d].dll) are discoverable.
-    set(ROGUE_VCPKG_BIN_RELEASE "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/bin")
-    set(ROGUE_VCPKG_BIN_DEBUG   "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/debug/bin")
-    # Use full path to the executable so the loader searches its directory first (contains copied/matching DLLs).
-    add_custom_target(asset_manifest ALL
-        COMMAND ${CMAKE_COMMAND} -E env "PATH=${ROGUE_VCPKG_BIN_DEBUG};${ROGUE_VCPKG_BIN_RELEASE};$ENV{PATH}" $<TARGET_FILE:asset_validate> --manifest ${CMAKE_BINARY_DIR}/asset_manifest.txt --optimize
-        DEPENDS asset_validate
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        COMMENT "Generating asset manifest (Phase 5)")
+if (EXISTS ${CMAKE_SOURCE_DIR}/assets)
+    if (WIN32)
+        # Ensure dependent runtime DLLs (e.g. SDL2[d].dll, SDL2_mixer[d].dll) are discoverable.
+        set(ROGUE_VCPKG_BIN_RELEASE "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/bin")
+        set(ROGUE_VCPKG_BIN_DEBUG   "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/debug/bin")
+        # Use full path to the executable so the loader searches its directory first (contains copied/matching DLLs).
+        add_custom_target(asset_manifest ALL
+            COMMAND ${CMAKE_COMMAND} -E env "PATH=${ROGUE_VCPKG_BIN_DEBUG};${ROGUE_VCPKG_BIN_RELEASE};$ENV{PATH}" $<TARGET_FILE:asset_validate> --manifest ${CMAKE_BINARY_DIR}/asset_manifest.txt --optimize
+            DEPENDS asset_validate
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            COMMENT "Generating asset manifest (Phase 5)")
+    else()
+        add_custom_target(asset_manifest ALL
+            COMMAND $<TARGET_FILE:asset_validate> --manifest ${CMAKE_BINARY_DIR}/asset_manifest.txt --optimize
+            DEPENDS asset_validate
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            COMMENT "Generating asset manifest (Phase 5)")
+    endif()
 else()
-    add_custom_target(asset_manifest ALL
-        COMMAND $<TARGET_FILE:asset_validate> --manifest ${CMAKE_BINARY_DIR}/asset_manifest.txt --optimize
-        DEPENDS asset_validate
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        COMMENT "Generating asset manifest (Phase 5)")
+    message(WARNING "assets directory missing - skipping asset_manifest target generation")
 endif()
 
 install(FILES ${CMAKE_BINARY_DIR}/asset_manifest.txt DESTINATION meta OPTIONAL)

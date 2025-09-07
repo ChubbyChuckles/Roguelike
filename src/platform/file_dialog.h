@@ -7,17 +7,22 @@
 
 #include <stddef.h>
 
-#ifdef _WIN32
+/* Legacy synchronous helper (now implemented as no-op wrapper). */
 int rogue_platform_open_file_dialog(const char* filter, char* out_path, size_t out_cap);
-#else
-static inline int rogue_platform_open_file_dialog(const char* filter, char* out_path,
-                                                  size_t out_cap)
+
+/* Asynchronous in-overlay file dialog API */
+typedef enum RogueFileDialogMode
 {
-    (void) filter;
-    (void) out_path;
-    (void) out_cap;
-    return 0; /* not implemented */
-}
-#endif
+    ROGUE_FD_MODE_OPEN = 0,
+    ROGUE_FD_MODE_SAVE = 1
+} RogueFileDialogMode;
+
+/* Show (or reopen) the modal picker inside the debug overlay. */
+void rogue_file_dialog_show(RogueFileDialogMode mode, const char* filter_patterns,
+                            const char* default_name);
+/* Poll for result: returns 1 (path ready), 0 (pending), -1 (canceled). */
+int rogue_file_dialog_poll_result(char* out_path, size_t out_cap);
+/* Draw UI if active (call each frame from an overlay panel). */
+void rogue_file_dialog_draw_overlay(void);
 
 #endif /* ROGUE_PLATFORM_FILE_DIALOG_H */

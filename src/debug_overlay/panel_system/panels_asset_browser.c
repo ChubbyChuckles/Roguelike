@@ -19,11 +19,18 @@
 #include "../overlay_core.h"
 #include "../widgets/overlay_widgets.h"
 #include "../widgets/overlay_widgets_internal.h" /* access g_ui positioning (internal) */
+/* Moved up so RogueColor / font symbols are visible for any early inlined helpers */
+#include "../../core/app/app_state.h" /* for g_app renderer to draw sprite grid */
+#include "../../graphics/font.h"
+#include "../../graphics/renderer.h"
+#include "../overlay_theme.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 #ifdef _WIN32
 #include "../../platform/file_dialog.h"
+#else
+#include <dirent.h> /* needed for POSIX recursive scan */
 #endif
 
 #ifndef ROGUE_ASSET_BROWSER_JSON_CAP
@@ -73,6 +80,25 @@ typedef struct AssetBrowserEnhancedState
 
 static AssetBrowserEnhancedState g_ab_state; /* zero-init */
 
+/* Safe bounded copy (always NUL terminates) */
+static void ab_safe_copy(char* dst, size_t cap, const char* src)
+{
+    size_t i = 0;
+    if (!dst || cap == 0)
+        return;
+    if (!src)
+    {
+        dst[0] = '\0';
+        return;
+    }
+    while (src[i] && i + 1 < cap)
+    {
+        dst[i] = src[i];
+        i++;
+    }
+    dst[i] = '\0';
+}
+
 static char g_filter[48];
 static int g_filter_use_wildcards = 1; /* future: toggle real regex */
 
@@ -114,32 +140,155 @@ static int ab_match_wildcard_ci(const char* text, const char* pattern)
     return *p == '\0';
 }
 
-/* Stubbed JSON colored preview (advanced coloring temporarily disabled). Displays first ~12 lines.
+/* Lightweight JSON syntax preview (first ~12 lines, no heap alloc). Token classes:
+   - String keys / values
+   - Numbers
+   - Booleans / null
+   - Punctuation ({}[]:,)
+   Fallback: theme text color. Draws segments sequentially on a single overlay row per source line.
  */
+/* (theme/font/renderer/app_state already included above) */
+#if defined(ROGUE_HAVE_SDL)
+#include <SDL.h>
+#endif
 static void ab_draw_json_preview(const char* buffer)
 {
     if (!buffer)
         return;
+#if !ROGUE_ENABLE_DEBUG_OVERLAY
+    (void) buffer;
+    return;
+#else
+    const OverlayTheme* th = overlay_theme_get();
     const char* p = buffer;
     int lines = 0;
     while (*p && lines < 12)
     {
-        char line[256];
-        int len = 0;
-        while (p[len] && p[len] != '\n' && len < (int) sizeof line - 1)
+        /* Extract one physical line (bounded) */
+        const char* line_start = p;
+        const char* line_end = p;
+        int newline = 0;
+        while (*line_end && *line_end != '\n' && (line_end - line_start) < 512)
+            line_end++;
+        if (*line_end == '\n')
+            newline = 1;
+        /* Tokenize this slice */
+        const char* cur = line_start;
+        while (cur < line_end)
         {
-            line[len] = p[len];
-            len++;
+            unsigned char r = th->text.r, g = th->text.g, b = th->text.b, a = th->text.a;
+            const char* tok_start = cur;
+            const char* tok_end = cur + 1;
+            char tmp[256];
+            int is_string = 0;
+            int is_number = 0;
+            int is_ident = 0;
+            /* Skip whitespace quickly */
+            if (*cur == ' ' || *cur == '\t')
+            {
+                while (tok_end < line_end && (*tok_end == ' ' || *tok_end == '\t'))
+                    tok_end++;
+            }
+            else if (*cur == '"') /* string */
+            {
+                is_string = 1;
+                tok_end = cur + 1;
+                while (tok_end < line_end)
+                {
+                    if (*tok_end == '"')
+                    {
+                        /* Count preceding backslashes to decide escape */
+                        int bs = 0;
+                        const char* q = tok_end - 1;
+                        while (q >= cur && *q == '\\')
+                        {
+                            bs++;
+                            q--;
+                        }
+                        if ((bs & 1) == 0)
+                        {
+                            tok_end++;
+                            break;
+                        }
+                    }
+                    tok_end++;
+                }
+                r = th->text_accent.r;
+                g = th->text_accent.g;
+                b = th->text_accent.b;
+                a = th->text_accent.a;
+            }
+            else if ((*cur >= '0' && *cur <= '9') ||
+                     (*cur == '-' && (cur + 1) < line_end && cur[1] >= '0' && cur[1] <= '9'))
+            {
+                is_number = 1;
+                while (tok_end < line_end &&
+                       ((*tok_end >= '0' && *tok_end <= '9') || *tok_end == '.' ||
+                        *tok_end == 'e' || *tok_end == 'E' || *tok_end == '+' || *tok_end == '-'))
+                    tok_end++;
+                r = th->accent_1.r;
+                g = th->accent_1.g;
+                b = th->accent_1.b;
+                a = th->accent_1.a;
+            }
+            else if ((*cur >= 'a' && *cur <= 'z') || (*cur >= 'A' && *cur <= 'Z'))
+            {
+                is_ident = 1;
+                while (tok_end < line_end && ((*tok_end >= 'a' && *tok_end <= 'z') ||
+                                              (*tok_end >= 'A' && *tok_end <= 'Z')))
+                    tok_end++;
+                int len = (int) (tok_end - tok_start);
+                if ((len == 4 &&
+                     (strncmp(tok_start, "true", 4) == 0 || strncmp(tok_start, "null", 4) == 0)) ||
+                    (len == 5 && strncmp(tok_start, "false", 5) == 0))
+                {
+                    r = th->accent_2.r;
+                    g = th->accent_2.g;
+                    b = th->accent_2.b;
+                    a = th->accent_2.a;
+                }
+            }
+            else if (*cur == '{' || *cur == '}' || *cur == '[' || *cur == ']' || *cur == ':' ||
+                     *cur == ',')
+            {
+                /* Single char punctuation; subtle mute */
+                r = th->text_muted.r;
+                g = th->text_muted.g;
+                b = th->text_muted.b;
+                a = th->text_muted.a;
+            }
+            /* Copy token slice (clamped) and draw immediately */
+            {
+                int copy_len = (int) (tok_end - tok_start);
+                if (copy_len > (int) sizeof tmp - 1)
+                    copy_len = (int) sizeof tmp - 1;
+                memcpy(tmp, tok_start, copy_len);
+                tmp[copy_len] = '\0';
+                /* Draw using immediate font call (mirrors overlay_label layout increments). */
+                /* Manual in-line variant to allow per-token color: replicate minimal overlay_label
+                 * logic */
+                if (g_ui.panel_active)
+                {
+                    rogue_font_draw_text(g_ui.cur_x, g_ui.cur_y + 4, tmp, 1,
+                                         (RogueColor){r, g, b, a});
+                    g_ui.cur_x += copy_len * (g_rogue_builtin_font.glyph_w + 1);
+                    if (g_ui.row_max_h < 20)
+                        g_ui.row_max_h = 20;
+                }
+            }
+            cur = tok_end;
         }
-        line[len] = '\0';
-        overlay_label(line);
-        if (!p[len])
-            break;
-        p += len;
-        if (*p == '\n')
-            p++;
+        /* End of line: reset X and advance Y like overlay_label would */
+        /* Reset X to column start and advance row */
+        g_ui.cur_x = g_ui.col_x0[g_ui.col_index];
+        ui_next_line();
+        if (newline)
+            p = line_end + 1;
+        else
+            p = line_end;
         lines++;
     }
+#endif /* ROGUE_ENABLE_DEBUG_OVERLAY */
 }
 
 /* --- Lightweight recursive enumerator for JSON / Shader assets (headless safe) --- */
@@ -213,7 +362,6 @@ static void ab_scan_dir_win(const char* root, const char* sub, int is_json, int 
     FindClose(h);
 }
 #else
-#include <dirent.h>
 #include <sys/stat.h>
 static void ab_scan_dir_posix(const char* root, const char* sub, int is_json, int is_shader)
 {
@@ -388,27 +536,28 @@ static void panel_asset_browser(void* user)
             size_t len = strlen(drop_tok);
             if (len > 0 && len < sizeof(g_ab_state.pending_import_path))
             {
-                strncpy(g_ab_state.pending_import_path, drop_tok,
-                        sizeof g_ab_state.pending_import_path - 1);
-                g_ab_state.pending_import_path[sizeof g_ab_state.pending_import_path - 1] = '\0';
+                ab_safe_copy(g_ab_state.pending_import_path, sizeof g_ab_state.pending_import_path,
+                             drop_tok);
             }
         }
     }
-#ifdef _WIN32
     if (overlay_button("Open File Dialog"))
     {
-        char path[512];
-        /* Basic filter: Images and All files. Filter string must be double-null terminated. */
-        const char filter[] =
-            "Images\0*.png;*.bmp;*.tga;*.jpg;*.jpeg;*.ogg;*.wav;*.json\0All Files\0*.*\0\0";
-        if (rogue_platform_open_file_dialog(filter, path, sizeof path))
+        /* Show async dialog (filters simplified: semicolon separated for portable picker) */
+        rogue_file_dialog_show(ROGUE_FD_MODE_OPEN,
+                               "*.png;*.bmp;*.tga;*.jpg;*.jpeg;*.ogg;*.wav;*.json", NULL);
+    }
+    /* Draw modal if active and poll result */
+    rogue_file_dialog_draw_overlay();
+    {
+        char picked[512];
+        int pr = rogue_file_dialog_poll_result(picked, sizeof(picked));
+        if (pr == 1 && picked[0])
         {
-            strncpy(g_ab_state.pending_import_path, path,
-                    sizeof g_ab_state.pending_import_path - 1);
-            g_ab_state.pending_import_path[sizeof g_ab_state.pending_import_path - 1] = '\0';
+            ab_safe_copy(g_ab_state.pending_import_path, sizeof g_ab_state.pending_import_path,
+                         picked);
         }
     }
-#endif
     if (g_ab_state.pending_import_path[0])
     {
         if (overlay_button("Import Texture"))
@@ -766,10 +915,35 @@ static void panel_asset_browser(void* user)
                 int px = g_ui.cur_x + g_ab_state.pan_x;
                 int py = g_ui.cur_y + 2 + g_ab_state.pan_y;
                 rogue_sprite_draw(&spr, px, py, scale);
-                /* Sprite grid overlay (temporarily disabled for diagnostics) */
-                if (0 && g_ab_state.sprite_grid_show)
+                /* Sprite grid overlay */
+                if (g_ab_state.sprite_grid_show && g_app.renderer)
                 {
-                    (void) scale;
+                    int cw = g_ab_state.sprite_grid_cell_w > 0 ? g_ab_state.sprite_grid_cell_w : 32;
+                    int ch = g_ab_state.sprite_grid_cell_h > 0 ? g_ab_state.sprite_grid_cell_h : 32;
+                    if (cw < 4)
+                        cw = 4;
+                    if (ch < 4)
+                        ch = 4;
+                    int gw = spr.sw * scale;
+                    int gh = spr.sh * scale;
+#if defined(ROGUE_HAVE_SDL)
+                    /* Choose color from theme accent */
+                    const OverlayTheme* th_grid = overlay_theme_get();
+                    SDL_SetRenderDrawColor(g_app.renderer, th_grid->accent_1.r, th_grid->accent_1.g,
+                                           th_grid->accent_1.b, 160);
+                    /* Vertical lines */
+                    for (int vx = 0; vx <= spr.sw; vx += cw)
+                    {
+                        int x0 = px + vx * scale;
+                        SDL_RenderDrawLine(g_app.renderer, x0, py, x0, py + gh);
+                    }
+                    /* Horizontal lines */
+                    for (int hy = 0; hy <= spr.sh; hy += ch)
+                    {
+                        int y0 = py + hy * scale;
+                        SDL_RenderDrawLine(g_app.renderer, px, y0, px + gw, y0);
+                    }
+#endif
                 }
                 g_ui.cur_y = py + spr.sh * scale + 4; /* advance cursor */
                 /* Grid controls */
@@ -880,10 +1054,5 @@ void rogue_panel_asset_browser_set_filter(const char* f)
         g_filter[0] = '\0';
         return;
     }
-#if defined(_MSC_VER)
-    strncpy_s(g_filter, sizeof g_filter, f, _TRUNCATE);
-#else
-    strncpy(g_filter, f, sizeof g_filter - 1);
-    g_filter[sizeof g_filter - 1] = '\0';
-#endif
+    ab_safe_copy(g_filter, sizeof g_filter, f);
 }
