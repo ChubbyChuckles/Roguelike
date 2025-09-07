@@ -101,10 +101,10 @@ This is a comprehensive, step-by-step implementation plan for the Skill Creation
 	- Remaining candidates: damage types, target filters, animation states, projectile behaviors.
  - [x] **Formula Editors** - Prototype lightweight expression evaluator ( + - * / parentheses, identifiers: base, per, rank, str, dex, int, cap ) with live preview in Skills → Overview (Formula Preview). No persistence or syntax highlighting yet; future work: token colorization in text input, error underline, variable injection from broader context (resistances, crit, etc.), and saved formula bindings per skill/effect.
 
-- [ ] **Visual Sprite Sheet Editor** - Grid overlay and frame selection
-- [ ] **Real-time Animation Preview** - Timing adjustment
-- [ ] **Sprite Sheet Import Wizard** - Common formats (PNG, TGA, BMP)
-- [ ] **Asset Dependency Viewer** - All sprites/sounds used by a skill
+ - [x] **Visual Sprite Sheet Editor** - Grid overlay and frame selection (implemented: interactive grid overlay, auto grid inference, frame selection, right-drag grid resize, grow/set frame count helpers wired to RogueSkillVisualParams)
+ - [x] **Real-time Animation Preview** - Timing adjustment (Live Timing Mode: optional checkbox applies speed slider changes immediately by persisting frame_duration_ms without requiring manual Apply; clamps 1..1000ms, preserves legacy manual Apply path when disabled)
+ - [x] **Sprite Sheet Import Wizard** - Common formats (PNG, TGA, BMP) (implemented: Import Wizard panel enumerates assets/ recursively (Win32) filtering PNG/TGA/BMP, filter box + target selector (Cast/Projectile/Impact/AoE), staging list (64 cap) and Import button assigning last staged per target to RogueSkillVisualParams; future: drag & drop, copy into structured skill dirs, cross-platform enumeration, validation & thumbnails.)
+ - [x] **Asset Dependency Viewer** - All sprites/sounds used by a skill (implemented: dependency list filtered by current cast sprite basename; uses asset dep registry, truncates after cap, headless-safe)
 - [ ] **Batch Asset Operations** - Resize, convert, optimize, rename
 - [ ] **Asset Validation Feedback** - Thumbnails of missing/corrupted files
 - [ ] **Sprite Sheet Packing** - Performance and memory optimization

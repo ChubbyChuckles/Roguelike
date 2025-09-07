@@ -103,11 +103,48 @@ EffectSpecs: SPAWN_ENTITY effect (Phase 1.2 slice)
 
 Skills: EffectNode Tree Structure (experimental Phase 1.2 extension)
 
+feat(skills/visuals): sprite sheet editor & asset dependency viewer (Phase 2.4)
+
+- Add interactive Visual Sprite Sheet Editor to Skills → Visuals: grid overlay (auto-infers 64x64 heuristic when unset), left-click frame select, right-drag grid dimension adjust (prototype heuristic), Grow Frame Count (selected_index+1), Set Frame Count = Grid Cells (grid_w * grid_h). Writes back to RogueSkillVisualParams only on actions; headless-safe (guards rendering when no SDL renderer).
+- Add Asset Dependency Viewer: collapsible list filtered by current cast sprite basename using asset dep registry; truncates after internal cap to keep UI responsive. Supports future validation/hot-reload workflows.
+- Roadmap: mark Phase 2.4 items "Visual Sprite Sheet Editor" and "Asset Dependency Viewer" complete with implementation blurbs.
+- README: add "New Skill Visual Authoring Tools" section documenting usage and interaction model.
+- Cleanup: confirm legacy monolithic ui_context.c fully removed from tree (all functionality modularized previously); references replaced with per-module sources (core/interaction/navigation/etc.).
+
+
 feat(skill-suite/ui): Formula Editor prototype (Phase 2.4 completion)
 
 Adds lightweight expression evaluator (formula_eval.c) with + - * /, parentheses, identifiers: base, per, rank, str, dex, int, cap.
 Integrated into Skills → Overview as "Formula Preview" with editable formula input and live evaluation against preview rank/stat sliders.
 Unit test test_formula_eval validates success cases and error paths (syntax, unknown ident). Roadmap marks Formula Editors complete (prototype). Persistence & syntax highlighting deferred.
+
+feat(skills/visuals): real-time animation timing adjustment (Live Timing Mode)
+
+- Add "Live Timing Mode" checkbox to Skills → Visuals animation preview. When enabled, changes to the "Preview Speed (%)" slider immediately recompute and persist `frame_duration_ms` (clamped 1..1000ms) giving instant feedback on final playback timing without requiring the manual Apply button.
+- Legacy workflow preserved: with Live Timing Mode off, authors still use the explicit "Apply Speed → Frame Duration" action for deliberate edits.
+- Headless-safe: logic touches only overlay control flow and RogueSkillVisualParams; no new SDL dependencies introduced.
+- Roadmap: mark Phase 2.4 "Real-time Animation Preview – Timing adjustment" complete with implementation blurb.
+- README: document feature under New Skill Visual Authoring Tools as "Live Timing Mode".
+
+feat(skills/visuals): sprite sheet import wizard (PNG/TGA/BMP enumeration, staging, assign)
+
+- Replaces prototype stub with functional Import Wizard in Skills → Visuals.
+- Scan Images: recursive assets/ traversal (Win32) collecting PNG/TGA/BMP (normalized forward slashes, depth clamp).
+- Filter box performs substring filtering via existing overlay_table filter argument.
+- Assign Target combo (Cast/Projectile/Impact/AoE); Stage Selected adds entry (64 cap) preserving chosen target.
+- Import → Assign applies last staged path per target to RogueSkillVisualParams (cast_sprite_sheet, projectile_sprite, impact_sprite, aoe_sprite) and marks visuals dirty.
+- Staged list supports per-entry Remove (compacting memmove) and clears after successful import.
+- Headless-safe: all FS enumeration guarded; no SDL calls; pure overlay + Win32 API branch.
+- Roadmap: marks Phase 2.4 "Sprite Sheet Import Wizard – Common formats" complete with implementation blurb & future tasks.
+- README: replaces prototype description with concrete feature summary + future roadmap (drag & drop, structured copy, thumbnails, validation, audio import).
+
+Deferred / next steps:
+	* Cross-platform directory enumeration abstraction (POSIX opendir / portable layer).
+	* Drag & drop integration (SDL_DROPFILE) pushing dropped paths into staging list.
+	* Structured copy workflow: copy/move into assets/skills/<skill_id>/{cast,projectile,...}/ with collision resolution and toast feedback.
+	* Dimension probe + suggested grid inference (populate grid_width/grid_height heuristics).
+	* Inline thumbnail preview & missing/corrupted asset validation hooks (ties into pending Asset Validation Feedback roadmap item).
+	* Audio file enumeration + staging (wav/ogg/mp3) with Assign-To (Cast/Impact/Loop) integration.
 
 Build/Test Verification:
 - Full Debug build (MSVC, SDL2) succeeded post-integration.

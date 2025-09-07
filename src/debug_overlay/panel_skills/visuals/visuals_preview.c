@@ -92,10 +92,36 @@ void rogue_visuals_preview_section(RogueSkillVisualParams* vis, int* vchanged)
         ps->speed_pct = 10;
     if (ps->speed_pct > 400)
         ps->speed_pct = 400;
-    if (overlay_slider_int("Preview Speed (%)", &ps->speed_pct, 10, 400))
-    { /* consumed live */
+    static int live_timing_mode = 0; /* When enabled, changes persist immediately */
+    if (overlay_checkbox("Live Timing Mode", &live_timing_mode))
+    {
+        /* no-op body: checkbox already toggled */
     }
-    if (overlay_button("Apply Speed → Frame Duration"))
+    if (overlay_slider_int("Preview Speed (%)", &ps->speed_pct, 10, 400))
+    {
+        if (live_timing_mode)
+        {
+            /* Derive and immediately persist a new frame_duration_ms based on baseline 100% */
+            float mul = (float) ps->speed_pct / 100.0f;
+            if (mul <= 0.01f)
+                mul = 0.01f;
+            float base = vis->frame_duration_ms > 0.0f ? vis->frame_duration_ms : 100.0f;
+            /* In live mode, interpret speed % as a multiplier relative to original base snapshot.
+               Simplify: treat 100% as identity, higher % = faster (shorter duration). */
+            float new_dur = base / mul;
+            if (new_dur < 1.0f)
+                new_dur = 1.0f;
+            /* Clamp to a reasonable upper bound to avoid extreme slowdowns. */
+            if (new_dur > 1000.0f)
+                new_dur = 1000.0f;
+            if (vis->frame_duration_ms != new_dur)
+            {
+                vis->frame_duration_ms = new_dur;
+                *vchanged = 1;
+            }
+        }
+    }
+    if (!live_timing_mode && overlay_button("Apply Speed → Frame Duration"))
     {
         float mul = (float) ps->speed_pct / 100.0f;
         if (mul <= 0.01f)
@@ -106,7 +132,9 @@ void rogue_visuals_preview_section(RogueSkillVisualParams* vis, int* vchanged)
             vis->frame_duration_ms = 1.0f;
         *vchanged = 1;
     }
-    overlay_label("(Speed affects preview immediately; Apply persists new duration)");
+    overlay_label(live_timing_mode
+                      ? "(Live mode: speed updates frame_duration_ms immediately)"
+                      : "(Speed affects preview immediately; Apply persists new duration)");
     (void) overlay_combo("Preview Target", &ps->preview_target,
                          (const char*[]){"Cast Sheet", "Projectile", "Impact", "AoE"}, 4);
     const char* path = NULL;
@@ -217,6 +245,53 @@ void rogue_visuals_preview_section(RogueSkillVisualParams* vis, int* vchanged)
     }
     else
         overlay_label("(Set a sprite path; for Cast, also set Grid WxH to animate)");
+}
+
+/* Simple dependency viewer: lists registered asset deps containing skill id substring */
+void rogue_visuals_dependency_viewer(RogueSkillVisualParams* vis)
+{
+    (void) vis;
+    int open = 1;
+    if (!overlay_tree_node("Asset Dependencies", &open))
+        return;
+    extern int rogue_asset_dep_count(void);
+    extern int rogue_asset_dep_get(int index, const char** out_id, const char** out_path);
+    int total = rogue_asset_dep_count();
+    char filter[64];
+    snprintf(filter, sizeof filter, "%s",
+             vis->cast_sprite_sheet && *vis->cast_sprite_sheet ? vis->cast_sprite_sheet : "");
+    overlay_label("(Filtered by sprite basename if available)");
+    int shown = 0;
+    for (int i = 0; i < total; ++i)
+    {
+        const char *id = NULL, *path = NULL;
+        if (!rogue_asset_dep_get(i, &id, &path))
+            continue;
+        if (filter[0])
+        {
+            const char* base = strrchr(path, '/');
+            if (!base)
+                base = strrchr(path, '\\');
+            if (!base)
+                base = path;
+            else
+                base++;
+            if (strstr(base, filter) == NULL)
+                continue;
+        }
+        char line[256];
+        snprintf(line, sizeof line, "%02d: %s -> %s", i, id ? id : "(null)", path ? path : "");
+        overlay_label(line);
+        ++shown;
+        if (shown > 40)
+        {
+            overlay_label("(truncated)");
+            break;
+        }
+    }
+    if (shown == 0)
+        overlay_label("(No matching dependencies registered yet)");
+    overlay_tree_pop();
 }
 
 #endif /* ROGUE_ENABLE_DEBUG_OVERLAY */

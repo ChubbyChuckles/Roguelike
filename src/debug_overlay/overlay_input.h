@@ -90,6 +90,31 @@ extern "C"
     void overlay_input_simulate_key_home(void);
     void overlay_input_simulate_key_end(void);
 
+    /* --------------------------------------------------------------------- */
+    /* Convenience mouse helpers (used by newer editors).                    */
+    /* These are lightweight wrappers so call sites can stay concise.        */
+    /* They intentionally mirror naming found in some immediate-mode UIs.    */
+    static inline int overlay_mouse_x(void)
+    {
+        const struct OverlayInputState* st = overlay_input_get();
+        return st ? st->mouse_x : 0;
+    }
+    static inline int overlay_mouse_y(void)
+    {
+        const struct OverlayInputState* st = overlay_input_get();
+        return st ? st->mouse_y : 0;
+    }
+    static inline int overlay_mouse_pressed_left(void)
+    {
+        const struct OverlayInputState* st = overlay_input_get();
+        return st ? st->mouse_clicked : 0;
+    }
+    static inline int overlay_mouse_down_right(void)
+    {
+        const struct OverlayInputState* st = overlay_input_get();
+        return st ? st->mouse_right_down : 0;
+    }
+
 #else /* ROGUE_ENABLE_DEBUG_OVERLAY */
 
 static inline void overlay_input_begin_frame(void) {}
@@ -111,6 +136,12 @@ static inline void overlay_input_set_capture(int want_mouse, int want_keyboard)
     (void) want_mouse;
     (void) want_keyboard;
 }
+
+/* Mouse helper stubs (overlay disabled) */
+static inline int overlay_mouse_x(void) { return 0; }
+static inline int overlay_mouse_y(void) { return 0; }
+static inline int overlay_mouse_pressed_left(void) { return 0; }
+static inline int overlay_mouse_down_right(void) { return 0; }
 
 #endif /* ROGUE_ENABLE_DEBUG_OVERLAY */
 
