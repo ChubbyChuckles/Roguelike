@@ -318,10 +318,6 @@ jobs:
         shell: pwsh
         run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci/categorize-failures.ps1 -BuildDir build -OutDir build/failure_report -WriteGithubSummary
 
-  # Removed portability path separator scan (user request) to reduce CI noise.
-
-  # Removed portability pattern scan (advisory) per request.
-
       - name: Upload logs (always)
         if: always()
         uses: actions/upload-artifact@v4

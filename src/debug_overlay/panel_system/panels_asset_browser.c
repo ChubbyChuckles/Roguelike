@@ -64,6 +64,11 @@ typedef struct AssetBrowserEnhancedState
     char json_preview_buffer[512]; /* small preview snippet */
     int json_preview_valid;        /* 1=valid JSON syntax (shallow), 0=invalid */
     int json_preview_dirty;        /* trigger re-parse */
+    /* Phase 2 (currently stubbed) */
+    int json_error_count;   /* shallow structural error count */
+    int sprite_grid_show;   /* show sprite sheet grid overlay */
+    int sprite_grid_cell_w; /* grid cell width */
+    int sprite_grid_cell_h; /* grid cell height */
 } AssetBrowserEnhancedState;
 
 static AssetBrowserEnhancedState g_ab_state; /* zero-init */
@@ -107,6 +112,34 @@ static int ab_match_wildcard_ci(const char* text, const char* pattern)
     while (*p == '*')
         p++;
     return *p == '\0';
+}
+
+/* Stubbed JSON colored preview (advanced coloring temporarily disabled). Displays first ~12 lines.
+ */
+static void ab_draw_json_preview(const char* buffer)
+{
+    if (!buffer)
+        return;
+    const char* p = buffer;
+    int lines = 0;
+    while (*p && lines < 12)
+    {
+        char line[256];
+        int len = 0;
+        while (p[len] && p[len] != '\n' && len < (int) sizeof line - 1)
+        {
+            line[len] = p[len];
+            len++;
+        }
+        line[len] = '\0';
+        overlay_label(line);
+        if (!p[len])
+            break;
+        p += len;
+        if (*p == '\n')
+            p++;
+        lines++;
+    }
 }
 
 /* --- Lightweight recursive enumerator for JSON / Shader assets (headless safe) --- */
@@ -403,20 +436,22 @@ static void panel_asset_browser(void* user)
             g_ab_state.pending_import_path[0] = '\0';
         }
     }
-    /* JSON quick syntax validation preview (line-limited) for selected JSON file when in JSON tab
-     */
+    /* JSON quick syntax validation + highlighting preview (line-limited) when in JSON tab */
     if (g_ab_state.tab_index == 3)
     {
-        overlay_label("JSON Preview (syntax stub):");
+        overlay_label("JSON Preview:");
         /* Choose first filtered JSON entry for preview to keep UI simple */
         const char* preview_sel = NULL;
-        for (int i = 0; i < g_ab_state.json_count; ++i)
         {
-            const char* path = g_ab_state.json_files[i].path;
-            if (!g_filter[0] || ab_match_wildcard_ci(path, g_filter))
+            int i;
+            for (i = 0; i < g_ab_state.json_count; ++i)
             {
-                preview_sel = path;
-                break;
+                const char* path = g_ab_state.json_files[i].path;
+                if (!g_filter[0] || ab_match_wildcard_ci(path, g_filter))
+                {
+                    preview_sel = path;
+                    break;
+                }
             }
         }
         if (preview_sel)
@@ -426,16 +461,49 @@ static void panel_asset_browser(void* user)
             FILE* f = fopen(full, "rb");
             if (f)
             {
-                size_t r = fread(g_ab_state.json_preview_buffer, 1,
-                                 sizeof(g_ab_state.json_preview_buffer) - 1, f);
+                /* Declarations first for MSVC C89 compliance */
+                size_t r = 0;
+                int depth;     /* brace/bracket depth */
+                int ok;        /* overall validity */
+                int errors;    /* error count */
+                int in_string; /* inside string literal */
+                int escape;    /* processing escape */
+                size_t i;      /* loop index */
+                r = fread(g_ab_state.json_preview_buffer, 1,
+                          sizeof(g_ab_state.json_preview_buffer) - 1, f);
                 fclose(f);
                 g_ab_state.json_preview_buffer[r] = '\0';
-                /* Shallow syntax heuristic: count braces/brackets balance (not full JSON parse). */
-                int depth = 0;
-                int ok = 1;
-                for (size_t k = 0; k < r; ++k)
+                /* Simple JSON tokenizer for highlighting (NOT a full spec implementation). */
+                depth = 0; /* brace/bracket depth */
+                ok = 1;
+                errors = 0;
+                in_string = 0;
+                escape = 0;
+                /* Pass 1: structural validation */
+                for (i = 0; i < r; ++i)
                 {
-                    char c = g_ab_state.json_preview_buffer[k];
+                    unsigned char c = (unsigned char) g_ab_state.json_preview_buffer[i];
+                    if (in_string)
+                    {
+                        if (escape)
+                        {
+                            escape = 0; /* skip next */
+                        }
+                        else if (c == '\\')
+                        {
+                            escape = 1;
+                        }
+                        else if (c == '"')
+                        {
+                            in_string = 0;
+                        }
+                        continue;
+                    }
+                    if (c == '"')
+                    {
+                        in_string = 1;
+                        continue;
+                    }
                     if (c == '{' || c == '[')
                         depth++;
                     else if (c == '}' || c == ']')
@@ -444,21 +512,32 @@ static void panel_asset_browser(void* user)
                         if (depth < 0)
                         {
                             ok = 0;
-                            break;
+                            errors++;
+                            depth = 0; /* reset to avoid cascade */
                         }
                     }
                 }
-                if (depth != 0)
+                if (in_string)
+                {
                     ok = 0;
+                    errors++;
+                }
+                if (depth != 0)
+                {
+                    ok = 0;
+                    errors++;
+                }
                 g_ab_state.json_preview_valid = ok;
-                /* Truncate to first 200 chars for overlay readability */
-                char snippet[220];
-                strncpy(snippet, g_ab_state.json_preview_buffer, 199);
-                snippet[199] = '\0';
-                overlay_label(snippet);
-                overlay_label(g_ab_state.json_preview_valid
-                                  ? "(balanced braces)"
-                                  : "(UNBALANCED braces – syntax suspect)");
+                g_ab_state.json_error_count = errors;
+                /* Highlight first ~12 lines or 800 chars whichever first */
+                ab_draw_json_preview(g_ab_state.json_preview_buffer);
+                {
+                    char status[128];
+                    snprintf(status, sizeof status, "Syntax: %s errors=%d",
+                             g_ab_state.json_preview_valid ? "OK" : "SUSPECT",
+                             g_ab_state.json_error_count);
+                    overlay_label(status);
+                }
             }
             else
             {
@@ -480,73 +559,85 @@ static void panel_asset_browser(void* user)
      ab_match_wildcard_ci((id), (g_filter)))
     if (tab == 0 || tab == 1 || tab == 0)
     {
-        for (uint32_t i = 0; i < m->texture_count && limit > 0; ++i)
         {
-            const RogueAssetTexture* t = &m->textures[i];
-            if (!PASS_FILTER(t->path, t->id))
-                continue;
-            if (tab == 2 || tab == 3 || tab == 4) /* texture not in audio/json/shader tabs */
-                break; /* skip textures when audio/json/shader specific; rely on else blocks */
-            snprintf(line, sizeof line, "T%03u %s w=%d h=%d ref=%u%s%s", i, t->id, t->width,
-                     t->height, t->ref_count, t->load_failed ? " FAIL" : "",
-                     t->sdl_texture ? " *" : "");
-            if (g_ab_state.selected_row == current_row_index)
+            uint32_t i;
+            for (i = 0; i < m->texture_count && limit > 0; ++i)
             {
-                overlay_label(line);
+                const RogueAssetTexture* t = &m->textures[i];
+                if (!PASS_FILTER(t->path, t->id))
+                    continue;
+                if (tab == 2 || tab == 3 || tab == 4) /* texture not in audio/json/shader tabs */
+                    break; /* skip textures when audio/json/shader specific; rely on else blocks */
+                snprintf(line, sizeof line, "T%03u %s w=%d h=%d ref=%u%s%s", i, t->id, t->width,
+                         t->height, t->ref_count, t->load_failed ? " FAIL" : "",
+                         t->sdl_texture ? " *" : "");
+                if (g_ab_state.selected_row == current_row_index)
+                {
+                    overlay_label(line);
+                }
+                else if (overlay_button(line))
+                {
+                    g_ab_state.selected_row = current_row_index;
+                }
+                current_row_index++;
+                shown++;
+                limit--;
             }
-            else if (overlay_button(line))
-            {
-                g_ab_state.selected_row = current_row_index;
-            }
-            current_row_index++;
-            shown++;
-            limit--;
         }
     }
     if (tab == 0 || tab == 2)
     {
-        for (uint32_t i = 0; i < m->audio_count && limit > 0; ++i)
         {
-            const RogueAssetAudio* a = &m->audio[i];
-            if (!PASS_FILTER(a->path, a->id))
-                continue;
-            if (tab == 1 || tab == 3 || tab == 4)
-                break; /* only textures desired in those specific tabs */
-            snprintf(line, sizeof line, "A%03u %s ref=%u%s%s", i, a->id, a->ref_count,
-                     a->load_failed ? " FAIL" : "", a->sdl_chunk ? " *" : "");
-            if (g_ab_state.selected_row == current_row_index)
-                overlay_label(line);
-            else if (overlay_button(line))
-                g_ab_state.selected_row = current_row_index;
-            current_row_index++;
-            shown++;
-            limit--;
+            uint32_t i;
+            for (i = 0; i < m->audio_count && limit > 0; ++i)
+            {
+                const RogueAssetAudio* a = &m->audio[i];
+                if (!PASS_FILTER(a->path, a->id))
+                    continue;
+                if (tab == 1 || tab == 3 || tab == 4)
+                    break; /* only textures desired in those specific tabs */
+                snprintf(line, sizeof line, "A%03u %s ref=%u%s%s", i, a->id, a->ref_count,
+                         a->load_failed ? " FAIL" : "", a->sdl_chunk ? " *" : "");
+                if (g_ab_state.selected_row == current_row_index)
+                    overlay_label(line);
+                else if (overlay_button(line))
+                    g_ab_state.selected_row = current_row_index;
+                current_row_index++;
+                shown++;
+                limit--;
+            }
         }
     }
     if (tab == 0 || tab == 3)
     {
-        for (int i = 0; i < g_ab_state.json_count && limit > 0; ++i)
         {
-            const char* path = g_ab_state.json_files[i].path;
-            if (!PASS_FILTER(path, path))
-                continue;
-            snprintf(line, sizeof line, "J %s", path);
-            overlay_label(line);
-            shown++;
-            limit--;
+            int i;
+            for (i = 0; i < g_ab_state.json_count && limit > 0; ++i)
+            {
+                const char* path = g_ab_state.json_files[i].path;
+                if (!PASS_FILTER(path, path))
+                    continue;
+                snprintf(line, sizeof line, "J %s", path);
+                overlay_label(line);
+                shown++;
+                limit--;
+            }
         }
     }
     if (tab == 0 || tab == 4)
     {
-        for (int i = 0; i < g_ab_state.shader_count && limit > 0; ++i)
         {
-            const char* path = g_ab_state.shader_files[i].path;
-            if (!PASS_FILTER(path, path))
-                continue;
-            snprintf(line, sizeof line, "S %s", path);
-            overlay_label(line);
-            shown++;
-            limit--;
+            int i;
+            for (i = 0; i < g_ab_state.shader_count && limit > 0; ++i)
+            {
+                const char* path = g_ab_state.shader_files[i].path;
+                if (!PASS_FILTER(path, path))
+                    continue;
+                snprintf(line, sizeof line, "S %s", path);
+                overlay_label(line);
+                shown++;
+                limit--;
+            }
         }
     }
 #undef PASS_FILTER
@@ -558,39 +649,46 @@ static void panel_asset_browser(void* user)
         int row = 0;
         const RogueAssetTexture* sel_tex = NULL;
         const RogueAssetAudio* sel_audio = NULL;
-        for (uint32_t i = 0; i < m->texture_count; ++i)
         {
-            const RogueAssetTexture* t = &m->textures[i];
-            if (!ab_match_wildcard_ci(t->path, g_filter) &&
-                !ab_match_wildcard_ci(t->id, g_filter) && g_filter[0])
-                continue;
-            if (g_ab_state.tab_index == 2 || g_ab_state.tab_index == 3 || g_ab_state.tab_index == 4)
-                break; /* not in texture scope */
-            if (row == g_ab_state.selected_row)
+            uint32_t i;
+            for (i = 0; i < m->texture_count; ++i)
             {
-                sel_tex = t;
-                break;
+                const RogueAssetTexture* t = &m->textures[i];
+                if (!ab_match_wildcard_ci(t->path, g_filter) &&
+                    !ab_match_wildcard_ci(t->id, g_filter) && g_filter[0])
+                    continue;
+                if (g_ab_state.tab_index == 2 || g_ab_state.tab_index == 3 ||
+                    g_ab_state.tab_index == 4)
+                    break; /* not in texture scope */
+                if (row == g_ab_state.selected_row)
+                {
+                    sel_tex = t;
+                    break;
+                }
+                row++;
             }
-            row++;
         }
         if (!sel_tex && (g_ab_state.tab_index == 0 || g_ab_state.tab_index == 2))
         {
             /* adjust row for textures count covered */
-            for (uint32_t i = 0; i < m->audio_count; ++i)
             {
-                const RogueAssetAudio* a = &m->audio[i];
-                if (!ab_match_wildcard_ci(a->path, g_filter) &&
-                    !ab_match_wildcard_ci(a->id, g_filter) && g_filter[0])
-                    continue;
-                if (g_ab_state.tab_index == 1 || g_ab_state.tab_index == 3 ||
-                    g_ab_state.tab_index == 4)
-                    break;
-                if (row == g_ab_state.selected_row)
+                uint32_t i;
+                for (i = 0; i < m->audio_count; ++i)
                 {
-                    sel_audio = a;
-                    break;
+                    const RogueAssetAudio* a = &m->audio[i];
+                    if (!ab_match_wildcard_ci(a->path, g_filter) &&
+                        !ab_match_wildcard_ci(a->id, g_filter) && g_filter[0])
+                        continue;
+                    if (g_ab_state.tab_index == 1 || g_ab_state.tab_index == 3 ||
+                        g_ab_state.tab_index == 4)
+                        break;
+                    if (row == g_ab_state.selected_row)
+                    {
+                        sel_audio = a;
+                        break;
+                    }
+                    row++;
                 }
-                row++;
             }
         }
         if (sel_tex)
@@ -640,9 +738,12 @@ static void panel_asset_browser(void* user)
             if (depc > 0)
             {
                 overlay_label("Deps:");
-                for (int di = 0; di < depc; ++di)
                 {
-                    overlay_label(dep_ids[di]);
+                    int di;
+                    for (di = 0; di < depc; ++di)
+                    {
+                        overlay_label(dep_ids[di]);
+                    }
                 }
             }
             /* Basic inline thumbnail preview (Phase 1 thumbnail generation baseline). We simply
@@ -665,7 +766,20 @@ static void panel_asset_browser(void* user)
                 int px = g_ui.cur_x + g_ab_state.pan_x;
                 int py = g_ui.cur_y + 2 + g_ab_state.pan_y;
                 rogue_sprite_draw(&spr, px, py, scale);
+                /* Sprite grid overlay (temporarily disabled for diagnostics) */
+                if (0 && g_ab_state.sprite_grid_show)
+                {
+                    (void) scale;
+                }
                 g_ui.cur_y = py + spr.sh * scale + 4; /* advance cursor */
+                /* Grid controls */
+                overlay_checkbox("Show Grid", &g_ab_state.sprite_grid_show);
+                if (g_ab_state.sprite_grid_cell_w <= 0)
+                    g_ab_state.sprite_grid_cell_w = 32;
+                if (g_ab_state.sprite_grid_cell_h <= 0)
+                    g_ab_state.sprite_grid_cell_h = 32;
+                overlay_slider_int("Cell W", &g_ab_state.sprite_grid_cell_w, 4, sel_tex->width);
+                overlay_slider_int("Cell H", &g_ab_state.sprite_grid_cell_h, 4, sel_tex->height);
             }
 #endif
         }
@@ -716,8 +830,11 @@ static void panel_asset_browser(void* user)
             if (depc > 0)
             {
                 overlay_label("Deps:");
-                for (int di = 0; di < depc; ++di)
-                    overlay_label(dep_ids[di]);
+                {
+                    int di;
+                    for (di = 0; di < depc; ++di)
+                        overlay_label(dep_ids[di]);
+                }
             }
         }
     }

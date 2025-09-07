@@ -579,10 +579,23 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(asset_tool PRIVATE SDL2::SDL2)
 endif()
 
-add_custom_target(asset_manifest ALL
-    COMMAND asset_validate --manifest ${CMAKE_BINARY_DIR}/asset_manifest.txt --optimize
-    DEPENDS asset_validate
-    COMMENT "Generating asset manifest (Phase 5)")
+if (WIN32)
+    # Ensure dependent runtime DLLs (e.g. SDL2[d].dll, SDL2_mixer[d].dll) are discoverable.
+    set(ROGUE_VCPKG_BIN_RELEASE "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/bin")
+    set(ROGUE_VCPKG_BIN_DEBUG   "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/debug/bin")
+    # Use full path to the executable so the loader searches its directory first (contains copied/matching DLLs).
+    add_custom_target(asset_manifest ALL
+        COMMAND ${CMAKE_COMMAND} -E env "PATH=${ROGUE_VCPKG_BIN_DEBUG};${ROGUE_VCPKG_BIN_RELEASE};$ENV{PATH}" $<TARGET_FILE:asset_validate> --manifest ${CMAKE_BINARY_DIR}/asset_manifest.txt --optimize
+        DEPENDS asset_validate
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Generating asset manifest (Phase 5)")
+else()
+    add_custom_target(asset_manifest ALL
+        COMMAND $<TARGET_FILE:asset_validate> --manifest ${CMAKE_BINARY_DIR}/asset_manifest.txt --optimize
+        DEPENDS asset_validate
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Generating asset manifest (Phase 5)")
+endif()
 
 install(FILES ${CMAKE_BINARY_DIR}/asset_manifest.txt DESTINATION meta OPTIONAL)
 

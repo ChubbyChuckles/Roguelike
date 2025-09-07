@@ -349,6 +349,20 @@ int main(int argc, char** argv)
     }
     /* directory existence check */
 #ifdef _WIN32
+    {
+        char cwd_dbg[512];
+        DWORD cwd_len = GetCurrentDirectoryA(sizeof(cwd_dbg), cwd_dbg);
+        if (cwd_len > 0 && cwd_len < sizeof(cwd_dbg))
+            printf("[asset_validate] CWD=%s\n", cwd_dbg);
+    }
+#else
+    {
+        char cwd_dbg[512];
+        if (getcwd(cwd_dbg, sizeof(cwd_dbg)))
+            printf("[asset_validate] CWD=%s\n", cwd_dbg);
+    }
+#endif
+#ifdef _WIN32
     struct _stat ds;
     if (_stat("assets", &ds) != 0 || !(ds.st_mode & _S_IFDIR))
     {
@@ -365,8 +379,9 @@ int main(int argc, char** argv)
 #endif
     AssetList cur;
     list_init(&cur);
+    printf("[asset_validate] Scanning assets...\n");
     scan_dir("assets", "", &cur);
-    printf("Scanned %zu asset files.\n", cur.count);
+    printf("[asset_validate] Scanned %zu asset files.\n", cur.count);
     if (cur.count == 0)
     {
         fprintf(stderr, "No assets found; failing.\n");

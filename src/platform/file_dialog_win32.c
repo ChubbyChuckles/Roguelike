@@ -6,12 +6,12 @@
     visible. Fix: include windows.h first.
 */
 #ifdef _WIN32
-#include "file_dialog.h"
 /* NOTE: Avoid WIN32_LEAN_AND_MEAN here because <commdlg.h> transitively pulls
     in <prsht.h> on some SDK versions, which expects a full windows.h surface
     (types like PROPSHEETPAGE*, HICON, DWORD, etc.). Using the lean define was
     triggering missing type cascades during MSVC build. */
 /* windows.h must precede commdlg.h to ensure all required typedefs/macros (DWORD, HICON, etc.) */
+#include "file_dialog.h"
 #include <commdlg.h>
 #include <string.h>
 #include <windows.h>
