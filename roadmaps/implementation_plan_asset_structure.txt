@@ -1,0 +1,598 @@
+# Asset Structure & Management Implementation Plan
+# Roguelike Game Engine - Asset Organization & Validation System
+# Version: 1.0
+# Date: September 7, 2025
+# Author: Christian "ChubbyChuckles" Rickert
+
+## Phase 1: Core Directory Structure Design
+[ ] Design hierarchical asset directory structure with category-based organization
+[ ] Create asset type classification system (graphics, audio, data, shaders, fonts)
+[ ] Establish naming conventions for assets and directories
+[ ] Define version control strategy for asset files
+[ ] Create documentation templates for asset contributors
+
+## Phase 2: JSON Schema & Metadata System
+[ ] Design core JSON schema for asset metadata
+[ ] Create specialized schemas for different asset types:
+  [ ] Sprite sheet definitions (frame coordinates, animations)
+  [ ] Audio clip metadata (loop points, volume, format)
+  [ ] Level/map data structures
+  [ ] UI theme and layout definitions
+[ ] Implement JSON validation utilities
+[ ] Create schema versioning system for backward compatibility
+
+## Phase 3: SDL2 Integration & Cross-Platform Loading
+[ ] Implement asset loading abstraction layer for SDL2
+[ ] Create cross-platform path resolution system using SDL_GetBasePath
+[ ] Design texture/surface caching mechanism
+[ ] Implement resource lifetime management
+[ ] Add support for different image formats (PNG, BMP, JPG via SDL_image)
+[ ] Create audio loading system (SDL_mixer integration)
+
+## Phase 4: Asset Validation & Integrity System
+[ ] Implement JSON schema validation
+[ ] Create asset file integrity checking (file existence, format validation)
+[ ] Design missing asset fallback system
+[ ] Implement asset dependency tracking
+[ ] Create asset usage reporting tools
+[ ] Add checksum validation for critical assets
+
+## Phase 5: CI/CD Integration
+[ ] Extend GitHub Actions workflow for asset validation
+[ ] Create automated asset testing pipeline
+[ ] Implement cross-platform asset validation
+[ ] Add asset packaging and distribution
+[ ] Create asset change detection and notification system
+[ ] Implement automated asset optimization
+
+## Phase 6: Performance Optimization
+[ ] Design asset preloading system
+[ ] Implement memory-efficient asset streaming
+[ ] Create texture atlas generation tools
+[ ] Optimize asset loading for different platforms
+[ ] Add profiling and benchmarking for asset operations
+[ ] Implement lazy loading for non-critical assets
+
+## Phase 7: Developer Tools & Utilities
+[ ] Create asset management CLI tools
+[ ] Implement asset hot-reloading for development
+[ ] Design visual asset browser/manager
+[ ] Create asset conversion and processing scripts
+[ ] Add asset usage analytics and reporting
+[ ] Implement asset debugging and inspection tools
+
+## Phase 8: Documentation & Maintenance
+[ ] Create comprehensive asset system documentation
+[ ] Write contributor guidelines for asset creation
+[ ] Document JSON schema specifications
+[ ] Create troubleshooting and FAQ guides
+[ ] Establish asset review and approval process
+[ ] Document performance best practices
+
+---
+
+# Detailed Implementation Specifications
+
+## 1. Proposed Directory Structure
+
+```
+assets/
+├── graphics/
+│   ├── sprites/
+│   │   ├── characters/
+│   │   │   ├── player/
+│   │   │   │   ├── player_idle.png
+│   │   │   │   ├── player_walk.png
+│   │   │   │   └── player.json
+│   │   │   ├── enemies/
+│   │   │   │   ├── goblin/
+│   │   │   │   │   ├── goblin_idle.png
+│   │   │   │   │   └── goblin.json
+│   │   │   │   └── orc/
+│   │   │   └── npcs/
+│   │   ├── items/
+│   │   │   ├── weapons/
+│   │   │   ├── armor/
+│   │   │   ├── consumables/
+│   │   │   └── misc/
+│   │   ├── environment/
+│   │   │   ├── tiles/
+│   │   │   ├── decorations/
+│   │   │   └── backgrounds/
+│   │   └── ui/
+│   │       ├── buttons/
+│   │       ├── icons/
+│   │       ├── panels/
+│   │       └── cursors/
+│   ├── textures/
+│   │   ├── materials/
+│   │   └── effects/
+│   └── fonts/
+│       ├── ui/
+│       └── dialogue/
+├── audio/
+│   ├── music/
+│   │   ├── ambient/
+│   │   ├── combat/
+│   │   └── menu/
+│   ├── sfx/
+│   │   ├── combat/
+│   │   ├── environment/
+│   │   ├── ui/
+│   │   └── character/
+│   └── voice/
+│       └── dialogue/
+├── data/
+│   ├── levels/
+│   │   ├── dungeons/
+│   │   └── overworld/
+│   ├── configs/
+│   │   ├── gameplay/
+│   │   ├── graphics/
+│   │   └── audio/
+│   ├── localization/
+│   │   ├── en/
+│   │   ├── es/
+│   │   └── fr/
+│   └── schemas/
+│       ├── sprite.schema.json
+│       ├── audio.schema.json
+│       └── level.schema.json
+├── shaders/
+│   ├── vertex/
+│   ├── fragment/
+│   └── compute/
+└── meta/
+    ├── manifests/
+    ├── checksums/
+    └── documentation/
+```
+
+## 2. JSON Schema Examples
+
+### Sprite Sheet Definition (sprite.schema.json)
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Sprite Asset Definition",
+  "type": "object",
+  "required": ["version", "name", "texture", "sprites"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable name of the sprite asset"
+    },
+    "texture": {
+      "type": "object",
+      "required": ["file", "width", "height"],
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Relative path to texture file"
+        },
+        "width": {"type": "integer", "minimum": 1},
+        "height": {"type": "integer", "minimum": 1},
+        "format": {
+          "type": "string",
+          "enum": ["PNG", "BMP", "JPG"],
+          "default": "PNG"
+        }
+      }
+    },
+    "sprites": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "x", "y", "width", "height"],
+        "properties": {
+          "id": {"type": "string"},
+          "x": {"type": "integer", "minimum": 0},
+          "y": {"type": "integer", "minimum": 0},
+          "width": {"type": "integer", "minimum": 1},
+          "height": {"type": "integer", "minimum": 1},
+          "pivot_x": {"type": "number", "default": 0.5},
+          "pivot_y": {"type": "number", "default": 0.5}
+        }
+      }
+    },
+    "animations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "frames"],
+        "properties": {
+          "name": {"type": "string"},
+          "frames": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["sprite_id", "duration"],
+              "properties": {
+                "sprite_id": {"type": "string"},
+                "duration": {"type": "number", "minimum": 0}
+              }
+            }
+          },
+          "loop": {"type": "boolean", "default": true}
+        }
+      }
+    }
+  }
+}
+```
+
+### Example Player Character JSON (player.json)
+```json
+{
+  "version": "1.0.0",
+  "name": "Player Character",
+  "texture": {
+    "file": "player_spritesheet.png",
+    "width": 256,
+    "height": 128,
+    "format": "PNG"
+  },
+  "sprites": [
+    {
+      "id": "idle_01",
+      "x": 0,
+      "y": 0,
+      "width": 32,
+      "height": 32,
+      "pivot_x": 0.5,
+      "pivot_y": 1.0
+    },
+    {
+      "id": "idle_02",
+      "x": 32,
+      "y": 0,
+      "width": 32,
+      "height": 32,
+      "pivot_x": 0.5,
+      "pivot_y": 1.0
+    },
+    {
+      "id": "walk_01",
+      "x": 0,
+      "y": 32,
+      "width": 32,
+      "height": 32,
+      "pivot_x": 0.5,
+      "pivot_y": 1.0
+    },
+    {
+      "id": "walk_02",
+      "x": 32,
+      "y": 32,
+      "width": 32,
+      "height": 32,
+      "pivot_x": 0.5,
+      "pivot_y": 1.0
+    }
+  ],
+  "animations": [
+    {
+      "name": "idle",
+      "frames": [
+        {"sprite_id": "idle_01", "duration": 0.5},
+        {"sprite_id": "idle_02", "duration": 0.5}
+      ],
+      "loop": true
+    },
+    {
+      "name": "walk",
+      "frames": [
+        {"sprite_id": "walk_01", "duration": 0.25},
+        {"sprite_id": "walk_02", "duration": 0.25}
+      ],
+      "loop": true
+    }
+  ]
+}
+```
+
+### Audio Asset Definition (audio.schema.json)
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Audio Asset Definition",
+  "type": "object",
+  "required": ["version", "name", "file"],
+  "properties": {
+    "version": {"type": "string"},
+    "name": {"type": "string"},
+    "file": {"type": "string"},
+    "format": {
+      "type": "string",
+      "enum": ["WAV", "OGG", "MP3"],
+      "default": "OGG"
+    },
+    "volume": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "default": 1.0
+    },
+    "loop": {"type": "boolean", "default": false},
+    "loop_start": {"type": "number", "minimum": 0.0},
+    "loop_end": {"type": "number", "minimum": 0.0},
+    "tags": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  }
+}
+```
+
+## 3. SDL2 Integration Architecture
+
+### Asset Loading System (C11 Implementation)
+```c
+// asset_manager.h
+#ifndef ASSET_MANAGER_H
+#define ASSET_MANAGER_H
+
+#include <SDL.h>
+#include <cjson/cJSON.h>
+
+typedef struct {
+    char* id;
+    SDL_Texture* texture;
+    int width;
+    int height;
+    int ref_count;
+} AssetTexture;
+
+typedef struct {
+    char* id;
+    int x, y, width, height;
+    float pivot_x, pivot_y;
+} SpriteDefinition;
+
+typedef struct {
+    char* name;
+    AssetTexture* texture;
+    SpriteDefinition* sprites;
+    size_t sprite_count;
+} SpriteSheet;
+
+// Core asset management functions
+int asset_manager_init(SDL_Renderer* renderer);
+void asset_manager_cleanup(void);
+SpriteSheet* load_sprite_sheet(const char* json_path);
+SDL_Texture* get_texture(const char* asset_id);
+void release_asset(const char* asset_id);
+
+#endif
+```
+
+## 4. Cross-Platform Path Handling
+```c
+// path_utils.h
+#ifndef PATH_UTILS_H
+#define PATH_UTILS_H
+
+// Cross-platform path utilities
+char* get_asset_path(const char* relative_path);
+int path_exists(const char* path);
+char* normalize_path(const char* path);
+void free_path(char* path);
+
+// Platform-specific implementations
+#ifdef _WIN32
+#define PATH_SEPARATOR "\\"
+#else
+#define PATH_SEPARATOR "/"
+#endif
+
+#endif
+```
+
+## 5. Asset Validation System
+
+### JSON Validation Implementation
+```c
+// asset_validator.h
+typedef enum {
+    VALIDATION_SUCCESS,
+    VALIDATION_FILE_NOT_FOUND,
+    VALIDATION_INVALID_JSON,
+    VALIDATION_SCHEMA_MISMATCH,
+    VALIDATION_MISSING_TEXTURE,
+    VALIDATION_INVALID_COORDINATES
+} ValidationResult;
+
+ValidationResult validate_sprite_asset(const char* json_path);
+ValidationResult validate_audio_asset(const char* json_path);
+void print_validation_errors(ValidationResult result, const char* asset_path);
+```
+
+## 6. GitHub Actions Integration
+
+### Extended CI Workflow (asset-validation.yml)
+```yaml
+name: Asset Validation and Testing
+
+on:
+  push:
+    paths:
+      - 'assets/**'
+      - 'src/asset_manager/**'
+  pull_request:
+    paths:
+      - 'assets/**'
+      - 'src/asset_manager/**'
+
+jobs:
+  validate-assets:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Python for validation scripts
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install Python dependencies
+      run: |
+        pip install jsonschema pillow
+
+    - name: Validate JSON schemas
+      run: python scripts/validate_assets.py --schema-dir assets/data/schemas --asset-dir assets
+
+    - name: Check asset file integrity
+      run: python scripts/check_asset_integrity.py --asset-dir assets
+
+    - name: Validate image formats
+      run: python scripts/validate_images.py --image-dir assets/graphics
+
+    - name: Generate asset manifest
+      run: python scripts/generate_manifest.py --output-dir build/manifests
+
+    - name: Upload validation results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: asset-validation-${{ matrix.os }}
+        path: build/validation-reports/
+```
+
+## 7. Asset Processing Scripts
+
+### Python Validation Script (validate_assets.py)
+```python
+#!/usr/bin/env python3
+import json
+import jsonschema
+import os
+import sys
+from pathlib import Path
+
+def validate_json_file(json_path, schema_path):
+    """Validate a JSON file against its schema."""
+    try:
+        with open(json_path, 'r') as f:
+            data = json.load(f)
+
+        with open(schema_path, 'r') as f:
+            schema = json.load(f)
+
+        jsonschema.validate(data, schema)
+        return True, None
+    except jsonschema.exceptions.ValidationError as e:
+        return False, str(e)
+    except Exception as e:
+        return False, f"Error processing file: {str(e)}"
+
+def main():
+    parser = argparse.ArgumentParser(description='Validate asset JSON files')
+    parser.add_argument('--schema-dir', required=True, help='Directory containing JSON schemas')
+    parser.add_argument('--asset-dir', required=True, help='Root asset directory')
+    args = parser.parse_args()
+
+    # Implementation continues...
+```
+
+## 8. Performance Optimization Strategies
+
+### Asset Caching System
+```c
+// asset_cache.h
+typedef struct {
+    char* key;
+    void* data;
+    size_t size;
+    time_t last_accessed;
+    int ref_count;
+} CacheEntry;
+
+typedef struct {
+    CacheEntry* entries;
+    size_t capacity;
+    size_t count;
+    size_t max_memory;
+    size_t current_memory;
+} AssetCache;
+
+AssetCache* create_asset_cache(size_t max_memory_mb);
+void* cache_get(AssetCache* cache, const char* key);
+void cache_put(AssetCache* cache, const char* key, void* data, size_t size);
+void cache_cleanup(AssetCache* cache);
+```
+
+## 9. Error Handling & Fallbacks
+
+### Missing Asset Handling
+```c
+// Asset fallback system
+typedef struct {
+    char* missing_asset_path;
+    char* fallback_asset_path;
+    int severity; // 0=warning, 1=error, 2=critical
+} AssetFallback;
+
+void register_fallback_asset(const char* asset_type, const char* fallback_path);
+SDL_Texture* load_texture_with_fallback(const char* primary_path);
+void log_missing_asset(const char* asset_path, int severity);
+```
+
+## 10. Integration Points
+
+### Engine Integration
+- Rendering System: Direct texture access via asset IDs
+- Audio System: Background loading and streaming
+- Input System: UI asset loading for cursors and overlays
+- Game Logic: Data-driven configuration loading
+
+### Memory Management
+- Reference counting for shared assets
+- Automatic cleanup of unused assets
+- Memory pool allocation for small assets
+- Streaming for large assets (audio, backgrounds)
+
+## 11. Developer Tools
+
+### Asset Hot-Reloading (Development Mode)
+```c
+// hot_reload.h
+#ifdef DEBUG
+void enable_asset_hot_reload(void);
+void check_asset_modifications(void);
+void reload_modified_assets(void);
+#endif
+```
+
+### Asset Browser CLI Tool
+```bash
+# Asset management commands
+./asset_tool list --type sprites
+./asset_tool validate --path assets/graphics/characters/
+./asset_tool optimize --input-dir assets/graphics --output-dir build/optimized
+./asset_tool generate-atlas --sprites assets/graphics/sprites/ --output atlas.png
+```
+
+## 12. Documentation Requirements
+
+### Asset Creation Guidelines
+- Naming conventions for consistency
+- Recommended resolutions and formats
+- Optimization guidelines for different platforms
+- JSON structure documentation with examples
+- Common pitfalls and troubleshooting
+
+### API Documentation
+- Complete function reference for asset loading
+- Performance benchmarks and recommendations
+- Platform-specific considerations
+- Memory usage guidelines
+
+This implementation plan provides a comprehensive, scalable asset management system that integrates seamlessly with SDL2 and maintains cross-platform compatibility while supporting the needs of a growing game project.

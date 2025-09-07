@@ -31,6 +31,9 @@ static struct
     int cast_suggest_gw, cast_suggest_gh, cast_suggest_fc, cast_has_suggestion;
 } g_val_panel;
 
+/* Forward declaration for hot-reload dependency change callback */
+static int rogue_validation_panel_dep_changed(const char* path, void* user);
+
 static void vp_reset_thumb(struct validation_thumb* t)
 {
 #ifdef ROGUE_HAVE_SDL
@@ -185,6 +188,36 @@ void rogue_visuals_validation_panel(RogueSkillVisualParams* vis)
                 if (*p == '\\')
                     *p = '/';
     }
+    if (overlay_button("Inject Placeholder For Missing"))
+    {
+        const char* placeholder = "assets/placeholder.png"; /* expected existing generic image */
+        if (g_val_panel.cast.missing)
+            strncpy(vis->cast_sprite_sheet, placeholder, sizeof vis->cast_sprite_sheet - 1);
+        if (g_val_panel.projectile.missing)
+            strncpy(vis->projectile_sprite, placeholder, sizeof vis->projectile_sprite - 1);
+        if (g_val_panel.impact.missing)
+            strncpy(vis->impact_sprite, placeholder, sizeof vis->impact_sprite - 1);
+        if (g_val_panel.aoe.missing)
+            strncpy(vis->aoe_sprite, placeholder, sizeof vis->aoe_sprite - 1);
+    }
+    if (overlay_button("Bulk Assign Cast → All Empty"))
+    {
+        if (vis->cast_sprite_sheet[0])
+        {
+            if (!vis->projectile_sprite[0])
+                strncpy(vis->projectile_sprite, vis->cast_sprite_sheet,
+                        sizeof vis->projectile_sprite - 1);
+            if (!vis->impact_sprite[0])
+                strncpy(vis->impact_sprite, vis->cast_sprite_sheet, sizeof vis->impact_sprite - 1);
+            if (!vis->aoe_sprite[0])
+                strncpy(vis->aoe_sprite, vis->cast_sprite_sheet, sizeof vis->aoe_sprite - 1);
+        }
+    }
+    if (overlay_button("Poll Hot-Reload (deps)"))
+    {
+        extern int rogue_skill_asset_dep_poll_changes(int (*on_change)(const char*, void*), void*);
+        rogue_skill_asset_dep_poll_changes(rogue_validation_panel_dep_changed, NULL);
+    }
     overlay_label("Status Legend: MISSING=file absent, CORRUPT=failed to load, DIM ERR=invalid or "
                   "extreme dimensions (>4096), EXT WARN=unexpected extension.");
     if (overlay_button("Close"))
@@ -193,4 +226,20 @@ void rogue_visuals_validation_panel(RogueSkillVisualParams* vis)
 #else
     (void) vis; /* suppress unused warning if compiled without overlay */
 #endif
+}
+
+/* Hot-reload dependency poll callback defined after function to avoid cluttering main panel logic
+ */
+static int rogue_validation_panel_dep_changed(const char* path, void* user)
+{
+    (void) user;
+    if (strncmp(g_val_panel.cast.path, path, sizeof g_val_panel.cast.path) == 0)
+        g_val_panel.cast.load_attempted = 0;
+    if (strncmp(g_val_panel.projectile.path, path, sizeof g_val_panel.projectile.path) == 0)
+        g_val_panel.projectile.load_attempted = 0;
+    if (strncmp(g_val_panel.impact.path, path, sizeof g_val_panel.impact.path) == 0)
+        g_val_panel.impact.load_attempted = 0;
+    if (strncmp(g_val_panel.aoe.path, path, sizeof g_val_panel.aoe.path) == 0)
+        g_val_panel.aoe.load_attempted = 0;
+    return 0;
 }
