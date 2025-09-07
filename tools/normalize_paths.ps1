@@ -15,16 +15,18 @@ $ErrorActionPreference = 'Stop'
 
 function Convert-GlobToRegex {
     param([string]$glob)
-    $escaped = [Regex]::Escape($glob)
-    $escaped = $escaped -replace '\\
-', '/' # normalize
-    $escaped = $escaped -replace '\\\*\\\\*', '.*'
-    $escaped = $escaped -replace '\\\*', '[^/]*'
-    '^' + $escaped + '$'
+    # Normalize to forward slashes then escape
+    $norm = $glob -replace '\\', '/'
+    $escaped = [Regex]::Escape($norm)
+    # Replace ** (any depth) first
+    $escaped = $escaped -replace '\*\*', '.*'
+    # Replace single * with segment wildcard (no slash)
+    $escaped = $escaped -replace '\*', '[^/]*'
+    return '^' + $escaped + '$'
 }
 
 function Test-ExcludePath([string]$path) {
-    $rel = ([IO.Path]::GetFullPath($path)).Substring(([IO.Path]::GetFullPath($Root)).Length).TrimStart('\\', '/')
+    $rel = ([IO.Path]::GetFullPath($path)).Substring(([IO.Path]::GetFullPath($Root)).Length).TrimStart(@([char]'\', [char]'/'))
     $rel = $rel -replace '\\', '/'
     foreach ($g in $ExcludeGlobs) {
         $rx = Convert-GlobToRegex $g
@@ -39,18 +41,18 @@ $rootFull = [IO.Path]::GetFullPath($Root)
 if (-not (Test-Path $rootFull)) { throw "Root not found: $Root" }
 
 $files = Get-ChildItem -Path $rootFull -Recurse -File | Where-Object {
-    $rel = $_.FullName.Substring($rootFull.Length).TrimStart('\\', '/') -replace '\\', '/'
+    $rel = $_.FullName.Substring($rootFull.Length).TrimStart(@([char]'\', [char]'/')) -replace '\\', '/'
     -not (Test-ExcludePath $_.FullName) -and ($includeRegexes | Where-Object { $rel -match $_ } | Measure-Object).Count -gt 0
 }
 
 $violations = @()
 foreach ($f in $files) {
     $content = Get-Content -LiteralPath $f.FullName -Raw -Encoding UTF8
-    if ($content -match '\\\\') {
-        # Record all lines with backslashes in string or path contexts; conservative match
+    if ($content -match '\\') {
+        # Record all lines with backslashes; conservative path heuristic
         $lines = $content -split "\r?\n"
         for ($i = 0; $i -lt $lines.Count; $i++) {
-            if ($lines[$i] -match '\\\\') {
+            if ($lines[$i] -match '\\') {
                 $violations += [pscustomobject]@{ File = $f.FullName; Line = $i + 1; Text = $lines[$i] }
             }
         }
