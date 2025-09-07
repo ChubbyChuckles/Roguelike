@@ -67,5 +67,5 @@ compile_commands.json
 dist/
 sprite_picker.spec
 .venv/
-scripts/ci/
+# CI scripts are required in the repository; only ignore the optional local token helper.
 scripts/ci/local_github_token.ps1
