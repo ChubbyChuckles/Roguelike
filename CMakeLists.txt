@@ -583,7 +583,13 @@ add_library(rogue_debug_overlay OBJECT
     # Skills panel refactor modules
     src/debug_overlay/panel_skills/shared/panel_skills_shared.c
     src/debug_overlay/panel_skills/overview/panel_skills_overview.c
+    # Effects tab modularized (was single large panel_skills_effects.c)
     src/debug_overlay/panel_skills/effects/panel_skills_effects.c
+    src/debug_overlay/panel_skills/effects/effects_tree_editor.c
+    src/debug_overlay/panel_skills/effects/effects_validation.c
+    src/debug_overlay/panel_skills/effects/effects_palette.c
+    src/debug_overlay/panel_skills/effects/effects_node_graph.c
+    src/debug_overlay/panel_skills/effects/effects_node_list.c
     src/debug_overlay/panel_skills/visuals/panel_skills_visuals.c
     src/debug_overlay/panel_skills/visuals/visuals_internal.h
     src/debug_overlay/panel_skills/visuals/visuals_import_wizard.c
