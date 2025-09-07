@@ -158,6 +158,15 @@ Build/Test Verification:
 - Roadmap: marks EffectNode Tree Structure implemented (experimental v1) and outlines next Advanced Effect Validation tasks (spawn_entity field pre-validation & tree window heuristics).
 - Tests: full suite passes with no regressions (aside from pre-existing BAD_COMMAND skips unrelated to skills system); existing skill composition tests continue to exercise legacy path ensuring compatibility.
  - README: added Phase 1.2 recent additions section documenting SPAWN_ENTITY and experimental EffectNode tree feature.
+
+feat(assets/ui): phase1 asset classification verified; initialize stat preview sentinel; roadmap phase2 kickoff
+
+ - Asset Classification module (src/util/asset_classification.{h,c}) integrated with deterministic heuristics; unit test passes.
+ - Full suite re-run surfaced uninitialized stat_preview_slot causing missing first SHOW event; added explicit initialization (=-1) and event queue index init in rogue_ui_init.
+ - Fixed failing test_ui_phase4_stat_preview (now green); combat_dps transient segfault did not reproduce (likely unrelated intermittent state).
+ - Roadmap updated with Phase 2 kickoff status + queued schema tasks (sprite/audio schema drafts, tests, placeholder.png enforcement).
+ - Commit prepares groundwork for adding RogueSchema builders for sprite/audio without altering existing enum yet (will add TODO hook in classification next patch).
+
  - New Tests (follow-up additions):
 	 * test_skills_phase1_2_effect_tree_overrides_roundtrip validates JSON overrides export/import preserves effect_tree nodes (round-trip integrity).
 	 * test_skills_phase1_2_effect_tree_parent_index_invalid covers out-of-range parent_index and self-parent (cycle) rejection paths.
@@ -189,6 +198,17 @@ Follow-ups:
 	- Implement combo/sequence queue ordering priority.
 	- Add global lockout triggers (e.g., after ultimate usage) and tests.
 	- Overlay visualization of queued skills in skill bar.
+
+feat(assets/schema): Phase 2 sprite + audio schema builders and validation tests
+
+- Added `schema_sprites.{h,c}` implementing RogueSchema for sprite sheets (name, texture dims, sprites array, optional animations with frames + loop).
+- Added `schema_audio.{h,c}` for audio clip metadata (name, file, optional format/volume/loop/tags).
+- Inserted TODO enum placeholders in `asset_classification.h` for future sprite/audio metadata classification without altering runtime yet.
+- New unit test `test_sprite_audio_schema` exercises valid + invalid JSON for both schemas (in-memory JSON objects, no filesystem dependency).
+- CMakeLists updated to build & register new test target.
+- Builds clean locally; ready for placeholder.png enforcement next.
+ - Fixed test to use boolean JSON for `loop` (schema expects boolean; initial integer caused validation error).
+
 
 Phase 1.4: PNG Sequence Loader
 ------------------------------
@@ -228,6 +248,30 @@ Follow-ups:
 	- Introduce vertical & area-based bin packing (heuristic: sort by height desc, skyline or shelf algorithm) + fragmentation metrics.
 	- Provide optional padding and power-of-two rounding for GPU-friendly atlases.
 	- Integrate atlas reuse/dedup across multiple skills sharing identical sequences.
+
+feat(assets): Phase 1 core directory structure completion + asset classification module
+--------------------------------------------------------------------------------------
+Summary:
+Implements Phase 1 of the Asset Structure roadmap: directory taxonomy finalization, asset type classification system, naming/version-control guidelines, and contributor documentation scaffolding.
+
+Details:
+* New module: src/util/asset_classification.{h,c}
+	- Enum RogueAssetType with 14 categories (sprites, textures, fonts, music, sfx, voice, level, config, localization, shader vertex/fragment/compute, meta schema/manifest).
+	- Heuristic classification: pure string (no I/O), mixed separator normalization, directory token boundary matching (e.g., "/sprites/", "/music/").
+	- Extension buckets (png/bmp/tga, ogg/mp3/wav, json/cfg, ttf/otf, vert/frag/comp) with directory disambiguation for sprite vs texture & music vs sfx vs voice.
+	- Stable lowercase snake string helper rogue_asset_type_str.
+* Unit test: tests/unit/test_asset_classification.c validates representative paths for each category and unknown fallback.
+* CMake: added asset_classification.c to rogue_core sources and test target + ctest registration.
+* Roadmap: Phase 1 tasks marked complete with implementation notes; added Phase 1 Implementation Notes section.
+* README: Assets/Configuration section expanded summarizing naming conventions (snake_case, semantic grouping), binary vs generated artifact strategy, and guidance seeds for contributors.
+* Version control strategy codified: binary runtime assets tracked; future large source art to adopt explicit /source_art policy; generated manifests/checksums to be gitignored in Phase 4.
+
+Follow-ups (Phase 2+ planned):
+* Author JSON schemas (sprite/audio/level/ui theme) leveraging existing json_schema utilities.
+* Implement json validation wrapper + unit tests (positive + negative) integrated into validation panel.
+* Generate asset manifest (meta/manifests/) enumerating classified assets w/ hash + size for integrity & packaging.
+* Add placeholder.png presence assertion + positive-path validation test with real sample sprite.
+
 
 Phase 1.4: Asset Dependency Tracking & Hot-Reload (Foundation)
 -------------------------------------------------------------

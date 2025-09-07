@@ -393,6 +393,7 @@ add_library(rogue_core
     # moved to rogue_systems_loot: src/core/loot/loot_affixes.c
     # moved to rogue_systems_loot: src/core/loot/loot_filter.c
     src/util/path_utils.c
+    src/util/asset_classification.c
     # moved to rogue_systems_loot: src/core/loot/loot_rarity.c
     # moved to rogue_systems_loot: src/core/loot/loot_perf.c
     # moved to rogue_systems_loot: src/core/loot/loot_analytics.c
@@ -639,6 +640,8 @@ add_library(rogue_content_json OBJECT
     src/content/schema_skills.c
     src/content/schema_entities.c
     src/content/schema_tilesets.c
+    src/content/schema_sprites.c
+    src/content/schema_audio.c
 )
 target_include_directories(rogue_content_json PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_definitions(rogue_content_json PUBLIC ROGUE_ENABLE_JSON_CONTENT=$<IF:$<BOOL:${ROGUE_ENABLE_JSON_CONTENT}>,1,0>)
@@ -1010,6 +1013,14 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_items_schema PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_items_schema COMMAND test_items_schema)
+
+# Sprite + Audio schema validation test (Phase 2)
+add_executable(test_sprite_audio_schema tests/unit/test_sprite_audio_schema.c)
+target_link_libraries(test_sprite_audio_schema PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_sprite_audio_schema PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_sprite_audio_schema COMMAND test_sprite_audio_schema)
 add_executable(test_asset_dep_rejects tests/unit/test_asset_dep_rejects.c)
 target_link_libraries(test_asset_dep_rejects PRIVATE rogue_core)
 ## Prevent SDL from redefining main to SDL_main on Windows for this console test
@@ -1018,6 +1029,14 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_asset_dep_rejects PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_asset_dep_rejects COMMAND test_asset_dep_rejects)
+
+# Asset classification heuristics test
+add_executable(test_asset_classification tests/unit/test_asset_classification.c)
+target_link_libraries(test_asset_classification PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_asset_classification PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_asset_classification COMMAND test_asset_classification)
 
 # Skills schema roundtrip (enveloped JSON) test
 add_executable(test_skills_roundtrip_schema tests/unit/test_skills_roundtrip_schema.c)

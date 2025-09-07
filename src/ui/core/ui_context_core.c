@@ -58,6 +58,11 @@ int rogue_ui_init(RogueUIContext* ctx, const RogueUIContextConfig* cfg)
     ctx->radial.active = 0;
     ctx->radial.count = 0;
     ctx->radial.selection = 0;
+    /* Initialize event queue indices explicitly */
+    ctx->event_head = 0;
+    ctx->event_tail = 0;
+    /* Phase 4.5 stat preview requires sentinel -1 so first hover enqueues SHOW event */
+    ctx->stat_preview_slot = -1;
     ctx->initialized_flag = 0xC0DEFACE;
     return 1;
 }

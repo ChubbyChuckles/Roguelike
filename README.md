@@ -225,6 +225,19 @@ Phase 1.3 runtime slice:
 
 APIs: `src/debug_overlay/overlay_core.h` plus widgets in `overlay_widgets.h` (Label, Button, Checkbox, SliderInt/Float, InputText, Combo, TreeNode/Pop, ColorEdit RGBA, Table). Input capture in `overlay_input.h`.
 
+### Configuration & Assets (Phase 1 Asset Structure Completion)
+
+- Directory Taxonomy (stable v1):
+  - graphics/: sprites/ (characters/enemies/npcs/items/environment/ui), textures/ (materials/effects/backgrounds), fonts/ (ui/dialogue)
+  - audio/: music/{ambient,combat,menu}, sfx/{combat,environment,ui,character}, voice/dialogue/
+  - data/: levels/{dungeons,overworld}, configs/{gameplay,graphics,audio}, localization/{en,es,fr}, schemas/ (sprite.schema.json, audio.schema.json ... upcoming)
+  - shaders/: vertex/, fragment/, compute/
+  - meta/: manifests/ (generated), checksums/, documentation/
+- Asset Classification Module: `src/util/asset_classification.{h,c}` exposes `rogue_asset_classify(path)` → enum and `rogue_asset_type_str`. Pure string heuristics; no I/O; unit test `test_asset_classification` verifies all categories.
+- Naming Conventions: snake_case, singular category nouns, semantic depth (e.g., graphics/sprites/characters/player/player_idle.png). Revisions favor explicit role (impact_sprite.png vs generic sprite1.png). Audio loops suffixed `_loop` when seamless.
+- Version Control: Runtime binaries (png/ogg/wav/json/cfg) tracked. Future large source assets (psd/blend) excluded until /source_art policy phase. Generated manifests/checksums (meta/) to be gitignored when introduced (Phase 4).
+- Contributor Guidelines (seed): Provide power‑of‑two friendly sprite sheets when practical; keep individual frame dims ≤512; prefer OGG for music/SFX (MP3 permitted for licensed tracks); normalize peak loudness to -1 dBTP, integrated LUFS target -14 (music) / -18 (ambience); localization JSON one top-level key per feature domain.
+
 - ROGUE_ENABLE_JSON_CONTENT (default ON): Compiles the content JSON foundation (I/O and schema envelope). Built as an object library (`rogue_content_json`) and linked into `rogue_core` when enabled. A vendored cJSON stub lives under `third_party/cjson` and is linked as `rogue_thirdparty_cjson` for now; replace with the full cJSON later.
 - Outputs: HTML, LaTeX/PDF, and XML generated via a dedicated CMake target.
 - Prereqs (Windows):
