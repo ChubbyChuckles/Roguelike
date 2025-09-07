@@ -567,6 +567,12 @@ add_executable(asset_validate
 target_link_libraries(asset_validate PRIVATE rogue_core)
 target_include_directories(asset_validate PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
+# Phase 7: asset_tool multi-command CLI
+add_executable(asset_tool
+    src/asset/asset_tool_cli.c)
+target_link_libraries(asset_tool PRIVATE rogue_core)
+target_include_directories(asset_tool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
 add_custom_target(asset_manifest ALL
     COMMAND asset_validate --manifest ${CMAKE_BINARY_DIR}/asset_manifest.txt --optimize
     DEPENDS asset_validate
@@ -576,6 +582,9 @@ install(FILES ${CMAKE_BINARY_DIR}/asset_manifest.txt DESTINATION meta OPTIONAL)
 
 add_test(NAME asset_validation_cli
     COMMAND asset_validate --manifest ${CMAKE_BINARY_DIR}/asset_manifest_ctest.txt --optimize)
+
+add_test(NAME asset_tool_stats_cli
+    COMMAND asset_tool stats)
 
 # MSVC: Avoid parallel PDB write contention (fatal error C1041) when building many translation units in parallel.
 if (MSVC)
@@ -624,6 +633,8 @@ add_library(rogue_debug_overlay OBJECT
     src/debug_overlay/overlay_panels.c
     src/debug_overlay/panel_system/panels_system.c
     src/debug_overlay/panel_system/panels_asset_metrics.c
+    # Phase 7: Asset Browser panel (added after metrics panel)
+    src/debug_overlay/panel_system/panels_asset_browser.c
     src/debug_overlay/panel_player/panels_player.c
     src/debug_overlay/panel_skills/panels_skills.c
     # Skills panel refactor modules
@@ -1585,6 +1596,8 @@ if(ROGUE_BUILD_DOCS AND DOXYGEN_FOUND)
     COMMENT "Generating API documentation with Doxygen"
     VERBATIM
   )
+else()
+    message(STATUS "Doxygen not found or docs disabled (ROGUE_BUILD_DOCS=${ROGUE_BUILD_DOCS}); skipping docs target")
 endif()
 
 # -----------------------------

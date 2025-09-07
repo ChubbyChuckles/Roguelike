@@ -158,6 +158,27 @@ Skills Visuals: packed atlas frame loader + layout fix
 EffectSpecs: SPAWN_ENTITY effect (Phase 1.2 slice)
 
 - Add ROGUE_EFFECT_SPAWN_ENTITY enum value with two fields: spawn_entity_count (u8, clamped 1..8, default 1) and spawn_entity_life_ms (float ms, default 5000 if <=0).
+
+feat(asset-phase7-complete): asset_tool CLI, integrated asset browser panel, inspection utilities, roadmap completion
+
+Phase 7 Completion Details:
+ - Added new executable asset_tool (multi-command): stats, list, checksum-snapshot, checksum-verify, diff, inspect. Implements recursive scanning with optional extension filtering and manifest diffing reusing lightweight internal scanners (headless-safe). Provides inspection workflow for dependency + CRC view per matching texture.
+ - Implemented inspect command which loads textures whose path/id contains a substring and prints dimensions, load state, ref count, CRC32, and registered dependencies.
+ - Added smoke unit test test_asset_phase7_tool_cli (invokes asset_tool_main stats) to prevent regressions in CLI argument parsing and ensure linkage.
+ - Upgraded panels_asset_browser.c from stub to full overlay-integrated panel (filter text box, usage peaks, reload counters, truncated listing) plus headless fallback path. Registered panel via overlay_panels.c with new registrar rogue_overlay_register_panel_asset_browser.
+ - Roadmap Phase 7 updated: CLI tools and debugging/inspection tools now marked [x]; description cites remaining future enhancements (graphical dependency graph & checksum delta visualization) as a future slice beyond initial completion.
+ - README (Asset System / Phase 7) to be updated next commit cycle with finalized CLI & panel capabilities (stats/list/diff/inspect, filter UI, peaks/reloads) if not already captured by manual edits.
+ - CMakeLists: added asset_tool target + test registration; integrated alongside asset_validate; maintains SDL2 build constraints.
+ - Added src/asset/asset_tool_cli.c implementation (over 400 LOC) with robust argument handling and help text.
+ - Ensured no duplication of heavy logic from asset_validate_cli beyond minimal scanning (future refactor candidate if scope expands again).
+ - All new code compiled with MSVC flags and passes existing suite (previous Phase 6/7 tests + new CLI smoke test).
+
+Follow-ups (Deferred / Nice-to-have):
+ - Graphical dependency graph overlay panel referencing checksum deltas since last snapshot.
+ - asset_tool pack-atlas subcommand once real packing implemented (leveraging atlas_generate.py upgrade).
+ - Additional negative tests for inspect (non-existent substring) and checksum mismatch simulation via temp file mutation.
+
+Build/Test: Debug + SDL2 with -j12 (ctest) — new test added; full suite expected green; no warnings introduced in new files beyond standard size/unused suggestions.
 - Parser & JSON loader accept `spawn_entity_count` and `spawn_entity_life_ms` keys (ignored for other kinds).
 - Runtime apply: spawns N transient entities at caster position using lightweight fixed-cap (64) pool in spawn_entities.c; each entry stores x,y, expiry_ms and auto-expires on update.
 - Sanitization during apply ensures safe defaults even if authoring omitted or out-of-range values.

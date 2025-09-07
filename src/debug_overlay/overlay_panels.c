@@ -17,6 +17,7 @@ void rogue_overlay_register_panel_panelselector(void);
 void rogue_overlay_register_panel_dialogue(void);
 void rogue_overlay_register_panel_shortcuts(void);
 void rogue_overlay_register_panel_asset_metrics(void);
+void rogue_overlay_register_panel_asset_browser(void);
 
 void rogue_overlay_register_default_panels(void)
 {
@@ -33,6 +34,7 @@ void rogue_overlay_register_default_panels(void)
     rogue_overlay_register_panel_dialogue();
     rogue_overlay_register_panel_shortcuts();
     rogue_overlay_register_panel_asset_metrics();
+    rogue_overlay_register_panel_asset_browser();
 }
 
 #else
