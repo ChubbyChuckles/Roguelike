@@ -142,3 +142,8 @@ Read the "roadmaps\implementation_multi_platform.txt", go to the next tasks in l
 ### Asset Management
 
 Read the "roadmaps\implementation_plan_asset_structure.txt", go to the next tasks in line that need implementation and implement as many of them as possible, don't just partially finish the tasks. Prevent regression. Execute the unit tests and build the project to verify there are no errors. Never build without SDL2 and always build with multiple processes when applicable ( -j12 ). After a successful implementation update the "roadmaps\implementation_plan_asset_structure.txt", generate a descriptive commit message that you append to ".pending_commit_message.txt" and update the README.md. Iterate this process as often as you can in one request.
+
+
+### Asset Overlay
+
+Read the "roadmaps\implementation_plan_asset_overlay.txt", go to the next tasks in line that need implementation and implement as many of them as possible, don't just partially finish the tasks. Prevent regression. Execute the unit tests and build the project to verify there are no errors. Never build without SDL2 and always build with multiple processes when applicable ( -j12 ). After a successful implementation update the "roadmaps\implementation_plan_asset_overlay.txt", generate a descriptive commit message that you append to ".pending_commit_message.txt" and update the README.md. Iterate this process as often as you can in one request.

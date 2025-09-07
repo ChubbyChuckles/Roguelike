@@ -15,13 +15,13 @@ This plan builds upon the existing asset management infrastructure to create a s
 - **Asset Tool CLI**: Command-line inspection and validation utilities
 
 ## Phase 1: Enhanced Asset Browser Foundation
-[ ] Extend existing `panels_asset_browser.c` with tabbed interface for different asset types
-[ ] Add asset type filtering (textures, audio, JSON configs, shaders)
-[ ] Implement asset thumbnail generation for textures using SDL2
-[ ] Add asset dependency visualization (using existing `rogue_asset_dep_get`)
-[ ] Create asset usage analytics display (ref counts, load times, memory usage)
-[ ] Add real-time asset monitoring with hot-reload detection
-[ ] Implement asset search and filtering with regex support
+[x] Extend existing `panels_asset_browser.c` with tabbed interface for different asset types (All / Textures / Audio / JSON / Shaders)
+[x] Add asset type filtering (textures, audio, JSON configs, shaders) with wildcard (*, ?) pattern matching (regex upgrade deferred)
+[x] Implement asset thumbnail generation for textures using SDL2 (baseline inline preview; future: dedicated cache + scaling utility)
+[x] Add asset dependency visualization (basic textual list via `rogue_asset_dep_get_deps` for selected texture/audio)
+[x] Create asset usage analytics display (ref counts, peaks, reloads, approximate texture memory bytes)
+[x] Add real-time asset monitoring with hot-reload detection (manual poll button + optional auto-poll toggle)
+[x] Implement asset search and filtering with wildcard support (regex proper deferred to later phase)
 
 ## Phase 2: Interactive Asset Loading & Preview
 [ ] Design asset preview panel with SDL2 texture rendering
@@ -122,7 +122,7 @@ typedef struct AssetBrowserState {
 static void panel_asset_browser_enhanced(void* user);
 ```
 
-### 2. Asset Thumbnail Generation
+### 2. Asset Thumbnail Generation (Deferred – Not Implemented Yet)
 ```c
 // asset_thumbnails.h
 typedef struct AssetThumbnail {
@@ -220,7 +220,7 @@ bool save_sprite_coordinates_to_json(const SpriteEditorState* state,
                                    const char* output_path);
 ```
 
-### 6. Asset Validation Integration
+### 6. Asset Validation Integration (Planned – Not yet integrated into overlay UI)
 ```c
 // asset_validation_ui.h
 typedef struct ValidationResult {

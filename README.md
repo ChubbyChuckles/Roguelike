@@ -2,6 +2,16 @@
 
 Press F1 in-game to open the debug overlay.
 
+### Asset Browser (Overlay Phase 1 Enhancement)
+
+- New tabbed interface (All / Textures / Audio / JSON / Shaders) with live wildcard filter ("\*" / "?"; case-insensitive).
+- Displays per-session texture/audio peaks, reload count, and approximate texture memory (w*h*4 for loaded textures).
+- Manual "Poll Reload Now" plus optional Auto Poll toggle for hot-reload monitoring.
+- Recursive enumeration & cached listing of JSON and shader assets (refreshable) to aid rapid inspection.
+- Row selection for textures/audio reveals a Details section (id, dimensions, ref count, load state, failure flag) and any registered dependency ids.
+- Dependency listing uses existing asset_dep registry; graphical graph + thumbnails deferred to a later phase (see Asset Overlay roadmap).
+- Regex filtering, advanced thumbnail caching (current build shows basic inline scaled preview), audio preview controls, and JSON syntax highlighting are future tasks.
+
 ### New Skill Visual Authoring Tools (Phase 2.4 updates)
 
 - Visual Sprite Sheet Editor: In Skills → Visuals, an interactive grid overlay appears when a cast sprite sheet is assigned. It auto-infers a tentative grid (heuristic 64×64 cells) and lets you:

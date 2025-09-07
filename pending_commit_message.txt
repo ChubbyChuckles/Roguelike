@@ -105,6 +105,10 @@ Follow-ups (deferred):
 * Consider graphical tree visualization in overlay for complex hierarchies.
 
 Overlay: first-open defaults, persistence, and drag UX; Dungeon: gating manifest export + vendor run_summary consumer; tests & docs
+feat(asset-overlay/phase1): basic texture thumbnail preview in Asset Browser
+
+Added inline scaled thumbnail preview for selected texture assets in Asset Browser panel (Phase 1 task completion). Implementation draws existing SDL texture via rogue_sprite_draw wrapped in a temporary RogueTexture without ownership transfer. Scaling heuristic fits width to 96px (clamped 1..8x). Headless builds skip rendering safely. Roadmap updated marking thumbnail generation task complete (notes future dedicated cache + grid/list thumbnail modes). README Asset Browser section updated to reflect baseline thumbnails now present (advanced caching still pending). No impact on existing tests; overlay guarded by ROGUE_HAVE_SDL.
+
 
 - Debug overlay
 	- Default first-open shows only the “Panels” selector (non-closable).
@@ -197,6 +201,25 @@ feat(skills/visuals): sprite sheet editor & asset dependency viewer (Phase 2.4)
 
 
 feat(skill-suite/ui): Formula Editor prototype (Phase 2.4 completion)
+
+feat(asset-overlay/phase1): enhanced asset browser panel (tabs, type filters, deps, mem stats)
+
+Phase 1 (Asset Overlay Plan) Partial Completion:
+ - Added tabbed/type filtering to Asset Browser: All / Textures / Audio / JSON / Shaders.
+ - Implemented wildcard (*, ?) case-insensitive filter (regex support deferred to later phase task).
+ - Integrated basic dependency listing for selected texture/audio using `rogue_asset_dep_get_deps`.
+ - Added approximate texture memory usage computation (sum w*h*4 for loaded textures) and display alongside peak usage/reloads stats.
+ - Added manual "Poll Reload Now" button plus Auto Poll toggle for continuous hot-reload monitoring.
+ - Implemented recursive enumeration & caching of JSON and shader files (lightweight Win32 / POSIX scanning) with Refresh FS Lists button.
+ - Selection: clicking a texture/audio row highlights and reveals a Details section (id, dims/ref/fail/loaded, deps).
+ - Roadmap `implementation_plan_asset_overlay.txt` updated: Phase 1 tasks marked complete except deferred thumbnail generation & future regex engine.
+ - README update pending next docs pass (will summarize new panel capabilities under Debug Overlay / Asset System sections).
+ - Thumbnails, audio playback, preview zoom/pan, and JSON syntax highlighting remain future phases (not part of this slice).
+
+Notes:
+ - All additions headless-safe (no SDL calls added beyond existing panel); file system scanning guarded per platform.
+ - Pattern matcher intentionally simple iterative backtracking (no recursion) to avoid stack risk; upgrade path to regex engine documented.
+ - Approx memory heuristic assumes RGBA8; compressed texture accounting will refine later when compressed variants tracking exists.
 
 Adds lightweight expression evaluator (formula_eval.c) with + - * /, parentheses, identifiers: base, per, rank, str, dex, int, cap.
 Integrated into Skills → Overview as "Formula Preview" with editable formula input and live evaluation against preview rank/stat sliders.

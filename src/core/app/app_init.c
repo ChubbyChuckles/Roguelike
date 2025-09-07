@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 /* Initialization & shutdown logic extracted from former app.c */
+#include "../../asset/asset_manager.h"
 #include "../../audio_vfx/effects.h"
 #include "../../debug_overlay/overlay_core.h"
 #include "../../entities/enemy.h"
@@ -148,6 +149,10 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.unspent_stat_points = 0;
     if (!rogue_platform_init(cfg))
         return false;
+    /* Initialize global asset manager immediately after platform/renderer so debug panels can use
+     * it. */
+    extern struct SDL_Renderer* g_internal_sdl_renderer_ref; /* set in platform init */
+    rogue_asset_manager_init(g_internal_sdl_renderer_ref);
     RogueGameLoopConfig loop_cfg = {.target_fps = cfg->target_fps};
     rogue_game_loop_init(&loop_cfg);
     rogue_persistence_load_generation_params();
