@@ -192,7 +192,7 @@ bool rogue_asset_dep_add(const char* owner_id, const char* dependency_id)
     return true;
 }
 
-size_t rogue_asset_dep_get(const char* owner_id, const char** out, size_t max)
+size_t rogue_asset_validation_dep_get(const char* owner_id, const char** out, size_t max)
 {
     if (!owner_id)
         return 0;

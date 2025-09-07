@@ -28,14 +28,14 @@ static void test_fallback_and_acquire(void)
     assert(idx >= 0);
     const RogueAssetTexture* tex = rogue_asset_manager_get(idx);
     assert(tex);
-    /* Implementation stores the substituted fallback file contents but retains
-       the logical missing path in tex->path so distinct missing resources have
-       separate cache records. Accept either behavior for portability. */
+/* Implementation stores the substituted fallback file contents but retains
+   the logical missing path in tex->path so distinct missing resources have
+   separate cache records. Accept either behavior for portability. */
+#ifdef ROGUE_TEST_DEBUG
     if (!(strcmp(tex->path, fallback) == 0 || strstr(tex->path, "missing_texture") != NULL))
-    {
         fprintf(stderr, "DEBUG unexpected texture path: '%s' (fallback='%s')\n", tex->path,
                 fallback);
-    }
+#endif
     assert(strcmp(tex->path, fallback) == 0 || strstr(tex->path, "missing_texture") != NULL);
     rogue_asset_manager_release_texture(idx);
     rogue_asset_manager_shutdown();
@@ -46,10 +46,10 @@ static void test_crc_and_checksum_registry(void)
     bool ok = false;
     const char* path = locate_enemies_json();
     uint32_t crc = rogue_asset_crc32_file(path, &ok);
+#ifdef ROGUE_TEST_DEBUG
     if (!(ok && crc != 0))
-    {
         fprintf(stderr, "DEBUG crc failure path='%s' ok=%d crc=%u\n", path, (int) ok, crc);
-    }
+#endif
     assert(ok && crc != 0);
     assert(rogue_asset_checksum_register(path, crc));
     assert(rogue_asset_checksum_verify_all());
@@ -61,7 +61,7 @@ static void test_dependency_tracking(void)
     rogue_asset_dep_add("player_sheet", "player_idle_texture");
     rogue_asset_dep_add("player_sheet", "player_walk_texture");
     const char* deps[4];
-    size_t count = rogue_asset_dep_get("player_sheet", deps, 4);
+    size_t count = rogue_asset_validation_dep_get("player_sheet", deps, 4);
     assert(count == 2);
 }
 

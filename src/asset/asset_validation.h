@@ -48,7 +48,9 @@ const char* rogue_asset_get_fallback_texture(void);
 bool rogue_asset_dep_add(const char* owner_id, const char* dependency_id);
 
 /* Retrieve dependencies for owner; returns count (<= max). */
-size_t rogue_asset_dep_get(const char* owner_id, const char** out, size_t max);
+/* Returns dependency count for owner; writes up to max entries into out. Renamed to
+  rogue_asset_validation_dep_get to avoid collision with util/asset_dep API symbol. */
+size_t rogue_asset_validation_dep_get(const char* owner_id, const char** out, size_t max);
 
 /* ---------- Usage Reporting ---------- */
 typedef struct RogueAssetUsageStats
