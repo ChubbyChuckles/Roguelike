@@ -51,6 +51,7 @@ typedef struct RogueAssetManager
     RogueAssetAudio audio[ROGUE_ASSET_MAX_AUDIO];
     uint32_t audio_count;
     bool initialized;
+    bool lazy_loading_enabled; /* Phase 6: when true, initial acquire defers actual SDL load */
 } RogueAssetManager;
 
 /* Global singleton (tests keep usage simple; future: allow multiple contexts) */
@@ -75,5 +76,32 @@ const RogueAssetAudio* rogue_asset_manager_get_audio(int index);
 
 /* Hot-reload polling (stat-based) – returns number of textures reloaded. Safe headless. */
 int rogue_asset_manager_poll_reload(void);
+
+/* ---------------- Phase 6: Performance Optimization Slice ---------------- */
+
+/* Enable/disable lazy loading (defer SDL texture creation until explicitly ensured). */
+void rogue_asset_manager_set_lazy_loading(bool enable);
+/* Force load (if deferred) of a previously acquired texture by index. Returns true if loaded or
+ * already loaded. */
+bool rogue_asset_manager_ensure_texture_loaded(int index);
+
+/* Preload helpers: acquire (and load unless lazy mode) one or more textures. Returns index of last
+ * acquired or -1 on error. */
+int rogue_asset_manager_preload_texture(const char* path);
+/* Batch variant: returns number successfully preloaded. */
+int rogue_asset_manager_preload_textures(const char* const* paths, int count);
+
+typedef struct RogueAssetMetrics
+{
+    uint64_t texture_load_us;    /* cumulative microseconds spent inside successful texture loads */
+    uint32_t texture_load_count; /* number of successful texture load attempts */
+    uint64_t audio_load_us;      /* cumulative microseconds for audio loads */
+    uint32_t audio_load_count;   /* number of successful audio loads */
+} RogueAssetMetrics;
+
+/* Retrieve current metrics (out may be NULL). */
+void rogue_asset_manager_get_metrics(RogueAssetMetrics* out);
+/* Reset (zero) all metrics counters. */
+void rogue_asset_manager_reset_metrics(void);
 
 #endif /* ROGUE_ASSET_MANAGER_H */

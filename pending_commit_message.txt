@@ -1,3 +1,16 @@
+feat(asset-phase6): introduce preloading, lazy loading toggle, and load metrics
+
+Phase 6 (Performance Optimization) partial implementation:
+ - Preloading system: rogue_asset_manager_preload_texture / _preload_textures batch helper.
+ - Lazy loading toggle: rogue_asset_manager_set_lazy_loading plus ensure API to force load on demand.
+ - Profiling metrics: cumulative microsecond + count tracking for texture/audio loads (RogueAssetMetrics).
+ - Roadmap updated (Phase 6 checkboxes) and header extended.
+
+Notes:
+ - Metrics rely on SDL performance counters when available; headless builds simply skip timing but maintain counts.
+ - Preload APIs respect fallback substitution logic already present in acquire path.
+ - Future Phase 6 tasks pending: streaming, platform-specific optimizations, atlas tooling.
+
 feat(asset-schema): add UI theme JSON schema & validation test
 feat(asset-structure/phase3): schema versioning completion + initial asset manager/path utils
 

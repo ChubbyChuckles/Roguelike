@@ -40,6 +40,8 @@ static void derive_id(const char* path, char* out_id, size_t cap)
 }
 
 static RogueAssetManager g_asset_mgr = {0};
+/* Phase 6: metrics (simple cumulative counters) */
+static RogueAssetMetrics g_asset_metrics = {0};
 
 RogueAssetManager* rogue_asset_manager_instance(void) { return &g_asset_mgr; }
 
@@ -50,6 +52,8 @@ bool rogue_asset_manager_init(struct SDL_Renderer* renderer)
     memset(&g_asset_mgr, 0, sizeof(g_asset_mgr));
     g_asset_mgr.renderer = renderer; /* may be NULL in headless tests */
     g_asset_mgr.initialized = true;
+    g_asset_mgr.lazy_loading_enabled = false;
+    memset(&g_asset_metrics, 0, sizeof g_asset_metrics);
     return true;
 }
 
@@ -127,6 +131,12 @@ static void texture_attempt_load(RogueAssetTexture* tex)
 #if defined(ROGUE_HAVE_SDL) && defined(ROGUE_HAVE_SDL_IMAGE)
     if (!g_asset_mgr.renderer || tex->sdl_texture || tex->load_failed)
         return;
+    uint64_t start_ticks = 0ULL;
+    /* Use SDL_GetPerformanceCounter when available for micro-timing */
+#if defined(ROGUE_HAVE_SDL)
+    uint64_t freq = SDL_GetPerformanceFrequency();
+    start_ticks = SDL_GetPerformanceCounter();
+#endif
     SDL_Texture* t = IMG_LoadTexture(g_asset_mgr.renderer, tex->path);
     if (!t)
     {
@@ -141,6 +151,19 @@ static void texture_attempt_load(RogueAssetTexture* tex)
     }
     tex->sdl_texture = t;
     tex->last_mtime = file_mtime(tex->path);
+    /* record metrics */
+#if defined(ROGUE_HAVE_SDL)
+    if (start_ticks)
+    {
+        uint64_t end_ticks = SDL_GetPerformanceCounter();
+        if (freq)
+        {
+            uint64_t us = (end_ticks - start_ticks) * 1000000ULL / freq;
+            g_asset_metrics.texture_load_us += us;
+        }
+    }
+#endif
+    g_asset_metrics.texture_load_count++;
 #else
     (void) tex;
 #endif
@@ -202,7 +225,8 @@ int rogue_asset_manager_acquire_texture(const char* path)
     tex->ref_count = 1;
     tex->load_failed = false;
     tex->last_mtime = 0;
-    texture_attempt_load(tex); /* immediate attempt; harmless headless */
+    if (!g_asset_mgr.lazy_loading_enabled)
+        texture_attempt_load(tex); /* immediate attempt unless lazy mode */
     int index = (int) g_asset_mgr.texture_count;
     g_asset_mgr.texture_count++;
     return index;
@@ -241,6 +265,11 @@ static void audio_attempt_load(RogueAssetAudio* au)
 #if defined(ROGUE_HAVE_SDL_MIXER)
     if (au->sdl_chunk || au->load_failed)
         return;
+    uint64_t start_ticks = 0ULL;
+#if defined(ROGUE_HAVE_SDL)
+    uint64_t freq = SDL_GetPerformanceFrequency();
+    start_ticks = SDL_GetPerformanceCounter();
+#endif
     Mix_Chunk* c = Mix_LoadWAV(au->path);
     if (!c)
     {
@@ -249,6 +278,19 @@ static void audio_attempt_load(RogueAssetAudio* au)
     }
     au->sdl_chunk = c;
     au->last_mtime = file_mtime(au->path);
+    /* metrics */
+#if defined(ROGUE_HAVE_SDL)
+    if (start_ticks)
+    {
+        uint64_t end_ticks = SDL_GetPerformanceCounter();
+        if (freq)
+        {
+            uint64_t us = (end_ticks - start_ticks) * 1000000ULL / freq;
+            g_asset_metrics.audio_load_us += us;
+        }
+    }
+#endif
+    g_asset_metrics.audio_load_count++;
 #else
     (void) au;
 #endif
@@ -288,7 +330,8 @@ int rogue_asset_manager_acquire_audio(const char* path)
     au->load_failed = false;
     au->sdl_chunk = NULL;
     au->last_mtime = 0;
-    audio_attempt_load(au);
+    if (!g_asset_mgr.lazy_loading_enabled)
+        audio_attempt_load(au);
     int index = (int) g_asset_mgr.audio_count;
     g_asset_mgr.audio_count++;
     return index;
@@ -373,4 +416,57 @@ int rogue_asset_manager_poll_reload(void)
     }
 #endif
     return reloaded;
+}
+
+/* ---------------- Phase 6: Performance Optimization Slice ---------------- */
+
+void rogue_asset_manager_set_lazy_loading(bool enable)
+{
+    g_asset_mgr.lazy_loading_enabled = enable;
+}
+
+bool rogue_asset_manager_ensure_texture_loaded(int index)
+{
+    if (index < 0 || (uint32_t) index >= g_asset_mgr.texture_count)
+        return false;
+    RogueAssetTexture* tex = &g_asset_mgr.textures[index];
+    if (tex->sdl_texture)
+        return true;
+    if (tex->load_failed)
+        return false; /* negative cached failure */
+    texture_attempt_load(tex);
+    return tex->sdl_texture != NULL;
+}
+
+int rogue_asset_manager_preload_texture(const char* path)
+{
+    int idx = rogue_asset_manager_acquire_texture(path);
+    if (idx >= 0 && g_asset_mgr.lazy_loading_enabled)
+        rogue_asset_manager_ensure_texture_loaded(idx);
+    return idx;
+}
+
+int rogue_asset_manager_preload_textures(const char* const* paths, int count)
+{
+    if (!paths || count <= 0)
+        return 0;
+    int loaded = 0;
+    for (int i = 0; i < count; ++i)
+    {
+        int idx = rogue_asset_manager_preload_texture(paths[i]);
+        if (idx >= 0)
+            loaded++;
+    }
+    return loaded;
+}
+
+void rogue_asset_manager_get_metrics(RogueAssetMetrics* out)
+{
+    if (out)
+        *out = g_asset_metrics;
+}
+
+void rogue_asset_manager_reset_metrics(void)
+{
+    memset(&g_asset_metrics, 0, sizeof g_asset_metrics);
 }
