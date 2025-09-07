@@ -1,4 +1,15 @@
 feat(asset-phase6): introduce preloading, lazy loading toggle, and load metrics
+feat(asset-phase7): hot-reload usage analytics, asset browser stub, atlas script scaffold
+
+Phase 7 (Developer Tools & Utilities) partial implementation:
+ - Extended RogueAssetUsageStats with peaks (texture/audio), reload counters, last reload timestamp; added internal hooks (rogue_asset_usage_note_reload, reset tracking).
+ - Integrated reload accounting into rogue_asset_manager_poll_reload (increments per resource reload) and exposed manual test hook.
+ - Added panels_asset_browser.c (stub overlay panel) listing first N texture/audio records with basic substring filter API.
+ - Added tools/atlas_generate.py scaffold script producing placeholder horizontal atlas manifest (even-slice UV approximation) for future packing integration.
+ - Added unit test test_asset_phase7_usage_stats validating new tracking fields and reload note path.
+ - Roadmap Phase 7 updated: hot-reload, asset browser, conversion script, analytics marked complete; debugging/inspection panel left pending.
+ - Pending follow-ups: dedicated asset_tool CLI wrapper aggregating list/stats/diff; overlay integration wiring for browser panel + interactive filter; real atlas packing & width probe via SDL_QueryTexture; checksum delta view in future inspection panel.
+
 
 Phase 6 (Performance Optimization) partial implementation:
  - Preloading system: rogue_asset_manager_preload_texture / _preload_textures batch helper.

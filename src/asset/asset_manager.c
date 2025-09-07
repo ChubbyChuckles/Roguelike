@@ -481,6 +481,12 @@ int rogue_asset_manager_poll_reload(void)
         }
     }
 #endif
+    if (reloaded > 0)
+    {
+        extern void rogue_asset_usage_note_reload(void);
+        for (int i = 0; i < reloaded; ++i)
+            rogue_asset_usage_note_reload();
+    }
     return reloaded;
 }
 

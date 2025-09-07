@@ -168,6 +168,11 @@ typedef struct DepEdge
 } DepEdge;
 
 static DepEdge* g_dep_edges = NULL;
+/* Extended usage tracking (lifecycle scoped) */
+static uint32_t g_peak_texture_records = 0;
+static uint32_t g_peak_audio_records = 0;
+static uint32_t g_reloads_detected = 0;
+static uint32_t g_last_reload_ms = 0; /* SDL_GetTicks snapshot */
 
 bool rogue_asset_dep_add(const char* owner_id, const char* dependency_id)
 {
@@ -232,7 +237,33 @@ RogueAssetUsageStats rogue_asset_usage_stats(void)
         if (m->audio[i].sdl_chunk)
             s.audio_with_handle++;
     }
+    /* update peaks */
+    if (s.texture_records > g_peak_texture_records)
+        g_peak_texture_records = s.texture_records;
+    if (s.audio_records > g_peak_audio_records)
+        g_peak_audio_records = s.audio_records;
+    s.peak_texture_records = g_peak_texture_records;
+    s.peak_audio_records = g_peak_audio_records;
+    s.reloads_detected = g_reloads_detected;
+    s.last_reload_ms = g_last_reload_ms;
     return s;
+}
+
+void rogue_asset_usage_reset_tracking(void)
+{
+    g_peak_texture_records = 0;
+    g_peak_audio_records = 0;
+    g_reloads_detected = 0;
+    g_last_reload_ms = 0;
+}
+
+void rogue_asset_usage_note_reload(void)
+{
+    g_reloads_detected++;
+#ifdef ROGUE_ENABLE_SDL
+    extern uint32_t SDL_GetTicks(void);
+    g_last_reload_ms = SDL_GetTicks();
+#endif
 }
 
 /* ---------- JSON Validation Stub ---------- */
@@ -275,4 +306,5 @@ void rogue_asset_validation_shutdown(void)
     }
     g_checksums = NULL;
     g_fallback_texture[0] = '\0';
+    rogue_asset_usage_reset_tracking();
 }

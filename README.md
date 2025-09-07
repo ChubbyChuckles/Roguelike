@@ -37,6 +37,13 @@ Advanced Effect Composition (Phase 2.2 update): Experimental Effect Tree editor 
 - Platform Optimization Hooks: `rogue_asset_manager_set_prefer_compressed_textures(1)` probes for sibling `.ktx2`, `.ktx`, or `.dds` variants (in that order) and substitutes when present, falling back gracefully when absent.
 - Debug Overlay Panel: New "Asset Metrics" panel shows texture/audio load counts, cumulative timings, streaming queue depth, streamed load tally, and toggles (Streaming Enabled, Prefer Compressed Variants, Reset Metrics).
 - Roadmap alignment: Phase 6 performance tasks (preloading, lazy loading, profiling, streaming, atlas tooling, platform optimization) now implemented; future slices may add threaded streaming & eviction.
+  **Developer Tools & Utilities (Phase 7 – initial)**:
+- Extended usage analytics (peaks, reload counters, last reload tick) via `RogueAssetUsageStats`.
+- Hot-reload integration now records reload events inside `rogue_asset_manager_poll_reload` (incremental file mtime detection) enabling future dashboards.
+- Asset Browser (stub) panel: textual listing of first N texture/audio entries with filter substring (integration wiring pending full overlay registration UI pass).
+- Atlas generation script scaffold: `tools/atlas_generate.py` emits placeholder horizontal atlas manifest (even-slice UVs) for future real packing; supports early pipeline experimentation.
+- New unit test `test_asset_phase7_usage_stats` validates extended stats and reload note hook.
+- Upcoming (not yet implemented): dedicated `asset_tool` multi-command CLI (list/stats/diff/reload), inspection panel with dependency graph & checksum delta, real atlas packing (dimension probe + bin-pack), and integrated asset issue surfacing in the Asset Browser.
   **Enhanced Execution Pathways (Phase 1.3)**: Introduced optional runtime-selectable pathways for showcase skill (Fireball) via a dispatch wrapper (default / empowered / utility mini-dash). APIs: `rogue_skill_pathway_set/get/last_exec`. Pathway 0 preserves legacy behavior; other pathways add deterministic side-effects without altering timing or state machine semantics. Unit: `test_skills_phase1_3_execution_pathways`.
   **Enhanced Data Model Tests (Phase 1.5)**: Added `test_skills_phase1_5_enhanced_schema` validating extended schema fields (visual/audio/AoE/projectile & effect node timing) plus negative cases (max_rank, frame_count, pierce_count, aoe_shape, repeat_count without interval). Roadmap item 1.5 now marked complete.
 

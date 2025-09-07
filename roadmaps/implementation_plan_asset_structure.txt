@@ -78,12 +78,12 @@ Next Phase 3 steps: integrate SDL_image when available, add width/height probe (
 [*] Expose metrics via debug overlay panel (Asset Metrics panel: queue depth, timings, streaming toggles)
 
 ## Phase 7: Developer Tools & Utilities
-[ ] Create asset management CLI tools
-[ ] Implement asset hot-reloading for development
-[ ] Design visual asset browser/manager
-[ ] Create asset conversion and processing scripts
-[ ] Add asset usage analytics and reporting
-[ ] Implement asset debugging and inspection tools
+[*] Create asset management CLI tools (baseline asset_validate already implemented Phase 5; extended CLI tooling pending separate asset_tool target)
+[x] Implement asset hot-reloading for development (extended: usage reload tracking hook + poll integration)
+[x] Design visual asset browser/manager (stub panel panels_asset_browser.c listing texture/audio entries + filter API)
+[x] Create asset conversion and processing scripts (tools/atlas_generate.py scaffold for atlas manifest generation)
+[x] Add asset usage analytics and reporting (RogueAssetUsageStats extended with peaks, reload counters, last reload tick; new test_asset_phase7_usage_stats)
+[ ] Implement asset debugging and inspection tools (pending: future deep-dive panel with dependency graph & checksum diffs)
 
 ## Phase 8: Documentation & Maintenance
 [ ] Create comprehensive asset system documentation

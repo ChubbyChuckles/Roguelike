@@ -61,9 +61,17 @@ typedef struct RogueAssetUsageStats
     uint32_t audio_failed;         /* audio entries marked load_failed */
     uint32_t textures_with_handle; /* have SDL_Texture pointer */
     uint32_t audio_with_handle;    /* have Mix_Chunk pointer */
+    uint32_t peak_texture_records; /* high-water mark of texture_records (since reset) */
+    uint32_t peak_audio_records;   /* high-water mark of audio_records (since reset) */
+    uint32_t reloads_detected;     /* number of hot-reload events processed */
+    uint32_t last_reload_ms;       /* timestamp (SDL ticks) of last reload event */
 } RogueAssetUsageStats;
 
 RogueAssetUsageStats rogue_asset_usage_stats(void);
+/* Reset dynamic tracking fields (peaks, reload counters) */
+void rogue_asset_usage_reset_tracking(void);
+/* Internal hook invoked by asset manager when a texture/audio reload occurs. */
+void rogue_asset_usage_note_reload(void);
 
 /* ---------- JSON Validation Hook (stub) ---------- */
 /* Returns true if file exists and (for now) has .json extension & non-zero size. */

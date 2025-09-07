@@ -1108,6 +1108,12 @@ target_link_libraries(test_asset_manager_phase6_atlas PRIVATE rogue_core)
 add_test(NAME test_asset_manager_phase6_atlas COMMAND test_asset_manager_phase6_atlas)
 set_tests_properties(test_asset_manager_phase6_atlas PROPERTIES LABELS "asset")
 
+# Phase 7 usage analytics test
+add_executable(test_asset_phase7_usage_stats tests/unit/test_asset_phase7_usage_stats.c)
+target_link_libraries(test_asset_phase7_usage_stats PRIVATE rogue_core)
+add_test(NAME test_asset_phase7_usage_stats COMMAND test_asset_phase7_usage_stats)
+set_tests_properties(test_asset_phase7_usage_stats PROPERTIES LABELS "asset")
+
 # Hot-reload polling smoke test
 add_executable(test_asset_manager_reload tests/unit/test_asset_manager_reload.c)
 target_link_libraries(test_asset_manager_reload PRIVATE rogue_core)
