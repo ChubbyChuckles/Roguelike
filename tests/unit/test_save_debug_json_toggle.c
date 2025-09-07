@@ -16,11 +16,12 @@ int main(void)
         printf("DEBUG_JSON_FAIL save\n");
         return 1;
     }
+    const char* path = rogue_save_debug_json_path_for_slot(0);
     FILE* f = NULL;
 #if defined(_MSC_VER)
-    fopen_s(&f, "save_slot_0.json", "rb");
+    fopen_s(&f, path, "rb");
 #else
-    f = fopen("save_slot_0.json", "rb");
+    f = fopen(path, "rb");
 #endif
     if (!f)
     {

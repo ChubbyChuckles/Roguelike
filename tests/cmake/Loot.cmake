@@ -8,7 +8,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_filter_predicates.c AND NOT
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_filter_predicates PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_filter_predicates COMMAND test_loot_filter_predicates)
+    rogue_add_test(NAME test_loot_filter_predicates COMMAND test_loot_filter_predicates)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_filter_basic.c AND NOT TARGET test_loot_filter_basic)
@@ -17,7 +17,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_filter_basic.c AND NOT TARG
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_filter_basic PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_filter_basic COMMAND test_loot_filter_basic)
+    rogue_add_test(NAME test_loot_filter_basic COMMAND test_loot_filter_basic)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_logging_toggle.c AND NOT TARGET test_loot_logging_toggle)
@@ -26,7 +26,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_logging_toggle.c AND NOT TA
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_logging_toggle PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_logging_toggle COMMAND test_loot_logging_toggle)
+    rogue_add_test(NAME test_loot_logging_toggle COMMAND test_loot_logging_toggle)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_rarity_parse.c AND NOT TARGET test_loot_rarity_parse)
@@ -35,7 +35,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_rarity_parse.c AND NOT TARG
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_rarity_parse PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_rarity_parse COMMAND test_loot_rarity_parse)
+    rogue_add_test(NAME test_loot_rarity_parse COMMAND test_loot_rarity_parse)
 endif()
 
 # Loot tooltip tests
@@ -45,7 +45,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_tooltip_compare.c AND NOT T
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_tooltip_compare PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_tooltip_compare COMMAND test_loot_tooltip_compare)
+    rogue_add_test(NAME test_loot_tooltip_compare COMMAND test_loot_tooltip_compare)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_tooltip_basic.c AND NOT TARGET test_loot_tooltip_basic)
@@ -54,7 +54,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_tooltip_basic.c AND NOT TAR
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_tooltip_basic PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_tooltip_basic COMMAND test_loot_tooltip_basic)
+    rogue_add_test(NAME test_loot_tooltip_basic COMMAND test_loot_tooltip_basic)
 endif()
 
 # Loot phase tests - Core progression
@@ -64,7 +64,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase1_item_defs.c AND NOT 
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase1_item_defs PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase1_item_defs COMMAND test_loot_phase1_item_defs)
+    rogue_add_test(NAME test_loot_phase1_item_defs COMMAND test_loot_phase1_item_defs)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase1_tables.c AND NOT TARGET test_loot_phase1_tables)
@@ -73,7 +73,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase1_tables.c AND NOT TAR
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase1_tables PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase1_tables COMMAND test_loot_phase1_tables)
+    rogue_add_test(NAME test_loot_phase1_tables COMMAND test_loot_phase1_tables)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase2_spawn.c AND NOT TARGET test_loot_phase2_spawn)
@@ -82,7 +82,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase2_spawn.c AND NOT TARG
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase2_spawn PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase2_spawn COMMAND test_loot_phase2_spawn)
+    rogue_add_test(NAME test_loot_phase2_spawn COMMAND test_loot_phase2_spawn)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase3_pickup.c AND NOT TARGET test_loot_phase3_pickup)
@@ -91,7 +91,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase3_pickup.c AND NOT TAR
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase3_pickup PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase3_pickup COMMAND test_loot_phase3_pickup)
+    rogue_add_test(NAME test_loot_phase3_pickup COMMAND test_loot_phase3_pickup)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase4_inventory_persistence.c AND NOT TARGET test_loot_phase4_inventory_persistence)
@@ -100,7 +100,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase4_inventory_persistenc
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase4_inventory_persistence PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase4_inventory_persistence COMMAND test_loot_phase4_inventory_persistence)
+    rogue_add_test(NAME test_loot_phase4_inventory_persistence COMMAND test_loot_phase4_inventory_persistence)
 endif()
 
 # Loot phase 5 - Rarity system
@@ -110,7 +110,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase5_dynamic_rarity_weigh
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase5_dynamic_rarity_weights PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase5_dynamic_rarity_weights COMMAND test_loot_phase5_dynamic_rarity_weights)
+    rogue_add_test(NAME test_loot_phase5_dynamic_rarity_weights COMMAND test_loot_phase5_dynamic_rarity_weights)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase5_rarity_adv.c AND NOT TARGET test_loot_phase5_rarity_adv)
@@ -119,7 +119,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase5_rarity_adv.c AND NOT
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase5_rarity_adv PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase5_rarity_adv COMMAND test_loot_phase5_rarity_adv)
+    rogue_add_test(NAME test_loot_phase5_rarity_adv COMMAND test_loot_phase5_rarity_adv)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase5_rarity_distribution.c AND NOT TARGET test_loot_phase5_rarity_distribution)
@@ -128,7 +128,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase5_rarity_distribution.
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase5_rarity_distribution PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase5_rarity_distribution COMMAND test_loot_phase5_rarity_distribution)
+    rogue_add_test(NAME test_loot_phase5_rarity_distribution COMMAND test_loot_phase5_rarity_distribution)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase5_rarity_parse.c AND NOT TARGET test_loot_phase5_rarity_parse)
@@ -137,7 +137,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase5_rarity_parse.c AND N
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase5_rarity_parse PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase5_rarity_parse COMMAND test_loot_phase5_rarity_parse)
+    rogue_add_test(NAME test_loot_phase5_rarity_parse COMMAND test_loot_phase5_rarity_parse)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase5_rarity_roll.c AND NOT TARGET test_loot_phase5_rarity_roll)
@@ -146,7 +146,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase5_rarity_roll.c AND NO
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase5_rarity_roll PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase5_rarity_roll COMMAND test_loot_phase5_rarity_roll)
+    rogue_add_test(NAME test_loot_phase5_rarity_roll COMMAND test_loot_phase5_rarity_roll)
 endif()
 
 # Loot phase 6 - Analytics and telemetry
@@ -156,7 +156,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase6_histogram.c AND NOT 
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase6_histogram PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase6_histogram COMMAND test_loot_phase6_histogram)
+    rogue_add_test(NAME test_loot_phase6_histogram COMMAND test_loot_phase6_histogram)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase6_merge_despawn.c AND NOT TARGET test_loot_phase6_merge_despawn)
@@ -165,7 +165,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase6_merge_despawn.c AND 
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase6_merge_despawn PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase6_merge_despawn COMMAND test_loot_phase6_merge_despawn)
+    rogue_add_test(NAME test_loot_phase6_merge_despawn COMMAND test_loot_phase6_merge_despawn)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase6_stats_window.c AND NOT TARGET test_loot_phase6_stats_window)
@@ -174,7 +174,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase6_stats_window.c AND N
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase6_stats_window PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase6_stats_window COMMAND test_loot_phase6_stats_window)
+    rogue_add_test(NAME test_loot_phase6_stats_window COMMAND test_loot_phase6_stats_window)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase6_telemetry.c AND NOT TARGET test_loot_phase6_telemetry)
@@ -183,7 +183,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase6_telemetry.c AND NOT 
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase6_telemetry PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase6_telemetry COMMAND test_loot_phase6_telemetry)
+    rogue_add_test(NAME test_loot_phase6_telemetry COMMAND test_loot_phase6_telemetry)
 endif()
 
 # Loot phase 8 - Generation system
@@ -193,7 +193,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase8_generation_basic.c A
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase8_generation_basic PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase8_generation_basic COMMAND test_loot_phase8_generation_basic)
+    rogue_add_test(NAME test_loot_phase8_generation_basic COMMAND test_loot_phase8_generation_basic)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase8_generation_quality.c AND NOT TARGET test_loot_phase8_generation_quality)
@@ -202,7 +202,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase8_generation_quality.c
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase8_generation_quality PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase8_generation_quality COMMAND test_loot_phase8_generation_quality)
+    rogue_add_test(NAME test_loot_phase8_generation_quality COMMAND test_loot_phase8_generation_quality)
 endif()
 
 # Loot phase 9 - Adaptive and tuning systems
@@ -212,7 +212,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_drop_rates.c AND NOT
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase9_drop_rates PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase9_drop_rates COMMAND test_loot_phase9_drop_rates)
+    rogue_add_test(NAME test_loot_phase9_drop_rates COMMAND test_loot_phase9_drop_rates)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_adaptive.c AND NOT TARGET test_loot_phase9_adaptive)
@@ -221,7 +221,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_adaptive.c AND NOT T
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase9_adaptive PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase9_adaptive COMMAND test_loot_phase9_adaptive)
+    rogue_add_test(NAME test_loot_phase9_adaptive COMMAND test_loot_phase9_adaptive)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_preference.c AND NOT TARGET test_loot_phase9_preference)
@@ -230,7 +230,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_preference.c AND NOT
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase9_preference PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase9_preference COMMAND test_loot_phase9_preference)
+    rogue_add_test(NAME test_loot_phase9_preference COMMAND test_loot_phase9_preference)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_pity.c AND NOT TARGET test_loot_phase9_pity)
@@ -239,7 +239,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_pity.c AND NOT TARGE
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase9_pity PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase9_pity COMMAND test_loot_phase9_pity)
+    rogue_add_test(NAME test_loot_phase9_pity COMMAND test_loot_phase9_pity)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_tuning_console.c AND NOT TARGET test_loot_phase9_tuning_console)
@@ -248,7 +248,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_tuning_console.c AND
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase9_tuning_console PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase9_tuning_console COMMAND test_loot_phase9_tuning_console)
+    rogue_add_test(NAME test_loot_phase9_tuning_console COMMAND test_loot_phase9_tuning_console)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_session_metrics.c AND NOT TARGET test_loot_phase9_session_metrics)
@@ -257,7 +257,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase9_session_metrics.c AN
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase9_session_metrics PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase9_session_metrics COMMAND test_loot_phase9_session_metrics)
+    rogue_add_test(NAME test_loot_phase9_session_metrics COMMAND test_loot_phase9_session_metrics)
 endif()
 
 # Loot phase 16 - Advanced modes
@@ -267,7 +267,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase16_personal_mode.c AND
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase16_personal_mode PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase16_personal_mode COMMAND test_loot_phase16_personal_mode)
+    rogue_add_test(NAME test_loot_phase16_personal_mode COMMAND test_loot_phase16_personal_mode)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase16_need_greed_trade.c AND NOT TARGET test_loot_phase16_need_greed_trade)
@@ -276,7 +276,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase16_need_greed_trade.c 
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase16_need_greed_trade PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase16_need_greed_trade COMMAND test_loot_phase16_need_greed_trade)
+    rogue_add_test(NAME test_loot_phase16_need_greed_trade COMMAND test_loot_phase16_need_greed_trade)
 endif()
 
 # Loot phase 17 - Performance and indexing
@@ -286,7 +286,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase17_perf.c AND NOT TARG
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase17_perf PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase17_perf COMMAND test_loot_phase17_perf)
+    rogue_add_test(NAME test_loot_phase17_perf COMMAND test_loot_phase17_perf)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase17_index.c AND NOT TARGET test_loot_phase17_index)
@@ -295,7 +295,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase17_index.c AND NOT TAR
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase17_index PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase17_index COMMAND test_loot_phase17_index)
+    rogue_add_test(NAME test_loot_phase17_index COMMAND test_loot_phase17_index)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase17_5_diff.c AND NOT TARGET test_loot_phase17_5_diff)
@@ -304,7 +304,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase17_5_diff.c AND NOT TA
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase17_5_diff PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase17_5_diff COMMAND test_loot_phase17_5_diff)
+    rogue_add_test(NAME test_loot_phase17_5_diff COMMAND test_loot_phase17_5_diff)
 endif()
 
 # Loot phase 18 - Analytics and advanced features
@@ -314,7 +314,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase18_analytics.c AND NOT
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase18_analytics PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase18_analytics COMMAND test_loot_phase18_analytics)
+    rogue_add_test(NAME test_loot_phase18_analytics COMMAND test_loot_phase18_analytics)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase18_3_4_5_advanced.c AND NOT TARGET test_loot_phase18_3_4_5_advanced)
@@ -323,7 +323,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase18_3_4_5_advanced.c AN
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase18_3_4_5_advanced PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase18_3_4_5_advanced COMMAND test_loot_phase18_3_4_5_advanced)
+    rogue_add_test(NAME test_loot_phase18_3_4_5_advanced COMMAND test_loot_phase18_3_4_5_advanced)
 endif()
 
 # Loot phase 19 - Audio and VFX integration
@@ -333,7 +333,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase19_1_pickup_sounds.c A
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase19_1_pickup_sounds PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase19_1_pickup_sounds COMMAND test_loot_phase19_1_pickup_sounds)
+    rogue_add_test(NAME test_loot_phase19_1_pickup_sounds COMMAND test_loot_phase19_1_pickup_sounds)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase19_2_5_vfx.c AND NOT TARGET test_loot_phase19_2_5_vfx)
@@ -342,7 +342,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase19_2_5_vfx.c AND NOT T
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase19_2_5_vfx PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase19_2_5_vfx COMMAND test_loot_phase19_2_5_vfx)
+    rogue_add_test(NAME test_loot_phase19_2_5_vfx COMMAND test_loot_phase19_2_5_vfx)
 endif()
 
 # Loot phase 20 - Stress testing and validation
@@ -352,7 +352,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase20_1_fuzz_tables.c AND
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase20_1_fuzz_tables PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase20_1_fuzz_tables COMMAND test_loot_phase20_1_fuzz_tables)
+    rogue_add_test(NAME test_loot_phase20_1_fuzz_tables COMMAND test_loot_phase20_1_fuzz_tables)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase20_2_3_stats_regression.c AND NOT TARGET test_loot_phase20_2_3_stats_regression)
@@ -361,7 +361,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase20_2_3_stats_regressio
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase20_2_3_stats_regression PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase20_2_3_stats_regression COMMAND test_loot_phase20_2_3_stats_regression)
+    rogue_add_test(NAME test_loot_phase20_2_3_stats_regression COMMAND test_loot_phase20_2_3_stats_regression)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase20_4_persistence_roundtrip.c AND NOT TARGET test_loot_phase20_4_persistence_roundtrip)
@@ -370,7 +370,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase20_4_persistence_round
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase20_4_persistence_roundtrip PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase20_4_persistence_roundtrip COMMAND test_loot_phase20_4_persistence_roundtrip)
+    rogue_add_test(NAME test_loot_phase20_4_persistence_roundtrip COMMAND test_loot_phase20_4_persistence_roundtrip)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase20_5_merge_stress.c AND NOT TARGET test_loot_phase20_5_merge_stress)
@@ -379,7 +379,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase20_5_merge_stress.c AN
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase20_5_merge_stress PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase20_5_merge_stress COMMAND test_loot_phase20_5_merge_stress)
+    rogue_add_test(NAME test_loot_phase20_5_merge_stress COMMAND test_loot_phase20_5_merge_stress)
 endif()
 
 # Loot tooling tests - Phase 21
@@ -389,7 +389,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_tooling_phase21_2_validatio
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_tooling_phase21_2_validation PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_tooling_phase21_2_validation COMMAND test_loot_tooling_phase21_2_validation)
+    rogue_add_test(NAME test_loot_tooling_phase21_2_validation COMMAND test_loot_tooling_phase21_2_validation)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_tooling_phase21_1_convert.c AND NOT TARGET test_loot_tooling_phase21_1_convert)
@@ -398,7 +398,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_tooling_phase21_1_convert.c
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_tooling_phase21_1_convert PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_tooling_phase21_1_convert COMMAND test_loot_tooling_phase21_1_convert)
+    rogue_add_test(NAME test_loot_tooling_phase21_1_convert COMMAND test_loot_tooling_phase21_1_convert)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_tooling_phase21_3_affix_json.c AND NOT TARGET test_loot_tooling_phase21_3_affix_json)
@@ -407,7 +407,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_tooling_phase21_3_affix_jso
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_tooling_phase21_3_affix_json PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_tooling_phase21_3_affix_json COMMAND test_loot_tooling_phase21_3_affix_json)
+    rogue_add_test(NAME test_loot_tooling_phase21_3_affix_json COMMAND test_loot_tooling_phase21_3_affix_json)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_tooling_phase21_4_rebalance.c AND NOT TARGET test_loot_tooling_phase21_4_rebalance)
@@ -416,7 +416,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_tooling_phase21_4_rebalance
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_tooling_phase21_4_rebalance PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_tooling_phase21_4_rebalance COMMAND test_loot_tooling_phase21_4_rebalance)
+    rogue_add_test(NAME test_loot_tooling_phase21_4_rebalance COMMAND test_loot_tooling_phase21_4_rebalance)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_tooling_phase21_5_sort.c AND NOT TARGET test_loot_tooling_phase21_5_sort)
@@ -425,7 +425,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_tooling_phase21_5_sort.c AN
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_tooling_phase21_5_sort PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_tooling_phase21_5_sort COMMAND test_loot_tooling_phase21_5_sort)
+    rogue_add_test(NAME test_loot_tooling_phase21_5_sort COMMAND test_loot_tooling_phase21_5_sort)
 endif()
 
 # Loot phase 22 - Security
@@ -435,7 +435,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase22_security.c AND NOT 
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase22_security PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase22_security COMMAND test_loot_phase22_security)
+    rogue_add_test(NAME test_loot_phase22_security COMMAND test_loot_phase22_security)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase22_server_anomaly.c AND NOT TARGET test_loot_phase22_server_anomaly)
@@ -444,7 +444,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase22_server_anomaly.c AN
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase22_server_anomaly PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase22_server_anomaly COMMAND test_loot_phase22_server_anomaly)
+    rogue_add_test(NAME test_loot_phase22_server_anomaly COMMAND test_loot_phase22_server_anomaly)
 endif()
 
 # Loot phase 23 - Documentation and examples
@@ -454,7 +454,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase23_api_doc.c AND NOT T
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase23_api_doc PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase23_api_doc COMMAND test_loot_phase23_api_doc)
+    rogue_add_test(NAME test_loot_phase23_api_doc COMMAND test_loot_phase23_api_doc)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase23_example_pack.c AND NOT TARGET test_loot_phase23_example_pack)
@@ -463,7 +463,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase23_example_pack.c AND 
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase23_example_pack PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase23_example_pack COMMAND test_loot_phase23_example_pack)
+    rogue_add_test(NAME test_loot_phase23_example_pack COMMAND test_loot_phase23_example_pack)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase23_doc_paths.c AND NOT TARGET test_loot_phase23_doc_paths)
@@ -472,7 +472,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase23_doc_paths.c AND NOT
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase23_doc_paths PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase23_doc_paths COMMAND test_loot_phase23_doc_paths)
+    rogue_add_test(NAME test_loot_phase23_doc_paths COMMAND test_loot_phase23_doc_paths)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase23_style_guide.c AND NOT TARGET test_loot_phase23_style_guide)
@@ -481,5 +481,5 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase23_style_guide.c AND N
     if(SDL2_FOUND)
         target_compile_definitions(test_loot_phase23_style_guide PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase23_style_guide COMMAND test_loot_phase23_style_guide)
+    rogue_add_test(NAME test_loot_phase23_style_guide COMMAND test_loot_phase23_style_guide)
 endif()

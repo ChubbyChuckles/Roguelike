@@ -7,7 +7,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_bars_ap.c AND NOT TARG
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase6_bars_ap PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase6_bars_ap COMMAND test_ui_phase6_bars_ap)
+    rogue_add_test(NAME test_ui_phase6_bars_ap COMMAND test_ui_phase6_bars_ap)
 endif()
 
 # UI Phase 6.3 buff belt test
@@ -17,7 +17,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_buff_belt.c AND NOT TA
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase6_buff_belt PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase6_buff_belt COMMAND test_ui_phase6_buff_belt)
+    rogue_add_test(NAME test_ui_phase6_buff_belt COMMAND test_ui_phase6_buff_belt)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_minimap_metrics_alerts.c AND NOT TARGET test_ui_phase6_minimap_metrics_alerts)
@@ -26,7 +26,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase6_minimap_metrics_alerts
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase6_minimap_metrics_alerts PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase6_minimap_metrics_alerts COMMAND test_ui_phase6_minimap_metrics_alerts)
+    rogue_add_test(NAME test_ui_phase6_minimap_metrics_alerts COMMAND test_ui_phase6_minimap_metrics_alerts)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase7_theme.c AND NOT TARGET test_ui_phase7_theme)
@@ -35,7 +35,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase7_theme.c AND NOT TARGET
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase7_theme PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase7_theme COMMAND test_ui_phase7_theme)
+    rogue_add_test(NAME test_ui_phase7_theme COMMAND test_ui_phase7_theme)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase7_accessibility.c AND NOT TARGET test_ui_phase7_accessibility)
@@ -44,7 +44,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase7_accessibility.c AND NO
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase7_accessibility PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase7_accessibility COMMAND test_ui_phase7_accessibility)
+    rogue_add_test(NAME test_ui_phase7_accessibility COMMAND test_ui_phase7_accessibility)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase8_animation.c AND NOT TARGET test_ui_phase8_animation)
@@ -53,7 +53,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase8_animation.c AND NOT TA
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase8_animation PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase8_animation COMMAND test_ui_phase8_animation)
+    rogue_add_test(NAME test_ui_phase8_animation COMMAND test_ui_phase8_animation)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase8_timeline.c AND NOT TARGET test_ui_phase8_timeline)
@@ -62,7 +62,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase8_timeline.c AND NOT TAR
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase8_timeline PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase8_timeline COMMAND test_ui_phase8_timeline)
+    rogue_add_test(NAME test_ui_phase8_timeline COMMAND test_ui_phase8_timeline)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase9_perf_virtual.c AND NOT TARGET test_ui_phase9_perf_virtual)
@@ -71,7 +71,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase9_perf_virtual.c AND NOT
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase9_perf_virtual PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase9_perf_virtual COMMAND test_ui_phase9_perf_virtual)
+    rogue_add_test(NAME test_ui_phase9_perf_virtual COMMAND test_ui_phase9_perf_virtual)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase9_extended.c AND NOT TARGET test_ui_phase9_extended)
@@ -80,7 +80,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase9_extended.c AND NOT TAR
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase9_extended PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase9_extended COMMAND test_ui_phase9_extended)
+    rogue_add_test(NAME test_ui_phase9_extended COMMAND test_ui_phase9_extended)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase9_virtual_inventory.c AND NOT TARGET test_ui_phase9_virtual_inventory)
@@ -89,7 +89,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase9_virtual_inventory.c AN
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase9_virtual_inventory PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase9_virtual_inventory COMMAND test_ui_phase9_virtual_inventory)
+    rogue_add_test(NAME test_ui_phase9_virtual_inventory COMMAND test_ui_phase9_virtual_inventory)
 endif()
 
 # UI Phase 10.1 headless harness test
@@ -99,7 +99,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase10_headless_harness.c AN
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase10_headless_harness PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase10_headless_harness COMMAND test_ui_phase10_headless_harness)
+    rogue_add_test(NAME test_ui_phase10_headless_harness COMMAND test_ui_phase10_headless_harness)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase10_golden_theming.c AND NOT TARGET test_ui_phase10_golden_theming)
@@ -108,7 +108,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase10_golden_theming.c AND 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase10_golden_theming PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase10_golden_theming COMMAND test_ui_phase10_golden_theming)
+    rogue_add_test(NAME test_ui_phase10_golden_theming COMMAND test_ui_phase10_golden_theming)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase10_layout_fuzz.c AND NOT TARGET test_ui_phase10_layout_fuzz)
@@ -117,7 +117,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase10_layout_fuzz.c AND NOT
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase10_layout_fuzz PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase10_layout_fuzz COMMAND test_ui_phase10_layout_fuzz)
+    rogue_add_test(NAME test_ui_phase10_layout_fuzz COMMAND test_ui_phase10_layout_fuzz)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase10_perf_smoke.c AND NOT TARGET test_ui_phase10_perf_smoke)
@@ -126,7 +126,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase10_perf_smoke.c AND NOT 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase10_perf_smoke PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase10_perf_smoke COMMAND test_ui_phase10_perf_smoke)
+    rogue_add_test(NAME test_ui_phase10_perf_smoke COMMAND test_ui_phase10_perf_smoke)
 endif()
 
 # UI Phase 10.3 navigation traversal test
@@ -136,7 +136,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase10_navigation_traversal.
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase10_navigation_traversal PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase10_navigation_traversal COMMAND test_ui_phase10_navigation_traversal)
+    rogue_add_test(NAME test_ui_phase10_navigation_traversal COMMAND test_ui_phase10_navigation_traversal)
 endif()
 
 # UI Phase 11 docs & tooling test
@@ -146,7 +146,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase11_docs_tooling.c AND NO
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase11_docs_tooling PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase11_docs_tooling COMMAND test_ui_phase11_docs_tooling)
+    rogue_add_test(NAME test_ui_phase11_docs_tooling COMMAND test_ui_phase11_docs_tooling)
 endif()
 
 # UI Phase 4.x and 5.x blocks
@@ -156,7 +156,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_context_menu.c AND NOT
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase4_context_menu PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase4_context_menu COMMAND test_ui_phase4_context_menu)
+    rogue_add_test(NAME test_ui_phase4_context_menu COMMAND test_ui_phase4_context_menu)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_stat_preview.c AND NOT TARGET test_ui_phase4_stat_preview)
@@ -165,7 +165,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_stat_preview.c AND NOT
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase4_stat_preview PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase4_stat_preview COMMAND test_ui_phase4_stat_preview)
+    rogue_add_test(NAME test_ui_phase4_stat_preview COMMAND test_ui_phase4_stat_preview)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_rarity_colors.c AND NOT TARGET test_ui_phase4_rarity_colors)
@@ -174,7 +174,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_rarity_colors.c AND NO
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase4_rarity_colors PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase4_rarity_colors COMMAND test_ui_phase4_rarity_colors)
+    rogue_add_test(NAME test_ui_phase4_rarity_colors COMMAND test_ui_phase4_rarity_colors)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_vendor_restock.c AND NOT TARGET test_ui_phase4_vendor_restock)
@@ -183,7 +183,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_vendor_restock.c AND N
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase4_vendor_restock PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase4_vendor_restock COMMAND test_ui_phase4_vendor_restock)
+    rogue_add_test(NAME test_ui_phase4_vendor_restock COMMAND test_ui_phase4_vendor_restock)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_vendor_transaction.c AND NOT TARGET test_ui_phase4_vendor_transaction)
@@ -192,7 +192,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_vendor_transaction.c A
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase4_vendor_transaction PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase4_vendor_transaction COMMAND test_ui_phase4_vendor_transaction)
+    rogue_add_test(NAME test_ui_phase4_vendor_transaction COMMAND test_ui_phase4_vendor_transaction)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_durability_thresholds.c AND NOT TARGET test_ui_phase4_durability_thresholds)
@@ -201,7 +201,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_durability_thresholds.
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase4_durability_thresholds PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase4_durability_thresholds COMMAND test_ui_phase4_durability_thresholds)
+    rogue_add_test(NAME test_ui_phase4_durability_thresholds COMMAND test_ui_phase4_durability_thresholds)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_radial_selector.c AND NOT TARGET test_ui_phase4_radial_selector)
@@ -210,7 +210,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase4_radial_selector.c AND 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase4_radial_selector PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase4_radial_selector COMMAND test_ui_phase4_radial_selector)
+    rogue_add_test(NAME test_ui_phase4_radial_selector COMMAND test_ui_phase4_radial_selector)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase5_skillgraph.c AND NOT TARGET test_ui_phase5_skillgraph)
@@ -219,7 +219,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase5_skillgraph.c AND NOT T
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase5_skillgraph PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase5_skillgraph COMMAND test_ui_phase5_skillgraph)
+    rogue_add_test(NAME test_ui_phase5_skillgraph COMMAND test_ui_phase5_skillgraph)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_skill_maze_generation.c AND NOT TARGET test_ui_skill_maze_generation)
@@ -228,7 +228,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_skill_maze_generation.c AND N
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_skill_maze_generation PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_skill_maze_generation COMMAND test_ui_skill_maze_generation)
+    rogue_add_test(NAME test_ui_skill_maze_generation COMMAND test_ui_skill_maze_generation)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase5_skillgraph_anim.c AND NOT TARGET test_ui_phase5_skillgraph_anim)
@@ -237,5 +237,5 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase5_skillgraph_anim.c AND 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ui_phase5_skillgraph_anim PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ui_phase5_skillgraph_anim COMMAND test_ui_phase5_skillgraph_anim)
+    rogue_add_test(NAME test_ui_phase5_skillgraph_anim COMMAND test_ui_phase5_skillgraph_anim)
 endif()

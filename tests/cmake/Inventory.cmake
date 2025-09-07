@@ -7,7 +7,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase1_unique_entries.
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_inventory_phase1_unique_entries PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_inventory_phase1_unique_entries COMMAND test_inventory_phase1_unique_entries)
+    rogue_add_test(NAME test_inventory_phase1_unique_entries COMMAND test_inventory_phase1_unique_entries)
 endif()
 
 # Inventory Phase 1 extended (labels, delta, cap handler) tests (1.3,1.6,1.7)
@@ -17,7 +17,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase1_labels_delta.c 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_inventory_phase1_labels_delta PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_inventory_phase1_labels_delta COMMAND test_inventory_phase1_labels_delta)
+    rogue_add_test(NAME test_inventory_phase1_labels_delta COMMAND test_inventory_phase1_labels_delta)
 endif()
 
 # Inventory Phase 1 persistence integration test (1.6) – verifies save/load of entry model
@@ -27,7 +27,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase1_persistence.c A
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_inventory_phase1_persistence PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_inventory_phase1_persistence COMMAND test_inventory_phase1_persistence)
+    rogue_add_test(NAME test_inventory_phase1_persistence COMMAND test_inventory_phase1_persistence)
 endif()
 
 # Inventory Phase 3 tags & flags test (3.1/3.2 partial scope) – favorites/locks + tag persistence
@@ -37,7 +37,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase3_tags.c AND NOT 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_inventory_phase3_tags PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_inventory_phase3_tags COMMAND test_inventory_phase3_tags)
+    rogue_add_test(NAME test_inventory_phase3_tags COMMAND test_inventory_phase3_tags)
 endif()
 
 # Inventory Phase 3 auto-tag rules test (3.3/3.4 persistence + application)
@@ -47,7 +47,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase3_rules.c AND NOT
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_inventory_phase3_rules PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_inventory_phase3_rules COMMAND test_inventory_phase3_rules)
+    rogue_add_test(NAME test_inventory_phase3_rules COMMAND test_inventory_phase3_rules)
 endif()
 
 # Inventory Phase 3 rule enforcement & determinism test (3.6)
@@ -57,7 +57,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase3_lock_rule_enfor
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_inventory_phase3_lock_rule_enforce PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_inventory_phase3_lock_rule_enforce COMMAND test_inventory_phase3_lock_rule_enforce)
+    rogue_add_test(NAME test_inventory_phase3_lock_rule_enforce COMMAND test_inventory_phase3_lock_rule_enforce)
 endif()
 
 # Inventory Phase 4 query & sorting initial test (4.1-4.3 partial)
@@ -67,7 +67,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase4_query_sort.c AN
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_inventory_phase4_query_sort PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_inventory_phase4_query_sort COMMAND test_inventory_phase4_query_sort)
+    rogue_add_test(NAME test_inventory_phase4_query_sort COMMAND test_inventory_phase4_query_sort)
 endif()
 
 # Inventory Phase 4 saved searches test (4.4 partial)
@@ -77,7 +77,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase4_saved_searches.
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_inventory_phase4_saved_searches PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_inventory_phase4_saved_searches COMMAND test_inventory_phase4_saved_searches)
+    rogue_add_test(NAME test_inventory_phase4_saved_searches COMMAND test_inventory_phase4_saved_searches)
 endif()
 
 # Inventory Phase 4 saved searches persistence test (4.4 persistence)
@@ -87,7 +87,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase4_saved_searches_
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_inventory_phase4_saved_searches_persist PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_inventory_phase4_saved_searches_persist COMMAND test_inventory_phase4_saved_searches_persist)
+    rogue_add_test(NAME test_inventory_phase4_saved_searches_persist COMMAND test_inventory_phase4_saved_searches_persist)
 endif()
 
 # Inventory Phase 4 query result cache test (4.6)
@@ -97,7 +97,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase4_query_cache.c A
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_inventory_phase4_query_cache PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_inventory_phase4_query_cache COMMAND test_inventory_phase4_query_cache)
+    rogue_add_test(NAME test_inventory_phase4_query_cache COMMAND test_inventory_phase4_query_cache)
 endif()
 
 # Inventory Phase 4 quick actions test (4.4 UI binding)
@@ -107,7 +107,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_phase4_quick_actions.c
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_inventory_phase4_quick_actions PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_inventory_phase4_quick_actions COMMAND test_inventory_phase4_quick_actions)
+    rogue_add_test(NAME test_inventory_phase4_quick_actions COMMAND test_inventory_phase4_quick_actions)
 endif()
 
 # Explicitly add inventory persistence test (loot phase 4)
@@ -117,7 +117,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase4_inventory_persistenc
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_loot_phase4_inventory_persistence PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_loot_phase4_inventory_persistence COMMAND test_loot_phase4_inventory_persistence)
+    rogue_add_test(NAME test_loot_phase4_inventory_persistence COMMAND test_loot_phase4_inventory_persistence)
 
     # Phase 13 inventory UI management test
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_ui_phase13.c AND NOT TARGET test_inventory_ui_phase13)
@@ -126,6 +126,6 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_phase4_inventory_persistenc
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_inventory_ui_phase13 PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_inventory_ui_phase13 COMMAND test_inventory_ui_phase13)
+    rogue_add_test(NAME test_inventory_ui_phase13 COMMAND test_inventory_ui_phase13)
     endif()
 endif()

@@ -13,7 +13,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_damage_observer.c AND NOT
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_damage_observer PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_damage_observer COMMAND test_combat_damage_observer)
+    rogue_add_test(NAME test_combat_damage_observer COMMAND test_combat_damage_observer)
 endif()
 
 # Ensure newly added directional combat test is always present (some generators cache GLOB results between incremental reconfigurations).
@@ -24,7 +24,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_left_facing.c AND NOT TAR
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_left_facing PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_left_facing COMMAND test_combat_left_facing)
+    rogue_add_test(NAME test_combat_left_facing COMMAND test_combat_left_facing)
 endif()
 
 # Explicitly add Phase 5.4/5.5 team filter & obstruction attenuation test
@@ -35,7 +35,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase5_team_obstruction.c
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_phase5_team_obstruction PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_phase5_team_obstruction COMMAND test_combat_phase5_team_obstruction)
+    rogue_add_test(NAME test_combat_phase5_team_obstruction COMMAND test_combat_phase5_team_obstruction)
 endif()
 
 # Phase 5.6 lock-on acquisition/cycle/directional assist test
@@ -46,7 +46,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase5_lock_on.c AND NOT 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_phase5_lock_on PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_phase5_lock_on COMMAND test_combat_phase5_lock_on)
+    rogue_add_test(NAME test_combat_phase5_lock_on COMMAND test_combat_phase5_lock_on)
 endif()
 
 # Phase 5.1 hitbox primitive test (explicit add to avoid glob cache issues)
@@ -56,7 +56,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase5_hitbox_primitives.
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_phase5_hitbox_primitives PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_phase5_hitbox_primitives COMMAND test_combat_phase5_hitbox_primitives)
+    rogue_add_test(NAME test_combat_phase5_hitbox_primitives COMMAND test_combat_phase5_hitbox_primitives)
 endif()
 
 # Phase 5.2/5.3 authoring + broadphase tests
@@ -66,7 +66,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase5_hitbox_authoring_b
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_phase5_hitbox_authoring_broadphase PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_phase5_hitbox_authoring_broadphase COMMAND test_combat_phase5_hitbox_authoring_broadphase)
+    rogue_add_test(NAME test_combat_phase5_hitbox_authoring_broadphase COMMAND test_combat_phase5_hitbox_authoring_broadphase)
 endif()
 
 # Explicit heavy multi-window test (heavy_2 triple window validation)
@@ -77,7 +77,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_heavy_multi_window.c AND 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_heavy_multi_window PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_heavy_multi_window COMMAND test_combat_heavy_multi_window)
+    rogue_add_test(NAME test_combat_heavy_multi_window COMMAND test_combat_heavy_multi_window)
 endif()
 
 # Explicit window boundary overlap test
@@ -88,7 +88,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_window_boundary.c AND NOT
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_window_boundary PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_window_boundary COMMAND test_combat_window_boundary)
+    rogue_add_test(NAME test_combat_window_boundary COMMAND test_combat_window_boundary)
 endif()
 
 # Phase 6.1 & 6.3 charge + dodge test (explicit)
@@ -99,7 +99,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase6_charge_and_dodge.c
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_phase6_charge_and_dodge PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_phase6_charge_and_dodge COMMAND test_combat_phase6_charge_and_dodge)
+    rogue_add_test(NAME test_combat_phase6_charge_and_dodge COMMAND test_combat_phase6_charge_and_dodge)
 endif()
 
 # Phase 6.4/6.5/6.6 backstab + parry + riposte basic test
@@ -110,7 +110,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase6_parry_backstab_rip
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_phase6_parry_backstab_riposte PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_phase6_parry_backstab_riposte COMMAND test_combat_phase6_parry_backstab_riposte)
+    rogue_add_test(NAME test_combat_phase6_parry_backstab_riposte COMMAND test_combat_phase6_parry_backstab_riposte)
 endif()
 
 # Phase 6.2 / 6.6 / 6.7 aerial, guard break, deflect placeholder test
@@ -121,7 +121,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase6_aerial_deflect_gua
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_phase6_aerial_deflect_guardbreak PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_phase6_aerial_deflect_guardbreak COMMAND test_combat_phase6_aerial_deflect_guardbreak)
+    rogue_add_test(NAME test_combat_phase6_aerial_deflect_guardbreak COMMAND test_combat_phase6_aerial_deflect_guardbreak)
 endif()
 
 # Phase 6 extended multipliers test (backstab + guard-break + riposte damage application)
@@ -132,7 +132,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase6_backstab_guardbrea
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_phase6_backstab_guardbreak_riposte_bonus PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_phase6_backstab_guardbreak_riposte_bonus COMMAND test_combat_phase6_backstab_guardbreak_riposte_bonus)
+    rogue_add_test(NAME test_combat_phase6_backstab_guardbreak_riposte_bonus COMMAND test_combat_phase6_backstab_guardbreak_riposte_bonus)
 endif()
 
 # Phase 7.1/7.3/7.5 weapon + stance + familiarity basic test
@@ -143,7 +143,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase7_weapon_stance_fami
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_phase7_weapon_stance_familiarity PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_phase7_weapon_stance_familiarity COMMAND test_combat_phase7_weapon_stance_familiarity)
+    rogue_add_test(NAME test_combat_phase7_weapon_stance_familiarity COMMAND test_combat_phase7_weapon_stance_familiarity)
 endif()
 
 # Phase 7.4 / 7.6 infusions + durability scalar test
@@ -154,7 +154,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase7_infusions_durabili
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_phase7_infusions_durability PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_phase7_infusions_durability COMMAND test_combat_phase7_infusions_durability)
+    rogue_add_test(NAME test_combat_phase7_infusions_durability COMMAND test_combat_phase7_infusions_durability)
 endif()
 
 # Phase 7.2 armor weight classes test
@@ -165,7 +165,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase7_armor_weight_class
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_phase7_armor_weight_classes PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_phase7_armor_weight_classes COMMAND test_combat_phase7_armor_weight_classes)
+    rogue_add_test(NAME test_combat_phase7_armor_weight_classes COMMAND test_combat_phase7_armor_weight_classes)
 endif()
 
     # Phase 7.8 stance frame timing test
@@ -176,7 +176,7 @@ endif()
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_combat_phase7_stance_frame_timing PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_combat_phase7_stance_frame_timing COMMAND test_combat_phase7_stance_frame_timing)
+    rogue_add_test(NAME test_combat_phase7_stance_frame_timing COMMAND test_combat_phase7_stance_frame_timing)
     endif()
 
     # Phase 7.7 familiarity cap boundary test
@@ -187,7 +187,7 @@ endif()
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_combat_phase7_familiarity_cap PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_combat_phase7_familiarity_cap COMMAND test_combat_phase7_familiarity_cap)
+    rogue_add_test(NAME test_combat_phase7_familiarity_cap COMMAND test_combat_phase7_familiarity_cap)
     endif()
 
     # Phase 7.7 encumbrance mobility curve (tier thresholds) test
@@ -198,7 +198,7 @@ endif()
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_combat_phase7_encumbrance_mobility_curve PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_combat_phase7_encumbrance_mobility_curve COMMAND test_combat_phase7_encumbrance_mobility_curve)
+    rogue_add_test(NAME test_combat_phase7_encumbrance_mobility_curve COMMAND test_combat_phase7_encumbrance_mobility_curve)
     endif()
 
     # Execution flag behavior: low-health and overkill triggers
@@ -210,7 +210,7 @@ endif()
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_combat_execution PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_combat_execution COMMAND test_combat_execution)
+    rogue_add_test(NAME test_combat_execution COMMAND test_combat_execution)
     endif()
 
     # Explicitly add combat block cancel test
@@ -221,7 +221,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_block_cancel.c AND NOT TA
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_block_cancel PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_block_cancel COMMAND test_combat_block_cancel)
+    rogue_add_test(NAME test_combat_block_cancel COMMAND test_combat_block_cancel)
 endif()
 
 # Explicitly add Phase 4.5 reaction cancel & DI test (ensure picked up even if glob cache stale)
@@ -232,7 +232,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase4_reaction_cancel_di
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_phase4_reaction_cancel_di PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_phase4_reaction_cancel_di COMMAND test_combat_phase4_reaction_cancel_di)
+    rogue_add_test(NAME test_combat_phase4_reaction_cancel_di COMMAND test_combat_phase4_reaction_cancel_di)
 endif()
 
 # Explicitly add Phase 4.6 i-frame overlap protection test
@@ -243,7 +243,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase4_iframe_overlap.c A
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_phase4_iframe_overlap PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_phase4_iframe_overlap COMMAND test_combat_phase4_iframe_overlap)
+    rogue_add_test(NAME test_combat_phase4_iframe_overlap COMMAND test_combat_phase4_iframe_overlap)
 endif()
 
 # Explicitly add combat drift timing test
@@ -254,7 +254,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_drift_timing.c AND NOT TA
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_drift_timing PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_drift_timing COMMAND test_combat_drift_timing)
+    rogue_add_test(NAME test_combat_drift_timing COMMAND test_combat_drift_timing)
 endif()
 
 # Explicitly add combat multi-hit window test
@@ -266,7 +266,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_multi_hit.c AND NOT TARGE
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_multi_hit PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_multi_hit COMMAND test_combat_multi_hit)
+    rogue_add_test(NAME test_combat_multi_hit COMMAND test_combat_multi_hit)
 endif()
 
 # Add the new Phase 5.7 lock-on obstruction & latency test (guarded for incremental reconfigure)
@@ -277,7 +277,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase5_lock_on_obstructio
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_phase5_lock_on_obstruction_latency PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_phase5_lock_on_obstruction_latency COMMAND test_combat_phase5_lock_on_obstruction_latency)
+    rogue_add_test(NAME test_combat_phase5_lock_on_obstruction_latency COMMAND test_combat_phase5_lock_on_obstruction_latency)
 endif()
 
 # Explicitly add multi-target lock-on test
@@ -287,7 +287,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase5_lock_on_multitarge
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_combat_phase5_lock_on_multitarget PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_phase5_lock_on_multitarget COMMAND test_combat_phase5_lock_on_multitarget)
+    rogue_add_test(NAME test_combat_phase5_lock_on_multitarget COMMAND test_combat_phase5_lock_on_multitarget)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_knockback_basic.c AND NOT TARGET test_knockback_basic)
@@ -296,7 +296,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_knockback_basic.c AND NOT TARGET
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_knockback_basic PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_knockback_basic COMMAND test_knockback_basic)
+    rogue_add_test(NAME test_knockback_basic COMMAND test_knockback_basic)
 endif()
 
 # Explicitly add haste cast speed test (Phase 1A.3 partial)
@@ -306,7 +306,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_haste_cast_speed.c AND NOT TARGE
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_haste_cast_speed PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_haste_cast_speed COMMAND test_haste_cast_speed)
+    rogue_add_test(NAME test_haste_cast_speed COMMAND test_haste_cast_speed)
 endif()
 # Explicitly add cast weaving & early cancel test (Phase 1A.2/1A.4 partial)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_cast_weave_and_cancel.c AND NOT TARGET test_cast_weave_and_cancel)
@@ -315,7 +315,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_cast_weave_and_cancel.c AND NOT 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_cast_weave_and_cancel PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_cast_weave_and_cancel COMMAND test_cast_weave_and_cancel)
+    rogue_add_test(NAME test_cast_weave_and_cancel COMMAND test_cast_weave_and_cancel)
 endif()
 
 # Explicit player damage number spawn test
@@ -326,7 +326,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_damage_numbers_player.c AND NOT 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_damage_numbers_player PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_damage_numbers_player COMMAND test_damage_numbers_player)
+    rogue_add_test(NAME test_damage_numbers_player COMMAND test_damage_numbers_player)
 endif()
 
 
@@ -338,5 +338,5 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_channel_ticks_and_buffer.c AND N
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_channel_ticks_and_buffer PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_channel_ticks_and_buffer COMMAND test_channel_ticks_and_buffer)
+    rogue_add_test(NAME test_channel_ticks_and_buffer COMMAND test_channel_ticks_and_buffer)
 endif()

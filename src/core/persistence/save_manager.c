@@ -197,6 +197,12 @@ int rogue_save_set_debug_json(int enabled)
     g_save_debug_json_dump = enabled ? 1 : 0;
     return 0;
 }
+const char* rogue_save_debug_json_path_for_slot(int slot_index)
+{
+    if (slot_index < 0 || slot_index >= ROGUE_SAVE_SLOT_COUNT)
+        return ""; /* invalid */
+    return rogue_build_json_path(slot_index);
+}
 /* String interning implemented in save_intern.c */
 
 /* path builders moved to save_paths.c */

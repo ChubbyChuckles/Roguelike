@@ -98,6 +98,10 @@ void rogue_register_core_save_components(void); /* registers Phase 1 core compon
 /* Delete a save slot file and optional sidecar JSON; returns 0 on success or if absent. */
 int rogue_save_manager_delete_slot(int slot_index);
 
+/* Returns the absolute/relative filesystem path the JSON debug export would use for a given slot
+ * when debug JSON dumping is enabled. Exposed for white-box tests needing to open the file after
+ * a save without duplicating internal prefix logic. */
+const char* rogue_save_debug_json_path_for_slot(int slot_index);
 /* Migration API */
 void rogue_save_register_migration(const RogueSaveMigration* mig);
 int rogue_save_manager_set_durable(int enabled); /* enable fsync/_commit durability */

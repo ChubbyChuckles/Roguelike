@@ -11,7 +11,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dialogue_json.c AND NOT TARGET t
     if(TARGET SDL2::SDL2)
         target_compile_definitions(test_dialogue_json PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_dialogue_json COMMAND test_dialogue_json)
+    rogue_add_test(NAME test_dialogue_json COMMAND test_dialogue_json)
 endif()
 
 # Dialogue Phase 0 test
@@ -21,7 +21,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dialogue_phase0.c AND NOT TARGET
     if(TARGET SDL2::SDL2)
         target_compile_definitions(test_dialogue_phase0 PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_dialogue_phase0 COMMAND test_dialogue_phase0)
+    rogue_add_test(NAME test_dialogue_phase0 COMMAND test_dialogue_phase0)
 endif()
 
 # Dialogue Phase 1 test
@@ -31,7 +31,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dialogue_phase1.c AND NOT TARGET
     if(TARGET SDL2::SDL2)
         target_compile_definitions(test_dialogue_phase1 PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_dialogue_phase1 COMMAND test_dialogue_phase1)
+    rogue_add_test(NAME test_dialogue_phase1 COMMAND test_dialogue_phase1)
 endif()
 
 # Dialogue Phase 2 tokens test
@@ -41,7 +41,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dialogue_phase2_tokens.c AND NOT
     if(TARGET SDL2::SDL2)
         target_compile_definitions(test_dialogue_phase2_tokens PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_dialogue_phase2_tokens COMMAND test_dialogue_phase2_tokens)
+    rogue_add_test(NAME test_dialogue_phase2_tokens COMMAND test_dialogue_phase2_tokens)
 endif()
 
 # Dialogue Phase 3 effects test
@@ -51,7 +51,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dialogue_phase3_effects.c AND NO
     if(TARGET SDL2::SDL2)
         target_compile_definitions(test_dialogue_phase3_effects PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_dialogue_phase3_effects COMMAND test_dialogue_phase3_effects)
+    rogue_add_test(NAME test_dialogue_phase3_effects COMMAND test_dialogue_phase3_effects)
 endif()
 
 # Dialogue Phase 4 persistence test
@@ -61,7 +61,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dialogue_phase4_persistence.c AN
     if(TARGET SDL2::SDL2)
         target_compile_definitions(test_dialogue_phase4_persistence PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_dialogue_phase4_persistence COMMAND test_dialogue_phase4_persistence)
+    rogue_add_test(NAME test_dialogue_phase4_persistence COMMAND test_dialogue_phase4_persistence)
 endif()
 
 # Dialogue Phase 5 localization test
@@ -71,7 +71,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dialogue_phase5_localization.c A
     if(TARGET SDL2::SDL2)
         target_compile_definitions(test_dialogue_phase5_localization PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_dialogue_phase5_localization COMMAND test_dialogue_phase5_localization)
+    rogue_add_test(NAME test_dialogue_phase5_localization COMMAND test_dialogue_phase5_localization)
 endif()
 
 # Dialogue Phase 6 typewriter test
@@ -81,7 +81,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dialogue_phase6_typewriter.c AND
     if(TARGET SDL2::SDL2)
         target_compile_definitions(test_dialogue_phase6_typewriter PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_dialogue_phase6_typewriter COMMAND test_dialogue_phase6_typewriter)
+    rogue_add_test(NAME test_dialogue_phase6_typewriter COMMAND test_dialogue_phase6_typewriter)
 endif()
 
 # Dialogue Phase 7 analytics test
@@ -91,7 +91,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dialogue_phase7_analytics.c AND 
     if(TARGET SDL2::SDL2)
         target_compile_definitions(test_dialogue_phase7_analytics PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_dialogue_phase7_analytics COMMAND test_dialogue_phase7_analytics)
+    rogue_add_test(NAME test_dialogue_phase7_analytics COMMAND test_dialogue_phase7_analytics)
 endif()
 
 endif() # ROGUE_DIALOGUE_CMAKE_GUARD

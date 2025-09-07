@@ -10,7 +10,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_start_screen_phase10_1_headless.
     else()
         target_compile_definitions(test_start_screen_phase10_1_headless PRIVATE SDL_MAIN_HANDLED=1)
     endif()
-    add_test(NAME test_start_screen_phase10_1_headless COMMAND test_start_screen_phase10_1_headless)
+    rogue_add_test(NAME test_start_screen_phase10_1_headless COMMAND test_start_screen_phase10_1_headless)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_start_screen_phase10_2_navigation.c AND NOT TARGET test_start_screen_phase10_2_navigation)
@@ -22,7 +22,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_start_screen_phase10_2_navigatio
     else()
         target_compile_definitions(test_start_screen_phase10_2_navigation PRIVATE SDL_MAIN_HANDLED=1)
     endif()
-    add_test(NAME test_start_screen_phase10_2_navigation COMMAND test_start_screen_phase10_2_navigation)
+    rogue_add_test(NAME test_start_screen_phase10_2_navigation COMMAND test_start_screen_phase10_2_navigation)
 endif()
 
 # Phase 10.5: Start Screen performance smoke test
@@ -35,5 +35,5 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_start_screen_phase10_5_perf_smok
     else()
         target_compile_definitions(test_start_screen_phase10_5_perf_smoke PRIVATE SDL_MAIN_HANDLED=1)
     endif()
-    add_test(NAME test_start_screen_phase10_5_perf_smoke COMMAND test_start_screen_phase10_5_perf_smoke)
+    rogue_add_test(NAME test_start_screen_phase10_5_perf_smoke COMMAND test_start_screen_phase10_5_perf_smoke)
 endif()

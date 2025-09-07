@@ -8,7 +8,7 @@ if(NOT ROGUE_EVENT_CMAKE_GUARD)
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_event_bus.c)
     add_executable(test_event_bus unit/test_event_bus.c)
     target_link_libraries(test_event_bus PRIVATE rogue_core)
-    add_test(NAME test_event_bus COMMAND test_event_bus)
+    rogue_add_test(NAME test_event_bus COMMAND test_event_bus)
 endif()
 
 # Combat events test (Phase 1A.5 partial)
@@ -18,7 +18,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_events.c AND NOT TARGET t
     if(TARGET SDL2::SDL2)
         target_compile_definitions(test_combat_events PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_events COMMAND test_combat_events)
+    rogue_add_test(NAME test_combat_events COMMAND test_combat_events)
 endif()
 
 # Combat Phase 7.7 per-component damage event emission test
@@ -29,7 +29,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase7_damage_event_compo
     if(TARGET SDL2::SDL2)
         target_compile_definitions(test_combat_phase7_damage_event_components PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_phase7_damage_event_components COMMAND test_combat_phase7_damage_event_components)
+    rogue_add_test(NAME test_combat_phase7_damage_event_components COMMAND test_combat_phase7_damage_event_components)
 endif()
 
 # Combat Phase 7.6 infusion split events test
@@ -40,7 +40,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_combat_phase7_infusion_split_eve
     if(TARGET SDL2::SDL2)
         target_compile_definitions(test_combat_phase7_infusion_split_events PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_combat_phase7_infusion_split_events COMMAND test_combat_phase7_infusion_split_events)
+    rogue_add_test(NAME test_combat_phase7_infusion_split_events COMMAND test_combat_phase7_infusion_split_events)
 endif()
 
 # Determinism damage events test
@@ -51,7 +51,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_determinism_damage_events.c AND 
     if(TARGET SDL2::SDL2)
         target_compile_definitions(test_determinism_damage_events PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_determinism_damage_events COMMAND test_determinism_damage_events)
+    rogue_add_test(NAME test_determinism_damage_events COMMAND test_determinism_damage_events)
 endif()
 
 # Rollback events test
@@ -62,7 +62,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_rollback_events.c AND NOT TARGET t
         target_link_libraries(test_rollback_events PRIVATE SDL2::SDL2)
         target_compile_definitions(test_rollback_events PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_rollback_events COMMAND test_rollback_events)
+    rogue_add_test(NAME test_rollback_events COMMAND test_rollback_events)
 endif()
 
 endif() # ROGUE_EVENT_CMAKE_GUARD

@@ -6,7 +6,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_stat_cache.c AND NOT TARGET test
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_stat_cache PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_stat_cache COMMAND test_stat_cache)
+    rogue_add_test(NAME test_stat_cache COMMAND test_stat_cache)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_repair_costs.c AND NOT TARGET test_repair_costs)
@@ -15,7 +15,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_repair_costs.c AND NOT TARGET te
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_repair_costs PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_repair_costs COMMAND test_repair_costs)
+    rogue_add_test(NAME test_repair_costs COMMAND test_repair_costs)
 endif()
 
 # Integration Plumbing Phase 4.1 Unified Entity ID System Test
@@ -89,7 +89,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_reroll_affix.c AND NOT TARGET te
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_reroll_affix PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_reroll_affix COMMAND test_reroll_affix)
+    rogue_add_test(NAME test_reroll_affix COMMAND test_reroll_affix)
 endif()
 
 # Explicitly add new maintainability phase M3.4 asset dependency graph test
@@ -109,7 +109,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_mob_collision.c AND NOT TARGET t
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_mob_collision PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_mob_collision COMMAND test_mob_collision)
+    rogue_add_test(NAME test_mob_collision COMMAND test_mob_collision)
 endif()
 
 # Explicitly add navigation test
@@ -142,7 +142,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_fuzz_parsers.c AND NOT TARGET te
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_fuzz_parsers PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_fuzz_parsers COMMAND test_fuzz_parsers)
+    rogue_add_test(NAME test_fuzz_parsers COMMAND test_fuzz_parsers)
 endif()
 
 # Explicitly add input buffering cast test (Phase 1A.1 partial)
@@ -152,5 +152,5 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_input_buffer_cast.c AND NOT TARG
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_input_buffer_cast PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_input_buffer_cast COMMAND test_input_buffer_cast)
+    rogue_add_test(NAME test_input_buffer_cast COMMAND test_input_buffer_cast)
 endif()

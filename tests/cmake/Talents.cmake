@@ -8,7 +8,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_talents_phase1b_open_allocation.
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_talents_phase1b_open_allocation PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_talents_phase1b_open_allocation COMMAND test_talents_phase1b_open_allocation)
+    rogue_add_test(NAME test_talents_phase1b_open_allocation COMMAND test_talents_phase1b_open_allocation)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_talents_phase1b_dag_and_modifiers.c AND NOT TARGET test_talents_phase1b_dag_and_modifiers)
@@ -20,7 +20,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_talents_phase1b_dag_and_modifier
     else()
         target_compile_definitions(test_talents_phase1b_dag_and_modifiers PRIVATE SDL_MAIN_HANDLED=1)
     endif()
-    add_test(NAME test_talents_phase1b_dag_and_modifiers COMMAND test_talents_phase1b_dag_and_modifiers)
+    rogue_add_test(NAME test_talents_phase1b_dag_and_modifiers COMMAND test_talents_phase1b_dag_and_modifiers)
 endif()
 
 # Talents Phase 1B ranks + hash stability test
@@ -33,5 +33,5 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_talents_phase1b_ranks_and_hash.c
     else()
         target_compile_definitions(test_talents_phase1b_ranks_and_hash PRIVATE SDL_MAIN_HANDLED=1)
     endif()
-    add_test(NAME test_talents_phase1b_ranks_and_hash COMMAND test_talents_phase1b_ranks_and_hash)
+    rogue_add_test(NAME test_talents_phase1b_ranks_and_hash COMMAND test_talents_phase1b_ranks_and_hash)
 endif()

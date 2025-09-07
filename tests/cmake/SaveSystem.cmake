@@ -10,7 +10,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_save_roundtrip PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_roundtrip COMMAND test_save_roundtrip)
+    rogue_add_test(NAME test_save_roundtrip COMMAND test_save_roundtrip)
     endif()
 
     # Autosave ring test
@@ -20,7 +20,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_save_autosave_ring PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_autosave_ring COMMAND test_save_autosave_ring)
+    rogue_add_test(NAME test_save_autosave_ring COMMAND test_save_autosave_ring)
     endif()
 
     # Component ordering determinism test
@@ -30,7 +30,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_save_ordering_determinism PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_ordering_determinism COMMAND test_save_ordering_determinism)
+    rogue_add_test(NAME test_save_ordering_determinism COMMAND test_save_ordering_determinism)
     endif()
 
     # Migration chain test
@@ -40,7 +40,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_save_migration_chain PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_migration_chain COMMAND test_save_migration_chain)
+    rogue_add_test(NAME test_save_migration_chain COMMAND test_save_migration_chain)
     endif()
 
     # Migration metrics test
@@ -50,7 +50,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_save_migration_metrics PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_migration_metrics COMMAND test_save_migration_metrics)
+    rogue_add_test(NAME test_save_migration_metrics COMMAND test_save_migration_metrics)
     endif()
 
     # JSON export test
@@ -60,7 +60,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_save_json_export PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_json_export COMMAND test_save_json_export)
+    rogue_add_test(NAME test_save_json_export COMMAND test_save_json_export)
     endif()
 
     # Component reload test
@@ -70,7 +70,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_save_component_reload PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_component_reload COMMAND test_save_component_reload)
+    rogue_add_test(NAME test_save_component_reload COMMAND test_save_component_reload)
     endif()
 
     # TLV header layout test (v3+)
@@ -80,7 +80,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_save_v3_tlv_headers PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_v3_tlv_headers COMMAND test_save_v3_tlv_headers)
+    rogue_add_test(NAME test_save_v3_tlv_headers COMMAND test_save_v3_tlv_headers)
     endif()
 
     # Backward compatibility: load fabricated v2 under v3 build
@@ -90,7 +90,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_save_v2_backward_load PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_v2_backward_load COMMAND test_save_v2_backward_load)
+    rogue_add_test(NAME test_save_v2_backward_load COMMAND test_save_v2_backward_load)
     endif()
 
     # Debug JSON toggle test
@@ -100,7 +100,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_save_debug_json_toggle PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_debug_json_toggle COMMAND test_save_debug_json_toggle)
+    rogue_add_test(NAME test_save_debug_json_toggle COMMAND test_save_debug_json_toggle)
     endif()
 
     # Varint counts (v4) test
@@ -110,7 +110,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_save_v4_varint_counts PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_v4_varint_counts COMMAND test_save_v4_varint_counts)
+    rogue_add_test(NAME test_save_v4_varint_counts COMMAND test_save_v4_varint_counts)
     endif()
 
     # String intern table (v5) test
@@ -120,7 +120,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_save_v5_strings PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_v5_strings COMMAND test_save_v5_strings)
+    rogue_add_test(NAME test_save_v5_strings COMMAND test_save_v5_strings)
     endif()
 
     # Compression (v6) test
@@ -130,7 +130,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_save_v6_compression PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_v6_compression COMMAND test_save_v6_compression)
+    rogue_add_test(NAME test_save_v6_compression COMMAND test_save_v6_compression)
     endif()
 
     # Integrity (v7) test
@@ -140,7 +140,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_save_v7_integrity PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_v7_integrity COMMAND test_save_v7_integrity)
+    rogue_add_test(NAME test_save_v7_integrity COMMAND test_save_v7_integrity)
     endif()
 
     # Replay hash (v8) test
@@ -150,7 +150,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_save_v8_replay_hash PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_v8_replay_hash COMMAND test_save_v8_replay_hash)
+    rogue_add_test(NAME test_save_v8_replay_hash COMMAND test_save_v8_replay_hash)
     endif()
 
     # Tamper + recovery (v8) test
@@ -160,7 +160,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_save_v8_tamper_recovery PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_v8_tamper_recovery COMMAND test_save_v8_tamper_recovery)
+    rogue_add_test(NAME test_save_v8_tamper_recovery COMMAND test_save_v8_tamper_recovery)
     endif()
 
     # Signature (v9) test
@@ -170,7 +170,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_save_v9_signature PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_v9_signature COMMAND test_save_v9_signature)
+    rogue_add_test(NAME test_save_v9_signature COMMAND test_save_v9_signature)
     endif()
 
     # Phase 15 inventory partial + backup test
@@ -180,7 +180,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_HAVE_SDL)
             target_compile_definitions(test_save_phase15_inventory_partial_backup PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_phase15_inventory_partial_backup COMMAND test_save_phase15_inventory_partial_backup)
+    rogue_add_test(NAME test_save_phase15_inventory_partial_backup COMMAND test_save_phase15_inventory_partial_backup)
     endif()
 
     # Incremental save basic test (Phase 5)
@@ -190,7 +190,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_HAVE_SDL)
             target_compile_definitions(test_save_incremental_basic PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_incremental_basic COMMAND test_save_incremental_basic)
+    rogue_add_test(NAME test_save_incremental_basic COMMAND test_save_incremental_basic)
     endif()
 
     # Autosave scheduler test (Phase 6.1/6.3/6.4)
@@ -200,7 +200,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_HAVE_SDL)
             target_compile_definitions(test_save_autosave_scheduler PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_autosave_scheduler COMMAND test_save_autosave_scheduler)
+    rogue_add_test(NAME test_save_autosave_scheduler COMMAND test_save_autosave_scheduler)
     endif()
 
     # Autosave indicator/throttle test (Phase 6.5)
@@ -210,7 +210,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_HAVE_SDL)
             target_compile_definitions(test_save_autosave_indicator PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_autosave_indicator COMMAND test_save_autosave_indicator)
+    rogue_add_test(NAME test_save_autosave_indicator COMMAND test_save_autosave_indicator)
     endif()
 
     # Phase 7.2/7.3 skill & buff extended state roundtrip test
@@ -220,7 +220,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_HAVE_SDL)
             target_compile_definitions(test_save_phase7_skill_buff_roundtrip PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_phase7_skill_buff_roundtrip COMMAND test_save_phase7_skill_buff_roundtrip)
+    rogue_add_test(NAME test_save_phase7_skill_buff_roundtrip COMMAND test_save_phase7_skill_buff_roundtrip)
     endif()
 
     # Phase 7.1/7.7/7.8 player progression + analytics roundtrip test
@@ -230,7 +230,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_HAVE_SDL)
             target_compile_definitions(test_save_phase7_player_analytics_roundtrip PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_phase7_player_analytics_roundtrip COMMAND test_save_phase7_player_analytics_roundtrip)
+    rogue_add_test(NAME test_save_phase7_player_analytics_roundtrip COMMAND test_save_phase7_player_analytics_roundtrip)
     endif()
 
     # Phase 7.5 vendor inventory roundtrip test
@@ -240,7 +240,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_HAVE_SDL)
             target_compile_definitions(test_save_phase7_vendor_inventory_roundtrip PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_phase7_vendor_inventory_roundtrip COMMAND test_save_phase7_vendor_inventory_roundtrip)
+    rogue_add_test(NAME test_save_phase7_vendor_inventory_roundtrip COMMAND test_save_phase7_vendor_inventory_roundtrip)
     endif()
 
     # Phase 7.6 inventory durability roundtrip test
@@ -250,7 +250,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_HAVE_SDL)
             target_compile_definitions(test_save_phase7_inventory_durability_roundtrip PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_phase7_inventory_durability_roundtrip COMMAND test_save_phase7_inventory_durability_roundtrip)
+    rogue_add_test(NAME test_save_phase7_inventory_durability_roundtrip COMMAND test_save_phase7_inventory_durability_roundtrip)
     endif()
 
     # Basic save_manager smoke test (legacy simple test)
@@ -260,7 +260,7 @@ if(ROGUE_ENABLE_TESTS)
         if(ROGUE_ENABLE_SDL)
             target_compile_definitions(test_save_manager PRIVATE ROGUE_HAVE_SDL=1)
         endif()
-        add_test(NAME test_save_manager COMMAND test_save_manager)
+    rogue_add_test(NAME test_save_manager COMMAND test_save_manager)
     endif()
 
 endif() # ROGUE_ENABLE_TESTS

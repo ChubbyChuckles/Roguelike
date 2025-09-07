@@ -8,7 +8,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_xp_events.c A
         target_link_libraries(test_progression_phase3_6_xp_events PRIVATE SDL2::SDL2)
         target_compile_definitions(test_progression_phase3_6_xp_events PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase3_6_xp_events COMMAND test_progression_phase3_6_xp_events)
+    rogue_add_test(NAME test_progression_phase3_6_xp_events COMMAND test_progression_phase3_6_xp_events)
 endif()
 
 # Integration Plumbing Phase 3.6.2 Skill prerequisite gating + SKILL_UNLOCKED event test
@@ -19,7 +19,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_skill_unlock.
         target_link_libraries(test_progression_phase3_6_skill_unlock PRIVATE SDL2::SDL2)
         target_compile_definitions(test_progression_phase3_6_skill_unlock PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase3_6_skill_unlock COMMAND test_progression_phase3_6_skill_unlock)
+    rogue_add_test(NAME test_progression_phase3_6_skill_unlock COMMAND test_progression_phase3_6_skill_unlock)
 endif()
 
 # Phase 3.6.3 test: progression maze unlock gating
@@ -30,7 +30,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_maze_unlocks.
         target_link_libraries(test_progression_phase3_6_maze_unlocks PRIVATE SDL2::SDL2)
         target_compile_definitions(test_progression_phase3_6_maze_unlocks PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase3_6_maze_unlocks COMMAND test_progression_phase3_6_maze_unlocks)
+    rogue_add_test(NAME test_progression_phase3_6_maze_unlocks COMMAND test_progression_phase3_6_maze_unlocks)
 endif()
 
 # Integration Plumbing Phase 3.6.4 Effect Scaling test
@@ -41,7 +41,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_effect_scalin
         target_link_libraries(test_progression_phase3_6_effect_scaling PRIVATE SDL2::SDL2)
         target_compile_definitions(test_progression_phase3_6_effect_scaling PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase3_6_effect_scaling COMMAND test_progression_phase3_6_effect_scaling)
+    rogue_add_test(NAME test_progression_phase3_6_effect_scaling COMMAND test_progression_phase3_6_effect_scaling)
 endif()
 # Phase 3.6.5: Mastery integration test
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_mastery_integration.c AND NOT TARGET test_progression_phase3_6_mastery_integration)
@@ -51,7 +51,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_mastery_integ
         target_link_libraries(test_progression_phase3_6_mastery_integration PRIVATE SDL2::SDL2)
         target_compile_definitions(test_progression_phase3_6_mastery_integration PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase3_6_mastery_integration COMMAND test_progression_phase3_6_mastery_integration)
+    rogue_add_test(NAME test_progression_phase3_6_mastery_integration COMMAND test_progression_phase3_6_mastery_integration)
 endif()
 # Phase 3.6.6: Skill specialization paths test
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_specialization.c AND NOT TARGET test_progression_phase3_6_specialization)
@@ -61,13 +61,13 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase3_6_specializatio
         target_link_libraries(test_progression_phase3_6_specialization PRIVATE SDL2::SDL2)
         target_compile_definitions(test_progression_phase3_6_specialization PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase3_6_specialization COMMAND test_progression_phase3_6_specialization)
+    rogue_add_test(NAME test_progression_phase3_6_specialization COMMAND test_progression_phase3_6_specialization)
 endif()
 # Progression Phase 6.2-6.5 mastery extended test
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_progression_phase6_mastery_extended.c)
     add_executable(test_progression_phase6_mastery_extended unit/test_progression_phase6_mastery_extended.c)
     target_link_libraries(test_progression_phase6_mastery_extended PRIVATE rogue_core)
-    add_test(NAME test_progression_phase6_mastery_extended COMMAND test_progression_phase6_mastery_extended)
+    rogue_add_test(NAME test_progression_phase6_mastery_extended COMMAND test_progression_phase6_mastery_extended)
 endif()
 
 # Character Progression Phase 0 taxonomy test
@@ -77,7 +77,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase0_taxonomy.c AN
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_progression_phase0_taxonomy PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase0_taxonomy COMMAND test_progression_phase0_taxonomy)
+    rogue_add_test(NAME test_progression_phase0_taxonomy COMMAND test_progression_phase0_taxonomy)
 endif()
 
 # Character Progression Phase 1 XP curve test
@@ -87,7 +87,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase1_xp_curve.c AN
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_progression_phase1_xp_curve PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase1_xp_curve COMMAND test_progression_phase1_xp_curve)
+    rogue_add_test(NAME test_progression_phase1_xp_curve COMMAND test_progression_phase1_xp_curve)
 endif()
 
 # Character Progression Phase 2 attribute allocation test
@@ -97,7 +97,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase2_attributes.c 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_progression_phase2_attributes PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase2_attributes COMMAND test_progression_phase2_attributes)
+    rogue_add_test(NAME test_progression_phase2_attributes COMMAND test_progression_phase2_attributes)
 endif()
 
 # Character Progression Phase 3 ratings test
@@ -107,7 +107,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase3_ratings.c AND
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_progression_phase3_ratings PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase3_ratings COMMAND test_progression_phase3_ratings)
+    rogue_add_test(NAME test_progression_phase3_ratings COMMAND test_progression_phase3_ratings)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase4_maze.c AND NOT TARGET test_progression_phase4_maze)
@@ -116,7 +116,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase4_maze.c AND NO
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_progression_phase4_maze PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase4_maze COMMAND test_progression_phase4_maze)
+    rogue_add_test(NAME test_progression_phase4_maze COMMAND test_progression_phase4_maze)
 endif()
 
 # Character Progression Phase 5 passive unlock integration test
@@ -126,7 +126,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase5_passives.c AN
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_progression_phase5_passives PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase5_passives COMMAND test_progression_phase5_passives)
+    rogue_add_test(NAME test_progression_phase5_passives COMMAND test_progression_phase5_passives)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_mastery.c AND NOT TARGET test_progression_mastery)
@@ -135,7 +135,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_mastery.c AND NOT TA
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_progression_mastery PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_mastery COMMAND test_progression_mastery)
+    rogue_add_test(NAME test_progression_mastery COMMAND test_progression_mastery)
 endif()
 
 # Character Progression Phase 7 ring expansion & keystone heuristic scaffold test
@@ -145,7 +145,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase7_rings.c AND N
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_progression_phase7_rings PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase7_rings COMMAND test_progression_phase7_rings)
+    rogue_add_test(NAME test_progression_phase7_rings COMMAND test_progression_phase7_rings)
 endif()
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase7_visualization.c AND NOT TARGET test_progression_phase7_visualization)
     add_executable(test_progression_phase7_visualization unit/test_progression_phase7_visualization.c)
@@ -153,7 +153,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase7_visualization
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_progression_phase7_visualization PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase7_visualization COMMAND test_progression_phase7_visualization)
+    rogue_add_test(NAME test_progression_phase7_visualization COMMAND test_progression_phase7_visualization)
 endif()
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase8_perpetual.c AND NOT TARGET test_progression_phase8_perpetual)
     add_executable(test_progression_phase8_perpetual unit/test_progression_phase8_perpetual.c)
@@ -161,7 +161,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase8_perpetual.c A
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_progression_phase8_perpetual PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase8_perpetual COMMAND test_progression_phase8_perpetual)
+    rogue_add_test(NAME test_progression_phase8_perpetual COMMAND test_progression_phase8_perpetual)
 endif()
 
 # Character Progression Phase 9 synergy test
@@ -171,7 +171,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase9_synergy.c AND
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_progression_phase9_synergy PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase9_synergy COMMAND test_progression_phase9_synergy)
+    rogue_add_test(NAME test_progression_phase9_synergy COMMAND test_progression_phase9_synergy)
 endif()
 
 # Character Progression Phase 10 buffs/debuff integration test
@@ -181,7 +181,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase10_buffs.c AND 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_progression_phase10_buffs PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase10_buffs COMMAND test_progression_phase10_buffs)
+    rogue_add_test(NAME test_progression_phase10_buffs COMMAND test_progression_phase10_buffs)
 endif()
 
 # Character Progression Phase 11 cache/dirty flags performance scaffolding test
@@ -191,7 +191,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase11_cache.c AND 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_progression_phase11_cache PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase11_cache COMMAND test_progression_phase11_cache)
+    rogue_add_test(NAME test_progression_phase11_cache COMMAND test_progression_phase11_cache)
 endif()
 
 # Character Progression Phase 11 benchmark (non-failing performance signal)
@@ -201,7 +201,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase11_bench.c AND 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_progression_phase11_bench PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase11_bench COMMAND test_progression_phase11_bench)
+    rogue_add_test(NAME test_progression_phase11_bench COMMAND test_progression_phase11_bench)
 endif()
 
 # Character Progression Phase 11 re-spec stale cache test
@@ -211,7 +211,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase11_respec.c AND
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_progression_phase11_respec PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase11_respec COMMAND test_progression_phase11_respec)
+    rogue_add_test(NAME test_progression_phase11_respec COMMAND test_progression_phase11_respec)
 endif()
 
 # Character Progression Phase 12 persistence & migration test
@@ -221,7 +221,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase12_persistence.
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_progression_phase12_persistence PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase12_persistence COMMAND test_progression_phase12_persistence)
+    rogue_add_test(NAME test_progression_phase12_persistence COMMAND test_progression_phase12_persistence)
 endif()
 
 # Character Progression Phase 12 V3 extended persistence test
@@ -231,7 +231,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase12_v3.c AND NOT
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_progression_phase12_v3 PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase12_v3 COMMAND test_progression_phase12_v3)
+    rogue_add_test(NAME test_progression_phase12_v3 COMMAND test_progression_phase12_v3)
 endif()
 
 # Character Progression Phase 7.3 anti-stack safeguards test
@@ -241,5 +241,5 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_progression_phase7_antistack.c A
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_progression_phase7_antistack PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_progression_phase7_antistack COMMAND test_progression_phase7_antistack)
+    rogue_add_test(NAME test_progression_phase7_antistack COMMAND test_progression_phase7_antistack)
 endif()

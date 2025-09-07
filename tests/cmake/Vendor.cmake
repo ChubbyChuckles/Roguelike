@@ -9,7 +9,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase0_value.c AND NOT TA
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_vendor_phase0_value PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_phase0_value COMMAND test_vendor_phase0_value)
+    rogue_add_test(NAME test_vendor_phase0_value COMMAND test_vendor_phase0_value)
 endif()
 
 # Vendor System Phase 0 inflow baseline simulation test (0.4)
@@ -19,7 +19,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase0_inflow.c AND NOT T
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_vendor_phase0_inflow PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_phase0_inflow COMMAND test_vendor_phase0_inflow)
+    rogue_add_test(NAME test_vendor_phase0_inflow COMMAND test_vendor_phase0_inflow)
 endif()
 
 # Vendor System Phase 1 registry test (1.1-1.3)
@@ -29,7 +29,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase1_registry.c AND NOT
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_vendor_phase1_registry PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_phase1_registry COMMAND test_vendor_phase1_registry)
+    rogue_add_test(NAME test_vendor_phase1_registry COMMAND test_vendor_phase1_registry)
 endif()
 
 # Vendor System Phase 1 negotiation & rule tests (1.4 + remainder 1.5)
@@ -39,7 +39,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase1_negotiation.c AND 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_vendor_phase1_negotiation PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_phase1_negotiation COMMAND test_vendor_phase1_negotiation)
+    rogue_add_test(NAME test_vendor_phase1_negotiation COMMAND test_vendor_phase1_negotiation)
 endif()
 
 # Vendor System Phase 2 inventory management test
@@ -50,7 +50,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase2_inventory.c AND NO
         target_link_libraries(test_vendor_phase2_inventory PRIVATE SDL2::SDL2)
         target_compile_definitions(test_vendor_phase2_inventory PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_phase2_inventory COMMAND test_vendor_phase2_inventory)
+    rogue_add_test(NAME test_vendor_phase2_inventory COMMAND test_vendor_phase2_inventory)
 endif()
 
 # Vendor System Phase 2 constrained inventory test
@@ -61,7 +61,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase2_constrained.c AND 
         target_link_libraries(test_vendor_phase2_constrained PRIVATE SDL2::SDL2)
         target_compile_definitions(test_vendor_phase2_constrained PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_phase2_constrained COMMAND test_vendor_phase2_constrained)
+    rogue_add_test(NAME test_vendor_phase2_constrained COMMAND test_vendor_phase2_constrained)
 endif()
 
 # Vendor System Phase 3 pricing test
@@ -72,7 +72,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase3_pricing.c AND NOT 
         target_link_libraries(test_vendor_phase3_pricing PRIVATE SDL2::SDL2)
         target_compile_definitions(test_vendor_phase3_pricing PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_phase3_pricing COMMAND test_vendor_phase3_pricing)
+    rogue_add_test(NAME test_vendor_phase3_pricing COMMAND test_vendor_phase3_pricing)
 endif()
 
 # Vendor System Phase 4 reputation & negotiation test
@@ -83,7 +83,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase4_reputation_negotia
         target_link_libraries(test_vendor_phase4_reputation_negotiation PRIVATE SDL2::SDL2)
         target_compile_definitions(test_vendor_phase4_reputation_negotiation PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_phase4_reputation_negotiation COMMAND test_vendor_phase4_reputation_negotiation)
+    rogue_add_test(NAME test_vendor_phase4_reputation_negotiation COMMAND test_vendor_phase4_reputation_negotiation)
 endif()
 
 # Vendor System Phase 5 buyback journal test
@@ -94,7 +94,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase5_buyback_journal.c 
         target_link_libraries(test_vendor_phase5_buyback_journal PRIVATE SDL2::SDL2)
         target_compile_definitions(test_vendor_phase5_buyback_journal PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_phase5_buyback_journal COMMAND test_vendor_phase5_buyback_journal)
+    rogue_add_test(NAME test_vendor_phase5_buyback_journal COMMAND test_vendor_phase5_buyback_journal)
 endif()
 
 # Vendor System Phase 6 special offers test
@@ -105,7 +105,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase6_special_offers.c A
         target_link_libraries(test_vendor_phase6_special_offers PRIVATE SDL2::SDL2)
         target_compile_definitions(test_vendor_phase6_special_offers PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_phase6_special_offers COMMAND test_vendor_phase6_special_offers)
+    rogue_add_test(NAME test_vendor_phase6_special_offers COMMAND test_vendor_phase6_special_offers)
 endif()
 
 # Vendor System Phase 7 sinks test
@@ -116,7 +116,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase7_sinks.c AND NOT TA
         target_link_libraries(test_vendor_phase7_sinks PRIVATE SDL2::SDL2)
         target_compile_definitions(test_vendor_phase7_sinks PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_phase7_sinks COMMAND test_vendor_phase7_sinks)
+    rogue_add_test(NAME test_vendor_phase7_sinks COMMAND test_vendor_phase7_sinks)
 endif()
 
 # Vendor System Phase 8 crafting integration test
@@ -127,7 +127,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase8_crafting_integrati
         target_link_libraries(test_vendor_phase8_crafting_integration PRIVATE SDL2::SDL2)
         target_compile_definitions(test_vendor_phase8_crafting_integration PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_phase8_crafting_integration COMMAND test_vendor_phase8_crafting_integration)
+    rogue_add_test(NAME test_vendor_phase8_crafting_integration COMMAND test_vendor_phase8_crafting_integration)
 endif()
 
 # Vendor System Phase 9 adaptive pricing test
@@ -138,7 +138,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase9_adaptive.c AND NOT
         target_link_libraries(test_vendor_phase9_adaptive PRIVATE SDL2::SDL2)
         target_compile_definitions(test_vendor_phase9_adaptive PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_phase9_adaptive COMMAND test_vendor_phase9_adaptive)
+    rogue_add_test(NAME test_vendor_phase9_adaptive COMMAND test_vendor_phase9_adaptive)
 endif()
 
 # Vendor System Phase 10 balancing test
@@ -149,7 +149,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase10_balancing.c AND N
         target_link_libraries(test_vendor_phase10_balancing PRIVATE SDL2::SDL2)
         target_compile_definitions(test_vendor_phase10_balancing PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_phase10_balancing COMMAND test_vendor_phase10_balancing)
+    rogue_add_test(NAME test_vendor_phase10_balancing COMMAND test_vendor_phase10_balancing)
 endif()
 
 # Vendor System Phase 11 performance test
@@ -160,7 +160,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase11_perf.c AND NOT TA
         target_link_libraries(test_vendor_phase11_perf PRIVATE SDL2::SDL2)
         target_compile_definitions(test_vendor_phase11_perf PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_phase11_perf COMMAND test_vendor_phase11_perf)
+    rogue_add_test(NAME test_vendor_phase11_perf COMMAND test_vendor_phase11_perf)
 endif()
 
 # Vendor System Phase 12 determinism test
@@ -171,7 +171,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase12_determinism.c AND
         target_link_libraries(test_vendor_phase12_determinism PRIVATE SDL2::SDL2)
         target_compile_definitions(test_vendor_phase12_determinism PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_phase12_determinism COMMAND test_vendor_phase12_determinism)
+    rogue_add_test(NAME test_vendor_phase12_determinism COMMAND test_vendor_phase12_determinism)
 endif()
 
 # Vendor System Phase 13 compaction test
@@ -184,7 +184,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase13_compaction.c AND 
             target_compile_definitions(test_vendor_phase13_compaction PRIVATE ROGUE_HAVE_SDL=1)
         endif()
     endif()
-    add_test(NAME test_vendor_phase13_compaction COMMAND test_vendor_phase13_compaction)
+    rogue_add_test(NAME test_vendor_phase13_compaction COMMAND test_vendor_phase13_compaction)
 endif()
 
 # Vendor basic inventory test
@@ -194,7 +194,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_inventory.c AND NOT TARGE
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_vendor_inventory PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_inventory COMMAND test_vendor_inventory)
+    rogue_add_test(NAME test_vendor_inventory COMMAND test_vendor_inventory)
 endif()
 
 # Vendor restock rotation test (10.3)
@@ -204,7 +204,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_restock.c AND NOT TARGET 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_vendor_restock PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_restock COMMAND test_vendor_restock)
+    rogue_add_test(NAME test_vendor_restock COMMAND test_vendor_restock)
 endif()
 
 # Vendor live repricing test (10.3)
@@ -214,5 +214,5 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_live_reprice.c AND NOT TA
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_vendor_live_reprice PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_live_reprice COMMAND test_vendor_live_reprice)
+    rogue_add_test(NAME test_vendor_live_reprice COMMAND test_vendor_live_reprice)
 endif()
