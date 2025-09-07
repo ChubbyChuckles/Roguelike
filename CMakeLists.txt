@@ -473,8 +473,14 @@ add_library(rogue_core
     src/game/dialogue_avatars.c
     src/game/dialogue_locale.c
     src/game/dialogue_util.c
-    # UI Phase 1 scaffolding
-    src/ui/core/ui_context.c
+    # UI Phase 1 scaffolding (refactored modular sources)
+    src/ui/core/ui_context_core.c
+    src/ui/core/ui_context_interaction.c
+    src/ui/core/ui_context_navigation.c
+    src/ui/core/ui_context_animation.c
+    src/ui/core/ui_context_perf.c
+    src/ui/core/ui_context_inventory.c
+    src/ui/core/ui_context_misc.c
     src/ui/core/ui_skillgraph.c
     # maintainability phase M3: unified kv parser utility
     src/util/kv_parser.c
