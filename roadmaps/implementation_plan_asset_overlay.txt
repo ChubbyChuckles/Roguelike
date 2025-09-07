@@ -24,11 +24,11 @@ This plan builds upon the existing asset management infrastructure to create a s
 [x] Implement asset search and filtering with wildcard support (regex proper deferred to later phase)
 
 ## Phase 2: Interactive Asset Loading & Preview
-[ ] Design asset preview panel with SDL2 texture rendering
+[x] Design asset preview panel with SDL2 texture rendering (baseline integrated into existing panel; extended with zoom/pan state)
 [ ] Implement drag-and-drop file loading interface using overlay input system
 [ ] Add runtime asset loading from file browser dialog (platform-specific)
-[ ] Create texture preview with zoom/pan controls using overlay widgets
-[ ] Implement audio playback controls for audio asset preview
+[x] Create texture preview with zoom/pan controls using overlay widgets (basic buttons; no mouse-drag yet)
+[x] Implement audio playback controls for audio asset preview (play/stop/loop/volume)
 [ ] Add JSON syntax highlighting and validation feedback for config files
 [ ] Create sprite sheet coordinate overlay for sprite assets
 

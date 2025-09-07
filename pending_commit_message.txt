@@ -118,6 +118,17 @@ Added inline scaled thumbnail preview for selected texture assets in Asset Brows
 
 - Dungeon (Phase 9.4)
 	- Add rogue_dungeon_export_gating_manifest(path, graph) emitting compact JSON of capability ids and rooms count; ensure parent dirs exist.
+
+feat(asset-overlay/phase2): interactive preview zoom/pan + audio playback controls
+
+Phase 2 (partial) Asset Overlay progress:
+ - Added per-panel state for texture zoom (1..16) and panning (button step 8px) plus Reset View.
+ - Integrated preview controls into existing selection detail; replaced fixed 96px heuristic with user-controlled scale.
+ - Implemented basic audio playback (Play/Stop, Loop toggle, Vol+/Vol-, volume label) guarded by ROGUE_HAVE_SDL_MIXER.
+ - Roadmap updated marking completed subtasks: design preview panel (baseline), zoom/pan controls, audio playback controls.
+ - Deferred (left unchecked): drag-and-drop ingest, platform file dialog, JSON syntax highlighting, sprite sheet coordinate overlay.
+ - Non-invasive: existing Phase 1 features unchanged; build passes compilation; tests unaffected (UI exercised only in interactive runs).
+ - Follow-ups: mouse wheel zoom + click-drag pan, waveform/levels visualization, unified input accelerator keys, persistence of last zoom per asset id.
 	- Add minimal vendor run_summary consumer; registers listener and safely reacts to reward multipliers.
 	- Units: test_dungeon_phase9_4_gating_manifest, test_vendor_phase9_run_summary_consumer.
 

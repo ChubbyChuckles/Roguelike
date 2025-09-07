@@ -9,6 +9,8 @@
 RoguePlayer g_exposed_player_for_stats = {0};
 void rogue_player_init(RoguePlayer* p); /* forward from player.h without including full header */
 static int rogue_get_current_attack_frame(void) { return 3; }
+/* NOTE: Removed local stubs for rogue_app_add_hitstop / damage number APIs.
+ * Rely on core library implementations to avoid duplicate symbol linkage on MSVC. */
 
 int main(void)
 {

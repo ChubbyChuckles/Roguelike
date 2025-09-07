@@ -49,6 +49,13 @@ typedef struct AssetBrowserEnhancedState
     int scanned_once; /* bool */
     /* Stats cache */
     unsigned long long approx_texture_bytes;
+    /* Phase 2 preview state */
+    int tex_zoom; /* >=1 scale factor */
+    int pan_x;    /* preview pan X */
+    int pan_y;    /* preview pan Y */
+    /* Audio controls */
+    int audio_volume; /* 0..128 */
+    int audio_loop;   /* bool */
 } AssetBrowserEnhancedState;
 
 static AssetBrowserEnhancedState g_ab_state; /* zero-init */
@@ -450,8 +457,29 @@ static void panel_asset_browser(void* user)
                      sel_tex->width, sel_tex->height, sel_tex->ref_count,
                      sel_tex->load_failed ? 1 : 0, sel_tex->sdl_texture ? 1 : 0);
             overlay_label(line);
-            /* Provide an on-demand ensure-load button if the record exists but the SDL texture
-               isn't created yet (e.g., lazy mode future phases) */
+            if (g_ab_state.tex_zoom < 1)
+                g_ab_state.tex_zoom = 1;
+            overlay_label("Preview Controls:");
+            if (overlay_button("Zoom+ ") && g_ab_state.tex_zoom < 16)
+                g_ab_state.tex_zoom++;
+            if (overlay_button("Zoom- ") && g_ab_state.tex_zoom > 1)
+                g_ab_state.tex_zoom--;
+            if (overlay_button("Reset View"))
+            {
+                g_ab_state.tex_zoom = 1;
+                g_ab_state.pan_x = 0;
+                g_ab_state.pan_y = 0;
+            }
+            if (overlay_button("Pan Up"))
+                g_ab_state.pan_y -= 8;
+            if (overlay_button("Pan Down"))
+                g_ab_state.pan_y += 8;
+            if (overlay_button("Pan Left"))
+                g_ab_state.pan_x -= 8;
+            if (overlay_button("Pan Right"))
+                g_ab_state.pan_x += 8;
+                /* Provide an on-demand ensure-load button if the record exists but the SDL texture
+                   isn't created yet (e.g., lazy mode future phases) */
 #if defined(ROGUE_HAVE_SDL)
             if (!sel_tex->sdl_texture && !sel_tex->load_failed)
             {
@@ -480,16 +508,7 @@ static void panel_asset_browser(void* user)
 #if defined(ROGUE_HAVE_SDL)
             if (sel_tex->sdl_texture && sel_tex->width > 0 && sel_tex->height > 0)
             {
-                int max_w = 96;
-                int scale = 1;
-                if (sel_tex->width > 0)
-                {
-                    scale = max_w / sel_tex->width;
-                    if (scale < 1)
-                        scale = 1; /* at least 1x */
-                    if (scale > 8)
-                        scale = 8; /* clamp runaway tiny assets */
-                }
+                int scale = g_ab_state.tex_zoom > 0 ? g_ab_state.tex_zoom : 1;
                 RogueTexture wrap = {0};
                 wrap.handle = (SDL_Texture*) sel_tex->sdl_texture; /* non-owning */
                 wrap.w = sel_tex->width;
@@ -500,8 +519,8 @@ static void panel_asset_browser(void* user)
                 spr.sh = wrap.h;
                 /* Reserve a little vertical space separation */
                 overlay_label("Preview:");
-                int px = g_ui.cur_x;
-                int py = g_ui.cur_y + 2;
+                int px = g_ui.cur_x + g_ab_state.pan_x;
+                int py = g_ui.cur_y + 2 + g_ab_state.pan_y;
                 rogue_sprite_draw(&spr, px, py, scale);
                 g_ui.cur_y = py + spr.sh * scale + 4; /* advance cursor */
             }
@@ -513,6 +532,42 @@ static void panel_asset_browser(void* user)
                      sel_audio->id, sel_audio->ref_count, sel_audio->load_failed ? 1 : 0,
                      sel_audio->sdl_chunk ? 1 : 0);
             overlay_label(line);
+            /* Phase 2: audio playback (requires SDL_mixer) */
+#if defined(ROGUE_HAVE_SDL_MIXER)
+            static int g_ab_audio_channel = -1;
+            if (g_ab_state.audio_volume <= 0)
+                g_ab_state.audio_volume = 96;
+            if (overlay_button("Play"))
+            {
+                int loops = g_ab_state.audio_loop ? -1 : 0;
+                g_ab_audio_channel = Mix_PlayChannel(-1, (Mix_Chunk*) sel_audio->sdl_chunk, loops);
+                if (g_ab_audio_channel >= 0)
+                    Mix_Volume(g_ab_audio_channel, g_ab_state.audio_volume);
+            }
+            if (overlay_button("Stop"))
+            {
+                if (g_ab_audio_channel >= 0)
+                {
+                    Mix_HaltChannel(g_ab_audio_channel);
+                    g_ab_audio_channel = -1;
+                }
+            }
+            overlay_checkbox("Loop", &g_ab_state.audio_loop);
+            if (overlay_button("Vol+") && g_ab_state.audio_volume < 128)
+            {
+                g_ab_state.audio_volume += 8;
+                if (g_ab_audio_channel >= 0)
+                    Mix_Volume(g_ab_audio_channel, g_ab_state.audio_volume);
+            }
+            if (overlay_button("Vol-") && g_ab_state.audio_volume > 0)
+            {
+                g_ab_state.audio_volume -= 8;
+                if (g_ab_audio_channel >= 0)
+                    Mix_Volume(g_ab_audio_channel, g_ab_state.audio_volume);
+            }
+            snprintf(line, sizeof line, "Volume: %d", g_ab_state.audio_volume);
+            overlay_label(line);
+#endif
             const char* dep_ids[32];
             int depc = rogue_asset_dep_get_deps(sel_audio->id, dep_ids, 32);
             if (depc > 0)

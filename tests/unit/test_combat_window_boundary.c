@@ -8,6 +8,8 @@
 /* Stubs */
 RoguePlayer g_exposed_player_for_stats = {0};
 static int rogue_get_current_attack_frame(void) { return 3; }
+/* NOTE: Removed local hitstop/damage number stubs; use core implementations to avoid
+ * duplicate symbol linkage on MSVC. */
 
 static void setup_enemy(RogueEnemy* e, float x)
 {
