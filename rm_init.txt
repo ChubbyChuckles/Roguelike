@@ -1,0 +1,1 @@
+init running=1 show=1 rm=0 state=0 t=0.000

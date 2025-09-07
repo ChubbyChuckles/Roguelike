@@ -209,6 +209,21 @@ feat(assets/schema): Phase 2 sprite + audio schema builders and validation tests
 - Builds clean locally; ready for placeholder.png enforcement next.
  - Fixed test to use boolean JSON for `loop` (schema expects boolean; initial integer caused validation error).
 
+feat(assets): placeholder asset enforcement helper + unit test
+feat(assets/schema): add Level/Map schema (Phase 2) + unit test
+
+- Added `schema_levels.{h,c}` defining Level/Map JSON schema: required id, w, h, tiles (RLE string), optional tile_size, spawns[] (type/x/y/faction), environment_tags[].
+- Allows additional forward-compatible fields; cross-field semantic checks (e.g., spawn bounds) deferred to runtime validators.
+- New unit test `test_level_schema` validates positive + negative JSON construction (in-memory; no filesystem I/O).
+- Wired into `rogue_content_json` object library & CTest.
+- Roadmap Phase 2 updated: Level/Map schema task checked off; next target is UI Theme/Layout schema + schema versioning system.
+
+
+- Added asset_placeholder.{h,c} with `rogue_asset_placeholder_exists()` scanning fallback prefixes for `assets/placeholder.png`.
+- Added unit test `test_asset_placeholder_enforcement` (asserts positive path + negative misspelled path).
+- Committed stub placeholder PNG (tiny sentinel) to guarantee availability in CI/test runs.
+- Roadmap Phase 2 updated: task checked off; next focus shifts to Level/Map & UI Theme schemas and schema versioning system.
+
 
 Phase 1.4: PNG Sequence Loader
 ------------------------------

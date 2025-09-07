@@ -44,6 +44,7 @@ SOFTWARE.
 #include "../../world/world_gen.h"
 #include "../../world/world_gen_config.h"
 #include "../equipment/equipment_stats.h"
+#include "../integration/event_bus.h" /* ensure event bus available for systems using events during app lifecycle */
 #include "../integration/validation_wiring.h"
 #include "../inventory/inventory.h"
 #include "../loot/loot_instances.h"
@@ -126,6 +127,17 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.start_perf_reduce_quality = 0;
     g_app.start_perf_warned = 0;
     g_app.reduced_motion = 0;
+    /* Event bus: some subsystems (e.g., audio, combat previews, analytics) may publish events
+       during or immediately after app_init via rogue_app_step() in tests. Ensure a default
+       bus exists to avoid sporadic "Event bus not initialized" errors and potential NULL
+       dereference paths when tests run in different orders. Safe: init is idempotent. */
+    if (!rogue_event_bus_get_instance())
+    {
+        RogueEventBusConfig eb_cfg = rogue_event_bus_create_default_config("AppBus");
+        /* Disable replay recording by default in headless test contexts to reduce memory. */
+        eb_cfg.enable_replay_recording = false;
+        (void) rogue_event_bus_init(&eb_cfg);
+    }
     /* Start screen nav repeat config (Phase 3.2) */
     g_app.start_nav_accum_ms = 0.0;
     g_app.start_nav_dir_v = 0;

@@ -12,23 +12,25 @@
 [x] Create documentation templates for asset contributors – initial contributor guidelines section appended to README (naming, formats, dimensions, audio normalization, localization file layout). Future expansion: separate docs/asset_guidelines.md.
 
 ## Phase 2: JSON Schema & Metadata System
-[ ] Design core JSON schema for asset metadata
-[ ] Create specialized schemas for different asset types:
-  [ ] Sprite sheet definitions (frame coordinates, animations)
-  [ ] Audio clip metadata (loop points, volume, format)
-  [ ] Level/map data structures
+[x] Design core JSON schema for asset metadata (RogueSchema-based internal builders)
+[x] Create specialized schemas for different asset types:
+  [x] Sprite sheet definitions (frame coordinates, animations) — implemented in `schema_sprites.{h,c}`
+  [x] Audio clip metadata (loop points, volume, format) — implemented in `schema_audio.{h,c}`
+  [x] Level/map data structures
   [ ] UI theme and layout definitions
-[ ] Implement JSON validation utilities
-[ ] Create schema versioning system for backward compatibility
+[x] Implement JSON validation utilities (reused existing `rogue_schema_validate_json`; added new test `test_sprite_audio_schema`)
+[ ] Create schema versioning system for backward compatibility (planned: introduce `schema_version` field & migration hooks)
 
-### Phase 2 Kickoff Status (Post Phase 1 Verification)
-- Phase 1 implementation (classification module + docs) integrated; full suite passed after fixing uninitialized `stat_preview_slot` (added sentinel -1 init & event queue index init). This guards future UI asset preview validations from flaky first-frame behavior.
-- Ready next actions:
-  1. Implement internal RogueSchema builders for sprite & audio (mirroring existing items/entities patterns).
-  2. Add unit tests (valid + invalid JSON) using minimal in-memory strings (avoid committing placeholder files initially) under new test file `test_sprite_audio_schema.c` (planned).
-  3. Introduce TODO hooks in `asset_classification` for future sprite/audio metadata enum expansion without changing current enum externally yet (maintain Phase 1 stability).
-  4. Placeholder asset enforcement: add `placeholder.png` existence assertion + test.
-  5. After these, proceed to level + ui theme schema extraction, then manifest/checksum groundwork.
+### Phase 2 In-Progress / Next Steps
+- [x] Implement placeholder asset enforcement: ensure `assets/placeholder.png` exists; added unit test `test_asset_placeholder_enforcement` (positive + negative path). Stub PNG committed.
+- [x] Add Level/Map schema (tile layout, spawn points, environment tags) after placeholder enforcement (`schema_levels.{h,c}` + unit test `test_level_schema`).
+- [ ] Add UI Theme/Layout schema referencing existing `ui_theme_default.cfg` structure for gradual migration.
+
+### Phase 2 Progress Update
+- Sprite & audio schema builders implemented and validated (see new unit test `test_sprite_audio_schema`).
+- Classification header annotated with future enum expansion TODOs (non-breaking).
+- Commit message updated; README pending augmentation for new schema usage examples.
+- Placeholder asset enforcement completed (helper + unit test + stub asset). Next: level & UI theme schemas.
 
 
 ## Phase 3: SDL2 Integration & Cross-Platform Loading

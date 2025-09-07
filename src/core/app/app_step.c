@@ -113,22 +113,49 @@ void rogue_app_step(void)
             fclose(pf);
         }
     }
-    /* Ensure reduced-motion fade skips are applied even if the game loop isn't running yet
-        (unit tests invoke rogue_app_step() directly). This must not depend on show_start_screen
-        because some test harnesses may not toggle it before the first step. */
+    /* Consolidated reduced-motion guard (was previously duplicated later in the frame).
+       Apply immediately on entry so tests that call rogue_app_step() once observe the
+       normalized state. We also emit a guard log the FIRST time we perform a transition
+       each frame (or if already normalized, we skip extra I/O). */
     if (g_app.reduced_motion)
     {
+        int transitioned = 0;
+        int prev_state = g_app.start_state;
+        float prev_t = g_app.start_state_t;
+        int prev_show = g_app.show_start_screen;
         if (g_app.start_state == ROGUE_START_FADE_IN)
         {
             g_app.start_state = ROGUE_START_MENU;
             g_app.start_state_t = 1.0f;
+            transitioned = 1;
         }
         else if (g_app.start_state == ROGUE_START_FADE_OUT)
         {
-            /* Skip directly to finished state; ensure state is not left as FADE_OUT */
             g_app.start_state_t = 0.0f;
             g_app.show_start_screen = 0;
             g_app.start_state = ROGUE_START_MENU;
+            transitioned = 1;
+        }
+        if (transitioned)
+        {
+            ROGUE_LOG_INFO("reduced_motion guard(entry): %d->%d t %.3f->%.3f show %d->%d",
+                           prev_state, g_app.start_state, (double) prev_t,
+                           (double) g_app.start_state_t, prev_show, g_app.show_start_screen);
+            FILE* gf = NULL;
+#if defined(_MSC_VER)
+            if (fopen_s(&gf, "rm_guard.txt", "a") == 0 && gf)
+#else
+            gf = fopen("rm_guard.txt", "a");
+            if (gf)
+#endif
+            {
+                fprintf(gf,
+                        "entry_transition prev_state=%d new_state=%d prev_t=%.3f new_t=%.3f "
+                        "prev_show=%d new_show=%d\n",
+                        prev_state, g_app.start_state, (double) prev_t,
+                        (double) g_app.start_state_t, prev_show, g_app.show_start_screen);
+                fclose(gf);
+            }
         }
     }
     if (!g_game_loop.running)
@@ -137,40 +164,7 @@ void rogue_app_step(void)
     /* Begin FX frame and reset digest/queues using current frame_count */
     rogue_fx_frame_begin((uint32_t) g_app.frame_count);
     double frame_start = rogue_metrics_frame_begin();
-    /* Accessibility fast-path: if reduced motion is enabled, enforce fade skips
-       immediately at frame start so tests and non-SDL code paths see the effect
-        without relying on later UI updates. Do not gate on show_start_screen. */
-    if (g_app.reduced_motion)
-    {
-        if (g_app.start_state == ROGUE_START_FADE_IN)
-        {
-            g_app.start_state = ROGUE_START_MENU;
-            g_app.start_state_t = 1.0f;
-        }
-        else if (g_app.start_state == ROGUE_START_FADE_OUT)
-        {
-            /* Skip directly to finished state; ensure state is not left as FADE_OUT */
-            g_app.start_state_t = 0.0f;
-            g_app.show_start_screen = 0;
-            g_app.start_state = ROGUE_START_MENU;
-        }
-        ROGUE_LOG_INFO("reduced_motion guard: state=%d t=%.3f show=%d", g_app.start_state,
-                       (double) g_app.start_state_t, g_app.show_start_screen);
-        {
-            FILE* f = NULL;
-#if defined(_MSC_VER)
-            if (fopen_s(&f, "rm_guard.txt", "a") == 0 && f)
-#else
-            f = fopen("rm_guard.txt", "a");
-            if (f)
-#endif
-            {
-                fprintf(f, "state=%d t=%.3f show=%d\n", g_app.start_state,
-                        (double) g_app.start_state_t, g_app.show_start_screen);
-                fclose(f);
-            }
-        }
-    }
+    /* (Duplicate reduced-motion guard removed; logic now handled at function entry.) */
 #ifdef ROGUE_HAVE_SDL
     g_app.title_time += g_app.dt;
     SDL_SetRenderDrawColor(g_app.renderer, g_app.cfg.background_color.r,

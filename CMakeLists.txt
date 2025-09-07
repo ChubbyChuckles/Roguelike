@@ -280,6 +280,7 @@ add_library(rogue_core
     src/game/collision.c
     src/game/navigation.c
     src/util/asset_config.c
+    src/util/asset_placeholder.c
     src/game/platform.c
     src/world/tile_sprite_cache.c
     src/core/world/map_debug.c
@@ -642,6 +643,7 @@ add_library(rogue_content_json OBJECT
     src/content/schema_tilesets.c
     src/content/schema_sprites.c
     src/content/schema_audio.c
+    src/content/schema_levels.c
 )
 target_include_directories(rogue_content_json PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_definitions(rogue_content_json PUBLIC ROGUE_ENABLE_JSON_CONTENT=$<IF:$<BOOL:${ROGUE_ENABLE_JSON_CONTENT}>,1,0>)
@@ -1037,6 +1039,21 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_asset_classification PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_asset_classification COMMAND test_asset_classification)
+
+# Placeholder asset enforcement test
+add_executable(test_asset_placeholder_enforcement tests/unit/test_asset_placeholder_enforcement.c)
+target_link_libraries(test_asset_placeholder_enforcement PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_asset_placeholder_enforcement PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_asset_placeholder_enforcement COMMAND test_asset_placeholder_enforcement)
+
+add_executable(test_level_schema tests/unit/test_level_schema.c)
+target_link_libraries(test_level_schema PRIVATE rogue_core)
+if(ROGUE_ENABLE_SDL)
+    target_link_libraries(test_level_schema PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_level_schema COMMAND test_level_schema)
 
 # Skills schema roundtrip (enveloped JSON) test
 add_executable(test_skills_roundtrip_schema tests/unit/test_skills_roundtrip_schema.c)

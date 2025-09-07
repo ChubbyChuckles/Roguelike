@@ -1,0 +1,14 @@
+state=1 t=1.000 show=1
+state=1 t=0.000 show=0
+state=1 t=1.000 show=1
+state=1 t=0.000 show=0
+state=1 t=1.000 show=1
+state=1 t=0.000 show=0
+entry_transition prev_state=0 new_state=1 prev_t=0.000 new_t=1.000 prev_show=1 new_show=1
+entry_transition prev_state=2 new_state=1 prev_t=1.000 new_t=0.000 prev_show=1 new_show=0
+entry_transition prev_state=0 new_state=1 prev_t=0.000 new_t=1.000 prev_show=1 new_show=1
+entry_transition prev_state=2 new_state=1 prev_t=1.000 new_t=0.000 prev_show=1 new_show=0
+entry_transition prev_state=0 new_state=1 prev_t=0.000 new_t=1.000 prev_show=1 new_show=1
+entry_transition prev_state=2 new_state=1 prev_t=1.000 new_t=0.000 prev_show=1 new_show=0
+entry_transition prev_state=0 new_state=1 prev_t=0.000 new_t=1.000 prev_show=1 new_show=1
+entry_transition prev_state=2 new_state=1 prev_t=1.000 new_t=0.000 prev_show=1 new_show=0
