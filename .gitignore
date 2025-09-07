@@ -68,3 +68,4 @@ dist/
 sprite_picker.spec
 .venv/
 scripts/ci/
+scripts/ci/local_github_token.ps1

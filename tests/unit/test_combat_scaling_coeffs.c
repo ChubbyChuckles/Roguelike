@@ -5,6 +5,8 @@
 #include <assert.h>
 #include <stdio.h>
 
+extern void rogue_app_add_hitstop(float ms);
+
 /* Stubs */
 RoguePlayer g_exposed_player_for_stats = {0};
 static int rogue_get_current_attack_frame(void) { return 3; }
@@ -28,8 +30,6 @@ static int strike_damage_once(RogueWeaponArchetype arch, int str, int dex, int i
     rogue_combat_set_archetype(&c, arch);
     c.phase = ROGUE_ATTACK_STRIKE;
     c.combo = 0; /* direct strike */
-    /* NOTE: Zero-initialize enemy so armor/other defensive stats start at 0; leaving this
-        uninitialized caused random high mitigation producing uniform 1 damage in MSVC builds. */
     RogueEnemy e = (RogueEnemy){0};
     e.alive = 1;
     e.base.pos.x = 0.8f;

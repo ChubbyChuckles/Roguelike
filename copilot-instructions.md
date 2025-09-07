@@ -10,6 +10,12 @@ These directives govern all AI-generated contributions. Treat them as mandatory 
 4. Determinism: expose state via accessors (e.g., frame counters) instead of hidden globals.
 5. Refactoring: if adding feature to an overgrown file, first extract cohesive modules before implementing feature logic.
 
+## Build & Tooling
+
+1. Do not pass the MSBuild property `/p:VcpkgEnableManifest=true` in any local build task, CI job, or script for this repository. That flag assumes a vcpkg manifest above the `build/` directory and causes builds to fail when no `vcpkg.json` is present.
+2. If vcpkg manifest support is required, either add a repository-root `vcpkg.json` and document it, or explicitly set `/p:VcpkgEnableManifest=false` in the calling task/script.
+3. Update task definitions, CI configs, and local helper scripts to remove the manifest-enabling property.
+
 ## Mandatory Workflow for Any Change
 
 1. Identify scope & list affected modules.

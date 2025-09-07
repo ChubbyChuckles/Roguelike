@@ -56,6 +56,11 @@ typedef struct AssetBrowserEnhancedState
     /* Audio controls */
     int audio_volume; /* 0..128 */
     int audio_loop;   /* bool */
+    /* Phase 2: pseudo drag-drop & JSON preview */
+    char pending_import_path[260]; /* user types or future drag-drop populates */
+    char json_preview_buffer[512]; /* small preview snippet */
+    int json_preview_valid;        /* 1=valid JSON syntax (shallow), 0=invalid */
+    int json_preview_dirty;        /* trigger re-parse */
 } AssetBrowserEnhancedState;
 
 static AssetBrowserEnhancedState g_ab_state; /* zero-init */
@@ -327,6 +332,108 @@ static void panel_asset_browser(void* user)
         rogue_asset_manager_poll_reload();
     }
     overlay_label("----------------");
+    /* Phase 2: Simulated drag-and-drop (text box + import buttons). Future real DnD will feed the
+       path field directly. For now we allow quick runtime load of a texture or audio chunk. */
+    overlay_label("Import (Phase2 stub):");
+    if (overlay_input_text("Path", g_ab_state.pending_import_path,
+                           sizeof g_ab_state.pending_import_path))
+    {
+        g_ab_state.pending_import_path[sizeof g_ab_state.pending_import_path - 1] = '\0';
+    }
+    if (g_ab_state.pending_import_path[0])
+    {
+        if (overlay_button("Import Texture"))
+        {
+            int idx = rogue_asset_manager_acquire_texture(g_ab_state.pending_import_path);
+            if (idx >= 0)
+            {
+                overlay_label("Imported texture OK");
+            }
+            else
+            {
+                overlay_label("Import texture FAILED");
+            }
+        }
+        if (overlay_button("Import Audio"))
+        {
+            int aidx = rogue_asset_manager_acquire_audio(g_ab_state.pending_import_path);
+            if (aidx >= 0)
+                overlay_label("Imported audio OK");
+            else
+                overlay_label("Import audio FAILED");
+        }
+        if (overlay_button("Clear Path"))
+        {
+            g_ab_state.pending_import_path[0] = '\0';
+        }
+    }
+    /* JSON quick syntax validation preview (line-limited) for selected JSON file when in JSON tab
+     */
+    if (g_ab_state.tab_index == 3)
+    {
+        overlay_label("JSON Preview (syntax stub):");
+        /* Choose first filtered JSON entry for preview to keep UI simple */
+        const char* preview_sel = NULL;
+        for (int i = 0; i < g_ab_state.json_count; ++i)
+        {
+            const char* path = g_ab_state.json_files[i].path;
+            if (!g_filter[0] || ab_match_wildcard_ci(path, g_filter))
+            {
+                preview_sel = path;
+                break;
+            }
+        }
+        if (preview_sel)
+        {
+            char full[512];
+            snprintf(full, sizeof full, "assets/%s", preview_sel);
+            FILE* f = fopen(full, "rb");
+            if (f)
+            {
+                size_t r = fread(g_ab_state.json_preview_buffer, 1,
+                                 sizeof(g_ab_state.json_preview_buffer) - 1, f);
+                fclose(f);
+                g_ab_state.json_preview_buffer[r] = '\0';
+                /* Shallow syntax heuristic: count braces/brackets balance (not full JSON parse). */
+                int depth = 0;
+                int ok = 1;
+                for (size_t k = 0; k < r; ++k)
+                {
+                    char c = g_ab_state.json_preview_buffer[k];
+                    if (c == '{' || c == '[')
+                        depth++;
+                    else if (c == '}' || c == ']')
+                    {
+                        depth--;
+                        if (depth < 0)
+                        {
+                            ok = 0;
+                            break;
+                        }
+                    }
+                }
+                if (depth != 0)
+                    ok = 0;
+                g_ab_state.json_preview_valid = ok;
+                /* Truncate to first 200 chars for overlay readability */
+                char snippet[220];
+                strncpy(snippet, g_ab_state.json_preview_buffer, 199);
+                snippet[199] = '\0';
+                overlay_label(snippet);
+                overlay_label(g_ab_state.json_preview_valid
+                                  ? "(balanced braces)"
+                                  : "(UNBALANCED braces – syntax suspect)");
+            }
+            else
+            {
+                overlay_label("(unable to open file)");
+            }
+        }
+        else
+        {
+            overlay_label("(no JSON file matches filter)");
+        }
+    }
     int shown = 0;
     int limit = 300; /* soft cap */
     int tab = g_ab_state.tab_index;
