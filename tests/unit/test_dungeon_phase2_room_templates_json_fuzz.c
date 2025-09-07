@@ -1,4 +1,4 @@
-#include "world/world_gen_room_templates.h"
+#include "../../src/world/world_gen_room_templates.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

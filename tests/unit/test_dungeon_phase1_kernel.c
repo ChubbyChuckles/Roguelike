@@ -1,5 +1,5 @@
-#include "world/world_gen.h"
-#include "world/world_gen_dungeon_kernel.h"
+#include "../../src/world/world_gen.h"
+#include "../../src/world/world_gen_dungeon_kernel.h"
 #include <assert.h>
 #include <stdio.h>
 

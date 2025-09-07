@@ -1,6 +1,6 @@
-#include "world/world_gen.h"
-#include "world/world_gen_dungeon_encounters.h"
-#include "world/world_gen_dungeon_taxonomy.h"
+#include "../../src/world/world_gen.h"
+#include "../../src/world/world_gen_dungeon_encounters.h"
+#include "../../src/world/world_gen_dungeon_taxonomy.h"
 #include <stdio.h>
 
 /* ΔL precision tests: ensure mapping steps every 3 depths up to clamp and budgets reflect ΔL trend.

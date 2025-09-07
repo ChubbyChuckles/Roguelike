@@ -1,5 +1,5 @@
 #include "panel_skills_shared.h"
-#include "../../core/skills/skills_validate.h"
+#include "../../../core/skills/skills_validate.h"
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY
 

@@ -1,11 +1,11 @@
 #include "panel_skills_overview.h"
-#include "../../core/app/app_state.h"
-#include "../../core/skills/skill_debug.h"
-#include "../../core/skills/skills_validate.h"
-#include "../../util/formula_eval.h" /* prototype formula evaluator */
-#include "../overlay_core.h"
-#include "../widgets/overlay_widgets.h"
-#include "panel_skills_shared.h"
+#include "../../../core/app/app_state.h"
+#include "../../../core/skills/skill_debug.h"
+#include "../../../core/skills/skills_validate.h"
+#include "../../../util/formula_eval.h" /* prototype formula evaluator */
+#include "../../overlay_core.h"
+#include "../../widgets/overlay_widgets.h"
+#include "../shared/panel_skills_shared.h"
 #include <string.h>
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY

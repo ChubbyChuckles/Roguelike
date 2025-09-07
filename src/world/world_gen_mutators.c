@@ -1,4 +1,4 @@
-#include "content/json_io.h"
+#include "../content/json_io.h"
 #include "world_gen.h"
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,5 +1,5 @@
-#include "world/tilemap.h"
-#include "world/world_gen_room_templates.h"
+#include "../../src/world/tilemap.h"
+#include "../../src/world/world_gen_room_templates.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

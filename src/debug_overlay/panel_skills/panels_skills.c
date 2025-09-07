@@ -10,11 +10,11 @@
 #include "../overlay_input.h"
 #include "../overlay_toast.h"
 #include "../widgets/overlay_widgets.h"
-#include "panel_skills_audio.h"
-#include "panel_skills_effects.h"
-#include "panel_skills_overview.h"
-#include "panel_skills_testing.h"
-#include "panel_skills_visuals.h"
+#include "audio/panel_skills_audio.h"
+#include "effects/panel_skills_effects.h"
+#include "overview/panel_skills_overview.h"
+#include "testing/panel_skills_testing.h"
+#include "visuals/panel_skills_visuals.h"
 #include <string.h>
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>

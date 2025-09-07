@@ -1,6 +1,6 @@
-#include "world/world_gen.h"
-#include "world/world_gen_dungeon_encounters.h"
-#include "world/world_gen_dungeon_kernel.h"
+#include "../../src/world/world_gen.h"
+#include "../../src/world/world_gen_dungeon_encounters.h"
+#include "../../src/world/world_gen_dungeon_kernel.h"
 #include <stdio.h>
 #include <string.h>
 

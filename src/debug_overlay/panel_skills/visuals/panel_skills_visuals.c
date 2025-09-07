@@ -1,10 +1,10 @@
 #include "panel_skills_visuals.h"
-#include "../../core/skills/skill_debug.h"
-#include "../../core/skills/skill_sprite_loader.h"
-#include "../overlay_core.h"
-#include "../widgets/overlay_widgets.h"
-#include "../widgets/overlay_widgets_internal.h" /* g_ui for positioning */
-#include "panel_skills_shared.h"
+#include "../../../core/skills/skill_debug.h"
+#include "../../../core/skills/skill_sprite_loader.h"
+#include "../../overlay_core.h"
+#include "../../widgets/overlay_widgets.h"
+#include "../../widgets/overlay_widgets_internal.h" /* g_ui for positioning */
+#include "../shared/panel_skills_shared.h"
 #include <ctype.h>
 #include <string.h>
 

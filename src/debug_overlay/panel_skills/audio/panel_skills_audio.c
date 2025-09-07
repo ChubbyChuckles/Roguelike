@@ -1,8 +1,8 @@
 #include "panel_skills_audio.h"
-#include "../../core/skills/skill_debug.h"
-#include "../overlay_core.h"
-#include "../widgets/overlay_widgets.h"
-#include "panel_skills_shared.h"
+#include "../../../core/skills/skill_debug.h"
+#include "../../overlay_core.h"
+#include "../../widgets/overlay_widgets.h"
+#include "../shared/panel_skills_shared.h"
 #include <stdio.h>
 
 #if ROGUE_ENABLE_DEBUG_OVERLAY

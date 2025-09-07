@@ -573,12 +573,12 @@ add_library(rogue_debug_overlay OBJECT
     src/debug_overlay/panel_player/panels_player.c
     src/debug_overlay/panel_skills/panels_skills.c
     # Skills panel refactor modules
-    src/debug_overlay/panel_skills/panel_skills_shared.c
-    src/debug_overlay/panel_skills/panel_skills_overview.c
-    src/debug_overlay/panel_skills/panel_skills_effects.c
-    src/debug_overlay/panel_skills/panel_skills_visuals.c
-    src/debug_overlay/panel_skills/panel_skills_audio.c
-    src/debug_overlay/panel_skills/panel_skills_testing.c
+    src/debug_overlay/panel_skills/shared/panel_skills_shared.c
+    src/debug_overlay/panel_skills/overview/panel_skills_overview.c
+    src/debug_overlay/panel_skills/effects/panel_skills_effects.c
+    src/debug_overlay/panel_skills/visuals/panel_skills_visuals.c
+    src/debug_overlay/panel_skills/audio/panel_skills_audio.c
+    src/debug_overlay/panel_skills/testing/panel_skills_testing.c
     src/debug_overlay/panel_entities/panels_entities.c
     src/debug_overlay/panel_map/panels_map.c
     src/debug_overlay/panel_audio_vfx/panels_audiovfx.c
