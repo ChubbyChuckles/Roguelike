@@ -76,6 +76,10 @@ typedef struct AssetBrowserEnhancedState
     int sprite_grid_show;   /* show sprite sheet grid overlay */
     int sprite_grid_cell_w; /* grid cell width */
     int sprite_grid_cell_h; /* grid cell height */
+    /* Phase 3 WIP: JSON metadata editor */
+    int json_editor_open;          /* bool */
+    char json_editor_buffer[1024]; /* provisional editing buffer (truncated) */
+    int json_editor_loaded;        /* internal flag to avoid reloading every frame */
 } AssetBrowserEnhancedState;
 
 static AssetBrowserEnhancedState g_ab_state; /* zero-init */
@@ -687,6 +691,35 @@ static void panel_asset_browser(void* user)
                              g_ab_state.json_error_count);
                     overlay_label(status);
                 }
+                /* Phase 3 WIP: simple JSON editor scaffold (read-only placeholder) */
+                if (overlay_button(g_ab_state.json_editor_open ? "Close JSON Editor (WIP)"
+                                                               : "Open JSON Editor (WIP)"))
+                {
+                    if (!g_ab_state.json_editor_open)
+                    {
+                        /* Load initial buffer (truncate) */
+                        size_t len = strlen(g_ab_state.json_preview_buffer);
+                        if (len >= sizeof g_ab_state.json_editor_buffer)
+                            len = sizeof g_ab_state.json_editor_buffer - 1;
+                        memcpy(g_ab_state.json_editor_buffer, g_ab_state.json_preview_buffer, len);
+                        g_ab_state.json_editor_buffer[len] = '\0';
+                        g_ab_state.json_editor_loaded = 1;
+                    }
+                    g_ab_state.json_editor_open = !g_ab_state.json_editor_open;
+                }
+                if (g_ab_state.json_editor_open)
+                {
+                    overlay_label("(Phase 3 JSON editor stub – full multi-line edit & schema-aware "
+                                  "validation pending)");
+                    /* Display first ~160 chars as a placeholder */
+                    char snippet[176];
+                    size_t slen = strlen(g_ab_state.json_editor_buffer);
+                    if (slen > 160)
+                        slen = 160;
+                    memcpy(snippet, g_ab_state.json_editor_buffer, slen);
+                    snippet[slen] = '\0';
+                    overlay_label(snippet);
+                }
             }
             else
             {
@@ -954,6 +987,9 @@ static void panel_asset_browser(void* user)
                     g_ab_state.sprite_grid_cell_h = 32;
                 overlay_slider_int("Cell W", &g_ab_state.sprite_grid_cell_w, 4, sel_tex->width);
                 overlay_slider_int("Cell H", &g_ab_state.sprite_grid_cell_h, 4, sel_tex->height);
+                /* Phase 3 WIP: sprite coordinate editing scaffold */
+                overlay_label(
+                    "Sprite Coordinate Editor (Phase 3 WIP – interactive rect editing pending)");
             }
 #endif
         }

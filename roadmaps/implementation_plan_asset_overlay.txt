@@ -29,8 +29,8 @@ This plan builds upon the existing asset management infrastructure to create a s
 [x] Add runtime asset loading from file browser dialog (platform-specific – Win32 implementation added; cross-platform variants remain scheduled under Phase 7)
 [x] Create texture preview with zoom/pan controls using overlay widgets (basic buttons; no mouse-drag yet)
 [x] Implement audio playback controls for audio asset preview (play/stop/loop/volume)
-[ ] Add JSON syntax highlighting and validation feedback for config files
-[ ] Create sprite sheet coordinate overlay for sprite assets
+[x] Add JSON syntax highlighting and validation feedback for config files (implemented in panels_asset_browser.c – shallow structural pass + per-token coloring of first lines)
+[x] Create sprite sheet coordinate overlay for sprite assets (implemented: adjustable grid cell w/h + themed line overlay in texture preview)
 
 ## Phase 3: Asset Editing & Metadata Management
 [ ] Implement JSON metadata editor with schema-aware validation

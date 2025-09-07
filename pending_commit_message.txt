@@ -141,6 +141,14 @@ Phase 2 (partial) Asset Overlay progress:
 	- README: add Phase 9.4 notes under Testing & Quality Gates.
 
 Build/Test: Debug (SDL2), -j12; targeted/unit runs green locally.
+
+chore(asset-overlay/phase2-sync): mark JSON highlighting & sprite grid overlay complete; add Phase 3 editor scaffolds
+
+ - Roadmap Phase 2: checked off JSON syntax highlighting/validation and sprite sheet grid overlay tasks (implemented earlier in panels_asset_browser.c).
+ - Asset Browser: added Phase 3 scaffolds – JSON editor stub (toggle button shows truncated buffer) and sprite coordinate editor placeholder label.
+ - README: updated Asset Browser section to reflect implemented audio playback, JSON syntax highlighting + shallow validation, and sprite grid overlay; limited future tasks list now to regex filtering & advanced thumbnail caching.
+ - No functional changes to existing preview logic; scaffolds are inert placeholders (no persistence, no schema-aware editing yet).
+ - Next: implement full JSON metadata editor (multi-line editing + schema validation + save/apply) and sprite coordinate rectangle authoring with selection & export.
 packaging(cmake): robust JSON key parsing for SemVer/ShortSha and fix whitespace in regex; verify CPack filenames
 
 - CMake: update packaging regex to accept both PascalCase and lowercase keys (SemVer/Version, ShortSha/short_sha) and use explicit whitespace classes.
