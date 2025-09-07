@@ -43,6 +43,37 @@ static RogueAssetManager g_asset_mgr = {0};
 /* Phase 6: metrics (simple cumulative counters) */
 static RogueAssetMetrics g_asset_metrics = {0};
 
+/* ---------------- Internal: Streaming Queue ---------------- */
+typedef struct RogueStreamJob
+{
+    int texture_index; /* index into textures array */
+    char path[260];    /* original path (for existence / variant probing) */
+} RogueStreamJob;
+
+#define ROGUE_STREAM_MAX_JOBS 128
+static RogueStreamJob g_stream_jobs[ROGUE_STREAM_MAX_JOBS];
+static int g_stream_job_count = 0;
+
+static void stream_queue_clear(void) { g_stream_job_count = 0; }
+
+static int stream_queue_find(int texture_index)
+{
+    for (int i = 0; i < g_stream_job_count; ++i)
+        if (g_stream_jobs[i].texture_index == texture_index)
+            return i;
+    return -1;
+}
+
+static void stream_queue_compact(int remove_index)
+{
+    if (remove_index < 0 || remove_index >= g_stream_job_count)
+        return;
+    int last = g_stream_job_count - 1;
+    if (remove_index != last)
+        g_stream_jobs[remove_index] = g_stream_jobs[last];
+    g_stream_job_count--;
+}
+
 RogueAssetManager* rogue_asset_manager_instance(void) { return &g_asset_mgr; }
 
 bool rogue_asset_manager_init(struct SDL_Renderer* renderer)
@@ -53,7 +84,10 @@ bool rogue_asset_manager_init(struct SDL_Renderer* renderer)
     g_asset_mgr.renderer = renderer; /* may be NULL in headless tests */
     g_asset_mgr.initialized = true;
     g_asset_mgr.lazy_loading_enabled = false;
+    g_asset_mgr.streaming_enabled = false;
+    g_asset_mgr.prefer_compressed_textures = false;
     memset(&g_asset_metrics, 0, sizeof g_asset_metrics);
+    stream_queue_clear();
     return true;
 }
 
@@ -83,6 +117,7 @@ void rogue_asset_manager_shutdown(void)
     }
 #endif
     memset(&g_asset_mgr, 0, sizeof(g_asset_mgr));
+    stream_queue_clear();
 }
 
 static int find_slot_by_id(const char* id)
@@ -169,6 +204,28 @@ static void texture_attempt_load(RogueAssetTexture* tex)
 #endif
 }
 
+/* Attempt to find a compressed variant when preference enabled.
+   Order: .ktx2, .ktx, .dds. Returns path to use (maybe original). */
+static const char* maybe_substitute_compressed(const char* original, char* tmp, size_t tmp_cap)
+{
+    if (!original || !*original || !g_asset_mgr.prefer_compressed_textures)
+        return original;
+    const char* exts[] = {".ktx2", ".ktx", ".dds"};
+    const char* dot = strrchr(original, '.');
+    size_t base_len = dot ? (size_t) (dot - original) : strlen(original);
+    if (base_len + 5 >= tmp_cap)
+        return original; /* insufficient space */
+    for (int i = 0; i < 3; ++i)
+    {
+        size_t ext_len = strlen(exts[i]);
+        memcpy(tmp, original, base_len);
+        memcpy(tmp + base_len, exts[i], ext_len + 1); /* include null */
+        if (rogue_asset_file_exists(tmp))
+            return tmp; /* substitute */
+    }
+    return original;
+}
+
 int rogue_asset_manager_acquire_texture(const char* path)
 {
     if (!g_asset_mgr.initialized || !path)
@@ -184,6 +241,15 @@ int rogue_asset_manager_acquire_texture(const char* path)
             chosen_path = fb;
             substituted = true;
         }
+    }
+    /* Compressed preference (only if not already substituted by fallback) */
+    char compressed_buf[320];
+    if (!substituted && g_asset_mgr.prefer_compressed_textures)
+    {
+        const char* maybe =
+            maybe_substitute_compressed(chosen_path, compressed_buf, sizeof compressed_buf);
+        if (maybe != chosen_path)
+            chosen_path = maybe;
     }
     char id[96];
     /* If we substituted a fallback, still derive id from original missing path so
@@ -463,10 +529,167 @@ int rogue_asset_manager_preload_textures(const char* const* paths, int count)
 void rogue_asset_manager_get_metrics(RogueAssetMetrics* out)
 {
     if (out)
+    {
+        g_asset_metrics.stream_queue_depth = (uint32_t) g_stream_job_count;
         *out = g_asset_metrics;
+    }
 }
 
 void rogue_asset_manager_reset_metrics(void)
 {
     memset(&g_asset_metrics, 0, sizeof g_asset_metrics);
+}
+
+/* ---------------- Streaming Loader API ---------------- */
+
+void rogue_asset_manager_set_streaming_enabled(bool enable)
+{
+    g_asset_mgr.streaming_enabled = enable;
+    if (!enable)
+        stream_queue_clear();
+}
+
+int rogue_asset_manager_streaming_enabled(void) { return g_asset_mgr.streaming_enabled ? 1 : 0; }
+
+int rogue_asset_manager_enqueue_texture_stream(const char* path)
+{
+    if (!g_asset_mgr.streaming_enabled)
+        return rogue_asset_manager_acquire_texture(path);
+    int idx = rogue_asset_manager_acquire_texture(path);
+    if (idx < 0)
+        return -1;
+    if (g_stream_job_count >= ROGUE_STREAM_MAX_JOBS)
+        return idx; /* queue full; texture may already be loaded (lazy path) */
+    const RogueAssetTexture* tex = rogue_asset_manager_get(idx);
+    if (!tex)
+        return idx;
+    if (tex->sdl_texture || tex->load_failed)
+        return idx; /* nothing to stream */
+    if (stream_queue_find(idx) >= 0)
+        return idx; /* already queued */
+    RogueStreamJob* job = &g_stream_jobs[g_stream_job_count++];
+    job->texture_index = idx;
+    size_t plen = strlen(path);
+    if (plen >= sizeof(job->path))
+        plen = sizeof(job->path) - 1;
+    memcpy(job->path, path, plen);
+    job->path[plen] = '\0';
+    return idx;
+}
+
+int rogue_asset_manager_stream_step(int max_to_load)
+{
+    if (!g_asset_mgr.streaming_enabled || g_stream_job_count == 0)
+        return 0;
+    int remaining = (max_to_load <= 0) ? g_stream_job_count : max_to_load;
+    int loaded = 0;
+    /* Simple FIFO: iterate from end to allow compact removal */
+    for (int i = g_stream_job_count - 1; i >= 0 && remaining > 0; --i)
+    {
+        RogueStreamJob* job = &g_stream_jobs[i];
+        RogueAssetTexture* tex = (RogueAssetTexture*) rogue_asset_manager_get(job->texture_index);
+        if (!tex)
+        {
+            stream_queue_compact(i);
+            continue;
+        }
+        if (!tex->sdl_texture && !tex->load_failed)
+        {
+            texture_attempt_load(tex);
+            if (tex->sdl_texture)
+            {
+                g_asset_metrics.stream_loaded_count++;
+                loaded++;
+            }
+        }
+        stream_queue_compact(i);
+        remaining--;
+    }
+    return loaded;
+}
+
+int rogue_asset_manager_stream_queue_depth(void) { return g_stream_job_count; }
+
+/* ---------------- Platform Optimization Flags ---------------- */
+void rogue_asset_manager_set_prefer_compressed_textures(bool enable)
+{
+    g_asset_mgr.prefer_compressed_textures = enable;
+}
+int rogue_asset_manager_get_prefer_compressed_textures(void)
+{
+    return g_asset_mgr.prefer_compressed_textures ? 1 : 0;
+}
+
+/* ---------------- Atlas Tooling (Horizontal) ---------------- */
+int rogue_asset_manager_build_atlas_horizontal(const int* texture_indices, int count,
+                                               RogueAtlasUV* out_uvs, int uv_cap)
+{
+    if (!texture_indices || count <= 0 || !out_uvs || uv_cap < count)
+        return -1;
+#if defined(ROGUE_HAVE_SDL) && defined(ROGUE_HAVE_SDL_IMAGE)
+    if (!g_asset_mgr.renderer)
+        return -1; /* headless */
+    /* First ensure all textures are loaded (lazy or streamed) */
+    int total_w = 0;
+    int max_h = 0;
+    for (int i = 0; i < count; ++i)
+    {
+        if (!rogue_asset_manager_ensure_texture_loaded(texture_indices[i]))
+            return -1;
+        const RogueAssetTexture* tex = rogue_asset_manager_get(texture_indices[i]);
+        if (!tex || !tex->sdl_texture)
+            return -1;
+        total_w += tex->width;
+        if (tex->height > max_h)
+            max_h = tex->height;
+    }
+    SDL_Texture* atlas = SDL_CreateTexture(g_asset_mgr.renderer, SDL_PIXELFORMAT_RGBA8888,
+                                           SDL_TEXTUREACCESS_TARGET, total_w, max_h);
+    if (!atlas)
+        return -1;
+    SDL_Texture* prev_target = SDL_GetRenderTarget(g_asset_mgr.renderer);
+    SDL_SetRenderTarget(g_asset_mgr.renderer, atlas);
+    int x = 0;
+    for (int i = 0; i < count; ++i)
+    {
+        const RogueAssetTexture* tex = rogue_asset_manager_get(texture_indices[i]);
+        SDL_Rect dst = {x, 0, tex->width, tex->height};
+        SDL_RenderCopy(g_asset_mgr.renderer, (SDL_Texture*) tex->sdl_texture, NULL, &dst);
+        float u0 = (float) x / (float) total_w;
+        float u1 = (float) (x + tex->width) / (float) total_w;
+        out_uvs[i].u0 = u0;
+        out_uvs[i].v0 = 0.0f;
+        out_uvs[i].u1 = u1;
+        out_uvs[i].v1 = (float) tex->height / (float) max_h;
+        x += tex->width;
+    }
+    SDL_SetRenderTarget(g_asset_mgr.renderer, prev_target);
+    /* Register atlas as a new texture record (no path / synthetic) */
+    if (g_asset_mgr.texture_count >= ROGUE_ASSET_MAX_TEXTURES)
+    {
+        SDL_DestroyTexture(atlas);
+        return -1;
+    }
+    RogueAssetTexture* rec = &g_asset_mgr.textures[g_asset_mgr.texture_count];
+    memset(rec, 0, sizeof *rec);
+    snprintf(rec->id, sizeof rec->id, "atlas_%u", g_asset_mgr.texture_count);
+    snprintf(rec->path, sizeof rec->path, "<atlas:%d>", count);
+    rec->sdl_texture = atlas;
+    rec->width = total_w;
+    rec->height = max_h;
+    rec->ref_count = 1; /* implicitly acquired */
+    rec->load_failed = false;
+    rec->last_mtime = 0;
+    int atlas_index = (int) g_asset_mgr.texture_count;
+    g_asset_mgr.texture_count++;
+    g_asset_metrics.atlas_build_count++;
+    g_asset_metrics.last_atlas_width = (uint32_t) total_w;
+    return atlas_index;
+#else
+    (void) texture_indices;
+    (void) count;
+    (void) out_uvs;
+    (void) uv_cap;
+    return -1;
+#endif
 }

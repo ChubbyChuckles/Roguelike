@@ -70,11 +70,12 @@ Next Phase 3 steps: integrate SDL_image when available, add width/height probe (
 
 ## Phase 6: Performance Optimization
 [x] Design asset preloading system (added preload APIs & batch: rogue_asset_manager_preload_texture/rogue_asset_manager_preload_textures)
-[ ] Implement memory-efficient asset streaming
-[ ] Create texture atlas generation tools
-[ ] Optimize asset loading for different platforms
+[x] Implement memory-efficient asset streaming (incremental queue + stream_step batching)
+[x] Create texture atlas generation tools (horizontal atlas builder API + UV output)
+[x] Optimize asset loading for different platforms (compressed variant probing .ktx2/.ktx/.dds preference)
 [x] Add profiling and benchmarking for asset operations (metrics struct + cumulative timing using SDL perf counters)
 [x] Implement lazy loading for non-critical assets (toggle + ensure load API)
+[*] Expose metrics via debug overlay panel (Asset Metrics panel: queue depth, timings, streaming toggles)
 
 ## Phase 7: Developer Tools & Utilities
 [ ] Create asset management CLI tools

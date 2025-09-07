@@ -579,7 +579,16 @@ add_test(NAME asset_validation_cli
 
 # MSVC: Avoid parallel PDB write contention (fatal error C1041) when building many translation units in parallel.
 if (MSVC)
-    target_compile_options(rogue_core PRIVATE /FS)
+    # Mitigate parallel PDB (C1041) by enabling safe writes and embedding debug info in objects.
+    target_compile_options(rogue_core PRIVATE /FS /Z7)
+    # Also replace default /Zi with /Z7 for all Debug builds to avoid a single monolithic PDB hot spot
+    foreach(lang C CXX)
+        if (CMAKE_${lang}_FLAGS_DEBUG)
+            string(REPLACE "/Zi" "/Z7" CMAKE_${lang}_FLAGS_DEBUG "${CMAKE_${lang}_FLAGS_DEBUG}")
+            # Re-cache the modified flags (previous line had a typo that cleared them)
+            set(CMAKE_${lang}_FLAGS_DEBUG "${CMAKE_${lang}_FLAGS_DEBUG}" CACHE STRING "MSVC ${lang} flags" FORCE)
+        endif()
+    endforeach()
 endif()
 
 # Make overlay feature macro visible to all TUs so headers don't fallback to stubs
@@ -614,6 +623,7 @@ add_library(rogue_debug_overlay OBJECT
     # Aggregated panel registrar and per-panel implementations
     src/debug_overlay/overlay_panels.c
     src/debug_overlay/panel_system/panels_system.c
+    src/debug_overlay/panel_system/panels_asset_metrics.c
     src/debug_overlay/panel_player/panels_player.c
     src/debug_overlay/panel_skills/panels_skills.c
     # Skills panel refactor modules
@@ -1077,6 +1087,27 @@ endif()
 add_test(NAME test_asset_manager_basic COMMAND test_asset_manager_basic)
 set_tests_properties(test_asset_manager_basic PROPERTIES LABELS "asset")
 
+# Asset manager streaming + metrics test (Phase 6)
+add_executable(test_asset_manager_phase6_streaming tests/unit/test_asset_manager_phase6_streaming.c)
+target_link_libraries(test_asset_manager_phase6_streaming PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_asset_manager_phase6_streaming PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_asset_manager_phase6_streaming COMMAND test_asset_manager_phase6_streaming)
+set_tests_properties(test_asset_manager_phase6_streaming PROPERTIES LABELS "asset;perf")
+
+# Phase 6: compressed texture preference test (headless safe)
+add_executable(test_asset_manager_phase6_compressed tests/unit/test_asset_manager_phase6_compressed.c)
+target_link_libraries(test_asset_manager_phase6_compressed PRIVATE rogue_core)
+add_test(NAME test_asset_manager_phase6_compressed COMMAND test_asset_manager_phase6_compressed)
+set_tests_properties(test_asset_manager_phase6_compressed PROPERTIES LABELS "asset")
+
+# Phase 6: atlas builder UV integrity (expected headless failure path coverage)
+add_executable(test_asset_manager_phase6_atlas tests/unit/test_asset_manager_phase6_atlas.c)
+target_link_libraries(test_asset_manager_phase6_atlas PRIVATE rogue_core)
+add_test(NAME test_asset_manager_phase6_atlas COMMAND test_asset_manager_phase6_atlas)
+set_tests_properties(test_asset_manager_phase6_atlas PROPERTIES LABELS "asset")
+
 # Hot-reload polling smoke test
 add_executable(test_asset_manager_reload tests/unit/test_asset_manager_reload.c)
 target_link_libraries(test_asset_manager_reload PRIVATE rogue_core)
@@ -1113,6 +1144,8 @@ if(ROGUE_ENABLE_JSON_CONTENT)
     target_sources(test_schema_versioning_basic PRIVATE $<TARGET_OBJECTS:rogue_content_json>)
 endif()
 add_dependencies(test_schema_versioning_basic rogue_core)
+# Ensure the JSON content code path is compiled even if global toggle is off so migrations resolve symbols
+target_compile_definitions(test_schema_versioning_basic PRIVATE ROGUE_ENABLE_JSON_CONTENT=1)
 if(TARGET SDL2::SDL2)
     target_link_libraries(test_ui_theme_schema PRIVATE SDL2::SDL2)
     target_link_libraries(test_schema_versioning_basic PRIVATE SDL2::SDL2)

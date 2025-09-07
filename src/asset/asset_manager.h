@@ -52,6 +52,9 @@ typedef struct RogueAssetManager
     uint32_t audio_count;
     bool initialized;
     bool lazy_loading_enabled; /* Phase 6: when true, initial acquire defers actual SDL load */
+    bool streaming_enabled;    /* Phase 6: incremental streaming queue active */
+    bool prefer_compressed_textures; /* Phase 6: platform optimization hook (try .ktx/.ktx2/.dds
+                                        variants) */
 } RogueAssetManager;
 
 /* Global singleton (tests keep usage simple; future: allow multiple contexts) */
@@ -97,11 +100,54 @@ typedef struct RogueAssetMetrics
     uint32_t texture_load_count; /* number of successful texture load attempts */
     uint64_t audio_load_us;      /* cumulative microseconds for audio loads */
     uint32_t audio_load_count;   /* number of successful audio loads */
+    uint32_t stream_queue_depth; /* current pending texture stream jobs */
+    uint32_t stream_loaded_count; /* number of textures loaded via stream step */
+    uint32_t atlas_build_count;   /* number of atlases built (Phase 6) */
+    uint32_t last_atlas_width;    /* width of most recently built atlas */
 } RogueAssetMetrics;
 
 /* Retrieve current metrics (out may be NULL). */
 void rogue_asset_manager_get_metrics(RogueAssetMetrics* out);
 /* Reset (zero) all metrics counters. */
 void rogue_asset_manager_reset_metrics(void);
+
+/* ---------------- Phase 6: Streaming Loader (Incremental) ----------------
+    Design (initial slice): rather than full threaded SDL texture creation (which can have
+    renderer thread affinity constraints), we implement an incremental streaming queue.
+    Enqueue requests record texture indices whose actual load will be attempted later in
+    controlled batches (e.g., per-frame) via stream_step. This reduces long startup stalls by
+    spreading IO/decoding over multiple frames. Future upgrade path: internal worker thread
+    that loads image data into interim surfaces, with main-thread promotion to textures. */
+
+/* Enable/disable streaming mode (clears queue when disabled). */
+void rogue_asset_manager_set_streaming_enabled(bool enable);
+int rogue_asset_manager_streaming_enabled(void);
+/* Enqueue a texture path for streaming. Returns texture index (existing or new) or -1. If
+ * streaming disabled this falls back to immediate (lazy or direct) acquisition. */
+int rogue_asset_manager_enqueue_texture_stream(const char* path);
+/* Process up to max_to_load pending stream jobs (<=0 means process entire queue). Returns number
+ * actually loaded this call. */
+int rogue_asset_manager_stream_step(int max_to_load);
+/* Current queue depth (pending jobs). */
+int rogue_asset_manager_stream_queue_depth(void);
+
+/* ---------------- Phase 6: Platform-Specific Optimization Hooks --------- */
+/* Hint the manager to prefer compressed texture variants (.ktx2, .ktx, .dds) when present.
+    The acquire path will attempt to substitute an alternate extension if the original path
+    does not exist or if an optimized variant is found alongside it. Safe no-op when SDL_image
+    lacks support for the chosen format(s); only simple existence probing performed here. */
+void rogue_asset_manager_set_prefer_compressed_textures(bool enable);
+int rogue_asset_manager_get_prefer_compressed_textures(void);
+
+/* ---------------- Phase 6: Generalized Atlas Tooling -------------------- */
+typedef struct RogueAtlasUV
+{
+    float u0, v0, u1, v1; /* normalized UV rectangle */
+} RogueAtlasUV;
+/* Build a horizontal atlas from already acquired texture indices. Creates a new texture record
+ * (returned index) and fills out_uvs (count must match input count). Returns atlas texture index
+ * on success or -1 on failure / headless environment. The source textures are left intact. */
+int rogue_asset_manager_build_atlas_horizontal(const int* texture_indices, int count,
+                                               RogueAtlasUV* out_uvs, int uv_cap);
 
 #endif /* ROGUE_ASSET_MANAGER_H */
