@@ -232,6 +232,9 @@ add_library(rogue_core
     src/core/integration/hot_reload.c
     src/core/integration/dependency_manager.c
     src/util/kv_parser.c
+    # Asset system (Phase 3 initial slice)
+    src/asset/asset_manager.c
+    src/asset/path_utils.c
     # persistence module split
     src/core/persistence/persistence_io.c
     src/core/persistence/persistence_world.c
@@ -554,6 +557,11 @@ add_library(rogue_core
     # Phase 5.6 deadlock detection & prevention
     src/core/integration/deadlock_manager.c
 )
+
+# MSVC: Avoid parallel PDB write contention (fatal error C1041) when building many translation units in parallel.
+if (MSVC)
+    target_compile_options(rogue_core PRIVATE /FS)
+endif()
 
 # Make overlay feature macro visible to all TUs so headers don't fallback to stubs
 target_compile_definitions(rogue_core PUBLIC ROGUE_ENABLE_DEBUG_OVERLAY=$<IF:$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>,1,0>)
@@ -1041,6 +1049,14 @@ if(TARGET SDL2::SDL2)
 endif()
 add_test(NAME test_asset_classification COMMAND test_asset_classification)
 
+# Asset manager basic test (Phase 3)
+add_executable(test_asset_manager_basic tests/unit/test_asset_manager_basic.c)
+target_link_libraries(test_asset_manager_basic PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_asset_manager_basic PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_asset_manager_basic COMMAND test_asset_manager_basic)
+
 # Placeholder asset enforcement test
 add_executable(test_asset_placeholder_enforcement tests/unit/test_asset_placeholder_enforcement.c)
 target_link_libraries(test_asset_placeholder_enforcement PRIVATE rogue_core)
@@ -1062,10 +1078,18 @@ add_executable(test_ui_theme_schema tests/unit/test_ui_theme_schema.c)
 # Basic schema versioning/migration scaffold test
 add_executable(test_schema_versioning_basic tests/unit/test_schema_versioning_basic.c)
 target_link_libraries(test_ui_theme_schema PRIVATE rogue_core)
+target_link_libraries(test_schema_versioning_basic PRIVATE rogue_core)
+target_link_libraries(test_schema_versioning_basic PRIVATE rogue_thirdparty_cjson)
+if(ROGUE_ENABLE_JSON_CONTENT)
+    target_sources(test_schema_versioning_basic PRIVATE $<TARGET_OBJECTS:rogue_content_json>)
+endif()
+add_dependencies(test_schema_versioning_basic rogue_core)
 if(TARGET SDL2::SDL2)
     target_link_libraries(test_ui_theme_schema PRIVATE SDL2::SDL2)
+    target_link_libraries(test_schema_versioning_basic PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_ui_theme_schema COMMAND test_ui_theme_schema)
+add_test(NAME test_schema_versioning_basic COMMAND test_schema_versioning_basic)
 
 # Skills schema roundtrip (enveloped JSON) test
 add_executable(test_skills_roundtrip_schema tests/unit/test_skills_roundtrip_schema.c)

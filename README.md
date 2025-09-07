@@ -280,6 +280,20 @@ Example (minimal valid theme):
 
 Migration Path: Existing `overlay_theme.json` runtime persistence continues unchanged. Once JSON-driven themes are loaded, a small adapter will export current runtime colors → schema-compliant JSON for editing and reloading. That adapter plus versioned migrations are tracked under the Phase 2 "schema versioning" roadmap item.
 
+##### Schema Versioning (Phase 2 completion)
+
+All JSON content schemas (items, skills, entities, tilesets, sprites, audio, levels, ui_theme) now expose an optional integer `schema_version` field (1..1024). A lightweight linear migration registry (`rogue_schema_register_migration`) enables registering consecutive steps (v→v+1). Unit test `test_schema_versioning_basic` demonstrates migrating a `ui_theme` document from version 1 to 2 by injecting a missing `panel_border` field. Future enhancement: automatic pre-validation migration pass and documentation export of available migrations.
+
+#### Phase 3 (Asset System – Initial Slice)
+
+An initial asset system scaffold landed:
+
+- `asset_manager.{h,c}`: Fixed-cap (256) texture record cache keyed by derived basename id (path basename minus extension). Provides acquire/release with deterministic duplicate suppression and reference counting. Headless-safe: real SDL texture creation is deferred to the next slice; current implementation records metadata only, enabling tests and future wiring without renderer dependency.
+- `path_utils.{h,c}`: Minimal cross-platform helpers (normalize, join, is_absolute) to unify path handling before introducing SDL_GetBasePath integration and platform-specific resolution rules.
+- Unit test `test_asset_manager_basic` covers init, duplicate acquire ref bump, release/compaction, and path normalization join semantics.
+
+Planned near-term extensions (Phase 3 continuation): integrate SDL_image (when available) for PNG/BMP/JPG loading (width/height capture), introduce negative caching for missing assets, add audio clip registry (SDL_mixer conditional), and attach a basic hot-reload polling hook leveraging existing dependency tracker patterns.
+
 - ROGUE_ENABLE_JSON_CONTENT (default ON): Compiles the content JSON foundation (I/O and schema envelope). Built as an object library (`rogue_content_json`) and linked into `rogue_core` when enabled. A vendored cJSON stub lives under `third_party/cjson` and is linked as `rogue_thirdparty_cjson` for now; replace with the full cJSON later.
 - Outputs: HTML, LaTeX/PDF, and XML generated via a dedicated CMake target.
 - Prereqs (Windows):

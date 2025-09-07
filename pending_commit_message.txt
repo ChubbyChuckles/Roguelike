@@ -1,4 +1,20 @@
 feat(asset-schema): add UI theme JSON schema & validation test
+feat(asset-structure/phase3): schema versioning completion + initial asset manager/path utils
+
+Phase 2 Completion:
+- Added optional `schema_version` (1..1024) to all content schemas (items, skills, entities, tilesets, sprites, audio, levels, ui_theme).
+- Introduced linear migration registry (64-step cap) with unit test `test_schema_versioning_basic` (ui_theme v1→v2 adds panel_border default).
+- Updated asset structure implementation plan marking schema versioning done.
+
+Phase 3 Kickoff (Initial Slice Implemented):
+- Added `asset_manager.{h,c}` (fixed-cap texture registry, id derivation via basename, acquire/release ref counting, headless safe stub loads).
+- Added `path_utils.{h,c}` (normalize, join, is_absolute helpers) preparing for SDL_GetBasePath integration.
+- New unit test `test_asset_manager_basic` covering acquire dedupe, ref count decrement/removal, and path normalization.
+- CMake: integrated new sources into `rogue_core` + test target wiring.
+- Roadmap updated with Phase 3 progress checklist; README gains Schema Versioning and Asset System sections.
+
+Next (planned, not in this commit): real SDL texture load (PNG via SDL_image), width/height capture, audio clip registry, negative caching, hot-reload polling hook.
+
 
 Implemented Phase 2 task (UI Theme/Layout schema):
 - Added schema_theme.{h,c} describing palette + metrics fields with forward-compatible extension.

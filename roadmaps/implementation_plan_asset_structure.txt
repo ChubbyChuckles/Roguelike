@@ -19,13 +19,23 @@
   [x] Level/map data structures
   [x] UI theme and layout definitions (Implemented schema_theme.{h,c} + test_ui_theme_schema)
 [x] Implement JSON validation utilities (reused existing `rogue_schema_validate_json`; added new test `test_sprite_audio_schema`)
-[ ] Create schema versioning system for backward compatibility (planned: introduce `schema_version` field & migration hooks)
+[x] Create schema versioning system for backward compatibility (implemented: optional `schema_version` field (1..1024) added to all content schemas; linear migration registry + unit test `test_schema_versioning_basic`; future enhancement: automatic invocation wrapper)
 
-### Phase 2 In-Progress / Next Steps
-- [x] Implement placeholder asset enforcement: ensure `assets/placeholder.png` exists; added unit test `test_asset_placeholder_enforcement` (positive + negative path). Stub PNG committed.
-- [x] Add Level/Map schema (tile layout, spawn points, environment tags) after placeholder enforcement (`schema_levels.{h,c}` + unit test `test_level_schema`).
-- [x] Add UI Theme/Layout schema referencing existing `ui_theme_default.cfg` structure for gradual migration (implemented `schema_theme.{h,c}` + `test_ui_theme_schema`).
-  NOTE: Duplicate of specialized schemas checklist entry above; left here for historical planning continuity. Next immediate Phase 2 task: implement shared optional `schema_version` field + migration registry.
+### Phase 2 In-Progress / Next Steps (Completed)
+- [x] Implement placeholder asset enforcement: ensure `assets/placeholder.png` exists; unit test `test_asset_placeholder_enforcement`.
+- [x] Add Level/Map schema (`schema_levels.{h,c}` + unit test `test_level_schema`).
+- [x] Add UI Theme/Layout schema (`schema_theme.{h,c}` + `test_ui_theme_schema`).
+- [x] Add shared optional `schema_version` field + migration registry (see above). Phase 2 core scope now complete; proceeding to Phase 3.
+
+### Phase 3 Progress Update (Initial Slice Implemented)
+- [x] Implement asset loading abstraction layer scaffold (added `asset_manager.{h,c}`: fixed-cap texture records, ref counting, headless safe; deferred real SDL texture creation to later slice).
+- [x] Create cross-platform path resolution helpers (added `path_utils.{h,c}` with normalize/join/is_absolute; SDL_GetBasePath integration deferred).
+- [x] Design texture/surface caching mechanism (simple deterministic array + duplicate suppression by derived id/basename).
+- [x] Implement resource lifetime management (acquire bumps ref_count, release compacts array; unit test `test_asset_manager_basic`).
+- [ ] Add support for different image formats (PNG, BMP, JPG via SDL_image) (planned – current slice records logical entries only).
+- [ ] Create audio loading system (SDL_mixer integration) (planned – will extend asset manager with sound registry & format probing).
+
+Next Phase 3 steps: integrate SDL_image when available, add width/height probe (surface->w/h), introduce negative caching for failed loads, and wire a lightweight hot-reload polling hook.
 
 ### Phase 2 Progress Update
 - Sprite & audio schema builders implemented and validated (see new unit test `test_sprite_audio_schema`).
