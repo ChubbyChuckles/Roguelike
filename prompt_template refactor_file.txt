@@ -93,3 +93,38 @@ The informations for the file-header are:
 @author [Chrisian "ChubbyChuckles" Rickert]
 @date [06/09/2025]
 @version 1.0
+
+
+
+### System Implementation Plan Prompt
+
+The engine’s asset system is structured to be highly maintainable and scalable, using `.json` files for metadata and configuration (e.g., sprite coordinates, animation frames), PNGs for spritesheets, and PNGs/JPEGs for images, as defined in a previous implementation plan. The assets are organized in a directory structure with validation and CI integration via GitHub Actions. Create a sophisticated, step-by-step implementation plan for an asset manager debug overlay panel that integrates perfectly with this asset system. The plan must:
+
+1. Design a debug overlay panel using SDL2 to display and manage assets interactively during development, rendered on top of the game engine’s main window.
+2. Allow loading new asset files (`.json`, PNGs, JPEGs) at runtime to define game assets (e.g., sprites, animations, backgrounds) and integrate them flawlessly into the existing asset file structure (`assets/images`, `assets/spritesheets`, `assets/data`).
+3. Support editing and previewing asset metadata (e.g., sprite coordinates in a spritesheet) via the overlay, with changes saved to `.json` files.
+4. Ensure compatibility with the existing `.json`-based asset system, using the same schemas (e.g., for sprite coordinates, animations) and SDL2’s asset loading mechanisms (e.g., `SDL_LoadBMP`, `SDL_CreateTextureFromSurface`).
+5. Use a library like `cJSON` for parsing and generating `.json` files in C11, ensuring cross-platform compatibility.
+6. Provide a user-friendly interface in the overlay (e.g., buttons, text input, asset previews) using SDL2 and SDL_ttf for text rendering, with clear navigation for asset management.
+7. Include validation of new assets (e.g., checking `.json` schema, image file existence) before integration, with error messages displayed in the overlay.
+8. Integrate with the existing GitHub Actions CI workflow (building on `windows-latest`, `ubuntu-latest`, `macos-latest`) to test the debug overlay’s functionality and asset integration.
+9. Ensure the overlay is toggleable (e.g., via a hotkey) and has minimal performance impact on the game engine.
+10. Support scalability for future asset types (e.g., audio, shaders) by making the overlay extensible.
+11. Provide a sample implementation of the overlay’s rendering and interaction code, including example `.json` file handling and integration with the asset directory structure.
+12. Include detailed steps for:
+    - Initializing the debug overlay panel with SDL2.
+    - Loading and displaying assets in the overlay.
+    - Adding new assets and saving them to the correct directory with updated `.json` files.
+    - Validating assets and providing feedback in the overlay.
+    - Updating the CI workflow to test the overlay.
+13. Ensure the implementation is developer-friendly, with clear documentation, error handling, and logging for debugging issues.
+14. Provide comments in all code examples to explain functionality and integration with the asset system.
+
+The plan should output:
+- A detailed step-by-step guide explaining the design, implementation, and integration of the debug overlay panel with the existing asset system.
+- A sample directory structure showing where new assets are saved (e.g., `assets/data/spritesheets/new_sprite.json`).
+- Example C11 code snippets for the overlay (e.g., rendering with SDL2, handling `.json` with `cJSON`, user input).
+- An updated GitHub Actions workflow snippet to test the overlay’s functionality and asset integration.
+- Recommendations for tools (e.g., SDL_ttf, `cJSON`) and performance optimizations (e.g., caching textures for the overlay).
+
+Focus on generic solutions that work with SDL2, `cJSON`, and the existing asset system, ensuring cross-platform compatibility and minimal changes to the core engine codebase. Avoid assumptions about specific game engine systems beyond SDL2 and the asset structure. Write the implementation plan to "roadmaps/implementation_plan_asset_overlay.txt" in the format of a TODO list with all the unfinished tasks marked with "[ ]" and all the implemented tasks marked with "[x]".

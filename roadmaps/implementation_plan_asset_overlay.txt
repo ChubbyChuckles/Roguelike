@@ -1,0 +1,545 @@
+# Asset Manager Debug Overlay Panel Implementation Plan
+# Roguelike Game Engine - Advanced Asset Management Interface
+# Version: 1.0
+# Date: September 7, 2025
+# Author: Christian "ChubbyChuckles" Rickert
+
+## Overview
+This plan builds upon the existing asset management infrastructure to create a sophisticated debug overlay panel for interactive asset management during development. The panel will extend the current `panels_asset_browser.c` implementation and integrate with the existing overlay system, asset manager, and JSON schema validation framework.
+
+## Current Foundation Analysis
+- **Existing Asset Browser**: Basic filtering and listing functionality in `panels_asset_browser.c`
+- **Overlay System**: Well-established SDL2-based overlay framework with widgets
+- **Asset Manager**: Texture/audio loading with ref counting and hot-reload support
+- **JSON Schemas**: Content validation system for sprites, audio, levels, etc.
+- **Asset Tool CLI**: Command-line inspection and validation utilities
+
+## Phase 1: Enhanced Asset Browser Foundation
+[ ] Extend existing `panels_asset_browser.c` with tabbed interface for different asset types
+[ ] Add asset type filtering (textures, audio, JSON configs, shaders)
+[ ] Implement asset thumbnail generation for textures using SDL2
+[ ] Add asset dependency visualization (using existing `rogue_asset_dep_get`)
+[ ] Create asset usage analytics display (ref counts, load times, memory usage)
+[ ] Add real-time asset monitoring with hot-reload detection
+[ ] Implement asset search and filtering with regex support
+
+## Phase 2: Interactive Asset Loading & Preview
+[ ] Design asset preview panel with SDL2 texture rendering
+[ ] Implement drag-and-drop file loading interface using overlay input system
+[ ] Add runtime asset loading from file browser dialog (platform-specific)
+[ ] Create texture preview with zoom/pan controls using overlay widgets
+[ ] Implement audio playback controls for audio asset preview
+[ ] Add JSON syntax highlighting and validation feedback for config files
+[ ] Create sprite sheet coordinate overlay for sprite assets
+
+## Phase 3: Asset Editing & Metadata Management
+[ ] Implement JSON metadata editor with schema-aware validation
+[ ] Add sprite coordinate editing with visual overlay on texture preview
+[ ] Create animation frame editor for sprite animations
+[ ] Implement audio volume/loop point adjustment interface
+[ ] Add asset tagging and categorization system
+[ ] Create batch asset processing operations (resize, format conversion)
+[ ] Implement asset export functionality to different formats
+
+## Phase 4: Asset Validation & Quality Assurance
+[ ] Integrate existing JSON schema validation into overlay interface
+[ ] Add visual validation error reporting with error highlighting
+[ ] Implement missing asset detection and fallback suggestion
+[ ] Create asset optimization recommendations (compression, size analysis)
+[ ] Add duplicate asset detection and merge suggestions
+[ ] Implement asset naming convention validation
+[ ] Create asset dependency cycle detection visualization
+
+## Phase 5: Advanced Asset Management Features
+[ ] Implement asset atlas generation and preview
+[ ] Add texture compression format support and comparison
+[ ] Create asset memory usage profiler with allocation tracking
+[ ] Implement asset streaming queue visualization
+[ ] Add performance metrics dashboard for asset loading
+[ ] Create asset caching strategy configuration interface
+[ ] Implement asset version control integration (git status overlay)
+
+## Phase 6: Developer Workflow Integration
+[ ] Add asset hotkey system for quick actions (F-keys for common operations)
+[ ] Implement asset bookmarking and favorites system
+[ ] Create asset workflow templates for common tasks
+[ ] Add asset change history and undo/redo functionality
+[ ] Implement asset comparison tools (before/after preview)
+[ ] Create asset migration tools for format updates
+[ ] Add asset documentation generation from metadata
+
+## Phase 7: Cross-Platform Compatibility & Performance
+[ ] Ensure cross-platform file dialog integration (Windows/Linux/macOS)
+[ ] Optimize overlay rendering performance for large asset collections
+[ ] Implement async asset loading to prevent UI blocking
+[ ] Add platform-specific asset format support detection
+[ ] Create platform-optimized asset export workflows
+[ ] Implement memory-efficient thumbnail caching system
+[ ] Add performance profiling for overlay panel operations
+
+## Phase 8: CI/CD Integration & Testing
+[ ] Extend GitHub Actions workflow to test overlay functionality
+[ ] Add automated asset validation tests using overlay components
+[ ] Create asset integrity checks in CI pipeline
+[ ] Implement asset regression testing for visual assets
+[ ] Add performance benchmarking for asset loading operations
+[ ] Create automated asset optimization suggestions in CI
+[ ] Implement asset documentation generation in build process
+
+## Implementation Details
+
+### 1. Enhanced Asset Browser Panel Structure
+```c
+// Enhanced panels_asset_browser.c structure
+typedef struct AssetBrowserState {
+    // Current filter and view state
+    char filter_text[128];
+    int selected_asset_type;  // 0=all, 1=textures, 2=audio, 3=json, etc.
+    int selected_asset_index;
+
+    // View modes
+    int view_mode;  // 0=list, 1=grid, 2=details
+    float thumbnail_size;
+    int show_metadata;
+
+    // Preview state
+    int preview_enabled;
+    SDL_Texture* preview_texture;
+    int preview_zoom;
+    int preview_pan_x, preview_pan_y;
+
+    // Editing state
+    int edit_mode;
+    char edit_buffer[4096];  // For JSON editing
+    int edit_has_changes;
+
+    // Performance metrics
+    uint64_t last_refresh_time;
+    int assets_loaded_this_frame;
+} AssetBrowserState;
+
+// Main panel function with enhanced functionality
+static void panel_asset_browser_enhanced(void* user);
+```
+
+### 2. Asset Thumbnail Generation
+```c
+// asset_thumbnails.h
+typedef struct AssetThumbnail {
+    char asset_id[96];
+    SDL_Texture* thumbnail;
+    int width, height;
+    uint64_t generation_time;
+    bool is_valid;
+} AssetThumbnail;
+
+// Generate thumbnail for texture asset
+SDL_Texture* generate_texture_thumbnail(SDL_Renderer* renderer,
+                                      SDL_Texture* source,
+                                      int thumb_width, int thumb_height);
+
+// Thumbnail cache management
+void thumbnail_cache_init(SDL_Renderer* renderer);
+void thumbnail_cache_cleanup(void);
+AssetThumbnail* get_or_generate_thumbnail(const char* asset_id, int size);
+```
+
+### 3. Interactive Asset Loading
+```c
+// asset_loader_ui.h
+typedef struct AssetLoadRequest {
+    char file_path[512];
+    int target_category;  // texture, audio, json, etc.
+    char target_directory[256];
+    bool validate_before_load;
+    bool generate_metadata;
+} AssetLoadRequest;
+
+// File dialog integration (platform-specific)
+bool open_file_dialog(const char* filter, char* out_path, size_t path_size);
+bool save_file_dialog(const char* default_name, char* out_path, size_t path_size);
+
+// Asset import pipeline
+bool import_asset_interactive(const AssetLoadRequest* request);
+bool validate_asset_before_import(const char* file_path, int asset_type);
+```
+
+### 4. JSON Metadata Editor
+```c
+// json_editor_widget.h
+typedef struct JsonEditorState {
+    char* content;
+    size_t content_size;
+    size_t content_capacity;
+
+    int cursor_line, cursor_column;
+    int scroll_offset;
+    bool has_syntax_errors;
+    char error_message[256];
+
+    // Schema validation
+    RogueSchema* current_schema;
+    RogueSchemaValidationResult last_validation;
+} JsonEditorState;
+
+// JSON editor widget for overlay system
+bool overlay_json_editor(const char* id, JsonEditorState* state,
+                        int x, int y, int w, int h);
+bool overlay_json_validate_live(JsonEditorState* state, const RogueSchema* schema);
+```
+
+### 5. Sprite Coordinate Editor
+```c
+// sprite_editor_widget.h
+typedef struct SpriteRect {
+    int x, y, width, height;
+    float pivot_x, pivot_y;
+    char sprite_id[64];
+    bool selected;
+} SpriteRect;
+
+typedef struct SpriteEditorState {
+    SDL_Texture* spritesheet_texture;
+    SpriteRect* rectangles;
+    int rectangle_count;
+    int selected_rect;
+
+    float zoom_level;
+    int pan_x, pan_y;
+    bool is_dragging;
+    bool is_resizing;
+
+    char spritesheet_path[512];
+    bool has_changes;
+} SpriteEditorState;
+
+// Sprite editor widget
+bool overlay_sprite_editor(const char* id, SpriteEditorState* state,
+                          int x, int y, int w, int h);
+bool save_sprite_coordinates_to_json(const SpriteEditorState* state,
+                                   const char* output_path);
+```
+
+### 6. Asset Validation Integration
+```c
+// asset_validation_ui.h
+typedef struct ValidationResult {
+    bool is_valid;
+    int error_count;
+    int warning_count;
+    char errors[16][256];
+    char warnings[16][256];
+
+    // Performance metrics
+    uint64_t validation_time_us;
+    size_t file_size;
+    char file_hash[33];  // MD5 hex string
+} ValidationResult;
+
+// Validation UI components
+void overlay_validation_results(const ValidationResult* result, int x, int y);
+bool validate_asset_interactive(const char* asset_path, ValidationResult* result);
+void overlay_validation_summary_panel(void);
+```
+
+### 7. Asset Directory Structure Integration
+```
+assets/
+├── graphics/
+│   ├── sprites/
+│   │   ├── characters/
+│   │   │   ├── player.json      # Sprite metadata with coordinates
+│   │   │   └── player.png       # Spritesheet texture
+│   │   └── ui/
+│   └── backgrounds/
+├── audio/
+│   ├── sfx/
+│   │   ├── ui_click.json        # Audio metadata
+│   │   └── ui_click.ogg         # Audio file
+│   └── music/
+├── data/
+│   ├── levels/
+│   │   └── level_01.json        # Level configuration
+│   ├── configs/
+│   └── localization/
+└── meta/
+    ├── schemas/                 # JSON schemas for validation
+    ├── manifests/              # Asset manifests for CI
+    └── thumbnails/             # Generated thumbnails cache
+```
+
+### 8. Enhanced Overlay Widget System
+```c
+// Extended overlay widgets for asset management
+bool overlay_asset_grid(const char* id, AssetItem* items, int item_count,
+                       int* selected_index, int grid_width);
+bool overlay_file_browser(const char* id, const char* root_path,
+                         char* selected_path, size_t path_size);
+bool overlay_thumbnail_view(const char* id, SDL_Texture* texture,
+                           int x, int y, int w, int h, float* zoom,
+                           int* pan_x, int* pan_y);
+bool overlay_audio_player(const char* id, const char* audio_path,
+                         bool* is_playing, float* volume, bool* loop);
+bool overlay_color_picker(const char* id, float* r, float* g, float* b, float* a);
+bool overlay_progress_bar(const char* id, float progress, const char* label);
+```
+
+### 9. Performance Optimization
+```c
+// Asset loading performance monitoring
+typedef struct AssetPerfMetrics {
+    uint64_t total_load_time_us;
+    uint64_t texture_load_time_us;
+    uint64_t audio_load_time_us;
+    uint64_t json_parse_time_us;
+
+    uint32_t cache_hits;
+    uint32_t cache_misses;
+    uint32_t thumbnail_generations;
+
+    size_t memory_usage_bytes;
+    size_t peak_memory_usage_bytes;
+} AssetPerfMetrics;
+
+// Async asset loading for UI responsiveness
+typedef struct AssetLoadJob {
+    char asset_path[512];
+    int asset_type;
+    void* callback_data;
+    void (*completion_callback)(void* data, bool success);
+    bool is_complete;
+    bool success;
+} AssetLoadJob;
+
+// Job queue for non-blocking asset operations
+void asset_job_queue_init(void);
+void asset_job_queue_shutdown(void);
+bool asset_job_queue_submit(const AssetLoadJob* job);
+void asset_job_queue_process(int max_jobs_per_frame);
+```
+
+### 10. Platform-Specific File Operations
+```c
+// Platform-specific file dialog implementations
+#ifdef _WIN32
+#include <windows.h>
+#include <commdlg.h>
+
+bool win32_open_file_dialog(const char* filter, char* out_path, size_t path_size) {
+    OPENFILENAMEA ofn = {0};
+    char file_buffer[512] = {0};
+
+    ofn.lStructSize = sizeof(ofn);
+    ofn.lpstrFile = file_buffer;
+    ofn.nMaxFile = sizeof(file_buffer);
+    ofn.lpstrFilter = filter;
+    ofn.nFilterIndex = 1;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+    if (GetOpenFileNameA(&ofn)) {
+        strncpy(out_path, file_buffer, path_size - 1);
+        return true;
+    }
+    return false;
+}
+#endif
+
+#ifdef __linux__
+// GTK file dialog implementation or command-line fallback
+bool linux_open_file_dialog(const char* filter, char* out_path, size_t path_size);
+#endif
+
+#ifdef __APPLE__
+// Cocoa file dialog implementation
+bool macos_open_file_dialog(const char* filter, char* out_path, size_t path_size);
+#endif
+```
+
+### 11. GitHub Actions CI Integration
+```yaml
+# .github/workflows/asset-validation.yml
+name: Asset Validation
+
+on:
+  push:
+    paths:
+      - 'assets/**'
+      - 'src/asset/**'
+      - 'src/debug_overlay/panel_system/**'
+  pull_request:
+    paths:
+      - 'assets/**'
+
+jobs:
+  validate-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SDL2 Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
+
+      - name: Configure CMake
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Asset Tools
+        run: cmake --build build --target asset_tool asset_validate
+
+      - name: Run Asset Validation
+        run: |
+          ./build/asset_validate --manifest asset_manifest.txt --optimize
+          ./build/asset_tool checksum-verify --manifest asset_manifest.txt
+
+      - name: Test Overlay Panel
+        run: |
+          cmake --build build --target test_asset_phase7_tool_cli
+          ctest --test-dir build -R "asset" --output-on-failure
+
+      - name: Upload Asset Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: asset-validation-reports
+          path: |
+            asset_manifest.txt
+            build/asset_*.log
+```
+
+### 12. Memory Management & Resource Cleanup
+```c
+// Resource management for overlay panel
+typedef struct AssetOverlayResources {
+    SDL_Texture** thumbnail_cache;
+    size_t thumbnail_count;
+    size_t thumbnail_capacity;
+
+    char** loaded_json_files;
+    size_t json_file_count;
+
+    AssetLoadJob* job_queue;
+    size_t job_queue_size;
+
+    // Memory usage tracking
+    size_t total_memory_usage;
+    size_t peak_memory_usage;
+} AssetOverlayResources;
+
+void asset_overlay_resources_init(AssetOverlayResources* resources);
+void asset_overlay_resources_cleanup(AssetOverlayResources* resources);
+void asset_overlay_resources_gc(AssetOverlayResources* resources, bool force);
+```
+
+### 13. Error Handling & Logging
+```c
+// Asset overlay error handling
+typedef enum {
+    ASSET_OVERLAY_ERROR_NONE = 0,
+    ASSET_OVERLAY_ERROR_FILE_NOT_FOUND,
+    ASSET_OVERLAY_ERROR_INVALID_FORMAT,
+    ASSET_OVERLAY_ERROR_PERMISSION_DENIED,
+    ASSET_OVERLAY_ERROR_OUT_OF_MEMORY,
+    ASSET_OVERLAY_ERROR_VALIDATION_FAILED,
+    ASSET_OVERLAY_ERROR_UNSUPPORTED_OPERATION
+} AssetOverlayErrorCode;
+
+typedef struct AssetOverlayError {
+    AssetOverlayErrorCode code;
+    char message[256];
+    char context[128];  // File path, operation, etc.
+    uint64_t timestamp;
+} AssetOverlayError;
+
+// Error reporting and logging
+void asset_overlay_log_error(AssetOverlayErrorCode code,
+                           const char* message,
+                           const char* context);
+void overlay_error_panel(void);  // Display recent errors in overlay
+void asset_overlay_clear_errors(void);
+```
+
+### 14. Documentation & Help System
+```c
+// Integrated help system for overlay panel
+typedef struct HelpTopic {
+    char title[64];
+    char content[1024];
+    char category[32];
+} HelpTopic;
+
+// Help topics for asset management
+static const HelpTopic asset_help_topics[] = {
+    {"Loading Assets", "Drag and drop files or use File menu to load new assets...", "basic"},
+    {"Sprite Editing", "Click and drag to define sprite rectangles on spritesheets...", "editing"},
+    {"JSON Validation", "Assets are validated against schemas automatically...", "validation"},
+    {"Hotkeys", "F5: Refresh, Ctrl+S: Save, Ctrl+Z: Undo, Ctrl+F: Find...", "shortcuts"}
+};
+
+void overlay_help_panel(void);
+bool overlay_help_search(const char* query, HelpTopic* results, int max_results);
+```
+
+## Testing Strategy
+
+### Unit Tests
+[ ] Test asset thumbnail generation with various texture formats
+[ ] Test JSON editor validation with malformed JSON
+[ ] Test sprite coordinate calculation and saving
+[ ] Test asset loading with missing files and invalid formats
+[ ] Test memory management and resource cleanup
+[ ] Test cross-platform file dialog functionality
+
+### Integration Tests
+[ ] Test overlay panel with large asset collections (1000+ assets)
+[ ] Test asset editing workflow from load to save
+[ ] Test validation integration with existing schema system
+[ ] Test performance with real-world asset sizes
+[ ] Test hot-reload functionality during development
+[ ] Test CI integration with asset validation workflow
+
+### Performance Tests
+[ ] Benchmark thumbnail generation for large textures
+[ ] Measure overlay rendering performance with many assets
+[ ] Test memory usage under heavy asset loading
+[ ] Benchmark asset validation speed
+[ ] Test responsiveness during async operations
+
+## Success Criteria
+
+### Functional Requirements
+- [ ] Load and preview all supported asset types (PNG, JPG, OGG, JSON)
+- [ ] Edit sprite coordinates with visual feedback
+- [ ] Validate assets against JSON schemas with error reporting
+- [ ] Save changes to appropriate directory structure
+- [ ] Integrate with existing overlay system seamlessly
+- [ ] Support cross-platform file operations
+
+### Performance Requirements
+- [ ] Overlay remains responsive with 500+ assets loaded
+- [ ] Thumbnail generation completes within 100ms per texture
+- [ ] Asset validation completes within 50ms per JSON file
+- [ ] Memory usage stays under 100MB for overlay panel
+- [ ] Hot-reload detection within 1 second of file changes
+
+### Quality Requirements
+- [ ] Zero memory leaks during extended use
+- [ ] Graceful error handling for all file operations
+- [ ] Consistent UI behavior across platforms
+- [ ] Complete documentation for all features
+- [ ] Comprehensive test coverage (>90%)
+
+## Future Enhancements
+
+### Phase 9: Advanced Features (Future)
+[ ] Asset compression and optimization tools
+[ ] Automatic sprite atlas generation
+[ ] Asset dependency graph visualization
+[ ] Version control integration (Git status overlay)
+[ ] Asset usage analytics across game code
+[ ] Automated asset naming convention enforcement
+[ ] Integration with external tools (Photoshop, GIMP plugins)
+[ ] Asset marketplace integration for downloading resources
+[ ] Collaborative asset editing with conflict resolution
+[ ] Advanced texture analysis (color histograms, compression ratios)
+
+This implementation plan provides a comprehensive roadmap for creating a sophisticated asset management debug overlay that integrates seamlessly with the existing engine infrastructure while providing powerful development tools for asset creation and management.
