@@ -565,7 +565,15 @@ add_library(rogue_debug_overlay OBJECT
     # Split widget implementation units
     src/debug_overlay/widgets/overlay_widgets_core.c
     src/debug_overlay/overlay_icon.c
-    src/debug_overlay/widgets/overlay_widgets_controls.c
+    # Modularized control widgets (refactored from overlay_widgets_controls.c)
+    src/debug_overlay/widgets/controls/overlay_button.c
+    src/debug_overlay/widgets/controls/overlay_checkbox.c
+    src/debug_overlay/widgets/controls/overlay_sliders.c
+    src/debug_overlay/widgets/controls/overlay_text_input.c
+    src/debug_overlay/widgets/controls/overlay_combo_tree_color.c
+    src/debug_overlay/widgets/controls/overlay_columns_splitter.c
+    src/debug_overlay/widgets/controls/overlay_multiselect_list_vec.c
+    src/debug_overlay/widgets/controls/overlay_complex_editors.c
     src/debug_overlay/widgets/overlay_widgets_table.c
     # Aggregated panel registrar and per-panel implementations
     src/debug_overlay/overlay_panels.c
