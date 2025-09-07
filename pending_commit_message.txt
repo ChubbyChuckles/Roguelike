@@ -210,6 +210,8 @@ feat(skills/visuals): Asset Validation Feedback panel (thumbnails + diagnostics)
 * Headless-safe: only draws thumbnails when SDL present; logic compiles unconditionally to satisfy linker when overlay disabled.
 * Roadmap: marks "Asset Validation Feedback" complete with implementation blurb.
 * Future: integrate deeper validation (format heuristics, grid inference suggestions, hot-reload hooks) and batch operations.
+	- Added validation helpers (rogue_skill_asset_validate, rogue_visuals_infer_grid) + unit test.
+	- Panel now shows EXT WARN and grid suggestion with Apply, plus Normalize Paths batch op.
 	- Add positive path test with curated sample sequence assets.
 	- Integrate sequence playback into Skills → Visuals preview (frame stepping via existing anim sampler).
 	- Atlas generation & dedup of identical frame dimensions.

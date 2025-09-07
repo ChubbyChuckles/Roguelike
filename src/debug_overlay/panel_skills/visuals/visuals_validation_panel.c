@@ -2,6 +2,7 @@
    Provides per-skill diagnostic of referenced sprite assets with lightweight thumbnail previews.
    Focus: missing files, load failures (corrupt/unsupported), dimension sanity (0 or extreme size).
 */
+#include "../../../core/skills/skill_asset_validation.h"
 #include "visuals_internal.h"
 
 #include <stdio.h>
@@ -9,11 +10,13 @@
 
 struct validation_thumb
 {
-    RogueTexture tex;   /* loaded texture (if any) */
-    char path[256];     /* path it corresponds to */
-    int load_attempted; /* 1 after first attempt */
-    int load_failed;    /* 1 if last attempt failed */
-    int missing;        /* file not found */
+    RogueTexture tex;
+    char path[256];
+    int load_attempted;
+    int load_failed;
+    int missing;
+    int dim_err;
+    int ext_warn;
 };
 
 static struct
@@ -23,8 +26,9 @@ static struct
     struct validation_thumb projectile;
     struct validation_thumb impact;
     struct validation_thumb aoe;
-    int expanded;     /* foldout for details */
-    int auto_refresh; /* reload every frame (when previewing rapid edits) */
+    int expanded;
+    int auto_refresh;
+    int cast_suggest_gw, cast_suggest_gh, cast_suggest_fc, cast_has_suggestion;
 } g_val_panel;
 
 static void vp_reset_thumb(struct validation_thumb* t)
@@ -52,22 +56,28 @@ static void vp_try_load(struct validation_thumb* t, const char* path)
     }
     if (strncmp(t->path, path, sizeof t->path) == 0 && t->load_attempted &&
         !g_val_panel.auto_refresh)
-        return; /* up to date */
+        return;
     vp_reset_thumb(t);
     strncpy(t->path, path, sizeof t->path - 1);
     t->path[sizeof t->path - 1] = '\0';
     t->load_attempted = 1;
-    FILE* f = fopen(path, "rb");
-    if (!f)
+    int missing = 0, load_failed = 0, dim_err = 0, w = 0, h = 0, ext_warn = 0;
+    rogue_skill_asset_validate(path, &missing, &load_failed, &dim_err, &w, &h, &ext_warn);
+    t->missing = missing;
+    t->load_failed = load_failed;
+    t->dim_err = dim_err;
+    t->ext_warn = ext_warn;
+    if (!missing && !load_failed)
     {
-        t->missing = 1;
-        return;
-    }
-    fclose(f);
-    if (!rogue_texture_load(&t->tex, path))
-    {
-        t->load_failed = 1; /* corrupt/unsupported */
-        return;
+        if (rogue_texture_load(&t->tex, path))
+        {
+            if (w)
+                t->tex.w = w;
+            if (h)
+                t->tex.h = h;
+        }
+        else
+            t->load_failed = 1;
     }
 }
 
@@ -93,9 +103,10 @@ static void vp_draw_thumb(struct validation_thumb* t, const char* label)
         overlay_label(status);
         return;
     }
-    int bad_dims = (t->tex.w <= 0 || t->tex.h <= 0 || t->tex.w > 4096 || t->tex.h > 4096);
-    snprintf(status, sizeof status, "%s: %s (%dx%d)%s", label, t->path, t->tex.w, t->tex.h,
-             bad_dims ? " (DIM ERR)" : "");
+    int bad_dims =
+        (t->dim_err || t->tex.w <= 0 || t->tex.h <= 0 || t->tex.w > 4096 || t->tex.h > 4096);
+    snprintf(status, sizeof status, "%s: %s (%dx%d)%s%s", label, t->path, t->tex.w, t->tex.h,
+             bad_dims ? " (DIM ERR)" : "", t->ext_warn ? " (EXT WARN)" : "");
     overlay_label(status);
 #ifdef ROGUE_HAVE_SDL
     if (t->tex.w > 0 && t->tex.h > 0)
@@ -144,8 +155,38 @@ void rogue_visuals_validation_panel(RogueSkillVisualParams* vis)
     vp_draw_thumb(&g_val_panel.projectile, "Projectile");
     vp_draw_thumb(&g_val_panel.impact, "Impact");
     vp_draw_thumb(&g_val_panel.aoe, "AoE");
+    if (g_val_panel.cast.load_attempted && !g_val_panel.cast.missing &&
+        !g_val_panel.cast.load_failed)
+    {
+        g_val_panel.cast_has_suggestion = rogue_visuals_infer_grid(
+            g_val_panel.cast.tex.w, g_val_panel.cast.tex.h, &g_val_panel.cast_suggest_gw,
+            &g_val_panel.cast_suggest_gh, &g_val_panel.cast_suggest_fc);
+        if (g_val_panel.cast_has_suggestion)
+        {
+            char hint[128];
+            snprintf(hint, sizeof hint, "Suggested Grid: %dx%d (%d frames)",
+                     g_val_panel.cast_suggest_gw, g_val_panel.cast_suggest_gh,
+                     g_val_panel.cast_suggest_fc);
+            overlay_label(hint);
+            if (overlay_button("Apply Suggested Grid"))
+            {
+                vis->grid_width = g_val_panel.cast_suggest_gw;
+                vis->grid_height = g_val_panel.cast_suggest_gh;
+                vis->frame_count = g_val_panel.cast_suggest_fc;
+            }
+        }
+    }
+    if (overlay_button("Normalize Paths (\\\\ -> /)"))
+    {
+        char* paths[] = {vis->cast_sprite_sheet, vis->projectile_sprite, vis->impact_sprite,
+                         vis->aoe_sprite};
+        for (size_t i = 0; i < sizeof(paths) / sizeof(paths[0]); ++i)
+            for (char* p = paths[i]; *p; ++p)
+                if (*p == '\\')
+                    *p = '/';
+    }
     overlay_label("Status Legend: MISSING=file absent, CORRUPT=failed to load, DIM ERR=invalid or "
-                  "extreme dimensions (>4096).");
+                  "extreme dimensions (>4096), EXT WARN=unexpected extension.");
     if (overlay_button("Close"))
         g_val_panel.show = 0;
     overlay_end_panel();
