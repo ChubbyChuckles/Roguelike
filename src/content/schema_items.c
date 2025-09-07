@@ -104,6 +104,11 @@ bool rogue_items_build_schema(RogueSchema* out_schema)
     RogueSchemaField* f_id = rogue_schema_add_field(out_schema, "id", ROGUE_SCHEMA_TYPE_STRING);
     rogue_schema_field_set_required(f_id, true);
     rogue_schema_field_set_string_length(f_id, 1, ROGUE_MAX_ITEM_ID_LEN - 1);
+    /* Optional schema_version for future migrations (1..1024) */
+    RogueSchemaField* f_schema_version =
+        rogue_schema_add_field(out_schema, "schema_version", ROGUE_SCHEMA_TYPE_INTEGER);
+    if (f_schema_version)
+        rogue_schema_field_set_range(f_schema_version, 1, 1024);
 
     RogueSchemaField* f_name = rogue_schema_add_field(out_schema, "name", ROGUE_SCHEMA_TYPE_STRING);
     rogue_schema_field_set_required(f_name, true);

@@ -36,6 +36,64 @@ static void add_validation_error(RogueSchemaValidationResult* result, RogueSchem
     result->is_valid = false;
 }
 
+/* ===== Migration Registry (scaffold) ===== */
+typedef struct MigrationRegistry
+{
+    RogueSchemaMigrationStep steps[64];
+    uint32_t count;
+} MigrationRegistry;
+static MigrationRegistry g_migration_registry = {0};
+
+bool rogue_schema_register_migration(const RogueSchemaMigrationStep* step)
+{
+    if (!step || !step->migrate)
+        return false;
+    if (g_migration_registry.count >=
+        (uint32_t) (sizeof(g_migration_registry.steps) / sizeof(g_migration_registry.steps[0])))
+        return false;
+    /* reject duplicates */
+    for (uint32_t i = 0; i < g_migration_registry.count; i++)
+    {
+        RogueSchemaMigrationStep* s = &g_migration_registry.steps[i];
+        if (s->from_version == step->from_version && s->to_version == step->to_version &&
+            strcmp(s->schema_name, step->schema_name) == 0)
+            return false;
+    }
+    g_migration_registry.steps[g_migration_registry.count++] = *step;
+    return true;
+}
+
+bool rogue_schema_apply_registered_migrations(const char* schema_name, uint32_t current_version,
+                                              uint32_t target_version, RogueJsonValue* json)
+{
+    if (!schema_name || !json)
+        return false;
+    if (current_version >= target_version)
+        return true; /* nothing to do */
+    uint32_t v = current_version;
+    /* naive linear pass per step; small counts expected */
+    while (v < target_version)
+    {
+        bool progressed = false;
+        for (uint32_t i = 0; i < g_migration_registry.count; i++)
+        {
+            RogueSchemaMigrationStep* s = &g_migration_registry.steps[i];
+            if (strcmp(s->schema_name, schema_name) == 0 && s->from_version == v &&
+                s->to_version == v + 1)
+            {
+                if (!s->migrate(json))
+                    return false; /* stop on failure */
+                v = s->to_version;
+                progressed = true;
+                break;
+            }
+        }
+        if (!progressed)
+            break; /* missing step */
+    }
+    return v == target_version;
+}
+
 static const RogueJsonValue* json_schema_object_get(const RogueJsonValue* object, const char* key)
 {
     if (!object || object->type != JSON_OBJECT)

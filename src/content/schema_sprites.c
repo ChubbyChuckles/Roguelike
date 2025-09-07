@@ -24,6 +24,11 @@ bool rogue_sprites_build_schema(RogueSchema* out_schema)
     RogueSchemaField* f_name = rogue_schema_add_field(out_schema, "name", ROGUE_SCHEMA_TYPE_STRING);
     rogue_schema_field_set_required(f_name, true);
     rogue_schema_field_set_string_length(f_name, 1, 63);
+    /* Optional schema_version for future migrations (1..1024) */
+    RogueSchemaField* f_schema_version =
+        rogue_schema_add_field(out_schema, "schema_version", ROGUE_SCHEMA_TYPE_INTEGER);
+    if (f_schema_version)
+        rogue_schema_field_set_range(f_schema_version, 1, 1024);
 
     RogueSchemaField* f_tex_file =
         rogue_schema_add_field(out_schema, "texture_file", ROGUE_SCHEMA_TYPE_STRING);

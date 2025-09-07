@@ -25,8 +25,13 @@ bool rogue_theme_build_schema(RogueSchema* out_schema)
     RogueSchemaField* f_name = rogue_schema_add_field(out_schema, "name", ROGUE_SCHEMA_TYPE_STRING);
     rogue_schema_field_set_required(f_name, true);
     rogue_schema_field_set_string_length(f_name, 1, 63);
+    /* Optional schema_version for future migrations (1..1024) */
+    RogueSchemaField* f_schema_version =
+        rogue_schema_add_field(out_schema, "schema_version", ROGUE_SCHEMA_TYPE_INTEGER);
+    if (f_schema_version)
+        rogue_schema_field_set_range(f_schema_version, 1, 1024);
 
-    /* Helper macro for optional 32-bit color integers */
+        /* Helper macro for optional 32-bit color integers */
 #define THEME_COLOR_FIELD(id) rogue_schema_add_field(out_schema, id, ROGUE_SCHEMA_TYPE_INTEGER)
     THEME_COLOR_FIELD("panel_bg");
     THEME_COLOR_FIELD("panel_border");

@@ -266,6 +266,22 @@ extern "C"
                               uint32_t from_version, uint32_t to_version, RogueJsonValue* json);
     bool rogue_schema_check_migration_needed(const RogueSchema* schema, const RogueJsonValue* json);
 
+    /* Simple migration hook registration (scaffold) */
+    typedef bool (*RogueSchemaMigrationFn)(RogueJsonValue* json);
+    typedef struct RogueSchemaMigrationStep
+    {
+        char schema_name[ROGUE_SCHEMA_MAX_NAME_LENGTH];
+        uint32_t from_version;
+        uint32_t to_version; /* must be == from_version + 1 in current scaffold */
+        RogueSchemaMigrationFn migrate;
+    } RogueSchemaMigrationStep;
+
+    /* Registers a single linear migration step. Returns false on overflow or duplicate. */
+    bool rogue_schema_register_migration(const RogueSchemaMigrationStep* step);
+    /* Applies migrations in order until json's schema_version reaches target or no step found. */
+    bool rogue_schema_apply_registered_migrations(const char* schema_name, uint32_t current_version,
+                                                  uint32_t target_version, RogueJsonValue* json);
+
     /* Schema Documentation */
     bool rogue_schema_generate_docs(const RogueSchema* schema, char* output_buffer,
                                     size_t buffer_size);

@@ -1058,6 +1058,9 @@ add_test(NAME test_level_schema COMMAND test_level_schema)
 
 # UI Theme JSON schema validation test (Asset Structure Phase 2)
 add_executable(test_ui_theme_schema tests/unit/test_ui_theme_schema.c)
+
+# Basic schema versioning/migration scaffold test
+add_executable(test_schema_versioning_basic tests/unit/test_schema_versioning_basic.c)
 target_link_libraries(test_ui_theme_schema PRIVATE rogue_core)
 if(TARGET SDL2::SDL2)
     target_link_libraries(test_ui_theme_schema PRIVATE SDL2::SDL2)
