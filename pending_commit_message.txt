@@ -373,3 +373,15 @@ Curve Editor (Phase 2.3)
 * Roadmap: Marked Curve Editor complete with implementation note (v1 prototype, future persistence & schema integration planned for progression curves: damage, cooldown, efficiency ramps).
 * README: Documented new widget purpose and current limitations; sets stage for persisted progression authoring and evaluation utilities.
 Follow-ups (deferred): persistence format (JSON array or sampled knots), evaluation helper (linear / spline), optional tangent handles, multi-curve overlay, test coverage (point ordering, bounds constraints).
+
+feat(assets/phase3): complete SDL base path integration; finalize Phase 3 roadmap (textures w/ width/height, audio registry, negative caching, hot-reload polling, path resolution via SDL_GetBasePath); docs & roadmap updated.
+
+feat(assets/phase4): add validation & integrity system
+ - File existence + CRC32 checksum helpers
+ - Checksum registry & verification API
+ - Fallback texture path applied on missing acquire
+ - Dependency tracking (owner->dependency edges)
+ - Usage statistics aggregation (textures/audio counts, failures, handles)
+ - Basic JSON validation hook (stub; future schema dispatch)
+ - New tests (test_asset_phase4_validation) covering fallback, checksum, deps, usage stats
+ - Roadmap Phase 4 items marked complete; README updated with Phase 4 summary

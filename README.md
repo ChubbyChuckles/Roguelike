@@ -785,3 +785,28 @@ Note: Event bus statistics now clamp ultra-fast measurements to a minimum of 1µ
 - Prerequisite: GitHub CLI must be installed and authenticated (`gh auth login`).
 - CI artifacts include: `build/*.log`, `build/ctest_*.log`, and `build/Testing/Temporary/`.
 - Verbose CI: maintainers can set a repo secret `CI_DEBUG=1` to increase build verbosity in Actions logs.
+
+# Roguelike Game Engine
+
+...existing content...
+
+### Asset System Phase 3 (SDL2 Integration) Completion
+
+(previous section retained above)
+
+### Asset System Phase 4 (Validation & Integrity) Completion
+
+Phase 4 introduces foundational validation & integrity utilities without adding heavy runtime cost:
+
+Implemented:
+
+- File integrity helpers (existence + CRC32 computation)
+- Checksum registry & verification API for critical assets
+- Global fallback texture path used when a requested asset path is missing (prevents noisy negative caching loops)
+- Lightweight dependency tracking graph (owner -> dependency edges) for future hot-reload / invalidation logic
+- Usage statistics reporting (counts of records, failures, handles) to support tooling & future profiling
+- Basic JSON validation hook (extension point) leveraging existing schema modules; full automatic schema dispatch is deferred
+
+Associated new source: `src/asset/asset_validation.{h,c}` and test: `test_asset_phase4_validation`.
+
+Roadmap Phase 4 items marked complete (except extended schema dispatch – intentionally minimal at this slice). Next Phase will focus on CI/CD automation (asset validation in workflows) per Phase 5.

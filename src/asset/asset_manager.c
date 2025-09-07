@@ -1,5 +1,6 @@
 /* asset_manager.c - Phase 3: texture/audio loading + negative caching + reload poll */
 #include "asset_manager.h"
+#include "asset_validation.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -149,8 +150,16 @@ int rogue_asset_manager_acquire_texture(const char* path)
 {
     if (!g_asset_mgr.initialized || !path)
         return -1;
+    /* Fallback resolution (Phase 4): if path missing and a fallback is registered, switch */
+    const char* chosen_path = path;
+    if (!rogue_asset_file_exists(path))
+    {
+        const char* fb = rogue_asset_get_fallback_texture();
+        if (fb && rogue_asset_file_exists(fb))
+            chosen_path = fb;
+    }
     char id[96];
-    derive_id(path, id, sizeof(id));
+    derive_id(chosen_path, id, sizeof(id));
     int existing = find_slot_by_id(id);
     if (existing >= 0)
     {
@@ -171,10 +180,10 @@ int rogue_asset_manager_acquire_texture(const char* path)
             len_id = sizeof(tex->id) - 1;
         memcpy(tex->id, id, len_id);
         tex->id[len_id] = '\0';
-        size_t len_path = strlen(path);
+        size_t len_path = strlen(chosen_path);
         if (len_path >= sizeof(tex->path))
             len_path = sizeof(tex->path) - 1;
-        memcpy(tex->path, path, len_path);
+        memcpy(tex->path, chosen_path, len_path);
         tex->path[len_path] = '\0';
     }
     /* Phase 3 slice: do not attempt actual SDL load (deferred). */

@@ -53,12 +53,12 @@ Next Phase 3 steps: integrate SDL_image when available, add width/height probe (
 [x] Create audio loading system (SDL_mixer integration, Mix_LoadWAV with negative caching + hot-reload polling foundation)
 
 ## Phase 4: Asset Validation & Integrity System
-[ ] Implement JSON schema validation
-[ ] Create asset file integrity checking (file existence, format validation)
-[ ] Design missing asset fallback system
-[ ] Implement asset dependency tracking
-[ ] Create asset usage reporting tools
-[ ] Add checksum validation for critical assets
+[x] Implement JSON schema validation (basic hook: `rogue_asset_json_validate_basic` – future extension will auto-dispatch to schema modules)
+[x] Create asset file integrity checking (file existence helper + CRC32 computation `rogue_asset_crc32_file`)
+[x] Design missing asset fallback system (global fallback texture path; applied during `rogue_asset_manager_acquire_texture` when original missing)
+[x] Implement asset dependency tracking (in-memory edge list with `rogue_asset_dep_add` / `rogue_asset_dep_get`)
+[x] Create asset usage reporting tools (`rogue_asset_usage_stats` aggregates counts/failures/handles)
+[x] Add checksum validation for critical assets (register + verify APIs)
 
 ## Phase 5: CI/CD Integration
 [ ] Extend GitHub Actions workflow for asset validation

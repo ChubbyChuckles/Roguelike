@@ -235,6 +235,7 @@ add_library(rogue_core
     # Asset system (Phase 3 initial slice)
     src/asset/asset_manager.c
     src/asset/path_utils.c
+    src/asset/asset_validation.c
     # persistence module split
     src/core/persistence/persistence_io.c
     src/core/persistence/persistence_world.c
