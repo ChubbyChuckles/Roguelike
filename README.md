@@ -11,6 +11,9 @@ Press F1 in-game to open the debug overlay.
 - Row selection for textures/audio reveals a Details section (id, dimensions, ref count, load state, failure flag) and any registered dependency ids.
 - Dependency listing uses existing asset_dep registry; graphical graph + thumbnails deferred to a later phase (see Asset Overlay roadmap).
 - Regex filtering, advanced thumbnail caching (current build shows basic inline scaled preview), audio preview controls, and JSON syntax highlighting are future tasks.
+- NEW (Asset Overlay Phase 2 slice):
+  - Drag-and-drop import: dropping a file onto the game window injects a ::drop::<path> token into the asset browser import field (headless-safe; only active when overlay input enabled).
+  - Win32 file dialog: "Open File Dialog" button (Windows only) opens a native picker (filters optional). Selected path is staged for import. Cross-platform (Linux/macOS) support remains on the roadmap (Phase 7).
 
 ### New Skill Visual Authoring Tools (Phase 2.4 updates)
 

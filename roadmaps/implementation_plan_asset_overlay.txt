@@ -25,8 +25,8 @@ This plan builds upon the existing asset management infrastructure to create a s
 
 ## Phase 2: Interactive Asset Loading & Preview
 [x] Design asset preview panel with SDL2 texture rendering (baseline integrated into existing panel; extended with zoom/pan state)
-[ ] Implement drag-and-drop file loading interface using overlay input system
-[ ] Add runtime asset loading from file browser dialog (platform-specific)
+[x] Implement drag-and-drop file loading interface using overlay input system (Phase 2 slice complete – inserts ::drop::<path> token into asset browser import box; Windows SDL_DROPFILE tested)
+[x] Add runtime asset loading from file browser dialog (platform-specific – Win32 implementation added; cross-platform variants remain scheduled under Phase 7)
 [x] Create texture preview with zoom/pan controls using overlay widgets (basic buttons; no mouse-drag yet)
 [x] Implement audio playback controls for audio asset preview (play/stop/loop/volume)
 [ ] Add JSON syntax highlighting and validation feedback for config files

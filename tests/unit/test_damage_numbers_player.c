@@ -2,7 +2,8 @@
 #define SDL_MAIN_HANDLED 1
 #endif
 #include "../../src/game/damage_numbers.h"
-#include "../../src/game/player.h"
+/* player.h moved (or always lived) under entities/, fix broken relative include */
+#include "../../src/entities/player.h"
 #include <assert.h>
 #include <stdio.h>
 
@@ -13,14 +14,17 @@ extern void rogue_app_add_hitstop(float ms);
 
 int main(void)
 {
-    RogueDamageNumbers nums;
-    rogue_damage_numbers_init(&nums);
+    int before = rogue_app_damage_number_count();
     for (int i = 0; i < 5; i++)
     {
         rogue_add_damage_number(0.2f + i * 0.05f, 0.1f, 3 + i, 1);
     }
-    assert(nums.count == 5 ||
-           nums.count == 0); /* non-fatal smoke (count may differ if system queues internally) */
-    printf("damage_numbers_player: OK (count=%d)\n", nums.count);
+    int after = rogue_app_damage_number_count();
+    /* We expect up to 5 new numbers; system may coalesce or drop, so just ensure monotonic
+     * non-negative. */
+    assert(after >= before);
+    assert(after <= before + 5);
+    printf("damage_numbers_player: OK (before=%d, after=%d, added=%d)\n", before, after,
+           after - before);
     return 0;
 }

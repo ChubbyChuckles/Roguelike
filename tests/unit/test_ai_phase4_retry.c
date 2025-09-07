@@ -21,7 +21,8 @@ static RogueBTStatus tick_flaky(RogueBTNode* node, RogueBlackboard* bb, float dt
     FlakyConfig* cfg = (FlakyConfig*) node->user_data;
     int val = 0;
     rogue_bb_get_int(bb, cfg->counter_key, &val);
-    rogue_bb_set_int(bb, cfg->counter_key, val + 1, ROGUE_BB_WRITE_SET);
+    /* Updated: rogue_bb_set_int signature is (bb,key,value); removed legacy write mode flag */
+    rogue_bb_set_int(bb, cfg->counter_key, val + 1);
     if (val < cfg->fail_count_before_success)
     {
         return ROGUE_BT_FAILURE;

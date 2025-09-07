@@ -49,6 +49,20 @@ void overlay_input_handle_event(const void* evptr)
         return;
     switch (ev->type)
     {
+    case SDL_DROPFILE:
+        /* Capture dropped file path (UTF-8). We'll stuff it into text_input buffer with a prefix
+           token so panels can detect a drop event without new global state. Format:
+           "::drop::<path>" (truncated to fit). Panels opting in can scan for this token once per
+           frame and clear it after consumption. We intentionally do not free the string until
+           after copying (SDL supplies an allocated char*). */
+        if (ev->drop.file)
+        {
+            const char* prefix = "::drop::";
+            overlay_str_append_clamped(g_inp.text_input, sizeof g_inp.text_input, prefix);
+            overlay_str_append_clamped(g_inp.text_input, sizeof g_inp.text_input, ev->drop.file);
+            SDL_free(ev->drop.file);
+        }
+        break;
     case SDL_MOUSEMOTION:
         g_inp.mouse_x = ev->motion.x;
         g_inp.mouse_y = ev->motion.y;

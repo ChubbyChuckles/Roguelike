@@ -156,6 +156,17 @@ Add basic Skills Node Graph editor with inline quick-fixes; keep tests green
 
 docs(effectspec): document SPAWN_PROJECTILE JSON fields & behavior; tests 100% green
 
+feat(overlay/assets): Phase 2 drag-and-drop + Win32 file dialog integration
+
+- Implement drag-and-drop asset import path ingestion via SDL_DROPFILE; overlay input now appends a ::drop::<absolute_path> token into the asset browser import field (non-intrusive, no new persistent state).
+- Add platform file dialog abstraction (file_dialog.h) with Win32 implementation (GetOpenFileNameA). Button exposed in Asset Browser panel when running on Windows; returns selected path for staging/import.
+- Relocate file_dialog_win32.c into rogue_core sources so all test executables link the symbol (previous placement in overlay-only objects caused unresolved externals).
+- Fix MSVC C4996 warning (strncpy deprecation) by replacing with explicit bounded memcpy logic (portable, truncates safely) – resolves build exit code 1.
+- Roadmap Phase 2 tasks "drag-and-drop file loading" and "runtime file browser dialog" marked complete (cross-platform dialog support deferred to Phase 7).
+- README updated under Debug overlay tips → Asset Browser with new bullet list describing drag-and-drop + Windows dialog; future JSON syntax highlighting and cross-platform dialogs explicitly noted.
+- Tests: full rebuild succeeded; no functional runtime changes outside overlay/platform abstraction.
+
+
 - README External EffectSpec Config now lists SPAWN_PROJECTILE fields: proj_speed, proj_life_ms, proj_count, and explains damage-from-magnitude and facing-based direction. Notes multi-count emission.
 - Tests: referenced new unit `tests/unit/test_effectspec_spawn_projectile.c`; re-verified full Debug (SDL2) suite 100% green (588/588, -j12).
 

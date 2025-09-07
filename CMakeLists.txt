@@ -289,6 +289,8 @@ add_library(rogue_core
     src/world/tile_sprite_cache.c
     src/core/world/map_debug.c
     src/platform/platform_sdl.c
+    # Platform helpers (file dialog for asset overlay Phase 2)
+    src/platform/file_dialog_win32.c
     src/graphics/renderer.c
     src/graphics/sprite.c
     src/entities/spawn_entities.c

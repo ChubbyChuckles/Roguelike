@@ -22,6 +22,9 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef _WIN32
+#include "../../platform/file_dialog.h"
+#endif
 
 #ifndef ROGUE_ASSET_BROWSER_JSON_CAP
 #define ROGUE_ASSET_BROWSER_JSON_CAP 512
@@ -340,6 +343,39 @@ static void panel_asset_browser(void* user)
     {
         g_ab_state.pending_import_path[sizeof g_ab_state.pending_import_path - 1] = '\0';
     }
+    /* Drag-drop integration: overlay_input packs drops into text_input with token ::drop:: */
+    const OverlayInputState* in_st = overlay_input_get();
+    if (in_st && in_st->text_input[0])
+    {
+        const char* drop_tok = strstr(in_st->text_input, "::drop::");
+        if (drop_tok)
+        {
+            drop_tok += 8; /* skip token */
+            /* Copy into pending path if plausible file path */
+            size_t len = strlen(drop_tok);
+            if (len > 0 && len < sizeof(g_ab_state.pending_import_path))
+            {
+                strncpy(g_ab_state.pending_import_path, drop_tok,
+                        sizeof g_ab_state.pending_import_path - 1);
+                g_ab_state.pending_import_path[sizeof g_ab_state.pending_import_path - 1] = '\0';
+            }
+        }
+    }
+#ifdef _WIN32
+    if (overlay_button("Open File Dialog"))
+    {
+        char path[512];
+        /* Basic filter: Images and All files. Filter string must be double-null terminated. */
+        const char filter[] =
+            "Images\0*.png;*.bmp;*.tga;*.jpg;*.jpeg;*.ogg;*.wav;*.json\0All Files\0*.*\0\0";
+        if (rogue_platform_open_file_dialog(filter, path, sizeof path))
+        {
+            strncpy(g_ab_state.pending_import_path, path,
+                    sizeof g_ab_state.pending_import_path - 1);
+            g_ab_state.pending_import_path[sizeof g_ab_state.pending_import_path - 1] = '\0';
+        }
+    }
+#endif
     if (g_ab_state.pending_import_path[0])
     {
         if (overlay_button("Import Texture"))
