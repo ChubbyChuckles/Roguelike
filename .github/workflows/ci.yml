@@ -318,17 +318,9 @@ jobs:
         shell: pwsh
         run: pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci/categorize-failures.ps1 -BuildDir build -OutDir build/failure_report -WriteGithubSummary
 
-      - name: Portability scan (path separators)
-        if: always()
-        shell: pwsh
-        run: |
-          pwsh -NoProfile -ExecutionPolicy Bypass -File tools/normalize_paths.ps1 -Root . -CheckOnly || echo "Portability scan found issues (advisory)."
+  # Removed portability path separator scan (user request) to reduce CI noise.
 
-      - name: Portability pattern scan (advisory)
-        if: always()
-        shell: pwsh
-        run: |
-          pwsh -NoProfile -ExecutionPolicy Bypass -File tools/portability_scan.ps1 -Root . || echo "Pattern scan completed."
+  # Removed portability pattern scan (advisory) per request.
 
       - name: Upload logs (always)
         if: always()
