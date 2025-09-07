@@ -1,12 +1,15 @@
 /* Implementation: placeholder asset enforcement */
 #include "asset_placeholder.h"
-#include <stdio.h>
-
+/* Define secure CRT suppression before stdio to avoid C4996 on MSVC when fopen is referenced
+    indirectly by headers or in non-MSVC branches. */
 #ifdef _MSC_VER
 #ifndef _CRT_SECURE_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS 1
+#define _CRT_SECURE_NO_WARNINGS
 #endif
+#pragma warning(push)
+#pragma warning(disable : 4996) /* suppress fopen deprecation if encountered */
 #endif
+#include <stdio.h>
 
 static int path_exists_single(const char* p)
 {
@@ -50,3 +53,6 @@ int rogue_asset_placeholder_exists(void)
     }
     return 0;
 }
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif

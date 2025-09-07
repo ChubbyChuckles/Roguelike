@@ -644,6 +644,7 @@ add_library(rogue_content_json OBJECT
     src/content/schema_sprites.c
     src/content/schema_audio.c
     src/content/schema_levels.c
+    src/content/schema_theme.c
 )
 target_include_directories(rogue_content_json PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_definitions(rogue_content_json PUBLIC ROGUE_ENABLE_JSON_CONTENT=$<IF:$<BOOL:${ROGUE_ENABLE_JSON_CONTENT}>,1,0>)
@@ -1054,6 +1055,14 @@ if(ROGUE_ENABLE_SDL)
     target_link_libraries(test_level_schema PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_level_schema COMMAND test_level_schema)
+
+# UI Theme JSON schema validation test (Asset Structure Phase 2)
+add_executable(test_ui_theme_schema tests/unit/test_ui_theme_schema.c)
+target_link_libraries(test_ui_theme_schema PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_ui_theme_schema PRIVATE SDL2::SDL2)
+endif()
+add_test(NAME test_ui_theme_schema COMMAND test_ui_theme_schema)
 
 # Skills schema roundtrip (enveloped JSON) test
 add_executable(test_skills_roundtrip_schema tests/unit/test_skills_roundtrip_schema.c)

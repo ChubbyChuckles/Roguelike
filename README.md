@@ -240,6 +240,46 @@ APIs: `src/debug_overlay/overlay_core.h` plus widgets in `overlay_widgets.h` (La
 - Version Control: Runtime binaries (png/ogg/wav/json/cfg) tracked. Future large source assets (psd/blend) excluded until /source_art policy phase. Generated manifests/checksums (meta/) to be gitignored when introduced (Phase 4).
 - Contributor Guidelines (seed): Provide power‑of‑two friendly sprite sheets when practical; keep individual frame dims ≤512; prefer OGG for music/SFX (MP3 permitted for licensed tracks); normalize peak loudness to -1 dBTP, integrated LUFS target -14 (music) / -18 (ambience); localization JSON one top-level key per feature domain.
 
+#### UI Theme JSON Schema (Phase 2)
+
+Phase 2 introduces a structured JSON schema for overlay/theme configuration, migrating from the legacy key=value `assets/ui_theme_default.cfg`. The schema (internal id `ui_theme`) is defined in `schema_theme.{h,c}` and validated with the RogueSchema system; an accompanying unit test `test_ui_theme_schema` covers positive and negative cases.
+
+Required:
+
+- name: string (1–63 chars)
+
+Optional 32-bit RGBA color integers (stored as unsigned 0xRRGGBBAA):
+
+- panel_bg, panel_border, text_normal, text_accent
+- button_bg, button_bg_hot, button_text
+- slider_track, slider_fill, tooltip_bg, alert_text
+
+Optional metrics (integer ranges enforced by schema):
+
+- font_size_base (4..256)
+- padding_small (0..128)
+- padding_large (0..512)
+- dpi_scale_x100 (50..400) — logical DPI scale \* 100 (e.g. 125 = 1.25×)
+
+Forward Compatibility: `allow_additional_fields = true` so future layout / spacing keys can be added without breaking older builds. A forthcoming schema versioning pass will add an optional `schema_version` top-level field and centralized migration hooks.
+
+Example (minimal valid theme):
+
+```json
+{
+  "name": "default_dark",
+  "panel_bg": 538976511,
+  "panel_border": 1077952575,
+  "text_normal": 4294967295,
+  "font_size_base": 14,
+  "dpi_scale_x100": 100
+}
+```
+
+(Decimal integers shown for portability across JSON parsers; hex may be supplied in authoring tools before a future formatting helper is added.)
+
+Migration Path: Existing `overlay_theme.json` runtime persistence continues unchanged. Once JSON-driven themes are loaded, a small adapter will export current runtime colors → schema-compliant JSON for editing and reloading. That adapter plus versioned migrations are tracked under the Phase 2 "schema versioning" roadmap item.
+
 - ROGUE_ENABLE_JSON_CONTENT (default ON): Compiles the content JSON foundation (I/O and schema envelope). Built as an object library (`rogue_content_json`) and linked into `rogue_core` when enabled. A vendored cJSON stub lives under `third_party/cjson` and is linked as `rogue_thirdparty_cjson` for now; replace with the full cJSON later.
 - Outputs: HTML, LaTeX/PDF, and XML generated via a dedicated CMake target.
 - Prereqs (Windows):

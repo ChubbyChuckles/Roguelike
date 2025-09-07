@@ -17,14 +17,15 @@
   [x] Sprite sheet definitions (frame coordinates, animations) — implemented in `schema_sprites.{h,c}`
   [x] Audio clip metadata (loop points, volume, format) — implemented in `schema_audio.{h,c}`
   [x] Level/map data structures
-  [ ] UI theme and layout definitions
+  [x] UI theme and layout definitions (Implemented schema_theme.{h,c} + test_ui_theme_schema)
 [x] Implement JSON validation utilities (reused existing `rogue_schema_validate_json`; added new test `test_sprite_audio_schema`)
 [ ] Create schema versioning system for backward compatibility (planned: introduce `schema_version` field & migration hooks)
 
 ### Phase 2 In-Progress / Next Steps
 - [x] Implement placeholder asset enforcement: ensure `assets/placeholder.png` exists; added unit test `test_asset_placeholder_enforcement` (positive + negative path). Stub PNG committed.
 - [x] Add Level/Map schema (tile layout, spawn points, environment tags) after placeholder enforcement (`schema_levels.{h,c}` + unit test `test_level_schema`).
-- [ ] Add UI Theme/Layout schema referencing existing `ui_theme_default.cfg` structure for gradual migration.
+- [x] Add UI Theme/Layout schema referencing existing `ui_theme_default.cfg` structure for gradual migration (implemented `schema_theme.{h,c}` + `test_ui_theme_schema`).
+  NOTE: Duplicate of specialized schemas checklist entry above; left here for historical planning continuity. Next immediate Phase 2 task: implement shared optional `schema_version` field + migration registry.
 
 ### Phase 2 Progress Update
 - Sprite & audio schema builders implemented and validated (see new unit test `test_sprite_audio_schema`).

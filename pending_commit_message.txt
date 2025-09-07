@@ -1,3 +1,14 @@
+feat(asset-schema): add UI theme JSON schema & validation test
+
+Implemented Phase 2 task (UI Theme/Layout schema):
+- Added schema_theme.{h,c} describing palette + metrics fields with forward-compatible extension.
+- Added test_ui_theme_schema unit test (valid + invalid cases).
+- Integrated test target into CMake with SDL2 linkage.
+- Updated asset structure implementation plan marking UI theme schema complete; noted upcoming schema_version task.
+ - Updated README with new "UI Theme JSON Schema" section (fields, ranges, example, migration notes) and marked duplicate roadmap bullet as done for clarity.
+
+This advances Phase 2 toward schema versioning and future layout migration.
+
 feat(skill-suite/ui): add multi-select bitmask & dynamic list editor widgets (Phase 2.4)
 
 Implemented overlay_multiselect_bits (bitmask-based multi-select) and overlay_list_editor (add/reorder/delete string list) widgets.
