@@ -8,7 +8,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1a_haste_snapshot_an
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skills_phase1a_haste_snapshot_and_drift PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skills_phase1a_haste_snapshot_and_drift COMMAND test_skills_phase1a_haste_snapshot_and_drift)
+    rogue_add_test(NAME test_skills_phase1a_haste_snapshot_and_drift COMMAND test_skills_phase1a_haste_snapshot_and_drift)
 endif()
 
 # Skills Phase 1.2 effect_tree overrides round-trip serialization test
@@ -19,7 +19,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_2_effect_tree_over
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skills_phase1_2_effect_tree_overrides_roundtrip PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skills_phase1_2_effect_tree_overrides_roundtrip COMMAND test_skills_phase1_2_effect_tree_overrides_roundtrip)
+    rogue_add_test(NAME test_skills_phase1_2_effect_tree_overrides_roundtrip COMMAND test_skills_phase1_2_effect_tree_overrides_roundtrip)
 endif()
 
 # Skills Phase 1.2 effect_tree parent_index invalid / cycle rejection tests
@@ -30,7 +30,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_2_effect_tree_pare
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skills_phase1_2_effect_tree_parent_index_invalid PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skills_phase1_2_effect_tree_parent_index_invalid COMMAND test_skills_phase1_2_effect_tree_parent_index_invalid)
+    rogue_add_test(NAME test_skills_phase1_2_effect_tree_parent_index_invalid COMMAND test_skills_phase1_2_effect_tree_parent_index_invalid)
 endif()
 
 # Skills Phase 1.2 advanced effect tree validation (window + span heuristics)
@@ -41,7 +41,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_2_effect_tree_adva
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skills_phase1_2_effect_tree_advanced_validation PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skills_phase1_2_effect_tree_advanced_validation COMMAND test_skills_phase1_2_effect_tree_advanced_validation)
+    rogue_add_test(NAME test_skills_phase1_2_effect_tree_advanced_validation COMMAND test_skills_phase1_2_effect_tree_advanced_validation)
 endif()
 
 # Skills Phase 1.2 effect_tree scheduling test (hierarchical delays & periodic window)
@@ -52,7 +52,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_2_effect_tree_sche
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skills_phase1_2_effect_tree_schedule PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skills_phase1_2_effect_tree_schedule COMMAND test_skills_phase1_2_effect_tree_schedule)
+    rogue_add_test(NAME test_skills_phase1_2_effect_tree_schedule COMMAND test_skills_phase1_2_effect_tree_schedule)
 endif()
 
 # Skills Phase 1.2 effect_tree layout persistence (orientation + coordinates) test
@@ -63,7 +63,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_2_effect_tree_layo
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skills_phase1_2_effect_tree_layout_persistence PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skills_phase1_2_effect_tree_layout_persistence COMMAND test_skills_phase1_2_effect_tree_layout_persistence)
+    rogue_add_test(NAME test_skills_phase1_2_effect_tree_layout_persistence COMMAND test_skills_phase1_2_effect_tree_layout_persistence)
 endif()
 
 # Skills Phase 1.6: sprite loader grid + sampler smoke test
@@ -74,7 +74,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_6_sprite_loader.c 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skills_phase1_6_sprite_loader PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skills_phase1_6_sprite_loader COMMAND test_skills_phase1_6_sprite_loader)
+    rogue_add_test(NAME test_skills_phase1_6_sprite_loader COMMAND test_skills_phase1_6_sprite_loader)
 endif()
 
 # Skills Phase 2 costs & refunds test
@@ -86,7 +86,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase2_costs_refunds.c AN
     else()
         target_compile_definitions(test_skills_phase2_costs_refunds PRIVATE SDL_MAIN_HANDLED=1)
     endif()
-    add_test(NAME test_skills_phase2_costs_refunds COMMAND test_skills_phase2_costs_refunds)
+    rogue_add_test(NAME test_skills_phase2_costs_refunds COMMAND test_skills_phase2_costs_refunds)
 endif()
 
 # Skills Phase 2.4/2.5 Overdrive + Heat test
@@ -98,7 +98,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase2_overdrive_heat.c A
     else()
         target_compile_definitions(test_skills_phase2_overdrive_heat PRIVATE SDL_MAIN_HANDLED=1)
     endif()
-    add_test(NAME test_skills_phase2_overdrive_heat COMMAND test_skills_phase2_overdrive_heat)
+    rogue_add_test(NAME test_skills_phase2_overdrive_heat COMMAND test_skills_phase2_overdrive_heat)
 endif()
 
 # Explicitly add skill cast/channel test (Phase 1.3/1.4 partial)
@@ -108,7 +108,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skill_cast_and_channel.c AND NOT
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skill_cast_and_channel PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skill_cast_and_channel COMMAND test_skill_cast_and_channel)
+    rogue_add_test(NAME test_skill_cast_and_channel COMMAND test_skill_cast_and_channel)
 endif()
 
 # Explicitly add Phase 1A buffer + weave + combo test
@@ -120,7 +120,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1a_buffer_weave_comb
     else()
         target_compile_definitions(test_skills_phase1a_buffer_weave_combo PRIVATE SDL_MAIN_HANDLED=1)
     endif()
-    add_test(NAME test_skills_phase1a_buffer_weave_combo COMMAND test_skills_phase1a_buffer_weave_combo)
+    rogue_add_test(NAME test_skills_phase1a_buffer_weave_combo COMMAND test_skills_phase1a_buffer_weave_combo)
 endif()
 
 # Explicitly add passive skills test
@@ -130,7 +130,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_passive.c AND NOT TARGET 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skills_passive PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skills_passive COMMAND test_skills_passive)
+    rogue_add_test(NAME test_skills_passive COMMAND test_skills_passive)
 endif()
 
 # Explicitly add fireball skill test
@@ -140,7 +140,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_fireball_skill.c AND NOT TARGET 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_fireball_skill PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_fireball_skill COMMAND test_fireball_skill)
+    rogue_add_test(NAME test_fireball_skill COMMAND test_fireball_skill)
 endif()
 
 # Explicitly add fireball skill test
@@ -150,7 +150,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skill_fireball.c AND NOT TARGET 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skill_fireball PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skill_fireball COMMAND test_skill_fireball)
+    rogue_add_test(NAME test_skill_fireball COMMAND test_skill_fireball)
 endif()
 
 # Skills Phase 7.1 event bus integration test
@@ -162,7 +162,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase7_event_bus.c AND NO
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skills_phase7_event_bus PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skills_phase7_event_bus COMMAND test_skills_phase7_event_bus)
+    rogue_add_test(NAME test_skills_phase7_event_bus COMMAND test_skills_phase7_event_bus)
 endif()
 
 # Skills Phase 10.4 auto-doc generator test
@@ -173,7 +173,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase10_4_api_doc.c AND N
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skills_phase10_4_api_doc PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skills_phase10_4_api_doc COMMAND test_skills_phase10_4_api_doc)
+    rogue_add_test(NAME test_skills_phase10_4_api_doc COMMAND test_skills_phase10_4_api_doc)
 endif()
 
 # Skills Phase 10.5 parser edge cases and invalid reference rejection
@@ -184,5 +184,5 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase10_5_parser_edges.c 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skills_phase10_5_parser_edges PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skills_phase10_5_parser_edges COMMAND test_skills_phase10_5_parser_edges)
+    rogue_add_test(NAME test_skills_phase10_5_parser_edges COMMAND test_skills_phase10_5_parser_edges)
 endif()
