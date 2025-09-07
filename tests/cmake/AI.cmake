@@ -8,7 +8,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase5_2_flow_field.c AND NOT
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase5_2_flow_field PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase5_2_flow_field COMMAND test_ai_phase5_2_flow_field)
+    rogue_add_test(test_ai_phase5_2_flow_field COMMAND test_ai_phase5_2_flow_field)
 endif()
 
 # AI Phase 5.3 Local Avoidance test
@@ -19,7 +19,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase5_3_local_avoid.c AND NO
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase5_3_local_avoid PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase5_3_local_avoid COMMAND test_ai_phase5_3_local_avoid)
+    rogue_add_test(test_ai_phase5_3_local_avoid COMMAND test_ai_phase5_3_local_avoid)
 endif()
 
 # Phase 6.1 ranged projectile firing
@@ -30,7 +30,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase6_1_ranged_projectile.c 
     if(ROGUE_HAVE_SDL)
         target_compile_definitions(test_ai_phase6_1_ranged_projectile PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase6_1_ranged_projectile COMMAND test_ai_phase6_1_ranged_projectile)
+    rogue_add_test(test_ai_phase6_1_ranged_projectile COMMAND test_ai_phase6_1_ranged_projectile)
 endif()
 
 # AI Phase 6.2 Reactions
@@ -41,7 +41,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase6_2_reactions.c AND NOT 
     if(ROGUE_HAVE_SDL)
         target_compile_definitions(test_ai_phase6_2_reactions PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase6_2_reactions COMMAND test_ai_phase6_2_reactions)
+    rogue_add_test(test_ai_phase6_2_reactions COMMAND test_ai_phase6_2_reactions)
 endif()
 
 # Phase 6.3 Opportunistic attack
@@ -52,7 +52,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase6_3_opportunistic.c AND 
     if(ROGUE_HAVE_SDL)
         target_compile_definitions(test_ai_phase6_3_opportunistic PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase6_3_opportunistic COMMAND test_ai_phase6_3_opportunistic)
+    rogue_add_test(test_ai_phase6_3_opportunistic COMMAND test_ai_phase6_3_opportunistic)
 endif()
 
 # Phase 6.4 Kiting logic
@@ -63,7 +63,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase6_4_kiting.c AND NOT TAR
     if(ROGUE_HAVE_SDL)
         target_compile_definitions(test_ai_phase6_4_kiting PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase6_4_kiting COMMAND test_ai_phase6_4_kiting)
+    rogue_add_test(test_ai_phase6_4_kiting COMMAND test_ai_phase6_4_kiting)
 endif()
 
 # Phase 6.5 Focus fire
@@ -74,7 +74,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase6_5_focus.c AND NOT TARG
     if(ROGUE_HAVE_SDL)
         target_compile_definitions(test_ai_phase6_5_focus PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase6_5_focus COMMAND test_ai_phase6_5_focus)
+    rogue_add_test(test_ai_phase6_5_focus COMMAND test_ai_phase6_5_focus)
 endif()
 
 # Phase 6.6 Finisher execute
@@ -85,7 +85,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase6_6_finisher.c AND NOT T
     if(ROGUE_HAVE_SDL)
         target_compile_definitions(test_ai_phase6_6_finisher PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase6_6_finisher COMMAND test_ai_phase6_6_finisher)
+    rogue_add_test(test_ai_phase6_6_finisher COMMAND test_ai_phase6_6_finisher)
 endif()
 
 # Phase 6.7 decorators
@@ -96,7 +96,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase6_7_decorators.c AND NOT
     if(ROGUE_HAVE_SDL)
         target_compile_definitions(test_ai_phase6_7_decorators PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase6_7_decorators COMMAND test_ai_phase6_7_decorators)
+    rogue_add_test(test_ai_phase6_7_decorators COMMAND test_ai_phase6_7_decorators)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_behavior_tree.c AND NOT TARGET test_ai_behavior_tree)
@@ -105,7 +105,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_behavior_tree.c AND NOT TARGE
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_behavior_tree PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_behavior_tree COMMAND test_ai_behavior_tree)
+    rogue_add_test(test_ai_behavior_tree COMMAND test_ai_behavior_tree)
 endif()
 
 # AI Phase 1.4-1.7 scheduler/trace + RNG test
@@ -115,7 +115,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase1_scheduler_trace.c AND 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase1_scheduler_trace PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase1_scheduler_trace COMMAND test_ai_phase1_scheduler_trace)
+    rogue_add_test(test_ai_phase1_scheduler_trace COMMAND test_ai_phase1_scheduler_trace)
 endif()
 
 # AI Phase 2 blackboard extensions test
@@ -125,7 +125,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase2_blackboard.c AND NOT T
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase2_blackboard PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase2_blackboard COMMAND test_ai_phase2_blackboard)
+    rogue_add_test(test_ai_phase2_blackboard COMMAND test_ai_phase2_blackboard)
 endif()
 
 # AI Phase 3 perception system test
@@ -135,7 +135,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase3_perception.c AND NOT T
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase3_perception PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase3_perception COMMAND test_ai_phase3_perception)
+    rogue_add_test(test_ai_phase3_perception COMMAND test_ai_phase3_perception)
 endif()
 
 # AI Phase 4 node library test
@@ -145,7 +145,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase4_nodes.c AND NOT TARGET
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase4_nodes PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase4_nodes COMMAND test_ai_phase4_nodes)
+    rogue_add_test(test_ai_phase4_nodes COMMAND test_ai_phase4_nodes)
 endif()
 
 # AI Phase 4 tactical/strafe test
@@ -155,7 +155,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase4_tactical.c AND NOT TAR
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase4_tactical PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase4_tactical COMMAND test_ai_phase4_tactical)
+    rogue_add_test(test_ai_phase4_tactical COMMAND test_ai_phase4_tactical)
 endif()
 
 # AI Phase 4 cover seek test
@@ -165,7 +165,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase4_cover.c AND NOT TARGET
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase4_cover PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase4_cover COMMAND test_ai_phase4_cover)
+    rogue_add_test(test_ai_phase4_cover COMMAND test_ai_phase4_cover)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase4_retry.c AND NOT TARGET test_ai_phase4_retry)
@@ -174,7 +174,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase4_retry.c AND NOT TARGET
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase4_retry PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase4_retry COMMAND test_ai_phase4_retry)
+    rogue_add_test(test_ai_phase4_retry COMMAND test_ai_phase4_retry)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase5_enemy_integration.c AND NOT TARGET test_ai_phase5_enemy_integration)
@@ -183,7 +183,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase5_enemy_integration.c AN
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase5_enemy_integration PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase5_enemy_integration COMMAND test_ai_phase5_enemy_integration)
+    rogue_add_test(test_ai_phase5_enemy_integration COMMAND test_ai_phase5_enemy_integration)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase9_budget.c AND NOT TARGET test_ai_phase9_budget)
@@ -192,7 +192,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase9_budget.c AND NOT TARGE
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase9_budget PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase9_budget COMMAND test_ai_phase9_budget)
+    rogue_add_test(test_ai_phase9_budget COMMAND test_ai_phase9_budget)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase9_incremental_lod.c AND NOT TARGET test_ai_phase9_incremental_lod)
@@ -201,7 +201,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase9_incremental_lod.c AND 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase9_incremental_lod PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase9_incremental_lod COMMAND test_ai_phase9_incremental_lod)
+    rogue_add_test(test_ai_phase9_incremental_lod COMMAND test_ai_phase9_incremental_lod)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase9_agent_pool.c AND NOT TARGET test_ai_phase9_agent_pool)
@@ -210,7 +210,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase9_agent_pool.c AND NOT T
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase9_agent_pool PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase9_agent_pool COMMAND test_ai_phase9_agent_pool)
+    rogue_add_test(test_ai_phase9_agent_pool COMMAND test_ai_phase9_agent_pool)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase10_debug.c AND NOT TARGET test_ai_phase10_debug)
@@ -219,7 +219,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase10_debug.c AND NOT TARGE
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase10_debug PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase10_debug COMMAND test_ai_phase10_debug)
+    rogue_add_test(test_ai_phase10_debug COMMAND test_ai_phase10_debug)
 endif()
 
 # AI Phase 11 tests
@@ -229,7 +229,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase11_core_nodes.c AND NOT 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase11_core_nodes PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase11_core_nodes COMMAND test_ai_phase11_core_nodes)
+    rogue_add_test(test_ai_phase11_core_nodes COMMAND test_ai_phase11_core_nodes)
 endif()
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase11_blackboard_fuzz.c AND NOT TARGET test_ai_phase11_blackboard_fuzz)
     add_executable(test_ai_phase11_blackboard_fuzz unit/test_ai_phase11_blackboard_fuzz.c)
@@ -237,7 +237,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase11_blackboard_fuzz.c AND
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase11_blackboard_fuzz PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase11_blackboard_fuzz COMMAND test_ai_phase11_blackboard_fuzz)
+    rogue_add_test(test_ai_phase11_blackboard_fuzz COMMAND test_ai_phase11_blackboard_fuzz)
 endif()
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase11_scenario.c AND NOT TARGET test_ai_phase11_scenario)
     add_executable(test_ai_phase11_scenario unit/test_ai_phase11_scenario.c)
@@ -245,7 +245,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase11_scenario.c AND NOT TA
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase11_scenario PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase11_scenario COMMAND test_ai_phase11_scenario)
+    rogue_add_test(test_ai_phase11_scenario COMMAND test_ai_phase11_scenario)
 endif()
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase11_repro_trace.c AND NOT TARGET test_ai_phase11_repro_trace)
     add_executable(test_ai_phase11_repro_trace unit/test_ai_phase11_repro_trace.c)
@@ -253,7 +253,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase11_repro_trace.c AND NOT
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase11_repro_trace PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase11_repro_trace COMMAND test_ai_phase11_repro_trace)
+    rogue_add_test(test_ai_phase11_repro_trace COMMAND test_ai_phase11_repro_trace)
 endif()
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase11_perf_guard.c AND NOT TARGET test_ai_phase11_perf_guard)
     add_executable(test_ai_phase11_perf_guard unit/test_ai_phase11_perf_guard.c)
@@ -261,7 +261,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase11_perf_guard.c AND NOT 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase11_perf_guard PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase11_perf_guard COMMAND test_ai_phase11_perf_guard)
+    rogue_add_test(test_ai_phase11_perf_guard COMMAND test_ai_phase11_perf_guard)
 endif()
 
 # AI Phase 1.8+ tests
@@ -271,7 +271,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase1_8_plus.c AND NOT TARGE
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase1_8_plus PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase1_8_plus COMMAND test_ai_phase1_8_plus)
+    rogue_add_test(test_ai_phase1_8_plus COMMAND test_ai_phase1_8_plus)
 endif()
 
 # AI Phase 5 path smoothing and stuck detection scaffold test
@@ -282,7 +282,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase5_path_smoothing_and_stu
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase5_path_smoothing_and_stuck PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase5_path_smoothing_and_stuck COMMAND test_ai_phase5_path_smoothing_and_stuck)
+    rogue_add_test(test_ai_phase5_path_smoothing_and_stuck COMMAND test_ai_phase5_path_smoothing_and_stuck)
 endif()
 
 # AI Phase 5 stuck detection decorator focused test
@@ -293,5 +293,5 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ai_phase5_stuck_detect.c AND NOT
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_ai_phase5_stuck_detect PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_ai_phase5_stuck_detect COMMAND test_ai_phase5_stuck_detect)
+    rogue_add_test(test_ai_phase5_stuck_detect COMMAND test_ai_phase5_stuck_detect)
 endif()

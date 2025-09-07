@@ -35,7 +35,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dungeon_phase2_4_deco_layering.c
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_dungeon_phase2_4_deco_layering PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_dungeon_phase2_4_deco_layering COMMAND test_dungeon_phase2_4_deco_layering)
+    rogue_add_test(test_dungeon_phase2_4_deco_layering COMMAND test_dungeon_phase2_4_deco_layering)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dungeon_phase2_room_templates_json_fuzz.c AND NOT TARGET test_dungeon_phase2_room_templates_json_fuzz)
@@ -45,7 +45,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dungeon_phase2_room_templates_js
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_dungeon_phase2_room_templates_json_fuzz PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_dungeon_phase2_room_templates_json_fuzz COMMAND test_dungeon_phase2_room_templates_json_fuzz)
+    rogue_add_test(test_dungeon_phase2_room_templates_json_fuzz COMMAND test_dungeon_phase2_room_templates_json_fuzz)
 endif()
 
 # Minimap loot pings test (Itemsystem 12.4)
@@ -55,7 +55,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_minimap_loot_pings.c AND NOT TAR
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_minimap_loot_pings PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_minimap_loot_pings COMMAND test_minimap_loot_pings)
+    rogue_add_test(test_minimap_loot_pings COMMAND test_minimap_loot_pings)
 endif()
 
 # Phase 8: Dungeon loot & materials
@@ -66,7 +66,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dungeon_phase8_loot_and_material
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_dungeon_phase8_loot_and_materials PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_dungeon_phase8_loot_and_materials COMMAND test_dungeon_phase8_loot_and_materials)
+    rogue_add_test(test_dungeon_phase8_loot_and_materials COMMAND test_dungeon_phase8_loot_and_materials)
 endif()
 
 # Phase 9: gating manifest export
@@ -77,7 +77,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dungeon_phase9_4_gating_manifest
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_dungeon_phase9_4_gating_manifest PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_dungeon_phase9_4_gating_manifest COMMAND test_dungeon_phase9_4_gating_manifest)
+    rogue_add_test(test_dungeon_phase9_4_gating_manifest COMMAND test_dungeon_phase9_4_gating_manifest)
 endif()
 
 # Vendor/Crafting: run summary consumer wiring
@@ -87,7 +87,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase9_run_summary_consum
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_vendor_phase9_run_summary_consumer PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_vendor_phase9_run_summary_consumer COMMAND test_vendor_phase9_run_summary_consumer)
+    rogue_add_test(test_vendor_phase9_run_summary_consumer COMMAND test_vendor_phase9_run_summary_consumer)
 endif()
 # Automatically reconfigure when new unit tests are added
 file(GLOB UNIT_TESTS CONFIGURE_DEPENDS unit/test_*.c)
@@ -103,7 +103,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase7_2_procs_icd.c AND 
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skills_phase7_2_procs_icd PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skills_phase7_2_procs_icd COMMAND test_skills_phase7_2_procs_icd)
+    rogue_add_test(test_skills_phase7_2_procs_icd COMMAND test_skills_phase7_2_procs_icd)
 endif()
 
 # Phase 7.3 probability & smoothing test
@@ -114,7 +114,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase7_3_probability.c AN
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skills_phase7_3_probability PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skills_phase7_3_probability COMMAND test_skills_phase7_3_probability)
+    rogue_add_test(test_skills_phase7_3_probability COMMAND test_skills_phase7_3_probability)
 endif()
 
 # Phase 7.4/7.5: loop guard and dynamic scaling
@@ -125,7 +125,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase7_4_5_loop_and_scali
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skills_phase7_4_5_loop_and_scaling PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skills_phase7_4_5_loop_and_scaling COMMAND test_skills_phase7_4_5_loop_and_scaling)
+    rogue_add_test(test_skills_phase7_4_5_loop_and_scaling COMMAND test_skills_phase7_4_5_loop_and_scaling)
 endif()
 
 # Explicitly add new maintainability phase M3.5 projectile config hot reload test
@@ -135,7 +135,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_projectiles_config.c AND NOT TAR
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_projectiles_config PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_projectiles_config COMMAND test_projectiles_config)
+    rogue_add_test(test_projectiles_config COMMAND test_projectiles_config)
 endif()
 # Phase M3.7: persistence version tag test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_persistence_versions.c AND NOT TARGET test_persistence_versions)
@@ -144,7 +144,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_persistence_versions.c AND NOT T
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_persistence_versions PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_persistence_versions COMMAND test_persistence_versions)
+    rogue_add_test(test_persistence_versions COMMAND test_persistence_versions)
 endif()
 
 # Phase M4.1: projectile config edge cases
@@ -154,7 +154,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_projectiles_config_edge.c AND NO
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_projectiles_config_edge PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_projectiles_config_edge COMMAND test_projectiles_config_edge)
+    rogue_add_test(test_projectiles_config_edge COMMAND test_projectiles_config_edge)
 endif()
 
 # Phase 1.4: PNG sequence loader negative-path smoke test
@@ -165,7 +165,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_4_png_sequence_loa
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skills_phase1_4_png_sequence_loader PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skills_phase1_4_png_sequence_loader COMMAND test_skills_phase1_4_png_sequence_loader)
+    rogue_add_test(test_skills_phase1_4_png_sequence_loader COMMAND test_skills_phase1_4_png_sequence_loader)
 endif()
 
 # Phase 1.4: Sprite atlas packing negative-path test
@@ -176,7 +176,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_4_sprite_atlas_pac
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skills_phase1_4_sprite_atlas_pack PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skills_phase1_4_sprite_atlas_pack COMMAND test_skills_phase1_4_sprite_atlas_pack)
+    rogue_add_test(test_skills_phase1_4_sprite_atlas_pack COMMAND test_skills_phase1_4_sprite_atlas_pack)
 endif()
 
 # Phase 1.4: Asset dependency tracking + hot-reload poll foundation test
@@ -187,7 +187,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_4_asset_dep_tracki
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skills_phase1_4_asset_dep_tracking PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skills_phase1_4_asset_dep_tracking COMMAND test_skills_phase1_4_asset_dep_tracking)
+    rogue_add_test(test_skills_phase1_4_asset_dep_tracking COMMAND test_skills_phase1_4_asset_dep_tracking)
 endif()
 
 # Phase 1.5: Enhanced data model schema validation (visual/audio/AoE/projectile/effects)
@@ -198,7 +198,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_skills_phase1_5_enhanced_schema.
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_skills_phase1_5_enhanced_schema PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_skills_phase1_5_enhanced_schema COMMAND test_skills_phase1_5_enhanced_schema)
+    rogue_add_test(test_skills_phase1_5_enhanced_schema COMMAND test_skills_phase1_5_enhanced_schema)
 endif()
 
 # Phase M4.1: persistence edge cases
@@ -208,7 +208,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_persistence_edge_cases.c AND NOT
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(test_persistence_edge_cases PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_persistence_edge_cases COMMAND test_persistence_edge_cases)
+    rogue_add_test(test_persistence_edge_cases COMMAND test_persistence_edge_cases)
 endif()
 
 foreach(ut ${UNIT_TESTS})
@@ -225,15 +225,7 @@ foreach(ut ${UNIT_TESTS})
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(${name} PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME ${name} COMMAND ${name})
-    # Ensure SDL runtime is discoverable in CTest on Windows; prefer directory provided from parent scope
-    if(WIN32 AND ROGUE_ENABLE_SDL)
-        # Headless renderer and PATH tweak
-        set_property(TEST ${name} APPEND PROPERTY ENVIRONMENT "SDL_VIDEODRIVER=dummy")
-        if(DEFINED ROGUE_SDL2_DLL_DIR AND NOT ROGUE_SDL2_DLL_DIR STREQUAL "")
-            set_property(TEST ${name} APPEND PROPERTY ENVIRONMENT "PATH=${ROGUE_SDL2_DLL_DIR};$ENV{PATH}")
-        endif()
-    endif()
+    rogue_add_test(${name} COMMAND ${name})
 endforeach()
 
 # Automatically reconfigure when new integration tests are added
@@ -245,20 +237,7 @@ foreach(it ${INTEGRATION_TESTS})
     if(ROGUE_ENABLE_SDL)
         target_compile_definitions(${name} PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    if(ROGUE_ENABLE_SDL)
-        add_test(NAME ${name} COMMAND ${name})
-        # Headless renderer for CI and PATH fix on Windows
-        if(WIN32)
-            set_property(TEST ${name} APPEND PROPERTY ENVIRONMENT "SDL_VIDEODRIVER=dummy")
-            if(DEFINED ROGUE_SDL2_DLL_DIR AND NOT ROGUE_SDL2_DLL_DIR STREQUAL "")
-                set_property(TEST ${name} APPEND PROPERTY ENVIRONMENT "PATH=${ROGUE_SDL2_DLL_DIR};$ENV{PATH}")
-            endif()
-        else()
-            set_property(TEST ${name} APPEND PROPERTY ENVIRONMENT "SDL_VIDEODRIVER=dummy")
-        endif()
-    else()
-        add_test(NAME ${name} COMMAND ${name})
-    endif()
+    rogue_add_test(${name} COMMAND ${name})
 endforeach()
 
 # Backfill critical compile definitions for tests that may have been generated before

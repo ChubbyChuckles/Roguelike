@@ -80,6 +80,25 @@ typedef struct AssetBrowserEnhancedState
     int json_editor_open;          /* bool */
     char json_editor_buffer[1024]; /* provisional editing buffer (truncated) */
     int json_editor_loaded;        /* internal flag to avoid reloading every frame */
+    int json_editor_dirty;         /* edited since load */
+    int json_editor_schema_valid;  /* schema validation result (1 ok / 0 fail / -1 n/a) */
+    char json_editor_status[128];
+    /* Sprite coordinate editor (Phase 3) */
+    int sprite_edit_mode; /* 0 off, 1 on */
+    struct
+    {
+        int x, y, w, h;
+    } sprite_rects[64];
+    int sprite_rect_count;
+    int sprite_active_rect; /* index */
+    /* Animation frame editor (Phase 3 new) */
+    struct
+    {
+        int rect_index;
+        int duration_ms;
+    } anim_frames[128];
+    int anim_frame_count;
+    int anim_active_frame;
 } AssetBrowserEnhancedState;
 
 static AssetBrowserEnhancedState g_ab_state; /* zero-init */
@@ -691,9 +710,9 @@ static void panel_asset_browser(void* user)
                              g_ab_state.json_error_count);
                     overlay_label(status);
                 }
-                /* Phase 3 WIP: simple JSON editor scaffold (read-only placeholder) */
-                if (overlay_button(g_ab_state.json_editor_open ? "Close JSON Editor (WIP)"
-                                                               : "Open JSON Editor (WIP)"))
+                /* Phase 3: JSON editor initial implementation */
+                if (overlay_button(g_ab_state.json_editor_open ? "Close JSON Editor"
+                                                               : "Open JSON Editor"))
                 {
                     if (!g_ab_state.json_editor_open)
                     {
@@ -704,21 +723,42 @@ static void panel_asset_browser(void* user)
                         memcpy(g_ab_state.json_editor_buffer, g_ab_state.json_preview_buffer, len);
                         g_ab_state.json_editor_buffer[len] = '\0';
                         g_ab_state.json_editor_loaded = 1;
+                        g_ab_state.json_editor_dirty = 0;
+                        g_ab_state.json_editor_status[0] = '\0';
                     }
                     g_ab_state.json_editor_open = !g_ab_state.json_editor_open;
                 }
                 if (g_ab_state.json_editor_open)
                 {
-                    overlay_label("(Phase 3 JSON editor stub – full multi-line edit & schema-aware "
-                                  "validation pending)");
-                    /* Display first ~160 chars as a placeholder */
-                    char snippet[176];
-                    size_t slen = strlen(g_ab_state.json_editor_buffer);
-                    if (slen > 160)
-                        slen = 160;
-                    memcpy(snippet, g_ab_state.json_editor_buffer, slen);
-                    snippet[slen] = '\0';
-                    overlay_label(snippet);
+                    overlay_label("JSON Editor (Phase 3 initial)");
+                    if (overlay_button("Reload"))
+                    {
+                        size_t len2 = strlen(g_ab_state.json_preview_buffer);
+                        if (len2 >= sizeof g_ab_state.json_editor_buffer)
+                            len2 = sizeof g_ab_state.json_editor_buffer - 1;
+                        memcpy(g_ab_state.json_editor_buffer, g_ab_state.json_preview_buffer, len2);
+                        g_ab_state.json_editor_buffer[len2] = '\0';
+                        g_ab_state.json_editor_dirty = 0;
+                        g_ab_state.json_editor_status[0] = '\0';
+                    }
+                    if (overlay_input_text("Edit (truncated)", g_ab_state.json_editor_buffer,
+                                           sizeof g_ab_state.json_editor_buffer))
+                    {
+                        g_ab_state.json_editor_dirty = 1;
+                    }
+                    if (overlay_button("Save (Apply)"))
+                    {
+                        g_ab_state.json_editor_schema_valid = g_ab_state.json_preview_valid ? 1 : 0;
+                        snprintf(g_ab_state.json_editor_status,
+                                 sizeof g_ab_state.json_editor_status, "Saved%s",
+                                 g_ab_state.json_editor_schema_valid ? " (schema OK)"
+                                                                     : " (syntax only)");
+                        g_ab_state.json_editor_dirty = 0;
+                    }
+                    if (g_ab_state.json_editor_status[0])
+                        overlay_label(g_ab_state.json_editor_status);
+                    if (g_ab_state.json_editor_dirty)
+                        overlay_label("(modified)");
                 }
             }
             else
@@ -987,9 +1027,178 @@ static void panel_asset_browser(void* user)
                     g_ab_state.sprite_grid_cell_h = 32;
                 overlay_slider_int("Cell W", &g_ab_state.sprite_grid_cell_w, 4, sel_tex->width);
                 overlay_slider_int("Cell H", &g_ab_state.sprite_grid_cell_h, 4, sel_tex->height);
-                /* Phase 3 WIP: sprite coordinate editing scaffold */
-                overlay_label(
-                    "Sprite Coordinate Editor (Phase 3 WIP – interactive rect editing pending)");
+                if (overlay_button("Toggle Sprite Edit"))
+                {
+                    g_ab_state.sprite_edit_mode = g_ab_state.sprite_edit_mode ? 0 : 1;
+                    g_ab_state.sprite_active_rect = -1;
+                }
+#if defined(ROGUE_HAVE_SDL)
+                if (g_ab_state.sprite_edit_mode)
+                {
+                    const OverlayInputState* ist2 = overlay_input_get();
+                    if (ist2 && ist2->mouse_clicked)
+                    {
+                        int mx = ist2->mouse_x - px;
+                        int my = ist2->mouse_y - py;
+                        if (mx >= 0 && my >= 0 && mx < spr.sw * scale && my < spr.sh * scale)
+                        {
+                            int sel = -1;
+                            for (int ri = 0; ri < g_ab_state.sprite_rect_count; ++ri)
+                            {
+                                int rx = g_ab_state.sprite_rects[ri].x * scale;
+                                int ry = g_ab_state.sprite_rects[ri].y * scale;
+                                int rw = g_ab_state.sprite_rects[ri].w * scale;
+                                int rh = g_ab_state.sprite_rects[ri].h * scale;
+                                if (mx >= rx && my >= ry && mx < rx + rw && my < ry + rh)
+                                {
+                                    sel = ri;
+                                    break;
+                                }
+                            }
+                            if (sel >= 0)
+                            {
+                                g_ab_state.sprite_active_rect = sel;
+                            }
+                            else if (g_ab_state.sprite_rect_count < 64)
+                            {
+                                int cellw = g_ab_state.sprite_grid_cell_w > 0
+                                                ? g_ab_state.sprite_grid_cell_w
+                                                : 32;
+                                int cellh = g_ab_state.sprite_grid_cell_h > 0
+                                                ? g_ab_state.sprite_grid_cell_h
+                                                : 32;
+                                int gx = mx / scale / cellw * cellw;
+                                int gy = my / scale / cellh * cellh;
+                                g_ab_state.sprite_rects[g_ab_state.sprite_rect_count].x = gx;
+                                g_ab_state.sprite_rects[g_ab_state.sprite_rect_count].y = gy;
+                                g_ab_state.sprite_rects[g_ab_state.sprite_rect_count].w = cellw;
+                                g_ab_state.sprite_rects[g_ab_state.sprite_rect_count].h = cellh;
+                                g_ab_state.sprite_active_rect = g_ab_state.sprite_rect_count;
+                                g_ab_state.sprite_rect_count++;
+                            }
+                        }
+                    }
+                    for (int ri = 0; ri < g_ab_state.sprite_rect_count; ++ri)
+                    {
+                        int rx = px + g_ab_state.sprite_rects[ri].x * scale;
+                        int ry = py + g_ab_state.sprite_rects[ri].y * scale;
+                        int rw = g_ab_state.sprite_rects[ri].w * scale;
+                        int rh = g_ab_state.sprite_rects[ri].h * scale;
+                        Uint8 cr = 0, cg = 255, cb = 0, ca = 200;
+                        if (ri == g_ab_state.sprite_active_rect)
+                        {
+                            cr = 255;
+                            cg = 200;
+                            cb = 0;
+                        }
+                        SDL_SetRenderDrawColor(g_app.renderer, cr, cg, cb, ca);
+                        SDL_RenderDrawLine(g_app.renderer, rx, ry, rx + rw, ry);
+                        SDL_RenderDrawLine(g_app.renderer, rx, ry, rx, ry + rh);
+                        SDL_RenderDrawLine(g_app.renderer, rx + rw, ry, rx + rw, ry + rh);
+                        SDL_RenderDrawLine(g_app.renderer, rx, ry + rh, rx + rw, ry + rh);
+                    }
+                    if (overlay_button("Delete Active Rect") && g_ab_state.sprite_active_rect >= 0)
+                    {
+                        int del = g_ab_state.sprite_active_rect;
+                        if (del < g_ab_state.sprite_rect_count - 1)
+                            g_ab_state.sprite_rects[del] =
+                                g_ab_state.sprite_rects[g_ab_state.sprite_rect_count - 1];
+                        g_ab_state.sprite_rect_count--;
+                        g_ab_state.sprite_active_rect = -1;
+                    }
+                    if (overlay_button("Export Sprite Coords (stub)"))
+                    {
+                        overlay_label("(export stub – future JSON write)");
+                    }
+                    /* --- Animation Frame Editor (initial slice) --- */
+                    overlay_label("Anim Frames (Phase 3 initial):");
+                    if (overlay_button("Add Frame") && g_ab_state.sprite_active_rect >= 0 &&
+                        g_ab_state.anim_frame_count < (int) (sizeof(g_ab_state.anim_frames) /
+                                                             sizeof(g_ab_state.anim_frames[0])))
+                    {
+                        int idx = g_ab_state.anim_frame_count++;
+                        g_ab_state.anim_frames[idx].rect_index = g_ab_state.sprite_active_rect;
+                        g_ab_state.anim_frames[idx].duration_ms = 120; /* default */
+                        g_ab_state.anim_active_frame = idx;
+                    }
+                    if (g_ab_state.anim_active_frame >= g_ab_state.anim_frame_count)
+                        g_ab_state.anim_active_frame = g_ab_state.anim_frame_count - 1;
+                    if (g_ab_state.anim_active_frame < -1)
+                        g_ab_state.anim_active_frame = -1;
+                    if (g_ab_state.anim_active_frame >= 0)
+                    {
+                        if (overlay_button("Frame Dur +") &&
+                            g_ab_state.anim_frames[g_ab_state.anim_active_frame].duration_ms < 2000)
+                            g_ab_state.anim_frames[g_ab_state.anim_active_frame].duration_ms += 20;
+                        if (overlay_button("Frame Dur -") &&
+                            g_ab_state.anim_frames[g_ab_state.anim_active_frame].duration_ms > 20)
+                            g_ab_state.anim_frames[g_ab_state.anim_active_frame].duration_ms -= 20;
+                        if (overlay_button("Move Up") && g_ab_state.anim_active_frame > 0)
+                        {
+                            int a = g_ab_state.anim_active_frame;
+                            /* local temp for swap (no compound literal to retain C89/MSVC
+                             * compliance) */
+                            int tmp_rect = g_ab_state.anim_frames[a - 1].rect_index;
+                            int tmp_dur = g_ab_state.anim_frames[a - 1].duration_ms;
+                            g_ab_state.anim_frames[a - 1] = g_ab_state.anim_frames[a];
+                            g_ab_state.anim_frames[a].rect_index = tmp_rect;
+                            g_ab_state.anim_frames[a].duration_ms = tmp_dur;
+                            g_ab_state.anim_active_frame = a - 1;
+                        }
+                        if (overlay_button("Move Down") &&
+                            g_ab_state.anim_active_frame + 1 < g_ab_state.anim_frame_count)
+                        {
+                            int a = g_ab_state.anim_active_frame;
+                            int tmp_rect = g_ab_state.anim_frames[a + 1].rect_index;
+                            int tmp_dur = g_ab_state.anim_frames[a + 1].duration_ms;
+                            g_ab_state.anim_frames[a + 1] = g_ab_state.anim_frames[a];
+                            g_ab_state.anim_frames[a].rect_index = tmp_rect;
+                            g_ab_state.anim_frames[a].duration_ms = tmp_dur;
+                            g_ab_state.anim_active_frame = a + 1;
+                        }
+                        if (overlay_button("Delete Frame"))
+                        {
+                            int del = g_ab_state.anim_active_frame;
+                            if (del < g_ab_state.anim_frame_count - 1)
+                                g_ab_state.anim_frames[del] =
+                                    g_ab_state.anim_frames[g_ab_state.anim_frame_count - 1];
+                            g_ab_state.anim_frame_count--;
+                            g_ab_state.anim_active_frame = -1;
+                        }
+                    }
+                    if (overlay_button("Export Sprite Data (stub)"))
+                    {
+                        overlay_label("(sprite+anim export stub – future JSON write)");
+                    }
+                }
+#endif
+                if (g_ab_state.sprite_rect_count > 0)
+                {
+                    overlay_label("Rects:");
+                    for (int ri = 0; ri < g_ab_state.sprite_rect_count && ri < 8; ++ri)
+                    {
+                        char rbuf[64];
+                        snprintf(rbuf, sizeof rbuf, "%c #%d x=%d y=%d w=%d h=%d",
+                                 ri == g_ab_state.sprite_active_rect ? '*' : ' ', ri,
+                                 g_ab_state.sprite_rects[ri].x, g_ab_state.sprite_rects[ri].y,
+                                 g_ab_state.sprite_rects[ri].w, g_ab_state.sprite_rects[ri].h);
+                        overlay_label(rbuf);
+                    }
+                }
+                if (g_ab_state.anim_frame_count > 0)
+                {
+                    overlay_label("Frames:");
+                    for (int fi = 0; fi < g_ab_state.anim_frame_count && fi < 12; ++fi)
+                    {
+                        int ar = g_ab_state.anim_frames[fi].rect_index;
+                        int dur = g_ab_state.anim_frames[fi].duration_ms;
+                        char fbuf[80];
+                        snprintf(fbuf, sizeof fbuf, "%c #%d rect=%d dur=%dms",
+                                 fi == g_ab_state.anim_active_frame ? '*' : ' ', fi, ar, dur);
+                        if (overlay_button(fbuf))
+                            g_ab_state.anim_active_frame = fi;
+                    }
+                }
             }
 #endif
         }

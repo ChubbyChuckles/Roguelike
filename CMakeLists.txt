@@ -605,6 +605,8 @@ install(FILES ${CMAKE_BINARY_DIR}/asset_manifest.txt DESTINATION meta OPTIONAL)
 
 add_test(NAME asset_validation_cli
     COMMAND asset_validate --manifest ${CMAKE_BINARY_DIR}/asset_manifest_ctest.txt --optimize)
+# Run from project root so the CLI finds the assets/ directory (it expects CWD with assets/)
+set_tests_properties(asset_validation_cli PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 add_test(NAME asset_tool_stats_cli
     COMMAND asset_tool stats)
@@ -1485,57 +1487,116 @@ target_compile_definitions(rogue_core PUBLIC ROGUE_TEST_SHORT_COOLDOWNS=1)
 
 include(CTest)
 enable_testing()
+
+# Provide a helper to register tests with a unified environment (dummy SDL drivers + staged runtimes on Windows)
+function(rogue_add_test NAME)
+    # Remaining arguments form the COMMAND
+    set(options)
+    set(oneValueArgs)
+    set(multiValueArgs COMMAND)
+    cmake_parse_arguments(RAT "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+    if(NOT RAT_COMMAND)
+        message(FATAL_ERROR "rogue_add_test(${NAME}) requires COMMAND <cmd>...")
+    endif()
+    add_test(NAME ${NAME} COMMAND ${RAT_COMMAND})
+    # Apply environment immediately so multi-config generators persist it into per-config test files
+    if(WIN32 AND ROGUE_ENABLE_SDL)
+        # Build canonical PATH fragment once (cache it so multiple calls are cheap)
+        if(NOT DEFINED ROGUE_CACHED_TEST_PATH_FRAGMENT)
+            set(_rogue_runtime_paths "${CMAKE_BINARY_DIR}/runtimes")
+            if(EXISTS "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/bin")
+                list(APPEND _rogue_runtime_paths "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/bin")
+            endif()
+            if(EXISTS "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/debug/bin")
+                list(APPEND _rogue_runtime_paths "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/debug/bin")
+            endif()
+            foreach(_cfg Debug Release RelWithDebInfo MinSizeRel)
+                if(EXISTS "${CMAKE_BINARY_DIR}/tests/${_cfg}")
+                    list(APPEND _rogue_runtime_paths "${CMAKE_BINARY_DIR}/tests/${_cfg}")
+                endif()
+            endforeach()
+            list(REMOVE_DUPLICATES _rogue_runtime_paths)
+            string(JOIN ";" ROGUE_CACHED_TEST_PATH_FRAGMENT ${_rogue_runtime_paths})
+            set(ROGUE_CACHED_TEST_PATH_FRAGMENT "${ROGUE_CACHED_TEST_PATH_FRAGMENT}" CACHE INTERNAL "Unified test PATH fragment")
+            message(STATUS "[rogue_add_test] Computed unified test PATH fragment: ${ROGUE_CACHED_TEST_PATH_FRAGMENT}")
+        endif()
+        # Apply full environment now (per-test) rather than late global pass to ensure MSVC multi-config keeps it.
+        set_tests_properties(${NAME} PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy;PATH=${ROGUE_CACHED_TEST_PATH_FRAGMENT};$ENV{PATH}")
+    endif()
+endfunction()
+
 add_subdirectory(tests)
 
 add_test(NAME test_audio_vfx_phase1_2 COMMAND test_audio_vfx_phase1_2)
 add_test(NAME test_audio_vfx_phase1_5_compaction COMMAND test_audio_vfx_phase1_5_compaction)
 
-# --- Ensure SDL2.dll is found when running tests on Windows ---
-# Many tests are console/headless and depend on SDL2. When launched via CTest, the
-# system PATH may not include the SDL2 runtime directory, leading to a popup error
-# "SDL2.dll not found". Detect a plausible SDL2.dll directory and append it to PATH
-# for all tests. Also set SDL_VIDEODRIVER=dummy to avoid creating windows in CI.
+## Legacy global PATH/SDL injection logic retained (commented) for reference; superseded by rogue_add_test.
+# if(WIN32 AND ROGUE_ENABLE_SDL)
+#     set(ROGUE_SDL2_DLL_DIR "${ROGUE_SDL2_DLL_DIR}" CACHE PATH "Directory containing SDL2.dll for test runtime")
+#     if(NOT ROGUE_SDL2_DLL_DIR)
+#         set(_SDL2_DLL_HINTS
+#             "$ENV{ROGUE_SDL2_ROOT}/bin"
+#             "$ENV{ROGUE_SDL2_ROOT}/lib/x64"
+#             "${ROGUE_SDL2_ROOT}/bin"
+#             "${ROGUE_SDL2_ROOT}/lib/x64"
+#             "C:/libs/SDL2/bin"
+#         )
+#         foreach(_hint IN LISTS _SDL2_DLL_HINTS)
+#             if(EXISTS "${_hint}/SDL2.dll")
+#                 set(ROGUE_SDL2_DLL_DIR ${_hint})
+#                 break()
+#             endif()
+#         endforeach()
+#     endif()
+#     if(ROGUE_SDL2_DLL_DIR)
+#         message(STATUS "(legacy) Tests will add DLL directories to PATH: ${ROGUE_SDL2_DLL_DIR}")
+#     else()
+#         message(WARNING "(legacy) SDL2.dll directory not found automatically; tests may fail to start.")
+#     endif()
+# endif()
 if(WIN32 AND ROGUE_ENABLE_SDL)
-    # Allow manual override
-    set(ROGUE_SDL2_DLL_DIR "${ROGUE_SDL2_DLL_DIR}" CACHE PATH "Directory containing SDL2.dll for test runtime")
-    if(NOT ROGUE_SDL2_DLL_DIR)
-        # Try common locations based on ROGUE_SDL2_ROOT or a conventional install path
-        set(_SDL2_DLL_HINTS
-            "$ENV{ROGUE_SDL2_ROOT}/bin"
-            "$ENV{ROGUE_SDL2_ROOT}/lib/x64"
-            "${ROGUE_SDL2_ROOT}/bin"
-            "${ROGUE_SDL2_ROOT}/lib/x64"
-            "C:/libs/SDL2/bin"
-            "C:/libs/SDL2/lib/x64"
-        )
-        find_file(_SDL2_DLL_FILE NAMES SDL2.dll HINTS ${_SDL2_DLL_HINTS} NO_CACHE)
-        if(_SDL2_DLL_FILE)
-            get_filename_component(ROGUE_SDL2_DLL_DIR "${_SDL2_DLL_FILE}" DIRECTORY)
-        endif()
+    # Recompute DLL search directories for staging (lightweight)
+    set(_rogue_runtime_copy_dirs)
+    if(EXISTS "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/bin")
+        list(APPEND _rogue_runtime_copy_dirs "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/bin")
     endif()
-
-    if(ROGUE_SDL2_DLL_DIR)
-        message(STATUS "Tests will add SDL2.dll directory to PATH: ${ROGUE_SDL2_DLL_DIR}")
-        # Collect tests defined at root and in tests/ subdirectory
-        get_property(_root_tests DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY TESTS)
-        get_property(_subdir_tests DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests PROPERTY TESTS)
-        set(_all_tests ${_root_tests} ${_subdir_tests})
-        list(REMOVE_DUPLICATES _all_tests)
-        if(_all_tests)
-            foreach(_t IN LISTS _all_tests)
-                if(TEST ${_t})
-                    # Append so we don't override any per-test environment set elsewhere
-                    set_property(TEST ${_t} APPEND PROPERTY ENVIRONMENT "SDL_VIDEODRIVER=dummy")
-                    set_property(TEST ${_t} APPEND PROPERTY ENVIRONMENT "PATH=${ROGUE_SDL2_DLL_DIR};$ENV{PATH}")
+    if(EXISTS "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/debug/bin")
+        list(APPEND _rogue_runtime_copy_dirs "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/debug/bin")
+    endif()
+    list(REMOVE_DUPLICATES _rogue_runtime_copy_dirs)
+    set(_rogue_runtime_patterns SDL2.dll SDL2d.dll SDL2_image*.dll SDL2_mixer*.dll SDL2_ttf*.dll libpng*.dll zlib*.dll libjpeg*.dll libwebp*.dll ogg.dll vorbis*.dll FLAC*.dll webp*.dll wavpackdll.dll)
+    set(_rogue_runtime_found "")
+    foreach(_d IN LISTS _rogue_runtime_copy_dirs)
+        if(EXISTS "${_d}")
+            foreach(_pat IN LISTS _rogue_runtime_patterns)
+                file(GLOB _matches "${_d}/${_pat}")
+                if(_matches)
+                    list(APPEND _rogue_runtime_found ${_matches})
                 endif()
             endforeach()
         endif()
-
-    # Copying is handled in tests/CMakeLists.txt where test targets are created.
+    endforeach()
+    if(_rogue_runtime_found)
+        list(REMOVE_DUPLICATES _rogue_runtime_found)
+        add_custom_target(copy_sdl_runtimes ALL
+            COMMAND ${CMAKE_COMMAND} -E echo "Copying SDL runtimes (${_rogue_runtime_found})"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/runtimes"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${_rogue_runtime_found} "${CMAKE_BINARY_DIR}/runtimes"
+            COMMENT "Stage SDL2 & dependent runtime DLLs locally")
+        option(ROGUE_INSTALL_SDL_RUNTIMES "Install staged SDL runtime DLLs" ON)
+        if(ROGUE_INSTALL_SDL_RUNTIMES)
+            install(DIRECTORY ${CMAKE_BINARY_DIR}/runtimes/ DESTINATION bin FILES_MATCHING PATTERN "*.dll")
+        endif()
     else()
-        message(WARNING "SDL2.dll directory not found automatically; tests may fail to start. Set -DROGUE_SDL2_DLL_DIR=path to the folder containing SDL2.dll.")
+        message(WARNING "No SDL runtime DLLs found to copy (patterns: ${_rogue_runtime_patterns})")
     endif()
 endif()
+
+# After all tests (including those added in subdirectories) are defined, unify
+# the test environment so every test gets the dummy SDL drivers and the staged
+# runtime PATH. Previously only a subset of root-level tests had PATH injection,
+# leaving many (e.g. AI phase tests) without SDL2d.dll on the loader search path.
+# Unified environment now applied at definition time via rogue_add_test; previous late global override removed.
 
 find_program(CLANG_FORMAT_EXE NAMES clang-format)
 if(CLANG_FORMAT_EXE)

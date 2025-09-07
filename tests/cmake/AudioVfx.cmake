@@ -10,7 +10,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase1_2.c)
         target_link_libraries(test_audio_vfx_phase1_2 PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase1_2 PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase1_2 COMMAND test_audio_vfx_phase1_2)
+    rogue_add_test(test_audio_vfx_phase1_2 COMMAND test_audio_vfx_phase1_2)
 endif()
 
 # Phase 1.5 - Audio compaction and optimization
@@ -21,7 +21,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase1_5_compaction.c)
         target_link_libraries(test_audio_vfx_phase1_5_compaction PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase1_5_compaction PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase1_5_compaction COMMAND test_audio_vfx_phase1_5_compaction)
+    rogue_add_test(test_audio_vfx_phase1_5_compaction COMMAND test_audio_vfx_phase1_5_compaction)
 endif()
 
 # Phase 2.1 - Registry clear functionality
@@ -32,7 +32,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase2_1_registry_clear.
         target_link_libraries(test_audio_vfx_phase2_1_registry_clear PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase2_1_registry_clear PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase2_1_registry_clear COMMAND test_audio_vfx_phase2_1_registry_clear)
+    rogue_add_test(test_audio_vfx_phase2_1_registry_clear COMMAND test_audio_vfx_phase2_1_registry_clear)
 endif()
 
 # Phase 2.2 - Mixer gain control
@@ -43,7 +43,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase2_2_mixer_gain.c)
         target_link_libraries(test_audio_vfx_phase2_2_mixer_gain PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase2_2_mixer_gain PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase2_2_mixer_gain COMMAND test_audio_vfx_phase2_2_mixer_gain)
+    rogue_add_test(test_audio_vfx_phase2_2_mixer_gain COMMAND test_audio_vfx_phase2_2_mixer_gain)
 endif()
 
 # Phase 2.3 - Audio mute functionality
@@ -54,7 +54,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase2_3_mute.c)
         target_link_libraries(test_audio_vfx_phase2_3_mute PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase2_3_mute PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase2_3_mute COMMAND test_audio_vfx_phase2_3_mute)
+    rogue_add_test(test_audio_vfx_phase2_3_mute COMMAND test_audio_vfx_phase2_3_mute)
 endif()
 
 # Phase 2.6 - Positional audio
@@ -65,7 +65,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase2_6_positional.c)
         target_link_libraries(test_audio_vfx_phase2_6_positional PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase2_6_positional PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase2_6_positional COMMAND test_audio_vfx_phase2_6_positional)
+    rogue_add_test(test_audio_vfx_phase2_6_positional COMMAND test_audio_vfx_phase2_6_positional)
 endif()
 
 # Phase 3.1 - VFX foundations
@@ -76,7 +76,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase3_1_vfx_foundations
         target_link_libraries(test_audio_vfx_phase3_1_vfx_foundations PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase3_1_vfx_foundations PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase3_1_vfx_foundations COMMAND test_audio_vfx_phase3_1_vfx_foundations)
+    rogue_add_test(test_audio_vfx_phase3_1_vfx_foundations COMMAND test_audio_vfx_phase3_1_vfx_foundations)
 endif()
 
 # Phase 3.2 - Core particle system
@@ -87,7 +87,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase3_2_particles_core.
         target_link_libraries(test_audio_vfx_phase3_2_particles_core PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase3_2_particles_core PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase3_2_particles_core COMMAND test_audio_vfx_phase3_2_particles_core)
+    rogue_add_test(test_audio_vfx_phase3_2_particles_core COMMAND test_audio_vfx_phase3_2_particles_core)
 endif()
 
 # Phase 3.4 - Particle layer ordering
@@ -98,7 +98,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase3_4_particle_layer_
         target_link_libraries(test_audio_vfx_phase3_4_particle_layer_order PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase3_4_particle_layer_order PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase3_4_particle_layer_order COMMAND test_audio_vfx_phase3_4_particle_layer_order)
+    rogue_add_test(test_audio_vfx_phase3_4_particle_layer_order COMMAND test_audio_vfx_phase3_4_particle_layer_order)
 endif()
 
 # Phase 3.6 - Screen vs world coordinate systems
@@ -109,7 +109,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase3_6_screen_vs_world
         target_link_libraries(test_audio_vfx_phase3_6_screen_vs_world PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase3_6_screen_vs_world PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase3_6_screen_vs_world COMMAND test_audio_vfx_phase3_6_screen_vs_world)
+    rogue_add_test(test_audio_vfx_phase3_6_screen_vs_world COMMAND test_audio_vfx_phase3_6_screen_vs_world)
 endif()
 
 # Phase 4.1 - VFX configuration loader
@@ -120,7 +120,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase4_1_vfx_config_load
         target_link_libraries(test_audio_vfx_phase4_1_vfx_config_loader PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase4_1_vfx_config_loader PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase4_1_vfx_config_loader COMMAND test_audio_vfx_phase4_1_vfx_config_loader)
+    rogue_add_test(test_audio_vfx_phase4_1_vfx_config_loader COMMAND test_audio_vfx_phase4_1_vfx_config_loader)
 endif()
 
 # Phase 4.2 - Hot reload and validation
@@ -131,7 +131,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase4_2_hot_reload_and_
         target_link_libraries(test_audio_vfx_phase4_2_hot_reload_and_validation PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase4_2_hot_reload_and_validation PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase4_2_hot_reload_and_validation COMMAND test_audio_vfx_phase4_2_hot_reload_and_validation)
+    rogue_add_test(test_audio_vfx_phase4_2_hot_reload_and_validation COMMAND test_audio_vfx_phase4_2_hot_reload_and_validation)
 endif()
 
 # Phase 4.3 - Effect composition
@@ -142,7 +142,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase4_3_composition.c)
         target_link_libraries(test_audio_vfx_phase4_3_composition PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase4_3_composition PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase4_3_composition COMMAND test_audio_vfx_phase4_3_composition)
+    rogue_add_test(test_audio_vfx_phase4_3_composition COMMAND test_audio_vfx_phase4_3_composition)
 endif()
 
 # Phase 4.4 - Parameter overrides
@@ -153,7 +153,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase4_4_parameter_overr
         target_link_libraries(test_audio_vfx_phase4_4_parameter_overrides PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase4_4_parameter_overrides PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase4_4_parameter_overrides COMMAND test_audio_vfx_phase4_4_parameter_overrides)
+    rogue_add_test(test_audio_vfx_phase4_4_parameter_overrides COMMAND test_audio_vfx_phase4_4_parameter_overrides)
 endif()
 
 # Phase 4.5 - Random distributions
@@ -164,7 +164,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase4_5_random_distribu
         target_link_libraries(test_audio_vfx_phase4_5_random_distributions PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase4_5_random_distributions PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase4_5_random_distributions COMMAND test_audio_vfx_phase4_5_random_distributions)
+    rogue_add_test(test_audio_vfx_phase4_5_random_distributions COMMAND test_audio_vfx_phase4_5_random_distributions)
 endif()
 
 # Phase 5.1 - Effect mapping system
@@ -175,7 +175,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase5_1_mapping.c)
         target_link_libraries(test_audio_vfx_phase5_1_mapping PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase5_1_mapping PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase5_1_mapping COMMAND test_audio_vfx_phase5_1_mapping)
+    rogue_add_test(test_audio_vfx_phase5_1_mapping COMMAND test_audio_vfx_phase5_1_mapping)
 endif()
 
 # Phase 5.2 - Damage event hooks
@@ -186,7 +186,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase5_2_damage_hook.c)
         target_link_libraries(test_audio_vfx_phase5_2_damage_hook PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase5_2_damage_hook PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase5_2_damage_hook COMMAND test_audio_vfx_phase5_2_damage_hook)
+    rogue_add_test(test_audio_vfx_phase5_2_damage_hook COMMAND test_audio_vfx_phase5_2_damage_hook)
 endif()
 
 # Phase 5.3 - Skill audio cues
@@ -197,7 +197,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase5_3_skill_cues.c)
         target_link_libraries(test_audio_vfx_phase5_3_skill_cues PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase5_3_skill_cues PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase5_3_skill_cues COMMAND test_audio_vfx_phase5_3_skill_cues)
+    rogue_add_test(test_audio_vfx_phase5_3_skill_cues COMMAND test_audio_vfx_phase5_3_skill_cues)
 endif()
 
 # Phase 5.4 - Buff trigger effects
@@ -208,7 +208,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase5_4_buff_triggers.c
         target_link_libraries(test_audio_vfx_phase5_4_buff_triggers PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase5_4_buff_triggers PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase5_4_buff_triggers COMMAND test_audio_vfx_phase5_4_buff_triggers)
+    rogue_add_test(test_audio_vfx_phase5_4_buff_triggers COMMAND test_audio_vfx_phase5_4_buff_triggers)
 endif()
 
 # Phase 5.5 - Loot drop effects
@@ -219,7 +219,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase5_5_loot_drop.c)
         target_link_libraries(test_audio_vfx_phase5_5_loot_drop PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase5_5_loot_drop PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase5_5_loot_drop COMMAND test_audio_vfx_phase5_5_loot_drop)
+    rogue_add_test(test_audio_vfx_phase5_5_loot_drop COMMAND test_audio_vfx_phase5_5_loot_drop)
 endif()
 
 # Phase 6.1-6.4 - Music state machine, cross-fade, ducking
@@ -230,7 +230,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase6_1_4_music_system.
         target_link_libraries(test_audio_vfx_phase6_1_4_music_system PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase6_1_4_music_system PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase6_1_4_music_system COMMAND test_audio_vfx_phase6_1_4_music_system)
+    rogue_add_test(test_audio_vfx_phase6_1_4_music_system COMMAND test_audio_vfx_phase6_1_4_music_system)
 endif()
 
 # Phase 6.2 beat-aligned transition
@@ -241,7 +241,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase6_2_beat_aligned.c)
         target_link_libraries(test_audio_vfx_phase6_2_beat_aligned PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase6_2_beat_aligned PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase6_2_beat_aligned COMMAND test_audio_vfx_phase6_2_beat_aligned)
+    rogue_add_test(test_audio_vfx_phase6_2_beat_aligned COMMAND test_audio_vfx_phase6_2_beat_aligned)
 endif()
 
 # Phase 6.4 procedural music layering
@@ -252,7 +252,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase6_4_music_layering.
         target_link_libraries(test_audio_vfx_phase6_4_music_layering PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase6_4_music_layering PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase6_4_music_layering COMMAND test_audio_vfx_phase6_4_music_layering)
+    rogue_add_test(test_audio_vfx_phase6_4_music_layering COMMAND test_audio_vfx_phase6_4_music_layering)
 endif()
 
 # Phase 6.5/6.6 reverb + distance low-pass
@@ -263,7 +263,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase6_5_6_env_lowpass.c
         target_link_libraries(test_audio_vfx_phase6_5_6_env_lowpass PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase6_5_6_env_lowpass PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase6_5_6_env_lowpass COMMAND test_audio_vfx_phase6_5_6_env_lowpass)
+    rogue_add_test(test_audio_vfx_phase6_5_6_env_lowpass COMMAND test_audio_vfx_phase6_5_6_env_lowpass)
 endif()
 
 # Phase 7 core (blend modes, perf scale, screen shake, gpu batch stub)
@@ -274,7 +274,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase7_core.c)
         target_link_libraries(test_audio_vfx_phase7_core PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase7_core PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase7_core COMMAND test_audio_vfx_phase7_core)
+    rogue_add_test(test_audio_vfx_phase7_core COMMAND test_audio_vfx_phase7_core)
 endif()
 
 # Phase 7.3 / 7.5 / 7.7 (trails, post-processing stubs, decals)
@@ -285,7 +285,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase7_3_5_7_trails_post
         target_link_libraries(test_audio_vfx_phase7_3_5_7_trails_post_decals PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase7_3_5_7_trails_post_decals PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase7_3_5_7_trails_post_decals COMMAND test_audio_vfx_phase7_3_5_7_trails_post_decals)
+    rogue_add_test(test_audio_vfx_phase7_3_5_7_trails_post_decals COMMAND test_audio_vfx_phase7_3_5_7_trails_post_decals)
 endif()
 
 # Phase 8.1/8.2/8.3/8.4 (profiler, budgets, pacing, pool audit)
@@ -296,7 +296,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase8_1_2_3_4_profiler_
         target_link_libraries(test_audio_vfx_phase8_1_2_3_4_profiler_budgets_pacing_audit PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase8_1_2_3_4_profiler_budgets_pacing_audit PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase8_1_2_3_4_profiler_budgets_pacing_audit COMMAND test_audio_vfx_phase8_1_2_3_4_profiler_budgets_pacing_audit)
+    rogue_add_test(test_audio_vfx_phase8_1_2_3_4_profiler_budgets_pacing_audit COMMAND test_audio_vfx_phase8_1_2_3_4_profiler_budgets_pacing_audit)
 endif()
 
 # Phase 8.5 (stress test: 100 simultaneous impacts)
@@ -307,7 +307,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase8_5_stress_100_impa
         target_link_libraries(test_audio_vfx_phase8_5_stress_100_impacts PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase8_5_stress_100_impacts PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase8_5_stress_100_impacts COMMAND test_audio_vfx_phase8_5_stress_100_impacts)
+    rogue_add_test(test_audio_vfx_phase8_5_stress_100_impacts COMMAND test_audio_vfx_phase8_5_stress_100_impacts)
 endif()
 
 # Phase 9.1 (deterministic ordering tuple)
@@ -318,7 +318,7 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase9_1_ordering_tuple.
         target_link_libraries(test_audio_vfx_phase9_1_ordering_tuple PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase9_1_ordering_tuple PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase9_1_ordering_tuple COMMAND test_audio_vfx_phase9_1_ordering_tuple)
+    rogue_add_test(test_audio_vfx_phase9_1_ordering_tuple COMMAND test_audio_vfx_phase9_1_ordering_tuple)
 endif()
 
 # Phase 9.2/9.3/9.4 (replay record/playback + hashing + divergence accumulator)
@@ -329,5 +329,5 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/unit/test_audio_vfx_phase9_2_replay_and_hash
         target_link_libraries(test_audio_vfx_phase9_2_replay_and_hash PRIVATE SDL2::SDL2)
         target_compile_definitions(test_audio_vfx_phase9_2_replay_and_hash PRIVATE ROGUE_HAVE_SDL=1)
     endif()
-    add_test(NAME test_audio_vfx_phase9_2_replay_and_hash COMMAND test_audio_vfx_phase9_2_replay_and_hash)
+    rogue_add_test(test_audio_vfx_phase9_2_replay_and_hash COMMAND test_audio_vfx_phase9_2_replay_and_hash)
 endif()

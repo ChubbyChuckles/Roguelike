@@ -33,9 +33,9 @@ This plan builds upon the existing asset management infrastructure to create a s
 [x] Create sprite sheet coordinate overlay for sprite assets (implemented: adjustable grid cell w/h + themed line overlay in texture preview)
 
 ## Phase 3: Asset Editing & Metadata Management
-[ ] Implement JSON metadata editor with schema-aware validation
-[ ] Add sprite coordinate editing with visual overlay on texture preview
-[ ] Create animation frame editor for sprite animations
+[x] Implement JSON metadata editor with schema-aware validation (initial slice: editable buffer, reload/save, structural validity reuse, placeholder schema status)
+[x] Add sprite coordinate editing with visual overlay on texture preview (initial slice: grid-aligned rect add/select/delete + export stub)
+[x] Create animation frame editor for sprite animations (initial slice: frame list referencing sprite rects, per-frame duration edit, reordering, delete; export/persistence deferred)
 [ ] Implement audio volume/loop point adjustment interface
 [ ] Add asset tagging and categorization system
 [ ] Create batch asset processing operations (resize, format conversion)

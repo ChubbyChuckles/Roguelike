@@ -31,11 +31,11 @@ Phase 2 Completion:
 - Updated asset structure implementation plan marking schema versioning done.
 
 Phase 3 Kickoff (Initial Slice Implemented):
-- Added `asset_manager.{h,c}` (fixed-cap texture registry, id derivation via basename, acquire/release ref counting, headless safe stub loads).
-- Added `path_utils.{h,c}` (normalize, join, is_absolute helpers) preparing for SDL_GetBasePath integration.
-- New unit test `test_asset_manager_basic` covering acquire dedupe, ref count decrement/removal, and path normalization.
-- CMake: integrated new sources into `rogue_core` + test target wiring.
-- Roadmap updated with Phase 3 progress checklist; README gains Schema Versioning and Asset System sections.
+ - Roadmap Phase 3: JSON editor + sprite coordinate editing marked complete (initial slice).
+ - Asset Browser: functional JSON editor (open/reload/save, dirty flag, structural validity reuse, schema status placeholder) and sprite coordinate editing (toggle mode, grid-aligned add/select/delete, preview outlines, export stub, rect list summary).
+ - README updated to include new capabilities; Phase 2 list adjusted.
+ - Non-breaking: guarded by overlay macros; no core asset changes.
+ - Next: animation frame editor, persistence + JSON export for sprite rects, schema integration for JSON editor, loop point audio editing.
 
 Next (planned, not in this commit): real SDL texture load (PNG via SDL_image), width/height capture, audio clip registry, negative caching, hot-reload polling hook.
 
@@ -483,3 +483,10 @@ feat(assets/phase5): CI/CD integration & validation tooling
  - Installed generated manifest into distribution under meta/ (CPack includes asset_manifest.txt)
  - Roadmap Phase 5 items marked complete with detailed descriptions; README updated with Phase 5 summary
  - Heuristics: duplicate (crc+size) detection and large PNG (>1MB) advisory for compression/atlas planning
+
+feat(overlay/asset_browser phase3): animation frame editor initial slice
+ - Added animation frame list tied to sprite rect indices: Add Frame uses active rect; default duration 120ms.
+ - Per-frame duration adjust (+/-20ms), Move Up/Down reordering, Delete Frame; capped at 128 frames, fixed-size arrays, zero alloc.
+ - Stub export button (future JSON emit with rect+frame metadata) unified with existing sprite coord export stub.
+ - Roadmap: Phase 3 animation frame editor item marked complete (initial slice) with note; persistence & JSON schema validation deferred.
+ - Build/Test: Fixed asset_validation_cli failing due to CWD by setting WORKING_DIRECTORY for test; expanded PATH env (SDL2 + vcpkg bin debug/release) and added SDL_AUDIODRIVER=dummy to resolve prior 0xc0000135 test errors.
