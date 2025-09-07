@@ -13,6 +13,7 @@ Press F1 in-game to open the debug overlay.
   - All interactions are headless‑safe; rendering paths are SDL‑guarded.
 - Asset Dependency Viewer: In Skills → Visuals (below the animation preview), a collapsible section lists tracked asset dependencies filtered to those matching the current cast sheet basename. Useful for spotting related assets (e.g., packed JSON metadata, secondary sprites) and future hot‑reload/validation flows. The list truncates after an internal cap to keep the panel responsive.
 - Live Timing Mode (Animation Preview): A new checkbox in the Skills → Visuals preview enables real-time timing adjustment. When enabled, moving the "Preview Speed (%)" slider immediately recalculates and persists `frame_duration_ms` (clamped 1..1000ms) so authors can feel final timing without an extra Apply step. When disabled, the legacy explicit "Apply Speed → Frame Duration" workflow remains for cautious edits.
+- Asset Validation Feedback Panel: Provides on-demand thumbnails and status lines for Cast / Projectile / Impact / AoE sprite assets. Flags MISSING (file absent), CORRUPT/UNSUPPORTED (load failure), and DIM ERR (0 or >4096 size). Includes Auto Refresh (per-frame reload while iterating externally) and manual Refresh. Thumbnails render only when SDL is available; logic remains headless-safe.
 
 ### Recent Skills/Effects Additions (Phase 1.2)
 

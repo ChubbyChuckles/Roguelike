@@ -33,6 +33,8 @@ void panel_skills_draw_visuals(int sel)
     rogue_visuals_draw_sheet_editor(&vis, &vchanged);
     rogue_visuals_preview_section(&vis, &vchanged);
     rogue_visuals_dependency_viewer(&vis);
+    /* Validation panel (ensure object compiled): */
+    rogue_visuals_validation_panel(&vis);
     if (vchanged)
     {
         (void) rogue_skill_debug_set_visuals(sel, &vis);

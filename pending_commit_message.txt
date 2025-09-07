@@ -198,6 +198,18 @@ Phase 1.4: PNG Sequence Loader
 * Unit: Added smoke test `test_skills_phase1_4_png_sequence_loader` asserting absence of frames when sample sequence not present (deterministic until assets added).
 Follow-ups:
 	- Centralize texture ownership & add unload routine.
+
+feat(skills/visuals): Asset Validation Feedback panel (thumbnails + diagnostics)
+-------------------------------------------------------------------------------
+* Adds new panel in Skills → Visuals providing per-target (Cast/Projectile/Impact/AoE) thumbnail preview and status line.
+* Detects and flags:
+	- MISSING (file absent at path)
+	- CORRUPT/UNSUPPORTED (texture load failure)
+	- DIM ERR (w/h <=0 or >4096)
+* Auto Refresh toggle forces per-frame reload (useful while externally editing assets), plus manual Refresh button.
+* Headless-safe: only draws thumbnails when SDL present; logic compiles unconditionally to satisfy linker when overlay disabled.
+* Roadmap: marks "Asset Validation Feedback" complete with implementation blurb.
+* Future: integrate deeper validation (format heuristics, grid inference suggestions, hot-reload hooks) and batch operations.
 	- Add positive path test with curated sample sequence assets.
 	- Integrate sequence playback into Skills → Visuals preview (frame stepping via existing anim sampler).
 	- Atlas generation & dedup of identical frame dimensions.

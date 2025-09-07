@@ -52,5 +52,6 @@ void rogue_visuals_draw_prototypes(RogueSkillVisualParams* vis);
 void rogue_visuals_draw_sheet_editor(RogueSkillVisualParams* vis, int* vchanged);
 void rogue_visuals_preview_section(RogueSkillVisualParams* vis, int* vchanged);
 void rogue_visuals_dependency_viewer(RogueSkillVisualParams* vis);
+void rogue_visuals_validation_panel(RogueSkillVisualParams* vis);
 
 #endif /* ROGUE_PANEL_SKILLS_VISUALS_INTERNAL_H */
