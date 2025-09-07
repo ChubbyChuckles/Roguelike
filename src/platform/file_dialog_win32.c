@@ -16,6 +16,13 @@
 #include <string.h>
 #include <windows.h>
 
+/* Compile-time guard: if someone reorders includes in build chain so commdlg.h
+    appears before windows.h, detect it early. _WINDOWS_ is defined by windows.h,
+    _INC_COMMDLG by commdlg.h. */
+#if defined(_INC_COMMDLG) && !defined(_WINDOWS_)
+#error "<windows.h> must be included before <commdlg.h> (see file_dialog_win32.c)"
+#endif
+
 int rogue_platform_open_file_dialog(const char* filter, char* out_path, size_t out_cap)
 {
     if (!out_path || out_cap == 0)
