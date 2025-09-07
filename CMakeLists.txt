@@ -577,6 +577,16 @@ add_library(rogue_debug_overlay OBJECT
     src/debug_overlay/panel_skills/overview/panel_skills_overview.c
     src/debug_overlay/panel_skills/effects/panel_skills_effects.c
     src/debug_overlay/panel_skills/visuals/panel_skills_visuals.c
+    src/debug_overlay/panel_skills/visuals/visuals_internal.h
+    src/debug_overlay/panel_skills/visuals/visuals_import_wizard.c
+    src/debug_overlay/panel_skills/visuals/visuals_browser.c
+    src/debug_overlay/panel_skills/visuals/visuals_asset_picker.c
+    src/debug_overlay/panel_skills/visuals/visuals_core_fields.c
+    src/debug_overlay/panel_skills/visuals/visuals_prototypes.c
+    src/debug_overlay/panel_skills/visuals/visuals_sheet_editor.c
+    src/debug_overlay/panel_skills/visuals/visuals_preview.c
+    src/debug_overlay/panel_skills/visuals/visuals_dependency_viewer.c
+    # Skills panel legacy audio & testing tabs (added after visuals refactor to restore linkage)
     src/debug_overlay/panel_skills/audio/panel_skills_audio.c
     src/debug_overlay/panel_skills/testing/panel_skills_testing.c
     src/debug_overlay/panel_entities/panels_entities.c
