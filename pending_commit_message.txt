@@ -15,6 +15,18 @@ Phase 3 Kickoff (Initial Slice Implemented):
 
 Next (planned, not in this commit): real SDL texture load (PNG via SDL_image), width/height capture, audio clip registry, negative caching, hot-reload polling hook.
 
+feat(assets/phase3): SDL_image textures (w/h), SDL_mixer audio, negative caching, hot-reload poll, SDL_GetBasePath path resolution
+
+Phase 3 Completion:
+- Integrated real texture loading when built with SDL_image (IMG_LoadTexture) capturing width/height via SDL_QueryTexture; headless builds remain safe (no renderer required).
+- Added audio asset registry (Mix_LoadWAV) with ref counting and negative caching for missing files.
+- Implemented negative caching flags (load_failed) for textures & audio to prevent repeated failed I/O attempts until file change.
+- Added stat() mtime-based hot-reload polling for both textures and audio (rogue_asset_manager_poll_reload) with automatic destroy/reload on modification.
+- Extended path resolution: rogue_find_asset_path now prepends SDL_GetBasePath derived prefixes (with up to two ascents) before legacy relative probes improving reliability when tests run from nested build dirs.
+- Roadmap Phase 3 tasks all checked off with implementation blurbs; README Phase 3 section updated to reflect completion (formats, audio, reload, negative caching, path base integration).
+- Tests: existing asset manager tests remain green; full 647/647 suite passes (Debug, SDL2, -j12). No new warnings introduced.
+
+
 
 Implemented Phase 2 task (UI Theme/Layout schema):
 - Added schema_theme.{h,c} describing palette + metrics fields with forward-compatible extension.

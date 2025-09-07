@@ -284,15 +284,20 @@ Migration Path: Existing `overlay_theme.json` runtime persistence continues unch
 
 All JSON content schemas (items, skills, entities, tilesets, sprites, audio, levels, ui_theme) now expose an optional integer `schema_version` field (1..1024). A lightweight linear migration registry (`rogue_schema_register_migration`) enables registering consecutive steps (v→v+1). Unit test `test_schema_versioning_basic` demonstrates migrating a `ui_theme` document from version 1 to 2 by injecting a missing `panel_border` field. Future enhancement: automatic pre-validation migration pass and documentation export of available migrations.
 
-#### Phase 3 (Asset System – Initial Slice)
+#### Phase 3 (Asset System – Completion)
 
-An initial asset system scaffold landed:
+Phase 3 delivers full SDL integration for the initial asset manager slice:
 
-- `asset_manager.{h,c}`: Fixed-cap (256) texture record cache keyed by derived basename id (path basename minus extension). Provides acquire/release with deterministic duplicate suppression and reference counting. Headless-safe: real SDL texture creation is deferred to the next slice; current implementation records metadata only, enabling tests and future wiring without renderer dependency.
-- `path_utils.{h,c}`: Minimal cross-platform helpers (normalize, join, is_absolute) to unify path handling before introducing SDL_GetBasePath integration and platform-specific resolution rules.
-- Unit test `test_asset_manager_basic` covers init, duplicate acquire ref bump, release/compaction, and path normalization join semantics.
+- `asset_manager.{h,c}`: Fixed-cap caches for textures (256) and audio clips (128) with basename‑derived ids, acquire/release ref counting, and compaction on final release.
+- Real texture loading (SDL_image): `IMG_LoadTexture` on first acquire (lazy) capturing `width/height` via `SDL_QueryTexture`. Headless (no renderer) builds skip creation gracefully.
+- Audio registry (SDL_mixer): `Mix_LoadWAV` lazy loads clips; negative caching prevents repeated failed attempts for missing/corrupt files until a file change occurs.
+- Negative caching: `load_failed` flag on both texture and audio records short‑circuits subsequent loads; cleared automatically if mtime changes (reload) or on re-add.
+- Hot-reload polling: `rogue_asset_manager_poll_reload()` stat()s tracked asset paths; on mtime delta destroys and reloads textures/audio (width/height re‑queried). Returns count of reloaded assets (used by future editor loop).
+- Path resolution: `rogue_find_asset_path` now prepends `SDL_GetBasePath` (plus ascents) to relative probe list improving robustness when running tests from nested build directories or packaged binaries.
+- Supported formats: all SDL_image enabled formats (PNG/BMP/JPG/etc.) automatically usable without code changes; audio loading currently targets WAV (extendable to OGG/MP3 once decode policy chosen).
+- Tests: `test_asset_manager_basic` exercises duplicate suppression, refcounting, path join normalization, and audio slot allocation (including negative cache path). Full suite passes with Phase 3 features enabled.
 
-Planned near-term extensions (Phase 3 continuation): integrate SDL_image (when available) for PNG/BMP/JPG loading (width/height capture), introduce negative caching for missing assets, add audio clip registry (SDL_mixer conditional), and attach a basic hot-reload polling hook leveraging existing dependency tracker patterns.
+Next (Phase 4 preview): integrity & validation layer (schema cross-check, existence, dimension constraints), dependency tracking unification (skills + global), placeholder fallback injection, manifest + checksum generation feeding CI asset verification.
 
 - ROGUE_ENABLE_JSON_CONTENT (default ON): Compiles the content JSON foundation (I/O and schema envelope). Built as an object library (`rogue_content_json`) and linked into `rogue_core` when enabled. A vendored cJSON stub lives under `third_party/cjson` and is linked as `rogue_thirdparty_cjson` for now; replace with the full cJSON later.
 - Outputs: HTML, LaTeX/PDF, and XML generated via a dedicated CMake target.

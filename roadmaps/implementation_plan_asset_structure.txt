@@ -45,12 +45,12 @@ Next Phase 3 steps: integrate SDL_image when available, add width/height probe (
 
 
 ## Phase 3: SDL2 Integration & Cross-Platform Loading
-[ ] Implement asset loading abstraction layer for SDL2
-[ ] Create cross-platform path resolution system using SDL_GetBasePath
-[ ] Design texture/surface caching mechanism
-[ ] Implement resource lifetime management
-[ ] Add support for different image formats (PNG, BMP, JPG via SDL_image)
-[ ] Create audio loading system (SDL_mixer integration)
+[x] Implement asset loading abstraction layer for SDL2 (asset_manager.{h,c} with real IMG_LoadTexture when SDL_image present; headless safe)
+[x] Create cross-platform path resolution system using SDL_GetBasePath (path_utils + rogue_find_asset_path now prepends SDL_GetBasePath ascents before legacy relative probes)
+[x] Design texture/surface caching mechanism (fixed-cap array keyed by derived basename id, duplicate suppression, ref counting)
+[x] Implement resource lifetime management (acquire/release compaction, SDL_DestroyTexture/Mix_FreeChunk on refcount zero & shutdown)
+[x] Add support for different image formats (PNG, BMP, JPG via SDL_image) (implicit via IMG_LoadTexture loader; width/height captured via SDL_QueryTexture; negative caching of failures)
+[x] Create audio loading system (SDL_mixer integration, Mix_LoadWAV with negative caching + hot-reload polling foundation)
 
 ## Phase 4: Asset Validation & Integrity System
 [ ] Implement JSON schema validation
