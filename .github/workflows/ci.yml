@@ -276,6 +276,20 @@ jobs:
             ctest --test-dir build -C ${BUILD_TYPE} -j 12 --output-on-failure --timeout 300
           fi
 
+      - name: Asset Validation (Phase 5)
+        shell: bash
+        run: |
+          echo "Running asset_validate CLI (manifest + heuristics)"
+          if [ -f build/asset_validate ]; then
+            build/asset_validate --manifest build/asset_manifest_ci.txt --optimize || true
+          elif [ -f build/asset_validate.exe ]; then
+            build/asset_validate.exe --manifest build/asset_manifest_ci.txt --optimize || true
+          elif [ -f build/Debug/asset_validate.exe ]; then
+            build/Debug/asset_validate.exe --manifest build/asset_manifest_ci.txt --optimize || true
+          else
+            echo "asset_validate tool not found (skipping)"
+          fi
+
       - name: Collect Metrics
         if: always()
         shell: pwsh

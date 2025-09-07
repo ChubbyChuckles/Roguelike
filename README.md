@@ -810,3 +810,19 @@ Implemented:
 Associated new source: `src/asset/asset_validation.{h,c}` and test: `test_asset_phase4_validation`.
 
 Roadmap Phase 4 items marked complete (except extended schema dispatch – intentionally minimal at this slice). Next Phase will focus on CI/CD automation (asset validation in workflows) per Phase 5.
+
+### Asset System Phase 5 (CI/CD Integration) Completion
+
+Phase 5 extends the asset system into continuous integration and packaging workflows:
+
+Implemented:
+
+- `asset_validate` CLI tool: recursive scan of `assets/` computing CRC32 & size; generates manifest (path crc32 size) with optional `--baseline` diff.
+- CMake integration: executable target + ALWAYS build `asset_manifest` target producing `asset_manifest.txt` (installed under `meta/`).
+- CTest target `asset_validation_cli` runs the CLI with optimization heuristics (duplicate detection, large PNG advisory) so regressions surface in test logs.
+- GitHub Actions workflow (`ci.yml`) invokes the CLI post-ctest to emit `asset_manifest_ci.txt` and advisory optimization output for every matrix job.
+- Packaging: Manifest installed via CPack enabling downstream tooling to verify shipped asset sets and detect drift.
+- Change detection: CLI diff mode reports added / removed / changed assets (CRC delta) – non-fatal today; future toggle can escalate to failure.
+- Optimization heuristics: duplicate CRC+size pairs and >1MB PNGs flagged for atlas/compression consideration.
+
+Deferred (future enhancements): parallel checksum computation, strict gating mode (fail on diff), JSON schema auto-dispatch integration, manifest signing & integrity verification in runtime startup, binary delta packaging.

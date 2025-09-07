@@ -152,14 +152,23 @@ int rogue_asset_manager_acquire_texture(const char* path)
         return -1;
     /* Fallback resolution (Phase 4): if path missing and a fallback is registered, switch */
     const char* chosen_path = path;
+    bool substituted = false;
     if (!rogue_asset_file_exists(path))
     {
         const char* fb = rogue_asset_get_fallback_texture();
         if (fb && rogue_asset_file_exists(fb))
+        {
             chosen_path = fb;
+            substituted = true;
+        }
     }
     char id[96];
-    derive_id(chosen_path, id, sizeof(id));
+    /* If we substituted a fallback, still derive id from original missing path so
+       that multiple distinct missing logical textures occupy separate records. */
+    if (substituted)
+        derive_id(path, id, sizeof(id));
+    else
+        derive_id(chosen_path, id, sizeof(id));
     int existing = find_slot_by_id(id);
     if (existing >= 0)
     {

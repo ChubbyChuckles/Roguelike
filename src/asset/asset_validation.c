@@ -1,4 +1,7 @@
 /* asset_validation.c - Phase 4 implementation */
+#if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
+#define _CRT_SECURE_NO_WARNINGS 1
+#endif
 #include "asset_validation.h"
 #include "asset_manager.h"
 #include <stdio.h>
@@ -46,8 +49,26 @@ uint32_t rogue_asset_crc32_file(const char* path, bool* ok)
     if (ok)
         *ok = false;
     if (!rogue_asset_file_exists(path))
-        return 0;
-    FILE* f = fopen(path, "rb");
+    {
+        /* If path contains "../" attempt to normalize by stripping leading ../ segments */
+        if (path && strstr(path, "../") == path)
+        {
+            const char* p = path;
+            while (strncmp(p, "../", 3) == 0)
+                p += 3;
+            if (rogue_asset_file_exists(p))
+                path = p; /* use normalized */
+        }
+        if (!rogue_asset_file_exists(path))
+            return 0;
+    }
+    FILE* f = NULL;
+#ifdef _MSC_VER
+    if (fopen_s(&f, path, "rb") != 0)
+        f = NULL;
+#else
+    f = fopen(path, "rb"); /* POSIX */
+#endif
     if (!f)
         return 0;
     crc32_init_table();

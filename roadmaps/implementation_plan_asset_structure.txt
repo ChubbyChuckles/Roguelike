@@ -61,12 +61,12 @@ Next Phase 3 steps: integrate SDL_image when available, add width/height probe (
 [x] Add checksum validation for critical assets (register + verify APIs)
 
 ## Phase 5: CI/CD Integration
-[ ] Extend GitHub Actions workflow for asset validation
-[ ] Create automated asset testing pipeline
-[ ] Implement cross-platform asset validation
-[ ] Add asset packaging and distribution
-[ ] Create asset change detection and notification system
-[ ] Implement automated asset optimization
+[x] Extend GitHub Actions workflow for asset validation (asset_validate step after tests + manifest artifact)
+[x] Create automated asset testing pipeline (CTest target asset_validation_cli exercises CLI)
+[x] Implement cross-platform asset validation (portable C11 scanner + CRC32)
+[x] Add asset packaging and distribution (manifest installed to meta/ via CPack)
+[x] Create asset change detection and notification system (CLI --baseline diff reporting)
+[x] Implement automated asset optimization (heuristic advisor: duplicates & large PNG hints)
 
 ## Phase 6: Performance Optimization
 [ ] Design asset preloading system

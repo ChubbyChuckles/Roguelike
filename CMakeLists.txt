@@ -559,6 +559,24 @@ add_library(rogue_core
     src/core/integration/deadlock_manager.c
 )
 
+# -----------------------------
+# Phase 5: Asset validation CLI tool
+# -----------------------------
+add_executable(asset_validate
+    src/asset/asset_validate_cli.c)
+target_link_libraries(asset_validate PRIVATE rogue_core)
+target_include_directories(asset_validate PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+add_custom_target(asset_manifest ALL
+    COMMAND asset_validate --manifest ${CMAKE_BINARY_DIR}/asset_manifest.txt --optimize
+    DEPENDS asset_validate
+    COMMENT "Generating asset manifest (Phase 5)")
+
+install(FILES ${CMAKE_BINARY_DIR}/asset_manifest.txt DESTINATION meta OPTIONAL)
+
+add_test(NAME asset_validation_cli
+    COMMAND asset_validate --manifest ${CMAKE_BINARY_DIR}/asset_manifest_ctest.txt --optimize)
+
 # MSVC: Avoid parallel PDB write contention (fatal error C1041) when building many translation units in parallel.
 if (MSVC)
     target_compile_options(rogue_core PRIVATE /FS)

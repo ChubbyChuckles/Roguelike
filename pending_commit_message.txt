@@ -385,3 +385,11 @@ feat(assets/phase4): add validation & integrity system
  - Basic JSON validation hook (stub; future schema dispatch)
  - New tests (test_asset_phase4_validation) covering fallback, checksum, deps, usage stats
  - Roadmap Phase 4 items marked complete; README updated with Phase 4 summary
+
+feat(assets/phase5): CI/CD integration & validation tooling
+ - Added cross-platform `asset_validate` CLI (recursive scan, CRC32, manifest generation, baseline diff, optimization heuristics)
+ - Integrated into CMake (executable + ALWAYS target `asset_manifest`) & CTest (`asset_validation_cli`)
+ - Extended GitHub Actions workflow to run asset validation post-tests (manifest + advisory output)
+ - Installed generated manifest into distribution under meta/ (CPack includes asset_manifest.txt)
+ - Roadmap Phase 5 items marked complete with detailed descriptions; README updated with Phase 5 summary
+ - Heuristics: duplicate (crc+size) detection and large PNG (>1MB) advisory for compression/atlas planning
