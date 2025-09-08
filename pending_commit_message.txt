@@ -90,3 +90,13 @@ feat(asset-overlay/phase6-slice2): workflow templates + JSON editor undo/redo ri
  - Roadmap Phase 6 updated marking both tasks complete with notes; README extended (Workflow Slice 2 section).
  - Fixed MSVC C4087 warnings by removing stray arguments from ab_json_undo_* helper call sites (signatures use void parameter lists).
  - Rebuilt Debug (SDL2) successfully with warnings cleared; no test regressions (ctest enumeration unchanged; separate follow-up to register overlay tests with CTest driver).
+
+feat(asset-overlay/ui): add scrollable file dialog listing with vertical scrollbar to prevent overflow (viewport 12 entries, mouse wheel + drag thumb)
+
+feat(asset-overlay/phase6): asset comparison tools initial slice
+ - Added Set Compare A / Set Compare B buttons in texture Details section storing indices (sentinel -1 unset).
+ - Shows id + dimensions for A and B, delta (A-B width/height), and area ratio (A area / B area) plus Clear Comparison button.
+ - Visual scaled side-by-side preview deferred (requires public scaled draw helper or reuse of existing sprite draw w/ parameterized scaling without introducing new linker dependencies).
+ - Roadmap updated marking comparison tools initial slice complete with notes for future: side-by-side preview, pixel diff heatmap, compression & memory delta, exportable diff report.
+ - README updated (Asset Comparison bullet under Asset Browser section).
+ - Rebuilt rogue_core + representative test (test_player_debug_api) to confirm removal of stale unresolved reference; full suite pending next aggregate run.

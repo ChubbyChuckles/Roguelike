@@ -175,6 +175,9 @@ typedef struct AssetBrowserEnhancedState
     char json_undo_stack[8][1024];
     int json_undo_len; /* number of populated entries */
     int json_undo_pos; /* current position (0..json_undo_len-1) */
+    /* Phase 6: Asset Comparison (initial slice) */
+    int compare_tex_a; /* texture index (asset manager texture array), -1 unset */
+    int compare_tex_b; /* texture index (asset manager texture array), -1 unset */
 } AssetBrowserEnhancedState;
 
 static AssetBrowserEnhancedState g_ab_state; /* zero-init */
@@ -1338,6 +1341,110 @@ static void panel_asset_browser(void* user)
                          picked);
         }
     }
+    /* When the modal is not active but we have an active directory listing (future multi-select
+       support), expose a lightweight scrollable viewport so large directory enumerations do not
+       push subsequent UI outside the panel. For now we just render the cached working directory
+       from the last open dialog invocation if present via helper. */
+#ifdef ROGUE_FILE_DIALOG_LISTING_MAX
+    {
+        extern int rogue_file_dialog_last_listing(char entries[][ROGUE_FILE_DIALOG_PATH_MAX],
+                                                  int* count_out, char* cwd_out, int cwd_cap);
+        char cwd_buf[512];
+        char listing[ROGUE_FILE_DIALOG_LISTING_MAX][ROGUE_FILE_DIALOG_PATH_MAX];
+        int lcount = 0;
+        if (rogue_file_dialog_last_listing(listing, &lcount, cwd_buf, (int) sizeof(cwd_buf)) &&
+            lcount > 0)
+        {
+            overlay_label("File Dialog");
+            overlay_label(cwd_buf);
+            /* Decide viewport height (number of visible rows) */
+            int visible = 12; /* heuristic: ~12 entries fits typical panel */
+            if (visible > lcount)
+                visible = lcount;
+            static int fd_scroll = 0;
+            if (fd_scroll < 0)
+                fd_scroll = 0;
+            if (fd_scroll > lcount - visible)
+                fd_scroll = (lcount - visible) < 0 ? 0 : (lcount - visible);
+            /* Wheel scrolling when hovered over list area (reuse table hover util if desired later)
+             */
+            const OverlayInputState* in_fd = overlay_input_get();
+            if (in_fd && in_fd->mouse_wheel_y &&
+                overlay_mouse_over(g_ui.cur_x, g_ui.cur_y, g_ui.width,
+                                   visible * (g_ui.table_row_h + g_ui.table_row_pad)))
+            {
+                fd_scroll -= in_fd->mouse_wheel_y; /* wheel up -> negative -> previous entries */
+                if (fd_scroll < 0)
+                    fd_scroll = 0;
+                if (fd_scroll > lcount - visible)
+                    fd_scroll = (lcount - visible) < 0 ? 0 : (lcount - visible);
+            }
+            int end = fd_scroll + visible;
+            if (end > lcount)
+                end = lcount;
+            for (int i = fd_scroll; i < end; ++i)
+            {
+                overlay_label(listing[i]);
+            }
+            /* Draw a minimal vertical scrollbar (reuse styling from table scrollbar without
+             * coupling) */
+#ifdef ROGUE_HAVE_SDL
+            if (g_app.renderer && lcount > visible)
+            {
+                const OverlayTheme* th_sb = overlay_theme_get();
+                int track_w = 6;
+                int track_x = g_ui.cur_x + g_ui.width - track_w - 2;
+                int track_h = visible * (g_ui.table_row_h + g_ui.table_row_pad);
+                int track_y = g_ui.cur_y - track_h;
+                SDL_Rect track = {track_x, track_y, track_w, track_h};
+                SDL_SetRenderDrawColor(g_app.renderer, th_sb->table_border.r, th_sb->table_border.g,
+                                       th_sb->table_border.b, th_sb->table_border.a);
+                SDL_RenderFillRect(g_app.renderer, &track);
+                int thumb_h = (track_h * visible) / lcount;
+                if (thumb_h < 12)
+                    thumb_h = 12;
+                if (thumb_h > track_h)
+                    thumb_h = track_h;
+                int range = track_h - thumb_h;
+                int thumb_y = track_y;
+                if (range > 0)
+                    thumb_y = track_y + (range * fd_scroll) / (lcount - visible);
+                SDL_Rect thumb = {track_x, thumb_y, track_w, thumb_h};
+                int hover = overlay_mouse_over(track_x, track_y, track_w, track_h);
+                OverlayColor tcol = hover ? th_sb->accent_2 : th_sb->accent_1;
+                SDL_SetRenderDrawColor(g_app.renderer, tcol.r, tcol.g, tcol.b, tcol.a);
+                SDL_RenderFillRect(g_app.renderer, &thumb);
+                /* Dragging */
+                const OverlayInputState* in2 = overlay_input_get();
+                static int dragging = 0;
+                static int drag_off = 0;
+                if (!dragging && hover && in2 && in2->mouse_down_l && !in2->mouse_drag_l)
+                {
+                    dragging = 1;
+                    drag_off = in2->mouse_y - thumb_y;
+                }
+                if (dragging)
+                {
+                    if (in2 && in2->mouse_down_l)
+                    {
+                        int my = in2->mouse_y - drag_off;
+                        if (my < track_y)
+                            my = track_y;
+                        if (my > track_y + range)
+                            my = track_y + range;
+                        fd_scroll =
+                            (range > 0)
+                                ? (int) ((int64_t) (my - track_y) * (lcount - visible) / range)
+                                : 0;
+                    }
+                    else
+                        dragging = 0;
+                }
+            }
+#endif /* ROGUE_HAVE_SDL */
+        }
+    }
+#endif /* ROGUE_FILE_DIALOG_LISTING_MAX */
     if (g_ab_state.pending_import_path[0])
     {
         if (overlay_button("Import Texture"))
@@ -1715,6 +1822,65 @@ static void panel_asset_browser(void* user)
                      sel_tex->width, sel_tex->height, sel_tex->ref_count,
                      sel_tex->load_failed ? 1 : 0, sel_tex->sdl_texture ? 1 : 0);
             overlay_label(line);
+            /* Phase 6: Asset Comparison (initial slice) */
+            if (g_ab_state.compare_tex_a < 0)
+                g_ab_state.compare_tex_a = -1; /* ensure init */
+            if (g_ab_state.compare_tex_b < 0)
+                g_ab_state.compare_tex_b = -1;
+            int current_tex_index = rogue_asset_manager_find_by_id(sel_tex->id);
+            if (overlay_button("Set Compare A"))
+            {
+                g_ab_state.compare_tex_a = current_tex_index;
+            }
+            overlay_same_line();
+            if (overlay_button("Set Compare B"))
+            {
+                g_ab_state.compare_tex_b = current_tex_index;
+            }
+            if (g_ab_state.compare_tex_a >= 0 || g_ab_state.compare_tex_b >= 0)
+            {
+                const RogueAssetTexture* ta =
+                    (g_ab_state.compare_tex_a >= 0 &&
+                     (uint32_t) g_ab_state.compare_tex_a < m->texture_count)
+                        ? &m->textures[g_ab_state.compare_tex_a]
+                        : NULL;
+                const RogueAssetTexture* tb =
+                    (g_ab_state.compare_tex_b >= 0 &&
+                     (uint32_t) g_ab_state.compare_tex_b < m->texture_count)
+                        ? &m->textures[g_ab_state.compare_tex_b]
+                        : NULL;
+                overlay_label("-- Comparison --");
+                if (!ta || !tb)
+                {
+                    overlay_label("Select two textures (Set Compare A/B) to view diff.");
+                }
+                else
+                {
+                    char cline[192];
+                    int dw = ta->width - tb->width;
+                    int dh = ta->height - tb->height;
+                    double apx_a = (double) ta->width * (double) ta->height;
+                    double apx_b = (double) tb->width * (double) tb->height;
+                    double apx_ratio = (apx_b > 0.0) ? (apx_a / apx_b) : 0.0;
+                    snprintf(cline, sizeof cline, "A: %s (%dx%d)  B: %s (%dx%d)", ta->id, ta->width,
+                             ta->height, tb->id, tb->width, tb->height);
+                    overlay_label(cline);
+                    snprintf(cline, sizeof cline, "Delta (A-B): w=%d h=%d  AreaRatio=%.2f", dw, dh,
+                             apx_ratio);
+                    overlay_label(cline);
+                    if (ta->sdl_texture && tb->sdl_texture)
+                    {
+                        /* NOTE: Scaled preview deferred until a public scaled sprite draw helper is
+                         * exposed. */
+                        overlay_label("(Preview deferred: scaled draw helper missing)");
+                    }
+                    if (overlay_button("Clear Comparison"))
+                    {
+                        g_ab_state.compare_tex_a = -1;
+                        g_ab_state.compare_tex_b = -1;
+                    }
+                }
+            }
             {
                 /* Tag management for texture */
                 int tex_index = rogue_asset_manager_find_by_id(sel_tex->id);

@@ -96,7 +96,9 @@ This plan builds upon the existing asset management infrastructure to create a s
   - Undo/Redo buttons (and internal helpers) navigate ring; forward history truncated on new push.
   - Prevents duplicate consecutive snapshots. Future: timestamp display, diff preview,
     configurable depth, merge-on-idle, and per-field structured undo.
-[ ] Implement asset comparison tools (before/after preview)
+[x] Implement asset comparison tools (initial slice)
+    Added Set Compare A/B buttons for textures + delta metrics (w,h, area ratio) and clear control.
+    Preview visualization deferred (needs public scaled draw helper). Future: side-by-side scaled preview, pixel diff heatmap, compression size delta, memory delta, export diff report.
 [ ] Create asset migration tools for format updates
 [ ] Add asset documentation generation from metadata
 
