@@ -706,6 +706,8 @@ add_library(rogue_debug_overlay OBJECT
     # JSON editor undo/redo + helpers (extracted)
     src/debug_overlay/asset_browser/asset_browser_json.c
             src/debug_overlay/asset_browser/asset_browser_json_preview.c
+    # Directory browser view (render & interaction extracted)
+    src/debug_overlay/asset_browser/asset_browser_dir_view.c
     src/debug_overlay/panel_system/panels_asset_browser.c
     src/debug_overlay/panel_player/panels_player.c
     src/debug_overlay/panel_skills/panels_skills.c
