@@ -154,17 +154,23 @@ static int fd_any_pattern_matches(const char* filter_list, const char* name)
 static char g_last_dir[512];
 static int g_last_dir_loaded = 0;
 
-/* Overlay forward decls (weak) */
-int overlay_begin_modal(const char* id, int* open);
-void overlay_end_modal(void);
-int overlay_button(const char* label);
-void overlay_label(const char* text);
-int overlay_input_text(const char* label, char* buf, size_t buf_cap);
-#ifndef overlay_begin_modal
+/* Overlay integration: prefer real widgets if header available, otherwise fall back to
+    inert stubs so calling code remains safe when the debug overlay is compiled out.
+    We try the relative path from this file (src/platform) up into debug_overlay. */
+#if defined(__has_include)
+#if __has_include("../debug_overlay/widgets/overlay_widgets.h")
+#include "../debug_overlay/widgets/overlay_widgets.h"
+#define ROGUE_FD_HAVE_OVERLAY 1
+#elif __has_include("debug_overlay/widgets/overlay_widgets.h") /* secondary try */
+#include "debug_overlay/widgets/overlay_widgets.h"
+#define ROGUE_FD_HAVE_OVERLAY 1
+#endif
+#endif
+#ifndef ROGUE_FD_HAVE_OVERLAY
 #define overlay_begin_modal(id, open) 0
-#define overlay_end_modal() (void) 0
+#define overlay_end_modal() ((void) 0)
 #define overlay_button(l) 0
-#define overlay_label(t) (void) 0
+#define overlay_label(t) ((void) 0)
 #define overlay_input_text(l, b, c) 0
 #endif
 
@@ -375,14 +381,9 @@ void rogue_file_dialog_draw_overlay(void)
         return;
     if (g_fd.need_refresh)
         fd_scan_entries();
-    int open_flag = 1;
-    if (!overlay_begin_modal("FileDialog", &open_flag))
-    {
-        g_fd.active = 0;
-        g_fd.result_ready = -1;
-        return;
-    }
-    (void) open_flag; /* silence unused if overlay_begin_modal is a stub */
+    /* Modal overlay support was planned but not present in current overlay_widgets API.
+        We always render inline within the caller's panel. */
+    overlay_label("[File Dialog]");
     overlay_label(g_last_dir);
     {
         int i;
@@ -446,5 +447,4 @@ void rogue_file_dialog_draw_overlay(void)
         g_fd.active = 0;
         g_fd.result_ready = -1;
     }
-    overlay_end_modal();
 }
