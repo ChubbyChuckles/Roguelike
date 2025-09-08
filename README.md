@@ -52,6 +52,7 @@ Press F1 in-game to open the debug overlay.
   - JSON Editor Undo/Redo: The asset JSON editor now maintains an 8‑entry snapshot ring. A baseline snapshot is captured on open, then subsequent snapshots are pushed on manual Reload and the first edit after a debounce window. Undo/Redo buttons traverse history; creating a new snapshot after undoing truncates forward history. Consecutive duplicate snapshots are skipped. Planned enhancements: timestamp + size metadata, diff preview (lhs/rhs line delta), adjustable depth, idle coalescing, and structured (per‑field) undo.
 
   - File Dialog Scrollbar (UI polish): The native file dialog's cached listing now renders inside a 12‑row viewport with a vertical scrollbar (mouse wheel + draggable thumb) to prevent large directory enumerations from pushing later UI off‑panel. Pure UI enhancement; no behavioral change to import staging.
+  - File Dialog Scrollbar Visibility (refinement): Scrollbar track widened with dark translucent backdrop + border and increased minimum thumb size for contrast/accessibility.
 
 ### New Skill Visual Authoring Tools (Phase 2.4 updates)
 

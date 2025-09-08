@@ -99,6 +99,11 @@ This plan builds upon the existing asset management infrastructure to create a s
 [x] Implement asset comparison tools (initial slice)
     Added Set Compare A/B buttons for textures + delta metrics (w,h, area ratio) and clear control.
     Preview visualization deferred (needs public scaled draw helper). Future: side-by-side scaled preview, pixel diff heatmap, compression size delta, memory delta, export diff report.
+[x] Improve file dialog listing scrollbar visibility (UI polish)
+  Enhanced the cached native file dialog listing viewport with a higher-contrast vertical scrollbar:
+  widened track (8px), dark translucent backdrop, themed border, larger minimum thumb (14px),
+  mouse wheel + drag support. Pure cosmetic/accessibility improvement (prevents long listings from
+  visually blending with panel background). Future: keyboard navigation & type-to-jump.
 [ ] Create asset migration tools for format updates
 [ ] Add asset documentation generation from metadata
 

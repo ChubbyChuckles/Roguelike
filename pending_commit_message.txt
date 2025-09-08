@@ -100,3 +100,9 @@ feat(asset-overlay/phase6): asset comparison tools initial slice
  - Roadmap updated marking comparison tools initial slice complete with notes for future: side-by-side preview, pixel diff heatmap, compression & memory delta, exportable diff report.
  - README updated (Asset Comparison bullet under Asset Browser section).
  - Rebuilt rogue_core + representative test (test_player_debug_api) to confirm removal of stale unresolved reference; full suite pending next aggregate run.
+
+feat(asset-overlay/ui): improve file dialog scrollbar visibility (backdrop, widened track, larger thumb)
+ - Added dark translucent track background + themed border for contrast inside file dialog listing viewport.
+ - Widened track to 8px and increased minimum thumb height to 14px for easier grab on high-DPI displays.
+ - Pure UI polish (no logic changes); improves discoverability and accessibility of large directory listings.
+ - Roadmap + README updated with refinement note; full 657 test suite passed post-change (non-invasive rendering tweak).

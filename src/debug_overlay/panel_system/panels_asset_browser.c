@@ -1355,10 +1355,9 @@ static void panel_asset_browser(void* user)
         if (rogue_file_dialog_last_listing(listing, &lcount, cwd_buf, (int) sizeof(cwd_buf)) &&
             lcount > 0)
         {
-            overlay_label("File Dialog");
+            overlay_label("File Dialog (wheel / drag thumb to scroll)");
             overlay_label(cwd_buf);
-            /* Decide viewport height (number of visible rows) */
-            int visible = 12; /* heuristic: ~12 entries fits typical panel */
+            int visible = 12;
             if (visible > lcount)
                 visible = lcount;
             static int fd_scroll = 0;
@@ -1366,14 +1365,12 @@ static void panel_asset_browser(void* user)
                 fd_scroll = 0;
             if (fd_scroll > lcount - visible)
                 fd_scroll = (lcount - visible) < 0 ? 0 : (lcount - visible);
-            /* Wheel scrolling when hovered over list area (reuse table hover util if desired later)
-             */
             const OverlayInputState* in_fd = overlay_input_get();
             if (in_fd && in_fd->mouse_wheel_y &&
                 overlay_mouse_over(g_ui.cur_x, g_ui.cur_y, g_ui.width,
                                    visible * (g_ui.table_row_h + g_ui.table_row_pad)))
             {
-                fd_scroll -= in_fd->mouse_wheel_y; /* wheel up -> negative -> previous entries */
+                fd_scroll -= in_fd->mouse_wheel_y;
                 if (fd_scroll < 0)
                     fd_scroll = 0;
                 if (fd_scroll > lcount - visible)
@@ -1386,38 +1383,40 @@ static void panel_asset_browser(void* user)
             {
                 overlay_label(listing[i]);
             }
-            /* Draw a minimal vertical scrollbar (reuse styling from table scrollbar without
-             * coupling) */
 #ifdef ROGUE_HAVE_SDL
             if (g_app.renderer && lcount > visible)
             {
                 const OverlayTheme* th_sb = overlay_theme_get();
-                int track_w = 6;
+                int track_w = 8; /* widen for visibility */
                 int track_x = g_ui.cur_x + g_ui.width - track_w - 2;
                 int track_h = visible * (g_ui.table_row_h + g_ui.table_row_pad);
                 int track_y = g_ui.cur_y - track_h;
                 SDL_Rect track = {track_x, track_y, track_w, track_h};
+                /* Draw semi-transparent dark backdrop first to ensure contrast */
+                SDL_SetRenderDrawColor(g_app.renderer, 12, 12, 12, 200);
+                SDL_RenderFillRect(g_app.renderer, &track);
+                /* Border */
                 SDL_SetRenderDrawColor(g_app.renderer, th_sb->table_border.r, th_sb->table_border.g,
                                        th_sb->table_border.b, th_sb->table_border.a);
-                SDL_RenderFillRect(g_app.renderer, &track);
+                SDL_RenderDrawRect(g_app.renderer, &track);
                 int thumb_h = (track_h * visible) / lcount;
-                if (thumb_h < 12)
-                    thumb_h = 12;
+                if (thumb_h < 14)
+                    thumb_h = 14;
                 if (thumb_h > track_h)
                     thumb_h = track_h;
                 int range = track_h - thumb_h;
+                static int dragging = 0;
+                static int drag_off = 0;
                 int thumb_y = track_y;
                 if (range > 0)
                     thumb_y = track_y + (range * fd_scroll) / (lcount - visible);
-                SDL_Rect thumb = {track_x, thumb_y, track_w, thumb_h};
+                SDL_Rect thumb = {track_x + 1, thumb_y + 1, track_w - 2, thumb_h - 2};
                 int hover = overlay_mouse_over(track_x, track_y, track_w, track_h);
-                OverlayColor tcol = hover ? th_sb->accent_2 : th_sb->accent_1;
-                SDL_SetRenderDrawColor(g_app.renderer, tcol.r, tcol.g, tcol.b, tcol.a);
+                OverlayColor base = hover ? th_sb->accent_2 : th_sb->accent_1;
+                SDL_SetRenderDrawColor(g_app.renderer, base.r, base.g, base.b, 220);
                 SDL_RenderFillRect(g_app.renderer, &thumb);
-                /* Dragging */
+                /* Drag logic */
                 const OverlayInputState* in2 = overlay_input_get();
-                static int dragging = 0;
-                static int drag_off = 0;
                 if (!dragging && hover && in2 && in2->mouse_down_l && !in2->mouse_drag_l)
                 {
                     dragging = 1;
