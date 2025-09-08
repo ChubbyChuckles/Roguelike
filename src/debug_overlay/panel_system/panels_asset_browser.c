@@ -23,6 +23,9 @@
 #include "../overlay_theme.h"
 #include "../widgets/overlay_widgets.h"
 #include "../widgets/overlay_widgets_internal.h" /* access g_ui positioning (internal) */
+/* Transitional includes for refactor: state + directory helpers moved to dedicated module. */
+#include "../asset_browser/asset_browser_dir.h"
+#include "../asset_browser/asset_browser_state.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,140 +55,8 @@ static void overlay_colored_label(const char* text, RogueColor color)
 }
 #endif
 
-/* Re-introduced AssetBrowserEnhancedState (removed inadvertently during integration) */
-#ifndef ROGUE_ASSET_BROWSER_JSON_CAP
-#define ROGUE_ASSET_BROWSER_JSON_CAP 256
-#endif
-#ifndef ROGUE_ASSET_BROWSER_SHADER_CAP
-#define ROGUE_ASSET_BROWSER_SHADER_CAP 256
-#endif
-typedef struct AssetBrowserEnhancedState
-{
-    /* Core listing / selection */
-    int tab_index; /* 0=All,1=Textures,2=Audio,3=JSON,4=Shaders */
-    int selected_row;
-    /* Filtering */
-    char tag_filter[64];
-    /* JSON + shader enumerations */
-    struct
-    {
-        char path[260];
-    } json_files[ROGUE_ASSET_BROWSER_JSON_CAP];
-    int json_count;
-    struct
-    {
-        char path[260];
-    } shader_files[ROGUE_ASSET_BROWSER_SHADER_CAP];
-    int shader_count;
-    int scanned_once;
-    /* Import path buffer */
-    char pending_import_path[512];
-    int auto_poll_reload;
-    /* Validation / analysis toggles */
-    int show_stream_queue;
-    int show_perf_metrics;
-    int show_atlas_tool;
-    int show_memory_profiler;
-    int show_compression_compare;
-    /* Phase 4+ validation state */
-    int validation_enabled;
-    int validation_last_result; /* -1 unset, 0 fail, 1 ok */
-    int validation_error_count;
-    int validation_warning_count;
-    char validation_target_path[260];
-    char validation_errors[16][96];
-    char validation_warnings[16][96];
-    /* Optimization hints */
-    int show_optimization;
-    int opt_tex_large_count;
-    int opt_tex_unloaded_count;
-    int opt_audio_unloaded_count;
-    char opt_tex_large[8][96];
-    char opt_tex_unloaded[8][96];
-    char opt_audio_unloaded[8][96];
-    /* Cycle / duplicate detection */
-    int show_cycles;
-    int cycle_count; /* placeholder (not yet populated) */
-    int detect_duplicates;
-    int duplicate_count;
-    char duplicate_records[16][64];
-    /* Misc feature toggles */
-    int show_hotkey_help;
-    int show_workflow_templates;
-    int show_cache_config;
-    int show_vcs_overlay;
-    /* Atlas builder */
-    int atlas_selection[8];
-    int atlas_selection_count;
-    int atlas_last_result;
-    /* Memory profiler */
-    unsigned long long approx_texture_bytes; /* basic texture mem est */
-    size_t mem_total_bytes;
-    size_t mem_loaded_bytes;
-    /* Template generator */
-    int template_counter;
-    char last_template_path[260];
-    int last_template_result; /* 1 ok, 0 fail, -1 unset */
-    /* Bookmarks */
-    int bookmark_indices[16];
-    int bookmark_count;
-    /* JSON editor buffer + undo */
-    char json_editor_buffer[4096];
-    int json_editor_dirty;
-    char json_undo_stack[8][1024];
-    int json_undo_len;
-    int json_undo_pos;
-    /* Texture preview / tagging */
-    int tex_zoom;
-    int pan_x, pan_y;
-    char tag_input[64];
-    /* Sprite grid + rect / animation editing */
-    int sprite_grid_show;
-    int sprite_grid_cell_w;
-    int sprite_grid_cell_h;
-    int sprite_edit_mode;
-    struct
-    {
-        int x, y, w, h;
-    } sprite_rects[64];
-    int sprite_rect_count;
-    int sprite_active_rect;
-    struct
-    {
-        int rect_index;
-        int duration_ms;
-    } anim_frames[64];
-    int anim_frame_count;
-    int anim_active_frame;
-    /* Audio preview */
-    int audio_loop;
-    int audio_volume; /* 0-128 */
-    /* JSON preview buffer (separate from editor buffer so edits don't affect raw highlight) */
-    char json_preview_buffer[4096];
-    int json_preview_valid; /* quick structural syntax check result */
-    int json_error_count;   /* count of simple structural issues */
-    /* JSON editor state */
-    int json_editor_open;
-    int json_editor_loaded;
-    char json_editor_status[128];
-    int json_editor_schema_valid; /* future schema validation flag */
-    /* Texture comparison indices (A/B), -1 when unset */
-    int compare_tex_a;
-    int compare_tex_b;
-    /* Internal directory browser (dynamic list w/ scrollbar) */
-    char dir_cwd[ROGUE_FILE_DIALOG_PATH_MAX];
-    char dir_root[ROGUE_FILE_DIALOG_PATH_MAX]; /* Resolved absolute (or relative) assets root */
-    struct AssetBrowserDirEntry
-    {
-        char name[ROGUE_FILE_DIALOG_PATH_MAX];
-        int is_dir;
-    }* dir_entries;
-    int dir_count;
-    int dir_capacity;
-    int dir_scroll;
-    int dir_selected;
-} AssetBrowserEnhancedState;
-static AssetBrowserEnhancedState g_ab_state; /* zero-init */
+/* Refactored: central state now lives in asset_browser_state.[ch]. */
+#define g_ab_state (*rogue_asset_browser_state())
 static const char* ab_get_selected_asset_id(const RogueAssetManager* m);
 /* NOTE: Removed temporary legacy stub (rogue_file_dialog_last_listing). All stale
     object files rebuilt; symbol no longer required. */
@@ -219,330 +90,7 @@ static int ab_ci_cmp(const char* a, const char* b)
 #endif
 }
 
-/* -------------------------------- Internal Directory Browser Helpers ----------------------- */
-/* --- Directory root discovery & navigation helpers ---------------------------------------- */
-static int ab_path_is_dir(const char* p)
-{
-#ifdef _WIN32
-    DWORD a = GetFileAttributesA(p);
-    if (a == INVALID_FILE_ATTRIBUTES)
-        return 0;
-    return (a & FILE_ATTRIBUTE_DIRECTORY) != 0;
-#else
-    struct stat st;
-    if (stat(p, &st) != 0)
-        return 0;
-    return S_ISDIR(st.st_mode) ? 1 : 0;
-#endif
-}
-
-static void ab_locate_assets_root(void)
-{
-    if (g_ab_state.dir_root[0])
-        return; /* already discovered */
-    /* 1. Environment override */
-    {
-        const char* env = getenv("ROGUE_ASSETS_DIR");
-        if (env && env[0] && ab_path_is_dir(env))
-        {
-            ab_copy_safe(g_ab_state.dir_root, sizeof g_ab_state.dir_root, env);
-            return;
-        }
-    }
-    /* 2. Relative candidates (fast) */
-    {
-        const char* rels[] = {"assets",       "./assets",        "../assets",
-                              "../../assets", "../../../assets", NULL};
-        int ri = 0;
-        while (rels[ri])
-        {
-            if (ab_path_is_dir(rels[ri]))
-            {
-                ab_copy_safe(g_ab_state.dir_root, sizeof g_ab_state.dir_root, rels[ri]);
-                return;
-            }
-            ri++;
-        }
-    }
-    /* 3. Ascend parents from current working directory (depth limited) */
-    {
-        char cwd_buf[ROGUE_FILE_DIALOG_PATH_MAX];
-#ifdef _WIN32
-        if (!_getcwd(cwd_buf, (int) sizeof cwd_buf))
-            cwd_buf[0] = '\0';
-#else
-        if (!getcwd(cwd_buf, sizeof cwd_buf))
-            cwd_buf[0] = '\0';
-#endif
-        if (cwd_buf[0])
-        {
-            char probe[ROGUE_FILE_DIALOG_PATH_MAX * 2];
-            int depth;
-            for (depth = 0; depth < 8 && cwd_buf[0]; ++depth)
-            {
-                snprintf(probe, sizeof probe, "%s/%s", cwd_buf, "assets");
-                if (ab_path_is_dir(probe))
-                {
-                    ab_copy_safe(g_ab_state.dir_root, sizeof g_ab_state.dir_root, probe);
-                    return;
-                }
-                /* trim last component */
-                {
-                    size_t len = strlen(cwd_buf);
-                    while (len && (cwd_buf[len - 1] == '/' || cwd_buf[len - 1] == '\\'))
-                        cwd_buf[--len] = '\0';
-                    while (len && cwd_buf[len - 1] != '/' && cwd_buf[len - 1] != '\\')
-                        cwd_buf[--len] = '\0';
-                    while (len && (cwd_buf[len - 1] == '/' || cwd_buf[len - 1] == '\\'))
-                        cwd_buf[--len] = '\0';
-                }
-            }
-        }
-    }
-    /* 4. Fallback: keep relative "assets" (may be empty) */
-    ab_copy_safe(g_ab_state.dir_root, sizeof g_ab_state.dir_root, "assets");
-}
-
-static void ab_dir_init_if_needed(void)
-{
-    if (!g_ab_state.dir_root[0])
-        ab_locate_assets_root();
-    if (!g_ab_state.dir_cwd[0])
-    {
-        ab_copy_safe(g_ab_state.dir_cwd, sizeof g_ab_state.dir_cwd, g_ab_state.dir_root);
-        g_ab_state.dir_scroll = 0;
-        g_ab_state.dir_selected = -1;
-        g_ab_state.dir_entries = NULL;
-        g_ab_state.dir_count = 0;
-        g_ab_state.dir_capacity = 0;
-    }
-}
-
-static int ab_dir_is_sep(char c) { return c == '/' || c == '\\'; }
-
-static void ab_dir_join(char* out, size_t cap, const char* a, const char* b)
-{
-    if (!a || !b)
-    {
-        out[0] = '\0';
-        return;
-    }
-    snprintf(out, cap, "%s%s%s", a, (a[0] && !ab_dir_is_sep(a[strlen(a) - 1])) ? "/" : "", b);
-}
-
-static void ab_dir_parent(char* path)
-{
-    if (!path || !path[0])
-        return;
-    /* Root guard uses discovered dir_root (exact match). */
-    if (g_ab_state.dir_root[0] && strcmp(path, g_ab_state.dir_root) == 0)
-        return; /* already at root */
-    size_t root_len = g_ab_state.dir_root[0] ? strlen(g_ab_state.dir_root) : 0;
-    size_t len = strlen(path);
-    while (len && ab_dir_is_sep(path[len - 1]))
-        path[--len] = '\0';
-    while (len && !ab_dir_is_sep(path[len - 1]))
-        path[--len] = '\0';
-    while (len && ab_dir_is_sep(path[len - 1]))
-        path[--len] = '\0';
-    if (root_len && (len < root_len || strncmp(path, g_ab_state.dir_root, root_len) != 0))
-    {
-        /* Snap back to root if we traversed above it */
-        ab_copy_safe(path, ROGUE_FILE_DIALOG_PATH_MAX, g_ab_state.dir_root);
-    }
-}
-
-static void ab_dir_refresh(void)
-{
-    g_ab_state.dir_count = 0;
-    ab_dir_init_if_needed();
-#define AB_DIR_RESERVE_STEP 128
-    /* Reserve initial capacity */
-    if (g_ab_state.dir_capacity == 0)
-    {
-        g_ab_state.dir_capacity = AB_DIR_RESERVE_STEP;
-        g_ab_state.dir_entries = (struct AssetBrowserDirEntry*) malloc(
-            sizeof(*g_ab_state.dir_entries) * g_ab_state.dir_capacity);
-        if (!g_ab_state.dir_entries)
-        {
-            g_ab_state.dir_capacity = 0;
-            return;
-        }
-    }
-    /* Local ensure capacity helper (C89 style) */
-    {
-        /* no-op block; real growth done inline where needed */
-    }
-#ifdef _WIN32
-    {
-        char pattern[ROGUE_FILE_DIALOG_PATH_MAX * 2];
-        snprintf(pattern, sizeof pattern, "%s/*", g_ab_state.dir_cwd);
-        WIN32_FIND_DATAA fd;
-        HANDLE h = FindFirstFileA(pattern, &fd);
-        if (h != INVALID_HANDLE_VALUE)
-        {
-            do
-            {
-                const char* n = fd.cFileName;
-                if (strcmp(n, ".") == 0 || strcmp(n, "..") == 0)
-                    continue;
-                if (g_ab_state.dir_count >= g_ab_state.dir_capacity)
-                {
-                    int new_cap = g_ab_state.dir_capacity ? g_ab_state.dir_capacity * 2 : 128;
-                    void* nm =
-                        realloc(g_ab_state.dir_entries, sizeof(*g_ab_state.dir_entries) * new_cap);
-                    if (!nm)
-                        break; /* out of memory */
-                    g_ab_state.dir_entries = (struct AssetBrowserDirEntry*) nm;
-                    g_ab_state.dir_capacity = new_cap;
-                }
-                ab_copy_safe(g_ab_state.dir_entries[g_ab_state.dir_count].name,
-                             sizeof g_ab_state.dir_entries[g_ab_state.dir_count].name, n);
-                g_ab_state.dir_entries[g_ab_state.dir_count].is_dir =
-                    (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? 1 : 0;
-                g_ab_state.dir_count++;
-            } while (FindNextFileA(h, &fd));
-            FindClose(h);
-        }
-    }
-#else
-    {
-        DIR* d = opendir(g_ab_state.dir_cwd);
-        if (d)
-        {
-            struct dirent* ent;
-            while ((ent = readdir(d)))
-            {
-                const char* n = ent->d_name;
-                if (strcmp(n, ".") == 0 || strcmp(n, "..") == 0)
-                    continue;
-                if (g_ab_state.dir_count >= g_ab_state.dir_capacity)
-                {
-                    int new_cap = g_ab_state.dir_capacity ? g_ab_state.dir_capacity * 2 : 128;
-                    void* nm =
-                        realloc(g_ab_state.dir_entries, sizeof(*g_ab_state.dir_entries) * new_cap);
-                    if (!nm)
-                        break; /* out of memory */
-                    g_ab_state.dir_entries = (struct AssetBrowserDirEntry*) nm;
-                    g_ab_state.dir_capacity = new_cap;
-                }
-                ab_copy_safe(g_ab_state.dir_entries[g_ab_state.dir_count].name,
-                             sizeof g_ab_state.dir_entries[g_ab_state.dir_count].name, n);
-                /* Best effort directory flag */
-                g_ab_state.dir_entries[g_ab_state.dir_count].is_dir = (ent->d_type == DT_DIR);
-                g_ab_state.dir_count++;
-            }
-            closedir(d);
-        }
-    }
-#endif
-    /* If empty and cwd appears invalid, attempt to relocate root once and retry */
-    if (g_ab_state.dir_count == 0)
-    {
-        int had_root = g_ab_state.dir_root[0] ? 1 : 0;
-        ab_locate_assets_root();
-        if (!had_root || (g_ab_state.dir_root[0] && strncmp(g_ab_state.dir_cwd, g_ab_state.dir_root,
-                                                            strlen(g_ab_state.dir_root)) != 0))
-        {
-            /* Reset CWD to root and retry */
-            ab_copy_safe(g_ab_state.dir_cwd, sizeof g_ab_state.dir_cwd, g_ab_state.dir_root);
-            /* prevent infinite recursion by only retrying once per refresh call */
-#ifdef _WIN32
-            {
-                char pattern2[ROGUE_FILE_DIALOG_PATH_MAX * 2];
-                snprintf(pattern2, sizeof pattern2, "%s/*", g_ab_state.dir_cwd);
-                WIN32_FIND_DATAA fd2;
-                HANDLE h2 = FindFirstFileA(pattern2, &fd2);
-                if (h2 != INVALID_HANDLE_VALUE)
-                {
-                    do
-                    {
-                        const char* n = fd2.cFileName;
-                        if (strcmp(n, ".") == 0 || strcmp(n, "..") == 0)
-                            continue;
-                        if (g_ab_state.dir_count >= g_ab_state.dir_capacity)
-                        {
-                            int new_cap2 =
-                                g_ab_state.dir_capacity ? g_ab_state.dir_capacity * 2 : 128;
-                            void* nm2 = realloc(g_ab_state.dir_entries,
-                                                sizeof(*g_ab_state.dir_entries) * new_cap2);
-                            if (!nm2)
-                                break;
-                            g_ab_state.dir_entries = (struct AssetBrowserDirEntry*) nm2;
-                            g_ab_state.dir_capacity = new_cap2;
-                        }
-                        ab_copy_safe(g_ab_state.dir_entries[g_ab_state.dir_count].name,
-                                     sizeof g_ab_state.dir_entries[g_ab_state.dir_count].name, n);
-                        g_ab_state.dir_entries[g_ab_state.dir_count].is_dir =
-                            (fd2.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? 1 : 0;
-                        g_ab_state.dir_count++;
-                    } while (FindNextFileA(h2, &fd2));
-                    FindClose(h2);
-                }
-            }
-#else
-            {
-                DIR* d2 = opendir(g_ab_state.dir_cwd);
-                if (d2)
-                {
-                    struct dirent* ent2;
-                    while ((ent2 = readdir(d2)))
-                    {
-                        const char* n = ent2->d_name;
-                        if (strcmp(n, ".") == 0 || strcmp(n, "..") == 0)
-                            continue;
-                        if (g_ab_state.dir_count >= g_ab_state.dir_capacity)
-                        {
-                            int new_cap2 =
-                                g_ab_state.dir_capacity ? g_ab_state.dir_capacity * 2 : 128;
-                            void* nm2 = realloc(g_ab_state.dir_entries,
-                                                sizeof(*g_ab_state.dir_entries) * new_cap2);
-                            if (!nm2)
-                                break;
-                            g_ab_state.dir_entries = (struct AssetBrowserDirEntry*) nm2;
-                            g_ab_state.dir_capacity = new_cap2;
-                        }
-                        ab_copy_safe(g_ab_state.dir_entries[g_ab_state.dir_count].name,
-                                     sizeof g_ab_state.dir_entries[g_ab_state.dir_count].name, n);
-                        g_ab_state.dir_entries[g_ab_state.dir_count].is_dir =
-                            (ent2->d_type == DT_DIR);
-                        g_ab_state.dir_count++;
-                    }
-                    closedir(d2);
-                }
-            }
-#endif
-        }
-    }
-    /* Simple sort: dirs first then lexicographic */
-    {
-        int i, j;
-        for (i = 0; i < g_ab_state.dir_count; ++i)
-        {
-            for (j = i + 1; j < g_ab_state.dir_count; ++j)
-            {
-                int swap = 0;
-                if (g_ab_state.dir_entries[j].is_dir && !g_ab_state.dir_entries[i].is_dir)
-                    swap = 1;
-                else if (g_ab_state.dir_entries[j].is_dir == g_ab_state.dir_entries[i].is_dir &&
-                         ab_ci_cmp(g_ab_state.dir_entries[i].name, g_ab_state.dir_entries[j].name) >
-                             0)
-                    swap = 1;
-                if (swap)
-                {
-                    int tdir = g_ab_state.dir_entries[i].is_dir;
-                    char tname[ROGUE_FILE_DIALOG_PATH_MAX];
-                    memcpy(tname, g_ab_state.dir_entries[i].name, sizeof tname);
-                    g_ab_state.dir_entries[i].is_dir = g_ab_state.dir_entries[j].is_dir;
-                    memcpy(g_ab_state.dir_entries[i].name, g_ab_state.dir_entries[j].name,
-                           sizeof tname);
-                    g_ab_state.dir_entries[j].is_dir = tdir;
-                    memcpy(g_ab_state.dir_entries[j].name, tname, sizeof tname);
-                }
-            }
-        }
-    }
-}
+/* Directory helper functions removed (now in asset_browser_dir.c). */
 
 /* Public mini API (Phase 6 hotkeys) --------------------------------------------------------- */
 #include "panels_asset_browser_api.h"
@@ -1686,21 +1234,21 @@ static void panel_asset_browser(void* user)
     }
     /* Internal lightweight directory browser (replaces cached file dialog listing) */
     {
-        ab_dir_init_if_needed();
+        rogue_asset_browser_dir_init_if_needed();
         if (g_ab_state.dir_count == 0)
-            ab_dir_refresh();
+            rogue_asset_browser_dir_refresh();
         overlay_label("Directory Browser:");
         overlay_label(g_ab_state.dir_cwd);
         if (overlay_button("Up"))
         {
-            ab_dir_parent(g_ab_state.dir_cwd);
-            ab_dir_refresh();
+            rogue_asset_browser_dir_parent(g_ab_state.dir_cwd);
+            rogue_asset_browser_dir_refresh();
             g_ab_state.dir_scroll = 0;
             g_ab_state.dir_selected = -1;
         }
         if (overlay_button("Refresh"))
         {
-            ab_dir_refresh();
+            rogue_asset_browser_dir_refresh();
             g_ab_state.dir_scroll = 0;
             g_ab_state.dir_selected = -1;
         }
@@ -1870,10 +1418,10 @@ static void panel_asset_browser(void* user)
                     if (g_ab_state.dir_entries[idx].is_dir)
                     {
                         char joined[ROGUE_FILE_DIALOG_PATH_MAX * 2];
-                        ab_dir_join(joined, sizeof joined, g_ab_state.dir_cwd,
-                                    g_ab_state.dir_entries[idx].name);
+                        rogue_asset_browser_dir_join(joined, sizeof joined, g_ab_state.dir_cwd,
+                                                     g_ab_state.dir_entries[idx].name);
                         ab_copy_safe(g_ab_state.dir_cwd, sizeof g_ab_state.dir_cwd, joined);
-                        ab_dir_refresh();
+                        rogue_asset_browser_dir_refresh();
                         g_ab_state.dir_scroll = 0; /* reset view at new directory */
                         g_ab_state.dir_selected = -1;
                     }
@@ -1881,8 +1429,8 @@ static void panel_asset_browser(void* user)
                     {
                         /* Selecting a file puts full path into pending import buffer */
                         char full[ROGUE_FILE_DIALOG_PATH_MAX * 2];
-                        ab_dir_join(full, sizeof full, g_ab_state.dir_cwd,
-                                    g_ab_state.dir_entries[idx].name);
+                        rogue_asset_browser_dir_join(full, sizeof full, g_ab_state.dir_cwd,
+                                                     g_ab_state.dir_entries[idx].name);
                         ab_copy_safe(g_ab_state.pending_import_path,
                                      sizeof g_ab_state.pending_import_path, full);
                     }

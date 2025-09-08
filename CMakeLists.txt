@@ -700,6 +700,9 @@ add_library(rogue_debug_overlay OBJECT
     src/debug_overlay/panel_system/panels_system.c
     src/debug_overlay/panel_system/panels_asset_metrics.c
     # Phase 7: Asset Browser panel (added after metrics panel)
+    # Asset Browser refactor modules (state + directory logic extracted from monolith)
+    src/debug_overlay/asset_browser/asset_browser_state.c
+    src/debug_overlay/asset_browser/asset_browser_dir.c
     src/debug_overlay/panel_system/panels_asset_browser.c
     src/debug_overlay/panel_player/panels_player.c
     src/debug_overlay/panel_skills/panels_skills.c
@@ -780,6 +783,11 @@ target_compile_definitions(rogue_thirdparty_cjson PUBLIC ROGUE_CJSON_STUB=1)
 target_sources(rogue_core PRIVATE
     $<$<BOOL:${ROGUE_ENABLE_DEBUG_OVERLAY}>:$<TARGET_OBJECTS:rogue_debug_overlay>>
 )
+
+# Ensure the core library is explicitly rebuilt after overlay object list changes.
+# (Generator expressions with TARGET_OBJECTS generally handle this, but an explicit
+# dependency avoids stale archives when sources are added incrementally.)
+add_dependencies(rogue_core rogue_debug_overlay)
 
 # Link content JSON objects and cJSON when enabled
 target_sources(rogue_core PRIVATE
