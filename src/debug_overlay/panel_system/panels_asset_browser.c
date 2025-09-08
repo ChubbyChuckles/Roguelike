@@ -1250,6 +1250,64 @@ static void panel_asset_browser(void* user)
                             g_ab_state.anim_active_frame = fi;
                     }
                 }
+                /* Phase 3 (new): Basic batch ops / export for selected texture */
+                overlay_label("Batch / Export (Phase3 slice):");
+                static int rs_w = 64;
+                static int rs_h = 64;
+                if (rs_w < 4)
+                    rs_w = 4;
+                if (rs_h < 4)
+                    rs_h = 4;
+                if (overlay_slider_int("Resize W", &rs_w, 4, sel_tex->width * 4))
+                {
+                }
+                if (overlay_slider_int("Resize H", &rs_h, 4, sel_tex->height * 4))
+                {
+                }
+                if (overlay_button("Create Resize Variant"))
+                {
+                    int tindex = rogue_asset_manager_find_by_id(sel_tex->id);
+                    if (tindex >= 0)
+                    {
+                        int ridx =
+                            rogue_asset_manager_resize_texture_variant(tindex, rs_w, rs_h, 0);
+                        if (ridx >= 0)
+                            overlay_label("(variant created)");
+                        else
+                            overlay_label("(resize failed)");
+                    }
+                }
+                if (overlay_button("Resize In-Place"))
+                {
+                    int tindex = rogue_asset_manager_find_by_id(sel_tex->id);
+                    if (tindex >= 0)
+                    {
+                        int ridx =
+                            rogue_asset_manager_resize_texture_variant(tindex, rs_w, rs_h, 1);
+                        if (ridx >= 0)
+                            overlay_label("(resized)");
+                        else
+                            overlay_label("(resize failed)");
+                    }
+                }
+                static char export_path[260];
+                if (!export_path[0])
+                    snprintf(export_path, sizeof export_path, "export_%s.bmp", sel_tex->id);
+                if (overlay_input_text("Export Path", export_path, sizeof export_path))
+                {
+                    export_path[sizeof export_path - 1] = '\0';
+                }
+                if (overlay_button("Export BMP"))
+                {
+                    int tindex = rogue_asset_manager_find_by_id(sel_tex->id);
+                    if (tindex >= 0)
+                    {
+                        if (rogue_asset_manager_export_texture_bmp(tindex, export_path))
+                            overlay_label("(export ok)");
+                        else
+                            overlay_label("(export failed)");
+                    }
+                }
             }
 #endif
         }

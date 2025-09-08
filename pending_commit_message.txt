@@ -1,3 +1,26 @@
+Asset System Phase 3 (Remaining) – Batch Resize & Multi‑Format Export
+
+Adds:
+- rogue_asset_manager_batch_resize (variant + in-place)
+- rogue_asset_manager_batch_export_bmp
+- rogue_asset_manager_export_texture_png (conditional on SDL_image)
+- rogue_asset_manager_batch_export_png (conditional)
+
+Infrastructure:
+- Central ROGUE_PATH_EXISTS macro (MSVC C4996 remediation for access/_access).
+- Filename collision resolution with suffix attempts (0..15).
+
+Tests:
+- test_asset_manager_resize_export (headless negative-path smoke)
+- test_asset_manager_resize_export_positive (renderer-backed positive path; tolerant of PNG no-op).
+
+Docs:
+- README section detailing new APIs, behavior, limits, and conditional PNG semantics.
+
+Notes:
+- PNG export safely returns 0 when SDL_image PNG support absent (documented).
+- Future work: overlay UI for batch operations, WIC fallback exporter on Windows, async job batching.
+
 feat(asset-phase6): introduce preloading, lazy loading toggle, and load metrics
 feat(asset-phase7): hot-reload usage analytics, asset browser stub, atlas script scaffold
 

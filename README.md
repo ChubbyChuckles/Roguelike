@@ -860,3 +860,42 @@ Implemented:
 - Optimization heuristics: duplicate CRC+size pairs and >1MB PNGs flagged for atlas/compression consideration.
 
 Deferred (future enhancements): parallel checksum computation, strict gating mode (fail on diff), JSON schema auto-dispatch integration, manifest signing & integrity verification in runtime startup, binary delta packaging.
+
+### Asset System Phase 3 (Remaining Tasks) – Batch Resize & Multi‑Format Export
+
+Status: Complete.
+
+New APIs:
+
+- rogue_asset_manager_batch_resize(const int* indices, int count, int new_w, int new_h, int replace, int* out_indices, int out_cap)
+  - Resizes each texture. When replace==0 creates variant records (id suffix applied individually) and writes resulting indices to optional out_indices. When replace!=0 performs in-place resize (SDL_Texture recreated) returning original indices.
+  - Returns number successfully processed; skips invalid indices safely.
+- rogue_asset_manager_batch_export_bmp(const int* indices, int count, const char* out_dir)
+  - Exports each texture as <id>.bmp into out*dir (must exist). On filename collision appends *<n> (0..15). Returns number exported.
+- rogue_asset_manager_export_texture_png(int index, const char\* out_path)
+  - Exports a single texture to PNG via SDL_image (IMG_SavePNG). Returns 1 on success, 0 on failure or when PNG support is not compiled in.
+- rogue_asset_manager_batch_export_png(const int* indices, int count, const char* out_dir)
+  - Batch PNG export variant mirroring BMP behavior (collision suffixing) – returns number exported; returns 0 for all when SDL_image PNG support absent.
+
+Behavior & Constraints:
+
+- Headless Safety: All resize/export calls early-out (returning -1 or 0) when no renderer is present; a negative-path test (test_asset_manager_resize_export) enforces this.
+- Collision Handling: Up to 16 suffixed attempts (<id>\_<n>.bmp/.png) before giving up on a texture to avoid infinite loops on persistent collisions.
+- Force-Load: Textures are loaded on-demand prior to export. Failures (missing file / load error) skip that entry without aborting the batch.
+- PNG Conditional: When SDL_image isn’t linked with PNG save support the PNG APIs are compiled as safe stubs returning 0 (documented no-op) – surfaced in positive-path test which tolerates 0 return codes.
+- In-Place vs Variant: In-place resize preserves the record id/path (ref counts unaffected aside from transient rebuild); variant resize allocates a new record allowing side-by-side comparisons or rollback.
+
+Tests:
+
+- test_asset_manager_resize_export (headless negative path) – verifies graceful failures without renderer.
+- test_asset_manager_resize_export_positive (renderer-backed) – exercises variant & in-place resize, single + batch BMP export, and conditional PNG export paths (skips strict assertion when PNG support is absent).
+
+Documentation & Roadmap Alignment:
+
+This fulfills the outstanding Phase 3 “basic processing & multi-format export” items: batch resize, batch BMP export, and PNG single/batch export. Remaining future niceties (UI wiring for batch operations, advanced format selection, compression heuristics) are deferred to later phases.
+
+Limitations / Future Work:
+
+- No explicit async pipeline yet (batch operations execute synchronously on caller thread).
+- PNG path currently limited to formats SDL_image can encode; adding WIC-based fallback (Windows) is a future portability enhancement.
+- UI overlay actions for batch selection/export are not yet implemented (planned Phase X tooling slice).

@@ -180,4 +180,31 @@ typedef struct RogueAtlasUV
 int rogue_asset_manager_build_atlas_horizontal(const int* texture_indices, int count,
                                                RogueAtlasUV* out_uvs, int uv_cap);
 
+/* ---------------- Phase 3 (Remaining): Basic Processing / Export -------------- */
+/* Resize an existing texture (must be loaded or loadable). When replace==0 a new texture record
+ * is created (variant) and the original left intact; returns new texture index. When replace!=0
+ * the existing texture's SDL_Texture is destroyed/replaced in-place (id/path unchanged) and the
+ * same index returned. Returns -1 on failure (headless, invalid index, load failure, params). */
+int rogue_asset_manager_resize_texture_variant(int texture_index, int new_w, int new_h,
+                                               int replace);
+/* Export a texture to a BMP on disk (always available via SDL core). Returns 1 on success, 0 on
+ * failure (invalid index, headless, load failure, write error). The texture will be force-loaded
+ * if necessary. */
+int rogue_asset_manager_export_texture_bmp(int texture_index, const char* out_path);
+
+/* Batch resize multiple textures. new_w/new_h apply to all. When replace==0 creates variants for
+ * each (id suffixed individually); when replace!=0 resizes in-place. out_indices (optional) can
+ * capture resulting indices (variant or original). Returns number successfully processed. */
+int rogue_asset_manager_batch_resize(const int* texture_indices, int count, int new_w, int new_h,
+                                     int replace, int* out_indices, int out_cap);
+/* Batch export a set of textures to BMP. out_dir must exist. Filenames are <id>.bmp (or
+ * <id>_<i>.bmp on collision). Returns number exported. */
+int rogue_asset_manager_batch_export_bmp(const int* texture_indices, int count,
+                                         const char* out_dir);
+/* PNG export (requires SDL_image providing IMG_SavePNG or fallback stub disabled at build).
+ * Returns 1 on success else 0. */
+int rogue_asset_manager_export_texture_png(int texture_index, const char* out_path);
+int rogue_asset_manager_batch_export_png(const int* texture_indices, int count,
+                                         const char* out_dir);
+
 #endif /* ROGUE_ASSET_MANAGER_H */

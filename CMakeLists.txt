@@ -1187,6 +1187,21 @@ target_link_libraries(test_asset_manager_phase6_atlas PRIVATE rogue_core)
 rogue_add_test(NAME test_asset_manager_phase6_atlas COMMAND test_asset_manager_phase6_atlas)
 set_tests_properties(test_asset_manager_phase6_atlas PROPERTIES LABELS "asset")
 
+# Phase 3 (remaining tasks): headless resize/export negative-path smoke test
+add_executable(test_asset_manager_resize_export tests/unit/test_asset_manager_resize_export.c)
+target_link_libraries(test_asset_manager_resize_export PRIVATE rogue_core)
+rogue_add_test(NAME test_asset_manager_resize_export COMMAND test_asset_manager_resize_export)
+set_tests_properties(test_asset_manager_resize_export PROPERTIES LABELS "asset")
+
+# Phase 3 (remaining tasks): positive-path resize/export with renderer (BMP + conditional PNG)
+add_executable(test_asset_manager_resize_export_positive tests/unit/test_asset_manager_resize_export_positive.c)
+target_link_libraries(test_asset_manager_resize_export_positive PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_asset_manager_resize_export_positive PRIVATE SDL2::SDL2)
+endif()
+rogue_add_test(NAME test_asset_manager_resize_export_positive COMMAND test_asset_manager_resize_export_positive)
+set_tests_properties(test_asset_manager_resize_export_positive PROPERTIES LABELS "asset")
+
 # Phase 7 usage analytics test
 add_executable(test_asset_phase7_usage_stats tests/unit/test_asset_phase7_usage_stats.c)
 target_link_libraries(test_asset_phase7_usage_stats PRIVATE rogue_core)

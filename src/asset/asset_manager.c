@@ -3,6 +3,11 @@
 #include "asset_validation.h"
 #include <stdio.h>
 #include <string.h>
+#if defined(_WIN32)
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 #include <sys/stat.h>
 #ifdef _WIN32
 #define strcasecmp _stricmp
@@ -203,6 +208,19 @@ static void texture_attempt_load(RogueAssetTexture* tex)
     (void) tex;
 #endif
 }
+
+/* Portable path existence macro (Windows uses _access, POSIX uses access/F_OK). */
+#if defined(_WIN32)
+#include <io.h>
+#ifndef ROGUE_PATH_EXISTS
+#define ROGUE_PATH_EXISTS(p) (_access((p), 0) == 0)
+#endif
+#else
+#include <unistd.h>
+#ifndef ROGUE_PATH_EXISTS
+#define ROGUE_PATH_EXISTS(p) (access((p), F_OK) == 0)
+#endif
+#endif
 
 /* Attempt to find a compressed variant when preference enabled.
    Order: .ktx2, .ktx, .dds. Returns path to use (maybe original). */
@@ -924,4 +942,243 @@ int rogue_asset_manager_build_atlas_horizontal(const int* texture_indices, int c
     (void) uv_cap;
     return -1;
 #endif
+}
+
+/* ---------------- Phase 3: Basic Processing / Export ---------------- */
+int rogue_asset_manager_resize_texture_variant(int texture_index, int new_w, int new_h, int replace)
+{
+    if (texture_index < 0 || (uint32_t) texture_index >= g_asset_mgr.texture_count || new_w <= 0 ||
+        new_h <= 0)
+        return -1;
+#if defined(ROGUE_HAVE_SDL)
+    if (!g_asset_mgr.renderer)
+        return -1; /* headless */
+    if (!rogue_asset_manager_ensure_texture_loaded(texture_index))
+        return -1;
+    RogueAssetTexture* src = &g_asset_mgr.textures[texture_index];
+    if (!src->sdl_texture)
+        return -1;
+    SDL_Texture* prev_target = SDL_GetRenderTarget(g_asset_mgr.renderer);
+    SDL_Texture* resized = SDL_CreateTexture(g_asset_mgr.renderer, SDL_PIXELFORMAT_RGBA8888,
+                                             SDL_TEXTUREACCESS_TARGET, new_w, new_h);
+    if (!resized)
+        return -1;
+    SDL_SetRenderTarget(g_asset_mgr.renderer, resized);
+    SDL_SetTextureBlendMode(resized, SDL_BLENDMODE_BLEND);
+    /* Clear to transparent to avoid garbage when source smaller */
+    SDL_SetRenderDrawColor(g_asset_mgr.renderer, 0, 0, 0, 0);
+    SDL_RenderClear(g_asset_mgr.renderer);
+    SDL_Rect dst = {0, 0, new_w, new_h};
+    SDL_RenderCopy(g_asset_mgr.renderer, (SDL_Texture*) src->sdl_texture, NULL, &dst);
+    SDL_SetRenderTarget(g_asset_mgr.renderer, prev_target);
+    if (replace)
+    {
+        if (src->sdl_texture)
+            SDL_DestroyTexture((SDL_Texture*) src->sdl_texture);
+        src->sdl_texture = resized;
+        src->width = new_w;
+        src->height = new_h;
+        return texture_index;
+    }
+    if (g_asset_mgr.texture_count >= ROGUE_ASSET_MAX_TEXTURES)
+    {
+        SDL_DestroyTexture(resized);
+        return -1;
+    }
+    RogueAssetTexture* rec = &g_asset_mgr.textures[g_asset_mgr.texture_count];
+    memset(rec, 0, sizeof *rec);
+    snprintf(rec->id, sizeof rec->id, "%s_rs%d_%d", src->id, new_w, new_h);
+    snprintf(rec->path, sizeof rec->path, "<resize:%s:%dx%d>", src->id, new_w, new_h);
+    rec->sdl_texture = resized;
+    rec->width = new_w;
+    rec->height = new_h;
+    rec->ref_count = 1;
+    rec->load_failed = false;
+    rec->last_mtime = 0;
+    int new_index = (int) g_asset_mgr.texture_count;
+    g_asset_mgr.texture_count++;
+    return new_index;
+#else
+    (void) texture_index;
+    (void) new_w;
+    (void) new_h;
+    (void) replace;
+    return -1;
+#endif
+}
+
+int rogue_asset_manager_export_texture_bmp(int texture_index, const char* out_path)
+{
+    if (texture_index < 0 || (uint32_t) texture_index >= g_asset_mgr.texture_count || !out_path ||
+        !out_path[0])
+        return 0;
+#if defined(ROGUE_HAVE_SDL)
+    if (!g_asset_mgr.renderer)
+        return 0;
+    if (!rogue_asset_manager_ensure_texture_loaded(texture_index))
+        return 0;
+    RogueAssetTexture* tex = &g_asset_mgr.textures[texture_index];
+    SDL_Texture* prev_target = SDL_GetRenderTarget(g_asset_mgr.renderer);
+    int w = tex->width;
+    int h = tex->height;
+    if (w <= 0 || h <= 0)
+        return 0;
+    SDL_Texture* tmp = SDL_CreateTexture(g_asset_mgr.renderer, SDL_PIXELFORMAT_RGBA8888,
+                                         SDL_TEXTUREACCESS_TARGET, w, h);
+    if (!tmp)
+        return 0;
+    SDL_SetRenderTarget(g_asset_mgr.renderer, tmp);
+    SDL_RenderCopy(g_asset_mgr.renderer, (SDL_Texture*) tex->sdl_texture, NULL, NULL);
+    SDL_SetRenderTarget(g_asset_mgr.renderer, prev_target);
+    /* Readback via surface */
+    SDL_Surface* surf = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_RGBA32);
+    if (!surf)
+    {
+        SDL_DestroyTexture(tmp);
+        return 0;
+    }
+    if (SDL_SetRenderTarget(g_asset_mgr.renderer, tmp) == 0)
+    {
+        if (SDL_RenderReadPixels(g_asset_mgr.renderer, NULL, SDL_PIXELFORMAT_RGBA32, surf->pixels,
+                                 surf->pitch) != 0)
+        {
+            SDL_FreeSurface(surf);
+            SDL_DestroyTexture(tmp);
+            SDL_SetRenderTarget(g_asset_mgr.renderer, prev_target);
+            return 0;
+        }
+    }
+    SDL_SetRenderTarget(g_asset_mgr.renderer, prev_target);
+    int rc = SDL_SaveBMP(surf, out_path);
+    SDL_FreeSurface(surf);
+    SDL_DestroyTexture(tmp);
+    return rc == 0 ? 1 : 0;
+#else
+    (void) texture_index;
+    (void) out_path;
+    return 0;
+#endif
+}
+
+int rogue_asset_manager_batch_resize(const int* texture_indices, int count, int new_w, int new_h,
+                                     int replace, int* out_indices, int out_cap)
+{
+    if (!texture_indices || count <= 0 || new_w <= 0 || new_h <= 0)
+        return 0;
+    int processed = 0;
+    for (int i = 0; i < count; ++i)
+    {
+        int idx = texture_indices[i];
+        int r = rogue_asset_manager_resize_texture_variant(idx, new_w, new_h, replace);
+        if (r >= 0)
+        {
+            if (out_indices && processed < out_cap)
+                out_indices[processed] = r;
+            processed++;
+        }
+    }
+    return processed;
+}
+
+int rogue_asset_manager_batch_export_bmp(const int* texture_indices, int count, const char* out_dir)
+{
+    if (!texture_indices || count <= 0 || !out_dir || !out_dir[0])
+        return 0;
+    int exported = 0;
+    char path[512];
+    for (int i = 0; i < count; ++i)
+    {
+        int idx = texture_indices[i];
+        if (idx < 0 || (uint32_t) idx >= g_asset_mgr.texture_count)
+            continue;
+        const RogueAssetTexture* t = &g_asset_mgr.textures[idx];
+        /* Basic filename: <id>.bmp; collision fallback adds index suffix */
+        snprintf(path, sizeof path, "%s/%s.bmp", out_dir, t->id[0] ? t->id : "tex");
+        int attempt = 1;
+        while (ROGUE_PATH_EXISTS(path) && attempt < 16)
+        {
+            snprintf(path, sizeof path, "%s/%s_%d.bmp", out_dir, t->id[0] ? t->id : "tex",
+                     attempt++);
+        }
+        if (rogue_asset_manager_export_texture_bmp(idx, path))
+            exported++;
+    }
+    return exported;
+}
+
+/* PNG export helpers (require SDL_image for IMG_SavePNG). Guard with macro if needed. */
+int rogue_asset_manager_export_texture_png(int texture_index, const char* out_path)
+{
+#if defined(ROGUE_HAVE_SDL_IMAGE)
+    if (texture_index < 0 || (uint32_t) texture_index >= g_asset_mgr.texture_count || !out_path ||
+        !out_path[0])
+        return 0;
+    if (!g_asset_mgr.renderer)
+        return 0;
+    if (!rogue_asset_manager_ensure_texture_loaded(texture_index))
+        return 0;
+    RogueAssetTexture* tex = &g_asset_mgr.textures[texture_index];
+    int w = tex->width, h = tex->height;
+    if (w <= 0 || h <= 0)
+        return 0;
+    SDL_Texture* prev = SDL_GetRenderTarget(g_asset_mgr.renderer);
+    SDL_Texture* tmp = SDL_CreateTexture(g_asset_mgr.renderer, SDL_PIXELFORMAT_RGBA8888,
+                                         SDL_TEXTUREACCESS_TARGET, w, h);
+    if (!tmp)
+        return 0;
+    SDL_SetRenderTarget(g_asset_mgr.renderer, tmp);
+    SDL_RenderCopy(g_asset_mgr.renderer, (SDL_Texture*) tex->sdl_texture, NULL, NULL);
+    SDL_SetRenderTarget(g_asset_mgr.renderer, prev);
+    SDL_Surface* surf = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_RGBA32);
+    if (!surf)
+    {
+        SDL_DestroyTexture(tmp);
+        return 0;
+    }
+    if (SDL_SetRenderTarget(g_asset_mgr.renderer, tmp) == 0)
+    {
+        if (SDL_RenderReadPixels(g_asset_mgr.renderer, NULL, SDL_PIXELFORMAT_RGBA32, surf->pixels,
+                                 surf->pitch) != 0)
+        {
+            SDL_FreeSurface(surf);
+            SDL_DestroyTexture(tmp);
+            SDL_SetRenderTarget(g_asset_mgr.renderer, prev);
+            return 0;
+        }
+    }
+    SDL_SetRenderTarget(g_asset_mgr.renderer, prev);
+    int rc = IMG_SavePNG(surf, out_path);
+    SDL_FreeSurface(surf);
+    SDL_DestroyTexture(tmp);
+    return rc == 0 ? 1 : 0;
+#else
+    (void) texture_index;
+    (void) out_path;
+    return 0;
+#endif
+}
+
+int rogue_asset_manager_batch_export_png(const int* texture_indices, int count, const char* out_dir)
+{
+    if (!texture_indices || count <= 0 || !out_dir || !out_dir[0])
+        return 0;
+    int exported = 0;
+    char path[512];
+    for (int i = 0; i < count; ++i)
+    {
+        int idx = texture_indices[i];
+        if (idx < 0 || (uint32_t) idx >= g_asset_mgr.texture_count)
+            continue;
+        const RogueAssetTexture* t = &g_asset_mgr.textures[idx];
+        snprintf(path, sizeof path, "%s/%s.png", out_dir, t->id[0] ? t->id : "tex");
+        int attempt = 1;
+        while (ROGUE_PATH_EXISTS(path) && attempt < 16)
+        {
+            snprintf(path, sizeof path, "%s/%s_%d.png", out_dir, t->id[0] ? t->id : "tex",
+                     attempt++);
+        }
+        if (rogue_asset_manager_export_texture_png(idx, path))
+            exported++;
+    }
+    return exported;
 }
