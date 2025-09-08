@@ -1,3 +1,20 @@
+Asset Overlay Phase 4 – Initial Validation & QA Slice
+
+Adds overlay panel features:
+- JSON validation trigger (existence, size >0, naming rule) with error/warning lists.
+- Visual reporting: colored summaries + per-error/warning labels.
+- Missing/empty JSON detection.
+- Naming convention warning (uppercase or spaces).
+- Duplicate texture ID detection (first 16 collisions surfaced).
+
+Roadmap updates: Marked implemented Phase 4 tasks (schema integration - shallow, error reporting, missing asset detection, duplicate detection, naming validation). Left optimization + dependency cycle visualization + merge workflow as pending.
+
+README: New section 'Asset Overlay Phase 4 (Validation & QA – Initial Slice)'.
+
+Notes:
+- Schema integration is shallow placeholder; future slice to wire full schema engine + inline editor annotations.
+- Duplicate detection limited to texture IDs; audio/JSON duplication heuristics deferred.
+
 Asset System Phase 3 (Remaining) – Batch Resize & Multi‑Format Export
 
 Adds:

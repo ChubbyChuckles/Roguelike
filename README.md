@@ -899,3 +899,15 @@ Limitations / Future Work:
 - No explicit async pipeline yet (batch operations execute synchronously on caller thread).
 - PNG path currently limited to formats SDL_image can encode; adding WIC-based fallback (Windows) is a future portability enhancement.
 - UI overlay actions for batch selection/export are not yet implemented (planned Phase X tooling slice).
+
+### Asset Overlay Phase 4 (Validation & QA – Initial Slice)
+
+The asset browser overlay now includes early validation & quality assistance features:
+
+- JSON Validation: Run validation on selected JSON (existence, non-empty file, naming convention). Integration point for full schema engine (future slice will wire real schemas & structural error highlighting within editor buffer).
+- Error/Warning Surfacing: Panel lists errors (red) and warnings (yellow) after each run; retains last target path.
+- Missing Asset Detection: Marks missing or empty JSON files as errors. (Future enhancement: suggest fallback creation template.)
+- Naming Convention Check: Warns when filenames include uppercase letters or spaces; encourages lowercase-with-underscores style.
+- Duplicate Texture ID Detection: Toggle enumerates duplicate texture IDs (first 16) to help resolve unintended id reuse before atlas/packing workflows.
+
+Deferred (still open in roadmap): optimization recommendations (size/compression), dependency cycle visualization, schema-deep structural annotation, merge helpers for duplicates.

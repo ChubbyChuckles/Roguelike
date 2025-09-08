@@ -33,6 +33,25 @@
 #include <dirent.h> /* needed for POSIX recursive scan */
 #endif
 
+/* Local layout/color helper shims -----------------------------------------------------------
+   NOTE: The asset browser panel references a few helper-style functions (overlay_separator,
+   overlay_same_line, overlay_colored_label) that do not currently exist in the public overlay
+   widgets API. Earlier they were assumed external which produced unresolved externals at link
+   time. We provide lightweight static implementations here (mirroring the approach used in
+   the visuals import wizard panel) so the panel links without requiring broader overlay
+   refactors. If/when richer layout & colored label primitives are added globally these can be
+   removed and the calls updated.
+*/
+#if ROGUE_ENABLE_DEBUG_OVERLAY
+static void overlay_separator(void) { overlay_label("----------------------------------------"); }
+static void overlay_same_line(void) { /* minimal layout system: no-op shim */ }
+static void overlay_colored_label(const char* text, RogueColor color)
+{
+    (void) color; /* current overlay_label has no per-call color override; fallback to theme */
+    overlay_label(text);
+}
+#endif /* ROGUE_ENABLE_DEBUG_OVERLAY */
+
 #ifndef ROGUE_ASSET_BROWSER_JSON_CAP
 #define ROGUE_ASSET_BROWSER_JSON_CAP 512
 #endif
@@ -102,6 +121,20 @@ typedef struct AssetBrowserEnhancedState
     /* Phase 3 tagging system UI state */
     char tag_input[32];
     char tag_filter[32]; /* optional additional tag filter (AND with pattern filter) */
+    /* Phase 4 validation integration */
+    int validation_enabled;     /* toggle */
+    int validation_last_result; /* 1 ok, 0 fail, -1 none */
+    int validation_error_count;
+    char validation_errors[16][96];
+    int validation_warning_count;
+    char validation_warnings[16][96];
+    char validation_target_path[260];
+    int detect_duplicates; /* toggle */
+    int duplicate_count;
+    char duplicate_records[16][64];
+    int naming_check_enabled; /* toggle naming convention check */
+    int naming_error_count;
+    char naming_errors[8][96];
 } AssetBrowserEnhancedState;
 
 static AssetBrowserEnhancedState g_ab_state; /* zero-init */
@@ -518,6 +551,110 @@ static void panel_asset_browser(void* user)
              stats.peak_audio_records, stats.reloads_detected,
              g_ab_state.approx_texture_bytes / (1024.0 * 1024.0));
     overlay_label(line);
+    /* Phase 4: Validation & QA controls */
+    overlay_separator();
+    overlay_label("Validation / QA (Phase 4)");
+    overlay_checkbox("Enable Validation", &g_ab_state.validation_enabled);
+    overlay_same_line();
+    if (overlay_button("Run Selected JSON Validation"))
+    {
+        g_ab_state.validation_last_result = -1;
+        g_ab_state.validation_error_count = 0;
+        g_ab_state.validation_warning_count = 0;
+        if (g_ab_state.validation_enabled && g_ab_state.tab_index == 3 &&
+            g_ab_state.selected_row >= 0 && g_ab_state.selected_row < g_ab_state.json_count)
+        {
+            const char* rel = g_ab_state.json_files[g_ab_state.selected_row].path;
+            ab_safe_copy(g_ab_state.validation_target_path,
+                         sizeof g_ab_state.validation_target_path, rel);
+            char full[512];
+            snprintf(full, sizeof full, "assets/%s", rel);
+            FILE* f = fopen(full, "rb");
+            if (!f)
+            {
+                g_ab_state.validation_last_result = 0;
+                snprintf(g_ab_state.validation_errors[g_ab_state.validation_error_count++], 96,
+                         "missing: %s", rel);
+            }
+            else
+            {
+                fseek(f, 0, SEEK_END);
+                long sz = ftell(f);
+                fseek(f, 0, SEEK_SET);
+                if (sz <= 0)
+                {
+                    g_ab_state.validation_last_result = 0;
+                    snprintf(g_ab_state.validation_errors[g_ab_state.validation_error_count++], 96,
+                             "empty file");
+                }
+                else
+                {
+                    /* Naming rule: lowercase + no spaces */
+                    int bad = 0;
+                    for (const char* c = rel; *c; ++c)
+                    {
+                        if (*c == ' ' || (*c >= 'A' && *c <= 'Z'))
+                        {
+                            bad = 1;
+                            break;
+                        }
+                    }
+                    if (bad)
+                    {
+                        snprintf(
+                            g_ab_state.validation_warnings[g_ab_state.validation_warning_count++],
+                            96, "naming: use lowercase & no spaces");
+                    }
+                    g_ab_state.validation_last_result = 1;
+                }
+                fclose(f);
+            }
+        }
+    }
+    if (g_ab_state.validation_enabled && g_ab_state.validation_last_result != -1)
+    {
+        const OverlayTheme* th = overlay_theme_get();
+        /* Map theme overlay colors (OverlayColor) into RogueColor */
+        RogueColor ok =
+            (RogueColor){th->accent_1.r, th->accent_1.g, th->accent_1.b, th->accent_1.a};
+        RogueColor err = (RogueColor){th->toast_error_bg.r, th->toast_error_bg.g,
+                                      th->toast_error_bg.b, th->toast_error_bg.a};
+        RogueColor warn = (RogueColor){th->toast_warn_bg.r, th->toast_warn_bg.g,
+                                       th->toast_warn_bg.b, th->toast_warn_bg.a};
+        char sum[128];
+        snprintf(sum, sizeof sum, "Validation %s (E:%d W:%d) %s",
+                 g_ab_state.validation_last_result ? "OK" : "FAIL",
+                 g_ab_state.validation_error_count, g_ab_state.validation_warning_count,
+                 g_ab_state.validation_target_path);
+        overlay_colored_label(sum, g_ab_state.validation_last_result ? ok : err);
+        for (int i = 0; i < g_ab_state.validation_error_count; i++)
+            overlay_colored_label(g_ab_state.validation_errors[i], err);
+        for (int i = 0; i < g_ab_state.validation_warning_count; i++)
+            overlay_colored_label(g_ab_state.validation_warnings[i], warn);
+    }
+    /* Duplicate detection */
+    if (overlay_checkbox("Detect Duplicate Texture IDs", &g_ab_state.detect_duplicates) &&
+        g_ab_state.detect_duplicates)
+    {
+        g_ab_state.duplicate_count = 0;
+        for (uint32_t i = 0; i < m->texture_count && g_ab_state.duplicate_count < 16; i++)
+            for (uint32_t j = i + 1; j < m->texture_count && g_ab_state.duplicate_count < 16; j++)
+                if (m->textures[i].id[0] && strcmp(m->textures[i].id, m->textures[j].id) == 0)
+                {
+                    snprintf(g_ab_state.duplicate_records[g_ab_state.duplicate_count++], 64,
+                             "%s (%u,%u)", m->textures[i].id, i, j);
+                    break;
+                }
+    }
+    if (g_ab_state.detect_duplicates && g_ab_state.duplicate_count > 0)
+    {
+        const OverlayTheme* th = overlay_theme_get();
+        RogueColor warn = (RogueColor){th->toast_warn_bg.r, th->toast_warn_bg.g,
+                                       th->toast_warn_bg.b, th->toast_warn_bg.a};
+        overlay_colored_label("Duplicates:", warn);
+        for (int i = 0; i < g_ab_state.duplicate_count; i++)
+            overlay_colored_label(g_ab_state.duplicate_records[i], warn);
+    }
     /* Controls row */
     static const char* tabs[] = {"All", "Textures", "Audio", "JSON", "Shaders"};
     overlay_combo("Type", &g_ab_state.tab_index, tabs, 5);

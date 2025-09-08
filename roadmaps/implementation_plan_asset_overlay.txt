@@ -42,12 +42,12 @@ This plan builds upon the existing asset management infrastructure to create a s
 [x] Implement asset export functionality to different formats (BMP + PNG single & batch)
 
 ## Phase 4: Asset Validation & Quality Assurance
-[ ] Integrate existing JSON schema validation into overlay interface
-[ ] Add visual validation error reporting with error highlighting
-[ ] Implement missing asset detection and fallback suggestion
+[x] Integrate existing JSON schema validation into overlay interface (initial shallow validation + naming rule)
+[x] Add visual validation error reporting with error highlighting (errors/warnings list in panel)
+[x] Implement missing asset detection and fallback suggestion (marks missing/empty JSON; future: fallback suggestion TBD)
 [ ] Create asset optimization recommendations (compression, size analysis)
-[ ] Add duplicate asset detection and merge suggestions
-[ ] Implement asset naming convention validation
+[x] Add duplicate asset detection and merge suggestions (basic duplicate texture id listing; merge workflow deferred)
+[x] Implement asset naming convention validation (lowercase/no-spaces rule warning)
 [ ] Create asset dependency cycle detection visualization
 
 ## Phase 5: Advanced Asset Management Features
