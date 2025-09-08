@@ -10,6 +10,7 @@
 #include "../core/vendor/vendor.h"
 #include "../debug_overlay/overlay_core.h"
 #include "../debug_overlay/overlay_input.h"
+#include "../debug_overlay/panel_system/panels_asset_browser_api.h" /* Phase 6 hotkey slice */
 #include "../entities/player.h"
 #include "../game/damage_numbers.h"
 #include "../game/game_loop.h"
@@ -27,6 +28,13 @@
 
 /* Simple ring buffer for deferred skill activations so that skills (e.g., projectile spawns) use
  * the post-movement player position. */
+#if 1 /* Phase 6 hotkey slice compatibility */
+/* Transitional stub: older code path (pre-hotkey refactor) referenced overlay_input_is_enabled().
+ * We now gate using g_app.show_metrics_overlay directly, but some build artifacts still reference
+ * the old symbol during incremental builds. Provide a lightweight inline to avoid warning-as-error
+ * disruption. Remove once all references are purged. */
+static int overlay_input_is_enabled(void) { return g_app.show_metrics_overlay; }
+#endif
 #define ROGUE_PENDING_SKILLS_MAX 32
 typedef struct PendingSkillAct
 {
@@ -107,6 +115,40 @@ void rogue_process_events(void)
                 overlay_set_enabled(g_app.show_metrics_overlay);
                 /* When opening overlay, request capturing inputs; when closing, release. */
                 overlay_input_set_capture(g_app.show_metrics_overlay, g_app.show_metrics_overlay);
+            }
+            /* Phase 6: Asset Browser hotkeys (Ctrl+Alt combos) */
+            /* Use global overlay enabled flag (metrics overlay toggles core) */
+            if (g_app.show_metrics_overlay)
+            {
+                const Uint8* ks_state = SDL_GetKeyboardState(NULL);
+                int ctrl = ks_state[SDL_SCANCODE_LCTRL] || ks_state[SDL_SCANCODE_RCTRL];
+                int alt = ks_state[SDL_SCANCODE_LALT] || ks_state[SDL_SCANCODE_RALT];
+                if (ctrl && alt)
+                {
+                    switch (ev.key.keysym.sym)
+                    {
+                    case SDLK_t:
+                        rogue_asset_browser_toggle_atlas_tool();
+                        break;
+                    case SDLK_q:
+                        rogue_asset_browser_toggle_stream_queue();
+                        break;
+                    case SDLK_m:
+                        rogue_asset_browser_toggle_memory_profiler();
+                        break;
+                    case SDLK_p:
+                        rogue_asset_browser_toggle_perf_metrics();
+                        break;
+                    case SDLK_c:
+                        rogue_asset_browser_toggle_compression_compare();
+                        break;
+                    case SDLK_b:
+                        rogue_asset_browser_add_bookmark_selected();
+                        break;
+                    default:
+                        break;
+                    }
+                }
             }
             if (!overlay_capture_kb && ev.key.keysym.sym == SDLK_F11)
             {

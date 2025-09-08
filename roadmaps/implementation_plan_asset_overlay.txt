@@ -73,10 +73,29 @@ This plan builds upon the existing asset management infrastructure to create a s
   Placeholder VCS panel section (no git plumbing yet). Future: parse `git status --porcelain` for modified/untracked assets, highlight stale metadata, offer diff/restore buttons.
 
 ## Phase 6: Developer Workflow Integration
-[ ] Add asset hotkey system for quick actions (F-keys for common operations)
-[ ] Implement asset bookmarking and favorites system
-[ ] Create asset workflow templates for common tasks
-[ ] Add asset change history and undo/redo functionality
+[x] Add asset hotkey system for quick actions (Phase 6 slice 1)
+    Implemented Ctrl+Alt based chords inside global input layer (when overlay enabled):
+      Ctrl+Alt+T (Atlas Tool), Ctrl+Alt+Q (Stream Queue), Ctrl+Alt+M (Memory Profiler),
+      Ctrl+Alt+P (Perf Metrics), Ctrl+Alt+C (Compression Compare), Ctrl+Alt+B (Add Bookmark).
+    Non-intrusive: no existing gameplay bindings overridden; requires overlay active.
+    Future: configurable keymap + command palette registration + per-panel focus context.
+[x] Implement asset bookmarking and favorites system (Phase 6 slice 1)
+    Added transient session bookmarks (up to 16) storing selected row indices for current tab
+    with inline list + jump buttons and Add / Clear controls. Future: persist to
+    build/asset_browser_bookmarks.json with per-asset id anchoring (resilient to ordering
+    changes) and named bookmark sets.
+[x] Create asset workflow templates for common tasks (Phase 6 slice 2)
+  Added "Workflow Templates" toggle & panel: generates stub JSON files for two template
+  categories (currently minimal placeholders) into assets/ with auto-incremented
+  filenames (_generated_workflow_<n>.json, _generated_skillproc_<n>.json). UI shows last
+  generated path + success/failure. Headless-safe (FILE I/O only). Future: richer presets,
+  user-editable template directory, multi-select batch generation, and schema bind.
+[x] Add asset change history and undo/redo functionality (Phase 6 slice 2)
+  Implemented fixed-size (8) snapshot ring for JSON editor buffer (panels_asset_browser.c):
+  - Push on initial open, on manual Reload, and when user edits after a debounce.
+  - Undo/Redo buttons (and internal helpers) navigate ring; forward history truncated on new push.
+  - Prevents duplicate consecutive snapshots. Future: timestamp display, diff preview,
+    configurable depth, merge-on-idle, and per-field structured undo.
 [ ] Implement asset comparison tools (before/after preview)
 [ ] Create asset migration tools for format updates
 [ ] Add asset documentation generation from metadata

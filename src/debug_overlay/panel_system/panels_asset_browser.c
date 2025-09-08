@@ -161,9 +161,63 @@ typedef struct AssetBrowserEnhancedState
     int show_cache_config;                  /* caching strategy placeholder */
     int show_vcs_overlay;                   /* git status overlay placeholder */
     int show_compression_compare;           /* Phase 5: texture compression comparison UI */
+    /* ---------------- Phase 6: Workflow Integration (new slice) ---------------- */
+    int show_hotkey_help; /* toggle small help legend */
+    /* Session bookmarks for quick jump (indices into textures/audio arrays depending on tab). */
+    int bookmark_indices[16];
+    int bookmark_count; /* how many are valid (first N entries) */
+    /* Phase 6 slice 2: workflow templates + undo/redo */
+    int show_workflow_templates; /* toggle workflow template creator UI */
+    int template_counter;        /* simple incrementing id for generated files */
+    char last_template_path[260];
+    int last_template_result; /* 1=ok,0=fail */
+    /* JSON editor undo/redo ring (captures full truncated buffer snapshots) */
+    char json_undo_stack[8][1024];
+    int json_undo_len; /* number of populated entries */
+    int json_undo_pos; /* current position (0..json_undo_len-1) */
 } AssetBrowserEnhancedState;
 
 static AssetBrowserEnhancedState g_ab_state; /* zero-init */
+
+/* Forward decl for selected row asset id query (local helper later) */
+static const char* ab_get_selected_asset_id(const RogueAssetManager* m);
+
+/* Public mini API (Phase 6 hotkeys) --------------------------------------------------------- */
+#include "panels_asset_browser_api.h"
+void rogue_asset_browser_toggle_stream_queue(void)
+{
+    g_ab_state.show_stream_queue = !g_ab_state.show_stream_queue;
+}
+void rogue_asset_browser_toggle_perf_metrics(void)
+{
+    g_ab_state.show_perf_metrics = !g_ab_state.show_perf_metrics;
+}
+void rogue_asset_browser_toggle_atlas_tool(void)
+{
+    g_ab_state.show_atlas_tool = !g_ab_state.show_atlas_tool;
+}
+void rogue_asset_browser_toggle_compression_compare(void)
+{
+    g_ab_state.show_compression_compare = !g_ab_state.show_compression_compare;
+}
+void rogue_asset_browser_toggle_memory_profiler(void)
+{
+    g_ab_state.show_memory_profiler = !g_ab_state.show_memory_profiler;
+}
+void rogue_asset_browser_add_bookmark_selected(void)
+{
+    if (g_ab_state.bookmark_count >=
+        (int) (sizeof g_ab_state.bookmark_indices / sizeof g_ab_state.bookmark_indices[0]))
+        return;
+    int sel = g_ab_state.selected_row;
+    if (sel < 0)
+        return;
+    /* Avoid duplicates */
+    for (int i = 0; i < g_ab_state.bookmark_count; ++i)
+        if (g_ab_state.bookmark_indices[i] == sel)
+            return;
+    g_ab_state.bookmark_indices[g_ab_state.bookmark_count++] = sel;
+}
 
 /* Safe bounded copy (always NUL terminates) */
 static void ab_safe_copy(char* dst, size_t cap, const char* src)
@@ -223,6 +277,27 @@ static int ab_match_wildcard_ci(const char* text, const char* pattern)
     while (*p == '*')
         p++;
     return *p == '\0';
+}
+
+/* Helper: get currently selected asset id string (textures/audio only) */
+static const char* ab_get_selected_asset_id(const RogueAssetManager* m)
+{
+    if (!m)
+        return NULL;
+    int row = g_ab_state.selected_row;
+    if (row < 0)
+        return NULL;
+    if (g_ab_state.tab_index == 1) /* Textures */
+    {
+        if (row < m->texture_count && m->textures[row].id[0])
+            return m->textures[row].id;
+    }
+    else if (g_ab_state.tab_index == 2) /* Audio */
+    {
+        if (row < m->audio_count && m->audio[row].id[0])
+            return m->audio[row].id;
+    }
+    return NULL;
 }
 
 /* Lightweight JSON syntax preview (first ~12 lines, no heap alloc). Token classes:
@@ -374,6 +449,79 @@ static void ab_draw_json_preview(const char* buffer)
         lines++;
     }
 #endif /* ROGUE_ENABLE_DEBUG_OVERLAY */
+}
+
+/* ---------------- Phase 6 slice 2: JSON editor undo/redo helpers ---------------- */
+static void ab_json_undo_init(void)
+{
+    g_ab_state.json_undo_len = 0;
+    g_ab_state.json_undo_pos = -1;
+    if (g_ab_state.json_editor_buffer[0])
+    {
+        /* seed stack with current buffer */
+        strncpy(g_ab_state.json_undo_stack[0], g_ab_state.json_editor_buffer,
+                sizeof g_ab_state.json_undo_stack[0] - 1);
+        g_ab_state.json_undo_stack[0][sizeof g_ab_state.json_undo_stack[0] - 1] = '\0';
+        g_ab_state.json_undo_len = 1;
+        g_ab_state.json_undo_pos = 0;
+    }
+}
+static void ab_json_undo_push_current(void)
+{
+    /* Discard any redo states ahead of current position */
+    if (g_ab_state.json_undo_pos >= 0 && g_ab_state.json_undo_pos < g_ab_state.json_undo_len - 1)
+    {
+        g_ab_state.json_undo_len = g_ab_state.json_undo_pos + 1;
+    }
+    /* If stack full shift left to make room */
+    if (g_ab_state.json_undo_len ==
+        (int) (sizeof g_ab_state.json_undo_stack / sizeof g_ab_state.json_undo_stack[0]))
+    {
+        for (int i = 1; i < g_ab_state.json_undo_len; ++i)
+            memcpy(g_ab_state.json_undo_stack[i - 1], g_ab_state.json_undo_stack[i],
+                   sizeof g_ab_state.json_undo_stack[i]);
+        g_ab_state.json_undo_len--;
+        if (g_ab_state.json_undo_pos > 0)
+            g_ab_state.json_undo_pos--;
+    }
+    /* Append new snapshot (current buffer) */
+    strncpy(g_ab_state.json_undo_stack[g_ab_state.json_undo_len], g_ab_state.json_editor_buffer,
+            sizeof g_ab_state.json_undo_stack[0] - 1);
+    g_ab_state.json_undo_stack[g_ab_state.json_undo_len][sizeof g_ab_state.json_undo_stack[0] - 1] =
+        '\0';
+    g_ab_state.json_undo_len++;
+    g_ab_state.json_undo_pos = g_ab_state.json_undo_len - 1;
+}
+static int ab_json_undo_can_undo(void) { return g_ab_state.json_undo_pos > 0; }
+static int ab_json_undo_can_redo(void)
+{
+    return g_ab_state.json_undo_pos >= 0 && g_ab_state.json_undo_pos < g_ab_state.json_undo_len - 1;
+}
+static void ab_json_undo_apply_pos(void)
+{
+    if (g_ab_state.json_undo_pos >= 0 && g_ab_state.json_undo_pos < g_ab_state.json_undo_len)
+    {
+        strncpy(g_ab_state.json_editor_buffer, g_ab_state.json_undo_stack[g_ab_state.json_undo_pos],
+                sizeof g_ab_state.json_editor_buffer - 1);
+        g_ab_state.json_editor_buffer[sizeof g_ab_state.json_editor_buffer - 1] = '\0';
+        g_ab_state.json_editor_dirty = 1; /* reflect change */
+    }
+}
+static void ab_json_undo_do_undo(void)
+{
+    if (ab_json_undo_can_undo())
+    {
+        g_ab_state.json_undo_pos--;
+        ab_json_undo_apply_pos();
+    }
+}
+static void ab_json_undo_do_redo(void)
+{
+    if (ab_json_undo_can_redo())
+    {
+        g_ab_state.json_undo_pos++;
+        ab_json_undo_apply_pos();
+    }
 }
 
 /* --- Lightweight recursive enumerator for JSON / Shader assets (headless safe) --- */
@@ -772,6 +920,17 @@ static void panel_asset_browser(void* user)
     overlay_checkbox("Memory Profiler", &g_ab_state.show_memory_profiler);
     overlay_checkbox("Stream Queue", &g_ab_state.show_stream_queue);
     overlay_checkbox("Perf Metrics", &g_ab_state.show_perf_metrics);
+    overlay_checkbox("Hotkey Help", &g_ab_state.show_hotkey_help);
+    overlay_checkbox("Workflow Templates", &g_ab_state.show_workflow_templates);
+    /* Phase 6: Bookmarks small inline add/remove */
+    if (overlay_button("Add Bookmark") && g_ab_state.selected_row >= 0)
+    {
+        rogue_asset_browser_add_bookmark_selected();
+    }
+    if (g_ab_state.bookmark_count > 0 && overlay_button("Clear Bookmarks"))
+    {
+        g_ab_state.bookmark_count = 0;
+    }
     overlay_checkbox("Cache Config", &g_ab_state.show_cache_config);
     overlay_checkbox("VCS Overlay", &g_ab_state.show_vcs_overlay);
     overlay_checkbox("Compression Compare", &g_ab_state.show_compression_compare);
@@ -900,8 +1059,101 @@ static void panel_asset_browser(void* user)
             overlay_label("Queue empty. Enqueue via gameplay systems or add future test UI.");
         }
     }
+    /* Workflow Template Panel (Phase 6 slice 2) */
+    if (g_ab_state.show_workflow_templates)
+    {
+        overlay_separator();
+        overlay_colored_label("Workflow Templates (Phase 6)", (RogueColor){180, 200, 255, 255});
+        overlay_label("Generate starter metadata/validation JSON stubs.");
+        if (overlay_button("Create Sprite Metadata Template"))
+        {
+            char path[260];
+            snprintf(path, sizeof path, "assets/_generated_sprite_template_%03d.json",
+                     ++g_ab_state.template_counter);
+            FILE* f = fopen(path, "wb");
+            if (f)
+            {
+                const char* stub = "{\n  \"sprites\": [\n    { \"id\": \"example\", \"x\":0, "
+                                   "\"y\":0, \"w\":32, \"h\":32 }\n  ]\n}\n";
+                fwrite(stub, 1, strlen(stub), f);
+                fclose(f);
+                ab_safe_copy(g_ab_state.last_template_path, sizeof g_ab_state.last_template_path,
+                             path);
+                g_ab_state.last_template_result = 1;
+            }
+            else
+            {
+                g_ab_state.last_template_result = 0;
+                g_ab_state.last_template_path[0] = '\0';
+            }
+        }
+        if (overlay_button("Create Basic Validation Template"))
+        {
+            char path[260];
+            snprintf(path, sizeof path, "assets/_generated_validation_template_%03d.json",
+                     ++g_ab_state.template_counter);
+            FILE* f = fopen(path, "wb");
+            if (f)
+            {
+                const char* stub =
+                    "{\n  \"name\": \"NewAsset\",\n  \"version\": 1,\n  \"tags\": [],\n  \"meta\": "
+                    "{ \"author\": \"dev\", \"created\": \"2025-09-07\" }\n}\n";
+                fwrite(stub, 1, strlen(stub), f);
+                fclose(f);
+                ab_safe_copy(g_ab_state.last_template_path, sizeof g_ab_state.last_template_path,
+                             path);
+                g_ab_state.last_template_result = 1;
+            }
+            else
+            {
+                g_ab_state.last_template_result = 0;
+                g_ab_state.last_template_path[0] = '\0';
+            }
+        }
+        if (g_ab_state.last_template_result)
+        {
+            char msg[320];
+            snprintf(msg, sizeof msg, "Last template: %s", g_ab_state.last_template_path);
+            overlay_label(msg);
+        }
+        else if (g_ab_state.last_template_result == 0)
+        {
+            overlay_colored_label("Template generation failed (write error)",
+                                  (RogueColor){255, 120, 120, 255});
+        }
+    }
     /* Performance Metrics (placeholder: reuse atlas metrics + counts) */
     if (g_ab_state.show_perf_metrics)
+        /* Phase 6: Bookmarks list & hotkey legend */
+        if (g_ab_state.bookmark_count > 0)
+        {
+            overlay_separator();
+            overlay_colored_label("Bookmarks:", (RogueColor){180, 180, 60, 255});
+            for (int i = 0; i < g_ab_state.bookmark_count; ++i)
+            {
+                int idx = g_ab_state.bookmark_indices[i];
+                char line[128];
+                snprintf(line, sizeof line, "#%d %s", idx,
+                         (g_ab_state.tab_index == 1 && idx < m->texture_count) ? m->textures[idx].id
+                         : (g_ab_state.tab_index == 2 && idx < m->audio_count) ? m->audio[idx].id
+                                                                               : "(n/a)");
+                if (overlay_button(line))
+                {
+                    g_ab_state.selected_row = idx;
+                }
+            }
+        }
+    if (g_ab_state.show_hotkey_help)
+    {
+        overlay_separator();
+        overlay_colored_label("Asset Hotkeys (Phase 6):", (RogueColor){140, 180, 200, 255});
+        overlay_label("Ctrl+Alt+T = Toggle Atlas Tool");
+        overlay_label("Ctrl+Alt+Q = Toggle Stream Queue");
+        overlay_label("Ctrl+Alt+M = Toggle Memory Profiler");
+        overlay_label("Ctrl+Alt+P = Toggle Perf Metrics");
+        overlay_label("Ctrl+Alt+C = Toggle Compression Compare");
+        overlay_label("Ctrl+Alt+B = Add Bookmark (selected row)");
+    }
     {
         RogueAssetMetrics metrics_local; /* pull snapshot */
         rogue_asset_manager_get_metrics(&metrics_local);
@@ -1235,7 +1487,13 @@ static void panel_asset_browser(void* user)
                 }
                 if (g_ab_state.json_editor_open)
                 {
-                    overlay_label("JSON Editor (Phase 3 initial)");
+                    overlay_label("JSON Editor (Phase 3 + Phase 6 undo)");
+                    /* Initialize undo stack on first open */
+                    if (g_ab_state.json_undo_len == 0)
+                    {
+                        ab_json_undo_init();
+                        ab_json_undo_push_current();
+                    }
                     if (overlay_button("Reload"))
                     {
                         size_t len2 = strlen(g_ab_state.json_preview_buffer);
@@ -1245,11 +1503,29 @@ static void panel_asset_browser(void* user)
                         g_ab_state.json_editor_buffer[len2] = '\0';
                         g_ab_state.json_editor_dirty = 0;
                         g_ab_state.json_editor_status[0] = '\0';
+                        ab_json_undo_push_current();
+                    }
+                    if (ab_json_undo_can_undo())
+                    {
+                        overlay_same_line();
+                        if (overlay_button("Undo"))
+                        {
+                            ab_json_undo_do_undo();
+                        }
+                    }
+                    if (ab_json_undo_can_redo())
+                    {
+                        overlay_same_line();
+                        if (overlay_button("Redo"))
+                        {
+                            ab_json_undo_do_redo();
+                        }
                     }
                     if (overlay_input_text("Edit (truncated)", g_ab_state.json_editor_buffer,
                                            sizeof g_ab_state.json_editor_buffer))
                     {
                         g_ab_state.json_editor_dirty = 1;
+                        ab_json_undo_push_current();
                     }
                     if (overlay_button("Save (Apply)"))
                     {

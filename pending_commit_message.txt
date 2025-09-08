@@ -1,3 +1,12 @@
+feat(asset-overlay/phase6): hotkey system + bookmarking (slice 1)
+
+Adds Phase 6 initial workflow integration:
+- Ctrl+Alt chord hotkeys (T/Q/M/P/C/B) to toggle atlas, stream queue, memory profiler,
+  perf metrics, compression compare, and add bookmark.
+- Session bookmark list (up to 16) with jump buttons & clear.
+- Hotkey Help toggle legend; roadmap + README updated.
+- Lightweight public API header (panels_asset_browser_api.h) for input layer triggers.
+
 feat(assets/phase3): complete SDL base path integration; finalize Phase 3 roadmap (textures w/ width/height, audio registry, negative caching, hot-reload polling, path resolution via SDL_GetBasePath); docs & roadmap updated.
 
 feat(assets/phase4): add validation & integrity system
@@ -67,3 +76,17 @@ feat(asset-overlay/phase5): streaming queue visualization enhanced slice
  - README updated bullet (Streaming Queue) describing new capabilities.
  - Headless-safe: snapshot + UI avoid SDL calls; uses existing texture records only. No functional changes to streaming logic.
  - Regression plan: rebuild + full test suite to ensure zero impact (pure read-only addition w/ small struct copy).
+
+feat(asset-overlay/phase6-slice2): workflow templates + JSON editor undo/redo ring
+
+ - Added "Workflow Templates" toggle/panel generating stub JSON files for two template categories
+	 with auto-incrementing filenames (_generated_workflow_N.json, _generated_skillproc_N.json). Displays
+	 last path + success state; headless-safe (FILE I/O only). Future: richer presets, custom dirs,
+	 batch generation, schema validation hook.
+ - Implemented 8-slot snapshot undo/redo ring for JSON editor buffer (initial snapshot + pushes on reload
+	 and first edit after debounce). Undo/Redo buttons navigate; forward history truncated on new snapshot.
+	 Skips duplicate consecutive snapshots. Future: diff preview, timestamps, adjustable depth, merge-on-idle,
+	 structured (AST field-level) undo.
+ - Roadmap Phase 6 updated marking both tasks complete with notes; README extended (Workflow Slice 2 section).
+ - Fixed MSVC C4087 warnings by removing stray arguments from ab_json_undo_* helper call sites (signatures use void parameter lists).
+ - Rebuilt Debug (SDL2) successfully with warnings cleared; no test regressions (ctest enumeration unchanged; separate follow-up to register overlay tests with CTest driver).

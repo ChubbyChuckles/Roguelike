@@ -12,6 +12,7 @@ Press F1 in-game to open the debug overlay.
 - Dependency listing uses existing asset_dep registry; graphical graph + thumbnails deferred to a later phase (see Asset Overlay roadmap).
 - Regex filtering and advanced thumbnail caching remain future tasks (current build shows basic inline scaled preview). Implemented: audio playback controls, JSON syntax highlighting + shallow validation (first 12 lines, brace/string balance), sprite sheet grid overlay (adjustable cell size), JSON metadata editor (editable buffer + save/reload & structural validity), and initial sprite coordinate editor (grid-aligned rectangle add/select/delete with overlay outlines and export stub). Upcoming: animation frame editor, loop point editing, regex upgrade, persistent sprite rect export.
 - NEW (Asset Overlay Phase 2 slice):
+
   - Drag-and-drop import: dropping a file onto the game window injects a ::drop::<path> token into the asset browser import field (headless-safe; only active when overlay input enabled).
   - Win32 file dialog: "Open File Dialog" button (Windows only) opens a native picker (filters optional). Selected path is staged for import. Cross-platform (Linux/macOS) support remains on the roadmap (Phase 7).
   - Audio loop points (Phase 3 slice): Selected audio assets now expose a Loop Point editor (Load Loop Pts / Start± / End± / Apply). Loop ranges are stored per asset in-memory (start/end ms) via new asset manager APIs; playback looping with custom ranges will integrate with mixer callbacks in a future phase.
@@ -31,6 +32,23 @@ Press F1 in-game to open the debug overlay.
     - VCS Overlay (placeholder): Reserved area for upcoming git status integration (modified/untracked asset highlighting, diff helpers).
     - File Dialog Root: Native file open dialog now defaults to assets/ directory when present (authorship quality-of-life).
   - Compression Comparison (baseline): "Compression Compare" toggle probes sibling .ktx2/.ktx/.dds variants for the selected texture, listing on-disk sizes & % savings; deeper GPU memory/timing analysis deferred.
+
+  #### Phase 6 (Workflow Slice 1): Hotkeys & Bookmarks
+
+  - New overlay hotkey chords (require overlay active):
+    - Ctrl+Alt+T Atlas Tool
+    - Ctrl+Alt+Q Streaming Queue
+    - Ctrl+Alt+M Memory Profiler
+    - Ctrl+Alt+P Performance Metrics
+    - Ctrl+Alt+C Compression Compare
+    - Ctrl+Alt+B Add Bookmark (stores current selection)
+  - Bookmarks panel section lists up to 16 session bookmarks with click-to-jump. Clear Bookmarks button resets. Persistence + named sets planned (roadmap Phase 6 follow-up).
+  - Hotkey Help toggle surfaces an inline legend inside the Asset Browser.
+
+  #### Phase 6 (Workflow Slice 2): Workflow Templates & JSON Undo/Redo
+
+  - Workflow Templates: Toggle a new panel to generate stub JSON template files for rapid prototyping. Buttons currently emit two minimal categories (workflow + skillproc) into assets/ with auto-incremented filenames (`_generated_workflow_#.json`, `_generated_skillproc_#.json`). The panel reports the last generated path and success/failure state. Future slices will allow custom template roots, richer preset content, multi-generate with pattern fields, and schema binding for immediate validation feedback.
+  - JSON Editor Undo/Redo: The asset JSON editor now maintains an 8‑entry snapshot ring. A baseline snapshot is captured on open, then subsequent snapshots are pushed on manual Reload and the first edit after a debounce window. Undo/Redo buttons traverse history; creating a new snapshot after undoing truncates forward history. Consecutive duplicate snapshots are skipped. Planned enhancements: timestamp + size metadata, diff preview (lhs/rhs line delta), adjustable depth, idle coalescing, and structured (per‑field) undo.
 
 ### New Skill Visual Authoring Tools (Phase 2.4 updates)
 
