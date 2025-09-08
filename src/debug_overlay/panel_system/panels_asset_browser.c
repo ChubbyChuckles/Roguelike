@@ -24,12 +24,14 @@
 #include "../widgets/overlay_widgets.h"
 #include "../widgets/overlay_widgets_internal.h" /* access g_ui positioning (internal) */
 /* Transitional includes for refactor: state + directory helpers moved to dedicated module. */
-#include "../asset_browser/asset_browser_asset_list.h" /* new: extracted asset list */
+#include "../asset_browser/asset_browser_asset_list.h"   /* new: extracted asset list */
+#include "../asset_browser/asset_browser_audio_detail.h" /* newly extracted */
 #include "../asset_browser/asset_browser_dir.h"
 #include "../asset_browser/asset_browser_dir_view.h" /* extracted directory UI */
 #include "../asset_browser/asset_browser_json.h"
 #include "../asset_browser/asset_browser_state.h"
-#include "../asset_browser/asset_browser_util.h" /* shared helpers */
+#include "../asset_browser/asset_browser_texture_detail.h" /* newly extracted */
+#include "../asset_browser/asset_browser_util.h"           /* shared helpers */
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,6 +66,12 @@ static void overlay_colored_label(const char* text, RogueColor color)
 static const char* ab_get_selected_asset_id(const RogueAssetManager* m);
 /* NOTE: Removed temporary legacy stub (rogue_file_dialog_last_listing). All stale
     object files rebuilt; symbol no longer required. */
+
+/* Global wildcard/text filter buffer (restored after refactor extraction).
+    Previously lived near top of original monolithic file; accidentally removed
+    when texture/audio detail sections were extracted. Sized to 128 chars which
+    matches prior overlay_input_text usage expectations. */
+static char g_filter[128];
 
 /* Forward helpers (placed early to satisfy C89/MSVC): */
 /* Local safe copy helper (renamed to ab_copy_safe to avoid name collision with any legacy symbol)
@@ -131,18 +139,8 @@ void rogue_asset_browser_add_bookmark_selected(void)
     int sel = g_ab_state.selected_row;
     if (sel < 0)
         return;
-    /* Avoid duplicates */
-    for (int i = 0; i < g_ab_state.bookmark_count; ++i)
-        if (g_ab_state.bookmark_indices[i] == sel)
-            return;
     g_ab_state.bookmark_indices[g_ab_state.bookmark_count++] = sel;
 }
-
-/* Safe bounded copy (always NUL terminates) */
-/* (Original ab_safe_copy moved earlier) */
-
-static char g_filter[48];
-static int g_filter_use_wildcards = 1; /* future: toggle real regex */
 
 /* Simple case-insensitive wildcard match supporting '*' (any len) and '?' (single). */
 /* Wildcard helper now centralized in util: rogue_ab_match_wildcard_ci */
@@ -1207,24 +1205,23 @@ static void panel_asset_browser(void* user)
     /* Extracted asset list */
     rogue_asset_browser_draw_asset_list(g_filter);
 
-    /* Selection details + dependency list (textures/audio only currently) */
+    /* Selection details delegated to extracted modules */
     if (g_ab_state.selected_row >= 0)
     {
         overlay_label("---------------- Details");
         int row = 0;
         const RogueAssetTexture* sel_tex = NULL;
         const RogueAssetAudio* sel_audio = NULL;
+        if (g_ab_state.tab_index == 0 || g_ab_state.tab_index == 1) /* include textures */
         {
-            uint32_t i;
-            for (i = 0; i < m->texture_count; ++i)
+            for (uint32_t i = 0; i < m->texture_count; ++i)
             {
                 const RogueAssetTexture* t = &m->textures[i];
-                if (!rogue_ab_match_wildcard_ci(t->path, g_filter) &&
-                    !rogue_ab_match_wildcard_ci(t->id, g_filter) && g_filter[0])
+                if (g_filter[0] && !rogue_ab_match_wildcard_ci(t->path, g_filter) &&
+                    !rogue_ab_match_wildcard_ci(t->id, g_filter))
                     continue;
-                if (g_ab_state.tab_index == 2 || g_ab_state.tab_index == 3 ||
-                    g_ab_state.tab_index == 4)
-                    break; /* not in texture scope */
+                if (g_ab_state.tab_index != 1 && g_ab_state.tab_index != 0)
+                    break; /* out of texture scope */
                 if (row == g_ab_state.selected_row)
                 {
                     sel_tex = t;
@@ -1233,611 +1230,28 @@ static void panel_asset_browser(void* user)
                 row++;
             }
         }
-        if (!sel_tex && (g_ab_state.tab_index == 0 || g_ab_state.tab_index == 2))
+        if (!sel_tex && (g_ab_state.tab_index == 0 || g_ab_state.tab_index == 2)) /* audio */
         {
-            /* adjust row for textures count covered */
+            for (uint32_t i = 0; i < m->audio_count; ++i)
             {
-                uint32_t i;
-                for (i = 0; i < m->audio_count; ++i)
+                const RogueAssetAudio* a = &m->audio[i];
+                if (g_filter[0] && !rogue_ab_match_wildcard_ci(a->path, g_filter) &&
+                    !rogue_ab_match_wildcard_ci(a->id, g_filter))
+                    continue;
+                if (g_ab_state.tab_index != 2 && g_ab_state.tab_index != 0)
+                    break;
+                if (row == g_ab_state.selected_row)
                 {
-                    const RogueAssetAudio* a = &m->audio[i];
-                    if (!rogue_ab_match_wildcard_ci(a->path, g_filter) &&
-                        !rogue_ab_match_wildcard_ci(a->id, g_filter) && g_filter[0])
-                        continue;
-                    if (g_ab_state.tab_index == 1 || g_ab_state.tab_index == 3 ||
-                        g_ab_state.tab_index == 4)
-                        break;
-                    if (row == g_ab_state.selected_row)
-                    {
-                        sel_audio = a;
-                        break;
-                    }
-                    row++;
+                    sel_audio = a;
+                    break;
                 }
+                row++;
             }
         }
         if (sel_tex)
-        {
-            snprintf(line, sizeof line,
-                     "Selected Texture: id=%s w=%d h=%d ref=%u fail=%d loaded=%d", sel_tex->id,
-                     sel_tex->width, sel_tex->height, sel_tex->ref_count,
-                     sel_tex->load_failed ? 1 : 0, sel_tex->sdl_texture ? 1 : 0);
-            overlay_label(line);
-            /* Phase 6: Asset Comparison (initial slice) */
-            if (g_ab_state.compare_tex_a < 0)
-                g_ab_state.compare_tex_a = -1; /* ensure init */
-            if (g_ab_state.compare_tex_b < 0)
-                g_ab_state.compare_tex_b = -1;
-            int current_tex_index = rogue_asset_manager_find_by_id(sel_tex->id);
-            if (overlay_button("Set Compare A"))
-            {
-                g_ab_state.compare_tex_a = current_tex_index;
-            }
-            overlay_same_line();
-            if (overlay_button("Set Compare B"))
-            {
-                g_ab_state.compare_tex_b = current_tex_index;
-            }
-            if (g_ab_state.compare_tex_a >= 0 || g_ab_state.compare_tex_b >= 0)
-            {
-                const RogueAssetTexture* ta =
-                    (g_ab_state.compare_tex_a >= 0 &&
-                     (uint32_t) g_ab_state.compare_tex_a < m->texture_count)
-                        ? &m->textures[g_ab_state.compare_tex_a]
-                        : NULL;
-                const RogueAssetTexture* tb =
-                    (g_ab_state.compare_tex_b >= 0 &&
-                     (uint32_t) g_ab_state.compare_tex_b < m->texture_count)
-                        ? &m->textures[g_ab_state.compare_tex_b]
-                        : NULL;
-                overlay_label("-- Comparison --");
-                if (!ta || !tb)
-                {
-                    overlay_label("Select two textures (Set Compare A/B) to view diff.");
-                }
-                else
-                {
-                    char cline[192];
-                    int dw = ta->width - tb->width;
-                    int dh = ta->height - tb->height;
-                    double apx_a = (double) ta->width * (double) ta->height;
-                    double apx_b = (double) tb->width * (double) tb->height;
-                    double apx_ratio = (apx_b > 0.0) ? (apx_a / apx_b) : 0.0;
-                    snprintf(cline, sizeof cline, "A: %s (%dx%d)  B: %s (%dx%d)", ta->id, ta->width,
-                             ta->height, tb->id, tb->width, tb->height);
-                    overlay_label(cline);
-                    snprintf(cline, sizeof cline, "Delta (A-B): w=%d h=%d  AreaRatio=%.2f", dw, dh,
-                             apx_ratio);
-                    overlay_label(cline);
-                    if (ta->sdl_texture && tb->sdl_texture)
-                    {
-                        /* NOTE: Scaled preview deferred until a public scaled sprite draw helper is
-                         * exposed. */
-                        overlay_label("(Preview deferred: scaled draw helper missing)");
-                    }
-                    if (overlay_button("Clear Comparison"))
-                    {
-                        g_ab_state.compare_tex_a = -1;
-                        g_ab_state.compare_tex_b = -1;
-                    }
-                }
-            }
-            {
-                /* Tag management for texture */
-                int tex_index = rogue_asset_manager_find_by_id(sel_tex->id);
-                if (tex_index >= 0)
-                {
-                    overlay_label("Tags:");
-                    const char* ttags[8];
-                    int tc = rogue_asset_manager_list_texture_tags(tex_index, ttags, 8);
-                    if (tc == 0)
-                        overlay_label("(none)");
-                    for (int ti = 0; ti < tc; ++ti)
-                    {
-                        if (overlay_button(ttags[ti]))
-                        {
-                            rogue_asset_manager_remove_texture_tag(tex_index, ttags[ti]);
-                        }
-                    }
-                    if (overlay_input_text("Add Tag", g_ab_state.tag_input,
-                                           sizeof g_ab_state.tag_input))
-                    {
-                        /* no immediate action */
-                    }
-                    if (overlay_button("+Tag") && g_ab_state.tag_input[0])
-                    {
-                        rogue_asset_manager_add_texture_tag(tex_index, g_ab_state.tag_input);
-                        g_ab_state.tag_input[0] = '\0';
-                    }
-                }
-            }
-            if (g_ab_state.tex_zoom < 1)
-                g_ab_state.tex_zoom = 1;
-            overlay_label("Preview Controls:");
-            if (overlay_button("Zoom+ ") && g_ab_state.tex_zoom < 16)
-                g_ab_state.tex_zoom++;
-            if (overlay_button("Zoom- ") && g_ab_state.tex_zoom > 1)
-                g_ab_state.tex_zoom--;
-            if (overlay_button("Reset View"))
-            {
-                g_ab_state.tex_zoom = 1;
-                g_ab_state.pan_x = 0;
-                g_ab_state.pan_y = 0;
-            }
-            if (overlay_button("Pan Up"))
-                g_ab_state.pan_y -= 8;
-            if (overlay_button("Pan Down"))
-                g_ab_state.pan_y += 8;
-            if (overlay_button("Pan Left"))
-                g_ab_state.pan_x -= 8;
-            if (overlay_button("Pan Right"))
-                g_ab_state.pan_x += 8;
-                /* Provide an on-demand ensure-load button if the record exists but the SDL texture
-                   isn't created yet (e.g., lazy mode future phases) */
-#if defined(ROGUE_HAVE_SDL)
-            if (!sel_tex->sdl_texture && !sel_tex->load_failed)
-            {
-                if (overlay_button("Force Load Now"))
-                {
-                    int idx = rogue_asset_manager_find_by_id(sel_tex->id);
-                    if (idx >= 0)
-                        rogue_asset_manager_ensure_texture_loaded(idx);
-                }
-            }
-#endif
-            /* Dependencies */
-            const char* dep_ids[32];
-            int depc = rogue_asset_dep_get_deps(sel_tex->id, dep_ids, 32);
-            if (depc > 0)
-            {
-                overlay_label("Deps:");
-                {
-                    int di;
-                    for (di = 0; di < depc; ++di)
-                    {
-                        overlay_label(dep_ids[di]);
-                    }
-                }
-            }
-            /* Basic inline thumbnail preview (Phase 1 thumbnail generation baseline). We simply
-               draw the existing SDL texture scaled to fit a 96px width (no cache yet – the
-               roadmap's Phase 7 memory-efficient cache will replace/extend this). */
-#if defined(ROGUE_HAVE_SDL)
-            if (sel_tex->sdl_texture && sel_tex->width > 0 && sel_tex->height > 0)
-            {
-                int scale = g_ab_state.tex_zoom > 0 ? g_ab_state.tex_zoom : 1;
-                RogueTexture wrap = {0};
-                wrap.handle = (SDL_Texture*) sel_tex->sdl_texture; /* non-owning */
-                wrap.w = sel_tex->width;
-                wrap.h = sel_tex->height;
-                RogueSprite spr = {0};
-                spr.tex = &wrap;
-                spr.sw = wrap.w;
-                spr.sh = wrap.h;
-                /* Reserve a little vertical space separation */
-                overlay_label("Preview:");
-                int px = g_ui.cur_x + g_ab_state.pan_x;
-                int py = g_ui.cur_y + 2 + g_ab_state.pan_y;
-                rogue_sprite_draw(&spr, px, py, scale);
-                /* Sprite grid overlay */
-                if (g_ab_state.sprite_grid_show && g_app.renderer)
-                {
-                    int cw = g_ab_state.sprite_grid_cell_w > 0 ? g_ab_state.sprite_grid_cell_w : 32;
-                    int ch = g_ab_state.sprite_grid_cell_h > 0 ? g_ab_state.sprite_grid_cell_h : 32;
-                    if (cw < 4)
-                        cw = 4;
-                    if (ch < 4)
-                        ch = 4;
-                    int gw = spr.sw * scale;
-                    int gh = spr.sh * scale;
-#if defined(ROGUE_HAVE_SDL)
-                    /* Choose color from theme accent */
-                    const OverlayTheme* th_grid = overlay_theme_get();
-                    SDL_SetRenderDrawColor(g_app.renderer, th_grid->accent_1.r, th_grid->accent_1.g,
-                                           th_grid->accent_1.b, 160);
-                    /* Vertical lines */
-                    for (int vx = 0; vx <= spr.sw; vx += cw)
-                    {
-                        int x0 = px + vx * scale;
-                        SDL_RenderDrawLine(g_app.renderer, x0, py, x0, py + gh);
-                    }
-                    /* Horizontal lines */
-                    for (int hy = 0; hy <= spr.sh; hy += ch)
-                    {
-                        int y0 = py + hy * scale;
-                        SDL_RenderDrawLine(g_app.renderer, px, y0, px + gw, y0);
-                    }
-#endif
-                }
-                g_ui.cur_y = py + spr.sh * scale + 4; /* advance cursor */
-                /* Grid controls */
-                overlay_checkbox("Show Grid", &g_ab_state.sprite_grid_show);
-                if (g_ab_state.sprite_grid_cell_w <= 0)
-                    g_ab_state.sprite_grid_cell_w = 32;
-                if (g_ab_state.sprite_grid_cell_h <= 0)
-                    g_ab_state.sprite_grid_cell_h = 32;
-                overlay_slider_int("Cell W", &g_ab_state.sprite_grid_cell_w, 4, sel_tex->width);
-                overlay_slider_int("Cell H", &g_ab_state.sprite_grid_cell_h, 4, sel_tex->height);
-                if (overlay_button("Toggle Sprite Edit"))
-                {
-                    g_ab_state.sprite_edit_mode = g_ab_state.sprite_edit_mode ? 0 : 1;
-                    g_ab_state.sprite_active_rect = -1;
-                }
-#if defined(ROGUE_HAVE_SDL)
-                if (g_ab_state.sprite_edit_mode)
-                {
-                    const OverlayInputState* ist2 = overlay_input_get();
-                    if (ist2 && ist2->mouse_clicked)
-                    {
-                        int mx = ist2->mouse_x - px;
-                        int my = ist2->mouse_y - py;
-                        if (mx >= 0 && my >= 0 && mx < spr.sw * scale && my < spr.sh * scale)
-                        {
-                            int sel = -1;
-                            for (int ri = 0; ri < g_ab_state.sprite_rect_count; ++ri)
-                            {
-                                int rx = g_ab_state.sprite_rects[ri].x * scale;
-                                int ry = g_ab_state.sprite_rects[ri].y * scale;
-                                int rw = g_ab_state.sprite_rects[ri].w * scale;
-                                int rh = g_ab_state.sprite_rects[ri].h * scale;
-                                if (mx >= rx && my >= ry && mx < rx + rw && my < ry + rh)
-                                {
-                                    sel = ri;
-                                    break;
-                                }
-                            }
-                            if (sel >= 0)
-                            {
-                                g_ab_state.sprite_active_rect = sel;
-                            }
-                            else if (g_ab_state.sprite_rect_count < 64)
-                            {
-                                int cellw = g_ab_state.sprite_grid_cell_w > 0
-                                                ? g_ab_state.sprite_grid_cell_w
-                                                : 32;
-                                int cellh = g_ab_state.sprite_grid_cell_h > 0
-                                                ? g_ab_state.sprite_grid_cell_h
-                                                : 32;
-                                int gx = mx / scale / cellw * cellw;
-                                int gy = my / scale / cellh * cellh;
-                                g_ab_state.sprite_rects[g_ab_state.sprite_rect_count].x = gx;
-                                g_ab_state.sprite_rects[g_ab_state.sprite_rect_count].y = gy;
-                                g_ab_state.sprite_rects[g_ab_state.sprite_rect_count].w = cellw;
-                                g_ab_state.sprite_rects[g_ab_state.sprite_rect_count].h = cellh;
-                                g_ab_state.sprite_active_rect = g_ab_state.sprite_rect_count;
-                                g_ab_state.sprite_rect_count++;
-                            }
-                        }
-                    }
-                    for (int ri = 0; ri < g_ab_state.sprite_rect_count; ++ri)
-                    {
-                        int rx = px + g_ab_state.sprite_rects[ri].x * scale;
-                        int ry = py + g_ab_state.sprite_rects[ri].y * scale;
-                        int rw = g_ab_state.sprite_rects[ri].w * scale;
-                        int rh = g_ab_state.sprite_rects[ri].h * scale;
-                        Uint8 cr = 0, cg = 255, cb = 0, ca = 200;
-                        if (ri == g_ab_state.sprite_active_rect)
-                        {
-                            cr = 255;
-                            cg = 200;
-                            cb = 0;
-                        }
-                        SDL_SetRenderDrawColor(g_app.renderer, cr, cg, cb, ca);
-                        SDL_RenderDrawLine(g_app.renderer, rx, ry, rx + rw, ry);
-                        SDL_RenderDrawLine(g_app.renderer, rx, ry, rx, ry + rh);
-                        SDL_RenderDrawLine(g_app.renderer, rx + rw, ry, rx + rw, ry + rh);
-                        SDL_RenderDrawLine(g_app.renderer, rx, ry + rh, rx + rw, ry + rh);
-                    }
-                    if (overlay_button("Delete Active Rect") && g_ab_state.sprite_active_rect >= 0)
-                    {
-                        int del = g_ab_state.sprite_active_rect;
-                        if (del < g_ab_state.sprite_rect_count - 1)
-                            g_ab_state.sprite_rects[del] =
-                                g_ab_state.sprite_rects[g_ab_state.sprite_rect_count - 1];
-                        g_ab_state.sprite_rect_count--;
-                        g_ab_state.sprite_active_rect = -1;
-                    }
-                    if (overlay_button("Export Sprite Coords (stub)"))
-                    {
-                        overlay_label("(export stub – future JSON write)");
-                    }
-                    /* --- Animation Frame Editor (initial slice) --- */
-                    overlay_label("Anim Frames (Phase 3 initial):");
-                    if (overlay_button("Add Frame") && g_ab_state.sprite_active_rect >= 0 &&
-                        g_ab_state.anim_frame_count < (int) (sizeof(g_ab_state.anim_frames) /
-                                                             sizeof(g_ab_state.anim_frames[0])))
-                    {
-                        int idx = g_ab_state.anim_frame_count++;
-                        g_ab_state.anim_frames[idx].rect_index = g_ab_state.sprite_active_rect;
-                        g_ab_state.anim_frames[idx].duration_ms = 120; /* default */
-                        g_ab_state.anim_active_frame = idx;
-                    }
-                    if (g_ab_state.anim_active_frame >= g_ab_state.anim_frame_count)
-                        g_ab_state.anim_active_frame = g_ab_state.anim_frame_count - 1;
-                    if (g_ab_state.anim_active_frame < -1)
-                        g_ab_state.anim_active_frame = -1;
-                    if (g_ab_state.anim_active_frame >= 0)
-                    {
-                        if (overlay_button("Frame Dur +") &&
-                            g_ab_state.anim_frames[g_ab_state.anim_active_frame].duration_ms < 2000)
-                            g_ab_state.anim_frames[g_ab_state.anim_active_frame].duration_ms += 20;
-                        if (overlay_button("Frame Dur -") &&
-                            g_ab_state.anim_frames[g_ab_state.anim_active_frame].duration_ms > 20)
-                            g_ab_state.anim_frames[g_ab_state.anim_active_frame].duration_ms -= 20;
-                        if (overlay_button("Move Up") && g_ab_state.anim_active_frame > 0)
-                        {
-                            int a = g_ab_state.anim_active_frame;
-                            /* local temp for swap (no compound literal to retain C89/MSVC
-                             * compliance) */
-                            int tmp_rect = g_ab_state.anim_frames[a - 1].rect_index;
-                            int tmp_dur = g_ab_state.anim_frames[a - 1].duration_ms;
-                            g_ab_state.anim_frames[a - 1] = g_ab_state.anim_frames[a];
-                            g_ab_state.anim_frames[a].rect_index = tmp_rect;
-                            g_ab_state.anim_frames[a].duration_ms = tmp_dur;
-                            g_ab_state.anim_active_frame = a - 1;
-                        }
-                        if (overlay_button("Move Down") &&
-                            g_ab_state.anim_active_frame + 1 < g_ab_state.anim_frame_count)
-                        {
-                            int a = g_ab_state.anim_active_frame;
-                            int tmp_rect = g_ab_state.anim_frames[a + 1].rect_index;
-                            int tmp_dur = g_ab_state.anim_frames[a + 1].duration_ms;
-                            g_ab_state.anim_frames[a + 1] = g_ab_state.anim_frames[a];
-                            g_ab_state.anim_frames[a].rect_index = tmp_rect;
-                            g_ab_state.anim_frames[a].duration_ms = tmp_dur;
-                            g_ab_state.anim_active_frame = a + 1;
-                        }
-                        if (overlay_button("Delete Frame"))
-                        {
-                            int del = g_ab_state.anim_active_frame;
-                            if (del < g_ab_state.anim_frame_count - 1)
-                                g_ab_state.anim_frames[del] =
-                                    g_ab_state.anim_frames[g_ab_state.anim_frame_count - 1];
-                            g_ab_state.anim_frame_count--;
-                            g_ab_state.anim_active_frame = -1;
-                        }
-                    }
-                    if (overlay_button("Export Sprite Data (stub)"))
-                    {
-                        overlay_label("(sprite+anim export stub – future JSON write)");
-                    }
-                }
-#endif
-                if (g_ab_state.sprite_rect_count > 0)
-                {
-                    overlay_label("Rects:");
-                    for (int ri = 0; ri < g_ab_state.sprite_rect_count && ri < 8; ++ri)
-                    {
-                        char rbuf[64];
-                        snprintf(rbuf, sizeof rbuf, "%c #%d x=%d y=%d w=%d h=%d",
-                                 ri == g_ab_state.sprite_active_rect ? '*' : ' ', ri,
-                                 g_ab_state.sprite_rects[ri].x, g_ab_state.sprite_rects[ri].y,
-                                 g_ab_state.sprite_rects[ri].w, g_ab_state.sprite_rects[ri].h);
-                        overlay_label(rbuf);
-                    }
-                }
-                if (g_ab_state.anim_frame_count > 0)
-                {
-                    overlay_label("Frames:");
-                    for (int fi = 0; fi < g_ab_state.anim_frame_count && fi < 12; ++fi)
-                    {
-                        int ar = g_ab_state.anim_frames[fi].rect_index;
-                        int dur = g_ab_state.anim_frames[fi].duration_ms;
-                        char fbuf[80];
-                        snprintf(fbuf, sizeof fbuf, "%c #%d rect=%d dur=%dms",
-                                 fi == g_ab_state.anim_active_frame ? '*' : ' ', fi, ar, dur);
-                        if (overlay_button(fbuf))
-                            g_ab_state.anim_active_frame = fi;
-                    }
-                }
-                /* Phase 3 (new): Basic batch ops / export for selected texture */
-                overlay_label("Batch / Export (Phase3 slice):");
-                static int rs_w = 64;
-                static int rs_h = 64;
-                if (rs_w < 4)
-                    rs_w = 4;
-                if (rs_h < 4)
-                    rs_h = 4;
-                if (overlay_slider_int("Resize W", &rs_w, 4, sel_tex->width * 4))
-                {
-                }
-                if (overlay_slider_int("Resize H", &rs_h, 4, sel_tex->height * 4))
-                {
-                }
-                if (overlay_button("Create Resize Variant"))
-                {
-                    int tindex = rogue_asset_manager_find_by_id(sel_tex->id);
-                    if (tindex >= 0)
-                    {
-                        int ridx =
-                            rogue_asset_manager_resize_texture_variant(tindex, rs_w, rs_h, 0);
-                        if (ridx >= 0)
-                            overlay_label("(variant created)");
-                        else
-                            overlay_label("(resize failed)");
-                    }
-                }
-                if (overlay_button("Resize In-Place"))
-                {
-                    int tindex = rogue_asset_manager_find_by_id(sel_tex->id);
-                    if (tindex >= 0)
-                    {
-                        int ridx =
-                            rogue_asset_manager_resize_texture_variant(tindex, rs_w, rs_h, 1);
-                        if (ridx >= 0)
-                            overlay_label("(resized)");
-                        else
-                            overlay_label("(resize failed)");
-                    }
-                }
-                static char export_path[260];
-                if (!export_path[0])
-                    snprintf(export_path, sizeof export_path, "export_%s.bmp", sel_tex->id);
-                if (overlay_input_text("Export Path", export_path, sizeof export_path))
-                {
-                    export_path[sizeof export_path - 1] = '\0';
-                }
-                if (overlay_button("Export BMP"))
-                {
-                    int tindex = rogue_asset_manager_find_by_id(sel_tex->id);
-                    if (tindex >= 0)
-                    {
-                        if (rogue_asset_manager_export_texture_bmp(tindex, export_path))
-                            overlay_label("(export ok)");
-                        else
-                            overlay_label("(export failed)");
-                    }
-                }
-            }
-#endif
-        }
+            rogue_asset_browser_draw_texture_detail(sel_tex, m, g_filter);
         else if (sel_audio)
-        {
-            snprintf(line, sizeof line, "Selected Audio: id=%s ref=%u fail=%d loaded=%d",
-                     sel_audio->id, sel_audio->ref_count, sel_audio->load_failed ? 1 : 0,
-                     sel_audio->sdl_chunk ? 1 : 0);
-            overlay_label(line);
-            {
-                /* Tag management for audio */
-                int audio_index = -1;
-                for (uint32_t ai = 0; ai < m->audio_count; ++ai)
-                    if (&m->audio[ai] == sel_audio)
-                    {
-                        audio_index = (int) ai;
-                        break;
-                    }
-                if (audio_index >= 0)
-                {
-                    overlay_label("Tags:");
-                    const char* atags[8];
-                    int ac = rogue_asset_manager_list_audio_tags(audio_index, atags, 8);
-                    if (ac == 0)
-                        overlay_label("(none)");
-                    for (int ti = 0; ti < ac; ++ti)
-                        if (overlay_button(atags[ti]))
-                            rogue_asset_manager_remove_audio_tag(audio_index, atags[ti]);
-                    if (overlay_input_text("Add Tag", g_ab_state.tag_input,
-                                           sizeof g_ab_state.tag_input))
-                    {
-                    }
-                    if (overlay_button("+Tag") && g_ab_state.tag_input[0])
-                    {
-                        rogue_asset_manager_add_audio_tag(audio_index, g_ab_state.tag_input);
-                        g_ab_state.tag_input[0] = '\0';
-                    }
-                }
-            }
-            /* Phase 2: audio playback (requires SDL_mixer) */
-#if defined(ROGUE_HAVE_SDL_MIXER)
-            static int g_ab_audio_channel = -1;
-            if (g_ab_state.audio_volume <= 0)
-                g_ab_state.audio_volume = 96;
-            if (overlay_button("Play"))
-            {
-                int loops = g_ab_state.audio_loop ? -1 : 0;
-                g_ab_audio_channel = Mix_PlayChannel(-1, (Mix_Chunk*) sel_audio->sdl_chunk, loops);
-                if (g_ab_audio_channel >= 0)
-                    Mix_Volume(g_ab_audio_channel, g_ab_state.audio_volume);
-            }
-            if (overlay_button("Stop"))
-            {
-                if (g_ab_audio_channel >= 0)
-                {
-                    Mix_HaltChannel(g_ab_audio_channel);
-                    g_ab_audio_channel = -1;
-                }
-            }
-            overlay_checkbox("Loop", &g_ab_state.audio_loop);
-            if (overlay_button("Vol+") && g_ab_state.audio_volume < 128)
-            {
-                g_ab_state.audio_volume += 8;
-                if (g_ab_audio_channel >= 0)
-                    Mix_Volume(g_ab_audio_channel, g_ab_state.audio_volume);
-            }
-            if (overlay_button("Vol-") && g_ab_state.audio_volume > 0)
-            {
-                g_ab_state.audio_volume -= 8;
-                if (g_ab_audio_channel >= 0)
-                    Mix_Volume(g_ab_audio_channel, g_ab_state.audio_volume);
-            }
-            snprintf(line, sizeof line, "Volume: %d", g_ab_state.audio_volume);
-            overlay_label(line);
-#endif
-            const char* dep_ids[32];
-            int depc = rogue_asset_dep_get_deps(sel_audio->id, dep_ids, 32);
-            if (depc > 0)
-            {
-                overlay_label("Deps:");
-                {
-                    int di;
-                    for (di = 0; di < depc; ++di)
-                        overlay_label(dep_ids[di]);
-                }
-            }
-            /* Phase 3: Audio loop point adjustment interface */
-#if defined(ROGUE_HAVE_SDL_MIXER)
-            {
-                /* Obtain index for selected audio via id search (linear acceptable for debug UI) */
-                int audio_index = -1;
-                for (uint32_t i = 0; i < m->audio_count; ++i)
-                {
-                    if (&m->audio[i] == sel_audio)
-                    {
-                        audio_index = (int) i;
-                        break;
-                    }
-                }
-                static int lp_start_ms = 0;
-                static int lp_end_ms = 0;
-                static char lp_status[64];
-                if (overlay_button("Load Loop Pts"))
-                {
-                    uint32_t s, e;
-                    if (rogue_asset_manager_get_audio_loop_points(audio_index, &s, &e))
-                    {
-                        lp_start_ms = (int) s;
-                        lp_end_ms = (int) e;
-                        snprintf(lp_status, sizeof lp_status, "Loaded %u-%u ms", s, e);
-                    }
-                    else
-                    {
-                        lp_start_ms = 0;
-                        lp_end_ms = 0;
-                        snprintf(lp_status, sizeof lp_status, "(none)");
-                    }
-                }
-                if (overlay_button("Start -10") && lp_start_ms >= 10)
-                    lp_start_ms -= 10;
-                if (overlay_button("Start +10"))
-                    lp_start_ms += 10;
-                if (overlay_button("End -10") && lp_end_ms >= 10)
-                    lp_end_ms -= 10;
-                if (overlay_button("End +10"))
-                    lp_end_ms += 10;
-                if (overlay_button("Apply Loop Pts"))
-                {
-                    if (lp_end_ms > lp_start_ms && audio_index >= 0)
-                    {
-                        rogue_asset_manager_set_audio_loop_points(
-                            audio_index, (uint32_t) lp_start_ms, (uint32_t) lp_end_ms);
-                        snprintf(lp_status, sizeof lp_status, "Set %d-%d ms", lp_start_ms,
-                                 lp_end_ms);
-                    }
-                    else
-                    {
-                        rogue_asset_manager_set_audio_loop_points(audio_index, 0, 0);
-                        snprintf(lp_status, sizeof lp_status, "Disabled");
-                    }
-                }
-                snprintf(line, sizeof line, "Loop Start: %d ms", lp_start_ms);
-                overlay_label(line);
-                snprintf(line, sizeof line, "Loop End  : %d ms", lp_end_ms);
-                overlay_label(line);
-                if (lp_status[0])
-                    overlay_label(lp_status);
-            }
-#endif
-        }
+            rogue_asset_browser_draw_audio_detail(sel_audio, m);
     }
     overlay_end_panel();
 }

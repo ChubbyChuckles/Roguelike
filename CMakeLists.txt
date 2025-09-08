@@ -710,6 +710,9 @@ add_library(rogue_debug_overlay OBJECT
     src/debug_overlay/asset_browser/asset_browser_dir_view.c
     src/debug_overlay/asset_browser/asset_browser_util.c
     src/debug_overlay/asset_browser/asset_browser_asset_list.c
+    # Newly extracted texture & audio detail modules
+    src/debug_overlay/asset_browser/asset_browser_texture_detail.c
+    src/debug_overlay/asset_browser/asset_browser_audio_detail.c
     src/debug_overlay/panel_system/panels_asset_browser.c
     src/debug_overlay/panel_player/panels_player.c
     src/debug_overlay/panel_skills/panels_skills.c
