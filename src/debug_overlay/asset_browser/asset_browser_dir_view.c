@@ -10,6 +10,7 @@
 #include "asset_browser_dir.h"
 #include "asset_browser_json.h" /* (indirect state usage; safe) */
 #include "asset_browser_state.h"
+#include "asset_browser_util.h" /* for rogue_ab_truncate_ellipsis */
 
 #ifdef _WIN32
 #include <windows.h>
@@ -22,45 +23,6 @@
 #include <string.h>
 
 #define g_ab_state (*rogue_asset_browser_state())
-
-/* Local copy of truncation helper (kept static to avoid exporting new symbol yet). */
-static void ab_truncate_ellipsis_local(char* dst, size_t cap, const char* src, int max_chars)
-{
-    if (!dst || cap == 0)
-        return;
-    if (!src)
-    {
-        dst[0] = '\0';
-        return;
-    }
-    if (max_chars < 5)
-        max_chars = 5;
-    int len = (int) strlen(src);
-    if (len < max_chars)
-    {
-        size_t i = 0;
-        while (src[i] && i + 1 < cap)
-        {
-            dst[i] = src[i];
-            i++;
-        }
-        dst[i] = '\0';
-        return;
-    }
-    int copy_len = max_chars - 3;
-    if ((size_t) copy_len + 4 > cap)
-        copy_len = (int) cap - 4;
-    if (copy_len < 1)
-    {
-        dst[0] = '\0';
-        return;
-    }
-    memcpy(dst, src, (size_t) copy_len);
-    dst[copy_len] = '.';
-    dst[copy_len + 1] = '.';
-    dst[copy_len + 2] = '.';
-    dst[copy_len + 3] = '\0';
-}
 
 void rogue_asset_browser_draw_directory_browser(void)
 {
@@ -122,7 +84,7 @@ void rogue_asset_browser_draw_directory_browser(void)
         {
             char line[ROGUE_FILE_DIALOG_PATH_MAX + 32];
             char name_buf[ROGUE_FILE_DIALOG_PATH_MAX];
-            ab_truncate_ellipsis_local(name_buf, sizeof name_buf, g_ab_state.dir_entries[i].name,
+            rogue_ab_truncate_ellipsis(name_buf, sizeof name_buf, g_ab_state.dir_entries[i].name,
                                        40);
             snprintf(line, sizeof line, "%s %s",
                      g_ab_state.dir_entries[i].is_dir ? "[DIR]" : "FILE ", name_buf);
