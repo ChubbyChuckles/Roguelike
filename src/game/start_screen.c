@@ -646,15 +646,22 @@ void rogue_start_screen_update_and_render(void)
     }
     rogue_start_screen_maybe_scan_corruption();
     /* Phase 8.3: baseline sampling and budget check (uses previous frame time) */
-    if (g_app.start_perf_samples < g_app.start_perf_target_samples)
+    /* Baseline sampling: Only accumulate when start screen active AND at least one frame
+       has elapsed (frame_ms > 0). Previously, calling rogue_app_step() a fixed small number
+       of times very rapidly in a headless environment could observe frame_ms == 0 for the
+       first few frames causing baseline to remain 0 and the smoke test to fail. */
+    if (g_app.show_start_screen && g_app.start_perf_samples < g_app.start_perf_target_samples)
     {
-        g_app.start_perf_accum_ms += g_app.frame_ms;
-        g_app.start_perf_samples++;
-        if (g_app.start_perf_samples == g_app.start_perf_target_samples &&
-            g_app.start_perf_baseline_ms <= 0.0)
+        if (g_app.frame_ms > 0.0)
         {
-            g_app.start_perf_baseline_ms =
-                g_app.start_perf_accum_ms / (double) g_app.start_perf_target_samples;
+            g_app.start_perf_accum_ms += g_app.frame_ms;
+            g_app.start_perf_samples++;
+            if (g_app.start_perf_samples == g_app.start_perf_target_samples &&
+                g_app.start_perf_baseline_ms <= 0.0)
+            {
+                g_app.start_perf_baseline_ms =
+                    g_app.start_perf_accum_ms / (double) g_app.start_perf_target_samples;
+            }
         }
     }
     if (start_perf_over_budget())

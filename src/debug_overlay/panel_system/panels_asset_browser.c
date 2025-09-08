@@ -99,6 +99,9 @@ typedef struct AssetBrowserEnhancedState
     } anim_frames[128];
     int anim_frame_count;
     int anim_active_frame;
+    /* Phase 3 tagging system UI state */
+    char tag_input[32];
+    char tag_filter[32]; /* optional additional tag filter (AND with pattern filter) */
 } AssetBrowserEnhancedState;
 
 static AssetBrowserEnhancedState g_ab_state; /* zero-init */
@@ -533,6 +536,11 @@ static void panel_asset_browser(void* user)
     {
         g_ab_state.selected_row = -1; /* reset selection on filter change */
     }
+    if (overlay_input_text("Tag Filter", g_ab_state.tag_filter, sizeof g_ab_state.tag_filter))
+    {
+        /* just refresh selection context */
+        g_ab_state.selected_row = -1;
+    }
     /* Auto poll (lightweight) */
     if (g_ab_state.auto_poll_reload)
     {
@@ -775,7 +783,8 @@ static void panel_asset_browser(void* user)
     int limit = 300; /* soft cap */
     int tab = g_ab_state.tab_index;
     int current_row_index = 0; /* for selection mapping */
-/* Helper lambda (emulated) to test filter */
+/* Helper macro: wildcard (path/id) only; tag filtering applied explicitly per type to avoid
+    relying on loop variable name inside macro (MSVC C89 constraints). */
 #define PASS_FILTER(txt, id)                                                                       \
     (!g_filter[0] || ab_match_wildcard_ci((txt), (g_filter)) ||                                    \
      ab_match_wildcard_ci((id), (g_filter)))
@@ -788,6 +797,13 @@ static void panel_asset_browser(void* user)
                 const RogueAssetTexture* t = &m->textures[i];
                 if (!PASS_FILTER(t->path, t->id))
                     continue;
+                if (g_ab_state.tag_filter[0])
+                {
+                    /* Apply texture tag filter */
+                    int tex_index_tag = (int) i; /* indices align with texture array order */
+                    if (!rogue_asset_manager_has_texture_tag(tex_index_tag, g_ab_state.tag_filter))
+                        continue;
+                }
                 if (tab == 2 || tab == 3 || tab == 4) /* texture not in audio/json/shader tabs */
                     break; /* skip textures when audio/json/shader specific; rely on else blocks */
                 snprintf(line, sizeof line, "T%03u %s w=%d h=%d ref=%u%s%s", i, t->id, t->width,
@@ -816,6 +832,12 @@ static void panel_asset_browser(void* user)
                 const RogueAssetAudio* a = &m->audio[i];
                 if (!PASS_FILTER(a->path, a->id))
                     continue;
+                if (g_ab_state.tag_filter[0])
+                {
+                    int audio_index_tag = (int) i;
+                    if (!rogue_asset_manager_has_audio_tag(audio_index_tag, g_ab_state.tag_filter))
+                        continue;
+                }
                 if (tab == 1 || tab == 3 || tab == 4)
                     break; /* only textures desired in those specific tabs */
                 snprintf(line, sizeof line, "A%03u %s ref=%u%s%s", i, a->id, a->ref_count,
@@ -920,6 +942,35 @@ static void panel_asset_browser(void* user)
                      sel_tex->width, sel_tex->height, sel_tex->ref_count,
                      sel_tex->load_failed ? 1 : 0, sel_tex->sdl_texture ? 1 : 0);
             overlay_label(line);
+            {
+                /* Tag management for texture */
+                int tex_index = rogue_asset_manager_find_by_id(sel_tex->id);
+                if (tex_index >= 0)
+                {
+                    overlay_label("Tags:");
+                    const char* ttags[8];
+                    int tc = rogue_asset_manager_list_texture_tags(tex_index, ttags, 8);
+                    if (tc == 0)
+                        overlay_label("(none)");
+                    for (int ti = 0; ti < tc; ++ti)
+                    {
+                        if (overlay_button(ttags[ti]))
+                        {
+                            rogue_asset_manager_remove_texture_tag(tex_index, ttags[ti]);
+                        }
+                    }
+                    if (overlay_input_text("Add Tag", g_ab_state.tag_input,
+                                           sizeof g_ab_state.tag_input))
+                    {
+                        /* no immediate action */
+                    }
+                    if (overlay_button("+Tag") && g_ab_state.tag_input[0])
+                    {
+                        rogue_asset_manager_add_texture_tag(tex_index, g_ab_state.tag_input);
+                        g_ab_state.tag_input[0] = '\0';
+                    }
+                }
+            }
             if (g_ab_state.tex_zoom < 1)
                 g_ab_state.tex_zoom = 1;
             overlay_label("Preview Controls:");
@@ -1208,6 +1259,36 @@ static void panel_asset_browser(void* user)
                      sel_audio->id, sel_audio->ref_count, sel_audio->load_failed ? 1 : 0,
                      sel_audio->sdl_chunk ? 1 : 0);
             overlay_label(line);
+            {
+                /* Tag management for audio */
+                int audio_index = -1;
+                for (uint32_t ai = 0; ai < m->audio_count; ++ai)
+                    if (&m->audio[ai] == sel_audio)
+                    {
+                        audio_index = (int) ai;
+                        break;
+                    }
+                if (audio_index >= 0)
+                {
+                    overlay_label("Tags:");
+                    const char* atags[8];
+                    int ac = rogue_asset_manager_list_audio_tags(audio_index, atags, 8);
+                    if (ac == 0)
+                        overlay_label("(none)");
+                    for (int ti = 0; ti < ac; ++ti)
+                        if (overlay_button(atags[ti]))
+                            rogue_asset_manager_remove_audio_tag(audio_index, atags[ti]);
+                    if (overlay_input_text("Add Tag", g_ab_state.tag_input,
+                                           sizeof g_ab_state.tag_input))
+                    {
+                    }
+                    if (overlay_button("+Tag") && g_ab_state.tag_input[0])
+                    {
+                        rogue_asset_manager_add_audio_tag(audio_index, g_ab_state.tag_input);
+                        g_ab_state.tag_input[0] = '\0';
+                    }
+                }
+            }
             /* Phase 2: audio playback (requires SDL_mixer) */
 #if defined(ROGUE_HAVE_SDL_MIXER)
             static int g_ab_audio_channel = -1;
@@ -1255,6 +1336,69 @@ static void panel_asset_browser(void* user)
                         overlay_label(dep_ids[di]);
                 }
             }
+            /* Phase 3: Audio loop point adjustment interface */
+#if defined(ROGUE_HAVE_SDL_MIXER)
+            {
+                /* Obtain index for selected audio via id search (linear acceptable for debug UI) */
+                int audio_index = -1;
+                for (uint32_t i = 0; i < m->audio_count; ++i)
+                {
+                    if (&m->audio[i] == sel_audio)
+                    {
+                        audio_index = (int) i;
+                        break;
+                    }
+                }
+                static int lp_start_ms = 0;
+                static int lp_end_ms = 0;
+                static char lp_status[64];
+                if (overlay_button("Load Loop Pts"))
+                {
+                    uint32_t s, e;
+                    if (rogue_asset_manager_get_audio_loop_points(audio_index, &s, &e))
+                    {
+                        lp_start_ms = (int) s;
+                        lp_end_ms = (int) e;
+                        snprintf(lp_status, sizeof lp_status, "Loaded %u-%u ms", s, e);
+                    }
+                    else
+                    {
+                        lp_start_ms = 0;
+                        lp_end_ms = 0;
+                        snprintf(lp_status, sizeof lp_status, "(none)");
+                    }
+                }
+                if (overlay_button("Start -10") && lp_start_ms >= 10)
+                    lp_start_ms -= 10;
+                if (overlay_button("Start +10"))
+                    lp_start_ms += 10;
+                if (overlay_button("End -10") && lp_end_ms >= 10)
+                    lp_end_ms -= 10;
+                if (overlay_button("End +10"))
+                    lp_end_ms += 10;
+                if (overlay_button("Apply Loop Pts"))
+                {
+                    if (lp_end_ms > lp_start_ms && audio_index >= 0)
+                    {
+                        rogue_asset_manager_set_audio_loop_points(
+                            audio_index, (uint32_t) lp_start_ms, (uint32_t) lp_end_ms);
+                        snprintf(lp_status, sizeof lp_status, "Set %d-%d ms", lp_start_ms,
+                                 lp_end_ms);
+                    }
+                    else
+                    {
+                        rogue_asset_manager_set_audio_loop_points(audio_index, 0, 0);
+                        snprintf(lp_status, sizeof lp_status, "Disabled");
+                    }
+                }
+                snprintf(line, sizeof line, "Loop Start: %d ms", lp_start_ms);
+                overlay_label(line);
+                snprintf(line, sizeof line, "Loop End  : %d ms", lp_end_ms);
+                overlay_label(line);
+                if (lp_status[0])
+                    overlay_label(lp_status);
+            }
+#endif
         }
     }
     overlay_end_panel();

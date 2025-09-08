@@ -31,6 +31,9 @@ typedef struct RogueAssetTexture
     uint32_t ref_count;  /* active reference acquisitions */
     bool load_failed;    /* sticky flag for negative caching of missing assets */
     uint64_t last_mtime; /* file modification time snapshot for hot-reload (0=unknown) */
+    /* Phase 3 tagging system: up to 8 lightweight categorization tags (lowercase, no spaces) */
+    char tags[8][32];
+    uint8_t tag_count;
 } RogueAssetTexture;
 
 typedef struct RogueAssetAudio
@@ -41,6 +44,12 @@ typedef struct RogueAssetAudio
     uint32_t ref_count;
     bool load_failed;    /* negative cache */
     uint64_t last_mtime; /* for hot-reload (future) */
+    /* Loop points (milliseconds) for playback tools (overlay). 0/0 = disabled */
+    uint32_t loop_start_ms;
+    uint32_t loop_end_ms;
+    /* Phase 3 tagging system (shared with textures) */
+    char tags[8][32];
+    uint8_t tag_count;
 } RogueAssetAudio;
 
 typedef struct RogueAssetManager
@@ -76,6 +85,27 @@ const RogueAssetTexture* rogue_asset_manager_get(int index);
 int rogue_asset_manager_acquire_audio(const char* path);
 void rogue_asset_manager_release_audio(int index);
 const RogueAssetAudio* rogue_asset_manager_get_audio(int index);
+
+/* Set loop points (ms). If end_ms <= start_ms loop is disabled. Returns 1 if applied. */
+int rogue_asset_manager_set_audio_loop_points(int index, uint32_t start_ms, uint32_t end_ms);
+/* Query loop points; returns 1 if defined. */
+int rogue_asset_manager_get_audio_loop_points(int index, uint32_t* out_start_ms,
+                                              uint32_t* out_end_ms);
+
+/* ---------------- Phase 3: Tagging & Categorization ---------------- */
+/* Tags are stored lowercase, trimmed, no internal spaces (spaces converted to '_' ).
+    Returns 1 on success, 0 on failure (invalid index, duplicate, full, or invalid tag). */
+int rogue_asset_manager_add_texture_tag(int texture_index, const char* tag);
+int rogue_asset_manager_remove_texture_tag(int texture_index, const char* tag);
+int rogue_asset_manager_has_texture_tag(int texture_index, const char* tag);
+int rogue_asset_manager_list_texture_tags(int texture_index, const char** out_tags, int max);
+int rogue_asset_manager_find_textures_by_tag(const char* tag, int* out_indices, int max);
+
+int rogue_asset_manager_add_audio_tag(int audio_index, const char* tag);
+int rogue_asset_manager_remove_audio_tag(int audio_index, const char* tag);
+int rogue_asset_manager_has_audio_tag(int audio_index, const char* tag);
+int rogue_asset_manager_list_audio_tags(int audio_index, const char** out_tags, int max);
+int rogue_asset_manager_find_audio_by_tag(const char* tag, int* out_indices, int max);
 
 /* Hot-reload polling (stat-based) – returns number of textures reloaded. Safe headless. */
 int rogue_asset_manager_poll_reload(void);

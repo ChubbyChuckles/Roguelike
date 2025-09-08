@@ -291,6 +291,7 @@ int rogue_asset_manager_acquire_texture(const char* path)
     tex->ref_count = 1;
     tex->load_failed = false;
     tex->last_mtime = 0;
+    tex->tag_count = 0;
     if (!g_asset_mgr.lazy_loading_enabled)
         texture_attempt_load(tex); /* immediate attempt unless lazy mode */
     int index = (int) g_asset_mgr.texture_count;
@@ -396,6 +397,9 @@ int rogue_asset_manager_acquire_audio(const char* path)
     au->load_failed = false;
     au->sdl_chunk = NULL;
     au->last_mtime = 0;
+    au->loop_start_ms = 0;
+    au->loop_end_ms = 0;
+    au->tag_count = 0;
     if (!g_asset_mgr.lazy_loading_enabled)
         audio_attempt_load(au);
     int index = (int) g_asset_mgr.audio_count;
@@ -429,6 +433,228 @@ const RogueAssetAudio* rogue_asset_manager_get_audio(int index)
     if (index < 0 || (uint32_t) index >= g_asset_mgr.audio_count)
         return NULL;
     return &g_asset_mgr.audio[index];
+}
+
+int rogue_asset_manager_set_audio_loop_points(int index, uint32_t start_ms, uint32_t end_ms)
+{
+    if (index < 0 || (uint32_t) index >= g_asset_mgr.audio_count)
+        return 0;
+    RogueAssetAudio* au = &g_asset_mgr.audio[index];
+    if (end_ms <= start_ms)
+    {
+        au->loop_start_ms = 0;
+        au->loop_end_ms = 0;
+        return 1;
+    }
+    au->loop_start_ms = start_ms;
+    au->loop_end_ms = end_ms;
+    return 1;
+}
+
+int rogue_asset_manager_get_audio_loop_points(int index, uint32_t* out_start_ms,
+                                              uint32_t* out_end_ms)
+{
+    if (index < 0 || (uint32_t) index >= g_asset_mgr.audio_count)
+        return 0;
+    const RogueAssetAudio* au = &g_asset_mgr.audio[index];
+    if (au->loop_end_ms <= au->loop_start_ms)
+        return 0;
+    if (out_start_ms)
+        *out_start_ms = au->loop_start_ms;
+    if (out_end_ms)
+        *out_end_ms = au->loop_end_ms;
+    return 1;
+}
+
+/* ---------------- Tag Normalization Helper ---------------- */
+static int normalize_tag(const char* in, char* out, size_t cap)
+{
+    if (!in || !out || cap == 0)
+        return 0;
+    size_t len = 0;
+    int any = 0;
+    while (*in && len + 1 < cap)
+    {
+        unsigned char c = (unsigned char) *in++;
+        if (c <= ' ')
+            continue; /* skip whitespace */
+        any = 1;
+        if (c >= 'A' && c <= 'Z')
+            c = (unsigned char) (c - 'A' + 'a');
+        if (c == ' ')
+            c = '_';
+        if (c == ',')
+            return 0; /* forbid comma */
+        out[len++] = (char) c;
+    }
+    out[len] = '\0';
+    if (!any)
+        return 0;
+    return 1;
+}
+
+/* Duplicate / presence helper */
+static int tag_array_find(char tags[][32], uint8_t tag_count, const char* tag)
+{
+    for (uint8_t i = 0; i < tag_count; ++i)
+        if (strcmp(tags[i], tag) == 0)
+            return (int) i;
+    return -1;
+}
+
+int rogue_asset_manager_add_texture_tag(int texture_index, const char* tag)
+{
+    if (texture_index < 0 || (uint32_t) texture_index >= g_asset_mgr.texture_count)
+        return 0;
+    RogueAssetTexture* t = &g_asset_mgr.textures[texture_index];
+    if (t->tag_count >= 8)
+        return 0;
+    char norm[32];
+    if (!normalize_tag(tag, norm, sizeof norm))
+        return 0;
+    if (tag_array_find(t->tags, t->tag_count, norm) >= 0)
+        return 0;
+    {
+        size_t nlen = strlen(norm);
+        if (nlen >= sizeof t->tags[0])
+            nlen = sizeof t->tags[0] - 1;
+        memcpy(t->tags[t->tag_count], norm, nlen);
+        t->tags[t->tag_count][nlen] = '\0';
+    }
+    t->tag_count++;
+    return 1;
+}
+
+int rogue_asset_manager_remove_texture_tag(int texture_index, const char* tag)
+{
+    if (texture_index < 0 || (uint32_t) texture_index >= g_asset_mgr.texture_count)
+        return 0;
+    RogueAssetTexture* t = &g_asset_mgr.textures[texture_index];
+    char norm[32];
+    if (!normalize_tag(tag, norm, sizeof norm))
+        return 0;
+    int idx = tag_array_find(t->tags, t->tag_count, norm);
+    if (idx < 0)
+        return 0;
+    if (idx != t->tag_count - 1)
+        memcpy(t->tags[idx], t->tags[t->tag_count - 1], sizeof t->tags[0]);
+    t->tag_count--;
+    return 1;
+}
+
+int rogue_asset_manager_has_texture_tag(int texture_index, const char* tag)
+{
+    if (texture_index < 0 || (uint32_t) texture_index >= g_asset_mgr.texture_count)
+        return 0;
+    RogueAssetTexture* t = &g_asset_mgr.textures[texture_index];
+    char norm[32];
+    if (!normalize_tag(tag, norm, sizeof norm))
+        return 0;
+    return tag_array_find(t->tags, t->tag_count, norm) >= 0 ? 1 : 0;
+}
+
+int rogue_asset_manager_list_texture_tags(int texture_index, const char** out_tags, int max)
+{
+    if (texture_index < 0 || (uint32_t) texture_index >= g_asset_mgr.texture_count || !out_tags ||
+        max <= 0)
+        return 0;
+    RogueAssetTexture* t = &g_asset_mgr.textures[texture_index];
+    int n = t->tag_count < max ? t->tag_count : max;
+    for (int i = 0; i < n; ++i)
+        out_tags[i] = t->tags[i];
+    return n;
+}
+
+int rogue_asset_manager_find_textures_by_tag(const char* tag, int* out_indices, int max)
+{
+    if (!tag || !out_indices || max <= 0)
+        return 0;
+    char norm[32];
+    if (!normalize_tag(tag, norm, sizeof norm))
+        return 0;
+    int found = 0;
+    for (uint32_t i = 0; i < g_asset_mgr.texture_count && found < max; ++i)
+        if (tag_array_find(g_asset_mgr.textures[i].tags, g_asset_mgr.textures[i].tag_count, norm) >=
+            0)
+            out_indices[found++] = (int) i;
+    return found;
+}
+
+int rogue_asset_manager_add_audio_tag(int audio_index, const char* tag)
+{
+    if (audio_index < 0 || (uint32_t) audio_index >= g_asset_mgr.audio_count)
+        return 0;
+    RogueAssetAudio* a = &g_asset_mgr.audio[audio_index];
+    if (a->tag_count >= 8)
+        return 0;
+    char norm[32];
+    if (!normalize_tag(tag, norm, sizeof norm))
+        return 0;
+    if (tag_array_find(a->tags, a->tag_count, norm) >= 0)
+        return 0;
+    {
+        size_t nlen = strlen(norm);
+        if (nlen >= sizeof a->tags[0])
+            nlen = sizeof a->tags[0] - 1;
+        memcpy(a->tags[a->tag_count], norm, nlen);
+        a->tags[a->tag_count][nlen] = '\0';
+    }
+    a->tag_count++;
+    return 1;
+}
+
+int rogue_asset_manager_remove_audio_tag(int audio_index, const char* tag)
+{
+    if (audio_index < 0 || (uint32_t) audio_index >= g_asset_mgr.audio_count)
+        return 0;
+    RogueAssetAudio* a = &g_asset_mgr.audio[audio_index];
+    char norm[32];
+    if (!normalize_tag(tag, norm, sizeof norm))
+        return 0;
+    int idx = tag_array_find(a->tags, a->tag_count, norm);
+    if (idx < 0)
+        return 0;
+    if (idx != a->tag_count - 1)
+        memcpy(a->tags[idx], a->tags[a->tag_count - 1], sizeof a->tags[0]);
+    a->tag_count--;
+    return 1;
+}
+
+int rogue_asset_manager_has_audio_tag(int audio_index, const char* tag)
+{
+    if (audio_index < 0 || (uint32_t) audio_index >= g_asset_mgr.audio_count)
+        return 0;
+    RogueAssetAudio* a = &g_asset_mgr.audio[audio_index];
+    char norm[32];
+    if (!normalize_tag(tag, norm, sizeof norm))
+        return 0;
+    return tag_array_find(a->tags, a->tag_count, norm) >= 0 ? 1 : 0;
+}
+
+int rogue_asset_manager_list_audio_tags(int audio_index, const char** out_tags, int max)
+{
+    if (audio_index < 0 || (uint32_t) audio_index >= g_asset_mgr.audio_count || !out_tags ||
+        max <= 0)
+        return 0;
+    RogueAssetAudio* a = &g_asset_mgr.audio[audio_index];
+    int n = a->tag_count < max ? a->tag_count : max;
+    for (int i = 0; i < n; ++i)
+        out_tags[i] = a->tags[i];
+    return n;
+}
+
+int rogue_asset_manager_find_audio_by_tag(const char* tag, int* out_indices, int max)
+{
+    if (!tag || !out_indices || max <= 0)
+        return 0;
+    char norm[32];
+    if (!normalize_tag(tag, norm, sizeof norm))
+        return 0;
+    int found = 0;
+    for (uint32_t i = 0; i < g_asset_mgr.audio_count && found < max; ++i)
+        if (tag_array_find(g_asset_mgr.audio[i].tags, g_asset_mgr.audio[i].tag_count, norm) >= 0)
+            out_indices[found++] = (int) i;
+    return found;
 }
 
 /* ---------------- Hot Reload Poll ---------------- */

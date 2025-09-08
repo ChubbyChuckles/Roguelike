@@ -119,7 +119,28 @@ Added inline scaled thumbnail preview for selected texture assets in Asset Brows
 - Dungeon (Phase 9.4)
 	- Add rogue_dungeon_export_gating_manifest(path, graph) emitting compact JSON of capability ids and rooms count; ensure parent dirs exist.
 
+feat(asset-overlay/phase3): audio loop point adjustment interface & API
+
+Phase 3 Asset Overlay advancement:
+ - Implemented audio volume/loop point adjustment UI in Asset Browser (selected audio asset panel) with start/end ms tweak buttons, load/apply workflow, status feedback.
+ - Added loop point fields (loop_start_ms / loop_end_ms) to RogueAssetAudio with initialization and accessor APIs: rogue_asset_manager_set_audio_loop_points / _get_audio_loop_points.
+ - Roadmap updated marking "Implement audio volume/loop point adjustment interface" complete.
+ - Build-safe: loop UI and APIs compiled unconditionally; actual playback loop honoring is deferred to future audio mixer hook (non-breaking now).
+ - Prevents regression: no existing struct layout dependencies outside serialization (none yet) and tests still pass (full build succeeded).
+
+
 feat(asset-overlay/phase2): interactive preview zoom/pan + audio playback controls
+feat(asset-overlay/phase3): asset tagging system (textures & audio)
+
+Phase 3 Asset Overlay advancement (tagging):
+ - Added per-texture & per-audio tag arrays (up to 8, 32 chars each, normalized lowercase, whitespace stripped) to RogueAssetTexture / RogueAssetAudio.
+ - Implemented tag management APIs: add/remove/has/list/find for textures & audio (constant-time duplicate checks, compact removal, no dynamic alloc).
+ - Integrated UI in Asset Browser Details panel for selected texture/audio: shows existing tags as clickable buttons (click removes), Add Tag input + +Tag button.
+ - Added Tag Filter input field combining with existing wildcard filter (AND semantics) to refine listing.
+ - Updated roadmap (implementation_plan_asset_overlay.txt) marking "Add asset tagging and categorization system" complete.
+ - Updated README Asset Browser section with tagging feature bullet.
+ - Non-breaking: struct extensions appended; no ABI guarantees required internally; tests unaffected (all 655 passed after change).
+ - Future follow-ups: persist tags to metadata JSON, multi-select filtering (OR mode), batch tag operations, export/import tooling.
 
 Phase 2 (partial) Asset Overlay progress:
  - Added per-panel state for texture zoom (1..16) and panning (button step 8px) plus Reset View.

@@ -340,9 +340,26 @@ void rogue_app_step(void)
         }
     }
 #endif
-    /* Draw unified debug overlay on top of everything (if enabled) */
-    overlay_new_frame((float) g_app.dt, g_app.viewport_w, g_app.viewport_h);
-    overlay_render();
+    /* Draw unified debug overlay on top of everything (if enabled).
+       Regression guard (2025-09): Early start-screen snapshot test executes only a single
+       frame immediately after init (before gameplay/world systems fully initialized), then
+       shuts down and re-inits in the same process. The overlay subsystem was being ticked
+       during that first start-screen frame and later dereferenced across the rapid
+       shutdown/re-init cycle, triggering a sporadic segfault in
+       test_start_screen_phase10_1_headless. We suppress overlay frame/render while the
+       start screen is active to ensure overlay resources are only touched once core world
+       state is ready (after fade-out). */
+    /* Refined guard (Sept 2025): Permit overlay once FADE_OUT begins so world-gen / gameplay
+       transition frames (where panels & metrics may legitimately tick) have a valid overlay
+       frame. Keeping it suppressed only for FADE_IN + MENU visible frames avoids the early
+       headless snapshot segfault (test 10.1) while fixing a late-suite intermittent crash in
+       navigation traversal (test 10.2) caused by overlay state remaining uninitialized until
+       after world systems activated. */
+    if (!rogue_start_screen_active() || g_app.start_state == ROGUE_START_FADE_OUT)
+    {
+        overlay_new_frame((float) g_app.dt, g_app.viewport_w, g_app.viewport_h);
+        overlay_render();
+    }
     if (!g_app.headless)
     {
         SDL_RenderPresent(g_app.renderer);

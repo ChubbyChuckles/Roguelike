@@ -590,10 +590,15 @@ void rogue_app_step(void)
     }
     /* HUD */
     rogue_hud_render();
-/* Unified debug overlay on top of HUD */
+    /* Unified debug overlay on top of HUD. Skip while start screen active to avoid
+       interfering with deterministic start screen tests (phase10) and potential early
+       init ordering issues leading to crashes. */
 #include "../../debug_overlay/overlay_core.h"
-    overlay_new_frame((float) g_app.dt, g_app.viewport_w, g_app.viewport_h);
-    overlay_render();
+    if (!rogue_start_screen_active() || g_app.start_state == ROGUE_START_FADE_OUT)
+    {
+        overlay_new_frame((float) g_app.dt, g_app.viewport_w, g_app.viewport_h);
+        overlay_render();
+    }
     rogue_skill_bar_render();
     rogue_skill_tree_render();
     /* (skill bar update already handled inside gameplay branch) */

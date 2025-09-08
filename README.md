@@ -14,6 +14,8 @@ Press F1 in-game to open the debug overlay.
 - NEW (Asset Overlay Phase 2 slice):
   - Drag-and-drop import: dropping a file onto the game window injects a ::drop::<path> token into the asset browser import field (headless-safe; only active when overlay input enabled).
   - Win32 file dialog: "Open File Dialog" button (Windows only) opens a native picker (filters optional). Selected path is staged for import. Cross-platform (Linux/macOS) support remains on the roadmap (Phase 7).
+  - Audio loop points (Phase 3 slice): Selected audio assets now expose a Loop Point editor (Load Loop Pts / Start± / End± / Apply). Loop ranges are stored per asset in-memory (start/end ms) via new asset manager APIs; playback looping with custom ranges will integrate with mixer callbacks in a future phase.
+  - Asset tagging (Phase 3 slice): Per-texture & per-audio up to 8 lightweight tags (lowercase) with add/remove UI and a Tag Filter field that ANDs with the wildcard filter.
 
 ### New Skill Visual Authoring Tools (Phase 2.4 updates)
 
