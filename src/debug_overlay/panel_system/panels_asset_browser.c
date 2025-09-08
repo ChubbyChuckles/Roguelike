@@ -582,60 +582,11 @@ static void panel_asset_browser(void* user)
     overlay_checkbox("Cache Config", &g_ab_state.show_cache_config);
     overlay_checkbox("VCS Overlay", &g_ab_state.show_vcs_overlay);
     overlay_checkbox("Compression Compare", &g_ab_state.show_compression_compare);
-    /* Atlas Tool UI */
+    /* Atlas Tool UI (extracted) */
     if (g_ab_state.show_atlas_tool)
     {
-        overlay_label("[Atlas Builder] Select up to 8 loaded textures (by index) then Build.");
-        char buf[64];
-        for (int i = 0; i < 8; ++i)
-        {
-            snprintf(buf, sizeof buf, "TexIdx[%d]", i);
-            if (g_ab_state.atlas_selection_count <= i)
-            {
-                g_ab_state.atlas_selection[i] = -1;
-            }
-            int val = g_ab_state.atlas_selection[i];
-            /* Reuse int slider as an index input (range  -1 .. 1023) */
-            if (overlay_slider_int(buf, &val, -1, 1023))
-            {
-                if (val >= 0)
-                {
-                    g_ab_state.atlas_selection[i] = val;
-                    if (g_ab_state.atlas_selection_count <= i)
-                        g_ab_state.atlas_selection_count = i + 1;
-                }
-            }
-        }
-        if (overlay_button("Build Atlas"))
-        {
-            int indices[16];
-            int count = 0;
-            for (int i = 0; i < g_ab_state.atlas_selection_count && count < 16; ++i)
-            {
-                if (g_ab_state.atlas_selection[i] >= 0)
-                    indices[count++] = g_ab_state.atlas_selection[i];
-            }
-            if (count >= 2)
-            {
-                RogueAtlasUV uvs[16];
-                int atlas_idx = rogue_asset_manager_build_atlas_horizontal(indices, count, uvs, 16);
-                g_ab_state.atlas_last_result = atlas_idx;
-                if (atlas_idx >= 0)
-                    overlay_label("Atlas build OK (new texture record) ");
-                else
-                    overlay_label("Atlas build FAILED");
-            }
-            else
-            {
-                overlay_label("Need at least 2 textures.");
-            }
-        }
-        if (g_ab_state.atlas_last_result >= 0)
-        {
-            char line2[80];
-            snprintf(line2, sizeof line2, "Last Atlas Index: %d", g_ab_state.atlas_last_result);
-            overlay_label(line2);
-        }
+        extern void rogue_asset_browser_draw_atlas_tool(RogueAssetManager*);
+        rogue_asset_browser_draw_atlas_tool(m);
     }
     /* Memory Profiler */
     if (g_ab_state.show_memory_profiler)
@@ -820,100 +771,11 @@ static void panel_asset_browser(void* user)
     {
         overlay_label("[Git Overlay] (placeholder) – pending changes & per-asset status.");
     }
-    if (g_ab_state.show_compression_compare && g_ab_state.tab_index == 1) /* Textures tab */
+    /* Compression Compare (extracted) */
+    if (g_ab_state.show_compression_compare)
     {
-        overlay_label(
-            "[Compression Comparison] Probe alternative on-disk formats (.ktx2/.ktx/.dds)");
-        int sel = g_ab_state.selected_row;
-        if (sel >= 0 && (uint32_t) sel < m->texture_count)
-        {
-            const RogueAssetTexture* tex = &m->textures[sel];
-            char original[260];
-            ab_copy_safe(original, sizeof original, tex->path);
-            /* Derive base (strip extension) */
-            const char* dot = strrchr(original, '.');
-            size_t base_len = dot ? (size_t) (dot - original) : strlen(original);
-            char base[260];
-            if (base_len >= sizeof base)
-                base_len = sizeof base - 1; /* clamp */
-            memcpy(base, original, base_len);
-            base[base_len] = '\0';
-            const char* exts[] = {".ktx2", ".ktx", ".dds"};
-            uint64_t sizes[3] = {0, 0, 0};
-            uint64_t orig_size = 0;
-            /* stat helper */
-            for (int pass = -1; pass < 3; ++pass)
-            {
-                char path[320];
-                if (pass == -1)
-                {
-                    ab_copy_safe(path, sizeof path, original);
-                }
-                else
-                {
-                    size_t bl = strlen(base);
-                    size_t el = strlen(exts[pass]);
-                    if (bl + el + 1 < sizeof path)
-                    {
-                        memcpy(path, base, bl);
-                        memcpy(path + bl, exts[pass], el + 1);
-                    }
-                    else
-                        path[0] = '\0';
-                }
-                if (path[0] && rogue_asset_file_exists(path))
-                {
-#ifdef _WIN32
-                    struct _stat s;
-                    if (_stat(path, &s) == 0)
-                    {
-                        if (pass == -1)
-                            orig_size = (uint64_t) s.st_size;
-                        else
-                            sizes[pass] = (uint64_t) s.st_size;
-                    }
-#else
-                    struct stat s;
-                    if (stat(path, &s) == 0)
-                    {
-                        if (pass == -1)
-                            orig_size = (uint64_t) s.st_size;
-                        else
-                            sizes[pass] = (uint64_t) s.st_size;
-                    }
-#endif
-                }
-            }
-            char line2[160];
-            snprintf(line2, sizeof line2, "Original (%s) size: %llu bytes", original,
-                     (unsigned long long) orig_size);
-            overlay_label(line2);
-            for (int i = 0; i < 3; i++)
-            {
-                if (sizes[i])
-                {
-                    double pct = (orig_size && orig_size > sizes[i])
-                                     ? (100.0 - (double) sizes[i] * 100.0 / (double) orig_size)
-                                     : 0.0;
-                    snprintf(line2, sizeof line2, "%s present: %llu bytes (%.1f%% smaller)",
-                             exts[i], (unsigned long long) sizes[i], pct);
-                }
-                else
-                {
-                    snprintf(line2, sizeof line2, "%s missing", exts[i]);
-                }
-                overlay_label(line2);
-            }
-            if (orig_size && (sizes[0] || sizes[1] || sizes[2]))
-                overlay_label(
-                    "Toggle 'Prefer Compressed' in metrics panel to auto-substitute where found.");
-            else
-                overlay_label("No alternative compressed variants found next to this texture.");
-        }
-        else
-        {
-            overlay_label("Select a texture row to compare.");
-        }
+        extern void rogue_asset_browser_draw_compression_compare(RogueAssetManager*);
+        rogue_asset_browser_draw_compression_compare(m);
     }
     /* Controls row */
     static const char* tabs[] = {"All", "Textures", "Audio", "JSON", "Shaders"};
