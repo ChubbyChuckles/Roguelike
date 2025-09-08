@@ -259,6 +259,19 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
 Notes:
 Latest CI verification: Debug build (SDL2) and full suite with -j12 passed 100% (617/617). Worldgen optimization benchmark stabilized via adaptive repetition to avoid timer granularity flakiness in CI. Persistence tests use centralized save path builders; a recent fix updated `test_save_incremental_basic` to honor per-test directories via `rogue_build_slot_path(0)` for stability under parallel runs. On Windows/MSVC, the Content Graph SDL preview avoids VLA-like locals by using compile-time caps (OVERLAY_CG_MAX_NODES/EDGES); the System panel shows FPS via overlay_last_dt() when metrics aren’t initialized. New validation path: `tests/unit/test_skills_validation_pipeline.c` confirms that an offensive-looking skill without coefficients fails validation until a coeff entry is added, after which validation passes. Dungeon Phase 8 adds BFS-tiered chest distribution with adjacent upgrade markers and seeds rare material nodes inside dungeons; reward tiering now uses an EV‑normalized, depth‑aware weighted sampler with deterministic basis‑point mass shifting for optional branches and challenge rooms, and the API marks the selected upgrade chest in `out_array`. The marked upgrade chest now carries planned contents metadata on its placement record: planned_def_index and planned_rarity, chosen via a strictly-better planner tied to the inventory snapshot with a robust category fallback. New: `rogue_dungeon_debug_sample_reward_tier()` exposes a deterministic sampler for tests, `rogue_dungeon_upgrade_possible()` gates the upgrade guarantee with a conservative equipment snapshot, and `rogue_dungeon_set_upgrade_possible_override()` provides a test hook. Units `test_dungeon_phase8_loot_and_materials`, `test_dungeon_phase8_5_ev_sanity`, `test_dungeon_phase8_3_upgrade_guarantee`, and `test_dungeon_phase8_3_upgrade_coupling_integration` are passing. Phase 9 adds: mutator registry + JSON loader, deterministic K‑choose‑N selection with compatibility enforcement (incompatibility pairs and per‑group caps), run‑summary callback registration/emission, and a depth profile JSON export helper. Units `test_dungeon_phase9_1_mutator_loader`, `test_dungeon_phase9_2_selection`, and `test_dungeon_phase9_3_stacking_and_export` are green. Phase 4 encounter planning expanded with ΔL/critical-path weighting and modifier smoothing; Phase 5 advanced with objective scripting, gate/keystone flags, and dynamic substitution plus two new unit tests; gate remains green.
 
+Vendor Analytics (Phase 14): Added `vendor_analytics.[ch]` module with telemetry APIs and unit tests. Tracks purchases/buybacks by category/rarity, gold spent vs vendor payouts, gold sink coverage ratio, price elasticity slope per category (least squares from observations), negotiation success rate with average skill split, and a price drift EWMA monitor with configurable threshold and latched alerts. Integrated hooks in pricing (sales) and buyback paths. Unit `tests/unit/test_vendor_phase14_analytics.c` exercises core metrics and drift signaling.
+
+Economy migration tool (Phase 13.3): A new CLI `econ_migrate` updates the versioned economy header and clears dynamic vendor state when value model parameters change.
+
+- Usage: econ_migrate --slot N --curve V --margin V
+- Behavior: Loads the given slot, sets RogueEconomyHeader {curve_version, margin_policy_version}, resets vendor pricing EWMA arrays and clears buyback buffers, then saves.
+- Test: `test_save_phase13_3_econ_migrate_cli` invokes the tool logic directly and verifies header updates and state clearing.
+
+Vendor journal compaction (Phase 13.4–13.5):
+
+- API: `rogue_vendor_tx_journal_compact_summary(RogueVendorTxCompactionSummary* out)` aggregates the in‑memory transaction journal into a compact summary (totals for sales/buybacks/assimilations, gold sold/bought, cumulative reputation delta, first/last timestamps). Returns 0 on success, -1 when the journal is empty.
+- Test: `test_vendor_phase13_compaction` builds a small journal and asserts exact summary totals and timestamps, ensuring equivalence to a full replay for these statistics.
+
 New: Dungeon analytics export and vendor consumer (Phase 9.4)
 
 - Gating manifest helper `rogue_dungeon_export_gating_manifest(path, graph)` writes a compact JSON manifest of inferred traversal/puzzle capability ids and a rooms count. Creates parent directories automatically. Unit: `tests/unit/test_dungeon_phase9_4_gating_manifest.c`.
@@ -784,6 +797,23 @@ Usage pattern (tests and gameplay):
 - Versioning: section headers are version-tagged; counts use varints from v4+. Integrity helpers include a replay hash and a simple signature stub for tamper checks.
 - Implementation: `write_skills_component`/`read_skills_component` and `write_buffs_component`/`read_buffs_component` in `src/core/persistence/save_manager.c`.
 - Tests: `test_save_phase7_skill_buff_roundtrip`, `test_save_phase7_skill_buff_extensions`, `test_persistence_versions`, `test_save_v4_varint_counts`, `test_save_v8_replay_hash`, `test_save_v9_signature` — all green in Debug (SDL2) with parallel builds.
+
+### Vendor Persistence (Phase 13.1)
+
+- Vendor component now appends an optional VEX1 block ("Vendor EXtended v1"). When present it stores:
+  - Pricing arrays (demand and scarcity EWMAs),
+  - Reputation states per vendor,
+  - Special offers (count, offers[], last_seed, consecutive_misses),
+  - Per‑vendor buyback entries (vendor index + count + entries).
+- Backward compatible: older builds ignore the VEX1 block; loader auto-detects by magic and imports when found.
+- Test: `test_save_phase13_vendor_state_roundtrip` validates full round‑trip.
+
+### Economy Header (Phase 13.2)
+
+- New save component id=13 named `economy_header` persists a compact `RogueEconomyHeader { curve_version, margin_policy_version }`.
+- Forward tolerant read: unknown extra bytes are skipped; reserved fields are ignored.
+- API: `rogue_economy_version_set/get/reset` in `src/core/vendor/economy_version.{h,c}`.
+- Test: `test_save_phase13_2_economy_header_roundtrip` ensures versions round‑trip.
 
 ### Proc Engine (Phase 7.2)
 

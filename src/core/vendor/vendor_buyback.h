@@ -57,6 +57,11 @@ extern "C"
                                         int action_code, int price, int rep_delta,
                                         int discount_pct);
 
+    /* Phase 13.1: Persistence helpers for buyback state. Export returns count written. */
+    int rogue_vendor_buyback_export(int vendor_def_index, RogueVendorBuybackEntry* out, int cap);
+    void rogue_vendor_buyback_import(int vendor_def_index, const RogueVendorBuybackEntry* in,
+                                     int count);
+
 #ifdef __cplusplus
 }
 #endif

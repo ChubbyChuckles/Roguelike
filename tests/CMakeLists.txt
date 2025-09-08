@@ -228,6 +228,12 @@ foreach(ut ${UNIT_TESTS})
     rogue_add_test(${name} COMMAND ${name})
 endforeach()
 
+# Special-case: wire the econ migration tool into the Phase 13.3 test so econ_migrate_main is linked
+if(TARGET test_save_phase13_3_econ_migrate_cli)
+    target_sources(test_save_phase13_3_econ_migrate_cli PRIVATE ${CMAKE_SOURCE_DIR}/tools/econ_migrate.c)
+    target_compile_definitions(test_save_phase13_3_econ_migrate_cli PRIVATE ECON_MIGRATE_NO_STANDALONE=1)
+endif()
+
 # Automatically reconfigure when new integration tests are added
 file(GLOB INTEGRATION_TESTS CONFIGURE_DEPENDS integration/test_*.c)
 foreach(it ${INTEGRATION_TESTS})

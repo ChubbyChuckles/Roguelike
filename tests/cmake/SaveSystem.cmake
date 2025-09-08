@@ -263,4 +263,41 @@ if(ROGUE_ENABLE_TESTS)
     rogue_add_test(NAME test_save_manager COMMAND test_save_manager)
     endif()
 
+    # Phase 13.1 vendor extended state roundtrip test
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_phase13_vendor_state_roundtrip.c AND NOT TARGET test_save_phase13_vendor_state_roundtrip)
+        add_executable(test_save_phase13_vendor_state_roundtrip unit/test_save_phase13_vendor_state_roundtrip.c)
+        target_link_libraries(test_save_phase13_vendor_state_roundtrip PRIVATE rogue_core)
+        if(ROGUE_HAVE_SDL)
+            target_compile_definitions(test_save_phase13_vendor_state_roundtrip PRIVATE ROGUE_HAVE_SDL=1)
+        endif()
+    rogue_add_test(NAME test_save_phase13_vendor_state_roundtrip COMMAND test_save_phase13_vendor_state_roundtrip)
+    endif()
+
+    # Phase 13.2 economy header roundtrip test
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_phase13_2_economy_header_roundtrip.c AND NOT TARGET test_save_phase13_2_economy_header_roundtrip)
+        add_executable(test_save_phase13_2_economy_header_roundtrip unit/test_save_phase13_2_economy_header_roundtrip.c)
+        target_link_libraries(test_save_phase13_2_economy_header_roundtrip PRIVATE rogue_core)
+        if(ROGUE_HAVE_SDL)
+            target_compile_definitions(test_save_phase13_2_economy_header_roundtrip PRIVATE ROGUE_HAVE_SDL=1)
+        endif()
+    rogue_add_test(NAME test_save_phase13_2_economy_header_roundtrip COMMAND test_save_phase13_2_economy_header_roundtrip)
+    endif()
+
+    # Phase 13.3 economy migration CLI behavior test (invokes econ_migrate_main directly)
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_save_phase13_3_econ_migrate_cli.c)
+        if(NOT TARGET test_save_phase13_3_econ_migrate_cli)
+            add_executable(test_save_phase13_3_econ_migrate_cli
+                unit/test_save_phase13_3_econ_migrate_cli.c)
+        endif()
+
+        # Compile the tool's source directly into the test with ECON_MIGRATE_NO_STANDALONE to get econ_migrate_main
+        target_sources(test_save_phase13_3_econ_migrate_cli PRIVATE ${CMAKE_SOURCE_DIR}/tools/econ_migrate.c)
+        target_compile_definitions(test_save_phase13_3_econ_migrate_cli PRIVATE ECON_MIGRATE_NO_STANDALONE=1)
+        target_link_libraries(test_save_phase13_3_econ_migrate_cli PRIVATE rogue_core)
+        if(ROGUE_HAVE_SDL)
+            target_compile_definitions(test_save_phase13_3_econ_migrate_cli PRIVATE ROGUE_HAVE_SDL=1)
+        endif()
+        rogue_add_test(NAME test_save_phase13_3_econ_migrate_cli COMMAND test_save_phase13_3_econ_migrate_cli)
+    endif()
+
 endif() # ROGUE_ENABLE_TESTS

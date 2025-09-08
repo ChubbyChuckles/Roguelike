@@ -1,3 +1,45 @@
+Phase 13.3: Add economy migration CLI and tests; wire into build
+
+- Introduce tools/econ_migrate.c to migrate saves when value model parameters change:
+	- Updates versioned economy header (curve_version, margin_policy_version)
+	- Clears dynamic vendor pricing state (demand/scarcity EWMAs) and per‑vendor buyback buffers
+	- Re-saves the target slot
+- Expose econ_migrate_main for unit tests; guard standalone main via ECON_MIGRATE_NO_STANDALONE
+- Add econ_migrate executable target in CMake, link against rogue_core; SDL guard consistent with other tools
+- New unit test test_save_phase13_3_econ_migrate_cli calls econ_migrate_main directly and verifies:
+	- Header updates to requested versions
+	- Pricing scalars reset to ~1.0 (neutral) after clearing
+	- Buyback listing cleared
+- Roadmap: mark Phase 13.3 Done; README: document CLI usage and behavior
+
+Phase 13.1-13.2: Vendor VEX1 persistence + Versioned economy header
+
+- Phase 13.1 (Done): Implemented VEX1 (Vendor EXtended v1) optional block in vendor component
+	• Pricing arrays (demand/scarcity EWMAs)
+	• Reputation states per vendor
+	• Special offers (count, offers[], last_seed, consecutive_misses)
+	• Per‑vendor buyback entries (per vendor index)
+	• Backward‑compatible: legacy readers skip appended block
+	• Unit: tests/unit/test_save_phase13_vendor_state_roundtrip.c
+
+- Phase 13.2 (Done): Added versioned economy header component (id=13)
+	• Persist RogueEconomyHeader {curve_version, margin_policy_version}
+	• Forward/backward tolerant reader (skips unknown extra bytes)
+	• API: src/core/vendor/economy_version.{h,c}
+	• Unit: tests/unit/test_save_phase13_2_economy_header_roundtrip.c
+
+- Save system: Registered new component and wired into load/save
+- Build: Added economy_version.c to rogue_core target
+- Docs: Updated roadmap to mark 13.1/13.2 Done; README with VEX1 + econ header sections
+
+All tests green locally (Debug, SDL2).
+
+Phase 13.4–13.5: Journal compaction + tests
+
+- Implemented vendor journal compaction API:
+	• rogue_vendor_tx_journal_compact_summary(out) produces counts (sales/buybacks/assimilated), totals (gold sold/bought, rep delta), and first/last timestamps; returns 0 on success.
+- Added unit test tests/unit/test_vendor_phase13_compaction.c exercising summary equivalence over a fixed journal sample and registered it in tests/cmake/Vendor.cmake.
+- Roadmap: mark 13.4/13.5 Done; README: document compaction API and test.
 feat(asset-overlay/phase6): hotkey system + bookmarking (slice 1)
 
 Adds Phase 6 initial workflow integration:

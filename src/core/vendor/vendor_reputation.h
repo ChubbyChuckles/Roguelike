@@ -31,6 +31,9 @@ extern "C"
     int rogue_vendor_rep_state_count(void);
     const RogueVendorRepState* rogue_vendor_rep_state_at(int idx);
 
+    /* Phase 13.1: Import a reputation state record (used by persistence). */
+    void rogue_vendor_rep_import_state(const RogueVendorRepState* st);
+
 #ifdef __cplusplus
 }
 #endif

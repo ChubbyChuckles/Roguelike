@@ -47,6 +47,11 @@ extern "C"
     /* Phase 12: hash of pricing modifier state for snapshot hashing */
     unsigned int rogue_vendor_price_modifiers_hash(void);
 
+    /* Phase 13.1 persistence helpers: export/import demand & scarcity arrays.
+       Returns number of categories exported/imported. 'cap' must be >= returned count. */
+    int rogue_vendor_pricing_export(float* out_demand, float* out_scarcity, int cap);
+    int rogue_vendor_pricing_import(const float* demand, const float* scarcity, int count);
+
 #ifdef __cplusplus
 }
 #endif

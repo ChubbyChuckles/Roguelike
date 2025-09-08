@@ -31,6 +31,12 @@ extern "C"
     /* Pity timer status (1 if guarantee will trigger next roll) */
     int rogue_vendor_offers_pity_pending(void);
 
+    /* Phase 13.1: Persistence helpers to export/import current offers and internal counters. */
+    int rogue_vendor_offers_export(RogueVendorSpecialOffer* out, int cap,
+                                   unsigned int* out_last_seed, int* out_consecutive_misses);
+    void rogue_vendor_offers_import(const RogueVendorSpecialOffer* in, int count,
+                                    unsigned int last_seed, int consecutive_misses);
+
 #ifdef __cplusplus
 }
 #endif

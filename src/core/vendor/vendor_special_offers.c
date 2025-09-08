@@ -207,3 +207,35 @@ int rogue_vendor_offers_roll(unsigned int world_seed, unsigned int now_ms,
     }
     return g_offer_count - produced_before;
 }
+
+int rogue_vendor_offers_export(RogueVendorSpecialOffer* out, int cap, unsigned int* out_last_seed,
+                               int* out_consecutive_misses)
+{
+    if (!out || cap <= 0)
+        return 0;
+    int n = (g_offer_count < cap) ? g_offer_count : cap;
+    for (int i = 0; i < n; i++)
+        out[i] = g_offers[i];
+    if (out_last_seed)
+        *out_last_seed = g_last_roll_seed;
+    if (out_consecutive_misses)
+        *out_consecutive_misses = g_consecutive_misses;
+    return n;
+}
+void rogue_vendor_offers_import(const RogueVendorSpecialOffer* in, int count,
+                                unsigned int last_seed, int consecutive_misses)
+{
+    rogue_vendor_offers_reset();
+    if (!in || count <= 0)
+    {
+        g_last_roll_seed = last_seed;
+        g_consecutive_misses = consecutive_misses;
+        return;
+    }
+    int n = (count < ROGUE_VENDOR_OFFER_SLOT_CAP) ? count : ROGUE_VENDOR_OFFER_SLOT_CAP;
+    for (int i = 0; i < n; i++)
+        g_offers[i] = in[i];
+    g_offer_count = n;
+    g_last_roll_seed = last_seed;
+    g_consecutive_misses = consecutive_misses;
+}

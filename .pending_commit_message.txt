@@ -1,0 +1,17 @@
+Vendor System – Phase 14 Analytics: add vendor_analytics module, wire hooks, tests, and docs
+
+- Add src/core/vendor/vendor_analytics.[ch] implementing telemetry for:
+	- Purchase/buyback counts by category and rarity
+	- Gold totals (spent vs paid) and sink coverage ratio (spent/sinks)
+	- Price elasticity slope per category from observation pairs (units vs adjustment pct)
+	- Negotiation metrics: success rate, avg skill on success/failure
+	- Price drift monitor: EWMA vs baseline with configurable threshold and latched alert
+- Integrate analytics in vendor paths:
+	- vendor_pricing.c: record vendor sale telemetry after computing final price
+	- vendor_buyback.c: record buyback telemetry when vendor buys from player
+- Build wiring: include vendor_analytics.c in rogue_core (CMakeLists.txt)
+- Tests: add tests/unit/test_vendor_phase14_analytics.c exercising counts, gold coverage, negotiation stats, and drift alert behavior
+- Roadmap: mark Phase 14.1–14.5 Done; note partial coverage for 14.6 tests with core checks in new unit
+- README: add concise Vendor Analytics (Phase 14) summary under Testing & Quality Gates notes
+
+Quality gates: Debug (SDL2) build and full CTest run passed 100% (660/660) locally after changes.

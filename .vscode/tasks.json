@@ -124,8 +124,7 @@
 			"type": "shell",
 			"command": "cmake --build build --config Debug --parallel 12 && ctest --test-dir build -C Debug -j 12 --output-on-failure --timeout 90",
 			"group": "build"
-		}
-		,
+		},
 		{
 			"label": "CI: Show recent runs (gh)",
 			"type": "shell",
@@ -138,6 +137,11 @@
 			"command": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/ci/fetch-logs.ps1",
 			"problemMatcher": [],
 			"detail": "Downloads logs and artifacts of the newest CI run into build/ci_logs"
+		},
+		{
+			"label": "Reconfigure (Debug), build tests, and run ctests after adding mutators Phase 9.1-9.2",
+			"type": "shell",
+			"command": "cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build --config Debug --parallel 12 && ctest --test-dir build -C Debug -j12 --output-on-failure --timeout 90"
 		}
 	]
 }

@@ -33,6 +33,7 @@ typedef enum RogueSaveComponentId
     ROGUE_SAVE_COMP_INV_TAGS = 10,      /* Inventory tags & flags component (Phase 3 metadata) */
     ROGUE_SAVE_COMP_INV_TAG_RULES = 11, /* Inventory auto-tag rules (Phase 3.3/3.4) */
     ROGUE_SAVE_COMP_INV_SAVED_SEARCHES = 12, /* Inventory saved searches (Phase 4.4) */
+    ROGUE_SAVE_COMP_ECON_HEADER = 13,        /* Phase 13.2: Versioned economy header */
 } RogueSaveComponentId;
 
 /* Descriptor header written at start of save file */

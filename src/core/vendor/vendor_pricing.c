@@ -1,6 +1,7 @@
 #include "vendor_pricing.h"
 #include "econ_value.h"
 #include "vendor_adaptive.h"
+#include "vendor_analytics.h"
 #include "vendor_econ_balance.h"
 #include "vendor_rng.h"
 #include <math.h>
@@ -190,6 +191,17 @@ int rogue_vendor_compute_price(int vendor_def_index, int item_def_index, int rar
     int final_price = (int) floorf(price + 0.5f);
     if (final_price < 1)
         final_price = 1;
+    /* Analytics (14.1,14.5): if vendor is selling to player, record a sale intent. We don't know
+       the transaction completion here; tests call analytics directly, but keep a lightweight hook
+       to capture computed prices and adjustment ratios for elasticity. */
+    if (is_vendor_selling)
+    {
+        float adj_pct =
+            demand_scalar * scarcity_scalar * exploit_scalar * global_scalar * biome_scalar;
+        /* convert to percentage delta relative to 1.0 baseline */
+        float adjustment_pct = (adj_pct - 1.0f) * 100.0f;
+        rogue_vendor_analytics_record_vendor_sale(category, rarity, final_price, adjustment_pct, 0);
+    }
     return final_price;
 }
 
@@ -219,4 +231,31 @@ uint32_t rogue_vendor_price_modifiers_hash(void)
     if (h == 0)
         h = 0xA136AAADu;
     return h;
+}
+
+int rogue_vendor_pricing_export(float* out_demand, float* out_scarcity, int cap)
+{
+    ensure_init();
+    if (!out_demand || !out_scarcity || cap <= 0)
+        return 0;
+    int n = (ROGUE_VENDOR_DEMAND_CATEGORIES < cap) ? ROGUE_VENDOR_DEMAND_CATEGORIES : cap;
+    for (int i = 0; i < n; i++)
+    {
+        out_demand[i] = g_demand_score[i];
+        out_scarcity[i] = g_scarcity_score[i];
+    }
+    return n;
+}
+int rogue_vendor_pricing_import(const float* demand, const float* scarcity, int count)
+{
+    ensure_init();
+    if (!demand || !scarcity || count <= 0)
+        return 0;
+    int n = (ROGUE_VENDOR_DEMAND_CATEGORIES < count) ? ROGUE_VENDOR_DEMAND_CATEGORIES : count;
+    for (int i = 0; i < n; i++)
+    {
+        g_demand_score[i] = demand[i];
+        g_scarcity_score[i] = scarcity[i];
+    }
+    return n;
 }

@@ -303,3 +303,13 @@ const RogueVendorRepState* rogue_vendor_rep_state_at(int idx)
         return NULL;
     return &g_rep_states[idx];
 }
+
+void rogue_vendor_rep_import_state(const RogueVendorRepState* src)
+{
+    if (!src)
+        return;
+    RogueVendorRepState* dst = ensure_state(src->vendor_def_index);
+    if (!dst)
+        return;
+    *dst = *src;
+}

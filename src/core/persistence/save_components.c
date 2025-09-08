@@ -8,12 +8,88 @@
 #include "../inventory/inventory_tags.h"
 #include "../loot/loot_instances.h"
 #include "../skills/skills.h"
+#include "../vendor/economy_version.h"
 #include "../vendor/vendor.h"
+#include "../vendor/vendor_buyback.h"
+#include "../vendor/vendor_pricing.h"
+#include "../vendor/vendor_registry.h"
+#include "../vendor/vendor_reputation.h"
+#include "../vendor/vendor_special_offers.h"
 #include "save_intern.h"
 #include "save_internal.h"
 #include "save_replay.h"
 #include "save_utils.h"
 #include <string.h>
+
+/*
+   Fallback declarations for vendor subsystems (pricing, reputation, offers, buyback).
+   These are only used if the real headers did not take effect in this TU for any reason
+   (e.g., transitive include guards or include path oddities). The declarations mirror the
+   public APIs and types so that this file can compile and link against the real definitions.
+*/
+#ifndef ROGUE_VENDOR_PRICING_H
+int rogue_vendor_pricing_export(float* out_demand, float* out_scarcity, int cap);
+int rogue_vendor_pricing_import(const float* demand, const float* scarcity, int count);
+#endif
+
+#ifndef ROGUE_VENDOR_REPUTATION_H
+typedef struct RogueVendorRepState
+{
+    int vendor_def_index;            /* -1 if unused */
+    int reputation;                  /* accumulated rep points */
+    unsigned int nego_attempts;      /* total negotiation attempts */
+    unsigned int lockout_expires_ms; /* negotiation lockout expiry */
+    int last_discount_pct;           /* last granted discount */
+} RogueVendorRepState;
+int rogue_vendor_rep_state_count(void);
+const RogueVendorRepState* rogue_vendor_rep_state_at(int idx);
+void rogue_vendor_rep_import_state(const RogueVendorRepState* st);
+#endif
+
+#ifndef ROGUE_VENDOR_SPECIAL_OFFERS_H
+#ifndef ROGUE_VENDOR_OFFER_SLOT_CAP
+#define ROGUE_VENDOR_OFFER_SLOT_CAP 4
+#endif
+typedef struct RogueVendorSpecialOffer
+{
+    int def_index;
+    int rarity;
+    int base_price;
+    unsigned int expires_at_ms;
+    int nemesis_bonus;
+    int scarcity_boost;
+    int active;
+} RogueVendorSpecialOffer;
+int rogue_vendor_offers_export(RogueVendorSpecialOffer* out, int cap, unsigned int* out_last_seed,
+                               int* out_consecutive_misses);
+void rogue_vendor_offers_import(const RogueVendorSpecialOffer* in, int count,
+                                unsigned int last_seed, int consecutive_misses);
+#endif
+
+#ifndef ROGUE_VENDOR_BUYBACK_H
+#ifndef ROGUE_VENDOR_BUYBACK_CAP
+#define ROGUE_VENDOR_BUYBACK_CAP 32
+#endif
+typedef struct RogueVendorBuybackEntry
+{
+    unsigned long long item_guid;
+    int item_def_index;
+    int rarity;
+    int category;
+    int condition_pct;
+    int original_price;
+    unsigned int sell_time_ms;
+    unsigned int assimilate_time_ms;
+    int active;
+} RogueVendorBuybackEntry;
+int rogue_vendor_buyback_export(int vendor_def_index, RogueVendorBuybackEntry* out, int cap);
+void rogue_vendor_buyback_import(int vendor_def_index, const RogueVendorBuybackEntry* in,
+                                 int count);
+#endif
+
+#ifndef ROGUE_VENDOR_REGISTRY_H
+int rogue_vendor_def_count(void);
+#endif
 
 /* Forward-declared helpers from original implementation */
 static int write_player_component(FILE* f);
@@ -32,6 +108,8 @@ static int write_world_meta_component(FILE* f);
 static int read_world_meta_component(FILE* f, size_t size);
 static int write_replay_component(FILE* f);
 static int read_replay_component(FILE* f, size_t size);
+static int write_economy_header_component(FILE* f);
+static int read_economy_header_component(FILE* f, size_t size);
 static int write_inv_entries_component(FILE* f);
 static int read_inv_entries_component(FILE* f, size_t size);
 static int write_inv_tags_component(FILE* f);
@@ -718,12 +796,88 @@ static int write_vendor_component(FILE* f)
             fwrite(&it->price, sizeof it->price, 1, f);
         }
     }
+    /* Phase 13.1: Append optional extension block 'VEX1' (Vendor EXtended v1) */
+    {
+        /* Header: 4-byte magic + uint32 size of payload (not including header) */
+        const unsigned char magic[4] = {'V', 'E', 'X', '1'};
+        unsigned char demand_buf[64 * sizeof(float)];
+        unsigned char scarcity_buf[64 * sizeof(float)];
+        float* demand = (float*) demand_buf;
+        float* scarcity = (float*) scarcity_buf;
+        int dcount = rogue_vendor_pricing_export(demand, scarcity, 64);
+        /* Reputation states */
+        int rep_count = rogue_vendor_rep_state_count();
+        /* Offers */
+        RogueVendorSpecialOffer offers[ROGUE_VENDOR_OFFER_SLOT_CAP];
+        unsigned int offers_seed = 0;
+        int offers_misses = 0;
+        int offer_count = rogue_vendor_offers_export(offers, ROGUE_VENDOR_OFFER_SLOT_CAP,
+                                                     &offers_seed, &offers_misses);
+        /* Buyback: iterate vendor defs and export entries */
+        int vdef_count = rogue_vendor_def_count();
+        /* Compute payload size */
+        uint32_t payload_size = 0;
+        payload_size += sizeof(uint32_t) + (uint32_t) (dcount * sizeof(float) * 2);
+        payload_size += sizeof(uint32_t); /* rep_count */
+        payload_size += (uint32_t) rep_count * sizeof(RogueVendorRepState);
+        payload_size += sizeof(uint32_t) +
+                        (uint32_t) (offer_count * sizeof(RogueVendorSpecialOffer)) +
+                        sizeof(uint32_t) + sizeof(uint32_t); /* seed + misses */
+        /* buyback: for each vendor, write vendor_index + count + entries */
+        long buyback_payload_bytes = 0;
+        for (int v = 0; v < vdef_count; v++)
+        {
+            RogueVendorBuybackEntry tmp[ROGUE_VENDOR_BUYBACK_CAP];
+            int bc = rogue_vendor_buyback_export(v, tmp, ROGUE_VENDOR_BUYBACK_CAP);
+            buyback_payload_bytes += (long) (sizeof(int) + sizeof(uint32_t) +
+                                             bc * (int) sizeof(RogueVendorBuybackEntry));
+        }
+        payload_size += (uint32_t) buyback_payload_bytes;
+        /* Write header */
+        fwrite(magic, 1, 4, f);
+        fwrite(&payload_size, sizeof payload_size, 1, f);
+        /* Pricing arrays */
+        uint32_t dc = (uint32_t) dcount;
+        fwrite(&dc, sizeof dc, 1, f);
+        if (dcount > 0)
+        {
+            fwrite(demand, sizeof(float), (size_t) dcount, f);
+            fwrite(scarcity, sizeof(float), (size_t) dcount, f);
+        }
+        /* Reputation states */
+        uint32_t rc = (uint32_t) rep_count;
+        fwrite(&rc, sizeof rc, 1, f);
+        for (int i = 0; i < rep_count; i++)
+        {
+            const RogueVendorRepState* st = rogue_vendor_rep_state_at(i);
+            if (st)
+                fwrite(st, sizeof *st, 1, f);
+        }
+        /* Offers block */
+        uint32_t oc = (uint32_t) offer_count;
+        fwrite(&oc, sizeof oc, 1, f);
+        for (int i = 0; i < offer_count; i++)
+            fwrite(&offers[i], sizeof offers[i], 1, f);
+        fwrite(&offers_seed, sizeof offers_seed, 1, f);
+        fwrite(&offers_misses, sizeof offers_misses, 1, f);
+        /* Buyback per vendor */
+        for (int v = 0; v < vdef_count; v++)
+        {
+            RogueVendorBuybackEntry tmp[ROGUE_VENDOR_BUYBACK_CAP];
+            int bc = rogue_vendor_buyback_export(v, tmp, ROGUE_VENDOR_BUYBACK_CAP);
+            fwrite(&v, sizeof v, 1, f);
+            uint32_t bcc = (uint32_t) bc;
+            fwrite(&bcc, sizeof bcc, 1, f);
+            for (int k = 0; k < bc; k++)
+                fwrite(&tmp[k], sizeof tmp[k], 1, f);
+        }
+    }
     return 0;
 }
 
 static int read_vendor_component(FILE* f, size_t size)
 {
-    (void) size;
+    long section_start = ftell(f);
     fread(&g_app.vendor_seed, sizeof g_app.vendor_seed, 1, f);
     fread(&g_app.vendor_time_accum_ms, sizeof g_app.vendor_time_accum_ms, 1, f);
     fread(&g_app.vendor_restock_interval_ms, sizeof g_app.vendor_restock_interval_ms, 1, f);
@@ -746,6 +900,134 @@ static int read_vendor_component(FILE* f, size_t size)
         {
             int recomputed = rogue_vendor_price_formula(def, rar);
             rogue_vendor_append(def, rar, recomputed);
+        }
+    }
+    /* Try to read optional extension block if present */
+    long after_basic = ftell(f);
+    size_t consumed = (size_t) (after_basic - section_start);
+    if (size > consumed + 8)
+    {
+        unsigned char magic[4] = {0};
+        uint32_t payload_size = 0;
+        if (fread(magic, 1, 4, f) == 4 && fread(&payload_size, sizeof payload_size, 1, f) == 1)
+        {
+            if (magic[0] == 'V' && magic[1] == 'E' && magic[2] == 'X' && magic[3] == '1')
+            {
+                /* Pricing arrays */
+                uint32_t dc = 0;
+                if (fread(&dc, sizeof dc, 1, f) != 1)
+                    return -1;
+                if (dc > 0 && dc <= 64)
+                {
+                    float* demand = (float*) malloc(sizeof(float) * dc);
+                    float* scarcity = (float*) malloc(sizeof(float) * dc);
+                    if (!demand || !scarcity)
+                        return -1;
+                    if (fread(demand, sizeof(float), dc, f) != dc)
+                    {
+                        free(demand);
+                        free(scarcity);
+                        return -1;
+                    }
+                    if (fread(scarcity, sizeof(float), dc, f) != dc)
+                    {
+                        free(demand);
+                        free(scarcity);
+                        return -1;
+                    }
+                    rogue_vendor_pricing_import(demand, scarcity, (int) dc);
+                    free(demand);
+                    free(scarcity);
+                }
+                /* Reputation states */
+                uint32_t rc = 0;
+                if (fread(&rc, sizeof rc, 1, f) != 1)
+                    return -1;
+                for (uint32_t i = 0; i < rc; i++)
+                {
+                    RogueVendorRepState st;
+                    if (fread(&st, sizeof st, 1, f) != 1)
+                        return -1;
+                    rogue_vendor_rep_import_state(&st);
+                }
+                /* Offers */
+                uint32_t oc = 0;
+                if (fread(&oc, sizeof oc, 1, f) != 1)
+                    return -1;
+                RogueVendorSpecialOffer* offers = NULL;
+                if (oc > 0 && oc <= (uint32_t) ROGUE_VENDOR_OFFER_SLOT_CAP)
+                {
+                    offers =
+                        (RogueVendorSpecialOffer*) malloc(sizeof(RogueVendorSpecialOffer) * oc);
+                    if (!offers)
+                        return -1;
+                    if (fread(offers, sizeof(RogueVendorSpecialOffer), oc, f) != oc)
+                    {
+                        free(offers);
+                        return -1;
+                    }
+                }
+                unsigned int offers_seed = 0;
+                int offers_misses = 0;
+                if (fread(&offers_seed, sizeof offers_seed, 1, f) != 1)
+                {
+                    if (offers)
+                        free(offers);
+                    return -1;
+                }
+                if (fread(&offers_misses, sizeof offers_misses, 1, f) != 1)
+                {
+                    if (offers)
+                        free(offers);
+                    return -1;
+                }
+                if (oc > 0 && offers)
+                {
+                    rogue_vendor_offers_import(offers, (int) oc, offers_seed, offers_misses);
+                    free(offers);
+                }
+                else
+                {
+                    rogue_vendor_offers_import(NULL, 0, offers_seed, offers_misses);
+                }
+                /* Buyback sets */
+                int vdef_count = rogue_vendor_def_count();
+                for (int v = 0; v < vdef_count; v++)
+                {
+                    int vidx = -1;
+                    uint32_t bc = 0;
+                    if (fread(&vidx, sizeof vidx, 1, f) != 1)
+                        return -1;
+                    if (fread(&bc, sizeof bc, 1, f) != 1)
+                        return -1;
+                    if (vidx < 0 || vidx >= vdef_count)
+                    { /* skip malformed */
+                        /* advance file by bc entries */
+                        fseek(f, (long) (bc * (uint32_t) sizeof(RogueVendorBuybackEntry)),
+                              SEEK_CUR);
+                        continue;
+                    }
+                    if (bc > 0 && bc <= (uint32_t) ROGUE_VENDOR_BUYBACK_CAP)
+                    {
+                        RogueVendorBuybackEntry* arr =
+                            (RogueVendorBuybackEntry*) malloc(sizeof(RogueVendorBuybackEntry) * bc);
+                        if (!arr)
+                            return -1;
+                        if (fread(arr, sizeof(RogueVendorBuybackEntry), bc, f) != bc)
+                        {
+                            free(arr);
+                            return -1;
+                        }
+                        rogue_vendor_buyback_import(vidx, arr, (int) bc);
+                        free(arr);
+                    }
+                }
+            }
+            else
+            {
+                /* Not our magic; rewind so future readers (if any) can parse */
+                fseek(f, -(long) (sizeof payload_size + 4), SEEK_CUR);
+            }
         }
     }
     return 0;
@@ -832,6 +1114,44 @@ static int write_world_meta_component(FILE* f)
     fwrite(&g_app.gen_noise_lacunarity, sizeof g_app.gen_noise_lacunarity, 1, f);
     fwrite(&g_app.gen_river_sources, sizeof g_app.gen_river_sources, 1, f);
     fwrite(&g_app.gen_river_max_length, sizeof g_app.gen_river_max_length, 1, f);
+    return 0;
+}
+
+/* Economy header (Phase 13.2) */
+static int write_economy_header_component(FILE* f)
+{
+    RogueEconomyHeader hdr = rogue_economy_version_get();
+    fwrite(&hdr.curve_version, sizeof hdr.curve_version, 1, f);
+    fwrite(&hdr.margin_policy_version, sizeof hdr.margin_policy_version, 1, f);
+    fwrite(&hdr.reserved0, sizeof hdr.reserved0, 1, f);
+    return 0;
+}
+
+static int read_economy_header_component(FILE* f, size_t size)
+{
+    (void) size;
+    uint32_t cv = 0, mv = 0, r0 = 0;
+    /* Backward/forward tolerant: read whichever fields are available up to 3 uint32s. */
+    long start = ftell(f);
+    size_t remain = size;
+    if (remain >= sizeof(uint32_t))
+    {
+        fread(&cv, sizeof cv, 1, f);
+        remain -= sizeof(uint32_t);
+    }
+    if (remain >= sizeof(uint32_t))
+    {
+        fread(&mv, sizeof mv, 1, f);
+        remain -= sizeof(uint32_t);
+    }
+    if (remain >= sizeof(uint32_t))
+    {
+        fread(&r0, sizeof r0, 1, f);
+        remain -= sizeof(uint32_t);
+    }
+    rogue_economy_version_set(cv, mv);
+    /* Ignore reserved0 for now; seek to end of section if any slop remains */
+    fseek(f, start + (long) size, SEEK_SET);
     return 0;
 }
 
@@ -1105,6 +1425,13 @@ static RogueSaveComponent WORLD_META_COMP = {ROGUE_SAVE_COMP_WORLD_META, write_w
                                              read_world_meta_component, "world_meta"};
 static RogueSaveComponent REPLAY_COMP = {ROGUE_SAVE_COMP_REPLAY, write_replay_component,
                                          read_replay_component, "replay"};
+/* Allocate a stable id for economy header: choose next available after current set (12). */
+#ifndef ROGUE_SAVE_COMP_ECON_HEADER
+#define ROGUE_SAVE_COMP_ECON_HEADER 13
+#endif
+static RogueSaveComponent ECON_HEADER_COMP = {ROGUE_SAVE_COMP_ECON_HEADER,
+                                              write_economy_header_component,
+                                              read_economy_header_component, "economy_header"};
 
 void rogue_register_all_components_internal(void)
 {
@@ -1122,4 +1449,5 @@ void rogue_register_all_components_internal(void)
 #if ROGUE_SAVE_FORMAT_VERSION >= 8
     rogue_save_manager_register(&REPLAY_COMP);
 #endif
+    rogue_save_manager_register(&ECON_HEADER_COMP);
 }

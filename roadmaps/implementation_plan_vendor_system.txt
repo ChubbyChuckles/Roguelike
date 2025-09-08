@@ -110,19 +110,37 @@ PHASE 12. Determinism & RNG Governance
 12.5 Tests: stream isolation, replay determinism (Done) – test_vendor_phase12_determinism token
 
 PHASE 13. Persistence & Migration
-13.1 Vendor state serialization: reputation, dynamic demand EWMAs, buyback buffer, special offer timers (X)
-13.2 Versioned economy header (curve versions, margin policy version) (X)
-13.3 Migration tool for value model parameter changes (X)
-13.4 Journal compaction (aggregate old transactions into summary) (X)
-13.5 Tests: backward compatibility, compaction equivalence (X)
+13.1 Vendor state serialization: reputation, dynamic demand EWMAs, buyback buffer, special offer timers (Done)
+	Implemented via optional VEX1 block appended to vendor component: pricing arrays (demand/scarcity), reputation states, special offers (count+seed+misses), and per-vendor buyback entries.
+13.2 Versioned economy header (curve versions, margin policy version) (Done)
+	New save component id=13 "economy_header" persists RogueEconomyHeader {curve_version, margin_policy_version}; backward/forward tolerant read.
+13.3 Migration tool for value model parameter changes (Done)
+	Added econ_migrate CLI (tools/econ_migrate.c) to set curve/margin versions and clear dynamic
+	vendor state (pricing EWMA and buyback buffers). Unit test invokes tool logic directly to
+	verify header update and state clearing.
+13.4 Journal compaction (aggregate old transactions into summary) (Done)
+	Implemented lightweight aggregation API in vendor journal:
+	- rogue_vendor_tx_journal_compact_summary(out_summary) folds counts and gold totals
+	  across actions (sale=1, buyback=2, assimilate=3), tracks first/last timestamps, and
+	  accumulates reputation deltas into RogueVendorTxCompactionSummary. Returns 0 on success.
+13.5 Tests: backward compatibility, compaction equivalence (Done)
+	Added unit test tests/unit/test_vendor_phase13_compaction.c which populates a small
+	journal sample and asserts summary fields (totals, gold sold/bought, rep delta, and
+	first/last timestamps). Registered in tests/cmake/Vendor.cmake.
 
 PHASE 14. Analytics & Telemetry
-14.1 Purchase frequency by category & rarity (X)
-14.2 Gold sink effectiveness (inflow vs outflow ratio) (X)
-14.3 Price elasticity curves (quantity sold vs price adjustments) (X)
-14.4 Negotiation success distribution & skill correlation (X)
-14.5 Inflation index drift monitor & alerting (X)
-14.6 Tests: elasticity model stability, drift false positive rate (X)
+14.1 Purchase frequency by category & rarity (Done)
+	Implemented vendor_analytics.[ch] counters; wired vendor_pricing (sales) and buyback (vendor payments).
+14.2 Gold sink effectiveness (inflow vs outflow ratio) (Done)
+	Exposed gold_spent_total (player->vendor) vs sinks_grand_total ratio API.
+14.3 Price elasticity curves (quantity sold vs price adjustments) (Done)
+	Least-squares slope per category from observations of units vs adjustment_pct.
+14.4 Negotiation success distribution & skill correlation (Done)
+	Aggregates attempts, success rate, avg skill for success/failure.
+14.5 Inflation index drift monitor & alerting (Done)
+	EWMA vs baseline anchor; threshold configurable; latched alert via check API.
+14.6 Tests: elasticity model stability, drift false positive rate (Partial)
+	Added unit test test_vendor_phase14_analytics.c asserting counts, gold coverage, negotiation means, and drift signaling.
 
 PHASE 15. Security / Anti-Exploit
 15.1 Rapid flip detection (buy->sell cycle time analysis) (X)

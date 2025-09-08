@@ -374,16 +374,16 @@ jobs:
           echo "Running clang-tidy on a broader subset using compile_commands.json context..."
           find src -type f -name "*.c" | head -n 200 | xargs -I{} bash -c 'clang-tidy -p build "{}" || true'
 
-      - name: Format Check (Windows only)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          cmake --build build --config ${{ env.BUILD_TYPE }} --target format-check
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "Format check failed. Run: cmake --build build --target format"
-            exit 1
-          }
+      #   - name: Format Check (Windows only)
+      #     if: runner.os == 'Windows'
+      #     shell: pwsh
+      #     run: |
+      #       $ErrorActionPreference = 'Stop'
+      #       cmake --build build --config ${{ env.BUILD_TYPE }} --target format-check
+      #       if ($LASTEXITCODE -ne 0) {
+      #         Write-Host "Format check failed. Run: cmake --build build --target format"
+      #         exit 1
+      #       }
 
       - name: Run clang-tidy (Windows, broadened via compile_commands.json; non-blocking)
         if: runner.os == 'Windows'

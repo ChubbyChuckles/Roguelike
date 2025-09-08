@@ -233,6 +233,8 @@ add_library(rogue_core
     src/core/integration/hot_reload.c
     src/core/integration/dependency_manager.c
     src/util/kv_parser.c
+    # Vendor analytics (Phase 14)
+    src/core/vendor/vendor_analytics.c
     # Asset system (Phase 3 initial slice)
     src/asset/asset_manager.c
     src/asset/path_utils.c
@@ -434,6 +436,7 @@ add_library(rogue_core
     src/core/vendor/vendor_crafting_integration.c
     src/core/vendor/vendor_run_summary_consumer.c
     src/core/vendor/economy.c
+    src/core/vendor/economy_version.c
     src/core/vendor/salvage.c
     src/core/crafting/material_registry.c
     src/core/crafting/material_refine.c
@@ -1551,6 +1554,15 @@ add_executable(items_migrate tools/items_migrate.c)
 target_link_libraries(items_migrate PRIVATE rogue_core)
 if(ROGUE_ENABLE_SDL)
     target_compile_definitions(items_migrate PRIVATE ROGUE_HAVE_SDL=1)
+endif()
+
+# Economy migration tool (Phase 13.3)
+add_executable(econ_migrate tools/econ_migrate.c)
+target_link_libraries(econ_migrate PRIVATE rogue_core)
+# Ensure includes like "src/core/..." resolve from repo root
+target_include_directories(econ_migrate PRIVATE ${CMAKE_SOURCE_DIR})
+if(ROGUE_ENABLE_SDL)
+    target_compile_definitions(econ_migrate PRIVATE ROGUE_HAVE_SDL=1)
 endif()
 
 # Batch content validator (headless-friendly)

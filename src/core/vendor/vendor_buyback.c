@@ -123,6 +123,8 @@ int rogue_vendor_buyback_record(int vendor_def_index, unsigned long long item_gu
     e->assimilate_time_ms = now_ms + assimilation_delay_ms();
     e->active = 1;
     recent_guid_note(item_guid);
+    /* Analytics: vendor bought from player (player sold). Track in buyback stats. */
+    rogue_vendor_analytics_record_buyback(category, rarity, price, now_ms);
     return slot;
 }
 
@@ -231,4 +233,37 @@ int rogue_vendor_buyback_purchase_with_journal(int vendor_def_index, unsigned lo
                                        rep_delta, 0);
     }
     return price;
+}
+
+int rogue_vendor_buyback_export(int vendor_def_index, RogueVendorBuybackEntry* out, int cap)
+{
+    ensure_init();
+    if (vendor_def_index < 0 || vendor_def_index >= ROGUE_VENDOR_MAX || !out || cap <= 0)
+        return 0;
+    VendorBuybackState* st = &g_states[vendor_def_index];
+    int written = 0;
+    for (int i = 0; i < ROGUE_VENDOR_BUYBACK_CAP && written < cap; i++)
+    {
+        if (st->entries[i].active)
+        {
+            out[written++] = st->entries[i];
+        }
+    }
+    return written;
+}
+void rogue_vendor_buyback_import(int vendor_def_index, const RogueVendorBuybackEntry* in, int count)
+{
+    ensure_init();
+    if (vendor_def_index < 0 || vendor_def_index >= ROGUE_VENDOR_MAX)
+        return;
+    VendorBuybackState* st = &g_states[vendor_def_index];
+    memset(st, 0, sizeof *st);
+    int n = (count < ROGUE_VENDOR_BUYBACK_CAP) ? count : ROGUE_VENDOR_BUYBACK_CAP;
+    for (int i = 0; i < n; i++)
+    {
+        st->entries[i] = in[i];
+        if (st->entries[i].active)
+            st->count++;
+    }
+    st->head = st->count % ROGUE_VENDOR_BUYBACK_CAP;
 }
