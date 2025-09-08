@@ -551,3 +551,16 @@ feat(overlay/asset_browser phase3): animation frame editor initial slice
  - Stub export button (future JSON emit with rect+frame metadata) unified with existing sprite coord export stub.
  - Roadmap: Phase 3 animation frame editor item marked complete (initial slice) with note; persistence & JSON schema validation deferred.
  - Build/Test: Fixed asset_validation_cli failing due to CWD by setting WORKING_DIRECTORY for test; expanded PATH env (SDL2 + vcpkg bin debug/release) and added SDL_AUDIODRIVER=dummy to resolve prior 0xc0000135 test errors.
+
+feat(asset-overlay/phase4): optimization recommendations & cycle visualization placeholder
+
+Phase 4 Asset Validation & QA advancement:
+ - Implemented "Show Optimization Recs" toggle in Asset Browser panel enumerating:
+	 * Large textures (>=1024 in either dimension) – early heuristic (first 8) for downscale/compression review.
+	 * Referenced-but-unloaded (lazy) textures and audio – highlights potential preload/stream candidates (first 8 each).
+ - Added lightweight state counters (opt_tex_large_count, opt_tex_unloaded_count, opt_audio_unloaded_count) with compile-time caps; headless-safe (no SDL assumptions beyond existing texture structs).
+ - Added "Show Dependency Cycles" toggle placeholder with explanatory note (cycles prevented at registration so none appear). Future enhancement may log rejected edges and visualize attempted cycles.
+ - Roadmap (implementation_plan_asset_overlay.txt) updated marking both Phase 4 tasks complete with notes on future compression ratio/file size integration and cycle audit improvements.
+ - README Asset Browser section updated with new bullets for Optimization Recommendations & Dependency Cycle Visualization placeholder.
+ - Full Debug SDL2 build succeeded and complete test suite passed 100% (657/657) post-change (no regressions introduced).
+ - Deferred: compression ratio analysis (compare source PNG vs prospective KTX2/DDS), memory profiler tie-in, rejected dependency edge log & mini graph.

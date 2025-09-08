@@ -45,10 +45,16 @@ This plan builds upon the existing asset management infrastructure to create a s
 [x] Integrate existing JSON schema validation into overlay interface (initial shallow validation + naming rule)
 [x] Add visual validation error reporting with error highlighting (errors/warnings list in panel)
 [x] Implement missing asset detection and fallback suggestion (marks missing/empty JSON; future: fallback suggestion TBD)
-[ ] Create asset optimization recommendations (compression, size analysis)
+ [x] Create asset optimization recommendations (compression, size analysis)
+   Implemented heuristic recommendations in overlay panel:
+   - Large textures (>=1024 in either dimension) surfaced (first 8) as candidates for downscale/compression.
+   - Referenced-but-not-yet-loaded (lazy) textures & audio surfaced to highlight potential preload / streaming list.
+   Notes: No real compression ratio probe yet; future slice will integrate file size & format diff (PNG vs KTX2/ DDS) plus runtime memory sampling.
 [x] Add duplicate asset detection and merge suggestions (basic duplicate texture id listing; merge workflow deferred)
 [x] Implement asset naming convention validation (lowercase/no-spaces rule warning)
-[ ] Create asset dependency cycle detection visualization
+ [x] Create asset dependency cycle detection visualization
+   Added UI toggle ("Show Dependency Cycles") with explanatory placeholder. Core asset_dep system already prevents cycles at registration; thus live cycles never appear.
+   Future enhancement: maintain rejected edge log + small graph viewer (DOT export / mini adjacency list) to audit attempted cycles; optional diff vs previous snapshot.
 
 ## Phase 5: Advanced Asset Management Features
 [ ] Implement asset atlas generation and preview

@@ -16,6 +16,12 @@ Press F1 in-game to open the debug overlay.
   - Win32 file dialog: "Open File Dialog" button (Windows only) opens a native picker (filters optional). Selected path is staged for import. Cross-platform (Linux/macOS) support remains on the roadmap (Phase 7).
   - Audio loop points (Phase 3 slice): Selected audio assets now expose a Loop Point editor (Load Loop Pts / Start± / End± / Apply). Loop ranges are stored per asset in-memory (start/end ms) via new asset manager APIs; playback looping with custom ranges will integrate with mixer callbacks in a future phase.
   - Asset tagging (Phase 3 slice): Per-texture & per-audio up to 8 lightweight tags (lowercase) with add/remove UI and a Tag Filter field that ANDs with the wildcard filter.
+  - Optimization Recommendations (Phase 4 slice): Toggle "Show Optimization Recs" to list:
+    - Large Textures (>=1024px in width or height) – consider downscaling or using compressed variants.
+    - Lazy Referenced Textures – assets with non-zero ref count metadata but not yet loaded (candidate preload set).
+    - Lazy Referenced Audio – similar heuristic for audio clips.
+      Future: integrate file size, compression ratio probes, and atlas/streaming suggestions.
+  - Dependency Cycle Visualization (Phase 4 slice): Added placeholder toggle. Runtime registry prevents cycles, so none appear; future enhancement may surface rejected edges log and mini graph export.
 
 ### New Skill Visual Authoring Tools (Phase 2.4 updates)
 
