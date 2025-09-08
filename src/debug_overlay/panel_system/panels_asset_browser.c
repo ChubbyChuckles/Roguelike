@@ -25,6 +25,7 @@
 #include "../widgets/overlay_widgets_internal.h" /* access g_ui positioning (internal) */
 /* Transitional includes for refactor: state + directory helpers moved to dedicated module. */
 #include "../asset_browser/asset_browser_dir.h"
+#include "../asset_browser/asset_browser_json.h"
 #include "../asset_browser/asset_browser_state.h"
 #include <ctype.h>
 #include <stdio.h>
@@ -80,6 +81,38 @@ static void ab_copy_safe(char* dst, size_t cap, const char* src)
         i++;
     }
     dst[i] = '\0';
+}
+/* Truncate with ellipsis to keep lines inside panel width. max_chars >=5. */
+static void ab_truncate_ellipsis(char* dst, size_t cap, const char* src, int max_chars)
+{
+    if (!dst || cap == 0)
+        return;
+    if (!src)
+    {
+        dst[0] = '\0';
+        return;
+    }
+    if (max_chars < 5)
+        max_chars = 5;
+    int len = (int) strlen(src);
+    if (len < max_chars)
+    {
+        ab_copy_safe(dst, cap, src);
+        return;
+    }
+    int copy_len = max_chars - 3;
+    if ((size_t) copy_len + 4 > cap)
+        copy_len = (int) cap - 4;
+    if (copy_len < 1)
+    {
+        dst[0] = '\0';
+        return;
+    }
+    memcpy(dst, src, (size_t) copy_len);
+    dst[copy_len] = '.';
+    dst[copy_len + 1] = '.';
+    dst[copy_len + 2] = '.';
+    dst[copy_len + 3] = '\0';
 }
 static int ab_ci_cmp(const char* a, const char* b)
 {
@@ -194,229 +227,11 @@ static const char* ab_get_selected_asset_id(const RogueAssetManager* m)
     return NULL;
 }
 
-/* Lightweight JSON syntax preview (first ~12 lines, no heap alloc). Token classes:
-   - String keys / values
-   - Numbers
-   - Booleans / null
-   - Punctuation ({}[]:,)
-   Fallback: theme text color. Draws segments sequentially on a single overlay row per source line.
- */
-/* (theme/font/renderer/app_state already included above) */
-#if defined(ROGUE_HAVE_SDL)
-#include <SDL.h>
-#endif
-static void ab_draw_json_preview(const char* buffer)
-{
-    if (!buffer)
-        return;
-#if !ROGUE_ENABLE_DEBUG_OVERLAY
-    (void) buffer;
-    return;
-#else
-    const OverlayTheme* th = overlay_theme_get();
-    const char* p = buffer;
-    int lines = 0;
-    while (*p && lines < 12)
-    {
-        /* Extract one physical line (bounded) */
-        const char* line_start = p;
-        const char* line_end = p;
-        int newline = 0;
-        while (*line_end && *line_end != '\n' && (line_end - line_start) < 512)
-            line_end++;
-        if (*line_end == '\n')
-            newline = 1;
-        /* Tokenize this slice */
-        const char* cur = line_start;
-        while (cur < line_end)
-        {
-            unsigned char r = th->text.r, g = th->text.g, b = th->text.b, a = th->text.a;
-            const char* tok_start = cur;
-            const char* tok_end = cur + 1;
-            char tmp[256];
-            int is_string = 0;
-            int is_number = 0;
-            int is_ident = 0;
-            /* Skip whitespace quickly */
-            if (*cur == ' ' || *cur == '\t')
-            {
-                while (tok_end < line_end && (*tok_end == ' ' || *tok_end == '\t'))
-                    tok_end++;
-            }
-            else if (*cur == '"') /* string */
-            {
-                is_string = 1;
-                tok_end = cur + 1;
-                while (tok_end < line_end)
-                {
-                    if (*tok_end == '"')
-                    {
-                        /* Count preceding backslashes to decide escape */
-                        int bs = 0;
-                        const char* q = tok_end - 1;
-                        while (q >= cur && *q == '\\')
-                        {
-                            bs++;
-                            q--;
-                        }
-                        if ((bs & 1) == 0)
-                        {
-                            tok_end++;
-                            break;
-                        }
-                    }
-                    tok_end++;
-                }
-                r = th->text_accent.r;
-                g = th->text_accent.g;
-                b = th->text_accent.b;
-                a = th->text_accent.a;
-            }
-            else if ((*cur >= '0' && *cur <= '9') ||
-                     (*cur == '-' && (cur + 1) < line_end && cur[1] >= '0' && cur[1] <= '9'))
-            {
-                is_number = 1;
-                while (tok_end < line_end &&
-                       ((*tok_end >= '0' && *tok_end <= '9') || *tok_end == '.' ||
-                        *tok_end == 'e' || *tok_end == 'E' || *tok_end == '+' || *tok_end == '-'))
-                    tok_end++;
-                r = th->accent_1.r;
-                g = th->accent_1.g;
-                b = th->accent_1.b;
-                a = th->accent_1.a;
-            }
-            else if ((*cur >= 'a' && *cur <= 'z') || (*cur >= 'A' && *cur <= 'Z'))
-            {
-                is_ident = 1;
-                while (tok_end < line_end && ((*tok_end >= 'a' && *tok_end <= 'z') ||
-                                              (*tok_end >= 'A' && *tok_end <= 'Z')))
-                    tok_end++;
-                int len = (int) (tok_end - tok_start);
-                if ((len == 4 &&
-                     (strncmp(tok_start, "true", 4) == 0 || strncmp(tok_start, "null", 4) == 0)) ||
-                    (len == 5 && strncmp(tok_start, "false", 5) == 0))
-                {
-                    r = th->accent_2.r;
-                    g = th->accent_2.g;
-                    b = th->accent_2.b;
-                    a = th->accent_2.a;
-                }
-            }
-            else if (*cur == '{' || *cur == '}' || *cur == '[' || *cur == ']' || *cur == ':' ||
-                     *cur == ',')
-            {
-                /* Single char punctuation; subtle mute */
-                r = th->text_muted.r;
-                g = th->text_muted.g;
-                b = th->text_muted.b;
-                a = th->text_muted.a;
-            }
-            /* Copy token slice (clamped) and draw immediately */
-            {
-                int copy_len = (int) (tok_end - tok_start);
-                if (copy_len > (int) sizeof tmp - 1)
-                    copy_len = (int) sizeof tmp - 1;
-                memcpy(tmp, tok_start, copy_len);
-                tmp[copy_len] = '\0';
-                /* Draw using immediate font call (mirrors overlay_label layout increments). */
-                /* Manual in-line variant to allow per-token color: replicate minimal overlay_label
-                 * logic */
-                if (g_ui.panel_active)
-                {
-                    rogue_font_draw_text(g_ui.cur_x, g_ui.cur_y + 4, tmp, 1,
-                                         (RogueColor){r, g, b, a});
-                    g_ui.cur_x += copy_len * (g_rogue_builtin_font.glyph_w + 1);
-                    if (g_ui.row_max_h < 20)
-                        g_ui.row_max_h = 20;
-                }
-            }
-            cur = tok_end;
-        }
-        /* End of line: reset X and advance Y like overlay_label would */
-        /* Reset X to column start and advance row */
-        g_ui.cur_x = g_ui.col_x0[g_ui.col_index];
-        ui_next_line();
-        if (newline)
-            p = line_end + 1;
-        else
-            p = line_end;
-        lines++;
-    }
-#endif /* ROGUE_ENABLE_DEBUG_OVERLAY */
-}
+/* JSON preview renderer moved to asset_browser_json_preview.c */
+#include "debug_overlay/asset_browser/asset_browser_json_preview.h"
 
 /* ---------------- Phase 6 slice 2: JSON editor undo/redo helpers ---------------- */
-static void ab_json_undo_init(void)
-{
-    g_ab_state.json_undo_len = 0;
-    g_ab_state.json_undo_pos = -1;
-    if (g_ab_state.json_editor_buffer[0])
-    {
-        /* seed stack with current buffer */
-        strncpy(g_ab_state.json_undo_stack[0], g_ab_state.json_editor_buffer,
-                sizeof g_ab_state.json_undo_stack[0] - 1);
-        g_ab_state.json_undo_stack[0][sizeof g_ab_state.json_undo_stack[0] - 1] = '\0';
-        g_ab_state.json_undo_len = 1;
-        g_ab_state.json_undo_pos = 0;
-    }
-}
-static void ab_json_undo_push_current(void)
-{
-    /* Discard any redo states ahead of current position */
-    if (g_ab_state.json_undo_pos >= 0 && g_ab_state.json_undo_pos < g_ab_state.json_undo_len - 1)
-    {
-        g_ab_state.json_undo_len = g_ab_state.json_undo_pos + 1;
-    }
-    /* If stack full shift left to make room */
-    if (g_ab_state.json_undo_len ==
-        (int) (sizeof g_ab_state.json_undo_stack / sizeof g_ab_state.json_undo_stack[0]))
-    {
-        for (int i = 1; i < g_ab_state.json_undo_len; ++i)
-            memcpy(g_ab_state.json_undo_stack[i - 1], g_ab_state.json_undo_stack[i],
-                   sizeof g_ab_state.json_undo_stack[i]);
-        g_ab_state.json_undo_len--;
-        if (g_ab_state.json_undo_pos > 0)
-            g_ab_state.json_undo_pos--;
-    }
-    /* Append new snapshot (current buffer) */
-    strncpy(g_ab_state.json_undo_stack[g_ab_state.json_undo_len], g_ab_state.json_editor_buffer,
-            sizeof g_ab_state.json_undo_stack[0] - 1);
-    g_ab_state.json_undo_stack[g_ab_state.json_undo_len][sizeof g_ab_state.json_undo_stack[0] - 1] =
-        '\0';
-    g_ab_state.json_undo_len++;
-    g_ab_state.json_undo_pos = g_ab_state.json_undo_len - 1;
-}
-static int ab_json_undo_can_undo(void) { return g_ab_state.json_undo_pos > 0; }
-static int ab_json_undo_can_redo(void)
-{
-    return g_ab_state.json_undo_pos >= 0 && g_ab_state.json_undo_pos < g_ab_state.json_undo_len - 1;
-}
-static void ab_json_undo_apply_pos(void)
-{
-    if (g_ab_state.json_undo_pos >= 0 && g_ab_state.json_undo_pos < g_ab_state.json_undo_len)
-    {
-        strncpy(g_ab_state.json_editor_buffer, g_ab_state.json_undo_stack[g_ab_state.json_undo_pos],
-                sizeof g_ab_state.json_editor_buffer - 1);
-        g_ab_state.json_editor_buffer[sizeof g_ab_state.json_editor_buffer - 1] = '\0';
-        g_ab_state.json_editor_dirty = 1; /* reflect change */
-    }
-}
-static void ab_json_undo_do_undo(void)
-{
-    if (ab_json_undo_can_undo())
-    {
-        g_ab_state.json_undo_pos--;
-        ab_json_undo_apply_pos();
-    }
-}
-static void ab_json_undo_do_redo(void)
-{
-    if (ab_json_undo_can_redo())
-    {
-        g_ab_state.json_undo_pos++;
-        ab_json_undo_apply_pos();
-    }
-}
+/* Moved to asset_browser_json.c */
 
 /* --- Lightweight recursive enumerator for JSON / Shader assets (headless safe) --- */
 #ifdef _WIN32
@@ -1239,7 +1054,7 @@ static void panel_asset_browser(void* user)
             rogue_asset_browser_dir_refresh();
         overlay_label("Directory Browser:");
         overlay_label(g_ab_state.dir_cwd);
-        if (overlay_button("Up"))
+        if (overlay_button("Up") && strcmp(g_ab_state.dir_cwd, g_ab_state.dir_root) != 0)
         {
             rogue_asset_browser_dir_parent(g_ab_state.dir_cwd);
             rogue_asset_browser_dir_refresh();
@@ -1294,9 +1109,10 @@ static void panel_asset_browser(void* user)
             for (i = g_ab_state.dir_scroll; i < end; i++)
             {
                 char line[ROGUE_FILE_DIALOG_PATH_MAX + 32];
+                char name_buf[ROGUE_FILE_DIALOG_PATH_MAX];
+                ab_truncate_ellipsis(name_buf, sizeof name_buf, g_ab_state.dir_entries[i].name, 40);
                 snprintf(line, sizeof line, "%s %s",
-                         g_ab_state.dir_entries[i].is_dir ? "[DIR]" : "FILE ",
-                         g_ab_state.dir_entries[i].name);
+                         g_ab_state.dir_entries[i].is_dir ? "[DIR]" : "FILE ", name_buf);
 #ifdef ROGUE_HAVE_SDL
                 if (g_app.renderer)
                 {
@@ -1559,7 +1375,7 @@ static void panel_asset_browser(void* user)
                 g_ab_state.json_preview_valid = ok;
                 g_ab_state.json_error_count = errors;
                 /* Highlight first ~12 lines or 800 chars whichever first */
-                ab_draw_json_preview(g_ab_state.json_preview_buffer);
+                rogue_asset_browser_json_draw_preview(g_ab_state.json_preview_buffer);
                 {
                     char status[128];
                     snprintf(status, sizeof status, "Syntax: %s errors=%d",
@@ -1591,8 +1407,8 @@ static void panel_asset_browser(void* user)
                     /* Initialize undo stack on first open */
                     if (g_ab_state.json_undo_len == 0)
                     {
-                        ab_json_undo_init();
-                        ab_json_undo_push_current();
+                        rogue_asset_browser_json_undo_init();
+                        rogue_asset_browser_json_undo_push_current();
                     }
                     if (overlay_button("Reload"))
                     {
@@ -1603,29 +1419,29 @@ static void panel_asset_browser(void* user)
                         g_ab_state.json_editor_buffer[len2] = '\0';
                         g_ab_state.json_editor_dirty = 0;
                         g_ab_state.json_editor_status[0] = '\0';
-                        ab_json_undo_push_current();
+                        rogue_asset_browser_json_undo_push_current();
                     }
-                    if (ab_json_undo_can_undo())
+                    if (rogue_asset_browser_json_undo_can_undo())
                     {
                         overlay_same_line();
                         if (overlay_button("Undo"))
                         {
-                            ab_json_undo_do_undo();
+                            rogue_asset_browser_json_undo_do_undo();
                         }
                     }
-                    if (ab_json_undo_can_redo())
+                    if (rogue_asset_browser_json_undo_can_redo())
                     {
                         overlay_same_line();
                         if (overlay_button("Redo"))
                         {
-                            ab_json_undo_do_redo();
+                            rogue_asset_browser_json_undo_do_redo();
                         }
                     }
                     if (overlay_input_text("Edit (truncated)", g_ab_state.json_editor_buffer,
                                            sizeof g_ab_state.json_editor_buffer))
                     {
                         g_ab_state.json_editor_dirty = 1;
-                        ab_json_undo_push_current();
+                        rogue_asset_browser_json_undo_push_current();
                     }
                     if (overlay_button("Save (Apply)"))
                     {

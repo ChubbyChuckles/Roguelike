@@ -703,6 +703,9 @@ add_library(rogue_debug_overlay OBJECT
     # Asset Browser refactor modules (state + directory logic extracted from monolith)
     src/debug_overlay/asset_browser/asset_browser_state.c
     src/debug_overlay/asset_browser/asset_browser_dir.c
+    # JSON editor undo/redo + helpers (extracted)
+    src/debug_overlay/asset_browser/asset_browser_json.c
+            src/debug_overlay/asset_browser/asset_browser_json_preview.c
     src/debug_overlay/panel_system/panels_asset_browser.c
     src/debug_overlay/panel_player/panels_player.c
     src/debug_overlay/panel_skills/panels_skills.c
