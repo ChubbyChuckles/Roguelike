@@ -147,6 +147,19 @@ typedef struct AssetBrowserEnhancedState
     int show_cycles; /* toggle dependency cycle visualization */
     int cycle_count;
     char cycle_records[8][96];
+    /* ---------------- Phase 5: Advanced Asset Management ---------------- */
+    int show_atlas_tool;                    /* toggle atlas build UI */
+    int atlas_selection[16];                /* indices of selected textures (temporary) */
+    int atlas_selection_count;              /* how many entries used */
+    int atlas_last_result;                  /* last atlas build texture index */
+    int show_memory_profiler;               /* toggle memory usage profiler */
+    unsigned long long mem_prof_last_frame; /* throttle expensive scans */
+    size_t mem_total_bytes;                 /* summed width*height*4 (approx) */
+    size_t mem_loaded_bytes;                /* only loaded (SDL texture not NULL) */
+    int show_stream_queue;                  /* streaming queue visualization */
+    int show_perf_metrics;                  /* performance metrics dashboard */
+    int show_cache_config;                  /* caching strategy placeholder */
+    int show_vcs_overlay;                   /* git status overlay placeholder */
 } AssetBrowserEnhancedState;
 
 static AssetBrowserEnhancedState g_ab_state; /* zero-init */
@@ -752,6 +765,121 @@ static void panel_asset_browser(void* user)
         overlay_colored_label("Duplicates:", warn);
         for (int i = 0; i < g_ab_state.duplicate_count; i++)
             overlay_colored_label(g_ab_state.duplicate_records[i], warn);
+    }
+    /* ---------------- Phase 5: toggles row ---------------- */
+    overlay_checkbox("Atlas Tool", &g_ab_state.show_atlas_tool);
+    overlay_checkbox("Memory Profiler", &g_ab_state.show_memory_profiler);
+    overlay_checkbox("Stream Queue", &g_ab_state.show_stream_queue);
+    overlay_checkbox("Perf Metrics", &g_ab_state.show_perf_metrics);
+    overlay_checkbox("Cache Config", &g_ab_state.show_cache_config);
+    overlay_checkbox("VCS Overlay", &g_ab_state.show_vcs_overlay);
+    /* Atlas Tool UI */
+    if (g_ab_state.show_atlas_tool)
+    {
+        overlay_label("[Atlas Builder] Select up to 8 loaded textures (by index) then Build.");
+        char buf[64];
+        for (int i = 0; i < 8; ++i)
+        {
+            snprintf(buf, sizeof buf, "TexIdx[%d]", i);
+            if (g_ab_state.atlas_selection_count <= i)
+            {
+                g_ab_state.atlas_selection[i] = -1;
+            }
+            int val = g_ab_state.atlas_selection[i];
+            /* Reuse int slider as an index input (range  -1 .. 1023) */
+            if (overlay_slider_int(buf, &val, -1, 1023))
+            {
+                if (val >= 0)
+                {
+                    g_ab_state.atlas_selection[i] = val;
+                    if (g_ab_state.atlas_selection_count <= i)
+                        g_ab_state.atlas_selection_count = i + 1;
+                }
+            }
+        }
+        if (overlay_button("Build Atlas"))
+        {
+            int indices[16];
+            int count = 0;
+            for (int i = 0; i < g_ab_state.atlas_selection_count && count < 16; ++i)
+            {
+                if (g_ab_state.atlas_selection[i] >= 0)
+                    indices[count++] = g_ab_state.atlas_selection[i];
+            }
+            if (count >= 2)
+            {
+                RogueAtlasUV uvs[16];
+                int atlas_idx = rogue_asset_manager_build_atlas_horizontal(indices, count, uvs, 16);
+                g_ab_state.atlas_last_result = atlas_idx;
+                if (atlas_idx >= 0)
+                    overlay_label("Atlas build OK (new texture record) ");
+                else
+                    overlay_label("Atlas build FAILED");
+            }
+            else
+            {
+                overlay_label("Need at least 2 textures.");
+            }
+        }
+        if (g_ab_state.atlas_last_result >= 0)
+        {
+            char line2[80];
+            snprintf(line2, sizeof line2, "Last Atlas Index: %d", g_ab_state.atlas_last_result);
+            overlay_label(line2);
+        }
+    }
+    /* Memory Profiler */
+    if (g_ab_state.show_memory_profiler)
+    {
+        /* Compute every frame (cheap O(n) over resident textures) */
+        g_ab_state.mem_total_bytes = 0;
+        g_ab_state.mem_loaded_bytes = 0;
+        for (uint32_t i = 0; i < m->texture_count; ++i)
+        {
+            const RogueAssetTexture* t = &m->textures[i];
+            size_t approx = (size_t) t->width * (size_t) t->height * 4u;
+            g_ab_state.mem_total_bytes += approx;
+            if (t->sdl_texture)
+                g_ab_state.mem_loaded_bytes += approx;
+        }
+        char line2[96];
+        snprintf(line2, sizeof line2, "Approx Total Bytes: %zu (~%.2f MB)",
+                 g_ab_state.mem_total_bytes, g_ab_state.mem_total_bytes / (1024.0 * 1024.0));
+        overlay_label(line2);
+        snprintf(line2, sizeof line2, "Loaded Bytes: %zu (~%.2f MB)", g_ab_state.mem_loaded_bytes,
+                 g_ab_state.mem_loaded_bytes / (1024.0 * 1024.0));
+        overlay_label(line2);
+        float pct = g_ab_state.mem_total_bytes ? (float) g_ab_state.mem_loaded_bytes /
+                                                     (float) g_ab_state.mem_total_bytes * 100.0f
+                                               : 0.0f;
+        snprintf(line2, sizeof line2, "Loaded %% of Total (est): %.1f%%", pct);
+        overlay_label(line2);
+    }
+    /* Streaming Queue Visualization (stub) */
+    if (g_ab_state.show_stream_queue)
+    {
+        overlay_label("[Streaming Queue] (stub) – integrate when queue introspection API exposed");
+        overlay_label("Enable streaming mode in asset manager to populate future list.");
+    }
+    /* Performance Metrics (placeholder: reuse atlas metrics + counts) */
+    if (g_ab_state.show_perf_metrics)
+    {
+        RogueAssetMetrics metrics_local; /* pull snapshot */
+        rogue_asset_manager_get_metrics(&metrics_local);
+        char line2[96];
+        snprintf(line2, sizeof line2, "Atlases Built: %u", metrics_local.atlas_build_count);
+        overlay_label(line2);
+        snprintf(line2, sizeof line2, "Last Atlas Width: %u", metrics_local.last_atlas_width);
+        overlay_label(line2);
+        overlay_label("(Future) Load time histograms, cache hit/miss, async queue latency");
+    }
+    if (g_ab_state.show_cache_config)
+    {
+        overlay_label("[Cache Strategy] (placeholder) – configure eviction / thumbnail caches.");
+    }
+    if (g_ab_state.show_vcs_overlay)
+    {
+        overlay_label("[Git Overlay] (placeholder) – pending changes & per-asset status.");
     }
     /* Controls row */
     static const char* tabs[] = {"All", "Textures", "Audio", "JSON", "Shaders"};

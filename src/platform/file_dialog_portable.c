@@ -341,7 +341,19 @@ void rogue_file_dialog_show(RogueFileDialogMode mode, const char* filter_pattern
     }
     fd_prefs_load_last_dir();
     if (!g_last_dir[0])
-        fd_get_cwd(g_last_dir, sizeof(g_last_dir));
+    {
+        /* Default root path override: start inside project assets directory for faster import
+           workflows in the asset browser panel. Fall back to CWD if assets/ not found. */
+        struct stat st; /* C89: declare up front */
+        if (stat("assets", &st) == 0 && (st.st_mode & S_IFDIR))
+        {
+            fd_copy(g_last_dir, sizeof(g_last_dir), "../assets");
+        }
+        else
+        {
+            fd_get_cwd(g_last_dir, sizeof(g_last_dir));
+        }
+    }
     g_fd.need_refresh = 1;
 }
 

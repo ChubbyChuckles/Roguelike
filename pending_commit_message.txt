@@ -564,3 +564,17 @@ Phase 4 Asset Validation & QA advancement:
  - README Asset Browser section updated with new bullets for Optimization Recommendations & Dependency Cycle Visualization placeholder.
  - Full Debug SDL2 build succeeded and complete test suite passed 100% (657/657) post-change (no regressions introduced).
  - Deferred: compression ratio analysis (compare source PNG vs prospective KTX2/DDS), memory profiler tie-in, rejected dependency edge log & mini graph.
+
+feat(asset-overlay/phase5-initial): atlas tool baseline, memory+metrics slice, placeholders (stream queue, cache strategy, VCS), file dialog root default
+
+Phase 5 (Advanced Asset Management) – Initial Slice:
+ - Atlas generation UI: slider to select atlas index + horizontal build using existing API (non-destructive). Visual atlas/UV inspector deferred.
+ - Memory profiler: per-frame approximate texture memory (w*h*4) + peak tracking; future real GPU/audio granularity.
+ - Performance metrics: integrated `rogue_asset_manager_get_metrics` (cumulative µs, load counts, streaming queue depth, streamed count) into advanced section.
+ - Placeholders: Streaming Queue (depth only), Cache Strategy (policy toggles stub), VCS overlay area (git status forthcoming) – each labeled clearly.
+ - Roadmap: Phase 5 items updated (atlas, memory profiler, streaming viz, metrics dashboard, cache strategy, VCS integration marked initial/placeholder complete; compression comparison left open with plan notes).
+ - README: Added Phase 5 Initial Slice bullets and documented file dialog default root to assets/.
+ - File Dialog: Win32 open dialog now starts in assets/ when present, falls back gracefully otherwise.
+ - Regression: Full suite 657/657 tests passed post-change; no new warnings.
+
+Follow-ups (planned): atlas visual/UV preview, compression format probing and comparison (PNG vs KTX2/DDS), detailed streaming queue item list + progress, cache eviction policy editing & metrics, git status parsing with modified/untracked highlighting, real memory metrics (renderer queries + audio), latency histograms/percentiles.

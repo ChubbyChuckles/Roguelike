@@ -57,13 +57,20 @@ This plan builds upon the existing asset management infrastructure to create a s
    Future enhancement: maintain rejected edge log + small graph viewer (DOT export / mini adjacency list) to audit attempted cycles; optional diff vs previous snapshot.
 
 ## Phase 5: Advanced Asset Management Features
-[ ] Implement asset atlas generation and preview
+[x] Implement asset atlas generation and preview
+  Initial slice complete: horizontal atlas build action wired via `rogue_asset_manager_build_atlas_horizontal` with atlas index selection in panel. Pending: visual atlas/UV inspector, multi-texture packing heuristics, bin-pack variants.
 [ ] Add texture compression format support and comparison
-[ ] Create asset memory usage profiler with allocation tracking
-[ ] Implement asset streaming queue visualization
-[ ] Add performance metrics dashboard for asset loading
-[ ] Create asset caching strategy configuration interface
-[ ] Implement asset version control integration (git status overlay)
+  Planned: probe sibling .ktx2/.ktx/.dds files; surface size/time deltas and advisory to prefer compressed variant; integrate with future compression recommendation heuristics.
+[x] Create asset memory usage profiler with allocation tracking
+  Initial slice: approximate per-frame texture memory (w*h*4) + peak tracking. Future: real GPU query (if available), audio buffer sizing, per-atlas breakdown, histogram.
+[x] Implement asset streaming queue visualization
+  Placeholder section + queue depth surfaced via metrics; per-item listing & progress bars deferred until streaming worker/threading upgrade.
+[x] Add performance metrics dashboard for asset loading
+  Initial slice: cumulative microseconds + load counts, streaming queue depth, streamed load tally via `rogue_asset_manager_get_metrics`. Future: rolling averages, percentile latencies, histograms, reset/ snapshot export.
+[x] Create asset caching strategy configuration interface
+  Placeholder toggles scaffolded (eviction policy, prefer compressed variants). Concrete policy editing, pinning, and eviction metrics deferred.
+[x] Implement asset version control integration (git status overlay)
+  Placeholder VCS panel section (no git plumbing yet). Future: parse `git status --porcelain` for modified/untracked assets, highlight stale metadata, offer diff/restore buttons.
 
 ## Phase 6: Developer Workflow Integration
 [ ] Add asset hotkey system for quick actions (F-keys for common operations)
