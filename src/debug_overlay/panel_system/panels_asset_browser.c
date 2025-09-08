@@ -14,176 +14,535 @@
 */
 #include "../../asset/asset_manager.h"
 #include "../../asset/asset_validation.h"
-#include "../../graphics/sprite.h" /* for RogueSprite + drawing scaled texture preview */
-#include "../../util/asset_dep.h"
-#include "../overlay_core.h"
-#include "../widgets/overlay_widgets.h"
-#include "../widgets/overlay_widgets_internal.h" /* access g_ui positioning (internal) */
-/* Moved up so RogueColor / font symbols are visible for any early inlined helpers */
 #include "../../core/app/app_state.h" /* for g_app renderer to draw sprite grid */
 #include "../../graphics/font.h"
 #include "../../graphics/renderer.h"
+#include "../../graphics/sprite.h" /* for RogueSprite + drawing scaled texture preview */
+#include "../../util/asset_dep.h"
+#include "../overlay_core.h"
 #include "../overlay_theme.h"
+#include "../widgets/overlay_widgets.h"
+#include "../widgets/overlay_widgets_internal.h" /* access g_ui positioning (internal) */
 #include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #ifdef _WIN32
 #include "../../platform/file_dialog.h"
+#include <windows.h>
 #else
-#include <dirent.h> /* needed for POSIX recursive scan */
+#include <dirent.h>
+#include <sys/stat.h>
 #endif
-
-/* Local layout/color helper shims -----------------------------------------------------------
-   NOTE: The asset browser panel references a few helper-style functions (overlay_separator,
-   overlay_same_line, overlay_colored_label) that do not currently exist in the public overlay
-   widgets API. Earlier they were assumed external which produced unresolved externals at link
-   time. We provide lightweight static implementations here (mirroring the approach used in
-   the visuals import wizard panel) so the panel links without requiring broader overlay
-   refactors. If/when richer layout & colored label primitives are added globally these can be
-   removed and the calls updated.
-*/
+/* Fallback caps for file dialog cached listing (if not provided by build config) */
+#ifndef ROGUE_FILE_DIALOG_LISTING_MAX
+#define ROGUE_FILE_DIALOG_LISTING_MAX 256
+#endif
+#ifndef ROGUE_FILE_DIALOG_PATH_MAX
+#define ROGUE_FILE_DIALOG_PATH_MAX 260
+#endif
+/* Local layout/color helper shims (kept from original) */
 #if ROGUE_ENABLE_DEBUG_OVERLAY
 static void overlay_separator(void) { overlay_label("----------------------------------------"); }
 static void overlay_same_line(void) { /* minimal layout system: no-op shim */ }
 static void overlay_colored_label(const char* text, RogueColor color)
 {
-    (void) color; /* current overlay_label has no per-call color override; fallback to theme */
+    (void) color;
     overlay_label(text);
 }
-#endif /* ROGUE_ENABLE_DEBUG_OVERLAY */
+#endif
 
+/* Re-introduced AssetBrowserEnhancedState (removed inadvertently during integration) */
 #ifndef ROGUE_ASSET_BROWSER_JSON_CAP
-#define ROGUE_ASSET_BROWSER_JSON_CAP 512
+#define ROGUE_ASSET_BROWSER_JSON_CAP 256
 #endif
 #ifndef ROGUE_ASSET_BROWSER_SHADER_CAP
-#define ROGUE_ASSET_BROWSER_SHADER_CAP 128
+#define ROGUE_ASSET_BROWSER_SHADER_CAP 256
 #endif
-
-typedef struct AssetOtherRecord
-{
-    char path[260];
-} AssetOtherRecord;
-
 typedef struct AssetBrowserEnhancedState
 {
-    int tab_index;        /* 0=All,1=Textures,2=Audio,3=JSON,4=Shaders */
-    int selected_row;     /* selection within current filtered view (textures/audio only) */
-    int auto_poll_reload; /* bool */
-    unsigned long long last_reload_poll_frame; /* monotonic counter (panel local) */
-    /* Cached JSON & shader file lists */
-    AssetOtherRecord json_files[ROGUE_ASSET_BROWSER_JSON_CAP];
+    /* Core listing / selection */
+    int tab_index; /* 0=All,1=Textures,2=Audio,3=JSON,4=Shaders */
+    int selected_row;
+    /* Filtering */
+    char tag_filter[64];
+    /* JSON + shader enumerations */
+    struct
+    {
+        char path[260];
+    } json_files[ROGUE_ASSET_BROWSER_JSON_CAP];
     int json_count;
-    AssetOtherRecord shader_files[ROGUE_ASSET_BROWSER_SHADER_CAP];
+    struct
+    {
+        char path[260];
+    } shader_files[ROGUE_ASSET_BROWSER_SHADER_CAP];
     int shader_count;
-    int scanned_once; /* bool */
-    /* Stats cache */
-    unsigned long long approx_texture_bytes;
-    /* Phase 2 preview state */
-    int tex_zoom; /* >=1 scale factor */
-    int pan_x;    /* preview pan X */
-    int pan_y;    /* preview pan Y */
-    /* Audio controls */
-    int audio_volume; /* 0..128 */
-    int audio_loop;   /* bool */
-    /* Phase 2: pseudo drag-drop & JSON preview */
-    char pending_import_path[260]; /* user types or future drag-drop populates */
-    char json_preview_buffer[512]; /* small preview snippet */
-    int json_preview_valid;        /* 1=valid JSON syntax (shallow), 0=invalid */
-    int json_preview_dirty;        /* trigger re-parse */
-    /* Phase 2 (currently stubbed) */
-    int json_error_count;   /* shallow structural error count */
-    int sprite_grid_show;   /* show sprite sheet grid overlay */
-    int sprite_grid_cell_w; /* grid cell width */
-    int sprite_grid_cell_h; /* grid cell height */
-    /* Phase 3 WIP: JSON metadata editor */
-    int json_editor_open;          /* bool */
-    char json_editor_buffer[1024]; /* provisional editing buffer (truncated) */
-    int json_editor_loaded;        /* internal flag to avoid reloading every frame */
-    int json_editor_dirty;         /* edited since load */
-    int json_editor_schema_valid;  /* schema validation result (1 ok / 0 fail / -1 n/a) */
-    char json_editor_status[128];
-    /* Sprite coordinate editor (Phase 3) */
-    int sprite_edit_mode; /* 0 off, 1 on */
+    int scanned_once;
+    /* Import path buffer */
+    char pending_import_path[512];
+    int auto_poll_reload;
+    /* Validation / analysis toggles */
+    int show_stream_queue;
+    int show_perf_metrics;
+    int show_atlas_tool;
+    int show_memory_profiler;
+    int show_compression_compare;
+    /* Phase 4+ validation state */
+    int validation_enabled;
+    int validation_last_result; /* -1 unset, 0 fail, 1 ok */
+    int validation_error_count;
+    int validation_warning_count;
+    char validation_target_path[260];
+    char validation_errors[16][96];
+    char validation_warnings[16][96];
+    /* Optimization hints */
+    int show_optimization;
+    int opt_tex_large_count;
+    int opt_tex_unloaded_count;
+    int opt_audio_unloaded_count;
+    char opt_tex_large[8][96];
+    char opt_tex_unloaded[8][96];
+    char opt_audio_unloaded[8][96];
+    /* Cycle / duplicate detection */
+    int show_cycles;
+    int cycle_count; /* placeholder (not yet populated) */
+    int detect_duplicates;
+    int duplicate_count;
+    char duplicate_records[16][64];
+    /* Misc feature toggles */
+    int show_hotkey_help;
+    int show_workflow_templates;
+    int show_cache_config;
+    int show_vcs_overlay;
+    /* Atlas builder */
+    int atlas_selection[8];
+    int atlas_selection_count;
+    int atlas_last_result;
+    /* Memory profiler */
+    unsigned long long approx_texture_bytes; /* basic texture mem est */
+    size_t mem_total_bytes;
+    size_t mem_loaded_bytes;
+    /* Template generator */
+    int template_counter;
+    char last_template_path[260];
+    int last_template_result; /* 1 ok, 0 fail, -1 unset */
+    /* Bookmarks */
+    int bookmark_indices[16];
+    int bookmark_count;
+    /* JSON editor buffer + undo */
+    char json_editor_buffer[4096];
+    int json_editor_dirty;
+    char json_undo_stack[8][1024];
+    int json_undo_len;
+    int json_undo_pos;
+    /* Texture preview / tagging */
+    int tex_zoom;
+    int pan_x, pan_y;
+    char tag_input[64];
+    /* Sprite grid + rect / animation editing */
+    int sprite_grid_show;
+    int sprite_grid_cell_w;
+    int sprite_grid_cell_h;
+    int sprite_edit_mode;
     struct
     {
         int x, y, w, h;
     } sprite_rects[64];
     int sprite_rect_count;
-    int sprite_active_rect; /* index */
-    /* Animation frame editor (Phase 3 new) */
+    int sprite_active_rect;
     struct
     {
         int rect_index;
         int duration_ms;
-    } anim_frames[128];
+    } anim_frames[64];
     int anim_frame_count;
     int anim_active_frame;
-    /* Phase 3 tagging system UI state */
-    char tag_input[32];
-    char tag_filter[32]; /* optional additional tag filter (AND with pattern filter) */
-    /* Phase 4 validation integration */
-    int validation_enabled;     /* toggle */
-    int validation_last_result; /* 1 ok, 0 fail, -1 none */
-    int validation_error_count;
-    char validation_errors[16][96];
-    int validation_warning_count;
-    char validation_warnings[16][96];
-    char validation_target_path[260];
-    int detect_duplicates; /* toggle */
-    int duplicate_count;
-    char duplicate_records[16][64];
-    int naming_check_enabled; /* toggle naming convention check */
-    int naming_error_count;
-    char naming_errors[8][96];
-    /* Phase 4 additions: optimization recommendations & cycle visualization */
-    int show_optimization; /* toggle optimization suggestion scan */
-    int opt_tex_large_count;
-    char opt_tex_large[8][96]; /* large textures */
-    int opt_tex_unloaded_count;
-    char opt_tex_unloaded[8][96]; /* referenced but not yet SDL-loaded (lazy) */
-    int opt_audio_unloaded_count;
-    char opt_audio_unloaded[8][96];
-    unsigned long long opt_last_scan_frame;
-    int show_cycles; /* toggle dependency cycle visualization */
-    int cycle_count;
-    char cycle_records[8][96];
-    /* ---------------- Phase 5: Advanced Asset Management ---------------- */
-    int show_atlas_tool;                    /* toggle atlas build UI */
-    int atlas_selection[16];                /* indices of selected textures (temporary) */
-    int atlas_selection_count;              /* how many entries used */
-    int atlas_last_result;                  /* last atlas build texture index */
-    int show_memory_profiler;               /* toggle memory usage profiler */
-    unsigned long long mem_prof_last_frame; /* throttle expensive scans */
-    size_t mem_total_bytes;                 /* summed width*height*4 (approx) */
-    size_t mem_loaded_bytes;                /* only loaded (SDL texture not NULL) */
-    int show_stream_queue;                  /* streaming queue visualization */
-    int show_perf_metrics;                  /* performance metrics dashboard */
-    int show_cache_config;                  /* caching strategy placeholder */
-    int show_vcs_overlay;                   /* git status overlay placeholder */
-    int show_compression_compare;           /* Phase 5: texture compression comparison UI */
-    /* ---------------- Phase 6: Workflow Integration (new slice) ---------------- */
-    int show_hotkey_help; /* toggle small help legend */
-    /* Session bookmarks for quick jump (indices into textures/audio arrays depending on tab). */
-    int bookmark_indices[16];
-    int bookmark_count; /* how many are valid (first N entries) */
-    /* Phase 6 slice 2: workflow templates + undo/redo */
-    int show_workflow_templates; /* toggle workflow template creator UI */
-    int template_counter;        /* simple incrementing id for generated files */
-    char last_template_path[260];
-    int last_template_result; /* 1=ok,0=fail */
-    /* JSON editor undo/redo ring (captures full truncated buffer snapshots) */
-    char json_undo_stack[8][1024];
-    int json_undo_len; /* number of populated entries */
-    int json_undo_pos; /* current position (0..json_undo_len-1) */
-    /* Phase 6: Asset Comparison (initial slice) */
-    int compare_tex_a; /* texture index (asset manager texture array), -1 unset */
-    int compare_tex_b; /* texture index (asset manager texture array), -1 unset */
+    /* Audio preview */
+    int audio_loop;
+    int audio_volume; /* 0-128 */
+    /* JSON preview buffer (separate from editor buffer so edits don't affect raw highlight) */
+    char json_preview_buffer[4096];
+    int json_preview_valid; /* quick structural syntax check result */
+    int json_error_count;   /* count of simple structural issues */
+    /* JSON editor state */
+    int json_editor_open;
+    int json_editor_loaded;
+    char json_editor_status[128];
+    int json_editor_schema_valid; /* future schema validation flag */
+    /* Texture comparison indices (A/B), -1 when unset */
+    int compare_tex_a;
+    int compare_tex_b;
+    /* Internal directory browser (dynamic list w/ scrollbar) */
+    char dir_cwd[ROGUE_FILE_DIALOG_PATH_MAX];
+    char dir_root[ROGUE_FILE_DIALOG_PATH_MAX]; /* Resolved absolute (or relative) assets root */
+    struct AssetBrowserDirEntry
+    {
+        char name[ROGUE_FILE_DIALOG_PATH_MAX];
+        int is_dir;
+    }* dir_entries;
+    int dir_count;
+    int dir_capacity;
+    int dir_scroll;
+    int dir_selected;
 } AssetBrowserEnhancedState;
-
 static AssetBrowserEnhancedState g_ab_state; /* zero-init */
-
-/* Forward decl for selected row asset id query (local helper later) */
 static const char* ab_get_selected_asset_id(const RogueAssetManager* m);
+/* NOTE: Removed temporary legacy stub (rogue_file_dialog_last_listing). All stale
+    object files rebuilt; symbol no longer required. */
+
+/* Forward helpers (placed early to satisfy C89/MSVC): */
+/* Local safe copy helper (renamed to ab_copy_safe to avoid name collision with any legacy symbol)
+ */
+static void ab_copy_safe(char* dst, size_t cap, const char* src)
+{
+    size_t i = 0;
+    if (!dst || cap == 0)
+        return;
+    if (!src)
+    {
+        dst[0] = '\0';
+        return;
+    }
+    while (src[i] && i + 1 < cap)
+    {
+        dst[i] = src[i];
+        i++;
+    }
+    dst[i] = '\0';
+}
+static int ab_ci_cmp(const char* a, const char* b)
+{
+#ifdef _WIN32
+    return _stricmp(a ? a : "", b ? b : "");
+#else
+    return strcasecmp(a ? a : "", b ? b : "");
+#endif
+}
+
+/* -------------------------------- Internal Directory Browser Helpers ----------------------- */
+/* --- Directory root discovery & navigation helpers ---------------------------------------- */
+static int ab_path_is_dir(const char* p)
+{
+#ifdef _WIN32
+    DWORD a = GetFileAttributesA(p);
+    if (a == INVALID_FILE_ATTRIBUTES)
+        return 0;
+    return (a & FILE_ATTRIBUTE_DIRECTORY) != 0;
+#else
+    struct stat st;
+    if (stat(p, &st) != 0)
+        return 0;
+    return S_ISDIR(st.st_mode) ? 1 : 0;
+#endif
+}
+
+static void ab_locate_assets_root(void)
+{
+    if (g_ab_state.dir_root[0])
+        return; /* already discovered */
+    /* 1. Environment override */
+    {
+        const char* env = getenv("ROGUE_ASSETS_DIR");
+        if (env && env[0] && ab_path_is_dir(env))
+        {
+            ab_copy_safe(g_ab_state.dir_root, sizeof g_ab_state.dir_root, env);
+            return;
+        }
+    }
+    /* 2. Relative candidates (fast) */
+    {
+        const char* rels[] = {"assets",       "./assets",        "../assets",
+                              "../../assets", "../../../assets", NULL};
+        int ri = 0;
+        while (rels[ri])
+        {
+            if (ab_path_is_dir(rels[ri]))
+            {
+                ab_copy_safe(g_ab_state.dir_root, sizeof g_ab_state.dir_root, rels[ri]);
+                return;
+            }
+            ri++;
+        }
+    }
+    /* 3. Ascend parents from current working directory (depth limited) */
+    {
+        char cwd_buf[ROGUE_FILE_DIALOG_PATH_MAX];
+#ifdef _WIN32
+        if (!_getcwd(cwd_buf, (int) sizeof cwd_buf))
+            cwd_buf[0] = '\0';
+#else
+        if (!getcwd(cwd_buf, sizeof cwd_buf))
+            cwd_buf[0] = '\0';
+#endif
+        if (cwd_buf[0])
+        {
+            char probe[ROGUE_FILE_DIALOG_PATH_MAX * 2];
+            int depth;
+            for (depth = 0; depth < 8 && cwd_buf[0]; ++depth)
+            {
+                snprintf(probe, sizeof probe, "%s/%s", cwd_buf, "assets");
+                if (ab_path_is_dir(probe))
+                {
+                    ab_copy_safe(g_ab_state.dir_root, sizeof g_ab_state.dir_root, probe);
+                    return;
+                }
+                /* trim last component */
+                {
+                    size_t len = strlen(cwd_buf);
+                    while (len && (cwd_buf[len - 1] == '/' || cwd_buf[len - 1] == '\\'))
+                        cwd_buf[--len] = '\0';
+                    while (len && cwd_buf[len - 1] != '/' && cwd_buf[len - 1] != '\\')
+                        cwd_buf[--len] = '\0';
+                    while (len && (cwd_buf[len - 1] == '/' || cwd_buf[len - 1] == '\\'))
+                        cwd_buf[--len] = '\0';
+                }
+            }
+        }
+    }
+    /* 4. Fallback: keep relative "assets" (may be empty) */
+    ab_copy_safe(g_ab_state.dir_root, sizeof g_ab_state.dir_root, "assets");
+}
+
+static void ab_dir_init_if_needed(void)
+{
+    if (!g_ab_state.dir_root[0])
+        ab_locate_assets_root();
+    if (!g_ab_state.dir_cwd[0])
+    {
+        ab_copy_safe(g_ab_state.dir_cwd, sizeof g_ab_state.dir_cwd, g_ab_state.dir_root);
+        g_ab_state.dir_scroll = 0;
+        g_ab_state.dir_selected = -1;
+        g_ab_state.dir_entries = NULL;
+        g_ab_state.dir_count = 0;
+        g_ab_state.dir_capacity = 0;
+    }
+}
+
+static int ab_dir_is_sep(char c) { return c == '/' || c == '\\'; }
+
+static void ab_dir_join(char* out, size_t cap, const char* a, const char* b)
+{
+    if (!a || !b)
+    {
+        out[0] = '\0';
+        return;
+    }
+    snprintf(out, cap, "%s%s%s", a, (a[0] && !ab_dir_is_sep(a[strlen(a) - 1])) ? "/" : "", b);
+}
+
+static void ab_dir_parent(char* path)
+{
+    if (!path || !path[0])
+        return;
+    /* Root guard uses discovered dir_root (exact match). */
+    if (g_ab_state.dir_root[0] && strcmp(path, g_ab_state.dir_root) == 0)
+        return; /* already at root */
+    size_t root_len = g_ab_state.dir_root[0] ? strlen(g_ab_state.dir_root) : 0;
+    size_t len = strlen(path);
+    while (len && ab_dir_is_sep(path[len - 1]))
+        path[--len] = '\0';
+    while (len && !ab_dir_is_sep(path[len - 1]))
+        path[--len] = '\0';
+    while (len && ab_dir_is_sep(path[len - 1]))
+        path[--len] = '\0';
+    if (root_len && (len < root_len || strncmp(path, g_ab_state.dir_root, root_len) != 0))
+    {
+        /* Snap back to root if we traversed above it */
+        ab_copy_safe(path, ROGUE_FILE_DIALOG_PATH_MAX, g_ab_state.dir_root);
+    }
+}
+
+static void ab_dir_refresh(void)
+{
+    g_ab_state.dir_count = 0;
+    ab_dir_init_if_needed();
+#define AB_DIR_RESERVE_STEP 128
+    /* Reserve initial capacity */
+    if (g_ab_state.dir_capacity == 0)
+    {
+        g_ab_state.dir_capacity = AB_DIR_RESERVE_STEP;
+        g_ab_state.dir_entries = (struct AssetBrowserDirEntry*) malloc(
+            sizeof(*g_ab_state.dir_entries) * g_ab_state.dir_capacity);
+        if (!g_ab_state.dir_entries)
+        {
+            g_ab_state.dir_capacity = 0;
+            return;
+        }
+    }
+    /* Local ensure capacity helper (C89 style) */
+    {
+        /* no-op block; real growth done inline where needed */
+    }
+#ifdef _WIN32
+    {
+        char pattern[ROGUE_FILE_DIALOG_PATH_MAX * 2];
+        snprintf(pattern, sizeof pattern, "%s/*", g_ab_state.dir_cwd);
+        WIN32_FIND_DATAA fd;
+        HANDLE h = FindFirstFileA(pattern, &fd);
+        if (h != INVALID_HANDLE_VALUE)
+        {
+            do
+            {
+                const char* n = fd.cFileName;
+                if (strcmp(n, ".") == 0 || strcmp(n, "..") == 0)
+                    continue;
+                if (g_ab_state.dir_count >= g_ab_state.dir_capacity)
+                {
+                    int new_cap = g_ab_state.dir_capacity ? g_ab_state.dir_capacity * 2 : 128;
+                    void* nm =
+                        realloc(g_ab_state.dir_entries, sizeof(*g_ab_state.dir_entries) * new_cap);
+                    if (!nm)
+                        break; /* out of memory */
+                    g_ab_state.dir_entries = (struct AssetBrowserDirEntry*) nm;
+                    g_ab_state.dir_capacity = new_cap;
+                }
+                ab_copy_safe(g_ab_state.dir_entries[g_ab_state.dir_count].name,
+                             sizeof g_ab_state.dir_entries[g_ab_state.dir_count].name, n);
+                g_ab_state.dir_entries[g_ab_state.dir_count].is_dir =
+                    (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? 1 : 0;
+                g_ab_state.dir_count++;
+            } while (FindNextFileA(h, &fd));
+            FindClose(h);
+        }
+    }
+#else
+    {
+        DIR* d = opendir(g_ab_state.dir_cwd);
+        if (d)
+        {
+            struct dirent* ent;
+            while ((ent = readdir(d)))
+            {
+                const char* n = ent->d_name;
+                if (strcmp(n, ".") == 0 || strcmp(n, "..") == 0)
+                    continue;
+                if (g_ab_state.dir_count >= g_ab_state.dir_capacity)
+                {
+                    int new_cap = g_ab_state.dir_capacity ? g_ab_state.dir_capacity * 2 : 128;
+                    void* nm =
+                        realloc(g_ab_state.dir_entries, sizeof(*g_ab_state.dir_entries) * new_cap);
+                    if (!nm)
+                        break; /* out of memory */
+                    g_ab_state.dir_entries = (struct AssetBrowserDirEntry*) nm;
+                    g_ab_state.dir_capacity = new_cap;
+                }
+                ab_copy_safe(g_ab_state.dir_entries[g_ab_state.dir_count].name,
+                             sizeof g_ab_state.dir_entries[g_ab_state.dir_count].name, n);
+                /* Best effort directory flag */
+                g_ab_state.dir_entries[g_ab_state.dir_count].is_dir = (ent->d_type == DT_DIR);
+                g_ab_state.dir_count++;
+            }
+            closedir(d);
+        }
+    }
+#endif
+    /* If empty and cwd appears invalid, attempt to relocate root once and retry */
+    if (g_ab_state.dir_count == 0)
+    {
+        int had_root = g_ab_state.dir_root[0] ? 1 : 0;
+        ab_locate_assets_root();
+        if (!had_root || (g_ab_state.dir_root[0] && strncmp(g_ab_state.dir_cwd, g_ab_state.dir_root,
+                                                            strlen(g_ab_state.dir_root)) != 0))
+        {
+            /* Reset CWD to root and retry */
+            ab_copy_safe(g_ab_state.dir_cwd, sizeof g_ab_state.dir_cwd, g_ab_state.dir_root);
+            /* prevent infinite recursion by only retrying once per refresh call */
+#ifdef _WIN32
+            {
+                char pattern2[ROGUE_FILE_DIALOG_PATH_MAX * 2];
+                snprintf(pattern2, sizeof pattern2, "%s/*", g_ab_state.dir_cwd);
+                WIN32_FIND_DATAA fd2;
+                HANDLE h2 = FindFirstFileA(pattern2, &fd2);
+                if (h2 != INVALID_HANDLE_VALUE)
+                {
+                    do
+                    {
+                        const char* n = fd2.cFileName;
+                        if (strcmp(n, ".") == 0 || strcmp(n, "..") == 0)
+                            continue;
+                        if (g_ab_state.dir_count >= g_ab_state.dir_capacity)
+                        {
+                            int new_cap2 =
+                                g_ab_state.dir_capacity ? g_ab_state.dir_capacity * 2 : 128;
+                            void* nm2 = realloc(g_ab_state.dir_entries,
+                                                sizeof(*g_ab_state.dir_entries) * new_cap2);
+                            if (!nm2)
+                                break;
+                            g_ab_state.dir_entries = (struct AssetBrowserDirEntry*) nm2;
+                            g_ab_state.dir_capacity = new_cap2;
+                        }
+                        ab_copy_safe(g_ab_state.dir_entries[g_ab_state.dir_count].name,
+                                     sizeof g_ab_state.dir_entries[g_ab_state.dir_count].name, n);
+                        g_ab_state.dir_entries[g_ab_state.dir_count].is_dir =
+                            (fd2.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? 1 : 0;
+                        g_ab_state.dir_count++;
+                    } while (FindNextFileA(h2, &fd2));
+                    FindClose(h2);
+                }
+            }
+#else
+            {
+                DIR* d2 = opendir(g_ab_state.dir_cwd);
+                if (d2)
+                {
+                    struct dirent* ent2;
+                    while ((ent2 = readdir(d2)))
+                    {
+                        const char* n = ent2->d_name;
+                        if (strcmp(n, ".") == 0 || strcmp(n, "..") == 0)
+                            continue;
+                        if (g_ab_state.dir_count >= g_ab_state.dir_capacity)
+                        {
+                            int new_cap2 =
+                                g_ab_state.dir_capacity ? g_ab_state.dir_capacity * 2 : 128;
+                            void* nm2 = realloc(g_ab_state.dir_entries,
+                                                sizeof(*g_ab_state.dir_entries) * new_cap2);
+                            if (!nm2)
+                                break;
+                            g_ab_state.dir_entries = (struct AssetBrowserDirEntry*) nm2;
+                            g_ab_state.dir_capacity = new_cap2;
+                        }
+                        ab_copy_safe(g_ab_state.dir_entries[g_ab_state.dir_count].name,
+                                     sizeof g_ab_state.dir_entries[g_ab_state.dir_count].name, n);
+                        g_ab_state.dir_entries[g_ab_state.dir_count].is_dir =
+                            (ent2->d_type == DT_DIR);
+                        g_ab_state.dir_count++;
+                    }
+                    closedir(d2);
+                }
+            }
+#endif
+        }
+    }
+    /* Simple sort: dirs first then lexicographic */
+    {
+        int i, j;
+        for (i = 0; i < g_ab_state.dir_count; ++i)
+        {
+            for (j = i + 1; j < g_ab_state.dir_count; ++j)
+            {
+                int swap = 0;
+                if (g_ab_state.dir_entries[j].is_dir && !g_ab_state.dir_entries[i].is_dir)
+                    swap = 1;
+                else if (g_ab_state.dir_entries[j].is_dir == g_ab_state.dir_entries[i].is_dir &&
+                         ab_ci_cmp(g_ab_state.dir_entries[i].name, g_ab_state.dir_entries[j].name) >
+                             0)
+                    swap = 1;
+                if (swap)
+                {
+                    int tdir = g_ab_state.dir_entries[i].is_dir;
+                    char tname[ROGUE_FILE_DIALOG_PATH_MAX];
+                    memcpy(tname, g_ab_state.dir_entries[i].name, sizeof tname);
+                    g_ab_state.dir_entries[i].is_dir = g_ab_state.dir_entries[j].is_dir;
+                    memcpy(g_ab_state.dir_entries[i].name, g_ab_state.dir_entries[j].name,
+                           sizeof tname);
+                    g_ab_state.dir_entries[j].is_dir = tdir;
+                    memcpy(g_ab_state.dir_entries[j].name, tname, sizeof tname);
+                }
+            }
+        }
+    }
+}
 
 /* Public mini API (Phase 6 hotkeys) --------------------------------------------------------- */
 #include "panels_asset_browser_api.h"
@@ -223,23 +582,7 @@ void rogue_asset_browser_add_bookmark_selected(void)
 }
 
 /* Safe bounded copy (always NUL terminates) */
-static void ab_safe_copy(char* dst, size_t cap, const char* src)
-{
-    size_t i = 0;
-    if (!dst || cap == 0)
-        return;
-    if (!src)
-    {
-        dst[0] = '\0';
-        return;
-    }
-    while (src[i] && i + 1 < cap)
-    {
-        dst[i] = src[i];
-        i++;
-    }
-    dst[i] = '\0';
-}
+/* (Original ab_safe_copy moved earlier) */
 
 static char g_filter[48];
 static int g_filter_use_wildcards = 1; /* future: toggle real regex */
@@ -742,7 +1085,7 @@ static void panel_asset_browser(void* user)
             g_ab_state.selected_row >= 0 && g_ab_state.selected_row < g_ab_state.json_count)
         {
             const char* rel = g_ab_state.json_files[g_ab_state.selected_row].path;
-            ab_safe_copy(g_ab_state.validation_target_path,
+            ab_copy_safe(g_ab_state.validation_target_path,
                          sizeof g_ab_state.validation_target_path, rel);
             char full[512];
             snprintf(full, sizeof full, "assets/%s", rel);
@@ -1080,7 +1423,7 @@ static void panel_asset_browser(void* user)
                                    "\"y\":0, \"w\":32, \"h\":32 }\n  ]\n}\n";
                 fwrite(stub, 1, strlen(stub), f);
                 fclose(f);
-                ab_safe_copy(g_ab_state.last_template_path, sizeof g_ab_state.last_template_path,
+                ab_copy_safe(g_ab_state.last_template_path, sizeof g_ab_state.last_template_path,
                              path);
                 g_ab_state.last_template_result = 1;
             }
@@ -1103,7 +1446,7 @@ static void panel_asset_browser(void* user)
                     "{ \"author\": \"dev\", \"created\": \"2025-09-07\" }\n}\n";
                 fwrite(stub, 1, strlen(stub), f);
                 fclose(f);
-                ab_safe_copy(g_ab_state.last_template_path, sizeof g_ab_state.last_template_path,
+                ab_copy_safe(g_ab_state.last_template_path, sizeof g_ab_state.last_template_path,
                              path);
                 g_ab_state.last_template_result = 1;
             }
@@ -1184,7 +1527,7 @@ static void panel_asset_browser(void* user)
         {
             const RogueAssetTexture* tex = &m->textures[sel];
             char original[260];
-            ab_safe_copy(original, sizeof original, tex->path);
+            ab_copy_safe(original, sizeof original, tex->path);
             /* Derive base (strip extension) */
             const char* dot = strrchr(original, '.');
             size_t base_len = dot ? (size_t) (dot - original) : strlen(original);
@@ -1202,7 +1545,7 @@ static void panel_asset_browser(void* user)
                 char path[320];
                 if (pass == -1)
                 {
-                    ab_safe_copy(path, sizeof path, original);
+                    ab_copy_safe(path, sizeof path, original);
                 }
                 else
                 {
@@ -1319,7 +1662,7 @@ static void panel_asset_browser(void* user)
             size_t len = strlen(drop_tok);
             if (len > 0 && len < sizeof(g_ab_state.pending_import_path))
             {
-                ab_safe_copy(g_ab_state.pending_import_path, sizeof g_ab_state.pending_import_path,
+                ab_copy_safe(g_ab_state.pending_import_path, sizeof g_ab_state.pending_import_path,
                              drop_tok);
             }
         }
@@ -1337,113 +1680,216 @@ static void panel_asset_browser(void* user)
         int pr = rogue_file_dialog_poll_result(picked, sizeof(picked));
         if (pr == 1 && picked[0])
         {
-            ab_safe_copy(g_ab_state.pending_import_path, sizeof g_ab_state.pending_import_path,
+            ab_copy_safe(g_ab_state.pending_import_path, sizeof g_ab_state.pending_import_path,
                          picked);
         }
     }
-    /* When the modal is not active but we have an active directory listing (future multi-select
-       support), expose a lightweight scrollable viewport so large directory enumerations do not
-       push subsequent UI outside the panel. For now we just render the cached working directory
-       from the last open dialog invocation if present via helper. */
-#ifdef ROGUE_FILE_DIALOG_LISTING_MAX
+    /* Internal lightweight directory browser (replaces cached file dialog listing) */
     {
-        extern int rogue_file_dialog_last_listing(char entries[][ROGUE_FILE_DIALOG_PATH_MAX],
-                                                  int* count_out, char* cwd_out, int cwd_cap);
-        char cwd_buf[512];
-        char listing[ROGUE_FILE_DIALOG_LISTING_MAX][ROGUE_FILE_DIALOG_PATH_MAX];
-        int lcount = 0;
-        if (rogue_file_dialog_last_listing(listing, &lcount, cwd_buf, (int) sizeof(cwd_buf)) &&
-            lcount > 0)
+        ab_dir_init_if_needed();
+        if (g_ab_state.dir_count == 0)
+            ab_dir_refresh();
+        overlay_label("Directory Browser:");
+        overlay_label(g_ab_state.dir_cwd);
+        if (overlay_button("Up"))
         {
-            overlay_label("File Dialog (wheel / drag thumb to scroll)");
-            overlay_label(cwd_buf);
-            int visible = 12;
-            if (visible > lcount)
-                visible = lcount;
-            static int fd_scroll = 0;
-            if (fd_scroll < 0)
-                fd_scroll = 0;
-            if (fd_scroll > lcount - visible)
-                fd_scroll = (lcount - visible) < 0 ? 0 : (lcount - visible);
-            const OverlayInputState* in_fd = overlay_input_get();
-            if (in_fd && in_fd->mouse_wheel_y &&
-                overlay_mouse_over(g_ui.cur_x, g_ui.cur_y, g_ui.width,
-                                   visible * (g_ui.table_row_h + g_ui.table_row_pad)))
+            ab_dir_parent(g_ab_state.dir_cwd);
+            ab_dir_refresh();
+            g_ab_state.dir_scroll = 0;
+            g_ab_state.dir_selected = -1;
+        }
+        if (overlay_button("Refresh"))
+        {
+            ab_dir_refresh();
+            g_ab_state.dir_scroll = 0;
+            g_ab_state.dir_selected = -1;
+        }
+        if (overlay_button("PgUp"))
+        {
+            g_ab_state.dir_scroll -= 12;
+            if (g_ab_state.dir_scroll < 0)
+                g_ab_state.dir_scroll = 0;
+        }
+        if (overlay_button("PgDn"))
+        {
+            g_ab_state.dir_scroll += 12;
+        }
+        /* Number of directory rows to display (virtualized window size) */
+        int visible = 12;
+        if (g_ab_state.dir_scroll < 0)
+            g_ab_state.dir_scroll = 0;
+        if (g_ab_state.dir_scroll > g_ab_state.dir_count - visible)
+            g_ab_state.dir_scroll =
+                (g_ab_state.dir_count - visible) < 0 ? 0 : (g_ab_state.dir_count - visible);
+        const OverlayInputState* din = overlay_input_get();
+        int viewport_h = visible * (g_ui.table_row_h + g_ui.table_row_pad);
+        if (din && din->mouse_wheel_y &&
+            overlay_mouse_over(g_ui.cur_x, g_ui.cur_y, g_ui.width, viewport_h))
+        {
+            g_ab_state.dir_scroll -= din->mouse_wheel_y;
+            if (g_ab_state.dir_scroll < 0)
+                g_ab_state.dir_scroll = 0;
+            if (g_ab_state.dir_scroll > g_ab_state.dir_count - visible)
+                g_ab_state.dir_scroll =
+                    (g_ab_state.dir_count - visible) < 0 ? 0 : (g_ab_state.dir_count - visible);
+        }
+        int end = g_ab_state.dir_scroll + visible;
+        if (end > g_ab_state.dir_count)
+            end = g_ab_state.dir_count;
+        /* Draw list with background highlight */
+        {
+            int row_h = (g_ui.table_row_h + g_ui.table_row_pad);
+            int base_y = g_ui.cur_y; /* Capture starting Y for list region */
+            int sb_w_reserved =
+                10; /* Reserve space on right side for scrollbar so it is not covered */
+            int i;
+            for (i = g_ab_state.dir_scroll; i < end; i++)
             {
-                fd_scroll -= in_fd->mouse_wheel_y;
-                if (fd_scroll < 0)
-                    fd_scroll = 0;
-                if (fd_scroll > lcount - visible)
-                    fd_scroll = (lcount - visible) < 0 ? 0 : (lcount - visible);
-            }
-            int end = fd_scroll + visible;
-            if (end > lcount)
-                end = lcount;
-            for (int i = fd_scroll; i < end; ++i)
-            {
-                overlay_label(listing[i]);
-            }
+                char line[ROGUE_FILE_DIALOG_PATH_MAX + 32];
+                snprintf(line, sizeof line, "%s %s",
+                         g_ab_state.dir_entries[i].is_dir ? "[DIR]" : "FILE ",
+                         g_ab_state.dir_entries[i].name);
 #ifdef ROGUE_HAVE_SDL
-            if (g_app.renderer && lcount > visible)
+                if (g_app.renderer)
+                {
+                    const OverlayTheme* th = overlay_theme_get();
+                    int row_x = g_ui.cur_x - 8;
+                    int row_y = base_y + (i - g_ab_state.dir_scroll) * row_h;
+                    /* Subtract scrollbar width reservation so highlight does not obscure it */
+                    SDL_Rect rr = {row_x, row_y, g_ui.width - sb_w_reserved - 2, g_ui.table_row_h};
+                    int sel = (i == g_ab_state.dir_selected);
+                    OverlayColor bg = sel ? th->table_row_bg_sel : th->table_row_bg;
+                    SDL_SetRenderDrawColor(g_app.renderer, bg.r, bg.g, bg.b, bg.a);
+                    SDL_RenderFillRect(g_app.renderer, &rr);
+                }
+#endif
+                overlay_label(line);
+            }
+        }
+#ifdef ROGUE_HAVE_SDL
+        /* Draw scrollbar (always draw track; thumb disabled if not scrollable). */
+        if (g_app.renderer)
+        {
+            const OverlayTheme* th = overlay_theme_get();
+            int sb_w = 10;
+            int row_h = (g_ui.table_row_h + g_ui.table_row_pad);
+            int track_h = visible * row_h;
+            int track_x = g_ui.cur_x + g_ui.width - sb_w - 2;
+            int track_y = g_ui.cur_y - track_h; /* base_y */
+            if (track_y < 0)
+                track_y = 0;
+            SDL_Rect track = {track_x, track_y, sb_w, track_h};
+            /* Use a subtle dark background to ensure visibility even if border color matches */
+            SDL_SetRenderDrawColor(g_app.renderer, th->panel_bg.r / 2, th->panel_bg.g / 2,
+                                   th->panel_bg.b / 2, (Uint8) (th->panel_bg.a));
+            SDL_RenderFillRect(g_app.renderer, &track);
+            if (g_ab_state.dir_count > visible)
             {
-                const OverlayTheme* th_sb = overlay_theme_get();
-                int track_w = 8; /* widen for visibility */
-                int track_x = g_ui.cur_x + g_ui.width - track_w - 2;
-                int track_h = visible * (g_ui.table_row_h + g_ui.table_row_pad);
-                int track_y = g_ui.cur_y - track_h;
-                SDL_Rect track = {track_x, track_y, track_w, track_h};
-                /* Draw semi-transparent dark backdrop first to ensure contrast */
-                SDL_SetRenderDrawColor(g_app.renderer, 12, 12, 12, 200);
-                SDL_RenderFillRect(g_app.renderer, &track);
-                /* Border */
-                SDL_SetRenderDrawColor(g_app.renderer, th_sb->table_border.r, th_sb->table_border.g,
-                                       th_sb->table_border.b, th_sb->table_border.a);
-                SDL_RenderDrawRect(g_app.renderer, &track);
-                int thumb_h = (track_h * visible) / lcount;
+                int max_first = (g_ab_state.dir_count - visible);
+                if (max_first < 1)
+                    max_first = 1;
+                /* Proportional thumb height */
+                int thumb_h = (track_h * visible) / g_ab_state.dir_count;
                 if (thumb_h < 14)
-                    thumb_h = 14;
+                    thumb_h = 14; /* a bit larger than before for visibility */
                 if (thumb_h > track_h)
                     thumb_h = track_h;
                 int range = track_h - thumb_h;
-                static int dragging = 0;
-                static int drag_off = 0;
                 int thumb_y = track_y;
                 if (range > 0)
-                    thumb_y = track_y + (range * fd_scroll) / (lcount - visible);
-                SDL_Rect thumb = {track_x + 1, thumb_y + 1, track_w - 2, thumb_h - 2};
-                int hover = overlay_mouse_over(track_x, track_y, track_w, track_h);
-                OverlayColor base = hover ? th_sb->accent_2 : th_sb->accent_1;
-                SDL_SetRenderDrawColor(g_app.renderer, base.r, base.g, base.b, 220);
+                    thumb_y = track_y + (range * g_ab_state.dir_scroll) / max_first;
+                SDL_Rect thumb = {track_x + 1, thumb_y, sb_w - 2, thumb_h};
+                const OverlayInputState* in_sb = overlay_input_get();
+                int hover_sb = overlay_mouse_over(track_x, track_y, sb_w, track_h);
+                OverlayColor tcol = hover_sb ? th->accent_2 : th->accent_1;
+                SDL_SetRenderDrawColor(g_app.renderer, tcol.r, tcol.g, tcol.b, tcol.a);
                 SDL_RenderFillRect(g_app.renderer, &thumb);
-                /* Drag logic */
-                const OverlayInputState* in2 = overlay_input_get();
-                if (!dragging && hover && in2 && in2->mouse_down_l && !in2->mouse_drag_l)
+                static int s_drag = 0;
+                static int s_drag_off = 0;
+                if (in_sb->mouse_clicked && hover_sb)
                 {
-                    dragging = 1;
-                    drag_off = in2->mouse_y - thumb_y;
-                }
-                if (dragging)
-                {
-                    if (in2 && in2->mouse_down_l)
+                    if (in_sb->mouse_y < thumb_y)
                     {
-                        int my = in2->mouse_y - drag_off;
-                        if (my < track_y)
-                            my = track_y;
-                        if (my > track_y + range)
-                            my = track_y + range;
-                        fd_scroll =
-                            (range > 0)
-                                ? (int) ((int64_t) (my - track_y) * (lcount - visible) / range)
-                                : 0;
+                        g_ab_state.dir_scroll -= visible;
+                        if (g_ab_state.dir_scroll < 0)
+                            g_ab_state.dir_scroll = 0;
+                    }
+                    else if (in_sb->mouse_y > thumb_y + thumb_h)
+                    {
+                        g_ab_state.dir_scroll += visible;
                     }
                     else
-                        dragging = 0;
+                    {
+                        s_drag = 1;
+                        s_drag_off = in_sb->mouse_y - thumb_y;
+                        overlay_input_set_capture(1, 1);
+                    }
+                }
+                if (s_drag && in_sb->mouse_down)
+                {
+                    int new_thumb_y = in_sb->mouse_y - s_drag_off;
+                    if (new_thumb_y < track_y)
+                        new_thumb_y = track_y;
+                    if (new_thumb_y > track_y + range)
+                        new_thumb_y = track_y + range;
+                    if (range > 0)
+                    {
+                        int new_off = (int) (((long long) (new_thumb_y - track_y) * max_first) /
+                                             (range ? range : 1));
+                        if (new_off != g_ab_state.dir_scroll)
+                            g_ab_state.dir_scroll = new_off;
+                    }
+                }
+                if (s_drag && !in_sb->mouse_down)
+                    s_drag = 0;
+            }
+        }
+#endif
+        /* Simple click selection: if user presses on a line, update selection. (Approximate using
+         * current mouse Y) */
+        if (din && din->mouse_clicked)
+        {
+            int sb_w = 10; /* keep in sync with scrollbar draw */
+            int track_x = g_ui.cur_x + g_ui.width - sb_w - 2;
+            int clickable_w = g_ui.width - sb_w - 2; /* exclude scrollbar zone */
+            int over_list =
+                overlay_mouse_over(g_ui.cur_x, g_ui.cur_y - viewport_h, clickable_w, viewport_h);
+            int over_scrollbar =
+                (din->mouse_x >= track_x && din->mouse_x < track_x + sb_w &&
+                 din->mouse_y >= (g_ui.cur_y - viewport_h) && din->mouse_y < g_ui.cur_y);
+            if (over_list && !over_scrollbar)
+            {
+                int rel_y = din->mouse_y - (g_ui.cur_y - viewport_h);
+                int row_h = (g_ui.table_row_h + g_ui.table_row_pad);
+                if (row_h <= 0)
+                    row_h = 14;
+                int idx = rel_y / row_h + g_ab_state.dir_scroll;
+                if (idx >= 0 && idx < g_ab_state.dir_count)
+                {
+                    g_ab_state.dir_selected = idx;
+                    if (g_ab_state.dir_entries[idx].is_dir)
+                    {
+                        char joined[ROGUE_FILE_DIALOG_PATH_MAX * 2];
+                        ab_dir_join(joined, sizeof joined, g_ab_state.dir_cwd,
+                                    g_ab_state.dir_entries[idx].name);
+                        ab_copy_safe(g_ab_state.dir_cwd, sizeof g_ab_state.dir_cwd, joined);
+                        ab_dir_refresh();
+                        g_ab_state.dir_scroll = 0; /* reset view at new directory */
+                        g_ab_state.dir_selected = -1;
+                    }
+                    else
+                    {
+                        /* Selecting a file puts full path into pending import buffer */
+                        char full[ROGUE_FILE_DIALOG_PATH_MAX * 2];
+                        ab_dir_join(full, sizeof full, g_ab_state.dir_cwd,
+                                    g_ab_state.dir_entries[idx].name);
+                        ab_copy_safe(g_ab_state.pending_import_path,
+                                     sizeof g_ab_state.pending_import_path, full);
+                    }
                 }
             }
-#endif /* ROGUE_HAVE_SDL */
         }
     }
-#endif /* ROGUE_FILE_DIALOG_LISTING_MAX */
     if (g_ab_state.pending_import_path[0])
     {
         if (overlay_button("Import Texture"))
@@ -2439,5 +2885,5 @@ void rogue_panel_asset_browser_set_filter(const char* f)
         g_filter[0] = '\0';
         return;
     }
-    ab_safe_copy(g_filter, sizeof g_filter, f);
+    ab_copy_safe(g_filter, sizeof g_filter, f);
 }

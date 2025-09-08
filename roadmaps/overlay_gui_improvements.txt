@@ -1,0 +1,262 @@
+OVERLAY GUI MODERNIZATION PLAN
+===============================
+
+Context:
+- Current system has panels extending beyond boundaries, poor docking, limited layout management
+- Immediate-mode UI in C with SDL2 renderer, must remain headless-safe
+- Existing panels: Asset Browser, System, Items, Skills, Map, Entities, Audio/VFX, etc.
+- Current drag system is basic with static layouts and collision issues
+
+PHASE 1: CORE LAYOUT SYSTEM OVERHAUL
+=====================================
+
+[ ] 1.1 Advanced Layout Engine
+    [ ] 1.1.1 Implement flexible container system (horizontal/vertical splits, tabs, stacks)
+    [ ] 1.1.2 Add layout constraints (min/max sizes, aspect ratios, flex weights)
+    [ ] 1.1.3 Create layout serialization/deserialization for persistence
+    [ ] 1.1.4 Add layout validation to prevent impossible configurations
+
+[ ] 1.2 Panel Boundary Management
+    [ ] 1.2.1 Implement strict clipping for all panel content
+    [ ] 1.2.2 Add scrollbars for overflow content (both horizontal and vertical)
+    [ ] 1.2.3 Create content size calculation and auto-sizing
+    [ ] 1.2.4 Add panel minimum/maximum size enforcement
+
+[ ] 1.3 Z-Order and Focus Management
+    [ ] 1.3.1 Implement proper Z-ordering system for overlapping panels
+    [ ] 1.3.2 Add focus management (click-to-front, modal overlays)
+    [ ] 1.3.3 Create visual indicators for active/focused panels
+    [ ] 1.3.4 Add keyboard navigation between panels (Tab/Shift+Tab)
+
+[ ] 1.4 Collision Detection and Prevention
+    [ ] 1.4.1 Implement overlap detection algorithm
+    [ ] 1.4.2 Add automatic panel repositioning on collision
+    [ ] 1.4.3 Create "smart placement" for new panels
+    [ ] 1.4.4 Add visual feedback for invalid panel positions
+
+PHASE 2: ADVANCED DOCKING SYSTEM
+=================================
+
+[ ] 2.1 Docking Framework
+    [ ] 2.1.1 Create docking zones (left, right, top, bottom, center)
+    [ ] 2.1.2 Implement dock target highlighting during drag
+    [ ] 2.1.3 Add snap-to-dock behavior with magnetic zones
+    [ ] 2.1.4 Create undocking mechanism (drag away from dock)
+
+[ ] 2.2 Tabbed Panel Groups
+    [ ] 2.2.1 Allow multiple panels to dock together as tabs
+    [ ] 2.2.2 Add tab reordering and panel extraction
+    [ ] 2.2.3 Create tab overflow handling (scrollable tab bar)
+    [ ] 2.2.4 Add close buttons and tab context menus
+
+[ ] 2.3 Split Panes
+    [ ] 2.3.1 Create resizable split containers
+    [ ] 2.3.2 Add nested splitting (horizontal + vertical)
+    [ ] 2.3.3 Implement proportional resize on container size changes
+    [ ] 2.3.4 Add collapse/expand animations for splits
+
+[ ] 2.4 Floating Windows
+    [ ] 2.4.1 Support truly floating panels with proper window management
+    [ ] 2.4.2 Add minimize/maximize states
+    [ ] 2.4.3 Create taskbar or panel list for minimized windows
+    [ ] 2.4.4 Add always-on-top option for critical panels
+
+PHASE 3: ENHANCED PANEL MANAGEMENT
+===================================
+
+[ ] 3.1 Panel Lifecycle Improvements
+    [ ] 3.1.1 Add proper panel registration system with metadata
+    [ ] 3.1.2 Create panel groups/categories for organization
+    [ ] 3.1.3 Implement lazy loading for performance
+    [ ] 3.1.4 Add panel dependency tracking and load ordering
+
+[ ] 3.2 Dynamic Panel Creation
+    [ ] 3.2.1 Allow runtime panel creation and destruction
+    [ ] 3.2.2 Create panel templates for common configurations
+    [ ] 3.2.3 Add panel cloning/duplication
+    [ ] 3.2.4 Implement panel instance management (multiple instances of same type)
+
+[ ] 3.3 Panel State Management
+    [ ] 3.3.1 Serialize panel-specific state (scroll positions, selections, etc.)
+    [ ] 3.3.2 Add panel reset to defaults functionality
+    [ ] 3.3.3 Create panel state validation and migration
+    [ ] 3.3.4 Implement panel state backup and restore
+
+[ ] 3.4 Panel Communication
+    [ ] 3.4.1 Create event system for panel-to-panel communication
+    [ ] 3.4.2 Add shared data binding between related panels
+    [ ] 3.4.3 Implement panel synchronization (e.g., selection sync)
+    [ ] 3.4.4 Create panel relationship definitions
+
+PHASE 4: WIDGET IMPROVEMENTS
+=============================
+
+[ ] 4.1 Widget Boundary Fixes
+    [ ] 4.1.1 Fix asset browser scrollbar click-through issues
+    [ ] 4.1.2 Implement proper widget clipping within panel bounds
+    [ ] 4.1.3 Add widget overflow indicators and scrolling
+    [ ] 4.1.4 Create widget size calculation and auto-layout
+
+[ ] 4.2 Advanced Widget Types
+    [ ] 4.2.1 Create resizable multi-pane widgets
+    [ ] 4.2.2 Add collapsible sections with proper state persistence
+    [ ] 4.2.3 Implement tree views with virtual scrolling
+    [ ] 4.2.4 Create property grids with grouping and filtering
+
+[ ] 4.3 Widget Event System
+    [ ] 4.3.1 Implement proper event propagation and capture
+    [ ] 4.3.2 Add keyboard shortcuts for all widgets
+    [ ] 4.3.3 Create context menus for widgets
+    [ ] 4.3.4 Add drag-and-drop support between widgets
+
+[ ] 4.4 Widget Visual Improvements
+    [ ] 4.4.1 Add smooth animations for state changes
+    [ ] 4.4.2 Implement hover and focus visual feedback
+    [ ] 4.4.3 Create consistent sizing and spacing grid
+    [ ] 4.4.4 Add accessibility features (high contrast, larger text)
+
+PHASE 5: LAYOUT PERSISTENCE AND WORKSPACES
+===========================================
+
+[ ] 5.1 Workspace System
+    [ ] 5.1.1 Create named workspace configurations
+    [ ] 5.1.2 Add workspace switching with animation
+    [ ] 5.1.3 Implement workspace templates and sharing
+    [ ] 5.1.4 Create per-project workspace storage
+
+[ ] 5.2 Advanced Persistence
+    [ ] 5.2.1 Store complete layout hierarchy (not just panel positions)
+    [ ] 5.2.2 Add version migration for layout changes
+    [ ] 5.2.3 Create import/export for layout configurations
+    [ ] 5.2.4 Implement layout history and undo/redo
+
+[ ] 5.3 Multi-Monitor Support
+    [ ] 5.3.1 Detect and handle multiple monitors
+    [ ] 5.3.2 Allow panels to span across monitors
+    [ ] 5.3.3 Save monitor-specific layouts
+    [ ] 5.3.4 Handle monitor configuration changes gracefully
+
+PHASE 6: PERFORMANCE AND POLISH
+================================
+
+[ ] 6.1 Rendering Optimization
+    [ ] 6.1.1 Implement dirty region tracking for redraws
+    [ ] 6.1.2 Add occlusion culling for hidden panels
+    [ ] 6.1.3 Create efficient clipping and scissor testing
+    [ ] 6.1.4 Optimize font rendering and text layout
+
+[ ] 6.2 Memory Management
+    [ ] 6.2.1 Implement proper cleanup for destroyed panels
+    [ ] 6.2.2 Add memory pooling for frequently created/destroyed objects
+    [ ] 6.2.3 Create memory usage monitoring and reporting
+    [ ] 6.2.4 Optimize data structures for cache efficiency
+
+[ ] 6.3 Input Handling Improvements
+    [ ] 6.3.1 Fix input event routing and priority
+    [ ] 6.3.2 Add input event filtering and validation
+    [ ] 6.3.3 Implement proper mouse capture and release
+    [ ] 6.3.4 Create touch/gesture support for future compatibility
+
+[ ] 6.4 Error Handling and Debugging
+    [ ] 6.4.1 Add comprehensive layout validation and diagnostics
+    [ ] 6.4.2 Create debug visualization for layout structure
+    [ ] 6.4.3 Implement graceful degradation for layout errors
+    [ ] 6.4.4 Add performance profiling and bottleneck detection
+
+PHASE 7: USER EXPERIENCE ENHANCEMENTS
+======================================
+
+[ ] 7.1 Visual Design System
+    [ ] 7.1.1 Create comprehensive design tokens (spacing, colors, typography)
+    [ ] 7.1.2 Implement consistent visual hierarchy
+    [ ] 7.1.3 Add smooth transitions and micro-animations
+    [ ] 7.1.4 Create responsive design patterns for different screen sizes
+
+[ ] 7.2 Interaction Improvements
+    [ ] 7.2.1 Add magnetic snapping for panel alignment
+    [ ] 7.2.2 Create smart grid system for panel positioning
+    [ ] 7.2.3 Implement gesture shortcuts (double-click to maximize, etc.)
+    [ ] 7.2.4 Add customizable keyboard shortcuts
+
+[ ] 7.3 Accessibility Features
+    [ ] 7.3.1 Implement full keyboard navigation
+    [ ] 7.3.2 Add screen reader compatibility markers
+    [ ] 7.3.3 Create high contrast and large text modes
+    [ ] 7.3.4 Add focus indicators and navigation aids
+
+[ ] 7.4 Customization Options
+    [ ] 7.4.1 Allow users to customize panel arrangements
+    [ ] 7.4.2 Create theme editor with real-time preview
+    [ ] 7.4.3 Add panel behavior customization (auto-hide, pin, etc.)
+    [ ] 7.4.4 Implement user preference profiles
+
+IMPLEMENTATION PRIORITIES
+==========================
+
+Critical (Address Immediately):
+- 1.2 Panel Boundary Management (fixes content overflow)
+- 4.1 Widget Boundary Fixes (fixes scrollbar issues)
+- 1.3 Z-Order and Focus Management (fixes overlap issues)
+
+High Priority:
+- 2.1 Docking Framework (major UX improvement)
+- 1.1 Advanced Layout Engine (foundation for other features)
+- 3.1 Panel Lifecycle Improvements (stability)
+
+Medium Priority:
+- 2.2 Tabbed Panel Groups (organization)
+- 5.1 Workspace System (productivity)
+- 6.1 Rendering Optimization (performance)
+
+Low Priority:
+- 7.0 User Experience Enhancements (polish)
+- 5.3 Multi-Monitor Support (advanced feature)
+- 6.4 Error Handling and Debugging (quality of life)
+
+TESTING STRATEGY
+================
+
+[ ] T.1 Unit Tests
+    [ ] T.1.1 Layout calculation and constraint validation
+    [ ] T.1.2 Panel positioning and collision detection
+    [ ] T.1.3 Docking and undocking behavior
+    [ ] T.1.4 State serialization/deserialization
+
+[ ] T.2 Integration Tests
+    [ ] T.2.1 Multi-panel interactions and communication
+    [ ] T.2.2 Layout persistence across sessions
+    [ ] T.2.3 Performance under high panel count
+    [ ] T.2.4 Memory usage and cleanup validation
+
+[ ] T.3 Manual Testing
+    [ ] T.3.1 Usability testing with complex layouts
+    [ ] T.3.2 Stress testing with many panels
+    [ ] T.3.3 Visual validation across different themes
+    [ ] T.3.4 Accessibility testing with keyboard-only navigation
+
+MIGRATION STRATEGY
+==================
+
+[ ] M.1 Backward Compatibility
+    [ ] M.1.1 Maintain existing panel APIs during transition
+    [ ] M.1.2 Create migration tools for old layout files
+    [ ] M.1.3 Add compatibility mode for legacy panels
+    [ ] M.1.4 Gradual migration plan for each panel type
+
+[ ] M.2 Incremental Rollout
+    [ ] M.2.1 Start with Asset Browser panel (most problematic)
+    [ ] M.2.2 Migrate System and Items panels next
+    [ ] M.2.3 Update remaining panels in priority order
+    [ ] M.2.4 Remove legacy code after all panels migrated
+
+NOTES
+=====
+
+- All changes must maintain headless compatibility for CI/testing
+- Performance should not degrade for simple single-panel use cases
+- Layout system should be extensible for future panel types
+- Error handling must be robust to prevent overlay crashes
+- Documentation should be updated for each completed phase
+
+Current Status: Planning phase - ready to begin implementation
+Next Action: Start with Phase 1.2 (Panel Boundary Management) to fix immediate overflow issues
