@@ -715,6 +715,9 @@ add_library(rogue_debug_overlay OBJECT
     src/debug_overlay/asset_browser/asset_browser_audio_detail.c
     src/debug_overlay/asset_browser/asset_browser_atlas_tool.c
     src/debug_overlay/asset_browser/asset_browser_compression_compare.c
+    src/debug_overlay/asset_browser/asset_browser_memory_profiler.c
+    src/debug_overlay/asset_browser/asset_browser_stream_queue.c
+    src/debug_overlay/asset_browser/asset_browser_optimization_hints.c
     src/debug_overlay/panel_system/panels_asset_browser.c
     src/debug_overlay/panel_player/panels_player.c
     src/debug_overlay/panel_skills/panels_skills.c

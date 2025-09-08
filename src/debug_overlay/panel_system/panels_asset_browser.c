@@ -459,74 +459,8 @@ static void panel_asset_browser(void* user)
     overlay_checkbox("Show Optimization Recs", &g_ab_state.show_optimization);
     if (g_ab_state.show_optimization)
     {
-        /* Re-scan each invocation (cost small) – could cache per frame counter later */
-        RogueAssetManager* om = m;
-        g_ab_state.opt_tex_large_count = 0;
-        g_ab_state.opt_tex_unloaded_count = 0;
-        g_ab_state.opt_audio_unloaded_count = 0;
-        const int LARGE_TEX_DIM = 1024; /* heuristic threshold */
-        for (uint32_t ti = 0; ti < om->texture_count; ++ti)
-        {
-            const RogueAssetTexture* t = &om->textures[ti];
-            if (t->width >= LARGE_TEX_DIM || t->height >= LARGE_TEX_DIM)
-            {
-                if (g_ab_state.opt_tex_large_count < 8)
-                {
-                    snprintf(g_ab_state.opt_tex_large[g_ab_state.opt_tex_large_count++], 96,
-                             "%s %dx%d", t->id, t->width, t->height);
-                }
-            }
-            if (!t->sdl_texture && !t->load_failed && t->ref_count > 0)
-            {
-                if (g_ab_state.opt_tex_unloaded_count < 8)
-                {
-                    snprintf(g_ab_state.opt_tex_unloaded[g_ab_state.opt_tex_unloaded_count++], 96,
-                             "%s (lazy) refs=%u", t->id, t->ref_count);
-                }
-            }
-        }
-        for (uint32_t ai = 0; ai < om->audio_count; ++ai)
-        {
-            const RogueAssetAudio* a = &om->audio[ai];
-            if (!a->sdl_chunk && !a->load_failed && a->ref_count > 0)
-            {
-                if (g_ab_state.opt_audio_unloaded_count < 8)
-                {
-                    snprintf(g_ab_state.opt_audio_unloaded[g_ab_state.opt_audio_unloaded_count++],
-                             96, "%s (lazy) refs=%u", a->id, a->ref_count);
-                }
-            }
-        }
-        /* Display groups */
-        if (g_ab_state.opt_tex_large_count == 0 && g_ab_state.opt_tex_unloaded_count == 0 &&
-            g_ab_state.opt_audio_unloaded_count == 0)
-        {
-            overlay_label("(no optimization hints)");
-        }
-        else
-        {
-            if (g_ab_state.opt_tex_large_count)
-            {
-                overlay_colored_label("Large Textures:", (RogueColor){200, 150, 40, 255});
-                for (int i = 0; i < g_ab_state.opt_tex_large_count; ++i)
-                    overlay_label(g_ab_state.opt_tex_large[i]);
-            }
-            if (g_ab_state.opt_tex_unloaded_count)
-            {
-                overlay_colored_label("Deferred (Referenced) Textures:",
-                                      (RogueColor){160, 200, 40, 255});
-                for (int i = 0; i < g_ab_state.opt_tex_unloaded_count; ++i)
-                    overlay_label(g_ab_state.opt_tex_unloaded[i]);
-            }
-            if (g_ab_state.opt_audio_unloaded_count)
-            {
-                overlay_colored_label("Deferred (Referenced) Audio:",
-                                      (RogueColor){160, 180, 220, 255});
-                for (int i = 0; i < g_ab_state.opt_audio_unloaded_count; ++i)
-                    overlay_label(g_ab_state.opt_audio_unloaded[i]);
-            }
-            overlay_label("Hints: consider downscaling oversized textures or preloading lazy refs");
-        }
+        extern void rogue_asset_browser_draw_optimization_hints(RogueAssetManager*);
+        rogue_asset_browser_draw_optimization_hints(m);
     }
     /* Phase 4: Dependency cycle detection visualization (reuse dep registry) */
     overlay_checkbox("Show Dependency Cycles", &g_ab_state.show_cycles);
@@ -591,72 +525,14 @@ static void panel_asset_browser(void* user)
     /* Memory Profiler */
     if (g_ab_state.show_memory_profiler)
     {
-        /* Compute every frame (cheap O(n) over resident textures) */
-        g_ab_state.mem_total_bytes = 0;
-        g_ab_state.mem_loaded_bytes = 0;
-        for (uint32_t i = 0; i < m->texture_count; ++i)
-        {
-            const RogueAssetTexture* t = &m->textures[i];
-            size_t approx = (size_t) t->width * (size_t) t->height * 4u;
-            g_ab_state.mem_total_bytes += approx;
-            if (t->sdl_texture)
-                g_ab_state.mem_loaded_bytes += approx;
-        }
-        char line2[96];
-        snprintf(line2, sizeof line2, "Approx Total Bytes: %zu (~%.2f MB)",
-                 g_ab_state.mem_total_bytes, g_ab_state.mem_total_bytes / (1024.0 * 1024.0));
-        overlay_label(line2);
-        snprintf(line2, sizeof line2, "Loaded Bytes: %zu (~%.2f MB)", g_ab_state.mem_loaded_bytes,
-                 g_ab_state.mem_loaded_bytes / (1024.0 * 1024.0));
-        overlay_label(line2);
-        float pct = g_ab_state.mem_total_bytes ? (float) g_ab_state.mem_loaded_bytes /
-                                                     (float) g_ab_state.mem_total_bytes * 100.0f
-                                               : 0.0f;
-        snprintf(line2, sizeof line2, "Loaded %% of Total (est): %.1f%%", pct);
-        overlay_label(line2);
+        extern void rogue_asset_browser_draw_memory_profiler(RogueAssetManager*);
+        rogue_asset_browser_draw_memory_profiler(m);
     }
     /* Streaming Queue Visualization (Phase 5 enhanced slice) */
     if (g_ab_state.show_stream_queue)
     {
-        overlay_label("[Streaming Queue]");
-        int enabled = rogue_asset_manager_streaming_enabled();
-        if (overlay_checkbox("Streaming Enabled", &enabled))
-            rogue_asset_manager_set_streaming_enabled(enabled ? 1 : 0);
-        /* Manual step controls */
-        if (overlay_button("Step 1"))
-            rogue_asset_manager_stream_step(1);
-        overlay_same_line();
-        if (overlay_button("Step 4"))
-            rogue_asset_manager_stream_step(4);
-        overlay_same_line();
-        if (overlay_button("Step All"))
-            rogue_asset_manager_stream_step(0);
-        int depth = rogue_asset_manager_stream_queue_depth();
-        char qline[64];
-        snprintf(qline, sizeof qline, "Pending Jobs: %d", depth);
-        overlay_label(qline);
-        if (depth > 0)
-        {
-            RogueStreamJobInfo jobs[32];
-            int got = rogue_asset_manager_stream_queue_snapshot(jobs, 32);
-            overlay_label("Idx | TexIdx | State | Path");
-            for (int i = 0; i < got; ++i)
-            {
-                const RogueAssetTexture* tex = rogue_asset_manager_get(jobs[i].texture_index);
-                const char* state = jobs[i].already_loaded
-                                        ? "loaded"
-                                        : (jobs[i].load_failed ? "failed" : "pending");
-                char line2[340];
-                snprintf(line2, sizeof line2, "%2d | %6d | %-7s | %s", i, jobs[i].texture_index,
-                         state, jobs[i].path);
-                overlay_label(line2);
-            }
-            overlay_label("(Jobs load in reverse insertion order – compact removal)");
-        }
-        else
-        {
-            overlay_label("Queue empty. Enqueue via gameplay systems or add future test UI.");
-        }
+        extern void rogue_asset_browser_draw_stream_queue(RogueAssetManager*);
+        rogue_asset_browser_draw_stream_queue(m);
     }
     /* Workflow Template Panel (Phase 6 slice 2) */
     if (g_ab_state.show_workflow_templates)
