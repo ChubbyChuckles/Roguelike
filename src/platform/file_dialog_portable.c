@@ -347,7 +347,7 @@ void rogue_file_dialog_show(RogueFileDialogMode mode, const char* filter_pattern
         struct stat st; /* C89: declare up front */
         if (stat("assets", &st) == 0 && (st.st_mode & S_IFDIR))
         {
-            fd_copy(g_last_dir, sizeof(g_last_dir), "../assets");
+            fd_copy(g_last_dir, sizeof(g_last_dir), "../../assets");
         }
         else
         {

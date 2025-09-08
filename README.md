@@ -26,10 +26,11 @@ Press F1 in-game to open the debug overlay.
     - Atlas Tool (baseline): Slider selects atlas index and triggers horizontal build via `rogue_asset_manager_build_atlas_horizontal` (non-destructive; UV/visual preview pending).
     - Memory Profiler (baseline): Shows approximate texture memory (w*h*4) and peak; future will add audio buffers, real GPU queries, per-atlas breakdowns.
     - Performance Metrics (baseline): Cumulative load microseconds + counts (textures/audio) and streaming queue depth via existing metrics; rolling averages/histograms planned.
-    - Streaming Queue (placeholder): Displays current queue depth; per-item progress view pending streaming worker upgrade.
+  - Streaming Queue (enhanced baseline): Toggle streaming, shows pending job list (index, texture index, state loaded/failed/pending, original path) plus manual Step (1/4/All) controls; future upgrades will add age/ETA/progress bars and worker thread metrics.
     - Cache Strategy (placeholder): Scaffold for future eviction policy & compressed variant preference; currently informational.
     - VCS Overlay (placeholder): Reserved area for upcoming git status integration (modified/untracked asset highlighting, diff helpers).
     - File Dialog Root: Native file open dialog now defaults to assets/ directory when present (authorship quality-of-life).
+  - Compression Comparison (baseline): "Compression Compare" toggle probes sibling .ktx2/.ktx/.dds variants for the selected texture, listing on-disk sizes & % savings; deeper GPU memory/timing analysis deferred.
 
 ### New Skill Visual Authoring Tools (Phase 2.4 updates)
 

@@ -59,12 +59,12 @@ This plan builds upon the existing asset management infrastructure to create a s
 ## Phase 5: Advanced Asset Management Features
 [x] Implement asset atlas generation and preview
   Initial slice complete: horizontal atlas build action wired via `rogue_asset_manager_build_atlas_horizontal` with atlas index selection in panel. Pending: visual atlas/UV inspector, multi-texture packing heuristics, bin-pack variants.
-[ ] Add texture compression format support and comparison
-  Planned: probe sibling .ktx2/.ktx/.dds files; surface size/time deltas and advisory to prefer compressed variant; integrate with future compression recommendation heuristics.
+[x] Add texture compression format support and comparison
+  Initial slice: overlay "Compression Compare" toggle probes sibling .ktx2/.ktx/.dds variants for selected texture, reports on-disk byte sizes and % savings vs original, and reminds about Prefer Compressed toggle. Deferred: runtime decode timing, GPU memory delta, batch report, auto suggestion list integration with optimization panel.
 [x] Create asset memory usage profiler with allocation tracking
   Initial slice: approximate per-frame texture memory (w*h*4) + peak tracking. Future: real GPU query (if available), audio buffer sizing, per-atlas breakdown, histogram.
 [x] Implement asset streaming queue visualization
-  Placeholder section + queue depth surfaced via metrics; per-item listing & progress bars deferred until streaming worker/threading upgrade.
+  Enhanced initial slice: queue section now lists pending jobs (index, texture index, state loaded/failed/pending, original path) with manual Step controls (1/4/All) and toggle for streaming enable. Uses new snapshot API exposing shallow copies of pending jobs. Future: age timestamps, ETA estimates, progress %, prioritization, background worker thread, enqueue UI for test harness, and per-frame latency histogram.
 [x] Add performance metrics dashboard for asset loading
   Initial slice: cumulative microseconds + load counts, streaming queue depth, streamed load tally via `rogue_asset_manager_get_metrics`. Future: rolling averages, percentile latencies, histograms, reset/ snapshot export.
 [x] Create asset caching strategy configuration interface

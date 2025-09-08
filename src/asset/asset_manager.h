@@ -161,6 +161,19 @@ int rogue_asset_manager_stream_step(int max_to_load);
 /* Current queue depth (pending jobs). */
 int rogue_asset_manager_stream_queue_depth(void);
 
+/* Snapshot (copy) current pending streaming texture jobs into caller-provided buffer.
+   Returns number of entries written (may be < max). The queue is shallow: jobs are
+   removed only when processed via stream_step. This read-only snapshot allows debug
+   UIs to display pending jobs without exposing internal mutable arrays. */
+typedef struct RogueStreamJobInfo
+{
+    int texture_index;  /* index into texture array */
+    char path[260];     /* original path enqueued */
+    int already_loaded; /* 1 if texture SDL object now loaded */
+    int load_failed;    /* 1 if negative cache flag set */
+} RogueStreamJobInfo;
+int rogue_asset_manager_stream_queue_snapshot(RogueStreamJobInfo* out_jobs, int max_jobs);
+
 /* ---------------- Phase 6: Platform-Specific Optimization Hooks --------- */
 /* Hint the manager to prefer compressed texture variants (.ktx2, .ktx, .dds) when present.
     The acquire path will attempt to substitute an alternate extension if the original path

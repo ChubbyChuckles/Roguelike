@@ -860,6 +860,36 @@ int rogue_asset_manager_stream_step(int max_to_load)
 
 int rogue_asset_manager_stream_queue_depth(void) { return g_stream_job_count; }
 
+int rogue_asset_manager_stream_queue_snapshot(RogueStreamJobInfo* out_jobs, int max_jobs)
+{
+    if (!out_jobs || max_jobs <= 0)
+        return 0;
+    int n = g_stream_job_count;
+    if (n > max_jobs)
+        n = max_jobs;
+    for (int i = 0; i < n; ++i)
+    {
+        out_jobs[i].texture_index = g_stream_jobs[i].texture_index;
+        size_t plen = strlen(g_stream_jobs[i].path);
+        if (plen >= sizeof(out_jobs[i].path))
+            plen = sizeof(out_jobs[i].path) - 1;
+        memcpy(out_jobs[i].path, g_stream_jobs[i].path, plen);
+        out_jobs[i].path[plen] = '\0';
+        const RogueAssetTexture* tex = rogue_asset_manager_get(g_stream_jobs[i].texture_index);
+        if (tex)
+        {
+            out_jobs[i].already_loaded = tex->sdl_texture ? 1 : 0;
+            out_jobs[i].load_failed = tex->load_failed ? 1 : 0;
+        }
+        else
+        {
+            out_jobs[i].already_loaded = 0;
+            out_jobs[i].load_failed = 0;
+        }
+    }
+    return n;
+}
+
 /* ---------------- Platform Optimization Flags ---------------- */
 void rogue_asset_manager_set_prefer_compressed_textures(bool enable)
 {

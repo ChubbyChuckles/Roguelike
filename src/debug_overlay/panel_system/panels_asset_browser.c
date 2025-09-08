@@ -160,6 +160,7 @@ typedef struct AssetBrowserEnhancedState
     int show_perf_metrics;                  /* performance metrics dashboard */
     int show_cache_config;                  /* caching strategy placeholder */
     int show_vcs_overlay;                   /* git status overlay placeholder */
+    int show_compression_compare;           /* Phase 5: texture compression comparison UI */
 } AssetBrowserEnhancedState;
 
 static AssetBrowserEnhancedState g_ab_state; /* zero-init */
@@ -773,6 +774,7 @@ static void panel_asset_browser(void* user)
     overlay_checkbox("Perf Metrics", &g_ab_state.show_perf_metrics);
     overlay_checkbox("Cache Config", &g_ab_state.show_cache_config);
     overlay_checkbox("VCS Overlay", &g_ab_state.show_vcs_overlay);
+    overlay_checkbox("Compression Compare", &g_ab_state.show_compression_compare);
     /* Atlas Tool UI */
     if (g_ab_state.show_atlas_tool)
     {
@@ -855,11 +857,48 @@ static void panel_asset_browser(void* user)
         snprintf(line2, sizeof line2, "Loaded %% of Total (est): %.1f%%", pct);
         overlay_label(line2);
     }
-    /* Streaming Queue Visualization (stub) */
+    /* Streaming Queue Visualization (Phase 5 enhanced slice) */
     if (g_ab_state.show_stream_queue)
     {
-        overlay_label("[Streaming Queue] (stub) – integrate when queue introspection API exposed");
-        overlay_label("Enable streaming mode in asset manager to populate future list.");
+        overlay_label("[Streaming Queue]");
+        int enabled = rogue_asset_manager_streaming_enabled();
+        if (overlay_checkbox("Streaming Enabled", &enabled))
+            rogue_asset_manager_set_streaming_enabled(enabled ? 1 : 0);
+        /* Manual step controls */
+        if (overlay_button("Step 1"))
+            rogue_asset_manager_stream_step(1);
+        overlay_same_line();
+        if (overlay_button("Step 4"))
+            rogue_asset_manager_stream_step(4);
+        overlay_same_line();
+        if (overlay_button("Step All"))
+            rogue_asset_manager_stream_step(0);
+        int depth = rogue_asset_manager_stream_queue_depth();
+        char qline[64];
+        snprintf(qline, sizeof qline, "Pending Jobs: %d", depth);
+        overlay_label(qline);
+        if (depth > 0)
+        {
+            RogueStreamJobInfo jobs[32];
+            int got = rogue_asset_manager_stream_queue_snapshot(jobs, 32);
+            overlay_label("Idx | TexIdx | State | Path");
+            for (int i = 0; i < got; ++i)
+            {
+                const RogueAssetTexture* tex = rogue_asset_manager_get(jobs[i].texture_index);
+                const char* state = jobs[i].already_loaded
+                                        ? "loaded"
+                                        : (jobs[i].load_failed ? "failed" : "pending");
+                char line2[340];
+                snprintf(line2, sizeof line2, "%2d | %6d | %-7s | %s", i, jobs[i].texture_index,
+                         state, jobs[i].path);
+                overlay_label(line2);
+            }
+            overlay_label("(Jobs load in reverse insertion order – compact removal)");
+        }
+        else
+        {
+            overlay_label("Queue empty. Enqueue via gameplay systems or add future test UI.");
+        }
     }
     /* Performance Metrics (placeholder: reuse atlas metrics + counts) */
     if (g_ab_state.show_perf_metrics)
@@ -880,6 +919,101 @@ static void panel_asset_browser(void* user)
     if (g_ab_state.show_vcs_overlay)
     {
         overlay_label("[Git Overlay] (placeholder) – pending changes & per-asset status.");
+    }
+    if (g_ab_state.show_compression_compare && g_ab_state.tab_index == 1) /* Textures tab */
+    {
+        overlay_label(
+            "[Compression Comparison] Probe alternative on-disk formats (.ktx2/.ktx/.dds)");
+        int sel = g_ab_state.selected_row;
+        if (sel >= 0 && (uint32_t) sel < m->texture_count)
+        {
+            const RogueAssetTexture* tex = &m->textures[sel];
+            char original[260];
+            ab_safe_copy(original, sizeof original, tex->path);
+            /* Derive base (strip extension) */
+            const char* dot = strrchr(original, '.');
+            size_t base_len = dot ? (size_t) (dot - original) : strlen(original);
+            char base[260];
+            if (base_len >= sizeof base)
+                base_len = sizeof base - 1; /* clamp */
+            memcpy(base, original, base_len);
+            base[base_len] = '\0';
+            const char* exts[] = {".ktx2", ".ktx", ".dds"};
+            uint64_t sizes[3] = {0, 0, 0};
+            uint64_t orig_size = 0;
+            /* stat helper */
+            for (int pass = -1; pass < 3; ++pass)
+            {
+                char path[320];
+                if (pass == -1)
+                {
+                    ab_safe_copy(path, sizeof path, original);
+                }
+                else
+                {
+                    size_t bl = strlen(base);
+                    size_t el = strlen(exts[pass]);
+                    if (bl + el + 1 < sizeof path)
+                    {
+                        memcpy(path, base, bl);
+                        memcpy(path + bl, exts[pass], el + 1);
+                    }
+                    else
+                        path[0] = '\0';
+                }
+                if (path[0] && rogue_asset_file_exists(path))
+                {
+#ifdef _WIN32
+                    struct _stat s;
+                    if (_stat(path, &s) == 0)
+                    {
+                        if (pass == -1)
+                            orig_size = (uint64_t) s.st_size;
+                        else
+                            sizes[pass] = (uint64_t) s.st_size;
+                    }
+#else
+                    struct stat s;
+                    if (stat(path, &s) == 0)
+                    {
+                        if (pass == -1)
+                            orig_size = (uint64_t) s.st_size;
+                        else
+                            sizes[pass] = (uint64_t) s.st_size;
+                    }
+#endif
+                }
+            }
+            char line2[160];
+            snprintf(line2, sizeof line2, "Original (%s) size: %llu bytes", original,
+                     (unsigned long long) orig_size);
+            overlay_label(line2);
+            for (int i = 0; i < 3; i++)
+            {
+                if (sizes[i])
+                {
+                    double pct = (orig_size && orig_size > sizes[i])
+                                     ? (100.0 - (double) sizes[i] * 100.0 / (double) orig_size)
+                                     : 0.0;
+                    snprintf(line2, sizeof line2, "%s present: %llu bytes (%.1f%% smaller)",
+                             exts[i], (unsigned long long) sizes[i], pct);
+                }
+                else
+                {
+                    snprintf(line2, sizeof line2, "%s missing", exts[i]);
+                }
+                overlay_label(line2);
+            }
+            if (orig_size && (sizes[0] || sizes[1] || sizes[2]))
+                overlay_label(
+                    "Toggle 'Prefer Compressed' in metrics panel to auto-substitute where found.");
+            else
+                overlay_label("No alternative compressed variants found next to this texture.");
+        }
+        else
+        {
+            overlay_label("Select a texture row to compare.");
+        }
     }
     /* Controls row */
     static const char* tabs[] = {"All", "Textures", "Audio", "JSON", "Shaders"};
