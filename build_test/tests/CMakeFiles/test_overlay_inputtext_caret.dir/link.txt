@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_overlay_inputtext_caret.dir/link.d CMakeFiles/test_overlay_inputtext_caret.dir/unit/test_overlay_inputtext_caret.c.o -o test_overlay_inputtext_caret  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

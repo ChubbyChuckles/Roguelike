@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_save_v3_tlv_headers.dir/link.d CMakeFiles/test_save_v3_tlv_headers.dir/unit/test_save_v3_tlv_headers.c.o -o test_save_v3_tlv_headers  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

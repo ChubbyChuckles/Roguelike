@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_thread_barrier.dir/link.d CMakeFiles/test_thread_barrier.dir/tests/unit/test_thread_barrier.c.o -o test_thread_barrier  librogue_core.a librogue_thirdparty_cjson.a librogue_audio_vfx.a librogue_systems_loot.a

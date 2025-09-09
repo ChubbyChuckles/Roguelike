@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_effectspec_stack_variants.dir/link.d CMakeFiles/test_effectspec_stack_variants.dir/unit/test_effectspec_stack_variants.c.o -o test_effectspec_stack_variants  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

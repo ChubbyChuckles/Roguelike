@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_skills_phase7_2_procs_icd.dir/link.d CMakeFiles/test_skills_phase7_2_procs_icd.dir/unit/test_skills_phase7_2_procs_icd.c.o -o test_skills_phase7_2_procs_icd  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

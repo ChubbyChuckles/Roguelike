@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_validation_cli_smoke.dir/link.d CMakeFiles/test_validation_cli_smoke.dir/unit/test_validation_cli_smoke.c.o -o test_validation_cli_smoke  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

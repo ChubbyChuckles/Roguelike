@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_loot_phase9_tuning_console.dir/link.d CMakeFiles/test_loot_phase9_tuning_console.dir/unit/test_loot_phase9_tuning_console.c.o -o test_loot_phase9_tuning_console  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_ai_phase6_1_ranged_projectile.dir/link.d CMakeFiles/test_ai_phase6_1_ranged_projectile.dir/unit/test_ai_phase6_1_ranged_projectile.c.o -o test_ai_phase6_1_ranged_projectile  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

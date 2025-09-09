@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_item_creation_wizard.dir/link.d CMakeFiles/test_item_creation_wizard.dir/unit/test_item_creation_wizard.c.o -o test_item_creation_wizard  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_loot_phase4_inventory_persistence.dir/link.d CMakeFiles/test_loot_phase4_inventory_persistence.dir/unit/test_loot_phase4_inventory_persistence.c.o -o test_loot_phase4_inventory_persistence  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

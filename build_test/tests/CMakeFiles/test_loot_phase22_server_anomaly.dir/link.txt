@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_loot_phase22_server_anomaly.dir/link.d CMakeFiles/test_loot_phase22_server_anomaly.dir/unit/test_loot_phase22_server_anomaly.c.o -o test_loot_phase22_server_anomaly  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

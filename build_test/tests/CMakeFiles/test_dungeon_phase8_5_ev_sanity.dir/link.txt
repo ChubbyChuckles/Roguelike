@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_dungeon_phase8_5_ev_sanity.dir/link.d CMakeFiles/test_dungeon_phase8_5_ev_sanity.dir/unit/test_dungeon_phase8_5_ev_sanity.c.o -o test_dungeon_phase8_5_ev_sanity  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

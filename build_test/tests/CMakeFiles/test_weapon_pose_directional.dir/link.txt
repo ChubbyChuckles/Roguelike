@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_weapon_pose_directional.dir/link.d CMakeFiles/test_weapon_pose_directional.dir/unit/test_weapon_pose_directional.c.o -o test_weapon_pose_directional  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

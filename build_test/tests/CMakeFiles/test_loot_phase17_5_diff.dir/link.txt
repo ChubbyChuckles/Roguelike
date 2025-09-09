@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_loot_phase17_5_diff.dir/link.d CMakeFiles/test_loot_phase17_5_diff.dir/unit/test_loot_phase17_5_diff.c.o -o test_loot_phase17_5_diff  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

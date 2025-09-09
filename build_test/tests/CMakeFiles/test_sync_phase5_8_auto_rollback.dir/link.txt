@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_sync_phase5_8_auto_rollback.dir/link.d CMakeFiles/test_sync_phase5_8_auto_rollback.dir/unit/test_sync_phase5_8_auto_rollback.c.o -o test_sync_phase5_8_auto_rollback  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

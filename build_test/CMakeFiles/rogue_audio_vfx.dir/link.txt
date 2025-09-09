@@ -1,2 +1,0 @@
-/usr/bin/ar qc librogue_audio_vfx.a CMakeFiles/rogue_audio_vfx.dir/src/audio_vfx/fx_bus.c.o CMakeFiles/rogue_audio_vfx.dir/src/audio_vfx/fx_audio.c.o CMakeFiles/rogue_audio_vfx.dir/src/audio_vfx/fx_vfx.c.o CMakeFiles/rogue_audio_vfx.dir/src/audio_vfx/fx_rng.c.o CMakeFiles/rogue_audio_vfx.dir/src/audio_vfx/vfx_config.c.o
-/usr/bin/ranlib librogue_audio_vfx.a

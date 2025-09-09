@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_asset_classification.dir/link.d CMakeFiles/test_asset_classification.dir/tests/unit/test_asset_classification.c.o -o test_asset_classification  librogue_core.a librogue_thirdparty_cjson.a librogue_audio_vfx.a librogue_systems_loot.a

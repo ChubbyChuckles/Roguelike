@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_biome_assets_validate.dir/link.d CMakeFiles/test_biome_assets_validate.dir/unit/test_biome_assets_validate.c.o -o test_biome_assets_validate  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

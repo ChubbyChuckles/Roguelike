@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_ui_phase7_theme.dir/link.d CMakeFiles/test_ui_phase7_theme.dir/unit/test_ui_phase7_theme.c.o -o test_ui_phase7_theme  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_entity_debug_api.dir/link.d CMakeFiles/test_entity_debug_api.dir/unit/test_entity_debug_api.c.o -o test_entity_debug_api  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

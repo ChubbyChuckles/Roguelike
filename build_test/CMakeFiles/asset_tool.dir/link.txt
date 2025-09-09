@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/asset_tool.dir/link.d CMakeFiles/asset_tool.dir/src/asset/asset_tool_cli.c.o -o asset_tool  librogue_core.a librogue_thirdparty_cjson.a librogue_audio_vfx.a librogue_systems_loot.a

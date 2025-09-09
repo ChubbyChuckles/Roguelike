@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_combat_phase7_weapon_stance_familiarity.dir/link.d CMakeFiles/test_combat_phase7_weapon_stance_familiarity.dir/unit/test_combat_phase7_weapon_stance_familiarity.c.o -o test_combat_phase7_weapon_stance_familiarity  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

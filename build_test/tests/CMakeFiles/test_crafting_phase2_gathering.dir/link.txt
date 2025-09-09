@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_crafting_phase2_gathering.dir/link.d CMakeFiles/test_crafting_phase2_gathering.dir/unit/test_crafting_phase2_gathering.c.o -o test_crafting_phase2_gathering  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

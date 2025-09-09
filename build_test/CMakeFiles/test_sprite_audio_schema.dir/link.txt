@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_sprite_audio_schema.dir/link.d CMakeFiles/test_sprite_audio_schema.dir/tests/unit/test_sprite_audio_schema.c.o -o test_sprite_audio_schema  librogue_core.a librogue_thirdparty_cjson.a librogue_audio_vfx.a librogue_systems_loot.a

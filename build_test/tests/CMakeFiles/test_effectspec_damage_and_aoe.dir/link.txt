@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_effectspec_damage_and_aoe.dir/link.d CMakeFiles/test_effectspec_damage_and_aoe.dir/unit/test_effectspec_damage_and_aoe.c.o -o test_effectspec_damage_and_aoe  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

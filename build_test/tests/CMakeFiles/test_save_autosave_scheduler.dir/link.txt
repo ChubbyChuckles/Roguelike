@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_save_autosave_scheduler.dir/link.d CMakeFiles/test_save_autosave_scheduler.dir/unit/test_save_autosave_scheduler.c.o -o test_save_autosave_scheduler  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

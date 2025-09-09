@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_persistence_edge_cases.dir/link.d CMakeFiles/test_persistence_edge_cases.dir/unit/test_persistence_edge_cases.c.o -o test_persistence_edge_cases  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

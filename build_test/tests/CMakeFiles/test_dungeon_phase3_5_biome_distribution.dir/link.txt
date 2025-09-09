@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_dungeon_phase3_5_biome_distribution.dir/link.d CMakeFiles/test_dungeon_phase3_5_biome_distribution.dir/unit/test_dungeon_phase3_5_biome_distribution.c.o -o test_dungeon_phase3_5_biome_distribution  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

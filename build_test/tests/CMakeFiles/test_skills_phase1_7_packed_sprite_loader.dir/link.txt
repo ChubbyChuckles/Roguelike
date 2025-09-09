@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_skills_phase1_7_packed_sprite_loader.dir/link.d CMakeFiles/test_skills_phase1_7_packed_sprite_loader.dir/unit/test_skills_phase1_7_packed_sprite_loader.c.o -o test_skills_phase1_7_packed_sprite_loader  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_dungeon_phase2_room_templates.dir/link.d CMakeFiles/test_dungeon_phase2_room_templates.dir/unit/test_dungeon_phase2_room_templates.c.o -o test_dungeon_phase2_room_templates  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

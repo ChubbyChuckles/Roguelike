@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_deadlock_manager.dir/link.d CMakeFiles/test_deadlock_manager.dir/tests/unit/test_deadlock_manager.c.o -o test_deadlock_manager  librogue_core.a librogue_thirdparty_cjson.a librogue_audio_vfx.a librogue_systems_loot.a

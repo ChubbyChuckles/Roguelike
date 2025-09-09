@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_ui_phase1_basic.dir/link.d CMakeFiles/test_ui_phase1_basic.dir/unit/test_ui_phase1_basic.c.o -o test_ui_phase1_basic  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

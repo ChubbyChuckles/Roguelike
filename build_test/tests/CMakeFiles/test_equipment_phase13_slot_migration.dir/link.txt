@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_equipment_phase13_slot_migration.dir/link.d CMakeFiles/test_equipment_phase13_slot_migration.dir/unit/test_equipment_phase13_slot_migration.c.o -o test_equipment_phase13_slot_migration  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

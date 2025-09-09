@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/asset_validate.dir/link.d CMakeFiles/asset_validate.dir/src/asset/asset_validate_cli.c.o -o asset_validate  librogue_core.a librogue_thirdparty_cjson.a librogue_audio_vfx.a librogue_systems_loot.a

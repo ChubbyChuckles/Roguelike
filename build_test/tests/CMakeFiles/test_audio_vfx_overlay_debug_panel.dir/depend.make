@@ -1,2 +1,0 @@
-# Empty dependencies file for test_audio_vfx_overlay_debug_panel.
-# This may be replaced when dependencies are built.

@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_snapshot_manager.dir/link.d CMakeFiles/test_snapshot_manager.dir/tests/unit/test_snapshot_manager.c.o -o test_snapshot_manager  librogue_core.a librogue_thirdparty_cjson.a librogue_audio_vfx.a librogue_systems_loot.a

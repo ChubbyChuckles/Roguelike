@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_asset_phase4_validation.dir/link.d CMakeFiles/test_asset_phase4_validation.dir/unit/test_asset_phase4_validation.c.o -o test_asset_phase4_validation  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

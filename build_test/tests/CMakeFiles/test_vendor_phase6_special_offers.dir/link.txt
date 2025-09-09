@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_vendor_phase6_special_offers.dir/link.d CMakeFiles/test_vendor_phase6_special_offers.dir/unit/test_vendor_phase6_special_offers.c.o -o test_vendor_phase6_special_offers  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

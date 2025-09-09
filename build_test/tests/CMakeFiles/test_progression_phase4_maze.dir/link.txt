@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_progression_phase4_maze.dir/link.d CMakeFiles/test_progression_phase4_maze.dir/unit/test_progression_phase4_maze.c.o -o test_progression_phase4_maze  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

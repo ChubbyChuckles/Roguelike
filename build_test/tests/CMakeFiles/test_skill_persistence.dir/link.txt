@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_skill_persistence.dir/link.d CMakeFiles/test_skill_persistence.dir/unit/test_skill_persistence.c.o -o test_skill_persistence  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

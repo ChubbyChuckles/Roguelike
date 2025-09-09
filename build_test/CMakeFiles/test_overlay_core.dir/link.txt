@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_overlay_core.dir/link.d CMakeFiles/test_overlay_core.dir/tests/unit/test_overlay_core.c.o -o test_overlay_core  librogue_core.a librogue_thirdparty_cjson.a librogue_audio_vfx.a librogue_systems_loot.a

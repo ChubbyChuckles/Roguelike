@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_equipment_phase16_set_builder.dir/link.d CMakeFiles/test_equipment_phase16_set_builder.dir/unit/test_equipment_phase16_set_builder.c.o -o test_equipment_phase16_set_builder  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_combat_damage_observer.dir/link.d CMakeFiles/test_combat_damage_observer.dir/unit/test_combat_damage_observer.c.o -o test_combat_damage_observer  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

@@ -1,2 +1,0 @@
-# Empty dependencies file for test_sync_phase5_8_delta.
-# This may be replaced when dependencies are built.

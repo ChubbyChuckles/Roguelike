@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_worldgen_phase5_rivers_erosion.dir/link.d CMakeFiles/test_worldgen_phase5_rivers_erosion.dir/unit/test_worldgen_phase5_rivers_erosion.c.o -o test_worldgen_phase5_rivers_erosion  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

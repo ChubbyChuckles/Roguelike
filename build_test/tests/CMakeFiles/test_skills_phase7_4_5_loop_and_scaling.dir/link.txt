@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_skills_phase7_4_5_loop_and_scaling.dir/link.d CMakeFiles/test_skills_phase7_4_5_loop_and_scaling.dir/unit/test_skills_phase7_4_5_loop_and_scaling.c.o -o test_skills_phase7_4_5_loop_and_scaling  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

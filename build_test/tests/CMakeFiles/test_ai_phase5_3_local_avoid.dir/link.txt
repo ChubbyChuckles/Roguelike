@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_ai_phase5_3_local_avoid.dir/link.d CMakeFiles/test_ai_phase5_3_local_avoid.dir/unit/test_ai_phase5_3_local_avoid.c.o -o test_ai_phase5_3_local_avoid  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

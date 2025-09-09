@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_ai_phase6_4_kiting.dir/link.d CMakeFiles/test_ai_phase6_4_kiting.dir/unit/test_ai_phase6_4_kiting.c.o -o test_ai_phase6_4_kiting  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

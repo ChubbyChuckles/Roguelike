@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_combat_phase7_armor_weight_classes.dir/link.d CMakeFiles/test_combat_phase7_armor_weight_classes.dir/unit/test_combat_phase7_armor_weight_classes.c.o -o test_combat_phase7_armor_weight_classes  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

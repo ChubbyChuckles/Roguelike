@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/econ_migrate.dir/link.d CMakeFiles/econ_migrate.dir/tools/econ_migrate.c.o -o econ_migrate  librogue_core.a librogue_thirdparty_cjson.a librogue_audio_vfx.a librogue_systems_loot.a

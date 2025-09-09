@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_weapon_pose_directional_fallback.dir/link.d CMakeFiles/test_weapon_pose_directional_fallback.dir/unit/test_weapon_pose_directional_fallback.c.o -o test_weapon_pose_directional_fallback  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

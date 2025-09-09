@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_worldgen_phase2_macro.dir/link.d CMakeFiles/test_worldgen_phase2_macro.dir/unit/test_worldgen_phase2_macro.c.o -o test_worldgen_phase2_macro  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

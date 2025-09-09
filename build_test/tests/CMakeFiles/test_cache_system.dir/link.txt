@@ -1,1 +1,0 @@
-/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_cache_system.dir/link.d CMakeFiles/test_cache_system.dir/unit/test_cache_system.c.o -o test_cache_system  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a
