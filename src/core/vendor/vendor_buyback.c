@@ -4,6 +4,7 @@
 #include "vendor_analytics.h"
 #include "vendor_pricing.h"
 #include "vendor_registry.h"
+#include "vendor_security.h"
 #include <string.h>
 
 #ifndef ROGUE_VENDOR_MAX
@@ -232,6 +233,8 @@ int rogue_vendor_buyback_purchase_with_journal(int vendor_def_index, unsigned lo
     {
         rogue_vendor_tx_journal_record(vendor_def_index, guid, 2 /* buyback code */, price,
                                        rep_delta, 0);
+        /* Count this vendor->player purchase for spree guard */
+        rogue_vendor_security_note_purchase(now_ms);
     }
     return price;
 }

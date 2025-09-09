@@ -67,6 +67,50 @@ void rogue_vendor_tx_journal_record(int vendor_def_index, unsigned long long ite
                                    (unsigned int) price, rep_delta, discount_pct);
 }
 
+int rogue_vendor_tx_journal_export_copy(RogueVendorTxEntry* out, int cap)
+{
+    if (cap < 0)
+        cap = 0;
+    int n = g_entry_count;
+    if (out && cap > 0)
+    {
+        int copy = (n < cap) ? n : cap;
+        if (copy > 0)
+            memcpy(out, g_entries, (size_t) copy * sizeof(RogueVendorTxEntry));
+    }
+    return n;
+}
+
+int rogue_vendor_tx_journal_import_verify(const RogueVendorTxEntry* arr, int count,
+                                          unsigned int expect_hash)
+{
+    if (count < 0)
+        return -1;
+    rogue_vendor_tx_journal_reset();
+    if (count == 0)
+        return (expect_hash == g_accum_hash) ? 0 : -1;
+    int max = (count > ROGUE_VENDOR_TX_JOURNAL_CAP) ? ROGUE_VENDOR_TX_JOURNAL_CAP : count;
+    for (int i = 0; i < max; ++i)
+    {
+        const RogueVendorTxEntry* e = &arr[i];
+        /* Rebuild using the same hash step order to avoid trusting stored hash blindly */
+        unsigned int h = g_accum_hash;
+        h = fnv1a_step(h, e->op_id);
+        h = fnv1a_step(h, e->timestamp_ms);
+        h = fnv1a_step(h, e->vendor_id);
+        h = fnv1a_step(h, e->action_code);
+        h = fnv1a_step(h, e->item_guid_low);
+        h = fnv1a_step(h, e->price);
+        h = fnv1a_step(h, e->rep_delta);
+        h = fnv1a_step(h, e->discount_pct);
+        g_entries[i] = *e;
+        g_entries[i].op_id = (unsigned int) i; /* normalize op_id to load order */
+        g_accum_hash = h;
+    }
+    g_entry_count = max;
+    return (g_accum_hash == expect_hash) ? 0 : -1;
+}
+
 int rogue_vendor_tx_journal_compact_summary(RogueVendorTxCompactionSummary* out_summary)
 {
     if (!out_summary || g_entry_count == 0)

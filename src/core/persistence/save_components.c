@@ -15,6 +15,7 @@
 #include "../vendor/vendor_registry.h"
 #include "../vendor/vendor_reputation.h"
 #include "../vendor/vendor_special_offers.h"
+#include "../vendor/vendor_tx_journal.h"
 #include "save_intern.h"
 #include "save_internal.h"
 #include "save_replay.h"
@@ -815,6 +816,9 @@ static int write_vendor_component(FILE* f)
                                                      &offers_seed, &offers_misses);
         /* Buyback: iterate vendor defs and export entries */
         int vdef_count = rogue_vendor_def_count();
+        /* Journal (Phase 15.4) */
+        unsigned int journal_hash = rogue_vendor_tx_journal_accum_hash();
+        int journal_count = rogue_vendor_tx_journal_export_copy(NULL, 0);
         /* Compute payload size */
         uint32_t payload_size = 0;
         payload_size += sizeof(uint32_t) + (uint32_t) (dcount * sizeof(float) * 2);
@@ -833,6 +837,9 @@ static int write_vendor_component(FILE* f)
                                              bc * (int) sizeof(RogueVendorBuybackEntry));
         }
         payload_size += (uint32_t) buyback_payload_bytes;
+        /* journal: count + hash + entries */
+        payload_size += sizeof(uint32_t) + sizeof(uint32_t) +
+                        (uint32_t) journal_count * (uint32_t) sizeof(RogueVendorTxEntry);
         /* Write header */
         fwrite(magic, 1, 4, f);
         fwrite(&payload_size, sizeof payload_size, 1, f);
@@ -845,8 +852,8 @@ static int write_vendor_component(FILE* f)
             fwrite(scarcity, sizeof(float), (size_t) dcount, f);
         }
         /* Reputation states */
-        uint32_t rc = (uint32_t) rep_count;
-        fwrite(&rc, sizeof rc, 1, f);
+        uint32_t rep_u32 = (uint32_t) rep_count;
+        fwrite(&rep_u32, sizeof rep_u32, 1, f);
         for (int i = 0; i < rep_count; i++)
         {
             const RogueVendorRepState* st = rogue_vendor_rep_state_at(i);
@@ -870,6 +877,24 @@ static int write_vendor_component(FILE* f)
             fwrite(&bcc, sizeof bcc, 1, f);
             for (int k = 0; k < bc; k++)
                 fwrite(&tmp[k], sizeof tmp[k], 1, f);
+        }
+        /* Journal block at end of VEX1 */
+        {
+            uint32_t jc = (uint32_t) journal_count;
+            fwrite(&jc, sizeof jc, 1, f);
+            fwrite(&journal_hash, sizeof journal_hash, 1, f);
+            if (journal_count > 0)
+            {
+                RogueVendorTxEntry* ents =
+                    (RogueVendorTxEntry*) malloc((size_t) journal_count * sizeof *ents);
+                if (ents)
+                {
+                    int jrc = rogue_vendor_tx_journal_export_copy(ents, journal_count);
+                    if (jrc > 0)
+                        fwrite(ents, sizeof *ents, (size_t) jrc, f);
+                    free(ents);
+                }
+            }
         }
     }
     return 0;
@@ -1020,6 +1045,38 @@ static int read_vendor_component(FILE* f, size_t size)
                         }
                         rogue_vendor_buyback_import(vidx, arr, (int) bc);
                         free(arr);
+                    }
+                }
+                /* Journal verification (Phase 15.4) */
+                {
+                    uint32_t jc = 0;
+                    uint32_t jh = 0;
+                    if (fread(&jc, sizeof jc, 1, f) != 1)
+                        return -1;
+                    if (fread(&jh, sizeof jh, 1, f) != 1)
+                        return -1;
+                    if (jc > 0)
+                    {
+                        size_t need = (size_t) jc * sizeof(RogueVendorTxEntry);
+                        RogueVendorTxEntry* arr = (RogueVendorTxEntry*) malloc(need);
+                        if (!arr)
+                            return -1;
+                        if (fread(arr, sizeof(RogueVendorTxEntry), jc, f) != jc)
+                        {
+                            free(arr);
+                            return -1;
+                        }
+                        if (rogue_vendor_tx_journal_import_verify(arr, (int) jc, jh) != 0)
+                        {
+                            free(arr);
+                            return -1; /* integrity failure */
+                        }
+                        free(arr);
+                    }
+                    else
+                    {
+                        if (rogue_vendor_tx_journal_import_verify(NULL, 0, jh) != 0)
+                            return -1;
                     }
                 }
             }

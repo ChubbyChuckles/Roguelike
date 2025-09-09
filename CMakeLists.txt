@@ -425,6 +425,7 @@ add_library(rogue_core
     src/core/vendor/vendor_inventory_templates.c
     src/core/vendor/vendor_pricing.c
     src/core/vendor/vendor_adaptive.c
+    src/core/vendor/vendor_security.c
     src/core/vendor/vendor_econ_balance.c
     src/core/vendor/vendor_perf.c
     src/core/vendor/vendor_reputation.c

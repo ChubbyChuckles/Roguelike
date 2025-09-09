@@ -187,6 +187,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase13_compaction.c AND 
     rogue_add_test(NAME test_vendor_phase13_compaction COMMAND test_vendor_phase13_compaction)
 endif()
 
+# Vendor System Phase 15.4 journal verify on load
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase15_4_journal_verify.c AND NOT TARGET test_vendor_phase15_4_journal_verify)
+    add_executable(test_vendor_phase15_4_journal_verify unit/test_vendor_phase15_4_journal_verify.c)
+    target_link_libraries(test_vendor_phase15_4_journal_verify PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_vendor_phase15_4_journal_verify PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_vendor_phase15_4_journal_verify PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(NAME test_vendor_phase15_4_journal_verify COMMAND test_vendor_phase15_4_journal_verify)
+endif()
+
 # Vendor basic inventory test
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_inventory.c AND NOT TARGET test_vendor_inventory)
     add_executable(test_vendor_inventory unit/test_vendor_inventory.c)

@@ -4,6 +4,7 @@
 #include "vendor_analytics.h"
 #include "vendor_econ_balance.h"
 #include "vendor_rng.h"
+#include "vendor_security.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -170,7 +171,12 @@ int rogue_vendor_compute_price(int vendor_def_index, int item_def_index, int rar
     {
         exploit_scalar = rogue_vendor_adaptive_exploit_scalar();
     }
-    price *= demand_scalar * scarcity_scalar * exploit_scalar;
+    float security_scalar = 1.0f;
+    if (is_vendor_selling)
+    {
+        security_scalar = rogue_vendor_security_exploit_scalar();
+    }
+    price *= demand_scalar * scarcity_scalar * exploit_scalar * security_scalar;
     /* Multi-vendor balancing (Phase 10): dynamic global margin & biome variance
         For now we approximate biome tags via vendor def's biome_tags field through registry if
        available. */
@@ -196,8 +202,8 @@ int rogue_vendor_compute_price(int vendor_def_index, int item_def_index, int rar
        to capture computed prices and adjustment ratios for elasticity. */
     if (is_vendor_selling)
     {
-        float adj_pct =
-            demand_scalar * scarcity_scalar * exploit_scalar * global_scalar * biome_scalar;
+        float adj_pct = demand_scalar * scarcity_scalar * exploit_scalar * security_scalar *
+                        global_scalar * biome_scalar;
         /* convert to percentage delta relative to 1.0 baseline */
         float adjustment_pct = (adj_pct - 1.0f) * 100.0f;
         rogue_vendor_analytics_record_vendor_sale(category, rarity, final_price, adjustment_pct, 0);

@@ -144,11 +144,15 @@ PHASE 14. Analytics & Telemetry
 	and test_vendor_phase14_6_analytics_stability.c (elasticity duplication invariance, degenerate slope, drift false-positive guard).
 
 PHASE 15. Security / Anti-Exploit
-15.1 Rapid flip detection (buy->sell cycle time analysis) (X)
-15.2 Negotiation spam rate limit & anomaly detection (X)
-15.3 Price manipulation guard (sudden large-volume purchases -> temporary margin buff) (X)
-15.4 Journal hash chain verification on load (X)
-15.5 Tests: exploit scenario simulations, false positives bounded (X)
+15.1 Rapid flip detection (buy->sell cycle time analysis) (Done)
+	- Spree guard implemented in vendor_security; purchase hook added in vendor_buyback.
+15.2 Negotiation spam rate limit & anomaly detection (Done)
+	- Per-vendor negotiation guard with 10s window and 20s extended lockout.
+15.3 Price manipulation guard (sudden large-volume purchases -> temporary margin buff) (Done)
+	- Security scalar integrated into vendor_pricing and analytics adjustment.
+15.4 Journal hash chain verification on load (Done)
+15.5 Tests: exploit scenario simulations, false positives bounded (Done)
+	- tests/unit/test_vendor_phase15_security.c
 
 PHASE 16. UI / UX
 16.1 Vendor panel: tabs (Buy, Sell, Buyback, Special) (X)

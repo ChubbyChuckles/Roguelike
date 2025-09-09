@@ -39,6 +39,20 @@ jobs:
           - os: ubuntu-latest
             build_type: Release
             compiler: gcc
+          # Ubuntu 24.04 (GCC)
+          - os: ubuntu-24.04
+            build_type: Debug
+            compiler: gcc
+          - os: ubuntu-24.04
+            build_type: Release
+            compiler: gcc
+          # Ubuntu 22.04 (GCC)
+          - os: ubuntu-22.04
+            build_type: Debug
+            compiler: gcc
+          - os: ubuntu-22.04
+            build_type: Release
+            compiler: gcc
           # Ubuntu (Clang)
           - os: ubuntu-latest
             build_type: Debug
@@ -46,11 +60,39 @@ jobs:
           - os: ubuntu-latest
             build_type: Release
             compiler: clang
+          # Ubuntu 24.04 (Clang)
+          - os: ubuntu-24.04
+            build_type: Debug
+            compiler: clang
+          - os: ubuntu-24.04
+            build_type: Release
+            compiler: clang
+          # Ubuntu 22.04 (Clang)
+          - os: ubuntu-22.04
+            build_type: Debug
+            compiler: clang
+          - os: ubuntu-22.04
+            build_type: Release
+            compiler: clang
           # macOS (Clang)
           - os: macos-latest
             build_type: Debug
             compiler: clang
           - os: macos-latest
+            build_type: Release
+            compiler: clang
+          # macOS 15 (Apple Silicon)
+          - os: macos-15
+            build_type: Debug
+            compiler: clang
+          - os: macos-15
+            build_type: Release
+            compiler: clang
+          # macOS 14 (Apple Silicon)
+          - os: macos-14
+            build_type: Debug
+            compiler: clang
+          - os: macos-14
             build_type: Release
             compiler: clang
           # macOS (Intel) for broader coverage when available
@@ -336,7 +378,7 @@ jobs:
         if: ${{ matrix.build_type == 'Release' }}
         uses: actions/upload-artifact@v4
         with:
-          name: builddir-${{ matrix.os }}-release-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.short_sha }}
+          name: builddir-${{ matrix.os }}-${{ matrix.compiler }}-release-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.short_sha }}
           path: build/**
 
       - name: Comment failure summary on PR
@@ -373,17 +415,6 @@ jobs:
         run: |
           echo "Running clang-tidy on a broader subset using compile_commands.json context..."
           find src -type f -name "*.c" | head -n 200 | xargs -I{} bash -c 'clang-tidy -p build "{}" || true'
-
-      #   - name: Format Check (Windows only)
-      #     if: runner.os == 'Windows'
-      #     shell: pwsh
-      #     run: |
-      #       $ErrorActionPreference = 'Stop'
-      #       cmake --build build --config ${{ env.BUILD_TYPE }} --target format-check
-      #       if ($LASTEXITCODE -ne 0) {
-      #         Write-Host "Format check failed. Run: cmake --build build --target format"
-      #         exit 1
-      #       }
 
       - name: Run clang-tidy (Windows, broadened via compile_commands.json; non-blocking)
         if: runner.os == 'Windows'
@@ -483,12 +514,27 @@ jobs:
   package-release:
     name: Package Release Artifacts (${{ matrix.os }})
     needs: [build-and-test]
+    if: always()
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        include:
+          - os: windows-latest
+            compiler: msvc
+          - os: ubuntu-latest
+            compiler: gcc
+          - os: ubuntu-latest
+            compiler: clang
+          - os: ubuntu-22.04
+            compiler: gcc
+          - os: ubuntu-22.04
+            compiler: clang
+          - os: macos-latest
+            compiler: clang
+          - os: macos-13
+            compiler: clang
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -509,47 +555,15 @@ jobs:
 
       # Try to reuse the Release build directory produced in the build-and-test job
       - name: Download Release build directory artifact
+        id: dl_release
         uses: actions/download-artifact@v4
         with:
-          name: builddir-${{ matrix.os }}-release-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.short_sha }}
+          name: builddir-${{ matrix.os }}-${{ matrix.compiler }}-release-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.short_sha }}
           path: build
         continue-on-error: true
 
-      # Fallback: if artifact not found (e.g., matrix mismatch), perform a fresh Release configure+build
-      - name: Fallback Configure+Build (Release)
-        if: always()
-        shell: bash
-        timeout-minutes: 25
-        run: |
-          set -Eeuo pipefail
-          if [ -f build/CPackConfig.cmake ]; then
-            echo "Found existing build/CPackConfig.cmake; skipping fallback configure+build."
-            exit 0
-          fi
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            VCPKG_TEMP="$RUNNER_TEMP/vcpkg"
-            if [ ! -d "$VCPKG_TEMP" ]; then
-              git clone https://github.com/microsoft/vcpkg "$VCPKG_TEMP"
-              "$VCPKG_TEMP/bootstrap-vcpkg.bat"
-            fi
-            cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DROGUE_ENABLE_SDL=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_TOOLCHAIN_FILE="$VCPKG_TEMP/scripts/buildsystems/vcpkg.cmake"
-          elif [ "$RUNNER_OS" = "Linux" ]; then
-            timeout 10m sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-            timeout 10m sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y cmake ninja-build
-            cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DROGUE_ENABLE_SDL=ON
-          else
-            export HOMEBREW_NO_AUTO_UPDATE=1
-            export HOMEBREW_NO_INSTALL_CLEANUP=1
-            brew update && brew install cmake ninja || true
-            cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release -DROGUE_ENABLE_SDL=ON
-          fi
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            cmake --build build --config Release --parallel 12 | tee build/build_release_${{ matrix.os }}.log
-          else
-            cmake --build build --parallel 12 | tee build/build_release_${{ matrix.os }}.log
-          fi
-
       - name: Package with CPack
+        if: ${{ steps.dl_release.outcome == 'success' }}
         timeout-minutes: 20
         run: |
           set -Eeuo pipefail
@@ -557,18 +571,19 @@ jobs:
           (cd build && cpack -C Release | tee cpack_${{ matrix.os }}.log)
 
       - name: Upload packages and logs
+        if: ${{ steps.dl_release.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
-          name: packages-${{ matrix.os }}-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.short_sha }}
+          name: packages-${{ matrix.os }}-${{ matrix.compiler }}-${{ steps.ver.outputs.version }}-${{ steps.ver.outputs.short_sha }}
           path: |
             build/*.zip
             build/*.tgz
             build/*.log
 
   publish-release:
-    name: Publish GitHub Release
+    name: Publish GitHub Release (attach all successful packages)
     needs: [package-release]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: always() && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

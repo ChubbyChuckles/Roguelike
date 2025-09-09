@@ -162,4 +162,28 @@ feat(vendor/phase14): analytics module, integration hooks, and tests (14.1–14.
 	• tests/unit/test_vendor_phase14_6_analytics_stability.c validates elasticity stability (duplication invariance, degenerate slope ~0) and drift false-positive guard under ±5% noise with a 25% threshold
 - Fixes during integration: corrected header typo (ROGUE_ITEM___COUNT → ROGUE_ITEM__COUNT) and added missing include vendor_analytics.h in vendor_buyback.c to satisfy MSVC warnings-as-errors
 - Roadmap: mark Phase 14.1–14.6 Done; README updated (Vendor Analytics section and latest CI counts)
-- Verification: Debug (SDL2) full suite passed 100% (662/662)
+ - Verification: Debug (SDL2) full suite passed 100% (662/662)
+
+feat(vendor/phase15): security/anti-exploit guards and tests (15.1–15.3,15.5)
+
+- New module src/core/vendor/vendor_security.[ch]
+	• Purchase spree tracking ring buffer; scalar up to +5% for >10 purchases within 10s (capped at 20)
+	• Negotiation spam guard per vendor with 10s window and 20s extended lockout; lockout query API
+- Integration:
+	• vendor_pricing: include security scalar when vendor is selling to player; include in analytics adj_pct
+	• vendor_buyback: record vendor->player purchase timestamps to feed spree guard
+- Build: add vendor_security.c to rogue_core in CMake
+- Tests: tests/unit/test_vendor_phase15_security.c validates spree scalar bounds and negotiation lockout behavior
+- Roadmap: Phase 15.1–15.3 and 15.5 marked Done; 15.4 (journal hash verification on load) left TODO
+
+feat(vendor/phase15.4): journal hash chain verification on load + persistence wiring
+
+- vendor_tx_journal: added export/import verify APIs
+	• rogue_vendor_tx_journal_export_copy(out, cap) returns a copy of in-memory entries for persistence/snapshotting
+	• rogue_vendor_tx_journal_import_verify(arr, count, expect_hash) rebuilds the rolling FNV-1a hash and validates integrity
+- save/load (VEX1): persist journal_count, journal_hash, and journal entries; on load, verify hash chain and reject tampered data
+- Unit: tests/unit/test_vendor_phase15_4_journal_verify.c asserts round-trip integrity and detects intentional tampering
+- Fix: resolved MSVC warning-as-error (shadowed local) in save_components.c introduced by VEX1 persistence extension
+- Security: negotiation spam guard off-by-one fixed (lockout now triggers on the 6th attempt within 10s as designed)
+- Roadmap: Phase 15 marked fully Done (15.1–15.5); README updated with Vendor Security section
+- Verification: Debug (SDL2) full suite passed 100% (664/664)

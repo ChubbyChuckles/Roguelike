@@ -54,6 +54,15 @@ extern "C"
                                         int action_code, int price, int rep_delta,
                                         int discount_pct);
 
+    /* Phase 15.4: Export/Import for persistence + verification */
+    /* Copies up to 'cap' entries into out (may be NULL to query required count). Returns count
+     * available (may be >cap); never negative. */
+    int rogue_vendor_tx_journal_export_copy(struct RogueVendorTxEntry* out, int cap);
+    /* Resets and imports 'count' entries, recomputes the rolling hash and compares against
+     * expect_hash. Returns 0 on success (hash match), negative on error or mismatch. */
+    int rogue_vendor_tx_journal_import_verify(const struct RogueVendorTxEntry* arr, int count,
+                                              unsigned int expect_hash);
+
 #ifdef __cplusplus
 }
 #endif
