@@ -8,6 +8,11 @@
 /* Forward declaration (12.4) */
 int rogue_minimap_ping_loot(float x, float y, int rarity);
 
+/* Forward declaration (defined in loot_generation_affix.c): gated affix selection helper */
+int rogue_generation_gated_affix_roll(RogueAffixType type, int rarity, unsigned int* rng_state,
+                                      const RogueItemDef* base_def, int existing_prefix,
+                                      int existing_suffix);
+
 static RogueItemInstance g_instances[ROGUE_ITEM_INSTANCE_CAP];
 /* Runtime flag (Phase 18.6): allow tests to suppress INFO spam from loot spawns without
     requiring compile-time macro injection into core sources. */
@@ -198,9 +203,12 @@ int rogue_item_instance_generate_affixes(int inst_index, unsigned int* rng_state
             want_suffix = !want_prefix;
         }
     }
+    /* Use gated affix selection to enforce category constraints and avoid duplicates. */
+    const RogueItemDef* base_def = rogue_item_def_at(it->def_index);
     if (want_prefix)
     {
-        int pi = rogue_affix_roll(ROGUE_AFFIX_PREFIX, rarity, rng_state);
+        int pi = rogue_generation_gated_affix_roll(ROGUE_AFFIX_PREFIX, rarity, rng_state, base_def,
+                                                   -1, -1);
         if (pi >= 0)
         {
             it->prefix_index = pi;
@@ -209,7 +217,8 @@ int rogue_item_instance_generate_affixes(int inst_index, unsigned int* rng_state
     }
     if (want_suffix)
     {
-        int si = rogue_affix_roll(ROGUE_AFFIX_SUFFIX, rarity, rng_state);
+        int si = rogue_generation_gated_affix_roll(ROGUE_AFFIX_SUFFIX, rarity, rng_state, base_def,
+                                                   it->prefix_index, -1);
         if (si >= 0)
         {
             it->suffix_index = si;

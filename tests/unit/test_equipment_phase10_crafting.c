@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <stdio.h>
 
+typedef struct RogueItemInstance RogueItemInstance; /* forward for local stub casts */
+
 int rogue_minimap_ping_loot(float x, float y, int r)
 {
     (void) x;
@@ -14,27 +16,7 @@ int rogue_minimap_ping_loot(float x, float y, int r)
     return 0;
 }
 void rogue_stat_cache_mark_dirty(void) {}
-const RogueAffixDef* rogue_affix_at(int index)
-{
-    static RogueAffixDef a;
-    a.type = (index % 2 == 0) ? ROGUE_AFFIX_PREFIX : ROGUE_AFFIX_SUFFIX;
-    a.stat = ROGUE_AFFIX_STAT_DAMAGE_FLAT;
-    a.min_value = 1;
-    a.max_value = 5;
-    return &a;
-}
-int rogue_affix_roll(int type, int rarity, unsigned int* rng)
-{
-    (void) type;
-    (void) rarity;
-    *rng = (*rng * 1664525u) + 1013904223u;
-    return (int) (*rng % 6);
-}
-int rogue_affix_roll_value(int affix_index, unsigned int* rng)
-{
-    *rng = (*rng * 1664525u) + 1013904223u;
-    return (int) (*rng % 5) + 1 + (affix_index % 3);
-}
+/* Removed deterministic affix stubs: use real affix tables + gating. */
 
 /* Minimal item def table: weapon (index 0), armor (1), blank orb (2) generic container */
 static RogueItemDef defs[3];
@@ -75,13 +57,18 @@ int main(void)
     defs[2].category = ROGUE_ITEM_MISC;
     defs[2].stack_max = 10; /* orb container */
     rogue_items_init_runtime();
+    /* Load real affix definitions so generation produces prefixes/suffixes. */
+    rogue_affixes_reset();
+    int loaded = rogue_affixes_load_from_cfg("assets/affixes.cfg");
+    assert(loaded > 0);
 
     /* 10.1 Upgrade stones: ensure level increases and budget elevation allows affix growth */
     int w = spawn_with_affixes(0, 3);
     RogueItemInstance* w_it = (RogueItemInstance*) rogue_item_instance_at(w);
     int before_level = w_it->item_level;
     int before_total = rogue_item_instance_total_affix_weight(w);
-    assert(rogue_item_instance_apply_upgrade_stone(w, 3, &rng_state) == 0);
+    int upgrade_rc = rogue_item_instance_apply_upgrade_stone(w, 3, &rng_state);
+    assert(upgrade_rc == 0);
     assert(w_it->item_level == before_level + 3);
     int after_total = rogue_item_instance_total_affix_weight(w);
     assert(after_total >= before_total); /* may increase */

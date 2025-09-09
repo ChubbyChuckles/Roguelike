@@ -125,6 +125,36 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_generation_json.c AND NOT T
     rogue_add_test(test_loot_generation_json COMMAND test_loot_generation_json)
 endif()
 
+# Phase 2.2: Affix gating with JSON base items
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_affix_gating_json.c AND NOT TARGET test_loot_affix_gating_json)
+    add_executable(test_loot_affix_gating_json unit/test_loot_affix_gating_json.c)
+    target_link_libraries(test_loot_affix_gating_json PRIVATE rogue_core)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_loot_affix_gating_json PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_loot_affix_gating_json COMMAND test_loot_affix_gating_json)
+endif()
+
+# Phase 2.5: Inventory filtering & sorting with JSON items
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_json_filter_sort.c AND NOT TARGET test_inventory_json_filter_sort)
+    add_executable(test_inventory_json_filter_sort unit/test_inventory_json_filter_sort.c)
+    target_link_libraries(test_inventory_json_filter_sort PRIVATE rogue_core)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_inventory_json_filter_sort PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_inventory_json_filter_sort COMMAND test_inventory_json_filter_sort)
+endif()
+
+# Phase 2.4: Two-handed equip rule with JSON items
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_json_twohand.c AND NOT TARGET test_equipment_json_twohand)
+    add_executable(test_equipment_json_twohand unit/test_equipment_json_twohand.c)
+    target_link_libraries(test_equipment_json_twohand PRIVATE rogue_core)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_equipment_json_twohand PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_equipment_json_twohand COMMAND test_equipment_json_twohand)
+endif()
+
 # Explicitly wire new Dungeon Phase 2.4 tests to avoid glob/target churn on MSBuild multi-config
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dungeon_phase2_4_deco_layering.c AND NOT TARGET test_dungeon_phase2_4_deco_layering)
     add_executable(test_dungeon_phase2_4_deco_layering unit/test_dungeon_phase2_4_deco_layering.c)

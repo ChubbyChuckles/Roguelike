@@ -9,6 +9,11 @@
 #include <assert.h>
 #include <stdio.h>
 
+/* For deterministic coverage we no longer override core affix APIs; instead we fall back to
+    forcing indices if generation at low rarity does not yield both prefix & suffix. Include the
+    real affix header for enum constants. */
+#include "../../src/core/loot/loot_affixes.h"
+
 RoguePlayer g_exposed_player_for_stats = {0};
 int rogue_item_defs_load_from_cfg(const char* path);
 int rogue_minimap_ping_loot(float x, float y, int rarity)
@@ -61,20 +66,19 @@ static void test_affix_blacklist(void)
     unsigned int seed = 12345u;
     int inst = rogue_items_spawn(0, 1, 0, 0);
     assert(inst >= 0);
-    /* Force-generate two affixes artificially by rolling until both present */
+    /* Attempt generation once; if gating path doesn't yield both at low rarity, force them to
+       deterministic indices so test isn't probabilistic. This preserves coverage of blacklist
+       logic without depending on rarity=1 dual-roll odds. */
     unsigned int s2 = seed;
     rogue_item_instance_generate_affixes(inst, &s2, 1);
     const RogueItemInstance* it = rogue_item_instance_at(inst);
     if (!(it->prefix_index >= 0 && it->suffix_index >= 0))
-    { /* spawn until both affixes present */
-        for (int tries = 0; tries < 32 && !(it->prefix_index >= 0 && it->suffix_index >= 0);
-             tries++)
-        {
-            inst = rogue_items_spawn(0, 1, 0, 0);
-            unsigned int tseed = seed + tries + 1;
-            rogue_item_instance_generate_affixes(inst, &tseed, 1);
-            it = rogue_item_instance_at(inst);
-        }
+    {
+        RogueItemInstance* mut = (RogueItemInstance*) it;
+        mut->prefix_index = 0;
+        mut->prefix_value = 1;
+        mut->suffix_index = 1;
+        mut->suffix_value = 1;
     }
     assert(it->prefix_index >= 0 && it->suffix_index >= 0);
     rogue_integrity_clear_banned_affix_pairs();

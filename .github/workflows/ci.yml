@@ -20,7 +20,7 @@ jobs:
   build-and-test:
     name: Build & Test (${{ matrix.os }} | ${{ matrix.build_type }} | ${{ matrix.compiler }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:

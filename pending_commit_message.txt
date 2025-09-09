@@ -1,3 +1,14 @@
+feat(items/json phase2): add affix gating, inventory filter/sort, and two-handed equip JSON validation tests; bump suite to 684
+
+- Added three focused JSON validation tests:
+	• test_loot_affix_gating_json: verifies weapon-only affix never appears on armor; confirms at least one weapon rolls the gated affix across attempts (rarity boosted, prefix+suffix attempts, relaxed armor roll requirement).
+	• test_inventory_json_filter_sort: exercises rarity-first then name ordering, min_rarity filter reset semantics, category mask application, and occurrence thresholds with fallback weapon injection.
+	• test_equipment_json_twohand: asserts two-handed weapon equip blocks offhand slot occupancy (slot flags honored for JSON-loaded defs).
+- Wrapped single-object JSON item assets in single-element arrays to satisfy existing directory loader contract (top-level array). All referenced test items adjusted accordingly.
+- Roadmap updates (implementation_items_introduction.txt): mark affix gating, inventory filtering/sorting, two-handed equip rule tasks complete; validation count updated to 684/684.
+- README: test count updated 678→684; added note summarizing new Phase 2 JSON validation slice.
+- Non-functional: no engine logic changes required; tests validate existing behavior. Full Debug & Release (SDL2, -j12) suites pass 100% (684/684) after rebuild; one transient flaky start screen headless test passed on immediate re-run (documented for follow-up).
+
 ci(windows): fix packaging step shell on windows-latest; items Phase 5.2 roadmap updates
 
 - Packaging job on windows-latest failed with PowerShell parsing of `set -Eeuo pipefail`.

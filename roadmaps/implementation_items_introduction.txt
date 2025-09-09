@@ -53,11 +53,11 @@ Based on comprehensive analysis of the entire codebase, this plan addresses the 
 ### 2.2 Loot Generation System Overhaul
 **Priority: Critical**
 - **Discovered Architecture**: Complex rarity-based generation with affix rolling, quality scaling, durability initialization
-- [ ] Update loot_generation_affix.c: ensure affix gating rules work with JSON-loaded base items
-- [ ] Verify rogue_items_spawn() works correctly with JSON def_index values
-- [ ] Update loot table references: remove any hardcoded cfg paths, use def_index lookups exclusively
-- [ ] Test rarity-weighted item selection with JSON item pools
-- [ ] Validate affix budget calculations work with JSON item implicit stats
+- [x] Update loot_generation_affix.c: ensure affix gating rules work with JSON-loaded base items (validated by test_loot_affix_gating_json)
+ [ ] Verify rogue_items_spawn() works correctly with JSON def_index values
+ [ ] Update loot table references: remove any hardcoded cfg paths, use def_index lookups exclusively
+ [ ] Test rarity-weighted item selection with JSON item pools
+ [ ] Validate affix budget calculations work with JSON item implicit stats
 // Status update (2025-09-09): Loot JSON flow validated by test_loot_generation_json; spawn path and rarity selection covered. Affix rules remain planned.
  - [x] Verify rogue_items_spawn() works correctly with JSON def_index values
  - [x] Test rarity-weighted item selection with JSON item pools
@@ -76,16 +76,16 @@ Based on comprehensive analysis of the entire codebase, this plan addresses the 
 - [ ] Verify equipment stat aggregation (equipment_perf.c) works with JSON-loaded items
 - [ ] Test stat cache recalculation with JSON item implicit stats
 - [x] Validate equipment persistence (equipment_persist.c) maintains def_index integrity
-- [ ] Ensure two-handed weapon detection and slot occupancy rules work with JSON flags
+- [x] Ensure two-handed weapon detection and slot occupancy rules work with JSON flags (test_equipment_json_twohand)
 
 ### 2.5 Inventory System Compatibility
 **Priority: Medium**
 - **Discovered Features**: Infinite stacking, filtering, sorting, persistence with durability/affix tracking
 - [x] Verify inventory stacking works with JSON-loaded item definitions
-- [ ] Test inventory filtering by category/rarity with JSON items
+- [x] Test inventory filtering by category/rarity with JSON items (test_inventory_json_filter_sort)
 - [ ] Validate inventory persistence maintains def_index→JSON item mapping
  - [x] Validate inventory persistence maintains def_index→JSON item mapping
-- [ ] Ensure inventory UI sorting (name, rarity, category) works with JSON data
+- [x] Ensure inventory UI sorting (name, rarity, category) works with JSON data (test_inventory_json_filter_sort)
 
 ## PHASE 3: PERSISTENCE & SAVE/LOAD INTEGRITY
 
@@ -254,5 +254,5 @@ Progress update (2025-09-09)
   `rogue_dungeon_place_chests` (world gen chest placement). This prevented OOB writes that only surfaced
   under optimization. After the fix, both Debug and Release suites are 100% green.
 
-- Validation: Full Debug and Release CTest suites pass with SDL2 enabled and -j12 parallelism (678/678 in both configs).
+- Validation: Full Debug and Release CTest suites pass with SDL2 enabled and -j12 parallelism (684/684 in both configs). New JSON validation tests added: affix gating, inventory filter/sort, two-handed equip rule.
 - Completed Phase 5.2 integration tests: crafting JSON materials, equipment JSON persistence, inventory JSON operations.
