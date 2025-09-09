@@ -257,3 +257,12 @@ feat(items/json-dir-scan): add JSON-first compile flag, directory enumeration, a
 		• tests/unit/test_items_json_schema_validation.c – ensures malformed files roll back cleanly while valid files persist
 	- Build: registered tests in tests/CMakeLists.txt; runs green under Debug/Release (SDL2) with -j12
 	- Roadmap: mark Phase 5.1 first two tests Done; README Testing section notes new coverage
+
+feat(items/tests phase5.1): JSON vs cfg equivalence + fallback tests; CI green (Debug/Release)
+
+- New tests:
+	• tests/unit/test_items_json_vs_cfg_equivalence.c – verifies equivalent items loaded from JSON and cfg match key fields and index presence
+	• tests/unit/test_items_json_fallback.c – ensures malformed-only JSON dir adds nothing and cfg fallback loads known items
+- Fix: fallback test uses malformed JSON missing required 'id' to guarantee rejection (avoids numeric sanitization path)
+- CI/local: Full suites pass (SDL2, -j12) Debug & Release – 673/673
+- Roadmap: mark Phase 5.1 equivalence and fallback Done; README Testing notes updated

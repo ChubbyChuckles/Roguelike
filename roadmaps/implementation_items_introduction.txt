@@ -124,8 +124,8 @@ Based on comprehensive analysis of the entire codebase, this plan addresses the 
 **Priority: High**
  - [x] test_items_json_directory_load.c: directory scan, file loading, index building
  - [x] test_items_json_schema_validation.c: malformed file handling, partial failure recovery
-- [ ] test_items_json_vs_cfg_equivalence.c: identical items loaded from both formats
-- [ ] test_items_json_fallback.c: JSON failure → cfg fallback behavior
+ - [x] test_items_json_vs_cfg_equivalence.c: identical items loaded from both formats
+ - [x] test_items_json_fallback.c: JSON failure → cfg fallback behavior
 
 ### 5.2 Integration Tests
 **Priority: High**
@@ -228,8 +228,11 @@ Progress update (2025-09-09)
   1) assets/items/*.json → 2) cfg directory → 3) single cfg (assets/test_items.cfg).
 - Hardened asset base path resolution (SDL_GetBasePath with ascents); fixed brittle pathing in tests (cfg file analysis) to be working-directory agnostic.
 - Validation: Full Debug and Release CTest suites pass with SDL2 enabled and -j12 parallelism (669/669 in both configs).
+ - Validation: Full Debug and Release CTest suites pass with SDL2 enabled and -j12 parallelism (673/673 in both configs).
 - Added compile-time toggle (ROGUE_ITEMS_PREFER_JSON, default ON), directory existence checks + logging, and per-file JSON schema validation with partial-failure handling. Startup now logs which path was used (JSON dir / cfg dir / single cfg) and counts loaded items. Next: expand integration tests for vendors/loot/crafting with JSON items.
- - Implemented Phase 5.1 initial tests and wired them into CMake:
+ - Implemented Phase 5.1 tests and wired them into CMake:
    • tests/unit/test_items_json_directory_load.c validates directory enumeration and index building
    • tests/unit/test_items_json_schema_validation.c verifies per-file schema rollback on malformed JSON
-   Both pass in Debug and Release (SDL2) with parallel ctest (-j12). Remaining: equivalence and fallback tests.
+   • tests/unit/test_items_json_vs_cfg_equivalence.c validates JSON vs cfg field equivalence and index presence
+   • tests/unit/test_items_json_fallback.c validates JSON failure (malformed) → cfg fallback behavior
+   All pass in Debug and Release (SDL2) with parallel ctest (-j12).

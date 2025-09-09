@@ -46,6 +46,26 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_items_json_schema_validation.c A
     rogue_add_test(test_items_json_schema_validation COMMAND test_items_json_schema_validation)
 endif()
 
+# Items: JSON vs CFG equivalence
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_items_json_vs_cfg_equivalence.c AND NOT TARGET test_items_json_vs_cfg_equivalence)
+    add_executable(test_items_json_vs_cfg_equivalence unit/test_items_json_vs_cfg_equivalence.c)
+    target_link_libraries(test_items_json_vs_cfg_equivalence PRIVATE rogue_core)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_items_json_vs_cfg_equivalence PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_items_json_vs_cfg_equivalence COMMAND test_items_json_vs_cfg_equivalence)
+endif()
+
+# Items: JSON failure → CFG fallback behavior (uses asset cfg for fallback)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_items_json_fallback.c AND NOT TARGET test_items_json_fallback)
+    add_executable(test_items_json_fallback unit/test_items_json_fallback.c)
+    target_link_libraries(test_items_json_fallback PRIVATE rogue_core)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_items_json_fallback PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_items_json_fallback COMMAND test_items_json_fallback)
+endif()
+
 # Explicitly wire new Dungeon Phase 2.4 tests to avoid glob/target churn on MSBuild multi-config
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dungeon_phase2_4_deco_layering.c AND NOT TARGET test_dungeon_phase2_4_deco_layering)
     add_executable(test_dungeon_phase2_4_deco_layering unit/test_dungeon_phase2_4_deco_layering.c)

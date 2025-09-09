@@ -142,6 +142,12 @@
 			"label": "Reconfigure (Debug), build tests, and run ctests after adding mutators Phase 9.1-9.2",
 			"type": "shell",
 			"command": "cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build --config Debug --parallel 12 && ctest --test-dir build -C Debug -j12 --output-on-failure --timeout 90"
+		},
+		{
+			"label": "Reconfigure (Release), build tests, and run ctests",
+			"type": "shell",
+			"command": "cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release --parallel 12 && ctest --test-dir build -C Release -j12 --output-on-failure --timeout 90",
+			"group": "build"
 		}
 	]
 }
