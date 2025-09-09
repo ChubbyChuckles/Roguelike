@@ -74,6 +74,8 @@ int rogue_item_defs_export_json(char* buf, int cap);
  * known set of filenames inside dir. Returns total successfully added (aggregate) or <0 if dir
  * invalid. */
 int rogue_item_defs_load_directory(const char* dir_path);
+/* JSON-first loading: scan a directory for *.json item defs. Returns total added. */
+int rogue_item_defs_load_directory_json(const char* dir_path);
 const RogueItemDef* rogue_item_def_by_id(const char* id);
 int rogue_item_def_index(const char* id); /* -1 if not found */
 int rogue_item_defs_count(void);

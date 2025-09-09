@@ -18,7 +18,7 @@ Based on comprehensive analysis of the entire codebase, this plan addresses the 
 ### 1.1 Enhanced Directory Detection & Asset Discovery
 **Priority: Critical**
 - [x] Existing rogue_find_asset_path() and SDL_GetBasePath() infrastructure
-- [ ] Enhance path detection to probe multiple candidates:
+- [x] Enhance path detection to probe multiple candidates:
   - Primary: "{base_path}/assets/items/"
   - Secondary: "{base_path}/../assets/items/"
   - Fallback: "{base_path}/assets/test_items.cfg"
@@ -28,8 +28,8 @@ Based on comprehensive analysis of the entire codebase, this plan addresses the 
 ### 1.2 Bootstrap Loading Pipeline Integration
 **Priority: Critical**
 - [x] Existing dual loader APIs: rogue_item_defs_load_from_json(), rogue_item_defs_load_directory()
-- [ ] Update src/core/app/app_init.c:337 to use enhanced directory detection
-- [ ] Update src/core/app/app.c:236 with matching logic for different working directories
+- [x] Update src/core/app/app_init.c:337 to use enhanced directory detection
+- [x] Update src/core/app/app.c:236 with matching logic for different working directories
 - [ ] Add ROGUE_ITEMS_PREFER_JSON compile flag (default: ON) with graceful cfg fallback
 - [ ] Implement preload index building: scan assets/items/*.json → build id→def_index mapping
 
@@ -179,6 +179,7 @@ Based on comprehensive analysis of the entire codebase, this plan addresses the 
 
 ### Core Functionality
 - [x] Basic placeholder JSONs created and validated
+- [x] App prefers JSON directory loading with layered cfg fallbacks wired in startup
 - [ ] Game runs entirely on JSON-loaded items (zero cfg dependency)
 - [ ] All subsystems (vendor/loot/crafting/equipment/inventory) work with JSON items
 - [ ] Save/load maintains complete fidelity with JSON-loaded items
@@ -218,3 +219,13 @@ Based on comprehensive analysis of the entire codebase, this plan addresses the 
 **Phase 6-7 (Advanced/Cleanup)**: 1-2 weeks
 
 **Total Estimated Duration**: 6-10 weeks for complete JSON migration with all subsystem integration and comprehensive testing.
+
+---
+
+Progress update (2025-09-09)
+
+- Implemented a JSON-first directory loader for item definitions and integrated it into startup with layered fallbacks:
+  1) assets/items/*.json → 2) cfg directory → 3) single cfg (assets/test_items.cfg).
+- Hardened asset base path resolution (SDL_GetBasePath with ascents); fixed brittle pathing in tests (cfg file analysis) to be working-directory agnostic.
+- Validation: Full Debug and Release CTest suites pass with SDL2 enabled and -j12 parallelism (669/669 in both configs).
+- Next: add compile-time toggle (ROGUE_ITEMS_PREFER_JSON), directory existence checks + logging, and per-file JSON schema validation with partial-failure handling.

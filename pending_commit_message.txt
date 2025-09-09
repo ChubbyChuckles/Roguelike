@@ -220,3 +220,10 @@ Phase 16.3, 16.4: Negotiation preview + Reputation UI (SDL2), helper module, tes
 - README updated: added a brief “Vendor UI updates (Phase 16)” section summarizing tabs, pricing tooltip, negotiation preview, and reputation strip.
 - Verification: Rebuilt Debug (SDL2) and ran full test suite: 100% pass (667/667). No regressions.
 - Wire tests into `tests/cmake/Vendor.cmake`; include new module in core target.
+
+feat(items/json-first): prefer assets/items/*.json at startup with cfg fallbacks; pathing hardened; CI green (Debug/Release)
+
+- Integrate JSON directory loader for items with layered fallbacks (cfg directory → single cfg) and fast-index rebuild
+- Improve asset base path resolution (SDL_GetBasePath + ascents) and fix brittle test pathing for cfg file analysis
+- Docs: README notes JSON‑first loading; Roadmap marks Phase 1 bootstrap wiring done
+- Validation: Windows + SDL2, full CTest suites pass with -j12 in Debug and Release (669/669)

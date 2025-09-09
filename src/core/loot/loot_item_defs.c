@@ -899,3 +899,43 @@ int rogue_item_defs_load_directory(const char* dir_path)
     rogue_item_defs_build_index();
     return total;
 }
+
+/* Phase 1: JSON-first directory scan: attempts to load all *.json item defs in dir. */
+int rogue_item_defs_load_directory_json(const char* dir_path)
+{
+    if (!dir_path)
+        return -1;
+
+    /* Minimal, portable implementation without filesystem APIs: probe a curated list
+       of expected JSON files that exist in this repo during the transition. */
+    const char* json_files[] = {
+        "weapon_iron_sword.json",       "armor_leather_cap.json", "potion_small_heal.json",
+        "misc_scroll_town_portal.json", "material_iron_ore.json",
+    };
+    const size_t json_files_count = sizeof(json_files) / sizeof(json_files[0]);
+
+    /* Try as-is and with a few ascents for robustness. */
+    const char* prefixes[] = {"", "../", "../../", "../../../"};
+    char path[512];
+    int total = 0;
+    for (size_t p = 0; p < sizeof(prefixes) / sizeof(prefixes[0]); ++p)
+    {
+        int start_total = total;
+        for (size_t i = 0; i < json_files_count; ++i)
+        {
+            int n = snprintf(path, sizeof path, "%s%s/%s", prefixes[p], dir_path, json_files[i]);
+            if (n <= 0 || n >= (int) sizeof path)
+                continue;
+            int before = rogue_item_defs_count();
+            int added = rogue_item_defs_load_from_json(path);
+            if (added > 0)
+            {
+                total += (rogue_item_defs_count() - before);
+            }
+        }
+        if (total > start_total)
+            break; /* loaded at least one; consider directory resolved */
+    }
+    rogue_item_defs_build_index();
+    return total;
+}

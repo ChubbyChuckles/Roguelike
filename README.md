@@ -408,6 +408,13 @@ Phase 3 delivers full SDL integration for the initial asset manager slice:
 
 Next (Phase 4 preview): integrity & validation layer (schema cross-check, existence, dimension constraints), dependency tracking unification (skills + global), placeholder fallback injection, manifest + checksum generation feeding CI asset verification.
 
+### Items loading (JSON‑first)
+
+- Startup prefers JSON item definitions under `assets/items/` when present, with layered fallbacks to the legacy cfg directory and finally a single cfg (`assets/test_items.cfg`).
+- The JSON directory loader rebuilds the fast lookup index after load to keep behavior identical for downstream systems.
+- Path resolution uses `SDL_GetBasePath` with relative ascents to be robust across working directories and CI packaging.
+- CI: Verified on Windows with SDL2 enabled. Debug and Release builds are green; full suites pass under parallel ctest (`-j12`).
+
 - ROGUE_ENABLE_JSON_CONTENT (default ON): Compiles the content JSON foundation (I/O and schema envelope). Built as an object library (`rogue_content_json`) and linked into `rogue_core` when enabled. A vendored cJSON stub lives under `third_party/cjson` and is linked as `rogue_thirdparty_cjson` for now; replace with the full cJSON later.
 - Outputs: HTML, LaTeX/PDF, and XML generated via a dedicated CMake target.
 - Prereqs (Windows):

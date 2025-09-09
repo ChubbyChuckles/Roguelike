@@ -334,10 +334,14 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.vendor_x = 4.5f;
     g_app.vendor_y = 4.5f;
     g_app.show_equipment_panel = 0;
-    int items_loaded = rogue_item_defs_load_directory("assets/items");
+    int items_loaded = rogue_item_defs_load_directory_json("assets/items");
     if (items_loaded <= 0)
     {
-        items_loaded = rogue_item_defs_load_from_cfg("assets/test_items.cfg");
+        items_loaded = rogue_item_defs_load_directory("assets/items");
+        if (items_loaded <= 0)
+        {
+            items_loaded = rogue_item_defs_load_from_cfg("assets/test_items.cfg");
+        }
     }
     /* Register content graph nodes for Items (Phase 13.3 wiring). We register individual
        category files as leaves and a logical "items" parent that depends on them. */
