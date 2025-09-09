@@ -27,6 +27,25 @@ include(${CMAKE_CURRENT_LIST_DIR}/cmake/Progression.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/System_Bridges.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/Util.cmake)
 
+# JSON Items: directory load and schema rollback tests
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_items_json_directory_load.c AND NOT TARGET test_items_json_directory_load)
+    add_executable(test_items_json_directory_load unit/test_items_json_directory_load.c)
+    target_link_libraries(test_items_json_directory_load PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_items_json_directory_load PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_items_json_directory_load COMMAND test_items_json_directory_load)
+endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_items_json_schema_validation.c AND NOT TARGET test_items_json_schema_validation)
+    add_executable(test_items_json_schema_validation unit/test_items_json_schema_validation.c)
+    target_link_libraries(test_items_json_schema_validation PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_items_json_schema_validation PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_items_json_schema_validation COMMAND test_items_json_schema_validation)
+endif()
+
 # Explicitly wire new Dungeon Phase 2.4 tests to avoid glob/target churn on MSBuild multi-config
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dungeon_phase2_4_deco_layering.c AND NOT TARGET test_dungeon_phase2_4_deco_layering)
     add_executable(test_dungeon_phase2_4_deco_layering unit/test_dungeon_phase2_4_deco_layering.c)

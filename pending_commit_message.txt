@@ -249,3 +249,11 @@ feat(items/json-dir-scan): add JSON-first compile flag, directory enumeration, a
 	build fast id index after load; add basic existence checks and warnings
 - Roadmap updated: mark flag, logging, directory existence check, and per-file validation done;
 	progress note added
+
+	feat(items/tests): add JSON directory load + schema rollback unit tests and wire into CTest
+
+	- New tests:
+		• tests/unit/test_items_json_directory_load.c – verifies assets/items/*.json directory enumeration, per-file load, and id→index mapping
+		• tests/unit/test_items_json_schema_validation.c – ensures malformed files roll back cleanly while valid files persist
+	- Build: registered tests in tests/CMakeLists.txt; runs green under Debug/Release (SDL2) with -j12
+	- Roadmap: mark Phase 5.1 first two tests Done; README Testing section notes new coverage
