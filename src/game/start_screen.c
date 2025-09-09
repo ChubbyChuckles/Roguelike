@@ -652,16 +652,26 @@ void rogue_start_screen_update_and_render(void)
        first few frames causing baseline to remain 0 and the smoke test to fail. */
     if (g_app.show_start_screen && g_app.start_perf_samples < g_app.start_perf_target_samples)
     {
-        if (g_app.frame_ms > 0.0)
+        /* In headless/unit-test environments, clock resolution can report 0.0ms for several
+           rapid frames in a row. Use a conservative fallback sample to establish a baseline
+           instead of stalling at zero. Prefer dt-derived ms when available, otherwise a tiny
+           epsilon. This does not alter the budget checks which continue to read frame_ms. */
+        double sample_ms = g_app.frame_ms;
+        if (sample_ms <= 0.0)
         {
-            g_app.start_perf_accum_ms += g_app.frame_ms;
-            g_app.start_perf_samples++;
-            if (g_app.start_perf_samples == g_app.start_perf_target_samples &&
-                g_app.start_perf_baseline_ms <= 0.0)
-            {
-                g_app.start_perf_baseline_ms =
-                    g_app.start_perf_accum_ms / (double) g_app.start_perf_target_samples;
-            }
+            double dt_ms = g_app.dt * 1000.0;
+            if (dt_ms > 0.0 && dt_ms < 50.0)
+                sample_ms = dt_ms; /* deterministic fixed-step fallback (~8.3ms in tests) */
+            else
+                sample_ms = 0.01; /* minimal epsilon to break zero-only stalls */
+        }
+        g_app.start_perf_accum_ms += sample_ms;
+        g_app.start_perf_samples++;
+        if (g_app.start_perf_samples == g_app.start_perf_target_samples &&
+            g_app.start_perf_baseline_ms <= 0.0)
+        {
+            g_app.start_perf_baseline_ms =
+                g_app.start_perf_accum_ms / (double) g_app.start_perf_target_samples;
         }
     }
     if (start_perf_over_budget())

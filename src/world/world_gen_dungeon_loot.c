@@ -358,6 +358,7 @@ int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
     if (!ctx || !io_map || !graph || graph->room_count <= 0 || target_chests <= 0)
         return 0;
     int placed = 0;
+    int placed_out = 0; /* number of valid entries written to out_array (<= max_out) */
     int* deg = (int*) calloc((size_t) graph->room_count, sizeof(int));
     if (!deg)
         return 0;
@@ -452,9 +453,10 @@ int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
                 /* Write overlay deco code: 10..13 represent tiers 0..3 */
                 if (io_map->overlay_deco && io_map->overlay_magic == 0xDEC00EAU)
                     rogue_tilemap_set_deco(io_map, x, y, (unsigned char) (10 + tier));
-                if (out_array && placed < max_out)
+                if (out_array && placed_out < max_out)
                 {
-                    out_array[placed] = (RogueDungeonChestPlacement){x, y, tier, 0, i, -1, -1};
+                    out_array[placed_out++] =
+                        (RogueDungeonChestPlacement){x, y, tier, 0, i, -1, -1};
                 }
                 placed++;
             }
@@ -491,9 +493,9 @@ int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
                             if (out_upgrade_count)
                                 *out_upgrade_count = 1;
                             /* Mark is_upgrade for the matching chest in out_array if provided */
-                            if (out_array)
+                            if (out_array && placed_out > 0)
                             {
-                                for (int k = 0; k < placed; ++k)
+                                for (int k = 0; k < placed_out; ++k)
                                 {
                                     if (out_array[k].x == x && out_array[k].y == y)
                                     {
@@ -521,9 +523,9 @@ int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
                             {
                                 if (out_upgrade_count)
                                     *out_upgrade_count = 1;
-                                if (out_array)
+                                if (out_array && placed_out > 0)
                                 {
-                                    for (int k = 0; k < placed; ++k)
+                                    for (int k = 0; k < placed_out; ++k)
                                     {
                                         if (out_array[k].x == x && out_array[k].y == y)
                                         {

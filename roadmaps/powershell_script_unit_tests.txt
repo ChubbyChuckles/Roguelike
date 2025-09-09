@@ -1,0 +1,39 @@
+# Enhanced Implementation Plan for PowerShell Script to Detect Flaky Unit Tests
+
+This enhanced plan provides a sophisticated approach to creating a PowerShell script (`Find-FlakyTests.ps1`) for identifying all possible types of flakiness in unit tests across Debug and Release builds. Flakiness detection will include non-deterministic behaviors (e.g., timing issues, race conditions, random seeds), resource dependencies (e.g., files, memory leaks), environment variations (e.g., parallelism, isolation), and build-specific inconsistencies. The script will run from any project level by detecting the root via CMakeLists.txt. It will perform statistical analysis over multiple runs (configurable, e.g., 50+ for reliability), categorize flakiness, and generate comprehensive reports with visualizations, detailed logs, and actionable fix recommendations to facilitate debugging and resolution.
+
+## TODO List
+
+[ ] Analyze project build and test infrastructure: Examine CMakeLists.txt, tests/CMakeLists.txt, and build outputs to identify test executables, CTest configurations, supported runners (e.g., Google Test, Unity), output formats (XML/JUnit for parsing), and common flakiness sources (e.g., shared state in tests/unit/ files).
+
+[ ] Design comprehensive flakiness detection framework: Define categories - Timing/Race (vary delays/seeds), Randomness (control RNG seeds), Resource (monitor memory/IO usage), Parallelism (run with/without -j1 vs multi-thread), Environment (isolate via mocks/chroots if possible), Build-specific (compare Debug vs Release optimizations). Use statistical methods like binomial tests for failure rates, chi-square for uniformity, and regression for trends.
+
+[ ] Implement advanced project root and environment detection: Enhance root finding with fallback to .git or vcpkg/; detect OS (Windows/Linux via $PSVersionTable), installed tools (CTest, Valgrind for leaks, perf for profiling), and project-specific paths (e.g., build/Debug/tests/unit_tests.exe).
+
+[ ] Add configurable build management: Parameters for -BuildConfigs (Debug,Release,Both), auto-build with cmake --build --config $Config --parallel; detect if builds are up-to-date via timestamps; support custom build dirs (e.g., -BuildDir ./build-custom).
+
+[ ] Develop multi-run test execution engine: Parameter -NumRuns (default 50 for stats reliability), -ParallelTests (throttle jobs); invoke via ctest -C $Config -R regex -V --output-on-failure > log.txt; or direct exe --gtest_repeat=1 --gtest_shuffle for Google Test; capture exit codes, stdout/stderr, timings per test.
+
+[ ] Integrate variation injection for flakiness provocation: For timing - add random sleeps/delays; for randomness - set seeds via env vars (e.g., $env:GTEST_RANDOM_SEED); for resources - run under Valgrind/MemorySanitizer if available; for parallelism - vary thread counts; isolate tests with temp dirs per run to detect state pollution.
+
+[ ] Build statistical analysis module: For each test, compute metrics - failure rate (%), std dev of durations, p-value for non-random failures (using PowerShell Stats module or custom funcs); flag flaky if rate > threshold (e.g., 1%) or p<0.05; detect intermittent vs consistent flakes; cross-config comparison (e.g., flaky only in Release due to optimizations).
+
+[ ] Enhance with advanced diagnostics: Hook into test outputs for parsing individual test results (XML parsing with [xml]); monitor system resources (Get-Process CPU/Mem); detect leaks via repeated runs and delta calculations; log environment vars, timestamps, hardware info for reproducibility.
+
+[ ] Categorize flakiness types intelligently: Use heuristics/ML-lite (e.g., if fails on high load -> resource; varies with seed -> random; only in parallel -> race); output categories with evidence (e.g., "Timing issue: 80% failures after 2s delay").
+
+[ ] Design best-in-class reporting system: Generate multi-format reports - Console (summary table), HTML (interactive with JS charts via Chart.js embed), JSON/CSV (for CI integration), PDF (via PSWritePDF); include per-test details: run-by-run pass/fail matrix, histograms of durations, failure logs excerpts, flakiness score (0-100), comparisons Debug vs Release.
+
+[ ] Add actionable fix recommendations: For each flaky test, suggest remedies based on category (e.g., "Add fixed seed: --gtest_random_seed=123"; "Use mocks for IO: integrate FakeIt"; "Isolate state: @BeforeEach cleanup"; "Retry logic: add exponential backoff"); link to test file/line for quick navigation.
+
+[ ] Implement visualization and interactivity: Embed charts (failure trends, heatmaps of runs); interactive HTML with filters (by category, config); export to tools like Excel for further analysis or bug trackers (e.g., GitHub Issues template with report attachment).
+
+[ ] Incorporate error handling and robustness: Try-catch for tool absences (e.g., fallback to basic runs if Valgrind missing); validate test outputs; handle large logs (compression/rotation); parameters for -DryRun, -Verbose, -OutputDir.
+
+[ ] Ensure seamless multi-level execution and portability: Test from root, src/, tests/; support cross-platform (PowerShell Core); package as module with dependencies (e.g., Import-Module PSStats).
+
+[ ] Develop self-testing and validation: Write Pester tests for script functions (mock builds/runs); simulate flaky tests with dummy exe; validate against known flaky scenarios; performance benchmarks for large test suites (e.g., 1000+ tests).
+
+[ ] Create comprehensive documentation and usage guides: Full param docs with examples (e.g., .\Find-FlakyTests.ps1 -BuildConfigs Both -NumRuns 100 -ReportFormat HTML -Threshold 0.5); README with setup (install deps), troubleshooting, and integration (e.g., GitHub Actions workflow); contribute guidelines for extending detection types.
+
+[ ] Perform final validation and optimization: Run on actual project tests, tune thresholds based on baselines, optimize for speed (parallel analysis), gather metrics on detection accuracy, and iterate for edge cases (e.g., no tests, build failures).

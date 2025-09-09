@@ -128,3 +128,7 @@ The plan should output:
 - Recommendations for tools (e.g., SDL_ttf, `cJSON`) and performance optimizations (e.g., caching textures for the overlay).
 
 Focus on generic solutions that work with SDL2, `cJSON`, and the existing asset system, ensuring cross-platform compatibility and minimal changes to the core engine codebase. Avoid assumptions about specific game engine systems beyond SDL2 and the asset structure. Write the implementation plan to "roadmaps/implementation_plan_asset_overlay.txt" in the format of a TODO list with all the unfinished tasks marked with "[ ]" and all the implemented tasks marked with "[x]".
+
+
+### Kilo work on plan
+Read the "roadmaps\powershell_script_unit_tests.txt", go to the next tasks in line that need implementation and implement as many of them as possible, don't just partially finish the tasks. After a successful implementation update the "roadmaps\powershell_script_unit_tests.txt" by marking the finished task with "[x]". Iterate this process as often as necessary to finish all features.

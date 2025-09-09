@@ -1,0 +1,11 @@
+Test: test_cfg_file_analysis [Debug]: 100.00 % flaky (2/2) (Uncategorized) - No specific signals detected
+Test: test_equipment_phase3_budget [Debug]: 50.00 % flaky (1/2) (Timing/Race, Intermittent) - High duration variance: avg=3,109s, stddev=2,596s; Intermittent failures across runs
+  Recommendation: Use deterministic waits; avoid sleeps
+  Recommendation: Isolate shared state; fix seeds
+Test: test_start_screen_phase10_4_reduced_motion [Debug]: 50.00 % flaky (1/2) (Intermittent) - Intermittent failures across runs
+  Recommendation: Isolate shared state; fix seeds
+Test: test_cfg_migration [Debug]: 50.00 % flaky (1/2) (Timing/Race, Intermittent) - High duration variance: avg=3,500s, stddev=2,485s; Intermittent failures across runs
+  Recommendation: Use deterministic waits; avoid sleeps
+  Recommendation: Isolate shared state; fix seeds
+Test: test_phase3_7_worldgen_enemy_bridge [Debug]: 50.00 % flaky (1/2) (Intermittent) - Intermittent failures across runs
+  Recommendation: Isolate shared state; fix seeds

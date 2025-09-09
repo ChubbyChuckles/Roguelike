@@ -749,14 +749,14 @@ int rogue_dungeon_place_keys_and_locks(RogueWorldGenContext* ctx, RogueTileMap* 
         { /* lock entrance of room i */
             int x = r->x + r->w / 2;
             int y = r->y;
-            int idx = y * io_map->width + x;
-            io_map->tiles[idx] = ROGUE_TILE_DUNGEON_LOCKED_DOOR;
+            /* Use setter to ensure bounds safety */
+            rogue_tilemap_set(io_map, x, y, ROGUE_TILE_DUNGEON_LOCKED_DOOR);
             locked++; /* place key in an earlier room */
             int key_room = (int) (rv % i);
             RogueDungeonRoom* kr = &graph->rooms[key_room];
             int kx = kr->x + kr->w / 2;
             int ky = kr->y + kr->h / 2;
-            io_map->tiles[ky * io_map->width + kx] = ROGUE_TILE_DUNGEON_KEY;
+            rogue_tilemap_set(io_map, kx, ky, ROGUE_TILE_DUNGEON_KEY);
         }
     }
     return locked;
@@ -792,7 +792,8 @@ int rogue_dungeon_place_traps_and_secrets(RogueWorldGenContext* ctx, RogueTileMa
             r->secret = 1; /* convert one wall to secret door */
             int sx = r->x + r->w / 2;
             int sy = r->y;
-            io_map->tiles[sy * io_map->width + sx] = ROGUE_TILE_DUNGEON_SECRET_DOOR;
+            /* Use setter to ensure bounds safety */
+            rogue_tilemap_set(io_map, sx, sy, ROGUE_TILE_DUNGEON_SECRET_DOOR);
         }
         if (traps < target_traps)
         {
@@ -800,7 +801,8 @@ int rogue_dungeon_place_traps_and_secrets(RogueWorldGenContext* ctx, RogueTileMa
             int ty = r->y + 2;
             if (tx < r->x + r->w - 1 && ty < r->y + r->h - 1)
             {
-                io_map->tiles[ty * io_map->width + tx] = ROGUE_TILE_DUNGEON_TRAP;
+                /* Use setter to ensure bounds safety */
+                rogue_tilemap_set(io_map, tx, ty, ROGUE_TILE_DUNGEON_TRAP);
                 traps++;
             }
         }
