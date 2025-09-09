@@ -1,6 +1,7 @@
 /* Validates that a legacy v1 save (header downgrade) migrates to v2 via registered chain */
 #include "../../src/core/app/app_state.h"
 #include "../../src/core/persistence/save_manager.h"
+#include "../../src/core/persistence/save_paths.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -27,11 +28,13 @@ int main(void)
         return 1;
     }
     /* Downgrade header version to 1 and recompute descriptor checksum so tamper check passes */
+    /* Open the save file using the engine's path builder to honor the test prefix dir */
+    const char* path = rogue_build_slot_path(0);
     FILE* f = NULL;
 #if defined(_MSC_VER)
-    fopen_s(&f, "save_slot_0.sav", "r+b");
+    fopen_s(&f, path, "r+b");
 #else
-    f = fopen("save_slot_0.sav", "r+b");
+    f = fopen(path, "r+b");
 #endif
     if (!f)
     {

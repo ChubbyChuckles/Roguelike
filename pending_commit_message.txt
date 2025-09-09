@@ -260,15 +260,20 @@ feat(items/json-dir-scan): add JSON-first compile flag, directory enumeration, a
 
 feat(items/tests phase5.1): JSON vs cfg equivalence + fallback tests; CI green (Debug/Release)
 
-- New tests:
 	• tests/unit/test_items_json_vs_cfg_equivalence.c – verifies equivalent items loaded from JSON and cfg match key fields and index presence
 	• tests/unit/test_items_json_fallback.c – ensures malformed-only JSON dir adds nothing and cfg fallback loads known items
-- Fix: fallback test uses malformed JSON missing required 'id' to guarantee rejection (avoids numeric sanitization path)
-- CI/local: Full suites pass (SDL2, -j12) Debug & Release – 673/673
-- Roadmap: mark Phase 5.1 equivalence and fallback Done; README Testing notes updated
 
 fix(worldgen/release-oob): guard BFS neighbor/queue bounds in chest placement; CI 675/675 green
 
-- Rogue dungeon chest placement (`rogue_dungeon_place_chests`): added strict neighbor index range checks and queue capacity guard in BFS to prevent Release-only heap corruption observed in `test_dungeon_phase8_3_upgrade_guarantee`.
 - Verified Debug & Release with SDL2 at -j12: full suites pass 100% (675/675).
 - Docs: Updated roadmap progress (Phase 5.2 status + fix note) and README test counts/CI verification.
+
+chore(items/phase5.2): complete JSON integration tests; update CI counts to 678/678
+
+- Add Phase 5.2 integration tests:
+	• tests/unit/test_crafting_json_materials.c – crafting with JSON materials (registry + recipe load, inventory deltas)
+	• tests/unit/test_equipment_json_persistence.c – equipment roundtrip persists via save/load using JSON items
+	• tests/unit/test_inventory_json_operations.c – add/consume/serialize/parse inventory using JSON items
+- Wire tests in tests/CMakeLists.txt under SDL guards; ensure parallel-safe save paths via rogue_save_paths_set_prefix_tests
+- CI: Verified Debug and Release with SDL2 and -j12 parallel ctest: 100% pass (678/678)
+- Docs: Roadmap Phase 5.2 marked complete; README updated to reflect 678 tests and Phase 5.2 coverage

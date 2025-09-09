@@ -37,6 +37,36 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_items_json_directory_load.c AND 
     rogue_add_test(test_items_json_directory_load COMMAND test_items_json_directory_load)
 endif()
 
+# Phase 5.2: Crafting with JSON materials
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_crafting_json_materials.c AND NOT TARGET test_crafting_json_materials)
+    add_executable(test_crafting_json_materials unit/test_crafting_json_materials.c)
+    target_link_libraries(test_crafting_json_materials PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_crafting_json_materials PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_crafting_json_materials COMMAND test_crafting_json_materials)
+endif()
+
+# Phase 5.2: Equipment persistence roundtrip with JSON items
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_json_persistence.c AND NOT TARGET test_equipment_json_persistence)
+    add_executable(test_equipment_json_persistence unit/test_equipment_json_persistence.c)
+    target_link_libraries(test_equipment_json_persistence PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_equipment_json_persistence PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_equipment_json_persistence COMMAND test_equipment_json_persistence)
+endif()
+
+# Phase 5.2: Inventory operations with JSON items
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_json_operations.c AND NOT TARGET test_inventory_json_operations)
+    add_executable(test_inventory_json_operations unit/test_inventory_json_operations.c)
+    target_link_libraries(test_inventory_json_operations PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_inventory_json_operations PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_inventory_json_operations COMMAND test_inventory_json_operations)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_items_json_schema_validation.c AND NOT TARGET test_items_json_schema_validation)
     add_executable(test_items_json_schema_validation unit/test_items_json_schema_validation.c)
     target_link_libraries(test_items_json_schema_validation PRIVATE rogue_core)

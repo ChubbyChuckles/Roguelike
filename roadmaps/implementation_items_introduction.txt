@@ -131,9 +131,9 @@ Based on comprehensive analysis of the entire codebase, this plan addresses the 
 **Priority: High**
 - [x] test_vendor_json_items.c: vendor operations with JSON-loaded items
 - [x] test_loot_generation_json.c: item spawning, affix rolling with JSON items
-- [ ] test_crafting_json_materials.c: recipe processing with JSON materials
-- [ ] test_equipment_json_persistence.c: equip/save/load with JSON items
-- [ ] test_inventory_json_operations.c: add/remove/stack with JSON items
+ - [x] test_crafting_json_materials.c: recipe processing with JSON materials
+ - [x] test_equipment_json_persistence.c: equip/save/load with JSON items
+ - [x] test_inventory_json_operations.c: add/remove/stack with JSON items
 
 ### 5.3 Performance & Stress Tests
 **Priority: Medium**
@@ -246,5 +246,5 @@ Progress update (2025-09-09)
   `rogue_dungeon_place_chests` (world gen chest placement). This prevented OOB writes that only surfaced
   under optimization. After the fix, both Debug and Release suites are 100% green.
 
-- Validation: Full Debug and Release CTest suites pass with SDL2 enabled and -j12 parallelism (675/675 in both configs).
-  Next: continue Phase 5.2 integration tests (crafting materials, equipment persistence, inventory operations) using JSON items.
+- Validation: Full Debug and Release CTest suites pass with SDL2 enabled and -j12 parallelism (678/678 in both configs).
+- Completed Phase 5.2 integration tests: crafting JSON materials, equipment JSON persistence, inventory JSON operations.

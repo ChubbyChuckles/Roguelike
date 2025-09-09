@@ -1,5 +1,6 @@
 /* Test v6 per-section compression (RLE) */
 #include "../../src/core/persistence/save_manager.h"
+#include "../../src/core/persistence/save_paths.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -38,7 +39,9 @@ int main(void)
         printf("COMP_FAIL save\n");
         return 1;
     }
-    size_t sz = fsize("save_slot_0.sav");
+    /* Use engine-built path to respect per-test prefix */
+    const char* path = rogue_build_slot_path(0);
+    size_t sz = fsize(path);
     if (sz == 0)
     {
         printf("COMP_FAIL size\n");
