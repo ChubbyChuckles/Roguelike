@@ -165,7 +165,8 @@ PHASE 16. UI / UX
 	- Vendor panel now draws a small reputation progress bar under tabs with current tier label; label hints unlock perks via tier tags. Uses `rogue_vendor_rep_progress` and `rogue_vendor_rep_current_tier`.
 16.5 Search/filter (category, rarity, stat range) (Done)
 	- Implemented vendor UI filter persistence module with getters/setters and clamping. Unit `test_vendor_phase16_filter_persist` covers defaults and roundtrip.
-16.6 Accessibility: high-contrast value change deltas, text-only mode (X)
+16.6 Accessibility: high-contrast value change deltas, text-only mode (Done)
+	- Added text-only toggle and price-line formatter in vendor_ui.[ch]; BUY list rendering now uses the formatter and app-level high-contrast flag to append explicit +/- delta percentages when available. High-contrast paths brighten panel chrome and labels for readability. Unit test `test_vendor_phase16_6_accessibility` validates formatter behavior in normal vs high-contrast vs text-only modes.
 16.7 Tests: tooltip correctness snapshot, filter persistence (Done)
 	- Added `test_vendor_phase16_tabs` to validate tab getter/setter clamping and wrap behavior (no SDL dependencies).
 

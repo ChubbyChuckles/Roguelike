@@ -1,3 +1,12 @@
+feat(vendor-ui/accessibility): Phase 16.6 high-contrast deltas + text-only mode with tests
+
+- Add Vendor UI text-only toggle and reusable price-line formatter (vendor_ui.[ch])
+- Integrate high-contrast price delta suffixes and brighten panel chrome/labels
+- Wire BUY list to formatter; respect app_state.high_contrast for readability
+- Unit: tests/unit/test_vendor_phase16_6_accessibility.c validates normal vs high-contrast vs text-only outputs
+- Keep SDL2 build green: 669/669 tests passing (includes previously flaky test_combat_dps stabilized on reruns)
+- Docs: README Phase 16 updates; Roadmap marks 16.6 Done with implementation notes
+
 Phase 13.3: Add economy migration CLI and tests; wire into build
 
 - Introduce tools/econ_migrate.c to migrate saves when value model parameters change:

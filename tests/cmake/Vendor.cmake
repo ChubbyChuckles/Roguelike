@@ -45,6 +45,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase16_negotiation_previ
     rogue_add_test(NAME test_vendor_phase16_negotiation_preview COMMAND test_vendor_phase16_negotiation_preview)
 endif()
 
+# Vendor System Phase 16.6 accessibility formatting test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase16_6_accessibility.c AND NOT TARGET test_vendor_phase16_6_accessibility)
+    add_executable(test_vendor_phase16_6_accessibility unit/test_vendor_phase16_6_accessibility.c)
+    target_link_libraries(test_vendor_phase16_6_accessibility PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_vendor_phase16_6_accessibility PRIVATE SDL2::SDL2)
+        target_compile_definitions(test_vendor_phase16_6_accessibility PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(NAME test_vendor_phase16_6_accessibility COMMAND test_vendor_phase16_6_accessibility)
+endif()
+
 # Vendor System Phase 0 inflow baseline simulation test (0.4)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_phase0_inflow.c AND NOT TARGET test_vendor_phase0_inflow)
     add_executable(test_vendor_phase0_inflow unit/test_vendor_phase0_inflow.c)

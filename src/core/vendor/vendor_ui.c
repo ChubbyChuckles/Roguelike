@@ -30,6 +30,52 @@ void rogue_vendor_tab_set(int tab)
     g_app.vendor_tab = tab;
 }
 
+/* Phase 16.6 accessibility: text-only toggle (module-local) */
+static int g_vendor_text_only = 0;
+void rogue_vendor_ui_set_text_only(int enabled) { g_vendor_text_only = enabled ? 1 : 0; }
+int rogue_vendor_ui_text_only(void) { return g_vendor_text_only; }
+
+/* Phase 16.6: high-contrast delta/text-only friendly line formatter */
+int rogue_vendor_ui_format_price_line(const char* item_name, int rarity, int price, int last_price,
+                                      int selected, int high_contrast, char* out, int cap)
+{
+    if (!out || cap <= 0)
+        return 0;
+    int wrote = 0;
+    const char sel = selected ? '>' : ' ';
+    int delta = (last_price > 0) ? (price - last_price) : 0;
+    /* In text-only, avoid color semantics; include explicit delta suffix. */
+    if (g_vendor_text_only)
+    {
+        if (last_price > 0)
+        {
+            wrote = snprintf(out, cap, "%c %s (%d) %dG [was %dG, %s%d%%]", sel,
+                             item_name ? item_name : "Item", rarity, price, last_price,
+                             (delta >= 0 ? "+" : ""),
+                             (last_price > 0 ? (delta * 100) / (last_price ? last_price : 1) : 0));
+        }
+        else
+        {
+            wrote = snprintf(out, cap, "%c %s (%d) %dG", sel, item_name ? item_name : "Item",
+                             rarity, price);
+        }
+        return wrote;
+    }
+    /* Default rich text: same content; when high_contrast include explicit delta suffix. */
+    if (high_contrast && last_price > 0)
+    {
+        int pct = (delta * 100) / (last_price ? last_price : 1);
+        wrote = snprintf(out, cap, "%c %s (%d) %dG  %s%d%%", sel, item_name ? item_name : "Item",
+                         rarity, price, (delta >= 0 ? "+" : ""), pct);
+    }
+    else
+    {
+        wrote = snprintf(out, cap, "%c %s (%d) %dG", sel, item_name ? item_name : "Item", rarity,
+                         price);
+    }
+    return wrote;
+}
+
 static void draw_tabs(SDL_Rect panel)
 {
     const char* labels[4] = {"BUY", "SELL", "BUYBACK", "SPECIAL"};
@@ -77,13 +123,29 @@ static void draw_buy_list(SDL_Rect panel)
         if (!d || !passes_filters(d, vi->rarity, &f))
             continue;
         int price = rogue_econ_buy_price(vi);
-        char line[160];
-        snprintf(line, sizeof line, "%c %s (%d) %dG", (i == g_app.vendor_selection) ? '>' : ' ',
-                 d->name, vi->rarity, price);
-        rogue_font_draw_text(panel.x + 10, y, line, 1,
-                             (RogueColor){(i == g_app.vendor_selection) ? 255 : 200,
-                                          (i == g_app.vendor_selection) ? 255 : 200,
-                                          (i == g_app.vendor_selection) ? 160 : 200, 255});
+        /* Accessibility: compute last price via breakdown for delta if possible. */
+        int last_price = 0;
+        {
+            RogueVendorPriceBreakdown br;
+            (void) rogue_vendor_compute_price_with_breakdown(
+                g_app.vendor_def_index, vi->def_index, vi->rarity, (int) (d ? d->category : 0),
+                1, /* vendor selling */
+                100, /* assume pristine */ -1, 0.0f, &br);
+            last_price = br.final_price; /* snapshot of current factors; future: cache prev */
+        }
+        char line[192];
+        rogue_vendor_ui_format_price_line(d->name, vi->rarity, price, last_price,
+                                          (i == g_app.vendor_selection), g_app.high_contrast, line,
+                                          (int) sizeof line);
+        RogueColor col = {(i == g_app.vendor_selection) ? 255 : 200,
+                          (i == g_app.vendor_selection) ? 255 : 200,
+                          (i == g_app.vendor_selection) ? 160 : 200, 255};
+        if (g_vendor_text_only)
+        {
+            /* Force bright white for readability in text-only. */
+            col.r = col.g = col.b = 240;
+        }
+        rogue_font_draw_text(panel.x + 10, y, line, 1, col);
         y += 18;
         if (y > panel.y + panel.h - 64)
             break;
@@ -113,12 +175,15 @@ void rogue_vendor_panel_render(void)
     if (!g_app.renderer)
         return;
     SDL_Rect panel = {g_app.viewport_w - 320, 60, 300, 300};
-    SDL_SetRenderDrawColor(g_app.renderer, 20, 20, 32, 240);
+    SDL_SetRenderDrawColor(g_app.renderer, g_app.high_contrast ? 10 : 20,
+                           g_app.high_contrast ? 10 : 20, g_app.high_contrast ? 10 : 32, 240);
     SDL_RenderFillRect(g_app.renderer, &panel);
-    SDL_SetRenderDrawColor(g_app.renderer, 90, 90, 120, 255);
+    SDL_SetRenderDrawColor(g_app.renderer, g_app.high_contrast ? 255 : 90,
+                           g_app.high_contrast ? 255 : 90, g_app.high_contrast ? 255 : 120, 255);
     SDL_Rect br = {panel.x - 2, panel.y - 2, panel.w + 4, panel.h + 4};
     SDL_RenderDrawRect(g_app.renderer, &br);
-    rogue_font_draw_text(panel.x + 6, panel.y + 4, "VENDOR", 1, (RogueColor){255, 255, 210, 255});
+    rogue_font_draw_text(panel.x + 6, panel.y + 4, "VENDOR", 1,
+                         (RogueColor){255, 255, g_app.high_contrast ? 255 : 210, 255});
     draw_tabs(panel);
     /* Phase 16.4: Reputation progress bar & tier label */
     int vdef = g_app.vendor_def_index;
@@ -128,10 +193,12 @@ void rogue_vendor_panel_render(void)
         repf = 0.0f;
     if (repf > 1.0f)
         repf = 1.0f;
-    SDL_SetRenderDrawColor(g_app.renderer, 36, 36, 54, 255);
+    SDL_SetRenderDrawColor(g_app.renderer, g_app.high_contrast ? 20 : 36,
+                           g_app.high_contrast ? 20 : 36, g_app.high_contrast ? 20 : 54, 255);
     SDL_Rect rep_bg = {panel.x + 8, panel.y + 28, panel.w - 16, 6};
     SDL_RenderFillRect(g_app.renderer, &rep_bg);
-    SDL_SetRenderDrawColor(g_app.renderer, 120, 210, 140, 255);
+    SDL_SetRenderDrawColor(g_app.renderer, g_app.high_contrast ? 255 : 120,
+                           g_app.high_contrast ? 255 : 210, g_app.high_contrast ? 255 : 140, 255);
     SDL_Rect rep_fg = {panel.x + 8, panel.y + 28, (int) ((panel.w - 16) * repf), 6};
     SDL_RenderFillRect(g_app.renderer, &rep_fg);
     char rep_label[96];
@@ -139,7 +206,9 @@ void rogue_vendor_panel_render(void)
     snprintf(rep_label, sizeof rep_label, "Rep: %s%s", rtt ? rtt->id : "None",
              (rtt && rtt->unlock_tags[0]) ? " (perks)" : "");
     rogue_font_draw_text(panel.x + 10, panel.y + 16, rep_label, 1,
-                         (RogueColor){200, 240, 210, 255});
+                         (RogueColor){g_app.high_contrast ? 255 : 200,
+                                      g_app.high_contrast ? 255 : 240,
+                                      g_app.high_contrast ? 255 : 210, 255});
     /* Draw content based on tab */
     switch (g_app.vendor_tab)
     {
@@ -161,14 +230,18 @@ void rogue_vendor_panel_render(void)
                     rogue_vendor_security_negotiation_lockout_remaining(vdef, now_ms);
                 snprintf(nego, sizeof nego, "Negotiation locked: %ums", rem);
                 rogue_font_draw_text(panel.x + 10, panel.y + panel.h - 72, nego, 1,
-                                     (RogueColor){255, 170, 150, 255});
+                                     (RogueColor){g_app.high_contrast ? 255 : 255,
+                                                  g_app.high_contrast ? 255 : 170,
+                                                  g_app.high_contrast ? 255 : 150, 255});
             }
             else
             {
                 snprintf(nego, sizeof nego, "Negotiate: %+d..%+d%% (p=%.0f%%)", -maxp, -minp,
                          prob * 100.0f);
                 rogue_font_draw_text(panel.x + 10, panel.y + panel.h - 72, nego, 1,
-                                     (RogueColor){210, 230, 255, 255});
+                                     (RogueColor){g_app.high_contrast ? 255 : 210,
+                                                  g_app.high_contrast ? 255 : 230,
+                                                  g_app.high_contrast ? 255 : 255, 255});
             }
         }
         break;
@@ -199,10 +272,12 @@ void rogue_vendor_panel_render(void)
     int bar_x = panel.x + 6;
     int bar_y = panel.y + panel.h - 34;
     int bar_h = 8;
-    SDL_SetRenderDrawColor(g_app.renderer, 40, 40, 60, 255);
+    SDL_SetRenderDrawColor(g_app.renderer, g_app.high_contrast ? 10 : 40,
+                           g_app.high_contrast ? 10 : 40, g_app.high_contrast ? 10 : 60, 255);
     SDL_Rect bar_bg = {bar_x, bar_y, bar_w, bar_h};
     SDL_RenderFillRect(g_app.renderer, &bar_bg);
-    SDL_SetRenderDrawColor(g_app.renderer, 80, 180, 255, 255);
+    SDL_SetRenderDrawColor(g_app.renderer, g_app.high_contrast ? 255 : 80,
+                           g_app.high_contrast ? 255 : 180, 255, 255);
     SDL_Rect bar_fg = {bar_x, bar_y, (int) (bar_w * frac), bar_h};
     SDL_RenderFillRect(g_app.renderer, &bar_fg);
     char eta[64];
@@ -215,8 +290,9 @@ void rogue_vendor_panel_render(void)
     char footer[128];
     snprintf(footer, sizeof footer, "Gold:%d  REP:%d  TAB:%d  \x1B[<] [>] tabs  ENTER=Buy  V=Close",
              rogue_econ_gold(), rogue_econ_get_reputation(), g_app.vendor_tab);
-    rogue_font_draw_text(panel.x + 6, panel.y + panel.h - 18, footer, 1,
-                         (RogueColor){180, 220, 255, 255});
+    rogue_font_draw_text(
+        panel.x + 6, panel.y + panel.h - 18, footer, 1,
+        (RogueColor){g_app.high_contrast ? 255 : 180, g_app.high_contrast ? 255 : 220, 255, 255});
 
     /* Phase 4.8 Transaction confirmation modal */
     if (g_app.vendor_confirm_active)

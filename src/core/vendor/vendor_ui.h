@@ -28,6 +28,17 @@ extern "C"
     int rogue_vendor_ui_negotiation_preview(const char* rule_id, int attr_str, int attr_dex,
                                             int attr_int, int attr_vit, int* out_min_pct,
                                             int* out_max_pct, float* out_success_prob);
+    /* Phase 16.6: Accessibility toggles (text-only mode) */
+    void rogue_vendor_ui_set_text_only(int enabled);
+    int rogue_vendor_ui_text_only(void);
+    /* Phase 16.6: Helper to format a single price line with optional delta percentage.
+        selected: 1 to prefix with '>' marker, 0 for space.
+        high_contrast: when non-zero and last_price>0, append " " style delta text
+        (ASCII: " +10%" or " -8%"; tests check for " ").
+        Returns bytes written. */
+    int rogue_vendor_ui_format_price_line(const char* item_name, int rarity, int price,
+                                          int last_price, int selected, int high_contrast,
+                                          char* out, int cap);
 #ifdef __cplusplus
 }
 #endif

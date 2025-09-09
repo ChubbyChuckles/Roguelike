@@ -201,6 +201,10 @@ Notes
 - Buy tab: pricing tooltip shows value→margin→rep→negotiation→demand chain.
 - Negotiation preview: shows min..max discount and success probability; respects lockout timers (security guard) and displays remaining lockout time.
 - Reputation strip: a small progress bar with current tier label and a perks hint (based on tier unlock tags).
+- Accessibility (16.6):
+  - High-contrast deltas: When High Contrast is enabled (System panel), BUY list lines append explicit price deltas (e.g., +10% or -8%) for quicker scanning of value changes.
+  - Text-only mode: A new Vendor UI text-only toggle forces plain text rendering for item lines, including previous price and percent delta suffixes for readability in low-graphics contexts. Backed by a reusable formatter helper.
+  - Tests: `tests/unit/test_vendor_phase16_6_accessibility.c` verifies formatter outputs across normal, high-contrast, and text-only modes.
 
 <div align="center">
 
