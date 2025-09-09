@@ -6,6 +6,7 @@ param(
     [switch]$DryRun,
     [switch]$Verbose,
     [switch]$ParallelTests,
+    [switch]$ParallelConfigs,
     [string]$OutputDir = ".",
     [double]$Threshold = 0.01,
     [string]$RegexFilter,
@@ -15,6 +16,8 @@ param(
 
 # Default ParallelTests to true if not provided
 if (-not $PSBoundParameters.ContainsKey('ParallelTests')) { $ParallelTests = $true }
+# Default ParallelConfigs to true if not provided
+if (-not $PSBoundParameters.ContainsKey('ParallelConfigs')) { $ParallelConfigs = $true }
 
 function Get-MaxCores {
     try {
@@ -69,7 +72,8 @@ function Invoke-TestRuns {
         [int]$NumRuns,
         [string]$ProjectRoot,
         [hashtable]$TestResults,
-        [string]$RegexFilter
+        [string]$RegexFilter,
+        [int]$ThrottleLimit
     )
     $testDir = Join-Path (Join-Path $ProjectRoot $BuildDir) "tests/$Config"
     if (-not (Test-Path $testDir)) { throw "Test directory not found: $testDir" }
@@ -91,6 +95,7 @@ function Invoke-TestRuns {
 
     $root = Join-Path $ProjectRoot $BuildDir
     $throttle = if ($ParallelTests) { [int]$Script:MaxCores } else { 1 }
+    if ($ThrottleLimit -gt 0) { $throttle = [int]$ThrottleLimit }
 
     $runOne = {
         param($item)
@@ -152,6 +157,7 @@ function Invoke-TestRuns {
             if ($Verbose) { Write-Output ("[{0}] {1} run {2}: exit {3}, {4:N3}s" -f $Config, $n, $r.Run, $r.ExitCode, [double]$r.Duration) }
         }
     }
+    return $TestResults
 }
 
 function Measure-TestResults {
@@ -288,9 +294,28 @@ Write-Output "Project root detected: $ProjectRoot"
 $cfgs = @(); if ($BuildConfigs -in @('Both', 'Debug')) { $cfgs += 'Debug' }; if ($BuildConfigs -in @('Both', 'Release')) { $cfgs += 'Release' }
 $all = @{}
 
+# Build requested configs sequentially to avoid oversubscribing the compiler
 foreach ($c in $cfgs) {
     if (-not $DryRun) { Invoke-BuildConfig -ProjectRoot $ProjectRoot -Config $c -BuildDir $BuildDir } else { Write-Output "Dry run: Would build $c" }
-    Invoke-TestRuns -Config $c -BuildDir $BuildDir -NumRuns $NumRuns -ProjectRoot $ProjectRoot -TestResults $all -RegexFilter $RegexFilter
+}
+
+# Run tests, optionally in parallel across Debug/Release, sharing cores fairly
+if ($ParallelConfigs -and $cfgs.Count -gt 1) {
+    $coresPer = [Math]::Max(1, [int][Math]::Floor($Script:MaxCores / $cfgs.Count))
+    $perConfig = $cfgs | ForEach-Object -Parallel {
+        param($c)
+        $local = @{}
+        Invoke-TestRuns -Config $c -BuildDir $using:BuildDir -NumRuns $using:NumRuns -ProjectRoot $using:ProjectRoot -TestResults $local -RegexFilter $using:RegexFilter -ThrottleLimit $using:coresPer | Out-Null
+        return @{ Config = $c; Results = $local }
+    } -ThrottleLimit $cfgs.Count
+    foreach ($pc in $perConfig) {
+        foreach ($k in $pc.Results.Keys) { $all[$k] = $pc.Results[$k] }
+    }
+}
+else {
+    foreach ($c in $cfgs) {
+        Invoke-TestRuns -Config $c -BuildDir $BuildDir -NumRuns $NumRuns -ProjectRoot $ProjectRoot -TestResults $all -RegexFilter $RegexFilter | Out-Null
+    }
 }
 
 $flakyOut = Measure-TestResults -TestResults $all -Threshold $Threshold

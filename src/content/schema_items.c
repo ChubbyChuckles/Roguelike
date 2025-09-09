@@ -21,6 +21,21 @@
 #include "json_io.h"
 #include <string.h>
 
+/* Global migration hook for item defs. Not thread-safe; set during init. */
+static RogueItemsMigrateFn g_items_migrate_hook = NULL;
+
+void rogue_items_set_migration_hook(RogueItemsMigrateFn fn) { g_items_migrate_hook = fn; }
+
+void rogue_items_migrate(RogueItemDef* defs, int count, unsigned from_version, unsigned to_version)
+{
+    if (!defs || count <= 0)
+        return;
+    if (from_version == to_version)
+        return;
+    if (g_items_migrate_hook)
+        g_items_migrate_hook(defs, count, from_version, to_version);
+}
+
 /**
  * @brief Converts a RogueItemDef to a JSON object for schema validation.
  *

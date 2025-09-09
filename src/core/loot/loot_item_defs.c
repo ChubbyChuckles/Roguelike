@@ -1,9 +1,23 @@
 #include "loot_item_defs.h"
 #include "../../content/json_envelope.h" /* allow loading from versioned envelopes */
+#include "../../content/schema_items.h"
+#include "../../util/log.h"
 #include "loot_affixes.h" /* ensure affixes present for tests that roll immediately */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* Platform-specific includes for directory enumeration and file probes */
+#if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <io.h> /* _access */
+#include <windows.h>
+#else
+#include <dirent.h> /* DIR, opendir */
+#include <unistd.h> /* access */
+#endif
 
 #ifndef ROGUE_ITEM_DEF_CAP
 #define ROGUE_ITEM_DEF_CAP 512
@@ -514,6 +528,7 @@ int rogue_item_defs_load_from_json(const char* path)
         d.stack_max = 1;
         int have_id = 0, have_name = 0;
         int done_obj = 0;
+        unsigned obj_schema_version = 0; /* optional per-object schema version */
         while (!done_obj)
         {
             s = skip_ws(s);
@@ -608,6 +623,8 @@ int rogue_item_defs_load_from_json(const char* path)
                     d.rarity = num < 0 ? 0 : num;
                 else if (strcmp(key, "flags") == 0)
                     d.flags = num;
+                else if (strcmp(key, "schema_version") == 0)
+                    obj_schema_version = (unsigned) (num < 0 ? 0 : num);
                 else if (strcmp(key, "implicit_strength") == 0)
                     d.implicit_strength = num;
                 else if (strcmp(key, "implicit_dexterity") == 0)
@@ -670,6 +687,18 @@ int rogue_item_defs_load_from_json(const char* path)
             ++s;
             continue;
         }
+    }
+    /* After bulk load from this file, if any entries had an older schema_version, migrate
+       the newly added range to current. We conservatively migrate the entire set; a no-op hook
+       can cheaply return if versions match. */
+    if (added > 0)
+    {
+        int total_count = g_item_def_count;
+        int start_index = total_count - added;
+        if (start_index < 0)
+            start_index = 0;
+        rogue_items_migrate(&g_item_defs[start_index], added, /*from*/ 0u,
+                            /*to*/ ROGUE_ITEMS_SCHEMA_VERSION_CURRENT);
     }
     if (using_env)
         json_envelope_free(&env);
@@ -901,41 +930,159 @@ int rogue_item_defs_load_directory(const char* dir_path)
 }
 
 /* Phase 1: JSON-first directory scan: attempts to load all *.json item defs in dir. */
+/* small local helper */
+static int _file_exists_simple(const char* p)
+{
+    if (!p)
+        return 0;
+#if defined(_MSC_VER)
+    return _access(p, 0) == 0;
+#else
+    return access(p, 0) == 0;
+#endif
+}
+
 int rogue_item_defs_load_directory_json(const char* dir_path)
 {
     if (!dir_path)
         return -1;
 
-    /* Minimal, portable implementation without filesystem APIs: probe a curated list
-       of expected JSON files that exist in this repo during the transition. */
-    const char* json_files[] = {
-        "weapon_iron_sword.json",       "armor_leather_cap.json", "potion_small_heal.json",
-        "misc_scroll_town_portal.json", "material_iron_ore.json",
-    };
-    const size_t json_files_count = sizeof(json_files) / sizeof(json_files[0]);
-
-    /* Try as-is and with a few ascents for robustness. */
+    /* Resolve a concrete directory path among common relative prefixes for resilience. */
     const char* prefixes[] = {"", "../", "../../", "../../../"};
-    char path[512];
-    int total = 0;
+    char dir[512];
+    int resolved = 0;
     for (size_t p = 0; p < sizeof(prefixes) / sizeof(prefixes[0]); ++p)
     {
-        int start_total = total;
-        for (size_t i = 0; i < json_files_count; ++i)
+        int n = snprintf(dir, sizeof dir, "%s%s", prefixes[p], dir_path);
+        if (n <= 0 || n >= (int) sizeof dir)
+            continue;
+            /* quick existence probe by checking for at least one .json */
+#if defined(_WIN32)
+        char pat[560];
+        snprintf(pat, sizeof pat, "%s\\*.json", dir);
+        WIN32_FIND_DATAA fd;
+        HANDLE h = FindFirstFileA(pat, &fd);
+        if (h != INVALID_HANDLE_VALUE)
         {
-            int n = snprintf(path, sizeof path, "%s%s/%s", prefixes[p], dir_path, json_files[i]);
-            if (n <= 0 || n >= (int) sizeof path)
-                continue;
-            int before = rogue_item_defs_count();
-            int added = rogue_item_defs_load_from_json(path);
-            if (added > 0)
+            FindClose(h);
+            resolved = 1;
+            break;
+        }
+#else
+        DIR* d = opendir(dir);
+        if (d)
+        {
+            struct dirent* e;
+            int any = 0;
+            while ((e = readdir(d)))
             {
-                total += (rogue_item_defs_count() - before);
+                size_t len = strlen(e->d_name);
+                if (len > 5 && strcmp(e->d_name + len - 5, ".json") == 0)
+                {
+                    any = 1;
+                    break;
+                }
+            }
+            closedir(d);
+            if (any)
+            {
+                resolved = 1;
+                break;
             }
         }
-        if (total > start_total)
-            break; /* loaded at least one; consider directory resolved */
+#endif
     }
+    if (!resolved)
+    {
+        ROGUE_LOG_WARN("Items JSON dir not found or empty: %s (checked ascents)", dir_path);
+        return 0; /* not fatal; allow caller to fallback */
+    }
+
+    /* Enumerate *.json and load each, validating via schema when available. */
+    int total = 0;
+#if defined(_WIN32)
+    {
+        char pat[560];
+        snprintf(pat, sizeof pat, "%s\\*.json", dir);
+        WIN32_FIND_DATAA fd;
+        HANDLE h = FindFirstFileA(pat, &fd);
+        if (h != INVALID_HANDLE_VALUE)
+        {
+            do
+            {
+                if (fd.cFileName[0] == '.')
+                    continue;
+                char full[560];
+                snprintf(full, sizeof full, "%s\\%s", dir, fd.cFileName);
+                if (!_file_exists_simple(full))
+                    continue;
+                int before = g_item_def_count;
+                int added = rogue_item_defs_load_from_json(full);
+                if (added <= 0)
+                {
+                    ROGUE_LOG_WARN("Items JSON load failed: %s", full);
+                    continue;
+                }
+                /* Optional schema validation of the newly added slice */
+                RogueSchemaValidationResult vr = {0};
+                int after = g_item_def_count;
+                if (!rogue_items_validate_defs(&g_item_defs[before], after - before, &vr))
+                {
+                    ROGUE_LOG_WARN("Items schema invalid in %s: first error '%s' at %s", full,
+                                   vr.error_count ? vr.errors[0].message : "unknown",
+                                   vr.error_count ? vr.errors[0].field_path : "<root>");
+                    /* Roll back additions from this file by truncating count */
+                    g_item_def_count = before;
+                    continue;
+                }
+                total += (after - before);
+            } while (FindNextFileA(h, &fd));
+            FindClose(h);
+        }
+    }
+#else
+    {
+        DIR* d = opendir(dir);
+        if (d)
+        {
+            struct dirent* e;
+            while ((e = readdir(d)))
+            {
+                if (e->d_name[0] == '.')
+                    continue;
+                size_t len = strlen(e->d_name);
+                if (len <= 5 || strcmp(e->d_name + len - 5, ".json") != 0)
+                    continue;
+                char full[560];
+                snprintf(full, sizeof full, "%s/%s", dir, e->d_name);
+                if (!_file_exists_simple(full))
+                    continue;
+                int before = g_item_def_count;
+                int added = rogue_item_defs_load_from_json(full);
+                if (added <= 0)
+                {
+                    ROGUE_LOG_WARN("Items JSON load failed: %s", full);
+                    continue;
+                }
+                RogueSchemaValidationResult vr = {0};
+                int after = g_item_def_count;
+                if (!rogue_items_validate_defs(&g_item_defs[before], after - before, &vr))
+                {
+                    ROGUE_LOG_WARN("Items schema invalid in %s: first error '%s' at %s", full,
+                                   vr.error_count ? vr.errors[0].message : "unknown",
+                                   vr.error_count ? vr.errors[0].field_path : "<root>");
+                    g_item_def_count = before;
+                    continue;
+                }
+                total += (after - before);
+            }
+            closedir(d);
+        }
+    }
+#endif
+
+    if (total > 0)
+        ROGUE_LOG_INFO("Loaded %d item JSON defs from %s", total, dir);
     rogue_item_defs_build_index();
     return total;
 }

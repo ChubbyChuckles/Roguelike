@@ -334,13 +334,24 @@ bool rogue_app_init(const RogueAppConfig* cfg)
     g_app.vendor_x = 4.5f;
     g_app.vendor_y = 4.5f;
     g_app.show_equipment_panel = 0;
-    int items_loaded = rogue_item_defs_load_directory_json("assets/items");
+    int items_loaded = 0;
+#ifdef ROGUE_ITEMS_PREFER_JSON
+    items_loaded = rogue_item_defs_load_directory_json("assets/items");
+    if (items_loaded > 0)
+        ROGUE_LOG_INFO("Items loaded via JSON directory (app_init) count=%d", items_loaded);
+#endif
     if (items_loaded <= 0)
     {
         items_loaded = rogue_item_defs_load_directory("assets/items");
         if (items_loaded <= 0)
         {
             items_loaded = rogue_item_defs_load_from_cfg("assets/test_items.cfg");
+            if (items_loaded > 0)
+                ROGUE_LOG_INFO("Items loaded via fallback single cfg (app_init)");
+        }
+        else
+        {
+            ROGUE_LOG_INFO("Items loaded via cfg directory (app_init) count=%d", items_loaded);
         }
     }
     /* Register content graph nodes for Items (Phase 13.3 wiring). We register individual

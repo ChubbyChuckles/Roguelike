@@ -14,6 +14,7 @@ option(ROGUE_SUPPRESS_WINDOWS_ERROR_DIALOGS "Suppress Windows/MSVC error popups 
 option(ROGUE_ENABLE_DEBUG_OVERLAY "Enable the unified in-game debug overlay system" ON)
 option(ROGUE_ENABLE_JSON_CONTENT "Enable content JSON system (schemas, IO)" ON)
 option(ROGUE_BUILD_DOCS "Enable building Doxygen documentation" ON)
+option(ROGUE_ITEMS_PREFER_JSON "Prefer JSON items over legacy cfg at startup (with graceful fallbacks)" ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -567,6 +568,11 @@ add_library(rogue_core
     src/core/integration/validation_wiring.c
     # Phase 5.6 deadlock detection & prevention
     src/core/integration/deadlock_manager.c
+)
+
+# Compile-time feature toggles for core
+target_compile_definitions(rogue_core PUBLIC
+    $<$<BOOL:${ROGUE_ITEMS_PREFER_JSON}>:ROGUE_ITEMS_PREFER_JSON>
 )
 
 # -----------------------------

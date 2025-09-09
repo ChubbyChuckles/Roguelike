@@ -35,7 +35,9 @@ int main(void)
 
     RogueDungeonGraph graph;
     memset(&graph, 0, sizeof graph);
-    assert(rogue_dungeon_generate_graph(&ctx, 24, 20, &graph));
+    /* In Release builds, assert() compiles out; ensure we always execute the call */
+    if (!rogue_dungeon_generate_graph(&ctx, 24, 20, &graph))
+        return 2;
 
     int ox = (cfg.width - 220) / 2;
     int oy = (cfg.height - 220) / 2;

@@ -1,3 +1,10 @@
+feat(items/schema): add schema_version detection and migration hook
+
+- Add ROGUE_ITEMS_SCHEMA_VERSION_CURRENT and public migration API in schema_items.{h,c}
+- Capture optional per-item `schema_version` during JSON load and invoke migration hook on new slice
+- Keep validation strict: malformed JSON rejected, per-file rollback preserved, index rebuilt
+- Docs: README notes items schema_version + migration; roadmap Phase 1.3 box checked
+
 feat(vendor-ui/accessibility): Phase 16.6 high-contrast deltas + text-only mode with tests
 
 - Add Vendor UI text-only toggle and reusable price-line formatter (vendor_ui.[ch])
@@ -227,3 +234,18 @@ feat(items/json-first): prefer assets/items/*.json at startup with cfg fallbacks
 - Improve asset base path resolution (SDL_GetBasePath + ascents) and fix brittle test pathing for cfg file analysis
 - Docs: README notes JSON‑first loading; Roadmap marks Phase 1 bootstrap wiring done
 - Validation: Windows + SDL2, full CTest suites pass with -j12 in Debug and Release (669/669)
+
+test: fix Release-only assert elision in test_dungeon_phase8_3_upgrade_guarantee
+
+- Move rogue_dungeon_generate_graph() out of assert; check result explicitly to ensure execution under Release
+- Re-verified: full Release suite now green; Debug/Release both 669/669
+
+feat(items/json-dir-scan): add JSON-first compile flag, directory enumeration, and schema validation
+
+- Introduce CMake option ROGUE_ITEMS_PREFER_JSON (default ON) and propagate definition to core
+- app_init.c/app.c: honor flag, prefer JSON dir then cfg dir then single cfg; add informative logs
+- loot_item_defs.c: implement robust *.json directory scan (Win32/posix), file-by-file load
+	with schema validation (src/content/schema_items.{h,c}); partial failure safe (skip invalid),
+	build fast id index after load; add basic existence checks and warnings
+- Roadmap updated: mark flag, logging, directory existence check, and per-file validation done;
+	progress note added
