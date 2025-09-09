@@ -397,11 +397,13 @@ int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
                 v = ed->b;
             else if (ed->b == u)
                 v = ed->a;
-            if (v >= 0 && dist[v] < 0)
+            /* Guard against malformed edges referencing out-of-range rooms */
+            if (v >= 0 && v < graph->room_count && dist[v] < 0)
             {
                 dist[v] = dist[u] + 1;
                 parent[v] = u;
-                q[qe++] = v;
+                if (qe < graph->room_count)
+                    q[qe++] = v;
             }
         }
     }

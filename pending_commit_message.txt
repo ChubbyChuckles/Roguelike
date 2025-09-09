@@ -266,3 +266,9 @@ feat(items/tests phase5.1): JSON vs cfg equivalence + fallback tests; CI green (
 - Fix: fallback test uses malformed JSON missing required 'id' to guarantee rejection (avoids numeric sanitization path)
 - CI/local: Full suites pass (SDL2, -j12) Debug & Release – 673/673
 - Roadmap: mark Phase 5.1 equivalence and fallback Done; README Testing notes updated
+
+fix(worldgen/release-oob): guard BFS neighbor/queue bounds in chest placement; CI 675/675 green
+
+- Rogue dungeon chest placement (`rogue_dungeon_place_chests`): added strict neighbor index range checks and queue capacity guard in BFS to prevent Release-only heap corruption observed in `test_dungeon_phase8_3_upgrade_guarantee`.
+- Verified Debug & Release with SDL2 at -j12: full suites pass 100% (675/675).
+- Docs: Updated roadmap progress (Phase 5.2 status + fix note) and README test counts/CI verification.

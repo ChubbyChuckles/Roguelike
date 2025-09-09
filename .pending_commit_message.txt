@@ -1,3 +1,10 @@
+Items JSON Integration Phase 5.2: add vendor and loot generation tests
+
+- Add tests/unit/test_vendor_json_items.c to verify vendor inventory generation with JSON-loaded items and pricing > 0
+- Add tests/unit/test_loot_generation_json.c to verify rogue_generate_item works with JSON items, rarity floor from context, and instance linkage
+- Wire both tests into tests/CMakeLists.txt; build and run under Debug (SDL2, -j12) and confirm passing
+- Update roadmap (implementation_items_introduction.txt) marking both tests complete in 5.2
+- Next: crafting/equipment/inventory JSON integration tests; re-run suites in Release and update README counts accordingly
 Vendor System – Phase 14 Analytics: add vendor_analytics module, wire hooks, tests, and docs
 
 - Add src/core/vendor/vendor_analytics.[ch] implementing telemetry for:

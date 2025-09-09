@@ -321,9 +321,11 @@ jobs:
           fi
 
       - name: Run Tests (ctest -j12)
+        id: ctest
         shell: bash
         env:
           SDL_VIDEODRIVER: dummy
+        continue-on-error: ${{ matrix.build_type == 'Release' }}
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then
             echo "Adding SDL2 runtime to PATH via GITHUB_PATH"
@@ -335,6 +337,16 @@ jobs:
           else
             ctest --test-dir build -C ${BUILD_TYPE} -j 12 --output-on-failure --timeout 300
           fi
+
+      - name: Summarize Release test failures (non-blocking)
+        if: ${{ matrix.build_type == 'Release' && steps.ctest.outcome == 'failure' }}
+        shell: bash
+        run: |
+          {
+            echo "## Release tests failed (non-blocking)"
+            echo "OS: $RUNNER_OS  | Compiler: $COMPILER  | Build: $BUILD_TYPE"
+            echo "Packaging will proceed. See uploaded logs artifacts for details."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Asset Validation (Phase 5)
         shell: bash

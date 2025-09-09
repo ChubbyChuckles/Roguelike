@@ -66,6 +66,25 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_items_json_fallback.c AND NOT TA
     rogue_add_test(test_items_json_fallback COMMAND test_items_json_fallback)
 endif()
 
+# Items/Vendor: JSON items integration test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_vendor_json_items.c AND NOT TARGET test_vendor_json_items)
+    add_executable(test_vendor_json_items unit/test_vendor_json_items.c)
+    target_link_libraries(test_vendor_json_items PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_vendor_json_items PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_vendor_json_items COMMAND test_vendor_json_items)
+endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_generation_json.c AND NOT TARGET test_loot_generation_json)
+    add_executable(test_loot_generation_json unit/test_loot_generation_json.c)
+    target_link_libraries(test_loot_generation_json PRIVATE rogue_core)
+    if(ROGUE_HAVE_SDL)
+        target_compile_definitions(test_loot_generation_json PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_loot_generation_json COMMAND test_loot_generation_json)
+endif()
+
 # Explicitly wire new Dungeon Phase 2.4 tests to avoid glob/target churn on MSBuild multi-config
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dungeon_phase2_4_deco_layering.c AND NOT TARGET test_dungeon_phase2_4_deco_layering)
     add_executable(test_dungeon_phase2_4_deco_layering unit/test_dungeon_phase2_4_deco_layering.c)

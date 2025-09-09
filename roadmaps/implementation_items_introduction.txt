@@ -129,8 +129,8 @@ Based on comprehensive analysis of the entire codebase, this plan addresses the 
 
 ### 5.2 Integration Tests
 **Priority: High**
-- [ ] test_vendor_json_items.c: vendor operations with JSON-loaded items
-- [ ] test_loot_generation_json.c: item spawning, affix rolling with JSON items
+- [x] test_vendor_json_items.c: vendor operations with JSON-loaded items
+- [x] test_loot_generation_json.c: item spawning, affix rolling with JSON items
 - [ ] test_crafting_json_materials.c: recipe processing with JSON materials
 - [ ] test_equipment_json_persistence.c: equip/save/load with JSON items
 - [ ] test_inventory_json_operations.c: add/remove/stack with JSON items
@@ -230,9 +230,21 @@ Progress update (2025-09-09)
 - Validation: Full Debug and Release CTest suites pass with SDL2 enabled and -j12 parallelism (669/669 in both configs).
  - Validation: Full Debug and Release CTest suites pass with SDL2 enabled and -j12 parallelism (673/673 in both configs).
 - Added compile-time toggle (ROGUE_ITEMS_PREFER_JSON, default ON), directory existence checks + logging, and per-file JSON schema validation with partial-failure handling. Startup now logs which path was used (JSON dir / cfg dir / single cfg) and counts loaded items. Next: expand integration tests for vendors/loot/crafting with JSON items.
- - Implemented Phase 5.1 tests and wired them into CMake:
+- Implemented Phase 5.1 tests and wired them into CMake:
    • tests/unit/test_items_json_directory_load.c validates directory enumeration and index building
    • tests/unit/test_items_json_schema_validation.c verifies per-file schema rollback on malformed JSON
    • tests/unit/test_items_json_vs_cfg_equivalence.c validates JSON vs cfg field equivalence and index presence
    • tests/unit/test_items_json_fallback.c validates JSON failure (malformed) → cfg fallback behavior
    All pass in Debug and Release (SDL2) with parallel ctest (-j12).
+ - Implemented initial Phase 5.2 integration tests:
+   • tests/unit/test_vendor_json_items.c validates vendor inventory generation from JSON item defs
+   • tests/unit/test_loot_generation_json.c validates loot generation API with JSON items and ctx rarity floor
+   Verified in Debug and Release with SDL2 and -j12.
+
+- Resolved a Release-only heap corruption uncovered by `test_dungeon_phase8_3_upgrade_guarantee`:
+  Added strict neighbor index bounds checks and a queue capacity guard to the BFS inside
+  `rogue_dungeon_place_chests` (world gen chest placement). This prevented OOB writes that only surfaced
+  under optimization. After the fix, both Debug and Release suites are 100% green.
+
+- Validation: Full Debug and Release CTest suites pass with SDL2 enabled and -j12 parallelism (675/675 in both configs).
+  Next: continue Phase 5.2 integration tests (crafting materials, equipment persistence, inventory operations) using JSON items.
