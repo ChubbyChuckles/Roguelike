@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_vendor_phase16_6_accessibility.dir/link.d CMakeFiles/test_vendor_phase16_6_accessibility.dir/unit/test_vendor_phase16_6_accessibility.c.o -o test_vendor_phase16_6_accessibility  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_dialogue_phase1.dir/link.d CMakeFiles/test_dialogue_phase1.dir/unit/test_dialogue_phase1.c.o -o test_dialogue_phase1  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

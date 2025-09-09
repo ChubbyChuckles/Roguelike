@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_reroll_affix.dir/link.d CMakeFiles/test_reroll_affix.dir/unit/test_reroll_affix.c.o -o test_reroll_affix  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

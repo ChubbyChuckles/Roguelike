@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_dash_skill.dir/link.d CMakeFiles/test_dash_skill.dir/integration/test_dash_skill.c.o -o test_dash_skill  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

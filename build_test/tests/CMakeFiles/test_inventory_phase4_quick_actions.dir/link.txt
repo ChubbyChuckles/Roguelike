@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_inventory_phase4_quick_actions.dir/link.d CMakeFiles/test_inventory_phase4_quick_actions.dir/unit/test_inventory_phase4_quick_actions.c.o -o test_inventory_phase4_quick_actions  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

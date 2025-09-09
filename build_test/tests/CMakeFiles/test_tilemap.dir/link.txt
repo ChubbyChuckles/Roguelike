@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_tilemap.dir/link.d CMakeFiles/test_tilemap.dir/unit/test_tilemap.c.o -o test_tilemap  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

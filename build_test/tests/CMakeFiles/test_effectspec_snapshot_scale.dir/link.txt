@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_effectspec_snapshot_scale.dir/link.d CMakeFiles/test_effectspec_snapshot_scale.dir/unit/test_effectspec_snapshot_scale.c.o -o test_effectspec_snapshot_scale  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

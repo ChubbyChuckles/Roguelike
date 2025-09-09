@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_audio_vfx_phase1_5_compaction.dir/link.d CMakeFiles/test_audio_vfx_phase1_5_compaction.dir/tests/unit/test_audio_vfx_phase1_5_compaction.c.o -o test_audio_vfx_phase1_5_compaction  librogue_core.a librogue_thirdparty_cjson.a librogue_audio_vfx.a librogue_systems_loot.a

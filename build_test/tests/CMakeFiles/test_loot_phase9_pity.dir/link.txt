@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_loot_phase9_pity.dir/link.d CMakeFiles/test_loot_phase9_pity.dir/unit/test_loot_phase9_pity.c.o -o test_loot_phase9_pity  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

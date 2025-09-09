@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_equipment_phase1_transmog.dir/link.d CMakeFiles/test_equipment_phase1_transmog.dir/unit/test_equipment_phase1_transmog.c.o -o test_equipment_phase1_transmog  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

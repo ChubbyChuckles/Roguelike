@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_combat_phase3_def_softcap.dir/link.d CMakeFiles/test_combat_phase3_def_softcap.dir/unit/test_combat_phase3_def_softcap.c.o -o test_combat_phase3_def_softcap  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

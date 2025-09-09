@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_start_screen_phase10_5_perf_smoke.dir/link.d CMakeFiles/test_start_screen_phase10_5_perf_smoke.dir/unit/test_start_screen_phase10_5_perf_smoke.c.o -o test_start_screen_phase10_5_perf_smoke  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

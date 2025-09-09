@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_crafting_phase0_1_material_registry.dir/link.d CMakeFiles/test_crafting_phase0_1_material_registry.dir/unit/test_crafting_phase0_1_material_registry.c.o -o test_crafting_phase0_1_material_registry  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

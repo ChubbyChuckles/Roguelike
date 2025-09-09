@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_audio_vfx_phase3_1_vfx_foundations.dir/link.d CMakeFiles/test_audio_vfx_phase3_1_vfx_foundations.dir/tests/unit/test_audio_vfx_phase3_1_vfx_foundations.c.o -o test_audio_vfx_phase3_1_vfx_foundations  librogue_core.a librogue_thirdparty_cjson.a librogue_audio_vfx.a librogue_systems_loot.a

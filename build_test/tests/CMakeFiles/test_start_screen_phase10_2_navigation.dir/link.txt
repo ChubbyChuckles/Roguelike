@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_start_screen_phase10_2_navigation.dir/link.d CMakeFiles/test_start_screen_phase10_2_navigation.dir/unit/test_start_screen_phase10_2_navigation.c.o -o test_start_screen_phase10_2_navigation  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

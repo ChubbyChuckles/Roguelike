@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_hot_reload.dir/link.d CMakeFiles/test_hot_reload.dir/unit/test_hot_reload.c.o -o test_hot_reload  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

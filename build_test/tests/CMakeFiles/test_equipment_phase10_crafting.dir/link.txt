@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_equipment_phase10_crafting.dir/link.d CMakeFiles/test_equipment_phase10_crafting.dir/unit/test_equipment_phase10_crafting.c.o -o test_equipment_phase10_crafting  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

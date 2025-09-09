@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_buffs_phase4_dr_and_handles.dir/link.d CMakeFiles/test_buffs_phase4_dr_and_handles.dir/unit/test_buffs_phase4_dr_and_handles.c.o -o test_buffs_phase4_dr_and_handles  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

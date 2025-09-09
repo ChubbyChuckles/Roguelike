@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_vendor_phase8_crafting_integration.dir/link.d CMakeFiles/test_vendor_phase8_crafting_integration.dir/unit/test_vendor_phase8_crafting_integration.c.o -o test_vendor_phase8_crafting_integration  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

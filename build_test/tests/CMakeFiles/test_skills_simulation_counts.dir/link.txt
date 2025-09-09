@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_skills_simulation_counts.dir/link.d CMakeFiles/test_skills_simulation_counts.dir/unit/test_skills_simulation_counts.c.o -o test_skills_simulation_counts  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

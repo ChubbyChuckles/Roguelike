@@ -1,0 +1,2 @@
+/usr/bin/ar qc librogue_thirdparty_cjson.a CMakeFiles/rogue_thirdparty_cjson.dir/third_party/cjson/cJSON.c.o
+/usr/bin/ranlib librogue_thirdparty_cjson.a

@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_worldgen_phase13_modding.dir/link.d CMakeFiles/test_worldgen_phase13_modding.dir/unit/test_worldgen_phase13_modding.c.o -o test_worldgen_phase13_modding  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

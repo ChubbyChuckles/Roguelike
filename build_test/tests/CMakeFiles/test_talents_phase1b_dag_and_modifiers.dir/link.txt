@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_talents_phase1b_dag_and_modifiers.dir/link.d CMakeFiles/test_talents_phase1b_dag_and_modifiers.dir/unit/test_talents_phase1b_dag_and_modifiers.c.o -o test_talents_phase1b_dag_and_modifiers  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_ai_phase2_blackboard.dir/link.d CMakeFiles/test_ai_phase2_blackboard.dir/unit/test_ai_phase2_blackboard.c.o -o test_ai_phase2_blackboard  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

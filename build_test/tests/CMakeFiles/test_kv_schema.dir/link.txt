@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_kv_schema.dir/link.d CMakeFiles/test_kv_schema.dir/unit/test_kv_schema.c.o -o test_kv_schema  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

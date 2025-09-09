@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_materials_and_gathering_json.dir/link.d CMakeFiles/test_materials_and_gathering_json.dir/unit/test_materials_and_gathering_json.c.o -o test_materials_and_gathering_json  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

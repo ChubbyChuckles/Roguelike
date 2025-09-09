@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_loot_phase16_need_greed_trade.dir/link.d CMakeFiles/test_loot_phase16_need_greed_trade.dir/unit/test_loot_phase16_need_greed_trade.c.o -o test_loot_phase16_need_greed_trade  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

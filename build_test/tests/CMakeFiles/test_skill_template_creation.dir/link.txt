@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_skill_template_creation.dir/link.d CMakeFiles/test_skill_template_creation.dir/unit/test_skill_template_creation.c.o -o test_skill_template_creation  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

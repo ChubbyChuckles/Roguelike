@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_asset_phase7_tool_cli.dir/link.d CMakeFiles/test_asset_phase7_tool_cli.dir/tests/unit/test_asset_phase7_tool_cli.c.o CMakeFiles/test_asset_phase7_tool_cli.dir/src/asset/asset_tool_cli.c.o -o test_asset_phase7_tool_cli  librogue_core.a librogue_thirdparty_cjson.a librogue_audio_vfx.a librogue_systems_loot.a

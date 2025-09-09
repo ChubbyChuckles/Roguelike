@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_formula_eval.dir/link.d CMakeFiles/test_formula_eval.dir/unit/test_formula_eval.c.o -o test_formula_eval  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_equipment_phase16_itemdefs_json.dir/link.d CMakeFiles/test_equipment_phase16_itemdefs_json.dir/unit/test_equipment_phase16_itemdefs_json.c.o -o test_equipment_phase16_itemdefs_json  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

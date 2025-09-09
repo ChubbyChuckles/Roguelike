@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_vendor_phase16_filter_persist.dir/link.d CMakeFiles/test_vendor_phase16_filter_persist.dir/unit/test_vendor_phase16_filter_persist.c.o -o test_vendor_phase16_filter_persist  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

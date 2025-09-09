@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_input_buffer_cast.dir/link.d CMakeFiles/test_input_buffer_cast.dir/unit/test_input_buffer_cast.c.o -o test_input_buffer_cast  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

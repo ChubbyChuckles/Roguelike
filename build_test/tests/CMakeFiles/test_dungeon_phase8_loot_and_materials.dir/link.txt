@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_dungeon_phase8_loot_and_materials.dir/link.d CMakeFiles/test_dungeon_phase8_loot_and_materials.dir/unit/test_dungeon_phase8_loot_and_materials.c.o -o test_dungeon_phase8_loot_and_materials  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

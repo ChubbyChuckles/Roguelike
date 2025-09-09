@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_loot_phase23_doc_paths.dir/link.d CMakeFiles/test_loot_phase23_doc_paths.dir/unit/test_loot_phase23_doc_paths.c.o -o test_loot_phase23_doc_paths  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

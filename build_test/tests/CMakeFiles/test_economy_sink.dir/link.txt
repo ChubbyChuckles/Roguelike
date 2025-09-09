@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_economy_sink.dir/link.d CMakeFiles/test_economy_sink.dir/unit/test_economy_sink.c.o -o test_economy_sink  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_ui_skill_maze_generation.dir/link.d CMakeFiles/test_ui_skill_maze_generation.dir/unit/test_ui_skill_maze_generation.c.o -o test_ui_skill_maze_generation  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_affix_item_attachment.dir/link.d CMakeFiles/test_affix_item_attachment.dir/unit/test_affix_item_attachment.c.o -o test_affix_item_attachment  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

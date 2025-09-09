@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_minimap_loot_pings.dir/link.d CMakeFiles/test_minimap_loot_pings.dir/unit/test_minimap_loot_pings.c.o -o test_minimap_loot_pings  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

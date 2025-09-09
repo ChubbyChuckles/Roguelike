@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_skills_phase2_4_validation_panel.dir/link.d CMakeFiles/test_skills_phase2_4_validation_panel.dir/unit/test_skills_phase2_4_validation_panel.c.o -o test_skills_phase2_4_validation_panel  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_damage_numbers_player.dir/link.d CMakeFiles/test_damage_numbers_player.dir/unit/test_damage_numbers_player.c.o -o test_damage_numbers_player  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

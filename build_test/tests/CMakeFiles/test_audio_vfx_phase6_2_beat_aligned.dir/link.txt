@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_audio_vfx_phase6_2_beat_aligned.dir/link.d CMakeFiles/test_audio_vfx_phase6_2_beat_aligned.dir/unit/test_audio_vfx_phase6_2_beat_aligned.c.o -o test_audio_vfx_phase6_2_beat_aligned  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

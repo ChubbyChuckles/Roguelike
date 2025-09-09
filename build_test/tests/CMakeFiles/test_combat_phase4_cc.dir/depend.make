@@ -1,0 +1,2 @@
+# Empty dependencies file for test_combat_phase4_cc.
+# This may be replaced when dependencies are built.

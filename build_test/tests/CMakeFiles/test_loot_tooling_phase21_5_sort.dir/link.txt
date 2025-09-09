@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_loot_tooling_phase21_5_sort.dir/link.d CMakeFiles/test_loot_tooling_phase21_5_sort.dir/unit/test_loot_tooling_phase21_5_sort.c.o -o test_loot_tooling_phase21_5_sort  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

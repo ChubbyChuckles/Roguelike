@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_worldgen_phase14_optimization.dir/link.d CMakeFiles/test_worldgen_phase14_optimization.dir/unit/test_worldgen_phase14_optimization.c.o -o test_worldgen_phase14_optimization  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a

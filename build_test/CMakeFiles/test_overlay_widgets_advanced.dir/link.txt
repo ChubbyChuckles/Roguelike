@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_overlay_widgets_advanced.dir/link.d CMakeFiles/test_overlay_widgets_advanced.dir/tests/unit/test_overlay_widgets_advanced.c.o -o test_overlay_widgets_advanced

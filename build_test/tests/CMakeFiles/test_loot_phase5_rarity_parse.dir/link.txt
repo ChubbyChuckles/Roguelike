@@ -1,0 +1,1 @@
+/usr/bin/cc -g -Wl,--dependency-file=CMakeFiles/test_loot_phase5_rarity_parse.dir/link.d CMakeFiles/test_loot_phase5_rarity_parse.dir/unit/test_loot_phase5_rarity_parse.c.o -o test_loot_phase5_rarity_parse  ../librogue_core.a ../librogue_thirdparty_cjson.a ../librogue_audio_vfx.a ../librogue_systems_loot.a
