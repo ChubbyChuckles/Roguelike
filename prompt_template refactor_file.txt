@@ -132,3 +132,7 @@ Focus on generic solutions that work with SDL2, `cJSON`, and the existing asset 
 
 ### Kilo work on plan
 Read the "roadmaps\powershell_script_unit_tests.txt", go to the next tasks in line that need implementation and implement as many of them as possible, don't just partially finish the tasks. After a successful implementation update the "roadmaps\powershell_script_unit_tests.txt" by marking the finished task with "[x]". Iterate this process as often as necessary to finish all features.
+
+
+### Flakey Script Command
+cd c:/Users/Chuck/Desktop/CR_AI_Engineering/GameDev/Roguelike && cmake --build build --config Debug --parallel && cmake --build build --config Release --parallel && .\scripts\Find-FlakyTests.ps1 -BuildConfigs Both -NumRuns 10 -Verbose
