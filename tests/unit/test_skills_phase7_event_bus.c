@@ -47,14 +47,22 @@ int main(void)
 {
     /* Init event bus */
     RogueEventBusConfig cfg = rogue_event_bus_create_default_config("skills_phase7_bus");
-    assert(rogue_event_bus_init(&cfg));
+    if (!rogue_event_bus_init(&cfg))
+    {
+        fprintf(stderr, "event bus init failed\n");
+        return 10;
+    }
 
     /* Subscribe */
     uint32_t sub1 =
         rogue_event_subscribe(ROGUE_EVENT_SKILL_CHANNEL_TICK, on_channel_tick, NULL, 0x534B494C);
     uint32_t sub2 =
         rogue_event_subscribe(ROGUE_EVENT_SKILL_COMBO_SPEND, on_combo_spend, NULL, 0x534B494C);
-    assert(sub1 && sub2);
+    if (!sub1 || !sub2)
+    {
+        fprintf(stderr, "event subscriptions failed sub1=%u sub2=%u\n", sub1, sub2);
+        return 11;
+    }
 
     /* Init skills */
     rogue_skills_init();
@@ -80,12 +88,27 @@ int main(void)
     spend.cast_type = 0; /* instant */
     spend.combo_spender = 1;
     int id_spend = rogue_skill_register(&spend);
-    assert(rogue_skill_rank_up(id_chan) == 1);
-    assert(rogue_skill_rank_up(id_spend) == 1);
+    if (rogue_skill_rank_up(id_chan) != 1)
+    {
+        fprintf(stderr, "rank up channel failed\n");
+        return 12;
+    }
+    if (rogue_skill_rank_up(id_spend) != 1)
+    {
+        fprintf(stderr, "rank up spender failed\n");
+        return 13;
+    }
 
     RogueSkillCtx ctx = {0};
     ctx.now_ms = 0.0;
-    assert(rogue_skill_try_activate(id_chan, &ctx) == 1);
+    {
+        int ok = rogue_skill_try_activate(id_chan, &ctx);
+        if (!ok)
+        {
+            fprintf(stderr, "channel activation failed\n");
+            return 14;
+        }
+    }
 
     /* Simulate time to produce ticks */
     for (int t = 0; t <= 1000; t += 50)
@@ -104,7 +127,14 @@ int main(void)
     /* Build some combo then spend to fire spend event */
     g_app.player_combat.combo = 3;
     ctx.now_ms = 1100.0;
-    assert(rogue_skill_try_activate(id_spend, &ctx) == 1);
+    {
+        int ok2 = rogue_skill_try_activate(id_spend, &ctx);
+        if (!ok2)
+        {
+            fprintf(stderr, "spender activation failed\n");
+            return 15;
+        }
+    }
     rogue_skills_update(1100.0);
     /* Pump events to deliver combo spend */
     rogue_event_process_priority(ROGUE_EVENT_PRIORITY_NORMAL, 100000);

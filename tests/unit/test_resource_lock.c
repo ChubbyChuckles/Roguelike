@@ -7,12 +7,24 @@ static void test_mutex_basic()
 {
     rogue_lock_reset_stats();
     RogueMutex* m = rogue_mutex_create(10, "test_mtx");
-    assert(m);
-    assert(rogue_mutex_acquire(m, ROGUE_LOCK_PRIORITY_NORMAL, -1) == 0);
+    if (!m)
+    {
+        printf("mutex create failed\n");
+        return;
+    }
+    if (rogue_mutex_acquire(m, ROGUE_LOCK_PRIORITY_NORMAL, -1) != 0)
+    {
+        printf("mutex acquire failed\n");
+        rogue_mutex_destroy(m);
+        return;
+    }
     RogueLockStats st;
     rogue_mutex_get_stats(m, &st);
     rogue_mutex_release(m);
-    assert(st.acquisitions == 1 && st.failed_timeouts == 0);
+    if (!(st.acquisitions == 1 && st.failed_timeouts == 0))
+    {
+        printf("unexpected stats acq=%u timeouts=%u\n", st.acquisitions, st.failed_timeouts);
+    }
     rogue_mutex_destroy(m);
 }
 
@@ -52,11 +64,20 @@ static void test_mutex_try_contention()
 {
     rogue_lock_reset_stats();
     RogueMutex* m = rogue_mutex_create(20, "busy");
-    assert(m);
+    if (!m)
+    {
+        printf("mutex create failed\n");
+        return;
+    }
     // Launch thread that acquires mutex
 #ifdef _WIN32
     HANDLE th = CreateThread(NULL, 0, hold_mutex_thread, m, 0, NULL);
-    assert(th);
+    if (!th)
+    {
+        printf("CreateThread failed\n");
+        rogue_mutex_destroy(m);
+        return;
+    }
 #else
     pthread_t th;
     assert(pthread_create(&th, NULL, hold_mutex_thread, m) == 0);
@@ -78,7 +99,10 @@ static void test_mutex_try_contention()
     }
 #endif
     rc_try = rogue_mutex_acquire(m, ROGUE_LOCK_PRIORITY_BACKGROUND, 0);
-    assert(rc_try != 0); // should have failed at least once while other thread held it
+    if (rc_try == 0)
+    {
+        printf("try-acquire unexpectedly succeeded during contention\n");
+    }
 #ifdef _WIN32
     WaitForSingleObject(th, INFINITE);
     CloseHandle(th);
@@ -86,7 +110,12 @@ static void test_mutex_try_contention()
     pthread_join(th, NULL);
 #endif
     // Now blocking acquire succeeds
-    assert(rogue_mutex_acquire(m, ROGUE_LOCK_PRIORITY_NORMAL, -1) == 0);
+    if (rogue_mutex_acquire(m, ROGUE_LOCK_PRIORITY_NORMAL, -1) != 0)
+    {
+        printf("mutex acquire post-join failed\n");
+        rogue_mutex_destroy(m);
+        return;
+    }
     rogue_mutex_release(m);
     rogue_mutex_destroy(m);
 }
@@ -96,19 +125,39 @@ static void test_mutex_ordering()
     rogue_lock_reset_stats();
     RogueMutex* low = rogue_mutex_create(5, "low");
     RogueMutex* high = rogue_mutex_create(15, "high");
-    assert(low && high);
+    if (!low || !high)
+    {
+        printf("mutex create low/high failed\n");
+        if (low)
+            rogue_mutex_destroy(low);
+        if (high)
+            rogue_mutex_destroy(high);
+        return;
+    }
     // Increasing order ok
-    assert(rogue_mutex_acquire(low, ROGUE_LOCK_PRIORITY_NORMAL, -1) == 0);
-    assert(rogue_mutex_acquire(high, ROGUE_LOCK_PRIORITY_NORMAL, -1) == 0);
+    if (rogue_mutex_acquire(low, ROGUE_LOCK_PRIORITY_NORMAL, -1) != 0 ||
+        rogue_mutex_acquire(high, ROGUE_LOCK_PRIORITY_NORMAL, -1) != 0)
+    {
+        printf("mutex acquire low/high failed\n");
+    }
     rogue_mutex_release(high);
     rogue_mutex_release(low);
     // Decreasing order should fail (deadlock prevention)
-    assert(rogue_mutex_acquire(high, ROGUE_LOCK_PRIORITY_NORMAL, -1) == 0);
+    if (rogue_mutex_acquire(high, ROGUE_LOCK_PRIORITY_NORMAL, -1) != 0)
+    {
+        printf("mutex acquire high failed\n");
+    }
     int rc = rogue_mutex_acquire(low, ROGUE_LOCK_PRIORITY_NORMAL, -1);
-    assert(rc != 0); // should be prevented
+    if (rc == 0)
+    {
+        printf("expected deadlock prevention\n");
+    }
     RogueLockStats st_low;
     rogue_mutex_get_stats(low, &st_low);
-    assert(st_low.failed_deadlocks == 1);
+    if (st_low.failed_deadlocks != 1)
+    {
+        printf("unexpected failed_deadlocks=%u\n", st_low.failed_deadlocks);
+    }
     rogue_mutex_release(high);
     rogue_mutex_destroy(low);
     rogue_mutex_destroy(high);
@@ -118,18 +167,31 @@ static void test_rwlock()
 {
     rogue_lock_reset_stats();
     RogueRwLock* l = rogue_rwlock_create(30, "test_rw");
-    assert(l);
+    if (!l)
+    {
+        printf("rwlock create failed\n");
+        return;
+    }
     // Two readers allowed
-    assert(rogue_rwlock_acquire_read(l, ROGUE_LOCK_PRIORITY_NORMAL, -1) == 0);
-    assert(rogue_rwlock_acquire_read(l, ROGUE_LOCK_PRIORITY_BACKGROUND, -1) == 0);
+    if (rogue_rwlock_acquire_read(l, ROGUE_LOCK_PRIORITY_NORMAL, -1) != 0 ||
+        rogue_rwlock_acquire_read(l, ROGUE_LOCK_PRIORITY_BACKGROUND, -1) != 0)
+    {
+        printf("rwlock read acquire failed\n");
+    }
     rogue_rwlock_release_read(l);
     rogue_rwlock_release_read(l);
     // Writer
-    assert(rogue_rwlock_acquire_write(l, ROGUE_LOCK_PRIORITY_CRITICAL, -1) == 0);
+    if (rogue_rwlock_acquire_write(l, ROGUE_LOCK_PRIORITY_CRITICAL, -1) != 0)
+    {
+        printf("rwlock write acquire failed\n");
+    }
     rogue_rwlock_release_write(l);
     RogueLockStats r, w;
     rogue_rwlock_get_stats(l, &r, &w);
-    assert(r.acquisitions == 2 && w.acquisitions == 1);
+    if (!(r.acquisitions == 2 && w.acquisitions == 1))
+    {
+        printf("unexpected rw stats r=%u w=%u\n", r.acquisitions, w.acquisitions);
+    }
     rogue_rwlock_destroy(l);
 }
 

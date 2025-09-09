@@ -17,7 +17,11 @@ static int register_dummy_effect(void)
     s.duration_ms = 1.0f;
     s.stack_rule = 3; /* ADD */
     int id = rogue_effect_register(&s);
-    assert(id >= 0);
+    if (id < 0)
+    {
+        fprintf(stderr, "effect_register failed\n");
+        return -1;
+    }
     return id;
 }
 
@@ -31,10 +35,20 @@ int main(void)
 {
     /* Init systems */
     RogueEventBusConfig cfg = rogue_event_bus_create_default_config("procs_icd");
-    assert(rogue_event_bus_init(&cfg));
+    if (!rogue_event_bus_init(&cfg))
+    {
+        fprintf(stderr, "event bus init failed\n");
+        return 1;
+    }
     rogue_skills_procs_init();
 
     int eff = register_dummy_effect();
+    if (eff < 0)
+    {
+        rogue_skills_procs_shutdown();
+        rogue_event_bus_shutdown();
+        return 2;
+    }
 
     /* Register a global-ICD proc on DAMAGE_DEALT */
     RogueProcDef p1 = {0};
@@ -43,7 +57,13 @@ int main(void)
     p1.icd_global_ms = 200.0; /* 200ms */
     p1.icd_per_target_ms = 0.0;
     p1.predicate = always_true;
-    assert(rogue_skills_proc_register(&p1) >= 0);
+    if (rogue_skills_proc_register(&p1) < 0)
+    {
+        fprintf(stderr, "proc_register p1 failed\n");
+        rogue_skills_procs_shutdown();
+        rogue_event_bus_shutdown();
+        return 3;
+    }
 
     /* Register a per-target ICD proc also on DAMAGE_DEALT */
     RogueProcDef p2 = {0};
@@ -52,7 +72,13 @@ int main(void)
     p2.icd_global_ms = 0.0;
     p2.icd_per_target_ms = 150.0; /* 150ms per target */
     p2.predicate = always_true;
-    assert(rogue_skills_proc_register(&p2) >= 0);
+    if (rogue_skills_proc_register(&p2) < 0)
+    {
+        fprintf(stderr, "proc_register p2 failed\n");
+        rogue_skills_procs_shutdown();
+        rogue_event_bus_shutdown();
+        return 4;
+    }
 
     /* Publish 3 rapid DAMAGE_DEALT events to same target at t=0 */
     RogueEventPayload pay = {0};

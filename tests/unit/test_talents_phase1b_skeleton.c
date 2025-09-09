@@ -68,12 +68,21 @@ int main(void)
     skill.effect_spec_id = 0;
     rogue_skills_init();
     int sid = rogue_skill_register(&skill);
-    assert(sid == 0);
+    if (sid != 0)
+    {
+        printf("skill register failed sid=%d\n", sid);
+        return 1;
+    }
     g_app.talent_points = 3;
 
     RogueProgressionMaze mz;
     build_tiny_maze(&mz);
-    assert(rogue_talents_init(&mz) == 0);
+    if (rogue_talents_init(&mz) != 0)
+    {
+        printf("talents init failed\n");
+        rogue_progression_maze_free(&mz);
+        return 1;
+    }
 
     RogueTalentModifier mod = {0};
     mod.node_id = 1; /* unlock at node 1 */
@@ -83,18 +92,43 @@ int main(void)
     mod.add_tags = ROGUE_SKILL_TAG_FIRE;
     mod.charges_delta = 1;
     mod.add_effect_spec_id = 42;
-    assert(rogue_talents_register_modifier(&mod) == 1);
+    if (rogue_talents_register_modifier(&mod) != 1)
+    {
+        printf("register modifier failed\n");
+        rogue_talents_shutdown();
+        rogue_progression_maze_free(&mz);
+        return 1;
+    }
 
     /* Cannot unlock node 1 before node 0 */
-    assert(rogue_talents_can_unlock(1, 1, 0, 0, 0, 0) == 0);
-    assert(rogue_talents_unlock(0, 0, 1, 0, 0, 0, 0) == 1);
+    if (rogue_talents_can_unlock(1, 1, 0, 0, 0, 0) != 0 ||
+        rogue_talents_unlock(0, 0, 1, 0, 0, 0, 0) != 1)
+    {
+        printf("unlock node 0 precheck failed\n");
+        rogue_talents_shutdown();
+        rogue_progression_maze_free(&mz);
+        return 1;
+    }
     assert(g_app.talent_points == 2);
-    assert(rogue_talents_can_unlock(1, 1, 0, 0, 0, 0) == 1);
-    assert(rogue_talents_unlock(1, 0, 1, 0, 0, 0, 0) == 1);
+    if (rogue_talents_can_unlock(1, 1, 0, 0, 0, 0) != 1 ||
+        rogue_talents_unlock(1, 0, 1, 0, 0, 0, 0) != 1)
+    {
+        printf("unlock node 1 failed\n");
+        rogue_talents_shutdown();
+        rogue_progression_maze_free(&mz);
+        return 1;
+    }
     assert(g_app.talent_points == 1);
 
     RogueSkillDef eff;
-    assert(rogue_skill_get_effective_def(sid, &eff) == 1);
+    if (rogue_skill_get_effective_def(sid, &eff) != 1)
+    {
+        printf("get effective def failed\n");
+        rogue_talents_shutdown();
+        rogue_skills_shutdown();
+        rogue_progression_maze_free(&mz);
+        return 1;
+    }
     if (!(eff.tags & ROGUE_SKILL_TAG_FIRE) || eff.action_point_cost != 3 || eff.max_charges != 1 ||
         eff.effect_spec_id != 42)
     {
@@ -110,13 +144,32 @@ int main(void)
 
     unsigned char buf[128];
     int wrote = rogue_talents_serialize(buf, sizeof buf);
-    assert(wrote > 0);
+    if (!(wrote > 0))
+    {
+        printf("serialize wrote=%d\n", wrote);
+        rogue_talents_shutdown();
+        rogue_skills_shutdown();
+        rogue_progression_maze_free(&mz);
+        return 1;
+    }
     unsigned long long h1 = rogue_talents_hash();
     /* Reset and reload to test round-trip */
     rogue_talents_shutdown();
-    assert(rogue_talents_init(&mz) == 0);
+    if (rogue_talents_init(&mz) != 0)
+    {
+        printf("talents re-init failed\n");
+        rogue_progression_maze_free(&mz);
+        return 1;
+    }
     int read = rogue_talents_deserialize(buf, (size_t) wrote);
-    assert(read == wrote);
+    if (read != wrote)
+    {
+        printf("deserialize read=%d wrote=%d\n", read, wrote);
+        rogue_talents_shutdown();
+        rogue_skills_shutdown();
+        rogue_progression_maze_free(&mz);
+        return 1;
+    }
     unsigned long long h2 = rogue_talents_hash();
     if (h1 != h2)
     {

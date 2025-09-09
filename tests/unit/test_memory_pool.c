@@ -12,7 +12,11 @@ static void test_fixed_categories(void)
     for (int i = 0; i < TEST_TINY_ALLOC_COUNT; i++)
     {
         ptrs[i] = rogue_mp_alloc(8);
-        assert(ptrs[i]);
+        if (!ptrs[i])
+        {
+            fprintf(stderr, "tiny alloc %d failed\n", i);
+            return;
+        }
         memset(ptrs[i], 0xAB, 8);
     }
     for (int i = 0; i < TEST_TINY_ALLOC_COUNT; i++)
@@ -25,10 +29,19 @@ static void test_fixed_categories(void)
 static void test_buddy_large(void)
 {
     void* a = rogue_mp_alloc(70000);
-    assert(a);
+    if (!a)
+    {
+        fprintf(stderr, "alloc a failed\n");
+        return;
+    }
     memset(a, 0, 70000);
     void* b = rogue_mp_alloc(130000);
-    assert(b);
+    if (!b)
+    {
+        fprintf(stderr, "alloc b failed\n");
+        rogue_mp_free(a);
+        return;
+    }
     memset(b, 1, 130000);
     rogue_mp_free(a);
     rogue_mp_free(b);
@@ -37,12 +50,20 @@ static void test_buddy_large(void)
 static void test_slab(void)
 {
     RogueSlabHandle h = rogue_slab_register("TestObj", 40, 16, NULL, NULL);
-    assert(h >= 0);
+    if (h < 0)
+    {
+        fprintf(stderr, "slab register failed\n");
+        return;
+    }
     void* objs[48];
     for (int i = 0; i < 48; i++)
     {
         objs[i] = rogue_slab_alloc(h);
-        assert(objs[i]);
+        if (!objs[i])
+        {
+            fprintf(stderr, "slab alloc %d failed\n", i);
+            return;
+        }
         memset(objs[i], (uint8_t) i, 40);
     }
     for (int i = 0; i < 48; i += 2)
@@ -62,7 +83,10 @@ static void test_stats_and_recommendations(void)
 {
     RogueMemoryPoolStats s;
     rogue_memory_pool_get_stats(&s);
-    assert(s.buddy_total_bytes >= (1 << 16));
+    if (!(s.buddy_total_bytes >= (1 << 16)))
+    {
+        fprintf(stderr, "unexpected buddy_total_bytes=%u\n", (unsigned) s.buddy_total_bytes);
+    }
     RogueMemoryPoolRecommendation rec;
     rogue_memory_pool_get_recommendations(&rec);
     // no specific asserts beyond structure access; ensure function executes
@@ -70,12 +94,21 @@ static void test_stats_and_recommendations(void)
 
 int main(void)
 {
-    assert(rogue_memory_pool_init(0, false) == 0);
+    if (rogue_memory_pool_init(0, false) != 0)
+    {
+        fprintf(stderr, "memory pool init failed\n");
+        return 1;
+    }
     test_fixed_categories();
     test_buddy_large();
     test_slab();
     test_stats_and_recommendations();
-    assert(rogue_memory_pool_validate());
+    if (!rogue_memory_pool_validate())
+    {
+        fprintf(stderr, "memory pool validate failed\n");
+        rogue_memory_pool_shutdown();
+        return 1;
+    }
     rogue_memory_pool_dump();
     rogue_memory_pool_shutdown();
     printf("test_memory_pool OK\n");

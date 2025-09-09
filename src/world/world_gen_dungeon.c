@@ -676,6 +676,8 @@ int rogue_dungeon_carve_into_map(RogueWorldGenContext* ctx, RogueTileMap* io_map
         for (int y = r->y; y < r->y + r->h; y++)
             for (int x = r->x; x < r->x + r->w; x++)
             {
+                if (x < 0 || y < 0 || x >= io_map->width || y >= io_map->height)
+                    continue;
                 int idx = y * io_map->width + x;
                 if (x == r->x || y == r->y || x == r->x + r->w - 1 || y == r->y + r->h - 1)
                     io_map->tiles[idx] = ROGUE_TILE_DUNGEON_WALL;
@@ -696,21 +698,27 @@ int rogue_dungeon_carve_into_map(RogueWorldGenContext* ctx, RogueTileMap* io_map
         int x = ax, y = ay;
         while (x != bx)
         {
-            int idx = y * io_map->width + x;
-            if (io_map->tiles[idx] != ROGUE_TILE_DUNGEON_WALL)
+            if (x >= 0 && y >= 0 && x < io_map->width && y < io_map->height)
             {
-                io_map->tiles[idx] = ROGUE_TILE_DUNGEON_FLOOR;
-                carved++;
+                int idx = y * io_map->width + x;
+                if (io_map->tiles[idx] != ROGUE_TILE_DUNGEON_WALL)
+                {
+                    io_map->tiles[idx] = ROGUE_TILE_DUNGEON_FLOOR;
+                    carved++;
+                }
             }
             x += (bx > ax) ? 1 : -1;
         }
         while (y != by)
         {
-            int idx = y * io_map->width + x;
-            if (io_map->tiles[idx] != ROGUE_TILE_DUNGEON_WALL)
+            if (x >= 0 && y >= 0 && x < io_map->width && y < io_map->height)
             {
-                io_map->tiles[idx] = ROGUE_TILE_DUNGEON_FLOOR;
-                carved++;
+                int idx = y * io_map->width + x;
+                if (io_map->tiles[idx] != ROGUE_TILE_DUNGEON_WALL)
+                {
+                    io_map->tiles[idx] = ROGUE_TILE_DUNGEON_FLOOR;
+                    carved++;
+                }
             }
             y += (by > ay) ? 1 : -1;
         }

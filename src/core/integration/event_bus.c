@@ -55,6 +55,25 @@ static uint32_t hash_event_type(RogueEventTypeId type_id);
 
 /* ===== Core Event Bus API Implementation ===== */
 
+/* Internal helper: ensure the global event bus is initialized.
+   This provides a safe lazy-init path for callers that publish/subscribe
+   without explicitly initializing the bus in advance (useful in tests).
+*/
+static bool rogue_event_bus_ensure_initialized(void)
+{
+    if (g_event_bus.initialized)
+    {
+        return true;
+    }
+    RogueEventBusConfig cfg = rogue_event_bus_create_default_config("AutoEventBus");
+    if (!rogue_event_bus_init(&cfg))
+    {
+        ROGUE_LOG_ERROR("Event bus auto-initialization failed");
+        return false;
+    }
+    return true;
+}
+
 bool rogue_event_bus_init(const RogueEventBusConfig* config)
 {
     if (g_event_bus.initialized)
@@ -279,8 +298,12 @@ bool rogue_event_publish_with_deadline(RogueEventTypeId type_id, const RogueEven
 {
     if (!g_event_bus.initialized)
     {
-        ROGUE_LOG_ERROR("Event bus not initialized");
-        return false;
+        /* Attempt lazy initialization to make API resilient in Release builds */
+        if (!rogue_event_bus_ensure_initialized())
+        {
+            ROGUE_LOG_ERROR("Event bus not initialized");
+            return false;
+        }
     }
 
     if (!payload)
@@ -350,8 +373,11 @@ bool rogue_event_publish_batch(const RogueEvent* events, uint32_t event_count)
 {
     if (!g_event_bus.initialized)
     {
-        ROGUE_LOG_ERROR("Event bus not initialized");
-        return false;
+        if (!rogue_event_bus_ensure_initialized())
+        {
+            ROGUE_LOG_ERROR("Event bus not initialized");
+            return false;
+        }
     }
 
     if (!events || event_count == 0)
@@ -421,8 +447,11 @@ uint32_t rogue_event_subscribe_conditional(RogueEventTypeId type_id, RogueEventC
 {
     if (!g_event_bus.initialized)
     {
-        ROGUE_LOG_ERROR("Event bus not initialized");
-        return 0;
+        if (!rogue_event_bus_ensure_initialized())
+        {
+            ROGUE_LOG_ERROR("Event bus not initialized");
+            return 0;
+        }
     }
 
     if (!callback)
@@ -822,6 +851,19 @@ uint32_t rogue_event_process_priority(RogueEventPriority priority, uint32_t time
                                 "[event_bus] invoking sub id=%u sys=%u for DAMAGE_DEALT pri=%d\n",
                                 (unsigned) sub->subscription_id,
                                 (unsigned) sub->subscriber_system_id, (int) event->priority);
+                    }
+                    else if (event->type_id == ROGUE_EVENT_SKILL_CHANNEL_TICK)
+                    {
+                        ROGUE_LOG_DEBUG("[event_bus] invoking sub id=%u sys=%u for CHANNEL_TICK "
+                                        "skill=%u idx=%u",
+                                        (unsigned) sub->subscription_id,
+                                        (unsigned) sub->subscriber_system_id,
+                                        (unsigned) event->payload.skill_channel_tick.skill_id,
+                                        (unsigned) event->payload.skill_channel_tick.tick_index);
+                        fprintf(stderr, "[event_bus] SUB CHANNEL_TICK sub=%u skill=%u idx=%u\n",
+                                (unsigned) sub->subscription_id,
+                                (unsigned) event->payload.skill_channel_tick.skill_id,
+                                (unsigned) event->payload.skill_channel_tick.tick_index);
                     }
                     if (sub->callback(event, sub->user_data))
                     {

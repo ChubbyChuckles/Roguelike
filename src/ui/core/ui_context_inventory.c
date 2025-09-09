@@ -170,8 +170,9 @@ int rogue_ui_inventory_grid(RogueUIContext* ctx, RogueUIRect rect, const char* i
             RogueUIRect inner = {cell_r.x + 1, cell_r.y + 1, cell_r.w - 2, cell_r.h - 2};
             rogue_ui_panel(ctx, outer, (uint32_t) ((rr << 24) | (rg << 16) | (rb << 8) | 0xFFu));
             rogue_ui_panel(ctx, inner, base_col);
-            if (mx >= cell_r.x && my >= cell_r.y && mx < cell_r.x + cell_r.w &&
-                my < cell_r.y + cell_r.h)
+            /* Inclusive bounds on right/bottom edges to avoid off-by-one misses */
+            if (mx >= cell_r.x && my >= cell_r.y && mx <= cell_r.x + cell_r.w &&
+                my <= cell_r.y + cell_r.h)
                 hovered_slot = s;
             if (item_counts)
             {
@@ -185,8 +186,8 @@ int rogue_ui_inventory_grid(RogueUIContext* ctx, RogueUIRect rect, const char* i
         else
         {
             rogue_ui_panel(ctx, cell_r, base_col);
-            if (mx >= cell_r.x && my >= cell_r.y && mx < cell_r.x + cell_r.w &&
-                my < cell_r.y + cell_r.h)
+            if (mx >= cell_r.x && my >= cell_r.y && mx <= cell_r.x + cell_r.w &&
+                my <= cell_r.y + cell_r.h)
                 hovered_slot = s;
         }
     }
@@ -225,9 +226,12 @@ int rogue_ui_inventory_grid(RogueUIContext* ctx, RogueUIRect rect, const char* i
         ctx->drag_item_id = 0;
         ctx->drag_item_count = 0;
     }
+    /* TEMP debug: report hover on right-click even if blocked */
+
     if (!ctx->ctx_menu_active && hovered_slot >= 0 && ctx->input.mouse2_pressed && item_ids &&
         item_ids[hovered_slot])
     {
+        /* TEMP debug: trace context open conditions */
         ctx->ctx_menu_active = 1;
         ctx->ctx_menu_slot = hovered_slot;
         ctx->ctx_menu_selection = 0;

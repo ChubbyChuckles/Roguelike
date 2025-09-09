@@ -15,7 +15,12 @@ int main(void)
     d.max_rank = 1;
     d.cast_time_ms = 100.0f; /* offensive heuristic */
     int id = rogue_skill_register(&d);
-    assert(id >= 0);
+    if (id < 0)
+    {
+        printf("skill register failed\n");
+        rogue_skills_shutdown();
+        return 99;
+    }
 
     char err[256] = {0};
     int rc = rogue_skill_debug_validate(err, (int) sizeof err);
@@ -29,7 +34,12 @@ int main(void)
     /* Add a coefficient entry, then validation should succeed */
     RogueSkillCoeffParams cp = {0};
     cp.base_scalar = 1.0f;
-    assert(rogue_skill_coeff_register(id, &cp) == 0);
+    if (rogue_skill_coeff_register(id, &cp) != 0)
+    {
+        printf("coeff register failed\n");
+        rogue_skills_shutdown();
+        return 98;
+    }
 
     memset(err, 0, sizeof err);
     rc = rogue_skill_debug_validate(err, (int) sizeof err);

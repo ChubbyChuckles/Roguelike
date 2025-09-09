@@ -14,14 +14,22 @@ static int register_dummy_effect(void)
     s.duration_ms = 1.0f;
     s.stack_rule = 3; /* ADD */
     int id = rogue_effect_register(&s);
-    assert(id >= 0);
+    if (id < 0)
+    {
+        fprintf(stderr, "effect_register failed\n");
+        return -1;
+    }
     return id;
 }
 
 int main(void)
 {
     RogueEventBusConfig cfg = rogue_event_bus_create_default_config("procs_p7_3");
-    assert(rogue_event_bus_init(&cfg));
+    if (!rogue_event_bus_init(&cfg))
+    {
+        fprintf(stderr, "event bus init failed\n");
+        return 1;
+    }
     rogue_skills_procs_init();
 
     int eff = register_dummy_effect();
@@ -34,7 +42,13 @@ int main(void)
     p.icd_per_target_ms = 0.0;
     p.chance_pct = 25;
     p.use_smoothing = 1;
-    assert(rogue_skills_proc_register(&p) >= 0);
+    if (rogue_skills_proc_register(&p) < 0)
+    {
+        fprintf(stderr, "proc_register failed\n");
+        rogue_skills_procs_shutdown();
+        rogue_event_bus_shutdown();
+        return 2;
+    }
 
     RogueEventPayload pay = {0};
     pay.damage_event.source_entity_id = 1;

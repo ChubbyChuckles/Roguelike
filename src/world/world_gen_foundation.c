@@ -42,13 +42,10 @@ void rogue_worldgen_context_init(RogueWorldGenContext* ctx, const RogueWorldGenC
 {
     if (!ctx)
         return;
-    /* debug */
-    fprintf(stderr, "ctx_init: enter cfg=%p\n", (void*) cfg);
     memset(ctx, 0, sizeof *ctx);
     ctx->cfg = cfg;
     /* Derive channel seeds by hashing base seed with distinct constants */
     unsigned int base = cfg ? cfg->seed : 1u;
-    fprintf(stderr, "ctx_init: base=%u\n", base);
     ctx->macro_rng.state = base ^ 0xA5A5A5A5u;
     ctx->biome_rng.state = (base + (cfg ? cfg->biome_seed_offset : 0u)) ^ 0x3C3C3C3Cu;
     ctx->micro_rng.state = base ^ 0xB4B4B4B4u ^ 0x9E3779B9u; /* mix golden ratio constant */

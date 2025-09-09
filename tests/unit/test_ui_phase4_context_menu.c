@@ -38,7 +38,11 @@ int main()
     cfg.max_nodes = 512;
     cfg.seed = 99;
     cfg.arena_size = 32 * 1024;
-    assert(rogue_ui_init(&ui, &cfg));
+    if (!rogue_ui_init(&ui, &cfg))
+    {
+        printf("FAIL ui init\n");
+        return 1;
+    }
     int ids[20] = {0};
     int counts[20] = {0};
     ids[3] = 111;

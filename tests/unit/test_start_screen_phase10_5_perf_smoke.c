@@ -13,7 +13,11 @@ int main(void)
     RogueAppConfig cfg = {
         "StartScreenPerfSmoke",    320, 180, 320, 180, 0, 0, 0, 1, ROGUE_WINDOW_WINDOWED,
         (RogueColor){0, 0, 0, 255}};
-    assert(rogue_app_init(&cfg));
+    if (!rogue_app_init(&cfg))
+    {
+        fprintf(stderr, "app init failed\n");
+        return 1;
+    }
 
     /* Disable absolute budget check and reduce baseline sample count so the test is robust.
         We only want to ensure the guard stays inactive, not measure perf across machines. */

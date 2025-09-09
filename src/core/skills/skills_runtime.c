@@ -363,6 +363,8 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
     }
     RogueSkillState* st = &g_skill_states_internal[id];
     const RogueSkillDef* def = &g_skill_defs_internal[id];
+    fprintf(stderr, "SKILL_ACT: enter id=%d rank=%d type=%u cast_ms=%.0f now=%.0f\n", id, st->rank,
+            def->cast_type, def->cast_time_ms, ctx ? ctx->now_ms : 0.0);
     if (st->rank <= 0)
     {
         fprintf(stderr, "SKILL_ACT: not learned id=%d\n", id);
@@ -543,6 +545,7 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         st->channel_start_ms = now;
         st->channel_end_ms = now + def->cast_time_ms;
         st->profile_last_cast_begin_ms = now;
+
         /* FX: channel start cue */
         {
             char key[48];
@@ -570,6 +573,7 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
         double tick_interval =
             (st->channel_tick_interval_ms > 0.0) ? st->channel_tick_interval_ms : dynamic_interval;
         st->channel_next_tick_ms = now + tick_interval;
+
         if (def->on_activate)
         {
             def->on_activate(def, st, &local_ctx);
@@ -843,6 +847,10 @@ int rogue_skill_try_activate(int id, const RogueSkillCtx* ctx)
             g_app.player_combat.combo = 0;
         }
     }
+    fprintf(stderr,
+            "SKILL_ACT: return id=%d consumed=%d channel_active=%d casting_active=%d cd_end=%.0f "
+            "uses=%d\n",
+            id, consumed, st->channel_active, st->casting_active, st->cooldown_end_ms, st->uses);
     return consumed;
 }
 
@@ -1056,6 +1064,7 @@ void rogue_skills_update(double now_ms)
         }
         now_ms = s_time_accum;
     }
+
     for (int i = 0; i < g_skill_count_internal; i++)
     {
         RogueSkillState* st = &g_skill_states_internal[i];
@@ -1242,6 +1251,7 @@ void rogue_skills_update(double now_ms)
             /* We'll recompute dynamic interval per-tick to reflect mid-channel haste changes. */
             const double base_interval = 250.0;
             const int is_snapshot = (st->channel_tick_interval_ms > 0.0);
+
             while (st->channel_active && st->channel_next_tick_ms > 0 &&
                    now_ms >= st->channel_next_tick_ms)
             {
@@ -1335,6 +1345,10 @@ void rogue_skills_update(double now_ms)
                     }
                     p.skill_channel_tick.tick_index = (uint16_t) idx;
                     p.skill_channel_tick.when_ms = st->channel_next_tick_ms;
+                    ROGUE_LOG_DEBUG(
+                        "SKILL_CHANNEL_TICK publish: skill=%d idx=%d when=%.3f now=%.3f snap=%d", i,
+                        idx, p.skill_channel_tick.when_ms, now_ms, is_snapshot ? 1 : 0);
+
                     rogue_event_publish(ROGUE_EVENT_SKILL_CHANNEL_TICK, &p,
                                         ROGUE_EVENT_PRIORITY_NORMAL, 0x534B494C, "skills");
                 }

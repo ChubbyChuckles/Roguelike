@@ -52,7 +52,11 @@ int main(void)
     rogue_skills_init();
     rogue_buffs_init();
     RogueEventBusConfig cfg = rogue_event_bus_create_default_config("skills_test_bus_snapshot");
-    assert(rogue_event_bus_init(&cfg) && "event bus init");
+    if (!rogue_event_bus_init(&cfg))
+    {
+        printf("FAIL event bus init\n");
+        return 1;
+    }
     g_app.talent_points = 5;
 
     /* Cast with snapshot haste: haste applied once at start, not changing mid-cast */
@@ -65,15 +69,27 @@ int main(void)
     cast.cast_time_ms = 400.0f;
     cast.haste_mode_flags = 0x1; /* snapshot cast */
     int idc = rogue_skill_register(&cast);
-    assert(rogue_skill_rank_up(idc) == 1);
+    if (rogue_skill_rank_up(idc) != 1)
+    {
+        printf("FAIL rank up cast\n");
+        return 1;
+    }
     RogueSkillCtx ctx = {0};
     ctx.now_ms = g_now_ms;
-    assert(rogue_skill_try_activate(idc, &ctx) == 1);
+    if (rogue_skill_try_activate(idc, &ctx) != 1)
+    {
+        printf("FAIL activate cast\n");
+        return 1;
+    }
     /* Apply haste mid-cast: should NOT change remaining duration due to snapshot */
     advance(160.0);
     rogue_buffs_apply(ROGUE_BUFF_POWER_STRIKE, 25, 1000.0, g_now_ms, ROGUE_BUFF_STACK_ADD, 0);
     advance(240.0); /* finish cast */
-    assert(g_cast_hits == 1);
+    if (g_cast_hits != 1)
+    {
+        printf("cast hits=%d\n", g_cast_hits);
+        return 2;
+    }
     g_cast_hits = 0;
 
     /* Channel with snapshot tick interval and drift correction: expect ~duration/interval ticks */
@@ -88,9 +104,17 @@ int main(void)
     chan.cast_time_ms = 1000.0f;
     chan.haste_mode_flags = 0x2; /* snap channel */
     int idq = rogue_skill_register(&chan);
-    assert(rogue_skill_rank_up(idq) == 1);
+    if (rogue_skill_rank_up(idq) != 1)
+    {
+        printf("FAIL rank up chan(snap)\n");
+        return 1;
+    }
     ctx.now_ms = g_now_ms;
-    assert(rogue_skill_try_activate(idq, &ctx) == 1);
+    if (rogue_skill_try_activate(idq, &ctx) != 1)
+    {
+        printf("FAIL activate chan(snap)\n");
+        return 1;
+    }
     /* Exclude the immediate on_activate call from tick counting. */
     g_chan_ticks = 0;
     /* With no haste, interval = 250ms -> expect exactly 4 ticks in 1000ms */
@@ -109,9 +133,17 @@ int main(void)
     g_app.talent_points = 5;
     chan.haste_mode_flags = 0; /* dynamic */
     idq = rogue_skill_register(&chan);
-    assert(rogue_skill_rank_up(idq) == 1);
+    if (rogue_skill_rank_up(idq) != 1)
+    {
+        printf("FAIL rank up chan(dyn)\n");
+        return 1;
+    }
     ctx.now_ms = g_now_ms;
-    assert(rogue_skill_try_activate(idq, &ctx) == 1);
+    if (rogue_skill_try_activate(idq, &ctx) != 1)
+    {
+        printf("FAIL activate chan(dyn)\n");
+        return 1;
+    }
     /* Apply haste immediately; dynamic interval should shrink -> >= 4 ticks in 1000ms */
     rogue_buffs_apply(ROGUE_BUFF_POWER_STRIKE, 25, 1000.0, g_now_ms, ROGUE_BUFF_STACK_ADD, 0);
     g_chan_ticks = 0; /* exclude on_activate */
