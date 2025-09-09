@@ -113,6 +113,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_json_operations.c AND 
     rogue_add_test(test_inventory_json_operations COMMAND test_inventory_json_operations)
 endif()
 
+# Comprehensive end-to-end JSON integration test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_json_integration_comprehensive.c AND NOT TARGET test_json_integration_comprehensive)
+    add_executable(test_json_integration_comprehensive unit/test_json_integration_comprehensive.c)
+    target_link_libraries(test_json_integration_comprehensive PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_json_integration_comprehensive PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_json_integration_comprehensive COMMAND test_json_integration_comprehensive)
+endif()
+
 # Explicitly wire new Dungeon Phase 2.4 tests to avoid glob/target churn on MSBuild multi-config
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dungeon_phase2_4_deco_layering.c AND NOT TARGET test_dungeon_phase2_4_deco_layering)
     add_executable(test_dungeon_phase2_4_deco_layering unit/test_dungeon_phase2_4_deco_layering.c)
