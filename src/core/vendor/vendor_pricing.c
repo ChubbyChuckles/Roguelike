@@ -94,6 +94,15 @@ int rogue_vendor_compute_price(int vendor_def_index, int item_def_index, int rar
     ensure_init();
     if (item_def_index < 0)
         return 1;
+    /* Derive category from item definition if not provided so callers can pass -1.
+       This ensures pricing works seamlessly with JSON-loaded item defs without duplicating
+       category lookups at call sites. */
+    if (category < 0)
+    {
+        const RogueItemDef* def = rogue_item_def_at(item_def_index);
+        if (def)
+            category = def->category;
+    }
     if (condition_pct < 0)
         condition_pct = 0;
     if (condition_pct > 100)

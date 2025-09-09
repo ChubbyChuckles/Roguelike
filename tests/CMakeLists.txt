@@ -67,6 +67,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_json_operations.c AND 
     rogue_add_test(test_inventory_json_operations COMMAND test_inventory_json_operations)
 endif()
 
+# Phase 5.2: Inventory entries persistence roundtrip with JSON items
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_json_persistence.c AND NOT TARGET test_inventory_json_persistence)
+    add_executable(test_inventory_json_persistence unit/test_inventory_json_persistence.c)
+    target_link_libraries(test_inventory_json_persistence PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_inventory_json_persistence PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_inventory_json_persistence COMMAND test_inventory_json_persistence)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_items_json_schema_validation.c AND NOT TARGET test_items_json_schema_validation)
     add_executable(test_items_json_schema_validation unit/test_items_json_schema_validation.c)
     target_link_libraries(test_items_json_schema_validation PRIVATE rogue_core)

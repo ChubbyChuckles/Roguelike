@@ -45,10 +45,10 @@ Based on comprehensive analysis of the entire codebase, this plan addresses the 
 ### 2.1 Vendor System Integration
 **Priority: High**
 - **Discovered Dependencies**: vendor_archetype → inventory templates → category-based item selection
-- [ ] Audit vendor_inventory_templates.json: ensure category_weights align with JSON item categories
-- [ ] Update vendor pricing analytics to work with JSON-loaded item definitions
-- [ ] Verify vendor buyback calculations use rogue_item_def_at() for JSON-loaded items
-- [ ] Test vendor refresh cycles with JSON item pools
+- [x] Audit vendor_inventory_templates.json: ensure category_weights align with JSON item categories
+- [x] Update vendor pricing analytics to work with JSON-loaded item definitions
+- [x] Verify vendor buyback calculations use rogue_item_def_at() for JSON-loaded items
+- [x] Test vendor refresh cycles with JSON item pools
 
 ### 2.2 Loot Generation System Overhaul
 **Priority: Critical**
@@ -58,6 +58,9 @@ Based on comprehensive analysis of the entire codebase, this plan addresses the 
 - [ ] Update loot table references: remove any hardcoded cfg paths, use def_index lookups exclusively
 - [ ] Test rarity-weighted item selection with JSON item pools
 - [ ] Validate affix budget calculations work with JSON item implicit stats
+// Status update (2025-09-09): Loot JSON flow validated by test_loot_generation_json; spawn path and rarity selection covered. Affix rules remain planned.
+ - [x] Verify rogue_items_spawn() works correctly with JSON def_index values
+ - [x] Test rarity-weighted item selection with JSON item pools
 
 ### 2.3 Crafting System Material Registry
 **Priority: High**
@@ -72,15 +75,16 @@ Based on comprehensive analysis of the entire codebase, this plan addresses the 
 - **Discovered Architecture**: Sophisticated stat cache with base→implicit→affix→proc layering
 - [ ] Verify equipment stat aggregation (equipment_perf.c) works with JSON-loaded items
 - [ ] Test stat cache recalculation with JSON item implicit stats
-- [ ] Validate equipment persistence (equipment_persist.c) maintains def_index integrity
+- [x] Validate equipment persistence (equipment_persist.c) maintains def_index integrity
 - [ ] Ensure two-handed weapon detection and slot occupancy rules work with JSON flags
 
 ### 2.5 Inventory System Compatibility
 **Priority: Medium**
 - **Discovered Features**: Infinite stacking, filtering, sorting, persistence with durability/affix tracking
-- [ ] Verify inventory stacking works with JSON-loaded item definitions
+- [x] Verify inventory stacking works with JSON-loaded item definitions
 - [ ] Test inventory filtering by category/rarity with JSON items
 - [ ] Validate inventory persistence maintains def_index→JSON item mapping
+ - [x] Validate inventory persistence maintains def_index→JSON item mapping
 - [ ] Ensure inventory UI sorting (name, rarity, category) works with JSON data
 
 ## PHASE 3: PERSISTENCE & SAVE/LOAD INTEGRITY
@@ -89,6 +93,7 @@ Based on comprehensive analysis of the entire codebase, this plan addresses the 
 **Priority: Critical**
 - **Discovered Architecture**: Complex RogueItemInstance with durability, affixes, sockets, quality, GUIDs
 - [ ] Audit save_components.c: ensure InvRecordSnapshot works with JSON item def_index values
+ - [x] Audit save_components.c: ensure InvRecordSnapshot works with JSON item def_index values
 - [ ] Test save/load roundtrip: JSON items → instances → save → load → instances
 - [ ] Validate item instance GUID integrity across JSON loading
 - [ ] Test durability persistence with JSON-loaded weapons/armor
@@ -98,6 +103,9 @@ Based on comprehensive analysis of the entire codebase, this plan addresses the 
 **Priority: High**
 - [ ] Test equipment serialization (EQUIP_V1 format) with JSON-loaded items
 - [ ] Verify slot persistence maintains correct def_index references
+// Status update: Covered by test_equipment_json_persistence (EQUIP_V1 roundtrip)
+ - [x] Test equipment serialization (EQUIP_V1 format) with JSON-loaded items
+ - [x] Verify slot persistence maintains correct def_index references
 - [ ] Test transmog system with JSON item sprite references
 - [ ] Validate equipment state hash consistency with JSON loading
 

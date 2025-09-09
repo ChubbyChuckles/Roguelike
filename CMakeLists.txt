@@ -1861,10 +1861,16 @@ install(DIRECTORY assets/ DESTINATION assets)
 
 if(WIN32 AND ROGUE_ENABLE_SDL)
     # Attempt to include SDL2 runtime DLL if discoverable from VCPKG_ROOT
+    # Normalize VCPKG_ROOT to CMake-style forward slashes to avoid invalid
+    # CMake escape sequences (e.g., "\\a") when generating install scripts on Windows runners.
     if(DEFINED ENV{VCPKG_ROOT})
-        set(_SDL_DLL "$ENV{VCPKG_ROOT}/installed/x64-windows/bin/SDL2.dll")
-        if(EXISTS "${_SDL_DLL}")
-            install(FILES "${_SDL_DLL}" DESTINATION bin)
+        set(_VCPKG_ROOT_RAW "$ENV{VCPKG_ROOT}")
+        if(_VCPKG_ROOT_RAW)
+            file(TO_CMAKE_PATH "${_VCPKG_ROOT_RAW}" _VCPKG_ROOT_CMAKE)
+            set(_SDL_DLL "${_VCPKG_ROOT_CMAKE}/installed/x64-windows/bin/SDL2.dll")
+            if(EXISTS "${_SDL_DLL}")
+                install(FILES "${_SDL_DLL}" DESTINATION bin)
+            endif()
         endif()
     endif()
 endif()

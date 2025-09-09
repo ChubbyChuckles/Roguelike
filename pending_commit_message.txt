@@ -1,3 +1,18 @@
+ci(windows): fix packaging step shell on windows-latest; items Phase 5.2 roadmap updates
+
+- Packaging job on windows-latest failed with PowerShell parsing of `set -Eeuo pipefail`.
+	Switched the CPack packaging step to run under bash (`shell: bash`) so the script executes
+	consistently across OSes. This unblocks Release artifact packaging on Windows.
+- Vendor pricing robustness: allow callers to pass category=-1; pricing now derives category from
+	the item definition when unspecified. This avoids fragile duplication and works cleanly with
+	JSON-loaded items.
+ - Tests (items/json Phase 5.2): add test_inventory_json_persistence covering inventory entries save/load roundtrip with JSON items; wired in tests/CMakeLists.txt under SDL guards.
+ - Roadmap updates: mark loot spawn/rarity selection with JSON as validated; mark inventory persistence and save_components InvRecordSnapshot audit as done; note EQUIP_V1 test coverage for JSON items.
+- Roadmap (Items JSON Integration) updates:
+	- Marked Vendor System Integration tasks as done (templates aligned; pricing/buyback paths vetted; JSON pools tested).
+	- Marked equipment persistence check as done (EQUIP_V1 with JSON items covered by tests).
+	- Marked inventory stacking verification as done (covered by test_inventory_json_operations).
+
 feat(items/schema): add schema_version detection and migration hook
 
 - Add ROGUE_ITEMS_SCHEMA_VERSION_CURRENT and public migration API in schema_items.{h,c}
