@@ -1,0 +1,220 @@
+SOPHISTICATED IMPLEMENTATION PLAN: Items JSON Integration
+=========================================================
+
+## PROJECT OVERVIEW
+
+Based on comprehensive analysis of the entire codebase, this plan addresses the sophisticated integration of a JSON-first item system that replaces the existing .cfg-based approach while maintaining full compatibility with all interconnected subsystems.
+
+**Technical Foundation Discovered:**
+- Advanced item system with 20+ fields: RogueItemDef with comprehensive stats, sprites, rarities, flags, implicits, sockets
+- Dual loading infrastructure: rogue_item_defs_load_from_cfg() and rogue_item_defs_load_from_json()
+- Sophisticated schema validation: src/content/schema_items.{h,c} with comprehensive JSON validation
+- Complex item instances: RogueItemInstance with durability, affixes, enchantments, sockets, quality, GUID tracking
+- Deep subsystem integration: vendors, loot generation, crafting, equipment, inventory, persistence
+- Migration tooling: tools/items_migrate.c already exists
+
+## PHASE 1: FOUNDATION & LOADING ARCHITECTURE
+
+### 1.1 Enhanced Directory Detection & Asset Discovery
+**Priority: Critical**
+- [x] Existing rogue_find_asset_path() and SDL_GetBasePath() infrastructure
+- [ ] Enhance path detection to probe multiple candidates:
+  - Primary: "{base_path}/assets/items/"
+  - Secondary: "{base_path}/../assets/items/"
+  - Fallback: "{base_path}/assets/test_items.cfg"
+- [ ] Add runtime asset discovery logging with path resolution traces
+- [ ] Implement directory existence validation before load attempts
+
+### 1.2 Bootstrap Loading Pipeline Integration
+**Priority: Critical**
+- [x] Existing dual loader APIs: rogue_item_defs_load_from_json(), rogue_item_defs_load_directory()
+- [ ] Update src/core/app/app_init.c:337 to use enhanced directory detection
+- [ ] Update src/core/app/app.c:236 with matching logic for different working directories
+- [ ] Add ROGUE_ITEMS_PREFER_JSON compile flag (default: ON) with graceful cfg fallback
+- [ ] Implement preload index building: scan assets/items/*.json → build id→def_index mapping
+
+### 1.3 Schema Validation & Error Handling
+**Priority: High**
+- [x] Existing comprehensive schema validation in src/content/schema_items.{h,c}
+- [ ] Add JSON file-by-file validation during directory scan with detailed error reporting
+- [ ] Implement partial-failure handling: skip malformed files, continue with valid ones
+- [ ] Add schema version detection and migration hooks for future expansions
+
+## PHASE 2: SUBSYSTEM INTEGRATION & DEPENDENCY REWIRING
+
+### 2.1 Vendor System Integration
+**Priority: High**
+- **Discovered Dependencies**: vendor_archetype → inventory templates → category-based item selection
+- [ ] Audit vendor_inventory_templates.json: ensure category_weights align with JSON item categories
+- [ ] Update vendor pricing analytics to work with JSON-loaded item definitions
+- [ ] Verify vendor buyback calculations use rogue_item_def_at() for JSON-loaded items
+- [ ] Test vendor refresh cycles with JSON item pools
+
+### 2.2 Loot Generation System Overhaul
+**Priority: Critical**
+- **Discovered Architecture**: Complex rarity-based generation with affix rolling, quality scaling, durability initialization
+- [ ] Update loot_generation_affix.c: ensure affix gating rules work with JSON-loaded base items
+- [ ] Verify rogue_items_spawn() works correctly with JSON def_index values
+- [ ] Update loot table references: remove any hardcoded cfg paths, use def_index lookups exclusively
+- [ ] Test rarity-weighted item selection with JSON item pools
+- [ ] Validate affix budget calculations work with JSON item implicit stats
+
+### 2.3 Crafting System Material Registry
+**Priority: High**
+- **Discovered Dependencies**: Material registry references items by def_index for crafting recipes
+- [ ] Audit crafting recipes: ensure all material references use item IDs (not cfg paths)
+- [ ] Update recipe validation to work with JSON-loaded material items
+- [ ] Test crafting material consumption with JSON-defined materials
+- [ ] Verify crafted item output uses JSON item definitions
+
+### 2.4 Equipment System Stat Aggregation
+**Priority: Medium**
+- **Discovered Architecture**: Sophisticated stat cache with base→implicit→affix→proc layering
+- [ ] Verify equipment stat aggregation (equipment_perf.c) works with JSON-loaded items
+- [ ] Test stat cache recalculation with JSON item implicit stats
+- [ ] Validate equipment persistence (equipment_persist.c) maintains def_index integrity
+- [ ] Ensure two-handed weapon detection and slot occupancy rules work with JSON flags
+
+### 2.5 Inventory System Compatibility
+**Priority: Medium**
+- **Discovered Features**: Infinite stacking, filtering, sorting, persistence with durability/affix tracking
+- [ ] Verify inventory stacking works with JSON-loaded item definitions
+- [ ] Test inventory filtering by category/rarity with JSON items
+- [ ] Validate inventory persistence maintains def_index→JSON item mapping
+- [ ] Ensure inventory UI sorting (name, rarity, category) works with JSON data
+
+## PHASE 3: PERSISTENCE & SAVE/LOAD INTEGRITY
+
+### 3.1 Item Instance Persistence
+**Priority: Critical**
+- **Discovered Architecture**: Complex RogueItemInstance with durability, affixes, sockets, quality, GUIDs
+- [ ] Audit save_components.c: ensure InvRecordSnapshot works with JSON item def_index values
+- [ ] Test save/load roundtrip: JSON items → instances → save → load → instances
+- [ ] Validate item instance GUID integrity across JSON loading
+- [ ] Test durability persistence with JSON-loaded weapons/armor
+- [ ] Verify affix persistence (prefix/suffix indices) with JSON items
+
+### 3.2 Equipment Persistence Integration
+**Priority: High**
+- [ ] Test equipment serialization (EQUIP_V1 format) with JSON-loaded items
+- [ ] Verify slot persistence maintains correct def_index references
+- [ ] Test transmog system with JSON item sprite references
+- [ ] Validate equipment state hash consistency with JSON loading
+
+## PHASE 4: MIGRATION TOOLING & LEGACY TRANSITION
+
+### 4.1 Enhanced Migration Tools
+**Priority: Medium**
+- [x] Existing tools/items_migrate.c for cfg→json conversion
+- [ ] Add batch conversion support for entire cfg collections
+- [ ] Implement validation pass: migrated JSON files pass schema validation
+- [ ] Add migration verification: cfg-loaded vs json-loaded item equivalence testing
+- [ ] Document migration process and provide conversion scripts
+
+### 4.2 Legacy Compatibility Layer
+**Priority: Medium**
+- [ ] Implement graceful degradation: JSON load failure → cfg fallback with warning
+- [ ] Add dual-loading validation: compare cfg vs json loading for same items
+- [ ] Test mixed loading scenarios: some JSON files + cfg fallback
+- [ ] Maintain cfg loading paths in tests during transition period
+
+## PHASE 5: COMPREHENSIVE TESTING & VALIDATION
+
+### 5.1 Core Loading Tests
+**Priority: High**
+- [ ] test_items_json_directory_load.c: directory scan, file loading, index building
+- [ ] test_items_json_schema_validation.c: malformed file handling, partial failure recovery
+- [ ] test_items_json_vs_cfg_equivalence.c: identical items loaded from both formats
+- [ ] test_items_json_fallback.c: JSON failure → cfg fallback behavior
+
+### 5.2 Integration Tests
+**Priority: High**
+- [ ] test_vendor_json_items.c: vendor operations with JSON-loaded items
+- [ ] test_loot_generation_json.c: item spawning, affix rolling with JSON items
+- [ ] test_crafting_json_materials.c: recipe processing with JSON materials
+- [ ] test_equipment_json_persistence.c: equip/save/load with JSON items
+- [ ] test_inventory_json_operations.c: add/remove/stack with JSON items
+
+### 5.3 Performance & Stress Tests
+**Priority: Medium**
+- [ ] Benchmark JSON directory loading vs cfg loading (target: <50ms for 100 items)
+- [ ] Memory usage analysis: JSON parsing overhead vs cfg parsing
+- [ ] Stress test: 500+ JSON files in assets/items/ directory
+- [ ] Hot-reload testing: runtime JSON file changes (dev mode)
+
+## PHASE 6: ADVANCED FEATURES & EXTENSIBILITY
+
+### 6.1 Rich JSON Schema Extension
+**Priority: Low**
+- [x] Basic JSON schema with core RogueItemDef fields
+- [ ] Extend JSON schema for advanced fields: implicits, socket_count, unique flags
+- [ ] Add set item definitions with set bonuses in JSON format
+- [ ] Support runeword patterns in JSON item definitions
+- [ ] Implement proc definitions as separate JSON files (items/procs/)
+
+### 6.2 Development & Debug Tools
+**Priority: Low**
+- [ ] Enhanced debug overlay: JSON item creation/editing
+- [ ] Hot-reload support: detect JSON file changes and reload definitions
+- [ ] JSON item editor: in-game tool for content creators
+- [ ] Validation CLI: standalone JSON schema validation tool
+
+## PHASE 7: DOCUMENTATION & FINAL CLEANUP
+
+### 7.1 Comprehensive Documentation
+**Priority: Medium**
+- [ ] README: "Items (JSON)" section with format specification
+- [ ] Asset pipeline documentation: JSON→game integration
+- [ ] Migration guide: cfg→json conversion process
+- [ ] Schema reference: complete RogueItemDef JSON field documentation
+
+### 7.2 Legacy Cleanup & Optimization
+**Priority: Low**
+- [ ] Remove unused cfg loading paths after JSON transition complete
+- [ ] Optimize JSON parsing: consider cJSON replacement with faster parser
+- [ ] Asset manifest integration: include assets/items/*.json validation
+- [ ] CI/CD integration: automated JSON schema validation in build pipeline
+
+## SUCCESS CRITERIA & VALIDATION
+
+### Core Functionality
+- [x] Basic placeholder JSONs created and validated
+- [ ] Game runs entirely on JSON-loaded items (zero cfg dependency)
+- [ ] All subsystems (vendor/loot/crafting/equipment/inventory) work with JSON items
+- [ ] Save/load maintains complete fidelity with JSON-loaded items
+- [ ] Performance: JSON loading ≤110% of cfg loading time
+
+### Integration Quality
+- [ ] Zero runtime errors with JSON-only item loading
+- [ ] All existing gameplay features work identically with JSON items
+- [ ] Hot-reload works in development builds
+- [ ] Migration tools successfully convert 100% of existing cfg items
+
+### Developer Experience
+- [ ] Clear error messages for malformed JSON files
+- [ ] Comprehensive documentation and examples
+- [ ] Debug tools support JSON item inspection/editing
+- [ ] CI validates all JSON files on every commit
+
+## RISK MITIGATION & ROLLBACK PLAN
+
+### High-Risk Areas Identified
+1. **Item Index Stability**: def_index values must remain stable across JSON loading for save compatibility
+2. **Affix Integration**: Complex affix system must work seamlessly with JSON items
+3. **Performance**: JSON parsing overhead must not impact game startup time
+4. **Schema Evolution**: Future schema changes must maintain backward compatibility
+
+### Rollback Strategy
+- Maintain cfg loading paths until JSON system proves stable in production
+- Feature flags allow runtime switching between JSON and cfg loading
+- Comprehensive test coverage ensures rapid issue detection
+- Migration verification tools validate cfg→json conversion accuracy
+
+## IMPLEMENTATION TIMELINE
+
+**Phase 1-2 (Foundation)**: 2-3 weeks
+**Phase 3 (Persistence)**: 1-2 weeks
+**Phase 4-5 (Migration/Testing)**: 2-3 weeks
+**Phase 6-7 (Advanced/Cleanup)**: 1-2 weeks
+
+**Total Estimated Duration**: 6-10 weeks for complete JSON migration with all subsystem integration and comprehensive testing.
