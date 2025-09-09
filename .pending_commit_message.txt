@@ -11,7 +11,9 @@ Vendor System – Phase 14 Analytics: add vendor_analytics module, wire hooks, t
 	- vendor_buyback.c: record buyback telemetry when vendor buys from player
 - Build wiring: include vendor_analytics.c in rogue_core (CMakeLists.txt)
 - Tests: add tests/unit/test_vendor_phase14_analytics.c exercising counts, gold coverage, negotiation stats, and drift alert behavior
+- Tests (14.6): add tests/unit/test_vendor_phase14_6_analytics_stability.c for elasticity slope stability (duplication invariance, degenerate case) and drift false-positive guard at 25% threshold
 - Roadmap: mark Phase 14.1–14.5 Done; note partial coverage for 14.6 tests with core checks in new unit
+- Roadmap update: mark 14.6 tests Done with new stability & drift cases
 - README: add concise Vendor Analytics (Phase 14) summary under Testing & Quality Gates notes
 
 Quality gates: Debug (SDL2) build and full CTest run passed 100% (660/660) locally after changes.

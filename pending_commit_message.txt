@@ -148,3 +148,18 @@ feat(asset-overlay/ui): improve file dialog scrollbar visibility (backdrop, wide
  - Widened track to 8px and increased minimum thumb height to 14px for easier grab on high-DPI displays.
  - Pure UI polish (no logic changes); improves discoverability and accessibility of large directory listings.
  - Roadmap + README updated with refinement note; full 657 test suite passed post-change (non-invasive rendering tweak).
+
+feat(vendor/phase14): analytics module, integration hooks, and tests (14.1–14.6)
+
+- Implement vendor_analytics.[ch] tracking:
+	• Purchases/buybacks by category & rarity; gold spent vs payouts; sink coverage ratio
+	• Price elasticity (least-squares slope per category)
+	• Negotiation success rate with avg skill split (success/failure)
+	• Price drift EWMA vs baseline anchor with configurable threshold and latched alert
+- Integration: pricing records vendor sales; buyback path records vendor payouts
+- Unit tests:
+	• tests/unit/test_vendor_phase14_analytics.c exercises counts, coverage ratio, negotiation metrics, and drift signaling
+	• tests/unit/test_vendor_phase14_6_analytics_stability.c validates elasticity stability (duplication invariance, degenerate slope ~0) and drift false-positive guard under ±5% noise with a 25% threshold
+- Fixes during integration: corrected header typo (ROGUE_ITEM___COUNT → ROGUE_ITEM__COUNT) and added missing include vendor_analytics.h in vendor_buyback.c to satisfy MSVC warnings-as-errors
+- Roadmap: mark Phase 14.1–14.6 Done; README updated (Vendor Analytics section and latest CI counts)
+- Verification: Debug (SDL2) full suite passed 100% (662/662)

@@ -139,8 +139,9 @@ PHASE 14. Analytics & Telemetry
 	Aggregates attempts, success rate, avg skill for success/failure.
 14.5 Inflation index drift monitor & alerting (Done)
 	EWMA vs baseline anchor; threshold configurable; latched alert via check API.
-14.6 Tests: elasticity model stability, drift false positive rate (Partial)
-	Added unit test test_vendor_phase14_analytics.c asserting counts, gold coverage, negotiation means, and drift signaling.
+14.6 Tests: elasticity model stability, drift false positive rate (Done)
+	Added unit tests: test_vendor_phase14_analytics.c (counts, coverage, negotiation, drift),
+	and test_vendor_phase14_6_analytics_stability.c (elasticity duplication invariance, degenerate slope, drift false-positive guard).
 
 PHASE 15. Security / Anti-Exploit
 15.1 Rapid flip detection (buy->sell cycle time analysis) (X)

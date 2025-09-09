@@ -1,6 +1,7 @@
 /* Phase 5 Implementation: Buyback Ring Buffer, Depreciation, Assimilation */
 #include "vendor_buyback.h"
 #include "../loot/loot_instances.h"
+#include "vendor_analytics.h"
 #include "vendor_pricing.h"
 #include "vendor_registry.h"
 #include <string.h>

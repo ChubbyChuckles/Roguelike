@@ -28,7 +28,7 @@ extern "C"
     /* 14.1: queries */
     void rogue_vendor_analytics_counts_sold_by_category(int out_counts[ROGUE_ITEM__COUNT]);
     void rogue_vendor_analytics_counts_sold_by_rarity(int out_counts[5]);
-    void rogue_vendor_analytics_counts_bought_by_category(int out_counts[ROGUE_ITEM___COUNT]);
+    void rogue_vendor_analytics_counts_bought_by_category(int out_counts[ROGUE_ITEM__COUNT]);
     void rogue_vendor_analytics_counts_bought_by_rarity(int out_counts[5]);
 
     /* Totals for gold flow (14.2) */
