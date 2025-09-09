@@ -1,3 +1,18 @@
+/**
+ * @file tilemap.h
+ * @brief 2D tile-based world map system.
+ *
+ * Provides the core tilemap data structure and API for managing 2D tile-based
+ * worlds. Supports a primary tile layer for terrain types and an optional
+ * overlay layer for decorative elements. Includes comprehensive tile type
+ * enumeration covering terrain, structures, and dungeon elements used by
+ * the procedural generation system.
+ *
+ * @author [Your Name]
+ * @date September 2025
+ * @version 1.0
+ */
+
 /*
 MIT License
 
@@ -28,52 +43,66 @@ SOFTWARE.
 #include <stddef.h>
 #include <stdint.h>
 
+/**
+ * @brief 2D tile map data structure.
+ *
+ * Represents a 2D grid of tiles with optional overlay decoration layer.
+ * The primary tiles array stores terrain and structure types, while the
+ * optional overlay_deco array stores lightweight decorative markers.
+ * Memory is managed internally and should be freed with rogue_tilemap_free().
+ */
 typedef struct RogueTileMap
 {
-    int width;
-    int height;
-    unsigned char* tiles;
-    /* Optional per-cell overlay for light-weight markers (e.g., deco). 0 = none. */
-    unsigned char* overlay_deco;
-    /* Internal: guard value set by init to validate overlay_deco before use. */
-    uint32_t overlay_magic;
+    int width;                   ///< Map width in tiles
+    int height;                  ///< Map height in tiles
+    unsigned char* tiles;        ///< Primary tile data array (width * height elements)
+    unsigned char* overlay_deco; ///< Optional overlay decoration layer (may be NULL)
+    uint32_t overlay_magic;      ///< Internal guard value for overlay validation
 } RogueTileMap;
 
 /**
  * @brief Basic tile type classifications for procedural generation.
  * @ingroup WorldGen
+ *
+ * Comprehensive enumeration of all tile types used throughout the game,
+ * from basic terrain to complex dungeon elements. Values are used as
+ * indices into tile graphics and behavior lookup tables.
  */
 typedef enum RogueTileType
 {
-    ROGUE_TILE_EMPTY = 0,
-    ROGUE_TILE_WATER,
-    ROGUE_TILE_GRASS,
-    ROGUE_TILE_FOREST,
-    ROGUE_TILE_MOUNTAIN,
-    ROGUE_TILE_CAVE_WALL,
-    ROGUE_TILE_CAVE_FLOOR,
-    ROGUE_TILE_RIVER,
-    ROGUE_TILE_SWAMP,
-    ROGUE_TILE_SNOW,
-    ROGUE_TILE_RIVER_DELTA,
-    ROGUE_TILE_RIVER_WIDE,
-    /* Phase 4 additions (local terrain detailing) */
-    ROGUE_TILE_LAVA,        /* lava pocket */
-    ROGUE_TILE_ORE_VEIN,    /* ore vein marker embedded in rock/cave */
-    ROGUE_TILE_BRIDGE_HINT, /* potential bridge/crossing marker */
-    /* Phase 6 additions (structures & POIs) */
-    ROGUE_TILE_STRUCTURE_WALL,   /* generic structure wall */
-    ROGUE_TILE_STRUCTURE_FLOOR,  /* generic structure floor */
-    ROGUE_TILE_DUNGEON_ENTRANCE, /* entrance portal marker */
-    /* Phase 7 additions (dungeon generator) */
-    ROGUE_TILE_DUNGEON_WALL,        /* solid dungeon wall */
-    ROGUE_TILE_DUNGEON_FLOOR,       /* walkable dungeon floor */
-    ROGUE_TILE_DUNGEON_DOOR,        /* regular door */
-    ROGUE_TILE_DUNGEON_LOCKED_DOOR, /* locked door requiring key */
-    ROGUE_TILE_DUNGEON_SECRET_DOOR, /* secret door to hidden room */
-    ROGUE_TILE_DUNGEON_TRAP,        /* trap tile */
-    ROGUE_TILE_DUNGEON_KEY,         /* key pickup tile */
-    ROGUE_TILE_MAX
+    ROGUE_TILE_EMPTY = 0,     ///< Empty/void tile
+    ROGUE_TILE_WATER,         ///< Water tile (typically non-walkable)
+    ROGUE_TILE_GRASS,         ///< Grass terrain (walkable)
+    ROGUE_TILE_FOREST,        ///< Forest tile (may restrict movement)
+    ROGUE_TILE_MOUNTAIN,      ///< Mountain tile (typically non-walkable)
+    ROGUE_TILE_CAVE_WALL,     ///< Cave wall (non-walkable)
+    ROGUE_TILE_CAVE_FLOOR,    ///< Cave floor (walkable)
+    ROGUE_TILE_RIVER,         ///< River tile (flowing water)
+    ROGUE_TILE_SWAMP,         ///< Swamp terrain (may slow movement)
+    ROGUE_TILE_SNOW,          ///< Snow-covered terrain
+    ROGUE_TILE_RIVER_DELTA,   ///< River delta formation
+    ROGUE_TILE_RIVER_WIDE,    ///< Wide river section
+    
+    /* Local terrain detailing */
+    ROGUE_TILE_LAVA,          ///< Lava pocket (hazardous terrain)
+    ROGUE_TILE_ORE_VEIN,      ///< Ore vein embedded in rock/cave
+    ROGUE_TILE_BRIDGE_HINT,   ///< Potential bridge/crossing location marker
+    
+    /* Structures and points of interest */
+    ROGUE_TILE_STRUCTURE_WALL,   ///< Generic structure wall
+    ROGUE_TILE_STRUCTURE_FLOOR,  ///< Generic structure floor
+    ROGUE_TILE_DUNGEON_ENTRANCE, ///< Entrance portal to dungeon
+    
+    /* Dungeon-specific tiles */
+    ROGUE_TILE_DUNGEON_WALL,        ///< Solid dungeon wall (non-walkable)
+    ROGUE_TILE_DUNGEON_FLOOR,       ///< Walkable dungeon floor
+    ROGUE_TILE_DUNGEON_DOOR,        ///< Regular door (can be opened)
+    ROGUE_TILE_DUNGEON_LOCKED_DOOR, ///< Locked door requiring key
+    ROGUE_TILE_DUNGEON_SECRET_DOOR, ///< Secret door to hidden room
+    ROGUE_TILE_DUNGEON_TRAP,        ///< Trap tile (triggers when stepped on)
+    ROGUE_TILE_DUNGEON_KEY,         ///< Key pickup tile
+    
+    ROGUE_TILE_MAX               ///< Total number of tile types (used for bounds checking)
 } RogueTileType;
 
 /** @name Tilemap API */

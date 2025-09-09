@@ -1,40 +1,83 @@
-/* Minimal audio/VFX event bus (Phase 1+2 seed) */
+/**
+ * @file effects.h
+ * @brief Audio and visual effects event bus system.
+ *
+ * Provides a deterministic event bus for audio and visual effects with
+ * priority-based ordering, frame compaction, and sequence tracking.
+ * Supports audio playback events and VFX spawning with configurable
+ * priority classes for predictable execution order.
+ *
+ * @author [Your Name]
+ * @date September 2025
+ * @version 1.0
+ */
+
 #ifndef ROGUE_EFFECTS_H
 #define ROGUE_EFFECTS_H
 
 #include <stddef.h>
 #include <stdint.h>
 
-/* Effect type */
+/**
+ * @brief Effect event types.
+ *
+ * Defines the different types of effects that can be processed
+ * by the effects system.
+ */
 typedef enum RogueEffectEventType
 {
-    ROGUE_FX_AUDIO_PLAY = 1,
-    ROGUE_FX_VFX_SPAWN = 2
+    ROGUE_FX_AUDIO_PLAY = 1, ///< Audio playback event
+    ROGUE_FX_VFX_SPAWN = 2   ///< Visual effect spawn event
 } RogueEffectEventType;
 
-/* Priority classes for deterministic ordering */
+/**
+ * @brief Effect priority classes for deterministic ordering.
+ *
+ * Defines priority levels that determine the execution order
+ * of effects within a frame. Lower numbers indicate higher priority.
+ */
 typedef enum RogueEffectPriority
 {
-    ROGUE_FX_PRI_CRITICAL = 0,
-    ROGUE_FX_PRI_COMBAT = 1,
-    ROGUE_FX_PRI_UI = 2,
-    ROGUE_FX_PRI_AMBIENCE = 3
+    ROGUE_FX_PRI_CRITICAL = 0, ///< Critical effects (highest priority)
+    ROGUE_FX_PRI_COMBAT = 1,   ///< Combat-related effects
+    ROGUE_FX_PRI_UI = 2,       ///< User interface effects
+    ROGUE_FX_PRI_AMBIENCE = 3  ///< Ambient effects (lowest priority)
 } RogueEffectPriority;
 
+/**
+ * @brief Effect event structure.
+ *
+ * Contains all data needed for an effect event including timing,
+ * priority, type information, and payload data. Supports frame
+ * compaction to merge identical events for efficiency.
+ */
 typedef struct RogueEffectEvent
 {
-    uint32_t emit_frame; /* producer frame index (optional; 0 if unknown) */
-    uint32_t seq;        /* sequence id within frame (assigned by bus) */
-    uint8_t priority;    /* RogueEffectPriority */
-    uint8_t type;        /* RogueEffectEventType */
-    uint16_t repeats;    /* frame compaction: number of identical events merged (>=1) */
-    /* Payload: for audio, string id key (small fixed buffer); for vfx, params TBD */
-    char id[24];
-    float x, y; /* for VFX/world-space if needed */
+    uint32_t emit_frame; ///< Producer frame index (0 if unknown)
+    uint32_t seq;        ///< Sequence ID within frame (assigned by bus)
+    uint8_t priority;    ///< Priority level (RogueEffectPriority)
+    uint8_t type;        ///< Event type (RogueEffectEventType)
+    uint16_t repeats;    ///< Number of identical events merged (>=1)
+    char id[24];         ///< Effect identifier string (audio key, VFX type, etc.)
+    float x, y;          ///< World-space coordinates for positioned effects
 } RogueEffectEvent;
 
-/* Frame lifecycle */
+/**
+ * @brief Begin processing effects for a new frame.
+ *
+ * Initializes the effects system for a new frame, setting up
+ * sequence tracking and preparing for event emission.
+ *
+ * @param frame_index Current frame number for tracking
+ */
 void rogue_fx_frame_begin(uint32_t frame_index);
+
+/**
+ * @brief End frame processing and execute queued effects.
+ *
+ * Finalizes the current frame's effects processing, sorts events
+ * by priority, and executes them in deterministic order.
+ */
 void rogue_fx_frame_end(void);
 
 /* Emit event (deterministic ordering assigned internally). Returns 0 on success. */

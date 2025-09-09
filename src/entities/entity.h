@@ -1,3 +1,17 @@
+/**
+ * @file entity.h
+ * @brief Base entity structure for game objects.
+ *
+ * Defines the fundamental RogueEntity structure that serves as the base
+ * for all movable game objects including players, enemies, projectiles,
+ * and other dynamic entities. Provides basic position and velocity
+ * properties that form the foundation of the entity system.
+ *
+ * @author [Your Name]
+ * @date September 2025
+ * @version 1.0
+ */
+
 /*
 MIT License
 
@@ -26,10 +40,19 @@ SOFTWARE.
 
 #include "../math/vec2.h"
 
+/**
+ * @brief Base entity structure for all movable game objects.
+ *
+ * Provides the fundamental properties needed by all dynamic entities
+ * in the game world. This structure is designed to be embedded as
+ * the first member of more specific entity types (like RoguePlayer
+ * or RogueEnemy) to provide consistent positioning and movement
+ * capabilities across the entity system.
+ */
 typedef struct RogueEntity
 {
-    RogueVec2 pos;
-    RogueVec2 vel;
+    RogueVec2 pos; ///< Current world position in tile coordinates
+    RogueVec2 vel; ///< Current velocity vector in tiles per second
 } RogueEntity;
 
 #endif

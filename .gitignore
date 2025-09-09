@@ -69,3 +69,4 @@ sprite_picker.spec
 .venv/
 # CI scripts are required in the repository; only ignore the optional local token helper.
 scripts/ci/local_github_token.ps1
+build_test/
