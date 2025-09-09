@@ -211,6 +211,195 @@ int rogue_vendor_compute_price(int vendor_def_index, int item_def_index, int rar
     return final_price;
 }
 
+int rogue_vendor_compute_price_with_breakdown(int vendor_def_index, int item_def_index, int rarity,
+                                              int category, int is_vendor_selling,
+                                              int condition_pct, int rep_tier_index,
+                                              float negotiation_discount_pct,
+                                              RogueVendorPriceBreakdown* out)
+{
+    if (out)
+        memset(out, 0, sizeof *out);
+    ensure_init();
+    if (item_def_index < 0)
+        return 1;
+    if (condition_pct < 0)
+        condition_pct = 0;
+    if (condition_pct > 100)
+        condition_pct = 100;
+    if (rarity < 0)
+        rarity = 0;
+    if (rarity > 4)
+        rarity = 4;
+    int base = rogue_econ_item_value(item_def_index, rarity, 0, 1.0f);
+    if (base < 1)
+        base = 1;
+    float condition_scalar = 0.4f + 0.6f * (float) condition_pct / 100.0f;
+    float price = (float) base * condition_scalar;
+    const RogueVendorDef* vd =
+        (vendor_def_index >= 0) ? rogue_vendor_def_at(vendor_def_index) : NULL;
+    const RoguePricePolicy* pol = NULL;
+    if (vd && vd->price_policy_index >= 0)
+        pol = rogue_price_policy_at(vd->price_policy_index);
+    int buy_margin = 100, sell_margin = 100;
+    int rarity_mod = 100, category_mod = 100;
+    if (pol)
+    {
+        buy_margin = pol->base_buy_margin;
+        sell_margin = pol->base_sell_margin;
+        if (rarity >= 0 && rarity < 5)
+            rarity_mod = pol->rarity_mods[rarity];
+        if (category >= 0 && category < 6)
+            category_mod = pol->category_mods[category];
+    }
+    float margin_scalar =
+        is_vendor_selling ? (float) buy_margin / 100.0f : (float) sell_margin / 100.0f;
+    float policy_scalar =
+        margin_scalar * (float) rarity_mod / 100.0f * (float) category_mod / 100.0f;
+    price *= policy_scalar;
+    float rep_scalar = 1.0f;
+    if (rep_tier_index >= 0)
+    {
+        const RogueRepTier* rt = rogue_rep_tier_at(rep_tier_index);
+        if (rt)
+        {
+            if (is_vendor_selling)
+                rep_scalar = (100 - rt->buy_discount_pct) / 100.0f;
+            else
+                rep_scalar = (100 + rt->sell_bonus_pct) / 100.0f;
+            price *= rep_scalar;
+        }
+    }
+    float negotiation_scalar = 1.0f;
+    if (is_vendor_selling && negotiation_discount_pct > 0.0f)
+    {
+        if (negotiation_discount_pct > 90.0f)
+            negotiation_discount_pct = 90.0f;
+        negotiation_scalar = (100.0f - negotiation_discount_pct) / 100.0f;
+        price *= negotiation_scalar;
+    }
+    float demand_scalar = rogue_vendor_pricing_get_demand_scalar(category);
+    float scarcity_scalar = rogue_vendor_pricing_get_scarcity_scalar(category);
+    float exploit_scalar = is_vendor_selling ? rogue_vendor_adaptive_exploit_scalar() : 1.0f;
+    float security_scalar = is_vendor_selling ? rogue_vendor_security_exploit_scalar() : 1.0f;
+    price *= demand_scalar * scarcity_scalar * exploit_scalar * security_scalar;
+    float global_scalar = rogue_vendor_dynamic_margin_scalar();
+    float biome_scalar = 1.0f;
+    if (vd)
+        biome_scalar = rogue_vendor_biome_scalar(vd->biome_tags);
+    price *= global_scalar * biome_scalar;
+    if (price < 1.0f)
+        price = 1.0f;
+    if (price > 1000000.0f)
+        price = 1000000.0f;
+    int final_price = (int) floorf(price + 0.5f);
+    if (final_price < 1)
+        final_price = 1;
+    if (out)
+    {
+        out->base_value = base;
+        out->condition_scalar = condition_scalar;
+        out->policy_scalar = policy_scalar;
+        out->rep_scalar = rep_scalar;
+        out->negotiation_scalar = negotiation_scalar;
+        out->demand_scalar = demand_scalar;
+        out->scarcity_scalar = scarcity_scalar;
+        out->exploit_scalar = exploit_scalar;
+        out->security_scalar = security_scalar;
+        out->global_scalar = global_scalar;
+        out->biome_scalar = biome_scalar;
+        out->final_price = final_price;
+    }
+    /* Analytics hook mirrors base API */
+    if (is_vendor_selling)
+    {
+        float adj_pct = demand_scalar * scarcity_scalar * exploit_scalar * security_scalar *
+                        global_scalar * biome_scalar;
+        float adjustment_pct = (adj_pct - 1.0f) * 100.0f;
+        rogue_vendor_analytics_record_vendor_sale(category, rarity, final_price, adjustment_pct, 0);
+    }
+    return final_price;
+}
+
+int rogue_vendor_format_price_tooltip(const RogueVendorPriceBreakdown* br, char* buf, int cap)
+{
+    if (!br || !buf || cap <= 0)
+        return 0;
+    /* Human-readable multi-line tooltip. Keep simple ASCII and concise labels. */
+    int n = snprintf(buf, cap,
+                     "Base: %d\nCond: x%.2f\nPolicy: x%.2f\nRep: x%.2f\nNegotiate: x%.2f\n"
+                     "Demand: x%.2f  Scarcity: x%.2f\nSecurity: x%.2f  Exploit: x%.2f\n"
+                     "Global: x%.2f  Biome: x%.2f\nFinal: %d",
+                     br->base_value, br->condition_scalar, br->policy_scalar, br->rep_scalar,
+                     br->negotiation_scalar, br->demand_scalar, br->scarcity_scalar,
+                     br->security_scalar, br->exploit_scalar, br->global_scalar, br->biome_scalar,
+                     br->final_price);
+    if (n < 0)
+        n = 0;
+    if (n >= cap)
+        n = cap - 1;
+    return n;
+}
+
+int rogue_vendor_compose_price_testonly(int base_value, float condition_scalar, float policy_scalar,
+                                        float rep_scalar, float negotiation_scalar,
+                                        float demand_scalar, float scarcity_scalar,
+                                        float exploit_scalar, float security_scalar,
+                                        float global_scalar, float biome_scalar,
+                                        RogueVendorPriceBreakdown* out)
+{
+    if (out)
+        memset(out, 0, sizeof *out);
+    if (base_value < 1)
+        base_value = 1;
+    float price = (float) base_value;
+    /* Clamp inputs to reasonable ranges to mirror runtime safety. */
+    if (condition_scalar < 0.0f)
+        condition_scalar = 0.0f;
+    if (condition_scalar > 5.0f)
+        condition_scalar = 5.0f;
+    price *= condition_scalar;
+    if (policy_scalar < 0.0f)
+        policy_scalar = 0.0f;
+    if (policy_scalar > 5.0f)
+        policy_scalar = 5.0f;
+    price *= policy_scalar;
+    if (rep_scalar < 0.0f)
+        rep_scalar = 0.0f;
+    if (rep_scalar > 5.0f)
+        rep_scalar = 5.0f;
+    price *= rep_scalar;
+    if (negotiation_scalar < 0.0f)
+        negotiation_scalar = 0.0f;
+    if (negotiation_scalar > 5.0f)
+        negotiation_scalar = 5.0f;
+    price *= negotiation_scalar;
+    price *= demand_scalar * scarcity_scalar * exploit_scalar * security_scalar * global_scalar *
+             biome_scalar;
+    if (price < 1.0f)
+        price = 1.0f;
+    if (price > 1000000.0f)
+        price = 1000000.0f;
+    int final_price = (int) floorf(price + 0.5f);
+    if (final_price < 1)
+        final_price = 1;
+    if (out)
+    {
+        out->base_value = base_value;
+        out->condition_scalar = condition_scalar;
+        out->policy_scalar = policy_scalar;
+        out->rep_scalar = rep_scalar;
+        out->negotiation_scalar = negotiation_scalar;
+        out->demand_scalar = demand_scalar;
+        out->scarcity_scalar = scarcity_scalar;
+        out->exploit_scalar = exploit_scalar;
+        out->security_scalar = security_scalar;
+        out->global_scalar = global_scalar;
+        out->biome_scalar = biome_scalar;
+        out->final_price = final_price;
+    }
+    return final_price;
+}
+
 /* Phase 12: lightweight hash over current demand/scarcity arrays to integrate into snapshot hash.
  */
 uint32_t rogue_vendor_price_modifiers_hash(void)

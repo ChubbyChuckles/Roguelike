@@ -9,10 +9,101 @@
 #include "../loot/loot_item_defs.h"
 #include "economy.h"
 #include "vendor.h"
+#include "vendor_pricing.h"
+#include "vendor_registry.h"
+#include "vendor_reputation.h"
+#include "vendor_security.h"
+#include "vendor_ui_filters.h"
+#include "vendor_ui_negotiation.h"
 #include <stdio.h>
 #ifdef ROGUE_HAVE_SDL
 #include <SDL.h>
 #endif
+
+int rogue_vendor_tab_get(void) { return g_app.vendor_tab; }
+void rogue_vendor_tab_set(int tab)
+{
+    if (tab < 0)
+        tab = 0;
+    if (tab > 3)
+        tab = 3;
+    g_app.vendor_tab = tab;
+}
+
+static void draw_tabs(SDL_Rect panel)
+{
+    const char* labels[4] = {"BUY", "SELL", "BUYBACK", "SPECIAL"};
+    int x = panel.x + 6;
+    int y = panel.y + 20;
+    for (int i = 0; i < 4; i++)
+    {
+        RogueColor col = (i == g_app.vendor_tab) ? (RogueColor){255, 235, 180, 255}
+                                                 : (RogueColor){190, 190, 210, 255};
+        rogue_font_draw_text(x, y, labels[i], 1, col);
+        x += 72;
+    }
+}
+
+static int passes_filters(const RogueItemDef* d, int rarity, const RogueVendorUiFilters* f)
+{
+    if (!d || !f)
+        return 1;
+    /* Category mask: if bit for category is 0, hide */
+    if (f->category_mask != -1)
+    {
+        int bit = (d->category >= 0 && d->category < 32) ? (1 << d->category) : 0;
+        if ((f->category_mask & bit) == 0)
+            return 0;
+    }
+    if (rarity < f->min_rarity || rarity > f->max_rarity)
+        return 0;
+    /* stat_min/max: placeholder check on base_value as proxy */
+    if (d->base_value < f->stat_min || d->base_value > f->stat_max)
+        return 0;
+    return 1;
+}
+
+static void draw_buy_list(SDL_Rect panel)
+{
+    int y = panel.y + 44;
+    RogueVendorUiFilters f = rogue_vendor_ui_get_filters();
+    int count = rogue_vendor_item_count();
+    for (int i = 0; i < count; i++)
+    {
+        const RogueVendorItem* vi = rogue_vendor_get(i);
+        if (!vi)
+            continue;
+        const RogueItemDef* d = rogue_item_def_at(vi->def_index);
+        if (!d || !passes_filters(d, vi->rarity, &f))
+            continue;
+        int price = rogue_econ_buy_price(vi);
+        char line[160];
+        snprintf(line, sizeof line, "%c %s (%d) %dG", (i == g_app.vendor_selection) ? '>' : ' ',
+                 d->name, vi->rarity, price);
+        rogue_font_draw_text(panel.x + 10, y, line, 1,
+                             (RogueColor){(i == g_app.vendor_selection) ? 255 : 200,
+                                          (i == g_app.vendor_selection) ? 255 : 200,
+                                          (i == g_app.vendor_selection) ? 160 : 200, 255});
+        y += 18;
+        if (y > panel.y + panel.h - 64)
+            break;
+    }
+    /* Tooltip for selected item (pricing breakdown) */
+    const RogueVendorItem* sel = rogue_vendor_get(g_app.vendor_selection);
+    if (sel)
+    {
+        RogueVendorPriceBreakdown br;
+        (void) rogue_vendor_compute_price_with_breakdown(
+            g_app.vendor_def_index, sel->def_index, sel->rarity,
+            (int) (rogue_item_def_at(sel->def_index) ? rogue_item_def_at(sel->def_index)->category
+                                                     : 0),
+            1, /* vendor selling */ 100, /* assume pristine in UI list */ -1, 0.0f, &br);
+        char tip[256];
+        rogue_vendor_format_price_tooltip(&br, tip, (int) sizeof tip);
+        rogue_font_draw_text(panel.x + 10, panel.y + panel.h - 56, tip, 1,
+                             (RogueColor){180, 220, 255, 255});
+    }
+}
 
 void rogue_vendor_panel_render(void)
 {
@@ -21,34 +112,78 @@ void rogue_vendor_panel_render(void)
         return;
     if (!g_app.renderer)
         return;
-    SDL_Rect panel = {g_app.viewport_w - 320, 60, 300, 260};
+    SDL_Rect panel = {g_app.viewport_w - 320, 60, 300, 300};
     SDL_SetRenderDrawColor(g_app.renderer, 20, 20, 32, 240);
     SDL_RenderFillRect(g_app.renderer, &panel);
     SDL_SetRenderDrawColor(g_app.renderer, 90, 90, 120, 255);
     SDL_Rect br = {panel.x - 2, panel.y - 2, panel.w + 4, panel.h + 4};
     SDL_RenderDrawRect(g_app.renderer, &br);
     rogue_font_draw_text(panel.x + 6, panel.y + 4, "VENDOR", 1, (RogueColor){255, 255, 210, 255});
-    int y = panel.y + 24;
-    int count = rogue_vendor_item_count();
-    for (int i = 0; i < count; i++)
+    draw_tabs(panel);
+    /* Phase 16.4: Reputation progress bar & tier label */
+    int vdef = g_app.vendor_def_index;
+    int tier = rogue_vendor_rep_current_tier(vdef);
+    float repf = rogue_vendor_rep_progress(vdef);
+    if (repf < 0.0f)
+        repf = 0.0f;
+    if (repf > 1.0f)
+        repf = 1.0f;
+    SDL_SetRenderDrawColor(g_app.renderer, 36, 36, 54, 255);
+    SDL_Rect rep_bg = {panel.x + 8, panel.y + 28, panel.w - 16, 6};
+    SDL_RenderFillRect(g_app.renderer, &rep_bg);
+    SDL_SetRenderDrawColor(g_app.renderer, 120, 210, 140, 255);
+    SDL_Rect rep_fg = {panel.x + 8, panel.y + 28, (int) ((panel.w - 16) * repf), 6};
+    SDL_RenderFillRect(g_app.renderer, &rep_fg);
+    char rep_label[96];
+    const RogueRepTier* rtt = (tier >= 0) ? rogue_rep_tier_at(tier) : NULL;
+    snprintf(rep_label, sizeof rep_label, "Rep: %s%s", rtt ? rtt->id : "None",
+             (rtt && rtt->unlock_tags[0]) ? " (perks)" : "");
+    rogue_font_draw_text(panel.x + 10, panel.y + 16, rep_label, 1,
+                         (RogueColor){200, 240, 210, 255});
+    /* Draw content based on tab */
+    switch (g_app.vendor_tab)
     {
-        const RogueVendorItem* vi = rogue_vendor_get(i);
-        if (!vi)
-            continue;
-        const RogueItemDef* d = rogue_item_def_at(vi->def_index);
-        if (!d)
-            continue;
-        int price = rogue_econ_buy_price(vi);
-        char line[128];
-        snprintf(line, sizeof line, "%c %s (%d) %dG", (i == g_app.vendor_selection) ? '>' : ' ',
-                 d->name, vi->rarity, price);
-        rogue_font_draw_text(panel.x + 10, y, line, 1,
-                             (RogueColor){(i == g_app.vendor_selection) ? 255 : 200,
-                                          (i == g_app.vendor_selection) ? 255 : 200,
-                                          (i == g_app.vendor_selection) ? 160 : 200, 255});
-        y += 18;
-        if (y > panel.y + panel.h - 40)
-            break; /* clip */
+    case ROGUE_VENDOR_TAB_BUY:
+        draw_buy_list(panel);
+        /* Phase 16.3: Negotiation UI preview (bottom-left) */
+        {
+            int minp = 0, maxp = 0;
+            float prob = 0.0f;
+            (void) rogue_vendor_ui_negotiation_preview(
+                NULL, g_app.player.strength, g_app.player.dexterity, g_app.player.intelligence,
+                g_app.player.vitality, &minp, &maxp, &prob);
+            char nego[96];
+            unsigned int now_ms = (unsigned int) g_app.game_time_ms;
+            int allowed = rogue_vendor_security_negotiation_allowed(vdef, now_ms);
+            if (!allowed)
+            {
+                unsigned int rem =
+                    rogue_vendor_security_negotiation_lockout_remaining(vdef, now_ms);
+                snprintf(nego, sizeof nego, "Negotiation locked: %ums", rem);
+                rogue_font_draw_text(panel.x + 10, panel.y + panel.h - 72, nego, 1,
+                                     (RogueColor){255, 170, 150, 255});
+            }
+            else
+            {
+                snprintf(nego, sizeof nego, "Negotiate: %+d..%+d%% (p=%.0f%%)", -maxp, -minp,
+                         prob * 100.0f);
+                rogue_font_draw_text(panel.x + 10, panel.y + panel.h - 72, nego, 1,
+                                     (RogueColor){210, 230, 255, 255});
+            }
+        }
+        break;
+    case ROGUE_VENDOR_TAB_SELL:
+        rogue_font_draw_text(panel.x + 10, panel.y + 44, "Sell: select from inventory", 1,
+                             (RogueColor){200, 220, 255, 255});
+        break;
+    case ROGUE_VENDOR_TAB_BUYBACK:
+        rogue_font_draw_text(panel.x + 10, panel.y + 44, "Buyback: recent sold items", 1,
+                             (RogueColor){200, 220, 255, 255});
+        break;
+    case ROGUE_VENDOR_TAB_SPECIAL:
+        rogue_font_draw_text(panel.x + 10, panel.y + 44, "Special offers available!", 1,
+                             (RogueColor){200, 220, 255, 255});
+        break;
     }
     /* Restock timer bar (Phase 4.7) */
     double t = g_app.vendor_time_accum_ms;
@@ -77,9 +212,9 @@ void rogue_vendor_panel_render(void)
         sec = 0;
     snprintf(eta, sizeof eta, "Restock:%ds", sec);
     rogue_font_draw_text(bar_x, bar_y - 14, eta, 1, (RogueColor){200, 230, 255, 255});
-    char footer[96];
-    snprintf(footer, sizeof footer, "Gold:%d  REP:%d  ENTER=Buy  V=Close", rogue_econ_gold(),
-             rogue_econ_get_reputation());
+    char footer[128];
+    snprintf(footer, sizeof footer, "Gold:%d  REP:%d  TAB:%d  \x1B[<] [>] tabs  ENTER=Buy  V=Close",
+             rogue_econ_gold(), rogue_econ_get_reputation(), g_app.vendor_tab);
     rogue_font_draw_text(panel.x + 6, panel.y + panel.h - 18, footer, 1,
                          (RogueColor){180, 220, 255, 255});
 

@@ -155,13 +155,19 @@ PHASE 15. Security / Anti-Exploit
 	- tests/unit/test_vendor_phase15_security.c
 
 PHASE 16. UI / UX
-16.1 Vendor panel: tabs (Buy, Sell, Buyback, Special) (X)
-16.2 Dynamic pricing tooltips: breakdown chain (value, margin, rep, negotiation, demand) (X)
-16.3 Negotiation mini interaction UI (skill chance preview, risk) (X)
-16.4 Reputation progress bar & tier benefits preview (X)
-16.5 Search/filter (category, rarity, stat range) (X)
+16.1 Vendor panel: tabs (Buy, Sell, Buyback, Special) (Done)
+	- Implemented tabbed vendor panel in vendor_ui.c with tab enum + getter/setter APIs and app_state storage. Left/Right keys cycle tabs (wrap/clamp). Buy tab integrates persisted filters and dynamic pricing breakdown tooltip (via vendor_pricing + vendor_ui_filters). Placeholders wired for Sell/Buyback/Special content (future phases will populate).
+16.2 Dynamic pricing tooltips: breakdown chain (value, margin, rep, negotiation, demand) (Done)
+	- Added pricing breakdown struct + API and formatted tooltip generator. Unit test `test_vendor_phase16_tooltip` validates content.
+16.3 Negotiation mini interaction UI (skill chance preview, risk) (Done)
+	- Added headless helper `vendor_ui_negotiation.[ch]` to compute discount range and success probability from negotiation rules and player attributes; exposed via `vendor_ui.h`. Wired BUY tab footer to show min/max discount and probability, and lockout status using security guard APIs. Unit `test_vendor_phase16_negotiation_preview` validates probability math and range passthrough.
+16.4 Reputation progress bar & tier benefits preview (Done)
+	- Vendor panel now draws a small reputation progress bar under tabs with current tier label; label hints unlock perks via tier tags. Uses `rogue_vendor_rep_progress` and `rogue_vendor_rep_current_tier`.
+16.5 Search/filter (category, rarity, stat range) (Done)
+	- Implemented vendor UI filter persistence module with getters/setters and clamping. Unit `test_vendor_phase16_filter_persist` covers defaults and roundtrip.
 16.6 Accessibility: high-contrast value change deltas, text-only mode (X)
-16.7 Tests: tooltip correctness snapshot, filter persistence (X)
+16.7 Tests: tooltip correctness snapshot, filter persistence (Done)
+	- Added `test_vendor_phase16_tabs` to validate tab getter/setter clamping and wrap behavior (no SDL dependencies).
 
 PHASE 17. Tooling & Dev Experience
 17.1 CLI: simulate vendor refresh & export JSON (X)

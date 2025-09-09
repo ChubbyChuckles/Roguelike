@@ -52,6 +52,43 @@ extern "C"
     int rogue_vendor_pricing_export(float* out_demand, float* out_scarcity, int cap);
     int rogue_vendor_pricing_import(const float* demand, const float* scarcity, int count);
 
+    /* Phase 16.2: Pricing breakdown for UI tooltips and telemetry. */
+    typedef struct RogueVendorPriceBreakdown
+    {
+        int base_value;           /* econ base before scalars */
+        float condition_scalar;   /* 0.4..1.0 based on durability */
+        float policy_scalar;      /* vendor margin * rarity * category */
+        float rep_scalar;         /* reputation tier scalar (buy or sell) */
+        float negotiation_scalar; /* negotiation discount (<=1 when vendor selling) */
+        float demand_scalar;      /* short-term EWMA sales vs buybacks */
+        float scarcity_scalar;    /* long-term scarcity */
+        float exploit_scalar;     /* adaptive exploit guard (Phase 9.3) */
+        float security_scalar;    /* security spree guard (Phase 15) */
+        float global_scalar;      /* inflation rebalancer (Phase 10.2) */
+        float biome_scalar;       /* regional variance (Phase 10.3) */
+        int final_price;          /* rounded final integer price */
+    } RogueVendorPriceBreakdown;
+
+    /* Compute price and fill breakdown. Mirrors rogue_vendor_compute_price semantics. */
+    int rogue_vendor_compute_price_with_breakdown(int vendor_def_index, int item_def_index,
+                                                  int rarity, int category, int is_vendor_selling,
+                                                  int condition_pct, int rep_tier_index,
+                                                  float negotiation_discount_pct,
+                                                  RogueVendorPriceBreakdown* out);
+
+    /* Format a human-readable multi-line tooltip from a breakdown. Returns bytes written. */
+    int rogue_vendor_format_price_tooltip(const RogueVendorPriceBreakdown* br, char* buf, int cap);
+
+    /* Test helper (Phase 16.2): compose final price from explicit components without
+       querying registries. Useful for deterministic unit tests. Fills out (copying inputs)
+       and computes final_price with rounding/clamp rules. */
+    int rogue_vendor_compose_price_testonly(int base_value, float condition_scalar,
+                                            float policy_scalar, float rep_scalar,
+                                            float negotiation_scalar, float demand_scalar,
+                                            float scarcity_scalar, float exploit_scalar,
+                                            float security_scalar, float global_scalar,
+                                            float biome_scalar, RogueVendorPriceBreakdown* out);
+
 #ifdef __cplusplus
 }
 #endif

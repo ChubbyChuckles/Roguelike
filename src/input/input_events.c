@@ -160,6 +160,18 @@ void rogue_process_events(void)
             }
             if (!overlay_capture_kb && g_app.show_vendor_panel)
             {
+                if (ev.key.keysym.sym == SDLK_LEFT)
+                {
+                    g_app.vendor_tab--;
+                    if (g_app.vendor_tab < 0)
+                        g_app.vendor_tab = 3;
+                }
+                if (ev.key.keysym.sym == SDLK_RIGHT)
+                {
+                    g_app.vendor_tab++;
+                    if (g_app.vendor_tab > 3)
+                        g_app.vendor_tab = 0;
+                }
                 if (ev.key.keysym.sym == SDLK_UP)
                 {
                     g_app.vendor_selection--;

@@ -187,3 +187,27 @@ feat(vendor/phase15.4): journal hash chain verification on load + persistence wi
 - Security: negotiation spam guard off-by-one fixed (lockout now triggers on the 6th attempt within 10s as designed)
 - Roadmap: Phase 15 marked fully Done (15.1–15.5); README updated with Vendor Security section
 - Verification: Debug (SDL2) full suite passed 100% (664/664)
+
+Phase 16.2, 16.5: Vendor UI pricing breakdown + filter persistence with tests
+
+- Add pricing breakdown struct and compute API `rogue_vendor_compute_price_with_breakdown` plus
+	`rogue_vendor_format_price_tooltip` for dynamic tooltips. Provide `rogue_vendor_compose_price_testonly`
+	to exercise formatting deterministically in unit tests.
+- Introduce `vendor_ui_filters.{h,c}`: session-level vendor UI filter persistence (category mask,
+	rarity min/max, and stat bounds) with safe clamping. Headless-safe and modular.
+- New unit tests:
+	- `test_vendor_phase16_tooltip`: validates tooltip formatting includes key components and final price.
+	- `test_vendor_phase16_filter_persist`: validates defaults, set/get roundtrip, and clamping behavior.
+
+Phase 16.3, 16.4: Negotiation preview + Reputation UI (SDL2), helper module, tests, docs
+
+- Added negotiation preview helper `vendor_ui_negotiation.[ch]` to compute discount range (min/max %) and success probability from negotiation rules and player attributes (case-insensitive tag mapping: insight→INT, finesse/dexterity→DEX, strength→STR, vitality→VIT). Exposed via `vendor_ui.h` for UI and tests.
+- Wired Vendor UI (`vendor_ui.c`) to render:
+	• Reputation strip: small progress bar under tabs using `rogue_vendor_rep_progress` and `rogue_vendor_rep_current_tier`, plus tier label with a perks hint based on tier unlock tags.
+	• Negotiation preview (Buy tab footer): shows min..max discount and success probability; when locked out, displays remaining lockout time via security APIs.
+- New unit: `tests/unit/test_vendor_phase16_negotiation_preview.c` validates probability math and range outputs using `assets/vendors/negotiation_rules.json` (rule `standard_skill_check`). Registered in `tests/cmake/Vendor.cmake`.
+- Build: included `src/core/vendor/vendor_ui_negotiation.c` in `rogue_core` (CMake already updated previously); no new external deps.
+- Roadmap updated: mark 16.3 and 16.4 Done with implementation notes and test reference.
+- README updated: added a brief “Vendor UI updates (Phase 16)” section summarizing tabs, pricing tooltip, negotiation preview, and reputation strip.
+- Verification: Rebuilt Debug (SDL2) and ran full test suite: 100% pass (667/667). No regressions.
+- Wire tests into `tests/cmake/Vendor.cmake`; include new module in core target.

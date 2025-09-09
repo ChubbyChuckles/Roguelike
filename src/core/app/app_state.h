@@ -198,6 +198,10 @@ typedef struct RogueAppState
     float vendor_x, vendor_y;
     int show_vendor_panel;
     int vendor_selection;
+    /* Phase 16.1: vendor UI tabs (0=Buy,1=Sell,2=Buyback,3=Special) */
+    int vendor_tab;
+    /* Current vendor def index for policy/biome/tied features (0 default) */
+    int vendor_def_index;
     unsigned int vendor_seed;
     double vendor_time_accum_ms;
     double vendor_restock_interval_ms;

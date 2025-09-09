@@ -195,6 +195,13 @@ Notes
 - Panels are movable and their layout (x, y, width, visibility) persists across runs. The layout file is `build/overlay_layout.json`. To reset, delete that file. Tip: drag any panel by its title bar; height clamps to the viewport. Long tables auto-cap visible rows to avoid overflow.
 - If a click doesn’t select, make sure the cursor is over the world (not another UI), and keep Shift held while clicking.
 
+## Vendor UI updates (Phase 16)
+
+- Tabs: Buy / Sell / Buyback / Special with Left/Right navigation.
+- Buy tab: pricing tooltip shows value→margin→rep→negotiation→demand chain.
+- Negotiation preview: shows min..max discount and success probability; respects lockout timers (security guard) and displays remaining lockout time.
+- Reputation strip: a small progress bar with current tier label and a perks hint (based on tier unlock tags).
+
 <div align="center">
 
 # Roguelike (Top‑Down Zelda‑like) – C / SDL2
@@ -281,6 +288,12 @@ Vendor journal compaction (Phase 13.4–13.5):
 - Test: `test_vendor_phase13_compaction` builds a small journal and asserts exact summary totals and timestamps, ensuring equivalence to a full replay for these statistics.
 
 New: Dungeon analytics export and vendor consumer (Phase 9.4)
+Vendor UI (Phase 16 slices):
+
+- Pricing breakdown API and tooltip formatter enable dynamic price decomposition in UI (base, condition, policy, rep, negotiation, demand, scarcity, security/exploit, global/biome) with a compact multi-line string. Unit `test_vendor_phase16_tooltip` covers formatting snapshot basics.
+- Vendor panel filter persistence module stores category mask, rarity band, and stat range for the session with safe clamping. Unit `test_vendor_phase16_filter_persist` validates default/reset and roundtrip.
+
+- Tabbed Vendor Panel (Phase 16.1): The in-game vendor panel now has tabs (Buy, Sell, Buyback, Special). Use Left/Right to switch tabs; the active tab is tracked in app state and persisted for the session. The Buy tab integrates the filter controls and shows dynamic pricing breakdown tooltips for the hovered/selected item. Placeholders for Sell/Buyback/Special are wired for upcoming slices. Unit `test_vendor_phase16_tabs` verifies tab getter/setter clamping and wrap behavior without SDL.
 
 - Gating manifest helper `rogue_dungeon_export_gating_manifest(path, graph)` writes a compact JSON manifest of inferred traversal/puzzle capability ids and a rooms count. Creates parent directories automatically. Unit: `tests/unit/test_dungeon_phase9_4_gating_manifest.c`.
 - Vendor run_summary consumer registers a listener that reacts to reward multipliers; minimal and safe by default. Unit: `tests/unit/test_vendor_phase9_run_summary_consumer.c`.

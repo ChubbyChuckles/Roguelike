@@ -397,6 +397,8 @@ add_library(rogue_core
     src/core/inventory/inventory_ui.c
     src/core/inventory/inventory_tags.c
     src/core/inventory/inventory_panel.c
+    # Vendor UI filters (Phase 16.5)
+    src/core/vendor/vendor_ui_filters.c
     # moved to rogue_systems_loot: src/core/loot/loot_pickup.c
     # moved to rogue_systems_loot: src/core/loot/loot_multiplayer.c
     # moved to rogue_systems_loot: src/core/loot/loot_logging.c
@@ -464,6 +466,7 @@ add_library(rogue_core
     src/util/loadout_optimizer.c
     src/game/durability.c
     src/core/vendor/vendor_ui.c
+    src/core/vendor/vendor_ui_negotiation.c
     src/core/skills/skill_graph_runtime.c
     src/core/skills/skill_graph_assignment.c
     src/core/skills/skill_maze.c

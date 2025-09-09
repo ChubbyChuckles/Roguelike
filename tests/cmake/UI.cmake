@@ -239,3 +239,13 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_ui_phase5_skillgraph_anim.c AND 
     endif()
     rogue_add_test(NAME test_ui_phase5_skillgraph_anim COMMAND test_ui_phase5_skillgraph_anim)
 endif()
+
+# Vendor UI Phase 16.1 tabs minimal test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../unit/test_vendor_phase16_tabs.c AND NOT TARGET test_vendor_phase16_tabs)
+    add_executable(test_vendor_phase16_tabs ../unit/test_vendor_phase16_tabs.c)
+    target_link_libraries(test_vendor_phase16_tabs PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_vendor_phase16_tabs PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(NAME test_vendor_phase16_tabs COMMAND test_vendor_phase16_tabs)
+endif()
