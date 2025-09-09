@@ -85,6 +85,34 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_loot_generation_json.c AND NOT T
     rogue_add_test(test_loot_generation_json COMMAND test_loot_generation_json)
 endif()
 
+# Integration tests for JSON items with subsystems
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_crafting_json_materials.c AND NOT TARGET test_crafting_json_materials)
+    add_executable(test_crafting_json_materials unit/test_crafting_json_materials.c)
+    target_link_libraries(test_crafting_json_materials PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_crafting_json_materials PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_crafting_json_materials COMMAND test_crafting_json_materials)
+endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_equipment_json_persistence.c AND NOT TARGET test_equipment_json_persistence)
+    add_executable(test_equipment_json_persistence unit/test_equipment_json_persistence.c)
+    target_link_libraries(test_equipment_json_persistence PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_equipment_json_persistence PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_equipment_json_persistence COMMAND test_equipment_json_persistence)
+endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_inventory_json_operations.c AND NOT TARGET test_inventory_json_operations)
+    add_executable(test_inventory_json_operations unit/test_inventory_json_operations.c)
+    target_link_libraries(test_inventory_json_operations PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_inventory_json_operations PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_inventory_json_operations COMMAND test_inventory_json_operations)
+endif()
+
 # Explicitly wire new Dungeon Phase 2.4 tests to avoid glob/target churn on MSBuild multi-config
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_dungeon_phase2_4_deco_layering.c AND NOT TARGET test_dungeon_phase2_4_deco_layering)
     add_executable(test_dungeon_phase2_4_deco_layering unit/test_dungeon_phase2_4_deco_layering.c)
