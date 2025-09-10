@@ -366,6 +366,7 @@ Core Subsystems:
   - [x] Target limitation and piercing mechanics (per-layer piercing flag + max_targets enforced)
 
 - [x] **File**: `src/game/skill_collision_manager.c` (initial ~300 line slice: lifecycle init/add_layer, curve evaluation helper, tick advancement producing deterministic hit records, completion detection; advanced dynamic creation, frame interpolation, projectile physics, memory pooling deferred)
+  - [x] Deepening Slice 1 (projectile + frame interpolation scaffold): Added projectile positional/velocity fields, radius-based target gating, per-tick projectile advancement, fractional frame index helper, and unit test `test_skill_collision_manager_projectile`. Deferred: terrain/geometry collision, ricochet, penetration physics, trail sampling, mask-based frame interpolation.
   - [ ] **Function**: `rogue_skill_collision_effect_create()`
     - [ ] Dynamic skill effect instantiation from skill definitions
     - [ ] Resource allocation and memory pool management
@@ -384,7 +385,7 @@ Core Subsystems:
     - [ ] Trail-based collision for projectile motion blur
 
 #### MILESTONE 3.2: Advanced Animation Synchronization
-- [ ] **File**: `src/game/animation_collision_sync.h` (new)
+- [ ] **File**: `src/game/animation_collision_sync.h` (new – pending scaffold; will integrate with frame index helper from skill collision deepening)
   ```c
   typedef struct RogueAnimationCollisionSync {
       uint32_t animation_id;           // Reference to animation definition

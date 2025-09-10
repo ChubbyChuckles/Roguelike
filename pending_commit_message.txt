@@ -4,6 +4,14 @@ feat(hitbox/phase3.1): skill collision manager initial implementation
 
 Added skill_collision_manager.{h,c} providing Milestone 3.1 multi-layer skill effect collision system:\n - Up to 4 layers per effect with independent start/duration & bitmask filtering\n - 8-point intensity curves (linear interpolation, default flat if all zeros)\n - Piercing vs non-piercing and max target caps per layer\n - Deterministic headless evaluation producing hit records (id, layer, time, intensity)\n - Minimal tick-driven lifecycle & completion flag\n - Unit test (test_skill_collision_manager_phase3_1) covering activation scheduling, filtering, piercing, max targets, intensity sampling, completion\n\nRoadmap (implementation_hitbox_rework.txt) now marked complete for Milestone 3.1 (initial slice); README updated with Phase 3 progress note.
 
+feat(hitbox/phase3.1-deepening): projectile + frame interpolation scaffold
+
+- Added projectile fields (proj_pos_x/y, proj_vel_x/y, proj_radius) and per-tick advancement to `RogueSkillCollisionLayer` when type==PROJECTILE.
+- Implemented radius-based projectile hit gating (targets now carry x,y for simple distance check).
+- Added fractional frame index helper `rogue_skill_collision_layer_frame_index` (scaffolds future animated mask interpolation) and `rogue_skill_collision_test_projectile` utility.
+- New unit test `test_skill_collision_manager_projectile` validates projectile motion (hits targets as it traverses) and frame index progression.
+- Roadmap updated (Milestone 3.1 deepening slice note + Milestone 3.2 file annotation); commit documents deferred advanced projectile physics & mask interpolation tasks.
+
 - Added enemy profile LOD adaptation stage to collision pipeline (maps higher importance → negative bias for prioritization).
 - Implemented baseline pixel-perfect stage pruning logic:
 	• FAST tier: prune every other candidate (cheap heuristic)

@@ -1189,6 +1189,14 @@ if(TARGET SDL2::SDL2)
 endif()
 rogue_add_test(NAME test_weapon_collision_trail COMMAND test_weapon_collision_trail)
 
+# Milestone 3.1 deepening: projectile + frame interpolation scaffolding test
+add_executable(test_skill_collision_manager_projectile tests/unit/test_skill_collision_manager_projectile.c)
+target_link_libraries(test_skill_collision_manager_projectile PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_skill_collision_manager_projectile PRIVATE SDL2::SDL2)
+endif()
+rogue_add_test(NAME test_skill_collision_manager_projectile COMMAND test_skill_collision_manager_projectile)
+
 add_executable(test_tag_registry_validate tests/unit/test_tag_registry_validate.c)
 
 # Debug overlay core unit test

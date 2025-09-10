@@ -53,6 +53,8 @@ extern "C"
     {
         uint32_t id;         /* Stable identifier */
         uint32_t layer_mask; /* Collision layers this target belongs to */
+        float x;             /* Position (for projectile radius checks) */
+        float y;             /* Position (for projectile radius checks) */
     } RogueSkillCollisionTarget;
 
     typedef struct RogueSkillCollisionLayer
@@ -65,6 +67,12 @@ extern "C"
         uint32_t affected_layers; /* Bitmask filter */
         uint8_t pierces_enemies;  /* Bool semantics */
         uint8_t max_targets;      /* Cap (0 => unlimited) */
+        /* Projectile (type == ROGUE_SKILL_PROJECTILE) runtime/config fields */
+        float proj_pos_x;  /* Current projectile X (advanced each tick after activation) */
+        float proj_pos_y;  /* Current projectile Y */
+        float proj_vel_x;  /* Velocity X units per ms */
+        float proj_vel_y;  /* Velocity Y units per ms */
+        float proj_radius; /* Collision radius */
         /* Runtime state */
         float elapsed_ms;      /* Accumulated local time (relative to layer start) */
         uint8_t active;        /* Set while within active window */
@@ -111,6 +119,15 @@ extern "C"
     /* Evaluate the normalized intensity (0..1) for a layer at its local time (elapsed_ms).
      * Applies default flat=1.0 when curve contains only zeros. */
     float rogue_skill_collision_layer_intensity(const RogueSkillCollisionLayer* l);
+
+    /* Frame interpolation helper (scaffolding). Returns fractional frame index 0..(frame_count-1)
+     * based on elapsed_ms over duration. If frame_count <= 1 returns 0.0f. */
+    float rogue_skill_collision_layer_frame_index(const RogueSkillCollisionLayer* l);
+
+    /* Simple projectile test helper: returns 1 if (target_x,target_y) lies within layer's
+     * projectile radius (uses current proj_pos_* fields). Returns 0 if not a projectile layer */
+    int rogue_skill_collision_test_projectile(const RogueSkillCollisionLayer* l, float target_x,
+                                              float target_y);
 
     /* Advance the effect by dt_ms and perform collision evaluation against provided targets.
      * Writes hit records (up to buffer capacity). Returns number of hits appended this call. */

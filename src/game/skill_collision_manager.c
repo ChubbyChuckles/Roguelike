@@ -65,6 +65,32 @@ float rogue_skill_collision_layer_intensity(const RogueSkillCollisionLayer* l)
     return a + (b - a) * frac;
 }
 
+float rogue_skill_collision_layer_frame_index(const RogueSkillCollisionLayer* l)
+{
+    if (!l || l->frame_count <= 1 || l->duration_ms <= 0.f)
+        return 0.f;
+    float t = l->elapsed_ms / l->duration_ms;
+    if (t < 0.f)
+        t = 0.f;
+    if (t > 1.f)
+        t = 1.f;
+    float idx = t * (float) (l->frame_count - 1);
+    return idx; /* fractional index - caller may floor/ceil for sampling */
+}
+
+int rogue_skill_collision_test_projectile(const RogueSkillCollisionLayer* l, float target_x,
+                                          float target_y)
+{
+    if (!l || l->type != ROGUE_SKILL_PROJECTILE)
+        return 0;
+    float dx = target_x - l->proj_pos_x;
+    float dy = target_y - l->proj_pos_y;
+    float r = l->proj_radius;
+    if (r <= 0.f)
+        return 0;
+    return (dx * dx + dy * dy) <= (r * r);
+}
+
 uint32_t rogue_skill_collision_effect_tick(RogueSkillCollisionEffect* e, float dt_ms,
                                            const RogueSkillCollisionTarget* targets,
                                            uint32_t target_count,
@@ -112,19 +138,22 @@ uint32_t rogue_skill_collision_effect_tick(RogueSkillCollisionEffect* e, float d
             break;
         case ROGUE_SKILL_AOE_EXPANDING:
             burst = 1;
-            break; /* expansion modeled as one-time for now */
+            break; /* one-time simplified */
         case ROGUE_SKILL_AOE_PERSISTENT:
             burst = 1;
-            break; /* simplified – tick every frame */
+            break; /* per-tick */
         case ROGUE_SKILL_CHANNELED:
             burst = 1;
             break; /* per-tick */
         case ROGUE_SKILL_MULTI_HIT:
             burst = 1;
-            break; /* per-tick multi */
+            break; /* per-tick */
         case ROGUE_SKILL_PROJECTILE:
-            burst = 1;
-            break; /* no trajectory yet */
+            /* Advance projectile position before evaluating hits */
+            L->proj_pos_x += L->proj_vel_x * dt_ms;
+            L->proj_pos_y += L->proj_vel_y * dt_ms;
+            burst = 1; /* treat projectile as per-tick evaluation */
+            break;
         }
         if (!burst)
             continue; /* defensive */
@@ -137,6 +166,12 @@ uint32_t rogue_skill_collision_effect_tick(RogueSkillCollisionEffect* e, float d
             const RogueSkillCollisionTarget* T = &targets[ti];
             if ((T->layer_mask & L->affected_layers) == 0)
                 continue; /* filter */
+            if (L->type == ROGUE_SKILL_PROJECTILE)
+            {
+                /* Require projectile radius overlap */
+                if (!rogue_skill_collision_test_projectile(L, T->x, T->y))
+                    continue;
+            }
             if (!L->pierces_enemies && L->hits_recorded > 0)
                 break; /* only first */
             if (out_hits && out_hits->hits && out_hits->count < out_hits->capacity)
