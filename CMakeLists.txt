@@ -545,6 +545,7 @@ add_library(rogue_core
     src/game/sprite_atlas_collision.c
     src/game/collision_pipeline.c
     src/game/enemy_collision_opt.c
+    src/game/skill_collision_manager.c
     src/game/hit_feedback.c
     src/game/weapon_pose.c
     src/game/hit_debug_overlay.c

@@ -326,7 +326,7 @@ Core Subsystems:
 
 ### PHASE 3: ADVANCED SKILL & SPELL COLLISION SYSTEM
 #### MILESTONE 3.1: Multi-Layer Skill Effect Pipeline
-- [ ] **File**: `src/game/skill_collision_manager.h` (new, comprehensive skill system)
+- [x] **File**: `src/game/skill_collision_manager.h` (initial slice implemented – multi-layer structs, public API for init/add_layer/tick/finished, intensity curve sampling, piercing + max target caps, hit buffer structs; advanced dynamic instantiation & projectile geometry deferred)
   ```c
   typedef enum RogueSkillCollisionType {
       ROGUE_SKILL_INSTANT = 0,         // Immediate impact (melee skills)
@@ -360,12 +360,12 @@ Core Subsystems:
       bool requires_line_of_sight;    // LoS check requirement
   } RogueSkillCollisionEffect;
   ```
-  - [ ] Multi-layered skill effect system for complex spell interactions
-  - [ ] Time-based intensity curves for realistic damage falloff
-  - [ ] Layer-based collision filtering for skill interactions
-  - [ ] Target limitation and piercing mechanics
+  - [x] Multi-layered skill effect system for complex spell interactions (up to 4 layers per effect)
+  - [x] Time-based intensity curves for realistic damage falloff (8-point linear interpolation; flat auto‑fill when curve all zeros)
+  - [x] Layer-based collision filtering for skill interactions (affected_layers bitmask captured; integration hooks future)
+  - [x] Target limitation and piercing mechanics (per-layer piercing flag + max_targets enforced)
 
-- [ ] **File**: `src/game/skill_collision_manager.c` (new, 1200+ lines)
+- [x] **File**: `src/game/skill_collision_manager.c` (initial ~300 line slice: lifecycle init/add_layer, curve evaluation helper, tick advancement producing deterministic hit records, completion detection; advanced dynamic creation, frame interpolation, projectile physics, memory pooling deferred)
   - [ ] **Function**: `rogue_skill_collision_effect_create()`
     - [ ] Dynamic skill effect instantiation from skill definitions
     - [ ] Resource allocation and memory pool management
@@ -377,6 +377,7 @@ Core Subsystems:
     - [ ] Intensity curve evaluation and damage calculation
     - [ ] Multi-target hit registration and conflict resolution
   - [ ] **Function**: `rogue_skill_collision_test_projectile()`
+  - [x] Initial slice delivered via `rogue_skill_collision_effect_init`, `rogue_skill_collision_effect_add_layer`, `rogue_skill_collision_layer_intensity`, `rogue_skill_collision_effect_tick`, and `rogue_skill_collision_effect_finished` plus unit test `test_skill_collision_manager_phase3_1` validating activation scheduling, intensity sampling, piercing, target caps, completion.
     - [ ] Projectile trajectory collision testing with terrain
     - [ ] Continuous collision detection for fast-moving projectiles
     - [ ] Ricochet and penetration physics simulation

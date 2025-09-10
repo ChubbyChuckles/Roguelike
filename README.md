@@ -105,6 +105,16 @@ Roadmap file `implementation_hitbox_rework.txt` updated (Stage 3 marked complete
 
 Press F1 in-game to open the debug overlay.
 
+##### Milestone 3.1 (Skill Collision Manager Initial Slice – Complete)
+
+- Added `skill_collision_manager.{h,c}` implementing a sandboxed multi-layer skill effect collision system:
+  - Up to 4 layers per effect (start_time_ms + duration_ms each) with bitmask filtering, piercing flag, and per-layer max target cap.
+  - 8-point intensity curves (uniform 0..1 domain) with linear interpolation; default flat (1.0) when unspecified (all zeros).
+  - Deterministic tick function `rogue_skill_collision_effect_tick` producing hit records (target id, layer index, global time, evaluated intensity).
+  - Lifecycle helpers: init, add_layer, intensity evaluation, finished predicate; effect completion when all layers elapsed.
+  - Unit test `test_skill_collision_manager_phase3_1` validates activation scheduling, intensity ramp, piercing vs non-piercing, max target limiting, and completion flags.
+- This slice is headless-safe and not yet integrated with gameplay execution paths (no regression risk). Future milestones will add spatial shapes, projectile trajectories, mask/SDF overlap integration, cooldown gating, and advanced effect stacking.
+
 ### Asset Browser (Overlay Phase 1 Enhancement)
 
 - New tabbed interface (All / Textures / Audio / JSON / Shaders) with live wildcard filter ("\*" / "?"; case-insensitive).
