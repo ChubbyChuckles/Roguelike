@@ -436,3 +436,17 @@ feat(hitbox/phase2.1 temporal): add temporal coherence cache stage + test
 - Roadmap (implementation_hitbox_rework.txt) updated: mark temporal coherence cache done; test list includes new temporal test.
 - README Milestone 2.1 section: new "Temporal Coherence Slice" subsection summarizing benefits & test.
 - Full Debug build (SDL2, -j12) + unit tests expected green; next deferred tasks: pixel-perfect stage integration, SIMD/hierarchical AABB, dynamic reordering, advanced frustum, priority ordering.
+
+feat(hitbox/phase2.2 initial): advanced weapon collision scaffolding (header-only) + trail & layer tests
+
+- Added `weapon_collision_advanced.h` providing:
+	* 3x3 affine transform utilities (translate/rotate/scale + multiply) and composition helper `rogue_weapon_collision_compute_transform`.
+	* Weapon collision state struct with velocity, per-weapon quality override field, collision layer mask, and trail ring buffer.
+	* Trail buffering (time-windowed FIFO, capacity 16) + coarse sweep AABB helper `rogue_weapon_collision_trail_aabb`.
+	* Layer mask overlap helper `rogue_weapon_candidate_layer_match`.
+- Extended `RogueCollisionCandidate` with `layer_mask` to enable weapon→candidate filtering (future pipeline stage integration).
+- New unit test `test_weapon_collision_trail` exercises: transform composition (translation/rotation/scale), trail pruning within 50ms window, sweep AABB bounds, and layer mask filter behavior.
+- CMake: added test target & registration; fixed pixel sampling test missing executable (added target) and removed duplicate registration artifact.
+- Roadmap (`implementation_hitbox_rework.txt`): Marked Milestone 2.2 items (transform, trail, layer filter, quality override scaffold) as done; added test entry and deferred list (motion blur, bilinear mask transform, pivot customization).
+- README: Added brief Milestone 2.2 note under Hitbox Rework describing weapon collision scaffolding & new test.
+- No runtime integration yet (header-only slice) keeping risk low; future slice will add .c implementation for advanced mask transforms & motion blur.

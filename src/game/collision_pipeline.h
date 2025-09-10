@@ -76,11 +76,12 @@ extern "C"
     /* Minimal collision context prototype (expands later). */
     typedef struct RogueCollisionCandidate
     {
-        uint32_t id;  /* Identifier (entity, enemy, etc). */
-        float x, y;   /* World-space center position (pixels or tiles). */
-        float half_w; /* Half-width (AABB / broad radius). */
-        float half_h; /* Half-height. */
-        float vx, vy; /* Velocity (units per ms) for predictive culling. */
+        uint32_t id;         /* Identifier (entity, enemy, etc). */
+        float x, y;          /* World-space center position (pixels or tiles). */
+        float half_w;        /* Half-width (AABB / broad radius). */
+        float half_h;        /* Half-height. */
+        float vx, vy;        /* Velocity (units per ms) for predictive culling. */
+        uint32_t layer_mask; /* Collision layer bits (weapon/enemy filtering). */
         /* Optional pixel mask reference (if available) for pixel-perfect stage. */
         struct RogueHitPixelMaskFrame* pixel_mask; /* forward-declared in hit_pixel_mask.h */
         int pixel_mask_lx, pixel_mask_ly;          /* Local origin offset (top-left) */

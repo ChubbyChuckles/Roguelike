@@ -43,6 +43,9 @@ int main(void)
         return 5;
 
     RogueCollisionCandidate cands[32];
+    /* Ensure all fields (including newly added layer_mask & pixel_mask pointer) start zeroed
+        to avoid undefined pointer dereferences in pixel stage refinement logic. */
+    memset(cands, 0, sizeof(cands));
     for (int i = 0; i < 32; ++i)
     {
         cands[i].id = (uint32_t) i;

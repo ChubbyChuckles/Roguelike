@@ -239,7 +239,7 @@ Core Subsystems:
     - [ ] SIMD parallel bit operations for bulk pixel tests
 
 #### MILESTONE 2.2: Advanced Weapon Pose Integration
-- [ ] **File**: `src/game/weapon_collision_advanced.h` (new)
+- [x] **File**: `src/game/weapon_collision_advanced.h` (initial slice)
   ```c
   typedef struct RogueWeaponCollisionState {
       RoguePixelMaskFrame* current_mask;
@@ -257,23 +257,29 @@ Core Subsystems:
       float trail_duration_ms;
   } RogueWeaponTrail;
   ```
-  - [ ] Transform matrix system for weapon pose calculations
-  - [ ] Motion blur and weapon trail collision detection
-  - [ ] Layer-based collision filtering (weapons vs shields, etc.)
-  - [ ] Per-weapon quality overrides for balance vs performance
+  - [x] Transform matrix system for weapon pose calculations (translation, rotation, uniform scale composition)
+  - [x] Basic weapon trail buffering (FIFO, time window, coarse sweep AABB helper)
+  - [x] Layer-based collision filtering helper (bitmask overlap)
+  - [x] Per-weapon quality override field scaffold (unused yet)
+  - [ ] Motion blur advanced sweep & sub-frame interpolation (deferred)
+  - [ ] Bilinear pixel mask transform / rotation-aware sampling (deferred)
+  - [ ] Non-uniform scaling & pivot customization (deferred)
 
-- [ ] **File**: `src/game/weapon_collision_advanced.c` (new, 800+ lines)
-  - [ ] **Function**: `rogue_weapon_collision_compute_transform()`
+- [ ] **File**: `src/game/weapon_collision_advanced.c` (planned, not required for header-only slice)
+  - [x] **Function**: `rogue_weapon_collision_compute_transform()` (inline in header)
     - [ ] Matrix composition for weapon pose (translation, rotation, scale)
     - [ ] Pivot point handling for realistic weapon rotation
     - [ ] Velocity-based motion blur calculation
     - [ ] Sub-frame interpolation for smooth weapon movement
-  - [ ] **Function**: `rogue_weapon_collision_sweep_trail()`
+  - [x] **Function**: `rogue_weapon_collision_trail_aabb()` (coarse AABB sweep; replaces planned sweep_trail for initial tests)
     - [ ] Temporal sweep detection using weapon motion trail
     - [ ] Continuous collision detection for fast weapon swings
     - [ ] Impact timing calculation for precise hit registration
     - [ ] Multi-sampling for complex weapon trajectories
-  - [ ] **Function**: `rogue_weapon_collision_apply_mask_transform()`
+  - [ ] **Function**: `rogue_weapon_collision_apply_mask_transform()` (deferred)
+
+**Tests Added (Milestone 2.2 slice)**
+- [x] `test_weapon_collision_trail`: validates transform composition components, trail buffering/pruning within time window, coarse AABB generation, and layer filter correctness.
     - [ ] Real-time pixel mask transformation with bilinear filtering
     - [ ] Rotation-aware collision shape preservation
     - [ ] Scale-invariant collision detection

@@ -71,6 +71,16 @@ Deferred (remaining) items: SIMD AABB + hierarchical bounds, temporal coherence 
 
 - No gameplay paths yet invoke the pipeline; integration & advanced stages intentionally deferred to keep this slice low-risk.
 
+##### Milestone 2.2 (Initial Weapon Collision Advanced Slice)
+
+- Added `weapon_collision_advanced.h` (header-only scaffolding) implementing:
+  - 3x3 affine transform helpers (translate / rotate / scale / multiply) and composition function `rogue_weapon_collision_compute_transform`.
+  - `RogueWeaponCollisionState` with velocity, per-weapon quality override field (scaffold), collision layer mask, and a 16-sample time-windowed motion trail buffer.
+  - Trail helper `rogue_weapon_collision_trail_aabb` computing coarse sweep bounds for recent motion (future slice will add motion blur multi-sampling & continuous collision tests).
+  - Layer mask overlap helper; `RogueCollisionCandidate` extended with `layer_mask` for upcoming pipeline filtering.
+- New unit test `test_weapon_collision_trail` validates transform composition, trail pruning (FIFO + time window), sweep AABB correctness, and layer filtering logic.
+- Roadmap updated marking core Milestone 2.2 scaffolding complete; deferred: motion blur sampling, bilinear pixel mask transform, non-uniform scaling & pivot customization, advanced continuous sweep algorithm.
+
 Press F1 in-game to open the debug overlay.
 
 ### Asset Browser (Overlay Phase 1 Enhancement)

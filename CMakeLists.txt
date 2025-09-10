@@ -593,6 +593,11 @@ target_compile_definitions(rogue_core PUBLIC
     $<$<BOOL:${ROGUE_ITEMS_PREFER_JSON}>:ROGUE_ITEMS_PREFER_JSON>
 )
 
+# Expose Milestone 2.2 weapon collision advanced header (header-only initial slice)
+target_sources(rogue_core PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/game/weapon_collision_advanced.h>
+)
+
 # -----------------------------
 # Phase 5: Asset validation CLI tool
 # -----------------------------
@@ -1154,7 +1159,24 @@ target_link_libraries(test_collision_pipeline_phase2_1_pixel PRIVATE rogue_core)
         target_link_libraries(test_collision_pipeline_phase2_1_pixel PRIVATE SDL2::SDL2)
     endif()
 rogue_add_test(NAME test_collision_pipeline_phase2_1_pixel COMMAND test_collision_pipeline_phase2_1_pixel)
-rogue_add_test(NAME test_collision_pipeline_phase2_1_pixel_sampling COMMAND test_collision_pipeline_phase2_1_pixel_sampling)
+
+# Pixel sampling focused test (Milestone 2.1 extension)
+if(NOT TARGET test_collision_pipeline_phase2_1_pixel_sampling)
+    add_executable(test_collision_pipeline_phase2_1_pixel_sampling tests/unit/test_collision_pipeline_phase2_1_pixel_sampling.c)
+    target_link_libraries(test_collision_pipeline_phase2_1_pixel_sampling PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+            target_link_libraries(test_collision_pipeline_phase2_1_pixel_sampling PRIVATE SDL2::SDL2)
+    endif()
+    rogue_add_test(NAME test_collision_pipeline_phase2_1_pixel_sampling COMMAND test_collision_pipeline_phase2_1_pixel_sampling)
+endif()
+
+# Milestone 2.2: Weapon collision advanced (initial slice) trail & layer test
+add_executable(test_weapon_collision_trail tests/unit/test_weapon_collision_trail.c)
+target_link_libraries(test_weapon_collision_trail PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_weapon_collision_trail PRIVATE SDL2::SDL2)
+endif()
+rogue_add_test(NAME test_weapon_collision_trail COMMAND test_weapon_collision_trail)
 
 add_executable(test_tag_registry_validate tests/unit/test_tag_registry_validate.c)
 
