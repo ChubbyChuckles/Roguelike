@@ -30,6 +30,12 @@ static void ensure_defs(void)
         return;
     int added = rogue_item_defs_load_from_cfg("assets/test_items.cfg");
     assert(added > 0);
+    /* Load real affix definitions once so forced prefix/suffix indices used below are valid.
+        Previous implicit reliance on empty tables caused forced indices (0/1) to still be invalid
+        for blacklist scans after recent loader changes tightened invariants. */
+    rogue_affixes_reset();
+    int aload = rogue_affixes_load_from_cfg("assets/affixes.cfg");
+    assert(aload > 0);
 }
 
 static void test_proc_anomaly_scan(void)

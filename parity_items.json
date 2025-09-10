@@ -1,0 +1,4 @@
+[
+ {"id":"parity_blade_json","name":"BladeJSON","category":2,"level_req":1,"stack_max":1,"base_value":10,"base_damage_min":4,"base_damage_max":6,"base_armor":0,"sprite_path":"sheet.png","sprite_tx":0,"sprite_ty":0,"sprite_tw":1,"sprite_th":1,"rarity":0,"flags":0,"implicit_strength":1,"implicit_dexterity":2,"implicit_intelligence":0,"implicit_vitality":3,"implicit_armor_flat":5 },
+ {"id":"parity_helm_json","name":"HelmJSON","category":3,"level_req":1,"stack_max":1,"base_value":8,"base_damage_min":0,"base_damage_max":0,"base_armor":1,"sprite_path":"sheet.png","sprite_tx":0,"sprite_ty":0,"sprite_tw":1,"sprite_th":1,"rarity":0,"flags":0,"implicit_strength":0,"implicit_dexterity":0,"implicit_intelligence":0,"implicit_vitality":4,"implicit_armor_flat":7 }
+]

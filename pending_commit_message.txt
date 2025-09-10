@@ -1,4 +1,14 @@
 feat(items/json phase2): add affix gating, inventory filter/sort, and two-handed equip JSON validation tests; bump suite to 684
+feat(items/json phase2): affix budget validation + crafting tasks completion (suite 685)
+
+- Added test_loot_affix_budget_json validating affix budget governance for JSON item definitions:
+	• Ensures generated total affix weight <= rogue_budget_max(level,rarity)
+	• Forces over-budget scenario via rogue_item_instance_apply_affixes and asserts validator detects it
+- Roadmap updates (implementation_items_introduction.txt): mark Phase 2.2 affix budget and Phase 2.3 crafting material registry tasks complete (all covered by existing tests).
+- README: test count updated 684→685; JSON validation slice now includes affix budget governance.
+- Non-functional: test-only addition; no engine code changes required.
+- Full suite expected green (685/685) with SDL2 and -j12 parallelism.
+
 
 - Added three focused JSON validation tests:
 	• test_loot_affix_gating_json: verifies weapon-only affix never appears on armor; confirms at least one weapon rolls the gated affix across attempts (rarity boosted, prefix+suffix attempts, relaxed armor roll requirement).
