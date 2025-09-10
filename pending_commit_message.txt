@@ -20,6 +20,14 @@ feat(hitbox/phase3.2-scaffold): animation collision synchronization baseline
 - Roadmap (implementation_hitbox_rework.txt) updated: Milestone 3.2 partial tasks checked (structs, evaluation, linear interpolation, baseline test); deferred items flagged (spline quality modes, adaptive quality, event batching, mask morph, frame skipping heuristics).
 - README pending update to include Milestone 3.2 scaffold summary (will follow in same commit or subsequent docs pass).
 
+feat(hitbox/phase3.2-deepening): looping timeline events + speed scaling field + skill layer integration
+
+- Added playback_speed field to `RogueAnimationCollisionSync` (defaults expected 1.0; advanced rate modulation deferred) and event batching API `rogue_animation_collision_timeline_events` emitting ENTER/EXIT pairs for collision windows (supports wrap for looping timelines).
+- Introduced `RogueCollisionTimelineEvent{Type}` structs and basic window enter/exit detection across frame intervals with cycle boundary handling.
+- Added integration helper `rogue_animation_collision_interpolate_from_skill_layer` mapping fractional frame index from skill layers to keyframe masks (morphing still deferred).
+- Added new unit test `test_animation_collision_sync_loop` validating: looping evaluation wrap (115ms -> window 0), event emission across wrap (EXIT w1, ENTER w0), and interpolation still functioning with playback_speed set (future slice will apply scaling).
+- Header/source updated; CMake lists new test target.
+
 - Added enemy profile LOD adaptation stage to collision pipeline (maps higher importance → negative bias for prioritization).
 - Implemented baseline pixel-perfect stage pruning logic:
 	• FAST tier: prune every other candidate (cheap heuristic)

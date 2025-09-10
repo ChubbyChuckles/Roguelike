@@ -32,13 +32,15 @@ extern "C"
 
     typedef struct RogueAnimationCollisionSync
     {
-        uint32_t animation_id;                         /* Reference to animation definition */
-        float* keyframe_timestamps;                    /* Critical collision timing points (ms) */
-        uint8_t keyframe_count;                        /* Number of keyframes */
-        struct RogueHitPixelMaskFrame* keyframe_masks; /* Optional mask frames (one per keyframe) */
-        bool smooth_interpolation;                     /* If true, interpolate between keyframes */
-        float interpolation_quality;                   /* 0=linear (only mode implemented) */
-        uint32_t frame_skip_threshold;                 /* (Deferred) perf-based skipping trigger */
+        uint32_t animation_id;      /* Reference to animation definition */
+        float* keyframe_timestamps; /* Critical collision timing points (ms) */
+        uint8_t keyframe_count;     /* Number of keyframes */
+        struct RogueHitPixelMaskFrame**
+            keyframe_masks;            /* Optional mask frame pointers (one per keyframe) */
+        bool smooth_interpolation;     /* If true, interpolate between keyframes */
+        float interpolation_quality;   /* 0=linear (only mode implemented) */
+        uint32_t frame_skip_threshold; /* (Deferred) perf-based skipping trigger */
+        float playback_speed;          /* New: speed scaling (1.0 default; <=0 treated as 1) */
     } RogueAnimationCollisionSync;
 
     typedef struct RogueCollisionTimelineWindow
@@ -56,6 +58,20 @@ extern "C"
         bool loop_animation;       /* If true treat time modulo total_cycle_time_ms */
         float total_cycle_time_ms; /* Required if loop_animation true */
     } RogueCollisionTimeline;
+
+    /* Event batching (enter/exit) scaffold for later deepening (Milestone 3.2+). */
+    typedef enum RogueCollisionTimelineEventType
+    {
+        ROGUE_COLLISION_WINDOW_ENTER = 1,
+        ROGUE_COLLISION_WINDOW_EXIT = 2
+    } RogueCollisionTimelineEventType;
+
+    typedef struct RogueCollisionTimelineEvent
+    {
+        RogueCollisionTimelineEventType type;
+        uint8_t window_index; /* Index into timeline windows[] */
+        float event_time_ms;  /* Absolute time passed to evaluator when event triggered */
+    } RogueCollisionTimelineEvent;
 
     /* Initialize a timeline struct to empty. */
     static inline void rogue_collision_timeline_init(RogueCollisionTimeline* tl)
@@ -87,6 +103,16 @@ extern "C"
                                                         float time_ms, uint8_t* out_indices,
                                                         uint8_t max_indices);
 
+    /* Emit enter/exit events for windows between prev_time_ms (exclusive) and curr_time_ms
+     * (inclusive). Handles looping timelines by linearizing the interval when loop_animation==true.
+     * Assumes (curr_time_ms - prev_time_ms) < 2 * total_cycle_time_ms (frame delta semantics).
+     * Returns number of events emitted (truncated to max_events). Order: chronological; ties
+     * resolve with ENTER before EXIT at the same timestamp. */
+    uint8_t rogue_animation_collision_timeline_events(const RogueCollisionTimeline* tl,
+                                                      float prev_time_ms, float curr_time_ms,
+                                                      RogueCollisionTimelineEvent* out_events,
+                                                      uint8_t max_events);
+
     /* Interpolate (scaffold) between keyframe masks.
      * Returns 1 on success, 0 on invalid input. Provides:
      *  - out_a: pointer to base keyframe mask (never NULL on success if count>0)
@@ -99,6 +125,15 @@ extern "C"
                                                     const struct RogueHitPixelMaskFrame** out_a,
                                                     const struct RogueHitPixelMaskFrame** out_b,
                                                     float* out_t);
+
+    /* Integration helper (Milestone 3.2 -> future mask morphing slice): derive interpolation
+     * directly from a skill collision layer's fractional frame index. This does NOT yet perform
+     * mask morphing – it simply maps the fractional frame to keyframe bracketing indices. */
+    struct RogueSkillCollisionLayer; /* from skill_collision_manager.h */
+    int rogue_animation_collision_interpolate_from_skill_layer(
+        const RogueAnimationCollisionSync* sync, const struct RogueSkillCollisionLayer* layer,
+        const struct RogueHitPixelMaskFrame** out_a, const struct RogueHitPixelMaskFrame** out_b,
+        float* out_t);
 
 #ifdef __cplusplus
 }

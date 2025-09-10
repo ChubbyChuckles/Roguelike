@@ -546,6 +546,7 @@ add_library(rogue_core
     src/game/collision_pipeline.c
     src/game/enemy_collision_opt.c
     src/game/skill_collision_manager.c
+    src/game/animation_collision_sync.c
     src/game/hit_feedback.c
     src/game/weapon_pose.c
     src/game/hit_debug_overlay.c
@@ -1204,6 +1205,14 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_animation_collision_sync_basic PRIVATE SDL2::SDL2)
 endif()
 rogue_add_test(NAME test_animation_collision_sync_basic COMMAND test_animation_collision_sync_basic)
+
+# Milestone 3.2 deepening: looping timeline + event batching + speed scaling scaffold test
+add_executable(test_animation_collision_sync_loop tests/unit/test_animation_collision_sync_loop.c)
+target_link_libraries(test_animation_collision_sync_loop PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_animation_collision_sync_loop PRIVATE SDL2::SDL2)
+endif()
+rogue_add_test(NAME test_animation_collision_sync_loop COMMAND test_animation_collision_sync_loop)
 
 add_executable(test_tag_registry_validate tests/unit/test_tag_registry_validate.c)
 
