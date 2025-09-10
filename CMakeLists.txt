@@ -544,6 +544,7 @@ add_library(rogue_core
     src/game/item_collision_cache.c
     src/game/sprite_atlas_collision.c
     src/game/collision_pipeline.c
+    src/game/enemy_collision_opt.c
     src/game/hit_feedback.c
     src/game/weapon_pose.c
     src/game/hit_debug_overlay.c
@@ -596,6 +597,7 @@ target_compile_definitions(rogue_core PUBLIC
 # Expose Milestone 2.2 weapon collision advanced header (header-only initial slice)
 target_sources(rogue_core PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/game/weapon_collision_advanced.h>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/game/enemy_collision_opt.h>
 )
 
 # -----------------------------
@@ -1169,6 +1171,14 @@ if(NOT TARGET test_collision_pipeline_phase2_1_pixel_sampling)
     endif()
     rogue_add_test(NAME test_collision_pipeline_phase2_1_pixel_sampling COMMAND test_collision_pipeline_phase2_1_pixel_sampling)
 endif()
+
+# Milestone 2.3: Enemy collision profile LOD integration test
+add_executable(test_collision_pipeline_phase2_3_enemy_lod tests/unit/test_collision_pipeline_phase2_3_enemy_lod.c)
+target_link_libraries(test_collision_pipeline_phase2_3_enemy_lod PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_collision_pipeline_phase2_3_enemy_lod PRIVATE SDL2::SDL2)
+endif()
+rogue_add_test(NAME test_collision_pipeline_phase2_3_enemy_lod COMMAND test_collision_pipeline_phase2_3_enemy_lod)
 
 # Milestone 2.2: Weapon collision advanced (initial slice) trail & layer test
 add_executable(test_weapon_collision_trail tests/unit/test_weapon_collision_trail.c)

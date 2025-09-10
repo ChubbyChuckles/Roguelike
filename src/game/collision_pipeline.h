@@ -85,6 +85,10 @@ extern "C"
         /* Optional pixel mask reference (if available) for pixel-perfect stage. */
         struct RogueHitPixelMaskFrame* pixel_mask; /* forward-declared in hit_pixel_mask.h */
         int pixel_mask_lx, pixel_mask_ly;          /* Local origin offset (top-left) */
+        /* Optional enemy collision profile pointer enabling per-enemy adaptive LOD bias.
+            Forward-declared to avoid heavy include; when present a dedicated stage can invoke
+            rogue_enemy_collision_profile_adapt_lod() to refresh lod_bias each frame. */
+        struct RogueEnemyCollisionProfile* enemy_profile; /* may be NULL */
     } RogueCollisionCandidate;
 
     typedef struct RogueCollisionContext
@@ -108,6 +112,11 @@ extern "C"
                                               RogueCollisionMetrics* m);
     bool rogue_collision_stage_temporal_cache(struct RogueCollisionContext* ctx,
                                               RogueCollisionMetrics* m);
+    /* Enemy profile LOD adaptation stage: for each candidate with an attached
+        RogueEnemyCollisionProfile pointer, updates its lod_bias via heuristic adaptation and
+        optionally influences pipeline quality_level via ctx->quality_delta. */
+    bool rogue_collision_stage_enemy_profile_lod(struct RogueCollisionContext* ctx,
+                                                 RogueCollisionMetrics* m);
     /* Hierarchical broad-phase (baseline stub): lightweight pass that prunes any candidates
         clearly outside the expanded view bounds using a simple two-level grouping heuristic.
         Future slice will replace with SIMD + BV tree. */

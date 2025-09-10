@@ -366,6 +366,11 @@ foreach(ut ${UNIT_TESTS})
     rogue_add_test(${name} COMMAND ${name})
 endforeach()
 
+# Apply label to enemy collision optimization test if present
+if(TARGET test_enemy_collision_opt)
+    set_property(TEST test_enemy_collision_opt PROPERTY LABELS collision_opt)
+endif()
+
 # Special-case: wire the econ migration tool into the Phase 13.3 test so econ_migrate_main is linked
 if(TARGET test_save_phase13_3_econ_migrate_cli)
     target_sources(test_save_phase13_3_econ_migrate_cli PRIVATE ${CMAKE_SOURCE_DIR}/tools/econ_migrate.c)

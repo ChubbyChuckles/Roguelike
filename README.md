@@ -81,6 +81,14 @@ Deferred (remaining) items: SIMD AABB + hierarchical bounds, temporal coherence 
 - New unit test `test_weapon_collision_trail` validates transform composition, trail pruning (FIFO + time window), sweep AABB correctness, and layer filtering logic.
 - Roadmap updated marking core Milestone 2.2 scaffolding complete; deferred: motion blur sampling, bilinear pixel mask transform, non-uniform scaling & pivot customization, advanced continuous sweep algorithm.
 
+##### Milestone 2.3 (Enemy Collision Optimization Scaffolding – In Progress)
+
+- Added `enemy_collision_opt.{h,c}` with `RogueEnemyCollisionProfile` + `RogueEnemyCollisionBatch` structures.
+- Implemented `rogue_enemy_collision_profile_analyze_dims` (initial radius + density heuristic → complexity buckets) and batch aggregation (`add` + `finalize` computing centroid & covering radius).
+- LOD bias encoding + clamp helpers (range -8..7) added; manual only (dynamic bias logic deferred).
+- Unit test `test_enemy_collision_opt` verifies heuristic mapping, bias clamp, centroid aggregation, and radius growth.
+- Deferred (next slices): shape descriptors (convexity/symmetry), SIMD `rogue_enemy_collision_batch_process`, dynamic LOD adaptation, performance prediction & method selection.
+
 Press F1 in-game to open the debug overlay.
 
 ### Asset Browser (Overlay Phase 1 Enhancement)
@@ -837,7 +845,7 @@ EffectSpec parser (Phase 3.1):
   - effect.<index>.pulse_period_ms = <ms>
   - effect.<index>.childN.id / effect.<index>.childN.delay_ms
 - Registration preserves ascending index and defaults stack_rule to ADD if unspecified; explicit UNIQUE is respected.
-- Multiplicative effects are a no-op when no baseline buff of the same type exists (avoids creating a stack from zero). Covered in `tests/unit/test_effectspec_parser.c`.
+- Multiplicative effects are a no‑op when no baseline buff of the same type exists (avoids creating a stack from zero). Covered in `tests/unit/test_effectspec_parser.c`.
 
 Preconditions and deterministic ordering (Phase 3.2):
 

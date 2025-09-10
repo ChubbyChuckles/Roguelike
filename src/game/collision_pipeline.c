@@ -6,7 +6,9 @@
  *  - Temporal coherence cache stage (reuses last-frame candidate subset when stable)
  */
 #include "game/collision_pipeline.h"
+#include "game/enemy_collision_opt.h" /* For RogueEnemyCollisionProfile adaptive bias stage */
 #include "game/hit_pixel_mask.h" /* Needed for RogueHitPixelMaskFrame definition (pixel-perfect stage) */
+#include <math.h>                /* sqrtf */
 #include <string.h>
 #include <time.h>
 #ifdef _WIN32
@@ -516,6 +518,54 @@ bool rogue_collision_stage_temporal_cache(struct RogueCollisionContext* ctx,
     g_temporal_cache.last_view_h = ctx->view_h;
     g_temporal_cache.last_frame_candidate_count = ctx->candidate_count;
     ctx->skip_spatial = 0;
+    m->output_candidates = ctx->candidate_count;
+    return true;
+}
+
+/* ---------------- Enemy Profile LOD Adaptation Stage ----------------
+ * Walks candidates and, when an enemy collision profile is attached, invokes the dynamic LOD
+ * adaptation heuristic using cheap derived signals (distance to view center as a proxy for
+ * player distance, on-screen projected size approximation, and zeroed damage/focus for now).
+ * Aggregates strongest (most negative) bias suggestion and maps to a quality_delta hint
+ * (coarse) allowing the pipeline to react next frame. This stage is O(n) with trivial math. */
+bool rogue_collision_stage_enemy_profile_lod(struct RogueCollisionContext* ctx,
+                                             RogueCollisionMetrics* m)
+{
+    if (!ctx)
+    {
+        m->output_candidates = 0;
+        return true;
+    }
+    if (ctx->candidate_count == 0)
+    {
+        m->output_candidates = 0;
+        return true;
+    }
+    float cx = ctx->view_x + ctx->view_w * 0.5f;
+    float cy = ctx->view_y + ctx->view_h * 0.5f;
+    int strongest_bias = 0; /* track most negative (higher fidelity request) */
+    for (uint32_t i = 0; i < ctx->candidate_count; ++i)
+    {
+        RogueCollisionCandidate* c = &ctx->candidates[i];
+        if (!c->enemy_profile)
+            continue;
+        /* Distance proxy: actual distance to view center (player surrogate). */
+        float dx = c->x - cx;
+        float dy = c->y - cy;
+        float dist = (float) sqrtf(dx * dx + dy * dy);
+        /* Screen area proxy: treat 2*half_w * 2*half_h as projected box (no scaling). */
+        float screen_area = (c->half_w * 2.f) * (c->half_h * 2.f);
+        rogue_enemy_collision_profile_adapt_lod(c->enemy_profile, dist, screen_area, 0.f, 0.f);
+        int bias = rogue_enemy_collision_profile_get_lod_bias(c->enemy_profile);
+        if (bias < strongest_bias)
+            strongest_bias = bias;
+    }
+    /* Map strongest_bias (-8..+7) into a coarse quality_delta suggestion. We use thresholds to
+       avoid oscillation: <= -4 -> request upgrade (+1 precision), >= +4 -> downgrade (-1). */
+    if (strongest_bias <= -4 && ctx->quality_level < ROGUE_COLLISION_ULTRA)
+        ctx->quality_delta = +1;
+    else if (strongest_bias >= 4 && ctx->quality_level > ROGUE_COLLISION_FAST)
+        ctx->quality_delta = -1;
     m->output_candidates = ctx->candidate_count;
     return true;
 }

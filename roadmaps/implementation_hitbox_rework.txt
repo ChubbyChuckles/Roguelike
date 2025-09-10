@@ -286,7 +286,7 @@ Core Subsystems:
     - [ ] Transform caching for repeated calculations
 
 #### MILESTONE 2.3: Enemy Collision Optimization
-- [ ] **File**: `src/game/enemy_collision_opt.h` (new)
+- [x] **File**: `src/game/enemy_collision_opt.h` (new)
   ```c
   typedef struct RogueEnemyCollisionProfile {
       float radius_estimate;           // Fast circular approximation
@@ -304,22 +304,25 @@ Core Subsystems:
       uint32_t collision_mask;         // Result bitfield
   } RogueEnemyCollisionBatch;
   ```
-  - [ ] Enemy collision complexity profiling for adaptive quality
-  - [ ] Batch processing system for SIMD enemy collision tests
-  - [ ] Geometric optimization based on enemy shape characteristics
-  - [ ] Dynamic LOD bias based on gameplay importance
+  - [x] Enemy collision complexity profiling (initial heuristic: radius+density buckets)
+  - [x] Batch processing system scaffolding (aggregation + centroid & covering radius)
+  - [x] Geometric optimization heuristics (aspect/fill/symmetry/convexity placeholders)
+  - [x] Dynamic LOD bias adaptation heuristic (distance/visibility/damage/focus)
 
-- [ ] **File**: `src/game/enemy_collision_opt.c` (new, 600+ lines)
-  - [ ] **Function**: `rogue_enemy_collision_profile_analyze()`
-    - [ ] Automatic collision complexity analysis for enemy sprites
-    - [ ] Shape descriptor generation (convexity, symmetry, density)
-    - [ ] Optimal collision method selection per enemy type
-    - [ ] Performance characteristic prediction
-  - [ ] **Function**: `rogue_enemy_collision_batch_process()`
+- [x] **File**: `src/game/enemy_collision_opt.c` (initial ~150 lines scaffolding)
+  - [x] **Function**: `rogue_enemy_collision_profile_analyze()` (radius, density, shape descriptors)
+    - [x] Shape descriptor generation (aspect, fill, symmetry, convexity heuristic)
+  - [ ] Optimal collision method selection per enemy type (future)
+  - [x] Performance characteristic prediction placeholders (cycles_estimate, method_hint)
+  - [x] **Function**: `rogue_enemy_collision_batch_add()` / `finalize()` (aggregation helpers)
+  - [x] **Function**: `rogue_enemy_collision_batch_process()` (scalar prototype; SIMD deferred)
     - [ ] SIMD-optimized batch collision testing
+  - [x] Compile-time SIMD feature flag scaffold (ROGUE_ENEMY_COLLISION_ENABLE_SIMD)
     - [ ] Memory prefetching for cache-friendly access patterns
     - [ ] Result aggregation and conflict resolution
     - [ ] Load balancing across multiple processing cores
+  - [x] **Function**: `rogue_enemy_collision_profile_adapt_lod()` (dynamic bias heuristic)
+  - Tests: `test_enemy_collision_opt` validating profile buckets, shape descriptors, LOD bias, batch math
 
 ### PHASE 3: ADVANCED SKILL & SPELL COLLISION SYSTEM
 #### MILESTONE 3.1: Multi-Layer Skill Effect Pipeline

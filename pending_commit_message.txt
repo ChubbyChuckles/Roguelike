@@ -1,3 +1,17 @@
+feat(hitbox-2.3): enemy collision optimization scaffolding
+
+- Add enemy_collision_opt.{h,c} with profile (radius+density heuristic complexity) & batch structs
+- Implement analyze_dims (basic complexity buckets) + batch add/finalize (centroid & covering radius)
+- Add LOD bias clamp helpers (-8..7 encoded)
+- Integrate into build + expose public header
+- Add unit test test_enemy_collision_opt covering heuristic & aggregation
+ - Expand test_enemy_collision_opt to cover shape descriptors & dynamic LOD adaptation
+- Add performance prediction placeholders (cycles_estimate, method_hint) & associated tests
+- Introduce SIMD feature flag scaffold (ROGUE_ENEMY_COLLISION_ENABLE_SIMD) in batch_process
+ - Rename analyze_dims -> analyze (compat wrapper left) and add shape descriptor fields
+ - Add rogue_enemy_collision_batch_process prototype and adapt_lod heuristic
+- Update roadmap (mark partial completion) and README milestone entry
+
 feat(hitbox/phase1): introduce minimal pixel mask loader & unit test
 
 feat(hitbox/phase1): add RLE compression + binary mipmap generation to pixel mask loader
@@ -450,3 +464,11 @@ feat(hitbox/phase2.2 initial): advanced weapon collision scaffolding (header-onl
 - Roadmap (`implementation_hitbox_rework.txt`): Marked Milestone 2.2 items (transform, trail, layer filter, quality override scaffold) as done; added test entry and deferred list (motion blur, bilinear mask transform, pivot customization).
 - README: Added brief Milestone 2.2 note under Hitbox Rework describing weapon collision scaffolding & new test.
 - No runtime integration yet (header-only slice) keeping risk low; future slice will add .c implementation for advanced mask transforms & motion blur.
+
+feat(hitbox/phase2.3 enemy collision opt – profiling & adaptive bias groundwork): shape descriptors, dynamic LOD bias, performance placeholders, SIMD flag, pipeline integration stage
+
+- Added enemy_collision_opt.{h,c} introducing RogueEnemyCollisionProfile (radius, density-derived complexity, shape descriptors: aspect/fill/symmetry/convexity placeholder) plus RogueEnemyCollisionBatch with incremental + SIMD-friendly batch_process (scalar stub) and dynamic LOD bias adaptation API.
+- Added performance prediction placeholders cycles_estimate + method_hint (0 circle /1 poly-lite /2 pixel-rich) populated in analyze(); unit test assertions added.
+- Introduced compile-time SIMD feature flag scaffold (ROGUE_ENEMY_COLLISION_ENABLE_SIMD) gating future vectorized batch path; current build falls back to scalar.
+- Collision pipeline integration: extended RogueCollisionCandidate with enemy_profile pointer and added rogue_collision_stage_enemy_profile_lod which updates per-enemy lod_bias using distance/area proxies and maps strongest request to pipeline quality_delta. New test test_collision_pipeline_phase2_3_enemy_lod validates negative bias for near candidate and ordering.
+- Roadmap & README to be updated in subsequent doc pass (deferred if not yet included); commit message documents integration to maintain traceability.
