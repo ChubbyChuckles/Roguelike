@@ -40,7 +40,11 @@ extern "C"
         bool smooth_interpolation;     /* If true, interpolate between keyframes */
         float interpolation_quality;   /* 0=linear (only mode implemented) */
         uint32_t frame_skip_threshold; /* (Deferred) perf-based skipping trigger */
-        float playback_speed;          /* New: speed scaling (1.0 default; <=0 treated as 1) */
+        float playback_speed;          /* Speed scaling (1.0 default; <=0 treated as 1) */
+        /* Scratch blended (morphed) frame (owned) reused across calls when dimensions stable. */
+        struct RogueHitPixelMaskFrame* blended_scratch;
+        int blended_w;
+        int blended_h;
     } RogueAnimationCollisionSync;
 
     typedef struct RogueCollisionTimelineWindow
@@ -103,6 +107,31 @@ extern "C"
                                                         float time_ms, uint8_t* out_indices,
                                                         uint8_t max_indices);
 
+    /* Speed-scaled timeline evaluation: applies sync->playback_speed to time domain before
+     * evaluating windows. Provided as a wrapper to avoid breaking existing API semantics.
+     * playback_speed<=0 treated as 1.0. */
+    uint8_t rogue_animation_collision_evaluate_timeline_scaled(
+        const RogueAnimationCollisionSync* sync, const RogueCollisionTimeline* tl, float time_ms,
+        uint8_t* out_indices, uint8_t max_indices);
+
+    /* Cached evaluation state enabling performance-aware frame skipping without missing window
+     * boundaries. If the elapsed time since last evaluation is below threshold and no window
+     * boundary (start or end) exists inside (last_time, curr_time], the previous active set is
+     * reused. */
+    typedef struct RogueAnimationCollisionEvalState
+    {
+        float last_time_ms;
+        uint8_t last_active_indices[16];
+        uint8_t last_active_count;
+        uint8_t initialized;
+    } RogueAnimationCollisionEvalState;
+
+    /* Evaluate timeline with frame skipping: uses sync->frame_skip_threshold (ms). If threshold==0
+     * behaves like normal evaluation. Safe for looping timelines. Returns active count. */
+    uint8_t rogue_animation_collision_evaluate_timeline_cached(
+        const RogueAnimationCollisionSync* sync, const RogueCollisionTimeline* tl, float time_ms,
+        RogueAnimationCollisionEvalState* state, uint8_t* out_indices, uint8_t max_indices);
+
     /* Emit enter/exit events for windows between prev_time_ms (exclusive) and curr_time_ms
      * (inclusive). Handles looping timelines by linearizing the interval when loop_animation==true.
      * Assumes (curr_time_ms - prev_time_ms) < 2 * total_cycle_time_ms (frame delta semantics).
@@ -134,6 +163,20 @@ extern "C"
         const RogueAnimationCollisionSync* sync, const struct RogueSkillCollisionLayer* layer,
         const struct RogueHitPixelMaskFrame** out_a, const struct RogueHitPixelMaskFrame** out_b,
         float* out_t);
+
+    /* Baseline mask morphing (Milestone 3.2 deepening: union-or blend). Returns a pointer to a
+     * mask representing the collision shape at time_ms. Behavior:
+     *  - If interpolation disabled or <2 keyframes -> returns base keyframe frame.
+     *  - For t in (0,1) between two keyframes with matching dimensions: produces (and caches in
+     *    sync->blended_scratch) a union OR of A and B (conservative expansion).
+     *  - If dimensions mismatch falls back to A to avoid expensive resample (future slice).
+     *  - Endpoints (t<=0.15 or t>=0.85) return A or B directly to skip blend work.
+     * Caller does not own returned pointer. */
+    const struct RogueHitPixelMaskFrame*
+    rogue_animation_collision_morph_mask(RogueAnimationCollisionSync* sync, float time_ms);
+
+    /* Release any internal scratch buffers (call in teardown). */
+    void rogue_animation_collision_sync_release(RogueAnimationCollisionSync* sync);
 
 #ifdef __cplusplus
 }

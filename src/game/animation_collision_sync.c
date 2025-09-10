@@ -9,7 +9,9 @@
  */
 
 #include "game/animation_collision_sync.h"
+#include "game/hit_pixel_mask.h" /* for RogueHitPixelMaskFrame struct */
 #include <stddef.h>
+#include <stdlib.h> /* malloc/calloc/free */
 
 /* Forward declare skill layer frame index helper (defined in skill_collision_manager.c) */
 float rogue_skill_collision_layer_frame_index(const struct RogueSkillCollisionLayer* l);
@@ -43,6 +45,130 @@ uint8_t rogue_animation_collision_evaluate_timeline(const RogueCollisionTimeline
     return active_count;
 }
 
+uint8_t rogue_animation_collision_evaluate_timeline_scaled(const RogueAnimationCollisionSync* sync,
+                                                           const RogueCollisionTimeline* tl,
+                                                           float time_ms, uint8_t* out_indices,
+                                                           uint8_t max_indices)
+{
+    float speed = 1.f;
+    if (sync && sync->playback_speed > 0.f)
+        speed = sync->playback_speed;
+    /* Scale time down by speed (faster playback means reaching later timeline positions earlier).
+     */
+    float scaled_time = time_ms * speed;
+    return rogue_animation_collision_evaluate_timeline(tl, scaled_time, out_indices, max_indices);
+}
+
+/* Helper: detect if any window boundary (start or end) lies in (a,b] given potential wrap. */
+static int timeline_has_boundary_between(const RogueCollisionTimeline* tl, float a, float b)
+{
+    if (!tl)
+        return 0;
+    if (!tl->loop_animation || tl->total_cycle_time_ms <= 0.f)
+    {
+        if (b < a)
+        {
+            float tmp = a;
+            a = b;
+            b = tmp;
+        }
+        for (uint8_t i = 0; i < tl->window_count; ++i)
+        {
+            const RogueCollisionTimelineWindow* w = &tl->windows[i];
+            if (w->duration_ms <= 0.f)
+                continue;
+            float start = w->timestamp_ms;
+            float end = start + w->duration_ms;
+            if ((start > a && start <= b) || (end > a && end <= b))
+                return 1;
+        }
+        return 0;
+    }
+    float cycle = tl->total_cycle_time_ms;
+    if (cycle <= 0.f)
+        return 0;
+    /* Normalize */
+    while (a >= cycle)
+        a -= cycle;
+    while (b >= cycle)
+        b -= cycle;
+    int wrapped = (b < a);
+    for (uint8_t i = 0; i < tl->window_count; ++i)
+    {
+        const RogueCollisionTimelineWindow* w = &tl->windows[i];
+        if (w->duration_ms <= 0.f)
+            continue;
+        float start = w->timestamp_ms;
+        float end = start + w->duration_ms;
+        if (!wrapped)
+        {
+            if ((start > a && start <= b) || (end > a && end <= b))
+                return 1;
+        }
+        else
+        {
+            if (((start > a && start < cycle) || (start >= 0.f && start <= b)) ||
+                ((end > a && end < cycle) || (end >= 0.f && end <= b)))
+                return 1;
+        }
+    }
+    return 0;
+}
+
+uint8_t rogue_animation_collision_evaluate_timeline_cached(
+    const RogueAnimationCollisionSync* sync, const RogueCollisionTimeline* tl, float time_ms,
+    RogueAnimationCollisionEvalState* state, uint8_t* out_indices, uint8_t max_indices)
+{
+    if (!tl)
+        return 0;
+    float threshold = (sync ? (float) sync->frame_skip_threshold : 0.f);
+    if (!state || threshold <= 0.f || !state->initialized)
+    {
+        uint8_t count = rogue_animation_collision_evaluate_timeline_scaled(
+            sync, tl, time_ms, out_indices, max_indices);
+        if (state)
+        {
+            state->initialized = 1;
+            state->last_time_ms = time_ms;
+            state->last_active_count = (count > 16 ? 16 : count);
+            if (out_indices && count)
+            {
+                for (uint8_t i = 0; i < state->last_active_count; ++i)
+                    state->last_active_indices[i] = out_indices[i];
+            }
+        }
+        return count;
+    }
+    float dt = time_ms - state->last_time_ms;
+    if (dt < 0.f)
+        dt = -dt; /* handle time rewind conservatively (will re-evaluate) */
+    if (dt <= threshold)
+    {
+        /* Check for boundary crossing; if none, reuse */
+        float prev_t = state->last_time_ms;
+        if (!timeline_has_boundary_between(tl, prev_t, time_ms))
+        {
+            uint8_t reuse = state->last_active_count;
+            if (out_indices)
+            {
+                for (uint8_t i = 0; i < reuse && i < max_indices; ++i)
+                    out_indices[i] = state->last_active_indices[i];
+            }
+            return (reuse > max_indices) ? max_indices : reuse;
+        }
+    }
+    uint8_t new_count = rogue_animation_collision_evaluate_timeline_scaled(
+        sync, tl, time_ms, out_indices, max_indices);
+    state->last_time_ms = time_ms;
+    state->last_active_count = (new_count > 16 ? 16 : new_count);
+    if (out_indices && new_count)
+    {
+        for (uint8_t i = 0; i < state->last_active_count; ++i)
+            state->last_active_indices[i] = out_indices[i];
+    }
+    return new_count;
+}
+
 int rogue_animation_collision_interpolate_masks(const RogueAnimationCollisionSync* sync,
                                                 float time_ms,
                                                 const struct RogueHitPixelMaskFrame** out_a,
@@ -57,6 +183,10 @@ int rogue_animation_collision_interpolate_masks(const RogueAnimationCollisionSyn
         *out_t = 0.f;
     if (!sync || sync->keyframe_count == 0 || !sync->keyframe_timestamps)
         return 0;
+    /* Apply playback speed scaling (keeping semantics consistent with scaled timeline eval):
+     * faster playback_speed (>1) advances along keyframes more quickly for a given real time. */
+    if (sync && sync->playback_speed > 0.f)
+        time_ms *= sync->playback_speed;
     /* Clamp negative time */
     if (time_ms < 0.f)
         time_ms = 0.f;
@@ -103,6 +233,13 @@ int rogue_animation_collision_interpolate_masks(const RogueAnimationCollisionSyn
         t = 0.f;
     if (t > 1.f)
         t = 1.f;
+    /* Simple smoothstep (cubic Hermite) when interpolation_quality >= 0.5f to simulate higher
+     * quality without full spline infra. */
+    if (sync->interpolation_quality >= 0.5f)
+    {
+        float tt = t * t * (3.f - 2.f * t); /* smoothstep */
+        t = tt;
+    }
     if (out_a && sync->keyframe_masks)
         *out_a = sync->keyframe_masks[base];
     if (out_b && sync->keyframe_masks)
@@ -256,3 +393,85 @@ int rogue_animation_collision_interpolate_from_skill_layer(
  *  - Mask interpolation quality modes (cubic, Hermite, distance-field based blending)
  *  - Adaptive frame skip: monitor evaluation cost & dynamically widen sampling interval
  */
+
+/* Internal helper: ensure scratch blended frame capacity (alloc or resize). */
+static struct RogueHitPixelMaskFrame* ensure_blended_capacity(RogueAnimationCollisionSync* sync,
+                                                              int w, int h)
+{
+    if (!sync)
+        return NULL;
+    if (sync->blended_scratch && (sync->blended_w != w || sync->blended_h != h))
+    {
+        free(sync->blended_scratch->bits);
+        free(sync->blended_scratch);
+        sync->blended_scratch = NULL;
+    }
+    if (!sync->blended_scratch)
+    {
+        sync->blended_scratch =
+            (struct RogueHitPixelMaskFrame*) calloc(1, sizeof(*sync->blended_scratch));
+        if (!sync->blended_scratch)
+            return NULL;
+        int pitch_words = (w + 31) / 32;
+        sync->blended_scratch->bits =
+            (uint32_t*) calloc((size_t) pitch_words * (size_t) h, sizeof(uint32_t));
+        if (!sync->blended_scratch->bits)
+        {
+            free(sync->blended_scratch);
+            sync->blended_scratch = NULL;
+            return NULL;
+        }
+        sync->blended_scratch->width = w;
+        sync->blended_scratch->height = h;
+        sync->blended_scratch->pitch_words = pitch_words;
+        sync->blended_scratch->origin_x = 0;
+        sync->blended_scratch->origin_y = 0;
+        sync->blended_w = w;
+        sync->blended_h = h;
+    }
+    return sync->blended_scratch;
+}
+
+const struct RogueHitPixelMaskFrame*
+rogue_animation_collision_morph_mask(RogueAnimationCollisionSync* sync, float time_ms)
+{
+    if (!sync)
+        return NULL;
+    const struct RogueHitPixelMaskFrame *a = NULL, *b = NULL;
+    float t = 0.f;
+    if (!rogue_animation_collision_interpolate_masks(sync, time_ms, &a, &b, &t) || !a)
+        return NULL;
+    if (!b || !sync->smooth_interpolation || sync->keyframe_count < 2)
+        return a; /* nothing to blend */
+    /* Endpoint fast paths */
+    if (t <= 0.15f)
+        return a;
+    if (t >= 0.85f)
+        return b;
+    /* Dimension check */
+    if (a->width != b->width || a->height != b->height || a->pitch_words != b->pitch_words)
+        return a; /* future: resample path */
+    struct RogueHitPixelMaskFrame* blend = ensure_blended_capacity(sync, a->width, a->height);
+    if (!blend)
+        return a;
+    /* Union OR conservative blend. */
+    size_t words = (size_t) a->pitch_words * (size_t) a->height;
+    for (size_t i = 0; i < words; ++i)
+        blend->bits[i] = a->bits[i] | b->bits[i];
+    blend->origin_x = a->origin_x; /* carry through */
+    blend->origin_y = a->origin_y;
+    return blend;
+}
+
+void rogue_animation_collision_sync_release(RogueAnimationCollisionSync* sync)
+{
+    if (!sync)
+        return;
+    if (sync->blended_scratch)
+    {
+        free(sync->blended_scratch->bits);
+        free(sync->blended_scratch);
+        sync->blended_scratch = NULL;
+        sync->blended_w = sync->blended_h = 0;
+    }
+}

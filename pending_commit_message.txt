@@ -28,6 +28,24 @@ feat(hitbox/phase3.2-deepening): looping timeline events + speed scaling field +
 - Added new unit test `test_animation_collision_sync_loop` validating: looping evaluation wrap (115ms -> window 0), event emission across wrap (EXIT w1, ENTER w0), and interpolation still functioning with playback_speed set (future slice will apply scaling).
 - Header/source updated; CMake lists new test target.
 
+feat(hitbox/phase3.2-adv): speed-scaled timeline eval + frame skip cache + smooth interpolation mode
+
+- Added `rogue_animation_collision_evaluate_timeline_scaled` applying `playback_speed` (<=0 →1) to time domain; preserves original API semantics.
+- Introduced cached evaluation state `RogueAnimationCollisionEvalState` + `rogue_animation_collision_evaluate_timeline_cached` using `frame_skip_threshold` (ms) to reuse prior active window set when no boundary crossings (start/end) occur; supports looping timelines without missing events.
+- Implemented boundary detection helper ensuring correctness under wrap; falls back to full evaluation on time rewind or detected boundary.
+- Enhanced interpolation: when `interpolation_quality >= 0.5` apply smoothstep (cubic Hermite) to linear t as lightweight higher-quality mode (true spline morphing still deferred).
+- Added advanced unit test `test_animation_collision_sync_advanced` covering: speed scaling (window activation via scaled time), cached frame skipping reuse & boundary invalidation, smooth quality toggle (smoothstep) vs linear path.
+- Roadmap updated (Milestone 3.2): marks speed scaling wrapper, basic smooth interpolation mode, and frame skip cached evaluation as implemented; leaves mask morphing / advanced spline / adaptive quality pending.
+- README will be updated in forthcoming docs pass to reflect advanced slice (placeholder if not yet applied).
+
+feat(hitbox/phase3.2-morph): baseline mask morphing (union blend) implementation
+
+- Extended `RogueAnimationCollisionSync` with owned scratch blended frame (reused when dims stable).
+- Added `rogue_animation_collision_morph_mask` producing conservative union (OR) of bracketing keyframes for mid-range interpolation factors (t in (0.15,0.85)). Endpoints fast-path return A/B directly and dimension mismatch falls back to A (future slice: resample + distance-field guided blend).
+- Added `rogue_animation_collision_sync_release` to free scratch resources.
+- New unit test `test_animation_collision_sync_morph` validating: midpoint union contains both bits, near-start/end short‑circuit, and interpolation disable path returns base frame.
+- Roadmap updated (Milestone 3.2) marking mask blending baseline complete; leaves advanced spline curves, adaptive quality feedback and cache pooling optimization for later slice.
+
 - Added enemy profile LOD adaptation stage to collision pipeline (maps higher importance → negative bias for prioritization).
 - Implemented baseline pixel-perfect stage pruning logic:
 	• FAST tier: prune every other candidate (cheap heuristic)

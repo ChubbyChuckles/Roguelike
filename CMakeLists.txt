@@ -1214,6 +1214,21 @@ if(TARGET SDL2::SDL2)
 endif()
 rogue_add_test(NAME test_animation_collision_sync_loop COMMAND test_animation_collision_sync_loop)
 
+add_executable(test_animation_collision_sync_advanced tests/unit/test_animation_collision_sync_advanced.c)
+target_link_libraries(test_animation_collision_sync_advanced PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_animation_collision_sync_advanced PRIVATE SDL2::SDL2)
+    endif()
+rogue_add_test(NAME test_animation_collision_sync_advanced COMMAND test_animation_collision_sync_advanced)
+
+# Milestone 3.2 deepening: mask morphing (union blend) baseline test
+add_executable(test_animation_collision_sync_morph tests/unit/test_animation_collision_sync_morph.c)
+target_link_libraries(test_animation_collision_sync_morph PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_animation_collision_sync_morph PRIVATE SDL2::SDL2)
+endif()
+rogue_add_test(NAME test_animation_collision_sync_morph COMMAND test_animation_collision_sync_morph)
+
 add_executable(test_tag_registry_validate tests/unit/test_tag_registry_validate.c)
 
 # Debug overlay core unit test

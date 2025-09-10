@@ -134,6 +134,23 @@ Press F1 in-game to open the debug overlay.
 - Roadmap updated marking partial completion (structs + basic eval + linear interpolation + unit test) while deferring spline/intermediate mask morphing, adaptive quality, frame skipping heuristics, speed scaling, and event batching APIs.
 - Next deepening steps will integrate skill layer fractional frame index with keyframe-driven mask sampling & morph, then add speed scaling (animation playback rate) and event emission (enter/exit window callbacks) for richer combat timing.
 
+###### Deepening Slice (Phase 3.2 Advanced): Speed Scaling + Frame Skip Cache + Smooth Interpolation
+
+- Added `playback_speed` application via `rogue_animation_collision_evaluate_timeline_scaled` (wrapper keeps original API stable). Time domain scaled so higher speed advances collision windows earlier relative to real time.
+- Introduced cached evaluation state `RogueAnimationCollisionEvalState` and `rogue_animation_collision_evaluate_timeline_cached` honoring `frame_skip_threshold` (ms). Reuses previous active set when no window boundary (start/end) lies in the interval, avoiding redundant per-frame scans under high frame rates.
+- Boundary detection logic safe for looping timelines (wrap normalization) guarantees no missed ENTER/EXIT events before future full event queue integration.
+- Implemented lightweight higher-quality interpolation mode: if `interpolation_quality >= 0.5`, linear t is transformed with smoothstep (cubic Hermite) for perceptually smoother transitions without full spline infra (true spline + mask morphing still deferred).
+- Added advanced unit test `test_animation_collision_sync_advanced` covering: speed scaling activation, cache reuse vs boundary invalidation, smoothstep quality toggle, and linear fallback correctness.
+- Roadmap updated (Milestone 3.2) marking speed scaling wrapper, frame skip cached evaluation, and basic smooth interpolation mode complete; mask morphing, advanced spline curves, adaptive quality feedback loop, and pooled blended mask buffers remain deferred.
+
+###### Deepening Slice (Phase 3.2 Morph Baseline): Conservative Mask Union
+
+- Added baseline real-time mask morphing via `rogue_animation_collision_morph_mask` (union OR of bracketing keyframes for mid interpolation range). Endpoints (t<=0.15 / t>=0.85) return original frames directly to avoid unnecessary work.
+- `RogueAnimationCollisionSync` now owns a reusable scratch blended frame (`blended_scratch`) allocated lazily and resized only when dimensions change (improves cache locality and avoids per-frame malloc churn).
+- Conservative union guarantees no false negatives versus either keyframe (slightly over-approximates in-between true geometric interpolation). Future slices will introduce distance-field guided blending or progressive erosion to tighten mid-phase masks plus dimension resampling.
+- New unit test `test_animation_collision_sync_morph` verifies union contains both source bits at midpoint, fast-path endpoint returns, and interpolation disable fallback.
+- Roadmap updated: marks mask blending baseline complete; advanced spline curves, adaptive quality loop, pooled buffer strategies, and geometric resample blend remain.
+
 ### Asset Browser (Overlay Phase 1 Enhancement)
 
 - New tabbed interface (All / Textures / Audio / JSON / Shaders) with live wildcard filter ("\*" / "?"; case-insensitive).

@@ -414,19 +414,20 @@ Core Subsystems:
   - [x] Basic linear interpolation factor between keyframes (returns t + bracketing indices via masks pointers)
   - [ ] Smooth interpolation system for fluid collision transitions (cubic/spline quality modes pending)
   - [ ] Performance-aware frame skipping under load (threshold field placeholder only)
-  - [ ] Mask blending (real-time morph) & memory pooling cache optimization
+  - [x] Mask blending (real-time morph) baseline (union OR) with scratch buffer reuse (no resample)
 
 - [x] **File**: `src/game/animation_collision_sync.c` (scaffold ~150 lines)
   - [x] **Function**: `rogue_animation_collision_evaluate_timeline()` (deterministic activation evaluation; overlap counted, no batching yet)
     - [x] Temporal collision window evaluation (ms domain; simple range test)
     - [ ] Sub-frame precision beyond provided float timestamps (deferred)
-    - [ ] Dynamic timeline adjustment based on animation speed (future speed scale param)
-    - [ ] Collision event scheduling and batching (future queue API)
-  - [x] **Function**: `rogue_animation_collision_interpolate_masks()` (returns bracketing keyframes + linear t)
+  - [x] Dynamic timeline adjustment based on animation speed (implemented wrapper `rogue_animation_collision_evaluate_timeline_scaled` applying playback_speed)
+  - [ ] Collision event scheduling and batching (future queue API – basic enter/exit events implemented separately)
+  - [x] **Function**: `rogue_animation_collision_interpolate_masks()` (returns bracketing keyframes + linear t; added basic smoothstep when interpolation_quality>=0.5)
     - [ ] Real-time collision mask morphing between keyframes (future blending path)
-    - [ ] Spline-based interpolation quality modes (cubic/Hermite) pending
+    - [ ] Advanced spline-based interpolation quality modes (beyond smoothstep) pending
     - [ ] Quality-adaptive interpolation (performance feedback loop) pending
     - [ ] Cache-friendly pooled buffer strategy pending
+  - [x] Frame skip cached evaluation scaffold (`rogue_animation_collision_evaluate_timeline_cached`) honoring frame_skip_threshold without missing window boundaries
   - [x] Unit test `test_animation_collision_sync_basic` validating window activation and interpolation factor (non-morph)
   - [ ] Additional tests for looping timelines, speed scaling, multi-window overlap resolution (future)
 
