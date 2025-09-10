@@ -1,3 +1,16 @@
+feat(hitbox/phase2.3): enemy collision LOD stage integration + pixel-perfect stage baseline
+
+- Added enemy profile LOD adaptation stage to collision pipeline (maps higher importance → negative bias for prioritization).
+- Implemented baseline pixel-perfect stage pruning logic:
+	• FAST tier: prune every other candidate (cheap heuristic)
+	• BALANCED tier: single center sample degeneracy filter
+	• PRECISE/ULTRA tiers: 3x3 sampling for early discard of empty/degenerate masks
+- Updated bias heuristic (importance → negative lod_bias) and stabilized ordering expectations.
+- New integration test `test_collision_pipeline_phase2_3_enemy_lod` validating bias ordering across contrasting candidates (size + distance).
+- Roadmap (implementation_hitbox_rework.txt): Mark Stage 3 (pixel-perfect baseline) complete with descriptive annotation.
+- README: Milestone 2.3 section now reflects LOD stage + pixel-perfect baseline implemented; deferred list trimmed to advanced overlap, multi-res selection, SIMD + full mask intersection.
+- No runtime gameplay paths invoke pipeline yet (feature still sandboxed); low regression risk.
+
 feat(hitbox-2.3): enemy collision optimization scaffolding
 
 - Add enemy_collision_opt.{h,c} with profile (radius+density heuristic complexity) & batch structs

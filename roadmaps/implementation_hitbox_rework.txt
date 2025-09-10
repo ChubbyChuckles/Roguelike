@@ -226,7 +226,7 @@ Core Subsystems:
     - [ ] Hierarchical bounding volumes with automatic tree balancing
     - [ ] Temporal AABB expansion for fast-moving objects
     - [ ] Conservative rasterization for sub-pixel accurate bounds
-  - [ ] **Stage 3**: `collision_stage_pixel_perfect()`
+  - [x] **Stage 3**: `collision_stage_pixel_perfect()` (baseline implementation: FAST tier half-prune heuristic; BALANCED+ performs mask presence & center sampling, PRECISE/ULTRA 3x3 sampling for degenerate mask pruning; metrics integrated, future full bitwise overlap & multi-res selection pending)
   - [x] Temporal coherence cache stage (reuse prior frame subset when view stable & small set)
 
 **Tests Added (Milestone 2.1 initial slice)**

@@ -552,7 +552,8 @@ bool rogue_collision_stage_enemy_profile_lod(struct RogueCollisionContext* ctx,
         /* Distance proxy: actual distance to view center (player surrogate). */
         float dx = c->x - cx;
         float dy = c->y - cy;
-        float dist = (float) sqrtf(dx * dx + dy * dy);
+        /* MSVC C mode lacks sqrtf; use double sqrt then cast (portable). */
+        float dist = (float) sqrt((double) (dx * dx + dy * dy));
         /* Screen area proxy: treat 2*half_w * 2*half_h as projected box (no scaling). */
         float screen_area = (c->half_w * 2.f) * (c->half_h * 2.f);
         rogue_enemy_collision_profile_adapt_lod(c->enemy_profile, dist, screen_area, 0.f, 0.f);

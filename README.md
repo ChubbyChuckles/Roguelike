@@ -89,6 +89,20 @@ Deferred (remaining) items: SIMD AABB + hierarchical bounds, temporal coherence 
 - Unit test `test_enemy_collision_opt` verifies heuristic mapping, bias clamp, centroid aggregation, and radius growth.
 - Deferred (next slices): shape descriptors (convexity/symmetry), SIMD `rogue_enemy_collision_batch_process`, dynamic LOD adaptation, performance prediction & method selection.
 
+###### Update: Enemy LOD Stage + Pixel-Perfect Baseline Integrated
+
+An adaptive enemy profile LOD stage has been added to the collision pipeline. It assigns a signed `lod_bias` (higher importance → more negative) derived from approximate on‑screen footprint & distance, enabling future priority ordering and quality shaping. A baseline pixel‑perfect pruning stage is now active (staged behind the same sandboxed pipeline integration):
+
+- FAST: prune every other candidate (cheap coarse thinning)
+- BALANCED: single central sample mask check to discard empty/degenerate masks
+- PRECISE / ULTRA: 3×3 sample pattern to aggressively filter trivial masks before full bitmask overlap logic (future slice)
+
+Current deferrals for this milestone now focus on: full bitmask overlap & hierarchical/multi‑resolution selection, SIMD mask intersection paths, rich enemy priority ordering (threat/visibility), temporal reuse synergy between LOD + pixel stages, and dynamic stage reordering. The earlier generic "pixel-perfect stage integration" placeholder is replaced by this implemented baseline.
+
+Test: `test_collision_pipeline_phase2_3_enemy_lod` asserts bias ordering across contrasting candidates (size + distance) and guards the negative‑bias heuristic mapping.
+
+Roadmap file `implementation_hitbox_rework.txt` updated (Stage 3 marked complete with annotation).
+
 Press F1 in-game to open the debug overlay.
 
 ### Asset Browser (Overlay Phase 1 Enhancement)
