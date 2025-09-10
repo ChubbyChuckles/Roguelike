@@ -1,5 +1,19 @@
 feat(hitbox/phase1): introduce minimal pixel mask loader & unit test
 
+feat(hitbox/phase1): add RLE compression + binary mipmap generation to pixel mask loader
+
+Adds optional simple RLE (run-length of 32-bit words) compression and binary OR-based 2x2 mipmap
+chain generation (configurable levels, capped at 6) to pixel_mask_loader:
+- New frame fields: mipmap_count, mipmaps[], compressed buffer, compressed_size, compressed_format
+- Loader now fills metrics (compressed_size, mipmap_levels) and duplicates advanced buffers across
+	replicated frames for initial asset-backed placeholder scenario
+- Ensure path requests 3 mip levels for future broad-phase overlap tests
+- Reset function frees advanced allocations (only once per set)
+- Unit test extended to assert presence/consistency of compression + mipmaps when available
+
+Roadmap: progresses Milestone 1.1 (compression + mipmap initial slice) while leaving distance fields,
+gamma/edge smoothing, threaded build for later slices.
+
 Adds Phase 1 (Milestone 1.1 slice) pixel mask loading scaffold:
 - New files: pixel_mask_loader.{h,c} with alpha-threshold SDL surface → bitmask conversion
 - Integrates into rogue_hit_pixel_masks_ensure: attempts asset-backed load (placeholder.png) before procedural fallback

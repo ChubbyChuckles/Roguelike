@@ -15,7 +15,22 @@ extern "C"
         int origin_y;
         int pitch_words; /* 32-bit words per scanline */
         uint32_t* bits;  /* packed bits (row-major) */
+        /* Optional advanced features (Phase 1 incremental additions) */
+        int mipmap_count; /* includes base level (>=1) */
+        struct RogueHitPixelMaskMipmapLevel*
+            mipmaps;            /* array of (mipmap_count-1) levels; NULL if none */
+        void* compressed;       /* optional compressed buffer (RLE) */
+        size_t compressed_size; /* bytes in compressed buffer */
+        int compressed_format;  /* 0 = none, 1 = simple RLE */
     } RogueHitPixelMaskFrame;
+
+    typedef struct RogueHitPixelMaskMipmapLevel
+    {
+        int width;
+        int height;
+        int pitch_words;
+        uint32_t* bits; /* same layout as base */
+    } RogueHitPixelMaskMipmapLevel;
 
     typedef struct RogueHitPixelMaskSet
     {

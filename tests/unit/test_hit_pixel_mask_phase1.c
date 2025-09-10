@@ -40,6 +40,21 @@ int main(void)
         }
     if (!assert_true(any_bits, "at least one solid pixel"))
         return 1;
+    /* Advanced metadata (may be absent if asset load failed and placeholder used). */
+    if (set->frames[0].compressed_format != 0)
+    {
+        if (!assert_true(set->frames[0].compressed != NULL, "compressed buffer non-null"))
+            return 1;
+        if (!assert_true(set->frames[0].compressed_size > 0, "compressed size >0"))
+            return 1;
+    }
+    if (set->frames[0].mipmap_count > 1)
+    {
+        if (!assert_true(set->frames[0].mipmaps != NULL, "mipmaps array present"))
+            return 1;
+        if (!assert_true(set->frames[0].mipmaps[0].bits != NULL, "first mip bits present"))
+            return 1;
+    }
     /* Enemy test sanity: center or ring should hit somewhere for placeholder */
     int lx = -1, ly = -1;
     int hit = rogue_hit_mask_enemy_test(&set->frames[0], (float) (w / 2), (float) (h / 2), 4.0f,

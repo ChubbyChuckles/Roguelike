@@ -18,10 +18,10 @@ extern "C"
     typedef struct RoguePixelMaskLoadConfig
     {
         float alpha_threshold;     /* 0..1 inclusive; pixels with alpha >= threshold become solid */
-        int edge_smoothing_passes; /* reserved (future) */
-        int compression_level;     /* reserved (future) */
-        int mipmap_levels;         /* reserved (future) */
-        int generate_distance_fields; /* reserved (future) */
+        int edge_smoothing_passes; /* reserved (future smoothing) */
+        int compression_level;     /* 0 = none, 1 = fast RLE (current slice) */
+        int mipmap_levels;         /* number of mip levels to generate (>=1). 1 disables. Max 6 */
+        int generate_distance_fields; /* reserved */
     } RoguePixelMaskLoadConfig;
 
     typedef struct RoguePixelMaskMetrics
@@ -31,6 +31,8 @@ extern "C"
         float solid_ratio;         /* collision_pixels / total_pixels */
         uint64_t build_time_ns;    /* optional timing (0 if unavailable) */
         size_t memory_footprint;   /* bytes allocated for bit mask */
+        size_t compressed_size;    /* bytes of compressed buffer (if any) */
+        int mipmap_levels;         /* number of mip levels actually generated */
     } RoguePixelMaskMetrics;
 
     /* Forward declare frame type to avoid including hit_pixel_mask.h here (keeps
@@ -43,8 +45,8 @@ extern "C"
         RoguePixelMaskLoadConfig c;
         c.alpha_threshold = 0.5f;
         c.edge_smoothing_passes = 0;
-        c.compression_level = 0;
-        c.mipmap_levels = 1;
+        c.compression_level = 1; /* enable light RLE by default */
+        c.mipmap_levels = 1;     /* caller can raise to request chain */
         c.generate_distance_fields = 0;
         return c;
     }
