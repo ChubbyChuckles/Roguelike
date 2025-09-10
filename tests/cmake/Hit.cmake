@@ -76,3 +76,23 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_hit_mask_integration.c AND NOT T
     endif()
     rogue_add_test(NAME test_hit_mask_integration COMMAND test_hit_mask_integration)
 endif()
+
+# Distance field + async build test (requires SDL)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_hit_mask_distance_field.c AND NOT TARGET test_hit_mask_distance_field)
+    add_executable(test_hit_mask_distance_field unit/test_hit_mask_distance_field.c)
+    target_link_libraries(test_hit_mask_distance_field PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_hit_mask_distance_field PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(NAME test_hit_mask_distance_field COMMAND test_hit_mask_distance_field)
+endif()
+
+# Multi-format (BMP fallback) load test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_hit_mask_multiformat.c AND NOT TARGET test_hit_mask_multiformat)
+    add_executable(test_hit_mask_multiformat unit/test_hit_mask_multiformat.c)
+    target_link_libraries(test_hit_mask_multiformat PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_hit_mask_multiformat PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(NAME test_hit_mask_multiformat COMMAND test_hit_mask_multiformat)
+endif()

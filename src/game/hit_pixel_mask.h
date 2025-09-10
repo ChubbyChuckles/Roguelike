@@ -22,6 +22,10 @@ extern "C"
         void* compressed;       /* optional compressed buffer (RLE) */
         size_t compressed_size; /* bytes in compressed buffer */
         int compressed_format;  /* 0 = none, 1 = simple RLE */
+        /* Distance field (signed, chamfer approximation). Units scaled by distance_field_scale.
+            Positive values = inside solid region, negative outside. 0 on boundary. */
+        int16_t* distance_field;  /* array [width*height] or NULL if not generated */
+        int distance_field_scale; /* scaling (e.g. 10 => value/10 = pixels) */
     } RogueHitPixelMaskFrame;
 
     typedef struct RogueHitPixelMaskMipmapLevel

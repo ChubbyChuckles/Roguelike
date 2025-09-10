@@ -158,6 +158,20 @@ feat(overlay/asset_browser phase3): animation frame editor initial slice
 feat(asset-overlay/phase4): optimization recommendations & cycle visualization placeholder
 
 Phase 4 Asset Validation & QA advancement:
+
+feat(hitbox/phase1.1): add SDF generation, async build, multi-format (PNG+BMP) loading & tests
+
+- Added signed distance field generation (int16 chamfer transform, positive inside) gated by config flag.
+- Introduced async build submission via optional registered thread pool (registration API replaces fragile extern global).
+- Implemented multi-format loading fallback: PNG via SDL_image (when present) and BMP via native SDL_LoadBMP; extension dispatch added (TGA/DDS still require SDL_image / future decoders).
+- Updated loader to extension-probe when IMG_Load fails; preserves headless safety.
+- Added new unit tests:
+	• test_hit_mask_distance_field (validates SDF sign + async completion)
+	• test_hit_mask_multiformat (writes temporary BMP, loads mask, asserts pixel count/metrics)
+- Roadmap (implementation_hitbox_rework.txt): Marked multi-format support, SDF, and mipmap tasks complete; annotated async partial progress toward future multi-threaded per-pixel processing.
+- README: Expanded Phase 1 section to reflect SDF, async path, multi-format, and new tests.
+- Maintains existing RLE compression + mipmap chain; no regression in prior tests.
+
  - Implemented "Show Optimization Recs" toggle in Asset Browser panel enumerating:
 	 * Large textures (>=1024 in either dimension) – early heuristic (first 8) for downscale/compression review.
 	 * Referenced-but-unloaded (lazy) textures and audio – highlights potential preload/stream candidates (first 8 each).

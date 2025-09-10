@@ -1,17 +1,19 @@
 ## Debug overlay tips
 
-### Hitbox Rework Phase 1 (Initial Slices)
+### Hitbox Rework Phase 1 (Slices 1.1 Progress)
 
-Pixel-perfect collision foundation plus first advanced features are in:
+Pixel-perfect collision foundation plus several advanced features are now implemented:
 
-- `pixel_mask_loader` converts sprite alpha to bit-packed collision masks (alpha threshold configurable).
-- Weapon mask ensure path now attempts asset-backed load (replicates a loaded frame across 8 frames) before procedural horizontal‑bar fallback.
+- `pixel_mask_loader` converts sprite alpha to bit-packed collision masks (alpha threshold configurable) with optional async build via a registered thread pool (`rogue_pixel_mask_set_thread_pool`).
+- Multi-format sprite support: PNG (via SDL_image when available) and BMP (native SDL fallback). Extension-based dispatch added; TGA/DDS still require SDL_image (magic number probing deferred).
+- Signed Distance Field (SDF) generation (chamfer 3x3 inside/outside passes, int16 grid; positive inside, 0 on boundary) gated by `generate_distance_fields` flag.
+- Binary OR 2x2 mipmap chain generation (request via `mipmap_levels`, capped at 6) to enable future multi-resolution broad-phase heuristics.
+- Simple word-run RLE compression (opt-in via `compression_level > 0`) stores a secondary buffer; format tag = 1 (future codecs reserved).
 - Metrics collected: total / collision pixels, solid ratio, build time (ns), memory footprint, compressed size, mip levels.
-- Simple word‑run RLE compression (opt‑in via `compression_level > 0`) stores a secondary buffer; format tag = 1 (future codecs reserved).
-- Binary OR 2x2 mipmap chain generation (request via `mipmap_levels` in config) for upcoming multi‑resolution / broad‑phase heuristics.
-- Unit test `test_hit_pixel_mask_phase1` validates loader, replication/fallback path, and sampling metadata (including compression & mipmap presence when enabled).
+- Async path submits a build job to the shared thread pool when present; otherwise falls back synchronously (unit-tested).
+- Unit tests: `test_hit_mask_basic`, `test_hit_mask_integration`, `test_hit_mask_distance_field` (SDF + async), and new `test_hit_mask_multiformat` (BMP fallback) keep regression coverage high.
 
-Next roadmap slices will tackle: distance fields (SDF), edge smoothing, multi-threaded build, smarter mipmap filtering (gaussian / adaptive thresholds), compression auto‑selection + ratio analytics, and item / animation / atlas integration.
+Upcoming roadmap slices: per-row/stripe multi-threaded pixel processing, edge smoothing, advanced alpha handling (gamma), magic-number format detection, compression ratio analytics + auto selection, item collision cache (Milestone 1.2), and atlas / animation integration (Milestone 1.3).
 
 Press F1 in-game to open the debug overlay.
 

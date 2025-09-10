@@ -21,7 +21,7 @@ extern "C"
         int edge_smoothing_passes; /* reserved (future smoothing) */
         int compression_level;     /* 0 = none, 1 = fast RLE (current slice) */
         int mipmap_levels;         /* number of mip levels to generate (>=1). 1 disables. Max 6 */
-        int generate_distance_fields; /* reserved */
+        int generate_distance_fields; /* 0=none, 1=generate signed distance field (int16 grid) */
     } RoguePixelMaskLoadConfig;
 
     typedef struct RoguePixelMaskMetrics
@@ -64,6 +64,18 @@ extern "C"
     int rogue_pixel_mask_load_from_file(const char* path, const RoguePixelMaskLoadConfig* cfg,
                                         struct RogueHitPixelMaskFrame* out_frame,
                                         RoguePixelMaskMetrics* out_metrics);
+
+    /* Asynchronous build helper. If a thread pool has been registered via
+        rogue_pixel_mask_set_thread_pool() and use_thread_pool!=0, the work
+        (including compression/mips/distance-fields) is queued and this returns 1 immediately.
+        Falls back to synchronous build otherwise (also returns 1 on success). */
+    int rogue_pixel_mask_build_async(void* sdl_surface, const RoguePixelMaskLoadConfig* cfg,
+                                     struct RogueHitPixelMaskFrame* out_frame,
+                                     RoguePixelMaskMetrics* out_metrics, int use_thread_pool);
+
+    /* Register a shared thread pool to enable async builds. Safe to pass NULL to disable. */
+    struct RogueThreadPool; /* forward decl */
+    void rogue_pixel_mask_set_thread_pool(struct RogueThreadPool* tp);
 
 #ifdef __cplusplus
 }

@@ -8,6 +8,7 @@
  * Future (deferred): edge smoothing, distance fields, threaded build, advanced codecs.
  */
 #include "pixel_mask_loader.h"
+#include "../core/integration/thread_pool.h"
 #include "../util/log.h"
 #include "hit_pixel_mask.h" /* for RogueHitPixelMaskFrame helpers */
 #include <limits.h>
@@ -43,6 +44,159 @@ static uint64_t now_ns(void)
     if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
         return 0;
     return (uint64_t) ts.tv_sec * 1000000000ULL + (uint64_t) ts.tv_nsec;
+#endif
+}
+
+/* Optional thread pool registration. We avoid requiring a global symbol definition to keep
+   this module link-order agnostic. Call rogue_pixel_mask_set_thread_pool(tp) during engine
+   init to enable asynchronous builds. */
+static RogueThreadPool* g_registered_thread_pool = NULL;
+
+void rogue_pixel_mask_set_thread_pool(RogueThreadPool* tp) { g_registered_thread_pool = tp; }
+
+/* Distance Field Generation (Signed) ---------------------------------------------------------- */
+/* We compute a simple 3x3 chamfer distance transform for inside and outside, then combine to
+   produce signed distances (positive inside). Values are stored scaled by scale (default 10). */
+static void generate_distance_field(RogueHitPixelMaskFrame* frame, int scale)
+{
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4244)
+#endif
+    if (!frame || !frame->bits || frame->distance_field)
+        return;
+    int w = frame->width, h = frame->height;
+    size_t count = (size_t) w * (size_t) h;
+    int16_t* buf = (int16_t*) malloc(count * sizeof(int16_t));
+    if (!buf)
+        return;
+    int16_t* inside = (int16_t*) malloc(count * sizeof(int16_t));
+    int16_t* outside = (int16_t*) malloc(count * sizeof(int16_t));
+    if (!inside || !outside)
+    {
+        free(buf);
+        free(inside);
+        free(outside);
+        return;
+    }
+    const int INF = 32767;
+    /* Initialize distance arrays */
+    for (int y = 0; y < h; ++y)
+    {
+        for (int x = 0; x < w; ++x)
+        {
+            int solid = rogue_hit_mask_test(frame, x, y);
+            inside[y * w + x] = (int16_t) (solid ? 0 : INF);
+            outside[y * w + x] = (int16_t) (solid ? INF : 0);
+        }
+    }
+    /* Chamfer passes (weights 3/4 approximating Euclidean) */
+    const int w1 = 3 * scale; /* orthogonal */
+    const int w2 = 4 * scale; /* diagonal */
+    /* Forward */
+    for (int y = 0; y < h; ++y)
+    {
+        for (int x = 0; x < w; ++x)
+        {
+            int idx = y * w + x;
+            int16_t d_in = inside[idx];
+            int16_t d_out = outside[idx];
+            if (x > 0)
+            {
+                int idx_l = idx - 1;
+                if (inside[idx_l] + w1 < d_in)
+                    d_in = inside[idx_l] + w1;
+                if (outside[idx_l] + w1 < d_out)
+                    d_out = outside[idx_l] + w1;
+            }
+            if (y > 0)
+            {
+                int idx_u = idx - w;
+                if (inside[idx_u] + w1 < d_in)
+                    d_in = inside[idx_u] + w1;
+                if (outside[idx_u] + w1 < d_out)
+                    d_out = outside[idx_u] + w1;
+                if (x > 0)
+                {
+                    int idx_ul = idx_u - 1;
+                    if (inside[idx_ul] + w2 < d_in)
+                        d_in = inside[idx_ul] + w2;
+                    if (outside[idx_ul] + w2 < d_out)
+                        d_out = outside[idx_ul] + w2;
+                }
+                if (x + 1 < w)
+                {
+                    int idx_ur = idx_u + 1;
+                    if (inside[idx_ur] + w2 < d_in)
+                        d_in = inside[idx_ur] + w2;
+                    if (outside[idx_ur] + w2 < d_out)
+                        d_out = outside[idx_ur] + w2;
+                }
+            }
+            inside[idx] = (int16_t) (d_in > 32767 ? 32767 : d_in);
+            outside[idx] = (int16_t) (d_out > 32767 ? 32767 : d_out);
+        }
+    }
+    /* Backward */
+    for (int y = h - 1; y >= 0; --y)
+    {
+        for (int x = w - 1; x >= 0; --x)
+        {
+            int idx = y * w + x;
+            int16_t d_in = inside[idx];
+            int16_t d_out = outside[idx];
+            if (x + 1 < w)
+            {
+                int idx_r = idx + 1;
+                if (inside[idx_r] + w1 < d_in)
+                    d_in = inside[idx_r] + w1;
+                if (outside[idx_r] + w1 < d_out)
+                    d_out = outside[idx_r] + w1;
+            }
+            if (y + 1 < h)
+            {
+                int idx_d = idx + w;
+                if (inside[idx_d] + w1 < d_in)
+                    d_in = inside[idx_d] + w1;
+                if (outside[idx_d] + w1 < d_out)
+                    d_out = outside[idx_d] + w1;
+                if (x > 0)
+                {
+                    int idx_dl = idx_d - 1;
+                    if (inside[idx_dl] + w2 < d_in)
+                        d_in = inside[idx_dl] + w2;
+                    if (outside[idx_dl] + w2 < d_out)
+                        d_out = outside[idx_dl] + w2;
+                }
+                if (x + 1 < w)
+                {
+                    int idx_dr = idx_d + 1;
+                    if (inside[idx_dr] + w2 < d_in)
+                        d_in = inside[idx_dr] + w2;
+                    if (outside[idx_dr] + w2 < d_out)
+                        d_out = outside[idx_dr] + w2;
+                }
+            }
+            inside[idx] = (int16_t) (d_in > 32767 ? 32767 : d_in);
+            outside[idx] = (int16_t) (d_out > 32767 ? 32767 : d_out);
+        }
+    }
+    /* Combine into signed distance: inside-dist - outside-dist. Clamp to int16 range. */
+    for (size_t i = 0; i < count; ++i)
+    {
+        int v = (int) outside[i] - (int) inside[i]; /* positive inside (0 boundary) */
+        if (v > 32767)
+            v = 32767;
+        if (v < -32768)
+            v = -32768;
+        buf[i] = (int16_t) v;
+    }
+    free(inside);
+    free(outside);
+    frame->distance_field = buf;
+    frame->distance_field_scale = scale;
+#if defined(_MSC_VER)
+#pragma warning(pop)
 #endif
 }
 
@@ -309,6 +463,11 @@ int rogue_pixel_mask_build_from_surface(void* sdl_surface_v, const RoguePixelMas
                 : 0.f;
         out_metrics->memory_footprint = words * sizeof(uint32_t);
     }
+    /* Distance field (optional) */
+    if (cfg->generate_distance_fields)
+    {
+        generate_distance_field(out_frame, 10);
+    }
     return 1;
 #endif
 }
@@ -332,12 +491,97 @@ int rogue_pixel_mask_load_from_file(const char* path, const RoguePixelMaskLoadCo
 #endif
     if (!surf)
     {
-        ROGUE_LOG_DEBUG("pixel_mask_load_fallback_placeholder: %s", path);
-        return 0; /* caller may fall back to placeholder */
+        /* Multi-format fallback: if SDL_image failed (or not built) try lightweight
+           loaders based on extension (currently BMP). SDL_LoadBMP supports BMP natively.
+           For TGA/DDS without SDL_image we currently log and fail (future slice can add
+           minimal decoders if needed). */
+        const char* ext = path;
+        const char* last_dot = NULL;
+        for (const char* p = path; *p; ++p)
+            if (*p == '.')
+                last_dot = p;
+        if (last_dot)
+            ext = last_dot + 1;
+        char lower_ext[8] = {0};
+        int i = 0;
+        while (ext[i] && i < 7)
+        {
+            char c = ext[i];
+            if (c >= 'A' && c <= 'Z')
+                c = (char) (c - 'A' + 'a');
+            lower_ext[i] = c;
+            i++;
+        }
+        if (strcmp(lower_ext, "bmp") == 0)
+        {
+            surf = SDL_LoadBMP(path);
+        }
+        else if (strcmp(lower_ext, "tga") == 0 || strcmp(lower_ext, "dds") == 0)
+        {
+            ROGUE_LOG_DEBUG(
+                "pixel_mask_loader: format %s requires SDL_image (not available) for %s", lower_ext,
+                path);
+        }
+        if (!surf)
+        {
+            ROGUE_LOG_DEBUG("pixel_mask_load_fallback_placeholder: %s", path);
+            return 0; /* caller may fall back to placeholder */
+        }
     }
     int ok = rogue_pixel_mask_build_from_surface(surf, cfg, out_frame, out_metrics);
     SDL_FreeSurface(surf);
     return ok;
+#endif
+}
+
+typedef struct AsyncPixelMaskJob
+{
+    SDL_Surface* surf;
+    RoguePixelMaskLoadConfig cfg;
+    RogueHitPixelMaskFrame* out_frame;
+    RoguePixelMaskMetrics* out_metrics;
+} AsyncPixelMaskJob;
+
+static void async_build_job(void* user)
+{
+    AsyncPixelMaskJob* job = (AsyncPixelMaskJob*) user;
+    rogue_pixel_mask_build_from_surface(job->surf, &job->cfg, job->out_frame, job->out_metrics);
+    SDL_FreeSurface(job->surf);
+    free(job);
+}
+
+int rogue_pixel_mask_build_async(void* sdl_surface, const RoguePixelMaskLoadConfig* cfg,
+                                 struct RogueHitPixelMaskFrame* out_frame,
+                                 RoguePixelMaskMetrics* out_metrics, int use_thread_pool)
+{
+#if !defined(ROGUE_HAVE_SDL)
+    (void) sdl_surface;
+    (void) cfg;
+    (void) out_frame;
+    (void) out_metrics;
+    (void) use_thread_pool;
+    return 0;
+#else
+    if (!sdl_surface)
+        return 0;
+    if (!use_thread_pool)
+        return rogue_pixel_mask_build_from_surface(sdl_surface, cfg, out_frame, out_metrics);
+    if (!g_registered_thread_pool || !g_registered_thread_pool->threads ||
+        g_registered_thread_pool->thread_count <= 0)
+        return rogue_pixel_mask_build_from_surface(sdl_surface, cfg, out_frame, out_metrics);
+    AsyncPixelMaskJob* job = (AsyncPixelMaskJob*) malloc(sizeof(AsyncPixelMaskJob));
+    if (!job)
+        return 0;
+    job->surf = (SDL_Surface*) sdl_surface;
+    job->cfg = cfg ? *cfg : rogue_pixel_mask_load_config_default();
+    job->out_frame = out_frame;
+    job->out_metrics = out_metrics;
+    int ok = rogue_thread_pool_submit(g_registered_thread_pool, async_build_job, job);
+    if (ok != 0)
+        return 1; /* enqueued */
+    /* fallback */
+    free(job);
+    return rogue_pixel_mask_build_from_surface(sdl_surface, cfg, out_frame, out_metrics);
 #endif
 }
 

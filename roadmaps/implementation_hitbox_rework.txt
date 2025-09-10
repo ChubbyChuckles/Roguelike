@@ -73,18 +73,18 @@ Core Subsystems:
   ```
   - [x] Define comprehensive loading configuration structure (alpha_threshold, compression_level, mipmap_levels implemented; smoothing/SDF deferred)
   - [x] Add metrics collection for performance analysis (total/collision pixels, solid ratio, build time, memory, compressed size, mip levels)
-  - [ ] Support for multiple sprite formats (PNG, BMP, TGA, DDS)
-  - [ ] Implement signed distance field generation for smooth scaling
-  - [ ] Add mipmap generation for multi-resolution collision detection
+  - [x] Support for multiple sprite formats (PNG, BMP, TGA, DDS) (PNG via SDL_image, BMP native SDL fallback; TGA/DDS currently require SDL_image – lightweight ext dispatch added)
+  - [x] Implement signed distance field generation for smooth scaling (chamfer 3x3 pass; int16 grid; positive inside)
+  - [x] Add mipmap generation for multi-resolution collision detection (binary OR 2x2 chain, up to 6 levels)
 
 - [x] **File**: `src/game/pixel_mask_loader.c` (initial slice ~200 lines: alpha threshold build from SDL surface / file, metrics population, headless guards)
   - [x] **Function**: `rogue_pixel_mask_build_from_surface()` (basic alpha threshold, single-threaded)
-    - [ ] (Future) Multi-threaded pixel processing (worker thread pool)
+  - [ ] (Future) Multi-threaded pixel processing (worker thread pool) (current slice adds async submission using registered thread pool; per-row/stripe parallelism deferred)
     - [ ] (Future) Advanced alpha channel processing with gamma correction
     - [ ] (Future) Edge detection and smoothing algorithms
     - [ ] (Future) Error recovery for corrupted/partial image data
   - [x] **Function**: `rogue_pixel_mask_load_from_file()` (basic path via SDL_image IMG_Load, fallback safe)
-    - [ ] (Future) File format auto-detection via magic number analysis
+  - [ ] (Future) File format auto-detection via magic number analysis (current slice uses extension-based fallback for BMP when SDL_image unavailable)
     - [ ] (Future) Streaming loader for large sprites (>4MB)
     - [ ] (Future) Incremental loading with progress callbacks
     - [ ] (Future) Memory-mapped file access for performance

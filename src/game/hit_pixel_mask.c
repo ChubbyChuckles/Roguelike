@@ -186,10 +186,13 @@ void rogue_hit_pixel_masks_reset_all(void)
                     }
                     free(fr->mipmaps);
                 }
+                if (fr->distance_field)
+                    free(fr->distance_field);
             }
             fr->compressed = NULL;
             fr->mipmaps = NULL;
             fr->mipmap_count = 0;
+            fr->distance_field = NULL;
         }
     }
     g_set_count = 0;
