@@ -172,6 +172,17 @@ feat(hitbox/phase1.1): add SDF generation, async build, multi-format (PNG+BMP) l
 - README: Expanded Phase 1 section to reflect SDF, async path, multi-format, and new tests.
 - Maintains existing RLE compression + mipmap chain; no regression in prior tests.
 
+feat(hitbox/phase1.2): initial item collision cache (LRU) implementation & test
+
+- Added `item_collision_cache.{h,c}` providing fixed-capacity (configurable) LRU cache keyed by `RogueItemDefHandle` with generation snapshot validation.
+- Tracks stats (lookups, hits, misses, evictions, approx resident bytes) and enforces memory ceiling (`ROGUE_COLLISION_CACHE_MAX_MEMORY_MB`).
+- Lazy loads weapon collision masks by reusing existing `rogue_hit_pixel_masks_ensure` path (weapon category only; other categories placeholder for future sprite integration).
+- Implements approximate memory accounting (bit buffers, mipmaps, compressed buffer, distance field) and evicts from tail until under limit.
+- Roadmap (implementation_hitbox_rework.txt): Milestone 1.2 items updated (LRU, handle safety, memory pressure eviction, stats marked complete; threading/prefetch/invalidation/optimize deferred).
+- New unit test `test_item_collision_cache_basic` validates miss→load, hit, and population stats sanity.
+- CMake: added `item_collision_cache.c` to core sources and registered test target.
+- README Phase 1 section unchanged (follow-up may add cache mention once background loading slice lands); no regressions expected.
+
  - Implemented "Show Optimization Recs" toggle in Asset Browser panel enumerating:
 	 * Large textures (>=1024 in either dimension) – early heuristic (first 8) for downscale/compression review.
 	 * Referenced-but-unloaded (lazy) textures and audio – highlights potential preload/stream candidates (first 8 each).

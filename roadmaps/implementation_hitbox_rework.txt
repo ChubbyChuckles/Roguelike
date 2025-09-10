@@ -101,7 +101,7 @@ Core Subsystems:
     - [ ] Quality metrics for mipmap chain validation (deferred)
 
 #### MILESTONE 1.2: Advanced Item System Integration (NOT STARTED)
-- [ ] **File**: `src/game/item_collision_cache.h` (new)
+- [x] **File**: `src/game/item_collision_cache.h` (initial slice implemented)
   ```c
   typedef struct RogueItemCollisionCache {
       RogueItemDefHandle item_handle;
@@ -115,23 +115,23 @@ Core Subsystems:
   #define ROGUE_COLLISION_CACHE_SIZE 128
   #define ROGUE_COLLISION_CACHE_MAX_MEMORY_MB 64
   ```
-  - [ ] LRU cache system with configurable memory limits
-  - [ ] Handle-based access for safe item definition changes
-  - [ ] Asset timestamp tracking for automatic cache invalidation
-  - [ ] Memory pressure handling with intelligent eviction
-  - [ ] Cache statistics and hit ratio monitoring
+  - [x] LRU cache system with configurable memory limits (fixed cap + MB threshold)
+  - [x] Handle-based access for safe item definition changes (generation snapshot check)
+  - [ ] Asset timestamp tracking for automatic cache invalidation (deferred)
+  - [x] Memory pressure handling with intelligent eviction (LRU eviction when size or memory exceeds)
+  - [x] Cache statistics and hit ratio monitoring (lookups/hits/misses/evictions, bytes)
 
-- [ ] **File**: `src/game/item_collision_cache.c` (new, 600+ lines)
-  - [ ] **Function**: `rogue_item_collision_cache_get_or_load()`
-    - [ ] Thread-safe cache access with read-write locks
-    - [ ] Background loading for cache misses
-    - [ ] Prefetching based on usage patterns
-    - [ ] Graceful degradation for memory pressure
-  - [ ] **Function**: `rogue_item_collision_cache_invalidate_asset()`
+- [x] **File**: `src/game/item_collision_cache.c` (initial slice ~250 lines)
+  - [x] **Function**: `rogue_item_collision_cache_get()` (load-or-create + LRU) (renamed minimal scope)
+    - [ ] Thread-safe cache access with read-write locks (deferred)
+    - [ ] Background loading for cache misses (deferred)
+    - [ ] Prefetching based on usage patterns (deferred)
+    - [x] Graceful degradation for memory pressure (evict LRU until under limit)
+  - [ ] **Function**: `rogue_item_collision_cache_invalidate_asset()` (deferred)
     - [ ] Asset change detection via file system monitoring
     - [ ] Selective cache invalidation for related items
     - [ ] Hot-reload support for development workflow
-  - [ ] **Function**: `rogue_item_collision_cache_optimize()`
+  - [ ] **Function**: `rogue_item_collision_cache_optimize()` (deferred)
     - [ ] Defragmentation and memory compaction
     - [ ] Usage pattern analysis for cache sizing
     - [ ] Garbage collection for unused entries
