@@ -158,6 +158,17 @@ feat(assets/phase5): CI/CD integration & validation tooling
  - Extended GitHub Actions workflow to run asset validation post-tests (manifest + advisory output)
  - Installed generated manifest into distribution under meta/ (CPack includes asset_manifest.txt)
  - Roadmap Phase 5 items marked complete with detailed descriptions; README updated with Phase 5 summary
+
+feat(hitbox/phase2.1): multi-resolution collision pipeline initial slice
+
+- New files: `collision_pipeline.{h,c}` introducing staged collision execution scaffold.
+- API: quality enum (FAST/BALANCED/PRECISE/ULTRA), `RogueCollisionStage` (name, time budget, max candidates, stage_func, metrics), `RogueCollisionPipeline` (up to 8 stages, quality level, frame budget placeholder, adaptive flag).
+- Metrics: per-stage last_ms, EMA avg_ms, input/output candidate counts, call counter; pipeline total_last_ms.
+- Execution: `rogue_collision_pipeline_execute` loops stages, measures timing, updates EMA, propagates candidate counts, and honors early exit when a stage returns false.
+- Deterministic test timing via optional simulated cost injection (<5ms) for stable assertions.
+- Unit test `test_collision_pipeline_phase2_1` verifies ordering, candidate mutation, early exit preventing later stage invocation, and metrics population.
+- Roadmap (implementation_hitbox_rework.txt) updated marking Milestone 2.1 initial slice tasks complete; advanced tasks (adaptive quality enforcement, spatial cull, AABB prefilter, pixel-perfect stage, high-res timer, temporal coherence, load balancing) deferred.
+- README updated with Milestone 2.1 summary; no runtime integration yet (staged feature behind future wiring) minimizes regression risk.
  - Heuristics: duplicate (crc+size) detection and large PNG (>1MB) advisory for compression/atlas planning
 
 feat(overlay/asset_browser phase3): animation frame editor initial slice

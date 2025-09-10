@@ -29,6 +29,25 @@ Upcoming roadmap slices: per-row/stripe multi-threaded pixel processing, edge sm
 - Existing unit test `test_sprite_atlas_animation_collision` covers baseline interpolation union correctness.
 - Roadmap updated marking Milestone 1.3 core tasks complete (geometric morphing, resample path, keyframe optimization deferred).
 
+#### Milestone 2.1 (Initial Multi-Resolution Collision Pipeline Slice)
+
+Foundation for a staged, quality-tiered collision pipeline:
+
+- Added `collision_pipeline.{h,c}` defining:
+  - `RogueCollisionQuality` enum (FAST / BALANCED / PRECISE / ULTRA) for future adaptive selection.
+  - `RogueCollisionStage` (name, time budget, max candidates, function pointer, per-stage metrics).
+  - `RogueCollisionPipeline` container (up to 8 stages, quality level, frame budget, adaptive flag placeholder).
+  - Metrics per stage: `last_ms`, EMA `avg_ms`, input / output candidate counts, call counter; pipeline total time.
+- Execution stub (`rogue_collision_pipeline_execute`) iterates registered stages, records timings, updates EMA, and honors early exit when a stage returns `false`.
+- Deterministic timing support: optional simulated stage cost injection used exclusively in tests (kept <5ms) to produce stable metric assertions without real workload variance.
+- Unit test `test_collision_pipeline_phase2_1` validates:
+  - Stage registration / ordering semantics.
+  - Candidate mutation across stages (e.g. halving logic in a sample stage).
+  - Early-exit behavior preventing later stage execution.
+  - Metrics population (last / avg ms, call counts, candidate in/out tracking, pipeline total > 0).
+- Roadmap updated: Milestone 2.1 initial slice tasks checked (API, execution loop, metrics, test). Deferred (unchecked) items include adaptive quality enforcement, spatial culling, hierarchical AABB prefilter, pixel-perfect stage integration, high-resolution timer upgrade, temporal coherence cache, and dynamic load balancing.
+- No gameplay paths yet invoke the pipeline; integration & advanced stages intentionally deferred to keep this slice low-risk.
+
 Press F1 in-game to open the debug overlay.
 
 ### Asset Browser (Overlay Phase 1 Enhancement)

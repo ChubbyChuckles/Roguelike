@@ -529,6 +529,7 @@ add_library(rogue_core
     src/game/pixel_mask_loader.c
     src/game/item_collision_cache.c
     src/game/sprite_atlas_collision.c
+    src/game/collision_pipeline.c
     src/game/hit_feedback.c
     src/game/weapon_pose.c
     src/game/hit_debug_overlay.c
@@ -1108,6 +1109,14 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_sprite_atlas_animation_collision_fuzz PRIVATE SDL2::SDL2)
 endif()
 rogue_add_test(NAME test_sprite_atlas_animation_collision_fuzz COMMAND test_sprite_atlas_animation_collision_fuzz)
+
+# Milestone 2.1: Collision pipeline initial slice test
+add_executable(test_collision_pipeline_phase2_1 tests/unit/test_collision_pipeline_phase2_1.c)
+target_link_libraries(test_collision_pipeline_phase2_1 PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_collision_pipeline_phase2_1 PRIVATE SDL2::SDL2)
+endif()
+rogue_add_test(NAME test_collision_pipeline_phase2_1 COMMAND test_collision_pipeline_phase2_1)
 
 add_executable(test_tag_registry_validate tests/unit/test_tag_registry_validate.c)
 

@@ -175,7 +175,7 @@ Core Subsystems:
 
 ### PHASE 2: ADVANCED COLLISION DETECTION ENGINE
 #### MILESTONE 2.1: Multi-Resolution Collision Pipeline
-- [ ] **File**: `src/game/collision_pipeline.h` (new, advanced architecture)
+- [x] **File**: `src/game/collision_pipeline.h` (initial API slice ~250 lines; future expansion planned)
   ```c
   typedef enum RogueCollisionQuality {
       ROGUE_COLLISION_FAST = 0,      // AABB + circle approximation
@@ -200,17 +200,22 @@ Core Subsystems:
       bool adaptive_quality;
   } RogueCollisionPipeline;
   ```
-  - [ ] Multi-stage collision detection with early exit optimization
-  - [ ] Adaptive quality system based on frame time budget
-  - [ ] Per-stage performance metrics and bottleneck analysis
-  - [ ] Dynamic load balancing between collision stages
+  - [x] Multi-stage container + stage registration (up to 8 stages) with early exit support
+  - [x] Basic per-stage metrics: last_ms, avg_ms (EMA), candidate counts, call counter
+  - [x] Execution stub with optional simulated timing for deterministic tests
+  - [ ] Adaptive quality system based on frame time budget (future)
+  - [ ] Dynamic load balancing & stage reordering (future)
 
-- [ ] **File**: `src/game/collision_pipeline.c` (new, 1000+ lines)
-  - [ ] **Function**: `rogue_collision_pipeline_execute()`
+- [x] **File**: `src/game/collision_pipeline.c` (initial ~160 line implementation stub)
+  - [x] **Function**: `rogue_collision_pipeline_execute()` basic loop
+    - [x] Collect timings & EMA per stage
+    - [x] Early exit honored when stage returns false
     - [ ] Frame time budget enforcement with graceful degradation
     - [ ] Temporal coherence optimization (cache previous frame results)
     - [ ] Priority-based enemy processing (distance, visibility, threat level)
     - [ ] Interrupt-safe processing for real-time constraints
+  - [x] Simulated stage cost injection for test determinism (<5ms cap)
+  - [ ] High resolution timer upgrade (future)
   - [ ] **Stage 1**: `collision_stage_spatial_cull()`
     - [ ] Octree/quadtree spatial partitioning for O(log n) culling
     - [ ] View frustum culling integration
@@ -222,6 +227,9 @@ Core Subsystems:
     - [ ] Temporal AABB expansion for fast-moving objects
     - [ ] Conservative rasterization for sub-pixel accurate bounds
   - [ ] **Stage 3**: `collision_stage_pixel_perfect()`
+
+**Tests Added (Milestone 2.1 initial slice)**
+- [x] `test_collision_pipeline_phase2_1`: validates stage registration, execution ordering, metrics population, early exit behavior, simulated cost accumulation.
     - [ ] Multi-resolution pixel testing with automatic LOD selection
     - [ ] Scanline optimization for sparse collision shapes
     - [ ] Bit manipulation tricks for fast mask intersection
