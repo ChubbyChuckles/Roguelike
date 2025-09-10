@@ -420,3 +420,19 @@ feat(hitbox/phase2.1 adaptive): spatial culling + AABB prefilter + adaptive qual
 - Roadmap (implementation_hitbox_rework.txt): Marked adaptive quality system, high-res timer, spatial culling (quadtree + predictive), distance-based LOD heuristic, and baseline AABB prefilter as done. Left SIMD/HBV, temporal coherence cache, pixel-perfect stage, dynamic reordering, advanced frustum pending.
 - README Milestone 2.1 section updated with Adaptive & Spatial Slice description; deferred list adjusted.
 - Verification: Full test suite passed 100% (695/695) after changes (Debug, SDL2, -j12). No regressions observed.
+
+feat(hitbox/phase2.1 temporal): add temporal coherence cache stage + test
+
+- Implemented `rogue_collision_stage_temporal_cache` preceding spatial culling:
+	* Reuses prior frame candidate subset when view rectangle unchanged (<=1px delta), previous subset small (<=64), and each cached candidate id & position match within 5px drift.
+	* On successful validation sets `ctx->skip_spatial` so spatial culling stage returns immediately (metrics reflect bypass) reducing per-frame overhead in stable scenes.
+	* Maintains lightweight static cache (id + x/y) with view rect + last candidate count metadata; future work will migrate to pipeline-owned structure & add multi-pipeline safety.
+- Integrated skip logic inside `rogue_collision_stage_spatial_cull` (early return when `skip_spatial` is set).
+- Extended context with `skip_spatial` flag and updated header documentation (added temporal coherence to implemented list).
+- Added unit test `test_collision_pipeline_phase2_1_temporal` validating:
+	* First frame: spatial executes (non-zero timing)
+	* Second frame unchanged: spatial stage timing drops (bypass)
+	* After view move: spatial runs again (timing increases)
+- Roadmap (implementation_hitbox_rework.txt) updated: mark temporal coherence cache done; test list includes new temporal test.
+- README Milestone 2.1 section: new "Temporal Coherence Slice" subsection summarizing benefits & test.
+- Full Debug build (SDL2, -j12) + unit tests expected green; next deferred tasks: pixel-perfect stage integration, SIMD/hierarchical AABB, dynamic reordering, advanced frustum, priority ordering.

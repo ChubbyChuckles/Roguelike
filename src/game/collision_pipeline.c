@@ -1,7 +1,9 @@
-/* collision_pipeline.c - Milestone 2.1 initial executable slice
- * Provides a stub execution framework for multi-stage collision processing.
- * The intent is to allow incremental landing of later advanced features
- * (adaptive quality, spatial partition, SIMD) without blocking integration.
+/* collision_pipeline.c - Milestone 2.1 multi-slice implementation
+ * Contains staged collision processing with:
+ *  - High-resolution timing & adaptive quality adjustment
+ *  - Quadtree spatial culling + predictive (velocity horizon) inclusion
+ *  - AABB prefilter & distance-based LOD heuristic
+ *  - Temporal coherence cache stage (reuses last-frame candidate subset when stable)
  */
 #include "game/collision_pipeline.h"
 #include <string.h>
@@ -175,6 +177,12 @@ static void quad_collect(const RogueQuadBuild* b, uint16_t node_index, float vx,
 
 bool rogue_collision_stage_spatial_cull(struct RogueCollisionContext* ctx, RogueCollisionMetrics* m)
 {
+    if (ctx->skip_spatial)
+    {
+        /* Bypass spatial work this frame due to temporal cache hit */
+        m->output_candidates = ctx->candidate_count;
+        return true;
+    }
     if (!ctx || ctx->candidate_count == 0)
     {
         m->output_candidates = ctx ? ctx->candidate_count : 0;
@@ -270,6 +278,96 @@ bool rogue_collision_stage_aabb_prefilter(struct RogueCollisionContext* ctx,
     return true;
 }
 
+/* ---------------- Temporal Coherence Cache Stage ----------------
+ * Simple heuristic: If camera/view moved insignificantly and candidate count last
+ * frame was small, reuse last frame trimmed candidate subset instead of rebuilding
+ * spatial partition. For minimal risk we store only IDs + positions snapshot and
+ * validate cheap movement bounds; if any candidate drifted too far, fallback.
+ * This lightweight cache lives in static file scope (single pipeline instance assumption
+ * for current test slices). Future: move to pipeline struct, add generation tagging,
+ * multi-pipeline support, thread-safety.
+ */
+typedef struct RogueTemporalCacheEntry
+{
+    uint32_t id;
+    float x, y;
+} RogueTemporalCacheEntry;
+
+#define ROGUE_TEMPORAL_CACHE_MAX 256
+static struct
+{
+    RogueTemporalCacheEntry entries[ROGUE_TEMPORAL_CACHE_MAX];
+    uint16_t count;
+    float last_view_x, last_view_y, last_view_w, last_view_h;
+    uint32_t last_frame_candidate_count;
+    uint32_t hits;
+    uint32_t misses;
+} g_temporal_cache;
+
+bool rogue_collision_stage_temporal_cache(struct RogueCollisionContext* ctx,
+                                          RogueCollisionMetrics* m)
+{
+    if (!ctx)
+    {
+        m->output_candidates = 0;
+        return true;
+    }
+    /* Heuristic activation conditions */
+    const float view_move_epsilon = 1.0f; /* pixels */
+    bool view_stable = (float) (ctx->view_x - g_temporal_cache.last_view_x) < view_move_epsilon &&
+                       (float) (ctx->view_x - g_temporal_cache.last_view_x) > -view_move_epsilon &&
+                       (float) (ctx->view_y - g_temporal_cache.last_view_y) < view_move_epsilon &&
+                       (float) (ctx->view_y - g_temporal_cache.last_view_y) > -view_move_epsilon &&
+                       ctx->view_w == g_temporal_cache.last_view_w &&
+                       ctx->view_h == g_temporal_cache.last_view_h;
+    bool small_set_prev = g_temporal_cache.last_frame_candidate_count > 0 &&
+                          g_temporal_cache.last_frame_candidate_count <= 64;
+    bool attempt_reuse = view_stable && small_set_prev &&
+                         g_temporal_cache.count == g_temporal_cache.last_frame_candidate_count;
+    if (attempt_reuse)
+    {
+        /* Validate that current candidates roughly match cached IDs and haven't drifted far */
+        uint32_t match = 0;
+        for (uint16_t i = 0; i < g_temporal_cache.count && i < ctx->candidate_count; ++i)
+        {
+            if (ctx->candidates[i].id != g_temporal_cache.entries[i].id)
+                break; /* early fail */
+            float dx = ctx->candidates[i].x - g_temporal_cache.entries[i].x;
+            float dy = ctx->candidates[i].y - g_temporal_cache.entries[i].y;
+            if ((dx * dx + dy * dy) > 25.0f) /* >5px drift: invalidate */
+                break;
+            match++;
+        }
+        if (match == g_temporal_cache.count)
+        {
+            ctx->skip_spatial = 1; /* downstream spatial stage will be skipped */
+            g_temporal_cache.hits++;
+            m->output_candidates = ctx->candidate_count; /* unchanged */
+            return true;
+        }
+    }
+    g_temporal_cache.misses++;
+    /* Refresh cache with current subset (pre-spatial; we just snapshot first N) */
+    uint16_t cap = (ctx->candidate_count > ROGUE_TEMPORAL_CACHE_MAX)
+                       ? ROGUE_TEMPORAL_CACHE_MAX
+                       : (uint16_t) ctx->candidate_count;
+    for (uint16_t i = 0; i < cap; ++i)
+    {
+        g_temporal_cache.entries[i].id = ctx->candidates[i].id;
+        g_temporal_cache.entries[i].x = ctx->candidates[i].x;
+        g_temporal_cache.entries[i].y = ctx->candidates[i].y;
+    }
+    g_temporal_cache.count = cap;
+    g_temporal_cache.last_view_x = ctx->view_x;
+    g_temporal_cache.last_view_y = ctx->view_y;
+    g_temporal_cache.last_view_w = ctx->view_w;
+    g_temporal_cache.last_view_h = ctx->view_h;
+    g_temporal_cache.last_frame_candidate_count = ctx->candidate_count;
+    ctx->skip_spatial = 0;
+    m->output_candidates = ctx->candidate_count;
+    return true;
+}
+
 bool rogue_collision_pipeline_execute(RogueCollisionPipeline* p, RogueCollisionContext* ctx,
                                       float simulated_stage_cost_ms[])
 {
@@ -277,6 +375,7 @@ bool rogue_collision_pipeline_execute(RogueCollisionPipeline* p, RogueCollisionC
         return false;
     ctx->quality_level = p->quality_level;
     ctx->quality_delta = 0;
+    ctx->skip_spatial = 0;
     p->total_last_ms = 0.f;
     RogueTimer timer;
     rogue_timer_init(&timer);

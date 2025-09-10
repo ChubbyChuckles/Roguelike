@@ -1,21 +1,17 @@
-/* collision_pipeline.h - Milestone 2.1: Multi-Resolution Collision Pipeline (initial slice)
- * This header introduces the public API and data structures for a staged
- * collision detection pipeline with adaptive quality controls.
+/* collision_pipeline.h - Milestone 2.1: Multi-Resolution Collision Pipeline
+ * Public API for a staged collision detection pipeline with adaptive quality,
+ * spatial culling, temporal coherence, and pluggable stages. The initial slice
+ * started minimal; subsequent slices added:
+ *  - High-resolution timing & adaptive quality (frame budget aware)
+ *  - Quadtree spatial culling with predictive (velocity horizon) inclusion
+ *  - AABB prefilter + distance-based LOD heuristic
+ *  - Temporal coherence cache (reuses prior frame candidate subset when stable)
  *
- * Scope of this initial slice:
- *  - Data types & enums (quality levels, stage descriptor, pipeline container).
- *  - Metrics struct capturing per-stage timing and candidate counts.
- *  - Context & candidate list minimal stubs to allow compilation.
- *  - Public construction / configuration helpers.
- *  - Execution entry point stub that iterates registered stages and collects metrics.
- *  - Unit test hook macros (internal visibility for tests when ROGUE_TEST defined).
- *
- * Deferred (future slices):
- *  - Spatial partition implementation (octree/quadtree, broadphase acceleration).
- *  - Adaptive quality heuristics based on frame time budgets.
- *  - SIMD optimized AABB / pixel tests.
- *  - Temporal coherence caches and dynamic load balancing.
- *  - Full 1000+ line implementation (this slice intentionally lean ~250 lines).
+ * Upcoming (deferred) work:
+ *  - SIMD & hierarchical broad-phase (BV trees / wide AABB tests)
+ *  - Pixel-perfect stage + multi-resolution mask selection
+ *  - Dynamic load balancing & stage reordering
+ *  - Advanced frustum & priority ordering (threat / distance)
  */
 #ifndef ROGUE_COLLISION_PIPELINE_H
 #define ROGUE_COLLISION_PIPELINE_H
@@ -97,12 +93,16 @@ extern "C"
         float view_x, view_y, view_w, view_h;
         /* Internal scratch: last frame quality adjustment flag (0 none, +/-1 change). */
         int8_t quality_delta;
+        /* Internal: temporal cache hint to skip spatial stage when set (cleared each execute). */
+        int8_t skip_spatial;
     } RogueCollisionContext;
 
     /* Built-in stage helpers (implemented in .c). */
     bool rogue_collision_stage_spatial_cull(struct RogueCollisionContext* ctx,
                                             RogueCollisionMetrics* m);
     bool rogue_collision_stage_aabb_prefilter(struct RogueCollisionContext* ctx,
+                                              RogueCollisionMetrics* m);
+    bool rogue_collision_stage_temporal_cache(struct RogueCollisionContext* ctx,
                                               RogueCollisionMetrics* m);
 
     /* Initialization helpers */

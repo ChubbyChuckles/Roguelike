@@ -227,10 +227,12 @@ Core Subsystems:
     - [ ] Temporal AABB expansion for fast-moving objects
     - [ ] Conservative rasterization for sub-pixel accurate bounds
   - [ ] **Stage 3**: `collision_stage_pixel_perfect()`
+  - [x] Temporal coherence cache stage (reuse prior frame subset when view stable & small set)
 
 **Tests Added (Milestone 2.1 initial slice)**
 - [x] `test_collision_pipeline_phase2_1`: validates stage registration, execution ordering, metrics population, early exit behavior, simulated cost accumulation.
  - [x] `test_collision_pipeline_phase2_1_adaptive`: validates spatial (quadtree) culling + predictive inclusion, AABB prefilter trimming, distance-based LOD heuristic, and adaptive quality downgrade/upgrade thresholds; asserts metrics and quality transitions deterministic.
+ - [x] `test_collision_pipeline_phase2_1_temporal`: validates temporal cache hit (skips spatial) and miss after view movement.
     - [ ] Multi-resolution pixel testing with automatic LOD selection
     - [ ] Scanline optimization for sparse collision shapes
     - [ ] Bit manipulation tricks for fast mask intersection

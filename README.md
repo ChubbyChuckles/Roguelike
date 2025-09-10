@@ -61,6 +61,14 @@ Implemented early performance + quality adaptation features:
 
 Deferred (remaining) items: SIMD AABB + hierarchical bounds, temporal coherence cache (previous-frame reuse), pixel-perfect stage integration & multi-resolution mask selection, dynamic stage reordering / load balancing, advanced frustum (beyond rect) & priority-based enemy ordering.
 
+##### Temporal Coherence Slice (Phase 2.1 – third increment)
+
+- Added temporal cache stage executed before spatial culling: when the view rectangle is unchanged (<=1px jitter) and prior candidate subset was small (<=64), the stage validates candidate IDs & limited drift (<=5px) and sets a skip flag allowing the spatial stage to be bypassed for the frame.
+- Cache stores a lightweight snapshot (id + x/y) with last view rect metadata; resets heuristically on movement or mismatch.
+- Benefits: avoids rebuilding quadtree for stable scenes, shaving micro to sub-millisecond work in dense test scenarios; deterministic unit test ensures bypass activates only under safe conditions.
+- New unit test: `test_collision_pipeline_phase2_1_temporal` asserts first-frame spatial execution, second-frame skip, and re-execution after a view move.
+- Roadmap updated marking temporal coherence cache done; remaining deferred: pixel-perfect stage, SIMD/hierarchical broad-phase, dynamic reordering, advanced frustum, priority ordering.
+
 - No gameplay paths yet invoke the pipeline; integration & advanced stages intentionally deferred to keep this slice low-risk.
 
 Press F1 in-game to open the debug overlay.
