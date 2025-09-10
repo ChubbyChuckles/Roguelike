@@ -29,7 +29,7 @@ Upcoming roadmap slices: per-row/stripe multi-threaded pixel processing, edge sm
 - Existing unit test `test_sprite_atlas_animation_collision` covers baseline interpolation union correctness.
 - Roadmap updated marking Milestone 1.3 core tasks complete (geometric morphing, resample path, keyframe optimization deferred).
 
-#### Milestone 2.1 (Initial Multi-Resolution Collision Pipeline Slice)
+#### Milestone 2.1 (Multi-Resolution Collision Pipeline Slices)
 
 Foundation for a staged, quality-tiered collision pipeline:
 
@@ -45,7 +45,22 @@ Foundation for a staged, quality-tiered collision pipeline:
   - Candidate mutation across stages (e.g. halving logic in a sample stage).
   - Early-exit behavior preventing later stage execution.
   - Metrics population (last / avg ms, call counts, candidate in/out tracking, pipeline total > 0).
-- Roadmap updated: Milestone 2.1 initial slice tasks checked (API, execution loop, metrics, test). Deferred (unchecked) items include adaptive quality enforcement, spatial culling, hierarchical AABB prefilter, pixel-perfect stage integration, high-resolution timer upgrade, temporal coherence cache, and dynamic load balancing.
+- Roadmap updated: Milestone 2.1 initial slice tasks checked (API, execution loop, metrics, test).
+
+##### Adaptive & Spatial Slice (Phase 2.1 – second increment)
+
+Implemented early performance + quality adaptation features:
+
+- High-resolution timing abstraction (Windows QueryPerformanceCounter / portable fallback) replaces coarse timers; per-stage and pipeline total timings now stable at sub-micro precision for EMA + budget logic.
+- Spatial Culling Stage: Initial quadtree (fixed arrays, depth cap=4) partitions candidates; collects those overlapping view rectangle or predicted to enter within a short velocity horizon (~16ms) to avoid pop-in.
+- Predictive Inclusion: Velocity (vx,vy) on candidates expands effective query region; fast approaching entities are retained even if just outside the current view rect.
+- AABB Prefilter Stage: Performs scalar AABB intersection against view rect and trims candidate list to a conservative cap, computing average squared distance to drive LOD heuristics. (SIMD + hierarchical BV tree deferred.)
+- Distance-Based LOD Heuristic: Derives a transient quality_delta from mean distance; large average distance nudges pipeline quality downward; close clustering allows potential upward adjustment (bounded).
+- Adaptive Quality Control: If cumulative pipeline time >105% of frame budget, degrade one tier (to a floor). If <60% for several frames (aggregate), upgrade one tier (to a cap). Adjustments logged via metrics; no dynamic stage reordering yet.
+- Metrics: Existing per-stage metrics extended implicitly by improved timing precision; new adaptive test asserts downgrade then upgrade path deterministically via simulated candidates & tuned horizon.
+
+Deferred (remaining) items: SIMD AABB + hierarchical bounds, temporal coherence cache (previous-frame reuse), pixel-perfect stage integration & multi-resolution mask selection, dynamic stage reordering / load balancing, advanced frustum (beyond rect) & priority-based enemy ordering.
+
 - No gameplay paths yet invoke the pipeline; integration & advanced stages intentionally deferred to keep this slice low-risk.
 
 Press F1 in-game to open the debug overlay.

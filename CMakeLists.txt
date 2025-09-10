@@ -1118,6 +1118,13 @@ if(TARGET SDL2::SDL2)
 endif()
 rogue_add_test(NAME test_collision_pipeline_phase2_1 COMMAND test_collision_pipeline_phase2_1)
 
+add_executable(test_collision_pipeline_phase2_1_adaptive tests/unit/test_collision_pipeline_phase2_1_adaptive.c)
+target_link_libraries(test_collision_pipeline_phase2_1_adaptive PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_collision_pipeline_phase2_1_adaptive PRIVATE SDL2::SDL2)
+endif()
+rogue_add_test(NAME test_collision_pipeline_phase2_1_adaptive COMMAND test_collision_pipeline_phase2_1_adaptive)
+
 add_executable(test_tag_registry_validate tests/unit/test_tag_registry_validate.c)
 
 # Debug overlay core unit test

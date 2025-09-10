@@ -80,7 +80,11 @@ extern "C"
     /* Minimal collision context prototype (expands later). */
     typedef struct RogueCollisionCandidate
     {
-        uint32_t id; /* Placeholder identifier. */
+        uint32_t id;  /* Identifier (entity, enemy, etc). */
+        float x, y;   /* World-space center position (pixels or tiles). */
+        float half_w; /* Half-width (AABB / broad radius). */
+        float half_h; /* Half-height. */
+        float vx, vy; /* Velocity (units per ms) for predictive culling. */
     } RogueCollisionCandidate;
 
     typedef struct RogueCollisionContext
@@ -89,7 +93,17 @@ extern "C"
         uint32_t candidate_count;            /* Current active candidates. */
         RogueCollisionQuality quality_level; /* Mirror of pipeline quality. */
         void* user_data;                     /* Extension hook. */
+        /* View / frustum rectangle (axis-aligned) for spatial culling. */
+        float view_x, view_y, view_w, view_h;
+        /* Internal scratch: last frame quality adjustment flag (0 none, +/-1 change). */
+        int8_t quality_delta;
     } RogueCollisionContext;
+
+    /* Built-in stage helpers (implemented in .c). */
+    bool rogue_collision_stage_spatial_cull(struct RogueCollisionContext* ctx,
+                                            RogueCollisionMetrics* m);
+    bool rogue_collision_stage_aabb_prefilter(struct RogueCollisionContext* ctx,
+                                              RogueCollisionMetrics* m);
 
     /* Initialization helpers */
     static inline void rogue_collision_pipeline_init(RogueCollisionPipeline* p,
