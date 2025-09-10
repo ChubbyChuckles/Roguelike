@@ -528,6 +528,7 @@ add_library(rogue_core
     src/game/hit_pixel_mask.c
     src/game/pixel_mask_loader.c
     src/game/item_collision_cache.c
+    src/game/sprite_atlas_collision.c
     src/game/hit_feedback.c
     src/game/weapon_pose.c
     src/game/hit_debug_overlay.c
@@ -1092,6 +1093,21 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_skills_rotation_sim PRIVATE SDL2::SDL2)
 endif()
 rogue_add_test(NAME test_skills_rotation_sim COMMAND test_skills_rotation_sim)
+
+add_executable(test_sprite_atlas_animation_collision tests/unit/test_sprite_atlas_animation_collision.c)
+target_link_libraries(test_sprite_atlas_animation_collision PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_sprite_atlas_animation_collision PRIVATE SDL2::SDL2)
+endif()
+rogue_add_test(NAME test_sprite_atlas_animation_collision COMMAND test_sprite_atlas_animation_collision)
+
+# Deterministic pseudo-fuzz exercising blended capacity growth & reuse (Milestone 1.3)
+add_executable(test_sprite_atlas_animation_collision_fuzz tests/unit/test_sprite_atlas_animation_collision_fuzz.c)
+target_link_libraries(test_sprite_atlas_animation_collision_fuzz PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_sprite_atlas_animation_collision_fuzz PRIVATE SDL2::SDL2)
+endif()
+rogue_add_test(NAME test_sprite_atlas_animation_collision_fuzz COMMAND test_sprite_atlas_animation_collision_fuzz)
 
 add_executable(test_tag_registry_validate tests/unit/test_tag_registry_validate.c)
 

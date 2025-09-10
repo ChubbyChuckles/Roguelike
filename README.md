@@ -17,6 +17,18 @@ Recent (Milestone 1.2 slice): Added item collision cache invalidation APIs (`rog
 
 Upcoming roadmap slices: per-row/stripe multi-threaded pixel processing, edge smoothing, advanced alpha handling (gamma), magic-number format detection, compression ratio analytics + auto selection, extended item collision cache (automatic timestamp polling / background loads), and atlas / animation integration (Milestone 1.3).
 
+#### Milestone 1.3 (Initial Sprite Atlas & Animation Collision Slice)
+
+- Added `sprite_atlas_collision.{h,c}` with:
+  - Region extraction (`rogue_sprite_atlas_extract_collision_region`) copying a sub-rect of an atlas mask into a standalone frame (origin preserved).
+  - Animation set builder with inline small-object optimization (<=8 frames stored without heap) and cumulative timing array.
+  - Sampler (`rogue_animation_collision_sample`) returning frames A/B + local interpolation factor.
+  - Blended sampling (`rogue_animation_collision_sample_blended`): simple UNION (bitwise OR) between mid‑span frames with fast path direct frame returns near endpoints (<15% or >85%). Scratch blended frame lazily allocated and resized; reused across calls.
+  - Debug assert on dimension mismatch to surface silent fallback (future resample slice will normalize dimensions).
+- Deterministic pseudo‑fuzz test `test_sprite_atlas_animation_collision_fuzz` stresses blended capacity growth/reuse across frame counts (1..16), exercising inline vs heap storage; only blends frames when sampled pair dimensions match (per-sample gating avoids debug assert on intentional mismatch variants).
+- Existing unit test `test_sprite_atlas_animation_collision` covers baseline interpolation union correctness.
+- Roadmap updated marking Milestone 1.3 core tasks complete (geometric morphing, resample path, keyframe optimization deferred).
+
 Press F1 in-game to open the debug overlay.
 
 ### Asset Browser (Overlay Phase 1 Enhancement)

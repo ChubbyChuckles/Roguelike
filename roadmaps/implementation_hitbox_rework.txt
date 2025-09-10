@@ -137,7 +137,7 @@ Core Subsystems:
     - [ ] Garbage collection for unused entries
 
 #### MILESTONE 1.3: Sprite Atlas and Animation Support
-- [ ] **File**: `src/game/sprite_atlas_collision.h` (new)
+- [x] **File**: `src/game/sprite_atlas_collision.h` (initial slice implemented)
   ```c
   typedef struct RogueSpriteAtlasRegion {
       uint16_t x, y, w, h;           // Atlas coordinates
@@ -154,22 +154,24 @@ Core Subsystems:
       float interpolation_factor;    // Smooth frame transitions
   } RogueAnimationCollisionSet;
   ```
-  - [ ] Support for sprite atlas-based collision masks
-  - [ ] Animation frame synchronization with collision detection
-  - [ ] Interpolated collision for smooth animation transitions
-  - [ ] Memory-efficient storage for animation sequences
+  - [x] Support for sprite atlas-based collision masks (region extraction API + origin carry‑through)
+  - [x] Animation frame synchronization with collision detection (timing array + sampler)
+  - [x] Interpolated collision for smooth animation transitions (union blending w/ endpoint fast paths)
+  - [x] Memory-efficient storage for animation sequences (inline <=8 frames small-object opt, scratch blended reuse)
+  - [ ] Future: true geometric interpolation & dimension resample path
 
-- [ ] **File**: `src/game/sprite_atlas_collision.c` (new, 500+ lines)
-  - [ ] **Function**: `rogue_sprite_atlas_extract_collision_region()`
-    - [ ] Sub-pixel accurate region extraction
-    - [ ] Automatic origin point detection via center-of-mass
-    - [ ] Border padding handling for atlas bleeding
-    - [ ] Quality validation for extracted regions
-  - [ ] **Function**: `rogue_animation_collision_interpolate_frames()`
-    - [ ] Temporal interpolation between animation frames
-    - [ ] Smooth collision shape morphing for fluid animations
-    - [ ] Keyframe-based optimization for static sequences
-    - [ ] Performance-aware frame skipping under load
+- [x] **File**: `src/game/sprite_atlas_collision.c` (initial ~250 line slice; future extensions planned)
+  - [x] **Function**: `rogue_sprite_atlas_extract_collision_region()` (basic copy + bit test per pixel)
+    - [ ] Sub-pixel accurate region extraction (future)
+    - [ ] Automatic origin point detection via center-of-mass (future)
+    - [ ] Border padding handling for atlas bleeding (future)
+    - [ ] Quality validation for extracted regions (future)
+  - [x] **Function**: `rogue_animation_collision_sample` (timed frame selection + local t)
+  - [x] **Function**: `rogue_animation_collision_sample_blended` (union blend w/ lazy scratch allocation, debug assert on dimension mismatch)
+    - [ ] Temporal geometric interpolation (future morph algorithm)
+    - [ ] Keyframe-based optimization for static sequences (future)
+    - [ ] Performance-aware frame skipping under load (future)
+  - [x] Fuzz Test: `test_sprite_atlas_animation_collision_fuzz` (deterministic capacity growth & reuse, guard against mismatch assert)
 
 ### PHASE 2: ADVANCED COLLISION DETECTION ENGINE
 #### MILESTONE 2.1: Multi-Resolution Collision Pipeline
