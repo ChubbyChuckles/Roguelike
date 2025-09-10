@@ -100,7 +100,7 @@ Core Subsystems:
     - [ ] Automatic threshold adjustment per mipmap level (deferred)
     - [ ] Quality metrics for mipmap chain validation (deferred)
 
-#### MILESTONE 1.2: Advanced Item System Integration (NOT STARTED)
+#### MILESTONE 1.2: Advanced Item System Integration (IN PROGRESS)
 - [x] **File**: `src/game/item_collision_cache.h` (initial slice implemented)
   ```c
   typedef struct RogueItemCollisionCache {
@@ -117,20 +117,20 @@ Core Subsystems:
   ```
   - [x] LRU cache system with configurable memory limits (fixed cap + MB threshold)
   - [x] Handle-based access for safe item definition changes (generation snapshot check)
-  - [ ] Asset timestamp tracking for automatic cache invalidation (deferred)
+  - [x] Asset timestamp field plumbed (basic file mtime captured opportunistically; automated polling/invalidation still deferred)
   - [x] Memory pressure handling with intelligent eviction (LRU eviction when size or memory exceeds)
   - [x] Cache statistics and hit ratio monitoring (lookups/hits/misses/evictions, bytes)
 
 - [x] **File**: `src/game/item_collision_cache.c` (initial slice ~250 lines)
   - [x] **Function**: `rogue_item_collision_cache_get()` (load-or-create + LRU) (renamed minimal scope)
-    - [ ] Thread-safe cache access with read-write locks (deferred)
+  - [x] Basic write serialization through existing global RW lock abstraction (future: true concurrent readers)
     - [ ] Background loading for cache misses (deferred)
     - [ ] Prefetching based on usage patterns (deferred)
     - [x] Graceful degradation for memory pressure (evict LRU until under limit)
-  - [ ] **Function**: `rogue_item_collision_cache_invalidate_asset()` (deferred)
-    - [ ] Asset change detection via file system monitoring
-    - [ ] Selective cache invalidation for related items
-    - [ ] Hot-reload support for development workflow
+  - [x] **Functions**: `rogue_item_collision_cache_invalidate_handle()`, `rogue_item_collision_cache_invalidate_all()` (manual invalidation APIs)
+    - [ ] Asset change detection via file system monitoring (future slice)
+    - [ ] Selective cache invalidation for related items (future)
+    - [ ] Hot-reload support for development workflow (future)
   - [ ] **Function**: `rogue_item_collision_cache_optimize()` (deferred)
     - [ ] Defragmentation and memory compaction
     - [ ] Usage pattern analysis for cache sizing

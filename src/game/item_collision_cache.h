@@ -35,6 +35,7 @@ extern "C"
         RogueItemDefHandle handle;
         RoguePixelMaskSet* mask_set; /* lazily allocated/filled */
         uint64_t last_access_tick;   /* monotonic counter (not time-based) */
+        uint64_t asset_timestamp;    /* file mtime snapshot when built (0 if unknown) */
         uint32_t access_count;
         uint32_t generation_snapshot; /* to detect stale handles */
         struct RogueItemCollisionCacheEntry* prev;
@@ -47,7 +48,8 @@ extern "C"
         uint64_t hits;
         uint64_t misses;
         uint64_t evictions;
-        size_t approx_bytes; /* current resident memory */
+        uint64_t invalidations; /* explicit or timestamp-based */
+        size_t approx_bytes;    /* current resident memory */
     } RogueItemCollisionCacheStats;
 
     /* Initialize cache (idempotent). */
@@ -60,6 +62,10 @@ extern "C"
                                                       const RoguePixelMaskLoadConfig* cfg);
     /* Query current stats. */
     RogueItemCollisionCacheStats rogue_item_collision_cache_get_stats(void);
+    /* Manually invalidate a specific handle (all generations equal). Safe no-op if not cached. */
+    void rogue_item_collision_cache_invalidate_handle(RogueItemDefHandle handle);
+    /* Invalidate every cached entry (lighter than full reset: keeps stats except bytes). */
+    void rogue_item_collision_cache_invalidate_all(void);
 
 #ifdef __cplusplus
 }

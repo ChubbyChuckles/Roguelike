@@ -13,7 +13,9 @@ Pixel-perfect collision foundation plus several advanced features are now implem
 - Async path submits a build job to the shared thread pool when present; otherwise falls back synchronously (unit-tested).
 - Unit tests: `test_hit_mask_basic`, `test_hit_mask_integration`, `test_hit_mask_distance_field` (SDF + async), and new `test_hit_mask_multiformat` (BMP fallback) keep regression coverage high.
 
-Upcoming roadmap slices: per-row/stripe multi-threaded pixel processing, edge smoothing, advanced alpha handling (gamma), magic-number format detection, compression ratio analytics + auto selection, item collision cache (Milestone 1.2), and atlas / animation integration (Milestone 1.3).
+Recent (Milestone 1.2 slice): Added item collision cache invalidation APIs (`rogue_item_collision_cache_invalidate_handle`, `_invalidate_all`), basic asset timestamp capture, and a lightweight RW lock scaffold (write-serialized) ahead of future concurrent read access & hot-reload driven automatic invalidation.
+
+Upcoming roadmap slices: per-row/stripe multi-threaded pixel processing, edge smoothing, advanced alpha handling (gamma), magic-number format detection, compression ratio analytics + auto selection, extended item collision cache (automatic timestamp polling / background loads), and atlas / animation integration (Milestone 1.3).
 
 Press F1 in-game to open the debug overlay.
 

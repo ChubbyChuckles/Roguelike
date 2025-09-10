@@ -118,6 +118,18 @@ Phase 13.4–13.5: Journal compaction + tests
 - Implemented vendor journal compaction API:
 	• rogue_vendor_tx_journal_compact_summary(out) produces counts (sales/buybacks/assimilated), totals (gold sold/bought, rep delta), and first/last timestamps; returns 0 on success.
 - Added unit test tests/unit/test_vendor_phase13_compaction.c exercising summary equivalence over a fixed journal sample and registered it in tests/cmake/Vendor.cmake.
+
+feat(hitbox/phase1.2): item collision cache invalidation + timestamp groundwork
+
+- Extend `item_collision_cache.h/.c`:
+	• Add `asset_timestamp` field per entry (naive mtime capture via sprite_sheet path when present).
+	• Introduce manual invalidation APIs: `rogue_item_collision_cache_invalidate_handle` and `_invalidate_all`.
+	• Track `invalidations` counter in stats; adjust approx_bytes on removal.
+	• Add lightweight write-serialized RW lock usage (via existing resource_lock abstraction) to prepare for future concurrent read access.
+- Unit test: `test_item_collision_cache_invalidate` verifies miss→hit→invalidate→rebuild cycle and global invalidation stats without assuming pointer inequality (allocator reuse safe).
+- Roadmap (implementation_hitbox_rework.txt): Mark Milestone 1.2 IN PROGRESS, note timestamp plumbing + manual invalidation complete, and basic lock scaffold added; automatic fs polling + background loads remain deferred.
+- README: Hitbox Rework section updated with new slice summary and adjusted upcoming tasks list.
+- Future slices: automated timestamp polling + selective hot reload, background build path, prefetch heuristics, reader lock optimization, atlas/animation integration (Milestone 1.3).
 - Roadmap: mark 13.4/13.5 Done; README: document compaction API and test.
 feat(asset-overlay/phase6): hotkey system + bookmarking (slice 1)
 

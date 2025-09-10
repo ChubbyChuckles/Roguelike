@@ -8,8 +8,15 @@
  */
 #include "item_collision_cache.h"
 #include "util/log.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
+#include <sys/stat.h>
+#else
+#include <sys/stat.h>
+#endif
+#include "core/integration/resource_lock.h"
 
 /* Forward declarations for existing ensure path (weapon-centric). In a future slice this will map
    generic item sprite -> pixel masks; for now we reuse weapon id path if category == WEAPON and
@@ -24,7 +31,24 @@ static struct
     RogueItemCollisionCacheEntry* lru_tail; /* LRU at tail */
     uint64_t access_counter;
     RogueItemCollisionCacheStats stats;
+    RogueRwLock* lock; /* simple RW lock placeholder (future reader sharing) */
 } g_cache;
+
+static uint64_t file_mtime_simple(const char* path)
+{
+    if (!path || !*path)
+        return 0;
+#ifdef _WIN32
+    struct _stat s;
+    if (_stat(path, &s) == 0)
+        return (uint64_t) s.st_mtime;
+#else
+    struct stat s;
+    if (stat(path, &s) == 0)
+        return (uint64_t) s.st_mtime;
+#endif
+    return 0;
+}
 
 static void lru_move_front(RogueItemCollisionCacheEntry* e)
 {
@@ -81,6 +105,7 @@ void rogue_item_collision_cache_init(void)
         return;
     memset(&g_cache, 0, sizeof(g_cache));
     g_cache.initialized = 1;
+    g_cache.lock = rogue_rwlock_create(1200, "item_collision_cache");
 }
 
 static void free_entry(RogueItemCollisionCacheEntry* e)
@@ -115,6 +140,8 @@ void rogue_item_collision_cache_reset(void)
 {
     if (!g_cache.initialized)
         return;
+    if (g_cache.lock)
+        rogue_rwlock_acquire_write(g_cache.lock, ROGUE_LOCK_PRIORITY_NORMAL, -1);
     RogueItemCollisionCacheEntry* it = g_cache.lru_head;
     while (it)
     {
@@ -123,6 +150,9 @@ void rogue_item_collision_cache_reset(void)
     }
     memset(&g_cache, 0, sizeof(g_cache));
     g_cache.initialized = 1;
+    g_cache.lock = rogue_rwlock_create(1200, "item_collision_cache");
+    if (g_cache.lock)
+        rogue_rwlock_release_write(g_cache.lock);
 }
 
 static void enforce_memory_limit(void)
@@ -190,16 +220,23 @@ RoguePixelMaskSet* rogue_item_collision_cache_get(RogueItemDefHandle handle,
         rogue_item_collision_cache_init();
     /* cfg currently unused in this slice (future: control distance field / mipmaps). */
     (void) cfg;
+    if (g_cache.lock)
+        rogue_rwlock_acquire_write(g_cache.lock, ROGUE_LOCK_PRIORITY_NORMAL,
+                                   -1); /* future: read then upgrade */
     g_cache.stats.lookups++;
     if (handle == ROGUE_ITEM_DEF_INVALID_HANDLE)
     {
         g_cache.stats.misses++;
+        if (g_cache.lock)
+            rogue_rwlock_release_write(g_cache.lock);
         return NULL;
     }
     int index = rogue_item_def_index_from_handle(handle);
     if (index < 0)
     {
         g_cache.stats.misses++;
+        if (g_cache.lock)
+            rogue_rwlock_release_write(g_cache.lock);
         return NULL; /* stale or invalid */
     }
     /* Derive generation bits from handle (upper 16 bits) */
@@ -217,7 +254,10 @@ RoguePixelMaskSet* rogue_item_collision_cache_get(RogueItemDefHandle handle,
         e->last_access_tick = ++g_cache.access_counter;
         e->access_count++;
         lru_move_front(e);
-        return e->mask_set;
+        RoguePixelMaskSet* out = e->mask_set;
+        if (g_cache.lock)
+            rogue_rwlock_release_write(g_cache.lock);
+        return out;
     }
     /* miss -> build */
     g_cache.stats.misses++;
@@ -292,13 +332,69 @@ RoguePixelMaskSet* rogue_item_collision_cache_get(RogueItemDefHandle handle,
                     }
                 }
             }
+            /* Attempt naive timestamp: derive a plausible sprite path if defined (sprite_sheet
+             * field). */
+            if (def->sprite_sheet[0])
+            {
+                /* Assume assets/<sprite_sheet> if not already containing a path */
+                char path[256];
+                if (strchr(def->sprite_sheet, '/') || strchr(def->sprite_sheet, '\\'))
+                    snprintf(path, sizeof(path), "%s", def->sprite_sheet);
+                else
+                    snprintf(path, sizeof(path), "assets/%s", def->sprite_sheet);
+                e->asset_timestamp = file_mtime_simple(path);
+            }
         }
     }
     /* Track approximate bytes */
     g_cache.stats.approx_bytes += approx_set_bytes(e->mask_set);
     lru_move_front(e);
     enforce_memory_limit();
-    return e->mask_set;
+    RoguePixelMaskSet* out_new = e->mask_set;
+    if (g_cache.lock)
+        rogue_rwlock_release_write(g_cache.lock);
+    return out_new;
 }
 
 RogueItemCollisionCacheStats rogue_item_collision_cache_get_stats(void) { return g_cache.stats; }
+
+void rogue_item_collision_cache_invalidate_handle(RogueItemDefHandle handle)
+{
+    if (!g_cache.initialized || handle == ROGUE_ITEM_DEF_INVALID_HANDLE)
+        return;
+    if (g_cache.lock)
+        rogue_rwlock_acquire_write(g_cache.lock, ROGUE_LOCK_PRIORITY_NORMAL, -1);
+    for (RogueItemCollisionCacheEntry* it = g_cache.lru_head; it; it = it->next)
+    {
+        if (it->handle == handle)
+        {
+            g_cache.stats.approx_bytes -= approx_set_bytes(it->mask_set);
+            free_entry(it);
+            memset(it, 0, sizeof(*it));
+            g_cache.stats.invalidations++;
+            break;
+        }
+    }
+    if (g_cache.lock)
+        rogue_rwlock_release_write(g_cache.lock);
+}
+
+void rogue_item_collision_cache_invalidate_all(void)
+{
+    if (!g_cache.initialized)
+        return;
+    if (g_cache.lock)
+        rogue_rwlock_acquire_write(g_cache.lock, ROGUE_LOCK_PRIORITY_NORMAL, -1);
+    RogueItemCollisionCacheEntry* it = g_cache.lru_head;
+    while (it)
+    {
+        g_cache.stats.approx_bytes -= approx_set_bytes(it->mask_set);
+        free_entry(it);
+        memset(it, 0, sizeof(*it));
+        g_cache.stats.invalidations++;
+        it = it->next;
+    }
+    g_cache.lru_head = g_cache.lru_tail = NULL;
+    if (g_cache.lock)
+        rogue_rwlock_release_write(g_cache.lock);
+}
