@@ -11,6 +11,7 @@
  */
 
 #include "hit_pixel_mask.h"
+#include "pixel_mask_loader.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -101,161 +102,194 @@ RogueHitPixelMaskSet* rogue_hit_pixel_masks_ensure(int weapon_id)
     s->frame_count = 8;
     for (int i = 0; i < 8; i++)
     {
-        alloc_frame(&s->frames[i], 48, 16); /* 48x16 area */
-        /* Fill a simple line with thickness 4 pixels; simulate slight forward progression per frame
-         */
-        int advance = i * 4;
-        if (advance > 24)
-            advance = 24;
-        for (int y = 6; y < 10; y++)
+        /* Attempt Phase 1 minimal real asset-backed load (single frame replicated) */
+        RoguePixelMaskLoadConfig cfg = rogue_pixel_mask_load_config_default();
+        RoguePixelMaskMetrics metrics;
+        const char* candidate_paths[] = {"assets/placeholder.png", "assets/weapons/weapon_"};
+        int loaded_any = 0;
+        for (size_t p = 0; p < sizeof(candidate_paths) / sizeof(candidate_paths[0]) && !loaded_any;
+             ++p)
         {
-            for (int x = advance; x < advance + 24; ++x)
+            RogueHitPixelMaskFrame tmp = {0};
+            if (rogue_pixel_mask_load_from_file(candidate_paths[p], &cfg, &tmp, &metrics))
             {
-                rogue_hit_mask_set(&s->frames[i], x, y);
+                s->frame_count = 8;
+                for (int i = 0; i < 8; ++i)
+                {
+                    s->frames[i] = tmp; /* shallow copy first */
+                    /* duplicate buffer for each frame except first */
+                    if (i > 0)
+                    {
+                        size_t words = (size_t) tmp.pitch_words * (size_t) tmp.height;
+                        s->frames[i].bits = (uint32_t*) malloc(words * sizeof(uint32_t));
+                        if (s->frames[i].bits)
+                            memcpy(s->frames[i].bits, tmp.bits, words * sizeof(uint32_t));
+                    }
+                }
+                loaded_any = 1;
             }
         }
-    }
-    s->ready = 1;
-    return s;
-}
-
-/**
- * @brief Releases all allocated pixel mask data and resets the system
- *
- * This function performs cleanup of all loaded pixel mask sets, freeing allocated
- * memory for individual frames and resetting the global state. Used primarily
- * for test teardown and memory management.
- *
- * @note This function should be called when shutting down the game or during
- *       testing to prevent memory leaks
- */
-void rogue_hit_pixel_masks_reset_all(void)
-{
-    for (int i = 0; i < g_set_count; i++)
-    {
-        for (int f = 0; f < g_sets[i].frame_count; ++f)
+        if (!loaded_any)
         {
-            free(g_sets[i].frames[f].bits);
-            g_sets[i].frames[f].bits = NULL;
+            /* Fallback placeholder generation: simple horizontal bar mask representing weapon
+             * length */
+            s->frame_count = 8;
+            for (int i = 0; i < 8; i++)
+            {
+                alloc_frame(&s->frames[i], 48, 16); /* 48x16 area */
+                int advance = i * 4;
+                if (advance > 24)
+                    advance = 24;
+                for (int y = 6; y < 10; y++)
+                {
+                    for (int x = advance; x < advance + 24; ++x)
+                    {
+                        rogue_hit_mask_set(&s->frames[i], x, y);
+                    }
+                }
+            }
         }
+        s->ready = 1;
+        return s;
     }
-    g_set_count = 0;
-}
-/**
- * @brief Computes the axis-aligned bounding box of a pixel mask frame
- *
- * Returns the dimensions of the mask frame in local mask space, aligned to the origin.
- * This is useful for broad-phase collision detection before performing pixel-perfect tests.
- *
- * @param f Pointer to the pixel mask frame to query
- * @param out_w Pointer to store the width (can be NULL)
- * @param out_h Pointer to store the height (can be NULL)
- * @note Returns 0 for both dimensions if the frame pointer is NULL
- */
-void rogue_hit_mask_frame_aabb(const RogueHitPixelMaskFrame* f, int* out_w, int* out_h)
-{
-    if (out_w)
-        *out_w = f ? f->width : 0;
-    if (out_h)
-        *out_h = f ? f->height : 0;
-}
-/**
- * @brief Tests enemy collision against a pixel mask frame using multi-point sampling
- *
- * Performs pixel-perfect collision detection between an enemy (represented as a circle)
- * and a weapon attack frame. Uses a two-stage sampling approach:
- * 1. Tests the enemy center point
- * 2. If center misses, tests 8 points around the enemy perimeter at 70% radius
- *
- * This provides efficient yet accurate hit detection for circular enemy hitboxes.
- *
- * @param f Pointer to the pixel mask frame to test against
- * @param enemy_cx_local Enemy center X coordinate in local mask space
- * @param enemy_cy_local Enemy center Y coordinate in local mask space
- * @param enemy_radius Enemy collision radius
- * @param out_lx Pointer to store the local X coordinate of hit point (can be NULL)
- * @param out_ly Pointer to store the local Y coordinate of hit point (can be NULL)
- * @return 1 if enemy collides with mask, 0 otherwise
- * @note Returns 0 if frame is invalid or has no allocated bits
- */
-int rogue_hit_mask_enemy_test(const RogueHitPixelMaskFrame* f, float enemy_cx_local,
-                              float enemy_cy_local, float enemy_radius, int* out_lx, int* out_ly)
-{
-    if (!f || !f->bits)
-        return 0; /* sample center first */
-    int cx = (int) enemy_cx_local, cy = (int) enemy_cy_local;
-    if (rogue_hit_mask_test(f, cx, cy))
+
+    /**
+     * @brief Releases all allocated pixel mask data and resets the system
+     *
+     * This function performs cleanup of all loaded pixel mask sets, freeing allocated
+     * memory for individual frames and resetting the global state. Used primarily
+     * for test teardown and memory management.
+     *
+     * @note This function should be called when shutting down the game or during
+     *       testing to prevent memory leaks
+     */
+    void rogue_hit_pixel_masks_reset_all(void)
     {
-        if (out_lx)
-            *out_lx = cx;
-        if (out_ly)
-            *out_ly = cy;
-        return 1;
-    } /* ring sample 8 points */
-    float r = enemy_radius * 0.7f;
-    for (int i = 0; i < 8; i++)
+        for (int i = 0; i < g_set_count; i++)
+        {
+            for (int f = 0; f < g_sets[i].frame_count; ++f)
+            {
+                free(g_sets[i].frames[f].bits);
+                g_sets[i].frames[f].bits = NULL;
+            }
+        }
+        g_set_count = 0;
+    }
+    /**
+     * @brief Computes the axis-aligned bounding box of a pixel mask frame
+     *
+     * Returns the dimensions of the mask frame in local mask space, aligned to the origin.
+     * This is useful for broad-phase collision detection before performing pixel-perfect tests.
+     *
+     * @param f Pointer to the pixel mask frame to query
+     * @param out_w Pointer to store the width (can be NULL)
+     * @param out_h Pointer to store the height (can be NULL)
+     * @note Returns 0 for both dimensions if the frame pointer is NULL
+     */
+    void rogue_hit_mask_frame_aabb(const RogueHitPixelMaskFrame* f, int* out_w, int* out_h)
     {
-        float ang = (float) (i * 3.14159265358979323846 * 0.25);
-        float sx = enemy_cx_local + r * (float) cos(ang);
-        float sy = enemy_cy_local + r * (float) sin(ang);
-        int ix = (int) sx, iy = (int) sy;
-        if (rogue_hit_mask_test(f, ix, iy))
+        if (out_w)
+            *out_w = f ? f->width : 0;
+        if (out_h)
+            *out_h = f ? f->height : 0;
+    }
+    /**
+     * @brief Tests enemy collision against a pixel mask frame using multi-point sampling
+     *
+     * Performs pixel-perfect collision detection between an enemy (represented as a circle)
+     * and a weapon attack frame. Uses a two-stage sampling approach:
+     * 1. Tests the enemy center point
+     * 2. If center misses, tests 8 points around the enemy perimeter at 70% radius
+     *
+     * This provides efficient yet accurate hit detection for circular enemy hitboxes.
+     *
+     * @param f Pointer to the pixel mask frame to test against
+     * @param enemy_cx_local Enemy center X coordinate in local mask space
+     * @param enemy_cy_local Enemy center Y coordinate in local mask space
+     * @param enemy_radius Enemy collision radius
+     * @param out_lx Pointer to store the local X coordinate of hit point (can be NULL)
+     * @param out_ly Pointer to store the local Y coordinate of hit point (can be NULL)
+     * @return 1 if enemy collides with mask, 0 otherwise
+     * @note Returns 0 if frame is invalid or has no allocated bits
+     */
+    int rogue_hit_mask_enemy_test(const RogueHitPixelMaskFrame* f, float enemy_cx_local,
+                                  float enemy_cy_local, float enemy_radius, int* out_lx,
+                                  int* out_ly)
+    {
+        if (!f || !f->bits)
+            return 0; /* sample center first */
+        int cx = (int) enemy_cx_local, cy = (int) enemy_cy_local;
+        if (rogue_hit_mask_test(f, cx, cy))
         {
             if (out_lx)
-                *out_lx = ix;
+                *out_lx = cx;
             if (out_ly)
-                *out_ly = iy;
+                *out_ly = cy;
             return 1;
+        } /* ring sample 8 points */
+        float r = enemy_radius * 0.7f;
+        for (int i = 0; i < 8; i++)
+        {
+            float ang = (float) (i * 3.14159265358979323846 * 0.25);
+            float sx = enemy_cx_local + r * (float) cos(ang);
+            float sy = enemy_cy_local + r * (float) sin(ang);
+            int ix = (int) sx, iy = (int) sy;
+            if (rogue_hit_mask_test(f, ix, iy))
+            {
+                if (out_lx)
+                    *out_lx = ix;
+                if (out_ly)
+                    *out_ly = iy;
+                return 1;
+            }
         }
+        return 0;
     }
-    return 0;
-}
-/**
- * @brief Converts local pixel coordinates to world space coordinates
- *
- * Transforms a pixel position from the local mask coordinate system to world space,
- * accounting for player position, pose offsets, scaling, and rotation. This is essential
- * for accurate hit positioning and visual effects placement.
- *
- * The transformation applies the following steps:
- * 1. Convert pixel coordinates to local space relative to mask origin
- * 2. Apply scaling
- * 3. Apply rotation around the origin
- * 4. Add player position and pose offsets
- *
- * @param f Pointer to the pixel mask frame (used for origin offset, can be NULL)
- * @param lx Local X coordinate in mask space
- * @param ly Local Y coordinate in mask space
- * @param player_x Player's world X position
- * @param player_y Player's world Y position
- * @param pose_dx Additional X offset from player pose
- * @param pose_dy Additional Y offset from player pose
- * @param scale Uniform scaling factor to apply
- * @param angle_rad Rotation angle in radians (counter-clockwise)
- * @param out_wx Pointer to store world X coordinate (can be NULL)
- * @param out_wy Pointer to store world Y coordinate (can be NULL)
- * @note If frame is NULL, returns player position without transformation
- */
-void rogue_hit_mask_local_pixel_to_world(const RogueHitPixelMaskFrame* f, int lx, int ly,
-                                         float player_x, float player_y, float pose_dx,
-                                         float pose_dy, float scale, float angle_rad, float* out_wx,
-                                         float* out_wy)
-{
-    if (!f)
+    /**
+     * @brief Converts local pixel coordinates to world space coordinates
+     *
+     * Transforms a pixel position from the local mask coordinate system to world space,
+     * accounting for player position, pose offsets, scaling, and rotation. This is essential
+     * for accurate hit positioning and visual effects placement.
+     *
+     * The transformation applies the following steps:
+     * 1. Convert pixel coordinates to local space relative to mask origin
+     * 2. Apply scaling
+     * 3. Apply rotation around the origin
+     * 4. Add player position and pose offsets
+     *
+     * @param f Pointer to the pixel mask frame (used for origin offset, can be NULL)
+     * @param lx Local X coordinate in mask space
+     * @param ly Local Y coordinate in mask space
+     * @param player_x Player's world X position
+     * @param player_y Player's world Y position
+     * @param pose_dx Additional X offset from player pose
+     * @param pose_dy Additional Y offset from player pose
+     * @param scale Uniform scaling factor to apply
+     * @param angle_rad Rotation angle in radians (counter-clockwise)
+     * @param out_wx Pointer to store world X coordinate (can be NULL)
+     * @param out_wy Pointer to store world Y coordinate (can be NULL)
+     * @note If frame is NULL, returns player position without transformation
+     */
+    void rogue_hit_mask_local_pixel_to_world(
+        const RogueHitPixelMaskFrame* f, int lx, int ly, float player_x, float player_y,
+        float pose_dx, float pose_dy, float scale, float angle_rad, float* out_wx, float* out_wy)
     {
+        if (!f)
+        {
+            if (out_wx)
+                *out_wx = player_x;
+            if (out_wy)
+                *out_wy = player_y;
+            return;
+        }
+        float x = (float) (lx - f->origin_x + 0.5f) * scale;
+        float y = (float) (ly - f->origin_y + 0.5f) * scale;
+        float ca = (float) cos(angle_rad), sa = (float) sin(angle_rad);
+        float rx = x * ca - y * sa;
+        float ry = x * sa + y * ca;
         if (out_wx)
-            *out_wx = player_x;
+            *out_wx = player_x + pose_dx + rx;
         if (out_wy)
-            *out_wy = player_y;
-        return;
+            *out_wy = player_y + pose_dy + ry;
     }
-    float x = (float) (lx - f->origin_x + 0.5f) * scale;
-    float y = (float) (ly - f->origin_y + 0.5f) * scale;
-    float ca = (float) cos(angle_rad), sa = (float) sin(angle_rad);
-    float rx = x * ca - y * sa;
-    float ry = x * sa + y * ca;
-    if (out_wx)
-        *out_wx = player_x + pose_dx + rx;
-    if (out_wy)
-        *out_wy = player_y + pose_dy + ry;
-}

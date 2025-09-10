@@ -53,7 +53,7 @@ Core Subsystems:
 
 ### PHASE 1: ADVANCED PIXEL MASK GENERATION ENGINE
 #### MILESTONE 1.1: Multi-Format Sprite Loading Infrastructure
-- [ ] **File**: `src/game/pixel_mask_loader.h` (new, comprehensive header)
+- [x] **File**: `src/game/pixel_mask_loader.h` (initial slice: config + metrics + prototypes)
   ```c
   typedef struct RoguePixelMaskLoadConfig {
       float alpha_threshold;           // 0.0-1.0, default 0.5
@@ -77,31 +77,30 @@ Core Subsystems:
   - [ ] Implement signed distance field generation for smooth scaling
   - [ ] Add mipmap generation for multi-resolution collision detection
 
-- [ ] **File**: `src/game/pixel_mask_loader.c` (new, 800+ lines)
-  - [ ] **Function**: `rogue_pixel_mask_load_from_surface()`
-    - [ ] SDL2 surface locking with format conversion handling
-    - [ ] Multi-threaded pixel processing (worker thread pool)
-    - [ ] Advanced alpha channel processing with gamma correction
-    - [ ] Edge detection and smoothing algorithms
-    - [ ] Error recovery for corrupted/partial image data
-  - [ ] **Function**: `rogue_pixel_mask_load_from_file()`
-    - [ ] File format auto-detection via magic number analysis
-    - [ ] Streaming loader for large sprites (>4MB)
-    - [ ] Incremental loading with progress callbacks
-    - [ ] Memory-mapped file access for performance
-    - [ ] Asset dependency tracking and change detection
-  - [ ] **Function**: `rogue_pixel_mask_compress_rle()`
+- [x] **File**: `src/game/pixel_mask_loader.c` (initial slice ~200 lines: alpha threshold build from SDL surface / file, metrics population, headless guards)
+  - [x] **Function**: `rogue_pixel_mask_build_from_surface()` (basic alpha threshold, single-threaded)
+    - [ ] (Future) Multi-threaded pixel processing (worker thread pool)
+    - [ ] (Future) Advanced alpha channel processing with gamma correction
+    - [ ] (Future) Edge detection and smoothing algorithms
+    - [ ] (Future) Error recovery for corrupted/partial image data
+  - [x] **Function**: `rogue_pixel_mask_load_from_file()` (basic path via SDL_image IMG_Load, fallback safe)
+    - [ ] (Future) File format auto-detection via magic number analysis
+    - [ ] (Future) Streaming loader for large sprites (>4MB)
+    - [ ] (Future) Incremental loading with progress callbacks
+    - [ ] (Future) Memory-mapped file access for performance
+    - [ ] (Future) Asset dependency tracking and change detection
+  - [ ] **Function**: `rogue_pixel_mask_compress_rle()` (not started)
     - [ ] Run-length encoding with variable bit packing
     - [ ] Huffman coding for optimal compression
     - [ ] SIMD optimizations for bulk bit operations
     - [ ] Compression ratio analysis and auto-selection
-  - [ ] **Function**: `rogue_pixel_mask_generate_mipmaps()`
+  - [ ] **Function**: `rogue_pixel_mask_generate_mipmaps()` (not started)
     - [ ] Gaussian blur downsampling for clean LOD transitions
     - [ ] Preserve collision shape integrity across scales
     - [ ] Automatic threshold adjustment per mipmap level
     - [ ] Quality metrics for mipmap chain validation
 
-#### MILESTONE 1.2: Advanced Item System Integration
+#### MILESTONE 1.2: Advanced Item System Integration (NOT STARTED)
 - [ ] **File**: `src/game/item_collision_cache.h` (new)
   ```c
   typedef struct RogueItemCollisionCache {

@@ -1,0 +1,68 @@
+/* pixel_mask_loader.h - Phase 1 (Milestone 1.1) minimal implementation
+ * Provides basic SDL_Surface / file -> RogueHitPixelMaskFrame conversion with
+ * alpha threshold + metrics collection. Advanced features (SDF, mipmaps,
+ * compression, multi-threading) are deferred to later roadmap slices.
+ */
+#pragma once
+#include <stddef.h>
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+    /* Configuration for pixel mask loading. Fields beyond alpha_threshold are
+     * placeholders for future phases and currently ignored (kept to align with
+     * roadmap and avoid churn in call sites that may start populating them). */
+    typedef struct RoguePixelMaskLoadConfig
+    {
+        float alpha_threshold;     /* 0..1 inclusive; pixels with alpha >= threshold become solid */
+        int edge_smoothing_passes; /* reserved (future) */
+        int compression_level;     /* reserved (future) */
+        int mipmap_levels;         /* reserved (future) */
+        int generate_distance_fields; /* reserved (future) */
+    } RoguePixelMaskLoadConfig;
+
+    typedef struct RoguePixelMaskMetrics
+    {
+        uint32_t total_pixels;     /* w*h */
+        uint32_t collision_pixels; /* bits set */
+        float solid_ratio;         /* collision_pixels / total_pixels */
+        uint64_t build_time_ns;    /* optional timing (0 if unavailable) */
+        size_t memory_footprint;   /* bytes allocated for bit mask */
+    } RoguePixelMaskMetrics;
+
+    /* Forward declare frame type to avoid including hit_pixel_mask.h here (keeps
+     * dependency minimal & prevents circular include when used inside that unit). */
+    struct RogueHitPixelMaskFrame; /* defined in hit_pixel_mask.h */
+
+    /* Initialize config with defaults */
+    static inline RoguePixelMaskLoadConfig rogue_pixel_mask_load_config_default(void)
+    {
+        RoguePixelMaskLoadConfig c;
+        c.alpha_threshold = 0.5f;
+        c.edge_smoothing_passes = 0;
+        c.compression_level = 0;
+        c.mipmap_levels = 1;
+        c.generate_distance_fields = 0;
+        return c;
+    }
+
+    /* Build a mask from an existing SDL surface. Returns 1 on success, 0 on failure.
+     * Out frame is allocated (bits) and caller owns memory (freed via existing
+     * reset path or manual free of frame->bits). Frame contents are zeroed before
+     * population. */
+    int rogue_pixel_mask_build_from_surface(void* sdl_surface, const RoguePixelMaskLoadConfig* cfg,
+                                            struct RogueHitPixelMaskFrame* out_frame,
+                                            RoguePixelMaskMetrics* out_metrics);
+
+    /* Convenience: load image file (currently supports formats SDL_image / WIC
+     * path already handles) and build mask. Returns 1 on success. */
+    int rogue_pixel_mask_load_from_file(const char* path, const RoguePixelMaskLoadConfig* cfg,
+                                        struct RogueHitPixelMaskFrame* out_frame,
+                                        RoguePixelMaskMetrics* out_metrics);
+
+#ifdef __cplusplus
+}
+#endif

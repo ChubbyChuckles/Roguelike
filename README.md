@@ -1,5 +1,16 @@
 ## Debug overlay tips
 
+### Hitbox Rework Phase 1 (Initial Slice)
+
+An initial pixel-perfect collision foundation has landed:
+
+- New `pixel_mask_loader` module converts sprite alpha to bit-packed collision masks.
+- Weapon mask ensure path now attempts asset-backed load (replicates loaded frame across 8 frames) before procedural fallback.
+- Metrics (solid pixel ratio, memory footprint, timing) scaffold in place for future optimization dashboards.
+- Unit test `test_hit_pixel_mask_phase1` validates loader + fallback + enemy sampling.
+
+Upcoming slices (per roadmap) will add mipmaps, compression, distance fields, multi-threaded build, and item/animation integration.
+
 Press F1 in-game to open the debug overlay.
 
 ### Asset Browser (Overlay Phase 1 Enhancement)
