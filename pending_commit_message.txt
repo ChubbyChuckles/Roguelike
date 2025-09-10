@@ -12,6 +12,14 @@ feat(hitbox/phase3.1-deepening): projectile + frame interpolation scaffold
 - New unit test `test_skill_collision_manager_projectile` validates projectile motion (hits targets as it traverses) and frame index progression.
 - Roadmap updated (Milestone 3.1 deepening slice note + Milestone 3.2 file annotation); commit documents deferred advanced projectile physics & mask interpolation tasks.
 
+feat(hitbox/phase3.2-scaffold): animation collision synchronization baseline
+
+- Added `animation_collision_sync.{h,c}` introducing `RogueAnimationCollisionSync` (keyframe timestamps, optional mask pointers, linear interpolation toggle) and `RogueCollisionTimeline` (up to 16 windows with start/duration/mask index/intensity, optional looping fields).
+- Implemented `rogue_animation_collision_evaluate_timeline` (deterministic window activation set; modulo wrapping support placeholder) and `rogue_animation_collision_interpolate_masks` (bracketing keyframe lookup + linear t factor; mask morphing deferred).
+- New unit test `test_animation_collision_sync_basic` validating single-window activation at sample times, overlap handling simplification, linear interpolation factor (t=0.5 at midpoint), end-clamp behavior, and interpolation disable path.
+- Roadmap (implementation_hitbox_rework.txt) updated: Milestone 3.2 partial tasks checked (structs, evaluation, linear interpolation, baseline test); deferred items flagged (spline quality modes, adaptive quality, event batching, mask morph, frame skipping heuristics).
+- README pending update to include Milestone 3.2 scaffold summary (will follow in same commit or subsequent docs pass).
+
 - Added enemy profile LOD adaptation stage to collision pipeline (maps higher importance → negative bias for prioritization).
 - Implemented baseline pixel-perfect stage pruning logic:
 	• FAST tier: prune every other candidate (cheap heuristic)

@@ -115,6 +115,25 @@ Press F1 in-game to open the debug overlay.
   - Unit test `test_skill_collision_manager_phase3_1` validates activation scheduling, intensity ramp, piercing vs non-piercing, max target limiting, and completion flags.
 - This slice is headless-safe and not yet integrated with gameplay execution paths (no regression risk). Future milestones will add spatial shapes, projectile trajectories, mask/SDF overlap integration, cooldown gating, and advanced effect stacking.
 
+###### Deepening Slice: Projectile + Frame Interpolation Scaffold (Milestone 3.1 Extension)
+
+- Added projectile support to `RogueSkillCollisionLayer` (position, velocity, radius) with per-tick advancement inside `rogue_skill_collision_effect_tick` when type == PROJECTILE.
+- Introduced radius-based projectile hit gating (targets now carry x,y coordinates for distance checks) and a simple projectile test helper.
+- Added fractional frame index helper `rogue_skill_collision_layer_frame_index` returning 0..N-1 (float) for prospective animated mask sampling (used by upcoming animation sync milestone).
+- New unit test `test_skill_collision_manager_projectile` validates projectile motion (hits expected targets as it traverses) and frame index progression semantics.
+- Roadmap annotated with deepening slice; advanced projectile physics (terrain collision, ricochet, SDF-guided pathing, trail sampling, mask interpolation) deferred.
+
+##### Milestone 3.2 (Animation Collision Synchronization – Scaffold)
+
+- New module `animation_collision_sync.{h,c}` introduces:
+  - `RogueAnimationCollisionSync`: keyframe timestamps array, optional keyframe mask pointers (NULL in current scaffold), linear interpolation toggle (future spline / quality modes deferred), and frame skip threshold placeholder.
+  - `RogueCollisionTimeline`: up to 16 collision windows (timestamp, duration, mask index, intensity multiplier) with optional looping fields (loop evaluation modulo placeholder for later slice).
+  - `rogue_animation_collision_evaluate_timeline`: determines active window indices at arbitrary time (ms). Deterministic, stable ordering; overlap simply produces multiple indices (no event batching yet).
+  - `rogue_animation_collision_interpolate_masks`: returns bracketing keyframes + linear interpolation factor t (0..1). If interpolation disabled or at/after last keyframe, clamps (b=NULL, t=0).
+- Unit test `test_animation_collision_sync_basic` covers timeline activation at sample times, overlap simplification, midpoint interpolation (t≈0.5), end clamp, and disabled interpolation path.
+- Roadmap updated marking partial completion (structs + basic eval + linear interpolation + unit test) while deferring spline/intermediate mask morphing, adaptive quality, frame skipping heuristics, speed scaling, and event batching APIs.
+- Next deepening steps will integrate skill layer fractional frame index with keyframe-driven mask sampling & morph, then add speed scaling (animation playback rate) and event emission (enter/exit window callbacks) for richer combat timing.
+
 ### Asset Browser (Overlay Phase 1 Enhancement)
 
 - New tabbed interface (All / Textures / Audio / JSON / Shaders) with live wildcard filter ("\*" / "?"; case-insensitive).

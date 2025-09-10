@@ -385,7 +385,7 @@ Core Subsystems:
     - [ ] Trail-based collision for projectile motion blur
 
 #### MILESTONE 3.2: Advanced Animation Synchronization
-- [ ] **File**: `src/game/animation_collision_sync.h` (new – pending scaffold; will integrate with frame index helper from skill collision deepening)
+- [x] **File**: `src/game/animation_collision_sync.h` (initial scaffold implemented – integrates with frame index helper conceptually; masks optional)
   ```c
   typedef struct RogueAnimationCollisionSync {
       uint32_t animation_id;           // Reference to animation definition
@@ -409,22 +409,26 @@ Core Subsystems:
       float total_cycle_time_ms;       // Complete animation duration
   } RogueCollisionTimeline;
   ```
-  - [ ] Keyframe-based collision timing for precise skill activation
-  - [ ] Smooth interpolation system for fluid collision transitions
-  - [ ] Performance-aware frame skipping under load
-  - [ ] Timeline-based collision window management
+  - [x] Keyframe-based collision timing (timestamps array + interpolation factor scaffold)
+  - [x] Timeline-based collision window management (evaluate active windows, looping pending advanced slice)
+  - [x] Basic linear interpolation factor between keyframes (returns t + bracketing indices via masks pointers)
+  - [ ] Smooth interpolation system for fluid collision transitions (cubic/spline quality modes pending)
+  - [ ] Performance-aware frame skipping under load (threshold field placeholder only)
+  - [ ] Mask blending (real-time morph) & memory pooling cache optimization
 
-- [ ] **File**: `src/game/animation_collision_sync.c` (new, 700+ lines)
-  - [ ] **Function**: `rogue_animation_collision_evaluate_timeline()`
-    - [ ] Temporal collision window evaluation with sub-frame precision
-    - [ ] Multi-window overlap handling for complex animations
-    - [ ] Dynamic timeline adjustment based on animation speed
-    - [ ] Collision event scheduling and batching
-  - [ ] **Function**: `rogue_animation_collision_interpolate_masks()`
-    - [ ] Real-time collision mask morphing between keyframes
-    - [ ] Spline-based interpolation for smooth shape transitions
-    - [ ] Quality-adaptive interpolation based on performance budget
-    - [ ] Cache-friendly mask interpolation with memory pooling
+- [x] **File**: `src/game/animation_collision_sync.c` (scaffold ~150 lines)
+  - [x] **Function**: `rogue_animation_collision_evaluate_timeline()` (deterministic activation evaluation; overlap counted, no batching yet)
+    - [x] Temporal collision window evaluation (ms domain; simple range test)
+    - [ ] Sub-frame precision beyond provided float timestamps (deferred)
+    - [ ] Dynamic timeline adjustment based on animation speed (future speed scale param)
+    - [ ] Collision event scheduling and batching (future queue API)
+  - [x] **Function**: `rogue_animation_collision_interpolate_masks()` (returns bracketing keyframes + linear t)
+    - [ ] Real-time collision mask morphing between keyframes (future blending path)
+    - [ ] Spline-based interpolation quality modes (cubic/Hermite) pending
+    - [ ] Quality-adaptive interpolation (performance feedback loop) pending
+    - [ ] Cache-friendly pooled buffer strategy pending
+  - [x] Unit test `test_animation_collision_sync_basic` validating window activation and interpolation factor (non-morph)
+  - [ ] Additional tests for looping timelines, speed scaling, multi-window overlap resolution (future)
 
 #### MILESTONE 3.3: Spell Interaction System
 - [ ] **File**: `src/game/spell_interaction_engine.h` (new)

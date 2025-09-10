@@ -1197,6 +1197,14 @@ if(TARGET SDL2::SDL2)
 endif()
 rogue_add_test(NAME test_skill_collision_manager_projectile COMMAND test_skill_collision_manager_projectile)
 
+# Milestone 3.2 scaffold: animation collision synchronization basic test
+add_executable(test_animation_collision_sync_basic tests/unit/test_animation_collision_sync_basic.c)
+target_link_libraries(test_animation_collision_sync_basic PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_animation_collision_sync_basic PRIVATE SDL2::SDL2)
+endif()
+rogue_add_test(NAME test_animation_collision_sync_basic COMMAND test_animation_collision_sync_basic)
+
 add_executable(test_tag_registry_validate tests/unit/test_tag_registry_validate.c)
 
 # Debug overlay core unit test
