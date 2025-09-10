@@ -1,6 +1,20 @@
 cmake_minimum_required(VERSION 3.20)
 project(roguelike C)
 
+# --- Test framework bootstrap (must precede any rogue_add_test/add_test) ---
+# Prior logic gated include(CTest)/enable_testing() behind (NOT BUILD_TESTING). When CTest
+# had already been included in a previous configure (setting BUILD_TESTING=ON in the cache),
+# subsequent reconfigure runs skipped both include() and enable_testing(), yielding an empty
+# CTest test set ("No tests were found!!!"). We now always include CTest, then conditionally
+# enable the testing driver so all previously declared add_test() are materialized.
+include(CTest)
+if(BUILD_TESTING)
+    enable_testing()
+    message(STATUS "CTest enabled (BUILD_TESTING=ON) - tests will be registered")
+else()
+    message(STATUS "BUILD_TESTING=OFF - test targets may still build but will not be runnable via ctest")
+endif()
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -1133,6 +1147,15 @@ if(TARGET SDL2::SDL2)
 endif()
 rogue_add_test(NAME test_collision_pipeline_phase2_1_temporal COMMAND test_collision_pipeline_phase2_1_temporal)
 
+# Pixel-perfect & hierarchical broad-phase stub integration test
+add_executable(test_collision_pipeline_phase2_1_pixel tests/unit/test_collision_pipeline_phase2_1_pixel.c)
+target_link_libraries(test_collision_pipeline_phase2_1_pixel PRIVATE rogue_core)
+    if (TARGET SDL2::SDL2)
+        target_link_libraries(test_collision_pipeline_phase2_1_pixel PRIVATE SDL2::SDL2)
+    endif()
+rogue_add_test(NAME test_collision_pipeline_phase2_1_pixel COMMAND test_collision_pipeline_phase2_1_pixel)
+rogue_add_test(NAME test_collision_pipeline_phase2_1_pixel_sampling COMMAND test_collision_pipeline_phase2_1_pixel_sampling)
+
 add_executable(test_tag_registry_validate tests/unit/test_tag_registry_validate.c)
 
 # Debug overlay core unit test
@@ -1631,8 +1654,7 @@ endif()
 # Force 1s cooldowns for all active skills during rapid iteration/testing
 target_compile_definitions(rogue_core PUBLIC ROGUE_TEST_SHORT_COOLDOWNS=1)
 
-include(CTest)
-enable_testing()
+## (Moved CTest bootstrap near top; see earlier comment explaining unconditional include + conditional enable)
 
 add_subdirectory(tests)
 

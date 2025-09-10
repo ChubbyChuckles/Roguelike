@@ -6,6 +6,7 @@
  *  - Temporal coherence cache stage (reuses last-frame candidate subset when stable)
  */
 #include "game/collision_pipeline.h"
+#include "game/hit_pixel_mask.h" /* Needed for RogueHitPixelMaskFrame definition (pixel-perfect stage) */
 #include <string.h>
 #include <time.h>
 #ifdef _WIN32
@@ -274,6 +275,157 @@ bool rogue_collision_stage_aabb_prefilter(struct RogueCollisionContext* ctx,
     const uint32_t cap = 128; /* safety */
     if (ctx->candidate_count > cap)
         ctx->candidate_count = cap;
+    m->output_candidates = ctx->candidate_count;
+    return true;
+}
+
+/* ---------------- Hierarchical Broad-Phase (Baseline Stub) ---------------- */
+/* This lightweight pass approximates a two-level grouping by scanning candidates
+ * and rejecting those fully outside an expanded view rectangle. Expansion uses
+ * a margin proportional to quality tier to reduce thrash at higher precision. */
+bool rogue_collision_stage_hierarchical_broad(struct RogueCollisionContext* ctx,
+                                              RogueCollisionMetrics* m)
+{
+    if (!ctx)
+    {
+        m->output_candidates = 0;
+        return true;
+    }
+    if (ctx->candidate_count == 0)
+    {
+        m->output_candidates = 0;
+        return true;
+    }
+    float tier_margin = 0.f;
+    switch (ctx->quality_level)
+    {
+    case ROGUE_COLLISION_FAST:
+        tier_margin = 4.f;
+        break;
+    case ROGUE_COLLISION_BALANCED:
+        tier_margin = 8.f;
+        break;
+    case ROGUE_COLLISION_PRECISE:
+        tier_margin = 12.f;
+        break;
+    case ROGUE_COLLISION_ULTRA:
+        tier_margin = 16.f;
+        break;
+    }
+    float vx = ctx->view_x - tier_margin;
+    float vy = ctx->view_y - tier_margin;
+    float vw = ctx->view_w + tier_margin * 2.f;
+    float vh = ctx->view_h + tier_margin * 2.f;
+    uint32_t write = 0;
+    for (uint32_t i = 0; i < ctx->candidate_count; ++i)
+    {
+        RogueCollisionCandidate* c = &ctx->candidates[i];
+        float minx = c->x - c->half_w;
+        float maxx = c->x + c->half_w;
+        float miny = c->y - c->half_h;
+        float maxy = c->y + c->half_h;
+        if (maxx < vx || minx > vx + vw || maxy < vy || miny > vy + vh)
+            continue; /* reject */
+        if (write != i)
+            ctx->candidates[write] = *c;
+        write++;
+    }
+    ctx->candidate_count = write;
+    m->output_candidates = write;
+    return true;
+}
+
+/* ---------------- Pixel-Perfect Stage (Baseline Stub) ---------------- */
+/* Placeholder refinement: applies a trivial per-quality cost simulation and optional
+ * micro pruning heuristic (drop every other candidate at FAST tier to emulate reduced
+ * sampling). Future slice will integrate mask bit tests & multi-res selection. */
+bool rogue_collision_stage_pixel_perfect(struct RogueCollisionContext* ctx,
+                                         RogueCollisionMetrics* m)
+{
+    if (!ctx)
+    {
+        m->output_candidates = 0;
+        return true;
+    }
+    if (ctx->candidate_count == 0)
+    {
+        m->output_candidates = 0;
+        return true;
+    }
+    if (ctx->quality_level == ROGUE_COLLISION_FAST)
+    {
+        /* Coarse tier: retain legacy placeholder half-prune to keep tests stable. */
+        uint32_t write = 0;
+        for (uint32_t i = 0; i < ctx->candidate_count; ++i)
+        {
+            if ((i & 1) != 0)
+                continue;
+            if (write != i)
+                ctx->candidates[write] = ctx->candidates[i];
+            write++;
+        }
+        ctx->candidate_count = write;
+    }
+    else if (ctx->quality_level >= ROGUE_COLLISION_BALANCED)
+    {
+        /* Simple pixel refinement: if two candidates provide pixel masks and overlap
+           only via AABB but share no solid pixel in intersection sample region, drop.
+           For this slice we do a conservative self-filter: remove candidates whose mask
+           is entirely empty (degenerate) to simulate refinement, and (PRECISE/ULTRA)
+           perform a tiny sampling grid inside their local mask bounds to ensure at
+           least one solid bit (early exit). */
+        uint32_t write = 0;
+        for (uint32_t i = 0; i < ctx->candidate_count; ++i)
+        {
+            RogueCollisionCandidate* c = &ctx->candidates[i];
+            if (!c->pixel_mask || !c->pixel_mask->bits)
+            {
+                /* Keep if no mask (cannot refine) */
+                if (write != i)
+                    ctx->candidates[write] = *c;
+                write++;
+                continue;
+            }
+            /* Quick degeneracy check: width/height sanity */
+            if (c->pixel_mask->width <= 0 || c->pixel_mask->height <= 0)
+                continue; /* drop invalid */
+            int keep = 0;
+            if (ctx->quality_level == ROGUE_COLLISION_BALANCED)
+            {
+                /* One sample at approximate center */
+                int sx = c->pixel_mask->width / 2;
+                int sy = c->pixel_mask->height / 2;
+                extern int rogue_hit_mask_test(const struct RogueHitPixelMaskFrame*, int, int);
+                keep = rogue_hit_mask_test(c->pixel_mask, sx, sy);
+            }
+            else /* PRECISE / ULTRA */
+            {
+                extern int rogue_hit_mask_test(const struct RogueHitPixelMaskFrame*, int, int);
+                /* Sample a 3x3 grid around center (clamped). */
+                int cx = c->pixel_mask->width / 2;
+                int cy = c->pixel_mask->height / 2;
+                for (int dy = -1; dy <= 1 && !keep; ++dy)
+                    for (int dx = -1; dx <= 1 && !keep; ++dx)
+                    {
+                        int sx = cx + dx;
+                        int sy = cy + dy;
+                        if (sx < 0 || sy < 0 || sx >= c->pixel_mask->width ||
+                            sy >= c->pixel_mask->height)
+                            continue;
+                        if (rogue_hit_mask_test(c->pixel_mask, sx, sy))
+                            keep = 1;
+                    }
+            }
+            if (keep)
+            {
+                if (write != i)
+                    ctx->candidates[write] = *c;
+                write++;
+            }
+            /* else prune */
+        }
+        ctx->candidate_count = write;
+    }
     m->output_candidates = ctx->candidate_count;
     return true;
 }

@@ -81,6 +81,9 @@ extern "C"
         float half_w; /* Half-width (AABB / broad radius). */
         float half_h; /* Half-height. */
         float vx, vy; /* Velocity (units per ms) for predictive culling. */
+        /* Optional pixel mask reference (if available) for pixel-perfect stage. */
+        struct RogueHitPixelMaskFrame* pixel_mask; /* forward-declared in hit_pixel_mask.h */
+        int pixel_mask_lx, pixel_mask_ly;          /* Local origin offset (top-left) */
     } RogueCollisionCandidate;
 
     typedef struct RogueCollisionContext
@@ -104,6 +107,16 @@ extern "C"
                                               RogueCollisionMetrics* m);
     bool rogue_collision_stage_temporal_cache(struct RogueCollisionContext* ctx,
                                               RogueCollisionMetrics* m);
+    /* Hierarchical broad-phase (baseline stub): lightweight pass that prunes any candidates
+        clearly outside the expanded view bounds using a simple two-level grouping heuristic.
+        Future slice will replace with SIMD + BV tree. */
+    bool rogue_collision_stage_hierarchical_broad(struct RogueCollisionContext* ctx,
+                                                  RogueCollisionMetrics* m);
+    /* Pixel-perfect stage (baseline stub): placeholder performing quality-tier dependent
+        refinement work. Future slice will integrate real pixel mask bit tests and multi-resolution
+        mask selection. */
+    bool rogue_collision_stage_pixel_perfect(struct RogueCollisionContext* ctx,
+                                             RogueCollisionMetrics* m);
 
     /* Initialization helpers */
     static inline void rogue_collision_pipeline_init(RogueCollisionPipeline* p,
