@@ -71,8 +71,8 @@ Core Subsystems:
       size_t memory_footprint;
   } RoguePixelMaskMetrics;
   ```
-  - [ ] Define comprehensive loading configuration structure
-  - [ ] Add metrics collection for performance analysis
+  - [x] Define comprehensive loading configuration structure (alpha_threshold, compression_level, mipmap_levels implemented; smoothing/SDF deferred)
+  - [x] Add metrics collection for performance analysis (total/collision pixels, solid ratio, build time, memory, compressed size, mip levels)
   - [ ] Support for multiple sprite formats (PNG, BMP, TGA, DDS)
   - [ ] Implement signed distance field generation for smooth scaling
   - [ ] Add mipmap generation for multi-resolution collision detection
@@ -89,16 +89,16 @@ Core Subsystems:
     - [ ] (Future) Incremental loading with progress callbacks
     - [ ] (Future) Memory-mapped file access for performance
     - [ ] (Future) Asset dependency tracking and change detection
-  - [ ] **Function**: `rogue_pixel_mask_compress_rle()` (not started)
-    - [ ] Run-length encoding with variable bit packing
-    - [ ] Huffman coding for optimal compression
-    - [ ] SIMD optimizations for bulk bit operations
-    - [ ] Compression ratio analysis and auto-selection
-  - [ ] **Function**: `rogue_pixel_mask_generate_mipmaps()` (not started)
-    - [ ] Gaussian blur downsampling for clean LOD transitions
-    - [ ] Preserve collision shape integrity across scales
-    - [ ] Automatic threshold adjustment per mipmap level
-    - [ ] Quality metrics for mipmap chain validation
+  - [x] **Function**: `rogue_pixel_mask_compress_rle()` (initial slice inline inside build: simple word-level RLE; advanced codecs deferred)
+    - [x] Run-length encoding with variable bit packing (32-bit word runs)
+    - [ ] Huffman coding for optimal compression (deferred)
+    - [ ] SIMD optimizations for bulk bit operations (deferred)
+    - [ ] Compression ratio analysis and auto-selection (deferred)
+  - [x] **Function**: `rogue_pixel_mask_generate_mipmaps()` (initial slice: binary OR 2x2 downsample chain)
+    - [ ] Gaussian blur downsampling for clean LOD transitions (future enhancement)
+    - [x] Preserve collision shape integrity across scales (binary occupancy)
+    - [ ] Automatic threshold adjustment per mipmap level (deferred)
+    - [ ] Quality metrics for mipmap chain validation (deferred)
 
 #### MILESTONE 1.2: Advanced Item System Integration (NOT STARTED)
 - [ ] **File**: `src/game/item_collision_cache.h` (new)

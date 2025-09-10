@@ -332,6 +332,12 @@ fix(worldgen/release-oob): guard BFS neighbor/queue bounds in chest placement; C
 - Docs: Updated roadmap progress (Phase 5.2 status + fix note) and README test counts/CI verification.
 
 chore(items/phase5.2): complete JSON integration tests; update CI counts to 678/678
+docs(hitbox/phase1): README sync for RLE compression + mipmaps; confirm test execution
+
+- Updated README Phase 1 section: marks basic RLE (word-run) compression + 2x2 OR mipmap chain as implemented, lists upcoming advanced tasks (SDF, smoothing, threaded build, gaussian mips, adaptive compression).
+- Ran CTest filtered run: test_hit_pixel_mask_phase1 passes (verifies loader, replication fallback, compression & mip metadata). Confirms earlier "No tests" issue was invocation from wrong directory.
+- Pending roadmap advanced items unchanged; commit documents doc/test parity after feature landing.
+
 
 - Add Phase 5.2 integration tests:
 	• tests/unit/test_crafting_json_materials.c – crafting with JSON materials (registry + recipe load, inventory deltas)

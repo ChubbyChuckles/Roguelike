@@ -105,27 +105,28 @@ RogueHitPixelMaskSet* rogue_hit_pixel_masks_ensure(int weapon_id)
     RoguePixelMaskMetrics metrics;
     const char* candidate_paths[] = {"assets/placeholder.png"};
     int loaded_any = 0;
-    for (size_t p = 0; p < sizeof(candidate_paths) / sizeof(candidate_paths[0]) && !loaded_any; ++p)
+    for (size_t path_i = 0;
+         path_i < sizeof(candidate_paths) / sizeof(candidate_paths[0]) && !loaded_any; ++path_i)
     {
         RogueHitPixelMaskFrame tmp = {0};
-        if (rogue_pixel_mask_load_from_file(candidate_paths[p], &cfg, &tmp, &metrics))
+        if (rogue_pixel_mask_load_from_file(candidate_paths[path_i], &cfg, &tmp, &metrics))
         {
-            for (int f = 0; f < 8; ++f)
+            for (int frame_i = 0; frame_i < 8; ++frame_i)
             {
-                s->frames[f] = tmp; /* shallow copy */
-                if (f > 0)
+                s->frames[frame_i] = tmp; /* shallow copy */
+                if (frame_i > 0)
                 {
                     size_t words = (size_t) tmp.pitch_words * (size_t) tmp.height;
-                    s->frames[f].bits = (uint32_t*) malloc(words * sizeof(uint32_t));
-                    if (s->frames[f].bits)
-                        memcpy(s->frames[f].bits, tmp.bits, words * sizeof(uint32_t));
+                    s->frames[frame_i].bits = (uint32_t*) malloc(words * sizeof(uint32_t));
+                    if (s->frames[frame_i].bits)
+                        memcpy(s->frames[frame_i].bits, tmp.bits, words * sizeof(uint32_t));
                     /* Duplicate advanced buffers (compressed + mipmaps) only once to save time;
                      * reuse pointers */
-                    s->frames[f].compressed = tmp.compressed;
-                    s->frames[f].compressed_size = tmp.compressed_size;
-                    s->frames[f].compressed_format = tmp.compressed_format;
-                    s->frames[f].mipmap_count = tmp.mipmap_count;
-                    s->frames[f].mipmaps = tmp.mipmaps; /* share (read-only) */
+                    s->frames[frame_i].compressed = tmp.compressed;
+                    s->frames[frame_i].compressed_size = tmp.compressed_size;
+                    s->frames[frame_i].compressed_format = tmp.compressed_format;
+                    s->frames[frame_i].mipmap_count = tmp.mipmap_count;
+                    s->frames[frame_i].mipmaps = tmp.mipmaps; /* share (read-only) */
                 }
             }
             loaded_any = 1;
@@ -133,15 +134,20 @@ RogueHitPixelMaskSet* rogue_hit_pixel_masks_ensure(int weapon_id)
     }
     if (!loaded_any)
     {
-        for (int i = 0; i < 8; ++i)
+        for (int frame_i = 0; frame_i < 8; ++frame_i)
         {
-            alloc_frame(&s->frames[i], 48, 16);
-            int advance = i * 4;
+            alloc_frame(&s->frames[frame_i], 48, 16);
+            s->frames[frame_i].mipmap_count = 1;
+            s->frames[frame_i].mipmaps = NULL;
+            s->frames[frame_i].compressed = NULL;
+            s->frames[frame_i].compressed_size = 0;
+            s->frames[frame_i].compressed_format = 0;
+            int advance = frame_i * 4;
             if (advance > 24)
                 advance = 24;
             for (int y = 6; y < 10; y++)
                 for (int x = advance; x < advance + 24; ++x)
-                    rogue_hit_mask_set(&s->frames[i], x, y);
+                    rogue_hit_mask_set(&s->frames[frame_i], x, y);
         }
     }
     s->ready = 1;

@@ -1,15 +1,17 @@
 ## Debug overlay tips
 
-### Hitbox Rework Phase 1 (Initial Slice)
+### Hitbox Rework Phase 1 (Initial Slices)
 
-An initial pixel-perfect collision foundation has landed:
+Pixel-perfect collision foundation plus first advanced features are in:
 
-- New `pixel_mask_loader` module converts sprite alpha to bit-packed collision masks.
-- Weapon mask ensure path now attempts asset-backed load (replicates loaded frame across 8 frames) before procedural fallback.
-- Metrics (solid pixel ratio, memory footprint, timing) scaffold in place for future optimization dashboards.
-- Unit test `test_hit_pixel_mask_phase1` validates loader + fallback + enemy sampling.
+- `pixel_mask_loader` converts sprite alpha to bit-packed collision masks (alpha threshold configurable).
+- Weapon mask ensure path now attempts asset-backed load (replicates a loaded frame across 8 frames) before procedural horizontal‑bar fallback.
+- Metrics collected: total / collision pixels, solid ratio, build time (ns), memory footprint, compressed size, mip levels.
+- Simple word‑run RLE compression (opt‑in via `compression_level > 0`) stores a secondary buffer; format tag = 1 (future codecs reserved).
+- Binary OR 2x2 mipmap chain generation (request via `mipmap_levels` in config) for upcoming multi‑resolution / broad‑phase heuristics.
+- Unit test `test_hit_pixel_mask_phase1` validates loader, replication/fallback path, and sampling metadata (including compression & mipmap presence when enabled).
 
-Upcoming slices (per roadmap) will add mipmaps, compression, distance fields, multi-threaded build, and item/animation integration.
+Next roadmap slices will tackle: distance fields (SDF), edge smoothing, multi-threaded build, smarter mipmap filtering (gaussian / adaptive thresholds), compression auto‑selection + ratio analytics, and item / animation / atlas integration.
 
 Press F1 in-game to open the debug overlay.
 

@@ -18,6 +18,12 @@
 #include <windows.h>
 #endif
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+/* Suppress constant conditional (C4127) for deliberate while/if patterns in tight loops */
+#pragma warning(disable : 4127)
+#endif
+
 #if defined(ROGUE_HAVE_SDL)
 #include <SDL.h>
 #endif
@@ -281,6 +287,7 @@ int rogue_pixel_mask_build_from_surface(void* sdl_surface_v, const RoguePixelMas
     /* Mipmaps */
     if (cfg->mipmap_levels > 1)
     {
+        /* condition is runtime-configurable even if optimizer sees constant during tests */
         if (!generate_mipmaps(out_frame, cfg->mipmap_levels, out_metrics))
         {
             /* leave base valid; on failure just skip advanced features */
@@ -333,3 +340,7 @@ int rogue_pixel_mask_load_from_file(const char* path, const RoguePixelMaskLoadCo
     return ok;
 #endif
 }
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
