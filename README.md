@@ -39,6 +39,7 @@ Foundation for a staged, quality-tiered collision pipeline:
   - `RogueCollisionPipeline` container (up to 8 stages, quality level, frame budget, adaptive flag placeholder).
   - Metrics per stage: `last_ms`, EMA `avg_ms`, input / output candidate counts, call counter; pipeline total time.
 - Execution stub (`rogue_collision_pipeline_execute`) iterates registered stages, records timings, updates EMA, and honors early exit when a stage returns `false`.
+- Per-stage caps are now enforced: if a stage declares `max_candidates > 0`, the pipeline caps `ctx->candidate_count` after the stage and records the capped value in `metrics.output_candidates`. The next stage sees the capped count as its input. Unit: `test_collision_pipeline_phase2_1_stage_cap`.
 - Deterministic timing support: optional simulated stage cost injection used exclusively in tests (kept <5ms) to produce stable metric assertions without real workload variance.
 - Unit test `test_collision_pipeline_phase2_1` validates:
   - Stage registration / ordering semantics.

@@ -1,3 +1,10 @@
+feat(collision-pipeline): enforce per-stage max_candidates and add unit test; 713/713 green (SDL2, -j12)
+
+- Enforce `RogueCollisionStage.max_candidates` after each stage in `rogue_collision_pipeline_execute`.
+- Metrics now reflect caps (`metrics.output_candidates`), and downstream stages receive the capped input.
+- New unit test `test_collision_pipeline_phase2_1_stage_cap` validates cap behavior and metrics/input propagation.
+- Verified with Debug SDL2 build and ctest -j12: 100% green (713/713).
+
 feat(animation-collision-overlap): deterministic overlap resolution strategies + scaled wrapper; tests; 712/712 green
 
 - Implement `rogue_animation_collision_resolve_overlap` and `_scaled` to select a single active window when overlaps occur.

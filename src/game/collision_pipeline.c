@@ -604,6 +604,13 @@ bool rogue_collision_pipeline_execute(RogueCollisionPipeline* p, RogueCollisionC
         bool cont = s->stage_func ? s->stage_func(ctx, &s->metrics) : true;
         double t1 = rogue_timer_now_ms(&timer);
         s->metrics.last_ms = measure_ms(t0, t1);
+        /* Enforce optional per-stage candidate cap post stage execution. */
+        if (s->max_candidates > 0 && ctx->candidate_count > s->max_candidates)
+        {
+            ctx->candidate_count = s->max_candidates;
+        }
+        /* Ensure output metric reflects any post-cap adjustment. */
+        s->metrics.output_candidates = ctx->candidate_count;
         /* Exponential moving average (alpha = 0.1) */
         if (s->metrics.calls == 0)
             s->metrics.avg_ms = s->metrics.last_ms;

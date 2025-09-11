@@ -216,6 +216,7 @@ Core Subsystems:
     - [ ] Interrupt-safe processing for real-time constraints
   - [x] Simulated stage cost injection for test determinism (<5ms cap)
   - [x] High resolution timer upgrade (QueryPerformanceCounter based on Windows; high-res clock abstraction)
+  - [x] Enforce per-stage max_candidates caps after each stage executes; cap is reflected in both the context (candidate_count) and per-stage metrics (output_candidates)
   - [x] **Stage 1**: `collision_stage_spatial_cull()`
     - [x] Octree/quadtree spatial partitioning for O(log n) culling (initial quadtree depth 4, fixed arrays)
     - [ ] View frustum culling integration (view rect only; full frustum logic deferred)
@@ -233,6 +234,7 @@ Core Subsystems:
 - [x] `test_collision_pipeline_phase2_1`: validates stage registration, execution ordering, metrics population, early exit behavior, simulated cost accumulation.
  - [x] `test_collision_pipeline_phase2_1_adaptive`: validates spatial (quadtree) culling + predictive inclusion, AABB prefilter trimming, distance-based LOD heuristic, and adaptive quality downgrade/upgrade thresholds; asserts metrics and quality transitions deterministic.
  - [x] `test_collision_pipeline_phase2_1_temporal`: validates temporal cache hit (skips spatial) and miss after view movement.
+ - [x] `test_collision_pipeline_phase2_1_stage_cap`: validates per-stage candidate cap enforcement and metrics/input propagation to downstream stages.
     - [ ] Multi-resolution pixel testing with automatic LOD selection
     - [ ] Scanline optimization for sparse collision shapes
     - [ ] Bit manipulation tricks for fast mask intersection
