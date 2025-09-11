@@ -190,8 +190,18 @@ int rogue_animation_collision_interpolate_masks(const RogueAnimationCollisionSyn
     /* Clamp negative time */
     if (time_ms < 0.f)
         time_ms = 0.f;
-    /* Simple linear search (keyframe count expected small). Later slice may add binary search. */
+    /* Bracketing search. Prefer binary search when timestamps are monotonic; otherwise fallback
+     * to linear scan. */
     uint8_t last_index = sync->keyframe_count - 1;
+    int monotonic = 1;
+    for (uint8_t i = 1; i < sync->keyframe_count; ++i)
+    {
+        if (sync->keyframe_timestamps[i] < sync->keyframe_timestamps[i - 1])
+        {
+            monotonic = 0;
+            break;
+        }
+    }
     /* If time beyond last timestamp -> clamp */
     float last_ts = sync->keyframe_timestamps[last_index];
     if (time_ms >= last_ts || !sync->smooth_interpolation || sync->keyframe_count == 1)
@@ -200,12 +210,34 @@ int rogue_animation_collision_interpolate_masks(const RogueAnimationCollisionSyn
         {
             /* Find greatest keyframe <= time */
             uint8_t k = 0;
-            for (uint8_t i = 0; i < sync->keyframe_count; ++i)
+            if (monotonic)
             {
-                if (sync->keyframe_timestamps[i] <= time_ms)
-                    k = i;
-                else
-                    break;
+                int lo = 0, hi = (int) last_index, ans = 0;
+                while (lo <= hi)
+                {
+                    int mid = (lo + hi) >> 1;
+                    float ts = sync->keyframe_timestamps[(uint8_t) mid];
+                    if (ts <= time_ms)
+                    {
+                        ans = mid;
+                        lo = mid + 1;
+                    }
+                    else
+                    {
+                        hi = mid - 1;
+                    }
+                }
+                k = (uint8_t) ans;
+            }
+            else
+            {
+                for (uint8_t i = 0; i < sync->keyframe_count; ++i)
+                {
+                    if (sync->keyframe_timestamps[i] <= time_ms)
+                        k = i;
+                    else
+                        break;
+                }
             }
             if (sync->keyframe_masks)
                 *out_a = sync->keyframe_masks[k];
@@ -214,13 +246,41 @@ int rogue_animation_collision_interpolate_masks(const RogueAnimationCollisionSyn
     }
     /* Identify bracketing keyframes (i,i+1) where ts[i] <= time < ts[i+1] */
     uint8_t base = 0;
-    for (uint8_t i = 0; i < last_index; ++i)
+    if (monotonic)
     {
-        float b_ts = sync->keyframe_timestamps[i + 1];
-        if (time_ms < b_ts)
+        /* Find first index j such that ts[j] > time_ms, then base=j-1 (clamped >=0) */
+        int lo = 0, hi = (int) last_index, ans = (int) last_index + 1;
+        while (lo <= hi)
         {
-            base = i;
-            break;
+            int mid = (lo + hi) >> 1;
+            float ts = sync->keyframe_timestamps[(uint8_t) mid];
+            if (ts > time_ms)
+            {
+                ans = mid;
+                hi = mid - 1;
+            }
+            else
+            {
+                lo = mid + 1;
+            }
+        }
+        int b = ans - 1;
+        if (b < 0)
+            b = 0;
+        if (b > (int) last_index - 1)
+            b = (int) last_index - 1;
+        base = (uint8_t) b;
+    }
+    else
+    {
+        for (uint8_t i = 0; i < last_index; ++i)
+        {
+            float b_ts = sync->keyframe_timestamps[i + 1];
+            if (time_ms < b_ts)
+            {
+                base = i;
+                break;
+            }
         }
     }
     float a_ts = sync->keyframe_timestamps[base];

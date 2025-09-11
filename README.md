@@ -108,6 +108,7 @@ Recent semantics refinements (Phase 3):
 - Projectile collision now sweeps along the segment between previous and new positions each tick, except on the activation tick (end-point only) to prevent double hits.
 - INSTANT layers sample intensity at the start-of-tick for deterministic timing.
 - MULTI_HIT layers enforce max_targets per tick; other types continue to use lifetime caps.
+- Animation keyframe interpolation bracketing now uses binary search when keyframe timestamps are sorted (linear scan fallback); behavior unchanged, small perf win in hot paths.
 
 Press F1 in-game to open the debug overlay.
 

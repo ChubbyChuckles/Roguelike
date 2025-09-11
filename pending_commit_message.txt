@@ -554,3 +554,10 @@ feat(hitbox/phase2.3 enemy collision opt – profiling & adaptive bias groundwor
 - Introduced compile-time SIMD feature flag scaffold (ROGUE_ENEMY_COLLISION_ENABLE_SIMD) gating future vectorized batch path; current build falls back to scalar.
 - Collision pipeline integration: extended RogueCollisionCandidate with enemy_profile pointer and added rogue_collision_stage_enemy_profile_lod which updates per-enemy lod_bias using distance/area proxies and maps strongest request to pipeline quality_delta. New test test_collision_pipeline_phase2_3_enemy_lod validates negative bias for near candidate and ordering.
 - Roadmap & README to be updated in subsequent doc pass (deferred if not yet included); commit message documents integration to maintain traceability.
+
+perf(hitbox/phase3.2): animation interpolation bracketing uses binary search on sorted keyframes (linear fallback), tests green 708/708
+
+- Optimized `rogue_animation_collision_interpolate_masks` to detect monotonic ascending `keyframe_timestamps` and use binary search to find bracketing indices; retains linear scan fallback for unsorted/degenerate inputs.
+- Preserves smoothstep path and endpoint clamp semantics; morph baseline (union) unaffected.
+- Low-risk micro-optimization in a hot path; validated via full Debug build (SDL2, -j12) and parallel ctest: 708/708 passed.
+- Docs: README updated (Phase 3 refinements) and roadmap (Milestone 3.2) annotated with the bracketing optimization.

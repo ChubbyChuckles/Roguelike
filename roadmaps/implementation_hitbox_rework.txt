@@ -429,6 +429,7 @@ Core Subsystems:
   - [x] Dynamic timeline adjustment based on animation speed (implemented wrapper `rogue_animation_collision_evaluate_timeline_scaled` applying playback_speed)
   - [ ] Collision event scheduling and batching (future queue API – basic enter/exit events implemented separately)
   - [x] **Function**: `rogue_animation_collision_interpolate_masks()` (returns bracketing keyframes + linear t; added basic smoothstep when interpolation_quality>=0.5)
+  - [x] Optimization: when keyframe timestamps are monotonic ascending, bracketing lookup uses binary search (fallback to linear scan if not guaranteed sorted) to reduce per-sample overhead.
     - [ ] Real-time collision mask morphing between keyframes (future blending path)
     - [ ] Advanced spline-based interpolation quality modes (beyond smoothstep) pending
     - [ ] Quality-adaptive interpolation (performance feedback loop) pending
