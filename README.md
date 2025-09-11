@@ -104,7 +104,8 @@ Test: `test_collision_pipeline_phase2_3_enemy_lod` asserts bias ordering across 
 Roadmap file `implementation_hitbox_rework.txt` updated (Stage 3 marked complete with annotation).
 
 Recent semantics refinements (Phase 3):
-- Weapon transform composition clarified to T*R (scale excluded from rotation block) for stricter tests.
+
+- Weapon transform composition clarified to T\*R (scale excluded from rotation block) for stricter tests.
 - Projectile collision now sweeps along the segment between previous and new positions each tick, except on the activation tick (end-point only) to prevent double hits.
 - INSTANT layers sample intensity at the start-of-tick for deterministic timing.
 - MULTI_HIT layers enforce max_targets per tick; other types continue to use lifetime caps.
