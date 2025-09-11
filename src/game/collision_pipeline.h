@@ -122,11 +122,18 @@ extern "C"
         Future slice will replace with SIMD + BV tree. */
     bool rogue_collision_stage_hierarchical_broad(struct RogueCollisionContext* ctx,
                                                   RogueCollisionMetrics* m);
+    /* Deterministic lightweight hierarchical BV prepass: fixed-grid bucket cull preserving order.
+     */
+    bool rogue_collision_stage_bv_prepass(struct RogueCollisionContext* ctx,
+                                          RogueCollisionMetrics* m);
     /* Pixel-perfect stage (baseline stub): placeholder performing quality-tier dependent
         refinement work. Future slice will integrate real pixel mask bit tests and multi-resolution
         mask selection. */
     bool rogue_collision_stage_pixel_perfect(struct RogueCollisionContext* ctx,
                                              RogueCollisionMetrics* m);
+
+    /* Runtime control: allow tests to force-disable SIMD paths for equivalence checks. */
+    void rogue_collision_simd_set_enabled(int enabled);
 
     /* Initialization helpers */
     static inline void rogue_collision_pipeline_init(RogueCollisionPipeline* p,

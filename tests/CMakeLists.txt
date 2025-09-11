@@ -366,6 +366,17 @@ foreach(ut ${UNIT_TESTS})
     rogue_add_test(${name} COMMAND ${name})
 endforeach()
 
+# Explicitly add SIMD equivalence test if present
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_collision_pipeline_simd_equivalence.c AND NOT TARGET test_collision_pipeline_simd_equivalence)
+    add_executable(test_collision_pipeline_simd_equivalence unit/test_collision_pipeline_simd_equivalence.c)
+    target_link_libraries(test_collision_pipeline_simd_equivalence PRIVATE rogue_core)
+    target_compile_definitions(test_collision_pipeline_simd_equivalence PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_collision_pipeline_simd_equivalence PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_collision_pipeline_simd_equivalence COMMAND test_collision_pipeline_simd_equivalence)
+endif()
+
 # Apply label to enemy collision optimization test if present
 if(TARGET test_enemy_collision_opt)
     set_property(TEST test_enemy_collision_opt PROPERTY LABELS collision_opt)

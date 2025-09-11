@@ -252,6 +252,17 @@ Core Subsystems:
 
 - Hierarchical broad-phase overlap checks now include a 4-wide SSE2 SIMD path with an identical scalar fallback. This batches AABB comparisons deterministically and preserves ordering and semantics. Guarded by compile-time feature detection; no behavior changes where SIMD is unavailable. Full Debug (SDL2, -j12) test run verified green (715/715).
 
+##### AABB Prefilter SIMD Key Precompute (SSE2) + Deterministic Stable Reorder
+
+- Extended the AABB prefilter with an SSE2-accelerated precompute of sort keys (on-screen flag, squared distance to view center, id, and original index). Keys are computed 4-wide when runtime SIMD is enabled and fall back to a scalar path otherwise. A stable reorder using a temporary buffer preserves deterministic semantics and the existing priority policy (on‑screen → distance → id). The hard cap remains 128 with the same post-cap snapshot refresh semantics for the temporal cache.
+- Introduced a runtime toggle API to force-disable SIMD at runtime for verification: `rogue_collision_simd_set_enabled(int enabled)`. This gates both the AABB prefilter key path and the hierarchical broad-phase batching.
+- New focused unit test `test_collision_pipeline_simd_equivalence` asserts identical candidate counts and ordering across SIMD disabled vs enabled for the combined AABB prefilter + hierarchical broad-phase stages.
+- Verification: Full Debug (SDL2) ctest run in parallel (-j12) 100% green (716/716).
+
+##### Lightweight BV Prepass (Deterministic)
+
+- Added a lightweight, deterministic bounding-volume prepass ahead of the hierarchical broad-phase. It scans a fixed 4×4 grid over the view rect to quickly cull obvious non-overlaps while preserving input order and uniqueness. The prepass respects the same 128-candidate cap and is intentionally simple (no dynamic tree) to keep semantics stable. Future work on hierarchical BV trees with automatic balancing remains deferred.
+
 ##### CI/headless Stability
 
 - Start screen and app loop hardened for headless mode: early-return when renderer is NULL and defer overlay during early start-screen frames. Fixes intermittent segfault in `test_start_screen_phase10_1_headless`. Also removed a shadowed `extern SDL_Renderer*` to satisfy MSVC warnings-as-errors.

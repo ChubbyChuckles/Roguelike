@@ -83,6 +83,13 @@ Recent refinements (stability + robustness):
 
 Update (perf): The hierarchical broad-phase now uses a 4-wide SSE2 SIMD path for batched AABB overlap checks with a scalar fallback for portability. Behavior is deterministic and unchanged; tests remain 100% green.
 
+New (determinism + perf):
+
+- AABB prefilter computes sort keys via SSE2 (4-wide) when enabled and reorders candidates stably based on the existing policy (on‑screen → distance → id). Cap remains 128; temporal cache snapshot refresh unchanged.
+- Runtime toggle to force scalar or SIMD paths: call `rogue_collision_simd_set_enabled(0|1)`; it gates both AABB key precompute and hbroad batching. Used by new unit tests to verify parity.
+- Lightweight deterministic BV prepass (fixed 4×4 scan over the view rect) trims obvious non-overlaps and preserves input order; respects the same 128-candidate cap.
+- Test `test_collision_pipeline_simd_equivalence` asserts identical candidate counts and ordering with SIMD off vs on across the prefilter + hbroad stages.
+
 ##### Milestone 2.2 (Initial Weapon Collision Advanced Slice)
 
 - Added `weapon_collision_advanced.h` (header-only scaffolding) implementing:

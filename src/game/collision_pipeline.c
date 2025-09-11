@@ -24,6 +24,10 @@
 #define ROGUE_SIMD_SSE2 0
 #endif
 
+/* Runtime switch to allow tests to force scalar paths even when SSE2 is available. */
+static int g_simd_enabled = 1; /* 1=allow SIMD paths when compiled, 0=force scalar */
+void rogue_collision_simd_set_enabled(int enabled) { g_simd_enabled = enabled ? 1 : 0; }
+
 /* File-scope priority comparator context for qsort in AABB prefilter.
    We keep these as static to avoid passing extra state; tests are single-threaded. */
 static float g_prio_cx = 0.f, g_prio_cy = 0.f;
@@ -94,6 +98,31 @@ static float measure_ms(double start_ms, double end_ms)
     if (end_ms < start_ms)
         return 0.f;
     return (float) (end_ms - start_ms);
+}
+
+/* Key used for deterministic AABB prefilter ordering. */
+typedef struct RogueAabbKey
+{
+    uint32_t in_flag;
+    float d2;
+    uint32_t id;
+    uint32_t idx;
+} RogueAabbKey;
+static int cmp_aabb_keys(const void* A, const void* B)
+{
+    const RogueAabbKey* a = (const RogueAabbKey*) A;
+    const RogueAabbKey* b = (const RogueAabbKey*) B;
+    if (a->in_flag != b->in_flag)
+        return (a->in_flag < b->in_flag) ? -1 : 1;
+    if (a->d2 < b->d2)
+        return -1;
+    if (a->d2 > b->d2)
+        return 1;
+    if (a->id < b->id)
+        return -1;
+    if (a->id > b->id)
+        return 1;
+    return 0;
 }
 
 /* ---------------- Temporal Coherence Cache (shared state) ----------------
@@ -335,18 +364,117 @@ bool rogue_collision_stage_aabb_prefilter(struct RogueCollisionContext* ctx,
         return true;
     }
     /* Priority ordering: sort candidates by on-screen preference and distance to view center.
-       This simple ordering lets downstream expensive stages (pixel-perfect) process the most
-       relevant candidates first. Deterministic qsort using squared distance. */
+       Use a SIMD-accelerated key precompute when available; sorting remains deterministic
+       and identical to the legacy qsort(comparator) semantics (on-screen first, then d2, id). */
     /* Distance-based LOD: compute average distance to view center */
     float cx = ctx->view_x + ctx->view_w * 0.5f;
     float cy = ctx->view_y + ctx->view_h * 0.5f;
     double total_dist = 0.0;
     uint32_t n = ctx->candidate_count;
-    for (uint32_t i = 0; i < n; ++i)
+    /* Precompute sort keys optionally with SIMD. */
+    RogueAabbKey* keys = NULL;
+    RogueCollisionCandidate* tmp = NULL;
+
+    if (n > 0)
     {
-        float dx = ctx->candidates[i].x - cx;
-        float dy = ctx->candidates[i].y - cy;
-        total_dist += (double) (dx * dx + dy * dy);
+        keys = (RogueAabbKey*) malloc(sizeof(RogueAabbKey) * (size_t) n);
+        tmp = (RogueCollisionCandidate*) malloc(sizeof(RogueCollisionCandidate) * (size_t) n);
+    }
+
+    if (keys && tmp)
+    {
+#if ROGUE_SIMD_SSE2
+        if (g_simd_enabled)
+        {
+            __m128 CX = _mm_set1_ps(cx);
+            __m128 CY = _mm_set1_ps(cy);
+            __m128 VX = _mm_set1_ps(ctx->view_x);
+            __m128 VY = _mm_set1_ps(ctx->view_y);
+            __m128 VXW = _mm_set1_ps(ctx->view_x + ctx->view_w);
+            __m128 VYH = _mm_set1_ps(ctx->view_y + ctx->view_h);
+            uint32_t i = 0;
+            for (; i + 3 < n; i += 4)
+            {
+                float x[4], y[4];
+                uint32_t idv[4];
+                for (int k = 0; k < 4; ++k)
+                {
+                    x[k] = ctx->candidates[i + k].x;
+                    y[k] = ctx->candidates[i + k].y;
+                    idv[k] = ctx->candidates[i + k].id;
+                }
+                __m128 X = _mm_loadu_ps(x);
+                __m128 Y = _mm_loadu_ps(y);
+                __m128 DX = _mm_sub_ps(X, CX);
+                __m128 DY = _mm_sub_ps(Y, CY);
+                __m128 D2 = _mm_add_ps(_mm_mul_ps(DX, DX), _mm_mul_ps(DY, DY));
+                float d2_out[4];
+                _mm_storeu_ps(d2_out, D2);
+                /* in_flag = 0 when inside inclusive view rect */
+                __m128 ge_vx = _mm_cmpge_ps(X, VX);
+                __m128 le_vxw = _mm_cmple_ps(X, VXW);
+                __m128 ge_vy = _mm_cmpge_ps(Y, VY);
+                __m128 le_vyh = _mm_cmple_ps(Y, VYH);
+                __m128 inmask = _mm_and_ps(_mm_and_ps(ge_vx, le_vxw), _mm_and_ps(ge_vy, le_vyh));
+                int mask = _mm_movemask_ps(inmask); /* 1 bits where inside */
+                for (int k = 0; k < 4; ++k)
+                {
+                    keys[i + k].in_flag = ((mask >> k) & 1) ? 0u : 1u;
+                    keys[i + k].d2 = d2_out[k];
+                    keys[i + k].id = idv[k];
+                    keys[i + k].idx = i + (uint32_t) k;
+                    total_dist += (double) d2_out[k];
+                }
+            }
+            for (; i < n; ++i)
+            {
+                float dx = ctx->candidates[i].x - cx;
+                float dy = ctx->candidates[i].y - cy;
+                float d2 = dx * dx + dy * dy;
+                total_dist += (double) d2;
+                uint32_t in_flag = (ctx->candidates[i].x >= ctx->view_x &&
+                                    ctx->candidates[i].x <= ctx->view_x + ctx->view_w &&
+                                    ctx->candidates[i].y >= ctx->view_y &&
+                                    ctx->candidates[i].y <= ctx->view_y + ctx->view_h)
+                                       ? 0u
+                                       : 1u;
+                keys[i].in_flag = in_flag;
+                keys[i].d2 = d2;
+                keys[i].id = ctx->candidates[i].id;
+                keys[i].idx = i;
+            }
+        }
+        else
+#endif
+        {
+            for (uint32_t i = 0; i < n; ++i)
+            {
+                float dx = ctx->candidates[i].x - cx;
+                float dy = ctx->candidates[i].y - cy;
+                float d2 = dx * dx + dy * dy;
+                total_dist += (double) d2;
+                uint32_t in_flag = (ctx->candidates[i].x >= ctx->view_x &&
+                                    ctx->candidates[i].x <= ctx->view_x + ctx->view_w &&
+                                    ctx->candidates[i].y >= ctx->view_y &&
+                                    ctx->candidates[i].y <= ctx->view_y + ctx->view_h)
+                                       ? 0u
+                                       : 1u;
+                keys[i].in_flag = in_flag;
+                keys[i].d2 = d2;
+                keys[i].id = ctx->candidates[i].id;
+                keys[i].idx = i;
+            }
+        }
+    }
+    else
+    {
+        /* Fallback accumulation for avg if allocation failed or n==0 */
+        for (uint32_t i = 0; i < n; ++i)
+        {
+            float dx = ctx->candidates[i].x - cx;
+            float dy = ctx->candidates[i].y - cy;
+            total_dist += (double) (dx * dx + dy * dy);
+        }
     }
     double avg = (n > 0) ? total_dist / (double) n : 0.0;
     /* simple heuristic thresholds (squared distance) */
@@ -357,13 +485,28 @@ bool rogue_collision_stage_aabb_prefilter(struct RogueCollisionContext* ctx,
     /* Apply priority ordering now, so downstream stages can early-exit sooner in practice. */
     if (n > 1)
     {
-        g_prio_cx = cx;
-        g_prio_cy = cy;
-        g_prio_vx = ctx->view_x;
-        g_prio_vy = ctx->view_y;
-        g_prio_vw = ctx->view_w;
-        g_prio_vh = ctx->view_h;
-        qsort(ctx->candidates, (size_t) n, sizeof(RogueCollisionCandidate), cmp_candidate_priority);
+        if (keys && tmp)
+        {
+            /* Sort keys lexicographically by (in_flag asc, d2 asc, id asc). */
+            qsort(keys, (size_t) n, sizeof(RogueAabbKey), cmp_aabb_keys);
+            /* Reorder candidates using a temporary copy to avoid cycles. */
+            for (uint32_t i = 0; i < n; ++i)
+                tmp[i] = ctx->candidates[i];
+            for (uint32_t i = 0; i < n; ++i)
+                ctx->candidates[i] = tmp[keys[i].idx];
+        }
+        else
+        {
+            /* Allocation failed: fall back to legacy comparator ordering. */
+            g_prio_cx = cx;
+            g_prio_cy = cy;
+            g_prio_vx = ctx->view_x;
+            g_prio_vy = ctx->view_y;
+            g_prio_vw = ctx->view_w;
+            g_prio_vh = ctx->view_h;
+            qsort(ctx->candidates, (size_t) n, sizeof(RogueCollisionCandidate),
+                  cmp_candidate_priority);
+        }
     }
     /* AABB prefilter: enforce max broad-phase candidate cap (keep nearest first) */
     const uint32_t cap = 128; /* safety */
@@ -392,6 +535,10 @@ bool rogue_collision_stage_aabb_prefilter(struct RogueCollisionContext* ctx,
         g_temporal_cache.last_view_h = ctx->view_h;
         g_temporal_cache.last_frame_candidate_count = ctx->candidate_count;
     }
+    if (tmp)
+        free(tmp);
+    if (keys)
+        free(keys);
     return true;
 }
 
@@ -442,79 +589,107 @@ bool rogue_collision_stage_hierarchical_broad(struct RogueCollisionContext* ctx,
 #if ROGUE_SIMD_SSE2
     /* SIMD path: process 4 candidates per batch. Compute swept AABBs scalar,
        then use SSE2 to evaluate overlap predicates in parallel. */
-    const __m128 Vx = _mm_set1_ps(vx);
-    const __m128 Vy = _mm_set1_ps(vy);
-    const __m128 Vxw = _mm_set1_ps(vx + vw);
-    const __m128 Vyh = _mm_set1_ps(vy + vh);
-    uint32_t i = 0;
-    for (; i + 3 < ctx->candidate_count; i += 4)
+    if (g_simd_enabled)
     {
-        float minx_arr[4], maxx_arr[4], miny_arr[4], maxy_arr[4];
-        RogueCollisionCandidate* c0 = &ctx->candidates[i + 0];
-        RogueCollisionCandidate* c1 = &ctx->candidates[i + 1];
-        RogueCollisionCandidate* c2 = &ctx->candidates[i + 2];
-        RogueCollisionCandidate* c3 = &ctx->candidates[i + 3];
-        RogueCollisionCandidate* cs[4] = {c0, c1, c2, c3};
-        for (int k = 0; k < 4; ++k)
+        const __m128 Vx = _mm_set1_ps(vx);
+        const __m128 Vy = _mm_set1_ps(vy);
+        const __m128 Vxw = _mm_set1_ps(vx + vw);
+        const __m128 Vyh = _mm_set1_ps(vy + vh);
+        uint32_t i = 0;
+        for (; i + 3 < ctx->candidate_count; i += 4)
         {
-            RogueCollisionCandidate* c = cs[k];
-            float sx = c->x - c->half_w;
-            float ex = (c->x + c->vx * horizon_ms) - c->half_w;
-            float sx2 = c->x + c->half_w;
-            float ex2 = (c->x + c->vx * horizon_ms) + c->half_w;
-            float sy = c->y - c->half_h;
-            float ey = (c->y + c->vy * horizon_ms) - c->half_h;
-            float sy2 = c->y + c->half_h;
-            float ey2 = (c->y + c->vy * horizon_ms) + c->half_h;
-            minx_arr[k] = (sx < ex) ? sx : ex;
-            maxx_arr[k] = (sx2 > ex2) ? sx2 : ex2;
-            miny_arr[k] = (sy < ey) ? sy : ey;
-            maxy_arr[k] = (sy2 > ey2) ? sy2 : ey2;
-        }
-        __m128 minx4 = _mm_loadu_ps(minx_arr);
-        __m128 maxx4 = _mm_loadu_ps(maxx_arr);
-        __m128 miny4 = _mm_loadu_ps(miny_arr);
-        __m128 maxy4 = _mm_loadu_ps(maxy_arr);
-        /* Reject if (maxx < vx) | (minx > vx+vw) | (maxy < vy) | (miny > vy+vh) */
-        __m128 r0 = _mm_cmplt_ps(maxx4, Vx);
-        __m128 r1 = _mm_cmpgt_ps(minx4, Vxw);
-        __m128 r2 = _mm_cmplt_ps(maxy4, Vy);
-        __m128 r3 = _mm_cmpgt_ps(miny4, Vyh);
-        __m128 rej = _mm_or_ps(_mm_or_ps(r0, r1), _mm_or_ps(r2, r3));
-        /* Keep = not reject */
-        int mask = _mm_movemask_ps(rej) ^ 0xF;
-        for (int k = 0; k < 4; ++k)
-        {
-            if ((mask >> k) & 1)
+            float minx_arr[4], maxx_arr[4], miny_arr[4], maxy_arr[4];
+            RogueCollisionCandidate* c0 = &ctx->candidates[i + 0];
+            RogueCollisionCandidate* c1 = &ctx->candidates[i + 1];
+            RogueCollisionCandidate* c2 = &ctx->candidates[i + 2];
+            RogueCollisionCandidate* c3 = &ctx->candidates[i + 3];
+            RogueCollisionCandidate* cs[4] = {c0, c1, c2, c3};
+            for (int k = 0; k < 4; ++k)
             {
-                RogueCollisionCandidate* c = &ctx->candidates[i + k];
-                if (write != i + (uint32_t) k)
-                    ctx->candidates[write] = *c;
-                write++;
+                RogueCollisionCandidate* c = cs[k];
+                float sx = c->x - c->half_w;
+                float ex = (c->x + c->vx * horizon_ms) - c->half_w;
+                float sx2 = c->x + c->half_w;
+                float ex2 = (c->x + c->vx * horizon_ms) + c->half_w;
+                float sy = c->y - c->half_h;
+                float ey = (c->y + c->vy * horizon_ms) - c->half_h;
+                float sy2 = c->y + c->half_h;
+                float ey2 = (c->y + c->vy * horizon_ms) + c->half_h;
+                minx_arr[k] = (sx < ex) ? sx : ex;
+                maxx_arr[k] = (sx2 > ex2) ? sx2 : ex2;
+                miny_arr[k] = (sy < ey) ? sy : ey;
+                maxy_arr[k] = (sy2 > ey2) ? sy2 : ey2;
+            }
+            __m128 minx4 = _mm_loadu_ps(minx_arr);
+            __m128 maxx4 = _mm_loadu_ps(maxx_arr);
+            __m128 miny4 = _mm_loadu_ps(miny_arr);
+            __m128 maxy4 = _mm_loadu_ps(maxy_arr);
+            /* Reject if (maxx < vx) | (minx > vx+vw) | (maxy < vy) | (miny > vy+vh) */
+            __m128 r0 = _mm_cmplt_ps(maxx4, Vx);
+            __m128 r1 = _mm_cmpgt_ps(minx4, Vxw);
+            __m128 r2 = _mm_cmplt_ps(maxy4, Vy);
+            __m128 r3 = _mm_cmpgt_ps(miny4, Vyh);
+            __m128 rej = _mm_or_ps(_mm_or_ps(r0, r1), _mm_or_ps(r2, r3));
+            /* Keep = not reject */
+            int mask = _mm_movemask_ps(rej) ^ 0xF;
+            for (int k = 0; k < 4; ++k)
+            {
+                if ((mask >> k) & 1)
+                {
+                    RogueCollisionCandidate* c = &ctx->candidates[i + k];
+                    if (write != i + (uint32_t) k)
+                        ctx->candidates[write] = *c;
+                    write++;
+                }
             }
         }
+        /* Remainder (scalar) */
+        for (; i < ctx->candidate_count; ++i)
+        {
+            RogueCollisionCandidate* c = &ctx->candidates[i];
+            float sx = c->x - c->half_w;
+            float ex = (c->x + c->vx * horizon_ms) - c->half_w;
+            float minx = (sx < ex) ? sx : ex;
+            float sx2 = c->x + c->half_w;
+            float ex2 = (c->x + c->vx * horizon_ms) + c->half_w;
+            float maxx = (sx2 > ex2) ? sx2 : ex2;
+            float sy = c->y - c->half_h;
+            float ey = (c->y + c->vy * horizon_ms) - c->half_h;
+            float miny = (sy < ey) ? sy : ey;
+            float sy2 = c->y + c->half_h;
+            float ey2 = (c->y + c->vy * horizon_ms) + c->half_h;
+            float maxy = (sy2 > ey2) ? sy2 : ey2;
+            if (maxx < vx || minx > vx + vw || maxy < vy || miny > vy + vh)
+                continue;
+            if (write != i)
+                ctx->candidates[write] = *c;
+            write++;
+        }
     }
-    /* Remainder (scalar) */
-    for (; i < ctx->candidate_count; ++i)
+    else
     {
-        RogueCollisionCandidate* c = &ctx->candidates[i];
-        float sx = c->x - c->half_w;
-        float ex = (c->x + c->vx * horizon_ms) - c->half_w;
-        float minx = (sx < ex) ? sx : ex;
-        float sx2 = c->x + c->half_w;
-        float ex2 = (c->x + c->vx * horizon_ms) + c->half_w;
-        float maxx = (sx2 > ex2) ? sx2 : ex2;
-        float sy = c->y - c->half_h;
-        float ey = (c->y + c->vy * horizon_ms) - c->half_h;
-        float miny = (sy < ey) ? sy : ey;
-        float sy2 = c->y + c->half_h;
-        float ey2 = (c->y + c->vy * horizon_ms) + c->half_h;
-        float maxy = (sy2 > ey2) ? sy2 : ey2;
-        if (maxx < vx || minx > vx + vw || maxy < vy || miny > vy + vh)
-            continue;
-        if (write != i)
-            ctx->candidates[write] = *c;
-        write++;
+        for (uint32_t i = 0; i < ctx->candidate_count; ++i)
+        {
+            RogueCollisionCandidate* c = &ctx->candidates[i];
+            /* Expand candidate AABB along its velocity over the horizon. */
+            float sx = c->x - c->half_w;
+            float ex = (c->x + c->vx * horizon_ms) - c->half_w;
+            float minx = (sx < ex) ? sx : ex;
+            float sx2 = c->x + c->half_w;
+            float ex2 = (c->x + c->vx * horizon_ms) + c->half_w;
+            float maxx = (sx2 > ex2) ? sx2 : ex2;
+            float sy = c->y - c->half_h;
+            float ey = (c->y + c->vy * horizon_ms) - c->half_h;
+            float miny = (sy < ey) ? sy : ey;
+            float sy2 = c->y + c->half_h;
+            float ey2 = (c->y + c->vy * horizon_ms) + c->half_h;
+            float maxy = (sy2 > ey2) ? sy2 : ey2;
+            if (maxx < vx || minx > vx + vw || maxy < vy || miny > vy + vh)
+                continue; /* reject */
+            if (write != i)
+                ctx->candidates[write] = *c;
+            write++;
+        }
     }
 #else
     for (uint32_t i = 0; i < ctx->candidate_count; ++i)
@@ -542,6 +717,80 @@ bool rogue_collision_stage_hierarchical_broad(struct RogueCollisionContext* ctx,
 #endif
     ctx->candidate_count = write;
     m->output_candidates = write;
+    return true;
+}
+
+/* ---------------- Hierarchical BV Prepass (Lightweight) ---------------- */
+/* Deterministic bucket prepass: partitions candidates into a fixed grid over the
+   view bounds expanded by a small margin and drops buckets entirely outside.
+   Surviving candidates preserve original order. Cap survivors deterministically. */
+bool rogue_collision_stage_bv_prepass(struct RogueCollisionContext* ctx, RogueCollisionMetrics* m)
+{
+    if (!ctx)
+    {
+        m->output_candidates = 0;
+        return true;
+    }
+    if (ctx->candidate_count == 0)
+    {
+        m->output_candidates = 0;
+        return true;
+    }
+    const int GRID = 4; /* 4x4 fixed grid */
+    const float margin = 4.f;
+    const float vx = ctx->view_x - margin;
+    const float vy = ctx->view_y - margin;
+    const float vw = ctx->view_w + margin * 2.f;
+    const float vh = ctx->view_h + margin * 2.f;
+    float cell_w = vw / (float) GRID;
+    float cell_h = vh / (float) GRID;
+    /* Track bucket bounds and membership counts */
+    uint32_t write = 0;
+    uint8_t* moved = (uint8_t*) malloc(ctx->candidate_count);
+    if (!moved)
+    {
+        m->output_candidates = ctx->candidate_count; /* graceful no-op */
+        return true;
+    }
+    for (uint32_t i = 0; i < ctx->candidate_count; ++i)
+        moved[i] = 0;
+    for (int gy = 0; gy < GRID; ++gy)
+    {
+        float by = vy + (float) gy * cell_h;
+        for (int gx = 0; gx < GRID; ++gx)
+        {
+            float bx = vx + (float) gx * cell_w;
+            /* Scan candidates in original order and keep those overlapping this bucket AND view */
+            for (uint32_t i = 0; i < ctx->candidate_count; ++i)
+            {
+                RogueCollisionCandidate* c = &ctx->candidates[i];
+                float minx = c->x - c->half_w;
+                float maxx = c->x + c->half_w;
+                float miny = c->y - c->half_h;
+                float maxy = c->y + c->half_h;
+                /* Bucket overlap */
+                if (maxx < bx || minx > bx + cell_w || maxy < by || miny > by + cell_h)
+                    continue;
+                /* View overlap */
+                if (maxx < vx || minx > vx + vw || maxy < vy || miny > vy + vh)
+                    continue;
+                /* Keep once; mark via moved[] to avoid duplicates across buckets */
+                if (!moved[i])
+                {
+                    if (write != i)
+                        ctx->candidates[write] = *c;
+                    write++;
+                    moved[i] = 1;
+                }
+            }
+        }
+    }
+    free(moved);
+    ctx->candidate_count = write;
+    /* Deterministic safety cap (mirrors prefilter default) */
+    if (ctx->candidate_count > 128)
+        ctx->candidate_count = 128;
+    m->output_candidates = ctx->candidate_count;
     return true;
 }
 

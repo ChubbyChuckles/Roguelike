@@ -630,3 +630,11 @@ Hitbox Rework: SSE2 SIMD batching for hierarchical broad-phase; determinism pres
 - Preserve deterministic ordering and exact semantics; conservative epsilon (+0.5px) retained; ~16ms temporal sweep unchanged.
 - Documentation: Update roadmap (SIMD Overlap Batching section) and README (perf note under Phase 2.1).
 - CI: Debug SDL2 build (-j12) and full ctests: 715/715 passed.
+
+feat(collision-pipeline/simd): AABB prefilter SIMD key precompute + runtime toggle; deterministic BV prepass; parity test; 716/716 green (SDL2, -j12)
+
+- AABB prefilter now precomputes sort keys (on‑screen flag, d2 to view center, id, original index) via an SSE2 4‑wide path with scalar fallback. Reordering uses a stable pass that preserves deterministic semantics and the existing priority policy; hard cap stays 128 with post‑cap temporal snapshot refresh retained.
+- Introduced `rogue_collision_simd_set_enabled(int)` to force scalar vs SIMD at runtime; applies to AABB key precompute and hierarchical broad‑phase batching.
+- Added a lightweight deterministic BV prepass (fixed 4×4 grid scan over the view rect) ahead of hbroad to cheaply cull obvious non‑overlaps while preserving input order and uniqueness; respects the same 128 cap.
+- New unit test `test_collision_pipeline_simd_equivalence` asserts identical candidate counts and ordering with SIMD disabled vs enabled across the AABB prefilter + hbroad stages.
+- Verified Debug build with SDL2 and full ctest run in parallel (-j12): 100% green (716/716).
