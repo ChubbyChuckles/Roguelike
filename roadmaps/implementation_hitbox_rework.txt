@@ -430,10 +430,10 @@ Core Subsystems:
   - [ ] Collision event scheduling and batching (future queue API – basic enter/exit events implemented separately)
   - [x] **Function**: `rogue_animation_collision_interpolate_masks()` (returns bracketing keyframes + linear t; added basic smoothstep when interpolation_quality>=0.5)
   - [x] Optimization: when keyframe timestamps are monotonic ascending, bracketing lookup uses binary search (fallback to linear scan if not guaranteed sorted) to reduce per-sample overhead.
-    - [ ] Real-time collision mask morphing between keyframes (future blending path)
-    - [ ] Advanced spline-based interpolation quality modes (beyond smoothstep) pending
-    - [ ] Quality-adaptive interpolation (performance feedback loop) pending
-    - [ ] Cache-friendly pooled buffer strategy pending
+  - [ ] Real-time collision mask morphing between keyframes (future blending path)
+  - [ ] Advanced spline-based interpolation quality modes (beyond smoothstep) pending
+  - [ ] Quality-adaptive interpolation (performance feedback loop) pending
+  - [x] Cache-friendly pooled buffer strategy: introduce a tiny 4-entry pool for blended frames used during morphing to avoid per-call heap allocations; pool acquire/release integrated with `ensure_blended_capacity` and `rogue_animation_collision_sync_release`, zeroed on reuse for determinism; safe heap fallback retained.
   - [x] Frame skip cached evaluation scaffold (`rogue_animation_collision_evaluate_timeline_cached`) honoring frame_skip_threshold without missing window boundaries
   - [x] Unit test `test_animation_collision_sync_basic` validating window activation and interpolation factor (non-morph)
   - [ ] Additional tests for looping timelines, speed scaling, multi-window overlap resolution (future)

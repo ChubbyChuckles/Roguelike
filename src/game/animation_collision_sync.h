@@ -45,6 +45,9 @@ extern "C"
         struct RogueHitPixelMaskFrame* blended_scratch;
         int blended_w;
         int blended_h;
+        /* If true, blended_scratch was acquired from the internal pool and should be returned
+            on release instead of freed. */
+        bool blended_from_pool;
     } RogueAnimationCollisionSync;
 
     typedef struct RogueCollisionTimelineWindow

@@ -561,3 +561,9 @@ perf(hitbox/phase3.2): animation interpolation bracketing uses binary search on 
 - Preserves smoothstep path and endpoint clamp semantics; morph baseline (union) unaffected.
 - Low-risk micro-optimization in a hot path; validated via full Debug build (SDL2, -j12) and parallel ctest: 708/708 passed.
 - Docs: README updated (Phase 3 refinements) and roadmap (Milestone 3.2) annotated with the bracketing optimization.
+
+perf(hitbox/phase3.2): pooled blended-frame buffer for animation morphing to reduce heap churn; docs updated; tests green 708/708
+
+- Added a tiny 4-entry pooled buffer for blended frames in `animation_collision_sync` morphing. Allocation path attempts pool acquire first (zeroed on reuse for determinism), with safe heap fallback when exhausted. Release returns pooled frames or frees heap as appropriate. Integrated with `ensure_blended_capacity` and `rogue_animation_collision_sync_release`.
+- Benefit: avoids per-call malloc/free in hot morph paths and improves cache locality without changing behavior (union blend baseline retained).
+- Verified: Full Debug build (SDL2, -j12) and ctest are 100% green (708/708). README and roadmap updated to reflect the optimization.

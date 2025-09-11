@@ -111,6 +111,10 @@ Recent semantics refinements (Phase 3):
 - MULTI_HIT layers enforce max_targets per tick; other types continue to use lifetime caps.
 - Animation keyframe interpolation bracketing now uses binary search when keyframe timestamps are sorted (linear scan fallback); behavior unchanged, small perf win in hot paths.
 
+Additional refinement (Phase 3.2): blended-frame pooled buffer
+
+- Animation morphing scratch allocation now uses a tiny pooled buffer (4 entries) for blended frames to reduce per-call heap churn. The pool is zeroed on reuse for determinism and falls back to heap if exhausted. Integrated into allocation paths and release.
+
 Press F1 in-game to open the debug overlay.
 
 ##### Milestone 3.1 (Skill Collision Manager Initial Slice – Complete)

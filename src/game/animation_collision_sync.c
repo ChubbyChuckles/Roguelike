@@ -12,6 +12,86 @@
 #include "game/hit_pixel_mask.h" /* for RogueHitPixelMaskFrame struct */
 #include <stddef.h>
 #include <stdlib.h> /* malloc/calloc/free */
+/* -------------------------------------------------------------------------------------------- */
+/* Tiny pooled buffer for blended frames (cache-friendly reuse across instances)                */
+/* Fixed-size ring of small frames avoids per-call malloc churn when many syncs morph in turn.  */
+/* Pool stores 4 entries; each entry lazily sized up to last requested dimensions.              */
+typedef struct BlendedPoolEntry
+{
+    struct RogueHitPixelMaskFrame* frame;
+    int w, h;
+    int in_use; /* 0 free, 1 checked out */
+} BlendedPoolEntry;
+
+static BlendedPoolEntry g_blend_pool[4];
+
+static struct RogueHitPixelMaskFrame* pool_acquire(int w, int h)
+{
+    /* Find a free slot or steal the oldest free slot (first-fit). */
+    for (int i = 0; i < 4; ++i)
+    {
+        if (!g_blend_pool[i].in_use)
+        {
+            g_blend_pool[i].in_use = 1;
+            /* Allocate or resize */
+            if (!g_blend_pool[i].frame || g_blend_pool[i].w != w || g_blend_pool[i].h != h)
+            {
+                if (g_blend_pool[i].frame)
+                {
+                    free(g_blend_pool[i].frame->bits);
+                    free(g_blend_pool[i].frame);
+                    g_blend_pool[i].frame = NULL;
+                }
+                struct RogueHitPixelMaskFrame* f =
+                    (struct RogueHitPixelMaskFrame*) calloc(1, sizeof(*f));
+                if (!f)
+                {
+                    g_blend_pool[i].in_use = 0;
+                    return NULL;
+                }
+                int pitch_words = (w + 31) / 32;
+                f->bits = (uint32_t*) calloc((size_t) pitch_words * (size_t) h, sizeof(uint32_t));
+                if (!f->bits)
+                {
+                    free(f);
+                    g_blend_pool[i].in_use = 0;
+                    return NULL;
+                }
+                f->width = w;
+                f->height = h;
+                f->pitch_words = pitch_words;
+                f->origin_x = 0;
+                f->origin_y = 0;
+                g_blend_pool[i].frame = f;
+                g_blend_pool[i].w = w;
+                g_blend_pool[i].h = h;
+            }
+            else
+            {
+                /* Clear prior contents for deterministic tests */
+                size_t words = (size_t) g_blend_pool[i].frame->pitch_words * (size_t) h;
+                for (size_t k = 0; k < words; ++k)
+                    g_blend_pool[i].frame->bits[k] = 0;
+            }
+            return g_blend_pool[i].frame;
+        }
+    }
+    return NULL; /* pool exhausted */
+}
+
+static void pool_release(struct RogueHitPixelMaskFrame* f)
+{
+    if (!f)
+        return;
+    for (int i = 0; i < 4; ++i)
+    {
+        if (g_blend_pool[i].frame == f)
+        {
+            g_blend_pool[i].in_use = 0;
+            return;
+        }
+    }
+}
 
 /* Forward declare skill layer frame index helper (defined in skill_collision_manager.c) */
 float rogue_skill_collision_layer_frame_index(const struct RogueSkillCollisionLayer* l);
@@ -462,30 +542,49 @@ static struct RogueHitPixelMaskFrame* ensure_blended_capacity(RogueAnimationColl
         return NULL;
     if (sync->blended_scratch && (sync->blended_w != w || sync->blended_h != h))
     {
-        free(sync->blended_scratch->bits);
-        free(sync->blended_scratch);
+        /* Return to pool or free before reacquiring */
+        if (sync->blended_from_pool)
+            pool_release(sync->blended_scratch);
+        else
+        {
+            free(sync->blended_scratch->bits);
+            free(sync->blended_scratch);
+        }
         sync->blended_scratch = NULL;
+        sync->blended_from_pool = false;
     }
     if (!sync->blended_scratch)
     {
-        sync->blended_scratch =
-            (struct RogueHitPixelMaskFrame*) calloc(1, sizeof(*sync->blended_scratch));
-        if (!sync->blended_scratch)
-            return NULL;
-        int pitch_words = (w + 31) / 32;
-        sync->blended_scratch->bits =
-            (uint32_t*) calloc((size_t) pitch_words * (size_t) h, sizeof(uint32_t));
-        if (!sync->blended_scratch->bits)
+        /* Try pooled acquire first */
+        struct RogueHitPixelMaskFrame* pooled = pool_acquire(w, h);
+        if (pooled)
         {
-            free(sync->blended_scratch);
-            sync->blended_scratch = NULL;
-            return NULL;
+            sync->blended_scratch = pooled;
+            sync->blended_from_pool = true;
         }
-        sync->blended_scratch->width = w;
-        sync->blended_scratch->height = h;
-        sync->blended_scratch->pitch_words = pitch_words;
-        sync->blended_scratch->origin_x = 0;
-        sync->blended_scratch->origin_y = 0;
+        else
+        {
+            /* Fallback to heap alloc if pool exhausted */
+            sync->blended_scratch =
+                (struct RogueHitPixelMaskFrame*) calloc(1, sizeof(*sync->blended_scratch));
+            if (!sync->blended_scratch)
+                return NULL;
+            int pitch_words = (w + 31) / 32;
+            sync->blended_scratch->bits =
+                (uint32_t*) calloc((size_t) pitch_words * (size_t) h, sizeof(uint32_t));
+            if (!sync->blended_scratch->bits)
+            {
+                free(sync->blended_scratch);
+                sync->blended_scratch = NULL;
+                return NULL;
+            }
+            sync->blended_scratch->width = w;
+            sync->blended_scratch->height = h;
+            sync->blended_scratch->pitch_words = pitch_words;
+            sync->blended_scratch->origin_x = 0;
+            sync->blended_scratch->origin_y = 0;
+            sync->blended_from_pool = false;
+        }
         sync->blended_w = w;
         sync->blended_h = h;
     }
@@ -529,9 +628,15 @@ void rogue_animation_collision_sync_release(RogueAnimationCollisionSync* sync)
         return;
     if (sync->blended_scratch)
     {
-        free(sync->blended_scratch->bits);
-        free(sync->blended_scratch);
+        if (sync->blended_from_pool)
+            pool_release(sync->blended_scratch);
+        else
+        {
+            free(sync->blended_scratch->bits);
+            free(sync->blended_scratch);
+        }
         sync->blended_scratch = NULL;
         sync->blended_w = sync->blended_h = 0;
+        sync->blended_from_pool = false;
     }
 }
