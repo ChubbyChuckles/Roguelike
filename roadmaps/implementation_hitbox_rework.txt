@@ -225,15 +225,18 @@ Core Subsystems:
   - [x] **Stage 2**: `collision_stage_aabb_prefilter()` (baseline scalar AABB trim + candidate cap; SIMD & hierarchical BV deferred)
     - [ ] SIMD-optimized AABB intersection tests (SSE4/AVX2)
     - [ ] Hierarchical bounding volumes with automatic tree balancing
-    - [ ] Temporal AABB expansion for fast-moving objects
+    - [x] Temporal AABB expansion for fast-moving objects (sweep over ~16ms horizon)
     - [ ] Conservative rasterization for sub-pixel accurate bounds
+    - [x] Priority ordering (on‑screen first, then distance, id tie‑break) with deterministic cap (<=128)
   - [x] **Stage 3**: `collision_stage_pixel_perfect()` (baseline implementation: FAST tier half-prune heuristic; BALANCED+ performs mask presence & center sampling, PRECISE/ULTRA 3x3 sampling for degenerate mask pruning; metrics integrated, future full bitwise overlap & multi-res selection pending)
   - [x] Temporal coherence cache stage (reuse prior frame subset when view stable & small set)
+    - Refinement: Refresh temporal cache snapshot after AABB prefilter reorders/caps candidates to keep order parity across frames and avoid false cache misses. Tests updated accordingly.
 
 **Tests Added (Milestone 2.1 initial slice)**
 - [x] `test_collision_pipeline_phase2_1`: validates stage registration, execution ordering, metrics population, early exit behavior, simulated cost accumulation.
  - [x] `test_collision_pipeline_phase2_1_adaptive`: validates spatial (quadtree) culling + predictive inclusion, AABB prefilter trimming, distance-based LOD heuristic, and adaptive quality downgrade/upgrade thresholds; asserts metrics and quality transitions deterministic.
  - [x] `test_collision_pipeline_phase2_1_temporal`: validates temporal cache hit (skips spatial) and miss after view movement.
+ - [x] `test_collision_pipeline_phase2_1_temporal_aabb_priority`: validates temporal AABB sweep for fast movers and deterministic priority ordering/cap.
  - [x] `test_collision_pipeline_phase2_1_stage_cap`: validates per-stage candidate cap enforcement and metrics/input propagation to downstream stages.
     - [ ] Multi-resolution pixel testing with automatic LOD selection
     - [ ] Scanline optimization for sparse collision shapes

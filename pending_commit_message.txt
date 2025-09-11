@@ -1,3 +1,11 @@
+fix(collision/temporal-cache): refresh snapshot after AABB prefilter to avoid order-sensitive misses; add priority ordering + temporal sweep; 715/715 green
+
+- Temporal cache now snapshots after the AABB prefilter reorders/caps candidates, so the next frame’s validation compares against the exact downstream sequence. This prevents false cache misses when spatial compaction order differs.
+- AABB prefilter gains deterministic priority ordering: on‑screen first, then squared distance to view center, with id tie‑break; cap enforced to 128.
+- Hierarchical broad phase includes a small temporal AABB sweep (~16ms horizon) to retain fast movers and mitigate tunneling in broad-phase pruning.
+- Tests: `test_collision_pipeline_phase2_1_temporal` now passes consistently; added `test_collision_pipeline_phase2_1_temporal_aabb_priority` to validate sweep + ordering.
+- Verified on Debug (SDL2, -j12): full suite 100% green (715/715).
+
 feat(collision-pipeline): enforce per-stage max_candidates and add unit test; 713/713 green (SDL2, -j12)
 
 - Enforce `RogueCollisionStage.max_candidates` after each stage in `rogue_collision_pipeline_execute`.

@@ -56,6 +56,7 @@ Implemented early performance + quality adaptation features:
 - Spatial Culling Stage: Initial quadtree (fixed arrays, depth cap=4) partitions candidates; collects those overlapping view rectangle or predicted to enter within a short velocity horizon (~16ms) to avoid pop-in.
 - Predictive Inclusion: Velocity (vx,vy) on candidates expands effective query region; fast approaching entities are retained even if just outside the current view rect.
 - AABB Prefilter Stage: Performs scalar AABB intersection against view rect and trims candidate list to a conservative cap, computing average squared distance to drive LOD heuristics. (SIMD + hierarchical BV tree deferred.)
+  Priority ordering added: on‑screen candidates first, then by squared distance to the view center, with a deterministic id tie‑breaker. Cap enforced to 128 survivors before downstream stages.
 - Distance-Based LOD Heuristic: Derives a transient quality_delta from mean distance; large average distance nudges pipeline quality downward; close clustering allows potential upward adjustment (bounded).
 - Adaptive Quality Control: If cumulative pipeline time >105% of frame budget, degrade one tier (to a floor). If <60% for several frames (aggregate), upgrade one tier (to a cap). Adjustments logged via metrics; no dynamic stage reordering yet.
 - Metrics: Existing per-stage metrics extended implicitly by improved timing precision; new adaptive test asserts downgrade then upgrade path deterministically via simulated candidates & tuned horizon.
@@ -68,6 +69,8 @@ Deferred (remaining) items: SIMD AABB + hierarchical bounds, temporal coherence 
 - Cache stores a lightweight snapshot (id + x/y) with last view rect metadata; resets heuristically on movement or mismatch.
 - Benefits: avoids rebuilding quadtree for stable scenes, shaving micro to sub-millisecond work in dense test scenarios; deterministic unit test ensures bypass activates only under safe conditions.
 - New unit test: `test_collision_pipeline_phase2_1_temporal` asserts first-frame spatial execution, second-frame skip, and re-execution after a view move.
+  Update: the temporal cache snapshot is refreshed after the AABB prefilter reorders/caps candidates, ensuring the next frame’s validation compares against the exact downstream sequence and avoids false misses due to order changes.
+  Additional test: `test_collision_pipeline_phase2_1_temporal_aabb_priority` validates temporal AABB sweep of fast movers and deterministic priority ordering.
 - Roadmap updated marking temporal coherence cache done; remaining deferred: pixel-perfect stage, SIMD/hierarchical broad-phase, dynamic reordering, advanced frustum, priority ordering.
 
 - No gameplay paths yet invoke the pipeline; integration & advanced stages intentionally deferred to keep this slice low-risk.
