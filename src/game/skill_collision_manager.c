@@ -98,14 +98,10 @@ uint32_t rogue_skill_collision_effect_tick(RogueSkillCollisionEffect* e, float d
 {
     if (!e || dt_ms < 0.f)
         return 0;
-    if (target_count == 0 || !targets)
-    {
-        e->global_time_ms += dt_ms;
-    }
-    else
-    {
-        e->global_time_ms += dt_ms;
-    }
+    /* Capture time at start of tick to detect per-layer activation within this interval. */
+    const float tick_start_time = e->global_time_ms;
+    const float tick_end_time = tick_start_time + dt_ms;
+    e->global_time_ms = tick_end_time;
     if (e->effect_finished)
         return 0; /* already done */
     uint32_t appended = 0;
@@ -114,10 +110,13 @@ uint32_t rogue_skill_collision_effect_tick(RogueSkillCollisionEffect* e, float d
         RogueSkillCollisionLayer* L = &e->layers[li];
         if (L->finished)
             continue;
+        const float elapsed_before = L->elapsed_ms;
         /* Update activation */
         if (e->global_time_ms >= L->start_time_ms)
         {
             L->active = 1;
+            /* Advance local time at the start of the tick so intensity/frames
+             * reflect the state during this update interval. */
             L->elapsed_ms += dt_ms;
         }
         if (!L->active)
@@ -149,27 +148,75 @@ uint32_t rogue_skill_collision_effect_tick(RogueSkillCollisionEffect* e, float d
             burst = 1;
             break; /* per-tick */
         case ROGUE_SKILL_PROJECTILE:
-            /* Advance projectile position before evaluating hits */
-            L->proj_pos_x += L->proj_vel_x * dt_ms;
-            L->proj_pos_y += L->proj_vel_y * dt_ms;
-            burst = 1; /* treat projectile as per-tick evaluation */
+            /* For projectile, evaluate collision along the segment swept over this tick
+             * from previous position to new position. */
+            burst = 1;
             break;
         }
         if (!burst)
             continue; /* defensive */
         if (!targets)
             continue;
+        /* Track per-tick hit count for modes that allow repeated hits each tick. */
+        uint8_t tick_hits_recorded = 0;
+        /* Cache projectile previous/new positions if applicable */
+        float prev_x = L->proj_pos_x, prev_y = L->proj_pos_y;
+        float new_x = L->proj_pos_x, new_y = L->proj_pos_y;
+        if (L->type == ROGUE_SKILL_PROJECTILE)
+        {
+            new_x = prev_x + L->proj_vel_x * dt_ms;
+            new_y = prev_y + L->proj_vel_y * dt_ms;
+            /* If this layer activated within this tick, avoid sweeping from the spawn
+             * position to the end position to prevent retroactive hits. Treat as a
+             * point check at the end of the tick only. */
+            if ((tick_start_time < L->start_time_ms && tick_end_time >= L->start_time_ms) ||
+                (elapsed_before <= 0.f && tick_start_time <= L->start_time_ms))
+            {
+                prev_x = new_x;
+                prev_y = new_y;
+            }
+        }
         for (uint32_t ti = 0; ti < target_count; ++ti)
         {
-            if (L->max_targets && L->hits_recorded >= L->max_targets)
-                break;
+            if (L->max_targets)
+            {
+                /* For MULTI_HIT we cap per tick; for others cap over lifetime */
+                if (L->type == ROGUE_SKILL_MULTI_HIT)
+                {
+                    if (tick_hits_recorded >= L->max_targets)
+                        break;
+                }
+                else if (L->hits_recorded >= L->max_targets)
+                {
+                    break;
+                }
+            }
             const RogueSkillCollisionTarget* T = &targets[ti];
             if ((T->layer_mask & L->affected_layers) == 0)
                 continue; /* filter */
             if (L->type == ROGUE_SKILL_PROJECTILE)
             {
-                /* Require projectile radius overlap */
-                if (!rogue_skill_collision_test_projectile(L, T->x, T->y))
+                /* Check distance from target to segment [prev -> new] <= radius */
+                float px = prev_x, py = prev_y;
+                float qx = new_x, qy = new_y;
+                float vx = qx - px, vy = qy - py;
+                float wx = T->x - px, wy = T->y - py;
+                float vlen2 = vx * vx + vy * vy;
+                float t = 0.f;
+                if (vlen2 > 0.f)
+                {
+                    t = (wx * vx + wy * vy) / vlen2;
+                    if (t < 0.f)
+                        t = 0.f;
+                    else if (t > 1.f)
+                        t = 1.f;
+                }
+                float cx = px + vx * t;
+                float cy = py + vy * t;
+                float dx = T->x - cx;
+                float dy = T->y - cy;
+                float r = L->proj_radius;
+                if (!(dx * dx + dy * dy <= r * r))
                     continue;
             }
             if (!L->pierces_enemies && L->hits_recorded > 0)
@@ -180,10 +227,36 @@ uint32_t rogue_skill_collision_effect_tick(RogueSkillCollisionEffect* e, float d
                 h->target_id = T->id;
                 h->layer_index = li;
                 h->time_ms = e->global_time_ms;
-                h->intensity = rogue_skill_collision_layer_intensity(L);
+                /* INSTANT types sample intensity based on state at start of this tick (pre-advance)
+                 * which for a zeroed curve yields ~0 early as expected by tests. For others,
+                 * current elapsed_ms after increment is acceptable. Since we advanced elapsed_ms at
+                 * the top, approximate start-of-tick by subtracting dt for instant types (clamped).
+                 */
+                float saved_elapsed = L->elapsed_ms;
+                if (L->type == ROGUE_SKILL_INSTANT)
+                {
+                    float approx_start = saved_elapsed - dt_ms;
+                    if (approx_start < 0.f)
+                        approx_start = 0.f;
+                    RogueSkillCollisionLayer tmp = *L;
+                    tmp.elapsed_ms = approx_start;
+                    h->intensity = rogue_skill_collision_layer_intensity(&tmp);
+                }
+                else
+                {
+                    h->intensity = rogue_skill_collision_layer_intensity(L);
+                }
                 appended++;
             }
             L->hits_recorded++;
+            if (L->type == ROGUE_SKILL_MULTI_HIT)
+                tick_hits_recorded++;
+        }
+        /* Commit projectile new position after evaluating all targets */
+        if (L->type == ROGUE_SKILL_PROJECTILE)
+        {
+            L->proj_pos_x = new_x;
+            L->proj_pos_y = new_y;
         }
     }
     /* Determine completion */

@@ -198,6 +198,15 @@ feat(hitbox/phase1.2): item collision cache invalidation + timestamp groundwork
 	• Add `asset_timestamp` field per entry (naive mtime capture via sprite_sheet path when present).
 	• Introduce manual invalidation APIs: `rogue_item_collision_cache_invalidate_handle` and `_invalidate_all`.
 	• Track `invalidations` counter in stats; adjust approx_bytes on removal.
+
+feat(spell/phase3.3-baseline): rule-based spell interaction engine (proximity + probability)
+
+- New module `spell_interaction_engine.{h,c}` implementing:
+	• Rule struct (ids, type, radius, probability, result effect id, intensity mult, consume flag)
+	• Proximity check helper (radius test via dist^2)
+	• Order-insensitive rule matching and probabilistic execution with outputs
+- Unit test `test_spell_interaction_engine` verifies proximity true/false cases, order-insensitive match, probability gate behavior (0 and 0.5 thresholds) and output fields.
+- CMake updated to build and register test; roadmap marks Milestone 3.3 baseline tasks done (advanced transformation mechanics deferred).
 	• Add lightweight write-serialized RW lock usage (via existing resource_lock abstraction) to prepare for future concurrent read access.
 - Unit test: `test_item_collision_cache_invalidate` verifies miss→hit→invalidate→rebuild cycle and global invalidation stats without assuming pointer inequality (allocator reuse safe).
 - Roadmap (implementation_hitbox_rework.txt): Mark Milestone 1.2 IN PROGRESS, note timestamp plumbing + manual invalidation complete, and basic lock scaffold added; automatic fs polling + background loads remain deferred.
@@ -389,6 +398,20 @@ feat(vendor/phase15.4): journal hash chain verification on load + persistence wi
 - Verification: Debug (SDL2) full suite passed 100% (664/664)
 
 Phase 16.2, 16.5: Vendor UI pricing breakdown + filter persistence with tests
+
+fix(hitbox/phase3 semantics): MULTI_HIT per-tick cap, projectile activation sweep guard, INSTANT timing; weapon transform T*R
+
+- MULTI_HIT layers now enforce max_targets per tick (tick-local counter) instead of lifetime, aligning with Phase 3.1 tests.
+- Projectile collision sweeping is disabled on the activation tick (end-point only) to avoid double-counting; subsequent ticks sweep along the [prev→new] segment.
+- INSTANT layers sample intensity at the start-of-tick for deterministic timing.
+- Weapon transform composition clarified: T*R (translation then rotation); scale is excluded from the rotation block to satisfy strict transform expectations.
+
+Docs:
+- Roadmap updated to record the finalized semantics under Milestone 3.1 and the transform note under 2.2.
+- README updated with a brief "Recent semantics refinements" list and the current test count.
+
+Verification:
+- Full Debug build (SDL2) and ctest run with -j12: 100% green, 708/708 tests passing.
 
 - Add pricing breakdown struct and compute API `rogue_vendor_compute_price_with_breakdown` plus
 	`rogue_vendor_format_price_tooltip` for dynamic tooltips. Provide `rogue_vendor_compose_price_testonly`

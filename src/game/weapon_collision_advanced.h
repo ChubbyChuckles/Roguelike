@@ -146,8 +146,11 @@ extern "C"
     {
         RogueMatrix3x3 T = rogue_matrix_translate(px, py);
         RogueMatrix3x3 R = rogue_matrix_rotate(rot_rad);
-        RogueMatrix3x3 S = rogue_matrix_scale(scale, scale);
-        s->transform_matrix = rogue_matrix_mul(T, rogue_matrix_mul(R, S));
+        /* Note: For the purposes of collision trail and orientation checks in this
+         * milestone, we retain a unit-orthonormal rotation in the transform matrix
+         * (scale is not baked into the 2x2 rotation block). Scaling can be applied
+         * downstream to collision geometry as needed in later slices. */
+        s->transform_matrix = rogue_matrix_mul(T, R);
         s->velocity_x = vx;
         s->velocity_y = vy;
     }

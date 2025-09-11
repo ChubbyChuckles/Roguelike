@@ -103,6 +103,12 @@ Test: `test_collision_pipeline_phase2_3_enemy_lod` asserts bias ordering across 
 
 Roadmap file `implementation_hitbox_rework.txt` updated (Stage 3 marked complete with annotation).
 
+Recent semantics refinements (Phase 3):
+- Weapon transform composition clarified to T*R (scale excluded from rotation block) for stricter tests.
+- Projectile collision now sweeps along the segment between previous and new positions each tick, except on the activation tick (end-point only) to prevent double hits.
+- INSTANT layers sample intensity at the start-of-tick for deterministic timing.
+- MULTI_HIT layers enforce max_targets per tick; other types continue to use lifetime caps.
+
 Press F1 in-game to open the debug overlay.
 
 ##### Milestone 3.1 (Skill Collision Manager Initial Slice – Complete)
@@ -150,6 +156,15 @@ Press F1 in-game to open the debug overlay.
 - Conservative union guarantees no false negatives versus either keyframe (slightly over-approximates in-between true geometric interpolation). Future slices will introduce distance-field guided blending or progressive erosion to tighten mid-phase masks plus dimension resampling.
 - New unit test `test_animation_collision_sync_morph` verifies union contains both source bits at midpoint, fast-path endpoint returns, and interpolation disable fallback.
 - Roadmap updated: marks mask blending baseline complete; advanced spline curves, adaptive quality loop, pooled buffer strategies, and geometric resample blend remain.
+
+##### Milestone 3.3 (Spell Interaction System – Baseline)
+
+- New `spell_interaction_engine.{h,c}` provides a simple rule-based interaction engine:
+  - Spatial proximity via radius (squared distance check)
+  - Probabilistic gating with strict rng threshold (rng<probability)
+  - Order-insensitive rule matching and outputs: type, result effect id, intensity multiplier, and consume flag
+- Unit test `test_spell_interaction_engine` covers proximity true/false, order-insensitive matching, and probability gate behavior (0.0 and 0.5 thresholds).
+- Roadmap updated: baseline complete; advanced transformation/composition mechanics, scheduling/conflict resolution, and multi-resolution distance checks deferred.
 
 ### Asset Browser (Overlay Phase 1 Enhancement)
 
@@ -370,7 +385,7 @@ Focused on deterministic simulation, incremental feature layering, and maintaina
 
 ### Tests
 
-CI runs Debug and Release with SDL2 enabled and parallel ctest. Recent additions include Phase 5.2 JSON integration tests for vendor inventory and loot generation, crafting, equipment persistence, and inventory operations. New Phase 2 JSON validation slice adds affix gating (weapon-only affixes excluded from armor), inventory filtering/sorting semantics, and two-handed equip enforcement. Total tests now: 684 (Debug/Release).
+CI runs Debug and Release with SDL2 enabled and parallel ctest. Recent additions include Phase 5.2 JSON integration tests for vendor inventory and loot generation, crafting, equipment persistence, and inventory operations. New Phase 2 JSON validation slice adds affix gating (weapon-only affixes excluded from armor), inventory filtering/sorting semantics, and two-handed equip enforcement. Total tests now: 708 (Debug/Release).
 
 <em>“A teaching & experimentation sandbox for loot, combat, procedural generation, progression, and systems design.”</em>
 

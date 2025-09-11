@@ -547,6 +547,7 @@ add_library(rogue_core
     src/game/enemy_collision_opt.c
     src/game/skill_collision_manager.c
     src/game/animation_collision_sync.c
+    src/game/spell_interaction_engine.c
     src/game/hit_feedback.c
     src/game/weapon_pose.c
     src/game/hit_debug_overlay.c
@@ -1246,6 +1247,14 @@ rogue_add_test(NAME test_overlay_widgets COMMAND test_overlay_widgets)
 add_executable(test_overlay_widgets_advanced tests/unit/test_overlay_widgets_advanced.c)
 rogue_add_test(NAME test_overlay_widgets_advanced COMMAND test_overlay_widgets_advanced)
 add_executable(test_overlay_multiselect_list tests/unit/test_overlay_multiselect_list.c)
+
+# Milestone 3.3: Spell Interaction System baseline
+add_executable(test_spell_interaction_engine tests/unit/test_spell_interaction_engine.c)
+target_link_libraries(test_spell_interaction_engine PRIVATE rogue_core)
+if(TARGET SDL2::SDL2)
+    target_link_libraries(test_spell_interaction_engine PRIVATE SDL2::SDL2)
+endif()
+rogue_add_test(NAME test_spell_interaction_engine COMMAND test_spell_interaction_engine)
 target_link_libraries(test_overlay_multiselect_list PRIVATE rogue_core)
 if(TARGET SDL2::SDL2)
     target_link_libraries(test_overlay_multiselect_list PRIVATE SDL2::SDL2)

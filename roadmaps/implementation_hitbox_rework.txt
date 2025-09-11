@@ -278,6 +278,8 @@ Core Subsystems:
     - [ ] Multi-sampling for complex weapon trajectories
   - [ ] **Function**: `rogue_weapon_collision_apply_mask_transform()` (deferred)
 
+  Note (composition): Weapon transform composes as T*R (translation then rotation), and the rotation block excludes scale factors to match strict transform expectations in tests.
+
 **Tests Added (Milestone 2.2 slice)**
 - [x] `test_weapon_collision_trail`: validates transform composition components, trail buffering/pruning within time window, coarse AABB generation, and layer filter correctness.
     - [ ] Real-time pixel mask transformation with bilinear filtering
@@ -379,6 +381,10 @@ Core Subsystems:
     - [ ] Multi-target hit registration and conflict resolution
   - [ ] **Function**: `rogue_skill_collision_test_projectile()`
   - [x] Initial slice delivered via `rogue_skill_collision_effect_init`, `rogue_skill_collision_effect_add_layer`, `rogue_skill_collision_layer_intensity`, `rogue_skill_collision_effect_tick`, and `rogue_skill_collision_effect_finished` plus unit test `test_skill_collision_manager_phase3_1` validating activation scheduling, intensity sampling, piercing, target caps, completion.
+    - [x] Semantics refinements validated by tests:
+      - INSTANT layers sample intensity at start-of-tick to match deterministic expectations.
+      - PROJECTILE layers sweep along the segment between previous and new positions each tick; skip sweeping on the activation tick (end-point only) to avoid double hits.
+      - MULTI_HIT layers enforce max_targets per tick (tick-local cap); other types use lifetime caps.
     - [ ] Projectile trajectory collision testing with terrain
     - [ ] Continuous collision detection for fast-moving projectiles
     - [ ] Ricochet and penetration physics simulation
@@ -432,7 +438,7 @@ Core Subsystems:
   - [ ] Additional tests for looping timelines, speed scaling, multi-window overlap resolution (future)
 
 #### MILESTONE 3.3: Spell Interaction System
-- [ ] **File**: `src/game/spell_interaction_engine.h` (new)
+- [x] **File**: `src/game/spell_interaction_engine.h` (new)
   ```c
   typedef enum RogueSpellInteractionType {
       ROGUE_INTERACT_NONE = 0,         // No interaction
@@ -454,20 +460,20 @@ Core Subsystems:
       bool consumes_original_effects;  // Whether original effects are consumed
   } RogueSpellInteractionRule;
   ```
-  - [ ] Rule-based spell interaction system for emergent gameplay
-  - [ ] Probabilistic interaction system for varied outcomes
-  - [ ] Spatial interaction constraints and proximity requirements
-  - [ ] Effect transformation and combination mechanics
+  - [x] Rule-based spell interaction system for emergent gameplay (baseline table scan)
+  - [x] Probabilistic interaction system for varied outcomes (rng01 <= probability)
+  - [x] Spatial interaction constraints and proximity requirements (radius check)
+  - [ ] Effect transformation and combination mechanics (advanced logic deferred)
 
-- [ ] **File**: `src/game/spell_interaction_engine.c` (new, 600+ lines)
-  - [ ] **Function**: `rogue_spell_interaction_check_proximity()`
-    - [ ] Efficient spatial proximity checking for spell effects
-    - [ ] Multi-resolution distance calculation for performance
-    - [ ] Interaction opportunity prediction and scheduling
-    - [ ] Conflict resolution for multiple simultaneous interactions
-  - [ ] **Function**: `rogue_spell_interaction_execute()`
-    - [ ] Rule-based interaction execution with validation
-    - [ ] Effect transformation and new effect generation
+- [x] **File**: `src/game/spell_interaction_engine.c` (new, baseline ~150 lines)
+  - [x] **Function**: `rogue_spell_interaction_check_proximity()`
+    - [x] Spatial proximity check via radius (dist^2)
+    - [ ] Multi-resolution distance calc (deferred)
+    - [ ] Prediction/scheduling (deferred)
+    - [ ] Conflict resolution (deferred)
+  - [x] **Function**: `rogue_spell_interaction_execute()`
+    - [x] Rule-based execution with order-insensitive id match, probability gate, outputs
+    - [ ] Effect transformation/new effect creation (advanced, deferred)
     - [ ] Resource management for interaction-created effects
     - [ ] Audio-visual feedback coordination for interactions
 
