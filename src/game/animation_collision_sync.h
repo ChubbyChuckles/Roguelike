@@ -145,6 +145,14 @@ extern "C"
                                                       RogueCollisionTimelineEvent* out_events,
                                                       uint8_t max_events);
 
+    /* Speed-scaled variant of timeline event emission. Applies sync->playback_speed to the time
+     * domain before delegating to rogue_animation_collision_timeline_events().
+     * playback_speed<=0 treated as 1.0. */
+    uint8_t rogue_animation_collision_timeline_events_scaled(
+        const RogueAnimationCollisionSync* sync, const RogueCollisionTimeline* tl,
+        float prev_time_ms, float curr_time_ms, RogueCollisionTimelineEvent* out_events,
+        uint8_t max_events);
+
     /* Interpolate (scaffold) between keyframe masks.
      * Returns 1 on success, 0 on invalid input. Provides:
      *  - out_a: pointer to base keyframe mask (never NULL on success if count>0)

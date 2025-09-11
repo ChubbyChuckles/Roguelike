@@ -163,6 +163,12 @@ Press F1 in-game to open the debug overlay.
 - New unit test `test_animation_collision_sync_morph` verifies union contains both source bits at midpoint, fast-path endpoint returns, and interpolation disable fallback.
 - Roadmap updated: marks mask blending baseline complete; advanced spline curves, adaptive quality loop, pooled buffer strategies, and geometric resample blend remain.
 
+###### Deepening Slice (Phase 3.2 Events): Ordered batching + scaled wrapper
+
+- `rogue_animation_collision_timeline_events` now guarantees chronological ordering with ENTER before EXIT when timestamps tie (e.g., one window ending exactly when another begins). A lightweight stable insertion sort is applied to the small event buffer to enforce ordering.
+- Added `rogue_animation_collision_timeline_events_scaled` which applies `playback_speed` to the time domain before emitting events, matching the scaled evaluation semantics.
+- New unit test `test_animation_collision_sync_events` validates the tie-breaking order at a shared boundary (30ms: ENTER then EXIT) and confirms parity between unscaled and scaled intervals mapping to the same window times.
+
 ##### Milestone 3.3 (Spell Interaction System – Baseline)
 
 - New `spell_interaction_engine.{h,c}` provides a simple rule-based interaction engine:

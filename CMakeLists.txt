@@ -1230,6 +1230,13 @@ if(TARGET SDL2::SDL2)
 endif()
 rogue_add_test(NAME test_animation_collision_sync_morph COMMAND test_animation_collision_sync_morph)
 
+add_executable(test_animation_collision_sync_events tests/unit/test_animation_collision_sync_events.c)
+target_link_libraries(test_animation_collision_sync_events PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_animation_collision_sync_events PRIVATE SDL2::SDL2)
+    endif()
+rogue_add_test(NAME test_animation_collision_sync_events COMMAND test_animation_collision_sync_events)
+
 add_executable(test_tag_registry_validate tests/unit/test_tag_registry_validate.c)
 
 # Debug overlay core unit test

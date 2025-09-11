@@ -427,7 +427,7 @@ Core Subsystems:
     - [x] Temporal collision window evaluation (ms domain; simple range test)
     - [ ] Sub-frame precision beyond provided float timestamps (deferred)
   - [x] Dynamic timeline adjustment based on animation speed (implemented wrapper `rogue_animation_collision_evaluate_timeline_scaled` applying playback_speed)
-  - [ ] Collision event scheduling and batching (future queue API – basic enter/exit events implemented separately)
+  - [x] Collision event scheduling and batching scaffold: implemented `rogue_animation_collision_timeline_events` with explicit ENTER/EXIT emissions and enforced chronological ordering with tie-breaking (ENTER before EXIT). Added scaled wrapper `rogue_animation_collision_timeline_events_scaled` honoring `playback_speed`.
   - [x] **Function**: `rogue_animation_collision_interpolate_masks()` (returns bracketing keyframes + linear t; added basic smoothstep when interpolation_quality>=0.5)
   - [x] Optimization: when keyframe timestamps are monotonic ascending, bracketing lookup uses binary search (fallback to linear scan if not guaranteed sorted) to reduce per-sample overhead.
   - [ ] Real-time collision mask morphing between keyframes (future blending path)
@@ -436,6 +436,7 @@ Core Subsystems:
   - [x] Cache-friendly pooled buffer strategy: introduce a tiny 4-entry pool for blended frames used during morphing to avoid per-call heap allocations; pool acquire/release integrated with `ensure_blended_capacity` and `rogue_animation_collision_sync_release`, zeroed on reuse for determinism; safe heap fallback retained.
   - [x] Frame skip cached evaluation scaffold (`rogue_animation_collision_evaluate_timeline_cached`) honoring frame_skip_threshold without missing window boundaries
   - [x] Unit test `test_animation_collision_sync_basic` validating window activation and interpolation factor (non-morph)
+  - [x] Unit test `test_animation_collision_sync_events` validating boundary tie ordering and scaled wrapper parity
   - [ ] Additional tests for looping timelines, speed scaling, multi-window overlap resolution (future)
 
 #### MILESTONE 3.3: Spell Interaction System

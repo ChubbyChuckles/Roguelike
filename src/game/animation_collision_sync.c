@@ -483,8 +483,46 @@ uint8_t rogue_animation_collision_timeline_events(const RogueCollisionTimeline* 
             }
         }
     }
-    return (emitted > max_events) ? max_events : emitted;
+    /* Ensure events are in chronological order and ENTER before EXIT on ties. Since we appended
+       in timestamp order per window, a lightweight stable insertion sort across the buffer is
+       sufficient for the small event counts typical here. */
+    uint8_t count_out = (emitted > max_events) ? max_events : emitted;
+    for (uint8_t i = 1; i < count_out; ++i)
+    {
+        RogueCollisionTimelineEvent key = out_events[i];
+        int j = (int) i - 1;
+        while (j >= 0)
+        {
+            const RogueCollisionTimelineEvent* e = &out_events[j];
+            if (e->event_time_ms > key.event_time_ms ||
+                (e->event_time_ms == key.event_time_ms && e->type > key.type))
+            {
+                out_events[j + 1] = out_events[j];
+                --j;
+            }
+            else
+            {
+                break;
+            }
+        }
+        out_events[j + 1] = key;
+    }
+    return count_out;
 #undef ROGUE_EMIT
+}
+
+uint8_t rogue_animation_collision_timeline_events_scaled(const RogueAnimationCollisionSync* sync,
+                                                         const RogueCollisionTimeline* tl,
+                                                         float prev_time_ms, float curr_time_ms,
+                                                         RogueCollisionTimelineEvent* out_events,
+                                                         uint8_t max_events)
+{
+    float speed = 1.f;
+    if (sync && sync->playback_speed > 0.f)
+        speed = sync->playback_speed;
+    float p = prev_time_ms * speed;
+    float c = curr_time_ms * speed;
+    return rogue_animation_collision_timeline_events(tl, p, c, out_events, max_events);
 }
 
 int rogue_animation_collision_interpolate_from_skill_layer(

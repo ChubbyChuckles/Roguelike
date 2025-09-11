@@ -1,3 +1,10 @@
+feat(animation-sync): ordered timeline events + scaled wrapper, add unit test
+
+- Ensure `rogue_animation_collision_timeline_events` emits events in chronological order and breaks ties with ENTER before EXIT at the same timestamp (e.g., window A ends exactly when window B begins).
+- Add `rogue_animation_collision_timeline_events_scaled` to mirror speed-scaled evaluation semantics by applying `playback_speed` to the event time domain.
+- New test `test_animation_collision_sync_events` covers tie-ordering and scaled interval parity.
+- Full Debug build (SDL2, -j12) and ctest: 100% green (708/708).
+
 feat(hitbox/phase2.3): enemy collision LOD stage integration + pixel-perfect stage baseline
 
 feat(hitbox/phase3.1): skill collision manager initial implementation
