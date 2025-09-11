@@ -1237,6 +1237,14 @@ target_link_libraries(test_animation_collision_sync_events PRIVATE rogue_core)
     endif()
 rogue_add_test(NAME test_animation_collision_sync_events COMMAND test_animation_collision_sync_events)
 
+# Interpolation quality modes (smoothstep/smootherstep)
+add_executable(test_animation_collision_sync_quality tests/unit/test_animation_collision_sync_quality.c)
+target_link_libraries(test_animation_collision_sync_quality PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_animation_collision_sync_quality PRIVATE SDL2::SDL2)
+    endif()
+rogue_add_test(NAME test_animation_collision_sync_quality COMMAND test_animation_collision_sync_quality)
+
 add_executable(test_tag_registry_validate tests/unit/test_tag_registry_validate.c)
 
 # Debug overlay core unit test

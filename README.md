@@ -146,13 +146,15 @@ Press F1 in-game to open the debug overlay.
 - Roadmap updated marking partial completion (structs + basic eval + linear interpolation + unit test) while deferring spline/intermediate mask morphing, adaptive quality, frame skipping heuristics, speed scaling, and event batching APIs.
 - Next deepening steps will integrate skill layer fractional frame index with keyframe-driven mask sampling & morph, then add speed scaling (animation playback rate) and event emission (enter/exit window callbacks) for richer combat timing.
 
-###### Deepening Slice (Phase 3.2 Advanced): Speed Scaling + Frame Skip Cache + Smooth Interpolation
+###### Deepening Slice (Phase 3.2 Advanced): Speed Scaling + Frame Skip Cache + Smooth/Quintic Interpolation
 
 - Added `playback_speed` application via `rogue_animation_collision_evaluate_timeline_scaled` (wrapper keeps original API stable). Time domain scaled so higher speed advances collision windows earlier relative to real time.
 - Introduced cached evaluation state `RogueAnimationCollisionEvalState` and `rogue_animation_collision_evaluate_timeline_cached` honoring `frame_skip_threshold` (ms). Reuses previous active set when no window boundary (start/end) lies in the interval, avoiding redundant per-frame scans under high frame rates.
 - Boundary detection logic safe for looping timelines (wrap normalization) guarantees no missed ENTER/EXIT events before future full event queue integration.
-- Implemented lightweight higher-quality interpolation mode: if `interpolation_quality >= 0.5`, linear t is transformed with smoothstep (cubic Hermite) for perceptually smoother transitions without full spline infra (true spline + mask morphing still deferred).
-- Added advanced unit test `test_animation_collision_sync_advanced` covering: speed scaling activation, cache reuse vs boundary invalidation, smoothstep quality toggle, and linear fallback correctness.
+- Implemented lightweight higher-quality interpolation modes:
+  - if `interpolation_quality >= 0.5`, linear t is transformed with smoothstep (cubic Hermite)
+  - if `interpolation_quality >= 0.9`, use quintic smootherstep (`6t^5 - 15t^4 + 10t^3`) for even smoother easing
+- Added advanced unit test `test_animation_collision_sync_advanced` covering: speed scaling activation, cache reuse vs boundary invalidation, smoothstep quality toggle, and linear fallback correctness. New test `test_animation_collision_sync_quality` validates both cubic and quintic easing factors at representative sample points.
 - Roadmap updated (Milestone 3.2) marking speed scaling wrapper, frame skip cached evaluation, and basic smooth interpolation mode complete; mask morphing, advanced spline curves, adaptive quality feedback loop, and pooled blended mask buffers remain deferred.
 
 ###### Deepening Slice (Phase 3.2 Morph Baseline): Conservative Mask Union
@@ -397,7 +399,7 @@ Focused on deterministic simulation, incremental feature layering, and maintaina
 
 ### Tests
 
-CI runs Debug and Release with SDL2 enabled and parallel ctest. Recent additions include Phase 5.2 JSON integration tests for vendor inventory and loot generation, crafting, equipment persistence, and inventory operations. New Phase 2 JSON validation slice adds affix gating (weapon-only affixes excluded from armor), inventory filtering/sorting semantics, and two-handed equip enforcement. Total tests now: 708 (Debug/Release).
+CI runs Debug and Release with SDL2 enabled and parallel ctest. Recent additions include Phase 5.2 JSON integration tests for vendor inventory and loot generation, crafting, equipment persistence, and inventory operations. New Phase 2 JSON validation slice adds affix gating (weapon-only affixes excluded from armor), inventory filtering/sorting semantics, and two-handed equip enforcement. Total tests now: 709 (Debug/Release).
 
 <em>“A teaching & experimentation sandbox for loot, combat, procedural generation, progression, and systems design.”</em>
 

@@ -1,3 +1,9 @@
+feat(animation-collision-sync): add quintic smootherstep mode (quality >=0.9) + tests
+
+- Interpolation quality modes refined: keep cubic smoothstep for quality >=0.5 and introduce quintic smootherstep (6t^5-15t^4+10t^3) when quality >=0.9 for smoother easing.
+- Unit test `test_animation_collision_sync_quality` verifies cubic/quintic factors at t=0.25/0.75; CMake wired.
+- Readme/Roadmap updated; full rebuild + ctests planned with SDL2 and -j12.
+
 feat(animation-sync): ordered timeline events + scaled wrapper, add unit test
 
 - Ensure `rogue_animation_collision_timeline_events` emits events in chronological order and breaks ties with ENTER before EXIT at the same timestamp (e.g., window A ends exactly when window B begins).

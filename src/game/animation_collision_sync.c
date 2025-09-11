@@ -373,12 +373,22 @@ int rogue_animation_collision_interpolate_masks(const RogueAnimationCollisionSyn
         t = 0.f;
     if (t > 1.f)
         t = 1.f;
-    /* Simple smoothstep (cubic Hermite) when interpolation_quality >= 0.5f to simulate higher
-     * quality without full spline infra. */
-    if (sync->interpolation_quality >= 0.5f)
+    /* Quality modes:
+       - interpolation_quality >= 0.9f: quintic smootherstep for even smoother easing
+       - interpolation_quality >= 0.5f: cubic smoothstep
+     */
+    if (sync->interpolation_quality >= 0.9f)
     {
-        float tt = t * t * (3.f - 2.f * t); /* smoothstep */
-        t = tt;
+        float t2 = t * t;
+        float t3 = t2 * t;
+        float t4 = t3 * t;
+        float t5 = t4 * t;
+        /* smootherstep: 6t^5 - 15t^4 + 10t^3 */
+        t = 6.f * t5 - 15.f * t4 + 10.f * t3;
+    }
+    else if (sync->interpolation_quality >= 0.5f)
+    {
+        t = t * t * (3.f - 2.f * t); /* smoothstep */
     }
     if (out_a && sync->keyframe_masks)
         *out_a = sync->keyframe_masks[base];
