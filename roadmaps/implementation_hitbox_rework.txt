@@ -444,7 +444,8 @@ Core Subsystems:
   - [x] Unit test `test_animation_collision_sync_basic` validating window activation and interpolation factor (non-morph)
   - [x] Unit test `test_animation_collision_sync_events` validating boundary tie ordering and scaled wrapper parity
   - [x] Unit test `test_animation_collision_sync_quality` validating cubic vs quintic easing factors at representative sample points
-  - [ ] Additional tests for looping timelines, speed scaling (overlap resolution covered by new tests)
+  - [x] Additional tests for looping timelines, speed scaling (overlap resolution covered by new tests)
+    - Implemented wrap-aware chronological ordering across loop boundaries in `rogue_animation_collision_timeline_events` (EXIT from tail of previous cycle precedes ENTER at head of next; ENTER before EXIT on exact ties preserved). Added unit `test_animation_collision_sync_events_loop_scaled` to validate EXIT@95ms → ENTER@5ms ordering and parity under `playback_speed` (scaled wrapper). Full Debug (SDL2, -j12) ctests: 100% green (712/712).
 
 ###### Deepening Slice (Phase 3.2 Overlap Resolution): Deterministic selection strategies
 

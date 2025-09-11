@@ -596,3 +596,9 @@ perf(hitbox/phase3.2): pooled blended-frame buffer for animation morphing to red
 - Added a tiny 4-entry pooled buffer for blended frames in `animation_collision_sync` morphing. Allocation path attempts pool acquire first (zeroed on reuse for determinism), with safe heap fallback when exhausted. Release returns pooled frames or frees heap as appropriate. Integrated with `ensure_blended_capacity` and `rogue_animation_collision_sync_release`.
 - Benefit: avoids per-call malloc/free in hot morph paths and improves cache locality without changing behavior (union blend baseline retained).
 - Verified: Full Debug build (SDL2, -j12) and ctest are 100% green (708/708). README and roadmap updated to reflect the optimization.
+
+feat(animation-collision-events): wrap-aware chronological ordering across loop boundaries + loop+scaled parity test; 712/712 green
+
+- Extend `rogue_animation_collision_timeline_events` with wrap-aware ordering so EXIT events from the tail of the previous cycle precede ENTER events at the head of the next cycle; preserve ENTER-before-EXIT on exact ties.
+- Add `tests/unit/test_animation_collision_sync_events_loop_scaled.c` covering loop-wrap ordering (EXIT@95ms → ENTER@5ms) and parity with the scaled wrapper under `playback_speed`.
+- Wire new test in CMake; full Debug build (SDL2, -j12) and ctests: 100% green (712/712).

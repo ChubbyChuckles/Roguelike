@@ -139,6 +139,7 @@ Press F1 in-game to open the debug overlay.
 
 - New module `animation_collision_sync.{h,c}` introduces:
   - `RogueAnimationCollisionSync`: keyframe timestamps array, optional keyframe mask pointers (NULL in current scaffold), linear interpolation toggle (future spline / quality modes deferred), and frame skip threshold placeholder.
+  - Update: Wrap-aware ordering across loop boundaries is now enforced. When a looping timeline wraps, EXIT events from the previous cycle are emitted before ENTER events at the start of the next cycle, preserving determinism. Verified by `test_animation_collision_sync_events_loop_scaled`, which also checks scaled-time parity.
   - `RogueCollisionTimeline`: up to 16 collision windows (timestamp, duration, mask index, intensity multiplier) with optional looping fields (loop evaluation modulo placeholder for later slice).
   - `rogue_animation_collision_evaluate_timeline`: determines active window indices at arbitrary time (ms). Deterministic, stable ordering; overlap simply produces multiple indices (no event batching yet).
   - `rogue_animation_collision_interpolate_masks`: returns bracketing keyframes + linear interpolation factor t (0..1). If interpolation disabled or at/after last keyframe, clamps (b=NULL, t=0).

@@ -440,3 +440,14 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_animation_collision_sync_overlap
     endif()
     rogue_add_test(test_animation_collision_sync_overlap COMMAND test_animation_collision_sync_overlap)
 endif()
+
+# Add loop+scaled events ordering parity test if present
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_animation_collision_sync_events_loop_scaled.c AND NOT TARGET test_animation_collision_sync_events_loop_scaled)
+    add_executable(test_animation_collision_sync_events_loop_scaled unit/test_animation_collision_sync_events_loop_scaled.c)
+    target_link_libraries(test_animation_collision_sync_events_loop_scaled PRIVATE rogue_core)
+    target_compile_definitions(test_animation_collision_sync_events_loop_scaled PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_animation_collision_sync_events_loop_scaled PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_animation_collision_sync_events_loop_scaled COMMAND test_animation_collision_sync_events_loop_scaled)
+endif()

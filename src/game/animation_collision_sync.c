@@ -452,6 +452,29 @@ uint8_t rogue_animation_collision_timeline_events(const RogueCollisionTimeline* 
             if (end > prev_time_ms && end <= curr_time_ms)
                 ROGUE_EMIT(ROGUE_COLLISION_WINDOW_EXIT, i, end);
         }
+        /* Ensure chronological order with ENTER before EXIT on ties (simple comparator). */
+        uint8_t count_out = (emitted > max_events) ? max_events : emitted;
+        for (uint8_t i = 1; i < count_out; ++i)
+        {
+            RogueCollisionTimelineEvent key = out_events[i];
+            int j = (int) i - 1;
+            while (j >= 0)
+            {
+                const RogueCollisionTimelineEvent* e = &out_events[j];
+                if (e->event_time_ms > key.event_time_ms ||
+                    (e->event_time_ms == key.event_time_ms && e->type > key.type))
+                {
+                    out_events[j + 1] = out_events[j];
+                    --j;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            out_events[j + 1] = key;
+        }
+        return count_out;
     }
     else
     {
@@ -496,32 +519,41 @@ uint8_t rogue_animation_collision_timeline_events(const RogueCollisionTimeline* 
                     ROGUE_EMIT(ROGUE_COLLISION_WINDOW_EXIT, i, end);
             }
         }
-    }
-    /* Ensure events are in chronological order and ENTER before EXIT on ties. Since we appended
-       in timestamp order per window, a lightweight stable insertion sort across the buffer is
-       sufficient for the small event counts typical here. */
-    uint8_t count_out = (emitted > max_events) ? max_events : emitted;
-    for (uint8_t i = 1; i < count_out; ++i)
-    {
-        RogueCollisionTimelineEvent key = out_events[i];
-        int j = (int) i - 1;
-        while (j >= 0)
+        /* Ensure chronological order along the wrapped interval by comparing using a
+           wrapped-aware key: events in [0,c] are treated as occurring after those in (p,cycle].
+           ENTER precedes EXIT on ties. */
+        uint8_t count_out = (emitted > max_events) ? max_events : emitted;
+        for (uint8_t i = 1; i < count_out; ++i)
         {
-            const RogueCollisionTimelineEvent* e = &out_events[j];
-            if (e->event_time_ms > key.event_time_ms ||
-                (e->event_time_ms == key.event_time_ms && e->type > key.type))
+            RogueCollisionTimelineEvent key = out_events[i];
+            int j = (int) i - 1;
+            while (j >= 0)
             {
-                out_events[j + 1] = out_events[j];
-                --j;
+                const RogueCollisionTimelineEvent* e = &out_events[j];
+                float e_key = e->event_time_ms;
+                float k_key = key.event_time_ms;
+                if (wrapped)
+                {
+                    if (e_key <= c)
+                        e_key += cycle;
+                    if (k_key <= c)
+                        k_key += cycle;
+                }
+                if (e_key > k_key || (e_key == k_key && e->type > key.type))
+                {
+                    out_events[j + 1] = out_events[j];
+                    --j;
+                }
+                else
+                {
+                    break;
+                }
             }
-            else
-            {
-                break;
-            }
+            out_events[j + 1] = key;
         }
-        out_events[j + 1] = key;
+        return count_out;
     }
-    return count_out;
+
 #undef ROGUE_EMIT
 }
 
