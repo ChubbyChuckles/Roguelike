@@ -444,7 +444,17 @@ Core Subsystems:
   - [x] Unit test `test_animation_collision_sync_basic` validating window activation and interpolation factor (non-morph)
   - [x] Unit test `test_animation_collision_sync_events` validating boundary tie ordering and scaled wrapper parity
   - [x] Unit test `test_animation_collision_sync_quality` validating cubic vs quintic easing factors at representative sample points
-  - [ ] Additional tests for looping timelines, speed scaling, multi-window overlap resolution (future)
+  - [ ] Additional tests for looping timelines, speed scaling (overlap resolution covered by new tests)
+
+###### Deepening Slice (Phase 3.2 Overlap Resolution): Deterministic selection strategies
+
+- Added overlap resolution helpers `rogue_animation_collision_resolve_overlap` and `_scaled` to choose a single active collision window when multiple windows overlap.
+- Both strategies are intensity-first, with deterministic tie-breakers:
+  - ROGUE_OVERLAP_HIGHEST_INTENSITY_LATEST_START_LOWEST_INDEX: highest intensity → latest start time → lowest index.
+  - ROGUE_OVERLAP_EARLIEST_START_THEN_LOWEST_INDEX: highest intensity → earliest start time → lowest index.
+- The scaled variant applies `playback_speed` to the time domain to mirror scaled evaluation semantics.
+- Unit test `test_animation_collision_sync_overlap` verifies both strategies at representative timestamps and confirms scaled-time parity (e.g., speed=2 maps 30ms real → 60ms timeline).
+- Verification: Full Debug (SDL2, -j12) ctest passed 100% (712/712).
 
 ###### Correctness Fix (Phase 3.2 - cache scaling)
 

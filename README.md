@@ -171,6 +171,16 @@ Press F1 in-game to open the debug overlay.
 - Added `rogue_animation_collision_timeline_events_scaled` which applies `playback_speed` to the time domain before emitting events, matching the scaled evaluation semantics.
 - New unit test `test_animation_collision_sync_events` validates the tie-breaking order at a shared boundary (30ms: ENTER then EXIT) and confirms parity between unscaled and scaled intervals mapping to the same window times.
 
+###### Deepening Slice (Phase 3.2 Overlap Resolution): Deterministic selection strategies
+
+- Added `rogue_animation_collision_resolve_overlap` and `_scaled` to select a single active window when multiple overlap.
+- Both strategies are intensity-first with deterministic tie-breakers:
+  - Highest-Intensity Latest-Start (then lowest index)
+  - Highest-Intensity Earliest-Start (then lowest index)
+- The scaled variant applies `playback_speed` for time-domain parity with scaled evaluation.
+- Unit `test_animation_collision_sync_overlap` covers strategy choices and scaled-time parity.
+- Full suite verification: Debug (SDL2, -j12) 100% green (712/712).
+
 ##### Milestone 3.3 (Spell Interaction System – Baseline)
 
 - New `spell_interaction_engine.{h,c}` provides a simple rule-based interaction engine:

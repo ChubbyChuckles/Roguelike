@@ -1,3 +1,13 @@
+feat(animation-collision-overlap): deterministic overlap resolution strategies + scaled wrapper; tests; 712/712 green
+
+- Implement `rogue_animation_collision_resolve_overlap` and `_scaled` to select a single active window when overlaps occur.
+- Both strategies are intensity-first with clear tie-breakers for determinism:
+	- Highest-Intensity Latest-Start, then Lowest Index
+	- Highest-Intensity Earliest-Start, then Lowest Index
+- Scaled variant applies `playback_speed` to the time domain to mirror scaled evaluation.
+- Add unit `test_animation_collision_sync_overlap` covering both strategies and scaled-time parity (e.g., speed=2 maps 30ms real → 60ms timeline).
+- Full Debug (SDL2, -j12) ctest passed 100% (712/712).
+
 fix(animation-collision-cache): boundary detection operates in scaled time; add unit test; 710/710 green
 
 - Cached evaluation (`rogue_animation_collision_evaluate_timeline_cached`) now multiplies both previous and current times by `playback_speed` for boundary checks to avoid missing ENTER/EXIT at speeds > 1 with small deltas.

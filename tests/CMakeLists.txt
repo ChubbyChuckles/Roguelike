@@ -429,3 +429,14 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_animation_collision_sync_cache_s
     endif()
     rogue_add_test(test_animation_collision_sync_cache_scale COMMAND test_animation_collision_sync_cache_scale)
 endif()
+
+# Add overlap resolution test if present
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_animation_collision_sync_overlap.c AND NOT TARGET test_animation_collision_sync_overlap)
+    add_executable(test_animation_collision_sync_overlap unit/test_animation_collision_sync_overlap.c)
+    target_link_libraries(test_animation_collision_sync_overlap PRIVATE rogue_core)
+    target_compile_definitions(test_animation_collision_sync_overlap PRIVATE SDL_MAIN_HANDLED=1)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_animation_collision_sync_overlap PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(test_animation_collision_sync_overlap COMMAND test_animation_collision_sync_overlap)
+endif()

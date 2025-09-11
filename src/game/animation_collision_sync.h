@@ -80,6 +80,17 @@ extern "C"
         float event_time_ms;  /* Absolute time passed to evaluator when event triggered */
     } RogueCollisionTimelineEvent;
 
+    /* Overlap resolution strategy: when multiple windows are active at a given time,
+     * select a single winner deterministically. These strategies are simple and intended
+     * for gameplay prototyping; advanced weighting remains future work. */
+    typedef enum RogueCollisionOverlapStrategy
+    {
+        /* Prefer highest intensity; ties -> latest start timestamp; ties -> lowest index */
+        ROGUE_OVERLAP_HIGHEST_INTENSITY_LATEST_START_LOWEST_INDEX = 0,
+        /* Prefer highest intensity; ties -> earliest start timestamp; ties -> lowest index */
+        ROGUE_OVERLAP_EARLIEST_START_THEN_LOWEST_INDEX = 1
+    } RogueCollisionOverlapStrategy;
+
     /* Initialize a timeline struct to empty. */
     static inline void rogue_collision_timeline_init(RogueCollisionTimeline* tl)
     {
@@ -152,6 +163,18 @@ extern "C"
         const RogueAnimationCollisionSync* sync, const RogueCollisionTimeline* tl,
         float prev_time_ms, float curr_time_ms, RogueCollisionTimelineEvent* out_events,
         uint8_t max_events);
+
+    /* Resolve overlaps at a given time by selecting a single window index using the provided
+     * strategy. Returns -1 if no window is active. Deterministic tie-breaking as described by
+     * the strategy. */
+    int rogue_animation_collision_resolve_overlap(const RogueCollisionTimeline* tl, float time_ms,
+                                                  RogueCollisionOverlapStrategy strategy);
+
+    /* Speed-scaled variant honoring playback_speed in the time domain. */
+    int rogue_animation_collision_resolve_overlap_scaled(const RogueAnimationCollisionSync* sync,
+                                                         const RogueCollisionTimeline* tl,
+                                                         float time_ms,
+                                                         RogueCollisionOverlapStrategy strategy);
 
     /* Interpolate (scaffold) between keyframe masks.
      * Returns 1 on success, 0 on invalid input. Provides:

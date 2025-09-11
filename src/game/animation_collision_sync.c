@@ -539,6 +539,75 @@ uint8_t rogue_animation_collision_timeline_events_scaled(const RogueAnimationCol
     return rogue_animation_collision_timeline_events(tl, p, c, out_events, max_events);
 }
 
+int rogue_animation_collision_resolve_overlap(const RogueCollisionTimeline* tl, float time_ms,
+                                              RogueCollisionOverlapStrategy strategy)
+{
+    if (!tl)
+        return -1;
+    uint8_t indices[16];
+    uint8_t n = rogue_animation_collision_evaluate_timeline(tl, time_ms, indices, 16);
+    if (n == 0)
+        return -1;
+    int best = indices[0];
+    const RogueCollisionTimelineWindow* best_w = &tl->windows[best];
+    for (uint8_t k = 1; k < n; ++k)
+    {
+        int cand = indices[k];
+        const RogueCollisionTimelineWindow* cw = &tl->windows[cand];
+        /* Both strategies prioritize highest intensity first; they differ only in the
+           timestamp tie-breaker (latest vs earliest). Final tie resolves to lowest index
+           for determinism. */
+        if (cw->intensity_multiplier > best_w->intensity_multiplier)
+        {
+            best = cand;
+            best_w = cw;
+            continue;
+        }
+        if (cw->intensity_multiplier < best_w->intensity_multiplier)
+            continue;
+        /* Equal intensity: apply strategy-specific timestamp ordering */
+        if (strategy == ROGUE_OVERLAP_HIGHEST_INTENSITY_LATEST_START_LOWEST_INDEX)
+        {
+            if (cw->timestamp_ms > best_w->timestamp_ms)
+            {
+                best = cand;
+                best_w = cw;
+            }
+            else if (cw->timestamp_ms == best_w->timestamp_ms && cand < best)
+            {
+                best = cand;
+                best_w = cw;
+            }
+        }
+        else /* ROGUE_OVERLAP_EARLIEST_START_THEN_LOWEST_INDEX */
+        {
+            if (cw->timestamp_ms < best_w->timestamp_ms)
+            {
+                best = cand;
+                best_w = cw;
+            }
+            else if (cw->timestamp_ms == best_w->timestamp_ms && cand < best)
+            {
+                best = cand;
+                best_w = cw;
+            }
+        }
+    }
+    return best;
+}
+
+int rogue_animation_collision_resolve_overlap_scaled(const RogueAnimationCollisionSync* sync,
+                                                     const RogueCollisionTimeline* tl,
+                                                     float time_ms,
+                                                     RogueCollisionOverlapStrategy strategy)
+{
+    float speed = 1.f;
+    if (sync && sync->playback_speed > 0.f)
+        speed = sync->playback_speed;
+    float t = time_ms * speed;
+    return rogue_animation_collision_resolve_overlap(tl, t, strategy);
+}
+
 int rogue_animation_collision_interpolate_from_skill_layer(
     const RogueAnimationCollisionSync* sync, const struct RogueSkillCollisionLayer* layer,
     const struct RogueHitPixelMaskFrame** out_a, const struct RogueHitPixelMaskFrame** out_b,
