@@ -167,10 +167,14 @@ void rogue_app_step(void)
     /* (Duplicate reduced-motion guard removed; logic now handled at function entry.) */
 #ifdef ROGUE_HAVE_SDL
     g_app.title_time += g_app.dt;
-    SDL_SetRenderDrawColor(g_app.renderer, g_app.cfg.background_color.r,
-                           g_app.cfg.background_color.g, g_app.cfg.background_color.b,
-                           g_app.cfg.background_color.a);
-    SDL_RenderClear(g_app.renderer);
+    /* Headless guard: Renderer may be NULL in CI/headless environments; protect direct calls. */
+    if (!g_app.headless)
+    {
+        SDL_SetRenderDrawColor(g_app.renderer, g_app.cfg.background_color.r,
+                               g_app.cfg.background_color.g, g_app.cfg.background_color.b,
+                               g_app.cfg.background_color.a);
+        SDL_RenderClear(g_app.renderer);
+    }
     if (rogue_start_screen_active())
     {
         /* Ensure fade speed respects reduced-motion preference by shortening duration */
@@ -318,7 +322,7 @@ void rogue_app_step(void)
     rogue_stat_cache_update(&g_app.player);
     /* World fade overlay render after HUD to smoothly reveal world (Phase 9.1) */
 #ifdef ROGUE_HAVE_SDL
-    if (!rogue_start_screen_active() && g_app.world_fade_active)
+    if (!rogue_start_screen_active() && g_app.world_fade_active && !g_app.headless)
     {
         float dt = (float) g_app.dt;
         if (g_app.world_fade_speed <= 0.0f)

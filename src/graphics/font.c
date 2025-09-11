@@ -79,6 +79,7 @@ void rogue_font_draw_text(int x, int y, const char* text, int scale, RogueColor 
 #ifdef ROGUE_HAVE_SDL
     if (!g_internal_sdl_renderer_ref || !text)
         return;
+    /* Extra safety for CI/headless: skip if renderer unavailable. */
     if (scale < 1)
         scale = 1;
     int gw = g_rogue_builtin_font.glyph_w;

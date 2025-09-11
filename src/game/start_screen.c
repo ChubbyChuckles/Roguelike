@@ -113,6 +113,14 @@ static long rogue_file_size(const char* path)
 static void ensure_start_bg_loaded(void)
 {
 #ifdef ROGUE_HAVE_SDL
+    /* Headless/CI guard: skip any SDL texture work when renderer is unavailable. */
+    extern SDL_Renderer* g_internal_sdl_renderer_ref;
+    if (g_app.headless || !g_internal_sdl_renderer_ref)
+    {
+        g_app.start_bg_tex = NULL;
+        g_app.start_bg_loaded = 0;
+        return;
+    }
     static int attempted = 0; /* avoid retrying (and spamming warnings) every frame */
     if (g_app.start_bg_loaded || attempted)
         return;
@@ -289,12 +297,14 @@ static int start_perf_over_budget(void)
 static void render_spinner_overlay(void)
 {
 #ifdef ROGUE_HAVE_SDL
+    extern SDL_Renderer* g_internal_sdl_renderer_ref;
+    if (g_app.headless || !g_internal_sdl_renderer_ref)
+        return;
     if (!g_app.start_prewarm_active || g_app.reduced_motion)
         return;
     if (g_app.start_perf_reduce_quality)
         return; /* suppress spinner under budget pressure */
     /* Simple spinner at top-right: three rotating dots. */
-    extern SDL_Renderer* g_internal_sdl_renderer_ref;
     int cx = g_app.viewport_w - 24;
     int cy = 16;
     g_app.start_spinner_angle += (float) (g_app.dt * 6.0); /* rad/s approx */
@@ -315,6 +325,9 @@ static void render_spinner_overlay(void)
 static void render_background(void)
 {
 #ifdef ROGUE_HAVE_SDL
+    extern SDL_Renderer* g_internal_sdl_renderer_ref;
+    if (g_app.headless || !g_internal_sdl_renderer_ref)
+        return;
     ensure_start_bg_loaded();
     /* Phase 2.9: Day/Night tint: gently modulate tint based on local time seconds.
        If headless or time unavailable, fall back to seed-derived pseudo-time. */
@@ -351,7 +364,6 @@ static void render_background(void)
         int dy = (vh - dh) / 2;
         SDL_Rect src = {0, 0, iw, ih};
         SDL_Rect dst = {dx, dy, dw, dh};
-        extern SDL_Renderer* g_internal_sdl_renderer_ref;
         /* Accessibility: clamp brightness so overlays remain legible */
         unsigned char tr = (tint >> 16) & 255;
         unsigned char tg = (tint >> 8) & 255;
@@ -384,7 +396,6 @@ static void render_background(void)
     else
     {
         /* Gradient fallback (vertical) */
-        extern SDL_Renderer* g_internal_sdl_renderer_ref;
         for (int y = 0; y < g_app.viewport_h; ++y)
         {
             float t = (float) y / (float) (g_app.viewport_h - 1);
@@ -399,7 +410,6 @@ static void render_background(void)
        Disable when start_perf_reduce_quality is set. */
     if (!g_app.start_perf_reduce_quality)
     {
-        extern SDL_Renderer* g_internal_sdl_renderer_ref;
         /* Deterministic positions derived from a fixed seed so snapshot tests remain stable. */
         unsigned int base_seed = 0xC0FFEEu; /* constant so first-frame state is stable */
         /* Three layers: slow, medium, fast */

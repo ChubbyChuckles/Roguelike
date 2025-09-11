@@ -231,6 +231,7 @@ Core Subsystems:
   - [x] **Stage 3**: `collision_stage_pixel_perfect()` (baseline implementation: FAST tier half-prune heuristic; BALANCED+ performs mask presence & center sampling, PRECISE/ULTRA 3x3 sampling for degenerate mask pruning; metrics integrated, future full bitwise overlap & multi-res selection pending)
   - [x] Temporal coherence cache stage (reuse prior frame subset when view stable & small set)
     - Refinement: Refresh temporal cache snapshot after AABB prefilter reorders/caps candidates to keep order parity across frames and avoid false cache misses. Tests updated accordingly.
+  - Refinement: Order-independent validation using an ID set with a small drift tolerance (<=5px; squared <=25.0f). Candidate counts must match and each cached ID matches at most once (tiny stack bitmap for <=64) to avoid heap. Prevents spurious misses when upstream stages reshuffle while preserving membership.
 
 **Tests Added (Milestone 2.1 initial slice)**
 - [x] `test_collision_pipeline_phase2_1`: validates stage registration, execution ordering, metrics population, early exit behavior, simulated cost accumulation.
@@ -242,6 +243,18 @@ Core Subsystems:
     - [ ] Scanline optimization for sparse collision shapes
     - [ ] Bit manipulation tricks for fast mask intersection
     - [ ] SIMD parallel bit operations for bulk pixel tests
+
+##### Conservative Broad-Phase Epsilon
+
+- Hierarchical broad-phase now expands the effective view by the tier margin plus a conservative rasterization epsilon (+0.5px) to reduce false negatives at sub-pixel boundaries. Temporal sweep (~16ms) retained for fast movers.
+
+##### SIMD Overlap Batching (SSE2)
+
+- Hierarchical broad-phase overlap checks now include a 4-wide SSE2 SIMD path with an identical scalar fallback. This batches AABB comparisons deterministically and preserves ordering and semantics. Guarded by compile-time feature detection; no behavior changes where SIMD is unavailable. Full Debug (SDL2, -j12) test run verified green (715/715).
+
+##### CI/headless Stability
+
+- Start screen and app loop hardened for headless mode: early-return when renderer is NULL and defer overlay during early start-screen frames. Fixes intermittent segfault in `test_start_screen_phase10_1_headless`. Also removed a shadowed `extern SDL_Renderer*` to satisfy MSVC warnings-as-errors.
 
 #### MILESTONE 2.2: Advanced Weapon Pose Integration
 - [x] **File**: `src/game/weapon_collision_advanced.h` (initial slice)

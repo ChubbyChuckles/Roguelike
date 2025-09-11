@@ -16,6 +16,13 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
+/* Optional SIMD for overlap checks */
+#if defined(__SSE2__) || defined(_M_X64) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+#include <emmintrin.h>
+#define ROGUE_SIMD_SSE2 1
+#else
+#define ROGUE_SIMD_SSE2 0
+#endif
 
 /* File-scope priority comparator context for qsort in AABB prefilter.
    We keep these as static to avoid passing extra state; tests are single-threaded. */
@@ -421,13 +428,95 @@ bool rogue_collision_stage_hierarchical_broad(struct RogueCollisionContext* ctx,
         tier_margin = 16.f;
         break;
     }
-    float vx = ctx->view_x - tier_margin;
-    float vy = ctx->view_y - tier_margin;
-    float vw = ctx->view_w + tier_margin * 2.f;
-    float vh = ctx->view_h + tier_margin * 2.f;
+    /* Conservative rasterization epsilon to reduce false negatives when objects
+        sit on sub-pixel boundaries. Applied in addition to tier margin. */
+    const float eps = 0.5f;
+    float vx = ctx->view_x - tier_margin - eps;
+    float vy = ctx->view_y - tier_margin - eps;
+    float vw = ctx->view_w + (tier_margin + eps) * 2.f;
+    float vh = ctx->view_h + (tier_margin + eps) * 2.f;
     /* Temporal AABB expansion horizon to avoid tunneling of fast movers. */
     const float horizon_ms = 16.f; /* ~1 frame sweep */
     uint32_t write = 0;
+
+#if ROGUE_SIMD_SSE2
+    /* SIMD path: process 4 candidates per batch. Compute swept AABBs scalar,
+       then use SSE2 to evaluate overlap predicates in parallel. */
+    const __m128 Vx = _mm_set1_ps(vx);
+    const __m128 Vy = _mm_set1_ps(vy);
+    const __m128 Vxw = _mm_set1_ps(vx + vw);
+    const __m128 Vyh = _mm_set1_ps(vy + vh);
+    uint32_t i = 0;
+    for (; i + 3 < ctx->candidate_count; i += 4)
+    {
+        float minx_arr[4], maxx_arr[4], miny_arr[4], maxy_arr[4];
+        RogueCollisionCandidate* c0 = &ctx->candidates[i + 0];
+        RogueCollisionCandidate* c1 = &ctx->candidates[i + 1];
+        RogueCollisionCandidate* c2 = &ctx->candidates[i + 2];
+        RogueCollisionCandidate* c3 = &ctx->candidates[i + 3];
+        RogueCollisionCandidate* cs[4] = {c0, c1, c2, c3};
+        for (int k = 0; k < 4; ++k)
+        {
+            RogueCollisionCandidate* c = cs[k];
+            float sx = c->x - c->half_w;
+            float ex = (c->x + c->vx * horizon_ms) - c->half_w;
+            float sx2 = c->x + c->half_w;
+            float ex2 = (c->x + c->vx * horizon_ms) + c->half_w;
+            float sy = c->y - c->half_h;
+            float ey = (c->y + c->vy * horizon_ms) - c->half_h;
+            float sy2 = c->y + c->half_h;
+            float ey2 = (c->y + c->vy * horizon_ms) + c->half_h;
+            minx_arr[k] = (sx < ex) ? sx : ex;
+            maxx_arr[k] = (sx2 > ex2) ? sx2 : ex2;
+            miny_arr[k] = (sy < ey) ? sy : ey;
+            maxy_arr[k] = (sy2 > ey2) ? sy2 : ey2;
+        }
+        __m128 minx4 = _mm_loadu_ps(minx_arr);
+        __m128 maxx4 = _mm_loadu_ps(maxx_arr);
+        __m128 miny4 = _mm_loadu_ps(miny_arr);
+        __m128 maxy4 = _mm_loadu_ps(maxy_arr);
+        /* Reject if (maxx < vx) | (minx > vx+vw) | (maxy < vy) | (miny > vy+vh) */
+        __m128 r0 = _mm_cmplt_ps(maxx4, Vx);
+        __m128 r1 = _mm_cmpgt_ps(minx4, Vxw);
+        __m128 r2 = _mm_cmplt_ps(maxy4, Vy);
+        __m128 r3 = _mm_cmpgt_ps(miny4, Vyh);
+        __m128 rej = _mm_or_ps(_mm_or_ps(r0, r1), _mm_or_ps(r2, r3));
+        /* Keep = not reject */
+        int mask = _mm_movemask_ps(rej) ^ 0xF;
+        for (int k = 0; k < 4; ++k)
+        {
+            if ((mask >> k) & 1)
+            {
+                RogueCollisionCandidate* c = &ctx->candidates[i + k];
+                if (write != i + (uint32_t) k)
+                    ctx->candidates[write] = *c;
+                write++;
+            }
+        }
+    }
+    /* Remainder (scalar) */
+    for (; i < ctx->candidate_count; ++i)
+    {
+        RogueCollisionCandidate* c = &ctx->candidates[i];
+        float sx = c->x - c->half_w;
+        float ex = (c->x + c->vx * horizon_ms) - c->half_w;
+        float minx = (sx < ex) ? sx : ex;
+        float sx2 = c->x + c->half_w;
+        float ex2 = (c->x + c->vx * horizon_ms) + c->half_w;
+        float maxx = (sx2 > ex2) ? sx2 : ex2;
+        float sy = c->y - c->half_h;
+        float ey = (c->y + c->vy * horizon_ms) - c->half_h;
+        float miny = (sy < ey) ? sy : ey;
+        float sy2 = c->y + c->half_h;
+        float ey2 = (c->y + c->vy * horizon_ms) + c->half_h;
+        float maxy = (sy2 > ey2) ? sy2 : ey2;
+        if (maxx < vx || minx > vx + vw || maxy < vy || miny > vy + vh)
+            continue;
+        if (write != i)
+            ctx->candidates[write] = *c;
+        write++;
+    }
+#else
     for (uint32_t i = 0; i < ctx->candidate_count; ++i)
     {
         RogueCollisionCandidate* c = &ctx->candidates[i];
@@ -450,6 +539,7 @@ bool rogue_collision_stage_hierarchical_broad(struct RogueCollisionContext* ctx,
             ctx->candidates[write] = *c;
         write++;
     }
+#endif
     ctx->candidate_count = write;
     m->output_candidates = write;
     return true;
@@ -568,23 +658,46 @@ bool rogue_collision_stage_temporal_cache(struct RogueCollisionContext* ctx,
                        ctx->view_h == g_temporal_cache.last_view_h;
     bool small_set_prev = g_temporal_cache.last_frame_candidate_count > 0 &&
                           g_temporal_cache.last_frame_candidate_count <= 64;
-    bool attempt_reuse = view_stable && small_set_prev &&
-                         g_temporal_cache.count == g_temporal_cache.last_frame_candidate_count;
+    /* Require current candidate count to match cached snapshot to ensure set parity. */
+    bool counts_match = ctx->candidate_count == g_temporal_cache.count &&
+                        g_temporal_cache.count == g_temporal_cache.last_frame_candidate_count;
+    bool attempt_reuse = view_stable && small_set_prev && counts_match;
     if (attempt_reuse)
     {
-        /* Validate that current candidates roughly match cached IDs and haven't drifted far */
-        uint32_t match = 0;
-        for (uint16_t i = 0; i < g_temporal_cache.count && i < ctx->candidate_count; ++i)
+        /* Order-independent validation: ensure every cached id appears once in the
+           current candidate list with limited positional drift (<=5px). */
+        const float drift2_max = 25.0f; /* 5px squared */
+        uint16_t n = g_temporal_cache.count;
+        /* Small n (<=64): use a simple used[] bitmap + linear search, no heap. */
+        uint8_t used[64];
+        for (uint16_t i = 0; i < 64; ++i)
+            used[i] = 0;
+        uint16_t matched = 0;
+        for (uint16_t ci = 0; ci < n; ++ci)
         {
-            if (ctx->candidates[i].id != g_temporal_cache.entries[i].id)
-                break; /* early fail */
-            float dx = ctx->candidates[i].x - g_temporal_cache.entries[i].x;
-            float dy = ctx->candidates[i].y - g_temporal_cache.entries[i].y;
-            if ((dx * dx + dy * dy) > 25.0f) /* >5px drift: invalidate */
+            uint32_t want_id = g_temporal_cache.entries[ci].id;
+            float want_x = g_temporal_cache.entries[ci].x;
+            float want_y = g_temporal_cache.entries[ci].y;
+            int found = 0;
+            for (uint16_t j = 0; j < n; ++j)
+            {
+                if (used[j])
+                    continue;
+                if (ctx->candidates[j].id != want_id)
+                    continue;
+                float dx = ctx->candidates[j].x - want_x;
+                float dy = ctx->candidates[j].y - want_y;
+                if ((dx * dx + dy * dy) > drift2_max)
+                    continue; /* excessive drift */
+                used[j] = 1;
+                found = 1;
+                matched++;
                 break;
-            match++;
+            }
+            if (!found)
+                break; /* missing id or over-drift */
         }
-        if (match == g_temporal_cache.count)
+        if (matched == n)
         {
             ctx->skip_spatial = 1; /* downstream spatial stage will be skipped */
             g_temporal_cache.hits++;

@@ -195,6 +195,13 @@ feat(vendor-ui/accessibility): Phase 16.6 high-contrast deltas + text-only mode 
 - Docs: README Phase 16 updates; Roadmap marks 16.6 Done with implementation notes
 
 Phase 13.3: Add economy migration CLI and tests; wire into build
+feat(collision): order-independent temporal validation + conservative hbroad epsilon; fix headless start-screen flake; 715/715 green (SDL2, -j12)
+
+- Temporal cache validation is now order-independent via an ID set with <=5px drift tolerance and one-to-one matching (tiny stack bitmap for <=64). Prevents spurious misses when upstream stages reshuffle order while preserving membership.
+- Hierarchical broad-phase expanded view adds a conservative +0.5px rasterization epsilon to reduce sub-pixel boundary false negatives; retains ~16ms temporal sweep for fast movers.
+- Headless/renderer guards in start screen and app loop prevent SDL calls with NULL renderer and gate overlay during early start-screen frames. Fixed intermittent SEGFAULT in `test_start_screen_phase10_1_headless` and resolved MSVC warning-as-error by removing a shadowed extern.
+- Docs: Roadmap + README updated to reflect the above.
+- Verification: Debug (SDL2) build and full ctest run in parallel (-j12) 100% green (715/715).
 
 - Introduce tools/econ_migrate.c to migrate saves when value model parameters change:
 	- Updates versioned economy header (curve_version, margin_policy_version)
@@ -557,7 +564,7 @@ feat(hitbox/phase2.1 adaptive): spatial culling + AABB prefilter + adaptive qual
 - Adaptive quality logic: downgrade when total_ms >105% of frame budget; upgrade when sustained <60%; bounded across FAST..ULTRA. Quality delta also influenced by distance heuristic (clamped).
 - Extended candidate struct (position, half-extents, velocity) and context (view rect, quality_delta) in collision_pipeline.h; integrated in execute loop with metric updates.
 - New deterministic unit test test_collision_pipeline_phase2_1_adaptive validates: spatial cull retains inside + approaching candidates, distant ones culled; AABB prefilter trims; quality transitions (down then up) under simulated timing; metrics populated.
-- Roadmap (implementation_hitbox_rework.txt): Marked adaptive quality system, high-res timer, spatial culling (quadtree + predictive), distance-based LOD heuristic, and baseline AABB prefilter as done. Left SIMD/HBV, temporal coherence cache, pixel-perfect stage, dynamic reordering, advanced frustum pending.
+- Roadmap (implementation_hitbox_rework.txt): Marked adaptive quality system, high-res timer, spatial culling (quadtree + predictive), distance-based LOD heuristic, and baseline AABB prefilter as done. Left SIMD/hierarchical AABB, temporal coherence cache, pixel-perfect stage, dynamic reordering, advanced frustum pending.
 - README Milestone 2.1 section updated with Adaptive & Spatial Slice description; deferred list adjusted.
 - Verification: Full test suite passed 100% (695/695) after changes (Debug, SDL2, -j12). No regressions observed.
 
@@ -617,3 +624,9 @@ feat(animation-collision-events): wrap-aware chronological ordering across loop 
 - Extend `rogue_animation_collision_timeline_events` with wrap-aware ordering so EXIT events from the tail of the previous cycle precede ENTER events at the head of the next cycle; preserve ENTER-before-EXIT on exact ties.
 - Add `tests/unit/test_animation_collision_sync_events_loop_scaled.c` covering loop-wrap ordering (EXIT@95ms → ENTER@5ms) and parity with the scaled wrapper under `playback_speed`.
 - Wire new test in CMake; full Debug build (SDL2, -j12) and ctests: 100% green (712/712).
+
+Hitbox Rework: SSE2 SIMD batching for hierarchical broad-phase; determinism preserved; full suite green
+- Add 4-wide SSE2 path for batched AABB overlap checks in hierarchical broad-phase with scalar fallback.
+- Preserve deterministic ordering and exact semantics; conservative epsilon (+0.5px) retained; ~16ms temporal sweep unchanged.
+- Documentation: Update roadmap (SIMD Overlap Batching section) and README (perf note under Phase 2.1).
+- CI: Debug SDL2 build (-j12) and full ctests: 715/715 passed.

@@ -73,7 +73,15 @@ Deferred (remaining) items: SIMD AABB + hierarchical bounds, temporal coherence 
   Additional test: `test_collision_pipeline_phase2_1_temporal_aabb_priority` validates temporal AABB sweep of fast movers and deterministic priority ordering.
 - Roadmap updated marking temporal coherence cache done; remaining deferred: pixel-perfect stage, SIMD/hierarchical broad-phase, dynamic reordering, advanced frustum, priority ordering.
 
+Recent refinements (stability + robustness):
+
+- Temporal cache validation is now order-independent (ID set with <=5px drift tolerance); prevents false misses when upstream reorders without changing membership.
+- Hierarchical broad-phase expanded view uses a conservative epsilon (+0.5px) to avoid sub-pixel boundary drops; temporal sweep (~16ms) continues to retain fast movers.
+- Headless start-screen and overlay guards avoid SDL renderer calls when NULL and suppress overlay during early start-screen frames. This resolved sporadic crashes in headless CI (`test_start_screen_phase10_1_headless`).
+
 - No gameplay paths yet invoke the pipeline; integration & advanced stages intentionally deferred to keep this slice low-risk.
+
+Update (perf): The hierarchical broad-phase now uses a 4-wide SSE2 SIMD path for batched AABB overlap checks with a scalar fallback for portability. Behavior is deterministic and unchanged; tests remain 100% green.
 
 ##### Milestone 2.2 (Initial Weapon Collision Advanced Slice)
 
