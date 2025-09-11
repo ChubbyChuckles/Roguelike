@@ -399,7 +399,9 @@ Focused on deterministic simulation, incremental feature layering, and maintaina
 
 ### Tests
 
-CI runs Debug and Release with SDL2 enabled and parallel ctest. Recent additions include Phase 5.2 JSON integration tests for vendor inventory and loot generation, crafting, equipment persistence, and inventory operations. New Phase 2 JSON validation slice adds affix gating (weapon-only affixes excluded from armor), inventory filtering/sorting semantics, and two-handed equip enforcement. Total tests now: 709 (Debug/Release).
+CI runs Debug and Release with SDL2 enabled and parallel ctest. Recent additions include Phase 5.2 JSON integration tests for vendor inventory and loot generation, crafting, equipment persistence, and inventory operations. New Phase 2 JSON validation slice adds affix gating (weapon-only affixes excluded from armor), inventory filtering/sorting semantics, and two-handed equip enforcement. Total tests now: 710 (Debug/Release).
+
+Latest fix: cached animation timeline boundary detection now checks scaled time (respects playback_speed) when deciding cache reuse. New unit test `test_animation_collision_sync_cache_scale` verifies activation across boundaries at speed > 1.
 
 <em>“A teaching & experimentation sandbox for loot, combat, procedural generation, progression, and systems design.”</em>
 
@@ -450,7 +452,7 @@ Note for Windows contributors: prefer ASCII punctuation in docs (e.g., '-' inste
     - Run tests: ctest -C Debug -j12 --timeout 10 --output-on-failure (use -R <regex> for targeted runs)
 
 Notes:
-Latest CI verification: Debug and Release (SDL2) with -j12 both passed 100% (684/684). New unit tests cover core Items (JSON) loading behavior: directory enumeration/indexing, per-file schema rollback on malformed JSON, JSON vs cfg equivalence, JSON→cfg fallback behavior, and Phase 2 JSON validation (affix gating, inventory filter/sort ordering, two-handed equip rule). A Release-only heap corruption in worldgen chest placement (BFS neighbor/queue bounds) was fixed by adding strict index checks and a queue capacity guard in `rogue_dungeon_place_chests`. Worldgen optimization benchmark stabilized via adaptive repetition to avoid timer granularity flakiness in CI. Persistence tests use centralized save path builders; a recent fix updated `test_save_incremental_basic` to honor per-test directories via `rogue_build_slot_path(0)` for stability under parallel runs. On Windows/MSVC, the Content Graph SDL preview avoids VLA-like locals by using compile-time caps (OVERLAY_CG_MAX_NODES/EDGES); the System panel shows FPS via overlay_last_dt() when metrics aren’t initialized. New validation path: `tests/unit/test_skills_validation_pipeline.c` confirms that an offensive-looking skill without coefficients fails validation until a coeff entry is added, after which validation passes. Dungeon Phase 8 adds BFS-tiered chest distribution with adjacent upgrade markers and seeds rare material nodes inside dungeons; reward tiering now uses an EV‑normalized, depth‑aware weighted sampler with deterministic basis‑point mass shifting for optional branches and challenge rooms, and the API marks the selected upgrade chest in `out_array`. The marked upgrade chest now carries planned contents metadata on its placement record: planned_def_index and planned_rarity, chosen via a strictly-better planner tied to the inventory snapshot with a robust category fallback. New: `rogue_dungeon_debug_sample_reward_tier()` exposes a deterministic sampler for tests, `rogue_dungeon_upgrade_possible()` gates the upgrade guarantee with a conservative equipment snapshot, and `rogue_dungeon_set_upgrade_possible_override()` provides a test hook. Units `test_dungeon_phase8_loot_and_materials`, `test_dungeon_phase8_5_ev_sanity`, `test_dungeon_phase8_3_upgrade_guarantee`, and `test_dungeon_phase8_3_upgrade_coupling_integration` are passing. Phase 9 adds: mutator registry + JSON loader, deterministic K‑choose‑N selection with compatibility enforcement (incompatibility pairs and per‑group caps), run‑summary callback registration/emission, and a depth profile JSON export helper. Units `test_dungeon_phase9_1_mutator_loader`, `test_dungeon_phase9_2_selection`, and `test_dungeon_phase9_3_stacking_and_export` are green. Phase 4 encounter planning expanded with ΔL/critical-path weighting and modifier smoothing; Phase 5 advanced with objective scripting, gate/keystone flags, and dynamic substitution plus two new unit tests; gate remains green.
+Latest CI verification: Debug and Release (SDL2) with -j12 both passed 100% (684/684). New unit tests cover core Items (JSON) loading behavior: directory enumeration/indexing, per-file schema rollback on malformed JSON, JSON vs cfg equivalence, JSON→cfg fallback behavior, and Phase 2 JSON validation (affix gating, inventory filter/sort ordering, two-handed equip rule). A Release-only heap corruption in worldgen chest placement (BFS neighbor/queue bounds) was fixed by adding strict index checks and a queue capacity guard in `rogue_dungeon_place_chests`. Worldgen optimization benchmark stabilized via adaptive repetition to avoid timer granularity flakiness in CI. Persistence tests use centralized save path builders; a recent fix updated `test_save_incremental_basic` to honor per-test directories via `rogue_build_slot_path(0)` for stability under parallel runs. On Windows/MSVC, the Content Graph SDL preview avoids VLA-like locals by using compile-time caps (OVERLAY_CG_MAX_NODES/EDGES); the System panel shows FPS via overlay_last_dt() when metrics aren’t initialized. New validation path: `tests/unit/test_skills_validation_pipeline.c` confirms that an offensive-looking skill without coefficients fails validation until a coeff entry is added, after which validation passes. The marked upgrade chest now carries planned contents metadata on its placement record: planned_def_index and planned_rarity, chosen via a strictly-better planner tied to the inventory snapshot with a robust category fallback. New: `rogue_dungeon_debug_sample_reward_tier()` exposes a deterministic sampler for tests, `rogue_dungeon_upgrade_possible()` gates the upgrade guarantee with a conservative equipment snapshot, and `rogue_dungeon_set_upgrade_possible_override()` provides a test hook. Units `test_dungeon_phase8_loot_and_materials`, `test_dungeon_phase8_5_ev_sanity`, `test_dungeon_phase8_3_upgrade_guarantee`, and `test_dungeon_phase8_3_upgrade_coupling_integration` are passing. Phase 9 adds: mutator registry + JSON loader, deterministic K‑choose‑N selection with compatibility enforcement (incompatibility pairs and per‑group caps), run‑summary callback registration/emission, and a depth profile JSON export helper. Units `test_dungeon_phase9_1_mutator_loader`, `test_dungeon_phase9_2_selection`, and `test_dungeon_phase9_3_stacking_and_export` are green. Phase 4 encounter planning expanded with ΔL/critical-path weighting and modifier smoothing; Phase 5 advanced with objective scripting, gate/keystone flags, and dynamic substitution plus two new unit tests; gate remains green.
 
 Vendor Analytics (Phase 14): Added `vendor_analytics.[ch]` module with telemetry APIs and unit tests. Tracks purchases/buybacks by category/rarity, gold spent vs vendor payouts, gold sink coverage ratio, price elasticity slope per category (least squares from observations), negotiation success rate with average skill split, and a price drift EWMA monitor with configurable threshold and latched alerts. Integrated hooks in pricing (sales) and buyback paths. Unit `tests/unit/test_vendor_phase14_analytics.c` exercises core metrics and drift signaling. New: `tests/unit/test_vendor_phase14_6_analytics_stability.c` validates elasticity stability (duplication invariance, degenerate slope ~0) and drift false‑positive guard under ±5% noise with a 25% threshold.
 
@@ -984,68 +986,7 @@ Usage pattern (tests and gameplay):
 - Publish occurs inside skills runtime; to deliver callbacks in headless/unit tests, call `rogue_event_process_priority(now_ms)` periodically. The queue is deterministic and callbacks run in publish order by (when_ms, seq).
 - See `tests/unit/test_skills_phase7_event_bus.c` for a minimal example that subscribes, advances skills over simulated time, pumps the bus, and asserts receipt.
 
-### UI: Dual Cooldown + Cast/Channel Progress (Phase 11.1)
-
-- The skill bar now shows both cooldown remaining (vertical dark overlay) and a thin bottom progress bar for an active cast/channel.
-- Casts fill left→right over `cast_time_ms`; channels show elapsed fraction over the total channel duration.
-- Colors: casts use a blue‑green bar; channels tint brighter cyan for readability. Rendering only; no gameplay logic changed.
-
-### UI: Buff/Debuff Belt Enhancements (Phase 11.2)
-
-- HUD buff belt groups active buffs by type, displays stack counts (xN), and shows a duration mini-bar.
-- Border color reflects category/source (offensive, defensive, movement, utility; CC variants tinted red).
-- Driven by `rogue_buffs_snapshot` and `rogue_buffs_type_categories`; pure UI change.
-
-### Debug: Aura & Channel Area Overlay (Phase 11.3)
-
-- Toggle F11 to display a world-space overlay for active auras and channel areas.
-- Uses a radial falloff gradient (visual-only) projected with camera offsets and tile scale.
-- Backed by minimal EffectSpec AURA introspection APIs; no gameplay side effects.
-
-### Skill Coefficients (Phase 8)
-
-- Centralized coefficient registry provides per-skill base scalar + per-rank increments and stat-based contributions for STR/DEX/INT (declared as percent-per-10 points).
-- Soft caps are applied through the stat cache helper with a final hard clamp to enforce configured maxima under extreme stats; coefficients are consumed by `skill_get_effective_coefficient`.
-- API: see `src/core/skills/skills_coeffs.h` and registration via `rogue_skill_coeff_register`.
-- Test: `tests/unit/test_skills_phase8_coeffs.c` validates rank scaling and soft-cap behavior; green in Debug with SDL2 and parallel tests.
-
-### Skills Persistence (Phase 9)
-
-- Extended skill state is persisted in a versioned TLV save: rank, cooldown_end_ms, cast_progress_ms, channel_end_ms, next_charge_ready_ms, charges_cur, casting_active, channel_active.
-- Active buffs/debuffs persist as compact tuples (type, magnitude, remaining_ms relative to now). Legacy absolute end-time layouts are auto-detected and converted.
-- Versioning: section headers are version-tagged; counts use varints from v4+. Integrity helpers include a replay hash and a simple signature stub for tamper checks.
-- Implementation: `write_skills_component`/`read_skills_component` and `write_buffs_component`/`read_buffs_component` in `src/core/persistence/save_manager.c`.
-- Tests: `test_save_phase7_skill_buff_roundtrip`, `test_save_phase7_skill_buff_extensions`, `test_persistence_versions`, `test_save_v4_varint_counts`, `test_save_v8_replay_hash`, `test_save_v9_signature` — all green in Debug (SDL2) with parallel builds.
-
-### Vendor Persistence (Phase 13.1)
-
-- Vendor component now appends an optional VEX1 block ("Vendor EXtended v1"). When present it stores:
-  - Pricing arrays (demand and scarcity EWMAs),
-  - Reputation states per vendor,
-  - Special offers (count, offers[], last_seed, consecutive_misses),
-  - Per‑vendor buyback entries (vendor index + count + entries).
-- Backward compatible: older builds ignore the VEX1 block; loader auto-detects by magic and imports when found.
-- Test: `test_save_phase13_vendor_state_roundtrip` validates full round‑trip.
-
-### Economy Header (Phase 13.2)
-
-- New save component id=13 named `economy_header` persists a compact `RogueEconomyHeader { curve_version, margin_policy_version }`.
-- Forward tolerant read: unknown extra bytes are skipped; reserved fields are ignored.
-- API: `rogue_economy_version_set/get/reset` in `src/core/vendor/economy_version.{h,c}`.
-- Test: `test_save_phase13_2_economy_header_roundtrip` ensures versions round‑trip.
-
-### Proc Engine (Phase 7.2)
-
-A minimal Proc system is available for skills/effects integration:
-
-- Register procs with `rogue_proc_register(const RogueProcDef*)`, specifying the triggering event type, optional predicate, EffectSpec id to apply, and internal cooldowns (global and per-target).
-- Subscriptions are created lazily per event type; the engine fans events out to matching procs and enforces ICD before applying effects.
-- Per-target ICD uses the event payload’s `target_entity_id` when present (e.g., DAMAGE_DEALT).
-- See `src/core/skills/skills_procs.h` for the API and `tests/unit/test_skills_phase7_2_procs_icd.c` for usage and expected behavior.
-
-Note: Event bus statistics now clamp ultra-fast measurements to a minimum of 1µs to avoid zero-valued metrics on very fast runs; this stabilizes stats-focused tests.
-
-#### Probability & Smoothing (Phase 7.3)
+### Probability & Smoothing (Phase 7.3)
 
 - Proc defs include `chance_pct` (0..100). If omitted, defaults to 100 for back-compat.
 - Deterministic RNG stream ensures reproducible results across runs; optional `use_smoothing` accumulates misses to bound variance so triggers converge under sustained attempts.
@@ -1064,7 +1005,7 @@ Note: Event bus statistics now clamp ultra-fast measurements to a minimum of 1µ
 ### Auras & Area Effects (Phase 6 – slice)
 
 - New EffectSpec kind AURA with fields: `aura_radius` and `pulse_period_ms`.
-- Runtime: each pulse applies damage to enemies within radius of the player, flowing through the standard mitigation and damage-event pipeline. Debuff defaults to 1 unless specified.
+- Runtime: each pulse applies damage to enemies within radius of the player, flowing through the standard mitigation and damage-event pipeline. Debuff defaults to 1 unless explicitly overridden.
 - Determinism: per-tick crits use a deterministic hash; pulse schedule uses the same pending-event queue as DOTs (tick at t=0 then every `pulse_period_ms` until duration end).
 - Defaults: unspecified `aura_radius` defaults to 1.5f for safety; harmful magnitude implies `debuff=1` if unset.
 - Exclusivity: optional `aura_group_mask` enables replace-if-stronger behavior across mutually exclusive aura groups; weaker re-applies are ignored. Covered by `test_effectspec_aura_exclusive`.

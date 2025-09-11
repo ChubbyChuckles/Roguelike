@@ -224,9 +224,13 @@ uint8_t rogue_animation_collision_evaluate_timeline_cached(
         dt = -dt; /* handle time rewind conservatively (will re-evaluate) */
     if (dt <= threshold)
     {
-        /* Check for boundary crossing; if none, reuse */
-        float prev_t = state->last_time_ms;
-        if (!timeline_has_boundary_between(tl, prev_t, time_ms))
+        /* Check for boundary crossing in the effective (scaled) time domain; if none, reuse */
+        float speed = 1.f;
+        if (sync && sync->playback_speed > 0.f)
+            speed = sync->playback_speed;
+        float prev_t = state->last_time_ms * speed;
+        float curr_t = time_ms * speed;
+        if (!timeline_has_boundary_between(tl, prev_t, curr_t))
         {
             uint8_t reuse = state->last_active_count;
             if (out_indices)

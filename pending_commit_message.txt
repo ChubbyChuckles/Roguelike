@@ -1,3 +1,9 @@
+fix(animation-collision-cache): boundary detection operates in scaled time; add unit test; 710/710 green
+
+- Cached evaluation (`rogue_animation_collision_evaluate_timeline_cached`) now multiplies both previous and current times by `playback_speed` for boundary checks to avoid missing ENTER/EXIT at speeds > 1 with small deltas.
+- Added `test_animation_collision_sync_cache_scale` to validate cache invalidation/activation under playback_speed=2.
+- Full Debug (SDL2, -j12) ctest: 100% pass (710/710).
+
 feat(animation-collision-sync): add quintic smootherstep mode (quality >=0.9) + tests
 
 - Interpolation quality modes refined: keep cubic smoothstep for quality >=0.5 and introduce quintic smootherstep (6t^5-15t^4+10t^3) when quality >=0.9 for smoother easing.
@@ -107,7 +113,7 @@ Adds Phase 1 (Milestone 1.1 slice) pixel mask loading scaffold:
 - New unit test test_hit_pixel_mask_phase1 validating ensure path, bit population, enemy test, and reset
 - CMake updated to compile new source
 
-Roadmap Alignment: Implements initial portion of Phase 1 advanced pixel mask generation (foundational API & loader hook). Future tasks (mipmaps, compression, distance fields, multi-threading) intentionally deferred.
+Roadmap Alignment: Implements initial portion of Phase 1 advanced pixel mask generation (foundational API & loader hook). Future tasks (mipmaps, compression, distance fields, gamma/edge smoothing, threaded build, gaussian mips, adaptive compression) intentionally deferred.
 
 No regressions expected: existing placeholder path retained when load fails (SDL_image absent or file missing). Build guards maintain headless safety.
 
