@@ -165,7 +165,7 @@ jobs:
           choco install -y llvm || echo "llvm already installed"
           if (Get-Command clang-format -ErrorAction SilentlyContinue) { clang-format --version }
 
-  # Vendored SDL2 is used on Windows; no package manager installation required.
+      # Vendored SDL2 is used on Windows; no package manager installation required.
 
       # Ubuntu-specific setup
       - name: Install Dependencies (Ubuntu)
@@ -227,6 +227,18 @@ jobs:
           echo "brew info (sdl2):"
           brew info sdl2 | sed -n '1,3p' || true
 
+      # Windows-only: purge any stale CMake cache files that may reference a vcpkg toolchain
+      # from a previous run (CMAKE_TOOLCHAIN_FILE in CMakeCache.txt and CMakeSystem.cmake).
+      - name: Purge stale CMake cache/toolchain (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if [ -d build ]; then
+            rm -f build/CMakeCache.txt || true
+            rm -rf build/CMakeFiles || true
+          fi
+
       - name: Configure (CMake)
         shell: bash
         run: |
@@ -238,7 +250,10 @@ jobs:
               -DROGUE_ENABLE_SDL=${ROGUE_ENABLE_SDL} \
               -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
               -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-              -DROGUE_PREFER_VENDORED_SDL=ON | tee "$CONF_LOG"
+              -DROGUE_PREFER_VENDORED_SDL=ON \
+              -DCMAKE_TOOLCHAIN_FILE= \
+              -DVCPKG_ROOT= \
+              -DVCPKG_TARGET_TRIPLET= | tee "$CONF_LOG"
           elif [ "$RUNNER_OS" = "macOS" ]; then
             BREW_PREFIX=$(brew --prefix)
             # Include keg-only pkg-config dirs for SDL2 and companions
@@ -540,9 +555,21 @@ jobs:
           choco install -y doxygen.portable graphviz || echo "doxygen/graphviz already installed"
           doxygen -v
 
+      - name: Purge stale CMake cache/toolchain (Windows)
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if [ -d build ]; then
+            rm -f build/CMakeCache.txt || true
+            rm -rf build/CMakeFiles || true
+          fi
+
       - name: Configure (SDL ON for docs)
         run: >-
           cmake -S . -B build -DROGUE_ENABLE_SDL=ON -DROGUE_PREFER_VENDORED_SDL=ON -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_TOOLCHAIN_FILE=
+          -DVCPKG_ROOT=
+          -DVCPKG_TARGET_TRIPLET=
 
       - name: Generate Doxygen docs
         run: cmake --build build --target docs --config Debug --parallel 12

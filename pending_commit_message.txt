@@ -1,3 +1,10 @@
+- ci(windows): fix configure failure from stale vcpkg toolchain
+
+	- Windows job now purges cached CMake files (`build/CMakeCache.txt`, `build/CMakeFiles/**`) before configure to avoid inheriting `CMAKE_TOOLCHAIN_FILE` from a prior run.
+	- Explicitly clears toolchain-related CMake cache vars in configure: `-DCMAKE_TOOLCHAIN_FILE= -DVCPKG_ROOT= -DVCPKG_TARGET_TRIPLET=`.
+	- Keeps vendor-only SDL2 policy intact; Linux/macOS unchanged. This resolves errors like:
+		`include could not find requested file: D:/a/_temp/vcpkg/scripts/buildsystems/vcpkg.cmake`.
+
 ci(build/windows): enforce vendored SDL2 only; determinism + SIMD parity; Phase 8.3 worldgen hardening; Release 716/716
 
 - Windows builds/tests now use only the vendored SDL2 (SDL2/SDL2_image/SDL2_mixer) under third_party; manual-root discovery with NO_DEFAULT_PATH prevents system leakage. vcpkg coupling fully removed from build/CI.
