@@ -22,6 +22,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(ROGUE_ENABLE_SDL "Build with SDL2 platform layer" ON)
 option(ROGUE_ENABLE_SDL_IMAGE "Load PNG textures via SDL_image" ON)
 option(ROGUE_ENABLE_SDL_MIXER "Enable audio playback (mp3/ogg) via SDL_mixer" ON)
+option(ROGUE_PREFER_VENDORED_SDL "Prefer third_party/SDL2 over any cached/manual root when present" ON)
 option(ROGUE_WARNINGS_AS_ERRORS "Treat warnings as errors" ON)
 option(ROGUE_CODE_COVERAGE "Enable code coverage instrumentation (GNU/Clang)" OFF)
 option(ROGUE_SUPPRESS_WINDOWS_ERROR_DIALOGS "Suppress Windows/MSVC error popups in tests by routing errors to stderr" ON)
@@ -59,6 +60,16 @@ endif()
 string(TIMESTAMP ROGUE_BUILD_TIME "%Y-%m-%d %H:%M:%S")
 
 if(ROGUE_ENABLE_SDL)
+    # Prefer vendored SDL in third_party if present and no explicit root was provided
+    if(EXISTS "${CMAKE_SOURCE_DIR}/third_party/SDL2")
+        if(ROGUE_PREFER_VENDORED_SDL)
+            set(ROGUE_SDL2_ROOT "${CMAKE_SOURCE_DIR}/third_party/SDL2" CACHE PATH "SDL2 root (vendored)" FORCE)
+            message(STATUS "Using vendored SDL2 root: ${ROGUE_SDL2_ROOT}")
+        elseif(NOT DEFINED ROGUE_SDL2_ROOT)
+            set(ROGUE_SDL2_ROOT "${CMAKE_SOURCE_DIR}/third_party/SDL2" CACHE PATH "SDL2 root (vendored)" FORCE)
+            message(STATUS "ROGUE_SDL2_ROOT not set; defaulting to vendored ${ROGUE_SDL2_ROOT}")
+        endif()
+    endif()
     find_package(SDL2 QUIET)
     if(SDL2_FOUND)
         # Attempt to print SDL2 version if headers are discoverable. SDL2_INCLUDE_DIRS may be a list.
@@ -115,14 +126,25 @@ endif()
 # Fallback/manual SDL2 discovery: allow specifying a root like C:/libs/SDL2 when CMake package config files are absent.
 if(ROGUE_ENABLE_SDL AND NOT TARGET SDL2::SDL2)
     if(ROGUE_SDL2_ROOT)
+    # Clear any cached results from previous configure runs
+    unset(SDL2_INCLUDE_DIR CACHE)
+    unset(SDL2_LIBRARY CACHE)
+    unset(SDL2_IMAGE_LIBRARY CACHE)
+    unset(SDL2_MIXER_LIBRARY CACHE)
+    unset(SDL2_image_FOUND CACHE)
+    unset(SDL2_mixer_FOUND CACHE)
     # Normalize manual paths for cross-platform safety
     rogue_normalize_path(_SDL2_ROOT_NORM "${ROGUE_SDL2_ROOT}")
-    set(_SDL2_INC_HINT "${_SDL2_ROOT_NORM}/include")
-    set(_SDL2_LIB_HINT1 "${_SDL2_ROOT_NORM}/lib")
-    set(_SDL2_LIB_HINT2 "${_SDL2_ROOT_NORM}/lib/x64")
-    # Support both traditional layout (include/SDL.h) and vcpkg layout (include/SDL2/SDL.h)
-    find_path(SDL2_INCLUDE_DIR SDL.h HINTS ${_SDL2_INC_HINT} PATH_SUFFIXES SDL2)
-        find_library(SDL2_LIBRARY NAMES SDL2 SDL2-static HINTS ${_SDL2_LIB_HINT1} ${_SDL2_LIB_HINT2})
+    # Consider headers either directly under root (third_party/SDL2/*.h) or under include[/SDL2]
+    set(_SDL2_INC_HINTS "${_SDL2_ROOT_NORM}" "${_SDL2_ROOT_NORM}/include")
+    # Library hint paths restricted to the provided root; avoid leaking to system paths via NO_DEFAULT_PATH
+    set(_SDL2_LIB_HINTS "${_SDL2_ROOT_NORM}/lib" "${_SDL2_ROOT_NORM}/lib/x64" "${_SDL2_ROOT_NORM}")
+    # Try include/SDL2 first, then flat-root headers
+    find_path(SDL2_INCLUDE_DIR SDL.h PATHS ${_SDL2_INC_HINTS} PATH_SUFFIXES SDL2 NO_DEFAULT_PATH)
+    if(NOT SDL2_INCLUDE_DIR)
+        find_path(SDL2_INCLUDE_DIR SDL.h PATHS ${_SDL2_INC_HINTS} NO_DEFAULT_PATH)
+    endif()
+        find_library(SDL2_LIBRARY NAMES SDL2 SDL2-static PATHS ${_SDL2_LIB_HINTS} NO_DEFAULT_PATH)
         if(SDL2_INCLUDE_DIR AND SDL2_LIBRARY)
             add_library(SDL2::SDL2 UNKNOWN IMPORTED)
             set_target_properties(SDL2::SDL2 PROPERTIES
@@ -130,6 +152,36 @@ if(ROGUE_ENABLE_SDL AND NOT TARGET SDL2::SDL2)
                 INTERFACE_INCLUDE_DIRECTORIES "${SDL2_INCLUDE_DIR}"
             )
             message(STATUS "Using manual SDL2 root: ${ROGUE_SDL2_ROOT}")
+            # Attempt to wire SDL2_image and SDL2_mixer from the same root (Windows vendored layout)
+            if(ROGUE_ENABLE_SDL_IMAGE AND NOT TARGET SDL2_image::SDL2_image)
+                # Headers reside alongside SDL2 headers in include/SDL2
+                find_library(SDL2_IMAGE_LIBRARY NAMES SDL2_image PATHS ${_SDL2_LIB_HINTS} NO_DEFAULT_PATH)
+                if(SDL2_IMAGE_LIBRARY)
+                    add_library(SDL2_image::SDL2_image UNKNOWN IMPORTED)
+                    set_target_properties(SDL2_image::SDL2_image PROPERTIES
+                        IMPORTED_LOCATION "${SDL2_IMAGE_LIBRARY}"
+                        INTERFACE_INCLUDE_DIRECTORIES "${SDL2_INCLUDE_DIR}"
+                    )
+                    set(SDL2_image_FOUND TRUE CACHE INTERNAL "SDL2_image provided via manual root")
+                    message(STATUS "Using SDL2_image from manual root: ${SDL2_IMAGE_LIBRARY}")
+                else()
+                    message(WARNING "SDL2_image requested but not found under ${ROGUE_SDL2_ROOT}; image loading will be disabled")
+                endif()
+            endif()
+            if(ROGUE_ENABLE_SDL_MIXER AND NOT TARGET SDL2_mixer::SDL2_mixer)
+                find_library(SDL2_MIXER_LIBRARY NAMES SDL2_mixer PATHS ${_SDL2_LIB_HINTS} NO_DEFAULT_PATH)
+                if(SDL2_MIXER_LIBRARY)
+                    add_library(SDL2_mixer::SDL2_mixer UNKNOWN IMPORTED)
+                    set_target_properties(SDL2_mixer::SDL2_mixer PROPERTIES
+                        IMPORTED_LOCATION "${SDL2_MIXER_LIBRARY}"
+                        INTERFACE_INCLUDE_DIRECTORIES "${SDL2_INCLUDE_DIR}"
+                    )
+                    set(SDL2_mixer_FOUND TRUE CACHE INTERNAL "SDL2_mixer provided via manual root")
+                    message(STATUS "Using SDL2_mixer from manual root: ${SDL2_MIXER_LIBRARY}")
+                else()
+                    message(WARNING "SDL2_mixer requested but not found under ${ROGUE_SDL2_ROOT}; audio playback (mp3/ogg) will be disabled")
+                endif()
+            endif()
         else()
             message(FATAL_ERROR "ROGUE_SDL2_ROOT provided (${ROGUE_SDL2_ROOT}) but SDL2 not found (looked for SDL.h and SDL2.lib)")
         endif()
@@ -623,11 +675,10 @@ endif()
 if (EXISTS ${CMAKE_SOURCE_DIR}/assets)
     if (WIN32)
         # Ensure dependent runtime DLLs (e.g. SDL2[d].dll, SDL2_mixer[d].dll) are discoverable.
-        set(ROGUE_VCPKG_BIN_RELEASE "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/bin")
-        set(ROGUE_VCPKG_BIN_DEBUG   "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/debug/bin")
+        set(ROGUE_VENDOR_BIN        "${CMAKE_SOURCE_DIR}/third_party")
         # Use full path to the executable so the loader searches its directory first (contains copied/matching DLLs).
         add_custom_target(asset_manifest ALL
-            COMMAND ${CMAKE_COMMAND} -E env "PATH=${ROGUE_VCPKG_BIN_DEBUG};${ROGUE_VCPKG_BIN_RELEASE};$ENV{PATH}" $<TARGET_FILE:asset_validate> --manifest ${CMAKE_BINARY_DIR}/asset_manifest.txt --optimize
+            COMMAND ${CMAKE_COMMAND} -E env "PATH=${ROGUE_VENDOR_BIN};$ENV{PATH}" $<TARGET_FILE:asset_validate> --manifest ${CMAKE_BINARY_DIR}/asset_manifest.txt --optimize
             DEPENDS asset_validate
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
             COMMENT "Generating asset manifest (Phase 5)")
@@ -665,11 +716,9 @@ function(rogue_add_test)
     if(WIN32 AND ROGUE_ENABLE_SDL)
         if(NOT DEFINED ROGUE_CACHED_TEST_PATH_FRAGMENT)
             set(_rogue_runtime_paths "${CMAKE_BINARY_DIR}/runtimes")
-            if(EXISTS "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/bin")
-                list(APPEND _rogue_runtime_paths "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/bin")
-            endif()
-            if(EXISTS "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/debug/bin")
-                list(APPEND _rogue_runtime_paths "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/debug/bin")
+            if(EXISTS "${CMAKE_SOURCE_DIR}/third_party")
+                # Vendored DLLs only; no vcpkg fallback
+                list(APPEND _rogue_runtime_paths "${CMAKE_SOURCE_DIR}/third_party")
             endif()
             foreach(_cfg Debug Release RelWithDebInfo MinSizeRel)
                 if(EXISTS "${CMAKE_BINARY_DIR}/tests/${_cfg}")
@@ -1427,7 +1476,7 @@ target_link_libraries(test_asset_manager_reload PRIVATE rogue_core)
 if(TARGET SDL2::SDL2)
     target_link_libraries(test_asset_manager_reload PRIVATE SDL2::SDL2)
 endif()
-add_test(NAME test_asset_manager_reload COMMAND test_asset_manager_reload)
+rogue_add_test(NAME test_asset_manager_reload COMMAND test_asset_manager_reload)
 set_tests_properties(test_asset_manager_reload PROPERTIES LABELS "asset")
 
 # Placeholder asset enforcement test
@@ -1464,7 +1513,7 @@ if(TARGET SDL2::SDL2)
     target_link_libraries(test_schema_versioning_basic PRIVATE SDL2::SDL2)
 endif()
 add_test(NAME test_ui_theme_schema COMMAND test_ui_theme_schema)
-add_test(NAME test_schema_versioning_basic COMMAND test_schema_versioning_basic)
+rogue_add_test(NAME test_schema_versioning_basic COMMAND test_schema_versioning_basic)
 
 # Skills schema roundtrip (enveloped JSON) test
 add_executable(test_skills_roundtrip_schema tests/unit/test_skills_roundtrip_schema.c)
@@ -1474,7 +1523,7 @@ target_compile_definitions(test_skills_roundtrip_schema PRIVATE SDL_MAIN_HANDLED
 if(TARGET SDL2::SDL2)
     target_link_libraries(test_skills_roundtrip_schema PRIVATE SDL2::SDL2)
 endif()
-add_test(NAME test_skills_roundtrip_schema COMMAND test_skills_roundtrip_schema)
+rogue_add_test(NAME test_skills_roundtrip_schema COMMAND test_skills_roundtrip_schema)
 
 # Skills live-reload (auto-reload) unit test
 add_executable(test_skills_live_reload tests/unit/test_skills_live_reload.c)
@@ -1483,7 +1532,7 @@ target_compile_definitions(test_skills_live_reload PRIVATE SDL_MAIN_HANDLED=1)
 if(TARGET SDL2::SDL2)
     target_link_libraries(test_skills_live_reload PRIVATE SDL2::SDL2)
 endif()
-add_test(NAME test_skills_live_reload COMMAND test_skills_live_reload)
+rogue_add_test(NAME test_skills_live_reload COMMAND test_skills_live_reload)
 
 # Map editing debug API test
 add_executable(test_map_debug tests/unit/test_map_debug.c)
@@ -1783,13 +1832,10 @@ rogue_add_test(test_audio_vfx_phase1_5_compaction COMMAND test_audio_vfx_phase1_
 #     endif()
 # endif()
 if(WIN32 AND ROGUE_ENABLE_SDL)
-    # Recompute DLL search directories for staging (lightweight)
+    # Recompute DLL search directories for staging (vendored only; no vcpkg)
     set(_rogue_runtime_copy_dirs)
-    if(EXISTS "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/bin")
-        list(APPEND _rogue_runtime_copy_dirs "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/bin")
-    endif()
-    if(EXISTS "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/debug/bin")
-        list(APPEND _rogue_runtime_copy_dirs "${CMAKE_SOURCE_DIR}/vcpkg/installed/x64-windows/debug/bin")
+    if(EXISTS "${CMAKE_SOURCE_DIR}/third_party")
+        list(APPEND _rogue_runtime_copy_dirs "${CMAKE_SOURCE_DIR}/third_party")
     endif()
     list(REMOVE_DUPLICATES _rogue_runtime_copy_dirs)
     set(_rogue_runtime_patterns SDL2.dll SDL2d.dll SDL2_image*.dll SDL2_mixer*.dll SDL2_ttf*.dll libpng*.dll zlib*.dll libjpeg*.dll libwebp*.dll ogg.dll vorbis*.dll FLAC*.dll webp*.dll wavpackdll.dll)
@@ -2020,21 +2066,7 @@ set(CPACK_PACKAGE_CHECKSUM "SHA256")
 install(TARGETS roguelike RUNTIME DESTINATION bin)
 install(DIRECTORY assets/ DESTINATION assets)
 
-if(WIN32 AND ROGUE_ENABLE_SDL)
-    # Attempt to include SDL2 runtime DLL if discoverable from VCPKG_ROOT
-    # Normalize VCPKG_ROOT to CMake-style forward slashes to avoid invalid
-    # CMake escape sequences (e.g., "\\a") when generating install scripts on Windows runners.
-    if(DEFINED ENV{VCPKG_ROOT})
-        set(_VCPKG_ROOT_RAW "$ENV{VCPKG_ROOT}")
-        if(_VCPKG_ROOT_RAW)
-            file(TO_CMAKE_PATH "${_VCPKG_ROOT_RAW}" _VCPKG_ROOT_CMAKE)
-            set(_SDL_DLL "${_VCPKG_ROOT_CMAKE}/installed/x64-windows/bin/SDL2.dll")
-            if(EXISTS "${_SDL_DLL}")
-                install(FILES "${_SDL_DLL}" DESTINATION bin)
-            endif()
-        endif()
-    endif()
-endif()
+# On Windows, packaging of SDL2 runtime DLLs uses vendored runtimes staged by copy_sdl_runtimes.
 
 # -----------------------------------------------------------------------------
 # Final safeguard: apply unified test environment to ANY test (legacy add_test)

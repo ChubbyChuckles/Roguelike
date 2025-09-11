@@ -1,3 +1,11 @@
+ci(build/windows): enforce vendored SDL2 only; determinism + SIMD parity; Phase 8.3 worldgen hardening; Release 716/716
+
+- Windows builds/tests now use only the vendored SDL2 (SDL2/SDL2_image/SDL2_mixer) under third_party; manual-root discovery with NO_DEFAULT_PATH prevents system leakage. vcpkg coupling fully removed from build/CI.
+- Collision pipeline determinism strengthened: order-independent temporal cache (<=5px drift), AABB prefilter priority ordering with stable cap=128, conservative +0.5px broad-phase epsilon, and lightweight deterministic BV prepass.
+- SIMD parity: SSE2 batching for hbroad and SSE2 sort-key path for AABB prefilter behind `rogue_collision_simd_set_enabled(0|1)`; new tests assert scalar vs SIMD identical ordering/counts.
+- Worldgen Phase 8.3: hardened upgrade-guarantee placement with strict bounds/overlay guards and a safe fallback scan; override-aware smart-drop planning; targeted test passes 10× deterministically.
+- Validation: Full Release suite on Windows ran with -j12 and passed 716/716; targeted upgrade test also stable. README and roadmap updated to reflect vendor-only SDL2 policy and worldgen stability notes.
+
 fix(collision/temporal-cache): refresh snapshot after AABB prefilter to avoid order-sensitive misses; add priority ordering + temporal sweep; 715/715 green
 
 - Temporal cache now snapshots after the AABB prefilter reorders/caps candidates, so the next frame’s validation compares against the exact downstream sequence. This prevents false cache misses when spatial compaction order differs.

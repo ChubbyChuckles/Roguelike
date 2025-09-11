@@ -361,6 +361,17 @@ Advanced Effect Composition (Phase 2.2 update): Experimental Effect Tree editor 
 > CI & Releases: Artifacts uploaded from CI include the computed semantic version and short SHA in their artifact name. Packaged archives created by CPack also embed the semver and platform in the filename for easy identification.
 > Verified locally: CPack generated archives like "roguelike-0.0.0+dev+gf45026d-windows.zip" with matching .sha256 checksum files.
 
+Vendor-only SDL2 policy (Windows):
+- Windows builds and tests link and run exclusively against the vendored SDL2 in `third_party/SDL2` (including SDL2_image/mixer DLLs staged for runtime). CMake prefers this root automatically and will fail the configure if SDL2 cannot be found under the provided/manual root. No vcpkg/system SDL fallbacks remain in build or CI.
+- Linux/macOS continue to use system packages (pkg-config/Homebrew) with identical semantics. All CI jobs build and test with parallelism (-j12) and set dummy SDL drivers for headless safety.
+
+### Worldgen stability (Phase 8.3 upgrade guarantee) – Release validation
+
+- Hardened the dungeon chest placement path to guarantee the upgrade marker (overlay code 14) is placed adjacent to the deepest-room tier chest (10..13) when the upgrade override is forced.
+- Guards added: strict tile buffer and room-bounds validation (clamping), non-empty scan-region checks, safe overlay reads/writes, and a fallback whole-map scan when the deepest-room region is invalid or empty. Smart-drop planning is now gated by the override to avoid unintended behavior when upgrades are forced.
+- Test `test_dungeon_phase8_3_upgrade_guarantee` passes deterministically; repeated 10× runs are stable. Full Release suite verified green under -j12 (716/716).
+- Changes are headless-safe and do not alter gameplay behavior outside the guarded/tested upgrade path.
+
 - Skills validation: Saving Overrides JSON now runs validation first and blocks the save on errors (a message explains what to fix). Creating a new skill will run validation and show a warning if the definition is invalid (creation still proceeds so you can iterate). A headless-safe API `rogue_skill_debug_validate(err, cap)` is available for tools/tests. New: a sticky "Validation Status" banner at the top of the Skills panel shows OK or "ERROR: <reason>" and refreshes live on edits (timing/coeffs/visuals) and on Create/Save/Load. Also new: inline validation messages inside the Effects tab for primary/node EffectSpec IDs and timing/HP gate fields; errors display next to the inputs as you type.
 - Skills Visuals / Advanced: Edit optional fields live (sprites: cast/projectile/impact/aoe; animation: frame_count/frame_duration_ms/loops/grid; audio: cast/impact/loop + volume/pitch variance; AoE: shape/radius/angle; projectile: velocity/trajectory/pierce/homing). Changes apply via headless-safe setters and persist to overrides JSON. Validation checks asset existence and parameter bounds and surfaces issues on save/create.
   Visuals UX: Discrete numeric controls are being converted to labeled enum dropdowns to reduce errors. Current conversions:

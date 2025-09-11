@@ -104,6 +104,8 @@ static int try_place_upgrade_adjacent(RogueTileMap* io_map, int cx, int cy)
     /* Check 4-neighbors, then diagonals */
     static const int dx[8] = {1, -1, 0, 0, 1, 1, -1, -1};
     static const int dy[8] = {0, 0, 1, -1, 1, -1, 1, -1};
+    if (!io_map || !io_map->tiles)
+        return 0;
     for (int k = 0; k < 8; ++k)
     {
         int nx = cx + dx[k], ny = cy + dy[k];
@@ -481,37 +483,73 @@ int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
                 /* Leave out_upgrade_count as previously set (likely 0) and skip marker. */
                 goto SKIP_UPGRADE_MARKER;
             }
-            /* Pass A: deepest room – find any chest tile and place 14 adjacent */
-            for (int y = graph->rooms[best].y + 1;
-                 y < graph->rooms[best].y + graph->rooms[best].h - 1 && !marked; ++y)
-                for (int x = graph->rooms[best].x + 1;
-                     x < graph->rooms[best].x + graph->rooms[best].w - 1 && !marked; ++x)
+            /* If the tile buffers are invalid for any reason, bail defensively. */
+            if (!io_map->tiles || io_map->width <= 0 || io_map->height <= 0)
+                goto SKIP_UPGRADE_MARKER;
+            /* Pass A: deepest room – find any chest tile and place 14 adjacent.
+             * Clamp scan to map bounds defensively in case the room touches edges. */
+            {
+                if (best < 0 || best >= graph->room_count)
+                    goto PASS_B_FALLBACK;
+                const RogueDungeonRoom* rr = &graph->rooms[best];
+                if (!rr)
+                    goto PASS_B_FALLBACK;
+                /* Require minimum interior size; otherwise skip to fallback. */
+                if (rr->w < 3 || rr->h < 3)
+                    goto PASS_B_FALLBACK;
+                int y0 = rr->y + 1;
+                int y1 = rr->y + rr->h - 1; /* exclusive end after clamp */
+                int x0 = rr->x + 1;
+                int x1 = rr->x + rr->w - 1; /* exclusive end after clamp */
+                if (y0 < 0)
+                    y0 = 0;
+                if (x0 < 0)
+                    x0 = 0;
+                if (y1 > io_map->height)
+                    y1 = io_map->height;
+                if (x1 > io_map->width)
+                    x1 = io_map->width;
+                /* Ensure non-empty scan region */
+                if (x0 >= x1 || y0 >= y1)
+                    goto PASS_B_FALLBACK;
+                for (int y = y0; y < y1 && !marked; ++y)
                 {
-                    unsigned char d = rogue_tilemap_get_deco(io_map, x, y);
-                    if (d >= 10 && d <= 13)
+                    for (int x = x0; x < x1 && !marked; ++x)
                     {
-                        if (try_place_upgrade_adjacent(io_map, x, y))
+                        /* Bounds already clamped, but keep a light guard before access */
+                        if (x < 0 || y < 0 || x >= io_map->width || y >= io_map->height)
+                            continue;
+                        unsigned char d = rogue_tilemap_get_deco(io_map, x, y);
+                        if (d >= 10 && d <= 13)
                         {
-                            if (out_upgrade_count)
-                                *out_upgrade_count = 1;
-                            /* Mark is_upgrade for the matching chest in out_array if provided */
-                            if (out_array && placed_out > 0)
+                            if (try_place_upgrade_adjacent(io_map, x, y))
                             {
-                                for (int k = 0; k < placed_out; ++k)
+                                if (out_upgrade_count)
+                                    *out_upgrade_count = 1;
+                                /* Mark is_upgrade for the matching chest in out_array if provided
+                                 */
+                                if (out_array && placed_out > 0)
                                 {
-                                    if (out_array[k].x == x && out_array[k].y == y)
+                                    for (int k = 0; k < placed_out; ++k)
                                     {
-                                        out_array[k].is_upgrade = 1;
-                                        /* Smart-drop planning */
-                                        rogue__plan_upgrade_for_chest(out_array, k);
-                                        break;
+                                        if (out_array[k].x == x && out_array[k].y == y)
+                                        {
+                                            out_array[k].is_upgrade = 1;
+                                            /* Smart-drop planning: only when not forced by override
+                                             */
+                                            if (g_upgrade_possible_override != 1)
+                                                rogue__plan_upgrade_for_chest(out_array, k);
+                                            break;
+                                        }
                                     }
                                 }
+                                marked = 1;
                             }
-                            marked = 1;
                         }
                     }
                 }
+            }
+        PASS_B_FALLBACK:
             /* Pass B: global fallback – find first chest tile anywhere and place adjacent */
             if (!marked)
             {
@@ -532,8 +570,10 @@ int rogue_dungeon_place_chests(RogueWorldGenContext* ctx, RogueTileMap* io_map,
                                         if (out_array[k].x == x && out_array[k].y == y)
                                         {
                                             out_array[k].is_upgrade = 1;
-                                            /* Ensure planned contents are set in fallback too */
-                                            rogue__plan_upgrade_for_chest(out_array, k);
+                                            /* Ensure planned contents are set in fallback too (skip
+                                             * if forced) */
+                                            if (g_upgrade_possible_override != 1)
+                                                rogue__plan_upgrade_for_chest(out_array, k);
                                             break;
                                         }
                                     }

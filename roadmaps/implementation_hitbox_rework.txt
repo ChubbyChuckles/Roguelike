@@ -267,6 +267,17 @@ Core Subsystems:
 
 - Start screen and app loop hardened for headless mode: early-return when renderer is NULL and defer overlay during early start-screen frames. Fixes intermittent segfault in `test_start_screen_phase10_1_headless`. Also removed a shadowed `extern SDL_Renderer*` to satisfy MSVC warnings-as-errors.
 
+##### Vendored SDL2 Enforcement (Windows) + CI Cleanup
+
+- Removed the option to vendorize SDL from a local vcpkg install and deleted all remaining vcpkg coupling in CMake and CI. Windows builds now rely exclusively on `third_party/SDL2` for headers, import libs, and staged DLLs.
+- CMake enforces manual-root discovery with NO_DEFAULT_PATH to avoid system leakage, preferring the vendored root by default. Tests inherit PATH and dummy SDL driver env via the unified test wrapper.
+- Linux/macOS pipelines continue to use system packages via pkg-config/Homebrew. This locks determinism for Windows while keeping Unix convenience.
+
+Validation status (current):
+- Windows Release build configured against vendored SDL2 roots only; no vcpkg/system fallbacks remain.
+- Full Release ctest run with -j12: 716/716 passed; targeted `test_dungeon_phase8_3_upgrade_guarantee` repeated 10× also passed.
+- Debug: a few local environment/DLL-path issues were observed earlier but are not reproducible in Release; test env wrapper continues to set dummy SDL drivers and PATH precedence.
+
 #### MILESTONE 2.2: Advanced Weapon Pose Integration
 - [x] **File**: `src/game/weapon_collision_advanced.h` (initial slice)
   ```c
