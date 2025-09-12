@@ -153,6 +153,17 @@
 			"label": "Reconfigure (Debug), build tests, and run ctests after adding loop+scaled events test",
 			"type": "shell",
 			"command": "cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build --config Debug --parallel 12 && ctest --test-dir build -C Debug -j12 --output-on-failure --timeout 90"
+		},
+		{
+			"label": "Reconfigure (Debug), build tests, and run ctests after adding mutators Phase 9.1-9.2",
+			"type": "shell",
+			"command": "cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build --config Debug --parallel 12 && ctest --test-dir build -C Debug -j12 --output-on-failure --timeout 90"
+		},
+		{
+			"label": "Rebuild Debug (SDL2, -j12) and run ctests to confirm 616/616",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 12 && ctest --test-dir build -C Debug -j 12 --output-on-failure --timeout 90",
+			"group": "build"
 		}
 	]
 }

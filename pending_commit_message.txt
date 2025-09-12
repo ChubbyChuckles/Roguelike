@@ -34,3 +34,11 @@ feat(collision-pipeline): enforce per-stage max_candidates and add unit test; 71
 - Metrics now reflect caps (`metrics.output_candidates`), and downstream stages receive the capped input.
 - New unit test `test_collision_pipeline_phase2_1_stage_cap` validates cap behavior and metrics/input propagation.
 - Verified with Debug SDL2 build and ctest -j12: 100% green (713/713).
+
+feat(collision-temporal): opt-in honor mode + extended metrics; stabilize Debug ctests build (MSVC); 719/719 green
+
+- Add `rogue_collision_advisory_set_honor_mode(1)` to allow honoring conservative skip suggestions from the temporal predictor; default OFF preserves existing behavior (metrics-only) unless explicitly enabled.
+- Extend metrics via `rogue_collision_advisory_get_extended(&hit_rate, skip_hist[4], &min_cands, &max_cands, &avg_cands)`. Keep `rogue_collision_advisory_reset(sep_thresh_px)` and `rogue_collision_advisory_get_metrics` for simple counters.
+- New unit `test_collision_temporal_advisory_parity` ensures determinism parity when advisory is enabled but honor mode is OFF (no candidate count/order change).
+- CMake/MSVC multi-config stabilization: pre-create per-config test runtime dirs and add an aggregate target that builds all test executables by default to eliminate CTest “Not Run” cases in Debug.
+- Validation: Full Debug run is 100% green with -j12 (719/719); Release remains green.

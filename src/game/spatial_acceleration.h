@@ -32,9 +32,15 @@ extern "C"
         RogueTemporalCoherenceEntry entries[ROGUE_TEMP_COHERENCE_CAP];
         uint16_t count;
         float sep_threshold_px; /* small-distance threshold guiding skip */
-        uint32_t frames;        /* lifetime frames processed */
+        uint32_t frames;        /* lifetime frames processed (stage invocations) */
         uint32_t predicts;      /* total predicted skips */
         uint32_t updates;       /* total updates */
+        uint32_t pairs_touched; /* total pairs touched (for hit rate) */
+        uint32_t skip_hist[4];  /* histogram of skip lengths (index=frames skipped; 3=3+) */
+        /* Candidate set size stats per stage invocation */
+        uint64_t candidates_sum;
+        uint32_t candidates_min;
+        uint32_t candidates_max;
     } RogueTemporalCoherenceCache;
 
     /* Initialize/reset cache with a separation threshold in pixels. */
@@ -46,6 +52,12 @@ extern "C"
         c->count = 0;
         c->sep_threshold_px = sep_thresh_px;
         c->frames = c->predicts = c->updates = 0;
+        c->pairs_touched = 0;
+        for (int i = 0; i < 4; ++i)
+            c->skip_hist[i] = 0;
+        c->candidates_sum = 0;
+        c->candidates_min = UINT32_MAX;
+        c->candidates_max = 0;
     }
 
     /* Hash two 32-bit ids in a deterministic manner (order-insensitive). */
@@ -129,7 +141,31 @@ extern "C"
                 v2 <= thresh2)
             {
                 e->skip_frames_remaining = 1;
+                if (c->skip_hist[1] < UINT32_MAX)
+                    c->skip_hist[1]++;
                 c->predicts++;
+                return 1;
+            }
+            return 0;
+        }
+        return 0;
+    }
+
+    /* Query whether a pair should be skipped this frame; if yes, decrement its counter. */
+    static inline int rogue_temporal_cache_should_skip(RogueTemporalCoherenceCache* c, uint32_t idA,
+                                                       uint32_t idB)
+    {
+        if (!c)
+            return 0;
+        uint32_t h = rogue_pair_hash(idA, idB);
+        for (uint16_t i = 0; i < c->count; ++i)
+        {
+            RogueTemporalCoherenceEntry* e = &c->entries[i];
+            if (e->pair_hash != h)
+                continue;
+            if (e->skip_frames_remaining > 0)
+            {
+                e->skip_frames_remaining--;
                 return 1;
             }
             return 0;

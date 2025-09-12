@@ -388,6 +388,14 @@ Validation status (after M4.1 slice):
 - Debug build with SDL2, -j12: 100% tests passed (717/717).
 - Temporal predictor remains deterministic and contained; advisory integration is metrics-only with no impact on gameplay logic.
 
+##### M4.1 Update: Opt-in Honor Mode + Extended Metrics + Determinism Parity + MSVC Test Build Stabilization
+
+- Added an opt-in "honor mode" for the temporal predictor. When enabled via `rogue_collision_advisory_set_honor_mode(1)`, downstream stages may drop candidates that the predictor marks as conservative skips. Default remains OFF to preserve behavior by default (metrics-only).
+- Extended advisory metrics via `rogue_collision_advisory_get_extended(float* hit_rate, uint32_t skip_hist[4], uint32_t* min_candidates, uint32_t* max_candidates, float* avg_candidates)`. Existing `rogue_collision_advisory_reset(sep_thresh_px)`/`rogue_collision_advisory_get_metrics` remain.
+- New determinism parity test `tests/unit/test_collision_temporal_advisory_parity.c` ensures enabling the advisory with honor mode OFF does not change candidate counts or ordering.
+- Build/Test Stabilization (Windows/MSVC multi-config): Pre-create per-config tests runtime directories and add an aggregation target that depends on all test executables to ensure Debug tests are built by default. This removes “Not Run” cases when invoking CTest before individual test binaries existed.
+- Validation: Full Debug suite now runs and passes 100% with -j12 (719/719). Release remains green.
+
 ### PHASE 3: ADVANCED SKILL & SPELL COLLISION SYSTEM
 #### MILESTONE 3.1: Multi-Layer Skill Effect Pipeline
 - [x] **File**: `src/game/skill_collision_manager.h` (initial slice implemented – multi-layer structs, public API for init/add_layer/tick/finished, intensity curve sampling, piercing + max target caps, hit buffer structs; advanced dynamic instantiation & projectile geometry deferred)

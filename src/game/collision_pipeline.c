@@ -149,6 +149,7 @@ static struct
 /* ---------------- Temporal Predictor (advisory metrics-only) ---------------- */
 static RogueTemporalCoherenceCache g_temporal_predictor;
 static uint8_t g_temporal_predictor_inited = 0;
+static uint8_t g_temporal_advisory_honor = 0; /* 0=no-op (default), 1=honor skips */
 void rogue_collision_advisory_reset(float sep_thresh_px)
 {
     rogue_temporal_cache_init(&g_temporal_predictor, sep_thresh_px);
@@ -160,6 +161,37 @@ void rogue_collision_advisory_get_metrics(uint32_t* out_predicts, uint32_t* out_
         *out_predicts = g_temporal_predictor.predicts;
     if (out_updates)
         *out_updates = g_temporal_predictor.updates;
+}
+
+void rogue_collision_advisory_get_extended(float* out_hit_rate, uint32_t out_skip_hist[4],
+                                           uint32_t* out_min_candidates,
+                                           uint32_t* out_max_candidates, float* out_avg_candidates)
+{
+    const uint32_t preds = g_temporal_predictor.predicts;
+    const uint32_t touched = g_temporal_predictor.pairs_touched;
+    if (out_hit_rate)
+        *out_hit_rate = (touched > 0) ? ((float) preds / (float) touched) : 0.f;
+    if (out_skip_hist)
+    {
+        for (int i = 0; i < 4; ++i)
+            out_skip_hist[i] = g_temporal_predictor.skip_hist[i];
+    }
+    if (out_min_candidates)
+        *out_min_candidates = (g_temporal_predictor.candidates_min == UINT32_MAX)
+                                  ? 0u
+                                  : g_temporal_predictor.candidates_min;
+    if (out_max_candidates)
+        *out_max_candidates = g_temporal_predictor.candidates_max;
+    if (out_avg_candidates)
+    {
+        float frames = (float) (g_temporal_predictor.frames ? g_temporal_predictor.frames : 1);
+        *out_avg_candidates = (float) (g_temporal_predictor.candidates_sum / frames);
+    }
+}
+
+void rogue_collision_advisory_set_honor_mode(int enabled)
+{
+    g_temporal_advisory_honor = enabled ? 1 : 0;
 }
 
 bool rogue_collision_stage_temporal_advisory(struct RogueCollisionContext* ctx,
@@ -176,12 +208,20 @@ bool rogue_collision_stage_temporal_advisory(struct RogueCollisionContext* ctx,
     }
     if (!g_temporal_predictor_inited)
         rogue_collision_advisory_reset(12.f); /* default small threshold in px */
+    /* Stage invocation stats for advisory metrics */
+    g_temporal_predictor.frames++;
+    g_temporal_predictor.candidates_sum += ctx->candidate_count;
+    if (ctx->candidate_count < g_temporal_predictor.candidates_min)
+        g_temporal_predictor.candidates_min = ctx->candidate_count;
+    if (ctx->candidate_count > g_temporal_predictor.candidates_max)
+        g_temporal_predictor.candidates_max = ctx->candidate_count;
     const uint32_t pid = ctx->advisory_primary_id;
     const float px = ctx->advisory_primary_x;
     const float py = ctx->advisory_primary_y;
     const float pvx = ctx->advisory_primary_vx;
     const float pvy = ctx->advisory_primary_vy;
     /* Iterate candidates and record touch + conservative prediction. */
+    uint32_t write_idx = 0;
     for (uint32_t i = 0; i < ctx->candidate_count; ++i)
     {
         const RogueCollisionCandidate* c = &ctx->candidates[i];
@@ -195,8 +235,20 @@ bool rogue_collision_stage_temporal_advisory(struct RogueCollisionContext* ctx,
            strictly advisory and conservative. Touch will refresh entry and predictor can
            optionally flag a skip suggestion (tracked in predictor metrics). */
         (void) rogue_temporal_cache_touch(&g_temporal_predictor, pid, c->id, sep2, rel, 0);
+        g_temporal_predictor.pairs_touched++;
         (void) rogue_temporal_cache_predict_skip(&g_temporal_predictor, pid, c->id, sep2, rel);
+        /* Honor mode: conservatively drop candidate from further stages when skip is set. */
+        if (g_temporal_advisory_honor &&
+            rogue_temporal_cache_should_skip(&g_temporal_predictor, pid, c->id))
+        {
+            continue; /* skip writing this candidate */
+        }
+        if (write_idx != i)
+            ctx->candidates[write_idx] = *c;
+        write_idx++;
     }
+    if (g_temporal_advisory_honor)
+        ctx->candidate_count = write_idx; /* shrink in-place */
     m->output_candidates = ctx->candidate_count;
     return true;
 }

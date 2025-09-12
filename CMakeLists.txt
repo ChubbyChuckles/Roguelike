@@ -1804,6 +1804,33 @@ target_compile_definitions(rogue_core PUBLIC ROGUE_TEST_SHORT_COOLDOWNS=1)
 
 add_subdirectory(tests)
 
+# Ensure per-config test runtime directories exist early so PATH env composed in rogue_add_test includes them
+file(MAKE_DIRECTORY
+    ${CMAKE_BINARY_DIR}/tests/Debug
+    ${CMAKE_BINARY_DIR}/tests/Release
+    ${CMAKE_BINARY_DIR}/tests/RelWithDebInfo
+    ${CMAKE_BINARY_DIR}/tests/MinSizeRel)
+
+# Build all test executables by default (so ctest doesn't report Not Run for missing binaries)
+# Collect targets defined in the tests/ subdirectory and depend on those starting with "test_" of type EXECUTABLE
+get_property(_rogue_tests_targets DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests PROPERTY BUILDSYSTEM_TARGETS)
+set(_rogue_test_execs)
+foreach(_t IN LISTS _rogue_tests_targets)
+    # Skip utility/aggregate targets
+    if(TARGET ${_t})
+        get_target_property(_rogue_ttype ${_t} TYPE)
+        if(_rogue_ttype STREQUAL "EXECUTABLE")
+            if(_t MATCHES "^test_.*")
+                list(APPEND _rogue_test_execs ${_t})
+            endif()
+        endif()
+    endif()
+endforeach()
+list(REMOVE_DUPLICATES _rogue_test_execs)
+if(_rogue_test_execs)
+    add_custom_target(tests_all ALL DEPENDS ${_rogue_test_execs})
+endif()
+
 rogue_add_test(test_audio_vfx_phase1_2 COMMAND test_audio_vfx_phase1_2)
 rogue_add_test(test_audio_vfx_phase1_5_compaction COMMAND test_audio_vfx_phase1_5_compaction)
 

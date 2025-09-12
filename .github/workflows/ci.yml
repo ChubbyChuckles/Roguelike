@@ -654,6 +654,13 @@ jobs:
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1
 
+      # Ensure Windows packaging prerequisites are present for MSI generation
+      - name: Install WiX Toolset (Windows MSI packaging)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install -y wixtoolset || echo "WiX already installed"
+
       # Try to reuse the Release build directory produced in the build-and-test job
       - name: Download Release build directory artifact
         id: dl_release
@@ -670,7 +677,12 @@ jobs:
         run: |
           set -Eeuo pipefail
           cmake --install build --config Release --prefix build/_staging | tee build/install_${{ matrix.os }}.log
-          (cd build && cpack -C Release | tee cpack_${{ matrix.os }}.log)
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            # Generate ZIP, TGZ, and MSI via WIX when available
+            (cd build && cpack -C Release -D CPACK_GENERATOR="ZIP;TGZ;WIX" | tee cpack_${{ matrix.os }}.log)
+          else
+            (cd build && cpack -C Release | tee cpack_${{ matrix.os }}.log)
+          fi
 
       - name: Upload packages and logs
         if: ${{ steps.dl_release.outcome == 'success' }}
@@ -680,12 +692,21 @@ jobs:
           path: |
             build/*.zip
             build/*.tgz
+            build/*.tar.gz
+            build/*.7z
+            build/*.msi
+            build/*.exe
+            build/*.dmg
+            build/*.pkg
+            build/*.deb
+            build/*.rpm
+            build/*.AppImage
             build/*.log
 
   publish-release:
     name: Publish GitHub Release (attach all successful packages)
     needs: [package-release]
-    if: always() && startsWith(github.ref, 'refs/tags/v')
+    if: always() && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -712,12 +733,31 @@ jobs:
           pattern: packages-*
           merge-multiple: true
 
+      - name: Check that artifacts exist
+        id: have_artifacts
+        run: |
+          set -Eeuo pipefail
+          COUNT=$(find build/artifacts -type f 2>/dev/null | wc -l | tr -d ' ')
+          echo "Found $COUNT artifact files"
+          if [ "$COUNT" -gt 0 ]; then
+            echo "any=true" >> $GITHUB_OUTPUT
+          else
+            echo "any=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Create/Update Release
         uses: softprops/action-gh-release@v2
+        if: steps.have_artifacts.outputs.any == 'true'
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Roguelike ${{ github.ref_name }}
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: Roguelike v${{ steps.ver.outputs.version }}
           body_path: build/release_notes.md
+          prerelease: ${{ steps.ver.outputs.is_prerelease == 'true' }}
           files: |
             build/artifacts/**/*
             build/*.log
+
+      - name: Skip release (no artifacts found)
+        if: steps.have_artifacts.outputs.any != 'true'
+        run: |
+          echo "No artifacts found to publish; skipping release creation" >> "$GITHUB_STEP_SUMMARY"

@@ -97,6 +97,13 @@ New (determinism + perf):
 - Unit test `tests/unit/test_collision_temporal_advisory.c` asserts invariance of `candidate_count` and increasing advisory metrics across successive runs.
 - This is groundwork for a future opt-in guarded speed-up; it is currently metrics-only and deterministic.
 
+Update (Honor Mode + Extended Metrics + Determinism Parity):
+
+- Opt-in Honor Mode: `rogue_collision_advisory_set_honor_mode(1)` allows downstream stages to honor conservative skip suggestions emitted by the temporal predictor. Default remains off (0), preserving identical behavior to metrics-only mode unless explicitly enabled.
+- Extended Metrics API: `rogue_collision_advisory_get_extended(&hit_rate, skip_hist[4], &min_cands, &max_cands, &avg_cands)` exposes advisory hit rate, a histogram of skip suggestions, and min/max/avg candidate counts per advisory stage invocation. Baseline reset remains `rogue_collision_advisory_reset(sep_thresh_px)` (default threshold used internally is 12.0 px when not set by caller).
+- Determinism Parity Test: `tests/unit/test_collision_temporal_advisory_parity.c` verifies that enabling the advisory with honor mode OFF does not change candidate counts or ordering (no behavioral change). Full suite remains 100% green.
+- CTest/Debug build stability: see the section below on MSVC multi-config stabilization; all Debug tests now build and run by default.
+
 ##### Milestone 2.2 (Initial Weapon Collision Advanced Slice)
 
 - Added `weapon_collision_advanced.h` (header-only scaffolding) implementing:
@@ -372,6 +379,12 @@ Vendor-only SDL2 policy (Windows):
 
 - Windows builds and tests link and run exclusively against the vendored SDL2 in `third_party/SDL2` (including SDL2_image/mixer DLLs staged for runtime). CMake prefers this root automatically and will fail the configure if SDL2 cannot be found under the provided/manual root. No vcpkg/system SDL fallbacks remain in build or CI.
 - Linux/macOS continue to use system packages (pkg-config/Homebrew) with identical semantics. All CI jobs build and test with parallelism (-j12) and set dummy SDL drivers for headless safety.
+
+CTest/Debug build stabilization (Windows/MSVC multi-config):
+
+- Pre-created per-config test runtime directories under `build/tests/<Config>/` to normalize PATH composition for SDL runtimes and test binaries.
+- Added an aggregation target that depends on all unit test executables so they are built by default as part of the ALL target. This eliminates “Not Run” cases where tests hadn’t yet been built in Debug.
+- Result: Full Debug suite executes reliably with parallelism (`-j12`) and is all green (719/719) locally; Release remains green as well.
 
 ### Worldgen stability (Phase 8.3 upgrade guarantee) – Release validation
 

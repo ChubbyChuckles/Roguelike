@@ -153,6 +153,14 @@ extern "C"
                                                  RogueCollisionMetrics* m);
     void rogue_collision_advisory_reset(float sep_thresh_px);
     void rogue_collision_advisory_get_metrics(uint32_t* out_predicts, uint32_t* out_updates);
+    /* Extended advisory metrics and controls */
+    void rogue_collision_advisory_get_extended(float* out_hit_rate, uint32_t out_skip_hist[4],
+                                               uint32_t* out_min_candidates,
+                                               uint32_t* out_max_candidates,
+                                               float* out_avg_candidates);
+    /* Feature flag: when enabled, downstream stages may honor advisory skip suggestions
+       to reduce per-frame work. Default is disabled to preserve behavior. */
+    void rogue_collision_advisory_set_honor_mode(int enabled);
 
     /* Initialization helpers */
     static inline void rogue_collision_pipeline_init(RogueCollisionPipeline* p,
