@@ -15,8 +15,9 @@ $git = Get-Command git -ErrorAction Stop
 # Fetch tags to ensure describe works in shallow clones
 try { git fetch --tags --force | Out-Null } catch { }
 
-# Compute version via git describe
-$describe = (git describe --tags --long --dirty --always 2>$null)
+# Compute version via git describe (restrict to SemVer tags only)
+# Only consider tags that look like vMAJOR.MINOR.PATCH to avoid chaining on CI-generated names
+$describe = (git describe --tags --match "v[0-9]*.[0-9]*.[0-9]*" --long --dirty --always 2>$null)
 $shortSha = (git rev-parse --short HEAD).Trim()
 $base = $null
 $semver = "0.0.0"
@@ -40,9 +41,11 @@ if ($describe) {
         $isPrerelease = $true
     }
     else {
-        $base = $describe
-        $semver = "0.0.0-$describe"
+        # No SemVer tag reachable; treat as dev build without a base tag
+        $base = "v0.0.0"
+        $semver = "0.0.0+dev+g$shortSha"
         $version = $semver
+        $isPrerelease = $true
     }
 }
 

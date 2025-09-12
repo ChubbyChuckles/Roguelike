@@ -141,3 +141,19 @@ feat(pixel-mask/alpha+smoothing): gamma-correct alpha, optional luma-derived alp
 - Tests: add `test_hit_mask_alpha_gamma`, `test_hit_mask_luma_alpha`, and `test_hit_mask_smoothing`; existing `test_hit_mask_threaded_parity` remains green.
 - Docs: README documents `alpha_gamma`, `derive_alpha_from_luma`, and deterministic despeckle; Roadmap marks advanced alpha processing and smoothing complete with notes.
 - Validation: Full Debug run with SDL2 and parallel ctests (`ctest -j12`) is 100% green: 726/726.
+
+ci(releases/versioning): fix recursive release name growth; tag with clean SemVer
+
+- Constrain `git describe` to SemVer tags via `--match "v[0-9]*.[0-9]*.[0-9]*"` and treat non-tagged commits as `0.0.0+dev+g<sha>` without a base chain.
+- Publish releases using `v${semver}` as tag and display name, preventing concatenation like `v0.0.0-...-Roguelike-...` across runs.
+- Notes: `publish-release` step now uses `semver` output and leaves skip logic to artifact presence; artifacts and checksums unchanged.
+
+feat(pixel-mask/compression): add compression analytics + AUTO selection (none vs RLE); tests/docs; suite 726/726 green
+
+- Metrics now include `compression_ratio = compressed_size / memory_footprint` (1.0 when uncompressed).
+- `compression_level` semantics:
+	- `0`: no compression
+	- `>0`: force RLE (format=1)
+	- `<0`: AUTO – build an RLE buffer and use it only if it’s smaller than raw; otherwise keep raw only.
+- New unit `test_hit_mask_compression_auto` covers sparse vs checkerboard patterns: AUTO picks RLE for sparse (ratio < 1) and none for checkerboard (ratio == 1). Occupancy metrics remain identical across modes.
+- README and Roadmap updated with AUTO behavior and metrics; defaults unchanged.

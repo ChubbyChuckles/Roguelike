@@ -106,7 +106,7 @@ Core Subsystems:
     - [x] Run-length encoding with variable bit packing (32-bit word runs)
     - [ ] Huffman coding for optimal compression (deferred)
     - [ ] SIMD optimizations for bulk bit operations (deferred)
-    - [ ] Compression ratio analysis and auto-selection (deferred)
+  - [x] Compression ratio analysis and auto-selection: added `compression_ratio` metric and AUTO mode (`compression_level = -1`) that picks none vs simple word-run RLE per frame based on size benefit; defaults unchanged.
   - [x] **Function**: `rogue_pixel_mask_generate_mipmaps()` (initial slice: binary OR 2x2 downsample chain)
     - [x] Optional smoothed downsampling for cleaner LOD transitions
       - Added a separable 1-2-1 smoothing option applied prior to each 2x2 binary downsample when `edge_smoothing_passes > 0`. Defaults to 0 (off) to preserve previous behavior and strict determinism. Pass count is clamped to a small range to keep costs bounded.

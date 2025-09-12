@@ -35,6 +35,7 @@ extern "C"
         uint64_t build_time_ns;    /* optional timing (0 if unavailable) */
         size_t memory_footprint;   /* bytes allocated for bit mask */
         size_t compressed_size;    /* bytes of compressed buffer (if any) */
+        float compression_ratio;   /* compressed_size / memory_footprint (1.0 if not compressed) */
         int mipmap_levels;         /* number of mip levels actually generated */
     } RoguePixelMaskMetrics;
 

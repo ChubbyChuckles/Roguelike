@@ -548,6 +548,7 @@ int rogue_pixel_mask_build_from_surface(void* sdl_surface_v, const RoguePixelMas
     if (out_metrics)
     {
         memset(out_metrics, 0, sizeof(*out_metrics));
+        out_metrics->compression_ratio = 1.0f;
     }
     if (!out_frame)
         return 0;
@@ -822,8 +823,39 @@ int rogue_pixel_mask_build_from_surface(void* sdl_surface_v, const RoguePixelMas
         }
     }
     SDL_UnlockSurface(surf);
-    /* Compression (RLE) */
-    if (cfg->compression_level > 0)
+    /* Compression
+       compression_level semantics:
+         0  = force no compression
+         >0 = force RLE (format=1)
+         <0 = AUTO: choose between none and RLE based on size benefit
+    */
+    if (cfg->compression_level == 0)
+    {
+        /* none */
+    }
+    else if (cfg->compression_level < 0)
+    {
+        size_t rle_size = 0;
+        void* rle_buf = rle_compress_words(out_frame->bits, words, &rle_size);
+        size_t raw_size = words * sizeof(uint32_t);
+        if (rle_buf && rle_size < raw_size)
+        {
+            out_frame->compressed = rle_buf;
+            out_frame->compressed_size = rle_size;
+            out_frame->compressed_format = 1;
+        }
+        else
+        {
+            if (rle_buf)
+                free(rle_buf);
+            out_frame->compressed = NULL;
+            out_frame->compressed_size = 0;
+            out_frame->compressed_format = 0;
+        }
+        if (out_metrics)
+            out_metrics->compressed_size = out_frame->compressed ? out_frame->compressed_size : 0;
+    }
+    else /* >0: force RLE */
     {
         out_frame->compressed =
             rle_compress_words(out_frame->bits, words, &out_frame->compressed_size);
@@ -857,6 +889,12 @@ int rogue_pixel_mask_build_from_surface(void* sdl_surface_v, const RoguePixelMas
                 ? (float) out_metrics->collision_pixels / (float) out_metrics->total_pixels
                 : 0.f;
         out_metrics->memory_footprint = words * sizeof(uint32_t);
+        out_metrics->compression_ratio =
+            out_metrics->memory_footprint
+                ? (out_metrics->compressed_size ? (float) out_metrics->compressed_size /
+                                                      (float) out_metrics->memory_footprint
+                                                : 1.0f)
+                : 1.0f;
     }
     /* Distance field (optional) */
     if (cfg->generate_distance_fields)
@@ -872,7 +910,10 @@ int rogue_pixel_mask_load_from_file(const char* path, const RoguePixelMaskLoadCo
                                     RoguePixelMaskMetrics* out_metrics)
 {
     if (out_metrics)
+    {
         memset(out_metrics, 0, sizeof(*out_metrics));
+        out_metrics->compression_ratio = 1.0f;
+    }
     if (!path || !out_frame)
         return 0;
 #if !defined(ROGUE_HAVE_SDL)

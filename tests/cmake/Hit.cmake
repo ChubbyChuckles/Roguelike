@@ -157,3 +157,13 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_hit_mask_smoothing.c AND NOT TAR
     endif()
     rogue_add_test(NAME test_hit_mask_smoothing COMMAND test_hit_mask_smoothing)
 endif()
+
+# Compression AUTO selection test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_hit_mask_compression_auto.c AND NOT TARGET test_hit_mask_compression_auto)
+    add_executable(test_hit_mask_compression_auto unit/test_hit_mask_compression_auto.c)
+    target_link_libraries(test_hit_mask_compression_auto PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_hit_mask_compression_auto PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(NAME test_hit_mask_compression_auto COMMAND test_hit_mask_compression_auto)
+endif()

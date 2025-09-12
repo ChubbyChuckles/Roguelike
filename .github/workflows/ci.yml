@@ -746,11 +746,12 @@ jobs:
           fi
 
       - name: Create/Update Release
-        uses: softprops/action-gh-release@v2
         if: steps.have_artifacts.outputs.any == 'true'
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.ver.outputs.version }}
-          name: Roguelike v${{ steps.ver.outputs.version }}
+          # Use clean semver for tag to avoid recursive growth in tag names
+          tag_name: v${{ steps.ver.outputs.semver }}
+          name: Roguelike v${{ steps.ver.outputs.semver }}
           body_path: build/release_notes.md
           prerelease: ${{ steps.ver.outputs.is_prerelease == 'true' }}
           files: |
