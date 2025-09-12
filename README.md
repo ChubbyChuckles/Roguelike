@@ -118,6 +118,15 @@ Update (AVX2 widening + parity):
 - Tests: `test_hit_mask_rect_ops` includes scalar/SSE2/AVX2 parity checks and edge/misalignment cases. Full Debug run with `ctest -j12`: 100% green (currently 721/721).
 - Unit test `test_hit_mask_rect_ops` covers correctness (clipping, empty regions, disjoint/overlap) and asserts scalar vs SIMD parity.
 
+Collision pipeline SIMD (AABB + Broad-Phase) — AVX2:
+
+- The collision pipeline now includes AVX2 8‑wide batching for two hotspots:
+  - AABB prefilter sort‑key precompute (on‑screen flag, squared distance, id, original index)
+  - Hierarchical broad‑phase AABB overlap rejection
+- SSE2 4‑wide and scalar fallbacks remain available; results are deterministic and identical across modes.
+- Runtime gating: `rogue_collision_simd_set_enabled(0|1)` toggles SIMD for both paths; AUTO chooses AVX2 when available.
+- Tests: `test_collision_pipeline_simd_equivalence` validates identical candidate counts and ordering across scalar/SSE2/AVX2. Full Debug/Release (`ctest -j12`) remain 100% green (721/721).
+
 ##### Phase 4.1 – Temporal Predictor (Advisory, Metrics-Only)
 
 - Added a lightweight temporal coherence predictor (`src/game/spatial_acceleration.h`) and wired it into the collision pipeline as an advisory stage only. The stage `rogue_collision_stage_temporal_advisory` collects metrics by touching pairs against a primary id and emits conservative “skip” predictions without changing candidate lists or gameplay behavior.
@@ -175,6 +184,35 @@ Recent semantics refinements (Phase 3):
 Additional refinement (Phase 3.2): blended-frame pooled buffer
 
 - Animation morphing scratch allocation now uses a tiny pooled buffer (4 entries) for blended frames to reduce per-call heap churn. The pool is zeroed on reuse for determinism and falls back to heap if exhausted. Integrated into allocation paths and release.
+
+### SIMD micro-benchmark (perf label)
+
+A small, headless-safe micro-benchmark is available to quantify SIMD speedups in the collision pipeline while preserving determinism and scalar/SIMD parity.
+
+- Test target: `test_collision_pipeline_simd_microbench`
+- Label: `perf`
+- Measures: combined AABB prefilter sort-key precompute and hierarchical broad-phase overlap checks, comparing scalar vs SIMD (runtime-toggled) under a deterministic synthetic workload. Performs a one-shot parity check and exits 0 (metrics-only).
+
+Run it (Debug, -j12):
+
+```
+ctest --test-dir build -C Debug -j 12 -R test_collision_pipeline_simd_microbench --output-on-failure --verbose
+```
+
+Example output:
+
+```
+[SIMD microbench] candidates=512 loops=200
+  scalar: total=25.000 ms  avg=0.1250 ms/loop
+  simd  : total=25.000 ms  avg=0.1250 ms/loop
+  speedup (scalar/simd): 1.000x
+```
+
+Notes:
+
+- The benchmark is deterministic and does not fail the test if performance varies; it prints metrics and exits successfully.
+- SIMD paths are gated by the same runtime toggle used in unit tests; parity with the scalar path is verified before timing.
+- You can filter all performance-oriented tests with `-L perf`.
 
 Press F1 in-game to open the debug overlay.
 

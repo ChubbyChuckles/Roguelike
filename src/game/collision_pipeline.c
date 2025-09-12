@@ -25,6 +25,14 @@
 #define ROGUE_SIMD_SSE2 0
 #endif
 
+/* AVX2 (wider batches) optional acceleration */
+#if defined(__AVX2__)
+#include <immintrin.h>
+#define ROGUE_SIMD_AVX2 1
+#else
+#define ROGUE_SIMD_AVX2 0
+#endif
+
 /* Runtime switch to allow tests to force scalar paths even when SSE2 is available. */
 static int g_simd_enabled = 1; /* 1=allow SIMD paths when compiled, 0=force scalar */
 void rogue_collision_simd_set_enabled(int enabled) { g_simd_enabled = enabled ? 1 : 0; }
@@ -491,16 +499,52 @@ bool rogue_collision_stage_aabb_prefilter(struct RogueCollisionContext* ctx,
 
     if (keys && tmp)
     {
-#if ROGUE_SIMD_SSE2
+#if ROGUE_SIMD_AVX2
         if (g_simd_enabled)
         {
-            __m128 CX = _mm_set1_ps(cx);
-            __m128 CY = _mm_set1_ps(cy);
-            __m128 VX = _mm_set1_ps(ctx->view_x);
-            __m128 VY = _mm_set1_ps(ctx->view_y);
-            __m128 VXW = _mm_set1_ps(ctx->view_x + ctx->view_w);
-            __m128 VYH = _mm_set1_ps(ctx->view_y + ctx->view_h);
+            __m256 CX8 = _mm256_set1_ps(cx);
+            __m256 CY8 = _mm256_set1_ps(cy);
+            __m256 VX8 = _mm256_set1_ps(ctx->view_x);
+            __m256 VY8 = _mm256_set1_ps(ctx->view_y);
+            __m256 VXW8 = _mm256_set1_ps(ctx->view_x + ctx->view_w);
+            __m256 VYH8 = _mm256_set1_ps(ctx->view_y + ctx->view_h);
             uint32_t i = 0;
+            for (; i + 7 < n; i += 8)
+            {
+                float x[8], y[8];
+                uint32_t idv[8];
+                for (int k = 0; k < 8; ++k)
+                {
+                    x[k] = ctx->candidates[i + k].x;
+                    y[k] = ctx->candidates[i + k].y;
+                    idv[k] = ctx->candidates[i + k].id;
+                }
+                __m256 X8 = _mm256_loadu_ps(x);
+                __m256 Y8 = _mm256_loadu_ps(y);
+                __m256 DX8 = _mm256_sub_ps(X8, CX8);
+                __m256 DY8 = _mm256_sub_ps(Y8, CY8);
+                __m256 D2_8 = _mm256_add_ps(_mm256_mul_ps(DX8, DX8), _mm256_mul_ps(DY8, DY8));
+                float d2_out[8];
+                _mm256_storeu_ps(d2_out, D2_8);
+                /* in_flag = 0 when inside inclusive view rect */
+                __m256 ge_vx8 = _mm256_cmp_ps(X8, VX8, _CMP_GE_OQ);
+                __m256 le_vxw8 = _mm256_cmp_ps(X8, VXW8, _CMP_LE_OQ);
+                __m256 ge_vy8 = _mm256_cmp_ps(Y8, VY8, _CMP_GE_OQ);
+                __m256 le_vyh8 = _mm256_cmp_ps(Y8, VYH8, _CMP_LE_OQ);
+                __m256 inmask8 =
+                    _mm256_and_ps(_mm256_and_ps(ge_vx8, le_vxw8), _mm256_and_ps(ge_vy8, le_vyh8));
+                int mask8 = _mm256_movemask_ps(inmask8); /* 1 bits where inside */
+                for (int k = 0; k < 8; ++k)
+                {
+                    keys[i + k].in_flag = ((mask8 >> k) & 1) ? 0u : 1u;
+                    keys[i + k].d2 = d2_out[k];
+                    keys[i + k].id = idv[k];
+                    keys[i + k].idx = i + (uint32_t) k;
+                    total_dist += (double) d2_out[k];
+                }
+            }
+            /* remainder handled by narrower/SSE2 or scalar below */
+#if ROGUE_SIMD_SSE2
             for (; i + 3 < n; i += 4)
             {
                 float x[4], y[4];
@@ -513,18 +557,23 @@ bool rogue_collision_stage_aabb_prefilter(struct RogueCollisionContext* ctx,
                 }
                 __m128 X = _mm_loadu_ps(x);
                 __m128 Y = _mm_loadu_ps(y);
+                __m128 CX = _mm_set1_ps(cx);
+                __m128 CY = _mm_set1_ps(cy);
                 __m128 DX = _mm_sub_ps(X, CX);
                 __m128 DY = _mm_sub_ps(Y, CY);
                 __m128 D2 = _mm_add_ps(_mm_mul_ps(DX, DX), _mm_mul_ps(DY, DY));
                 float d2_out[4];
                 _mm_storeu_ps(d2_out, D2);
-                /* in_flag = 0 when inside inclusive view rect */
+                __m128 VX = _mm_set1_ps(ctx->view_x);
+                __m128 VY = _mm_set1_ps(ctx->view_y);
+                __m128 VXW = _mm_set1_ps(ctx->view_x + ctx->view_w);
+                __m128 VYH = _mm_set1_ps(ctx->view_y + ctx->view_h);
                 __m128 ge_vx = _mm_cmpge_ps(X, VX);
                 __m128 le_vxw = _mm_cmple_ps(X, VXW);
                 __m128 ge_vy = _mm_cmpge_ps(Y, VY);
                 __m128 le_vyh = _mm_cmple_ps(Y, VYH);
                 __m128 inmask = _mm_and_ps(_mm_and_ps(ge_vx, le_vxw), _mm_and_ps(ge_vy, le_vyh));
-                int mask = _mm_movemask_ps(inmask); /* 1 bits where inside */
+                int mask = _mm_movemask_ps(inmask);
                 for (int k = 0; k < 4; ++k)
                 {
                     keys[i + k].in_flag = ((mask >> k) & 1) ? 0u : 1u;
@@ -534,6 +583,7 @@ bool rogue_collision_stage_aabb_prefilter(struct RogueCollisionContext* ctx,
                     total_dist += (double) d2_out[k];
                 }
             }
+#endif
             for (; i < n; ++i)
             {
                 float dx = ctx->candidates[i].x - cx;
@@ -555,22 +605,88 @@ bool rogue_collision_stage_aabb_prefilter(struct RogueCollisionContext* ctx,
         else
 #endif
         {
-            for (uint32_t i = 0; i < n; ++i)
+#if ROGUE_SIMD_SSE2
+            if (g_simd_enabled)
             {
-                float dx = ctx->candidates[i].x - cx;
-                float dy = ctx->candidates[i].y - cy;
-                float d2 = dx * dx + dy * dy;
-                total_dist += (double) d2;
-                uint32_t in_flag = (ctx->candidates[i].x >= ctx->view_x &&
-                                    ctx->candidates[i].x <= ctx->view_x + ctx->view_w &&
-                                    ctx->candidates[i].y >= ctx->view_y &&
-                                    ctx->candidates[i].y <= ctx->view_y + ctx->view_h)
-                                       ? 0u
-                                       : 1u;
-                keys[i].in_flag = in_flag;
-                keys[i].d2 = d2;
-                keys[i].id = ctx->candidates[i].id;
-                keys[i].idx = i;
+                __m128 CX = _mm_set1_ps(cx);
+                __m128 CY = _mm_set1_ps(cy);
+                __m128 VX = _mm_set1_ps(ctx->view_x);
+                __m128 VY = _mm_set1_ps(ctx->view_y);
+                __m128 VXW = _mm_set1_ps(ctx->view_x + ctx->view_w);
+                __m128 VYH = _mm_set1_ps(ctx->view_y + ctx->view_h);
+                uint32_t i = 0;
+                for (; i + 3 < n; i += 4)
+                {
+                    float x[4], y[4];
+                    uint32_t idv[4];
+                    for (int k = 0; k < 4; ++k)
+                    {
+                        x[k] = ctx->candidates[i + k].x;
+                        y[k] = ctx->candidates[i + k].y;
+                        idv[k] = ctx->candidates[i + k].id;
+                    }
+                    __m128 X = _mm_loadu_ps(x);
+                    __m128 Y = _mm_loadu_ps(y);
+                    __m128 DX = _mm_sub_ps(X, CX);
+                    __m128 DY = _mm_sub_ps(Y, CY);
+                    __m128 D2 = _mm_add_ps(_mm_mul_ps(DX, DX), _mm_mul_ps(DY, DY));
+                    float d2_out[4];
+                    _mm_storeu_ps(d2_out, D2);
+                    /* in_flag = 0 when inside inclusive view rect */
+                    __m128 ge_vx = _mm_cmpge_ps(X, VX);
+                    __m128 le_vxw = _mm_cmple_ps(X, VXW);
+                    __m128 ge_vy = _mm_cmpge_ps(Y, VY);
+                    __m128 le_vyh = _mm_cmple_ps(Y, VYH);
+                    __m128 inmask =
+                        _mm_and_ps(_mm_and_ps(ge_vx, le_vxw), _mm_and_ps(ge_vy, le_vyh));
+                    int mask = _mm_movemask_ps(inmask); /* 1 bits where inside */
+                    for (int k = 0; k < 4; ++k)
+                    {
+                        keys[i + k].in_flag = ((mask >> k) & 1) ? 0u : 1u;
+                        keys[i + k].d2 = d2_out[k];
+                        keys[i + k].id = idv[k];
+                        keys[i + k].idx = i + (uint32_t) k;
+                        total_dist += (double) d2_out[k];
+                    }
+                }
+                for (; i < n; ++i)
+                {
+                    float dx = ctx->candidates[i].x - cx;
+                    float dy = ctx->candidates[i].y - cy;
+                    float d2 = dx * dx + dy * dy;
+                    total_dist += (double) d2;
+                    uint32_t in_flag = (ctx->candidates[i].x >= ctx->view_x &&
+                                        ctx->candidates[i].x <= ctx->view_x + ctx->view_w &&
+                                        ctx->candidates[i].y >= ctx->view_y &&
+                                        ctx->candidates[i].y <= ctx->view_y + ctx->view_h)
+                                           ? 0u
+                                           : 1u;
+                    keys[i].in_flag = in_flag;
+                    keys[i].d2 = d2;
+                    keys[i].id = ctx->candidates[i].id;
+                    keys[i].idx = i;
+                }
+            }
+            else
+#endif
+            {
+                for (uint32_t i = 0; i < n; ++i)
+                {
+                    float dx = ctx->candidates[i].x - cx;
+                    float dy = ctx->candidates[i].y - cy;
+                    float d2 = dx * dx + dy * dy;
+                    total_dist += (double) d2;
+                    uint32_t in_flag = (ctx->candidates[i].x >= ctx->view_x &&
+                                        ctx->candidates[i].x <= ctx->view_x + ctx->view_w &&
+                                        ctx->candidates[i].y >= ctx->view_y &&
+                                        ctx->candidates[i].y <= ctx->view_y + ctx->view_h)
+                                           ? 0u
+                                           : 1u;
+                    keys[i].in_flag = in_flag;
+                    keys[i].d2 = d2;
+                    keys[i].id = ctx->candidates[i].id;
+                    keys[i].idx = i;
+                }
             }
         }
     }
@@ -694,10 +810,129 @@ bool rogue_collision_stage_hierarchical_broad(struct RogueCollisionContext* ctx,
     const float horizon_ms = 16.f; /* ~1 frame sweep */
     uint32_t write = 0;
 
-#if ROGUE_SIMD_SSE2
-    /* SIMD path: process 4 candidates per batch. Compute swept AABBs scalar,
-       then use SSE2 to evaluate overlap predicates in parallel. */
+/* Prefer AVX2 8-wide batching when available, then SSE2 4-wide; otherwise scalar. */
+#if ROGUE_SIMD_AVX2
     if (g_simd_enabled)
+    {
+        const __m256 Vx8 = _mm256_set1_ps(vx);
+        const __m256 Vy8 = _mm256_set1_ps(vy);
+        const __m256 Vxw8 = _mm256_set1_ps(vx + vw);
+        const __m256 Vyh8 = _mm256_set1_ps(vy + vh);
+        uint32_t i = 0;
+        for (; i + 7 < ctx->candidate_count; i += 8)
+        {
+            float minx_arr[8], maxx_arr[8], miny_arr[8], maxy_arr[8];
+            for (int k = 0; k < 8; ++k)
+            {
+                RogueCollisionCandidate* c = &ctx->candidates[i + k];
+                float sx = c->x - c->half_w;
+                float ex = (c->x + c->vx * horizon_ms) - c->half_w;
+                float sx2 = c->x + c->half_w;
+                float ex2 = (c->x + c->vx * horizon_ms) + c->half_w;
+                float sy = c->y - c->half_h;
+                float ey = (c->y + c->vy * horizon_ms) - c->half_h;
+                float sy2 = c->y + c->half_h;
+                float ey2 = (c->y + c->vy * horizon_ms) + c->half_h;
+                minx_arr[k] = (sx < ex) ? sx : ex;
+                maxx_arr[k] = (sx2 > ex2) ? sx2 : ex2;
+                miny_arr[k] = (sy < ey) ? sy : ey;
+                maxy_arr[k] = (sy2 > ey2) ? sy2 : ey2;
+            }
+            __m256 minx8 = _mm256_loadu_ps(minx_arr);
+            __m256 maxx8 = _mm256_loadu_ps(maxx_arr);
+            __m256 miny8 = _mm256_loadu_ps(miny_arr);
+            __m256 maxy8 = _mm256_loadu_ps(maxy_arr);
+            __m256 r0 = _mm256_cmp_ps(maxx8, Vx8, _CMP_LT_OQ);
+            __m256 r1 = _mm256_cmp_ps(minx8, Vxw8, _CMP_GT_OQ);
+            __m256 r2 = _mm256_cmp_ps(maxy8, Vy8, _CMP_LT_OQ);
+            __m256 r3 = _mm256_cmp_ps(miny8, Vyh8, _CMP_GT_OQ);
+            __m256 rej8 = _mm256_or_ps(_mm256_or_ps(r0, r1), _mm256_or_ps(r2, r3));
+            int keepMask = _mm256_movemask_ps(rej8) ^ 0xFF;
+            for (int k = 0; k < 8; ++k)
+            {
+                if ((keepMask >> k) & 1)
+                {
+                    RogueCollisionCandidate* c = &ctx->candidates[i + k];
+                    if (write != i + (uint32_t) k)
+                        ctx->candidates[write] = *c;
+                    write++;
+                }
+            }
+        }
+#if ROGUE_SIMD_SSE2
+        /* 4-wide tail via SSE2 */
+        const __m128 Vx = _mm_set1_ps(vx);
+        const __m128 Vy = _mm_set1_ps(vy);
+        const __m128 Vxw = _mm_set1_ps(vx + vw);
+        const __m128 Vyh = _mm_set1_ps(vy + vh);
+        for (; i + 3 < ctx->candidate_count; i += 4)
+        {
+            float minx_arr[4], maxx_arr[4], miny_arr[4], maxy_arr[4];
+            for (int k = 0; k < 4; ++k)
+            {
+                RogueCollisionCandidate* c = &ctx->candidates[i + k];
+                float sx = c->x - c->half_w;
+                float ex = (c->x + c->vx * horizon_ms) - c->half_w;
+                float sx2 = c->x + c->half_w;
+                float ex2 = (c->x + c->vx * horizon_ms) + c->half_w;
+                float sy = c->y - c->half_h;
+                float ey = (c->y + c->vy * horizon_ms) - c->half_h;
+                float sy2 = c->y + c->half_h;
+                float ey2 = (c->y + c->vy * horizon_ms) + c->half_h;
+                minx_arr[k] = (sx < ex) ? sx : ex;
+                maxx_arr[k] = (sx2 > ex2) ? sx2 : ex2;
+                miny_arr[k] = (sy < ey) ? sy : ey;
+                maxy_arr[k] = (sy2 > ey2) ? sy2 : ey2;
+            }
+            __m128 minx4 = _mm_loadu_ps(minx_arr);
+            __m128 maxx4 = _mm_loadu_ps(maxx_arr);
+            __m128 miny4 = _mm_loadu_ps(miny_arr);
+            __m128 maxy4 = _mm_loadu_ps(maxy_arr);
+            __m128 r0 = _mm_cmplt_ps(maxx4, Vx);
+            __m128 r1 = _mm_cmpgt_ps(minx4, Vxw);
+            __m128 r2 = _mm_cmplt_ps(maxy4, Vy);
+            __m128 r3 = _mm_cmpgt_ps(miny4, Vyh);
+            __m128 rej = _mm_or_ps(_mm_or_ps(r0, r1), _mm_or_ps(r2, r3));
+            int mask = _mm_movemask_ps(rej) ^ 0xF;
+            for (int k = 0; k < 4; ++k)
+            {
+                if ((mask >> k) & 1)
+                {
+                    RogueCollisionCandidate* c = &ctx->candidates[i + k];
+                    if (write != i + (uint32_t) k)
+                        ctx->candidates[write] = *c;
+                    write++;
+                }
+            }
+        }
+#endif
+        /* Scalar tail */
+        for (; i < ctx->candidate_count; ++i)
+        {
+            RogueCollisionCandidate* c = &ctx->candidates[i];
+            float sx = c->x - c->half_w;
+            float ex = (c->x + c->vx * horizon_ms) - c->half_w;
+            float minx = (sx < ex) ? sx : ex;
+            float sx2 = c->x + c->half_w;
+            float ex2 = (c->x + c->vx * horizon_ms) + c->half_w;
+            float maxx = (sx2 > ex2) ? sx2 : ex2;
+            float sy = c->y - c->half_h;
+            float ey = (c->y + c->vy * horizon_ms) - c->half_h;
+            float miny = (sy < ey) ? sy : ey;
+            float sy2 = c->y + c->half_h;
+            float ey2 = (c->y + c->vy * horizon_ms) + c->half_h;
+            float maxy = (sy2 > ey2) ? sy2 : ey2;
+            if (maxx < vx || minx > vx + vw || maxy < vy || miny > vy + vh)
+                continue;
+            if (write != i)
+                ctx->candidates[write] = *c;
+            write++;
+        }
+    }
+    else
+#endif /* ROGUE_SIMD_AVX2 */
+#if ROGUE_SIMD_SSE2
+        if (g_simd_enabled)
     {
         const __m128 Vx = _mm_set1_ps(vx);
         const __m128 Vy = _mm_set1_ps(vy);
@@ -707,14 +942,9 @@ bool rogue_collision_stage_hierarchical_broad(struct RogueCollisionContext* ctx,
         for (; i + 3 < ctx->candidate_count; i += 4)
         {
             float minx_arr[4], maxx_arr[4], miny_arr[4], maxy_arr[4];
-            RogueCollisionCandidate* c0 = &ctx->candidates[i + 0];
-            RogueCollisionCandidate* c1 = &ctx->candidates[i + 1];
-            RogueCollisionCandidate* c2 = &ctx->candidates[i + 2];
-            RogueCollisionCandidate* c3 = &ctx->candidates[i + 3];
-            RogueCollisionCandidate* cs[4] = {c0, c1, c2, c3};
             for (int k = 0; k < 4; ++k)
             {
-                RogueCollisionCandidate* c = cs[k];
+                RogueCollisionCandidate* c = &ctx->candidates[i + k];
                 float sx = c->x - c->half_w;
                 float ex = (c->x + c->vx * horizon_ms) - c->half_w;
                 float sx2 = c->x + c->half_w;
@@ -799,30 +1029,7 @@ bool rogue_collision_stage_hierarchical_broad(struct RogueCollisionContext* ctx,
             write++;
         }
     }
-#else
-    for (uint32_t i = 0; i < ctx->candidate_count; ++i)
-    {
-        RogueCollisionCandidate* c = &ctx->candidates[i];
-        /* Expand candidate AABB along its velocity over the horizon. */
-        float sx = c->x - c->half_w;
-        float ex = (c->x + c->vx * horizon_ms) - c->half_w;
-        float minx = (sx < ex) ? sx : ex;
-        float sx2 = c->x + c->half_w;
-        float ex2 = (c->x + c->vx * horizon_ms) + c->half_w;
-        float maxx = (sx2 > ex2) ? sx2 : ex2;
-        float sy = c->y - c->half_h;
-        float ey = (c->y + c->vy * horizon_ms) - c->half_h;
-        float miny = (sy < ey) ? sy : ey;
-        float sy2 = c->y + c->half_h;
-        float ey2 = (c->y + c->vy * horizon_ms) + c->half_h;
-        float maxy = (sy2 > ey2) ? sy2 : ey2;
-        if (maxx < vx || minx > vx + vw || maxy < vy || miny > vy + vh)
-            continue; /* reject */
-        if (write != i)
-            ctx->candidates[write] = *c;
-        write++;
-    }
-#endif
+#endif /* ROGUE_SIMD_SSE2 */
     ctx->candidate_count = write;
     m->output_candidates = write;
     return true;

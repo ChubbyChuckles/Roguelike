@@ -97,3 +97,22 @@ feat(hitmask/simd): AVX2 widening + runtime mode API; strict parity with SSE2/sc
 - Tests: extend `test_hit_mask_rect_ops` to cover scalar/SSE2/AVX2 parity and edge/misalignment cases. Results match across modes.
 - Docs: README and Roadmap updated with AVX2 widening details and runtime mode API.
 - Validation: Full Debug `ctest -j12` now 100% green with 721/721 tests; intermittent headless flakes addressed in prior guard.
+
+feat(collision/simd): AVX2 batching for AABB prefilter keys and hierarchical broad‑phase; parity and determinism preserved; 721/721 green
+
+- Add AVX2 8‑wide SIMD paths to the collision pipeline:
+	- AABB prefilter sort‑key precompute (on‑screen flag, squared distance, id, original index)
+	- Hierarchical broad‑phase AABB overlap rejection with conservative epsilon
+- Retain SSE2 4‑wide and scalar fallbacks; runtime toggle `rogue_collision_simd_set_enabled(0|1)` gates both paths. Compile‑time guards ensure safe fallback where AVX2 is unavailable.
+- Deterministic semantics preserved: stable reorder by policy (on‑screen → distance → id) with cap=128; broad‑phase preserves input order for survivors. Temporal sweep (~16ms) unchanged.
+- Unit `test_collision_pipeline_simd_equivalence` asserts identical candidate counts and ordering across scalar/SSE2/AVX2.
+- Docs/Roadmap: update to reflect AVX2 pipeline widening and runtime toggle. Validation: Full Debug run (`ctest -j12`) is 100% green (721/721).
+
+perf(collision): add SIMD micro-benchmark (metrics-only, perf label)
+
+- New test `test_collision_pipeline_simd_microbench` measures scalar vs SIMD timings for the AABB prefilter sort-key precompute and hierarchical broad‑phase overlap checks under a deterministic synthetic load. It performs a one-shot parity check, prints totals/avg and speedup, and exits 0.
+- How to run (Debug):
+	ctest --test-dir build -C Debug -j 12 -R test_collision_pipeline_simd_microbench --output-on-failure --verbose
+- Labeled `perf` so it can be filtered alongside other performance tests.
+- Determinism maintained: results are validated for scalar/SSE2/AVX2 parity before timing; benchmark is headless-safe and uses the same SDL test env.
+- Docs: README adds a "SIMD micro-benchmark" section with run instructions and example output; roadmap notes the benchmark and determinism guarantees.

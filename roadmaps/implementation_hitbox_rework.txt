@@ -223,7 +223,7 @@ Core Subsystems:
     - [x] Distance-based LOD selection for collision quality (average squared distance heuristic → quality_delta)
     - [x] Predictive culling based on velocity and trajectory (velocity horizon ~16ms keeps approaching entities)
   - [x] **Stage 2**: `collision_stage_aabb_prefilter()` (baseline scalar AABB trim + candidate cap; SIMD & hierarchical BV deferred)
-  - [ ] SIMD-optimized AABB intersection tests (SSE4/AVX2)
+  - [x] SIMD-optimized AABB intersection tests (SSE2/AVX2)
     - [ ] Hierarchical bounding volumes with automatic tree balancing
     - [x] Temporal AABB expansion for fast-moving objects (sweep over ~16ms horizon)
     - [ ] Conservative rasterization for sub-pixel accurate bounds
@@ -260,16 +260,20 @@ Core Subsystems:
 
 - Hierarchical broad-phase now expands the effective view by the tier margin plus a conservative rasterization epsilon (+0.5px) to reduce false negatives at sub-pixel boundaries. Temporal sweep (~16ms) retained for fast movers.
 
-##### SIMD Overlap Batching (SSE2)
+##### SIMD Overlap Batching (SSE2/AVX2)
 
-- Hierarchical broad-phase overlap checks now include a 4-wide SSE2 SIMD path with an identical scalar fallback. This batches AABB comparisons deterministically and preserves ordering and semantics. Guarded by compile-time feature detection; no behavior changes where SIMD is unavailable. Full Debug (SDL2, -j12) test run verified green (715/715).
+- Hierarchical broad-phase overlap checks now include 4-wide SSE2 and 8-wide AVX2 SIMD paths with identical scalar fallback. These batch AABB comparisons deterministically and preserve ordering and semantics. Runtime gating is controlled via `rogue_collision_simd_set_enabled(0|1)`. Guarded by compile-time feature detection; no behavior changes where SIMD is unavailable. Full Debug (SDL2, -j12) test run verified green (721/721).
 
-##### AABB Prefilter SIMD Key Precompute (SSE2) + Deterministic Stable Reorder
+##### AABB Prefilter SIMD Key Precompute (SSE2/AVX2) + Deterministic Stable Reorder
 
-- Extended the AABB prefilter with an SSE2-accelerated precompute of sort keys (on-screen flag, squared distance to view center, id, and original index). Keys are computed 4-wide when runtime SIMD is enabled and fall back to a scalar path otherwise. A stable reorder using a temporary buffer preserves deterministic semantics and the existing priority policy (on‑screen → distance → id). The hard cap remains 128 with the same post-cap snapshot refresh semantics for the temporal cache.
-- Introduced a runtime toggle API to force-disable SIMD at runtime for verification: `rogue_collision_simd_set_enabled(int enabled)`. This gates both the AABB prefilter key path and the hierarchical broad-phase batching.
-- New focused unit test `test_collision_pipeline_simd_equivalence` asserts identical candidate counts and ordering across SIMD disabled vs enabled for the combined AABB prefilter + hierarchical broad-phase stages.
-- Verification: Full Debug (SDL2) ctest run in parallel (-j12) 100% green (716/716).
+- Extended the AABB prefilter with SSE2 (4-wide) and AVX2 (8-wide) accelerated precompute of sort keys (on-screen flag, squared distance to view center, id, and original index). Keys are computed in batches when runtime SIMD is enabled and fall back to the scalar path otherwise. A stable reorder using a temporary buffer preserves deterministic semantics and the existing priority policy (on‑screen → distance → id). The hard cap remains 128 with the same post-cap snapshot refresh semantics for the temporal cache.
+- Runtime toggle `rogue_collision_simd_set_enabled(int enabled)` gates both the AABB prefilter key path and the hierarchical broad-phase batching.
+- Unit test `test_collision_pipeline_simd_equivalence` asserts identical candidate counts and ordering across scalar vs SIMD (SSE2/AVX2) for the combined AABB prefilter + hierarchical broad-phase stages.
+- Verification: Full Debug (SDL2) ctest run in parallel (-j12) is 100% green (721/721).
+
+Update (AVX2 pipeline widening + parity):
+
+- The collision pipeline now uses AVX2 8-wide batching for both the AABB prefilter key precompute and the hierarchical broad-phase overlap rejection when available at runtime. Deterministic ordering and conservative epsilons remain unchanged. Scalar/SSE2/AVX2 results are identical by construction and verified by tests. Full Debug/Release runs remain 100% green under `-j12`.
 
 ##### Lightweight BV Prepass (Deterministic)
 
@@ -289,6 +293,18 @@ Update (headless corruption-scan guard + Release parity):
 - Removed the option to vendorize SDL from a local vcpkg install and deleted all remaining vcpkg coupling in CMake and CI. Windows builds now rely exclusively on `third_party/SDL2` for headers, import libs, and staged DLLs.
 - CMake enforces manual-root discovery with NO_DEFAULT_PATH to avoid system leakage, preferring the vendored root by default. Tests inherit PATH and dummy SDL driver env via the unified test wrapper.
 - Linux/macOS pipelines continue to use system packages via pkg-config/Homebrew. This locks determinism for Windows while keeping Unix convenience.
+
+###### Micro-benchmark (SIMD parity + perf label)
+
+- A headless-safe micro-benchmark `test_collision_pipeline_simd_microbench` has been added to quantify SIMD speedups for the collision pipeline. It measures the combined AABB prefilter sort-key precompute and hierarchical broad-phase overlap checks under deterministic synthetic load, comparing scalar vs SIMD while verifying parity.
+- The test is labeled `perf` and exits 0 after printing metrics (non-fatal). Example output:
+  [SIMD microbench] candidates=512 loops=200
+    scalar: total=25.000 ms  avg=0.1250 ms/loop
+    simd  : total=25.000 ms  avg=0.1250 ms/loop
+    speedup (scalar/simd): 1.000x
+- Run it with:
+  ctest --test-dir build -C Debug -j 12 -R test_collision_pipeline_simd_microbench --output-on-failure --verbose
+- Determinism/Parity: A one-shot parity validation runs before timing and enforces identical results across scalar/SSE2/AVX2 modes.
 
 Validation status (current):
 - Windows Release build configured against vendored SDL2 roots only; no vcpkg/system fallbacks remain.
