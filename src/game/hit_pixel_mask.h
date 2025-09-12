@@ -143,6 +143,9 @@ extern "C"
                                              float pose_dy, float scale, float angle_rad,
                                              float* out_wx, float* out_wy);
 
+    /* Release all allocations owned by a single frame and reset its fields to zero. */
+    void rogue_hit_mask_frame_reset(RogueHitPixelMaskFrame* f);
+
     /* -------- Fast bitwise rectangle utilities (scalar + optional SIMD) -------- */
     /* SIMD mode control and capability queries */
     enum RogueHitMaskSimdMode

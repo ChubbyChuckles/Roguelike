@@ -113,6 +113,34 @@ int rogue_hit_mask_simd_get_caps(void)
     return g_hitmask_simd_caps;
 }
 
+void rogue_hit_mask_frame_reset(RogueHitPixelMaskFrame* f)
+{
+    if (!f)
+        return;
+    if (f->bits)
+        free(f->bits);
+    f->bits = NULL;
+    if (f->compressed)
+        free(f->compressed);
+    f->compressed = NULL;
+    if (f->distance_field)
+        free(f->distance_field);
+    f->distance_field = NULL;
+    if (f->mipmaps)
+    {
+        for (int ml = 0; ml < f->mipmap_count - 1; ++ml)
+        {
+            if (f->mipmaps[ml].bits)
+                free(f->mipmaps[ml].bits);
+        }
+        free(f->mipmaps);
+    }
+    f->mipmaps = NULL;
+    f->mipmap_count = 0;
+    f->width = f->height = f->origin_x = f->origin_y = 0;
+    f->pitch_words = 0;
+}
+
 /** @brief Maximum number of pixel mask sets that can be cached simultaneously */
 #define MAX_PIXEL_MASK_SETS 16
 

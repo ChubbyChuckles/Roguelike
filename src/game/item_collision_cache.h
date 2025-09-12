@@ -85,6 +85,18 @@ extern "C"
         When set (non-NULL), this hook is used instead of the internal mtime probe. */
     void rogue_item_collision_cache_set_mtime_hook(uint64_t (*hook)(const char* path));
 
+    /* -------- Prefetch heuristics & finer-grained invalidation (Phase 1.2+) -------- */
+    /* Enable/disable usage-based prefetch and set a deterministic budget (number of related
+        items, scanned by ascending item index). When enabled and a cache build completes,
+        related items that share the same sprite sheet path may be queued for background build
+        if a thread pool is registered. Defaults: enabled=1, budget=2. */
+    void rogue_item_collision_cache_set_prefetch(int enabled, int budget);
+
+    /* Invalidate all cache entries that reference the given sprite sheet path. The path may be
+        provided as a bare filename (assumed under assets/) or a full/relative path; matching is
+        performed after normalizing to the same assets/… form used by the cache. */
+    void rogue_item_collision_cache_invalidate_sprite(const char* sprite_path);
+
 #ifdef __cplusplus
 }
 #endif

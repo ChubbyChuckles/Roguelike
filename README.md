@@ -67,6 +67,20 @@ int invalidated = rogue_item_collision_cache_poll(16); // checks up to 16 entrie
 
 Both features are deterministic: async falls back to sync when no pool is registered, and polling only invalidates when timestamps strictly increase.
 
+Milestone 1.2 update (prefetch + finer invalidation + RW-lock concurrency):
+
+- Usage-based prefetching: enable and bound fan-out via `rogue_item_collision_cache_set_prefetch(int enabled, int budget)`. Prefetch candidates are queued after releasing the write lock and ordered deterministically (forward index scan). Prefetch is non-recursive by design.
+- Sprite-path invalidation: `rogue_item_collision_cache_invalidate_sprite(const char* sprite_path)` normalizes to `assets/…` and invalidates all cache entries that source that sprite path.
+- Reader/writer locking: lookups take a shared read lock; on cache miss they upgrade to write, re-check the entry, and then build/populate as needed. LRU/memory accounting remain under the write lock, preserving determinism.
+- MTime hook determinism: when capturing the initial `asset_timestamp`, the cache prefers the registered hook (if any) to ensure polling tests are stable and no immediate invalidation occurs due to mixed time sources.
+- Pixel mask cleanup helper: `rogue_hit_mask_frame_reset(RoguePixelMaskFrame* f)` frees per-frame allocations (bits, compressed buffers, distance field, mipmaps) and zeros fields. Useful for tests and tools recycling frames (e.g., compression AUTO comparisons).
+
+New tests covering the above:
+
+- `test_item_collision_cache_multi_async`: stresses concurrent async requests and bounded prefetch.
+- `test_item_collision_cache_invalidate_sprite`: validates batch invalidation by sprite path.
+- `test_hit_mask_compression_auto`: verifies compression AUTO selection and frame cleanup with `rogue_hit_mask_frame_reset`.
+
 #### Milestone 1.3 (Initial Sprite Atlas & Animation Collision Slice)
 
 - Added `sprite_atlas_collision.{h,c}` with:

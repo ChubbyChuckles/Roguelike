@@ -1,5 +1,35 @@
 feat(hitmask): fast rect queries + SSE2-safe SIMD zero-check and tests
+Hitbox rework: Item collision cache prefetch + sprite invalidation + RW-lock concurrency; pixel mask reset API; tests green (-j12, SDL2)
 
+Summary
+ - Extend Item Collision Cache with deterministic usage-based prefetch, finer invalidation, and concurrent reader support
+ - Add pixel mask frame reset API used by compression tests and tools
+ - Fix initial asset timestamp to honor mtime hook for deterministic hot-reload tests
+ - Update roadmap and README with new APIs and determinism notes
+
+Details
+Item Collision Cache
+ - Prefetch: Added `rogue_item_collision_cache_set_prefetch(int enabled, int budget)` to control bounded, deterministic prefetch. Candidates collected under write lock and queued after unlock; non-recursive fan-out; forward index scan ordering for determinism.
+ - Invalidation: Added `rogue_item_collision_cache_invalidate_sprite(const char* sprite_path)` to batch-invalidate all entries sourced from a normalized `assets/...` sprite path.
+ - Concurrency: Upgraded to reader/writer locking. Lookups use a shared read lock and upgrade to write on miss with a re-check to avoid duplicate work. LRU/memory accounting performed under write lock; eviction policy unchanged.
+ - Hot-reload determinism: On initial build, capture `asset_timestamp` via registered `g_mtime_hook` (if present) rather than filesystem, preventing immediate invalidation under fake mtime tests.
+
+Pixel Mask
+ - New `rogue_hit_mask_frame_reset(RoguePixelMaskFrame* f)` frees bits, compressed buffer, distance field, and mipmaps; zeros fields. Used by `test_hit_mask_compression_auto` and future tools.
+
+Docs
+ - Roadmap: Added “Milestone 1.2 prefetch + finer invalidation + RW-lock concurrency” section with determinism and test notes.
+ - README: Documented `set_prefetch`, `invalidate_sprite`, mtime hook behavior on initial timestamp capture, and `rogue_hit_mask_frame_reset` with usage guidance.
+
+Tests
+ - New/expanded: `test_item_collision_cache_multi_async` (stress async + bounded prefetch), `test_item_collision_cache_invalidate_sprite` (batch invalidation correctness), `test_hit_mask_compression_auto` (AUTO vs RLE vs NONE + frame reset).
+ - Fixed: `test_item_collision_cache_async_poll` now stable via mtime hook timestamp capture on initial build.
+
+Validation
+ - Debug build (SDL2-only) with parallel ctests: 100% green, 730/730, `-j12`, headless-safe.
+
+Process
+ - Implement → test → document loop followed. No non-SDL2 paths added; determinism preserved across scalar/SIMD and thread counts.
 - Implement fast bitwise rectangle query `rogue_hit_mask_any_set_in_rect` and same-origin pairwise intersection `rogue_hit_mask_intersect_any_same_origin`.
 - Add SSE2 accelerated path batching 4x32-bit words; replace SSE4.1 `_mm_testz_si128` with SSE2-compatible zero check using `_mm_cmpeq_epi8` + `_mm_movemask_epi8` to fix MSVC build.
 - Remove unused locals flagged under /WX in `hit_pixel_mask.c`.

@@ -34,6 +34,8 @@ static struct
     RogueItemCollisionCacheStats stats;
     RogueRwLock* lock;          /* simple RW lock placeholder (future reader sharing) */
     struct RogueThreadPool* tp; /* optional background worker pool */
+    int prefetch_enabled;
+    int prefetch_budget;
 } g_cache;
 
 static uint64_t file_mtime_simple(const char* path)
@@ -110,6 +112,8 @@ void rogue_item_collision_cache_init(void)
     memset(&g_cache, 0, sizeof(g_cache));
     g_cache.initialized = 1;
     g_cache.lock = rogue_rwlock_create(1200, "item_collision_cache");
+    g_cache.prefetch_enabled = 1;
+    g_cache.prefetch_budget = 2;
 }
 
 static void free_entry(RogueItemCollisionCacheEntry* e)
@@ -224,15 +228,19 @@ RoguePixelMaskSet* rogue_item_collision_cache_get(RogueItemDefHandle handle,
         rogue_item_collision_cache_init();
     /* cfg currently unused in this slice (future: control distance field / mipmaps). */
     (void) cfg;
+    /* Prefetch bookkeeping: gather candidate handles under lock, queue after releasing. */
+    RogueItemDefHandle prefetch_list[16];
+    int prefetch_count = 0;
+    RoguePixelMaskLoadConfig prefetch_cfg = rogue_pixel_mask_load_config_default();
+    /* Try read lock first for fast hit path; upgrade to write on miss. */
     if (g_cache.lock)
-        rogue_rwlock_acquire_write(g_cache.lock, ROGUE_LOCK_PRIORITY_NORMAL,
-                                   -1); /* future: read then upgrade */
+        rogue_rwlock_acquire_read(g_cache.lock, ROGUE_LOCK_PRIORITY_NORMAL, -1);
     g_cache.stats.lookups++;
     if (handle == ROGUE_ITEM_DEF_INVALID_HANDLE)
     {
         g_cache.stats.misses++;
         if (g_cache.lock)
-            rogue_rwlock_release_write(g_cache.lock);
+            rogue_rwlock_release_read(g_cache.lock);
         return NULL;
     }
     int index = rogue_item_def_index_from_handle(handle);
@@ -240,7 +248,7 @@ RoguePixelMaskSet* rogue_item_collision_cache_get(RogueItemDefHandle handle,
     {
         g_cache.stats.misses++;
         if (g_cache.lock)
-            rogue_rwlock_release_write(g_cache.lock);
+            rogue_rwlock_release_read(g_cache.lock);
         return NULL; /* stale or invalid */
     }
     /* Derive generation bits from handle (upper 16 bits) */
@@ -249,6 +257,8 @@ RoguePixelMaskSet* rogue_item_collision_cache_get(RogueItemDefHandle handle,
     if (!e)
     {
         g_cache.stats.misses++;
+        if (g_cache.lock)
+            rogue_rwlock_release_read(g_cache.lock);
         return NULL;
     }
     if (e->handle == handle && e->mask_set)
@@ -260,8 +270,27 @@ RoguePixelMaskSet* rogue_item_collision_cache_get(RogueItemDefHandle handle,
         lru_move_front(e);
         RoguePixelMaskSet* out = e->mask_set;
         if (g_cache.lock)
-            rogue_rwlock_release_write(g_cache.lock);
+            rogue_rwlock_release_read(g_cache.lock);
         return out;
+    }
+    /* miss -> upgrade to write for build */
+    if (g_cache.lock)
+    {
+        rogue_rwlock_release_read(g_cache.lock);
+        rogue_rwlock_acquire_write(g_cache.lock, ROGUE_LOCK_PRIORITY_NORMAL, -1);
+    }
+    /* Re-check after upgrading in case another thread filled it */
+    e = find_or_allocate_slot(handle, gen);
+    if (e && e->handle == handle && e->mask_set)
+    {
+        g_cache.stats.hits++;
+        e->last_access_tick = ++g_cache.access_counter;
+        e->access_count++;
+        lru_move_front(e);
+        RoguePixelMaskSet* out2 = e->mask_set;
+        if (g_cache.lock)
+            rogue_rwlock_release_write(g_cache.lock);
+        return out2;
     }
     /* miss -> build */
     g_cache.stats.misses++;
@@ -346,7 +375,25 @@ RoguePixelMaskSet* rogue_item_collision_cache_get(RogueItemDefHandle handle,
                     snprintf(path, sizeof(path), "%s", def->sprite_sheet);
                 else
                     snprintf(path, sizeof(path), "assets/%s", def->sprite_sheet);
-                e->asset_timestamp = file_mtime_simple(path);
+                /* Use hook if provided for deterministic tests; else filesystem mtime. */
+                e->asset_timestamp = g_mtime_hook ? g_mtime_hook(path) : file_mtime_simple(path);
+
+                /* Prefetch related items sharing the same sprite sheet: collect under lock,
+                   submit after releasing the lock to avoid nested locking. */
+                if (g_cache.prefetch_enabled && g_cache.tp)
+                {
+                    int total = rogue_item_defs_count();
+                    for (int i2 = index + 1; i2 < total && prefetch_count < g_cache.prefetch_budget;
+                         ++i2)
+                    {
+                        const RogueItemDef* d2 = rogue_item_def_at(i2);
+                        if (!d2 || d2->category != ROGUE_ITEM_WEAPON)
+                            continue;
+                        if (strcmp(d2->sprite_sheet, def->sprite_sheet) != 0)
+                            continue;
+                        prefetch_list[prefetch_count++] = rogue_item_def_handle_from_index(i2);
+                    }
+                }
             }
         }
     }
@@ -357,6 +404,16 @@ RoguePixelMaskSet* rogue_item_collision_cache_get(RogueItemDefHandle handle,
     RoguePixelMaskSet* out_new = e->mask_set;
     if (g_cache.lock)
         rogue_rwlock_release_write(g_cache.lock);
+    /* Queue prefetch jobs outside of the write lock. */
+    if (prefetch_count > 0 && g_cache.prefetch_enabled && g_cache.tp)
+    {
+        for (int i = 0; i < prefetch_count; ++i)
+        {
+            RogueItemDefHandle h2 = prefetch_list[i];
+            if (!rogue_item_collision_cache_is_ready(h2))
+                (void) rogue_item_collision_cache_request_async(h2, &prefetch_cfg);
+        }
+    }
     return out_new;
 }
 
@@ -446,8 +503,9 @@ static void item_cache_worker(void* user)
     free(job);
 }
 
-int rogue_item_collision_cache_request_async(RogueItemDefHandle handle,
-                                             const RoguePixelMaskLoadConfig* cfg)
+/* internal: request async with optional prefetch fan-out control */
+static int request_async_internal(RogueItemDefHandle handle, const RoguePixelMaskLoadConfig* cfg,
+                                  int allow_prefetch)
 {
     if (!g_cache.initialized)
         rogue_item_collision_cache_init();
@@ -467,10 +525,45 @@ int rogue_item_collision_cache_request_async(RogueItemDefHandle handle,
     job->cfg = cfg ? *cfg : rogue_pixel_mask_load_config_default();
     int ok = rogue_thread_pool_submit(g_cache.tp, item_cache_worker, job);
     if (ok == 0)
-        return 1; /* queued */
+    {
+        /* queued */
+        if (allow_prefetch && g_cache.prefetch_enabled)
+        {
+            /* Determine index and def to collect siblings sharing the same sheet */
+            int index = rogue_item_def_index_from_handle(handle);
+            const RogueItemDef* def = (index >= 0) ? rogue_item_def_at(index) : NULL;
+            if (def && def->category == ROGUE_ITEM_WEAPON && def->sprite_sheet[0])
+            {
+                int total = rogue_item_defs_count();
+                RoguePixelMaskLoadConfig cfg2 = rogue_pixel_mask_load_config_default();
+                int queued = 0;
+                for (int i2 = index + 1; i2 < total && queued < g_cache.prefetch_budget; ++i2)
+                {
+                    const RogueItemDef* d2 = rogue_item_def_at(i2);
+                    if (!d2 || d2->category != ROGUE_ITEM_WEAPON)
+                        continue;
+                    if (strcmp(d2->sprite_sheet, def->sprite_sheet) != 0)
+                        continue;
+                    RogueItemDefHandle h2 = rogue_item_def_handle_from_index(i2);
+                    if (!rogue_item_collision_cache_is_ready(h2))
+                    {
+                        (void) request_async_internal(h2, &cfg2, /*allow_prefetch=*/0);
+                        queued++;
+                    }
+                }
+            }
+        }
+        return 1;
+    }
     free(job);
     /* Fallback: build synchronously */
     return rogue_item_collision_cache_get(handle, cfg) != NULL;
+}
+
+int rogue_item_collision_cache_request_async(RogueItemDefHandle handle,
+                                             const RoguePixelMaskLoadConfig* cfg)
+{
+    return request_async_internal(handle, cfg, /*allow_prefetch=*/1);
 }
 
 void rogue_item_collision_cache_set_mtime_hook(uint64_t (*hook)(const char* path))
@@ -519,4 +612,65 @@ int rogue_item_collision_cache_poll(int max_to_check)
     if (g_cache.lock)
         rogue_rwlock_release_write(g_cache.lock);
     return invalidated;
+}
+
+/* Prefetch controls */
+void rogue_item_collision_cache_set_prefetch(int enabled, int budget)
+{
+    if (!g_cache.initialized)
+        rogue_item_collision_cache_init();
+    if (budget < 0)
+        budget = 0;
+    if (budget > 16)
+        budget = 16; /* keep bounded */
+    if (g_cache.lock)
+        rogue_rwlock_acquire_write(g_cache.lock, ROGUE_LOCK_PRIORITY_NORMAL, -1);
+    g_cache.prefetch_enabled = enabled ? 1 : 0;
+    g_cache.prefetch_budget = budget;
+    if (g_cache.lock)
+        rogue_rwlock_release_write(g_cache.lock);
+}
+
+/* Normalize a sprite path to assets/ prefix if bare name */
+static void normalize_sprite_path(const char* in, char* out, size_t out_sz)
+{
+    if (!in || !*in)
+    {
+        out[0] = '\0';
+        return;
+    }
+    if (strchr(in, '/') || strchr(in, '\\'))
+        snprintf(out, out_sz, "%s", in);
+    else
+        snprintf(out, out_sz, "assets/%s", in);
+}
+
+void rogue_item_collision_cache_invalidate_sprite(const char* sprite_path)
+{
+    if (!g_cache.initialized || !sprite_path || !*sprite_path)
+        return;
+    char norm[256];
+    normalize_sprite_path(sprite_path, norm, sizeof(norm));
+    if (g_cache.lock)
+        rogue_rwlock_acquire_write(g_cache.lock, ROGUE_LOCK_PRIORITY_NORMAL, -1);
+    for (RogueItemCollisionCacheEntry* it = g_cache.lru_head; it; it = it->next)
+    {
+        const RogueItemDef* def = NULL;
+        int idx = rogue_item_def_index_from_handle(it->handle);
+        if (idx >= 0)
+            def = rogue_item_def_at(idx);
+        if (!def)
+            continue;
+        char path[256];
+        normalize_sprite_path(def->sprite_sheet, path, sizeof(path));
+        if (strcmp(path, norm) == 0 && it->mask_set)
+        {
+            g_cache.stats.approx_bytes -= approx_set_bytes(it->mask_set);
+            free_entry(it);
+            memset(it, 0, sizeof(*it));
+            g_cache.stats.invalidations++;
+        }
+    }
+    if (g_cache.lock)
+        rogue_rwlock_release_write(g_cache.lock);
 }

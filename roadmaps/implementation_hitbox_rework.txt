@@ -157,6 +157,24 @@ Update (Milestone 1.2 async/poll integration):
 - Implemented file-change detection via `rogue_item_collision_cache_poll(max_to_check)`, which scans a bounded number of entries and invalidates those whose source asset timestamp has increased. An overridable `rogue_item_collision_cache_set_mtime_hook` allows tests and tools to supply deterministic timestamps without touching the filesystem.
 - Unit test `test_item_collision_cache_async_poll` covers async request queuing, readiness detection, and polling-based invalidation using a fake mtime hook. Integrated into the test suite with SDL2-only guards. Full Debug and Release runs remain 100% green in parallel (`-j12`).
 
+Update (Milestone 1.2 prefetch + finer invalidation + RW-lock concurrency):
+
+- Usage-based prefetching has been added to the item collision cache with deterministic ordering and a strict fan-out bound:
+  - Configure via `rogue_item_collision_cache_set_prefetch(int enabled, int budget)`. Budget is clamped to a small range and defaults are conservative (enabled=1, budget=2).
+  - Prefetch candidates are collected under a write lock but queued to the thread pool only after releasing the lock to minimize contention. Prefetch is non-recursive and respects a per-request allow-prefetch guard to prevent exponential fan-out.
+  - Ordering is stable (forward index scan) to preserve determinism across runs and thread counts.
+- Finer-grained sprite-path invalidation is now supported: `rogue_item_collision_cache_invalidate_sprite(const char* sprite_path)` normalizes paths under `assets/` and invalidates all cache entries sourced from the given sprite. This complements handle-based and global invalidation.
+- Concurrency model upgraded to reader/writer locking:
+  - Cache lookups start under a shared read lock and only upgrade to a write lock on a miss. A re-check is performed after upgrading to avoid duplicate work if another writer populated the entry in the interim.
+  - LRU updates and memory accounting remain deterministic. Evictions occur under the write lock and enforce both entry-count and memory ceilings.
+- Hot-reload determinism refinement: when initially capturing an entry’s `asset_timestamp`, the cache now consults the registered `g_mtime_hook` (if any) instead of the filesystem. This prevents spurious immediate invalidations in tests using a fake timestamp source.
+- Pixel mask cleanup API: added `rogue_hit_mask_frame_reset` to `hit_pixel_mask.h/.c` to release per-frame allocations (bits, compressed buffer, distance field, mipmaps). This API is used by tests (e.g., compression AUTO) and tools to avoid leaks when recycling frames.
+- New and expanded tests:
+  - `test_item_collision_cache_multi_async` stresses concurrent async requests and bounded prefetch behavior.
+  - `test_item_collision_cache_invalidate_sprite` validates normalized sprite-path batch invalidation.
+  - `test_hit_mask_compression_auto` covers compression AUTO selection and uses the new frame-reset API.
+- Validation: Full Debug builds with SDL2 and parallel ctests (`-j12`) are 100% green (currently 730/730). Reader concurrency and prefetching are deterministic by construction.
+
 #### MILESTONE 1.3: Sprite Atlas and Animation Support
 - [x] **File**: `src/game/sprite_atlas_collision.h` (initial slice implemented)
   ```c
