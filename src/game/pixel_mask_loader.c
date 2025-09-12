@@ -443,7 +443,28 @@ static int generate_mipmaps(struct RogueHitPixelMaskFrame* frame, int requested_
             frame->mipmaps = NULL;
         }
         if (metrics)
+        {
             metrics->mipmap_levels = 1;
+            /* Provide base-level stats when caller wants per-mip arrays */
+            if (!metrics->mip_total_pixels && !metrics->mip_collision_pixels &&
+                !metrics->mip_solid_ratio)
+            {
+                /* leave NULLs; caller didn’t request detailed metrics */
+            }
+            else if (metrics->mip_total_pixels && metrics->mip_collision_pixels &&
+                     metrics->mip_solid_ratio)
+            {
+                metrics->mip_total_pixels[0] =
+                    (uint32_t) ((uint64_t) frame->width * (uint64_t) frame->height);
+                /* collision_pixels for base already computed in build; compute ratio directly */
+                metrics->mip_collision_pixels[0] = metrics->collision_pixels;
+                metrics->mip_solid_ratio[0] =
+                    metrics->total_pixels
+                        ? (float) metrics->collision_pixels / (float) metrics->total_pixels
+                        : 0.0f;
+            }
+            metrics->mip_conservative_monotonic = 1; /* vacuously true */
+        }
         return 1;
     }
     if (requested_levels > 6)
@@ -464,7 +485,21 @@ static int generate_mipmaps(struct RogueHitPixelMaskFrame* frame, int requested_
     if (max_levels <= 1)
     {
         if (metrics)
+        {
             metrics->mipmap_levels = 1;
+            if (metrics->mip_total_pixels && metrics->mip_collision_pixels &&
+                metrics->mip_solid_ratio)
+            {
+                metrics->mip_total_pixels[0] =
+                    (uint32_t) ((uint64_t) frame->width * (uint64_t) frame->height);
+                metrics->mip_collision_pixels[0] = metrics->collision_pixels;
+                metrics->mip_solid_ratio[0] =
+                    metrics->total_pixels
+                        ? (float) metrics->collision_pixels / (float) metrics->total_pixels
+                        : 0.0f;
+            }
+            metrics->mip_conservative_monotonic = 1;
+        }
         return 1;
     }
     frame->mipmaps = (struct RogueHitPixelMaskMipmapLevel*) calloc((size_t) (max_levels - 1),
@@ -477,6 +512,18 @@ static int generate_mipmaps(struct RogueHitPixelMaskFrame* frame, int requested_
     int prev_w = frame->width;
     int prev_h = frame->height;
     int prev_pitch_words = frame->pitch_words;
+    /* If metrics provided per-mip arrays, fill base immediately and compute others after build */
+    if (metrics && metrics->mip_total_pixels && metrics->mip_collision_pixels &&
+        metrics->mip_solid_ratio)
+    {
+        metrics->mip_total_pixels[0] =
+            (uint32_t) ((uint64_t) frame->width * (uint64_t) frame->height);
+        metrics->mip_collision_pixels[0] = metrics->collision_pixels;
+        metrics->mip_solid_ratio[0] = metrics->total_pixels ? (float) metrics->collision_pixels /
+                                                                  (float) metrics->total_pixels
+                                                            : 0.0f;
+    }
+
     for (int level = 1; level < max_levels; ++level)
     {
         struct RogueHitPixelMaskMipmapLevel* ml = &frame->mipmaps[level - 1];
@@ -535,9 +582,52 @@ static int generate_mipmaps(struct RogueHitPixelMaskFrame* frame, int requested_
         prev_w = ml->width;
         prev_h = ml->height;
         prev_pitch_words = ml->pitch_words;
+
+        /* Metrics per level: count set bits conservatively and fill arrays if present */
+        if (metrics)
+        {
+            if (metrics->mip_total_pixels && metrics->mip_collision_pixels &&
+                metrics->mip_solid_ratio)
+            {
+                uint32_t total = (uint32_t) ((uint64_t) ml->width * (uint64_t) ml->height);
+                uint32_t coll = 0;
+                for (int y = 0; y < ml->height; ++y)
+                {
+                    const uint32_t* row = ml->bits + (size_t) y * ml->pitch_words;
+                    for (int xw = 0; xw < ml->pitch_words; ++xw)
+                    {
+                        uint32_t v = row[xw];
+                        v = v - ((v >> 1) & 0x55555555u);
+                        v = (v & 0x33333333u) + ((v >> 2) & 0x33333333u);
+                        v = (v + (v >> 4)) & 0x0F0F0F0Fu;
+                        v = v + (v >> 8);
+                        v = v + (v >> 16);
+                        coll += v & 0x3Fu;
+                    }
+                }
+                metrics->mip_total_pixels[level] = total;
+                metrics->mip_collision_pixels[level] = coll;
+                metrics->mip_solid_ratio[level] = total ? (float) coll / (float) total : 0.0f;
+            }
+        }
     }
     if (metrics)
+    {
         metrics->mipmap_levels = max_levels;
+        /* Monotonicity check: occupancy should be non-increasing across levels */
+        metrics->mip_conservative_monotonic = 1;
+        if (metrics->mip_collision_pixels)
+        {
+            for (int i = 1; i < max_levels; ++i)
+            {
+                if (metrics->mip_collision_pixels[i] > metrics->mip_collision_pixels[i - 1])
+                {
+                    metrics->mip_conservative_monotonic = 0;
+                    break;
+                }
+            }
+        }
+    }
     return 1;
 }
 
@@ -547,8 +637,24 @@ int rogue_pixel_mask_build_from_surface(void* sdl_surface_v, const RoguePixelMas
 {
     if (out_metrics)
     {
-        memset(out_metrics, 0, sizeof(*out_metrics));
+        /* Preserve any caller-provided per-mip arrays; avoid memset to keep pointers intact. */
+        uint32_t* preserve_mip_total = out_metrics->mip_total_pixels;
+        uint32_t* preserve_mip_coll = out_metrics->mip_collision_pixels;
+        float* preserve_mip_ratio = out_metrics->mip_solid_ratio;
+        /* Zero scalar fields explicitly */
+        out_metrics->total_pixels = 0;
+        out_metrics->collision_pixels = 0;
+        out_metrics->solid_ratio = 0.0f;
+        out_metrics->build_time_ns = 0;
+        out_metrics->memory_footprint = 0;
+        out_metrics->compressed_size = 0;
         out_metrics->compression_ratio = 1.0f;
+        out_metrics->mipmap_levels = 0;
+        out_metrics->mip_conservative_monotonic = 0;
+        /* Restore pointers */
+        out_metrics->mip_total_pixels = preserve_mip_total;
+        out_metrics->mip_collision_pixels = preserve_mip_coll;
+        out_metrics->mip_solid_ratio = preserve_mip_ratio;
     }
     if (!out_frame)
         return 0;
@@ -895,6 +1001,21 @@ int rogue_pixel_mask_build_from_surface(void* sdl_surface_v, const RoguePixelMas
                                                       (float) out_metrics->memory_footprint
                                                 : 1.0f)
                 : 1.0f;
+        /* If caller provided per-mip arrays and only requested 1 level, populate base here */
+        if (cfg->mipmap_levels <= 1 && out_metrics->mip_total_pixels &&
+            out_metrics->mip_collision_pixels && out_metrics->mip_solid_ratio)
+        {
+            out_metrics->mip_total_pixels[0] =
+                (uint32_t) ((uint64_t) out_frame->width * (uint64_t) out_frame->height);
+            out_metrics->mip_collision_pixels[0] = out_metrics->collision_pixels;
+            out_metrics->mip_solid_ratio[0] = out_metrics->solid_ratio;
+            out_metrics->mip_conservative_monotonic = 1;
+        }
+    }
+    if (out_metrics && (out_metrics->mip_total_pixels || out_metrics->mip_collision_pixels ||
+                        out_metrics->mip_solid_ratio))
+    {
+        /* per-mip arrays present; metrics populated */
     }
     /* Distance field (optional) */
     if (cfg->generate_distance_fields)
@@ -911,8 +1032,21 @@ int rogue_pixel_mask_load_from_file(const char* path, const RoguePixelMaskLoadCo
 {
     if (out_metrics)
     {
-        memset(out_metrics, 0, sizeof(*out_metrics));
+        uint32_t* preserve_mip_total = out_metrics->mip_total_pixels;
+        uint32_t* preserve_mip_coll = out_metrics->mip_collision_pixels;
+        float* preserve_mip_ratio = out_metrics->mip_solid_ratio;
+        out_metrics->total_pixels = 0;
+        out_metrics->collision_pixels = 0;
+        out_metrics->solid_ratio = 0.0f;
+        out_metrics->build_time_ns = 0;
+        out_metrics->memory_footprint = 0;
+        out_metrics->compressed_size = 0;
         out_metrics->compression_ratio = 1.0f;
+        out_metrics->mipmap_levels = 0;
+        out_metrics->mip_conservative_monotonic = 0;
+        out_metrics->mip_total_pixels = preserve_mip_total;
+        out_metrics->mip_collision_pixels = preserve_mip_coll;
+        out_metrics->mip_solid_ratio = preserve_mip_ratio;
     }
     if (!path || !out_frame)
         return 0;

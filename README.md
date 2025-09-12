@@ -307,7 +307,7 @@ Press F1 in-game to open the debug overlay.
   - `rogue_animation_collision_evaluate_timeline`: determines active window indices at arbitrary time (ms). Deterministic, stable ordering; overlap simply produces multiple indices (no event batching yet).
   - `rogue_animation_collision_interpolate_masks`: returns bracketing keyframes + linear interpolation factor t (0..1). If interpolation disabled or at/after last keyframe, clamps (b=NULL, t=0).
 - Unit test `test_animation_collision_sync_basic` covers timeline activation at sample times, overlap simplification, midpoint interpolation (t≈0.5), end clamp, and disabled interpolation path.
-- Roadmap updated marking partial completion (structs + basic eval + linear interpolation + unit test) while deferring spline/intermediate mask morphing, adaptive quality, frame skipping heuristics, speed scaling, and event batching APIs.
+- Roadmap updated marking partial completion (structs + basic eval + linear interpolation + unit test) while deferring spline/intermediate mask morph, adaptive quality, frame skipping heuristics, speed scaling, and event batching APIs.
 - Next deepening steps will integrate skill layer fractional frame index with keyframe-driven mask sampling & morph, then add speed scaling (animation playback rate) and event emission (enter/exit window callbacks) for richer combat timing.
 
 ###### Deepening Slice (Phase 3.2 Advanced): Speed Scaling + Frame Skip Cache + Smooth/Quintic Interpolation

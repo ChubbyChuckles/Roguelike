@@ -112,7 +112,15 @@ Core Subsystems:
       - Added a separable 1-2-1 smoothing option applied prior to each 2x2 binary downsample when `edge_smoothing_passes > 0`. Defaults to 0 (off) to preserve previous behavior and strict determinism. Pass count is clamped to a small range to keep costs bounded.
     - [x] Preserve collision shape integrity across scales (binary occupancy)
     - [ ] Automatic threshold adjustment per mipmap level (deferred)
-    - [ ] Quality metrics for mipmap chain validation (deferred)
+    - [x] Quality metrics for mipmap chain validation
+      - Implemented per-mipmap metrics in `RoguePixelMaskMetrics`: `mip_total_pixels[]`,
+        `mip_collision_pixels[]`, `mip_solid_ratio[]`, and a conservative monotonicity flag
+        `mip_conservative_monotonic` (set when occupancy is non-increasing across levels).
+      - Fixed pointer preservation in metrics initialization to respect caller-provided arrays
+        (avoid memset nulling) and compute base-level `mip_solid_ratio[0]` directly from
+        counts to ensure consistency regardless of aggregate `solid_ratio` write order.
+      - Unit test `test_hit_mask_mipmap_metrics` validates base-level consistency, per-level
+        ratio bounds, and monotonicity for representative patterns.
 
 #### MILESTONE 1.2: Advanced Item System Integration (IN PROGRESS)
 - [x] **File**: `src/game/item_collision_cache.h` (initial slice implemented)

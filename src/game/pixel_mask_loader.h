@@ -37,6 +37,12 @@ extern "C"
         size_t compressed_size;    /* bytes of compressed buffer (if any) */
         float compression_ratio;   /* compressed_size / memory_footprint (1.0 if not compressed) */
         int mipmap_levels;         /* number of mip levels actually generated */
+        /* Optional per-mipmap statistics (level 0 == base). Arrays sized to mipmap_levels. */
+        uint32_t* mip_total_pixels;     /* per-level w*h (for convenience) */
+        uint32_t* mip_collision_pixels; /* per-level set bit counts */
+        float* mip_solid_ratio;         /* per-level collision/total */
+        /* Quality flag: 1 if occupancy is non-increasing across levels (conservative downsample) */
+        int mip_conservative_monotonic;
     } RoguePixelMaskMetrics;
 
     /* Forward declare frame type to avoid including hit_pixel_mask.h here (keeps
