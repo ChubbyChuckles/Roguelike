@@ -959,6 +959,13 @@ bool rogue_collision_stage_pixel_perfect(struct RogueCollisionContext* ctx,
                     level = 2;
                 else if (d2 > 5000.f)
                     level = 1;
+                /* Clamp to available mip range for this mask to keep coords/tests consistent */
+                if (c->pixel_mask->mipmap_count > 1 && c->pixel_mask->mipmaps)
+                {
+                    int max_level = c->pixel_mask->mipmap_count - 1; /* excluding base */
+                    if (level > max_level)
+                        level = max_level;
+                }
 
                 int cx = c->pixel_mask->width / 2;
                 int cy = c->pixel_mask->height / 2;

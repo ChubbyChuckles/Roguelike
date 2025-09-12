@@ -56,6 +56,12 @@ feat(collision-pipeline): enforce per-stage max_candidates and add unit test; 71
 - Verified with Debug SDL2 build and ctest -j12: 100% green (713/713).
 
 feat(collision-temporal): opt-in honor mode + extended metrics; stabilize Debug ctests build (MSVC); 719/719 green
+fix(collision/pixel): clamp selected mip level to available range; add docs; suite 720/720
+
+- Clamp the distance-derived mip index in `rogue_collision_stage_pixel_perfect` to `[0..mipmap_count-1]` before coordinate mapping and sampling. Prevents out-of-range access on assets with limited mip chains and ensures deterministic behavior across content.
+- Tests: `test_collision_pixel_lod` now implicitly covers the clamping path; targeted run passes, and a full Debug run is green (720/720) with `ctest -j12`.
+- Docs: Update README and roadmap to mention mip-level clamping and current test totals.
+
 
 - Add `rogue_collision_advisory_set_honor_mode(1)` to allow honoring conservative skip suggestions from the temporal predictor; default OFF preserves existing behavior (metrics-only) unless explicitly enabled.
 - Extend metrics via `rogue_collision_advisory_get_extended(&hit_rate, skip_hist[4], &min_cands, &max_cands, &avg_cands)`. Keep `rogue_collision_advisory_reset(sep_thresh_px)` and `rogue_collision_advisory_get_metrics` for simple counters.

@@ -1224,6 +1224,16 @@ if(NOT TARGET test_collision_pipeline_phase2_1_pixel_sampling)
     rogue_add_test(NAME test_collision_pipeline_phase2_1_pixel_sampling COMMAND test_collision_pipeline_phase2_1_pixel_sampling)
 endif()
 
+# Pixel LOD-focused unit test for hit mask sampling
+if(NOT TARGET test_collision_pixel_lod)
+    add_executable(test_collision_pixel_lod tests/unit/test_collision_pixel_lod.c)
+    target_link_libraries(test_collision_pixel_lod PRIVATE rogue_core)
+    if(TARGET SDL2::SDL2)
+        target_link_libraries(test_collision_pixel_lod PRIVATE SDL2::SDL2)
+    endif()
+    rogue_add_test(NAME test_collision_pixel_lod COMMAND test_collision_pixel_lod)
+endif()
+
 # Milestone 2.3: Enemy collision profile LOD integration test
 add_executable(test_collision_pipeline_phase2_3_enemy_lod tests/unit/test_collision_pipeline_phase2_3_enemy_lod.c)
 target_link_libraries(test_collision_pipeline_phase2_3_enemy_lod PRIVATE rogue_core)
