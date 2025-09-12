@@ -67,6 +67,24 @@ extern "C"
     /* Invalidate every cached entry (lighter than full reset: keeps stats except bytes). */
     void rogue_item_collision_cache_invalidate_all(void);
 
+    /* -------- Background loading & hot-reload (Phase 1.2 extension) -------- */
+    struct RogueThreadPool; /* fwd */
+    /* Register a thread pool to enable background requests. Pass NULL to disable. */
+    void rogue_item_collision_cache_set_thread_pool(struct RogueThreadPool* tp);
+    /* Enqueue an asynchronous build for an item handle if not cached.
+        Returns 1 if the item is already cached or the request was queued/synchronously built, 0 on
+       error. */
+    int rogue_item_collision_cache_request_async(RogueItemDefHandle handle,
+                                                 const RoguePixelMaskLoadConfig* cfg);
+    /* Returns 1 if the cache currently contains a ready mask set for the handle. */
+    int rogue_item_collision_cache_is_ready(RogueItemDefHandle handle);
+    /* Poll a limited number of cache entries and invalidate those whose source asset timestamps
+        have advanced (hot-reload friendly). Returns number of invalidated entries this call. */
+    int rogue_item_collision_cache_poll(int max_to_check);
+    /* Testing/override: set a hook to compute file modification time (in seconds since epoch).
+        When set (non-NULL), this hook is used instead of the internal mtime probe. */
+    void rogue_item_collision_cache_set_mtime_hook(uint64_t (*hook)(const char* path));
+
 #ifdef __cplusplus
 }
 #endif

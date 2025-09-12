@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 #endif
 #include "core/integration/resource_lock.h"
+#include "core/integration/thread_pool.h"
 
 /* Forward declarations for existing ensure path (weapon-centric). In a future slice this will map
    generic item sprite -> pixel masks; for now we reuse weapon id path if category == WEAPON and
@@ -31,7 +32,8 @@ static struct
     RogueItemCollisionCacheEntry* lru_tail; /* LRU at tail */
     uint64_t access_counter;
     RogueItemCollisionCacheStats stats;
-    RogueRwLock* lock; /* simple RW lock placeholder (future reader sharing) */
+    RogueRwLock* lock;          /* simple RW lock placeholder (future reader sharing) */
+    struct RogueThreadPool* tp; /* optional background worker pool */
 } g_cache;
 
 static uint64_t file_mtime_simple(const char* path)
@@ -49,6 +51,8 @@ static uint64_t file_mtime_simple(const char* path)
 #endif
     return 0;
 }
+
+static uint64_t (*g_mtime_hook)(const char* path) = NULL;
 
 static void lru_move_front(RogueItemCollisionCacheEntry* e)
 {
@@ -397,4 +401,122 @@ void rogue_item_collision_cache_invalidate_all(void)
     g_cache.lru_head = g_cache.lru_tail = NULL;
     if (g_cache.lock)
         rogue_rwlock_release_write(g_cache.lock);
+}
+
+/* ---------- Background loading & hot-reload extensions ---------- */
+
+void rogue_item_collision_cache_set_thread_pool(struct RogueThreadPool* tp) { g_cache.tp = tp; }
+
+int rogue_item_collision_cache_is_ready(RogueItemDefHandle handle)
+{
+    if (!g_cache.initialized)
+        return 0;
+    if (handle == ROGUE_ITEM_DEF_INVALID_HANDLE)
+        return 0;
+    if (g_cache.lock)
+        rogue_rwlock_acquire_read(g_cache.lock, ROGUE_LOCK_PRIORITY_NORMAL, -1);
+    /* generation must match */
+    uint32_t gen = (uint32_t) (handle >> 16);
+    for (RogueItemCollisionCacheEntry* it = g_cache.lru_head; it; it = it->next)
+    {
+        if (it->handle == handle && it->generation_snapshot == gen && it->mask_set)
+        {
+            if (g_cache.lock)
+                rogue_rwlock_release_read(g_cache.lock);
+            return 1;
+        }
+    }
+    if (g_cache.lock)
+        rogue_rwlock_release_read(g_cache.lock);
+    return 0;
+}
+
+typedef struct ItemCacheAsyncJob
+{
+    RogueItemDefHandle handle;
+    RoguePixelMaskLoadConfig cfg;
+} ItemCacheAsyncJob;
+
+static void item_cache_worker(void* user)
+{
+    ItemCacheAsyncJob* job = (ItemCacheAsyncJob*) user;
+    /* Build synchronously into cache via public get() path */
+    RoguePixelMaskSet* set = rogue_item_collision_cache_get(job->handle, &job->cfg);
+    (void) set;
+    free(job);
+}
+
+int rogue_item_collision_cache_request_async(RogueItemDefHandle handle,
+                                             const RoguePixelMaskLoadConfig* cfg)
+{
+    if (!g_cache.initialized)
+        rogue_item_collision_cache_init();
+    if (handle == ROGUE_ITEM_DEF_INVALID_HANDLE)
+        return 0;
+    if (rogue_item_collision_cache_is_ready(handle))
+        return 1;
+    if (!g_cache.tp || !g_cache.tp->threads || g_cache.tp->thread_count <= 0)
+    {
+        /* No pool -> build now (still returns 1 on success) */
+        return rogue_item_collision_cache_get(handle, cfg) != NULL;
+    }
+    ItemCacheAsyncJob* job = (ItemCacheAsyncJob*) malloc(sizeof(ItemCacheAsyncJob));
+    if (!job)
+        return 0;
+    job->handle = handle;
+    job->cfg = cfg ? *cfg : rogue_pixel_mask_load_config_default();
+    int ok = rogue_thread_pool_submit(g_cache.tp, item_cache_worker, job);
+    if (ok == 0)
+        return 1; /* queued */
+    free(job);
+    /* Fallback: build synchronously */
+    return rogue_item_collision_cache_get(handle, cfg) != NULL;
+}
+
+void rogue_item_collision_cache_set_mtime_hook(uint64_t (*hook)(const char* path))
+{
+    g_mtime_hook = hook;
+}
+
+int rogue_item_collision_cache_poll(int max_to_check)
+{
+    if (!g_cache.initialized || max_to_check <= 0)
+        return 0;
+    int invalidated = 0;
+    if (g_cache.lock)
+        rogue_rwlock_acquire_write(g_cache.lock, ROGUE_LOCK_PRIORITY_NORMAL, -1);
+    RogueItemCollisionCacheEntry* it = g_cache.lru_head;
+    while (it && max_to_check-- > 0)
+    {
+        RogueItemCollisionCacheEntry* next = it->next; /* protect iterator on invalidate */
+        const RogueItemDef* def = NULL;
+        int idx = rogue_item_def_index_from_handle(it->handle);
+        if (idx >= 0)
+            def = rogue_item_def_at(idx);
+        const char* sheet = (def && def->sprite_sheet[0]) ? def->sprite_sheet : NULL;
+        char path[256] = {0};
+        if (sheet)
+        {
+            if (strchr(sheet, '/') || strchr(sheet, '\\'))
+                snprintf(path, sizeof(path), "%s", sheet);
+            else
+                snprintf(path, sizeof(path), "assets/%s", sheet);
+        }
+        uint64_t now_ts = 0;
+        if (path[0])
+            now_ts = g_mtime_hook ? g_mtime_hook(path) : file_mtime_simple(path);
+        if (now_ts != 0 && now_ts > it->asset_timestamp && it->mask_set)
+        {
+            /* Source changed -> invalidate */
+            g_cache.stats.approx_bytes -= approx_set_bytes(it->mask_set);
+            free_entry(it);
+            memset(it, 0, sizeof(*it));
+            g_cache.stats.invalidations++;
+            invalidated++;
+        }
+        it = next;
+    }
+    if (g_cache.lock)
+        rogue_rwlock_release_write(g_cache.lock);
+    return invalidated;
 }

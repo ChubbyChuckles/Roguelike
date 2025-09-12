@@ -39,6 +39,34 @@ Recent (Milestone 1.2 slice): Added item collision cache invalidation APIs (`rog
 
 Roadmap status update: per-row/stripe multi-threaded pixel processing, magic-number format detection, advanced alpha handling (gamma + optional luma derivation), and smoothing passes are implemented and tested. Next up: compression ratio analytics + auto selection, extended item collision cache (automatic timestamp polling / background loads), and atlas / animation integration (Milestone 1.3).
 
+Milestone 1.2 update (async/poll integration):
+
+- Item collision cache now supports optional background loading. Register the shared pool then queue background requests:
+
+```c
+RogueThreadPool pool;
+rogue_thread_pool_init(&pool, 2);
+rogue_item_collision_cache_set_thread_pool(&pool);
+
+RoguePixelMaskLoadConfig cfg = rogue_pixel_mask_load_config_default();
+RogueItemDefHandle h = rogue_item_def_handle_from_index(0);
+rogue_item_collision_cache_request_async(h, &cfg);
+if (rogue_item_collision_cache_is_ready(h)) {
+  RoguePixelMaskSet* set = rogue_item_collision_cache_get(h, &cfg);
+  // use set
+}
+```
+
+- Hot‑reload friendly polling: you can set a deterministic timestamp hook for tests/tools and poll to invalidate changed entries.
+
+```c
+static uint64_t my_mtime(const char* path) { /* return file mtime ns */ }
+rogue_item_collision_cache_set_mtime_hook(my_mtime);
+int invalidated = rogue_item_collision_cache_poll(16); // checks up to 16 entries
+```
+
+Both features are deterministic: async falls back to sync when no pool is registered, and polling only invalidates when timestamps strictly increase.
+
 #### Milestone 1.3 (Initial Sprite Atlas & Animation Collision Slice)
 
 - Added `sprite_atlas_collision.{h,c}` with:

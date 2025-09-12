@@ -157,3 +157,22 @@ feat(pixel-mask/compression): add compression analytics + AUTO selection (none v
 	- `<0`: AUTO – build an RLE buffer and use it only if it’s smaller than raw; otherwise keep raw only.
 - New unit `test_hit_mask_compression_auto` covers sparse vs checkerboard patterns: AUTO picks RLE for sparse (ratio < 1) and none for checkerboard (ratio == 1). Occupancy metrics remain identical across modes.
 - README and Roadmap updated with AUTO behavior and metrics; defaults unchanged.
+
+feat(item-collision-cache): async background loading + timestamp polling; tests/docs; suite 726/726 green
+
+- Add optional background loading to item collision cache:
+	- New API: rogue_item_collision_cache_set_thread_pool, _request_async, _is_ready
+	- Deterministic fallback to synchronous build when no pool is registered
+	- Readiness query avoids accidental builds during polling loops
+- Hot‑reload friendly invalidation via timestamp polling:
+	- New API: rogue_item_collision_cache_poll(max_to_check)
+	- Deterministic mtime hook: rogue_item_collision_cache_set_mtime_hook(fn)
+	- Only invalidates when asset timestamp strictly increases
+- Unit tests:
+	- tests/unit/test_item_collision_cache_async_poll.c exercises async queuing, readiness, and polling invalidation with a fake mtime hook
+	- Wired into tests/CMakeLists.txt; full Debug run (SDL2, -j12) is 100% green (726/726)
+- Docs:
+	- Roadmap updated (implementation_hitbox_rework.txt) to mark background loading and timestamp polling complete under Milestone 1.2
+	- README adds short usage examples for async requests and polling hook
+
+Build: Windows (SDL2‑only vendor), CMake + CTest Debug, -j12 parallel
