@@ -7,6 +7,10 @@ Pixel-perfect collision foundation plus several advanced features are now implem
 - `pixel_mask_loader` converts sprite alpha to bit-packed collision masks (alpha threshold configurable) with optional async build via a registered thread pool (`rogue_pixel_mask_set_thread_pool`).
 - Multi-format sprite support: PNG (via SDL_image when available) and BMP (native SDL fallback). Extension-based dispatch added; TGA/DDS still require SDL_image (magic number probing deferred).
 - Multi-format sprite support: PNG (via SDL_image when available) and BMP (native SDL fallback). Magic-number probing now detects PNG, BMP, and DDS even when extensions are misleading; TGA remains SDL_image-backed. Unknown headers fall back gracefully with a log line.
+- Advanced alpha handling and smoothing:
+  - `alpha_gamma` (float, default 1.0): applies gamma correction to normalized alpha before thresholding. Values >1.0 reduce occupancy for mid-range alpha; =1.0 preserves legacy behavior.
+  - `derive_alpha_from_luma` (int/bool, default 0): when an image lacks an explicit alpha channel, derive alpha from luma using Rec.709 coefficients (Y = 0.2126R + 0.7152G + 0.0722B). When 0, legacy behavior treats missing-alpha surfaces as fully opaque.
+  - `edge_smoothing_passes` (0-2 recommended): in addition to optional mip-level smoothing, a deterministic base-level despeckle pass removes isolated single pixels and fills single-pixel holes. Metrics are recomputed after smoothing to keep reports consistent.
 - Signed Distance Field (SDF) generation (chamfer 3x3 inside/outside passes, int16 grid; positive inside, 0 on boundary) gated by `generate_distance_fields` flag.
 - Binary OR 2x2 mipmap chain generation (request via `mipmap_levels`, capped at 6) to enable future multi-resolution broad-phase heuristics.
   - Optional smoothed downsampling: when `edge_smoothing_passes > 0`, a separable 1-2-1 smoothing pass is applied prior to each 2x2 binary downsample to reduce stair-stepping at LOD transitions. Default is 0 (off) to preserve previous behavior and determinism.
@@ -28,10 +32,11 @@ No configuration changes are required; small images or missing pool fall back to
 IO probing note (SDL_RWops): Magic-number detection in `rogue_pixel_mask_load_from_file` now uses SDL_RWops (SDL_RWFromFile/SDL_RWread/SDL_RWseek/SDL_RWclose) to adhere to SDL2‑only builds and avoid MSVC secure CRT warnings. Formats: PNG, BMP, DDS via headers; TGA via footer when SDL_image is available; unknown headers fall back gracefully.
 
 - Unit tests: `test_hit_mask_basic`, `test_hit_mask_integration`, `test_hit_mask_distance_field` (SDF + async), and new `test_hit_mask_multiformat` (BMP fallback) keep regression coverage high.
+  - New units cover recent features: `test_hit_mask_alpha_gamma`, `test_hit_mask_luma_alpha`, and `test_hit_mask_smoothing`.
 
 Recent (Milestone 1.2 slice): Added item collision cache invalidation APIs (`rogue_item_collision_cache_invalidate_handle`, `_invalidate_all`), basic asset timestamp capture, and a lightweight RW lock scaffold (write-serialized) ahead of future concurrent read access & hot-reload driven automatic invalidation.
 
-Upcoming roadmap slices: per-row/stripe multi-threaded pixel processing, edge smoothing, advanced alpha handling (gamma), magic-number format detection, compression ratio analytics + auto selection, extended item collision cache (automatic timestamp polling / background loads), and atlas / animation integration (Milestone 1.3).
+Roadmap status update: per-row/stripe multi-threaded pixel processing, magic-number format detection, advanced alpha handling (gamma + optional luma derivation), and smoothing passes are implemented and tested. Next up: compression ratio analytics + auto selection, extended item collision cache (automatic timestamp polling / background loads), and atlas / animation integration (Milestone 1.3).
 
 #### Milestone 1.3 (Initial Sprite Atlas & Animation Collision Slice)
 

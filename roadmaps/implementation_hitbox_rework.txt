@@ -83,8 +83,17 @@ Core Subsystems:
     - Deterministic stripe-based row partitioning using the existing SDL-backed thread pool. Each stripe writes to disjoint row ranges with no data races; completion is joined via a semaphore, and metrics (collision_pixels/total_pixels) are reduced deterministically on the main thread in fixed order.
     - Automatic activation when a thread pool is registered and the surface height is sufficiently large; otherwise falls back to single-threaded path. Unit test `test_hit_mask_threaded_parity` asserts bit‑for‑bit equality and identical metrics against the single‑threaded build.
     - Runtime behavior is identical by default; no config changes needed. Determinism is preserved regardless of thread count.
-    - [ ] (Future) Advanced alpha channel processing with gamma correction
-    - [ ] (Future) Edge detection and smoothing algorithms
+    - [x] Advanced alpha channel processing with gamma correction
+      - Implemented unified normalized alpha computation: use native surface alpha when present; otherwise, optionally derive alpha from luma using Rec.709 coefficients (Y = 0.2126R + 0.7152G + 0.0722B) when `derive_alpha_from_luma` is enabled.
+      - Added `alpha_gamma` to apply deterministic gamma correction to normalized alpha prior to thresholding. Defaults to 1.0 (no change). Thresholding occurs after gamma.
+      - Deterministic across single-threaded and stripe-based multithreaded paths; SIMD/scalar parity preserved.
+      - Unit coverage: `test_hit_mask_alpha_gamma` (gamma reduces occupancy on alpha ramp), `test_hit_mask_luma_alpha` (luma-derived alpha fallback on RGB24 checkerboard).
+    - [x] Edge detection and smoothing algorithms
+      - Introduced a deterministic base-level despeckle pass executed after bit construction when `edge_smoothing_passes > 0`:
+        - Removes isolated single pixels (requires >=1 of 4-neighbors to keep) and fills single-pixel holes (>=3 of 4-neighbors set) in up to two passes (clamped).
+        - Recomputes collision metrics deterministically after smoothing.
+      - Existing mipchain smoothing retained: when `edge_smoothing_passes > 0`, a separable 1-2-1 smoothing pre-pass is applied prior to each 2x2 downsample for cleaner LOD transitions.
+      - Unit coverage: `test_hit_mask_smoothing` verifies reduced speckles without eliminating the mask; threaded parity test remains green.
     - [ ] (Future) Error recovery for corrupted/partial image data
   - [x] **Function**: `rogue_pixel_mask_load_from_file()` (basic path via SDL_image IMG_Load, fallback safe)
     - [x] File format auto-detection via magic number analysis

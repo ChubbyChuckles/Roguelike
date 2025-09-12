@@ -194,6 +194,11 @@
 			"label": "Rebuild Debug after AVX2 widening and run ctests",
 			"type": "shell",
 			"command": "cmake --build build --config Debug --parallel 12 && ctest --test-dir build -C Debug -j12 --output-on-failure --timeout 90"
+		},
+		{
+			"label": "Reconfigure (Debug), build tests, and run ctests after adding alpha gamma + smoothing",
+			"type": "shell",
+			"command": "cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build --config Debug --parallel 12 && ctest --test-dir build -C Debug -j12 --output-on-failure --timeout 90"
 		}
 	]
 }

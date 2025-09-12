@@ -131,3 +131,13 @@ feat(pixel-mask/loader): deterministic stripe-based threading + SDL_RWops probin
 - Refactor magic-number probing in `rogue_pixel_mask_load_from_file` to SDL_RWops (SDL_RWFromFile/RWread/RWseek/RWclose) to maintain SDL2‑only policy and silence MSVC C4996 warnings from CRT `fopen`.
 - Docs: README updated with threaded loader section and RWops note; Roadmap marks multi-threaded pixel processing complete and probing refactor recorded.
 - Validation: Full Debug build (SDL2) with `ctest -j12` is effectively green; a transient start-screen headless test flaked once but passes on immediate retry. New parity test passes. Subsequent full run remained green across added targets.
+
+feat(pixel-mask/alpha+smoothing): gamma-correct alpha, optional luma-derived alpha, and deterministic despeckle; docs+tests; suite 726/726 green
+
+- Add `alpha_gamma` to `RoguePixelMaskLoadConfig` to gamma-correct normalized alpha prior to thresholding (default 1.0 preserves legacy behavior). Values >1.0 reduce mid-range occupancy.
+- Add `derive_alpha_from_luma` option to derive alpha from luma (Rec.709: 0.2126R + 0.7152G + 0.0722B) when source lacks an alpha channel; default 0 keeps missing-alpha as opaque.
+- Introduce deterministic base-level despeckle when `edge_smoothing_passes > 0`: remove isolated single pixels and fill single-pixel holes in up to two passes; recompute collision metrics after smoothing.
+- Preserve determinism and scalar/SIMD/threaded parity by mirroring logic across single-thread and stripe-based multithread paths and performing deterministic reductions.
+- Tests: add `test_hit_mask_alpha_gamma`, `test_hit_mask_luma_alpha`, and `test_hit_mask_smoothing`; existing `test_hit_mask_threaded_parity` remains green.
+- Docs: README documents `alpha_gamma`, `derive_alpha_from_luma`, and deterministic despeckle; Roadmap marks advanced alpha processing and smoothing complete with notes.
+- Validation: Full Debug run with SDL2 and parallel ctests (`ctest -j12`) is 100% green: 726/726.

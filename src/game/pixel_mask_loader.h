@@ -22,6 +22,9 @@ extern "C"
         int compression_level;     /* 0 = none, 1 = fast RLE (current slice) */
         int mipmap_levels;         /* number of mip levels to generate (>=1). 1 disables. Max 6 */
         int generate_distance_fields; /* 0=none, 1=generate signed distance field (int16 grid) */
+        float alpha_gamma; /* Gamma to apply to normalized alpha before threshold; 1.0 = none */
+        int derive_alpha_from_luma; /* 1: if no alpha channel present, compute alpha from luma of
+                                       RGB */
     } RoguePixelMaskLoadConfig;
 
     typedef struct RoguePixelMaskMetrics
@@ -48,6 +51,8 @@ extern "C"
         c.compression_level = 1; /* enable light RLE by default */
         c.mipmap_levels = 1;     /* caller can raise to request chain */
         c.generate_distance_fields = 0;
+        c.alpha_gamma = 1.0f;
+        c.derive_alpha_from_luma = 0;
         return c;
     }
 

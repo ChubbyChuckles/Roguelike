@@ -12,6 +12,7 @@
 #include "../util/log.h"
 #include "hit_pixel_mask.h" /* for RogueHitPixelMaskFrame helpers */
 #include <limits.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -74,6 +75,8 @@ typedef struct StripeJob
     int y0;
     int y1; /* exclusive */
     float thresh;
+    float alpha_gamma;          /* gamma to apply to normalized alpha */
+    int derive_alpha_from_luma; /* if no alpha channel, derive alpha from luma */
     /* Output */
     uint32_t* out_bits;
     int out_pitch_words;
@@ -90,6 +93,7 @@ static void stripe_job_run(StripeJob* j)
     const int y0 = j->y0;
     const int y1 = j->y1;
     const float thr = j->thresh;
+    const float gamma = (j->alpha_gamma > 0.0f) ? j->alpha_gamma : 1.0f;
     const unsigned char* base = j->base;
     const int pitch = j->pitch;
     const int bpp = j->bpp;
@@ -105,7 +109,7 @@ static void stripe_job_run(StripeJob* j)
         for (int x = 0; x < w; ++x)
         {
             const unsigned char* px = row + (size_t) x * (size_t) bpp;
-            unsigned a = 255; /* default opaque */
+            float an = 1.0f; /* normalized alpha */
             if (fmt->Amask)
             {
                 Uint32 pix = 0;
@@ -129,9 +133,46 @@ static void stripe_job_run(StripeJob* j)
                 }
                 Uint8 r, g, b, aa;
                 SDL_GetRGBA(pix, fmt, &r, &g, &b, &aa);
-                a = aa;
+                an = (float) aa * (1.0f / 255.0f);
             }
-            if (a >= (unsigned) (thr * 255.0f + 0.5f))
+            else if (j->derive_alpha_from_luma)
+            {
+                Uint32 pix = 0;
+                switch (bpp)
+                {
+                case 1:
+                    pix = *px;
+                    break;
+                case 2:
+                    pix = *(const uint16_t*) px;
+                    break;
+                case 3:
+                    if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
+                        pix = (px[0] << 16) | (px[1] << 8) | px[2];
+                    else
+                        pix = px[0] | (px[1] << 8) | (px[2] << 16);
+                    break;
+                case 4:
+                    pix = *(const uint32_t*) px;
+                    break;
+                }
+                Uint8 r, g, b, aa;
+                SDL_GetRGBA(pix, fmt, &r, &g, &b, &aa);
+                /* Rec.709 luma approximation on 0..255 range */
+                float Y = 0.2126f * (float) r + 0.7152f * (float) g + 0.0722f * (float) b;
+                an = Y * (1.0f / 255.0f);
+            }
+            /* Apply gamma if requested */
+            if (gamma != 1.0f)
+            {
+                if (an <= 0.0f)
+                    an = 0.0f;
+                else if (an >= 1.0f)
+                    an = 1.0f;
+                else
+                    an = powf(an, gamma);
+            }
+            if (an >= thr)
             {
                 size_t idx = (size_t) (x >> 5);
                 dst_row[idx] |= (1u << (x & 31));
@@ -585,6 +626,8 @@ int rogue_pixel_mask_build_from_surface(void* sdl_surface_v, const RoguePixelMas
                     jobs[i].y0 = y;
                     jobs[i].y1 = y + take;
                     jobs[i].thresh = thresh;
+                    jobs[i].alpha_gamma = (cfg->alpha_gamma > 0.f) ? cfg->alpha_gamma : 1.0f;
+                    jobs[i].derive_alpha_from_luma = cfg->derive_alpha_from_luma ? 1 : 0;
                     jobs[i].out_bits = out_frame->bits;
                     jobs[i].out_pitch_words = out_frame->pitch_words;
                     jobs[i].collision_pixels = 0;
@@ -632,7 +675,7 @@ int rogue_pixel_mask_build_from_surface(void* sdl_surface_v, const RoguePixelMas
             for (int x = 0; x < w; x++)
             {
                 const unsigned char* px = row + (size_t) x * (size_t) bpp;
-                unsigned a = 255; /* default opaque */
+                float an = 1.0f;
                 if (surf->format->Amask)
                 {
                     Uint32 pix = 0;
@@ -656,9 +699,45 @@ int rogue_pixel_mask_build_from_surface(void* sdl_surface_v, const RoguePixelMas
                     }
                     Uint8 r, g, b, aa;
                     SDL_GetRGBA(pix, surf->format, &r, &g, &b, &aa);
-                    a = aa;
+                    an = (float) aa * (1.0f / 255.0f);
                 }
-                if (a >= (unsigned) (thresh * 255.0f + 0.5f))
+                else if (cfg->derive_alpha_from_luma)
+                {
+                    Uint32 pix = 0;
+                    switch (bpp)
+                    {
+                    case 1:
+                        pix = *px;
+                        break;
+                    case 2:
+                        pix = *(const uint16_t*) px;
+                        break;
+                    case 3:
+                        if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
+                            pix = (px[0] << 16) | (px[1] << 8) | px[2];
+                        else
+                            pix = px[0] | (px[1] << 8) | (px[2] << 16);
+                        break;
+                    case 4:
+                        pix = *(const uint32_t*) px;
+                        break;
+                    }
+                    Uint8 r, g, b, aa;
+                    SDL_GetRGBA(pix, surf->format, &r, &g, &b, &aa);
+                    float Y = 0.2126f * (float) r + 0.7152f * (float) g + 0.0722f * (float) b;
+                    an = Y * (1.0f / 255.0f);
+                }
+                /* Apply gamma */
+                if (cfg->alpha_gamma > 0.0f && cfg->alpha_gamma != 1.0f)
+                {
+                    if (an <= 0.0f)
+                        an = 0.0f;
+                    else if (an >= 1.0f)
+                        an = 1.0f;
+                    else
+                        an = powf(an, cfg->alpha_gamma);
+                }
+                if (an >= thresh)
                 {
                     rogue_hit_mask_set(out_frame, x, y);
                     if (out_metrics)
@@ -666,6 +745,79 @@ int rogue_pixel_mask_build_from_surface(void* sdl_surface_v, const RoguePixelMas
                 }
                 if (out_metrics)
                     out_metrics->total_pixels++;
+            }
+        }
+    }
+    /* Optional base-level despeckle smoothing: remove isolated single pixels and fill single-pixel
+     * holes */
+    if (cfg->edge_smoothing_passes > 0 && out_frame->bits)
+    {
+        const int passes = (cfg->edge_smoothing_passes > 2) ? 2 : cfg->edge_smoothing_passes;
+        const int W = out_frame->width;
+        const int H = out_frame->height;
+        const int PW = out_frame->pitch_words;
+        size_t words_n = (size_t) PW * (size_t) H;
+        uint32_t* tmp = (uint32_t*) calloc(words_n, sizeof(uint32_t));
+        if (tmp)
+        {
+            for (int p = 0; p < passes; ++p)
+            {
+                /* Pass A: remove isolated single pixels */
+                memset(tmp, 0, words_n * sizeof(uint32_t));
+                for (int y = 0; y < H; ++y)
+                {
+                    for (int x = 0; x < W; ++x)
+                    {
+                        int self = bit_get(out_frame->bits, W, H, PW, x, y);
+                        int n = 0;
+                        n += bit_get(out_frame->bits, W, H, PW, x - 1, y);
+                        n += bit_get(out_frame->bits, W, H, PW, x + 1, y);
+                        n += bit_get(out_frame->bits, W, H, PW, x, y - 1);
+                        n += bit_get(out_frame->bits, W, H, PW, x, y + 1);
+                        if (self)
+                        {
+                            if (n >= 1)
+                            {
+                                size_t idx = (size_t) y * PW + (size_t) (x >> 5);
+                                tmp[idx] |= (1u << (x & 31));
+                            }
+                        }
+                        else
+                        {
+                            /* Pass B: fill single-pixel holes */
+                            if (n >= 3)
+                            {
+                                size_t idx = (size_t) y * PW + (size_t) (x >> 5);
+                                tmp[idx] |= (1u << (x & 31));
+                            }
+                        }
+                    }
+                }
+                /* swap */
+                memcpy(out_frame->bits, tmp, words_n * sizeof(uint32_t));
+            }
+            free(tmp);
+            /* Recompute metrics (collision/total) deterministically after smoothing) */
+            if (out_metrics)
+            {
+                uint32_t coll = 0;
+                for (int y = 0; y < H; ++y)
+                {
+                    const uint32_t* row = out_frame->bits + (size_t) y * PW;
+                    for (int xw = 0; xw < PW; ++xw)
+                    {
+                        uint32_t v = row[xw];
+                        /* portable bit count */
+                        v = v - ((v >> 1) & 0x55555555u);
+                        v = (v & 0x33333333u) + ((v >> 2) & 0x33333333u);
+                        v = (v + (v >> 4)) & 0x0F0F0F0Fu;
+                        v = v + (v >> 8);
+                        v = v + (v >> 16);
+                        coll += v & 0x3Fu; /* 6 bits are enough since max popcount 32 */
+                    }
+                }
+                out_metrics->collision_pixels = coll;
+                out_metrics->total_pixels = (uint32_t) ((uint64_t) W * (uint64_t) H);
             }
         }
     }

@@ -127,3 +127,33 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_hit_mask_threaded_parity.c AND N
     endif()
     rogue_add_test(NAME test_hit_mask_threaded_parity COMMAND test_hit_mask_threaded_parity)
 endif()
+
+# Alpha gamma behavior test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_hit_mask_alpha_gamma.c AND NOT TARGET test_hit_mask_alpha_gamma)
+    add_executable(test_hit_mask_alpha_gamma unit/test_hit_mask_alpha_gamma.c)
+    target_link_libraries(test_hit_mask_alpha_gamma PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_hit_mask_alpha_gamma PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(NAME test_hit_mask_alpha_gamma COMMAND test_hit_mask_alpha_gamma)
+endif()
+
+# Luma-derived alpha behavior test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_hit_mask_luma_alpha.c AND NOT TARGET test_hit_mask_luma_alpha)
+    add_executable(test_hit_mask_luma_alpha unit/test_hit_mask_luma_alpha.c)
+    target_link_libraries(test_hit_mask_luma_alpha PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_hit_mask_luma_alpha PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(NAME test_hit_mask_luma_alpha COMMAND test_hit_mask_luma_alpha)
+endif()
+
+# Base-level smoothing/ despeckle test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_hit_mask_smoothing.c AND NOT TARGET test_hit_mask_smoothing)
+    add_executable(test_hit_mask_smoothing unit/test_hit_mask_smoothing.c)
+    target_link_libraries(test_hit_mask_smoothing PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_hit_mask_smoothing PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(NAME test_hit_mask_smoothing COMMAND test_hit_mask_smoothing)
+endif()
