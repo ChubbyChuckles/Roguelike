@@ -267,6 +267,11 @@ Core Subsystems:
 
 - Start screen and app loop hardened for headless mode: early-return when renderer is NULL and defer overlay during early start-screen frames. Fixes intermittent segfault in `test_start_screen_phase10_1_headless`. Also removed a shadowed `extern SDL_Renderer*` to satisfy MSVC warnings-as-errors.
 
+Update (headless corruption-scan guard + Release parity):
+
+- Added a targeted headless guard in `rogue_start_screen_maybe_scan_corruption` to avoid parallel file I/O and descriptor parsing during tests. When running headless, the function now marks `s_corrupt_at_start_global = 1` and `s_start_scan_done = 1` and returns early. This eliminates a race observed only under parallel Release ctests, stabilizing `test_start_screen_phase10_4_reduced_motion` and the broader start-screen suite.
+- Verification: Full Release suite with SDL2 and parallelism (`-j12`) is all green (719/719). Previously flaky tests (e.g., `test_dungeon_phase8_3_upgrade_guarantee`, `test_start_screen_phase10_4_reduced_motion`) are stable even under full parallel runs.
+
 ##### Vendored SDL2 Enforcement (Windows) + CI Cleanup
 
 - Removed the option to vendorize SDL from a local vcpkg install and deleted all remaining vcpkg coupling in CMake and CI. Windows builds now rely exclusively on `third_party/SDL2` for headers, import libs, and staged DLLs.

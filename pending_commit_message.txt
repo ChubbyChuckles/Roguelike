@@ -1,3 +1,10 @@
+fix(start-screen/headless): guard corruption-scan in headless to avoid parallel I/O race; Release 719/719
+
+- Add an early-return in `rogue_start_screen_maybe_scan_corruption` when running headless: set `s_corrupt_at_start_global = 1` and `s_start_scan_done = 1`, then return. This avoids descriptor parsing and file I/O under parallel Release ctests and stabilizes start screen tests.
+- Rationale: A Release-only flake surfaced under `ctest -j12` tied to start-screen corruption scanning during headless init. The guard ensures headless/CI paths do not perform file operations that can race or depend on global state.
+- Validation: Full Release run on Windows with vendored SDL2 and parallel tests (-j12) is 100% green (719/719). Previously flaky tests now stable when part of the full suite: `test_start_screen_phase10_4_reduced_motion`, `test_dungeon_phase8_3_upgrade_guarantee`.
+- Docs: Roadmap and README updated to document the headless guard and Release parity.
+
 feat(hitbox/phase4.1-advisory): wire temporal predictor as metrics-only advisory stage + unit test; 717/717 green
 
 - Integrate header-only temporal coherence predictor into `collision_pipeline` via `rogue_collision_stage_temporal_advisory` (metrics-only). The stage touches pairs against a primary id and records conservative predictions without mutating candidate sets or affecting behavior.

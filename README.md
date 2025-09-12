@@ -386,6 +386,11 @@ CTest/Debug build stabilization (Windows/MSVC multi-config):
 - Added an aggregation target that depends on all unit test executables so they are built by default as part of the ALL target. This eliminates “Not Run” cases where tests hadn’t yet been built in Debug.
 - Result: Full Debug suite executes reliably with parallelism (`-j12`) and is all green (719/719) locally; Release remains green as well.
 
+Headless start screen corruption-scan guard (Release parity):
+
+- In headless mode, `rogue_start_screen_maybe_scan_corruption` now marks the scan as complete and sets the conservative corruption-at-start flag, then returns early. This avoids parallel file I/O and descriptor parsing during test runs and eliminates a Release-only flake observed under `ctest -j12`.
+- Validation: Full Release suite on Windows (vendored SDL2) passes 100% (719/719) with parallelism; previously flaky tests `test_start_screen_phase10_4_reduced_motion` and `test_dungeon_phase8_3_upgrade_guarantee` are stable when run as part of the full set.
+
 ### Worldgen stability (Phase 8.3 upgrade guarantee) – Release validation
 
 - Hardened the dungeon chest placement path to guarantee the upgrade marker (overlay code 14) is placed adjacent to the deepest-room tier chest (10..13) when the upgrade override is forced.
