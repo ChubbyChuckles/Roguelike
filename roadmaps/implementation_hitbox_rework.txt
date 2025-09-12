@@ -247,7 +247,12 @@ Core Subsystems:
  - [x] `test_collision_pipeline_phase2_1_stage_cap`: validates per-stage candidate cap enforcement and metrics/input propagation to downstream stages.
     - [ ] Multi-resolution pixel testing with automatic LOD selection
     - [ ] Scanline optimization for sparse collision shapes
-    - [ ] Bit manipulation tricks for fast mask intersection
+    - [x] Bit manipulation tricks for fast mask intersection
+      - Implemented fast word-wise rectangle queries: `rogue_hit_mask_any_set_in_rect` with clipping and partial-word masks.
+      - Added pairwise same-origin intersection: `rogue_hit_mask_intersect_any_same_origin` with scalar and SSE2 4-word batch paths (runtime-toggleable) and strict determinism.
+      - SSE2 path uses `_mm_and_si128` + `_mm_cmpeq_epi8` + `_mm_movemask_epi8` for zero-detect (SSE2-only; avoids SSE4.1 `_mm_testz_si128`).
+      - New unit test `test_hit_mask_rect_ops` validates correctness, clipping edge cases, and SIMD parity against scalar.
+      - Full Debug ctest run (-j12) green: 720/720 (includes this test); build fixed to pass MSVC /WX by removing unused locals.
     - [ ] SIMD parallel bit operations for bulk pixel tests
 
 ##### Conservative Broad-Phase Epsilon

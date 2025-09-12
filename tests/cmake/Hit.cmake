@@ -96,3 +96,13 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_hit_mask_multiformat.c AND NOT T
     endif()
     rogue_add_test(NAME test_hit_mask_multiformat COMMAND test_hit_mask_multiformat)
 endif()
+
+# Bitwise rectangle utilities + SIMD parity
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_hit_mask_rect_ops.c AND NOT TARGET test_hit_mask_rect_ops)
+    add_executable(test_hit_mask_rect_ops unit/test_hit_mask_rect_ops.c)
+    target_link_libraries(test_hit_mask_rect_ops PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_hit_mask_rect_ops PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(NAME test_hit_mask_rect_ops COMMAND test_hit_mask_rect_ops)
+endif()

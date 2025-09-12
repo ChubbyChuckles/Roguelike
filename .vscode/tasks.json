@@ -164,6 +164,31 @@
 			"type": "shell",
 			"command": "cmake --build build --config Debug --parallel 12 && ctest --test-dir build -C Debug -j 12 --output-on-failure --timeout 90",
 			"group": "build"
+		},
+		{
+			"label": "Reconfigure (Debug), build tests, and run ctests for rect ops",
+			"type": "shell",
+			"command": "cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build --config Debug --parallel 12 && ctest --test-dir build -C Debug -j12 --output-on-failure --timeout 90"
+		},
+		{
+			"label": "Rebuild Debug after rect ops and rerun ctests",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 12 && ctest --test-dir build -C Debug -j12 --output-on-failure --timeout 90"
+		},
+		{
+			"label": "Rebuild Debug after SSE2 fix and run ctests",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 12 && ctest --test-dir build -C Debug -j12 --output-on-failure --timeout 90"
+		},
+		{
+			"label": "Rebuild Debug after removing unused vars and run ctests",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 12 && ctest --test-dir build -C Debug -j12 --output-on-failure --timeout 90"
+		},
+		{
+			"label": "Run ctests after SSE2 fix",
+			"type": "shell",
+			"command": "ctest --test-dir build -C Debug -j12 --output-on-failure --timeout 90"
 		}
 	]
 }

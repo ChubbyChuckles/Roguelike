@@ -1,3 +1,22 @@
+feat(hitmask): fast rect queries + SSE2-safe SIMD zero-check and tests
+
+- Implement fast bitwise rectangle query `rogue_hit_mask_any_set_in_rect` and same-origin pairwise intersection `rogue_hit_mask_intersect_any_same_origin`.
+- Add SSE2 accelerated path batching 4x32-bit words; replace SSE4.1 `_mm_testz_si128` with SSE2-compatible zero check using `_mm_cmpeq_epi8` + `_mm_movemask_epi8` to fix MSVC build.
+- Remove unused locals flagged under /WX in `hit_pixel_mask.c`.
+- Unit test `test_hit_mask_rect_ops` covers correctness, clipping, and scalar↔SIMD parity; full Debug ctests (-j12) green: 720/720.
+- Roadmap updated to mark "Bit manipulation tricks for fast mask intersection" as complete with notes.
+
+feat(hit/pixel): add fast bitwise rectangle ops + SIMD parity tests
+
+- Add `rogue_hit_mask_any_set_in_rect` and `rogue_hit_mask_intersect_any_same_origin` to
+	`hit_pixel_mask.{h,c}` with clipping and fast word-wise scanning.
+- SSE2-accelerated intersection path batches 4x32-bit words; guard with runtime toggle
+	`rogue_hit_mask_simd_set_enabled(0|1)` for deterministic scalar/SIMD parity checks.
+- New unit `test_hit_mask_rect_ops` validates correctness (clipping, empty, disjoint/overlap)
+	and asserts scalar vs SIMD equivalence; wired into CTest. Full Debug run (-j12) green (720/720).
+- Docs: README updated with new APIs and test coverage; roadmap next steps call out wider SIMD
+	and pipeline integration for full mask overlap with hierarchical/multi-res selection.
+
 feat(collision/pixel): LOD-aware pixel-perfect stage + tests; full suite green
 
 - Upgrade `rogue_collision_stage_pixel_perfect` to use mipmap-aware sampling:

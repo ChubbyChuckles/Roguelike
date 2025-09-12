@@ -1,5 +1,6 @@
 /* Pixel-based hit detection (Slice A: structures + loader scaffolding) */
 #pragma once
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -141,6 +142,21 @@ extern "C"
                                              float player_x, float player_y, float pose_dx,
                                              float pose_dy, float scale, float angle_rad,
                                              float* out_wx, float* out_wy);
+
+    /* -------- Fast bitwise rectangle utilities (scalar + optional SIMD) -------- */
+    /* Runtime toggle to allow tests to force scalar behavior even when SIMD compiled */
+    void rogue_hit_mask_simd_set_enabled(int enabled);
+
+    /* Returns 1 if any bit set within [x, x+w) x [y, y+h), clipped to frame bounds. */
+    int rogue_hit_mask_any_set_in_rect(const RogueHitPixelMaskFrame* f, int x, int y, int w, int h);
+
+    /* Returns 1 if any overlapping bit between two frames within a common rectangle region
+        specified in each frame's local coordinates. This function assumes the regions are
+        the same size (w,h) but independently positioned in each frame at (ax,ay) and (bx,by).
+        Bits are ANDed positionally; rectangles are internally clipped to each frame. */
+    int rogue_hit_mask_intersect_any_same_origin(const RogueHitPixelMaskFrame* a, int ax, int ay,
+                                                 const RogueHitPixelMaskFrame* b, int bx, int by,
+                                                 int w, int h);
 
 #ifdef __cplusplus
 }

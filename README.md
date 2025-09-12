@@ -95,6 +95,11 @@ Pixel-perfect stage LOD (update):
 - The pixel-perfect refinement stage is now LOD-aware. For BALANCED it samples the center at a selected mip level derived from distance to the view center; for PRECISE/ULTRA it samples a 3x3 region at that level. FAST retains deterministic thinning only. Helpers `rogue_hit_mask_test_level` and `rogue_hit_mask_level_coords` support mip-aware sampling. The selected mip index is clamped to the mask’s available range `[0..mipmap_count-1]` before coordinate mapping to ensure valid sampling and deterministic behavior across assets with fewer levels.
 - Unit test `test_collision_pixel_lod` validates that far candidates can be retained via higher mip occupancy even when the base center is empty; near candidates use base-level sampling and can be pruned. The test also covers the mip-level clamping path. Full Debug/Release runs remain 100% green under `-j12` (currently 720/720 tests).
 
+Bitwise mask rectangle utilities (new):
+
+- Added fast bitwise rectangle queries on pixel masks: `rogue_hit_mask_any_set_in_rect` and pairwise intersection `rogue_hit_mask_intersect_any_same_origin` (word-wise with clipping). An SSE2 path processes 4 words at a time behind a runtime toggle `rogue_hit_mask_simd_set_enabled(0|1)`. Behavior is deterministic and scalar/SIMD results are identical.
+- Unit test `test_hit_mask_rect_ops` covers correctness (clipping, empty regions, disjoint/overlap) and asserts scalar vs SIMD parity.
+
 ##### Phase 4.1 – Temporal Predictor (Advisory, Metrics-Only)
 
 - Added a lightweight temporal coherence predictor (`src/game/spatial_acceleration.h`) and wired it into the collision pipeline as an advisory stage only. The stage `rogue_collision_stage_temporal_advisory` collects metrics by touching pairs against a primary id and emits conservative “skip” predictions without changing candidate lists or gameplay behavior.
