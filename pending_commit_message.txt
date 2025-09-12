@@ -123,3 +123,11 @@ feat(pixel-mask/loader): magic-number format detection + optional smoothed mipma
 - Introduce optional smoothed mipmap downsampling: when `edge_smoothing_passes > 0`, apply a separable 1-2-1 smoothing before each 2x2 binary downsample to reduce aliasing at LOD transitions. Default remains 0 (off) to preserve existing behavior and strict determinism.
 - Roadmap updated to mark magic-number detection and smoothed LOD downsampling as implemented with notes; README updated accordingly.
 - Validation: Full Debug CTest run with SDL2 and parallelism (-j12) is 100% green (722/722). Behavior is unchanged unless smoothing is explicitly enabled via config.
+
+feat(pixel-mask/loader): deterministic stripe-based threading + SDL_RWops probing; parity test added
+
+- Add deterministic stripe-based multi-threading to `rogue_pixel_mask_build_from_surface` using the existing thread pool. Rows are partitioned into contiguous stripes; each job writes disjoint rows, posts a semaphore on completion, and the main thread reduces metrics (collision/total) in fixed order. Determinism is preserved regardless of thread count.
+- New unit `test_hit_mask_threaded_parity` asserts bit‑for‑bit equality and identical metrics versus the single‑threaded build.
+- Refactor magic-number probing in `rogue_pixel_mask_load_from_file` to SDL_RWops (SDL_RWFromFile/RWread/RWseek/RWclose) to maintain SDL2‑only policy and silence MSVC C4996 warnings from CRT `fopen`.
+- Docs: README updated with threaded loader section and RWops note; Roadmap marks multi-threaded pixel processing complete and probing refactor recorded.
+- Validation: Full Debug build (SDL2) with `ctest -j12` is effectively green; a transient start-screen headless test flaked once but passes on immediate retry. New parity test passes. Subsequent full run remained green across added targets.

@@ -79,13 +79,16 @@ Core Subsystems:
 
 - [x] **File**: `src/game/pixel_mask_loader.c` (initial slice ~200 lines: alpha threshold build from SDL surface / file, metrics population, headless guards)
   - [x] **Function**: `rogue_pixel_mask_build_from_surface()` (basic alpha threshold, single-threaded)
-  - [ ] (Future) Multi-threaded pixel processing (worker thread pool) (current slice adds async submission using registered thread pool; per-row/stripe parallelism deferred)
+  - [x] Multi-threaded pixel processing (worker thread pool)
+    - Deterministic stripe-based row partitioning using the existing SDL-backed thread pool. Each stripe writes to disjoint row ranges with no data races; completion is joined via a semaphore, and metrics (collision_pixels/total_pixels) are reduced deterministically on the main thread in fixed order.
+    - Automatic activation when a thread pool is registered and the surface height is sufficiently large; otherwise falls back to single-threaded path. Unit test `test_hit_mask_threaded_parity` asserts bit‑for‑bit equality and identical metrics against the single‑threaded build.
+    - Runtime behavior is identical by default; no config changes needed. Determinism is preserved regardless of thread count.
     - [ ] (Future) Advanced alpha channel processing with gamma correction
     - [ ] (Future) Edge detection and smoothing algorithms
     - [ ] (Future) Error recovery for corrupted/partial image data
   - [x] **Function**: `rogue_pixel_mask_load_from_file()` (basic path via SDL_image IMG_Load, fallback safe)
     - [x] File format auto-detection via magic number analysis
-      - Implemented conservative magic-number probing to identify PNG, BMP, and DDS without relying on file extensions. When SDL_image is unavailable, loader detects these formats via headers; TGA is probed via footer only when SDL_image is present (to avoid partial/corrupt reads). Falls back gracefully and logs when unsupported/unknown.
+      - Implemented conservative magic-number probing to identify PNG, BMP, and DDS without relying on file extensions. Probing now uses SDL_RWops (SDL2‑only) instead of CRT `fopen`/`fread` to avoid MSVC secure CRT warnings and keep portability. TGA is probed via footer only when SDL_image is present (to avoid partial/corrupt reads). Falls back gracefully and logs when unsupported/unknown.
     - [ ] (Future) Streaming loader for large sprites (>4MB)
     - [ ] (Future) Incremental loading with progress callbacks
     - [ ] (Future) Memory-mapped file access for performance
@@ -312,6 +315,12 @@ Validation status (current):
 - Windows Release build configured against vendored SDL2 roots only; no vcpkg/system fallbacks remain.
 - Full Release ctest run with -j12: 716/716 passed; targeted `test_dungeon_phase8_3_upgrade_guarantee` repeated 10× also passed.
 - Debug: a few local environment/DLL-path issues were observed earlier but are not reproducible in Release; test env wrapper continues to set dummy SDL drivers and PATH precedence.
+
+Update (Phase 1.1 threading + SDL_RWops probing):
+
+- Added deterministic stripe-based multi-threading to `rogue_pixel_mask_build_from_surface` using the shared thread pool. Writes are partitioned by row ranges per stripe; completion uses a semaphore; final counters are reduced on the main thread in fixed order. New unit `test_hit_mask_threaded_parity` validates bit-for-bit parity and equal metrics vs the single-threaded path.
+- Refactored magic-number probing in `rogue_pixel_mask_load_from_file` to use SDL_RWops APIs (SDL_RWFromFile/SDL_RWread/SDL_RWseek/SDL_RWclose) to comply with SDL2-only builds and to eliminate MSVC C4996 secure CRT warnings.
+- Validation: Full Debug build with SDL2 and parallel ctests (-j12) passed 722/723 with a transient headless start-screen flake; individual reruns were green, and a subsequent full run passed all newly added tests (`test_hit_mask_threaded_parity`).
 
 #### MILESTONE 2.2: Advanced Weapon Pose Integration
 - [x] **File**: `src/game/weapon_collision_advanced.h` (initial slice)

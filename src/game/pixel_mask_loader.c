@@ -55,6 +55,103 @@ static RogueThreadPool* g_registered_thread_pool = NULL;
 
 void rogue_pixel_mask_set_thread_pool(RogueThreadPool* tp) { g_registered_thread_pool = tp; }
 
+/* ------------------------------------------------------------------------------------------------
+   Deterministic stripe-based parallelization for mask build
+   We partition rows into contiguous stripes and submit them to the shared thread pool when
+   available. Each job writes to disjoint rows, so no synchronization on the output buffer is
+   required. Completion is coordinated via a semaphore (one post per finished stripe).
+   Metrics (collision/total) are reduced on the main thread in a fixed order.
+*/
+typedef struct StripeJob
+{
+    /* Input surface information */
+    const unsigned char* base;
+    int pitch;
+    int bpp;
+    SDL_PixelFormat* fmt;
+    int w;
+    int h;
+    int y0;
+    int y1; /* exclusive */
+    float thresh;
+    /* Output */
+    uint32_t* out_bits;
+    int out_pitch_words;
+    /* Local counters */
+    uint32_t collision_pixels;
+    uint32_t total_pixels;
+    /* Completion signaling */
+    RogueSem* done_sem;
+} StripeJob;
+
+static void stripe_job_run(StripeJob* j)
+{
+    const int w = j->w;
+    const int y0 = j->y0;
+    const int y1 = j->y1;
+    const float thr = j->thresh;
+    const unsigned char* base = j->base;
+    const int pitch = j->pitch;
+    const int bpp = j->bpp;
+    SDL_PixelFormat* fmt = j->fmt;
+    uint32_t* out_bits = j->out_bits;
+    const int pitch_words = j->out_pitch_words;
+    uint32_t coll = 0, tot = 0;
+
+    for (int y = y0; y < y1; ++y)
+    {
+        const unsigned char* row = base + (size_t) y * (size_t) pitch;
+        uint32_t* dst_row = out_bits + (size_t) y * (size_t) pitch_words;
+        for (int x = 0; x < w; ++x)
+        {
+            const unsigned char* px = row + (size_t) x * (size_t) bpp;
+            unsigned a = 255; /* default opaque */
+            if (fmt->Amask)
+            {
+                Uint32 pix = 0;
+                switch (bpp)
+                {
+                case 1:
+                    pix = *px;
+                    break;
+                case 2:
+                    pix = *(const uint16_t*) px;
+                    break;
+                case 3:
+                    if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
+                        pix = (px[0] << 16) | (px[1] << 8) | px[2];
+                    else
+                        pix = px[0] | (px[1] << 8) | (px[2] << 16);
+                    break;
+                case 4:
+                    pix = *(const uint32_t*) px;
+                    break;
+                }
+                Uint8 r, g, b, aa;
+                SDL_GetRGBA(pix, fmt, &r, &g, &b, &aa);
+                a = aa;
+            }
+            if (a >= (unsigned) (thr * 255.0f + 0.5f))
+            {
+                size_t idx = (size_t) (x >> 5);
+                dst_row[idx] |= (1u << (x & 31));
+                coll++;
+            }
+            tot++;
+        }
+    }
+    j->collision_pixels = coll;
+    j->total_pixels = tot;
+}
+
+static void stripe_worker(void* user)
+{
+    StripeJob* j = (StripeJob*) user;
+    stripe_job_run(j);
+    if (j->done_sem)
+        (void) rogue_sem_post(j->done_sem);
+}
+
 /* Distance Field Generation (Signed) ---------------------------------------------------------- */
 /* We compute a simple 3x3 chamfer distance transform for inside and outside, then combine to
    produce signed distances (positive inside). Values are stored scaled by scale (default 10). */
@@ -455,48 +552,121 @@ int rogue_pixel_mask_build_from_surface(void* sdl_surface_v, const RoguePixelMas
     const float thresh = (cfg->alpha_threshold <= 0.f)
                              ? 0.f
                              : (cfg->alpha_threshold >= 1.f ? 1.f : cfg->alpha_threshold);
-    int bpp = surf->format->BytesPerPixel;
+    const int bpp = surf->format->BytesPerPixel;
     const unsigned char* base = (const unsigned char*) surf->pixels;
-    for (int y = 0; y < h; y++)
+
+    int used_threads = 0;
+    /* Use stripe-based threading if a pool is registered and the image is tall enough. */
+    if (g_registered_thread_pool && g_registered_thread_pool->threads &&
+        g_registered_thread_pool->thread_count > 1 && h >= 32)
     {
-        const unsigned char* row = base + (size_t) y * surf->pitch;
-        for (int x = 0; x < w; x++)
+        const int tc = g_registered_thread_pool->thread_count;
+        int stripes = tc;
+        if (stripes > h)
+            stripes = h;
+        RogueSem done_sem;
+        if (rogue_sem_init(&done_sem, 0) == 0)
         {
-            const unsigned char* px = row + x * bpp;
-            unsigned a = 255; /* default opaque */
-            if (surf->format->Amask)
+            StripeJob* jobs = (StripeJob*) calloc((size_t) stripes, sizeof(StripeJob));
+            if (jobs)
             {
-                Uint32 pix = 0;
-                switch (bpp)
+                int rows_per = h / stripes;
+                int rem = h % stripes;
+                int y = 0;
+                for (int i = 0; i < stripes; ++i)
                 {
-                case 1:
-                    pix = *px;
-                    break;
-                case 2:
-                    pix = *(const uint16_t*) px;
-                    break;
-                case 3:
-                    if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
-                        pix = (px[0] << 16) | (px[1] << 8) | px[2];
-                    else
-                        pix = px[0] | (px[1] << 8) | (px[2] << 16);
-                    break;
-                case 4:
-                    pix = *(const uint32_t*) px;
-                    break;
+                    int take = rows_per + (i < rem ? 1 : 0);
+                    jobs[i].base = base;
+                    jobs[i].pitch = surf->pitch;
+                    jobs[i].bpp = bpp;
+                    jobs[i].fmt = surf->format;
+                    jobs[i].w = w;
+                    jobs[i].h = h;
+                    jobs[i].y0 = y;
+                    jobs[i].y1 = y + take;
+                    jobs[i].thresh = thresh;
+                    jobs[i].out_bits = out_frame->bits;
+                    jobs[i].out_pitch_words = out_frame->pitch_words;
+                    jobs[i].collision_pixels = 0;
+                    jobs[i].total_pixels = 0;
+                    jobs[i].done_sem = &done_sem;
+                    y += take;
                 }
-                Uint8 r, g, b, aa;
-                SDL_GetRGBA(pix, surf->format, &r, &g, &b, &aa);
-                a = aa;
-            }
-            if (a >= (unsigned) (thresh * 255.0f + 0.5f))
-            {
-                rogue_hit_mask_set(out_frame, x, y);
+                /* Submit all stripes; if queue is full, run inline. */
+                for (int i = 0; i < stripes; ++i)
+                {
+                    int ok =
+                        rogue_thread_pool_submit(g_registered_thread_pool, stripe_worker, &jobs[i]);
+                    if (ok != 0)
+                    {
+                        /* Fallback: run inline to avoid blocking */
+                        stripe_worker(&jobs[i]);
+                    }
+                }
+                /* Wait for all stripes to complete */
+                for (int i = 0; i < stripes; ++i)
+                {
+                    (void) rogue_sem_wait(&done_sem);
+                }
+                /* Reduce metrics deterministically */
                 if (out_metrics)
-                    out_metrics->collision_pixels++;
+                {
+                    for (int i = 0; i < stripes; ++i)
+                    {
+                        out_metrics->collision_pixels += jobs[i].collision_pixels;
+                        out_metrics->total_pixels += jobs[i].total_pixels;
+                    }
+                }
+                free(jobs);
+                used_threads = stripes;
             }
-            if (out_metrics)
-                out_metrics->total_pixels++;
+            rogue_sem_destroy(&done_sem);
+        }
+    }
+    if (!used_threads)
+    {
+        /* Fallback: single-threaded build */
+        for (int y = 0; y < h; y++)
+        {
+            const unsigned char* row = base + (size_t) y * (size_t) surf->pitch;
+            for (int x = 0; x < w; x++)
+            {
+                const unsigned char* px = row + (size_t) x * (size_t) bpp;
+                unsigned a = 255; /* default opaque */
+                if (surf->format->Amask)
+                {
+                    Uint32 pix = 0;
+                    switch (bpp)
+                    {
+                    case 1:
+                        pix = *px;
+                        break;
+                    case 2:
+                        pix = *(const uint16_t*) px;
+                        break;
+                    case 3:
+                        if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
+                            pix = (px[0] << 16) | (px[1] << 8) | px[2];
+                        else
+                            pix = px[0] | (px[1] << 8) | (px[2] << 16);
+                        break;
+                    case 4:
+                        pix = *(const uint32_t*) px;
+                        break;
+                    }
+                    Uint8 r, g, b, aa;
+                    SDL_GetRGBA(pix, surf->format, &r, &g, &b, &aa);
+                    a = aa;
+                }
+                if (a >= (unsigned) (thresh * 255.0f + 0.5f))
+                {
+                    rogue_hit_mask_set(out_frame, x, y);
+                    if (out_metrics)
+                        out_metrics->collision_pixels++;
+                }
+                if (out_metrics)
+                    out_metrics->total_pixels++;
+            }
         }
     }
     SDL_UnlockSurface(surf);
@@ -566,13 +736,13 @@ int rogue_pixel_mask_load_from_file(const char* path, const RoguePixelMaskLoadCo
     if (!surf)
     {
         /* Try to detect by magic numbers instead of extension to avoid mislabeling. */
-        FILE* f = fopen(path, "rb");
         unsigned char hdr[64];
         size_t r = 0;
-        if (f)
+        SDL_RWops* rw = SDL_RWFromFile(path, "rb");
+        if (rw)
         {
-            r = fread(hdr, 1, sizeof(hdr), f);
-            fclose(f);
+            r = (size_t) SDL_RWread(rw, hdr, 1, sizeof(hdr));
+            SDL_RWclose(rw);
         }
         int is_png = 0, is_bmp = 0, is_dds = 0, is_tga = 0;
         if (r >= 8)
@@ -595,17 +765,17 @@ int rogue_pixel_mask_load_from_file(const char* path, const RoguePixelMaskLoadCo
         {
             /* Weak TGA detection: many TGAs lack a strong header. We avoid false positives
                and rely on SDL_image when present. Mark as TGA only if footer exists: */
-            FILE* ft = fopen(path, "rb");
-            if (ft)
+            SDL_RWops* rwt = SDL_RWFromFile(path, "rb");
+            if (rwt)
             {
-                if (fseek(ft, -26, SEEK_END) == 0) /* 26-byte signature footer */
+                if (SDL_RWseek(rwt, -26, RW_SEEK_END) >= 0) /* 26-byte signature footer */
                 {
                     unsigned char footer[26];
-                    size_t rr = fread(footer, 1, sizeof(footer), ft);
+                    size_t rr = (size_t) SDL_RWread(rwt, footer, 1, sizeof(footer));
                     if (rr == sizeof(footer) && memcmp(footer + 8, "TRUEVISION-XFILE.", 18) == 0)
                         is_tga = 1;
                 }
-                fclose(ft);
+                SDL_RWclose(rwt);
             }
         }
         if (is_bmp)

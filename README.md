@@ -13,6 +13,20 @@ Pixel-perfect collision foundation plus several advanced features are now implem
 - Simple word-run RLE compression (opt-in via `compression_level > 0`) stores a secondary buffer; format tag = 1 (future codecs reserved).
 - Metrics collected: total / collision pixels, solid ratio, build time (ns), memory footprint, compressed size, mip levels.
 - Async path submits a build job to the shared thread pool when present; otherwise falls back synchronously (unit-tested).
+- Threaded pixel mask build (deterministic stripes): When a global thread pool is registered, `rogue_pixel_mask_build_from_surface` partitions rows into contiguous stripes and processes them on worker threads. Writes are disjoint per stripe and a semaphore join ensures completion. Final metrics are reduced on the main thread in a fixed order, guaranteeing bit‑for‑bit determinism regardless of thread count. Unit `test_hit_mask_threaded_parity` validates threaded vs single‑threaded equality.
+
+Registering the shared pool (example):
+
+```c
+// During engine init
+extern RogueThreadPool* g_pool; // created via existing threading subsystem
+rogue_pixel_mask_set_thread_pool(g_pool);
+```
+
+No configuration changes are required; small images or missing pool fall back to the single-threaded path automatically.
+
+IO probing note (SDL_RWops): Magic-number detection in `rogue_pixel_mask_load_from_file` now uses SDL_RWops (SDL_RWFromFile/SDL_RWread/SDL_RWseek/SDL_RWclose) to adhere to SDL2‑only builds and avoid MSVC secure CRT warnings. Formats: PNG, BMP, DDS via headers; TGA via footer when SDL_image is available; unknown headers fall back gracefully.
+
 - Unit tests: `test_hit_mask_basic`, `test_hit_mask_integration`, `test_hit_mask_distance_field` (SDF + async), and new `test_hit_mask_multiformat` (BMP fallback) keep regression coverage high.
 
 Recent (Milestone 1.2 slice): Added item collision cache invalidation APIs (`rogue_item_collision_cache_invalidate_handle`, `_invalidate_all`), basic asset timestamp capture, and a lightweight RW lock scaffold (write-serialized) ahead of future concurrent read access & hot-reload driven automatic invalidation.

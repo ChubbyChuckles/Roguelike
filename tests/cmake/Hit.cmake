@@ -117,3 +117,13 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_collision_pipeline_simd_microben
     rogue_add_test(NAME test_collision_pipeline_simd_microbench COMMAND test_collision_pipeline_simd_microbench)
     set_property(TEST test_collision_pipeline_simd_microbench PROPERTY LABELS perf)
 endif()
+
+# Pixel mask loader threaded parity test
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/test_hit_mask_threaded_parity.c AND NOT TARGET test_hit_mask_threaded_parity)
+    add_executable(test_hit_mask_threaded_parity unit/test_hit_mask_threaded_parity.c)
+    target_link_libraries(test_hit_mask_threaded_parity PRIVATE rogue_core)
+    if(ROGUE_ENABLE_SDL)
+        target_compile_definitions(test_hit_mask_threaded_parity PRIVATE ROGUE_HAVE_SDL=1)
+    endif()
+    rogue_add_test(NAME test_hit_mask_threaded_parity COMMAND test_hit_mask_threaded_parity)
+endif()
