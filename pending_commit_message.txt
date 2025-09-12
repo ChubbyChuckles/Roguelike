@@ -116,3 +116,10 @@ perf(collision): add SIMD micro-benchmark (metrics-only, perf label)
 - Labeled `perf` so it can be filtered alongside other performance tests.
 - Determinism maintained: results are validated for scalar/SSE2/AVX2 parity before timing; benchmark is headless-safe and uses the same SDL test env.
 - Docs: README adds a "SIMD micro-benchmark" section with run instructions and example output; roadmap notes the benchmark and determinism guarantees.
+
+feat(pixel-mask/loader): magic-number format detection + optional smoothed mipmaps; defaults unchanged; suite 722/722
+
+- Add conservative magic-number probing in `rogue_pixel_mask_load_from_file` to identify PNG/BMP/DDS without relying on file extensions. When SDL_image is absent, these formats are still detected via headers; TGA remains SDL_image-backed. Unknown/unsupported headers fall back gracefully with a log line.
+- Introduce optional smoothed mipmap downsampling: when `edge_smoothing_passes > 0`, apply a separable 1-2-1 smoothing before each 2x2 binary downsample to reduce aliasing at LOD transitions. Default remains 0 (off) to preserve existing behavior and strict determinism.
+- Roadmap updated to mark magic-number detection and smoothed LOD downsampling as implemented with notes; README updated accordingly.
+- Validation: Full Debug CTest run with SDL2 and parallelism (-j12) is 100% green (722/722). Behavior is unchanged unless smoothing is explicitly enabled via config.

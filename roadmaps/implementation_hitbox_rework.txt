@@ -84,7 +84,8 @@ Core Subsystems:
     - [ ] (Future) Edge detection and smoothing algorithms
     - [ ] (Future) Error recovery for corrupted/partial image data
   - [x] **Function**: `rogue_pixel_mask_load_from_file()` (basic path via SDL_image IMG_Load, fallback safe)
-  - [ ] (Future) File format auto-detection via magic number analysis (current slice uses extension-based fallback for BMP when SDL_image unavailable)
+    - [x] File format auto-detection via magic number analysis
+      - Implemented conservative magic-number probing to identify PNG, BMP, and DDS without relying on file extensions. When SDL_image is unavailable, loader detects these formats via headers; TGA is probed via footer only when SDL_image is present (to avoid partial/corrupt reads). Falls back gracefully and logs when unsupported/unknown.
     - [ ] (Future) Streaming loader for large sprites (>4MB)
     - [ ] (Future) Incremental loading with progress callbacks
     - [ ] (Future) Memory-mapped file access for performance
@@ -95,7 +96,8 @@ Core Subsystems:
     - [ ] SIMD optimizations for bulk bit operations (deferred)
     - [ ] Compression ratio analysis and auto-selection (deferred)
   - [x] **Function**: `rogue_pixel_mask_generate_mipmaps()` (initial slice: binary OR 2x2 downsample chain)
-    - [ ] Gaussian blur downsampling for clean LOD transitions (future enhancement)
+    - [x] Optional smoothed downsampling for cleaner LOD transitions
+      - Added a separable 1-2-1 smoothing option applied prior to each 2x2 binary downsample when `edge_smoothing_passes > 0`. Defaults to 0 (off) to preserve previous behavior and strict determinism. Pass count is clamped to a small range to keep costs bounded.
     - [x] Preserve collision shape integrity across scales (binary occupancy)
     - [ ] Automatic threshold adjustment per mipmap level (deferred)
     - [ ] Quality metrics for mipmap chain validation (deferred)

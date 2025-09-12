@@ -12,6 +12,7 @@
 #include "../util/log.h"
 #include "hit_pixel_mask.h" /* for RogueHitPixelMaskFrame helpers */
 #include <limits.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -237,8 +238,64 @@ static void* rle_compress_words(const uint32_t* words, size_t count, size_t* out
 }
 
 /* Generate binary mipmaps (bit OR of 2x2 parent texels). Allocates mipmaps array inside frame. */
+/* Helper: apply a simple separable 1-2-1 smoothing pass on a binary occupancy buffer.
+   The input is interpreted as 0/1 per pixel. Writes into a temporary float grid and
+   thresholds back to binary (>=0.5) to produce a lightly smoothed mask.
+   This is conservative: smoothing only adds bits when neighborhood support exists.
+*/
+static inline int bit_get(const uint32_t* bits, int w, int h, int pitch_words, int x, int y)
+{
+    if ((unsigned) x >= (unsigned) w || (unsigned) y >= (unsigned) h)
+        return 0;
+    const uint32_t* row = bits + (size_t) y * (size_t) pitch_words;
+    return (int) ((row[(size_t) (x >> 5)] >> (x & 31)) & 1u);
+}
+
+static void smooth_occupancy_binary(const uint32_t* in_bits, int w, int h, int pitch_words,
+                                    uint32_t* out_bits)
+{
+    /* Horizontal pass into float row buffer, then vertical with threshold. */
+    float* tmp = (float*) calloc((size_t) w * (size_t) h, sizeof(float));
+    if (!tmp)
+    {
+        /* Fallback: copy input. */
+        memcpy(out_bits, in_bits, (size_t) pitch_words * (size_t) h * sizeof(uint32_t));
+        return;
+    }
+    /* Horizontal 1-2-1 */
+    for (int y = 0; y < h; ++y)
+    {
+        float* rowf = tmp + (size_t) y * w;
+        for (int x = 0; x < w; ++x)
+        {
+            int a = bit_get(in_bits, w, h, pitch_words, x - 1, y);
+            int b = bit_get(in_bits, w, h, pitch_words, x, y);
+            int c = bit_get(in_bits, w, h, pitch_words, x + 1, y);
+            rowf[x] = (a + 2.0f * b + c) * (1.0f / 4.0f);
+        }
+    }
+    /* Vertical 1-2-1 + threshold back to bits */
+    memset(out_bits, 0, (size_t) pitch_words * (size_t) h * sizeof(uint32_t));
+    for (int y = 0; y < h; ++y)
+    {
+        for (int x = 0; x < w; ++x)
+        {
+            float a = (y > 0) ? tmp[(size_t) (y - 1) * w + x] : 0.0f;
+            float b = tmp[(size_t) y * w + x];
+            float c = (y + 1 < h) ? tmp[(size_t) (y + 1) * w + x] : 0.0f;
+            float v = (a + 2.0f * b + c) * (1.0f / 4.0f);
+            if (v >= 0.5f)
+            {
+                size_t idx = (size_t) y * pitch_words + (size_t) (x >> 5);
+                out_bits[idx] |= (1u << (x & 31));
+            }
+        }
+    }
+    free(tmp);
+}
+
 static int generate_mipmaps(struct RogueHitPixelMaskFrame* frame, int requested_levels,
-                            RoguePixelMaskMetrics* metrics)
+                            RoguePixelMaskMetrics* metrics, int smoothing_passes)
 {
     if (!frame || requested_levels <= 1)
     {
@@ -292,6 +349,19 @@ static int generate_mipmaps(struct RogueHitPixelMaskFrame* frame, int requested_
         ml->bits = (uint32_t*) calloc(words, sizeof(uint32_t));
         if (!ml->bits)
             return 0;
+        /* Optional smoothing on parent occupancy prior to downsample. */
+        uint32_t* smoothed_parent = NULL;
+        if (smoothing_passes > 0 && prev_bits)
+        {
+            smoothed_parent =
+                (uint32_t*) calloc((size_t) prev_pitch_words * (size_t) prev_h, sizeof(uint32_t));
+            if (smoothed_parent)
+            {
+                smooth_occupancy_binary(prev_bits, prev_w, prev_h, prev_pitch_words,
+                                        smoothed_parent);
+                prev_bits = smoothed_parent;
+            }
+        }
         for (int y = 0; y < ml->height; ++y)
         {
             for (int x = 0; x < ml->width; ++x)
@@ -321,6 +391,8 @@ static int generate_mipmaps(struct RogueHitPixelMaskFrame* frame, int requested_
                 }
             }
         }
+        if (smoothed_parent)
+            free(smoothed_parent);
         prev_bits = ml->bits;
         prev_w = ml->width;
         prev_h = ml->height;
@@ -442,7 +514,8 @@ int rogue_pixel_mask_build_from_surface(void* sdl_surface_v, const RoguePixelMas
     if (cfg->mipmap_levels > 1)
     {
         /* condition is runtime-configurable even if optimizer sees constant during tests */
-        if (!generate_mipmaps(out_frame, cfg->mipmap_levels, out_metrics))
+        if (!generate_mipmaps(out_frame, cfg->mipmap_levels, out_metrics,
+                              cfg->edge_smoothing_passes))
         {
             /* leave base valid; on failure just skip advanced features */
             if (out_metrics)
@@ -486,41 +559,70 @@ int rogue_pixel_mask_load_from_file(const char* path, const RoguePixelMaskLoadCo
     return 0;
 #else
     SDL_Surface* surf = NULL;
+    /* Prefer SDL_image when available; otherwise fall back to magic-number detection. */
 #if defined(ROGUE_HAVE_SDL_IMAGE)
     surf = IMG_Load(path);
 #endif
     if (!surf)
     {
-        /* Multi-format fallback: if SDL_image failed (or not built) try lightweight
-           loaders based on extension (currently BMP). SDL_LoadBMP supports BMP natively.
-           For TGA/DDS without SDL_image we currently log and fail (future slice can add
-           minimal decoders if needed). */
-        const char* ext = path;
-        const char* last_dot = NULL;
-        for (const char* p = path; *p; ++p)
-            if (*p == '.')
-                last_dot = p;
-        if (last_dot)
-            ext = last_dot + 1;
-        char lower_ext[8] = {0};
-        int i = 0;
-        while (ext[i] && i < 7)
+        /* Try to detect by magic numbers instead of extension to avoid mislabeling. */
+        FILE* f = fopen(path, "rb");
+        unsigned char hdr[64];
+        size_t r = 0;
+        if (f)
         {
-            char c = ext[i];
-            if (c >= 'A' && c <= 'Z')
-                c = (char) (c - 'A' + 'a');
-            lower_ext[i] = c;
-            i++;
+            r = fread(hdr, 1, sizeof(hdr), f);
+            fclose(f);
         }
-        if (strcmp(lower_ext, "bmp") == 0)
+        int is_png = 0, is_bmp = 0, is_dds = 0, is_tga = 0;
+        if (r >= 8)
+        {
+            /* PNG: 89 50 4E 47 0D 0A 1A 0A */
+            const unsigned char png_sig[8] = {0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
+            is_png = (memcmp(hdr, png_sig, 8) == 0);
+        }
+        if (r >= 2)
+        {
+            /* BMP: 'B' 'M' */
+            is_bmp = (hdr[0] == 'B' && hdr[1] == 'M');
+        }
+        if (r >= 4)
+        {
+            /* DDS: 'D' 'D' 'S' ' ' */
+            is_dds = (hdr[0] == 'D' && hdr[1] == 'D' && hdr[2] == 'S' && hdr[3] == ' ');
+        }
+        if (!is_png && !is_bmp && !is_dds)
+        {
+            /* Weak TGA detection: many TGAs lack a strong header. We avoid false positives
+               and rely on SDL_image when present. Mark as TGA only if footer exists: */
+            FILE* ft = fopen(path, "rb");
+            if (ft)
+            {
+                if (fseek(ft, -26, SEEK_END) == 0) /* 26-byte signature footer */
+                {
+                    unsigned char footer[26];
+                    size_t rr = fread(footer, 1, sizeof(footer), ft);
+                    if (rr == sizeof(footer) && memcmp(footer + 8, "TRUEVISION-XFILE.", 18) == 0)
+                        is_tga = 1;
+                }
+                fclose(ft);
+            }
+        }
+        if (is_bmp)
         {
             surf = SDL_LoadBMP(path);
         }
-        else if (strcmp(lower_ext, "tga") == 0 || strcmp(lower_ext, "dds") == 0)
+        else if (is_png)
         {
-            ROGUE_LOG_DEBUG(
-                "pixel_mask_loader: format %s requires SDL_image (not available) for %s", lower_ext,
-                path);
+#if defined(ROGUE_HAVE_SDL_IMAGE)
+            /* If we got here with SDL_image present, IMG_Load already failed; still try once. */
+            surf = IMG_Load(path);
+#endif
+        }
+        else if (is_dds || is_tga)
+        {
+            ROGUE_LOG_DEBUG("pixel_mask_loader: %s requires SDL_image (not available): %s",
+                            is_dds ? "DDS" : "TGA", path);
         }
         if (!surf)
         {

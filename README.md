@@ -6,8 +6,10 @@ Pixel-perfect collision foundation plus several advanced features are now implem
 
 - `pixel_mask_loader` converts sprite alpha to bit-packed collision masks (alpha threshold configurable) with optional async build via a registered thread pool (`rogue_pixel_mask_set_thread_pool`).
 - Multi-format sprite support: PNG (via SDL_image when available) and BMP (native SDL fallback). Extension-based dispatch added; TGA/DDS still require SDL_image (magic number probing deferred).
+- Multi-format sprite support: PNG (via SDL_image when available) and BMP (native SDL fallback). Magic-number probing now detects PNG, BMP, and DDS even when extensions are misleading; TGA remains SDL_image-backed. Unknown headers fall back gracefully with a log line.
 - Signed Distance Field (SDF) generation (chamfer 3x3 inside/outside passes, int16 grid; positive inside, 0 on boundary) gated by `generate_distance_fields` flag.
 - Binary OR 2x2 mipmap chain generation (request via `mipmap_levels`, capped at 6) to enable future multi-resolution broad-phase heuristics.
+  - Optional smoothed downsampling: when `edge_smoothing_passes > 0`, a separable 1-2-1 smoothing pass is applied prior to each 2x2 binary downsample to reduce stair-stepping at LOD transitions. Default is 0 (off) to preserve previous behavior and determinism.
 - Simple word-run RLE compression (opt-in via `compression_level > 0`) stores a secondary buffer; format tag = 1 (future codecs reserved).
 - Metrics collected: total / collision pixels, solid ratio, build time (ns), memory footprint, compressed size, mip levels.
 - Async path submits a build job to the shared thread pool when present; otherwise falls back synchronously (unit-tested).
