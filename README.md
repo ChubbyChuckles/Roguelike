@@ -90,6 +90,11 @@ New (determinism + perf):
 - Lightweight deterministic BV prepass (fixed 4×4 scan over the view rect) trims obvious non-overlaps and preserves input order; respects the same 128-candidate cap.
 - Test `test_collision_pipeline_simd_equivalence` asserts identical candidate counts and ordering with SIMD off vs on across the prefilter + hbroad stages.
 
+Pixel-perfect stage LOD (update):
+
+- The pixel-perfect refinement stage is now LOD-aware. For BALANCED it samples the center at a selected mip level derived from distance to the view center; for PRECISE/ULTRA it samples a 3x3 region at that level. FAST retains deterministic thinning only. Helpers `rogue_hit_mask_test_level` and `rogue_hit_mask_level_coords` support mip-aware sampling.
+- Unit test `test_collision_pixel_lod` validates that far candidates can be retained via higher mip occupancy even when the base center is empty; near candidates use base-level sampling and can be pruned. Full Debug/Release runs remain 100% green under `-j12`.
+
 ##### Phase 4.1 – Temporal Predictor (Advisory, Metrics-Only)
 
 - Added a lightweight temporal coherence predictor (`src/game/spatial_acceleration.h`) and wired it into the collision pipeline as an advisory stage only. The stage `rogue_collision_stage_temporal_advisory` collects metrics by touching pairs against a primary id and emits conservative “skip” predictions without changing candidate lists or gameplay behavior.

@@ -228,7 +228,12 @@ Core Subsystems:
     - [x] Temporal AABB expansion for fast-moving objects (sweep over ~16ms horizon)
     - [ ] Conservative rasterization for sub-pixel accurate bounds
     - [x] Priority ordering (on‑screen first, then distance, id tie‑break) with deterministic cap (<=128)
-  - [x] **Stage 3**: `collision_stage_pixel_perfect()` (baseline implementation: FAST tier half-prune heuristic; BALANCED+ performs mask presence & center sampling, PRECISE/ULTRA 3x3 sampling for degenerate mask pruning; metrics integrated, future full bitwise overlap & multi-res selection pending)
+  - [x] **Stage 3**: `collision_stage_pixel_perfect()` (now LOD-aware)
+    - FAST: deterministic thinning (unchanged)
+    - BALANCED: single sample at selected mip level center based on distance to view
+    - PRECISE/ULTRA: 3x3 sampling at selected mip level to conservatively reject empty masks
+    - Helpers added in `hit_pixel_mask.h`: `rogue_hit_mask_test_level` and `rogue_hit_mask_level_coords` for mip-aware sampling
+    - Validation: new unit test `test_collision_pixel_lod` exercises far-vs-near behavior; full suite remains 100% green in Debug (SDL2, -j12) and Release
   - [x] Temporal coherence cache stage (reuse prior frame subset when view stable & small set)
     - Refinement: Refresh temporal cache snapshot after AABB prefilter reorders/caps candidates to keep order parity across frames and avoid false cache misses. Tests updated accordingly.
   - Refinement: Order-independent validation using an ID set with a small drift tolerance (<=5px; squared <=25.0f). Candidate counts must match and each cached ID matches at most once (tiny stack bitmap for <=64) to avoid heap. Prevents spurious misses when upstream stages reshuffle while preserving membership.

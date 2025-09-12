@@ -1,3 +1,16 @@
+feat(collision/pixel): LOD-aware pixel-perfect stage + tests; full suite green
+
+- Upgrade `rogue_collision_stage_pixel_perfect` to use mipmap-aware sampling:
+	- FAST: deterministic thinning (unchanged)
+	- BALANCED: single center sample at selected mip level based on distance to view
+	- PRECISE/ULTRA: 3×3 sampling at the selected mip level for conservative pruning
+- Add helpers in `hit_pixel_mask.h`:
+	- `rogue_hit_mask_test_level` to query a specific mip level (level 0 = base)
+	- `rogue_hit_mask_level_coords` to map base-space coords to mip-space
+- New unit test `test_collision_pixel_lod` proves far-candidate retention via mip occupancy while base center is empty; near candidates prune as expected.
+- README: document pixel LOD behavior and test; Roadmap: mark pixel stage as LOD-aware with validation note.
+- Validation: Full Debug/Release runs with SDL2 and `ctest -j12` remain 100% green (719/719).
+
 fix(start-screen/headless): guard corruption-scan in headless to avoid parallel I/O race; Release 719/719
 
 - Add an early-return in `rogue_start_screen_maybe_scan_corruption` when running headless: set `s_corrupt_at_start_global = 1` and `s_start_scan_done = 1`, then return. This avoids descriptor parsing and file I/O under parallel Release ctests and stabilizes start screen tests.

@@ -76,6 +76,58 @@ extern "C"
         uint32_t m = 1u << (x & 31);
         return (f->bits[idx] & m) != 0;
     }
+
+    /* Utility: test bit on a given mipmap level; level 0 == base */
+    static inline int rogue_hit_mask_test_level(const RogueHitPixelMaskFrame* f, int level, int x,
+                                                int y)
+    {
+        if (!f)
+            return 0;
+        if (level <= 0)
+            return rogue_hit_mask_test(f, x, y);
+        if (f->mipmap_count <= 1 || !f->mipmaps)
+            return rogue_hit_mask_test(f, x, y);
+        int max_level = f->mipmap_count - 1; /* excluding base */
+        if (level > max_level)
+            level = max_level;
+        const RogueHitPixelMaskMipmapLevel* ml = &f->mipmaps[level - 1];
+        if (!ml->bits)
+            return 0;
+        if ((unsigned) x >= (unsigned) ml->width || (unsigned) y >= (unsigned) ml->height)
+            return 0;
+        int idx = y * ml->pitch_words + (x >> 5);
+        uint32_t m = 1u << (x & 31);
+        return (ml->bits[idx] & m) != 0;
+    }
+
+    /* Map base-space integer coords (cx,cy) to a mip level with floor division */
+    static inline void rogue_hit_mask_level_coords(const RogueHitPixelMaskFrame* f, int level,
+                                                   int cx, int cy, int* out_x, int* out_y)
+    {
+        if (!f || level <= 0)
+        {
+            if (out_x)
+                *out_x = cx;
+            if (out_y)
+                *out_y = cy;
+            return;
+        }
+        if (f->mipmap_count <= 1 || !f->mipmaps)
+        {
+            if (out_x)
+                *out_x = cx;
+            if (out_y)
+                *out_y = cy;
+            return;
+        }
+        int shift = level; /* 2x per level */
+        if (shift < 0)
+            shift = 0;
+        if (out_x)
+            *out_x = (cx >= 0) ? (cx >> shift) : -((-cx) >> shift);
+        if (out_y)
+            *out_y = (cy >= 0) ? (cy >> shift) : -((-cy) >> shift);
+    }
     /* Compute frame axis-aligned bounds in local mask space (origin aligned) */
     void rogue_hit_mask_frame_aabb(const RogueHitPixelMaskFrame* f, int* out_w, int* out_h);
     /* Test enemy circle against mask frame with simple center+ring sampling; returns 1 on hit and

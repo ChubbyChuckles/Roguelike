@@ -921,7 +921,7 @@ bool rogue_collision_stage_pixel_perfect(struct RogueCollisionContext* ctx,
     }
     if (ctx->quality_level == ROGUE_COLLISION_FAST)
     {
-        /* Coarse tier: retain legacy placeholder half-prune to keep tests stable. */
+        /* FAST keeps deterministic thinning as a budget guard */
         uint32_t write = 0;
         for (uint32_t i = 0; i < ctx->candidate_count; ++i)
         {
@@ -935,53 +935,50 @@ bool rogue_collision_stage_pixel_perfect(struct RogueCollisionContext* ctx,
     }
     else if (ctx->quality_level >= ROGUE_COLLISION_BALANCED)
     {
-        /* Simple pixel refinement: if two candidates provide pixel masks and overlap
-           only via AABB but share no solid pixel in intersection sample region, drop.
-           For this slice we do a conservative self-filter: remove candidates whose mask
-           is entirely empty (degenerate) to simulate refinement, and (PRECISE/ULTRA)
-           perform a tiny sampling grid inside their local mask bounds to ensure at
-           least one solid bit (early exit). */
+        /* Pixel refinement with LOD: sample mask center (BALANCED) or 3x3 (PRECISE/ULTRA)
+           at a mip level chosen by distance to the view center. If no mask is present,
+           conservatively keep the candidate. */
+        float vcx = ctx->view_x + ctx->view_w * 0.5f;
+        float vcy = ctx->view_y + ctx->view_h * 0.5f;
         uint32_t write = 0;
         for (uint32_t i = 0; i < ctx->candidate_count; ++i)
         {
             RogueCollisionCandidate* c = &ctx->candidates[i];
-            if (!c->pixel_mask || !c->pixel_mask->bits)
+            int keep = 1;
+            if (c->pixel_mask && c->pixel_mask->bits && c->pixel_mask->width > 0 &&
+                c->pixel_mask->height > 0)
             {
-                /* Keep if no mask (cannot refine) */
-                if (write != i)
-                    ctx->candidates[write] = *c;
-                write++;
-                continue;
-            }
-            /* Quick degeneracy check: width/height sanity */
-            if (c->pixel_mask->width <= 0 || c->pixel_mask->height <= 0)
-                continue; /* drop invalid */
-            int keep = 0;
-            if (ctx->quality_level == ROGUE_COLLISION_BALANCED)
-            {
-                /* One sample at approximate center */
-                int sx = c->pixel_mask->width / 2;
-                int sy = c->pixel_mask->height / 2;
-                extern int rogue_hit_mask_test(const struct RogueHitPixelMaskFrame*, int, int);
-                keep = rogue_hit_mask_test(c->pixel_mask, sx, sy);
-            }
-            else /* PRECISE / ULTRA */
-            {
-                extern int rogue_hit_mask_test(const struct RogueHitPixelMaskFrame*, int, int);
-                /* Sample a 3x3 grid around center (clamped). */
+                /* Choose mip level */
+                float dx = c->x - vcx;
+                float dy = c->y - vcy;
+                float d2 = dx * dx + dy * dy;
+                int level = 0;
+                if (d2 > 80000.f)
+                    level = 3;
+                else if (d2 > 20000.f)
+                    level = 2;
+                else if (d2 > 5000.f)
+                    level = 1;
+
                 int cx = c->pixel_mask->width / 2;
                 int cy = c->pixel_mask->height / 2;
-                for (int dy = -1; dy <= 1 && !keep; ++dy)
-                    for (int dx = -1; dx <= 1 && !keep; ++dx)
-                    {
-                        int sx = cx + dx;
-                        int sy = cy + dy;
-                        if (sx < 0 || sy < 0 || sx >= c->pixel_mask->width ||
-                            sy >= c->pixel_mask->height)
-                            continue;
-                        if (rogue_hit_mask_test(c->pixel_mask, sx, sy))
-                            keep = 1;
-                    }
+                int mx = cx, my = cy;
+                /* helpers are static inline in hit_pixel_mask.h */
+                rogue_hit_mask_level_coords(c->pixel_mask, level, cx, cy, &mx, &my);
+                keep = rogue_hit_mask_test_level(c->pixel_mask, level, mx, my);
+                if (!keep && ctx->quality_level >= ROGUE_COLLISION_PRECISE)
+                {
+                    for (int ddy = -1; ddy <= 1 && !keep; ++ddy)
+                        for (int ddx = -1; ddx <= 1 && !keep; ++ddx)
+                        {
+                            int sx = cx + ddx;
+                            int sy = cy + ddy;
+                            int qx, qy;
+                            rogue_hit_mask_level_coords(c->pixel_mask, level, sx, sy, &qx, &qy);
+                            if (rogue_hit_mask_test_level(c->pixel_mask, level, qx, qy))
+                                keep = 1;
+                        }
+                }
             }
             if (keep)
             {
@@ -989,7 +986,6 @@ bool rogue_collision_stage_pixel_perfect(struct RogueCollisionContext* ctx,
                     ctx->candidates[write] = *c;
                 write++;
             }
-            /* else prune */
         }
         ctx->candidate_count = write;
     }
