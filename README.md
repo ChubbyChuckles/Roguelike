@@ -90,6 +90,13 @@ New (determinism + perf):
 - Lightweight deterministic BV prepass (fixed 4×4 scan over the view rect) trims obvious non-overlaps and preserves input order; respects the same 128-candidate cap.
 - Test `test_collision_pipeline_simd_equivalence` asserts identical candidate counts and ordering with SIMD off vs on across the prefilter + hbroad stages.
 
+##### Phase 4.1 – Temporal Predictor (Advisory, Metrics-Only)
+
+- Added a lightweight temporal coherence predictor (`src/game/spatial_acceleration.h`) and wired it into the collision pipeline as an advisory stage only. The stage `rogue_collision_stage_temporal_advisory` collects metrics by touching pairs against a primary id and emits conservative “skip” predictions without changing candidate lists or gameplay behavior.
+- API helpers: `rogue_collision_advisory_reset(float sep_thresh_px)` to reset the internal cache/threshold and `rogue_collision_advisory_get_metrics(uint32_t* predicts, uint32_t* updates)` to read cumulative advisory counters. Enable per-frame via `RogueCollisionContext.advisory_enabled=1` and set `advisory_primary_*` fields.
+- Unit test `tests/unit/test_collision_temporal_advisory.c` asserts invariance of `candidate_count` and increasing advisory metrics across successive runs.
+- This is groundwork for a future opt-in guarded speed-up; it is currently metrics-only and deterministic.
+
 ##### Milestone 2.2 (Initial Weapon Collision Advanced Slice)
 
 - Added `weapon_collision_advanced.h` (header-only scaffolding) implementing:
@@ -362,6 +369,7 @@ Advanced Effect Composition (Phase 2.2 update): Experimental Effect Tree editor 
 > Verified locally: CPack generated archives like "roguelike-0.0.0+dev+gf45026d-windows.zip" with matching .sha256 checksum files.
 
 Vendor-only SDL2 policy (Windows):
+
 - Windows builds and tests link and run exclusively against the vendored SDL2 in `third_party/SDL2` (including SDL2_image/mixer DLLs staged for runtime). CMake prefers this root automatically and will fail the configure if SDL2 cannot be found under the provided/manual root. No vcpkg/system SDL fallbacks remain in build or CI.
 - Linux/macOS continue to use system packages (pkg-config/Homebrew) with identical semantics. All CI jobs build and test with parallelism (-j12) and set dummy SDL drivers for headless safety.
 

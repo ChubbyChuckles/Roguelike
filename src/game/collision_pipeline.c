@@ -8,8 +8,9 @@
 #include "game/collision_pipeline.h"
 #include "game/enemy_collision_opt.h" /* For RogueEnemyCollisionProfile adaptive bias stage */
 #include "game/hit_pixel_mask.h" /* Needed for RogueHitPixelMaskFrame definition (pixel-perfect stage) */
-#include <math.h>                /* sqrtf */
-#include <stdlib.h>              /* qsort */
+#include "game/spatial_acceleration.h" /* Phase 4.1 temporal predictor (header-only) */
+#include <math.h>                      /* sqrtf */
+#include <stdlib.h>                    /* qsort */
 #include <string.h>
 #include <time.h>
 #ifdef _WIN32
@@ -144,6 +145,61 @@ static struct
     uint32_t hits;
     uint32_t misses;
 } g_temporal_cache;
+
+/* ---------------- Temporal Predictor (advisory metrics-only) ---------------- */
+static RogueTemporalCoherenceCache g_temporal_predictor;
+static uint8_t g_temporal_predictor_inited = 0;
+void rogue_collision_advisory_reset(float sep_thresh_px)
+{
+    rogue_temporal_cache_init(&g_temporal_predictor, sep_thresh_px);
+    g_temporal_predictor_inited = 1;
+}
+void rogue_collision_advisory_get_metrics(uint32_t* out_predicts, uint32_t* out_updates)
+{
+    if (out_predicts)
+        *out_predicts = g_temporal_predictor.predicts;
+    if (out_updates)
+        *out_updates = g_temporal_predictor.updates;
+}
+
+bool rogue_collision_stage_temporal_advisory(struct RogueCollisionContext* ctx,
+                                             RogueCollisionMetrics* m)
+{
+    if (!ctx || !m)
+        return true;
+    m->input_candidates = ctx->candidate_count;
+    m->calls++;
+    if (!ctx->advisory_enabled || ctx->candidate_count == 0)
+    {
+        m->output_candidates = ctx->candidate_count;
+        return true;
+    }
+    if (!g_temporal_predictor_inited)
+        rogue_collision_advisory_reset(12.f); /* default small threshold in px */
+    const uint32_t pid = ctx->advisory_primary_id;
+    const float px = ctx->advisory_primary_x;
+    const float py = ctx->advisory_primary_y;
+    const float pvx = ctx->advisory_primary_vx;
+    const float pvy = ctx->advisory_primary_vy;
+    /* Iterate candidates and record touch + conservative prediction. */
+    for (uint32_t i = 0; i < ctx->candidate_count; ++i)
+    {
+        const RogueCollisionCandidate* c = &ctx->candidates[i];
+        float dx = (c->x - px);
+        float dy = (c->y - py);
+        float sep2 = dx * dx + dy * dy;
+        RogueVec2 rel;
+        rel.x = (c->vx - pvx);
+        rel.y = (c->vy - pvy);
+        /* Use last frame 'collided_now' as false for advisory sampling; the predictor is
+           strictly advisory and conservative. Touch will refresh entry and predictor can
+           optionally flag a skip suggestion (tracked in predictor metrics). */
+        (void) rogue_temporal_cache_touch(&g_temporal_predictor, pid, c->id, sep2, rel, 0);
+        (void) rogue_temporal_cache_predict_skip(&g_temporal_predictor, pid, c->id, sep2, rel);
+    }
+    m->output_candidates = ctx->candidate_count;
+    return true;
+}
 
 /* ---------------- Spatial Culling (Quadtree) ---------------- */
 typedef struct RogueQuadNode

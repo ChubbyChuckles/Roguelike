@@ -372,6 +372,22 @@ Validation status (current):
   - [x] **Function**: `rogue_enemy_collision_profile_adapt_lod()` (dynamic bias heuristic)
   - Tests: `test_enemy_collision_opt` validating profile buckets, shape descriptors, LOD bias, batch math
 
+### PHASE 4: SPATIAL-TEMPORAL OPTIMIZATIONS (INCREMENTAL)
+#### MILESTONE 4.1: Lightweight Temporal Coherence Predictor (advisory, deterministic)
+- [x] File: `src/game/spatial_acceleration.h` (header-only, conservative predictor)
+  - Deterministic, order-insensitive pair hash (`rogue_pair_hash`) of `(idA,idB)`
+  - Small fixed-cap cache (`ROGUE_TEMP_COHERENCE_CAP=256`) storing last separation^2, prior collision state, and relative velocity
+  - `rogue_temporal_cache_touch()` to insert/update entries and reset skip hints
+  - `rogue_temporal_cache_predict_skip()` very conservative rule: if previously not colliding, separation increased but remains below threshold, and relative speed is small, advise skipping next frame. No behavioral change in main pipeline yet.
+- [x] Tests: `tests/unit/test_spatial_temporal_coherence_basic.c`
+  - Validates touch/update path, positive prediction on slowly separating pairs, negative when speed is large or separation decreases, and pair isolation by hash.
+- [x] Integration policy: Wired into runtime collision pipeline as a metrics-only advisory stage. The new stage `rogue_collision_stage_temporal_advisory` records conservative predictions and cache updates but does not mutate candidate lists or alter behavior.
+  - [x] Tests: `tests/unit/test_collision_temporal_advisory.c` verifies that candidate_count is unchanged while advisory metrics (predicts/updates) increase across runs.
+
+Validation status (after M4.1 slice):
+- Debug build with SDL2, -j12: 100% tests passed (717/717).
+- Temporal predictor remains deterministic and contained; advisory integration is metrics-only with no impact on gameplay logic.
+
 ### PHASE 3: ADVANCED SKILL & SPELL COLLISION SYSTEM
 #### MILESTONE 3.1: Multi-Layer Skill Effect Pipeline
 - [x] **File**: `src/game/skill_collision_manager.h` (initial slice implemented – multi-layer structs, public API for init/add_layer/tick/finished, intensity curve sampling, piercing + max target caps, hit buffer structs; advanced dynamic instantiation & projectile geometry deferred)

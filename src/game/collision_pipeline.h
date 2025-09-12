@@ -103,6 +103,16 @@ extern "C"
         int8_t quality_delta;
         /* Internal: temporal cache hint to skip spatial stage when set (cleared each execute). */
         int8_t skip_spatial;
+        /* Optional: enable metrics-only temporal advisory (no behavior changes).
+           When enabled, the pipeline can record conservative skip advice between a
+           single primary id (e.g., weapon/projectile) and each candidate. The
+           advisory is not used to alter candidate lists; only metrics are tracked. */
+        uint8_t advisory_enabled;     /* 0=off (default), 1=on */
+        uint32_t advisory_primary_id; /* id of the primary object */
+        float advisory_primary_x;     /* primary world x */
+        float advisory_primary_y;     /* primary world y */
+        float advisory_primary_vx;    /* primary velocity x (units/ms) */
+        float advisory_primary_vy;    /* primary velocity y */
     } RogueCollisionContext;
 
     /* Built-in stage helpers (implemented in .c). */
@@ -134,6 +144,15 @@ extern "C"
 
     /* Runtime control: allow tests to force-disable SIMD paths for equivalence checks. */
     void rogue_collision_simd_set_enabled(int enabled);
+
+    /* Temporal advisory (metrics-only) integration:
+        - Stage: computes conservative skip advice between a primary id and each candidate
+                    without changing behavior; updates internal advisory metrics.
+        - Helpers: reset advisory cache threshold and fetch metrics (predicts/updates). */
+    bool rogue_collision_stage_temporal_advisory(struct RogueCollisionContext* ctx,
+                                                 RogueCollisionMetrics* m);
+    void rogue_collision_advisory_reset(float sep_thresh_px);
+    void rogue_collision_advisory_get_metrics(uint32_t* out_predicts, uint32_t* out_updates);
 
     /* Initialization helpers */
     static inline void rogue_collision_pipeline_init(RogueCollisionPipeline* p,
