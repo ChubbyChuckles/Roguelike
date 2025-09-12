@@ -87,3 +87,13 @@ fix(collision/pixel): clamp selected mip level to available range; add docs; sui
 - New unit `test_collision_temporal_advisory_parity` ensures determinism parity when advisory is enabled but honor mode is OFF (no candidate count/order change).
 - CMake/MSVC multi-config stabilization: pre-create per-config test runtime dirs and add an aggregate target that builds all test executables by default to eliminate CTest “Not Run” cases in Debug.
 - Validation: Full Debug run is 100% green with -j12 (719/719); Release remains green.
+
+feat(hitmask/simd): AVX2 widening + runtime mode API; strict parity with SSE2/scalar; suite 721/721
+
+- Widen `rogue_hit_mask_intersect_any_same_origin` with an AVX2 path (8×32‑bit words per step) including row‑boundary safety and precise misalignment handling. SIMD zero‑detect avoids SSE4.1 and uses `cmpeq`+`movemask` on byte lanes for SSE2/AVX2 parity.
+- Add runtime SIMD mode control and capability queries:
+	- `rogue_hit_mask_simd_set_enabled(0|1)` (compat shim: 0=OFF, 1=AUTO)
+	- `rogue_hit_mask_simd_set_mode(OFF/SSE2/AVX2/AUTO)`, `rogue_hit_mask_simd_get_mode()`, `rogue_hit_mask_simd_get_caps()` (bit0=SSE2, bit1=AVX2; AUTO prefers AVX2)
+- Tests: extend `test_hit_mask_rect_ops` to cover scalar/SSE2/AVX2 parity and edge/misalignment cases. Results match across modes.
+- Docs: README and Roadmap updated with AVX2 widening details and runtime mode API.
+- Validation: Full Debug `ctest -j12` now 100% green with 721/721 tests; intermittent headless flakes addressed in prior guard.

@@ -189,6 +189,11 @@
 			"label": "Run ctests after SSE2 fix",
 			"type": "shell",
 			"command": "ctest --test-dir build -C Debug -j12 --output-on-failure --timeout 90"
+		},
+		{
+			"label": "Rebuild Debug after AVX2 widening and run ctests",
+			"type": "shell",
+			"command": "cmake --build build --config Debug --parallel 12 && ctest --test-dir build -C Debug -j12 --output-on-failure --timeout 90"
 		}
 	]
 }

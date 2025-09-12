@@ -21,12 +21,97 @@
 #else
 #define ROGUE_HITMASK_SIMD_SSE2 0
 #endif
+#if defined(__AVX2__) || (defined(_MSC_VER) && (defined(__AVX2__) || defined(__AVX__)))
+#include <immintrin.h>
+#define ROGUE_HITMASK_SIMD_AVX2 1
+#else
+#define ROGUE_HITMASK_SIMD_AVX2 0
+#endif
 
 /** @brief Global toggle for enabling pixel mask hit detection (default off until validated) */
 int g_hit_use_pixel_masks = 0; /* default off until pixel path validated */
-/* Runtime switch to allow tests to force scalar paths even when SSE2 is available. */
-static int g_hitmask_simd_enabled = 1;
-void rogue_hit_mask_simd_set_enabled(int enabled) { g_hitmask_simd_enabled = enabled ? 1 : 0; }
+/* Runtime SIMD mode selection with capability detection: 0=OFF, 1=SSE2, 2=AVX2, -1=AUTO */
+static int g_hitmask_simd_mode = -1;
+/* cached caps: bit0=SSE2, bit1=AVX2 */
+static int g_hitmask_simd_caps = 0;
+
+static void rogue_hit_mask_simd_init_caps(void)
+{
+    if (g_hitmask_simd_caps)
+        return;
+#if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
+    int cpuInfo[4] = {0};
+    __cpuid(cpuInfo, 0);
+    int nIds = cpuInfo[0];
+    if (nIds >= 1)
+    {
+        __cpuid(cpuInfo, 1);
+        int edx = cpuInfo[3];
+        if (edx & (1 << 26)) /* SSE2 */
+            g_hitmask_simd_caps |= 1;
+    }
+    /* AVX2 detection requires OSXSAVE+AVX (leaf 1 ECX) and AVX2 (leaf 7 EBX bit5). */
+    int ecx1 = 0, ebx7 = 0;
+    if (nIds >= 1)
+    {
+        __cpuid(cpuInfo, 1);
+        ecx1 = cpuInfo[2];
+    }
+    if (nIds >= 7)
+    {
+        __cpuidex(cpuInfo, 7, 0);
+        ebx7 = cpuInfo[1];
+    }
+    int osxsave = (ecx1 & (1 << 27)) != 0;
+    int avx = (ecx1 & (1 << 28)) != 0;
+    int avx2 = (ebx7 & (1 << 5)) != 0;
+    if (osxsave && avx && avx2)
+        g_hitmask_simd_caps |= 2;
+#else
+        /* Conservative compile-time caps where CPUID helper is unavailable */
+#if ROGUE_HITMASK_SIMD_SSE2
+    g_hitmask_simd_caps |= 1;
+#endif
+#if ROGUE_HITMASK_SIMD_AVX2
+    g_hitmask_simd_caps |= 2;
+#endif
+#endif
+    if (g_hitmask_simd_mode == -1)
+    {
+        /* Default AUTO selection prefers AVX2 when available, else SSE2, else OFF */
+        if (g_hitmask_simd_caps & 2)
+            g_hitmask_simd_mode = 2;
+        else if (g_hitmask_simd_caps & 1)
+            g_hitmask_simd_mode = 1;
+        else
+            g_hitmask_simd_mode = 0;
+    }
+}
+
+void rogue_hit_mask_simd_set_enabled(int enabled)
+{
+    /* Back-compat shim: enabled=0 => OFF, else AUTO */
+    g_hitmask_simd_mode = enabled ? -1 : 0;
+}
+void rogue_hit_mask_simd_set_mode(int mode) { g_hitmask_simd_mode = mode; }
+int rogue_hit_mask_simd_get_mode(void)
+{
+    rogue_hit_mask_simd_init_caps();
+    /* If asked for AVX2 but not available, degrade; same for SSE2. */
+    int mode = g_hitmask_simd_mode;
+    if (mode == -1)
+        return mode; /* AUTO */
+    if (mode == 2 && !(g_hitmask_simd_caps & 2))
+        return (g_hitmask_simd_caps & 1) ? 1 : 0;
+    if (mode == 1 && !(g_hitmask_simd_caps & 1))
+        return 0;
+    return mode;
+}
+int rogue_hit_mask_simd_get_caps(void)
+{
+    rogue_hit_mask_simd_init_caps();
+    return g_hitmask_simd_caps;
+}
 
 /** @brief Maximum number of pixel mask sets that can be cached simultaneously */
 #define MAX_PIXEL_MASK_SETS 16
@@ -427,39 +512,43 @@ int rogue_hit_mask_intersect_any_same_origin(const RogueHitPixelMaskFrame* a, in
     const uint32_t* a_bits = a->bits;
     const uint32_t* b_bits = b->bits;
 
-    const int y_end = ah; /* iterate rows count */
+    /* Compute world-space overlap rectangle */
+    int x_start = (ax0 > bx0) ? ax0 : bx0;
+    int x_end = ((ax0 + aw) < (bx0 + bw)) ? (ax0 + aw) : (bx0 + bw);
+    int y_start = (ay0 > by0) ? ay0 : by0;
+    int y_end = ((ay0 + ah) < (by0 + bh)) ? (ay0 + ah) : (by0 + bh);
+    if (x_end <= x_start || y_end <= y_start)
+        return 0;
 
-    int a_word_start = ax0 >> 5;
-    int b_word_start = bx0 >> 5;
-    int a_bit_lo = ax0 & 31;
-    int b_bit_lo = bx0 & 31;
+    const int overlap_w = x_end - x_start;
 
-    for (int row_i = 0; row_i < y_end; ++row_i)
+    for (int yy = y_start; yy < y_end; ++yy)
     {
-        const uint32_t* a_row = a_bits + (size_t) (ay0 + row_i) * (size_t) a_pitch;
-        const uint32_t* b_row = b_bits + (size_t) (by0 + row_i) * (size_t) b_pitch;
+        const uint32_t* a_row = a_bits + (size_t) yy * (size_t) a_pitch;
+        const uint32_t* b_row = b_bits + (size_t) yy * (size_t) b_pitch;
 
-        int a_ws = a_word_start;
-        int b_ws = b_word_start;
-        int ax_cur = ax0;
-        int bx_cur = bx0;
-        int remaining = aw;
+        int ax_cur = x_start;
+        int bx_cur = x_start;
+        int a_ws = ax_cur >> 5;
+        int b_ws = bx_cur >> 5;
+        int remaining = overlap_w;
 
-        /* Handle unaligned first fragment to word boundary */
+        /* Handle unaligned first fragment to word boundary for BOTH streams without crossing their
+         * word boundaries */
+        int a_bit_lo = ax_cur & 31;
+        int b_bit_lo = bx_cur & 31;
         if (a_bit_lo != 0 || b_bit_lo != 0)
         {
-            int take = 32 - (ax_cur & 31);
+            int take_a = 32 - (ax_cur & 31);
             int take_b = 32 - (bx_cur & 31);
-            if (take > remaining)
-                take = remaining;
-            if (take_b > remaining)
-                take_b = remaining;
-            int frag = take < take_b ? take : take_b;
-            uint32_t mask_a = (~0u << (ax_cur & 31)) &
-                              ((frag >= 32) ? ~0u : ((1u << ((ax_cur & 31) + frag)) - 1u));
-            uint32_t mask_b = (~0u << (bx_cur & 31)) &
-                              ((frag >= 32) ? ~0u : ((1u << ((bx_cur & 31) + frag)) - 1u));
-            if ((a_row[a_ws] & mask_a) & (b_row[b_ws] & mask_b))
+            int frag = take_a < take_b ? take_a : take_b;
+            if (frag > remaining)
+                frag = remaining;
+            /* Align both segments to bit 0 before ANDing so positions match */
+            uint32_t segA = a_row[a_ws] >> (ax_cur & 31);
+            uint32_t segB = b_row[b_ws] >> (bx_cur & 31);
+            uint32_t mask = (frag >= 32) ? ~0u : ((1u << frag) - 1u);
+            if ((segA & mask) & (segB & mask))
                 return 1;
             ax_cur += frag;
             bx_cur += frag;
@@ -470,47 +559,103 @@ int rogue_hit_mask_intersect_any_same_origin(const RogueHitPixelMaskFrame* a, in
                 ++b_ws;
         }
 
-        /* Process middle full 32-bit words; if both aligned now, we can use fast path */
+        /* Process middle using fast path when both streams are word-aligned; otherwise
+         * advance in safe fragments up to the next boundary of either stream. */
         while (remaining >= 32)
         {
-#if ROGUE_HITMASK_SIMD_SSE2
-            if (g_hitmask_simd_enabled)
+            int a_off = ax_cur & 31;
+            int b_off = bx_cur & 31;
+            if (a_off == 0 && b_off == 0)
             {
-                /* Process 4 words at a time when possible */
-                if (remaining >= 128)
+#if ROGUE_HITMASK_SIMD_AVX2
+                if (rogue_hit_mask_simd_get_mode() == 2 && remaining >= 256)
                 {
-                    __m128i va = _mm_loadu_si128((const __m128i*) &a_row[a_ws]);
-                    __m128i vb = _mm_loadu_si128((const __m128i*) &b_row[b_ws]);
-                    __m128i vand = _mm_and_si128(va, vb);
-                    /* SSE2-compatible zero check: movemask of compare-to-zero */
-                    __m128i vzero = _mm_setzero_si128();
-                    __m128i vcmp = _mm_cmpeq_epi8(vand, vzero);
-                    int mask = _mm_movemask_epi8(vcmp);
-                    if (mask != 0xFFFF)
-                        return 1; /* some byte had non-zero intersection */
-                    a_ws += 4;
-                    b_ws += 4;
-                    remaining -= 128;
-                    continue;
+                    /* ensure we don't cross row boundary */
+                    if (a_ws + 8 <= a_pitch && b_ws + 8 <= b_pitch)
+                    {
+                        __m256i va = _mm256_loadu_si256((const __m256i*) &a_row[a_ws]);
+                        __m256i vb = _mm256_loadu_si256((const __m256i*) &b_row[b_ws]);
+                        __m256i vand = _mm256_and_si256(va, vb);
+                        __m256i vzero = _mm256_setzero_si256();
+                        __m256i vcmp = _mm256_cmpeq_epi8(vand, vzero);
+                        int mask = _mm256_movemask_epi8(vcmp);
+                        if (mask != -1)
+                            return 1;
+                        a_ws += 8;
+                        b_ws += 8;
+                        ax_cur += 256;
+                        bx_cur += 256;
+                        remaining -= 256;
+                        continue;
+                    }
                 }
-            }
 #endif
-            /* Scalar 32-bit step */
-            if (a_row[a_ws] & b_row[b_ws])
+#if ROGUE_HITMASK_SIMD_SSE2
+                if ((rogue_hit_mask_simd_get_mode() == 1 || rogue_hit_mask_simd_get_mode() == -1) &&
+                    remaining >= 128)
+                {
+                    if (a_ws + 4 <= a_pitch && b_ws + 4 <= b_pitch)
+                    {
+                        __m128i va = _mm_loadu_si128((const __m128i*) &a_row[a_ws]);
+                        __m128i vb = _mm_loadu_si128((const __m128i*) &b_row[b_ws]);
+                        __m128i vand = _mm_and_si128(va, vb);
+                        __m128i vzero = _mm_setzero_si128();
+                        __m128i vcmp = _mm_cmpeq_epi8(vand, vzero);
+                        int mask = _mm_movemask_epi8(vcmp);
+                        if (mask != 0xFFFF)
+                            return 1; /* some byte had non-zero intersection */
+                        a_ws += 4;
+                        b_ws += 4;
+                        ax_cur += 128;
+                        bx_cur += 128;
+                        remaining -= 128;
+                        continue;
+                    }
+                }
+#endif
+                /* Scalar 32-bit step */
+                if (a_row[a_ws] & b_row[b_ws])
+                    return 1;
+                ++a_ws;
+                ++b_ws;
+                ax_cur += 32;
+                bx_cur += 32;
+                remaining -= 32;
+                continue;
+            }
+            /* Misaligned: advance by fragment up to next boundary of either stream */
+            int take_a = 32 - a_off;
+            int take_b = 32 - b_off;
+            int frag = take_a < take_b ? take_a : take_b;
+            if (frag > remaining)
+                frag = remaining;
+            uint32_t a0 = a_row[a_ws];
+            uint32_t b0 = b_row[b_ws];
+            uint32_t segA = (a0 >> a_off);
+            uint32_t segB = (b0 >> b_off);
+            uint32_t mask = (frag >= 32) ? ~0u : ((1u << frag) - 1u);
+            if ((segA & mask) & (segB & mask))
                 return 1;
-            ++a_ws;
-            ++b_ws;
-            remaining -= 32;
+            ax_cur += frag;
+            bx_cur += frag;
+            remaining -= frag;
+            if ((ax_cur & 31) == 0)
+                ++a_ws;
+            if ((bx_cur & 31) == 0)
+                ++b_ws;
         }
 
-        /* Tail (remaining < 32) */
+        /* Tail (remaining < 32) processed with safe fragment */
         if (remaining > 0)
         {
-            uint32_t tail_mask_a = (remaining == 32) ? ~0u : ((1u << remaining) - 1u);
-            uint32_t tail_mask_b = tail_mask_a;
-            uint32_t av = a_row[a_ws] & (tail_mask_a << (ax_cur & 31));
-            uint32_t bv = b_row[b_ws] & (tail_mask_b << (bx_cur & 31));
-            if (av & bv)
+            int a_off = ax_cur & 31;
+            int b_off = bx_cur & 31;
+            uint32_t a0 = a_row[a_ws];
+            uint32_t b0 = b_row[b_ws];
+            uint32_t av = (a0 >> a_off);
+            uint32_t bv = (b0 >> b_off);
+            uint32_t mask = ((remaining >= 32) ? ~0u : ((1u << remaining) - 1u));
+            if ((av & mask) & (bv & mask))
                 return 1;
         }
     }

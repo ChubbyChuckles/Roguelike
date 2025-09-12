@@ -144,8 +144,23 @@ extern "C"
                                              float* out_wx, float* out_wy);
 
     /* -------- Fast bitwise rectangle utilities (scalar + optional SIMD) -------- */
-    /* Runtime toggle to allow tests to force scalar behavior even when SIMD compiled */
+    /* SIMD mode control and capability queries */
+    enum RogueHitMaskSimdMode
+    {
+        ROGUE_HITMASK_SIMD_OFF = 0,
+        ROGUE_HITMASK_SIMD_SSE2 = 1,
+        ROGUE_HITMASK_SIMD_AVX2 = 2,
+        ROGUE_HITMASK_SIMD_AUTO = -1
+    };
+
+    /* Back-compat simple enable/disable: enabled=0 => OFF, enabled!=0 => AUTO */
     void rogue_hit_mask_simd_set_enabled(int enabled);
+    /* Set specific SIMD mode (OFF/SSE2/AVX2/AUTO). AUTO picks the best available at runtime. */
+    void rogue_hit_mask_simd_set_mode(int mode);
+    /* Get current SIMD mode (effective selection, may be reduced if not supported). */
+    int rogue_hit_mask_simd_get_mode(void);
+    /* Return bitmask of available SIMD capabilities at runtime: bit0=SSE2, bit1=AVX2. */
+    int rogue_hit_mask_simd_get_caps(void);
 
     /* Returns 1 if any bit set within [x, x+w) x [y, y+h), clipped to frame bounds. */
     int rogue_hit_mask_any_set_in_rect(const RogueHitPixelMaskFrame* f, int x, int y, int w, int h);

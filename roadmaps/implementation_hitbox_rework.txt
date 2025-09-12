@@ -223,7 +223,7 @@ Core Subsystems:
     - [x] Distance-based LOD selection for collision quality (average squared distance heuristic → quality_delta)
     - [x] Predictive culling based on velocity and trajectory (velocity horizon ~16ms keeps approaching entities)
   - [x] **Stage 2**: `collision_stage_aabb_prefilter()` (baseline scalar AABB trim + candidate cap; SIMD & hierarchical BV deferred)
-    - [ ] SIMD-optimized AABB intersection tests (SSE4/AVX2)
+  - [ ] SIMD-optimized AABB intersection tests (SSE4/AVX2)
     - [ ] Hierarchical bounding volumes with automatic tree balancing
     - [x] Temporal AABB expansion for fast-moving objects (sweep over ~16ms horizon)
     - [ ] Conservative rasterization for sub-pixel accurate bounds
@@ -248,11 +248,12 @@ Core Subsystems:
     - [ ] Multi-resolution pixel testing with automatic LOD selection
     - [ ] Scanline optimization for sparse collision shapes
     - [x] Bit manipulation tricks for fast mask intersection
-      - Implemented fast word-wise rectangle queries: `rogue_hit_mask_any_set_in_rect` with clipping and partial-word masks.
-      - Added pairwise same-origin intersection: `rogue_hit_mask_intersect_any_same_origin` with scalar and SSE2 4-word batch paths (runtime-toggleable) and strict determinism.
-      - SSE2 path uses `_mm_and_si128` + `_mm_cmpeq_epi8` + `_mm_movemask_epi8` for zero-detect (SSE2-only; avoids SSE4.1 `_mm_testz_si128`).
-      - New unit test `test_hit_mask_rect_ops` validates correctness, clipping edge cases, and SIMD parity against scalar.
-      - Full Debug ctest run (-j12) green: 720/720 (includes this test); build fixed to pass MSVC /WX by removing unused locals.
+  - Implemented fast word-wise rectangle queries: `rogue_hit_mask_any_set_in_rect` with clipping and partial-word masks.
+  - Added pairwise same-origin intersection: `rogue_hit_mask_intersect_any_same_origin` with scalar, SSE2 4-word, and AVX2 8-word batch paths (runtime-toggleable) and strict determinism.
+  - SIMD zero-detect uses SSE2/AVX2-friendly `cmpeq`+`movemask` (byte lanes), avoiding SSE4.1 `_mm_testz_si128` for MSVC/compat.
+  - Runtime SIMD control: `rogue_hit_mask_simd_set_enabled(0|1)`, `rogue_hit_mask_simd_set_mode(OFF/SSE2/AVX2/AUTO)`, `rogue_hit_mask_simd_get_mode()`, `rogue_hit_mask_simd_get_caps()`; AUTO prefers AVX2 when available.
+  - New unit test `test_hit_mask_rect_ops` validates correctness, clipping edge cases, and scalar↔SSE2↔AVX2 parity.
+  - Full Debug ctest run (-j12) green: 721/721 (includes these tests).
     - [ ] SIMD parallel bit operations for bulk pixel tests
 
 ##### Conservative Broad-Phase Epsilon

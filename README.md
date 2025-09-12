@@ -97,7 +97,25 @@ Pixel-perfect stage LOD (update):
 
 Bitwise mask rectangle utilities (new):
 
-- Added fast bitwise rectangle queries on pixel masks: `rogue_hit_mask_any_set_in_rect` and pairwise intersection `rogue_hit_mask_intersect_any_same_origin` (word-wise with clipping). An SSE2 path processes 4 words at a time behind a runtime toggle `rogue_hit_mask_simd_set_enabled(0|1)`. Behavior is deterministic and scalar/SIMD results are identical.
+- Added fast bitwise rectangle queries on pixel masks: `rogue_hit_mask_any_set_in_rect` and pairwise intersection `rogue_hit_mask_intersect_any_same_origin` (word-wise with clipping). SIMD paths now include SSE2 and AVX2 with runtime selection. Behavior is deterministic and scalar/SIMD results are identical.
+- Runtime SIMD control & caps:
+  - Enum mode: OFF, SSE2, AVX2, AUTO via `RogueHitMaskSimdMode`.
+  - APIs:
+    - `rogue_hit_mask_simd_set_enabled(0|1)` (compat shim: 0=OFF, 1=AUTO)
+    - `rogue_hit_mask_simd_set_mode(ROGUE_HITMASK_SIMD_*)`
+    - `rogue_hit_mask_simd_get_mode()` (effective mode)
+    - `rogue_hit_mask_simd_get_caps()` (bit0=SSE2, bit1=AVX2)
+  - AUTO prefers AVX2 when available, else SSE2, else OFF.
+
+Update (AVX2 widening + parity):
+
+- The intersection path has been widened with an AVX2 implementation that batches 8 words (256 bits) per step with row‑boundary safety and precise misalignment handling. SIMD zero‑detect uses `cmpeq`+`movemask` (byte lane) for SSE2/AVX2 parity; no SSE4.1 dependency. Scalar/SSE2/AVX2 results are identical by construction.
+- Edge‑safe algorithm details:
+  - Computes the true overlap rect across independently clipped regions.
+  - First-fragment aligns both streams before ANDing; never crosses word or row boundaries.
+  - Middle processes aligned blocks with AVX2 (256‑bit) or SSE2 (128‑bit), falling back to scalar for short spans.
+  - Tail processes a masked fragment conservatively.
+- Tests: `test_hit_mask_rect_ops` includes scalar/SSE2/AVX2 parity checks and edge/misalignment cases. Full Debug run with `ctest -j12`: 100% green (currently 721/721).
 - Unit test `test_hit_mask_rect_ops` covers correctness (clipping, empty regions, disjoint/overlap) and asserts scalar vs SIMD parity.
 
 ##### Phase 4.1 – Temporal Predictor (Advisory, Metrics-Only)

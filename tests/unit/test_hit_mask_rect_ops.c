@@ -96,19 +96,66 @@ static int run_parity(void)
     for (int i = 0; i < ncases; ++i)
         scalar_any |= rogue_hit_mask_intersect_any_same_origin(
             &a, cases[i][0], cases[i][1], &b, cases[i][2], cases[i][3], cases[i][4], cases[i][5]);
-    /* simd */
+    /* SSE2/auto */
     rogue_hit_mask_simd_set_enabled(1);
     int simd_any = 0;
     for (int i = 0; i < ncases; ++i)
         simd_any |= rogue_hit_mask_intersect_any_same_origin(
             &a, cases[i][0], cases[i][1], &b, cases[i][2], cases[i][3], cases[i][4], cases[i][5]);
-    free_frame(&a);
-    free_frame(&b);
     if (scalar_any != simd_any)
     {
         fprintf(stderr, "parity mismatch scalar=%d simd=%d\n", scalar_any, simd_any);
         return 10;
     }
+    /* If AVX2 is available, force AVX2 mode and recheck parity */
+    if (rogue_hit_mask_simd_get_caps() & 2)
+    {
+        rogue_hit_mask_simd_set_mode(ROGUE_HITMASK_SIMD_AVX2);
+        int avx2_any = 0;
+        int scalar_any_re = 0;
+        int mismatch_idx = -1;
+        for (int i = 0; i < ncases; ++i)
+        {
+            int s = rogue_hit_mask_intersect_any_same_origin(&a, cases[i][0], cases[i][1], &b,
+                                                             cases[i][2], cases[i][3], cases[i][4],
+                                                             cases[i][5]);
+            avx2_any |= s;
+            int sc = 0;
+            rogue_hit_mask_simd_set_enabled(0);
+            sc = rogue_hit_mask_intersect_any_same_origin(&a, cases[i][0], cases[i][1], &b,
+                                                          cases[i][2], cases[i][3], cases[i][4],
+                                                          cases[i][5]);
+            scalar_any_re |= sc;
+            rogue_hit_mask_simd_set_mode(ROGUE_HITMASK_SIMD_AVX2);
+            if (sc != s && mismatch_idx < 0)
+            {
+                mismatch_idx = i;
+                fprintf(stderr, "case %d mismatch sc=%d s=%d\n", i, sc, s);
+            }
+        }
+        if (scalar_any != avx2_any)
+        {
+            if (mismatch_idx >= 0)
+            {
+                fprintf(stderr,
+                        "parity mismatch case %d (ax=%d ay=%d bx=%d by=%d w=%d h=%d) scalar_any=%d "
+                        "avx2_any=%d\n",
+                        mismatch_idx, cases[mismatch_idx][0], cases[mismatch_idx][1],
+                        cases[mismatch_idx][2], cases[mismatch_idx][3], cases[mismatch_idx][4],
+                        cases[mismatch_idx][5], scalar_any, avx2_any);
+            }
+            else
+            {
+                fprintf(stderr, "parity mismatch scalar=%d avx2=%d (re-scalar=%d)\n", scalar_any,
+                        avx2_any, scalar_any_re);
+            }
+            return 11;
+        }
+        /* restore AUTO */
+        rogue_hit_mask_simd_set_mode(ROGUE_HITMASK_SIMD_AUTO);
+    }
+    free_frame(&a);
+    free_frame(&b);
     return 0;
 }
 
