@@ -89,6 +89,23 @@ Item Collision Cache optimize() API (Milestone 1.2):
   - Safe to call during loading screens, after bulk invalidations, or in editor/tools to restore tight memory bounds without altering functional behavior.
 - Unit test `test_item_collision_cache_optimize` covers compaction and stats; wired explicitly in CMake for MSVC multi‑config stability.
 
+Item Collision Cache analytics snapshot (Milestone 1.2):
+
+- Read-only snapshot API exposes cache entry analytics in MRU→LRU order without mutating state:
+  - Type `RogueItemCollisionCacheEntryInfo` includes `handle`, `access_count`, `last_access_tick`, `asset_timestamp`, and `approx_bytes`.
+  - `size_t rogue_item_collision_cache_snapshot(RogueItemCollisionCacheEntryInfo* out, size_t max_entries)` returns total alive entries and, when `out` is provided, fills up to `max_entries` entries under a shared read lock.
+  - Ordering is deterministic with a stable tie-breaker for equal `last_access_tick`; `approx_bytes` derives from the mask set’s current memory footprint.
+- Unit `test_item_collision_cache_analytics` asserts MRU-first ordering, monotonic `last_access_tick`, non-zero `approx_bytes` for realized entries, and parity between count-only vs filled snapshots.
+- The test target is explicitly wired in `tests/CMakeLists.txt` for MSVC multi-config stability. Full Debug suite (`ctest -C Debug -j12`) remains 100% green with this addition.
+
+Item Collision Cache dynamic limits (Milestone 1.2):
+
+- Runtime-adjustable cache limits:
+  - `rogue_item_collision_cache_set_limits(int max_entries, size_t max_memory_mb)` clamps and applies effective caps immediately. Enforcement trims from the LRU tail deterministically. A `max_entries` of 0 forces an empty cache; a `max_memory_mb` of 0 evicts all entries.
+  - `rogue_item_collision_cache_get_limits(int* out_max_entries, size_t* out_max_memory_mb)` reads back the current effective caps.
+- Limits are enforced after cache mutations (`get()` and `optimize()`) and when changed, preserving MRU→LRU ordering for survivors.
+- New unit: `test_item_collision_cache_limits` validates entry and memory cap behavior; wired explicitly in `tests/CMakeLists.txt`. Full Debug suite (`ctest -C Debug -j12`) remains 100% green.
+
 #### Milestone 1.3 (Initial Sprite Atlas & Animation Collision Slice)
 
 - Added `sprite_atlas_collision.{h,c}` with:
