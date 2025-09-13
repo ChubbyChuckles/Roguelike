@@ -229,6 +229,19 @@ Update (Milestone 1.2 usage-driven advisory + defaults helper):
 - Unit test `tests/unit/test_item_collision_cache_advisory.c` validates determinism for a fixed access pattern and basic invariants; explicitly wired in tests CMake for MSVC multi-config stability.
 - Validation: Full Debug SDL2 run (`ctest -C Debug -j12`) remains 100% green including the new advisory test.
 
+Update (Milestone 1.2 overlay visibility + clamped advisory + opt-in auto-apply):
+
+- Read-only runtime visibility in the debug overlay:
+  - Added a new overlay panel that surfaces the Item Collision Cache advisory. The panel lists `alive_entries`, `recent_window`, memory percentiles (`p50_bytes`, `p90_bytes`, `p99_bytes`), current effective limits, and the advisory’s recommended limits. The panel is strictly read-only and headless-safe.
+  - Wiring: panel registrar added and included in the default overlay registration set; overlay remains hidden on early start-screen frames and when the renderer is NULL (headless).
+- Clamped advisory variant + apply helper:
+  - `void rogue_item_collision_cache_get_advisory_ex(RogueItemCollisionCacheAdvisory* out, int clamp_min_current_limits)` returns the same advisory as the base API but, when `clamp_min_current_limits != 0` and `recent_window >= current_max_entries`, clamps the recommendations so they never propose limits below the current effective caps. This avoids sawtooth oscillations when usage presses against the cap.
+  - `void rogue_item_collision_cache_apply_advisory(int clamp_min_current_limits)` computes the advisory (optionally clamped) and applies it immediately via `rogue_item_collision_cache_set_limits` under the cache’s write lock.
+- Opt-in auto-apply during safe windows:
+  - When the environment variable `ROGUE_APPLY_COLLISION_ADVISORY=1` is present, the app loop will automatically call `rogue_item_collision_cache_apply_advisory(1)` during FADE_OUT (loading) transitions. This keeps changes off the hot path and further reduces oscillation risk by clamping to current limits when the window is saturated.
+  - The environment is sampled once per process; behavior is deterministic and remains off by default.
+- Tests/build: Existing advisory unit tests continue to pass; overlay remains read-only and does not alter behavior. Full Debug (SDL2, `-j12`) test suite remains 100% green.
+
 #### MILESTONE 1.3: Sprite Atlas and Animation Support
 - [x] **File**: `src/game/sprite_atlas_collision.h` (initial slice implemented)
   ```c

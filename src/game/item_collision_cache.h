@@ -160,6 +160,20 @@ extern "C"
     */
     void rogue_item_collision_cache_get_advisory(RogueItemCollisionCacheAdvisory* out);
 
+    /* Extended: same as get_advisory but optionally clamps recommendations so they never drop
+        below the current effective limits when the recent window is at least as large as the
+        current entry cap (to reduce oscillations near capacity). When clamp_min_current_limits is
+        non-zero and recent_window >= current_max_entries, the function will ensure that
+        recommended_max_entries >= current_max_entries and
+        recommended_max_memory_mb >= current_max_memory_mb. This does not mutate any cache state. */
+    void rogue_item_collision_cache_get_advisory_ex(RogueItemCollisionCacheAdvisory* out,
+                                                    int clamp_min_current_limits);
+
+    /* Convenience: compute advisory (with optional clamp) and immediately apply limits using the
+        recommended values. This is a no-op if 'out' is NULL. Primarily intended for opt-in
+        maintenance during loading screens. */
+    void rogue_item_collision_cache_apply_advisory(int clamp_min_current_limits);
+
     /* Helper: restore compile-time default limits deterministically. */
     void rogue_item_collision_cache_set_limits_default(void);
 

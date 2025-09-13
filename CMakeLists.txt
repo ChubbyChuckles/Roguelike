@@ -789,6 +789,7 @@ add_library(rogue_debug_overlay OBJECT
     src/debug_overlay/overlay_panels.c
     src/debug_overlay/panel_system/panels_system.c
     src/debug_overlay/panel_system/panels_asset_metrics.c
+    src/debug_overlay/panel_system/panels_item_collision_cache.c
     # Phase 7: Asset Browser panel (added after metrics panel)
     # Asset Browser refactor modules (state + directory logic extracted from monolith)
     src/debug_overlay/asset_browser/asset_browser_state.c

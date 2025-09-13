@@ -5,6 +5,7 @@
 #include "../../game/damage_numbers.h"
 #include "../../game/dialogue.h"
 #include "../../game/game_loop.h"
+#include "../../game/item_collision_cache.h" /* rogue_item_collision_cache_apply_advisory */
 #include "../../game/start_screen.h"
 #include "../../game/stat_cache.h"
 #include "../../graphics/animation_system.h"
@@ -37,6 +38,7 @@
 #include "../vendor/vendor.h"
 #include "app.h"
 #include "app_state.h"
+#include <stdlib.h> /* _dupenv_s, free, getenv */
 #include <string.h> /* strlen used for fallback dialogue buffer registration */
 
 /* UI panels (implemented in vendor_ui.c) */
@@ -196,7 +198,6 @@ void rogue_app_step(void)
             rogue_player_assets_ensure_loaded();
         }
         rogue_player_controller_update();
-        extern void rogue_process_pending_skill_activations(void); /* declared in skills runtime */
         rogue_process_pending_skill_activations();
         int attack_pressed = rogue_input_was_pressed(&g_app.input, ROGUE_KEY_ACTION);
         int dialogue_pressed = rogue_input_was_pressed(&g_app.input, ROGUE_KEY_DIALOGUE);
@@ -361,6 +362,36 @@ void rogue_app_step(void)
        after world systems activated. */
     if (!rogue_start_screen_active() || g_app.start_state == ROGUE_START_FADE_OUT)
     {
+        /* Optional: auto-apply item collision cache advisory during loading/transition frames.
+           Controlled by env var ROGUE_APPLY_COLLISION_ADVISORY ("1" to enable). This is
+           conservative and uses clamped advisory to avoid shrinking below current limits while
+           the recent window indicates sustained usage at/above cap. */
+        static int s_checked_env = 0;
+        static int s_apply_adv = 0;
+        if (!s_checked_env)
+        {
+#if defined(_MSC_VER)
+            char* ev_dup = NULL;
+            size_t ev_len = 0;
+            if (_dupenv_s(&ev_dup, &ev_len, "ROGUE_APPLY_COLLISION_ADVISORY") == 0 && ev_dup)
+            {
+                s_apply_adv = (ev_dup[0] == '1') ? 1 : 0;
+                free(ev_dup);
+            }
+            else
+            {
+                s_apply_adv = 0;
+            }
+#else
+            const char* ev = getenv("ROGUE_APPLY_COLLISION_ADVISORY");
+            s_apply_adv = (ev && (ev[0] == '1')) ? 1 : 0;
+#endif
+            s_checked_env = 1;
+        }
+        if (s_apply_adv && g_app.start_state == ROGUE_START_FADE_OUT)
+        {
+            rogue_item_collision_cache_apply_advisory(1);
+        }
         overlay_new_frame((float) g_app.dt, g_app.viewport_w, g_app.viewport_h);
         overlay_render();
     }

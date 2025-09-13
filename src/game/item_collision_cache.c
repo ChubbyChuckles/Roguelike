@@ -929,6 +929,42 @@ void rogue_item_collision_cache_get_advisory(RogueItemCollisionCacheAdvisory* ou
         rogue_rwlock_release_read(g_cache.lock);
 }
 
+void rogue_item_collision_cache_get_advisory_ex(RogueItemCollisionCacheAdvisory* out,
+                                                int clamp_min_current_limits)
+{
+    if (!out)
+        return;
+    rogue_item_collision_cache_get_advisory(out);
+    if (!clamp_min_current_limits)
+        return;
+    /* Read current limits and clamp recommended not to fall below when the window indicates
+       sustained usage at or above cap (prevent oscillations). */
+    int cur_entries = 0;
+    size_t cur_mem_mb = 0;
+    rogue_item_collision_cache_get_limits(&cur_entries, &cur_mem_mb);
+    if (out->recent_window >= cur_entries)
+    {
+        if (out->recommended_max_entries < cur_entries)
+            out->recommended_max_entries = cur_entries;
+        if (out->recommended_max_memory_mb < cur_mem_mb)
+            out->recommended_max_memory_mb = cur_mem_mb;
+    }
+}
+
+void rogue_item_collision_cache_apply_advisory(int clamp_min_current_limits)
+{
+    RogueItemCollisionCacheAdvisory adv;
+    rogue_item_collision_cache_get_advisory_ex(&adv, clamp_min_current_limits);
+    /* Apply only if non-zero recommendations (avoid setting 0 on empty cache unless window==0). */
+    int entries = adv.recommended_max_entries;
+    size_t mem_mb = adv.recommended_max_memory_mb;
+    if (entries < 0)
+        entries = 0;
+    if ((adv.alive_entries == 0) && (entries == 0) && (mem_mb == 0))
+        return; /* nothing to apply */
+    rogue_item_collision_cache_set_limits(entries, mem_mb);
+}
+
 void rogue_item_collision_cache_set_limits_default(void)
 {
     rogue_item_collision_cache_set_limits(ROGUE_COLLISION_CACHE_SIZE,

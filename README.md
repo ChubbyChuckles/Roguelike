@@ -398,6 +398,21 @@ Press F1 in-game to open the debug overlay.
 - Manual "Poll Reload Now" plus optional Auto Poll toggle for hot-reload monitoring.
 - Recursive enumeration & cached listing of JSON and shader assets (refreshable) to aid rapid inspection.
 - Row selection for textures/audio reveals a Details section (id, dimensions, ref count, load state, failure flag) and any registered dependency ids.
+
+### Item Collision Cache Advisory — Overlay + Clamped Apply (Milestone 1.2 update)
+
+- Overlay panel: A new read-only panel "Item Collision Cache" shows:
+  - `alive_entries`, `recent_window`, and memory percentiles (`p50`, `p90`, `p99` bytes)
+  - Current effective caps and advisory’s recommended `max_entries`/`max_memory_mb`
+  - The panel is informational only and headless-safe.
+- Clamped advisory API and apply helper:
+  - `rogue_item_collision_cache_get_advisory_ex(&adv, /*clamp_min_current_limits=*/1)` prevents recommending limits below current caps when the recent window is saturated (helps avoid oscillations).
+  - `rogue_item_collision_cache_apply_advisory(int clamp_min_current_limits)` computes (optionally clamped) and applies via `rogue_item_collision_cache_set_limits`.
+- Opt-in automation during loading:
+  - Set environment variable `ROGUE_APPLY_COLLISION_ADVISORY=1` to auto-apply the clamped advisory during FADE_OUT transitions (loading screens). Default is off.
+  - The environment is read once per process; application is limited to these safe windows.
+
+Build/Test status: Full Debug (SDL2) with parallel tests (`ctest -C Debug -j12`) remains 100% green with this overlay + advisory update.
 - Dependency listing uses existing asset_dep registry; graphical graph + thumbnails deferred to a later phase (see Asset Overlay roadmap).
 - Regex filtering and advanced thumbnail caching remain future tasks (current build shows basic inline scaled preview). Implemented: audio playback controls, JSON syntax highlighting + shallow validation (first 12 lines, brace/string balance), sprite sheet grid overlay (adjustable cell size), JSON metadata editor (editable buffer + save/reload & structural validity), and initial sprite coordinate editor (grid-aligned rectangle add/select/delete with overlay outlines and export stub). Upcoming: animation frame editor, loop point editing, regex upgrade, persistent sprite rect export.
 - NEW (Asset Overlay Phase 2 slice):
