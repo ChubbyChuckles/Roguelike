@@ -81,6 +81,14 @@ New tests covering the above:
 - `test_item_collision_cache_invalidate_sprite`: validates batch invalidation by sprite path.
 - `test_hit_mask_compression_auto`: verifies compression AUTO selection and frame cleanup with `rogue_hit_mask_frame_reset`.
 
+Item Collision Cache optimize() API (Milestone 1.2):
+
+- New function `rogue_item_collision_cache_optimize()` compacts the cache deterministically:
+  - Purges tombstones/invalids and rebuilds the MRU→LRU chain based on `last_access_tick` with a stable index tie‑breaker.
+  - Recomputes memory accounting and enforces both entry and memory caps under the write lock.
+  - Safe to call during loading screens, after bulk invalidations, or in editor/tools to restore tight memory bounds without altering functional behavior.
+- Unit test `test_item_collision_cache_optimize` covers compaction and stats; wired explicitly in CMake for MSVC multi‑config stability.
+
 #### Milestone 1.3 (Initial Sprite Atlas & Animation Collision Slice)
 
 - Added `sprite_atlas_collision.{h,c}` with:

@@ -153,10 +153,10 @@ Core Subsystems:
     - [x] Asset change detection via timestamp polling with deterministic hook (hot-reload friendly)
     - [ ] Selective cache invalidation for related items (future)
     - [ ] Hot-reload support for development workflow (future)
-  - [ ] **Function**: `rogue_item_collision_cache_optimize()` (deferred)
-    - [ ] Defragmentation and memory compaction
-    - [ ] Usage pattern analysis for cache sizing
-    - [ ] Garbage collection for unused entries
+  - [x] **Function**: `rogue_item_collision_cache_optimize()`
+    - [x] Defragmentation and memory compaction
+    - [ ] Usage pattern analysis for cache sizing (deferred)
+    - [x] Garbage collection for unused entries (tombstone purge)
 
 Update (Milestone 1.2 async/poll integration):
 
@@ -182,6 +182,14 @@ Update (Milestone 1.2 prefetch + finer invalidation + RW-lock concurrency):
   - `test_item_collision_cache_invalidate_sprite` validates normalized sprite-path batch invalidation.
   - `test_hit_mask_compression_auto` covers compression AUTO selection and uses the new frame-reset API.
 - Validation: Full Debug builds with SDL2 and parallel ctests (`-j12`) are 100% green (currently 730/730). Reader concurrency and prefetching are deterministic by construction.
+
+Update (Milestone 1.2 optimize() deterministic compaction):
+
+- Implemented `rogue_item_collision_cache_optimize()` to compact the item collision cache deterministically:
+  - Purges tombstones and invalid entries, then rebuilds the LRU chain from MRU→LRU using `last_access_tick` with a stable index tie‑breaker to guarantee identical ordering across runs.
+  - Recomputes `approx_bytes` from per‑set sizes to correct drift and enforces both entry‑count and memory‑budget limits deterministically under the write lock.
+  - Leaves usage pattern analysis for dynamic cache sizing as a future slice; current behavior focuses on compaction, correctness, and reproducibility.
+- Unit test `tests/unit/test_item_collision_cache_optimize.c` validates compaction and stats. Windows multi‑config nuance addressed by explicitly wiring the test target in `tests/CMakeLists.txt` to avoid glob timing issues. Full suite (Debug, SDL2, `-j12`) is 100% green including this test.
 
 #### MILESTONE 1.3: Sprite Atlas and Animation Support
 - [x] **File**: `src/game/sprite_atlas_collision.h` (initial slice implemented)

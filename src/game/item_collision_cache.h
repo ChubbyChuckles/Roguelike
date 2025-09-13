@@ -97,6 +97,12 @@ extern "C"
         performed after normalizing to the same assets/… form used by the cache. */
     void rogue_item_collision_cache_invalidate_sprite(const char* sprite_path);
 
+    /* Optimize the cache in-place: compact the LRU list by removing tombstones, rebuild the
+        MRU->LRU ordering deterministically based on last_access_tick, and recompute memory stats.
+        This does not free valid entries or change capacity; it is safe to call at any time and is
+        intended for maintenance during loading screens or at low-frequency service points. */
+    void rogue_item_collision_cache_optimize(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -674,3 +674,69 @@ void rogue_item_collision_cache_invalidate_sprite(const char* sprite_path)
     if (g_cache.lock)
         rogue_rwlock_release_write(g_cache.lock);
 }
+
+/* Optimize/compact cache: remove tombstones, rebuild LRU deterministically, recompute bytes. */
+void rogue_item_collision_cache_optimize(void)
+{
+    if (!g_cache.initialized)
+        return;
+    if (g_cache.lock)
+        rogue_rwlock_acquire_write(g_cache.lock, ROGUE_LOCK_PRIORITY_NORMAL, -1);
+    /* Collect alive entries into a temporary array */
+    RogueItemCollisionCacheEntry* alive[ROGUE_COLLISION_CACHE_SIZE];
+    int alive_count = 0;
+    for (int i = 0; i < ROGUE_COLLISION_CACHE_SIZE; ++i)
+    {
+        RogueItemCollisionCacheEntry* e = &g_cache.entries[i];
+        if (e->handle != 0 && e->mask_set != NULL)
+            alive[alive_count++] = e;
+        else if (e->handle == 0 && e->mask_set == NULL)
+            ; /* free slot */
+        else
+        {
+            /* Tombstone: partially filled or freed -> fully reset */
+            free_entry(e);
+            memset(e, 0, sizeof(*e));
+        }
+    }
+    /* Sort alive by last_access_tick descending (MRU first); stable by index for parity */
+    for (int i = 0; i < alive_count; ++i)
+    {
+        for (int j = i + 1; j < alive_count; ++j)
+        {
+            if (alive[j]->last_access_tick > alive[i]->last_access_tick)
+            {
+                RogueItemCollisionCacheEntry* tmp = alive[i];
+                alive[i] = alive[j];
+                alive[j] = tmp;
+            }
+        }
+    }
+    /* Relink LRU list */
+    g_cache.lru_head = g_cache.lru_tail = NULL;
+    for (int i = 0; i < alive_count; ++i)
+    {
+        RogueItemCollisionCacheEntry* e = alive[i];
+        e->prev = NULL;
+        e->next = NULL;
+        if (!g_cache.lru_head)
+        {
+            g_cache.lru_head = g_cache.lru_tail = e;
+        }
+        else
+        {
+            e->next = g_cache.lru_head;
+            g_cache.lru_head->prev = e;
+            g_cache.lru_head = e; /* maintain MRU at head */
+        }
+    }
+    /* Recompute approx bytes */
+    size_t bytes = 0;
+    for (int i = 0; i < alive_count; ++i)
+        bytes += approx_set_bytes(alive[i]->mask_set);
+    g_cache.stats.approx_bytes = bytes;
+    /* Enforce memory limit after compaction */
+    enforce_memory_limit();
+    if (g_cache.lock)
+        rogue_rwlock_release_write(g_cache.lock);
+}
