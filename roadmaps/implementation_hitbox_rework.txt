@@ -191,6 +191,33 @@ Update (Milestone 1.2 optimize() deterministic compaction):
   - Leaves usage pattern analysis for dynamic cache sizing as a future slice; current behavior focuses on compaction, correctness, and reproducibility.
 - Unit test `tests/unit/test_item_collision_cache_optimize.c` validates compaction and stats. Windows multi‑config nuance addressed by explicitly wiring the test target in `tests/CMakeLists.txt` to avoid glob timing issues. Full suite (Debug, SDL2, `-j12`) is 100% green including this test.
 
+Update (Milestone 1.2 analytics snapshot API):
+
+- Added a read-only analytics snapshot API for the item collision cache:
+  - Public type `RogueItemCollisionCacheEntryInfo` holds `handle`, `access_count`, `last_access_tick`, `asset_timestamp`, and `approx_bytes`.
+  - Function `size_t rogue_item_collision_cache_snapshot(RogueItemCollisionCacheEntryInfo* out, size_t max_entries)` returns the number of alive entries and, when `out!=NULL`, fills up to `max_entries` entries in MRU→LRU order.
+  - Implementation acquires a read lock, computes per-entry `approx_bytes` from the mask set, and preserves deterministic ordering with a stable index tie‑breaker for equal `last_access_tick`.
+- New unit test `tests/unit/test_item_collision_cache_analytics.c` validates:
+  - MRU handle appears first, `last_access_tick` is monotonically non‑increasing across the snapshot, and `approx_bytes > 0` for realized entries.
+  - Count‑only queries (out=NULL) match the filled snapshot count.
+- CMake wiring: the new test is added explicitly in `tests/CMakeLists.txt` (MSVC multi‑config stability; avoids GLOB discovery timing). The test is headless‑safe and respects SDL2‑only policy.
+- Validation: Full Debug run (SDL2, `-j12`) remains 100% green; analytics snapshot introduces no behavior change to cache operation.
+
+Update (Milestone 1.2 dynamic limits API):
+
+- Added runtime-adjustable limits for the item collision cache:
+  - `void rogue_item_collision_cache_set_limits(int max_entries, size_t max_memory_mb)` sets the effective entry cap (<= compile-time array) and memory limit (MB). Inputs are clamped; enforcement is immediate and deterministic via LRU-tail evictions.
+  - `void rogue_item_collision_cache_get_limits(int* out_max_entries, size_t* out_max_memory_mb)` retrieves current effective limits. Either pointer may be NULL.
+- Deterministic enforcement:
+  - Memory limit enforcement trims from the LRU tail until `approx_bytes <= cap`.
+  - Entry cap enforcement trims from the LRU tail until the number of alive entries (via LRU walk) is <= `max_entries`. A `max_entries` of 0 forces an empty cache.
+  - Limits are applied after cache mutations (e.g., `get()` builds, `optimize()` compaction) and when limits are changed.
+- Unit test `tests/unit/test_item_collision_cache_limits.c` validates:
+  - Entry cap: setting cap=2 then requesting 3 items leaves <=2 entries resident (MRU ordering preserved);
+  - Memory cap: setting 0 MB evicts all entries immediately; restoring defaults allows caching again.
+- CMake wiring: test is explicitly added in `tests/CMakeLists.txt` for MSVC multi-config determinism.
+- Validation: Full Debug (SDL2) parallel ctests (`-j12`) are 100% green including the new test.
+
 #### MILESTONE 1.3: Sprite Atlas and Animation Support
 - [x] **File**: `src/game/sprite_atlas_collision.h` (initial slice implemented)
   ```c

@@ -12,6 +12,7 @@
 #include "core/loot/loot_item_defs.h"
 #include "game/hit_pixel_mask.h"
 #include "game/pixel_mask_loader.h"
+#include <stddef.h>
 #include <stdint.h>
 
 /* Alias a generic pixel mask set to the weapon-centric RogueHitPixelMaskSet for the initial slice.
@@ -67,6 +68,15 @@ extern "C"
     /* Invalidate every cached entry (lighter than full reset: keeps stats except bytes). */
     void rogue_item_collision_cache_invalidate_all(void);
 
+    /* -------- Dynamic limits (deterministic enforcement) -------- */
+    /* Set effective entry capacity (<= compile-time array size) and memory limit in MB.
+        Values are clamped to valid ranges. Enforcement occurs immediately (LRU evictions)
+        and is deterministic (evict from LRU tail). Passing a non-positive max_entries sets
+        the effective capacity to 0 (cache holds no entries). */
+    void rogue_item_collision_cache_set_limits(int max_entries, size_t max_memory_mb);
+    /* Read back current effective limits; any out parameter may be NULL. */
+    void rogue_item_collision_cache_get_limits(int* out_max_entries, size_t* out_max_memory_mb);
+
     /* -------- Background loading & hot-reload (Phase 1.2 extension) -------- */
     struct RogueThreadPool; /* fwd */
     /* Register a thread pool to enable background requests. Pass NULL to disable. */
@@ -102,6 +112,26 @@ extern "C"
         This does not free valid entries or change capacity; it is safe to call at any time and is
         intended for maintenance during loading screens or at low-frequency service points. */
     void rogue_item_collision_cache_optimize(void);
+
+    /* -------- Analytics snapshot (deterministic, MRU->LRU order) -------- */
+    typedef struct RogueItemCollisionCacheEntryInfo
+    {
+        RogueItemDefHandle handle;
+        uint32_t access_count;
+        uint64_t last_access_tick;
+        uint64_t asset_timestamp;
+        size_t approx_bytes; /* per-entry approximate resident memory */
+    } RogueItemCollisionCacheEntryInfo;
+
+    /*
+        Capture a stable snapshot of the current cache contents in MRU->LRU order.
+        The function fills up to max_entries elements of the provided out array and
+        returns the number of entries written. The snapshot is taken under the
+        cache read lock and is deterministic. Passing NULL for out returns the
+        number of entries without writing data (count query).
+    */
+    size_t rogue_item_collision_cache_snapshot(RogueItemCollisionCacheEntryInfo* out,
+                                               size_t max_entries);
 
 #ifdef __cplusplus
 }

@@ -36,6 +36,8 @@ static struct
     struct RogueThreadPool* tp; /* optional background worker pool */
     int prefetch_enabled;
     int prefetch_budget;
+    int max_entries_effective;      /* runtime effective cap (<= ROGUE_COLLISION_CACHE_SIZE) */
+    size_t max_memory_mb_effective; /* runtime memory limit in MB */
 } g_cache;
 
 static uint64_t file_mtime_simple(const char* path)
@@ -114,6 +116,8 @@ void rogue_item_collision_cache_init(void)
     g_cache.lock = rogue_rwlock_create(1200, "item_collision_cache");
     g_cache.prefetch_enabled = 1;
     g_cache.prefetch_budget = 2;
+    g_cache.max_entries_effective = ROGUE_COLLISION_CACHE_SIZE;
+    g_cache.max_memory_mb_effective = ROGUE_COLLISION_CACHE_MAX_MEMORY_MB;
 }
 
 static void free_entry(RogueItemCollisionCacheEntry* e)
@@ -159,13 +163,17 @@ void rogue_item_collision_cache_reset(void)
     memset(&g_cache, 0, sizeof(g_cache));
     g_cache.initialized = 1;
     g_cache.lock = rogue_rwlock_create(1200, "item_collision_cache");
+    g_cache.prefetch_enabled = 1;
+    g_cache.prefetch_budget = 2;
+    g_cache.max_entries_effective = ROGUE_COLLISION_CACHE_SIZE;
+    g_cache.max_memory_mb_effective = ROGUE_COLLISION_CACHE_MAX_MEMORY_MB;
     if (g_cache.lock)
         rogue_rwlock_release_write(g_cache.lock);
 }
 
 static void enforce_memory_limit(void)
 {
-    size_t limit_bytes = (size_t) ROGUE_COLLISION_CACHE_MAX_MEMORY_MB * 1024ULL * 1024ULL;
+    size_t limit_bytes = (size_t) g_cache.max_memory_mb_effective * 1024ULL * 1024ULL;
     while (g_cache.stats.approx_bytes > limit_bytes && g_cache.lru_tail)
     {
         RogueItemCollisionCacheEntry* victim = g_cache.lru_tail;
@@ -184,6 +192,33 @@ static void enforce_memory_limit(void)
         g_cache.stats.evictions++;
         victim->prev = victim->next = NULL;
         victim = prev;
+    }
+}
+
+static void enforce_entry_limit(void)
+{
+    int cap = g_cache.max_entries_effective;
+    if (cap < 0)
+        cap = 0;
+    /* Count alive via LRU walk for accuracy */
+    int alive_lru = 0;
+    for (RogueItemCollisionCacheEntry* it2 = g_cache.lru_head; it2; it2 = it2->next)
+        if (it2->handle != 0 && it2->mask_set)
+            ++alive_lru;
+    while (alive_lru > cap && g_cache.lru_tail)
+    {
+        RogueItemCollisionCacheEntry* victim = g_cache.lru_tail;
+        RogueItemCollisionCacheEntry* prev = victim->prev;
+        if (victim->prev)
+            victim->prev->next = NULL;
+        if (g_cache.lru_head == victim)
+            g_cache.lru_head = NULL;
+        g_cache.lru_tail = prev;
+        g_cache.stats.approx_bytes -= approx_set_bytes(victim->mask_set);
+        free_entry(victim);
+        memset(victim, 0, sizeof(*victim));
+        g_cache.stats.evictions++;
+        --alive_lru;
     }
 }
 
@@ -401,6 +436,7 @@ RoguePixelMaskSet* rogue_item_collision_cache_get(RogueItemDefHandle handle,
     g_cache.stats.approx_bytes += approx_set_bytes(e->mask_set);
     lru_move_front(e);
     enforce_memory_limit();
+    enforce_entry_limit();
     RoguePixelMaskSet* out_new = e->mask_set;
     if (g_cache.lock)
         rogue_rwlock_release_write(g_cache.lock);
@@ -418,6 +454,42 @@ RoguePixelMaskSet* rogue_item_collision_cache_get(RogueItemDefHandle handle,
 }
 
 RogueItemCollisionCacheStats rogue_item_collision_cache_get_stats(void) { return g_cache.stats; }
+
+size_t rogue_item_collision_cache_snapshot(RogueItemCollisionCacheEntryInfo* out,
+                                           size_t max_entries)
+{
+    if (!g_cache.initialized)
+        return 0;
+    if (g_cache.lock)
+        rogue_rwlock_acquire_read(g_cache.lock, ROGUE_LOCK_PRIORITY_NORMAL, -1);
+    /* Count alive entries first */
+    size_t count = 0;
+    for (RogueItemCollisionCacheEntry* it = g_cache.lru_head; it; it = it->next)
+    {
+        if (it->handle != 0 && it->mask_set)
+            ++count;
+    }
+    if (out && max_entries > 0)
+    {
+        size_t i = 0;
+        for (RogueItemCollisionCacheEntry* it = g_cache.lru_head; it && i < max_entries;
+             it = it->next)
+        {
+            if (it->handle == 0 || !it->mask_set)
+                continue;
+            RogueItemCollisionCacheEntryInfo info;
+            info.handle = it->handle;
+            info.access_count = it->access_count;
+            info.last_access_tick = it->last_access_tick;
+            info.asset_timestamp = it->asset_timestamp;
+            info.approx_bytes = approx_set_bytes(it->mask_set);
+            out[i++] = info;
+        }
+    }
+    if (g_cache.lock)
+        rogue_rwlock_release_read(g_cache.lock);
+    return count;
+}
 
 void rogue_item_collision_cache_invalidate_handle(RogueItemDefHandle handle)
 {
@@ -737,6 +809,42 @@ void rogue_item_collision_cache_optimize(void)
     g_cache.stats.approx_bytes = bytes;
     /* Enforce memory limit after compaction */
     enforce_memory_limit();
+    /* Enforce entry cap after compaction */
+    enforce_entry_limit();
     if (g_cache.lock)
         rogue_rwlock_release_write(g_cache.lock);
+}
+
+void rogue_item_collision_cache_set_limits(int max_entries, size_t max_memory_mb)
+{
+    if (!g_cache.initialized)
+        rogue_item_collision_cache_init();
+    if (max_entries < 0)
+        max_entries = 0;
+    if (max_entries > ROGUE_COLLISION_CACHE_SIZE)
+        max_entries = ROGUE_COLLISION_CACHE_SIZE;
+    /* max_memory_mb can be 0 to force immediate eviction */
+    if (g_cache.lock)
+        rogue_rwlock_acquire_write(g_cache.lock, ROGUE_LOCK_PRIORITY_NORMAL, -1);
+    g_cache.max_entries_effective = max_entries;
+    g_cache.max_memory_mb_effective = max_memory_mb;
+    /* Enforce immediately */
+    enforce_memory_limit();
+    enforce_entry_limit();
+    if (g_cache.lock)
+        rogue_rwlock_release_write(g_cache.lock);
+}
+
+void rogue_item_collision_cache_get_limits(int* out_max_entries, size_t* out_max_memory_mb)
+{
+    if (!g_cache.initialized)
+        rogue_item_collision_cache_init();
+    if (g_cache.lock)
+        rogue_rwlock_acquire_read(g_cache.lock, ROGUE_LOCK_PRIORITY_NORMAL, -1);
+    if (out_max_entries)
+        *out_max_entries = g_cache.max_entries_effective;
+    if (out_max_memory_mb)
+        *out_max_memory_mb = g_cache.max_memory_mb_effective;
+    if (g_cache.lock)
+        rogue_rwlock_release_read(g_cache.lock);
 }
