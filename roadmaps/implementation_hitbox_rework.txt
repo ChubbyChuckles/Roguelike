@@ -218,6 +218,17 @@ Update (Milestone 1.2 dynamic limits API):
 - CMake wiring: test is explicitly added in `tests/CMakeLists.txt` for MSVC multi-config determinism.
 - Validation: Full Debug (SDL2) parallel ctests (`-j12`) are 100% green including the new test.
 
+Update (Milestone 1.2 usage-driven advisory + defaults helper):
+
+- Introduced a read-only usage-driven advisory API for the item collision cache sizing:
+  - `void rogue_item_collision_cache_get_advisory(RogueItemCollisionCacheAdvisory* out)` computes recommended `max_entries` and `max_memory_mb` from a deterministic snapshot.
+  - MRU window is bounded: `recent_window = min(alive_entries, 32)`; `recommended_max_entries = recent_window + recent_window/2` (1.5× headroom), clamped to compile-time capacity.
+  - Memory advisory uses percentiles of `approx_bytes` (p50/p90/p99) across alive entries; recommended memory = ceil(p90 * recommended_max_entries / 1MiB) with a 1 MiB floor when entries exist.
+  - Structure exposes diagnostics: `alive_entries`, `recent_window`, and the computed percentiles for tooling/overlay.
+- Added `void rogue_item_collision_cache_set_limits_default(void)` to restore compile-time defaults deterministically.
+- Unit test `tests/unit/test_item_collision_cache_advisory.c` validates determinism for a fixed access pattern and basic invariants; explicitly wired in tests CMake for MSVC multi-config stability.
+- Validation: Full Debug SDL2 run (`ctest -C Debug -j12`) remains 100% green including the new advisory test.
+
 #### MILESTONE 1.3: Sprite Atlas and Animation Support
 - [x] **File**: `src/game/sprite_atlas_collision.h` (initial slice implemented)
   ```c

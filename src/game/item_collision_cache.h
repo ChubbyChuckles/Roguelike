@@ -133,6 +133,36 @@ extern "C"
     size_t rogue_item_collision_cache_snapshot(RogueItemCollisionCacheEntryInfo* out,
                                                size_t max_entries);
 
+    /* -------- Usage-driven dynamic sizing advisory (read-only) -------- */
+    typedef struct RogueItemCollisionCacheAdvisory
+    {
+        /* Derived recommendations (read-only; does not mutate cache limits) */
+        int recommended_max_entries;      /* based on recent MRU window with headroom */
+        size_t recommended_max_memory_mb; /* based on approx_bytes percentiles + entries */
+        /* Diagnostics */
+        int alive_entries; /* total alive entries at snapshot */
+        int recent_window; /* size of MRU window considered (<= alive, <= 32) */
+        size_t p50_bytes;  /* median approx_bytes across alive entries */
+        size_t p90_bytes;  /* 90th percentile approx_bytes across alive entries */
+        size_t p99_bytes;  /* 99th percentile approx_bytes across alive entries */
+    } RogueItemCollisionCacheAdvisory;
+
+    /*
+            Compute a usage-driven advisory for cache sizing without mutating state.
+            The function analyzes the current contents in a deterministic snapshot:
+                - recent_window = min(alive, 32) most-recently-used entries
+                - recommended_max_entries = recent_window + recent_window/2 (1.5x headroom),
+                    clamped to [0, ROGUE_COLLISION_CACHE_SIZE]
+                - p50/p90/p99 are computed across alive entries' approx_bytes
+                - recommended_max_memory_mb = ceil(p90_bytes * recommended_max_entries / 1MiB),
+                    with a floor of 1 MiB when any entries exist (0 when none)
+            All values are deterministic given a fixed cache state. Returns results via 'out'.
+    */
+    void rogue_item_collision_cache_get_advisory(RogueItemCollisionCacheAdvisory* out);
+
+    /* Helper: restore compile-time default limits deterministically. */
+    void rogue_item_collision_cache_set_limits_default(void);
+
 #ifdef __cplusplus
 }
 #endif

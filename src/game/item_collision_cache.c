@@ -848,3 +848,89 @@ void rogue_item_collision_cache_get_limits(int* out_max_entries, size_t* out_max
     if (g_cache.lock)
         rogue_rwlock_release_read(g_cache.lock);
 }
+
+/* Compute percentile from a sorted ascending array of size n, clamped. */
+static size_t percentile_u64(const size_t* arr, int n, int pct_times_100)
+{
+    if (n <= 0)
+        return 0;
+    if (pct_times_100 <= 0)
+        return arr[0];
+    if (pct_times_100 >= 10000)
+        return arr[n - 1];
+    /* rank = ceil(p * n) - 1; compute in integer with rounding up */
+    long long num = (long long) pct_times_100 * (long long) n;
+    long long rank = (num + 100 - 1) / 100 - 1; /* ceil divide by 100, then -1 */
+    if (rank < 0)
+        rank = 0;
+    if (rank >= n)
+        rank = n - 1;
+    return arr[rank];
+}
+
+void rogue_item_collision_cache_get_advisory(RogueItemCollisionCacheAdvisory* out)
+{
+    if (!out)
+        return;
+    memset(out, 0, sizeof(*out));
+    if (!g_cache.initialized)
+        rogue_item_collision_cache_init();
+    if (g_cache.lock)
+        rogue_rwlock_acquire_read(g_cache.lock, ROGUE_LOCK_PRIORITY_NORMAL, -1);
+    /* Count alive and collect approx_bytes for percentiles (ascending sort later) */
+    size_t bytes_buf[ROGUE_COLLISION_CACHE_SIZE];
+    int n = 0;
+    for (RogueItemCollisionCacheEntry* it = g_cache.lru_head; it; it = it->next)
+    {
+        if (it->handle != 0 && it->mask_set)
+        {
+            bytes_buf[n++] = approx_set_bytes(it->mask_set);
+        }
+    }
+    out->alive_entries = n;
+    int window = n < 32 ? n : 32;
+    out->recent_window = window;
+    /* recommended entries with 1.5x headroom: window + window/2 */
+    int rec_entries = window + window / 2;
+    if (rec_entries > ROGUE_COLLISION_CACHE_SIZE)
+        rec_entries = ROGUE_COLLISION_CACHE_SIZE;
+    out->recommended_max_entries = rec_entries;
+    /* Percentiles across alive entries (0 when none) */
+    if (n > 0)
+    {
+        /* Simple insertion sort for small n to keep deterministic and header-free */
+        for (int i = 1; i < n; ++i)
+        {
+            size_t key = bytes_buf[i];
+            int j = i - 1;
+            while (j >= 0 && bytes_buf[j] > key)
+            {
+                bytes_buf[j + 1] = bytes_buf[j];
+                --j;
+            }
+            bytes_buf[j + 1] = key;
+        }
+        out->p50_bytes = percentile_u64(bytes_buf, n, 5000);
+        out->p90_bytes = percentile_u64(bytes_buf, n, 9000);
+        out->p99_bytes = percentile_u64(bytes_buf, n, 9900);
+    }
+    /* recommended memory from p90 * entries (ceil to MiB), floor 1 MiB if any entries */
+    size_t rec_mem_mb = 0;
+    if (n > 0 && rec_entries > 0)
+    {
+        unsigned long long total_bytes =
+            (unsigned long long) out->p90_bytes * (unsigned long long) rec_entries;
+        rec_mem_mb = (size_t) ((total_bytes + (1024ULL * 1024ULL - 1ULL)) / (1024ULL * 1024ULL));
+        if (rec_mem_mb == 0)
+            rec_mem_mb = 1; /* floor to 1 MiB when entries exist */
+    }
+    out->recommended_max_memory_mb = rec_mem_mb;
+    if (g_cache.lock)
+        rogue_rwlock_release_read(g_cache.lock);
+}
+
+void rogue_item_collision_cache_set_limits_default(void)
+{
+    rogue_item_collision_cache_set_limits(ROGUE_COLLISION_CACHE_SIZE,
+                                          ROGUE_COLLISION_CACHE_MAX_MEMORY_MB);
+}

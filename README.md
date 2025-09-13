@@ -106,6 +106,18 @@ Item Collision Cache dynamic limits (Milestone 1.2):
 - Limits are enforced after cache mutations (`get()` and `optimize()`) and when changed, preserving MRU→LRU ordering for survivors.
 - New unit: `test_item_collision_cache_limits` validates entry and memory cap behavior; wired explicitly in `tests/CMakeLists.txt`. Full Debug suite (`ctest -C Debug -j12`) remains 100% green.
 
+Item Collision Cache usage-driven sizing advisory (Milestone 1.2):
+
+- Read-only advisory derives recommended limits from current usage without mutating state:
+  - `typedef struct RogueItemCollisionCacheAdvisory { int recommended_max_entries; size_t recommended_max_memory_mb; int alive_entries; int recent_window; size_t p50_bytes, p90_bytes, p99_bytes; }`.
+  - `void rogue_item_collision_cache_get_advisory(RogueItemCollisionCacheAdvisory* out)` analyzes a deterministic snapshot (MRU→LRU):
+    - `recent_window = min(alive_entries, 32)` most recently used entries
+    - `recommended_max_entries = recent_window + recent_window/2` (1.5× headroom), clamped to compile-time capacity
+    - memory percentiles computed over `approx_bytes` across alive entries; `recommended_max_memory_mb = ceil(p90_bytes * recommended_max_entries / 1MiB)` with a floor of 1 MiB when entries exist
+  - Helper `rogue_item_collision_cache_set_limits_default()` restores compile-time defaults deterministically.
+- Determinism: Given a fixed access pattern, advisory results are identical across runs and platforms.
+- Unit: `test_item_collision_cache_advisory` verifies determinism and reasonable recommendations under a fixed access pattern; explicitly wired in `tests/CMakeLists.txt`.
+
 #### Milestone 1.3 (Initial Sprite Atlas & Animation Collision Slice)
 
 - Added `sprite_atlas_collision.{h,c}` with:
