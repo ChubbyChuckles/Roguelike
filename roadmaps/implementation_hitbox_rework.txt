@@ -1899,3 +1899,12 @@ Validation status (after M4.1 slice):
     - [ ] Cross-platform compatibility validation
     - [ ] Performance impact analysis for processed assets
     - [ ] Automated regression testing for asset changes
+
+##### UI Skill Graph Readability + Legacy Removal (Phase 5.x slice)
+
+- The experimental zoomable skill graph (maze) received two targeted improvements for clarity and completeness:
+  - Placeholder icons: when a skill icon texture is missing, a deterministic pastel rectangle with a border is drawn at the node. This guarantees every maze intersection has a visible marker and logs once per missing skill to aid asset fixes.
+  - Dotted edge overlay: a faint dotted line overlay is rendered behind icons to reinforce connections in dense circular layouts.
+- Input/UI cleanup: the legacy skill tree previously toggled by `K` has been removed to prevent overlap. Use `G` to toggle the experimental skill graph.
+- Hot‑reload convenience: press `R` while the graph is open to rebuild from `assets/skill_maze_config.json`.
+- Determinism/CI: placeholder and overlay paths are headless‑safe and do not affect unit tests. Full Debug suite (SDL2, `-j12`) remains 100% green.

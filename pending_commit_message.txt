@@ -1,3 +1,13 @@
+feat(ui/skills): ensure all maze intersections are visible; add dotted edge overlay; remove legacy 'K' UI
+
+- Experimental skill graph (toggled with `G`):
+	- Placeholder icons for missing textures (deterministic pastel + border) so every maze intersection has a visible marker; logs once per missing skill to aid asset fixes.
+	- Dotted edge overlay behind icons for clearer connection readability on dense circular layouts.
+- Input/UI cleanup: fully removed legacy skill tree previously toggled with `K` to avoid overlapping UIs; `G` remains the sole toggle.
+- Hot‑reload: press `R` while the graph is open to rebuild from `assets/skill_maze_config.json`.
+- Docs: README and roadmap updated with the above behavior and usage notes.
+- Build/Tests: SDL2‑only Debug build with parallel ctests (`ctest -C Debug -j12`) remain 100% green.
+
 feat(hitmask): fast rect queries + SSE2-safe SIMD zero-check and tests
 Hitbox rework: Item collision cache prefetch + sprite invalidation + RW-lock concurrency; pixel mask reset API; tests green (-j12, SDL2)
 

@@ -198,6 +198,14 @@ Pixel-perfect stage LOD (update):
 
 Bitwise mask rectangle utilities (new):
 
+## Skill Graph (Experimental UI)
+
+- Toggle with `G` during gameplay to open the zoomable skill maze. The legacy skill tree bound to `K` has been fully removed to avoid overlap.
+- Every maze intersection now renders a visible marker: real skill icons when textures are available; otherwise a deterministic pastel placeholder with a border is drawn so nothing appears missing.
+- A faint dotted edge overlay is rendered behind icons to make connections clearer on dense circular layouts.
+- Hot reload: press `R` while the graph is open to rebuild from `assets/skill_maze_config.json`.
+- Notes: The placeholder path is development‑oriented and helps diagnose icon mapping issues; logs once per missing skill to aid asset fixes. Behavior is headless‑safe and does not affect tests.
+
 - Added fast bitwise rectangle queries on pixel masks: `rogue_hit_mask_any_set_in_rect` and pairwise intersection `rogue_hit_mask_intersect_any_same_origin` (word-wise with clipping). SIMD paths now include SSE2 and AVX2 with runtime selection. Behavior is deterministic and scalar/SIMD results are identical.
 - Runtime SIMD control & caps:
   - Enum mode: OFF, SSE2, AVX2, AUTO via `RogueHitMaskSimdMode`.
@@ -413,6 +421,7 @@ Press F1 in-game to open the debug overlay.
   - The environment is read once per process; application is limited to these safe windows.
 
 Build/Test status: Full Debug (SDL2) with parallel tests (`ctest -C Debug -j12`) remains 100% green with this overlay + advisory update.
+
 - Dependency listing uses existing asset_dep registry; graphical graph + thumbnails deferred to a later phase (see Asset Overlay roadmap).
 - Regex filtering and advanced thumbnail caching remain future tasks (current build shows basic inline scaled preview). Implemented: audio playback controls, JSON syntax highlighting + shallow validation (first 12 lines, brace/string balance), sprite sheet grid overlay (adjustable cell size), JSON metadata editor (editable buffer + save/reload & structural validity), and initial sprite coordinate editor (grid-aligned rectangle add/select/delete with overlay outlines and export stub). Upcoming: animation frame editor, loop point editing, regex upgrade, persistent sprite rect export.
 - NEW (Asset Overlay Phase 2 slice):

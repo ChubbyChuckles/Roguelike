@@ -581,6 +581,43 @@ void rogue_skillgraph_runtime_render(void)
     }
     /* Synergy/info panel removed for cleaner presentation */
     rogue_ui_end(&g_skill_ui);
+
+    /* Optional: draw a faint dotted edge overlay similar to UI dotted panels for better context */
+    if (g_maze_built)
+    {
+        float z = g_rt.zoom;
+        float center_x = (float) g_app.viewport_w * 0.5f + g_rt.render_offset_x;
+        float center_y = (float) g_app.viewport_h * 0.5f + g_rt.render_offset_y;
+        SDL_SetRenderDrawBlendMode(g_internal_sdl_renderer_ref, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, 48, 48, 48, 160);
+        for (int e = 0; e < g_maze.edge_count; e++)
+        {
+            int a = g_maze.edges[e].from;
+            int b = g_maze.edges[e].to;
+            if ((unsigned) a >= (unsigned) g_maze.node_count ||
+                (unsigned) b >= (unsigned) g_maze.node_count)
+                continue;
+            float ax = center_x + g_maze.nodes[a].x * z;
+            float ay = center_y + g_maze.nodes[a].y * z;
+            float bx = center_x + g_maze.nodes[b].x * z;
+            float by = center_y + g_maze.nodes[b].y * z;
+            float dx = bx - ax, dy = by - ay;
+            float len = sqrtf(dx * dx + dy * dy);
+            if (len < 2)
+                continue;
+            int steps = (int) (len / 6.0f);
+            if (steps < 1)
+                steps = 1;
+            float inv = 1.0f / (float) steps;
+            for (int s = 0; s <= steps; s++)
+            {
+                float t = (float) s * inv;
+                int cx = (int) (ax + dx * t);
+                int cy = (int) (ay + dy * t);
+                SDL_RenderDrawPoint(g_internal_sdl_renderer_ref, cx, cy);
+            }
+        }
+    }
     int count = 0;
     const RogueUINode* nodes = rogue_ui_nodes(&g_skill_ui, &count);
     for (int i = 0; i < count; i++)
@@ -616,6 +653,35 @@ void rogue_skillgraph_runtime_render(void)
                                     (int) (n->rect.y + g_rt.render_offset_y), (int) n->rect.w,
                                     (int) n->rect.h};
                     SDL_RenderCopy(g_internal_sdl_renderer_ref, tex->handle, NULL, &dst);
+                }
+                else
+                {
+                    /* Fallback: draw a placeholder so every intersection has a visible icon. */
+                    SDL_Rect dst = {(int) (n->rect.x + g_rt.render_offset_x),
+                                    (int) (n->rect.y + g_rt.render_offset_y), (int) n->rect.w,
+                                    (int) n->rect.h};
+                    /* Deterministic pastel color derived from skill id */
+                    unsigned int h = (unsigned int) skill_id * 2654435761u;
+                    Uint8 r = (Uint8) (180 + (h & 0x1F));
+                    Uint8 g = (Uint8) (180 + ((h >> 5) & 0x1F));
+                    Uint8 b = (Uint8) (180 + ((h >> 10) & 0x1F));
+                    SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, r, g, b, 220);
+                    SDL_RenderFillRect(g_internal_sdl_renderer_ref, &dst);
+                    SDL_SetRenderDrawColor(g_internal_sdl_renderer_ref, 60, 60, 80, 240);
+                    SDL_RenderDrawRect(g_internal_sdl_renderer_ref, &dst);
+                    /* Log once for diagnostics to aid asset path issues in development builds */
+                    static unsigned char s_logged_missing[8192] = {0};
+                    if (skill_id >= 0 && skill_id < (int) (sizeof s_logged_missing))
+                    {
+                        if (!s_logged_missing[skill_id])
+                        {
+                            const RogueSkillDef* def = rogue_skill_get_def(skill_id);
+                            ROGUE_LOG_WARN(
+                                "Skill icon texture missing: id=%d name=%s (drawing placeholder)",
+                                skill_id, def && def->name ? def->name : "<noname>");
+                            s_logged_missing[skill_id] = 1;
+                        }
+                    }
                 }
             }
         }
