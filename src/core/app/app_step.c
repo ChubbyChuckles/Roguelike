@@ -311,7 +311,7 @@ void rogue_app_step(void)
     }
     rogue_hud_render(); /* includes alerts + metrics overlay now */
     rogue_skill_bar_render();
-    rogue_skill_tree_render();
+    /* Legacy skill tree render removed to prevent conflicts with the experimental skill graph. */
     rogue_damage_numbers_update((float) g_app.dt);
     rogue_stats_panel_render();
     rogue_vendor_panel_render();

@@ -3,7 +3,7 @@
 #include "../core/hud/hud_overlays.h" /* alerts & metrics toggles */
 #include "../core/inventory/inventory.h"
 #include "../core/skills/skill_bar.h"
-#include "../core/skills/skill_tree.h"
+#include "../core/skills/skill_tree.h" /* legacy UI removed from input/render; will be fully retired later */
 #include "../core/skills/skills.h"
 #include "../core/vegetation/vegetation.h"
 #include "../core/vendor/economy.h"
@@ -82,15 +82,8 @@ void rogue_process_events(void)
         int overlay_capture_kb = overlay_input_want_capture_keyboard();
         if (ev.type == SDL_KEYDOWN && !g_app.show_start_screen)
         {
-            /* Allow vendor/equipment panel toggles even while skill tree UI is open. */
-            if (rogue_skill_tree_is_open())
-            {
-                if (ev.key.keysym.sym != SDLK_v && ev.key.keysym.sym != SDLK_e)
-                {
-                    rogue_skill_tree_handle_key(ev.key.keysym.sym);
-                    continue; /* consume all other keys while tree is open */
-                }
-            }
+            /* Legacy skill tree input capture removed to avoid interference with the
+               experimental skill graph (G). */
             if (!overlay_capture_kb && ev.key.keysym.sym == SDLK_TAB)
             {
                 g_app.show_stats_panel = !g_app.show_stats_panel;

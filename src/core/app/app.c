@@ -615,7 +615,7 @@ void rogue_app_step(void)
         overlay_render();
     }
     rogue_skill_bar_render();
-    rogue_skill_tree_render();
+    /* Legacy skill tree render removed (avoids interference with skill graph UI). */
     /* (skill bar update already handled inside gameplay branch) */
     /* Update floating damage numbers */
     rogue_damage_numbers_update((float) g_app.dt);
