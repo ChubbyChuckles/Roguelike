@@ -226,10 +226,8 @@ void rogue_process_events(void)
                     g_app.show_vendor_panel = 0;
                 }
             }
-            if (!overlay_capture_kb && ev.key.keysym.sym == SDLK_k)
-            {
-                rogue_skill_tree_toggle();
-            }
+            /* Removed legacy skill tree toggle bound to 'K' to avoid duplicate skills UI.
+               The experimental skill graph remains available via 'G'. */
             /* Toggle experimental skill graph (new UI system) with G */
             if (!overlay_capture_kb && ev.key.keysym.sym == SDLK_g)
             {
