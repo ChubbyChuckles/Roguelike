@@ -1,3 +1,13 @@
+Hitbox: Pixel mask loader error recovery, roadmap/docs update
+
+- Implement conservative error‑recovery in pixel mask loader:
+	- When an image file loads (SDL surface OK) but mask build fails due to unexpected format or partial/corrupt data, synthesize a 1×1 fully transparent surface and build an empty mask. This yields a valid frame instead of a hard failure and preserves deterministic downstream behavior.
+	- If the image cannot be opened/decoded at all, behavior is unchanged (return 0; log diagnostic) so higher layers can choose a placeholder path.
+- Update roadmap (Milestone 1.1): mark “Error recovery for corrupted/partial image data” complete with a short note.
+- README: document the recovery behavior under the pixel‑mask loader section.
+
+Build/test: No public API changes; SDL2‑only. Existing tests remain green in Debug/Release with parallel `ctest -j12`.
+
 feat(ui/skills): ensure all maze intersections are visible; add dotted edge overlay; remove legacy 'K' UI
 
 - Experimental skill graph (toggled with `G`):

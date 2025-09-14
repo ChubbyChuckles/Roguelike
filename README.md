@@ -32,6 +32,8 @@ No configuration changes are required; small images or missing pool fall back to
 
 IO probing note (SDL_RWops): Magic-number detection in `rogue_pixel_mask_load_from_file` now uses SDL_RWops (SDL_RWFromFile/SDL_RWread/SDL_RWseek/SDL_RWclose) to adhere to SDL2‑only builds and avoid MSVC secure CRT warnings. Formats: PNG, BMP, DDS via headers; TGA via footer when SDL_image is available; unknown headers fall back gracefully.
 
+- Error recovery (corrupted/partial image data): If an image file can be opened and decoded into an SDL surface but the mask build fails (e.g., due to unexpected pixel format or partial/corrupt pixel data), the loader now performs a conservative recovery by synthesizing a 1×1 fully transparent surface and building an empty mask. This yields a valid frame and preserves deterministic behavior for downstream systems. If the image cannot be loaded at all, behavior is unchanged (the function returns 0 and logs a diagnostic), allowing higher layers to choose a placeholder.
+
 - Unit tests: `test_hit_mask_basic`, `test_hit_mask_integration`, `test_hit_mask_distance_field` (SDF + async), and new `test_hit_mask_multiformat` (BMP fallback) keep regression coverage high.
   - New units cover recent features: `test_hit_mask_alpha_gamma`, `test_hit_mask_luma_alpha`, and `test_hit_mask_smoothing`.
 
@@ -117,6 +119,25 @@ Item Collision Cache usage-driven sizing advisory (Milestone 1.2):
   - Helper `rogue_item_collision_cache_set_limits_default()` restores compile-time defaults deterministically.
 - Determinism: Given a fixed access pattern, advisory results are identical across runs and platforms.
 - Unit: `test_item_collision_cache_advisory` verifies determinism and reasonable recommendations under a fixed access pattern; explicitly wired in `tests/CMakeLists.txt`.
+
+### Weapon Collision Advanced (Milestone 2.2 – Initial Slice)
+
+New lightweight utilities for advanced weapon collision integration are available:
+
+- `weapon_collision_advanced.h/.c` exposes:
+  - 2D transform helpers using a 3x3 affine matrix (`rogue_matrix_identity`, `rogue_matrix_mul`, `rogue_matrix_translate`, `rogue_matrix_rotate`, `rogue_matrix_scale`) and `rogue_weapon_matrix_transform_point` to apply a matrix to a point.
+  - `RogueWeaponTrail`: fixed-size trail buffer with timestamps; `rogue_weapon_trail_add` prunes entries older than a window (`trail_duration_ms`).
+  - `RogueWeaponCollisionState`: transform matrix, velocity, animation time, `collision_layer_mask`, `quality_override`, trail, and cached AABB.
+  - Helpers: `rogue_weapon_collision_state_init`, `rogue_weapon_collision_compute_transform` (translate+rotate composition; scale parameter reserved), `rogue_weapon_collision_update_trail` (records current position and recomputes a coarse trail AABB).
+  - AABB utilities: `rogue_weapon_collision_trail_aabb` (inline) and `rogue_weapon_collision_sweep_bounds` (non-inline) for conservative sweep bounds by expanding with a radius.
+  - Layer/quality accessors: `rogue_weapon_collision_set/get_layer_mask`, `rogue_weapon_collision_set/get_quality_override`.
+
+Notes/limits for this slice:
+
+- Scale is not baked into the transform matrix yet; it will be applied to collision geometry in a later slice to keep the rotation block orthonormal and tests stable.
+- These helpers are headless-safe and don’t alter existing gameplay; they’re scaffolding for upcoming integration with the multi-stage collision pipeline.
+
+Unit test: `tests/unit/test_weapon_collision_trail` verifies transform components, trail pruning/capacity, AABB bounds, and layer mask filtering.
 
 #### Milestone 1.3 (Initial Sprite Atlas & Animation Collision Slice)
 

@@ -112,7 +112,9 @@ extern "C"
                 t->positions[(i - start) * 2 + 1] = t->positions[i * 2 + 1];
                 t->timestamps[i - start] = t->timestamps[i];
             }
-            t->sample_count -= start;
+            /* Compute new count in a wider type then cast to avoid narrowing warnings. */
+            uint8_t new_count = (uint8_t) ((int) t->sample_count - start);
+            t->sample_count = new_count;
         }
     }
 
@@ -144,6 +146,7 @@ extern "C"
                                                                 float px, float py, float rot_rad,
                                                                 float scale, float vx, float vy)
     {
+        (void) scale; /* not applied to matrix in this milestone */
         RogueMatrix3x3 T = rogue_matrix_translate(px, py);
         RogueMatrix3x3 R = rogue_matrix_rotate(rot_rad);
         /* Note: For the purposes of collision trail and orientation checks in this
@@ -227,6 +230,22 @@ extern "C"
     {
         return (weapon_mask & candidate_mask) != 0;
     }
+
+    /* Non-inline helpers implemented in weapon_collision_advanced.c */
+    /* Transform a point (x,y) by the 3x3 affine matrix m → (out_x,out_y). */
+    void rogue_weapon_matrix_transform_point(const RogueMatrix3x3* m, float x, float y,
+                                             float* out_x, float* out_y);
+
+    /* Expand the current trail AABB by a radius to obtain a conservative sweep bound. */
+    bool rogue_weapon_collision_sweep_bounds(const RogueWeaponCollisionState* s, float radius,
+                                             float* out_minx, float* out_miny, float* out_maxx,
+                                             float* out_maxy);
+
+    /* Small state helpers for layer mask and quality override (non-inline for ABI stability). */
+    void rogue_weapon_collision_set_layer_mask(RogueWeaponCollisionState* s, uint32_t mask);
+    uint32_t rogue_weapon_collision_get_layer_mask(const RogueWeaponCollisionState* s);
+    void rogue_weapon_collision_set_quality_override(RogueWeaponCollisionState* s, uint8_t q);
+    uint8_t rogue_weapon_collision_get_quality_override(const RogueWeaponCollisionState* s);
 
 #ifdef __cplusplus
 }

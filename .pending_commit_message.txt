@@ -24,3 +24,19 @@ Vendor System – Phase 14 Analytics: add vendor_analytics module, wire hooks, t
 - README: add concise Vendor Analytics (Phase 14) summary under Testing & Quality Gates notes
 
 Quality gates: Debug (SDL2) build and full CTest run passed 100% (660/660) locally after changes.
+
+Hitbox Rework – Milestone 2.2 (Initial Weapon Collision Advanced Slice)
+
+- Add `src/game/weapon_collision_advanced.h/.c` providing:
+	- 3x3 affine matrix utilities and `rogue_weapon_matrix_transform_point`.
+	- `RogueWeaponCollisionState` with transform, velocity, animation time, `collision_layer_mask`, `quality_override`, and a small time-windowed `RogueWeaponTrail`.
+	- Trail add/prune (FIFO + duration) and coarse sweep AABB via `rogue_weapon_collision_trail_aabb` and non-inline `rogue_weapon_collision_sweep_bounds` (radius-expanded).
+	- Non-inline setters/getters for layer mask and quality override to keep ABI surface stable.
+	- `rogue_weapon_collision_compute_transform` composes translate+rotate (scale param reserved for later slices to keep rotation block orthonormal). Addressed MSVC warnings-as-errors: removed narrowing in trail prune and marked unused scale param.
+- Wire new `.c` into `rogue_core` in `CMakeLists.txt`.
+- Unit test `tests/unit/test_weapon_collision_trail.c` validates transform, trail windowing, AABB bounds, and layer filter.
+- Roadmap updated (`roadmaps/implementation_hitbox_rework.txt`): mark Milestone 2.2 initial slice complete; outline next increments (motion blur sampling, bilinear mask transform, pose tool integration, temporal sweep tie-in).
+- README updated with a concise "Weapon Collision Advanced" section documenting public helpers, limits, and usage.
+
+Quality gates (Windows, SDL2):
+- Debug build with `--parallel 12` succeeded; full `ctest -C Debug -j12` passed with 1 flaky start-screen test (`test_start_screen_phase10_3_localization`) that segfaulted once but passed on immediate retry. Treating suite as green (flaky_report.txt notes start-screen instability under parallel runs). All collision/hitbox tests green.

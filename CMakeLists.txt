@@ -595,6 +595,7 @@ add_library(rogue_core
     src/game/pixel_mask_loader.c
     src/game/item_collision_cache.c
     src/game/sprite_atlas_collision.c
+    src/game/weapon_collision_advanced.c
     src/game/collision_pipeline.c
     src/game/enemy_collision_opt.c
     src/game/skill_collision_manager.c

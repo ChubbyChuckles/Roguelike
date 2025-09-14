@@ -94,7 +94,8 @@ Core Subsystems:
         - Recomputes collision metrics deterministically after smoothing.
       - Existing mipchain smoothing retained: when `edge_smoothing_passes > 0`, a separable 1-2-1 smoothing pre-pass is applied prior to each 2x2 downsample for cleaner LOD transitions.
       - Unit coverage: `test_hit_mask_smoothing` verifies reduced speckles without eliminating the mask; threaded parity test remains green.
-    - [ ] (Future) Error recovery for corrupted/partial image data
+    - [x] Error recovery for corrupted/partial image data
+      - If an image file loads but mask build fails (unexpected pixel format or partial/corrupt data), the loader now synthesizes a tiny 1x1 fully transparent SDL surface and builds an empty mask. This yields a valid frame and conservative behavior instead of a hard failure. When the image itself fails to load, behavior is unchanged (returns 0 and logs). Deterministic and SDL2-only.
   - [x] **Function**: `rogue_pixel_mask_load_from_file()` (basic path via SDL_image IMG_Load, fallback safe)
     - [x] File format auto-detection via magic number analysis
       - Implemented conservative magic-number probing to identify PNG, BMP, and DDS without relying on file extensions. Probing now uses SDL_RWops (SDL2‑only) instead of CRT `fopen`/`fread` to avoid MSVC secure CRT warnings and keep portability. TGA is probed via footer only when SDL_image is present (to avoid partial/corrupt reads). Falls back gracefully and logs when unsupported/unknown.
@@ -397,6 +398,31 @@ Update (headless corruption-scan guard + Release parity):
 ##### Vendored SDL2 Enforcement (Windows) + CI Cleanup
 
 - Removed the option to vendorize SDL from a local vcpkg install and deleted all remaining vcpkg coupling in CMake and CI. Windows builds now rely exclusively on `third_party/SDL2` for headers, import libs, and staged DLLs.
+
+#### MILESTONE 2.2: Advanced Weapon Collision Integration (INITIAL SLICE COMPLETE)
+
+- [x] File: `src/game/weapon_collision_advanced.h/.c` (initial slice implemented and wired)
+  - Public 2D transform utilities: 3x3 affine matrix helpers (identity, mul, translate, rotate, scale) and a non-inline point transform: `void rogue_weapon_matrix_transform_point(const RogueMatrix3x3*, float x, float y, float* out_x, float* out_y)`.
+  - Weapon collision state: position/rotation transform, linear velocity, animation time, collision `layer_mask`, optional `quality_override`, and a small trail ring buffer with duration windowing.
+  - Trail recording and pruning: fixed-capacity FIFO with time-window pruning; warnings-as-errors safe under MSVC.
+  - Coarse sweep AABB from trail: inline `rogue_weapon_collision_trail_aabb(...)` plus a convenience non-inline `rogue_weapon_collision_sweep_bounds(...)` that expands by a radius.
+  - Layer/quality helpers: non-inline set/get for `layer_mask` and `quality_override` for ABI stability.
+  - Transform compute baseline: `rogue_weapon_collision_compute_transform(...)` composes translate+rotate, intentionally deferring scale application to downstream collision in this slice (keeps rotation orthonormal; `scale` param currently unused). Header marks parameter intentionally unused to satisfy Werror.
+  - Deterministic behavior and headless-safe usage guaranteed; no SDL dependencies beyond existing project baseline.
+
+- [x] Tests: `tests/unit/test_weapon_collision_trail.c`
+  - Validates translation/rotation components of the transform, trail capacity/window pruning, coarse AABB bounds, and layer mask filter logic.
+  - Test is headless-safe and runs under SDL2-only policy.
+
+- [x] Build & CI: Added `src/game/weapon_collision_advanced.c` to `rogue_core` in `CMakeLists.txt`. Debug build with SDL2 (`--parallel 12`) is green; full CTest suite passes with one flaky start-screen test that passed on immediate retry (see flaky report).
+
+Scope notes and next steps for 2.2:
+- Current slice does not bake `scale` into the transform matrix; scale will be applied to collision geometry in a later slice to preserve stable rotation properties now.
+- Future increments for Milestone 2.2:
+  - Motion blur sampling along the trail with adjustable quality tied to `quality_override` and distance-to-camera.
+  - Bilinear sampling for pixel masks during sub-pixel transforms (coarse to precise LOD tie-in).
+  - Authoring-time layer presets and validation hooks in the pose tool; integrate with `weapon_pose_tool`.
+  - Tight coupling to collision pipeline temporal stage for predictive sweep against dynamic enemies.
 - CMake enforces manual-root discovery with NO_DEFAULT_PATH to avoid system leakage, preferring the vendored root by default. Tests inherit PATH and dummy SDL driver env via the unified test wrapper.
 - Linux/macOS pipelines continue to use system packages via pkg-config/Homebrew. This locks determinism for Windows while keeping Unix convenience.
 

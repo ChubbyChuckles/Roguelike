@@ -1128,6 +1128,38 @@ int rogue_pixel_mask_load_from_file(const char* path, const RoguePixelMaskLoadCo
         }
     }
     int ok = rogue_pixel_mask_build_from_surface(surf, cfg, out_frame, out_metrics);
+    if (!ok)
+    {
+        /* Error recovery: if we loaded an image surface but building the mask failed
+           (e.g., unexpected pixel format or partial/corrupt data), synthesize a tiny
+           transparent 1x1 surface and build an empty mask so callers receive a valid
+           frame. This keeps downstream code paths robust and deterministic. */
+        ROGUE_LOG_DEBUG(
+            "pixel_mask_loader: build failed for '%s' — recovering with 1x1 empty surface", path);
+        SDL_Surface* empty = SDL_CreateRGBSurfaceWithFormat(0, 1, 1, 32, SDL_PIXELFORMAT_RGBA32);
+        if (empty)
+        {
+            /* Ensure fully transparent */
+            if (SDL_LockSurface(empty) == 0)
+            {
+                Uint32* px = (Uint32*) empty->pixels;
+                if (px)
+                    *px = 0x00000000u; /* ARGB: A=0 */
+                SDL_UnlockSurface(empty);
+            }
+            /* Re-init metrics to sane defaults for the recovery path */
+            RoguePixelMaskLoadConfig def = cfg ? *cfg : rogue_pixel_mask_load_config_default();
+            def.mipmap_levels = 1;     /* keep minimal */
+            def.compression_level = 0; /* avoid extra work on recovery */
+            def.generate_distance_fields = 0;
+            ok = rogue_pixel_mask_build_from_surface(empty, &def, out_frame, out_metrics);
+            SDL_FreeSurface(empty);
+        }
+        else
+        {
+            ok = 0; /* fallback creation failed; propagate original failure */
+        }
+    }
     SDL_FreeSurface(surf);
     return ok;
 #endif
