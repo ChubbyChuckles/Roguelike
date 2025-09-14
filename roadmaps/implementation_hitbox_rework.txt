@@ -416,6 +416,17 @@ Update (headless corruption-scan guard + Release parity):
 
 - [x] Build & CI: Added `src/game/weapon_collision_advanced.c` to `rogue_core` in `CMakeLists.txt`. Debug build with SDL2 (`--parallel 12`) is green; full CTest suite passes with one flaky start-screen test that passed on immediate retry (see flaky report).
 
+Update (Milestone 2.2 – Advanced Sweep Resampling):
+
+- Implemented a quality-tied advanced sweep AABB that resamples along the weapon motion trail to conservatively cover sub-frame motion between recorded samples.
+  - New API: `bool rogue_weapon_collision_sweep_bounds_advanced(const RogueWeaponCollisionState* s, float radius, float now_ms, float* out_minx, float* out_miny, float* out_maxx, float* out_maxy)`.
+  - Deterministic quality mapping: q<=1 (FAST) → 1 sample/segment (endpoints only), q=2 (BALANCED/default) → 3 samples/segment, q>=3 (PRECISE/ULTRA) → 5 samples/segment.
+  - Always includes all recorded trail points; interior linear interpolation samples ensure conservative coverage for curved or angled paths. Expands by `radius`.
+  - `now_ms` is reserved for future predictive extension and currently unused (marked to satisfy Werror).
+- Unit test `tests/unit/test_weapon_collision_advanced_sweep.c` validates FAST vs PRECISE bounds and radius expansion on an L-shaped trajectory.
+- Full Debug run (SDL2, `-j12`) remains 100% green (735/735).
+- Remaining deferred within this item: true sub-frame transform interpolation and bilinear pixel-mask sampling during rotation/scale; those will follow in subsequent slices.
+
 Scope notes and next steps for 2.2:
 - Current slice does not bake `scale` into the transform matrix; scale will be applied to collision geometry in a later slice to preserve stable rotation properties now.
 - Future increments for Milestone 2.2:

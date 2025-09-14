@@ -226,3 +226,15 @@ feat(item-collision-cache): async background loading + timestamp polling; tests/
 	- README adds short usage examples for async requests and polling hook
 
 Build: Windows (SDL2‑only vendor), CMake + CTest Debug, -j12 parallel
+
+Milestone 2.2 – Advanced sweep resampling for weapon collision
+
+- Add `rogue_weapon_collision_sweep_bounds_advanced` (quality-tied resampling of motion trail):
+  - q<=1 (FAST): endpoints only (1 sample/segment)
+  - q=2 (BALANCED/default): 3 samples/segment
+  - q>=3 (PRECISE/ULTRA): 5 samples/segment
+  - Conservative AABB including recorded points and interior linear samples; expanded by radius. `now_ms` reserved for future predictive extension.
+- Implement in `src/game/weapon_collision_advanced.c`; declare in header.
+- New unit `tests/unit/test_weapon_collision_advanced_sweep.c` covering FAST vs PRECISE bounds and radius expansion on an L-shaped path.
+- Docs: update README (advanced sweep API + test) and roadmap (Milestone 2.2 update section).
+- Build/Test: Debug SDL2 build with `--parallel 12`; full ctest `-C Debug -j12` all green (735/735).

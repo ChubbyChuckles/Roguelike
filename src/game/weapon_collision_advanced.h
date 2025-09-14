@@ -241,6 +241,20 @@ extern "C"
                                              float* out_minx, float* out_miny, float* out_maxx,
                                              float* out_maxy);
 
+    /* Advanced sweep that resamples along the recorded trail based on quality.
+     * Quality mapping (deterministic, small CPU cost):
+     *   q=0 (default/balanced) -> 3 samples/segment
+     *   q=1 (FAST)             -> 1 sample/segment (endpoints only)
+     *   q=2 (BALANCED)         -> 3 samples/segment
+     *   q>=3 (PRECISE/ULTRA)   -> 5 samples/segment
+     * The function returns a conservative AABB expanded by 'radius'.
+     * 'now_ms' is accepted for future predictive extension; it is currently unused.
+     */
+    bool rogue_weapon_collision_sweep_bounds_advanced(const RogueWeaponCollisionState* s,
+                                                      float radius, float now_ms, float* out_minx,
+                                                      float* out_miny, float* out_maxx,
+                                                      float* out_maxy);
+
     /* Small state helpers for layer mask and quality override (non-inline for ABI stability). */
     void rogue_weapon_collision_set_layer_mask(RogueWeaponCollisionState* s, uint32_t mask);
     uint32_t rogue_weapon_collision_get_layer_mask(const RogueWeaponCollisionState* s);

@@ -130,6 +130,7 @@ New lightweight utilities for advanced weapon collision integration are availabl
   - `RogueWeaponCollisionState`: transform matrix, velocity, animation time, `collision_layer_mask`, `quality_override`, trail, and cached AABB.
   - Helpers: `rogue_weapon_collision_state_init`, `rogue_weapon_collision_compute_transform` (translate+rotate composition; scale parameter reserved), `rogue_weapon_collision_update_trail` (records current position and recomputes a coarse trail AABB).
   - AABB utilities: `rogue_weapon_collision_trail_aabb` (inline) and `rogue_weapon_collision_sweep_bounds` (non-inline) for conservative sweep bounds by expanding with a radius.
+    - Advanced sweep: `rogue_weapon_collision_sweep_bounds_advanced` resamples along the recorded trail with a deterministic quality mapping (FAST=1 sample/segment, BALANCED=3, PRECISE/ULTRA=5) and expands by the provided radius.
   - Layer/quality accessors: `rogue_weapon_collision_set/get_layer_mask`, `rogue_weapon_collision_set/get_quality_override`.
 
 Notes/limits for this slice:
@@ -138,6 +139,7 @@ Notes/limits for this slice:
 - These helpers are headless-safe and don’t alter existing gameplay; they’re scaffolding for upcoming integration with the multi-stage collision pipeline.
 
 Unit test: `tests/unit/test_weapon_collision_trail` verifies transform components, trail pruning/capacity, AABB bounds, and layer mask filtering.
+Additional unit: `tests/unit/test_weapon_collision_advanced_sweep` validates the quality-tied resampling and radius expansion.
 
 #### Milestone 1.3 (Initial Sprite Atlas & Animation Collision Slice)
 
